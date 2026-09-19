@@ -6,14 +6,13 @@
     "defs": {
       "sysml.part": {
         "id": "sysml.part",
-        "home": "ws",
         "from": "sysml",
         "group": "block",
         "name": "part",
         "body": "A part property: a block owned by another block.",
         "extends": "block",
         "names": {
-          "sysml": "«part»"
+          "sysml": "\u00abpart\u00bb"
         },
         "components": {
           "card": {}
@@ -21,14 +20,13 @@
       },
       "sysml.block": {
         "id": "sysml.block",
-        "home": "ws",
         "from": "sysml",
         "group": "block",
         "name": "block",
         "body": "A SysML block: the unit of structure.",
         "extends": "block",
         "names": {
-          "sysml": "«block»"
+          "sysml": "\u00abblock\u00bb"
         },
         "components": {
           "card": {}
@@ -36,31 +34,27 @@
       },
       "sysml.port": {
         "id": "sysml.port",
-        "home": "ws",
         "from": "sysml",
         "group": "block",
         "name": "port",
         "body": "A proxy or full port, seated on the edge of a block.",
         "extends": "interface",
         "names": {
-          "sysml": "«port»"
+          "sysml": "\u00abport\u00bb"
         },
         "components": {
-          "card": {
-            "name": "none"
-          }
+          "card": {}
         }
       },
       "sysml.activity": {
         "id": "sysml.activity",
-        "home": "ws",
         "from": "sysml",
         "group": "block",
         "name": "activity",
         "body": "An activity: what happens over a structure.",
         "extends": "block",
         "names": {
-          "sysml": "«activity»"
+          "sysml": "\u00abactivity\u00bb"
         },
         "components": {
           "card": {}
@@ -68,14 +62,13 @@
       },
       "sysml.requirement": {
         "id": "sysml.requirement",
-        "home": "ws",
         "from": "sysml",
         "group": "block",
         "name": "requirement",
         "body": "A requirement: an id and a shall statement.",
         "extends": "block",
         "names": {
-          "sysml": "«requirement»"
+          "sysml": "\u00abrequirement\u00bb"
         },
         "fields": [
           {
@@ -88,13 +81,8 @@
           }
         ],
         "components": {
-          "card": {
-            "shows": [
-              "id",
-              "text"
-            ]
-          },
-          "rules": {
+          "card": {},
+          "expects": {
             "required": [
               "id",
               "text"
@@ -104,17 +92,16 @@
       },
       "sysml.satisfy": {
         "id": "sysml.satisfy",
-        "home": "ws",
         "from": "sysml",
         "group": "relation",
         "name": "satisfy",
         "body": "A part satisfies a requirement.",
         "extends": "line",
         "names": {
-          "sysml": "«satisfy»"
+          "sysml": "\u00absatisfy\u00bb"
         },
         "components": {
-          "rules": {
+          "allows": {
             "ends": {
               "to": [
                 "sysml.requirement"
@@ -125,17 +112,16 @@
       },
       "sysml.itemflow": {
         "id": "sysml.itemflow",
-        "home": "ws",
         "from": "sysml",
         "group": "relation",
         "name": "item flow",
         "body": "What travels along a connector.",
         "extends": "line",
         "names": {
-          "sysml": "«itemFlow»"
+          "sysml": "\u00abitemFlow\u00bb"
         },
         "components": {
-          "rules": {
+          "allows": {
             "ends": {
               "fromFlow": "out",
               "toFlow": "in"
@@ -145,7 +131,6 @@
       },
       "sysml.ibd": {
         "id": "sysml.ibd",
-        "home": "ws",
         "from": "sysml",
         "group": "view",
         "name": "internal block",
@@ -158,7 +143,6 @@
       },
       "sysml.act": {
         "id": "sysml.act",
-        "home": "ws",
         "from": "sysml",
         "group": "view",
         "name": "activity diagram",

@@ -57,6 +57,15 @@ const at = (id: Id): string | null => {
 
 const labels = (bs: { label?: string; id: Id }[]) => bs.map((b) => b.label ?? b.id).sort();
 
+/** A holder standing for a new block on the layer; the holder is made where it is not there. */
+function stands_for(holder: Id, block: Id): void {
+  const held = g.holders[holder] ?? { id: holder, parent: "layer", arrangement: "free" as const };
+  commit("stand", [
+    { op: "add_block", block: { id: block, parent: "layer", type: "block", name: block } },
+    { op: "set_holder", holder: { ...held, of: block } },
+  ]);
+}
+
 beforeEach(() => {
   log = [];
   commit("board", [{ op: "checkpoint", graph: board() }]);
@@ -153,6 +162,21 @@ describe("allocation", () => {
     act("merge", {}, [{ group: "grid", r: 1, c: 0 }, { group: "grid", r: 2, c: 0 }]);
     seat("lower", 2, 2);
     expect(labels(allocations_of(g, "lower"))).toContain("tall");
+  });
+
+  /** The other shape: a holder stands for a block, and what it holds is allocated to it. */
+  it("puts every member under what its holder stands for", () => {
+    stands_for("grid", "section");
+    seat("cell", 1, 2);
+    expect(labels(allocations_of(g, "cell"))).toEqual(["section"]);
+    expect(labels(allocated_to(g, "section"))).toEqual(["cell"]);
+  });
+
+  it("reaches through a holder nested in the one that stands for a block", () => {
+    stands_for("round", "section");
+    commit("nest", [{ op: "set_holder", holder: { ...g.holders["grid"]!, group: "round" } }]);
+    seat("cell", 1, 2);
+    expect(labels(allocated_to(g, "section"))).toEqual(["cell"]);
   });
 });
 

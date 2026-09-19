@@ -3,6 +3,11 @@
 import type { Block, Cell, Graph, HeaderRole, Holder, Id, Span } from "./types";
 
 
+/** The stable order a layer and every holder in it read in. */
+const by_order = (a: { order?: number; id: Id }, b: { order?: number; id: Id }): number =>
+  (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id);
+
+
 /** Whether two spans cover any cell in common. */
 export function overlaps(a: Span, b: Span): boolean {
   return a.r < b.r + b.rows && b.r < a.r + a.rows
@@ -39,7 +44,7 @@ export function is_holder(graph: Graph, id: Id): boolean {
 export function holders_in(graph: Graph, layer: Id): Holder[] {
   return Object.values(graph.holders)
     .filter((h) => h.parent === layer)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+    .sort(by_order);
 }
 
 /** The holder a block sits in, or null. */
@@ -53,32 +58,39 @@ export function cell_of(graph: Graph, id: Id): Cell | null {
   return b?.group && b.cell ? { ...b.cell } : null;
 }
 
-/** How many holders enclose a block — zero for one sitting on the layer. A holder may sit in
- *  another, so this walks both blocks and holders. */
-export function group_depth(graph: Graph, id: Id): number {
-  let depth = 0;
-  let at = (graph.blocks[id] ?? graph.holders[id])?.group;
+/** The holders enclosing a block or a holder, nearest first. A holder may sit in another, so
+ *  this walks both. */
+export function holders_over(graph: Graph, id: Id): Holder[] {
+  const out: Holder[] = [];
   const seen = new Set<Id>();
+  let at = (graph.blocks[id] ?? graph.holders[id])?.group;
   while (at && !seen.has(at)) {
     seen.add(at);
-    depth++;
-    at = graph.holders[at]?.group;
+    const h = graph.holders[at];
+    if (!h) break;
+    out.push(h);
+    at = h.group;
   }
-  return depth;
+  return out;
+}
+
+/** How many holders enclose a block — zero for one sitting on the layer. */
+export function group_depth(graph: Graph, id: Id): number {
+  return holders_over(graph, id).length;
 }
 
 /** Everything a holder holds, in the layer's stable order. Blocks and nested holders alike. */
 export function members_of(graph: Graph, group: Id): (Block | Holder)[] {
   return [...Object.values(graph.blocks), ...Object.values(graph.holders)]
     .filter((b) => b.group === group)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+    .sort(by_order);
 }
 
 /** The blocks a holder holds. A cell seats a card, so everything about cells asks this. */
 export function block_members(graph: Graph, group: Id): Block[] {
   return Object.values(graph.blocks)
     .filter((b) => b.group === group)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+    .sort(by_order);
 }
 
 /** Whether `holder` may contain `id` — not itself and not a cycle. A cell seats one card and a
@@ -150,8 +162,8 @@ function along(a: number, an: number, b: number, bn: number): boolean {
   return a < b + bn && b < a + an;
 }
 
-/** The headers a block is allocated to: the one heading its row, its column, or both. */
-export function allocations_of(graph: Graph, id: Id): Block[] {
+/** The headers a seated block sits under: the one heading its row, its column, or both. */
+function headers_over(graph: Graph, id: Id): Block[] {
   const me = region_of(graph, id);
   const group = graph.blocks[id]?.group;
   if (!me || !group) return [];
@@ -170,10 +182,21 @@ export function allocations_of(graph: Graph, id: Id): Block[] {
   return out;
 }
 
-/** Everything allocated to this header. */
+/** The blocks a block is allocated to. **Both holder shapes answer**: a grid allocates through
+ *  its headers, and any holder allocates through the block it stands for — its `of` — so a table
+ *  standing for a section puts every cell of it under that section. */
+export function allocations_of(graph: Graph, id: Id): Block[] {
+  const out = headers_over(graph, id);
+  for (const h of holders_over(graph, id)) {
+    const stood = h.of ? graph.blocks[h.of] : undefined;
+    if (stood && stood.id !== id && !out.some((b) => b.id === stood.id)) out.push(stood);
+  }
+  return out;
+}
+
+/** Everything allocated to this block, whichever way it was allocated. */
 export function allocated_to(graph: Graph, id: Id): Block[] {
-  const group = graph.blocks[id]?.group;
-  if (!group || !graph.blocks[id]?.header) return [];
-  return block_members(graph, group)
-    .filter((b) => b.id !== id && allocations_of(graph, b.id).some((h) => h.id === id));
+  return Object.values(graph.blocks)
+    .filter((b) => b.id !== id && allocations_of(graph, b.id).some((h) => h.id === id))
+    .sort(by_order);
 }
