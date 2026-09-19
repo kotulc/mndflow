@@ -20,7 +20,7 @@ export function Content({ graph, id, onAct }: ContentProps) {
   if (def) {
     return (
       <div className="content">
-        <Band label="body" />
+        <Band label="content" />
         <textarea className="data" value={JSON.stringify(def, null, 2)} aria-label="definition data"
                   readOnly spellCheck={false} />
       </div>
@@ -29,7 +29,7 @@ export function Content({ graph, id, onAct }: ContentProps) {
 
   return (
     <div className="content">
-      <Band label="body" />
+      <Band label="content" />
       <textarea value={draft ?? stored} aria-label="body" spellCheck
                 placeholder="what this says — a description, a requirement, a script"
                 onChange={(e) => set_draft(e.target.value)}

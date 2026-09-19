@@ -41,27 +41,26 @@
 | **grid** | any block, one to a cell | a region of the lattice with an extent — rows, columns, merges. It owns its corner, because an empty one would otherwise be nothing |
 | **note** | text | a remark **about one block**, drawn as a card of its text and tied to that block |
 
-**Seven, in two families.** `block`, `folder` and `note` are **open**: they differ in what they are for, and a block is retyped among them freely. **There is no `resource`** — every block may carry a `source`, so a kind for external content named a slot rather than a sort of thing. `reference`, `interface`, `group`, `grid` and `note` are **derived** — each carries something a change of type cannot invent, so one is arrived at by making one. **There is no doing/being split** — an action and a part are both `block`, and what separates them is the definition each names.
+**Seven, in two families.** `block`, `folder` and `note` are **open**: they differ in what they are for, and a block is retyped among them freely. **There is no `resource`** — every block may carry a `source`, so a kind for external content named a slot rather than a sort of thing. `reference` and `interface` are **derived** — each carries a stored field a change of type cannot invent, so one is arrived at by making one — and `group` and `grid` name **holder shapes**, which are not blocks at all. **There is no doing/being split** — an action and a part are both `block`, and what separates them is the definition each names.
 
 **A group and a grid are two modules, not one with a setting.** They differ in what a member's place *is* — a boundary reads its bounds off wherever its members ended up, a grid says where each member goes — which is a difference in code and not in configuration. What they share is that both **hold**: a block sits in one by `group`, membership is flat, and either may hold the other.
 
-## Base, default and workspace definitions
+## Where a definition comes from
 
-**Three tiers, and every definition is exactly one of them.**
+**Two tiers, and the second has a special case.** A definition is either the workspace's own or a package's — `from` says which — and **the shipped floor is a package like any other**, listed with the rest and overridden the same way.
 
 | Term | Means |
 |---|---|
-| **base** | a shipped, locked definition, one per kind: the eight block modules plus `line` and `tie`. A relation base names its module in `relation.module`. Never written, never pinned, never exported |
-| **default** | the workspace's one editable definition per kind, extending that kind's base. **Laid by the fold until its first edit files it.** A plain element — one naming nothing, or naming a base — follows its kind's default. Never renamed, removed or pinned; may be re-typed within its kind. **Read by its marker (`default`), never its id** |
-| **workspace definition** | everything else the workspace holds. It extends its kind's base unless it says otherwise |
-| **package definition** | a definition carrying `from`: brought in, read-only, and never a default |
+| **workspace definition** | one somebody here wrote. Renamed, re-pointed, filed and removed freely |
+| **package definition** | one carrying `from`, the floor's included. **Never written**: its name and what it extends are its package's |
+| **a word about one** | what an edit to a package's definition mints — a workspace definition whose `default` names the one it speaks for. **It stands in front of that one in every chain that reaches it**, so changing what `block` or `«part»` means reaches everything below it. Dropping it gives the package's word back |
 | **kind** | the base a definition's chain ends in. **Fixed when an element is made**, but for the open family: `block`, `folder` and `note` are one kind for retyping and a block moves among them freely, while a run's definition stays within its relation module |
 
 **Resolution is global, by id.** A usage names a definition id; nothing climbs a tree and nothing shadows.
 
 | Term | Means |
 |---|---|
-| **shelf** | how the explorer files the workspace's **own** definitions: the folders somebody made, and what sits in each. One ordered list on the root block, so it exports and it undoes. **Blocks and relations are filed apart**, and a base, a default and a package's are never filed — where they read is fixed |
+| **shelf** | how the explorer files the workspace's **own** definitions: the folders somebody made, and what sits in each. One ordered list on the root block, so it exports and it undoes. **Blocks and relations are filed apart**, and a package's is never filed — where it reads is fixed. A word about one *is* filed: somebody wrote it, so it is theirs |
 | **a definition's body** | its data: the stored definition itself, as read on its element tab. A block's body is what the block represents — text, a description, code — and a definition's is what defines it. See ST.20 |
 
 **There is no untyped block.** A block naming no definition is a `block`; the field being absent is how a file stays small. `view` is reserved rather than shipped — it comes back defined, not as a module.

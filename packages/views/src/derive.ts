@@ -60,7 +60,7 @@ export const SOURCE = "source";
 /** Where a block points, if it says: the source slot first, then the field that predates it. */
 export function link_of(graph: Graph, id: Id): string | undefined {
   const b = graph.blocks[id];
-  if (b?.source?.uri) return b.source.uri;
+  if (b?.source) return b.source;
   const said = b?.fields?.find((f) => f.name === SOURCE && f.form === "link");
   return said?.value || undefined;
 }

@@ -20,7 +20,7 @@
       },
       "def_default": {
         "id": "def_default",
-        "name": "default",
+        "name": "line",
         "group": "relation",
         "extends": "line",
         "default": "line",

@@ -54,17 +54,6 @@ export type Shelved = {
   name?: string;
 };
 
-/** Where a block's content came from, or what it stands in for outside the workspace. Provenance
- *  rather than a link: nothing syncs to it, so it may go stale without anything breaking. */
-export type Source = {
-  uri: string;
-  /** Where within the artifact — a heading path, a line range, a symbol name. Opaque: every
-   *  content type spells this differently and the app never parses it. */
-  at?: string;
-  /** Whatever revision the translator knew. */
-  rev?: string;
-};
-
 /** The one element; what it is comes from its definition. */
 export type Block = {
   id: Id;
@@ -74,8 +63,11 @@ export type Block = {
   body?: string;
   /** A reference: what it stands for — a block, a definition or a package. */
   of?: Id;
-  /** What it stands in for outside the workspace. */
-  source?: Source;
+  /** Where its content lives outside the workspace: one uri, whatever locator syntax the thing
+   *  it names spells. **Provenance rather than a link** — nothing syncs to it, so it may go stale
+   *  without anything breaking, and nothing here parses it. A within-part and a revision are the
+   *  uri's own business (`#heading`, `@v2`): they were fields once, and nothing ever read them. */
+  source?: string;
   /** The group or grid this block sits in. */
   group?: Id;
   /** Where in that group: replaces `x`/`y` for a gridded block. */
@@ -235,7 +227,7 @@ export type Mutation =
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
   /** Where a block came from; null gives it back. */
-  | { op: "set_source"; id: Id; source: Source | null }
+  | { op: "set_source"; id: Id; source: string | null }
   | { op: "set_group"; id: Id; group: Id | null }
   | { op: "seat_cell"; id: Id; cell: Cell | null }
   | { op: "set_header"; id: Id; header: boolean }

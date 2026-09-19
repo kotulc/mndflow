@@ -2,6 +2,8 @@
 
 **Every control the thing on the stage has, in one column fixed to the right.** A real column and not an overlay: the stage ends where the rail begins, so chrome never sits on the drawing.
 
+**Its bar says its name** — *options*, centred, the same height as the explorer's bar and the tray's, so the three read as one line across the page. It wore a hamburger until that mark went to the explorer, where it opens the filter (ST.21).
+
 ## One surface whose contents vary
 
 **The projection declares which groups it offers; the shell knows how to build each.** A group absent is a control that is not there, rather than one greyed out.

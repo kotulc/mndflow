@@ -31,7 +31,7 @@ Thirty-nine, two of them navigation.
 | `describe` | writes the body text of a block | block | id, body | `set_body` |
 | `move` | puts blocks under a different parent, in the place you dropped them | block, selection | ids, parent, before?, spot? | `move_block` |
 | `refer` | places a stand-in for a block, a definition or a package into this layer | layer | target, type?, spot? | `add_block{of}` |
-| `source` | says what a block stands in for outside the workspace, or gives it back | block | id, uri?, at?, rev? | `set_source` |
+| `source` | says what a block stands in for outside the workspace, or gives it back | block | id, uri? | `set_source` |
 | `tag` | puts words on a block or a relationship to say what it is like | block, edge, selection | ids, tags | `set_tags` |
 | `look` | sets how this draws, or what it asks — on a block, a line or a definition | block, edge, selection | ids, key, name, value? | `set_look` / `set_def` |
 | `none` | gives back every look this says for itself, to whatever it inherits | block, edge, selection | ids | `drop_looks` / `set_def` |

@@ -262,8 +262,11 @@
 .panel > .col { grid-area: rows; display: flex; flex-direction: column; min-width: 0; }
 .panel > .content { grid-area: body; padding: 0; }
 
-/* What it is, over the drawing that says it. */
-.drawing { display: flex; flex-direction: column; gap: 4px; padding: 0 8px; min-height: 0; }
+/* What it is, over the drawing that says it. The band spans the column the way identity's does,
+   so the two heads read as one line; only what sits under it is inset. **Its head takes the width
+   of its own word** rather than a column, since what it heads follows it directly. */
+.drawing { display: flex; flex-direction: column; min-height: 0; }
+.drawing > .preview { padding-inline: 8px; }
 
 /* The drawing fills its column; the run scales with it. */
 .drawing .preview-card, .drawing .preview-wire { width: 100%; }
@@ -271,27 +274,23 @@
 
 /* On the element tab the card takes whatever height the identity column set, so the two columns
    read as one block rather than a small picture beside a long list. A run keeps its own size and
-   sits in the middle of that space: a line has no height to fill. */
-.panel.element { align-items: stretch; }
+   sits in the middle of that space: a line has no height to fill. Source runs full width under
+   the content it is the provenance of. */
+.panel.element {
+  align-items: stretch;
+  grid-template-areas: "drawing rows" "body body" "source source";
+}
+
+.panel > .source { grid-area: source; }
 .panel.element > .drawing > .preview { flex: 1; min-height: 48px; display: flex;
                                        align-items: center; }
-.panel.element > .drawing > .preview > .preview-card { align-self: stretch; }
-
-.kind-rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 11px; }
-.kind-rows .holder {
-  margin-right: 8px;
-  color: var(--faint);
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.kind-rows .tally { color: var(--faint); font-size: 10px; }
+.panel.element > .drawing > .preview > .preview-card { height: auto; align-self: stretch; }
 
 /* Wide: one row across — the body takes a third column, the style groups a column of their own. */
 @container tray (min-width: 960px) {
   .panel.element {
     grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "drawing rows body";
+    grid-template-areas: "drawing rows body" "source source source";
   }
 
   .panel.style > .draws {
@@ -343,8 +342,10 @@
 .rows > .row > .line > .from { flex: none; color: var(--faint); font-size: 10px; font-style: italic; }
 .rows > .row > .line > .from.warn { color: var(--warn); }
 
-/* The kind, then what refines it. */
-.kind-rows .base {
+.drawing > .rail > h5 { width: auto; font-weight: 600; color: var(--muted); }
+
+/* The kind, and the mark that says it, in the band that heads the drawing. */
+.drawing > .rail > .base {
   flex: none;
   display: inline-flex;
   align-items: center;

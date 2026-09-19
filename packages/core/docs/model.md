@@ -44,7 +44,7 @@ The engine code that interprets a block. **Three, and each is read from a stored
 **`allows` is refused at the gesture; `expects` is only ever advice.** Structure is refused when you try to make it, values are noted when they are missing — see *Capabilities* in schema.md.
 
 ### Where its content came from
-**`source` is provenance, not a link.** The graph is the truth and nothing syncs to what a block came from, so a locator may go stale, the file may move, and nothing breaks. Translators convert external representations into blocks; nothing converts back on its own.
+**`source` is provenance, not a link, and it is one string.** The graph is the truth and nothing syncs to what a block came from, so a locator may go stale, the file may move, and nothing breaks. **A within-part and a revision are the uri's own business** — `#heading`, `@v2` — and were fields once, which nothing ever read: every content type spells them differently and nothing here parses them, which is an argument for the uri's syntax and against a schema of ours. Identity belongs to a translator's map, never to this slot. Translators convert external representations into blocks; nothing converts back on its own.
 
 ### Alias
 A serial minted at creation and never rewritten, drawn as a short mark (`A1`, `B7`) beside the type a block reads as while nobody has named it. **Not a tag**: it is the one mark the app hands out so that a thing with no name has something to be called, and there is exactly one.

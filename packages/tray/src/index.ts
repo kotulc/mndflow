@@ -13,6 +13,7 @@ export { Element, type ElementProps } from "./Element";
 export { Style, type StyleProps } from "./Style";
 export { Drawing, type DrawingProps } from "./Drawing";
 export { Identity, type IdentityProps } from "./Identity";
+export { Source, type SourceProps } from "./Source";
 export { Looks, type LooksProps } from "./Looks";
 export { Fields, type FieldsProps } from "./Fields";
 export { Packages, type Offered, type PackagesProps } from "./Packages";

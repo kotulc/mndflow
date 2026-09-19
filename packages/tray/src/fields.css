@@ -127,8 +127,7 @@
 .rows > .row > .line > .alias { flex: none; color: var(--faint); font-size: 11px; }
 
 /* A box, because it is a yes and a no. */
-.rows > .row > .line > .check,
-.kind-rows > .check {
+.rows > .row > .line > .check {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -137,10 +136,8 @@
   cursor: pointer;
 }
 
-.rows > .row > .line > .check:hover,
-.kind-rows > .check:hover { color: var(--text); }
-.rows > .row > .line > .check input,
-.kind-rows > .check input { margin: 0; accent-color: var(--accent); }
+.rows > .row > .line > .check:hover { color: var(--text); }
+.rows > .row > .line > .check input { margin: 0; accent-color: var(--accent); }
 
 /* One chip a tag, and the box to add another takes what the row has left. */
 .rows > .row > .line > .tags {

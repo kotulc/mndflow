@@ -15,7 +15,7 @@ not work.
 ### ST.4 — One block, and everything else is data
 
 Make a folder, a note, a group and a grid **without the app ever asking which *sort* of
-thing you mean** — because there are no sorts, only eight kinds and the definitions over them. Style
+thing you mean** — because there are no sorts, only seven kinds and the definitions over them. Style
 one block until it reads the way you want, save that as a definition, pin it, and make the next one
 from the pinned folder.
 

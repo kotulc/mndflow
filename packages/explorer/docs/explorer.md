@@ -3,9 +3,9 @@ The workspace explorer files the project: three collections drawn with one row, 
 
 | collection | mark | holds |
 |---|---|---|
-| **packages** | `Pkg` | what the workspace draws on, one row per package, each holding its *blocks* and its *relations* |
+| **packages** | `Pkg` | what the workspace draws on, one row per package, each holding its *blocks* and its *relations*. **`base` is among them**, wearing a lock: the one package nothing may be written into |
 | **definitions** | `Def` | the workspace's own definitions: *pinned*, then *blocks* and *relations* in the folders somebody made for them |
-| **the workspace** | a crate | the block tree. **The workspace is the one root** and carries the project's name; every top-level block is a branch under it |
+| **the workspace** | `Wks` | the block tree. **The workspace is the one root** and carries the project's name; every top-level block is a branch under it |
 
 **The bar is tools only** — filter, add, add folder, delete, then fold — since the workspace names itself in the tree and is renamed there like any other row. **The filter leads it and is not built yet**: it is where ST.21 opens, and it stands disabled saying so rather than pretending to work. **Folding reads at two scales, down one column at the panel's right edge**: the bar's fold takes every collection at once, and each collection also folds itself from the far end of its own root row. Delete is never offered for the workspace. **The bar follows what is picked**: a block in the tree, and what it adds is a block; a library row, and what it adds is a definition or a folder for definitions, filed where the library is pointed.
 
@@ -17,7 +17,8 @@ The workspace explorer files the project: three collections drawn with one row, 
 
 - **Guide lines are drawn per indent column**, each hung under the mark of the row it belongs to, and a branch draws its own half-row down from below its mark so the line it hangs from is joined rather than floating. A row's columns are its holder's plus one for itself, handed down rather than re-derived.
 - **The last row in a branch turns an elbow** — the column stops on that row's centre line and the tick crosses at its foot.
-- **Every role carries a mark** — leaf, container, interface, folder — and a container is filled where a leaf is outlined, because the fill is what says it holds something.
+- **Every role carries a mark** — leaf, folder, interface, reference, note — and **a row that holds parts fills its own mark**, because the fill is what says it holds something. There is no separate container mark: a filled folder is a folder that holds.
+- **A section's mark is a word**, not a drawing: `Pkg`, `Def`, `Wks`. **A word is never filled** — a fill closes its counters and leaves a blot.
 - **A root reads a shade stronger** and is ruled off from the collection above it.
 
 ## Selection
@@ -28,7 +29,7 @@ The workspace explorer files the project: three collections drawn with one row, 
 
 | clicked | the tray is about |
 |---|---|
-| **packages**, or one package | every definition a package brought, or that one's |
+| **packages**, or one package | what the workspace draws on, on the tray's *packages* tab |
 | **definitions** | every definition |
 | **pinned** | the pinned definitions |
 | **blocks** or **relations** | that group's |

@@ -81,17 +81,15 @@ export function Identity({ graph, id, onAct }: IdentityProps) {
           </Line>
         ) : null}
 
-        {/* A block's working definition is named on its own row. */}
-        {b && wip ? (
-          <Line label="definition" tip="This block's working definition. Naming it saves it.">
-            {saving("definition")}
-          </Line>
-        ) : null}
-
-        {/* Type: which definition an element follows, among those of its own kind. */}
+        {/* Type: which definition an element follows, among those of its own kind. A block
+           styled directly follows none yet, so the same row takes a name for what it draws —
+           one question, asked once, rather than a second row beside it. */}
         {b || edge ? (
           <Line label="type" className="subtype"
-                tip={`Which definition this ${runs ? "line" : "block"} follows. Only definitions of its own kind apply.`}>
+                tip={b && wip
+                  ? "This block is styled directly, so it follows no definition yet. Name what it draws to file that as one and move this block onto it, or pick a definition and its own look goes."
+                  : `Which definition this ${runs ? "line" : "block"} follows. Only definitions of its own kind apply.`}>
+            {b && wip ? saving("type") : null}
             <select value={def_of(graph, id) ?? ""} aria-label="type"
                     onChange={(e) => onAct("retype", { ids: [id], type: e.target.value })}>
               {types_for(graph, id).map((x) => <option key={x.id} value={x.id}>{path(x)}</option>)}

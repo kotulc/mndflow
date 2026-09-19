@@ -130,7 +130,7 @@ function apply(graph: Graph, m: Mutation): void {
     case "set_source": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      if (m.source) b.source = { ...m.source }; else delete b.source;
+      if (m.source) b.source = m.source; else delete b.source;
       return;
     }
     case "set_group": {

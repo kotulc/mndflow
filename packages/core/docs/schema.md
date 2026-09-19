@@ -92,7 +92,7 @@ Block {
 
   of?           Id                // reference: what it stands for — a block, a definition
                                   // or a package
-  source?       { uri, at?, rev? } // what it stands in for outside the workspace
+  source?       string          // where its content lives outside the workspace
 
   group?        Id                // the holder it sits in — a boundary or a grid
   cell?         {r, c}            // grid: its address, in place of x/y

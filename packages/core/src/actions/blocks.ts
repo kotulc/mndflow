@@ -232,9 +232,7 @@ register(
     about: "says what a block stands in for outside the workspace, or gives it back",
     on: ["block"],
     args: [{ name: "id", form: "block", required: true },
-           { name: "uri", form: "text", asks: true },
-           /** Where within the artifact: a heading path, a line range, a symbol name. */
-           { name: "at", form: "text" }, { name: "rev", form: "text" }],
+           { name: "uri", form: "text", asks: true }],
     check: (ctx, args) => {
       const id = id_of(args, "id") || ctx.picked[0] || "";
       return ctx.graph.blocks[id] ? null : "point at a block first";
@@ -243,10 +241,7 @@ register(
     run: (ctx, args) => {
       const id = id_of(args, "id") || ctx.picked[0]!;
       const uri = text(args, "uri").trim();
-      return { mutations: [{ op: "set_source", id, source: uri
-        ? { uri, ...(text(args, "at") ? { at: text(args, "at") } : {}),
-            ...(text(args, "rev") ? { rev: text(args, "rev") } : {}) }
-        : null }] };
+      return { mutations: [{ op: "set_source", id, source: uri || null }] };
     },
   },
   {
