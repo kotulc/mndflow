@@ -7,6 +7,7 @@ import { is_grid, is_header, is_interface } from "@mnd/core";
 /** One named menu entry; the shape the explorer's menu agrees on. */
 export type Entry = { name: string; label?: string; args?: Args };
 import { FlowView, type Adjust, type Gesture, type Landing } from "./Flow";
+import { Legend, type Corner } from "./Legend";
 import { moves_of, type Move } from "./moves";
 import { Icon } from "@mnd/theme";
 import { box_of, clear_of, holds, swept_cells, BLOCK, CELL, type Scene } from "@mnd/views";
@@ -38,6 +39,9 @@ export type StageProps = {
   lattice?: boolean;
   /** Whether the open layer's frame is drawn. */
   frame?: boolean;
+  /** Whether the key to what this layer draws sits in its corner, and which corner that is. */
+  legend?: boolean;
+  corner?: Corner;
   /** What a right drag draws: which module, which way it points, and which pinned definition it
    *  names. */
   module?: string;
@@ -141,7 +145,8 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 }
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
-                       menu, said, onSaid, lattice, frame, module, dir, type, lit = [] }: StageProps) {
+                       menu, said, onSaid, lattice, frame, legend, corner, module, dir, type,
+                       lit = [] }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
                     ...(type ? { type } : {}) };
@@ -305,6 +310,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
           </>
         ) : null}
       />
+      {legend ? <Legend scene={scene} {...(corner ? { at: corner } : {})} /> : null}
       {at && menu ? menu(at, at.on, () => set_at(null), at.spot, at.only, at.given) : null}
     </section>
   );

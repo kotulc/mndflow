@@ -22,6 +22,7 @@ project(graph, layer, config) → Scene
 | `route.ts` | where a run goes between two borders, round the cards it passes |
 | `block.ts` | the projection: graph and layer in, Scene out |
 | `look.ts` · `derive.ts` | what a card wears, and the marks it reads by — both derived every draw |
+| `legend.ts` | the key to one layer: the kinds it draws and the system marks they wear, folded and counted off the Scene alone |
 | `svg.ts` · `text.ts` | a Scene drawn without a browser |
 
 ## The lattice, and the one measure

@@ -1,6 +1,7 @@
 /** The projection: a layer as a plane of placed blocks. */
 
 export * from "./derive";
+export { legend_of, type Legend, type Row } from "./legend";
 export * from "./scene";
 export * from "./size";
 export * from "./arrange";

@@ -9,38 +9,6 @@ not work.
 
 ---
 
-## Interaction
-
-### ST.8 — Interaction is consistent, and the app always answers back
-
-Every part you can adjust by hand — a card, a frame edge, a block anchor, an interface — **targets
-the same way, lights the same way, and moves smoothly**. Nothing is aim-and-hope, and no two
-surfaces teach different gestures for the same act.
-
-**The goal is consistency, not the features.** Work that lands its feature while inventing a fifth
-way to show a drop target has missed the point.
-
-**Driven and failed once**: a card dragged away left its relation lines behind, the tree did not
-redraw until focus changed, and an anchor was 12×12 and near-impossible to hit.
-
-### ST.10 — A context menu offers what makes sense here, and nothing else
-
-Right-click a block and see the handful of things worth doing **to a block** — not every action that
-technically applies.
-
-**Wants ST.7 under it first**: narrowing a menu is only honest once help is a text route to every
-action.
-
-### ST.11 — The action surface is as small as the app needs and no larger
-
-Things that carried machinery are gone or shrinking, and what supported them goes with them rather
-than being left in place *just in case*.
-
-**The rule, so it does not become a demolition derby**: *nothing is removed for being old; a thing
-goes when the last consumer of it goes.*
-
----
-
 ## Reaching outward
 
 ### ST.5 — The workspace reaches outside itself
@@ -62,94 +30,10 @@ with **four commands**, flexible verbs, and **the whole action surface behind `?
 
 ---
 
-## Elsewhere
-
-### ST.13 — A definition is made by pointing at something that already reads right
-
-Style one element until it reads the way you want, **save that as a definition**, and every usage after it names the definition rather than restating the look. A stereotype library made by pointing, rather than by writing a definition first and applying it after.
-
-| | |
-|---|---|
-| **save** | `save_def` files the element's look and field schema as a definition extending what it followed, and moves the element onto it. **Saving never pins** |
-| **pin** | an explicit act per definition. A pinned block definition is in the explorer's *pinned* folder; a pinned line definition is on the rail. **Pinning is a shortlist, not a listing** — the explorer lists every definition either way |
-| **default** | every kind has one editable definition its plain elements follow. Edit it and every plain element of that kind follows; it is never renamed, removed or pinned |
-| **remove** | dissolves losslessly — each usage takes back what it inherited |
-
-**Pinning replaces the older reading of *pin a layer as a view***. There is no view block to make: what pinning offers is a definition, and what is left behind is an ordinary block naming it.
-
-Wanted: **orientation** — portrait or landscape, which way round a card reads.
-
-### ST.14 — A block wears a symbol, and every block is still a rectangle
-
-A definition can give what names it a **symbol** — a small drawing set into the card, centre right, beside the name. A valve reads as a valve, a pump as a pump, a queue as a queue, and a vocabulary of them is what turns a diagram into a notation somebody already knows how to read.
-
-**The card stays a rectangle.** The symbol is drawn *inside* it and changes nothing about its border. That is the whole point: every seat, every relationship end and every route is worked out against a rectangle, so a notation can grow as large as it likes without a single anchor moving.
-
-**Retired to get here: `card.shape`.** It offered `rect`, `round`, `diamond`, `ellipse` and `hex`, and it was the wrong lever twice over — a diamond said *decision* only to somebody already taught it, while a non-rectangular border is a second geometry for everything that meets a card to agree with. Nothing shipped depended on it, so it is gone rather than deprecated.
-
-Open, and worth answering before any of it is built:
-
-| question | why it matters |
-|---|---|
-| **where a symbol comes from** | a named set the build ships, the way icons are; or a drawing a project supplies. The first is closed and safe, the second is what a real notation needs |
-| **what it may be** | a path on a fixed grid, taking `currentColor` like every other mark — or arbitrary SVG, which is a hole through the whole style system |
-| **how it sits with the mark** | a card already wears a role mark in its corner. Two drawings on one card is one too many unless each has a job somebody can name |
-| **whether an element may set one** | or only a definition, which is what would keep a symbol meaning the same thing everywhere it appears |
-
----
-
-### ST.15 — A relationship is customised the way a block is
-
-A relationship carries a definition exactly as a block does — `group: "relation"`, the same `components`, the same `extends` chain — and is told about how it draws in the same place and in the same words.
-
-**Both surfaces, and each for what it is good at.** The explorer lists every definition, relations included, because it is where the vocabulary is filed and dragged from; a relation definition dragged out retypes a line rather than drawing one, since a relationship is made between two ends. It is customised on the tray's element and style tabs, and **pinning a line definition puts it on the rail**, which is the shortlist a right drag draws from.
-
-| | |
-|---|---|
-| **what a line says** | a name, a **label** drawn exactly as typed (a stereotype such as `<<relates>>`), tags, and a look: name, label, heads, colour, stroke |
-| **renaming a line** | renames the definition it follows, or files one over the default or package it follows |
-| **what a relation definition may say** | the two relation modules are closed and read from the ends — a line with a note at an end is a tie — so a subtype refines presentation and names, never which module it is. **The rail offers no *tie*** |
-
-### ST.16 — The panel, at whatever you have hold of
-
-**One panel, whatever you have hold of.** The tray's *element* and *style* tabs describe the one thing picked, and the rail's top group — *workspace*, *block*, *relation* — puts the same pair on the workspace, or on a blank block or relation definition. What is being settled changes; the panel does not.
-
-**A scope is arrived at, never picked.** Each rail toggle puts the tray on the thing itself; which tabs exist follows from what is held. A later selection wins without anything having to arbitrate. The element scope needs no control at all: selecting something is how you arrive at it.
-
-| scope | what it settles |
-|---|---|
-| **workspace** | **a block**, in the same panel as any other and with nothing extra: its name, its schema beside the card, and every block tab. What it draws on is the explorer's *packages* section, not a tab the root alone carries |
-| **block** | a blank block definition, filed when it is named |
-| **relation** | a blank relation definition, filed when it is named |
-| **element** | what it is, how it draws, what it carries |
-
-**Every scope keeps the same slots**, and only the words change: *element* and *style* are what this is and how it draws, the middle slots are what it **declares** — types, fields — and the last is what **exists** — contents, or usages. A tab that cannot be answered is absent rather than empty.
-
-**A vocabulary is two depths of one kind.** A **template** carries a look and is what a line is made to look like; a **stereotype** carries a name and an `extends` and is what a line is called. Nothing separates them but what they say, so four templates carry forty stereotypes and the chain resolves them. A template is simply one nothing names directly.
-
-**The rail is a shortlist, not the vocabulary.** What a right drag draws is a few pinned templates, kept as a list on the workspace so order is sayable and a package's template can be offered without writing to something somebody else owns. Everything else is read in the tray, which is where forty of anything belongs.
-
-**Open.** Whether a layer gets a panel of its own, or keeps answering from the rail.
-
 ### ST.12 — The plan stops being prose that agents parse
 
 Stories, work, what a thing owns and what it waits on are a **schema**, not a document. Drafted as
 translator.md, and **probably its own project** rather than anything to build here.
-
-### ST.17 — What a vocabulary asks of a usage is stated where it is read
-
-A definition says what must be true of anything naming it — the fields a usage has to carry, what it may hold, what may sit at a relationship's ends, how many lines may meet it, which fields have to agree across one — and **all five are said in one place, in the same words, by the same gesture.**
-
-**Pulled, and the reason is the seam.** The panel shipped reading all five and writing three: `look` sets one scalar at `key → name`, and `ends` and `degree` are nested records, so what the panel wrote was a scalar where a record was wanted — ignored by `rules_of`, then dropped by the door on the next save. A surface that can state half a vocabulary is worse than one that states none, because what it cannot say is invisible. The model side stands: the `rules` component validates all five at the door, `rules_of` resolves them down the chain, and `review` reads what survives.
-
-| | |
-|---|---|
-| **what unblocks it** | `look` reaching a nested property — a dotted `name`, or a shape the fold's `set_look` and `stated` both already walk. Without that, three of five is the ceiling |
-| **where it is stated** | a definition asks it of every usage; one element may state it for itself, since `looks` is already a components bag. Both, or only the definition? |
-| **when it is refused** | advised while modelling, refused at translation — settled. What is unsettled is whether a violation is a mark on the card, a row in the tray, or both |
-| **`holds` and the engine** | the only containment rule there is. Authoring it is the first time a user can make a layer refuse a drop, so the drop gesture has to read it |
-
-**Wants ST.15 under it first**: `ends` is a relation definition's rule, and there is nowhere to customise a relation definition until a relationship is described the way a block is.
 
 
 ### ST.18 — A block holds content, so it is worth opening
@@ -169,17 +53,6 @@ Write a requirement's text, a part's description, a script's code **into the blo
 
 **Watch for:** bodies are the first thing this project stores that is large and edited often. The browser log stores each body once by hash, beside the log, while **the graph and the file carry text rather than a content id** — so the storage choice stays reversible.
 
-### ST.19 — A card's bottom corner says what the system knows about it
-
-The bottom-right corner of every card is **reserved for one system mark** — something the app works out about the element rather than something a vocabulary or a user picks. The top corner says what sort of thing it is; this one says what state it is in.
-
-**Not a style.** The old `card.mark` let a definition put any icon there, which made the corner a second, unexplained icon slot. It is gone, and nothing may set the corner by hand.
-
-| | |
-|---|---|
-| **what it marks** | undecided — a rule note, a missing reference, a locked package, an unsaved working look are all candidates |
-| **one mark or several** | one corner and one mark; which wins when two apply is part of the design |
-| **what it answers** | whether hovering or clicking the mark says why, and where that is said |
 
 ### ST.20 — A block is the content it represents
 
@@ -229,6 +102,23 @@ Type a few words into the explorer and **have what you are looking for come back
 
 ## Recent Decisions
 
+### A layer draws the key to itself
+
+**The legend lists what the open layer draws and what it means** — each kind's colour, mark and word, and under a rule the system marks they wear. Each half is dropped where the layer has none. The rail toggles this layer; the workspace tab says what a layer does when it has said nothing. **A default, never a lock:** a layer overrides the workspace either way, and one toggled back into agreement drops its answer and follows again. What it lists is always the open layer, whichever right-hand corner it sits in.
+
+### The defect it found, and the rule that comes out of it
+
+**Driving is not enough — it has to be driven against the shipped sample.** A seed written by whoever is looking tests the path they already had in mind.
+
+| | |
+|---|---|
+| **what happened** | `look_of` asked `"type" in b` to tell a block from a holder. **A block naming no definition carries no `type` key at all**, so it failed the test and was read as a holder — called `grid` where it carried a layer `arrangement`, `group` otherwise |
+| **how long it hid** | since the field became optional. `look.kind` is written on a card only where a definition asks for the label, and no sample asked; nothing else read it |
+| **what surfaced it** | the legend, which puts every kind word in one list. Two rows read *group* and *grid* against a reference's mark and a block's, and the real *block* and *reference* rows were missing — swallowed into them |
+| **the rule** | **key presence is not a type discriminator.** Where two shapes share a lookup, ask the graph which one it is — `graph.blocks[id]` against `graph.holders[id]` — never whether the object happens to carry a field. An optional field makes the test wrong for the commonest case, so it reads as correct right up until something looks |
+
+**A green suite said nothing**: 372 tests and a clean typecheck, across two rounds of driving. The synthetic seed written to exercise the legend gave every block a type, so it never took the path. The extended sample did, on the first draw.
+
 ## Out of scope, recorded so nothing is built on it
 
 - **Search results as a thing you look at.** Narrowing the workspace to a word and putting what matched on the stage — as a table, as a listing, anywhere. **Driven, and it was not useful**: the results were a second way of looking at blocks you can already see, and everything that supported them — the `filter` command, `matches`, the narrowing chip, the table view they presented through — cost more than they paid. Recorded rather than deleted because *finding a block by name* is a real want; what is out of scope is answering it with a view of its own. It comes back, if it does, as something the explorer does.
@@ -252,64 +142,3 @@ Type a few words into the explorer and **have what you are looking for come back
 component.
 
 
-## The tray and the vocabulary
-
-**The tray is the one place tables live.** A layer-and-selection inspector under the stage, shut or open, expanded to full height when the body has more to say. It keeps the hover-row-lights-the-stage tie — that is its whole reason to sit beside a drawing. **There are no table or matrix view modules**: the grid absorbed them on the stage, and listing is the tray's.
-
-**The rule the rest falls out of: the tray shows whatever is in context.** Nothing picked is the open layer. One table serves contents, definitions, usages and packages, differing only in rows and columns.
-
-**Definitions are held, not picked.** What types exist and what fields a type declares are the **vocabulary**, reached by holding a definition — from the explorer, the definitions tab, or the rail's *elements* group — so editing one never depends on something being selected on the stage. **A folder of them is held the same way**: the explorer's folders put the tray on the whole list, narrowed to what the folder holds.
-
-
-## Updated interaction rules (model rules)
-
-- **One lit-target look, everywhere.** The explorer tree, frame edges, anchors and the terminal's
-  highlights all reuse it — **never a second treatment**.
-- **Hand-adjusting anything sets the layer to `free`.** Moving a block, an anchor or an interface by
-  hand is a statement that the positions are yours, so the arrangement follows the gesture rather
-  than being set separately. Under any **non-free** arrangement the engine owns all three: block
-  positions, anchor seats and interface seats. **One rule replacing three**, and it is what makes a
-  solid anchor legible — *solid means free, and placed by you*. Placement is still retained across
-  the switch, so returning to `free` returns the whole layout, anchors included.
-- **An anchor exists only where a relationship actually meets the block.** The always-four-per-side
-  rule is retired: it read as clutter.
-- **Selecting on the stage moves the explorer with you** — picking a card sets the context and
-  expands the branch to it, so the two panels never disagree about where you are. This is `reveal`
-  mirrored, and should reuse it rather than growing a second path.
-- **The interface is the same whatever the layer or project** — no root affordance, no second door.
-
-
-## Small settled rules
-
-- **A group goes when its last member leaves.** Leaving, being deleted or moving to another layer all count, and a group emptied that way takes an emptied holder with it. **A group is empty only when it was made empty** — a group definition dropped on empty ground is room for what goes in.
-- **The explorer lists every definition.** Its *definitions* section holds *pinned*, *default* and *workspace*, and **packages are a section of their own** above them, one row per package with its blocks and relations under it. **Pinning stays a shortlist** — what it offers is the rail and the *pinned* folder, never whether a definition is listed at all.
-- **The workspace's own definitions are filed by hand**, in folders somebody made, blocks and relations apart. Filing is model data on the root block, so it exports and it undoes; the system's folders and a package's contents are fixed.
-- **A library row points the tray, it does not fold.** Clicking *packages*, *definitions*, *pinned*, *default*, *workspace*, a folder or one definition sets what the tray is about; the mark is what folds, exactly as it is on a block.
-
-- **A project row carries its block count** — `Coolant Loop (34)` — so the weight of a folded
-  project reads at a glance. The **explorer's alone**; derived, never stored. **It must not count
-  references**, or a view of forty things reads as a forty-block project.
-- **The IBD layout law is dropped.** The view inside a child block **already is** an internal block
-  diagram, so no separate law or view module is wanted. Worth revisiting only if
-  connectivity-ranked placement proves worth having on its own.
-- **A pattern package is a set of template blocks** to import, copy and customise, built on the base
-  definitions. **Not a vocabulary package**, and not in scope for resolution. A later story.
-- **One sample per view module, eventually** — not just the one. A sample proves the format and
-  decides what a first project looks like.
-
-## Migration: What was retired
-
-Kept while the migration runs, so an old document still reads.
-
-| Retired | Because | Now |
-|---|---|---|
-| **element form** (`block`/`note`/`group`/`proxy`) | nothing earned one — every case was expressible as a definition plus a `holds` rule | base definitions |
-| **proxy** | did five unrelated jobs, and a sixth in the SysML map | **reference** |
-| **external proxy** | not a different thing | a reference whose target is in another project |
-| **`reference`, the relationship form** | derived from a proxy at an end | an ordinary relationship with a reference at one end; dashed is presentation |
-| **`ref`, the value form** | collided with the reference block | **`link`** |
-| **set** | mixedness was never the signal, and *set* collides with *style set* and *closed set* | **folder**, which is a definition |
-| **kind** (`structure` / `behavior` as classifiers) | the engine branched on something the glossary declared absent | the definition's `view` component says which modules apply |
-| **node**, **annotation**, **membership**, **hug**, **figure** | each restated something with a second word | block; a note or a group; references; layout's business; gone |
-| **a tie on a line** | a note is about a block; a relationship between a block and a relationship was a second geometry for one remark | a note tied to a block |
-| **`Relation.module` stored** | it could disagree with the ends | read from the ends |

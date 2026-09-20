@@ -3,17 +3,26 @@
 
 import { file_name, packages, SCHEMA, shown_name,
          type Act, type Graph } from "@mnd/core";
-import { Band, Body, Line } from "./Body";
+import { Band, Body, Check, Line, Pick } from "./Body";
 import { Content } from "./Content";
 import { Entry } from "./Entry";
 import { Tags } from "./Tags";
 
-/** The default card, in units, and the range it is held inside. Display, so the log never sees
- *  it and no file carries it. */
+/** What the workspace draws with rather than holds: the default card in units and the range it
+ *  is held inside, and whether every layer draws its key. Display, so the log never sees it and
+ *  no file carries it. */
 export type Display = {
   card: { w: number; h: number };
   range: { min: { w: number; h: number }; max: { w: number; h: number } };
+  /** Whether a layer shows the key to what it draws unless that layer says otherwise, and which
+   *  corner it keeps it in. */
+  legend: boolean;
+  corner: "top" | "bottom";
 };
+
+/** The two corners a legend may sit in. Right either way — the left is the crumbs' and the zoom
+ *  controls'. */
+const CORNERS = [{ value: "top", word: "top" }, { value: "bottom", word: "bottom" }] as const;
 
 export type WorkspaceProps = { graph: Graph; display?: Display; onAct: Act };
 
@@ -36,7 +45,7 @@ export function Workspace({ graph, display, onAct }: WorkspaceProps) {
                   onCommit={(to) => onAct("tag", { ids: [graph.root], tags: to })} />
           </Line>
         </Body>
-        {display ? <Sizing display={display} onAct={onAct} /> : null}
+        {display ? <Drawing display={display} onAct={onAct} /> : null}
       </div>
 
       <div className="col file">
@@ -62,8 +71,8 @@ export function Workspace({ graph, display, onAct }: WorkspaceProps) {
   );
 }
 
-/** The room a card takes where its definition asked for none. */
-function Sizing({ display, onAct }: { display: Display; onAct: Act }) {
+/** What the whole drawing does, as against what any one element says. */
+function Drawing({ display, onAct }: { display: Display; onAct: Act }) {
   const { card, range } = display;
 
   /** One side of it, held inside the range the drawing allows. */
@@ -80,6 +89,13 @@ function Sizing({ display, onAct }: { display: Display; onAct: Act }) {
         <Line label="card" className="card"
               tip="The room a card takes where its definition asked for none, in units of the lattice.">
           {side("w")}<span className="into">×</span>{side("h")}<span className="alias">units</span>
+        </Line>
+        <Line label="legend" className="key"
+              tip="Whether a layer shows what it draws and what it means, and which right-hand corner it sits in. This is the default: any layer can say otherwise from the display rail, and keeps its own answer.">
+          <Check on={display.legend} word="show" tip="What a layer does unless it says otherwise"
+                 onPick={(yes) => onAct("legends", { show: yes })} />
+          <Pick name="legend-corner" on={display.corner} of={CORNERS}
+                onPick={(at) => onAct("legend_corner", { at })} />
         </Line>
       </Body>
     </>

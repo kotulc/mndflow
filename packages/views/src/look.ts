@@ -95,13 +95,20 @@ function one<T extends string>(value: unknown, set: readonly T[], fallback: T): 
 
 /** How this usage draws. */
 export function look_of(graph: Graph, id: Id): Look {
-  const b = graph.blocks[id] ?? graph.holders[id];
+  /** Which of the two this is, asked of the graph. **Not of the object** — a block naming no
+   *  definition carries no `type` key at all, so testing for one calls it a holder. */
+  const block = graph.blocks[id];
+  const held = graph.holders[id];
+  const b = block ?? held;
   if (!b) return PLAIN;
 
   /** The chain, then the element's own last word. */
   const card = settings(graph, id, "card");
   const style = settings(graph, id, "style");
-  const named = "type" in b && b.type ? graph.defs[b.type]?.name : undefined;
+  const named = block?.type ? graph.defs[block.type]?.name : undefined;
+  /** The subtype where somebody named one; a holder is its shape, anything else its base kind. */
+  const kind = named ?? (block ? kind_word(graph, block).toLowerCase()
+                              : held?.arrangement === "grid" ? "grid" : "group");
 
   return {
     family: one(style["family"], FAMILIES, PLAIN.family),
@@ -121,10 +128,7 @@ export function look_of(graph: Graph, id: Id): Look {
     ...contrast("name_contrast", style["name_contrast"]),
     ...contrast("label_contrast", style["label_contrast"]),
     ...number("opacity", style["opacity"]),
-    /** The subtype where there is one, the base kind otherwise. */
-    kind: named ?? ("type" in b ? kind_word(graph, b).toLowerCase()
-                                : (b as { arrangement: string }).arrangement === "grid"
-                                  ? "grid" : "group"),
+    kind,
     /** A mark of its own, where somebody picked one. */
     ...(typeof card["icon"] === "string" && card["icon"] ? { icon: card["icon"] } : {}),
     /** A number the door already bounded. */

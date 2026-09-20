@@ -14,6 +14,8 @@
 
 **Everything the app says goes to one strip at the top of the stage**: a refusal, a repair report, a storage warning, a rule note. One place to look, and silent when there is nothing to say.
 
+**The two right-hand corners hold the key to what is drawn.** A legend, in whichever corner the workspace chose, listing the kinds the open layer draws and the system marks they wear. **It reads the Scene and nothing else** — a card already carries its look, its role and its mark, so the key cannot disagree with the cards it explains. Each half is dropped where the layer has none, and a plain drawing shows nothing at all.
+
 ## The gestures it names
 
 **The working area, and the one thing that never yields.** Chrome gives way under pressure and the stage keeps its room.
@@ -40,6 +42,7 @@
 | `draw.ts` | the right button: a relationship from a card, a grid across the ground |
 | `drag.ts` | what travels with a dragged node, what is lit, and the adjustment a drop makes |
 | `Grips.tsx` | the ends of what is picked, and the berths of hidden interfaces |
+| `Legend.tsx` | the key, in a right-hand corner. **The icon is dressed as the card is**, so its colour is the card's own paint rather than a second answer about it |
 | `moves.ts` | what an adjustment writes, as actions and positional changes |
 | `flow.css` · `routes.css` · `groups.css` | cards and the frame; runs and their ends; bands and grids — loaded in that order |
 

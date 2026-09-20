@@ -82,9 +82,8 @@ const PATHS = {
   label_on: "M4.5 6.5h15v11h-15zM7.5 10.5h9M7.5 13.5h5",
   label_off: "M4.5 6.5h15v11h-15zM7.5 10.5h9M7.5 13.5h5M5.5 18.5l13-13",
 
-  // Interfaces drawn on the canvas, or not.
-  ports_on: PORTS,
-  ports_off: "M15 6H6v12h9",
+  // Interfaces drawn on their walls.
+  ports: PORTS,
 
   // Sending a file out, and taking one in. A workspace lands on a shelf; a
   // project is one page, so the two can never read as each other.
@@ -97,16 +96,16 @@ const PATHS = {
   layout_free: "M5 5h4.5v4.5H5zM14.5 8h4.5v4.5h-4.5zM8 14.5h5.5V19H8z",
   layout_grid: "M4.5 4.5h15v15h-15zM9.5 4.5v15M14.5 4.5v15M4.5 9.5h15M4.5 14.5h15",
 
-  // The guides the drawing is measured against, ruled or not. **A hash: rules
-  // that run off the edge**, which is what a guide is and what keeps it off
-  // `layout_grid`, where the lines are bounded because they are the thing.
-  guides_on: "M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17",
-  guides_off: "M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17M4.5 19.5l15-15",
+  // The guides the drawing is measured against. **A hash: rules that run off
+  // the edge**, which is what a guide is and what keeps it off `layout_grid`,
+  // where the lines are bounded because they are the thing.
+  guides: "M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17",
 
-  // The open layer's border, drawn or not. A room with its name set into the
-  // top wall, and the same room struck through.
-  frame_on: "M8 4.5H4.5v15h15v-15H16M10 4.5h4",
-  frame_off: "M8 4.5H4.5v15h15v-15H16M10 4.5h4M5.5 18.5l13-13",
+  // The open layer's border: a room with its name set into the top wall.
+  frame: "M8 4.5H4.5v15h15v-15H16M10 4.5h4",
+
+  // The key to what a layer draws: swatches with their words beside them.
+  legend: "M5.5 7.5h3v3h-3zM11.5 9h7M5.5 13.5h3v3h-3zM11.5 15h7",
 
   // Keeping a draft: a tick, because what it says is *this is done*.
   save: "M5 12.5l4.5 4.5L19 7.5",
