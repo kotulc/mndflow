@@ -21,8 +21,6 @@ function Harness() {
   const [chrome, set_chrome] = useState<Chrome>({
     slots: SLOTS["block"]!, arrangement: "free", interfaces: true,
     lattice: true, module: "line",
-    relations: [{ id: "flow_line", name: "flow", module: "line" },
-                { id: "note_tie", name: "annotates", module: "tie" }],
   });
 
   const act = (name: string, args?: Record<string, unknown>) => {

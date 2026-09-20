@@ -1,14 +1,19 @@
 {
   "packages": [
     {
-      "name": "sysml",
-      "about": "SysML names and stereotypes over the base definitions",
-      "at": "sysml.json"
+      "name": "doc",
+      "about": "markdown as blocks: pages, sections, items, code and links",
+      "at": "doc.json"
     },
     {
       "name": "requirements",
       "about": "requirements, with a shall statement and a verification method",
       "at": "requirements.json"
+    },
+    {
+      "name": "sysml",
+      "about": "SysML names and stereotypes over the base definitions",
+      "at": "sysml.json"
     }
   ]
 }

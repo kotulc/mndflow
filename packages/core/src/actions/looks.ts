@@ -3,13 +3,13 @@
 import { component, NUMBERS } from "../components";
 import type { Graph, Mutation } from "../types";
 import { register, type Args } from "./registry";
-import { borrowed, ids_of, list, text } from "./helpers";
+import { ids_of, list, text, writable } from "./helpers";
 
 register(
   {
     name: "tag",
-    about: "puts words on a block or a relationship to say what it is like",
-    on: ["block", "edge", "selection"],
+    about: "puts words on an element or a definition to say what it is like",
+    on: ["block", "edge", "layer", "selection"],
     /** The whole tag list, replaced in one step. */
     args: [{ name: "ids", form: "block", required: true },
            { name: "tags", form: "text", required: true }],
@@ -21,12 +21,13 @@ register(
 );
 
 /** The component keys a look may set. */
-const LOOKS: readonly string[] = ["card", "style", "line", "rules"];
+const LOOKS: readonly string[] = ["card", "style", "line", "allows", "expects"];
 
 /** Properties whose value is a list, split on commas. */
-const LISTS: readonly string[] = ["rules.required", "rules.holds", "rules.match"];
+const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.members",
+                                  "expects.required", "expects.match"];
 
-/** Rule kinds that are nested records, stated only on a definition. */
+/** Capabilities that are nested records, stated only on a definition. */
 const NESTED: readonly string[] = ["ends", "degree"];
 
 register(
@@ -46,7 +47,7 @@ register(
       if (!LOOKS.includes(String(args["key"]))) {
         return `there is nothing called "${args["key"]}" to set`;
       }
-      if (String(args["key"]) === "rules" && NESTED.includes(text(args, "name"))) {
+      if (String(args["key"]) === "allows" && NESTED.includes(text(args, "name"))) {
         return `\`${text(args, "name")}\` is stated on a definition, not set here`;
       }
       /** The component refuses what it cannot read. */
@@ -55,20 +56,17 @@ register(
         const why = component(String(args["key"]))?.check({ [text(args, "name")]: said });
         if (why) return why;
       }
-      for (const id of ids) {
-        const why = borrowed(ctx.graph, id);
-        if (why) return why;
-      }
       return null;
     },
     run: (ctx, args) => {
       const key = String(args["key"]);
       const name = text(args, "name");
       const value = value_of(args);
-      return { mutations: ids_of(ctx, args).map((id): Mutation => {
+      return { mutations: ids_of(ctx, args).flatMap((id): Mutation[] => {
         const d = ctx.graph.defs[id];
-        return d ? { op: "set_def", def: stated(d, key, name, value) }
-                 : { op: "set_look", id, key, name, value };
+        if (!d) return [{ op: "set_look", id, key, name, value }];
+        /** Styling a package's definition writes the workspace's word about it, never theirs. */
+        return [{ op: "set_def", def: stated(writable(ctx, id)!, key, name, value) }];
       }) };
     },
   },
@@ -80,7 +78,12 @@ function value_of(args: Args): unknown {
   const key = String(args["key"]);
   const name = text(args, "name");
   if (said === undefined || said === null || said === "") return null;
-  if (LISTS.includes(`${key}.${name}`)) return list(said);
+  if (LISTS.includes(`${key}.${name}`)) {
+    /** A capability answers with a flag as readily as with a list of definitions. */
+    const word = String(said).trim();
+    if (word === "true" || word === "false") return word === "true";
+    return list(said);
+  }
   return NUMBERS.includes(name) && Number.isFinite(Number(said))
     ? Number(said) : String(said);
 }

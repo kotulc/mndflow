@@ -1,8 +1,10 @@
 /** What the tray has hold of, and how to read it. */
 
-import { config_of, def_of, edge_module, honours, module_named, module_of, relation_named,
+import { config_of, def_of, default_for, edge_base, honours, may_retype, block_base,
+         base_of, outside, relation_base, shipped,
          type Block, type Definition, type Field, type FieldDef,
          type Graph, type Id, type Relation } from "@mnd/core";
+import { DRAFT } from "./draft";
 
 export type Held = {
   /** The definition, where the id names one. */
@@ -11,29 +13,70 @@ export type Held = {
   edge: Relation | null;
   /** What it carries — a block's values, or a definition's schema. */
   fields: readonly (Field | FieldDef)[];
-  /** A package's definition resists editing. */
-  borrowed: boolean;
 };
 
 export function held(graph: Graph, id: Id): Held | null {
   const d = graph.defs[id];
-  if (d) return { def: d, block: null, edge: null, fields: d.fields ?? [],
-                  borrowed: !!d.from };
+  if (d) {
+    /** What a definition declares is whatever the workspace's word about it says, where one was
+     *  said: an edit to a package's definition lands there, so it is what reads back. */
+    const said = graph.defs[default_for(graph, d.id, d.group) ?? ""] ?? d;
+    return { def: d, block: null, edge: null, fields: said.fields ?? [] };
+  }
   const b = graph.blocks[id];
-  if (b) return { def: null, block: b, edge: null, fields: b.fields ?? [],
-                  borrowed: false };
+  if (b) return { def: null, block: b, edge: null, fields: b.fields ?? [] };
   const e = graph.edges[id];
-  if (e) return { def: null, block: null, edge: e, fields: [], borrowed: false };
+  if (e) return { def: null, block: null, edge: e, fields: [] };
   return null;
 }
 
 /** The base kind this is or its usages are, and whether it draws as a run. */
 export function kind_of(graph: Graph, id: Id, it: Held): { kind: string; runs: boolean } {
   const { def: d, block: b } = it;
-  const kind = d ? (d.group === "relation" ? relation_named(graph, d.id)
-                                           : module_named(graph, d.id))
-    : b ? module_of(graph, id) : edge_module(graph, id);
+  const kind = d ? (d.group === "relation" ? relation_base(graph, d.id)
+                                           : block_base(graph, d.id))
+    : b ? base_of(graph, id) : edge_base(graph, id);
   return { kind, runs: honours(kind).includes("line") };
+}
+
+/** The definition a holder is about, and what may be done to it. */
+export function defined(graph: Graph, id: Id, it: Held, runs: boolean) {
+  const { def: d, block: b, edge } = it;
+  /** The relation definition this is about: itself, or the one a line follows. */
+  const follows = runs ? (d ?? graph.defs[def_of(graph, id) ?? ""]) : undefined;
+  const own = runs ? follows : d ?? (b?.type ? graph.defs[b.type] : undefined);
+  const mine = !!own && !outside(own) && own.id !== DRAFT;
+  /** What came from outside, and a word about it, is fixed: never renamed, removed or pinned. */
+  const fixed = !own || outside(own) || own.default !== undefined;
+  /** A block or line with looks of its own has a working definition to save. */
+  const wip = (edge ? ["line", "style"] : b ? ["card", "style"] : [])
+    .some((k) => Object.keys((edge ?? b)?.looks?.[k] ?? {}).length > 0);
+  return { follows, own, mine, fixed, wip };
+}
+
+/** Where a definition lives, as a path — **the folder the explorer files it under**, never a
+ *  projection over it. A package's reads under that package, the workspace's own under its group.
+ *  `pinned` is an option, not a home, and there is no `default` folder: the workspace's word about
+ *  a base is filed with its own definitions like any other.
+ *
+ *  **Two definitions may wear one name** — a base and the workspace's word about it — so this is
+ *  what tells them apart, and every picker that offers one shows it. */
+export function def_path(d: Definition): string {
+  if (d.from) return `${d.from}/${d.name}`;
+  return `${d.group === "relation" ? "relations" : "blocks"}/${d.name}`;
+}
+
+/** Every definition an element may follow. **The shipped bases head the list**, then the
+ *  defaults, then the rest by name: a block descends from a base whether or not anybody named
+ *  one, so leaving them out left the first link of every chain unpickable. */
+export function types_for(graph: Graph, id: Id): Definition[] {
+  const edge = graph.edges[id];
+  const rank = (d: Definition) => (shipped(d) ? 0 : d.default !== undefined ? 1 : 2);
+  return Object.values(graph.defs)
+    .filter((d) => (edge
+      ? d.group === "relation" && relation_base(graph, d.id) === edge_base(graph, id)
+      : d.group === "block" && may_retype(graph, id, d.id)))
+    .sort((a, z) => rank(a) - rank(z) || a.name.localeCompare(z.name));
 }
 
 /** The three readings every look control needs, over whichever holder this is. */

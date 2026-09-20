@@ -9,7 +9,7 @@ function token(): string {
   return out;
 }
 
-export function new_id(kind: "block" | "edge" | "def" | "rel" | "step"): string {
+export function new_id(kind: "block" | "edge" | "holder" | "def" | "rel" | "pkg" | "shelf" | "step"): string {
   return `${kind}_${token()}`;
 }
 

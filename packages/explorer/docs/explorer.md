@@ -3,11 +3,11 @@ The workspace explorer files the project: three collections drawn with one row, 
 
 | collection | mark | holds |
 |---|---|---|
-| **packages** | `Pkg` | what the workspace draws on, one row per package. It lists no definitions — a package's own are read in the tray |
-| **definitions** | `ABC` | the *default* folder and the *pinned* folder, each listing its definitions |
-| **the workspace** | a crate | the block tree. **The workspace is the one root** and carries the project's name; every top-level block is a branch under it |
+| **packages** | `Pkg` | what the workspace draws on, one row per package, each holding its *blocks* and its *relations*. **`base` is among them**, wearing a lock: the one package nothing may be written into |
+| **definitions** | `Def` | the workspace's own definitions: *pinned*, then *blocks* and *relations* in the folders somebody made for them |
+| **the workspace** | `Wks` | the block tree. **The workspace is the one root** and carries the project's name; every top-level block is a branch under it |
 
-**The bar is tools only** — add block, add folder, fold/unfold, delete — since the workspace names itself in the tree and is renamed there like any other row. Delete is never offered for the workspace.
+**The bar is tools only** — filter, add, add folder, delete, then fold — since the workspace names itself in the tree and is renamed there like any other row. **The filter leads it and is not built yet**: it is where ST.21 opens, and it stands disabled saying so rather than pretending to work. **Folding reads at two scales, down one column at the panel's right edge**: the bar's fold takes every collection at once, and each collection also folds itself from the far end of its own root row. Delete is never offered for the workspace. **The bar follows what is picked**: a block in the tree, and what it adds is a block; a library row, and what it adds is a definition or a folder for definitions, filed where the library is pointed.
 
 **The panel is dragged to its width** by the edge on its right, between a narrow margin and a third of the window, and the cap is restated in CSS so a window resized narrower gives the drawing its two thirds back without anybody dragging anything.
 
@@ -17,7 +17,8 @@ The workspace explorer files the project: three collections drawn with one row, 
 
 - **Guide lines are drawn per indent column**, each hung under the mark of the row it belongs to, and a branch draws its own half-row down from below its mark so the line it hangs from is joined rather than floating. A row's columns are its holder's plus one for itself, handed down rather than re-derived.
 - **The last row in a branch turns an elbow** — the column stops on that row's centre line and the tick crosses at its foot.
-- **Every role carries a mark** — leaf, container, interface, folder — and a container is filled where a leaf is outlined, because the fill is what says it holds something.
+- **Every role carries a mark** — leaf, folder, interface, reference, note — and **a row that holds parts fills its own mark**, because the fill is what says it holds something. There is no separate container mark: a filled folder is a folder that holds.
+- **A section's mark is a word**, not a drawing: `Pkg`, `Def`, `Wks`. **A word is never filled** — a fill closes its counters and leaves a blot.
 - **A root reads a shade stronger** and is ruled off from the collection above it.
 
 ## Selection
@@ -28,12 +29,12 @@ The workspace explorer files the project: three collections drawn with one row, 
 
 | clicked | the tray is about |
 |---|---|
-| **packages** | the packages it draws on |
-| a package | that package |
+| **packages**, or one package | what the workspace draws on, on the tray's *packages* tab |
 | **definitions** | every definition |
-| **default** | the defaults |
-| **pinned** | the pinned ones |
-| one definition | that definition, opened on its settings |
+| **pinned** | the pinned definitions |
+| **blocks** or **relations** | that group's |
+| a folder somebody made | its group's, in the workspace |
+| one definition | that definition, opened on its element tab |
 
 ## The block tree
 
@@ -49,13 +50,16 @@ A minimal file tree with each block name after its mark. The open layer is highl
 
 ## Definitions
 
-**Drawn with the same rows and marks — a rendering, never blocks.** The folders list **pinned definitions only**; unpinned ones live in the tray's tabs.
+**Drawn with the same rows and marks — a rendering, never blocks.** A definition is a block row wearing its kind's mark, a relation definition wearing the line or the tie, and it becomes a block in the graph only when it is dragged onto the drawing. **Everything is listed**: pinning is a shortlist, not what makes a definition visible.
 
 | folder | mark | lists |
 |---|---|---|
-| **default** | lock | the workspace's default for each block kind |
 | **pinned** | pin | the block definitions the workspace **pinned**, in pin order. Unpinning takes one out of the folder and leaves the definition standing |
+| **blocks**, **relations** | folder | its own definitions of that group, in the folders somebody made for them. **A word about a package's definition is filed here too** — somebody wrote it, so it is theirs |
 
-- **Picking a row holds that definition in the tray**; dragging one onto the drawing makes a block naming it.
+- **Picking a row holds that definition in the tray**, on its element tab.
+- **The workspace's own are filed by hand.** Add and remove definitions and folders from the bar, drag one into a folder or between two rows to file and order it, and rename either in place on a double click. **A package is frozen** and the system's folders are the system's, so neither takes a drop.
+- **Blocks and relations are filed apart**, since a definition of one group is never a definition of the other.
+- **Dragging a definition onto the drawing** makes an instance of it where nothing is, and **retypes what it lands on** where the kinds agree. A relation definition says lines must connect existing blocks; an interface, a note and a reference each say what they need first.
 - **Interfaces are never listed** in the tree.
-- **Relation definitions are not here.** The explorer is a palette you drag from, and a relationship is drawn between two ends; pinned line definitions are on the rail.
+- **Relation definitions are here too**, under their own folder. Dragging one out never draws a line — a relationship is made between two ends — so it retypes a line it lands on and says so where it lands on nothing. **Pinned line definitions are also on the rail**, which is what a right drag draws from.

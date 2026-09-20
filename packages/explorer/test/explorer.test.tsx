@@ -44,12 +44,25 @@ describe("it shows structure and only structure", () => {
     expect(tree_of(graph, ["block_ledger"]).map((r) => r.label)).not.toContain("Edge");
   });
 
-  it("marks a container differently from a leaf, and a folder from both", () => {
+  /** A mark says what a row is; holding parts is said by filling it, not by changing it. */
+  it("marks a folder apart, and leaves holding parts to the fill", () => {
     const rows = tree_of(fold(nested(), FLOOR), []);
     const mark = (label: string) => rows.find((r) => r.label === label)!.mark;
     expect(mark("Shelf")).toBe("folder");
-    expect(mark("Edge")).toBe("container");
+    expect(mark("Edge")).toBe("leaf");
     expect(mark("Auth")).toBe("leaf");
+  });
+
+  it("fills the icon of a row that holds parts, and only that", () => {
+    const { container } = mount(fold(nested(), FLOOR));
+    const filled = (label: string) => container
+      .querySelector(`li:has(.label)`) && Array.from(container.querySelectorAll("li"))
+      .find((li) => li.textContent?.startsWith(label))
+      ?.querySelector(".mark svg")?.getAttribute("fill");
+    expect(filled("Edge")).toBe("currentColor");
+    expect(filled("Auth")).toBe("none");
+    /** The workspace row holds everything, but its mark is a word — filling one blots it out. */
+    expect(filled("workspace")).toBe("none");
   });
 });
 
@@ -100,7 +113,9 @@ describe("it emits action names and mutates nothing", () => {
   /** The mark is the fold, and it says which way it is set. */
   it("folds a branch from its mark, which reads as open until it is shut", () => {
     const { onFold, container } = mount(fold(nested(), FLOOR));
-    const row = container.querySelector('li[data-mark="container"]')!;
+    /** A row that holds parts; its mark is the fold control. */
+    const row = Array.from(container.querySelectorAll("li"))
+      .find((li) => li.textContent?.startsWith("Edge"))!;
     expect(row.querySelector(".mark.on")).toBeTruthy();
     fireEvent.click(row.querySelector(".mark")!);
     expect(onFold).toHaveBeenCalledWith(expect.any(String), true);
@@ -108,7 +123,8 @@ describe("it emits action names and mutates nothing", () => {
 
   it("folds nothing from a row that lists nothing", () => {
     const { onFold, container } = mount(fold(nested(), FLOOR));
-    const leaf = container.querySelector('li[data-mark="leaf"]')!;
+    const leaf = Array.from(container.querySelectorAll("li"))
+      .find((li) => li.textContent?.startsWith("Auth"))!;
     expect(leaf.querySelector(".mark.on")).toBeNull();
     fireEvent.click(leaf.querySelector(".mark")!);
     expect(onFold).not.toHaveBeenCalled();

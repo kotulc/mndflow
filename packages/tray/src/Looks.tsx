@@ -1,4 +1,4 @@
-/** How one thing is painted: the right column of the settings panel. */
+/** How one thing is painted: the style rows of the style tab. */
 
 import { useState } from "react";
 import { DEFAULTS, honours, is_named, type Act, type Graph, type Id } from "@mnd/core";

@@ -1,12 +1,16 @@
 /** Fields, definitions, pinning, and giving looks back. */
 
-import { def_named, def_of, isa, module_of, ordered_by, plain_type, schema_of, shipped,
+import { BASE_PACKAGE, def_named, def_of, default_for, isa, base_of, ordered_by, outside,
+         package_named, package_of, plain_type, schema_of, shipped, stands_in_for,
          stored_type } from "../defs";
 import { DRAWN } from "../components";
+import { shelf_of } from "../shelf";
 import { VALUE_FORMS, type Components, type Definition, type FieldDef, type Graph, type Id,
          type Mutation, type ValueForm } from "../types";
+import { new_id } from "../ids";
 import { register } from "./registry";
-import { borrowed, holds_values, id_of, ids_of, list, mint_def, rooted, text } from "./helpers";
+import { borrowed, holds_values, id_of, ids_of, list, mint_def, rooted, text,
+         writable } from "./helpers";
 
 register(
   {
@@ -25,7 +29,7 @@ register(
            { name: "to", form: "text" }],
     check: (ctx, args) => {
       if (!text(args, "name")) return "a field needs a name";
-      const why = holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder"));
+      const why = holds_values(ctx, args);
       if (why) return why;
       const to = text(args, "to");
       const holder = id_of(args, "holder");
@@ -54,7 +58,9 @@ register(
           ? { choices: list(args["choices"]).length ? list(args["choices"]) : undefined } : {}),
       };
       const next = had ? fields.map((f) => (f.name === name ? field : f)) : [...fields, field];
-      if (d) return { mutations: [{ op: "set_def", def: { ...d, fields: next } }] };
+      /** A package's definition is never written: the edit lands on the word about it. */
+      if (d) return { mutations: [{ op: "set_def",
+                                    def: { ...writable(ctx, holder)!, fields: next } }] };
       if (to === name) return { mutations: [{ op: "set_field", id: holder, field }] };
       return { mutations: [{ op: "drop_field", id: holder, name },
                            { op: "set_field", id: holder, field },
@@ -69,8 +75,8 @@ register(
            { name: "name", form: "text", required: true },
            /** Which it goes in front of. Absent is last. */
            { name: "before", form: "text" }],
-    check: (ctx, args) =>
-      holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder")),
+    /** What a definition says may be overridden, so nothing outside is refused here. */
+    check: (ctx, args) => holds_values(ctx, args),
     run: (ctx, args) => {
       const holder = id_of(args, "holder");
       const name = text(args, "name");
@@ -80,7 +86,11 @@ register(
         .map((f) => f.name).filter((n) => n !== name);
       const at = before ? names.indexOf(before) : -1;
       names.splice(at < 0 ? names.length : at, 0, name);
-      if (d) return { mutations: [{ op: "set_def", def: { ...d, fields: ordered_by(d.fields ?? [], names) } }] };
+      if (d) {
+        const on = writable(ctx, holder)!;
+        return { mutations: [{ op: "set_def",
+          def: { ...on, fields: ordered_by(on.fields ?? d.fields ?? [], names) } }] };
+      }
       return { mutations: [{ op: "order_fields", id: holder, names }] };
     },
   },
@@ -90,15 +100,16 @@ register(
     on: ["layer", "block"],
     args: [{ name: "holder", form: "block", required: true },
            { name: "name", form: "text", required: true }],
-    check: (ctx, args) =>
-      holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder")),
+    /** What a definition says may be overridden, so nothing outside is refused here. */
+    check: (ctx, args) => holds_values(ctx, args),
     run: (ctx, args) => {
       const holder = id_of(args, "holder");
       const name = text(args, "name");
       const d = ctx.graph.defs[holder];
       if (!d) return { mutations: [{ op: "drop_field", id: holder, name }] };
+      const on = writable(ctx, holder)!;
       return { mutations: [{ op: "set_def", def: {
-        ...d, fields: (d.fields ?? []).filter((f) => f.name !== name),
+        ...on, fields: (on.fields ?? []).filter((f) => f.name !== name),
       } }] };
     },
   },
@@ -111,13 +122,15 @@ register(
     args: [{ name: "name", form: "text", required: true },
            { name: "group", form: "choice", required: true, choices: ["block", "relation"] },
            { name: "extends", form: "text" },
-           { name: "label", form: "text" }],
+           /** The folder a new one is filed in; absent is its group's top. */
+           { name: "into", form: "text" }],
     check: (ctx, args) => {
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
       const group = args["group"];
       if (group !== "block" && group !== "relation") return "say whether it defines a block or a relation";
       const held = def_named(ctx.graph, name, group);
+      if (held && outside(held)) return borrowed(ctx.graph, held.id);
       const why = held ? borrowed(ctx.graph, held.id) : null;
       if (why) return why;
       const said = text(args, "extends");
@@ -127,7 +140,9 @@ register(
       if (held && up && isa(ctx.graph, up).some((d) => d.id === held.id)) {
         return `"${name}" cannot extend itself or anything below it`;
       }
-      return null;
+      const into = text(args, "into");
+      const folder = shelf_of(ctx.graph).some((s) => s.id === into && s.name !== undefined && s.group === group);
+      return into && !folder ? `that is not a folder of ${group} definitions` : null;
     },
     /** Over what is there: only what was said changes. */
     run: (ctx, args) => {
@@ -139,15 +154,18 @@ register(
       const fields = args["fields"] as FieldDef[] | undefined;
       const said = args["extends"] === undefined ? held?.extends
                                                  : rooted(ctx, text(args, "extends"), group);
-      const label = args["label"] === undefined ? held?.label : text(args, "label") || undefined;
+      /** A new one said to go in a folder is filed there. */
+      const into = held ? "" : text(args, "into");
+      const filed: Mutation[] = into
+        ? [{ op: "set_shelf", shelf: [...shelf_of(ctx.graph), { id, group, in: into }] }] : [];
       return { mutations: [{ op: "set_def", def: {
         ...held,
-        id, name, group, label,
+        id, name, group,
         extends: said ?? held?.default ?? (group === "relation" ? "line" : "block"),
         ...(group === "relation" && !held?.components?.["line"] ? { components: { ...held?.components, line: {} } } : {}),
         ...(components && Object.keys(components).length ? { components } : {}),
         ...(fields?.length ? { fields } : {}),
-      } }] };
+      } }, ...filed] };
     },
   },
   {
@@ -162,7 +180,7 @@ register(
       if (!d) return "there is no such definition";
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
-      if (d.default) return `the ${d.default} default keeps its name`;
+      if (outside(d)) return borrowed(ctx.graph, d.id);
       const other = def_named(ctx.graph, name, d.group);
       if (other && other.id !== d.id) return `"${other.name}" already exists`;
       return borrowed(ctx.graph, d.id);
@@ -211,10 +229,8 @@ register(
 
       /** Extends what it followed, and the element moves onto it. */
       const over = def_of(ctx.graph, id);
-      const label = edge ? ctx.graph.defs[over ?? ""]?.label : undefined;
       const def: Definition = {
         id: mint_def(edge ? "relation" : "block"), group: edge ? "relation" : "block", name,
-        ...(label ? { label } : {}),
         extends: over,
         fields: fields.length ? fields : undefined,
         components: Object.keys(taken).length ? taken : undefined,
@@ -235,16 +251,16 @@ register(
   /** Pinning offers a definition on the rail or in the pinned folder. */
   {
     name: "pin",
-    about: "offers a definition on the rail or in the pinned folder, or takes it off",
+    about: "lists a definition in the explorer's pinned folder, or takes it off",
     on: ["layer"],
     args: [{ name: "id", form: "text", required: true },
            { name: "on", form: "choice", choices: ["yes", "no"] }],
-    /** Bases and defaults are never pinned. */
+    /** Only a base is refused: pinning and standing in are two options, not one choice. */
     check: (ctx, args) => {
       const id = id_of(args, "id");
       const d = ctx.graph.defs[id];
       if (!d) return `there is nothing called "${id}" to pin`;
-      return shipped(d) || d.default ? `"${d.name}" is a base or a default, and is never pinned` : null;
+      return shipped(d) ? `"${d.name}" is a base, and is never pinned` : null;
     },
     run: (ctx, args) => {
       const id = id_of(args, "id");
@@ -253,9 +269,46 @@ register(
       /** Absent toggles. */
       const said = args["on"] === undefined ? null : text(args, "on") === "yes";
       const want = said ?? !held.includes(id);
-      const where = d?.group === "relation" ? "the rail" : "the pinned folder";
       return { mutations: [{ op: "set_pinned", ids: pinning(ctx.graph, id, want) }],
-               effect: { say: `${d?.name ?? id} is ${want ? "in" : "out of"} ${where}` } };
+               effect: { say: `${d?.name ?? id} is ${want ? "in" : "out of"} the pinned folder` } };
+    },
+  },
+  {
+    name: "default",
+    about: "makes a definition what a plain element of its kind draws, or gives that back",
+    on: ["layer"],
+    args: [{ name: "id", form: "text", required: true },
+           { name: "on", form: "choice", choices: ["yes", "no"] }],
+    /** It stands in for whatever it extends from outside — a base, or a package's definition. */
+    check: (ctx, args) => {
+      const id = id_of(args, "id");
+      const d = ctx.graph.defs[id];
+      if (!d) return `there is nothing called "${id}" to stand in`;
+      if (outside(d)) return borrowed(ctx.graph, id);
+      return stands_in_for(ctx.graph, id)
+        ? null : `"${d.name}" extends nothing from outside, so it stands in for nothing`;
+    },
+    /** **One per thing stood in for**, so taking it is how it moves: whoever held it gives it up
+     *  in the same step, and the two undo together. */
+    run: (ctx, args) => {
+      const id = id_of(args, "id");
+      const d = ctx.graph.defs[id]!;
+      const stood = stands_in_for(ctx.graph, id);
+      const want = args["on"] === undefined ? d?.default === undefined
+                                            : text(args, "on") === "yes";
+      const word = ctx.graph.defs[stood ?? ""]?.name ?? "one";
+      /** Giving it back, which is also what nothing to stand in for comes to. */
+      if (!want || !stood) {
+        return { mutations: [{ op: "set_def", def: { ...d, default: undefined } }],
+                 effect: { say: `a plain ${word} draws ${word} again` } };
+      }
+      const held = default_for(ctx.graph, stood, d.group);
+      const moved = held && held !== id ? ctx.graph.defs[held] : undefined;
+      return { mutations: [
+        ...(moved ? [{ op: "set_def" as const, def: { ...moved, default: undefined } }] : []),
+        { op: "set_def", def: { ...d, default: stood } },
+      ], effect: { say: moved ? `a plain ${word} draws ${d.name}, not ${moved.name}`
+                              : `a plain ${word} draws ${d.name}` } };
     },
   },
   {
@@ -267,7 +320,7 @@ register(
     check: (ctx, args) => {
       const id = id_of(args, "id");
       if (!ctx.graph.defs[id]) return `there is nothing called "${id}" to remove`;
-      if (ctx.graph.defs[id]!.default) return "a default stays — reset its style instead";
+      if (outside(ctx.graph.defs[id])) return borrowed(ctx.graph, id);
       return borrowed(ctx.graph, id);
     },
     run: (ctx, args) => {
@@ -296,7 +349,7 @@ register(
         /** The usage names what this extended, stored as plain where that is a base or default. */
         const edge = ctx.graph.edges[it.id];
         const type = stored_type(ctx.graph, d?.extends)
-          ?? (edge ? null : plain_type(module_of(ctx.graph, it.id)));
+          ?? (edge ? null : plain_type(base_of(ctx.graph, it.id)));
         out.push(edge ? { op: "update_edge", id: it.id, type }
                       : { op: "update_block", id: it.id, type });
       }
@@ -362,3 +415,56 @@ register(
     },
   },
 );
+
+register(
+  {
+    name: "package",
+    about: "makes a named package, and files definitions into it",
+    on: ["layer"],
+    args: [{ name: "name", form: "text", required: true, asks: true },
+           /** Definitions to move into it, by id or by name. */
+           { name: "defs", form: "text" }],
+    /** A package is known by its name, so no two share one. */
+    check: (ctx, args) => {
+      const name = text(args, "name").trim();
+      if (!name) return "a package needs a name";
+      if (package_named(ctx.graph, name)) return `there is already a package called "${name}"`;
+      for (const d of named_defs(ctx.graph, args)) {
+        const why = borrowed(ctx.graph, d.id);
+        if (why) return why;
+      }
+      return null;
+    },
+    run: (ctx, args) => {
+      const pkg = { id: new_id("pkg"), name: text(args, "name").trim() };
+      return { mutations: [
+        { op: "set_package", pkg },
+        ...named_defs(ctx.graph, args)
+          .map((d): Mutation => ({ op: "set_def", def: { ...d, from: pkg.id } })),
+      ] };
+    },
+  },
+  {
+    name: "remove_package",
+    about: "drops a package and everything it brought",
+    on: ["layer"],
+    args: [{ name: "id", form: "text", required: true }],
+    check: (ctx, args) => {
+      const pkg = package_of(ctx.graph, text(args, "id"));
+      if (!pkg) return `there is nothing called "${text(args, "id")}" to remove`;
+      return pkg.id === BASE_PACKAGE ? "the shipped floor is not a package to remove" : null;
+    },
+    /** `check` is what refuses an id that names no package; the drop itself is always the one
+     *  gesture, and folding one that is not there changes nothing. */
+    run: (ctx, args) => ({ mutations: [
+      { op: "drop_package", id: package_of(ctx.graph, text(args, "id"))?.id ?? text(args, "id") },
+    ] }),
+  },
+);
+
+/** The definitions an argument names, by id or by name, that a package may take. */
+function named_defs(graph: Graph, args: { [k: string]: unknown }): Definition[] {
+  return list(args["defs"])
+    .map((n) => graph.defs[n] ?? def_named(graph, n))
+    .filter((d): d is Definition => !!d && !outside(d) && !d.default);
+}

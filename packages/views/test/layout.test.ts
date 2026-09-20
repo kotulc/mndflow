@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, related } from "@mnd/fixtures";
-import { children, fold, is_grid, is_interface, module_of,
+import { children, fold, is_grid, is_interface, units_in,
          type Arrangement, type Graph, type Id } from "@mnd/core";
 import { cell_box } from "../src/size";
 import { bounds, boundary, laid, nearest_seat, seated, size_of, snap, tidy, GAP, CELL, UNIT,
@@ -28,16 +28,30 @@ function overlaps(a: Placed, b: Placed): boolean {
 
 /** Groups overlap their members and sit on the lattice by their rim. */
 function placed(graph: Graph, spots: Placed[]): Placed[] {
-  return spots.filter((p) => {
-    const m = module_of(graph, p.id);
-    return m !== "group" && m !== "grid";
-  });
+  return spots.filter((p) => !graph.holders[p.id]);
 }
 
 describe("size", () => {
-  it("gives a container more room than a leaf", () => {
+  /** A container says so with a mark now, not by being taller. */
+  it("gives every card the one card height", () => {
     const { graph } = layer_of("nested");
-    expect(size_of(graph, "block_edge").h).toBeGreaterThan(size_of(graph, "block_auth").h);
+    expect(size_of(graph, "block_edge").h).toBe(size_of(graph, "block_auth").h);
+  });
+
+  /** A card whose definition asked for its own height keeps whatever it was given. */
+  it("keeps the size a free-height card was given", () => {
+    const { graph } = layer_of("related");
+    const sized = { ...graph.blocks["block_note"]!, w: 200, h: 90 };
+    const g = { ...graph, blocks: { ...graph.blocks, block_note: sized } };
+    expect(size_of(g, "block_note")).toEqual({ w: 200, h: 90 });
+  });
+
+  /** A card that did not ask keeps the one height, whatever it was given. */
+  it("ignores a stored size on a uniform card", () => {
+    const { graph } = layer_of("related");
+    const sized = { ...graph.blocks["block_pump"]!, w: 200, h: 90 };
+    const g = { ...graph, blocks: { ...graph.blocks, block_pump: sized } };
+    expect(size_of(g, "block_pump").h).toBe(size_of(graph, "block_hx").h);
   });
 
   it("snaps to the grid", () => {
@@ -49,7 +63,7 @@ describe("placement", () => {
   it.each(ARRANGEMENTS)("places every unit exactly once under %s", (how) => {
     const { graph, layer } = layer_of("related");
     const spots = under(graph, layer, how);
-    const want = children(graph, layer).filter((b) => !is_interface(b)).map((b) => b.id);
+    const want = units_in(graph, layer).filter((b) => !is_interface(b)).map((b) => b.id);
     expect(spots.map((p) => p.id).sort()).toEqual([...want].sort());
   });
 
@@ -127,8 +141,8 @@ describe("the grid arrangement", () => {
   it("is its cells, and its cells are whole units", () => {
     const { graph, layer } = layer_of("gridded");
     for (const p of under(graph, layer, "grid")) {
-      const g = graph.blocks[p.id]!;
       if (!is_grid(graph, p.id)) continue;
+      const g = graph.holders[p.id]!;
       expect(p.w).toBe((g.cols ?? 1) * CELL.w);
       expect(p.h).toBe((g.rows ?? 1) * CELL.h);
       expect(CELL.w % UNIT).toBe(0);
@@ -145,7 +159,7 @@ describe("the grid arrangement", () => {
       const grid = at.get(b.group);
       const p = at.get(b.id);
       if (!grid || !p) continue;
-      const box = cell_box(graph.blocks[b.group]!, b.cell.r, b.cell.c);
+      const box = cell_box(graph.holders[b.group]!, b.cell.r, b.cell.c);
       expect(p.x - (grid.x + box.x), `${b.id} left`).toBe(GAP);
       expect(p.y - (grid.y + box.y), `${b.id} top`).toBe(GAP);
     }
@@ -166,13 +180,13 @@ describe("the grid arrangement", () => {
   it("moves a band's members when its corner moves in free mode", () => {
     const graph = fold(related(), FLOOR);
     graph.blocks["block_loop"]!.arrangement = "free";
-    graph.blocks["block_hot"]!.x = 0;
-    graph.blocks["block_hot"]!.y = 0;
+    graph.holders["block_hot"]!.x = 0;
+    graph.holders["block_hot"]!.y = 0;
     const before = laid(graph, "block_loop");
     const band_before = before.find((p) => p.id === "block_hot")!;
     const hx = before.find((p) => p.id === "block_hx")!;
-    graph.blocks["block_hot"]!.x = 200;
-    graph.blocks["block_hot"]!.y = 100;
+    graph.holders["block_hot"]!.x = 200;
+    graph.holders["block_hot"]!.y = 100;
     const after = laid(graph, "block_loop");
     const band_after = after.find((p) => p.id === "block_hot")!;
     const hx2 = after.find((p) => p.id === "block_hx")!;
@@ -200,7 +214,7 @@ describe("a grid's cells sit on the unit lattice", () => {
     const found = grids(graph, spots);
     expect(found.length).toBeGreaterThan(0);
     for (const p of found) {
-      const g = graph.blocks[p.id]!;
+      const g = graph.holders[p.id]!;
       for (let r = 0; r < (g.rows ?? 0); r++) {
         for (let c = 0; c < (g.cols ?? 0); c++) {
           const box = cell_box(g, r, c);
@@ -232,7 +246,7 @@ describe("a grid's cells sit on the unit lattice", () => {
       const p = at.get(b.id);
       if (!grid || !p) continue;
       seated_count++;
-      const box = cell_box(graph.blocks[b.group]!, b.cell.r, b.cell.c);
+      const box = cell_box(graph.holders[b.group]!, b.cell.r, b.cell.c);
       expect(p.x + p.w / 2, `${b.id} x`).toBe(grid.x + box.x + box.w / 2);
       expect(p.y + p.h / 2, `${b.id} y`).toBe(grid.y + box.y + box.h / 2);
     }
@@ -246,10 +260,7 @@ describe("the layout leaves room between things", () => {
   it("keeps a unit between a band and its neighbours, the way a grid is kept", () => {
     const graph = fold(related(), FLOOR);
     const spots = under(graph, "block_loop", "grid")
-      .filter((p) => {
-        const m = module_of(graph, p.id);
-        return m !== "group" && m !== "grid";
-      })
+      .filter((p) => !graph.holders[p.id])
       .map((p) => ({ ...p }));
     const band = laid(graph, "block_loop").find((p) => p.id === "block_hot")!;
     const others = spots.filter((p) => !graph.blocks[p.id]?.group);
@@ -272,8 +283,7 @@ describe("the layout leaves room between things", () => {
     /** What the layer placed; seated blocks are placed by their address. */
     const spots = under(graph, layer, "grid")
       .filter((p) => is_grid(graph, p.id)
-                  || (!graph.blocks[p.id]!.cell && module_of(graph, p.id) !== "group"
-                      && module_of(graph, p.id) !== "grid"))
+                  || (!graph.holders[p.id] && !graph.blocks[p.id]!.cell))
       .map((p) => ({ ...p }));
     expect(spots.length).toBeGreaterThan(1);
     for (let i = 0; i < spots.length; i++) {
@@ -290,12 +300,12 @@ describe("the layout leaves room between things", () => {
 
   it("places each id once, even when a group sits inside another", () => {
     const graph = fold(related(), FLOOR);
-    graph.blocks["block_inner"] = {
-      id: "block_inner", parent: "block_loop", type: "group", order: 20,
+    graph.holders["block_inner"] = {
+      id: "block_inner", parent: "block_loop", arrangement: "free", order: 20,
+      group: "block_hot",
     };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_loop", type: "block", order: 21 };
     graph.blocks["block_pad"]!.group = "block_inner";
-    graph.blocks["block_inner"]!.group = "block_hot";
     const spots = under(graph, "block_loop", "grid");
     const ids = spots.map((p) => p.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -461,7 +471,8 @@ describe("seats", () => {
 
   it("sits a leftover neighbour above its member, not at a tall group's far corner", () => {
     const { graph, layer } = layer_of("flat");
-    graph.blocks["block_band"] = { id: "block_band", parent: layer, type: "group", order: 30 };
+    graph.holders["block_band"] = { id: "block_band", parent: layer, arrangement: "free",
+                                    order: 30 };
     for (const [id, order] of [["block_top", 31], ["block_mid", 32], ["block_bot", 33]] as const) {
       graph.blocks[id] = { id, parent: layer, type: "block", order, group: "block_band" };
     }
@@ -537,8 +548,8 @@ describe("seats", () => {
     graph.blocks["block_pump"]!.y = 0;
     graph.blocks["block_valve"]!.x = 3000;
     graph.blocks["block_valve"]!.y = 0;
-    graph.blocks["block_hot"]!.x = 1500;
-    graph.blocks["block_hot"]!.y = 0;
+    graph.holders["block_hot"]!.x = 1500;
+    graph.holders["block_hot"]!.y = 0;
     const spots = under(graph, "block_loop", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(
@@ -675,7 +686,8 @@ describe("seats", () => {
   it("places a block beside a grid near its cell, not past an intervening group", () => {
     const graph = fold(fixture("gridded"), FLOOR);
     graph.blocks["block_in"] = { id: "block_in", parent: "block_board", type: "block", order: 50 };
-    graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", order: 51 };
+    graph.holders["block_mid"] = { id: "block_mid", parent: "block_board", arrangement: "free",
+                                   order: 51 };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", order: 52 };
     graph.edges["edge_in"] = { id: "edge_in", from: "block_in", to: "block_draft", dir: "forward" };
     graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes" };
@@ -696,7 +708,8 @@ describe("seats", () => {
   it("places a downstream block on the near side of a grid, not past an intervening group", () => {
     const graph = fold(fixture("gridded"), FLOOR);
     graph.blocks["block_out"] = { id: "block_out", parent: "block_board", type: "block", order: 53 };
-    graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", order: 51 };
+    graph.holders["block_mid"] = { id: "block_mid", parent: "block_board", arrangement: "free",
+                                   order: 51 };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", order: 52 };
     graph.edges["edge_out"] = { id: "edge_out", from: "block_ship", to: "block_out", dir: "forward" };
     graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes" };

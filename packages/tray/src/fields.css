@@ -41,6 +41,8 @@
 
 .rows > .row.options > .line { gap: 3px; }
 .rows > .row.sliders > .line { gap: 6px; flex-wrap: nowrap; }
+.rows > .row.card > .line { gap: 6px; flex-wrap: nowrap; }
+.rows > .row.card > .line > input { flex: 0 1 4.5em; min-width: 0; }
 .rows > .row.value > .line > input { flex: 1 1 auto; min-width: 0; }
 .rows > .row.value > .line > .form { color: var(--faint); font-size: 10px; }
 .rows > .row.value > .line > select { flex: 0 0 6em; }
@@ -126,11 +128,13 @@
 .rows > .row > .line > .into { flex: none; color: var(--faint); font-size: 11px; }
 .rows > .row > .line > .alias { flex: none; color: var(--faint); font-size: 11px; }
 
-/* A box, because it is a yes and a no. */
+/* A box, because it is a yes and a no. One look, in a row of them or under the drawing. */
 .rows > .row > .line > .check,
-.kind-rows > .check {
+.drawing > .toggles > .check {
   display: inline-flex;
   align-items: center;
+  flex: none;
+  white-space: nowrap;
   gap: 5px;
   color: var(--muted);
   font-size: 11px;
@@ -138,9 +142,13 @@
 }
 
 .rows > .row > .line > .check:hover,
-.kind-rows > .check:hover { color: var(--text); }
+.drawing > .toggles > .check:hover { color: var(--text); }
+
 .rows > .row > .line > .check input,
-.kind-rows > .check input { margin: 0; accent-color: var(--accent); }
+.drawing > .toggles > .check input { margin: 0; accent-color: var(--accent); }
+
+/* Dead rather than refused: the tip says why. */
+.drawing > .toggles > .check[aria-disabled] { opacity: 0.4; cursor: not-allowed; }
 
 /* One chip a tag, and the box to add another takes what the row has left. */
 .rows > .row > .line > .tags {

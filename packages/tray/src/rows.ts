@@ -1,7 +1,7 @@
 /** What the open layer holds, as rows. */
 
-import { alias_of, children, def_of, edge_module, edges_in, is_interface, isa, label_of,
-         module_of, path, shipped, shown_name, subtree,
+import { alias_of, children, def_of, edge_base, edges_in, is_interface, isa,
+         base_of, path, shipped, shown_name, stands_in_for, subtree,
          type Block, type Graph, type Id } from "@mnd/core";
 
 /** What a row is, which is also how it is filtered. */
@@ -33,7 +33,7 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
     .flatMap((b) => (deep && !is_interface(b) ? [b, ...walk(b.id)] : [b]));
 
   for (const b of walk(layer)) {
-    const kind = module_of(graph, b.id);
+    const kind = base_of(graph, b.id);
     const held = children(graph, b.id).filter((k) => !is_interface(k)).length;
     const ports = children(graph, b.id).filter((k) => is_interface(k)).length;
     /** Where it sits, once the listing crosses layers. */
@@ -72,10 +72,11 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
   for (const e of runs) {
     const named = plain(graph, e.type) ? "" : graph.defs[e.type!]?.name ?? e.type!;
     out.push({
-      id: e.id, sort: "relationship", kind: edge_module(graph, e.id),
+      id: e.id, sort: "relationship", kind: edge_base(graph, e.id),
       /** An edge holds no values. */
       fields: {},
-      name: named || edge_module(graph, e.id),
+      /** Its own name, else its type's, else its module — as every surface writes it. */
+      name: called(e.id),
       what: `${called(e.from)} → ${called(e.to)}`,
       type: named,
     });
@@ -85,39 +86,44 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
 }
 
 
-/** One definition, as the definitions tab lists it. */
+/** One definition, as the definitions and types tabs list it. */
 export type DefRow = {
   id: Id;
+  group: "block" | "relation";
   name: string;
-  /** What a line naming it draws; blank for none, and always for a block's. */
-  label: string;
   /** What it extends. */
   extends: Id;
-  /** Whether it is its kind's default, which every plain element follows. */
+  /** Whether it is what a plain element of its kind draws. One definition per thing stood in
+   *  for, and it stands in front of that one in every chain reaching it. */
   base: boolean;
+  /** What it would stand in for, were it made the default. Blank where its chain is all its
+   *  own, and so there is nothing to stand in front of. */
+  stands: Id;
   /** The package it came from, where somebody else wrote it. */
   from: string;
   /** Usages of this definition only, never of what extends it. */
   used: number;
 };
 
-/** Every definition of one group the workspace can name, the defaults first and then by name. */
-export function def_rows(graph: Graph, group: "block" | "relation"): DefRow[] {
+/** **Every definition the workspace can name**, a package's and the floor's among them — the
+ *  workspace's own first, then by name. Hiding the floor only made `all` a smaller word for
+ *  `workspace`, and left the kinds every block descends from unreadable. */
+export function def_rows(graph: Graph): DefRow[] {
   const used = new Map<string, number>();
-  const usages = group === "relation" ? Object.keys(graph.edges)
-    : Object.keys(graph.blocks).filter((id) => id !== graph.root);
+  const usages = [...Object.keys(graph.edges),
+                  ...Object.keys(graph.blocks).filter((id) => id !== graph.root)];
   for (const id of usages) {
     const d = def_of(graph, id);
     if (d) used.set(d, (used.get(d) ?? 0) + 1);
   }
   return Object.values(graph.defs)
-    /** The shipped floor is not listed: nobody chose it, and nothing edits it. */
-    .filter((d) => d.group === group && !shipped(d))
     .map((d): DefRow => ({
-      id: d.id, name: d.default ? `default/${d.default}` : d.name, label: d.label ?? "", extends: d.extends ?? "",
-      base: d.default !== undefined, from: d.from ?? "", used: used.get(d.id) ?? 0,
+      id: d.id, group: d.group, name: d.name,
+      extends: d.extends ?? "", base: d.default !== undefined,
+      stands: stands_in_for(graph, d.id) ?? "",
+      from: d.from ?? "", used: used.get(d.id) ?? 0,
     }))
-    .sort((a, z) => Number(z.base) - Number(a.base) || a.name.localeCompare(z.name));
+    .sort((a, z) => Number(!!a.from) - Number(!!z.from) || a.name.localeCompare(z.name));
 }
 
 /** One line, as the usages tab lists it. */
@@ -134,8 +140,6 @@ export type UsageRow = {
   chain: Id[];
   /** The definition it names — blank where it follows its default. */
   def: Id;
-  /** What it draws beside itself. */
-  label: string;
 };
 
 /** The lines in a layer, or every line for the workspace. */
@@ -148,10 +152,9 @@ export function usage_rows(graph: Graph, layer: Id | null, deep: boolean): Usage
     name: called(e.id),
     what: `${called(e.from)} → ${called(e.to)}`,
     layer: layer_path(graph, e.from),
-    module: edge_module(graph, e.id),
+    module: edge_base(graph, e.id),
     chain: isa(graph, def_of(graph, e.id)).map((d) => d.id),
     def: plain(graph, e.type) ? "" : e.type!,
-    label: label_of(graph, e.id),
   })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
 }
 
@@ -165,12 +168,11 @@ export function block_usage_rows(graph: Graph, layer: Id | null, deep: boolean):
   return blocks.map((b) => ({
     id: b.id,
     name: called(b.id),
-    what: module_of(graph, b.id),
+    what: base_of(graph, b.id),
     layer: layer_path(graph, b.id),
-    module: module_of(graph, b.id),
+    module: base_of(graph, b.id),
     chain: isa(graph, def_of(graph, b.id)).map((d) => d.id),
     def: plain(graph, b.type) ? "" : b.type!,
-    label: "",
   })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
 }
 

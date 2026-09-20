@@ -2,11 +2,11 @@
 
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
-import { module_of, plain_type, touched } from "./defs";
+import { base_of, plain_type, touched } from "./defs";
 import { fold, step } from "./fold";
 import { alias_kind, next_alias } from "./names";
 import { path } from "./tree";
-import { compact, parse, read, write } from "./file";
+import { compact, file_name, parse, read, write } from "./file";
 import { new_id } from "./ids";
 import { no_files, no_storage, type Ports } from "./ports";
 import { ROOT } from "./types";
@@ -20,7 +20,7 @@ export type Said = { text: string; at: number; kind: "mirror" | "note" };
 export type Found = { name: string; about: string; faults: Fault[] };
 
 /** One row of the catalogue a `net` binding points at. */
-type Listed = { name: string; about: string; at: string };
+export type Listed = { name: string; about: string; at: string };
 
 export type Session = {
   log: () => Log;
@@ -54,6 +54,8 @@ export type Session = {
   graft: (text: string, into?: Id | null) => Fault[];
   /** A definition package from outside the workspace, in through the door. */
   search: (want: string) => Promise<Found | null>;
+  /** What the catalogue offers, for a surface to list. */
+  listing: () => Promise<Listed[]>;
 
   /** Called after every change. One subscriber is all a host needs. */
   watch: (fn: () => void) => void;
@@ -109,7 +111,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     if (layer && !graph.blocks[layer]) {
       layer = path(was, layer).map((b) => b.id).reverse().find((id) => graph.blocks[id]) ?? null;
       if (layer === graph.root) layer = null;
-      picked = picked.filter((id) => graph.blocks[id] || graph.edges[id]);
+      picked = picked.filter((id) => graph.blocks[id] || graph.holders[id] || graph.edges[id]);
       cells = [];
     }
     storage.write(log);
@@ -134,9 +136,18 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       settle();
       return;
     }
+    const kept = live(log);
+    /** A run of adjustments is one act: the last one supersedes the rest, so the log keeps one
+     *  step and one undo rather than one per pixel the slider passed. */
+    const last = kept[kept.length - 1];
+    if (refines(last, action, mutations)) {
+      log = compact([...kept.slice(0, -1), { ...last!, mutations }]);
+      settle();
+      return;
+    }
     const step: Step = { id: new_id("step"), action, at: log.length, status: "applied", mutations };
     if (batching === null) batching = step;
-    log = compact([...live(log), step]);
+    log = compact([...kept, step]);
     settle();
   };
 
@@ -228,7 +239,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       return true;
     },
 
-    async save(name = "workspace") {
+    /** Named after the workspace unless the caller says otherwise. */
+    async save(name = file_name(graph)) {
       await files.save(`${name}.json`, write(graph, name));
     },
 
@@ -263,8 +275,15 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       for (const b of by_alias(Object.values(from.blocks))) {
         if (b.id === from.root || graph.blocks[b.id]) continue;
         const parent = b.parent === from.root || !b.parent ? target : b.parent;
-        const type = plain(b.type) ? plain_type(module_of(from, b.id)) ?? undefined : b.type;
+        const type = plain(b.type) ? plain_type(base_of(from, b.id)) ?? undefined : b.type;
         mutations.push({ op: "add_block", block: { ...b, parent, type, alias: serial(b.id) } });
+      }
+      /** The holders drawn over those blocks come too, or their members arrive loose. */
+      for (const h of by_alias(Object.values(from.holders))) {
+        if (graph.holders[h.id]) continue;
+        const parent = h.parent === from.root ? target : h.parent;
+        mutations.push({ op: "set_holder",
+                         holder: { ...h, parent, alias: serial(h.id) } });
       }
       for (const e of by_alias(Object.values(from.edges))) {
         if (graph.edges[e.id]) continue;
@@ -281,6 +300,14 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       if (faults.length) said = { text: say(faults), at: Date.now(), kind: "note" };
       listener?.();
       return faults;
+    },
+
+    /** What the catalogue offers, so a surface can list it rather than guess a name. Empty where
+     *  there is nowhere to read from — an unbound port is a capability the app does without. */
+    async listing() {
+      const catalogue = ports.catalogue;
+      if (!net || !catalogue) return [];
+      return (await fetch_list(net, catalogue)) ?? [];
     },
 
     async search(want) {
@@ -357,6 +384,41 @@ async function fetch_list(net: NonNullable<Ports["net"]>,
 function beside(catalogue: string, at: string): string {
   if (/^(https?:)?\/\//.test(at) || at.startsWith("/")) return at;
   return catalogue.replace(/[^/\\]*$/, "") + at;
+}
+
+/** The one slot an absolute write lands in, or null where a mutation is not one.
+ *
+ *  **A closed list, and a short one on purpose.** Two things keep a mutation off it: anything
+ *  relative would be lost rather than folded — two `flip_edge`s are not one — and anything a
+ *  surface only ever writes once per gesture has nothing to fold. A body, a name and a tag list
+ *  all commit when their box is left, so folding those would quietly merge two edits somebody
+ *  made on purpose. What is here is what a *drag* streams. */
+function slot_of(m: Mutation): string | null {
+  switch (m.op) {
+    /** A slider, on an element and on the definition it follows. */
+    case "set_look": return `${m.id}|${m.key}|${m.name}`;
+    case "set_def": return m.def.id;
+    /** A card or a holder dragged or resized. */
+    case "set_holder": return m.holder.id;
+    case "place_block": case "size_block": case "seat_cell": return m.id;
+    default: return null;
+  }
+}
+
+/** Whether a step only refines the one before it — the same act, writing the same slot the same
+ *  way. **The later write has to say everything the earlier one did**, or replacing it would
+ *  drop what the earlier said, so the two must carry the same keys. */
+function refines(last: Step | undefined, action: string, mutations: Mutation[]): boolean {
+  if (!last || last.status !== "applied" || last.action !== action) return false;
+  if (last.mutations.length !== 1 || mutations.length !== 1) return false;
+  const was = last.mutations[0]!;
+  const now = mutations[0]!;
+  if (was.op !== now.op) return false;
+  const slot = slot_of(now);
+  if (slot === null || slot !== slot_of(was)) return false;
+  const a = Object.keys(was).sort();
+  const b = Object.keys(now).sort();
+  return a.length === b.length && a.every((k, i) => k === b[i]);
 }
 
 /** Redo is only ever the run of reverted steps at the end. */

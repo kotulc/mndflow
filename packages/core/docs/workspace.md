@@ -4,7 +4,7 @@
 
 | | Contains | Holds |
 |---|---|---|
-| **workspace** | folders and top-level blocks | the log, the metadata, handle counters, pinned definitions |
+| **workspace** | folders and top-level blocks | the log, the metadata, handle counters, pinned definitions, the definition shelf |
 | **folder** | folders and top-level blocks | nothing of its own |
 | **top-level block** | its own tree | a subtree of blocks |
 
@@ -26,6 +26,10 @@
 - **A plain element follows its kind's default.** Naming nothing, or naming a base, resolves through the workspace's default for that kind (`def_of`), and is stored as plain (`stored_type`).
 - **Ids are minted.** A caller that must know a new definition's id before the step lands mints it and passes it in.
 - **A name is looked up with its group** (`def_named`), since a block definition and a relation definition may share one.
+
+## The shelf
+
+**How the explorer files the workspace's own definitions is model data**, held on the root block and written to the log, so it exports and it undoes. One ordered list says which folders there are and what sits in each; blocks and relations are filed apart. **The system's definitions are not filed** — a base, a default and a package's read where they always do — and a definition nobody filed sits at its group's top, by name.
 
 ## Session state
 

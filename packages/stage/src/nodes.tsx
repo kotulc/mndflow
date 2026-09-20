@@ -9,22 +9,34 @@ import type { Side } from "@mnd/core";
 /** What a row or a chip being dragged onto the drawing carries. */
 export const DRAGGED = "text/mnd-block";
 
-import { BAND, FRAME, PLAIN, look_key,
-         type BoxData, type BoxNode, type Cell, type GridCell, type Look } from "@mnd/views";
-import type { Role } from "@mnd/core";
-import { Icon, Name, known, role_icon, useNaming } from "@mnd/theme";
+import { FRAME, PLAIN, look_key,
+         type BoxData, type BoxNode, type GridCell, type Look } from "@mnd/views";
+import type { Mark, Role } from "@mnd/core";
+import { Icon, Name, known, mark_icon, role_icon } from "@mnd/theme";
 
 
 
-/** The role mark in a card's corner; a label, not a control. */
-function Wears({ role, icon }: { role?: Role; icon?: string }) {
+/** The icon in a card's top corner: what sort of thing it is, or the one somebody set instead.
+ *  **A card that holds parts fills it** — that, and not a second mark, is what containing looks
+ *  like. */
+function Wears({ role, icon, holds }: { role?: Role; icon?: string; holds?: boolean }) {
   if (!role) return null;
-  /** A mark it was given, or the one its role would draw. */
-  const mark = icon && known(icon) ? icon : role_icon(role);
+  const worn = icon && known(icon) ? icon : role_icon(role);
   return (
     <span className="mnd-role" data-role={role}>
-      <Icon name={mark} solid={!icon && (role === "container" || role === "reference")}
-            size={11} />
+      <Icon name={worn} solid={!icon && !!holds} size={11} />
+    </span>
+  );
+}
+
+/** The system mark in a card's bottom corner: what it stands in for, written as a word. The app
+ *  chooses it, which is what the highlight colour says. */
+function Stamp({ mark }: { mark?: Mark }) {
+  const drawn = mark_icon(mark);
+  if (!drawn) return null;
+  return (
+    <span className="mnd-mark" data-mark={mark}>
+      <Icon name={drawn} size={13} />
     </span>
   );
 }
@@ -34,10 +46,9 @@ function seen(p: NodeProps<BoxNode>): string {
   const d = p.data;
   return [
     p.selected, p.dragging, p.width, p.height,
-    d.label, d.alias ?? "", d.def, d.on, d.side, d.role, d.marks.join(","),
+    d.label, d.alias ?? "", d.def, d.on, d.side, d.role, d.mark ?? "", d.marks.join(","),
     /** Read off the look, so no property is forgotten. */
     look_key(d.look),
-    d.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(","),
     d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(","),
     d.seats?.map((t) => `${t.id}${t.side}${t.at}`).join(","),
   ].join("|");
@@ -150,44 +161,6 @@ function dressed(look: Look) {
   };
 }
 
-/** How tall this cell actually is, in the band's own units. */
-const cell_h = (c: Cell) => c.h * BAND.h;
-
-/** A name only where there is room for one. */
-const named = (c: Cell) => cell_h(c) >= 10;
-
-const type_size = (c: Cell) => Math.min(9, Math.round(cell_h(c)) - 4);
-
-function Holds({ cells }: { cells: readonly Cell[] }) {
-  const naming = useNaming();
-  return (
-    <div className="mnd-holds" style={{ height: BAND.h }}>
-      {cells.map((c) => (
-        /** A chip can be dragged back out onto the ground. */
-        <span key={c.id} className={`mnd-cell ${c.kind} tint-${c.tint} nodrag`}
-              data-cell={c.id}
-              style={{ left: `calc(${c.x * 100}% + 1px)`,
-                       top: `calc(${c.y * 100}% + 1px)`,
-                       width: `calc(${c.w * 100}% - 2px)`,
-                       height: `calc(${c.h * 100}% - 2px)` }}
-              draggable={!c.rest && naming.id !== c.id}
-              onDragStart={(e) => {
-                e.stopPropagation();
-                e.dataTransfer.setData(DRAGGED, c.id);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-              title={c.rest ? `${c.label}, and ${c.rest} more` : c.label}>
-          {named(c) ? (c.rest
-            ? <span className="mnd-tag" style={{ fontSize: type_size(c) }}>+{c.rest}</span>
-            : <Name id={c.id} className="mnd-tag" text={c.label}
-                    style={{ fontSize: type_size(c) }} />
-          ) : null}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 /** The ordinary card: a container, a reference, a note, a lane or a cell. */
 function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
@@ -198,9 +171,14 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
     <div className={["mnd-card", "card-face", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
          {...dressed(look)} data-def={data.def} title={data.label}>
+      {/* A card keeps the one card height unless its definition asked for its own. */}
+      {look.height === "free"
+        ? <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
+                       lineClassName="mnd-edge" handleClassName="mnd-grip" /> : null}
       <Brim />
-      <Wears role={data.role} icon={data.look?.icon} />
-      {/* The bottom-right corner is reserved for a system mark. */}
+      <Wears role={data.role} icon={data.look?.icon}
+             holds={data.marks.includes("container")} />
+      <Stamp mark={data.mark} />
       {label === "above"
         ? <span className="mnd-over mnd-kind card-label">{look.kind}</span> : null}
       <div className="mnd-head">
@@ -216,7 +194,6 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
       {/* Under the card rather than in it. */}
       {label === "below"
         ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
-      {data.cells?.length ? <Holds cells={data.cells} /> : null}
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );
@@ -232,8 +209,10 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
          {...dressed(look)} data-def={data.def}>
       <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
                    lineClassName="mnd-edge" handleClassName="mnd-grip" />
-      {/* A note's mark hangs in its corner. */}
-      <Wears role={data.role} />
+      {/* A note wears its icon above and whatever mark it earns below. */}
+      <Wears role={data.role} icon={data.look?.icon}
+             holds={data.marks.includes("container")} />
+      <Stamp mark={data.mark} />
       {look.label === "above"
         ? <span className="mnd-over mnd-kind card-label">{look.kind}</span> : null}
       <Name id={id} className="mnd-note-text card-name" text={data.label} />
@@ -412,7 +391,8 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
         </span>
       ) : null}
       <Name id={id} className="mnd-frame-name" text={data.label} />
-      <Wears role={data.role} />
+      <Wears role={data.role} holds={data.marks.includes("container")} />
+      <Stamp mark={data.mark} />
     </div>
   );
 }

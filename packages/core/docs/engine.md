@@ -1,16 +1,16 @@
 # Core
 
-**The closed engine.** One package, no React, no DOM, no `window` — the log, the fold, the door, containment, rules, ids, references and the action set. Everything else in the monorepo depends on it, and it depends on nothing.
+**The closed engine.** One package, no React, no DOM, no `window` — the log, the fold, the door, containment, capabilities, ids, references and the action set. Everything else in the monorepo depends on it, and it depends on nothing.
 
 **The one law: only `core` may name a closed set.** Any other package enumerating sorts of things is doing the engine's job in the wrong place.
 
 | Module | Is |
 |---|---|
-| model | the object graph: blocks, relations, definitions, and the block modules that interpret them |
+| model | the object graph: blocks, relations, holders, packages, definitions, and the three block modules that interpret a block |
 | schema | the data contract, and what the door enforces on the way in |
 | workspace | the root, the one log, and definition resolution by id |
 | actions | the closed action set: scope, arguments, `check`, and the mutations each writes |
-| rules | the one constraint and four rules, asked rather than enforced. Advice while modelling, a refusal at translation |
+| capabilities | `allows` — what may attach to or be held by a usage, refused at the gesture — and `expects` — what its values are asked for, advice while modelling and a refusal at translation |
 | ports | the entire host contract. Nothing else may assume where a project lives |
 
 ## Source layout
@@ -20,11 +20,11 @@
 | `types.ts` | every shared shape: the graph, the mutations, the steps |
 | `fold.ts` | replay: a log folded into a graph over the shipped floor, defaults laid |
 | `tree.ts` | layers, children, order, owners and the relations drawn in a layer |
-| `holders.ts` | groups and grids: membership, cells, merges, headers, allocation |
-| `defs.ts` | definitions: chains, kinds, defaults, and what an element resolves through — a relation's module included |
-| `names.ts` | what elements are called: names, handles, labels, roles |
+| `holders.ts` | holders: the one place that knows where they live, plus membership, cells, merges, headers, allocation |
+| `defs.ts` | definitions: chains, bases, defaults, packages, and what an element resolves through |
+| `names.ts` | what elements are called: names, handles, labels, the card icon and the system mark |
 | `door.ts` · `file.ts` | the one way in, and the envelope |
-| `components.ts` · `rules.ts` | what a definition configures, and the advice it gives |
+| `components.ts` · `capabilities.ts` | what a definition configures, what it permits, and the advice it gives |
 | `session.ts` | the log, undo, batches, grafts, and the ports bound |
 | `actions/` | the action set, one file per subject, registered on import |
 

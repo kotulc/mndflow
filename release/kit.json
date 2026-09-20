@@ -1,8 +1,8 @@
 {
-  "tarball": "mnd-kit-0.3.0.tgz",
-  "version": "0.3.0",
-  "commit": "6417c4acf44ad6718b0f840b4dff358df534fa21",
-  "branch": "add-pinned-defs",
-  "packed": "2026-09-12",
-  "integrity": "sha512-xOdID8/9lYOqiW7cc3OgH1zDHCCfIV5GGNNhq9+Vkn7Ue08v2gaHjs0jN+RFDr6hRBaxlLkiGXAKRFj8Em5r4Q=="
+  "tarball": "mnd-kit-0.4.0.tgz",
+  "version": "0.4.0",
+  "commit": "b22dcda290b44080a32f7586af584b5836d0a576",
+  "branch": "revise-workspace-layout",
+  "packed": "2026-09-19",
+  "integrity": "sha512-XFhYoXEPp2/YLHUuLshxfRTiXOxgOZ6CS0pMUGu0mrT1fXkJq0VwCgUUux7M6uHhgUfSBvMbkWFKBHqAZwpjMw=="
 }

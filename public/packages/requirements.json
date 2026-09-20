@@ -6,11 +6,10 @@
     "defs": {
       "req.requirement": {
         "id": "req.requirement",
-        "home": "ws",
         "from": "requirements",
         "group": "block",
         "name": "requirement",
-        "body": "Something the system shall do, and how that is shown.",
+        "about": "Something the system shall do, and how that is shown.",
         "extends": "block",
         "fields": [
           {
@@ -33,21 +32,14 @@
           }
         ],
         "components": {
-          "card": {
-            "shows": [
-              "id",
-              "shall"
-            ]
-          },
+          "card": {},
           "style": {
-            "slot": "neutral",
-            "line": "faint",
-            "ink": "faint"
+            "family": "neutral",
+            "fill": "hatch",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
           },
-          "sketch": {
-            "hatching": "cross"
-          },
-          "rules": {
+          "expects": {
             "required": [
               "id",
               "shall"
@@ -57,14 +49,13 @@
       },
       "req.group": {
         "id": "req.group",
-        "home": "ws",
         "from": "requirements",
         "group": "block",
         "name": "requirement group",
         "extends": "folder",
         "components": {
           "card": {},
-          "rules": {
+          "allows": {
             "holds": [
               "req.requirement",
               "req.group"
@@ -74,13 +65,12 @@
       },
       "req.satisfy": {
         "id": "req.satisfy",
-        "home": "ws",
         "from": "requirements",
         "group": "relation",
         "name": "satisfies",
         "extends": "line",
         "components": {
-          "rules": {
+          "allows": {
             "ends": {
               "to": [
                 "req.requirement"
@@ -96,25 +86,22 @@
       },
       "req.verify": {
         "id": "req.verify",
-        "home": "ws",
         "from": "requirements",
         "group": "relation",
         "name": "verifies",
         "extends": "line",
         "components": {
-          "rules": {
+          "allows": {
             "ends": {
               "to": [
                 "req.requirement"
               ]
             }
-          },
-          "card": {}
+          }
         }
       },
       "req.table": {
         "id": "req.table",
-        "home": "ws",
         "from": "requirements",
         "group": "view",
         "name": "requirements",

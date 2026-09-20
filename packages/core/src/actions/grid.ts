@@ -1,29 +1,27 @@
 /** Cells, headers, rows and columns of a grid. */
 
-import { derived_module } from "../defs";
-import { at_cell, can_hold, covers, head_of, is_grid, is_header, members_of } from "../holders";
+import { derived_base } from "../defs";
+import { at_cell, block_members, can_hold, covers, head_of, holder_of, is_grid, is_header,
+         overlaps } from "../holders";
 import { edges_in, next_order } from "../tree";
 import { new_id } from "../ids";
-import type { Block, Cell, Dir, Graph, Id, Mutation, Span } from "../types";
+import type { Block, Cell, Dir, Graph, Holder, Id, Mutation, Span } from "../types";
 import { register, type Args, type Context } from "./registry";
 import { cell_of_arg, handles, id_of, num, region, run_type, text } from "./helpers";
 
 /** A row or column added or removed; blocks and merges after it shift. */
 function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
                  by: 1 | -1): Mutation[] {
-  const g = graph.blocks[group];
+  const g = holder_of(graph, group);
   if (!g || !is_grid(graph, group)) return [];
   const axis = way === "row" ? "r" : "c";
   const size = way === "row" ? "rows" : "cols";
   const out: Mutation[] = [];
-  const put: Mutation[] = [];
-
-  out.push({ op: "set_grid", id: group, [size]: Math.max(1, g[size]! + by) } as Mutation);
 
   const held = new Set<string>();
   const homeless: { id: Id; was: Cell }[] = [];
   const kept: Mutation[] = [];
-  for (const b of members_of(graph, group)) {
+  for (const b of block_members(graph, group)) {
     if (!b.cell) continue;
     const n = b.cell[axis];
     if (by < 0 && n === at) { homeless.push({ id: b.id, was: { ...b.cell } }); continue; }
@@ -37,7 +35,7 @@ function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
   out.push(...kept);
 
   /** A removed line's blocks move to the nearest free cell. */
-  const shrunk = { ...g, [size]: Math.max(1, g[size]! + by) };
+  const shrunk: Holder = { ...g, [size]: Math.max(1, g[size]! + by) };
   for (const { id, was } of homeless) {
     const spare = free_cell(shrunk, held, { r: -1, c: -1, rows: 0, cols: 0 },
                             { r: Math.min(was.r, (shrunk.rows ?? 1) - 1),
@@ -46,23 +44,40 @@ function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
     out.push({ op: "seat_cell", id, cell: spare });
   }
 
+  /** Merges move with the line they sit on, and one that closes up is dropped. */
+  const merges: Span[] = [];
   for (const span of g.merges ?? []) {
     const start = span[axis];
     const len = span[size];
     const through = start <= at && at < start + len;
     const after = by > 0 ? start >= at : start > at;
-    if (!through && !after) continue;
-    out.push({ op: "split_cells", id: group, r: span.r, c: span.c });
+    if (!through && !after) { merges.push(span); continue; }
     const moved: Span = { ...span, [axis]: after ? start + by : start,
                                    [size]: through && !after ? len + by : len };
-    if (moved[size] > 0) put.push({ op: "merge_cells", id: group, span: moved });
+    if (moved[size] > 0) merges.push(moved);
   }
-  return [...out, ...put];
+
+  /** The holder's shape is one thing, so its extent and its merges are written together. */
+  return [{ op: "set_holder", holder: with_merges(shrunk, merges) }, ...out];
+}
+
+/** The holder written without the merge covering this address. */
+function split_at(h: Holder, r: number, c: number): Mutation {
+  return { op: "set_holder",
+           holder: with_merges(h, (h.merges ?? []).filter((s) => !covers(s, r, c))) };
+}
+
+/** This holder carrying exactly these merges; none leaves the key off rather than writing an
+ *  empty list. Takes the holder as already built, so it never puts back what was changed. */
+export function with_merges(h: Holder, merges: Span[]): Holder {
+  if (merges.length) return { ...h, merges };
+  const { merges: _gone, ...rest } = h;
+  return rest;
 }
 
 /** Filled cells in reading order, as one run. */
 function reading(graph: Graph, group: Id): Id[] {
-  const g = graph.blocks[group];
+  const g = holder_of(graph, group);
   if (!g || !is_grid(graph, group)) return [];
   const run: Id[] = [];
   for (let r = 0; r < (g.rows ?? 0); r++) {
@@ -77,7 +92,7 @@ function reading(graph: Graph, group: Id): Id[] {
 
 /** Unclaimed addresses; a merge counts once. */
 function empty_cells(graph: Graph, group: Id): Cell[] {
-  const g = graph.blocks[group];
+  const g = holder_of(graph, group);
   if (!g || !is_grid(graph, group)) return [];
   const out: Cell[] = [];
   for (let r = 0; r < (g.rows ?? 0); r++) {
@@ -91,7 +106,7 @@ function empty_cells(graph: Graph, group: Id): Cell[] {
 }
 
 /** The free cell nearest the one asked for, outside a span and outside what is already spoken for. */
-function free_cell(g: Graph["blocks"][string], taken: ReadonlySet<string>,
+function free_cell(g: Holder, taken: ReadonlySet<string>,
                    span: Span, want: Cell): Cell | null {
   let best: Cell | null = null;
   let gap = Infinity;
@@ -115,7 +130,8 @@ function pointed(ctx: Context, way: "row" | "col"): number | null {
 /** Which grid an action is about: the one named, the one the picked cells are in, the picked block
  *  where it is one, or the grid that block sits in. */
 function grid_named(ctx: Context, args: Args): Id | null {
-  const held = ctx.picked[0] ? ctx.graph.blocks[ctx.picked[0]]?.group : undefined;
+  const at = ctx.picked[0];
+  const held = at ? (ctx.graph.blocks[at] ?? ctx.graph.holders[at])?.group : undefined;
   for (const said of [args["group"] ? id_of(args, "group") : undefined,
                       ctx.cells?.[0]?.group, ctx.picked[0], held]) {
     if (said && is_grid(ctx.graph, said)) return said;
@@ -144,7 +160,7 @@ register(
       const group = args["group"] ? id_of(args, "group") : ctx.graph.blocks[id]?.group;
       const cell = cell_of_arg(args, "at");
       if (!cell) return null;
-      const g = group ? ctx.graph.blocks[group] : undefined;
+      const g = holder_of(ctx.graph, group);
       if (!g || !is_grid(ctx.graph, g.id)) return "that is not a grid";
       /** A cell holds a block, never another holder. */
       if (!can_hold(ctx.graph, g.id, id)) return "a cell cannot hold that";
@@ -197,7 +213,7 @@ register(
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
       const way = args["way"] === "col" ? "col" : "row";
-      const g = ctx.graph.blocks[group]!;
+      const g = holder_of(ctx.graph, group)!;
       const last = way === "row" ? g.rows! : g.cols!;
       const at = Math.min(last, Math.max(0, num(args, "at") ?? pointed(ctx, way) ?? last));
       return { mutations: shifted(ctx.graph, group, way, at, 1) };
@@ -213,13 +229,13 @@ register(
     check: (ctx, args) => {
       const group = grid_named(ctx, args);
       if (!group) return "point at a grid, or a cell of one";
-      const g = ctx.graph.blocks[group]!;
+      const g = holder_of(ctx.graph, group)!;
       return (args["way"] === "col" ? g.cols! : g.rows!) > 1 ? null : "a grid keeps one line";
     },
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
       const way = args["way"] === "col" ? "col" : "row";
-      const g = ctx.graph.blocks[group]!;
+      const g = holder_of(ctx.graph, group)!;
       const last = (way === "row" ? g.rows! : g.cols!) - 1;
       const at = Math.min(last, Math.max(0, num(args, "at") ?? pointed(ctx, way) ?? last));
       return { mutations: shifted(ctx.graph, group, way, at, -1) };
@@ -234,7 +250,7 @@ register(
     check: (ctx, args) => {
       const said = region(ctx, args);
       if (!said) return "no cell is pointed at";
-      const g = ctx.graph.blocks[said.group];
+      const g = holder_of(ctx.graph, said.group);
       if (!g || !is_grid(ctx.graph, said.group)) return "that is not a grid";
       const { r, c, rows, cols } = said.span;
       return r >= 0 && c >= 0 && r + rows <= g.rows! && c + cols <= g.cols!
@@ -244,16 +260,16 @@ register(
     run: (ctx, args) => {
       const { group, span } = region(ctx, args)!;
       if (span.rows === 1 && span.cols === 1) {
-        return { mutations: [{ op: "split_cells", id: group, r: span.r, c: span.c }] };
+        return { mutations: [split_at(holder_of(ctx.graph, group)!, span.r, span.c)] };
       }
-      const g = ctx.graph.blocks[group]!;
+      const g = holder_of(ctx.graph, group)!;
       const taken = new Set<string>();
       const moved = new Set<Id>();
-      for (const b of members_of(ctx.graph, group)) {
+      for (const b of block_members(ctx.graph, group)) {
         if (b.cell && !covers(span, b.cell.r, b.cell.c)) taken.add(`${b.cell.r},${b.cell.c}`);
       }
       const out: Mutation[] = [];
-      for (const b of members_of(ctx.graph, group)) {
+      for (const b of block_members(ctx.graph, group)) {
         if (!b.cell || !covers(span, b.cell.r, b.cell.c)) continue;
         if (moved.size === 0) {
           moved.add(b.id);
@@ -266,7 +282,8 @@ register(
         if (spare) taken.add(`${spare.r},${spare.c}`);
         out.push({ op: "seat_cell", id: b.id, cell: spare });
       }
-      return { mutations: [...out, { op: "merge_cells", id: group, span }] };
+      return { mutations: [...out, { op: "set_holder", holder: {
+        ...g, merges: [...(g.merges ?? []).filter((m) => !overlaps(m, span)), { ...span }] } }] };
     },
   },
   {
@@ -278,15 +295,13 @@ register(
     /** Rows become columns; relations are unchanged. */
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
-      const g = ctx.graph.blocks[group]!;
-      const out: Mutation[] = [{ op: "set_grid", id: group, rows: g.cols!, cols: g.rows! }];
-      for (const b of members_of(ctx.graph, group)) {
+      const g = holder_of(ctx.graph, group)!;
+      const turned = (g.merges ?? [])
+        .map((s): Span => ({ r: s.c, c: s.r, rows: s.cols, cols: s.rows }));
+      const out: Mutation[] = [{ op: "set_holder",
+        holder: with_merges({ ...g, rows: g.cols!, cols: g.rows! }, turned) }];
+      for (const b of block_members(ctx.graph, group)) {
         if (b.cell) out.push({ op: "seat_cell", id: b.id, cell: { r: b.cell.c, c: b.cell.r } });
-      }
-      for (const s of g.merges ?? []) out.push({ op: "split_cells", id: group, r: s.r, c: s.c });
-      for (const s of g.merges ?? []) {
-        out.push({ op: "merge_cells", id: group,
-                   span: { r: s.c, c: s.r, rows: s.cols, cols: s.rows } });
       }
       return { mutations: out };
     },
@@ -321,7 +336,7 @@ register(
         const to = run[n]!;
         if (drawn.has(`${from}|${to}`)) continue;
         drawn.add(`${from}|${to}`);
-        const module = derived_module(ctx.graph, from, to);
+        const module = derived_base(ctx.graph, from, to);
         out.push({ op: "link_blocks", edge: {
           id: new_id("edge"), from, to, alias: line.take(), ...run_type(ctx, args, module),
           ...(dir !== "none" ? { dir } : {}) } });
@@ -343,7 +358,7 @@ register(
     },
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
-      const parent = ctx.graph.blocks[group]?.parent ?? null;
+      const parent = ctx.graph.holders[group]?.parent ?? null;
       /** Orders are counted forward within the act. */
       let order = next_order(ctx.graph, parent);
       const made = handles(ctx, "block");

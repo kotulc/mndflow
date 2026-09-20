@@ -1,13 +1,13 @@
 /** A graph out as SysML, and the same text back as a graph. */
 
-import { children, edge_module, edges_in, empty_graph, is_interface, is_reference, module_of,
+import { children, edge_base, edges_in, empty_graph, is_interface, is_reference, base_of,
          owner_of, path, shown_name, SCHEMA,
          type Block, type Graph, type Id, type Relation } from "@mnd/core";
 
 /** What each block module is called, absent a definition that says otherwise. */
 const KEYWORD: Record<string, string> = {
   folder: "package", structure: "part", reference: "ref",
-  interface: "port", resource: "item", group: "package", note: "comment", view: "view",
+  interface: "port", group: "package", note: "comment", view: "view",
 };
 
 /** A relation module, as a keyword and back. */
@@ -21,7 +21,7 @@ function keyword(graph: Graph, id: Id): string {
   const type = graph.blocks[id]?.type;
   const said = type ? graph.defs[type]?.names?.["sysml"] : undefined;
   if (said) return said.replace(/[«»]/g, "").trim().replaceAll(" ", "_");
-  return KEYWORD[module_of(graph, id)] ?? "part";
+  return KEYWORD[base_of(graph, id)] ?? "part";
 }
 
 /** How an end is written: a port by its owner and its own name, anything else by its name alone. */
@@ -34,7 +34,7 @@ function end_of(graph: Graph, id: Id): string {
 }
 
 function relation(graph: Graph, e: Relation): string {
-  const word = LINK[edge_module(graph, e.id)] ?? "connect";
+  const word = LINK[edge_base(graph, e.id)] ?? "connect";
   const type = e.type ? ` : ${e.type}` : "";
   return `${word} ${end_of(graph, e.from)} to ${end_of(graph, e.to)}${type};`;
 }
@@ -186,6 +186,6 @@ export function shape_of(graph: Graph): string[] {
     .map((b) => `${keyword(graph, b.id)} ${trail(b.id)}${b.type ? ` : ${b.type}` : ""}`
               + (is_reference(b) && b.of ? ` -> ${trail(b.of)}` : ""));
   const edges = Object.values(graph.edges)
-    .map((e) => `${edge_module(graph, e.id)} ${trail(owner_of(graph, e.from))} -> ${trail(owner_of(graph, e.to))}`);
+    .map((e) => `${edge_base(graph, e.id)} ${trail(owner_of(graph, e.from))} -> ${trail(owner_of(graph, e.to))}`);
   return [...blocks.sort(), ...edges.sort()];
 }

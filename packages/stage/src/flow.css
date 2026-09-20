@@ -150,7 +150,7 @@
   cursor: text;
 }
 
-/* The mark in the corner: what this card is, said without being read. */
+/* The icon in the top corner: what this card is, said without being read. */
 .mnd-role {
   /* The corner, on every card that has one. */
   position: absolute;
@@ -161,11 +161,24 @@
   opacity: 0.75;
   pointer-events: none;
 }
-/* Each mark takes the colour of what it marks, so the corner agrees with the card it sits on
+/* Each icon takes the colour of what it marks, so the corner agrees with the card it sits on
    rather than being one more grey. */
 .mnd-role[data-role="note"] { color: var(--note-dim); }
 .mnd-role[data-role="reference"] { color: var(--away); opacity: 0.85; }
 .mnd-picked > .mnd-role, .picked > .mnd-role { color: var(--accent); opacity: 1; }
+
+/* The system mark, in the bottom corner: what this card stands in for, or that it holds parts.
+   The app chooses it, and the highlight colour is what says so. */
+.mnd-mark {
+  position: absolute;
+  bottom: 3px;
+  right: 4px;
+  display: inline-flex;
+  color: var(--accent);
+  opacity: 0.85;
+  pointer-events: none;
+}
+.mnd-picked > .mnd-mark, .picked > .mnd-mark { opacity: 1; }
 
 /* The subtype, where somebody set one. */
 .mnd-kind {
@@ -175,52 +188,6 @@
   color: var(--muted);
   pointer-events: none;
 }
-
-/* ── What a container holds ── */
-
-.mnd-holds {
-  position: relative;
-  flex: none;
-  margin: 0 -5px 1px;
-  /* The picture takes no pointer, but each chip does, so it can be dragged back out. */
-  pointer-events: none;
-}
-
-.mnd-cell {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1px 2px;
-  border: 1px solid transparent;
-  border-radius: 2px;
-  background: var(--cell-fill, var(--card-veil));
-  background-clip: padding-box;
-  color: var(--muted);
-  font-size: 9px;
-  line-height: 1.15;
-  overflow: hidden;
-}
-
-/* The name inside a cell wraps, and what still will not fit is clipped. */
-.mnd-tag {
-  max-width: 100%;
-  max-height: 100%;
-  overflow: hidden;
-  text-align: center;
-  pointer-events: auto;
-}
-
-/* Four shades from the child's own name, so neighbours read apart. */
-.mnd-cell.tint-0 { --cell-fill: color-mix(in oklch, var(--card-line) 10%, transparent); }
-.mnd-cell.tint-1 { --cell-fill: color-mix(in oklch, var(--card-line) 18%, transparent); }
-.mnd-cell.tint-2 { --cell-fill: color-mix(in oklch, var(--card-line) 26%, transparent); }
-.mnd-cell.tint-3 { --cell-fill: color-mix(in oklch, var(--card-line) 34%, transparent); }
-
-/* And what the child is, which the shade does not say. */
-.mnd-cell.container { border-color: color-mix(in oklch, var(--card-line) 45%, transparent); }
-.mnd-cell.reference { color: var(--away); font-style: italic; }
-.mnd-cell.note { color: var(--note); font-style: italic; }
 
 /* The app speaking, not the model. */
 .mnd-card.missing { border-color: var(--error); color: var(--error); }
@@ -320,7 +287,8 @@
 /* Frameless: the border, dim and name go; the walls stay reachable. */
 .mnd-flow.frameless .mnd-frame { border-color: transparent; box-shadow: none; }
 .mnd-flow.frameless .mnd-frame-name,
-.mnd-flow.frameless .mnd-frame > .mnd-role { display: none; }
+.mnd-flow.frameless .mnd-frame > .mnd-role,
+.mnd-flow.frameless .mnd-frame > .mnd-mark { display: none; }
 
 /* One wall lights as the pointer nears it. */
 .mnd-rim { position: absolute; pointer-events: auto; }
@@ -378,9 +346,8 @@
 .mnd-wall.flat .after { left: 100%; }
 
 /* Every name says it is one, on the way past. */
-.mnd-label, .mnd-group-name, .mnd-frame-name, .mnd-tag, .mnd-wire-text { cursor: text; }
-.mnd-label:hover, .mnd-group-name:hover, .mnd-frame-name:hover, .mnd-tag:hover,
-.mnd-cell:hover .mnd-tag {
+.mnd-label, .mnd-group-name, .mnd-frame-name, .mnd-wire-text { cursor: text; }
+.mnd-label:hover, .mnd-group-name:hover, .mnd-frame-name:hover {
   color: var(--text);
   box-shadow: 0 0 0 1px var(--accent);
   border-radius: 2px;
@@ -407,7 +374,6 @@
 }
 
 .mnd-card:hover:not(:has(.mnd-brim:hover)) { background: var(--tint); }
-.mnd-card:hover:not(:has(.mnd-brim:hover)) .mnd-cell { color: var(--card-ink); }
 
 /* Where a dragged card would land: the block it would go inside, or the band it would join. */
 .mnd-landing {
@@ -421,10 +387,4 @@
 .mnd-drawn { stroke: var(--accent); stroke-width: 1.5px; stroke-dasharray: 4 3; fill: none; }
 .mnd-drawn-area { fill: var(--tint); }
 
-/* A chip can be dragged back out, so it shows a grab cursor. */
-.mnd-cell { cursor: grab; pointer-events: auto; }
-.mnd-cell:hover {
-  border-color: var(--accent);
-  background: color-mix(in oklch, var(--accent) 24%, var(--card-fill));
-  color: var(--card-ink);
-}
+

@@ -29,7 +29,7 @@ npm run typecheck -w @mnd/defs
 
 | | Is |
 |---|---|
-| `BASE` | one definition per block module — the three tiers (`structure`, `behavior`, `view`), `folder`, and the five accessories (`reference`, `interface`, `resource`, `group`, `note`) |
+| `BASE` | the seven block kinds — `block` and `folder`, the holder shapes `group` and `grid`, and the accessories `reference`, `interface` and `note` |
 | `BEHAVIOR` | `action` and `state`, extending the base behavior definition, each carrying the verb its usages are named by |
 | `VIEWS` | the six offered views — `block`, `table`, `matrix`, and `activity` · `sequence` · `state`, which name the block module with a reading |
 | `RELATIONS` | `line` and `tie`, so every relationship resolves to a base of its own module |

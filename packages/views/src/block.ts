@@ -1,14 +1,16 @@
 /** The block view: any planar projection. */
 
-import { alias_of, children, covers, edge_module, edges_in, group_depth, is_grid, is_group,
-         is_header, is_holder, is_interface, is_note, label_of, members_of, role_of, shown_name,
-         type Block, type Graph, type Id, type Relation, type Side } from "@mnd/core";
-import { at_seat, cell_box, gridded, laid, perch_id, roomed, seated,
+import { alias_of, block_members, children, covers, edge_base, edges_in, group_depth, holders_in,
+         is_container, is_grid, is_group, is_header, is_holder, is_interface, is_note, label_of,
+         layer_id,
+         mark_of, members_of, role_of, shown_name,
+         type Graph, type Holder, type Id, type Relation, type Side, type Span } from "@mnd/core";
+import { at_seat, cell_box, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of, wire_of } from "./look";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
-         type GridCell, type LineEdge, type Port, type Mark, type Scene,
+         type GridCell, type LineEdge, type Port, type Trait, type Scene,
          type Slot } from "./scene";
 
 export type Config = {
@@ -35,7 +37,6 @@ function group_carries(graph: Graph, group: Id): Id[] {
 
 /** Project a layer through the block view. */
 export function project(graph: Graph, layer: Id | null, config: Config = {}): Scene {
-  const here = children(graph, layer);
   const spots = laid(graph, layer);
   /** Interfaces are seated after the cards; hidden ones still hold their seat. */
   const hidden = config.interfaces === false;
@@ -44,30 +45,23 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   const { perches, port_at } = assign_seats(graph, linked, spots, boxes_at);
   const ports = seated(graph, spots, port_at);
 
-  /** Which component draws each box; a gridded container minifies. */
+  /** Which component draws each box. Every card is the one card height, so nothing minifies. */
   const boxes: BoxNode[] = spots
     .filter((p) => !is_holder(graph, p.id))
-    .map((p) => {
-    const data = carried(graph, p.id);
-    const nest = group_depth(graph, p.id);
-    const drawn = node(p.id, p,
-                       gridded(graph, p.id) ? { ...data, cells: [], nest } : { ...data, nest },
-                       is_note(graph, p.id) ? "note" : "card");
-    return drawn;
-  });
+    .map((p) => node(p.id, p, { ...carried(graph, p.id), nest: group_depth(graph, p.id) },
+                     is_note(graph, p.id) ? "note" : "card"));
 
   /** A grid draws its extent; a boundary its members' bounds. */
   const holders: BoxNode[] = [];
-  for (const g of here) {
-    if (!is_holder(graph, g.id)) continue;
+  for (const g of holders_in(graph, layer_id(graph, layer))) {
     const box = spots.find((p) => p.id === g.id);
     if (!box) continue;
     const said = carried(graph, g.id);
     const grid = is_grid(graph, g.id);
-    const mark: Mark = grid ? "grid" : "group";
-    const marks: Mark[] = [mark];
+    const mark: Trait = grid ? "grid" : "group";
+    const marks: Trait[] = [mark];
     holders.push(node(g.id, box,
-                      { ...said, marks, cells: [], nest: group_depth(graph, g.id),
+                      { ...said, marks, nest: group_depth(graph, g.id),
                         holds: members_of(graph, g.id).map((b) => b.id),
                         ...(grid ? { grid: lattice(graph, g) }
                                  : { carries: group_carries(graph, g.id) }) },
@@ -141,17 +135,17 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
 }
 
 /** The cells a grid draws, placed inside its own box. */
-function lattice(graph: Graph, g: Block): GridCell[] {
+function lattice(graph: Graph, g: Holder): GridCell[] {
   const headed = new Set<string>();
-  for (const b of members_of(graph, g.id)) {
+  for (const b of block_members(graph, g.id)) {
     if (b.cell && is_header(b)) headed.add(`${b.cell.r},${b.cell.c}`);
   }
   const out: GridCell[] = [];
   for (let r = 0; r < (g.rows ?? 0); r++) {
     for (let c = 0; c < (g.cols ?? 0); c++) {
-      const span = g.merges?.find((s) => covers(s, r, c));
+      const span = g.merges?.find((s: Span) => covers(s, r, c));
       if (span && (span.r !== r || span.c !== c)) continue;
-      const marks: Mark[] = ["cell"];
+      const marks: Trait[] = ["cell"];
       if (span) marks.push("merged");
       if (headed.has(`${r},${c}`)) marks.push("header");
       out.push({ r, c, ...cell_box(g, r, c), marks });
@@ -166,6 +160,8 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   if (layer === null || layer === graph.root) return null;
   const label = shown_name(graph, layer);
   const role = role_of(graph, layer);
+  const mark = mark_of(graph, layer) ?? undefined;
+  const holds_parts = is_container(graph, layer);
   const ports = wall_of(graph, layer, hidden);
   /** An interface opened from inside keeps the wall it is set into. */
   const side = graph.blocks[layer]?.side;
@@ -174,7 +170,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   /** A room is a whole number of cells. */
   if (drawn.length === 0) {
     return { ...roomed({ x: -least.w / 2, y: -least.h / 2, ...least }),
-             label, role, ports, ...set_in };
+             label, role, ...(mark ? { mark } : {}), holds_parts, ports, ...set_in };
   }
   const pad = GAP;
   const at = drawn.map(box_of);
@@ -182,7 +178,8 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   const y = Math.min(...at.map((b) => b.y)) - pad;
   const w = Math.max(least.w, Math.max(...at.map((b) => b.x + b.w)) + pad - x);
   const h = Math.max(least.h, Math.max(...at.map((b) => b.y + b.h)) + pad - y);
-  return { ...roomed({ x, y, w, h }), label, role, ports, ...set_in };
+  return { ...roomed({ x, y, w, h }), label, role, ...(mark ? { mark } : {}),
+           holds_parts, ports, ...set_in };
 }
 
 /** The layer's own interfaces, set into its walls and seen from inside. */
@@ -194,7 +191,7 @@ function wall_of(graph: Graph, layer: Id, hidden: boolean): Port[] {
       label: shown_name(graph, b.id),
       side: b.side!,
       at: b.at ?? 0.5,
-      marks: hidden ? [...marks_of(graph, b.id), "berth" as Mark] : marks_of(graph, b.id),
+      marks: hidden ? [...marks_of(graph, b.id), "berth" as Trait] : marks_of(graph, b.id),
       look: look_of(graph, b.id),
     }))
     .sort((a, b) => a.id.localeCompare(b.id));
@@ -227,7 +224,7 @@ function line_edges(graph: Graph, linked: readonly Relation[], perches: readonly
       sourceHandle: handle(met, e.id, "from", "s"),
       targetHandle: handle(met, e.id, "to", "t"),
       ...(label ? { label } : {}),
-      data: { module: edge_module(graph, e.id), dir: e.dir ?? "none", wire,
+      data: { module: edge_base(graph, e.id), dir: e.dir ?? "none", wire,
               ...(alias ? { alias } : {}),
               ...(solid.length ? { clear: solid } : {}) },
     };

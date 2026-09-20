@@ -111,7 +111,7 @@ export function muddled(): string {
                   components: { block: { module: "sprocket" },
                                 sketch: { hatching: "cross" } } },
       def_feeds: { id: "def_feeds", group: "relation", name: "feeds",
-                   components: { rules: { ends: { from: "def_valve" } } } },
+                   components: { allows: { ends: { from: "def_valve" } } } },
     },
     blocks: {
       ws: ROOT_BLOCK,

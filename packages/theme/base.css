@@ -154,21 +154,25 @@ input:focus { outline: none; border-color: var(--accent); }
   border-top: 1px solid var(--border);
 }
 
+/* One line across the body row: the explorer's bar, the options rail's, and the tray's own. */
+:root { --bar: 29px; }
+
 /* Side panels on the body row share one bar height — the explorer and the options rail. */
 .explorer .bar,
 .opts .bar {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 8px;
+  min-height: var(--bar);
+  padding: 0 8px;
   border-bottom: 1px solid var(--divider);
   background: var(--surface);
   min-width: 0;
   flex: none;
 }
 
-/* Every mark in a panel bar sits in the same cell — 16px glyph, 2px vertical padding, whether it
-   is a button or a title. */
+/* Every mark in a panel bar sits in the same cell — a 16px glyph or a word, 2px vertical padding,
+   whether it is a button or a title. */
 .explorer .bar .tools button,
 .opts .bar .mark {
   display: inline-flex;

@@ -1,6 +1,6 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import type { Arrangement, Block, Graph, Id, Relation } from "./types";
+import type { Arrangement, Block, Graph, Id, Relation, Unit } from "./types";
 
 
 /** Every block under this one, itself included. */
@@ -43,8 +43,16 @@ export function path(graph: Graph, id: Id): Block[] {
   return out;
 }
 
-export function is_interface(b: Block): boolean {
-  return b.side !== undefined;
+export function is_interface(b: Unit): boolean {
+  return "side" in b && b.side !== undefined;
+}
+
+/** Everything drawn in a layer: the blocks it holds, and the holders drawn over them. */
+export function units_in(graph: Graph, layer: Id | null): Unit[] {
+  const here = layer_id(graph, layer);
+  return [...Object.values(graph.blocks).filter((b) => b.parent === here),
+          ...Object.values(graph.holders).filter((h) => h.parent === here)]
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
 }
 
 export function is_reference(b: Block): boolean {

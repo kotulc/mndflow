@@ -3,6 +3,7 @@
   "id": "workspace",
   "graph": {
     "root": "ws",
+    "packages": {},
     "defs": {
       "def_ghost": {
         "id": "def_ghost",
@@ -136,8 +137,7 @@
         "id": "b_res",
         "parent": "b_loop",
         "name": "Coolant",
-        "type": "resource",
-        "alias": 1,
+        "alias": 9,
         "order": 8,
         "x": 168,
         "y": 192
@@ -205,26 +205,6 @@
         "alias": 1,
         "order": 1
       },
-      "g_wet": {
-        "id": "g_wet",
-        "parent": "b_loop",
-        "name": "Wet side",
-        "type": "group",
-        "alias": 1,
-        "order": 9
-      },
-      "gr_matrix": {
-        "id": "gr_matrix",
-        "parent": "f_plant",
-        "name": "Duty",
-        "type": "grid",
-        "alias": 1,
-        "cols": 2,
-        "order": 2,
-        "rows": 2,
-        "x": 0,
-        "y": 320
-      },
       "i_in": {
         "id": "i_in",
         "parent": "b_pump",
@@ -241,10 +221,9 @@
         "name": "workspace",
         "type": "folder",
         "counters": {
-          "block": 8,
+          "block": 9,
           "note": 1,
           "reference": 1,
-          "resource": 1,
           "relation": 3,
           "folder": 1,
           "group": 1,
@@ -257,6 +236,28 @@
           "def_pump",
           "def_vessel"
         ]
+      }
+    },
+    "holders": {
+      "g_wet": {
+        "id": "g_wet",
+        "parent": "b_loop",
+        "name": "Wet side",
+        "alias": 1,
+        "arrangement": "free",
+        "order": 9
+      },
+      "gr_matrix": {
+        "id": "gr_matrix",
+        "parent": "f_plant",
+        "name": "Duty",
+        "alias": 1,
+        "arrangement": "grid",
+        "cols": 2,
+        "order": 2,
+        "rows": 2,
+        "x": 0,
+        "y": 320
       }
     },
     "edges": {

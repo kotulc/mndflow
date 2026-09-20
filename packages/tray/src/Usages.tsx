@@ -1,7 +1,7 @@
 /** The usages tab: the lines or the blocks, and what each is. */
 
 import { useState } from "react";
-import { edge_module, may_retype, RELATION_MODULES, relation_named, relations, shipped,
+import { BASE_RELATIONS, edge_base, may_retype, relation_base, relations, shipped,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Choice, scope_chips, Table, type Column, type Scope } from "./Table";
 import { block_usage_rows, usage_rows } from "./rows";
@@ -45,7 +45,7 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
       .map((d) => ({ value: d.id, word: d.name }))];
   /** What one usage may be retyped to: its own kind's or module's definitions only. */
   const fits = (id: Id) => offered.filter((o) => !o.value
-    || (lines ? relation_named(graph, o.value) === edge_module(graph, id)
+    || (lines ? relation_base(graph, o.value) === edge_base(graph, id)
               : may_retype(graph, id, o.value)));
 
   const held = about ? graph.defs[about] : undefined;
@@ -55,7 +55,7 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
                   keep: (r: (typeof all)[number]) => r.chain.includes(held.id) }] : []),
   ];
   const keep = narrow.find((n) => n.key === by) ?? narrow[0]!;
-  const modules = ["all", ...RELATION_MODULES];
+  const modules = ["all", ...BASE_RELATIONS];
   const rows = all.filter((r) => (!lines || module === "all" || r.module === module)
                                  && keep.keep(r));
 
@@ -64,7 +64,6 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
     { key: "what", label: lines ? "joins" : "kind" },
     ...(deep ? [{ key: "layer", label: "in" }] : []),
     { key: "def", label: "definition" },
-    ...(lines ? [{ key: "label", label: "label" }] : []),
   ];
 
   /** Blank is the default: each usage goes back to its own kind's. */
@@ -97,7 +96,7 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
       ]}
       rows={rows.map((r) => ({
         id: r.id,
-        titles: { name: r.name, what: r.what, layer: r.layer, label: r.label },
+        titles: { name: r.name, what: r.what, layer: r.layer },
         cells: {
           name: r.name,
           what: r.what,
@@ -106,7 +105,6 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
             <Choice value={r.def} label={`what ${r.name} follows`} of={fits(r.id)}
                     onPick={(id) => onAct("retype", { ids: [r.id], type: blank_to(id) })} />
           ),
-          label: r.label,
         },
         /** A view chip on the picked row, only when it lives elsewhere. */
         actions: onView && picked.includes(r.id) && home(r.id) !== layer ? (

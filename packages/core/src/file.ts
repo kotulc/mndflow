@@ -1,7 +1,7 @@
 /** The envelope, and the canonical layout. */
 
 import { inspect, type Fault } from "./door";
-import { def_of, touched } from "./defs";
+import { BASE_PACKAGE, def_of, touched } from "./defs";
 import { fold } from "./fold";
 import { subtree } from "./tree";
 import { new_id } from "./ids";
@@ -20,7 +20,7 @@ function trim<T extends object>(o: T): T {
 }
 
 /** Keys a record writes first; the rest follow alphabetically. */
-const FIRST = ["id", "parent", "label", "name", "from", "group",
+const FIRST = ["id", "parent", "name", "from", "group",
                "type", "extends", "default", "of", "side", "dir"];
 
 const by_key = ([a]: [string, unknown], [b]: [string, unknown]): number => {
@@ -34,12 +34,33 @@ function ordered<T extends { id: Id }>(all: Record<Id, T>, keep = (_: T) => true
   return out;
 }
 
-/** The graph, laid out for reading: definitions first, then blocks, then relations. */
+/** The packages the written definitions name. The shipped floor is nobody's package, so it never
+ *  travels. */
+function drawn_on(graph: Graph, defs: Record<Id, Graph["defs"][string]>): Graph["packages"] {
+  const out: Graph["packages"] = {};
+  for (const d of Object.values(defs)) {
+    const pkg = d.from ? graph.packages[d.from] : undefined;
+    if (pkg && pkg.id !== BASE_PACKAGE) out[pkg.id] = pkg;
+  }
+  return out;
+}
+
+/** What an export of this workspace is called, without its extension: **the name somebody gave
+ *  it**, so renaming the workspace renames the file it writes. Falls back to the word a fresh one
+ *  wears, and drops what a filename may not carry. */
+export function file_name(graph: Graph): string {
+  const said = (graph.blocks[graph.root]?.name ?? "").replace(/[\\/:*?"<>|]/g, " ");
+  return said.replace(/\s+/g, " ").trim() || "workspace";
+}
+
+/** The graph, laid out for reading: packages, then definitions, then blocks, then relations. */
 export function write(graph: Graph, id = "workspace"): string {
+  const defs = ordered(graph.defs, touched);
   const file: File = {
     schema: SCHEMA,
     id,
-    graph: { root: graph.root, defs: ordered(graph.defs, touched), blocks: ordered(graph.blocks),
+    graph: { root: graph.root, packages: ordered(drawn_on(graph, defs)), defs,
+             blocks: ordered(graph.blocks), holders: ordered(graph.holders),
              edges: ordered(graph.edges) },
   };
   return JSON.stringify(file, null, 2) + "\n";
@@ -57,6 +78,10 @@ export function write_subtree(graph: Graph, root: Id): string {
   for (const [eid, e] of Object.entries(graph.edges)) {
     if (ids.has(e.from) && ids.has(e.to)) edges[eid] = e;
   }
+  const holders: Record<Id, Graph["holders"][string]> = {};
+  for (const [hid, h] of Object.entries(graph.holders)) {
+    if (ids.has(h.parent)) holders[hid] = h;
+  }
   const defs: Record<Id, Graph["defs"][string]> = {};
   const want = [...Object.keys(blocks).map((id) => def_of(graph, id)),
                 ...Object.keys(edges).map((id) => def_of(graph, id))].filter(Boolean) as Id[];
@@ -66,7 +91,7 @@ export function write_subtree(graph: Graph, root: Id): string {
     defs[d.id] = d;
     if (d.extends) want.push(d.extends);
   }
-  return write({ root, blocks, edges, defs }, root);
+  return write({ ...graph, root, blocks, edges, defs, holders }, root);
 }
 
 export type Parsed = { graph: Graph | null; faults: Fault[] };

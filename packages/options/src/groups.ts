@@ -1,5 +1,4 @@
-import { ARRANGEMENTS, type Act, type Arrangement, type Dir,
-         type RelationModule } from "@mnd/core";
+import { ARRANGEMENTS, type Act, type Arrangement, type Dir } from "@mnd/core";
 import type { IconName } from "@mnd/theme";
 
 /** One control. `on` lights it; a verb leaves it undefined, since there is no state a verb puts
@@ -35,12 +34,9 @@ export type Chrome = {
   frame?: boolean;
   /** Which context the tray holds that is not the canvas's, if any. */
   held?: "workspace" | "block" | "relation" | null;
-  /** What a right drag draws: which module, which way it points, and which definition it names. */
-  module?: RelationModule;
+  /** What a right drag draws: which module, and which way it points. */
+  module?: string;
   dir?: Dir;
-  type?: string;
-  /** The shortlist, not the vocabulary. */
-  relations?: readonly { id: string; name: string; module: RelationModule }[];
 };
 
 /** How a layer places what it holds. */
@@ -50,7 +46,7 @@ const LAYOUT: Record<Arrangement, { icon: IconName; tip: string }> = {
 };
 
 /** What a right drag may draw: a line, straight or directed. */
-const LINES: { key: string; module: RelationModule; dir?: Dir;
+const LINES: { key: string; module: string; dir?: Dir;
                icon: IconName; word: string; tip: string }[] = [
   { key: "plain", module: "line", icon: "relation_plain", word: "straight",
     tip: "A right drag makes a plain line" },
@@ -101,29 +97,16 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     });
   }
 
-  /** What a right drag makes. */
+  /** What a right drag makes. **The shipped runs, and no vocabulary**: a pinned definition reads
+   *  in the explorer's `pinned` folder, which is one place for both groups rather than two. */
   if (has("relations")) {
-    const named = chrome.type ?? "";
     out.push({
       key: "relations", label: "relations",
-      controls: [
-        ...LINES.map((l): Control => ({
-          key: `line:${l.key}`, icon: l.icon, word: l.word, tip: l.tip,
-          /** A definition named wins the light. */
-          on: !named && (chrome.module ?? "line") === l.module
-              && (chrome.dir ?? "none") === (l.dir ?? "none"),
-          run: () => act("relate_with", { module: l.module, dir: l.dir ?? "none" }),
-        })),
-        /** Pinned relation definitions, ruled off from the lines above. */
-        ...(chrome.relations ?? []).map((d, n): Control => ({
-          key: `type:${d.id}`, word: d.name,
-          icon: "relation_plain",
-          tip: `A right drag draws a ${d.name}`,
-          on: named === d.id,
-          ruled: n === 0,
-          run: () => act("relate_with", { module: d.module, type: d.id }),
-        })),
-      ],
+      controls: LINES.map((l): Control => ({
+        key: `line:${l.key}`, icon: l.icon, word: l.word, tip: l.tip,
+        on: (chrome.module ?? "line") === l.module && (chrome.dir ?? "none") === (l.dir ?? "none"),
+        run: () => act("relate_with", { module: l.module, dir: l.dir ?? "none" }),
+      })),
     });
   }
 
@@ -131,7 +114,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
   const toggle = (key: "workspace" | "block" | "relation") => () =>
     act("about", { scope: chrome.held === key ? "canvas" : key });
   out.push({
-    key: "settings", label: "settings",
+    key: "elements", label: "elements",
     controls: [
       { key: "workspace", icon: "settings", word: "workspace", on: chrome.held === "workspace",
         tip: "This project: what it is called, what it draws on, and everything it holds",
