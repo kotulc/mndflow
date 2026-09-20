@@ -30,13 +30,11 @@ export function Options({ graph, id, onAct }: OptionsProps) {
     <>
       <Band label="options" />
       <div className="toggles">
-        <Check on={!!own && pinned_defs(graph, runs ? "relation" : "block")
-                    .some((x) => x.id === own.id)}
+        <Check on={!!own && pinned_defs(graph).some((x) => x.id === own.id)}
                off={!may_pin} word="pinned"
                tip={!own ? `This follows no definition of its own, so there is nothing to offer.`
                  : draft ? "Name it first — a draft is not filed yet."
                  : shipped(own) ? `${own.name} is a base, and is never pinned.`
-                 : runs ? `Offer ${own.name} on the rail, so a right drag can draw one.`
                  : `List ${own.name} in the explorer's pinned folder.`}
                onPick={(yes) => onAct("pin", { id: own!.id, on: yes ? "yes" : "no" })} />
         <Check on={own?.default !== undefined} off={!may_stand} word="default"

@@ -1,7 +1,7 @@
 /** The app, assembled. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { block_base, offer, pinned_defs, relation_base, session,
+import { block_base, offer, session,
          type Args, type Storage, type Dir, type Graph, type Id, type Point } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { box_of, clear_of, holds, project, set_card as apply_card, tidy,
@@ -56,8 +56,7 @@ export function App({ storage }: { storage: Storage }) {
   /** The default card, in units. Display, so it is the session's and no file carries it. */
   const [card, set_card] = useState(() => ({ ...UNITS.block }));
   /** What a right drag draws, as the rail left it. */
-  const [drawing, set_drawing] =
-    useState<{ module: Id; dir?: Dir; type?: string }>({ module: "line" });
+  const [drawing, set_drawing] = useState<{ module: Id; dir?: Dir }>({ module: "line" });
   /** What help is pointing at. */
   const [pointed, set_pointed] = useState<readonly Id[]>([]);
   /** The tray row under the pointer, lit on the canvas where it is drawn. */
@@ -100,13 +99,6 @@ export function App({ storage }: { storage: Storage }) {
   const drawn = useMemo(() => new Set([...scene.nodes.map((n) => n.id),
                                        ...scene.edges.map((e) => e.id)]), [scene]);
 
-  /** The shortlist the rail offers, in the order the workspace put them. */
-  const offered_lines = useMemo(
-    () => pinned_defs(graph, "relation")
-      .filter((d) => relation_base(graph, d.id) === "line")
-      .map((d) => ({ id: d.id, name: d.name, module: "line" as const })),
-    [graph]);
-
   /** What is offered here, read off the registry for help. */
   const offered_here = offer({ graph, layer, picked: s.picked(), cells: s.cells() }).map((a) => ({
     name: a.name,
@@ -143,11 +135,9 @@ export function App({ storage }: { storage: Storage }) {
       return;
     }
     if (name === "relate_with") {
-      const type = args!["type"] ? String(args!["type"]) : undefined;
       const dir = args!["dir"] ? String(args!["dir"]) as Dir : undefined;
       set_drawing({ module: args!["module"] as Id,
-                    ...(dir && dir !== "none" ? { dir } : {}),
-                    ...(type ? { type } : {}) });
+                    ...(dir && dir !== "none" ? { dir } : {}) });
       return;
     }
     /** Leaving `grid` writes the grid's positions so `free` keeps them. */
@@ -299,7 +289,6 @@ export function App({ storage }: { storage: Storage }) {
           frame={shown.frame}
           module={drawing.module}
           {...(drawing.dir ? { dir: drawing.dir } : {})}
-          {...(drawing.type ? { type: drawing.type } : {})}
           said={said?.text ?? null}
           onSaid={() => s.say("")}
           lit={hovered && drawn.has(hovered) ? [hovered] : []}
@@ -341,10 +330,7 @@ export function App({ storage }: { storage: Storage }) {
                                      : hold?.of === "id" ? (hold.id === graph.root ? "workspace" : null)
                                      : layer === null && s.picked().length !== 1 ? "workspace" : null,
                                    module: drawing.module,
-                                   ...(drawing.dir ? { dir: drawing.dir } : {}),
-                                   ...(drawing.type ? { type: drawing.type } : {}),
-                                   /** Pinned relation definitions offered on the rail. */
-                                   relations: offered_lines },
+                                   ...(drawing.dir ? { dir: drawing.dir } : {}) },
                                  chrome)} />
     </div>
   );

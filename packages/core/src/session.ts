@@ -136,9 +136,18 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       settle();
       return;
     }
+    const kept = live(log);
+    /** A run of adjustments is one act: the last one supersedes the rest, so the log keeps one
+     *  step and one undo rather than one per pixel the slider passed. */
+    const last = kept[kept.length - 1];
+    if (refines(last, action, mutations)) {
+      log = compact([...kept.slice(0, -1), { ...last!, mutations }]);
+      settle();
+      return;
+    }
     const step: Step = { id: new_id("step"), action, at: log.length, status: "applied", mutations };
     if (batching === null) batching = step;
-    log = compact([...live(log), step]);
+    log = compact([...kept, step]);
     settle();
   };
 
@@ -375,6 +384,41 @@ async function fetch_list(net: NonNullable<Ports["net"]>,
 function beside(catalogue: string, at: string): string {
   if (/^(https?:)?\/\//.test(at) || at.startsWith("/")) return at;
   return catalogue.replace(/[^/\\]*$/, "") + at;
+}
+
+/** The one slot an absolute write lands in, or null where a mutation is not one.
+ *
+ *  **A closed list, and a short one on purpose.** Two things keep a mutation off it: anything
+ *  relative would be lost rather than folded — two `flip_edge`s are not one — and anything a
+ *  surface only ever writes once per gesture has nothing to fold. A body, a name and a tag list
+ *  all commit when their box is left, so folding those would quietly merge two edits somebody
+ *  made on purpose. What is here is what a *drag* streams. */
+function slot_of(m: Mutation): string | null {
+  switch (m.op) {
+    /** A slider, on an element and on the definition it follows. */
+    case "set_look": return `${m.id}|${m.key}|${m.name}`;
+    case "set_def": return m.def.id;
+    /** A card or a holder dragged or resized. */
+    case "set_holder": return m.holder.id;
+    case "place_block": case "size_block": case "seat_cell": return m.id;
+    default: return null;
+  }
+}
+
+/** Whether a step only refines the one before it — the same act, writing the same slot the same
+ *  way. **The later write has to say everything the earlier one did**, or replacing it would
+ *  drop what the earlier said, so the two must carry the same keys. */
+function refines(last: Step | undefined, action: string, mutations: Mutation[]): boolean {
+  if (!last || last.status !== "applied" || last.action !== action) return false;
+  if (last.mutations.length !== 1 || mutations.length !== 1) return false;
+  const was = last.mutations[0]!;
+  const now = mutations[0]!;
+  if (was.op !== now.op) return false;
+  const slot = slot_of(now);
+  if (slot === null || slot !== slot_of(was)) return false;
+  const a = Object.keys(was).sort();
+  const b = Object.keys(now).sort();
+  return a.length === b.length && a.every((k, i) => k === b[i]);
 }
 
 /** Redo is only ever the run of reverted steps at the end. */

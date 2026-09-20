@@ -221,12 +221,12 @@ export function def_named(graph: Graph, name: string, group?: "block" | "relatio
   return hits.find((d) => !d.from) ?? hits[0];
 }
 
-/** Pinned definitions of one group, in pin order. */
-export function pinned_defs(graph: Graph, group: "block" | "relation"): Definition[] {
+/** Pinned definitions in pin order — of one group, or of both where none is named. */
+export function pinned_defs(graph: Graph, group?: "block" | "relation"): Definition[] {
   const ws = graph.blocks[graph.root];
   return (ws?.pinned ?? [])
     .map((id) => graph.defs[id])
-    .filter((d): d is Definition => !!d && d.group === group);
+    .filter((d): d is Definition => !!d && (!group || d.group === group));
 }
 
 /** Block definitions grouped by package, the workspace's own first. */

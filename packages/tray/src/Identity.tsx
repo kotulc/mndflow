@@ -55,9 +55,11 @@ export function Identity({ graph, id, onAct }: IdentityProps) {
                 ? "What this is called, as the drawing writes it. Left blank it draws its type's name."
                 : "A definition is not drawn anywhere, so it carries no name of its own. What its usages draw is its type name, below."}>
           {element ? (
-            <input value={(b ?? edge)!.name ?? ""} aria-label="name"
+            /** Committed when it is left, like every other box: renaming per keystroke made one
+             *  undo step per character, and trimmed the space off the end as you typed it. */
+            <Entry key={`name-${id}`} value={(b ?? edge)!.name ?? ""} label="name" blank
                    placeholder={following?.name ?? kind}
-                   onChange={(e) => onAct("rename", { id, name: e.target.value })} />
+                   onCommit={(to) => onAct("rename", { id, name: to })} />
           ) : (
             <input value="" readOnly aria-label="name" placeholder={d?.name || kind} />
           )}

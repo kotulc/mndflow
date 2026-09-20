@@ -127,7 +127,9 @@ function shelf_nodes(graph: Graph, group: Group, nodes: ShelfNode[], within: Id,
  *  a definition like any other, filed with the rest. */
 function library_of(graph: Graph): Node[] {
   const packs = packages(graph);
-  const pinned = pinned_defs(graph, "block").filter((d) => !shipped(d) && !d.from && d.default === undefined);
+  /** **Both groups, in pin order.** A pinned relation used to read on the options rail instead,
+   *  which made `pinned` two places meaning one thing. */
+  const pinned = pinned_defs(graph).filter((d) => !shipped(d) && !d.from && d.default === undefined);
   return [
     section(PACKS, "packages", "package", { of: "defs", only: "packages" },
             packs.map((p) => pack_node(graph, p.name, p.defs, p.from === BASE_PACKAGE))),

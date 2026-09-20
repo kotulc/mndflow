@@ -69,8 +69,7 @@ export function Definitions({ graph, about, held, lines, target = "the selection
     ? every.filter((r) => fitting.has(r.id))
            .sort((a, z) => fitting.get(a.id)! - fitting.get(z.id)!)
     : every;
-  const pinned = new Set([...pinned_defs(graph, "block"), ...pinned_defs(graph, "relation")]
-    .map((d) => d.id));
+  const pinned = new Set(pinned_defs(graph).map((d) => d.id));
   const in_folder = (r: DefRow, k: Only) =>
     k === "all" ? true
     : k === "pinned" ? pinned.has(r.id)

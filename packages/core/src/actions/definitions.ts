@@ -251,7 +251,7 @@ register(
   /** Pinning offers a definition on the rail or in the pinned folder. */
   {
     name: "pin",
-    about: "offers a definition on the rail or in the pinned folder, or takes it off",
+    about: "lists a definition in the explorer's pinned folder, or takes it off",
     on: ["layer"],
     args: [{ name: "id", form: "text", required: true },
            { name: "on", form: "choice", choices: ["yes", "no"] }],
@@ -269,9 +269,8 @@ register(
       /** Absent toggles. */
       const said = args["on"] === undefined ? null : text(args, "on") === "yes";
       const want = said ?? !held.includes(id);
-      const where = d?.group === "relation" ? "the rail" : "the pinned folder";
       return { mutations: [{ op: "set_pinned", ids: pinning(ctx.graph, id, want) }],
-               effect: { say: `${d?.name ?? id} is ${want ? "in" : "out of"} ${where}` } };
+               effect: { say: `${d?.name ?? id} is ${want ? "in" : "out of"} the pinned folder` } };
     },
   },
   {
