@@ -25,3 +25,47 @@
 .crumbs b { color: var(--muted); font-weight: 400; }
 .crumbs .elided { padding: 0 2px; cursor: default; }
 .crumbs .up { margin-left: 6px; }
+
+/* The key to the open layer, in one of the two right-hand corners. Top mirrors the crumbs
+   across the canvas; bottom sits opposite the zoom controls. */
+.stage > .legend {
+  position: absolute;
+  right: 10px;
+  z-index: 4;
+  max-width: 30%;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--chrome);
+  color: var(--muted);
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.stage > .legend.top { top: 8px; }
+.stage > .legend.bottom { bottom: 8px; }
+
+.stage > .legend ul { margin: 0; padding: 0; list-style: none; }
+.stage > .legend hr { margin: 4px 0; border: 0; border-top: 1px solid var(--divider); }
+
+.stage > .legend li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 0;
+  white-space: nowrap;
+}
+
+.stage > .legend .word { overflow: hidden; text-overflow: ellipsis; }
+
+/* The icon takes the paint of the cards it stands for, which is what makes it the key to the
+   colour as well as to the shape. The card's writing step, not its border's: a border reads
+   against a card's own fill, and this sits on the chrome. */
+.stage > .legend .mark {
+  flex: none;
+  display: inline-flex;
+  color: var(--card-ink);
+}
+
+/* A system mark is the app's, not a definition's, so it reads in the app's own accent. */
+.stage > .legend .mark.stamp { color: var(--accent); }

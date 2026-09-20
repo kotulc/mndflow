@@ -8,7 +8,7 @@ import { box_of, clear_of, holds, project, set_card as apply_card, tidy,
          BLOCK, CARD, UNITS } from "@mnd/views";
 import { Explorer, Menu, type Section } from "@mnd/explorer";
 import { Icon } from "@mnd/theme";
-import { Stage, type Move } from "@mnd/stage";
+import { Stage, type Corner, type Move } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
 import { Tray, type Hold, type Offered, type Tab } from "@mnd/tray";
 import { Terminal, type Match } from "@mnd/terminal";
@@ -53,6 +53,14 @@ export function App({ storage }: { storage: Storage }) {
   /** The mirror muted. */
   const [quiet, set_quiet] = useState(false);
   const [shown, set_shown] = useState({ interfaces: true, lattice: true, frame: true });
+  /** Whether a layer draws the key to itself: what the workspace says, and the layers that have
+   *  said otherwise. **A layer holding no answer follows the workspace**, so changing the default
+   *  moves every layer that never disagreed. Display, so the log never sees it and no file
+   *  carries it. */
+  const [legends, set_legends] = useState(false);
+  const [keyed, set_keyed] = useState<Record<Id, boolean>>({});
+  /** Which right-hand corner the key keeps to. */
+  const [corner, set_corner] = useState<Corner>("top");
   /** The default card, in units. Display, so it is the session's and no file carries it. */
   const [card, set_card] = useState(() => ({ ...UNITS.block }));
   /** What a right drag draws, as the rail left it. */
@@ -85,6 +93,9 @@ export function App({ storage }: { storage: Storage }) {
   const layer = s.layer();
   const said = s.said();
   const arranged = graph.blocks[layer ?? graph.root]?.arrangement ?? "free";
+  /** The root stands in for the workspace layer, which has no id of its own. */
+  const here = layer ?? graph.root;
+  const legend = keyed[here] ?? legends;
 
   /** The drawing's proportions are the views module's, so the session's card is applied before
    *  anything is placed. */
@@ -129,6 +140,16 @@ export function App({ storage }: { storage: Storage }) {
     if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
     if (name === "lattice") { set_shown((c) => ({ ...c, lattice: !!args!["show"] })); return; }
     if (name === "frame") { set_shown((c) => ({ ...c, frame: !!args!["show"] })); return; }
+    /** An answer that agrees with the workspace is dropped rather than stored, so the layer goes
+     *  back to following the default instead of pinning today's value. */
+    if (name === "legend") {
+      const show = !!args!["show"];
+      set_keyed(({ [here]: _was, ...rest }) =>
+        show === legends ? rest : { ...rest, [here]: show });
+      return;
+    }
+    if (name === "legends") { set_legends(!!args!["show"]); return; }
+    if (name === "legend_corner") { set_corner(args!["at"] as Corner); return; }
     /** Applied where the proportions live, and kept as the range there allowed. */
     if (name === "card") {
       set_card(apply_card(Number(args!["w"]), Number(args!["h"])));
@@ -287,6 +308,8 @@ export function App({ storage }: { storage: Storage }) {
           }}
           lattice={shown.lattice}
           frame={shown.frame}
+          legend={legend}
+          corner={corner}
           module={drawing.module}
           {...(drawing.dir ? { dir: drawing.dir } : {})}
           said={said?.text ?? null}
@@ -317,7 +340,7 @@ export function App({ storage }: { storage: Storage }) {
           onHold={set_hold}
           onView={(home, id) => { s.look(home); s.pick([id]); set_hold(null); }}
           offered={offered}
-          display={{ card, range: CARD }}
+          display={{ card, range: CARD, legend: legends, corner }}
           onAct={chrome}
         />
       </main>
@@ -325,6 +348,7 @@ export function App({ storage }: { storage: Storage }) {
       <Options groups={groups_of({ slots: scene.slots, arrangement: arranged,
                                    interfaces: shown.interfaces,
                                    lattice: shown.lattice, frame: shown.frame,
+                                   legend,
                                    /** Which settings toggle is lit. */
                                    held: hold?.of === "draft" ? hold.group
                                      : hold?.of === "id" ? (hold.id === graph.root ? "workspace" : null)

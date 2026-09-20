@@ -129,7 +129,7 @@ function Middle({ side, inward }: { side?: Side; inward?: boolean }) {
 }
 
 /** What a definition said, as attributes the stylesheet reads. */
-function dressed(look: Look) {
+export function dressed(look: Look) {
   const tinted = look.hue !== undefined;
   /** Opacity rides as a number, not a percentage. */
   const sheer = look.opacity !== undefined && look.opacity < 1;

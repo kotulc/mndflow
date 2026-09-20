@@ -56,6 +56,50 @@ export function Rail({ label, of, on, onPick }: RailProps) {
   );
 }
 
+export type CheckProps = {
+  on: boolean;
+  /** Drawn as unreachable, not merely unset. */
+  off?: boolean;
+  word: string;
+  tip: string;
+  onPick: (on: boolean) => void;
+};
+
+/** A box, because it is a yes and a no. */
+export function Check({ on, off, word, tip, onPick }: CheckProps) {
+  return (
+    <label className="check" title={tip} aria-disabled={off || undefined}>
+      <input type="checkbox" checked={on} disabled={off}
+             onChange={(e) => onPick(e.target.checked)} />
+      {word}
+    </label>
+  );
+}
+
+export type PickProps = {
+  /** The group these answers share, so exactly one of them holds. */
+  name: string;
+  on: string;
+  of: readonly { value: string; word: string }[];
+  onPick: (value: string) => void;
+};
+
+/** One answer out of a few, as boxes that can only be one at a time. Drawn as `Check` is, since
+ *  the row it sits in is the same row. */
+export function Pick({ name, on, of, onPick }: PickProps) {
+  return (
+    <>
+      {of.map((o) => (
+        <label key={o.value} className="check">
+          <input type="radio" name={name} checked={on === o.value}
+                 onChange={() => onPick(o.value)} />
+          {o.word}
+        </label>
+      ))}
+    </>
+  );
+}
+
 export type LineProps = {
   /** The word in the left gutter. One question per row, so it is a word and not a sentence. */
   label: ReactNode;

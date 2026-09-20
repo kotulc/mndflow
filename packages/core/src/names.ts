@@ -112,7 +112,10 @@ function shipped_name(name: string): boolean {
  *  own over it with `card.icon`; this is what it draws when nobody has. */
 export type Role = "block" | "folder" | "reference" | "interface" | "group" | "grid" | "note";
 
-const ROLES: readonly string[] = ["block", "folder", "reference", "interface", "note"];
+/** Every base that draws as itself. **A holder's two are here as well**: a block may name one,
+ *  and when it does it should wear that mark rather than fall back to the plain card's. */
+const ROLES: readonly string[] = ["block", "folder", "reference", "interface", "note",
+                                  "group", "grid"];
 
 export function role_of(graph: Graph, id: Id): Role {
   const held = graph.holders[id];
@@ -125,6 +128,14 @@ export function role_of(graph: Graph, id: Id): Role {
  *  standing in for? Nobody sets one — that is what the highlight colour says. **Holding parts is
  *  not one of these**: that is said by filling the card's own icon, not by stamping a second. */
 export type Mark = "reference" | "definition" | "package" | "external";
+
+/** What each mark means, in a phrase — the legend's wording, kept beside the type it reads. */
+export const MARK_MEANING: Record<Mark, string> = {
+  reference: "stands for a block elsewhere",
+  definition: "stands for a definition",
+  package: "stands for a package",
+  external: "came from outside the workspace",
+};
 
 /** What it points at, then what it came from — so the answers cannot overlap and none needs
  *  ranking. A card that stands in for nothing wears no mark. */

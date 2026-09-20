@@ -1,8 +1,9 @@
 import { ARRANGEMENTS, type Act, type Arrangement, type Dir } from "@mnd/core";
 import type { IconName } from "@mnd/theme";
 
-/** One control. `on` lights it; a verb leaves it undefined, since there is no state a verb puts
- *  anything in. */
+/** One control. **One icon, lit or not** — a setting draws the same mark whichever way it is
+ *  set, and `on` is what says which. A verb leaves `on` undefined, since there is no state a
+ *  verb puts anything in. */
 export type Control = {
   key: string;
   icon: IconName;
@@ -32,6 +33,9 @@ export type Chrome = {
   interfaces?: boolean;
   /** Whether the open layer's frame is drawn. */
   frame?: boolean;
+  /** Whether this layer shows the key to what it draws, however it came to — its own answer, or
+   *  the workspace's where it has none. */
+  legend?: boolean;
   /** Which context the tray holds that is not the canvas's, if any. */
   held?: "workspace" | "block" | "relation" | null;
   /** What a right drag draws: which module, and which way it points. */
@@ -76,23 +80,28 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     out.push({
       key: "display", label: "display",
       controls: [
-        { key: "frame", word: "frame",
+        { key: "frame", word: "frame", icon: "frame",
           tip: chrome.frame === false ? "Draw the open layer's border and name"
                                       : "Stop drawing the open layer's border and name",
-          icon: chrome.frame === false ? "frame_off" : "frame_on",
           on: chrome.frame !== false,
           run: () => act("frame", { show: chrome.frame === false }) },
-        { key: "guides", word: "guides",
+        { key: "guides", word: "guides", icon: "guides",
           tip: chrome.lattice ? "Stop ruling the canvas into cells"
                               : "Rule the canvas into cells, faintly, behind everything",
-          icon: chrome.lattice ? "guides_on" : "guides_off",
           on: !!chrome.lattice,
           run: () => act("lattice", { show: !chrome.lattice }) },
         /** `ports`, short enough for the column. */
-        { key: "ports", word: "ports", tip: "Draw interfaces on their walls",
-          icon: chrome.interfaces === false ? "ports_off" : "ports_on",
+        { key: "ports", word: "ports", icon: "ports",
+          tip: "Draw interfaces on their walls",
           on: chrome.interfaces !== false,
           run: () => act("interfaces", { show: chrome.interfaces === false }) },
+        /** This layer's own answer. **It overrides the workspace's rather than yielding to it**,
+         *  which is what makes the workspace tab a default and not a lock. */
+        { key: "legend", word: "legend", icon: "legend",
+          tip: chrome.legend ? "Stop showing this layer's key"
+                             : "Show what this layer draws and what it means",
+          on: !!chrome.legend,
+          run: () => act("legend", { show: !chrome.legend }) },
       ],
     });
   }

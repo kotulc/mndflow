@@ -6,7 +6,7 @@
 
 import { outside, pinned_defs, shipped, stands_in_for,
          type Act, type Graph, type Id } from "@mnd/core";
-import { Band } from "./Body";
+import { Band, Check } from "./Body";
 import { DRAFT } from "./draft";
 import { defined, held, kind_of } from "./holder";
 
@@ -46,25 +46,5 @@ export function Options({ graph, id, onAct }: OptionsProps) {
                onPick={(yes) => onAct("default", { id: own!.id, on: yes ? "yes" : "no" })} />
       </div>
     </>
-  );
-}
-
-type CheckProps = {
-  on: boolean;
-  /** Drawn as unreachable, not merely unset. */
-  off: boolean;
-  word: string;
-  tip: string;
-  onPick: (on: boolean) => void;
-};
-
-/** A box, because it is a yes and a no. */
-function Check({ on, off, word, tip, onPick }: CheckProps) {
-  return (
-    <label className="check" title={tip} aria-disabled={off || undefined}>
-      <input type="checkbox" checked={on} disabled={off}
-             onChange={(e) => onPick(e.target.checked)} />
-      {word}
-    </label>
   );
 }

@@ -80,7 +80,7 @@ A hovered row never becomes the context.
 
 | holder | identity rows |
 |---|---|
-| workspace | name, type, tags |
+| workspace | name, tags — then a *display* band of its own |
 | block | name, definition *(while it has a working look)*, type, tags |
 | a line | name, type, label, tags |
 | block definition | name, extends |
@@ -92,6 +92,7 @@ A hovered row never becomes the context.
 - **Label is editable wherever it reads** — on the relation definition, and on a line, where it edits the definition the line follows.
 - **Source is a block's own**, never its definition's, and has a section of its own under the content it is the provenance of: one *uri* row. **Provenance, not a link** — nothing syncs to it, so it may go stale and nothing breaks. Whatever anchor or revision the locator needs is part of the uri, since nothing here parses one. Clearing it gives the slot back, and a block carrying one wears the `Ext` mark.
 - **Tags are chips**, on a block or a line, with a box to add another. Never inherited.
+- **The workspace carries a *display* band** the other holders have none of: the room a card takes where its definition asked for none, and whether a layer draws the key to itself with which corner it keeps it in. **Display, not model** — the log never sees it and no file carries it, which is what keeps it off the identity rows above.
 - ***Pinned* sits under the card.** Bases and defaults offer none.
 - **Reset style** sits at the far end of the style tab's strip, since it acts on that whole tab.
 
