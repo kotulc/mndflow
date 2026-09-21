@@ -403,7 +403,7 @@ expects {
 - **A capability naming a definition means it or anything below it.** Matching walks the `extends` chain, so one written once reaches every subtype.
 - **Both merge along the chain, nearest first, per key.** A subtype restating one key leaves the others in force — the same cascade every component follows.
 - **`degree` counts every relationship meeting a usage**, wherever it is drawn. It is about the thing, never about the layer somebody is looking at.
-- **`allows.holds` is the only containment rule there is.** The engine owns none of its own any more; what may contain what is data, and is refused here.
+- **`allows.holds` is the only rule about *which* types may contain which.** The engine owns no taxonomy of its own any more; what may contain what is data, and is refused here. **A kind that holds nothing is not a rule about containment but a fact about the kind** — a reference is `of` and a note is text, so `may_hold` refuses a block into either before it reads any vocabulary.
 - **A malformed capability is ignored, never thrown on**, the same way a component validates its own key and no other.
 
 **`expects` advises while modelling and refuses only at translation.** A violation is a note in the tray; a translator asks the same checks as it emits, and that is where a note becomes a refusal. **`allows` never gets that far** — the gesture that would break it is not offered.

@@ -57,7 +57,7 @@ Thirty-nine, two of them navigation.
 | | Does | Scope | Arguments | Effect |
 |---|---|---|---|---|
 | `open` | opens a block as the layer being drawn, or leaves this one when told no block | block | id? | `open` |
-| `reveal` | opens the layer a block lives in and selects it there | block | id | `open` + `focus` |
+| `reveal` | opens the layer a block lives in and selects it there — **followed to the end**, so a reference to a reference reveals what both stand for | block | id | `open` + `focus` |
 
 **`open` absorbs the way out.** **Absent `id` is the way out**, which nothing but a gesture can say, so it is never in the offered list.
 

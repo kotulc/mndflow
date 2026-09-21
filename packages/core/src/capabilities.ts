@@ -1,7 +1,7 @@
 /** What a block may do, and what its values are asked for. `allows` is refused at the gesture;
  *  `expects` is only ever advice. */
 
-import { def_of, isa } from "./defs";
+import { base_of, def_of, isa } from "./defs";
 import { children, is_interface, subtree } from "./tree";
 import type { Components, Flow, Graph, Id } from "./types";
 
@@ -143,6 +143,10 @@ export function permits(graph: Graph, setting: Allowed | undefined,
 
 /** Whether this block may own a child of that definition. */
 export function may_hold(graph: Graph, parent: Id, type?: Id): boolean {
+  /** The kind answers first: a reference stands in for a block living elsewhere and a note is a
+   *  remark about one, so neither holds blocks, whatever a vocabulary says of it. */
+  const base = base_of(graph, parent);
+  if (base === "reference" || base === "note") return false;
   return permits(graph, allows_of(graph, parent).holds, type);
 }
 

@@ -1,6 +1,5 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import { base_of } from "./defs";
 import type { Arrangement, Block, Graph, Id, Relation, Unit } from "./types";
 
 
@@ -33,14 +32,6 @@ export function about_of(graph: Graph, layer: Id | null, picked: readonly Id[]):
  *  itself, so both leave the layer to answer. */
 export function frame_of(graph: Graph, layer: Id | null, about: Id): Id | null {
   return graph.blocks[about] && about !== graph.root ? about : layer;
-}
-
-/** Whether a block can take another: **a note says its piece and a reference is a stand-in**, so
- *  neither holds anything. Every other block does, whether or not it holds any yet. */
-export function holds(graph: Graph, id: Id): boolean {
-  if (!graph.blocks[id]) return false;
-  const base = base_of(graph, id);
-  return base !== "note" && base !== "reference";
 }
 
 /** The direct children of a layer, in a stable order. */

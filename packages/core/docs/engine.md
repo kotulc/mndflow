@@ -19,7 +19,7 @@
 |---|---|
 | `types.ts` | every shared shape: the graph, the mutations, the steps |
 | `fold.ts` | replay: a log folded into a graph over the shipped floor, defaults laid |
-| `tree.ts` | layers, children, order, owners and the relations drawn in a layer |
+| `tree.ts` | layers, children, order, owners, the relations drawn in a layer, and what a gesture is about |
 | `holders.ts` | holders: the one place that knows where they live, plus membership, cells, merges, headers, allocation |
 | `defs.ts` | definitions: chains, bases, defaults, packages, and what an element resolves through |
 | `names.ts` | what elements are called: names, handles, labels, the card icon and the system mark |

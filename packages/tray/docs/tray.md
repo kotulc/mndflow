@@ -4,32 +4,33 @@
 
 ## The context
 
-**Whatever was picked last is the context.**
+**The selection is the context, and the open layer answers for it where there is none.** One rule, asked the same way by every view — `about_of` in the engine — so the explorer, the canvas and the tray are never about different things.
 
 | gesture | context |
 |---|---|
 | pick one thing on the canvas | that thing |
-| pick a row in contents or usages | that thing — the table keeps its tab and its listing |
 | pick nothing, several things, or click the ground | the open layer — the workspace at the root |
 | an elements toggle on the rail | the workspace, or a blank block or relation definition |
-| a definition row in the explorer | that definition, opened on its element tab |
+| a definition row in the explorer | that definition |
 | a definitions folder in the explorer — *pinned*, *blocks*, *relations*, a folder somebody made | every definition, narrowed to that folder |
 | the *packages* section, or one package | what the workspace draws on, on the **packages** tab |
-| a definition row in the definitions tab | that definition |
-| a definition row in the types tab, with something picked | nothing changes — the row lights and offers *apply to …* |
+| a row in any of the tray's tables | nothing changes — the row lights and offers what acts on it |
+| *view* on a lit row | that thing, selected where it lives |
 
-**A hold — a definition, a library section or a draft — is given up by any pick of an element**, on the canvas or in a table. The explorer sets the layer; the canvas and the tables set the context within it.
+**The tray never sets the selection.** A table lights a row of its own and offers what acts on it; *view* is what asks for the selection to move, and moving it is what changes the context. So reading a listing never drags the canvas or the explorer somewhere else.
 
-## Hover and pick
+**A hold — a definition, a library section or a draft — is given up by any pick of an element on the canvas.** The explorer sets the layer; the canvas sets the context within it.
+
+## Hover, light and pick
 
 **They differ in what is shown, not in how loudly.**
 
 | | card | run |
 |---|---|---|
 | **hover** — a table row under the pointer | an accent outline | an accent stroke |
-| **pick** | an accent border and a raised fill | an accent stroke and its grips |
+| **pick** — the selection, which is the context | an accent border and a raised fill | an accent stroke and its grips |
 
-A hovered row never becomes the context.
+**A lit row is the tray's own.** Neither hovering a row nor lighting one becomes the context; a lit row is what the table's own actions act on.
 
 ## Tabs
 
@@ -37,18 +38,24 @@ A hovered row never becomes the context.
 
 | context | tabs |
 |---|---|
-| block | element · style · types · fields · contents · usages |
-| a line | element · style · types · usages |
+| block | element · style · types · fields · contents |
+| a line | element · style · types |
 | block definition | element · style · fields · usages |
 | relation definition | element · style · usages |
 | a definitions folder | definitions |
 | the packages section | packages |
+
+**Usages are a definition's question.** An instance *is* one usage and has none of its own, so the tab is a definition's and a relation definition's only.
+
+**The tab is sticky by family.** Every instance is read the same way and so is every definition, so each family remembers the tab it was last read on: move from one block to the next, or from one definition to the next, and the question being asked stays put. A tab that does not fit the new context falls to what that family last read, and only then to the last that fits.
 
 **Element and style are two tabs over one thing.** Element is what it *is*; style is how it is painted. Both draw the same card, so it stays where it was when the tab changes.
 
 **The element tab reads down each column, and each column is headed.** *card type* heads the card column — bold, with the kind and its mark following it directly — and the drawing comes under it, **taking whatever height the identity column set**, so the two read as one block rather than a small picture beside a long list. A run keeps its own size: a line has no height to fill. *identity* heads the rows beside it, ending in an **options** row of boxes — what is true of the thing as against what it is. *content* runs under both, and **source** under that.
 
 **Types is an element's, definitions is the workspace's.** The types tab lists what the one thing in context may follow — its own kind's definitions, and nothing else. The definitions tab is the whole vocabulary, reached by holding a library folder, and says where each came from.
+
+**What an element follows heads its types.** It is lifted out of the listing to the top, ruled off from the candidates under it, and tagged *follows* where its actions would be — a state of that row, never a section heading and never something to press.
 
 **Contents are an instance's.** With a definition in context, the fields tab declares that definition's schema instead of values.
 
@@ -129,21 +136,25 @@ A hovered row never becomes the context.
 | **chips** | narrow what is listed; each group is one question and narrows on its own |
 | **columns** | the data columns share the width evenly |
 | **a cell** | a value, or a control: a box committed when left (Enter leaves, Escape gives it back, a clash is said beside it) or a pick. Every control fills its cell |
-| **actions** | a row's chips and its remove, right-aligned in one action column reserved at a fixed width, so nothing reflows when they appear. Remove is offered on the picked row only |
+| **actions** | a row's chips and its remove, right-aligned in one action column reserved at a fixed width, so nothing reflows when they appear. Remove is offered on the lit row only |
+| **the lit row** | what the table's actions act on: whatever is selected and listed, else the first row. **A table always has a row in hand**, so what acts on one is reachable without a click |
+| **the lead row** | where one row answers a different question than the rest, it is lifted to the top and ruled off from them — what an element follows, what a reference stands for. It is a row like any other, and lights as the first |
 | **the last row** | adds one, where a table can |
 
-- **Hovering a row lights its element on the canvas**; picking it makes it the context.
+- **Hovering a row lights its element on the canvas**; clicking it lights the row and no more.
+- ***View* is the only way a row moves the context** — it selects that thing where it lives, opening its layer first where that is elsewhere. Offered on the lit row.
 - **No table scrolls on its own**; the tray body scrolls under the tabs.
 - **Opening or shutting the tray frames the drawing again**, since the stage just changed size. Taking the full height does not: there is no room left to fit into.
-- **Everything is derived.** The tray reads the graph and stores nothing but tab, scope, chips and drafts.
+- **Everything is derived.** The tray reads the graph and stores nothing but tab, scope, chips, its lit row and drafts.
 
 ### Contents
 
-- **Layer scope lists one level**: a container in context lists its own contents, anything else the open layer. **Workspace scope lists everything**, each row saying where it sits.
+- **Layer scope lists one level**: **whatever is in context lists its own contents**, whether or not it holds anything yet, and the open layer answers where the context is a line, a definition or the root. One rule — `frame_of` in the engine — so the same gesture never gives two answers. **Workspace scope lists everything**, each row saying where it sits.
+- **A reference lists the one it stands for.** It holds nothing of its own, so its contents is that one block, under a *stands for* column head and offering *view*. Nothing is read through a reference: what it points at is listed as what it is, where it really lives.
 - **Chips narrow by what a row is.**
 - **A column is a field in scope**, asked for by name, and its values are edited in the row.
 - **A block is renamed in its row**; a line is named by its definition.
-- **The picked row, when it is in another layer, offers *view***, which opens that layer and picks it there.
+- **The lit row offers *view***, which selects it — opening its layer first where it lives in another.
 
 ### Definitions and types
 
@@ -169,10 +180,10 @@ A hovered row never becomes the context.
 
 ### Usages
 
-- **The lines, or the blocks**, by the context's group. Chips narrow by scope, by *line / tie* for lines, and by *any / the definition in context*.
+- **The lines, or the blocks**, by the context's group. Chips narrow by scope, by *line / tie* for lines, and by *any / the definition in context* — **narrowed to that definition until somebody widens it**. The choice is kept as what it means rather than as one definition's id, so widening to *any* survives the move to the next definition, and leaving it narrowed follows each to its own.
 - **Each row offers the definitions it may follow** — for a block, only its own kind's — and a line's row shows the label it draws.
 - ***Retype all* points every listed usage at one definition**, in one step and one undo.
-- **The picked row, when it is in another layer, offers *view***.
+- **The lit row offers *view***.
 
 ## Fields
 

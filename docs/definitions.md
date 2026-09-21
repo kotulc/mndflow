@@ -79,7 +79,9 @@
 
 ## What holds what
 
-**A block is a block.** There is no tier walk and no doing/being split, and **the engine states no containment rule at all** — the last one, *a view holds references and never parts*, had only the `view` module to attach to and went out with it. What may contain what is the user's, plus whatever a vocabulary says in `holds`.
+**A block is a block.** There is no tier walk and no doing/being split, and **the engine states no rule about which kind may contain which** — the last one, *a view holds references and never parts*, had only the `view` module to attach to and went out with it. What may contain what is the user's, plus whatever a vocabulary says in `holds`.
+
+**What a kind holds is what it is, and the table above says it.** A reference holds *nothing* and a note holds *text*, so neither takes a block — that is the kind's nature, not a policy about who may nest in whom.
 
 | Term | Means |
 |---|---|

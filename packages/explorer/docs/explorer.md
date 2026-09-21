@@ -34,7 +34,7 @@ The workspace explorer files the project: three collections drawn with one row, 
 | **pinned** | the pinned definitions |
 | **blocks** or **relations** | that group's |
 | a folder somebody made | its group's, in the workspace |
-| one definition | that definition, opened on its element tab |
+| one definition | that definition, on whichever tab definitions were last read on |
 
 ## The block tree
 
@@ -42,7 +42,7 @@ A minimal file tree with each block name after its mark. The open layer is highl
 
 - **The tree is blocks.** Boundaries, notes, fields and references are never listed — a reference is a second appearance of something already there. **Interfaces are behind a toggle.**
 - **The open layer and the selection are two states with two looks.** *Open* is where the stage is pointed; *selected* is what an action would act on. They stack, and selected reads first.
-- **The bar's `＋` follows the selection**, and its tooltip names which, so the meaning is never hidden. **Add folder is a shortcut, not a second concept** — the same `create`, arriving with its type filled. The filing structure is what somebody reaches for most often in an explorer, and making them create a block and then retype it would be purity charged to the user.
+- **The bar's `＋` follows the selection**, and its tooltip names which, so the meaning is never hidden. **Where the selection holds nothing — a note, a reference — the layer takes it**, since a stand-in and a remark hold no blocks. **Add folder is a shortcut, not a second concept** — the same `create`, arriving with its type filled. The filing structure is what somebody reaches for most often in an explorer, and making them create a block and then retype it would be purity charged to the user.
 - **Right-click opens the offered list** for the selection, in fixed order.
 - **Every row is draggable but the workspace**, and a drag crossing a tier lands as that tier's elementary unit rather than refusing. A drop on the workspace row, or **in the clear space below**, makes the block top-level.
 - **A move drops what does not travel** — group memberships, note ties, and relationships to anything staying behind; **a group whose last member leaves goes with it**. A move is never confirmed first; undo is the answer.
@@ -57,7 +57,7 @@ A minimal file tree with each block name after its mark. The open layer is highl
 | **pinned** | pin | the block definitions the workspace **pinned**, in pin order. Unpinning takes one out of the folder and leaves the definition standing |
 | **blocks**, **relations** | folder | its own definitions of that group, in the folders somebody made for them. **A word about a package's definition is filed here too** — somebody wrote it, so it is theirs |
 
-- **Picking a row holds that definition in the tray**, on its element tab.
+- **Picking a row holds that definition in the tray**, on whichever tab definitions were last read on — moving down a list of them keeps the question being asked.
 - **The workspace's own are filed by hand.** Add and remove definitions and folders from the bar, drag one into a folder or between two rows to file and order it, and rename either in place on a double click. **A package is frozen** and the system's folders are the system's, so neither takes a drop.
 - **Blocks and relations are filed apart**, since a definition of one group is never a definition of the other.
 - **Dragging a definition onto the drawing** makes an instance of it where nothing is, and **retypes what it lands on** where the kinds agree. A relation definition says lines must connect existing blocks; an interface, a note and a reference each say what they need first.
