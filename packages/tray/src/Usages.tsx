@@ -35,7 +35,9 @@ export function Usages({ graph, group, scope, onScope, layer, about, lit, onLit,
   const lines = group === "relation";
   /** The root layer reads the whole project until somebody says otherwise. */
   const [module, set_module] = useState("all");
-  const [by, set_by] = useState("any");
+  /** Narrowed to the definition in context until somebody widens it. The choice is kept as what
+   *  it means rather than as one definition's id, so it survives a move to the next one. */
+  const [by, set_by] = useState("own");
 
   const deep = scope === "workspace";
   const all = lines ? usage_rows(graph, layer, deep) : block_usage_rows(graph, layer, deep);
@@ -52,9 +54,10 @@ export function Usages({ graph, group, scope, onScope, layer, about, lit, onLit,
   const held = about ? graph.defs[about] : undefined;
   const narrow = [
     { key: "any", word: "any", keep: (_r: (typeof all)[number]) => true },
-    ...(held ? [{ key: held.id, word: held.name,
+    ...(held ? [{ key: "own", word: held.name,
                   keep: (r: (typeof all)[number]) => r.chain.includes(held.id) }] : []),
   ];
+  /** With no definition in context there is nothing to narrow by, so `any` answers. */
   const keep = narrow.find((n) => n.key === by) ?? narrow[0]!;
   const modules = ["all", ...BASE_RELATIONS];
   const rows = all.filter((r) => (!lines || module === "all" || r.module === module)

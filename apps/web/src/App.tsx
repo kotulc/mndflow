@@ -261,11 +261,12 @@ export function App({ storage }: { storage: Storage }) {
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
         onPick={pick}
         section={section}
-        /** A library row points the tray: a definition at its element tab, a folder at its list. */
+        /** A library row points the tray: a definition at whichever tab definitions were last
+         *  read on, a folder at its list. */
         onSection={(at) => {
           s.pick([]);
           set_tray(true);
-          if (at.of === "def") { set_hold({ of: "id", id: at.id }); set_tab("element"); return; }
+          if (at.of === "def") { set_hold({ of: "id", id: at.id }); return; }
           set_hold(at);
           /** The packages section opens on what the workspace draws on. */
           set_tab(at.of === "defs" && at.only === "packages" ? "packages" : "definitions");

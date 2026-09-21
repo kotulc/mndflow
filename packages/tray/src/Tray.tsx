@@ -70,6 +70,14 @@ const SLOTS: Record<Context, readonly Tab[]> = {
   packages: ["packages"],
 };
 
+/** Which contexts share a tab between them: every instance is read the same way, and so is
+ *  every definition, so moving from one to the next keeps the question being asked. */
+const FAMILY: Record<Context, string> = {
+  root: "root", block: "instance", line: "instance",
+  definition: "definition", relation: "definition",
+  library: "library", packages: "packages",
+};
+
 const HEAD: readonly Column[] = [
   { key: "kind", label: "kind" },
   { key: "name", label: "name" },
@@ -104,7 +112,8 @@ function home_of(graph: Graph, id: Id): Id | null {
 export function Tray(props: TrayProps) {
   const { graph, layer, open, onOpen, picked, onHover, onAct, onView,
           hold = null, onHold = () => {} } = props;
-  const [held_tab, set_held_tab] = useState<Tab>("contents");
+  /** The tab each family of contexts was last read on. */
+  const [seen, set_seen] = useState<Record<string, Tab>>({});
   /** Full height, as a control of its own. */
   const [big, set_big] = useState(false);
   const [only, set_only] = useState<Sort | "all">("all");
@@ -142,10 +151,12 @@ export function Tray(props: TrayProps) {
   /** Whether the context is about lines rather than blocks. */
   const lined = context === "line" || context === "relation";
 
+  /** What the app asks for, else what this family was last read on, else the last that fits. */
   const tabs = SLOTS[context];
-  const asked = props.tab ?? held_tab;
-  const tab: Tab = tabs.includes(asked) ? asked : tabs[tabs.length - 1]!;
-  const set_tab = (t: Tab) => { set_held_tab(t); props.onTab?.(t); };
+  const family = FAMILY[context];
+  const tab: Tab = [props.tab, seen[family]].find((t) => t && tabs.includes(t))
+    ?? tabs[tabs.length - 1]!;
+  const set_tab = (t: Tab) => { set_seen((s) => ({ ...s, [family]: t })); props.onTab?.(t); };
 
   /** A draft is edited through the registry, and everything else goes out. */
   const act: Act = (name, args) => {
