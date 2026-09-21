@@ -1,10 +1,10 @@
 /** The context tray: one shell, one context, one tab per question. */
 
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useState } from "react";
 import { about_of, alias_of, children, def_named, def_of, frame_of, is_interface, new_id,
          owner_of, shipped, shown_name, stands_for,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
-import { Icon } from "@mnd/theme";
+import { Icon, TrayFrame } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Element } from "./Element";
 import { Style } from "./Style";
@@ -284,56 +284,32 @@ export function Tray(props: TrayProps) {
                  library.group ? `${library.group}s` : ""].filter(Boolean).join(" · ")
     : view.defs[about] ? view.defs[about]!.name : shown_name(graph, about);
 
-  const on_bar = (e: MouseEvent) => {
-    if ((e.target as HTMLElement).closest("button")) return;
-    onOpen(!open);
-  };
-
   return (
-    <section className={["tray", open ? "open" : "shut", open && big ? "big" : ""]
-               .filter(Boolean).join(" ")} aria-label="Context">
-      <div className="tray-bar" onClick={on_bar}
-           title={open ? "shut the tray" : "open the tray"}>
-        <span className="tray-chevron"><Icon name={open ? "less" : "more"} /></span>
-        <span className="tray-context">
-          <span className="word">{word}</span>
-          {name ? <span className="name">{name}</span> : null}
-          {picked.length > 1 && !hold ? <span className="note">{`${picked.length} items`}</span> : null}
-        </span>
-
-        <span className="tray-tools">
-          {open && tab === "contents" && !points_at ? <span className="holds">{shown.length} {shown.length === 1 ? "element" : "elements"}</span> : null}
-          {open ? (
-            <button className={big ? "on" : ""}
-                    title={big ? "give the stage its room back" : "take the full height"}
-                    onClick={() => set_big(!big)}>
-              <Icon name={big ? "collapse" : "expand"} />
-            </button>
-          ) : null}
-        </span>
-      </div>
-
-      {open ? (
-        <div className="tray-body">
-          <div className="tray-tabs">
-            {tabs.map((t) => (
-              <button key={t} className={tab === t ? "on" : ""} onClick={() => set_tab(t)}>
-                {t}
-              </button>
-            ))}
-            {/* Reset acts on the whole style tab. */}
-            {onAct && tab === "style" ? (
-              <span className="tab-tools">
-                <button className="reset" disabled={borrowed || !its_own}
-                        title={its_own ? "give every look back to what it inherits"
-                                          : "it says nothing of its own to give back"}
-                        onClick={() => act("none", { ids: [styled] })}>
-                  reset style
-                </button>
-              </span>
-            ) : null}
-          </div>
-
+    <TrayFrame
+      open={open}
+      onOpen={onOpen}
+      big={big}
+      onBig={set_big}
+      word={word}
+      {...(name ? { name } : {})}
+      {...(picked.length > 1 && !hold ? { note: `${picked.length} items` } : {})}
+      tabs={tabs}
+      tab={tab}
+      onTab={set_tab}
+      {...(open && tab === "contents" && !points_at ? {
+        tools: <span className="holds">{shown.length} {shown.length === 1 ? "element" : "elements"}</span>,
+      } : {})}
+      {...(onAct && tab === "style" ? {
+        tabTools: (
+          <button className="reset" disabled={borrowed || !its_own}
+                  title={its_own ? "give every look back to what it inherits"
+                                    : "it says nothing of its own to give back"}
+                  onClick={() => act("none", { ids: [styled] })}>
+            reset style
+          </button>
+        ),
+      } : {})}
+    >
           {onAct && tab === "workspace" ? (
             <Workspace graph={graph} onAct={act}
                        {...(props.display ? { display: props.display } : {})} />
@@ -433,8 +409,6 @@ export function Tray(props: TrayProps) {
                 };
               })} />
           ) : null}
-        </div>
-      ) : null}
-    </section>
+    </TrayFrame>
   );
 }

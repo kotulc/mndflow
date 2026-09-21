@@ -45,6 +45,31 @@ npx vitest run packages/explorer     # its suite, from the repo root
 - **It never rearranges the tree.** Folding is the user's alone, and walking into a layer changes nothing about what is open.
 - **Opening comes before selecting**, because opening clears the selection — the order is pinned by a test rather than left to the order of two calls.
 
+## What it says, and how
+
+A host means what it likes by an act, but the shape of each is fixed — a consumer outside this repo reads the same names and arguments the app does.
+
+| Gesture | Act | Args |
+|---|---|---|
+| click a row | `reveal` | `{ id }` |
+| double-click a name, and type | `rename` | `{ id, name }` — `name`, never `label` |
+| drag onto a row | `move` | `{ ids, parent }` |
+| drag between two rows | `move` | `{ ids, parent, before? }` — `before` is the sibling to land above; absent, they land last |
+| `＋` | `create` | `{ name, parent, type }` |
+| the remove tool, on a block | `delete` | `{ id }` |
+
+**A move names a sibling, never an index.** `before` is the id of the row the moved ones land above, and it is never one of the rows being moved; a host that seats by position resolves it itself.
+
+## The bar's tools
+
+**Every tool is drawn unless told otherwise**, so the app passes nothing. `tools` turns each off by name:
+
+```tsx
+tools={{ filter: false, create: false, remove: false }}   // the fold stays
+```
+
+`menu` and `tools` are two questions. `menu={false}` drops the offered list on right-click and leaves the bar alone.
+
 ## The detail
 
 `docs/explorer.md`.

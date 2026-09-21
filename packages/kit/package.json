@@ -1,6 +1,6 @@
 {
   "name": "@mnd/kit",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "description": "The one surface mndflow offers anything outside this repo.",
@@ -18,7 +18,12 @@
       "types": "./dist/react.d.ts",
       "default": "./dist/react.js"
     },
-    "./react.css": "./dist/react.css"
+    "./react.css": "./dist/react.css",
+    "./shell": {
+      "types": "./dist/shell.d.ts",
+      "default": "./dist/shell.js"
+    },
+    "./shell.css": "./dist/shell.css"
   },
   "scripts": {
     "build": "tsup && tsc -p tsconfig.types.json && rollup -c rollup.dts.mjs",

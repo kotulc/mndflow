@@ -24,6 +24,13 @@ export type ExplorerProps = {
   onPick: (ids: Id[]) => void;
   /** Whether right-click opens this engine's offered list. */
   menu?: boolean;
+  /** Which bar tools to show. Defaults preserve mndflow; set false to hide. */
+  tools?: {
+    filter?: boolean;
+    create?: boolean;
+    remove?: boolean;
+    fold?: boolean;
+  };
   /** What the library sections have hold of; absent, the sections are not drawn. */
   section?: Section | null;
   onSection?: (at: Section) => void;
@@ -241,7 +248,14 @@ function Fold({ kin, folded, onFold }: {
 
 export function Explorer(props: ExplorerProps) {
   const { graph, open, picked, folded, lit = [], onAct, onFold, onPick,
-          menu: offered = true, section = null, onSection } = props;
+          menu: offered = true, section = null, onSection,
+          tools: bar = {} } = props;
+  const show = {
+    filter: bar.filter !== false,
+    create: bar.create !== false,
+    remove: bar.remove !== false,
+    fold: bar.fold !== false,
+  };
   /** What is in hand: the selection when a picked row is dragged. */
   const [dragging, set_dragging] = useState<readonly Id[]>([]);
   /** Where a shift-click range runs from. */
@@ -398,27 +412,38 @@ export function Explorer(props: ExplorerProps) {
          style={{ width }}>
       <div className="bar">
         {/* The bar is tools only; the workspace names itself in the tree. */}
-        <span className="tools">
-          {/* Where the filter will open. Inert until it is built, and it says so. */}
-          <button title="filter the workspace — not built yet" disabled>
-            <Icon name="menu" />
-          </button>
-          <button title={library ? `add a definition to ${where_to}` : `add a block in ${shown_name(graph, target)}`}
-                  disabled={library && !filing}
-                  onClick={() => add()}><Icon name="add" /></button>
-          <button title={library ? `add a folder to ${where_to}` : `add a folder in ${shown_name(graph, target)}`}
-                  disabled={library && !filing}
-                  onClick={() => add("folder")}><Icon name="add_folder" /></button>
-          <button title={library ? "remove the picked definition or folder" : "delete what is picked"}
-                  disabled={!drop} onClick={() => drop?.()}><Icon name="remove" /></button>
-        </span>
+        {(show.filter || show.create || show.remove) ? (
+          <span className="tools">
+            {show.filter ? (
+              <button title="filter the workspace — not built yet" disabled>
+                <Icon name="menu" />
+              </button>
+            ) : null}
+            {show.create ? (
+              <>
+                <button title={library ? `add a definition to ${where_to}` : `add a block in ${shown_name(graph, target)}`}
+                        disabled={library && !filing}
+                        onClick={() => add()}><Icon name="add" /></button>
+                <button title={library ? `add a folder to ${where_to}` : `add a folder in ${shown_name(graph, target)}`}
+                        disabled={library && !filing}
+                        onClick={() => add("folder")}><Icon name="add_folder" /></button>
+              </>
+            ) : null}
+            {show.remove ? (
+              <button title={library ? "remove the picked definition or folder" : "delete what is picked"}
+                      disabled={!drop} onClick={() => drop?.()}><Icon name="remove" /></button>
+            ) : null}
+          </span>
+        ) : null}
         {/* Every collection at once, set where each collection's own fold sits. */}
-        <button className="fold" title={any_open ? "fold every collection" : "open every collection"}
-                onClick={() => {
-                  for (const r of tree_of(graph, [], !!onSection)) {
-                    if (r.kids > 0) onFold(r.id, any_open);
-                  }
-                }}><Icon name={any_open ? "fold_all" : "unfold_all"} size={MARK_SIZE} /></button>
+        {show.fold ? (
+          <button className="fold" title={any_open ? "fold every collection" : "open every collection"}
+                  onClick={() => {
+                    for (const r of tree_of(graph, [], !!onSection)) {
+                      if (r.kids > 0) onFold(r.id, any_open);
+                    }
+                  }}><Icon name={any_open ? "fold_all" : "unfold_all"} size={MARK_SIZE} /></button>
+        ) : null}
       </div>
 
         <ul className="tree">

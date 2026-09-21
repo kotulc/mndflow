@@ -1,0 +1,400 @@
+/* The shell: what a workspace is dressed in, and nothing that draws a model.
+ *
+ * The reset, the header, the optional `.app` grid, the one bar height, the crumbs, the strip
+ * and the tray's frame — everything `WorkspaceHeader`, `TrayFrame` and `Crumbs` read. It is
+ * `base.css`'s first import, so the app and every harness load it without naming it, and it
+ * is the whole of `@mnd/kit/shell.css`, so a host that wants the chrome loads this and no
+ * panel. What a tab *holds* is the tray's own and stays in `tray.css`. */
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--border);
+  background: var(--hover);
+}
+
+button:disabled { opacity: 0.35; cursor: default; }
+
+input {
+  font: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+
+input:focus { outline: none; border-color: var(--accent); }
+
+/* ── The grid ── */
+
+/* Chrome yields under pressure; the stage does not. Explorer | main | options, and a child
+   that is not there leaves no column behind. */
+.app {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  grid-template-columns: auto 1fr auto;
+  height: 100%;
+}
+
+.app > header {
+  grid-row: 1;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  /* The page's one strong rule, between the app and the work. */
+  border-bottom: 1px solid var(--border);
+  /* The page ground — the same step the explorer body shares. */
+  background: var(--bg);
+  min-width: 0;
+}
+
+/* Identity yields under pressure; the tools never do. */
+.app > header .identity {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app > header h1 {
+  flex: none;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.app > header h1::before { content: "▚ "; color: var(--accent); }
+
+/* How much is under the session. */
+.app > header .where {
+  flex: none;
+  white-space: nowrap;
+  padding: 2px 4px;
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  opacity: 0.55;
+}
+
+.app > header .where:hover { opacity: 1; color: var(--text); background: none; }
+
+.app > header .where.unsaved {
+  opacity: 1;
+  font-size: 11px;
+  font-weight: 600;
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.app > header .where.unsaved:hover { background: var(--error); color: var(--on-loud); }
+
+.app > header .tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+/* One weight across the header. */
+.app > header .tools button { color: var(--muted); padding: 2px 6px; line-height: 1; }
+.app > header .tools button:hover:not(:disabled) { color: var(--text); }
+.app > header .tools button[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--tint);
+}
+
+.app > header .tools select {
+  font: inherit;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+
+/* Rare destructive acts read as words. */
+.app > header .tools button.word {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.app > .chat { grid-row: 2; grid-column: 1 / -1; }
+
+/* The body row is named, so an absent terminal row leaves no gap. */
+.app > .explorer, .app > main, .app > .opts {
+  grid-row: 3;
+  /* The work begins here. */
+  border-top: 1px solid var(--border);
+}
+
+/* One line across the body row: the explorer's bar, the options rail's, and the tray's own. */
+:root { --bar: 29px; }
+
+/* Side panels on the body row share one bar height — the explorer and the options rail. */
+.explorer .bar,
+.opts .bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--bar);
+  padding: 0 8px;
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface);
+  min-width: 0;
+  flex: none;
+}
+
+/* Every mark in a panel bar sits in the same cell — a 16px glyph or a word, 2px vertical padding,
+   whether it is a button or a title. */
+.explorer .bar .tools button,
+.opts .bar .mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  line-height: 1;
+  flex: none;
+}
+
+/* The stage never yields, so it takes the free space and the tray takes what it asks for beneath
+   it. A host may seat the canvas in `main` bare, without a stage round it. */
+.app > main {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app > main > .stage { flex: 1; min-height: 0; height: auto; }
+.app > main > .mnd-flow { flex: 1; min-height: 0; height: auto; }
+
+/* ── Over the canvas ── */
+
+/* The trail down to the open layer, over the drawing's top-left corner. Chrome, not the stage's
+   own, so `Viewer` may draw it without `stage.css`. */
+.crumbs {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 60%;
+  overflow: hidden;
+  color: var(--muted);
+}
+
+.crumbs button { padding: 1px 4px; white-space: nowrap; }
+.crumbs button:hover { color: var(--accent); }
+.crumbs b { color: var(--muted); font-weight: 400; }
+.crumbs .elided { padding: 0 2px; cursor: default; }
+.crumbs .up { margin-left: 6px; }
+
+/* One strip, and everything the app says goes to it. */
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 80%;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.25);
+}
+
+/* ── The tray's frame ── */
+
+/* A quarter of the stage when open, whatever it holds. */
+.tray {
+  position: relative;
+  z-index: 6;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.tray.open { height: 25%; }
+/* Full height, when the body has more to say than a quarter of the window. */
+.tray.open.big { height: 100%; }
+/* At full height there is nothing above to be ruled off from, and the rule would only set the
+   bar a pixel below the explorer's and the options rail's. */
+.tray.big { border-top: none; }
+
+/* A step above the body it heads. */
+.tray-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--bar, 29px);
+  padding: 0 8px 0 6px;
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+/* The context: its word, its name, and what qualifies it. */
+.tray-context { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.tray-context > .word {
+  flex: none;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tray-context > .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tray-context > .note { flex: none; color: var(--faint); font-size: 11px; font-style: italic; }
+
+.tray-bar .holds {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  flex: none;
+  margin-left: auto;
+  padding-right: 4px;
+}
+
+/* Tabs left, controls far right. */
+.tray-tools { display: flex; align-items: center; gap: 2px; flex: none;
+              margin-left: auto; }
+
+/* The chevron leads the context it opens. */
+.tray-chevron {
+  flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.tray-bar:hover .tray-chevron { color: var(--accent); }
+
+.tray-tools button {
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tray-tools button:hover { color: var(--accent); }
+.tray-tools button.on { color: var(--accent); }
+
+/* The body scrolls down, never sideways, and its tabs lay out by its width. A gutter each side
+   holds what is under the tabs off the explorer and the options rail; the tabs themselves span
+   the tray, since the strip they sit on is the tray's own edge to edge. */
+.tray-body {
+  container: tray / inline-size;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  flex: 1;
+  padding-inline: 10px;
+  background: var(--bg);
+}
+
+/* The body scrolls rather than pushing content out of reach. */
+.tray.open .tray-body { overflow: auto; }
+
+/* Tabs on the body's own ground. */
+.tray-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  /* Back out through the body's gutter, so the strip reaches both edges. */
+  margin-inline: -10px;
+  padding: 4px 10px 0;
+  border-bottom: 1px solid var(--divider);
+  background: var(--bg);
+}
+
+.tray-tabs > button {
+  margin-bottom: -1px;
+  padding: 2px 10px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tray-tabs > button:hover { color: var(--text); }
+.tray-tabs > button.on {
+  padding-bottom: 3px;
+  border-color: var(--divider);
+  background: var(--bg);
+  color: var(--accent);
+}
+
+/* One gap under the tabs, whichever tab is open. */
+.tray-tabs + * { margin-top: 2px; }
+
+/* Acts over the whole tab, at the far end of the strip that opened it. */
+.tab-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; padding-bottom: 3px; }
+.tab-tools > .reset {
+  padding: 1px 7px;
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.tab-tools > .reset:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.tab-tools > .reset:disabled { opacity: 0.35; cursor: default; }

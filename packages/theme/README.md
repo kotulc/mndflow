@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Entry** | `ramp.css` and `base.css` |
+| **Entry** | `ramp.css` and `base.css`; `shell.css` on its own for a host that wants the chrome; `src/index.ts` for the icons, the names and the chrome components |
 | **Depends on** | nothing |
 | **Proven by** | nothing to prove — it declares values. What reads them is proven in `stage` |
 
@@ -34,7 +34,9 @@ import "@mnd/theme/base.css";
 | | Is |
 |---|---|
 | `ramp.css` | the slots and their steps, per theme |
-| `base.css` | the page ground — background, text, and the element defaults every surface starts from |
+| `shell.css` | the chrome — the reset, the header, the `.app` grid, the one bar height, the crumbs, the strip and the tray's frame. What `@mnd/kit/shell.css` is |
+| `base.css` | the page ground: `shell.css` first, then what the app alone reads |
+| `src/shell.tsx` | `WorkspaceHeader` and `TrayFrame` — the chrome as components, naming no graph |
 
 ## How the ramp works
 

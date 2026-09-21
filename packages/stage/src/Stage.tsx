@@ -11,6 +11,7 @@ import { Legend, type Corner } from "./Legend";
 import { moves_of, type Move } from "./moves";
 import { Icon } from "@mnd/theme";
 import { box_of, clear_of, holds, swept_cells, BLOCK, CELL, type Scene } from "@mnd/views";
+import { Crumbs } from "./Crumbs";
 
 export type { Adjust, Landing, Move };
 
@@ -370,22 +371,4 @@ function lit_rules(ids: readonly string[]): string {
     ids.map((id) => `.react-flow [data-testid="rf__${kind}-${CSS.escape(id)}"]${inner}`).join(",");
   return [`${at("node", "")} { outline: 2px solid var(--accent); outline-offset: 2px; }`,
           `${at("edge", " path")} { stroke: var(--accent) !important; opacity: 1; }`].join("\n");
-}
-
-function Crumbs({ trail, onAct }: { trail: Scene["trail"]; onAct: Act }) {
-  const shown = trail.length > 4 ? [trail[0]!, { id: "…", label: "…" }, ...trail.slice(-2)] : trail;
-  return (
-    <nav className="crumbs">
-      {shown.map((t, i) => (
-        <span key={t.id + i}>
-          {i > 0 ? <b> / </b> : null}
-          {t.id === "…"
-            ? <span className="elided" title={trail.map((x) => x.label).join(" / ")}>…</span>
-            : <button onClick={() => onAct("open", { id: t.id })}>{t.label}</button>}
-        </span>
-      ))}
-      {trail.length > 1 ? <button className="up" title="up one layer"
-                                  onClick={() => onAct("open")}><Icon name="up" /></button> : null}
-    </nav>
-  );
 }

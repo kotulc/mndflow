@@ -7,7 +7,7 @@ import { seed } from "@mnd/defs";
 import { box_of, clear_of, holds, project, set_card as apply_card, tidy,
          BLOCK, CARD, UNITS } from "@mnd/views";
 import { Explorer, Menu, type Section } from "@mnd/explorer";
-import { Icon } from "@mnd/theme";
+import { Icon, WorkspaceHeader } from "@mnd/theme";
 import { Stage, type Corner, type Move } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
 import { Tray, type Hold, type Offered, type Tab } from "@mnd/tray";
@@ -199,17 +199,13 @@ export function App({ storage }: { storage: Storage }) {
 
   return (
     <div className="app">
-      <header>
-        {/* Identity, and the size of what is under it. */}
-        <span className="identity">
-          <h1>mndflow</h1>
+      <WorkspaceHeader brand="mndflow"
+        where={
           <button className="where" title="This session is kept in the browser. Export a snapshot to keep a copy elsewhere."
                   onClick={() => void s.save()}>
             {Object.keys(graph.blocks).length - 1} blocks · {s.log().length} steps
           </button>
-        </span>
-
-        <span className="tools">
+        }>
           <button title="undo" onClick={() => s.undo()}><Icon name="undo" /></button>
           <button title="redo" onClick={() => s.redo()}><Icon name="redo" /></button>
           <button title="export the workspace" onClick={() => void s.save()}>
@@ -228,8 +224,7 @@ export function App({ storage }: { storage: Storage }) {
                   onClick={() => set_theme(next_look.name)}>
             <Icon name={look.icon} />
           </button>
-        </span>
-      </header>
+      </WorkspaceHeader>
 
       {terminal ? (
         <Terminal

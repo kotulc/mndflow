@@ -29,9 +29,9 @@ npm run typecheck -w @mnd/tray
 
 | | Is |
 |---|---|
-| `Tray.tsx` | the bar and the table. Two sizes, shut and open |
+| `Tray.tsx` | the context and its tabs, in the theme's `TrayFrame`. Two sizes, shut and open |
 | `rows.ts` | `rows_of` — what the layer holds, read straight from the graph. Headless, so the CLI could print it |
-| `tray.css` · `fields.css` · `preview.css` | the look: the shell, tabs and tables; the label-and-answer rows; the card and run previews and chips. Loaded in that order |
+| `tray.css` · `fields.css` · `preview.css` | the look: the tables; the label-and-answer rows; the card and run previews and chips. Loaded in that order. The frame round them — bar, tabs, open and shut — is dressed in `@mnd/theme/shell.css` |
 
 ## The rules it lives by
 

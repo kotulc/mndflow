@@ -27,7 +27,8 @@ npx vitest run packages/stage        # its suite, from the repo root
 
 | | Is |
 |---|---|
-| `Stage.tsx` | hosts the canvas, owns the global keys, turns a gesture into an action name, and draws the crumbs and the strip |
+| `Stage.tsx` | hosts the canvas, owns the global keys, turns a gesture into an action name, and draws the strip |
+| `Crumbs.tsx` | the trail down to the open layer, as `open` acts. Shared with the kit's `Viewer`, and dressed by the theme's `shell.css` |
 | `Flow.tsx` | the canvas, composed from `room`, `sync`, `draw` and `drag` hooks and `Grips` |
 | `moves.ts` | what a canvas adjustment writes, handed to the host as one batch |
 | `flow.css` · `routes.css` · `groups.css` | cards and the frame; runs and their ends; bands and grids |

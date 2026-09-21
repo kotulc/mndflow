@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { children, type Graph, type Id } from "@mnd/core";
 import { project, type Config } from "@mnd/views";
-import { FlowView, type Gesture } from "@mnd/stage";
+import { Crumbs, FlowView, type Gesture } from "@mnd/stage";
 
 /** Nothing picked, as one constant so it never reads as a change. */
 const NONE: readonly Id[] = [];
@@ -15,6 +15,8 @@ export type ViewerProps = {
   /** Which blocks are lit, without moving the layer. */
   picked?: readonly Id[];
   config?: Config;
+  /** Opt-in chrome over the canvas. */
+  chrome?: { crumbs?: boolean };
   /** Told where the viewer is looking, whenever that changes. */
   onLook?: (layer: Id | null) => void;
   /** Told what is lit, whenever that changes. */
@@ -24,7 +26,7 @@ export type ViewerProps = {
 };
 
 export function Viewer({ graph, layer = null, picked = NONE,
-                        config, onLook, onPick, onFollow }: ViewerProps) {
+                        config, chrome, onLook, onPick, onFollow }: ViewerProps) {
   const [at, set_at] = driven<Id | null>(layer);
   const [lit, set_lit] = driven<readonly Id[]>(picked);
 
@@ -63,7 +65,21 @@ export function Viewer({ graph, layer = null, picked = NONE,
     pick(g.on ? [g.on] : []);
   };
 
-  return <FlowView scene={scene} picked={lit} onGesture={gesture} onPick={pick} />;
+  const flow = <FlowView scene={scene} picked={lit} onGesture={gesture} onPick={pick} />;
+  if (!chrome?.crumbs) return flow;
+
+  return (
+    <section className="stage" style={{ position: "relative", width: "100%", height: "100%",
+                                        minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+      <Crumbs trail={scene.trail} onAct={(name, args) => {
+        if (name !== "open") return;
+        const id = args?.id === undefined ? undefined : String(args.id);
+        if (id === undefined) look(at ? graph.blocks[at]?.parent ?? null : null);
+        else look(id === graph.root ? null : id);
+      }} />
+      {flow}
+    </section>
+  );
 }
 
 /** A value the host may drive: the viewer's own until the host sets it. */

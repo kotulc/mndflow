@@ -292,3 +292,27 @@ describe("an empty workspace", () => {
     expect(rows.map((r) => r.depth)).toEqual([0, 1, 2, 2, 2]);
   });
 });
+
+describe("consumer tools flags", () => {
+  it("hides create, remove and filter when asked, and keeps fold", () => {
+    const { container, queryByTitle } = mount(fold(nested(), FLOOR), {
+      tools: { create: false, remove: false, filter: false },
+    });
+    expect(queryByTitle(/add a block/)).toBeNull();
+    expect(queryByTitle(/add a folder/)).toBeNull();
+    expect(queryByTitle(/delete what is picked/)).toBeNull();
+    expect(queryByTitle(/filter the workspace/)).toBeNull();
+    expect(container.querySelector("button.fold")).not.toBeNull();
+  });
+
+  it("still fires rename with name when tools are hidden", () => {
+    const { onAct, container } = mount(fold(nested(), FLOOR), {
+      tools: { create: false, remove: false, filter: false },
+    });
+    fireEvent.doubleClick(screen.getByText("Auth"));
+    const field = container.querySelector(".label.mnd-naming")!;
+    field.textContent = "Typed";
+    fireEvent.blur(field);
+    expect(onAct).toHaveBeenCalledWith("rename", { id: "block_auth", name: "Typed" });
+  });
+});

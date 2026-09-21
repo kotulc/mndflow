@@ -9,7 +9,7 @@ import { defineConfig } from "tsup";
  *  no colour of their own — they draw in terms of ramp steps and card
  *  families — so a consumer given only the component sheets gets transparent
  *  cards on an unpainted ground and no way to tell why. The app's own shell
- *  (`base.css`, `stage.css`, and the panels) is not the seam's and stays out. */
+ *  (`base.css` / `shell.css`, and the panels) is not this entry's and stays out. */
 const SHEETS = [
   "../theme/ramp.css",
   "../theme/icons.css",
@@ -19,6 +19,10 @@ const SHEETS = [
   "../stage/src/groups.css",
   "../explorer/src/explorer.css",
 ];
+
+/** The chrome, for a host that wants the header, the tray's frame or the crumbs. One sheet,
+ *  and the theme's own, so this entry reaches no panel the map does not already allow. */
+const SHELL = ["../theme/shell.css"];
 
 /** One file, with every `@import` at the top of it.
  *
@@ -37,7 +41,7 @@ function sheet(files: string[]): string {
 }
 
 export default defineConfig({
-  entry: { index: "src/index.ts", react: "src/react.ts" },
+  entry: { index: "src/index.ts", react: "src/react.ts", shell: "src/shell.ts" },
   format: ["esm"],
   /** Declarations are bundled separately — `rollup.dts.mjs` says why. */
   dts: false,
@@ -47,5 +51,6 @@ export default defineConfig({
   clean: true,
   onSuccess: async () => {
     writeFileSync("dist/react.css", sheet(SHEETS));
+    writeFileSync("dist/shell.css", sheet(SHELL));
   },
 });
