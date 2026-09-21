@@ -7,7 +7,7 @@ export { Content, type ContentProps } from "./Content";
 export { Data, type DataProps } from "./Data";
 export { def_rows, rows_of, usage_rows, type DefRow, type Row, type Sort,
          type UsageRow } from "./rows";
-export { ChipBar, Choice, Table, type Adding, type Chips, type Column, type Lead, type Line as TableLine,
+export { ChipBar, Choice, Table, lit_row, type Adding, type Chips, type Column, type Line as TableLine,
          type TableProps } from "./Table";
 export { Usages, type UsagesProps } from "./Usages";
 export { Element, type ElementProps } from "./Element";

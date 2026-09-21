@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { BASE_RELATIONS, edge_base, may_retype, relation_base, relations, shipped,
          type Act, type Graph, type Id } from "@mnd/core";
-import { Choice, scope_chips, Table, type Column, type Scope } from "./Table";
+import { Choice, lit_row, scope_chips, Table, type Column, type Scope } from "./Table";
 import { block_usage_rows, usage_rows } from "./rows";
 
 /** The base's option in *retype all*, whose own value is blank. */
@@ -19,7 +19,7 @@ export type UsagesProps = {
   layer: Id | null;
   /** The definition the tray is about, which the third chip group narrows by. */
   about: Id | null;
-  /** The row lit in the table, which is the tray's own and moves nothing. */
+  /** What the tray asks to light, which this table settles against its own listing. */
   lit: readonly Id[];
   onLit: (id: Id) => void;
   onHover?: (id: Id | null) => void;
@@ -69,12 +69,14 @@ export function Usages({ graph, group, scope, onScope, layer, about, lit, onLit,
 
   /** Blank is the default: each usage goes back to its own kind's. */
   const blank_to = (value: string) => (value === BLANK ? "" : value);
+  /** What is asked for and listed, else the first row. */
+  const on = lit_row(rows, lit);
 
   return (
     <Table
       columns={columns}
       acts="6rem"
-      picked={lit}
+      picked={on}
       onPick={onLit}
       onHover={onHover}
       tools={rows.length ? (
@@ -108,7 +110,7 @@ export function Usages({ graph, group, scope, onScope, layer, about, lit, onLit,
           ),
         },
         /** The lit row's view chip, which is the only way a row moves the context. */
-        actions: onView && lit.includes(r.id) ? (
+        actions: onView && on.includes(r.id) ? (
           <button className="chip"
                   title={home(r.id) === layer ? "make this the context"
                                               : "open the layer this is in"}

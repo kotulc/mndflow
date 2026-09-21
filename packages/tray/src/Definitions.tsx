@@ -5,7 +5,7 @@ import { def_named, def_of, isa, block_base, pinned_defs, relation_base,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Entry } from "./Entry";
 import { def_path, types_for } from "./holder";
-import { Choice, Table, type Chips, type Column, type Line } from "./Table";
+import { Choice, lit_row, Table, type Chips, type Column, type Line } from "./Table";
 import { def_rows, type DefRow } from "./rows";
 
 /** Which of the explorer's library folders a listing is narrowed to. */
@@ -31,8 +31,8 @@ export type DefinitionsProps = {
   graph: Graph;
   /** The element in context, whose types are listed; absent lists the whole workspace. */
   about?: Id;
-  /** The definition lit when the listing opens: an element's own, where it has one. */
-  lit: Id | null;
+  /** The definition the element already follows, which heads the listing. */
+  follows: Id | null;
   /** What is selected on the canvas, which *apply* points at the lit row. */
   lines: readonly Id[];
   /** What *apply* names: the one thing picked, or how many. */
@@ -51,10 +51,11 @@ export function taken(graph: Graph, name: string, group: "block" | "relation",
   return !other || other.id === self ? null : `${other.name} already exists`;
 }
 
-export function Definitions({ graph, about, lit: opened, lines, target = "the selection", onOpen,
+export function Definitions({ graph, about, follows, lines, target = "the selection", onOpen,
                               onAct, seed = { only: "all" } }: DefinitionsProps) {
-  /** Which row is lit. A pick lights and no more; the context moves on a chip. */
-  const [lit, set_lit] = useState<Id | null>(opened);
+  /** Which row is lit, which is the one clicked and nothing else: a pick lights and no more,
+   *  the context moves on a chip, and what is followed says so on its own row. */
+  const [lit, set_lit] = useState<Id | null>(null);
   const [only, set_only] = useState<Only>(seed.only);
   const [group, set_group] = useState<"all" | "block" | "relation">(seed.group ?? "all");
   /** Which package, where the explorer pointed at one. No chip picks it. */
@@ -81,7 +82,7 @@ export function Definitions({ graph, about, lit: opened, lines, target = "the se
   const in_group = (r: DefRow, g: string) => g === "all" || r.group === g;
   const rows = fitting ? all : all.filter((r) => in_folder(r, only) && in_group(r, group));
   /** An element's own definition heads its types, since it answers what the rest offer. */
-  const current = fitting ? rows.find((r) => r.id === opened) ?? null : null;
+  const current = fitting ? rows.find((r) => r.id === follows) ?? null : null;
   const listed = current ? rows.filter((r) => r.id !== current.id) : rows;
 
   /** One group in view: the one listed, or the one chosen. */
@@ -122,12 +123,18 @@ export function Definitions({ graph, about, lit: opened, lines, target = "the se
     set_up(null);
   };
 
+  /** What is lit: the row clicked and listed, else the first — the one it follows, where it has
+   *  one, since that heads the listing. */
+  const on = lit_row(current ? [current, ...listed] : listed, lit ? [lit] : []);
+
   /** One definition's row, wherever it sits. */
   const line = (r: DefRow): Line => {
     /** The workspace's own, so its identity is the workspace's to change. A word about an
      *  outside definition is the workspace's too, but wears that one's name. */
     const mine = !r.from;
     const def = graph.defs[r.id]!;
+    /** What the element already follows, which is a state of the row and not an act on it. */
+    const following = fitting && r.id === follows;
     /** What the lit row offers: apply it to the selection, or make it the context. */
     const applies = lines.some((id) => def_of(graph, id) !== r.id
                                     && types_for(graph, id).some((d) => d.id === r.id));
@@ -158,8 +165,9 @@ export function Definitions({ graph, about, lit: opened, lines, target = "the se
         source: r.from || "workspace",
         used: String(r.used),
       },
-      /** Only on the row lit, and only where something would change. */
-      actions: r.id !== lit ? null : applies ? (
+      /** The one it follows says so; the rest offer what would change, once lit. */
+      actions: following ? <span className="tag">follows</span>
+      : !on.includes(r.id) ? null : applies ? (
         <button className="chip" title={`point ${target} at ${r.name}`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -178,7 +186,7 @@ export function Definitions({ graph, about, lit: opened, lines, target = "the se
       ...(mine ? { drop: r.base ? `give ${r.name} back to ${graph.defs[def.default!]?.from ?? "its package"}`
                                 : `remove ${r.name}`, onDrop: () => {
         onAct("remove_def", { id: r.id });
-        if (r.extends && r.id === lit) set_lit(r.extends);
+        if (r.extends && on.includes(r.id)) set_lit(r.extends);
       } } : {}),
     };
   };
@@ -187,11 +195,11 @@ export function Definitions({ graph, about, lit: opened, lines, target = "the se
     <Table
       columns={columns}
       acts="11rem"
-      picked={lit ? [lit] : []}
+      picked={on}
       onPick={set_lit}
       empty="nothing of that sort"
       chips={chips}
-      {...(current ? { lead: { caption: "follows", row: line(current) } } : {})}
+      {...(current ? { lead: line(current) } : {})}
       rows={listed.map(line)}
       /** A new definition needs one group, so the row adds only with one in view. */
       {...(one && !fitting ? { adding: {

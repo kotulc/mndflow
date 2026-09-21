@@ -1,8 +1,8 @@
 /** The context tray: one shell, one context, one tab per question. */
 
 import { useEffect, useState, type MouseEvent } from "react";
-import { children, def_named, def_of, is_container, is_interface, new_id,
-         base_of, owner_of, shipped, shown_name,
+import { about_of, alias_of, children, def_named, def_of, frame_of, is_interface, new_id,
+         owner_of, shipped, shown_name, stands_for,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
@@ -11,7 +11,7 @@ import { Style } from "./Style";
 import { Fields } from "./Fields";
 import { Definitions, type Shelf } from "./Definitions";
 import { Entry } from "./Entry";
-import { scope_chips, Table, type Column, type Scope } from "./Table";
+import { lit_row, scope_chips, Table, type Column, type Scope } from "./Table";
 import { Usages } from "./Usages";
 import { Packages, type Offered } from "./Packages";
 import { Workspace, type Display } from "./Workspace";
@@ -77,6 +77,10 @@ const HEAD: readonly Column[] = [
   { key: "type", label: "type" },
 ];
 
+/** A reference's contents is the one it stands for, so its name column says as much. */
+const STANDS: readonly Column[] = HEAD.map((c) =>
+  (c.key === "name" ? { ...c, label: "stands for" } : c));
+
 /** What a filter narrows to. */
 const FILTERS: { sort: Sort | "all"; label: string }[] = [
   { sort: "all", label: "all" },
@@ -121,11 +125,9 @@ export function Tray(props: TrayProps) {
   /** Which library section the explorer pointed at, which is about no one element. */
   const library = hold?.of === "defs" ? hold : null;
   const view = drafting ? with_draft(graph, drafts[drafting]) : graph;
-  const one = picked.length === 1 ? picked[0]! : null;
   const held_id = hold?.of === "id" && (view.defs[hold.id] || view.blocks[hold.id])
     ? hold.id : null;
-  const here = layer ?? graph.root;
-  const about: Id = drafting ? DRAFT : held_id ?? one ?? here;
+  const about: Id = drafting ? DRAFT : held_id ?? about_of(graph, layer, picked);
 
   /** A new selection takes the light back, so no table lights what the tray is not about. */
   const on_canvas = picked.join();
@@ -189,9 +191,16 @@ export function Tray(props: TrayProps) {
   const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
   const borrowed = !!view.defs[styled]?.from;
 
-  /** What the table lists: a picked container's contents, the open layer, or everything. */
-  const within = graph.blocks[about] && about !== graph.root
-    && (is_container(graph, about) || base_of(graph, about) === "folder") ? about : layer;
+  /** A reference holds nothing of its own — `of` is the whole of it — so its contents is the one
+   *  it stands for, listed as a row like any other and offering the way there. */
+  const points_at = graph.blocks[about]?.of;
+  const stands = points_at ? stands_for(graph, about) : null;
+  /** The one it stands for, read as a row of the layer it really lives in. */
+  const stood = stands
+    ? rows_of(graph, home_of(graph, stands.id)).find((r) => r.id === stands.id) ?? null : null;
+
+  /** What the table lists: what the context frames, or the whole workspace. */
+  const within = frame_of(graph, layer, about);
   const deep = scope === "workspace";
   const rows = rows_of(graph, deep ? null : within, deep);
   const shown = only === "all" ? rows : rows.filter((r) => r.sort === only);
@@ -241,8 +250,12 @@ export function Tray(props: TrayProps) {
   /** The definition a relation context is about. */
   const held_def = graph.defs[about] ? about : def_of(graph, about) ?? null;
 
-  /** What a table lights: its own row, else what the canvas holds. */
-  const lit_rows = lit ? [lit] : picked;
+  /** What a table asks for: its own lit row, else what the canvas holds. Each table settles it
+   *  against its own listing, since one table's row is not another's. */
+  const asked_row = lit ? [lit] : picked;
+  /** The contents listing, and what a reference stands for, each light one row. */
+  const on_row = lit_row(shown, asked_row);
+  const on_stood = lit_row(stood ? [stood] : [], asked_row);
 
   /** What a definition row applies to: the elements picked, of the context's own group. */
   const targets = picked.filter((id) => (lined ? !!graph.edges[id] : !!graph.blocks[id]));
@@ -278,7 +291,7 @@ export function Tray(props: TrayProps) {
         </span>
 
         <span className="tray-tools">
-          {open && tab === "contents" ? <span className="holds">{shown.length} {shown.length === 1 ? "element" : "elements"}</span> : null}
+          {open && tab === "contents" && !points_at ? <span className="holds">{shown.length} {shown.length === 1 ? "element" : "elements"}</span> : null}
           {open ? (
             <button className={big ? "on" : ""}
                     title={big ? "give the stage its room back" : "take the full height"}
@@ -323,7 +336,7 @@ export function Tray(props: TrayProps) {
           {/* The workspace's definitions for a library section; what one element may follow. */}
           {onAct && tab === "definitions" ? (
             <Definitions key={JSON.stringify(narrowed)} seed={narrowed} graph={graph}
-                         lit={null} lines={[]} onAct={act}
+                         follows={null} lines={[]} onAct={act}
                          onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
           {/* What the workspace draws on, and how one more gets in. */}
@@ -331,25 +344,44 @@ export function Tray(props: TrayProps) {
             <Packages graph={graph} offered={props.offered} onAct={act} />
           ) : null}
           {onAct && tab === "types" ? (
-            <Definitions key={about} about={about} graph={graph} lit={held_def}
+            <Definitions key={about} about={about} graph={graph} follows={held_def}
                          onAct={act} lines={targets} target={target_name} />
           ) : null}
           {onAct && tab === "usages" ? (
             <Usages graph={graph} group={lined ? "relation" : "block"}
                     scope={scope} onScope={set_scope}
                     layer={layer} about={held_def}
-                    lit={lit_rows} onLit={set_lit} onHover={onHover} onAct={act}
+                    lit={asked_row} onLit={set_lit} onHover={onHover} onAct={act}
                     {...(onView ? { onView: (id: Id) => onView(home_of(graph, id), id) } : {})}
                     home={(id) => home_of(graph, id)} />
           ) : null}
 
           {tab === "contents" && view.defs[about] ? (
             <p className="empty">pick an instance to see its contents</p>
+          ) : tab === "contents" && points_at ? (
+            /** A reference holds nothing, so its contents is the one it stands for. */
+            <Table
+              columns={STANDS} acts="6rem" rows={[]}
+              picked={on_stood} onPick={set_lit} onHover={onHover}
+              empty={`${alias_of(graph, about, true)} stands for something that is gone`}
+              {...(stood ? { lead: {
+                id: stood.id,
+                titles: Object.fromEntries(STANDS.map((h) => [h.key, cell(stood, h.key)])),
+                cells: { kind: stood.kind, name: stood.name, what: stood.what, type: stood.type },
+                /** Always offered: where it lives is the whole of what a reference says. */
+                actions: onView ? (
+                  <button className="chip" title="open the layer this is in"
+                          onClick={(e) => { e.stopPropagation();
+                                            onView(home_of(graph, stood.id), stood.id); }}>
+                    view
+                  </button>
+                ) : null,
+              } } : {})} />
           ) : tab === "contents" ? (
             <Table
               columns={[...HEAD, ...columns.map((n) => ({ key: `@${n}`, label: n }))]}
               chips={[scope_chips(scope, set_scope), chips]} tools={tools} acts="6rem"
-              picked={lit_rows} onPick={set_lit} onHover={onHover}
+              picked={on_row} onPick={set_lit} onHover={onHover}
               empty={deep ? "this workspace holds nothing yet"
                 : within === layer ? "this layer holds nothing yet"
                 : children(graph, within).length ? "nothing of that sort"
@@ -377,7 +409,7 @@ export function Tray(props: TrayProps) {
                       ) : cell(row, n)])),
                   },
                   /** The lit row's view chip, which is the only way a row moves the context. */
-                  actions: onView && lit_rows.includes(row.id) ? (
+                  actions: onView && on_row.includes(row.id) ? (
                     <button className="chip"
                             title={home === layer ? "make this the context"
                                                   : "open the layer this is in"}

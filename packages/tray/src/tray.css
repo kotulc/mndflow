@@ -134,6 +134,16 @@
 .contents-table td.kind, .contents-table td.type { color: var(--muted); }
 .contents-table td.what { color: var(--muted); }
 
+/* The row that answers a different question than the rest: set above them and ruled off.
+   **Not the head's own ground** — `--surface` is what `th` is painted with, so a lead row
+   wearing it reads as a second head rather than as the one row in force. The tint is the faint
+   accent wash the tree already uses to say the same thing. Standing look first, so hovering and
+   picking a lead row read the way they read on every other row. */
+.contents-table tr.lead td {
+  background: var(--tint);
+  border-bottom: 1px solid var(--border);
+}
+
 /* Hovering a row lights that thing on the stage; clicking selects it. */
 .contents-table tbody tr:hover td { background: var(--hover); color: var(--text); }
 .contents-table tbody tr { cursor: pointer; }
@@ -147,14 +157,6 @@
 
 .contents-table tr.empty td { color: var(--faint); font-style: italic; cursor: default; }
 .contents-table tr.empty:hover td { background: none; }
-
-/* A section of its own at the top: what the element already follows, under its caption. */
-.contents-table tr.caption td {
-  padding: 4px 6px 2px; color: var(--faint); font-size: 10px; letter-spacing: 0.04em;
-  text-transform: uppercase; cursor: default;
-}
-.contents-table tr.caption:hover td { background: none; }
-.contents-table tr.lead td { border-bottom: 1px solid var(--divider); }
 
 /* The body scrolls rather than pushing content out of reach. */
 .tray.open .tray-body { overflow: auto; }
@@ -257,7 +259,18 @@
 .contents-table td .acts .drop { flex: none; }
 /* A chip longer than its column is cut, never allowed to widen it. */
 .contents-table td .acts .chip { white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.contents-table td .acts .chip {
+/* What a row is, said in its action column: a state, never a thing to press. */
+.contents-table td .acts .tag {
+  flex: none;
+  padding: 0 6px;
+  color: var(--faint);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The tray's chip, wherever one is offered: an action on what is beside it. */
+.tray .chip {
   padding: 0 6px;
   border: 1px solid var(--accent);
   border-radius: 2px;

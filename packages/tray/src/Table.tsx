@@ -18,6 +18,14 @@ export type Line = {
   drop?: string;
 };
 
+/** What a table lights: whatever is picked and listed, else its first row — **a table always has
+ *  a row in hand**, so what acts on one is reachable without a click. Rows are given in the order
+ *  they are drawn, the lead among them. */
+export function lit_row(rows: readonly { id: string }[], picked: readonly string[]): string[] {
+  const listed = picked.filter((id) => rows.some((r) => r.id === id));
+  return listed.length ? listed : rows[0] ? [rows[0].id] : [];
+}
+
 /** Where a listing reaches: the open layer, or the whole workspace. */
 export type Scope = "layer" | "workspace";
 
@@ -44,14 +52,12 @@ export type Adding = {
   title: string;
 };
 
-/** A row set above the listing, under a caption of its own. */
-export type Lead = { caption: string; row: Line };
 
 export type TableProps = {
   columns: readonly Column[];
   rows: readonly Line[];
-  /** What stands apart at the top, where one row answers a different question than the rest. */
-  lead?: Lead;
+  /** The row that answers a different question than the rest, set above them and ruled off. */
+  lead?: Line;
   chips?: readonly Chips[];
   /** Anything else the chip bar carries, at its far end. */
   tools?: ReactNode;
@@ -123,13 +129,7 @@ export function Table(props: TableProps) {
           </tr>
         </thead>
         <tbody onMouseLeave={() => onHover?.(null)}>
-          {/* What stands apart, under a caption saying what it answers. */}
-          {lead ? (
-            <>
-              <tr className="caption"><td colSpan={span}>{lead.caption}</td></tr>
-              {line(lead.row, true)}
-            </>
-          ) : null}
+          {lead ? line(lead, true) : null}
           {rows.map((row) => line(row))}
           {rows.length === 0 && !lead ? (
             <tr className="empty"><td colSpan={span}>{empty}</td></tr>

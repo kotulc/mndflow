@@ -4,7 +4,7 @@ import { may_hold } from "../capabilities";
 import { shown_name } from "../names";
 import { edge_base, may_retype, block_base, base_of, plain_type, relation_base,
          stored_type } from "../defs";
-import { children, is_interface, is_reference, next_order, path, reorder } from "../tree";
+import { children, is_interface, next_order, path, reorder, stands_for } from "../tree";
 import { new_id } from "../ids";
 import { ARRANGEMENTS, type Arrangement, type Id, type Mutation } from "../types";
 import { register } from "./registry";
@@ -269,8 +269,8 @@ register(
     args: [{ name: "id", form: "block", required: true }],
     run: (ctx, args) => {
       const id = id_of(args, "id");
-      const b = ctx.graph.blocks[id];
-      const target = b && is_reference(b) ? (b.of ?? id) : id;
+      /** Followed to the end, so a reference to a reference reveals what both stand for. */
+      const target = stands_for(ctx.graph, id)?.id ?? id;
       const home = ctx.graph.blocks[target]?.parent ?? null;
       return { mutations: [], effect: { open: home, focus: target } };
     },

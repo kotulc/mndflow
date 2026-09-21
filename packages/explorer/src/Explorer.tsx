@@ -1,8 +1,8 @@
 /** The workspace explorer: structure, and only structure. */
 
 import { useMemo, useRef, useState } from "react";
-import { BASE_PACKAGE, alias_of, children, def_named, is_interface, is_named, is_reference,
-         block_base, base_of,
+import { BASE_PACKAGE, about_of, alias_of, children, def_named, holds, is_interface, is_named,
+         is_reference, block_base, base_of,
          packages, pinned_defs, relation_base, shelf_of, shelf_tree, shelvable, shipped, shown_name,
          type Act, type Definition, type Graph, type Id, type ShelfNode } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
@@ -284,10 +284,11 @@ export function Explorer(props: ExplorerProps) {
   const any_open = rows.some((r) => r.kids > 0 && !folded.includes(r.id));
   /** Only blocks answer a block question. */
   const blocks = rows.filter((r) => r.of === "block");
+  /** Where something new goes: what you picked, where it can hold one, else where you are. */
+  const about = about_of(graph, open ?? null, picked);
+  const target = holds(graph, about) ? about : open ?? graph.root;
+  /** What the delete would take, which is a pick and never the layer standing in for one. */
   const one = picked.length === 1 ? picked[0]! : null;
-  /** Where something new goes: what you picked, or where you are. */
-  const holder = one && graph.blocks[one] && base_of(graph, one) !== "note" ? one : null;
-  const target = holder ?? open ?? graph.root;
   /** The layer a drop would join, and every row already in it. */
   const zone = landing(graph, over);
 
