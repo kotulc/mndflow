@@ -1,8 +1,8 @@
 {
-  "tarball": "mnd-kit-0.5.0.tgz",
-  "version": "0.5.0",
-  "commit": "81bc3f49cffcd0ff19abbcd0fef61101b9222701",
-  "branch": "add-card-legend",
-  "packed": "2026-09-20",
-  "integrity": "sha512-i4d8BL85CCF045ybZl1KsfDNe0uZbbn9QEWkAY3gcqMbvZmlvD9q0xndAYFihP7RJVHB1frAN+E1ajZWX30ecg=="
+  "tarball": "mnd-kit-0.6.0.tgz",
+  "version": "0.6.0",
+  "commit": "abea9d84a651ff5722145b4477e9b4f5d780f15c",
+  "branch": "improve-ux-consistency",
+  "packed": "2026-09-21",
+  "integrity": "sha512-SItJChMQKG+89sKE0YC7wMBP0DJobdAQUBUiLU6xe2r1GzlA/72hzRbFfTenqcWUh8vEl0OiRAtqkNzBTMyD8Q=="
 }

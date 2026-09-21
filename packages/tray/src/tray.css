@@ -148,6 +148,14 @@
 .contents-table tr.empty td { color: var(--faint); font-style: italic; cursor: default; }
 .contents-table tr.empty:hover td { background: none; }
 
+/* A section of its own at the top: what the element already follows, under its caption. */
+.contents-table tr.caption td {
+  padding: 4px 6px 2px; color: var(--faint); font-size: 10px; letter-spacing: 0.04em;
+  text-transform: uppercase; cursor: default;
+}
+.contents-table tr.caption:hover td { background: none; }
+.contents-table tr.lead td { border-bottom: 1px solid var(--divider); }
+
 /* The body scrolls rather than pushing content out of reach. */
 .tray.open .tray-body { overflow: auto; }
 
@@ -245,6 +253,8 @@
 .contents-table td.drop { padding: 0 4px; }
 .contents-table td .acts { display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
 .contents-table td .acts { min-width: 0; }
+/* Remove keeps its size, so a chip beside it is cut only by the column it is really in. */
+.contents-table td .acts .drop { flex: none; }
 /* A chip longer than its column is cut, never allowed to widen it. */
 .contents-table td .acts .chip { white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .contents-table td .acts .chip {

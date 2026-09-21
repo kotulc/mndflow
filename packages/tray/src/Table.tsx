@@ -44,9 +44,14 @@ export type Adding = {
   title: string;
 };
 
+/** A row set above the listing, under a caption of its own. */
+export type Lead = { caption: string; row: Line };
+
 export type TableProps = {
   columns: readonly Column[];
   rows: readonly Line[];
+  /** What stands apart at the top, where one row answers a different question than the rest. */
+  lead?: Lead;
   chips?: readonly Chips[];
   /** Anything else the chip bar carries, at its far end. */
   tools?: ReactNode;
@@ -61,7 +66,7 @@ export type TableProps = {
 };
 
 export function Table(props: TableProps) {
-  const { columns, rows, chips = [], tools, adding, picked = [], onPick, onHover, empty,
+  const { columns, rows, lead, chips = [], tools, adding, picked = [], onPick, onHover, empty,
           acts } = props;
   const drops = !!acts || !!adding || rows.some((r) => r.onDrop);
   /** Widths are set on cells: head and body are separate tables. */
@@ -76,6 +81,31 @@ export function Table(props: TableProps) {
           ? <span className="adding">{of[c.key]}</span> : of[c.key]}
       </td>
     ));
+
+  /** One row of the body, wherever it sits. */
+  const line = (row: Line, lone?: boolean) => (
+    <tr key={row.id}
+        className={[lone ? "lead" : "", picked.includes(row.id) ? "picked" : ""]
+          .filter(Boolean).join(" ")}
+        onMouseEnter={() => onHover?.(row.id)}
+        onClick={onPick ? () => onPick(row.id) : undefined}>
+      {cells(row.cells, row.titles)}
+      {drops ? (
+        <td className="drop" style={{ width: act_w }}>
+          <span className="acts">
+            {row.actions}
+            {/* Only on the row picked, so a remove is never one stray click. */}
+            {row.onDrop && picked.includes(row.id) ? (
+              <button className="drop" title={row.drop ?? "remove"}
+                      onClick={(e) => { e.stopPropagation(); row.onDrop!(); }}>
+                <Icon name="remove" />
+              </button>
+            ) : null}
+          </span>
+        </td>
+      ) : null}
+    </tr>
+  );
 
   return (
     <>
@@ -93,29 +123,15 @@ export function Table(props: TableProps) {
           </tr>
         </thead>
         <tbody onMouseLeave={() => onHover?.(null)}>
-          {rows.map((row) => (
-            <tr key={row.id}
-                className={picked.includes(row.id) ? "picked" : ""}
-                onMouseEnter={() => onHover?.(row.id)}
-                onClick={onPick ? () => onPick(row.id) : undefined}>
-              {cells(row.cells, row.titles)}
-              {drops ? (
-                <td className="drop" style={{ width: act_w }}>
-                  <span className="acts">
-                    {row.actions}
-                    {/* Only on the row picked, so a remove is never one stray click. */}
-                    {row.onDrop && picked.includes(row.id) ? (
-                      <button className="drop" title={row.drop ?? "remove"}
-                              onClick={(e) => { e.stopPropagation(); row.onDrop!(); }}>
-                        <Icon name="remove" />
-                      </button>
-                    ) : null}
-                  </span>
-                </td>
-              ) : null}
-            </tr>
-          ))}
-          {rows.length === 0 ? (
+          {/* What stands apart, under a caption saying what it answers. */}
+          {lead ? (
+            <>
+              <tr className="caption"><td colSpan={span}>{lead.caption}</td></tr>
+              {line(lead.row, true)}
+            </>
+          ) : null}
+          {rows.map((row) => line(row))}
+          {rows.length === 0 && !lead ? (
             <tr className="empty"><td colSpan={span}>{empty}</td></tr>
           ) : null}
           {adding ? (

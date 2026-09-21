@@ -19,8 +19,9 @@ export type UsagesProps = {
   layer: Id | null;
   /** The definition the tray is about, which the third chip group narrows by. */
   about: Id | null;
-  picked: readonly Id[];
-  onPick: (id: Id) => void;
+  /** The row lit in the table, which is the tray's own and moves nothing. */
+  lit: readonly Id[];
+  onLit: (id: Id) => void;
   onHover?: (id: Id | null) => void;
   onAct: Act;
   /** Go to where a line lives: open its layer and pick it there. */
@@ -29,8 +30,8 @@ export type UsagesProps = {
   home: (id: Id) => Id | null;
 };
 
-export function Usages({ graph, group, scope, onScope, layer, about, picked, onPick, onHover, onAct, onView,
-                         home }: UsagesProps) {
+export function Usages({ graph, group, scope, onScope, layer, about, lit, onLit, onHover, onAct,
+                         onView, home }: UsagesProps) {
   const lines = group === "relation";
   /** The root layer reads the whole project until somebody says otherwise. */
   const [module, set_module] = useState("all");
@@ -72,9 +73,9 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
   return (
     <Table
       columns={columns}
-      acts="4rem"
-      picked={picked}
-      onPick={onPick}
+      acts="6rem"
+      picked={lit}
+      onPick={onLit}
       onHover={onHover}
       tools={rows.length ? (
         <select value="" aria-label="retype every line listed"
@@ -106,9 +107,11 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
                     onPick={(id) => onAct("retype", { ids: [r.id], type: blank_to(id) })} />
           ),
         },
-        /** A view chip on the picked row, only when it lives elsewhere. */
-        actions: onView && picked.includes(r.id) && home(r.id) !== layer ? (
-          <button className="chip" title="open the layer this is in"
+        /** The lit row's view chip, which is the only way a row moves the context. */
+        actions: onView && lit.includes(r.id) ? (
+          <button className="chip"
+                  title={home(r.id) === layer ? "make this the context"
+                                              : "open the layer this is in"}
                   onClick={(e) => { e.stopPropagation(); onView(r.id); }}>
             view
           </button>

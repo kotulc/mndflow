@@ -333,8 +333,6 @@ export function App({ storage }: { storage: Storage }) {
           tab={tab}
           onTab={set_tab}
           picked={s.picked()}
-          /** The tray's tables select without dropping its hold. */
-          onPick={(ids) => s.pick(ids)}
           onHover={set_hovered}
           hold={hold}
           onHold={set_hold}
