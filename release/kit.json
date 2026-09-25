@@ -1,8 +1,8 @@
 {
-  "tarball": "mnd-kit-0.7.0.tgz",
-  "version": "0.7.0",
-  "commit": "4a7a6658c0451af81696e692094ffa504e29fd94",
+  "tarball": "mnd-kit-0.8.0.tgz",
+  "version": "0.8.0",
+  "commit": "ff303a2a8b54246b11077d03ab559dd91b013267",
   "branch": "improve-ux-consistency",
-  "packed": "2026-09-21",
-  "integrity": "sha512-A7qLqlrOJuxeKENq3MCUrKRCmrC0vx87oAv8Nw9VmMGjtec9b56qci00OnIOF6sGm2Hrk1HShcxEh7ixsKguNw=="
+  "packed": "2026-09-25",
+  "integrity": "sha512-P5//Gazw4xb5aPGkclc48QQw9SG5PVNEpayPGBq6uL1QzcxRot15RSQitDZZvky1EOu0e3Fw8iQ3Zo57O0QsHQ=="
 }
