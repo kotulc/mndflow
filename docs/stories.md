@@ -119,6 +119,8 @@ Type a few words into the explorer and **have what you are looking for come back
 | **the SVG export paints by kind** | `svg.ts` styles `.card.note` and `.route.tie` from a sheet it carries, where the canvas reads their definitions. The two disagree the moment a definition restyles a note |
 | **a read-only listing still looks live** | without `onAct`, the definitions, packages and usages tabs act with nothing: their add and filter inputs draw as usual and do nothing. The element, fields and workspace tabs disable theirs; these three do not yet |
 | **the class card sits under its usages** | a diagram's class card is a stand-in, and the layout seats stand-ins after the blocks beside them. Putting the schema on top wants the layout to rank it first |
+| **a long layer fits too small to read** | the camera fits the whole layer, so one tall column of cards — a document read top to bottom — shrinks past reading. Fitting to width, or a floor on the zoom, would keep a card legible |
+| **a diagram draws no instance lines** | each usage in a fields diagram stands apart from its class card; nothing draws the *instance of* between them |
 | **two rows lit for one diagram pick** | picking the class card holds its definition while the block the diagram was drawn for stays picked, so the explorer lights both |
 
 ## Recent Decisions

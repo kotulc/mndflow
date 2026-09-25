@@ -1,7 +1,7 @@
 /** The workspace explorer: structure, and only structure. */
 
 import { useMemo, useRef, useState, type ReactNode } from "react";
-import { BASE_PACKAGE, about_of, alias_of, children, def_named, is_interface, is_named,
+import { about_of, alias_of, children, def_named, is_interface, is_named,
          is_reference, may_hold, block_base, base_of,
          packages, pinned_defs, relation_base, shelf_of, shelf_tree, shelvable, shipped, shown_name,
          type Act, type Definition, type Graph, type Id, type ShelfNode } from "@mnd/core";
@@ -110,12 +110,12 @@ function section(id: Id, label: string, mark: Mark, at: Section, under: Node[]):
   return { id, ref: id, label, mark, of: "pack", at, under };
 }
 
-/** One package, its blocks and its relations apart. Frozen, so nothing in it is filed. */
-function pack_node(graph: Graph, from: string, defs: Definition[], locked = false): Node {
+/** One package, its blocks and its relations apart. Frozen, so nothing in it is filed, and it
+ *  wears a lock: a package is never written into, only extended. */
+function pack_node(graph: Graph, from: string, defs: Definition[]): Node {
   const id = `${PACKS}:${from}`;
   const at = { of: "defs", only: "packages", from } as const;
-  /** The floor wears a lock: it is the one package nothing may be written into. */
-  return section(id, from, locked ? "locked" : "folder", at, GROUPS
+  return section(id, from, "locked", at, GROUPS
     .map((g) => section(`${id}:${g.group}`, g.label, "folder", { ...at, group: g.group },
                         defs.filter((d) => d.group === g.group).map((d) => def_node(graph, d, `${id}:${g.group}`))))
     .filter((n) => n.under.length));
@@ -137,16 +137,18 @@ function shelf_nodes(graph: Graph, group: Group, nodes: ShelfNode[], within: Id,
  *  collection**: the base kinds read under `packages`, and the workspace's own word about one is
  *  a definition like any other, filed with the rest. */
 function library_of(graph: Graph): Node[] {
-  const packs = packages(graph);
+  /** A package another one extends reads through it, so only the outermost are listed. */
+  const extended = new Set(Object.values(graph.packages).map((p) => p.extends));
+  const packs = packages(graph).filter((p) => !extended.has(p.from));
   /** **Both groups, in pin order.** A pinned relation used to read on the options rail instead,
-   *  which made `pinned` two places meaning one thing. */
+   *  which made `pinned` two places meaning one thing. Nothing pinned, no section. */
   const pinned = pinned_defs(graph).filter((d) => !shipped(d) && !d.from && d.default === undefined);
   return [
     section(PACKS, "packages", "package", { of: "defs", only: "packages" },
-            packs.map((p) => pack_node(graph, p.name, p.defs, p.from === BASE_PACKAGE))),
+            packs.map((p) => pack_node(graph, p.name, p.defs))),
     section(VOCAB, "definitions", "vocabulary", { of: "defs", only: "all" }, [
-      section(`${VOCAB}:pinned`, "pinned", "pin", { of: "defs", only: "pinned" },
-              pinned.map((d) => def_node(graph, d, `${VOCAB}:pinned`))),
+      ...(pinned.length ? [section(`${VOCAB}:pinned`, "pinned", "pin", { of: "defs", only: "pinned" },
+                                   pinned.map((d) => def_node(graph, d, `${VOCAB}:pinned`)))] : []),
       ...GROUPS.map((g) =>
         ({ ...section(`${VOCAB}:${g.group}`, g.label, "folder",
                       { of: "defs", only: "workspace", group: g.group },

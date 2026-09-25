@@ -4,9 +4,9 @@
 export {
   type Arrangement, type Block, type BlockModule, type Components, type Definition,
   type Dir, type Field, type FieldDef, type File, type Flow, type Graph, type Id,
-  type Point, type Relation, type Side,
+  type Package, type Point, type Relation, type Side,
   type Cell, type HeaderRole, type Span, type ValueForm,
-  ARRANGEMENTS, BLOCK_MODULES, ROOT, SCHEMA,
+  ARRANGEMENTS, BASE_PACKAGE, BLOCK_MODULES, ROOT, SCHEMA,
   empty_graph, new_id,
 } from "@mnd/core";
 

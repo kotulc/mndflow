@@ -43,10 +43,10 @@ The embedding weights and the ONNX runtime are vendored under `public/` and stor
 | Where | What you can do |
 |---|---|
 | **Header** | undo, redo, import, export, a new workspace, the terminal, the theme — each reaches a **port**, never the graph |
-| **Explorer** | three collections — packages, definitions, and the workspace's tree — and the menu that hangs off the tree. **A click on a block navigates; a click on a library row points the tray** |
+| **Explorer** | three sections — `packages` (what was brought in), `definitions` (the workspace's own) and `usages` (the tree, under its root) — and the menu that hangs off the tree. **A click on a block navigates; a click on a library row points the tray** |
 | **Stage** | **the left button works what is there; the right button makes something new.** Within the right button a click makes what sits at a point and a drag makes what has extent. A click here selects and never navigates |
 | **Options** | settings for the workspace or a new definition, then the groups the projection asks for — arrangement, what the drawing shows, and what a right drag draws |
-| **Tray** | what the open layer holds, as rows |
+| **Tray** | open from the start, on whatever is picked — and on the root, with its `workspace` tab, when nothing is. What the open layer holds, as rows; a block's element, fields and contents; the card size, key and lattice. A block with a schema offers its fields as a diagram |
 | **Terminal** | four commands — `+` add, `:` filter, `*` search, `?` help. Help is the fallback, and every registered action is reachable there |
 
 Work is kept in IndexedDB as you go; **export** writes the whole graph to a file that **import** reads back.
@@ -111,7 +111,7 @@ npm run start -w @mnd/cli -- fold related
 
 **A passing suite proves the code agrees with itself; the CLI proves the packages compose** — that a log folds, an action writes, a layer projects, and a Scene is complete enough to draw from. It runs headless with no React in the process, which is what lets core and views be built and driven before any UI exists. A notation regression is a diff rather than a screenshot.
 
-**`@mnd/kit` is the one thing that ships.** The headless stack as a single built package, plus `kit/react` and `kit/react.css` — packed, never published. `release/` carries the tarball and a manifest naming its version, commit and integrity, so a consumer can check what it is holding.
+**`@mnd/kit` is the one thing that ships.** The headless stack as a single built package, plus `kit/react` and `kit/react.css` — the viewer, the explorer and a read-only tray, with the tray and display state the app itself runs on — packed, never published. `release/` carries the tarball and a manifest naming its version, commit and integrity, so a consumer can check what it is holding.
 
 ---
 

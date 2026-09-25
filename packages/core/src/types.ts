@@ -175,6 +175,8 @@ export type Package = {
   id: Id;
   /** Unique within the workspace. */
   name: string;
+  /** The package this one builds on. A package is never written into, only extended. */
+  extends?: Id;
 };
 
 export type Components = Record<string, Record<string, unknown>>;
