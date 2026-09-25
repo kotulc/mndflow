@@ -37,6 +37,7 @@ import "@mnd/theme/base.css";
 | `shell.css` | the chrome — the reset, the header, the `.app` grid, the one bar height, the crumbs, the strip and the tray's frame. What `@mnd/kit/shell.css` is |
 | `base.css` | the page ground: `shell.css` first, then what the app alone reads |
 | `src/shell.tsx` | `WorkspaceHeader` and `TrayFrame` — the chrome as components, naming no graph |
+| `src/icons.tsx` | the icon set: roles (the root among them), the explorer's section words, and the system marks — **a stand-in's written as a word** (`Def`, `Ref`, `Pkg`), **what describes a card drawn** (`data`, a database) |
 
 ## How the ramp works
 

@@ -1,7 +1,7 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
-import { base_of, def_of, edge_base } from "./defs";
-import { stands_for } from "./tree";
+import { base_of, def_of, edge_base, outside, schema_of } from "./defs";
+import { children, stands_for } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
 
@@ -124,27 +124,43 @@ export function role_of(graph: Graph, id: Id): Role {
   return ROLES.includes(base) ? base as Role : "block";
 }
 
-/** The one system mark a card wears in its bottom corner, answering one question: what is this
- *  standing in for? Nobody sets one — that is what the highlight colour says. **Holding parts is
- *  not one of these**: that is said by filling the card's own icon, not by stamping a second. */
-export type Mark = "reference" | "definition" | "package" | "external";
+/** The system marks a card wears in its bottom corner. Derived, never set — that is what the
+ *  highlight colour says. A stand-in wears the one thing it stands for; anything else wears what
+ *  describes it, and those stack. **Holding parts is not one of these**: that is said by filling
+ *  the card's own icon, not by stamping a second. */
+export type Mark = "reference" | "definition" | "package" | "data";
 
 /** What each mark means, in a phrase — the legend's wording, kept beside the type it reads. */
 export const MARK_MEANING: Record<Mark, string> = {
   reference: "stands for a block elsewhere",
   definition: "stands for a definition",
   package: "stands for a package",
-  external: "came from outside the workspace",
+  data: "carries data: field values, or a schema",
 };
 
-/** What it points at, then what it came from — so the answers cannot overlap and none needs
- *  ranking. A card that stands in for nothing wears no mark. */
-export function mark_of(graph: Graph, id: Id): Mark | null {
+/** The workspace definition whose fields a block's data answers, or null where it has none: a
+ *  definition of its own that declares fields, else the one what it holds answers — a table's
+ *  schema is its rows'. A package's own fields are its vocabulary, not the workspace's data. */
+export function schema_def(graph: Graph, id: Id): Id | null {
+  const own = (type: Id | undefined) => {
+    const d = type ? graph.defs[type] : undefined;
+    return d && !outside(d) && schema_of(graph, d.id).length ? d.id : null;
+  };
+  if (graph.defs[id]) return own(id);
   const b = graph.blocks[id];
   if (!b) return null;
+  return own(b.type) ?? children(graph, id).map((k) => own(k.type)).find(Boolean) ?? null;
+}
+
+/** What a card is stamped with: what it stands in for, alone, or else what describes it. A
+ *  stand-in carries nothing of its own, so the two never meet. */
+export function stamps_of(graph: Graph, id: Id): Mark[] {
+  const b = graph.blocks[id];
+  if (!b) return [];
   if (b.of) {
-    return graph.defs[b.of] ? "definition"
-         : graph.packages[b.of] ? "package" : "reference";
+    return [graph.defs[b.of] ? "definition" : graph.packages[b.of] ? "package" : "reference"];
   }
-  return b.source ? "external" : null;
+  const out: Mark[] = [];
+  if (b.fields?.some((f) => f.value) || schema_of(graph, b.type).length) out.push("data");
+  return out;
 }

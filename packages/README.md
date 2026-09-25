@@ -30,7 +30,7 @@ Headless — no React, no DOM, no `window`.
 |---|---|---|
 | stage | the drawing, framed: a Scene mounted on **React Flow** and driven | core, views, theme |
 | explorer | the tree, and the menu that hangs off it | core, theme |
-| tray | what the open layer holds, as rows | core, theme |
+| tray | what the open layer holds, as rows — and the tray and display state every shell keeps | core, theme |
 | options | the control groups a projection's slots ask for | core, theme |
 | terminal | the strip: four commands, and help behind `?` | core, theme |
 
@@ -53,7 +53,7 @@ Apps bind ports and nothing else.
 
 | | Package Purpose | Depends on |
 |---|---|---|
-| `kit` | the whole headless stack as **one built package**, plus `kit/react` and `kit/react.css`, and the chrome behind `kit/shell` and `kit/shell.css`. Bundled, so nothing outside sees a workspace | core, defs, explorer, views, stage, theme |
+| `kit` | the whole headless stack as **one built package**, plus `kit/react` and `kit/react.css`, and the chrome behind `kit/shell` and `kit/shell.css`. Bundled, so nothing outside sees a workspace | core, defs, explorer, views, stage, theme, tray |
 
 Ten packages are the shape of the design; one is the shape of the seam. **Packed, never published** — `npm pack -w @mnd/kit` is how a translator installs mndflow. It adds nothing and only re-exports, so it cannot put a dependency anywhere the map does not already allow, and it declares its siblings as **build** dependencies because it carries them.
 

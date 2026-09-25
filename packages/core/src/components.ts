@@ -186,7 +186,9 @@ const card: Component = {
     /** `alias` shows the handle beside a name that was set. */
     ?? one_of("card.alias", config["alias"], SHOWN)
     ?? one_of("card.height", config["height"], HEIGHTS)
-    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height"]),
+    /** `fields` lists what the card carries in a compartment under its name. */
+    ?? one_of("card.fields", config["fields"], SHOWN)
+    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "fields"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings. */

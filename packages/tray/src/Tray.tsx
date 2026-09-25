@@ -1,8 +1,12 @@
-/** The context tray: one shell, one context, one tab per question. */
+/** The context tray: one shell, one context, one tab per question.
+ *
+ *  Given no `onAct` it is read only: only the tabs that read — workspace, element, fields,
+ *  contents, and the library's — are offered, and nothing in them takes input. A host adds tabs
+ *  of its own for blocks through `extras`. */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { about_of, alias_of, children, def_named, def_of, frame_of, is_interface, new_id,
-         owner_of, shipped, shown_name, stands_for,
+         owner_of, schema_def, shipped, shown_name, stands_for,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
@@ -16,6 +20,7 @@ import { Usages } from "./Usages";
 import { Packages, type Offered } from "./Packages";
 import { Workspace, type Display } from "./Workspace";
 import { aimed, blank, DRAFT, redraft, with_draft, type DraftGroup } from "./draft";
+import { NOOP } from "./Body";
 
 /** What the tray holds that the canvas did not give it. */
 export type Hold =
@@ -36,9 +41,9 @@ export type TrayProps = {
   onHover?: (id: Id | null) => void;
   /** Edits leave as action names. */
   onAct?: Act;
-  /** Which tab to show; left alone, the last one that still applies. */
-  tab?: Tab;
-  onTab?: (tab: Tab) => void;
+  /** Which tab to show — one of the tray's, or a host's own; left alone, the last that applies. */
+  tab?: string;
+  onTab?: (tab: string) => void;
   hold?: Hold | null;
   onHold?: (hold: Hold | null) => void;
   /** Go to where a row lives: open its layer and pick it there. */
@@ -47,7 +52,16 @@ export type TrayProps = {
   offered?: readonly Offered[];
   /** How the shell draws, for the workspace tab to set. Absent leaves that band out. */
   display?: Display;
+  /** Where the workspace tab's display answers go; `onAct` where absent. */
+  onDisplay?: Act;
+  /** Asked to draw a block's fields as a diagram; the fields tab offers it where there is one. */
+  onFields?: (id: Id) => void;
+  /** The host's own tabs for a block, after the tray's: a name, and what it draws. */
+  extras?: readonly Extra[];
 };
+
+/** A host's tab: what it is called, and what it shows for the block the tray is about. */
+export type Extra = { name: string; draw: (about: Id) => ReactNode };
 
 export type Tab = "element" | "style" | "types" | "fields" | "contents" | "definitions"
                 | "packages" | "usages" | "workspace";
@@ -69,6 +83,21 @@ const SLOTS: Record<Context, readonly Tab[]> = {
   library: ["definitions"],
   packages: ["packages"],
 };
+
+/** The tabs that only read, per context: what a host that edits nothing offers. */
+const READ: Record<Context, readonly Tab[]> = {
+  root: ["workspace", "contents"],
+  block: ["element", "fields", "contents"],
+  line: ["element"],
+  definition: ["element", "fields", "usages"],
+  relation: ["element", "usages"],
+  library: ["definitions"],
+  packages: ["packages"],
+};
+
+/** Where a context opens when nothing was asked: the root on what the workspace is, anything
+ *  else on its last tab. */
+const OPENS: Partial<Record<Context, Tab>> = { root: "workspace" };
 
 /** Which contexts share a tab between them: every instance is read the same way, and so is
  *  every definition, so moving from one to the next keeps the question being asked. */
@@ -111,9 +140,11 @@ function home_of(graph: Graph, id: Id): Id | null {
 
 export function Tray(props: TrayProps) {
   const { graph, layer, open, onOpen, picked, onHover, onAct, onView,
-          hold = null, onHold = () => {} } = props;
+          hold = null, onHold = () => {}, extras = [] } = props;
+  /** Whether anything here takes input. */
+  const edits = !!onAct;
   /** The tab each family of contexts was last read on. */
-  const [seen, set_seen] = useState<Record<string, Tab>>({});
+  const [seen, set_seen] = useState<Record<string, string>>({});
   /** Full height, as a control of its own. */
   const [big, set_big] = useState(false);
   const [only, set_only] = useState<Sort | "all">("all");
@@ -152,11 +183,15 @@ export function Tray(props: TrayProps) {
   const lined = context === "line" || context === "relation";
 
   /** What the app asks for, else what this family was last read on, else the last that fits. */
-  const tabs = SLOTS[context];
+  const tabs: string[] = [...(edits ? SLOTS : READ)[context],
+                          ...(context === "block" ? extras.map((x) => x.name) : [])];
   const family = FAMILY[context];
-  const tab: Tab = [props.tab, seen[family]].find((t) => t && tabs.includes(t))
-    ?? tabs[tabs.length - 1]!;
-  const set_tab = (t: Tab) => { set_seen((s) => ({ ...s, [family]: t })); props.onTab?.(t); };
+  const tab: string = [props.tab, seen[family]].find((t) => t && tabs.includes(t))
+    ?? OPENS[context] ?? tabs[tabs.length - 1]!;
+  const set_tab = (t: string) => { set_seen((s) => ({ ...s, [family]: t })); props.onTab?.(t); };
+  /** The fields tab's diagram, where the block has a schema to draw. */
+  const diagram = props.onFields && schema_def(view, about)
+    ? { onDiagram: () => props.onFields!(about) } : {};
 
   /** A draft is edited through the registry, and everything else goes out. */
   const act: Act = (name, args) => {
@@ -171,6 +206,8 @@ export function Tray(props: TrayProps) {
     }
     onAct?.(name, args);
   };
+  /** What a read-only listing acts with: nothing. */
+  const reads = edits ? act : NOOP;
 
   /** Whether an element has looks of its own, which make a working definition. */
   const drawn_looks = (it: { looks?: Record<string, object> } | undefined) =>
@@ -310,35 +347,42 @@ export function Tray(props: TrayProps) {
         ),
       } : {})}
     >
-          {onAct && tab === "workspace" ? (
-            <Workspace graph={graph} onAct={act}
+          {tab === "workspace" ? (
+            <Workspace graph={graph} {...(edits ? { onAct: act } : {})}
+                       onDisplay={props.onDisplay ?? act}
                        {...(props.display ? { display: props.display } : {})} />
           ) : null}
-          {onAct && tab === "element" ? <Element graph={view} id={about} onAct={act} /> : null}
+          {tab === "element" ? (
+            <Element graph={view} id={about} {...(edits ? { onAct: act } : {})} />
+          ) : null}
           {onAct && tab === "style" ? (
             <Style graph={view} id={about} styled={styled} onAct={act} />
           ) : null}
           {/* A definition declares fields and an instance answers them. */}
-          {onAct && tab === "fields" ? <Fields graph={view} id={about} onAct={act} /> : null}
+          {tab === "fields" ? (
+            <Fields graph={view} id={about} {...(edits ? { onAct: act } : {})} {...diagram} />
+          ) : null}
+          {/* A host's own tab, for the block the tray is about. */}
+          {extras.find((x) => x.name === tab)?.draw(about) ?? null}
           {/* The workspace's definitions for a library section; what one element may follow. */}
-          {onAct && tab === "definitions" ? (
+          {tab === "definitions" ? (
             <Definitions key={JSON.stringify(narrowed)} seed={narrowed} graph={graph}
-                         follows={null} lines={[]} onAct={act}
+                         follows={null} lines={[]} onAct={reads}
                          onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
           {/* What the workspace draws on, and how one more gets in. */}
-          {onAct && tab === "packages" ? (
-            <Packages graph={graph} offered={props.offered} onAct={act} />
+          {tab === "packages" ? (
+            <Packages graph={graph} offered={props.offered} onAct={reads} />
           ) : null}
           {onAct && tab === "types" ? (
             <Definitions key={about} about={about} graph={graph} follows={held_def}
                          onAct={act} lines={targets} target={target_name} />
           ) : null}
-          {onAct && tab === "usages" ? (
+          {tab === "usages" ? (
             <Usages graph={graph} group={lined ? "relation" : "block"}
                     scope={scope} onScope={set_scope}
                     layer={layer} about={held_def}
-                    lit={asked_row} onLit={set_lit} onHover={onHover} onAct={act}
+                    lit={asked_row} onLit={set_lit} onHover={onHover} onAct={reads}
                     {...(onView ? { onView: (id: Id) => onView(home_of(graph, id), id) } : {})}
                     home={(id) => home_of(graph, id)} />
           ) : null}

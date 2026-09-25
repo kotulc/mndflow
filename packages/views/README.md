@@ -33,7 +33,8 @@ npm run start -w @mnd/cli -- project related  # a Scene as text, which is the se
 | `size.ts` | the one measure: `UNIT`, and a `CELL` as a block plus its air |
 | `arrange.ts` · `bands.ts` · `pack.ts` | where everything sits: hand placement or auto-layout, bands and cells, clusters and satellites |
 | `seat.ts` · `ends.ts` · `route.ts` | where a line meets a border, which way it sets off, and where it runs |
-| `look.ts` · `derive.ts` | what a card wears, and its marks and trail |
+| `look.ts` · `derive.ts` | what a card wears, its marks and trail, and — where its look asks, `card.fields` — the fields its compartment lists |
+| `fields.ts` | `fields_graph` — a block's fields as a class diagram: one card standing for the schema, one per usage. A graph, drawn instead of the layer; never written |
 | `svg.ts` · `text.ts` | a Scene drawn without a browser |
 
 **A producer proves its Scene well-formed; a consumer proves it draws anything that is.** Neither imports the other.

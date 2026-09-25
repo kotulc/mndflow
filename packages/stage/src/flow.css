@@ -167,18 +167,20 @@
 .mnd-role[data-role="reference"] { color: var(--away); opacity: 0.85; }
 .mnd-picked > .mnd-role, .picked > .mnd-role { color: var(--accent); opacity: 1; }
 
-/* The system mark, in the bottom corner: what this card stands in for, or that it holds parts.
+/* The system marks, in the bottom corner: what this card stands in for, or what describes it.
    The app chooses it, and the highlight colour is what says so. */
-.mnd-mark {
+.mnd-marks {
   position: absolute;
   bottom: 3px;
   right: 4px;
   display: inline-flex;
+  gap: 2px;
   color: var(--accent);
   opacity: 0.85;
   pointer-events: none;
 }
-.mnd-picked > .mnd-mark, .picked > .mnd-mark { opacity: 1; }
+.mnd-picked > .mnd-marks, .picked > .mnd-marks { opacity: 1; }
+.mnd-mark { display: inline-flex; }
 
 /* The subtype, where somebody set one. */
 .mnd-kind {
@@ -288,7 +290,7 @@
 .mnd-flow.frameless .mnd-frame { border-color: transparent; box-shadow: none; }
 .mnd-flow.frameless .mnd-frame-name,
 .mnd-flow.frameless .mnd-frame > .mnd-role,
-.mnd-flow.frameless .mnd-frame > .mnd-mark { display: none; }
+.mnd-flow.frameless .mnd-frame > .mnd-marks { display: none; }
 
 /* One wall lights as the pointer nears it. */
 .mnd-rim { position: absolute; pointer-events: auto; }
@@ -388,3 +390,20 @@
 .mnd-drawn-area { fill: var(--tint); }
 
 
+
+/* A card's compartment: its fields under a rule, a line each — name, then value or form. */
+.mnd-fields {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 3px 0 0;
+  border-top: 1px solid currentColor;
+  width: 100%;
+  font-size: 11px;
+  line-height: 16px;
+}
+.mnd-fields > li { display: flex; gap: 6px; min-width: 0; }
+.mnd-field-name { flex: none; color: var(--muted); }
+.mnd-field-name::after { content: ":"; }
+.mnd-field-value, .mnd-field-form { min-width: 0; overflow: hidden; text-overflow: ellipsis;
+                                    white-space: nowrap; }
+.mnd-field-form { color: var(--muted); font-style: italic; }

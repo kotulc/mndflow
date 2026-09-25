@@ -32,7 +32,7 @@ npm run typecheck -w @mnd/core
 | `tree.ts` | layers, children, order, owners, and the relations drawn in a layer |
 | `holders.ts` | groups and grids: membership, cells, merges, headers, allocation |
 | `defs.ts` | definitions: chains, kinds, defaults, `def_of`, and `edge_module` — a relation's kind read from its ends |
-| `names.ts` | names, handles, labels and roles |
+| `names.ts` | names, handles, labels and roles; the system marks a card is stamped with — **what it stands in for** (`definition`, `reference`, `package`), alone, **or what describes it** (`data`), which stack; and `schema_def`, the workspace definition a block's data answers |
 | `components.ts` | what a definition configures, each component validating its own key |
 | `door.ts` | the one way a log comes in. Checks and repairs what it can, drops what it cannot, and writes the repair as a step. **Never migrates** |
 | `rules.ts` | what the definitions asked for, and the door does not check. `review` advises; it never repairs |

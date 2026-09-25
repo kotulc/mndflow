@@ -31,8 +31,8 @@ npx vitest run packages/stage        # its suite, from the repo root
 | `Crumbs.tsx` | the trail down to the open layer, as `open` acts. Shared with the kit's `Viewer`, and dressed by the theme's `shell.css` |
 | `Flow.tsx` | the canvas, composed from `room`, `sync`, `draw` and `drag` hooks and `Grips` |
 | `moves.ts` | what a canvas adjustment writes, handed to the host as one batch |
-| `flow.css` · `routes.css` · `groups.css` | cards and the frame; runs and their ends; bands and grids |
-| `stage.css` | the look |
+| `flow.css` · `routes.css` · `groups.css` | cards and the frame, their stamped marks and field compartments; runs and their ends; bands and grids |
+| `stage.css` | the stage box, the legend, and the diagram's way out. Bundled into the kit's sheet, since `Viewer` draws the legend too |
 | `dev/` | its own Vite root, and a harness holding the state the component refuses to |
 
 ## The gestures it names

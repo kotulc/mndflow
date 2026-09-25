@@ -67,7 +67,7 @@ type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
              /** Per indent column, whether its guide line carries on past this row. */
              guides: boolean[] };
 type Mark = "leaf" | "folder" | "interface" | "reference" | "note" | "group" | "grid" | "pin"
-  | "locked" | "vocabulary" | "workspace" | "package" | "line" | "tie";
+  | "locked" | "vocabulary" | "usages" | "root" | "package" | "line" | "tie";
 
 /** A library row before it is laid out: what it says, and what sits under it. */
 type Node = Omit<Row, "depth" | "kids" | "guides" | "named" | "alias"> & { under: Node[] };
@@ -82,6 +82,7 @@ function under(graph: Graph, parent: Id | null) {
 /** The sections' own ids, which are not anything's. */
 const PACKS = "@packs";
 const VOCAB = "@defs";
+const USES = "@uses";
 
 /** Which mark a definition's base kind wears. */
 const KIND_MARK: Record<string, Mark> = {
@@ -165,9 +166,16 @@ function lay(nodes: Node[], folded: readonly Id[], depth = 0, held: boolean[] = 
   return out;
 }
 
-/** The panel: the library sections — packages, then definitions — above the workspace's blocks. */
+/** The panel: the library sections — packages, then definitions — above the usages, the one
+ *  tree of the workspace's blocks. Without the library the root heads the panel on its own. */
 function tree_of(graph: Graph, folded: readonly Id[], library = false): Row[] {
   const out: Row[] = library ? lay(library_of(graph), folded) : [];
+  const at = library ? 1 : 0;
+  if (library) {
+    out.push({ id: USES, ref: USES, depth: 0, label: "usages", kids: 1, named: true, alias: "",
+               of: "pack", mark: "usages", guides: [] });
+    if (folded.includes(USES)) return out;
+  }
   /** A row's columns are its holder's, plus one for itself. */
   const walk = (parent: Id | null, depth: number, held: boolean[]) => {
     const kin = under(graph, parent);
@@ -183,10 +191,11 @@ function tree_of(graph: Graph, folded: readonly Id[], library = false): Row[] {
   };
   /** The workspace is the one root; every top-level block is a branch under it. */
   const top = under(graph, graph.root);
-  out.push({ id: graph.root, ref: graph.root, depth: 0, label: shown_name(graph, graph.root), kids: top.length,
-             named: is_named(graph, graph.root), alias: "", of: "block", mark: "workspace",
-             guides: [] });
-  if (!folded.includes(graph.root)) walk(graph.root, 1, []);
+  const held = at ? [false] : [];
+  out.push({ id: graph.root, ref: graph.root, depth: at, label: shown_name(graph, graph.root), kids: top.length,
+             named: is_named(graph, graph.root), alias: "", of: "block", mark: "root",
+             guides: held });
+  if (!folded.includes(graph.root)) walk(graph.root, at + 1, held);
   return out;
 }
 
@@ -225,7 +234,8 @@ const MARK: Record<Mark, { icon: IconName; word?: true }> = {
   pin: { icon: "pin" },
   locked: { icon: "locked" },
   vocabulary: { icon: "word_def", word: true },
-  workspace: { icon: "word_wks", word: true },
+  usages: { icon: "word_use", word: true },
+  root: { icon: "role_root" },
   package: { icon: "word_pkg", word: true },
   line: { icon: "relation_plain" },
   tie: { icon: "relation_tie" },
@@ -296,6 +306,10 @@ export function Explorer(props: ExplorerProps) {
   const rows = tree_of(graph, shut, !!onSection);
   /** Whether anything at all stands open, which is what the bar's fold offers. */
   const any_open = rows.some((r) => r.kids > 0 && !folded.includes(r.id));
+  /** Nothing picked on the root layer, and no library row in hand, is the root picked: the
+   *  workspace is what the tray is about, so its row says so. */
+  const rooted = !picked.length && !section && (open === null || open === graph.root)
+    ? graph.root : null;
   /** Only blocks answer a block question. */
   const blocks = rows.filter((r) => r.of === "block");
   /** Where something new goes: what you picked, where it can hold one, else where you are. */
@@ -454,7 +468,7 @@ export function Explorer(props: ExplorerProps) {
                   r.named ? "" : "unnamed",
                   r.of === "block" ? "" : r.of,
                   r.of !== "block" && same(section, r.at) ? "picked" : "",
-                  r.of === "block" && picked.includes(r.id) ? "picked" : "",
+                  r.of === "block" && (picked.includes(r.id) || r.id === rooted) ? "picked" : "",
                   lit.includes(r.id) ? "lit" : "",
                   lit.length && !lit.includes(r.id) ? "dim" : "",
                   open === r.id ? "open" : "",
@@ -530,6 +544,7 @@ export function Explorer(props: ExplorerProps) {
                 /** A library row points the tray, a block is picked; marks fold either. */
                 onClick={(e) => {
                   if (r.at) { onSection?.(r.at); return; }
+                  if (r.of === "pack") return;
                   clicked(e, r.id);
                 }}
                 onContextMenu={(e) => {
@@ -560,9 +575,10 @@ export function Explorer(props: ExplorerProps) {
                     title={r.kids ? (shut.includes(r.id) ? "open" : "fold") : undefined}
                     onClick={(e) => { e.stopPropagation();
                                       if (r.kids) onFold(r.id, !shut.includes(r.id)); }}>
-                {/* A row that holds parts fills its own icon; that is what containing looks like. */}
+                {/* A row that holds parts fills its own icon; that is what containing looks like.
+                    The root always holds everything, so filling it would say nothing. */}
                 <Icon name={MARK[r.mark].icon}
-                      solid={!MARK[r.mark].word && r.of === "block" && r.kids > 0}
+                      solid={!MARK[r.mark].word && r.mark !== "root" && r.of === "block" && r.kids > 0}
                       size={MARK_SIZE} />
               </span>
               {r.of === "pack"

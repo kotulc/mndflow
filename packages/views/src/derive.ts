@@ -1,10 +1,10 @@
 /** What every module derives the same way. */
 
-import { alias_of, is_container, is_header, is_interface, is_named, is_reference,
-         base_of, mark_of, path, role_of, shown_name, stands_for,
+import { alias_of, schema_of, is_container, is_header, is_interface, is_named, is_reference,
+         base_of, path, role_of, shown_name, stamps_of, stands_for,
          type Graph, type Id } from "@mnd/core";
 import { look_of } from "./look";
-import type { BoxData, Trait, Scene } from "./scene";
+import type { BoxData, Listed, Trait, Scene } from "./scene";
 
 /** How a block reads, derived from what it holds or where it sits. */
 export function marks_of(graph: Graph, id: Id): Trait[] {
@@ -46,12 +46,28 @@ export function carried(graph: Graph, id: Id): BoxData {
     label: shown_name(graph, id),
     ...(alias ? { alias } : {}),
     role: role_of(graph, id),
-    ...(mark_of(graph, id) ? { mark: mark_of(graph, id)! } : {}),
+    ...(stamps_of(graph, id).length ? { stamps: stamps_of(graph, id) } : {}),
     ...("type" in b && b.type ? { def: b.type } : {}),
     ...(link_of(graph, id) ? { link: link_of(graph, id) } : {}),
     marks: marks_of(graph, id),
     look,
+    ...(look.fields ? { fields: listed(graph, id) } : {}),
   };
+}
+
+/** What a card's compartment lists. A stand-in for a definition lists its schema; anything else
+ *  lists the schema it answers, with its values, then whatever it carries beyond it. */
+export function listed(graph: Graph, id: Id): Listed[] {
+  const b = graph.blocks[id];
+  if (!b) return [];
+  if (b.of && graph.defs[b.of]) return schema_of(graph, b.of).map(({ name, form }) => ({ name, form }));
+  const own = b.fields ?? [];
+  const schema = schema_of(graph, b.type);
+  const extra = own.filter((f) => !schema.some((s) => s.name === f.name));
+  return [...schema, ...extra].map(({ name, form }) => {
+    const value = own.find((f) => f.name === name)?.value;
+    return { name, form, ...(value ? { value } : {}) };
+  });
 }
 
 /** The field a box's link is read from. */

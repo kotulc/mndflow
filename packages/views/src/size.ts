@@ -2,6 +2,7 @@
 
 import { covers, holder_of, is_grid, is_interface,
          type Graph, type Holder, type Id, type Point } from "@mnd/core";
+import { listed } from "./derive";
 import { look_of } from "./look";
 
 /** The one place the drawing's proportions are set, and the unit is the only measure there is. */
@@ -127,7 +128,20 @@ export function size_of(graph: Graph, id: Id): Size {
   if (!b) return BLOCK;
   if (is_interface(b)) return PORT;
   if (b.w !== undefined && b.h !== undefined && free_height(graph, id)) return { w: b.w, h: b.h };
+  if (look_of(graph, id).fields) return listing(listed(graph, id).length);
   return { ...BLOCK };
+}
+
+/** How tall a line of a card's compartment is, in pixels. */
+export const LISTED = 16;
+
+/** How wide a card listing its fields is at least, in units: room for a name and a value. */
+const LISTING = 10;
+
+/** A card listing its fields: at least `LISTING` wide, and tall enough for every line. */
+function listing(lines: number): Size {
+  const h = BLOCK.h + Math.ceil((lines * LISTED + GAP / 2) / UNIT) * UNIT;
+  return { w: Math.max(BLOCK.w, LISTING * UNIT), h };
 }
 
 /** Whether this card keeps whatever size it was given, rather than the one card height. */

@@ -1,15 +1,17 @@
-/** What one thing carries. */
+/** What one thing carries. Given no `onAct`, it is read only: values show, nothing takes input,
+ *  and the add, move and drop controls are left out. `onDiagram` offers the fields drawn. */
 
 import { useState } from "react";
 import { def_of, schema_of, VALUE_FORMS, type Act, type Field, type FieldDef,
          type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
-import { Body, Line } from "./Body";
+import { Body, Line, NOOP } from "./Body";
 import { held } from "./holder";
 
-export type FieldsProps = { graph: Graph; id: Id; onAct: Act };
+export type FieldsProps = { graph: Graph; id: Id; onAct?: Act; onDiagram?: () => void };
 
-export function Fields({ graph, id, onAct }: FieldsProps) {
+export function Fields({ graph, id, onAct = NOOP, onDiagram }: FieldsProps) {
+  const readonly = onAct === NOOP;
   const [adding, set_adding] = useState("");
   const [form, set_form] = useState<string>("text");
 
@@ -39,7 +41,14 @@ export function Fields({ graph, id, onAct }: FieldsProps) {
   };
 
   return (
-    <div className="fields">
+    <fieldset className="fields" disabled={readonly}>
+      {/* A legend, because a disabled fieldset spares its first one: the chip still works. */}
+      {onDiagram ? (
+        <legend className="diagram">
+          <button className="chip" title="draw these fields as a diagram"
+                  onClick={onDiagram}>view diagram</button>
+        </legend>
+      ) : null}
       {d && schema.length ? (
         <Body head="inherited" note={`${schema.length}`}>
           {schema.map((f) => (
@@ -61,10 +70,12 @@ export function Fields({ graph, id, onAct }: FieldsProps) {
                 <Value field={{ ...f, value: mine?.value }} fallback={f.value ?? ""}
                        onSet={(value) => say({ name: f.name, value })} />
                 {f.unit ? <span className="form">{f.unit}</span> : null}
-                <button className="drop" disabled={!mine} title="give the default back"
-                        onClick={() => onAct("unfield", { holder: id, name: f.name })}>
-                  <Icon name="clear" />
-                </button>
+                {readonly ? null : (
+                  <button className="drop" disabled={!mine} title="give the default back"
+                          onClick={() => onAct("unfield", { holder: id, name: f.name })}>
+                    <Icon name="clear" />
+                  </button>
+                )}
               </Line>
             );
           })}
@@ -92,6 +103,7 @@ export function Fields({ graph, id, onAct }: FieldsProps) {
             ) : null}
             <Value field={f} fallback={d ? "default" : ""}
                    onSet={(value) => say({ name: f.name, value })} />
+            {readonly ? null : <>
             <button className="drop" title="move up" disabled={n === 0}
                     onClick={() => move(f.name, -1)}><Icon name="less" /></button>
             <button className="drop" title="move down"
@@ -101,12 +113,13 @@ export function Fields({ graph, id, onAct }: FieldsProps) {
                     onClick={() => onAct("unfield", { holder: id, name: f.name })}>
               <Icon name="remove" />
             </button>
+            </>}
           </Line>
         ))}
         {extra.length === 0 ? (
           <p className="empty">{d ? "it declares no fields of its own" : "it carries no values of its own"}</p>
         ) : null}
-        <Line label="add" className="add">
+        {readonly ? null : <Line label="add" className="add">
           <input value={adding} placeholder={d ? "declare a field" : "add a field"}
                  aria-label="add a field"
                  onChange={(e) => set_adding(e.target.value)}
@@ -118,9 +131,9 @@ export function Fields({ graph, id, onAct }: FieldsProps) {
           <button onClick={add} disabled={!adding.trim()}>
             <Icon name="add" />
           </button>
-        </Line>
+        </Line>}
       </Body>
-    </div>
+    </fieldset>
   );
 }
 

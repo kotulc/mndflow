@@ -17,7 +17,11 @@ const SHEETS = [
   "../stage/src/flow.css",
   "../stage/src/routes.css",
   "../stage/src/groups.css",
+  "../stage/src/stage.css",
   "../explorer/src/explorer.css",
+  "../tray/src/tray.css",
+  "../tray/src/fields.css",
+  "../tray/src/preview.css",
 ];
 
 /** The chrome, for a host that wants the header, the tray's frame or the crumbs. One sheet,

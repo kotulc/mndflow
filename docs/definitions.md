@@ -175,7 +175,9 @@
 
 | Term | Means |
 |---|---|
-| **workspace** | **the root folder, and there is exactly one.** It contains every top-level block, package and folder without owning any of them, and it holds **the log**, the metadata and **all session state**. It is a block, with `parent: null` and a reserved id, and needed no new schema to be one |
+| **workspace** | **the container for everything the user holds, and there is exactly one.** It holds **the log**, the metadata and **all session state**, and the user's package over them. Local to the session; imported and exported whole |
+| **root** | **the one block every usage hangs from.** `parent: null` and a reserved id, and it needed no new schema to be one. It contains every top-level block and folder without owning any of them. In the explorer it heads `usages`, and nothing picked on the root layer is the root picked |
+| **user package** | **the root and its tree, plus the workspace's own definitions** — what the explorer calls `usages` and `definitions`. Imported and exported apart from the workspace's state. Imported elsewhere, it is a package like any other and reads under `packages` |
 | **graph** | the current state — `root`, `blocks`, `edges` and `defs`. **One graph**, folded from one log, never edited in place |
 | **project** | **a word, not a type.** Informally, a top-level block under the workspace root. Read from position, stored nowhere, and nothing in the schema answers to it |
 | **the log** | **one log, at the workspace.** One document, one history, so **undo is workspace-wide** and nothing routes a write |
@@ -213,7 +215,7 @@
 | **`card`** | how a card writes itself: `label`, `align`, `label_align`, `icon`, `alias` |
 | **`style`** | which **slot** (one of six hue families) and which **emphasis**, weight and label step. **Never a colour, a pixel count or a font** — the theme owns the palette and a definition picks within it |
 | **`rules`** | what a usage needs in itself, and how usages interact. `constraints` folded into it |
-| **card layout** | one of the standard ways a card is composed — `name`, `type`, `fields`, `compartments`, `icon`. **Open.** **No `shape`**: a definition picking a diamond drew as one on the canvas and as a rectangle in every export, which is a promise one renderer kept and the others could not |
+| **card layout** | one of the standard ways a card is composed — `name`, `type`, `fields`, `compartments`, `icon`. **Open.** **`fields` is built**: `card.fields: show` lists a card's fields in a compartment under its name — schema lines as `name: form`, usages as `name: value` — and the card grows to hold them. **No `shape`**: a definition picking a diamond drew as one on the canvas and as a rectangle in every export, which is a promise one renderer kept and the others could not |
 | **`validate` hook** | a module's own check in code, for what the rule kinds cannot say. The escape hatch, and deliberately not a language |
 
 | Kind | Says |

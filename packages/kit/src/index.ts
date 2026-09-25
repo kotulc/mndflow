@@ -38,3 +38,6 @@ export {
   type LineData, type LineEdge, type Trait, type Paper, type Scene, type Slot,
   SHEET, box_of, draw, draw_svg, extent, outline, project,
 } from "@mnd/views";
+
+/** The card's default size and the range it is held inside, in units of the lattice. */
+export { CARD, UNITS } from "@mnd/views";

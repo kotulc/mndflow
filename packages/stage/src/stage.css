@@ -53,3 +53,20 @@
 
 /* A system mark is the app's, not a definition's, so it reads in the app's own accent. */
 .stage > .legend .mark.stamp { color: var(--accent); }
+
+/* The way out of a fields diagram, in the top right-hand corner; a legend kept there moves down. */
+.stage > .mnd-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 5;
+  padding: 2px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  background: var(--tint);
+  color: var(--accent);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.stage > .mnd-close ~ .legend.top { top: 36px; }

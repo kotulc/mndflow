@@ -132,6 +132,15 @@
 /* ── The element and style tabs: the drawing left, its rows right ── */
 
 /* Narrow: the drawing beside its rows, and a block's body under both. */
+/* A tab is a fieldset so a read-only one can be disabled whole; it draws as a plain box. */
+fieldset.panel, fieldset.fields, fieldset.rows-set { border: 0; margin: 0; min-width: 0; }
+fieldset.rows-set { padding: 0; }
+fieldset.fields { padding: 0; }
+/* Floated full width, a legend reads as an ordinary first row rather than sitting on the rule. */
+.fields > .diagram { float: left; width: 100%; display: flex; justify-content: flex-end;
+                     padding: 6px 10px 0; box-sizing: border-box; }
+.fields > .diagram + * { clear: both; }
+
 .panel {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);

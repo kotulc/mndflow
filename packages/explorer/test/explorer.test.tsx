@@ -61,7 +61,7 @@ describe("it shows structure and only structure", () => {
       ?.querySelector(".mark svg")?.getAttribute("fill");
     expect(filled("Edge")).toBe("currentColor");
     expect(filled("Auth")).toBe("none");
-    /** The workspace row holds everything, but its mark is a word — filling one blots it out. */
+    /** The root row holds everything, so its mark stays an outline — filling it says nothing. */
     expect(filled("workspace")).toBe("none");
   });
 });

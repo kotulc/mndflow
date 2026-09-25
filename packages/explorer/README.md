@@ -37,7 +37,9 @@ npx vitest run packages/explorer     # its suite, from the repo root
 - **Blocks, nested to any depth.** Boundaries, notes, fields and references are never listed — a reference is a second appearance of something already there. **Interfaces are behind a toggle.**
 - **Every top-level block is its own subtree**, filed into the folders the workspace keeps.
 - **The open layer and the selection are two states with two looks** — *open* is where the stage is pointed, *selected* is what an action would act on. They stack, and selected reads first.
-- **Every role carries a mark**, and a container is filled where a leaf is outlined, because the fill is what says it holds something.
+- **Every role carries a mark**, and a container is filled where a leaf is outlined, because the fill is what says it holds something. **The root is the exception**: it wears a root mark, never filled, since it always holds everything.
+- **Three sections, when the library is drawn:** `packages` — what was brought in; `definitions` — the workspace's own; `usages` — the one tree of blocks, under its root. The user's package is the last two.
+- **Nothing picked on the root layer is the root picked.** Its row lights, because the workspace is what the tray is then about.
 
 ## What it refuses to do
 

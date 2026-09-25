@@ -18,8 +18,8 @@ const ALLOWED: Record<string, readonly string[]> = {
   explorer: ["core", "theme"],
   /** The drawing, and the components it draws with. */
   stage: ["core", "views", "theme"],
-  /** The seam: may reach everything, since it only re-exports. */
-  kit: ["core", "defs", "explorer", "views", "stage", "theme"],
+  /** The seam: may reach everything, since it only re-exports. The tray's tabs go out read only. */
+  kit: ["core", "defs", "explorer", "views", "stage", "theme", "tray"],
   options: ["core", "theme"],
   tray: ["core", "theme"],
   terminal: ["core", "theme"],

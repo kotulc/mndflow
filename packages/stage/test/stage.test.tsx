@@ -46,8 +46,8 @@ function typing(el: Element, text: string) {
 
 /** A card says what it is without being read. */
 describe("what a card wears", () => {
-  /** The closed set of system marks: one to a card, and it says what the card stands in for. */
-  const MARKS = ["reference", "definition", "package", "external"];
+  /** The closed set of system marks: what a card stands in for, or what describes it. */
+  const MARKS = ["reference", "definition", "package", "data"];
   const worn = (view: { container: HTMLElement }) =>
     Array.from(view.container.querySelectorAll(".react-flow__node .mnd-role"),
                (el) => el.getAttribute("data-role"));

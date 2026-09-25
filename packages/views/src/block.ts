@@ -3,7 +3,7 @@
 import { alias_of, block_members, children, covers, edge_base, edges_in, group_depth, holders_in,
          is_container, is_grid, is_group, is_header, is_holder, is_interface, is_note, label_of,
          layer_id,
-         mark_of, members_of, role_of, shown_name,
+         members_of, stamps_of, role_of, shown_name,
          type Graph, type Holder, type Id, type Relation, type Side, type Span } from "@mnd/core";
 import { at_seat, cell_box, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
@@ -160,7 +160,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   if (layer === null || layer === graph.root) return null;
   const label = shown_name(graph, layer);
   const role = role_of(graph, layer);
-  const mark = mark_of(graph, layer) ?? undefined;
+  const stamps = stamps_of(graph, layer);
   const holds_parts = is_container(graph, layer);
   const ports = wall_of(graph, layer, hidden);
   /** An interface opened from inside keeps the wall it is set into. */
@@ -170,7 +170,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   /** A room is a whole number of cells. */
   if (drawn.length === 0) {
     return { ...roomed({ x: -least.w / 2, y: -least.h / 2, ...least }),
-             label, role, ...(mark ? { mark } : {}), holds_parts, ports, ...set_in };
+             label, role, ...(stamps.length ? { stamps } : {}), holds_parts, ports, ...set_in };
   }
   const pad = GAP;
   const at = drawn.map(box_of);
@@ -178,7 +178,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   const y = Math.min(...at.map((b) => b.y)) - pad;
   const w = Math.max(least.w, Math.max(...at.map((b) => b.x + b.w)) + pad - x);
   const h = Math.max(least.h, Math.max(...at.map((b) => b.y + b.h)) + pad - y);
-  return { ...roomed({ x, y, w, h }), label, role, ...(mark ? { mark } : {}),
+  return { ...roomed({ x, y, w, h }), label, role, ...(stamps.length ? { stamps } : {}),
            holds_parts, ports, ...set_in };
 }
 

@@ -29,14 +29,18 @@ function Wears({ role, icon, holds }: { role?: Role; icon?: string; holds?: bool
   );
 }
 
-/** The system mark in a card's bottom corner: what it stands in for, written as a word. The app
- *  chooses it, which is what the highlight colour says. */
-function Stamp({ mark }: { mark?: Mark }) {
-  const drawn = mark_icon(mark);
-  if (!drawn) return null;
+/** The system marks in a card's bottom corner, each written as a word: what it stands in for,
+ *  or what describes it. The app chooses them, which is what the highlight colour says. */
+function Stamps({ stamps }: { stamps?: readonly Mark[] }) {
+  const drawn = (stamps ?? []).filter((mark) => mark_icon(mark));
+  if (!drawn.length) return null;
   return (
-    <span className="mnd-mark" data-mark={mark}>
-      <Icon name={drawn} size={13} />
+    <span className="mnd-marks">
+      {drawn.map((mark) => (
+        <span key={mark} className="mnd-mark" data-mark={mark}>
+          <Icon name={mark_icon(mark)!} size={13} />
+        </span>
+      ))}
     </span>
   );
 }
@@ -46,7 +50,8 @@ function seen(p: NodeProps<BoxNode>): string {
   const d = p.data;
   return [
     p.selected, p.dragging, p.width, p.height,
-    d.label, d.alias ?? "", d.def, d.on, d.side, d.role, d.mark ?? "", d.marks.join(","),
+    d.label, d.alias ?? "", d.def, d.on, d.side, d.role, (d.stamps ?? []).join(","),
+    (d.fields ?? []).map((f) => `${f.name}=${f.value ?? f.form}`).join(","), d.marks.join(","),
     /** Read off the look, so no property is forgotten. */
     look_key(d.look),
     d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(","),
@@ -178,7 +183,7 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
       <Brim />
       <Wears role={data.role} icon={data.look?.icon}
              holds={data.marks.includes("container")} />
-      <Stamp mark={data.mark} />
+      <Stamps stamps={data.stamps} />
       {label === "above"
         ? <span className="mnd-over mnd-kind card-label">{look.kind}</span> : null}
       <div className="mnd-head">
@@ -191,6 +196,19 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
         {label === "inside"
           ? <span className="mnd-kind card-label">{look.kind}</span> : null}
       </div>
+      {/* What it carries, one line each, where its look asks. */}
+      {data.fields ? (
+        <ul className="mnd-fields">
+          {data.fields.map((f) => (
+            <li key={f.name} title={`${f.name}: ${f.value ?? f.form}`}>
+              <span className="mnd-field-name">{f.name}</span>
+              <span className={f.value === undefined ? "mnd-field-form" : "mnd-field-value"}>
+                {f.value ?? f.form}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {/* Under the card rather than in it. */}
       {label === "below"
         ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
@@ -212,7 +230,7 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
       {/* A note wears its icon above and whatever mark it earns below. */}
       <Wears role={data.role} icon={data.look?.icon}
              holds={data.marks.includes("container")} />
-      <Stamp mark={data.mark} />
+      <Stamps stamps={data.stamps} />
       {look.label === "above"
         ? <span className="mnd-over mnd-kind card-label">{look.kind}</span> : null}
       <Name id={id} className="mnd-note-text card-name" text={data.label} />
@@ -392,7 +410,7 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
       ) : null}
       <Name id={id} className="mnd-frame-name" text={data.label} />
       <Wears role={data.role} holds={data.marks.includes("container")} />
-      <Stamp mark={data.mark} />
+      <Stamps stamps={data.stamps} />
     </div>
   );
 }

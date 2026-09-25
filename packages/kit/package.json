@@ -47,6 +47,7 @@
     "@mnd/explorer": "*",
     "@mnd/stage": "*",
     "@mnd/theme": "*",
+    "@mnd/tray": "*",
     "@mnd/views": "*"
   }
 }

@@ -44,6 +44,8 @@ export type Look = {
   height: Height;
   /** Whether the handle is drawn, where somebody said. */
   alias?: boolean;
+  /** Whether the card lists its fields in a compartment under its name. */
+  fields?: boolean;
   /** What sort of thing this is, as a word: the subtype where somebody named one, the base kind
    *  otherwise. */
   kind: string;
@@ -124,6 +126,7 @@ export function look_of(graph: Graph, id: Id): Look {
     label_align: one(card["label_align"], ALIGNS, PLAIN.label_align),
     height: one(card["height"], HEIGHTS, PLAIN.height),
     ...(SHOWN.includes(card["alias"] as never) ? { alias: card["alias"] === "show" } : {}),
+    ...(card["fields"] === "show" ? { fields: true } : {}),
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
     ...contrast("label_contrast", style["label_contrast"]),

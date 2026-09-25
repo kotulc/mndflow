@@ -117,8 +117,23 @@ Type a few words into the explorer and **have what you are looking for come back
 |---|---|
 | **one tab pattern, half applied** | the `fields` tab is the pattern every editing tab should read as: banded bodies of labelled lines, then an `add` line that takes what is being added and commits it. `Entry` was pulled out and is shared; **`Commit` is still private to `Fields.tsx`, and the add line is copied between `Fields.tsx` and `Packages.tsx`** |
 | **the SVG export paints by kind** | `svg.ts` styles `.card.note` and `.route.tie` from a sheet it carries, where the canvas reads their definitions. The two disagree the moment a definition restyles a note |
+| **a read-only listing still looks live** | without `onAct`, the definitions, packages and usages tabs act with nothing: their add and filter inputs draw as usual and do nothing. The element, fields and workspace tabs disable theirs; these three do not yet |
+| **the class card sits under its usages** | a diagram's class card is a stand-in, and the layout seats stand-ins after the blocks beside them. Putting the schema on top wants the layout to rank it first |
+| **two rows lit for one diagram pick** | picking the class card holds its definition while the block the diagram was drawn for stays picked, so the explorer lights both |
 
 ## Recent Decisions
+
+### Marks describe, and stack
+
+**A card's bottom corner says what it stands in for, or what describes it — never both.** A stand-in wears one written word: `Def`, `Ref` or `Pkg`. Anything else wears what is true of it, drawn, and those stack. **The first is `data`, a database**: the block carries field values, or its definition declares a schema. **`Ext` is gone** — every block may carry a `source`, so having one describes nothing.
+
+### The shell's defaults are kept once
+
+**The tray starts open, nothing picked on the root layer is the root picked, and the root opens on its workspace tab** — where the card size, the key and the lattice are set. These are `useTray` and `useDisplay` in the tray package, and the app runs on them as the kit's hosts do. **The app binds ports; the rules live in the packages**, so a host outside this repo inherits them rather than restating them.
+
+### A block's fields draw as a class diagram
+
+**The fields tab offers `view diagram` wherever a block answers a workspace schema.** The canvas draws one card standing for the definition, listing `name: form`, and one per usage listing its values — a graph of its own, drawn in place of the layer and never written. A table's schema is its rows'; a package's own fields are its vocabulary, not the workspace's data, so they draw nothing.
 
 ### A layer draws the key to itself
 

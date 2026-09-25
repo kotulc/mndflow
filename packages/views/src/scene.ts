@@ -6,6 +6,9 @@ import type { Arrow, Look, Wire } from "./look";
 import type { Perch } from "./seat";
 
 /** What one drawn thing carries beyond where it sits and how big it is. */
+/** One line of a card's compartment. A schema line has a form and no value. */
+export type Listed = { name: string; form: string; value?: string };
+
 export type BoxData = {
   /** The mark a thing wears beside its name while nobody has named it. */
   alias?: string;
@@ -18,12 +21,14 @@ export type BoxData = {
   link?: string;
   /** Everything true of it at once, drawn as classes. */
   marks: readonly Trait[];
-  /** The one system mark, derived: what this card stands in for, or that it holds parts. */
-  mark?: Mark;
+  /** The system marks, derived: what this card stands in for, or what describes it. */
+  stamps?: readonly Mark[];
   /** What sort of thing it is: the icon it wears unless somebody set their own. */
   role?: Role;
   /** How its definition says it draws. */
   look?: Look;
+  /** What its compartment lists, where its look asks for one: each field's name, form and value. */
+  fields?: readonly Listed[];
   /** The lattice a grid draws, as boxes inside its own. */
   grid?: readonly GridCell[];
   /** Whom a boundary is drawn round. */
@@ -116,8 +121,8 @@ export type Frame = {
   label: string;
   /** What the open layer is, as the icon every surface draws for it. */
   role?: Role;
-  /** The system mark it earns, where it stands in for something. */
-  mark?: Mark;
+  /** The system marks it earns. */
+  stamps?: readonly Mark[];
   /** Whether it holds anything, which is what fills its icon. */
   holds_parts?: boolean;
   /** Which wall of its own parent this layer is set into, when the layer is itself an interface. */

@@ -8,9 +8,9 @@ import { box_of, clear_of, holds, project, set_card as apply_card, tidy,
          BLOCK, CARD, UNITS } from "@mnd/views";
 import { Explorer, Menu, type Section } from "@mnd/explorer";
 import { Icon, WorkspaceHeader } from "@mnd/theme";
-import { Stage, type Corner, type Move } from "@mnd/stage";
+import { Stage, type Move } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
-import { Tray, type Hold, type Offered, type Tab } from "@mnd/tray";
+import { Tray, useDisplay, useTray, type Offered } from "@mnd/tray";
 import { Terminal, type Match } from "@mnd/terminal";
 import { browser_files, browser_net } from "./ports";
 import { browser_score } from "./score";
@@ -43,40 +43,31 @@ export function App({ storage }: { storage: Storage }) {
     () => localStorage.getItem("mnd.theme") ?? "retro");
   const look = THEMES.find((t) => t.name === theme) ?? THEMES[0];
   const next_look = THEMES[(THEMES.indexOf(look) + 1) % THEMES.length]!;
-  /** Chrome the shell holds and the log never sees. */
-  const [tray, set_tray] = useState(false);
-  /** Which tray tab is open. */
-  const [tab, set_tab] = useState<Tab>("contents");
+  /** The tray — open, its tab, what it holds — and how the drawing looks: chrome the shell
+   *  holds and the log never sees, kept where every host keeps it. */
+  const t = useTray();
+  const { display, onDisplay } = useDisplay({ card: { ...UNITS.block }, range: CARD });
   /** Whether the terminal is shown, and whether it is expanded. */
   const [terminal, set_terminal] = useState(false);
   const [wide, set_wide] = useState(false);
   /** The mirror muted. */
   const [quiet, set_quiet] = useState(false);
-  const [shown, set_shown] = useState({ interfaces: true, lattice: true, frame: true });
-  /** Whether a layer draws the key to itself: what the workspace says, and the layers that have
-   *  said otherwise. **A layer holding no answer follows the workspace**, so changing the default
-   *  moves every layer that never disagreed. Display, so the log never sees it and no file
-   *  carries it. */
-  const [legends, set_legends] = useState(false);
+  const [shown, set_shown] = useState({ interfaces: true, frame: true });
+  /** The layers that have said otherwise about drawing their key. **A layer holding no answer
+   *  follows the workspace**, so changing the default moves every layer that never disagreed. */
   const [keyed, set_keyed] = useState<Record<Id, boolean>>({});
-  /** Which right-hand corner the key keeps to. */
-  const [corner, set_corner] = useState<Corner>("top");
-  /** The default card, in units. Display, so it is the session's and no file carries it. */
-  const [card, set_card] = useState(() => ({ ...UNITS.block }));
+  const { card, legend: legends, corner, lattice } = display;
   /** What a right drag draws, as the rail left it. */
   const [drawing, set_drawing] = useState<{ module: Id; dir?: Dir }>({ module: "line" });
   /** What help is pointing at. */
   const [pointed, set_pointed] = useState<readonly Id[]>([]);
   /** The tray row under the pointer, lit on the canvas where it is drawn. */
   const [hovered, set_hovered] = useState<Id | null>(null);
-  /** What the tray holds that the canvas did not give it; any other selection drops it. */
-  const [hold, set_hold] = useState<Hold | null>(null);
+  const { hold } = t;
   /** Which library row the explorer lights: whatever the tray has hold of. */
-  const section: Section | null =
-    hold?.of === "defs" ? hold
-    : hold?.of === "id" && hold.id !== s.graph().root ? { of: "def", id: hold.id } : null;
+  const section: Section | null = t.section(s.graph().root);
   /** A selection made anywhere but the tray gives the context back to the canvas. */
-  const pick = (ids: Id[]) => { s.pick(ids); set_hold(null); };
+  const pick = (ids: Id[]) => { s.pick(ids); t.release(); };
 
   useEffect(() => { s.watch(() => bump((n) => n + 1)); }, [s]);
   useEffect(() => {
@@ -138,7 +129,6 @@ export function App({ storage }: { storage: Storage }) {
   /** The rail's controls: display state here, everything else an action. */
   const chrome = (name: string, args?: Record<string, unknown>) => {
     if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
-    if (name === "lattice") { set_shown((c) => ({ ...c, lattice: !!args!["show"] })); return; }
     if (name === "frame") { set_shown((c) => ({ ...c, frame: !!args!["show"] })); return; }
     /** An answer that agrees with the workspace is dropped rather than stored, so the layer goes
      *  back to following the default instead of pinning today's value. */
@@ -148,11 +138,9 @@ export function App({ storage }: { storage: Storage }) {
         show === legends ? rest : { ...rest, [here]: show });
       return;
     }
-    if (name === "legends") { set_legends(!!args!["show"]); return; }
-    if (name === "legend_corner") { set_corner(args!["at"] as Corner); return; }
-    /** Applied where the proportions live, and kept as the range there allowed. */
-    if (name === "card") {
-      set_card(apply_card(Number(args!["w"]), Number(args!["h"])));
+    /** The workspace's display answers, kept where every host keeps them. */
+    if (["lattice", "legends", "legend_corner", "card"].includes(name)) {
+      onDisplay(name, args);
       return;
     }
     if (name === "relate_with") {
@@ -174,12 +162,12 @@ export function App({ storage }: { storage: Storage }) {
     /** Where the tray is pointed; writes nothing. */
     if (name === "about") {
       const want = String(args!["scope"]);
-      if (want === "canvas") { set_hold(null); return; }
+      if (want === "canvas") { t.release(); return; }
       s.pick([]);
-      set_hold(want === "workspace" ? { of: "id", id: graph.root }
+      t.onHold(want === "workspace" ? { of: "id", id: graph.root }
                : { of: "draft", group: want === "relation" ? "relation" : "block" });
-      set_tray(true);
-      set_tab(want === "workspace" ? "workspace" : "element");
+      t.onOpen(true);
+      t.onTab(want === "workspace" ? "workspace" : "element");
       return;
     }
     act(name, args);
@@ -258,14 +246,7 @@ export function App({ storage }: { storage: Storage }) {
         section={section}
         /** A library row points the tray: a definition at whichever tab definitions were last
          *  read on, a folder at its list. */
-        onSection={(at) => {
-          s.pick([]);
-          set_tray(true);
-          if (at.of === "def") { set_hold({ of: "id", id: at.id }); return; }
-          set_hold(at);
-          /** The packages section opens on what the workspace draws on. */
-          set_tab(at.of === "defs" && at.only === "packages" ? "packages" : "definitions");
-        }}
+        onSection={(at) => { s.pick([]); t.onSection(at); }}
       />
 
       <main>
@@ -300,9 +281,9 @@ export function App({ storage }: { storage: Storage }) {
           onPickCells={(cells) => {
             /** A click lets go of what the canvas cannot show. */
             if (!cells.length) s.pick(s.picked().filter((id) => drawn.has(id)));
-            s.pick_cells(cells); set_hold(null);
+            s.pick_cells(cells); t.release();
           }}
-          lattice={shown.lattice}
+          lattice={lattice ?? true}
           frame={shown.frame}
           legend={legend}
           corner={corner}
@@ -324,24 +305,24 @@ export function App({ storage }: { storage: Storage }) {
         <Tray
           graph={graph}
           layer={layer}
-          open={tray}
-          onOpen={set_tray}
-          tab={tab}
-          onTab={set_tab}
+          open={t.open}
+          onOpen={t.onOpen}
+          {...(t.tab ? { tab: t.tab } : {})}
+          onTab={t.onTab}
           picked={s.picked()}
           onHover={set_hovered}
           hold={hold}
-          onHold={set_hold}
-          onView={(home, id) => { s.look(home); s.pick([id]); set_hold(null); }}
+          onHold={t.onHold}
+          onView={(home, id) => { s.look(home); s.pick([id]); t.release(); }}
           offered={offered}
-          display={{ card, range: CARD, legend: legends, corner }}
+          display={display}
           onAct={chrome}
         />
       </main>
 
       <Options groups={groups_of({ slots: scene.slots, arrangement: arranged,
                                    interfaces: shown.interfaces,
-                                   lattice: shown.lattice, frame: shown.frame,
+                                   lattice: lattice ?? true, frame: shown.frame,
                                    legend,
                                    /** Which settings toggle is lit. */
                                    held: hold?.of === "draft" ? hold.group

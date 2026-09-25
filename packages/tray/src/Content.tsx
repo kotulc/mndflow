@@ -5,7 +5,8 @@ import { useState } from "react";
 import type { Act, Graph, Id } from "@mnd/core";
 import { Band } from "./Body";
 
-export type ContentProps = { graph: Graph; id: Id; onAct: Act };
+/** Given no `onAct`, the body is read only. */
+export type ContentProps = { graph: Graph; id: Id; onAct?: Act };
 
 export function Content({ graph, id, onAct }: ContentProps) {
   const def = graph.defs[id];
@@ -13,7 +14,7 @@ export function Content({ graph, id, onAct }: ContentProps) {
   const [draft, set_draft] = useState<string | null>(null);
 
   const commit = () => {
-    if (draft !== null && draft !== stored) onAct("describe", { id, body: draft });
+    if (draft !== null && draft !== stored) onAct?.("describe", { id, body: draft });
     set_draft(null);
   };
 
@@ -21,6 +22,7 @@ export function Content({ graph, id, onAct }: ContentProps) {
     <div className="content">
       <Band label={def ? "about" : "content"} />
       <textarea value={draft ?? stored} aria-label={def ? "about" : "body"} spellCheck
+                readOnly={!onAct}
                 placeholder={def
                   ? "what this definition is for — a sentence anybody reading the vocabulary would want"
                   : "what this says — a description, a requirement, a script"}

@@ -11,7 +11,7 @@
 ## Where it sits
 
 ```
-web
+web · kit
 └─ tray   ◀
    └─ core · theme
 ```
@@ -29,7 +29,9 @@ npm run typecheck -w @mnd/tray
 
 | | Is |
 |---|---|
-| `Tray.tsx` | the context and its tabs, in the theme's `TrayFrame`. Two sizes, shut and open |
+| `Tray.tsx` | the context and its tabs, in the theme's `TrayFrame`. Two sizes, shut and open. **Read only without `onAct`**: only the tabs that read are offered. A host's own block tabs come after through `extras` |
+| `state.ts` | `useTray` — open from the start, the tab, the hold, and the explorer section it lights. `useDisplay` — the card, the key, its corner and the lattice, and the workspace tab's answers to them. **Every shell's state, kept once**: the app and the kit's hosts run on the same two |
+| `Workspace.tsx` | the root's tab: identity, display, file. Its display answers `onDisplay`, so it still works where the workspace itself is read only |
 | `rows.ts` | `rows_of` — what the layer holds, read straight from the graph. Headless, so the CLI could print it |
 | `tray.css` · `fields.css` · `preview.css` | the look: the tables; the label-and-answer rows; the card and run previews and chips. Loaded in that order. The frame round them — bar, tabs, open and shut — is dressed in `@mnd/theme/shell.css` |
 
@@ -39,6 +41,8 @@ npm run typecheck -w @mnd/tray
 - **A quarter of the stage, whatever it holds.** A tray that grew to its contents moved every time the row count changed.
 - **Nothing closes it but its own control**, because a click on the canvas is how a row gets selected.
 - **Everything is derived.** It reads the graph and stores nothing, so it cannot fall out of step with the drawing.
+- **Nothing picked on the root layer is the root.** The tray opens on the workspace tab, which is where the drawing's defaults are set.
+- **A fields tab offers the diagram.** Where a block answers a workspace schema, `view diagram` hands its id to `onFields`.
 
 ## The detail
 
