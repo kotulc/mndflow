@@ -150,7 +150,8 @@ import { Explorer } from "@mnd/kit/react";
 **`tools` says which of the bar's tools are drawn**, and it is separate from `menu` because the bar and the menu answer different questions. Every tool is drawn unless told otherwise:
 
 ```tsx
-<Explorer ... tools={{ filter: false, create: false, remove: false }} />   // the fold stays
+<Explorer ... tools={{ filter: false, block: false, folder: false, remove: false }} />   // the fold stays
+<Explorer ... extra={<button onClick={open}><Icon name="add_document" /></button>} />  // a host's own tools, after the filter
 ```
 
 ## The chrome

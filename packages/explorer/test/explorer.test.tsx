@@ -294,9 +294,9 @@ describe("an empty workspace", () => {
 });
 
 describe("consumer tools flags", () => {
-  it("hides create, remove and filter when asked, and keeps fold", () => {
+  it("hides block, folder, remove and filter when asked, and keeps fold", () => {
     const { container, queryByTitle } = mount(fold(nested(), FLOOR), {
-      tools: { create: false, remove: false, filter: false },
+      tools: { block: false, folder: false, remove: false, filter: false },
     });
     expect(queryByTitle(/add a block/)).toBeNull();
     expect(queryByTitle(/add a folder/)).toBeNull();
@@ -307,7 +307,7 @@ describe("consumer tools flags", () => {
 
   it("still fires rename with name when tools are hidden", () => {
     const { onAct, container } = mount(fold(nested(), FLOOR), {
-      tools: { create: false, remove: false, filter: false },
+      tools: { block: false, folder: false, remove: false, filter: false },
     });
     fireEvent.doubleClick(screen.getByText("Auth"));
     const field = container.querySelector(".label.mnd-naming")!;

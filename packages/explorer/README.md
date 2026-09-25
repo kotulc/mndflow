@@ -67,7 +67,14 @@ A host means what it likes by an act, but the shape of each is fixed — a consu
 **Every tool is drawn unless told otherwise**, so the app passes nothing. `tools` turns each off by name:
 
 ```tsx
-tools={{ filter: false, create: false, remove: false }}   // the fold stays
+tools={{ filter: false, block: false, folder: false, remove: false }}   // the fold stays
+```
+
+Each tool is its own switch — `filter`, `block`, `folder`, `remove`, `fold` — so a host keeps the ones that mean something to it. **`extra` is a host's own tools**, drawn after the filter and ahead of the bar's own — a translator's *add a document*, say:
+
+```tsx
+tools={{ block: false }}
+extra={<button title="add a document" onClick={open}><Icon name="add_document" /></button>}
 ```
 
 `menu` and `tools` are two questions. `menu={false}` drops the offered list on right-click and leaves the bar alone.

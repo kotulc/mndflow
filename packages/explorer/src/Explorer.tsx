@@ -1,6 +1,6 @@
 /** The workspace explorer: structure, and only structure. */
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { BASE_PACKAGE, about_of, alias_of, children, def_named, is_interface, is_named,
          is_reference, may_hold, block_base, base_of,
          packages, pinned_defs, relation_base, shelf_of, shelf_tree, shelvable, shipped, shown_name,
@@ -24,13 +24,16 @@ export type ExplorerProps = {
   onPick: (ids: Id[]) => void;
   /** Whether right-click opens this engine's offered list. */
   menu?: boolean;
-  /** Which bar tools to show. Defaults preserve mndflow; set false to hide. */
+  /** Which bar tools to show, each on its own. Defaults preserve mndflow; set false to hide. */
   tools?: {
     filter?: boolean;
-    create?: boolean;
+    block?: boolean;
+    folder?: boolean;
     remove?: boolean;
     fold?: boolean;
   };
+  /** A host's own tools, drawn after the filter and ahead of the bar's own. */
+  extra?: ReactNode;
   /** What the library sections have hold of; absent, the sections are not drawn. */
   section?: Section | null;
   onSection?: (at: Section) => void;
@@ -262,7 +265,8 @@ export function Explorer(props: ExplorerProps) {
           tools: bar = {} } = props;
   const show = {
     filter: bar.filter !== false,
-    create: bar.create !== false,
+    block: bar.block !== false,
+    folder: bar.folder !== false,
     remove: bar.remove !== false,
     fold: bar.fold !== false,
   };
@@ -426,22 +430,23 @@ export function Explorer(props: ExplorerProps) {
          style={{ width }}>
       <div className="bar">
         {/* The bar is tools only; the workspace names itself in the tree. */}
-        {(show.filter || show.create || show.remove) ? (
+        {(props.extra || show.filter || show.block || show.folder || show.remove) ? (
           <span className="tools">
             {show.filter ? (
               <button title="filter the workspace — not built yet" disabled>
                 <Icon name="menu" />
               </button>
             ) : null}
-            {show.create ? (
-              <>
-                <button title={library ? `add a definition to ${where_to}` : `add a block in ${shown_name(graph, target)}`}
-                        disabled={library && !filing}
-                        onClick={() => add()}><Icon name="add" /></button>
-                <button title={library ? `add a folder to ${where_to}` : `add a folder in ${shown_name(graph, target)}`}
-                        disabled={library && !filing}
-                        onClick={() => add("folder")}><Icon name="add_folder" /></button>
-              </>
+            {props.extra}
+            {show.block ? (
+              <button title={library ? `add a definition to ${where_to}` : `add a block in ${shown_name(graph, target)}`}
+                      disabled={library && !filing}
+                      onClick={() => add()}><Icon name="add_block" /></button>
+            ) : null}
+            {show.folder ? (
+              <button title={library ? `add a folder to ${where_to}` : `add a folder in ${shown_name(graph, target)}`}
+                      disabled={library && !filing}
+                      onClick={() => add("folder")}><Icon name="add_folder" /></button>
             ) : null}
             {show.remove ? (
               <button title={library ? "remove the picked definition or folder" : "delete what is picked"}
