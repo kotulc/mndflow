@@ -4,16 +4,26 @@
  *  fences, and inline emphasis, code and links. A link answers ctrl+click alone: a plain click is
  *  the card's, which picks it. */
 
-import { type MouseEvent, type ReactNode } from "react";
+import { type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import { Lexer, type Token, type Tokens } from "marked";
 
 /** Where a link may lead: the web, mail, or a path with no scheme. Any other scheme is text. */
 const SAFE = /^(https?:|mailto:|(?![a-z][a-z0-9+.-]*:))/i;
 
 
-/** A body: blocks of markdown. */
-export function Markdown({ text, className }: { text: string; className?: string }) {
-  return <div className={className}>{blocks(new Lexer().lex(text))}</div>;
+/** A body: blocks of markdown, cut off with an ellipsis after `lines` where it is given. */
+export function Markdown({ text, className, lines }: {
+  text: string;
+  className?: string;
+  lines?: number;
+}) {
+  /** The clamp places the ellipsis; the height, in lines, hides what follows it, and the padding
+   *  under it keeps the last line's descenders. */
+  const clamp: CSSProperties | undefined = lines
+    ? { display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: lines,
+        overflow: "hidden", flex: "none", maxHeight: `calc(${lines}lh + 4px)`, paddingBottom: 4 }
+    : undefined;
+  return <div className={className} style={clamp}>{blocks(new Lexer().lex(text))}</div>;
 }
 
 /** One line of inline markdown: a field value, say. */

@@ -118,6 +118,14 @@ export type Holder = {
   cols?: number;
   /** Grid only: cells with an extent of their own. */
   merges?: Span[];
+  /** Grid only: a plain value per cell, by row then column. A value is data, not a part: a cell
+   *  seating a block draws the block. */
+  values?: string[][];
+  /** Grid only: the definition whose fields head its columns. Its first row reads their names and
+   *  holds no values. */
+  schema?: Id;
+  /** Grid only: one cell's size in units, where its cells are not a card's. */
+  size?: { w: number; h: number };
   /** Grid only: its corner. A boundary derives its bounds from what it holds. */
   x?: number;
   y?: number;

@@ -1,11 +1,14 @@
-/** A block's fields, drawn as a class diagram.
+/** A layer's fields, drawn as a class diagram.
  *
- *  A projection, never an edit: a graph of its own, drawn instead of the layer. The schema is one
- *  class card standing for its definition, on top; the usages are cards in rows under it listing
- *  their values, each with a dashed *instance of* line up to the class. Usages keep their ids, so a
- *  pick on one is a pick on the block it is. */
+ *  A projection, never an edit: the same graph with one layer drawn another way, so it opens in the
+ *  layer's own frame and navigates as the layer does. The schema is one class card standing for its
+ *  definition, on top; its instances are cards in rows under it listing their values, each with a
+ *  dashed *instance of* line up to the class. An instance is a block typed by the schema, which
+ *  keeps its id, so a pick on one is a pick on the block it is — or a line of a grid the schema
+ *  heads, drawn as a card for as long as the diagram is. */
 
-import { children, schema_def, type Block, type Graph, type Id, type Relation } from "@mnd/core";
+import { children, holders_in, schema_def, schema_of, type Block, type Graph, type Holder, type Id,
+         type Relation } from "@mnd/core";
 import { size_of, snap, GAP } from "./size";
 
 /** What every card in the diagram asks of its look: its fields, listed. */
@@ -26,35 +29,54 @@ const CLASS = "class:";
 const ACROSS = 4;
 
 
-/** The diagram for a block or a definition, or null where there is no schema to draw. A block
- *  that answers a schema draws with it; one that holds usages draws them; a definition draws all
- *  of its usages. */
-export function fields_graph(graph: Graph, id: Id): Graph | null {
-  const def = schema_def(graph, id);
-  if (!def) return null;
-  const root = graph.blocks[graph.root]!;
+/** The graph with this layer drawn as its fields' diagram, or null where it holds no usages of a
+ *  schema. Everything outside the layer is left as it was. */
+export function fields_graph(graph: Graph, layer: Id): Graph | null {
+  const def = schema_def(graph, layer);
+  const uses = def ? [...children(graph, layer).filter((b) => b.type === def),
+                      ...holders_in(graph, layer).filter((h) => h.schema === def)
+                        .flatMap((grid) => lines(graph, grid, def))] : [];
+  if (!def || !uses.length) return null;
   const top = `${CLASS}${def}`;
-  const blocks: Record<Id, Block> = {
-    [root.id]: { ...root, name: `${graph.defs[def]!.name} · fields`, arrangement: "free" },
-    [top]: { id: top, parent: root.id, of: def, name: graph.defs[def]!.name, order: 0,
-             looks: CLASS_LOOK },
-  };
-  const edges: Record<Id, Relation> = {};
-  const uses = usages(graph, id, def);
+  const blocks: Record<Id, Block> = { ...graph.blocks };
+  /** Whatever else the layer held stands aside while the diagram is drawn. */
+  for (const b of children(graph, layer)) delete blocks[b.id];
+  const holders = Object.fromEntries(Object.entries(graph.holders)
+    .filter(([, h]) => h.parent !== layer));
+  blocks[layer] = { ...blocks[layer]!, arrangement: "free" };
+  blocks[top] = { id: top, parent: layer, of: def, name: graph.defs[def]!.name, order: 0,
+                  looks: CLASS_LOOK };
+  /** And so do the lines meeting it. */
+  const edges: Record<Id, Relation> = Object.fromEntries(Object.entries(graph.edges)
+    .filter(([, e]) => blocks[e.from] && blocks[e.to]));
   uses.forEach((use, n) => {
-    const { x: _x, y: _y, ...rest } = use;
-    blocks[use.id] = { ...rest, parent: root.id, order: n + 1, looks: LISTED };
+    blocks[use.id] = { ...use, order: n + 1, looks: LISTED };
     const line = `instance:${use.id}`;
     edges[line] = { id: line, from: use.id, to: top, type: "line", dir: "forward",
                     looks: INSTANCE };
   });
-  const drawn: Graph = { ...graph, blocks, edges, holders: {} };
+  const drawn: Graph = { ...graph, blocks, edges, holders };
   return { ...drawn, blocks: placed(drawn, top, uses.map((use) => use.id)) };
 }
 
 /** The definition a diagram's class card stands for, or null for any other id. */
 export function class_def(id: Id): Id | null {
   return id.startsWith(CLASS) ? id.slice(CLASS.length) : null;
+}
+
+/** A grid's lines under its header, each as a block of the schema: named by its first cell, and
+ *  carrying a value per field. */
+function lines(graph: Graph, grid: Holder, def: Id): Block[] {
+  const fields = schema_of(graph, def);
+  return (grid.values ?? []).slice(1).map((row, n) => ({
+    id: `${grid.id}:${n + 1}`, parent: grid.parent, type: def, name: bare(row[0] ?? ""),
+    fields: fields.map(({ name, form }, c) => ({ name, form, value: row[c] ?? "" })),
+  }));
+}
+
+/** A cell's words as a name: a link keeps its text, and emphasis and code marks go. */
+function bare(cell: string): string {
+  return cell.replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[`*_~]+/g, "").trim();
 }
 
 /** The class centred over its usages, and the usages in rows of `ACROSS` under it. */
@@ -74,12 +96,4 @@ function placed(graph: Graph, top: Id, uses: Id[]): Record<Id, Block> {
   }
   blocks[top] = { ...blocks[top]!, x: snap((wide - size(top).w) / 2), y: 0 };
   return blocks;
-}
-
-/** What is drawn under the class: the block itself, what it holds, or everything typed by it. */
-function usages(graph: Graph, id: Id, def: Id): Block[] {
-  const b = graph.blocks[id];
-  if (!b) return Object.values(graph.blocks).filter((x) => x.type === def);
-  if (b.type === def) return [b];
-  return children(graph, id).filter((x) => x.type === def);
 }

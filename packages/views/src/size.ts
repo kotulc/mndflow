@@ -60,23 +60,39 @@ export function roomed(box: Box): Box {
            h: Math.ceil((box.y + box.h - y) / UNIT) * UNIT };
 }
 
+/** One cell of a grid: its own size where it says one, a card with air round it otherwise. */
+export function cell_size(g: Holder): Size {
+  return g.size ? { w: g.size.w * UNIT, h: g.size.h * UNIT } : CELL;
+}
+
 /** What a grid takes up: its extent in cells, and nothing besides. */
 export function grid_size(g: Holder): Size {
-  return { w: (g.cols ?? 1) * CELL.w, h: (g.rows ?? 1) * CELL.h };
+  const cell = cell_size(g);
+  return { w: (g.cols ?? 1) * cell.w, h: (g.rows ?? 1) * cell.h };
 }
 
 /** Where one cell sits inside its grid, relative to the grid's own corner. */
 export function cell_box(g: Holder, r: number, c: number): Box {
   const span = g.merges?.find((s) => covers(s, r, c));
   const at = span ?? { r, c, rows: 1, cols: 1 };
-  return { x: at.c * CELL.w, y: at.r * CELL.h,
-           w: at.cols * CELL.w, h: at.rows * CELL.h };
+  const cell = cell_size(g);
+  return { x: at.c * cell.w, y: at.r * cell.h, w: at.cols * cell.w, h: at.rows * cell.h };
 }
 
 /** How many rows and columns a region of this size is, in whole cells. */
 export function extent_of(w: number, h: number): { rows: number; cols: number } {
   return { rows: Math.max(1, Math.round(h / CELL.h)),
            cols: Math.max(1, Math.round(w / CELL.w)) };
+}
+
+/** Whether a card that fits its content grows to show all of it, or previews it at the one card
+ *  height. The drawing's, like the card size, so it is held beside it and set the same way. */
+export const CONTENT = { full: false };
+
+/** Sets whether fitting cards show all of what they say, and says what it took. */
+export function set_full(full: boolean): boolean {
+  CONTENT.full = full;
+  return full;
 }
 
 /** A block of this size, centred in the cell it was given. */
@@ -120,8 +136,8 @@ export function gridded(graph: Graph, id: Id): boolean {
 }
 
 /** What this block needs. Every card is the one card size; a card whose definition asked for its
- *  own height keeps what it was given, one that fits grows to what it shows, and a grid is the
- *  extent it was drawn with. */
+ *  own height keeps what it was given, one that fits grows to what it shows while the drawing
+ *  shows content in full, and a grid is the extent it was drawn with. */
 export function size_of(graph: Graph, id: Id): Size {
   /** A grid is its extent; a boundary is sized from what it holds, by the caller. */
   if (is_grid(graph, id)) return grid_size(holder_of(graph, id)!);
@@ -131,7 +147,7 @@ export function size_of(graph: Graph, id: Id): Size {
   if (b.w !== undefined && b.h !== undefined && free_height(graph, id)) return { w: b.w, h: b.h };
   const look = look_of(graph, id);
   if (look.fields) return listing(listed(graph, id).length);
-  if (look.height === "fit" && look.body && b.body) {
+  if (CONTENT.full && look.height === "fit" && look.body && b.body) {
     return { w: BLOCK.w, h: parted(wrapped(b.body, BLOCK.w), look.head !== false) };
   }
   return { ...BLOCK };
@@ -157,11 +173,13 @@ function listing(lines: number): Size {
   return { w: Math.max(BLOCK.w, LISTING * UNIT), h: parted(lines, true) };
 }
 
-/** A card's height with a head line over `lines` of compartment: whole units, never less than
- *  the one card height. */
+/** A card's height with a head line over `lines` of compartment, never less than the one card
+ *  height. It grows two units at a time, so it differs from any other card by an even number and a
+ *  row of them centres on the lattice. */
 function parted(lines: number, head: boolean): number {
   const px = (head ? UNIT : 0) + Math.min(lines, MOST) * LISTED + INSET.y;
-  return Math.max(BLOCK.h, Math.ceil(px / UNIT) * UNIT);
+  const step = UNIT * 2;
+  return BLOCK.h + Math.max(0, Math.ceil((px - BLOCK.h) / step)) * step;
 }
 
 /** How many lines a body wraps to at this width. A fence draws nothing and what it holds never

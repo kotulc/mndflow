@@ -62,6 +62,9 @@ export type GridCell = {
   w: number;
   h: number;
   marks: readonly Trait[];
+  /** What the cell says where no block is seated in it: a value, or its column's name on a line
+   *  the grid's schema heads. */
+  value?: string;
 };
 
 /** What one line carries; routing is the renderer's. */

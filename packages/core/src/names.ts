@@ -1,7 +1,8 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
 import { base_of, def_of, edge_base, outside, schema_of } from "./defs";
-import { children, stands_for } from "./tree";
+import { holders_in } from "./holders";
+import { children, is_container, stands_for } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
 
@@ -124,11 +125,10 @@ export function role_of(graph: Graph, id: Id): Role {
   return ROLES.includes(base) ? base as Role : "block";
 }
 
-/** The system marks a card wears in its bottom corner. Derived, never set — that is what the
- *  highlight colour says. A stand-in wears the one thing it stands for; anything else wears what
- *  describes it, and those stack. **Holding parts is not one of these**: that is said by filling
- *  the card's own icon, not by stamping a second. */
-export type Mark = "reference" | "definition" | "package" | "data";
+/** The system marks a card wears in its bottom corner. Derived, never set. A stand-in wears the
+ *  one thing it stands for; anything else wears what describes it, and those stack: carrying data,
+ *  and holding parts — a block with children of its own, which its icon alone says too quietly. */
+export type Mark = "reference" | "definition" | "package" | "data" | "parts";
 
 /** What each mark means, in a phrase — the legend's wording, kept beside the type it reads. */
 export const MARK_MEANING: Record<Mark, string> = {
@@ -136,11 +136,13 @@ export const MARK_MEANING: Record<Mark, string> = {
   definition: "stands for a definition",
   package: "stands for a package",
   data: "carries data: field values, or a schema",
+  parts: "holds blocks of its own",
 };
 
 /** The workspace definition whose fields a block's data answers, or null where it has none: a
  *  definition of its own that declares fields, else the one what it holds answers — a table's
- *  schema is its rows'. A package's own fields are its vocabulary, not the workspace's data. */
+ *  schema is its rows', or its grid's. A package's own fields are its vocabulary, not the
+ *  workspace's data. */
 export function schema_def(graph: Graph, id: Id): Id | null {
   const own = (type: Id | undefined) => {
     const d = type ? graph.defs[type] : undefined;
@@ -149,7 +151,8 @@ export function schema_def(graph: Graph, id: Id): Id | null {
   if (graph.defs[id]) return own(id);
   const b = graph.blocks[id];
   if (!b) return null;
-  return own(b.type) ?? children(graph, id).map((k) => own(k.type)).find(Boolean) ?? null;
+  return own(b.type) ?? children(graph, id).map((k) => own(k.type)).find(Boolean)
+    ?? holders_in(graph, id).map((h) => own(h.schema)).find(Boolean) ?? null;
 }
 
 /** What a card is stamped with: what it stands in for, alone, or else what describes it. A
@@ -162,5 +165,6 @@ export function stamps_of(graph: Graph, id: Id): Mark[] {
   }
   const out: Mark[] = [];
   if (b.fields?.some((f) => f.value) || schema_of(graph, b.type).length) out.push("data");
+  if (is_container(graph, id)) out.push("parts");
   return out;
 }

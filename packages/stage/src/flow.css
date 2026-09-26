@@ -436,7 +436,7 @@
 }
 .mnd-card.headless > .mnd-body { padding-top: 3px; }
 .mnd-body :where(p, pre, ul, ol, blockquote, hr) { margin: 0; }
-.mnd-body pre { white-space: pre; overflow: hidden; }
+.mnd-body pre { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
 .mnd-body code { font: inherit; color: var(--card-dim); }
 .mnd-body :where(ul, ol) { padding-left: 14px; }
 .mnd-body li[data-task] { list-style: none; margin-left: -14px; }

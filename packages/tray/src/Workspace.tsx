@@ -21,6 +21,8 @@ export type Display = {
   corner: "top" | "bottom";
   /** Whether the lattice draws behind the cards, where the host offers it here. */
   lattice?: boolean;
+  /** Whether a card that fits its content shows all of it, where the host offers it here. */
+  full?: boolean;
 };
 
 /** The two corners a legend may sit in. Right either way — the left is the crumbs' and the zoom
@@ -104,10 +106,17 @@ function Drawing({ display, onAct }: { display: Display; onAct: Act }) {
           <Pick name="legend-corner" on={display.corner} of={CORNERS}
                 onPick={(at) => onAct("legend_corner", { at })} />
         </Line>
-        {display.lattice === undefined ? null : (
-          <Line label="lattice" tip="Whether the ruled lattice draws behind the cards.">
-            <Check on={display.lattice} word="show" tip="Draw the lattice behind every layer"
-                   onPick={(yes) => onAct("lattice", { show: yes })} />
+        {display.lattice === undefined && display.full === undefined ? null : (
+          <Line label="layer" tip="How every layer draws: the lattice behind its cards, and whether a card shows all it says or a preview of it.">
+            {display.lattice === undefined ? null : (
+              <Check on={display.lattice} word="lattice" tip="Draw the lattice behind every layer"
+                     onPick={(yes) => onAct("lattice", { show: yes })} />
+            )}
+            {display.full === undefined ? null : (
+              <Check on={display.full} word="full content"
+                     tip="Grow a card to show all it says, rather than cut it off at the card height"
+                     onPick={(yes) => onAct("full", { show: yes })} />
+            )}
           </Line>
         )}
       </Body>

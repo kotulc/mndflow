@@ -41,4 +41,4 @@ export {
 
 /** The card's default size and the range it is held inside, in units of the lattice; setting it,
  *  and what one block measures under it — so a host placing blocks itself stacks them by it. */
-export { CARD, UNITS, set_card, size_of } from "@mnd/views";
+export { CARD, UNITS, set_card, set_full, size_of } from "@mnd/views";

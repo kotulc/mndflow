@@ -1,8 +1,8 @@
 /** An embedded view: interactive, self-contained, and not editable. */
 
 import { useState } from "react";
-import { children, type Graph, type Id } from "@mnd/core";
-import { class_def, fields_graph, project, set_card, type Config } from "@mnd/views";
+import { is_container, type Graph, type Id } from "@mnd/core";
+import { class_def, fields_graph, project, set_card, set_full, type Config } from "@mnd/views";
 import { Crumbs, FlowView, Legend, type Corner, type Gesture } from "@mnd/stage";
 
 /** Nothing picked, as one constant so it never reads as a change. */
@@ -17,6 +17,9 @@ export type ViewerProps = {
   config?: Config;
   /** The default card, in units of the lattice. The layout's own default unless said. */
   card?: { w: number; h: number };
+  /** Whether a card that fits its content grows to show all of it. Off, it previews it at the one
+   *  card height and cuts it off. */
+  full?: boolean;
   /** Chrome over the canvas. */
   chrome?: {
     crumbs?: boolean;
@@ -32,32 +35,38 @@ export type ViewerProps = {
   onPick?: (ids: Id[]) => void;
   /** Told where a box points, when one that holds nothing is opened. */
   onFollow?: (link: string, id: Id) => void;
-  /** The block or definition whose fields are drawn instead of the layer, as a class diagram. */
+  /** The layer drawn as its fields' class diagram rather than its contents. */
   fields?: Id | null;
-  /** Told when the diagram asks to close. A pick on its class card is told as its definition. */
+  /** Told what the view toggle asks for: the open layer drawn as a diagram, or null for its
+   *  contents. Given it, a layer whose blocks carry fields offers the toggle in the canvas's bottom
+   *  right-hand corner. A pick on the diagram's class card is told as its definition. */
   onFields?: (id: Id | null) => void;
 };
 
-export function Viewer({ graph, layer = null, picked = NONE, config, card, chrome,
+export function Viewer({ graph, layer = null, picked = NONE, config, card, full = false, chrome,
                         onLook, onPick, onFollow, fields = null, onFields }: ViewerProps) {
   const [at, set_at] = driven<Id | null>(layer);
   const [lit, set_lit] = driven<readonly Id[]>(picked);
 
   /** The card size is the layout's, held in one place, so it is set before anything measures. */
   if (card) set_card(card.w, card.h);
-  /** A fields diagram is its own small graph, drawn whole in place of the layer. */
-  const drawn = fields ? fields_graph(graph, fields) : null;
-  const shown = drawn ?? graph;
-  const scene = project(shown, drawn ? null : at, config);
+  set_full(full);
+  /** A fields diagram is the open layer drawn another way, in its own frame. It is only ever the
+   *  open layer's: one asked for elsewhere draws nothing until that layer is open. */
+  const diagram = at ? fields_graph(graph, at) : null;
+  const drawn = fields === at ? diagram : null;
+  const scene = project(drawn ?? graph, at, config);
 
   const pick = (ids: Id[]) => {
     set_lit(ids);
     onPick?.(ids.map((id) => class_def(id) ?? id));
   };
 
+  /** Moving layer leaves a diagram behind. */
   const look = (next: Id | null) => {
     set_at(next);
     onLook?.(next);
+    if (fields) onFields?.(null);
     pick([]);
   };
 
@@ -75,19 +84,25 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, chrom
     if (g.count === 2) {
       if (g.on && g.kind === "box") {
         const link = link_of(g.on);
-        if (!drawn && children(graph, g.on).length) look(g.on);
+        if (is_container(graph, g.on)) look(g.on);
         else if (link) follow(link, g.on);
-      } else if (!g.on && !drawn) look(at ? graph.blocks[at]?.parent ?? null : null);
+      } else if (!g.on) look(at ? graph.blocks[at]?.parent ?? null : null);
       return;
     }
     pick(g.on ? [g.on] : []);
   };
 
   const flow = (
-    <FlowView scene={scene} picked={lit} lattice={chrome?.lattice ?? true}
+    /** A view of its own, so the camera frames each afresh: a room is kept per layer, and the
+     *  diagram's is not the contents'. */
+    <FlowView key={drawn ? "diagram" : "contents"} scene={scene} picked={lit}
+      lattice={chrome?.lattice ?? true}
       onGesture={gesture} onPick={pick} />
   );
-  if (!chrome?.crumbs && !chrome?.legend && !drawn) return flow;
+  if (!chrome?.crumbs && !chrome?.legend && !onFields) return flow;
+
+  /** The toggle is offered only inside a layer whose blocks carry fields. */
+  const fielded = !!onFields && !!diagram;
 
   return (
     <section className="stage" style={{ position: "relative", width: "100%", height: "100%",
@@ -95,17 +110,19 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, chrom
       {chrome?.crumbs ? (
         <Crumbs trail={scene.trail} onAct={(name, args) => {
           if (name !== "open") return;
-          /** Out of a diagram is back to the layer it was drawn over. */
-          if (drawn) { onFields?.(null); return; }
           const id = args?.id === undefined ? undefined : String(args.id);
           if (id === undefined) look(at ? graph.blocks[at]?.parent ?? null : null);
           else look(id === graph.root ? null : id);
         }} />
       ) : null}
       {flow}
-      {drawn ? (
-        <button type="button" className="mnd-close" title="back to the layer"
-                onClick={() => onFields?.(null)}>close diagram</button>
+      {fielded ? (
+        <span className="mnd-views" role="group" aria-label="view">
+          <button type="button" aria-pressed={!drawn} title="the layer's contents"
+                  onClick={() => onFields!(null)}>contents</button>
+          <button type="button" aria-pressed={!!drawn} title="the layer's fields as a class diagram"
+                  onClick={() => onFields!(at)}>diagram</button>
+        </span>
       ) : null}
       {chrome?.legend ? <Legend scene={scene} at={chrome.corner ?? "top"} /> : null}
     </section>

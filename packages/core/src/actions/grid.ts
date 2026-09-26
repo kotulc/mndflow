@@ -34,8 +34,9 @@ function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
   }
   out.push(...kept);
 
-  /** A removed line's blocks move to the nearest free cell. */
-  const shrunk: Holder = { ...g, [size]: Math.max(1, g[size]! + by) };
+  /** A removed line's blocks move to the nearest free cell; its values go with it. */
+  const shrunk: Holder = { ...g, [size]: Math.max(1, g[size]! + by),
+                           ...(g.values ? { values: moved_values(g.values, way, at, by) } : {}) };
   for (const { id, was } of homeless) {
     const spare = free_cell(shrunk, held, { r: -1, c: -1, rows: 0, cols: 0 },
                             { r: Math.min(was.r, (shrunk.rows ?? 1) - 1),
@@ -59,6 +60,18 @@ function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
 
   /** The holder's shape is one thing, so its extent and its merges are written together. */
   return [{ op: "set_holder", holder: with_merges(shrunk, merges) }, ...out];
+}
+
+/** Values moved with the line they sit on: a new line is empty, and a removed one's go. */
+function moved_values(values: string[][], way: "row" | "col", at: number,
+                      by: 1 | -1): string[][] {
+  const moved = <T,>(line: T[], blank: T): T[] => {
+    const out = [...line];
+    if (by < 0) out.splice(at, 1);
+    else if (at <= out.length) out.splice(at, 0, blank);
+    return out;
+  };
+  return way === "row" ? moved(values, []) : values.map((row) => moved(row, ""));
 }
 
 /** The holder written without the merge covering this address. */

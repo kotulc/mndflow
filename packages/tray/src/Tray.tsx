@@ -6,7 +6,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { about_of, alias_of, children, def_named, def_of, frame_of, is_interface, new_id,
-         owner_of, schema_def, shipped, shown_name, stands_for,
+         owner_of, shipped, shown_name, stands_for,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
@@ -54,8 +54,6 @@ export type TrayProps = {
   display?: Display;
   /** Where the workspace tab's display answers go; `onAct` where absent. */
   onDisplay?: Act;
-  /** Asked to draw a block's fields as a diagram; the fields tab offers it where there is one. */
-  onFields?: (id: Id) => void;
   /** The host's own tabs for a block, after the tray's: a name, and what it draws. */
   extras?: readonly Extra[];
 };
@@ -182,16 +180,15 @@ export function Tray(props: TrayProps) {
   /** Whether the context is about lines rather than blocks. */
   const lined = context === "line" || context === "relation";
 
-  /** What the app asks for, else what this family was last read on, else the last that fits. */
-  const tabs: string[] = [...(edits ? SLOTS : READ)[context],
-                          ...(context === "block" ? extras.map((x) => x.name) : [])];
+  /** A host's tabs lead a block's, and it opens on the first of them: they say what the block is
+   *  in the host's own terms. */
+  const hosted = context === "block" ? extras.map((x) => x.name) : [];
+  /** What the app asks for, else what this family was last read on, else where it opens. */
+  const tabs: string[] = [...hosted, ...(edits ? SLOTS : READ)[context]];
   const family = FAMILY[context];
   const tab: string = [props.tab, seen[family]].find((t) => t && tabs.includes(t))
-    ?? OPENS[context] ?? tabs[tabs.length - 1]!;
+    ?? OPENS[context] ?? hosted[0] ?? tabs[tabs.length - 1]!;
   const set_tab = (t: string) => { set_seen((s) => ({ ...s, [family]: t })); props.onTab?.(t); };
-  /** The fields tab's diagram, where the block has a schema to draw. */
-  const diagram = props.onFields && schema_def(view, about)
-    ? { onDiagram: () => props.onFields!(about) } : {};
 
   /** A draft is edited through the registry, and everything else goes out. */
   const act: Act = (name, args) => {
@@ -360,7 +357,7 @@ export function Tray(props: TrayProps) {
           ) : null}
           {/* A definition declares fields and an instance answers them. */}
           {tab === "fields" ? (
-            <Fields graph={view} id={about} {...(edits ? { onAct: act } : {})} {...diagram} />
+            <Fields graph={view} id={about} {...(edits ? { onAct: act } : {})} />
           ) : null}
           {/* A host's own tab, for the block the tray is about. */}
           {extras.find((x) => x.name === tab)?.draw(about) ?? null}

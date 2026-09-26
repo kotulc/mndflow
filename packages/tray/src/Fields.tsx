@@ -1,5 +1,5 @@
 /** What one thing carries. Given no `onAct`, it is read only: values show, nothing takes input,
- *  and the add, move and drop controls are left out. `onDiagram` offers the fields drawn. */
+ *  and the add, move and drop controls are left out. */
 
 import { useState } from "react";
 import { def_of, schema_of, VALUE_FORMS, type Act, type Field, type FieldDef,
@@ -8,9 +8,9 @@ import { Icon } from "@mnd/theme";
 import { Body, Line, NOOP } from "./Body";
 import { held } from "./holder";
 
-export type FieldsProps = { graph: Graph; id: Id; onAct?: Act; onDiagram?: () => void };
+export type FieldsProps = { graph: Graph; id: Id; onAct?: Act };
 
-export function Fields({ graph, id, onAct = NOOP, onDiagram }: FieldsProps) {
+export function Fields({ graph, id, onAct = NOOP }: FieldsProps) {
   const readonly = onAct === NOOP;
   const [adding, set_adding] = useState("");
   const [form, set_form] = useState<string>("text");
@@ -42,13 +42,6 @@ export function Fields({ graph, id, onAct = NOOP, onDiagram }: FieldsProps) {
 
   return (
     <fieldset className="fields" disabled={readonly}>
-      {/* A legend, because a disabled fieldset spares its first one: the chip still works. */}
-      {onDiagram ? (
-        <legend className="diagram">
-          <button className="chip" title="draw these fields as a diagram"
-                  onClick={onDiagram}>view diagram</button>
-        </legend>
-      ) : null}
       {d && schema.length ? (
         <Body head="inherited" note={`${schema.length}`}>
           {schema.map((f) => (

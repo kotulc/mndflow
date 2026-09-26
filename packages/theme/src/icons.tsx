@@ -98,6 +98,8 @@ const PATHS = {
   /** Carries data: populated fields, or the schema they are read against. A database, drawn:
    *  the one mark every tool already spends on *records live here*. */
   data: "M5 6.5c0-1.4 3.1-2.5 7-2.5s7 1.1 7 2.5-3.1 2.5-7 2.5-7-1.1-7-2.5M5 6.5v11c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-11M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5",
+  /** Holds parts: four boxes, the mark every tool already spends on *there is more in here*. */
+  parts: "M5 5h5.5v5.5H5zM13.5 5H19v5.5h-5.5zM5 13.5h5.5V19H5zM13.5 13.5H19V19h-5.5z",
   define: "M12 9.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5M12 3.5l1.2 2.3 2.5-.7.6 2.6 2.4 1-1.3 2.3 1.3 2.3-2.4 1-.6 2.6-2.5-.7L12 20.5l-1.2-2.3-2.5.7-.6-2.6-2.4-1L6.6 13 5.3 10.7l2.4-1 .6-2.6 2.5.7z",
 
   // A thing fixed where it was put. A shackle over a body, closed — and the
@@ -245,7 +247,7 @@ export function role_icon(role: string | undefined): IconName {
  *  drawn, since there is no icon above it to repeat. */
 export const MARK_ICON: Record<string, IconName> = {
   reference: "word_ref", definition: "word_def",
-  package: "word_pkg", data: "data",
+  package: "word_pkg", data: "data", parts: "parts",
 };
 
 /** The icon for a system mark, or null where a card carries none. */

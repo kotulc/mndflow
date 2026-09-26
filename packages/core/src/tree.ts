@@ -73,9 +73,10 @@ export function is_reference(b: Block): boolean {
   return b.of !== undefined;
 }
 
-/** A block holding blocks draws as a container. */
+/** A block holding blocks, or a holder drawn in it, draws as a container. */
 export function is_container(graph: Graph, id: Id): boolean {
-  return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(b));
+  return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(b))
+    || Object.values(graph.holders).some((h) => h.parent === id);
 }
 
 /** A block no other block contains. */

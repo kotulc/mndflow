@@ -54,19 +54,28 @@
 /* A system mark is the app's, not a definition's, so it reads in the app's own accent. */
 .stage > .legend .mark.stamp { color: var(--accent); }
 
-/* The way out of a fields diagram, in the top right-hand corner; a legend kept there moves down. */
-.stage > .mnd-close {
+/* The view toggle, contents or diagram, in the bottom right-hand corner; a legend kept there moves
+   up. */
+.stage > .mnd-views {
   position: absolute;
-  top: 8px;
+  bottom: 10px;
   right: 10px;
   z-index: 5;
-  padding: 2px 8px;
-  border: 1px solid var(--accent);
+  display: inline-flex;
+  border: 1px solid var(--border);
   border-radius: 2px;
-  background: var(--tint);
-  color: var(--accent);
+  background: var(--surface);
+}
+.stage > .mnd-views > button {
+  padding: 2px 10px;
+  border: 0;
+  background: none;
+  color: var(--muted);
   font: inherit;
   font-size: 11px;
   cursor: pointer;
 }
-.stage > .mnd-close ~ .legend.top { top: 36px; }
+.stage > .mnd-views > button + button { border-left: 1px solid var(--border); }
+.stage > .mnd-views > button[aria-pressed="true"] { background: var(--tint); color: var(--accent); }
+.stage > .mnd-views > button:disabled { opacity: 0.4; cursor: default; }
+.stage > .mnd-views ~ .legend.bottom { bottom: 40px; }

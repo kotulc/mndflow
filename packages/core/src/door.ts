@@ -6,7 +6,8 @@ import { fold } from "./fold";
 import { can_hold, covers, is_grid, overlaps } from "./holders";
 import { subtree } from "./tree";
 import { new_id } from "./ids";
-import { ROOT, type Graph, type Id, type Log, type Mutation, type Span, type Step } from "./types";
+import { ROOT, type Graph, type Holder, type Id, type Log, type Mutation, type Span,
+         type Step } from "./types";
 
 export type Fault = {
   kind: "repaired" | "dropped";
@@ -153,6 +154,8 @@ function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
     taken.add(key);
   }
 
+  /** Merges inside the grid and apart; values that fit its extent, a schema that is a definition
+   *  and a whole cell size. One holder is mended in one write, so no mend undoes another. */
   for (const g of Object.values(graph.holders)) {
     const kept: Span[] = [];
     for (const s of g.merges ?? []) {
@@ -161,10 +164,13 @@ function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
       if (sane && !kept.some((k) => overlaps(k, s))) kept.push(s);
     }
     const bad = (g.merges ?? []).length - kept.length;
-    if (!bad) continue;
     const { merges: _gone, ...bare } = g;
-    say("dropped", `${plural(bad, "merge")} "${g.name ?? g.id}" could not hold`,
-        { op: "set_holder", holder: kept.length ? { ...g, merges: kept } : bare });
+    const merged = bad ? (kept.length ? { ...g, merges: kept } : bare) : g;
+    const mended = fitted(graph, merged);
+    if (mended === g) continue;
+    if (bad) say("dropped", `${plural(bad, "merge")} "${g.name ?? g.id}" could not hold`);
+    const said = mended === merged ? "" : `"${g.name ?? g.id}" said more of its cells than it holds`;
+    say("repaired", said, { op: "set_holder", holder: mended });
   }
 
   /** A holder is drawn in a layer, and goes where that layer is not there. */
@@ -283,6 +289,26 @@ export function say(faults: Fault[]): string {
   if (repaired) parts.push(`repaired ${repaired}`);
   if (dropped) parts.push(`could not read ${dropped}`);
   return parts.join(", ");
+}
+
+/** A holder with only the values, schema and cell size a grid of its extent can carry; the same
+ *  holder where it already carries only those. */
+function fitted(graph: Graph, g: Holder): Holder {
+  const { values, schema, size, ...rest } = g;
+  const grid = g.arrangement === "grid";
+  const strings = Array.isArray(values)
+    && values.every((row) => Array.isArray(row) && row.every((v) => typeof v === "string"));
+  const trimmed = grid && strings
+    ? values!.slice(0, g.rows).map((row) => row.slice(0, g.cols)) : undefined;
+  const whole = grid && !!size && [size.w, size.h].every((n) => Number.isInteger(n) && n > 0);
+  const named = grid && !!schema && !!graph.defs[schema];
+
+  const same = (values === undefined || (!!trimmed && trimmed.length === values.length
+    && trimmed.every((row, n) => row.length === values[n]!.length)))
+    && (schema === undefined || named) && (size === undefined || whole);
+  if (same) return g;
+  return { ...rest, ...(trimmed ? { values: trimmed } : {}), ...(named ? { schema } : {}),
+           ...(whole ? { size } : {}) };
 }
 
 function plural(n: number, word: string): string {

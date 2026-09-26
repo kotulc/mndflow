@@ -146,6 +146,19 @@
   background: color-mix(in oklch, var(--accent) 7%, var(--surface));
 }
 
+/* What a cell says where no block sits in it: two lines at most, cut off after. */
+.mnd-grid-value {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 4px 6px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--card-ink);
+}
+.mnd-grid-cell.header > .mnd-grid-value { font-weight: 700; }
+
 /* A merged cell is one cell, and its border says so. */
 .mnd-grid-cell.merged {
   border-color: color-mix(in oklch, var(--card-line) 42%, transparent);

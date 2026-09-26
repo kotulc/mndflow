@@ -56,7 +56,7 @@ function seen(p: NodeProps<BoxNode>): string {
     d.body ?? "",
     /** Read off the look, so no property is forgotten. */
     look_key(d.look),
-    d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(","),
+    d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}${c.value ?? ""}`).join(","),
     d.seats?.map((t) => `${t.id}${t.side}${t.at}`).join(","),
   ].join("|");
 }
@@ -168,11 +168,22 @@ export function dressed(look: Look) {
   };
 }
 
+/** How tall a line of a card's body is, and what a card spends above its body: its padding, and a
+ *  head with the divider under it where there is one. */
+const LINE = 16;
+const ABOVE = { head: 30, bare: 9 };
+
+/** How many lines of body a card of this height has room for; unknown until it is measured. */
+function room(height: number | undefined, head: boolean): number | undefined {
+  if (!height) return undefined;
+  return Math.max(1, Math.floor((height - (head ? ABOVE.head : ABOVE.bare)) / LINE));
+}
+
 /** The ordinary card: a container, a reference, a note, a lane or a cell.
  *
  *  A head — its name — and, under a divider, a compartment where its look asks for one: its fields,
  *  a line each, or its body, formatted. A card whose look hides its name is its body alone. */
-function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
+function CardNode({ id, data, selected, height }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
   /** The name always, the label where asked. */
@@ -222,7 +233,8 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
         </ul>
       ) : null}
       {/* What it says. */}
-      {data.body ? <Markdown className="mnd-body" text={data.body} /> : null}
+      {data.body
+        ? <Markdown className="mnd-body" text={data.body} lines={room(height, head)} /> : null}
       {/* Under the card rather than in it. */}
       {label === "below"
         ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
@@ -342,7 +354,10 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
               style={{ left: c.x, top: c.y, width: c.w, height: c.h }}
               onPointerEnter={(e) => {
                 if (e.buttons === 1 && from.current) pick(range(from.current, c));
-              }} />
+              }}>
+          {/* What the cell says, where no block sits in it. */}
+          {c.value ? <Inline className="mnd-grid-value" text={c.value} /> : null}
+        </span>
       ))}
     </span>
   );

@@ -3,7 +3,7 @@
 import { alias_of, block_members, children, covers, edge_base, edges_in, group_depth, holders_in,
          is_container, is_grid, is_group, is_header, is_holder, is_interface, is_note, label_of,
          layer_id,
-         members_of, stamps_of, role_of, shown_name,
+         members_of, schema_of, stamps_of, role_of, shown_name,
          type Graph, type Holder, type Id, type Relation, type Side, type Span } from "@mnd/core";
 import { at_seat, cell_box, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
@@ -134,12 +134,18 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   };
 }
 
-/** The cells a grid draws, placed inside its own box. */
+/** The cells a grid draws, placed inside its own box, each with what it says. */
 function lattice(graph: Graph, g: Holder): GridCell[] {
   const headed = new Set<string>();
+  const seated = new Set<string>();
   for (const b of block_members(graph, g.id)) {
+    if (b.cell) seated.add(`${b.cell.r},${b.cell.c}`);
     if (b.cell && is_header(b)) headed.add(`${b.cell.r},${b.cell.c}`);
   }
+  /** A schema heads the first line with its fields' names. */
+  const names = g.schema ? schema_of(graph, g.schema).map((f) => f.name) : null;
+  const said = (r: number, c: number) =>
+    seated.has(`${r},${c}`) ? undefined : names && r === 0 ? names[c] : g.values?.[r]?.[c];
   const out: GridCell[] = [];
   for (let r = 0; r < (g.rows ?? 0); r++) {
     for (let c = 0; c < (g.cols ?? 0); c++) {
@@ -147,8 +153,9 @@ function lattice(graph: Graph, g: Holder): GridCell[] {
       if (span && (span.r !== r || span.c !== c)) continue;
       const marks: Trait[] = ["cell"];
       if (span) marks.push("merged");
-      if (headed.has(`${r},${c}`)) marks.push("header");
-      out.push({ r, c, ...cell_box(g, r, c), marks });
+      if (headed.has(`${r},${c}`) || (names && r === 0)) marks.push("header");
+      const value = said(r, c);
+      out.push({ r, c, ...cell_box(g, r, c), marks, ...(value ? { value } : {}) });
     }
   }
   return out;
