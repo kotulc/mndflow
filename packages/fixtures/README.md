@@ -34,7 +34,7 @@ npm run typecheck -w @mnd/fixtures
 | `nested` | two trees, one nested two deep, one folder. Exercises the tree |
 | `related` | a chain and a fan, with a note and a boundary. What routing is tested on |
 | `interfaced` | two seated interfaces and a relationship running port to port. What `seat` and `wall` are proven on |
-| `gridded` | a grid with seated blocks and a header. What allocation and `chain` are proven on |
+| `gridded` | a grid whose left column heads its lanes, a reference to a block in each header. What allocation and `chain` are proven on |
 
 ## The files
 

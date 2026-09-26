@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { about_of, alias_of, children, config_of, def_named, def_of, is_interface, is_named,
          is_reference, may_hold, block_base, base_of,
-         packages, pinned_defs, relation_base, shelf_of, shelf_tree, shelvable, shipped, shown_name,
+         packages, pinned_defs, relation_base, shape_of, shelf_of, shelf_tree, shelvable, shipped, shown_name,
          type Act, type Definition, type Graph, type Id, type ShelfNode } from "@mnd/core";
 import { Icon, Name, NamingContext, known, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
@@ -77,8 +77,8 @@ type Mark = "leaf" | "folder" | "interface" | "reference" | "note" | "group" | "
 /** A library row before it is laid out: what it says, and what sits under it. */
 type Node = Omit<Row, "depth" | "kids" | "guides" | "named" | "alias"> & { under: Node[] };
 
-/** What the tree draws under a block: what it owns. A second appearance, a seat on its wall and a
- *  remark about it are none of them new content, and holders are not blocks at all. */
+/** What the tree draws under a block: what it owns, groups and grids among it. A second
+ *  appearance, a seat on its wall and a remark about it are none of them new content. */
 function under(graph: Graph, parent: Id | null) {
   return children(graph, parent)
     .filter((b) => !is_interface(b) && !is_reference(b) && base_of(graph, b.id) !== "note");
@@ -201,7 +201,7 @@ function tree_of(graph: Graph, folded: readonly Id[], library = false): Row[] {
       const icon = card_icon(graph, b.id);
       out.push({ ...(icon ? { icon } : {}), id: b.id, ref: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
                  named: is_named(graph, b.id), alias: alias_of(graph, b.id), of: "block",
-                 mark: base_of(graph, b.id) === "folder" ? "folder" : "leaf",
+                 mark: shape_of(graph, b.id) ?? (base_of(graph, b.id) === "folder" ? "folder" : "leaf"),
                  guides });
       if (!folded.includes(b.id)) walk(b.id, depth + 1, guides);
     });

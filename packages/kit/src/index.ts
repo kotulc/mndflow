@@ -5,7 +5,7 @@ export {
   type Arrangement, type Block, type BlockModule, type Components, type Definition,
   type Dir, type Field, type FieldDef, type File, type Flow, type Graph, type Id,
   type Package, type Point, type Relation, type Side,
-  type Cell, type HeaderRole, type Span, type ValueForm,
+  type Cell, type Grid, type HeaderRole, type Shape, type Span, type ValueForm,
   ARRANGEMENTS, BASE_PACKAGE, BLOCK_MODULES, ROOT, SCHEMA,
   empty_graph, new_id,
 } from "@mnd/core";
@@ -23,10 +23,10 @@ export { type Allowed, type Allows, type Expects, type Note, type NoteKind, type
 /** Reading a graph. Every derived answer the engine gives about one. */
 export {
   allocated_to, allocations_of, arrangement_of, at_cell, cell_of, children,
-  edge_base, edges_in, grid_of, head_of, heads, isa, is_container, is_grid, is_group,
-  is_header, is_holder, is_interface,
+  edge_base, edges_in, grid_of, head_of, heading, holders_in, isa, is_container, is_grid,
+  is_group, is_header, is_holder, is_interface, lattice_of,
   is_reference, is_top_block, layer_id, members_of, merge_at, base_of,
-  owner_of, path, region_of, shown_name, stands_for, subtree, would_head,
+  owner_of, path, region_of, shape_of, shown_name, stands_for, subtree,
 } from "@mnd/core";
 
 /** The floor. `base_graph()` is a fresh workspace with the base package in it. */

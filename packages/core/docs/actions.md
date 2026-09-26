@@ -18,19 +18,19 @@
 
 ## Actions
 
-Thirty-nine, two of them navigation.
+Forty-eight, two of them navigation.
 
 ### Blocks
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `create` | makes a new block in a layer, where you pointed if you did | layer | name?, parent?, type?, spot? | `add_block` / `set_holder` |
+| `create` | makes a new block in a layer, where you pointed if you did | layer | name?, parent?, type?, spot? | `add_block` |
 | `delete` | removes blocks and everything they own, or relationships | block, edge, selection | ids | `delete_block` / `delete_edge` |
 | `rename` | changes what a block or a relationship is called | block, edge | id, name | `update_block` / `set_def` |
 | `retype` | sets which definition a block or a relationship names | block, edge | ids, type | `update_block` / `update_edge` |
 | `describe` | writes the body text of a block | block | id, body | `set_body` |
 | `move` | puts blocks under a different parent, in the place you dropped them | block, selection | ids, parent, before?, spot? | `move_block` |
-| `refer` | places a stand-in for a block, a definition or a package into this layer | layer | target, type?, spot? | `add_block{of}` |
+| `refer` | places a stand-in for a block, a definition or a package into this layer | layer | target, type?, spot?, group?, at? | `add_block{of}` (+ `set_group` + `seat_cell`) |
 | `source` | says what a block stands in for outside the workspace, or gives it back | block | id, uri? | `set_source` |
 | `tag` | puts words on a block or a relationship to say what it is like | block, edge, selection | ids, tags | `set_tags` |
 | `look` | sets how this draws, or what it asks — on a block, a line or a definition | block, edge, selection | ids, key, name, value? | `set_look` / `set_def` |
@@ -38,11 +38,13 @@ Thirty-nine, two of them navigation.
 
 **`move` absorbs nesting, filing and ordering** — they differ only in where the parent comes from: a sibling, the layer above, a folder, or the workspace. **A selection moves in one step.**
 
-**Leaving a layer leaves everything about where you were in it.** A place and a holder's membership are both facts about the layer that held the block, so a move out of one drops them — and **a boundary whose last member leaves goes with it**.
+**Leaving a layer leaves everything about where you were in it.** A place and a holder's membership are both facts about the layer that held the block, so a move out of one drops them. **A holder has no lifetime of its own**: emptied, it stays until it is deleted.
 
-**`create` makes a holder where the type names one.** `group` and `grid` are holder shapes, so `create` writes a `set_holder` rather than an `add_block`; everything else is a block.
+**`create` makes a holder the way it makes any block.** A group or a grid is a block whose definition holds; a grid it makes draws two by two until somebody says an extent.
 
-**`retype` keeps a kind a kind, and `block`, `folder` and `note` are one kind.** Those three are the open family and a block moves among them freely; every other kind carries something a change of type cannot invent, so it is fixed when the block is made. A run is retyped only to relation definitions of its own base, and a block never names a relation definition. A base or a default is stored as plain.
+**`refer` with `group` and `at` seats the stand-in in a cell** — which is how a header is given a block to head.
+
+**`retype` keeps a kind a kind, and `block`, `folder`, `note`, `group` and `grid` are one kind.** Those five are the open family and a block moves among them freely; every other kind carries something a change of type cannot invent, so it is fixed when the block is made. A run is retyped only to relation definitions of its own base, and a block never names a relation definition. A base or a default is stored as plain.
 
 **`rename` on a line files a new definition over the one it follows**, and moves the line onto it — the same gesture a block's *definition* row makes, since a line is named by its definition and never for itself. The new one extends what the line followed and keeps a label of its own, while a label that only repeated the old name follows the new one. **A definition is renamed in place** with `rename_def`, where every usage reads the new name. A name already taken in the group is refused.
 
@@ -94,18 +96,23 @@ Thirty-nine, two of them navigation.
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `group` | draws a boundary round what is selected, or a grid over a region | layer, selection | members?, into?, rows?, cols?, seats?, spot? | `set_holder` + `set_group`… |
+| `group` | draws a boundary round what is selected, or a grid over a region | layer, selection | members?, into?, rows?, cols?, seats?, type?, spot? | `add_block` + `set_grid` + `set_group`… |
 | `leave` | takes a block out of the group it is in | block, selection | ids | `set_group` |
-| `seat` | puts a block in a cell of a grid, or takes it out of one | block | id, group?, at? | `set_group` + `seat_cell` |
-| `header` | promotes a seated block to head the line it sits in | block | id?, clear? | `set_header` |
-| `fill` | puts a new block in every empty cell of a grid | block, cell | group? | `add_block` + `set_group` + `seat_cell`… |
-| `insert` · `remove` | adds or takes away a row or a column at an index | block, cell | group?, way, at? | `set_holder` + `seat_cell`… |
-| `merge` | spans the cells you picked, or splits the merged one you point at | cell | group?, at?, into? | `set_holder` |
-| `transpose` | turns a grid on its side — rows become columns | block, cell | group? | `set_holder` + `seat_cell`… |
+| `seat` | puts a block in a cell of a grid, or takes it out of the grid | block | id, group?, at? | `set_group` + `seat_cell` |
+| `heads` | adds a header row or column to a grid, or takes it away | block, cell | group?, way, on? | `set_grid` + `seat_cell`… |
+| `label` | writes a plain value in a cell of a grid, or clears it | cell | group?, at?, text? | `set_grid` |
+| `fill` | puts a new block in every empty body cell of a grid | block, cell | group? | `add_block` + `set_group` + `seat_cell`… |
+| `insert` · `remove` | adds or takes away a row or a column at an index | block, cell | group?, way, at? | `set_grid` + `seat_cell`… |
+| `merge` | spans the cells you picked, or splits the merged one you point at | cell | group?, at?, into? | `set_grid` |
+| `transpose` | turns a grid on its side — rows become columns | block, cell | group? | `set_grid` + `seat_cell`… |
 | `chain` | links every filled cell of a grid, in the order it reads | block, cell | group?, dir?, type? | `link_blocks`… |
 | `note` | writes a note about a block, tied to it | block | about, text, spot?, w?, h? | `add_block` + `set_body` + `link_blocks` |
 
-**`group` is one act with different arguments.** With `into` it adds to a holder already there; without it, an extent makes a **grid** and no extent makes a **boundary**. **A group goes with its last member**, and is empty only when it was made empty.
+**`group` is one act with different arguments.** With `into` it adds to a holder already there; without it, it makes one — `type` names the definition, else an extent makes a **grid** and no extent a **boundary**, and the definition's capability has to agree. **Only groups nest**: a grid joins nothing, and holds no holder.
+
+**A grid's member always sits in a cell.** `group` seats each where it was swept, else in the nearest free body cell, and one with nowhere to sit stays out. Whatever `remove`, `merge`, `heads` or a smaller extent leaves without a cell **leaves the grid** — never deleted, never a member with nowhere to be.
+
+**`heads` adds or removes a line rather than converting one.** Adding a header row inserts a new top row, so nothing seated moves; taking it away removes that row and sends what it held to the body. A header cell holds a label or a reference only — `seat` refuses anything else there, and a block dropped on one is referred to instead.
 
 **`chain` reads in the standard reading direction** — left to right, then down — and runs forward unless told.
 
@@ -154,9 +161,9 @@ Thirty-nine, two of them navigation.
 |---|---|---|---|---|
 | `arrange` | sets how the layer lays out, and tidies it into that shape | layer | arrangement, at? | `set_arrangement` + `place_block`… |
 
-**One setting, two values** — `free` and `grid`. Hand placement, or auto-layout onto the lattice.
+**One setting, two values** — `free` and `auto`. Hand placement, or auto-layout onto the lattice.
 
-**Arrangement is model data, not a display preference.** **The tidy comes in rather than being worked out here** — it is written on the way *out* of `grid`, so `free` keeps where the grid put everything. **Moving anything by hand on a `grid` layer sets it `free`**, the grid's positions written first, in the same step.
+**Arrangement is model data, not a display preference.** **The tidy comes in rather than being worked out here** — it is written on the way *out* of `auto`, so `free` keeps where the layout put everything. **Moving anything by hand on an `auto` layer sets it `free`**, the layout's positions written first, in the same step.
 
 ### One log, so nothing routes
 
@@ -175,7 +182,7 @@ Thirty-nine, two of them navigation.
 
 **One gesture, one step.** A drag or a drop can come to several writes — a place and a `group`, a `leave` and a place, an `arrange` and a place. The stage works out the list and the app runs it inside `session.batch`, so all of it undoes as one.
 
-**A drop resolves rather than adding an adjustment of its own.** A card dropped on a card is `move`; dropped in a cell it is `seat`; dropped in or out of a boundary it is `group` or `leave`; a grid's corner dragged is `group` with a new extent; a relationship's end let go on another block is `relink`.
+**A drop resolves rather than adding an adjustment of its own.** A card dropped on a card is `move`; dropped in a cell it is `seat`, and on a header cell `refer`; dropped in or out of a boundary it is `group` or `leave`; a grid's corner dragged is `group` with a new extent; a relationship's end let go on another block is `relink`.
 
 
 ## Gestures
@@ -191,18 +198,20 @@ Thirty-nine, two of them navigation.
 | click | card, boundary, relationship | selection |
 | click | frame, empty | clears |
 | click | a grid's cell | picks the cell — an address, held beside the selection rather than in it |
+| double-click | a grid's cell | `label`, asking for the value |
 | double-click | card, its border, a seat | `open`; on a reference, `reveal` |
 | double-click | name, note | rename, in place |
 | double-click | empty outside the frame | `open`, with nothing to open |
 | drag | card → another card | `move` |
 | drag | card, boundary or selection | `place`, joining or leaving whatever it lands in |
 | drag | card → a grid's cell | `seat` |
+| drag | card → a header cell | `refer`, seated there. **A header cell is its own target, read from the pointer** — a header line is one unit across, narrower than any card |
 | drag | a relationship's end → a block | `relink` |
 | drag | seat in the room's wall | `seat` |
 | drag | card corner | `size` |
 | drag | a grid's corner | `group`, its extent read off in whole cells |
 | drag | empty | selection box |
-| drop | explorer row | `refer`; a definition makes a block of it |
+| drop | explorer row | `refer`, seated where it lands on a cell; a definition makes a block of it |
 
 ### Right button
 
@@ -234,7 +243,7 @@ Thirty-nine, two of them navigation.
 
 `layer` · `display` · `relations`
 
-- **`layer`** is how the layer places what it holds — `free` or `grid`. A setting, and it writes to the log.
+- **`layer`** is how the layer places what it holds — `free` or `auto`. A setting, and it writes to the log.
 - **`display`** is what the drawing shows rather than what it holds: the frame, the guides, whether interfaces draw. Nothing here writes a mutation.
 - **`relations`** is what a right drag and a `chain` draw: *straight*, *directed*, or a pinned line definition. **No *tie*** — a tie is what the ends make.
 

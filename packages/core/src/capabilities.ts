@@ -1,9 +1,9 @@
 /** What a block may do, and what its values are asked for. `allows` is refused at the gesture;
  *  `expects` is only ever advice. */
 
-import { base_of, def_of, isa } from "./defs";
+import { base_of, def_of, isa, outside } from "./defs";
 import { children, is_interface, subtree } from "./tree";
-import type { Components, Flow, Graph, Id } from "./types";
+import type { Components, Flow, Graph, Id, Shape } from "./types";
 
 export type NoteKind = "required" | "ends" | "holds" | "ports" | "degree" | "match";
 
@@ -21,12 +21,19 @@ export type Range = { min?: number; max?: number };
  *  Absent is not this — it means nobody said, and the chain answers instead. */
 export type Allowed = boolean | Id[];
 
+/** Which holder a usage is, or `none` to say it is not one. Absent lets the chain answer. */
+export type Holding = Shape | "none";
+
+export const HOLDINGS: readonly Holding[] = ["none", "group", "grid"];
+
 /** What may attach to or be held by a usage. Refused when a gesture would break it. */
 export type Allows = {
   /** Whether interfaces may be seated on its walls. */
   ports?: Allowed;
   /** What it may own as children. */
   holds?: Allowed;
+  /** Whether it holds blocks on its own layer, and which way: a group or a grid. */
+  holder?: Holding;
   /** What a holder may take as members. */
   members?: Allowed;
   /** How many relationships may meet a usage, counted separately. */
@@ -67,6 +74,15 @@ export function expects_of(graph: Graph, id: Id | undefined): Expects {
   return merged(layers_of(graph, id, "expects", read_expects));
 }
 
+/** A definition's capabilities split in two: what its own word states — the workspace's, since
+ *  nothing from outside is written — and what the rest of its chain would give it without that. */
+export function allows_split(graph: Graph, def: Id): { own: Allows; inherited: Allows } {
+  const chain = isa(graph, def);
+  const mine = !!chain[0] && !outside(chain[0]);
+  return { own: mine ? read_allows(chain[0]!.components) : {},
+           inherited: merged(chain.slice(mine ? 1 : 0).map((d) => read_allows(d.components))) };
+}
+
 /** Nearest first, so the first declaration of each key is the one in force. */
 function merged<T extends object>(layers: T[]): T {
   const out = {} as T;
@@ -96,6 +112,8 @@ function read_allows(components: Components | undefined): Allows {
     const said = allowed(a[key]);
     if (said !== undefined) out[key] = said;
   }
+
+  if (HOLDINGS.includes(a["holder"] as Holding)) out.holder = a["holder"] as Holding;
 
   const degree = a["degree"];
   if (degree && typeof degree === "object") {

@@ -7,8 +7,8 @@
  *  keeps its id, so a pick on one is a pick on the block it is — or a line of a grid the schema
  *  heads, drawn as a card for as long as the diagram is. */
 
-import { children, holders_in, schema_def, schema_of, type Block, type Graph, type Holder, type Id,
-         type Relation } from "@mnd/core";
+import { children, holders_in, lattice_of, schema_def, schema_of, type Block, type Graph,
+         type Id, type Relation } from "@mnd/core";
 import { size_of, snap, GAP } from "./size";
 
 /** What every card in the diagram asks of its look: its fields, listed. */
@@ -34,15 +34,13 @@ const ACROSS = 4;
 export function fields_graph(graph: Graph, layer: Id): Graph | null {
   const def = schema_def(graph, layer);
   const uses = def ? [...children(graph, layer).filter((b) => b.type === def),
-                      ...holders_in(graph, layer).filter((h) => h.schema === def)
+                      ...holders_in(graph, layer).filter((h) => lattice_of(graph, h.id)?.schema === def)
                         .flatMap((grid) => lines(graph, grid, def))] : [];
   if (!def || !uses.length) return null;
   const top = `${CLASS}${def}`;
   const blocks: Record<Id, Block> = { ...graph.blocks };
   /** Whatever else the layer held stands aside while the diagram is drawn. */
   for (const b of children(graph, layer)) delete blocks[b.id];
-  const holders = Object.fromEntries(Object.entries(graph.holders)
-    .filter(([, h]) => h.parent !== layer));
   blocks[layer] = { ...blocks[layer]!, arrangement: "free" };
   blocks[top] = { id: top, parent: layer, of: def, name: graph.defs[def]!.name, order: 0,
                   looks: CLASS_LOOK };
@@ -55,7 +53,7 @@ export function fields_graph(graph: Graph, layer: Id): Graph | null {
     edges[line] = { id: line, from: use.id, to: top, type: "line", dir: "forward",
                     looks: INSTANCE };
   });
-  const drawn: Graph = { ...graph, blocks, edges, holders };
+  const drawn: Graph = { ...graph, blocks, edges };
   return { ...drawn, blocks: placed(drawn, top, uses.map((use) => use.id)) };
 }
 
@@ -66,9 +64,9 @@ export function class_def(id: Id): Id | null {
 
 /** A grid's lines under its header, each as a block of the schema: named by its first cell, and
  *  carrying a value per field. */
-function lines(graph: Graph, grid: Holder, def: Id): Block[] {
+function lines(graph: Graph, grid: Block, def: Id): Block[] {
   const fields = schema_of(graph, def);
-  return (grid.values ?? []).slice(1).map((row, n) => ({
+  return (lattice_of(graph, grid.id)!.values ?? []).slice(1).map((row, n) => ({
     id: `${grid.id}:${n + 1}`, parent: grid.parent, type: def, name: bare(row[0] ?? ""),
     fields: fields.map(({ name, form }, c) => ({ name, form, value: row[c] ?? "" })),
   }));

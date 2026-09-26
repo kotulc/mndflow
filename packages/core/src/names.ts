@@ -1,15 +1,15 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
 import { base_of, def_of, edge_base, outside, schema_of } from "./defs";
-import { holders_in } from "./holders";
+import { holders_in, shape_of } from "./holders";
 import { children, is_container, stands_for } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
 
-/** The word each base reads as when nothing is named; a boundary has none. */
+/** The word each base reads as when nothing is named. */
 const WORD: Record<string, string> = {
   block: "Block", folder: "Folder", interface: "Interface", reference: "Reference",
-  group: "", grid: "", note: "Note",
+  group: "Group", grid: "Grid", note: "Note",
 };
 
 export function kind_word(graph: Graph, b: Block): string {
@@ -26,18 +26,15 @@ export const ALIAS_LETTER: Record<string, string> = {
   group: "G", grid: "D", note: "N", relation: "L",
 };
 
-/** Which counter an element draws its handle from: its base, so a folder still runs under F and a
- *  holder under the shape it draws as. */
+/** Which counter an element draws its handle from: its base, so a folder still runs under F. */
 export function alias_kind(graph: Graph, id: Id): string {
   if (graph.edges[id]) return "relation";
-  const held = graph.holders[id];
-  if (held) return held.arrangement === "grid" ? "grid" : "group";
   return base_of(graph, id);
 }
 
 /** An element's handle while it is unnamed, or always when asked. */
 export function alias_of(graph: Graph, id: Id, always = false): string {
-  const held = graph.blocks[id] ?? graph.holders[id] ?? graph.edges[id];
+  const held = graph.blocks[id] ?? graph.edges[id];
   if (!held || held.alias === undefined) return "";
   const named = is_named(graph, id);
   if (!always && named) return "";
@@ -59,8 +56,6 @@ export function next_alias(graph: Graph, kind: string): number {
 export function is_named(graph: Graph, id: Id): boolean {
   const e = graph.edges[id];
   if (e) return !!e.name?.trim() || !!e.type;
-  const held = graph.holders[id];
-  if (held) return !!held.name?.trim();
   const b = graph.blocks[id];
   if (!b) return false;
   /** A definition and a package both carry a name of their own. */
@@ -73,9 +68,6 @@ export function is_named(graph: Graph, id: Id): boolean {
 
 /** What a thing is called, and only that. */
 export function shown_name(graph: Graph, id: Id): string {
-  /** A holder draws the name somebody gave it, and nothing where nobody did. */
-  const held = graph.holders[id];
-  if (held) return held.name?.trim() ?? "";
   const b = graph.blocks[id];
   if (!b) return graph.edges[id] ? label_of(graph, id) || edge_base(graph, id) : "missing";
   if (b.of) {
@@ -89,7 +81,7 @@ export function shown_name(graph: Graph, id: Id): string {
   return named(graph, b);
 }
 
-/** A block's own name, or its kind word; a boundary's is blank. */
+/** A block's own name, or its kind word. */
 function named(graph: Graph, b: Block): string {
   return b.name?.trim() || kind_word(graph, b);
 }
@@ -113,14 +105,14 @@ function shipped_name(name: string): boolean {
  *  own over it with `card.icon`; this is what it draws when nobody has. */
 export type Role = "block" | "folder" | "reference" | "interface" | "group" | "grid" | "note";
 
-/** Every base that draws as itself. **A holder's two are here as well**: a block may name one,
- *  and when it does it should wear that mark rather than fall back to the plain card's. */
+/** Every base that draws as itself. */
 const ROLES: readonly string[] = ["block", "folder", "reference", "interface", "note",
                                   "group", "grid"];
 
+/** A block that holds wears the mark of its shape, whatever kind it descends from. */
 export function role_of(graph: Graph, id: Id): Role {
-  const held = graph.holders[id];
-  if (held) return held.arrangement === "grid" ? "grid" : "group";
+  const shape = shape_of(graph, id);
+  if (shape) return shape;
   const base = base_of(graph, id);
   return ROLES.includes(base) ? base as Role : "block";
 }
@@ -152,7 +144,7 @@ export function schema_def(graph: Graph, id: Id): Id | null {
   const b = graph.blocks[id];
   if (!b) return null;
   return own(b.type) ?? children(graph, id).map((k) => own(k.type)).find(Boolean)
-    ?? holders_in(graph, id).map((h) => own(h.schema)).find(Boolean) ?? null;
+    ?? holders_in(graph, id).map((h) => own(h.grid?.schema)).find(Boolean) ?? null;
 }
 
 /** What a card is stamped with: what it stands in for, alone, or else what describes it. A

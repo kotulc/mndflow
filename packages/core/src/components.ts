@@ -246,6 +246,8 @@ const allows: Component = {
       const wrong = words(`allows.${key}`, said);
       if (wrong) return wrong;
     }
+    const holder = one_of("allows.holder", config["holder"], ["none", "group", "grid"]);
+    if (holder) return holder;
     const ends = config["ends"];
     if (ends !== undefined) {
       if (!ends || typeof ends !== "object") return "`allows.ends` has to be two lists of names";
@@ -260,7 +262,7 @@ const allows: Component = {
       const wrong = stray("allows.degree", degree as Settings, ["in", "out"]);
       if (wrong) return wrong;
     }
-    return stray("allows", config, ["ports", "holds", "members", "degree", "ends"]);
+    return stray("allows", config, ["ports", "holds", "holder", "members", "degree", "ends"]);
   },
 };
 

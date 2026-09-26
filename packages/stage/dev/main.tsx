@@ -17,7 +17,7 @@ import "../src/groups.css";
 import "../src/stage.css";
 import "./dev.css";
 
-const HOWS: Arrangement[] = ["free", "grid"];
+const HOWS: Arrangement[] = ["free", "auto"];
 
 function Harness() {
   const [name, set_name] = useState<string>(NAMES[2]!);

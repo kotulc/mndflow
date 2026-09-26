@@ -74,7 +74,7 @@ Open any block and **find the thing it stands for in its body**: a definition's 
 
 | What that still needs | |
 |---|---|
-| **`look_of` takes a definition id** | it answers `PLAIN` for anything outside `graph.blocks` and `graph.holders`. The line half is done — `wire_of` takes either holder |
+| **`look_of` takes a definition id** | it answers `PLAIN` for anything outside `graph.blocks`. The line half is done — `wire_of` takes either holder |
 | **action checks read `graph.blocks[id]`** | a definition id is refused with a confusing message rather than a clear one |
 | **the row builder stops branching on `of`** | the explorer branches on `row.of` in twenty places. `offer(ctx)` already narrows by each action's scope, so giving a definition id a scope lets the registry narrow the menu |
 | **the tree ignores `card.alias`** | a row always shows an unnamed element's handle, whatever its card says |
@@ -94,7 +94,7 @@ Type a few words into the explorer and **have what you are looking for come back
 | **where it lives** | first control in the explorer bar, under the hamburger the options rail used to wear. It may end up a layer over the panel rather than part of it |
 | **what it reads** | name, type and label, then body content. **Relevance is one order**, not four lists — a name match outranks a body match, and how far is part of the design |
 | **what a result is** | a card: the element's icon and its name in bold, and under it the properties that matched, so a hit says *why* it is a hit |
-| **what it spans** | blocks, definitions, relations and holders. Whether packages and their definitions are in by default is open |
+| **what it spans** | blocks — holders among them — definitions and relations. Whether packages and their definitions are in by default is open |
 
 **Open:** whether relevance is scored or merely ordered; whether a result is picked, revealed or opened in the tray; what happens to a term when the graph changes under it; and whether this is the same machinery as the terminal's `search`, which already exists and fetches packages.
 
@@ -150,7 +150,7 @@ Type a few words into the explorer and **have what you are looking for come back
 | **what happened** | `look_of` asked `"type" in b` to tell a block from a holder. **A block naming no definition carries no `type` key at all**, so it failed the test and was read as a holder — called `grid` where it carried a layer `arrangement`, `group` otherwise |
 | **how long it hid** | since the field became optional. `look.kind` is written on a card only where a definition asks for the label, and no sample asked; nothing else read it |
 | **what surfaced it** | the legend, which puts every kind word in one list. Two rows read *group* and *grid* against a reference's mark and a block's, and the real *block* and *reference* rows were missing — swallowed into them |
-| **the rule** | **key presence is not a type discriminator.** Where two shapes share a lookup, ask the graph which one it is — `graph.blocks[id]` against `graph.holders[id]` — never whether the object happens to carry a field. An optional field makes the test wrong for the commonest case, so it reads as correct right up until something looks |
+| **the rule** | **key presence is not a type discriminator.** Where two shapes share a lookup, ask the graph which one it is — which record holds the id, or what its definition says — never whether the object happens to carry a field. An optional field makes the test wrong for the commonest case, so it reads as correct right up until something looks |
 
 **A green suite said nothing**: 372 tests and a clean typecheck, across two rounds of driving. The synthetic seed written to exercise the legend gave every block a type, so it never took the path. The extended sample did, on the first draw.
 
@@ -161,8 +161,8 @@ Type a few words into the explorer and **have what you are looking for come back
 | | |
 |---|---|
 | **two names for one lattice** | `UNIT` is the measure and a `CELL` is a block plus its air. Nothing outside a grid is quantised to a cell |
-| **a holder is two things to most callers** | ask `is_holder` / `holder_of`, never a pair of literal comparisons |
-| **key presence is not a type discriminator** | ask the graph which shape it is — `graph.blocks[id]` against `graph.holders[id]` — never whether the object carries a field. An optional field makes the test wrong for the commonest case |
+| **a holder is two things to most callers** | ask `is_holder` / `shape_of`, never a pair of literal comparisons — and never the base kind, since any definition may hold |
+| **key presence is not a type discriminator** | ask the graph which shape it is — which record holds the id, or what its definition says — never whether the object carries a field. An optional field makes the test wrong for the commonest case |
 | **two heads tables, on purpose** | `theme/heads.tsx` for React, `svg.ts` for the standalone export |
 | **stop inventing words where a convention exists** | `allocation` proved it |
 | **a word about a package's definition is read by its marker, never its id** | ask `default_for`, which finds the workspace definition whose `default` names that one. The extended sample's is `def_default`, speaking for `line` |
@@ -172,7 +172,7 @@ Type a few words into the explorer and **have what you are looking for come back
 | **the graph in hand is from before the act** | mint the id and pass it to the action rather than looking one up afterwards |
 | **a batch folds between calls** | inside `session.batch` each action sees the one before it, and all of them undo as one |
 | **no door migrations** | a schema change re-saves the samples; it never adds a repair |
-| **a group goes with its last member** | anything moving a member out may delete the group, and any relation on it |
+| **a grid's member always sits in a cell** | anything that takes a cell away takes the block out of the grid with it — `put` in the grid actions says so once |
 | **a control in a row stops the click** | every `Entry`, `Choice` and chip stops propagation, or the row is repicked under it |
 | **a row pick keeps its listing** | `browse` holds the listing a row was picked from |
 | **the draft is never listed** | tables read the graph without it |

@@ -5,20 +5,20 @@ import { empty_graph, type Definition, type Graph, type Package } from "@mnd/cor
 /** What every definition here says it came from. */
 export const PACKAGE = "base";
 
-function def(name: string, module: string | null, extend?: string,
+function def(name: string, module: string, extend?: string,
              card: Record<string, unknown> = {},
              style: Record<string, unknown> = {},
              allows?: Record<string, unknown>): Definition {
   return {
     id: name, from: PACKAGE, group: "block", name,
     extends: extend,
-    components: { ...(module ? { block: { module } } : {}), card, style,
+    components: { block: { module }, card, style,
                   ...(allows ? { allows } : {}) },
   };
 }
 
-/** Seven base kinds; every subtype extends one. `folder` and `note` are the plain block module
- *  with different configuration — what separates them is what they allow. **No `resource`**: a
+/** Seven base kinds; every subtype extends one. `folder`, `note`, `group` and `grid` are the plain
+ *  block module with different configuration — what separates them is what they allow. **No `resource`**: a
  *  block points at external content through `source`, so a kind for it said nothing more. */
 export const BASE: Definition[] = [
   def("folder", "block", undefined,
@@ -32,13 +32,13 @@ export const BASE: Definition[] = [
   /** An interface draws as its seat, so only its family matters. */
   def("interface", "interface", undefined,
       {}, { family: "secondary", border_width: "thin" }),
-  /** A holder is not a block: these two carry a look for one to draw with, and no module. */
-  def("group", null, undefined,
+  /** The two holders: a plain block whose capability gathers blocks on its own layer. */
+  def("group", "block", undefined,
       {}, { family: "muted", border_contrast: "faint", name_contrast: "faint" },
-      { ports: false }),
-  def("grid", null, undefined,
+      { holder: "group", ports: false }),
+  def("grid", "block", undefined,
       {}, { family: "muted", border_contrast: "faint", name_contrast: "faint" },
-      { ports: false }),
+      { holder: "grid", ports: false }),
   /** A remark: its own height, the amber every theme keeps for one, and it holds nothing. */
   def("note", "block", undefined,
       { height: "free" }, { family: "note", border_contrast: "strong", name_contrast: "faint",

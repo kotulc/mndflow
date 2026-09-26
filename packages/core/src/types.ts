@@ -13,10 +13,10 @@ export type Side = "top" | "right" | "bottom" | "left";
 /** An interface's decorative mark. */
 export type Flow = "in" | "out" | "both";
 
-/** How a layer places what it holds. */
-export type Arrangement = "free" | "grid";
+/** How a layer places what it holds: by hand, or laid out for you. */
+export type Arrangement = "free" | "auto";
 
-export const ARRANGEMENTS: readonly Arrangement[] = ["free", "grid"];
+export const ARRANGEMENTS: readonly Arrangement[] = ["free", "auto"];
 
 export type Dir = "none" | "forward" | "back" | "both";
 
@@ -37,11 +37,33 @@ export type FieldDef = Field & { unit?: string; choices?: string[]; many?: boole
 /** An address inside a group's grid. */
 export type Cell = { r: number; c: number };
 
-/** A merged region: a cell's extent, stated on the group and never on a cell. */
+/** A merged region: a cell's extent, stated on the grid and never on a cell. */
 export type Span = { r: number; c: number; rows: number; cols: number };
 
-/** Which line a header heads. Derived from where it sits, never stored — see `would_head`. */
+/** Which line a header heads. Derived from where it sits, never stored — see `head_of`. */
 export type HeaderRole = "row" | "col" | "both";
+
+/** The two ways a block may hold blocks on its own layer: a boundary round them, or a lattice of
+ *  cells. A capability its definition states — see `Allows.holder`. */
+export type Shape = "group" | "grid";
+
+/** A grid's lattice, held on the block that is one. */
+export type Grid = {
+  rows: number;
+  cols: number;
+  /** Which outer lines head the rest: the top row heads columns, the left column heads rows. */
+  head?: { top?: boolean; left?: boolean };
+  /** Cells with an extent of their own. */
+  merges?: Span[];
+  /** A plain value per cell, by row then column. A value is data, not a part: a cell seating a
+   *  block draws the block. */
+  values?: string[][];
+  /** The definition whose fields head its columns. Its first row reads their names and holds no
+   *  values. */
+  schema?: Id;
+  /** One cell's size in units, where its cells are not a card's. */
+  size?: { w: number; h: number };
+};
 
 /** A place on the workspace's shelf: a folder somebody made, or where one of its own definitions
  *  sits. The list's order is the explorer's. */
@@ -68,12 +90,12 @@ export type Block = {
    *  without anything breaking, and nothing here parses it. A within-part and a revision are the
    *  uri's own business (`#heading`, `@v2`): they were fields once, and nothing ever read them. */
   source?: string;
-  /** The group or grid this block sits in. */
+  /** The group or grid block this one sits in, on the same layer. Membership, never parenthood. */
   group?: Id;
-  /** Where in that group: replaces `x`/`y` for a gridded block. */
+  /** Where in that grid: replaces `x`/`y` for a gridded block. */
   cell?: Cell;
-  /** Whether this block heads the line it sits in. */
-  header?: boolean;
+  /** Its lattice, where its definition makes it a grid. */
+  grid?: Grid;
   x?: number;
   y?: number;
   w?: number;
@@ -99,44 +121,6 @@ export type Block = {
   fields?: Field[];
 };
 
-/** A holder: a boundary or a grid, drawn in one layer and holding blocks there without owning
- *  them. Not a block — it appears in no tree, nothing points at it, and deleting it loses an
- *  arrangement rather than any content. Which shape it is, is `arrangement`. */
-export type Holder = {
-  id: Id;
-  /** The layer it is drawn in. */
-  parent: Id;
-  name?: string;
-  /** The block this region stands for, which is what its members are allocated to. */
-  of?: Id;
-  /** The holder this one sits in, where it sits in one: a grid inside a boundary. */
-  group?: Id;
-  /** `free` sizes itself from its members; `grid` owns a corner and an extent. */
-  arrangement: Arrangement;
-  /** Grid only: its extent, which is what lets an empty one draw. */
-  rows?: number;
-  cols?: number;
-  /** Grid only: cells with an extent of their own. */
-  merges?: Span[];
-  /** Grid only: a plain value per cell, by row then column. A value is data, not a part: a cell
-   *  seating a block draws the block. */
-  values?: string[][];
-  /** Grid only: the definition whose fields head its columns. Its first row reads their names and
-   *  holds no values. */
-  schema?: Id;
-  /** Grid only: one cell's size in units, where its cells are not a card's. */
-  size?: { w: number; h: number };
-  /** Grid only: its corner. A boundary derives its bounds from what it holds. */
-  x?: number;
-  y?: number;
-  order?: number;
-  alias?: number;
-  looks?: Components;
-};
-
-/** Anything drawn in a layer and given a place on it: a block, or a holder. */
-export type Unit = Block | Holder;
-
 export type Relation = {
   id: Id;
   from: Id;
@@ -158,15 +142,14 @@ export type Relation = {
   /** No fields: what a connection says belongs to the blocks at its ends. */
 };
 
-/** Which block module the engine dispatches on. Three, because `folder` and `note` turned out to
- *  be the plain block with different configuration, and `group` and `grid` turned out not to be
- *  blocks at all. */
+/** Which block module the engine dispatches on. Three, because `folder`, `note`, `group` and
+ *  `grid` turned out to be the plain block with different configuration. */
 export type BlockModule = "block" | "reference" | "interface";
 
 export const BLOCK_MODULES: readonly BlockModule[] = ["block", "reference", "interface"];
 
-/** The shipped block bases. A kind is a definition, not a module: `folder` and `note` differ from
- *  `block` by what they configure and nothing else. **There is no `resource`**: every block may
+/** The shipped block bases. A kind is a definition, not a module: `folder`, `note`, `group` and
+ *  `grid` differ from `block` by what they configure and nothing else. **There is no `resource`**: every block may
  *  point at external content through `source`, so a kind for it said nothing the slot does not. */
 export const BASE_BLOCKS: readonly Id[] = [
   "block", "folder", "reference", "interface", "group", "grid", "note",
@@ -220,12 +203,11 @@ export type Graph = {
   edges: Record<Id, Relation>;
   defs: Record<Id, Definition>;
   packages: Record<Id, Package>;
-  holders: Record<Id, Holder>;
 };
 
 export function empty_graph(): Graph {
   return { root: ROOT, blocks: { [ROOT]: { id: ROOT, parent: null, name: "workspace", type: "folder" } },
-           edges: {}, defs: {}, packages: {}, holders: {} };
+           edges: {}, defs: {}, packages: {} };
 }
 
 /** The closed mutation set. A new sort of thing is a definition, not an op. */
@@ -252,10 +234,8 @@ export type Mutation =
   | { op: "set_source"; id: Id; source: string | null }
   | { op: "set_group"; id: Id; group: Id | null }
   | { op: "seat_cell"; id: Id; cell: Cell | null }
-  | { op: "set_header"; id: Id; header: boolean }
-  /** A holder, made or replaced whole: its shape is one thing, so it is written as one. */
-  | { op: "set_holder"; holder: Holder }
-  | { op: "drop_holder"; id: Id }
+  /** A block's lattice, written whole: its shape is one thing. Null gives it back. */
+  | { op: "set_grid"; id: Id; grid: Grid | null }
   | { op: "link_blocks"; edge: Relation }
   /** As `update_block`: only what is said changes, and `type: null` clears it. */
   | { op: "update_edge"; id: Id; name?: string; type?: Id | null }
@@ -305,4 +285,4 @@ export type File = {
   meta?: Record<string, unknown>;
 };
 
-export const SCHEMA = "2.0";
+export const SCHEMA = "3.0";

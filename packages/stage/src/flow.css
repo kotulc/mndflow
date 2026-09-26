@@ -238,6 +238,20 @@
   width: 100%;
 }
 .mnd-card.header .mnd-kind { display: none; }
+/* A header line is one unit across, so its card is its name alone, small. */
+.mnd-card.header { padding: 0 4px; font-size: 11px; }
+.mnd-card.header > .mnd-head { padding-right: 0; gap: 0; }
+.mnd-card.header > .mnd-role, .mnd-card.header > .mnd-marks, .mnd-card.header .mnd-alias {
+  display: none;
+}
+.mnd-card.header .mnd-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* The left column heads rows, and reads upright. */
+.mnd-card.header.upright { padding: 4px 0; }
+.mnd-card.header.upright > .mnd-head { writing-mode: vertical-rl; transform: rotate(180deg); }
 
 /* Which way a flow enters and leaves, on the interface that carries it. */
 .mnd-card.in, .mnd-seat.in { border-color: var(--accent); }

@@ -1,5 +1,5 @@
 {
-  "schema": "2.0",
+  "schema": "3.0",
   "id": "workspace",
   "graph": {
     "root": "ws",
@@ -89,6 +89,16 @@
       }
     },
     "blocks": {
+      "block_026ym9qvc4q2": {
+        "id": "block_026ym9qvc4q2",
+        "parent": "block_ew5quzihwe9g",
+        "name": "New Group",
+        "type": "group",
+        "alias": 1,
+        "order": 8,
+        "x": -72,
+        "y": -72
+      },
       "block_23iri9bhaf1y": {
         "id": "block_23iri9bhaf1y",
         "parent": "ws",
@@ -102,12 +112,72 @@
         "x": 120,
         "y": 192
       },
+      "block_2nzmkg5bbb6e": {
+        "id": "block_2nzmkg5bbb6e",
+        "parent": "ws",
+        "type": "grid",
+        "alias": 1,
+        "grid": {
+          "rows": 3,
+          "cols": 2
+        },
+        "order": 10,
+        "x": -240,
+        "y": 0
+      },
       "block_2y5dibibfcqa": {
         "id": "block_2y5dibibfcqa",
         "parent": "block_rj10qdx5jhn9",
         "name": "Test",
         "alias": 7,
         "order": 1
+      },
+      "block_356h5um4i1v2": {
+        "id": "block_356h5um4i1v2",
+        "parent": "block_lidqmag9iygj",
+        "type": "grid",
+        "alias": 2,
+        "grid": {
+          "rows": 3,
+          "cols": 2,
+          "merges": [
+            {
+              "r": 0,
+              "c": 0,
+              "rows": 3,
+              "cols": 1
+            }
+          ]
+        },
+        "order": 2,
+        "x": -216,
+        "y": 24
+      },
+      "block_4718pot6xuhs": {
+        "id": "block_4718pot6xuhs",
+        "parent": "block_xpgood1tsdl8",
+        "type": "grid",
+        "alias": 3,
+        "grid": {
+          "rows": 2,
+          "cols": 1
+        },
+        "order": 1,
+        "x": -216,
+        "y": -504
+      },
+      "block_4dxph88c5cyj": {
+        "id": "block_4dxph88c5cyj",
+        "parent": "block_rj10qdx5jhn9",
+        "type": "grid",
+        "alias": 4,
+        "grid": {
+          "rows": 2,
+          "cols": 2
+        },
+        "order": 5,
+        "x": 0,
+        "y": 312
       },
       "block_6mkkngq8lsy9": {
         "id": "block_6mkkngq8lsy9",
@@ -169,7 +239,7 @@
         "id": "block_ew5quzihwe9g",
         "parent": "block_pcm8tjwdotm2",
         "alias": 1,
-        "arrangement": "grid",
+        "arrangement": "auto",
         "order": 2,
         "x": -48,
         "y": -48
@@ -184,7 +254,6 @@
           "r": 0,
           "c": 0
         },
-        "header": true,
         "order": 12,
         "x": -144,
         "y": 168
@@ -247,7 +316,6 @@
         "parent": "block_d7b79oajslu5",
         "name": "resource A",
         "alias": 25,
-        "header": true,
         "looks": {
           "style": {
             "intensity": 0.5,
@@ -261,6 +329,15 @@
         "x": 120,
         "y": 0
       },
+      "block_i5g6cnrkmsa1": {
+        "id": "block_i5g6cnrkmsa1",
+        "parent": "block_xpgood1tsdl8",
+        "type": "group",
+        "alias": 2,
+        "order": 8,
+        "x": -168,
+        "y": -216
+      },
       "block_i5x9yytvukem": {
         "id": "block_i5x9yytvukem",
         "parent": "ws",
@@ -270,6 +347,21 @@
         "order": 6,
         "x": -384,
         "y": 24
+      },
+      "block_ka9vluxhbn5n": {
+        "id": "block_ka9vluxhbn5n",
+        "parent": "ws",
+        "name": "Outter",
+        "type": "group",
+        "alias": 3,
+        "looks": {
+          "style": {
+            "border_width": "thick"
+          }
+        },
+        "order": 9,
+        "x": -96,
+        "y": -288
       },
       "block_ktni5736gxyy": {
         "id": "block_ktni5736gxyy",
@@ -292,7 +384,7 @@
         "name": "hello world",
         "group": "block_2nzmkg5bbb6e",
         "alias": 11,
-        "arrangement": "grid",
+        "arrangement": "auto",
         "cell": {
           "r": 0,
           "c": 0
@@ -305,6 +397,15 @@
         "order": 4,
         "x": 48,
         "y": -480
+      },
+      "block_lisf1xwo11gs": {
+        "id": "block_lisf1xwo11gs",
+        "parent": "block_xpgood1tsdl8",
+        "type": "group",
+        "alias": 4,
+        "order": 10,
+        "x": 24,
+        "y": 288
       },
       "block_oud23vt3ldeo": {
         "id": "block_oud23vt3ldeo",
@@ -327,15 +428,25 @@
         "name": "block",
         "group": "block_2nzmkg5bbb6e",
         "alias": 4,
-        "arrangement": "grid",
+        "arrangement": "auto",
         "cell": {
           "r": 2,
           "c": 1
         },
-        "header": true,
         "order": 3,
         "x": -144,
         "y": -72
+      },
+      "block_phj6wc786dlo": {
+        "id": "block_phj6wc786dlo",
+        "parent": "ws",
+        "name": "Inner",
+        "group": "block_ka9vluxhbn5n",
+        "type": "group",
+        "alias": 5,
+        "order": 11,
+        "x": 0,
+        "y": -192
       },
       "block_pjwhm997jirl": {
         "id": "block_pjwhm997jirl",
@@ -346,7 +457,6 @@
           "r": 0,
           "c": 0
         },
-        "header": true,
         "order": 1,
         "x": -144,
         "y": 0
@@ -500,13 +610,25 @@
         "x": 96,
         "y": -48
       },
+      "block_x6q9cg79pk62": {
+        "id": "block_x6q9cg79pk62",
+        "parent": "block_xpgood1tsdl8",
+        "type": "grid",
+        "alias": 5,
+        "grid": {
+          "rows": 1,
+          "cols": 1
+        },
+        "order": 9,
+        "x": -48,
+        "y": 288
+      },
       "block_xpgood1tsdl8": {
         "id": "block_xpgood1tsdl8",
         "parent": "ws",
         "name": "parent",
         "alias": 15,
-        "arrangement": "grid",
-        "header": true,
+        "arrangement": "auto",
         "order": 2,
         "x": -240,
         "y": -288
@@ -524,7 +646,7 @@
         "parent": null,
         "name": "testspace",
         "type": "folder",
-        "arrangement": "grid",
+        "arrangement": "auto",
         "counters": {
           "block": 25,
           "folder": 3,
@@ -540,126 +662,6 @@
           "def_specialer",
           "def_test_block"
         ]
-      }
-    },
-    "holders": {
-      "block_026ym9qvc4q2": {
-        "id": "block_026ym9qvc4q2",
-        "parent": "block_ew5quzihwe9g",
-        "name": "New Group",
-        "alias": 1,
-        "arrangement": "free",
-        "order": 8,
-        "x": -72,
-        "y": -72
-      },
-      "block_2nzmkg5bbb6e": {
-        "id": "block_2nzmkg5bbb6e",
-        "parent": "ws",
-        "alias": 1,
-        "arrangement": "grid",
-        "cols": 2,
-        "order": 10,
-        "rows": 3,
-        "x": -240,
-        "y": 0
-      },
-      "block_356h5um4i1v2": {
-        "id": "block_356h5um4i1v2",
-        "parent": "block_lidqmag9iygj",
-        "alias": 2,
-        "arrangement": "grid",
-        "cols": 2,
-        "merges": [
-          {
-            "r": 0,
-            "c": 0,
-            "rows": 3,
-            "cols": 1
-          }
-        ],
-        "order": 2,
-        "rows": 3,
-        "x": -216,
-        "y": 24
-      },
-      "block_4718pot6xuhs": {
-        "id": "block_4718pot6xuhs",
-        "parent": "block_xpgood1tsdl8",
-        "group": "block_i5g6cnrkmsa1",
-        "alias": 3,
-        "arrangement": "grid",
-        "cols": 1,
-        "order": 1,
-        "rows": 2,
-        "x": -216,
-        "y": -504
-      },
-      "block_4dxph88c5cyj": {
-        "id": "block_4dxph88c5cyj",
-        "parent": "block_rj10qdx5jhn9",
-        "alias": 4,
-        "arrangement": "grid",
-        "cols": 2,
-        "order": 5,
-        "rows": 2,
-        "x": 0,
-        "y": 312
-      },
-      "block_i5g6cnrkmsa1": {
-        "id": "block_i5g6cnrkmsa1",
-        "parent": "block_xpgood1tsdl8",
-        "alias": 2,
-        "arrangement": "free",
-        "order": 8,
-        "x": -168,
-        "y": -216
-      },
-      "block_ka9vluxhbn5n": {
-        "id": "block_ka9vluxhbn5n",
-        "parent": "ws",
-        "name": "Outter",
-        "alias": 3,
-        "arrangement": "free",
-        "looks": {
-          "style": {
-            "border_width": "thick"
-          }
-        },
-        "order": 9,
-        "x": -96,
-        "y": -288
-      },
-      "block_lisf1xwo11gs": {
-        "id": "block_lisf1xwo11gs",
-        "parent": "block_xpgood1tsdl8",
-        "alias": 4,
-        "arrangement": "free",
-        "order": 10,
-        "x": 24,
-        "y": 288
-      },
-      "block_phj6wc786dlo": {
-        "id": "block_phj6wc786dlo",
-        "parent": "ws",
-        "name": "Inner",
-        "group": "block_ka9vluxhbn5n",
-        "alias": 5,
-        "arrangement": "free",
-        "order": 11,
-        "x": 0,
-        "y": -192
-      },
-      "block_x6q9cg79pk62": {
-        "id": "block_x6q9cg79pk62",
-        "parent": "block_xpgood1tsdl8",
-        "alias": 5,
-        "arrangement": "grid",
-        "cols": 1,
-        "order": 9,
-        "rows": 1,
-        "x": -48,
-        "y": 288
       }
     },
     "edges": {

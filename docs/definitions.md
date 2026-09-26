@@ -37,13 +37,13 @@
 | **block** | parts and references | the base kind. What there is, and how it is composed |
 | **reference** | nothing | a stand-in for a block living elsewhere. `of` is the whole of it |
 | **interface** | anything | a block seated on an edge. Also **port** |
-| **group** | any block on its layer | a boundary round a set — a swimlane, a region, a package boundary. A dashed rim, sized from what it holds |
-| **grid** | any block, one to a cell | a region of the lattice with an extent — rows, columns, merges. It owns its corner, because an empty one would otherwise be nothing |
+| **group** | any block on its layer, groups among them, as members | a boundary round a set — a swimlane, a region, a package boundary. A dashed rim, sized from what it holds. The plain block with `allows.holder: group` |
+| **grid** | any block but a holder, one to a cell, as members | a region of the lattice with an extent — rows, columns, merges. It owns its corner, because an empty one would otherwise be nothing. The plain block with `allows.holder: grid` |
 | **note** | text | a remark **about one block**, drawn as a card of its text and tied to that block |
 
-**Seven, in two families.** `block`, `folder` and `note` are **open**: they differ in what they are for, and a block is retyped among them freely. **There is no `resource`** — every block may carry a `source`, so a kind for external content named a slot rather than a sort of thing. `reference` and `interface` are **derived** — each carries a stored field a change of type cannot invent, so one is arrived at by making one — and `group` and `grid` name **holder shapes**, which are not blocks at all. **There is no doing/being split** — an action and a part are both `block`, and what separates them is the definition each names.
+**Seven, in two families.** `block`, `folder`, `note`, `group` and `grid` are **open**: they differ in what they are for and what they allow, and a block is retyped among them freely. **There is no `resource`** — every block may carry a `source`, so a kind for external content named a slot rather than a sort of thing. `reference` and `interface` are **derived** — each carries a stored field a change of type cannot invent, so one is arrived at by making one. **There is no doing/being split** — an action and a part are both `block`, and what separates them is the definition each names.
 
-**A group and a grid are two modules, not one with a setting.** They differ in what a member's place *is* — a boundary reads its bounds off wherever its members ended up, a grid says where each member goes — which is a difference in code and not in configuration. What they share is that both **hold**: a block sits in one by `group`, membership is flat, and either may hold the other.
+**Holding is a capability, not a kind.** `allows.holder` on a definition says `group`, `grid` or `none` — one at most — and inherits like every other capability, so any definition may hold and `group` and `grid` are only its presets. What a group and a grid differ in is what a member's place *is* — a boundary reads its bounds off wherever its members ended up, a grid says where each member goes. What they share is that both **hold**: a block sits in one by `group`, membership is flat, and **only groups nest** — a group may sit in a group, a grid sits in nothing.
 
 ## Where a definition comes from
 
@@ -89,9 +89,9 @@
 
 **A reference points at what it stands for, and nothing points back.** Upward is a derived query, asked of the graph, because a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
 
-**Membership is not parenthood.** A block's `parent` says which layer it is in; its `group` says which holder on that layer it sits in. The two are independent and only the first is the tree.
+**Membership is not parenthood.** A block's `parent` says which layer it is in; its `group` says which holder on that layer it sits in. The two are independent and only the first is the tree — **a holder is listed in it like any other block**, and its members stay under the layer they sit in.
 
-**A group goes with its last member** — by leaving, deletion or a move to another layer — and so does a holder that empties in turn, with any relationship on it. **A group is empty only when it was made empty.**
+**A holder has no lifetime of its own.** Emptied, it stays until it is deleted, and deleting it frees its members rather than taking them along. **A block that stops holding keeps what it held, dormant** — its members' `group` and `cell` wait for the capability to come back.
 
 
 ## Layers and looking
@@ -104,14 +104,14 @@
 | **selection** | what is picked within the layer. Set by clicking. **Cells are picked beside blocks, never among them** — a cell is an address rather than a thing, so it has no id to stand in a selection with |
 | **frame** / **wall** / **band** | the open layer's border seen from within, one of its four sides, and the dimmed margin outside it |
 | **card** | a block as drawn on the canvas |
-| **holder** | a boundary or a grid, asked as one question. **The pair is named once** — what a run may pass through, what a sweep picks, and what a drop must stay clear of are the same question about both |
-| **mark** | how a box reads, derived every draw from what a block holds or where it sits — `reference`, `missing`, `note`, `group`, `grid`, `interface`, `container`, `derived`, and on a grid's own cells `cell`, `header`, `merged`. Never a sort of thing |
+| **holder** | a block that holds — a boundary or a grid, asked as one question. **The pair is named once** — what a run may pass through, what a sweep picks, and what a drop must stay clear of are the same question about both |
+| **mark** | how a box reads, derived every draw from what a block holds or where it sits — `reference`, `missing`, `note`, `group`, `grid`, `interface`, `container`, `derived`, and on a grid's own cells `cell`, `header`, `upright`, `merged`. Never a sort of thing |
 
 ***View* is reserved, not retired.** It will name a data perspective — a table, a matrix, a sequence — over model data, and it comes back defined. It means nothing today, so it says nothing today.
 
 | Term | Means |
 |---|---|
-| **arrangement** | **one setting, two values.** `free` is hand placement, rounded to the lattice; `grid` is auto-layout, which ignores stored positions and works out a box for every loose block from the relationships and the sizes. **Model data, held on the layer and in the log**, because how a layer lays out is part of what the layer says. **The four directional values are gone** — they ranked by relationships and read as a picture of the graph rather than of the model |
+| **arrangement** | **one setting, two values.** `free` is hand placement, rounded to the lattice; `auto` is auto-layout, which ignores stored positions and works out a box for every loose block from the relationships and the sizes. **Model data, held on the layer and in the log**, because how a layer lays out is part of what the layer says. **The four directional values are gone** — they ranked by relationships and read as a picture of the graph rather than of the model |
 | **retained placement** | a block's placement is **kept** by every arrangement, and nothing discards it. A computed arrangement replaces where things *draw*, never what you placed, so returning to `free` returns your layout |
 | **seat** | a place on a border a line may meet |
 | **anchor** | a seat a relationship actually arrives at, with no block behind it. **One per arriving line, never one per side.** Placed by the engine until somebody drags it, and then drawn **solid** to say the position is theirs |
@@ -128,43 +128,39 @@
 |---|---|
 | **the lattice** | **one set of lines, and it is the backdrop dots.** `UNIT` is one square of the guides. Everything with a place of its own lands on it — a card, a note, a hand drop, a grid's corner — so a block the layer placed and a block seated in a grid line up |
 | **cell** | one block plus a gap of air on every side. **Derived, never a block**, and an empty cell is an address nobody claimed. Fixed: never variable, never auto-fit |
-| **address** | `cell: {r, c}`, **which rides on the block** — it replaces `x`/`y` for a seated block exactly as `side` and `at` replace them for an interface. An address with no `group` is nothing |
-| **extent** | a grid's `rows` and `cols`. What lets an empty grid draw at all, and what a dragged corner sets |
-| **merge** | a **cell's** extent, stated on the grid as a `Span` and never on a cell. A merged region is one cell: every address it covers answers with the span's box, and a block in one larger than itself **centres**, because blocks never resize |
+| **address** | `cell: {r, c}`, **which rides on the block** — it replaces `x`/`y` for a seated block exactly as `side` and `at` replace them for an interface. An address with no `group` is nothing, and **a grid's member always has one** |
+| **extent** | a grid's `rows` and `cols`. What lets an empty grid draw at all, and what a dragged corner sets. Unsaid, a grid draws two by two |
+| **merge** | a **cell's** extent, stated on the grid as a `Span` and never on a cell. A merged region is one cell: every address it covers answers with the span's box, and a block in one larger than itself **centres**, because blocks never resize. **A merge stays on one side of a header line** |
 | **footprint** | how many cells a block needs, derived from its size. **Distinct from a merge**, which is how big a cell is — the two do not collide |
-| **header** | a **promoted** block: it heads the line it sits in, fills its cell, and is drawn on a darker ground. One flag, `header`, and **which line is read from where it sits** |
-| **allocation** | **the SysML word.** Every block along the lines a header covers is *allocated to* it — swimlane, lane owner and tag are one construct under one standard name. **Derived and correct today; what reads it is a future story** |
+| **header line** | the top row or the left column, made to head the rest — `head.top`, `head.left`. **One unit across**: the top row one unit tall, the left column one unit wide with what it holds turned upright |
+| **header** | what a header cell holds: **a label, or a reference to a block** — never a block of its own. The block a reference stands for is what the line is allocated to |
+| **label** | a plain value in a cell, held on the grid in `values`. A cell seating a block draws the block |
+| **allocation** | **the SysML word.** Every body block along a line is *allocated to* what that line's header stands for — swimlane, lane owner and tag are one construct under one standard name — and to every holder it sits in. **Derived and correct today; what reads it is a future story** |
 | **row × column** | a pair of allocations. What makes an allocation matrix fall out later: rows one domain, columns another, a filled cell allocated to both |
 
-**Which line a header heads is its position, and the rule is one sentence.**
+**Which line a header heads is which line it is in**, and the rule is one sentence.
 
-| Sits at | Heads |
+| Sits in | Heads |
 |---|---|
-| `{0,0}` | **both** — the first row and the first column |
-| `{0,c}` | **its column** |
-| anywhere else | **its row** |
+| the corner, where both lines are headers | **the header lines** — never the body |
+| the top row | **its column** |
+| the left column | **its row** |
 
-**So promotion is one gesture with nothing to choose** — promote and demote, and the grid says which line it meant. Nothing is stored but *whether*, which is what keeps allocation honest: the allocation **is** the position, and there is no second field to fall out of step with it the moment a block is dragged.
+**A header line is added, not converted.** Adding one inserts a new first line, so nothing seated moves; taking it away removes that line and sends what it held to the body. **`transpose` turns the header lines with it**, so a row header becomes a column header.
 
-**`transpose` costs no header code at all.** A lane owner in column 0 lands in row 0 and becomes a column head, because that is what row 0 means. The grid says the same thing turned on its side.
+**A header labels a line, never a region** — extended by a merge, so a header spanning rows 1–3 heads all three. That is what keeps allocation composable: a cell sits in exactly one row and one column, so it has **at most two headers, one per axis**, which is the whole reason a matrix falls out of a pair of them.
 
-**A header claims its line from where it sits onward**, in the reading direction. A second header further along a row is a **subheader**: what follows it is allocated to both, and what came before it only to the first. The subheader is itself allocated to the header above it, which is what makes the nesting readable. **Only rows nest this way** while row 0 is the one line that heads columns.
-
-**A header labels a line, never a region** — extended by a merge, so a header spanning rows 1–3 heads all three. That is what keeps allocation composable: a cell sits in exactly one row and one column, so it has **at most two headers, one per axis**, which is the whole reason a matrix falls out of a pair of them. A scope reaching down and right instead would compose into an unordered pile, and *what is allocated to this* would need a nesting rule the model does not have.
-
-**The corner is the grid's subject.** A block at `{0,0}` heads both its lines, which are the other headers — so what it names is what the whole grid is about.
-
-**What this gives up, on purpose:** a header cannot label a column from anywhere but row 0, so a second tier of column headings is not sayable. The four things the grid is for — swimlane, lifeline, table, matrix — each want one header row and one header column, which is exactly what this is.
+**What this gives up, on purpose:** no subheaders, no second tier of headings, and the corner allocates nothing. The four things the grid is for — swimlane, lifeline, table, matrix — each want one header row and one header column, which is exactly what this is.
 
 **Allocation is derived from position and stored nowhere.** A block leaving the grid loses it, which is correct — the allocation *was* the position. Durable classification is a field somebody typed, a different thing with a different gesture.
 
-**Allocation has identity.** It is to the header's **block**, not to its label, so two grids headed by the same block mean the same thing and renaming it renames everywhere.
+**Allocation has identity.** It is to the **block** a header's reference stands for, not to its label, so two grids headed by the same block mean the same thing and renaming it renames everywhere.
 
 **Overlap is hard inside a grid and assistive outside.** A cell holds one block, which is what lets allocation be derived at all — two blocks sharing a cell and *what is allocated to this row* stops having an answer. Outside, a drop snaps and nudges clear, so `free` stays free.
 
 **Displacement is never destructive.** A layout gesture must not destroy model content — a block may be referenced from other layers, so nothing it holds is ever deleted.
 
-**Removing a line moves what it held rather than dropping it**, into the nearest spare cell, and drops the address only once the grid is genuinely full. Freed outright, a block landed at the foot of the layer with its relationships still attached, which reads as a line coming adrift. **Shrinking an extent and merging over an occupied cell do drop the address** — there the block is on its way out of the grid, not being shuffled within it.
+**Removing a line moves what it held rather than dropping it**, into the nearest spare cell on its own side of the header lines. **Whatever has nowhere to go leaves the grid** — a block is a member only while it sits in a cell. Shrinking an extent and merging over an occupied cell do the same.
 
 **A chain reads in the standard reading direction**: left to right, then down, row by row — under either arrangement, since neither carries a direction of its own.
 
@@ -272,12 +268,12 @@ The full enumeration is in actions.md.
 | the two element kinds: block, relationship | block modules, and the base definitions over them |
 | relation modules — `line`, `tie` | card layouts, style sets, routing strategies |
 | value forms — `text`, `number`, `flag`, `choice`, `link` | components, rule kinds |
-| arrangements — `free`, `grid` | definitions, which are data and cost nothing |
+| arrangements — `free`, `auto` | definitions, which are data and cost nothing |
 | mutation ops | the action set and the adjustments, which are small by judgement rather than closed by decree |
 | host ports — `storage`, `files`, `net`, `score` | |
 
 **A relation module is derived, not picked.** A relationship with a note at either end is a `tie`; anything else is a `line`. Direction is a setting on a line, never a module.
 
-**A header role is derived, not picked, so it is in neither column.** `row`, `col` and `both` are the three answers a position can give; nobody chooses one and nothing stores one.
+**A header role is derived, not picked, so it is in neither column.** `row`, `col` and `both` are the three answers a cell's line can give; nobody chooses one for a block and nothing stores one on it.
 
 **There is no closed set of element sorts.** That is the point of the rework: a new sort of thing is a definition, and a definition is data.

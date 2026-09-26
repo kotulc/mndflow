@@ -54,11 +54,32 @@
 /* A form picker keeps a short box; the name takes the rest. */
 .rows > .row.add > .line > select { flex: 0 0 8em; }
 .rows > .row > .line > .drop { flex: none; }
+/* A capability row: four answers in fixed columns, so every row's line up, and the picklist in
+   the last, taking what they leave and wrapping — the row grows with it rather than pushing the
+   answers along. Read only, and dimmed, until the row is limited. */
+.rows > .row.spread > .line {
+  display: grid;
+  grid-template-columns: repeat(4, 7.5em) minmax(0, 1fr);
+  align-items: start;
+  column-gap: 8px;
+}
+.rows > .row.spread > .line > .check { min-height: 22px; }
+.rows > .row.spread > .line > .picks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.rows > .row.spread > .line > .picks > .tag { flex: none; }
+.rows > .row.spread > .line > .picks > select { flex: 1 1 8em; }
+.rows > .row.spread > .line > .picks.read { opacity: 0.55; }
 .rows > .empty { color: var(--faint); font-size: 11px; font-style: italic;
                  margin: 0; padding: 4px 8px; }
 
 /* A ground, not a box, and it takes the whole answer column. */
 .rows > .row > .line > select,
+.rows > .row > .line > .picks > select,
 .rows > .row > .line > input {
   /* It takes what the row has left. */
   flex: 1 1 0;
@@ -76,10 +97,13 @@
 }
 
 .rows > .row > .line > select:hover,
+.rows > .row > .line > .picks > select:hover,
 .rows > .row > .line > input:hover { border-color: var(--divider); }
 .rows > .row > .line > select:focus,
+.rows > .row > .line > .picks > select:focus,
 .rows > .row > .line > input:focus { outline: none; border-color: var(--accent); }
 .rows > .row > .line > select:disabled,
+.rows > .row > .line > .picks > select:disabled,
 .rows > .row > .line > input:disabled { opacity: 0.5; }
 
 /* Every control takes the whole cell, so a column of them lines up. */

@@ -2,18 +2,22 @@
 
 import { DRAWN } from "./components";
 import { ordered_by } from "./defs";
-import { is_group, members_of } from "./holders";
 import { subtree } from "./tree";
-import { empty_graph, type Graph, type Id, type Log,
+import { empty_graph, type Block, type Graph, type Id, type Log,
          type Mutation, type Step } from "./types";
 
-/** A boundary whose last member just left is deleted. It is empty only when it was made empty,
- *  and a grid keeps its extent however little sits in it. */
-function emptied(graph: Graph, id: Id | undefined): void {
-  const g = id ? graph.holders[id] : undefined;
-  if (!g || !is_group(graph, g.id) || members_of(graph, g.id).length) return;
-  delete graph.holders[g.id];
-  emptied(graph, g.group);
+/** A block leaving its holder leaves its address there too. */
+function leave(b: Block): void {
+  delete b.group;
+  delete b.cell;
+}
+
+/** Members whose holder is gone, or is no longer on their layer, sit loose. */
+function freed(graph: Graph, holder: Id): void {
+  const h = graph.blocks[holder];
+  for (const b of Object.values(graph.blocks)) {
+    if (b.group === holder && (!h || h.parent !== b.parent)) leave(b);
+  }
 }
 
 /** Every relation with an end on this block goes with it. */
@@ -23,10 +27,9 @@ function drop_edges(graph: Graph, id: Id): void {
   }
 }
 
-/** The element an op names, whichever kind it is. A holder is placed, named, ordered, styled and
- *  deleted exactly as a block is, so the ops that do those reach it here rather than doubling. */
+/** The element an op names, block or relation. */
 function element(graph: Graph, id: Id) {
-  return graph.blocks[id] ?? graph.holders[id] ?? graph.edges[id];
+  return graph.blocks[id] ?? graph.edges[id];
 }
 
 /** Replay one mutation onto a graph, in place. */
@@ -38,15 +41,11 @@ function apply(graph: Graph, m: Mutation): void {
       graph.edges = structuredClone(m.graph.edges);
       graph.defs = structuredClone(m.graph.defs);
       graph.packages = structuredClone(m.graph.packages ?? {});
-      graph.holders = structuredClone(m.graph.holders ?? {});
       return;
     case "add_block":
       graph.blocks[m.block.id] = { ...m.block };
       return;
     case "update_block": {
-      /** A holder is renamed the same way; it carries no type to set. */
-      const h = graph.holders[m.id];
-      if (h) { if (m.name !== undefined) h.name = m.name; return; }
       const b = graph.blocks[m.id];
       if (!b) return;
       if (m.name !== undefined) b.name = m.name;
@@ -55,35 +54,29 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     }
     case "delete_block": {
-      /** A holder deleted by the ordinary gesture is dropped as one. */
-      if (graph.holders[m.id]) return apply(graph, { op: "drop_holder", id: m.id });
-      const holder = graph.blocks[m.id]?.group;
+      /** A holder that goes frees what it held rather than taking it along. */
       const gone = subtree(graph, m.id);
       for (const id of gone) {
         delete graph.blocks[id];
         drop_edges(graph, id);
       }
-      /** A layer that goes takes the holders drawn in it. */
-      for (const h of Object.values(graph.holders)) {
-        if (gone.includes(h.parent)) delete graph.holders[h.id];
-      }
-      emptied(graph, holder);
+      freed(graph, m.id);
       return;
     }
     case "move_block": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      /** Leaving a layer drops the block's place and group there. */
-      const holder = b.group;
+      /** Leaving a layer drops the block's place and group there, and what it held there. */
       if (b.parent !== m.parent) {
-        delete b.x; delete b.y; delete b.group; delete b.cell;
+        delete b.x; delete b.y;
+        leave(b);
       }
       b.parent = m.parent;
-      if (holder !== b.group) emptied(graph, holder);
+      freed(graph, m.id);
       return;
     }
     case "order_block": {
-      const b = graph.blocks[m.id] ?? graph.holders[m.id];
+      const b = graph.blocks[m.id];
       if (b) b.order = m.order;
       return;
     }
@@ -113,7 +106,7 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     }
     case "place_block": {
-      const b = graph.blocks[m.id] ?? graph.holders[m.id];
+      const b = graph.blocks[m.id];
       if (b) { b.x = m.x; b.y = m.y; }
       return;
     }
@@ -139,53 +132,25 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     }
     case "set_group": {
-      /** A holder joins a boundary the same way, but seats in no cell. */
-      const h = graph.holders[m.id];
-      if (h) {
-        const held = h.group;
-        if (m.group === null) delete h.group; else h.group = m.group;
-        if (held !== h.group) emptied(graph, held);
-        return;
-      }
       const b = graph.blocks[m.id];
       if (!b) return;
-      /** An address is the group's, so leaving one drops it. */
-      const was = b.group;
-      if (m.group === null) { delete b.group; delete b.cell; delete b.header; }
-      else {
-        if (b.group !== m.group) { delete b.cell; delete b.header; }
-        b.group = m.group;
-      }
-      if (was !== b.group) emptied(graph, was);
+      /** An address is the grid's, so leaving one drops it. */
+      if (m.group === null) leave(b);
+      else if (b.group !== m.group) { delete b.cell; b.group = m.group; }
       return;
     }
     case "seat_cell": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      if (m.cell === null) { delete b.cell; delete b.header; }
-      else { b.cell = { ...m.cell }; }
+      if (m.cell === null) delete b.cell;
+      else b.cell = { ...m.cell };
       return;
     }
-    case "set_header": {
+    case "set_grid": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      if (m.header) b.header = true;
-      else delete b.header;
-      return;
-    }
-    case "set_holder":
-      graph.holders[m.holder.id] = { ...m.holder };
-      return;
-    case "drop_holder": {
-      const held = graph.holders[m.id]?.group;
-      delete graph.holders[m.id];
-      /** A dropped holder frees what it held rather than taking it along. */
-      for (const b of [...Object.values(graph.blocks), ...Object.values(graph.holders)]) {
-        if (b.group !== m.id) continue;
-        delete b.group;
-        if ("cell" in b) { delete b.cell; delete b.header; }
-      }
-      emptied(graph, held);
+      if (m.grid === null) delete b.grid;
+      else b.grid = structuredClone(m.grid);
       return;
     }
     case "link_blocks":
@@ -284,7 +249,7 @@ function apply(graph: Graph, m: Mutation): void {
       if (kept.length) b.tags = kept; else delete b.tags;
       return;
     }
-    /** Gives back the drawing looks of whichever holder the id names. */
+    /** Gives back the drawing looks of whichever element the id names. */
     case "drop_looks": {
       const it = element(graph, m.id);
       if (!it?.looks) return;

@@ -1,7 +1,7 @@
 /** What every module derives the same way. */
 
-import { alias_of, schema_def, schema_of, is_container, is_header, is_interface, is_named, is_reference,
-         base_of, path, role_of, shown_name, stamps_of, stands_for,
+import { alias_of, schema_def, schema_of, head_of, is_container, is_interface, is_named,
+         is_reference, base_of, path, role_of, shape_of, shown_name, stamps_of, stands_for,
          type Graph, type Id } from "@mnd/core";
 import { look_of } from "./look";
 import type { BoxData, Listed, Trait, Scene } from "./scene";
@@ -10,11 +10,7 @@ import type { BoxData, Listed, Trait, Scene } from "./scene";
 export function marks_of(graph: Graph, id: Id): Trait[] {
   const b = graph.blocks[id];
   const out: Trait[] = [];
-  /** A holder wears the mark of its shape and nothing else. */
-  if (!b) {
-    const h = graph.holders[id];
-    return h ? [h.arrangement === "grid" ? "grid" : "group"] : out;
-  }
+  if (!b) return out;
   const module = base_of(graph, id);
   if (module === "reference") {
     out.push("reference");
@@ -23,8 +19,9 @@ export function marks_of(graph: Graph, id: Id): Trait[] {
     if (!other && (!stands_for(graph, id) || stands_for(graph, id)!.id === id)) out.push("missing");
   }
   if (module === "note") out.push("note");
-  if (module === "group") out.push("group");
-  if (module === "grid") out.push("grid");
+  /** A block that holds wears its shape, whatever kind it descends from. */
+  const shape = shape_of(graph, id);
+  if (shape) out.push(shape);
   if (is_interface(b)) {
     out.push("interface");
     if (b.flow === "in" || b.flow === "both") out.push("in");
@@ -33,13 +30,16 @@ export function marks_of(graph: Graph, id: Id): Trait[] {
   if (is_container(graph, id) && !is_reference(b)) out.push("container");
   /** Wearing its type rather than a name somebody chose. */
   if (!is_named(graph, id)) out.push("unnamed");
-  if (is_header(b)) out.push("header");
+  /** A header, and one heading a row reads upright in its one-unit column. */
+  const role = head_of(graph, id);
+  if (role) out.push("header");
+  if (role === "row") out.push("upright");
   return out;
 }
 
 /** Everything a drawn block carries beyond where it sits. */
 export function carried(graph: Graph, id: Id): BoxData {
-  const b = graph.blocks[id] ?? graph.holders[id]!;
+  const b = graph.blocks[id]!;
   const look = look_of(graph, id);
   /** The handle, beside the name rather than inside it. */
   const alias = look.alias === undefined ? alias_of(graph, id)

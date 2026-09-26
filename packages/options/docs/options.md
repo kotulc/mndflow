@@ -16,7 +16,7 @@ elements · layer · display · relations
 
 | | Is |
 |---|---|
-| **`layer`** | how the layer places what it holds — `free` or `grid`. A setting, and the one group here that writes to the log |
+| **`layer`** | how the layer places what it holds — `free` or `auto`. A setting, and the one group here that writes to the log |
 | **`display`** | what the drawing shows rather than what it holds: the frame, the guides, whether interfaces draw, and whether this layer draws the key to itself. Nothing here enters the log |
 | **`relations`** | what a right drag and a `chain` draw: *straight*, *directed*, or a pinned line definition. **No *tie*** — a tie is what its ends make |
 | **`elements`** | which element the tray holds: the *workspace*, a blank *block* or a blank *relation* definition. Writes nothing |
@@ -50,7 +50,7 @@ elements · layer · display · relations
 ## Still open
 
 - **Whether the rail should scroll per group or as a column.** It scrolls as a column today.
-- **Nothing exposes a grid's own controls.** Its extent is a dragged corner and its headers are a card menu; whether the rail should say anything about the grid you have hold of is undecided.
+- **Nothing exposes a grid's own controls.** Its extent is a dragged corner and its header lines and labels are a cell's menu; whether the rail should say anything about the grid you have hold of is undecided.
 
 ## The rules it lives by
 

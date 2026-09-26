@@ -1,6 +1,6 @@
 /** Making, naming, typing and moving blocks; navigating layers; arranging one. */
 
-import { may_hold } from "../capabilities";
+import { may_hold, may_take } from "../capabilities";
 import { shown_name } from "../names";
 import { edge_base, may_retype, block_base, base_of, plain_type, relation_base,
          stored_type } from "../defs";
@@ -8,7 +8,8 @@ import { children, is_interface, next_order, path, reorder, stands_for } from ".
 import { new_id } from "../ids";
 import { ARRANGEMENTS, type Arrangement, type Id, type Mutation } from "../types";
 import { register } from "./registry";
-import { handles, here, id_of, ids_of, make_block, may_wear, NEEDS, spot, text,
+import { cell_free } from "./grid";
+import { cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS, spot, text,
          typed } from "./helpers";
 
 register(
@@ -31,19 +32,6 @@ register(
     run: (ctx, args) => {
       const parent = (args["parent"] as Id) ?? here(ctx);
       const type = args["type"] ? String(args["type"]) : undefined;
-      /** `group` and `grid` name holder shapes, and a holder is not a block. */
-      const shape = type ? block_base(ctx.graph, type) : "block";
-      if (shape === "group" || shape === "grid") {
-        const rim = handles(ctx, shape);
-        const at = spot(args);
-        return { mutations: [{ op: "set_holder", holder: {
-          id: new_id("holder"), parent, name: text(args, "name") || undefined,
-          arrangement: shape === "grid" ? "grid" : "free", alias: rim.take(),
-          order: next_order(ctx.graph, parent),
-          ...(shape === "grid" ? { rows: 1, cols: 1 } : {}),
-          ...(at ? { x: at.x, y: at.y } : {}),
-        } }, ...rim.bump()] };
-      }
       const made = make_block(ctx, text(args, "name"), parent, type);
       const at = spot(args);
       const block = (made[0] as { block: { id: Id } }).block;
@@ -192,8 +180,10 @@ register(
     name: "refer",
     about: "places a stand-in for a block, a definition or a package into this layer",
     on: ["layer"],
+    /** `group` and `at` seat it in a cell, which is how a header is given a block to head. */
     args: [{ name: "target", form: "block", required: true },
-           { name: "type", form: "text" }, { name: "spot", form: "spot" }],
+           { name: "type", form: "text" }, { name: "spot", form: "spot" },
+           { name: "group", form: "block" }, { name: "at", form: "text" }],
     check: (ctx, args) => {
       const target = id_of(args, "target");
       /** One id space, so a stand-in may point at any of the three. */
@@ -203,6 +193,13 @@ register(
       const wrong = may_wear(ctx, args, "reference");
       if (wrong) return wrong;
       if (target === ctx.layer) return "a layer cannot hold a stand-in for itself";
+      /** Seated, it is a header's word for a block, and a header may name one already here. */
+      if (args["group"]) {
+        const group = id_of(args, "group");
+        return cell_free(ctx, group, cell_of_arg(args, "at"))
+          ?? (may_take(ctx.graph, group, text(args, "type") || undefined)
+            ? null : `"${shown_name(ctx.graph, group)}" takes nothing of that sort`);
+      }
       const here = children(ctx.graph, ctx.layer);
       if (here.some((b) => b.id === target)) return "it is already in this layer";
       if (here.some((b) => b.of === target)) return "it is already referenced here";
@@ -217,6 +214,11 @@ register(
         alias: ref.take(), ...typed(ctx, args),
       } }, ...ref.bump()];
       if (at) out.push({ op: "place_block", id, x: at.x, y: at.y });
+      const cell = cell_of_arg(args, "at");
+      if (args["group"] && cell) {
+        out.push({ op: "set_group", id, group: id_of(args, "group") },
+                 { op: "seat_cell", id, cell });
+      }
       return { mutations: out };
     },
   },

@@ -9,14 +9,18 @@ import { Drawing } from "./Drawing";
 import { Identity } from "./Identity";
 import { Source } from "./Source";
 
-export type ElementProps = { graph: Graph; id: Id; onAct?: Act };
+export type ElementProps = {
+  graph: Graph; id: Id; onAct?: Act;
+  /** Make a definition the context, which is where it is edited. */
+  onOpen?: (id: Id) => void;
+};
 
-export function Element({ graph, id, onAct = NOOP }: ElementProps) {
+export function Element({ graph, id, onAct = NOOP, onOpen }: ElementProps) {
   const readonly = onAct === NOOP;
   return (
     <fieldset className="panel element" disabled={readonly}>
       <Drawing graph={graph} id={id} onAct={onAct} options={!readonly} />
-      <Identity graph={graph} id={id} onAct={onAct} />
+      <Identity graph={graph} id={id} onAct={onAct} {...(onOpen ? { onOpen } : {})} />
       {/* A block's body is its content; a definition's `about` describes it. A line has neither. */}
       {graph.blocks[id] || graph.defs[id] ? <Content key={id} graph={graph} id={id} onAct={onAct} /> : null}
       {/* And under it, what the definition actually is. */}

@@ -2,7 +2,6 @@
 
 import { may_seat } from "../capabilities";
 import { derived_base, edge_base, base_of, relation_base } from "../defs";
-import { is_holder } from "../holders";
 import { shown_name } from "../names";
 import { children, is_interface, next_order } from "../tree";
 import { new_id } from "../ids";
@@ -147,7 +146,6 @@ function mid_of(graph: Graph, owner: Id, side: Side): number {
 
 /** Why nothing may be seated here. The capability decides; these are its words. */
 function no_wall(graph: Graph, id: Id): string {
-  if (is_holder(graph, id)) return "a boundary cannot have an interface";
   if (base_of(graph, id) === "note") return "a note has no wall to set one into";
   return `"${shown_name(graph, id)}" takes no interfaces`;
 }
@@ -182,8 +180,6 @@ register(
       const on = promoted(ctx, args);
       if (!on.length) return "needs a border to sit on";
       for (const { owner } of on) {
-        /** A holder is a rim, and a rim has no wall to seat anything in. */
-        if (ctx.graph.holders[owner]) return no_wall(ctx.graph, owner);
         const met = ctx.graph.blocks[owner];
         if (!met) return "needs a border to sit on";
         /** An end that is already an interface has nothing to promote. */

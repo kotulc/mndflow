@@ -32,7 +32,8 @@ export type TrayFrameProps<T extends string = string> = {
   /** Full-height body; omitted when the host has no expand control. */
   big?: boolean;
   onBig?: (big: boolean) => void;
-  /** Context word (e.g. "page", "block"). */
+  /** Context word (e.g. "definition", "usage"), drawn as a tag after the name and carried as
+   *  `data-word`, so a host may dress each of its words apart. */
   word: string;
   name?: string;
   note?: string;
@@ -62,8 +63,8 @@ export function TrayFrame<T extends string>({
            title={open ? "shut the tray" : "open the tray"}>
         <span className="tray-chevron"><Icon name={open ? "less" : "more"} /></span>
         <span className="tray-context">
-          <span className="word">{word}</span>
           {name ? <span className="name">{name}</span> : null}
+          <span className="word" data-word={word}>{word}</span>
           {note ? <span className="note">{note}</span> : null}
         </span>
         <span className="tray-tools">

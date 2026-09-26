@@ -35,7 +35,7 @@ export function Drawing({ graph, id, onAct, options = true }: DrawingProps) {
     <div className="drawing">
       {/* What it is, headed the way identity heads its own rows. **One word for both**: a card
          and a run are both elements, and the row below asks the same question of either. */}
-      <Band label="element type">
+      <Band label="type">
         <span className="base">{kind}<Icon name={mark} size={12} /></span>
         {!d && id === graph.root ? <span className="from">{`schema ${SCHEMA}`}</span> : null}
       </Band>

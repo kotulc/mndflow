@@ -16,9 +16,8 @@ const ctx = (picked: string[] = [], layer: string | null = "block_loop"): Contex
 const gridded = (): Context => {
   const c = ctx(["block_pump"]);
   const b = c.graph.blocks;
-  b["block_loop"] = { ...b["block_loop"]!, arrangement: "grid" };
-  c.graph.holders["block_hot"] = { id: "block_hot", parent: "block_loop", name: "Hot side",
-                                   arrangement: "grid", rows: 1, cols: 3 };
+  b["block_loop"] = { ...b["block_loop"]!, arrangement: "auto" };
+  b["block_hot"] = { ...b["block_hot"]!, type: "grid", grid: { rows: 1, cols: 3 } };
   b["block_tank"] = { ...b["block_tank"]!, group: "block_hot", cell: { r: 0, c: 0 } };
   b["block_valve"] = { ...b["block_valve"]!, group: "block_hot", cell: { r: 0, c: 1 } };
   return { ...c, cells: [{ group: "block_hot", r: 0, c: 0 }] };
@@ -124,14 +123,14 @@ describe("what an action absorbs", () => {
     expect(named()).toEqual(["D", "C", "A"]);
   });
 
-  /** A group is the layer's, the way an address is the group's. */
+  /** A group is the layer's, the way an address is the grid's. */
   it("drops the place and the group it had when it leaves a layer", () => {
-    const s = session();
+    const s = session({ defs: seed() });
     for (const name of ["Alpha", "Beta"]) s.go("create", { name });
     const at = (name: string) => children(s.graph(), ROOT).find((b) => b.name === name)!.id;
     const alpha = at("Alpha"), beta = at("Beta");
     s.go("group", { members: [alpha], rows: 2, cols: 2 });
-    const grid = Object.values(s.graph().holders).find((h) => h.arrangement === "grid")!.id;
+    const grid = holders_in(s.graph(), ROOT)[0]!.id;
     s.go("seat", { id: alpha, group: grid, at: "0,0" });
     expect(s.graph().blocks[alpha]!.group).toBe(grid);
 
@@ -166,7 +165,7 @@ describe("what an action absorbs", () => {
   });
 
   it("group makes a boundary without an into, and joins one with it", () => {
-    const s = session();
+    const s = session({ defs: seed() });
     s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
@@ -183,87 +182,23 @@ describe("what an action absorbs", () => {
     expect(s.graph().blocks[b!]!.group).toBe(group.id);
   });
 
-  it("dissolves a group when the last member leaves", () => {
-    const s = session();
+  /** A holder is a block: it stays until it is deleted, and deleting it frees what it held. */
+  it("keeps a group when its last member leaves", () => {
+    const s = session({ defs: seed() });
     s.go("create", { name: "A" });
     const a = children(s.graph(), ROOT)[0]!.id;
     s.go("group", { members: [a] });
     const group = holders_in(s.graph(), ROOT)[0]!.id;
 
     expect(s.go("leave", { ids: [a] })).toBeNull();
-    expect(s.graph().holders[group]).toBeUndefined();
+    expect(s.graph().blocks[group]).toBeTruthy();
     expect(s.graph().blocks[a]!.group).toBeUndefined();
-  });
-
-  it("keeps a group made empty when it leaves its parent", () => {
-    const s = session({ defs: seed() });
-    s.go("create", { name: "B" });
-    const b = children(s.graph(), ROOT)[0]!.id;
-    s.go("group", { members: [b] });
-    const outer = holders_in(s.graph(), ROOT)[0]!.id;
-    s.go("create", { name: "", type: "group" });
-    const shell = holders_in(s.graph(), ROOT).find((x) => x.id !== outer)!.id;
-    s.go("group", { members: [shell], into: outer });
-
-    expect(s.go("leave", { ids: [shell] })).toBeNull();
-    expect(s.graph().holders[shell]).toBeTruthy();
-    expect(s.graph().holders[outer]!).toBeTruthy();
-  });
-
-  it("dissolves inner when the last block moves to the outer group", () => {
-    const s = session();
-    s.go("create", { name: "A" });
-    s.go("create", { name: "Temp" });
-    const [a, temp] = children(s.graph(), ROOT).map((x) => x.id);
-    s.go("group", { members: [a] });
-    const inner = holders_in(s.graph(), ROOT)[0]!.id;
-    s.go("group", { members: [temp] });
-    const outer = holders_in(s.graph(), ROOT).find((x) => x.id !== inner)!.id;
-    s.go("group", { members: [inner], into: outer });
-    s.go("leave", { ids: [temp] });
-
-    expect(s.go("group", { members: [a], into: outer })).toBeNull();
-    expect(s.graph().holders[inner]).toBeUndefined();
-    expect(s.graph().blocks[a!]!.group).toBe(outer);
-  });
-
-  it("dissolves empty groups up to the layer", () => {
-    const s = session();
-    s.go("create", { name: "A" });
-    s.go("create", { name: "Temp" });
-    const [a, temp] = children(s.graph(), ROOT).map((x) => x.id);
-    s.go("group", { members: [a] });
-    const inner = holders_in(s.graph(), ROOT)[0]!.id;
-    s.go("group", { members: [temp] });
-    const outer = holders_in(s.graph(), ROOT).find((x) => x.id !== inner)!.id;
-    s.go("group", { members: [inner], into: outer });
-    s.go("leave", { ids: [temp] });
-
-    expect(s.go("leave", { ids: [a] })).toBeNull();
-    expect(s.graph().holders[inner]).toBeUndefined();
-    expect(s.graph().holders[outer]).toBeUndefined();
-    expect(s.graph().blocks[a!]!.group).toBeUndefined();
-  });
-
-  it("dissolves a nested group when its last member leaves", () => {
-    const s = session();
-    s.go("create", { name: "A" });
-    s.go("create", { name: "B" });
-    const [a, b] = children(s.graph(), ROOT).map((x) => x.id);
-    s.go("group", { members: [a] });
-    const inner = holders_in(s.graph(), ROOT)[0]!.id;
-    s.go("group", { members: [b] });
-    const outer = holders_in(s.graph(), ROOT).find((x) => x.id !== inner)!.id;
-    s.go("group", { members: [inner], into: outer });
-
-    expect(s.go("leave", { ids: [a] })).toBeNull();
-    expect(s.graph().holders[inner]).toBeUndefined();
-    expect(s.graph().holders[outer]).toBeTruthy();
-    expect(s.graph().blocks[b!]!.group).toBe(outer);
+    expect(s.go("delete", { ids: [group] })).toBeNull();
+    expect(s.graph().blocks[a]).toBeTruthy();
   });
 
   it("draws a second boundary on the layer instead of nesting inside the first", () => {
-    const s = session();
+    const s = session({ defs: seed() });
     s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
@@ -279,40 +214,12 @@ describe("what an action absorbs", () => {
     expect(groups).toHaveLength(2);
     const inner = groups.find((g) => g.id !== outer)!;
     expect(s.graph().blocks[a!]!.group).toBe(inner.id);
-    expect(s.graph().blocks[b!]!.group).toBe(inner.id);
     expect(s.graph().blocks[c!]!.group).toBe(outer);
-    expect(s.graph().holders[inner.id]!.group).toBeUndefined();
+    expect(inner.group).toBeUndefined();
   });
 
-  it("merges two group boundaries into one", () => {
-    const s = session();
-    s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), ROOT)[0]!.id;
-    s.look(loop);
-    s.go("create", { name: "A" });
-    s.go("create", { name: "B" });
-    s.go("create", { name: "C" });
-    s.go("create", { name: "D" });
-    const [a, b, c, d] = children(s.graph(), loop).map((x) => x.id);
-    s.go("group", { members: [a, b] });
-    const g1 = holders_in(s.graph(), loop)[0]!.id;
-    s.go("group", { members: [c, d] });
-    const g2 = holders_in(s.graph(), loop).find((x) => x.id !== g1)!.id;
-
-    expect(s.go("group", { members: [g1, g2] })).toBeNull();
-    const groups = holders_in(s.graph(), loop);
-    expect(groups).toHaveLength(1);
-    const merged = groups[0]!.id;
-    expect(s.graph().blocks[a!]!.group).toBe(merged);
-    expect(s.graph().blocks[b!]!.group).toBe(merged);
-    expect(s.graph().blocks[c!]!.group).toBe(merged);
-    expect(s.graph().blocks[d!]!.group).toBe(merged);
-    expect(s.graph().holders[g1]).toBeUndefined();
-    expect(s.graph().holders[g2]).toBeUndefined();
-  });
-
-  it("nests a group inside another when dragged in", () => {
-    const s = session();
+  it("nests a group inside another, and a grid inside nothing", () => {
+    const s = session({ defs: seed() });
     s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
@@ -320,31 +227,17 @@ describe("what an action absorbs", () => {
     s.go("create", { name: "B" });
     s.go("create", { name: "C" });
     const [a, b, c] = children(s.graph(), loop).map((x) => x.id);
-    s.go("group", { members: [a, b] });
+    s.go("group", { members: [a] });
     const outer = holders_in(s.graph(), loop)[0]!.id;
-    s.go("group", { members: [c] });
+    s.go("group", { members: [b] });
     const inner = holders_in(s.graph(), loop).find((x) => x.id !== outer)!.id;
+    s.go("group", { members: [c], rows: 1, cols: 1 });
+    const grid = holders_in(s.graph(), loop).find((x) => ![outer, inner].includes(x.id))!.id;
 
     expect(s.go("group", { members: [inner], into: outer })).toBeNull();
-    expect(s.graph().holders[inner]!.group).toBe(outer);
-    expect(s.graph().blocks[c!]!.group).toBe(inner);
-    expect(holders_in(s.graph(), loop)).toHaveLength(2);
-  });
-
-  it("puts a grid inside a group", () => {
-    const s = session();
-    s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), ROOT)[0]!.id;
-    s.look(loop);
-    s.go("create", { name: "A" });
-    s.go("create", { name: "B" });
-    const [a, b] = children(s.graph(), loop).map((x) => x.id);
-    s.go("group", { members: [a], rows: 2, cols: 2 });
-    const grid = holders_in(s.graph(), loop).find((h) => h.arrangement === "grid")!.id;
-    s.go("group", { members: [b] });
-    const band = holders_in(s.graph(), loop).find((h) => h.id !== grid)!.id;
-    expect(s.go("group", { members: [grid], into: band })).toBeNull();
-    expect(s.graph().holders[grid]!.group).toBe(band);
+    expect(s.graph().blocks[inner]!.group).toBe(outer);
+    expect(s.go("group", { members: [grid], into: outer })).toMatch(/grid/);
+    expect(s.go("group", { members: [a, grid] })).toMatch(/grid/);
   });
 
   /** What the ends decide is not on offer. */
@@ -435,7 +328,7 @@ describe("the way out of a layer", () => {
   });
 });
 
-describe("interfaces sit on blocks, not boundaries", () => {
+describe("interfaces sit where a capability allows them", () => {
   /** The refusal is a capability the base package states, so the floor has to be under it. */
   it("refuses a group for an owner", () => {
     const s = session({ defs: seed() });
@@ -443,9 +336,9 @@ describe("interfaces sit on blocks, not boundaries", () => {
     s.go("create", { name: "B" });
     const ids = children(s.graph(), ROOT).map((b) => b.id);
     s.go("group", { members: ids });
-    const group = Object.values(s.graph().holders)[0]!;
+    const group = holders_in(s.graph(), ROOT)[0]!;
     expect(s.go("interface", { owner: group.id, side: "right" }))
-      .toMatch(/boundary cannot have an interface/);
+      .toMatch(/takes no interfaces/);
   });
 });
 
@@ -510,8 +403,8 @@ describe("a null layer is the root layer", () => {
   it("arranges the root layer rather than nothing", () => {
     const s = session();
     s.look(null);
-    s.go("arrange", { arrangement: "grid" });
-    expect(s.graph().blocks[ROOT]!.arrangement).toBe("grid");
+    s.go("arrange", { arrangement: "auto" });
+    expect(s.graph().blocks[ROOT]!.arrangement).toBe("auto");
   });
 });
 

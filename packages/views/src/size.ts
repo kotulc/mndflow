@@ -1,7 +1,7 @@
 /** How big a thing is, before anything is placed. */
 
-import { covers, holder_of, is_grid, is_interface,
-         type Graph, type Holder, type Id, type Point } from "@mnd/core";
+import { covers, is_grid, is_interface, lattice_of,
+         type Graph, type Grid, type Id, type Point } from "@mnd/core";
 import { listed } from "./derive";
 import { look_of } from "./look";
 
@@ -61,28 +61,46 @@ export function roomed(box: Box): Box {
 }
 
 /** One cell of a grid: its own size where it says one, a card with air round it otherwise. */
-export function cell_size(g: Holder): Size {
+export function cell_size(g: Grid): Size {
   return g.size ? { w: g.size.w * UNIT, h: g.size.h * UNIT } : CELL;
 }
 
+/** Where line `i` starts along one axis: **a header line is one unit across**, every other a cell. */
+function line_at(i: number, cell: number, head: boolean): number {
+  return i === 0 || !head ? i * cell : UNIT + (i - 1) * cell;
+}
+
 /** What a grid takes up: its extent in cells, and nothing besides. */
-export function grid_size(g: Holder): Size {
+export function grid_size(g: Grid): Size {
   const cell = cell_size(g);
-  return { w: (g.cols ?? 1) * cell.w, h: (g.rows ?? 1) * cell.h };
+  return { w: line_at(g.cols, cell.w, !!g.head?.left), h: line_at(g.rows, cell.h, !!g.head?.top) };
 }
 
 /** Where one cell sits inside its grid, relative to the grid's own corner. */
-export function cell_box(g: Holder, r: number, c: number): Box {
+export function cell_box(g: Grid, r: number, c: number): Box {
   const span = g.merges?.find((s) => covers(s, r, c));
   const at = span ?? { r, c, rows: 1, cols: 1 };
   const cell = cell_size(g);
-  return { x: at.c * cell.w, y: at.r * cell.h, w: at.cols * cell.w, h: at.rows * cell.h };
+  const top = !!g.head?.top;
+  const left = !!g.head?.left;
+  const x = line_at(at.c, cell.w, left);
+  const y = line_at(at.r, cell.h, top);
+  return { x, y, w: line_at(at.c + at.cols, cell.w, left) - x,
+           h: line_at(at.r + at.rows, cell.h, top) - y };
 }
 
 /** How many rows and columns a region of this size is, in whole cells. */
 export function extent_of(w: number, h: number): { rows: number; cols: number } {
   return { rows: Math.max(1, Math.round(h / CELL.h)),
            cols: Math.max(1, Math.round(w / CELL.w)) };
+}
+
+/** How many rows and columns this grid's region of this size is, counting its header lines. */
+export function extent_in(g: Grid, w: number, h: number): { rows: number; cols: number } {
+  const cell = cell_size(g);
+  const lines = (px: number, size: number, head: boolean) => head
+    ? 1 + Math.max(1, Math.round((px - UNIT) / size)) : Math.max(1, Math.round(px / size));
+  return { rows: lines(h, cell.h, !!g.head?.top), cols: lines(w, cell.w, !!g.head?.left) };
 }
 
 /** Whether a card that fits its content grows to show all of it, or previews it at the one card
@@ -100,8 +118,8 @@ export function centred_in(box: Box, s: Size): Box {
   return { x: box.x + (box.w - s.w) / 2, y: box.y + (box.h - s.h) / 2, ...s };
 }
 
-/** A header's inset in its cell. */
-export const HEADER_INSET = 5;
+/** A header's inset in its cell, which is one unit across. */
+export const HEADER_INSET = 2;
 
 export function fills_cell(box: Box): Box {
   const i = HEADER_INSET;
@@ -132,7 +150,7 @@ function ranged(n: number, low: number, high: number): number {
 /** Whether a block is seated in a grid rather than placed beside one. */
 export function gridded(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
-  return !!b?.cell && !!b.group && is_grid(graph, b.group);
+  return !!b?.cell && is_grid(graph, b.group);
 }
 
 /** What this block needs. Every card is the one card size; a card whose definition asked for its
@@ -140,7 +158,7 @@ export function gridded(graph: Graph, id: Id): boolean {
  *  shows content in full, and a grid is the extent it was drawn with. */
 export function size_of(graph: Graph, id: Id): Size {
   /** A grid is its extent; a boundary is sized from what it holds, by the caller. */
-  if (is_grid(graph, id)) return grid_size(holder_of(graph, id)!);
+  if (is_grid(graph, id)) return grid_size(lattice_of(graph, id)!);
   const b = graph.blocks[id];
   if (!b) return BLOCK;
   if (is_interface(b)) return PORT;

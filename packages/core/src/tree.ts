@@ -1,6 +1,6 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import type { Arrangement, Block, Graph, Id, Relation, Unit } from "./types";
+import type { Arrangement, Block, Graph, Id, Relation } from "./types";
 
 
 /** Every block under this one, itself included. */
@@ -57,26 +57,17 @@ export function path(graph: Graph, id: Id): Block[] {
   return out;
 }
 
-export function is_interface(b: Unit): boolean {
-  return "side" in b && b.side !== undefined;
-}
-
-/** Everything drawn in a layer: the blocks it holds, and the holders drawn over them. */
-export function units_in(graph: Graph, layer: Id | null): Unit[] {
-  const here = layer_id(graph, layer);
-  return [...Object.values(graph.blocks).filter((b) => b.parent === here),
-          ...Object.values(graph.holders).filter((h) => h.parent === here)]
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+export function is_interface(b: Block): boolean {
+  return b.side !== undefined;
 }
 
 export function is_reference(b: Block): boolean {
   return b.of !== undefined;
 }
 
-/** A block holding blocks, or a holder drawn in it, draws as a container. */
+/** A block holding blocks draws as a container. */
 export function is_container(graph: Graph, id: Id): boolean {
-  return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(b))
-    || Object.values(graph.holders).some((h) => h.parent === id);
+  return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(b));
 }
 
 /** A block no other block contains. */

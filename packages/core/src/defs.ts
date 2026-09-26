@@ -271,8 +271,9 @@ export function packages(graph: Graph): { from: Id; name: string; defs: Definiti
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** The bases a block moves among freely; every other base is fixed when it is made. */
-const OPEN: readonly Id[] = ["block", "folder", "note"];
+/** The bases a block moves among freely; every other base is fixed when it is made. A group or a
+ *  grid is a plain block that holds, so it is retyped as freely — what it held waits, dormant. */
+const OPEN: readonly Id[] = ["block", "folder", "note", "group", "grid"];
 
 /** Whether this block may be told to name that definition. */
 export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean {

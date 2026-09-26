@@ -6,7 +6,7 @@ import {
   ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useReactFlow,
 } from "@xyflow/react";
 import type { Point, Spot } from "@mnd/core";
-import { box_of, holds, nearest_seat, FRAME, UNIT, type BoxNode } from "@mnd/views";
+import { box_of, nearest_seat, FRAME, UNIT, type BoxNode } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 import { EDGE_TYPES, Heads } from "./Wire";
@@ -38,6 +38,12 @@ function Canvas(props: FlowViewProps) {
   const { drawing, swallow, pressed, moved_to, released } = useDraw(scene, at, onRelate, onSweep);
   const { landing, landing_on, dragging, stopped, changed } =
     useDrag(scene, frame, moved, onAdjust, again);
+
+  /** Where the pointer is, in flow coordinates, whichever kind of pointer it is. */
+  const pointer = useCallback((e: MouseEvent | TouchEvent): Point | undefined => {
+    const p = "touches" in e ? e.changedTouches[0] : e;
+    return p ? at(p) : undefined;
+  }, [at]);
 
   const say = useCallback((on: string | null, e: React.MouseEvent,
                           button: "left" | "right", count: 1 | 2) => {
@@ -80,9 +86,8 @@ function Canvas(props: FlowViewProps) {
   const only = useMemo(() => {
     if (picked.length !== 1) return null;
     const n = scene.nodes.find((x) => x.id === picked[0]);
-    /** A boundary and a grid have no inside to open. */
-    return n && !n.data.on && n.selectable !== false
-      && !holds(n) && n.type !== "note" ? n.id : null;
+    /** A note has no inside to open. */
+    return n && !n.data.on && n.selectable !== false && n.type !== "note" ? n.id : null;
   }, [picked, scene]);
 
   return (
@@ -108,7 +113,7 @@ function Canvas(props: FlowViewProps) {
         if (!id) return;
         e.preventDefault();
         const spot = at(e);
-        const land = landing_on(id, spot);
+        const land = landing_on(id, spot, spot);
         const line = e.target instanceof Element
           ? e.target.closest(".react-flow__edge")?.getAttribute("data-id") ?? null : null;
         onDrop?.(id, spot, { over: land.over?.id ?? null, into: land.into?.id ?? null, line,
@@ -135,8 +140,8 @@ function Canvas(props: FlowViewProps) {
       zoomOnDoubleClick={false}
       /** Relationships are drawn with the right button, not the library's connections. */
       nodesConnectable={false}
-      onNodeDrag={(_, node) => dragging(node)}
-      onNodeDragStop={(_, node, dragged) => stopped(node, dragged)}
+      onNodeDrag={(e, node) => dragging(node, pointer(e))}
+      onNodeDragStop={(e, node, dragged) => stopped(node, dragged, pointer(e))}
       onNodeClick={(e, n) => say(n.id, e, "left", 1)}
       onNodeDoubleClick={(e, n) => say(n.id, e, "left", 2)}
       onNodeContextMenu={(e, n) => { e.preventDefault(); say(n.id, e, "right", 1); }}

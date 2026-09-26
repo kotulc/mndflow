@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { Id, Point, Side } from "@mnd/core";
-import { holds, FRAME, type Scene } from "@mnd/views";
+import { FRAME, type Scene } from "@mnd/views";
 import { NUDGE } from "./arrays";
 import type { FlowViewProps } from "./gestures";
 import { spread } from "./pointer";
@@ -29,10 +29,8 @@ export function useDraw(scene: Scene, at: (e: { clientX: number; clientY: number
     }
     const node = el instanceof Element ? el.closest(".react-flow__node") : null;
     const id = node?.getAttribute("data-id") ?? null;
-    /** A relationship never ends on a holder. */
-    if (id && scene.nodes.some((n) => n.id === id && holds(n))) return { on: null };
     return { on: id === FRAME ? null : id };
-  }, [scene]);
+  }, []);
 
   const pressed = useCallback((e: React.PointerEvent) => {
     swallow.current = false;

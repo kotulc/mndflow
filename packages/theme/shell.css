@@ -280,14 +280,25 @@ input:focus { outline: none; border-color: var(--accent); }
 
 /* The context: its word, its name, and what qualifies it. */
 .tray-context { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+/* The name reads first; the word after it is a tag saying what sort of context this is. */
 .tray-context > .word {
   flex: none;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
   color: var(--muted);
   font-size: 10px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.tray-context > .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Bold in the body's ink, never the accent: the accent is the selected tab's. */
+.tray-context > .name {
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .tray-context > .note { flex: none; color: var(--faint); font-size: 11px; font-style: italic; }
 
 .tray-bar .holds {

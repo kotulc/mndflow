@@ -2,6 +2,7 @@
 
 import { def_named, default_for, block_base, outside, relation_base,
          stored_type } from "../defs";
+import { is_grid } from "../holders";
 import { next_alias } from "../names";
 import { layer_id, next_order } from "../tree";
 import { new_id } from "../ids";
@@ -67,7 +68,7 @@ export const seats = (args: Args): { id: Id; r: number; c: number }[] => {
 export function region(ctx: Context, args: Args): { group: Id; span: Span } | null {
   const picked = ctx.cells ?? [];
   const group = args["group"] ? id_of(args, "group") : picked[0]?.group;
-  if (!group || !ctx.graph.holders[group]) return null;
+  if (!group || !is_grid(ctx.graph, group)) return null;
   const from = cell_of_arg(args, "at") ?? cell_of_arg(args, "into");
   const spots = args["at"] || args["into"]
     ? [from, cell_of_arg(args, "into")].filter((c): c is Cell => !!c)
@@ -120,7 +121,6 @@ export const NEEDS: Record<string, string> = {
   interface: "interfaces may only be added to existing blocks",
   reference: "a reference is made by dragging the block, not its definition",
   note: "a note is written about something",
-  grid: "a grid is made with rows and columns",
 };
 
 /** Makes a block, numbered and ordered like every other. */

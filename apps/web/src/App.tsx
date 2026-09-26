@@ -149,10 +149,10 @@ export function App({ storage }: { storage: Storage }) {
                     ...(dir && dir !== "none" ? { dir } : {}) });
       return;
     }
-    /** Leaving `grid` writes the grid's positions so `free` keeps them. */
+    /** Leaving `auto` writes its positions so `free` keeps them. */
     if (name === "arrange") {
       const how = args!["arrangement"];
-      const leaving = arranged === "grid" && how === "free";
+      const leaving = arranged === "auto" && how === "free";
       act("arrange", { layer, ...args,
                        ...(leaving ? { at: tidy(graph, layer) } : {}) });
       return;
@@ -274,7 +274,10 @@ export function App({ storage }: { storage: Storage }) {
               if (typeof made === "string") s.say(made, "note"); else s.go(...made);
               return;
             }
-            s.go("refer", { target: id, spot: at });
+            /** Onto a cell, the stand-in is seated there — which is how a header heads a block. */
+            const cell = land.cell && land.into
+              ? { group: land.into, at: `${land.cell.r},${land.cell.c}` } : {};
+            s.go("refer", { target: id, spot: at, ...cell });
           }}
           picked={s.picked()}
           cells={s.cells()}
@@ -335,9 +338,6 @@ export function App({ storage }: { storage: Storage }) {
   );
 }
 
-/** A grid dragged out arrives two by two. */
-const GRID = { rows: 2, cols: 2 };
-
 /** What a kind needs that the empty drawing cannot give it, in words. */
 const NEEDS: Record<string, string> = {
   interface: "an interface sits on a block — add one to a block, then drop this onto it",
@@ -353,6 +353,5 @@ function dropped(graph: Graph, type: Id, on: Id | null, at: Point,
   if (graph.defs[type]?.group === "relation") return "lines must connect existing blocks — draw one from a block to another";
   const kind = block_base(graph, type);
   if (NEEDS[kind]) return NEEDS[kind]!;
-  if (kind === "grid") return ["group", { ...GRID, type, spot: at }];
   return ["create", { name: "", type, parent: layer ?? graph.root, spot: at }];
 }

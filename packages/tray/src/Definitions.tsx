@@ -1,4 +1,4 @@
-/** The definitions and types tabs: definitions in one table, the workspace's or an element's. */
+/** The definitions and type tabs: definitions in one table, the workspace's or an element's. */
 
 import { useState } from "react";
 import { def_named, def_of, isa, block_base, pinned_defs, relation_base,
@@ -165,22 +165,29 @@ export function Definitions({ graph, about, follows, lines, target = "the select
         source: r.from || "workspace",
         used: String(r.used),
       },
-      /** The one it follows says so; the rest offer what would change, once lit. */
-      actions: following ? <span className="tag">follows</span>
-      : !on.includes(r.id) ? null : applies ? (
-        <button className="chip" title={`point ${target} at ${r.name}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAct("retype", { ids: [...lines], type: r.id });
-                }}>
-          {`apply to ${target}`}
-        </button>
-      ) : onOpen ? (
-        <button className="chip" title={`make ${r.name} the context`}
-                onClick={(e) => { e.stopPropagation(); onOpen(r.id); }}>
-          view
-        </button>
-      ) : null,
+      /** An element's listing offers two acts on the lit row — apply it, which the one already
+       *  applied never offers, and view its definition — and says which one is applied. The
+       *  workspace's listing offers the view alone. */
+      actions: (
+        <>
+          {following ? <span className="tag">applied</span> : null}
+          {on.includes(r.id) && fitting && !following && applies ? (
+            <button className="chip" title={`point ${target} at ${r.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAct("retype", { ids: [...lines], type: r.id });
+                    }}>
+              apply
+            </button>
+          ) : null}
+          {on.includes(r.id) && onOpen ? (
+            <button className="chip" title={`open ${r.name} to edit it`}
+                    onClick={(e) => { e.stopPropagation(); onOpen(r.id); }}>
+              {fitting ? "view definition" : "view"}
+            </button>
+          ) : null}
+        </>
+      ),
       /** Removing keeps how its usages draw; the listing lights what it extended. Dropping a
        *  word about an outside definition gives that package's own word back. */
       ...(mine ? { drop: r.base ? `give ${r.name} back to ${graph.defs[def.default!]?.from ?? "its package"}`
@@ -194,7 +201,7 @@ export function Definitions({ graph, about, follows, lines, target = "the select
   return (
     <Table
       columns={columns}
-      acts="11rem"
+      acts={fitting ? "18rem" : "11rem"}
       picked={on}
       onPick={set_lit}
       empty="nothing of that sort"

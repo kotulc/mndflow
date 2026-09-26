@@ -51,7 +51,7 @@ export type BoxData = {
  *  mark it carries. */
 export type Trait = "container" | "reference" | "missing" | "note" | "group" | "grid"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
-                 | "cell" | "header" | "merged";
+                 | "cell" | "header" | "upright" | "merged";
 
 /** One cell of a grid, placed inside the grid's own box. */
 export type GridCell = {

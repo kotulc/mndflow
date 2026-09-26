@@ -111,7 +111,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     if (layer && !graph.blocks[layer]) {
       layer = path(was, layer).map((b) => b.id).reverse().find((id) => graph.blocks[id]) ?? null;
       if (layer === graph.root) layer = null;
-      picked = picked.filter((id) => graph.blocks[id] || graph.holders[id] || graph.edges[id]);
+      picked = picked.filter((id) => graph.blocks[id] || graph.edges[id]);
       cells = [];
     }
     storage.write(log);
@@ -278,13 +278,6 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
         const type = plain(b.type) ? plain_type(base_of(from, b.id)) ?? undefined : b.type;
         mutations.push({ op: "add_block", block: { ...b, parent, type, alias: serial(b.id) } });
       }
-      /** The holders drawn over those blocks come too, or their members arrive loose. */
-      for (const h of by_alias(Object.values(from.holders))) {
-        if (graph.holders[h.id]) continue;
-        const parent = h.parent === from.root ? target : h.parent;
-        mutations.push({ op: "set_holder",
-                         holder: { ...h, parent, alias: serial(h.id) } });
-      }
       for (const e of by_alias(Object.values(from.edges))) {
         if (graph.edges[e.id]) continue;
         const type = plain(e.type) ? undefined : e.type;
@@ -398,8 +391,7 @@ function slot_of(m: Mutation): string | null {
     /** A slider, on an element and on the definition it follows. */
     case "set_look": return `${m.id}|${m.key}|${m.name}`;
     case "set_def": return m.def.id;
-    /** A card or a holder dragged or resized. */
-    case "set_holder": return m.holder.id;
+    /** A card dragged or resized. A lattice is written once per edit, so it never folds. */
     case "place_block": case "size_block": case "seat_cell": return m.id;
     default: return null;
   }

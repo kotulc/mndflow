@@ -1,6 +1,6 @@
 /** What the open layer holds, as rows. */
 
-import { alias_of, children, def_of, edge_base, edges_in, is_interface, isa,
+import { alias_of, children, def_of, edge_base, edges_in, is_holder, is_interface, isa,
          base_of, path, shipped, shown_name, stands_in_for, subtree,
          type Block, type Graph, type Id } from "@mnd/core";
 
@@ -42,7 +42,7 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
     out.push({
       id: b.id,
       sort: is_interface(b) ? "interface"
-          : kind === "group" || kind === "note" ? kind : "block",
+          : is_holder(graph, b.id) ? "group" : kind === "note" ? kind : "block",
       kind: is_interface(b) ? "interface" : kind,
       fields: Object.fromEntries((b.fields ?? []).map((f) => [f.name, f.value ?? ""])),
       name: called(b.id),

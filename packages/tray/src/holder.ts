@@ -41,17 +41,14 @@ export function kind_of(graph: Graph, id: Id, it: Held): { kind: string; runs: b
 
 /** The definition a holder is about, and what may be done to it. */
 export function defined(graph: Graph, id: Id, it: Held, runs: boolean) {
-  const { def: d, block: b, edge } = it;
+  const { def: d, block: b } = it;
   /** The relation definition this is about: itself, or the one a line follows. */
   const follows = runs ? (d ?? graph.defs[def_of(graph, id) ?? ""]) : undefined;
   const own = runs ? follows : d ?? (b?.type ? graph.defs[b.type] : undefined);
   const mine = !!own && !outside(own) && own.id !== DRAFT;
   /** What came from outside, and a word about it, is fixed: never renamed, removed or pinned. */
   const fixed = !own || outside(own) || own.default !== undefined;
-  /** A block or line with looks of its own has a working definition to save. */
-  const wip = (edge ? ["line", "style"] : b ? ["card", "style"] : [])
-    .some((k) => Object.keys((edge ?? b)?.looks?.[k] ?? {}).length > 0);
-  return { follows, own, mine, fixed, wip };
+  return { follows, own, mine, fixed };
 }
 
 /** Where a definition lives, as a path — **the folder the explorer files it under**, never a

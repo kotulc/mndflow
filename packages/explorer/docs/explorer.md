@@ -40,12 +40,12 @@ The workspace explorer files the project: three collections drawn with one row, 
 
 A minimal file tree with each block name after its mark. The open layer is highlighted, and the selection reads first.
 
-- **The tree is blocks.** Boundaries, notes, fields and references are never listed — a reference is a second appearance of something already there. **Interfaces are behind a toggle.**
+- **The tree is blocks**, groups and grids among them — each wears its shape's mark, and an unnamed one reads as its kind and its handle, `Group G2`, as every block does. Notes, fields and references are never listed — a reference is a second appearance of something already there. **Interfaces are behind a toggle.**
 - **The open layer and the selection are two states with two looks.** *Open* is where the stage is pointed; *selected* is what an action would act on. They stack, and selected reads first.
 - **The bar's `＋` follows the selection**, and its tooltip names which, so the meaning is never hidden. **Where the selection holds nothing — a note, a reference — the layer takes it**, since a stand-in and a remark hold no blocks. **Add folder is a shortcut, not a second concept** — the same `create`, arriving with its type filled. The filing structure is what somebody reaches for most often in an explorer, and making them create a block and then retype it would be purity charged to the user.
 - **Right-click opens the offered list** for the selection, in fixed order.
 - **Every row is draggable but the workspace**, and a drag crossing a tier lands as that tier's elementary unit rather than refusing. A drop on the workspace row, or **in the clear space below**, makes the block top-level.
-- **A move drops what does not travel** — group memberships, note ties, and relationships to anything staying behind; **a group whose last member leaves goes with it**. A move is never confirmed first; undo is the answer.
+- **A move drops what does not travel** — group memberships, note ties, and relationships to anything staying behind. A group or grid moved away leaves its members where they were, loose. A move is never confirmed first; undo is the answer.
 - **Folding is the user's alone**: walking into a layer never rearranges the tree. Folding the workspace shuts the whole tree.
 
 ## Definitions

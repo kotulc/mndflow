@@ -6,12 +6,12 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { about_of, alias_of, children, def_named, def_of, frame_of, is_interface, new_id,
-         owner_of, shipped, shown_name, stands_for,
+         owner_of, shown_name, stands_for,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Element } from "./Element";
-import { Style } from "./Style";
+import { Settings } from "./Settings";
 import { Fields } from "./Fields";
 import { Definitions, type Shelf } from "./Definitions";
 import { Entry } from "./Entry";
@@ -61,7 +61,7 @@ export type TrayProps = {
 /** A host's tab: what it is called, and what it shows for the block the tray is about. */
 export type Extra = { name: string; draw: (about: Id) => ReactNode };
 
-export type Tab = "element" | "style" | "types" | "fields" | "contents" | "definitions"
+export type Tab = "element" | "settings" | "type" | "fields" | "contents" | "definitions"
                 | "packages" | "usages" | "workspace";
 
 /** What the tray is about. The root is not a block anybody draws, so it is its own context. */
@@ -73,11 +73,13 @@ type Context = "root" | "block" | "line" | "definition" | "relation" | "library"
 const SLOTS: Record<Context, readonly Tab[]> = {
   /** The root draws nowhere, so it is asked about itself and about what it holds, and no more. */
   root: ["workspace", "contents"],
-  /** Usages are a definition's question: an instance is one usage and has none of its own. */
-  block: ["element", "style", "types", "fields", "contents"],
-  line: ["element", "style", "types"],
-  definition: ["element", "style", "fields", "usages"],
-  relation: ["element", "style", "usages"],
+  /** Usages are a definition's question: an instance is one usage and has none of its own.
+   *  **Settings are a definition's too** — how it draws and what it may do — so a usage follows
+   *  them rather than carrying its own. */
+  block: ["element", "type", "fields", "contents"],
+  line: ["element", "type"],
+  definition: ["element", "settings", "fields", "usages"],
+  relation: ["element", "settings", "usages"],
   library: ["definitions"],
   packages: ["packages"],
 };
@@ -206,11 +208,6 @@ export function Tray(props: TrayProps) {
   /** What a read-only listing acts with: nothing. */
   const reads = edits ? act : NOOP;
 
-  /** Whether an element has looks of its own, which make a working definition. */
-  const drawn_looks = (it: { looks?: Record<string, object> } | undefined) =>
-    ["card", "style", "line"].some((key) => Object.keys(it?.looks?.[key] ?? {}).length > 0);
-  const instance = view.blocks[about] ?? view.edges[about];
-
   /** A draft is filed as one step the moment it is named, and the tray holds it. */
   function file_draft(to: string) {
     const draft = drafting ? drafts[drafting] : null;
@@ -223,18 +220,10 @@ export function Tray(props: TrayProps) {
     onHold({ of: "id", id });
   }
 
-  const working_look = !!instance && drawn_looks(instance);
-
-  /** What styling writes: a workspace definition the element names, else the element's own look. */
-  const typed = instance?.type ? view.defs[instance.type] : undefined;
-  const styled: Id = instance && typed && !shipped(typed) && !typed.from && !working_look
-    ? typed.id : about;
-
-  /** Whether the context has looks to reset, and whether it is a package's. */
-  const holder = view.defs[styled] ?? view.blocks[styled] ?? view.edges[styled];
-  const bag = holder && ("components" in holder ? holder.components : "looks" in holder ? holder.looks : undefined);
+  /** Whether the definition in context has looks to reset, and whether it is a package's. */
+  const bag = view.defs[about]?.components;
   const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
-  const borrowed = !!view.defs[styled]?.from;
+  const borrowed = !!view.defs[about]?.from;
 
   /** A reference holds nothing of its own — `of` is the whole of it — so its contents is the one
    *  it stands for, listed as a row like any other and offering the way there. */
@@ -302,18 +291,20 @@ export function Tray(props: TrayProps) {
   const on_row = lit_row(shown, asked_row);
   const on_stood = lit_row(stood ? [stood] : [], asked_row);
 
-  /** What a definition row applies to: the elements picked, of the context's own group. */
-  const targets = picked.filter((id) => (lined ? !!graph.edges[id] : !!graph.blocks[id]));
+  /** What a definition row applies to: the elements picked, of the context's own group — or the
+   *  one element the tray is about, where the canvas has not picked it. */
+  const picked_here = picked.filter((id) => (lined ? !!graph.edges[id] : !!graph.blocks[id]));
+  const instance = !view.defs[about] && about !== graph.root
+    && !!(view.blocks[about] ?? view.edges[about]);
+  const targets = instance && !picked_here.includes(about) ? [about] : picked_here;
   const target_name = targets.length === 1 ? shown_name(graph, targets[0]!)
     : `${targets.length} ${lined ? "lines" : "blocks"}`;
 
-  /** The head names the context. */
-  const word = drafting ? `new ${drafting} definition`
-    : library ? "definitions"
-    : view.defs[about] ? `${view.defs[about]!.group} definition`
-    : context === "root" ? "root"
-    : context === "line" ? "relation" : "block";
-  const name = drafting ? drafts[drafting].name
+  /** The head names the context, then says what sort it is: a definition, or a usage of one. */
+  const word = library ? "definitions"
+    : drafting || view.defs[about] ? "definition"
+    : context === "root" ? "workspace" : "usage";
+  const name = drafting ? drafts[drafting].name || `new ${drafting}`
     : library ? [library.from ?? (library.only === "all" ? "" : library.only),
                  library.group ? `${library.group}s` : ""].filter(Boolean).join(" · ")
     : view.defs[about] ? view.defs[about]!.name : shown_name(graph, about);
@@ -333,12 +324,12 @@ export function Tray(props: TrayProps) {
       {...(open && tab === "contents" && !points_at ? {
         tools: <span className="holds">{shown.length} {shown.length === 1 ? "element" : "elements"}</span>,
       } : {})}
-      {...(onAct && tab === "style" ? {
+      {...(onAct && tab === "settings" ? {
         tabTools: (
           <button className="reset" disabled={borrowed || !its_own}
                   title={its_own ? "give every look back to what it inherits"
                                     : "it says nothing of its own to give back"}
-                  onClick={() => act("none", { ids: [styled] })}>
+                  onClick={() => act("none", { ids: [about] })}>
             reset style
           </button>
         ),
@@ -350,10 +341,11 @@ export function Tray(props: TrayProps) {
                        {...(props.display ? { display: props.display } : {})} />
           ) : null}
           {tab === "element" ? (
-            <Element graph={view} id={about} {...(edits ? { onAct: act } : {})} />
+            <Element graph={view} id={about} {...(edits ? { onAct: act } : {})}
+                     onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
-          {onAct && tab === "style" ? (
-            <Style graph={view} id={about} styled={styled} onAct={act} />
+          {onAct && tab === "settings" ? (
+            <Settings graph={view} id={about} onAct={act} />
           ) : null}
           {/* A definition declares fields and an instance answers them. */}
           {tab === "fields" ? (
@@ -371,9 +363,10 @@ export function Tray(props: TrayProps) {
           {tab === "packages" ? (
             <Packages graph={graph} offered={props.offered} onAct={reads} />
           ) : null}
-          {onAct && tab === "types" ? (
+          {onAct && tab === "type" ? (
             <Definitions key={about} about={about} graph={graph} follows={held_def}
-                         onAct={act} lines={targets} target={target_name} />
+                         onAct={act} lines={targets} target={target_name}
+                         onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
           {tab === "usages" ? (
             <Usages graph={graph} group={lined ? "relation" : "block"}
