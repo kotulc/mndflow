@@ -113,6 +113,16 @@ npm run start -w @mnd/cli -- fold related
 
 **`@mnd/kit` is the one thing that ships.** The headless stack as a single built package, plus `kit/react` and `kit/react.css` — the viewer, the explorer and a read-only tray, with the tray and display state the app itself runs on — packed, never published. `release/` carries the tarball and a manifest naming its version, commit and integrity, so a consumer can check what it is holding.
 
+### Releasing the kit
+
+**The manifest stamps `HEAD`, so commit before packing** — a dirty tree packs something the recorded commit does not describe.
+
+1. `npm version minor -w @mnd/kit --no-git-tag-version` — or `patch` / `major`
+2. Commit the bump, `package-lock.json` included
+3. `npm run release:kit` — writes the tarball and `release/kit.json`
+4. Commit `release/`
+5. `npm run release:kit -- --check` — optional, confirms the tarball matches its manifest
+
 ---
 
 ## The documents
