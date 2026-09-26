@@ -1,6 +1,6 @@
 /** What every module derives the same way. */
 
-import { alias_of, schema_of, is_container, is_header, is_interface, is_named, is_reference,
+import { alias_of, schema_def, schema_of, is_container, is_header, is_interface, is_named, is_reference,
          base_of, path, role_of, shown_name, stamps_of, stands_for,
          type Graph, type Id } from "@mnd/core";
 import { look_of } from "./look";
@@ -18,7 +18,9 @@ export function marks_of(graph: Graph, id: Id): Trait[] {
   const module = base_of(graph, id);
   if (module === "reference") {
     out.push("reference");
-    if (!stands_for(graph, id) || stands_for(graph, id)!.id === id) out.push("missing");
+    /** Missing is naming nothing at all: a stand-in for a definition or a package names no block. */
+    const other = b.of && (graph.defs[b.of] || graph.packages[b.of]);
+    if (!other && (!stands_for(graph, id) || stands_for(graph, id)!.id === id)) out.push("missing");
   }
   if (module === "note") out.push("note");
   if (module === "group") out.push("group");
@@ -52,15 +54,20 @@ export function carried(graph: Graph, id: Id): BoxData {
     marks: marks_of(graph, id),
     look,
     ...(look.fields ? { fields: listed(graph, id) } : {}),
+    ...(look.body && "body" in b && b.body ? { body: b.body } : {}),
   };
 }
 
-/** What a card's compartment lists. A stand-in for a definition lists its schema; anything else
- *  lists the schema it answers, with its values, then whatever it carries beyond it. */
+/** What a card's compartment lists. A stand-in for a definition lists its schema, and so does a
+ *  block holding usages of one — a table lists its columns. Anything else lists the schema it
+ *  answers, with its values, then whatever it carries beyond it. */
 export function listed(graph: Graph, id: Id): Listed[] {
   const b = graph.blocks[id];
   if (!b) return [];
-  if (b.of && graph.defs[b.of]) return schema_of(graph, b.of).map(({ name, form }) => ({ name, form }));
+  const form_only = (def: Id) => schema_of(graph, def).map(({ name, form }) => ({ name, form }));
+  if (b.of && graph.defs[b.of]) return form_only(b.of);
+  const held = schema_def(graph, id);
+  if (held && held !== b.type) return form_only(held);
   const own = b.fields ?? [];
   const schema = schema_of(graph, b.type);
   const extra = own.filter((f) => !schema.some((s) => s.name === f.name));

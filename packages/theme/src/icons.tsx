@@ -60,6 +60,23 @@ const PATHS = {
   // Where every usage hangs from: one node, and the branches it puts out.
   role_root: "M12 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M12 8.5v3.5M5 12h14M5 12v5M12 12v5M19 12v5M3.5 17h3M10.5 17h3M17.5 17h3",
 
+  // What a block of content is, for a package that names one per kind with `card.icon`. Drawn
+  // as the mark each already spends in an editor: `#`, ¶, bullets, `</>`, quotes.
+  content_heading: "M10 4.5L8 19.5M16 4.5l-2 15M5 9.5h14.5M4.5 14.5H19",
+  content_text: "M11 19.5v-15h7M15 4.5v15M11 4.5a4 4 0 0 0 0 8",
+  content_list: "M4.5 7h1M4.5 12h1M4.5 17h1M9 7h10.5M9 12h10.5M9 17h10.5",
+  content_item: "M4.5 12h1M9 12h10.5",
+  content_code: "M8 7.5L3.5 12 8 16.5M16 7.5l4.5 4.5-4.5 4.5M13.5 5.5l-3 13",
+  content_quote: "M5 17.5c2.5-1 3.5-3 3.5-6V7.5H5V11h3.5M13.5 17.5c2.5-1 3.5-3 3.5-6V7.5h-3.5V11H17",
+  content_image: "M4 5.5h16v13H4zM4 16l5-5 4 4 2.5-2.5L20 17M15.5 8.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2",
+  content_rule: "M3.5 12h4M10 12h4M16.5 12h4",
+  // The document's metadata: a tag, since that is what it says about the page.
+  content_front: "M4 4.5h8l8 8-7.5 7.5-8.5-8.5zM8 8.5h.5",
+  content_lead: "M3.5 12h11M11 8.5l3.5 3.5-3.5 3.5M18.5 6v12",
+  content_more: "M4 7.5h16v9H4zM7.5 12h1M11.5 12h1M15.5 12h1",
+  // One record: a single row of cells, where `role_table` is the whole lattice.
+  content_row: "M3.5 9h17v6h-17zM9.5 9v6M14.5 9v6",
+
   // What a thing is, opened out to be set. A cog: the one mark every app
   // already spends on *the settings of this*.
   /** A pinned definition. */

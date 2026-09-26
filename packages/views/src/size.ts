@@ -119,8 +119,9 @@ export function gridded(graph: Graph, id: Id): boolean {
   return !!b?.cell && !!b.group && is_grid(graph, b.group);
 }
 
-/** What this block needs. Every card is the one card size; only a card whose definition asked for
- *  its own height keeps what it was given, and a grid is the extent it was drawn with. */
+/** What this block needs. Every card is the one card size; a card whose definition asked for its
+ *  own height keeps what it was given, one that fits grows to what it shows, and a grid is the
+ *  extent it was drawn with. */
 export function size_of(graph: Graph, id: Id): Size {
   /** A grid is its extent; a boundary is sized from what it holds, by the caller. */
   if (is_grid(graph, id)) return grid_size(holder_of(graph, id)!);
@@ -128,7 +129,11 @@ export function size_of(graph: Graph, id: Id): Size {
   if (!b) return BLOCK;
   if (is_interface(b)) return PORT;
   if (b.w !== undefined && b.h !== undefined && free_height(graph, id)) return { w: b.w, h: b.h };
-  if (look_of(graph, id).fields) return listing(listed(graph, id).length);
+  const look = look_of(graph, id);
+  if (look.fields) return listing(listed(graph, id).length);
+  if (look.height === "fit" && look.body && b.body) {
+    return { w: BLOCK.w, h: parted(wrapped(b.body, BLOCK.w), look.head !== false) };
+  }
   return { ...BLOCK };
 }
 
@@ -138,10 +143,39 @@ export const LISTED = 16;
 /** How wide a card listing its fields is at least, in units: room for a name and a value. */
 const LISTING = 10;
 
+/** How wide one character of a compartment is, near enough, in pixels. */
+const GLYPH = 7.2;
+
+/** What a card spends beside its compartment: its padding, the divider, and the corner's gutter. */
+const INSET = { x: 29, y: 10 };
+
+/** The most lines a card grows by; past it, what it shows is clipped. */
+const MOST = 16;
+
 /** A card listing its fields: at least `LISTING` wide, and tall enough for every line. */
 function listing(lines: number): Size {
-  const h = BLOCK.h + Math.ceil((lines * LISTED + GAP / 2) / UNIT) * UNIT;
-  return { w: Math.max(BLOCK.w, LISTING * UNIT), h };
+  return { w: Math.max(BLOCK.w, LISTING * UNIT), h: parted(lines, true) };
+}
+
+/** A card's height with a head line over `lines` of compartment: whole units, never less than
+ *  the one card height. */
+function parted(lines: number, head: boolean): number {
+  const px = (head ? UNIT : 0) + Math.min(lines, MOST) * LISTED + INSET.y;
+  return Math.max(BLOCK.h, Math.ceil(px / UNIT) * UNIT);
+}
+
+/** How many lines a body wraps to at this width. A fence draws nothing and what it holds never
+ *  wraps; a blank line draws nothing, and a link draws its text rather than where it points. */
+function wrapped(body: string, w: number): number {
+  const per = Math.max(1, Math.floor((w - INSET.x) / GLYPH));
+  let fenced = false;
+  let n = 0;
+  for (const line of body.split("\n")) {
+    if (/^\s*(```|~~~)/.test(line)) { fenced = !fenced; continue; }
+    if (fenced) { n += 1; continue; }
+    if (line.trim()) n += Math.ceil(line.replace(/\]\([^)]*\)/g, "]").length / per);
+  }
+  return n;
 }
 
 /** Whether this card keeps whatever size it was given, rather than the one card height. */

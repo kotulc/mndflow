@@ -79,8 +79,9 @@ export const SHOWN = ["show", "hide"] as const;
 /** Which end of the card its writing reads from. */
 export const ALIGNS = ["left", "center", "right"] as const;
 
-/** Whether a card is the one card height, or keeps whatever size it was given. */
-export const HEIGHTS = ["uniform", "free"] as const;
+/** Whether a card is the one card height, keeps whatever size it was given, or grows to fit what
+ *  it shows. */
+export const HEIGHTS = ["uniform", "free", "fit"] as const;
 
 /** The named families a definition may pick from. */
 export const FAMILIES = ["primary", "secondary", "neutral", "muted",
@@ -188,7 +189,12 @@ const card: Component = {
     ?? one_of("card.height", config["height"], HEIGHTS)
     /** `fields` lists what the card carries in a compartment under its name. */
     ?? one_of("card.fields", config["fields"], SHOWN)
-    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "fields"]),
+    /** `body` shows what the block says under the divider; `name` hides the head, so the body is
+     *  the whole card. */
+    ?? one_of("card.body", config["body"], SHOWN)
+    ?? one_of("card.name", config["name"], SHOWN)
+    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "fields",
+                              "body", "name"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings. */

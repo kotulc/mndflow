@@ -1,11 +1,11 @@
 /** The workspace explorer: structure, and only structure. */
 
 import { useMemo, useRef, useState, type ReactNode } from "react";
-import { about_of, alias_of, children, def_named, is_interface, is_named,
+import { about_of, alias_of, children, config_of, def_named, def_of, is_interface, is_named,
          is_reference, may_hold, block_base, base_of,
          packages, pinned_defs, relation_base, shelf_of, shelf_tree, shelvable, shipped, shown_name,
          type Act, type Definition, type Graph, type Id, type ShelfNode } from "@mnd/core";
-import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
+import { Icon, Name, NamingContext, known, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 
 export type ExplorerProps = {
@@ -55,6 +55,8 @@ function same(a: Section | null | undefined, b: Section | undefined): boolean {
 }
 
 type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
+             /** The icon its definition names with `card.icon`, worn over its mark's. */
+             icon?: IconName;
              /** What a row is: a block, a definition, a library section, or a folder made for them. */
              of: "block" | "def" | "pack" | "shelf";
              /** The block, definition or folder the row stands for; its id keeps rows apart. */
@@ -100,9 +102,18 @@ const GROUPS: readonly { group: Group; label: string }[] = [
 /** A definition as a row, wearing its kind's mark. */
 function def_node(graph: Graph, d: Definition, within: Id, filed?: Row["filed"]): Node {
   const kind = d.group === "relation" ? relation_base(graph, d.id) : block_base(graph, d.id);
-  return { id: `${within}:${d.id}`, ref: d.id, label: d.name,
+  const icon = card_icon(graph, d.id);
+  return { id: `${within}:${d.id}`, ref: d.id, label: d.name, ...(icon ? { icon } : {}),
            mark: KIND_MARK[kind] ?? "leaf", of: "def", at: { of: "def", id: d.id },
            ...(filed ? { filed } : {}), under: [] };
+}
+
+/** The icon a block or definition names with `card.icon`, where this set draws it: the block's
+ *  own word first, then its definition's chain. */
+function card_icon(graph: Graph, id: Id): IconName | undefined {
+  const own = graph.blocks[id]?.looks?.["card"]?.["icon"];
+  const said = own ?? config_of(graph, graph.defs[id] ? id : def_of(graph, id), "card")["icon"];
+  return typeof said === "string" && known(said) ? said : undefined;
 }
 
 /** A section row: its word, its mark, where it points, and what it holds. */
@@ -187,7 +198,8 @@ function tree_of(graph: Graph, folded: readonly Id[], library = false): Row[] {
     kin.forEach((b, n) => {
       const kids = under(graph, b.id);
       const guides = [...held, n < kin.length - 1];
-      out.push({ id: b.id, ref: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
+      const icon = card_icon(graph, b.id);
+      out.push({ ...(icon ? { icon } : {}), id: b.id, ref: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
                  named: is_named(graph, b.id), alias: alias_of(graph, b.id), of: "block",
                  mark: base_of(graph, b.id) === "folder" ? "folder" : "leaf",
                  guides });
@@ -582,11 +594,9 @@ export function Explorer(props: ExplorerProps) {
                     title={r.kids ? (shut.includes(r.id) ? "open" : "fold") : undefined}
                     onClick={(e) => { e.stopPropagation();
                                       if (r.kids) onFold(r.id, !shut.includes(r.id)); }}>
-                {/* A row that holds parts fills its own icon; that is what containing looks like.
-                    The root always holds everything, so filling it would say nothing. */}
-                <Icon name={MARK[r.mark].icon}
-                      solid={!MARK[r.mark].word && r.mark !== "root" && r.of === "block" && r.kids > 0}
-                      size={MARK_SIZE} />
+                {/* A row that holds parts lights its icon while open, as a card does; a fill
+                    would blot a drawn mark like a pilcrow. */}
+                <Icon name={r.icon ?? MARK[r.mark].icon} size={MARK_SIZE} />
               </span>
               {r.of === "pack"
                 ? <span className="label">{r.label}</span>

@@ -53,16 +53,13 @@ describe("it shows structure and only structure", () => {
     expect(mark("Auth")).toBe("leaf");
   });
 
-  it("fills the icon of a row that holds parts, and only that", () => {
+  it("lights the icon of an open row that holds parts, and never fills it", () => {
     const { container } = mount(fold(nested(), FLOOR));
-    const filled = (label: string) => container
-      .querySelector(`li:has(.label)`) && Array.from(container.querySelectorAll("li"))
-      .find((li) => li.textContent?.startsWith(label))
-      ?.querySelector(".mark svg")?.getAttribute("fill");
-    expect(filled("Edge")).toBe("currentColor");
-    expect(filled("Auth")).toBe("none");
-    /** The root row holds everything, so its mark stays an outline — filling it says nothing. */
-    expect(filled("workspace")).toBe("none");
+    const mark = (label: string) => Array.from(container.querySelectorAll("li"))
+      .find((li) => li.textContent?.startsWith(label))?.querySelector(".mark");
+    expect(mark("Edge")?.classList.contains("on")).toBe(true);
+    expect(mark("Auth")?.classList.contains("on")).toBe(false);
+    expect(mark("Edge")?.querySelector("svg")?.getAttribute("fill")).toBe("none");
   });
 });
 

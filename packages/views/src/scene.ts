@@ -29,6 +29,8 @@ export type BoxData = {
   look?: Look;
   /** What its compartment lists, where its look asks for one: each field's name, form and value. */
   fields?: readonly Listed[];
+  /** What it says, as markdown, where its look asks for its body. */
+  body?: string;
   /** The lattice a grid draws, as boxes inside its own. */
   grid?: readonly GridCell[];
   /** Whom a boundary is drawn round. */

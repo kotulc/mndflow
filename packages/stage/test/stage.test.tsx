@@ -75,13 +75,13 @@ describe("what a card wears", () => {
     expect(stamped(view).every((m) => m !== null && MARKS.includes(m))).toBe(true);
   });
 
-  /** Holding parts fills the card's own icon instead. */
-  it("fills the icon of the layer you are inside", () => {
+  /** Holding parts lights the card's own icon instead. */
+  it("lights the icon of the layer you are inside", () => {
     const view = mount();
-    expect(view.container.querySelector(".mnd-frame .mnd-role svg")?.getAttribute("fill"))
-      .toBe("currentColor");
-    expect(card(view, "block_pump").querySelector(".mnd-role svg")?.getAttribute("fill"))
-      .toBe("none");
+    expect(view.container.querySelector(".mnd-frame .mnd-role")?.hasAttribute("data-holds"))
+      .toBe(true);
+    expect(card(view, "block_pump").querySelector(".mnd-role")?.hasAttribute("data-holds"))
+      .toBe(false);
   });
 
   /** Never the word the mark already says. */

@@ -165,18 +165,20 @@
    rather than being one more grey. */
 .mnd-role[data-role="note"] { color: var(--note-dim); }
 .mnd-role[data-role="reference"] { color: var(--away); opacity: 0.85; }
+/* A card holding parts lights its icon: the colour, not a fill, is what says so. */
+.mnd-role[data-holds] { color: var(--accent); opacity: 1; }
 .mnd-picked > .mnd-role, .picked > .mnd-role { color: var(--accent); opacity: 1; }
 
 /* The system marks, in the bottom corner: what this card stands in for, or what describes it.
-   The app chooses it, and the highlight colour is what says so. */
+   Quiet, so the icon above is the one that speaks. */
 .mnd-marks {
   position: absolute;
   bottom: 3px;
   right: 4px;
   display: inline-flex;
   gap: 2px;
-  color: var(--accent);
-  opacity: 0.85;
+  color: var(--muted);
+  opacity: 0.8;
   pointer-events: none;
 }
 .mnd-picked > .mnd-marks, .picked > .mnd-marks { opacity: 1; }
@@ -391,12 +393,27 @@
 
 
 
-/* A card's compartment: its fields under a rule, a line each — name, then value or form. */
+/* ── A card's compartment: under a divider, its fields or its body ── */
+
+/* A card with a compartment keeps its head to one line. */
+.mnd-card.parted > .mnd-head { flex: none; height: 20px; }
+.mnd-card.parted[data-label] > .mnd-head > .mnd-named > .mnd-label {
+  display: block;
+  white-space: nowrap;
+}
+
+/* The divider: drawn only under a head, since a card that is its body alone has nothing over it. */
+.mnd-head + .mnd-fields, .mnd-head + .mnd-body {
+  margin-top: 1px;
+  padding-top: 3px;
+  border-top: 1px solid currentColor;
+}
+
+/* Its fields, a line each — name, then value or form. */
 .mnd-fields {
   list-style: none;
-  margin: 4px 0 0;
-  padding: 3px 0 0;
-  border-top: 1px solid currentColor;
+  margin: 0;
+  padding: 0;
   width: 100%;
   font-size: 11px;
   line-height: 16px;
@@ -407,3 +424,28 @@
 .mnd-field-value, .mnd-field-form { min-width: 0; overflow: hidden; text-overflow: ellipsis;
                                     white-space: nowrap; }
 .mnd-field-form { color: var(--muted); font-style: italic; }
+
+/* Its body, formatted: the room a card has, and no more. */
+.mnd-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding-right: 13px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.mnd-card.headless > .mnd-body { padding-top: 3px; }
+.mnd-body :where(p, pre, ul, ol, blockquote, hr) { margin: 0; }
+.mnd-body pre { white-space: pre; overflow: hidden; }
+.mnd-body code { font: inherit; color: var(--card-dim); }
+.mnd-body :where(ul, ol) { padding-left: 14px; }
+.mnd-body li[data-task] { list-style: none; margin-left: -14px; }
+.mnd-body li[data-task]::before { content: "☐ "; color: var(--muted); }
+.mnd-body li[data-task="done"]::before { content: "☑ "; }
+.mnd-body blockquote { padding-left: 6px; border-left: 2px solid var(--card-dim); }
+.mnd-body hr { border: 0; border-top: 1px dashed var(--card-dim); }
+.mnd-body .md-heading { font-weight: 700; }
+.mnd-body .md-image { font-style: italic; color: var(--muted); }
+
+/* A link reads as one, and answers ctrl+click; a plain click is the card's. */
+.md-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
