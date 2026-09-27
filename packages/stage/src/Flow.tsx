@@ -11,7 +11,7 @@ import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 import { EDGE_TYPES, Heads } from "./Wire";
 import type { Adjust, FlowViewProps, Gesture, Landing } from "./gestures";
-import { MIN_ZOOM, scroll_zoom } from "./arrays";
+import { MIN_ZOOM, read_zoom, scroll_zoom } from "./arrays";
 import { useDrag } from "./drag";
 import { useDraw } from "./draw";
 import { Grips } from "./Grips";
@@ -26,20 +26,20 @@ export { DRAGGED };
 function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
           said, chrome = true, lattice = false, frame: framed = true,
-          scroll = false, focus = null, reach: wide = null } = props;
+          scroll = false, focus = null, reach: wide = null, widest = null } = props;
   const flow = useReactFlow();
   const { frame, fit, seen } = useRoom(scene);
   const { nodes, edges, moved, rewired, chose, key, again } = useSync(scene, picked, frame, onPick);
-  useCamera(scene, frame, fit, seen, key, nodes, scroll, focus, wide);
+  useCamera(scene, frame, fit, seen, key, nodes, scroll, focus, wide, widest);
 
   /** Scrolled, the drawing can be read from its first card to its last, and no further. */
   const reach = useMemo((): [[number, number], [number, number]] | undefined => {
     if (!scroll) return undefined;
     const b = frame ?? extent(scene);
     const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
-    const air = seen.h / 2 / scroll_zoom(wide ?? b.w, on ? box_of(on) : b, seen);
+    const air = seen.h / 2 / scroll_zoom(wide ?? b.w, on ? box_of(on) : b, seen, widest);
     return [[-Infinity, b.y - air], [Infinity, b.y + b.h + air]];
-  }, [scroll, frame, scene, seen, wide, focus]);
+  }, [scroll, frame, scene, seen, wide, widest, focus]);
 
   /** Where the pointer is on the drawing, unsnapped. */
   const at = useCallback((e: { clientX: number; clientY: number }): Point =>
@@ -96,8 +96,9 @@ function Canvas(props: FlowViewProps) {
   const only = useMemo(() => {
     if (picked.length !== 1) return null;
     const n = scene.nodes.find((x) => x.id === picked[0]);
-    /** A note has no inside to open, and nor has a card holding nothing. */
-    const opens = n && (n.data.marks.includes("container") || n.data.link);
+    /** Only a card holding something opens: a note has no inside, and nor has a leaf, linked or
+     *  not — a link is followed by double-click, not opened. */
+    const opens = n?.data.marks.includes("container");
     return n && opens && !n.data.on && n.selectable !== false && n.type !== "note" ? n.id : null;
   }, [picked, scene]);
 
@@ -113,7 +114,7 @@ function Canvas(props: FlowViewProps) {
       onSelectionChange={chose}
       fitView
       fitViewOptions={fit}
-      minZoom={MIN_ZOOM}
+      minZoom={scroll && widest ? read_zoom(widest, seen) : MIN_ZOOM}
       maxZoom={4}
       onPointerDown={pressed}
       onPointerMove={moved_to}

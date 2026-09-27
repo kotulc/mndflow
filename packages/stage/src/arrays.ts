@@ -19,12 +19,14 @@ export function read_zoom(w: number, seen: { w: number }): number {
 }
 
 /** The zoom a scrolled view reads at: `w` across, widened to take in a focus wider than that,
- *  and eased out further where the focus is taller than the view. */
+ *  and eased out further where the focus is taller than the view — but never so far that more
+ *  than `widest` is across. */
 export function scroll_zoom(w: number, focus: { w: number; h: number } | null,
-                            seen: { w: number; h: number }): number {
+                            seen: { w: number; h: number }, widest: number | null = null): number {
   const zoom = read_zoom(Math.max(w, focus?.w ?? 0), seen);
   const tall = focus ? (seen.h - BAND * 2) / Math.max(1, focus.h) : zoom;
-  return Math.max(MIN_ZOOM, Math.min(zoom, tall));
+  const least = widest ? read_zoom(widest, seen) : MIN_ZOOM;
+  return Math.max(least, Math.min(zoom, tall));
 }
 
 /** The band left around a layer's frame, in screen pixels. */

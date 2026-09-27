@@ -192,6 +192,10 @@ function CardNode({ id, data, selected, height }: NodeProps<BoxNode>) {
   /** A value that only repeats the card's name is said once, by the name. */
   const fields = data.fields?.filter((f) => !f.value || plain(f.value) !== data.label);
   const parted = !!fields || !!data.body;
+  /** As many fields as the card has lines for; past that, the last line says there are more. */
+  const lines = room(height, head);
+  const cut = !!fields && lines !== undefined && fields.length > lines;
+  const kept = cut ? fields.slice(0, lines - 1) : fields;
   return (
     <div className={["mnd-card", "card-face", ...data.marks, parted ? "parted" : "",
                      head ? "" : "headless", selected ? "picked" : ""]
@@ -222,7 +226,7 @@ function CardNode({ id, data, selected, height }: NodeProps<BoxNode>) {
       {/* What it carries, one line each: a value where it has one, its form where it has not. */}
       {fields ? (
         <ul className="mnd-fields">
-          {fields.map((f) => (
+          {kept!.map((f) => (
             <li key={f.name} title={`${f.name}: ${f.value ?? f.form}`}>
               <span className="mnd-field-name">{f.name}</span>
               {f.value === undefined
@@ -230,11 +234,12 @@ function CardNode({ id, data, selected, height }: NodeProps<BoxNode>) {
                 : <Inline className="mnd-field-value" text={f.value} />}
             </li>
           ))}
+          {cut ? <li className="mnd-field-more">…</li> : null}
         </ul>
       ) : null}
       {/* What it says. */}
       {data.body
-        ? <Markdown className="mnd-body" text={data.body} lines={room(height, head)} /> : null}
+        ? <Markdown className="mnd-body" text={data.body} lines={lines} /> : null}
       {/* Under the card rather than in it. */}
       {label === "below"
         ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}

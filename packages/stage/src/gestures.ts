@@ -73,6 +73,9 @@ export type FlowViewProps = {
    *  whole drawing is fitted. */
   focus?: string | null;
   /** How wide a scrolled view reads, in drawing units: the whole drawing unless said. The view
-   *  slides along a wider drawing only as far as keeps the focus in it. */
+   *  is centred on the focus. */
   reach?: number | null;
+  /** The most a scrolled view ever takes in across, in drawing units: however wide the drawing
+   *  or its focus, the camera zooms out no further. Unbounded unless said. */
+  widest?: number | null;
 };

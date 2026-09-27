@@ -48,11 +48,13 @@ export type ViewerProps = {
   focus?: Id | null;
   /** How wide a scrolled layer reads, in drawing units: its whole width unless said. */
   reach?: number | null;
+  /** The most a scrolled layer ever takes in across, in drawing units: unbounded unless said. */
+  widest?: number | null;
 };
 
 export function Viewer({ graph, layer = null, picked = NONE, config, card, full = false, chrome,
                         onLook, onPick, onFollow, fields = null, onFields, scroll = false,
-                        focus = null, reach = null }: ViewerProps) {
+                        focus = null, reach = null, widest = null }: ViewerProps) {
   const [at, set_at] = driven<Id | null>(layer);
   const [lit, set_lit] = driven<readonly Id[]>(picked);
 
@@ -105,7 +107,7 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
      *  diagram's is not the contents'. */
     <FlowView key={drawn ? "diagram" : "contents"} scene={scene} picked={lit}
       lattice={chrome?.lattice ?? true} scroll={scroll} focus={focus}
-      reach={reach}
+      reach={reach} widest={widest}
       onGesture={gesture} onPick={pick} />
   );
   if (!chrome?.crumbs && !chrome?.legend && !onFields) return flow;

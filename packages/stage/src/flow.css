@@ -433,6 +433,7 @@
 .mnd-field-value, .mnd-field-form { min-width: 0; overflow: hidden; text-overflow: ellipsis;
                                     white-space: nowrap; }
 .mnd-field-form { color: var(--muted); font-style: italic; }
+.mnd-field-more { color: var(--muted); }
 
 /* Its body, formatted: the room a card has, and no more. */
 .mnd-body {

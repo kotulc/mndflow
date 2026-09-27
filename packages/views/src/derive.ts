@@ -27,8 +27,8 @@ export function marks_of(graph: Graph, id: Id): Trait[] {
     if (b.flow === "in" || b.flow === "both") out.push("in");
     if (b.flow === "out" || b.flow === "both") out.push("out");
   }
-  /** A reference to a block holds what it previews. */
-  if (is_container(graph, previewed(graph, id))) out.push("container");
+  /** A reference to a block holds what it previews, and whatever it holds itself. */
+  if (is_container(graph, id) || is_container(graph, previewed(graph, id))) out.push("container");
   /** Wearing its type rather than a name somebody chose. */
   if (!is_named(graph, id)) out.push("unnamed");
   /** A header, and one heading a row reads upright in its one-unit column. */
