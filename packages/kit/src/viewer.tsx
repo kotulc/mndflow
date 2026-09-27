@@ -41,10 +41,18 @@ export type ViewerProps = {
    *  contents. Given it, a layer whose blocks carry fields offers the toggle in the canvas's bottom
    *  right-hand corner. A pick on the diagram's class card is told as its definition. */
   onFields?: (id: Id | null) => void;
+  /** The layer read down the page: fitted to its width, scrolled rather than zoomed. */
+  scroll?: boolean;
+  /** Where a scrolled layer is read: the card brought to the middle of the view; with none, the
+   *  whole layer is fitted. */
+  focus?: Id | null;
+  /** How wide a scrolled layer reads, in drawing units: its whole width unless said. */
+  reach?: number | null;
 };
 
 export function Viewer({ graph, layer = null, picked = NONE, config, card, full = false, chrome,
-                        onLook, onPick, onFollow, fields = null, onFields }: ViewerProps) {
+                        onLook, onPick, onFollow, fields = null, onFields, scroll = false,
+                        focus = null, reach = null }: ViewerProps) {
   const [at, set_at] = driven<Id | null>(layer);
   const [lit, set_lit] = driven<readonly Id[]>(picked);
 
@@ -96,7 +104,8 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
     /** A view of its own, so the camera frames each afresh: a room is kept per layer, and the
      *  diagram's is not the contents'. */
     <FlowView key={drawn ? "diagram" : "contents"} scene={scene} picked={lit}
-      lattice={chrome?.lattice ?? true}
+      lattice={chrome?.lattice ?? true} scroll={scroll} focus={focus}
+      reach={reach}
       onGesture={gesture} onPick={pick} />
   );
   if (!chrome?.crumbs && !chrome?.legend && !onFields) return flow;

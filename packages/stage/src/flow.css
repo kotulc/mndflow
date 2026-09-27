@@ -157,17 +157,13 @@
   top: 3px;
   right: 4px;
   display: inline-flex;
-  color: var(--muted);
-  opacity: 0.75;
+  color: var(--text);
   pointer-events: none;
 }
-/* Each icon takes the colour of what it marks, so the corner agrees with the card it sits on
-   rather than being one more grey. */
+/* A note's icon agrees with the note it sits on. */
 .mnd-role[data-role="note"] { color: var(--note-dim); }
-.mnd-role[data-role="reference"] { color: var(--away); opacity: 0.85; }
-/* A card holding parts lights its icon: the colour, not a fill, is what says so. */
-.mnd-role[data-holds] { color: var(--accent); opacity: 1; }
-.mnd-picked > .mnd-role, .picked > .mnd-role { color: var(--accent); opacity: 1; }
+/* A card holding blocks lights its icon: the colour, and only that, says so. */
+.mnd-role[data-holds] { color: var(--accent); }
 
 /* The system marks, in the bottom corner: what this card stands in for, or what describes it.
    Quiet, so the icon above is the one that speaks. */
@@ -178,10 +174,9 @@
   display: inline-flex;
   gap: 2px;
   color: var(--muted);
-  opacity: 0.8;
+  opacity: 0.5;
   pointer-events: none;
 }
-.mnd-picked > .mnd-marks, .picked > .mnd-marks { opacity: 1; }
 .mnd-mark { display: inline-flex; }
 
 /* The subtype, where somebody set one. */

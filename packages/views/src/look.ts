@@ -1,7 +1,7 @@
 /** How a usage of a definition draws. */
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_of, DISPLAYS,
-         FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, kind_word, SHOWN,
+         FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, kind_word, previewed, SHOWN,
          WEIGHTS, WIDTHS, type Graph, type Id, type Settings } from "@mnd/core";
 
 export type Family = (typeof FAMILIES)[number];
@@ -97,12 +97,15 @@ export function look_of(graph: Graph, id: Id): Look {
   const block = graph.blocks[id];
   if (!block) return PLAIN;
 
-  /** The chain, then the element's own last word. */
-  const card = settings(graph, id, "card");
-  const style = settings(graph, id, "style");
-  const named = block.type ? graph.defs[block.type]?.name : undefined;
+  /** The chain, then the element's own last word. A reference to a block previews it: it looks
+   *  as its target does, but for what it says of itself, and its mark says it stands in. */
+  const source = graph.blocks[previewed(graph, id)]!;
+  const card = settings(graph, source.id, "card");
+  const style = source === block ? settings(graph, id, "style")
+    : { ...settings(graph, source.id, "style"), ...(block.looks?.["style"] ?? {}) };
+  const named = source.type ? graph.defs[source.type]?.name : undefined;
   /** The subtype where somebody named one, else its base kind. */
-  const kind = named ?? kind_word(graph, block).toLowerCase();
+  const kind = named ?? kind_word(graph, source).toLowerCase();
 
   return {
     family: one(style["family"], FAMILIES, PLAIN.family),

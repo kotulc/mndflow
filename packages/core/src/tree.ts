@@ -87,6 +87,12 @@ export function stands_for(graph: Graph, id: Id): Block | null {
   return b ?? null;
 }
 
+/** The block a card previews: what a reference to a block stands for, else the block itself. */
+export function previewed(graph: Graph, id: Id): Id {
+  const target = graph.blocks[id]?.of ? stands_for(graph, id) : null;
+  return target && target.id !== id ? target.id : id;
+}
+
 /** The number a new sibling takes: one past the last. */
 export function next_order(graph: Graph, parent: Id | null): number {
   return children(graph, parent).reduce((n, b) => Math.max(n, b.order ?? 0), 0) + 1;

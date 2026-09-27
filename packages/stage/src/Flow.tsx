@@ -3,15 +3,15 @@
 import { useCallback, useMemo } from "react";
 import {
   Background, BackgroundVariant, Controls, NodeToolbar, Panel, Position,
-  ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useReactFlow,
+  PanOnScrollMode, ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useReactFlow,
 } from "@xyflow/react";
 import type { Point, Spot } from "@mnd/core";
-import { box_of, nearest_seat, FRAME, UNIT, type BoxNode } from "@mnd/views";
+import { box_of, extent, nearest_seat, FRAME, UNIT, type BoxNode } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 import { EDGE_TYPES, Heads } from "./Wire";
 import type { Adjust, FlowViewProps, Gesture, Landing } from "./gestures";
-import { MIN_ZOOM } from "./arrays";
+import { MIN_ZOOM, scroll_zoom } from "./arrays";
 import { useDrag } from "./drag";
 import { useDraw } from "./draw";
 import { Grips } from "./Grips";
@@ -25,11 +25,21 @@ export { DRAGGED };
 
 function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
-          said, chrome = true, lattice = false, frame: framed = true } = props;
+          said, chrome = true, lattice = false, frame: framed = true,
+          scroll = false, focus = null, reach: wide = null } = props;
   const flow = useReactFlow();
   const { frame, fit, seen } = useRoom(scene);
   const { nodes, edges, moved, rewired, chose, key, again } = useSync(scene, picked, frame, onPick);
-  useCamera(scene, frame, fit, seen, key, nodes);
+  useCamera(scene, frame, fit, seen, key, nodes, scroll, focus, wide);
+
+  /** Scrolled, the drawing can be read from its first card to its last, and no further. */
+  const reach = useMemo((): [[number, number], [number, number]] | undefined => {
+    if (!scroll) return undefined;
+    const b = frame ?? extent(scene);
+    const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
+    const air = seen.h / 2 / scroll_zoom(wide ?? b.w, on ? box_of(on) : b, seen);
+    return [[-Infinity, b.y - air], [Infinity, b.y + b.h + air]];
+  }, [scroll, frame, scene, seen, wide, focus]);
 
   /** Where the pointer is on the drawing, unsnapped. */
   const at = useCallback((e: { clientX: number; clientY: number }): Point =>
@@ -86,8 +96,9 @@ function Canvas(props: FlowViewProps) {
   const only = useMemo(() => {
     if (picked.length !== 1) return null;
     const n = scene.nodes.find((x) => x.id === picked[0]);
-    /** A note has no inside to open. */
-    return n && !n.data.on && n.selectable !== false && n.type !== "note" ? n.id : null;
+    /** A note has no inside to open, and nor has a card holding nothing. */
+    const opens = n && (n.data.marks.includes("container") || n.data.link);
+    return n && opens && !n.data.on && n.selectable !== false && n.type !== "note" ? n.id : null;
   }, [picked, scene]);
 
   return (
@@ -138,6 +149,12 @@ function Canvas(props: FlowViewProps) {
       /** Deleting is the app's. */
       deleteKeyCode={null}
       zoomOnDoubleClick={false}
+      /** Scrolled, the wheel and the pinch move down the page; the zoom is the fit's. */
+      zoomOnScroll={!scroll}
+      zoomOnPinch={!scroll}
+      panOnScroll={scroll}
+      panOnScrollMode={PanOnScrollMode.Vertical}
+      {...(reach ? { translateExtent: reach } : {})}
       /** Relationships are drawn with the right button, not the library's connections. */
       nodesConnectable={false}
       onNodeDrag={(e, node) => dragging(node, pointer(e))}
@@ -221,7 +238,7 @@ function Canvas(props: FlowViewProps) {
                     gap={UNIT} offset={UNIT / 2}
                     lineWidth={1} className="mnd-lattice" />
       ) : null}
-      {chrome ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
+      {chrome && !scroll ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
     </ReactFlow>
   );
 }

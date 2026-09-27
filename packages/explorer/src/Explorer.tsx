@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { about_of, alias_of, children, config_of, def_named, def_of, is_interface, is_named,
-         is_reference, may_hold, block_base, base_of,
+         may_hold, block_base, base_of,
          packages, pinned_defs, relation_base, shape_of, shelf_of, shelf_tree, shelvable, shipped, shown_name,
          type Act, type Definition, type Graph, type Id, type ShelfNode } from "@mnd/core";
 import { Icon, Name, NamingContext, known, type IconName } from "@mnd/theme";
@@ -77,12 +77,14 @@ type Mark = "leaf" | "folder" | "interface" | "reference" | "note" | "group" | "
 /** A library row before it is laid out: what it says, and what sits under it. */
 type Node = Omit<Row, "depth" | "kids" | "guides" | "named" | "alias"> & { under: Node[] };
 
-/** What the tree draws under a block: what it owns, groups and grids among it. A second
- *  appearance, a seat on its wall and a remark about it are none of them new content. */
+/** What the tree draws under a block: every block it holds. A seat on its wall is part of the
+ *  block, not something it holds. */
 function under(graph: Graph, parent: Id | null) {
-  return children(graph, parent)
-    .filter((b) => !is_interface(b) && !is_reference(b) && base_of(graph, b.id) !== "note");
+  return children(graph, parent).filter((b) => !is_interface(b));
 }
+
+/** The kinds a row wears its base's mark for; any other block is a leaf. */
+const MARKED: readonly string[] = ["folder", "reference", "note"];
 
 /** The sections' own ids, which are not anything's. */
 const PACKS = "@packs";
@@ -201,7 +203,8 @@ function tree_of(graph: Graph, folded: readonly Id[], library = false): Row[] {
       const icon = card_icon(graph, b.id);
       out.push({ ...(icon ? { icon } : {}), id: b.id, ref: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
                  named: is_named(graph, b.id), alias: alias_of(graph, b.id), of: "block",
-                 mark: shape_of(graph, b.id) ?? (base_of(graph, b.id) === "folder" ? "folder" : "leaf"),
+                 mark: shape_of(graph, b.id)
+                   ?? (MARKED.includes(base_of(graph, b.id)) ? base_of(graph, b.id) as Mark : "leaf"),
                  guides });
       if (!folded.includes(b.id)) walk(b.id, depth + 1, guides);
     });
@@ -591,11 +594,12 @@ export function Explorer(props: ExplorerProps) {
               <span className={["mark", r.mark,
                                 r.kids ? (shut.includes(r.id) ? "shut" : "on") : ""]
                        .filter(Boolean).join(" ")}
-                    title={r.kids ? (shut.includes(r.id) ? "open" : "fold") : undefined}
+                    title={r.kids ? (shut.includes(r.id) ? `open · ${r.kids} inside` : "fold")
+                      : undefined}
                     onClick={(e) => { e.stopPropagation();
                                       if (r.kids) onFold(r.id, !shut.includes(r.id)); }}>
-                {/* A row that holds parts lights its icon while open, as a card does; a fill
-                    would blot a drawn mark like a pilcrow. */}
+                {/* A row that holds blocks lights its icon, as a card does; a fill would blot a
+                    drawn mark like a pilcrow. */}
                 <Icon name={r.icon ?? MARK[r.mark].icon} size={MARK_SIZE} />
               </span>
               {r.of === "pack"

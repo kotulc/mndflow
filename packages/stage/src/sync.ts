@@ -24,6 +24,8 @@ export function useSync(scene: Scene, picked: readonly Id[], frame: Frame | null
   const installed = useRef(key);
   /** What the canvas last reported as selected, so it is never written back. */
   const reported = useRef(chosen(picked));
+  /** What was selected before a pick was written, until the canvas says it took the write. */
+  const before = useRef<string | null>(null);
 
   useEffect(() => {
     set_nodes(nodes_of(scene, picked, frame));
@@ -37,6 +39,7 @@ export function useSync(scene: Scene, picked: readonly Id[], frame: Frame | null
   const held = chosen(picked);
   useEffect(() => {
     if (held === reported.current) return;
+    before.current = reported.current;
     reported.current = held;
     const want = new Set<string>(picked);
     set_nodes((ns) => marked(ns, want));
@@ -51,8 +54,13 @@ export function useSync(scene: Scene, picked: readonly Id[], frame: Frame | null
     if (installed.current !== key) return;
     const ids = [...ns.map((n) => n.id).filter((id) => id !== FRAME),
                  ...es.map((e) => e.id)];
+    /** A report a write behind — the selection before it — is stale, not a pick: answering it
+     *  would write the old selection back, and the canvas would echo the two forever. */
+    const said = chosen(ids);
+    if (said === reported.current) before.current = null;
+    if (said === before.current) return;
     /** Said by the canvas, so it is already true of the canvas. */
-    reported.current = chosen(ids);
+    reported.current = said;
     const same = ids.length === picked.length && ids.every((id) => picked.includes(id));
     if (!same) onPick?.(ids);
     /** Never rebuilt, since React Flow calls it again on every re-subscribe. */

@@ -143,7 +143,9 @@ export function schema_def(graph: Graph, id: Id): Id | null {
   if (graph.defs[id]) return own(id);
   const b = graph.blocks[id];
   if (!b) return null;
-  return own(b.type) ?? children(graph, id).map((k) => own(k.type)).find(Boolean)
+  /** A grid is described by the schema heading it first, then by what it is. */
+  return own(b.grid?.schema) ?? own(b.type)
+    ?? children(graph, id).map((k) => own(k.type)).find(Boolean)
     ?? holders_in(graph, id).map((h) => own(h.grid?.schema)).find(Boolean) ?? null;
 }
 

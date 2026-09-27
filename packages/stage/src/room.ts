@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useReactFlow, useStore } from "@xyflow/react";
 import type { Id } from "@mnd/core";
 import { box_of, extent, type BoxNode, type Frame, type Scene } from "@mnd/views";
-import { BAND, FIT, FLIGHT, met_on, MIN_ZOOM, panelled, still } from "./arrays";
+import { BAND, FIT, FLIGHT, met_on, MIN_ZOOM, panelled, scroll_zoom, still } from "./arrays";
 
 
 /** The room, kept until the layer or panel changes or the work outgrows it, and its fit. */
@@ -38,9 +38,12 @@ export function useRoom(scene: Scene) {
   return { frame, fit, seen };
 }
 
-/** The camera flight on descending or leaving, the only animation, and opening out at the root. */
+/** The camera flight on descending or leaving, the only animation, and opening out at the root.
+ *  Scrolled, the camera fits the drawing's width, or `reach` of it, and follows the focus: down
+ *  the page, and across as far as keeps it in view. */
 export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: number },
-                          seen: { w: number; h: number }, key: string, nodes: readonly BoxNode[]) {
+                          seen: { w: number; h: number }, key: string, nodes: readonly BoxNode[],
+                          scroll = false, focus: Id | null = null, reach: number | null = null) {
   const flow = useReactFlow();
   const was = useRef<Id | null | undefined>(undefined);
   /** How big the room was; a room that grew is fitted again. */
@@ -48,12 +51,36 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
   /** What was drawn a moment ago, where a descent's flight starts. */
   const drawn = useRef<readonly BoxNode[]>([]);
 
-  /** Fit the room, leaving the band. */
+  /** Fit the room, leaving the band. Scrolled: the focus at the page's width, or the whole room
+   *  with nothing in focus. */
   const settle = useCallback((duration: number) => {
+    if (scroll) {
+      const room = frame ?? extent(scene);
+      const page = extent(scene);
+      // With nothing in focus, the whole room is.
+      const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
+      const box = on ? box_of(on) : room;
+      // The page is `reach` wide, or wide enough for the focus where that is wider.
+      const w = Math.max(reach ?? room.w, box.w);
+      const zoom = scroll_zoom(w, box, seen);
+      const y = seen.h / 2 - (box.y + box.h / 2) * zoom;
+      // The window starts at the drawing's left, and slides only as far as the focus asks; a focus
+      // wider than the window is read from its start, and a drawing narrower than it is centred.
+      const left = page.w < w ? page.x + page.w / 2 - w / 2
+        : Math.min(box.x, Math.max(page.x, box.x + box.w - w));
+      void flow.setViewport({ zoom, x: seen.w / 2 - (left + w / 2) * zoom, y }, { duration });
+      return;
+    }
     if (!frame) { void flow.fitView({ ...FIT, duration }); return; }
     void flow.fitBounds({ x: frame.x, y: frame.y, width: frame.w, height: frame.h },
                         { padding: fit.padding, duration });
-  }, [flow, frame, fit]);
+  }, [flow, frame, fit, scroll, focus, reach, scene, seen]);
+
+  /** A new focus is flown to, and a cleared one opens out to the whole drawing. */
+  useEffect(() => {
+    if (scroll) settle(still() ? 0 : FLIGHT);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus]);
 
   useEffect(() => {
     const quiet = still();
@@ -107,7 +134,7 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
   /** At the root, the camera opens out when the drawing outgrows it. */
   const took = useRef<{ of: Id | null; box: string } | null>(null);
   useEffect(() => {
-    if (frame || !nodes.length || nodes.some((n) => n.dragging)) return;
+    if (scroll || frame || !nodes.length || nodes.some((n) => n.dragging)) return;
     const box = extent(scene);
     const size = `${box.x},${box.y},${box.w},${box.h}`;
     const before = took.current;

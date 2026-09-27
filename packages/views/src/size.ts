@@ -1,6 +1,6 @@
 /** How big a thing is, before anything is placed. */
 
-import { covers, is_grid, is_interface, lattice_of,
+import { covers, is_grid, is_interface, lattice_of, previewed,
          type Graph, type Grid, type Id, type Point } from "@mnd/core";
 import { listed } from "./derive";
 import { look_of } from "./look";
@@ -163,8 +163,11 @@ export function size_of(graph: Graph, id: Id): Size {
   if (!b) return BLOCK;
   if (is_interface(b)) return PORT;
   if (b.w !== undefined && b.h !== undefined && free_height(graph, id)) return { w: b.w, h: b.h };
+  /** A reference to a block previews it, at its size — a grid as a card listing its columns. */
+  const source = previewed(graph, id);
+  if (source !== id && !is_grid(graph, source)) return size_of(graph, source);
   const look = look_of(graph, id);
-  if (look.fields) return listing(listed(graph, id).length);
+  if (look.fields) return listing(listed(graph, source).length);
   if (CONTENT.full && look.height === "fit" && look.body && b.body) {
     return { w: BLOCK.w, h: parted(wrapped(b.body, BLOCK.w), look.head !== false) };
   }
