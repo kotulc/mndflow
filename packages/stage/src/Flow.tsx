@@ -1,6 +1,6 @@
 /** Scene → React Flow, and nothing else. */
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import {
   Background, BackgroundVariant, Controls, NodeToolbar, Panel, Position,
   PanOnScrollMode, ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useReactFlow,
@@ -28,8 +28,22 @@ function Canvas(props: FlowViewProps) {
           said, chrome = true, lattice = false, frame: framed = true,
           scroll = false, focus = null, reach: wide = null, widest = null } = props;
   const flow = useReactFlow();
+  /** What a double-click's first click was on. The camera may fly off under the pointer between
+   *  the two, so the second is about the first's target, not whatever has moved beneath it. */
+  const first = useRef<{ on: string | null; target: EventTarget; x: number; y: number;
+                         time: number } | null>(null);
+  /** Whether a press is a double-click's second: told by where and when it lands, since the
+   *  pane's click is a pointer event and counts nothing. */
+  const repeats = (e: { timeStamp: number; clientX: number; clientY: number }) => {
+    const was = first.current;
+    return !!was && e.timeStamp - was.time < DOUBLE
+      && Math.hypot(e.clientX - was.x, e.clientY - was.y) < NEAR;
+  };
+  /** Whether the press under way is one, so the pane's own reset leaves the pick alone. */
+  const second = useRef(false);
   const { frame, fit, seen } = useRoom(scene);
-  const { nodes, edges, moved, rewired, chose, key, again } = useSync(scene, picked, frame, onPick);
+  const { nodes, edges, moved, rewired, chose, key, again } =
+    useSync(scene, picked, frame, onPick, second);
   useCamera(scene, frame, fit, seen, key, nodes, scroll, focus, wide, widest);
 
   /** Scrolled, the drawing can be read from its first card to its last, and no further. */
@@ -55,18 +69,29 @@ function Canvas(props: FlowViewProps) {
     return p ? at(p) : undefined;
   }, [at]);
 
-  const say = useCallback((on: string | null, e: React.MouseEvent,
+  const say = useCallback((on_now: string | null, e: React.MouseEvent,
                           button: "left" | "right", count: 1 | 2) => {
     /** The press that drew something is not also a click on what it began on. */
     if (swallow.current) return;
-    const kind = kind_of(scene, on, e.target);
+    /** A double-click's second click is not a pick of its own. */
+    const was = first.current;
+    const repeat = button === "left" && repeats(e);
+    if (repeat && count === 1) return;
+    if (button === "left" && count === 1) {
+      first.current = { on: on_now, target: e.target, x: e.clientX, y: e.clientY,
+                        time: e.timeStamp };
+    }
+    const held = repeat ? was : null;
+    const on = held ? held.on : on_now;
+    const target = held ? held.target : e.target;
+    const kind = kind_of(scene, on, target);
     /** Which wall and how far along, for a border pointed at. */
     const box = kind === "frame" ? frame
       : kind === "box" || kind === "brim" ? scene.nodes.find((n) => n.id === on) : null;
     const seat = box ? nearest_seat("w" in box ? box : box_of(box as BoxNode), at(e)) : null;
     /** A cell gesture carries its grid and address. */
-    const el_at = e.target instanceof Element
-      ? e.target.closest(".mnd-grid-cell")?.getAttribute("data-at") : null;
+    const el_at = target instanceof Element
+      ? target.closest(".mnd-grid-cell")?.getAttribute("data-at") : null;
     const spot = kind === "cell" && el_at && on
       ? { group: on, r: Number(el_at.split(",")[0]), c: Number(el_at.split(",")[1]) }
       : null;
@@ -74,7 +99,7 @@ function Canvas(props: FlowViewProps) {
       ? { side: seat.side, at: seat.at, ...(kind === "brim" ? { owner: on } : {}) }
       : null);
     /** A chip's name belongs to the block it stands for. */
-    const el = e.target instanceof Element ? e.target : null;
+    const el = target instanceof Element ? target : null;
     const chip = kind === "name" ? el?.closest("[data-cell]")?.getAttribute("data-cell") : null;
     onGesture?.({
       on: kind === "title" || kind === "frame" ? scene.layer : chip ?? on,
@@ -116,7 +141,7 @@ function Canvas(props: FlowViewProps) {
       fitViewOptions={fit}
       minZoom={scroll && widest ? read_zoom(widest, seen) : MIN_ZOOM}
       maxZoom={4}
-      onPointerDown={pressed}
+      onPointerDown={(e) => { second.current = e.button === 0 && repeats(e); pressed(e); }}
       onPointerMove={moved_to}
       onPointerUp={released}
       onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
@@ -192,7 +217,8 @@ function Canvas(props: FlowViewProps) {
         const p = at(e);
         const inside = frame && p.x >= frame.x && p.y >= frame.y
           && p.x <= frame.x + frame.w && p.y <= frame.y + frame.h;
-        if (inside) return;
+        /** Unless the first click was on a card the camera has since flown off under the pointer. */
+        if (inside && !first.current?.on) return;
         say(null, e, "left", 2);
       }}
     >
@@ -267,6 +293,10 @@ export function FlowView({ naming = null, onNamed, ...props }: FlowViewProps) {
     </ReactFlowProvider>
   );
 }
+
+/** How soon and how near a second click must land to be a double-click's. */
+const DOUBLE = 500;
+const NEAR = 6;
 
 /** One empty list, so the context never sees a fresh array. */
 const EMPTY_CELLS: readonly Spot[] = [];

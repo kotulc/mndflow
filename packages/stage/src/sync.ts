@@ -1,14 +1,16 @@
 /** React Flow's own copy of the arrays, kept in step with the Scene and the selection. */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { useEdgesState, useNodesState, type OnSelectionChangeFunc } from "@xyflow/react";
 import type { Id } from "@mnd/core";
 import { FRAME, type BoxNode, type Frame, type LineEdge, type Scene } from "@mnd/views";
 import { chosen, edges_of, marked, nodes_of, signature } from "./arrays";
 
 
+/** `hold`, while set, keeps the pick through the canvas clearing it: a double-click's second press
+ *  on the pane is not a click away. */
 export function useSync(scene: Scene, picked: readonly Id[], frame: Frame | null,
-                        onPick?: (ids: string[]) => void) {
+                        onPick?: (ids: string[]) => void, hold?: RefObject<boolean>) {
   /** What the stable callbacks read instead of closing over a render. */
   const latest = useRef({ picked, onPick, key: "" });
   /** Bumped to redraw from the projection when a drop changed nothing. */
@@ -57,6 +59,12 @@ export function useSync(scene: Scene, picked: readonly Id[], frame: Frame | null
     /** A report a write behind — the selection before it — is stale, not a pick: answering it
      *  would write the old selection back, and the canvas would echo the two forever. */
     const said = chosen(ids);
+    if (!ids.length && picked.length && hold?.current) {
+      const want = new Set<string>(picked);
+      set_nodes((ns) => marked(ns, want));
+      set_edges((es) => marked(es, want));
+      return;
+    }
     if (said === reported.current) before.current = null;
     if (said === before.current) return;
     /** Said by the canvas, so it is already true of the canvas. */

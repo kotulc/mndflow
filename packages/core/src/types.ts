@@ -173,6 +173,8 @@ export type Package = {
   name: string;
   /** The package this one builds on. A package is never written into, only extended. */
   extends?: Id;
+  /** How it files its own definitions, as the workspace's shelf does, frozen with it. */
+  shelf?: Shelved[];
 };
 
 export type Components = Record<string, Record<string, unknown>>;

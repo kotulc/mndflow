@@ -15,13 +15,15 @@ export function shelvable(d: Definition | undefined): boolean {
   return !!d && !shipped(d) && !d.from;
 }
 
-/** Every entry in order, a definition nobody filed last by name, and nothing that has gone. */
-export function shelf_of(graph: Graph): Shelved[] {
-  const kept = (graph.blocks[graph.root]?.shelf ?? [])
-    .filter((s) => s.name !== undefined || shelvable(graph.defs[s.id]));
+/** Every entry in order, a definition nobody filed last by name, and nothing that has gone: the
+ *  workspace's shelf, or with `pack` named, that package's own, frozen with it. */
+export function shelf_of(graph: Graph, pack?: Id): Shelved[] {
+  const own = (d: Definition | undefined) => (pack ? !!d && d.from === pack : shelvable(d));
+  const said = pack ? graph.packages[pack]?.shelf : graph.blocks[graph.root]?.shelf;
+  const kept = (said ?? []).filter((s) => s.name !== undefined || own(graph.defs[s.id]));
   const filed = new Set(kept.map((s) => s.id));
   const loose = Object.values(graph.defs)
-    .filter((d) => shelvable(d) && !filed.has(d.id))
+    .filter((d) => own(d) && !filed.has(d.id))
     .sort((a, z) => a.name.localeCompare(z.name))
     .map((d): Shelved => ({ id: d.id, group: d.group }));
   return [...kept, ...loose];
@@ -31,9 +33,10 @@ export function shelf_of(graph: Graph): Shelved[] {
 export const is_shelf = (graph: Graph, id: Id): boolean =>
   (graph.blocks[graph.root]?.shelf ?? []).some((s) => s.id === id && s.name !== undefined);
 
-/** One group's shelf as a tree, in order. A folder that went missing sets its contents at the top. */
-export function shelf_tree(graph: Graph, group: Group): ShelfNode[] {
-  const entries = shelf_of(graph).filter((s) => s.group === group);
+/** One group's shelf as a tree, in order — the workspace's, or a package's. A folder that went
+ *  missing sets its contents at the top. */
+export function shelf_tree(graph: Graph, group: Group, pack?: Id): ShelfNode[] {
+  const entries = shelf_of(graph, pack).filter((s) => s.group === group);
   const folders = new Set(entries.filter((s) => s.name !== undefined).map((s) => s.id));
   const seen = new Set<Id>();
   const under = (at: Id | undefined): ShelfNode[] => entries

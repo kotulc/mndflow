@@ -33,6 +33,9 @@ export type ViewerProps = {
   onLook?: (layer: Id | null) => void;
   /** Told what is lit, whenever that changes. */
   onPick?: (ids: Id[]) => void;
+  /** Told a card double-clicked — on its body, its name or its border — in place of the viewer
+   *  opening or following it. */
+  onOpen?: (id: Id) => void;
   /** Told where a box points, when one that holds nothing is opened. */
   onFollow?: (link: string, id: Id) => void;
   /** The layer drawn as its fields' class diagram rather than its contents. */
@@ -53,7 +56,7 @@ export type ViewerProps = {
 };
 
 export function Viewer({ graph, layer = null, picked = NONE, config, card, full = false, chrome,
-                        onLook, onPick, onFollow, fields = null, onFields, scroll = false,
+                        onLook, onPick, onOpen, onFollow, fields = null, onFields, scroll = false,
                         focus = null, reach = null, widest = null }: ViewerProps) {
   const [at, set_at] = driven<Id | null>(layer);
   const [lit, set_lit] = driven<readonly Id[]>(picked);
@@ -92,6 +95,7 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
   const gesture = (g: Gesture) => {
     if (g.button !== "left") return;
     if (g.count === 2) {
+      if (onOpen && g.on && OPENS.includes(g.kind)) { onOpen(g.on); return; }
       if (g.on && g.kind === "box") {
         const link = link_of(g.on);
         if (is_container(graph, g.on)) look(g.on);
@@ -139,6 +143,9 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
     </section>
   );
 }
+
+/** What a double-click opens a card by. */
+const OPENS: readonly Gesture["kind"][] = ["box", "name", "brim"];
 
 /** A value the host may drive: the viewer's own until the host sets it. */
 function driven<T>(sent: T): [T, (next: T) => void] {

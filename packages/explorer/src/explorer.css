@@ -219,3 +219,10 @@
   text-transform: uppercase;
 }
 
+
+/* The section holding what is lit reads in the accent, folded or not. */
+.explorer .tree li.top.holds .label,
+.explorer .tree li.top.holds .mark { color: var(--accent); }
+
+/* Folds held: the bar's fold wears the accent while it holds them. */
+.explorer .bar > .fold[aria-pressed="true"] { color: var(--accent); }

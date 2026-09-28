@@ -1,6 +1,6 @@
 /** The workspace explorer: structure, and only structure. */
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { about_of, alias_of, children, config_of, def_named, def_of, is_interface, is_named,
          may_hold, block_base, base_of,
          packages, pinned_defs, relation_base, shape_of, shelf_of, shelf_tree, shelvable, shipped, shown_name,
@@ -37,6 +37,13 @@ export type ExplorerProps = {
   /** What the library sections have hold of; absent, the sections are not drawn. */
   section?: Section | null;
   onSection?: (at: Section) => void;
+  /** Whether the arrows walk the tree: up and down a row's siblings — up past the first to its
+   *  holder, down past the last out to the next branch, or into its own where there is none; right
+   *  on to the next row in reading order; left out to the row's holder, or to the section before
+   *  at the top. The way to the row walked to opens, and each branch left shuts — unless the bar
+   *  holds the folds, when what is open stays open. A row walked to is chosen as a plain click
+   *  chooses it. */
+  keys?: boolean;
 };
 
 /** Which of the library's folders a section is. */
@@ -77,6 +84,9 @@ type Mark = "leaf" | "folder" | "interface" | "reference" | "note" | "group" | "
 /** A library row before it is laid out: what it says, and what sits under it. */
 type Node = Omit<Row, "depth" | "kids" | "guides" | "named" | "alias"> & { under: Node[] };
 
+/** A branch in a section, and whether it holds branches of its own. */
+type Branch = { id: Id; inner: boolean };
+
 /** What the tree draws under a block: every block it holds. A seat on its wall is part of the
  *  block, not something it holds. */
 function under(graph: Graph, parent: Id | null) {
@@ -90,6 +100,9 @@ const MARKED: readonly string[] = ["folder", "reference", "note"];
 const PACKS = "@packs";
 const VOCAB = "@defs";
 const USES = "@uses";
+
+/** The keys that walk the tree. */
+const WALK = ["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"];
 
 /** Which mark a definition's base kind wears. */
 const KIND_MARK: Record<string, Mark> = {
@@ -123,15 +136,34 @@ function section(id: Id, label: string, mark: Mark, at: Section, under: Node[]):
   return { id, ref: id, label, mark, of: "pack", at, under };
 }
 
-/** One package, its blocks and its relations apart. Frozen, so nothing in it is filed, and it
- *  wears a lock: a package is never written into, only extended. */
-function pack_node(graph: Graph, from: string, defs: Definition[]): Node {
-  const id = `${PACKS}:${from}`;
-  const at = { of: "defs", only: "packages", from } as const;
-  return section(id, from, "locked", at, GROUPS
+/** One package, its blocks and its relations apart, each filed as the package files them. Frozen,
+ *  so nothing in it is filed here, and it wears a lock: a package is never written into, only
+ *  extended. */
+function pack_node(graph: Graph, pack: Id): Node {
+  const name = graph.packages[pack]?.name ?? pack;
+  const id = `${PACKS}:${name}`;
+  const at = { of: "defs", only: "packages", from: name } as const;
+  return section(id, name, "locked", at, GROUPS
     .map((g) => section(`${id}:${g.group}`, g.label, "folder", { ...at, group: g.group },
-                        defs.filter((d) => d.group === g.group).map((d) => def_node(graph, d, `${id}:${g.group}`))))
+                        pack_shelf(graph, pack, g.group, `${id}:${g.group}`)))
     .filter((n) => n.under.length));
+}
+
+/** One group of a package's shelf, folders and all, and the package it extends as a folder of its
+ *  own after it, filed as that one files them. */
+function pack_shelf(graph: Graph, pack: Id, group: Group, within: Id,
+                    seen = new Set<Id>()): Node[] {
+  seen.add(pack);
+  const at = { of: "defs", only: "packages", from: graph.packages[pack]?.name ?? pack, group } as const;
+  const nodes = (kin: ShelfNode[]): Node[] => kin.map((n) => (n.folder
+    ? section(`${within}:${n.id}`, n.name, "folder", { ...at, folder: n.id }, nodes(n.kids))
+    : def_node(graph, graph.defs[n.id]!, within)));
+  const base = graph.packages[pack]?.extends;
+  const under = base && !seen.has(base) ? pack_shelf(graph, base, group, `${within}:${base}`, seen) : [];
+  const name = base ? graph.packages[base]?.name ?? base : "";
+  return [...nodes(shelf_tree(graph, group, pack)),
+          ...(under.length ? [section(`${within}:${base}`, name, "locked",
+                                      { ...at, from: name }, under)] : [])];
 }
 
 /** The workspace's shelf for one group: its folders and definitions, as filed. */
@@ -158,7 +190,7 @@ function library_of(graph: Graph): Node[] {
   const pinned = pinned_defs(graph).filter((d) => !shipped(d) && !d.from && d.default === undefined);
   return [
     section(PACKS, "packages", "package", { of: "defs", only: "packages" },
-            packs.map((p) => pack_node(graph, p.name, p.defs))),
+            packs.map((p) => pack_node(graph, p.from))),
     section(VOCAB, "definitions", "vocabulary", { of: "defs", only: "all" }, [
       ...(pinned.length ? [section(`${VOCAB}:pinned`, "pinned", "pin", { of: "defs", only: "pinned" },
                                    pinned.map((d) => def_node(graph, d, `${VOCAB}:pinned`)))] : []),
@@ -261,16 +293,23 @@ const MARK: Record<Mark, { icon: IconName; word?: true }> = {
   tie: { icon: "relation_tie" },
 };
 
-/** A section's own fold, at its root and set to the right: everything this heading holds, shut or
- *  opened in one go. The panel has no fold of its own — each section answers for itself. */
-function Fold({ kin, folded, onFold }: {
-  kin: readonly Id[]; folded: readonly Id[]; onFold: (id: Id, shut: boolean) => void;
+/** A section's own fold, at its root and set to the right: every branch it holds shut in one go,
+ *  or opened down to the last — a branch holding only rows stays shut, so the section reads as
+ *  its structure. The section itself stays open either way; its mark hides it. */
+function Fold({ self, kin, folded, onFold }: {
+  self: Id; kin: readonly Branch[]; folded: readonly Id[];
+  onFold: (id: Id, shut: boolean) => void;
 }) {
   if (!kin.length) return null;
-  const open = kin.some((id) => !folded.includes(id));
+  const open = kin.some((b) => !folded.includes(b.id));
+  const upper = kin.some((b) => b.inner) ? kin.filter((b) => b.inner) : kin;
+  const toggle = () => {
+    for (const b of kin) onFold(b.id, open || !upper.includes(b));
+    if (folded.includes(self)) onFold(self, false);
+  };
   return (
     <button className="fold" title={open ? "fold this section" : "open this section"}
-            onClick={(e) => { e.stopPropagation(); for (const id of kin) onFold(id, open); }}>
+            onClick={(e) => { e.stopPropagation(); toggle(); }}>
       <Icon name={open ? "fold_all" : "unfold_all"} size={MARK_SIZE} />
     </button>
   );
@@ -278,7 +317,7 @@ function Fold({ kin, folded, onFold }: {
 
 export function Explorer(props: ExplorerProps) {
   const { graph, open, picked, folded, lit = [], onAct, onFold, onPick,
-          menu: offered = true, section = null, onSection,
+          menu: offered = true, section = null, onSection, keys = false,
           tools: bar = {} } = props;
   const show = {
     filter: bar.filter !== false,
@@ -300,6 +339,8 @@ export function Explorer(props: ExplorerProps) {
   const grip = useRef<{ x: number; w: number } | null>(null);
   /** The row being renamed in place. */
   const [naming, set_naming] = useState<Id | null>(null);
+  /** Whether the folds are held: the arrows still open the way they walk, and shut nothing. */
+  const [held, set_held] = useState(false);
   /** What is in hand off the workspace's shelf: definitions or folders to file. */
   const [shelving, set_shelving] = useState<readonly Id[]>([]);
 
@@ -308,16 +349,27 @@ export function Explorer(props: ExplorerProps) {
    *  branches still count. */
   const sections = useMemo(() => {
     const all = tree_of(graph, [], !!onSection);
-    const out = new Map<Id, Id[]>();
+    const out = new Map<Id, Branch[]>();
+    const held = new Map<Id, Row[]>();
+    /** Whether a row holds a branch: a row one deeper, before its own end, holding anything. */
+    const inner = (j: number) => {
+      for (let k = j + 1; k < all.length && all[k]!.depth > all[j]!.depth; k++) {
+        if (all[k]!.depth === all[j]!.depth + 1 && all[k]!.kids > 0) return true;
+      }
+      return false;
+    };
     for (let i = 0; i < all.length; i++) {
       if (all[i]!.depth) continue;
-      const kin: Id[] = [];
+      const kin: Branch[] = [];
+      const rows: Row[] = [];
       for (let j = i; j < all.length && (j === i || all[j]!.depth > 0); j++) {
-        if (all[j]!.kids > 0) kin.push(all[j]!.id);
+        if (j > i && all[j]!.kids > 0) kin.push({ id: all[j]!.id, inner: inner(j) });
+        rows.push(all[j]!);
       }
       out.set(all[i]!.id, kin);
+      held.set(all[i]!.id, rows);
     }
-    return out;
+    return { folds: out, held, all };
   }, [graph, onSection]);
 
   /** A match inside a shut branch opens the way to it. */
@@ -325,12 +377,16 @@ export function Explorer(props: ExplorerProps) {
     ? folded.filter((id) => !lit.some((m) => on_path(graph, m, id)))
     : folded;
   const rows = tree_of(graph, shut, !!onSection);
-  /** Whether anything at all stands open, which is what the bar's fold offers. */
-  const any_open = rows.some((r) => r.kids > 0 && !folded.includes(r.id));
-  /** Nothing picked on the root layer, and no library row in hand, is the root picked: the
-   *  workspace is what the tray is about, so its row says so. */
+  /** Nothing picked on the root layer, and no library row in hand, is the workspace picked: it is
+   *  what the tray is about, so its row says so — the usages, where the library is drawn. */
   const rooted = !picked.length && !section && (open === null || open === graph.root)
-    ? graph.root : null;
+    ? onSection ? USES : graph.root : null;
+  /** A row is lit by the pick, whatever it stands for — a definition by the one it names — or,
+   *  off the tree, by the library row in hand. */
+  const lights = (r: Row) => r.id === rooted || (r.of === "block" ? picked.includes(r.id)
+    : (r.of === "def" && picked.includes(r.ref)) || same(section, r.at));
+  /** Which section holds what is lit, told on its root even while it is folded. */
+  const holds = (r: Row) => !r.depth && !!sections.held.get(r.id)?.some(lights);
   /** Only blocks answer a block question. */
   const blocks = rows.filter((r) => r.of === "block");
   /** Where something new goes: what you picked, where it can hold one, else where you are. */
@@ -400,6 +456,76 @@ export function Explorer(props: ExplorerProps) {
     onAct("reveal", { id });
     onPick([id]);
   };
+
+  /** A row chosen as a plain click chooses it: a library row points the tray, the usages are the
+   *  workspace itself, and a block is revealed and picked. */
+  const choose = (r: Row) => {
+    if (r.at) { onSection?.(r.at); return; }
+    if (r.id === USES) { onPick([]); return; }
+    if (r.of !== "block") return;
+    set_anchor(r.id);
+    onAct("reveal", { id: r.id });
+    onPick([r.id]);
+  };
+
+  /** The arrows walk the whole tree, shut branches too, from the first row lit. */
+  useEffect(() => {
+    if (!keys) return;
+    const all = sections.all;
+    const depth = (i: number) => all[i]!.depth;
+    /** A row's holder, and its next or previous sibling; -1 where there is none. */
+    const up = (i: number) => {
+      for (let j = i - 1; j >= 0; j--) if (depth(j) < depth(i)) return j;
+      return -1;
+    };
+    const kin = (i: number, by: 1 | -1) => {
+      for (let j = i + by; j >= 0 && j < all.length && depth(j) >= depth(i); j += by) {
+        if (depth(j) === depth(i)) return j;
+      }
+      return -1;
+    };
+    /** The next sibling; past a branch's end, its holder's, and so on out. */
+    const beside = (i: number): number => {
+      for (let at = i; at >= 0; at = up(at)) {
+        const next = kin(at, 1);
+        if (next >= 0) return next;
+      }
+      return -1;
+    };
+    const key = (e: KeyboardEvent) => {
+      const typing = e.target instanceof HTMLElement
+        && e.target.closest("input, textarea, select, [contenteditable='true']");
+      const plain = !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey;
+      if (typing || !plain || e.defaultPrevented || !WALK.includes(e.key)) return;
+      e.preventDefault();
+      const at = all.findIndex(lights);
+      if (at < 0) { if (all[0]) choose(all[0]); return; }
+      const out = up(at);
+      const inner = all[at + 1] && depth(at + 1) > depth(at) ? at + 1 : -1;
+      const next = at + 1 < all.length ? at + 1 : -1;
+      const to = e.key === "ArrowDown" ? (beside(at) >= 0 ? beside(at) : inner)
+        : e.key === "ArrowUp" ? (kin(at, -1) >= 0 ? kin(at, -1) : out)
+        : e.key === "ArrowRight" ? next
+        : out >= 0 ? out : kin(at, -1);
+      if (to < 0) return;
+      // The way to the row walked to opens. Unless the folds are held, each branch left shuts,
+      // and stepping out shuts the one stepped out of.
+      const way = new Set<number>();
+      for (let j = to; j >= 0; j = up(j)) way.add(j);
+      for (const j of way) {
+        if (j !== to && folded.includes(all[j]!.id)) onFold(all[j]!.id, false);
+      }
+      if (!held) {
+        for (let j = at; j >= 0; j = up(j)) {
+          if (!way.has(j) && all[j]!.kids) onFold(all[j]!.id, true);
+        }
+        if (e.key === "ArrowLeft" && to === out) onFold(all[to]!.id, true);
+      }
+      choose(all[to]!);
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  });
 
   /** Where a drop on a row lands; nothing sits beside the workspace, so its drops land in it. */
   const where_on = (e: React.DragEvent, id: Id) => (id === graph.root ? "in" : seam(e));
@@ -471,14 +597,14 @@ export function Explorer(props: ExplorerProps) {
             ) : null}
           </span>
         ) : null}
-        {/* Every collection at once, set where each collection's own fold sits. */}
+        {/* Whether the arrows fold as they walk, set where each collection's own fold sits. */}
         {show.fold ? (
-          <button className="fold" title={any_open ? "fold every collection" : "open every collection"}
-                  onClick={() => {
-                    for (const r of tree_of(graph, [], !!onSection)) {
-                      if (r.kids > 0) onFold(r.id, any_open);
-                    }
-                  }}><Icon name={any_open ? "fold_all" : "unfold_all"} size={MARK_SIZE} /></button>
+          <button className="fold" aria-pressed={held}
+                  title={held ? "folds held: what the arrows open stays open — click to let them fold"
+                    : "folds follow the arrows, shutting what they leave — click to hold them"}
+                  onClick={() => set_held(!held)}>
+            <Icon name={held ? "folds_held" : "folds_follow"} size={MARK_SIZE} />
+          </button>
         ) : null}
       </div>
 
@@ -489,8 +615,8 @@ export function Explorer(props: ExplorerProps) {
                   r.depth ? "" : "top",
                   r.named ? "" : "unnamed",
                   r.of === "block" ? "" : r.of,
-                  r.of !== "block" && same(section, r.at) ? "picked" : "",
-                  r.of === "block" && (picked.includes(r.id) || r.id === rooted) ? "picked" : "",
+                  lights(r) ? "picked" : "",
+                  holds(r) ? "holds" : "",
                   lit.includes(r.id) ? "lit" : "",
                   lit.length && !lit.includes(r.id) ? "dim" : "",
                   open === r.id ? "open" : "",
@@ -565,7 +691,7 @@ export function Explorer(props: ExplorerProps) {
                 }}
                 /** A library row points the tray, a block is picked; marks fold either. */
                 onClick={(e) => {
-                  if (r.at) { onSection?.(r.at); return; }
+                  if (r.at || r.id === USES) { choose(r); return; }
                   if (r.of === "pack") return;
                   clicked(e, r.id);
                 }}
@@ -607,7 +733,7 @@ export function Explorer(props: ExplorerProps) {
                 : <Name id={r.id} className="label" text={r.label} />}
               {r.alias ? <span className="alias">{r.alias}</span> : null}
               {r.depth ? null : (
-                <Fold kin={sections.get(r.id) ?? []} folded={folded} onFold={onFold} />
+                <Fold self={r.id} kin={sections.folds.get(r.id) ?? []} folded={folded} onFold={onFold} />
               )}
             </li>
           ))}
