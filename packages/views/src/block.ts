@@ -1,10 +1,9 @@
 /** The block view: any planar projection. */
 
-import { alias_of, block_members, children, covers, edge_base, edges_in, group_depth, holders_in,
-         is_container, is_grid, is_group, is_header, is_holder, is_interface, is_note, label_of,
-         layer_id,
-         mark_of, members_of, role_of, shown_name,
-         type Graph, type Holder, type Id, type Relation, type Side, type Span } from "@mnd/core";
+import { alias_of, children, covers, edge_base, edges_in, group_depth, heading, holders_in,
+         is_container, is_group, is_holder, is_interface, is_note, label_of, lattice_of,
+         members_of, schema_of, shape_of, stamps_of, role_of, shown_name,
+         type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
 import { at_seat, cell_box, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
@@ -53,18 +52,16 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
 
   /** A grid draws its extent; a boundary its members' bounds. */
   const holders: BoxNode[] = [];
-  for (const g of holders_in(graph, layer_id(graph, layer))) {
+  for (const g of holders_in(graph, layer)) {
     const box = spots.find((p) => p.id === g.id);
     if (!box) continue;
     const said = carried(graph, g.id);
-    const grid = is_grid(graph, g.id);
-    const mark: Trait = grid ? "grid" : "group";
-    const marks: Trait[] = [mark];
+    const mark: Trait = shape_of(graph, g.id)!;
     holders.push(node(g.id, box,
-                      { ...said, marks, nest: group_depth(graph, g.id),
+                      { ...said, nest: group_depth(graph, g.id),
                         holds: members_of(graph, g.id).map((b) => b.id),
-                        ...(grid ? { grid: lattice(graph, g) }
-                                 : { carries: group_carries(graph, g.id) }) },
+                        ...(mark === "grid" ? { grid: lattice(graph, g.id) }
+                                            : { carries: group_carries(graph, g.id) }) },
                       mark));
   }
   /** Shallowest first, so a holder inside another draws over it. */
@@ -134,21 +131,28 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   };
 }
 
-/** The cells a grid draws, placed inside its own box. */
-function lattice(graph: Graph, g: Holder): GridCell[] {
-  const headed = new Set<string>();
-  for (const b of block_members(graph, g.id)) {
-    if (b.cell && is_header(b)) headed.add(`${b.cell.r},${b.cell.c}`);
-  }
+/** The cells a grid draws, placed inside its own box, each with what it says. A header line's
+ *  cells are marked so, and the left column's read upright. */
+function lattice(graph: Graph, id: Id): GridCell[] {
+  const g = lattice_of(graph, id)!;
+  const seated = new Set<string>();
+  for (const b of members_of(graph, id)) if (b.cell) seated.add(`${b.cell.r},${b.cell.c}`);
+  /** A schema heads the first line with its fields' names. */
+  const names = g.schema ? schema_of(graph, g.schema).map((f) => f.name) : null;
+  const said = (r: number, c: number) =>
+    seated.has(`${r},${c}`) ? undefined : names && r === 0 ? names[c] : g.values?.[r]?.[c];
   const out: GridCell[] = [];
-  for (let r = 0; r < (g.rows ?? 0); r++) {
-    for (let c = 0; c < (g.cols ?? 0); c++) {
+  for (let r = 0; r < g.rows; r++) {
+    for (let c = 0; c < g.cols; c++) {
       const span = g.merges?.find((s: Span) => covers(s, r, c));
       if (span && (span.r !== r || span.c !== c)) continue;
       const marks: Trait[] = ["cell"];
       if (span) marks.push("merged");
-      if (headed.has(`${r},${c}`)) marks.push("header");
-      out.push({ r, c, ...cell_box(g, r, c), marks });
+      const role = heading(g, r, c);
+      if (role || (names && r === 0)) marks.push("header");
+      if (role === "row") marks.push("upright");
+      const value = said(r, c);
+      out.push({ r, c, ...cell_box(g, r, c), marks, ...(value ? { value } : {}) });
     }
   }
   return out;
@@ -160,7 +164,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   if (layer === null || layer === graph.root) return null;
   const label = shown_name(graph, layer);
   const role = role_of(graph, layer);
-  const mark = mark_of(graph, layer) ?? undefined;
+  const stamps = stamps_of(graph, layer);
   const holds_parts = is_container(graph, layer);
   const ports = wall_of(graph, layer, hidden);
   /** An interface opened from inside keeps the wall it is set into. */
@@ -170,7 +174,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   /** A room is a whole number of cells. */
   if (drawn.length === 0) {
     return { ...roomed({ x: -least.w / 2, y: -least.h / 2, ...least }),
-             label, role, ...(mark ? { mark } : {}), holds_parts, ports, ...set_in };
+             label, role, ...(stamps.length ? { stamps } : {}), holds_parts, ports, ...set_in };
   }
   const pad = GAP;
   const at = drawn.map(box_of);
@@ -178,7 +182,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   const y = Math.min(...at.map((b) => b.y)) - pad;
   const w = Math.max(least.w, Math.max(...at.map((b) => b.x + b.w)) + pad - x);
   const h = Math.max(least.h, Math.max(...at.map((b) => b.y + b.h)) + pad - y);
-  return { ...roomed({ x, y, w, h }), label, role, ...(mark ? { mark } : {}),
+  return { ...roomed({ x, y, w, h }), label, role, ...(stamps.length ? { stamps } : {}),
            holds_parts, ports, ...set_in };
 }
 

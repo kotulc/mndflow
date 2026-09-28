@@ -9,9 +9,10 @@ import { Options } from "./Options";
 import { Wire } from "./Wire";
 import { defined, held, kind_of, reading } from "./holder";
 
-export type DrawingProps = { graph: Graph; id: Id; onAct: Act };
+/** `options` false leaves out the rows that set what it follows. */
+export type DrawingProps = { graph: Graph; id: Id; onAct: Act; options?: boolean };
 
-export function Drawing({ graph, id, onAct }: DrawingProps) {
+export function Drawing({ graph, id, onAct, options = true }: DrawingProps) {
   const it = held(graph, id);
   if (!it) return null;
   const { def: d, block: b, edge } = it;
@@ -34,7 +35,7 @@ export function Drawing({ graph, id, onAct }: DrawingProps) {
     <div className="drawing">
       {/* What it is, headed the way identity heads its own rows. **One word for both**: a card
          and a run are both elements, and the row below asks the same question of either. */}
-      <Band label="element type">
+      <Band label="type">
         <span className="base">{kind}<Icon name={mark} size={12} /></span>
         {!d && id === graph.root ? <span className="from">{`schema ${SCHEMA}`}</span> : null}
       </Band>
@@ -49,7 +50,7 @@ export function Drawing({ graph, id, onAct }: DrawingProps) {
               role={role ?? kind} said={said} now={now} />
       )}
       {/* What is true of what it follows, under the thing it is true of. */}
-      <Options graph={graph} id={id} onAct={onAct} />
+      {options ? <Options graph={graph} id={id} onAct={onAct} /> : null}
     </div>
   );
 }

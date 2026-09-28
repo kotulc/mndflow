@@ -30,9 +30,10 @@ describe("it shows structure and only structure", () => {
     expect(rows.find((r) => r.label === "Rate Limit")!.depth).toBeGreaterThan(1);
   });
 
-  it("never lists a boundary, a note or a reference", () => {
+  /** A group is a block, so it is listed like one; a note is a remark, never content. */
+  it("lists a group, and never a note or a reference", () => {
     const rows = tree_of(fold(related(), FLOOR), []);
-    expect(rows.map((r) => r.label)).not.toContain("Hot side");
+    expect(rows.map((r) => r.label)).toContain("Hot side");
     expect(rows.map((r) => r.label)).not.toContain("the loop runs clockwise");
   });
 
@@ -53,16 +54,13 @@ describe("it shows structure and only structure", () => {
     expect(mark("Auth")).toBe("leaf");
   });
 
-  it("fills the icon of a row that holds parts, and only that", () => {
+  it("lights the icon of an open row that holds parts, and never fills it", () => {
     const { container } = mount(fold(nested(), FLOOR));
-    const filled = (label: string) => container
-      .querySelector(`li:has(.label)`) && Array.from(container.querySelectorAll("li"))
-      .find((li) => li.textContent?.startsWith(label))
-      ?.querySelector(".mark svg")?.getAttribute("fill");
-    expect(filled("Edge")).toBe("currentColor");
-    expect(filled("Auth")).toBe("none");
-    /** The workspace row holds everything, but its mark is a word — filling one blots it out. */
-    expect(filled("workspace")).toBe("none");
+    const mark = (label: string) => Array.from(container.querySelectorAll("li"))
+      .find((li) => li.textContent?.startsWith(label))?.querySelector(".mark");
+    expect(mark("Edge")?.classList.contains("on")).toBe(true);
+    expect(mark("Auth")?.classList.contains("on")).toBe(false);
+    expect(mark("Edge")?.querySelector("svg")?.getAttribute("fill")).toBe("none");
   });
 });
 
@@ -290,5 +288,29 @@ describe("an empty workspace", () => {
     const rows = tree_of(fold(flat(), FLOOR), []);
     expect(rows.map((r) => r.label)).toEqual(["workspace", "Ledger", "Edge", "Auth", "Billing"]);
     expect(rows.map((r) => r.depth)).toEqual([0, 1, 2, 2, 2]);
+  });
+});
+
+describe("consumer tools flags", () => {
+  it("hides block, folder, remove and filter when asked, and keeps fold", () => {
+    const { container, queryByTitle } = mount(fold(nested(), FLOOR), {
+      tools: { block: false, folder: false, remove: false, filter: false },
+    });
+    expect(queryByTitle(/add a block/)).toBeNull();
+    expect(queryByTitle(/add a folder/)).toBeNull();
+    expect(queryByTitle(/delete what is picked/)).toBeNull();
+    expect(queryByTitle(/filter the workspace/)).toBeNull();
+    expect(container.querySelector("button.fold")).not.toBeNull();
+  });
+
+  it("still fires rename with name when tools are hidden", () => {
+    const { onAct, container } = mount(fold(nested(), FLOOR), {
+      tools: { block: false, folder: false, remove: false, filter: false },
+    });
+    fireEvent.doubleClick(screen.getByText("Auth"));
+    const field = container.querySelector(".label.mnd-naming")!;
+    field.textContent = "Typed";
+    fireEvent.blur(field);
+    expect(onAct).toHaveBeenCalledWith("rename", { id: "block_auth", name: "Typed" });
   });
 });

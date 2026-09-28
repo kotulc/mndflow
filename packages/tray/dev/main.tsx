@@ -70,7 +70,6 @@ function Harness() {
           open={open}
           onOpen={(next) => { say(`open ${next}`); set_open(next); }}
           picked={picked}
-          onPick={(ids) => { say(`pick ${ids.join(", ")}`); set_picked(ids); }}
           onHover={(id) => id && say(`hover ${id}`)}
         />
         <pre className="log">{log.join("\n") || "every gesture it emits shows here"}</pre>

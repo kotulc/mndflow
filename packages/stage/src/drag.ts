@@ -25,7 +25,9 @@ export function useDrag(scene: Scene, frame: Frame | null,
     return scene.nodes.filter((n) => n.data.on === host.id || held.has(n.id));
   }, [scene]);
 
-  const landing_on = useCallback((id: string, at: Point) => {
+  /** What a drop at `at` lands on. **A header cell is its own target**, read from the pointer:
+   *  a header line is one unit across, far narrower than the card being dropped into it. */
+  const landing_on = useCallback((id: string, at: Point, pointer?: Point) => {
     const dragged = scene.nodes.find((n) => n.id === id);
     const parent = new Map<string, string>();
     for (const n of scene.nodes) {
@@ -54,29 +56,42 @@ export function useDrag(scene: Scene, frame: Frame | null,
     const lands = scene.nodes.filter((n) =>
       n.id !== id && !n.data.on && n.selectable !== false && n.type !== "note" && under(n));
     /** A cell is offered to a block only. */
+    const cell_at = (grid: BoxNode, p: Point) => {
+      const o = box_of(grid);
+      return grid.data.grid?.find((c) => p.x >= o.x + c.x && p.x <= o.x + c.x + c.w
+                                        && p.y >= o.y + c.y && p.y <= o.y + c.y + c.h);
+    };
+    const header = pointer && !(dragged && holds(dragged))
+      ? scene.nodes.filter((n) => n.type === "grid" && n.id !== id)
+          .map((n) => ({ n, c: cell_at(n, pointer) }))
+          .find(({ c }) => c?.marks.includes("header"))
+      : undefined;
+    if (header) {
+      const o = box_of(header.n);
+      return { over: null, into: header.n, cell: { r: header.c!.r, c: header.c!.c },
+               lit: { x: o.x + header.c!.x, y: o.y + header.c!.y,
+                      w: header.c!.w, h: header.c!.h } };
+    }
     const gridLand = dragged && holds(dragged) ? null
       : lands.find((n) => n.type === "grid") ?? null;
     const groupLand = lands.find((n) => n.type === "group" && nest_ok(n.id)) ?? null;
-    const gridBox = gridLand ? box_of(gridLand) : null;
-    const cell = gridLand && gridBox
-      ? gridLand.data.grid?.find((c) => at.x >= gridBox.x + c.x && at.x <= gridBox.x + c.x + c.w
-                                 && at.y >= gridBox.y + c.y && at.y <= gridBox.y + c.y + c.h)
-      : undefined;
+    const cell = gridLand ? cell_at(gridLand, at) : undefined;
     const into = cell ? gridLand : groupLand;
     return { over: lands.find((n) => !holds(n)) ?? null, into,
              ...(cell ? { cell: { r: cell.r, c: cell.c } } : {}) };
   }, [scene]);
 
-  /** The landing a node's middle comes to rest on. */
-  const centred = useCallback((node: Node, b: Box) =>
-    landing_on(node.id, { x: node.position.x + b.w / 2, y: node.position.y + b.h / 2 }),
+  /** The landing a node's middle comes to rest on, or the header cell the pointer is over. */
+  const centred = useCallback((node: Node, b: Box, pointer?: Point) =>
+    landing_on(node.id, { x: node.position.x + b.w / 2, y: node.position.y + b.h / 2 }, pointer),
     [landing_on]);
 
-  const dragging = useCallback((node: Node) => {
+  const dragging = useCallback((node: Node, pointer?: Point) => {
     const drawn = scene.nodes.find((n) => n.id === node.id);
     if (!drawn) return;
     /** The same question the drop asks, so what is lit is what will happen. */
-    const land_on = centred(node, box_of(drawn));
+    const land_on = centred(node, box_of(drawn), pointer);
+    if ("lit" in land_on && land_on.lit) { land(land_on.lit); return; }
     /** A group is never filed into a card. */
     if (drawn.type === "group") {
       land(land_on.into && land_on.into.type === "group" ? box_of(land_on.into) : null);
@@ -87,7 +102,7 @@ export function useDrag(scene: Scene, frame: Frame | null,
   }, [scene, centred]);
 
   /** A node let go: where it came to rest decides the adjustment. */
-  const dropped = useCallback((node: Node, dragged: readonly Node[]) => {
+  const dropped = useCallback((node: Node, dragged: readonly Node[], pointer?: Point) => {
     land(null);
     /** A port in the room's wall slides along it. */
     const port = frame?.ports.find((p) => p.id === node.id);
@@ -126,7 +141,7 @@ export function useDrag(scene: Scene, frame: Frame | null,
     }
 
     /** A card dropped on a card files inside it. */
-    const rest = centred(node, box_of(drawn));
+    const rest = centred(node, box_of(drawn), pointer);
     onAdjust?.({ kind: "move", on: node.id, to: node.position,
                  over: rest.over?.id ?? null, into: rest.into?.id ?? null,
                  ...(rest.cell ? { cell: rest.cell } : {}) });
@@ -165,8 +180,8 @@ export function useDrag(scene: Scene, frame: Frame | null,
   }, [moved, scene, riders, onAdjust]);
 
   /** After every drag the arrays go back to what the projection says. */
-  const stopped = useCallback((node: Node, dragged: readonly Node[]) => {
-    dropped(node, dragged);
+  const stopped = useCallback((node: Node, dragged: readonly Node[], pointer?: Point) => {
+    dropped(node, dragged, pointer);
     again();
   }, [dropped, again]);
 

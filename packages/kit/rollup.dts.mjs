@@ -14,4 +14,4 @@ const entry = (name) => ({
   plugins: [dts({ compilerOptions: resolved })],
 });
 
-export default [entry("index"), entry("react")];
+export default [entry("index"), entry("react"), entry("shell")];

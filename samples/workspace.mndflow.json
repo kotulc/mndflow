@@ -1,5 +1,5 @@
 {
-  "schema": "2.0",
+  "schema": "3.0",
   "id": "workspace",
   "graph": {
     "root": "ws",
@@ -55,6 +55,25 @@
           },
           "card": {
             "label": "inside"
+          }
+        }
+      },
+      "def_skid": {
+        "id": "def_skid",
+        "name": "Skid",
+        "group": "block",
+        "extends": "group",
+        "about": "A packaged unit of equipment: a group that gathers pumps and vessels only.",
+        "components": {
+          "allows": {
+            "members": [
+              "def_pump",
+              "def_vessel"
+            ]
+          },
+          "style": {
+            "family": "secondary",
+            "border_contrast": "soft"
           }
         }
       },
@@ -175,27 +194,38 @@
       "c_a": {
         "id": "c_a",
         "parent": "f_plant",
-        "name": "Duty",
+        "name": "Operator A",
         "group": "gr_matrix",
         "alias": 7,
         "cell": {
-          "r": 0,
-          "c": 0
+          "r": 1,
+          "c": 1
         },
-        "header": true,
         "order": 3
       },
       "c_b": {
         "id": "c_b",
         "parent": "f_plant",
-        "name": "Standby",
+        "name": "Operator B",
         "group": "gr_matrix",
         "alias": 8,
+        "cell": {
+          "r": 2,
+          "c": 2
+        },
+        "order": 4
+      },
+      "c_ref": {
+        "id": "c_ref",
+        "parent": "f_plant",
+        "group": "gr_matrix",
+        "of": "b_loop",
+        "alias": 2,
         "cell": {
           "r": 1,
           "c": 0
         },
-        "order": 4
+        "order": 5
       },
       "f_plant": {
         "id": "f_plant",
@@ -204,6 +234,49 @@
         "type": "folder",
         "alias": 1,
         "order": 1
+      },
+      "g_wet": {
+        "id": "g_wet",
+        "parent": "b_loop",
+        "name": "Wet side",
+        "type": "def_skid",
+        "alias": 1,
+        "order": 9
+      },
+      "gr_matrix": {
+        "id": "gr_matrix",
+        "parent": "f_plant",
+        "name": "Duty roster",
+        "type": "grid",
+        "alias": 1,
+        "grid": {
+          "rows": 3,
+          "cols": 3,
+          "head": {
+            "top": true,
+            "left": true
+          },
+          "values": [
+            [
+              "",
+              "Day",
+              "Night"
+            ],
+            [
+              "",
+              "",
+              "on call"
+            ],
+            [
+              "Relief",
+              "",
+              ""
+            ]
+          ]
+        },
+        "order": 2,
+        "x": 0,
+        "y": 320
       },
       "i_in": {
         "id": "i_in",
@@ -223,7 +296,7 @@
         "counters": {
           "block": 9,
           "note": 1,
-          "reference": 1,
+          "reference": 2,
           "relation": 3,
           "folder": 1,
           "group": 1,
@@ -234,30 +307,9 @@
           "def_ghost",
           "def_heading",
           "def_pump",
-          "def_vessel"
+          "def_vessel",
+          "def_skid"
         ]
-      }
-    },
-    "holders": {
-      "g_wet": {
-        "id": "g_wet",
-        "parent": "b_loop",
-        "name": "Wet side",
-        "alias": 1,
-        "arrangement": "free",
-        "order": 9
-      },
-      "gr_matrix": {
-        "id": "gr_matrix",
-        "parent": "f_plant",
-        "name": "Duty",
-        "alias": 1,
-        "arrangement": "grid",
-        "cols": 2,
-        "order": 2,
-        "rows": 2,
-        "x": 0,
-        "y": 320
       }
     },
     "edges": {

@@ -1,11 +1,11 @@
 # @mnd/kit
 
-**The one surface mndflow offers anything outside this repo.** Six packages are the shape of the design; one is the shape of the seam.
+**The one surface mndflow offers anything outside this repo.** Seven packages are the shape of the design; one is the shape of the seam.
 
 | | |
 |---|---|
-| **Entry** | `@mnd/kit` — headless. `@mnd/kit/react` — `Viewer` and `Explorer`. `@mnd/kit/react.css` — the one stylesheet they read |
-| **Depends on** | core, defs, explorer, layout, views, render, theme — all bundled **in**, and declared as build dependencies because of it |
+| **Entry** | `@mnd/kit` — headless. `@mnd/kit/react` — `Viewer`, `Explorer`, `Tray`, and the `useTray` / `useDisplay` state a shell keeps. `@mnd/kit/react.css` — the one stylesheet they read. `@mnd/kit/shell` and `@mnd/kit/shell.css` — the workspace chrome, opt-in |
+| **Depends on** | core, defs, explorer, views, stage, theme, tray — all bundled **in**, and declared as build dependencies because of it |
 | **Proven by** | packing it, then building a graph, a file and a drawing from outside the workspace — with no log, step or mutation in the round trip |
 
 ## Where it sits
@@ -13,7 +13,7 @@
 ```
 anything outside this repo
 └─ kit   ◀ bundles them in
-   └─ core · defs · explorer · views · stage · theme
+   └─ core · defs · explorer · views · stage · theme · tray
 ```
 
 ## Building it
@@ -92,6 +92,46 @@ The renderer underneath also offers drag callbacks meaning move, seat, wall and 
 
 Holding beats pointing, deliberately: a linked block with children is a page with sections in it, and walking in is what the viewer is for.
 
+```tsx
+import "@mnd/kit/shell.css";
+
+<Viewer graph={graph} chrome={{ crumbs: true }} />   // the trail down to the open layer, over the drawing
+```
+
+**Chrome is asked for, and dressed by the shell** — bar the lattice, which draws unless `chrome.lattice` is `false`. Bare, the viewer is the canvas and the lattice behind it. `chrome.crumbs` draws the trail over its top-left corner — a crumb opens that layer, the arrow goes up one — and the crumbs are shell, not stage, so they read `shell.css` rather than anything `react.css` carries.
+
+The rest of what a drawing looks like is the host's to hand down, and `useDisplay` below keeps it:
+
+| Prop | Is |
+|---|---|
+| `card` | the default card, in lattice units — applied before anything is measured |
+| `chrome.legend` · `chrome.corner` | the key to what the layer draws, in the top or bottom right-hand corner |
+| `fields` · `onFields` | a block or definition whose fields are drawn **instead of the layer**, as a class diagram: one card standing for its schema, one per usage listing its values. A pick on the class card is told as its definition; `close diagram` and the crumbs tell `onFields(null)` |
+
+## The tray
+
+```tsx
+import { Tray, useDisplay, useTray } from "@mnd/kit/react";
+
+const tray = useTray();                                        // open, its tab, what it holds
+const { display, onDisplay } = useDisplay({ card: { w: 10, h: 3 }, range: CARD });
+
+<Explorer ... section={tray.section(graph.root)} onSection={tray.onSection} />
+<Viewer ... card={display.card} chrome={{ lattice: display.lattice, legend: display.legend }} />
+<Tray graph={graph} layer={layer} picked={picked}
+      open={tray.open} onOpen={tray.onOpen} onTab={tray.onTab}
+      hold={tray.hold} onHold={tray.onHold}
+      display={display} onDisplay={onDisplay} onFields={set_fields}
+      extras={[{ name: "preview", draw: (id) => <Preview id={id} /> }]} />
+```
+
+**mndflow's own tray, and the state every shell keeps for it** — the same `useTray` and `useDisplay` the mndflow app runs on, so a host inherits the defaults rather than restating them:
+
+- **Open from the start**, and pointed at the workspace: nothing picked on the root layer is the root picked, which opens on its `workspace` tab and lights the root row in the explorer.
+- **Read only without `onAct`.** Only the tabs that read are offered — workspace, element, fields, contents, and the library's — and nothing in them takes input. **The workspace tab's display still answers `onDisplay`**, because how a drawing looks is the session's and changes nothing.
+- **A host's own tabs come after the tray's**, for blocks, through `extras`.
+- **The fields tab offers `view diagram`** wherever the block answers a workspace schema, and hands the id to `onFields`.
+
 ## The tree
 
 ```tsx
@@ -106,6 +146,37 @@ import { Explorer } from "@mnd/kit/react";
 **It emits intent, never change.** `onAct` is a name and arguments — `Act = (name, args?) => void` — so nothing here writes and nothing here assumes a log exists. A host over a **derived** graph handles `move` by rewriting its own store and rebuilding; a host over a real workspace runs the action. The explorer cannot tell the difference, which is the point.
 
 **`menu={false}` drops this engine's offered list** and keeps the rows, the drag, the fold and the marks. A consumer with actions of its own — *rename file*, *move section* — should pass it, because the default list is mndflow's actions and means nothing elsewhere.
+
+**`tools` says which of the bar's tools are drawn**, and it is separate from `menu` because the bar and the menu answer different questions. Every tool is drawn unless told otherwise:
+
+```tsx
+<Explorer ... tools={{ filter: false, block: false, folder: false, remove: false }} />   // the fold stays
+<Explorer ... extra={<button onClick={open}><Icon name="add_document" /></button>} />  // a host's own tools, after the filter
+```
+
+## The chrome
+
+```tsx
+import { WorkspaceHeader, TrayFrame, Icon } from "@mnd/kit/shell";
+import "@mnd/kit/shell.css";
+
+<div className="app">
+  <WorkspaceHeader brand="handbook" where={<span className="where">12 pages</span>}>
+    <button onClick={save}><Icon name="save" /></button>
+  </WorkspaceHeader>
+  <main>
+    <Viewer graph={graph} chrome={{ crumbs: true }} />
+    <TrayFrame open={open} onOpen={set_open} word="page" name={name}
+               tabs={["about", "links"]} tab={tab} onTab={set_tab}>
+      {/* whatever the host has to say about the open page */}
+    </TrayFrame>
+  </main>
+</div>
+```
+
+**The dressing mndflow wears, with nothing of mndflow's in it.** `WorkspaceHeader` is identity on the left and tools on the right; `TrayFrame` is the collapsible bar, the tab strip and a body slot; neither names a graph. `shell.css` is the reset, the `.app` grid, the header, the bar height the panels share, the crumbs and the tray's frame — a host takes all of it or none, and `react.css` never carries it, because a drawing embedded in someone else's page must not restyle that page's `body`.
+
+`@mnd/kit/shell` is its own entry so a host that wants only a drawing resolves none of this. The same names are also reachable from `@mnd/kit/react`, so a host that already has that entry need not add another.
 
 ## Inlining a drawing in a page
 
@@ -123,6 +194,6 @@ const svg = draw_svg(scene, { style: "", id: "fig1" });   // no <style>, own id 
 
 **Not an API anyone has to keep.** The boundaries inside the repo exist to enforce direction and to let each package be proven on its own. This flattens them for one consumer at one moment, and a version is a stamped tarball rather than a promise.
 
-**Not a renderer you drive, and not an editor.** `Viewer` and `Explorer` are what is here. `Viewer` is the one place this package adds code rather than re-exporting. The rule that mattered was dependency direction, and components built from packages `kit` already bundles cannot break it.
+**Not a renderer you drive, and not an editor.** `Viewer`, `Explorer`, `Tray` and the chrome are what is here, and none of them writes: the explorer emits intent, and the tray only reads unless handed `onAct`. `Viewer` is the one place this package adds code rather than re-exporting. The rule that mattered was dependency direction, and components built from packages `kit` already bundles cannot break it.
 
 **Packed, never published.** `npm pack` works on a private package; `npm publish` refuses one. That is deliberate, and `release/` is what stands in for a registry meanwhile.

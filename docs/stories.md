@@ -72,6 +72,15 @@ Open any block and **find the thing it stands for in its body**: a definition's 
 | **one gesture to apply** | dropping a definition on an element retypes it where the kinds agree, and refuses in words where they do not; on the empty drawing it makes one, and a relation says lines must connect existing blocks |
 | **filed like the tree** | the workspace's own definitions sit in folders the user makes and reorders; *pinned* and *default* are the system's, and a package is frozen |
 
+| What that still needs | |
+|---|---|
+| **`look_of` takes a definition id** | it answers `PLAIN` for anything outside `graph.blocks`. The line half is done — `wire_of` takes either holder |
+| **action checks read `graph.blocks[id]`** | a definition id is refused with a confusing message rather than a clear one |
+| **the row builder stops branching on `of`** | the explorer branches on `row.of` in twenty places. `offer(ctx)` already narrows by each action's scope, so giving a definition id a scope lets the registry narrow the menu |
+| **the tree ignores `card.alias`** | a row always shows an unnamed element's handle, whatever its card says |
+
+**Relations stay out of the tree, and this is settled:** a definition has no parent. The relation vocabulary is the tray's, and the shortlist worth a right drag is the rail's.
+
 **Open:** whether a definition's data becomes editable in place, and what a body's format is — markdown, code with a language, JSON — and who says so, the definition or the block.
 
 ### ST.21 — Finding a thing beats knowing where it is
@@ -85,7 +94,7 @@ Type a few words into the explorer and **have what you are looking for come back
 | **where it lives** | first control in the explorer bar, under the hamburger the options rail used to wear. It may end up a layer over the panel rather than part of it |
 | **what it reads** | name, type and label, then body content. **Relevance is one order**, not four lists — a name match outranks a body match, and how far is part of the design |
 | **what a result is** | a card: the element's icon and its name in bold, and under it the properties that matched, so a hit says *why* it is a hit |
-| **what it spans** | blocks, definitions, relations and holders. Whether packages and their definitions are in by default is open |
+| **what it spans** | blocks — holders among them — definitions and relations. Whether packages and their definitions are in by default is open |
 
 **Open:** whether relevance is scored or merely ordered; whether a result is picked, revealed or opened in the tray; what happens to a term when the graph changes under it; and whether this is the same machinery as the terminal's `search`, which already exists and fetches packages.
 
@@ -100,7 +109,33 @@ Type a few words into the explorer and **have what you are looking for come back
 | **SysML round trip** | a `tie` goes out as `comment` and comes back as a `line`. Part of ST.6 |
 | **A named package is checked** | the definitions tab reads what each package brought and what is in use; reconciling that against the catalogue |
 
+## Loose ends
+
+**Small, real, and with no story of their own.**
+
+| | |
+|---|---|
+| **one tab pattern, half applied** | the `fields` tab is the pattern every editing tab should read as: banded bodies of labelled lines, then an `add` line that takes what is being added and commits it. `Entry` was pulled out and is shared; **`Commit` is still private to `Fields.tsx`, and the add line is copied between `Fields.tsx` and `Packages.tsx`** |
+| **the SVG export paints by kind** | `svg.ts` styles `.card.note` and `.route.tie` from a sheet it carries, where the canvas reads their definitions. The two disagree the moment a definition restyles a note |
+| **a read-only listing still looks live** | without `onAct`, the definitions, packages and usages tabs act with nothing: their add and filter inputs draw as usual and do nothing. The element, fields and workspace tabs disable theirs; these three do not yet |
+| **the class card sits under its usages** | a diagram's class card is a stand-in, and the layout seats stand-ins after the blocks beside them. Putting the schema on top wants the layout to rank it first |
+| **a long layer fits too small to read** | the camera fits the whole layer, so one tall column of cards — a document read top to bottom — shrinks past reading. Fitting to width, or a floor on the zoom, would keep a card legible |
+| **a diagram draws no instance lines** | each usage in a fields diagram stands apart from its class card; nothing draws the *instance of* between them |
+| **two rows lit for one diagram pick** | picking the class card holds its definition while the block the diagram was drawn for stays picked, so the explorer lights both |
+
 ## Recent Decisions
+
+### Marks describe, and stack
+
+**A card's bottom corner says what it stands in for, or what describes it — never both.** A stand-in wears one written word: `Def`, `Ref` or `Pkg`. Anything else wears what is true of it, drawn, and those stack. **The first is `data`, a database**: the block carries field values, or its definition declares a schema. **`Ext` is gone** — every block may carry a `source`, so having one describes nothing.
+
+### The shell's defaults are kept once
+
+**The tray starts open, nothing picked on the root layer is the root picked, and the root opens on its workspace tab** — where the card size, the key and the lattice are set. These are `useTray` and `useDisplay` in the tray package, and the app runs on them as the kit's hosts do. **The app binds ports; the rules live in the packages**, so a host outside this repo inherits them rather than restating them.
+
+### A block's fields draw as a class diagram
+
+**The fields tab offers `view diagram` wherever a block answers a workspace schema.** The canvas draws one card standing for the definition, listing `name: form`, and one per usage listing its values — a graph of its own, drawn in place of the layer and never written. A table's schema is its rows'; a package's own fields are its vocabulary, not the workspace's data, so they draw nothing.
 
 ### A layer draws the key to itself
 
@@ -115,9 +150,38 @@ Type a few words into the explorer and **have what you are looking for come back
 | **what happened** | `look_of` asked `"type" in b` to tell a block from a holder. **A block naming no definition carries no `type` key at all**, so it failed the test and was read as a holder — called `grid` where it carried a layer `arrangement`, `group` otherwise |
 | **how long it hid** | since the field became optional. `look.kind` is written on a card only where a definition asks for the label, and no sample asked; nothing else read it |
 | **what surfaced it** | the legend, which puts every kind word in one list. Two rows read *group* and *grid* against a reference's mark and a block's, and the real *block* and *reference* rows were missing — swallowed into them |
-| **the rule** | **key presence is not a type discriminator.** Where two shapes share a lookup, ask the graph which one it is — `graph.blocks[id]` against `graph.holders[id]` — never whether the object happens to carry a field. An optional field makes the test wrong for the commonest case, so it reads as correct right up until something looks |
+| **the rule** | **key presence is not a type discriminator.** Where two shapes share a lookup, ask the graph which one it is — which record holds the id, or what its definition says — never whether the object happens to carry a field. An optional field makes the test wrong for the commonest case, so it reads as correct right up until something looks |
 
 **A green suite said nothing**: 372 tests and a clean typecheck, across two rounds of driving. The synthetic seed written to exercise the legend gave every block a type, so it never took the path. The extended sample did, on the first draw.
+
+## Watch for
+
+**Hazards, each paid for once already.** Not goals — the things that bite while the work above is done.
+
+| | |
+|---|---|
+| **two names for one lattice** | `UNIT` is the measure and a `CELL` is a block plus its air. Nothing outside a grid is quantised to a cell |
+| **a holder is two things to most callers** | ask `is_holder` / `shape_of`, never a pair of literal comparisons — and never the base kind, since any definition may hold |
+| **key presence is not a type discriminator** | ask the graph which shape it is — which record holds the id, or what its definition says — never whether the object carries a field. An optional field makes the test wrong for the commonest case |
+| **two heads tables, on purpose** | `theme/heads.tsx` for React, `svg.ts` for the standalone export |
+| **stop inventing words where a convention exists** | `allocation` proved it |
+| **a word about a package's definition is read by its marker, never its id** | ask `default_for`, which finds the workspace definition whose `default` names that one. The extended sample's is `def_default`, speaking for `line` |
+| **naming a base is naming nothing** | `def_of` sends a base type to the workspace's word about it, and `stored_type` writes a base or such a word as plain. A maker that writes `type` directly skips both |
+| **a word about a definition wears that definition's name** | two rows read `block`, told apart by their source column. An action keyed on a name is given the group too, and `def_named` answers the workspace's own first |
+| **a name is not an id, and not a group** | ask `def_named` with the group; ids are minted and never derived from a name |
+| **the graph in hand is from before the act** | mint the id and pass it to the action rather than looking one up afterwards |
+| **a batch folds between calls** | inside `session.batch` each action sees the one before it, and all of them undo as one |
+| **no door migrations** | a schema change re-saves the samples; it never adds a repair |
+| **a grid's member always sits in a cell** | anything that takes a cell away takes the block out of the grid with it — `put` in the grid actions says so once |
+| **a control in a row stops the click** | every `Entry`, `Choice` and chip stops propagation, or the row is repicked under it |
+| **a row pick keeps its listing** | `browse` holds the listing a row was picked from |
+| **the draft is never listed** | tables read the graph without it |
+| **the canvas echoes a selection it cannot draw** | App ignores the empty pick a row from another layer comes back as |
+| **the scope chip decides depth, nothing else** | only the *workspace* scope reads deep |
+| **a door without the floor strips `extends`** | anything checking a log or a file must pass the shipped floor; without it no defaults are laid either |
+| **an app keeps its session across hot reload** | reload the page after a core change |
+| **a table's widths ride on its cells** | the contents table is `table-layout: fixed`, so a column is as wide as its head cell says, not the column element |
+| **a style attribute has to reach the writing** | a look's attributes are read by descendant selectors, so a name floated outside the dressed element takes none of them |
 
 ## Out of scope, recorded so nothing is built on it
 

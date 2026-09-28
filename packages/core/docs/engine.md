@@ -6,7 +6,7 @@
 
 | Module | Is |
 |---|---|
-| model | the object graph: blocks, relations, holders, packages, definitions, and the three block modules that interpret a block |
+| model | the object graph: blocks, relations, packages, definitions, and the three block modules that interpret a block |
 | schema | the data contract, and what the door enforces on the way in |
 | workspace | the root, the one log, and definition resolution by id |
 | actions | the closed action set: scope, arguments, `check`, and the mutations each writes |
@@ -19,8 +19,8 @@
 |---|---|
 | `types.ts` | every shared shape: the graph, the mutations, the steps |
 | `fold.ts` | replay: a log folded into a graph over the shipped floor, defaults laid |
-| `tree.ts` | layers, children, order, owners and the relations drawn in a layer |
-| `holders.ts` | holders: the one place that knows where they live, plus membership, cells, merges, headers, allocation |
+| `tree.ts` | layers, children, order, owners, the relations drawn in a layer, and what a gesture is about |
+| `holders.ts` | groups and grids: which blocks hold, membership, cells, merges, header lines, allocation |
 | `defs.ts` | definitions: chains, bases, defaults, packages, and what an element resolves through |
 | `names.ts` | what elements are called: names, handles, labels, the card icon and the system mark |
 | `door.ts` · `file.ts` | the one way in, and the envelope |

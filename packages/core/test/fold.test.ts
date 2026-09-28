@@ -81,7 +81,7 @@ describe("derived readings", () => {
   it("gives a layer that says nothing the free arrangement", () => {
     const graph = fold(flat(), FLOOR);
     expect(arrangement_of(graph, "block_ledger")).toBe("free");
-    expect(arrangement_of(fold(related(), FLOOR), "block_loop")).toBe("grid");
+    expect(arrangement_of(fold(related(), FLOOR), "block_loop")).toBe("auto");
   });
 
   it("reads a null layer as the root layer, and never as the root itself", () => {
@@ -166,9 +166,9 @@ describe("what a block may become", () => {
     expect(base_of(s.graph(), id)).toBe("block");
   });
 
-  /** Block, folder and note are one open family: none carries a field a retype cannot invent,
-   *  so each is the plain block with different configuration. */
-  it.each(["folder", "note"])("makes a block a %s", (type) => {
+  /** Block, folder, note, group and grid are one open family: none carries a field a retype
+   *  cannot invent, so each is the plain block with different configuration. */
+  it.each(["folder", "note", "group", "grid"])("makes a block a %s", (type) => {
     const s = kinds();
     s.go("create", { name: "A" });
     const id = children(s.graph(), ROOT)[0]!.id;
@@ -177,7 +177,7 @@ describe("what a block may become", () => {
   });
 
   /** The derived kinds each carry something a change of type cannot invent. */
-  it.each(["group", "grid", "interface", "reference"])(
+  it.each(["interface", "reference"])(
     "refuses to make a block a %s", (type) => {
       const s = kinds();
       s.go("create", { name: "A" });

@@ -15,7 +15,7 @@ project(graph, layer, config) → Scene
 | | Is |
 |---|---|
 | `size.ts` | **the one measure.** `UNIT` is a square of the guides; `CELL` is a block plus a gap on every side. Everything else is derived from those |
-| `arrange.ts` | where everything in a layer sits — hand placement under `free`, auto-layout under `grid` |
+| `arrange.ts` | where everything in a layer sits — hand placement under `free`, auto-layout under `auto` |
 | `bands.ts` | members packed inside a band, and seated blocks placed by their cell |
 | `pack.ts` | auto-layout: related clusters around their mates, notes and references beside what they name |
 | `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off |
@@ -36,11 +36,11 @@ project(graph, layer, config) → Scene
 | | Is |
 |---|---|
 | `free` | hand placement, rounded to the lattice. What a layer says nothing about |
-| `grid` | auto-layout: stored positions are ignored and every loose block gets a box worked out from the relationships and the sizes |
+| `auto` | auto-layout: stored positions are ignored and every loose block gets a box worked out from the relationships and the sizes |
 
 **Related blocks share a row or a column and sit one gap apart**; unrelated ones fill the next slots of a square-ish shelf. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
 
-**The picture is written down on the way out of `grid`**, as ordinary placements, so `free` carries on from where `grid` left off.
+**The picture is written down on the way out of `auto`**, as ordinary placements, so `free` carries on from where `auto` left off.
 
 ## Holders
 
@@ -49,9 +49,11 @@ project(graph, layer, config) → Scene
 | | Sized from | Members placed by |
 |---|---|---|
 | **group** | its members' bounds, plus a gap | the same packer the layer uses |
-| **grid** | its own extent, in cells | their address |
+| **grid** | its own extent, in cells — a header line one unit across | their address |
 
-**Nesting is ordinary and ordered by depth.** `group_depth` decides both what is placed first and what draws on top, so a grid inside a band is placed after the band has a corner of its own.
+**A holder is a block** whose definition's capability makes it one, so `is_holder` asks the capability and never the kind. **Nesting is ordinary and ordered by depth** — only groups nest — and `group_depth` decides both what is placed first and what draws on top, so a band inside a band is placed after the outer one has a corner of its own.
+
+**A header line is one unit across.** The top row is one unit tall and the left column one unit wide, and a header cell's card fills it — the left column's turned upright.
 
 ## The Scene is the seam
 

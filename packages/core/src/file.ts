@@ -60,8 +60,7 @@ export function write(graph: Graph, id = "workspace"): string {
     schema: SCHEMA,
     id,
     graph: { root: graph.root, packages: ordered(drawn_on(graph, defs)), defs,
-             blocks: ordered(graph.blocks), holders: ordered(graph.holders),
-             edges: ordered(graph.edges) },
+             blocks: ordered(graph.blocks), edges: ordered(graph.edges) },
   };
   return JSON.stringify(file, null, 2) + "\n";
 }
@@ -78,10 +77,6 @@ export function write_subtree(graph: Graph, root: Id): string {
   for (const [eid, e] of Object.entries(graph.edges)) {
     if (ids.has(e.from) && ids.has(e.to)) edges[eid] = e;
   }
-  const holders: Record<Id, Graph["holders"][string]> = {};
-  for (const [hid, h] of Object.entries(graph.holders)) {
-    if (ids.has(h.parent)) holders[hid] = h;
-  }
   const defs: Record<Id, Graph["defs"][string]> = {};
   const want = [...Object.keys(blocks).map((id) => def_of(graph, id)),
                 ...Object.keys(edges).map((id) => def_of(graph, id))].filter(Boolean) as Id[];
@@ -91,7 +86,7 @@ export function write_subtree(graph: Graph, root: Id): string {
     defs[d.id] = d;
     if (d.extends) want.push(d.extends);
   }
-  return write({ ...graph, root, blocks, edges, defs, holders }, root);
+  return write({ ...graph, root, blocks, edges, defs }, root);
 }
 
 export type Parsed = { graph: Graph | null; faults: Fault[] };

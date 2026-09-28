@@ -1,100 +1,5 @@
-/* A quarter of the stage when open, whatever it holds. */
-
-.tray {
-  position: relative;
-  z-index: 6;
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.tray.open { height: 25%; }
-/* Full height, when the body has more to say than a quarter of the window. */
-.tray.open.big { height: 100%; }
-/* At full height there is nothing above to be ruled off from, and the rule would only set the
-   bar a pixel below the explorer's and the options rail's. */
-.tray.big { border-top: none; }
-
-/* A step above the body it heads. */
-.tray-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: var(--bar, 29px);
-  padding: 0 8px 0 6px;
-  border-bottom: 1px solid var(--divider);
-  background: var(--surface);
-  color: var(--accent);
-  cursor: pointer;
-}
-
-/* The context: its word, its name, and what qualifies it. */
-.tray-context { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.tray-context > .word {
-  flex: none;
-  color: var(--muted);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.tray-context > .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tray-context > .note { flex: none; color: var(--faint); font-size: 11px; font-style: italic; }
-
-.tray-bar .holds {
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  flex: none;
-  margin-left: auto;
-  padding-right: 4px;
-}
-
-/* Tabs left, controls far right. */
-.tray-tools { display: flex; align-items: center; gap: 2px; flex: none;
-              margin-left: auto; }
-
-/* The chevron leads the context it opens. */
-.tray-chevron {
-  flex: none;
-  display: flex;
-  align-items: center;
-  color: var(--muted);
-  pointer-events: none;
-}
-
-.tray-bar:hover .tray-chevron { color: var(--accent); }
-
-.tray-tools button {
-  width: 22px;
-  height: 20px;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--muted);
-  font: inherit;
-  cursor: pointer;
-}
-
-.tray-tools button:hover { color: var(--accent); }
-.tray-tools button.on { color: var(--accent); }
-
-/* The body scrolls down, never sideways, and its tabs lay out by its width. A gutter each side
-   holds what is under the tabs off the explorer and the options rail; the tabs themselves span
-   the tray, since the strip they sit on is the tray's own edge to edge. */
-.tray-body {
-  container: tray / inline-size;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  flex: 1;
-  padding-inline: 10px;
-  background: var(--bg);
-}
+/* What the tray's tabs hold. The frame round them — the bar, the tabs, open and shut — is the
+   shell's, in `@mnd/theme/shell.css`, beside the `TrayFrame` that draws it. */
 
 /* The body scrolls, never a table in it. */
 .contents-table {
@@ -134,6 +39,16 @@
 .contents-table td.kind, .contents-table td.type { color: var(--muted); }
 .contents-table td.what { color: var(--muted); }
 
+/* The row that answers a different question than the rest: set above them and ruled off.
+   **Not the head's own ground** — `--surface` is what `th` is painted with, so a lead row
+   wearing it reads as a second head rather than as the one row in force. The tint is the faint
+   accent wash the tree already uses to say the same thing. Standing look first, so hovering and
+   picking a lead row read the way they read on every other row. */
+.contents-table tr.lead td {
+  background: var(--tint);
+  border-bottom: 1px solid var(--border);
+}
+
 /* Hovering a row lights that thing on the stage; clicking selects it. */
 .contents-table tbody tr:hover td { background: var(--hover); color: var(--text); }
 .contents-table tbody tr { cursor: pointer; }
@@ -147,65 +62,6 @@
 
 .contents-table tr.empty td { color: var(--faint); font-style: italic; cursor: default; }
 .contents-table tr.empty:hover td { background: none; }
-
-/* The body scrolls rather than pushing content out of reach. */
-.tray.open .tray-body { overflow: auto; }
-
-/* ── The tabs ── */
-
-/* Tabs on the body's own ground. */
-.tray-tabs {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  flex: none;
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  /* Back out through the body's gutter, so the strip reaches both edges. */
-  margin-inline: -10px;
-  padding: 4px 10px 0;
-  border-bottom: 1px solid var(--divider);
-  background: var(--bg);
-}
-
-.tray-tabs > button {
-  margin-bottom: -1px;
-  padding: 2px 10px;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: 3px 3px 0 0;
-  background: none;
-  color: var(--muted);
-  font: inherit;
-  cursor: pointer;
-}
-
-.tray-tabs > button:hover { color: var(--text); }
-.tray-tabs > button.on {
-  padding-bottom: 3px;
-  border-color: var(--divider);
-  background: var(--bg);
-  color: var(--accent);
-}
-
-/* One gap under the tabs, whichever tab is open. */
-.tray-tabs + * { margin-top: 2px; }
-
-/* Acts over the whole tab, at the far end of the strip that opened it. */
-.tab-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; padding-bottom: 3px; }
-.tab-tools > .reset {
-  padding: 1px 7px;
-  border: 1px solid var(--divider);
-  border-radius: 2px;
-  background: none;
-  color: var(--muted);
-  font: inherit;
-  font-size: 10px;
-  cursor: pointer;
-}
-.tab-tools > .reset:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
-.tab-tools > .reset:disabled { opacity: 0.35; cursor: default; }
 
 /* ── The body under both columns ─────────────────────────────────────────── */
 .content { display: flex; flex-direction: column; gap: 6px; padding: 0 10px 10px; }
@@ -245,9 +101,22 @@
 .contents-table td.drop { padding: 0 4px; }
 .contents-table td .acts { display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
 .contents-table td .acts { min-width: 0; }
+/* Remove keeps its size, so a chip beside it is cut only by the column it is really in. */
+.contents-table td .acts .drop { flex: none; }
 /* A chip longer than its column is cut, never allowed to widen it. */
 .contents-table td .acts .chip { white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.contents-table td .acts .chip {
+/* What a row is, said in its action column: a state, never a thing to press. */
+.contents-table td .acts .tag {
+  flex: none;
+  padding: 0 6px;
+  color: var(--faint);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The tray's chip, wherever one is offered: an action on what is beside it. */
+.tray .chip {
   padding: 0 6px;
   border: 1px solid var(--accent);
   border-radius: 2px;
@@ -263,6 +132,11 @@
 /* ── The element and style tabs: the drawing left, its rows right ── */
 
 /* Narrow: the drawing beside its rows, and a block's body under both. */
+/* A tab is a fieldset so a read-only one can be disabled whole; it draws as a plain box. */
+fieldset.panel, fieldset.fields, fieldset.rows-set { border: 0; margin: 0; min-width: 0; }
+fieldset.rows-set { padding: 0; }
+fieldset.fields { padding: 0; }
+
 .panel {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
@@ -304,6 +178,11 @@
 .panel.element {
   grid-template-areas: "drawing rows" "body body" "source source";
 }
+
+/* The settings tab: the drawing and its looks side by side, and what its usages may do full width
+   under both. */
+.panel.style { grid-template-areas: "drawing rows" "abilities abilities"; }
+.panel > .col.abilities { grid-area: abilities; }
 
 /* A definition has no source and a block no record, so the two never both appear. */
 .panel > .source, .panel > .content.data { grid-area: source; }
@@ -466,3 +345,11 @@
                            border-radius: 2px; padding: 0 2px; }
 
 .contents-table td.value { color: var(--muted); }
+
+/* What sort of context the tray is about, as one quiet tag whatever the word. */
+.tray-context > .word {
+  color: var(--muted);
+  border-color: transparent;
+  background: var(--hover);
+}
+

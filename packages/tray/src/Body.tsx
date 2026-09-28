@@ -1,6 +1,10 @@
 /** The tray's one body pattern. */
 
+import type { Act } from "@mnd/core";
 import type { ReactNode } from "react";
+
+/** What a read-only surface acts with: nothing. */
+export const NOOP: Act = () => undefined;
 
 export type BodyProps = {
   /** What the whole block is about, where it needs saying. */

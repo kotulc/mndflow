@@ -1,10 +1,10 @@
 /** The grid: seating, headers, allocation, and the actions that reshape one. */
 
 import { beforeEach, describe, expect, it } from "vitest";
-import { ROOT, allocated_to, allocations_of, at_cell, block_members, edge_base, fold, head_of,
-         is_grid,
-         members_of, offer, run, step, would_head,
-         type Args, type Cell, type Context, type Graph, type Id,
+import { FLOOR } from "@mnd/fixtures";
+import { ROOT, allocated_to, allocations_of, at_cell, edge_base, fold, head_of, is_grid,
+         lattice_of, members_of, offer, run, step,
+         type Args, type Cell, type Context, type Graph, type Grid, type Id,
          type Log, type Mutation } from "../src/index";
 
 /** A grid of `rows` × `cols` on a layer, with nothing seated in it yet. */
@@ -13,9 +13,7 @@ function board(rows = 3, cols = 4): Graph {
     blocks: {
       [ROOT]: { id: ROOT, parent: null, name: "workspace", type: "folder" },
       layer: { id: "layer", parent: ROOT, type: "block", name: "Board" },
-    },
-    holders: {
-      grid: { id: "grid", parent: "layer", arrangement: "grid", rows, cols, x: 0, y: 0 },
+      lanes: { id: "lanes", parent: "layer", type: "grid", grid: { rows, cols }, x: 0, y: 0 },
     } };
 }
 
@@ -25,26 +23,32 @@ let g: Graph;
 /** Through the log, the way the app does it. */
 function commit(name: string, mutations: Mutation[]): void {
   log.push(step(`s${log.length}`, name, log.length, mutations));
-  g = fold(log);
+  g = fold(log, FLOOR);
 }
 
-/** Put a block in a cell. Returns its id, so a test reads as what it did. */
-function seat(id: Id, r: number, c: number, header = false): Id {
+/** Put a block in a cell — a reference to `of` where it says one. Returns its id. */
+function seat(id: Id, r: number, c: number, of?: Id): Id {
   commit("seat", [
-    { op: "add_block", block: { id, parent: "layer", type: "block", name: id } },
-    { op: "set_group", id, group: "grid" },
+    { op: "add_block", block: { id, parent: "layer", type: "block", name: id,
+                                ...(of ? { of } : {}) } },
+    { op: "set_group", id, group: "lanes" },
     { op: "seat_cell", id, cell: { r, c } },
-    ...(header ? [{ op: "set_header", id, header: true } as Mutation] : []),
   ]);
   return id;
 }
 
-const ctx = (picked: Id[] = ["grid"], cells?: Context["cells"]): Context =>
+/** A block on the layer, seated nowhere. */
+function loose(id: Id): Id {
+  commit("make", [{ op: "add_block", block: { id, parent: "layer", name: id } }]);
+  return id;
+}
+
+const ctx = (picked: Id[] = ["lanes"], cells?: Context["cells"]): Context =>
   ({ graph: g, layer: "layer", picked, ...(cells ? { cells } : {}) });
 
 /** Run an action and keep what it wrote. */
 function act(name: string, args: Args = {}, cells?: Context["cells"]): void {
-  const out = run(name, ctx(["grid"], cells), args);
+  const out = run(name, ctx(["lanes"], cells), args);
   if ("refused" in out) throw new Error(`${name} refused: ${out.refused}`);
   commit(name, out.mutations);
 }
@@ -55,16 +59,9 @@ const at = (id: Id): string | null => {
   return c && g.blocks[id]?.group ? `${c.r},${c.c}` : null;
 };
 
-const labels = (bs: { label?: string; id: Id }[]) => bs.map((b) => b.label ?? b.id).sort();
+const lattice = (): Grid => lattice_of(g, "lanes")!;
 
-/** A holder standing for a new block on the layer; the holder is made where it is not there. */
-function stands_for(holder: Id, block: Id): void {
-  const held = g.holders[holder] ?? { id: holder, parent: "layer", arrangement: "free" as const };
-  commit("stand", [
-    { op: "add_block", block: { id: block, parent: "layer", type: "block", name: block } },
-    { op: "set_holder", holder: { ...held, of: block } },
-  ]);
-}
+const labels = (bs: { id: Id }[]) => bs.map((b) => b.id).sort();
 
 beforeEach(() => {
   log = [];
@@ -81,102 +78,74 @@ describe("an address", () => {
   });
 
   it("is dropped when a block moves to another holder, never carried over", () => {
-    commit("band", [{ op: "set_holder",
-                      holder: { id: "band", parent: "layer", arrangement: "free" } }]);
+    commit("band", [{ op: "add_block", block: { id: "band", parent: "layer", type: "group" } }]);
     seat("a", 2, 2);
     act("group", { members: ["a"], into: "band" });
     expect(g.blocks["a"]!.group).toBe("band");
     expect(g.blocks["a"]!.cell).toBeUndefined();
-  });
-
-  it("takes a header down with it", () => {
-    seat("a", 1, 0, true);
-    act("leave", { ids: ["a"] });
-    expect(g.blocks["a"]!.header).toBeUndefined();
   });
 });
 
 describe("which line a header heads", () => {
   it.each([
     ["the corner", 0, 0, "both"],
-    ["the first row", 0, 2, "col"],
-    ["the first column", 2, 0, "row"],
-    ["anywhere inside", 2, 3, "row"],
+    ["the top row", 0, 2, "col"],
+    ["the left column", 2, 0, "row"],
+    ["anywhere inside", 2, 3, null],
   ])("at %s is %s", (_what, r, c, want) => {
-    seat("h", r as number, c as number, true);
-    expect(would_head(g, "h")).toBe(want);
+    act("heads", { way: "top", on: "yes" });
+    act("heads", { way: "left", on: "yes" });
+    seat("h", r as number, c as number, loose("x"));
     expect(head_of(g, "h")).toBe(want);
   });
 
-  it("is nothing at all until it is promoted", () => {
+  it("is nothing at all until the line is made a header", () => {
     seat("a", 1, 0);
     expect(head_of(g, "a")).toBeNull();
-    expect(would_head(g, "a")).toBe("row");
-  });
-
-  it("moves with the block, because it was never stored", () => {
-    seat("h", 2, 0, true);
-    expect(head_of(g, "h")).toBe("row");
-    g.blocks["h"] = { ...g.blocks["h"]!, cell: { r: 0, c: 2 } };
-    expect(head_of(g, "h")).toBe("col");
   });
 });
 
 describe("allocation", () => {
-  it("gives a cell one header per axis", () => {
-    seat("lane", 1, 0, true);
-    seat("col", 0, 2, true);
+  const headed = () => {
+    act("heads", { way: "top", on: "yes" });
+    act("heads", { way: "left", on: "yes" });
+  };
+
+  it("gives a cell the block each of its headers stands for", () => {
+    headed();
+    seat("lane", 1, 0, loose("owner"));
+    seat("col", 0, 2, loose("phase"));
     seat("x", 1, 2);
-    expect(labels(allocations_of(g, "x"))).toEqual(["col", "lane"]);
+    expect(labels(allocations_of(g, "x"))).toEqual(["lanes", "owner", "phase"]);
   });
 
   it("reaches every block along the line, and nothing off it", () => {
-    seat("lane", 1, 0, true);
+    headed();
+    seat("lane", 1, 0, loose("owner"));
     seat("here", 1, 3);
     seat("elsewhere", 2, 3);
-    expect(labels(allocated_to(g, "lane"))).toContain("here");
-    expect(labels(allocated_to(g, "lane"))).not.toContain("elsewhere");
-  });
-
-  it("claims a line only from where the header sits onward", () => {
-    seat("first", 1, 0, true);
-    seat("second", 1, 2, true);
-    seat("before", 1, 1);
-    seat("after", 1, 3);
-    expect(labels(allocations_of(g, "before"))).toEqual(["first"]);
-    expect(labels(allocations_of(g, "after"))).toEqual(["first", "second"]);
-    /** A subheader is itself under the one above it — that is the nesting. */
-    expect(labels(allocations_of(g, "second"))).toEqual(["first"]);
+    expect(labels(allocated_to(g, "owner"))).toEqual(["here"]);
   });
 
   it("is lost when the block leaves the grid, because it was the position", () => {
-    seat("lane", 1, 0, true);
+    headed();
+    seat("lane", 1, 0, loose("owner"));
     seat("x", 1, 2);
-    expect(allocations_of(g, "x")).toHaveLength(1);
     act("leave", { ids: ["x"] });
     expect(allocations_of(g, "x")).toHaveLength(0);
   });
 
   it("follows a merged header across every line it spans", () => {
-    seat("tall", 1, 0, true);
-    act("merge", {}, [{ group: "grid", r: 1, c: 0 }, { group: "grid", r: 2, c: 0 }]);
+    headed();
+    seat("tall", 1, 0, loose("owner"));
+    act("merge", {}, [{ group: "lanes", r: 1, c: 0 }, { group: "lanes", r: 2, c: 0 }]);
     seat("lower", 2, 2);
-    expect(labels(allocations_of(g, "lower"))).toContain("tall");
+    expect(labels(allocations_of(g, "lower"))).toContain("owner");
   });
 
-  /** The other shape: a holder stands for a block, and what it holds is allocated to it. */
-  it("puts every member under what its holder stands for", () => {
-    stands_for("grid", "section");
+  it("puts every member under the holder it sits in", () => {
     seat("cell", 1, 2);
-    expect(labels(allocations_of(g, "cell"))).toEqual(["section"]);
-    expect(labels(allocated_to(g, "section"))).toEqual(["cell"]);
-  });
-
-  it("reaches through a holder nested in the one that stands for a block", () => {
-    stands_for("round", "section");
-    commit("nest", [{ op: "set_holder", holder: { ...g.holders["grid"]!, group: "round" } }]);
-    seat("cell", 1, 2);
-    expect(labels(allocated_to(g, "section"))).toEqual(["cell"]);
+    expect(labels(allocated_to(g, "lanes"))).toEqual(["cell"]);
   });
 });
 
@@ -191,12 +160,10 @@ describe("insert and remove", () => {
 
   it("stretches a merge it passes through rather than splitting it", () => {
     seat("wide", 0, 0);
-    act("merge", {}, [{ group: "grid", r: 0, c: 0 }, { group: "grid", r: 0, c: 2 }]);
-    const before = g.holders["grid"]!.merges![0]!;
+    act("merge", {}, [{ group: "lanes", r: 0, c: 0 }, { group: "lanes", r: 0, c: 2 }]);
+    const before = lattice().merges![0]!;
     act("insert", { way: "col", at: 1 });
-    const after = g.holders["grid"]!.merges![0]!;
-    expect(after.cols).toBe(before.cols + 1);
-    expect(at("wide")).toBe(at("wide"));
+    expect(lattice().merges![0]!.cols).toBe(before.cols + 1);
   });
 
   /** A line taken away moves what it held rather than dropping it. */
@@ -204,37 +171,36 @@ describe("insert and remove", () => {
     seat("moved", 1, 1);
     act("remove", { way: "row", at: 1 });
     expect(g.blocks["moved"]).toBeTruthy();
-    expect(at("moved")).not.toBeNull();
-    expect(g.blocks["moved"]!.cell!.r).toBeLessThan(g.holders["grid"]!.rows!);
+    expect(g.blocks["moved"]!.cell!.r).toBeLessThan(lattice().rows);
   });
 
-  it("drops the address only where there is nowhere left to put it", () => {
+  it("takes a block out of the grid only where there is nowhere left to put it", () => {
     act("fill");
-    const before = members_of(g, "grid").length;
+    const before = members_of(g, "lanes").map((b) => b.id);
     act("remove", { way: "row", at: 0 });
-    const held = block_members(g, "grid");
+    const held = members_of(g, "lanes");
     /** Nothing is deleted — a layout gesture must not cost model content. */
-    expect(held).toHaveLength(before);
-    const seated = held.filter((b) => b.cell);
-    expect(seated.length).toBeLessThan(before);
-    expect(seated).toHaveLength(g.holders["grid"]!.rows! * g.holders["grid"]!.cols!);
+    expect(before.every((id) => g.blocks[id])).toBe(true);
+    /** And a member always sits in a cell. */
+    expect(held.every((b) => b.cell)).toBe(true);
+    expect(held).toHaveLength(lattice().rows * lattice().cols);
   });
 
   it("leaves every surviving address inside the extent, and each one once", () => {
     act("fill");
     act("remove", { way: "col", at: 1 });
-    const { rows, cols } = g.holders["grid"]!;
-    const cells = block_members(g, "grid").filter((b) => b.cell).map((b) => b.cell!);
-    expect(cells.every((c) => c.r < rows! && c.c < cols!)).toBe(true);
+    const { rows, cols } = lattice();
+    const cells = members_of(g, "lanes").filter((b) => b.cell).map((b) => b.cell!);
+    expect(cells.every((c) => c.r < rows && c.c < cols)).toBe(true);
     expect(new Set(cells.map((c) => `${c.r},${c.c}`)).size).toBe(cells.length);
   });
 
   it("gives back what it took, so a row in and a row out is a round trip", () => {
     seat("x", 2, 2);
-    const rows = g.holders["grid"]!.rows;
+    const rows = lattice().rows;
     act("insert", { way: "row", at: 0 });
     act("remove", { way: "row", at: 0 });
-    expect(g.holders["grid"]!.rows).toBe(rows);
+    expect(lattice().rows).toBe(rows);
     expect(at("x")).toBe("2,2");
   });
 });
@@ -242,41 +208,41 @@ describe("insert and remove", () => {
 describe("merge and split", () => {
   it("answers at every address it covers with the block at its corner", () => {
     seat("one", 0, 0);
-    act("merge", {}, [{ group: "grid", r: 0, c: 0 }, { group: "grid", r: 1, c: 1 }]);
+    act("merge", {}, [{ group: "lanes", r: 0, c: 0 }, { group: "lanes", r: 1, c: 1 }]);
     for (const [r, c] of [[0, 0], [0, 1], [1, 0], [1, 1]]) {
-      expect(at_cell(g, "grid", r!, c!)?.id).toBe("one");
+      expect(at_cell(g, "lanes", r!, c!)?.id).toBe("one");
     }
   });
 
   it("frees what it covers rather than losing it", () => {
     seat("keep", 0, 0);
     seat("shoved", 1, 1);
-    act("merge", {}, [{ group: "grid", r: 0, c: 0 }, { group: "grid", r: 1, c: 1 }]);
+    act("merge", {}, [{ group: "lanes", r: 0, c: 0 }, { group: "lanes", r: 1, c: 1 }]);
     expect(g.blocks["shoved"]).toBeTruthy();
     expect(at("shoved")).not.toBe("1,1");
   });
 
   it("splits back to ordinary cells", () => {
-    seat("one", 0, 0);
-    act("merge", {}, [{ group: "grid", r: 0, c: 0 }, { group: "grid", r: 0, c: 1 }]);
-    expect(g.holders["grid"]!.merges).toHaveLength(1);
-    act("merge", {}, [{ group: "grid", r: 0, c: 0 }]);
-    expect(g.holders["grid"]!.merges ?? []).toHaveLength(0);
+    act("merge", {}, [{ group: "lanes", r: 0, c: 0 }, { group: "lanes", r: 0, c: 1 }]);
+    expect(lattice().merges).toHaveLength(1);
+    act("merge", {}, [{ group: "lanes", r: 0, c: 0 }]);
+    expect(lattice().merges ?? []).toHaveLength(0);
   });
 });
 
 describe("transpose", () => {
   it("turns the grid and every address about the diagonal", () => {
     seat("x", 1, 3);
-    const { rows, cols } = g.holders["grid"]!;
+    const { rows, cols } = lattice();
     act("transpose");
-    expect(g.holders["grid"]!.rows).toBe(cols);
-    expect(g.holders["grid"]!.cols).toBe(rows);
+    expect(lattice().rows).toBe(cols);
+    expect(lattice().cols).toBe(rows);
     expect(at("x")).toBe("3,1");
   });
 
-  it("turns a lane owner into a column head, writing no header of its own", () => {
-    seat("lane", 1, 0, true);
+  it("turns a row header into a column header", () => {
+    act("heads", { way: "left", on: "yes" });
+    seat("lane", 1, 0, loose("owner"));
     expect(head_of(g, "lane")).toBe("row");
     act("transpose");
     expect(head_of(g, "lane")).toBe("col");
@@ -291,23 +257,19 @@ describe("transpose", () => {
 });
 
 describe("chain", () => {
-  /** row 0: - b - c row 1: h(head) d - - */
+  /** row 0: - b - c; row 1: h(header) d - - */
   const laid = () => {
+    act("heads", { way: "left", on: "yes" });
     seat("b", 0, 1); seat("c", 0, 3);
-    seat("h", 1, 0, true); seat("d", 1, 1);
+    seat("h", 1, 0, loose("owner")); seat("d", 1, 1);
     return g;
   };
   const links = (graph: Graph) =>
     Object.values(graph.edges).map((e) => `${e.from}->${e.to}`);
 
-  it("reads the whole grid as one run, on across the row below", () => {
+  it("reads the whole grid as one run, on across the row below, passing over headers", () => {
     laid(); act("chain");
     expect(links(g)).toEqual(["b->c", "c->d"]);
-  });
-
-  it("passes over a header, because it says what a line is", () => {
-    laid(); act("chain");
-    expect(links(g).join(" ")).not.toContain("h");
   });
 
   it("draws the module it was given", () => {
@@ -328,25 +290,24 @@ describe("fill", () => {
   it("puts a block in every empty cell and disturbs none that is taken", () => {
     seat("kept", 1, 1);
     act("fill");
-    const held = block_members(g, "grid");
-    expect(held).toHaveLength(g.holders["grid"]!.rows! * g.holders["grid"]!.cols!);
+    expect(members_of(g, "lanes")).toHaveLength(lattice().rows * lattice().cols);
     expect(at("kept")).toBe("1,1");
   });
 
   it("hands every new block an alias of its own", () => {
     act("fill");
-    const made = members_of(g, "grid").map((b) => b.alias);
+    const made = members_of(g, "lanes").map((b) => b.alias);
     expect(new Set(made).size).toBe(made.length);
     expect(made.every((a) => typeof a === "number")).toBe(true);
   });
 
   it("treats a merged region as the one cell it is", () => {
-    act("merge", {}, [{ group: "grid", r: 0, c: 0 }, { group: "grid", r: 1, c: 1 }]);
+    act("merge", {}, [{ group: "lanes", r: 0, c: 0 }, { group: "lanes", r: 1, c: 1 }]);
     act("fill");
-    const corner = at_cell(g, "grid", 0, 0);
+    const corner = at_cell(g, "lanes", 0, 0);
     expect(corner).toBeTruthy();
     for (const [r, c] of [[0, 1], [1, 0], [1, 1]]) {
-      expect(at_cell(g, "grid", r!, c!)?.id).toBe(corner!.id);
+      expect(at_cell(g, "lanes", r!, c!)?.id).toBe(corner!.id);
     }
   });
 
@@ -356,19 +317,18 @@ describe("fill", () => {
   });
 });
 
-describe("a grid is what its module says", () => {
+describe("a grid is what its definition says", () => {
   it("is a grid whatever else it carries", () => {
-    expect(is_grid(g, "grid")).toBe(true);
+    expect(is_grid(g, "lanes")).toBe(true);
     expect(is_grid(g, "layer")).toBe(false);
   });
 
   it("keeps its extent when everything in it is freed", () => {
     seat("a", 0, 0);
-    const { rows, cols } = g.holders["grid"]!;
+    const { rows, cols } = lattice();
     act("leave", { ids: ["a"] });
-    expect(g.holders["grid"]).toBeTruthy();
-    expect(g.holders["grid"]!.rows).toBe(rows);
-    expect(g.holders["grid"]!.cols).toBe(cols);
+    expect(lattice().rows).toBe(rows);
+    expect(lattice().cols).toBe(cols);
   });
 });
 
@@ -379,26 +339,24 @@ describe("the grid actions are reachable", () => {
 
   it.each(["fill", "chain", "transpose", "merge", "insert", "remove"])(
     "offers %s from a cell", (name) => {
-      seat("a", 0, 0);
-      expect(named({ cells: [{ group: "grid", r: 1, c: 1 }] })).toContain(name);
+      expect(named({ cells: [{ group: "lanes", r: 1, c: 1 }] })).toContain(name);
     });
 
-  it.each(["fill", "chain", "transpose", "header", "seat"])(
+  it.each(["fill", "chain", "transpose", "heads", "seat"])(
     "offers %s from the grid itself", (name) => {
-      seat("a", 0, 0);
-      expect(named({ picked: ["grid"] })).toContain(name);
+      expect(named({ picked: ["lanes"] })).toContain(name);
     });
 });
 
 describe("cells are addresses, not blocks", () => {
   it("answers with nothing where nobody has claimed one", () => {
-    expect(at_cell(g, "grid", 2, 2)).toBeNull();
+    expect(at_cell(g, "lanes", 2, 2)).toBeNull();
   });
 
   it("holds one block, so a second is refused", () => {
     seat("a", 0, 0);
     seat("b", 1, 1);
-    const out = run("seat", ctx(["b"]), { id: "b", group: "grid", at: "0,0" });
+    const out = run("seat", ctx(["b"]), { id: "b", group: "lanes", at: "0,0" });
     expect("refused" in out).toBe(true);
   });
 
@@ -406,7 +364,7 @@ describe("cells are addresses, not blocks", () => {
   it.each(outside)("refuses an address outside the grid ($r,$c)", (cell) => {
     seat("a", 0, 0);
     const out = run("seat", ctx(["a"]),
-                    { id: "a", group: "grid", at: `${cell.r},${cell.c}` });
+                    { id: "a", group: "lanes", at: `${cell.r},${cell.c}` });
     expect("refused" in out).toBe(true);
   });
 });

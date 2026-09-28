@@ -1,4 +1,5 @@
-export { Tray, type TrayProps, type Tab, type Hold } from "./Tray";
+export { Tray, type TrayProps, type Tab, type Hold, type Extra } from "./Tray";
+export { useDisplay, useTray, type Pointed } from "./state";
 export { DRAFT, aimed, blank, redraft, with_draft,
          type DraftGroup } from "./draft";
 export { Definitions, taken, type DefinitionsProps, type Only, type Shelf } from "./Definitions";
@@ -7,12 +8,12 @@ export { Content, type ContentProps } from "./Content";
 export { Data, type DataProps } from "./Data";
 export { def_rows, rows_of, usage_rows, type DefRow, type Row, type Sort,
          type UsageRow } from "./rows";
-export { ChipBar, Choice, Table, type Adding, type Chips, type Column, type Line as TableLine,
+export { ChipBar, Choice, Table, lit_row, type Adding, type Chips, type Column, type Line as TableLine,
          type TableProps } from "./Table";
 export { Usages, type UsagesProps } from "./Usages";
 export { Element, type ElementProps } from "./Element";
 export { Workspace, type Display, type WorkspaceProps } from "./Workspace";
-export { Style, type StyleProps } from "./Style";
+export { Settings, type SettingsProps } from "./Settings";
 export { Drawing, type DrawingProps } from "./Drawing";
 export { Options, type OptionsProps } from "./Options";
 export { Identity, type IdentityProps } from "./Identity";

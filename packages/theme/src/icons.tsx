@@ -10,6 +10,8 @@ const PORTS = "M6 6h12v12H6zM2.5 12H6M18 12h3.5";
 const PATHS = {
   // Making and taking away.
   add: "M12 5v14M5 12h14",
+  /** A block to add: the leaf's square with the plus inside it. */
+  add_block: "M5 5h14v14H5zM12 8.5v7M8.5 12h7",
   /** Drawn on `add`'s footprint so it sits level with the bar's other marks. */
   add_folder: "M5 5.5h5l2 2h7v11H5zM12 10.5v5M9.5 13h5",
   remove: "M6 6l12 12M18 6L6 18",
@@ -19,8 +21,10 @@ const PATHS = {
   redo: "M20 9H9a5 5 0 0 0 0 10h6M20 9l-4-4M20 9l-4 4",
 
   // The tree: folding a branch, and what it chooses to list.
-  fold_all: "M5 5h14v14H5zM8.5 12h7",
-  unfold_all: "M5 5h14v14H5zM12 8.5v7M8.5 12h7",
+  // One chevron, as an editor's tree draws it: down while open, right while folded. Each is
+  // shown in the state it names, so `fold_all` is what an open section wears.
+  fold_all: "M6.5 9l5.5 5.5L17.5 9",
+  unfold_all: "M9 6.5l5.5 5.5L9 17.5",
   show_empty: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5",
   hide_empty: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 19.5l15-15",
 
@@ -53,13 +57,32 @@ const PATHS = {
   role_group: "M9 4v16M15 4v16M4 9h16M4 15h16",
   // A group with an extent — cells you seat things in, bounded like a table.
   role_table: "M4.5 6h15v12H4.5zM4.5 10.5h15M11 6v12",
+  // Where every usage hangs from: one node, and the branches it puts out.
+  role_root: "M12 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M12 8.5v3.5M5 12h14M5 12v5M12 12v5M19 12v5M3.5 17h3M10.5 17h3M17.5 17h3",
+
+  // What a block of content is, for a package that names one per kind with `card.icon`. Drawn
+  // as the mark each already spends in an editor: `#`, ¶, bullets, `</>`, quotes.
+  content_heading: "M10 4.5L8 19.5M16 4.5l-2 15M5 9.5h14.5M4.5 14.5H19",
+  content_text: "M11 19.5v-15h7M15 4.5v15M11 4.5a4 4 0 0 0 0 8",
+  content_list: "M4.5 7h1M4.5 12h1M4.5 17h1M9 7h10.5M9 12h10.5M9 17h10.5",
+  content_item: "M4.5 12h1M9 12h10.5",
+  content_code: "M8 7.5L3.5 12 8 16.5M16 7.5l4.5 4.5-4.5 4.5M13.5 5.5l-3 13",
+  content_quote: "M5 17.5c2.5-1 3.5-3 3.5-6V7.5H5V11h3.5M13.5 17.5c2.5-1 3.5-3 3.5-6V7.5h-3.5V11H17",
+  content_image: "M4 5.5h16v13H4zM4 16l5-5 4 4 2.5-2.5L20 17M15.5 8.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2",
+  content_rule: "M3.5 12h4M10 12h4M16.5 12h4",
+  // The document's metadata: a tag, since that is what it says about the page.
+  content_front: "M4 4.5h8l8 8-7.5 7.5-8.5-8.5zM8 8.5h.5",
+  content_lead: "M3.5 12h11M11 8.5l3.5 3.5-3.5 3.5M18.5 6v12",
+  content_more: "M4 7.5h16v9H4zM7.5 12h1M11.5 12h1M15.5 12h1",
+  // One record: a single row of cells, where `role_table` is the whole lattice.
+  content_row: "M3.5 9h17v6h-17zM9.5 9v6M14.5 9v6",
 
   // What a thing is, opened out to be set. A cog: the one mark every app
   // already spends on *the settings of this*.
   /** A pinned definition. */
   pin: "M9 3.5h6M12 3.5v7M12 10.5l4.5 4.5v2h-9v-2zM12 17v3.5",
   // The system's own words, written rather than drawn: three letters on one grid, one weight,
-  // so `Wks`, `Pkg`, `Def`, `Ref` and `Ext` read as one family wherever they are stamped.
+  // so `Wks`, `Pkg`, `Def`, `Ref` and `Use` read as one family wherever they are stamped.
   /** The workspace: everything the project holds. */
   word_wks: "M2.5 7.5l1.75 9 1.75-5.5 1.75 5.5 1.75-9M11.5 7.5v9M15.5 11.5l-4 3.25M13.1 13.1l2.4 3.4M20.8 12.5a1.7 1.7 0 0 0-3 1c0 1.6 3.2.7 3.2 2.2a1.8 1.8 0 0 1-3.2.9",
   /** The packages: what the workspace draws on. */
@@ -70,6 +93,13 @@ const PATHS = {
   word_ref: "M3 16.5V7.5h2.2a2.6 2.6 0 0 1 0 5.2H3M5.9 12.7l2.6 3.8M10 13.9h4.4a2.2 2.2 0 1 0-4.4 0v.2a2.2 2.2 0 0 0 4 1.3M21 8.2a2 2 0 0 0-3 1.8v6.5M16.3 12.2h3.7",
   /** A stand-in for something outside the workspace. */
   word_ext: "M8 7.5H3v9h5M3 12h4.2M10 11.9l4.2 4.6M14.2 11.9L10 16.5M18 8.5v6.2a1.8 1.8 0 0 0 2.6 1.6M16.4 11.9h3.5",
+  /** The usages: the blocks the workspace is made of. */
+  word_use: "M3 7.5v6a3 3 0 0 0 6 0v-6M14.5 12.5a1.7 1.7 0 0 0-3 1c0 1.6 3.2.7 3.2 2.2a1.8 1.8 0 0 1-3.2.9M16.6 13.9h4.4a2.2 2.2 0 1 0-4.4 0v.2a2.2 2.2 0 0 0 4 1.3",
+  /** Carries data: populated fields, or the schema they are read against. A database, drawn:
+   *  the one mark every tool already spends on *records live here*. */
+  data: "M5 6.5c0-1.4 3.1-2.5 7-2.5s7 1.1 7 2.5-3.1 2.5-7 2.5-7-1.1-7-2.5M5 6.5v11c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-11M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5",
+  /** Holds parts: four boxes, the mark every tool already spends on *there is more in here*. */
+  parts: "M5 5h5.5v5.5H5zM13.5 5H19v5.5h-5.5zM5 13.5h5.5V19H5zM13.5 13.5H19V19h-5.5z",
   define: "M12 9.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5M12 3.5l1.2 2.3 2.5-.7.6 2.6 2.4 1-1.3 2.3 1.3 2.3-2.4 1-.6 2.6-2.5-.7L12 20.5l-1.2-2.3-2.5.7-.6-2.6-2.4-1L6.6 13 5.3 10.7l2.4-1 .6-2.6 2.5.7z",
 
   // A thing fixed where it was put. A shackle over a body, closed — and the
@@ -90,6 +120,8 @@ const PATHS = {
   export_workspace: "M12 3.5v9M8.5 9.5L12 13l3.5-3.5M4 16.5v4h16v-4",
   export_project: "M6.5 3.5h7l4 4v13h-11zM12 10v6M9 13.5L12 16.5l3-3",
   import_file: "M12 13.5v-9M8.5 8L12 4.5 15.5 8M4 16.5v4h16v-4",
+  /** A document to add: a page with its corner turned, and the plus inside it. */
+  add_document: "M7 5h7l3.5 3.5V19H7zM14 5v3.5h3.5M12 10.5v5M9.5 13h5",
 
   // How a layer places what it holds. Two, and they are the same three boxes
   // twice: scattered where the hand put them, and slotted into a lattice.
@@ -210,11 +242,12 @@ export function role_icon(role: string | undefined): IconName {
   return ROLE_ICON[role ?? ""] ?? "role_leaf";
 }
 
-/** Which word each system mark stamps in a card's bottom corner. Written, not drawn: a mark says
- *  what a card stands in for, and a picture of it would only repeat the icon above. */
+/** What each system mark stamps in a card's bottom corner. A stand-in's is written, not drawn —
+ *  a picture of what it stands for would only repeat the icon above. What describes a card is
+ *  drawn, since there is no icon above it to repeat. */
 export const MARK_ICON: Record<string, IconName> = {
   reference: "word_ref", definition: "word_def",
-  package: "word_pkg", external: "word_ext",
+  package: "word_pkg", data: "data", parts: "parts",
 };
 
 /** The icon for a system mark, or null where a card carries none. */

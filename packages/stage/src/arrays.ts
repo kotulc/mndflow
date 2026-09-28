@@ -67,7 +67,7 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
             /** The one trait a frame carries: whether it holds anything, which fills its icon. */
             marks: frame.holds_parts ? ["container" as const] : [],
             ...(frame.role ? { role: frame.role } : {}),
-            ...(frame.mark ? { mark: frame.mark } : {}),
+            ...(frame.stamps?.length ? { stamps: frame.stamps } : {}),
             ...(frame.side ? { side: frame.side } : {}),
             ...(frame.seats ? { seats: frame.seats } : {}) },
     draggable: false,

@@ -1,21 +1,26 @@
-/** The context tray: one shell, one context, one tab per question. */
+/** The context tray: one shell, one context, one tab per question.
+ *
+ *  Given no `onAct` it is read only: only the tabs that read — workspace, element, fields,
+ *  contents, and the library's — are offered, and nothing in them takes input. A host adds tabs
+ *  of its own for blocks through `extras`. */
 
-import { useState, type MouseEvent } from "react";
-import { children, def_named, def_of, is_container, is_interface, new_id,
-         base_of, owner_of, shipped, shown_name,
+import { useEffect, useState, type ReactNode } from "react";
+import { about_of, alias_of, children, def_named, def_of, frame_of, is_interface, new_id,
+         owner_of, shown_name, stands_for,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
-import { Icon } from "@mnd/theme";
+import { Icon, TrayFrame } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Element } from "./Element";
-import { Style } from "./Style";
+import { Settings } from "./Settings";
 import { Fields } from "./Fields";
 import { Definitions, type Shelf } from "./Definitions";
 import { Entry } from "./Entry";
-import { scope_chips, Table, type Column, type Scope } from "./Table";
+import { lit_row, scope_chips, Table, type Column, type Scope } from "./Table";
 import { Usages } from "./Usages";
 import { Packages, type Offered } from "./Packages";
 import { Workspace, type Display } from "./Workspace";
 import { aimed, blank, DRAFT, redraft, with_draft, type DraftGroup } from "./draft";
+import { NOOP } from "./Body";
 
 /** What the tray holds that the canvas did not give it. */
 export type Hold =
@@ -29,15 +34,16 @@ export type TrayProps = {
   layer: Id | null;
   open: boolean;
   onOpen: (open: boolean) => void;
+  /** What the canvas has, which is what the tray is about. The tray never sets it: a table
+   *  lights a row of its own, and *view* is what asks for the selection to move. */
   picked: readonly Id[];
-  onPick: (ids: Id[]) => void;
   /** Hovering a row lights that thing on the stage. */
   onHover?: (id: Id | null) => void;
   /** Edits leave as action names. */
   onAct?: Act;
-  /** Which tab to show; left alone, the last one that still applies. */
-  tab?: Tab;
-  onTab?: (tab: Tab) => void;
+  /** Which tab to show — one of the tray's, or a host's own; left alone, the last that applies. */
+  tab?: string;
+  onTab?: (tab: string) => void;
   hold?: Hold | null;
   onHold?: (hold: Hold | null) => void;
   /** Go to where a row lives: open its layer and pick it there. */
@@ -46,9 +52,16 @@ export type TrayProps = {
   offered?: readonly Offered[];
   /** How the shell draws, for the workspace tab to set. Absent leaves that band out. */
   display?: Display;
+  /** Where the workspace tab's display answers go; `onAct` where absent. */
+  onDisplay?: Act;
+  /** The host's own tabs for a block, after the tray's: a name, and what it draws. */
+  extras?: readonly Extra[];
 };
 
-export type Tab = "element" | "style" | "types" | "fields" | "contents" | "definitions"
+/** A host's tab: what it is called, and what it shows for the block the tray is about. */
+export type Extra = { name: string; draw: (about: Id) => ReactNode };
+
+export type Tab = "element" | "settings" | "type" | "fields" | "contents" | "definitions"
                 | "packages" | "usages" | "workspace";
 
 /** What the tray is about. The root is not a block anybody draws, so it is its own context. */
@@ -60,12 +73,38 @@ type Context = "root" | "block" | "line" | "definition" | "relation" | "library"
 const SLOTS: Record<Context, readonly Tab[]> = {
   /** The root draws nowhere, so it is asked about itself and about what it holds, and no more. */
   root: ["workspace", "contents"],
-  block: ["element", "style", "types", "fields", "contents", "usages"],
-  line: ["element", "style", "types", "usages"],
-  definition: ["element", "style", "fields", "usages"],
-  relation: ["element", "style", "usages"],
+  /** Usages are a definition's question: an instance is one usage and has none of its own.
+   *  **Settings are a definition's too** — how it draws and what it may do — so a usage follows
+   *  them rather than carrying its own. */
+  block: ["element", "type", "fields", "contents"],
+  line: ["element", "type"],
+  definition: ["element", "settings", "fields", "usages"],
+  relation: ["element", "settings", "usages"],
   library: ["definitions"],
   packages: ["packages"],
+};
+
+/** The tabs that only read, per context: what a host that edits nothing offers. */
+const READ: Record<Context, readonly Tab[]> = {
+  root: ["workspace", "contents"],
+  block: ["element", "fields", "contents"],
+  line: ["element"],
+  definition: ["element", "fields", "usages"],
+  relation: ["element", "usages"],
+  library: ["definitions"],
+  packages: ["packages"],
+};
+
+/** Where a context opens when nothing was asked: the root on what the workspace is, anything
+ *  else on its last tab. */
+const OPENS: Partial<Record<Context, Tab>> = { root: "workspace" };
+
+/** Which contexts share a tab between them: every instance is read the same way, and so is
+ *  every definition, so moving from one to the next keeps the question being asked. */
+const FAMILY: Record<Context, string> = {
+  root: "root", block: "instance", line: "instance",
+  definition: "definition", relation: "definition",
+  library: "library", packages: "packages",
 };
 
 const HEAD: readonly Column[] = [
@@ -74,6 +113,10 @@ const HEAD: readonly Column[] = [
   { key: "what", label: "what" },
   { key: "type", label: "type" },
 ];
+
+/** A reference's contents is the one it stands for, so its name column says as much. */
+const STANDS: readonly Column[] = HEAD.map((c) =>
+  (c.key === "name" ? { ...c, label: "stands for" } : c));
 
 /** What a filter narrows to. */
 const FILTERS: { sort: Sort | "all"; label: string }[] = [
@@ -96,9 +139,12 @@ function home_of(graph: Graph, id: Id): Id | null {
 }
 
 export function Tray(props: TrayProps) {
-  const { graph, layer, open, onOpen, picked, onPick, onHover, onAct, onView,
-          hold = null, onHold = () => {} } = props;
-  const [held_tab, set_held_tab] = useState<Tab>("contents");
+  const { graph, layer, open, onOpen, picked, onHover, onAct, onView,
+          hold = null, onHold = () => {}, extras = [] } = props;
+  /** Whether anything here takes input. */
+  const edits = !!onAct;
+  /** The tab each family of contexts was last read on. */
+  const [seen, set_seen] = useState<Record<string, string>>({});
   /** Full height, as a control of its own. */
   const [big, set_big] = useState(false);
   const [only, set_only] = useState<Sort | "all">("all");
@@ -107,10 +153,9 @@ export function Tray(props: TrayProps) {
   const [adding, set_adding] = useState("");
   /** Where the listings reach, shared by every table that asks, so a tab change keeps it. */
   const [scope, set_scope] = useState<Scope>("layer");
-  /** The listing a table row was picked from, kept while that row is the pick. */
-  const [browse, set_browse] = useState<{ id: Id; within: Id | null } | null>(null);
-  /** The definition row lit while something on the canvas is picked. */
-  const [lit_def, set_lit_def] = useState<Id | null>(null);
+  /** The row lit in a table, which is the tray's own and moves nothing. Lit nowhere, a table
+   *  lights what the canvas holds, since that is what the tray is about. */
+  const [lit, set_lit] = useState<Id | null>(null);
   /** One draft per group, kept until saved. */
   const [drafts, set_drafts] = useState<Record<DraftGroup, Definition>>(
     () => ({ block: blank("block"), relation: blank("relation") }));
@@ -120,11 +165,13 @@ export function Tray(props: TrayProps) {
   /** Which library section the explorer pointed at, which is about no one element. */
   const library = hold?.of === "defs" ? hold : null;
   const view = drafting ? with_draft(graph, drafts[drafting]) : graph;
-  const one = picked.length === 1 ? picked[0]! : null;
   const held_id = hold?.of === "id" && (view.defs[hold.id] || view.blocks[hold.id])
     ? hold.id : null;
-  const here = layer ?? graph.root;
-  const about: Id = drafting ? DRAFT : held_id ?? one ?? here;
+  const about: Id = drafting ? DRAFT : held_id ?? about_of(graph, layer, picked);
+
+  /** A new selection takes the light back, so no table lights what the tray is not about. */
+  const on_canvas = picked.join();
+  useEffect(() => set_lit(null), [on_canvas]);
 
   const context: Context = library
     ? (library.only === "packages" ? "packages" : "library")
@@ -135,10 +182,15 @@ export function Tray(props: TrayProps) {
   /** Whether the context is about lines rather than blocks. */
   const lined = context === "line" || context === "relation";
 
-  const tabs = SLOTS[context];
-  const asked = props.tab ?? held_tab;
-  const tab: Tab = tabs.includes(asked) ? asked : tabs[tabs.length - 1]!;
-  const set_tab = (t: Tab) => { set_held_tab(t); props.onTab?.(t); };
+  /** A host's tabs lead a block's, and it opens on the first of them: they say what the block is
+   *  in the host's own terms. */
+  const hosted = context === "block" ? extras.map((x) => x.name) : [];
+  /** What the app asks for, else what this family was last read on, else where it opens. */
+  const tabs: string[] = [...hosted, ...(edits ? SLOTS : READ)[context]];
+  const family = FAMILY[context];
+  const tab: string = [props.tab, seen[family]].find((t) => t && tabs.includes(t))
+    ?? OPENS[context] ?? hosted[0] ?? tabs[tabs.length - 1]!;
+  const set_tab = (t: string) => { set_seen((s) => ({ ...s, [family]: t })); props.onTab?.(t); };
 
   /** A draft is edited through the registry, and everything else goes out. */
   const act: Act = (name, args) => {
@@ -153,11 +205,8 @@ export function Tray(props: TrayProps) {
     }
     onAct?.(name, args);
   };
-
-  /** Whether an element has looks of its own, which make a working definition. */
-  const drawn_looks = (it: { looks?: Record<string, object> } | undefined) =>
-    ["card", "style", "line"].some((key) => Object.keys(it?.looks?.[key] ?? {}).length > 0);
-  const instance = view.blocks[about] ?? view.edges[about];
+  /** What a read-only listing acts with: nothing. */
+  const reads = edits ? act : NOOP;
 
   /** A draft is filed as one step the moment it is named, and the tray holds it. */
   function file_draft(to: string) {
@@ -171,23 +220,21 @@ export function Tray(props: TrayProps) {
     onHold({ of: "id", id });
   }
 
-  const working_look = !!instance && drawn_looks(instance);
-
-  /** What styling writes: a workspace definition the element names, else the element's own look. */
-  const typed = instance?.type ? view.defs[instance.type] : undefined;
-  const styled: Id = instance && typed && !shipped(typed) && !typed.from && !working_look
-    ? typed.id : about;
-
-  /** Whether the context has looks to reset, and whether it is a package's. */
-  const holder = view.defs[styled] ?? view.blocks[styled] ?? view.edges[styled];
-  const bag = holder && ("components" in holder ? holder.components : "looks" in holder ? holder.looks : undefined);
+  /** Whether the definition in context has looks to reset, and whether it is a package's. */
+  const bag = view.defs[about]?.components;
   const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
-  const borrowed = !!view.defs[styled]?.from;
+  const borrowed = !!view.defs[about]?.from;
 
-  /** What the table lists: a picked container's contents, the open layer, or everything. */
-  const within = browse && one === browse.id ? browse.within
-    : graph.blocks[about] && about !== graph.root
-      && (is_container(graph, about) || base_of(graph, about) === "folder") ? about : layer;
+  /** A reference holds nothing of its own — `of` is the whole of it — so its contents is the one
+   *  it stands for, listed as a row like any other and offering the way there. */
+  const points_at = graph.blocks[about]?.of;
+  const stands = points_at ? stands_for(graph, about) : null;
+  /** The one it stands for, read as a row of the layer it really lives in. */
+  const stood = stands
+    ? rows_of(graph, home_of(graph, stands.id)).find((r) => r.id === stands.id) ?? null : null;
+
+  /** What the table lists: what the context frames, or the whole workspace. */
+  const within = frame_of(graph, layer, about);
   const deep = scope === "workspace";
   const rows = rows_of(graph, deep ? null : within, deep);
   const shown = only === "all" ? rows : rows.filter((r) => r.sort === only);
@@ -237,124 +284,125 @@ export function Tray(props: TrayProps) {
   /** The definition a relation context is about. */
   const held_def = graph.defs[about] ? about : def_of(graph, about) ?? null;
 
-  /** A row picked here becomes the context and drops any hold. */
-  const pick_row = (id: Id) => {
-    set_browse({ id, within });
-    onPick([id]);
-    onHold(null);
-  };
+  /** What a table asks for: its own lit row, else what the canvas holds. Each table settles it
+   *  against its own listing, since one table's row is not another's. */
+  const asked_row = lit ? [lit] : picked;
+  /** The contents listing, and what a reference stands for, each light one row. */
+  const on_row = lit_row(shown, asked_row);
+  const on_stood = lit_row(stood ? [stood] : [], asked_row);
 
-  /** With canvas picks, a definition row only lights and offers to apply; otherwise it is held. */
-  const targets = picked.filter((id) => (lined ? !!graph.edges[id] : !!graph.blocks[id]));
-  const pick_def = (id: Id) => {
-    if (targets.length && !hold) { set_lit_def(id); return; }
-    onHold({ of: "id", id });
-  };
+  /** What a definition row applies to: the elements picked, of the context's own group — or the
+   *  one element the tray is about, where the canvas has not picked it. */
+  const picked_here = picked.filter((id) => (lined ? !!graph.edges[id] : !!graph.blocks[id]));
+  const instance = !view.defs[about] && about !== graph.root
+    && !!(view.blocks[about] ?? view.edges[about]);
+  const targets = instance && !picked_here.includes(about) ? [about] : picked_here;
   const target_name = targets.length === 1 ? shown_name(graph, targets[0]!)
     : `${targets.length} ${lined ? "lines" : "blocks"}`;
 
-  /** The head names the context. */
-  const word = drafting ? `new ${drafting} definition`
-    : library ? "definitions"
-    : view.defs[about] ? `${view.defs[about]!.group} definition`
-    : context === "root" ? "root"
-    : context === "line" ? "relation" : "block";
-  const name = drafting ? drafts[drafting].name
+  /** The head names the context, then says what sort it is: a definition, or a usage of one. */
+  const word = library ? "definitions"
+    : drafting || view.defs[about] ? "definition"
+    : context === "root" ? "workspace" : "usage";
+  const name = drafting ? drafts[drafting].name || `new ${drafting}`
     : library ? [library.from ?? (library.only === "all" ? "" : library.only),
                  library.group ? `${library.group}s` : ""].filter(Boolean).join(" · ")
     : view.defs[about] ? view.defs[about]!.name : shown_name(graph, about);
 
-  const on_bar = (e: MouseEvent) => {
-    if ((e.target as HTMLElement).closest("button")) return;
-    onOpen(!open);
-  };
-
   return (
-    <section className={["tray", open ? "open" : "shut", open && big ? "big" : ""]
-               .filter(Boolean).join(" ")} aria-label="Context">
-      <div className="tray-bar" onClick={on_bar}
-           title={open ? "shut the tray" : "open the tray"}>
-        <span className="tray-chevron"><Icon name={open ? "less" : "more"} /></span>
-        <span className="tray-context">
-          <span className="word">{word}</span>
-          {name ? <span className="name">{name}</span> : null}
-          {picked.length > 1 && !hold ? <span className="note">{`${picked.length} items`}</span> : null}
-        </span>
-
-        <span className="tray-tools">
-          {open && tab === "contents" ? <span className="holds">{shown.length} {shown.length === 1 ? "element" : "elements"}</span> : null}
-          {open ? (
-            <button className={big ? "on" : ""}
-                    title={big ? "give the stage its room back" : "take the full height"}
-                    onClick={() => set_big(!big)}>
-              <Icon name={big ? "collapse" : "expand"} />
-            </button>
-          ) : null}
-        </span>
-      </div>
-
-      {open ? (
-        <div className="tray-body">
-          <div className="tray-tabs">
-            {tabs.map((t) => (
-              <button key={t} className={tab === t ? "on" : ""} onClick={() => set_tab(t)}>
-                {t}
-              </button>
-            ))}
-            {/* Reset acts on the whole style tab. */}
-            {onAct && tab === "style" ? (
-              <span className="tab-tools">
-                <button className="reset" disabled={borrowed || !its_own}
-                        title={its_own ? "give every look back to what it inherits"
-                                          : "it says nothing of its own to give back"}
-                        onClick={() => act("none", { ids: [styled] })}>
-                  reset style
-                </button>
-              </span>
-            ) : null}
-          </div>
-
-          {onAct && tab === "workspace" ? (
-            <Workspace graph={graph} onAct={act}
+    <TrayFrame
+      open={open}
+      onOpen={onOpen}
+      big={big}
+      onBig={set_big}
+      word={word}
+      {...(name ? { name } : {})}
+      {...(picked.length > 1 && !hold ? { note: `${picked.length} items` } : {})}
+      tabs={tabs}
+      tab={tab}
+      onTab={set_tab}
+      {...(open && tab === "contents" && !points_at ? {
+        tools: <span className="holds">{shown.length} {shown.length === 1 ? "element" : "elements"}</span>,
+      } : {})}
+      {...(onAct && tab === "settings" ? {
+        tabTools: (
+          <button className="reset" disabled={borrowed || !its_own}
+                  title={its_own ? "give every look back to what it inherits"
+                                    : "it says nothing of its own to give back"}
+                  onClick={() => act("none", { ids: [about] })}>
+            reset style
+          </button>
+        ),
+      } : {})}
+    >
+          {tab === "workspace" ? (
+            <Workspace graph={graph} {...(edits ? { onAct: act } : {})}
+                       onDisplay={props.onDisplay ?? act}
                        {...(props.display ? { display: props.display } : {})} />
           ) : null}
-          {onAct && tab === "element" ? <Element graph={view} id={about} onAct={act} /> : null}
-          {onAct && tab === "style" ? (
-            <Style graph={view} id={about} styled={styled} onAct={act} />
+          {tab === "element" ? (
+            <Element graph={view} id={about} {...(edits ? { onAct: act } : {})}
+                     onOpen={(id) => onHold({ of: "id", id })} />
+          ) : null}
+          {onAct && tab === "settings" ? (
+            <Settings graph={view} id={about} onAct={act} />
           ) : null}
           {/* A definition declares fields and an instance answers them. */}
-          {onAct && tab === "fields" ? <Fields graph={view} id={about} onAct={act} /> : null}
+          {tab === "fields" ? (
+            <Fields graph={view} id={about} {...(edits ? { onAct: act } : {})} />
+          ) : null}
+          {/* A host's own tab, for the block the tray is about. */}
+          {extras.find((x) => x.name === tab)?.draw(about) ?? null}
           {/* The workspace's definitions for a library section; what one element may follow. */}
-          {onAct && tab === "definitions" ? (
+          {tab === "definitions" ? (
             <Definitions key={JSON.stringify(narrowed)} seed={narrowed} graph={graph}
-                         held={null} lines={[]} onAct={act}
-                         onPick={(id) => onHold({ of: "id", id })} />
+                         follows={null} lines={[]} onAct={reads}
+                         onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
           {/* What the workspace draws on, and how one more gets in. */}
-          {onAct && tab === "packages" ? (
-            <Packages graph={graph} offered={props.offered} onAct={act} />
+          {tab === "packages" ? (
+            <Packages graph={graph} offered={props.offered} onAct={reads} />
           ) : null}
-          {onAct && tab === "types" ? (
-            <Definitions key={about} about={about} graph={graph}
-                         held={targets.length && !hold ? lit_def ?? held_def : held_def}
-                         onAct={act} lines={targets} target={target_name} onPick={pick_def} />
+          {onAct && tab === "type" ? (
+            <Definitions key={about} about={about} graph={graph} follows={held_def}
+                         onAct={act} lines={targets} target={target_name}
+                         onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
-          {onAct && tab === "usages" ? (
+          {tab === "usages" ? (
             <Usages graph={graph} group={lined ? "relation" : "block"}
                     scope={scope} onScope={set_scope}
                     layer={layer} about={held_def}
-                    picked={picked} onPick={pick_row} onHover={onHover} onAct={act}
+                    lit={asked_row} onLit={set_lit} onHover={onHover} onAct={reads}
                     {...(onView ? { onView: (id: Id) => onView(home_of(graph, id), id) } : {})}
                     home={(id) => home_of(graph, id)} />
           ) : null}
 
           {tab === "contents" && view.defs[about] ? (
             <p className="empty">pick an instance to see its contents</p>
+          ) : tab === "contents" && points_at ? (
+            /** A reference holds nothing, so its contents is the one it stands for. */
+            <Table
+              columns={STANDS} acts="6rem" rows={[]}
+              picked={on_stood} onPick={set_lit} onHover={onHover}
+              empty={`${alias_of(graph, about, true)} stands for something that is gone`}
+              {...(stood ? { lead: {
+                id: stood.id,
+                titles: Object.fromEntries(STANDS.map((h) => [h.key, cell(stood, h.key)])),
+                cells: { kind: stood.kind, name: stood.name, what: stood.what, type: stood.type },
+                /** Always offered: where it lives is the whole of what a reference says. */
+                actions: onView ? (
+                  <button className="chip" title="open the layer this is in"
+                          onClick={(e) => { e.stopPropagation();
+                                            onView(home_of(graph, stood.id), stood.id); }}>
+                    view
+                  </button>
+                ) : null,
+              } } : {})} />
           ) : tab === "contents" ? (
             <Table
               columns={[...HEAD, ...columns.map((n) => ({ key: `@${n}`, label: n }))]}
-              chips={[scope_chips(scope, set_scope), chips]} tools={tools} acts="5rem"
-              picked={picked} onPick={pick_row} onHover={onHover}
+              chips={[scope_chips(scope, set_scope), chips]} tools={tools} acts="6rem"
+              picked={on_row} onPick={set_lit} onHover={onHover}
               empty={deep ? "this workspace holds nothing yet"
                 : within === layer ? "this layer holds nothing yet"
                 : children(graph, within).length ? "nothing of that sort"
@@ -381,9 +429,11 @@ export function Tray(props: TrayProps) {
                                                                 value: to })} />
                       ) : cell(row, n)])),
                   },
-                  /** A view chip on the picked row, only when it lives elsewhere. */
-                  actions: onView && picked.includes(row.id) && home !== layer ? (
-                    <button className="chip" title="open the layer this is in"
+                  /** The lit row's view chip, which is the only way a row moves the context. */
+                  actions: onView && on_row.includes(row.id) ? (
+                    <button className="chip"
+                            title={home === layer ? "make this the context"
+                                                  : "open the layer this is in"}
                             onClick={(e) => { e.stopPropagation(); onView(home, row.id); }}>
                       view
                     </button>
@@ -393,8 +443,6 @@ export function Tray(props: TrayProps) {
                 };
               })} />
           ) : null}
-        </div>
-      ) : null}
-    </section>
+    </TrayFrame>
   );
 }

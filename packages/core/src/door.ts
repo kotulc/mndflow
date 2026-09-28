@@ -3,10 +3,11 @@
 import { component, unreadable } from "./components";
 import { block_base, isa, outside, relation_base, shipped } from "./defs";
 import { fold } from "./fold";
-import { can_hold, covers, is_grid, overlaps } from "./holders";
+import { can_hold, covers, inside, is_holder, lattice_of, one_side, overlaps } from "./holders";
 import { subtree } from "./tree";
 import { new_id } from "./ids";
-import { ROOT, type Graph, type Id, type Log, type Mutation, type Span, type Step } from "./types";
+import { ROOT, type Graph, type Grid, type Id, type Log, type Mutation, type Span,
+         type Step } from "./types";
 
 export type Fault = {
   kind: "repaired" | "dropped";
@@ -23,10 +24,10 @@ export type Inspection = { faults: Fault[]; repairs: Mutation[] };
 const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
   "place_block", "order_block", "set_alias", "set_counter", "set_pinned", "set_shelf", "size_block", "set_body", "set_about",
-  "set_group", "seat_cell", "set_header", "link_blocks",
+  "set_group", "seat_cell", "set_grid", "link_blocks",
   "update_edge", "delete_edge", "set_dir", "flip_edge", "set_end", "set_port",
   "set_side", "mark_port", "set_field", "drop_field", "order_fields", "set_def", "drop_def",
-  "set_package", "drop_package", "set_source", "set_holder", "drop_holder",
+  "set_package", "drop_package", "set_source",
   "set_arrangement", "set_tags", "set_look", "drop_looks",
 ]);
 
@@ -126,8 +127,10 @@ export function inspect(graph: Graph): Inspection {
 
 type Say = (kind: Fault["kind"], what: string, ...mend: Mutation[]) => void;
 
-/** One block per cell, inside its grid, in a group that can hold it; merges inside the grid and
- *  never overlapping. */
+/** Membership on the block's own layer, in something that may hold it; one block per cell,
+ *  inside its grid; and a lattice that says only what its extent can carry. **A block that stops
+ *  holding keeps what it held, dormant**, so taking a capability away and giving it back loses
+ *  nothing. */
 function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
   const taken = new Set<string>();
   for (const b of Object.values(graph.blocks)) {
@@ -135,44 +138,40 @@ function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
       if (b.cell) say("repaired", `"${name(b.id)}" had a cell and no group`, { op: "seat_cell", id: b.id, cell: null });
       continue;
     }
-    const grid = graph.holders[b.group];
-    if (!grid || !can_hold(graph, b.group, b.id)) {
+    const h = graph.blocks[b.group];
+    const wrong = !h || h.parent !== b.parent || (is_holder(graph, h.id) && !can_hold(graph, h.id, b.id));
+    if (wrong) {
       say("repaired", `"${name(b.id)}" was in a group that cannot hold it`, { op: "set_group", id: b.id, group: null });
       continue;
     }
-    if (!b.cell) continue;
+    /** A member of a grid sits in a cell, or it is not a member at all. */
+    const g = lattice_of(graph, b.group);
+    if (!g) continue;
+    if (!b.cell) {
+      say("repaired", `"${name(b.id)}" was in "${name(b.group)}" with no cell`,
+          { op: "set_group", id: b.id, group: null });
+      continue;
+    }
     const { r, c } = b.cell;
-    const outside = !is_grid(graph, b.group) || r < 0 || c < 0 || r >= grid.rows! || c >= grid.cols!;
-    const at = grid.merges?.find((s) => covers(s, r, c));
+    const outside = !inside(g, b.cell);
+    const at = g.merges?.find((s) => covers(s, r, c));
     const key = `${b.group}|${at ? at.r : r}|${at ? at.c : c}`;
     if (outside || taken.has(key)) {
       say("repaired", `"${name(b.id)}" sat ${outside ? "outside" : "on top of something in"} "${name(b.group)}"`,
-          { op: "seat_cell", id: b.id, cell: null });
+          { op: "set_group", id: b.id, group: null });
       continue;
     }
     taken.add(key);
   }
 
-  for (const g of Object.values(graph.holders)) {
-    const kept: Span[] = [];
-    for (const s of g.merges ?? []) {
-      const sane = s.rows > 0 && s.cols > 0 && s.r >= 0 && s.c >= 0 && is_grid(graph, g.id)
-                && s.r + s.rows <= g.rows! && s.c + s.cols <= g.cols!;
-      if (sane && !kept.some((k) => overlaps(k, s))) kept.push(s);
-    }
-    const bad = (g.merges ?? []).length - kept.length;
-    if (!bad) continue;
-    const { merges: _gone, ...bare } = g;
-    say("dropped", `${plural(bad, "merge")} "${g.name ?? g.id}" could not hold`,
-        { op: "set_holder", holder: kept.length ? { ...g, merges: kept } : bare });
-  }
-
-  /** A holder is drawn in a layer, and goes where that layer is not there. */
-  for (const h of Object.values(graph.holders)) {
-    if (!graph.blocks[h.parent]) {
-      say("dropped", `"${h.name ?? h.id}" was drawn in a layer that is not there`,
-          { op: "drop_holder", id: h.id });
-    }
+  /** One lattice is mended in one write, so no mend undoes another. */
+  for (const b of Object.values(graph.blocks)) {
+    if (!b.grid) continue;
+    const mended = fitted(graph, b.grid);
+    if (mended.grid === b.grid) continue;
+    if (mended.dropped) say("dropped", `${plural(mended.dropped, "merge")} "${name(b.id)}" could not hold`);
+    say("repaired", mended.said ? `"${name(b.id)}" said more of its cells than it holds` : "",
+        { op: "set_grid", id: b.id, grid: mended.grid });
   }
 }
 
@@ -283,6 +282,40 @@ export function say(faults: Fault[]): string {
   if (repaired) parts.push(`repaired ${repaired}`);
   if (dropped) parts.push(`could not read ${dropped}`);
   return parts.join(", ");
+}
+
+/** A lattice with a whole extent, merges inside it that neither overlap nor cross a header line,
+ *  and only the values, schema and cell size it can carry; the same lattice where it already is. */
+function fitted(graph: Graph, g: Grid): { grid: Grid; dropped: number; said: boolean } {
+  const whole = (n: unknown) => typeof n === "number" && Number.isInteger(n) && n > 0;
+  const rows = whole(g.rows) ? g.rows : 1;
+  const cols = whole(g.cols) ? g.cols : 1;
+  const sized: Grid = { ...g, rows, cols };
+
+  /** A merge may not reach from a header into the body. */
+  const kept: Span[] = [];
+  for (const s of g.merges ?? []) {
+    const sane = s.rows > 0 && s.cols > 0 && s.r >= 0 && s.c >= 0
+              && s.r + s.rows <= rows && s.c + s.cols <= cols && one_side(sized, s);
+    if (sane && !kept.some((k) => overlaps(k, s))) kept.push(s);
+  }
+  const dropped = (g.merges ?? []).length - kept.length;
+
+  const { values, schema, size, merges: _m, ...rest } = sized;
+  const strings = Array.isArray(values)
+    && values.every((row) => Array.isArray(row) && row.every((v) => typeof v === "string"));
+  const trimmed = strings ? values!.slice(0, rows).map((row) => row.slice(0, cols)) : undefined;
+  const cell = !!size && [size.w, size.h].every(whole);
+  const named = !!schema && !!graph.defs[schema];
+  const same_values = values === undefined || (!!trimmed && trimmed.length === values.length
+    && trimmed.every((row, n) => row.length === values[n]!.length));
+  const said = !same_values || (schema !== undefined && !named) || (size !== undefined && !cell);
+
+  if (!said && !dropped && rows === g.rows && cols === g.cols) return { grid: g, dropped, said };
+  return { grid: { ...rest, ...(kept.length ? { merges: kept } : {}),
+                   ...(trimmed ? { values: trimmed } : {}), ...(named ? { schema } : {}),
+                   ...(cell ? { size } : {}) },
+           dropped, said };
 }
 
 function plural(n: number, word: string): string {

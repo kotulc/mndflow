@@ -74,12 +74,12 @@ export function related(): Log {
       { op: "set_body", id: "block_note", body: "the loop runs clockwise" },
     ]),
     step("group", [
-      { op: "set_holder", holder: { id: "block_hot", parent: "block_loop", name: "Hot side",
-                                    arrangement: "free", order: 7 } },
+      { op: "add_block", block: { id: "block_hot", parent: "block_loop", name: "Hot side",
+                                  type: "group", order: 7 } },
       { op: "set_group", id: "block_hx", group: "block_hot" },
       { op: "set_group", id: "block_tank", group: "block_hot" },
     ]),
-    step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "grid" }]),
+    step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "auto" }]),
   ];
 }
 
@@ -98,36 +98,40 @@ export function interfaced(): Log {
     ]),
     step("relate", [link("edge_flow", "port_out", "port_in", "forward")]),
     step("relate", [link("edge_plain", "block_pump", "block_hx")]),
-    step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "grid" }]),
+    step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "auto" }]),
   ];
 }
 
-/** A grid, with a block in each row header and a flow across each lane. */
+/** A grid whose left column heads its lanes, with a reference to a block in each header and a
+ *  flow across each lane. */
 export function gridded(): Log {
   start();
   const seat = (id: string, r: number, c: number): Mutation =>
     ({ op: "seat_cell", id, cell: { r, c } });
   const joins = (id: string): Mutation => ({ op: "set_group", id, group: "block_lanes" });
   const named: [string, string][] = [
-    ["block_alice", "Alice"], ["block_bob", "Bob"],
     ["block_draft", "Draft"], ["block_review", "Review"], ["block_ship", "Ship"],
     ["block_plan", "Plan"], ["block_build", "Build"],
   ];
   return [
     step("create", [block("block_board", ROOT, "Board", "block")]),
-    step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "grid" }]),
+    /** The lanes' owners live elsewhere; the board's headers refer to them. */
+    step("create", [block("block_team", ROOT, "Team", "folder"),
+                    block("block_alice", "block_team", "Alice", "block"),
+                    block("block_bob", "block_team", "Bob", "block")]),
+    step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "auto" }]),
     step("group", [
-      { op: "set_holder", holder: { id: "block_lanes", parent: "block_board", name: "Lanes",
-                                    arrangement: "grid", rows: 3, cols: 4, x: 0, y: 0,
-                                    order: 1 } },
+      { op: "add_block", block: { id: "block_lanes", parent: "block_board", name: "Lanes",
+                                  type: "grid", x: 0, y: 0, order: 1 } },
+      { op: "set_grid", id: "block_lanes", grid: { rows: 3, cols: 4, head: { left: true } } },
     ]),
     ...named.map(([id, label]) =>
       step("create", [block(id, "block_board", label, "block")])),
     step("seat", [
-      joins("block_alice"), seat("block_alice", 1, 0),
-      { op: "set_header", id: "block_alice", header: true },
-      joins("block_bob"), seat("block_bob", 2, 0),
-      { op: "set_header", id: "block_bob", header: true },
+      { op: "add_block", block: { id: "ref_alice", parent: "block_board", of: "block_alice" } },
+      joins("ref_alice"), seat("ref_alice", 1, 0),
+      { op: "add_block", block: { id: "ref_bob", parent: "block_board", of: "block_bob" } },
+      joins("ref_bob"), seat("ref_bob", 2, 0),
       joins("block_draft"), seat("block_draft", 1, 1),
       joins("block_review"), seat("block_review", 1, 2),
       joins("block_ship"), seat("block_ship", 1, 3),

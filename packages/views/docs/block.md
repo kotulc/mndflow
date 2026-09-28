@@ -17,7 +17,7 @@ project(graph, layer, config) → Scene
 |---|---|---|
 | **the frame** | the layer itself | the layer seen from inside, its name set into its own border |
 | **cards** | `laid(graph, layer)` | every child that is not an interface |
-| **holders** | group membership | a boundary sized to its members, or a grid drawn at its extent — either way behind what it holds, shallowest first |
+| **holders** | blocks whose definition holds | a boundary sized to its members, or a grid drawn at its extent — either way behind what it holds, shallowest first |
 | **cells** | a grid's extent and merges | derived every draw, never blocks. An empty cell is an address nobody claimed |
 | **seats** | `seated(graph, spots)` | interfaces, drawn over the card they sit on |
 | **routes** | `edges_in(graph, layer)` | one line per relationship with both ends drawn here |
@@ -35,7 +35,7 @@ project(graph, layer, config) → Scene
 | `missing` | what it stood for is gone. **Kept, never tidied away**, so undoing a deletion elsewhere brings it back |
 | `group` | a boundary — a dashed rim round its members |
 | `grid` | a region of the lattice with an extent |
-| `cell` · `merged` · `header` | on a grid's own cells: an address, one standing for several, and one whose block heads a line |
+| `cell` · `merged` · `header` · `upright` | on a grid's own cells: an address, one standing for several, one in a header line, and one in the left header column, read upright. A card seated in a header cell wears `header` and `upright` too |
 | `note` | it is its own text |
 | `interface` | seated on an edge, with `in` and `out` for its flow mark |
 

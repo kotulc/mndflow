@@ -13,30 +13,35 @@ import { FRAME, PLAIN, look_key,
          type BoxData, type BoxNode, type GridCell, type Look } from "@mnd/views";
 import type { Mark, Role } from "@mnd/core";
 import { Icon, Name, known, mark_icon, role_icon } from "@mnd/theme";
+import { Inline, Markdown, plain } from "./Markdown";
 
 
 
 /** The icon in a card's top corner: what sort of thing it is, or the one somebody set instead.
- *  **A card that holds parts fills it** — that, and not a second mark, is what containing looks
- *  like. */
+ *  **A card that holds parts lights it** — that, and not a second mark, is what containing looks
+ *  like. A fill would do for a square and blot a pilcrow, so it is the colour that says so. */
 function Wears({ role, icon, holds }: { role?: Role; icon?: string; holds?: boolean }) {
   if (!role) return null;
   const worn = icon && known(icon) ? icon : role_icon(role);
   return (
-    <span className="mnd-role" data-role={role}>
-      <Icon name={worn} solid={!icon && !!holds} size={11} />
+    <span className="mnd-role" data-role={role} {...(holds ? { "data-holds": "" } : {})}>
+      <Icon name={worn} size={11} />
     </span>
   );
 }
 
-/** The system mark in a card's bottom corner: what it stands in for, written as a word. The app
- *  chooses it, which is what the highlight colour says. */
-function Stamp({ mark }: { mark?: Mark }) {
-  const drawn = mark_icon(mark);
-  if (!drawn) return null;
+/** The system marks in a card's bottom corner, each written as a word: what it stands in for,
+ *  or what describes it. The app chooses them, which is what the highlight colour says. */
+function Stamps({ stamps }: { stamps?: readonly Mark[] }) {
+  const drawn = (stamps ?? []).filter((mark) => mark_icon(mark));
+  if (!drawn.length) return null;
   return (
-    <span className="mnd-mark" data-mark={mark}>
-      <Icon name={drawn} size={13} />
+    <span className="mnd-marks">
+      {drawn.map((mark) => (
+        <span key={mark} className="mnd-mark" data-mark={mark}>
+          <Icon name={mark_icon(mark)!} size={13} />
+        </span>
+      ))}
     </span>
   );
 }
@@ -46,10 +51,12 @@ function seen(p: NodeProps<BoxNode>): string {
   const d = p.data;
   return [
     p.selected, p.dragging, p.width, p.height,
-    d.label, d.alias ?? "", d.def, d.on, d.side, d.role, d.mark ?? "", d.marks.join(","),
+    d.label, d.alias ?? "", d.def, d.on, d.side, d.role, (d.stamps ?? []).join(","),
+    (d.fields ?? []).map((f) => `${f.name}=${f.value ?? f.form}`).join(","), d.marks.join(","),
+    d.body ?? "",
     /** Read off the look, so no property is forgotten. */
     look_key(d.look),
-    d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(","),
+    d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}${c.value ?? ""}`).join(","),
     d.seats?.map((t) => `${t.id}${t.side}${t.at}`).join(","),
   ].join("|");
 }
@@ -161,14 +168,33 @@ export function dressed(look: Look) {
   };
 }
 
-/** The ordinary card: a container, a reference, a note, a lane or a cell. */
-function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
+/** How tall a line of a card's body is, and what a card spends above its body: its padding, and a
+ *  head with the divider under it where there is one. */
+const LINE = 16;
+const ABOVE = { head: 30, bare: 9 };
+
+/** How many lines of body a card of this height has room for; unknown until it is measured. */
+function room(height: number | undefined, head: boolean): number | undefined {
+  if (!height) return undefined;
+  return Math.max(1, Math.floor((height - (head ? ABOVE.head : ABOVE.bare)) / LINE));
+}
+
+/** The ordinary card: a container, a reference, a note, a lane or a cell.
+ *
+ *  A head — its name — and, under a divider, a compartment where its look asks for one: its fields,
+ *  a line each, or its body, formatted. A card whose look hides its name is its body alone. */
+function CardNode({ id, data, selected, height }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
   /** The name always, the label where asked. */
   const label = look.label;
+  const head = look.head !== false;
+  /** A value that only repeats the card's name is said once, by the name. */
+  const fields = data.fields?.filter((f) => !f.value || plain(f.value) !== data.label);
+  const parted = !!fields || !!data.body;
   return (
-    <div className={["mnd-card", "card-face", ...data.marks, selected ? "picked" : ""]
+    <div className={["mnd-card", "card-face", ...data.marks, parted ? "parted" : "",
+                     head ? "" : "headless", selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
          {...dressed(look)} data-def={data.def} title={data.label}>
       {/* A card keeps the one card height unless its definition asked for its own. */}
@@ -178,19 +204,37 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
       <Brim />
       <Wears role={data.role} icon={data.look?.icon}
              holds={data.marks.includes("container")} />
-      <Stamp mark={data.mark} />
+      <Stamps stamps={data.stamps} />
       {label === "above"
         ? <span className="mnd-over mnd-kind card-label">{look.kind}</span> : null}
-      <div className="mnd-head">
-        {/* The name and its handle are separate elements, so renaming replaces the word alone. */}
-        <span className="mnd-named">
-          <Name id={id} className="mnd-label card-name" text={data.label} />
-          {data.alias ? <span className="mnd-alias">{data.alias}</span> : null}
-        </span>
-        {/* What sort of thing it is, where it was asked for. */}
-        {label === "inside"
-          ? <span className="mnd-kind card-label">{look.kind}</span> : null}
-      </div>
+      {head ? (
+        <div className="mnd-head">
+          {/* The name and its handle are separate elements, so renaming replaces the word alone. */}
+          <span className="mnd-named">
+            <Name id={id} className="mnd-label card-name" text={data.label} />
+            {data.alias ? <span className="mnd-alias">{data.alias}</span> : null}
+          </span>
+          {/* What sort of thing it is, where it was asked for. */}
+          {label === "inside"
+            ? <span className="mnd-kind card-label">{look.kind}</span> : null}
+        </div>
+      ) : null}
+      {/* What it carries, one line each: a value where it has one, its form where it has not. */}
+      {fields ? (
+        <ul className="mnd-fields">
+          {fields.map((f) => (
+            <li key={f.name} title={`${f.name}: ${f.value ?? f.form}`}>
+              <span className="mnd-field-name">{f.name}</span>
+              {f.value === undefined
+                ? <span className="mnd-field-form">{f.form}</span>
+                : <Inline className="mnd-field-value" text={f.value} />}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {/* What it says. */}
+      {data.body
+        ? <Markdown className="mnd-body" text={data.body} lines={room(height, head)} /> : null}
       {/* Under the card rather than in it. */}
       {label === "below"
         ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
@@ -212,7 +256,7 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
       {/* A note wears its icon above and whatever mark it earns below. */}
       <Wears role={data.role} icon={data.look?.icon}
              holds={data.marks.includes("container")} />
-      <Stamp mark={data.mark} />
+      <Stamps stamps={data.stamps} />
       {look.label === "above"
         ? <span className="mnd-over mnd-kind card-label">{look.kind}</span> : null}
       <Name id={id} className="mnd-note-text card-name" text={data.label} />
@@ -310,7 +354,10 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
               style={{ left: c.x, top: c.y, width: c.w, height: c.h }}
               onPointerEnter={(e) => {
                 if (e.buttons === 1 && from.current) pick(range(from.current, c));
-              }} />
+              }}>
+          {/* What the cell says, where no block sits in it. */}
+          {c.value ? <Inline className="mnd-grid-value" text={c.value} /> : null}
+        </span>
       ))}
     </span>
   );
@@ -392,7 +439,7 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
       ) : null}
       <Name id={id} className="mnd-frame-name" text={data.label} />
       <Wears role={data.role} holds={data.marks.includes("container")} />
-      <Stamp mark={data.mark} />
+      <Stamps stamps={data.stamps} />
     </div>
   );
 }

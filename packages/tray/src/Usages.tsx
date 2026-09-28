@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { BASE_RELATIONS, edge_base, may_retype, relation_base, relations, shipped,
          type Act, type Graph, type Id } from "@mnd/core";
-import { Choice, scope_chips, Table, type Column, type Scope } from "./Table";
+import { Choice, lit_row, scope_chips, Table, type Column, type Scope } from "./Table";
 import { block_usage_rows, usage_rows } from "./rows";
 
 /** The base's option in *retype all*, whose own value is blank. */
@@ -19,8 +19,9 @@ export type UsagesProps = {
   layer: Id | null;
   /** The definition the tray is about, which the third chip group narrows by. */
   about: Id | null;
-  picked: readonly Id[];
-  onPick: (id: Id) => void;
+  /** What the tray asks to light, which this table settles against its own listing. */
+  lit: readonly Id[];
+  onLit: (id: Id) => void;
   onHover?: (id: Id | null) => void;
   onAct: Act;
   /** Go to where a line lives: open its layer and pick it there. */
@@ -29,12 +30,14 @@ export type UsagesProps = {
   home: (id: Id) => Id | null;
 };
 
-export function Usages({ graph, group, scope, onScope, layer, about, picked, onPick, onHover, onAct, onView,
-                         home }: UsagesProps) {
+export function Usages({ graph, group, scope, onScope, layer, about, lit, onLit, onHover, onAct,
+                         onView, home }: UsagesProps) {
   const lines = group === "relation";
   /** The root layer reads the whole project until somebody says otherwise. */
   const [module, set_module] = useState("all");
-  const [by, set_by] = useState("any");
+  /** Narrowed to the definition in context until somebody widens it. The choice is kept as what
+   *  it means rather than as one definition's id, so it survives a move to the next one. */
+  const [by, set_by] = useState("own");
 
   const deep = scope === "workspace";
   const all = lines ? usage_rows(graph, layer, deep) : block_usage_rows(graph, layer, deep);
@@ -51,9 +54,10 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
   const held = about ? graph.defs[about] : undefined;
   const narrow = [
     { key: "any", word: "any", keep: (_r: (typeof all)[number]) => true },
-    ...(held ? [{ key: held.id, word: held.name,
+    ...(held ? [{ key: "own", word: held.name,
                   keep: (r: (typeof all)[number]) => r.chain.includes(held.id) }] : []),
   ];
+  /** With no definition in context there is nothing to narrow by, so `any` answers. */
   const keep = narrow.find((n) => n.key === by) ?? narrow[0]!;
   const modules = ["all", ...BASE_RELATIONS];
   const rows = all.filter((r) => (!lines || module === "all" || r.module === module)
@@ -68,13 +72,15 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
 
   /** Blank is the default: each usage goes back to its own kind's. */
   const blank_to = (value: string) => (value === BLANK ? "" : value);
+  /** What is asked for and listed, else the first row. */
+  const on = lit_row(rows, lit);
 
   return (
     <Table
       columns={columns}
-      acts="4rem"
-      picked={picked}
-      onPick={onPick}
+      acts="6rem"
+      picked={on}
+      onPick={onLit}
       onHover={onHover}
       tools={rows.length ? (
         <select value="" aria-label="retype every line listed"
@@ -106,9 +112,11 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
                     onPick={(id) => onAct("retype", { ids: [r.id], type: blank_to(id) })} />
           ),
         },
-        /** A view chip on the picked row, only when it lives elsewhere. */
-        actions: onView && picked.includes(r.id) && home(r.id) !== layer ? (
-          <button className="chip" title="open the layer this is in"
+        /** The lit row's view chip, which is the only way a row moves the context. */
+        actions: onView && on.includes(r.id) ? (
+          <button className="chip"
+                  title={home(r.id) === layer ? "make this the context"
+                                              : "open the layer this is in"}
                   onClick={(e) => { e.stopPropagation(); onView(r.id); }}>
             view
           </button>

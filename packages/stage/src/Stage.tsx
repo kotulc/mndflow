@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
-import { is_grid, is_header, is_interface } from "@mnd/core";
+import { is_interface, lattice_of } from "@mnd/core";
 
 /** One named menu entry; the shape the explorer's menu agrees on. */
 export type Entry = { name: string; label?: string; args?: Args };
@@ -11,6 +11,7 @@ import { Legend, type Corner } from "./Legend";
 import { moves_of, type Move } from "./moves";
 import { Icon } from "@mnd/theme";
 import { box_of, clear_of, holds, swept_cells, BLOCK, CELL, type Scene } from "@mnd/views";
+import { Crumbs } from "./Crumbs";
 
 export type { Adjust, Landing, Move };
 
@@ -52,24 +53,22 @@ export type StageProps = {
 };
 
 /** What has no inside to open. */
-const INERT = ["group", "grid", "note"];
-
-/** What a seated block offers for heading a line. */
-function header_offers(id: string, graph: Graph): Entry[] {
-  const b = graph.blocks[id];
-  if (!b?.cell || !b.group || !is_grid(graph, b.group)) return [];
-  return is_header(b)
-    ? [{ name: "header", label: "demote", args: { clear: "yes" } }]
-    : [{ name: "header", label: "promote", args: {} }];
-}
+const INERT = ["note"];
 
 /** What a card's menu lists besides the shared box actions. */
-function box_offers(id: string, graph: Graph): readonly (string | Entry)[] {
-  const base: (string | Entry)[] = [
-    { name: "rename", label: "rename block" },
-    "open", "interface", "note"];
-  return [...base, ...header_offers(id, graph),
+function box_offers(): readonly (string | Entry)[] {
+  return [{ name: "rename", label: "rename block" }, "open", "interface", "note",
           "leave", { name: "delete", label: "delete block" }];
+}
+
+/** Turning a grid's header lines on and off, worded for how they are now. */
+function head_offers(group: string, graph: Graph): Entry[] {
+  const head = lattice_of(graph, group)?.head;
+  return [
+    { name: "heads", label: `${head?.top ? "remove" : "add"} header row`, args: { way: "top" } },
+    { name: "heads", label: `${head?.left ? "remove" : "add"} header column`,
+      args: { way: "left" } },
+  ];
 }
 
 /** What a run offers about its direction. */
@@ -128,9 +127,11 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
       return n?.type === "grid" ? offers.band
         : offers.band?.filter((e) => (typeof e === "string" ? e : e.name) !== "fill");
     }
-    return box_offers(g.on, graph);
+    return box_offers();
   }
-  if (g.kind === "box" && g.on) return box_offers(g.on, graph);
+  if (g.kind === "box" && g.on) return box_offers();
+  /** A cell offers what can be done to the lattice there, and to its header lines. */
+  if (g.kind === "cell" && g.on) return [...(offers.cell ?? []), ...head_offers(g.on, graph)];
   /** A run and its name are one subject. */
   if ((g.kind === "route" || g.kind === "name") && g.on && graph.edges[g.on]) {
     return wire_offers(g.on, graph);
@@ -214,11 +215,12 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     box: ["rename", "open", "interface", "note", "leave", "delete"],
     seat: ["rename", "open", "interface", "note", "delete"],
     /** A group and a grid write their name on the frame when told to. */
-    band: [{ name: "rename", label: "rename group" }, "fill",
+    band: [{ name: "rename", label: "rename group" }, "open", "note", "fill",
            { name: "chain", args: drawing },
-           { name: "delete", label: "delete group" }],
+           "leave", { name: "delete", label: "delete group" }],
     /** A cell offers what can be done to the lattice there. */
     cell: [
+      { name: "label", label: "label cell" },
       "merge",
       { name: "insert", label: "insert row", args: { way: "row" } },
       { name: "insert", label: "insert column", args: { way: "col" } },
@@ -234,12 +236,23 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     frame: ["rename", "open", "interface", "note", "leave", "delete"],
   };
 
+  /** Asks for a cell's plain value, starting from what it says now. */
+  const label_cell = (at: Spot) => {
+    const cell = scene.nodes.find((n) => n.id === at.group)?.data.grid
+      ?.find((c) => c.r === at.r && c.c === at.c);
+    const text = prompt("label", cell?.value ?? "");
+    if (text !== null) onAct("label", { group: at.group, at: `${at.r},${at.c}`, text });
+  };
+
   /** What a selection of several offers. */
   const MANY: readonly (string | Entry)[] = ["group", "leave", "delete"];
 
   const gesture = (g: Gesture) => {
-    /** Left clicks on cells are the lattice's own. */
-    if (g.button === "left" && g.kind === "cell") return;
+    /** Left clicks on cells are the lattice's own; two write the cell's label. */
+    if (g.button === "left" && g.kind === "cell") {
+      if (g.count === 2 && g.given) label_cell(g.given as Spot);
+      return;
+    }
     if (g.button === "left" && g.count === 1) onPickCells?.([]);
     if (g.button === "left") {
       if (g.count === 2) {
@@ -370,22 +383,4 @@ function lit_rules(ids: readonly string[]): string {
     ids.map((id) => `.react-flow [data-testid="rf__${kind}-${CSS.escape(id)}"]${inner}`).join(",");
   return [`${at("node", "")} { outline: 2px solid var(--accent); outline-offset: 2px; }`,
           `${at("edge", " path")} { stroke: var(--accent) !important; opacity: 1; }`].join("\n");
-}
-
-function Crumbs({ trail, onAct }: { trail: Scene["trail"]; onAct: Act }) {
-  const shown = trail.length > 4 ? [trail[0]!, { id: "…", label: "…" }, ...trail.slice(-2)] : trail;
-  return (
-    <nav className="crumbs">
-      {shown.map((t, i) => (
-        <span key={t.id + i}>
-          {i > 0 ? <b> / </b> : null}
-          {t.id === "…"
-            ? <span className="elided" title={trail.map((x) => x.label).join(" / ")}>…</span>
-            : <button onClick={() => onAct("open", { id: t.id })}>{t.label}</button>}
-        </span>
-      ))}
-      {trail.length > 1 ? <button className="up" title="up one layer"
-                                  onClick={() => onAct("open")}><Icon name="up" /></button> : null}
-    </nav>
-  );
 }

@@ -79,8 +79,9 @@ export const SHOWN = ["show", "hide"] as const;
 /** Which end of the card its writing reads from. */
 export const ALIGNS = ["left", "center", "right"] as const;
 
-/** Whether a card is the one card height, or keeps whatever size it was given. */
-export const HEIGHTS = ["uniform", "free"] as const;
+/** Whether a card is the one card height, keeps whatever size it was given, or grows to fit what
+ *  it shows. */
+export const HEIGHTS = ["uniform", "free", "fit"] as const;
 
 /** The named families a definition may pick from. */
 export const FAMILIES = ["primary", "secondary", "neutral", "muted",
@@ -186,7 +187,14 @@ const card: Component = {
     /** `alias` shows the handle beside a name that was set. */
     ?? one_of("card.alias", config["alias"], SHOWN)
     ?? one_of("card.height", config["height"], HEIGHTS)
-    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height"]),
+    /** `fields` lists what the card carries in a compartment under its name. */
+    ?? one_of("card.fields", config["fields"], SHOWN)
+    /** `body` shows what the block says under the divider; `name` hides the head, so the body is
+     *  the whole card. */
+    ?? one_of("card.body", config["body"], SHOWN)
+    ?? one_of("card.name", config["name"], SHOWN)
+    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "fields",
+                              "body", "name"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings. */
@@ -238,6 +246,8 @@ const allows: Component = {
       const wrong = words(`allows.${key}`, said);
       if (wrong) return wrong;
     }
+    const holder = one_of("allows.holder", config["holder"], ["none", "group", "grid"]);
+    if (holder) return holder;
     const ends = config["ends"];
     if (ends !== undefined) {
       if (!ends || typeof ends !== "object") return "`allows.ends` has to be two lists of names";
@@ -252,7 +262,7 @@ const allows: Component = {
       const wrong = stray("allows.degree", degree as Settings, ["in", "out"]);
       if (wrong) return wrong;
     }
-    return stray("allows", config, ["ports", "holds", "members", "degree", "ends"]);
+    return stray("allows", config, ["ports", "holds", "holder", "members", "degree", "ends"]);
   },
 };
 

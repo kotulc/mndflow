@@ -14,16 +14,20 @@ import { Tags } from "./Tags";
 import { DRAFT } from "./draft";
 import { def_path, defined, held, kind_of, types_for } from "./holder";
 
-export type IdentityProps = { graph: Graph; id: Id; onAct: Act };
+export type IdentityProps = {
+  graph: Graph; id: Id; onAct: Act;
+  /** Make a definition the context, which is where it is edited. */
+  onOpen?: (id: Id) => void;
+};
 
-export function Identity({ graph, id, onAct }: IdentityProps) {
+export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
   const it = held(graph, id);
   if (!it) return <p className="empty">that is not here any more</p>;
   const { def: d, block: b, edge } = it;
   /** What came from outside: its name and what it extends stay theirs, what it says does not. */
   const borrowed = outside(d ?? undefined);
   const { kind, runs } = kind_of(graph, id, it);
-  const { own, mine, fixed, wip } = defined(graph, id, it, runs);
+  const { own, mine, fixed } = defined(graph, id, it, runs);
   const drafted = id === DRAFT;
   const element = !!(b || edge);
   const group = runs ? "relation" : "block";
@@ -70,7 +74,7 @@ export function Identity({ graph, id, onAct }: IdentityProps) {
         <Line label="type" className="subtype"
               tip={drafted
                 ? "What this definition will be called. Naming it adds it to the definitions."
-                : element ? type_tip(runs, wip)
+                : element ? type_tip(runs)
                 : "What this definition is called, and the word every usage draws where it carries no name of its own. Renaming it keeps everything naming it."}>
           {drafted ? (
             /** Leaving the box files the draft under its name. */
@@ -83,7 +87,7 @@ export function Identity({ graph, id, onAct }: IdentityProps) {
                    clash={(to) => (types_for(graph, id).some((x) => x.name === to)
                      ? null : taken(graph, to, group))}
                    onCommit={(to) => {
-                     const [act, args] = typing(graph, id, to);
+                     const [act, args] = typing(graph, id, to, mine && !fixed ? own : undefined);
                      onAct(act, args);
                    }} />
           ) : mine && !fixed ? (
@@ -99,6 +103,13 @@ export function Identity({ graph, id, onAct }: IdentityProps) {
                     title={`remove ${own!.name}, dissolving it into everything naming it`}
                     onClick={() => onAct("remove_def", { id: own!.id })}>
               <Icon name="remove" />
+            </button>
+          ) : null}
+          {/* A usage is edited through what it follows, so the row goes there. */}
+          {element && following && onOpen ? (
+            <button className="chip" title={`open ${following.name} to edit it`}
+                    onClick={() => onOpen(following.id)}>
+              view definition
             </button>
           ) : null}
         </Line>
@@ -157,33 +168,29 @@ export function Identity({ graph, id, onAct }: IdentityProps) {
         ) : null}
 
       </Body>
-
-      {borrowed ? (
-        <p className="not-yet">
-          This comes from {d!.from ?? "the floor"}, and stays as they wrote it. What it
-          says is still yours: styling it or declaring a field writes your own word about
-          it, which stands in front of it for everything below. Its name and what it
-          extends are theirs.
-        </p>
-      ) : null}
     </div>
   );
 }
 
 /** What the type row is asking, in full. */
-function type_tip(runs: boolean, wip: boolean): string {
-  return `Which definition this ${runs ? "line" : "block"} follows, by name. A name nothing holds`
-    + ` files a new definition${wip ? ", carrying the look this one is wearing," : ""} and moves`
-    + ` this one onto it. Only definitions of its own kind apply.`;
+function type_tip(runs: boolean): string {
+  return `Which definition this ${runs ? "line" : "block"} follows, by name. A name another holds`
+    + ` applies that one; a new name renames the workspace definition it follows, or files one`
+    + ` where it follows none of the workspace's — view it to change how it draws and what it may`
+    + ` do. Only definitions of its own kind apply.`;
 }
 
-/** What naming a type does: point the element at the definition of that name, file one where
- *  nothing holds it, or give the element back to its base where the box is cleared. */
-function typing(graph: Graph, id: Id, to: string): [string, Record<string, unknown>] {
+/** What naming a type does: point the element at the definition of that name, or give it back to
+ *  its base where the box is cleared. A name nothing holds **renames the workspace definition the
+ *  element already follows**, so editing the box never files one per keystroke; only an element
+ *  following a base or a package's definition files a new one. */
+function typing(graph: Graph, id: Id, to: string,
+                own?: Definition): [string, Record<string, unknown>] {
   const hit = types_for(graph, id).find((x) => x.name === to);
   if (hit) return ["retype", { ids: [id], type: hit.id }];
   if (!to) return ["retype", { ids: [id], type: "" }];
-  /** `save_def` files what it followed as the new one's base, and any look it wears travels. */
+  if (own) return ["rename_def", { id: own.id, name: to }];
+  /** `save_def` files a new definition over what it followed, and moves this one onto it. */
   return ["save_def", { id, name: to }];
 }
 

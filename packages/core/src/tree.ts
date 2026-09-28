@@ -1,6 +1,6 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import type { Arrangement, Block, Graph, Id, Relation, Unit } from "./types";
+import type { Arrangement, Block, Graph, Id, Relation } from "./types";
 
 
 /** Every block under this one, itself included. */
@@ -18,6 +18,20 @@ export function subtree(graph: Graph, id: Id): Id[] {
 /** A null layer is the root layer. */
 export function layer_id(graph: Graph, layer: Id | null): Id {
   return layer ?? graph.root;
+}
+
+/** What a gesture is about: the one element picked, else the open layer. Picking several, or
+ *  nothing, leaves the layer to answer — **one rule, so every view is about the same thing**. */
+export function about_of(graph: Graph, layer: Id | null, picked: readonly Id[]): Id {
+  const one = picked.length === 1 ? picked[0]! : null;
+  return one && (graph.blocks[one] ?? graph.edges[one]) ? one : layer_id(graph, layer);
+}
+
+/** What a listing frames: the block in context, else the open layer. **A block frames its own
+ *  contents whether or not it holds anything**; a line holds nothing and the root is the layer
+ *  itself, so both leave the layer to answer. */
+export function frame_of(graph: Graph, layer: Id | null, about: Id): Id | null {
+  return graph.blocks[about] && about !== graph.root ? about : layer;
 }
 
 /** The direct children of a layer, in a stable order. */
@@ -43,16 +57,8 @@ export function path(graph: Graph, id: Id): Block[] {
   return out;
 }
 
-export function is_interface(b: Unit): boolean {
-  return "side" in b && b.side !== undefined;
-}
-
-/** Everything drawn in a layer: the blocks it holds, and the holders drawn over them. */
-export function units_in(graph: Graph, layer: Id | null): Unit[] {
-  const here = layer_id(graph, layer);
-  return [...Object.values(graph.blocks).filter((b) => b.parent === here),
-          ...Object.values(graph.holders).filter((h) => h.parent === here)]
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+export function is_interface(b: Block): boolean {
+  return b.side !== undefined;
 }
 
 export function is_reference(b: Block): boolean {

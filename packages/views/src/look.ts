@@ -1,7 +1,7 @@
 /** How a usage of a definition draws. */
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_of, DISPLAYS,
-         default_for, FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, kind_word, SHOWN,
+         FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, kind_word, SHOWN,
          WEIGHTS, WIDTHS, type Graph, type Id, type Settings } from "@mnd/core";
 
 export type Family = (typeof FAMILIES)[number];
@@ -44,6 +44,12 @@ export type Look = {
   height: Height;
   /** Whether the handle is drawn, where somebody said. */
   alias?: boolean;
+  /** Whether the card lists its fields in a compartment under its name. */
+  fields?: boolean;
+  /** Whether the card shows its body, formatted, under its name. */
+  body?: boolean;
+  /** False where the name is not drawn, so the body is the whole card. */
+  head?: boolean;
   /** What sort of thing this is, as a word: the subtype where somebody named one, the base kind
    *  otherwise. */
   kind: string;
@@ -76,13 +82,6 @@ export const PLAIN: Look = {
 function settings(graph: Graph, id: Id, key: string): Settings {
   /** A definition is its own last word. */
   if (graph.defs[id]) return config_of(graph, id, key);
-  /** A holder carries no definition: it draws as the shape the base ships for it. */
-  const held = graph.holders[id];
-  if (held) {
-    const base = held.arrangement === "grid" ? "grid" : "group";
-    return { ...config_of(graph, default_for(graph, base) ?? base, key),
-             ...(held.looks?.[key] ?? {}) };
-  }
   const it = graph.blocks[id] ?? graph.edges[id];
   return { ...config_of(graph, def_of(graph, id), key), ...(it?.looks?.[key] ?? {}) };
 }
@@ -95,20 +94,15 @@ function one<T extends string>(value: unknown, set: readonly T[], fallback: T): 
 
 /** How this usage draws. */
 export function look_of(graph: Graph, id: Id): Look {
-  /** Which of the two this is, asked of the graph. **Not of the object** — a block naming no
-   *  definition carries no `type` key at all, so testing for one calls it a holder. */
   const block = graph.blocks[id];
-  const held = graph.holders[id];
-  const b = block ?? held;
-  if (!b) return PLAIN;
+  if (!block) return PLAIN;
 
   /** The chain, then the element's own last word. */
   const card = settings(graph, id, "card");
   const style = settings(graph, id, "style");
-  const named = block?.type ? graph.defs[block.type]?.name : undefined;
-  /** The subtype where somebody named one; a holder is its shape, anything else its base kind. */
-  const kind = named ?? (block ? kind_word(graph, block).toLowerCase()
-                              : held?.arrangement === "grid" ? "grid" : "group");
+  const named = block.type ? graph.defs[block.type]?.name : undefined;
+  /** The subtype where somebody named one, else its base kind. */
+  const kind = named ?? kind_word(graph, block).toLowerCase();
 
   return {
     family: one(style["family"], FAMILIES, PLAIN.family),
@@ -124,6 +118,9 @@ export function look_of(graph: Graph, id: Id): Look {
     label_align: one(card["label_align"], ALIGNS, PLAIN.label_align),
     height: one(card["height"], HEIGHTS, PLAIN.height),
     ...(SHOWN.includes(card["alias"] as never) ? { alias: card["alias"] === "show" } : {}),
+    ...(card["fields"] === "show" ? { fields: true } : {}),
+    ...(card["body"] === "show" ? { body: true } : {}),
+    ...(card["name"] === "hide" ? { head: false } : {}),
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
     ...contrast("label_contrast", style["label_contrast"]),

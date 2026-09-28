@@ -144,9 +144,10 @@ Scene {
 
 **The engine states no containment rule.** The last one — *a view holds references, never parts* — had only the `view` module to attach to and went out with it. What is left is `holds`, which is data, and the few refusals that stop a graph being incoherent.
 
-- **What is still refused**: a block cannot contain itself, a holder cannot hold something that holds it, and **a cell holds one block**. The last is not taste — two blocks sharing a cell leaves *what is allocated to this row* without an answer.
+- **What is still refused**: a block cannot contain itself, a holder cannot hold something that holds it, **only groups nest** — a grid sits in nothing and its cells seat no holder, **a kind that holds nothing takes no block** — a reference is a stand-in and a note is a remark, so neither has contents to give — and **a cell holds one block**. The last is not taste — two blocks sharing a cell leaves *what is allocated to this row* without an answer.
 - **A reference points at what it stands for, and nothing points back.** Upward is a derived query, never stored — a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
-- **Membership is not parenthood.** `parent` says which layer a block is in; `group` says which holder on that layer it sits in. Only the first is the tree.
+- **Membership is not parenthood.** `parent` says which layer a block is in; `group` says which holder on that layer it sits in. Only the first is the tree, and a holder is listed in it like any other block.
+- **Holding is a capability.** A group or a grid is a block whose definition says `allows.holder` — so any definition may hold, and one that stops keeps what it held, dormant. A holder has no lifetime of its own, and a grid's member always sits in a cell.
 
 **A vocabulary's rules advise while modelling and refuse only at translation**: the walk is core's, in `schema.md`, and the drop rules are in `actions.md`.
 
@@ -178,7 +179,9 @@ The envelope, the canonical layout and the door are core's `engine.md`.
 | `validate` | what a graph violates. **Mending it stays the engine's** |
 | `write` · `write_subtree` | a graph out, in the canonical layout |
 | `project` · `draw` · `draw_svg` | a layer as a Scene, as text, as a standalone drawing |
-| `Viewer` | the same layer as an **interactive** artifact — walkable, and not editable |
+| `Viewer` | the same layer as an **interactive** artifact — walkable, and not editable. Draws the lattice unless told not to, and a block's fields as a class diagram when asked |
+| `Explorer` | the tree. **Emits intent, never change** |
+| `Tray` · `useTray` · `useDisplay` | the context tray, and the state every shell keeps for it and for the drawing. **Read only without `onAct`** |
 
 **What is sealed, and there are no exceptions to look up:** the log, the steps, the mutations, the session, the action registry, and `layout`. A consumer places nothing, because projecting is what places and the Scene already carries the geometry.
 
@@ -186,6 +189,8 @@ The envelope, the canonical layout and the door are core's `engine.md`.
 - **The engine keeps its own reader.** `read` produces the log a session works in and is not offered; `open` is the same journey one step later.
 - **The export list is written out.** `export *` from the engine is how the log leaks, so what ships is named one by one.
 - **An embedded view is interactive and still an artifact.** `Viewer` holds a graph, projects the layer being looked at, and walks in and out of layers. The renderer underneath offers drag callbacks meaning move, seat, wall and relate; they are not re-exported, so **an edit is unreachable rather than merely unadvised**.
+- **A shell's defaults are kept once.** The tray opens from the start, nothing picked on the root layer is the root picked, and the workspace tab sets how the drawing looks. `useTray` and `useDisplay` are what the mndflow app runs on too, so a host inherits those answers rather than restating them — **the app binds ports, and the rules live in the packages.**
+- **A tray without `onAct` only reads.** It offers the tabs that read and nothing takes input; its display answers go to `onDisplay`, since how a drawing looks is the session's and changes nothing.
 - **`kit` is the one package that adds code**, and it is one component. The rule it keeps is dependency direction, which a viewer built from packages `kit` already carries cannot break.
 
 

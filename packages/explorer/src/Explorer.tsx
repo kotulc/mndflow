@@ -1,11 +1,11 @@
 /** The workspace explorer: structure, and only structure. */
 
-import { useMemo, useRef, useState } from "react";
-import { BASE_PACKAGE, alias_of, children, def_named, is_interface, is_named, is_reference,
-         block_base, base_of,
-         packages, pinned_defs, relation_base, shelf_of, shelf_tree, shelvable, shipped, shown_name,
+import { useMemo, useRef, useState, type ReactNode } from "react";
+import { about_of, alias_of, children, config_of, def_named, def_of, is_interface, is_named,
+         is_reference, may_hold, block_base, base_of,
+         packages, pinned_defs, relation_base, shape_of, shelf_of, shelf_tree, shelvable, shipped, shown_name,
          type Act, type Definition, type Graph, type Id, type ShelfNode } from "@mnd/core";
-import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
+import { Icon, Name, NamingContext, known, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 
 export type ExplorerProps = {
@@ -24,6 +24,16 @@ export type ExplorerProps = {
   onPick: (ids: Id[]) => void;
   /** Whether right-click opens this engine's offered list. */
   menu?: boolean;
+  /** Which bar tools to show, each on its own. Defaults preserve mndflow; set false to hide. */
+  tools?: {
+    filter?: boolean;
+    block?: boolean;
+    folder?: boolean;
+    remove?: boolean;
+    fold?: boolean;
+  };
+  /** A host's own tools, drawn after the filter and ahead of the bar's own. */
+  extra?: ReactNode;
   /** What the library sections have hold of; absent, the sections are not drawn. */
   section?: Section | null;
   onSection?: (at: Section) => void;
@@ -45,6 +55,8 @@ function same(a: Section | null | undefined, b: Section | undefined): boolean {
 }
 
 type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
+             /** The icon its definition names with `card.icon`, worn over its mark's. */
+             icon?: IconName;
              /** What a row is: a block, a definition, a library section, or a folder made for them. */
              of: "block" | "def" | "pack" | "shelf";
              /** The block, definition or folder the row stands for; its id keeps rows apart. */
@@ -60,13 +72,13 @@ type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
              /** Per indent column, whether its guide line carries on past this row. */
              guides: boolean[] };
 type Mark = "leaf" | "folder" | "interface" | "reference" | "note" | "group" | "grid" | "pin"
-  | "locked" | "vocabulary" | "workspace" | "package" | "line" | "tie";
+  | "locked" | "vocabulary" | "usages" | "root" | "package" | "line" | "tie";
 
 /** A library row before it is laid out: what it says, and what sits under it. */
 type Node = Omit<Row, "depth" | "kids" | "guides" | "named" | "alias"> & { under: Node[] };
 
-/** What the tree draws under a block: what it owns. A second appearance, a seat on its wall and a
- *  remark about it are none of them new content, and holders are not blocks at all. */
+/** What the tree draws under a block: what it owns, groups and grids among it. A second
+ *  appearance, a seat on its wall and a remark about it are none of them new content. */
 function under(graph: Graph, parent: Id | null) {
   return children(graph, parent)
     .filter((b) => !is_interface(b) && !is_reference(b) && base_of(graph, b.id) !== "note");
@@ -75,6 +87,7 @@ function under(graph: Graph, parent: Id | null) {
 /** The sections' own ids, which are not anything's. */
 const PACKS = "@packs";
 const VOCAB = "@defs";
+const USES = "@uses";
 
 /** Which mark a definition's base kind wears. */
 const KIND_MARK: Record<string, Mark> = {
@@ -89,9 +102,18 @@ const GROUPS: readonly { group: Group; label: string }[] = [
 /** A definition as a row, wearing its kind's mark. */
 function def_node(graph: Graph, d: Definition, within: Id, filed?: Row["filed"]): Node {
   const kind = d.group === "relation" ? relation_base(graph, d.id) : block_base(graph, d.id);
-  return { id: `${within}:${d.id}`, ref: d.id, label: d.name,
+  const icon = card_icon(graph, d.id);
+  return { id: `${within}:${d.id}`, ref: d.id, label: d.name, ...(icon ? { icon } : {}),
            mark: KIND_MARK[kind] ?? "leaf", of: "def", at: { of: "def", id: d.id },
            ...(filed ? { filed } : {}), under: [] };
+}
+
+/** The icon a block or definition names with `card.icon`, where this set draws it: the block's
+ *  own word first, then its definition's chain. */
+function card_icon(graph: Graph, id: Id): IconName | undefined {
+  const own = graph.blocks[id]?.looks?.["card"]?.["icon"];
+  const said = own ?? config_of(graph, graph.defs[id] ? id : def_of(graph, id), "card")["icon"];
+  return typeof said === "string" && known(said) ? said : undefined;
 }
 
 /** A section row: its word, its mark, where it points, and what it holds. */
@@ -99,12 +121,12 @@ function section(id: Id, label: string, mark: Mark, at: Section, under: Node[]):
   return { id, ref: id, label, mark, of: "pack", at, under };
 }
 
-/** One package, its blocks and its relations apart. Frozen, so nothing in it is filed. */
-function pack_node(graph: Graph, from: string, defs: Definition[], locked = false): Node {
+/** One package, its blocks and its relations apart. Frozen, so nothing in it is filed, and it
+ *  wears a lock: a package is never written into, only extended. */
+function pack_node(graph: Graph, from: string, defs: Definition[]): Node {
   const id = `${PACKS}:${from}`;
   const at = { of: "defs", only: "packages", from } as const;
-  /** The floor wears a lock: it is the one package nothing may be written into. */
-  return section(id, from, locked ? "locked" : "folder", at, GROUPS
+  return section(id, from, "locked", at, GROUPS
     .map((g) => section(`${id}:${g.group}`, g.label, "folder", { ...at, group: g.group },
                         defs.filter((d) => d.group === g.group).map((d) => def_node(graph, d, `${id}:${g.group}`))))
     .filter((n) => n.under.length));
@@ -126,16 +148,18 @@ function shelf_nodes(graph: Graph, group: Group, nodes: ShelfNode[], within: Id,
  *  collection**: the base kinds read under `packages`, and the workspace's own word about one is
  *  a definition like any other, filed with the rest. */
 function library_of(graph: Graph): Node[] {
-  const packs = packages(graph);
+  /** A package another one extends reads through it, so only the outermost are listed. */
+  const extended = new Set(Object.values(graph.packages).map((p) => p.extends));
+  const packs = packages(graph).filter((p) => !extended.has(p.from));
   /** **Both groups, in pin order.** A pinned relation used to read on the options rail instead,
-   *  which made `pinned` two places meaning one thing. */
+   *  which made `pinned` two places meaning one thing. Nothing pinned, no section. */
   const pinned = pinned_defs(graph).filter((d) => !shipped(d) && !d.from && d.default === undefined);
   return [
     section(PACKS, "packages", "package", { of: "defs", only: "packages" },
-            packs.map((p) => pack_node(graph, p.name, p.defs, p.from === BASE_PACKAGE))),
+            packs.map((p) => pack_node(graph, p.name, p.defs))),
     section(VOCAB, "definitions", "vocabulary", { of: "defs", only: "all" }, [
-      section(`${VOCAB}:pinned`, "pinned", "pin", { of: "defs", only: "pinned" },
-              pinned.map((d) => def_node(graph, d, `${VOCAB}:pinned`))),
+      ...(pinned.length ? [section(`${VOCAB}:pinned`, "pinned", "pin", { of: "defs", only: "pinned" },
+                                   pinned.map((d) => def_node(graph, d, `${VOCAB}:pinned`)))] : []),
       ...GROUPS.map((g) =>
         ({ ...section(`${VOCAB}:${g.group}`, g.label, "folder",
                       { of: "defs", only: "workspace", group: g.group },
@@ -158,28 +182,37 @@ function lay(nodes: Node[], folded: readonly Id[], depth = 0, held: boolean[] = 
   return out;
 }
 
-/** The panel: the library sections — packages, then definitions — above the workspace's blocks. */
+/** The panel: the library sections — packages, then definitions — above the usages, the one
+ *  tree of the workspace's blocks. Without the library the root heads the panel on its own. */
 function tree_of(graph: Graph, folded: readonly Id[], library = false): Row[] {
   const out: Row[] = library ? lay(library_of(graph), folded) : [];
+  const at = library ? 1 : 0;
+  if (library) {
+    out.push({ id: USES, ref: USES, depth: 0, label: "usages", kids: 1, named: true, alias: "",
+               of: "pack", mark: "usages", guides: [] });
+    if (folded.includes(USES)) return out;
+  }
   /** A row's columns are its holder's, plus one for itself. */
   const walk = (parent: Id | null, depth: number, held: boolean[]) => {
     const kin = under(graph, parent);
     kin.forEach((b, n) => {
       const kids = under(graph, b.id);
       const guides = [...held, n < kin.length - 1];
-      out.push({ id: b.id, ref: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
+      const icon = card_icon(graph, b.id);
+      out.push({ ...(icon ? { icon } : {}), id: b.id, ref: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
                  named: is_named(graph, b.id), alias: alias_of(graph, b.id), of: "block",
-                 mark: base_of(graph, b.id) === "folder" ? "folder" : "leaf",
+                 mark: shape_of(graph, b.id) ?? (base_of(graph, b.id) === "folder" ? "folder" : "leaf"),
                  guides });
       if (!folded.includes(b.id)) walk(b.id, depth + 1, guides);
     });
   };
   /** The workspace is the one root; every top-level block is a branch under it. */
   const top = under(graph, graph.root);
-  out.push({ id: graph.root, ref: graph.root, depth: 0, label: shown_name(graph, graph.root), kids: top.length,
-             named: is_named(graph, graph.root), alias: "", of: "block", mark: "workspace",
-             guides: [] });
-  if (!folded.includes(graph.root)) walk(graph.root, 1, []);
+  const held = at ? [false] : [];
+  out.push({ id: graph.root, ref: graph.root, depth: at, label: shown_name(graph, graph.root), kids: top.length,
+             named: is_named(graph, graph.root), alias: "", of: "block", mark: "root",
+             guides: held });
+  if (!folded.includes(graph.root)) walk(graph.root, at + 1, held);
   return out;
 }
 
@@ -218,7 +251,8 @@ const MARK: Record<Mark, { icon: IconName; word?: true }> = {
   pin: { icon: "pin" },
   locked: { icon: "locked" },
   vocabulary: { icon: "word_def", word: true },
-  workspace: { icon: "word_wks", word: true },
+  usages: { icon: "word_use", word: true },
+  root: { icon: "role_root" },
   package: { icon: "word_pkg", word: true },
   line: { icon: "relation_plain" },
   tie: { icon: "relation_tie" },
@@ -241,7 +275,15 @@ function Fold({ kin, folded, onFold }: {
 
 export function Explorer(props: ExplorerProps) {
   const { graph, open, picked, folded, lit = [], onAct, onFold, onPick,
-          menu: offered = true, section = null, onSection } = props;
+          menu: offered = true, section = null, onSection,
+          tools: bar = {} } = props;
+  const show = {
+    filter: bar.filter !== false,
+    block: bar.block !== false,
+    folder: bar.folder !== false,
+    remove: bar.remove !== false,
+    fold: bar.fold !== false,
+  };
   /** What is in hand: the selection when a picked row is dragged. */
   const [dragging, set_dragging] = useState<readonly Id[]>([]);
   /** Where a shift-click range runs from. */
@@ -282,12 +324,17 @@ export function Explorer(props: ExplorerProps) {
   const rows = tree_of(graph, shut, !!onSection);
   /** Whether anything at all stands open, which is what the bar's fold offers. */
   const any_open = rows.some((r) => r.kids > 0 && !folded.includes(r.id));
+  /** Nothing picked on the root layer, and no library row in hand, is the root picked: the
+   *  workspace is what the tray is about, so its row says so. */
+  const rooted = !picked.length && !section && (open === null || open === graph.root)
+    ? graph.root : null;
   /** Only blocks answer a block question. */
   const blocks = rows.filter((r) => r.of === "block");
+  /** Where something new goes: what you picked, where it can hold one, else where you are. */
+  const about = about_of(graph, open ?? null, picked);
+  const target = may_hold(graph, about) ? about : open ?? graph.root;
+  /** What the delete would take, which is a pick and never the layer standing in for one. */
   const one = picked.length === 1 ? picked[0]! : null;
-  /** Where something new goes: what you picked, or where you are. */
-  const holder = one && graph.blocks[one] && base_of(graph, one) !== "note" ? one : null;
-  const target = holder ?? open ?? graph.root;
   /** The layer a drop would join, and every row already in it. */
   const zone = landing(graph, over);
 
@@ -397,27 +444,39 @@ export function Explorer(props: ExplorerProps) {
          style={{ width }}>
       <div className="bar">
         {/* The bar is tools only; the workspace names itself in the tree. */}
-        <span className="tools">
-          {/* Where the filter will open. Inert until it is built, and it says so. */}
-          <button title="filter the workspace — not built yet" disabled>
-            <Icon name="menu" />
-          </button>
-          <button title={library ? `add a definition to ${where_to}` : `add a block in ${shown_name(graph, target)}`}
-                  disabled={library && !filing}
-                  onClick={() => add()}><Icon name="add" /></button>
-          <button title={library ? `add a folder to ${where_to}` : `add a folder in ${shown_name(graph, target)}`}
-                  disabled={library && !filing}
-                  onClick={() => add("folder")}><Icon name="add_folder" /></button>
-          <button title={library ? "remove the picked definition or folder" : "delete what is picked"}
-                  disabled={!drop} onClick={() => drop?.()}><Icon name="remove" /></button>
-        </span>
+        {(props.extra || show.filter || show.block || show.folder || show.remove) ? (
+          <span className="tools">
+            {show.filter ? (
+              <button title="filter the workspace — not built yet" disabled>
+                <Icon name="menu" />
+              </button>
+            ) : null}
+            {props.extra}
+            {show.block ? (
+              <button title={library ? `add a definition to ${where_to}` : `add a block in ${shown_name(graph, target)}`}
+                      disabled={library && !filing}
+                      onClick={() => add()}><Icon name="add_block" /></button>
+            ) : null}
+            {show.folder ? (
+              <button title={library ? `add a folder to ${where_to}` : `add a folder in ${shown_name(graph, target)}`}
+                      disabled={library && !filing}
+                      onClick={() => add("folder")}><Icon name="add_folder" /></button>
+            ) : null}
+            {show.remove ? (
+              <button title={library ? "remove the picked definition or folder" : "delete what is picked"}
+                      disabled={!drop} onClick={() => drop?.()}><Icon name="remove" /></button>
+            ) : null}
+          </span>
+        ) : null}
         {/* Every collection at once, set where each collection's own fold sits. */}
-        <button className="fold" title={any_open ? "fold every collection" : "open every collection"}
-                onClick={() => {
-                  for (const r of tree_of(graph, [], !!onSection)) {
-                    if (r.kids > 0) onFold(r.id, any_open);
-                  }
-                }}><Icon name={any_open ? "fold_all" : "unfold_all"} size={MARK_SIZE} /></button>
+        {show.fold ? (
+          <button className="fold" title={any_open ? "fold every collection" : "open every collection"}
+                  onClick={() => {
+                    for (const r of tree_of(graph, [], !!onSection)) {
+                      if (r.kids > 0) onFold(r.id, any_open);
+                    }
+                  }}><Icon name={any_open ? "fold_all" : "unfold_all"} size={MARK_SIZE} /></button>
+        ) : null}
       </div>
 
         <ul className="tree">
@@ -428,7 +487,7 @@ export function Explorer(props: ExplorerProps) {
                   r.named ? "" : "unnamed",
                   r.of === "block" ? "" : r.of,
                   r.of !== "block" && same(section, r.at) ? "picked" : "",
-                  r.of === "block" && picked.includes(r.id) ? "picked" : "",
+                  r.of === "block" && (picked.includes(r.id) || r.id === rooted) ? "picked" : "",
                   lit.includes(r.id) ? "lit" : "",
                   lit.length && !lit.includes(r.id) ? "dim" : "",
                   open === r.id ? "open" : "",
@@ -504,6 +563,7 @@ export function Explorer(props: ExplorerProps) {
                 /** A library row points the tray, a block is picked; marks fold either. */
                 onClick={(e) => {
                   if (r.at) { onSection?.(r.at); return; }
+                  if (r.of === "pack") return;
                   clicked(e, r.id);
                 }}
                 onContextMenu={(e) => {
@@ -534,10 +594,9 @@ export function Explorer(props: ExplorerProps) {
                     title={r.kids ? (shut.includes(r.id) ? "open" : "fold") : undefined}
                     onClick={(e) => { e.stopPropagation();
                                       if (r.kids) onFold(r.id, !shut.includes(r.id)); }}>
-                {/* A row that holds parts fills its own icon; that is what containing looks like. */}
-                <Icon name={MARK[r.mark].icon}
-                      solid={!MARK[r.mark].word && r.of === "block" && r.kids > 0}
-                      size={MARK_SIZE} />
+                {/* A row that holds parts lights its icon while open, as a card does; a fill
+                    would blot a drawn mark like a pilcrow. */}
+                <Icon name={r.icon ?? MARK[r.mark].icon} size={MARK_SIZE} />
               </span>
               {r.of === "pack"
                 ? <span className="label">{r.label}</span>

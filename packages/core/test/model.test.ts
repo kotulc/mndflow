@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { seed } from "@mnd/defs";
 import { FLOOR } from "@mnd/fixtures";
 import { BASE_BLOCKS, ROOT, check, children, config_of, def_named, def_of, default_for,
-         edge_base, open, session,
+         edge_base, holders_in, is_grid, open, session,
          write, type Id, type Session } from "../src/index";
 
 /** A seeded session holding blocks of these names on the root layer. */
@@ -201,20 +201,20 @@ describe("a batch", () => {
 });
 
 describe("a group", () => {
-  it("goes with its last member", () => {
+  it("is a block, and stays when its last member leaves", () => {
     const { s, at } = made("A", "B");
     s.go("group", { members: [at("A"), at("B")] });
     const group = s.graph().blocks[at("A")]!.group!;
     s.go("leave", { ids: [at("A")] });
-    expect(s.graph().holders[group]).toBeDefined();
     s.go("leave", { ids: [at("B")] });
-    expect(s.graph().holders[group]).toBeUndefined();
+    expect(s.graph().blocks[group]).toBeDefined();
+    expect(children(s.graph(), ROOT).map((b) => b.id)).toContain(group);
   });
 
   it("stands when it was made empty", () => {
     const { s } = made();
     s.go("group", { rows: 1, cols: 1 });
-    expect(Object.values(s.graph().holders).some((h) => h.arrangement === "grid")).toBe(true);
+    expect(holders_in(s.graph(), ROOT).some((h) => is_grid(s.graph(), h.id))).toBe(true);
   });
 });
 

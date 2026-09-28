@@ -86,10 +86,6 @@
   cursor: text;
   pointer-events: auto;
 }
-.mnd-group-shell:not(.gridded) .mnd-group-name:empty::before {
-  content: "Group";
-  opacity: 0.45;
-}
 
 /* ---------------------------------------------------------------- the grid */
 
@@ -146,6 +142,33 @@
   background: color-mix(in oklch, var(--accent) 7%, var(--surface));
 }
 
+/* What a cell says where no block sits in it: two lines at most, cut off after. */
+.mnd-grid-value {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 4px 6px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--card-ink);
+}
+.mnd-grid-cell.header > .mnd-grid-value {
+  display: block;
+  margin: 0 6px;
+  font-weight: 700;
+  line-height: 22px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* The left column heads rows, and reads upright in its one unit. */
+.mnd-grid-cell.upright > .mnd-grid-value {
+  margin: 6px 0;
+  max-height: calc(100% - 12px);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
 /* A merged cell is one cell, and its border says so. */
 .mnd-grid-cell.merged {
   border-color: color-mix(in oklch, var(--card-line) 42%, transparent);
@@ -166,10 +189,6 @@
   min-width: 3ch;
   min-height: 1em;
   cursor: grab;
-}
-.mnd-group-shell.gridded .mnd-group-name:empty::before {
-  content: "Grid";
-  opacity: 0.45;
 }
 
 /* Only the corners resize a grid, so edges stay free for dragging. */

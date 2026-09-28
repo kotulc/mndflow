@@ -46,8 +46,8 @@ function typing(el: Element, text: string) {
 
 /** A card says what it is without being read. */
 describe("what a card wears", () => {
-  /** The closed set of system marks: one to a card, and it says what the card stands in for. */
-  const MARKS = ["reference", "definition", "package", "external"];
+  /** The closed set of system marks: what a card stands in for, or what describes it. */
+  const MARKS = ["reference", "definition", "package", "data", "parts"];
   const worn = (view: { container: HTMLElement }) =>
     Array.from(view.container.querySelectorAll(".react-flow__node .mnd-role"),
                (el) => el.getAttribute("data-role"));
@@ -65,23 +65,24 @@ describe("what a card wears", () => {
     expect(view.container.querySelector(".mnd-frame .mnd-role")).toBeTruthy();
   });
 
-  /** The bottom corner is the app's, and it is empty unless the card stands in for something. */
-  it("marks only what a card stands in for", () => {
+  /** The bottom corner is the app's: what a card stands in for, or what describes it. */
+  it("marks only what a card stands in for or holds", () => {
     const view = mount();
     expect(card(view, "block_pump").querySelector(".mnd-mark")).toBeNull();
     expect(card(view, "block_note").querySelector(".mnd-mark")).toBeNull();
-    /** Holding parts is not a mark — the frame holds everything and wears none. */
-    expect(view.container.querySelector(".mnd-frame .mnd-mark")).toBeNull();
+    /** Holding parts is a mark: the frame holds everything, and says so. */
+    expect(view.container.querySelector(".mnd-frame .mnd-mark")?.getAttribute("data-mark"))
+      .toBe("parts");
     expect(stamped(view).every((m) => m !== null && MARKS.includes(m))).toBe(true);
   });
 
-  /** Holding parts fills the card's own icon instead. */
-  it("fills the icon of the layer you are inside", () => {
+  /** Holding parts lights the card's own icon instead. */
+  it("lights the icon of the layer you are inside", () => {
     const view = mount();
-    expect(view.container.querySelector(".mnd-frame .mnd-role svg")?.getAttribute("fill"))
-      .toBe("currentColor");
-    expect(card(view, "block_pump").querySelector(".mnd-role svg")?.getAttribute("fill"))
-      .toBe("none");
+    expect(view.container.querySelector(".mnd-frame .mnd-role")?.hasAttribute("data-holds"))
+      .toBe(true);
+    expect(card(view, "block_pump").querySelector(".mnd-role")?.hasAttribute("data-holds"))
+      .toBe(false);
   });
 
   /** Never the word the mark already says. */

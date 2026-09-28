@@ -1,9 +1,10 @@
 /** The workspace tab: what the root is called, how the drawing defaults, and what its file
- *  carries. */
+ *  carries. Given no `onAct` the workspace itself is read only; its display still answers
+ *  `onDisplay`, since how a drawing looks is the session's and changes nothing. */
 
 import { file_name, packages, SCHEMA, shown_name,
          type Act, type Graph } from "@mnd/core";
-import { Band, Body, Check, Line, Pick } from "./Body";
+import { Band, Body, Check, Line, NOOP, Pick } from "./Body";
 import { Content } from "./Content";
 import { Entry } from "./Entry";
 import { Tags } from "./Tags";
@@ -18,22 +19,28 @@ export type Display = {
    *  corner it keeps it in. */
   legend: boolean;
   corner: "top" | "bottom";
+  /** Whether the lattice draws behind the cards, where the host offers it here. */
+  lattice?: boolean;
+  /** Whether a card that fits its content shows all of it, where the host offers it here. */
+  full?: boolean;
 };
 
 /** The two corners a legend may sit in. Right either way — the left is the crumbs' and the zoom
  *  controls'. */
 const CORNERS = [{ value: "top", word: "top" }, { value: "bottom", word: "bottom" }] as const;
 
-export type WorkspaceProps = { graph: Graph; display?: Display; onAct: Act };
+export type WorkspaceProps = { graph: Graph; display?: Display; onAct?: Act; onDisplay?: Act };
 
-export function Workspace({ graph, display, onAct }: WorkspaceProps) {
+export function Workspace({ graph, display, onAct = NOOP, onDisplay = onAct }: WorkspaceProps) {
   const root = graph.blocks[graph.root];
   if (!root) return <p className="empty">that is not here any more</p>;
 
+  const readonly = onAct === NOOP;
   return (
     <div className="panel workspace">
       <div className="col identity">
         <Band label="identity" />
+        <fieldset className="rows-set" disabled={readonly}>
         <Body>
           <Line label="name" tip="What this workspace is called, as the explorer and a file write it.">
             <Entry key={graph.root} value={root.name ?? ""} label="name" blank
@@ -45,7 +52,8 @@ export function Workspace({ graph, display, onAct }: WorkspaceProps) {
                   onCommit={(to) => onAct("tag", { ids: [graph.root], tags: to })} />
           </Line>
         </Body>
-        {display ? <Drawing display={display} onAct={onAct} /> : null}
+        </fieldset>
+        {display ? <Drawing display={display} onAct={onDisplay} /> : null}
       </div>
 
       <div className="col file">
@@ -66,7 +74,8 @@ export function Workspace({ graph, display, onAct }: WorkspaceProps) {
         </Body>
       </div>
 
-      <Content key={graph.root} graph={graph} id={graph.root} onAct={onAct} />
+      <Content key={graph.root} graph={graph} id={graph.root}
+               {...(readonly ? {} : { onAct })} />
     </div>
   );
 }
@@ -97,6 +106,19 @@ function Drawing({ display, onAct }: { display: Display; onAct: Act }) {
           <Pick name="legend-corner" on={display.corner} of={CORNERS}
                 onPick={(at) => onAct("legend_corner", { at })} />
         </Line>
+        {display.lattice === undefined && display.full === undefined ? null : (
+          <Line label="layer" tip="How every layer draws: the lattice behind its cards, and whether a card shows all it says or a preview of it.">
+            {display.lattice === undefined ? null : (
+              <Check on={display.lattice} word="lattice" tip="Draw the lattice behind every layer"
+                     onPick={(yes) => onAct("lattice", { show: yes })} />
+            )}
+            {display.full === undefined ? null : (
+              <Check on={display.full} word="full content"
+                     tip="Grow a card to show all it says, rather than cut it off at the card height"
+                     onPick={(yes) => onAct("full", { show: yes })} />
+            )}
+          </Line>
+        )}
       </Body>
     </>
   );

@@ -63,11 +63,12 @@ export function legend_of(scene: Scene): Legend {
                           ...(n.data.look ? { look: n.data.look } : {}),
                           ...(n.data.role ? { role: n.data.role } : {}) });
 
-    if (!n.data.mark) continue;
-    const mark = marks.get(n.data.mark);
-    if (mark) mark.count++;
-    else marks.set(n.data.mark, { key: n.data.mark, word: n.data.mark, count: 1,
-                                  about: MARK_MEANING[n.data.mark as Mark] });
+    for (const stamp of n.data.stamps ?? []) {
+      const mark = marks.get(stamp);
+      if (mark) mark.count++;
+      else marks.set(stamp, { key: stamp, word: stamp, count: 1,
+                              about: MARK_MEANING[stamp as Mark] });
+    }
   }
 
   const by_word = (a: Row, z: Row) => a.word.localeCompare(z.word);

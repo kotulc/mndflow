@@ -71,7 +71,6 @@ Graph {
   packages  Record<Id, Package>
   defs      Record<Id, Definition>
   blocks    Record<Id, Block>
-  holders   Record<Id, Holder>
   edges     Record<Id, Relation>
 }
 ```
@@ -80,7 +79,7 @@ Graph {
 
 ### Block
 
-**Everything with content is a block.** Three element kinds exist — a block, a relation and a holder — and every other noun in the model is a block with a different type. **A holder is the one carve-out**: it owns nothing, appears in no tree and is pointed at by nothing, so it was paying a carve-out in every reader that walked the graph.
+**Everything with content is a block.** Two element kinds exist — a block and a relation — and every other noun in the model is a block with a different type. **A group and a grid are blocks too**: what makes one hold is a capability its definition states, never a record of its own.
 
 ```
 Block {
@@ -94,9 +93,9 @@ Block {
                                   // or a package
   source?       string          // where its content lives outside the workspace
 
-  group?        Id                // the holder it sits in — a boundary or a grid
-  cell?         {r, c}            // grid: its address, in place of x/y
-  header?       boolean           // grid: it heads the line it sits in
+  group?        Id                // the group or grid block it sits in, on its own layer
+  cell?         {r, c}            // in a grid: its address, in place of x/y
+  grid?         Grid              // its lattice, where its definition makes it a grid
 
   x?, y?        number            // placement, when hand-laid
   w?, h?        number            // least size, where it has one
@@ -137,44 +136,36 @@ Shelved {
 | `block` | parts and references | the base kind, and the one every ordinary block is. What there is, how it is composed, and what it does |
 | `reference` | nothing | a stand-in for a block living elsewhere. `of` is the whole of it |
 | `interface` | anything | a block seated on an edge. The one anchor for every port-like thing — a proxy port, a full port, a pin, a constraint parameter |
-| `group` | any block on its layer | a boundary round a set — a swimlane, a region, a package boundary. **A holder, not a block** |
-| `grid` | any block, one to a cell | a region of the lattice with an extent. **A holder, not a block** |
+| `group` | any block on its layer, groups among them, as members | a boundary round a set — a swimlane, a region, a package boundary. The plain block with `allows.holder: group` |
+| `grid` | any block but a holder, one to a cell, as members | a region of the lattice with an extent. The plain block with `allows.holder: grid` |
 | `note` | text | a remark about one block, drawn as a card of its text and tied to it |
 
-**Seven kinds, in two families.** `block`, `folder` and `note` are **open** — they are the plain block module with different configuration, so `retype` swaps among them and among any of their subtypes. `reference` and `interface` are **derived**: each carries a stored field a change of type cannot invent, so one is made rather than retyped into, and subtyping such a kind means making one and customizing it. `group` and `grid` name **holder shapes**, and ship a look rather than a module.
+**Seven kinds, in two families.** `block`, `folder`, `note`, `group` and `grid` are **open** — they are the plain block module with different configuration, so `retype` swaps among them and among any of their subtypes. `reference` and `interface` are **derived**: each carries a stored field a change of type cannot invent, so one is made rather than retyped into, and subtyping such a kind means making one and customizing it. **Any definition may hold**: `group` and `grid` are presets of the capability, not the only way to it.
 
 **There is no untyped block.** A block naming no definition *is* a `block` — the field being absent is how a file stays small, never a second sort of thing, and every reader resolves it to the kind's own definition. `view` is reserved rather than shipped.
 
-**`Arrangement`** — `free` · `grid`. **One setting, two values.** `free` is hand placement, rounded to the lattice; `grid` is auto-layout, which ignores stored positions and works a box out for every loose block from the relationships and the sizes. **The four directional values are gone** — they ranked by relationships and drew a picture of the graph rather than of the model. **Model data, not a preference**: how a layer lays out is part of what the layer says, so a diagram reopens the way it was left and travels in a file with the rest of it.
+**`Arrangement`** — `free` · `auto`. **One setting, two values.** `free` is hand placement, rounded to the lattice; `auto` is auto-layout, which ignores stored positions and works a box out for every loose block from the relationships and the sizes. **The four directional values are gone** — they ranked by relationships and drew a picture of the graph rather than of the model. **Model data, not a preference**: how a layer lays out is part of what the layer says, so a diagram reopens the way it was left and travels in a file with the rest of it.
 
-**Membership is not parenthood.** `parent` says which layer a block is in; `group` says which holder on that layer it sits in. Only the first is the tree, which is why deleting a group frees what it held rather than taking it along. **A group goes with its last member**, and is empty only when it was made empty.
+**Membership is not parenthood.** `parent` says which layer a block is in; `group` says which group or grid on that layer it sits in. Only the first is the tree, which is why deleting a holder frees what it held rather than taking it along. **A holder has no lifetime rules**: emptied, it stays until it is deleted.
 
-**A header is a flag, and position says which line it heads** — row 0 heads its column, `{0,0}` heads both, anything else heads its row. Nothing stores the role, so a block dragged into row 0 becomes a column head and `transpose` needs no header code at all.
-
-### Holder
+### Grid
 
 ```
-Holder {
-  id            Id
-  parent        Id                // the layer it is drawn in
-  name?         string
-  of?           Id                // the block this region stands for
-  group?        Id                // a holder may sit in another
-  arrangement   "free" | "grid"
-  rows?, cols?  number            // grid only: its extent
-  merges?       Span[]            // grid only: cells with an extent of their own
-  x?, y?        number            // grid only: its corner
-  order?        number
-  alias?        number
-  looks?        Components
+Grid {
+  rows, cols    number            // its extent; unsaid, it draws two by two
+  head?         {top?, left?}     // which outer lines head the rest
+  merges?       Span[]            // cells with an extent of their own
+  values?       string[][]        // a plain value per cell, by row then column
+  schema?       Id                // the definition whose fields head its columns
+  size?         {w, h}            // one cell's size in units, where not a card's
 }
 ```
 
-**A holder is not a block**, and that is the whole of why it is its own record: nothing points at one, no tree lists one, relations refuse them as ends, and deleting one loses an arrangement rather than any content. Every reader that walked the graph was already carving them out.
+**A holder is a block with a capability.** `allows.holder` on its definition says `group`, `grid` or `none`; everything else about it — name, type, relations, children, tree, deletion — is a block's. **A block that stops holding keeps what it held, dormant**: its members' `group` and `cell` wait for the capability to come back.
 
-**One kind, two shapes.** `arrangement` says which: `free` derives its bounds from what it holds, `grid` owns a corner and an extent. **Membership is stored on the block**, so a holder's members are derived and the two can never disagree; a deleted block takes its seat with it.
-
-**A holder carries no definition**, only a look — the one its shape ships in the `base` package. **A cell seats one card and a holder is not a card**, which is why grids do not nest and free holders do.
+- **Only groups nest.** A group may sit in a group; a grid sits in nothing and its cells seat no holder.
+- **A grid's member always sits in a cell.** One with no cell to go to leaves the grid; it is never a member with nowhere to be.
+- **Headers are lines.** `head.top` makes the top row head the columns and `head.left` the left column head the rows, the corner both. **A header line is one unit across** and holds a label or a reference to a block — never a block of its own.
 
 ### Package
 
@@ -284,7 +275,7 @@ FieldDef { name, form, unit?, default?, choices?, many?, tags? }
 | `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height` |
 | `style` | slot and emphasis, weight and voice — never a colour, a pixel count or a font |
 | `line` | how a run draws |
-| `allows` | `ports`, `holds`, `members`, `degree`, `ends` — refused at the gesture |
+| `allows` | `ports`, `holds`, `holder`, `members`, `degree`, `ends` — refused at the gesture |
 | `expects` | `required`, `match` — advice, never a refusal |
 
 - **A component owns its key and reads no other's.**
@@ -328,9 +319,9 @@ Step {
 | `set_alias` · `set_counter` · `set_pinned` | handles, and the pinned list |
 | `set_shelf` | the whole shelf, in order: the definition folders, and what sits in them |
 | `set_body` | body text |
-| `set_group` | which holder a block sits in, or none |
-| `seat_cell` · `set_header` | a grid address, and whether the block heads its line |
-| `set_holder` · `drop_holder` | a holder, made or replaced whole, and removed |
+| `set_group` | which group or grid a block sits in, or none |
+| `seat_cell` | a block's address in its grid |
+| `set_grid` | a grid's lattice, written whole, or given back |
 | `set_package` · `drop_package` | a package, and what it brought going with it |
 | `set_source` | where a block's content came from |
 | `link_blocks` · `update_edge` · `delete_edge` | make, retype, remove a relation |
@@ -353,12 +344,12 @@ Step {
 |---|---|
 | **tree** | exactly one root, `parent: null` only there. No cycles — a block cannot contain itself |
 | **ends** | a relation's `from` and `to` both name blocks that exist, or it is dropped |
-| **holders** | a cell holds one block; an address names a cell inside its grid; no merge crosses another. **Every repair frees the block rather than deleting it** |
+| **holders** | a member sits on its holder's layer, in something that may hold it; a grid's member sits in one cell of its own, inside the extent; no merge crosses another or a header line. **Every repair frees the block rather than deleting it** |
 | **references** | `of` names a block, or the reference reads **missing** and is kept |
 | **definitions** | a write to a shipped definition is dropped; `extends` names something there; only readable components; a default only for its own kind, and one per kind; a workspace definition extending nothing is pointed at its base |
 | **components** | each key validated by its own component; an unknown component is left alone, an unknown key within a claimed one is dropped |
 | **modules** | a module the build does not know **falls back to the base block and says so**. Falling back silently is the one thing to avoid |
-| **holders** | a holder drawn in a layer that is not there is dropped; a block seated in a holder that is not there is freed |
+| **lattices** | a grid's values, schema and cell size say no more than its extent can carry |
 | **packages** | two packages sharing a name is repaired by renaming the later one — what it brought is still wanted |
 | **names** | unique among siblings. Only stored labels compare — a fallback is a number nobody chose |
 
@@ -385,6 +376,7 @@ review(graph, scope?)    -> Note[]     // does it say what was asked? advice, an
 allows {
   ports?   false | true | Id[]                           // may seat interfaces
   holds?   false | true | Id[]                           // what it may own as children
+  holder?  "none" | "group" | "grid"                     // whether it holds on its layer, and how
   members? false | true | Id[]                           // what a holder may take
   degree?  { in?: {min?,max?}; out?: {min?,max?} }       // how many relations may meet it
   ends?    { from?: Id[]; to?: Id[]; fromFlow?; toFlow? } // who may sit at each end
@@ -396,14 +388,16 @@ expects {
 }
 ```
 
-**Four settings, not a boolean**: absent inherits from the chain, `false`/`[]` is none, `true` is any, `[ids]` is those definitions or anything below them.
+**Four settings, not a boolean**: absent inherits from the chain, `false`/`[]` is none, `true` is any, `[ids]` is those definitions or anything below them. `holder` is the one that names a shape instead, and is absent, `none`, `group` or `grid`.
+
+**Capabilities are a definition's.** Its element tab edits them in a section of their own, as radio answers — inherit, or one stated here — and a block shows none, since it follows its definition's.
 
 **Enforcement follows from the split** rather than being a policy anybody has to remember. `allows` is about structure, so a gesture that would break it is never offered. `expects` is about values, so a half-filled model is noted and never refused.
 
 - **A capability naming a definition means it or anything below it.** Matching walks the `extends` chain, so one written once reaches every subtype.
 - **Both merge along the chain, nearest first, per key.** A subtype restating one key leaves the others in force — the same cascade every component follows.
 - **`degree` counts every relationship meeting a usage**, wherever it is drawn. It is about the thing, never about the layer somebody is looking at.
-- **`allows.holds` is the only containment rule there is.** The engine owns none of its own any more; what may contain what is data, and is refused here.
+- **`allows.holds` is the only rule about *which* types may contain which.** The engine owns no taxonomy of its own any more; what may contain what is data, and is refused here. **A kind that holds nothing is not a rule about containment but a fact about the kind** — a reference is `of` and a note is text, so `may_hold` refuses a block into either before it reads any vocabulary.
 - **A malformed capability is ignored, never thrown on**, the same way a component validates its own key and no other.
 
 **`expects` advises while modelling and refuses only at translation.** A violation is a note in the tray; a translator asks the same checks as it emits, and that is where a note becomes a refusal. **`allows` never gets that far** — the gesture that would break it is not offered.
@@ -419,10 +413,11 @@ expects {
 | **project** | a top-level block under the workspace root |
 | **contained vs owned** | whether the child is a graph root |
 | **container** | holding child blocks |
+| **whether a block holds** | its definition's `allows.holder` |
 | **a group's members** | the blocks naming it in `group` |
 | **a grid's cells** | its extent and its merges. An empty cell is an address nobody claimed |
-| **which line a header heads** | where it sits — row 0 heads a column, the corner both, anything else its row |
-| **allocation** | position. Every block along the lines a header covers, from where the header sits onward |
+| **which line a header heads** | its grid's header lines — the top row heads a column, the left column a row, the corner both |
+| **allocation** | position. A body block is allocated to what its row and column headers stand for, and to every holder it sits in |
 | **a relation's module** | whether a note sits at an end |
 | **seats and routes** | the layer, every draw |
 | **what refers to a block** | asked of the graph in scope; never a back-reference |
@@ -455,6 +450,7 @@ expects {
 |---|---|
 | a block cannot contain itself | the tree would not terminate |
 | a holder cannot hold something that holds it | membership would not terminate |
+| **only groups nest** | a cell seats one card, and a grid in a band had no layout to answer to |
 | **a cell holds one block** | two sharing a cell leaves *what is allocated to this row* without an answer |
 
 - **What a drop arrives as**, and there are only two answers:
@@ -465,14 +461,14 @@ expects {
   | here | a **part** |
 
 - **A reference points at what it stands for, and nothing points back.** Upward is a derived query, asked of the graph, because a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
-- **Nesting is one rule.** A cell seats one card and a holder is not a card, so a grid inside a swimlane is ordinary and a grid inside a grid is not.
+- **Nesting is one rule.** A group may sit in a group; a grid sits in nothing, and its cells seat no holder.
 
 **The seven base kinds read in three groups:**
 
 | | Kinds | Role |
 |---|---|---|
 | **the block** | `block`, `folder` | owns a tree. What a usage of it *means* is its definition's |
-| **holder shapes** | `group`, `grid` | hold blocks on one layer without owning them, as their own element kind |
+| **holders** | `group`, `grid` | a block that also holds blocks on its own layer without owning them — the preset of a capability any definition may state |
 | **accessories** | `reference`, `interface`, `note` | own no tree of parts |
 
 **Everything else about containment is the user's**, and a vocabulary that wants more says so in `allows.holds`.
