@@ -142,6 +142,21 @@
   background: color-mix(in oklch, var(--accent) 7%, var(--surface));
 }
 
+/* A header allocating a block definition reads as a block: a card's edge inside its cell. */
+.mnd-grid-cell.allocated {
+  border: 1px solid var(--card-line);
+  border-radius: 3px;
+  background: color-mix(in oklch, var(--card-line) 10%, var(--surface));
+}
+
+/* The key column's header wears a key, in its corner. */
+.mnd-grid-key {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  color: var(--muted);
+}
+
 /* What a cell says where no block sits in it: two lines at most, cut off after. */
 .mnd-grid-value {
   display: -webkit-box;

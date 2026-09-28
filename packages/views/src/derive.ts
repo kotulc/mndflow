@@ -74,8 +74,9 @@ export function listed(graph: Graph, id: Id): Listed[] {
   const schema = schema_of(graph, b.type);
   const extra = own.filter((f) => !schema.some((s) => s.name === f.name));
   return [...schema, ...extra].map(({ name, form }) => {
-    const value = own.find((f) => f.name === name)?.value;
-    return { name, form, ...(value ? { value } : {}) };
+    const mine = own.find((f) => f.name === name);
+    return { name, form, ...(mine?.value ? { value: mine.value } : {}),
+             ...(mine?.key ? { key: true } : {}) };
   });
 }
 

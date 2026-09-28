@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useReactFlow, useStore } from "@xyflow/react";
 import type { Id } from "@mnd/core";
-import { box_of, extent, type BoxNode, type Frame, type Scene } from "@mnd/views";
+import { box_of, extent, FRAME, type BoxNode, type Frame, type Scene } from "@mnd/views";
 import { BAND, FIT, FLIGHT, met_on, MIN_ZOOM, panelled, scroll_zoom, still } from "./arrays";
 
 
@@ -56,14 +56,15 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
    *  with nothing in focus. */
   const settle = useCallback((duration: number) => {
     if (scroll) {
-      const room = frame ?? extent(scene);
-      const page = extent(scene);
-      // With nothing in focus, the whole room is.
+      /** What is drawn, without the room round it. */
+      const page = extent({ ...scene, frame: undefined,
+                            nodes: scene.nodes.filter((n) => n.id !== FRAME) });
+      // With nothing in focus, the whole drawing is — not its room, which is grown to the panel.
       const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
-      const box = on ? box_of(on) : room;
+      const box = on ? box_of(on) : page;
       // The page is `reach` wide, or wide enough for the focus where that is wider, up to `widest`.
-      const w = Math.min(Math.max(reach ?? room.w, box.w), widest ?? Infinity);
-      const zoom = scroll_zoom(w, box, seen, widest);
+      const w = Math.min(Math.max(reach ?? page.w, box.w), widest ?? Infinity);
+      const zoom = scroll_zoom(w, on ? box : null, seen, widest);
       // The focus is centred; with none, a page taller than the view is read from its top.
       const y = on || box.h * zoom <= seen.h - BAND * 2
         ? seen.h / 2 - (box.y + box.h / 2) * zoom

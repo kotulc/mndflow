@@ -137,8 +137,11 @@ function lattice(graph: Graph, id: Id): GridCell[] {
   const g = lattice_of(graph, id)!;
   const seated = new Set<string>();
   for (const b of members_of(graph, id)) if (b.cell) seated.add(`${b.cell.r},${b.cell.c}`);
-  /** A schema heads the first line with its fields' names. */
-  const names = g.schema ? schema_of(graph, g.schema).map((f) => f.name) : null;
+  /** Allocated columns head the first line with their definitions' names, or a schema with its
+   *  fields'. The key column is the one the grid's own field marks. */
+  const names = g.columns ? g.columns.map((def) => graph.defs[def]?.name ?? "")
+    : g.schema ? schema_of(graph, g.schema).map((f) => f.name) : null;
+  const key = graph.blocks[id]?.fields?.findIndex((f) => f.key) ?? -1;
   const said = (r: number, c: number) =>
     seated.has(`${r},${c}`) ? undefined : names && r === 0 ? names[c] : g.values?.[r]?.[c];
   const out: GridCell[] = [];
@@ -152,7 +155,9 @@ function lattice(graph: Graph, id: Id): GridCell[] {
       if (role || (names && r === 0)) marks.push("header");
       if (role === "row") marks.push("upright");
       const value = said(r, c);
-      out.push({ r, c, ...cell_box(g, r, c), marks, ...(value ? { value } : {}) });
+      const def = r === 0 ? g.columns?.[c] : undefined;
+      out.push({ r, c, ...cell_box(g, r, c), marks, ...(value ? { value } : {}),
+                 ...(def ? { def } : {}), ...(r === 0 && c === key ? { key: true } : {}) });
     }
   }
   return out;

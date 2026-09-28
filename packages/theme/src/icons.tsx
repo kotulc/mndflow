@@ -106,6 +106,8 @@ const PATHS = {
   // same body with the shackle sprung, which is the *not that* of it.
   locked: "M7.5 10.5v-2a4.5 4.5 0 0 1 9 0v2M5.5 10.5h13v9h-13z",
   unlocked: "M7.5 10.5v-2a4.5 4.5 0 0 1 9 0M5.5 10.5h13v9h-13z",
+  /** What names each line of a table: a bow, and a bit along the shaft. */
+  key: "M8 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7M11.5 12h9M17.5 12v3M20.5 12v2.5",
 
   // Whether a thing writes its name on itself. A tag on a card, and the same
   // tag struck through.

@@ -434,6 +434,7 @@
                                     white-space: nowrap; }
 .mnd-field-form { color: var(--muted); font-style: italic; }
 .mnd-field-more { color: var(--muted); }
+.mnd-field-key { flex: none; align-self: center; color: var(--muted); }
 
 /* Its body, formatted: the room a card has, and no more. */
 .mnd-body {

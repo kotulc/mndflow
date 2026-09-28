@@ -7,7 +7,7 @@ import type { Perch } from "./seat";
 
 /** What one drawn thing carries beyond where it sits and how big it is. */
 /** One line of a card's compartment. A schema line has a form and no value. */
-export type Listed = { name: string; form: string; value?: string };
+export type Listed = { name: string; form: string; value?: string; key?: boolean };
 
 export type BoxData = {
   /** The mark a thing wears beside its name while nobody has named it. */
@@ -65,6 +65,10 @@ export type GridCell = {
   /** What the cell says where no block is seated in it: a value, or its column's name on a line
    *  the grid's schema heads. */
   value?: string;
+  /** On the header line: the block definition its column allocates, and whether its column is
+   *  the key that names each line. */
+  def?: Id;
+  key?: boolean;
 };
 
 /** What one line carries; routing is the renderer's. */

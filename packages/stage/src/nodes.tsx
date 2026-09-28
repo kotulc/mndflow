@@ -56,7 +56,8 @@ function seen(p: NodeProps<BoxNode>): string {
     d.body ?? "",
     /** Read off the look, so no property is forgotten. */
     look_key(d.look),
-    d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}${c.value ?? ""}`).join(","),
+    d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}${c.value ?? ""}`
+      + `${c.def ?? ""}${c.key ? "key" : ""}`).join(","),
     d.seats?.map((t) => `${t.id}${t.side}${t.at}`).join(","),
   ].join("|");
 }
@@ -229,6 +230,7 @@ function CardNode({ id, data, selected, height }: NodeProps<BoxNode>) {
           {kept!.map((f) => (
             <li key={f.name} title={`${f.name}: ${f.value ?? f.form}`}>
               <span className="mnd-field-name">{f.name}</span>
+              {f.key ? <Icon name="key" size={12} className="mnd-field-key" /> : null}
               {f.value === undefined
                 ? <span className="mnd-field-form">{f.form}</span>
                 : <Inline className="mnd-field-value" text={f.value} />}
@@ -351,7 +353,7 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
       {cells.map((c) => (
         /** `nopan` because a sweep across cells is not a drag of the canvas. */
         <span key={`${c.r},${c.c}`}
-              className={["mnd-grid-cell", "nopan", ...c.marks,
+              className={["mnd-grid-cell", "nopan", ...c.marks, c.def ? "allocated" : "",
                           held(c) ? "picked" : ""].filter(Boolean).join(" ")}
               data-at={`${c.r},${c.c}`}
               data-r={c.r}
@@ -360,8 +362,9 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
               onPointerEnter={(e) => {
                 if (e.buttons === 1 && from.current) pick(range(from.current, c));
               }}>
-          {/* What the cell says, where no block sits in it. */}
+          {/* What the cell says, where no block sits in it; the key column says so. */}
           {c.value ? <Inline className="mnd-grid-value" text={c.value} /> : null}
+          {c.key ? <Icon name="key" size={12} className="mnd-grid-key" /> : null}
         </span>
       ))}
     </span>
