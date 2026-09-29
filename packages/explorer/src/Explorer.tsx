@@ -266,6 +266,42 @@ function seam(e: React.DragEvent): "in" | "above" | "below" {
   return at < 0.3 ? "above" : at > 0.7 ? "below" : "in";
 }
 
+/** Where a row made under `at` reads: after the last row of its branch, one step in. */
+function after(rows: readonly Row[], at: Id) {
+  const i = rows.findIndex((r) => r.id === at);
+  if (i < 0) return { index: rows.length, depth: 0 };
+  let j = i + 1;
+  while (j < rows.length && rows[j]!.depth > rows[i]!.depth) j++;
+  return { index: j, depth: rows[i]!.depth + 1 };
+}
+
+/** A row being named before it exists: enter makes it, escape or leaving drops it. */
+function Draft({ icon, word, depth, onDone }: {
+  icon: IconName; word: string; depth: number; onDone: (label: string | null) => void;
+}) {
+  /** Settled once, so the blur that follows enter drops nothing. */
+  const settled = useRef(false);
+  const done = (label: string | null) => {
+    if (settled.current) return;
+    settled.current = true;
+    onDone(label);
+  };
+
+  return (
+    <li className="draft" style={{ paddingLeft: 8 + depth * STEP }}>
+      <span className="mark"><Icon name={icon} size={MARK_SIZE} /></span>
+      <input className="label" autoFocus spellCheck={false} placeholder={word}
+             aria-label={`name the ${word}`}
+             onKeyDown={(e) => {
+               e.stopPropagation();
+               if (e.key === "Enter") done(e.currentTarget.value.trim() || word);
+               else if (e.key === "Escape") done(null);
+             }}
+             onBlur={() => done(null)} />
+    </li>
+  );
+}
+
 /** The layer a drop would join: the row itself when it lands *in* it, its holder when it lands
  *  beside it. */
 function landing(graph: Graph, over: { id: Id; where: "in" | "above" | "below" } | null) {
@@ -339,6 +375,8 @@ export function Explorer(props: ExplorerProps) {
   const grip = useRef<{ x: number; w: number } | null>(null);
   /** The row being renamed in place. */
   const [naming, set_naming] = useState<Id | null>(null);
+  /** A block or folder being named in place, before it is made. */
+  const [draft, set_draft] = useState<{ parent: Id; type?: string } | null>(null);
   /** Whether the folds are held: the arrows still open the way they walk, and shut nothing. */
   const [held, set_held] = useState(false);
   /** What is in hand off the workspace's shelf: definitions or folders to file. */
@@ -542,10 +580,15 @@ export function Explorer(props: ExplorerProps) {
 
   const add = (type?: string) => {
     if (library) { add_def(type === "folder"); return; }
-    const label = prompt(type === "folder" ? "name the folder" : "name the block");
-    if (label === null) return;
-    onAct("create", { name: label, parent: target, type });
+    // A draft row opens where it goes, its branch unfolded to show it.
+    if (folded.includes(target)) onFold(target, false);
+    set_draft({ parent: target, ...(type ? { type } : {}) });
   };
+
+  /** The draft's slot in the tree, drawn in the rows' own order. */
+  const slot = draft ? after(rows, draft.parent) : null;
+  const lines: (Row | null)[] = slot ? [...rows.slice(0, slot.index), null,
+    ...rows.slice(slot.index)] : rows;
 
   /** On the shelf, the bar adds a definition or a folder where the library is pointed. */
   const add_def = (folder: boolean) => {
@@ -609,7 +652,16 @@ export function Explorer(props: ExplorerProps) {
       </div>
 
         <ul className="tree">
-          {rows.map((r) => (
+          {lines.map((r) => (!r ? (
+            <Draft key="draft" icon={draft?.type === "folder" ? "role_folder" : "role_leaf"}
+                   word={draft?.type ?? "block"} depth={slot!.depth}
+                   onDone={(label) => {
+                     set_draft(null);
+                     if (label !== null && draft) {
+                       onAct("create", { name: label, parent: draft.parent, type: draft.type });
+                     }
+                   }} />
+          ) : (
             <li key={r.id}
                 className={[
                   r.depth ? "" : "top",
@@ -736,7 +788,7 @@ export function Explorer(props: ExplorerProps) {
                 <Fold self={r.id} kin={sections.folds.get(r.id) ?? []} folded={folded} onFold={onFold} />
               )}
             </li>
-          ))}
+          )))}
           <li className={`floor${out ? " out" : ""}`}
               onClick={() => onPick([])}
               onContextMenu={(e) => { e.preventDefault(); onPick([]);

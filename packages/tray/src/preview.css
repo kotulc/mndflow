@@ -25,9 +25,6 @@
   pointer-events: none;
 }
 
-.preview-role[data-role="note"] { color: var(--note-dim); }
-.preview-role[data-role="reference"] { color: var(--away); opacity: 0.85; }
-
 .preview-head {
   display: flex;
   flex: 1;

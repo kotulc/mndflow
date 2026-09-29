@@ -380,7 +380,7 @@ function made_at(scene: Scene, at: { x: number; y: number }) {
 }
 
 /** The hover look, as a style rule so lighting never rebuilds the arrays. */
-function lit_rules(ids: readonly string[]): string {
+export function lit_rules(ids: readonly string[]): string {
   const at = (kind: string, inner: string) =>
     ids.map((id) => `.react-flow [data-testid="rf__${kind}-${CSS.escape(id)}"]${inner}`).join(",");
   return [`${at("node", "")} { outline: 2px solid var(--accent); outline-offset: 2px; }`,

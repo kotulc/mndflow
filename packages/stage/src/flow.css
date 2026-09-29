@@ -160,8 +160,6 @@
   color: var(--text);
   pointer-events: none;
 }
-/* A note's icon agrees with the note it sits on. */
-.mnd-role[data-role="note"] { color: var(--note-dim); }
 /* A card holding blocks lights its icon: the colour, and only that, says so. */
 .mnd-role[data-holds] { color: var(--accent); }
 

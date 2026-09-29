@@ -161,6 +161,18 @@
 .explorer .tree .mark.on, .explorer .tree .mark.shut { color: var(--accent); cursor: pointer; }
 .explorer .tree .label { overflow: hidden; text-overflow: ellipsis; }
 
+/* A row being named before it is made: the name typed where it will read. */
+.explorer .tree li.draft input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 2px;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--accent);
+  outline: none;
+}
+
 /* An unnamed row reads quietly. */
 .explorer .tree li.unnamed .label { opacity: 0.6; font-style: italic; }
 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { is_container, type Graph, type Id } from "@mnd/core";
 import { class_def, fields_graph, project, set_card, set_full, type Config } from "@mnd/views";
-import { Crumbs, FlowView, Legend, type Corner, type Gesture } from "@mnd/stage";
+import { Crumbs, FlowView, Legend, lit_rules, type Corner, type Gesture } from "@mnd/stage";
 
 /** Nothing picked, as one constant so it never reads as a change. */
 const NONE: readonly Id[] = [];
@@ -14,6 +14,8 @@ export type ViewerProps = {
   layer?: Id | null;
   /** Which blocks are lit, without moving the layer. */
   picked?: readonly Id[];
+  /** What another surface is pointing at, drawn in the hover look; never a pick. */
+  lit?: readonly Id[];
   config?: Config;
   /** The default card, in units of the lattice. The layout's own default unless said. */
   card?: { w: number; h: number };
@@ -64,7 +66,7 @@ export type ViewerProps = {
   onTrail?: (id: string | null) => void;
 };
 
-export function Viewer({ graph, layer = null, picked = NONE, config, card, full = false, chrome,
+export function Viewer({ graph, layer = null, picked = NONE, lit: pointed = NONE, config, card, full = false, chrome,
                         onLook, onPick, onOpen, onFollow, fields = null, onFields, scroll = false,
                         focus = null, reach = null, widest = null, most = null, trail = null,
                         onTrail }: ViewerProps) {
@@ -117,12 +119,15 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
   };
 
   const flow = (
-    /** A view of its own, so the camera frames each afresh: a room is kept per layer, and the
-     *  diagram's is not the contents'. */
-    <FlowView key={drawn ? "diagram" : "contents"} scene={scene} picked={lit}
-      lattice={chrome?.lattice ?? true} frame={chrome?.frame ?? true} scroll={scroll}
-      focus={focus} reach={reach} widest={widest} most={most}
-      onGesture={gesture} onPick={pick} />
+    <>
+      {pointed.length ? <style>{lit_rules(pointed)}</style> : null}
+      {/* A view of its own, so the camera frames each afresh: a room is kept per layer, and the
+          diagram's is not the contents'. */}
+      <FlowView key={drawn ? "diagram" : "contents"} scene={scene} picked={lit}
+        lattice={chrome?.lattice ?? true} frame={chrome?.frame ?? true} scroll={scroll}
+        focus={focus} reach={reach} widest={widest} most={most}
+        onGesture={gesture} onPick={pick} />
+    </>
   );
   if (!chrome?.crumbs && !chrome?.legend && !onFields) return flow;
 
