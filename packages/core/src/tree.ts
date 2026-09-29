@@ -1,6 +1,6 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import type { Arrangement, Block, Graph, Id, Relation } from "./types";
+import type { Arrangement, Block, Definition, Graph, Id, Relation } from "./types";
 
 
 /** Every block under this one, itself included. */
@@ -91,6 +91,13 @@ export function stands_for(graph: Graph, id: Id): Block | null {
 export function previewed(graph: Graph, id: Id): Id {
   const target = graph.blocks[id]?.of ? stands_for(graph, id) : null;
   return target && target.id !== id ? target.id : id;
+}
+
+/** The definition a stand-in stands for, where it stands for one: it draws as that definition's
+ *  usages do. */
+export function stood_def(graph: Graph, id: Id): Definition | undefined {
+  const of = graph.blocks[id]?.of;
+  return of ? graph.defs[of] : undefined;
 }
 
 /** The number a new sibling takes: one past the last. */

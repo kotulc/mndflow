@@ -31,6 +31,8 @@ export type BoxData = {
   fields?: readonly Listed[];
   /** What it says, as markdown, where its look asks for its body. */
   body?: string;
+  /** The image its source points at, where its look asks for a preview. */
+  preview?: string;
   /** The lattice a grid draws, as boxes inside its own. */
   grid?: readonly GridCell[];
   /** Whom a boundary is drawn round. */

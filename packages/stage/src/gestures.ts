@@ -78,4 +78,6 @@ export type FlowViewProps = {
   /** The most a scrolled view ever takes in across, in drawing units: however wide the drawing
    *  or its focus, the camera zooms out no further. Unbounded unless said. */
   widest?: number | null;
+  /** The most a scrolled view ever magnifies: the reading zoom unless said. */
+  most?: number | null;
 };

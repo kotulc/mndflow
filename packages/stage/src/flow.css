@@ -412,7 +412,7 @@
 }
 
 /* The divider: drawn only under a head, since a card that is its body alone has nothing over it. */
-.mnd-head + .mnd-fields, .mnd-head + .mnd-body {
+.mnd-head + .mnd-fields, .mnd-head + .mnd-body, .mnd-head + .mnd-preview {
   margin-top: 1px;
   padding-top: 3px;
   border-top: 1px solid currentColor;
@@ -435,6 +435,15 @@
 .mnd-field-form { color: var(--muted); font-style: italic; }
 .mnd-field-more { color: var(--muted); }
 .mnd-field-key { flex: none; align-self: center; color: var(--muted); }
+
+/* Its image, filling the room a card has below its name. */
+.mnd-preview {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: cover;
+}
 
 /* Its body, formatted: the room a card has, and no more. */
 .mnd-body {

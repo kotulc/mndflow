@@ -25,6 +25,8 @@ export type ViewerProps = {
     crumbs?: boolean;
     /** The ruled lattice behind the cards. On unless turned off. */
     lattice?: boolean;
+    /** The open layer's border and name. On unless turned off. */
+    frame?: boolean;
     /** The key to what the layer draws, and which right-hand corner it keeps to. */
     legend?: boolean;
     corner?: Corner;
@@ -53,11 +55,19 @@ export type ViewerProps = {
   reach?: number | null;
   /** The most a scrolled layer ever takes in across, in drawing units: unbounded unless said. */
   widest?: number | null;
+  /** The most a scrolled layer ever magnifies: the reading zoom unless said. */
+  most?: number | null;
+  /** The crumbs' trail, where the host draws a projection whose layers are not the graph's own:
+   *  its steps, outermost first. The layer's own trail unless said. */
+  trail?: readonly { id: string; label: string }[] | null;
+  /** Told a step of a host's trail picked, or null to go up one. */
+  onTrail?: (id: string | null) => void;
 };
 
 export function Viewer({ graph, layer = null, picked = NONE, config, card, full = false, chrome,
                         onLook, onPick, onOpen, onFollow, fields = null, onFields, scroll = false,
-                        focus = null, reach = null, widest = null }: ViewerProps) {
+                        focus = null, reach = null, widest = null, most = null, trail = null,
+                        onTrail }: ViewerProps) {
   const [at, set_at] = driven<Id | null>(layer);
   const [lit, set_lit] = driven<readonly Id[]>(picked);
 
@@ -110,8 +120,8 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
     /** A view of its own, so the camera frames each afresh: a room is kept per layer, and the
      *  diagram's is not the contents'. */
     <FlowView key={drawn ? "diagram" : "contents"} scene={scene} picked={lit}
-      lattice={chrome?.lattice ?? true} scroll={scroll} focus={focus}
-      reach={reach} widest={widest}
+      lattice={chrome?.lattice ?? true} frame={chrome?.frame ?? true} scroll={scroll}
+      focus={focus} reach={reach} widest={widest} most={most}
       onGesture={gesture} onPick={pick} />
   );
   if (!chrome?.crumbs && !chrome?.legend && !onFields) return flow;
@@ -123,10 +133,11 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
     <section className="stage" style={{ position: "relative", width: "100%", height: "100%",
                                         minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       {chrome?.crumbs ? (
-        <Crumbs trail={scene.trail} onAct={(name, args) => {
+        <Crumbs trail={trail ?? scene.trail} onAct={(name, args) => {
           if (name !== "open") return;
           const id = args?.id === undefined ? undefined : String(args.id);
-          if (id === undefined) look(at ? graph.blocks[at]?.parent ?? null : null);
+          if (trail) onTrail?.(id ?? null);
+          else if (id === undefined) look(at ? graph.blocks[at]?.parent ?? null : null);
           else look(id === graph.root ? null : id);
         }} />
       ) : null}
@@ -144,8 +155,8 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
   );
 }
 
-/** What a double-click opens a card by. */
-const OPENS: readonly Gesture["kind"][] = ["box", "name", "brim"];
+/** What a double-click opens a card by: a group's band among them. */
+const OPENS: readonly Gesture["kind"][] = ["box", "name", "brim", "band"];
 
 /** A value the host may drive: the viewer's own until the host sets it. */
 function driven<T>(sent: T): [T, (next: T) => void] {

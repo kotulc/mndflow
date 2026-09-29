@@ -193,8 +193,10 @@ const card: Component = {
      *  the whole card. */
     ?? one_of("card.body", config["body"], SHOWN)
     ?? one_of("card.name", config["name"], SHOWN)
+    /** `preview` shows the image the block's source points at under the divider. */
+    ?? one_of("card.preview", config["preview"], SHOWN)
     ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "fields",
-                              "body", "name"]),
+                              "body", "name", "preview"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings. */

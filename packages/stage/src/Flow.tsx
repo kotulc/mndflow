@@ -26,7 +26,8 @@ export { DRAGGED };
 function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
           said, chrome = true, lattice = false, frame: framed = true,
-          scroll = false, focus = null, reach: wide = null, widest = null } = props;
+          scroll = false, focus = null, reach: wide = null, widest = null,
+          most = null } = props;
   const flow = useReactFlow();
   /** What a double-click's first click was on. The camera may fly off under the pointer between
    *  the two, so the second is about the first's target, not whatever has moved beneath it. */
@@ -44,16 +45,16 @@ function Canvas(props: FlowViewProps) {
   const { frame, fit, seen } = useRoom(scene);
   const { nodes, edges, moved, rewired, chose, key, again } =
     useSync(scene, picked, frame, onPick, second);
-  useCamera(scene, frame, fit, seen, key, nodes, scroll, focus, wide, widest);
+  useCamera(scene, frame, fit, seen, key, nodes, scroll, focus, wide, widest, most);
 
   /** Scrolled, the drawing can be read from its first card to its last, and no further. */
   const reach = useMemo((): [[number, number], [number, number]] | undefined => {
     if (!scroll) return undefined;
     const b = frame ?? extent(scene);
     const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
-    const air = seen.h / 2 / scroll_zoom(wide ?? b.w, on ? box_of(on) : b, seen, widest);
+    const air = seen.h / 2 / scroll_zoom(wide ?? b.w, on ? box_of(on) : b, seen, widest, most);
     return [[-Infinity, b.y - air], [Infinity, b.y + b.h + air]];
-  }, [scroll, frame, scene, seen, wide, widest, focus]);
+  }, [scroll, frame, scene, seen, wide, widest, most, focus]);
 
   /** Where the pointer is on the drawing, unsnapped. */
   const at = useCallback((e: { clientX: number; clientY: number }): Point =>
@@ -121,9 +122,9 @@ function Canvas(props: FlowViewProps) {
   const only = useMemo(() => {
     if (picked.length !== 1) return null;
     const n = scene.nodes.find((x) => x.id === picked[0]);
-    /** Only a card holding something opens: a note has no inside, and nor has a leaf, linked or
-     *  not — a link is followed by double-click, not opened. */
-    const opens = n?.data.marks.includes("container");
+    /** Only a card that opens onto a drawing of its own offers to: a note has no inside, and nor
+     *  has a leaf, linked or not — a link is followed by double-click, not opened. */
+    const opens = n?.data.stamps?.includes("parts");
     return n && opens && !n.data.on && n.selectable !== false && n.type !== "note" ? n.id : null;
   }, [picked, scene]);
 

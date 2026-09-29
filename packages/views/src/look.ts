@@ -1,8 +1,9 @@
 /** How a usage of a definition draws. */
 
-import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_of, DISPLAYS,
-         FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, kind_word, previewed, SHOWN,
-         WEIGHTS, WIDTHS, type Graph, type Id, type Settings } from "@mnd/core";
+import { ALIGNS, ARROWS, base_named, BORDERS, config_of, CONTRASTS, DEFAULTS, def_of, DISPLAYS,
+         FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, kind_word, previewed,
+         schema_of, SHOWN, stood_def, WEIGHTS, WIDTHS, type Definition, type Graph, type Id,
+         type Settings } from "@mnd/core";
 
 export type Family = (typeof FAMILIES)[number];
 export type Width = (typeof WIDTHS)[number];
@@ -50,6 +51,8 @@ export type Look = {
   body?: boolean;
   /** False where the name is not drawn, so the body is the whole card. */
   head?: boolean;
+  /** Whether the card shows the image its source points at, under its name. */
+  preview?: boolean;
   /** What sort of thing this is, as a word: the subtype where somebody named one, the base kind
    *  otherwise. */
   kind: string;
@@ -97,16 +100,35 @@ export function look_of(graph: Graph, id: Id): Look {
   const block = graph.blocks[id];
   if (!block) return PLAIN;
 
-  /** The chain, then the element's own last word. A reference to a block previews it: it looks
-   *  as its target does, but for what it says of itself, and its mark says it stands in. */
+  /** The chain, then the element's own last word. A reference to a block previews it, and a
+   *  stand-in for a definition looks as its usages do: as what it stands for, but for what it
+   *  says of itself, and its mark says it stands in. */
+  const stood = stood_def(graph, id);
+  if (stood) return stand_in(graph, id, stood);
   const source = graph.blocks[previewed(graph, id)]!;
   const card = settings(graph, source.id, "card");
   const style = source === block ? settings(graph, id, "style")
     : { ...settings(graph, source.id, "style"), ...(block.looks?.["style"] ?? {}) };
   const named = source.type ? graph.defs[source.type]?.name : undefined;
-  /** The subtype where somebody named one, else its base kind. */
-  const kind = named ?? kind_word(graph, source).toLowerCase();
+  return dressed(graph, id, card, style, named ?? kind_word(graph, source).toLowerCase());
+}
 
+/** How a stand-in for a definition draws: as its usages, named rather than showing a body it
+ *  has not got, listing a schema only where there is one, and a relation wearing its line. */
+function stand_in(graph: Graph, id: Id, def: Definition): Look {
+  const own = graph.blocks[id]!.looks ?? {};
+  const card = { ...config_of(graph, def.id, "card"), ...(own["card"] ?? {}) };
+  const style = { ...config_of(graph, def.id, "style"), ...(own["style"] ?? {}) };
+  const tie = base_named(graph, def.id, "relation") === "tie";
+  const listed = card["fields"] === "show" && schema_of(graph, def.id).length > 0;
+  const look = dressed(graph, id, { ...card, name: "show", body: "hide", preview: "hide",
+                                    fields: listed ? "show" : "hide" },
+                       style, def.name);
+  return def.group === "relation" && !look.icon ? { ...look, icon: tie ? "relation_tie" : "relation_plain" } : look;
+}
+
+/** A look from what the chain and the element say, under the kind it reads as. */
+function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: string): Look {
   return {
     family: one(style["family"], FAMILIES, PLAIN.family),
     fill: one(style["fill"], FILLS, PLAIN.fill),
@@ -124,6 +146,7 @@ export function look_of(graph: Graph, id: Id): Look {
     ...(card["fields"] === "show" ? { fields: true } : {}),
     ...(card["body"] === "show" ? { body: true } : {}),
     ...(card["name"] === "hide" ? { head: false } : {}),
+    ...(card["preview"] === "show" ? { preview: true } : {}),
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
     ...contrast("label_contrast", style["label_contrast"]),

@@ -1,7 +1,7 @@
 /** What every module derives the same way. */
 
 import { alias_of, schema_def, schema_of, head_of, is_container, is_interface, is_named,
-         base_of, path, previewed, role_of, shape_of, shown_name, stamps_of, stands_for,
+         base_of, path, previewed, role_of, shape_of, shown_name, stamps_of, stands_for, stood_def,
          type Graph, type Id } from "@mnd/core";
 import { look_of } from "./look";
 import type { BoxData, Listed, Trait, Scene } from "./scene";
@@ -12,7 +12,8 @@ export function marks_of(graph: Graph, id: Id): Trait[] {
   const out: Trait[] = [];
   if (!b) return out;
   const module = base_of(graph, id);
-  if (module === "reference") {
+  /** A stand-in for a definition draws as its usages; only its stamp says it stands in. */
+  if (module === "reference" && !stood_def(graph, id)) {
     out.push("reference");
     /** Missing is naming nothing at all: a stand-in for a definition or a package names no block. */
     const other = b.of && (graph.defs[b.of] || graph.packages[b.of]);
@@ -57,6 +58,7 @@ export function carried(graph: Graph, id: Id): BoxData {
     look,
     ...(look.fields ? { fields: listed(graph, b.id) } : {}),
     ...(look.body && "body" in b && b.body ? { body: b.body } : {}),
+    ...(look.preview && b.source ? { preview: b.source } : {}),
   };
 }
 

@@ -40,11 +40,11 @@ export function useRoom(scene: Scene) {
 
 /** The camera flight on descending or leaving, the only animation, and opening out at the root.
  *  Scrolled, the camera fits the drawing's width, or `reach` of it, and follows the focus,
- *  centred on it. It never takes in more than `widest`. */
+ *  centred on it. It never takes in more than `widest`, nor magnifies past `most`. */
 export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: number },
                           seen: { w: number; h: number }, key: string, nodes: readonly BoxNode[],
                           scroll = false, focus: Id | null = null, reach: number | null = null,
-                          widest: number | null = null) {
+                          widest: number | null = null, most: number | null = null) {
   const flow = useReactFlow();
   const was = useRef<Id | null | undefined>(undefined);
   /** How big the room was; a room that grew is fitted again. */
@@ -64,7 +64,7 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
       const box = on ? box_of(on) : page;
       // The page is `reach` wide, or wide enough for the focus where that is wider, up to `widest`.
       const w = Math.min(Math.max(reach ?? page.w, box.w), widest ?? Infinity);
-      const zoom = scroll_zoom(w, on ? box : null, seen, widest);
+      const zoom = scroll_zoom(w, on ? box : null, seen, widest, most);
       // The focus is centred; with none, a page taller than the view is read from its top.
       const y = on || box.h * zoom <= seen.h - BAND * 2
         ? seen.h / 2 - (box.y + box.h / 2) * zoom
@@ -79,7 +79,7 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
     if (!frame) { void flow.fitView({ ...FIT, duration }); return; }
     void flow.fitBounds({ x: frame.x, y: frame.y, width: frame.w, height: frame.h },
                         { padding: fit.padding, duration });
-  }, [flow, frame, fit, scroll, focus, reach, widest, scene, seen]);
+  }, [flow, frame, fit, scroll, focus, reach, widest, most, scene, seen]);
 
   /** A new focus is flown to, and a cleared one opens out to the whole drawing. */
   useEffect(() => {

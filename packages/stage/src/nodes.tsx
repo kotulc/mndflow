@@ -192,7 +192,7 @@ function CardNode({ id, data, selected, height }: NodeProps<BoxNode>) {
   const head = look.head !== false;
   /** A value that only repeats the card's name is said once, by the name. */
   const fields = data.fields?.filter((f) => !f.value || plain(f.value) !== data.label);
-  const parted = !!fields || !!data.body;
+  const parted = !!fields || !!data.body || !!data.preview;
   /** As many fields as the card has lines for; past that, the last line says there are more. */
   const lines = room(height, head);
   const cut = !!fields && lines !== undefined && fields.length > lines;
@@ -239,6 +239,9 @@ function CardNode({ id, data, selected, height }: NodeProps<BoxNode>) {
           {cut ? <li className="mnd-field-more">…</li> : null}
         </ul>
       ) : null}
+      {/* What it shows: an image that will not load leaves its name to say what it was. */}
+      {data.preview ? <img className="mnd-preview" src={data.preview} alt="" draggable={false}
+                           onError={(e) => { e.currentTarget.hidden = true; }} /> : null}
       {/* What it says. */}
       {data.body
         ? <Markdown className="mnd-body" text={data.body} lines={lines} /> : null}

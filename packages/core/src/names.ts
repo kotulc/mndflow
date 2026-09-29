@@ -1,8 +1,8 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
-import { base_of, def_of, edge_base, outside, schema_of } from "./defs";
+import { base_named, base_of, def_of, edge_base, outside, schema_of } from "./defs";
 import { holders_in, shape_of } from "./holders";
-import { children, is_container, stands_for } from "./tree";
+import { children, is_container, stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
 
@@ -71,8 +71,10 @@ export function shown_name(graph: Graph, id: Id): string {
   const b = graph.blocks[id];
   if (!b) return graph.edges[id] ? label_of(graph, id) || edge_base(graph, id) : "missing";
   if (b.of) {
-    /** A stand-in for a definition or a package reads as what it points at. */
+    /** A stand-in for a definition or a package reads as what it points at, unless it was named
+     *  itself. */
     const said = graph.defs[b.of]?.name ?? graph.packages[b.of]?.name;
+    if (said && b.name?.trim()) return b.name.trim();
     if (said) return said;
     const target = stands_for(graph, id);
     if (!target || target.id === b.id) return "missing";
@@ -113,13 +115,16 @@ const ROLES: readonly string[] = ["block", "folder", "reference", "interface", "
 export function role_of(graph: Graph, id: Id): Role {
   const shape = shape_of(graph, id);
   if (shape) return shape;
-  const base = base_of(graph, id);
+  /** A stand-in for a definition wears its usages' role. */
+  const stood = stood_def(graph, id);
+  const base = stood ? base_named(graph, stood.id) ?? "block" : base_of(graph, id);
   return ROLES.includes(base) ? base as Role : "block";
 }
 
 /** The system marks a card wears in its bottom corner. Derived, never set. A stand-in wears the
- *  one thing it stands for; anything else wears what describes it, and those stack: carrying data,
- *  and holding parts — a block with children of its own, which its icon alone says too quietly. */
+ *  one thing it stands for; anything else wears what describes it, and those stack: carrying data.
+ *  Opening onto a drawing of its own — parts — stacks with either, since a stand-in may open too,
+ *  and a card's icon alone says so too quietly. */
 export type Mark = "reference" | "definition" | "package" | "data" | "parts";
 
 /** What each mark means, in a phrase — the legend's wording, kept beside the type it reads. */
@@ -128,7 +133,7 @@ export const MARK_MEANING: Record<Mark, string> = {
   definition: "stands for a definition",
   package: "stands for a package",
   data: "carries data: field values, or a schema",
-  parts: "holds blocks of its own",
+  parts: "opens onto a drawing of its own",
 };
 
 /** The workspace definition whose fields a block's data answers, or null where it has none: a
@@ -149,16 +154,34 @@ export function schema_def(graph: Graph, id: Id): Id | null {
     ?? holders_in(graph, id).map((h) => own(h.grid?.schema)).find(Boolean) ?? null;
 }
 
-/** What a card is stamped with: what it stands in for, alone, or else what describes it. A
- *  stand-in carries nothing of its own, so the two never meet. */
+/** What a card is stamped with: what it stands in for, or else what describes it — a stand-in
+ *  carries nothing of its own, so the two never meet — and either way, whether it opens. */
 export function stamps_of(graph: Graph, id: Id): Mark[] {
   const b = graph.blocks[id];
   if (!b) return [];
-  if (b.of) {
-    return [graph.defs[b.of] ? "definition" : graph.packages[b.of] ? "package" : "reference"];
-  }
   const out: Mark[] = [];
-  if (b.fields?.some((f) => f.value) || schema_of(graph, b.type).length) out.push("data");
-  if (is_container(graph, id)) out.push("parts");
+  if (b.of) {
+    out.push(graph.defs[b.of] ? "definition" : graph.packages[b.of] ? "package" : "reference");
+  }
+  else if (b.fields?.some((f) => f.value) || schema_of(graph, b.type).length) out.push("data");
+  if (opens(graph, id)) out.push("parts");
   return out;
+}
+
+/** The blocks a definition is used by: those it types, and the grids whose header allocates it.
+ *  The root is the workspace itself, never a usage. */
+export function used_by(graph: Graph, def: Id): Block[] {
+  return Object.values(graph.blocks).filter((b) => b.id !== graph.root
+    && (b.type === def || b.grid?.columns?.includes(def)));
+}
+
+/** Whether a card opens onto a drawing of its own: a block holding blocks, a reference to one that
+ *  does, or a stand-in for a definition something uses. */
+export function opens(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  if (!b) return false;
+  if (is_container(graph, id)) return true;
+  if (b.of && graph.defs[b.of]) return used_by(graph, b.of).length > 0;
+  const target = b.of ? stands_for(graph, id) : null;
+  return !!target && target.id !== id && is_container(graph, target.id);
 }
