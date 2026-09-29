@@ -4,10 +4,14 @@ import { edges_in, group_depth, is_group, is_grid, is_header, is_holder, is_inte
          lattice_of, members_of, type Arrangement, type Block, type Graph, type Id }
   from "@mnd/core";
 import type { Placed } from "./arrange";
-import { is_satellite, pack_units, seat_satellites } from "./pack";
+import { pack_units, seat_satellites, tethered } from "./pack";
 import { cell_box, centred_in, fills_cell, gridded, size_of, BLOCK, GAP, type Size } from "./size";
 
 export type Sized = { b: Block; s: Size };
+
+/** The room between rows of a band where a band sits in one, a card high, so a nested band's
+ *  name reads clear of what is over it and the nesting reads at a glance. */
+const APART = BLOCK.h;
 
 
 /** Whether a block sits in a dashed band rather than a grid. */
@@ -40,8 +44,9 @@ export function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: Ar
   /** Inside a band, members stay themselves. */
   const unit = (id: Id) => id;
   const edges = band_edges(graph, layer, band_id);
-  const structural = members.filter((b) => !is_satellite(graph, layer, b));
-  const satellites = members.filter((b) => is_satellite(graph, layer, b))
+  /** In a band, only what is tied to something sits beside it; the rest is shelved. */
+  const structural = members.filter((b) => !tethered(graph, layer, b));
+  const satellites = members.filter((b) => tethered(graph, layer, b))
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
   const sized = structural.map((b) => ({
     b,
@@ -51,7 +56,8 @@ export function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: Ar
   const ordered_mem = [...sized].sort((a, b) =>
     (a.b.order ?? 0) - (b.b.order ?? 0) || a.b.id.localeCompare(b.b.id));
   const packed_in = how === "auto" ? pack_units(graph, layer, sized, unit, edges)
-                                   : packed(ordered_mem).layout;
+                                   : packed(ordered_mem, graph.blocks[band_id]?.w,
+                                            (id) => is_group(graph, id)).layout;
   return from_corner([...packed_in,
                       ...seat_satellites(graph, layer, satellites, packed_in, unit, edges)]);
 }
@@ -89,20 +95,30 @@ export function band_members(graph: Graph, layer: Id | null, how: Arrangement,
   return out;
 }
 
-/** Members shelved inside a band, from the band's own corner. */
-function packed(all: Sized[]): { layout: Placed[]; w: number; h: number } {
+/** Members shelved inside a band, from the band's own corner: in rows as wide as the band says
+ *  it is, else roughly square, and rows holding a band set `APART`. */
+function packed(all: Sized[], wide?: number, banded: (id: Id) => boolean = () => false
+                ): { layout: Placed[]; w: number; h: number } {
   if (!all.length) return { layout: [], w: 0, h: 0 };
   const area = all.reduce((n, it) => n + (it.s.w + GAP) * (it.s.h + GAP), 0);
-  const want = Math.max(...all.map((it) => it.s.w), Math.sqrt(area));
+  const want = Math.max(...all.map((it) => it.s.w), wide ?? Math.sqrt(area));
   const layout: Placed[] = [];
   let x = 0;
   let y = 0;
   let tall = 0;
+  let bands = false;
   for (const it of all) {
-    if (x > 0 && x + it.s.w > want) { x = 0; y += tall + GAP; tall = 0; }
+    const band = banded(it.b.id);
+    if (x > 0 && x + it.s.w > want) {
+      y += tall + (bands || band ? APART : GAP);
+      x = 0;
+      tall = 0;
+      bands = false;
+    }
     layout.push({ id: it.b.id, x, y, ...it.s });
     x += it.s.w + GAP;
     tall = Math.max(tall, it.s.h);
+    bands ||= band;
   }
   const right = Math.max(...layout.map((p) => p.x + p.w));
   const bottom = Math.max(...layout.map((p) => p.y + p.h));

@@ -152,18 +152,13 @@
 .explorer .tree .mark {
   display: inline-flex;
   align-items: center;
-  color: var(--muted);
+  color: var(--text);
   flex: none;
   /* Only a branch's mark is a button. */
   cursor: default;
 }
-.explorer .tree .mark.on, .explorer .tree .mark.shut { cursor: pointer; }
-.explorer .tree li.picked .mark { color: var(--accent); }
-/* An open branch says so in the mark. */
-.explorer .tree .mark.on { color: var(--accent); }
-/* A shut branch's mark stands down even on a picked row. */
-.explorer .tree li.picked .mark.shut { color: var(--muted); }
-.explorer .tree .mark.shut:hover, .explorer .tree .mark.on:hover { color: var(--accent); }
+/* A row holding blocks lights its mark, open or shut: the colour, and only that, says so. */
+.explorer .tree .mark.on, .explorer .tree .mark.shut { color: var(--accent); cursor: pointer; }
 .explorer .tree .label { overflow: hidden; text-overflow: ellipsis; }
 
 /* An unnamed row reads quietly. */
@@ -224,3 +219,10 @@
   text-transform: uppercase;
 }
 
+
+/* The section holding what is lit reads in the accent, folded or not. */
+.explorer .tree li.top.holds .label,
+.explorer .tree li.top.holds .mark { color: var(--accent); }
+
+/* Folds held: the bar's fold wears the accent while it holds them. */
+.explorer .bar > .fold[aria-pressed="true"] { color: var(--accent); }

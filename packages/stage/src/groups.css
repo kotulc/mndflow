@@ -17,7 +17,7 @@
   pointer-events: auto;
 }
 
-/* A boundary: a hairline dashed outline and a faint wash. */
+/* A boundary: a hairline dashed outline and a wash, which deepens as boundaries nest. */
 .mnd-group {
   position: relative;
   width: 100%;
@@ -26,7 +26,7 @@
   overflow: visible;
   border: 1px dashed color-mix(in oklch, var(--muted) 48%, transparent);
   border-radius: 4px;
-  background: color-mix(in oklch, var(--muted) 1.5%, transparent);
+  background: color-mix(in oklch, var(--muted) 6%, transparent);
   background-clip: padding-box;
   color: var(--muted);
 }
@@ -140,6 +140,21 @@
 }
 .mnd-grid-cell.header:hover {
   background: color-mix(in oklch, var(--accent) 7%, var(--surface));
+}
+
+/* A header allocating a block definition reads as a block: a card's edge inside its cell. */
+.mnd-grid-cell.allocated {
+  border: 1px solid var(--card-line);
+  border-radius: 3px;
+  background: color-mix(in oklch, var(--card-line) 10%, var(--surface));
+}
+
+/* The key column's header wears a key, in its corner. */
+.mnd-grid-key {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  color: var(--muted);
 }
 
 /* What a cell says where no block sits in it: two lines at most, cut off after. */

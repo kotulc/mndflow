@@ -55,10 +55,12 @@
   --step-line: var(--s-muted-line); --step-ink: var(--s-muted-ink);
 }
 
-/* A usage painting itself from its own two numbers. */
+/* A usage painting itself from its own two numbers. It asked for a colour, so it stands off the
+   ground: raised past the plain fill, and carrying enough of its hue to read at a glance. */
 [data-family="tint"] {
-  --card-fill: oklch(var(--l-fill) calc(var(--card-c, 0.12) * 0.18) var(--card-h, 200));
-  --card-line: oklch(var(--l-line) calc(var(--card-c, 0.12) * 0.40) var(--card-h, 200));
+  --card-fill: oklch(calc((var(--l-raised) + var(--l-line)) / 2) calc(var(--card-c, 0.12) * 0.5)
+                     var(--card-h, 200));
+  --card-line: oklch(var(--l-stroke) calc(var(--card-c, 0.12) * 0.7) var(--card-h, 200));
   --card-edge: oklch(var(--l-edge) var(--card-c, 0.12) var(--card-h, 200));
   --card-dim: oklch(var(--l-dim) calc(var(--card-c, 0.12) * 0.30) var(--card-h, 200));
   --card-ink: oklch(var(--l-ink) calc(var(--card-c, 0.12) * 0.32) var(--card-h, 200));

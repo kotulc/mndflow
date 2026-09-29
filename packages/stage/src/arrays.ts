@@ -10,6 +10,26 @@ export const FIT = { padding: 0.25, maxZoom: 1 };
 /** How far a press travels before it is a drag. */
 export const NUDGE = 5;
 
+/** Reading magnifies, but only so far: a narrow layer on a wide screen stays readable. */
+export const READ_ZOOM = 2;
+
+/** The zoom that fits a width across the view, leaving the band either side. */
+export function read_zoom(w: number, seen: { w: number }): number {
+  return Math.min(READ_ZOOM, Math.max(MIN_ZOOM, (seen.w - BAND * 2) / Math.max(1, w)));
+}
+
+/** The zoom a scrolled view reads at: `w` across, widened to take in a focus wider than that,
+ *  and eased out further where the focus is taller than the view — but never so far that more
+ *  than `widest` is across, nor closer than `most`. */
+export function scroll_zoom(w: number, focus: { w: number; h: number } | null,
+                            seen: { w: number; h: number }, widest: number | null = null,
+                            most: number | null = null): number {
+  const zoom = Math.min(most ?? READ_ZOOM, read_zoom(Math.max(w, focus?.w ?? 0), seen));
+  const tall = focus ? (seen.h - BAND * 2) / Math.max(1, focus.h) : zoom;
+  const least = widest ? read_zoom(widest, seen) : MIN_ZOOM;
+  return Math.max(least, Math.min(zoom, tall));
+}
+
 /** The band left around a layer's frame, in screen pixels. */
 export const BAND = 56;
 

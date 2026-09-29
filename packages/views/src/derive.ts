@@ -1,7 +1,7 @@
 /** What every module derives the same way. */
 
 import { alias_of, schema_def, schema_of, head_of, is_container, is_interface, is_named,
-         is_reference, base_of, path, role_of, shape_of, shown_name, stamps_of, stands_for,
+         base_of, path, previewed, role_of, shape_of, shown_name, stamps_of, stands_for, stood_def,
          type Graph, type Id } from "@mnd/core";
 import { look_of } from "./look";
 import type { BoxData, Listed, Trait, Scene } from "./scene";
@@ -12,7 +12,8 @@ export function marks_of(graph: Graph, id: Id): Trait[] {
   const out: Trait[] = [];
   if (!b) return out;
   const module = base_of(graph, id);
-  if (module === "reference") {
+  /** A stand-in for a definition draws as its usages; only its stamp says it stands in. */
+  if (module === "reference" && !stood_def(graph, id)) {
     out.push("reference");
     /** Missing is naming nothing at all: a stand-in for a definition or a package names no block. */
     const other = b.of && (graph.defs[b.of] || graph.packages[b.of]);
@@ -27,7 +28,8 @@ export function marks_of(graph: Graph, id: Id): Trait[] {
     if (b.flow === "in" || b.flow === "both") out.push("in");
     if (b.flow === "out" || b.flow === "both") out.push("out");
   }
-  if (is_container(graph, id) && !is_reference(b)) out.push("container");
+  /** A reference to a block holds what it previews, and whatever it holds itself. */
+  if (is_container(graph, id) || is_container(graph, previewed(graph, id))) out.push("container");
   /** Wearing its type rather than a name somebody chose. */
   if (!is_named(graph, id)) out.push("unnamed");
   /** A header, and one heading a row reads upright in its one-unit column. */
@@ -39,7 +41,8 @@ export function marks_of(graph: Graph, id: Id): Trait[] {
 
 /** Everything a drawn block carries beyond where it sits. */
 export function carried(graph: Graph, id: Id): BoxData {
-  const b = graph.blocks[id]!;
+  /** A reference to a block carries what its target carries. */
+  const b = graph.blocks[previewed(graph, id)]!;
   const look = look_of(graph, id);
   /** The handle, beside the name rather than inside it. */
   const alias = look.alias === undefined ? alias_of(graph, id)
@@ -53,8 +56,9 @@ export function carried(graph: Graph, id: Id): BoxData {
     ...(link_of(graph, id) ? { link: link_of(graph, id) } : {}),
     marks: marks_of(graph, id),
     look,
-    ...(look.fields ? { fields: listed(graph, id) } : {}),
+    ...(look.fields ? { fields: listed(graph, b.id) } : {}),
     ...(look.body && "body" in b && b.body ? { body: b.body } : {}),
+    ...(look.preview && b.source ? { preview: b.source } : {}),
   };
 }
 
@@ -72,8 +76,9 @@ export function listed(graph: Graph, id: Id): Listed[] {
   const schema = schema_of(graph, b.type);
   const extra = own.filter((f) => !schema.some((s) => s.name === f.name));
   return [...schema, ...extra].map(({ name, form }) => {
-    const value = own.find((f) => f.name === name)?.value;
-    return { name, form, ...(value ? { value } : {}) };
+    const mine = own.find((f) => f.name === name);
+    return { name, form, ...(mine?.value ? { value: mine.value } : {}),
+             ...(mine?.key ? { key: true } : {}) };
   });
 }
 

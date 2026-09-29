@@ -30,6 +30,8 @@ export type Field = {
   form: ValueForm;
   value?: string;
   tags?: string[];
+  /** Whether its value names what carries it: a table's key column. */
+  key?: boolean;
 };
 
 export type FieldDef = Field & { unit?: string; choices?: string[]; many?: boolean };
@@ -61,6 +63,9 @@ export type Grid = {
   /** The definition whose fields head its columns. Its first row reads their names and holds no
    *  values. */
   schema?: Id;
+  /** The block definition each column allocates, in order. Its first row reads their names and
+   *  holds no values. An allocation names a type without being a usage of it. */
+  columns?: Id[];
   /** One cell's size in units, where its cells are not a card's. */
   size?: { w: number; h: number };
 };
@@ -168,6 +173,8 @@ export type Package = {
   name: string;
   /** The package this one builds on. A package is never written into, only extended. */
   extends?: Id;
+  /** How it files its own definitions, as the workspace's shelf does, frozen with it. */
+  shelf?: Shelved[];
 };
 
 export type Components = Record<string, Record<string, unknown>>;

@@ -56,7 +56,8 @@ function seen(p: NodeProps<BoxNode>): string {
     d.body ?? "",
     /** Read off the look, so no property is forgotten. */
     look_key(d.look),
-    d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}${c.value ?? ""}`).join(","),
+    d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}${c.value ?? ""}`
+      + `${c.def ?? ""}${c.key ? "key" : ""}`).join(","),
     d.seats?.map((t) => `${t.id}${t.side}${t.at}`).join(","),
   ].join("|");
 }
@@ -191,7 +192,11 @@ function CardNode({ id, data, selected, height }: NodeProps<BoxNode>) {
   const head = look.head !== false;
   /** A value that only repeats the card's name is said once, by the name. */
   const fields = data.fields?.filter((f) => !f.value || plain(f.value) !== data.label);
-  const parted = !!fields || !!data.body;
+  const parted = !!fields || !!data.body || !!data.preview;
+  /** As many fields as the card has lines for; past that, the last line says there are more. */
+  const lines = room(height, head);
+  const cut = !!fields && lines !== undefined && fields.length > lines;
+  const kept = cut ? fields.slice(0, lines - 1) : fields;
   return (
     <div className={["mnd-card", "card-face", ...data.marks, parted ? "parted" : "",
                      head ? "" : "headless", selected ? "picked" : ""]
@@ -222,19 +227,24 @@ function CardNode({ id, data, selected, height }: NodeProps<BoxNode>) {
       {/* What it carries, one line each: a value where it has one, its form where it has not. */}
       {fields ? (
         <ul className="mnd-fields">
-          {fields.map((f) => (
+          {kept!.map((f) => (
             <li key={f.name} title={`${f.name}: ${f.value ?? f.form}`}>
               <span className="mnd-field-name">{f.name}</span>
+              {f.key ? <Icon name="key" size={12} className="mnd-field-key" /> : null}
               {f.value === undefined
                 ? <span className="mnd-field-form">{f.form}</span>
                 : <Inline className="mnd-field-value" text={f.value} />}
             </li>
           ))}
+          {cut ? <li className="mnd-field-more">…</li> : null}
         </ul>
       ) : null}
+      {/* What it shows: an image that will not load leaves its name to say what it was. */}
+      {data.preview ? <img className="mnd-preview" src={data.preview} alt="" draggable={false}
+                           onError={(e) => { e.currentTarget.hidden = true; }} /> : null}
       {/* What it says. */}
       {data.body
-        ? <Markdown className="mnd-body" text={data.body} lines={room(height, head)} /> : null}
+        ? <Markdown className="mnd-body" text={data.body} lines={lines} /> : null}
       {/* Under the card rather than in it. */}
       {label === "below"
         ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
@@ -346,7 +356,7 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
       {cells.map((c) => (
         /** `nopan` because a sweep across cells is not a drag of the canvas. */
         <span key={`${c.r},${c.c}`}
-              className={["mnd-grid-cell", "nopan", ...c.marks,
+              className={["mnd-grid-cell", "nopan", ...c.marks, c.def ? "allocated" : "",
                           held(c) ? "picked" : ""].filter(Boolean).join(" ")}
               data-at={`${c.r},${c.c}`}
               data-r={c.r}
@@ -355,8 +365,9 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
               onPointerEnter={(e) => {
                 if (e.buttons === 1 && from.current) pick(range(from.current, c));
               }}>
-          {/* What the cell says, where no block sits in it. */}
+          {/* What the cell says, where no block sits in it; the key column says so. */}
           {c.value ? <Inline className="mnd-grid-value" text={c.value} /> : null}
+          {c.key ? <Icon name="key" size={12} className="mnd-grid-key" /> : null}
         </span>
       ))}
     </span>

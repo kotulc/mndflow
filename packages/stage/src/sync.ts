@@ -1,14 +1,16 @@
 /** React Flow's own copy of the arrays, kept in step with the Scene and the selection. */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { useEdgesState, useNodesState, type OnSelectionChangeFunc } from "@xyflow/react";
 import type { Id } from "@mnd/core";
 import { FRAME, type BoxNode, type Frame, type LineEdge, type Scene } from "@mnd/views";
 import { chosen, edges_of, marked, nodes_of, signature } from "./arrays";
 
 
+/** `hold`, while set, keeps the pick through the canvas clearing it: a double-click's second press
+ *  on the pane is not a click away. */
 export function useSync(scene: Scene, picked: readonly Id[], frame: Frame | null,
-                        onPick?: (ids: string[]) => void) {
+                        onPick?: (ids: string[]) => void, hold?: RefObject<boolean>) {
   /** What the stable callbacks read instead of closing over a render. */
   const latest = useRef({ picked, onPick, key: "" });
   /** Bumped to redraw from the projection when a drop changed nothing. */
@@ -24,6 +26,8 @@ export function useSync(scene: Scene, picked: readonly Id[], frame: Frame | null
   const installed = useRef(key);
   /** What the canvas last reported as selected, so it is never written back. */
   const reported = useRef(chosen(picked));
+  /** What was selected before a pick was written, until the canvas says it took the write. */
+  const before = useRef<string | null>(null);
 
   useEffect(() => {
     set_nodes(nodes_of(scene, picked, frame));
@@ -37,6 +41,7 @@ export function useSync(scene: Scene, picked: readonly Id[], frame: Frame | null
   const held = chosen(picked);
   useEffect(() => {
     if (held === reported.current) return;
+    before.current = reported.current;
     reported.current = held;
     const want = new Set<string>(picked);
     set_nodes((ns) => marked(ns, want));
@@ -51,8 +56,19 @@ export function useSync(scene: Scene, picked: readonly Id[], frame: Frame | null
     if (installed.current !== key) return;
     const ids = [...ns.map((n) => n.id).filter((id) => id !== FRAME),
                  ...es.map((e) => e.id)];
+    /** A report a write behind — the selection before it — is stale, not a pick: answering it
+     *  would write the old selection back, and the canvas would echo the two forever. */
+    const said = chosen(ids);
+    if (!ids.length && picked.length && hold?.current) {
+      const want = new Set<string>(picked);
+      set_nodes((ns) => marked(ns, want));
+      set_edges((es) => marked(es, want));
+      return;
+    }
+    if (said === reported.current) before.current = null;
+    if (said === before.current) return;
     /** Said by the canvas, so it is already true of the canvas. */
-    reported.current = chosen(ids);
+    reported.current = said;
     const same = ids.length === picked.length && ids.every((id) => picked.includes(id));
     if (!same) onPick?.(ids);
     /** Never rebuilt, since React Flow calls it again on every re-subscribe. */

@@ -260,8 +260,10 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         if (g.on && g.kind === "title") set_naming(g.on);
         else if (g.on && g.kind === "name") set_naming(g.on);
         else if (g.on && (g.kind === "box" || g.kind === "seat" || g.kind === "brim")) {
-          const stands = scene.nodes.find((n) => n.id === g.on)
-            ?.data.marks.includes("reference");
+          /** A stand-in holds nothing to open: a definition's says so by its stamp alone. */
+          const node = scene.nodes.find((n) => n.id === g.on);
+          const stands = node?.data.marks.includes("reference")
+            || node?.data.stamps?.includes("definition");
           onAct(stands ? "reveal" : "open", { id: g.on });
         }
         else if (g.on && g.kind === "note") set_naming(g.on);

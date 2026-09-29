@@ -10,8 +10,13 @@ export type CrumbsProps = {
   onAct: Act;
 };
 
+/** How many crumbs a trail shows before its middle folds to an ellipsis, so the steps nearest the
+ *  layer stay joined to the one they came from. */
+const MOST = 6;
+
 export function Crumbs({ trail, onAct }: CrumbsProps) {
-  const shown = trail.length > 4 ? [trail[0]!, { id: "…", label: "…" }, ...trail.slice(-2)] : trail;
+  const shown = trail.length > MOST
+    ? [trail[0]!, { id: "…", label: "…" }, ...trail.slice(2 - MOST)] : trail;
   return (
     <nav className="crumbs">
       {shown.map((t, i) => (

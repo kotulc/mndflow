@@ -229,6 +229,13 @@ export function is_satellite(graph: Graph, layer: Id | null, b: Block): boolean 
   return is_note(graph, b.id) && tie_targets(graph, layer, b.id).length > 0;
 }
 
+/** Whether a satellite has something on the layer to sit beside: a reference tied to nothing
+ *  there is placed like any other block. */
+export function tethered(graph: Graph, layer: Id | null, b: Block): boolean {
+  if (!is_satellite(graph, layer, b)) return false;
+  return !is_reference(b) || layer_targets(graph, layer, b.id).length > 0;
+}
+
 function layer_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
   const out: Id[] = [];
   for (const e of edges_in(graph, layer)) {

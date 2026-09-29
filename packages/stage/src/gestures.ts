@@ -67,4 +67,17 @@ export type FlowViewProps = {
   lattice?: boolean;
   /** Whether the open layer's border and name are drawn. */
   frame?: boolean;
+  /** The drawing read down the page: fitted to its width, scrolled rather than zoomed. */
+  scroll?: boolean;
+  /** Where a scrolled drawing is read: the card brought to the middle of the view; with none, the
+   *  whole drawing is fitted. */
+  focus?: string | null;
+  /** How wide a scrolled view reads, in drawing units: the whole drawing unless said. The view
+   *  is centred on the focus. */
+  reach?: number | null;
+  /** The most a scrolled view ever takes in across, in drawing units: however wide the drawing
+   *  or its focus, the camera zooms out no further. Unbounded unless said. */
+  widest?: number | null;
+  /** The most a scrolled view ever magnifies: the reading zoom unless said. */
+  most?: number | null;
 };

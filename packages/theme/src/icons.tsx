@@ -25,6 +25,10 @@ const PATHS = {
   // shown in the state it names, so `fold_all` is what an open section wears.
   fold_all: "M6.5 9l5.5 5.5L17.5 9",
   unfold_all: "M9 6.5l5.5 5.5L9 17.5",
+  /** Whether folds follow the walk: a chevron up and one down, opening and shutting; held, a bar
+   *  between them keeps them as they are. */
+  folds_follow: "M8 9.5l4-4 4 4M8 14.5l4 4 4-4",
+  folds_held: "M8 8l4-4 4 4M8 16l4 4 4-4M6.5 12h11",
   show_empty: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5",
   hide_empty: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 19.5l15-15",
 
@@ -106,6 +110,8 @@ const PATHS = {
   // same body with the shackle sprung, which is the *not that* of it.
   locked: "M7.5 10.5v-2a4.5 4.5 0 0 1 9 0v2M5.5 10.5h13v9h-13z",
   unlocked: "M7.5 10.5v-2a4.5 4.5 0 0 1 9 0M5.5 10.5h13v9h-13z",
+  /** What names each line of a table: a bow, and a bit along the shaft. */
+  key: "M8 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7M11.5 12h9M17.5 12v3M20.5 12v2.5",
 
   // Whether a thing writes its name on itself. A tag on a card, and the same
   // tag struck through.

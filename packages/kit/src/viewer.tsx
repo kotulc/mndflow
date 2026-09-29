@@ -25,6 +25,8 @@ export type ViewerProps = {
     crumbs?: boolean;
     /** The ruled lattice behind the cards. On unless turned off. */
     lattice?: boolean;
+    /** The open layer's border and name. On unless turned off. */
+    frame?: boolean;
     /** The key to what the layer draws, and which right-hand corner it keeps to. */
     legend?: boolean;
     corner?: Corner;
@@ -33,6 +35,9 @@ export type ViewerProps = {
   onLook?: (layer: Id | null) => void;
   /** Told what is lit, whenever that changes. */
   onPick?: (ids: Id[]) => void;
+  /** Told a card double-clicked — on its body, its name or its border — in place of the viewer
+   *  opening or following it. */
+  onOpen?: (id: Id) => void;
   /** Told where a box points, when one that holds nothing is opened. */
   onFollow?: (link: string, id: Id) => void;
   /** The layer drawn as its fields' class diagram rather than its contents. */
@@ -41,10 +46,28 @@ export type ViewerProps = {
    *  contents. Given it, a layer whose blocks carry fields offers the toggle in the canvas's bottom
    *  right-hand corner. A pick on the diagram's class card is told as its definition. */
   onFields?: (id: Id | null) => void;
+  /** The layer read down the page: fitted to its width, scrolled rather than zoomed. */
+  scroll?: boolean;
+  /** Where a scrolled layer is read: the card brought to the middle of the view; with none, the
+   *  whole layer is fitted. */
+  focus?: Id | null;
+  /** How wide a scrolled layer reads, in drawing units: its whole width unless said. */
+  reach?: number | null;
+  /** The most a scrolled layer ever takes in across, in drawing units: unbounded unless said. */
+  widest?: number | null;
+  /** The most a scrolled layer ever magnifies: the reading zoom unless said. */
+  most?: number | null;
+  /** The crumbs' trail, where the host draws a projection whose layers are not the graph's own:
+   *  its steps, outermost first. The layer's own trail unless said. */
+  trail?: readonly { id: string; label: string }[] | null;
+  /** Told a step of a host's trail picked, or null to go up one. */
+  onTrail?: (id: string | null) => void;
 };
 
 export function Viewer({ graph, layer = null, picked = NONE, config, card, full = false, chrome,
-                        onLook, onPick, onFollow, fields = null, onFields }: ViewerProps) {
+                        onLook, onPick, onOpen, onFollow, fields = null, onFields, scroll = false,
+                        focus = null, reach = null, widest = null, most = null, trail = null,
+                        onTrail }: ViewerProps) {
   const [at, set_at] = driven<Id | null>(layer);
   const [lit, set_lit] = driven<readonly Id[]>(picked);
 
@@ -82,6 +105,7 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
   const gesture = (g: Gesture) => {
     if (g.button !== "left") return;
     if (g.count === 2) {
+      if (onOpen && g.on && OPENS.includes(g.kind)) { onOpen(g.on); return; }
       if (g.on && g.kind === "box") {
         const link = link_of(g.on);
         if (is_container(graph, g.on)) look(g.on);
@@ -96,7 +120,8 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
     /** A view of its own, so the camera frames each afresh: a room is kept per layer, and the
      *  diagram's is not the contents'. */
     <FlowView key={drawn ? "diagram" : "contents"} scene={scene} picked={lit}
-      lattice={chrome?.lattice ?? true}
+      lattice={chrome?.lattice ?? true} frame={chrome?.frame ?? true} scroll={scroll}
+      focus={focus} reach={reach} widest={widest} most={most}
       onGesture={gesture} onPick={pick} />
   );
   if (!chrome?.crumbs && !chrome?.legend && !onFields) return flow;
@@ -108,10 +133,11 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
     <section className="stage" style={{ position: "relative", width: "100%", height: "100%",
                                         minWidth: 0, minHeight: 0, overflow: "hidden" }}>
       {chrome?.crumbs ? (
-        <Crumbs trail={scene.trail} onAct={(name, args) => {
+        <Crumbs trail={trail ?? scene.trail} onAct={(name, args) => {
           if (name !== "open") return;
           const id = args?.id === undefined ? undefined : String(args.id);
-          if (id === undefined) look(at ? graph.blocks[at]?.parent ?? null : null);
+          if (trail) onTrail?.(id ?? null);
+          else if (id === undefined) look(at ? graph.blocks[at]?.parent ?? null : null);
           else look(id === graph.root ? null : id);
         }} />
       ) : null}
@@ -128,6 +154,9 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
     </section>
   );
 }
+
+/** What a double-click opens a card by: a group's band among them. */
+const OPENS: readonly Gesture["kind"][] = ["box", "name", "brim", "band"];
 
 /** A value the host may drive: the viewer's own until the host sets it. */
 function driven<T>(sent: T): [T, (next: T) => void] {
