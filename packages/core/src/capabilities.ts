@@ -36,6 +36,9 @@ export type Allows = {
   holder?: Holding;
   /** What a holder may take as members. */
   members?: Allowed;
+  /** What may head a group: its first member, where that member is one of these. Absent, a group
+   *  has no head. */
+  heads?: Allowed;
   /** How many relationships may meet a usage, counted separately. */
   degree?: { in?: Range; out?: Range };
   /** Which definitions may sit at each end of a relation, and optionally which flow. */
@@ -108,7 +111,7 @@ function read_allows(components: Components | undefined): Allows {
   const a = components?.["allows"] ?? {};
   const out: Allows = {};
 
-  for (const key of ["ports", "holds", "members"] as const) {
+  for (const key of ["ports", "holds", "members", "heads"] as const) {
     const said = allowed(a[key]);
     if (said !== undefined) out[key] = said;
   }

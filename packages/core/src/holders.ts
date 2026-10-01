@@ -1,6 +1,6 @@
 /** Groups and grids: which blocks hold, membership, cells, merges, headers and allocation. */
 
-import { allows_of } from "./capabilities";
+import { allows_of, permits } from "./capabilities";
 import { children, stands_for } from "./tree";
 import type { Block, Cell, Graph, Grid, HeaderRole, Id, Shape, Span } from "./types";
 
@@ -86,6 +86,20 @@ export function holders_over(graph: Graph, id: Id): Block[] {
 /** How many holders enclose a block — zero for one sitting on the layer. */
 export function group_depth(graph: Graph, id: Id): number {
   return holders_over(graph, id).length;
+}
+
+/** The member heading a group: its first, where the group's definition says what may head it and
+ *  that member is one. A head is never stored: it is whichever member comes first. */
+export function group_head(graph: Graph, group: Id | undefined): Id | null {
+  const heads = group && is_group(graph, group) ? allows_of(graph, group).heads : undefined;
+  const first = heads === undefined ? undefined : members_of(graph, group!)[0];
+  return first && permits(graph, heads, first.type) ? first.id : null;
+}
+
+/** The group a block heads, where it heads one. */
+export function headed_group(graph: Graph, id: Id): Id | null {
+  const group = graph.blocks[id]?.group;
+  return group && group_head(graph, group) === id ? group : null;
 }
 
 /** Everything a holder holds, in the layer's stable order. */

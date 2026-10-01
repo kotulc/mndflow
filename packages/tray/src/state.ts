@@ -8,10 +8,10 @@ import { useState } from "react";
 import type { Act, Id } from "@mnd/core";
 import type { Hold } from "./Tray";
 import type { Display } from "./Workspace";
-import type { Shelf } from "./Definitions";
+import type { Only, Shelf } from "./Definitions";
 
 /** A library row, as the explorer names one: a narrowing of the definitions, or one of them. */
-export type Pointed = ({ of: "defs" } & Shelf) | { of: "def"; id: Id };
+export type Pointed = ({ of: "defs" } & Shelf) | { of: "def"; id: Id; only?: Only };
 
 /** How the drawing starts where the host says nothing: the lattice on, the key off. */
 const DISPLAY: Omit<Display, "card" | "range"> = { legend: false, corner: "top", lattice: true };
