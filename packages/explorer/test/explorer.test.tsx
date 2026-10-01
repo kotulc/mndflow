@@ -30,10 +30,12 @@ describe("it shows structure and only structure", () => {
     expect(rows.find((r) => r.label === "Rate Limit")!.depth).toBeGreaterThan(1);
   });
 
-  /** A group is a block, so it is listed like one; a note is a remark, never content. */
-  it("lists a group, and never a note or a reference", () => {
+  /** A group that is no layer only boxes its members, so they are listed and it is not; a note is
+   *  a remark, never content. */
+  it("lists a group's members but not the group, and never a note", () => {
     const rows = tree_of(fold(related(), FLOOR), []);
-    expect(rows.map((r) => r.label)).toContain("Hot side");
+    expect(rows.map((r) => r.ref)).toEqual(expect.arrayContaining(["block_hx", "block_tank"]));
+    expect(rows.map((r) => r.label)).not.toContain("Hot side");
     expect(rows.map((r) => r.label)).not.toContain("the loop runs clockwise");
   });
 

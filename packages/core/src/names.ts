@@ -168,11 +168,11 @@ export function stamps_of(graph: Graph, id: Id): Mark[] {
   return out;
 }
 
-/** The blocks a definition is used by: those it types, and the grids whose header allocates it.
- *  The root is the workspace itself, never a usage. */
+/** The blocks a definition is used by: those it types, those tagged with it, and the grids whose
+ *  header allocates it. The root is the workspace itself, never a usage. */
 export function used_by(graph: Graph, def: Id): Block[] {
   return Object.values(graph.blocks).filter((b) => b.id !== graph.root
-    && (b.type === def || b.grid?.columns?.includes(def)));
+    && (b.type === def || b.tags?.includes(def) || b.grid?.columns?.includes(def)));
 }
 
 /** Whether a card opens onto a drawing of its own: a block holding blocks, a reference to one that

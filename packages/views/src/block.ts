@@ -137,9 +137,11 @@ function lattice(graph: Graph, id: Id): GridCell[] {
   const g = lattice_of(graph, id)!;
   const seated = new Set<string>();
   for (const b of members_of(graph, id)) if (b.cell) seated.add(`${b.cell.r},${b.cell.c}`);
-  /** Allocated columns head the first line with their definitions' names, or a schema with its
-   *  fields'. The key column is the one the grid's own field marks. */
-  const names = g.columns ? g.columns.map((def) => graph.defs[def]?.name ?? "")
+  /** Allocated columns head the first line with their own first values, or where a column has
+   *  none, its definition's name; a schema with its fields'. The key column is the one the grid's
+   *  own field marks. */
+  const names = g.columns
+    ? g.columns.map((def, c) => g.values?.[0]?.[c] || (graph.defs[def]?.name ?? ""))
     : g.schema ? schema_of(graph, g.schema).map((f) => f.name) : null;
   const key = graph.blocks[id]?.fields?.findIndex((f) => f.key) ?? -1;
   const said = (r: number, c: number) =>

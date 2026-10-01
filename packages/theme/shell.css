@@ -223,11 +223,14 @@ input:focus { outline: none; border-color: var(--accent); }
   color: var(--muted);
 }
 
-.crumbs button { padding: 1px 4px; white-space: nowrap; }
+/* Every step stays: an outer one shrinks to an ellipsis before the last gives up any room. */
+.crumbs > span { display: flex; align-items: center; min-width: 3ch; flex-shrink: 1; }
+.crumbs > span:last-of-type { flex-shrink: 0; max-width: 100%; }
+.crumbs button { padding: 1px 4px; white-space: nowrap; min-width: 0; overflow: hidden;
+                 text-overflow: ellipsis; }
 .crumbs button:hover { color: var(--accent); }
-.crumbs b { color: var(--muted); font-weight: 400; }
-.crumbs .elided { padding: 0 2px; cursor: default; }
-.crumbs .up { margin-left: 6px; }
+.crumbs b { color: var(--muted); font-weight: 400; white-space: pre; flex-shrink: 0; }
+.crumbs .up { margin-left: 6px; flex-shrink: 0; }
 
 /* One strip, and everything the app says goes to it. */
 .strip {

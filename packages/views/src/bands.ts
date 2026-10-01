@@ -19,12 +19,13 @@ export function in_band(graph: Graph, id: Id): boolean {
   return is_group(graph, graph.blocks[id]?.group);
 }
 
-/** What a band takes up for spacing: its members packed, plus a margin. */
+/** What a band takes up for spacing: its members packed, at least as wide as it says it is, plus
+ *  a margin. */
 export function band_size(graph: Graph, layer: Id | null, band: Block, how: Arrangement): Size {
   const layout = band_layout(graph, layer, band.id, how);
   /** An empty band keeps room for a card. */
   if (!layout.length) return { w: BLOCK.w + GAP * 2, h: BLOCK.h + GAP * 2 };
-  const right = Math.max(...layout.map((p) => p.x + p.w));
+  const right = Math.max(band.w ?? 0, ...layout.map((p) => p.x + p.w));
   const bottom = Math.max(...layout.map((p) => p.y + p.h));
   return { w: right + GAP * 2, h: bottom + GAP * 2 };
 }
@@ -40,6 +41,12 @@ export function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: Ar
   const members = members_of(graph, band_id)
     .filter((b) => !is_interface(b) && !gridded(graph, b.id));
   if (!members.length) return [];
+
+  /** A band set free keeps each member where it was put, from the band's own corner. */
+  if (graph.blocks[band_id]?.arrangement === "free") {
+    return from_corner(members.map((b) => ({ id: b.id, x: b.x ?? 0, y: b.y ?? 0,
+      ...(is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id)) })));
+  }
 
   /** Inside a band, members stay themselves. */
   const unit = (id: Id) => id;

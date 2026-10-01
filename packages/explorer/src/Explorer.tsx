@@ -1,10 +1,10 @@
 /** The workspace explorer: structure, and only structure. */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { about_of, alias_of, children, config_of, def_named, def_of, is_interface, is_named,
-         may_hold, block_base, base_of,
-         packages, pinned_defs, relation_base, shape_of, shelf_of, shelf_tree, shelvable, shipped, shown_name,
-         type Act, type Definition, type Graph, type Id, type ShelfNode } from "@mnd/core";
+import { about_of, alias_of, children, config_of, def_named, def_of, is_group, is_interface,
+         is_named, may_hold, block_base, base_of,
+         packages, pinned_defs, relation_base, shape_of, shelf_of, shelvable, shipped, shown_name,
+         type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon, Name, NamingContext, known, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 
@@ -64,13 +64,13 @@ function same(a: Section | null | undefined, b: Section | undefined): boolean {
 type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
              /** The icon its definition names with `card.icon`, worn over its mark's. */
              icon?: IconName;
-             /** What a row is: a block, a definition, a library section, or a folder made for them. */
-             of: "block" | "def" | "pack" | "shelf";
-             /** The block, definition or folder the row stands for; its id keeps rows apart. */
+             /** What a row is: a block, a definition, or a library section. */
+             of: "block" | "def" | "pack";
+             /** The block or definition the row stands for; its id keeps rows apart. */
              ref: Id;
              /** What a library row points the tray at. */
              at?: Section;
-             /** On the workspace's shelf: its group, and the folder it sits in. */
+             /** On the workspace's shelf: its group, and the shelf group it sits in. */
              filed?: { group: Group; in?: Id };
              /** Whether the label is a chosen name or the type word. */
              named: boolean;
@@ -87,10 +87,12 @@ type Node = Omit<Row, "depth" | "kids" | "guides" | "named" | "alias"> & { under
 /** A branch in a section, and whether it holds branches of its own. */
 type Branch = { id: Id; inner: boolean };
 
-/** What the tree draws under a block: every block it holds. A seat on its wall is part of the
- *  block, not something it holds. */
+/** What the tree draws under a block: every block it holds, in order. A seat on its wall is part
+ *  of the block, not something it holds, and a group that is no layer only boxes its members on
+ *  the layer they share, so it is no row: its members read in their own order. */
 function under(graph: Graph, parent: Id | null) {
-  return children(graph, parent).filter((b) => !is_interface(b));
+  return children(graph, parent).filter((b) => !is_interface(b)
+    && !(is_group(graph, b.id) && !children(graph, b.id).length));
 }
 
 /** The kinds a row wears its base's mark for; any other block is a leaf. */
@@ -136,70 +138,42 @@ function section(id: Id, label: string, mark: Mark, at: Section, under: Node[]):
   return { id, ref: id, label, mark, of: "pack", at, under };
 }
 
-/** One package, its blocks and its relations apart, each filed as the package files them. Frozen,
- *  so nothing in it is filed here, and it wears a lock: a package is never written into, only
- *  extended. */
+/** A shelf's definitions, flat and in its order — blocks, then relations — each with the group it
+ *  is filed in: the workspace's, or with `pack` named, that package's. A shelf's groups box its
+ *  definitions on its layer; they are not rows. */
+function filed_defs(graph: Graph, pack?: Id): { d: Definition; filed: NonNullable<Row["filed"]> }[] {
+  const shelf = shelf_of(graph, pack).filter((s) => s.name === undefined && graph.defs[s.id]);
+  return GROUPS.flatMap((g) => shelf.filter((s) => s.group === g.group).map((s) => ({
+    d: graph.defs[s.id]!, filed: { group: g.group, ...(s.in ? { in: s.in } : {}) },
+  })));
+}
+
+/** One package, its definitions flat, as it files them. Frozen, so nothing in it is filed here,
+ *  and it wears a lock: a package is never written into, only extended. */
 function pack_node(graph: Graph, pack: Id): Node {
   const name = graph.packages[pack]?.name ?? pack;
   const id = `${PACKS}:${name}`;
   const at = { of: "defs", only: "packages", from: name } as const;
-  return section(id, name, "locked", at, GROUPS
-    .map((g) => section(`${id}:${g.group}`, g.label, "folder", { ...at, group: g.group },
-                        pack_shelf(graph, pack, g.group, `${id}:${g.group}`)))
-    .filter((n) => n.under.length));
+  return section(id, name, "locked", at,
+                 filed_defs(graph, pack).map(({ d }) => def_node(graph, d, id)));
 }
 
-/** One group of a package's shelf, folders and all, and the package it extends as a folder of its
- *  own after it, filed as that one files them. */
-function pack_shelf(graph: Graph, pack: Id, group: Group, within: Id,
-                    seen = new Set<Id>()): Node[] {
-  seen.add(pack);
-  const at = { of: "defs", only: "packages", from: graph.packages[pack]?.name ?? pack, group } as const;
-  const nodes = (kin: ShelfNode[]): Node[] => kin.map((n) => (n.folder
-    ? section(`${within}:${n.id}`, n.name, "folder", { ...at, folder: n.id }, nodes(n.kids))
-    : def_node(graph, graph.defs[n.id]!, within)));
-  const base = graph.packages[pack]?.extends;
-  const under = base && !seen.has(base) ? pack_shelf(graph, base, group, `${within}:${base}`, seen) : [];
-  const name = base ? graph.packages[base]?.name ?? base : "";
-  return [...nodes(shelf_tree(graph, group, pack)),
-          ...(under.length ? [section(`${within}:${base}`, name, "locked",
-                                      { ...at, from: name }, under)] : [])];
-}
-
-/** The workspace's shelf for one group: its folders and definitions, as filed. */
-function shelf_nodes(graph: Graph, group: Group, nodes: ShelfNode[], within: Id, into?: Id): Node[] {
-  return nodes.map((n) => (n.folder
-    ? { id: n.id, ref: n.id, label: n.name, mark: "folder" as const, of: "shelf" as const,
-        at: { of: "defs", only: "workspace", group, folder: n.id } as const,
-        filed: { group, ...(into ? { in: into } : {}) },
-        under: shelf_nodes(graph, group, n.kids, within, n.id) }
-    : def_node(graph, graph.defs[n.id]!, within, { group, ...(into ? { in: into } : {}) })));
-}
-
-/** The library: the packages, then the definitions — pinned, default, and the workspace's own
- *  filed by group. **There is no workspace collection here**: everything in this section is the
- *  workspace's already, so a row saying so held nothing but one more indent. **And no `default`
- *  collection**: the base kinds read under `packages`, and the workspace's own word about one is
- *  a definition like any other, filed with the rest. */
+/** The library: the packages, each its own row — one another extends too — then the definitions:
+ *  pinned, and the workspace's own, flat. **There is no workspace collection here**: everything
+ *  in this section is the workspace's already, so a row saying so held nothing but one more
+ *  indent. **And no `default` collection**: the base kinds read under `packages`, and the
+ *  workspace's own word about one is a definition like any other, filed with the rest. */
 function library_of(graph: Graph): Node[] {
-  /** A package another one extends reads through it, so only the outermost are listed. */
-  const extended = new Set(Object.values(graph.packages).map((p) => p.extends));
-  const packs = packages(graph).filter((p) => !extended.has(p.from));
   /** **Both groups, in pin order.** A pinned relation used to read on the options rail instead,
    *  which made `pinned` two places meaning one thing. Nothing pinned, no section. */
   const pinned = pinned_defs(graph).filter((d) => !shipped(d) && !d.from && d.default === undefined);
   return [
     section(PACKS, "packages", "package", { of: "defs", only: "packages" },
-            packs.map((p) => pack_node(graph, p.from))),
+            packages(graph).map((p) => pack_node(graph, p.from))),
     section(VOCAB, "definitions", "vocabulary", { of: "defs", only: "all" }, [
       ...(pinned.length ? [section(`${VOCAB}:pinned`, "pinned", "pin", { of: "defs", only: "pinned" },
                                    pinned.map((d) => def_node(graph, d, `${VOCAB}:pinned`)))] : []),
-      ...GROUPS.map((g) =>
-        ({ ...section(`${VOCAB}:${g.group}`, g.label, "folder",
-                      { of: "defs", only: "workspace", group: g.group },
-                      shelf_nodes(graph, g.group, shelf_tree(graph, g.group),
-                                  `${VOCAB}:${g.group}`)),
-           filed: { group: g.group } })),
+      ...filed_defs(graph).map(({ d, filed }) => def_node(graph, d, VOCAB, filed)),
     ]),
   ];
 }
@@ -435,7 +409,7 @@ export function Explorer(props: ExplorerProps) {
   /** The layer a drop would join, and every row already in it. */
   const zone = landing(graph, over);
 
-  /** Which name is open, and where what was typed lands: a block, a definition or a folder. */
+  /** Which name is open, and where what was typed lands: a block or a definition. */
   const typing = useMemo(() => ({
     id: naming,
     done: (label: string | null) => {
@@ -444,29 +418,25 @@ export function Explorer(props: ExplorerProps) {
       if (!row || label === null) return;
       if (row.of === "block") onAct("rename", { id: row.ref, name: label });
       else if (row.of === "def") onAct("rename_def", { id: row.ref, name: label });
-      else if (row.of === "shelf") onAct("rename_shelf", { id: row.ref, name: label });
     },
   }), [naming, onAct, rows]);
 
-  /** Where the library is pointed on the shelf: which group, which folder, and what is picked. */
+  /** Where the library is pointed on the shelf: the definitions as a whole files a block
+   *  definition, and one of the workspace's own files beside it, in its shelf group. */
   const at = section?.of === "def" ? graph.defs[section.id] : undefined;
-  const filing: { group: Group; into?: Id; def?: Id; folder?: Id } | null =
-    section?.of === "defs" && section.only === "workspace" && section.group
-      ? { group: section.group, ...(section.folder ? { into: section.folder, folder: section.folder } : {}) }
-    : at && shelvable(at)
-      ? { group: at.group, def: at.id,
-          ...(shelf_of(graph).find((x) => x.id === at.id)?.in ? { into: shelf_of(graph).find((x) => x.id === at.id)!.in! } : {}) }
+  const shelved = at ? shelf_of(graph).find((x) => x.id === at.id)?.in : undefined;
+  const filing: { group: Group; into?: Id; def?: Id } | null =
+    section?.of === "defs" && section.only === "all" ? { group: "block" }
+    : at && shelvable(at) ? { group: at.group, def: at.id, ...(shelved ? { into: shelved } : {}) }
     : null;
   /** A library section is in hand, so the bar's tools are about definitions. */
   const library = !!section;
 
-  /** Where a drop on a shelf row files what is in hand, or null where it cannot. */
-  const filed_at = (r: Row, where: "in" | "above" | "below") => {
+  /** Where a drop on a definition's row files what is in hand — beside it, in its shelf group —
+   *  or null where it cannot. */
+  const filed_at = (r: Row, where: "above" | "below") => {
     const group = shelf_of(graph).find((x) => x.id === shelving[0])?.group;
     if (!r.filed || r.filed.group !== group || shelving.includes(r.ref)) return null;
-    /** A group's top row and a folder take a drop into them; anything else files beside it. */
-    if (r.of === "pack") return { into: undefined, before: undefined };
-    if (r.of === "shelf" && where === "in") return { into: r.ref, before: undefined };
     const i = rows.indexOf(r);
     const next = rows.slice(i + 1).find((x) => x.depth <= r.depth);
     const before = where === "above" ? r.ref
@@ -579,7 +549,7 @@ export function Explorer(props: ExplorerProps) {
   };
 
   const add = (type?: string) => {
-    if (library) { add_def(type === "folder"); return; }
+    if (library) { add_def(); return; }
     // A draft row opens where it goes, its branch unfolded to show it.
     if (folded.includes(target)) onFold(target, false);
     set_draft({ parent: target, ...(type ? { type } : {}) });
@@ -590,24 +560,22 @@ export function Explorer(props: ExplorerProps) {
   const lines: (Row | null)[] = slot ? [...rows.slice(0, slot.index), null,
     ...rows.slice(slot.index)] : rows;
 
-  /** On the shelf, the bar adds a definition or a folder where the library is pointed. */
-  const add_def = (folder: boolean) => {
+  /** On the shelf, the bar adds a definition where the library is pointed. */
+  const add_def = () => {
     if (!filing) return;
     const word = filing.group === "relation" ? "relation" : "block";
-    const label = prompt(folder ? "name the folder" : `name the ${word} definition`)?.trim();
+    const label = prompt(`name the ${word} definition`)?.trim();
     if (!label) return;
     const into = filing.into ? { into: filing.into } : {};
-    if (folder) { onAct("add_shelf", { name: label, group: filing.group, ...into }); return; }
     if (def_named(graph, label, filing.group)) { alert(`${label} already exists`); return; }
     onAct("define", { name: label, group: filing.group, ...into });
   };
 
-  /** What the bar's delete would take: a picked block, or a definition or folder on the shelf. */
+  /** What the bar's delete would take: a picked block, or a definition on the shelf. */
   const drop = library
-    ? filing?.def ? () => onAct("remove_def", { id: filing.def! })
-      : filing?.folder ? () => onAct("drop_shelf", { id: filing.folder! }) : null
+    ? filing?.def ? () => onAct("remove_def", { id: filing.def! }) : null
     : one && one !== graph.root ? () => onAct("delete", { id: one }) : null;
-  const where_to = filing?.folder ? "this folder" : `${filing?.group ?? "block"} definitions`;
+  const where_to = `${filing?.group ?? "block"} definitions`;
 
   return (
     /** Everything that is not a row is the workspace, as a drop target. */
@@ -630,12 +598,12 @@ export function Explorer(props: ExplorerProps) {
                       onClick={() => add()}><Icon name="add_block" /></button>
             ) : null}
             {show.folder ? (
-              <button title={library ? `add a folder to ${where_to}` : `add a folder in ${shown_name(graph, target)}`}
-                      disabled={library && !filing}
+              <button title={library ? "groups are filed by their package" : `add a folder in ${shown_name(graph, target)}`}
+                      disabled={library}
                       onClick={() => add("folder")}><Icon name="add_folder" /></button>
             ) : null}
             {show.remove ? (
-              <button title={library ? "remove the picked definition or folder" : "delete what is picked"}
+              <button title={library ? "remove the picked definition" : "delete what is picked"}
                       disabled={!drop} onClick={() => drop?.()}><Icon name="remove" /></button>
             ) : null}
           </span>
@@ -679,13 +647,13 @@ export function Explorer(props: ExplorerProps) {
                 ].filter(Boolean).join(" ")}
                 data-mark={r.mark}
                 style={{ paddingLeft: 8 + r.depth * STEP }}
-                draggable={naming !== r.id && (r.of === "def" || (r.of === "shelf")
+                draggable={naming !== r.id && (r.of === "def"
                            || (r.of === "block" && r.id !== graph.root))}
                 onDragStart={(e) => {
-                  /** A shelf row files; a definition also carries itself to the drawing. */
-                  if (r.of === "def" || r.of === "shelf") {
+                  /** A definition files, and carries itself to the drawing. */
+                  if (r.of === "def") {
                     if (r.filed) set_shelving([r.ref]);
-                    if (r.of === "def") e.dataTransfer?.setData("text/mnd-block", r.ref);
+                    e.dataTransfer?.setData("text/mnd-block", r.ref);
                     if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
                     return;
                   }
@@ -698,7 +666,7 @@ export function Explorer(props: ExplorerProps) {
                 onDragOver={(e) => {
                   /** Filing answers only on the shelf, and blocks only on blocks. */
                   if (shelving.length) {
-                    const where = r.of === "shelf" ? seam(e) : r.of === "pack" ? "in" : seam(e) === "above" ? "above" : "below";
+                    const where = seam(e) === "above" ? "above" : "below";
                     if (!filed_at(r, where)) return;
                     e.preventDefault();
                     e.stopPropagation();
@@ -714,7 +682,7 @@ export function Explorer(props: ExplorerProps) {
                 }}
                 onDrop={(e) => {
                   if (shelving.length) {
-                    const where = over?.id === r.id ? over.where : "in";
+                    const where = over?.id === r.id && over.where !== "in" ? over.where : "below";
                     const to = filed_at(r, where);
                     e.preventDefault();
                     e.stopPropagation();
@@ -754,8 +722,8 @@ export function Explorer(props: ExplorerProps) {
                   set_menu({ x: e.clientX, y: e.clientY });
                 }}
                 onDoubleClick={() => {
-                  /** A block, the workspace's own definition, or a folder made for them. */
-                  if (r.of === "block" || r.of === "shelf" || (r.of === "def" && shelvable(graph.defs[r.ref]))) {
+                  /** A block, or the workspace's own definition. */
+                  if (r.of === "block" || (r.of === "def" && shelvable(graph.defs[r.ref]))) {
                     set_naming(r.id);
                   }
                 }}>

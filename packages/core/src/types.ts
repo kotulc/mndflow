@@ -63,8 +63,8 @@ export type Grid = {
   /** The definition whose fields head its columns. Its first row reads their names and holds no
    *  values. */
   schema?: Id;
-  /** The block definition each column allocates, in order. Its first row reads their names and
-   *  holds no values. An allocation names a type without being a usage of it. */
+  /** The block definition each column allocates, in order, or `""` for one allocating none. Its
+   *  first row reads its own first values, or where a column has none, its definition's name. */
   columns?: Id[];
   /** One cell's size in units, where its cells are not a card's. */
   size?: { w: number; h: number };
@@ -120,7 +120,7 @@ export type Block = {
   shelf?: Shelved[];
   /** What this one block says about how it draws, over whatever its definition said. */
   looks?: Components;
-  /** Words put on this block to say what it is like. */
+  /** Words put on this block to say what it is like, or the definitions it mentions. */
   tags?: string[];
   flow?: Flow;
   fields?: Field[];

@@ -26,7 +26,8 @@ export {
   edge_base, edges_in, grid_of, head_of, heading, holders_in, isa, is_container, is_grid,
   is_group, is_header, is_holder, is_interface, lattice_of,
   is_reference, is_top_block, layer_id, members_of, merge_at, base_of, opens,
-  owner_of, path, region_of, shape_of, shown_name, stands_for, subtree, used_by,
+  owner_of, packages, path, region_of, shape_of, shelf_of, shown_name, stands_for, subtree,
+  used_by,
 } from "@mnd/core";
 
 /** The floor. `base_graph()` is a fresh workspace with the base package in it. */
