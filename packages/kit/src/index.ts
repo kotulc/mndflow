@@ -48,6 +48,9 @@ export {
  *  and what one block measures under it — so a host placing blocks itself stacks them by it. */
 export { CARD, UNITS, set_card, set_full, size_of } from "@mnd/views";
 
-/** The overhead and outline views: the forest, a layer flattened, and a layer as an outline. */
-export { FOREST, flat_graph, forest_graph, outline_graph, page_graph } from "@mnd/views";
+/** The computed layouts: a layer as an outline of headed groups, or as a page of boxes. */
+export { outline_graph, page_graph } from "@mnd/views";
+
+/** Navigation: what opening, leaving and revealing do to the canvas, and what the sections hold. */
+export { held_at, leave_at, open_at, reveal_at, type Held, type View } from "@mnd/core";
 

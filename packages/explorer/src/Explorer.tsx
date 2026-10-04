@@ -13,7 +13,7 @@ import { inside, MARK, OPENED, opened, tree_of, type Row } from "./rows";
 
 export type ExplorerProps = {
   graph: Graph;
-  /** The layer the stage is pointed at. */
+  /** The layer the canvas draws; null is the overview. */
   open: Id | null;
   /** What an action would act on. Takes the accent, and reads first. */
   picked: readonly Id[];
@@ -235,6 +235,14 @@ export function Explorer(props: ExplorerProps) {
     }
     return chain.held[chain.at] === r.pick && !r.via;
   };
+  /** **The one row wearing the accent's edge: what the canvas shows.** A structure shows its open
+   *  layer, listed in the structure section; the overview shows what is picked — else the package
+   *  held — listed in the sections above it. */
+  const structural = (at: number | undefined) => at !== undefined && chain.slices[at]!
+    .list(graph, chain.held.slice(0, at)).under === "structure";
+  const shown = open ?? picked[0] ?? chain.held[0] ?? null;
+  const drawn_row = rows.find((r) => r.of === "block" && r.ref === shown && !r.via
+    && structural(r.at) === (open !== null))?.id;
   /** What each other section holds, lit subtly. */
   const holds = (r: Row) => r.at !== undefined && r.at !== focus
     && r.pick !== undefined && chain.held[r.at] === r.pick;
@@ -471,7 +479,7 @@ export function Explorer(props: ExplorerProps) {
                   r.via ? "part" : "",
                   lit.includes(r.ref) ? "lit" : "",
                   lit.length && !lit.includes(r.ref) ? "dim" : "",
-                  r.of === "block" && open === r.ref ? "open" : "",
+                  r.id === drawn_row ? "open" : "",
                   /** The layer a drop would join, and where in it. */
                   r.of === "block" && zone && zone !== graph.root && on_path(graph, r.ref, zone) ? "zone" : "",
                   r.of === "block" && r.ref === zone ? "holder" : "",

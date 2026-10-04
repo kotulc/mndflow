@@ -16,7 +16,7 @@ elements · layer · display · relations
 
 | | Is |
 |---|---|
-| **`layer`** | the layer's layout — `free`, `auto` or `outline`. A setting, and the one group here that writes to the log |
+| **`layer`** | the layer's layout — `free` or `auto`. A setting, and the one group here that writes to the log. `outline` and `page` are a definition's or a host's to set, never offered here; the overview offers no `layer` group at all |
 | **`display`** | what the drawing shows rather than what it holds: the frame, the guides, whether interfaces draw, whether folders are flattened, and whether this layer draws the key to itself. Nothing here enters the log |
 | **`relations`** | what a right drag and a `chain` draw: *straight*, *directed*, *tie*, or a pinned relation definition |
 | **`elements`** | which element the tray holds: the *workspace*, a blank *block* or a blank *relation* definition. Writes nothing |

@@ -6,17 +6,17 @@ import {
   PanOnScrollMode, ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useReactFlow,
 } from "@xyflow/react";
 import type { Point, Spot } from "@mnd/core";
-import { box_of, extent, nearest_seat, FRAME, UNIT, type BoxNode } from "@mnd/views";
+import { box_of, nearest_seat, FRAME, UNIT, type BoxNode } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 import { EDGE_TYPES, Heads } from "./Wire";
 import type { Adjust, FlowViewProps, Gesture, Landing } from "./gestures";
-import { MIN_ZOOM, read_zoom, scroll_zoom } from "./arrays";
+import { BAND, MIN_ZOOM, read_zoom } from "./arrays";
 import { useDrag } from "./drag";
 import { useDraw } from "./draw";
 import { Grips } from "./Grips";
 import { kind_of, spread } from "./pointer";
-import { useCamera, useRoom } from "./room";
+import { paged, useCamera, useRoom } from "./room";
 import { Sweeping } from "./Sweeping";
 import { useSync } from "./sync";
 
@@ -47,14 +47,14 @@ function Canvas(props: FlowViewProps) {
     useSync(scene, picked, frame, onPick, second);
   useCamera(scene, frame, fit, seen, key, nodes, scroll, focus, wide, widest, most);
 
-  /** Scrolled, the drawing can be read from its first card to its last, and no further. */
+  /** Scrolled, the drawing reads from the top of its content to the bottom and no further — the
+   *  same limits the camera keeps, at the same zoom, so a scroll and a followed focus agree. */
   const reach = useMemo((): [[number, number], [number, number]] | undefined => {
     if (!scroll) return undefined;
-    const b = frame ?? extent(scene);
-    const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
-    const air = seen.h / 2 / scroll_zoom(wide ?? b.w, on ? box_of(on) : b, seen, widest, most);
-    return [[-Infinity, b.y - air], [Infinity, b.y + b.h + air]];
-  }, [scroll, frame, scene, seen, wide, widest, most, focus]);
+    const { page, zoom } = paged(scene, seen, wide, widest, most);
+    const air = Math.max(BAND / zoom, (seen.h / zoom - page.h) / 2);
+    return [[-Infinity, page.y - air], [Infinity, page.y + page.h + air]];
+  }, [scroll, scene, seen, wide, widest, most]);
 
   /** Where the pointer is on the drawing, unsnapped. */
   const at = useCallback((e: { clientX: number; clientY: number }): Point =>

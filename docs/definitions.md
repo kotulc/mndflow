@@ -116,6 +116,8 @@
 | **open** | Enter, double-click or →: a tree opens its structure on the canvas; a package, folder or group is focused in the overview. ← and Backspace leave, a tree's top for the overview |
 | **context** | what the canvas has open. Highlighting and breadcrumbs show it, never what is browsed |
 | **reveal** | a pick within the open tree may move the canvas to the layer it sits on; browsing outside it never does |
+| **navigation** | `open_at`, `leave_at`, `reveal_at` and `held_at` in core: where the canvas goes, and what the sections hold for it. The one rule both apps use |
+| **accent edge** | the explorer row of what the canvas shows: a structure's open layer in the structure section; on the overview, what is picked (else the held package) in the sections above |
 
 
 ## The grid

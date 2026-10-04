@@ -29,7 +29,10 @@ npm run start -w @mnd/cli -- project related  # a Scene as text, which is the se
 | | Is |
 |---|---|
 | `scene.ts` | the seam: `BoxNode`, `LineEdge`, `Perch`, `Frame`, `Scene` |
-| `block.ts` | the projection: a frame, cards, holders, seated interfaces, routed lines |
+| `block.ts` | the projection: a frame, cards, holders, seated interfaces, routed lines. `project(graph, null)` is the overview |
+| `packages.ts` | the overview's graph: every package a box of its domain, folders flattened. Internal: nothing outside views names it |
+| `through.ts` | read-through: an opened usage's definition structure laid on its layer, its interfaces on its walls |
+| `outline.ts` · `page.ts` | the computed layouts: headed groups as a staircase, and full-width boxes down a page |
 | `size.ts` | the one measure: `UNIT`, and a `CELL` as a block plus its air |
 | `arrange.ts` · `bands.ts` · `pack.ts` | where everything sits: hand placement or auto-layout, bands and cells, clusters and satellites |
 | `seat.ts` · `ends.ts` · `route.ts` | where a line meets a border, which way it sets off, and where it runs |

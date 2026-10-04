@@ -116,24 +116,18 @@
 /* The last row in a branch turns the elbow: the tick sits at the foot of the stopped line. */
 .explorer .tree .guide.tick.stop::after { top: 100%; }
 
-/* Two states, two looks, and never the same wash. */
-.explorer .tree li.open { background: var(--tint); }
+/* The accent's edge marks one row only: the block the canvas draws. The pick is the stronger
+   wash, and each section's own pick a faint one, so neither reads as what is open. */
+.explorer .tree li.open { border-left-color: var(--accent); }
 .explorer .tree li.picked {
-  border-left-color: var(--accent);
   color: var(--accent);
   background: var(--hover);
 }
-
-/* What a section holds as its context, where the focus is elsewhere: the accent's edge alone,
-   so it reads under the focus and never as a second pick. */
-.explorer .tree li.context { border-left-color: var(--accent); }
+.explorer .tree li.context { background: var(--tint); }
 .explorer .tree li.context .label { color: var(--text); }
 
 /* What a narrowing found, and what it did not. */
-.explorer .tree li.lit {
-  background: var(--hover);
-  border-left-color: var(--accent);
-}
+.explorer .tree li.lit { background: var(--hover); }
 .explorer .tree li.lit .label { color: var(--text); font-weight: 600; }
 .explorer .tree li.dim { color: var(--faint); }
 .explorer .tree li.dim .mark { color: var(--faint); }

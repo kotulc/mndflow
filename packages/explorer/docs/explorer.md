@@ -18,7 +18,7 @@ The explorer files the graph as a **section chain**: a host declares its section
 | **host defined** | each `Slice` says its label, mark, listing (`list`) and first pick (`first`) |
 | **remembered** | a section remembers its pick per pick above; session state (`useChain`), never logged |
 | **headers are labels** | never chosen; clicking one folds its section |
-| **two cues** | the focus lit strongly; each section's pick by the accent's edge |
+| **three cues** | the accent's edge on the one row the canvas shows — a structure's open layer in the structure section, else on the overview what is picked (or the held package) above it; the pick a strong wash; each section's own pick a faint one |
 
 | Section | Lists |
 |---|---|

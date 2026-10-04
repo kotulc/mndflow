@@ -43,12 +43,12 @@ export type Chrome = {
   dir?: Dir;
 };
 
-/** How a layer places what it holds. */
-const LAYOUT: Record<Layout, { icon: IconName; tip: string }> = {
+/** How a person lays a layer out from the rail. `outline` and `page` are a definition's or a
+ *  host's to set — a document reads as an outline, the overview as a page — so they are not
+ *  offered here. */
+const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
   free: { icon: "layout_free", tip: "Hand placement is what draws" },
   auto: { icon: "layout_grid", tip: "Auto-layout: related blocks share a row, a unit of air between everything" },
-  outline: { icon: "parts", tip: "Outline: headed groups down the page, each one's members beside its head" },
-  page: { icon: "content_row", tip: "Page: full-width boxes down the page, their cards in rows" },
 };
 
 /** What a right drag may draw: a line, straight or directed, or a tie. */
@@ -71,8 +71,8 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
   if (has("layer")) {
     out.push({
       key: "layer", label: "layer",
-      controls: LAYOUTS.map((how): Control => ({
-        key: how, icon: LAYOUT[how].icon, word: how, tip: LAYOUT[how].tip,
+      controls: LAYOUTS.filter((how) => LAYOUT[how]).map((how): Control => ({
+        key: how, icon: LAYOUT[how]!.icon, word: how, tip: LAYOUT[how]!.tip,
         on: (chrome.layout ?? "free") === how,
         run: () => act("layout", { kind: how }),
       })),

@@ -80,6 +80,8 @@ import "@mnd/kit/react.css";
 <Viewer graph={graph} layer={layer} />   // click highlights, double-click walks
 ```
 
+**Which layer**: unsaid, the workspace's domain; a block's id, that layer; `null`, the overview — every package a box of its domain, read down the page. `config={{ packages, across }}` narrows the overview to those packages and sets how many cards its rows hold.
+
 **Interactive, self-contained, and not editable.** `draw_svg` makes a picture; this makes one you can walk. It holds the graph, projects the layer being looked at, and goes in and out of layers on a double-click. **Nothing in it writes.**
 
 The renderer underneath also offers drag callbacks meaning move, seat, wall and relate. They are not passed and not re-exported, so **an edit is unreachable rather than merely unadvised** — a host that needs them lives in this repo and imports `@mnd/stage` directly.
@@ -135,13 +137,18 @@ const { display, onDisplay } = useDisplay({ card: { w: 10, h: 3 }, range: CARD }
 ## The tree
 
 ```tsx
-import { Explorer } from "@mnd/kit/react";
+import { Explorer, useChain, editor_slices } from "@mnd/kit/react";
 
-<Explorer graph={graph} open={at} picked={picked} folded={folded}
+const chain = useChain(graph, SLICES);       // the host's sections, and what each holds
+<Explorer graph={graph} open={layer} picked={picked} folded={folded} chain={chain}
           menu={false}                       // your vocabulary, not this engine's
           onAct={(name, args) => { /* mean whatever you like by it */ }}
-          onFold={...} onPick={...} />
+          onOpen={({ id, via }) => ...}      // Enter, double-click, →
+          onLeave={() => ...}                // ←, Backspace
+          onFold={...} onPick={...} keys />
 ```
+
+**Sections are required**: a host declares its slices (mndflow's are `editor_slices()`). **The explorer browses; the canvas is the host's**: choosing a row holds it in its section, and only `onOpen` asks the canvas to move. Where it moves is the kit's navigation — `open_at`, `leave_at`, `reveal_at`, and `held_at` for what the sections then hold — so every host moves the same way.
 
 **It emits intent, never change.** `onAct` is a name and arguments — `Act = (name, args?) => void` — so nothing here writes and nothing here assumes a log exists. A host over a **derived** graph handles `move` by rewriting its own store and rebuilding; a host over a real workspace runs the action. The explorer cannot tell the difference, which is the point.
 

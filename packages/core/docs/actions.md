@@ -51,6 +51,7 @@
 | `open` | draws a tree's structure, the overview with none, or leaves this one: from a tree's top, for the overview | block | id? | `open` |
 | `reveal` | opens the layer a block sits on and picks it there, followed through references | block | id | `open` + `focus` |
 
+- **Where the canvas goes is navigation's** (core `navigate.ts`): opening a tree draws its structure, any other block in a structure draws as its own layer, and a package or holder is revealed — on the overview. Leaving a tree's top returns to the overview, the tree picked. Both apps use the same functions.
 - **Opening a part opens its definition**, the part picked there.
 - **The way out of an interface is the way in**: leaving lands in whichever of its two layers you came from.
 

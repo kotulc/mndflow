@@ -8,6 +8,7 @@ export * from "./components";
 export * from "./fold";
 export * from "./defs";
 export * from "./tree";
+export * from "./navigate";
 export * from "./holders";
 export * from "./names";
 export * from "./tags";

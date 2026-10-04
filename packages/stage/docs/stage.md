@@ -54,4 +54,10 @@
 
 ## Scrolled drawings
 
-**A scrolled drawing is a page held still across**: fitted to its width (or `reach`), centred where it is narrower than the view and read from its left where wider, and never magnified past `most`. **The camera follows the focus down the page** and never sideways, so a pick never shifts the page.
+**A scrolled drawing is a page held still across**: fitted to its width (or `reach`), centred where it is narrower than the view and read from its left where wider, and never magnified past `most`. The overview and mndmap's pages are scrolled.
+
+| Rule | |
+|---|---|
+| **read from top to bottom, no further** | the page stops a band past its content's top and foot; a page shorter than the view sits in its middle |
+| **scrolled into view, never centred** | a focus already in view leaves the page still; one out of view moves it just far enough |
+| **one reckoning** | the camera and the scroll limit read the same page and zoom (`paged`, `bounded` in `room.ts`), so neither undoes the other |

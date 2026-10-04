@@ -6,7 +6,7 @@
 |---|---|
 | **workspace root** | a package root with a reserved id. Holds the handle counters and the pinned definitions |
 | **new workspace** | its root and one plain definition, `main`, opened by default. Groupings are the user's; samples show them |
-| **`uses`** | on a package root, the packages it depends on |
+| **what a package uses** | worked out from the types, traits and tags it names (`uses_of`), never stored |
 
 - **Every block carries an `id`**, minted once and kept for life, so a rename breaks nothing.
 - **Names are unique among siblings.**
@@ -35,6 +35,7 @@
 ## In and out
 
 - **Every package is a JSON file**, `base` and `markdown` included. A host keeps only the id constants its code reads.
-- **A workspace export is the workspace package's subtree.** Packages it uses travel as their own files; `base` never travels.
+- **A workspace export is whole**: the workspace package and every package brought in beside it; `base` never travels.
+- **Export as package** writes the workspace as a package: its root and ids prefixed with the name given.
 - **A package is the smallest export.** Nothing smaller is written as a file.
-- **Importing is a checkpoint.** Grafting brings a file into a layer as one step, and the workspace wins.
+- **Importing is a checkpoint.** Bringing a package in adds it beside the workspace, frozen, through the door.

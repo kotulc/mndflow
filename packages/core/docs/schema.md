@@ -28,9 +28,9 @@ File {
 | **JSON, always** | a workspace, a package (`base` and `markdown` included) and every element are definable as JSON |
 | **nothing at its default is written** | no nulls, no empty lists; re-exporting an unchanged graph is byte-identical |
 | **laid out for reading** | blocks then relationships, each flat and sorted by id; identity keys first, the rest alphabetical |
-| **a workspace file** | the workspace package's subtree. Packages it `uses` travel as their own files; `base` never travels |
+| **a workspace file** | the workspace package and every package brought in beside it; `base` never travels. A file naming a definition it does not carry is refused |
 | **a package is the smallest export** | a package root, everything under it, and its relationships. Nothing smaller is written as a file |
-| **import is a checkpoint** | no second format, no second reader. Grafting brings a file into a layer as one step, and the workspace wins |
+| **import is a checkpoint** | no second format, no second reader. Bringing a package in adds it beside the workspace, frozen; a clash of ids is refused |
 
 
 ## Session
@@ -72,7 +72,6 @@ Block {
   body?         string            // a block's text; a definition's description
 
   def?          { schema?: FieldDef[] }   // present on a definition, and only there
-  uses?         Id[]              // a package root: the packages it depends on
 
   of?           Id                // reference: what it stands for
   source?       string            // provenance: one uri

@@ -29,14 +29,15 @@ npm run typecheck -w @mnd/defs
 
 | | Is |
 |---|---|
-| `BASE` | the seven block kinds — `block` and `folder`, the holders `group` and `grid` (the plain block with `allows.holder` said), and the accessories `reference`, `interface` and `note` |
-| `BEHAVIOR` | `action` and `state`, extending the base behavior definition, each carrying the verb its usages are named by |
-| `VIEWS` | the six offered views — `block`, `table`, `matrix`, and `activity` · `sequence` · `state`, which name the block module with a reading |
-| `RELATIONS` | `line` and `tie`, so every relationship resolves to a base of its own module |
+| `FLOOR` | every block of the `base` package, read from `src/base.json` — **the package is JSON**, as every package is |
+| `BASE` | the block kinds: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag` |
+| `RELATIONS` | the relation kinds `line` and `tie` |
+| traits | `tied`, `resizable`, `body content` — tags carrying settings; `note` carries all three |
+| `base_graph()` | a fresh workspace with the base package under it |
 
 ## The rules it lives by
 
-- **The engine may key off a base definition only for how a block draws, where it sits, and which tier it is** — never for anything a package could have said instead.
+- **The engine may key off a base definition only for how a block draws and where it sits** — never for anything a package could have said instead.
 - **Core cannot depend back.** `defs` depends on core, so an app hands the base definitions into a session the same way it hands in a port.
 - **A package is data; a module is code.** A package maps names and presentation, never structure — a notation needing structural change is a module, and then it is one engine capability plus a package, shipping together.
 - **A package must be useful with portable presentation alone.** It degrades rather than breaks when the module it names is not in the build.

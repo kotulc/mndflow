@@ -176,7 +176,7 @@ The envelope, the canonical layout and the door are core's `engine.md`.
 | reading | every derived answer about a graph — roles, layers, read-through, a relation's domain read off its type |
 | `open` | a file in, as a graph — validated at the door and repaired where it can be |
 | `validate` | what a graph violates. **Mending it stays the engine's** |
-| `write` · `write_subtree` | a graph out, in the canonical layout |
+| `write` · `write_package` | a workspace, or the workspace as a package, out in the canonical layout |
 | `project` · `draw` · `draw_svg` | a layer as a Scene, as text, as a standalone drawing |
 | `Viewer` | the same layer as an **interactive** artifact — walkable, and not editable. Draws the lattice unless told not to, and a block's fields as a class diagram when asked |
 | `Explorer` | the tree. **Emits intent, never change** |

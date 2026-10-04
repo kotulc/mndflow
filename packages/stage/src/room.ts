@@ -38,6 +38,27 @@ export function useRoom(scene: Scene) {
   return { frame, fit, seen };
 }
 
+/** A scrolled drawing as the camera and the scroll limit both read it: the page (what is drawn,
+ *  without the room round it), the width it is read at, and the one zoom for both. */
+export function paged(scene: Scene, seen: { w: number; h: number }, reach: number | null,
+                      widest: number | null, most: number | null) {
+  const page = extent({ ...scene, frame: undefined,
+                        nodes: scene.nodes.filter((n) => n.id !== FRAME) });
+  const w = Math.min(reach ?? page.w, widest ?? Infinity);
+  // A page's zoom is its width's alone: the camera scrolls to a focus, never zooms to it.
+  return { page, w, zoom: scroll_zoom(w, null, seen, widest, most) };
+}
+
+/** Where a scrolled page may sit down the view: its top a band below the view's, its foot a band
+ *  above the view's, and a page shorter than the view in its middle. */
+export function bounded(y: number, page: { y: number; h: number }, zoom: number,
+                        seen: { h: number }): number {
+  if (page.h * zoom <= seen.h - BAND * 2) return seen.h / 2 - (page.y + page.h / 2) * zoom;
+  const top = BAND - page.y * zoom;
+  const foot = seen.h - BAND - (page.y + page.h) * zoom;
+  return Math.min(top, Math.max(foot, y));
+}
+
 /** The camera flight on descending or leaving, the only animation, and opening out at the root.
  *  Scrolled, the camera fits the drawing's width, or `reach` of it, as a page held still across,
  *  and follows the focus down it. It never takes in more than `widest`, nor magnifies past
@@ -57,21 +78,23 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
    *  with nothing in focus. */
   const settle = useCallback((duration: number) => {
     if (scroll) {
-      /** What is drawn, without the room round it. */
-      const page = extent({ ...scene, frame: undefined,
-                            nodes: scene.nodes.filter((n) => n.id !== FRAME) });
-      // With nothing in focus, the whole drawing is — not its room, which is grown to the panel.
+      const { page, w, zoom } = paged(scene, seen, reach, widest, most);
       const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
-      const box = on ? box_of(on) : page;
-      // The page is `reach` wide, or the drawing's width, up to `widest`.
-      const w = Math.min(reach ?? page.w, widest ?? Infinity);
-      // A page's zoom is its width's alone: the camera scrolls to a focus, never zooms to it.
-      const zoom = scroll_zoom(w, null, seen, widest, most);
-      // The focus is centred down the view; with none, a page taller than the view is read from
-      // its top.
-      const y = on || box.h * zoom <= seen.h - BAND * 2
-        ? seen.h / 2 - (box.y + box.h / 2) * zoom
-        : BAND - box.y * zoom;
+      // **A focus is scrolled into view, never centred**: where it is already in view the page
+      // holds still, else it moves just far enough to bring it in. With none, the page is read
+      // from its top. Either way the page stays inside its limits.
+      const vp = flow.getViewport();
+      const same = Math.abs(vp.zoom - zoom) < 1e-3;
+      let y = BAND - page.y * zoom;
+      if (on) {
+        const box = box_of(on);
+        const at = same ? vp.y : y;
+        const top = box.y * zoom + at;
+        const foot = (box.y + box.h) * zoom + at;
+        y = top < BAND ? BAND - box.y * zoom
+          : foot > seen.h - BAND ? seen.h - BAND - (box.y + box.h) * zoom : at;
+      }
+      y = bounded(y, page, zoom, seen);
       // Across, the page holds still whatever is in focus: centred where it is narrower than the
       // window, read from its left where wider.
       const left = page.w < w ? page.x + page.w / 2 - w / 2 : page.x;

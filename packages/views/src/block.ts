@@ -46,8 +46,10 @@ function group_carries(graph: Graph, group: Id): Id[] {
  *  a definition seen through a usage wears the `part` mark. */
 export function project(given: Graph, layer: Id | null, config: Config = {}): Scene {
   /** Nothing open is the forest: every package a box of its domain. */
+  /** The overview is read only: it offers what the drawing shows, and nothing to lay out. */
   if (layer === null) {
-    return project(forest_graph(given, config.packages, config.across), FOREST, config);
+    const scene = project(forest_graph(given, config.packages, config.across), FOREST, config);
+    return { ...scene, slots: ["display"] };
   }
   const through = read_through(given, layer);
   /** An outline or a page places its layer as it reads; anything else places itself. */

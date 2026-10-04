@@ -3,9 +3,10 @@
 import { may_hold, may_take } from "../capabilities";
 import { shown_name } from "../names";
 import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_domain,
-         may_retype, name_taken, package_of, plain_type, stored_type, self_use, tree_of } from "../defs";
+         may_retype, name_taken, package_of, plain_type, stored_type, self_use } from "../defs";
 import { at_cell, covers, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
 import { children, is_interface, next_order, reorder, stands_for, subtree } from "../tree";
+import { leave_at, open_at, reveal_at } from "../navigate";
 import { new_id } from "../ids";
 import { BASE_PACKAGE, LAYOUTS, type Graph, type Id, type Layout, type Mutation } from "../types";
 import { register } from "./registry";
@@ -368,25 +369,29 @@ register(
   },
   {
     name: "open",
-    about: "opens a block as the layer being drawn, the forest with none, or leaves this one",
+    about: "opens a block on the canvas — a tree draws its structure — or leaves this layer",
     on: ["block"],
     args: [{ name: "id", form: "block" }],
     check: (ctx, args) => {
       const want = id_of(args, "id");
       return !want || ctx.graph.blocks[want] ? null : "that is not here any more";
     },
-    /** No `id` leaves for the layer the open one is drawn on; an interface returns to the layer it
-     *  was entered from, and a tree's top leaves for the overview. */
+    /** Opening and leaving are navigation's (`open_at`, `leave_at`). An interface left returns to
+     *  the layer it was entered from. */
     run: (ctx, args) => {
       const want = id_of(args, "id");
-      if (want) return { mutations: [], effect: { open: want, focus: null } };
+      if (want) {
+        const to = open_at(ctx.graph, want);
+        return { mutations: [], effect: { open: to.layer, focus: to.pick } };
+      }
       const here = ctx.layer ? ctx.graph.blocks[ctx.layer] : undefined;
       const owner = here?.parent ? ctx.graph.blocks[here.parent] : undefined;
       const outside = owner?.parent ?? null;
-      const up = here && tree_of(ctx.graph, here.id) !== here.id ? layer_of(ctx.graph, here.id) : null;
-      const back = here && is_interface(here) && ctx.from !== undefined
-        && ctx.from === outside ? outside : up;
-      return { mutations: [], effect: { open: back, focus: ctx.layer } };
+      if (here && is_interface(here) && ctx.from !== undefined && ctx.from === outside) {
+        return { mutations: [], effect: { open: outside, focus: ctx.layer } };
+      }
+      const to = leave_at(ctx.graph, ctx.layer);
+      return { mutations: [], effect: { open: to.layer, focus: to.pick } };
     },
   },
   {
@@ -396,12 +401,9 @@ register(
     args: [{ name: "id", form: "block", required: true }],
     run: (ctx, args) => {
       const id = id_of(args, "id");
-      /** Followed to the end, so a reference to a reference reveals what both stand for. A tree,
-       *  a holder or a package is seen in the overview. */
-      const target = stands_for(ctx.graph, id)?.id ?? id;
-      const open = in_domain(ctx.graph, target) || ctx.graph.blocks[target]?.parent === null
-        ? null : layer_of(ctx.graph, target);
-      return { mutations: [], effect: { open, focus: target } };
+      /** Followed to the end, so a reference to a reference reveals what both stand for. */
+      const to = reveal_at(ctx.graph, stands_for(ctx.graph, id)?.id ?? id);
+      return { mutations: [], effect: { open: to.layer, focus: to.pick } };
     },
   },
 );

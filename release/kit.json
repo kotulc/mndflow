@@ -1,8 +1,8 @@
 {
   "tarball": "mnd-kit-0.11.0.tgz",
   "version": "0.11.0",
-  "commit": "c55286a7251932bb52982d53e7388dc99a0f129b",
+  "commit": "d3c9171cfb768256f06e3da9389505450d7c62b3",
   "branch": "align-mndmap-workspace",
   "packed": "2026-10-04",
-  "integrity": "sha512-y6zoGEsccBeiyYXbI6q4GjOjRcd8gAtDWglu/G6Xlv+elMJHfJwe/ZqD9XycU6ovlD/jVHuw/yGopG2lc2Ed0Q=="
+  "integrity": "sha512-zj68Vinvxc+vppM+77NMSH/L6Z+shJlTToEHxWYrsZqh6Tjr1tC6vwtZRQt3jGFDyLnw8hRSMCoG3fxpdBT3HQ=="
 }

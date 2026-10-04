@@ -22,7 +22,7 @@ project(graph, layer, config) → Scene
 | **seats** | `seated(graph, spots)` | interfaces, drawn over the card they sit on |
 | **routes** | `edges_in(graph, layer)` | one line per relationship with both ends drawn here, a part's end meeting `usage/part` |
 
-**The forest has no frame.** A frame is a block seen from inside, and the forest is no block. Everywhere else it is what the layer holds plus a margin, and never smaller than the room a first block needs — so descending into an empty block shows somewhere to put something rather than a blank page.
+**The overview has no frame, and neither has a package root.** A frame is a block seen from inside, and neither is seen so. Everywhere else it is what the layer holds plus a margin, and never smaller than the room a first block needs — so descending into an empty block shows somewhere to put something rather than a blank page.
 
 ## Marks
 

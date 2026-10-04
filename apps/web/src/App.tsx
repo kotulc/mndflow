@@ -1,13 +1,12 @@
 /** The app, assembled. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { block_base, def_at, domain_of, layout_of, offer, package_of, setting_of, session,
-         tree_of, type Args, type Storage, type Dir, type Graph, type Id,
-         type Point } from "@mnd/core";
+import { block_base, def_at, domain_of, held_at, layout_of, offer, setting_of, session,
+         type Args, type Storage, type Dir, type Graph, type Id, type Point } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
-import { box_of, clear_of, forest_graph, holds, project, set_card as apply_card, tidy, BLOCK,
-         CARD, FOREST, UNITS } from "@mnd/views";
-import { Explorer, Menu, editor_slices, listed, useChain } from "@mnd/explorer";
+import { box_of, clear_of, holds, project, set_card as apply_card, tidy, BLOCK,
+         CARD, UNITS } from "@mnd/views";
+import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
 import { Icon, WorkspaceHeader } from "@mnd/theme";
 import { Stage, type Move } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
@@ -67,16 +66,11 @@ export function App({ storage }: { storage: Storage }) {
   const { hold } = t;
   /** The explorer's sections — a package, a definition, its structure — and what each holds. */
   const chain = useChain(s.graph(), SLICES);
-  /** A selection made anywhere but the tray gives the context back to the canvas; a block picked
-   *  is held in the section listing it — the one in focus first — and nothing above it moves. */
+  /** A pick on the canvas gives the context back to the canvas, and the sections follow it. */
   const pick = (ids: Id[]) => {
     s.pick(ids);
     t.release();
-    const one = ids.length === 1 ? ids[0]! : null;
-    if (!one || !s.graph().blocks[one]) return;
-    const order = [chain.at, ...SLICES.keys()];
-    const at = order.find((n) => listed(s.graph(), SLICES[n]!, chain.held.slice(0, n), one));
-    if (at !== undefined) chain.onChoose(at, one);
+    if (ids.length === 1) follow();
   };
 
   useEffect(() => { s.watch(() => bump((n) => n + 1)); }, [s]);
@@ -94,8 +88,8 @@ export function App({ storage }: { storage: Storage }) {
   const layer = s.layer();
   const said = s.said();
   const laid_out = layout_of(graph, layer);
-  /** What the canvas has open: a layer, or the forest above every package. */
-  const here = layer ?? FOREST;
+  /** What the canvas has open: a layer, or the overview (keyed `""`). */
+  const here = layer ?? "";
   const legend = keyed[here] ?? legends;
 
   /** The drawing's proportions are the views module's, so the session's card is applied before
@@ -113,37 +107,13 @@ export function App({ storage }: { storage: Storage }) {
     () => project(graph, layer, { interfaces: shown.interfaces, across }),
     [graph, layer, shown.interfaces, card, across]);
 
-  /** **The canvas draws what was opened; the sections follow it.** A tree's structure traces the
-   *  chain to the tree; the overview to what is picked on it. */
-  useEffect(() => {
-    if (layer === null) { held_on_overview(s.picked()[0]); return; }
-    if (!graph.blocks[layer]) return;
-    const tree = tree_of(graph, layer);
-    if (tree) chain.onTrace([package_of(graph, layer), tree], 2);
-  }, [layer]);
-
-  /** The sections, following a pick on the overview: its package, and the tree or holder picked. */
-  const held_on_overview = (id: Id | undefined) => {
-    const b = id ? graph.blocks[id] : undefined;
-    if (!b) return;
-    if (b.parent === null) { chain.onTrace([b.id], 0); return; }
-    chain.onTrace([package_of(graph, b.id), tree_of(graph, b.id) ?? b.id], 1);
+  /** **The sections follow the canvas** — one rule (`held_at`), whatever moved it: the layer opened,
+   *  or a pick on the overview. Browsing the explorer moves neither. */
+  const follow = () => {
+    const held = held_at(s.graph(), s.layer(), s.picked()[0] ?? null);
+    if (held) chain.onTrace(held.path, held.at);
   };
-
-  /** **The overview**, drawn while nothing is open: every package a box of its domain, folders
-   *  flattened, the page scrolled down. Read only. Picking selects; opening a tree draws its
-   *  structure, and opening a package, folder or group only focuses it here. */
-  const forest = useMemo(() => (layer === null ? { graph: forest_graph(graph), scene } : null),
-    [graph, layer, scene]);
-  const forest_pick = (ids: Id[]) => {
-    s.pick(ids.filter((id) => graph.blocks[id]));
-    t.release();
-    if (ids.length === 1) held_on_overview(ids[0]);
-  };
-  const forest_act = (name: string, args?: Record<string, unknown>) => {
-    const id = String(args?.["id"] ?? "");
-    if (name === "open" && graph.blocks[id]) opened({ at: 1, id });
-  };
+  useEffect(follow, [layer]);
 
   /** What the open layer draws, by id. */
   const drawn = useMemo(() => new Set([...scene.nodes.map((n) => n.id),
@@ -164,6 +134,8 @@ export function App({ storage }: { storage: Storage }) {
     if (name === "undo") { s.undo(); return; }
     if (name === "redo") { s.redo(); return; }
     s.go(name, args ?? {});
+    /** Opening, leaving and revealing are navigation's: the sections follow where it went. */
+    if (name === "open" || name === "reveal") { t.release(); follow(); }
   };
 
   /** One gesture, one step: every write an adjustment comes to. */
@@ -230,28 +202,6 @@ export function App({ storage }: { storage: Storage }) {
     }
     t.release();
     if (id && graph.blocks[id]) s.pick([id]);
-  };
-
-  /** A layer opened, with nothing picked on it. */
-  const open_layer = (id: Id | null) => { s.look(id); t.release(); };
-
-  /** A row or card opened — Enter, a double click, → — moves the canvas only for a tree, which
-   *  draws its structure; a package, folder or group is focused on the overview. A part seen
-   *  through a usage opens where its definition holds it, picked there. */
-  const opened = ({ id, via }: { at: number; id: Id; via?: Id }) => {
-    if (via) { s.go("reveal", { id }); t.release(); return; }
-    if (tree_of(graph, id) === null) { s.look(null); s.pick([id]); held_on_overview(id); return; }
-    if (tree_of(graph, id) === id) { open_layer(id); return; }
-    s.go("reveal", { id });
-  };
-
-  /** ← and Backspace: the canvas leaves for the layer the open one is drawn on — from a tree's top,
-   *  the overview, the tree picked there. */
-  const leave = () => {
-    const was = layer;
-    s.go("open", {});
-    if (was && s.layer() === null) { s.pick([was]); held_on_overview(was); }
-    t.release();
   };
 
   /** The terminal's commands; help is the fallback. */
@@ -328,16 +278,16 @@ export function App({ storage }: { storage: Storage }) {
         onFold={(id, shut) =>
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
         onPick={pick}
-        onOpen={opened}
-        onLeave={leave}
+        onOpen={({ id, via }) => act(via ? "reveal" : "open", { id })}
+        onLeave={() => act("open")}
         chain={{ ...chain, onChoose: choose }}
         keys
       />
 
       <main ref={set_canvas}>
         <Stage
-          scene={forest?.scene ?? scene}
-          graph={forest?.graph ?? graph}
+          scene={scene}
+          graph={graph}
           /** The shared menu; a right-click inside the selection is about the selection. */
           menu={(at, on, shut, spot, only, given) => (
             <Menu ctx={{ graph, layer, cells: s.cells(),
@@ -354,7 +304,7 @@ export function App({ storage }: { storage: Storage }) {
               scene.nodes.filter((n) => n.id !== id && !holds(n) && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
-            if (forest) return;
+            if (layer === null) return;
             if (graph.blocks[id]?.def) {
               const made = dropped(graph, id, land.line ?? land.over, at, layer);
               if (typeof made === "string") s.say(made, "note"); else s.go(...made);
@@ -383,16 +333,16 @@ export function App({ storage }: { storage: Storage }) {
           lit={hovered && drawn.has(hovered) ? [hovered] : []}
           /** An echo of a pick the canvas cannot draw is not a gesture. */
           onPick={(ids) => {
-            if (forest) { forest_pick(ids); return; }
             const shown = s.picked().filter((id) => drawn.has(id));
             const echo = shown.length < s.picked().length && ids.length === shown.length
               && ids.every((id) => shown.includes(id));
             if (!echo) pick(ids);
           }}
-          onAct={forest ? forest_act : act}
-          onAdjust={forest ? () => undefined : adjust}
-          scroll={!!forest}
-          focus={forest ? s.picked()[0] ?? null : null}
+          onAct={act}
+          /** The overview is read only, and read down the page. */
+          onAdjust={layer === null ? () => undefined : adjust}
+          scroll={layer === null}
+          focus={layer === null ? s.picked()[0] ?? null : null}
           most={1}
         />
         <Tray
@@ -413,8 +363,7 @@ export function App({ storage }: { storage: Storage }) {
         />
       </main>
 
-      <Options groups={groups_of({ slots: forest ? scene.slots.filter((s) => s !== "layer")
-                                          : scene.slots, layout: laid_out,
+      <Options groups={groups_of({ slots: scene.slots, layout: laid_out,
                                    interfaces: shown.interfaces,
                                    lattice: lattice ?? true, frame: shown.frame,
                                    legend,
