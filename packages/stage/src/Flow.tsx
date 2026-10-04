@@ -138,7 +138,9 @@ function Canvas(props: FlowViewProps) {
       onNodesChange={changed}
       onEdgesChange={rewired}
       onSelectionChange={chose}
-      fitView
+      /** A scrolled drawing is fitted by its camera, as a page; React Flow's own first fit would
+          fit its height instead. */
+      fitView={!scroll}
       fitViewOptions={fit}
       minZoom={scroll && widest ? read_zoom(widest, seen) : MIN_ZOOM}
       maxZoom={4}

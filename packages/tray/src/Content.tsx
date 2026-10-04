@@ -1,5 +1,5 @@
 /** The prose of whatever the panel has hold of: a block's body, which is the content itself, or
- *  a definition's `about`, which describes the vocabulary. The definition's record is `Data`. */
+ *  a definition's, which describes it. The definition's record is `Data`. */
 
 import { useState } from "react";
 import type { Act, Graph, Id } from "@mnd/core";
@@ -9,8 +9,8 @@ import { Band } from "./Body";
 export type ContentProps = { graph: Graph; id: Id; onAct?: Act };
 
 export function Content({ graph, id, onAct }: ContentProps) {
-  const def = graph.defs[id];
-  const stored = (def ? def.about : graph.blocks[id]?.body) ?? "";
+  const def = !!graph.blocks[id]?.def;
+  const stored = graph.blocks[id]?.body ?? "";
   const [draft, set_draft] = useState<string | null>(null);
 
   const commit = () => {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { session, type Arrangement, type Id } from "@mnd/core";
-import { seed } from "@mnd/defs";
+import { FLOOR } from "@mnd/defs";
 import { fixture, NAMES } from "@mnd/fixtures";
 import { project } from "@mnd/views";
 import { Stage } from "../src/index";
@@ -29,7 +29,7 @@ function Harness() {
   const [said, set_said] = useState<string | null>(null);
 
   if (!held.has(name)) {
-    const made = session({ defs: seed() });
+    const made = session({ floor: FLOOR });
     for (const step of fixture(name)) made.adjust(step.action, step.mutations);
     held.set(name, made);
   }

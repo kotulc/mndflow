@@ -1,9 +1,9 @@
 /** How a usage of a definition draws. */
 
-import { ALIGNS, ARROWS, base_named, BORDERS, config_of, CONTRASTS, DEFAULTS, def_of, DISPLAYS,
-         FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, kind_word, previewed,
-         schema_of, SHOWN, stood_def, WEIGHTS, WIDTHS, type Definition, type Graph, type Id,
-         type Settings } from "@mnd/core";
+import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, def_of, DISPLAYS,
+         domain_of, FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, kind_word,
+         previewed, relation_base, schema_of, SHOWN, stood_def, WEIGHTS, WIDTHS,
+         type Definition, type Graph, type Id, type Settings } from "@mnd/core";
 
 export type Family = (typeof FAMILIES)[number];
 export type Width = (typeof WIDTHS)[number];
@@ -84,9 +84,9 @@ export const PLAIN: Look = {
 /** What this element says under one component key, chain first and its own last word over it. */
 function settings(graph: Graph, id: Id, key: string): Settings {
   /** A definition is its own last word. */
-  if (graph.defs[id]) return config_of(graph, id, key);
+  if (def_at(graph, id)) return config_of(graph, id, key);
   const it = graph.blocks[id] ?? graph.edges[id];
-  return { ...config_of(graph, def_of(graph, id), key), ...(it?.looks?.[key] ?? {}) };
+  return { ...config_of(graph, def_of(graph, id), key), ...(it?.settings?.[key] ?? {}) };
 }
 
 /** One value if it is in the set, or the fallback. */
@@ -105,26 +105,31 @@ export function look_of(graph: Graph, id: Id): Look {
    *  says of itself, and its mark says it stands in. */
   const stood = stood_def(graph, id);
   if (stood) return stand_in(graph, id, stood);
+  /** A definition drawn on its package's layer reads as its usages do. */
+  if (block.def) return stand_in(graph, id, block as Definition);
   const source = graph.blocks[previewed(graph, id)]!;
   const card = settings(graph, source.id, "card");
   const style = source === block ? settings(graph, id, "style")
-    : { ...settings(graph, source.id, "style"), ...(block.looks?.["style"] ?? {}) };
-  const named = source.type ? graph.defs[source.type]?.name : undefined;
+    : { ...settings(graph, source.id, "style"), ...(block.settings?.["style"] ?? {}) };
+  const named = def_at(graph, source.type)?.name;
   return dressed(graph, id, card, style, named ?? kind_word(graph, source).toLowerCase());
 }
 
 /** How a stand-in for a definition draws: as its usages, named rather than showing a body it
- *  has not got, listing a schema only where there is one, and a relation wearing its line. */
+ *  has not got — unless one was handed to it, as a chart hands a tag what it means — listing a
+ *  schema only where there is one, and a relation wearing its line. */
 function stand_in(graph: Graph, id: Id, def: Definition): Look {
-  const own = graph.blocks[id]!.looks ?? {};
+  const own = (graph.blocks[id]!.def ? {} : graph.blocks[id]!.settings) ?? {};
   const card = { ...config_of(graph, def.id, "card"), ...(own["card"] ?? {}) };
+  const body = graph.blocks[id]!.body ? card["body"] ?? "hide" : "hide";
   const style = { ...config_of(graph, def.id, "style"), ...(own["style"] ?? {}) };
-  const tie = base_named(graph, def.id, "relation") === "tie";
+  const relation = domain_of(graph, def.id) === "relation";
+  const tie = relation && relation_base(graph, def.id) === "tie";
   const listed = card["fields"] === "show" && schema_of(graph, def.id).length > 0;
-  const look = dressed(graph, id, { ...card, name: "show", body: "hide", preview: "hide",
+  const look = dressed(graph, id, { ...card, name: "show", body, preview: "hide",
                                     fields: listed ? "show" : "hide" },
                        style, def.name);
-  return def.group === "relation" && !look.icon ? { ...look, icon: tie ? "relation_tie" : "relation_plain" } : look;
+  return relation && !look.icon ? { ...look, icon: tie ? "relation_tie" : "relation_plain" } : look;
 }
 
 /** A look from what the chain and the element say, under the kind it reads as. */
@@ -192,8 +197,7 @@ export const BARE: Wire = { name: true, alias: false };
 
 export function wire_of(graph: Graph, id: Id): Wire {
   /** A run or the definition of one. */
-  const held = graph.defs[id];
-  if (!graph.edges[id] && held?.group !== "relation") return BARE;
+  if (!graph.edges[id] && !(def_at(graph, id) && domain_of(graph, id) === "relation")) return BARE;
   const style = settings(graph, id, "style");
   const line = settings(graph, id, "line");
 

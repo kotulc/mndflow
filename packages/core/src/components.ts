@@ -1,6 +1,6 @@
 /** The module contract: what a module publishes, and what validates it. */
 
-import { BASE_RELATIONS, BLOCK_MODULES, type Definition } from "./types";
+import { BASE_RELATIONS, BLOCK_MODULES, type Components } from "./types";
 
 /** What a definition holds under one component's key. */
 export type Settings = Record<string, unknown>;
@@ -28,10 +28,10 @@ export function component(name: string): Component | null {
   return held.get(name) ?? null;
 }
 
-/** What a definition says that this build cannot read, key by key. */
-export function unreadable(def: Definition): { key: string; why: string }[] {
+/** What a set of settings says that this build cannot read, key by key. */
+export function unreadable(settings: Components | undefined): { key: string; why: string }[] {
   const out: { key: string; why: string }[] = [];
-  for (const [key, config] of Object.entries(def.components ?? {})) {
+  for (const [key, config] of Object.entries(settings ?? {})) {
     const c = held.get(key);
     if (!c) continue;
     const why = !config || typeof config !== "object" || Array.isArray(config)

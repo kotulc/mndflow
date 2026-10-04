@@ -34,7 +34,7 @@ function drop(view: { container: HTMLElement }, id: string) {
 
 /** What the open layer holds that stands for something else. */
 const refs = (id: string | null) =>
-  Object.values(fold_of()).filter((b) => b.parent === (id ?? "ws") && b.of).map((b) => b.of);
+  Object.values(fold_of()).filter((b) => b.parent === (id ?? "main") && b.of).map((b) => b.of);
 
 function fold_of(): Record<string, { parent: string | null; of?: string }> {
   const blocks: Record<string, { parent: string | null; of?: string }> = {};

@@ -1,17 +1,41 @@
 {
-  "schema": "3.0",
+  "schema": "4.0",
   "id": "doc",
   "graph": {
-    "root": "ws",
-    "defs": {
+    "root": "doc",
+    "blocks": {
+      "doc": {
+        "id": "doc",
+        "parent": null,
+        "name": "doc",
+        "uses": [
+          "base"
+        ]
+      },
+      "doc.blocks": {
+        "id": "doc.blocks",
+        "parent": "doc",
+        "name": "blocks",
+        "type": "group",
+        "def": {},
+        "order": 1
+      },
+      "doc.relations": {
+        "id": "doc.relations",
+        "parent": "doc",
+        "name": "relations",
+        "type": "group",
+        "def": {},
+        "order": 2
+      },
       "doc.set": {
         "id": "doc.set",
-        "from": "doc",
-        "group": "block",
+        "parent": "doc",
         "name": "document set",
-        "about": "A tree of pages: a site, a manual, a repository's docs.",
-        "extends": "folder",
-        "components": {
+        "def": {},
+        "type": "folder",
+        "body": "A tree of pages: a site, a manual, a repository's docs.",
+        "settings": {
           "card": {},
           "allows": {
             "holds": [
@@ -20,16 +44,17 @@
             ],
             "ports": false
           }
-        }
+        },
+        "group": "doc.blocks"
       },
       "doc.page": {
         "id": "doc.page",
-        "from": "doc",
-        "group": "block",
+        "parent": "doc",
         "name": "page",
-        "about": "One markdown file. Its body is the prose before the first heading.",
-        "extends": "block",
-        "components": {
+        "def": {},
+        "type": "block",
+        "body": "One markdown file. Its body is the prose before the first heading.",
+        "settings": {
           "card": {},
           "style": {
             "family": "primary",
@@ -42,22 +67,24 @@
               "doc.code"
             ]
           }
-        }
+        },
+        "group": "doc.blocks"
       },
       "doc.section": {
         "id": "doc.section",
-        "from": "doc",
-        "group": "block",
+        "parent": "doc",
         "name": "section",
-        "about": "A heading and what reads under it. `level` is the heading depth.",
-        "extends": "block",
-        "fields": [
-          {
-            "name": "level",
-            "form": "number"
-          }
-        ],
-        "components": {
+        "def": {
+          "schema": [
+            {
+              "name": "level",
+              "form": "number"
+            }
+          ]
+        },
+        "type": "block",
+        "body": "A heading and what reads under it. `level` is the heading depth.",
+        "settings": {
           "card": {},
           "style": {
             "family": "secondary"
@@ -74,16 +101,17 @@
               "level"
             ]
           }
-        }
+        },
+        "group": "doc.blocks"
       },
       "doc.item": {
         "id": "doc.item",
-        "from": "doc",
-        "group": "block",
+        "parent": "doc",
         "name": "item",
-        "about": "A paragraph, a list entry, a table cell \u00e2\u20ac\u201d one run of prose, held in its body.",
-        "extends": "block",
-        "components": {
+        "def": {},
+        "type": "block",
+        "body": "A paragraph, a list entry, a table cell â€” one run of prose, held in its body.",
+        "settings": {
           "card": {},
           "style": {
             "family": "muted"
@@ -92,22 +120,24 @@
             "holds": false,
             "ports": false
           }
-        }
+        },
+        "group": "doc.blocks"
       },
       "doc.code": {
         "id": "doc.code",
-        "from": "doc",
-        "group": "block",
+        "parent": "doc",
         "name": "code",
-        "about": "A fenced block. Its body is the source; `lang` is the word on the fence.",
-        "extends": "block",
-        "fields": [
-          {
-            "name": "lang",
-            "form": "text"
-          }
-        ],
-        "components": {
+        "def": {
+          "schema": [
+            {
+              "name": "lang",
+              "form": "text"
+            }
+          ]
+        },
+        "type": "block",
+        "body": "A fenced block. Its body is the source; `lang` is the word on the fence.",
+        "settings": {
           "card": {},
           "style": {
             "family": "neutral",
@@ -117,28 +147,22 @@
             "holds": false,
             "ports": false
           }
-        }
+        },
+        "group": "doc.blocks"
       },
       "doc.link": {
         "id": "doc.link",
-        "from": "doc",
-        "group": "relation",
+        "parent": "doc",
         "name": "link",
-        "about": "A markdown link, from where it was written to what it names.",
-        "extends": "line",
-        "components": {
+        "def": {},
+        "type": "line",
+        "body": "A markdown link, from where it was written to what it names.",
+        "settings": {
           "line": {
             "to_arrow": "open"
           }
-        }
-      }
-    },
-    "blocks": {
-      "ws": {
-        "id": "ws",
-        "parent": null,
-        "type": "folder",
-        "name": "workspace"
+        },
+        "group": "doc.relations"
       }
     },
     "edges": {}

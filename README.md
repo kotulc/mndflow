@@ -12,8 +12,8 @@
 ├──────────────────────────────────────────────────────────────┤  controls that reach a port
 │ + Heat Exchanger_                            add blocks      │  terminal: four commands
 ├──────────────┬─────────────────────────────┬─────────────────┤
-│ packages     │   ┌╌╌╌╌╌╌╌╌┐                │ Arrangement     │
-│ definitions  │   ┆ Edge   ┆ ──▶ ( Billing )│   ○ free  ● grid│  stage: one layer, and a
+│ packages     │   ┌╌╌╌╌╌╌╌╌┐                │ Layout          │
+│ definitions  │   ┆ Edge   ┆ ──▶ ( Billing )│   ○ free  ● auto│  stage: one layer, and a
 │ ▾ workspace  │   ┆ ▪ ▪    ┆                │                 │  grid is a block on it
 │   ▾ Ledger/  │   └╌╌╌╌╌╌╌╌┘                │ Shows           │
 │    ├─ Auth   ├─────────────────────────────┤   ☑ label       │  options: the slots the
@@ -43,9 +43,9 @@ The embedding weights and the ONNX runtime are vendored under `public/` and stor
 | Where | What you can do |
 |---|---|
 | **Header** | undo, redo, import, export, a new workspace, the terminal, the theme — each reaches a **port**, never the graph |
-| **Explorer** | three sections — `packages` (what was brought in), `definitions` (the workspace's own) and `usages` (the tree, under its root) — and the menu that hangs off the tree. **A click on a block navigates; a click on a library row points the tray** |
+| **Explorer** | a section chain — `packages`, `definitions` (a package's domain: its definitions in the folders and groups that organize them) and `structure` (the tree held, with its structure) — each listing what the section above holds, and the menu that hangs off the tree. **The explorer browses; the canvas is the target**: choosing a row selects it, opening one moves the canvas — the forest of packages, a domain, a structure |
 | **Stage** | **the left button works what is there; the right button makes something new.** Within the right button a click makes what sits at a point and a drag makes what has extent. A click here selects and never navigates |
-| **Options** | settings for the workspace or a new definition, then the groups the projection asks for — arrangement, what the drawing shows, and what a right drag draws |
+| **Options** | settings for the workspace or a new definition, then the groups the projection asks for — the layout, what the drawing shows, and what a right drag draws |
 | **Tray** | open from the start, on whatever is picked — and on the root, with its `workspace` tab, when nothing is. What the open layer holds, as rows; a block's element, fields and contents; the card size, key and lattice. A block with a schema offers its fields as a diagram |
 | **Terminal** | four commands — `+` add, `:` filter, `*` search, `?` help. Help is the fallback, and every registered action is reachable there |
 

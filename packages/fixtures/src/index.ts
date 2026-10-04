@@ -1,7 +1,7 @@
 /** Sample data, as logs rather than graphs. */
 
-import { base_graph } from "@mnd/defs";
-import { ROOT, type Dir, type Log, type Mutation, type Step } from "@mnd/core";
+import { FLOOR as BASE_FLOOR } from "@mnd/defs";
+import { MAIN, type Dir, type Log, type Mutation, type Step } from "@mnd/core";
 
 let n = 0;
 const step = (action: string, mutations: Mutation[]): Step =>
@@ -22,7 +22,7 @@ const link = (id: string, from: string, to: string, dir?: Dir): Mutation =>
   ({ op: "link_blocks", edge: { id, from, to, ...(dir ? { dir } : {}) } });
 
 /** The shipped floor, which every fold of a fixture starts from. */
-export const FLOOR = base_graph().defs;
+export const FLOOR = BASE_FLOOR;
 
 /** Nothing but the floor: a workspace as it opens for the first time. */
 export function blank(): Log {
@@ -34,7 +34,7 @@ export function blank(): Log {
 export function flat(): Log {
   start();
   return [
-    step("create", [block("block_ledger", ROOT, "Ledger", "block")]),
+    step("create", [block("block_ledger", MAIN, "Ledger", "block")]),
     step("create", [block("block_edge", "block_ledger", "Edge", "block")]),
     step("create", [block("block_auth", "block_ledger", "Auth", "block")]),
     step("create", [block("block_billing", "block_ledger", "Billing", "block")]),
@@ -45,13 +45,13 @@ export function flat(): Log {
 export function nested(): Log {
   start();
   return [
-    step("create", [block("block_shelf", ROOT, "Shelf", "folder")]),
+    step("create", [block("block_shelf", MAIN, "Shelf", "folder")]),
     step("create", [block("block_ledger", "block_shelf", "Ledger", "block")]),
     step("create", [block("block_edge", "block_ledger", "Edge", "block")]),
     step("create", [block("block_rate", "block_edge", "Rate Limit", "block")]),
     step("create", [block("block_auth", "block_edge", "Auth", "block")]),
     step("create", [block("block_billing", "block_ledger", "Billing", "block")]),
-    step("create", [block("block_site", ROOT, "Site", "block")]),
+    step("create", [block("block_site", MAIN, "Site", "block")]),
     step("create", [block("block_pages", "block_site", "Pages", "block")]),
   ];
 }
@@ -60,7 +60,7 @@ export function nested(): Log {
 export function related(): Log {
   start();
   return [
-    step("create", [block("block_loop", ROOT, "Coolant Loop", "block")]),
+    step("create", [block("block_loop", MAIN, "Coolant Loop", "block")]),
     step("create", [block("block_pump", "block_loop", "Pump", "block")]),
     step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
     step("create", [block("block_tank", "block_loop", "Reservoir", "block")]),
@@ -87,7 +87,7 @@ export function related(): Log {
 export function interfaced(): Log {
   start();
   return [
-    step("create", [block("block_loop", ROOT, "Coolant Loop", "block")]),
+    step("create", [block("block_loop", MAIN, "Coolant Loop", "block")]),
     step("create", [block("block_pump", "block_loop", "Pump", "block")]),
     step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
     step("interface", [
@@ -114,9 +114,9 @@ export function gridded(): Log {
     ["block_plan", "Plan"], ["block_build", "Build"],
   ];
   return [
-    step("create", [block("block_board", ROOT, "Board", "block")]),
+    step("create", [block("block_board", MAIN, "Board", "block")]),
     /** The lanes' owners live elsewhere; the board's headers refer to them. */
-    step("create", [block("block_team", ROOT, "Team", "folder"),
+    step("create", [block("block_team", MAIN, "Team", "folder"),
                     block("block_alice", "block_team", "Alice", "block"),
                     block("block_bob", "block_team", "Bob", "block")]),
     step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "auto" }]),

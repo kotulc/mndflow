@@ -3,8 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, related } from "@mnd/fixtures";
-import { seed } from "@mnd/defs";
-import { ROOT, adjustments, all, children, def_named, default_for, edge_base, fold,
+import { MAIN, ROOT, adjustments, all, children, def_named, edge_base, fold,
          holders_in, offer, run, schema_of, session,
          writes,
          type Context } from "../src/index";
@@ -42,7 +41,7 @@ describe("the registry", () => {
     for (const a of all()) {
       const out = a.run(c, { id: "block_tank", to: "block_hx", from: "block_tank",
                              body: "x", text: "x", name: "f", owner: "block_tank",
-                             target: "block_hx", parent: ROOT, holder: "block_tank",
+                             target: "block_hx", parent: MAIN, holder: "block_tank",
                              members: ["block_tank"], group: "block_hot", dir: "forward",
                              module: "line", arrangement: "down", flow: "in",
                              way: "row", at: "0,0", as: "row",
@@ -89,12 +88,12 @@ describe("what an action absorbs", () => {
   it("move covers nesting, promotion and filing with one argument", () => {
     const s = session();
     s.go("create", { name: "Ledger" });
-    const ledger = children(s.graph(), ROOT)[0]!.id;
+    const ledger = children(s.graph(), MAIN)[0]!.id;
     s.go("create", { name: "Auth", parent: ledger });
     const auth = children(s.graph(), ledger)[0]!.id;
 
-    s.go("move", { id: auth, parent: ROOT });
-    expect(s.graph().blocks[auth]!.parent).toBe(ROOT);
+    s.go("move", { id: auth, parent: MAIN });
+    expect(s.graph().blocks[auth]!.parent).toBe(MAIN);
 
     s.go("move", { id: auth, parent: ledger });
     expect(s.graph().blocks[auth]!.parent).toBe(ledger);
@@ -104,33 +103,33 @@ describe("what an action absorbs", () => {
   it("orders siblings as they are added, and as they are dropped", () => {
     const s = session();
     for (const name of ["A", "B", "C"]) s.go("create", { name });
-    const named = () => children(s.graph(), ROOT).map((b) => b.name);
+    const named = () => children(s.graph(), MAIN).map((b) => b.name);
     expect(named()).toEqual(["A", "B", "C"]);
 
     /** A gap left by a delete is not somewhere to put the next one. */
-    s.go("delete", { ids: [children(s.graph(), ROOT)[1]!.id] });
+    s.go("delete", { ids: [children(s.graph(), MAIN)[1]!.id] });
     s.go("create", { name: "D" });
     expect(named()).toEqual(["A", "C", "D"]);
 
-    const [a, c, d] = children(s.graph(), ROOT).map((b) => b.id);
-    s.go("move", { id: d!, parent: ROOT, before: a });
+    const [a, c, d] = children(s.graph(), MAIN).map((b) => b.id);
+    s.go("move", { id: d!, parent: MAIN, before: a });
     expect(named()).toEqual(["D", "A", "C"]);
 
     /** Nothing to go in front of is the end of the list. */
-    s.go("move", { id: c!, parent: ROOT });
+    s.go("move", { id: c!, parent: MAIN });
     expect(named()).toEqual(["D", "A", "C"]);
-    s.go("move", { id: a!, parent: ROOT });
+    s.go("move", { id: a!, parent: MAIN });
     expect(named()).toEqual(["D", "C", "A"]);
   });
 
   /** A group is the layer's, the way an address is the grid's. */
   it("drops the place and the group it had when it leaves a layer", () => {
-    const s = session({ defs: seed() });
+    const s = session({ floor: FLOOR });
     for (const name of ["Alpha", "Beta"]) s.go("create", { name });
-    const at = (name: string) => children(s.graph(), ROOT).find((b) => b.name === name)!.id;
+    const at = (name: string) => children(s.graph(), MAIN).find((b) => b.name === name)!.id;
     const alpha = at("Alpha"), beta = at("Beta");
     s.go("group", { members: [alpha], rows: 2, cols: 2 });
-    const grid = holders_in(s.graph(), ROOT)[0]!.id;
+    const grid = holders_in(s.graph(), MAIN)[0]!.id;
     s.go("seat", { id: alpha, group: grid, at: "0,0" });
     expect(s.graph().blocks[alpha]!.group).toBe(grid);
 
@@ -145,29 +144,29 @@ describe("what an action absorbs", () => {
   it("keeps where a block sits when it stays under the same parent", () => {
     const s = session();
     for (const name of ["A", "B"]) s.go("create", { name });
-    const [a, b] = children(s.graph(), ROOT).map((x) => x.id);
+    const [a, b] = children(s.graph(), MAIN).map((x) => x.id);
     s.adjust("place", adjustments.place([{ id: a!, x: 96, y: 48 }]));
 
-    s.go("move", { id: a!, parent: ROOT, before: b });
+    s.go("move", { id: a!, parent: MAIN, before: b });
     expect(s.graph().blocks[a!]).toMatchObject({ x: 96, y: 48 });
   });
 
   it("appends what arrives from somewhere else", () => {
     const s = session();
     s.go("create", { name: "Shelf" });
-    const shelf = children(s.graph(), ROOT)[0]!.id;
+    const shelf = children(s.graph(), MAIN)[0]!.id;
     for (const name of ["A", "B"]) s.go("create", { name, parent: shelf });
     s.go("create", { name: "Loose" });
-    const loose = children(s.graph(), ROOT).find((b) => b.name === "Loose")!.id;
+    const loose = children(s.graph(), MAIN).find((b) => b.name === "Loose")!.id;
 
     s.go("move", { id: loose, parent: shelf });
     expect(children(s.graph(), shelf).map((b) => b.name)).toEqual(["A", "B", "Loose"]);
   });
 
   it("group makes a boundary without an into, and joins one with it", () => {
-    const s = session({ defs: seed() });
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), ROOT)[0]!.id;
+    const loop = children(s.graph(), MAIN)[0]!.id;
     s.look(loop);
     s.go("create", { name: "A" });
     s.go("create", { name: "B" });
@@ -184,11 +183,11 @@ describe("what an action absorbs", () => {
 
   /** A holder is a block: it stays until it is deleted, and deleting it frees what it held. */
   it("keeps a group when its last member leaves", () => {
-    const s = session({ defs: seed() });
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "A" });
-    const a = children(s.graph(), ROOT)[0]!.id;
+    const a = children(s.graph(), MAIN)[0]!.id;
     s.go("group", { members: [a] });
-    const group = holders_in(s.graph(), ROOT)[0]!.id;
+    const group = holders_in(s.graph(), MAIN)[0]!.id;
 
     expect(s.go("leave", { ids: [a] })).toBeNull();
     expect(s.graph().blocks[group]).toBeTruthy();
@@ -198,9 +197,9 @@ describe("what an action absorbs", () => {
   });
 
   it("draws a second boundary on the layer instead of nesting inside the first", () => {
-    const s = session({ defs: seed() });
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), ROOT)[0]!.id;
+    const loop = children(s.graph(), MAIN)[0]!.id;
     s.look(loop);
     s.go("create", { name: "A" });
     s.go("create", { name: "B" });
@@ -219,9 +218,9 @@ describe("what an action absorbs", () => {
   });
 
   it("nests a group inside another, and a grid inside nothing", () => {
-    const s = session({ defs: seed() });
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), ROOT)[0]!.id;
+    const loop = children(s.graph(), MAIN)[0]!.id;
     s.look(loop);
     s.go("create", { name: "A" });
     s.go("create", { name: "B" });
@@ -244,7 +243,7 @@ describe("what an action absorbs", () => {
   it("ties a relationship to a note whichever end the note is", () => {
     const s = session();
     s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), ROOT)[0]!.id;
+    const loop = children(s.graph(), MAIN)[0]!.id;
     s.look(loop);
     s.go("create", { name: "Pump" });
     s.go("create", { name: "Tank" });
@@ -274,7 +273,7 @@ describe("what an action absorbs", () => {
   it("relate assigns tie from the ends rather than taking it", () => {
     const s = session();
     s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), ROOT)[0]!.id;
+    const loop = children(s.graph(), MAIN)[0]!.id;
     s.look(loop);
     s.go("create", { name: "Pump" });
     const pump = children(s.graph(), loop).find((b) => b.name === "Pump")!;
@@ -293,7 +292,7 @@ describe("the way out of a layer", () => {
   const seated = () => {
     const s = session();
     s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), ROOT)[0]!.id;
+    const loop = children(s.graph(), MAIN)[0]!.id;
     s.look(loop);
     s.go("create", { name: "Pump" });
     const pump = children(s.graph(), loop)[0]!.id;
@@ -324,19 +323,19 @@ describe("the way out of a layer", () => {
     s.go("open");
     expect(s.layer()).toBe(loop);
     s.go("open");
-    expect(s.layer()).toBe(ROOT);
+    expect(s.layer()).toBe(MAIN);
   });
 });
 
 describe("interfaces sit where a capability allows them", () => {
   /** The refusal is a capability the base package states, so the floor has to be under it. */
   it("refuses a group for an owner", () => {
-    const s = session({ defs: seed() });
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "A" });
     s.go("create", { name: "B" });
-    const ids = children(s.graph(), ROOT).map((b) => b.id);
+    const ids = children(s.graph(), MAIN).map((b) => b.id);
     s.go("group", { members: ids });
-    const group = holders_in(s.graph(), ROOT)[0]!;
+    const group = holders_in(s.graph(), MAIN)[0]!;
     expect(s.go("interface", { owner: group.id, side: "right" }))
       .toMatch(/takes no interfaces/);
   });
@@ -344,63 +343,59 @@ describe("interfaces sit where a capability allows them", () => {
 
 describe("a field on a layer", () => {
   /** A session with a minimal floor handed in. */
-  const seeded = () => session({ defs: ["block", "note"].map((name) => ({
-    op: "set_def" as const,
-    def: { id: name, group: "block" as const, name },
-  })) });
+  const seeded = () => session({ floor: [
+    { id: "base", parent: null, name: "base" },
+    ...["block", "note"].map((name) => ({ id: name, parent: "base", name, def: {} })),
+  ] });
 
   it("records what a layer draws definitions from", () => {
     const s = seeded();
     s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), ROOT)[0]!.id;
+    const loop = children(s.graph(), MAIN)[0]!.id;
     s.look(loop);
     expect(s.go("field", { holder: loop, name: "vocabulary",
                            value: "structure note" })).toBeNull();
-    const field = s.graph().blocks[loop]!.fields!.find((f) => f.name === "vocabulary")!;
+    const field = s.graph().blocks[loop]!.values!.find((f) => f.name === "vocabulary")!;
     expect(field.value).toBe("structure note");
   });
 
   /** A definition holder declares rather than sets. */
   it("adds a field to a definition when the holder is one", () => {
     const s = seeded();
-    s.go("define", { name: "Machine", group: "block" });
+    s.go("define", { name: "Machine", domain: "block" });
     const id = def_named(s.graph(), "Machine", "block")!.id;
     expect(s.go("field", { holder: id, name: "mass", form: "number",
                            unit: "kg" })).toBeNull();
-    expect(s.graph().defs[id]!.fields)
+    expect(s.graph().blocks[id]!.def!.schema)
       .toEqual([{ name: "mass", form: "number", unit: "kg", choices: undefined }]);
     expect(s.go("unfield", { holder: id, name: "mass" })).toBeNull();
-    expect(s.graph().defs[id]!.fields).toEqual([]);
+    expect(s.graph().blocks[id]!.def!.schema).toBeUndefined();
   });
 
-  /** The floor is never written: the first edit to a base mints the workspace's own word for
-   *  it, and everything that reaches that base reads it. */
-  it("declares a field on the workspace's own word rather than on the base", () => {
+  /** The floor is never written: a base is extended, never edited. */
+  it("refuses a field on a base, and a subtype reads its own", () => {
     const s = seeded();
-    expect(s.go("field", { holder: "block", name: "mass", form: "number" })).toBeNull();
-    expect(s.graph().defs["block"]!.fields).toBeUndefined();
-    const over = default_for(s.graph(), "block")!;
-    expect(s.graph().defs[over]!.fields?.map((f) => f.name)).toEqual(["mass"]);
-    /** A subtype of the base reads it too, not only a block that named nothing. */
-    s.go("define", { name: "Machine", group: "block" });
+    expect(s.go("field", { holder: "block", name: "mass", form: "number" })).not.toBeNull();
+    s.go("define", { name: "Machine", domain: "block" });
     const machine = def_named(s.graph(), "Machine", "block")!.id;
+    s.go("field", { holder: machine, name: "mass", form: "number" });
     expect(schema_of(s.graph(), machine).map((f) => f.name)).toContain("mass");
   });
 });
 
-describe("a null layer is the root layer", () => {
+describe("a null layer is the workspace's domain", () => {
   it.each(["create", "note", "group", "refer"])(
     "%s never makes a second root", (name) => {
       const s = session();
       s.go("create", { name: "Ledger" });
-      const ledger = children(s.graph(), ROOT)[0]!.id;
+      const ledger = children(s.graph(), MAIN)[0]!.id;
       s.look(null);
       s.go(name, { name: "A", text: "a note", members: [ledger], target: ledger });
       const roots = Object.values(s.graph().blocks).filter((b) => b.parent === null);
       expect(roots.map((b) => b.id)).toEqual([ROOT]);
     });
 
-  it("arranges the root layer rather than nothing", () => {
+  it("arranges the domain layer rather than nothing", () => {
     const s = session();
     s.look(null);
     s.go("arrange", { arrangement: "auto" });

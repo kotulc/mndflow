@@ -42,16 +42,16 @@ export function fields_graph(graph: Graph, layer: Id): Graph | null {
   /** Whatever else the layer held stands aside while the diagram is drawn. */
   for (const b of children(graph, layer)) delete blocks[b.id];
   blocks[layer] = { ...blocks[layer]!, arrangement: "free" };
-  blocks[top] = { id: top, parent: layer, of: def, name: graph.defs[def]!.name, order: 0,
-                  looks: CLASS_LOOK };
+  blocks[top] = { id: top, parent: layer, of: def, name: graph.blocks[def]!.name, order: 0,
+                  settings: CLASS_LOOK };
   /** And so do the lines meeting it. */
   const edges: Record<Id, Relation> = Object.fromEntries(Object.entries(graph.edges)
     .filter(([, e]) => blocks[e.from] && blocks[e.to]));
   uses.forEach((use, n) => {
-    blocks[use.id] = { ...use, order: n + 1, looks: LISTED };
+    blocks[use.id] = { ...use, order: n + 1, settings: LISTED };
     const line = `instance:${use.id}`;
     edges[line] = { id: line, from: use.id, to: top, type: "line", dir: "forward",
-                    looks: INSTANCE };
+                    settings: INSTANCE };
   });
   const drawn: Graph = { ...graph, blocks, edges };
   return { ...drawn, blocks: placed(drawn, top, uses.map((use) => use.id)) };

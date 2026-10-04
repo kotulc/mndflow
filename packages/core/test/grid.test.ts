@@ -2,17 +2,17 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import { FLOOR } from "@mnd/fixtures";
-import { ROOT, allocated_to, allocations_of, at_cell, edge_base, fold, head_of, is_grid,
+import { MAIN, allocated_to, allocations_of, at_cell, edge_base, fold, head_of, is_grid,
          lattice_of, members_of, offer, run, step,
          type Args, type Cell, type Context, type Graph, type Grid, type Id,
          type Log, type Mutation } from "../src/index";
 
 /** A grid of `rows` × `cols` on a layer, with nothing seated in it yet. */
 function board(rows = 3, cols = 4): Graph {
-  return { root: ROOT, edges: {}, defs: {}, packages: {},
+  return { root: MAIN, edges: {},
     blocks: {
-      [ROOT]: { id: ROOT, parent: null, name: "workspace", type: "folder" },
-      layer: { id: "layer", parent: ROOT, type: "block", name: "Board" },
+      [MAIN]: { id: MAIN, parent: null, name: "workspace", type: "folder" },
+      layer: { id: "layer", parent: MAIN, type: "block", name: "Board" },
       lanes: { id: "lanes", parent: "layer", type: "grid", grid: { rows, cols }, x: 0, y: 0 },
     } };
 }

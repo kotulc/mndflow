@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, createEvent, render, fireEvent, screen } from "@testing-library/react";
-import { fold, ROOT, type Graph } from "@mnd/core";
+import { fold, MAIN, ROOT, type Graph } from "@mnd/core";
 import { FLOOR, flat, nested, related } from "@mnd/fixtures";
 import { Explorer, tree_of } from "../src/index";
 
@@ -22,6 +22,12 @@ beforeEach(() => {
 });
 
 afterEach(cleanup);
+
+/** Names the draft row the bar's add opens, as somebody typing would. */
+function name_draft(word: string, label = "Typed") {
+  fireEvent.keyDown(screen.getByLabelText(`name the ${word}`),
+                    { key: "Enter", target: { value: label } });
+}
 
 describe("it shows structure and only structure", () => {
   it("lists blocks nested to any depth", () => {
@@ -138,6 +144,7 @@ describe("it emits action names and mutates nothing", () => {
   it("creates under whatever is picked", () => {
     const { onAct } = mount(fold(nested(), FLOOR), { picked: ["block_edge"] });
     fireEvent.click(screen.getByTitle(/add a block/));
+    name_draft("block");
     expect(onAct).toHaveBeenCalledWith("create",
       { name: "Typed", parent: "block_edge", type: undefined });
   });
@@ -146,26 +153,29 @@ describe("it emits action names and mutates nothing", () => {
   it("creates where the stage is pointed when nothing is picked", () => {
     const { onAct } = mount(fold(nested(), FLOOR), { open: "block_edge" });
     fireEvent.click(screen.getByTitle(/add a block/));
+    name_draft("block");
     expect(onAct.mock.calls[0]![1]).toMatchObject({ parent: "block_edge" });
   });
 
-  it("creates at the workspace when nothing is picked and nothing is open", () => {
-    const { onAct } = mount(fold(nested(), FLOOR));
+  it("creates in the definition that is open when nothing is picked", () => {
+    const { onAct } = mount(fold(nested(), FLOOR), { open: MAIN });
     fireEvent.click(screen.getByTitle(/add a block/));
-    expect(onAct.mock.calls[0]![1]).toMatchObject({ parent: ROOT });
+    name_draft("block");
+    expect(onAct.mock.calls[0]![1]).toMatchObject({ parent: MAIN });
   });
 
   it("has a folder shortcut that reaches the same create", () => {
-    const { onAct } = mount(fold(nested(), FLOOR));
+    const { onAct } = mount(fold(nested(), FLOOR), { open: MAIN });
     fireEvent.click(screen.getByTitle(/add a folder/));
+    name_draft("folder");
     expect(onAct).toHaveBeenCalledWith("create",
-      { name: "Typed", parent: ROOT, type: "folder" });
+      { name: "Typed", parent: MAIN, type: "folder" });
   });
 
   it("makes nothing when the name is abandoned", () => {
-    vi.spyOn(window, "prompt").mockReturnValue(null);
     const { onAct } = mount(fold(nested(), FLOOR));
     fireEvent.click(screen.getByTitle(/add a block/));
+    fireEvent.keyDown(screen.getByLabelText("name the block"), { key: "Escape" });
     expect(onAct).not.toHaveBeenCalled();
   });
 
@@ -271,7 +281,7 @@ describe("folding", () => {
 
   it("reads anything open at all, so it can always open again", () => {
     const shut = tree_of(fold(nested(), FLOOR), ["block_shelf", "block_site"]);
-    expect(shut.every((r) => r.depth <= 1)).toBe(true);
+    expect(shut.every((r) => r.depth <= 2)).toBe(true);
   });
 
   it("shuts the whole tree when the workspace itself is folded", () => {
@@ -281,15 +291,17 @@ describe("folding", () => {
 
 describe("an empty workspace", () => {
   it("draws the workspace and nothing under it, and still offers create", () => {
-    const { container, getByTitle } = mount(fold([]));
-    expect(container.querySelectorAll("li:not(.floor)")).toHaveLength(1);
+    const { container, getByTitle } = mount(fold([], FLOOR));
+    /** The workspace, its empty organizing groups, and `main`. */
+    expect(container.querySelectorAll("li:not(.floor)")).toHaveLength(4);
     expect(getByTitle(/add a block/).hasAttribute("disabled")).toBe(false);
   });
 
   it("lists a flat project's children under the one workspace root", () => {
     const rows = tree_of(fold(flat(), FLOOR), []);
-    expect(rows.map((r) => r.label)).toEqual(["workspace", "Ledger", "Edge", "Auth", "Billing"]);
-    expect(rows.map((r) => r.depth)).toEqual([0, 1, 2, 2, 2]);
+    expect(rows.map((r) => r.label))
+      .toEqual(["workspace", "relations", "tags", "main", "Ledger", "Edge", "Auth", "Billing"]);
+    expect(rows.map((r) => r.depth)).toEqual([0, 1, 1, 1, 2, 3, 3, 3]);
   });
 });
 

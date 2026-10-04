@@ -124,6 +124,11 @@
   background: var(--hover);
 }
 
+/* What a section holds as its context, where the focus is elsewhere: the accent's edge alone,
+   so it reads under the focus and never as a second pick. */
+.explorer .tree li.context { border-left-color: var(--accent); }
+.explorer .tree li.context .label { color: var(--text); }
+
 /* What a narrowing found, and what it did not. */
 .explorer .tree li.lit {
   background: var(--hover);
@@ -159,6 +164,8 @@
 }
 /* A row holding blocks lights its mark, open or shut: the colour, and only that, says so. */
 .explorer .tree .mark.on, .explorer .tree .mark.shut { color: var(--accent); cursor: pointer; }
+/* A definition with structure of its own lights its icon, as a block that holds does. */
+.explorer .tree .mark.held { color: var(--accent); }
 .explorer .tree .label { overflow: hidden; text-overflow: ellipsis; }
 
 /* A row being named before it is made: the name typed where it will read. */

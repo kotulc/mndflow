@@ -1,11 +1,8 @@
-/** What is true of the definition in force, as against what it is.
- *
- *  **Two independent options, not one choice**: `pinned` offers it, `default` makes it what a
- *  plain element draws. Both sit under the drawing, on every element tab — a definition's and an
+/** What is true of the definition in force, as against what it is: whether it is pinned, and the
+ *  traits its settings give it. Under the drawing, on every element tab — a definition's and an
  *  instance's alike, since both are asking about the same definition. */
 
-import { outside, pinned_defs, shipped, stands_in_for,
-         type Act, type Graph, type Id } from "@mnd/core";
+import { is_base, pinned_defs, traits_of, type Act, type Graph, type Id } from "@mnd/core";
 import { Band, Check } from "./Body";
 import { DRAFT } from "./draft";
 import { defined, held, kind_of } from "./holder";
@@ -17,14 +14,11 @@ export function Options({ graph, id, onAct }: OptionsProps) {
   if (!it) return null;
   const { runs } = kind_of(graph, id, it);
   const { own } = defined(graph, id, it, runs);
-  /** A draft is not in the graph yet, so neither option can be written about it. */
+  /** A draft is not in the graph yet, so it cannot be pinned. */
   const draft = own?.id === DRAFT;
-  const stood = own && !draft ? stands_in_for(graph, own.id) : undefined;
-  const word = stood ? graph.defs[stood]?.name ?? stood : runs ? "line" : "block";
-
-  /** Exactly what each action refuses on, asked here so a box is dead rather than refused. */
-  const may_pin = !!own && !draft && !shipped(own);
-  const may_stand = !!own && !draft && !outside(own) && !!stood;
+  /** Exactly what the action refuses on, asked here so a box is dead rather than refused. */
+  const may_pin = !!own && !draft && !is_base(own.id);
+  const traits = own && !draft ? traits_of(graph, own.id) : [];
 
   return (
     <>
@@ -34,16 +28,11 @@ export function Options({ graph, id, onAct }: OptionsProps) {
                off={!may_pin} word="pinned"
                tip={!own ? `This follows no definition of its own, so there is nothing to offer.`
                  : draft ? "Name it first — a draft is not filed yet."
-                 : shipped(own) ? `${own.name} is a base, and is never pinned.`
-                 : `List ${own.name} in the explorer's pinned folder.`}
+                 : is_base(own.id) ? `${own.name} is a base, and is never pinned.`
+                 : `Offer ${own.name} first.`}
                onPick={(yes) => onAct("pin", { id: own!.id, on: yes ? "yes" : "no" })} />
-        <Check on={own?.default !== undefined} off={!may_stand} word="default"
-               tip={!own ? `This follows no definition of its own, so there is nothing to stand in.`
-                 : draft ? "Name it first — a draft is not filed yet."
-                 : outside(own) ? `${own.name} comes from ${own.from ?? "the floor"}, and stands in for nothing.`
-                 : !stood ? `${own.name} extends nothing from outside, so it stands in for nothing.`
-                 : `Draw every plain ${word} as ${own.name}. Only one may, so taking it moves it.`}
-               onPick={(yes) => onAct("default", { id: own!.id, on: yes ? "yes" : "no" })} />
+        {/* What its settings let it do, read off them: never set here. */}
+        {traits.map((t) => <span key={t} className="opt tag" title="read off its settings">{t}</span>)}
       </div>
     </>
   );

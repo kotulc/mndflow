@@ -2,7 +2,14 @@
 
 export type Id = string;
 
-export const ROOT = "ws";
+/** The workspace package's root: everything the user can edit sits under it. */
+export const ROOT = "workspace";
+
+/** The shipped package's root. */
+export const BASE_PACKAGE = "base";
+
+/** The plain definition a new workspace builds its structure in. */
+export const MAIN = "main";
 
 /** A place on a layer. */
 export type Point = { x: number; y: number };
@@ -70,25 +77,27 @@ export type Grid = {
   size?: { w: number; h: number };
 };
 
-/** A place on the workspace's shelf: a folder somebody made, or where one of its own definitions
- *  sits. The list's order is the explorer's. */
-export type Shelved = {
-  id: Id;
-  group: "block" | "relation";
-  /** The folder it sits in; absent is its group's top. */
-  in?: Id;
-  /** A folder's name. A definition's entry has none, since the definition carries it. */
-  name?: string;
+/** What makes a block a definition: explicit, and holding what only a definition says. */
+export type DefBody = {
+  /** The fields its usages carry values for. */
+  schema?: FieldDef[];
 };
 
-/** The one element; what it is comes from its definition. */
+/** The one element. **A definition is a block too**: one carrying `def`, sitting in a package's
+ *  domain. Its `type` is what it extends; a usage's `type` is the definition it uses. */
 export type Block = {
   id: Id;
+  /** The block it sits under; null only for a package's root. */
   parent: Id | null;
   type?: Id;
   name?: string;
+  /** What a block holds as text, or what a definition is for. */
   body?: string;
-  /** A reference: what it stands for — a block, a definition or a package. */
+  /** Present on a definition, and only there. */
+  def?: DefBody;
+  /** On a package root: the packages it depends on. */
+  uses?: Id[];
+  /** A reference: the block it stands for — a usage, a definition or a package. */
   of?: Id;
   /** Where its content lives outside the workspace: one uri, whatever locator syntax the thing
    *  it names spells. **Provenance rather than a link** — nothing syncs to it, so it may go stale
@@ -116,14 +125,14 @@ export type Block = {
   counters?: Record<string, number>;
   /** Pinned definitions, in order: relations on the rail, blocks in the explorer. */
   pinned?: Id[];
-  /** The workspace's own definitions as filed in the explorer, in order. */
-  shelf?: Shelved[];
-  /** What this one block says about how it draws, over whatever its definition said. */
-  looks?: Components;
-  /** Words put on this block to say what it is like, or the definitions it mentions. */
+  /** How it draws and what it may do, by component: a definition's own word, or a usage's
+   *  override of its definition's. Inherited down the `type` chain, nearest first. */
+  settings?: Components;
+  /** The tag definitions it carries, by id. */
   tags?: string[];
   flow?: Flow;
-  fields?: Field[];
+  /** A usage's field values. */
+  values?: Field[];
 };
 
 export type Relation = {
@@ -134,6 +143,10 @@ export type Relation = {
    *  way an unnamed card draws its kind word. */
   name?: string;
   type?: Id;
+  /** A part of the `from` block's definition the run leaves from: a usage reads it through. */
+  fromPart?: Id;
+  /** A part of the `to` block's definition the run arrives at. */
+  toPart?: Id;
   dir?: Dir;
   /** Which wall a relationship end leaves by. */
   fromSide?: Side;
@@ -143,7 +156,7 @@ export type Relation = {
   /** Words describing this line; its own, never inherited. */
   tags?: string[];
   /** What this one line says about how it draws, over whatever its definition said. */
-  looks?: Components;
+  settings?: Components;
   /** No fields: what a connection says belongs to the blocks at its ends. */
 };
 
@@ -153,11 +166,11 @@ export type BlockModule = "block" | "reference" | "interface";
 
 export const BLOCK_MODULES: readonly BlockModule[] = ["block", "reference", "interface"];
 
-/** The shipped block bases. A kind is a definition, not a module: `folder`, `note`, `group` and
- *  `grid` differ from `block` by what they configure and nothing else. **There is no `resource`**: every block may
+/** The shipped block bases. A kind is a definition, not a module: `folder`, `note`, `group`,
+ *  `grid` and `tag` differ from `block` by what they configure and nothing else. **There is no `resource`**: every block may
  *  point at external content through `source`, so a kind for it said nothing the slot does not. */
 export const BASE_BLOCKS: readonly Id[] = [
-  "block", "folder", "reference", "interface", "group", "grid", "note",
+  "block", "folder", "reference", "interface", "group", "grid", "note", "tag",
 ];
 
 /** The shipped relation bases. `tie` is a definition — a dashed run with no heads — which is what
@@ -165,56 +178,29 @@ export const BASE_BLOCKS: readonly Id[] = [
 export const BASE_RELATIONS: readonly Id[] = ["line", "tie"];
 
 
-/** A package: a named set of definitions the workspace draws on. Named so a person can find it,
- *  and addressed by id so a block may stand in for one. */
-export type Package = {
-  id: Id;
-  /** Unique within the workspace. */
-  name: string;
-  /** The package this one builds on. A package is never written into, only extended. */
-  extends?: Id;
-  /** How it files its own definitions, as the workspace's shelf does, frozen with it. */
-  shelf?: Shelved[];
-};
-
 export type Components = Record<string, Record<string, unknown>>;
 
-export type Definition = {
-  id: Id;
-  /** The package this came from, by id; absent means the workspace made it. */
-  from?: Id;
-  /** The shipped base this stands in for wherever an element names no definition. */
-  default?: Id;
-  group: "block" | "relation";
-  /** What a usage of it draws where it carries no name of its own — the kind word on a card, the
-   *  word on a run. **One key for both**: a line used to read a `label` here and a block the
-   *  name, which was two keys for one job. */
-  name: string;
-  /** What this definition is for, in a sentence — **a description of it, never content it
-   *  holds**. A block's `body` is the thing itself; this is prose about the vocabulary. Named as
-   *  every other description here is: an action's `about`, a catalogue entry's `about`. */
-  about?: string;
-  extends?: Id;
-  /** Words put on it to say what it is like. **Tagging is generic**: it indexes a definition the
-   *  same way it indexes a block, and nothing inherits one. */
-  tags?: string[];
-  fields?: FieldDef[];
-  size?: { w: number; h: number };
-  names?: Record<string, string>;
-  components?: Components;
-};
+/** A definition: a block carrying `def`, always named. */
+export type Definition = Block & { def: DefBody; name: string };
 
 export type Graph = {
   root: Id;
   blocks: Record<Id, Block>;
   edges: Record<Id, Relation>;
-  defs: Record<Id, Definition>;
-  packages: Record<Id, Package>;
 };
 
+/** A fresh workspace: its package root, the groups that organize its definitions, and `main`. */
 export function empty_graph(): Graph {
-  return { root: ROOT, blocks: { [ROOT]: { id: ROOT, parent: null, name: "workspace", type: "folder" } },
-           edges: {}, defs: {}, packages: {} };
+  const group = (id: Id, name: string, order: number): Block =>
+    ({ id, parent: ROOT, name, type: "group", def: {}, order });
+  const blocks: Block[] = [
+    { id: ROOT, parent: null, name: "workspace" },
+    group(`${ROOT}.blocks`, "blocks", 1),
+    group(`${ROOT}.relations`, "relations", 2),
+    group(`${ROOT}.tags`, "tags", 3),
+    { id: MAIN, parent: ROOT, name: "main", def: {}, group: `${ROOT}.blocks`, order: 4 },
+  ];
+  return { root: ROOT, blocks: Object.fromEntries(blocks.map((b) => [b.id, b])), edges: {} };
 }
 
 /** The closed mutation set. A new sort of thing is a definition, not an op. */
@@ -231,12 +217,10 @@ export type Mutation =
   | { op: "set_counter"; kind: string; n: number }
   /** The whole shortlist, in order. */
   | { op: "set_pinned"; ids: Id[] }
-  /** The whole shelf, in order. */
-  | { op: "set_shelf"; shelf: Shelved[] }
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
-  /** A definition's description. Its own op, because it is not the same thing as a body. */
-  | { op: "set_about"; id: Id; about: string }
+  /** A definition's field schema, written whole. */
+  | { op: "set_schema"; id: Id; schema: FieldDef[] }
   /** Where a block came from; null gives it back. */
   | { op: "set_source"; id: Id; source: string | null }
   | { op: "set_group"; id: Id; group: Id | null }
@@ -249,26 +233,22 @@ export type Mutation =
   | { op: "delete_edge"; id: Id }
   | { op: "set_dir"; id: Id; dir: Dir }
   | { op: "flip_edge"; id: Id }
-  | { op: "set_end"; id: Id; end: "from" | "to"; port: Id }
+  /** An end moved onto a block, and optionally onto a part its definition holds. */
+  | { op: "set_end"; id: Id; end: "from" | "to"; port: Id; part?: Id | null }
   | { op: "set_port"; id: Id; side: Side; at: number }
   | { op: "set_side"; id: Id; end: "from" | "to"; side: Side | null }
   | { op: "mark_port"; id: Id; flow: Flow | null }
   /** A value on a block. An edge has none to set — see `Relation`. */
-  | { op: "set_field"; id: Id; field: Field }
-  | { op: "drop_field"; id: Id; name: string }
+  | { op: "set_value"; id: Id; field: Field }
+  | { op: "drop_value"; id: Id; name: string }
   /** The order a block's values are listed in, by name. */
-  | { op: "order_fields"; id: Id; names: string[] }
-  | { op: "set_def"; def: Definition }
-  | { op: "drop_def"; id: Id }
-  | { op: "set_package"; pkg: Package }
-  /** Its definitions go with it. */
-  | { op: "drop_package"; id: Id }
+  | { op: "order_values"; id: Id; names: string[] }
   | { op: "set_arrangement"; layer: Id; arrangement: Arrangement }
   | { op: "set_tags"; id: Id; tags: string[] }
-  /** Everything this block says about how it draws, given back at once. */
-  | { op: "drop_looks"; id: Id }
-  /** One property of one component on one block. */
-  | { op: "set_look"; id: Id; key: string; name: string; value: unknown };
+  /** Everything this element says about how it draws, given back at once. */
+  | { op: "drop_settings"; id: Id }
+  /** One property of one component on one element. */
+  | { op: "set_setting"; id: Id; key: string; name: string; value: unknown };
 
 export type MutationOp = Mutation["op"];
 
@@ -292,4 +272,4 @@ export type File = {
   meta?: Record<string, unknown>;
 };
 
-export const SCHEMA = "3.0";
+export const SCHEMA = "4.0";

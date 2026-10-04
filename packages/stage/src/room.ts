@@ -39,8 +39,9 @@ export function useRoom(scene: Scene) {
 }
 
 /** The camera flight on descending or leaving, the only animation, and opening out at the root.
- *  Scrolled, the camera fits the drawing's width, or `reach` of it, and follows the focus,
- *  centred on it. It never takes in more than `widest`, nor magnifies past `most`. */
+ *  Scrolled, the camera fits the drawing's width, or `reach` of it, as a page held still across,
+ *  and follows the focus down it. It never takes in more than `widest`, nor magnifies past
+ *  `most`. */
 export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: number },
                           seen: { w: number; h: number }, key: string, nodes: readonly BoxNode[],
                           scroll = false, focus: Id | null = null, reach: number | null = null,
@@ -62,17 +63,18 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
       // With nothing in focus, the whole drawing is — not its room, which is grown to the panel.
       const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
       const box = on ? box_of(on) : page;
-      // The page is `reach` wide, or wide enough for the focus where that is wider, up to `widest`.
-      const w = Math.min(Math.max(reach ?? page.w, box.w), widest ?? Infinity);
-      const zoom = scroll_zoom(w, on ? box : null, seen, widest, most);
-      // The focus is centred; with none, a page taller than the view is read from its top.
+      // The page is `reach` wide, or the drawing's width, up to `widest`.
+      const w = Math.min(reach ?? page.w, widest ?? Infinity);
+      // A page's zoom is its width's alone: the camera scrolls to a focus, never zooms to it.
+      const zoom = scroll_zoom(w, null, seen, widest, most);
+      // The focus is centred down the view; with none, a page taller than the view is read from
+      // its top.
       const y = on || box.h * zoom <= seen.h - BAND * 2
         ? seen.h / 2 - (box.y + box.h / 2) * zoom
         : BAND - box.y * zoom;
-      // The focus is centred, or read from its start where it is wider than the window; with none,
-      // the window starts at the drawing's left, or centres a drawing narrower than it.
-      const left = on ? (box.w > w ? box.x : box.x + box.w / 2 - w / 2)
-        : page.w < w ? page.x + page.w / 2 - w / 2 : page.x;
+      // Across, the page holds still whatever is in focus: centred where it is narrower than the
+      // window, read from its left where wider.
+      const left = page.w < w ? page.x + page.w / 2 - w / 2 : page.x;
       void flow.setViewport({ zoom, x: seen.w / 2 - (left + w / 2) * zoom, y }, { duration });
       return;
     }
@@ -86,6 +88,14 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
     if (scroll) settle(still() ? 0 : FLIGHT);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus]);
+
+  /** A page that changes width, or a view that does, is fitted again at once. */
+  const span = scroll ? Math.round(extent({ ...scene, frame: undefined,
+    nodes: scene.nodes.filter((n) => n.id !== FRAME) }).w) : 0;
+  useEffect(() => {
+    if (scroll) settle(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [span, seen.w]);
 
   useEffect(() => {
     const quiet = still();

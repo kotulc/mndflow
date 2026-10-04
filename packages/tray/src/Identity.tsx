@@ -4,8 +4,9 @@
  *  name of their own, and what either draws where it has none is its type's name. See types.md
  *  in the root docs. */
 
-import { base_of, def_of, edge_base, isa, block_base, outside, relation_base, shipped,
-         type Act, type Definition, type Graph, type Id } from "@mnd/core";
+import { all_defs, base_of, block_tags, def_at, def_of, def_tags, domain_of, edge_base, frozen,
+         is_base, isa, type Act, type Definition, type Graph,
+         type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
 import { taken } from "./Definitions";
@@ -24,29 +25,26 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
   const it = held(graph, id);
   if (!it) return <p className="empty">that is not here any more</p>;
   const { def: d, block: b, edge } = it;
-  /** What came from outside: its name and what it extends stay theirs, what it says does not. */
-  const borrowed = outside(d ?? undefined);
+  /** What came frozen: nothing about it is the workspace's to change. */
+  const borrowed = !!d && frozen(graph, d.id);
   const { kind, runs } = kind_of(graph, id, it);
   const { own, mine, fixed } = defined(graph, id, it, runs);
   const drafted = id === DRAFT;
   const element = !!(b || edge);
   const group = runs ? "relation" : "block";
 
-  /** Where a definition lives, as the explorer files it. */
-  const path = def_path;
-  const kind_named = (x: Id) => (runs ? relation_base(graph, x) : block_base(graph, x));
+  /** Where a definition lives: its package, then its name. */
+  const path = (x: Definition) => def_path(graph, x);
   const extendable = (self: Definition) =>
-    Object.values(graph.defs).filter((x) => x.group === self.group && x.id !== self.id
-      && !isa(graph, x.id).some((up) => up.id === self.id)
-      /** A default keeps its kind, or it would stop standing in for it. */
-      && (self.default === undefined || kind_named(x.id) === self.default))
+    all_defs(graph).filter((x) => domain_of(graph, x.id) === domain_of(graph, self.id)
+      && x.id !== self.id && !isa(graph, x.id).some((up) => up.id === self.id))
       .sort((a, z) => rank(a) - rank(z) || path(a).localeCompare(path(z)));
 
   /** The definition in force, whose name this element draws where it carries none. */
-  const following = graph.defs[def_of(graph, id) ?? ""];
+  const following = def_at(graph, def_of(graph, id));
   /** Which extends row applies: one it owns and may re-base, or none of its own, or theirs. */
   const re_base = element && mine && !fixed;
-  const base_only = element && (!own || shipped(own));
+  const base_only = element && (!own || is_base(own.id));
 
   return (
     <div className="col identity">
@@ -92,8 +90,8 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
                    }} />
           ) : mine && !fixed ? (
             <Entry key={d!.id} value={d!.name} label="type"
-                   clash={(to) => taken(graph, to, d!.group, d!.id)}
-                   onCommit={(to) => onAct("rename_def", { id: d!.id, name: to })} />
+                   clash={(to) => taken(graph, to, domain_of(graph, d!.id), d!.id)}
+                   onCommit={(to) => onAct("rename", { id: d!.id, name: to })} />
           ) : (
             /** The same answer, only not yours to change — where it came from is said below. */
             <input value={d!.name} readOnly aria-label="type" />
@@ -114,38 +112,44 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
           ) : null}
         </Line>
 
-        {/* Tags index a thing, so a definition wears them as an element does. Never inherited. */}
+        {/* Tags index a thing, so a definition wears them as an element does: its own, then what
+           its definition's chain and its traits carry. */}
         <Line label="tags"
-              tip="Words that say what this is like. Tags carry nothing and are never inherited.">
+              tip="Tags that say what this is like. A new word makes a tag; a block also carries its definition's tags and traits.">
           <Tags tags={(b ?? edge ?? d)!.tags ?? []}
+                carried={b || edge ? block_tags(graph, id) : d ? def_tags(graph, d.id) : []}
+                name={(t) => graph.blocks[t]?.name ?? t}
                 onCommit={(to) => onAct("tag", { ids: [id], tags: to })} />
         </Line>
 
         {/* Extends: what the definition in force is built on. An element with none of its own has
            only a base, so the same row moves that instead. */}
-        {d && shipped(d) ? (
+        {d && is_base(d.id) ? (
           <Line label="extends" tip="A base is shipped and extends nothing.">
-            <span className="read">
-              {graph.defs[d.extends ?? ""] ? path(graph.defs[d.extends!]!) : ""}
-            </span>
+            <span className="read" />
+          </Line>
+        ) : d && borrowed ? (
+          <Line label="extends" tip="It came frozen with its package, so what it extends is theirs.">
+            <span className="read">{def_at(graph, d.type) ? path(def_at(graph, d.type)!) : ""}</span>
           </Line>
         ) : d ? (
           <Line label="extends" className="subtype"
                 tip="The definition this one refines — its kind's base unless another is picked.">
-            <select value={d.extends ?? ""} aria-label="extends" disabled={borrowed}
-                    onChange={(e) => onAct("define", { ...(drafted ? { id } : {}), name: d.name,
-                                                       group: d.group, extends: e.target.value })}>
-              {d.extends ? null : <option value="">{`base/${kind}`}</option>}
+            <select value={d.type ?? ""} aria-label="extends"
+                    onChange={(e) => (drafted
+                      ? onAct("define", { id, name: d.name, domain: domain_of(graph, d.id),
+                                          extends: e.target.value })
+                      : onAct("retype", { ids: [d.id], type: e.target.value }))}>
+              {d.type ? null : <option value="">{`base/${kind}`}</option>}
               {extendable(d).map((x) => <option key={x.id} value={x.id}>{path(x)}</option>)}
             </select>
           </Line>
         ) : re_base ? (
           <Line label="extends" className="subtype"
                 tip={`What ${own!.name} is built on. Changing it re-bases that definition, so everything following it moves with this one.`}>
-            <select value={own!.extends ?? ""} aria-label="extends"
-                    onChange={(e) => onAct("define", { name: own!.name, group: own!.group,
-                                                       extends: e.target.value })}>
-              {own!.extends ? null : <option value="">{`base/${kind}`}</option>}
+            <select value={own!.type ?? ""} aria-label="extends"
+                    onChange={(e) => onAct("retype", { ids: [own!.id], type: e.target.value })}>
+              {own!.type ? null : <option value="">{`base/${kind}`}</option>}
               {extendable(own!).map((x) => <option key={x.id} value={x.id}>{path(x)}</option>)}
             </select>
           </Line>
@@ -154,7 +158,7 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
                 tip={`What this ${runs ? "line" : "block"} is built on. It follows no definition of its own, so this is its base.`}>
             <select value={based(graph, id, runs)} aria-label="extends"
                     onChange={(e) => onAct("retype", { ids: [id], type: e.target.value })}>
-              {types_for(graph, id).filter(shipped)
+              {types_for(graph, id).filter((x) => is_base(x.id))
                 .map((x) => <option key={x.id} value={x.id}>{path(x)}</option>)}
             </select>
           </Line>
@@ -162,7 +166,7 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
           <Line label="extends"
                 tip={`${following?.name ?? "What this follows"} came from outside, so what it is built on is theirs.`}>
             <span className="read">
-              {graph.defs[following?.extends ?? ""] ? path(graph.defs[following!.extends!]!) : ""}
+              {def_at(graph, following?.type) ? path(def_at(graph, following!.type)!) : ""}
             </span>
           </Line>
         ) : null}
@@ -189,19 +193,19 @@ function typing(graph: Graph, id: Id, to: string,
   const hit = types_for(graph, id).find((x) => x.name === to);
   if (hit) return ["retype", { ids: [id], type: hit.id }];
   if (!to) return ["retype", { ids: [id], type: "" }];
-  if (own) return ["rename_def", { id: own.id, name: to }];
-  /** `save_def` files a new definition over what it followed, and moves this one onto it. */
-  return ["save_def", { id, name: to }];
+  if (own) return ["rename", { id: own.id, name: to }];
+  /** `define_from` files a new definition over what it followed, and moves this one onto it. */
+  return ["define_from", { id, name: to }];
 }
 
 /** The base an element sits on, which is what its extends row shows where it has no definition. */
 function based(graph: Graph, id: Id, runs: boolean): Id {
   const base = runs ? edge_base(graph, id) : base_of(graph, id);
-  return graph.defs[base] ? base : "";
+  return def_at(graph, base) ? base : "";
 }
 
-/** The shipped bases head a listing, then the defaults, then the rest. */
+/** The bases head a listing, then the rest. */
 function rank(d: Definition): number {
-  return shipped(d) ? 0 : d.default !== undefined ? 1 : 2;
+  return is_base(d.id) ? 0 : 1;
 }
 

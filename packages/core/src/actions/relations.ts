@@ -1,9 +1,9 @@
 /** Relationships and the interfaces they meet. */
 
 import { may_seat } from "../capabilities";
-import { derived_base, edge_base, base_of, relation_base } from "../defs";
+import { base_of, def_at, derived_base, domain_of, edge_base, relation_base } from "../defs";
 import { shown_name } from "../names";
-import { children, is_interface, next_order } from "../tree";
+import { children, is_interface, next_order, part_end } from "../tree";
 import { new_id } from "../ids";
 import type { Dir, Flow, Graph, Id, Mutation, Side } from "../types";
 import { register, type Args, type Context } from "./registry";
@@ -12,7 +12,8 @@ import { handles, id_of, may_wear, run_type, side_of, SIDES, text, typed } from 
 register(
   {
     name: "relate",
-    about: "draws a relationship from one block to another",
+    about: "draws a relationship from one block to another — or to a part a usage reads through, "
+      + "named `usage/part`",
     on: ["layer"],
     args: [{ name: "from", form: "block", required: true },
            { name: "to", form: "block", required: true },
@@ -21,27 +22,34 @@ register(
            { name: "fromSide", form: "choice", choices: SIDES },
            { name: "toSide", form: "choice", choices: SIDES }],
     check: (ctx, args) => {
-      const from = id_of(args, "from");
-      const to = id_of(args, "to");
-      if (!ctx.graph.blocks[from] || !ctx.graph.blocks[to]) return "both ends have to be there";
-      if (from === to) return "a block cannot relate to itself";
+      const from = part_end(ctx.graph, id_of(args, "from"));
+      const to = part_end(ctx.graph, id_of(args, "to"));
+      if (!ctx.graph.blocks[from.block] || !ctx.graph.blocks[to.block]) {
+        return "both ends have to be there";
+      }
+      if ([from.part, to.part].some((part) => part && !ctx.graph.blocks[part])) {
+        return "that part is not there";
+      }
+      if (from.block === to.block && from.part === to.part) return "a block cannot relate to itself";
       /** A type names a relation definition already there; nothing mints one. */
       const type = text(args, "type");
-      if (type && ctx.graph.defs[type]?.group !== "relation") {
+      if (type && (!def_at(ctx.graph, type) || domain_of(ctx.graph, type) !== "relation")) {
         return `there is no relation definition called "${type}"`;
       }
       return null;
     },
     run: (ctx, args) => {
-      const from = id_of(args, "from");
-      const to = id_of(args, "to");
-      const module = derived_base(ctx.graph, from, to);
+      const from = part_end(ctx.graph, id_of(args, "from"));
+      const to = part_end(ctx.graph, id_of(args, "to"));
+      const module = derived_base(ctx.graph, from.block, to.block);
       const dir = String(args["dir"] ?? "none") as Dir;
       /** A wall the gesture named. */
       const line = handles(ctx, "relation");
       const alias = line.take();
       const out: Mutation[] = [...line.bump(), { op: "link_blocks", edge: {
-        id: new_id("edge"), from, to, ...run_type(ctx, args, module),
+        id: new_id("edge"), from: from.block, to: to.block,
+        ...(from.part ? { fromPart: from.part } : {}), ...(to.part ? { toPart: to.part } : {}),
+        ...run_type(ctx, args, module),
         alias, ...(dir !== "none" ? { dir } : {}),
         ...(side_of(args, "fromSide") ? { fromSide: side_of(args, "fromSide") } : {}),
         ...(side_of(args, "toSide") ? { toSide: side_of(args, "toSide") } : {}),
@@ -59,22 +67,23 @@ register(
     check: (ctx, args) => {
       const edge = ctx.graph.edges[id_of(args, "id")];
       if (!edge) return "needs a relationship";
-      const to = id_of(args, "to");
+      const to = part_end(ctx.graph, id_of(args, "to"));
       const other = args["end"] === "from" ? edge.to : edge.from;
-      if (to === other) return "a relationship cannot meet itself";
-      return ctx.graph.blocks[to] ? null : "needs a block to land on";
+      if (to.block === other && !to.part) return "a relationship cannot meet itself";
+      if (to.part && !ctx.graph.blocks[to.part]) return "that part is not there";
+      return ctx.graph.blocks[to.block] ? null : "needs a block to land on";
     },
     /** Moving an end clears its pinned wall; a type of the old module does not follow it. */
     run: (ctx, args) => {
       const id = id_of(args, "id");
       const end = args["end"] as "from" | "to";
-      const to = id_of(args, "to");
+      const to = part_end(ctx.graph, id_of(args, "to"));
       const edge = ctx.graph.edges[id];
-      const ends = end === "from" ? [to, edge?.to ?? ""] : [edge?.from ?? "", to];
+      const ends = end === "from" ? [to.block, edge?.to ?? ""] : [edge?.from ?? "", to.block];
       const module = derived_base(ctx.graph, ends[0]!, ends[1]!);
       const stale = !!edge?.type && relation_base(ctx.graph, edge.type) !== module;
       return { mutations: [
-        { op: "set_end", id, end, port: to },
+        { op: "set_end", id, end, port: to.block, part: to.part ?? null },
         { op: "set_side", id, end, side: null },
         ...(stale ? [{ op: "update_edge" as const, id, type: null }] : []),
       ] };

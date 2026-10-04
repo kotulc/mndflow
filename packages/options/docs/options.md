@@ -16,9 +16,9 @@ elements · layer · display · relations
 
 | | Is |
 |---|---|
-| **`layer`** | how the layer places what it holds — `free` or `auto`. A setting, and the one group here that writes to the log |
-| **`display`** | what the drawing shows rather than what it holds: the frame, the guides, whether interfaces draw, and whether this layer draws the key to itself. Nothing here enters the log |
-| **`relations`** | what a right drag and a `chain` draw: *straight*, *directed*, or a pinned line definition. **No *tie*** — a tie is what its ends make |
+| **`layer`** | the layer's layout — `free`, `auto` or `outline`. A setting, and the one group here that writes to the log |
+| **`display`** | what the drawing shows rather than what it holds: the frame, the guides, whether interfaces draw, whether folders are flattened, and whether this layer draws the key to itself. Nothing here enters the log |
+| **`relations`** | what a right drag and a `chain` draw: *straight*, *directed*, *tie*, or a pinned relation definition |
 | **`elements`** | which element the tray holds: the *workspace*, a blank *block* or a blank *relation* definition. Writes nothing |
 
 **`elements` is not a slot, and it leads.** A slot is what the projection can offer about the whole layer; this points the tray at an element — its element tab — and a toggle is lit for whichever the tray holds.

@@ -2,15 +2,15 @@
 
 import { may_hold, may_take } from "../capabilities";
 import { shown_name } from "../names";
-import { edge_base, may_retype, block_base, base_of, plain_type, relation_base,
-         stored_type } from "../defs";
+import { block_base, base_of, def_at, def_named, domain_of, edge_base, may_retype, plain_type,
+         relation_base, stored_type } from "../defs";
 import { children, is_interface, next_order, path, reorder, stands_for } from "../tree";
 import { new_id } from "../ids";
 import { ARRANGEMENTS, type Arrangement, type Id, type Mutation } from "../types";
 import { register } from "./registry";
 import { cell_free } from "./grid";
-import { cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS, spot, text,
-         typed } from "./helpers";
+import { borrowed, cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS, spot,
+         text, typed } from "./helpers";
 
 register(
   {
@@ -24,8 +24,13 @@ register(
     check: (ctx, args) => {
       const type = args["type"] ? String(args["type"]) : "";
       const parent = (args["parent"] as Id) ?? here(ctx);
-      if (type && !ctx.graph.defs[type]) return `there is no definition called "${type}"`;
+      if (type && !def_at(ctx.graph, type)) return `there is no definition called "${type}"`;
       if (type && NEEDS[block_base(ctx.graph, type)]) return NEEDS[block_base(ctx.graph, type)]!;
+      const why = borrowed(ctx.graph, parent);
+      if (why) return why;
+      if (ctx.graph.blocks[parent]?.parent === null) {
+        return "a package holds definitions — define one, or open a definition to build in";
+      }
       return may_hold(ctx.graph, parent, type)
         ? null : `"${shown_name(ctx.graph, parent)}" holds nothing of that sort`;
     },
@@ -47,7 +52,8 @@ register(
     check: (ctx, args) => {
       const ids = ids_of(ctx, args);
       if (!ids.length) return "nothing is selected";
-      return ids.includes(ctx.graph.root) ? "the workspace cannot be deleted" : null;
+      if (ids.some((id) => ctx.graph.blocks[id]?.parent === null)) return "a package is removed, not deleted";
+      return ids.map((id) => borrowed(ctx.graph, id)).find(Boolean) ?? null;
     },
     run: (ctx, args) => ({
       mutations: ids_of(ctx, args).map((id): Mutation => (ctx.graph.edges[id]
@@ -64,7 +70,14 @@ register(
     /** Either may be unnamed, and two of either may share a name: a name is not an identity. */
     check: (ctx, args) => {
       const id = id_of(args, "id");
-      return ctx.graph.blocks[id] || ctx.graph.edges[id] ? null : "that is not here any more";
+      if (!ctx.graph.blocks[id] && !ctx.graph.edges[id]) return "that is not here any more";
+      const why = borrowed(ctx.graph, id);
+      if (why) return why;
+      /** A definition is found by its name, so it takes one nothing else of its kind has. */
+      if (!def_at(ctx.graph, id)) return null;
+      if (!text(args, "name")) return "a definition needs a name";
+      const other = def_named(ctx.graph, text(args, "name"), domain_of(ctx.graph, id));
+      return other && other.id !== id ? `"${other.name}" already exists` : null;
     },
     /** Its own name, on the element. **A line no longer mints a definition to hold one** — it
      *  carries a name as a block does, and draws its type's name where it has none. */
@@ -87,14 +100,18 @@ register(
       if (!ids.length) return "nothing is selected";
       const type = text(args, "type") || undefined;
       for (const id of ids) {
-        /** The root holds the top-level blocks and draws nowhere, so it follows no definition. */
-        if (id === ctx.graph.root) return "the workspace has no type";
+        /** A package root holds its domain and draws nowhere, so it follows no definition. */
+        if (ctx.graph.blocks[id]?.parent === null) return "a package has no type";
+        const why = borrowed(ctx.graph, id);
+        if (why) return why;
         const edge = ctx.graph.edges[id];
         if (edge) {
           if (!type) continue;
-          const d = ctx.graph.defs[type];
+          const d = def_at(ctx.graph, type);
           if (!d) return `there is no definition called "${type}"`;
-          if (d.group !== "relation") return `"${d.name}" defines a block, not a relationship`;
+          if (domain_of(ctx.graph, type) !== "relation") {
+            return `"${d.name}" defines a block, not a relationship`;
+          }
           const module = edge_base(ctx.graph, id);
           if (relation_base(ctx.graph, type) !== module) {
             return `a ${module} cannot follow a ${relation_base(ctx.graph, type)} definition`;
@@ -102,10 +119,12 @@ register(
           continue;
         }
         if (!ctx.graph.blocks[id]) return "that block is not there";
-        if (type && !ctx.graph.defs[type]) return `there is no definition called "${type}"`;
-        if (type && ctx.graph.defs[type]!.group === "relation") {
-          return `"${ctx.graph.defs[type]!.name}" defines a relationship, not a block`;
+        const d = def_at(ctx.graph, type);
+        if (type && !d) return `there is no definition called "${type}"`;
+        if (type && domain_of(ctx.graph, type) === "relation") {
+          return `"${d!.name}" defines a relationship, not a block`;
         }
+        if (type && type === id) return "a definition cannot extend itself";
         if (type && !may_retype(ctx.graph, id, type)) {
           return `a ${base_of(ctx.graph, id)} cannot become a ${block_base(ctx.graph, type)}`;
         }
@@ -126,14 +145,11 @@ register(
     on: ["block", "layer"],
     args: [{ name: "id", form: "block", required: true },
            { name: "body", form: "text", required: true }],
-    /** **Two keys, because they are two things**: a block's body is the content itself, a
-     *  definition's `about` is prose describing the vocabulary. */
-    run: (ctx, args) => {
-      const id = id_of(args, "id");
-      const said = String(args["body"] ?? "");
-      return { mutations: [ctx.graph.defs[id] ? { op: "set_about", id, about: said }
-                                              : { op: "set_body", id, body: said }] };
-    },
+    check: (ctx, args) => borrowed(ctx.graph, id_of(args, "id")),
+    /** A block's body is its content; a definition's says what it is for. */
+    run: (_ctx, args) => ({ mutations: [
+      { op: "set_body", id: id_of(args, "id"), body: String(args["body"] ?? "") },
+    ] }),
   },
   {
     name: "move",
@@ -147,10 +163,21 @@ register(
       const ids = ids_of(ctx, args);
       const parent = id_of(args, "parent");
       if (!ids.length) return "nothing is selected";
-      if (!ctx.graph.blocks[parent]) return "there is nowhere to move it to";
+      const to = ctx.graph.blocks[parent];
+      if (!to) return "there is nowhere to move it to";
+      const why = borrowed(ctx.graph, parent);
+      if (why) return why;
       for (const id of ids) {
-        if (!ctx.graph.blocks[id]) return "that block is not there";
-        if (id === ctx.graph.root) return "the workspace cannot be moved";
+        const b = ctx.graph.blocks[id];
+        if (!b) return "that block is not there";
+        if (b.parent === null) return "a package cannot be moved";
+        const mine = borrowed(ctx.graph, id);
+        if (mine) return mine;
+        /** A definition stays in a package's domain, and a usage in a structure. */
+        if (b.def && !(to.parent === null || to.def)) {
+          return "a definition sits in a package, not in a structure";
+        }
+        if (!b.def && to.parent === null) return "a package holds definitions, not usages";
         if (id === parent) return "a block cannot contain itself";
         if (parent && path(ctx.graph, parent).some((b) => b.id === id)) {
           return "a block cannot be moved inside itself";
@@ -186,10 +213,8 @@ register(
            { name: "group", form: "block" }, { name: "at", form: "text" }],
     check: (ctx, args) => {
       const target = id_of(args, "target");
-      /** One id space, so a stand-in may point at any of the three. */
-      if (!ctx.graph.blocks[target] && !ctx.graph.defs[target] && !ctx.graph.packages[target]) {
-        return "that is not there to stand in for";
-      }
+      /** One id space, so a stand-in may point at a usage, a definition or a package. */
+      if (!ctx.graph.blocks[target]) return "that is not there to stand in for";
       const wrong = may_wear(ctx, args, "reference");
       if (wrong) return wrong;
       if (target === ctx.layer) return "a layer cannot hold a stand-in for itself";

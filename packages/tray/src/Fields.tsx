@@ -22,7 +22,7 @@ export function Fields({ graph, id, onAct = NOOP }: FieldsProps) {
   const own = it.fields as readonly FieldDef[];
   const names = own.map((f) => f.name);
   /** The schema this answers or inherits. */
-  const schema = schema_of(graph, d ? d.extends : def_of(graph, id))
+  const schema = schema_of(graph, d ? d.type : def_of(graph, id))
     .filter((f) => !(d && names.includes(f.name)));
   const answers = d ? [] : schema;
   const extra = d ? own : own.filter((f) => !schema.some((s) => s.name === f.name));
@@ -47,7 +47,7 @@ export function Fields({ graph, id, onAct = NOOP }: FieldsProps) {
           {schema.map((f) => (
             <Line key={f.name} label={f.name} className="value" tip={`declared by ${f.from}`}>
               <span className="form">{f.form}{f.unit ? ` · ${f.unit}` : ""}</span>
-              <span className="from">from {graph.defs[f.from]?.name ?? f.from}</span>
+              <span className="from">from {graph.blocks[f.from]?.name ?? f.from}</span>
             </Line>
           ))}
         </Body>
@@ -59,7 +59,7 @@ export function Fields({ graph, id, onAct = NOOP }: FieldsProps) {
             const mine = own.find((x) => x.name === f.name);
             return (
               <Line key={f.name} label={f.name} className="value"
-                    tip={`declared by ${graph.defs[f.from]?.name ?? f.from}`}>
+                    tip={`declared by ${graph.blocks[f.from]?.name ?? f.from}`}>
                 <Value field={{ ...f, value: mine?.value }} fallback={f.value ?? ""}
                        onSet={(value) => say({ name: f.name, value })} />
                 {f.unit ? <span className="form">{f.unit}</span> : null}

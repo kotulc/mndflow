@@ -6,7 +6,7 @@
 
 | Module | Is |
 |---|---|
-| model | the object graph: blocks, relations, packages, definitions, and the three block modules that interpret a block |
+| model | the object graph: blocks and relations, packages and definitions among the blocks, and the three block modules that interpret a block |
 | schema | the data contract, and what the door enforces on the way in |
 | workspace | the root, the one log, and definition resolution by id |
 | actions | the closed action set: scope, arguments, `check`, and the mutations each writes |
@@ -18,10 +18,10 @@
 | File | Is |
 |---|---|
 | `types.ts` | every shared shape: the graph, the mutations, the steps |
-| `fold.ts` | replay: a log folded into a graph over the shipped floor, defaults laid |
+| `fold.ts` | replay: a log folded into a graph over the packages in use |
 | `tree.ts` | layers, children, order, owners, the relations drawn in a layer, and what a gesture is about |
-| `holders.ts` | groups and grids: which blocks hold, membership, cells, merges, header lines, allocation |
-| `defs.ts` | definitions: chains, bases, defaults, packages, and what an element resolves through |
+| `holders.ts` | folders, groups and grids: which blocks hold and how they draw, cells, merges, header lines, allocation |
+| `defs.ts` | definitions: chains, bases, packages, roles, and what an element resolves through |
 | `names.ts` | what elements are called: names, handles, labels, the card icon and the system mark |
 | `door.ts` · `file.ts` | the one way in, and the envelope |
 | `components.ts` · `capabilities.ts` | what a definition configures, what it permits, and the advice it gives |
@@ -47,25 +47,25 @@
 - **A repair is a step**, written like any other work — so it is visible, undoable, and never made twice.
 - **The user is told once**, and a clean log says nothing. **A normalisation that carried nothing is not a repair**: a false alarm is what teaches people to ignore the real ones.
 - **A module the build does not know falls back to the base block, and says so.** Falling back silently is the one thing to avoid.
-- **The door checks; it never migrates.** It keeps integrity, component validation, one default per kind, and a definition extending nothing pointed at its base. A schema change re-saves the samples rather than adding a repair.
+- **The door checks; it never migrates.** It keeps integrity and component validation. A schema change re-saves the samples rather than adding a repair.
 
 ## Files
 
 **A file is state, never history.** What travels is what the model *is* — self-describing, and readable without replaying anything against the engine that wrote it.
 
 - **An export is the graph, not the log** — `{ schema, id, graph, meta }`, pretty-printed JSON. Its size follows the model rather than how long somebody worked.
-- **Any subtree exports**, and the workspace export is simply the root folder's. One path, no special case, and no type had to exist for it.
-- **A subtree travels with its dependencies** — the definitions anything in it names, and their `extends` chains. That closure is what makes it open somewhere else.
+- **A package is the smallest export**, and the workspace export is simply the workspace package's. One path, no special case.
+- **A package travels as its own file.** A workspace names the packages it `uses`; `base` never travels.
 - **A reference out of the subtree is kept, not tidied away**, and reads *missing* where it lands. Same rule as a deleted target, so importing needs no second answer. A relationship with one end outside is dropped, exactly as moving a block drops what does not travel.
 - **Importing one is a checkpoint**, so there is no second format and no second reader.
 - **Importing replaces the session and is saved from then on** — a file is a snapshot, the session is the working copy.
-- **Grafting is not importing**: a file's definitions and elements come into a layer as one step, and **the workspace wins** — nothing it holds is replaced, its defaults stand for the file's, and incoming elements take its next handles.
+- **Grafting is not importing**: a file's definitions and elements come into a layer as one step, and **the workspace wins** — nothing it holds is replaced, and incoming elements take its next handles.
 - **The base is what cannot be ignored**; everything else is `meta`, free-form and safely ignorable. The test is whether dropping a field changes what the model *is*.
-- **Nothing still at its default is written** — a file the size of the choices in it. **Only touched definitions travel**: never the shipped floor, never a default nobody edited.
+- **Nothing still at its default is written** — a file the size of the choices in it.
 - **Major schema must match; a higher minor is readable.**
 - **Exporting changes nothing**, so re-exporting an unchanged subtree is byte-identical — which is what the canonical layout is for.
-- **Laid out for reading**: definitions first, then blocks, then relationships, each flat and sorted by id so a rename is one line. A block writes its `parent`.
-- **Ids say what they point at** — `block_`, `edge_`, `def_`, `rel_`, `step_`. **Minted, never derived from a name**; a default is `def_default_<kind>` or `rel_default_<kind>`, and is still read by its marker rather than its id.
+- **Laid out for reading**: blocks, then relationships, each flat and sorted by id so a rename is one line. A block writes its `parent`.
+- **Ids say what they point at** — `block_`, `edge_`, `def_`, `rel_`, `step_`. **Minted, never derived from a name.** `base` keeps bare ids; other packages namespace theirs.
 - **A log is not a file.** The reader takes envelopes only, so nothing can hand the engine a history it did not write itself.
 - **Session state stays out**, `meta` included: opening somebody's file must not rearrange your toggles.
 

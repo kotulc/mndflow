@@ -4,7 +4,7 @@
 
 mndflow is for rapidly building and composing descriptive visual blocks into systems models. It is a client-only app. Visual scope is constantly constrained, so a user's perspective is carefully constrained to a narrow subset of the system.
 
-**It stays general on purpose.** Hard rules are only the few that prevent an incoherent project — a block cannot contain itself, and block composition may be restricted. Nothing is forbidden for being unusual, and where a choice could be enforced or left to the user, it is left to the user.
+**It stays general on purpose.** Hard rules are only the few that prevent an incoherent project — a block cannot contain itself, a definition cannot use itself, and block composition may be restricted. Nothing is forbidden for being unusual, and where a choice could be enforced or left to the user, it is left to the user.
 
 
 ## The Goal
@@ -35,7 +35,7 @@ Blocks are the fundamental unit of structure in this design, and structure and r
 
 A note, a group, a folder and a reference are placed, dragged, named and laid out alike, each one is a block. Blocks appear as cards in a diagram and are defined as nodes in the workspace graph. The graph defines possible block types and the structure and instances of those types for a given workspace. 
 
-The engine defines a set of base block kinds (`block`, `folder`, `reference`, `interface`, `group`, `grid` and `note`) that included definitions can readily subtype and customize. Block kinds (and their supporting engine modules) define how they can be configured, laid out, and how they interact. **`block`, `folder`, `note`, `group` and `grid` are open** ~~ a block is retyped among them freely, because they differ in what they are for and what they allow, and in nothing a gesture would have to invent. **Group and grid are behaviours, not sorts of thing**: a block holds because its definition's capability says so, and the two base kinds are presets of that capability. The rest are derived: one is arrived at by making one, and subtyping such a kind means making one and customizing it rather than retyping something else into it.
+The engine defines a set of base block kinds (`block`, `folder`, `reference`, `interface`, `group`, `grid`, `note` and `tag`) that included definitions can readily subtype and customize. Block kinds (and their supporting engine modules) define how they can be configured, laid out, and how they interact. **`block`, `folder`, `note`, `group` and `grid` are open** ~~ a block is retyped among them freely, because they differ in what they are for and what they allow, and in nothing a gesture would have to invent. **Folder, group and grid hold the way every block holds, by `parent`**; what separates them is how they draw what they hold — hidden behind the card, inline in a rim, or in cells. The rest are derived: one is arrived at by making one, and subtyping such a kind means making one and customizing it rather than retyping something else into it.
 
 
 ### Block structure is the foundation
@@ -53,11 +53,11 @@ This design defines structure with blocks. Layered compositions of blocks form t
 
 There is no structure/behaviour split. **A block is a block** — what it *is* comes from its definition, and what it may hold is a rule a vocabulary states, never one the engine imposes. Saying that a doing-block may not contain a being-block was a distinction the engine had no business making.
 
-The one thing the engine still refuses is incoherence: a block cannot contain itself, a group cannot hold something that holds it, and a cell holds one block. The last of those is not taste — two blocks sharing a cell leaves *what is allocated to this row* without an answer.
+The one thing the engine still refuses is incoherence: a block cannot contain itself, a definition cannot use itself or sit in a structure, a type chain cannot close on itself, and a cell holds one block. The last of those is not taste — two blocks sharing a cell leaves *what is allocated to this row* without an answer.
 
 
 ### A layer is a perspective
 
-`Blocks` define structure and containment, and `relations` describe usage and reference. The **perspective** is the layer you are inside: a block and its direct children, drawn one way, with the grid deciding how much of what you see is stated rather than merely placed.
+`Blocks` define structure and containment, and `relations` describe usage and reference. The **perspective** is the layer you are inside: what one block holds, drawn one way — groups and grids open inline, folders and definitions closed behind their cards — with the grid deciding how much of what you see is stated rather than merely placed. **The explorer's sections slice the same tree** — packages, a package's definitions, a definition's structure — and the canvas draws whichever slice was opened.
 
 ***View* is reserved rather than retired.** It will name a data perspective — a table, a matrix, a sequence — over model data, designed when those are built. It was cut because it had come to mean *the diagram*, and two words for one thing is the collision the vocabulary rework was about.

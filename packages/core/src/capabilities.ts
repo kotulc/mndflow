@@ -1,7 +1,7 @@
 /** What a block may do, and what its values are asked for. `allows` is refused at the gesture;
  *  `expects` is only ever advice. */
 
-import { base_of, def_of, isa, outside } from "./defs";
+import { base_of, def_at, def_of, frozen, isa } from "./defs";
 import { children, is_interface, subtree } from "./tree";
 import type { Components, Flow, Graph, Id, Shape } from "./types";
 
@@ -77,13 +77,13 @@ export function expects_of(graph: Graph, id: Id | undefined): Expects {
   return merged(layers_of(graph, id, "expects", read_expects));
 }
 
-/** A definition's capabilities split in two: what its own word states — the workspace's, since
- *  nothing from outside is written — and what the rest of its chain would give it without that. */
+/** A definition's capabilities split in two: what its own word states, and what the rest of its
+ *  chain gives it. A frozen definition's own word is not the workspace's to change. */
 export function allows_split(graph: Graph, def: Id): { own: Allows; inherited: Allows } {
   const chain = isa(graph, def);
-  const mine = !!chain[0] && !outside(chain[0]);
-  return { own: mine ? read_allows(chain[0]!.components) : {},
-           inherited: merged(chain.slice(mine ? 1 : 0).map((d) => read_allows(d.components))) };
+  const mine = !!chain[0] && !frozen(graph, chain[0].id);
+  return { own: mine ? read_allows(chain[0]!.settings) : {},
+           inherited: merged(chain.slice(mine ? 1 : 0).map((d) => read_allows(d.settings))) };
 }
 
 /** Nearest first, so the first declaration of each key is the one in force. */
@@ -97,13 +97,14 @@ function merged<T extends object>(layers: T[]): T {
   return out;
 }
 
-/** What states this key over an element, nearest first: its own look, then its chain. */
+/** What states this key over an element, nearest first: its own settings, then its chain. A
+ *  definition's chain starts at itself. */
 function layers_of<T>(graph: Graph, id: Id | undefined, key: string,
                       read: (c: Components | undefined) => T): T[] {
   if (!id) return [];
-  if (graph.defs[id]) return isa(graph, id).map((d) => read(d.components));
-  const chain = isa(graph, def_of(graph, id)).map((d) => read(d.components));
-  const own = (graph.blocks[id] ?? graph.edges[id])?.looks;
+  if (def_at(graph, id)) return isa(graph, id).map((d) => read(d.settings));
+  const chain = isa(graph, def_of(graph, id)).map((d) => read(d.settings));
+  const own = (graph.blocks[id] ?? graph.edges[id])?.settings;
   return own?.[key] ? [read(own), ...chain] : chain;
 }
 
@@ -185,7 +186,7 @@ export function may_take(graph: Graph, holder: Id, type?: Id): boolean {
 
 /** What a block answers for one field name. */
 function value_of(graph: Graph, id: Id, name: string): string | undefined {
-  return graph.blocks[id]?.fields?.find((f) => f.name === name)?.value;
+  return graph.blocks[id]?.values?.find((f) => f.name === name)?.value;
 }
 
 function label(graph: Graph, id: Id): string {
@@ -200,11 +201,12 @@ export function review(graph: Graph, scope?: Id): Note[] {
   const holds_block = (id: Id) => !within || within.has(id);
 
   for (const b of Object.values(graph.blocks)) {
-    if (!holds_block(b.id)) continue;
+    if (!holds_block(b.id) || frozen(graph, b.id)) continue;
     const allows = allows_of(graph, b.id);
     const expects = expects_of(graph, b.id);
 
-    for (const name of expects.required ?? []) {
+    /** A definition is a template, never allocated: what it asks is asked of its usages. */
+    for (const name of b.def ? [] : expects.required ?? []) {
       if (!value_of(graph, b.id, name)) {
         notes.push({ kind: "required", id: b.id,
                      what: `"${label(graph, b.id)}" needs a value for ${name}` });
@@ -231,8 +233,9 @@ export function review(graph: Graph, scope?: Id): Note[] {
       }
     }
 
-    /** Degree counts every relation meeting the block, in any layer. */
-    if (allows.degree) {
+    /** Degree counts every relation meeting the block, in any layer — a usage's, never a
+     *  definition's. */
+    if (allows.degree && !b.def) {
       const met = Object.values(graph.edges);
       count(notes, b.id, label(graph, b.id), "in",
             met.filter((e) => e.to === b.id).length, allows.degree.in);

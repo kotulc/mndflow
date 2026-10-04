@@ -1,7 +1,7 @@
 /** A graph out as SysML, and the same text back as a graph. */
 
-import { children, edge_base, edges_in, empty_graph, is_interface, is_reference, base_of,
-         owner_of, path, shown_name, SCHEMA,
+import { children, config_of, edge_base, edges_in, empty_graph, is_interface, is_reference,
+         base_of, owner_of, path, shown_name, MAIN, SCHEMA,
          type Block, type Graph, type Id, type Relation } from "@mnd/core";
 
 /** What each block module is called, absent a definition that says otherwise. */
@@ -18,9 +18,8 @@ const quoted = (name: string) => `'${name.replaceAll("'", "\\'")}'`;
 /** The keyword a block is written with: its definition's SysML name where it has one, else the
  *  module's. */
 function keyword(graph: Graph, id: Id): string {
-  const type = graph.blocks[id]?.type;
-  const said = type ? graph.defs[type]?.names?.["sysml"] : undefined;
-  if (said) return said.replace(/[«»]/g, "").trim().replaceAll(" ", "_");
+  const said = config_of(graph, graph.blocks[id]?.type, "names")["sysml"];
+  if (typeof said === "string") return said.replace(/[«»]/g, "").trim().replaceAll(" ", "_");
   return KEYWORD[base_of(graph, id)] ?? "part";
 }
 
@@ -57,11 +56,11 @@ function block(graph: Graph, b: Block, depth: number): string[] {
   return inside.length ? [`${head} {`, ...inside, `${pad}}`] : [`${head};`];
 }
 
-/** The whole workspace as one package. */
+/** The workspace's structure, built in `main`, as one package. */
 export function to_sysml(graph: Graph): string {
   const inside = [
-    ...children(graph, graph.root).flatMap((b) => block(graph, b, 1)),
-    ...edges_in(graph, graph.root).map((e) => `  ${relation(graph, e)}`),
+    ...children(graph, MAIN).flatMap((b) => block(graph, b, 1)),
+    ...edges_in(graph, MAIN).map((e) => `  ${relation(graph, e)}`),
   ];
   return [`package ${quoted(shown_name(graph, graph.root))} {`, ...inside, "}", ""].join("\n");
 }
@@ -91,10 +90,11 @@ function lines_of(text: string): Line[] {
 }
 
 /** The text back as a graph: the subset this writes, to prove the emitter. */
-export function from_sysml(text: string, known: Graph["defs"] = {}): Graph {
-  const graph = { ...empty_graph(), defs: { ...known } };
+export function from_sysml(text: string, known: readonly Block[] = []): Graph {
+  const graph = empty_graph();
+  for (const b of known) graph.blocks[b.id] ??= b;
   const trail: string[] = [];
-  const held: Id[] = [graph.root];
+  const held: Id[] = [MAIN];
   const links: { word: string; from: string[]; to: string[]; type?: string }[] = [];
   const stands: { id: Id; at: string[] }[] = [];
   let n = 0;
@@ -125,7 +125,7 @@ export function from_sysml(text: string, known: Graph["defs"] = {}): Graph {
     /** The outermost package is the workspace itself, not a block in it. */
     if (held.length === 1 && word === "package" && !graph.blocks[at([label])]) {
       graph.blocks[graph.root]!.name = name;
-      if (line.opens) held.push(graph.root);
+      if (line.opens) held.push(MAIN);
       continue;
     }
 
@@ -165,7 +165,7 @@ export function from_sysml(text: string, known: Graph["defs"] = {}): Graph {
 /** A name, or an owner and its port, resolved to what it addresses. */
 function find(graph: Graph, named: readonly string[]): Id | null {
   const hit = Object.values(graph.blocks)
-    .filter((b) => b.name === named[0])
+    .filter((b) => !b.def && b.name === named[0])
     .sort((a, b) => a.id.localeCompare(b.id))[0];
   if (!hit) return null;
   if (named.length === 1) return hit.id;
@@ -180,9 +180,9 @@ export function as_file(graph: Graph, id = "sysml"): string {
 
 /** What the notation carries, for comparing one graph with another. */
 export function shape_of(graph: Graph): string[] {
-  const trail = (id: Id) => path(graph, id).slice(1).map((b) => shown_name(graph, b.id)).join("/");
+  const trail = (id: Id) => path(graph, id).slice(2).map((b) => shown_name(graph, b.id)).join("/");
   const blocks = Object.values(graph.blocks)
-    .filter((b) => b.id !== graph.root)
+    .filter((b) => !b.def && b.parent)
     .map((b) => `${keyword(graph, b.id)} ${trail(b.id)}${b.type ? ` : ${b.type}` : ""}`
               + (is_reference(b) && b.of ? ` -> ${trail(b.of)}` : ""));
   const edges = Object.values(graph.edges)

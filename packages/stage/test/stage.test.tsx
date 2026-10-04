@@ -240,7 +240,7 @@ describe("the surrounds", () => {
   it("draws a crumb per layer, and climbs", () => {
     const view = mount();
     fireEvent.click(view.getByText("workspace"));
-    expect(view.onAct).toHaveBeenCalledWith("open", { id: "ws" });
+    expect(view.onAct).toHaveBeenCalledWith("open", { id: "workspace" });
     fireEvent.click(view.getByTitle(/up one layer/));
     expect(view.onAct).toHaveBeenCalledWith("open");
   });

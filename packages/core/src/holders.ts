@@ -24,9 +24,12 @@ export function covers(s: Span, r: number, c: number): boolean {
   return r >= s.r && r < s.r + s.rows && c >= s.c && c < s.c + s.cols;
 }
 
-/** Which holder a block is, or null: what its definition's capability says. */
+/** Which holder a block is, or null: what its definition's capability says. A definition boxes
+ *  only what it organizes: one with no members is a template, never an allocation, so it is no
+ *  holder until something sits in it. */
 export function shape_of(graph: Graph, id: Id | undefined): Shape | null {
   if (!id || !graph.blocks[id]) return null;
+  if (graph.blocks[id]!.def && !Object.values(graph.blocks).some((b) => b.group === id)) return null;
   const said = allows_of(graph, id).holder;
   return said === "group" || said === "grid" ? said : null;
 }
@@ -117,7 +120,9 @@ export function can_hold(graph: Graph, holder: Id, id: Id): boolean {
   const b = graph.blocks[id];
   if (!h || !b || holder === id || !is_holder(graph, holder)) return false;
   if (h.parent !== b.parent) return false;
-  const shape = shape_of(graph, id);
+  /** A holder joins only a group, and a grid joins nothing — among usages. A definition is
+   *  organized, never allocated, so any one may sit in a group. */
+  const shape = b.def ? null : shape_of(graph, id);
   if (shape && (shape === "grid" || !is_group(graph, holder))) return false;
   let at: Id | undefined = holder;
   const seen = new Set<Id>();

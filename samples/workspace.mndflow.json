@@ -1,16 +1,70 @@
 {
-  "schema": "3.0",
+  "schema": "4.0",
   "id": "workspace",
   "graph": {
-    "root": "ws",
-    "packages": {},
-    "defs": {
+    "root": "workspace",
+    "blocks": {
+      "workspace": {
+        "id": "workspace",
+        "parent": null,
+        "name": "workspace",
+        "pinned": [
+          "def_ghost",
+          "def_heading",
+          "def_pump",
+          "def_vessel",
+          "def_skid"
+        ],
+        "counters": {
+          "block": 9,
+          "note": 1,
+          "reference": 2,
+          "relation": 3,
+          "folder": 1,
+          "group": 1,
+          "grid": 1,
+          "interface": 1
+        }
+      },
+      "workspace.blocks": {
+        "id": "workspace.blocks",
+        "parent": "workspace",
+        "name": "blocks",
+        "type": "group",
+        "def": {},
+        "order": 1
+      },
+      "workspace.relations": {
+        "id": "workspace.relations",
+        "parent": "workspace",
+        "name": "relations",
+        "type": "group",
+        "def": {},
+        "order": 2
+      },
+      "workspace.tags": {
+        "id": "workspace.tags",
+        "parent": "workspace",
+        "name": "tags",
+        "type": "group",
+        "def": {},
+        "order": 3
+      },
+      "main": {
+        "id": "main",
+        "parent": "workspace",
+        "name": "main",
+        "def": {},
+        "group": "workspace.blocks",
+        "order": 4
+      },
       "def_ghost": {
         "id": "def_ghost",
+        "parent": "workspace",
         "name": "Draft",
-        "group": "block",
-        "extends": "block",
-        "components": {
+        "def": {},
+        "type": "block",
+        "settings": {
           "style": {
             "family": "muted",
             "fill": "hatch",
@@ -21,14 +75,16 @@
             "label": "below",
             "align": "center"
           }
-        }
+        },
+        "group": "workspace.blocks"
       },
       "def_heading": {
         "id": "def_heading",
+        "parent": "workspace",
         "name": "Heading",
-        "group": "block",
-        "extends": "block",
-        "components": {
+        "def": {},
+        "type": "block",
+        "settings": {
           "style": {
             "family": "primary",
             "name_weight": "bold",
@@ -39,14 +95,16 @@
             "align": "center",
             "label": "none"
           }
-        }
+        },
+        "group": "workspace.blocks"
       },
       "def_pump": {
         "id": "def_pump",
+        "parent": "workspace",
         "name": "Pump",
-        "group": "block",
-        "extends": "block",
-        "components": {
+        "def": {},
+        "type": "block",
+        "settings": {
           "style": {
             "hue": 285,
             "intensity": 0.8,
@@ -56,15 +114,17 @@
           "card": {
             "label": "inside"
           }
-        }
+        },
+        "group": "workspace.blocks"
       },
       "def_skid": {
         "id": "def_skid",
+        "parent": "workspace",
         "name": "Skid",
-        "group": "block",
-        "extends": "group",
-        "about": "A packaged unit of equipment: a group that gathers pumps and vessels only.",
-        "components": {
+        "def": {},
+        "type": "group",
+        "body": "A packaged unit of equipment: a group that gathers pumps and vessels only.",
+        "settings": {
           "allows": {
             "members": [
               "def_pump",
@@ -75,24 +135,25 @@
             "family": "secondary",
             "border_contrast": "soft"
           }
-        }
+        },
+        "group": "workspace.blocks"
       },
       "def_vessel": {
         "id": "def_vessel",
+        "parent": "workspace",
         "name": "Vessel",
-        "group": "block",
-        "extends": "block",
-        "components": {
+        "def": {},
+        "type": "block",
+        "settings": {
           "style": {
             "family": "secondary",
             "fill": "wash",
             "opacity": 0.5
           },
           "card": {}
-        }
-      }
-    },
-    "blocks": {
+        },
+        "group": "workspace.blocks"
+      },
       "b_hx": {
         "id": "b_hx",
         "parent": "b_loop",
@@ -131,16 +192,16 @@
         "group": "g_wet",
         "type": "def_pump",
         "alias": 3,
-        "fields": [
+        "order": 1,
+        "x": 0,
+        "y": 0,
+        "values": [
           {
             "name": "rated flow",
             "form": "number",
             "value": "50"
           }
-        ],
-        "order": 1,
-        "x": 0,
-        "y": 0
+        ]
       },
       "b_ref": {
         "id": "b_ref",
@@ -229,7 +290,7 @@
       },
       "f_plant": {
         "id": "f_plant",
-        "parent": "ws",
+        "parent": "main",
         "name": "Coolant Plant",
         "type": "folder",
         "alias": 1,
@@ -287,29 +348,6 @@
         "at": 0.5,
         "flow": "in",
         "order": 1
-      },
-      "ws": {
-        "id": "ws",
-        "parent": null,
-        "name": "workspace",
-        "type": "folder",
-        "counters": {
-          "block": 9,
-          "note": 1,
-          "reference": 2,
-          "relation": 3,
-          "folder": 1,
-          "group": 1,
-          "grid": 1,
-          "interface": 1
-        },
-        "pinned": [
-          "def_ghost",
-          "def_heading",
-          "def_pump",
-          "def_vessel",
-          "def_skid"
-        ]
       }
     },
     "edges": {

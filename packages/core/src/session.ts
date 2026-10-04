@@ -2,16 +2,15 @@
 
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
-import { base_of, plain_type, touched } from "./defs";
-import { fold, step } from "./fold";
+import { fold, step, type Floor } from "./fold";
 import { alias_kind, next_alias } from "./names";
 import { path } from "./tree";
 import { compact, file_name, parse, read, write } from "./file";
 import { new_id } from "./ids";
 import { no_files, no_storage, type Ports } from "./ports";
-import { ROOT } from "./types";
+import { MAIN } from "./types";
 import type { Fault } from "./door";
-import type { Graph, Id, Log, Mutation, Step } from "./types";
+import type { Block, Graph, Id, Log, Mutation, Step } from "./types";
 
 /** What the app says: a mirror of what was done, or a note of its own. */
 export type Said = { text: string; at: number; kind: "mirror" | "note" };
@@ -50,7 +49,8 @@ export type Session = {
   load: (text: string) => void;
   /** Back to a fresh, empty workspace; not undoable. */
   reset: () => void;
-  /** Grafts a file's definitions and elements into a layer, as one step. */
+  /** Grafts a file into the workspace as one step: a workspace's definitions into its domain and
+   *  its `main` into a layer, or a package whole, frozen. */
   graft: (text: string, into?: Id | null) => Fault[];
   /** A definition package from outside the workspace, in through the door. */
   search: (want: string) => Promise<Found | null>;
@@ -64,8 +64,8 @@ export type Session = {
 export type Seed = {
   /** Where the definition packages are listed. */
   catalogue?: string;
-  /** The shipped floor every fold starts from. */
-  defs?: Mutation[];
+  /** The shipped packages every fold starts from. */
+  floor?: Floor;
 };
 
 export function session(ports: Partial<Ports> & Seed = {}): Session {
@@ -84,9 +84,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   let listener: (() => void) | null = null;
   let opened_faults: import("./door").Fault[] = [];
 
-  /** The shipped package, as the floor every fold starts from. */
-  const floor: Graph["defs"] = {};
-  for (const m of ports.defs ?? []) if (m.op === "set_def") floor[m.def.id] = m.def;
+  /** The shipped packages, as the floor every fold starts from. */
+  const floor: Floor = ports.floor ?? [];
 
   /** A fresh log is empty. The floor is already under it. */
   const seeded = (): Log => [];
@@ -102,6 +101,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     log = seeded();
   }
   graph = fold(log, floor);
+  layer = home(graph);
   if (opened_faults.length) said = { text: say(opened_faults), at: Date.now(), kind: "note" };
 
   const settle = () => {
@@ -253,16 +253,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
         return got.faults;
       }
       const from = fold([step("import", "import", 0, [{ op: "checkpoint", graph: got.graph }])], floor);
-      const target = into ?? layer ?? graph.root;
+      const target = into ?? layer ?? MAIN;
       const mutations: Mutation[] = [];
-      /** The workspace always wins: nothing it holds is replaced, and its defaults stand for the
-       *  file's. */
-      const plain = (type: Id | undefined) => !!type && from.defs[type]?.default !== undefined;
-      for (const d of Object.values(from.defs)) {
-        if (touched(d) && d.default === undefined && !graph.defs[d.id]) {
-          mutations.push({ op: "set_def", def: d });
-        }
-      }
       /** Incoming elements take the workspace's next handles, in their own order. */
       const counts: Record<string, number> = {};
       const serial = (id: Id) => {
@@ -272,16 +264,24 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       };
       const by_alias = <T extends { id: Id; alias?: number }>(all: T[]) =>
         all.sort((a, z) => (a.alias ?? 0) - (z.alias ?? 0) || a.id.localeCompare(z.id));
+      /** **The workspace always wins**: nothing it holds is replaced. A package comes whole and
+       *  stays as it came; a workspace's definitions join this one's domain, and what its `main`
+       *  holds lands where it was dropped. */
+      const whole = from.root !== graph.root;
+      const placed = (b: Block): Block => {
+        if (whole) return b;
+        if (b.parent === from.root) return { ...b, parent: graph.root };
+        if (b.parent === MAIN) return { ...b, parent: target, alias: serial(b.id) };
+        return b.def ? b : { ...b, alias: serial(b.id) };
+      };
       for (const b of by_alias(Object.values(from.blocks))) {
-        if (b.id === from.root || graph.blocks[b.id]) continue;
-        const parent = b.parent === from.root || !b.parent ? target : b.parent;
-        const type = plain(b.type) ? plain_type(base_of(from, b.id)) ?? undefined : b.type;
-        mutations.push({ op: "add_block", block: { ...b, parent, type, alias: serial(b.id) } });
+        if (graph.blocks[b.id] || floor.some((f) => f.id === b.id)) continue;
+        if (!whole && (b.id === from.root || b.id === MAIN)) continue;
+        mutations.push({ op: "add_block", block: placed(b) });
       }
       for (const e of by_alias(Object.values(from.edges))) {
         if (graph.edges[e.id]) continue;
-        const type = plain(e.type) ? undefined : e.type;
-        mutations.push({ op: "link_blocks", edge: { ...e, type, alias: serial(e.id) } });
+        mutations.push({ op: "link_blocks", edge: whole ? e : { ...e, alias: serial(e.id) } });
       }
       for (const [kind, n] of Object.entries(counts)) mutations.push({ op: "set_counter", kind, n });
       append("import", mutations);
@@ -318,8 +318,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       const text = await net.get(beside(catalogue, hit.at));
       if (text === null) return refuse(`“${hit.name}” could not be fetched`);
 
-      /** Packages are filed under the workspace root. */
-      const faults = this.graft(text, ROOT);
+      const faults = this.graft(text);
       said = { text: faults.length ? `brought in ${hit.name} — ${say(faults)}`
                                    : `brought in ${hit.name}`, at: Date.now(), kind: "note" };
       listener?.();
@@ -328,7 +327,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
     reset() {
       log = seeded();
-      layer = null;
+      layer = home(fold(log, floor));
       picked = [];
       cells = [];
       said = { text: "a fresh workspace", at: Date.now(), kind: "note" };
@@ -343,7 +342,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
         return;
       }
       log = got.log;
-      layer = null;
+      layer = home(fold(log, floor));
       picked = [];
       cells = [];
       said = got.faults.length ? { text: say(got.faults), at: Date.now(), kind: "note" } : null;
@@ -354,6 +353,11 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       listener = fn;
     },
   };
+}
+
+/** Where a workspace opens: `main`, where its structure is built, else its domain. */
+function home(graph: Graph): Id | null {
+  return graph.blocks[MAIN] ? MAIN : null;
 }
 
 /** The catalogue, read defensively — it was written outside this workspace. */
@@ -388,9 +392,8 @@ function beside(catalogue: string, at: string): string {
  *  made on purpose. What is here is what a *drag* streams. */
 function slot_of(m: Mutation): string | null {
   switch (m.op) {
-    /** A slider, on an element and on the definition it follows. */
-    case "set_look": return `${m.id}|${m.key}|${m.name}`;
-    case "set_def": return m.def.id;
+    /** A slider, on an element or a definition. */
+    case "set_setting": return `${m.id}|${m.key}|${m.name}`;
     /** A card dragged or resized. A lattice is written once per edit, so it never folds. */
     case "place_block": case "size_block": case "seat_cell": return m.id;
     default: return null;

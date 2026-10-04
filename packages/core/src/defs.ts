@@ -1,29 +1,32 @@
-/** Definitions: chains, kinds, defaults, and what an element resolves through. */
+/** Definitions: blocks carrying `def`. Chains, bases, packages, and what an element resolves
+ *  through. */
 
 import type { Settings } from "./components";
-import { BASE_BLOCKS, BASE_RELATIONS, BLOCK_MODULES, type BlockModule, type Definition,
-         type FieldDef, type Graph, type Id, type Package } from "./types";
+import { BASE_BLOCKS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, type Block, type BlockModule,
+         type Definition, type FieldDef, type Graph, type Id } from "./types";
+
+/** A definition's domain: what its usages are. Read off its base, never stored. */
+export type Domain = "block" | "relation";
 
 
-/** A definition and the chain it extends, nearest first. **The workspace's own word about a
- *  package's definition stands in front of it**, wherever that definition turns up — so editing
- *  what `block` or `«part»` means reaches everything below it, not only what named nothing. The
- *  floor is a package like any other, and is overridden the same way. */
+/** The definition with this id, where a block is one. */
+export function def_at(graph: Graph, id: Id | undefined): Definition | undefined {
+  const b = id ? graph.blocks[id] : undefined;
+  return b?.def ? (b as Definition) : undefined;
+}
+
+/** Every definition in the graph, every package's. */
+export function all_defs(graph: Graph): Definition[] {
+  return Object.values(graph.blocks).filter((b): b is Definition => !!b.def);
+}
+
+/** A definition and the chain it extends, nearest first. */
 export function isa(graph: Graph, type: Id | undefined): Definition[] {
   const out: Definition[] = [];
-  let at = type;
   const seen = new Set<Id>();
-  while (at && !seen.has(at)) {
-    seen.add(at);
-    const d = graph.defs[at];
-    if (!d) break;
-    if (outside(d)) {
-      const over = default_for(graph, d.id, d.group);
-      const said = over ? graph.defs[over] : undefined;
-      if (said && !seen.has(said.id)) { seen.add(said.id); out.push(said); }
-    }
+  for (let d = def_at(graph, type); d && !seen.has(d.id); d = def_at(graph, d.type)) {
+    seen.add(d.id);
     out.push(d);
-    at = d.extends;
   }
   return out;
 }
@@ -31,7 +34,7 @@ export function isa(graph: Graph, type: Id | undefined): Definition[] {
 /** What one component reads for a usage of this definition: the chain, base first. */
 export function config_of(graph: Graph, type: Id | undefined, key: string): Settings {
   const out: Settings = {};
-  for (const d of isa(graph, type).reverse()) Object.assign(out, d.components?.[key]);
+  for (const d of isa(graph, type).reverse()) Object.assign(out, d.settings?.[key]);
   return out;
 }
 
@@ -46,7 +49,7 @@ export function ordered_by<T extends { name: string }>(fields: readonly T[],
 export function schema_of(graph: Graph, type: Id | undefined): (FieldDef & { from: Id })[] {
   const out: (FieldDef & { from: Id })[] = [];
   for (const d of isa(graph, type).reverse()) {
-    for (const f of d.fields ?? []) {
+    for (const f of d.def.schema ?? []) {
       const at = out.findIndex((x) => x.name === f.name);
       if (at < 0) out.push({ ...f, from: d.id });
       else out[at] = { ...f, from: d.id };
@@ -55,22 +58,31 @@ export function schema_of(graph: Graph, type: Id | undefined): (FieldDef & { fro
   return out;
 }
 
-/** The shipped base a definition descends from, which is what its kind is. */
-export function base_named(graph: Graph, type: Id | undefined,
-                           group: "block" | "relation" = "block"): Id | undefined {
-  for (const d of isa(graph, type)) if (shipped(d) && d.group === group) return d.id;
-  /** A type naming a base directly, before that package is under it. */
-  const bases = group === "relation" ? BASE_RELATIONS : BASE_BLOCKS;
-  return type && bases.includes(type) ? type : undefined;
+/** Whether an id names a base: a definition the kit ships with nothing above it. */
+export function is_base(id: Id | undefined): boolean {
+  return !!id && (BASE_BLOCKS.includes(id) || BASE_RELATIONS.includes(id));
 }
 
-/** A block's base: what its own shape says, else what its chain descends from. */
+/** The base a definition descends from, which is what its kind is. A type naming a base directly
+ *  answers before the base package is laid. */
+export function base_named(graph: Graph, type: Id | undefined): Id | undefined {
+  const hit = isa(graph, type).find((d) => is_base(d.id))?.id;
+  return hit ?? (is_base(type) ? type : undefined);
+}
+
+/** A definition's domain: a relation where it descends from `line` or `tie`. */
+export function domain_of(graph: Graph, type: Id | undefined): Domain {
+  return BASE_RELATIONS.includes(base_named(graph, type) ?? "") ? "relation" : "block";
+}
+
+/** A block's base: what its own shape says, else what its chain descends from. A definition's
+ *  chain starts at itself. */
 export function base_of(graph: Graph, id: Id): Id {
   const b = graph.blocks[id];
   if (!b) return "block";
   if (b.of) return "reference";
   if (b.side !== undefined) return "interface";
-  return base_named(graph, b.type) ?? "block";
+  return base_named(graph, b.def ? b.id : b.type) ?? "block";
 }
 
 /** What a relation descends from, read from its ends: `tie` where an end is a note. */
@@ -85,7 +97,7 @@ export function module_of(graph: Graph, id: Id): BlockModule {
   if (!b) return "block";
   if (b.of) return "reference";
   if (b.side !== undefined) return "interface";
-  return module_named(graph, b.type);
+  return module_named(graph, b.def ? b.id : b.type);
 }
 
 /** The module a definition refines: the nearest link in its chain that names one. */
@@ -111,36 +123,38 @@ export function derived_base(graph: Graph, from: Id, to: Id): Id {
 
 /** What a block definition descends from, defaulting to the plain block. */
 export function block_base(graph: Graph, type: Id | undefined): Id {
-  return base_named(graph, type) ?? "block";
+  const base = base_named(graph, type);
+  return base && !BASE_RELATIONS.includes(base) ? base : "block";
 }
 
 /** What a relation definition descends from, defaulting to a plain line. */
 export function relation_base(graph: Graph, type: Id | undefined): Id {
-  return base_named(graph, type, "relation") ?? "line";
+  const base = base_named(graph, type);
+  return base && BASE_RELATIONS.includes(base) ? base : "line";
 }
 
-/** The definition a thing resolves through. */
+/** The definition an element resolves through: a definition itself, a usage its type, else the
+ *  base its shape says. */
 export function def_of(graph: Graph, id: Id): Id | undefined {
-  /** A shipped base resolves to its kind's default. */
-  const named = (type: Id | undefined) =>
-    type && !(graph.defs[type] && shipped(graph.defs[type]!)) ? type : undefined;
   const b = graph.blocks[id];
   if (b) {
+    if (b.def) return b.id;
+    if (b.type && def_at(graph, b.type)) return b.type;
     const base = base_of(graph, id);
-    return named(b.type) ?? default_for(graph, base) ?? (graph.defs[base] ? base : undefined);
+    return def_at(graph, base) ? base : undefined;
   }
   const e = graph.edges[id];
   if (!e) return undefined;
+  if (e.type && def_at(graph, e.type)) return e.type;
   const base = edge_base(graph, id);
-  return named(e.type) ?? default_for(graph, base, "relation")
-    ?? (graph.defs[base] ? base : undefined);
+  return def_at(graph, base) ? base : undefined;
 }
 
-/** What an element stores to name this definition. */
+/** What an element stores to name this definition: a structural base stores as nothing. */
 export function stored_type(graph: Graph, type: Id | undefined): Id | undefined {
-  const d = type ? graph.defs[type] : undefined;
-  if (!d || !(shipped(d) || d.default)) return type || undefined;
-  if (d.group === "relation") return undefined;
+  if (!type) return undefined;
+  if (!is_base(type)) return type;
+  if (BASE_RELATIONS.includes(type)) return undefined;
   return plain_type(base_named(graph, type) ?? "block") ?? undefined;
 }
 
@@ -152,123 +166,71 @@ export function plain_type(base: Id): Id | null {
 /** Bases an element's own shape says, so a plain one names nothing. */
 const STRUCTURAL: readonly Id[] = ["block", "reference", "interface"];
 
-/** The workspace's own word about a package's definition: the one it wrote to override that one.
- *  Named `default` on the record because a word about a base is what a plain element follows. */
-export function default_for(graph: Graph, base: Id,
-                            group: "block" | "relation" = "block"): Id | undefined {
-  for (const d of Object.values(graph.defs)) {
-    if (d.default === base && !d.from && d.group === group) return d.id;
+/** The package root a block sits under. */
+export function package_of(graph: Graph, id: Id): Id {
+  let at = id;
+  const seen = new Set<Id>();
+  while (!seen.has(at)) {
+    seen.add(at);
+    const up = graph.blocks[at]?.parent;
+    if (!up) return at;
+    at = up;
   }
-  return undefined;
+  return at;
 }
 
-/** What a definition would stand in for if it were made the default: the nearest definition from
- *  outside the workspace at or above what it extends. Nothing, where its chain is all its own. */
-export function stands_in_for(graph: Graph, id: Id): Id | undefined {
-  const d = graph.defs[id];
-  if (!d || outside(d)) return undefined;
-  return isa(graph, d.extends).find(outside)?.id;
+/** Whether a block is read only: under any package but the workspace's. */
+export function frozen(graph: Graph, id: Id): boolean {
+  return !!graph.blocks[id] && package_of(graph, id) !== graph.root;
 }
 
-/** What the shipped floor calls itself. */
-export const BASE_PACKAGE = "base";
-
-/** Whether this definition is one the app ships rather than one anybody wrote. */
-export function shipped(d: Definition): boolean {
-  return d.from === BASE_PACKAGE
-    || BASE_BLOCKS.includes(d.id)
-    || BASE_RELATIONS.includes(d.id);
+/** Whether this definition is one the kit ships. */
+export function shipped(graph: Graph, id: Id): boolean {
+  return !!graph.blocks[id] && package_of(graph, id) === BASE_PACKAGE;
 }
 
-/** Whether a definition came from outside the workspace — a package's, and the shipped floor's
- *  with it. **Never written**: an edit to one mints the workspace's word about it instead. */
-export function outside(d: Definition | undefined): boolean {
-  return !!d && (!!d.from || shipped(d));
-}
-
-/** Whether a definition is the workspace's to write out: not shipped, and not an untouched default. */
-export function touched(d: Definition): boolean {
-  if (shipped(d)) return false;
-  if (d.default === undefined) return true;
-  return Object.keys(d).some((k) => !LAID.includes(k) && (d as Record<string, unknown>)[k] !== undefined);
-}
-
-/** The keys a definition is laid with, which alone are not worth writing. **`default` is not one
- *  of them**: it is a choice somebody made, so it travels even where nothing else was said. */
-const LAID = ["id", "group", "name", "extends"];
-
-/** One package's block definitions, as the vocabulary section lists them. */
-export type Vocabulary = {
-  /** The package these came from. Null is the workspace's own. */
-  from: string | null;
-  defs: Definition[];
-};
-
-/** Every relation definition except the shipped floor. */
+/** Every relation definition except the bases. */
 export function relations(graph: Graph): Definition[] {
-  return Object.values(graph.defs)
-    .filter((d) => d.group === "relation" && !shipped(d))
+  return all_defs(graph)
+    .filter((d) => domain_of(graph, d.id) === "relation" && !is_base(d.id))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** A definition by what it is called. */
-export function def_named(graph: Graph, name: string, group?: "block" | "relation"): Definition | undefined {
+/** A definition by what it is called: the workspace's own first. Tags name in their own
+ *  namespace (`tag_named`), so a tag and a block definition may share a name. */
+export function def_named(graph: Graph, name: string, domain?: Domain): Definition | undefined {
   const want = name.trim();
   if (!want) return undefined;
-  /** The workspace's own first: one may share a name with a shipped kind. */
-  const hits = Object.values(graph.defs)
-    .filter((d) => d.name === want && (!group || d.group === group));
-  return hits.find((d) => !d.from) ?? hits[0];
+  const hits = all_defs(graph).filter((d) => d.name === want
+    && (!domain || domain_of(graph, d.id) === domain) && block_base(graph, d.id) !== "tag");
+  return hits.find((d) => !frozen(graph, d.id)) ?? hits[0];
 }
 
-/** Pinned definitions in pin order — of one group, or of both where none is named. */
-export function pinned_defs(graph: Graph, group?: "block" | "relation"): Definition[] {
-  const ws = graph.blocks[graph.root];
-  return (ws?.pinned ?? [])
-    .map((id) => graph.defs[id])
-    .filter((d): d is Definition => !!d && (!group || d.group === group));
+/** Pinned definitions in pin order — of one domain, or of both where none is named. */
+export function pinned_defs(graph: Graph, domain?: Domain): Definition[] {
+  return (graph.blocks[graph.root]?.pinned ?? [])
+    .map((id) => def_at(graph, id))
+    .filter((d): d is Definition => !!d && (!domain || domain_of(graph, d.id) === domain));
 }
 
-/** Block definitions grouped by package, the workspace's own first. */
-export function vocabulary(graph: Graph): Vocabulary[] {
-  const groups = new Map<string | null, Definition[]>();
-  for (const d of Object.values(graph.defs)) {
-    if (d.group !== "block") continue;
-    const held = groups.get(d.from ?? null) ?? [];
-    held.push(d);
-    groups.set(d.from ?? null, held);
-  }
-  return [...groups.entries()]
-    .sort(([a], [b]) => (a === null ? -1 : b === null ? 1 : a.localeCompare(b)))
-    .map(([from, defs]) => ({ from,
-                              defs: defs.sort((a, b) => a.name.localeCompare(b.name)) }));
+/** Every package root, the workspace's last. */
+export function packages(graph: Graph): Block[] {
+  return Object.values(graph.blocks).filter((b) => b.parent === null)
+    .sort((a, z) => Number(a.id === graph.root) - Number(z.id === graph.root)
+      || (a.name ?? a.id).localeCompare(z.name ?? z.id));
 }
 
-/** A package by id, or by the name somebody calls it. */
-export function package_of(graph: Graph, id: Id | undefined): Package | undefined {
-  if (!id) return undefined;
-  return graph.packages[id] ?? package_named(graph, id);
+/** A package root by id, or by the name somebody calls it. */
+export function package_named(graph: Graph, said: string | undefined): Block | undefined {
+  const want = said?.trim();
+  if (!want) return undefined;
+  const roots = packages(graph);
+  return roots.find((p) => p.id === want) ?? roots.find((p) => p.name === want);
 }
 
-/** A package by what it is called. Names are unique within a workspace. */
-export function package_named(graph: Graph, name: string): Package | undefined {
-  const want = name.trim();
-  return want ? Object.values(graph.packages).find((p) => p.name === want) : undefined;
-}
-
-/** Every package the workspace draws on, named, with all it brought — of either group. **The
- *  shipped floor is one of them**: every workspace stands on `base`, and hiding it only made the
- *  list lie about where the kinds came from. */
-export function packages(graph: Graph): { from: Id; name: string; defs: Definition[] }[] {
-  const groups = new Map<Id, Definition[]>();
-  for (const d of Object.values(graph.defs)) {
-    if (!d.from) continue;
-    groups.set(d.from, [...(groups.get(d.from) ?? []), d]);
-  }
-  return [...groups.entries()]
-    .map(([from, defs]) => ({ from, name: graph.packages[from]?.name ?? from,
-                              defs: defs.sort((a, b) => a.name.localeCompare(b.name)) }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+/** The packages that depend on this one, by root. */
+export function dependents(graph: Graph, pkg: Id): Block[] {
+  return packages(graph).filter((p) => p.uses?.includes(pkg));
 }
 
 /** The bases a block moves among freely; every other base is fixed when it is made. A group or a
@@ -278,7 +240,7 @@ const OPEN: readonly Id[] = ["block", "folder", "note", "group", "grid"];
 /** Whether this block may be told to name that definition. */
 export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean {
   /** A block never names a relation definition. */
-  if (type && graph.defs[type]?.group === "relation") return false;
+  if (type && domain_of(graph, type) === "relation") return false;
   const from = base_of(graph, id);
   const to = block_base(graph, type);
   return from === to || (OPEN.includes(from) && OPEN.includes(to));

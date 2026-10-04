@@ -1,7 +1,7 @@
 /** Cells, headers, labels, rows and columns of a grid. */
 
 import { may_take } from "../capabilities";
-import { derived_base } from "../defs";
+import { def_at, derived_base, domain_of } from "../defs";
 import { at_cell, can_hold, covers, heading, inside, is_grid, lattice_of, members_of, one_side,
          overlaps } from "../holders";
 import { shown_name } from "../names";
@@ -410,7 +410,7 @@ register(
       const group = grid_named(ctx, args);
       if (!group) return "point at a grid, or a cell of one";
       const type = text(args, "type");
-      if (type && ctx.graph.defs[type]?.group !== "relation") {
+      if (type && (!def_at(ctx.graph, type) || domain_of(ctx.graph, type) !== "relation")) {
         return `"${type}" is not a relation definition`;
       }
       return reading(ctx.graph, group).length > 1

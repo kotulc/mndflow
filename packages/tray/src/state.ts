@@ -23,7 +23,7 @@ export function useTray(first = true) {
   const [tab, set_tab] = useState<string | undefined>(undefined);
   const [hold, set_hold] = useState<Hold | null>(null);
 
-  /** A library row points the tray: a definition at its own tabs, a folder at its list. */
+  /** A library row points the tray: a definition at its own tabs, a package at its list. */
   const onSection = (at: Pointed) => {
     set_open(true);
     if (at.of === "def") { set_hold({ of: "id", id: at.id }); return; }
@@ -31,14 +31,9 @@ export function useTray(first = true) {
     set_tab(at.only === "packages" ? "packages" : "definitions");
   };
 
-  /** Which library row the explorer lights: whatever the tray holds, bar the root. */
-  const section = (root: Id): Pointed | null =>
-    hold?.of === "defs" ? hold
-    : hold?.of === "id" && hold.id !== root ? { of: "def", id: hold.id } : null;
-
   return {
     open, onOpen: set_open, tab, onTab: set_tab, hold, onHold: set_hold,
-    section, onSection,
+    onSection,
     /** A selection made anywhere but the tray gives the context back to the canvas. */
     release: () => set_hold(null),
   };

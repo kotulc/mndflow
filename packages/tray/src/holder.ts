@@ -1,7 +1,7 @@
 /** What the tray has hold of, and how to read it. */
 
-import { config_of, def_of, default_for, edge_base, honours, may_retype, block_base,
-         base_of, outside, relation_base, shipped,
+import { all_defs, config_of, def_at, def_of, domain_of, edge_base, frozen, honours, is_base,
+         may_retype, block_base, base_of, package_of, relation_base,
          type Block, type Definition, type Field, type FieldDef,
          type Graph, type Id, type Relation } from "@mnd/core";
 import { DRAFT } from "./draft";
@@ -16,15 +16,10 @@ export type Held = {
 };
 
 export function held(graph: Graph, id: Id): Held | null {
-  const d = graph.defs[id];
-  if (d) {
-    /** What a definition declares is whatever the workspace's word about it says, where one was
-     *  said: an edit to a package's definition lands there, so it is what reads back. */
-    const said = graph.defs[default_for(graph, d.id, d.group) ?? ""] ?? d;
-    return { def: d, block: null, edge: null, fields: said.fields ?? [] };
-  }
+  const d = def_at(graph, id);
+  if (d) return { def: d, block: null, edge: null, fields: d.def.schema ?? [] };
   const b = graph.blocks[id];
-  if (b) return { def: null, block: b, edge: null, fields: b.fields ?? [] };
+  if (b) return { def: null, block: b, edge: null, fields: b.values ?? [] };
   const e = graph.edges[id];
   if (e) return { def: null, block: null, edge: e, fields: [] };
   return null;
@@ -33,8 +28,8 @@ export function held(graph: Graph, id: Id): Held | null {
 /** The base kind this is or its usages are, and whether it draws as a run. */
 export function kind_of(graph: Graph, id: Id, it: Held): { kind: string; runs: boolean } {
   const { def: d, block: b } = it;
-  const kind = d ? (d.group === "relation" ? relation_base(graph, d.id)
-                                           : block_base(graph, d.id))
+  const kind = d ? (domain_of(graph, d.id) === "relation" ? relation_base(graph, d.id)
+                                                          : block_base(graph, d.id))
     : b ? base_of(graph, id) : edge_base(graph, id);
   return { kind, runs: honours(kind).includes("line") };
 }
@@ -43,48 +38,43 @@ export function kind_of(graph: Graph, id: Id, it: Held): { kind: string; runs: b
 export function defined(graph: Graph, id: Id, it: Held, runs: boolean) {
   const { def: d, block: b } = it;
   /** The relation definition this is about: itself, or the one a line follows. */
-  const follows = runs ? (d ?? graph.defs[def_of(graph, id) ?? ""]) : undefined;
-  const own = runs ? follows : d ?? (b?.type ? graph.defs[b.type] : undefined);
-  const mine = !!own && !outside(own) && own.id !== DRAFT;
-  /** What came from outside, and a word about it, is fixed: never renamed, removed or pinned. */
-  const fixed = !own || outside(own) || own.default !== undefined;
+  const follows = runs ? (d ?? def_at(graph, def_of(graph, id))) : undefined;
+  const own = runs ? follows : d ?? def_at(graph, b?.type);
+  const mine = !!own && !frozen(graph, own.id) && own.id !== DRAFT;
+  /** What came frozen is fixed: never renamed, removed or pinned. */
+  const fixed = !own || frozen(graph, own.id);
   return { follows, own, mine, fixed };
 }
 
-/** Where a definition lives, as a path — **the folder the explorer files it under**, never a
- *  projection over it. A package's reads under that package, the workspace's own under its group.
- *  `pinned` is an option, not a home, and there is no `default` folder: the workspace's word about
- *  a base is filed with its own definitions like any other.
- *
- *  **Two definitions may wear one name** — a base and the workspace's word about it — so this is
- *  what tells them apart, and every picker that offers one shows it. */
-export function def_path(d: Definition): string {
-  if (d.from) return `${d.from}/${d.name}`;
-  return `${d.group === "relation" ? "relations" : "blocks"}/${d.name}`;
+/** Where a definition lives, as a path: its package, then its name. **Two definitions may wear
+ *  one name** in two packages, so this is what tells them apart, and every picker shows it. */
+export function def_path(graph: Graph, d: Definition): string {
+  const pkg = graph.blocks[package_of(graph, d.id)];
+  return `${pkg?.name ?? pkg?.id ?? ""}/${d.name}`;
 }
 
-/** Every definition an element may follow. **The shipped bases head the list**, then the
- *  defaults, then the rest by name: a block descends from a base whether or not anybody named
- *  one, so leaving them out left the first link of every chain unpickable. */
+/** Every definition an element may follow. **The bases head the list**, then the rest by name:
+ *  a block descends from a base whether or not anybody named one, so leaving them out left the
+ *  first link of every chain unpickable. */
 export function types_for(graph: Graph, id: Id): Definition[] {
   const edge = graph.edges[id];
-  const rank = (d: Definition) => (shipped(d) ? 0 : d.default !== undefined ? 1 : 2);
-  return Object.values(graph.defs)
-    .filter((d) => (edge
-      ? d.group === "relation" && relation_base(graph, d.id) === edge_base(graph, id)
-      : d.group === "block" && may_retype(graph, id, d.id)))
+  const rank = (d: Definition) => (is_base(d.id) ? 0 : 1);
+  return all_defs(graph)
+    .filter((d) => d.id !== id && (edge
+      ? domain_of(graph, d.id) === "relation" && relation_base(graph, d.id) === edge_base(graph, id)
+      : domain_of(graph, d.id) === "block" && may_retype(graph, id, d.id)))
     .sort((a, z) => rank(a) - rank(z) || a.name.localeCompare(z.name));
 }
 
 /** The three readings every look control needs, over whichever holder this is. */
 export function reading(graph: Graph, id: Id, it: Held) {
   const { def: d } = it;
-  /** A block's or a line's own look. */
+  /** Its own word: a definition's settings, or a block's or a line's override. */
   const said = (key: string, name: string) =>
-    d ? d.components?.[key]?.[name] : (it.block ?? it.edge)?.looks?.[key]?.[name];
+    (d ?? it.block ?? it.edge)?.settings?.[key]?.[name];
   /** What it inherits, for the answers it has not overridden. */
   const chain = (key: string, name: string) => {
-    const from = config_of(graph, d ? d.extends : def_of(graph, id), key)[name];
+    const from = config_of(graph, d ? d.type : def_of(graph, id), key)[name];
     return from === undefined || from === null ? "" : String(from);
   };
   const now = (key: string, name: string, fallback: string) =>

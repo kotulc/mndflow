@@ -1,22 +1,20 @@
 /** The definitions and type tabs: definitions in one table, the workspace's or an element's. */
 
 import { useState } from "react";
-import { def_named, def_of, isa, block_base, pinned_defs, relation_base,
-         type Act, type Graph, type Id } from "@mnd/core";
+import { def_at, def_named, def_of, isa, pinned_defs, type Act, type Domain, type Graph,
+         type Id } from "@mnd/core";
 import { Entry } from "./Entry";
 import { def_path, types_for } from "./holder";
 import { Choice, lit_row, Table, type Chips, type Column, type Line } from "./Table";
 import { def_rows, type DefRow } from "./rows";
 
-/** Which of the explorer's library folders a listing is narrowed to. */
+/** Which of the library's listings the tray is narrowed to. */
 /** Where the tray was pointed. `packages` is a target the explorer sends, never a chip:
  *  a package's definitions read in the explorer, and its tab says what is drawn on. */
 export type Only = "all" | "pinned" | "workspace" | "packages";
 
-/** A narrowing of the library: a folder, a group, a package. */
-export type Shelf = { only: Only; group?: "block" | "relation"; from?: string;
-                      /** The explorer folder it was picked from, which lists its group. */
-                      folder?: Id };
+/** A narrowing of the library: a listing, a group, a package. */
+export type Shelf = { only: Only; group?: Domain; from?: string };
 
 const FOLDERS: readonly { key: Only; word: string }[] = [
   { key: "all", word: "all" }, { key: "pinned", word: "pinned" },
@@ -45,7 +43,7 @@ export type DefinitionsProps = {
 };
 
 /** Why a name may not be used in a group, or null. */
-export function taken(graph: Graph, name: string, group: "block" | "relation",
+export function taken(graph: Graph, name: string, group: Domain,
                       self?: Id): string | null {
   const other = def_named(graph, name, group);
   return !other || other.id === self ? null : `${other.name} already exists`;
@@ -98,27 +96,23 @@ export function Definitions({ graph, about, follows, lines, target = "the select
   const columns: Column[] = [
     { key: "name", label: "name" },
     { key: "extends", label: "extends" },
-    { key: "default", label: "default" },
     { key: "source", label: "source" },
     { key: "used", label: "used" },
   ];
 
-  /** What a definition may extend: never itself or below it, and a default only within its kind. */
-  const kind = (id: Id) => (graph.defs[id]?.group === "relation" ? relation_base(graph, id)
-                                                                  : block_base(graph, id));
-  const above = (g: "block" | "relation", self: Id | null) => every
+  /** What a definition may extend: never itself or below it. */
+  const above = (g: Domain, self: Id | null) => every
     .filter((r) => r.group === g)
-    .filter((r) => !self || (r.id !== self && !isa(graph, r.id).some((d) => d.id === self)
-      && (graph.defs[self]?.default === undefined || kind(r.id) === graph.defs[self]!.default)))
-    .map((r) => ({ value: r.id, word: def_path(graph.defs[r.id]!) }));
+    .filter((r) => !self || (r.id !== self && !isa(graph, r.id).some((d) => d.id === self)))
+    .map((r) => ({ value: r.id, word: def_path(graph, def_at(graph, r.id)!) }));
 
   /** A new definition extends its group's base until another is picked. */
   const base = one === "relation" ? "line" : "block";
-  const extend = up && graph.defs[up] ? up : base;
+  const extend = up && def_at(graph, up) ? up : base;
   const clash = one && name.trim() ? taken(graph, name, one) : null;
   const add = () => {
     if (!one || !name.trim() || clash) return;
-    onAct("define", { name: name.trim(), group: one, extends: extend });
+    onAct("define", { name: name.trim(), domain: one, extends: extend });
     set_name("");
     set_up(null);
   };
@@ -129,10 +123,8 @@ export function Definitions({ graph, about, follows, lines, target = "the select
 
   /** One definition's row, wherever it sits. */
   const line = (r: DefRow): Line => {
-    /** The workspace's own, so its identity is the workspace's to change. A word about an
-     *  outside definition is the workspace's too, but wears that one's name. */
-    const mine = !r.from;
-    const def = graph.defs[r.id]!;
+    /** The workspace's own, so its identity is the workspace's to change. */
+    const mine = !r.from && !r.base;
     /** What the element already follows, which is a state of the row and not an act on it. */
     const following = fitting && r.id === follows;
     /** What the lit row offers: apply it to the selection, or make it the context. */
@@ -140,28 +132,18 @@ export function Definitions({ graph, about, follows, lines, target = "the select
                                     && types_for(graph, id).some((d) => d.id === r.id));
     return {
       id: r.id,
-      titles: { name: r.name, source: r.from || "workspace",
-                default: r.stands ? `draw every plain ${graph.defs[r.stands]?.name ?? r.stands} as ${r.name}`
-                                  : `${r.name} stands in for nothing` },
+      titles: { name: r.name, source: r.from || "workspace" },
       cells: {
         /** Renamed in place; the id stays, so nothing naming it is retyped. */
-        name: mine && !r.base ? (
+        name: mine ? (
           <Entry value={r.name} label={`rename ${r.name}`}
                  clash={(to) => taken(graph, to, r.group, r.id)}
-                 onCommit={(to) => onAct("rename_def", { id: r.id, name: to })} />
+                 onCommit={(to) => onAct("rename", { id: r.id, name: to })} />
         ) : r.name,
-        extends: !mine || r.base ? graph.defs[r.extends]?.name ?? "" : (
+        extends: !mine ? graph.blocks[r.extends]?.name ?? "" : (
           <Choice value={r.extends} label={`what ${r.name} extends`} of={above(r.group, r.id)}
-                  onPick={(id) => onAct("define", { name: def.name, group: r.group, extends: id })} />
+                  onPick={(id) => onAct("retype", { ids: [r.id], type: id })} />
         ),
-        /** One per thing stood in for, so ticking one takes it from whoever held it. */
-        default: mine && r.stands ? (
-          <input type="checkbox" checked={r.base}
-                 aria-label={`draw every plain ${graph.defs[r.stands]?.name ?? r.stands} as ${r.name}`}
-                 onClick={(e) => e.stopPropagation()}
-                 onChange={(e) => onAct("default", { id: r.id,
-                                                     on: e.target.checked ? "yes" : "no" })} />
-        ) : "",
         source: r.from || "workspace",
         used: String(r.used),
       },
@@ -188,10 +170,8 @@ export function Definitions({ graph, about, follows, lines, target = "the select
           ) : null}
         </>
       ),
-      /** Removing keeps how its usages draw; the listing lights what it extended. Dropping a
-       *  word about an outside definition gives that package's own word back. */
-      ...(mine ? { drop: r.base ? `give ${r.name} back to ${graph.defs[def.default!]?.from ?? "its package"}`
-                                : `remove ${r.name}`, onDrop: () => {
+      /** Removing keeps how its usages draw; the listing lights what it extended. */
+      ...(mine ? { drop: `remove ${r.name}`, onDrop: () => {
         onAct("remove_def", { id: r.id });
         if (r.extends && on.includes(r.id)) set_lit(r.extends);
       } } : {}),
@@ -224,7 +204,6 @@ export function Definitions({ graph, about, follows, lines, target = "the select
             </>
           ),
           extends: <Choice value={extend} label="extends" of={above(one, null)} onPick={set_up} />,
-          default: "",
           source: "workspace",
           used: "",
         },

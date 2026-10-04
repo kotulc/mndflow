@@ -65,21 +65,19 @@
 
 ## Definitions
 
-**A definition is a name and what it extends**; a relation definition also carries a `label`. A block or a line names one definition and draws through its chain.
+**A definition is a named block in a package, and what it extends.** A block or a line names one definition and draws through its chain.
 
 | thing | is |
 |---|---|
-| **a package's** | a definition somebody else wrote — the shipped floor's among them, since `base` is a package like any other. Its identity is theirs: never renamed, never re-pointed, never removed |
-| **a word about one** | what an edit to a package's definition mints — the workspace's own, wearing that definition's name and standing in front of it in every chain that reaches it. Dropping it gives the package's word back |
+| **a package's** | a definition in a frozen package, `base` among them. Read only: subtyped, never edited |
 | **label** | what a line naming a relation definition draws, **exactly as typed** — a stereotype such as `<<relates>>`. Its own and never inherited |
 
-- **Styling edits the definition.** The settings tab is a definition's, so every usage follows; a package's definition is styled by writing the workspace's word about it.
-- **Naming a type makes one, once.** A name one already holds applies that one. A name nothing holds **renames the workspace definition the element already follows** — so editing the box is editing that one definition, never filing another per edit — and files a new one only where the element follows a base or a package's definition. Clearing the box gives the element back to its base. **View definition** beside the row makes that definition the context, which is where it is styled and given capabilities. A line keeps the label it was drawing. **Making one never pins.**
-- **Pinned offers a definition; it never makes or removes one.** A pinned relation definition is on the rail — a line definition only, since the rail offers no *tie*; a pinned block definition is in the explorer's *pinned* folder. **Pinning is a shortlist, not a listing**: the explorer lists every definition either way.
-- **Removing dissolves.** Its looks go down into each usage, anything extending it extends what it extended, and it is unpinned.
-- **A name is unique within its group.** A block definition and a relation definition may share one. A name already taken is said, never looked up.
+- **Styling edits the definition.** The settings tab is a definition's, so every usage follows. A frozen definition's settings are read only.
+- **Naming a type makes one, once.** A name one already holds applies that one. A name nothing holds **renames the workspace definition the element already follows** — so editing the box is editing that one definition, never filing another per edit — and files a new one only where the element follows a base or a frozen definition. Clearing the box gives the element back to its base. **View definition** beside the row makes that definition the context, which is where it is styled and given capabilities. A line keeps the label it was drawing. **Making one never pins.**
+- **Pinned offers a definition; it never makes or removes one.** A pinned relation definition is on the rail; a pinned block definition is in the explorer's *pinned* folder. **Pinning is a shortlist, not a listing**: the explorer lists every definition either way.
+- **Removing a used definition is refused**, and says what uses it. An unused one is deleted with its structure and unpinned.
+- **A name is unique within its package**, across definitions, tags and traits. A name already taken is said, never looked up.
 - **Renaming keeps the id**, so every usage reads the new name and nothing is retyped.
-- **Filed when first needed.** A default is laid by the fold until its first edit files it, so a workspace nobody customised writes nothing.
 - **Ids are minted**, never a slug of the name, so renaming touches nothing but the name.
 
 ## Element
@@ -96,14 +94,14 @@
 
 - **An instance is named for itself; a line is named by its definition.** A block's name is its own. A line's name row shows the definition it follows and, typed into, files a new definition over it and moves the line onto it — so a line and a block are named by the same gesture.
 - **Type is a dropdown** of every definition of the element's own kind. **A block moves among `block`, `folder`, `note`, `group` and `grid` freely** and no further; every other kind is fixed when it is made.
-- **Capabilities are a block definition's**, a section of its settings tab and never an instance's — a block follows its definition's, so it shows none. One radio row each, **its answers in fixed columns so every row lines up**, and the picklist in the last, wrapping as it fills — the row grows rather than the answers moving: **holder** — inherit, none, group or grid — and **children**, **members** and **ports** — inherit, yes, no, or *limit to:* the definitions in the picklist beside it. **The picklist is always drawn**, taking input only while limiting; otherwise it reads what the chain gives, where that is a list, and is empty where it is not. *Members* shows only while the definition holds. Editing a package's definition writes the workspace's word about it, as styling does.
-- **Extends is a definition's**, and says the same word for both groups. Read-only for a base.
+- **Capabilities are a block definition's**, a section of its settings tab and never an instance's — a block follows its definition's, so it shows none. One radio row each, **its answers in fixed columns so every row lines up**, and the picklist in the last, wrapping as it fills — the row grows rather than the answers moving: **children**, **members** and **ports** — inherit, yes, no, or *limit to:* the definitions in the picklist beside it. **The picklist is always drawn**, taking input only while limiting; otherwise it reads what the chain gives, where that is a list, and is empty where it is not. *Members* shows only while the definition holds. **Traits head the section** as chips: inherited ones faint until the definition states its own set, and *reset* gives the set back to the chain.
+- **Extends is a definition's**, and says the same word for both domains. It offers only definitions above it: never itself, never one extending it. Read-only for a base.
 - **Label is editable wherever it reads** — on the relation definition, and on a line, where it edits the definition the line follows.
 - **Source is a block's own**, never its definition's, and has a section of its own under the content it is the provenance of: one *uri* row. **Provenance, not a link** — nothing syncs to it, so it may go stale and nothing breaks. Whatever anchor or revision the locator needs is part of the uri, since nothing here parses one. Clearing it gives the slot back, and a block carrying one wears the `Ext` mark.
-- **Tags are chips**, on a block or a line, with a box to add another. Never inherited.
+- **Tags are chips**, on a block, a line or a definition, named by their tag's name, with a box to add another: a new word makes a workspace tag. **What it carries from its definition reads after, faint and dashed**, and takes no click. **Traits are a row of their own**, apart from tags.
 - **The workspace carries a *display* band** the other holders have none of: the room a card takes where its definition asked for none, and whether a layer draws the key to itself with which corner it keeps it in. **Display, not model** — the log never sees it and no file carries it, which is what keeps it off the identity rows above.
-- ***Pinned* sits under the card.** Bases and defaults offer none.
-- **Reset style** sits at the far end of the settings tab's strip, and gives the definition's looks back to what it extends.
+- ***Pinned* sits under the card.** Bases offer none.
+- **Reset style** sits at the far end of the settings tab's strip, and gives the definition's settings back to what it extends.
 
 **A body is what the block represents.** A block's is its text — the workspace's included, as its description — and a definition's is its data, the stored definition exactly as filed, read only. A line has none. Text is committed when the box is left. See ST.20.
 
@@ -126,7 +124,7 @@
 
 ## Drafts
 
-**A blank definition is filed when it is named.** Its id is minted up front, it is edited through the same actions as a real one, and it is kept through clicking away. Until something is picked, its extends shows `base/<kind>`.
+**A blank definition is filed when it is named**, where the user is: in the open domain, in the holder picked. Its id is minted up front, it is edited through the same actions as a real one, and it is kept through clicking away. Until something is picked, its extends shows `base/<kind>`.
 
 ## Tables
 
@@ -160,11 +158,10 @@
 
 ### Definitions and type
 
-- **The definitions tab is every definition the workspace can name**, its own first: name, label *(relations)*, extends, source, used. **Nothing is left out** — a package's and the shipped floor's read here beside the workspace's, since hiding them only made *all* a smaller word for *workspace*. **Source says the package, or *workspace* for its own**. Chips narrow by group — *blocks*, *relations* — and by *all*, *pinned* or *workspace*. A package's row is read but not written: its name and what it extends are its package's, and an edit elsewhere mints the workspace's word about it.
+- **The definitions tab is every definition the workspace can name**, its own first: name, label *(relations)*, extends, source, used. **Nothing is left out** — a package's and the shipped floor's read here beside the workspace's, since hiding them only made *all* a smaller word for *workspace*. **Source says the package, or *workspace* for its own**. Chips narrow by domain — *blocks*, *relations* — and by *all*, *pinned* or *workspace*. A frozen package's row is read but not written.
 - **The type tab is the same table, narrowed to one element**: what the thing in context may follow, and nothing else. It offers no chips and adds no row, since a definition is added in the explorer, on the definitions tab, or by naming a type. **The lit row offers two acts**: *apply*, which points the element at it — never offered on the one already applied — and *view definition*, which makes it the context.
-- **Name, label and extends are edited in the row**; a package's are not, and neither is the name of a word about one — it wears that definition's.
-- **The last row adds one**, where one group is in view — a definition needs a group, and a mixed listing has none to give it.
-- **Removing a word about a package's definition gives that package's word back**, which is the only way to undo an override.
+- **Name, label and extends are edited in the row**; a frozen package's are not.
+- **The last row adds one**, where one domain is in view.
 
 ### Packages
 

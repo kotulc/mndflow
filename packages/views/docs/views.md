@@ -29,14 +29,17 @@ project(graph, layer, config) → Scene
 
 **`UNIT` is the only ruler.** Everything with a place of its own lands on it — a card, a note, a hand drop, a grid's corner — so a block the layer placed and a block seated in a grid line up.
 
-**A `CELL` is not a second measure.** It is what a grid seats things at: one block plus a gap of air on every side. Nothing outside a grid is quantised to one, no gap is counted in them, and no arrangement steps by one. That was the old mistake — two rulers on one drawing, the coarser winning — and it is the only part that was wrong.
+**A `CELL` is not a second measure.** It is what a grid seats things at: one block plus a gap of air on every side. Nothing outside a grid is quantised to one, no gap is counted in them, and no layout steps by one. That was the old mistake — two rulers on one drawing, the coarser winning — and it is the only part that was wrong.
 
-## Two arrangements
+## Layouts
+
+**A layer's layout is a setting** (`layout.kind`), said by its definition and overridable by the layer. The kit ships a small fixed set; an unknown kind draws as `auto`.
 
 | | Is |
 |---|---|
 | `free` | hand placement, rounded to the lattice. What a layer says nothing about |
 | `auto` | auto-layout: stored positions are ignored and every loose block gets a box worked out from the relationships and the sizes |
+| `outline` | headed groups down the page as a staircase: each group's head, its members beside it, its own groups stepped in under them, flow lines from head to head and through members in order. Stores neither a place nor a line |
 
 **Related blocks share a row or a column and sit one gap apart**; unrelated ones fill the next slots of a square-ish shelf. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
 
@@ -44,16 +47,35 @@ project(graph, layer, config) → Scene
 
 ## Holders
 
-**A boundary and a grid are both holders**, and most callers mean both — what a run may pass through, what a sweep picks, what a drop must stay clear of. `holds(node)` asks that once; asking it as two literal comparisons is how a grid ended up walling in every line between its own cells.
+**A folder, a group and a grid all hold by `parent`**; they differ in how they draw what they hold.
+
+| | Draws its contents |
+|---|---|
+| **folder** | hidden behind its card; you descend. Drawn as a group when the layer is flattened |
+| **group** | inline, inside its rim |
+| **grid** | in cells, each compact |
+
+**The blocks a layer draws are those whose nearest hiding ancestor is it**: a definition, a folder or any block holding blocks hides; a group or a grid shows through. **A group and a grid are both inline holders**, and most callers mean both — what a run may pass through, what a sweep picks, what a drop must stay clear of. `holds(node)` asks that once; asking it as two literal comparisons is how a grid ended up walling in every line between its own cells.
 
 | | Sized from | Members placed by |
 |---|---|---|
 | **group** | its members' bounds, plus a gap | the same packer the layer uses |
 | **grid** | its own extent, in cells — a header line one unit across | their address |
 
-**A holder is a block** whose definition's capability makes it one, so `is_holder` asks the capability and never the kind. **Nesting is ordinary and ordered by depth** — only groups nest — and `group_depth` decides both what is placed first and what draws on top, so a band inside a band is placed after the outer one has a corner of its own.
+**Nesting is ordinary and ordered by depth**, and depth decides both what is placed first and what draws on top, so a band inside a band is placed after the outer one has a corner of its own.
 
 **A header line is one unit across.** The top row is one unit tall and the left column one unit wide, and a header cell's card fills it — the left column's turned upright.
+
+## Projection
+
+**A projection is a view of the slice the sections hold, from one layer.** Nothing it adds is stored.
+
+| Transform | Does |
+|---|---|
+| **read-through** | an opened usage draws its definition's structure beside its own children, one step; a usage on the layer wears its definition's interfaces as `usage/part`. Parts wear the link mark |
+| **flatten** | folders draw as groups, so a whole domain reads on one page |
+| **forest** | the layer above the package roots (`open: null`): each package a box of its domain, flattened. Cards keep their real ids, so a pick is the definition itself |
+| **layout** | the layer's layout kind places what is drawn |
 
 ## The Scene is the seam
 

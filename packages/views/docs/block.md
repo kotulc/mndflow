@@ -16,13 +16,13 @@ project(graph, layer, config) → Scene
 | | From | Notes |
 |---|---|---|
 | **the frame** | the layer itself | the layer seen from inside, its name set into its own border |
-| **cards** | `laid(graph, layer)` | every child that is not an interface |
-| **holders** | blocks whose definition holds | a boundary sized to its members, or a grid drawn at its extent — either way behind what it holds, shallowest first |
+| **cards** | `laid(graph, layer)` | every block whose nearest hiding ancestor is the layer, but interfaces; an opened usage's parts beside its own |
+| **holders** | groups and grids on the layer, and folders when flattened | a boundary sized to what it holds, or a grid drawn at its extent — either way behind what it holds, shallowest first |
 | **cells** | a grid's extent and merges | derived every draw, never blocks. An empty cell is an address nobody claimed |
 | **seats** | `seated(graph, spots)` | interfaces, drawn over the card they sit on |
-| **routes** | `edges_in(graph, layer)` | one line per relationship with both ends drawn here |
+| **routes** | `edges_in(graph, layer)` | one line per relationship with both ends drawn here, a part's end meeting `usage/part` |
 
-**The root has no frame.** A frame is a block seen from outside, and the workspace has no outside. Everywhere else it is what the layer holds plus a margin, and never smaller than the room a first block needs — so descending into an empty block shows somewhere to put something rather than a blank page.
+**The forest has no frame.** A frame is a block seen from inside, and the forest is no block. Everywhere else it is what the layer holds plus a margin, and never smaller than the room a first block needs — so descending into an empty block shows somewhere to put something rather than a blank page.
 
 ## Marks
 
@@ -33,7 +33,8 @@ project(graph, layer, config) → Scene
 | `container` | it holds blocks |
 | `reference` | it stands for something living elsewhere |
 | `missing` | what it stood for is gone. **Kept, never tidied away**, so undoing a deletion elsewhere brings it back |
-| `group` | a boundary — a dashed rim round its members |
+| `group` | a boundary — a dashed rim round what it holds |
+| `part` | a block of a definition's structure seen through a usage: dimmed, with the link glyph |
 | `grid` | a region of the lattice with an extent |
 | `cell` · `merged` · `header` · `upright` | on a grid's own cells: an address, one standing for several, one in a header line, and one in the left header column, read upright. A card seated in a header cell wears `header` and `upright` too |
 | `note` | it is its own text |

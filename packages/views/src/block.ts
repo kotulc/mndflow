@@ -8,6 +8,7 @@ import { at_seat, cell_box, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of, wire_of } from "./look";
+import { read_through } from "./through";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type Trait, type Scene,
          type Slot } from "./scene";
@@ -34,8 +35,9 @@ function group_carries(graph: Graph, group: Id): Id[] {
   return out;
 }
 
-/** Project a layer through the block view. */
-export function project(graph: Graph, layer: Id | null, config: Config = {}): Scene {
+/** Project a layer through the block view, with what its usages read through laid in. */
+export function project(given: Graph, layer: Id | null, config: Config = {}): Scene {
+  const graph = read_through(given, layer);
   const spots = laid(graph, layer);
   /** Interfaces are seated after the cards; hidden ones still hold their seat. */
   const hidden = config.interfaces === false;
@@ -141,9 +143,9 @@ function lattice(graph: Graph, id: Id): GridCell[] {
    *  none, its definition's name; a schema with its fields'. The key column is the one the grid's
    *  own field marks. */
   const names = g.columns
-    ? g.columns.map((def, c) => g.values?.[0]?.[c] || (graph.defs[def]?.name ?? ""))
+    ? g.columns.map((def, c) => g.values?.[0]?.[c] || (graph.blocks[def]?.name ?? ""))
     : g.schema ? schema_of(graph, g.schema).map((f) => f.name) : null;
-  const key = graph.blocks[id]?.fields?.findIndex((f) => f.key) ?? -1;
+  const key = graph.blocks[id]?.values?.findIndex((f) => f.key) ?? -1;
   const said = (r: number, c: number) =>
     seated.has(`${r},${c}`) ? undefined : names && r === 0 ? names[c] : g.values?.[r]?.[c];
   const out: GridCell[] = [];
@@ -168,7 +170,8 @@ function lattice(graph: Graph, id: Id): GridCell[] {
 /** The border a layer is seen from inside. */
 function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
                   hidden: boolean): Frame | null {
-  if (layer === null || layer === graph.root) return null;
+  /** The root and a definition's contents are seen from no block's inside. */
+  if (layer === null || layer === graph.root || !graph.blocks[layer]) return null;
   const label = shown_name(graph, layer);
   const role = role_of(graph, layer);
   const stamps = stamps_of(graph, layer);

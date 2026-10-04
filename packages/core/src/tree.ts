@@ -70,12 +70,6 @@ export function is_container(graph: Graph, id: Id): boolean {
   return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(b));
 }
 
-/** A block no other block contains. */
-export function is_top_block(graph: Graph, id: Id): boolean {
-  const b = graph.blocks[id];
-  return !!b && b.parent === graph.root;
-}
-
 /** What a reference stands for, followed to the end. */
 export function stands_for(graph: Graph, id: Id): Block | null {
   let b: Block | undefined = graph.blocks[id];
@@ -97,7 +91,8 @@ export function previewed(graph: Graph, id: Id): Id {
  *  usages do. */
 export function stood_def(graph: Graph, id: Id): Definition | undefined {
   const of = graph.blocks[id]?.of;
-  return of ? graph.defs[of] : undefined;
+  const at = of ? graph.blocks[of] : undefined;
+  return at?.def ? (at as Definition) : undefined;
 }
 
 /** The number a new sibling takes: one past the last. */
@@ -116,6 +111,21 @@ export function reorder(graph: Graph, parent: Id | null, moved: Id | readonly Id
   return order
     .map((id, i) => ({ id, order: i + 1 }))
     .filter(({ id, order }) => (graph.blocks[id]?.order ?? 0) !== order);
+}
+
+/** What separates a usage from a part of its definition it reads through: `usage/part`. */
+const PART = "/";
+
+/** The id a part of a usage's definition is drawn under on that usage. */
+export function part_id(usage: Id, part: Id): Id {
+  return `${usage}${PART}${part}`;
+}
+
+/** An end as drawn, read back: the block, and the part of its definition it names, if any. */
+export function part_end(graph: Graph, id: Id): { block: Id; part?: Id } {
+  const at = id.indexOf(PART);
+  if (graph.blocks[id] || at < 0) return { block: id };
+  return { block: id.slice(0, at), part: id.slice(at + PART.length) };
 }
 
 /** The block an end is drawn on: an interface's owner, or itself. */

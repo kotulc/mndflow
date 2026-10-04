@@ -1,6 +1,6 @@
 /** What every module derives the same way. */
 
-import { alias_of, schema_def, schema_of, head_of, is_container, is_interface, is_named,
+import { alias_of, def_at, schema_def, schema_of, head_of, is_container, is_interface, is_named,
          base_of, path, previewed, role_of, shape_of, shown_name, stamps_of, stands_for, stood_def,
          type Graph, type Id } from "@mnd/core";
 import { look_of } from "./look";
@@ -15,9 +15,8 @@ export function marks_of(graph: Graph, id: Id): Trait[] {
   /** A stand-in for a definition draws as its usages; only its stamp says it stands in. */
   if (module === "reference" && !stood_def(graph, id)) {
     out.push("reference");
-    /** Missing is naming nothing at all: a stand-in for a definition or a package names no block. */
-    const other = b.of && (graph.defs[b.of] || graph.packages[b.of]);
-    if (!other && (!stands_for(graph, id) || stands_for(graph, id)!.id === id)) out.push("missing");
+    /** Missing is naming nothing at all. */
+    if (!stands_for(graph, id) || stands_for(graph, id)!.id === id) out.push("missing");
   }
   if (module === "note") out.push("note");
   /** A block that holds wears its shape, whatever kind it descends from. */
@@ -69,10 +68,10 @@ export function listed(graph: Graph, id: Id): Listed[] {
   const b = graph.blocks[id];
   if (!b) return [];
   const form_only = (def: Id) => schema_of(graph, def).map(({ name, form }) => ({ name, form }));
-  if (b.of && graph.defs[b.of]) return form_only(b.of);
+  if (b.of && def_at(graph, b.of)) return form_only(b.of);
   const held = schema_def(graph, id);
   if (held && held !== b.type) return form_only(held);
-  const own = b.fields ?? [];
+  const own = b.values ?? [];
   const schema = schema_of(graph, b.type);
   const extra = own.filter((f) => !schema.some((s) => s.name === f.name));
   return [...schema, ...extra].map(({ name, form }) => {
@@ -89,13 +88,11 @@ export const SOURCE = "source";
 export function link_of(graph: Graph, id: Id): string | undefined {
   const b = graph.blocks[id];
   if (b?.source) return b.source;
-  const said = b?.fields?.find((f) => f.name === SOURCE && f.form === "link");
+  const said = b?.values?.find((f) => f.name === SOURCE && f.form === "link");
   return said?.value || undefined;
 }
 
-/** The trail from the root down to the layer, for a breadcrumb. */
+/** The trail from the package down to the layer, for a breadcrumb. */
 export function trail_of(graph: Graph, layer: Id | null): Scene["trail"] {
-  return layer === null
-    ? [{ id: graph.root, label: shown_name(graph, graph.root) }]
-    : path(graph, layer).map((b) => ({ id: b.id, label: shown_name(graph, b.id) }));
+  return path(graph, layer ?? graph.root).map((b) => ({ id: b.id, label: shown_name(graph, b.id) }));
 }

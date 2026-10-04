@@ -34,17 +34,16 @@ npx vitest run packages/explorer     # its suite, from the repo root
 
 ## What it draws
 
-- **Blocks, nested to any depth.** Boundaries, notes, fields and references are never listed — a reference is a second appearance of something already there. **Interfaces are behind a toggle.**
-- **Every top-level block is its own subtree**, filed into the folders the workspace keeps.
-- **The open layer and the selection are two states with two looks** — *open* is where the stage is pointed, *selected* is what an action would act on. They stack, and selected reads first.
-- **Every role carries a mark**, and a container is filled where a leaf is outlined, because the fill is what says it holds something. **The root is the exception**: it wears a root mark, never filled, since it always holds everything.
-- **Three sections, when the library is drawn:** `packages` — what was brought in; `definitions` — the workspace's own; `usages` — the one tree of blocks, under its root. The user's package is the last two.
-- **Nothing picked on the root layer is the root picked.** Its row lights, because the workspace is what the tray is then about.
+- **A section chain, always.** The host declares its sections; mndflow's are `packages`, `definitions` and `structure`.
+- **Blocks, nested to any depth**, holders among them. Fields are never listed. **Interfaces are behind a toggle.**
+- **A usage lists its definition's parts**, marked, before its own children.
+- **The open layer and the selection are two states with two looks** — *open* is what the canvas draws, *selected* is what is browsed and what an action would act on. They stack, and selected reads first.
+- **Every role carries a mark**, and a container is filled where a leaf is outlined, because the fill is what says it holds something. A package root wears the root mark, or the lock where frozen.
 
 ## What it refuses to do
 
 - **It writes no mutation.** `＋` names `create`, a drag names `move` or `refer`, and the app runs them.
-- **It never rearranges the tree.** Folding is the user's alone, and walking into a layer changes nothing about what is open.
+- **It never rearranges the tree.** Folding is the user's alone, and opening a layer changes nothing about what is folded.
 - **Opening comes before selecting**, because opening clears the selection — the order is pinned by a test rather than left to the order of two calls.
 
 ## What it says, and how
@@ -53,8 +52,9 @@ A host means what it likes by an act, but the shape of each is fixed — a consu
 
 | Gesture | Act | Args |
 |---|---|---|
-| click a row | `reveal` | `{ id }` |
-| double-click a name, and type | `rename` | `{ id, name }` — `name`, never `label` |
+| click a row | choose | `{ at, id }` — selects; the canvas stays |
+| double-click a row, Enter, → | `open` | `{ id }` — a part opens its definition |
+| F2 on a row, and type | `rename` | `{ id, name }` — `name`, never `label` |
 | drag onto a row | `move` | `{ ids, parent }` |
 | drag between two rows | `move` | `{ ids, parent, before? }` — `before` is the sibling to land above; absent, they land last |
 | `＋` | `create` | `{ name, parent, type }` |

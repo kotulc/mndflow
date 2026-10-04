@@ -3,9 +3,8 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, flat, nested, related } from "@mnd/fixtures";
-import { seed } from "@mnd/defs";
-import { CAP, check, children, compact, fold, hash, read, say, session, write,
-         write_subtree, ROOT, type Log, type Storage } from "../src/index";
+import { CAP, all_defs, check, children, compact, fold, hash, read, say, session,
+         write, write_subtree, MAIN, type Log, type Storage } from "../src/index";
 
 function memory(): Storage & { held: () => Log | null } {
   let held: Log | null = null;
@@ -30,9 +29,9 @@ describe("undo is a refold", () => {
     s.go("create", { name: "B" });
     s.go("create", { name: "C" });
     s.undo();
-    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["A", "B"]);
+    expect(children(s.graph(), MAIN).map((b) => b.name)).toEqual(["A", "B"]);
     s.undo();
-    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["A"]);
+    expect(children(s.graph(), MAIN).map((b) => b.name)).toEqual(["A"]);
   });
 
   it("reports itself spent when there is nothing left", () => {
@@ -53,7 +52,7 @@ describe("undo is a refold", () => {
   it("restores the graph, never the context", () => {
     const s = session();
     s.go("create", { name: "A" });
-    const a = children(s.graph(), ROOT)[0]!.id;
+    const a = children(s.graph(), MAIN)[0]!.id;
     s.pick([a]);
     s.go("delete", { id: a });
     expect(s.picked()).toEqual([]);
@@ -87,7 +86,7 @@ describe("one step per action", () => {
     const s = session();
     s.go("create", { name: "A" });
     const before = s.log().length;
-    s.go("open", { id: children(s.graph(), ROOT)[0]!.id });
+    s.go("open", { id: children(s.graph(), MAIN)[0]!.id });
     s.go("up");
     expect(s.log().length).toBe(before);
   });
@@ -105,7 +104,7 @@ describe("the door", () => {
     ] });
     const got = check(log);
     expect(say(got.faults)).toMatch(/repaired/);
-    expect(fold(got.log).blocks["block_orphan"]!.parent).toBe(ROOT);
+    expect(fold(got.log).blocks["block_orphan"]!.parent).toBe(MAIN);
   });
 
   it("drops an op this build does not know", () => {
@@ -143,8 +142,8 @@ describe("files", () => {
     const out = JSON.parse(write_subtree(graph, "block_ledger"));
     expect(out.graph.blocks["block_rate"]).toBeDefined();
     expect(out.graph.blocks["block_site"]).toBeUndefined();
-    expect(out.graph.blocks["block_ledger"].parent).toBeNull();
-    expect(out.graph.defs["block"]).toBeUndefined();
+    expect(out.graph.blocks["block_ledger"].parent).toBe(MAIN);
+    expect(out.graph.blocks["block"]).toBeUndefined();
   });
 
   it("computes the hash rather than storing it", () => {
@@ -159,7 +158,7 @@ describe("storage", () => {
     const one = session({ storage: store });
     one.go("create", { name: "Ledger" });
     const two = session({ storage: store });
-    expect(children(two.graph(), ROOT).map((b) => b.name)).toEqual(["Ledger"]);
+    expect(children(two.graph(), MAIN).map((b) => b.name)).toEqual(["Ledger"]);
   });
 
   it("keeps a repair, so a mended log is not re-read as damaged", () => {
@@ -176,7 +175,7 @@ describe("storage", () => {
     const two = session({ storage: store });
     expect(two.said()).toBeNull();
     expect(store.held()!.filter((x) => x.action === "repair")).toHaveLength(1);
-    expect(children(two.graph(), ROOT).map((b) => b.name)).toEqual(["Orphan"]);
+    expect(children(two.graph(), MAIN).map((b) => b.name)).toEqual(["Orphan"]);
   });
 
   it("says nothing on opening a clean log", () => {
@@ -188,7 +187,7 @@ describe("storage", () => {
   it("survives storage that forgets", () => {
     const s = session();
     s.go("create", { name: "Ledger" });
-    expect(children(s.graph(), ROOT)).toHaveLength(1);
+    expect(children(s.graph(), MAIN)).toHaveLength(1);
   });
 });
 
@@ -197,7 +196,7 @@ describe("compaction", () => {
     let log: Log = [];
     for (let i = 0; i < CAP + 400; i++) {
       log.push({ id: `step_${i}`, action: "create", at: i, status: "applied", mutations: [
-        { op: "add_block", block: { id: `block_${i}`, parent: ROOT, name: `B${i}` } },
+        { op: "add_block", block: { id: `block_${i}`, parent: MAIN, name: `B${i}` } },
       ] });
     }
     const before = fold(log);
@@ -210,31 +209,30 @@ describe("compaction", () => {
 /** Starting over is dropping the log, not editing it. */
 describe("a new workspace", () => {
   it("puts back exactly what a first run opens with", () => {
-    const s = session({ defs: seed() });
-    const fresh = Object.keys(s.graph().defs).sort();
+    const s = session({ floor: FLOOR });
+    const fresh = Object.keys(s.graph().blocks).sort();
     s.go("create", { name: "Loop" });
-    expect(Object.keys(s.graph().blocks)).toHaveLength(2);
+    expect(Object.keys(s.graph().blocks)).toHaveLength(fresh.length + 1);
 
     s.reset();
-    expect(Object.keys(s.graph().blocks)).toEqual([ROOT]);
-    expect(Object.keys(s.graph().defs).sort()).toEqual(fresh);
-    expect(s.layer()).toBeNull();
+    expect(Object.keys(s.graph().blocks).sort()).toEqual(fresh);
+    expect(s.layer()).toBe(MAIN);
   });
 
   it("drops a definition this build no longer ships", () => {
-    const s = session({ defs: seed() });
-    s.go("define", { name: "activity", group: "block" });
-    expect(Object.values(s.graph().defs).some((d) => d.name === "activity")).toBe(true);
+    const s = session({ floor: FLOOR });
+    s.go("define", { name: "activity", domain: "block" });
+    expect(all_defs(s.graph()).some((d) => d.name === "activity")).toBe(true);
 
     s.reset();
-    expect(Object.values(s.graph().defs).some((d) => d.name === "activity")).toBe(false);
+    expect(all_defs(s.graph()).some((d) => d.name === "activity")).toBe(false);
   });
 
   it("leaves nothing to undo into", () => {
-    const s = session({ defs: seed() });
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "Loop" });
     s.reset();
     s.undo();
-    expect(Object.keys(s.graph().blocks)).toEqual([ROOT]);
+    expect(children(s.graph(), MAIN)).toEqual([]);
   });
 });

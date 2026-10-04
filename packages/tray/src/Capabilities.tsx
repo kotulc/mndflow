@@ -3,7 +3,8 @@
  *  none of its own. */
 
 import { useState } from "react";
-import { allows_split, type Act, type Allowed, type Graph, type Id } from "@mnd/core";
+import { all_defs, allows_split, def_at, domain_of, type Act, type Allowed, type Graph,
+         type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Band, Body, Line, Pick } from "./Body";
 import { def_path } from "./holder";
@@ -30,8 +31,8 @@ const INHERIT = "";
 const LIMIT = "limit";
 
 export function Capabilities({ graph, id, onAct }: CapabilitiesProps) {
-  const target = graph.defs[id];
-  if (!target || target.group !== "block") return null;
+  const target = def_at(graph, id);
+  if (!target || domain_of(graph, id) !== "block") return null;
   const { own, inherited } = allows_split(graph, target.id);
   /** A package's definition is never written: the look action writes the workspace's word. */
   const set = (name: string, value: string) =>
@@ -72,10 +73,10 @@ function Setting({ graph, name, word, tip, own, inherited, onSet }: {
   const on = picking || listed ? LIMIT : own === undefined ? INHERIT : String(own);
   const limiting = on === LIMIT;
   const shown = limiting ? listed ?? [] : on === INHERIT && Array.isArray(inherited) ? inherited : [];
-  const offered = Object.values(graph.defs)
-    .filter((d) => d.group === "block" && !listed?.includes(d.id))
-    .sort((a, z) => def_path(a).localeCompare(def_path(z)));
-  const called = (d: Id) => (graph.defs[d] ? def_path(graph.defs[d]!) : d);
+  const offered = all_defs(graph)
+    .filter((d) => domain_of(graph, d.id) === "block" && !listed?.includes(d.id))
+    .sort((a, z) => def_path(graph, a).localeCompare(def_path(graph, z)));
+  const called = (d: Id) => (def_at(graph, d) ? def_path(graph, def_at(graph, d)!) : d);
   /** Letting go of the last one gives the capability back to the chain. */
   const write = (ids: Id[]) => { set_picking(false); onSet(ids.join(",")); };
 
@@ -90,7 +91,7 @@ function Setting({ graph, name, word, tip, own, inherited, onSet }: {
             }} />
       <span className={["picks", limiting ? "" : "read"].filter(Boolean).join(" ")}>
         {shown.map((d) => limiting ? (
-          <button key={d} className="opt tag" title={`let go of ${graph.defs[d]?.name ?? d}`}
+          <button key={d} className="opt tag" title={`let go of ${graph.blocks[d]?.name ?? d}`}
                   onClick={() => write(listed!.filter((x) => x !== d))}>
             {called(d)}<Icon name="remove" size={9} />
           </button>
@@ -98,7 +99,7 @@ function Setting({ graph, name, word, tip, own, inherited, onSet }: {
         <select value="" aria-label={`${word} definitions`} disabled={!limiting}
                 onChange={(e) => write([...(listed ?? []), e.target.value])}>
           <option value="">{limiting ? "add…" : ""}</option>
-          {offered.map((d) => <option key={d.id} value={d.id}>{def_path(d)}</option>)}
+          {offered.map((d) => <option key={d.id} value={d.id}>{def_path(graph, d)}</option>)}
         </select>
       </span>
     </Line>

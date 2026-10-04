@@ -1,6 +1,6 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
-import { base_named, base_of, def_of, edge_base, outside, schema_of } from "./defs";
+import { base_named, base_of, def_at, def_of, edge_base, frozen, schema_of } from "./defs";
 import { holders_in, shape_of } from "./holders";
 import { children, is_container, stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
@@ -13,7 +13,7 @@ const WORD: Record<string, string> = {
 };
 
 export function kind_word(graph: Graph, b: Block): string {
-  const def = b.type ? graph.defs[b.type] : undefined;
+  const def = def_at(graph, b.def ? b.id : b.type);
   if (def && !BASE_BLOCKS.includes(def.name)) {
     return def.name.charAt(0).toUpperCase() + def.name.slice(1);
   }
@@ -58,8 +58,8 @@ export function is_named(graph: Graph, id: Id): boolean {
   if (e) return !!e.name?.trim() || !!e.type;
   const b = graph.blocks[id];
   if (!b) return false;
-  /** A definition and a package both carry a name of their own. */
-  if (b.of && (graph.defs[b.of] || graph.packages[b.of])) return true;
+  /** A stand-in for a definition or a package reads as what it points at. */
+  if (b.of && (def_at(graph, b.of) || graph.blocks[b.of]?.parent === null)) return true;
   const target = b.of ? stands_for(graph, id) : b;
   if (!target) return false;
   /** Only the name counts, never the body. */
@@ -73,7 +73,8 @@ export function shown_name(graph: Graph, id: Id): string {
   if (b.of) {
     /** A stand-in for a definition or a package reads as what it points at, unless it was named
      *  itself. */
-    const said = graph.defs[b.of]?.name ?? graph.packages[b.of]?.name;
+    const at = graph.blocks[b.of];
+    const said = at && (at.def || at.parent === null) ? at.name : undefined;
     if (said && b.name?.trim()) return b.name.trim();
     if (said) return said;
     const target = stands_for(graph, id);
@@ -94,7 +95,7 @@ function named(graph: Graph, b: Block): string {
 export function label_of(graph: Graph, id: Id): string {
   const e = graph.edges[id];
   if (e?.name?.trim()) return e.name.trim();
-  const d = graph.defs[id] ?? graph.defs[def_of(graph, id) ?? ""];
+  const d = def_at(graph, id) ?? def_at(graph, def_of(graph, id));
   return d && !shipped_name(d.name) ? d.name : "";
 }
 
@@ -142,10 +143,10 @@ export const MARK_MEANING: Record<Mark, string> = {
  *  workspace's data. */
 export function schema_def(graph: Graph, id: Id): Id | null {
   const own = (type: Id | undefined) => {
-    const d = type ? graph.defs[type] : undefined;
-    return d && !outside(d) && schema_of(graph, d.id).length ? d.id : null;
+    const d = def_at(graph, type);
+    return d && !frozen(graph, d.id) && schema_of(graph, d.id).length ? d.id : null;
   };
-  if (graph.defs[id]) return own(id);
+  if (def_at(graph, id)) return own(id);
   const b = graph.blocks[id];
   if (!b) return null;
   /** A grid is described by the schema heading it first, then by what it is. */
@@ -161,27 +162,34 @@ export function stamps_of(graph: Graph, id: Id): Mark[] {
   if (!b) return [];
   const out: Mark[] = [];
   if (b.of) {
-    out.push(graph.defs[b.of] ? "definition" : graph.packages[b.of] ? "package" : "reference");
+    const at = graph.blocks[b.of];
+    out.push(at?.def ? "definition" : at?.parent === null ? "package" : "reference");
   }
-  else if (b.fields?.some((f) => f.value) || schema_of(graph, b.type).length) out.push("data");
+  else if (b.values?.some((f) => f.value) || schema_of(graph, b.type).length) out.push("data");
   if (opens(graph, id)) out.push("parts");
   return out;
 }
 
 /** The blocks a definition is used by: those it types, those tagged with it, and the grids whose
- *  header allocates it. The root is the workspace itself, never a usage. */
+ *  header allocates it. A subtype extends it rather than using it. */
 export function used_by(graph: Graph, def: Id): Block[] {
-  return Object.values(graph.blocks).filter((b) => b.id !== graph.root
+  return Object.values(graph.blocks).filter((b) => !b.def
     && (b.type === def || b.tags?.includes(def) || b.grid?.columns?.includes(def)));
 }
 
-/** Whether a card opens onto a drawing of its own: a block holding blocks, a reference to one that
- *  does, or a stand-in for a definition something uses. */
+/** The definitions that extend this one directly. */
+export function subtypes(graph: Graph, def: Id): Block[] {
+  return Object.values(graph.blocks).filter((b) => b.def && b.type === def);
+}
+
+/** Whether a card opens onto a drawing of its own: a block holding blocks, a usage whose
+ *  definition does, a reference to one that does, or a stand-in for a definition. */
 export function opens(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
   if (!b) return false;
   if (is_container(graph, id)) return true;
-  if (b.of && graph.defs[b.of]) return used_by(graph, b.of).length > 0;
+  if (!b.def && def_at(graph, b.type) && is_container(graph, b.type!)) return true;
+  if (b.of && def_at(graph, b.of)) return is_container(graph, b.of);
   const target = b.of ? stands_for(graph, id) : null;
   return !!target && target.id !== id && is_container(graph, target.id);
 }

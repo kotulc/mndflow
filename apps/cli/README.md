@@ -29,7 +29,7 @@ npm run start -w @mnd/cli -- fold related    # the one to try first
 | `translate` | write the graph as SysML, and check it comes back |
 | `export` | fold and write the file |
 
-`<source>` is a fixture name, an exported file, or a raw log — **a log is harness input only**, since a file is a graph. `--how` sets the arrangement, `--layer` which layer, `--from` the catalogue `search` reads, and `--with` a vocabulary to bring in first. `--svg` draws instead of printing, and `--round` checks a translation comes back.
+`<source>` is a fixture name, an exported file, or a raw log — **a log is harness input only**, since a file is a graph. `--how` sets the layout, `--layer` which layer, `--from` the catalogue `search` reads, and `--with` a vocabulary to bring in first. `--svg` draws instead of printing, and `--round` checks a translation comes back.
 
 ## Why it exists
 

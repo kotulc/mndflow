@@ -21,10 +21,10 @@ export function Element({ graph, id, onAct = NOOP, onOpen }: ElementProps) {
     <fieldset className="panel element" disabled={readonly}>
       <Drawing graph={graph} id={id} onAct={onAct} options={!readonly} />
       <Identity graph={graph} id={id} onAct={onAct} {...(onOpen ? { onOpen } : {})} />
-      {/* A block's body is its content; a definition's `about` describes it. A line has neither. */}
-      {graph.blocks[id] || graph.defs[id] ? <Content key={id} graph={graph} id={id} onAct={onAct} /> : null}
+      {/* A block's body is its content; a definition's describes it. A line has neither. */}
+      {graph.blocks[id] ? <Content key={id} graph={graph} id={id} onAct={onAct} /> : null}
       {/* And under it, what the definition actually is. */}
-      {graph.defs[id] ? <Data key={`data-${id}`} graph={graph} id={id} /> : null}
+      {graph.blocks[id]?.def ? <Data key={`data-${id}`} graph={graph} id={id} /> : null}
       {/* Where that content came from, under it. Blocks only: nothing else stands in for an
          artifact outside the workspace. */}
       {graph.blocks[id] ? <Source key={`src-${id}`} graph={graph} id={id} onAct={onAct} /> : null}

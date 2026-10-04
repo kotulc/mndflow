@@ -51,3 +51,7 @@
 ## Hover and pick
 
 **Another surface points; only a gesture picks.** A hovered table row arrives as `lit` and draws an accent outline round a card or an accent stroke on a run. A pick draws an accent border and a raised fill on a card, and the grips on a run — so the two differ in what is shown, never only in strength.
+
+## Scrolled drawings
+
+**A scrolled drawing is a page held still across**: fitted to its width (or `reach`), centred where it is narrower than the view and read from its left where wider, and never magnified past `most`. **The camera follows the focus down the page** and never sideways, so a pick never shifts the page.

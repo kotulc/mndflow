@@ -1,6 +1,7 @@
 /** Boundaries, grids as made, and notes. */
 
 import { allows_of, may_hold, may_take } from "../capabilities";
+import { def_at, domain_of } from "../defs";
 import { can_hold, GRID, inside, lattice_of, members_of, shape_of } from "../holders";
 import { shown_name } from "../names";
 import { next_order } from "../tree";
@@ -76,8 +77,8 @@ register(
       if (!into && !members.length && !extent) return "nothing is selected";
       const { type, shape } = made_as(ctx.graph, args);
       if (!into) {
-        const d = ctx.graph.defs[type];
-        if (!d || d.group !== "block") return `there is no definition called "${type}"`;
+        const d = def_at(ctx.graph, type);
+        if (!d || domain_of(ctx.graph, type) !== "block") return `there is no definition called "${type}"`;
         if (!shape) return `"${d.name}" is neither a group nor a grid`;
         if (!may_hold(ctx.graph, here(ctx), type)) {
           return `"${shown_name(ctx.graph, here(ctx))}" holds nothing of that sort`;

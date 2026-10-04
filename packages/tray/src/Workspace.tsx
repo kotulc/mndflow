@@ -2,7 +2,7 @@
  *  carries. Given no `onAct` the workspace itself is read only; its display still answers
  *  `onDisplay`, since how a drawing looks is the session's and changes nothing. */
 
-import { file_name, packages, SCHEMA, shown_name,
+import { all_defs, def_at, file_name, packages, SCHEMA, shown_name,
          type Act, type Graph } from "@mnd/core";
 import { Band, Body, Check, Line, NOOP, Pick } from "./Body";
 import { Content } from "./Content";
@@ -47,8 +47,8 @@ export function Workspace({ graph, display, onAct = NOOP, onDisplay = onAct }: W
                    placeholder={shown_name(graph, graph.root)}
                    onCommit={(to) => onAct("rename", { id: graph.root, name: to })} />
           </Line>
-          <Line label="tags" tip="Words that say what this is like. Tags carry nothing and are never inherited.">
-            <Tags tags={root.tags ?? []}
+          <Line label="tags" tip="Tags that say what this is like. A new word makes a tag.">
+            <Tags tags={root.tags ?? []} name={(t) => def_at(graph, t)?.name ?? t}
                   onCommit={(to) => onAct("tag", { ids: [graph.root], tags: to })} />
           </Line>
         </Body>
@@ -69,7 +69,7 @@ export function Workspace({ graph, display, onAct = NOOP, onDisplay = onAct }: W
             <span className="read">{packages(graph).length}</span>
           </Line>
           <Line label="definitions" tip="Every definition the workspace can name, a package's and the floor's among its own.">
-            <span className="read">{Object.keys(graph.defs).length}</span>
+            <span className="read">{all_defs(graph).length}</span>
           </Line>
         </Body>
       </div>

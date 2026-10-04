@@ -1,22 +1,42 @@
 /** Tags and looks on an element or a definition. */
 
 import { component, NUMBERS } from "../components";
-import type { Graph, Mutation } from "../types";
+import { new_id } from "../ids";
+import { tag_named } from "../tags";
+import type { Id, Mutation } from "../types";
 import { register, type Args } from "./registry";
-import { ids_of, list, text, writable } from "./helpers";
+import { borrowed, ids_of, list, text } from "./helpers";
+import { new_def } from "./definitions";
 
 register(
   {
     name: "tag",
-    about: "puts words on an element or a definition to say what it is like",
+    about: "puts tags on an element or a definition to say what it is like — a new word makes a "
+      + "tag of the workspace's",
     on: ["block", "edge", "layer", "selection"],
-    /** The whole tag list, replaced in one step. */
+    /** The whole tag list, replaced in one step: tag ids or names, or new words. */
     args: [{ name: "ids", form: "block", required: true },
            { name: "tags", form: "text", required: true }],
-    check: (ctx, args) => (ids_of(ctx, args).length ? null : "nothing is selected"),
-    run: (ctx, args) => ({ mutations: ids_of(ctx, args).map((id): Mutation => ({
-      op: "set_tags", id, tags: list(args["tags"]),
-    })) }),
+    check: (ctx, args) => {
+      const ids = ids_of(ctx, args);
+      if (!ids.length) return "nothing is selected";
+      return ids.map((id) => borrowed(ctx.graph, id)).find(Boolean) ?? null;
+    },
+    run: (ctx, args) => {
+      const out: Mutation[] = [];
+      const made = new Map<string, Id>();
+      /** Each word as the tag it names, or a new one of the workspace's. */
+      const tags = list(args["tags"]).map((word) => {
+        const hit = tag_named(ctx.graph, word)?.id ?? made.get(word);
+        if (hit) return hit;
+        const id = new_id("def");
+        made.set(word, id);
+        out.push(new_def(ctx.graph, { id, name: word, type: "tag", def: {} }, "block"));
+        return id;
+      });
+      out.push(...ids_of(ctx, args).map((id): Mutation => ({ op: "set_tags", id, tags })));
+      return { mutations: out };
+    },
   },
 );
 
@@ -44,6 +64,8 @@ register(
     check: (ctx, args) => {
       const ids = ids_of(ctx, args);
       if (!ids.length) return "nothing is selected";
+      const why = ids.map((id) => borrowed(ctx.graph, id)).find(Boolean);
+      if (why) return why;
       if (!LOOKS.includes(String(args["key"]))) {
         return `there is nothing called "${args["key"]}" to set`;
       }
@@ -62,12 +84,8 @@ register(
       const key = String(args["key"]);
       const name = text(args, "name");
       const value = value_of(args);
-      return { mutations: ids_of(ctx, args).flatMap((id): Mutation[] => {
-        const d = ctx.graph.defs[id];
-        if (!d) return [{ op: "set_look", id, key, name, value }];
-        /** Styling a package's definition writes the workspace's word about it, never theirs. */
-        return [{ op: "set_def", def: stated(writable(ctx, id)!, key, name, value) }];
-      }) };
+      return { mutations: ids_of(ctx, args)
+        .map((id): Mutation => ({ op: "set_setting", id, key, name, value })) };
     },
   },
 );
@@ -86,18 +104,4 @@ function value_of(args: Args): unknown {
   }
   return NUMBERS.includes(name) && Number.isFinite(Number(said))
     ? Number(said) : String(said);
-}
-
-/** A definition with one property of one component set, or given back. */
-function stated(d: Graph["defs"][string], key: string, name: string,
-                value: unknown): Graph["defs"][string] {
-  const held = { ...(d.components?.[key] ?? {}) };
-  if (value === null || value === undefined) delete held[name];
-  else held[name] = value;
-  const components = { ...(d.components ?? {}) };
-  if (Object.keys(held).length) components[key] = held;
-  else delete components[key];
-  /** A relation definition always says it draws as a line. */
-  if (d.group === "relation" && !components["line"]) components["line"] = {};
-  return { ...d, components: Object.keys(components).length ? components : undefined };
 }

@@ -3,14 +3,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { open, review, type Graph } from "@mnd/core";
-import { seed } from "@mnd/defs";
+import { open, review } from "@mnd/core";
+import { FLOOR } from "@mnd/defs";
 
 const CATALOGUE = join(__dirname, "../public/packages");
-
-/** The shipped floor, which a package is read over rather than carrying. */
-const FLOOR: Graph["defs"] = {};
-for (const m of seed()) FLOOR[m.def.id] = m.def;
 
 type Listed = { name: string; about: string; at: string };
 

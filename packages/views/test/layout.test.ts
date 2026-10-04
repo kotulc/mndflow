@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, related } from "@mnd/fixtures";
-import { children, fold, is_grid, is_header, is_holder, is_interface, lattice_of,
+import { MAIN, children, fold, is_grid, is_header, is_holder, is_interface, lattice_of,
          type Arrangement, type Graph, type Id } from "@mnd/core";
 import { cell_box } from "../src/size";
 import { bounds, boundary, laid, nearest_seat, seated, size_of, snap, tidy, GAP, CELL, UNIT,
@@ -12,7 +12,7 @@ const ARRANGEMENTS: Arrangement[] = ["free", "auto"];
 
 function layer_of(name: string): { graph: Graph; layer: Id } {
   const graph = fold(fixture(name), FLOOR);
-  const layer = children(graph, graph.root)[0]!.id;
+  const layer = children(graph, MAIN)[0]!.id;
   return { graph, layer };
 }
 
@@ -652,7 +652,7 @@ describe("seats", () => {
 
   it("places a reference on the near rim of a grid, aligned with the block it is linked to", () => {
     const graph = fold(fixture("gridded"), FLOOR);
-    graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", order: 1 };
+    graph.blocks["block_remote"] = { id: "block_remote", parent: MAIN, type: "block", order: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_remote", order: 99 };
     graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_review" };
     const spots = under(graph, "block_board", "auto");
@@ -669,7 +669,7 @@ describe("seats", () => {
 
   it("anchors a reference on its in-layer link when its target is not on the board", () => {
     const graph = fold(fixture("gridded"), FLOOR);
-    graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", order: 1 };
+    graph.blocks["block_remote"] = { id: "block_remote", parent: MAIN, type: "block", order: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_remote", order: 99 };
     graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_build" };
     const spots = under(graph, "block_board", "auto");
@@ -724,8 +724,8 @@ describe("seats", () => {
 
   it("keeps two references on the near rim of a grid, aligned with their linked cells", () => {
     const graph = fold(fixture("gridded"), FLOOR);
-    graph.blocks["block_remote_a"] = { id: "block_remote_a", parent: graph.root, type: "block", order: 1 };
-    graph.blocks["block_remote_b"] = { id: "block_remote_b", parent: graph.root, type: "block", order: 2 };
+    graph.blocks["block_remote_a"] = { id: "block_remote_a", parent: MAIN, type: "block", order: 1 };
+    graph.blocks["block_remote_b"] = { id: "block_remote_b", parent: MAIN, type: "block", order: 2 };
     graph.blocks["block_ref_a"] = { id: "block_ref_a", parent: "block_board", of: "block_remote_a", order: 98 };
     graph.blocks["block_ref_b"] = { id: "block_ref_b", parent: "block_board", of: "block_remote_b", order: 99 };
     graph.edges["edge_ref_a"] = { id: "edge_ref_a", from: "block_ref_a", to: "block_draft" };
@@ -747,7 +747,7 @@ describe("seats", () => {
 
   it("places a reference beside the block it is linked to on the layer", () => {
     const graph = fold(related(), FLOOR);
-    graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", order: 1 };
+    graph.blocks["block_remote"] = { id: "block_remote", parent: MAIN, type: "block", order: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_remote", order: 99 };
     graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_pump" };
     const spots = under(graph, "block_loop", "auto");
@@ -762,7 +762,7 @@ describe("seats", () => {
 
   it("pulls a reference beside its linked block even when it was dropped far away", () => {
     const graph = fold(related(), FLOOR);
-    graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", order: 1 };
+    graph.blocks["block_remote"] = { id: "block_remote", parent: MAIN, type: "block", order: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_remote", order: 99,
                                   x: 2000, y: 2000 };
     graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_pump" };

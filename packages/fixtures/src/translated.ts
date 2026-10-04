@@ -1,15 +1,16 @@
 /** A graph as a translator hands one over, in a vocabulary this repo does not own. */
 
-import { ROOT, type Block, type Definition, type Graph, type Id } from "@mnd/core";
+import { MAIN, ROOT, type Block, type Definition, type FieldDef, type Graph,
+         type Id } from "@mnd/core";
 import { base_graph } from "@mnd/defs";
 
 /** The tier root the vocabulary is filed on, so it travels with the graph. */
 const HOME = "docs";
 
 function def(name: string, extend: string, card: Record<string, unknown>,
-             fields: Definition["fields"] = []): Definition {
-  return { id: `doc.${name}`, group: "block", name: `doc.${name}`,
-           extends: extend, fields, components: { card } };
+             schema: FieldDef[] = []): Definition {
+  return { id: `doc.${name}`, parent: ROOT, name: `doc.${name}`, type: extend,
+           def: { schema }, settings: { card } };
 }
 
 /** Folders, pages, sections and the things inside a section. */
@@ -32,14 +33,14 @@ const VOCAB: Definition[] = [
   def("term", "note", {  },
       [{ name: "source", form: "link" }]),
   /** A relation definition declares no fields. */
-  { id: "doc.link", group: "relation", name: "doc.link", extends: "line" },
+  { id: "doc.link", parent: ROOT, name: "doc.link", type: "line", def: {} },
 ];
 
 /** Where a block came from, as the one field name every view module reads. */
 function block(id: Id, parent: Id | null, type: string, name: string,
                source: string, order: number, more: Partial<Block> = {}): Block {
   return { id, parent, type, name, order,
-           fields: [{ name: "source", form: "link", value: source }],
+           values: [{ name: "source", form: "link", value: source }],
            ...more };
 }
 
@@ -47,8 +48,8 @@ function block(id: Id, parent: Id | null, type: string, name: string,
 export function translated(): Graph {
   const graph = base_graph();
 
-  graph.blocks[HOME] = { id: HOME, parent: ROOT, type: "folder", name: "Handbook", order: 1 };
-  for (const d of VOCAB) graph.defs[d.id] = d;
+  graph.blocks[HOME] = { id: HOME, parent: MAIN, type: "folder", name: "Handbook", order: 1 };
+  for (const d of VOCAB) graph.blocks[d.id] = d;
 
   const blocks: Block[] = [
     block("set_guides", HOME, "doc.set", "Guides", "/guides/", 1),

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, flat, nested, related, NAMES as FIXTURES } from "@mnd/fixtures";
-import { children, fold, session, ROOT, type Graph, type Id } from "@mnd/core";
+import { children, fold, session, MAIN, ROOT, type Graph, type Id } from "@mnd/core";
 import { box_of, draw, faults, outline, project, EMPTY, type Scene } from "../src/index";
 
 const NAMES = FIXTURES;
@@ -101,12 +101,12 @@ describe("what the projection shows", () => {
   it("reads a reference's target, and says missing when it is gone", () => {
     const s = session();
     s.go("create", { name: "Ledger" });
-    const ledger = children(s.graph(), ROOT)[0]!.id;
+    const ledger = children(s.graph(), MAIN)[0]!.id;
     s.go("create", { name: "Auth", parent: ledger });
     const auth = children(s.graph(), ledger)[0]!.id;
     s.go("refer", { target: auth });
 
-    const ref = () => project(s.graph(), null).nodes.find((b) =>
+    const ref = () => project(s.graph(), MAIN).nodes.find((b) =>
       b.data.marks.includes("reference"))!;
     expect(ref().data.label).toBe("Auth");
 

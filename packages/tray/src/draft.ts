@@ -1,22 +1,21 @@
 /** A definition the tray shows before the log holds it. */
 
-import { run, type Args, type Definition, type Graph } from "@mnd/core";
+import { replay, run, type Args, type Definition, type Domain, type Graph } from "@mnd/core";
 
 /** The id a draft stands in under. */
 export const DRAFT = "@draft";
 
-export type DraftGroup = "block" | "relation";
+export type DraftGroup = Domain;
 
-/** A blank definition; a relation draft draws as a line. */
-export function blank(group: DraftGroup): Definition {
-  return group === "relation"
-    ? { id: DRAFT, group, name: "", components: { line: {} } }
-    : { id: DRAFT, group, name: "" };
+/** A blank definition of the workspace's; a relation draft extends a line. */
+export function blank(domain: DraftGroup, root: string): Definition {
+  return { id: DRAFT, parent: root, name: "", def: {},
+           ...(domain === "relation" ? { type: "line" } : {}) };
 }
 
 /** The graph with the draft standing in it, for the panels to read. */
 export function with_draft(graph: Graph, draft: Definition): Graph {
-  return { ...graph, defs: { ...graph.defs, [DRAFT]: draft } };
+  return { ...graph, blocks: { ...graph.blocks, [DRAFT]: { ...draft, parent: graph.root } } };
 }
 
 /** The ids an action writes to, not what it points at. */
@@ -32,11 +31,10 @@ export function redraft(graph: Graph, draft: Definition, name: string,
                         args: Args): Definition | string {
   if (name === "define") {
     const up = String(args["extends"] ?? "");
-    return { ...draft, name: String(args["name"] ?? draft.name), extends: up || undefined };
+    return { ...draft, name: String(args["name"] ?? draft.name), type: up || undefined };
   }
-  const out = run(name, { graph: with_draft(graph, draft), layer: null, picked: [], cells: [] },
-                  args);
+  const drafted = with_draft(graph, draft);
+  const out = run(name, { graph: drafted, layer: null, picked: [], cells: [] }, args);
   if ("refused" in out) return out.refused;
-  const kept = out.mutations.find((m) => m.op === "set_def" && m.def.id === DRAFT);
-  return kept && kept.op === "set_def" ? kept.def : draft;
+  return (replay(drafted, out.mutations).blocks[DRAFT] as Definition | undefined) ?? draft;
 }

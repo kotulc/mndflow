@@ -144,10 +144,9 @@ Scene {
 
 **The engine states no containment rule.** The last one — *a view holds references, never parts* — had only the `view` module to attach to and went out with it. What is left is `holds`, which is data, and the few refusals that stop a graph being incoherent.
 
-- **What is still refused**: a block cannot contain itself, a holder cannot hold something that holds it, **only groups nest** — a grid sits in nothing and its cells seat no holder, **a kind that holds nothing takes no block** — a reference is a stand-in and a note is a remark, so neither has contents to give — and **a cell holds one block**. The last is not taste — two blocks sharing a cell leaves *what is allocated to this row* without an answer.
+- **What is still refused**: a block cannot contain itself, **a definition cannot use itself** or sit in a structure, **a type chain cannot close on itself**, and **a cell holds one block**. What a kind holds is its settings' to say (`allows.holds`), never a hard-coded rule. The last is not taste — two blocks sharing a cell leaves *what is allocated to this row* without an answer.
 - **A reference points at what it stands for, and nothing points back.** Upward is a derived query, never stored — a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
-- **Membership is not parenthood.** `parent` says which layer a block is in; `group` says which holder on that layer it sits in. Only the first is the tree, and a holder is listed in it like any other block.
-- **Holding is a capability.** A group or a grid is a block whose definition says `allows.holder` — so any definition may hold, and one that stops keeps what it held, dormant. A holder has no lifetime of its own, and a grid's member always sits in a cell.
+- **`parent` is the only containment.** A folder, a group and a grid hold by it like any block, and differ only in how they draw what they hold: hidden, inline, or in cells. Deleting a holder deletes its subtree, and a grid's member always sits in a cell.
 
 **A vocabulary's rules advise while modelling and refuse only at translation**: the walk is core's, in `schema.md`, and the drop rules are in `actions.md`.
 
@@ -174,7 +173,7 @@ The envelope, the canonical layout and the door are core's `engine.md`.
 | | Is |
 |---|---|
 | `base_graph` | a fresh workspace with the floor already in it |
-| reading | every derived answer about a graph, `edge_module` included — a relation's kind is read from its ends, never stored |
+| reading | every derived answer about a graph — roles, layers, read-through, a relation's domain read off its type |
 | `open` | a file in, as a graph — validated at the door and repaired where it can be |
 | `validate` | what a graph violates. **Mending it stays the engine's** |
 | `write` · `write_subtree` | a graph out, in the canonical layout |

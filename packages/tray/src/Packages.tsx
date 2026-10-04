@@ -1,7 +1,8 @@
 /** What the workspace draws on: the packages it holds, and how one more gets in. */
 
 import { useState } from "react";
-import { BASE_PACKAGE, packages, type Act, type Graph } from "@mnd/core";
+import { all_defs, BASE_PACKAGE, domain_of, package_of, packages, type Act,
+         type Graph } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Body, Line } from "./Body";
 
@@ -18,8 +19,10 @@ export type PackagesProps = {
 export function Packages({ graph, offered = [], onAct }: PackagesProps) {
   const [adding, set_adding] = useState("");
 
-  const held = packages(graph);
-  const names = new Set(held.map((p) => p.name.toLowerCase()));
+  /** The packages it draws on: every one but its own. */
+  const held = packages(graph).filter((p) => p.id !== graph.root);
+  const names = new Set(held.map((p) => (p.name ?? p.id).toLowerCase()));
+  const defs = all_defs(graph);
   /** Only what is not already here; a package comes in once. */
   const spare = offered.filter((o) => !names.has(o.name.toLowerCase()));
 
@@ -34,11 +37,12 @@ export function Packages({ graph, offered = [], onAct }: PackagesProps) {
     <div className="fields">
       <Body head="drawing on" note={`${held.length}`}>
         {held.map((p) => {
-          const shipped = p.from === BASE_PACKAGE;
-          const blocks = p.defs.filter((d) => d.group === "block").length;
-          const runs = p.defs.length - blocks;
+          const shipped = p.id === BASE_PACKAGE;
+          const own = defs.filter((d) => package_of(graph, d.id) === p.id);
+          const blocks = own.filter((d) => domain_of(graph, d.id) === "block").length;
+          const runs = own.length - blocks;
           return (
-            <Line key={p.from} label={p.name} className="value"
+            <Line key={p.id} label={p.name ?? p.id} className="value"
                   tip={shipped ? "the floor every workspace stands on" : undefined}>
               <span className="form">
                 {blocks} block{blocks === 1 ? "" : "s"}
@@ -47,7 +51,7 @@ export function Packages({ graph, offered = [], onAct }: PackagesProps) {
               {shipped ? <span className="from">shipped</span> : null}
               <button className="drop" disabled={shipped}
                       title={shipped ? "the floor stays" : `drop ${p.name}`}
-                      onClick={() => onAct("remove_package", { id: p.from })}>
+                      onClick={() => onAct("remove_package", { id: p.id })}>
                 <Icon name="remove" />
               </button>
             </Line>

@@ -1,12 +1,12 @@
 /** The envelope, and the canonical layout. */
 
 import { inspect, type Fault } from "./door";
-import { BASE_PACKAGE, def_of, touched } from "./defs";
-import { fold } from "./fold";
-import { subtree } from "./tree";
+import { def_of, isa, package_of } from "./defs";
+import { fold, type Floor } from "./fold";
+import { path, subtree } from "./tree";
 import { new_id } from "./ids";
-import { empty_graph, SCHEMA, type File, type Graph, type Id, type Log, type Step }
-  from "./types";
+import { empty_graph, BASE_PACKAGE, MAIN, SCHEMA, type Block, type File, type Graph, type Id,
+         type Log, type Step } from "./types";
 
 /** Nothing still at its default is written — a file the size of the choices in it. */
 function trim<T extends object>(o: T): T {
@@ -20,8 +20,7 @@ function trim<T extends object>(o: T): T {
 }
 
 /** Keys a record writes first; the rest follow alphabetically. */
-const FIRST = ["id", "parent", "name", "from", "group",
-               "type", "extends", "default", "of", "side", "dir"];
+const FIRST = ["id", "parent", "name", "type", "def", "of", "side", "dir"];
 
 const by_key = ([a]: [string, unknown], [b]: [string, unknown]): number => {
   const x = FIRST.indexOf(a), y = FIRST.indexOf(b);
@@ -34,17 +33,6 @@ function ordered<T extends { id: Id }>(all: Record<Id, T>, keep = (_: T) => true
   return out;
 }
 
-/** The packages the written definitions name. The shipped floor is nobody's package, so it never
- *  travels. */
-function drawn_on(graph: Graph, defs: Record<Id, Graph["defs"][string]>): Graph["packages"] {
-  const out: Graph["packages"] = {};
-  for (const d of Object.values(defs)) {
-    const pkg = d.from ? graph.packages[d.from] : undefined;
-    if (pkg && pkg.id !== BASE_PACKAGE) out[pkg.id] = pkg;
-  }
-  return out;
-}
-
 /** What an export of this workspace is called, without its extension: **the name somebody gave
  *  it**, so renaming the workspace renames the file it writes. Falls back to the word a fresh one
  *  wears, and drops what a filename may not carry. */
@@ -53,40 +41,39 @@ export function file_name(graph: Graph): string {
   return said.replace(/\s+/g, " ").trim() || "workspace";
 }
 
-/** The graph, laid out for reading: packages, then definitions, then blocks, then relations. */
+/** The graph, laid out for reading. The shipped package is every workspace's, so it never
+ *  travels; any other package does, frozen as it came. */
 export function write(graph: Graph, id = "workspace"): string {
-  const defs = ordered(graph.defs, touched);
   const file: File = {
     schema: SCHEMA,
     id,
-    graph: { root: graph.root, packages: ordered(drawn_on(graph, defs)), defs,
-             blocks: ordered(graph.blocks), edges: ordered(graph.edges) },
+    graph: { root: graph.root,
+             blocks: ordered(graph.blocks, (b) => package_of(graph, b.id) !== BASE_PACKAGE),
+             edges: ordered(graph.edges) },
   };
   return JSON.stringify(file, null, 2) + "\n";
 }
 
-/** A subtree plus every definition it reaches, and everything those extend. */
+/** A block's subtree as a workspace of its own: the block in `main`, with every definition it
+ *  reaches and what those extend, each where it sits in its package. */
 export function write_subtree(graph: Graph, root: Id): string {
+  const fresh = empty_graph();
+  const blocks: Record<Id, Block> = { ...fresh.blocks };
   const ids = new Set(subtree(graph, root));
-  const blocks: Record<Id, Graph["blocks"][string]> = {};
   for (const id of ids) {
     const b = graph.blocks[id];
-    if (b) blocks[id] = id === root ? { ...b, parent: null } : b;
+    if (b) blocks[id] = id === root ? { ...b, parent: MAIN } : b;
   }
-  const edges: Record<Id, Graph["edges"][string]> = {};
+  const edges: Graph["edges"] = {};
   for (const [eid, e] of Object.entries(graph.edges)) {
     if (ids.has(e.from) && ids.has(e.to)) edges[eid] = e;
   }
-  const defs: Record<Id, Graph["defs"][string]> = {};
-  const want = [...Object.keys(blocks).map((id) => def_of(graph, id)),
-                ...Object.keys(edges).map((id) => def_of(graph, id))].filter(Boolean) as Id[];
-  for (let i = 0; i < want.length; i++) {
-    const d = graph.defs[want[i]!];
-    if (!d || defs[d.id]) continue;
-    defs[d.id] = d;
-    if (d.extends) want.push(d.extends);
+  /** Each definition reached, its chain, and the blocks it sits under up to its package. */
+  const reached = [...ids, ...Object.keys(edges)].map((id) => def_of(graph, id));
+  for (const d of reached.flatMap((type) => isa(graph, type))) {
+    for (const up of path(graph, d.id)) blocks[up.id] ??= up;
   }
-  return write({ ...graph, root, blocks, edges, defs }, root);
+  return write({ root: fresh.root, blocks, edges }, root);
 }
 
 export type Parsed = { graph: Graph | null; faults: Fault[] };
@@ -107,13 +94,15 @@ export function parse(text: string): Parsed {
     return { graph: null,
              faults: [{ kind: "dropped", what: `a file written for schema ${file.schema}` }] };
   }
-  return { graph: { ...empty_graph(), ...file.graph }, faults: [] };
+  const graph = file.graph as Partial<Graph>;
+  return { graph: { root: graph.root ?? empty_graph().root, blocks: graph.blocks ?? {},
+                    edges: graph.edges ?? {} }, faults: [] };
 }
 
 export type Read = { log: Log; faults: Fault[] };
 
 /** A file in, as a one-checkpoint log. */
-export function read(text: string, floor: Graph["defs"] = {}): Read {
+export function read(text: string, floor: Floor = []): Read {
   const got = parse(text);
   if (!got.graph) return { log: [], faults: got.faults };
 
@@ -132,7 +121,7 @@ export function read(text: string, floor: Graph["defs"] = {}): Read {
 export type Opened = { graph: Graph; faults: Fault[] };
 
 /** A file in, as a graph. The reader anything outside the engine gets. */
-export function open(text: string, floor: Graph["defs"] = {}): Opened {
+export function open(text: string, floor: Floor = []): Opened {
   const got = read(text, floor);
   return { graph: fold(got.log, floor), faults: got.faults };
 }

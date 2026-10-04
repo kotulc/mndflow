@@ -10,7 +10,7 @@ describe("the shipped definitions", () => {
   });
 
   it("say nothing a component in this build refuses", () => {
-    const refused = ALL.flatMap((d) => unreadable(d).map((w) => `${d.name}: ${w.why}`));
+    const refused = ALL.flatMap((d) => unreadable(d.settings).map((w) => `${d.name}: ${w.why}`));
     expect(refused).toEqual([]);
   });
 
@@ -22,6 +22,6 @@ describe("the shipped definitions", () => {
 
   it("extends only definitions that travel with it", () => {
     const ids = new Set(ALL.map((d) => d.id));
-    expect(ALL.filter((d) => d.extends && !ids.has(d.extends))).toEqual([]);
+    expect(ALL.filter((d) => d.type && !ids.has(d.type))).toEqual([]);
   });
 });

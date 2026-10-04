@@ -6,7 +6,7 @@
 |---|---|
 | **Entry** | `src/index.ts` — everything public is exported here, and nothing imports a deep path |
 | **Depends on** | nothing. It may not even reach `defs`, which supplies its floor — an app hands the base definitions in, the same way it hands in a port |
-| **Proven by** | fold determinism, undo-by-refold, the door's repairs, file round-trip, byte-identical re-export, compaction, and the definition model — defaults, derived relation kinds, pins, saved and removed definitions, tags, batches, grafts |
+| **Proven by** | fold determinism, undo-by-refold, the door's repairs, file round-trip, byte-identical re-export, compaction, and the definition model — roles by position, chains and traits, read-through, pins, saved and removed definitions, tags, batches, grafts |
 
 ## Where it sits
 
@@ -28,10 +28,10 @@ npm run typecheck -w @mnd/core
 | | Is |
 |---|---|
 | `types.ts` | every shared shape, and **the only place a closed set may be named** |
-| `fold.ts` | mutation replay over the shipped floor, laying an unfiled default for every kind |
+| `fold.ts` | mutation replay over the packages in use |
 | `tree.ts` | layers, children, order, owners, and the relations drawn in a layer |
-| `holders.ts` | groups and grids: which blocks hold, membership, cells, merges, header lines, allocation |
-| `defs.ts` | definitions: chains, kinds, defaults, `def_of`, and `edge_module` — a relation's kind read from its ends |
+| `holders.ts` | folders, groups and grids: how a holder draws what it holds, cells, merges, header lines, allocation |
+| `defs.ts` | definitions: chains, kinds, roles, packages, and `def_of` |
 | `names.ts` | names, handles, labels and roles; the system marks a card is stamped with — **what it stands in for** (`definition`, `reference`, `package`), alone, **or what describes it** (`data`), which stack; and `schema_def`, the workspace definition a block's data answers |
 | `components.ts` | what a definition configures, each component validating its own key |
 | `door.ts` | the one way a log comes in. Checks and repairs what it can, drops what it cannot, and writes the repair as a step. **Never migrates** |
