@@ -182,6 +182,10 @@
 
 /* An unnamed row reads quietly. */
 .explorer .tree li.unnamed .label { opacity: 0.6; font-style: italic; }
+/* A part of a definition seen through a usage: dimmed, with the link glyph after its name. */
+.explorer .tree li.part .label,
+.explorer .tree li.part .mark { opacity: 0.6; }
+.explorer .tree li.part .from { display: inline-flex; margin-left: 4px; color: var(--faint); }
 
 .explorer .tree .alias {
   flex: none;

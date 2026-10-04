@@ -1,0 +1,275 @@
+{
+  "schema": "1.0",
+  "id": "base",
+  "graph": {
+    "root": "base",
+    "blocks": {
+      "base": {
+        "id": "base",
+        "parent": null,
+        "name": "base"
+      },
+      "base.blocks": {
+        "id": "base.blocks",
+        "parent": "base",
+        "name": "blocks",
+        "type": "group",
+        "order": 1
+      },
+      "base.relations": {
+        "id": "base.relations",
+        "parent": "base",
+        "name": "relations",
+        "type": "group",
+        "order": 2
+      },
+      "base.traits": {
+        "id": "base.traits",
+        "parent": "base",
+        "name": "traits",
+        "type": "group",
+        "order": 3
+      },
+      "block": {
+        "id": "block",
+        "parent": "base.blocks",
+        "name": "block",
+        "body": "The unit of structure: a thing, a part or a step. It may hold blocks of its own, which it opens onto as a layer.",
+        "def": {},
+        "settings": {
+          "block": {
+            "module": "block"
+          },
+          "card": {},
+          "style": {
+            "family": "primary"
+          }
+        },
+        "order": 1
+      },
+      "folder": {
+        "id": "folder",
+        "parent": "base.blocks",
+        "name": "folder",
+        "body": "Files blocks away: a quiet container whose contents are reached by opening it.",
+        "def": {},
+        "settings": {
+          "block": {
+            "module": "block"
+          },
+          "card": {},
+          "style": {
+            "family": "neutral",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
+          }
+        },
+        "order": 2
+      },
+      "reference": {
+        "id": "reference",
+        "parent": "base.blocks",
+        "name": "reference",
+        "body": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
+        "def": {},
+        "settings": {
+          "block": {
+            "module": "reference"
+          },
+          "card": {},
+          "style": {
+            "family": "away",
+            "border_contrast": "strong",
+            "name_contrast": "strong",
+            "fill": "hatch",
+            "opacity": 0.55
+          },
+          "allows": {
+            "holds": false
+          }
+        },
+        "order": 3
+      },
+      "interface": {
+        "id": "interface",
+        "parent": "base.blocks",
+        "name": "interface",
+        "body": "A port seated on a block's wall: where relations enter and leave it.",
+        "def": {},
+        "settings": {
+          "block": {
+            "module": "interface"
+          },
+          "card": {},
+          "style": {
+            "family": "secondary",
+            "border_width": "thin"
+          },
+          "allows": {
+            "holds": false,
+            "ports": false
+          }
+        },
+        "order": 4
+      },
+      "group": {
+        "id": "group",
+        "parent": "base.blocks",
+        "name": "group",
+        "body": "A boundary drawing what it holds inline, inside its rim.",
+        "def": {},
+        "settings": {
+          "block": {
+            "module": "block"
+          },
+          "card": {},
+          "style": {
+            "family": "muted",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
+          },
+          "allows": {
+            "ports": false
+          }
+        },
+        "order": 5
+      },
+      "grid": {
+        "id": "grid",
+        "parent": "base.blocks",
+        "name": "grid",
+        "body": "A lattice of cells drawing what it holds in place: a header allocates what its row or column holds.",
+        "def": {},
+        "settings": {
+          "block": {
+            "module": "block"
+          },
+          "card": {},
+          "style": {
+            "family": "muted",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
+          },
+          "allows": {
+            "ports": false
+          }
+        },
+        "order": 6
+      },
+      "note": {
+        "id": "note",
+        "parent": "base.blocks",
+        "name": "note",
+        "body": "A remark about what it is tied to. It holds nothing.",
+        "def": {},
+        "settings": {
+          "block": {
+            "module": "block"
+          },
+          "card": {},
+          "style": {
+            "family": "note",
+            "border_contrast": "strong",
+            "name_contrast": "faint",
+            "fill": "wash",
+            "opacity": 0.06
+          },
+          "allows": {
+            "ports": false,
+            "holds": false
+          }
+        },
+        "order": 7,
+        "traits": [
+          "tied",
+          "resizable",
+          "content"
+        ]
+      },
+      "tag": {
+        "id": "tag",
+        "parent": "base.blocks",
+        "name": "tag",
+        "body": "A word carried by blocks, lines and definitions to say what they are like. Its body says what it means; one carrying settings is a trait.",
+        "def": {},
+        "settings": {
+          "block": {
+            "module": "block"
+          },
+          "card": {
+            "height": "free",
+            "body": "show"
+          },
+          "style": {
+            "family": "secondary",
+            "border_style": "dashed"
+          },
+          "allows": {
+            "ports": false,
+            "holds": false
+          }
+        },
+        "order": 8
+      },
+      "line": {
+        "id": "line",
+        "parent": "base.relations",
+        "name": "line",
+        "body": "A relation between two blocks: what flows, connects or depends.",
+        "def": {},
+        "order": 9
+      },
+      "tie": {
+        "id": "tie",
+        "parent": "base.relations",
+        "name": "tie",
+        "body": "A dashed run with no heads: what ties a remark to what it is about.",
+        "def": {},
+        "order": 10
+      },
+      "tied": {
+        "id": "tied",
+        "parent": "base.traits",
+        "name": "tied",
+        "type": "tag",
+        "body": "Made from, or dropped on, a block, it is tied to it.",
+        "def": {},
+        "settings": {
+          "tie": {
+            "type": "tie"
+          }
+        },
+        "order": 11
+      },
+      "resizable": {
+        "id": "resizable",
+        "parent": "base.traits",
+        "name": "resizable",
+        "type": "tag",
+        "body": "Keeps whatever size it was given.",
+        "def": {},
+        "settings": {
+          "card": {
+            "height": "free"
+          }
+        },
+        "order": 12
+      },
+      "content": {
+        "id": "content",
+        "parent": "base.traits",
+        "name": "body content",
+        "type": "tag",
+        "body": "Shows what it says under its name.",
+        "def": {},
+        "settings": {
+          "card": {
+            "body": "show"
+          }
+        },
+        "order": 13
+      }
+    },
+    "edges": {}
+  }
+}

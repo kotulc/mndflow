@@ -76,10 +76,10 @@ export function related(): Log {
     step("group", [
       { op: "add_block", block: { id: "block_hot", parent: "block_loop", name: "Hot side",
                                   type: "group", order: 7 } },
-      { op: "set_group", id: "block_hx", group: "block_hot" },
-      { op: "set_group", id: "block_tank", group: "block_hot" },
+      { op: "move_block", id: "block_hx", parent: "block_hot" },
+      { op: "move_block", id: "block_tank", parent: "block_hot" },
     ]),
-    step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "auto" }]),
+    step("layout", [auto("block_loop")]),
   ];
 }
 
@@ -98,7 +98,7 @@ export function interfaced(): Log {
     ]),
     step("relate", [link("edge_flow", "port_out", "port_in", "forward")]),
     step("relate", [link("edge_plain", "block_pump", "block_hx")]),
-    step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "auto" }]),
+    step("layout", [auto("block_loop")]),
   ];
 }
 
@@ -108,7 +108,7 @@ export function gridded(): Log {
   start();
   const seat = (id: string, r: number, c: number): Mutation =>
     ({ op: "seat_cell", id, cell: { r, c } });
-  const joins = (id: string): Mutation => ({ op: "set_group", id, group: "block_lanes" });
+  const joins = (id: string): Mutation => ({ op: "move_block", id, parent: "block_lanes" });
   const named: [string, string][] = [
     ["block_draft", "Draft"], ["block_review", "Review"], ["block_ship", "Ship"],
     ["block_plan", "Plan"], ["block_build", "Build"],
@@ -119,7 +119,7 @@ export function gridded(): Log {
     step("create", [block("block_team", MAIN, "Team", "folder"),
                     block("block_alice", "block_team", "Alice", "block"),
                     block("block_bob", "block_team", "Bob", "block")]),
-    step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "auto" }]),
+    step("layout", [auto("block_board")]),
     step("group", [
       { op: "add_block", block: { id: "block_lanes", parent: "block_board", name: "Lanes",
                                   type: "grid", x: 0, y: 0, order: 1 } },
@@ -144,6 +144,11 @@ export function gridded(): Log {
       link("edge_3", "block_plan", "block_build", "forward"),
     ]),
   ];
+}
+
+/** A layer laid out for you. */
+function auto(layer: string): Mutation {
+  return { op: "set_setting", id: layer, key: "layout", name: "kind", value: "auto" };
 }
 
 export const FIXTURES = { blank, flat, nested, related, interfaced, gridded };

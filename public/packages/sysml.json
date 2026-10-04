@@ -1,5 +1,5 @@
 {
-  "schema": "4.0",
+  "schema": "1.0",
   "id": "sysml",
   "graph": {
     "root": "sysml",
@@ -7,17 +7,13 @@
       "sysml": {
         "id": "sysml",
         "parent": null,
-        "name": "sysml",
-        "uses": [
-          "base"
-        ]
+        "name": "sysml"
       },
       "sysml.blocks": {
         "id": "sysml.blocks",
         "parent": "sysml",
         "name": "blocks",
         "type": "group",
-        "def": {},
         "order": 1
       },
       "sysml.relations": {
@@ -25,12 +21,11 @@
         "parent": "sysml",
         "name": "relations",
         "type": "group",
-        "def": {},
         "order": 2
       },
       "sysml.part": {
         "id": "sysml.part",
-        "parent": "sysml",
+        "parent": "sysml.blocks",
         "name": "part",
         "def": {},
         "type": "block",
@@ -40,12 +35,11 @@
           "names": {
             "sysml": "«part»"
           }
-        },
-        "group": "sysml.blocks"
+        }
       },
       "sysml.block": {
         "id": "sysml.block",
-        "parent": "sysml",
+        "parent": "sysml.blocks",
         "name": "block",
         "def": {},
         "type": "block",
@@ -55,12 +49,11 @@
           "names": {
             "sysml": "«block»"
           }
-        },
-        "group": "sysml.blocks"
+        }
       },
       "sysml.port": {
         "id": "sysml.port",
-        "parent": "sysml",
+        "parent": "sysml.blocks",
         "name": "port",
         "def": {},
         "type": "interface",
@@ -70,12 +63,11 @@
           "names": {
             "sysml": "«port»"
           }
-        },
-        "group": "sysml.blocks"
+        }
       },
       "sysml.activity": {
         "id": "sysml.activity",
-        "parent": "sysml",
+        "parent": "sysml.blocks",
         "name": "activity",
         "def": {},
         "type": "block",
@@ -85,12 +77,11 @@
           "names": {
             "sysml": "«activity»"
           }
-        },
-        "group": "sysml.blocks"
+        }
       },
       "sysml.requirement": {
         "id": "sysml.requirement",
-        "parent": "sysml",
+        "parent": "sysml.blocks",
         "name": "requirement",
         "def": {
           "schema": [
@@ -117,12 +108,11 @@
           "names": {
             "sysml": "«requirement»"
           }
-        },
-        "group": "sysml.blocks"
+        }
       },
       "sysml.satisfy": {
         "id": "sysml.satisfy",
-        "parent": "sysml",
+        "parent": "sysml.relations",
         "name": "satisfy",
         "def": {},
         "type": "line",
@@ -138,12 +128,11 @@
           "names": {
             "sysml": "«satisfy»"
           }
-        },
-        "group": "sysml.relations"
+        }
       },
       "sysml.itemflow": {
         "id": "sysml.itemflow",
-        "parent": "sysml",
+        "parent": "sysml.relations",
         "name": "item flow",
         "def": {},
         "type": "line",
@@ -158,12 +147,11 @@
           "names": {
             "sysml": "«itemFlow»"
           }
-        },
-        "group": "sysml.relations"
+        }
       },
       "sysml.ibd": {
         "id": "sysml.ibd",
-        "parent": "sysml",
+        "parent": "sysml.blocks",
         "name": "internal block",
         "def": {},
         "body": "An internal block diagram: parts, ports and connectors.",
@@ -171,12 +159,11 @@
           "view": {
             "module": "block"
           }
-        },
-        "group": "sysml.blocks"
+        }
       },
       "sysml.act": {
         "id": "sysml.act",
-        "parent": "sysml",
+        "parent": "sysml.blocks",
         "name": "activity diagram",
         "def": {},
         "settings": {
@@ -184,8 +171,7 @@
             "module": "block",
             "reading": "activity"
           }
-        },
-        "group": "sysml.blocks"
+        }
       }
     },
     "edges": {}

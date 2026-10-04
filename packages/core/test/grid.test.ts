@@ -29,10 +29,8 @@ function commit(name: string, mutations: Mutation[]): void {
 /** Put a block in a cell — a reference to `of` where it says one. Returns its id. */
 function seat(id: Id, r: number, c: number, of?: Id): Id {
   commit("seat", [
-    { op: "add_block", block: { id, parent: "layer", type: "block", name: id,
-                                ...(of ? { of } : {}) } },
-    { op: "set_group", id, group: "lanes" },
-    { op: "seat_cell", id, cell: { r, c } },
+    { op: "add_block", block: { id, parent: "lanes", type: "block", name: id,
+                                cell: { r, c }, ...(of ? { of } : {}) } },
   ]);
   return id;
 }
@@ -56,7 +54,7 @@ function act(name: string, args: Args = {}, cells?: Context["cells"]): void {
 /** Which cell a block sits in, as a string, or `null` once it is free. */
 const at = (id: Id): string | null => {
   const c = g.blocks[id]?.cell;
-  return c && g.blocks[id]?.group ? `${c.r},${c.c}` : null;
+  return c && g.blocks[id]?.parent === "lanes" ? `${c.r},${c.c}` : null;
 };
 
 const lattice = (): Grid => lattice_of(g, "lanes")!;
@@ -69,10 +67,10 @@ beforeEach(() => {
 });
 
 describe("an address", () => {
-  it("is nothing without a group, and leaving one drops both", () => {
+  it("is nothing outside a grid, and leaving one drops it", () => {
     seat("a", 1, 1);
     expect(at("a")).not.toBeNull();
-    act("leave", { ids: ["a"] });
+    act("move", { ids: ["a"], parent: "layer" });
     expect(g.blocks["a"]).toBeTruthy();
     expect(at("a")).toBeNull();
   });
@@ -80,8 +78,8 @@ describe("an address", () => {
   it("is dropped when a block moves to another holder, never carried over", () => {
     commit("band", [{ op: "add_block", block: { id: "band", parent: "layer", type: "group" } }]);
     seat("a", 2, 2);
-    act("group", { members: ["a"], into: "band" });
-    expect(g.blocks["a"]!.group).toBe("band");
+    act("move", { ids: ["a"], parent: "band" });
+    expect(g.blocks["a"]!.parent).toBe("band");
     expect(g.blocks["a"]!.cell).toBeUndefined();
   });
 });
@@ -131,7 +129,7 @@ describe("allocation", () => {
     headed();
     seat("lane", 1, 0, loose("owner"));
     seat("x", 1, 2);
-    act("leave", { ids: ["x"] });
+    act("move", { ids: ["x"], parent: "layer" });
     expect(allocations_of(g, "x")).toHaveLength(0);
   });
 
@@ -326,7 +324,7 @@ describe("a grid is what its definition says", () => {
   it("keeps its extent when everything in it is freed", () => {
     seat("a", 0, 0);
     const { rows, cols } = lattice();
-    act("leave", { ids: ["a"] });
+    act("move", { ids: ["a"], parent: "layer" });
     expect(lattice().rows).toBe(rows);
     expect(lattice().cols).toBe(cols);
   });
@@ -342,7 +340,7 @@ describe("the grid actions are reachable", () => {
       expect(named({ cells: [{ group: "lanes", r: 1, c: 1 }] })).toContain(name);
     });
 
-  it.each(["fill", "chain", "transpose", "heads", "seat"])(
+  it.each(["fill", "chain", "transpose", "heads"])(
     "offers %s from the grid itself", (name) => {
       expect(named({ picked: ["lanes"] })).toContain(name);
     });
@@ -353,18 +351,12 @@ describe("cells are addresses, not blocks", () => {
     expect(at_cell(g, "lanes", 2, 2)).toBeNull();
   });
 
-  it("holds one block, so a second is refused", () => {
-    seat("a", 0, 0);
-    seat("b", 1, 1);
-    const out = run("seat", ctx(["b"]), { id: "b", group: "lanes", at: "0,0" });
-    expect("refused" in out).toBe(true);
-  });
-
   const outside: Cell[] = [{ r: -1, c: 0 }, { r: 0, c: 9 }, { r: 9, c: 0 }];
   it.each(outside)("refuses an address outside the grid ($r,$c)", (cell) => {
     seat("a", 0, 0);
-    const out = run("seat", ctx(["a"]),
-                    { id: "a", group: "lanes", at: `${cell.r},${cell.c}` });
+    loose("b");
+    const out = run("move", ctx(["b"]),
+                    { ids: ["b"], parent: "lanes", at: `${cell.r},${cell.c}` });
     expect("refused" in out).toBe(true);
   });
 });

@@ -1,30 +1,20 @@
 /** Fields, definitions, pinning, packages, and giving settings back. */
 
-import { base_of, def_at, def_named, def_of, dependents, domain_of, isa, is_base,
-         ordered_by, package_named, package_of, plain_type, schema_of, stored_type,
-         type Domain } from "../defs";
-import { is_tag } from "../tags";
-import { children, next_order, subtree } from "../tree";
-import { BASE_PACKAGE, VALUE_FORMS, type Components, type Definition, type FieldDef, type Graph,
-         type Id, type Mutation, type ValueForm } from "../types";
+import { closes_cycle, def_at, def_named, def_of, domain_of, in_domain, is_base, name_taken,
+         ordered_by, package_named, package_of, schema_of, type Domain } from "../defs";
+import { next_order } from "../tree";
+import { VALUE_FORMS, type Components, type Definition, type FieldDef, type Graph, type Id,
+         type Mutation, type ValueForm } from "../types";
 import { new_id } from "../ids";
 import { register } from "./registry";
 import { borrowed, holds_values, id_of, ids_of, list, mint_def, rooted, text } from "./helpers";
 
-/** The group a new definition of the workspace's is filed in, by what it is. */
-function filed(graph: Graph, domain: Domain, type: Id | undefined): Id | undefined {
-  const slot = domain === "relation" ? "relations" : is_tag(graph, type) || type === "tag"
-    ? "tags" : "blocks";
-  const id = `${graph.root}.${slot}`;
-  return graph.blocks[id] ? id : undefined;
-}
-
-/** A new definition of the workspace's, filed with its kind. */
-export function new_def(graph: Graph, said: Omit<Definition, "parent">, domain: Domain): Mutation {
-  const group = filed(graph, domain, said.type);
-  return { op: "add_block", block: { ...said, parent: graph.root,
-                                     order: next_order(graph, graph.root),
-                                     ...(group ? { group } : {}) } };
+/** A new definition of the workspace's, where the user is: in the domain or holder named, else
+ *  the workspace's domain. */
+export function new_def(graph: Graph, said: Omit<Definition, "parent">, parent?: Id | null): Mutation {
+  const at = parent && graph.blocks[parent] && in_domain(graph, parent) && !graph.blocks[parent]!.def
+    && package_of(graph, parent) === graph.root ? parent : graph.root;
+  return { op: "add_block", block: { ...said, parent: at, order: next_order(graph, at) } };
 }
 
 register(
@@ -118,34 +108,33 @@ register(
   },
   {
     name: "define",
-    about: "names a new definition in the workspace, or restates one of that name",
+    about: "makes a definition in a domain, where you are, or restates one of that name",
     on: ["layer"],
     /** `id` is optional: a caller that must know the new id before the step lands (the tray's
      *  draft) mints it. */
     args: [{ name: "name", form: "text", required: true },
-           { name: "domain", form: "choice", required: true, choices: ["block", "relation"] },
-           { name: "extends", form: "text" }],
+           { name: "domain", form: "choice", choices: ["block", "relation"] },
+           { name: "extends", form: "text" },
+           { name: "parent", form: "block" }],
     check: (ctx, args) => {
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
-      const domain = args["domain"];
-      if (domain !== "block" && domain !== "relation") {
-        return "say whether it defines a block or a relation";
-      }
+      const domain = domain_said(ctx, args);
       const held = def_named(ctx.graph, name, domain);
       const why = held ? borrowed(ctx.graph, held.id) : null;
       if (why) return why;
+      if (!held && name_taken(ctx.graph, ctx.graph.root, name)) return `"${name}" already exists`;
       const said = text(args, "extends");
       const up = rooted(ctx, said, domain);
       if (said && !up) return `there is no definition called "${said}"`;
       if (up && domain_of(ctx.graph, up) !== domain) return `"${said}" is not a ${domain} definition`;
-      return held && up && isa(ctx.graph, up).some((d) => d.id === held.id)
+      return held && closes_cycle(ctx.graph, held.id, up)
         ? `"${name}" cannot extend itself or anything below it` : null;
     },
     /** Over what is there: only what was said changes. */
     run: (ctx, args) => {
       const name = text(args, "name");
-      const domain = args["domain"] as Domain;
+      const domain = domain_said(ctx, args);
       const held = def_named(ctx.graph, name, domain);
       const settings = args["settings"] as Components | undefined;
       const schema = args["schema"] as FieldDef[] | undefined;
@@ -157,7 +146,7 @@ register(
           id, name, ...(type && type !== "block" ? { type } : {}),
           ...(settings && Object.keys(settings).length ? { settings } : {}),
           def: schema?.length ? { schema } : {},
-        }, domain)] };
+        }, args["parent"] ? id_of(args, "parent") : ctx.layer)] };
       }
       const out: Mutation[] = [];
       if (args["extends"] !== undefined) out.push({ op: "update_block", id: held.id, type: type ?? null });
@@ -194,8 +183,7 @@ register(
       if (def_at(ctx.graph, id)) return "that is a definition already — extend it instead";
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
-      const held = def_named(ctx.graph, name, ctx.graph.edges[id] ? "relation" : "block");
-      return held ? `"${held.name}" is already taken` : null;
+      return name_taken(ctx.graph, ctx.graph.root, name) ? `"${name}" is already taken` : null;
     },
     run: (ctx, args) => {
       const id = id_of(args, "id");
@@ -214,7 +202,7 @@ register(
       const out: Mutation[] = [
         new_def(ctx.graph, { id: made, name, ...(over && over !== "block" ? { type: over } : {}),
                              ...(Object.keys(settings).length ? { settings } : {}),
-                             def: schema.length ? { schema } : {} }, domain),
+                             def: schema.length ? { schema } : {} }),
         edge ? { op: "update_edge", id, type: made } : { op: "update_block", id, type: made },
       ];
       /** The element gives back the settings that moved. */
@@ -245,82 +233,6 @@ register(
       const want = said ?? !held.includes(id);
       return { mutations: [{ op: "set_pinned", ids: pinning(ctx.graph, id, want) }],
                effect: { say: `${d?.name ?? id} is ${want ? "pinned" : "unpinned"}` } };
-    },
-  },
-  {
-    name: "remove_def",
-    about: "dissolves a definition back into everything that named it, and drops it",
-    on: ["layer"],
-    /** Dissolves a definition into its usages, losslessly, then drops it. */
-    args: [{ name: "id", form: "text", required: true }],
-    check: (ctx, args) => {
-      const id = id_of(args, "id");
-      const d = def_at(ctx.graph, id);
-      if (!d) return `there is nothing called "${id}" to remove`;
-      const why = borrowed(ctx.graph, id);
-      if (why) return why;
-      if (children(ctx.graph, id).some((b) => b.def)) {
-        return `"${d.name}" holds definitions — move them out first`;
-      }
-      return null;
-    },
-    run: (ctx, args) => {
-      const id = id_of(args, "id");
-      /** `check` is what refuses an id that names nothing; the drop itself is always written. */
-      const d = def_at(ctx.graph, id);
-      const out: Mutation[] = [];
-
-      const usages = [...Object.values(ctx.graph.blocks), ...Object.values(ctx.graph.edges)];
-      for (const it of usages) {
-        if (it.type !== id) continue;
-        const sub = "def" in it && !!it.def;
-        /** A usage's or a subtype's own word wins. */
-        for (const [key, config] of Object.entries(d?.settings ?? {})) {
-          for (const [prop, value] of Object.entries(config)) {
-            if (it.settings?.[key]?.[prop] === undefined) {
-              out.push({ op: "set_setting", id: it.id, key, name: prop, value });
-            }
-          }
-        }
-        const block = ctx.graph.blocks[it.id];
-        if (sub && block?.def) {
-          /** A subtype takes over the fields it inherited from here. */
-          const own = new Set((block.def.schema ?? []).map((f) => f.name));
-          const schema = [...(d?.def.schema ?? []).filter((f) => !own.has(f.name)),
-                          ...(block.def.schema ?? [])];
-          if (schema.length) out.push({ op: "set_schema", id: it.id, schema });
-          out.push({ op: "update_block", id: it.id, type: d?.type ?? null });
-          continue;
-        }
-        /** A usage takes the schema back as values. */
-        for (const f of block ? d?.def.schema ?? [] : []) {
-          if (!(block!.values ?? []).some((had) => had.name === f.name)) {
-            out.push({ op: "set_value", id: it.id, field: { name: f.name, form: f.form } });
-          }
-        }
-        const edge = ctx.graph.edges[it.id];
-        const type = stored_type(ctx.graph, d?.type)
-          ?? (edge ? null : plain_type(base_of(ctx.graph, it.id)));
-        out.push(edge ? { op: "update_edge", id: it.id, type }
-                      : { op: "update_block", id: it.id, type });
-      }
-
-      /** A tag comes off everything carrying it. */
-      for (const it of usages) {
-        if (it.tags?.includes(id)) {
-          out.push({ op: "set_tags", id: it.id, tags: it.tags.filter((t) => t !== id) });
-        }
-      }
-
-      /** Unpinned as it goes. */
-      const ws = ctx.graph.blocks[ctx.graph.root];
-      if ((ws?.pinned ?? []).includes(id)) {
-        out.push({ op: "set_pinned", ids: ws!.pinned!.filter((x) => x !== id) });
-      }
-
-      /** What it is made of goes with it. */
-      out.push({ op: "delete_block", id });
-      return { mutations: out, effect: { say: `removed ${d?.name ?? id}` } };
     },
   },
 );
@@ -375,31 +287,15 @@ register(
       ] };
     },
   },
-  {
-    name: "remove_package",
-    about: "drops a package and everything it brought, where nothing still uses it",
-    on: ["layer"],
-    args: [{ name: "id", form: "text", required: true }],
-    check: (ctx, args) => {
-      const pkg = package_named(ctx.graph, text(args, "id"));
-      if (!pkg) return `there is nothing called "${text(args, "id")}" to remove`;
-      if (pkg.id === BASE_PACKAGE) return "the base package is every workspace's";
-      if (pkg.id === ctx.graph.root) return "the workspace is not a package to remove";
-      const needs = dependents(ctx.graph, pkg.id);
-      if (needs.length) return `${needs.map((p) => p.name ?? p.id).join(", ")} depends on it`;
-      const inside = new Set(subtree(ctx.graph, pkg.id));
-      const users = Object.values(ctx.graph.blocks).filter((b) => !inside.has(b.id)
-        && ((b.type && inside.has(b.type)) || b.tags?.some((t) => inside.has(t))));
-      const lines = Object.values(ctx.graph.edges).filter((e) => e.type && inside.has(e.type));
-      const n = users.length + lines.length;
-      return n ? `${n} ${n === 1 ? "element uses" : "elements use"} it` : null;
-    },
-    /** `check` is what refuses an id that names no package; the drop itself is always written. */
-    run: (ctx, args) => ({ mutations: [
-      { op: "delete_block", id: package_named(ctx.graph, text(args, "id"))?.id ?? text(args, "id") },
-    ] }),
-  },
 );
+
+/** The domain a definition is said to be in: the one named, else what it extends, else block. */
+function domain_said(ctx: Parameters<typeof rooted>[0], args: { [k: string]: unknown }): Domain {
+  const said = args["domain"];
+  if (said === "block" || said === "relation") return said;
+  const up = rooted(ctx, text(args, "extends"));
+  return up ? domain_of(ctx.graph, up) : "block";
+}
 
 /** A holder's own fields: a definition's schema, or a block's values. */
 function held_fields(graph: Graph, id: Id): FieldDef[] {

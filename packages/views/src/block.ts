@@ -1,6 +1,6 @@
 /** The block view: any planar projection. */
 
-import { alias_of, children, covers, edge_base, edges_in, group_depth, heading, holders_in,
+import { alias_of, layout_of, children, covers, edge_base, edges_in, group_depth, heading, holders_in,
          is_container, is_group, is_holder, is_interface, is_note, label_of, lattice_of,
          members_of, schema_of, shape_of, stamps_of, role_of, shown_name,
          type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
@@ -8,6 +8,8 @@ import { at_seat, cell_box, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of, wire_of } from "./look";
+import { outline_graph } from "./outline";
+import { forest_graph, FOREST } from "./packages";
 import { read_through } from "./through";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type Trait, type Scene,
@@ -35,9 +37,20 @@ function group_carries(graph: Graph, group: Id): Id[] {
   return out;
 }
 
-/** Project a layer through the block view, with what its usages read through laid in. */
+/** Project a layer through the block view, with what its usages read through laid in. A part of
+ *  a definition seen through a usage wears the `part` mark. */
 export function project(given: Graph, layer: Id | null, config: Config = {}): Scene {
-  const graph = read_through(given, layer);
+  /** Nothing open is the forest: every package a box of its domain. */
+  if (layer === null) return project(forest_graph(given), FOREST, config);
+  const through = read_through(given, layer);
+  /** An outline places its layer as it reads, and draws its flow; anything else places itself. */
+  const graph = layout_of(through, layer) === "outline" ? outline_graph(through, layer) : through;
+  const parts = new Set(Object.keys(graph.blocks).filter((id) =>
+    !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
+  const carried_as = (id: Id): BoxData => {
+    const said = carried(graph, id);
+    return parts.has(id) ? { ...said, marks: [...said.marks, "part"] } : said;
+  };
   const spots = laid(graph, layer);
   /** Interfaces are seated after the cards; hidden ones still hold their seat. */
   const hidden = config.interfaces === false;
@@ -49,7 +62,7 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   /** Which component draws each box. Every card is the one card height, so nothing minifies. */
   const boxes: BoxNode[] = spots
     .filter((p) => !is_holder(graph, p.id))
-    .map((p) => node(p.id, p, { ...carried(graph, p.id), nest: group_depth(graph, p.id) },
+    .map((p) => node(p.id, p, { ...carried_as(p.id), nest: group_depth(graph, p.id) },
                      is_note(graph, p.id) ? "note" : "card"));
 
   /** A grid draws its extent; a boundary its members' bounds. */
@@ -170,8 +183,8 @@ function lattice(graph: Graph, id: Id): GridCell[] {
 /** The border a layer is seen from inside. */
 function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
                   hidden: boolean): Frame | null {
-  /** The root and a definition's contents are seen from no block's inside. */
-  if (layer === null || layer === graph.root || !graph.blocks[layer]) return null;
+  /** A package root and the forest are seen from no block's inside. */
+  if (layer === null || !graph.blocks[layer] || graph.blocks[layer]!.parent === null) return null;
   const label = shown_name(graph, layer);
   const role = role_of(graph, layer);
   const stamps = stamps_of(graph, layer);

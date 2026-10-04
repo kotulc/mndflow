@@ -1,7 +1,7 @@
 /** Relationships and the interfaces they meet. */
 
 import { may_seat } from "../capabilities";
-import { base_of, def_at, derived_base, domain_of, edge_base, relation_base } from "../defs";
+import { def_at, domain_of, setting_of } from "../defs";
 import { shown_name } from "../names";
 import { children, is_interface, next_order, part_end } from "../tree";
 import { new_id } from "../ids";
@@ -31,6 +31,7 @@ register(
         return "that part is not there";
       }
       if (from.block === to.block && from.part === to.part) return "a block cannot relate to itself";
+      if (abstract(ctx.graph, from.block, to.block)) return "a definition is never linked, only tied";
       /** A type names a relation definition already there; nothing mints one. */
       const type = text(args, "type");
       if (type && (!def_at(ctx.graph, type) || domain_of(ctx.graph, type) !== "relation")) {
@@ -41,7 +42,6 @@ register(
     run: (ctx, args) => {
       const from = part_end(ctx.graph, id_of(args, "from"));
       const to = part_end(ctx.graph, id_of(args, "to"));
-      const module = derived_base(ctx.graph, from.block, to.block);
       const dir = String(args["dir"] ?? "none") as Dir;
       /** A wall the gesture named. */
       const line = handles(ctx, "relation");
@@ -49,7 +49,7 @@ register(
       const out: Mutation[] = [...line.bump(), { op: "link_blocks", edge: {
         id: new_id("edge"), from: from.block, to: to.block,
         ...(from.part ? { fromPart: from.part } : {}), ...(to.part ? { toPart: to.part } : {}),
-        ...run_type(ctx, args, module),
+        ...run_type(ctx, args),
         alias, ...(dir !== "none" ? { dir } : {}),
         ...(side_of(args, "fromSide") ? { fromSide: side_of(args, "fromSide") } : {}),
         ...(side_of(args, "toSide") ? { toSide: side_of(args, "toSide") } : {}),
@@ -71,21 +71,17 @@ register(
       const other = args["end"] === "from" ? edge.to : edge.from;
       if (to.block === other && !to.part) return "a relationship cannot meet itself";
       if (to.part && !ctx.graph.blocks[to.part]) return "that part is not there";
-      return ctx.graph.blocks[to.block] ? null : "needs a block to land on";
+      if (!ctx.graph.blocks[to.block]) return "needs a block to land on";
+      return abstract(ctx.graph, other, to.block) ? "a definition is never linked, only tied" : null;
     },
-    /** Moving an end clears its pinned wall; a type of the old module does not follow it. */
+    /** Moving an end clears its pinned wall; its type goes with it. */
     run: (ctx, args) => {
       const id = id_of(args, "id");
       const end = args["end"] as "from" | "to";
       const to = part_end(ctx.graph, id_of(args, "to"));
-      const edge = ctx.graph.edges[id];
-      const ends = end === "from" ? [to.block, edge?.to ?? ""] : [edge?.from ?? "", to.block];
-      const module = derived_base(ctx.graph, ends[0]!, ends[1]!);
-      const stale = !!edge?.type && relation_base(ctx.graph, edge.type) !== module;
       return { mutations: [
         { op: "set_end", id, end, port: to.block, part: to.part ?? null },
         { op: "set_side", id, end, side: null },
-        ...(stale ? [{ op: "update_edge" as const, id, type: null }] : []),
       ] };
     },
   },
@@ -112,12 +108,7 @@ register(
     args: [{ name: "id", form: "block", required: true },
            { name: "dir", form: "choice", required: true,
              choices: ["none", "forward", "back", "both"] }],
-    /** A tie takes no direction. */
-    check: (ctx, args) => {
-      const id = id_of(args, "id");
-      if (!ctx.graph.edges[id]) return "needs a relationship";
-      return edge_base(ctx.graph, id) === "tie" ? "a relationship to a note is a tie" : null;
-    },
+    check: (ctx, args) => (ctx.graph.edges[id_of(args, "id")] ? null : "needs a relationship"),
     run: (_ctx, args) => ({ mutations: [
       { op: "set_dir", id: id_of(args, "id"), dir: String(args["dir"]) as Dir },
     ] }),
@@ -145,6 +136,14 @@ function promoted(ctx: Context, args: Args)
     }));
 }
 
+/** Whether a relationship between these would link a definition: allowed only where the other end
+ *  carries a tie, as a note tied to a definition does. */
+function abstract(graph: Graph, a: Id, b: Id): boolean {
+  const def = (id: Id) => !!graph.blocks[id]?.def;
+  const ties = (id: Id) => typeof setting_of(graph, id, "tie")["type"] === "string";
+  return (def(a) && !ties(b)) || (def(b) && !ties(a));
+}
+
 /** The free fraction nearest a wall's middle. */
 function mid_of(graph: Graph, owner: Id, side: Side): number {
   const taken = new Set(children(graph, owner)
@@ -155,7 +154,6 @@ function mid_of(graph: Graph, owner: Id, side: Side): number {
 
 /** Why nothing may be seated here. The capability decides; these are its words. */
 function no_wall(graph: Graph, id: Id): string {
-  if (base_of(graph, id) === "note") return "a note has no wall to set one into";
   return `"${shown_name(graph, id)}" takes no interfaces`;
 }
 

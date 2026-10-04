@@ -98,8 +98,8 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
           )}
           {element && mine && !fixed ? (
             <button className="drop"
-                    title={`remove ${own!.name}, dissolving it into everything naming it`}
-                    onClick={() => onAct("remove_def", { id: own!.id })}>
+                    title={`remove ${own!.name} — refused while anything uses it`}
+                    onClick={() => onAct("delete", { ids: [own!.id] })}>
               <Icon name="remove" />
             </button>
           ) : null}

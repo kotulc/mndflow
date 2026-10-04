@@ -1,7 +1,7 @@
 /** The definitions and type tabs: definitions in one table, the workspace's or an element's. */
 
 import { useState } from "react";
-import { def_at, def_named, def_of, isa, pinned_defs, type Act, type Domain, type Graph,
+import { def_at, def_of, isa, name_taken, pinned_defs, type Act, type Domain, type Graph,
          type Id } from "@mnd/core";
 import { Entry } from "./Entry";
 import { def_path, types_for } from "./holder";
@@ -42,11 +42,11 @@ export type DefinitionsProps = {
   onAct: Act;
 };
 
-/** Why a name may not be used in a group, or null. */
-export function taken(graph: Graph, name: string, group: Domain,
+/** Why a name may not be used in the workspace, or null: one name space per package, so a
+ *  definition, a tag and a trait never share one. */
+export function taken(graph: Graph, name: string, _group: Domain,
                       self?: Id): string | null {
-  const other = def_named(graph, name, group);
-  return !other || other.id === self ? null : `${other.name} already exists`;
+  return name_taken(graph, graph.root, name, self) ? `${name.trim()} already exists` : null;
 }
 
 export function Definitions({ graph, about, follows, lines, target = "the selection", onOpen,
@@ -172,7 +172,7 @@ export function Definitions({ graph, about, follows, lines, target = "the select
       ),
       /** Removing keeps how its usages draw; the listing lights what it extended. */
       ...(mine ? { drop: `remove ${r.name}`, onDrop: () => {
-        onAct("remove_def", { id: r.id });
+        onAct("delete", { ids: [r.id] });
         if (r.extends && on.includes(r.id)) set_lit(r.extends);
       } } : {}),
     };

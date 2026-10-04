@@ -1,11 +1,12 @@
 /** The app, assembled. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { block_base, def_at, domain_of, offer, package_of, path, session,
-         type Args, type Storage, type Dir, type Graph, type Id, type Point } from "@mnd/core";
+import { block_base, def_at, domain_of, layer_of, layout_of, offer, package_of, setting_of,
+         session, tree_of, type Args, type Storage, type Dir, type Graph, type Id,
+         type Point } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
-import { box_of, card_of, clear_of, holds, package_card, packages_graph, project,
-         set_card as apply_card, tidy, BLOCK, CARD, PACKAGES, UNITS } from "@mnd/views";
+import { box_of, clear_of, forest_graph, holds, project, set_card as apply_card, tidy, BLOCK,
+         CARD, FOREST, UNITS } from "@mnd/views";
 import { Explorer, Menu, editor_slices, listed, useChain } from "@mnd/explorer";
 import { Icon, WorkspaceHeader } from "@mnd/theme";
 import { Stage, type Move } from "@mnd/stage";
@@ -92,9 +93,9 @@ export function App({ storage }: { storage: Storage }) {
   const graph = s.graph();
   const layer = s.layer();
   const said = s.said();
-  const arranged = graph.blocks[layer ?? graph.root]?.arrangement ?? "free";
-  /** The root stands in for the workspace layer, which has no id of its own. */
-  const here = layer ?? graph.root;
+  const laid_out = layout_of(graph, layer);
+  /** What the canvas has open: a layer, or the forest above every package. */
+  const here = layer ?? FOREST;
   const legend = keyed[here] ?? legends;
 
   /** The drawing's proportions are the views module's, so the session's card is applied before
@@ -106,36 +107,33 @@ export function App({ storage }: { storage: Storage }) {
     () => project(graph, layer, { interfaces: shown.interfaces }),
     [graph, layer, shown.interfaces, card]);
 
-  /** The layer is what the sections say: a package's root holds its definitions, and anything
-   *  under a definition is its structure. Whatever opened it — a row, a double-click, the trail —
-   *  the sections follow. */
+  /** **The canvas draws what was opened; the sections follow it.** Whatever opened a layer — a
+   *  row, a double-click, the trail — the chain is traced to it: the forest to the packages, a
+   *  package's domain to its definitions, a tree's structure to the structure. */
   useEffect(() => {
-    const at = layer ?? graph.root;
-    const pkg = package_of(graph, at);
-    if (!graph.blocks[at]) return;
-    if (at === pkg) { chain.onTrace([pkg], 1); return; }
-    const def = [...path(graph, at)].reverse().find((b) => b.def)?.id ?? null;
-    if (def) chain.onTrace([pkg, def], 2);
+    if (layer === null) { chain.onTrace([chain.held[0] ?? graph.root], 0); return; }
+    if (!graph.blocks[layer]) return;
+    const pkg = package_of(graph, layer);
+    const tree = tree_of(graph, layer);
+    if (tree) chain.onTrace([pkg, tree], 2);
+    else chain.onTrace([pkg, chain.held[1] ?? null], 1);
   }, [layer]);
 
-  /** The packages, drawn on the stage while their section is in focus: a card each, the one held
-   *  picked. Read only: a package is picked and opened here, never edited. */
-  const packaged = useMemo(() => {
-    if (chain.at !== 0) return null;
-    const drawn = packages_graph(graph);
-    return { graph: drawn, scene: project(drawn, PACKAGES),
-             picked: chain.held[0] ? [card_of(chain.held[0])] : [] };
-  }, [graph, chain.at, chain.held[0], card]);
-
-  /** On the packages, a card picks its package and opening one goes to its definitions. Nothing
-   *  else is acted on. */
-  const package_pick = (ids: Id[]) => {
-    const pkg = package_card(ids[0]);
-    if (pkg) choose(0, pkg);
+  /** The forest, drawn while nothing is open: every package a box of its domain, folders
+   *  flattened. Read only: picking a definition goes to its package's domain, picked there. */
+  const forest = useMemo(() => (layer === null ? { graph: forest_graph(graph), scene } : null),
+    [graph, layer, scene]);
+  const forest_pick = (ids: Id[]) => {
+    const one = ids[0];
+    if (!one || !graph.blocks[one]) return;
+    if (graph.blocks[one]!.parent === null) { open_layer(one); return; }
+    s.look(layer_of(graph, one));
+    s.pick([one]);
+    chain.onTrace([package_of(graph, one), tree_of(graph, one) ?? one], 1);
   };
-  const package_act = (name: string, args?: Record<string, unknown>) => {
-    const pkg = package_card(String(args?.["id"] ?? ""));
-    if (name === "open" && pkg) s.look(pkg === graph.root ? null : pkg);
+  const forest_act = (name: string, args?: Record<string, unknown>) => {
+    const id = String(args?.["id"] ?? "");
+    if (name === "open" && graph.blocks[id]) open_layer(id);
   };
 
   /** What the open layer draws, by id. */
@@ -190,15 +188,13 @@ export function App({ storage }: { storage: Storage }) {
                     ...(dir && dir !== "none" ? { dir } : {}) });
       return;
     }
-    /** Leaving `auto` writes its positions so `free` keeps them. */
-    if (name === "arrange") {
-      const how = args!["arrangement"];
-      const leaving = arranged === "auto" && how === "free";
-      act("arrange", { layer, ...args,
-                       ...(leaving ? { at: tidy(graph, layer) } : {}) });
+    /** Leaving a computed layout writes its positions so `free` keeps them. */
+    if (name === "layout") {
+      const leaving = laid_out !== "free" && args!["kind"] === "free";
+      act("layout", { layer, ...args, ...(leaving ? { at: tidy(graph, layer) } : {}) });
       return;
     }
-    /** A package by name, fetched from the catalogue and grafted through the door. */
+    /** A package by name, fetched from the catalogue and brought in beside the workspace, frozen. */
     if (name === "@package") { void s.search(String(args!["name"])); return; }
     /** Where the tray is pointed; writes nothing. */
     if (name === "about") {
@@ -214,23 +210,33 @@ export function App({ storage }: { storage: Storage }) {
     act(name, args);
   };
 
-  /** A row chosen in the explorer opens the layer it sits on, as a pick on the canvas would: a
-   *  package points the tray at its definitions; a definition is picked on its package's layer;
-   *  the definition atop a structure opens onto it; a block is revealed and picked. */
+  /** **The explorer browses**: a row chosen is held in its section and shown in the tray, and the
+   *  canvas stays where it is. A package points the tray at its definitions. */
   const choose = (at: number, id: Id | null) => {
     chain.onChoose(at, id);
     if (at === 0) {
-      s.pick([]);
       const pack = id ? graph.blocks[id]?.name ?? id : undefined;
       t.onSection({ of: "defs", only: "packages", ...(pack ? { from: pack } : {}) });
       return;
     }
     t.release();
-    if (!id) return;
-    if (at === 2 && id === chain.held[1]) { s.look(id); return; }
-    act("reveal", { id });
-    s.pick([id]);
+    if (id && graph.blocks[id]) s.pick([id]);
   };
+
+  /** A layer opened, with nothing picked on it. */
+  const open_layer = (id: Id | null) => { s.look(id); t.release(); };
+
+  /** A row opened — Enter, a double click, → — moves the canvas: a package to its domain, a holder
+   *  or a tree onto itself, and a part of a definition seen through a usage to that definition,
+   *  the part picked there. */
+  const opened = ({ id, via }: { at: number; id: Id; via?: Id }) => {
+    if (via) { s.look(layer_of(graph, id)); s.pick([id]); t.release(); return; }
+    open_layer(id);
+  };
+
+  /** ← and Backspace: the canvas leaves for the layer the open one is drawn on, the forest above a
+   *  package. */
+  const leave = () => { s.go("open", {}); t.release(); };
 
   /** The terminal's commands; help is the fallback. */
   const command = (match: Match) => {
@@ -302,14 +308,16 @@ export function App({ storage }: { storage: Storage }) {
         onFold={(id, shut) =>
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
         onPick={pick}
+        onOpen={opened}
+        onLeave={leave}
         chain={{ ...chain, onChoose: choose }}
         keys
       />
 
       <main>
         <Stage
-          scene={packaged?.scene ?? scene}
-          graph={packaged?.graph ?? graph}
+          scene={forest?.scene ?? scene}
+          graph={forest?.graph ?? graph}
           /** The shared menu; a right-click inside the selection is about the selection. */
           menu={(at, on, shut, spot, only, given) => (
             <Menu ctx={{ graph, layer, cells: s.cells(),
@@ -326,6 +334,7 @@ export function App({ storage }: { storage: Storage }) {
               scene.nodes.filter((n) => n.id !== id && !holds(n) && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
+            if (forest) return;
             if (graph.blocks[id]?.def) {
               const made = dropped(graph, id, land.line ?? land.over, at, layer);
               if (typeof made === "string") s.say(made, "note"); else s.go(...made);
@@ -333,10 +342,10 @@ export function App({ storage }: { storage: Storage }) {
             }
             /** Onto a cell, the stand-in is seated there — which is how a header heads a block. */
             const cell = land.cell && land.into
-              ? { group: land.into, at: `${land.cell.r},${land.cell.c}` } : {};
+              ? { parent: land.into, at: `${land.cell.r},${land.cell.c}` } : {};
             s.go("refer", { target: id, spot: at, ...cell });
           }}
-          picked={packaged?.picked ?? s.picked()}
+          picked={s.picked()}
           cells={s.cells()}
           onPickCells={(cells) => {
             /** A click lets go of what the canvas cannot show. */
@@ -354,14 +363,14 @@ export function App({ storage }: { storage: Storage }) {
           lit={hovered && drawn.has(hovered) ? [hovered] : []}
           /** An echo of a pick the canvas cannot draw is not a gesture. */
           onPick={(ids) => {
-            if (packaged) { package_pick(ids); return; }
+            if (forest) { forest_pick(ids); return; }
             const shown = s.picked().filter((id) => drawn.has(id));
             const echo = shown.length < s.picked().length && ids.length === shown.length
               && ids.every((id) => shown.includes(id));
             if (!echo) pick(ids);
           }}
-          onAct={packaged ? package_act : act}
-          onAdjust={packaged ? () => undefined : adjust}
+          onAct={forest ? forest_act : act}
+          onAdjust={forest ? () => undefined : adjust}
         />
         <Tray
           graph={graph}
@@ -381,7 +390,7 @@ export function App({ storage }: { storage: Storage }) {
         />
       </main>
 
-      <Options groups={groups_of({ slots: scene.slots, arrangement: arranged,
+      <Options groups={groups_of({ slots: scene.slots, layout: laid_out,
                                    interfaces: shown.interfaces,
                                    lattice: lattice ?? true, frame: shown.frame,
                                    legend,
@@ -402,15 +411,19 @@ const SLICES = editor_slices();
 /** What a kind needs that the empty drawing cannot give it, in words. */
 const NEEDS: Record<string, string> = {
   interface: "an interface sits on a block — add one to a block, then drop this onto it",
-  note: "a note is about a block — add one to a block, then drop this onto it",
   reference: "a reference stands for a block — drag that block from the tree instead",
   tag: "a tag is carried, not placed — type it into a block's tags in the tray",
 };
 
-/** What a dragged definition does: retypes the element it lands on, or makes one on the empty
- *  drawing. Refused in words where neither can be. The retype says its own refusal. */
+/** What a dragged definition does: one carrying a tie is made and tied to the block it lands on;
+ *  any other retypes what it lands on, or makes one on the empty drawing. Refused in words where
+ *  none can be. */
 function dropped(graph: Graph, type: Id, on: Id | null, at: Point,
                  layer: Id | null): [string, Args] | string {
+  const ties = typeof setting_of(graph, type, "tie")["type"] === "string";
+  if (on && ties && graph.blocks[on]) {
+    return ["create", { name: "", type, parent: layer ?? graph.root, spot: at, from: on }];
+  }
   if (on) return ["retype", { ids: [on], type }];
   if (def_at(graph, type) && domain_of(graph, type) === "relation") {
     return "lines must connect existing blocks — draw one from a block to another";

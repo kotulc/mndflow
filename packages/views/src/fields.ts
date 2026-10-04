@@ -41,7 +41,8 @@ export function fields_graph(graph: Graph, layer: Id): Graph | null {
   const blocks: Record<Id, Block> = { ...graph.blocks };
   /** Whatever else the layer held stands aside while the diagram is drawn. */
   for (const b of children(graph, layer)) delete blocks[b.id];
-  blocks[layer] = { ...blocks[layer]!, arrangement: "free" };
+  const at = blocks[layer]!;
+  blocks[layer] = { ...at, settings: { ...at.settings, layout: { kind: "free" } } };
   blocks[top] = { id: top, parent: layer, of: def, name: graph.blocks[def]!.name, order: 0,
                   settings: CLASS_LOOK };
   /** And so do the lines meeting it. */

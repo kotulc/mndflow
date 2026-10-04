@@ -156,7 +156,8 @@ async function main(argv: string[]): Promise<void> {
       const layer = find_layer(log, plain[0]);
       let graph = fold(log, FLOOR);
       if (how && layer !== null) graph = { ...graph,
-        blocks: { ...graph.blocks, [layer]: { ...graph.blocks[layer]!, arrangement: how as never } } };
+        blocks: { ...graph.blocks, [layer]: { ...graph.blocks[layer]!,
+          settings: { ...graph.blocks[layer]!.settings, layout: { kind: how } } } } };
       const scene = project(graph, layer);
       const wrong = faults(scene);
       if (wrong.length) {

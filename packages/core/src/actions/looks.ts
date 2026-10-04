@@ -31,20 +31,42 @@ register(
         if (hit) return hit;
         const id = new_id("def");
         made.set(word, id);
-        out.push(new_def(ctx.graph, { id, name: word, type: "tag", def: {} }, "block"));
+        out.push(new_def(ctx.graph, { id, name: word, type: "tag", def: {} }));
         return id;
       });
       out.push(...ids_of(ctx, args).map((id): Mutation => ({ op: "set_tags", id, tags })));
       return { mutations: out };
     },
   },
+  {
+    name: "trait",
+    about: "sets the traits an element or a definition carries — capability tags — or gives the "
+      + "set back to what it extends",
+    on: ["block", "edge", "layer", "selection"],
+    /** The whole trait list, by id or name; absent gives the set back to the chain. */
+    args: [{ name: "ids", form: "block", required: true }, { name: "traits", form: "text" }],
+    check: (ctx, args) => {
+      const ids = ids_of(ctx, args);
+      if (!ids.length) return "nothing is selected";
+      const why = ids.map((id) => borrowed(ctx.graph, id)).find(Boolean);
+      if (why) return why;
+      const missing = list(args["traits"]).find((word) => !tag_named(ctx.graph, word));
+      return missing ? `there is no trait called "${missing}"` : null;
+    },
+    run: (ctx, args) => {
+      const said = args["traits"] === undefined || args["traits"] === null ? null
+        : list(args["traits"]).map((word) => tag_named(ctx.graph, word)!.id);
+      return { mutations: ids_of(ctx, args)
+        .map((id): Mutation => ({ op: "set_traits", id, traits: said })) };
+    },
+  },
 );
 
 /** The component keys a look may set. */
-const LOOKS: readonly string[] = ["card", "style", "line", "allows", "expects"];
+const LOOKS: readonly string[] = ["card", "style", "line", "layout", "tie", "allows", "expects"];
 
 /** Properties whose value is a list, split on commas. */
-const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.members",
+const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.members", "allows.heads",
                                   "expects.required", "expects.match"];
 
 /** Capabilities that are nested records, stated only on a definition. */

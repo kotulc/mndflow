@@ -53,7 +53,9 @@ export type BoxData = {
  *  mark it carries. */
 export type Trait = "container" | "reference" | "missing" | "note" | "group" | "grid"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
-                 | "cell" | "header" | "upright" | "merged";
+                 | "cell" | "header" | "upright" | "merged"
+                 /** A block of a definition's structure, seen through a usage of it. */
+                 | "part";
 
 /** One cell of a grid, placed inside the grid's own box. */
 export type GridCell = {

@@ -1,17 +1,17 @@
 /** The section chain: each section holds a pick, and the next lists what that pick holds.
  *
  *  A host declares its sections; this keeps what each holds — remembered per pick above, so going
- *  back restores it — and which one is in focus. Session state, never logged. Every section lists
- *  blocks: packages, the definitions in one, or a definition and its structure. */
+ *  back restores it — and which one is in focus. Session state, never logged. Sections split one
+ *  tree by role: package roots, a package's domain, a tree's structure. */
 
 import { useState } from "react";
-import { children, is_holder, packages, MAIN, type Graph, type Id } from "@mnd/core";
+import { children, in_domain, organizes, package_of, packages, subtree, MAIN, type Graph,
+         type Id } from "@mnd/core";
 import type { Mark } from "./rows";
 
-/** What a section lists: its top rows, and which of what each holds it lists under it — the
- *  definitions organizing a package's domain, a definition's structure, or nothing. `groups`
- *  lists a holder's members under it, as a folder lists what it holds. */
-export type Listing = { top: readonly Id[]; under: "defs" | "usages" | "none"; groups?: boolean };
+/** What a section lists: its top rows, and what it nests under them — a domain's holders and the
+ *  trees they organize, a tree's structure, or nothing. */
+export type Listing = { top: readonly Id[]; under: "domain" | "structure" | "none" };
 
 /** One section, as a host declares it. `above` is what each section above holds, outermost
  *  first. */
@@ -64,9 +64,8 @@ export function useChain(graph: Graph | null, slices: readonly Slice[]) {
   return chain;
 }
 
-/** The editor's sections: the packages, the definitions in the one held — `main` first in the
- *  workspace, else the first that organizes nothing — and the definition held with its structure
- *  under it. */
+/** The editor's sections: the packages, the domain of the one held — `main` first in the
+ *  workspace, else its first tree — and the tree held with its structure under it. */
 export function editor_slices(): Slice[] {
   return [
     { id: "packages", label: "packages", mark: "package",
@@ -75,12 +74,11 @@ export function editor_slices(): Slice[] {
       list: (graph, [pack]) => domain_listing(graph, pack ?? null),
       first: (graph, [pack]) => {
         if (pack === graph.root && graph.blocks[MAIN]) return MAIN;
-        const { top } = domain_listing(graph, pack ?? null);
-        return top.find((id) => !is_holder(graph, id)) ?? top[0] ?? null;
+        return pack ? first_tree(graph, pack) : null;
       } },
     { id: "structure", label: "structure", mark: "usages",
-      list: (_, [, def]) => structure_listing(def ?? null),
-      first: (_, [, def]) => def ?? null },
+      list: (_, [, tree]) => structure_listing(tree ?? null),
+      first: (_, [, tree]) => tree ?? null },
   ];
 }
 
@@ -89,25 +87,34 @@ export function packages_listing(graph: Graph): Listing {
   return { top: packages(graph).map((p) => p.id), under: "none" };
 }
 
-/** A package's domain: its definitions, nested under the folders and groups that organize them. */
+/** A package's domain: its trees, nested under the holders that organize them. */
 export function domain_listing(graph: Graph, pkg: Id | null): Listing {
-  const top = pkg ? children(graph, pkg).filter((b) => b.def).map((b) => b.id) : [];
-  return { top, under: "defs", groups: true };
+  return { top: pkg ? children(graph, pkg).map((b) => b.id) : [], under: "domain" };
 }
 
-/** A definition and its structure under it. */
-export function structure_listing(def: Id | null): Listing {
-  return { top: def ? [def] : [], under: "usages" };
+/** A tree and its structure under it. */
+export function structure_listing(tree: Id | null): Listing {
+  return { top: tree ? [tree] : [], under: "structure" };
 }
 
-/** Whether a section lists this for the picks above: a top row, or a block under one. */
+/** A domain's first tree, in reading order, past the holders organizing it. */
+export function first_tree(graph: Graph, at: Id): Id | null {
+  for (const b of children(graph, at)) {
+    if (!organizes(graph, b.id)) return b.id;
+    const deeper = first_tree(graph, b.id);
+    if (deeper) return deeper;
+  }
+  return null;
+}
+
+/** Whether a section lists this for the picks above: a top row, or a block nested under one. */
 export function listed(graph: Graph, slice: Slice, above: readonly (Id | null)[], id: Id): boolean {
   const { top, under } = slice.list(graph, above);
   if (top.includes(id)) return true;
-  if (under === "none") return false;
-  const keep = (b: { def?: unknown }) => (under === "defs") === !!b.def;
-  for (let at = graph.blocks[id]; at && keep(at); at = graph.blocks[at.parent ?? ""]) {
-    if (at.parent && top.includes(at.parent)) return true;
+  if (!graph.blocks[id] || under === "none") return false;
+  if (under === "domain") {
+    const pkg = graph.blocks[top[0] ?? ""]?.parent;
+    return !!pkg && in_domain(graph, id) && package_of(graph, id) === pkg;
   }
-  return false;
+  return top.some((tree) => subtree(graph, tree).includes(id));
 }

@@ -145,7 +145,7 @@ export const DEFAULTS = {
 export const DRAWN: readonly string[] = ["card", "style", "line"];
 
 /** What each module honours, and the keys it owns of its own. */
-const CARD: readonly string[] = ["card", "style", "allows", "expects"];
+const CARD: readonly string[] = ["card", "style", "allows", "expects", "layout", "tie"];
 const WALL: readonly string[] = ["style", "allows", "expects"];
 const WIRE: readonly string[] = ["line", "style", "allows", "expects"];
 
@@ -242,14 +242,12 @@ const line: Component = {
 const allows: Component = {
   name: "allows",
   check: (config) => {
-    for (const key of ["ports", "holds", "members"]) {
+    for (const key of ["ports", "holds", "members", "heads"]) {
       const said = config[key];
       if (said === undefined || typeof said === "boolean") continue;
       const wrong = words(`allows.${key}`, said);
       if (wrong) return wrong;
     }
-    const holder = one_of("allows.holder", config["holder"], ["none", "group", "grid"]);
-    if (holder) return holder;
     const ends = config["ends"];
     if (ends !== undefined) {
       if (!ends || typeof ends !== "object") return "`allows.ends` has to be two lists of names";
@@ -264,7 +262,7 @@ const allows: Component = {
       const wrong = stray("allows.degree", degree as Settings, ["in", "out"]);
       if (wrong) return wrong;
     }
-    return stray("allows", config, ["ports", "holds", "holder", "members", "degree", "ends"]);
+    return stray("allows", config, ["ports", "holds", "members", "heads", "degree", "ends"]);
   },
 };
 
@@ -278,5 +276,28 @@ const expects: Component = {
 };
 
 
+/** How a layer places what it draws. An unknown kind is drawn as `auto`, never refused: a newer
+ *  package names layouts an older build has not got. */
+const layout: Component = {
+  name: "layout",
+  check: (config) =>
+    (config["kind"] === undefined || typeof config["kind"] === "string"
+      ? null : "`layout.kind` has to be a name")
+    ?? (config["across"] === undefined || typeof config["across"] === "number"
+      ? null : "`layout.across` has to be a number")
+    ?? (config["line"] === undefined || typeof config["line"] === "string"
+      ? null : "`layout.line` has to be a relation definition")
+    ?? stray("layout", config, ["kind", "across", "line"]),
+};
+
+/** What a block made from, or dropped on, another is linked to it by: a relation definition. */
+const tie: Component = {
+  name: "tie",
+  check: (config) =>
+    (config["type"] === undefined || typeof config["type"] === "string"
+      ? null : "`tie.type` has to be a relation definition")
+    ?? stray("tie", config, ["type"]),
+};
+
 /** What this build publishes. */
-publish(allows, block, card, expects, line, style);
+publish(allows, block, card, expects, layout, line, style, tie);

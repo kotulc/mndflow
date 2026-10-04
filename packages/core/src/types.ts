@@ -20,10 +20,11 @@ export type Side = "top" | "right" | "bottom" | "left";
 /** An interface's decorative mark. */
 export type Flow = "in" | "out" | "both";
 
-/** How a layer places what it holds: by hand, or laid out for you. */
-export type Arrangement = "free" | "auto";
+/** How a layer places what it draws: by hand, laid out for you, or as an outline of headed groups.
+ *  A setting (`layout.kind`), said by a definition and overridable by the layer. */
+export type Layout = "free" | "auto" | "outline";
 
-export const ARRANGEMENTS: readonly Arrangement[] = ["free", "auto"];
+export const LAYOUTS: readonly Layout[] = ["free", "auto", "outline"];
 
 export type Dir = "none" | "forward" | "back" | "both";
 
@@ -43,7 +44,7 @@ export type Field = {
 
 export type FieldDef = Field & { unit?: string; choices?: string[]; many?: boolean };
 
-/** An address inside a group's grid. */
+/** An address inside a grid. */
 export type Cell = { r: number; c: number };
 
 /** A merged region: a cell's extent, stated on the grid and never on a cell. */
@@ -52,8 +53,8 @@ export type Span = { r: number; c: number; rows: number; cols: number };
 /** Which line a header heads. Derived from where it sits, never stored — see `head_of`. */
 export type HeaderRole = "row" | "col" | "both";
 
-/** The two ways a block may hold blocks on its own layer: a boundary round them, or a lattice of
- *  cells. A capability its definition states — see `Allows.holder`. */
+/** The two holders that draw what they hold inline: a boundary round it, or a lattice of cells.
+ *  Which one a block is comes from its base. */
 export type Shape = "group" | "grid";
 
 /** A grid's lattice, held on the block that is one. */
@@ -95,8 +96,6 @@ export type Block = {
   body?: string;
   /** Present on a definition, and only there. */
   def?: DefBody;
-  /** On a package root: the packages it depends on. */
-  uses?: Id[];
   /** A reference: the block it stands for — a usage, a definition or a package. */
   of?: Id;
   /** Where its content lives outside the workspace: one uri, whatever locator syntax the thing
@@ -104,9 +103,7 @@ export type Block = {
    *  without anything breaking, and nothing here parses it. A within-part and a revision are the
    *  uri's own business (`#heading`, `@v2`): they were fields once, and nothing ever read them. */
   source?: string;
-  /** The group or grid block this one sits in, on the same layer. Membership, never parenthood. */
-  group?: Id;
-  /** Where in that grid: replaces `x`/`y` for a gridded block. */
+  /** Where in its parent grid: replaces `x`/`y` for a seated block. */
   cell?: Cell;
   /** Its lattice, where its definition makes it a grid. */
   grid?: Grid;
@@ -114,8 +111,6 @@ export type Block = {
   y?: number;
   w?: number;
   h?: number;
-  /** Only meaningful when this block is the open layer. */
-  arrangement?: Arrangement;
   side?: Side;
   at?: number;
   order?: number;
@@ -130,6 +125,9 @@ export type Block = {
   settings?: Components;
   /** The tag definitions it carries, by id. */
   tags?: string[];
+  /** Its capability tags, by id, in order: tags carrying settings. Stated, they replace the
+   *  chain's set. */
+  traits?: Id[];
   flow?: Flow;
   /** A usage's field values. */
   values?: Field[];
@@ -155,6 +153,8 @@ export type Relation = {
   alias?: number;
   /** Words describing this line; its own, never inherited. */
   tags?: string[];
+  /** Its capability tags, as a block carries them. */
+  traits?: Id[];
   /** What this one line says about how it draws, over whatever its definition said. */
   settings?: Components;
   /** No fields: what a connection says belongs to the blocks at its ends. */
@@ -173,8 +173,8 @@ export const BASE_BLOCKS: readonly Id[] = [
   "block", "folder", "reference", "interface", "group", "grid", "note", "tag",
 ];
 
-/** The shipped relation bases. `tie` is a definition — a dashed run with no heads — which is what
- *  a relation touching a note resolves to. */
+/** The shipped relation bases. `tie` is a definition — a dashed run with no heads — chosen like
+ *  any other type. */
 export const BASE_RELATIONS: readonly Id[] = ["line", "tie"];
 
 
@@ -189,16 +189,11 @@ export type Graph = {
   edges: Record<Id, Relation>;
 };
 
-/** A fresh workspace: its package root, the groups that organize its definitions, and `main`. */
+/** A fresh workspace: its package root and `main`. Groupings are the user's. */
 export function empty_graph(): Graph {
-  const group = (id: Id, name: string, order: number): Block =>
-    ({ id, parent: ROOT, name, type: "group", def: {}, order });
   const blocks: Block[] = [
     { id: ROOT, parent: null, name: "workspace" },
-    group(`${ROOT}.blocks`, "blocks", 1),
-    group(`${ROOT}.relations`, "relations", 2),
-    group(`${ROOT}.tags`, "tags", 3),
-    { id: MAIN, parent: ROOT, name: "main", def: {}, group: `${ROOT}.blocks`, order: 4 },
+    { id: MAIN, parent: ROOT, name: "main", def: {}, order: 1 },
   ];
   return { root: ROOT, blocks: Object.fromEntries(blocks.map((b) => [b.id, b])), edges: {} };
 }
@@ -223,7 +218,6 @@ export type Mutation =
   | { op: "set_schema"; id: Id; schema: FieldDef[] }
   /** Where a block came from; null gives it back. */
   | { op: "set_source"; id: Id; source: string | null }
-  | { op: "set_group"; id: Id; group: Id | null }
   | { op: "seat_cell"; id: Id; cell: Cell | null }
   /** A block's lattice, written whole: its shape is one thing. Null gives it back. */
   | { op: "set_grid"; id: Id; grid: Grid | null }
@@ -243,8 +237,9 @@ export type Mutation =
   | { op: "drop_value"; id: Id; name: string }
   /** The order a block's values are listed in, by name. */
   | { op: "order_values"; id: Id; names: string[] }
-  | { op: "set_arrangement"; layer: Id; arrangement: Arrangement }
   | { op: "set_tags"; id: Id; tags: string[] }
+  /** The traits an element carries, in order; null gives the set back to its chain. */
+  | { op: "set_traits"; id: Id; traits: Id[] | null }
   /** Everything this element says about how it draws, given back at once. */
   | { op: "drop_settings"; id: Id }
   /** One property of one component on one element. */
@@ -272,4 +267,4 @@ export type File = {
   meta?: Record<string, unknown>;
 };
 
-export const SCHEMA = "4.0";
+export const SCHEMA = "1.0";

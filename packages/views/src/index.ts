@@ -17,5 +17,6 @@ export { BARE, PLAIN, look_key, look_of, wire_of, type Align,
          type Arrow, type Border, type Contrast, type Display, type Height,
          type Family, type Fill, type Font, type Look, type Weight, type Width,
          type Wire } from "./look";
-export { PACKAGES, card_of, package_card, packages_graph } from "./packages";
+export { FOREST, flat_graph, forest_graph } from "./packages";
+export { outline_graph } from "./outline";
 export { read_through } from "./through";

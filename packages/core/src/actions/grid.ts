@@ -1,13 +1,11 @@
 /** Cells, headers, labels, rows and columns of a grid. */
 
-import { may_take } from "../capabilities";
-import { def_at, derived_base, domain_of } from "../defs";
-import { at_cell, can_hold, covers, heading, inside, is_grid, lattice_of, members_of, one_side,
-         overlaps } from "../holders";
-import { shown_name } from "../names";
+import { def_at, domain_of } from "../defs";
+import { at_cell, covers, heading, inside, is_grid, lattice_of, layer_of, members_of,
+         one_side, overlaps } from "../holders";
 import { edges_in, next_order } from "../tree";
 import { new_id } from "../ids";
-import type { Block, Cell, Dir, Graph, Grid, Id, Mutation, Span } from "../types";
+import type { Cell, Dir, Graph, Grid, Id, Mutation, Span } from "../types";
 import { register, type Args, type Context } from "./registry";
 import { cell_of_arg, handles, id_of, num, region, run_type, text } from "./helpers";
 
@@ -17,10 +15,13 @@ const heads_at = (g: Grid, at: Cell): boolean => heading(g, at.r, at.c) !== null
 /** A grid's lattice written back whole. */
 const set = (id: Id, grid: Grid): Mutation => ({ op: "set_grid", id, grid });
 
-/** A block put at an address in its grid — or, where there is none for it, out of the grid
- *  altogether: **a member of a grid always sits in a cell**. */
-export const put = (id: Id, cell: Cell | null): Mutation =>
-  cell ? { op: "seat_cell", id, cell } : { op: "set_group", id, group: null };
+/** A block put at an address in its grid — or, where there is none for it, out of the grid onto
+ *  what holds the grid: **a member of a grid always sits in a cell**. */
+export const put = (graph: Graph, id: Id, cell: Cell | null): Mutation => {
+  if (cell) return { op: "seat_cell", id, cell };
+  const grid = graph.blocks[id]?.parent;
+  return { op: "move_block", id, parent: (grid && graph.blocks[grid]?.parent) ?? grid ?? null };
+};
 
 /** A row or column added or removed; blocks, values and merges after it shift. */
 function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
@@ -68,7 +69,7 @@ function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
     const want = { r: Math.min(was.r, next.rows - 1), c: Math.min(was.c, next.cols - 1) };
     const spare = free_cell(next, held, null, want, !unheaded && heads_at(g, was));
     if (spare) held.add(`${spare.r},${spare.c}`);
-    out.push(put(id, spare));
+    out.push(put(graph, id, spare));
   }
   return [set(group, tidy(next)), ...out];
 }
@@ -158,7 +159,7 @@ function pointed(ctx: Context, way: "row" | "col"): number | null {
  *  where it is one, or the grid that block sits in. */
 function grid_named(ctx: Context, args: Args): Id | null {
   const at = ctx.picked[0];
-  const held = at ? ctx.graph.blocks[at]?.group : undefined;
+  const held = at ? ctx.graph.blocks[at]?.parent ?? undefined : undefined;
   for (const said of [args["group"] ? id_of(args, "group") : undefined,
                       ctx.cells?.[0]?.group, ctx.picked[0], held]) {
     if (said && is_grid(ctx.graph, said)) return said;
@@ -174,12 +175,12 @@ function address(ctx: Context, args: Args, group: Id): Cell | null {
   return picked ? { r: picked.r, c: picked.c } : null;
 }
 
-/** Why a cell of this grid could not take a new block, or null: it has to be a grid on this layer,
- *  and the cell inside it and empty. */
+/** Why a cell of this grid could not take a new block, or null: it has to be a grid drawn on this
+ *  layer, and the cell inside it and empty. */
 export function cell_free(ctx: Context, group: Id, cell: Cell | null): string | null {
   const g = lattice_of(ctx.graph, group);
   if (!g) return "that is not a grid";
-  if (ctx.graph.blocks[group]!.parent !== (ctx.layer ?? ctx.graph.root)) {
+  if (layer_of(ctx.graph, group) !== (ctx.layer ?? ctx.graph.root)) {
     return "that grid is not in this layer";
   }
   if (!cell) return "no cell is pointed at";
@@ -201,49 +202,7 @@ function headed(graph: Graph, group: Id, edge: "top" | "left", on: boolean): Mut
   return [set(group, tidy({ ...next, head: { ...next.head, [edge]: true } })), ...moved];
 }
 
-/** The block a seat is about, and the grid and address it is going to. */
-function seating(ctx: Context, args: Args): { b: Block | undefined; group: Id | undefined;
-                                               cell: Cell | null } {
-  const id = id_of(args, "id");
-  return { b: ctx.graph.blocks[id],
-           group: args["group"] ? id_of(args, "group") : ctx.graph.blocks[id]?.group,
-           cell: cell_of_arg(args, "at") };
-}
-
 register(
-  {
-    name: "seat",
-    about: "puts a block in a cell of a grid, or takes it out of the grid",
-    on: ["block"],
-    args: [{ name: "id", form: "block", required: true },
-           { name: "group", form: "block" },
-           { name: "at", form: "text" }],
-    check: (ctx, args) => {
-      const { b, group, cell } = seating(ctx, args);
-      if (!b) return "that block is not there";
-      if (!cell) return null;
-      const g = lattice_of(ctx.graph, group);
-      if (!g) return "that is not a grid";
-      /** A cell holds a block, never another holder. */
-      if (!can_hold(ctx.graph, group!, b.id)) return "a cell cannot hold that";
-      if (!may_take(ctx.graph, group!, b.type)) {
-        return `"${shown_name(ctx.graph, group!)}" takes nothing of that sort`;
-      }
-      if (!inside(g, cell)) return "that cell is outside the grid";
-      if (heads_at(g, cell) && !b.of) return "a header holds a label, or a reference to a block";
-      /** A cell holds one block. */
-      const held = at_cell(ctx.graph, group!, cell.r, cell.c);
-      return held && held.id !== b.id ? "that cell is taken" : null;
-    },
-    run: (ctx, args) => {
-      const { b, group, cell } = seating(ctx, args);
-      const out: Mutation[] = [];
-      if (group && b!.group !== group) out.push({ op: "set_group", id: b!.id, group });
-      /** No address takes it out of the grid. */
-      out.push(put(b!.id, cell));
-      return { mutations: out };
-    },
-  },
   {
     name: "heads",
     about: "adds a header row or column to a grid, or takes it away",
@@ -370,7 +329,7 @@ register(
         }
         const spare = free_cell(g, taken, span, b.cell, heads_at(g, b.cell));
         if (spare) taken.add(`${spare.r},${spare.c}`);
-        out.push(put(b.id, spare));
+        out.push(put(ctx.graph, b.id, spare));
       }
       return { mutations: [...out, set(group, with_merges(g,
         [...(g.merges ?? []).filter((m) => !overlaps(m, span)), { ...span }]))] };
@@ -429,9 +388,8 @@ register(
         const to = run[n]!;
         if (drawn.has(`${from}|${to}`)) continue;
         drawn.add(`${from}|${to}`);
-        const module = derived_base(ctx.graph, from, to);
         out.push({ op: "link_blocks", edge: {
-          id: new_id("edge"), from, to, alias: line.take(), ...run_type(ctx, args, module),
+          id: new_id("edge"), from, to, alias: line.take(), ...run_type(ctx, args),
           ...(dir !== "none" ? { dir } : {}) } });
       }
       out.push(...line.bump());
@@ -451,17 +409,14 @@ register(
     },
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
-      const parent = ctx.graph.blocks[group]!.parent;
       /** Orders are counted forward within the act. */
-      let order = next_order(ctx.graph, parent);
+      let order = next_order(ctx.graph, group);
       const made = handles(ctx, "block");
       const out: Mutation[] = [];
       for (const cell of empty_cells(ctx.graph, group)) {
         const id = new_id("block");
-        out.push({ op: "add_block", block: { id, parent, order: order++,
-                                             alias: made.take() } });
-        out.push({ op: "set_group", id, group });
-        out.push({ op: "seat_cell", id, cell });
+        out.push({ op: "add_block", block: { id, parent: group, order: order++,
+                                             alias: made.take(), cell } });
       }
       out.push(...made.bump());
       return { mutations: out };

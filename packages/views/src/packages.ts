@@ -1,31 +1,30 @@
-/** The packages drawn: a stand-in card for each package, on a layer of their own. Drawn, never
- *  stored: the layer and its cards live only in the graph handed back. */
+/** The overhead views: the forest of every package, and any layer flattened. Drawn, never stored:
+ *  each is a graph handed back for a projection to read, with every block keeping its real id. */
 
-import { packages, type Block, type Graph, type Id } from "@mnd/core";
+import { is_folder, packages, type Block, type Graph, type Id } from "@mnd/core";
 
-/** The layer the packages are drawn on. */
-export const PACKAGES = "@packages";
-
-/** What a package's card is called on that layer. */
-const CARD = "@package:";
+/** The layer the forest is drawn on: above every package root. */
+export const FOREST = "@forest";
 
 
-/** The graph with the packages laid on a layer of their own, a card each, in order. */
-export function packages_graph(graph: Graph): Graph {
-  const cards: Block[] = packages(graph).map((p, n) =>
-    ({ id: `${CARD}${p.id}`, parent: PACKAGES, of: p.id, order: n + 1 }));
-  const blocks: Record<Id, Block> = { ...graph.blocks,
-    [PACKAGES]: { id: PACKAGES, parent: null, name: "packages", arrangement: "auto" } };
-  for (const card of cards) blocks[card.id] = card;
+/** The graph with every folder drawn as a group, so what it holds reads on the layer above. */
+export function flat_graph(graph: Graph): Graph {
+  const blocks: Record<Id, Block> = { ...graph.blocks };
+  for (const b of Object.values(graph.blocks)) {
+    if (is_folder(graph, b.id)) blocks[b.id] = { ...b, type: "group" };
+  }
   return { ...graph, blocks };
 }
 
-/** The package a card on that layer stands for, or null for anything else. */
-export function package_card(id: Id | null | undefined): Id | null {
-  return id?.startsWith(CARD) ? id.slice(CARD.length) : null;
-}
-
-/** The card a package draws as on that layer. */
-export function card_of(pkg: Id): Id {
-  return `${CARD}${pkg}`;
+/** The graph with every package a box on one layer above them all, its domain inside it and its
+ *  folders flattened. A pick on it is the block itself. */
+export function forest_graph(graph: Graph): Graph {
+  const flat = flat_graph(graph);
+  const blocks: Record<Id, Block> = { ...flat.blocks,
+    [FOREST]: { id: FOREST, parent: null, name: "packages",
+                settings: { layout: { kind: "auto" } } } };
+  packages(graph).forEach((p, n) => {
+    blocks[p.id] = { ...p, parent: FOREST, type: "group", order: n + 1 };
+  });
+  return { ...flat, blocks };
 }

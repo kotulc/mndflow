@@ -1,11 +1,12 @@
 /** What a block may do, and what its values are asked for. `allows` is refused at the gesture;
  *  `expects` is only ever advice. */
 
-import { base_of, def_at, def_of, frozen, isa } from "./defs";
+import { closes_cycle, frozen, isa, owner_def, stated, tree_of } from "./defs";
 import { children, is_interface, subtree } from "./tree";
-import type { Components, Flow, Graph, Id, Shape } from "./types";
+import type { Components, Flow, Graph, Id } from "./types";
 
-export type NoteKind = "required" | "ends" | "holds" | "ports" | "degree" | "match";
+export type NoteKind = "required" | "ends" | "holds" | "ports" | "degree" | "match" | "nested"
+  | "self" | "cycle";
 
 /** What a usage asked for and did not get. */
 export type Note = {
@@ -21,19 +22,12 @@ export type Range = { min?: number; max?: number };
  *  Absent is not this — it means nobody said, and the chain answers instead. */
 export type Allowed = boolean | Id[];
 
-/** Which holder a usage is, or `none` to say it is not one. Absent lets the chain answer. */
-export type Holding = Shape | "none";
-
-export const HOLDINGS: readonly Holding[] = ["none", "group", "grid"];
-
 /** What may attach to or be held by a usage. Refused when a gesture would break it. */
 export type Allows = {
   /** Whether interfaces may be seated on its walls. */
   ports?: Allowed;
   /** What it may own as children. */
   holds?: Allowed;
-  /** Whether it holds blocks on its own layer, and which way: a group or a grid. */
-  holder?: Holding;
   /** What a holder may take as members. */
   members?: Allowed;
   /** What may head a group: its first member, where that member is one of these. Absent, a group
@@ -97,15 +91,11 @@ function merged<T extends object>(layers: T[]): T {
   return out;
 }
 
-/** What states this key over an element, nearest first: its own settings, then its chain. A
- *  definition's chain starts at itself. */
+/** What states this key over an element, nearest first: per link of its chain, its own word, then
+ *  its traits. A definition's chain starts at itself. */
 function layers_of<T>(graph: Graph, id: Id | undefined, key: string,
                       read: (c: Components | undefined) => T): T[] {
-  if (!id) return [];
-  if (def_at(graph, id)) return isa(graph, id).map((d) => read(d.settings));
-  const chain = isa(graph, def_of(graph, id)).map((d) => read(d.settings));
-  const own = (graph.blocks[id] ?? graph.edges[id])?.settings;
-  return own?.[key] ? [read(own), ...chain] : chain;
+  return stated(graph, id).filter((c) => c[key]).map(read);
 }
 
 function read_allows(components: Components | undefined): Allows {
@@ -116,8 +106,6 @@ function read_allows(components: Components | undefined): Allows {
     const said = allowed(a[key]);
     if (said !== undefined) out[key] = said;
   }
-
-  if (HOLDINGS.includes(a["holder"] as Holding)) out.holder = a["holder"] as Holding;
 
   const degree = a["degree"];
   if (degree && typeof degree === "object") {
@@ -163,12 +151,8 @@ export function permits(graph: Graph, setting: Allowed | undefined,
   return setting.length ? is_one_of(graph, type, setting) : false;
 }
 
-/** Whether this block may own a child of that definition. */
+/** Whether this block may own a child of that definition: its settings say, and nothing else. */
 export function may_hold(graph: Graph, parent: Id, type?: Id): boolean {
-  /** The kind answers first: a reference stands in for a block living elsewhere and a note is a
-   *  remark about one, so neither holds blocks, whatever a vocabulary says of it. */
-  const base = base_of(graph, parent);
-  if (base === "reference" || base === "note") return false;
   return permits(graph, allows_of(graph, parent).holds, type);
 }
 
@@ -203,6 +187,18 @@ export function review(graph: Graph, scope?: Id): Note[] {
   for (const b of Object.values(graph.blocks)) {
     if (!holds_block(b.id) || frozen(graph, b.id)) continue;
     const allows = allows_of(graph, b.id);
+
+    /** The rules a gesture refuses, said of data that arrived another way. */
+    if (b.def && tree_of(graph, b.id) !== b.id) {
+      notes.push({ kind: "nested", id: b.id, what: `"${label(graph, b.id)}" sits in a structure` });
+    }
+    const home = b.def ? null : owner_def(graph, b.id);
+    if (home && home === b.type) {
+      notes.push({ kind: "self", id: b.id, what: `"${label(graph, home)}" uses itself` });
+    }
+    if (b.def && closes_cycle(graph, b.id, b.type)) {
+      notes.push({ kind: "cycle", id: b.id, what: `"${label(graph, b.id)}" extends itself` });
+    }
     const expects = expects_of(graph, b.id);
 
     /** A definition is a template, never allocated: what it asks is asked of its usages. */

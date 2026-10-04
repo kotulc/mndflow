@@ -1,5 +1,5 @@
 {
-  "schema": "4.0",
+  "schema": "1.0",
   "id": "requirements",
   "graph": {
     "root": "requirements",
@@ -7,17 +7,13 @@
       "requirements": {
         "id": "requirements",
         "parent": null,
-        "name": "requirements",
-        "uses": [
-          "base"
-        ]
+        "name": "requirements"
       },
       "requirements.blocks": {
         "id": "requirements.blocks",
         "parent": "requirements",
         "name": "blocks",
         "type": "group",
-        "def": {},
         "order": 1
       },
       "requirements.relations": {
@@ -25,12 +21,11 @@
         "parent": "requirements",
         "name": "relations",
         "type": "group",
-        "def": {},
         "order": 2
       },
-      "req.requirement": {
-        "id": "req.requirement",
-        "parent": "requirements",
+      "requirements.requirement": {
+        "id": "requirements.requirement",
+        "parent": "requirements.blocks",
         "name": "requirement",
         "def": {
           "schema": [
@@ -70,12 +65,11 @@
               "shall"
             ]
           }
-        },
-        "group": "requirements.blocks"
+        }
       },
-      "req.group": {
-        "id": "req.group",
-        "parent": "requirements",
+      "requirements.group": {
+        "id": "requirements.group",
+        "parent": "requirements.blocks",
         "name": "requirement group",
         "def": {},
         "type": "folder",
@@ -83,16 +77,15 @@
           "card": {},
           "allows": {
             "holds": [
-              "req.requirement",
-              "req.group"
+              "requirements.requirement",
+              "requirements.group"
             ]
           }
-        },
-        "group": "requirements.blocks"
+        }
       },
-      "req.satisfy": {
-        "id": "req.satisfy",
-        "parent": "requirements",
+      "requirements.satisfy": {
+        "id": "requirements.satisfy",
+        "parent": "requirements.relations",
         "name": "satisfies",
         "def": {},
         "type": "line",
@@ -100,7 +93,7 @@
           "allows": {
             "ends": {
               "to": [
-                "req.requirement"
+                "requirements.requirement"
               ]
             },
             "degree": {
@@ -109,12 +102,11 @@
               }
             }
           }
-        },
-        "group": "requirements.relations"
+        }
       },
-      "req.verify": {
-        "id": "req.verify",
-        "parent": "requirements",
+      "requirements.verify": {
+        "id": "requirements.verify",
+        "parent": "requirements.relations",
         "name": "verifies",
         "def": {},
         "type": "line",
@@ -122,24 +114,22 @@
           "allows": {
             "ends": {
               "to": [
-                "req.requirement"
+                "requirements.requirement"
               ]
             }
           }
-        },
-        "group": "requirements.relations"
+        }
       },
-      "req.table": {
-        "id": "req.table",
-        "parent": "requirements",
+      "requirements.table": {
+        "id": "requirements.table",
+        "parent": "requirements.blocks",
         "name": "requirements",
         "def": {},
         "settings": {
           "view": {
             "module": "table"
           }
-        },
-        "group": "requirements.blocks"
+        }
       }
     },
     "edges": {}

@@ -13,7 +13,7 @@ export function marks_of(graph: Graph, id: Id): Trait[] {
   if (!b) return out;
   const module = base_of(graph, id);
   /** A stand-in for a definition draws as its usages; only its stamp says it stands in. */
-  if (module === "reference" && !stood_def(graph, id)) {
+  if (module === "reference" && !b.def && !stood_def(graph, id)) {
     out.push("reference");
     /** Missing is naming nothing at all. */
     if (!stands_for(graph, id) || stands_for(graph, id)!.id === id) out.push("missing");

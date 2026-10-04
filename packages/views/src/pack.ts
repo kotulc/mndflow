@@ -1,6 +1,6 @@
 /** Auto-layout: related clusters placed around their mates, and satellites seated beside theirs. */
 
-import { edge_base, edges_in, is_holder, is_note, is_reference, type Arrangement, type Block,
+import { edge_base, edges_in, is_holder, is_note, is_reference, type Layout, type Block,
          type Graph, type Id, type Point, type Relation } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { loose_unit, member_in_holder, type Sized } from "./bands";
@@ -390,7 +390,7 @@ function linked_member(graph: Graph, layer: Id | null, id: Id, holder_id: Id): I
 }
 
 function member_spot(graph: Graph, layer: Id | null, id: Id, holder_id: Id,
-                     taken: readonly Placed[], how: Arrangement): Placed | null {
+                     taken: readonly Placed[], how: Layout): Placed | null {
   const member = linked_member(graph, layer, id, holder_id);
   if (!member) return null;
   const at = taken.find((p) => p.id === member);

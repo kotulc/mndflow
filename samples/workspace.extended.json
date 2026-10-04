@@ -1,5 +1,5 @@
 {
-  "schema": "4.0",
+  "schema": "1.0",
   "id": "workspace",
   "graph": {
     "root": "workspace",
@@ -29,7 +29,6 @@
         "parent": "workspace",
         "name": "blocks",
         "type": "group",
-        "def": {},
         "order": 1
       },
       "workspace.relations": {
@@ -37,7 +36,6 @@
         "parent": "workspace",
         "name": "relations",
         "type": "group",
-        "def": {},
         "order": 2
       },
       "workspace.tags": {
@@ -45,21 +43,23 @@
         "parent": "workspace",
         "name": "tags",
         "type": "group",
-        "def": {},
         "order": 3
       },
       "main": {
         "id": "main",
-        "parent": "workspace",
+        "parent": "workspace.blocks",
         "name": "main",
         "def": {},
-        "group": "workspace.blocks",
         "order": 4,
-        "arrangement": "auto"
+        "settings": {
+          "layout": {
+            "kind": "auto"
+          }
+        }
       },
       "def_base": {
         "id": "def_base",
-        "parent": "workspace",
+        "parent": "workspace.relations",
         "name": "Base",
         "def": {},
         "type": "def_default",
@@ -68,20 +68,18 @@
             "hue": 292,
             "intensity": 0.15
           }
-        },
-        "group": "workspace.relations"
+        }
       },
       "def_default": {
         "id": "def_default",
-        "parent": "workspace",
+        "parent": "workspace.relations",
         "name": "line",
         "def": {},
-        "type": "line",
-        "group": "workspace.relations"
+        "type": "line"
       },
       "def_relates": {
         "id": "def_relates",
-        "parent": "workspace",
+        "parent": "workspace.relations",
         "name": "<<relates>>",
         "def": {},
         "type": "def_default",
@@ -89,20 +87,18 @@
           "style": {
             "hue": 314
           }
-        },
-        "group": "workspace.relations"
+        }
       },
       "def_relation": {
         "id": "def_relation",
-        "parent": "workspace",
+        "parent": "workspace.relations",
         "name": "relation",
         "def": {},
-        "type": "def_default",
-        "group": "workspace.relations"
+        "type": "def_default"
       },
       "def_special": {
         "id": "def_special",
-        "parent": "workspace",
+        "parent": "workspace.blocks",
         "name": "special",
         "def": {},
         "type": "folder",
@@ -116,32 +112,28 @@
           "card": {
             "label": "below"
           }
-        },
-        "group": "workspace.blocks"
+        }
       },
       "def_specialer": {
         "id": "def_specialer",
-        "parent": "workspace",
+        "parent": "workspace.blocks",
         "name": "specialer",
         "def": {},
-        "type": "def_special",
-        "group": "workspace.blocks"
+        "type": "def_special"
       },
       "def_test": {
         "id": "def_test",
-        "parent": "workspace",
+        "parent": "workspace.relations",
         "name": "Test",
         "def": {},
-        "type": "def_default",
-        "group": "workspace.relations"
+        "type": "def_default"
       },
       "def_test_block": {
         "id": "def_test_block",
-        "parent": "workspace",
+        "parent": "workspace.blocks",
         "name": "Test Block",
         "def": {},
-        "type": "block",
-        "group": "workspace.blocks"
+        "type": "block"
       },
       "block_026ym9qvc4q2": {
         "id": "block_026ym9qvc4q2",
@@ -235,8 +227,7 @@
       },
       "block_6mkkngq8lsy9": {
         "id": "block_6mkkngq8lsy9",
-        "parent": "block_ew5quzihwe9g",
-        "group": "block_026ym9qvc4q2",
+        "parent": "block_026ym9qvc4q2",
         "alias": 3,
         "order": 1,
         "x": -360,
@@ -270,8 +261,7 @@
       },
       "block_a8com2k9rugg": {
         "id": "block_a8com2k9rugg",
-        "parent": "block_xpgood1tsdl8",
-        "group": "block_i5g6cnrkmsa1",
+        "parent": "block_i5g6cnrkmsa1",
         "of": "block_ht3r5k5pz2lg",
         "alias": 2,
         "order": 2,
@@ -280,9 +270,8 @@
       },
       "block_d7b79oajslu5": {
         "id": "block_d7b79oajslu5",
-        "parent": "main",
+        "parent": "block_phj6wc786dlo",
         "name": "resources",
-        "group": "block_phj6wc786dlo",
         "type": "folder",
         "alias": 2,
         "order": 1,
@@ -293,30 +282,28 @@
         "id": "block_ew5quzihwe9g",
         "parent": "block_pcm8tjwdotm2",
         "alias": 1,
-        "arrangement": "auto",
         "order": 2,
         "x": -48,
-        "y": -48
+        "y": -48,
+        "settings": {
+          "layout": {
+            "kind": "auto"
+          }
+        }
       },
       "block_g7r7pich1xuz": {
         "id": "block_g7r7pich1xuz",
-        "parent": "block_xpgood1tsdl8",
+        "parent": "block_x6q9cg79pk62",
         "name": "Hello World",
-        "group": "block_x6q9cg79pk62",
         "alias": 20,
-        "cell": {
-          "r": 0,
-          "c": 0
-        },
         "order": 12,
         "x": -144,
         "y": 168
       },
       "block_ga0xoyy306a1": {
         "id": "block_ga0xoyy306a1",
-        "parent": "block_xpgood1tsdl8",
+        "parent": "block_lisf1xwo11gs",
         "name": "Block 2",
-        "group": "block_lisf1xwo11gs",
         "alias": 18,
         "order": 5,
         "x": -96,
@@ -324,8 +311,7 @@
       },
       "block_gikyjb1138b4": {
         "id": "block_gikyjb1138b4",
-        "parent": "block_ew5quzihwe9g",
-        "group": "block_026ym9qvc4q2",
+        "parent": "block_026ym9qvc4q2",
         "alias": 2,
         "order": 2,
         "x": -24,
@@ -333,8 +319,7 @@
       },
       "block_gn1qmh8w3xli": {
         "id": "block_gn1qmh8w3xli",
-        "parent": "block_xpgood1tsdl8",
-        "group": "block_i5g6cnrkmsa1",
+        "parent": "block_i5g6cnrkmsa1",
         "of": "block_swt7wg3ubr7p",
         "alias": 3,
         "order": 3,
@@ -343,23 +328,17 @@
       },
       "block_gwetekpeykck": {
         "id": "block_gwetekpeykck",
-        "parent": "block_xpgood1tsdl8",
+        "parent": "block_4718pot6xuhs",
         "name": "Test",
-        "group": "block_4718pot6xuhs",
         "alias": 19,
-        "cell": {
-          "r": 0,
-          "c": 0
-        },
         "order": 11,
         "x": 24,
         "y": -192
       },
       "block_h1gmpej2w1tl": {
         "id": "block_h1gmpej2w1tl",
-        "parent": "block_xpgood1tsdl8",
+        "parent": "block_lisf1xwo11gs",
         "name": "Block 1",
-        "group": "block_lisf1xwo11gs",
         "alias": 17,
         "order": 4,
         "x": -96,
@@ -434,21 +413,18 @@
       },
       "block_lidqmag9iygj": {
         "id": "block_lidqmag9iygj",
-        "parent": "main",
+        "parent": "block_2nzmkg5bbb6e",
         "name": "hello world",
-        "group": "block_2nzmkg5bbb6e",
         "alias": 11,
-        "arrangement": "auto",
-        "cell": {
-          "r": 0,
-          "c": 0
-        },
         "order": 4,
         "x": 48,
         "y": -480,
         "settings": {
           "style": {
             "family": "primary"
+          },
+          "layout": {
+            "kind": "auto"
           }
         }
       },
@@ -463,39 +439,32 @@
       },
       "block_oud23vt3ldeo": {
         "id": "block_oud23vt3ldeo",
-        "parent": "main",
+        "parent": "block_2nzmkg5bbb6e",
         "name": "B",
-        "group": "block_2nzmkg5bbb6e",
         "of": "block_gikyjb1138b4",
         "alias": 5,
-        "cell": {
-          "r": 1,
-          "c": 1
-        },
         "order": 7,
         "x": -144,
         "y": -168
       },
       "block_pcm8tjwdotm2": {
         "id": "block_pcm8tjwdotm2",
-        "parent": "main",
+        "parent": "block_2nzmkg5bbb6e",
         "name": "block",
-        "group": "block_2nzmkg5bbb6e",
         "alias": 4,
-        "arrangement": "auto",
-        "cell": {
-          "r": 2,
-          "c": 1
-        },
         "order": 3,
         "x": -144,
-        "y": -72
+        "y": -72,
+        "settings": {
+          "layout": {
+            "kind": "auto"
+          }
+        }
       },
       "block_phj6wc786dlo": {
         "id": "block_phj6wc786dlo",
-        "parent": "main",
+        "parent": "block_ka9vluxhbn5n",
         "name": "Inner",
-        "group": "block_ka9vluxhbn5n",
         "type": "group",
         "alias": 5,
         "order": 11,
@@ -504,22 +473,16 @@
       },
       "block_pjwhm997jirl": {
         "id": "block_pjwhm997jirl",
-        "parent": "block_lidqmag9iygj",
-        "group": "block_356h5um4i1v2",
+        "parent": "block_356h5um4i1v2",
         "alias": 14,
-        "cell": {
-          "r": 0,
-          "c": 0
-        },
         "order": 1,
         "x": -144,
         "y": 0
       },
       "block_pmjakumsauvt": {
         "id": "block_pmjakumsauvt",
-        "parent": "block_ew5quzihwe9g",
+        "parent": "block_026ym9qvc4q2",
         "name": "Test",
-        "group": "block_026ym9qvc4q2",
         "alias": 8,
         "order": 4,
         "x": -168,
@@ -584,9 +547,8 @@
       },
       "block_rj10qdx5jhn9": {
         "id": "block_rj10qdx5jhn9",
-        "parent": "main",
+        "parent": "block_ka9vluxhbn5n",
         "name": "block",
-        "group": "block_ka9vluxhbn5n",
         "alias": 6,
         "order": 5,
         "x": -192,
@@ -594,13 +556,8 @@
       },
       "block_roesrpnridkj": {
         "id": "block_roesrpnridkj",
-        "parent": "block_rj10qdx5jhn9",
-        "group": "block_4dxph88c5cyj",
+        "parent": "block_4dxph88c5cyj",
         "alias": 21,
-        "cell": {
-          "r": 0,
-          "c": 0
-        },
         "order": 6,
         "x": 24,
         "y": 336
@@ -633,14 +590,9 @@
       },
       "block_sxbqlnfb9zl6": {
         "id": "block_sxbqlnfb9zl6",
-        "parent": "block_rj10qdx5jhn9",
+        "parent": "block_4dxph88c5cyj",
         "name": "Block",
-        "group": "block_4dxph88c5cyj",
         "alias": 16,
-        "cell": {
-          "r": 0,
-          "c": 1
-        },
         "order": 3,
         "x": 216,
         "y": 336
@@ -682,10 +634,14 @@
         "parent": "main",
         "name": "parent",
         "alias": 15,
-        "arrangement": "auto",
         "order": 2,
         "x": -240,
-        "y": -288
+        "y": -288,
+        "settings": {
+          "layout": {
+            "kind": "auto"
+          }
+        }
       },
       "block_yaf0hip7kk3j": {
         "id": "block_yaf0hip7kk3j",
@@ -797,7 +753,8 @@
         "id": "edge_hoab40s8w31k",
         "from": "block_23iri9bhaf1y",
         "alias": 15,
-        "to": "block_pcm8tjwdotm2"
+        "to": "block_pcm8tjwdotm2",
+        "type": "tie"
       },
       "edge_ijoo4gd9dzwq": {
         "id": "edge_ijoo4gd9dzwq",

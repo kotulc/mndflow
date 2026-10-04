@@ -1,5 +1,5 @@
 {
-  "schema": "4.0",
+  "schema": "1.0",
   "id": "workspace",
   "graph": {
     "root": "workspace",
@@ -31,7 +31,6 @@
         "parent": "workspace",
         "name": "blocks",
         "type": "group",
-        "def": {},
         "order": 1
       },
       "workspace.relations": {
@@ -39,7 +38,6 @@
         "parent": "workspace",
         "name": "relations",
         "type": "group",
-        "def": {},
         "order": 2
       },
       "workspace.tags": {
@@ -47,20 +45,18 @@
         "parent": "workspace",
         "name": "tags",
         "type": "group",
-        "def": {},
         "order": 3
       },
       "main": {
         "id": "main",
-        "parent": "workspace",
+        "parent": "workspace.blocks",
         "name": "main",
         "def": {},
-        "group": "workspace.blocks",
         "order": 4
       },
       "def_ghost": {
         "id": "def_ghost",
-        "parent": "workspace",
+        "parent": "workspace.blocks",
         "name": "Draft",
         "def": {},
         "type": "block",
@@ -75,12 +71,11 @@
             "label": "below",
             "align": "center"
           }
-        },
-        "group": "workspace.blocks"
+        }
       },
       "def_heading": {
         "id": "def_heading",
-        "parent": "workspace",
+        "parent": "workspace.blocks",
         "name": "Heading",
         "def": {},
         "type": "block",
@@ -95,12 +90,11 @@
             "align": "center",
             "label": "none"
           }
-        },
-        "group": "workspace.blocks"
+        }
       },
       "def_pump": {
         "id": "def_pump",
-        "parent": "workspace",
+        "parent": "workspace.blocks",
         "name": "Pump",
         "def": {},
         "type": "block",
@@ -114,12 +108,11 @@
           "card": {
             "label": "inside"
           }
-        },
-        "group": "workspace.blocks"
+        }
       },
       "def_skid": {
         "id": "def_skid",
-        "parent": "workspace",
+        "parent": "workspace.blocks",
         "name": "Skid",
         "def": {},
         "type": "group",
@@ -135,12 +128,11 @@
             "family": "secondary",
             "border_contrast": "soft"
           }
-        },
-        "group": "workspace.blocks"
+        }
       },
       "def_vessel": {
         "id": "def_vessel",
-        "parent": "workspace",
+        "parent": "workspace.blocks",
         "name": "Vessel",
         "def": {},
         "type": "block",
@@ -151,14 +143,12 @@
             "opacity": 0.5
           },
           "card": {}
-        },
-        "group": "workspace.blocks"
+        }
       },
       "b_hx": {
         "id": "b_hx",
-        "parent": "b_loop",
+        "parent": "g_wet",
         "name": "Heat Exchanger",
-        "group": "g_wet",
         "type": "def_vessel",
         "alias": 1,
         "order": 2,
@@ -187,9 +177,8 @@
       },
       "b_pump": {
         "id": "b_pump",
-        "parent": "b_loop",
+        "parent": "g_wet",
         "name": "Feed Pump",
-        "group": "g_wet",
         "type": "def_pump",
         "alias": 3,
         "order": 1,
@@ -254,38 +243,23 @@
       },
       "c_a": {
         "id": "c_a",
-        "parent": "f_plant",
+        "parent": "gr_matrix",
         "name": "Operator A",
-        "group": "gr_matrix",
         "alias": 7,
-        "cell": {
-          "r": 1,
-          "c": 1
-        },
         "order": 3
       },
       "c_b": {
         "id": "c_b",
-        "parent": "f_plant",
+        "parent": "gr_matrix",
         "name": "Operator B",
-        "group": "gr_matrix",
         "alias": 8,
-        "cell": {
-          "r": 2,
-          "c": 2
-        },
         "order": 4
       },
       "c_ref": {
         "id": "c_ref",
-        "parent": "f_plant",
-        "group": "gr_matrix",
+        "parent": "gr_matrix",
         "of": "b_loop",
         "alias": 2,
-        "cell": {
-          "r": 1,
-          "c": 0
-        },
         "order": 5
       },
       "f_plant": {
@@ -369,7 +343,8 @@
         "id": "e_tie",
         "from": "b_note",
         "alias": 3,
-        "to": "b_hx"
+        "to": "b_hx",
+        "type": "tie"
       }
     }
   }

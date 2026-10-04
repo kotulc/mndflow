@@ -188,6 +188,9 @@
 
 /* The app speaking, not the model. */
 .mnd-card.missing { border-color: var(--error); color: var(--error); }
+/* A part of a definition seen through a usage: dimmed, as its explorer row is. */
+.mnd-card.part { opacity: 0.6; }
+.mnd-card.part > .mnd-head > .mnd-label::after { content: " \2197"; color: var(--faint); }
 
 /* A note is its text, so the text is the whole body of the card. */
 .mnd-note-text {

@@ -1,5 +1,5 @@
 {
-  "schema": "4.0",
+  "schema": "1.0",
   "id": "doc",
   "graph": {
     "root": "doc",
@@ -7,17 +7,13 @@
       "doc": {
         "id": "doc",
         "parent": null,
-        "name": "doc",
-        "uses": [
-          "base"
-        ]
+        "name": "doc"
       },
       "doc.blocks": {
         "id": "doc.blocks",
         "parent": "doc",
         "name": "blocks",
         "type": "group",
-        "def": {},
         "order": 1
       },
       "doc.relations": {
@@ -25,12 +21,11 @@
         "parent": "doc",
         "name": "relations",
         "type": "group",
-        "def": {},
         "order": 2
       },
       "doc.set": {
         "id": "doc.set",
-        "parent": "doc",
+        "parent": "doc.blocks",
         "name": "document set",
         "def": {},
         "type": "folder",
@@ -44,12 +39,11 @@
             ],
             "ports": false
           }
-        },
-        "group": "doc.blocks"
+        }
       },
       "doc.page": {
         "id": "doc.page",
-        "parent": "doc",
+        "parent": "doc.blocks",
         "name": "page",
         "def": {},
         "type": "block",
@@ -67,12 +61,11 @@
               "doc.code"
             ]
           }
-        },
-        "group": "doc.blocks"
+        }
       },
       "doc.section": {
         "id": "doc.section",
-        "parent": "doc",
+        "parent": "doc.blocks",
         "name": "section",
         "def": {
           "schema": [
@@ -101,12 +94,11 @@
               "level"
             ]
           }
-        },
-        "group": "doc.blocks"
+        }
       },
       "doc.item": {
         "id": "doc.item",
-        "parent": "doc",
+        "parent": "doc.blocks",
         "name": "item",
         "def": {},
         "type": "block",
@@ -120,12 +112,11 @@
             "holds": false,
             "ports": false
           }
-        },
-        "group": "doc.blocks"
+        }
       },
       "doc.code": {
         "id": "doc.code",
-        "parent": "doc",
+        "parent": "doc.blocks",
         "name": "code",
         "def": {
           "schema": [
@@ -147,12 +138,11 @@
             "holds": false,
             "ports": false
           }
-        },
-        "group": "doc.blocks"
+        }
       },
       "doc.link": {
         "id": "doc.link",
-        "parent": "doc",
+        "parent": "doc.relations",
         "name": "link",
         "def": {},
         "type": "line",
@@ -161,8 +151,7 @@
           "line": {
             "to_arrow": "open"
           }
-        },
-        "group": "doc.relations"
+        }
       }
     },
     "edges": {}

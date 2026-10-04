@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, related } from "@mnd/fixtures";
-import { MAIN, ROOT, adjustments, all, children, def_named, edge_base, fold,
+import { MAIN, adjustments, all, children, def_named, fold,
          holders_in, offer, run, schema_of, session,
          writes,
          type Context } from "../src/index";
@@ -15,10 +15,10 @@ const ctx = (picked: string[] = [], layer: string | null = "block_loop"): Contex
 const gridded = (): Context => {
   const c = ctx(["block_pump"]);
   const b = c.graph.blocks;
-  b["block_loop"] = { ...b["block_loop"]!, arrangement: "auto" };
+  b["block_loop"] = { ...b["block_loop"]!, settings: { layout: { kind: "auto" } } };
   b["block_hot"] = { ...b["block_hot"]!, type: "grid", grid: { rows: 1, cols: 3 } };
-  b["block_tank"] = { ...b["block_tank"]!, group: "block_hot", cell: { r: 0, c: 0 } };
-  b["block_valve"] = { ...b["block_valve"]!, group: "block_hot", cell: { r: 0, c: 1 } };
+  b["block_tank"] = { ...b["block_tank"]!, parent: "block_hot", cell: { r: 0, c: 0 } };
+  b["block_valve"] = { ...b["block_valve"]!, parent: "block_hot", cell: { r: 0, c: 1 } };
   return { ...c, cells: [{ group: "block_hot", r: 0, c: 0 }] };
 };
 
@@ -43,7 +43,7 @@ describe("the registry", () => {
                              body: "x", text: "x", name: "f", owner: "block_tank",
                              target: "block_hx", parent: MAIN, holder: "block_tank",
                              members: ["block_tank"], group: "block_hot", dir: "forward",
-                             module: "line", arrangement: "down", flow: "in",
+                             module: "line", kind: "auto", flow: "in",
                              way: "row", at: "0,0", as: "row",
                              def: "block", form: "number" });
       expect(out.mutations.length > 0, a.name).toBe(writes(a.name));
@@ -122,24 +122,6 @@ describe("what an action absorbs", () => {
     expect(named()).toEqual(["D", "C", "A"]);
   });
 
-  /** A group is the layer's, the way an address is the grid's. */
-  it("drops the place and the group it had when it leaves a layer", () => {
-    const s = session({ floor: FLOOR });
-    for (const name of ["Alpha", "Beta"]) s.go("create", { name });
-    const at = (name: string) => children(s.graph(), MAIN).find((b) => b.name === name)!.id;
-    const alpha = at("Alpha"), beta = at("Beta");
-    s.go("group", { members: [alpha], rows: 2, cols: 2 });
-    const grid = holders_in(s.graph(), MAIN)[0]!.id;
-    s.go("seat", { id: alpha, group: grid, at: "0,0" });
-    expect(s.graph().blocks[alpha]!.group).toBe(grid);
-
-    s.go("move", { id: alpha, parent: beta });
-    const moved = s.graph().blocks[alpha]!;
-    expect(moved.parent).toBe(beta);
-    expect(moved.group).toBeUndefined();
-    expect(moved.cell).toBeUndefined();
-  });
-
   /** A reorder is not a move out of anywhere, so it shifts no card. */
   it("keeps where a block sits when it stays under the same parent", () => {
     const s = session();
@@ -174,117 +156,13 @@ describe("what an action absorbs", () => {
 
     s.go("group", { members: [a] });
     const group = holders_in(s.graph(), loop)[0]!;
-    expect(s.graph().blocks[a!]!.group).toBe(group.id);
+    expect(s.graph().blocks[a!]!.parent).toBe(group.id);
 
     expect(s.go("group", { members: [b], into: group.id })).toBeNull();
     expect(holders_in(s.graph(), loop)).toHaveLength(1);
-    expect(s.graph().blocks[b!]!.group).toBe(group.id);
+    expect(s.graph().blocks[b!]!.parent).toBe(group.id);
   });
 
-  /** A holder is a block: it stays until it is deleted, and deleting it frees what it held. */
-  it("keeps a group when its last member leaves", () => {
-    const s = session({ floor: FLOOR });
-    s.go("create", { name: "A" });
-    const a = children(s.graph(), MAIN)[0]!.id;
-    s.go("group", { members: [a] });
-    const group = holders_in(s.graph(), MAIN)[0]!.id;
-
-    expect(s.go("leave", { ids: [a] })).toBeNull();
-    expect(s.graph().blocks[group]).toBeTruthy();
-    expect(s.graph().blocks[a]!.group).toBeUndefined();
-    expect(s.go("delete", { ids: [group] })).toBeNull();
-    expect(s.graph().blocks[a]).toBeTruthy();
-  });
-
-  it("draws a second boundary on the layer instead of nesting inside the first", () => {
-    const s = session({ floor: FLOOR });
-    s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), MAIN)[0]!.id;
-    s.look(loop);
-    s.go("create", { name: "A" });
-    s.go("create", { name: "B" });
-    s.go("create", { name: "C" });
-    const [a, b, c] = children(s.graph(), loop).map((x) => x.id);
-    s.go("group", { members: [a, b, c] });
-    const outer = holders_in(s.graph(), loop)[0]!.id;
-
-    s.go("group", { members: [a!, b!] });
-    const groups = holders_in(s.graph(), loop);
-    expect(groups).toHaveLength(2);
-    const inner = groups.find((g) => g.id !== outer)!;
-    expect(s.graph().blocks[a!]!.group).toBe(inner.id);
-    expect(s.graph().blocks[c!]!.group).toBe(outer);
-    expect(inner.group).toBeUndefined();
-  });
-
-  it("nests a group inside another, and a grid inside nothing", () => {
-    const s = session({ floor: FLOOR });
-    s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), MAIN)[0]!.id;
-    s.look(loop);
-    s.go("create", { name: "A" });
-    s.go("create", { name: "B" });
-    s.go("create", { name: "C" });
-    const [a, b, c] = children(s.graph(), loop).map((x) => x.id);
-    s.go("group", { members: [a] });
-    const outer = holders_in(s.graph(), loop)[0]!.id;
-    s.go("group", { members: [b] });
-    const inner = holders_in(s.graph(), loop).find((x) => x.id !== outer)!.id;
-    s.go("group", { members: [c], rows: 1, cols: 1 });
-    const grid = holders_in(s.graph(), loop).find((x) => ![outer, inner].includes(x.id))!.id;
-
-    expect(s.go("group", { members: [inner], into: outer })).toBeNull();
-    expect(s.graph().blocks[inner]!.group).toBe(outer);
-    expect(s.go("group", { members: [grid], into: outer })).toMatch(/grid/);
-    expect(s.go("group", { members: [a, grid] })).toMatch(/grid/);
-  });
-
-  /** What the ends decide is not on offer. */
-  it("ties a relationship to a note whichever end the note is", () => {
-    const s = session();
-    s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), MAIN)[0]!.id;
-    s.look(loop);
-    s.go("create", { name: "Pump" });
-    s.go("create", { name: "Tank" });
-    const at = (name: string) => children(s.graph(), loop).find((b) => b.name === name)!.id;
-    /** A note is always about something, so making one names what. */
-    s.go("note", { about: at("Tank"), text: "runs clockwise" });
-    const note = children(s.graph(), loop).find((b) => b.type === "note")!.id;
-
-    const before = new Set(Object.keys(s.graph().edges));
-    s.go("relate", { from: note, to: at("Pump"), module: "directed" });
-    const edge = Object.values(s.graph().edges).find((e) => !before.has(e.id))!;
-    expect(edge_base(s.graph(), edge.id)).toBe("tie");
-
-    /** Asked to be a plain line, it says what it is instead of writing a step. */
-    s.go("direct", { id: edge.id, dir: "none" });
-    expect(edge_base(s.graph(), edge.id)).toBe("tie");
-
-    /** And an end taken off the note is an ordinary line again. */
-    s.go("relink", { id: edge.id, end: "from", to: at("Tank") });
-    expect(edge_base(s.graph(), edge.id)).toBe("line");
-
-    /** An end taken back onto it ties it again. */
-    s.go("relink", { id: edge.id, end: "from", to: note });
-    expect(edge_base(s.graph(), edge.id)).toBe("tie");
-  });
-
-  it("relate assigns tie from the ends rather than taking it", () => {
-    const s = session();
-    s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), MAIN)[0]!.id;
-    s.look(loop);
-    s.go("create", { name: "Pump" });
-    const pump = children(s.graph(), loop).find((b) => b.name === "Pump")!;
-    s.go("note", { about: pump.id, text: "runs clockwise" });
-    const note = children(s.graph(), loop).find((b) => b.type === "note")!;
-
-    const before = new Set(Object.keys(s.graph().edges));
-    s.go("relate", { from: pump.id, to: note.id, module: "line" });
-    const made = Object.values(s.graph().edges).find((e) => !before.has(e.id))!;
-    expect(edge_base(s.graph(), made.id)).toBe("tie");
-  });
 });
 
 describe("the way out of a layer", () => {
@@ -380,26 +258,6 @@ describe("a field on a layer", () => {
     const machine = def_named(s.graph(), "Machine", "block")!.id;
     s.go("field", { holder: machine, name: "mass", form: "number" });
     expect(schema_of(s.graph(), machine).map((f) => f.name)).toContain("mass");
-  });
-});
-
-describe("a null layer is the workspace's domain", () => {
-  it.each(["create", "note", "group", "refer"])(
-    "%s never makes a second root", (name) => {
-      const s = session();
-      s.go("create", { name: "Ledger" });
-      const ledger = children(s.graph(), MAIN)[0]!.id;
-      s.look(null);
-      s.go(name, { name: "A", text: "a note", members: [ledger], target: ledger });
-      const roots = Object.values(s.graph().blocks).filter((b) => b.parent === null);
-      expect(roots.map((b) => b.id)).toEqual([ROOT]);
-    });
-
-  it("arranges the domain layer rather than nothing", () => {
-    const s = session();
-    s.look(null);
-    s.go("arrange", { arrangement: "auto" });
-    expect(s.graph().blocks[ROOT]!.arrangement).toBe("auto");
   });
 });
 

@@ -1,6 +1,6 @@
 /** What a canvas adjustment writes: the actions and positional changes it comes to. */
 
-import { adjustments, can_hold, grid_of, heading, is_holder, lattice_of, type Args, type Graph,
+import { adjustments, can_hold, grid_of, is_holder, lattice_of, layout_of, type Args, type Graph,
          type Id, type Mutation } from "@mnd/core";
 import { box_of, extent_in, nearest_seat, snap, tidy, BLOCK, PORT, type Scene } from "@mnd/views";
 import type { Adjust } from "./gestures";
@@ -22,9 +22,8 @@ export function moves_of(graph: Graph, scene: Scene, a: Adjust): Move[] {
   const out: Move[] = [];
   /** Moving anything by hand on an `auto` layer hands it to `free`, keeping the positions. */
   const layer = scene.layer;
-  const arranged = graph.blocks[layer ?? graph.root]?.arrangement ?? "free";
-  if (arranged === "auto" && ["place", "move", "wall-seat"].includes(a.kind)) {
-    out.push(act("arrange", { layer, arrangement: "free", at: tidy(graph, layer) }));
+  if (layout_of(graph, layer) !== "free" && ["place", "move", "wall-seat"].includes(a.kind)) {
+    out.push(act("layout", { layer, kind: "free", at: tidy(graph, layer) }));
   }
   return [...out, ...written(graph, scene, a)];
 }
@@ -38,7 +37,7 @@ function placed(id: Id, to: At): Move {
   return { adjust: "place", mutations: adjustments.place([{ id, x: snap(to.x), y: snap(to.y) }]) };
 }
 
-/** The writes for one adjustment, before any change of arrangement. */
+/** The writes for one adjustment, before any change of layout. */
 function written(graph: Graph, scene: Scene, a: Adjust): Move[] {
   /** A corner dragged sizes the card and moves it where a left or top handle moved. */
   if (a.kind === "size") {
@@ -72,29 +71,23 @@ function written(graph: Graph, scene: Scene, a: Adjust): Move[] {
   const held = grid_of(graph, a.on)?.id ?? null;
   const here = a.cell ? a.into : group_at(scene, a.to, drawn ? box_of(drawn) : BLOCK, held);
   const at = a.cell ? `${a.cell.r},${a.cell.c}` : "";
+  /** Leaving a holder is moving onto the layer itself. */
+  const layer = scene.layer ?? graph.root;
+  const into = (parent: Id, cell = "") =>
+    act("move", { ids: [a.on], parent, ...(cell ? { at: cell } : {}) });
 
-  /** A holder is placed by hand, and a group may join or leave another; a grid sits in nothing. */
+  /** A holder is placed by hand, and may go into or out of another. */
   if (is_holder(graph, a.on)) {
-    if (here && here !== held && can_hold(graph, here, a.on)) {
-      return [act("group", { members: [a.on], into: here })];
-    }
-    if (held && held === here) return [];
-    if (held && !here) return [act("leave", { ids: [a.on] }), placed(a.on, a.to)];
+    if (here && here !== held && can_hold(graph, here, a.on)) return [into(here, at)];
+    if (held && held === here) return a.cell ? [into(here, at)] : [];
+    if (held && !here) return [into(layer), placed(a.on, a.to)];
     return [placed(a.on, a.to)];
   }
 
-  /** A header heads a block by a reference to it: one dropped there is referred to, and stays. */
-  const g = here && a.cell ? lattice_of(graph, here) : null;
-  if (g && a.cell && heading(g, a.cell.r, a.cell.c) && !graph.blocks[a.on]?.of) {
-    return [act("refer", { target: a.on, group: here, at })];
-  }
-  const seat = a.cell && here ? act("seat", { id: a.on, group: here, at }) : null;
-
-  /** Where a block came to rest says which group or cell it is in. */
-  if (seat) return [placed(a.on, a.to), seat];
+  /** Where a block came to rest says which holder or cell it is in: a cell, header or body. */
+  if (a.cell && here) return [into(here, at)];
   if (held === here) return [placed(a.on, a.to)];
-  return [placed(a.on, a.to),
-          here ? act("group", { members: [a.on], into: here }) : act("leave", { ids: [a.on] })];
+  return here ? [into(here)] : [into(layer), placed(a.on, a.to)];
 }
 
 /** Which group a drop joins, read from where the block's middle came to rest. */

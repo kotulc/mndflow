@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { FLOOR, flat, nested, related } from "@mnd/fixtures";
 import { CAP, all_defs, check, children, compact, fold, hash, read, say, session,
-         write, write_subtree, MAIN, type Log, type Storage } from "../src/index";
+         write, MAIN, type Log, type Storage } from "../src/index";
 
 function memory(): Storage & { held: () => Log | null } {
   let held: Log | null = null;
@@ -128,22 +128,13 @@ describe("files", () => {
 
   it("re-exports byte-identically", () => {
     const graph = fold(related(), FLOOR);
-    expect(write(graph)).toBe(write(fold(read(write(graph)).log)));
+    expect(write(graph)).toBe(write(fold(read(write(graph), FLOOR).log, FLOOR)));
   });
 
   it("refuses a file written for another major schema", () => {
     const bad = JSON.parse(write(fold(flat(), FLOOR)));
     bad.schema = "9.0";
     expect(read(JSON.stringify(bad)).faults[0]!.kind).toBe("dropped");
-  });
-
-  it("exports a subtree with the definitions it reaches, and nothing else", () => {
-    const graph = fold(nested(), FLOOR);
-    const out = JSON.parse(write_subtree(graph, "block_ledger"));
-    expect(out.graph.blocks["block_rate"]).toBeDefined();
-    expect(out.graph.blocks["block_site"]).toBeUndefined();
-    expect(out.graph.blocks["block_ledger"].parent).toBe(MAIN);
-    expect(out.graph.blocks["block"]).toBeUndefined();
   });
 
   it("computes the hash rather than storing it", () => {

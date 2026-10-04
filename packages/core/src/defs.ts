@@ -3,7 +3,7 @@
 
 import type { Settings } from "./components";
 import { BASE_BLOCKS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, type Block, type BlockModule,
-         type Definition, type FieldDef, type Graph, type Id } from "./types";
+         type Components, type Definition, type FieldDef, type Graph, type Id } from "./types";
 
 /** A definition's domain: what its usages are. Read off its base, never stored. */
 export type Domain = "block" | "relation";
@@ -31,11 +31,46 @@ export function isa(graph: Graph, type: Id | undefined): Definition[] {
   return out;
 }
 
-/** What one component reads for a usage of this definition: the chain, base first. */
-export function config_of(graph: Graph, type: Id | undefined, key: string): Settings {
-  const out: Settings = {};
-  for (const d of isa(graph, type).reverse()) Object.assign(out, d.settings?.[key]);
+/** The traits in force for an element or a definition: the nearest set stated along its chain. A
+ *  set stated replaces its chain's; nobody stating one leaves none. */
+export function traits_of(graph: Graph, id: Id | undefined): Id[] {
+  const it = id ? graph.blocks[id] ?? graph.edges[id] : undefined;
+  if (it?.traits) return it.traits;
+  const chain = it && "def" in it && it.def ? isa(graph, id) : isa(graph, def_of(graph, id!));
+  return chain.find((d) => d.traits)?.traits ?? [];
+}
+
+/** What states settings over an element, nearest first: per link, its own word, then the traits in
+ *  force where that link states them. **Nearest wins.** */
+export function stated(graph: Graph, id: Id | undefined): Components[] {
+  const it = id ? graph.blocks[id] ?? graph.edges[id] : undefined;
+  if (!it) return [];
+  const own_def = "def" in it && !!it.def;
+  const links: { settings?: Components; traits?: Id[] }[] =
+    own_def ? isa(graph, it.id) : [it, ...isa(graph, def_of(graph, it.id))];
+  const out: Components[] = [];
+  const said = links.findIndex((l) => l.traits);
+  links.forEach((l, n) => {
+    if (l.settings) out.push(l.settings);
+    if (n !== said) return;
+    for (const t of l.traits!) {
+      for (const d of isa(graph, t)) if (d.settings) out.push(d.settings);
+    }
+  });
   return out;
+}
+
+/** What one component reads for an element or a definition: every statement over it merged per
+ *  property, nearest first. */
+export function setting_of(graph: Graph, id: Id | undefined, key: string): Settings {
+  const out: Settings = {};
+  for (const c of stated(graph, id).reverse()) Object.assign(out, c[key]);
+  return out;
+}
+
+/** What one component reads for a usage of this definition: its chain and traits, base first. */
+export function config_of(graph: Graph, type: Id | undefined, key: string): Settings {
+  return def_at(graph, type) ? setting_of(graph, type, key) : {};
 }
 
 /** A field list put in the order these names give. */
@@ -85,10 +120,9 @@ export function base_of(graph: Graph, id: Id): Id {
   return base_named(graph, b.def ? b.id : b.type) ?? "block";
 }
 
-/** What a relation descends from, read from its ends: `tie` where an end is a note. */
+/** What a relation descends from: its type's base, a plain `line` where it names none. */
 export function edge_base(graph: Graph, id: Id): Id {
-  const e = graph.edges[id];
-  return e ? derived_base(graph, e.from, e.to) : "line";
+  return relation_base(graph, graph.edges[id]?.type);
 }
 
 /** Which block module interprets this block. A module is engine code; a kind is a definition. */
@@ -116,10 +150,6 @@ export function is_note(graph: Graph, id: Id): boolean {
   return !!graph.blocks[id] && base_of(graph, id) === "note";
 }
 
-/** What a relation between these ends descends from: a tie where an end is a note. */
-export function derived_base(graph: Graph, from: Id, to: Id): Id {
-  return is_note(graph, from) || is_note(graph, to) ? "tie" : "line";
-}
 
 /** What a block definition descends from, defaulting to the plain block. */
 export function block_base(graph: Graph, type: Id | undefined): Id {
@@ -146,15 +176,15 @@ export function def_of(graph: Graph, id: Id): Id | undefined {
   const e = graph.edges[id];
   if (!e) return undefined;
   if (e.type && def_at(graph, e.type)) return e.type;
-  const base = edge_base(graph, id);
-  return def_at(graph, base) ? base : undefined;
+  return def_at(graph, "line") ? "line" : undefined;
 }
 
 /** What an element stores to name this definition: a structural base stores as nothing. */
 export function stored_type(graph: Graph, type: Id | undefined): Id | undefined {
   if (!type) return undefined;
   if (!is_base(type)) return type;
-  if (BASE_RELATIONS.includes(type)) return undefined;
+  if (type === "line") return undefined;
+  if (BASE_RELATIONS.includes(type)) return type;
   return plain_type(base_named(graph, type) ?? "block") ?? undefined;
 }
 
@@ -196,14 +226,21 @@ export function relations(graph: Graph): Definition[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** A definition by what it is called: the workspace's own first. Tags name in their own
- *  namespace (`tag_named`), so a tag and a block definition may share a name. */
+/** A definition by what it is called: the workspace's own first. **One name space per package**:
+ *  definitions, tags and traits share it. */
 export function def_named(graph: Graph, name: string, domain?: Domain): Definition | undefined {
   const want = name.trim();
   if (!want) return undefined;
   const hits = all_defs(graph).filter((d) => d.name === want
-    && (!domain || domain_of(graph, d.id) === domain) && block_base(graph, d.id) !== "tag");
+    && (!domain || domain_of(graph, d.id) === domain));
   return hits.find((d) => !frozen(graph, d.id)) ?? hits[0];
+}
+
+/** Whether a name is taken in a package, by anything but `except`. */
+export function name_taken(graph: Graph, pkg: Id, name: string, except?: Id): boolean {
+  const want = name.trim();
+  return all_defs(graph).some((d) => d.id !== except && d.name === want
+    && package_of(graph, d.id) === pkg);
 }
 
 /** Pinned definitions in pin order — of one domain, or of both where none is named. */
@@ -228,13 +265,90 @@ export function package_named(graph: Graph, said: string | undefined): Block | u
   return roots.find((p) => p.id === want) ?? roots.find((p) => p.name === want);
 }
 
-/** The packages that depend on this one, by root. */
-export function dependents(graph: Graph, pkg: Id): Block[] {
-  return packages(graph).filter((p) => p.uses?.includes(pkg));
+/** The packages a package uses: worked out from every type and trait its blocks and relations
+ *  name, and what those extend. Never stored. */
+export function uses_of(graph: Graph, pkg: Id): Id[] {
+  const out = new Set<Id>();
+  const reach = (type: Id | undefined) => {
+    for (const d of isa(graph, type)) {
+      const home = package_of(graph, d.id);
+      if (home !== pkg) out.add(home);
+    }
+  };
+  for (const b of Object.values(graph.blocks)) {
+    if (package_of(graph, b.id) !== pkg) continue;
+    reach(b.type);
+    for (const t of [...(b.traits ?? []), ...(b.tags ?? [])]) reach(t);
+    if (b.of) { const home = package_of(graph, b.of); if (home !== pkg) out.add(home); }
+  }
+  for (const e of Object.values(graph.edges)) {
+    if (package_of(graph, e.from) !== pkg && package_of(graph, e.to) !== pkg) continue;
+    for (const t of [e.type, ...(e.traits ?? []), ...(e.tags ?? [])]) reach(t);
+  }
+  return [...out].filter((id) => graph.blocks[id]).sort();
 }
 
-/** The bases a block moves among freely; every other base is fixed when it is made. A group or a
- *  grid is a plain block that holds, so it is retyped as freely — what it held waits, dormant. */
+/** The packages that depend on this one, by root. */
+export function dependents(graph: Graph, pkg: Id): Block[] {
+  return packages(graph).filter((p) => p.id !== pkg && uses_of(graph, p.id).includes(pkg));
+}
+
+// ------------------------------------------------------------------- roles by position
+
+/** The root of the tree a block is in: its first ancestor (or itself) that is not a holder, below
+ *  its package. Null for a package root or a holder in a domain. */
+export function tree_of(graph: Graph, id: Id): Id | null {
+  let tree: Id | null = null;
+  const seen = new Set<Id>();
+  for (let at = graph.blocks[id]; at && at.parent !== null && !seen.has(at.id);
+       at = graph.blocks[at.parent]) {
+    seen.add(at.id);
+    if (!holder_kind(graph, at.id)) tree = at.id;
+  }
+  return tree;
+}
+
+/** Whether a block sits in a domain: under its package through holders alone. */
+export function in_domain(graph: Graph, id: Id): boolean {
+  return tree_of(graph, id) === id || (!!graph.blocks[id] && tree_of(graph, id) === null);
+}
+
+/** Whether a block organizes: folder, group or grid by its base, and never a definition. */
+function holder_kind(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  return !!b && !b.def && !b.of && b.side === undefined
+    && ["folder", "group", "grid"].includes(base_of(graph, id));
+}
+
+/** The definition a block sits in the structure of, where one is above it. */
+export function owner_def(graph: Graph, id: Id): Id | null {
+  const seen = new Set<Id>();
+  for (let at = graph.blocks[graph.blocks[id]?.parent ?? ""]; at && !seen.has(at.id);
+       at = graph.blocks[at.parent ?? ""]) {
+    seen.add(at.id);
+    if (at.def) return at.id;
+  }
+  return null;
+}
+
+/** Whether placing a usage of `type` under `parent` would make a definition use itself. */
+export function self_use(graph: Graph, parent: Id | null, type: Id | undefined): boolean {
+  if (!parent || !type) return false;
+  const seen = new Set<Id>();
+  for (let at = graph.blocks[parent]; at && !seen.has(at.id); at = graph.blocks[at.parent ?? ""]) {
+    seen.add(at.id);
+    if (at.def && at.id === type) return true;
+  }
+  return false;
+}
+
+/** Whether `def` extending `type` would close a cycle: `type` is it, or extends it. */
+export function closes_cycle(graph: Graph, def: Id, type: Id | undefined): boolean {
+  return !!type && (type === def || isa(graph, type).some((d) => d.id === def));
+}
+
+/** The bases a block moves among freely; every other base is fixed when it is made. A folder,
+ *  group or grid is the plain block drawing what it holds another way, so it is retyped as freely. */
 const OPEN: readonly Id[] = ["block", "folder", "note", "group", "grid"];
 
 /** Whether this block may be told to name that definition. */

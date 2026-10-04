@@ -10,7 +10,7 @@ const NONE: readonly Id[] = [];
 
 export type ViewerProps = {
   graph: Graph;
-  /** Which layer to draw. The root layer unless said otherwise. */
+  /** Which layer to draw: the workspace's domain unless said otherwise; null draws the forest. */
   layer?: Id | null;
   /** Which blocks are lit, without moving the layer. */
   picked?: readonly Id[];
@@ -66,10 +66,12 @@ export type ViewerProps = {
   onTrail?: (id: string | null) => void;
 };
 
-export function Viewer({ graph, layer = null, picked = NONE, lit: pointed = NONE, config, card, full = false, chrome,
+export function Viewer({ graph, layer: said, picked = NONE, lit: pointed = NONE, config, card, full = false, chrome,
                         onLook, onPick, onOpen, onFollow, fields = null, onFields, scroll = false,
                         focus = null, reach = null, widest = null, most = null, trail = null,
                         onTrail }: ViewerProps) {
+  /** Unsaid, the workspace's own domain; null is the forest above every package. */
+  const layer = said === undefined ? graph.root : said;
   const [at, set_at] = driven<Id | null>(layer);
   const [lit, set_lit] = driven<readonly Id[]>(picked);
 

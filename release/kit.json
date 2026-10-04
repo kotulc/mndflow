@@ -1,8 +1,8 @@
 {
-  "tarball": "mnd-kit-0.10.0.tgz",
-  "version": "0.10.0",
-  "commit": "dcc14967ba99f02d8fd0e06577357947af0782f4",
-  "branch": "reader-scroll-camera",
-  "packed": "2026-09-29",
-  "integrity": "sha512-yjOS7n8lq3U9h/uTj8Y3r5Ua32BuaB3mk7rGWrIFC529ZhWfzrPoT3SSvF9I0awLiz5B5w9QRnHMiJGFe015eA=="
+  "tarball": "mnd-kit-0.11.0.tgz",
+  "version": "0.11.0",
+  "commit": "c0a0e6037483fdbef4d1e577318e5109c5c45a5e",
+  "branch": "align-mndmap-workspace",
+  "packed": "2026-10-04",
+  "integrity": "sha512-IbHq2mZEnmH2kXTTWiXy9NjeW7LNUP2h+peG9OqJ2hFKPW77h7odVoeQpMThkvWCqpSStK7URGtlpHglHu2EGQ=="
 }

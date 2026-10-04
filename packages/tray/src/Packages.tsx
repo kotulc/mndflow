@@ -51,7 +51,7 @@ export function Packages({ graph, offered = [], onAct }: PackagesProps) {
               {shipped ? <span className="from">shipped</span> : null}
               <button className="drop" disabled={shipped}
                       title={shipped ? "the floor stays" : `drop ${p.name}`}
-                      onClick={() => onAct("remove_package", { id: p.id })}>
+                      onClick={() => onAct("delete", { ids: [p.id] })}>
                 <Icon name="remove" />
               </button>
             </Line>

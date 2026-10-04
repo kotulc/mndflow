@@ -24,7 +24,7 @@ const OFFERED: Record<string, Offer[]> = {
   "a layer is open": [
     { name: "create", about: "makes a block here and names it" },
     { name: "note", about: "puts a note here saying what you typed" },
-    { name: "arrange", about: "lays the layer out, reading one way" },
+    { name: "layout", about: "lays the layer out, reading one way" },
     { name: "vocabulary", about: "which packages this layer draws on" },
     { name: "up", about: "leaves the open layer for the one containing it" },
   ],

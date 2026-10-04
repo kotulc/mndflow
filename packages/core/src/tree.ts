@@ -1,6 +1,9 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import type { Arrangement, Block, Definition, Graph, Id, Relation } from "./types";
+import { setting_of } from "./defs";
+import { drawn_in } from "./holders";
+import { LAYOUTS, type Block, type Definition, type Graph, type Id, type Layout,
+         type Relation } from "./types";
 
 
 /** Every block under this one, itself included. */
@@ -15,16 +18,11 @@ export function subtree(graph: Graph, id: Id): Id[] {
   return out;
 }
 
-/** A null layer is the root layer. */
-export function layer_id(graph: Graph, layer: Id | null): Id {
-  return layer ?? graph.root;
-}
-
 /** What a gesture is about: the one element picked, else the open layer. Picking several, or
  *  nothing, leaves the layer to answer — **one rule, so every view is about the same thing**. */
 export function about_of(graph: Graph, layer: Id | null, picked: readonly Id[]): Id {
   const one = picked.length === 1 ? picked[0]! : null;
-  return one && (graph.blocks[one] ?? graph.edges[one]) ? one : layer_id(graph, layer);
+  return one && (graph.blocks[one] ?? graph.edges[one]) ? one : layer ?? graph.root;
 }
 
 /** What a listing frames: the block in context, else the open layer. **A block frames its own
@@ -34,11 +32,10 @@ export function frame_of(graph: Graph, layer: Id | null, about: Id): Id | null {
   return graph.blocks[about] && about !== graph.root ? about : layer;
 }
 
-/** The direct children of a layer, in a stable order. */
+/** What a block holds, in a stable order. Null holds the package roots. */
 export function children(graph: Graph, layer: Id | null): Block[] {
-  const here = layer_id(graph, layer);
   return Object.values(graph.blocks)
-    .filter((b) => b.parent === here)
+    .filter((b) => b.parent === layer)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
 }
 
@@ -135,16 +132,18 @@ export function owner_of(graph: Graph, id: Id): Id {
 }
 
 /** Relations with both ends drawn in this layer. */
-export function edges_in(graph: Graph, layer: Id | null): Relation[] {
-  const here = new Set(children(graph, layer).map((b) => b.id));
-  const room = layer_id(graph, layer);
-  const drawn = (id: Id) => here.has(owner_of(graph, id)) || owner_of(graph, id) === room;
+export function edges_in(graph: Graph, layer: Id | null, flat = false): Relation[] {
+  const here = new Set(drawn_in(graph, layer, flat).map((b) => b.id));
+  const drawn = (id: Id) => here.has(owner_of(graph, id)) || (!!layer && owner_of(graph, id) === layer);
   return Object.values(graph.edges)
     .filter((e) => drawn(e.from) && drawn(e.to))
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** The layer's arrangement. `free` is what a layer says nothing about. */
-export function arrangement_of(graph: Graph, layer: Id | null): Arrangement {
-  return graph.blocks[layer_id(graph, layer)]?.arrangement ?? "free";
+/** How a layer lays out: its own word, else its definition's. `free` is what nobody said, and a
+ *  kind this build does not know draws as `auto`. */
+export function layout_of(graph: Graph, layer: Id | null): Layout {
+  const kind = layer ? setting_of(graph, layer, "layout")["kind"] : undefined;
+  if (kind === undefined) return "free";
+  return LAYOUTS.includes(kind as Layout) ? kind as Layout : "auto";
 }

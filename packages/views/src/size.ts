@@ -150,7 +150,7 @@ function ranged(n: number, low: number, high: number): number {
 /** Whether a block is seated in a grid rather than placed beside one. */
 export function gridded(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
-  return !!b?.cell && is_grid(graph, b.group);
+  return !!b?.cell && is_grid(graph, b.parent ?? undefined);
 }
 
 /** What this block needs. Every card is the one card size; a card whose definition asked for its

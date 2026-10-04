@@ -58,7 +58,7 @@ const INERT = ["note"];
 /** What a card's menu lists besides the shared box actions. */
 function box_offers(): readonly (string | Entry)[] {
   return [{ name: "rename", label: "rename block" }, "open", "interface", "note",
-          "leave", { name: "delete", label: "delete block" }];
+          { name: "delete", label: "delete block" }];
 }
 
 /** Turning a grid's header lines on and off, worded for how they are now. */
@@ -212,12 +212,12 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     /** A note is a remark, not a block. */
     note: [{ name: "rename", label: "rename note" },
            { name: "delete", label: "delete note" }],
-    box: ["rename", "open", "interface", "note", "leave", "delete"],
+    box: ["rename", "open", "interface", "note", "delete"],
     seat: ["rename", "open", "interface", "note", "delete"],
     /** A group and a grid write their name on the frame when told to. */
     band: [{ name: "rename", label: "rename group" }, "open", "note", "fill",
            { name: "chain", args: drawing },
-           "leave", { name: "delete", label: "delete group" }],
+           { name: "delete", label: "delete group" }],
     /** A cell offers what can be done to the lattice there. */
     cell: [
       { name: "label", label: "label cell" },
@@ -233,7 +233,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     /** Replaced per run by `wire_offers`, and per grip by `promote_offers`. */
     route: ["rename", "delete"],
     /** The room's wall offers what a card's border does. */
-    frame: ["rename", "open", "interface", "note", "leave", "delete"],
+    frame: ["rename", "open", "interface", "note", "delete"],
   };
 
   /** Asks for a cell's plain value, starting from what it says now. */
@@ -245,7 +245,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   };
 
   /** What a selection of several offers. */
-  const MANY: readonly (string | Entry)[] = ["group", "leave", "delete"];
+  const MANY: readonly (string | Entry)[] = ["group", "delete"];
 
   const gesture = (g: Gesture) => {
     /** Left clicks on cells are the lattice's own; two write the cell's label. */

@@ -1,6 +1,7 @@
-/** Groups and grids: which blocks hold, membership, cells, merges, headers and allocation. */
+/** Holders: folders, groups and grids, what each draws, cells, merges, headers and allocation. */
 
 import { allows_of, permits } from "./capabilities";
+import { base_of } from "./defs";
 import { children, stands_for } from "./tree";
 import type { Block, Cell, Graph, Grid, HeaderRole, Id, Shape, Span } from "./types";
 
@@ -24,14 +25,13 @@ export function covers(s: Span, r: number, c: number): boolean {
   return r >= s.r && r < s.r + s.rows && c >= s.c && c < s.c + s.cols;
 }
 
-/** Which holder a block is, or null: what its definition's capability says. A definition boxes
- *  only what it organizes: one with no members is a template, never an allocation, so it is no
- *  holder until something sits in it. */
+/** Which inline holder a block is, or null: what its base says. **A definition always draws as a
+ *  card**, so it is never one, whatever it extends. */
 export function shape_of(graph: Graph, id: Id | undefined): Shape | null {
-  if (!id || !graph.blocks[id]) return null;
-  if (graph.blocks[id]!.def && !Object.values(graph.blocks).some((b) => b.group === id)) return null;
-  const said = allows_of(graph, id).holder;
-  return said === "group" || said === "grid" ? said : null;
+  const b = id ? graph.blocks[id] : undefined;
+  if (!b || b.def || b.of || b.side !== undefined) return null;
+  const base = base_of(graph, b.id);
+  return base === "group" || base === "grid" ? base : null;
 }
 
 /** Whether this is a grid — a region with an extent and cells to seat in. */
@@ -39,14 +39,59 @@ export function is_grid(graph: Graph, id: Id | undefined): boolean {
   return shape_of(graph, id) === "grid";
 }
 
-/** Whether this is a boundary — a dashed rim round its members. */
+/** Whether this is a boundary — a rim round what it holds. */
 export function is_group(graph: Graph, id: Id | undefined): boolean {
   return shape_of(graph, id) === "group";
 }
 
-/** Whether this holds blocks, either way. */
+/** Whether this draws what it holds inline, either way. */
 export function is_holder(graph: Graph, id: Id | undefined): boolean {
   return shape_of(graph, id) !== null;
+}
+
+/** Whether a block is a folder: a holder that hides what it holds. */
+export function is_folder(graph: Graph, id: Id | undefined): boolean {
+  const b = id ? graph.blocks[id] : undefined;
+  return !!b && !b.def && base_of(graph, b.id) === "folder";
+}
+
+/** Whether a block organizes: a folder, a group or a grid. */
+export function organizes(graph: Graph, id: Id | undefined): boolean {
+  return is_holder(graph, id) || is_folder(graph, id);
+}
+
+/** Whether a block draws what it holds on the layer it sits on, rather than behind its card.
+ *  Flattened, a folder does too. */
+export function inline(graph: Graph, id: Id | undefined, flat = false): boolean {
+  return is_holder(graph, id) || (flat && is_folder(graph, id));
+}
+
+/** The layer a block draws on: its nearest ancestor that hides what it holds. */
+export function layer_of(graph: Graph, id: Id, flat = false): Id | null {
+  let at = graph.blocks[id]?.parent ?? null;
+  const seen = new Set<Id>();
+  while (at && !seen.has(at) && inline(graph, at, flat)) {
+    seen.add(at);
+    at = graph.blocks[at]?.parent ?? null;
+  }
+  return at;
+}
+
+/** Every block a layer draws, in reading order: what it holds, and what its inline holders hold,
+ *  however deep. Flattened, folders draw what they hold too. */
+export function drawn_in(graph: Graph, layer: Id | null, flat = false): Block[] {
+  const out: Block[] = [];
+  const seen = new Set<Id>();
+  const walk = (parent: Id | null) => {
+    for (const b of children(graph, parent)) {
+      if (seen.has(b.id)) continue;
+      seen.add(b.id);
+      out.push(b);
+      if (inline(graph, b.id, flat)) walk(b.id);
+    }
+  };
+  walk(layer);
+  return out;
 }
 
 /** A grid's lattice, with the default extent where it said none; null where it is not a grid. */
@@ -55,38 +100,37 @@ export function lattice_of(graph: Graph, id: Id | undefined): Grid | null {
   return { ...GRID, ...graph.blocks[id]!.grid };
 }
 
-/** Every holder drawn in one layer, in a stable order. */
-export function holders_in(graph: Graph, layer: Id | null): Block[] {
-  return children(graph, layer).filter((b) => is_holder(graph, b.id));
+/** Every inline holder drawn in one layer, in a stable order. */
+export function holders_in(graph: Graph, layer: Id | null, flat = false): Block[] {
+  return drawn_in(graph, layer, flat).filter((b) => inline(graph, b.id, flat));
 }
 
-/** The holder a block sits in, or null — a dormant membership, in a block that no longer holds,
- *  answers nothing. */
+/** The inline holder a block sits in, or null. */
 export function grid_of(graph: Graph, id: Id): Block | null {
-  const at = graph.blocks[id]?.group;
+  const at = graph.blocks[id]?.parent;
   return at && is_holder(graph, at) ? graph.blocks[at]! : null;
 }
 
 /** Where a block sits in its grid, or null. */
 export function cell_of(graph: Graph, id: Id): Cell | null {
   const b = graph.blocks[id];
-  return b?.cell && is_grid(graph, b.group) ? { ...b.cell } : null;
+  return b?.cell && is_grid(graph, b.parent ?? undefined) ? { ...b.cell } : null;
 }
 
-/** The holders enclosing a block, nearest first. */
+/** The inline holders enclosing a block, nearest first. */
 export function holders_over(graph: Graph, id: Id): Block[] {
   const out: Block[] = [];
   const seen = new Set<Id>([id]);
-  let at = graph.blocks[id]?.group;
+  let at = graph.blocks[id]?.parent;
   while (at && !seen.has(at) && is_holder(graph, at)) {
     seen.add(at);
     out.push(graph.blocks[at]!);
-    at = graph.blocks[at]!.group;
+    at = graph.blocks[at]!.parent;
   }
   return out;
 }
 
-/** How many holders enclose a block — zero for one sitting on the layer. */
+/** How many inline holders enclose a block — zero for one sitting on the layer. */
 export function group_depth(graph: Graph, id: Id): number {
   return holders_over(graph, id).length;
 }
@@ -101,35 +145,24 @@ export function group_head(graph: Graph, group: Id | undefined): Id | null {
 
 /** The group a block heads, where it heads one. */
 export function headed_group(graph: Graph, id: Id): Id | null {
-  const group = graph.blocks[id]?.group;
+  const group = graph.blocks[id]?.parent;
   return group && group_head(graph, group) === id ? group : null;
 }
 
-/** Everything a holder holds, in the layer's stable order. */
+/** Everything an inline holder holds, in order. */
 export function members_of(graph: Graph, group: Id): Block[] {
   if (!is_holder(graph, group)) return [];
-  return Object.values(graph.blocks)
-    .filter((b) => b.group === group && b.id !== group)
-    .sort(by_order);
+  return children(graph, group).filter((b) => b.side === undefined);
 }
 
-/** Whether `holder` may contain `id`: on the same layer, not itself and not a cycle. **Only a group
- *  nests**: a group may sit in a group, and a grid sits in nothing and seats no holder. */
+/** Whether `holder` may take `id`: an inline holder, not itself, and not a cycle. Any block may
+ *  sit in a group or a cell; what it may be is its settings' to say. */
 export function can_hold(graph: Graph, holder: Id, id: Id): boolean {
   const h = graph.blocks[holder];
   const b = graph.blocks[id];
   if (!h || !b || holder === id || !is_holder(graph, holder)) return false;
-  if (h.parent !== b.parent) return false;
-  /** A holder joins only a group, and a grid joins nothing — among usages. A definition is
-   *  organized, never allocated, so any one may sit in a group. */
-  const shape = b.def ? null : shape_of(graph, id);
-  if (shape && (shape === "grid" || !is_group(graph, holder))) return false;
-  let at: Id | undefined = holder;
-  const seen = new Set<Id>();
-  while (at && !seen.has(at)) {
+  for (let at: Id | null | undefined = holder; at; at = graph.blocks[at]?.parent) {
     if (at === id) return false;
-    seen.add(at);
-    at = graph.blocks[at]?.group;
   }
   return true;
 }
@@ -168,7 +201,7 @@ export function one_side(g: Grid, s: Span): boolean {
 /** Which line a seated block heads, or null where it sits in the body or nowhere. */
 export function head_of(graph: Graph, id: Id): HeaderRole | null {
   const b = graph.blocks[id];
-  const g = lattice_of(graph, b?.group);
+  const g = lattice_of(graph, b?.parent ?? undefined);
   return g && b?.cell ? heading(g, b.cell.r, b.cell.c) : null;
 }
 
@@ -180,8 +213,8 @@ export function is_header(graph: Graph, id: Id): boolean {
 /** The region a seated block occupies: the merge covering its address, or its one cell. */
 export function region_of(graph: Graph, id: Id): Span | null {
   const b = graph.blocks[id];
-  if (!b?.cell || !is_grid(graph, b.group)) return null;
-  return merge_at(graph, b.group!, b.cell.r, b.cell.c) ?? { ...b.cell, rows: 1, cols: 1 };
+  if (!b?.cell || !is_grid(graph, b.parent ?? undefined)) return null;
+  return merge_at(graph, b.parent!, b.cell.r, b.cell.c) ?? { ...b.cell, rows: 1, cols: 1 };
 }
 
 /** Whether two runs along one axis share any line. */
@@ -195,7 +228,7 @@ function headers_over(graph: Graph, id: Id): Block[] {
   const me = region_of(graph, id);
   if (!me || is_header(graph, id)) return [];
   const out: Block[] = [];
-  for (const h of members_of(graph, graph.blocks[id]!.group!)) {
+  for (const h of members_of(graph, graph.blocks[id]!.parent!)) {
     const role = head_of(graph, h.id);
     const at = region_of(graph, h.id);
     if (!at || role === null || role === "both") continue;

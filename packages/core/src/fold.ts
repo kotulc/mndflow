@@ -1,4 +1,4 @@
-/** Mutation replay: a log folded into a graph over the shipped floor. */
+/** Mutation replay: a log folded into a graph over the packages it starts from. */
 
 import { DRAWN } from "./components";
 import { ordered_by } from "./defs";
@@ -8,20 +8,6 @@ import { empty_graph, type Block, type Graph, type Id, type Log, type Mutation,
 
 /** The shipped packages every fold starts from: their blocks, laid under whatever a log says. */
 export type Floor = readonly Block[];
-
-/** A block leaving its holder leaves its address there too. */
-function leave(b: Block): void {
-  delete b.group;
-  delete b.cell;
-}
-
-/** Members whose holder is gone, or is no longer on their layer, sit loose. */
-function freed(graph: Graph, holder: Id): void {
-  const h = graph.blocks[holder];
-  for (const b of Object.values(graph.blocks)) {
-    if (b.group === holder && (!h || h.parent !== b.parent)) leave(b);
-  }
-}
 
 /** Every relation with an end on this block goes with it. */
 function drop_edges(graph: Graph, id: Id): void {
@@ -55,25 +41,21 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     }
     case "delete_block": {
-      /** A holder that goes frees what it held rather than taking it along. */
-      const gone = subtree(graph, m.id);
-      for (const id of gone) {
+      /** A block goes with everything under it, holders included. */
+      for (const id of subtree(graph, m.id)) {
         delete graph.blocks[id];
         drop_edges(graph, id);
       }
-      freed(graph, m.id);
       return;
     }
     case "move_block": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      /** Leaving a layer drops the block's place and group there, and what it held there. */
+      /** Leaving a parent drops the place and the cell it had there. */
       if (b.parent !== m.parent) {
-        delete b.x; delete b.y;
-        leave(b);
+        delete b.x; delete b.y; delete b.cell;
       }
       b.parent = m.parent;
-      freed(graph, m.id);
       return;
     }
     case "order_block": {
@@ -126,14 +108,6 @@ function apply(graph: Graph, m: Mutation): void {
       const b = graph.blocks[m.id];
       if (!b) return;
       if (m.source) b.source = m.source; else delete b.source;
-      return;
-    }
-    case "set_group": {
-      const b = graph.blocks[m.id];
-      if (!b) return;
-      /** An address is the grid's, so leaving one drops it. */
-      if (m.group === null) leave(b);
-      else if (b.group !== m.group) { delete b.cell; b.group = m.group; }
       return;
     }
     case "seat_cell": {
@@ -235,6 +209,14 @@ function apply(graph: Graph, m: Mutation): void {
       if (kept.length) b.tags = kept; else delete b.tags;
       return;
     }
+    case "set_traits": {
+      const b = element(graph, m.id);
+      if (!b) return;
+      /** Null gives the set back to the chain; an empty list says none. */
+      if (m.traits === null) delete b.traits;
+      else b.traits = [...new Set(m.traits.filter(Boolean))];
+      return;
+    }
     /** Gives back the drawing settings of whichever element the id names. */
     case "drop_settings": {
       const it = element(graph, m.id);
@@ -253,11 +235,6 @@ function apply(graph: Graph, m: Mutation): void {
       const settings = { ...(it.settings ?? {}) };
       if (Object.keys(held).length) settings[m.key] = held; else delete settings[m.key];
       if (Object.keys(settings).length) it.settings = settings; else delete it.settings;
-      return;
-    }
-    case "set_arrangement": {
-      const b = graph.blocks[m.layer];
-      if (b) b.arrangement = m.arrangement;
       return;
     }
   }

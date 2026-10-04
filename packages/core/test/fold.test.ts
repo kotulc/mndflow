@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, flat, nested, related } from "@mnd/fixtures";
-import { arrangement_of, children, config_of, edges_in, fold, is_container, is_reference,
+import { children, config_of, edges_in, fold, is_container, is_reference, layer_of, layout_of,
          block_base, base_of, next_order, path, session,
          shown_name, stands_for, subtree, MAIN, ROOT, type Block } from "../src/index";
 
@@ -67,22 +67,15 @@ describe("derived readings", () => {
   it("lists only relations with both ends in the layer", () => {
     const graph = fold(related(), FLOOR);
     for (const e of edges_in(graph, "block_loop")) {
-      expect(graph.blocks[e.from]?.parent).toBe("block_loop");
-      expect(graph.blocks[e.to]?.parent).toBe("block_loop");
+      expect(layer_of(graph, e.from)).toBe("block_loop");
+      expect(layer_of(graph, e.to)).toBe("block_loop");
     }
   });
 
-  it("gives a layer that says nothing the free arrangement", () => {
+  it("gives a layer that says nothing the free layout", () => {
     const graph = fold(flat(), FLOOR);
-    expect(arrangement_of(graph, "block_ledger")).toBe("free");
-    expect(arrangement_of(fold(related(), FLOOR), "block_loop")).toBe("auto");
-  });
-
-  it("reads a null layer as the workspace's domain, and never as the root itself", () => {
-    const graph = fold(nested(), FLOOR);
-    expect(children(graph, null).map((b) => b.id)).toContain(MAIN);
-    expect(children(graph, null).map((b) => b.id)).not.toContain(ROOT);
-    expect(children(graph, null)).toEqual(children(graph, ROOT));
+    expect(layout_of(graph, "block_ledger")).toBe("free");
+    expect(layout_of(fold(related(), FLOOR), "block_loop")).toBe("auto");
   });
 
   it("takes the lowest number not in use among siblings", () => {
@@ -99,9 +92,9 @@ describe("references", () => {
     s.go("create", { name: "Auth", parent: ledger });
     const auth = children(s.graph(), ledger)[0]!.id;
 
-    s.look(null);
+    s.look(ROOT);
     s.go("refer", { target: auth });
-    const ref = children(s.graph(), null).find((b) => is_reference(b))!;
+    const ref = children(s.graph(), ROOT).find((b) => is_reference(b))!;
 
     expect(shown_name(s.graph(), ref.id)).toBe("Auth");
     expect(stands_for(s.graph(), ref.id)?.id).toBe(auth);

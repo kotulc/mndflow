@@ -1,8 +1,8 @@
 /** Where everything in a layer sits. */
 
-import { arrangement_of, children, is_group, is_interface, layer_id,
+import { children, drawn_in, is_group, is_interface, layout_of,
          type Block, type Graph, type Id } from "@mnd/core";
-import { band_members, band_size, celled, in_band, loose_unit, type Sized } from "./bands";
+import { band_members, band_size, celled, loose_unit, type Sized } from "./bands";
 import { is_satellite, pack_units, seat_satellites } from "./pack";
 import { gridded, size_of, snap, GAP, UNIT, type Size } from "./size";
 
@@ -13,10 +13,10 @@ type Rect = { x: number; y: number; w: number; h: number };
 
 /** Every block drawn in this layer, placed. */
 export function laid(graph: Graph, layer: Id | null): Placed[] {
-  const units = children(graph, layer).filter((b) => !is_interface(b));
+  const units = drawn_in(graph, layer).filter((b) => !is_interface(b));
   if (units.length === 0) return [];
   const loose = loose_units(graph, layer);
-  const how = arrangement_of(graph, layer);
+  const how = layout_of(graph, layer);
   const unit = (id: Id) => loose_unit(graph, id);
   const structural = loose.filter((b) => !is_satellite(graph, layer, b));
   const satellites = loose.filter((b) => is_satellite(graph, layer, b))
@@ -25,9 +25,8 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
   const sized: Sized[] = structural.map((b) => ({
     b, s: is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   }));
-  const structural_spots = how === "auto"
-    ? centred(pack_units(graph, layer, sized, unit))
-    : free(sized);
+  const structural_spots = how === "free" ? free(sized)
+    : centred(pack_units(graph, layer, sized, unit));
 
   /** Bands first, then cells: a grid in a band takes its spot from the band. */
   const band_spots = band_members(graph, layer, how, units, structural_spots);
@@ -83,8 +82,9 @@ function free(all: Sized[]): Placed[] {
 /** The tidy: auto-layout written as ordinary placements, so `free` can keep it. */
 export function tidy(graph: Graph, layer: Id | null): { id: Id; x: number; y: number }[] {
   const g: Graph = structuredClone(graph);
-  const lid = layer_id(g, layer);
-  if (g.blocks[lid]) g.blocks[lid]!.arrangement = "auto";
+  const lid = layer ?? g.root;
+  const at = g.blocks[lid];
+  if (at) at.settings = { ...at.settings, layout: { ...at.settings?.["layout"], kind: "auto" } };
   const loose = loose_units(g, layer);
   const loose_ids = new Set(loose.map((b) => b.id));
   for (const b of loose) {
@@ -153,5 +153,5 @@ export function boundary(spots: readonly Placed[], members: readonly Id[]): Plac
 
 function loose_units(graph: Graph, layer: Id | null): Block[] {
   return children(graph, layer)
-    .filter((b) => !is_interface(b) && !gridded(graph, b.id) && !in_band(graph, b.id));
+    .filter((b) => !is_interface(b) && (b.parent === layer || !gridded(graph, b.id)));
 }

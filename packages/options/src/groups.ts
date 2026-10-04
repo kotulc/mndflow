@@ -1,4 +1,4 @@
-import { ARRANGEMENTS, type Act, type Arrangement, type Dir } from "@mnd/core";
+import { LAYOUTS, type Act, type Dir, type Layout } from "@mnd/core";
 import type { IconName } from "@mnd/theme";
 
 /** One control. **One icon, lit or not** — a setting draws the same mark whichever way it is
@@ -27,7 +27,7 @@ export type Group = {
 export type Chrome = {
   /** Which groups the projection offers. */
   slots: readonly string[];
-  arrangement?: Arrangement;
+  layout?: Layout;
   /** Whether the backdrop draws the lattice everything lands on. */
   lattice?: boolean;
   interfaces?: boolean;
@@ -44,18 +44,21 @@ export type Chrome = {
 };
 
 /** How a layer places what it holds. */
-const LAYOUT: Record<Arrangement, { icon: IconName; tip: string }> = {
+const LAYOUT: Record<Layout, { icon: IconName; tip: string }> = {
   free: { icon: "layout_free", tip: "Hand placement is what draws" },
   auto: { icon: "layout_grid", tip: "Auto-layout: related blocks share a row, a unit of air between everything" },
+  outline: { icon: "parts", tip: "Outline: headed groups down the page, each one's members beside its head" },
 };
 
-/** What a right drag may draw: a line, straight or directed. */
+/** What a right drag may draw: a line, straight or directed, or a tie. */
 const LINES: { key: string; module: string; dir?: Dir;
                icon: IconName; word: string; tip: string }[] = [
   { key: "plain", module: "line", icon: "relation_plain", word: "straight",
     tip: "A right drag makes a plain line" },
   { key: "directed", module: "line", dir: "forward", icon: "relation_directed",
     word: "directed", tip: "A right drag makes a line that points" },
+  { key: "tie", module: "tie", icon: "relation_tie", word: "tie",
+    tip: "A right drag makes a tie: a dashed run with no heads" },
 ];
 
 /** The standard groups, from the slots a projection declared. */
@@ -67,10 +70,10 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
   if (has("layer")) {
     out.push({
       key: "layer", label: "layer",
-      controls: ARRANGEMENTS.map((how): Control => ({
+      controls: LAYOUTS.map((how): Control => ({
         key: how, icon: LAYOUT[how].icon, word: how, tip: LAYOUT[how].tip,
-        on: (chrome.arrangement ?? "free") === how,
-        run: () => act("arrange", { arrangement: how }),
+        on: (chrome.layout ?? "free") === how,
+        run: () => act("layout", { kind: how }),
       })),
     });
   }

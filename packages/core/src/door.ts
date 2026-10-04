@@ -1,9 +1,9 @@
 /** The one door a log comes in through. */
 
 import { component } from "./components";
-import { all_defs, def_at, domain_of, is_base, package_of, packages } from "./defs";
+import { all_defs, def_at, is_base, package_of, packages } from "./defs";
 import { fold, type Floor } from "./fold";
-import { can_hold, covers, inside, is_holder, lattice_of, one_side, overlaps } from "./holders";
+import { covers, inside, lattice_of, one_side, overlaps } from "./holders";
 import { subtree } from "./tree";
 import { new_id } from "./ids";
 import { MAIN, type Graph, type Grid, type Id, type Log, type Mutation, type Span,
@@ -24,10 +24,10 @@ export type Inspection = { faults: Fault[]; repairs: Mutation[] };
 const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
   "place_block", "order_block", "set_alias", "set_counter", "set_pinned", "size_block",
-  "set_body", "set_schema", "set_group", "seat_cell", "set_grid", "link_blocks",
+  "set_body", "set_schema", "seat_cell", "set_grid", "link_blocks",
   "update_edge", "delete_edge", "set_dir", "flip_edge", "set_end", "set_port",
   "set_side", "mark_port", "set_value", "drop_value", "order_values", "set_source",
-  "set_arrangement", "set_tags", "set_setting", "drop_settings",
+  "set_tags", "set_traits", "set_setting", "drop_settings",
 ]);
 
 /** Read a log in, repairing what it can. Nothing writes into the shipped floor. */
@@ -146,38 +146,24 @@ export function inspect(graph: Graph): Inspection {
 
 type Say = (kind: Fault["kind"], what: string, ...mend: Mutation[]) => void;
 
-/** Membership on the block's own layer, in something that may hold it; one block per cell,
- *  inside its grid; and a lattice that says only what its extent can carry. **A block that stops
- *  holding keeps what it held, dormant**, so taking a capability away and giving it back loses
- *  nothing. */
+/** A seated block sits in a grid, inside its extent, one to a cell; and a lattice says only what
+ *  its extent can carry. A repair unseats, never deletes. */
 function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
   const taken = new Set<string>();
   for (const b of Object.values(graph.blocks)) {
-    if (!b.group) {
-      if (b.cell) say("repaired", `"${name(b.id)}" had a cell and no group`, { op: "seat_cell", id: b.id, cell: null });
-      continue;
-    }
-    const h = graph.blocks[b.group];
-    const wrong = !h || h.parent !== b.parent || (is_holder(graph, h.id) && !can_hold(graph, h.id, b.id));
-    if (wrong) {
-      say("repaired", `"${name(b.id)}" was in a group that cannot hold it`, { op: "set_group", id: b.id, group: null });
-      continue;
-    }
-    /** A member of a grid sits in a cell, or it is not a member at all. */
-    const g = lattice_of(graph, b.group);
-    if (!g) continue;
-    if (!b.cell) {
-      say("repaired", `"${name(b.id)}" was in "${name(b.group)}" with no cell`,
-          { op: "set_group", id: b.id, group: null });
+    if (!b.cell) continue;
+    const g = lattice_of(graph, b.parent ?? undefined);
+    if (!g) {
+      say("repaired", `"${name(b.id)}" had a cell outside a grid`, { op: "seat_cell", id: b.id, cell: null });
       continue;
     }
     const { r, c } = b.cell;
     const outside = !inside(g, b.cell);
     const at = g.merges?.find((s) => covers(s, r, c));
-    const key = `${b.group}|${at ? at.r : r}|${at ? at.c : c}`;
+    const key = `${b.parent}|${at ? at.r : r}|${at ? at.c : c}`;
     if (outside || taken.has(key)) {
-      say("repaired", `"${name(b.id)}" sat ${outside ? "outside" : "on top of something in"} "${name(b.group)}"`,
-          { op: "set_group", id: b.id, group: null });
+      say("repaired", `"${name(b.id)}" sat ${outside ? "outside" : "on top of something in"} "${name(b.parent!)}"`,
+          { op: "seat_cell", id: b.id, cell: null });
       continue;
     }
     taken.add(key);
@@ -223,12 +209,13 @@ function definitions(graph: Graph, say: Say): void {
   }
 }
 
-/** A definition is found by its name, so no two of one domain in one package may share one. */
+/** A definition is found by its name, so no two in one package may share one: definitions, tags
+ *  and traits share the name space. */
 function named_defs(graph: Graph, say: Say): void {
   const taken = new Set<string>();
   for (const d of all_defs(graph).sort((a, z) => a.id.localeCompare(z.id))) {
     if (!d.name?.trim()) continue;
-    const slot = `${package_of(graph, d.id)}|${domain_of(graph, d.id)}|`;
+    const slot = `${package_of(graph, d.id)}|`;
     if (!taken.has(slot + d.name)) { taken.add(slot + d.name); continue; }
     let name = d.name;
     for (let n = 2; taken.has(slot + name); n++) name = `${d.name} ${n}`;

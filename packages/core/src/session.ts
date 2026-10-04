@@ -2,15 +2,15 @@
 
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
-import { fold, step, type Floor } from "./fold";
-import { alias_kind, next_alias } from "./names";
+import { fold, replay, step, type Floor } from "./fold";
+import { package_of } from "./defs";
 import { path } from "./tree";
-import { compact, file_name, parse, read, write } from "./file";
+import { compact, file_name, parse, read, unmet, write } from "./file";
 import { new_id } from "./ids";
 import { no_files, no_storage, type Ports } from "./ports";
 import { MAIN } from "./types";
 import type { Fault } from "./door";
-import type { Block, Graph, Id, Log, Mutation, Step } from "./types";
+import type { Graph, Id, Log, Mutation, Step } from "./types";
 
 /** What the app says: a mirror of what was done, or a note of its own. */
 export type Said = { text: string; at: number; kind: "mirror" | "note" };
@@ -49,9 +49,9 @@ export type Session = {
   load: (text: string) => void;
   /** Back to a fresh, empty workspace; not undoable. */
   reset: () => void;
-  /** Grafts a file into the workspace as one step: a workspace's definitions into its domain and
-   *  its `main` into a layer, or a package whole, frozen. */
-  graft: (text: string, into?: Id | null) => Fault[];
+  /** Brings the packages a file carries in beside the workspace, whole and frozen, as one step.
+   *  A package already here, or one whose ids clash with one here, is refused. */
+  bring: (text: string) => Fault[];
   /** A definition package from outside the workspace, in through the door. */
   search: (want: string) => Promise<Found | null>;
   /** What the catalogue offers, for a surface to list. */
@@ -110,7 +110,6 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     /** A layer that is gone gives way to its nearest surviving ancestor. */
     if (layer && !graph.blocks[layer]) {
       layer = path(was, layer).map((b) => b.id).reverse().find((id) => graph.blocks[id]) ?? null;
-      if (layer === graph.root) layer = null;
       picked = picked.filter((id) => graph.blocks[id] || graph.edges[id]);
       cells = [];
     }
@@ -244,55 +243,45 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       await files.save(`${name}.json`, write(graph, name));
     },
 
-    graft(text, into) {
+    bring(text) {
       const got = parse(text);
-      if (!got.graph) {
-        said = { text: say(got.faults) || "that file could not be read",
-                 at: Date.now(), kind: "note" };
+      const fail = (faults: Fault[]) => {
+        said = { text: say(faults) || "that file could not be read", at: Date.now(), kind: "note" };
         listener?.();
-        return got.faults;
-      }
+        return faults;
+      };
+      if (!got.graph) return fail(got.faults);
       const from = fold([step("import", "import", 0, [{ op: "checkpoint", graph: got.graph }])], floor);
-      const target = into ?? layer ?? MAIN;
-      const mutations: Mutation[] = [];
-      /** Incoming elements take the workspace's next handles, in their own order. */
-      const counts: Record<string, number> = {};
-      const serial = (id: Id) => {
-        const kind = alias_kind(from, id);
-        counts[kind] = (counts[kind] ?? next_alias(graph, kind) - 1) + 1;
-        return counts[kind]!;
-      };
-      const by_alias = <T extends { id: Id; alias?: number }>(all: T[]) =>
-        all.sort((a, z) => (a.alias ?? 0) - (z.alias ?? 0) || a.id.localeCompare(z.id));
-      /** **The workspace always wins**: nothing it holds is replaced. A package comes whole and
-       *  stays as it came; a workspace's definitions join this one's domain, and what its `main`
-       *  holds lands where it was dropped. */
-      const whole = from.root !== graph.root;
-      const placed = (b: Block): Block => {
-        if (whole) return b;
-        if (b.parent === from.root) return { ...b, parent: graph.root };
-        if (b.parent === MAIN) return { ...b, parent: target, alias: serial(b.id) };
-        return b.def ? b : { ...b, alias: serial(b.id) };
-      };
-      for (const b of by_alias(Object.values(from.blocks))) {
-        if (graph.blocks[b.id] || floor.some((f) => f.id === b.id)) continue;
-        if (!whole && (b.id === from.root || b.id === MAIN)) continue;
-        mutations.push({ op: "add_block", block: placed(b) });
+      /** Every package the file carries but the workspace and `base`, each whole and frozen. */
+      const roots = Object.values(from.blocks)
+        .filter((b) => b.parent === null && b.id !== graph.root && !floor.some((f) => f.id === b.id));
+      if (!roots.length) return fail([{ kind: "dropped", what: "a file carrying no package" }]);
+      const fresh = roots.filter((r) => !graph.blocks[r.id]);
+      if (!fresh.length) return fail([{ kind: "dropped", what: "that package is here already" }]);
+      const incoming = Object.values(from.blocks)
+        .filter((b) => fresh.some((r) => r.id === package_of(from, b.id)));
+      const clash = incoming.find((b) => graph.blocks[b.id]);
+      if (clash) {
+        return fail([{ kind: "dropped", what: `a package whose ids clash with one here: ${clash.id}` }]);
       }
-      for (const e of by_alias(Object.values(from.edges))) {
-        if (graph.edges[e.id]) continue;
-        mutations.push({ op: "link_blocks", edge: whole ? e : { ...e, alias: serial(e.id) } });
+      const ids = new Set(incoming.map((b) => b.id));
+      const mutations: Mutation[] = [
+        ...incoming.map((b): Mutation => ({ op: "add_block", block: b })),
+        ...Object.values(from.edges).filter((e) => ids.has(e.from) || ids.has(e.to))
+          .filter((e) => !graph.edges[e.id])
+          .map((e): Mutation => ({ op: "link_blocks", edge: e })),
+      ];
+      const missing = unmet(replay(graph, mutations));
+      if (missing.length) {
+        return fail([{ kind: "dropped",
+                       what: `a package naming what it does not carry: ${missing.slice(0, 3).join(", ")}` }]);
       }
-      for (const [kind, n] of Object.entries(counts)) mutations.push({ op: "set_counter", kind, n });
       append("import", mutations);
-
-      /** The door runs over the workspace as it now stands. */
       const mend = inspect(graph);
       if (mend.repairs.length) append("repair", mend.repairs);
-      const faults = [...got.faults, ...mend.faults];
-      if (faults.length) said = { text: say(faults), at: Date.now(), kind: "note" };
+      if (mend.faults.length) said = { text: say(mend.faults), at: Date.now(), kind: "note" };
       listener?.();
-      return faults;
+      return mend.faults;
     },
 
     /** What the catalogue offers, so a surface can list it rather than guess a name. Empty where
@@ -318,7 +307,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       const text = await net.get(beside(catalogue, hit.at));
       if (text === null) return refuse(`“${hit.name}” could not be fetched`);
 
-      const faults = this.graft(text);
+      const faults = this.bring(text);
       said = { text: faults.length ? `brought in ${hit.name} — ${say(faults)}`
                                    : `brought in ${hit.name}`, at: Date.now(), kind: "note" };
       listener?.();
@@ -357,7 +346,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
 /** Where a workspace opens: `main`, where its structure is built, else its domain. */
 function home(graph: Graph): Id | null {
-  return graph.blocks[MAIN] ? MAIN : null;
+  return graph.blocks[MAIN] ? MAIN : graph.root;
 }
 
 /** The catalogue, read defensively — it was written outside this workspace. */

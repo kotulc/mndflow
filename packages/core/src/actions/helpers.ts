@@ -1,16 +1,16 @@
 /** Argument readers and makers shared by the actions. */
 
-import { block_base, def_at, def_named, frozen, package_of, relation_base,
+import { block_base, def_at, def_named, frozen, package_of, relation_base, setting_of,
          stored_type, type Domain } from "../defs";
 import { is_grid } from "../holders";
 import { next_alias } from "../names";
-import { layer_id, next_order } from "../tree";
+import { next_order } from "../tree";
 import { new_id } from "../ids";
 import type { Cell, Graph, Id, Mutation, Side, Span } from "../types";
 import type { Args, Context } from "./registry";
 
-/** The layer an action lands in; null is the root. */
-export const here = (ctx: Context): Id => layer_id(ctx.graph, ctx.layer);
+/** The layer an action lands in: the open one, else the workspace's domain. */
+export const here = (ctx: Context): Id => ctx.layer ?? ctx.graph.root;
 
 export const text = (args: Args, key: string): string => String(args[key] ?? "").trim();
 export const id_of = (args: Args, key: string): Id => String(args[key] ?? "");
@@ -103,23 +103,23 @@ export function may_wear(ctx: Context, args: Args, kind: Id): string | null {
     ? null : `"${d.name}" is not a ${kind} definition`;
 }
 
-/** The type an action stores; a base or a default stores as plain. */
+/** The type an action stores; a structural base stores as plain. */
 export const typed = (ctx: Context, args: Args): { type?: Id } => {
   const type = stored_type(ctx.graph, text(args, "type"));
   return type ? { type } : {};
 };
 
-/** The relation type a run stores, only when it is of the run's module. */
-export const run_type = (ctx: Context, args: Args, base: Id): { type?: Id } => {
-  const type = text(args, "type");
-  return type && relation_base(ctx.graph, type) === base ? typed(ctx, args) : {};
+/** The relation type a run stores, where it names a relation definition. */
+export const run_type = (ctx: Context, args: Args): { type?: Id } => {
+  const type = rooted(ctx, text(args, "type"), "relation");
+  return type && def_at(ctx.graph, type) && relation_base(ctx.graph, type)
+    ? (stored_type(ctx.graph, type) ? { type: stored_type(ctx.graph, type)! } : {}) : {};
 };
 
 /** Bases a layer cannot make on its own, and why. */
 export const NEEDS: Record<string, string> = {
   interface: "interfaces may only be added to existing blocks",
   reference: "a reference is made by dragging the block, not its definition",
-  note: "a note is written about something",
   tag: "a tag is carried, not placed: put it in a block's tags",
 };
 
@@ -165,4 +165,16 @@ export function borrowed(graph: Graph, id: Id): string | null {
 export function list(raw: unknown): string[] {
   if (Array.isArray(raw)) return raw.map(String).map((v) => v.trim()).filter(Boolean);
   return String(raw ?? "").split(",").map((v) => v.trim()).filter(Boolean);
+}
+
+/** The link a tie trait makes from a new block to the one it was made from: a relationship of the
+ *  type its `tie` setting names. Nothing where its definition carries no tie. */
+export function tied(ctx: Context, id: Id, type: Id | undefined, from: Id | undefined): Mutation[] {
+  const said = setting_of(ctx.graph, type, "tie")["type"];
+  if (!from || !ctx.graph.blocks[from] || typeof said !== "string") return [];
+  const kind = def_at(ctx.graph, said) ? stored_type(ctx.graph, said) : undefined;
+  const line = handles(ctx, "relation");
+  return [{ op: "link_blocks", edge: { id: new_id("edge"), from: id, to: from,
+                                       alias: line.take(), ...(kind ? { type: kind } : {}) } },
+          ...line.bump()];
 }

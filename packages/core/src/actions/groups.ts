@@ -1,43 +1,47 @@
-/** Boundaries, grids as made, and notes. */
+/** Groups and grids as made, and notes. */
 
-import { allows_of, may_hold, may_take } from "../capabilities";
-import { def_at, domain_of } from "../defs";
-import { can_hold, GRID, inside, lattice_of, members_of, shape_of } from "../holders";
+import { may_hold, may_take } from "../capabilities";
+import { block_base, def_at, domain_of, self_use } from "../defs";
+import { can_hold, GRID, inside, is_grid, lattice_of, layer_of, members_of, shape_of } from "../holders";
 import { shown_name } from "../names";
-import { next_order } from "../tree";
+import { next_order, reorder } from "../tree";
 import { new_id } from "../ids";
 import type { Graph, Grid, Id, Mutation, Shape } from "../types";
 import { free_cell, put, with_merges } from "./grid";
 import { register, type Args, type Context } from "./registry";
-import { handles, here, id_of, ids_of, make_block, num, seats, spot, text } from "./helpers";
+import { handles, here, id_of, make_block, num, seats, spot, text, tied } from "./helpers";
 
 /** Whether an action says an extent, which only a grid has. */
 const asks_extent = (args: Args): boolean => num(args, "rows") !== null || num(args, "cols") !== null;
 
 /** What a new holder is made as: the definition named, else the base an extent asks for — and
- *  the shape that definition's capability gives it, where it gives one. */
+ *  the shape its base gives it. */
 function made_as(graph: Graph, args: Args): { type: Id; shape: Shape | null } {
   const type = text(args, "type") || (asks_extent(args) ? "grid" : "group");
-  const said = allows_of(graph, type).holder;
-  return { type, shape: said === "group" || said === "grid" ? said : null };
+  const base = block_base(graph, type);
+  return { type, shape: base === "group" || base === "grid" ? base : null };
 }
 
-/** The members an action names, or the selection, that are blocks on this layer. */
+/** The members an action names, or the selection, that are blocks. */
 function picked_members(ctx: Context, args: Args, into: Id | null): Id[] {
   const said = (args["members"] as Id[] | undefined) ?? (into ? [] : ctx.picked);
   return said.filter((id) => ctx.graph.blocks[id] && id !== into);
 }
 
-/** Why a holder of this shape could not take this block, or null. Only a group nests. */
-function refused(graph: Graph, holder: Id | null, shape: Shape, id: Id): string | null {
+/** Why a holder could not take this block, or null. */
+function refused(graph: Graph, holder: Id | null, id: Id): string | null {
   const b = graph.blocks[id]!;
-  const held = shape_of(graph, id);
-  if (held === "grid") return "a grid sits in nothing";
-  if (held && shape === "grid") return "a grid holds no group";
   if (!holder) return null;
   if (!can_hold(graph, holder, id)) return "that cannot go in there";
   return may_take(graph, holder, b.type)
     ? null : `"${shown_name(graph, holder)}" takes nothing of that sort`;
+}
+
+/** Where a new holder is made: under the parent its members share, else the open layer. */
+function home_of(ctx: Context, members: readonly Id[]): Id {
+  const parents = new Set(members.map((id) => ctx.graph.blocks[id]!.parent));
+  const [one] = [...parents];
+  return parents.size === 1 && one && !is_grid(ctx.graph, one) ? one : here(ctx);
 }
 
 /** A lattice resized: what falls outside it is freed, and so are merges that no longer fit. */
@@ -48,7 +52,7 @@ function resized(graph: Graph, group: Id, rows: number | null, cols: number | nu
   if (cols !== null) g.cols = cols;
   const out: Mutation[] = [];
   for (const b of members_of(graph, group)) {
-    if (b.cell && !inside(g, b.cell)) out.push(put(b.id, null));
+    if (b.cell && !inside(g, b.cell)) out.push(put(graph, b.id, null));
   }
   const values = g.values?.slice(0, g.rows).map((row) => row.slice(0, g.cols));
   const fit = with_merges({ ...g, ...(values ? { values } : {}) }, (g.merges ?? [])
@@ -59,7 +63,7 @@ function resized(graph: Graph, group: Id, rows: number | null, cols: number | nu
 register(
   {
     name: "group",
-    about: "draws a boundary round what is selected, or a grid over a region",
+    about: "makes a group round what is selected, or a grid over a region, and moves it in",
     on: ["layer", "selection"],
     /** A new holder round members, or members, an extent or a corner for one already there. */
     args: [{ name: "members", form: "block" }, { name: "into", form: "block" },
@@ -80,16 +84,18 @@ register(
         const d = def_at(ctx.graph, type);
         if (!d || domain_of(ctx.graph, type) !== "block") return `there is no definition called "${type}"`;
         if (!shape) return `"${d.name}" is neither a group nor a grid`;
-        if (!may_hold(ctx.graph, here(ctx), type)) {
-          return `"${shown_name(ctx.graph, here(ctx))}" holds nothing of that sort`;
+        const home = home_of(ctx, members);
+        if (!may_hold(ctx.graph, home, type)) {
+          return `"${shown_name(ctx.graph, home)}" holds nothing of that sort`;
         }
-        if (members.some((id) => ctx.graph.blocks[id]!.parent !== here(ctx))) {
-          return "a holder takes blocks on its own layer";
+        if (self_use(ctx.graph, home, type)) return "a definition cannot use itself";
+        if (members.some((id) => layer_of(ctx.graph, id) !== here(ctx))) {
+          return "a holder gathers blocks drawn on this layer";
         }
       }
       if (extent && (held ?? shape) !== "grid") return "rows and columns are a grid's";
       for (const id of members) {
-        const why = refused(ctx.graph, into, held ?? shape!, id);
+        const why = refused(ctx.graph, into, id);
         if (why) return why;
       }
       return null;
@@ -105,7 +111,7 @@ register(
       let lattice: Grid | null = into ? lattice_of(ctx.graph, into) : null;
       if (!group) {
         const { type, shape } = made_as(ctx.graph, args);
-        const made = make_block(ctx, "", here(ctx), type);
+        const made = make_block(ctx, "", home_of(ctx, members), type);
         group = (made[0] as { block: { id: Id } }).block.id;
         out.push(...made);
         /** A block made here does not answer the graph yet, so its lattice is written whole. */
@@ -130,24 +136,21 @@ register(
       const taken = new Set([...held.filter((b) => b.cell && lattice && inside(lattice, b.cell))
                                .map((b) => b.cell!), ...given.values()]
         .map((c) => `${c.r},${c.c}`));
+      const moved: Id[] = [];
       for (const id of members) {
-        if (!lattice) { out.push({ op: "set_group", id, group }); continue; }
-        const cell = given.get(id) ?? (ctx.graph.blocks[id]!.group === group ? null
+        const was = ctx.graph.blocks[id]!.parent === group;
+        const cell = !lattice ? null : given.get(id) ?? (was ? null
           : free_cell(lattice, taken, null, { r: 0, c: 0 }, false));
-        if (!cell) continue;
-        taken.add(`${cell.r},${cell.c}`);
-        out.push({ op: "set_group", id, group }, { op: "seat_cell", id, cell });
+        if (lattice && !cell) continue;
+        if (!was) { out.push({ op: "move_block", id, parent: group }); moved.push(id); }
+        if (cell) { taken.add(`${cell.r},${cell.c}`); out.push({ op: "seat_cell", id, cell }); }
       }
+      /** Arriving members keep the order they had among themselves. */
+      const orders = into ? reorder(ctx.graph, group, moved)
+        : moved.map((id, n) => ({ id, order: n + 1 }));
+      for (const at of orders) out.push({ op: "order_block", id: at.id, order: at.order });
       return { mutations: out, ...(into ? {} : { effect: { focus: group } }) };
     },
-  },
-  {
-    name: "leave",
-    about: "takes a block out of the group it is in",
-    on: ["block", "selection"],
-    args: [{ name: "ids", form: "block", required: true }],
-    run: (ctx, args) => ({ mutations: ids_of(ctx, args)
-      .map((id): Mutation => ({ op: "set_group", id, group: null })) }),
   },
   {
     name: "note",
@@ -181,11 +184,7 @@ register(
       if (typeof w === "number" && typeof h === "number" && w > 0 && h > 0) {
         out.push({ op: "size_block", id, w, h });
       }
-      /** The tie to the block it is about. */
-      const tie = handles(ctx, "relation");
-      out.push({ op: "link_blocks", edge: { id: new_id("edge"), from: id, to: about,
-                                            alias: tie.take() } });
-      out.push(...tie.bump());
+      out.push(...tied(ctx, id, "note", about));
       return { mutations: out, effect: { focus: id } };
     },
   },

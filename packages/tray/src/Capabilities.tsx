@@ -1,10 +1,10 @@
-/** What a block may do: a definition's capabilities, a section of their own on its element tab.
- *  **Stated on the definition**, so every block following it answers the same; a block shows
- *  none of its own. */
+/** What a block may do: a definition's traits and capabilities, a section of their own on its
+ *  element tab. **Stated on the definition**, so every block following it answers the same; a
+ *  block shows none of its own. */
 
 import { useState } from "react";
-import { all_defs, allows_split, def_at, domain_of, type Act, type Allowed, type Graph,
-         type Id } from "@mnd/core";
+import { all_defs, allows_split, block_base, def_at, domain_of, is_tag, traits_of, type Act,
+         type Allowed, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Band, Body, Line, Pick } from "./Body";
 import { def_path } from "./holder";
@@ -19,7 +19,7 @@ const ROWS: { key: Listed; word: string; tip: string; holders?: boolean }[] = [
   { key: "holds", word: "children",
     tip: "What it may own as children, inside it: anything, nothing, or only these definitions." },
   { key: "members", word: "members", holders: true,
-    tip: "What it may gather as a group or grid, on its own layer: anything, nothing, or only these definitions." },
+    tip: "What it may hold as a group or grid, drawn inline: anything, nothing, or only these definitions." },
   { key: "ports", word: "ports",
     tip: "Whether interfaces may sit on its walls: any, none, or only these definitions." },
 ];
@@ -34,29 +34,56 @@ export function Capabilities({ graph, id, onAct }: CapabilitiesProps) {
   const target = def_at(graph, id);
   if (!target || domain_of(graph, id) !== "block") return null;
   const { own, inherited } = allows_split(graph, target.id);
-  /** A package's definition is never written: the look action writes the workspace's word. */
   const set = (name: string, value: string) =>
     onAct("look", { ids: [target.id], key: "allows", name, value });
-  const shape = own.holder ?? inherited.holder;
+  const base = block_base(graph, target.id);
+  const holder = base === "group" || base === "grid";
 
   return (
     <div className="col abilities">
       <Band label="capabilities" />
       <Body>
-        <Line label="holder" className="spread"
-              tip={`Whether it gathers blocks on its own layer — as a boundary round them, or as a grid of cells. Everything following ${target.name} answers the same.`}>
-          <Pick name={`holder-${target.id}`} on={own.holder ?? INHERIT}
-                of={[{ value: INHERIT, word: "inherit" }, { value: "none", word: "none" },
-                     { value: "group", word: "group" }, { value: "grid", word: "grid" }]}
-                onPick={(v) => set("holder", v)} />
-        </Line>
-        {ROWS.filter((r) => !r.holders || (shape && shape !== "none")).map((r) => (
+        <Traits graph={graph} id={target.id} onAct={onAct} />
+        {ROWS.filter((r) => !r.holders || holder).map((r) => (
           <Setting key={r.key} graph={graph} name={`${r.key}-${target.id}`} word={r.word}
                    tip={r.tip} own={own[r.key]} inherited={inherited[r.key]}
                    onSet={(value) => set(r.key, value)} />
         ))}
       </Body>
     </div>
+  );
+}
+
+/** A definition's traits: chips for the set in force — faint while it is the chain's — a picker
+ *  for another, and *reset* to give the set back to the chain. Stating one states the whole set. */
+function Traits({ graph, id, onAct }: { graph: Graph; id: Id; onAct: Act }) {
+  const own = graph.blocks[id]?.traits;
+  const held = traits_of(graph, id);
+  const offered = all_defs(graph)
+    .filter((d) => is_tag(graph, d.id) && d.settings && !held.includes(d.id))
+    .sort((a, z) => a.name.localeCompare(z.name));
+  const write = (ids: Id[] | null) => onAct("trait", { ids: [id], traits: ids });
+
+  return (
+    <Line label="traits" className="spread"
+          tip="Capability tags: each one carries settings. Inherited until this definition states its own set.">
+      <span className={["picks", own ? "" : "read"].filter(Boolean).join(" ")}>
+        {held.map((t) => (
+          <button key={t} className="opt tag" title={own ? `let go of ${graph.blocks[t]?.name ?? t}` : "inherited"}
+                  onClick={() => write(held.filter((x) => x !== t))}>
+            {graph.blocks[t]?.name ?? t}{own ? <Icon name="remove" size={9} /> : null}
+          </button>
+        ))}
+        <select value="" aria-label="add a trait" onChange={(e) => write([...held, e.target.value])}>
+          <option value="">add…</option>
+          {offered.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+        {own ? (
+          <button className="opt" title="give the traits back to what it extends"
+                  onClick={() => write(null)}>reset</button>
+        ) : null}
+      </span>
+    </Line>
   );
 }
 

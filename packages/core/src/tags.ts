@@ -1,12 +1,10 @@
-/** Tags: definitions on the `tag` base that blocks, lines and definitions carry by id; and traits,
- *  the words for what a definition can do, read off its settings. */
+/** Tags: definitions on the `tag` base that blocks, lines and definitions carry by id; and badges,
+ *  the words for what a definition can do, read off its settings. A tag carrying settings is a
+ *  trait (`traits_of`, in defs). */
 
 import { allows_of } from "./capabilities";
 import { all_defs, block_base, config_of, def_at, def_of, isa } from "./defs";
 import type { Definition, Graph, Id } from "./types";
-
-/** Bases that hold nothing of their own, whatever they allow. */
-const FLAT: readonly Id[] = ["note", "reference", "interface", "tag"];
 
 
 /** Whether a definition is a tag. */
@@ -15,7 +13,7 @@ export function is_tag(graph: Graph, def: Id | undefined): boolean {
 }
 
 /** What a definition can do, in words: a readout of its settings, never stored or carried. */
-export function traits_of(graph: Graph, def: Id): string[] {
+export function badges_of(graph: Graph, def: Id): string[] {
   const d = def_at(graph, def);
   if (!d) return [];
   const base = block_base(graph, def);
@@ -23,9 +21,9 @@ export function traits_of(graph: Graph, def: Id): string[] {
   const allows = allows_of(graph, def);
   const card = config_of(graph, def, "card");
   const said: string[] = [];
-  if (!FLAT.includes(base) && allows.holds !== false) said.push("layer");
+  if (allows.holds !== false) said.push("layer");
   if (allows.heads) said.push("headed");
-  if (base !== "interface" && allows.ports !== false) said.push("ports");
+  if (allows.ports !== false) said.push("ports");
   if (card["height"] === "fit") said.push("fits");
   if (card["height"] === "free") said.push("free");
   if (card["preview"] === "show") said.push("media");

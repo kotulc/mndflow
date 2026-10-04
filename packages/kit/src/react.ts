@@ -3,7 +3,8 @@
 export { type ViewerProps, Viewer } from "./viewer";
 export { type ExplorerProps, Explorer, tree_of } from "@mnd/explorer";
 /** The section chain: what each section lists and holds, and the listings a host builds from. */
-export { domain_listing, editor_slices, listed, packages_listing, structure_listing, useChain,
+export { domain_listing, editor_slices, first_tree, listed, packages_listing, structure_listing,
+         useChain,
          type Chain, type Listing, type Mark, type Row, type Slice } from "@mnd/explorer";
 /** The tray, and the state a shell keeps for it and for the drawing. Handed no `onAct` it only
  *  reads; its workspace tab still sets how the drawing looks. */
