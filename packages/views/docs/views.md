@@ -40,6 +40,7 @@ project(graph, layer, config) → Scene
 | `free` | hand placement, rounded to the lattice. What a layer says nothing about |
 | `auto` | auto-layout: stored positions are ignored and every loose block gets a box worked out from the relationships and the sizes |
 | `outline` | headed groups down the page as a staircase: each group's head, its members beside it, its own groups stepped in under them, flow lines from head to head and through members in order. Stores neither a place nor a line |
+| `page` | holders as full-width boxes down the page: each box's cards in rows wrapping at its width (`layout.across` cards), its own holders below them. What the overview draws |
 
 **Related blocks share a row or a column and sit one gap apart**; unrelated ones fill the next slots of a square-ish shelf. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
 
@@ -74,7 +75,7 @@ project(graph, layer, config) → Scene
 |---|---|
 | **read-through** | an opened usage draws its definition's structure beside its own children, one step; a usage on the layer wears its definition's interfaces as `usage/part`. Parts wear the link mark |
 | **flatten** | folders draw as groups, so a whole domain reads on one page |
-| **forest** | the layer above the package roots (`open: null`): each package a box of its domain, flattened. Cards keep their real ids, so a pick is the definition itself |
+| **overview** | nothing open (`open: null`): every package a full-width box of its domain, flattened, laid out as a `page` and scrolled rather than zoomed. Which packages, and how many cards across, are the host's to say. Cards keep their real ids, so a pick is the block itself |
 | **layout** | the layer's layout kind places what is drawn |
 
 ## The Scene is the seam

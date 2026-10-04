@@ -48,6 +48,7 @@ const LAYOUT: Record<Layout, { icon: IconName; tip: string }> = {
   free: { icon: "layout_free", tip: "Hand placement is what draws" },
   auto: { icon: "layout_grid", tip: "Auto-layout: related blocks share a row, a unit of air between everything" },
   outline: { icon: "parts", tip: "Outline: headed groups down the page, each one's members beside its head" },
+  page: { icon: "content_row", tip: "Page: full-width boxes down the page, their cards in rows" },
 };
 
 /** What a right drag may draw: a line, straight or directed, or a tie. */

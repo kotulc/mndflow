@@ -34,8 +34,8 @@ The explorer files the graph as a **section chain**: a host declares its section
 | Gesture | Does |
 |---|---|
 | choose (click, ↑ ↓) | selects the row; the tray shows it. The canvas stays |
-| open (Enter, double-click, →) | the canvas draws the row's layer: a package's domain, a tree's structure. Opening the packages section draws the forest |
-| leave (←, Backspace) | the canvas draws the layer above |
+| open (Enter, double-click, →) | a tree: the canvas draws its structure. A package, folder or group: the overview, focused on its box |
+| leave (←, Backspace) | the canvas draws the layer above; from a tree's top, the overview focused on the tree |
 | pick within the open tree | may move the canvas to the layer the block sits on (reveal) |
 
 - **Context highlighting and breadcrumbs show what the canvas has open**, never what is browsed.

@@ -96,10 +96,10 @@
 | **layer** | what one block holds, drawn: the blocks drawn on it are those whose nearest **hiding** ancestor is that block |
 | **hides** | a folder, a definition and any block holding blocks hide what they hold; a group and a grid draw theirs inline |
 | **card** | a block as drawn. **A definition always draws as a card**; its structure is reached by descending |
-| **forest** | the layer above every package root: `layer: null`. Each package draws as a box of its domain |
-| **flatten** | drawing folders as groups, so a whole domain reads on one page. The forest draws flattened |
+| **overview** | what the canvas draws while nothing is open (`layer: null`): every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down. 1:1 with the packages and definitions sections |
+| **flatten** | drawing folders as groups, so a whole domain reads on one page. The overview draws flattened |
 | **projection** | a view of the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it; nothing is stored |
-| **layout** | how a layer places what it draws: a setting (`layout.kind`), `free`, `auto` or `outline`, said by a definition and overridable by a block |
+| **layout** | how a layer places what it draws: a setting (`layout.kind`), `free`, `auto`, `outline` or `page`, said by a definition and overridable by a block |
 | **frame** / **wall** / **band** | the open layer's border seen from within, one of its four sides, and the dimmed margin outside it |
 | **mark** | how a card or row reads, derived every draw: reference, missing, note, holder, interface, container, part (from a definition) |
 | **seat** / **anchor** | a place on a border a line may meet; a seat a relationship arrives at with no block behind it |
@@ -113,7 +113,7 @@
 | **mndflow** | packages → definitions → structure |
 | **mndmap** | collection → document: mndflow's chain with the package fixed to the workspace and hidden |
 | **browse** | choosing a row: selects it, the tray shows it, the canvas stays |
-| **open** | Enter, double-click or →: the canvas draws the chosen row's layer. ← and Backspace leave |
+| **open** | Enter, double-click or →: a tree opens its structure on the canvas; a package, folder or group is focused in the overview. ← and Backspace leave, a tree's top for the overview |
 | **context** | what the canvas has open. Highlighting and breadcrumbs show it, never what is browsed |
 | **reveal** | a pick within the open tree may move the canvas to the layer it sits on; browsing outside it never does |
 

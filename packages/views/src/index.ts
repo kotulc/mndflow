@@ -19,4 +19,5 @@ export { BARE, PLAIN, look_key, look_of, wire_of, type Align,
          type Wire } from "./look";
 export { FOREST, flat_graph, forest_graph } from "./packages";
 export { outline_graph } from "./outline";
+export { page_graph } from "./page";
 export { read_through } from "./through";

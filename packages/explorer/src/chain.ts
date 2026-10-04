@@ -77,8 +77,8 @@ export function editor_slices(): Slice[] {
         return pack ? first_tree(graph, pack) : null;
       } },
     { id: "structure", label: "structure", mark: "usages",
-      list: (_, [, tree]) => structure_listing(tree ?? null),
-      first: (_, [, tree]) => tree ?? null },
+      list: (graph, [, tree]) => structure_listing(tree && !organizes(graph, tree) ? tree : null),
+      first: (graph, [, tree]) => (tree && !organizes(graph, tree) ? tree : null) },
   ];
 }
 

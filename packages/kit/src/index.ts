@@ -49,5 +49,5 @@ export {
 export { CARD, UNITS, set_card, set_full, size_of } from "@mnd/views";
 
 /** The overhead and outline views: the forest, a layer flattened, and a layer as an outline. */
-export { FOREST, flat_graph, forest_graph, outline_graph } from "@mnd/views";
+export { FOREST, flat_graph, forest_graph, outline_graph, page_graph } from "@mnd/views";
 

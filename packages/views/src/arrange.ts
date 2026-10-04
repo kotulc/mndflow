@@ -25,8 +25,9 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
   const sized: Sized[] = structural.map((b) => ({
     b, s: is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   }));
-  const structural_spots = how === "free" ? free(sized)
-    : centred(pack_units(graph, layer, sized, unit));
+  /** A computed page or outline has written its places; only `auto` works them out here. */
+  const structural_spots = how === "auto" ? centred(pack_units(graph, layer, sized, unit))
+    : free(sized);
 
   /** Bands first, then cells: a grid in a band takes its spot from the band. */
   const band_spots = band_members(graph, layer, how, units, structural_spots);

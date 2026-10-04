@@ -9,6 +9,7 @@ import { at_seat, cell_box, laid, perch_id, roomed, seated,
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of, wire_of } from "./look";
 import { outline_graph } from "./outline";
+import { page_graph } from "./page";
 import { forest_graph, FOREST } from "./packages";
 import { read_through } from "./through";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
@@ -16,6 +17,10 @@ import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
          type Slot } from "./scene";
 
 export type Config = {
+  /** The packages the overview draws, in order; every package where unsaid. */
+  packages?: readonly Id[];
+  /** How many cards the overview's widest row holds. */
+  across?: number;
   /** What to show, when it is not the layer's own contents. */
   holds?: readonly Id[];
   /** Whether interfaces draw. A display preference the shell hands down. */
@@ -41,10 +46,14 @@ function group_carries(graph: Graph, group: Id): Id[] {
  *  a definition seen through a usage wears the `part` mark. */
 export function project(given: Graph, layer: Id | null, config: Config = {}): Scene {
   /** Nothing open is the forest: every package a box of its domain. */
-  if (layer === null) return project(forest_graph(given), FOREST, config);
+  if (layer === null) {
+    return project(forest_graph(given, config.packages, config.across), FOREST, config);
+  }
   const through = read_through(given, layer);
-  /** An outline places its layer as it reads, and draws its flow; anything else places itself. */
-  const graph = layout_of(through, layer) === "outline" ? outline_graph(through, layer) : through;
+  /** An outline or a page places its layer as it reads; anything else places itself. */
+  const how = layout_of(through, layer);
+  const graph = how === "outline" ? outline_graph(through, layer)
+    : how === "page" ? page_graph(through, layer) : through;
   const parts = new Set(Object.keys(graph.blocks).filter((id) =>
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
   const carried_as = (id: Id): BoxData => {

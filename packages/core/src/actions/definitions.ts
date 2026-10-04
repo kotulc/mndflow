@@ -1,11 +1,10 @@
-/** Fields, definitions, pinning, packages, and giving settings back. */
+/** Fields, definitions, pinning, and giving settings back. */
 
 import { closes_cycle, def_at, def_named, def_of, domain_of, in_domain, is_base, name_taken,
-         ordered_by, package_named, package_of, schema_of, type Domain } from "../defs";
+         ordered_by, package_of, schema_of, type Domain } from "../defs";
 import { next_order } from "../tree";
 import { VALUE_FORMS, type Components, type Definition, type FieldDef, type Graph, type Id,
          type Mutation, type ValueForm } from "../types";
-import { new_id } from "../ids";
 import { register } from "./registry";
 import { borrowed, holds_values, id_of, ids_of, list, mint_def, rooted, text } from "./helpers";
 
@@ -258,37 +257,6 @@ register(
   },
 );
 
-register(
-  {
-    name: "package",
-    about: "makes a named package, and moves definitions into it, frozen",
-    on: ["layer"],
-    args: [{ name: "name", form: "text", required: true, asks: true },
-           /** Definitions to move into it, by id or by name. */
-           { name: "defs", form: "text" }],
-    /** A package is known by its name, so no two share one. */
-    check: (ctx, args) => {
-      const name = text(args, "name").trim();
-      if (!name) return "a package needs a name";
-      if (package_named(ctx.graph, name)) return `there is already a package called "${name}"`;
-      for (const d of named_defs(ctx.graph, args)) {
-        const why = borrowed(ctx.graph, d.id);
-        if (why) return why;
-      }
-      return null;
-    },
-    run: (ctx, args) => {
-      const id = new_id("pkg");
-      return { mutations: [
-        { op: "add_block", block: { id, parent: null, name: text(args, "name").trim() } },
-        ...named_defs(ctx.graph, args).flatMap((d): Mutation[] => [
-          { op: "move_block", id: d.id, parent: id },
-        ]),
-      ] };
-    },
-  },
-);
-
 /** The domain a definition is said to be in: the one named, else what it extends, else block. */
 function domain_said(ctx: Parameters<typeof rooted>[0], args: { [k: string]: unknown }): Domain {
   const said = args["domain"];
@@ -301,11 +269,4 @@ function domain_said(ctx: Parameters<typeof rooted>[0], args: { [k: string]: unk
 function held_fields(graph: Graph, id: Id): FieldDef[] {
   const b = graph.blocks[id];
   return b?.def ? b.def.schema ?? [] : b?.values ?? [];
-}
-
-/** The workspace's definitions an argument names, by id or by name. */
-function named_defs(graph: Graph, args: { [k: string]: unknown }): Definition[] {
-  return list(args["defs"])
-    .map((n) => def_at(graph, n) ?? def_named(graph, n))
-    .filter((d): d is Definition => !!d && package_of(graph, d.id) === graph.root);
 }

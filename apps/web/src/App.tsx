@@ -1,8 +1,8 @@
 /** The app, assembled. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { block_base, def_at, domain_of, layer_of, layout_of, offer, package_of, setting_of,
-         session, tree_of, type Args, type Storage, type Dir, type Graph, type Id,
+import { block_base, def_at, domain_of, layout_of, offer, package_of, setting_of, session,
+         tree_of, type Args, type Storage, type Dir, type Graph, type Id,
          type Point } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { box_of, clear_of, forest_graph, holds, project, set_card as apply_card, tidy, BLOCK,
@@ -102,38 +102,47 @@ export function App({ storage }: { storage: Storage }) {
    *  anything is placed. */
   apply_card(card.w, card.h);
 
-  /** Projected once per graph, layer or proportion change. */
-  const scene = useMemo(
-    () => project(graph, layer, { interfaces: shown.interfaces }),
-    [graph, layer, shown.interfaces, card]);
+  /** How many cards the overview's rows hold: as many as the canvas is wide. */
+  const [canvas, set_canvas] = useState<HTMLElement | null>(null);
+  const room = useWidth(canvas);
+  const across = Math.max(2, Math.floor(room / ((card.w + UNITS.gap) * UNITS.unit * READ)) );
 
-  /** **The canvas draws what was opened; the sections follow it.** Whatever opened a layer — a
-   *  row, a double-click, the trail — the chain is traced to it: the forest to the packages, a
-   *  package's domain to its definitions, a tree's structure to the structure. */
+  /** Projected once per graph, layer or proportion change. With nothing open, the overview: every
+   *  package as the explorer lists it, a page as wide as the canvas. */
+  const scene = useMemo(
+    () => project(graph, layer, { interfaces: shown.interfaces, across }),
+    [graph, layer, shown.interfaces, card, across]);
+
+  /** **The canvas draws what was opened; the sections follow it.** A tree's structure traces the
+   *  chain to the tree; the overview to what is picked on it. */
   useEffect(() => {
-    if (layer === null) { chain.onTrace([chain.held[0] ?? graph.root], 0); return; }
+    if (layer === null) { held_on_overview(s.picked()[0]); return; }
     if (!graph.blocks[layer]) return;
-    const pkg = package_of(graph, layer);
     const tree = tree_of(graph, layer);
-    if (tree) chain.onTrace([pkg, tree], 2);
-    else chain.onTrace([pkg, chain.held[1] ?? null], 1);
+    if (tree) chain.onTrace([package_of(graph, layer), tree], 2);
   }, [layer]);
 
-  /** The forest, drawn while nothing is open: every package a box of its domain, folders
-   *  flattened. Read only: picking a definition goes to its package's domain, picked there. */
+  /** The sections, following a pick on the overview: its package, and the tree or holder picked. */
+  const held_on_overview = (id: Id | undefined) => {
+    const b = id ? graph.blocks[id] : undefined;
+    if (!b) return;
+    if (b.parent === null) { chain.onTrace([b.id], 0); return; }
+    chain.onTrace([package_of(graph, b.id), tree_of(graph, b.id) ?? b.id], 1);
+  };
+
+  /** **The overview**, drawn while nothing is open: every package a box of its domain, folders
+   *  flattened, the page scrolled down. Read only. Picking selects; opening a tree draws its
+   *  structure, and opening a package, folder or group only focuses it here. */
   const forest = useMemo(() => (layer === null ? { graph: forest_graph(graph), scene } : null),
     [graph, layer, scene]);
   const forest_pick = (ids: Id[]) => {
-    const one = ids[0];
-    if (!one || !graph.blocks[one]) return;
-    if (graph.blocks[one]!.parent === null) { open_layer(one); return; }
-    s.look(layer_of(graph, one));
-    s.pick([one]);
-    chain.onTrace([package_of(graph, one), tree_of(graph, one) ?? one], 1);
+    s.pick(ids.filter((id) => graph.blocks[id]));
+    t.release();
+    if (ids.length === 1) held_on_overview(ids[0]);
   };
   const forest_act = (name: string, args?: Record<string, unknown>) => {
     const id = String(args?.["id"] ?? "");
-    if (name === "open" && graph.blocks[id]) open_layer(id);
+    if (name === "open" && graph.blocks[id]) opened({ at: 1, id });
   };
 
   /** What the open layer draws, by id. */
@@ -226,17 +235,24 @@ export function App({ storage }: { storage: Storage }) {
   /** A layer opened, with nothing picked on it. */
   const open_layer = (id: Id | null) => { s.look(id); t.release(); };
 
-  /** A row opened — Enter, a double click, → — moves the canvas: a package to its domain, a holder
-   *  or a tree onto itself, and a part of a definition seen through a usage to that definition,
-   *  the part picked there. */
+  /** A row or card opened — Enter, a double click, → — moves the canvas only for a tree, which
+   *  draws its structure; a package, folder or group is focused on the overview. A part seen
+   *  through a usage opens where its definition holds it, picked there. */
   const opened = ({ id, via }: { at: number; id: Id; via?: Id }) => {
-    if (via) { s.look(layer_of(graph, id)); s.pick([id]); t.release(); return; }
-    open_layer(id);
+    if (via) { s.go("reveal", { id }); t.release(); return; }
+    if (tree_of(graph, id) === null) { s.look(null); s.pick([id]); held_on_overview(id); return; }
+    if (tree_of(graph, id) === id) { open_layer(id); return; }
+    s.go("reveal", { id });
   };
 
-  /** ← and Backspace: the canvas leaves for the layer the open one is drawn on, the forest above a
-   *  package. */
-  const leave = () => { s.go("open", {}); t.release(); };
+  /** ← and Backspace: the canvas leaves for the layer the open one is drawn on — from a tree's top,
+   *  the overview, the tree picked there. */
+  const leave = () => {
+    const was = layer;
+    s.go("open", {});
+    if (was && s.layer() === null) { s.pick([was]); held_on_overview(was); }
+    t.release();
+  };
 
   /** The terminal's commands; help is the fallback. */
   const command = (match: Match) => {
@@ -264,6 +280,10 @@ export function App({ storage }: { storage: Storage }) {
           <button title="export the workspace" onClick={() => void s.save()}>
             <Icon name="export_workspace" />
           </button>
+          <button title="export the workspace as a package" onClick={() => {
+            const name = prompt("name the package")?.trim();
+            if (name) void s.save_package(name);
+          }}><Icon name="export_project" /></button>
           <button title="import a workspace" onClick={() => void load()}>
             <Icon name="import_file" />
           </button>
@@ -314,7 +334,7 @@ export function App({ storage }: { storage: Storage }) {
         keys
       />
 
-      <main>
+      <main ref={set_canvas}>
         <Stage
           scene={forest?.scene ?? scene}
           graph={forest?.graph ?? graph}
@@ -371,6 +391,9 @@ export function App({ storage }: { storage: Storage }) {
           }}
           onAct={forest ? forest_act : act}
           onAdjust={forest ? () => undefined : adjust}
+          scroll={!!forest}
+          focus={forest ? s.picked()[0] ?? null : null}
+          most={1}
         />
         <Tray
           graph={graph}
@@ -383,14 +406,15 @@ export function App({ storage }: { storage: Storage }) {
           onHover={set_hovered}
           hold={hold}
           onHold={t.onHold}
-          onView={(home, id) => { s.look(home); s.pick([id]); t.release(); }}
+          onView={(_home, id) => { s.go("reveal", { id }); t.release(); }}
           offered={offered}
           display={display}
           onAct={chrome}
         />
       </main>
 
-      <Options groups={groups_of({ slots: scene.slots, layout: laid_out,
+      <Options groups={groups_of({ slots: forest ? scene.slots.filter((s) => s !== "layer")
+                                          : scene.slots, layout: laid_out,
                                    interfaces: shown.interfaces,
                                    lattice: lattice ?? true, frame: shown.frame,
                                    legend,
@@ -407,6 +431,21 @@ export function App({ storage }: { storage: Storage }) {
 
 /** The editor's sections, made once. */
 const SLICES = editor_slices();
+
+/** How large the overview draws a card: its own size. */
+const READ = 1;
+
+/** How wide an element is, in pixels, as it is resized; nothing until there is one. */
+function useWidth(element: HTMLElement | null): number {
+  const [width, set_width] = useState(0);
+  useEffect(() => {
+    if (!element) return;
+    const watch = new ResizeObserver(([entry]) => set_width(entry?.contentRect.width ?? 0));
+    watch.observe(element);
+    return () => watch.disconnect();
+  }, [element]);
+  return width;
+}
 
 /** What a kind needs that the empty drawing cannot give it, in words. */
 const NEEDS: Record<string, string> = {

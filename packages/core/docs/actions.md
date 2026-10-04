@@ -48,7 +48,7 @@
 
 | | Does | Scope | Arguments | Effect |
 |---|---|---|---|---|
-| `open` | draws a block's layer, the forest with none, or leaves this one | block | id? | `open` |
+| `open` | draws a tree's structure, the overview with none, or leaves this one: from a tree's top, for the overview | block | id? | `open` |
 | `reveal` | opens the layer a block sits on and picks it there, followed through references | block | id | `open` + `focus` |
 
 - **Opening a part opens its definition**, the part picked there.
@@ -106,7 +106,6 @@
 | `define` | makes a definition in a domain | layer | name, type?, parent?, id? | `add_block{def}` |
 | `save_def` | saves how a block or line looks as a definition anything can name | block, edge | id, name | `add_block{def}` + `update_block` / `update_edge` + `drop_settings` |
 | `pin` | offers a definition on the rail or in the explorer, or takes it off | layer | id, on? | `set_pinned` |
-| `package` | makes a package root | layer | name | `add_block` |
 
 - **One act, and the holder says which**: a value on a usage and a field on a definition are the same thing said of two holders.
 - **`define` lands where the user is**: in the open domain, in the holder picked. Its domain (block or relation) is read off what it extends; absent, `block`. Its id is minted, or passed in by a caller that must know it.
@@ -119,7 +118,7 @@
 |---|---|---|---|---|
 | `layout` | sets how the layer lays out, and tidies it into that shape | layer | kind, at? | `set_setting{layout}` + `place_block`… |
 
-**Layout is a setting**, said by a definition and overridable by the layer: `free`, `auto`, `outline`. The tidy is written on the way out of a computed layout, so `free` keeps where it put everything. **Moving anything by hand on a computed layout sets it `free`**, positions written first, in the same step.
+**Layout is a setting**, said by a definition and overridable by the layer: `free`, `auto`, `outline`, `page`. The tidy is written on the way out of a computed layout, so `free` keeps where it put everything. **Moving anything by hand on a computed layout sets it `free`**, positions written first, in the same step.
 
 
 ## Adjustments
@@ -200,7 +199,7 @@
 
 | | |
 |---|---|
-| **shell actions** | new workspace, import, export, undo, redo: they reach a host port, not the graph |
+| **shell actions** | new workspace, import, export, export as package, undo, redo: they reach a host port, not the graph. A package is authored as a workspace and exported as one: its root and ids prefixed with its name |
 | **queries** | readable state, off the registry |
 | **finding** | filtering writes nothing and goes nowhere |
 | **display preferences** | outside the log: interfaces shown, guides, frame, folds, theme |

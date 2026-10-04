@@ -39,7 +39,7 @@ File {
 
 ```
 Session {
-  open      Id | null          // the layer the canvas draws; null is the forest
+  open      Id | null          // the tree layer the canvas draws; null is the overview
   selected  Route[]            // a block, or usage/part
   folded    Id[]
   theme     string
@@ -168,7 +168,7 @@ FieldDef { name, form, value?, unit?, choices?, many?, tags?, key? }
 | `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height`, `body`, `fields` |
 | `style` | slot and emphasis, weight and voice; never a colour or a pixel count |
 | `line` | how a run draws |
-| `layout` | `kind`: `free`, `auto` or `outline`, and its own keys. An unknown kind draws as `auto` |
+| `layout` | `kind`: `free`, `auto`, `outline` or `page`; `across` and `line` for the computed ones. An unknown kind draws as `auto` |
 | `tie` | the relation type a block made from or dropped on another is linked to it by |
 | `allows` | `ports`, `holds`, `members`, `heads`, `degree`, `ends`. Refused at the gesture. Which holder a block is comes from its base, never from here |
 | `expects` | `required`, `match`. Advice, never a refusal |

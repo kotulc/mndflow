@@ -5,7 +5,7 @@ import { check, inspect, say } from "./door";
 import { fold, replay, step, type Floor } from "./fold";
 import { package_of } from "./defs";
 import { path } from "./tree";
-import { compact, file_name, parse, read, unmet, write } from "./file";
+import { compact, file_name, parse, read, unmet, write, write_package } from "./file";
 import { new_id } from "./ids";
 import { no_files, no_storage, type Ports } from "./ports";
 import { MAIN } from "./types";
@@ -46,6 +46,8 @@ export type Session = {
   redo: () => boolean;
 
   save: (name?: string) => Promise<void>;
+  /** The workspace exported as a package called `name`, its ids prefixed with it. */
+  save_package: (name: string) => Promise<void>;
   load: (text: string) => void;
   /** Back to a fresh, empty workspace; not undoable. */
   reset: () => void;
@@ -241,6 +243,11 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     /** Named after the workspace unless the caller says otherwise. */
     async save(name = file_name(graph)) {
       await files.save(`${name}.json`, write(graph, name));
+    },
+
+    async save_package(name) {
+      const text = write_package(graph, name);
+      await files.save(`${JSON.parse(text).id}.json`, text);
     },
 
     bring(text) {

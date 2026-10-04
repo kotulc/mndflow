@@ -82,6 +82,40 @@ export function unmet(graph: Graph): Id[] {
   return [...out].sort();
 }
 
+/** The workspace written as a package called `name`: its root renamed to the name's slug and every
+ *  id under it prefixed with it, so it opens beside any workspace without a clash. */
+export function write_package(graph: Graph, name: string): string {
+  const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "package";
+  const ids = new Map<Id, Id>();
+  for (const b of Object.values(graph.blocks)) {
+    if (package_of(graph, b.id) !== graph.root) continue;
+    ids.set(b.id, b.id === graph.root ? slug : `${slug}.${b.id}`);
+  }
+  const at = (id: Id | undefined) => (id === undefined ? id : ids.get(id) ?? id);
+  const all = (list: Id[] | undefined) => list?.map((id) => at(id)!);
+  const blocks: Graph["blocks"] = { ...graph.blocks };
+  for (const [was, now] of ids) {
+    const b = graph.blocks[was]!;
+    delete blocks[was];
+    blocks[now] = { ...b, id: now, parent: at(b.parent ?? undefined) ?? null,
+                    ...(b.type ? { type: at(b.type) } : {}), ...(b.of ? { of: at(b.of) } : {}),
+                    ...(b.tags ? { tags: all(b.tags) } : {}),
+                    ...(b.traits ? { traits: all(b.traits) } : {}),
+                    ...(b.id === graph.root ? { name } : {}) };
+    delete blocks[now]!.counters;
+    delete blocks[now]!.pinned;
+  }
+  const edges: Graph["edges"] = {};
+  for (const e of Object.values(graph.edges)) {
+    const id = ids.has(e.from) || ids.has(e.to) ? `${slug}.${e.id}` : e.id;
+    edges[id] = { ...e, id, from: at(e.from)!, to: at(e.to)!,
+                  ...(e.type ? { type: at(e.type) } : {}),
+                  ...(e.fromPart ? { fromPart: at(e.fromPart) } : {}),
+                  ...(e.toPart ? { toPart: at(e.toPart) } : {}) };
+  }
+  return write({ root: slug, blocks, edges }, slug, slug);
+}
+
 export type Parsed = { graph: Graph | null; faults: Fault[] };
 
 /** The envelope, opened and no more. */

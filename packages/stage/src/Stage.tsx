@@ -50,6 +50,12 @@ export type StageProps = {
   type?: string;
   /** What another surface is pointing at, drawn in the hover look. */
   lit?: readonly string[];
+  /** The drawing read down the page: fitted to its width, scrolled rather than zoomed, the camera
+   *  following `focus`. */
+  scroll?: boolean;
+  focus?: string | null;
+  /** The most a scrolled drawing magnifies. */
+  most?: number | null;
 };
 
 /** What has no inside to open. */
@@ -147,7 +153,7 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
                        menu, said, onSaid, lattice, frame, legend, corner, module, dir, type,
-                       lit = [] }: StageProps) {
+                       lit = [], scroll = false, focus = null, most = null }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
                     ...(type ? { type } : {}) };
@@ -305,6 +311,9 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onPickCells={onPickCells}
         lattice={lattice}
         {...(frame === undefined ? {} : { frame })}
+        scroll={scroll}
+        focus={focus}
+        most={most}
         naming={naming}
         onNamed={(label) => {
           const id = naming;

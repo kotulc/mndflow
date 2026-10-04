@@ -3,7 +3,7 @@
 import { may_hold, may_take } from "../capabilities";
 import { shown_name } from "../names";
 import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_domain,
-         may_retype, name_taken, package_of, plain_type, stored_type, self_use } from "../defs";
+         may_retype, name_taken, package_of, plain_type, stored_type, self_use, tree_of } from "../defs";
 import { at_cell, covers, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
 import { children, is_interface, next_order, reorder, stands_for, subtree } from "../tree";
 import { new_id } from "../ids";
@@ -376,14 +376,14 @@ register(
       return !want || ctx.graph.blocks[want] ? null : "that is not here any more";
     },
     /** No `id` leaves for the layer the open one is drawn on; an interface returns to the layer it
-     *  was entered from, and a package root leaves for the forest. */
+     *  was entered from, and a tree's top leaves for the overview. */
     run: (ctx, args) => {
       const want = id_of(args, "id");
       if (want) return { mutations: [], effect: { open: want, focus: null } };
       const here = ctx.layer ? ctx.graph.blocks[ctx.layer] : undefined;
       const owner = here?.parent ? ctx.graph.blocks[here.parent] : undefined;
       const outside = owner?.parent ?? null;
-      const up = here ? layer_of(ctx.graph, here.id) : null;
+      const up = here && tree_of(ctx.graph, here.id) !== here.id ? layer_of(ctx.graph, here.id) : null;
       const back = here && is_interface(here) && ctx.from !== undefined
         && ctx.from === outside ? outside : up;
       return { mutations: [], effect: { open: back, focus: ctx.layer } };
@@ -396,9 +396,12 @@ register(
     args: [{ name: "id", form: "block", required: true }],
     run: (ctx, args) => {
       const id = id_of(args, "id");
-      /** Followed to the end, so a reference to a reference reveals what both stand for. */
+      /** Followed to the end, so a reference to a reference reveals what both stand for. A tree,
+       *  a holder or a package is seen in the overview. */
       const target = stands_for(ctx.graph, id)?.id ?? id;
-      return { mutations: [], effect: { open: layer_of(ctx.graph, target), focus: target } };
+      const open = in_domain(ctx.graph, target) || ctx.graph.blocks[target]?.parent === null
+        ? null : layer_of(ctx.graph, target);
+      return { mutations: [], effect: { open, focus: target } };
     },
   },
 );
