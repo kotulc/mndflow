@@ -196,13 +196,11 @@
           "block": {
             "module": "block"
           },
-          "card": {
-            "height": "free",
-            "body": "show"
-          },
+          "card": {},
           "style": {
-            "family": "secondary",
-            "border_style": "dashed"
+            "hue": 300,
+            "intensity": 0.5,
+            "vary": 48
           },
           "allows": {
             "ports": false,

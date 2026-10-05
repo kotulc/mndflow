@@ -11,7 +11,7 @@ export type SettingsProps = { graph: Graph; id: Id; onAct: Act };
 export function Settings({ graph, id, onAct }: SettingsProps) {
   return (
     <div className="panel style">
-      <Drawing graph={graph} id={id} onAct={onAct} />
+      <Drawing graph={graph} id={id} />
       <Looks graph={graph} id={id} onAct={onAct} />
       <Capabilities graph={graph} id={id} onAct={onAct} />
     </div>

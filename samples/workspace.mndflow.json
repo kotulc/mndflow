@@ -8,13 +8,6 @@
         "id": "workspace",
         "parent": null,
         "name": "workspace",
-        "pinned": [
-          "def_ghost",
-          "def_heading",
-          "def_pump",
-          "def_vessel",
-          "def_skid"
-        ],
         "counters": {
           "block": 9,
           "note": 1,

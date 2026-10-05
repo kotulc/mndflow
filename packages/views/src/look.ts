@@ -112,7 +112,8 @@ export function look_of(graph: Graph, id: Id): Look {
   const style = source === block ? settings(graph, id, "style")
     : { ...settings(graph, source.id, "style"), ...(block.settings?.["style"] ?? {}) };
   const named = def_at(graph, source.type)?.name;
-  return dressed(graph, id, card, style, named ?? kind_word(graph, source).toLowerCase());
+  return dressed(graph, id, card, style, named ?? kind_word(graph, source).toLowerCase(),
+                 source.type ?? source.id);
 }
 
 /** How a stand-in for a definition draws: as its usages, named rather than showing a body it
@@ -128,12 +129,14 @@ function stand_in(graph: Graph, id: Id, def: Definition): Look {
   const listed = card["fields"] === "show" && schema_of(graph, def.id).length > 0;
   const look = dressed(graph, id, { ...card, name: "show", body, preview: "hide",
                                     fields: listed ? "show" : "hide" },
-                       style, def.name);
+                       style, def.name, def.id);
   return relation && !look.icon ? { ...look, icon: tie ? "relation_tie" : "relation_plain" } : look;
 }
 
-/** A look from what the chain and the element say, under the kind it reads as. */
-function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: string): Look {
+/** A look from what the chain and the element say, under the kind it reads as. `of` is the
+ *  definition it reads as, which keys its shade. */
+function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: string,
+                 of: Id): Look {
   return {
     family: one(style["family"], FAMILIES, PLAIN.family),
     fill: one(style["fill"], FILLS, PLAIN.fill),
@@ -159,10 +162,24 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
     kind,
     /** A mark of its own, where somebody picked one. */
     ...(typeof card["icon"] === "string" && card["icon"] ? { icon: card["icon"] } : {}),
+    ...hue_of(style, of),
     /** A number the door already bounded. */
-    ...number("hue", style["hue"]),
     ...number("intensity", style["intensity"]),
   };
+}
+
+/** The hue a card paints at, absent where nobody gave one: strayed by up to half of `vary` either
+ *  way, keyed by its definition, so each definition under one that varies takes its own shade. */
+function hue_of(style: Settings, of: Id): Record<string, number> {
+  const hue = style["hue"];
+  const vary = style["vary"];
+  if (typeof hue !== "number" || !Number.isFinite(hue)) return {};
+  if (typeof vary !== "number" || !vary) return { hue };
+  // A small stable hash of the id, taken to a fraction from -1/2 to 1/2.
+  let h = 0;
+  for (const c of of) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const stray = ((h % 1000) / 999 - 0.5) * vary;
+  return { hue: Math.round((hue + stray + 360) % 360) };
 }
 
 /** One contrast, under its own name, and absent where nobody said. */

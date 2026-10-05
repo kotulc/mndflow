@@ -148,13 +148,9 @@ register(
     },
     run: (ctx, args) => {
       const ids = ids_of(ctx, args);
-      const pinned = ctx.graph.blocks[ctx.graph.root]?.pinned ?? [];
-      const gone = new Set(ids.flatMap((id) => subtree(ctx.graph, id)));
-      const kept = pinned.filter((p) => !gone.has(p));
       return {
-        mutations: [...ids.map((id): Mutation => (ctx.graph.edges[id]
+        mutations: ids.map((id): Mutation => (ctx.graph.edges[id]
           ? { op: "delete_edge", id } : { op: "delete_block", id })),
-          ...(kept.length !== pinned.length ? [{ op: "set_pinned", ids: kept } as Mutation] : [])],
         effect: ids.includes(ctx.layer ?? "") ? { open: null, focus: null } : { focus: null },
       };
     },

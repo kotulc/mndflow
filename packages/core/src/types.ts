@@ -119,8 +119,6 @@ export type Block = {
   alias?: number;
   /** Handle counters per kind, held on the workspace. */
   counters?: Record<string, number>;
-  /** Pinned definitions, in order: relations on the rail, blocks in the explorer. */
-  pinned?: Id[];
   /** How it draws and what it may do, by component: a definition's own word, or a usage's
    *  override of its definition's. Inherited down the `type` chain, nearest first. */
   settings?: Components;
@@ -212,7 +210,6 @@ export type Mutation =
   | { op: "set_alias"; id: Id; alias: number }
   | { op: "set_counter"; kind: string; n: number }
   /** The whole shortlist, in order. */
-  | { op: "set_pinned"; ids: Id[] }
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
   /** A definition's field schema, written whole. */

@@ -43,8 +43,7 @@ export type StageProps = {
   /** Whether the key to what this layer draws sits in its corner, and which corner that is. */
   legend?: boolean;
   corner?: Corner;
-  /** What a right drag draws: which module, which way it points, and which pinned definition it
-   *  names. */
+  /** What a right drag draws: which module, which way it points, and which definition it names. */
   module?: string;
   dir?: string;
   type?: string;

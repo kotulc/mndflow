@@ -41,7 +41,8 @@ export function traits_of(graph: Graph, id: Id | undefined): Id[] {
 }
 
 /** What states settings over an element, nearest first: per link, its own word, then the traits in
- *  force where that link states them. **Nearest wins.** */
+ *  force where that link states them. **Nearest wins.** A trait confers its own settings and those
+ *  of the traits it extends, never its base's: how a tag draws is not what it gives. */
 export function stated(graph: Graph, id: Id | undefined): Components[] {
   const it = id ? graph.blocks[id] ?? graph.edges[id] : undefined;
   if (!it) return [];
@@ -54,7 +55,7 @@ export function stated(graph: Graph, id: Id | undefined): Components[] {
     if (l.settings) out.push(l.settings);
     if (n !== said) return;
     for (const t of l.traits!) {
-      for (const d of isa(graph, t)) if (d.settings) out.push(d.settings);
+      for (const d of isa(graph, t)) if (d.settings && !is_base(d.id)) out.push(d.settings);
     }
   });
   return out;
@@ -241,13 +242,6 @@ export function name_taken(graph: Graph, pkg: Id, name: string, except?: Id): bo
   const want = name.trim();
   return all_defs(graph).some((d) => d.id !== except && d.name === want
     && package_of(graph, d.id) === pkg);
-}
-
-/** Pinned definitions in pin order — of one domain, or of both where none is named. */
-export function pinned_defs(graph: Graph, domain?: Domain): Definition[] {
-  return (graph.blocks[graph.root]?.pinned ?? [])
-    .map((id) => def_at(graph, id))
-    .filter((d): d is Definition => !!d && (!domain || domain_of(graph, d.id) === domain));
 }
 
 /** Every package root, the workspace's last. */

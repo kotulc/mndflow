@@ -8,11 +8,6 @@
         "id": "workspace",
         "parent": null,
         "name": "testspace",
-        "pinned": [
-          "def_special",
-          "def_specialer",
-          "def_test_block"
-        ],
         "counters": {
           "block": 25,
           "folder": 3,

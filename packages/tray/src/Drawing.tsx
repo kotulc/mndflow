@@ -1,18 +1,16 @@
 /** The card column: what it is and how many name it, then the drawing itself. */
 
 import { alias_of, label_of, SCHEMA, role_of, shown_name,
-         type Act, type Graph, type Id } from "@mnd/core";
+         type Graph, type Id } from "@mnd/core";
 import { Icon, role_icon, type IconName } from "@mnd/theme";
 import { Band } from "./Body";
 import { Card } from "./Card";
-import { Options } from "./Options";
 import { Wire } from "./Wire";
 import { defined, held, kind_of, reading } from "./holder";
 
-/** `options` false leaves out the rows that set what it follows. */
-export type DrawingProps = { graph: Graph; id: Id; onAct: Act; options?: boolean };
+export type DrawingProps = { graph: Graph; id: Id };
 
-export function Drawing({ graph, id, onAct, options = true }: DrawingProps) {
+export function Drawing({ graph, id }: DrawingProps) {
   const it = held(graph, id);
   if (!it) return null;
   const { def: d, block: b, edge } = it;
@@ -49,8 +47,6 @@ export function Drawing({ graph, id, onAct, options = true }: DrawingProps) {
               kind={word} icon={(now("card", "icon", "") || role_icon(role ?? kind)) as IconName}
               role={role ?? kind} said={said} now={now} />
       )}
-      {/* What is true of what it follows, under the thing it is true of. */}
-      {options ? <Options graph={graph} id={id} onAct={onAct} /> : null}
     </div>
   );
 }

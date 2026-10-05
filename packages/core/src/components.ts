@@ -94,8 +94,12 @@ export const HUE = { min: 0, max: 360 } as const;
 /** How much chroma that hue is taken at, as a fraction of the theme's own ceiling. */
 export const INTENSITY = { min: 0, max: 1 } as const;
 
+/** How far, in degrees, each definition under one that varies strays from the hue it inherits:
+ *  half either way, keyed by its id, so kin read alike and each still reads as itself. */
+export const VARY = { min: 0, max: 180 } as const;
+
 /** The answers that are ranges rather than sets. */
-export const NUMBERS: readonly string[] = ["hue", "intensity", "opacity"];
+export const NUMBERS: readonly string[] = ["hue", "intensity", "vary", "opacity"];
 
 /** How heavy a border is. Three steps, and the first is the ordinary one. */
 export const WIDTHS = ["thin", "medium", "thick"] as const;
@@ -218,8 +222,9 @@ const style: Component = {
      *  cleared. */
     ?? within("style.hue", config["hue"], HUE)
     ?? within("style.intensity", config["intensity"], INTENSITY)
+    ?? within("style.vary", config["vary"], VARY)
     ?? within("style.opacity", config["opacity"], OPACITY)
-    ?? stray("style", config, ["family", "fill", "hue", "intensity", "opacity",
+    ?? stray("style", config, ["family", "fill", "hue", "intensity", "vary", "opacity",
                                "border_width", "border_style", "border_contrast",
                                "name_font", "name_weight", "name_contrast",
                                "label_font", "label_weight", "label_contrast"]),

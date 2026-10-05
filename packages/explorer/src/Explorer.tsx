@@ -9,7 +9,7 @@ import { about_of, children, def_named, frozen, headed_group, may_hold, shown_na
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
-import { inside, MARK, OPENED, opened, tree_of, type Row } from "./rows";
+import { inside, mark_icon, OPENED, opened, tree_of, type Row } from "./rows";
 
 export type ExplorerProps = {
   graph: Graph;
@@ -38,6 +38,7 @@ export type ExplorerProps = {
     block?: boolean;
     folder?: boolean;
     remove?: boolean;
+    /** The bar's fold: every section at once. */
     fold?: boolean;
   };
   /** A host's own tools, drawn after the filter and ahead of the bar's own. */
@@ -46,13 +47,9 @@ export type ExplorerProps = {
   chain: Chain;
   /** Whether the arrows walk the tree: up and down through the rows of the section in focus, left
    *  and right to the section above or below, landing on what it holds. The way to the row walked
-   *  to opens, and each branch left shuts — unless the bar holds the folds, when what is open stays
-   *  open. A row walked to is chosen as a plain click chooses it. */
+   *  to opens, and nothing shuts. A row walked to is chosen as a plain click chooses it. */
   keys?: boolean;
 };
-
-/** A branch in a section, and whether it holds branches of its own. */
-type Branch = { id: Id; inner: boolean };
 
 /** The keys that walk the tree. */
 const WALK = ["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"];
@@ -119,25 +116,12 @@ function landing(graph: Graph, over: { ref: Id; where: "in" | "above" | "below" 
   return over.where === "in" ? over.ref : graph.blocks[over.ref]?.parent ?? graph.root;
 }
 
-/** A section's own fold, at its root and set to the right: every branch it holds shut in one go,
- *  or opened down to the last — a branch holding only rows stays shut, so the section reads as
- *  its structure. The section itself stays open either way; its mark hides it. A section of plain
- *  rows, with no branch to shut, folds itself. */
-function Fold({ self, kin, folded, onFold }: {
-  self: Id; kin: readonly Branch[]; folded: readonly Id[];
-  onFold: (id: Id, shut: boolean) => void;
-}) {
-  const branches = kin.length ? kin : [{ id: self, inner: false }];
-  const open = branches.some((b) => !folded.includes(b.id));
-  const upper = branches.some((b) => b.inner) ? branches.filter((b) => b.inner) : branches;
-  const toggle = () => {
-    for (const b of branches) onFold(b.id, open || !upper.includes(b));
-    if (folded.includes(self)) onFold(self, false);
-  };
+/** A fold toggle, one look for the bar's and each section's: what it does next, as a tip and
+ *  an icon. */
+function Fold({ icon, tip, onToggle }: { icon: IconName; tip: string; onToggle: () => void }) {
   return (
-    <button className="fold" title={open ? "fold this section" : "open this section"}
-            onClick={(e) => { e.stopPropagation(); toggle(); }}>
-      <Icon name={open ? "fold_all" : "unfold_all"} size={MARK_SIZE} />
+    <button className="fold" title={tip} onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+      <Icon name={icon} size={MARK_SIZE} />
     </button>
   );
 }
@@ -167,27 +151,18 @@ export function Explorer(props: ExplorerProps) {
   const [naming, set_naming] = useState<Id | null>(null);
   /** A block or folder being named in place, before it is made. */
   const [draft, set_draft] = useState<{ parent: Id; type?: string } | null>(null);
-  /** Whether the folds are held: the arrows still open the way they walk, and shut nothing. */
-  const [held, set_held] = useState(false);
 
-  /** Each section's own branches, so its header folds what it heads and nothing else, and every
-   *  row as the arrows walk them. Read off the tree fully open, so a shut branch's own branches
-   *  still count. */
+  /** Each section's own branches, so unfolding its header opens what it heads and nothing else,
+   *  and every row as the arrows walk them. Read off the tree fully open, so a shut branch's own
+   *  branches still count. */
   const sections = useMemo(() => {
     const all = tree_of(graph, [], chain);
-    const out = new Map<Id, Branch[]>();
-    /** Whether a row holds a branch: a row one deeper, before its own end, holding anything. */
-    const inner = (j: number) => {
-      for (let k = j + 1; k < all.length && all[k]!.depth > all[j]!.depth; k++) {
-        if (all[k]!.depth === all[j]!.depth + 1 && all[k]!.kids > 0) return true;
-      }
-      return false;
-    };
+    const out = new Map<Id, Id[]>();
     for (let i = 0; i < all.length; i++) {
       if (all[i]!.depth) continue;
-      const kin: Branch[] = [];
+      const kin: Id[] = [];
       for (let j = i + 1; j < all.length && all[j]!.depth > 0; j++) {
-        if (all[j]!.kids > 0) kin.push({ id: all[j]!.id, inner: inner(j) });
+        if (all[j]!.kids > 0) kin.push(all[j]!.id);
       }
       out.set(all[i]!.id, kin);
     }
@@ -201,20 +176,19 @@ export function Explorer(props: ExplorerProps) {
    *  groups it sits in, for as long as it matches. */
   const refs = new Map(sections.all.map((r) => [r.id, r.ref]));
   const way = new Set(lit.flatMap((id) => [...holders(graph, id)]));
-  /** What each section holds is always in view: the rows above it are open. */
-  const open_to = new Set<Id>();
-  sections.all.forEach((r, i) => {
-    if (r.at === undefined || r.pick === undefined || chain.held[r.at] !== r.pick) return;
-    for (let j = i - 1, d = r.depth; j >= 0 && d > 1; j--) {
-      if (sections.all[j]!.depth < d) { open_to.add(sections.all[j]!.id); d = sections.all[j]!.depth; }
-    }
-  });
-  const shut = folded.filter((id) => !way.has(refs.get(id) ?? id) && !open_to.has(id));
+  const shut = folded.filter((id) => !way.has(refs.get(id) ?? id));
   /** Whether a row is shut: a lazy one until it was opened, any other once folded. */
   const is_shut = (r: Row) => (r.lazy ? !opened(folded, r.id) : shut.includes(r.id));
   /** Folding a row: a lazy one remembers that it was opened, never that it was shut. */
   const fold = (r: Row, close: boolean) =>
     (r.lazy ? onFold(`${OPENED}${r.id}`, !close) : onFold(r.id, close));
+
+  /** Folding a section hides everything in it; unfolding it shows everything, every branch open.
+   *  A usage's parts stay as they were, listed only once it is opened. */
+  const fold_section = (id: Id, close: boolean) => {
+    onFold(id, close);
+    if (!close) for (const b of sections.folds.get(id) ?? []) if (folded.includes(b)) onFold(b, false);
+  };
 
   /** A new pick inside a shut branch opens the way to it once; folding it again is the user's. */
   const seen = picked.join("|");
@@ -223,6 +197,28 @@ export function Explorer(props: ExplorerProps) {
     for (const r of sections.all) if (r.kids && up.has(r.ref)) onFold(r.id, false);
   }, [seen]);
   const rows = tree_of(graph, [...shut, ...folded.filter((id) => id.startsWith(OPENED))], chain);
+  /** The lowest open layer, under every branch alike: each open branch with no open branch
+   *  inside it. The bar's fold shuts them, a layer a click, until only the top rows show; with
+   *  none left, it opens every section whole. */
+  const open_branch = (r: Row) => r.depth > 0 && r.kids > 0 && !is_shut(r) && !way.has(r.ref);
+  const foldable = rows.filter((r, i) => {
+    if (!open_branch(r)) return false;
+    for (let j = i + 1; j < rows.length && rows[j]!.depth > r.depth; j++) {
+      if (open_branch(rows[j]!)) return false;
+    }
+    return true;
+  });
+  const fold_all = () => (foldable.length ? foldable.forEach((r) => fold(r, true))
+    : [...sections.folds.keys()].forEach((id) => fold_section(id, false)));
+  /** A section's own open branches, its top rows apart. */
+  const open_in = (head: Row) => rows.filter((r) => r.at === head.at && open_branch(r));
+  /** A section's chevron folds its branches and never its top rows: with any open it shuts
+   *  them all, else it opens every one — showing the section first where it was hidden. */
+  const fold_branches = (head: Row) => {
+    const open_now = open_in(head);
+    if (open_now.length) { open_now.forEach((r) => fold(r, true)); return; }
+    fold_section(head.id, false);
+  };
   /** The section in focus, and the one block section the bar's tools answer in. */
   const focus = chain.at;
   const library = sections.library;
@@ -257,6 +253,9 @@ export function Explorer(props: ExplorerProps) {
   const zone = landing(graph, over);
   /** The definition held in focus, which the bar's delete takes on the library. */
   const def = library && chain ? chain.held[chain.at] ?? null : null;
+  /** Where a new folder goes: on the library, beside the workspace definition in focus. */
+  const shelf = !library ? target
+    : def && graph.blocks[def] && !frozen(graph, def) ? graph.blocks[def]!.parent : null;
 
   /** Which name is open, and where what was typed lands: a block or a definition. */
   const typing = useMemo(() => ({
@@ -356,16 +355,9 @@ export function Explorer(props: ExplorerProps) {
       if (to < 0 || to >= all.length) return;
       /** The arrows stay in the section they start in. */
       if (all[to]!.at !== all[at]!.at) return;
-      // The way to the row walked to opens. Unless the folds are held, each branch left shuts.
-      const way = new Set<number>();
-      for (let j = to; j >= 0; j = up(j)) way.add(j);
-      for (const j of way) {
-        if (j !== to && folded.includes(all[j]!.id)) onFold(all[j]!.id, false);
-      }
-      if (!held) {
-        for (let j = at; j >= 0; j = up(j)) {
-          if (!way.has(j) && all[j]!.kids && all[j]!.depth) onFold(all[j]!.id, true);
-        }
+      // The way to the row walked to opens; nothing shuts.
+      for (let j = up(to); j >= 0; j = up(j)) {
+        if (folded.includes(all[j]!.id)) onFold(all[j]!.id, false);
       }
       choose(all[to]!);
     };
@@ -389,13 +381,16 @@ export function Explorer(props: ExplorerProps) {
     return (dragging.length ? [...dragging] : said ? [said] : []).filter((id) => !!graph.blocks[id]);
   };
 
-  /** On the library, the bar names a workspace definition; elsewhere a block, drafted in place. */
+  /** On the library, the bar names a workspace definition or files a folder beside one;
+   *  elsewhere a block or folder, drafted in place. */
   const add = (type?: string) => {
-    if (library) { add_def(); return; }
+    if (library && !type) { add_def(); return; }
+    const parent = type === "folder" ? shelf : target;
+    if (!parent) return;
     // A draft row opens where it goes, its branch unfolded to show it.
-    const row = rows.find((r) => r.of === "block" && r.ref === target && r.at === focus);
+    const row = rows.find((r) => r.of === "block" && r.ref === parent && r.at === focus);
     if (row && folded.includes(row.id)) onFold(row.id, false);
-    set_draft({ parent: target, ...(type ? { type } : {}) });
+    set_draft({ parent, ...(type ? { type } : {}) });
   };
 
   /** The draft's slot in the tree, drawn in the rows' own order. */
@@ -436,8 +431,9 @@ export function Explorer(props: ExplorerProps) {
                       onClick={() => add()}><Icon name="add_block" /></button>
             ) : null}
             {show.folder ? (
-              <button title={library ? "definitions are grouped by what they extend" : `add a folder in ${shown_name(graph, target)}`}
-                      disabled={library}
+              <button title={shelf ? `add a folder in ${shown_name(graph, shelf)}`
+                               : "pick a workspace definition to file a folder beside it"}
+                      disabled={!shelf}
                       onClick={() => add("folder")}><Icon name="add_folder" /></button>
             ) : null}
             {show.remove ? (
@@ -446,14 +442,11 @@ export function Explorer(props: ExplorerProps) {
             ) : null}
           </span>
         ) : null}
-        {/* Whether the arrows fold as they walk, set where each collection's own fold sits. */}
+        {/* A layer a click across every section, set where each section's own fold sits. */}
         {show.fold ? (
-          <button className="fold" aria-pressed={held}
-                  title={held ? "folds held: what the arrows open stays open — click to let them fold"
-                    : "folds follow the arrows, shutting what they leave — click to hold them"}
-                  onClick={() => set_held(!held)}>
-            <Icon name={held ? "folds_held" : "folds_follow"} size={MARK_SIZE} />
-          </button>
+          <Fold icon={foldable.length ? "fold_branches" : "unfold_all"}
+                tip={foldable.length ? "fold the lowest open layer" : "open every section"}
+                onToggle={fold_all} />
         ) : null}
       </div>
 
@@ -535,7 +528,7 @@ export function Explorer(props: ExplorerProps) {
                     chosen, or only folds. */
                 onClick={(e) => {
                   if (r.of === "block") { clicked(e, r); return; }
-                  if (!r.depth) { onFold(r.id, !shut.includes(r.id)); return; }
+                  if (!r.depth) { fold_section(r.id, !folded.includes(r.id)); return; }
                   choose(r);
                 }}
                 onContextMenu={(e) => {
@@ -564,7 +557,7 @@ export function Explorer(props: ExplorerProps) {
                                       if (r.kids) fold(r, !is_shut(r)); }}>
                 {/* A row that holds blocks lights its icon, as a card does; a fill would blot a
                     drawn mark like a pilcrow. */}
-                <Icon name={r.icon ?? MARK[r.mark].icon} size={MARK_SIZE} />
+                <Icon name={r.icon ?? mark_icon(r.mark)} size={MARK_SIZE} />
               </span>
               {r.of === "pack"
                 ? <span className="label">{r.label}</span>
@@ -577,7 +570,10 @@ export function Explorer(props: ExplorerProps) {
                 </span>
               ) : null}
               {r.depth ? null : (
-                <Fold self={r.id} kin={sections.folds.get(r.id) ?? []} folded={folded} onFold={onFold} />
+                <Fold icon={open_in(r).length ? "fold_all" : "unfold_all"}
+                      tip={open_in(r).length ? "fold this section's branches"
+                        : "open this section's branches"}
+                      onToggle={() => fold_branches(r)} />
               )}
             </li>
           )))}

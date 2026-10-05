@@ -1,7 +1,7 @@
 /** The questions the settings panel asks of how something draws, as data. */
 
 import { ALIGNS, ARROWS, BORDERS, CONTRASTS, DISPLAYS, FAMILIES, FILLS, FONTS, HUE,
-         INTENSITY, OPACITY, SHOWN, WEIGHTS, WIDTHS } from "@mnd/core";
+         INTENSITY, OPACITY, SHOWN, VARY, WEIGHTS, WIDTHS } from "@mnd/core";
 
 /** The parts of a drawing, and the questions each part is asked. */
 const GROUPS = ["name", "label", "head", "colour", "border", "icon"] as const;
@@ -110,6 +110,10 @@ export const ROWS: Record<Group, Question[]> = {
     { word: "intensity", key: "style", name: "intensity", form: "range",
       tip: "How far the hue is taken, as a fraction of the theme's own ceiling.",
       range: { ...INTENSITY, step: 0.05, fallback: "0.65" } },
+    { word: "vary", key: "style", name: "vary", form: "range",
+      tip: "How far, in degrees, each definition under this one strays from its hue — kin "
+         + "read alike, and each still reads as itself.",
+      range: { ...VARY, step: 1, fallback: "0" } },
     /** Transparency is a quantity, so it is a slider rather than named steps. */
     { word: "opacity", key: "style", name: "opacity", form: "range",
       tip: "How opaque the fill is. The fill alone, so the writing stays readable "

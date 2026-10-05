@@ -25,10 +25,8 @@ const PATHS = {
   // shown in the state it names, so `fold_all` is what an open section wears.
   fold_all: "M6.5 9l5.5 5.5L17.5 9",
   unfold_all: "M9 6.5l5.5 5.5L9 17.5",
-  /** Whether folds follow the walk: a chevron up and one down, opening and shutting; held, a bar
-   *  between them keeps them as they are. */
-  folds_follow: "M8 9.5l4-4 4 4M8 14.5l4 4 4-4",
-  folds_held: "M8 8l4-4 4 4M8 16l4 4 4-4M6.5 12h11",
+  /** Folding the lowest open layer back toward the top rows: a chevron folding against a bar. */
+  fold_branches: "M14 6.5L8.5 12l5.5 5.5M17.5 6v12",
   show_empty: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5",
   hide_empty: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 19.5l15-15",
 
@@ -83,8 +81,6 @@ const PATHS = {
 
   // What a thing is, opened out to be set. A cog: the one mark every app
   // already spends on *the settings of this*.
-  /** A pinned definition. */
-  pin: "M9 3.5h6M12 3.5v7M12 10.5l4.5 4.5v2h-9v-2zM12 17v3.5",
   // The system's own words, written rather than drawn: three letters on one grid, one weight,
   // so `Wks`, `Pkg`, `Def`, `Ref` and `Use` read as one family wherever they are stamped.
   /** The workspace: everything the project holds. */

@@ -1,7 +1,7 @@
 /** The definitions and type tabs: definitions in one table, the workspace's or an element's. */
 
 import { useState } from "react";
-import { def_at, def_of, isa, name_taken, pinned_defs, type Act, type Domain, type Graph,
+import { def_at, def_of, isa, name_taken, type Act, type Domain, type Graph,
          type Id } from "@mnd/core";
 import { Entry } from "./Entry";
 import { def_path, types_for } from "./holder";
@@ -11,14 +11,13 @@ import { def_rows, type DefRow } from "./rows";
 /** Which of the library's listings the tray is narrowed to. */
 /** Where the tray was pointed. `packages` is a target the explorer sends, never a chip:
  *  a package's definitions read in the explorer, and its tab says what is drawn on. */
-export type Only = "all" | "pinned" | "workspace" | "packages";
+export type Only = "all" | "workspace" | "packages";
 
 /** A narrowing of the library: a listing, a group, a package. */
 export type Shelf = { only: Only; group?: Domain; from?: string };
 
 const FOLDERS: readonly { key: Only; word: string }[] = [
-  { key: "all", word: "all" }, { key: "pinned", word: "pinned" },
-  { key: "workspace", word: "workspace" },
+  { key: "all", word: "all" }, { key: "workspace", word: "workspace" },
 ];
 
 const GROUPS = [
@@ -71,10 +70,8 @@ export function Definitions({ graph, about, follows, lines, target = "the select
     ? every.filter((r) => fitting.has(r.id))
            .sort((a, z) => fitting.get(a.id)! - fitting.get(z.id)!)
     : every;
-  const pinned = new Set(pinned_defs(graph).map((d) => d.id));
   const in_folder = (r: DefRow, k: Only) =>
     k === "all" ? true
-    : k === "pinned" ? pinned.has(r.id)
     : k === "workspace" ? !r.from
     : !!r.from && (from === "all" || r.from === from);
   const in_group = (r: DefRow, g: string) => g === "all" || r.group === g;

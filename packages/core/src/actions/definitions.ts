@@ -1,6 +1,6 @@
-/** Fields, definitions, pinning, and giving settings back. */
+/** Fields, definitions, and giving settings back. */
 
-import { closes_cycle, def_at, def_named, def_of, domain_of, in_domain, is_base, name_taken,
+import { closes_cycle, def_at, def_named, def_of, domain_of, in_domain, name_taken,
          ordered_by, package_of, schema_of, type Domain } from "../defs";
 import { next_order } from "../tree";
 import { VALUE_FORMS, type Components, type Definition, type FieldDef, type Graph, type Id,
@@ -160,13 +160,7 @@ register(
   },
 );
 
-/** The pinned list with one id added, or taken off. */
-function pinning(graph: Graph, id: Id, on: boolean): Id[] {
-  const held = graph.blocks[graph.root]?.pinned ?? [];
-  return on ? [...held.filter((x) => x !== id), id] : held.filter((x) => x !== id);
-}
-
-/** Defining from an element, pinning one, removing one. */
+/** Defining from an element. */
 register(
   {
     name: "define_from",
@@ -207,31 +201,6 @@ register(
       /** The element gives back the settings that moved. */
       if (Object.keys(settings).length) out.push({ op: "drop_settings", id });
       return { mutations: out, effect: { say: `defined ${name}` } };
-    },
-  },
-  /** Pinning offers a definition on the rail. */
-  {
-    name: "pin",
-    about: "pins a definition so it is offered first, or takes it off",
-    on: ["layer"],
-    args: [{ name: "id", form: "text", required: true },
-           { name: "on", form: "choice", choices: ["yes", "no"] }],
-    /** Only a base is refused. */
-    check: (ctx, args) => {
-      const id = id_of(args, "id");
-      const d = def_at(ctx.graph, id);
-      if (!d) return `there is nothing called "${id}" to pin`;
-      return is_base(id) ? `"${d.name}" is a base, and is never pinned` : null;
-    },
-    run: (ctx, args) => {
-      const id = id_of(args, "id");
-      const d = def_at(ctx.graph, id);
-      const held = ctx.graph.blocks[ctx.graph.root]?.pinned ?? [];
-      /** Absent toggles. */
-      const said = args["on"] === undefined ? null : text(args, "on") === "yes";
-      const want = said ?? !held.includes(id);
-      return { mutations: [{ op: "set_pinned", ids: pinning(ctx.graph, id, want) }],
-               effect: { say: `${d?.name ?? id} is ${want ? "pinned" : "unpinned"}` } };
     },
   },
 );

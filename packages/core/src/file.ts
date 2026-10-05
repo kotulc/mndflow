@@ -103,7 +103,6 @@ export function write_package(graph: Graph, name: string): string {
                     ...(b.traits ? { traits: all(b.traits) } : {}),
                     ...(b.id === graph.root ? { name } : {}) };
     delete blocks[now]!.counters;
-    delete blocks[now]!.pinned;
   }
   const edges: Graph["edges"] = {};
   for (const e of Object.values(graph.edges)) {

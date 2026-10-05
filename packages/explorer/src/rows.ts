@@ -1,14 +1,17 @@
 /** The explorer's rows: each section's header, then what it lists, laid out with depth, guides
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
-import { alias_of, base_of, children, config_of, def_at, def_of, domain_of, headed_group,
-         is_interface, is_named, organizes, relation_base, shape_of, shown_name,
-         type Graph, type Id } from "@mnd/core";
-import { known, type IconName } from "@mnd/theme";
+import { alias_of, children, config_of, def_at, def_of, domain_of, headed_group, is_interface,
+         is_named, organizes, relation_base, role_of, shown_name, type Graph, type Id,
+         type Role } from "@mnd/core";
+import { known, role_icon, type IconName } from "@mnd/theme";
 import type { Chain, Listing } from "./chain";
 
-export type Mark = "leaf" | "folder" | "interface" | "reference" | "note" | "group" | "grid" | "pin"
-  | "locked" | "vocabulary" | "usages" | "root" | "package" | "line" | "tie" | "tag";
+/** What a row reads as: a block's role, as its card reads, or one of the tree's own marks. */
+export type Mark = Role | Own;
+
+/** The tree's own marks: package roots, section headers and relation definitions. */
+type Own = "locked" | "vocabulary" | "usages" | "root" | "package" | "line" | "tie";
 
 export type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
                     /** The icon its definition names with `card.icon`, worn over its mark's. */
@@ -39,29 +42,21 @@ export type Row = { id: Id; depth: number; label: string; kids: number; mark: Ma
 /** What the explorer stores, in its folds, for a lazy row somebody opened. */
 export const OPENED = "+";
 
-/** What a row reads as, as a mark. A `word` is three letters rather than a drawing, and is never
- *  filled: a fill closes its counters and leaves a blot. */
-export const MARK: Record<Mark, { icon: IconName; word?: true }> = {
-  leaf: { icon: "role_leaf" },
-  folder: { icon: "role_folder" },
-  interface: { icon: "role_interface" },
-  reference: { icon: "role_reference" },
-  note: { icon: "role_note" },
-  group: { icon: "role_group" },
-  grid: { icon: "role_table" },
-  pin: { icon: "pin" },
-  locked: { icon: "locked" },
-  vocabulary: { icon: "word_def", word: true },
-  usages: { icon: "word_use", word: true },
-  root: { icon: "role_root" },
-  package: { icon: "word_pkg", word: true },
-  line: { icon: "relation_plain" },
-  tie: { icon: "relation_tie" },
-  tag: { icon: "role_note" },
+/** The icons of the tree's own marks. A role wears its card's icon, so a row and its card agree. */
+const OWN: Record<Own, IconName> = {
+  locked: "locked",
+  vocabulary: "word_def",
+  usages: "word_use",
+  root: "role_root",
+  package: "word_pkg",
+  line: "relation_plain",
+  tie: "relation_tie",
 };
 
-/** The kinds a row wears its base's mark for; any other block is a leaf. */
-const MARKED: readonly string[] = ["folder", "reference", "note", "tag", "interface", "group", "grid"];
+/** The icon a mark wears. */
+export function mark_icon(mark: Mark): IconName {
+  return mark in OWN ? OWN[mark as Own] : role_icon(mark);
+}
 
 
 /** What the tree draws under a block: every block it holds, in order, but the interfaces seated
@@ -181,16 +176,13 @@ function block_row(graph: Graph, id: Id, depth: number, kids: number, key: Id): 
            mark: mark_of(graph, id), guides: [] };
 }
 
-/** The mark a row wears: a package's root or lock, a relation definition its base's, else its
- *  base's or a holder's. */
+/** The mark a row wears: a package's root or lock, a relation definition its base's, else the
+ *  role its card reads as. */
 function mark_of(graph: Graph, id: Id): Mark {
   const b = graph.blocks[id];
   if (b?.parent === null) return id === graph.root ? "root" : "locked";
   if (b?.def && domain_of(graph, id) === "relation") return relation_base(graph, id) as Mark;
-  const base = base_of(graph, id);
-  const shape = shape_of(graph, id);
-  if (shape) return shape;
-  return MARKED.includes(base) ? base as Mark : "leaf";
+  return role_of(graph, id);
 }
 
 /** Each row's guide columns: whether a row one deeper carries on below it, before the tree steps

@@ -110,8 +110,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     });
   }
 
-  /** What a right drag makes. **The shipped runs, and no vocabulary**: a pinned definition reads
-   *  in the explorer's `pinned` folder, which is one place for both groups rather than two. */
+  /** What a right drag makes: the shipped runs, and no vocabulary. */
   if (has("relations")) {
     out.push({
       key: "relations", label: "relations",

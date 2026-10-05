@@ -156,27 +156,15 @@ fieldset.fields { padding: 0; }
 .drawing { display: flex; flex-direction: column; min-height: 0; }
 .drawing > .preview { padding-inline: 8px; }
 
-/* The options under the drawing. **Not `.opts`**, which is the options rail: a 68px column that
-   sets `flex-direction: column` and a left border, and stacked these the moment they shared it. */
-.drawing > .toggles {
-  display: flex;
-  /* One line, always: two short words read as a row, never as a stack. */
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 8px;
-}
-
 /* The drawing fills its column; the run scales with it. */
 .drawing .preview-card, .drawing .preview-wire { width: 100%; }
 .drawing .preview-run { width: 100%; height: auto; }
 
 /* The card draws at its own height on the element tab and the style tab alike: it is the same
    drawing of the same thing, so it is the same size. Source runs full width under the content it
-   is the provenance of. */
+   is the provenance of, and a definition's record under that. */
 .panel.element {
-  grid-template-areas: "drawing rows" "body body" "source source";
+  grid-template-areas: "drawing rows" "body body" "source source" "data data";
 }
 
 /* The settings tab: the drawing and its looks side by side, and what its usages may do full width
@@ -184,8 +172,9 @@ fieldset.fields { padding: 0; }
 .panel.style { grid-template-areas: "drawing rows" "abilities abilities"; }
 .panel > .col.abilities { grid-area: abilities; }
 
-/* A definition has no source and a block no record, so the two never both appear. */
-.panel > .source, .panel > .content.data { grid-area: source; }
+/* A definition is a block, so it may carry both: each takes its own row. */
+.panel > .source { grid-area: source; }
+.panel > .content.data { grid-area: data; }
 
 /* The workspace draws nowhere, so there is no card column: what it is and what it is made of
    take a column each, and the description runs under both. */
@@ -201,7 +190,7 @@ fieldset.fields { padding: 0; }
 @container tray (min-width: 960px) {
   .panel.element {
     grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "drawing rows body" "source source source";
+    grid-template-areas: "drawing rows body" "source source source" "data data data";
   }
 
   .panel.workspace {

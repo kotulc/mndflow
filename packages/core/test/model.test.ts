@@ -65,18 +65,6 @@ describe("definitions", () => {
     const type = s.graph().blocks[at("Pump")]!.type!;
     expect(s.graph().blocks[type]!.name).toBe("Machine");
     expect(s.graph().blocks[type]!.parent).toBe(ROOT);
-    expect(s.graph().blocks[ROOT]!.pinned ?? []).not.toContain(type);
-  });
-
-  it("pins and unpins, and never pins a base", () => {
-    const { s, at } = made("Pump");
-    s.go("define_from", { id: at("Pump"), name: "Machine" });
-    const type = s.graph().blocks[at("Pump")]!.type!;
-    s.go("pin", { id: type, on: "yes" });
-    expect(s.graph().blocks[ROOT]!.pinned).toEqual([type]);
-    s.go("pin", { id: type, on: "no" });
-    expect(s.graph().blocks[ROOT]!.pinned).toBeUndefined();
-    expect(s.go("pin", { id: "block" })).not.toBeNull();
   });
 
   it("refuses to change what a package brought", () => {

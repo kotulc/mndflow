@@ -15,7 +15,6 @@ export { Element, type ElementProps } from "./Element";
 export { Workspace, type Display, type WorkspaceProps } from "./Workspace";
 export { Settings, type SettingsProps } from "./Settings";
 export { Drawing, type DrawingProps } from "./Drawing";
-export { Options, type OptionsProps } from "./Options";
 export { Identity, type IdentityProps } from "./Identity";
 export { Source, type SourceProps } from "./Source";
 export { Looks, type LooksProps } from "./Looks";

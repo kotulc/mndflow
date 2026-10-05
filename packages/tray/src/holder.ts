@@ -41,7 +41,7 @@ export function defined(graph: Graph, id: Id, it: Held, runs: boolean) {
   const follows = runs ? (d ?? def_at(graph, def_of(graph, id))) : undefined;
   const own = runs ? follows : d ?? def_at(graph, b?.type);
   const mine = !!own && !frozen(graph, own.id) && own.id !== DRAFT;
-  /** What came frozen is fixed: never renamed, removed or pinned. */
+  /** What came frozen is fixed: never renamed or removed. */
   const fixed = !own || frozen(graph, own.id);
   return { follows, own, mine, fixed };
 }

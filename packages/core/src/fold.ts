@@ -74,14 +74,6 @@ function apply(graph: Graph, m: Mutation): void {
       if (ws) ws.counters = { ...(ws.counters ?? {}), [m.kind]: m.n };
       return;
     }
-    case "set_pinned": {
-      const ws = graph.blocks[graph.root];
-      if (!ws) return;
-      /** Deduplicated, in order, and dropped when empty. */
-      const kept = [...new Set(m.ids.filter(Boolean))];
-      if (kept.length) ws.pinned = kept; else delete ws.pinned;
-      return;
-    }
     case "place_block": {
       const b = graph.blocks[m.id];
       if (b) { b.x = m.x; b.y = m.y; }

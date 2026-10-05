@@ -46,8 +46,6 @@
   cursor: pointer;
 }
 
-.explorer .bar > .fold { color: var(--muted); }
-
 .explorer .bar > .fold:hover,
 .explorer .tree li > .fold:hover { color: var(--accent); background: none; }
 
@@ -240,6 +238,3 @@
 /* The section holding what is lit reads in the accent, folded or not. */
 .explorer .tree li.top.holds .label,
 .explorer .tree li.top.holds .mark { color: var(--accent); }
-
-/* Folds held: the bar's fold wears the accent while it holds them. */
-.explorer .bar > .fold[aria-pressed="true"] { color: var(--accent); }

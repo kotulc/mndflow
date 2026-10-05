@@ -27,7 +27,6 @@ export function badges_of(graph: Graph, def: Id): string[] {
   if (card["height"] === "fit") said.push("fits");
   if (card["height"] === "free") said.push("free");
   if (card["preview"] === "show") said.push("media");
-  if ((graph.blocks[graph.root]?.pinned ?? []).includes(def)) said.push("pinned");
   return said;
 }
 

@@ -7,7 +7,7 @@ The explorer files the graph as a **section chain**: a host declares its section
 | **mndflow** (editor) | `packages` → `definitions` → `structure` |
 | **mndmap** (reader) | `collection` → `document`: the editor's chain with the package fixed to the workspace and hidden |
 
-**The bar is tools only**: filter, add, add folder, delete, fold. It follows the section in focus. The filter keys off tags and is not built yet.
+**The bar is tools only**: filter, add, add folder, delete, and a fold that shuts a layer a click. It follows the section in focus. The filter keys off tags and is not built yet.
 
 
 ## The chain
@@ -17,7 +17,9 @@ The explorer files the graph as a **section chain**: a host declares its section
 | **split by role** | each section lists one role's subtree under the pick above: package roots, a domain, a tree's structure |
 | **host defined** | each `Slice` says its label, mark, listing (`list`) and first pick (`first`) |
 | **remembered** | a section remembers its pick per pick above; session state (`useChain`), never logged |
-| **headers are labels** | never chosen; clicking one folds its section |
+| **headers are labels** | never chosen; clicking one hides or shows its whole section |
+| **section folds** | a section's chevron folds its branches and never its top rows: with any open it shuts them all, else it opens every one. A usage's parts stay listed only once it is opened |
+| **a layer a click** | the bar's fold, drawn like a section's, shuts the lowest open layer under every branch alike — each open branch with no open branch inside it — until only the top rows show. With nothing left to shut, it opens every section whole |
 | **three cues** | the accent's edge on the one row the canvas shows — a structure's open layer in the structure section, else on the overview what is picked (or the held package) above it; the pick a strong wash; each section's own pick a faint one |
 
 | Section | Lists |
@@ -72,7 +74,7 @@ pump1
 
 ## Selection
 
-**Selection matches the canvas.** A plain click chooses; the toggle key adds or drops one; shift takes the run in the section in focus. A drag off a picked row carries the selection. **A pick inside a shut branch opens the way to it.** ↑ ↓ walk the section in focus; ← → move between sections, landing on what each holds.
+**Selection matches the canvas.** A plain click chooses; the toggle key adds or drops one; shift takes the run in the section in focus. A drag off a picked row carries the selection. **A pick inside a shut branch opens the way to it.** ↑ ↓ walk the section in focus; ← → move between sections, landing on what each holds. The way to a row walked to opens; walking never shuts a branch.
 
 
 ## Editing in the tree
