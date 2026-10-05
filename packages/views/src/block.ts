@@ -13,7 +13,7 @@ import { page_graph } from "./page";
 import { forest_graph, FOREST } from "./packages";
 import { read_through } from "./through";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
-         type GridCell, type LineEdge, type Port, type Trait, type Scene,
+         type GridCell, type LineEdge, type Port, type CardClass, type Scene,
          type Slot } from "./scene";
 
 export type Config = {
@@ -82,7 +82,7 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
     const box = spots.find((p) => p.id === g.id);
     if (!box) continue;
     const said = carried(graph, g.id);
-    const mark: Trait = shape_of(graph, g.id)!;
+    const mark: CardClass = shape_of(graph, g.id)!;
     holders.push(node(g.id, box,
                       { ...said, nest: group_depth(graph, g.id),
                         holds: members_of(graph, g.id).map((b) => b.id),
@@ -177,7 +177,7 @@ function lattice(graph: Graph, id: Id): GridCell[] {
     for (let c = 0; c < g.cols; c++) {
       const span = g.merges?.find((s: Span) => covers(s, r, c));
       if (span && (span.r !== r || span.c !== c)) continue;
-      const marks: Trait[] = ["cell"];
+      const marks: CardClass[] = ["cell"];
       if (span) marks.push("merged");
       const role = heading(g, r, c);
       if (role || (names && r === 0)) marks.push("header");
@@ -229,7 +229,7 @@ function wall_of(graph: Graph, layer: Id, hidden: boolean): Port[] {
       label: shown_name(graph, b.id),
       side: b.side!,
       at: b.at ?? 0.5,
-      marks: hidden ? [...marks_of(graph, b.id), "berth" as Trait] : marks_of(graph, b.id),
+      marks: hidden ? [...marks_of(graph, b.id), "berth" as CardClass] : marks_of(graph, b.id),
       look: look_of(graph, b.id),
     }))
     .sort((a, b) => a.id.localeCompare(b.id));

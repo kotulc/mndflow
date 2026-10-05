@@ -26,7 +26,7 @@
 | `refer` | places a stand-in for a block, a definition or a package | layer | target, type?, spot?, parent?, at? | `add_block{of}` (+ `seat_cell`) |
 | `source` | says where a block's content lives outside the workspace, or gives it back | block | id, uri? | `set_source` |
 | `tag` | puts tags on an element; a new word makes a workspace tag | block, edge, selection | ids, tags | `set_tags` (+ `add_block`) |
-| `trait` | sets the traits an element carries, or gives the set back to its chain | block, edge, selection | ids, traits? | `set_traits` |
+| `trait` | sets the traits a definition carries, or gives the set back to its chain. Refuses a usage, and a tag carrying no settings | block, selection | ids, traits? | `set_traits` |
 | `look` | sets one property of how this draws or what it asks | block, edge, selection | ids, key, name, value? | `set_setting` |
 | `none` | gives back everything this says for itself | block, edge, selection | ids | `drop_settings` |
 | `note` | writes a note about a block, tied to it | block | about, text, spot?, w?, h? | `add_block` + `set_body` + `link_blocks` |

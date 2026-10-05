@@ -14,7 +14,7 @@ function memory(): Storage & { held: () => Log | null } {
 
 describe("undo is a refold", () => {
   it("needs no inverse, and the graph comes back by the same path", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "Ledger" });
     const after_one = hash(s.graph());
     s.go("create", { name: "Site" });
@@ -24,7 +24,7 @@ describe("undo is a refold", () => {
   });
 
   it("unwinds in the order things were applied", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "A" });
     s.go("create", { name: "B" });
     s.go("create", { name: "C" });
@@ -35,12 +35,12 @@ describe("undo is a refold", () => {
   });
 
   it("reports itself spent when there is nothing left", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     expect(s.undo()).toBe(false);
   });
 
   it("redoes what it reverted, and drops the redo once work continues", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "A" });
     s.undo();
     expect(s.redo()).toBe(true);
@@ -50,7 +50,7 @@ describe("undo is a refold", () => {
   });
 
   it("restores the graph, never the context", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "A" });
     const a = children(s.graph(), MAIN)[0]!.id;
     s.pick([a]);
@@ -63,7 +63,7 @@ describe("undo is a refold", () => {
 
 describe("one step per action", () => {
   it("writes one step however many mutations it took", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "Pump" });
     const pump = Object.values(s.graph().blocks).find((b) => b.name === "Pump")!.id;
     s.go("note", { about: pump, text: "hello", spot: { x: 24, y: 24 } });
@@ -72,7 +72,7 @@ describe("one step per action", () => {
   });
 
   it("writes nothing for a refusal", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     const before = s.log().length;
     expect(s.go("create", { name: "" })).toBeNull();
     /** A sibling may wear the same name, so two of these are two steps. */
@@ -83,7 +83,7 @@ describe("one step per action", () => {
   });
 
   it("writes no step for navigation", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "A" });
     const before = s.log().length;
     s.go("open", { id: children(s.graph(), MAIN)[0]!.id });
@@ -146,9 +146,9 @@ describe("files", () => {
 describe("storage", () => {
   it("saves as you go and comes back after a reload", () => {
     const store = memory();
-    const one = session({ storage: store });
+    const one = session({ storage: store, floor: FLOOR });
     one.go("create", { name: "Ledger" });
-    const two = session({ storage: store });
+    const two = session({ storage: store, floor: FLOOR });
     expect(children(two.graph(), MAIN).map((b) => b.name)).toEqual(["Ledger"]);
   });
 
@@ -176,7 +176,7 @@ describe("storage", () => {
   });
 
   it("survives storage that forgets", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "Ledger" });
     expect(children(s.graph(), MAIN)).toHaveLength(1);
   });

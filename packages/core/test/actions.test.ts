@@ -86,7 +86,7 @@ describe("check agrees with run", () => {
 
 describe("what an action absorbs", () => {
   it("move covers nesting, promotion and filing with one argument", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "Ledger" });
     const ledger = children(s.graph(), MAIN)[0]!.id;
     s.go("create", { name: "Auth", parent: ledger });
@@ -101,7 +101,7 @@ describe("what an action absorbs", () => {
 
   /** Where it sits is where you put it. */
   it("orders siblings as they are added, and as they are dropped", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     for (const name of ["A", "B", "C"]) s.go("create", { name });
     const named = () => children(s.graph(), MAIN).map((b) => b.name);
     expect(named()).toEqual(["A", "B", "C"]);
@@ -124,7 +124,7 @@ describe("what an action absorbs", () => {
 
   /** A reorder is not a move out of anywhere, so it shifts no card. */
   it("keeps where a block sits when it stays under the same parent", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     for (const name of ["A", "B"]) s.go("create", { name });
     const [a, b] = children(s.graph(), MAIN).map((x) => x.id);
     s.adjust("place", adjustments.place([{ id: a!, x: 96, y: 48 }]));
@@ -134,7 +134,7 @@ describe("what an action absorbs", () => {
   });
 
   it("appends what arrives from somewhere else", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "Shelf" });
     const shelf = children(s.graph(), MAIN)[0]!.id;
     for (const name of ["A", "B"]) s.go("create", { name, parent: shelf });
@@ -168,7 +168,7 @@ describe("what an action absorbs", () => {
 describe("the way out of a layer", () => {
   /** An interface is drawn on its owner's border and in its owner's own wall. */
   const seated = () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "Loop" });
     const loop = children(s.graph(), MAIN)[0]!.id;
     s.look(loop);
@@ -220,11 +220,7 @@ describe("interfaces sit where a capability allows them", () => {
 });
 
 describe("a field on a layer", () => {
-  /** A session with a minimal floor handed in. */
-  const seeded = () => session({ floor: [
-    { id: "base", parent: null, name: "base" },
-    ...["block", "note"].map((name) => ({ id: name, parent: "base", name, def: {} })),
-  ] });
+  const seeded = () => session({ floor: FLOOR });
 
   it("records what a layer draws definitions from", () => {
     const s = seeded();

@@ -90,7 +90,7 @@ Block {
   counters?     Record<string, number>   // workspace root: handle counters per kind
 
   settings?     Components        // its own word, by component
-  traits?       Id[]              // capability tags, in order
+  traits?       Id[]              // capability tags, in order; definitions only
   tags?         Id[]              // tag definitions it carries
   values?       Field[]           // a usage's values
 }
@@ -168,7 +168,7 @@ FieldDef { name, form, value?, unit?, choices?, many?, tags?, key? }
 | `line` | how a run draws |
 | `layout` | `kind`: `free`, `auto`, `outline` or `page`; `across` and `line` for the computed ones. An unknown kind draws as `auto` |
 | `tie` | the relation type a block made from or dropped on another is linked to it by |
-| `allows` | `ports`, `holds`, `members`, `heads`, `degree`, `ends`. Refused at the gesture. Which holder a block is comes from its base, never from here |
+| `allows` | `ports`, `holds`, `members`, `heads`, `degree`, `ends`. Refused at the gesture; absent is a no. Usually granted whole by a trait. Which holder a block is comes from its base, never from here |
 | `expects` | `required`, `match`. Advice, never a refusal |
 
 - **A component owns its key and validates it at the door.** One absent from the build is left unvalidated, not wrong.

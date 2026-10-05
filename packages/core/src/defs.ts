@@ -31,13 +31,19 @@ export function isa(graph: Graph, type: Id | undefined): Definition[] {
   return out;
 }
 
-/** The traits in force for an element or a definition: the nearest set stated along its chain. A
- *  set stated replaces its chain's; nobody stating one leaves none. */
+/** A definition's chain, nearest first, ending at a base: one extending nothing extends the base
+ *  its kind names, so it reads as that kind does. */
+export function chain_of(graph: Graph, def: Id | undefined): Definition[] {
+  const chain = isa(graph, def);
+  const last = chain[chain.length - 1];
+  const base = last && !is_base(last.id) ? def_at(graph, block_base(graph, def)) : undefined;
+  return base ? [...chain, base] : chain;
+}
+
+/** The traits in force for an element or a definition: the nearest set stated along its
+ *  definition's chain. A set stated replaces its chain's; nobody stating one leaves none. */
 export function traits_of(graph: Graph, id: Id | undefined): Id[] {
-  const it = id ? graph.blocks[id] ?? graph.edges[id] : undefined;
-  if (it?.traits) return it.traits;
-  const chain = it && "def" in it && it.def ? isa(graph, id) : isa(graph, def_of(graph, id!));
-  return chain.find((d) => d.traits)?.traits ?? [];
+  return chain_of(graph, id ? def_of(graph, id) : undefined).find((d) => d.traits)?.traits ?? [];
 }
 
 /** What states settings over an element, nearest first: per link, its own word, then the traits in
@@ -48,7 +54,8 @@ export function stated(graph: Graph, id: Id | undefined): Components[] {
   if (!it) return [];
   const own_def = "def" in it && !!it.def;
   const links: { settings?: Components; traits?: Id[] }[] =
-    own_def ? isa(graph, it.id) : [it, ...isa(graph, def_of(graph, it.id))];
+    own_def ? chain_of(graph, it.id)
+      : [{ settings: it.settings }, ...chain_of(graph, def_of(graph, it.id))];
   const out: Components[] = [];
   const said = links.findIndex((l) => l.traits);
   links.forEach((l, n) => {
@@ -277,7 +284,7 @@ export function uses_of(graph: Graph, pkg: Id): Id[] {
   }
   for (const e of Object.values(graph.edges)) {
     if (package_of(graph, e.from) !== pkg && package_of(graph, e.to) !== pkg) continue;
-    for (const t of [e.type, ...(e.traits ?? []), ...(e.tags ?? [])]) reach(t);
+    for (const t of [e.type, ...(e.tags ?? [])]) reach(t);
   }
   return [...out].filter((id) => graph.blocks[id]).sort();
 }

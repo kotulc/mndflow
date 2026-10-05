@@ -20,7 +20,7 @@ export type BoxData = {
   /** Where the box points, if it points anywhere. */
   link?: string;
   /** Everything true of it at once, drawn as classes. */
-  marks: readonly Trait[];
+  marks: readonly CardClass[];
   /** The system marks, derived: what this card stands in for, or what describes it. */
   stamps?: readonly Mark[];
   /** What sort of thing it is: the icon it wears unless somebody set their own. */
@@ -51,7 +51,7 @@ export type BoxData = {
 
 /** What a card wears as classes: everything true of it at once, as against the one system
  *  mark it carries. */
-export type Trait = "container" | "reference" | "missing" | "note" | "group" | "grid"
+export type CardClass = "container" | "reference" | "missing" | "note" | "group" | "grid"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "upright" | "merged"
                  /** A block of a definition's structure, seen through a usage of it. */
@@ -65,7 +65,7 @@ export type GridCell = {
   y: number;
   w: number;
   h: number;
-  marks: readonly Trait[];
+  marks: readonly CardClass[];
   /** What the cell says where no block is seated in it: a value, or its column's name on a line
    *  the grid's schema heads. */
   value?: string;
@@ -119,7 +119,7 @@ export type Port = {
   label: string;
   side: Side;
   at: number;
-  marks: readonly Trait[];
+  marks: readonly CardClass[];
   look?: Look;
 };
 

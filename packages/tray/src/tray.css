@@ -167,10 +167,10 @@ fieldset.fields { padding: 0; }
   grid-template-areas: "drawing rows" "body body" "source source" "data data";
 }
 
-/* The settings tab: the drawing and its looks side by side, and what its usages may do full width
-   under both. */
-.panel.style { grid-template-areas: "drawing rows" "abilities abilities"; }
-.panel > .col.abilities { grid-area: abilities; }
+/* The settings tab: the drawing and its looks side by side, and what its usages may do in the
+   card column under the drawing. */
+.panel.style { grid-template-areas: "drawing rows" "traits rows"; grid-template-rows: auto 1fr; }
+.panel > .col.traits { grid-area: traits; }
 
 /* A definition is a block, so it may carry both: each takes its own row. */
 .panel > .source { grid-area: source; }

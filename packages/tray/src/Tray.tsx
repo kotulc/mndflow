@@ -225,6 +225,8 @@ export function Tray(props: TrayProps) {
   const bag = def_at(view, about)?.settings;
   const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
   const borrowed = !!def_at(view, about) && frozen(view, about);
+  /** Whether it states a trait set of its own, and so has one to give back. */
+  const own_traits = !!def_at(view, about)?.traits;
 
   /** A reference holds nothing of its own — `of` is the whole of it — so its contents is the one
    *  it stands for, listed as a row like any other and offering the way there. */
@@ -327,12 +329,22 @@ export function Tray(props: TrayProps) {
       } : {})}
       {...(onAct && tab === "settings" ? {
         tabTools: (
-          <button className="reset" disabled={borrowed || !its_own}
-                  title={its_own ? "give every look back to what it inherits"
-                                    : "it says nothing of its own to give back"}
-                  onClick={() => act("none", { ids: [about] })}>
-            reset style
-          </button>
+          <>
+            <button className="reset" disabled={borrowed || !its_own}
+                    title={its_own ? "give every look back to what it inherits"
+                                      : "it says nothing of its own to give back"}
+                    onClick={() => act("none", { ids: [about] })}>
+              reset style
+            </button>
+            {def_at(view, about) && domain_of(view, about) === "block" ? (
+              <button className="reset" disabled={borrowed || !own_traits}
+                      title={own_traits ? "give the traits back to what it extends"
+                                        : "it states no traits of its own to give back"}
+                      onClick={() => act("trait", { ids: [about], traits: null })}>
+                reset traits
+              </button>
+            ) : null}
+          </>
         ),
       } : {})}
     >

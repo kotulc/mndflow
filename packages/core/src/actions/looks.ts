@@ -2,7 +2,7 @@
 
 import { component, NUMBERS } from "../components";
 import { new_id } from "../ids";
-import { tag_named } from "../tags";
+import { is_trait, tag_named } from "../tags";
 import type { Id, Mutation } from "../types";
 import { register, type Args } from "./registry";
 import { borrowed, ids_of, list, text } from "./helpers";
@@ -40,17 +40,19 @@ register(
   },
   {
     name: "trait",
-    about: "sets the traits an element or a definition carries — capability tags — or gives the "
-      + "set back to what it extends",
-    on: ["block", "edge", "layer", "selection"],
+    about: "sets the traits a definition carries — capability tags — or gives the set back to "
+      + "what it extends",
+    on: ["block", "layer", "selection"],
     /** The whole trait list, by id or name; absent gives the set back to the chain. */
     args: [{ name: "ids", form: "block", required: true }, { name: "traits", form: "text" }],
     check: (ctx, args) => {
       const ids = ids_of(ctx, args);
       if (!ids.length) return "nothing is selected";
+      if (ids.some((id) => !ctx.graph.blocks[id]?.def)) return "traits are a definition's";
       const why = ids.map((id) => borrowed(ctx.graph, id)).find(Boolean);
       if (why) return why;
-      const missing = list(args["traits"]).find((word) => !tag_named(ctx.graph, word));
+      const missing = list(args["traits"])
+        .find((word) => !is_trait(ctx.graph, tag_named(ctx.graph, word)?.id));
       return missing ? `there is no trait called "${missing}"` : null;
     },
     run: (ctx, args) => {

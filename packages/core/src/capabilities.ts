@@ -19,7 +19,7 @@ export type Note = {
 export type Range = { min?: number; max?: number };
 
 /** One capability's setting: anything, nothing, or these definitions and whatever extends them.
- *  Absent is not this — it means nobody said, and the chain answers instead. */
+ *  Absent means nobody said, and is a no: a capability is granted, by a trait or a setting. */
 export type Allowed = boolean | Id[];
 
 /** What may attach to or be held by a usage. Refused when a gesture would break it. */
@@ -69,15 +69,6 @@ export function allows_of(graph: Graph, id: Id | undefined): Allows {
 /** What this usage's values are asked for, merged the same way. */
 export function expects_of(graph: Graph, id: Id | undefined): Expects {
   return merged(layers_of(graph, id, "expects", read_expects));
-}
-
-/** A definition's capabilities split in two: what its own word states, and what the rest of its
- *  chain gives it. A frozen definition's own word is not the workspace's to change. */
-export function allows_split(graph: Graph, def: Id): { own: Allows; inherited: Allows } {
-  const chain = isa(graph, def);
-  const mine = !!chain[0] && !frozen(graph, chain[0].id);
-  return { own: mine ? read_allows(chain[0]!.settings) : {},
-           inherited: merged(chain.slice(mine ? 1 : 0).map((d) => read_allows(d.settings))) };
 }
 
 /** Nearest first, so the first declaration of each key is the one in force. */
@@ -143,11 +134,11 @@ function is_one_of(graph: Graph, type: Id | undefined, allowed: Id[]): boolean {
   return isa(graph, type).some((d) => allowed.includes(d.id));
 }
 
-/** Whether a setting lets this type through. Absent is a yes: nobody said otherwise. */
+/** Whether a setting lets this type through. Absent is a no: nobody granted it. */
 export function permits(graph: Graph, setting: Allowed | undefined,
                         type?: Id): boolean {
-  if (setting === undefined || setting === true) return true;
-  if (setting === false) return false;
+  if (setting === true) return true;
+  if (setting === undefined || setting === false) return false;
   return setting.length ? is_one_of(graph, type, setting) : false;
 }
 
@@ -209,19 +200,15 @@ export function review(graph: Graph, scope?: Id): Note[] {
       }
     }
 
-    /** The vocabulary's containment capability. */
-    if (allows.holds !== undefined) {
-      for (const child of children(graph, b.id)) {
-        if (is_interface(child)) continue;
-        if (!permits(graph, allows.holds, child.type)) {
-          notes.push({ kind: "holds", id: child.id,
-                       what: `"${label(graph, b.id)}" may not hold "${label(graph, child.id)}"` });
-        }
-      }
+    /** What it holds without the containment capability, or of a sort it does not take. */
+    for (const child of children(graph, b.id)) {
+      if (is_interface(child) || permits(graph, allows.holds, child.type)) continue;
+      notes.push({ kind: "holds", id: child.id,
+                   what: `"${label(graph, b.id)}" may not hold "${label(graph, child.id)}"` });
     }
 
     /** A wall that takes no interfaces, said about the ones already on it. */
-    if (allows.ports !== undefined && !permits(graph, allows.ports, "interface")) {
+    if (!permits(graph, allows.ports, "interface")) {
       for (const child of children(graph, b.id)) {
         if (!is_interface(child)) continue;
         notes.push({ kind: "ports", id: child.id,

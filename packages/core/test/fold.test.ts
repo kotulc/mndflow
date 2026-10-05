@@ -86,7 +86,7 @@ describe("derived readings", () => {
 
 describe("references", () => {
   it("reads its target's name, and missing when the target is gone", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "Ledger" });
     const ledger = children(s.graph(), MAIN)[0]!.id;
     s.go("create", { name: "Auth", parent: ledger });
@@ -106,13 +106,8 @@ describe("references", () => {
 });
 
 /** The cascade, and the one rule it exists to make true. */
-/** The base kinds, as the seven definitions that name them, under a package of their own. */
-const BASE: Block[] = [{ id: "base", parent: null, name: "base" },
-  ...["block", "folder", "reference", "interface", "group", "grid", "note"].map((name) => ({
-    id: name, parent: "base", name, def: {}, settings: { block: { module: name } },
-  }))];
-
-const kinds = (more: Block[] = []) => session({ floor: [...BASE, ...more] });
+/** A session on the base package, and any definitions added beside it. */
+const kinds = (more: Block[] = []) => session({ floor: [...FLOOR, ...more] });
 
 describe("definitions cascade", () => {
   const with_defs = (defs: Block[]) => kinds(defs).graph();
@@ -126,7 +121,7 @@ describe("definitions cascade", () => {
     ]);
     /** The nearest wins on what it says, and says nothing about the rest. */
     expect(config_of(graph, "d_sub", "style"))
-      .toEqual({ slot: "secondary", emphasis: "quiet" });
+      .toMatchObject({ slot: "secondary", emphasis: "quiet" });
   });
 
   it("reads a kind from the nearest link that names one", () => {

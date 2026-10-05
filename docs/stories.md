@@ -75,6 +75,7 @@ One collapsible strip that says **where you are, what you just did, and what you
 | **Behaviour** | a cell address is an order and a header is an allocation; nothing reads either as behaviour yet. Likely what drives ST.23 |
 | **SysML round trip** | a `tie` goes out as `comment` and comes back as a `line`. Part of ST.6 |
 | **A named package is checked** | reconciling what each package brought and what is in use against the catalogue |
+| **Constraints** | what a kind may hold, seat, take or connect to *by definition* (`allows` lists, `degree`, `ends`) and what its values must say (`expects`). Traits grant a capability whole and never limit it; these stay raw settings with no editor until reworked: stating a constraint, and seeing where a model breaks it |
 
 
 ## Loose ends
@@ -113,6 +114,7 @@ One collapsible strip that says **where you are, what you just did, and what you
 | **the draft is never listed** | tables read the graph without it |
 | **the scope chip decides depth, nothing else** | only the *workspace* scope reads deep |
 | **a door without `base` strips `type`** | anything checking a log or a file must pass the packages in use |
+| **a floor without `base` grants nothing** | capabilities are traits the base kinds carry, and absent is a no: a session or fold missing `base` refuses every hold |
 | **an app keeps its session across hot reload** | reload the page after a core change |
 | **a table's widths ride on its cells** | the contents table is `table-layout: fixed`, so a column is as wide as its head cell says |
 | **a style attribute has to reach the writing** | a look's attributes are read by descendant selectors, so a name floated outside the dressed element takes none of them |

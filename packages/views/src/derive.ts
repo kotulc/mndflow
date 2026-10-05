@@ -4,12 +4,12 @@ import { alias_of, def_at, schema_def, schema_of, head_of, is_container, is_inte
          base_of, path, previewed, role_of, shape_of, shown_name, stamps_of, stands_for, stood_def,
          type Graph, type Id } from "@mnd/core";
 import { look_of } from "./look";
-import type { BoxData, Listed, Trait, Scene } from "./scene";
+import type { BoxData, Listed, CardClass, Scene } from "./scene";
 
 /** How a block reads, derived from what it holds or where it sits. */
-export function marks_of(graph: Graph, id: Id): Trait[] {
+export function marks_of(graph: Graph, id: Id): CardClass[] {
   const b = graph.blocks[id];
-  const out: Trait[] = [];
+  const out: CardClass[] = [];
   if (!b) return out;
   const module = base_of(graph, id);
   /** A stand-in for a definition draws as its usages; only its stamp says it stands in. */

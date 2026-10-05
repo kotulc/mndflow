@@ -60,7 +60,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 | | Carried in | Says |
 |---|---|---|
 | **tag** | `tags` | a word, with its meaning in `body` |
-| **trait** | `traits` | a tag carrying settings: a capability, added or removed as one. It confers its own settings and those of the traits it extends, never its base's |
+| **trait** | `traits` | a tag carrying settings: a capability, added or removed as one. It confers its own settings and those of the traits it extends, never its base's. Definitions only |
 
 **The tie trait** links a block made from, or dropped on, another to it, on the same layer, by a relationship of the type it names. Made on its own, it links nothing. `note` carries it, with resizable and body content.
 
@@ -72,7 +72,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 
 ## Capabilities
 
-**`allows` is refused at the gesture; `expects` is only ever advice.** Both merge along the chain per key, nearest first. A capability naming a definition means it or anything below it.
+**`allows` is refused at the gesture; `expects` is only ever advice.** Both merge along the chain per key, nearest first. **Absent is a no**: a block may hold, seat or take only what a trait or a setting grants. A capability naming a definition means it or anything below it. A chain ends at a base: a definition extending nothing reads through `block`.
 
 
 ## Marks

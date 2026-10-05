@@ -1,9 +1,7 @@
-/** Tags: definitions on the `tag` base that blocks, lines and definitions carry by id; and badges,
- *  the words for what a definition can do, read off its settings. A tag carrying settings is a
- *  trait (`traits_of`, in defs). */
+/** Tags: definitions on the `tag` base that blocks, lines and definitions carry by id. A tag
+ *  carrying settings is a trait (`traits_of`, in defs). */
 
-import { allows_of } from "./capabilities";
-import { all_defs, block_base, config_of, def_at, def_of, isa } from "./defs";
+import { all_defs, block_base, def_at, def_of, is_base, isa } from "./defs";
 import type { Definition, Graph, Id } from "./types";
 
 
@@ -12,22 +10,9 @@ export function is_tag(graph: Graph, def: Id | undefined): boolean {
   return !!def_at(graph, def) && block_base(graph, def) === "tag";
 }
 
-/** What a definition can do, in words: a readout of its settings, never stored or carried. */
-export function badges_of(graph: Graph, def: Id): string[] {
-  const d = def_at(graph, def);
-  if (!d) return [];
-  const base = block_base(graph, def);
-  if (base === "tag") return [];
-  const allows = allows_of(graph, def);
-  const card = config_of(graph, def, "card");
-  const said: string[] = [];
-  if (allows.holds !== false) said.push("layer");
-  if (allows.heads) said.push("headed");
-  if (allows.ports !== false) said.push("ports");
-  if (card["height"] === "fit") said.push("fits");
-  if (card["height"] === "free") said.push("free");
-  if (card["preview"] === "show") said.push("media");
-  return said;
+/** Whether a definition is a trait: a tag carrying settings. The `tag` base itself is a kind. */
+export function is_trait(graph: Graph, def: Id | undefined): boolean {
+  return is_tag(graph, def) && !is_base(def) && !!def_at(graph, def)?.settings;
 }
 
 /** The tags a definition carries: its chain's, nearest first. */

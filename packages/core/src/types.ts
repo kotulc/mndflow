@@ -124,8 +124,8 @@ export type Block = {
   settings?: Components;
   /** The tag definitions it carries, by id. */
   tags?: string[];
-  /** Its capability tags, by id, in order: tags carrying settings. Stated, they replace the
-   *  chain's set. */
+  /** A definition's capability tags, by id, in order: tags carrying settings. Stated, they
+   *  replace the chain's set. A usage carries none. */
   traits?: Id[];
   flow?: Flow;
   /** A usage's field values. */
@@ -152,8 +152,6 @@ export type Relation = {
   alias?: number;
   /** Words describing this line; its own, never inherited. */
   tags?: string[];
-  /** Its capability tags, as a block carries them. */
-  traits?: Id[];
   /** What this one line says about how it draws, over whatever its definition said. */
   settings?: Components;
   /** No fields: what a connection says belongs to the blocks at its ends. */

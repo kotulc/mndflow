@@ -77,7 +77,7 @@ export function unmet(graph: Graph): Id[] {
   }
   for (const e of Object.values(graph.edges)) {
     need(e.type);
-    for (const t of [...(e.traits ?? []), ...(e.tags ?? [])]) need(t);
+    for (const t of e.tags ?? []) need(t);
   }
   return [...out].sort();
 }

@@ -70,6 +70,7 @@ Most rules below are one of these applied.
 ### Types and read-through
 
 - **`type` is one chain**: on a usage, what it is; on a definition, what it extends. It names one above: never itself, never one that extends it. Refused at the gesture; `isa` guards loaded files
+- a chain ends at a base: a definition extending nothing extends `block`, and reads as it does
 - own values only: inherited values are resolved on read, never copied
 - precedence, per link of the chain, self first: its own settings, then its traits in order. Nearest wins
 - a trait confers its own settings and those of the traits it extends, never its base's: how a tag draws is not what it gives
@@ -82,10 +83,12 @@ Most rules below are one of these applied.
 ### Kinds, capabilities and relations
 
 - **`base` enumerates the functionally distinct kinds and stays minimal**: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, `line`, `tie`. Kinds are data; engine modules are three (`block`, `reference`, `interface`)
-- settings alone say what a kind may do: `allows` is refused at the gesture, `expects` advises
+- **traits say what a kind may do, and absent is a no**: a capability nobody grants is refused at the gesture. The base kinds carry the traits that make them what they are
+- trait names are positive, each a capability granted: `container`, `ports`, `members`, `headed`, `resizable`, `fitted`, `content`, `media`, `tied`
+- a trait grants a capability whole. Limiting one to definitions, and asking what values must say, is a constraint (`allows` lists, `degree`, `ends`, `expects`): kept as settings, to be reworked
 - which holder a block is (folder, group, grid) is its base
-- a capability is added to or removed from a subtype as a trait, easily and visibly. Traits are stored in `traits`, apart from `tags`
-- `note` is a base carrying the resizable and body-content traits
+- a capability is added to or removed from a subtype as a trait, easily and visibly. Traits are stored in `traits`, apart from `tags`: a trait carries settings, a tag only organizes
+- `note` is a base carrying the tied, resizable and body-content traits
 - relations and tags hold no structure. A tag is a definition with no structure, carried in `tags`
 - a tag definition draws as a block. Tags read alike, each in its own shade: the `tag` base sets a hue and `vary`, so each definition under it strays a little, keyed by its id
 - `tie` is a relation type like any other, chosen and never forced

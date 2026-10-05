@@ -205,4 +205,6 @@
   background: var(--hover);
 }
 .rows .opt.on.set { color: var(--accent); border-color: var(--accent); background: var(--tint); }
+/* Inherited, and let go of here. */
+.rows .opt.set.dropped { color: var(--accent); border-color: var(--accent); text-decoration: line-through; }
 .rows .opt:disabled { opacity: 0.3; }

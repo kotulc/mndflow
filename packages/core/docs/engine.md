@@ -10,7 +10,7 @@
 | schema | the data contract, and what the door enforces on the way in |
 | workspace | the root, the one log, and definition resolution by id |
 | actions | the closed action set: scope, arguments, `check`, and the mutations each writes |
-| capabilities | `allows` — what may attach to or be held by a usage, refused at the gesture — and `expects` — what its values are asked for, advice while modelling and a refusal at translation |
+| capabilities | `allows` — what may attach to or be held by a usage, granted by traits and refused at the gesture where nothing grants it — and `expects` — what its values are asked for, advice while modelling and a refusal at translation |
 | ports | the entire host contract. Nothing else may assume where a project lives |
 
 ## Source layout

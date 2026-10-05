@@ -139,7 +139,7 @@ export function group_depth(graph: Graph, id: Id): number {
  *  that member is one. A head is never stored: it is whichever member comes first. */
 export function group_head(graph: Graph, group: Id | undefined): Id | null {
   const heads = group && is_group(graph, group) ? allows_of(graph, group).heads : undefined;
-  const first = heads === undefined ? undefined : members_of(graph, group!)[0];
+  const first = group ? members_of(graph, group)[0] : undefined;
   return first && permits(graph, heads, first.type) ? first.id : null;
 }
 

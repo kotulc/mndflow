@@ -45,6 +45,10 @@
             "family": "primary"
           }
         },
+        "traits": [
+          "container",
+          "ports"
+        ],
         "order": 1
       },
       "folder": {
@@ -64,6 +68,10 @@
             "name_contrast": "faint"
           }
         },
+        "traits": [
+          "container",
+          "ports"
+        ],
         "order": 2
       },
       "reference": {
@@ -83,11 +91,11 @@
             "name_contrast": "strong",
             "fill": "hatch",
             "opacity": 0.55
-          },
-          "allows": {
-            "holds": false
           }
         },
+        "traits": [
+          "ports"
+        ],
         "order": 3
       },
       "interface": {
@@ -104,10 +112,6 @@
           "style": {
             "family": "secondary",
             "border_width": "thin"
-          },
-          "allows": {
-            "holds": false,
-            "ports": false
           }
         },
         "order": 4
@@ -127,11 +131,12 @@
             "family": "muted",
             "border_contrast": "faint",
             "name_contrast": "faint"
-          },
-          "allows": {
-            "ports": false
           }
         },
+        "traits": [
+          "container",
+          "members"
+        ],
         "order": 5
       },
       "grid": {
@@ -149,11 +154,12 @@
             "family": "muted",
             "border_contrast": "faint",
             "name_contrast": "faint"
-          },
-          "allows": {
-            "ports": false
           }
         },
+        "traits": [
+          "container",
+          "members"
+        ],
         "order": 6
       },
       "note": {
@@ -173,18 +179,14 @@
             "name_contrast": "faint",
             "fill": "wash",
             "opacity": 0.06
-          },
-          "allows": {
-            "ports": false,
-            "holds": false
           }
         },
-        "order": 7,
         "traits": [
           "tied",
           "resizable",
           "content"
-        ]
+        ],
+        "order": 7
       },
       "tag": {
         "id": "tag",
@@ -201,10 +203,6 @@
             "hue": 300,
             "intensity": 0.5,
             "vary": 48
-          },
-          "allows": {
-            "ports": false,
-            "holds": false
           }
         },
         "order": 8
@@ -266,6 +264,90 @@
           }
         },
         "order": 13
+      },
+      "container": {
+        "id": "container",
+        "parent": "base.traits",
+        "name": "container",
+        "type": "tag",
+        "body": "Holds blocks of its own, which it opens onto as a layer.",
+        "def": {},
+        "settings": {
+          "allows": {
+            "holds": true
+          }
+        },
+        "order": 14
+      },
+      "ports": {
+        "id": "ports",
+        "parent": "base.traits",
+        "name": "ports",
+        "type": "tag",
+        "body": "Takes interfaces on its walls.",
+        "def": {},
+        "settings": {
+          "allows": {
+            "ports": true
+          }
+        },
+        "order": 15
+      },
+      "members": {
+        "id": "members",
+        "parent": "base.traits",
+        "name": "members",
+        "type": "tag",
+        "body": "Takes members, drawn inline or in its cells.",
+        "def": {},
+        "settings": {
+          "allows": {
+            "members": true
+          }
+        },
+        "order": 16
+      },
+      "headed": {
+        "id": "headed",
+        "parent": "base.traits",
+        "name": "headed",
+        "type": "tag",
+        "body": "Its first member heads it.",
+        "def": {},
+        "settings": {
+          "allows": {
+            "heads": true
+          }
+        },
+        "order": 17
+      },
+      "fitted": {
+        "id": "fitted",
+        "parent": "base.traits",
+        "name": "fitted",
+        "type": "tag",
+        "body": "Grows to fit what it shows.",
+        "def": {},
+        "settings": {
+          "card": {
+            "height": "fit"
+          }
+        },
+        "order": 18
+      },
+      "media": {
+        "id": "media",
+        "parent": "base.traits",
+        "name": "media",
+        "type": "tag",
+        "body": "Previews the file it stands for.",
+        "def": {},
+        "settings": {
+          "card": {
+            "preview": "show"
+          }
+        },
+        "order": 19
       }
     },
     "edges": {}

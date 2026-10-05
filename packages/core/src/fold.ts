@@ -202,8 +202,9 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     }
     case "set_traits": {
-      const b = element(graph, m.id);
-      if (!b) return;
+      /** A definition's alone: a usage or a line carries none. */
+      const b = graph.blocks[m.id];
+      if (!b?.def) return;
       /** Null gives the set back to the chain; an empty list says none. */
       if (m.traits === null) delete b.traits;
       else b.traits = [...new Set(m.traits.filter(Boolean))];

@@ -31,8 +31,8 @@ export {
   subtypes, used_by,
 } from "@mnd/core";
 
-/** Tags: definitions blocks and definitions carry, and the traits read off settings. */
-export { badges_of, block_tags, def_tags, is_tag, tag_named } from "@mnd/core";
+/** Tags: definitions blocks and definitions carry. */
+export { block_tags, def_tags, is_tag, is_trait, tag_named } from "@mnd/core";
 
 /** The floor. `FLOOR` is the base package's blocks; `base_graph()` a fresh workspace on it. */
 export { ALL, BASE, FLOOR, RELATIONS, base_graph, by_id } from "@mnd/defs";
@@ -40,7 +40,7 @@ export { ALL, BASE, FLOOR, RELATIONS, base_graph, by_id } from "@mnd/defs";
 /** A layer, projected — and the two artifacts a projection makes on its own. */
 export {
   type BoxData, type BoxNode, type Config, type Frame, type GridCell,
-  type LineData, type LineEdge, type Trait, type Paper, type Scene, type Slot,
+  type LineData, type LineEdge, type CardClass, type Paper, type Scene, type Slot,
   SHEET, box_of, draw, draw_svg, extent, outline, project,
 } from "@mnd/views";
 
