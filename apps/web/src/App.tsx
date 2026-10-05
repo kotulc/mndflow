@@ -1,6 +1,7 @@
 /** The app, assembled. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { block_base, def_at, domain_of, held_at, layout_of, offer, setting_of, session,
          type Args, type Storage, type Dir, type Graph, type Id, type Point } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
@@ -36,6 +37,8 @@ export function App({ storage }: { storage: Storage }) {
   const s = held.current;
   const [, bump] = useState(0);
   const [folded, set_folded] = useState<Id[]>([]);
+  /** What a reveal inside a layer asked the canvas to pan to, until the next pick. */
+  const [aim, set_aim] = useState<Id | null>(null);
   /** What the catalogue offers, read once. An unbound `net` leaves it empty. */
   const [offered, set_offered] = useState<readonly Offered[]>([]);
   useEffect(() => { void s.listing().then(set_offered); }, [s]);
@@ -68,6 +71,7 @@ export function App({ storage }: { storage: Storage }) {
   const chain = useChain(s.graph(), SLICES);
   /** A pick on the canvas gives the context back to the canvas, and the sections follow it. */
   const pick = (ids: Id[]) => {
+    set_aim(null);
     s.pick(ids);
     t.release();
     if (ids.length === 1) follow();
@@ -134,8 +138,15 @@ export function App({ storage }: { storage: Storage }) {
     if (name === "undo") { s.undo(); return; }
     if (name === "redo") { s.redo(); return; }
     s.go(name, args ?? {});
-    /** Opening, leaving and revealing are navigation's: the sections follow where it went. */
-    if (name === "open" || name === "reveal") { t.release(); follow(); }
+    /** Opening, leaving and revealing are navigation's: the sections follow where it went, and
+     *  the canvas pans to what it revealed inside a layer. */
+    if (name === "open" || name === "reveal") {
+      t.release();
+      follow();
+      /** Cleared first, so revealing the same block again pans again; leaving aims at nothing. */
+      flushSync(() => set_aim(null));
+      if (args?.["id"] && s.layer() !== null) set_aim(s.picked()[0] ?? null);
+    }
   };
 
   /** One gesture, one step: every write an adjustment comes to. */
@@ -345,7 +356,7 @@ export function App({ storage }: { storage: Storage }) {
           /** The overview is read only, and read down the page. */
           onAdjust={layer === null ? () => undefined : adjust}
           scroll={layer === null}
-          focus={layer === null ? s.picked()[0] ?? null : null}
+          focus={layer === null ? s.picked()[0] ?? null : aim}
           most={1}
         />
         <Tray

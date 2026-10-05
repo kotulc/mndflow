@@ -27,7 +27,7 @@
 
 | Term | Means |
 |---|---|
-| **holder** | a block holding by `parent` and organizing what it holds: **folder**, **group**, **grid**. Which it is, and so how it draws what it holds, is its base. Not a definition; it organizes a domain or a structure alike |
+| **holder** | a block holding by `parent` and organizing what it holds: **folder**, **group**, **grid**. A folder is one by its base; a group or grid by its `inline` and `matrix` traits. Not a definition; it organizes a domain or a structure alike |
 | **tree** | a non-holder block whose ancestors up to its package are all holders: a definition, or a usage placed in the domain |
 | **domain** | a package root, the holders under it, and the trees they organize |
 | **structure** | everything under a tree's root: usages and holders, to any depth |
@@ -75,7 +75,7 @@
 |---|---|
 | **setting** | what an element says about how it draws or what it may do, by component (`settings`) |
 | **vary** | a style setting: how far, in degrees, each definition under one that sets it strays from its inherited hue, keyed by its id. Kin read alike, each still itself |
-| **capability** | what a block may do, granted by a trait: hold (`container`), seat interfaces (`ports`), take members (`members`), be headed (`headed`). **Absent is a no**: what nothing grants is refused at the gesture |
+| **capability** | what a block may do, granted by a trait: hold (`container`), seat interfaces (`ports`), draw what it holds in place (`inline`), seat it in cells (`matrix`), be headed (`headed`). **Absent is a no**: what nothing grants is refused at the gesture |
 | **constraint** | a capability limited to definitions (`allows` lists, `degree`, `ends`), or what values must say (`expects`). Settings, not traits; to be reworked |
 | **tag** | a definition on the `tag` base, carried in `tags`. A word with a meaning (`body`), no settings, no structure |
 | **trait** | **a tag carrying settings**: a capability tag, named positively. Carried in `traits`, listed apart from tags. Adding or removing a capability on a subtype is adding or removing a trait. It confers its own settings and its traits', never its base's. A definition's alone |
@@ -109,7 +109,7 @@
 | **mndflow** | packages → definitions → structure |
 | **mndmap** | collection → document: mndflow's chain with the package fixed to the workspace and hidden |
 | **browse** | choosing a row: selects it, the tray shows it, the canvas stays |
-| **open** | Enter, double-click or →: a tree opens its structure on the canvas; a package, folder or group is focused in the overview. ← and Backspace leave, a tree's top for the overview |
+| **open** | Enter, double-click or →: a tree opens its structure on the canvas; a package or a holder in a domain is focused in the overview; a group or grid in a structure is revealed where it is, the canvas panning to it. ← and Backspace leave, a tree's top for the overview |
 | **context** | what the canvas has open. Highlighting and breadcrumbs show it, never what is browsed |
 | **reveal** | a pick within the open tree may move the canvas to the layer it sits on; browsing outside it never does |
 | **navigation** | `open_at`, `leave_at`, `reveal_at` and `held_at` in core: where the canvas goes, and what the sections hold for it. The one rule both apps use |

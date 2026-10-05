@@ -112,7 +112,7 @@
         "body": "A packaged unit of equipment: a group that gathers pumps and vessels only.",
         "settings": {
           "allows": {
-            "members": [
+            "holds": [
               "def_pump",
               "def_vessel"
             ]
@@ -239,21 +239,33 @@
         "parent": "gr_matrix",
         "name": "Operator A",
         "alias": 7,
-        "order": 3
+        "order": 3,
+        "cell": {
+          "r": 1,
+          "c": 1
+        }
       },
       "c_b": {
         "id": "c_b",
         "parent": "gr_matrix",
         "name": "Operator B",
         "alias": 8,
-        "order": 4
+        "order": 4,
+        "cell": {
+          "r": 1,
+          "c": 2
+        }
       },
       "c_ref": {
         "id": "c_ref",
         "parent": "gr_matrix",
         "of": "b_loop",
         "alias": 2,
-        "order": 5
+        "order": 5,
+        "cell": {
+          "r": 2,
+          "c": 1
+        }
       },
       "f_plant": {
         "id": "f_plant",

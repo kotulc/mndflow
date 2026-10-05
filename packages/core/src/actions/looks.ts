@@ -68,7 +68,7 @@ register(
 const LOOKS: readonly string[] = ["card", "style", "line", "layout", "tie", "allows", "expects"];
 
 /** Properties whose value is a list, split on commas. */
-const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.members", "allows.heads",
+const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.heads",
                                   "expects.required", "expects.match"];
 
 /** Capabilities that are nested records, stated only on a definition. */

@@ -168,7 +168,8 @@ FieldDef { name, form, value?, unit?, choices?, many?, tags?, key? }
 | `line` | how a run draws |
 | `layout` | `kind`: `free`, `auto`, `outline` or `page`; `across` and `line` for the computed ones. An unknown kind draws as `auto` |
 | `tie` | the relation type a block made from or dropped on another is linked to it by |
-| `allows` | `ports`, `holds`, `members`, `heads`, `degree`, `ends`. Refused at the gesture; absent is a no. Usually granted whole by a trait. Which holder a block is comes from its base, never from here |
+| `allows` | `ports`, `holds`, `heads`, `degree`, `ends`. Refused at the gesture; absent is a no. Usually granted whole by a trait |
+| `holder` | `inline`, `matrix`: how a block draws what it holds — in place, and in cells. Granted by the traits of the same names; which holder a block is comes from here |
 | `expects` | `required`, `match`. Advice, never a refusal |
 
 - **A component owns its key and validates it at the door.** One absent from the build is left unvalidated, not wrong.

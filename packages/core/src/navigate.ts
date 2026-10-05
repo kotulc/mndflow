@@ -6,7 +6,10 @@
  *  only ever seen on the overview. */
 
 import { in_domain, package_of, tree_of } from "./defs";
+import { holds_any } from "./capabilities";
 import { inline, layer_of } from "./holders";
+import { opens } from "./names";
+import { is_interface } from "./tree";
 import type { Graph, Id } from "./types";
 
 /** What the canvas draws, and what is picked on it. */
@@ -27,16 +30,17 @@ export function reveal_at(graph: Graph, id: Id): View {
 }
 
 /** What opening a block does: a tree draws its structure, and any other block in a structure
- *  that hides what it holds — a folder among them, empty or not, an interface too — draws as its
- *  own layer. A package, anything in a domain, and a group or grid, which draw what they hold
- *  inline, are revealed where they are seen. */
+ *  that opens onto a drawing or may hold — a folder among them, empty or not — draws as its own
+ *  layer, as does an interface. A package, anything in a domain, a group or grid, which draw what
+ *  they hold inline, and a block with nothing inside and nothing it may hold — a note — are
+ *  revealed where they are seen. */
 export function open_at(graph: Graph, id: Id): View {
   const b = graph.blocks[id];
   if (!b) return { layer: null, pick: null };
   if (tree_of(graph, id) === id) return { layer: id, pick: null };
-  if (!in_domain(graph, id) && b.parent !== null && !inline(graph, id)) {
-    return { layer: id, pick: null };
-  }
+  const holds = !inline(graph, id)
+    && (is_interface(b) || opens(graph, id) || holds_any(graph, id));
+  if (!in_domain(graph, id) && b.parent !== null && holds) return { layer: id, pick: null };
   return reveal_at(graph, id);
 }
 

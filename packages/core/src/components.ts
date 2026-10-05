@@ -149,7 +149,7 @@ export const DEFAULTS = {
 export const DRAWN: readonly string[] = ["card", "style", "line"];
 
 /** What each module honours, and the keys it owns of its own. */
-const CARD: readonly string[] = ["card", "style", "allows", "expects", "layout", "tie"];
+const CARD: readonly string[] = ["card", "style", "allows", "expects", "holder", "layout", "tie"];
 const WALL: readonly string[] = ["style", "allows", "expects"];
 const WIRE: readonly string[] = ["line", "style", "allows", "expects"];
 
@@ -247,7 +247,7 @@ const line: Component = {
 const allows: Component = {
   name: "allows",
   check: (config) => {
-    for (const key of ["ports", "holds", "members", "heads"]) {
+    for (const key of ["ports", "holds", "heads"]) {
       const said = config[key];
       if (said === undefined || typeof said === "boolean") continue;
       const wrong = words(`allows.${key}`, said);
@@ -267,7 +267,7 @@ const allows: Component = {
       const wrong = stray("allows.degree", degree as Settings, ["in", "out"]);
       if (wrong) return wrong;
     }
-    return stray("allows", config, ["ports", "holds", "members", "heads", "degree", "ends"]);
+    return stray("allows", config, ["ports", "holds", "heads", "degree", "ends"]);
   },
 };
 
@@ -304,5 +304,15 @@ const tie: Component = {
     ?? stray("tie", config, ["type"]),
 };
 
+/** How a block draws what it holds: `inline` on the layer it sits on, rather than behind its card,
+ *  and `matrix` seated in cells. Granted by the traits of the same names. */
+const holder: Component = {
+  name: "holder",
+  check: (config) =>
+    ["inline", "matrix"].map((k) => config[k] === undefined || typeof config[k] === "boolean"
+      ? null : `\`holder.${k}\` has to be true or false`).find(Boolean)
+    ?? stray("holder", config, ["inline", "matrix"]),
+};
+
 /** What this build publishes. */
-publish(allows, block, card, expects, layout, line, style, tie);
+publish(allows, block, card, expects, holder, layout, line, style, tie);

@@ -1,6 +1,6 @@
 /** Groups and grids as made, and notes. */
 
-import { may_hold, may_take } from "../capabilities";
+import { may_hold } from "../capabilities";
 import { block_base, def_at, domain_of, self_use } from "../defs";
 import { can_hold, GRID, inside, is_grid, lattice_of, layer_of, members_of, shape_of } from "../holders";
 import { shown_name } from "../names";
@@ -33,7 +33,7 @@ function refused(graph: Graph, holder: Id | null, id: Id): string | null {
   const b = graph.blocks[id]!;
   if (!holder) return null;
   if (!can_hold(graph, holder, id)) return "that cannot go in there";
-  return may_take(graph, holder, b.type)
+  return may_hold(graph, holder, b.type)
     ? null : `"${shown_name(graph, holder)}" takes nothing of that sort`;
 }
 

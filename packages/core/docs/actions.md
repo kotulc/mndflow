@@ -38,6 +38,7 @@
 | **`delete` refuses** | a definition or a package something uses; `base`; the workspace root |
 | **`retype` keeps a kind a kind** | `block`, `folder`, `note`, `group` and `grid` are one family; `reference` and `interface` are made, never retyped into. A run takes only relation definitions |
 | **`retype` refuses a cycle** | a definition never extends itself or one that extends it |
+| **`retype` into a grid seats what it holds** | each child takes a free cell in reading order, those already in one keep it, and the grid grows rows to fit |
 | **placement refuses self-use** | `create`, `move`, `retype` and a grid column refuse putting a usage of `D` anywhere in `D`'s structure |
 | **placement refuses nesting** | a definition never goes into a structure |
 | **frozen is refused** | nothing under a frozen package is written; subtype it instead |
@@ -52,7 +53,7 @@
 | `open` | draws a tree's structure, the overview with none, or leaves this one: from a tree's top, for the overview | block | id? | `open` |
 | `reveal` | opens the layer a block sits on and picks it there, followed through references | block | id | `open` + `focus` |
 
-- **Where the canvas goes is navigation's** (core `navigate.ts`): opening a tree draws its structure; any other block in a structure that hides what it holds — a folder among them — draws as its own layer; a group or grid, which draw inline, is revealed in place; a package or anything in a domain is revealed on the overview. Leaving a tree's top returns to the overview, the tree picked. Both apps use the same functions.
+- **Where the canvas goes is navigation's** (core `navigate.ts`): opening a tree draws its structure; any other block in a structure that opens onto a drawing or may hold — a folder among them — draws as its own layer; a group or grid, which draw inline, and a note, which may hold nothing, are revealed in place; a package or anything in a domain is revealed on the overview. Leaving a tree's top returns to the overview, the tree picked. Both apps use the same functions.
 - **Opening a part opens its definition**, the part picked there.
 - **The way out of an interface is the way in**: leaving lands in whichever of its two layers you came from.
 

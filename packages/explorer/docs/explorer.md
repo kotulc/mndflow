@@ -36,7 +36,7 @@ The explorer files the graph as a **section chain**: a host declares its section
 | Gesture | Does |
 |---|---|
 | choose (click, ↑ ↓) | selects the row; the tray shows it. The canvas stays |
-| open (Enter, double-click, →) | a tree: the canvas draws its structure. A package, folder or group: the overview, focused on its box |
+| open (Enter, double-click, →) | a tree: the canvas draws its structure. A package, or a holder in a domain: the overview, focused on its box. A group or grid in a structure: revealed where it is, the canvas panning to it |
 | leave (←, Backspace) | the canvas draws the layer above; from a tree's top, the overview focused on the tree |
 | pick within the open tree | may move the canvas to the layer the block sits on (reveal) |
 
@@ -69,7 +69,7 @@ pump1
 - **A row wears its card's icon**: the role core's `role_of` reads — block, folder, group, grid, interface, reference, note — so a tag reads as the block it is. A row that holds blocks lights its icon.
 - **A section's mark is a word**: `Pkg`, `Def`, `Use`. A word is never filled.
 - **A row is keyed by its section and route**, as a block may list in two sections and a part under two usages.
-- **Holders are rows like any other**, their contents nested under them. A group's head sits level with its group.
+- **A group or grid heads what it holds, as a table's head does its rows**, in every section alike: its row keeps its branch and its name is underlined, and its members list at its level beneath it with no tick of their own, joined to it by a line down their marks' column. A member's own children branch as usual. A folder nests like any block. Enter, → or a double click on a group's row reveals it on the canvas, which pans to it.
 
 
 ## Selection

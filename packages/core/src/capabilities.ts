@@ -2,11 +2,12 @@
  *  `expects` is only ever advice. */
 
 import { closes_cycle, frozen, isa, owner_def, stated, tree_of } from "./defs";
+import { is_grid } from "./holders";
 import { children, is_interface, subtree } from "./tree";
 import type { Components, Flow, Graph, Id } from "./types";
 
 export type NoteKind = "required" | "ends" | "holds" | "ports" | "degree" | "match" | "nested"
-  | "self" | "cycle";
+  | "self" | "cycle" | "cell";
 
 /** What a usage asked for and did not get. */
 export type Note = {
@@ -28,8 +29,6 @@ export type Allows = {
   ports?: Allowed;
   /** What it may own as children. */
   holds?: Allowed;
-  /** What a holder may take as members. */
-  members?: Allowed;
   /** What may head a group: its first member, where that member is one of these. Absent, a group
    *  has no head. */
   heads?: Allowed;
@@ -93,7 +92,7 @@ function read_allows(components: Components | undefined): Allows {
   const a = components?.["allows"] ?? {};
   const out: Allows = {};
 
-  for (const key of ["ports", "holds", "members", "heads"] as const) {
+  for (const key of ["ports", "holds", "heads"] as const) {
     const said = allowed(a[key]);
     if (said !== undefined) out[key] = said;
   }
@@ -142,6 +141,12 @@ export function permits(graph: Graph, setting: Allowed | undefined,
   return setting.length ? is_one_of(graph, type, setting) : false;
 }
 
+/** Whether this block may own anything at all: granted outright, or limited to some definitions. */
+export function holds_any(graph: Graph, id: Id): boolean {
+  const said = allows_of(graph, id).holds;
+  return said === true || (Array.isArray(said) && said.length > 0);
+}
+
 /** Whether this block may own a child of that definition: its settings say, and nothing else. */
 export function may_hold(graph: Graph, parent: Id, type?: Id): boolean {
   return permits(graph, allows_of(graph, parent).holds, type);
@@ -150,11 +155,6 @@ export function may_hold(graph: Graph, parent: Id, type?: Id): boolean {
 /** Whether this block may have an interface of that definition seated on its wall. */
 export function may_seat(graph: Graph, id: Id, type: Id = "interface"): boolean {
   return permits(graph, allows_of(graph, id).ports, type);
-}
-
-/** Whether this holder may take that block as a member. */
-export function may_take(graph: Graph, holder: Id, type?: Id): boolean {
-  return permits(graph, allows_of(graph, holder).members, type);
 }
 
 // ------------------------------------------------------------------- the review
@@ -189,6 +189,10 @@ export function review(graph: Graph, scope?: Id): Note[] {
     }
     if (b.def && closes_cycle(graph, b.id, b.type)) {
       notes.push({ kind: "cycle", id: b.id, what: `"${label(graph, b.id)}" extends itself` });
+    }
+    if (!b.cell && !is_interface(b) && is_grid(graph, b.parent ?? undefined)) {
+      notes.push({ kind: "cell", id: b.id,
+                   what: `"${label(graph, b.id)}" sits in a grid but in no cell, so it is not drawn` });
     }
     const expects = expects_of(graph, b.id);
 

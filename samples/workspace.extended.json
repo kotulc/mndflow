@@ -292,8 +292,10 @@
         "name": "Hello World",
         "alias": 20,
         "order": 12,
-        "x": -144,
-        "y": 168
+        "cell": {
+          "r": 0,
+          "c": 0
+        }
       },
       "block_ga0xoyy306a1": {
         "id": "block_ga0xoyy306a1",
@@ -327,8 +329,10 @@
         "name": "Test",
         "alias": 19,
         "order": 11,
-        "x": 24,
-        "y": -192
+        "cell": {
+          "r": 0,
+          "c": 0
+        }
       },
       "block_h1gmpej2w1tl": {
         "id": "block_h1gmpej2w1tl",
@@ -412,8 +416,6 @@
         "name": "hello world",
         "alias": 11,
         "order": 4,
-        "x": 48,
-        "y": -480,
         "settings": {
           "style": {
             "family": "primary"
@@ -421,6 +423,10 @@
           "layout": {
             "kind": "auto"
           }
+        },
+        "cell": {
+          "r": 0,
+          "c": 1
         }
       },
       "block_lisf1xwo11gs": {
@@ -439,8 +445,10 @@
         "of": "block_gikyjb1138b4",
         "alias": 5,
         "order": 7,
-        "x": -144,
-        "y": -168
+        "cell": {
+          "r": 1,
+          "c": 0
+        }
       },
       "block_pcm8tjwdotm2": {
         "id": "block_pcm8tjwdotm2",
@@ -448,12 +456,14 @@
         "name": "block",
         "alias": 4,
         "order": 3,
-        "x": -144,
-        "y": -72,
         "settings": {
           "layout": {
             "kind": "auto"
           }
+        },
+        "cell": {
+          "r": 0,
+          "c": 0
         }
       },
       "block_phj6wc786dlo": {
@@ -471,8 +481,10 @@
         "parent": "block_356h5um4i1v2",
         "alias": 14,
         "order": 1,
-        "x": -144,
-        "y": 0
+        "cell": {
+          "r": 0,
+          "c": 0
+        }
       },
       "block_pmjakumsauvt": {
         "id": "block_pmjakumsauvt",
@@ -554,8 +566,10 @@
         "parent": "block_4dxph88c5cyj",
         "alias": 21,
         "order": 6,
-        "x": 24,
-        "y": 336
+        "cell": {
+          "r": 0,
+          "c": 1
+        }
       },
       "block_sah425bet8e7": {
         "id": "block_sah425bet8e7",
@@ -589,8 +603,10 @@
         "name": "Block",
         "alias": 16,
         "order": 3,
-        "x": 216,
-        "y": 336
+        "cell": {
+          "r": 0,
+          "c": 0
+        }
       },
       "block_t1f7x1vfkadb": {
         "id": "block_t1f7x1vfkadb",

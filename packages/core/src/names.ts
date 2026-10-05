@@ -1,7 +1,7 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
 import { base_named, base_of, def_at, def_of, edge_base, frozen, schema_of } from "./defs";
-import { holders_in, shape_of } from "./holders";
+import { holders_in, is_holder, shape_of } from "./holders";
 import { children, is_container, stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
@@ -183,10 +183,11 @@ export function subtypes(graph: Graph, def: Id): Block[] {
 }
 
 /** Whether a card opens onto a drawing of its own: a block holding blocks, a usage whose
- *  definition does, a reference to one that does, or a stand-in for a definition. */
+ *  definition does, a reference to one that does, or a stand-in for a definition. A group or grid
+ *  never does: what it holds is drawn in place. */
 export function opens(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
-  if (!b) return false;
+  if (!b || is_holder(graph, id)) return false;
   if (is_container(graph, id)) return true;
   if (!b.def && def_at(graph, b.type) && is_container(graph, b.type!)) return true;
   if (b.of && def_at(graph, b.of)) return is_container(graph, b.of);

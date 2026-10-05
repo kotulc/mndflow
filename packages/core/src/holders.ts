@@ -1,7 +1,7 @@
 /** Holders: folders, groups and grids, what each draws, cells, merges, headers and allocation. */
 
 import { allows_of, permits } from "./capabilities";
-import { base_of } from "./defs";
+import { base_of, setting_of } from "./defs";
 import { children, stands_for } from "./tree";
 import type { Block, Cell, Graph, Grid, HeaderRole, Id, Shape, Span } from "./types";
 
@@ -25,13 +25,13 @@ export function covers(s: Span, r: number, c: number): boolean {
   return r >= s.r && r < s.r + s.rows && c >= s.c && c < s.c + s.cols;
 }
 
-/** Which inline holder a block is, or null: what its base says. **A definition always draws as a
- *  card**, so it is never one, whatever it extends. */
+/** Which inline holder a block is, or null: what its traits say — `inline`, and `matrix` for a
+ *  grid. **A definition always draws as a card**, so it is never one, whatever it extends. */
 export function shape_of(graph: Graph, id: Id | undefined): Shape | null {
   const b = id ? graph.blocks[id] : undefined;
   if (!b || b.def || b.of || b.side !== undefined) return null;
-  const base = base_of(graph, b.id);
-  return base === "group" || base === "grid" ? base : null;
+  const said = setting_of(graph, b.id, "holder");
+  return said["inline"] !== true ? null : said["matrix"] === true ? "grid" : "group";
 }
 
 /** Whether this is a grid — a region with an extent and cells to seat in. */

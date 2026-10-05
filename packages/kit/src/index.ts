@@ -18,7 +18,7 @@ export { type Fault, say, validate } from "@mnd/core";
 
 /** The vocabulary's own checks, which the door does not make. */
 export { type Allowed, type Allows, type Expects, type Note, type NoteKind, type Range,
-         allows_of, expects_of, may_hold, may_seat, may_take, permits, review } from "@mnd/core";
+         allows_of, expects_of, may_hold, may_seat, permits, review } from "@mnd/core";
 
 /** Reading a graph. Every derived answer the engine gives about one. */
 export {

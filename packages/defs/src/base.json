@@ -135,7 +135,7 @@
         },
         "traits": [
           "container",
-          "members"
+          "inline"
         ],
         "order": 5
       },
@@ -158,7 +158,8 @@
         },
         "traits": [
           "container",
-          "members"
+          "inline",
+          "matrix"
         ],
         "order": 6
       },
@@ -293,20 +294,6 @@
         },
         "order": 15
       },
-      "members": {
-        "id": "members",
-        "parent": "base.traits",
-        "name": "members",
-        "type": "tag",
-        "body": "Takes members, drawn inline or in its cells.",
-        "def": {},
-        "settings": {
-          "allows": {
-            "members": true
-          }
-        },
-        "order": 16
-      },
       "headed": {
         "id": "headed",
         "parent": "base.traits",
@@ -348,6 +335,34 @@
           }
         },
         "order": 19
+      },
+      "inline": {
+        "id": "inline",
+        "parent": "base.traits",
+        "name": "inline",
+        "type": "tag",
+        "body": "Draws what it holds in place, on the layer it sits on, rather than behind its card.",
+        "def": {},
+        "settings": {
+          "holder": {
+            "inline": true
+          }
+        },
+        "order": 16
+      },
+      "matrix": {
+        "id": "matrix",
+        "parent": "base.traits",
+        "name": "matrix",
+        "type": "tag",
+        "body": "Seats what it holds in the cells of a grid.",
+        "def": {},
+        "settings": {
+          "holder": {
+            "matrix": true
+          }
+        },
+        "order": 20
       }
     },
     "edges": {}

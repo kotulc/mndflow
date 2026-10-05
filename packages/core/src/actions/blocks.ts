@@ -1,16 +1,17 @@
 /** Making, naming, typing, moving and removing blocks; navigating layers; laying one out. */
 
-import { may_hold, may_take } from "../capabilities";
+import { may_hold } from "../capabilities";
 import { shown_name } from "../names";
 import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_domain,
-         may_retype, name_taken, package_of, plain_type, stored_type, self_use } from "../defs";
-import { at_cell, covers, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
+         may_retype, name_taken, package_of, plain_type, setting_of, stored_type,
+         self_use } from "../defs";
+import { at_cell, covers, GRID, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
 import { children, is_interface, next_order, reorder, stands_for, subtree } from "../tree";
 import { leave_at, open_at, reveal_at } from "../navigate";
 import { new_id } from "../ids";
 import { BASE_PACKAGE, LAYOUTS, type Graph, type Id, type Layout, type Mutation } from "../types";
 import { register } from "./registry";
-import { cell_free, free_cell } from "./grid";
+import { cell_free, free_cell, seat_all } from "./grid";
 import { borrowed, cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS, spot,
          text, tied, typed } from "./helpers";
 
@@ -225,11 +226,19 @@ register(
     run: (ctx, args) => {
       const said = text(args, "type");
       const type = stored_type(ctx.graph, said);
-      return { mutations: ids_of(ctx, args).map((id): Mutation => {
+      const out = ids_of(ctx, args).map((id): Mutation => {
         if (ctx.graph.edges[id]) return { op: "update_edge", id, type: type ?? null };
         if (ctx.graph.blocks[id]?.def) return { op: "update_block", id, type: said || null };
         return { op: "update_block", id, type: type ?? plain_type(base_of(ctx.graph, id)) };
-      }) };
+      });
+      /** A block becoming a grid seats what it holds: a member always sits in a cell. */
+      for (const id of ids_of(ctx, args)) {
+        const b = ctx.graph.blocks[id];
+        if (b && !b.def && said && setting_of(ctx.graph, said, "holder")["matrix"] === true) {
+          out.push(...seat_all(ctx.graph, id, { ...GRID, ...b.grid }));
+        }
+      }
+      return { mutations: out };
     },
   },
   {
@@ -262,11 +271,6 @@ register(
       if (why) return why;
       const g = lattice_of(ctx.graph, parent);
       if (g) {
-        for (const id of ids) {
-          if (!may_take(ctx.graph, parent, ctx.graph.blocks[id]!.type)) {
-            return `"${shown_name(ctx.graph, parent)}" takes nothing of that sort`;
-          }
-        }
         const cell = cell_of_arg(args, "at");
         if (cell && !inside(g, cell)) return "that cell is outside the grid";
         /** A member of a grid always sits in a cell, so a full grid takes nothing more. */
@@ -324,7 +328,7 @@ register(
       if (target === parent) return "a block cannot hold a stand-in for itself";
       if (is_grid(ctx.graph, parent)) {
         return cell_free(ctx, parent, cell_of_arg(args, "at"))
-          ?? (may_take(ctx.graph, parent, text(args, "type") || undefined)
+          ?? (may_hold(ctx.graph, parent, text(args, "type") || undefined)
             ? null : `"${shown_name(ctx.graph, parent)}" takes nothing of that sort`);
       }
       return null;

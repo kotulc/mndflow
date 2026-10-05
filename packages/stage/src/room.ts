@@ -106,9 +106,20 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
                         { padding: fit.padding, duration });
   }, [flow, frame, fit, scroll, focus, reach, widest, most, scene, seen]);
 
-  /** A new focus is flown to, and a cleared one opens out to the whole drawing. */
+  /** In a room, the focus panned to at the zoom it is seen at; false where it is not drawn. */
+  const pan = useCallback((duration: number): boolean => {
+    const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
+    if (!on) return false;
+    const b = box_of(on);
+    void flow.setCenter(b.x + b.w / 2, b.y + b.h / 2, { zoom: flow.getViewport().zoom, duration });
+    return true;
+  }, [flow, focus, scene]);
+
+  /** A new focus is flown to, and a cleared one opens out to the whole drawing. In a room, a
+   *  focus is panned to, and a cleared one leaves the camera be. */
   useEffect(() => {
-    if (scroll) settle(still() ? 0 : FLIGHT);
+    if (scroll) { settle(still() ? 0 : FLIGHT); return; }
+    pan(still() ? 0 : FLIGHT);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus]);
 
@@ -133,7 +144,9 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
 
     if (grew) { settle(quiet ? 0 : FLIGHT); return; }
     if (!moved_layer) return;
-    if (quiet) { settle(0); return; }
+    /** A focus in the room just entered is panned to once the room has settled. */
+    const then = () => { if (!scroll) pan(quiet ? 0 : FLIGHT); };
+    if (quiet) { settle(0); then(); return; }
     /** Both ways start on the card and end on the room. */
     const back = last ? scene.nodes.find((n) => n.id === last) : undefined;
     const into = before.find((n) => n.id === scene.layer);
@@ -153,6 +166,7 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
       }, { duration: 0 });
     }
     settle(FLIGHT);
+    setTimeout(then, FLIGHT);
     /** The signature says when the drawing changed. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);

@@ -23,12 +23,16 @@
 | Concern | Home |
 |---|---|
 | roles by position (domain, tree, structure, holder) | core `defs.ts` (`tree_of`, `in_domain`, `owner_def`), `holders.ts` (`organizes`, `inline`, `layer_of`, `drawn_in`) |
+| which holder a block is (group, grid) | core `holders.ts` `shape_of`, read off the `inline` and `matrix` traits; everything else asks `is_holder`, `is_group`, `is_grid` |
+| what a block may do | traits in `base.json`; core `capabilities.ts` (`allows_of`, `may_hold`, `holds_any`), absent is a no |
+| whether a card opens | core `names.ts` `opens` (the stamp and the open button) and `navigate.ts` `open_at` (where it goes) |
 | navigation | core `navigate.ts` (`open_at`, `leave_at`, `reveal_at`, `held_at`) |
 | what a section lists | explorer `chain.ts` (`editor_slices`, `domain_listing`, `structure_listing`, `listed`) |
 | what a block reads as (its role, and so its icon) | core `names.ts` (`role_of`); theme `role_icon`. The explorer's rows and the stage's cards both ask it |
-| rows, marks and highlights | explorer `rows.ts`, `Explorer.tsx` |
+| rows, marks and highlights | explorer `rows.ts` (holder members at their holder's level, `end_of`, `parent_of`, the ties joining them), `Explorer.tsx` |
 | what a layer draws, the overview, layouts | views `block.ts` (`project`), `packages.ts`, `page.ts`, `outline.ts`, `arrange.ts` |
 | gestures to actions | stage `moves.ts`, `Stage.tsx` |
+| panning to a revealed block | stage `room.ts` (`useCamera`, from `focus`); the web app sets it on a reveal |
 | settings resolution | core `defs.ts` (`stated`, `setting_of`, `traits_of`) |
 
 

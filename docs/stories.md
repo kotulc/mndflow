@@ -108,7 +108,7 @@ One collapsible strip that says **where you are, what you just did, and what you
 | **a name is not an id** | ask `def_named` within the package; ids are minted and never derived from a name |
 | **the graph in hand is from before the act** | mint the id and pass it to the action rather than looking one up afterwards |
 | **a batch folds between calls** | inside `session.batch` each action sees the one before it, and all of them undo as one |
-| **a grid's member always sits in a cell** | anything that takes a cell away takes the block out of the grid with it — `put` in the grid actions says so once |
+| **a grid's member always sits in a cell** | anything that takes a cell away takes the block out of the grid with it — `put` in the grid actions says so once. Retyping a block into a grid seats what it holds (`seat_all`), growing rows to fit; `review` reports a member with no cell |
 | **a control in a row stops the click** | every `Entry`, `Choice` and chip stops propagation, or the row is repicked under it |
 | **a row pick keeps its listing** | `browse` holds the listing a row was picked from |
 | **the draft is never listed** | tables read the graph without it |

@@ -4,12 +4,12 @@
  *  is what moves the canvas. The focus is lit strongly, each section's pick more subtly. */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { about_of, children, def_named, frozen, headed_group, may_hold, shown_name,
+import { about_of, children, def_named, frozen, may_hold, shown_name,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
-import { inside, mark_icon, OPENED, opened, tree_of, type Row } from "./rows";
+import { end_of, mark_icon, OPENED, opened, parent_of, tree_of, type Row } from "./rows";
 
 export type ExplorerProps = {
   graph: Graph;
@@ -77,14 +77,14 @@ function after(rows: readonly Row[], at: Id, focus?: number) {
   const focused = rows.findIndex((r) => of(r) && r.at === focus);
   const i = focused >= 0 ? focused : rows.findIndex(of);
   if (i < 0) return { index: rows.length, depth: 0 };
-  let j = i + 1;
-  while (j < rows.length && rows[j]!.depth > rows[i]!.depth) j++;
-  return { index: j, depth: rows[i]!.depth + 1 };
+  /** A group or grid takes it among its members, at its own level. */
+  return { index: end_of(rows, i), depth: rows[i]!.depth + (rows[i]!.head ? 0 : 1) };
 }
 
 /** A row being named before it exists: enter makes it, escape or leaving drops it. */
 function Draft({ icon, word, depth, onDone }: {
-  icon: IconName; word: string; depth: number; onDone: (label: string | null) => void;
+  icon: IconName; word: string; depth: number;
+  onDone: (label: string | null) => void;
 }) {
   /** Settled once, so the blur that follows enter drops nothing. */
   const settled = useRef(false);
@@ -203,9 +203,7 @@ export function Explorer(props: ExplorerProps) {
   const open_branch = (r: Row) => r.depth > 0 && r.kids > 0 && !is_shut(r) && !way.has(r.ref);
   const foldable = rows.filter((r, i) => {
     if (!open_branch(r)) return false;
-    for (let j = i + 1; j < rows.length && rows[j]!.depth > r.depth; j++) {
-      if (open_branch(rows[j]!)) return false;
-    }
+    for (let j = i + 1; j < end_of(rows, i); j++) if (open_branch(rows[j]!)) return false;
     return true;
   });
   const fold_all = () => (foldable.length ? foldable.forEach((r) => fold(r, true))
@@ -309,12 +307,8 @@ export function Explorer(props: ExplorerProps) {
   useEffect(() => {
     if (!keys) return;
     const all = sections.all;
-    const depth = (i: number) => all[i]!.depth;
     /** A row's holder; -1 where there is none. */
-    const up = (i: number) => {
-      for (let j = i - 1; j >= 0; j--) if (depth(j) < depth(i)) return j;
-      return -1;
-    };
+    const up = (i: number) => parent_of(all, i);
     const can = (r: Row) => r.pick !== undefined;
     const key = (e: KeyboardEvent) => {
       const typing = e.target instanceof HTMLElement
@@ -368,12 +362,10 @@ export function Explorer(props: ExplorerProps) {
   /** Where a drop on a row lands; nothing sits beside the workspace, so its drops land in it. */
   const where_on = (e: React.DragEvent, ref: Id) => (ref === graph.root ? "in" : seam(e));
 
-  /** What a drag off this row carries: the pick, or a head's whole group, or the row. */
-  const load = (id: Id): Id[] => {
-    if (picked.includes(id)) return blocks.filter((r) => picked.includes(r.ref)).map((r) => r.ref);
-    const group = headed_group(graph, id);
-    return group ? [group, ...inside(graph, group)] : [id];
-  };
+  /** What a drag off this row carries: the pick, or the row. A group's own row carries the
+   *  group, and what it holds goes with it. */
+  const load = (id: Id): Id[] =>
+    picked.includes(id) ? blocks.filter((r) => picked.includes(r.ref)).map((r) => r.ref) : [id];
 
   /** What is in hand at a drop, whichever surface started it. */
   const dropped = (e: React.DragEvent): Id[] => {
@@ -470,6 +462,7 @@ export function Explorer(props: ExplorerProps) {
                   holds(r) ? "context" : "",
                   !r.depth && r.at === focus ? "holds" : "",
                   r.via ? "part" : "",
+                  r.head ? "head" : "",
                   lit.includes(r.ref) ? "lit" : "",
                   lit.length && !lit.includes(r.ref) ? "dim" : "",
                   r.id === drawn_row ? "open" : "",
@@ -539,15 +532,26 @@ export function Explorer(props: ExplorerProps) {
                 }}
                 onDoubleClick={() => { if (r.of === "block") opening(r); }}>
               {/* One line per indent column, hung under the mark of the row it belongs to. */}
-              {r.guides.map((more, i) => (more || i === r.depth - 1 ? (
-                <i key={i} aria-hidden className={["guide", i === r.depth - 1 ? "tick" : "",
-                                                   more ? "" : "stop"].filter(Boolean).join(" ")}
-                   style={{ left: GUIDE + i * STEP }} />
-              ) : null))}
-              {/* An open branch joins its own guide line. */}
-              {r.kids && !is_shut(r) ? (
+              {r.guides.map((more, i) => {
+                /** A member draws no tick: it hangs from its group, not from the branch. */
+                const tick = i === r.depth - 1 && !r.bare;
+                return more || tick ? (
+                  <i key={i} aria-hidden className={["guide", tick ? "tick" : "",
+                                                     more ? "" : "stop"].filter(Boolean).join(" ")}
+                     style={{ left: GUIDE + i * STEP }} />
+                ) : null;
+              })}
+              {/* An open branch joins its own guide line; a group's members list at its level. */}
+              {r.kids && !r.head && !is_shut(r) ? (
                 <i aria-hidden className="guide down" style={{ left: GUIDE + r.depth * STEP }} />
               ) : null}
+              {/* A group or grid joined to its members down their marks' column: in the gaps
+                  between marks where the line meets one, straight through where it does not. */}
+              {(r.ties ?? []).map((t, k) => (
+                <i key={`tie${k}`} aria-hidden style={{ left: GUIDE + t.col * STEP }}
+                   className={["guide", t.col === r.depth ? (t.top && t.foot ? "gap" : t.top ? "up"
+                     : "down") : ""].filter(Boolean).join(" ")} />
+              ))}
               <span className={["mark", r.mark,
                                 r.kids ? (is_shut(r) ? "shut" : "on") : r.held ? "held" : ""]
                        .filter(Boolean).join(" ")}

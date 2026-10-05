@@ -57,8 +57,6 @@ export type StageProps = {
   most?: number | null;
 };
 
-/** What has no inside to open. */
-const INERT = ["note"];
 
 /** What a card's menu lists besides the shared box actions. */
 function box_offers(): readonly (string | Entry)[] {
@@ -186,9 +184,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onPick([]);
         onSaid?.();
       }
-      /** Enter opens the one picked card, unless it has no inside. */
-      else if (e.key === "Enter" && one && !scene.edges.some((r) => r.id === one)
-               && !INERT.includes(scene.nodes.find((n) => n.id === one)?.type ?? "")) {
+      /** Enter opens the one picked card; navigation says where that goes. */
+      else if (e.key === "Enter" && one && !scene.edges.some((r) => r.id === one)) {
         onAct("open", { id: one });
       }
       else if (e.key === "F2" && one) set_naming(one);

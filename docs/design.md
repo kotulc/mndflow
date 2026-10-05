@@ -52,6 +52,8 @@ Most rules below are one of these applied.
 
 - **`parent` is the only containment.** Folder, group and grid hold by it alike and differ only in how they draw what they hold: hidden, inline, or in cells
 - a folder hides its contents (descend to see them); a group and a grid draw theirs inline
+- **a group or grid is layer-local**: it organizes the layer it sits on and is never a place you go. Opening one reveals it where it is seen
+- what holds and how it nests are traits: `container` lets a block hold; `inline` draws what it holds in place (a group); `matrix` seats it in cells (a grid). `base` keeps `group` and `grid` as ready-made definitions carrying them
 - a definition always draws as a card; its structure is reached by descending
 - the layer a block draws on is its nearest ancestor that hides its contents
 - deleting a holder deletes its subtree
@@ -84,9 +86,9 @@ Most rules below are one of these applied.
 
 - **`base` enumerates the functionally distinct kinds and stays minimal**: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, `line`, `tie`. Kinds are data; engine modules are three (`block`, `reference`, `interface`)
 - **traits say what a kind may do, and absent is a no**: a capability nobody grants is refused at the gesture. The base kinds carry the traits that make them what they are
-- trait names are positive, each a capability granted: `container`, `ports`, `members`, `headed`, `resizable`, `fitted`, `content`, `media`, `tied`
+- trait names are positive, each a capability granted: `container`, `ports`, `inline`, `matrix`, `headed`, `resizable`, `fitted`, `content`, `media`, `tied`
 - a trait grants a capability whole. Limiting one to definitions, and asking what values must say, is a constraint (`allows` lists, `degree`, `ends`, `expects`): kept as settings, to be reworked
-- which holder a block is (folder, group, grid) is its base
+- which holder a block is: a folder by its base; a group or grid by its `inline` and `matrix` traits
 - a capability is added to or removed from a subtype as a trait, easily and visibly. Traits are stored in `traits`, apart from `tags`: a trait carries settings, a tag only organizes
 - `note` is a base carrying the tied, resizable and body-content traits
 - relations and tags hold no structure. A tag is a definition with no structure, carried in `tags`
@@ -121,7 +123,7 @@ Most rules below are one of these applied.
 - a **projection** draws the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it
 - **two canvas views**: the **overview** while nothing is open (`layer: null`), and the **structure** of the tree opened
 - the overview draws every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down and never zoomed out. It is 1:1 with the packages and definitions sections
-- there is no package view: opening a package, or a holder in a domain, focuses its box in the overview. In a structure, opening a folder descends into it, since it hides what it holds; a group or grid draws inline, so opening one reveals it in place
+- there is no package view: opening a package, or a holder in a domain, focuses its box in the overview. In a structure, opening a folder descends into it, since it hides what it holds; a group or grid draws inline, so opening one reveals it in place and the canvas pans to it. A note, which may hold nothing, is revealed too
 - a layer's **layout** is a setting, `layout: { kind, … }`, said by its definition and overridable by the block, inherited like any setting. The kit ships `free`, `auto`, `outline` and `page`; an unknown kind draws as `auto`
 - **a row and its card read alike**: the explorer and the canvas ask core's `role_of` what a block is, and wear the same icon
 - **marks describe, and stack**: a stand-in wears one word (`Def`, `Ref`, `Pkg`); anything else wears what is true of it, and those stack — the first is `data`
@@ -135,6 +137,7 @@ Most rules below are one of these applied.
 
 - the explorer is a **section chain**: each section holds one context and the next lists what it holds. mndflow: packages → definitions → structure. mndmap: collection → document, the package fixed and hidden
 - **browse**: choosing a row selects it and the tray shows it; the canvas stays
+- **every section reads holders alike**: what a group or grid holds lists at its level beneath its row, with no branch of its own, joined to it by a line down their marks' column. Their own children branch as usual
 - **open**: Enter, double-click or →. ← and Backspace leave; leaving a tree's top returns to the overview, focused on it
 - highlighting and crumbs show the canvas's context, never what is browsed
 - selecting in the overview selects and the sections follow; opening a tree there opens its structure
@@ -190,3 +193,4 @@ Most rules below are one of these applied.
 | **the agent surface** | whether every CLI verb reads and writes JSON, and whether actions are reachable by name from the CLI as from the terminal |
 | **the next translator** | code or hardware, and what its package names |
 | ***view*** | "canvas view" names the overview and structure; a data perspective (table, matrix, sequence) still wants a word |
+| **nested groups in the explorer** | a group inside a group lists at the same depth, so mndmap's sections read as one flat run rather than an outline. Whether a nested holder indents one step |

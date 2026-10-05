@@ -3,7 +3,7 @@
 import { def_at, domain_of } from "../defs";
 import { at_cell, covers, heading, inside, is_grid, lattice_of, layer_of, members_of,
          one_side, overlaps } from "../holders";
-import { edges_in, next_order } from "../tree";
+import { children, edges_in, is_interface, next_order } from "../tree";
 import { new_id } from "../ids";
 import type { Cell, Dir, Graph, Grid, Id, Mutation, Span } from "../types";
 import { register, type Args, type Context } from "./registry";
@@ -22,6 +22,34 @@ export const put = (graph: Graph, id: Id, cell: Cell | null): Mutation => {
   const grid = graph.blocks[id]?.parent;
   return { op: "move_block", id, parent: (grid && graph.blocks[grid]?.parent) ?? grid ?? null };
 };
+
+/** What a block holds, seated as it becomes a grid of this lattice: those already in a body cell
+ *  of their own stay there, and the rest take the nearest free cells in reading order. **Made on
+ *  purpose, the grid grows rows to seat them all**, so nothing it held leaves it. */
+export function seat_all(graph: Graph, id: Id, g: Grid): Mutation[] {
+  const held = children(graph, id).filter((b) => !is_interface(b));
+  const taken = new Set<string>();
+  const kept = new Set<Id>();
+  for (const b of held) {
+    const at = b.cell;
+    if (!at || !inside(g, at) || heads_at(g, at) || taken.has(`${at.r},${at.c}`)) continue;
+    taken.add(`${at.r},${at.c}`);
+    kept.add(b.id);
+  }
+  const out: Mutation[] = [];
+  let grid = g;
+  for (const b of held) {
+    if (kept.has(b.id)) continue;
+    let cell = free_cell(grid, taken, null, { r: 0, c: 0 }, false);
+    while (!cell) {
+      grid = { ...grid, rows: grid.rows + 1 };
+      cell = free_cell(grid, taken, null, { r: 0, c: 0 }, false);
+    }
+    taken.add(`${cell.r},${cell.c}`);
+    out.push({ op: "seat_cell", id: b.id, cell });
+  }
+  return grid === g ? out : [set(id, grid), ...out];
+}
 
 /** A row or column added or removed; blocks, values and merges after it shift. */
 function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
