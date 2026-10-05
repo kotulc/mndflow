@@ -1,67 +1,18 @@
 # Spec
 
-**What crosses packages, and the rules every package obeys.** Short statements of the target. **What one package alone decides lives in that package's `docs/`** — this file does not repeat it. The reasoning is in design.md, which is authoritative; the vocabulary is in definitions.md.
+**What crosses packages, and the rules every package obeys.** Short statements of the target. What one package alone decides lives in that package's `docs/`; the model's rules and their reasons are in design.md, which is authoritative; the vocabulary is in definitions.md.
 
-mndflow is a client-only app for rapidly composing descriptive blocks into systems models. **There is no server**: one log lives in the session, and the graph is folded from it.
+**There is no server**: one log lives in the session, and the graph is folded from it.
 
-**The one law.** Dependencies run one way, and **only `core` may name a closed set** — anything else enumerating sorts of things is doing the engine's job in the wrong place. Both halves are a test, and the monorepo README owns the map they are tested against.
+**The one law.** Dependencies run one way, and **only `core` may name a closed set** — anything else enumerating sorts of things is doing the engine's job in the wrong place. Both halves are a test. **The package map, and what each may depend on, live in the monorepo README under `packages/`** and nowhere else.
 
-**Boundaries exist to enforce direction and to let each package be proven on its own.** They are not an API surface anyone has to keep; one version, never published, and a boundary that turns out wrong is moved in one commit.
-
-
-## The packages, as workspaces
-
-```
-packages/
-  core/        @mnd/core       graph, log, door, actions, ports
-  views/       @mnd/views      sizes, placement, routing, projection -> Scene
-  defs/        @mnd/defs       the definition packages. data, no code
-  theme/       @mnd/theme      the ramp, css only
-  fixtures/    @mnd/fixtures   sample logs, and sample files for the seam
-  explorer/    @mnd/explorer   the tree
-  stage/       @mnd/stage      the working area
-  options/     @mnd/options    the control rail
-  tray/        @mnd/tray       what the open layer holds
-  terminal/    @mnd/terminal   the strip
-  kit/         @mnd/kit        the seam, built and packed
-apps/
-  web/         @mnd/web        the product
-  cli/         @mnd/cli        the harness
-```
-
-**One surface, one package, and never a `ui` package.** Five panels split five ways is what keeps
-one of them from quietly doing another's work, and each carries its own dev server — which is what
-makes a surface runnable before the app that hosts it exists.
-
-**`views` is one package and there is one way to draw.** The grid absorbed the table and the matrix,
-so what was a choice of view module is now a question about how the blocks in a layer are placed.
-Sizes, placement and routing live here with the projection because they are one answer, and none of
-them is separately runnable.
-
-**This tree is the shape, not the arrows.** The monorepo README owns the dependency map, and the law
-test keeps the workspace graph in step with it.
+**Boundaries exist to enforce direction and to let each package be proven on its own.** They are not an API surface anyone has to keep: one version, never published, and a boundary that turns out wrong is moved in one commit.
 
 
 ## Running one thing in isolation
 
-**Every surface package carries its own `dev/index.html` and its own Vite root.** No central
-harness, so no package depends on one, and a harness holds the state its component refuses to.
-
-```
-npm run dev   -w @mnd/explorer          # one surface, over a fixture
-npm run dev   -w @mnd/stage             # and the same for options, tray, terminal
-npm run dev   -w @mnd/web               # the assembled app
-
-npm run start -w @mnd/cli -- fold related   # the harness, headless
-npm run build -w @mnd/kit                   # the seam, then npm pack -w @mnd/kit
-
-npx vitest run packages/core            # one suite, from the repo root
-npx vitest run                          # all of them
-```
-
-**A suite runs from the root, never from the package.** `npm test -w @mnd/<name>` lands where there
-is no vitest config: it passes for `core`, finds no files in half the others, and loses the DOM
-environment in the rest. **The path is the filter**, and it is the one form that works everywhere.
+- **Every surface package carries its own `dev/index.html` and its own Vite root.** No central harness, so no package depends on one; a harness holds the state its component refuses to.
+- **A suite runs from the root, never from the package.** `npm test -w @mnd/<name>` lands where there is no vitest config. **The path is the filter** (`npx vitest run packages/core`), the one form that works everywhere.
 
 
 ## The claim it all rests on
@@ -82,9 +33,11 @@ Scene {
 }
 ```
 
-**A projection returns data, never elements.** Plain data, importing nothing drawable. This is the single change the architecture is built on: a notation becomes a pure function, a translator reuses the projection instead of reimplementing it, and most of the product is provably correct before anything is drawn. **Only what draws needs a browser.**
+**A projection returns data, never elements.** Plain data, importing nothing drawable: a notation becomes a pure function, a translator reuses the projection instead of reimplementing it, and most of the product is provably correct before anything is drawn. **Only what draws needs a browser.** Anything that needs to break this is something to redesign rather than to allow.
 
-**It held.** Every rule below assumes it keeps holding, and anything that needs to break it is something to redesign rather than to allow.
+**Nodes and edges are in React Flow's own shape**, its types imported for shape and erased at build, so nothing headless resolves React. `stage` hands them straight to the canvas; the `cli` draws them as text and SVG with React Flow's own path functions. **Where a line runs is the projection's** (`views/route.ts`), so the canvas and the SVG export draw the same path; hit testing, the viewport and the drag stay React Flow's.
+
+**`views` is one package and there is one way to draw.** Sizes, placement and routing live with the projection because they are one answer, and none of them is separately runnable.
 
 
 ## The seams
@@ -97,13 +50,14 @@ Scene {
 | **the Scene** | `views` → `stage`, `cli`, `kit` | plain data, importing nothing drawable. **A producer proves its output is well-formed; a consumer proves it draws anything that is, and neither imports the other** |
 | **the ports** | `core` → the apps | the entire host contract, declared in one place and bound in an app |
 
-**An action name is the fourth thing, and it travels one way.** Every surface emits one and none runs one — the app does. **A gesture returns a name, the app runs it, it returns mutations, the app appends them.** That loop is the whole product, and if it turns out to be interesting a seam is in the wrong place.
+**An action name is the fourth thing, and it travels one way.** Every surface emits one and none runs one — the app does. **A gesture returns a name, the app runs it, it returns mutations, the app appends them.**
 
-**A canvas adjustment is the one gesture that comes to several writes.** The stage works out what a drag or a drop means — which actions, which positional changes — and hands the list over; the app runs it inside `session.batch`, so **one gesture is one step** and undoes as one.
+**A canvas adjustment is the one gesture that comes to several writes.** The stage works out what a drag or a drop means and hands the list over; the app runs it inside `session.batch`, so **one gesture is one step** and undoes as one.
+
 
 ## Ports
 
-**Declared in core, bound by an app, implemented nowhere else.** The detail is core's `ports.md`; what crosses is the set and who answers it.
+**Declared in core, bound by an app, implemented nowhere else.** The detail is core's `ports.md`.
 
 | | Is | `web` | `cli` |
 |---|---|---|---|
@@ -113,20 +67,18 @@ Scene {
 | `score` | text similarity, for ranking | the scorer, lazily, handed to the terminal | absent |
 
 - **Nothing but a port may assume where the workspace lives.**
-- **An unbound port is a capability the app does without**, never a feature reimplemented. With no `score`, ranking falls back to substring and everything else still works.
+- **An unbound port is a capability the app does without**, never a feature reimplemented. With no `score`, ranking falls back to substring.
 - **A new capability is a port or it is a package**, never a direct reach for a browser API from somewhere that is not an app.
-- **Ports stay four.** A fifth is a claim that a host has to answer something new, which is nearly always a package instead. **`storage`, `files` and `net` are bound through the session; `score` reaches the terminal directly**, since ranking is the terminal's alone.
+- **Ports stay four.** `storage`, `files` and `net` are bound through the session; `score` reaches the terminal directly, since ranking is the terminal's alone.
 
 
 ## The surfaces
 
 **Branding, navigation and the workspace. They own nothing about a diagram.** Every component is a pure function of its props: it holds nothing, and every gesture leaves as an action name somebody else runs.
 
-**One surface, one package, and never a `ui` package** — `explorer`, `stage`, `options`, `tray`, `terminal`. Five panels split five ways is what keeps one of them from quietly doing another's work, and **only two of them know what a Scene is**. Each carries its own dev harness, which is what makes a surface runnable before the app that hosts it exists.
+**One surface, one package, and never a `ui` package** — `explorer`, `stage`, `options`, `tray`, `terminal`. Five panels split five ways keeps one from quietly doing another's work, and **only two of them know what a Scene is**. What each draws and refuses is its own `docs/`.
 
-**One page**: header, optional terminal, then explorer beside the stage, options to the right.
-
-**One surface, one job.** What each draws and refuses is its own `docs/` — the explorer's tree, the stage's gestures, the options rail's groups, the tray's table, the terminal's four commands.
+**One page**: header, optional terminal, then explorer beside the stage, options to the right, the tray below the stage.
 
 
 ## Naming, and one channel
@@ -135,20 +87,8 @@ Scene {
 - **An unnamed element shows its handle** — `B1`, `I2`, `L3` — a serial minted once per kind and never rewritten. **A note is exempt**: a note *is* its text.
 - **A block that says nothing and stands for exactly one thing is named after what it stands for**, with its definition's verb in front, and **drawn dimmed** — a guess that cannot be told from a statement is the mistake worth designing against.
 - **A name is edited where it is drawn.** `Enter` commits, `Esc` abandons.
-- **Everything the app says goes to one strip** — a refusal, a repair report, a storage warning, a rule note. One place to look, dismissable, and silent when there is nothing to say.
-
-
-## What holds what
-
-**A block is a block.** There is no structure/behaviour split and no tier walk — what a block *is* comes from its definition, and what it may hold is a rule a vocabulary states rather than one the engine imposes.
-
-**The engine states no containment rule.** The last one — *a view holds references, never parts* — had only the `view` module to attach to and went out with it. What is left is `holds`, which is data, and the few refusals that stop a graph being incoherent.
-
-- **What is still refused**: a block cannot contain itself, **a definition cannot use itself** or sit in a structure, **a type chain cannot close on itself**, and **a cell holds one block**. What a kind holds is its settings' to say (`allows.holds`), never a hard-coded rule. The last is not taste — two blocks sharing a cell leaves *what is allocated to this row* without an answer.
-- **A reference points at what it stands for, and nothing points back.** Upward is a derived query, never stored — a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
-- **`parent` is the only containment.** A folder, a group and a grid hold by it like any block, and differ only in how they draw what they hold: hidden, inline, or in cells. Deleting a holder deletes its subtree, and a grid's member always sits in a cell.
-
-**A vocabulary's rules advise while modelling and refuse only at translation**: the walk is core's, in `schema.md`, and the drop rules are in `actions.md`.
+- **Everything the app says goes to one strip** — a refusal, a repair report, a storage warning. One place to look, dismissable, and silent when there is nothing to say.
+- **A vocabulary's rules advise while modelling and refuse only at translation**: the walk is core's `schema.md`, the drop rules its `actions.md`.
 
 
 ## What travels
@@ -164,33 +104,29 @@ The envelope, the canonical layout and the door are core's `engine.md`.
 
 ## kit
 
-**The one surface offered outside this repo, and it speaks in state.** The whole headless stack as one built package — `kit`, `kit/react`, `kit/react.css` — bundled so nothing outside sees a workspace. **Packed, never published.**
-
-**The log, the steps, the mutations, the session and the action registry are internal.** A log is a history of intent replayed against one engine: reading one means matching this build's mutation semantics, its defaults and its action set, version for version. A graph is a statement of fact — validatable without executing anything, and stable across builds.
+**The one surface offered outside this repo, and it speaks in state.** The whole headless stack as one built package — `kit`, `kit/react`, `kit/react.css`, `kit/shell`, `kit/shell.css` — bundled so nothing outside sees a workspace. **Packed, never published.**
 
 > **A signature naming `Log`, `Step` or `Mutation` is internal. Graph to graph, and graph to Scene, is the seam.**
 
 | | Is |
 |---|---|
 | `base_graph` | a fresh workspace with the floor already in it |
-| reading | every derived answer about a graph — roles, layers, read-through, a relation's domain read off its type |
+| reading | every derived answer about a graph — roles, layers, read-through, navigation, a relation's domain read off its type |
 | `open` | a file in, as a graph — validated at the door and repaired where it can be |
 | `validate` | what a graph violates. **Mending it stays the engine's** |
 | `write` · `write_package` | a workspace, or the workspace as a package, out in the canonical layout |
 | `project` · `draw` · `draw_svg` | a layer as a Scene, as text, as a standalone drawing |
-| `Viewer` | the same layer as an **interactive** artifact — walkable, and not editable. Draws the lattice unless told not to, and a block's fields as a class diagram when asked |
-| `Explorer` | the tree. **Emits intent, never change** |
+| `Viewer` | the same layer as an **interactive** artifact — walkable, and not editable |
+| `Explorer` | the section chain. **Emits intent, never change** |
 | `Tray` · `useTray` · `useDisplay` | the context tray, and the state every shell keeps for it and for the drawing. **Read only without `onAct`** |
 
-**What is sealed, and there are no exceptions to look up:** the log, the steps, the mutations, the session, the action registry, and `layout`. A consumer places nothing, because projecting is what places and the Scene already carries the geometry.
+**Sealed, with no exceptions to look up:** the log, the steps, the mutations, the session, the action registry, and placement. A consumer places nothing, because projecting is what places and the Scene already carries the geometry.
 
-- **A consumer says what a model *is*, never what changed.** Round-tripping is read a graph and write a graph, and diffing belongs to whoever cares. **This is the price of a mutation union that stays free to grow**, and it is the right one — a new sort of change costs nothing outside because nothing outside can name one.
-- **The engine keeps its own reader.** `read` produces the log a session works in and is not offered; `open` is the same journey one step later.
+- **A consumer says what a model *is*, never what changed.** Round-tripping is read a graph and write a graph, and diffing belongs to whoever cares. A new sort of change costs nothing outside because nothing outside can name one.
 - **The export list is written out.** `export *` from the engine is how the log leaks, so what ships is named one by one.
-- **An embedded view is interactive and still an artifact.** `Viewer` holds a graph, projects the layer being looked at, and walks in and out of layers. The renderer underneath offers drag callbacks meaning move, seat, wall and relate; they are not re-exported, so **an edit is unreachable rather than merely unadvised**.
-- **A shell's defaults are kept once.** The tray opens from the start, nothing picked on the root layer is the root picked, and the workspace tab sets how the drawing looks. `useTray` and `useDisplay` are what the mndflow app runs on too, so a host inherits those answers rather than restating them — **the app binds ports, and the rules live in the packages.**
-- **A tray without `onAct` only reads.** It offers the tabs that read and nothing takes input; its display answers go to `onDisplay`, since how a drawing looks is the session's and changes nothing.
-- **`kit` is the one package that adds code**, and it is one component. The rule it keeps is dependency direction, which a viewer built from packages `kit` already carries cannot break.
+- **An embedded view is interactive and still an artifact.** The renderer's drag callbacks are not re-exported, so **an edit is unreachable rather than merely unadvised**.
+- **A shell's defaults are kept once.** The tray opens from the start, nothing picked on the root layer is the root picked, and the workspace tab sets how the drawing looks. `useTray` and `useDisplay` are what mndflow runs on too, so a host inherits those answers rather than restating them.
+- **`kit` adds no rules.** It re-exports, plus the shell's chrome; dependency direction is all it keeps.
 
 
 ## apps
@@ -203,37 +139,36 @@ bind ports  ->  hold the log  ->  fold  ->  project  ->  render
                      +-------------- action ----------------+
 ```
 
-**Every gesture returns an action name, which the app runs, which returns mutations, which it appends.** That loop is the whole app, and **if it turns out to be interesting a seam is in the wrong place**.
+**The log is the source of truth.** A graph is only ever derived by folding applied mutations in order, so undo needs no inverse operations — it flips a status and the graph is rebuilt by the same code that built it.
 
 | | Is |
 |---|---|
-| `web` | Vite. **The primary product** |
-| `cli` | headless. Folds, checks, runs actions, projects a layer to text, exports |
+| `web` | Vite. The editor |
+| `cli` | headless. Folds, checks, runs actions, projects a layer to text, exports. **The harness, and an agent's way in** |
+| mndmap | a separate repo: the viewer, a host of the kit as shipped |
 
-**The CLI is the harness that makes the rest provable.** A passing suite proves the code agrees with itself; the CLI proves the packages compose — that a log folds, an action writes, a layer projects, and a Scene is complete enough to draw from, with no React anywhere in the process. **When a track can be driven from the CLI it is done being built in the dark.**
+**The CLI is the harness that makes the rest provable, and the surface an agent drives.** A passing suite proves the code agrees with itself; the CLI proves the packages compose — that a log folds, an action writes, a layer projects, and a Scene is complete enough to draw from, with no React in the process. **When a track can be driven from the CLI it is done being built in the dark.**
 
 
 ## tests
 
-**Properties, never values.** Nothing asserts a coordinate, an id, a message or a count that tuning would change — the suite pins what must stay true, not what happens to be true.
+**Properties, never values.** Nothing asserts a coordinate, an id, a message or a count that tuning would change.
 
-**Two kinds of sample data, because there are two ways in.** A **log** fixture proves the engine agrees with itself — it folds what this build wrote, through the door this build owns. A **file** fixture is a graph this engine never wrote, hand-written and mostly wrong on purpose, and it is the only thing that proves the outward seam repairs rather than folds a broken graph. **After `open`, `validate` finds nothing left** — that is the property, not the wording of any fault.
+**Two kinds of sample data, because there are two ways in.** A **log** fixture proves the engine agrees with itself. A **file** fixture is a graph this engine never wrote, hand-written and mostly wrong on purpose — the only thing that proves the outward seam repairs rather than folds a broken graph. **After `open`, `validate` finds nothing left.**
 
-**Contract tests, never integration tests.** A producer proves its output satisfies the invariants; a consumer proves it handles anything that satisfies them. **Neither imports the other.** When they meet in an app there is nothing left to discover.
+**Contract tests, never integration tests.** A producer proves its output satisfies the invariants; a consumer proves it handles anything that satisfies them. **Neither imports the other.**
 
-**A component is a pure function of its props.** No component reaches for state, storage or a graph — the explorer takes a tree and emits an action name, the stage takes a Scene and emits one. **The app is the only stateful thing in the repo**, and this is the rule that makes an isolated dev server possible at all: a component with no way to fetch anything can always be handed a fixture.
-
-**A dev harness holds the state the component refuses to.** It folds a fixture, hands the result down as props, and logs every action emitted. **Every surface package carries its own Vite root**, so no package depends on a central harness.
+**The app is the only stateful thing in the repo.** No component reaches for state, storage or a graph, which is what makes an isolated dev server possible: a component with no way to fetch anything can always be handed a fixture.
 
 | Package | Proven by | Needs a browser |
 |---|---|---|
 | `core` | fold determinism, door repairs, undo-by-refold, file round-trip, byte-identical re-export | no |
-| `views` | no overlap, on the lattice, stable under reorder, no two ends share a seat; and Scene invariants over text projections of **shape, not coordinates** | no |
+| `views` | no overlap, on the lattice, stable under reorder, no two ends share a seat; Scene invariants over text projections of **shape, not coordinates** | no |
 | `defs` | every shipped definition passes the door; every module it names exists | no |
-| `fixtures` | every log folds clean, and **every file the seam opens leaves nothing for `validate` to find** | no |
+| `fixtures` | every log folds clean, and every file the seam opens leaves nothing for `validate` to find | no |
 | `kit` | packed, then a graph, a file and a drawing built from outside the workspace | no |
 | `explorer` · `stage` · `options` · `tray` · `terminal` | driven, not asserted | yes |
 
-- **The dependency law is a test**: the workspace graph matches the map the monorepo README owns, no package outside `core` declares a closed set, and nothing imports a deep path.
+- **The dependency law is a test**: the workspace graph matches the monorepo README's map, no package outside `core` declares a closed set, and nothing imports a deep path.
 - **Design first, test second.** While a design is still moving, running the thing is the verification that counts.
-- **Driving the app is the acceptance test**, and a green suite closes nothing on its own.
+- **Driving both apps against the shipped samples is the acceptance test**, and a green suite closes nothing on its own.

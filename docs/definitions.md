@@ -1,6 +1,6 @@
 # Definitions
 
-**The canonical vocabulary.** One entry per term, so a rule written anywhere else reads without guessing. Where any other document uses a word, this is what it means.
+**The canonical vocabulary.** One entry per term, so a rule written anywhere else reads without guessing. Where any other document uses a word, this is what it means. The rules themselves are in design.md.
 
 
 ## The one shape
@@ -35,13 +35,6 @@
 | **own child** | a block stored under a usage itself, beside what it reads through |
 | **route** | how a part is reached: `usage/part`. What tells two usages' views of one part apart |
 | **frozen** | under any package root but the workspace's: read only |
-
-| Rule | |
-|---|---|
-| **no definition in a definition** | a definition sits in a domain, in holders however deep, never in a structure |
-| **no self-use** | a definition never holds a usage of itself, by exact type, at any depth of its own structure. `D` may hold an `S` where `S extends D` |
-| **no type cycle** | a definition's `type` names one above it: never itself, never one that extends it |
-| **no block contains itself** | the tree terminates |
 
 
 ## Reading through
@@ -96,6 +89,7 @@
 | **layer** | what one block holds, drawn: the blocks drawn on it are those whose nearest **hiding** ancestor is that block |
 | **hides** | a folder, a definition and any block holding blocks hide what they hold; a group and a grid draw theirs inline |
 | **card** | a block as drawn. **A definition always draws as a card**; its structure is reached by descending |
+| **canvas view** | what the canvas draws: the **overview** or the **structure** of the tree opened. There are no others |
 | **overview** | what the canvas draws while nothing is open (`layer: null`): every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down. 1:1 with the packages and definitions sections |
 | **flatten** | drawing folders as groups, so a whole domain reads on one page. The overview draws flattened |
 | **projection** | a view of the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it; nothing is stored |
@@ -134,13 +128,6 @@
 | **label** | a plain value in a cell, held on the grid in `values` |
 | **allocation** | a body block is allocated to what its row and column headers stand for, and to every holder it sits in. Derived, never stored |
 
-| Rule | |
-|---|---|
-| **one block a cell** | two sharing a cell leaves *what is allocated here* without an answer |
-| **reading order** | left to right, then down, row by row |
-| **never grows by accident** | a block dropped past the last line lands free beside the grid |
-| **displacement is not deletion** | removing a line moves what it held into the nearest spare cell on its side; what has nowhere to go leaves the grid |
-
 
 ## The workspace and files
 
@@ -171,7 +158,6 @@
 |---|---|
 | **action** | something somebody meant and could say: create, relate, define. Returns mutations rather than applying them |
 | **adjustment** | something positional: `place`, `size`, `seat`. Gesture-only. Several writes from one gesture land in one batch |
-| **navigation** | an action writing nothing: `open`, `reveal` |
 | **refusal** | an action's `check` answer: why a gesture is not offered |
 | **host port** | one of the capabilities an app binds: `storage`, `files`, `net`, `score`. The entire host contract |
 
