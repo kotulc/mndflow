@@ -29,6 +29,7 @@
 | `trait` | sets the traits an element carries, or gives the set back to its chain | block, edge, selection | ids, traits? | `set_traits` |
 | `look` | sets one property of how this draws or what it asks | block, edge, selection | ids, key, name, value? | `set_setting` |
 | `none` | gives back everything this says for itself | block, edge, selection | ids | `drop_settings` |
+| `note` | writes a note about a block, tied to it | block | about, text, spot?, w?, h? | `add_block` + `set_body` + `link_blocks` |
 
 | Rule | |
 |---|---|
@@ -51,7 +52,7 @@
 | `open` | draws a tree's structure, the overview with none, or leaves this one: from a tree's top, for the overview | block | id? | `open` |
 | `reveal` | opens the layer a block sits on and picks it there, followed through references | block | id | `open` + `focus` |
 
-- **Where the canvas goes is navigation's** (core `navigate.ts`): opening a tree draws its structure, any other block in a structure draws as its own layer, and a package or holder is revealed — on the overview. Leaving a tree's top returns to the overview, the tree picked. Both apps use the same functions.
+- **Where the canvas goes is navigation's** (core `navigate.ts`): opening a tree draws its structure; any other block in a structure that hides what it holds — a folder among them — draws as its own layer; a group or grid, which draw inline, is revealed in place; a package or anything in a domain is revealed on the overview. Leaving a tree's top returns to the overview, the tree picked. Both apps use the same functions.
 - **Opening a part opens its definition**, the part picked there.
 - **The way out of an interface is the way in**: leaving lands in whichever of its two layers you came from.
 
@@ -105,13 +106,11 @@
 | `order_field` | moves a value or a declared field before another | layer, block | holder, name, before? | `order_values` / `set_schema` |
 | `unfield` | drops a value from a usage, or a field from a definition | layer, block | holder, name | `drop_value` / `set_schema` |
 | `define` | makes a definition in a domain | layer | name, type?, parent?, id? | `add_block{def}` |
-| `save_def` | saves how a block or line looks as a definition anything can name | block, edge | id, name | `add_block{def}` + `update_block` / `update_edge` + `drop_settings` |
-| `pin` | offers a definition on the rail or in the explorer, or takes it off | layer | id, on? | `set_pinned` |
+| `define_from` | makes a definition of how a block or line is set, and makes it a usage of it | block, edge | id, name | `add_block{def}` + `update_block` / `update_edge` + `drop_settings` |
 
 - **One act, and the holder says which**: a value on a usage and a field on a definition are the same thing said of two holders.
 - **`define` lands where the user is**: in the open domain, in the holder picked. Its domain (block or relation) is read off what it extends; absent, `block`. Its id is minted, or passed in by a caller that must know it.
 - **A name is unique in its package**, across definitions, tags and traits.
-- **Saving never pins.** `pin` is the explicit act.
 
 ### The layer
 
@@ -193,14 +192,14 @@
 |---|---|
 | `layer` | the layer's layout kind. A setting, in the log |
 | `display` | what the drawing shows: frame, guides, interfaces, flatten. Writes nothing |
-| `relations` | what a right drag and a `chain` draw: a plain or directed line, a tie, or a pinned relation definition |
+| `relations` | what a right drag and a `chain` draw: a plain or directed line, or a tie |
 
 
 ## Not on the surface
 
 | | |
 |---|---|
-| **shell actions** | new workspace, import, export, export as package, undo, redo: they reach a host port, not the graph. A package is authored as a workspace and exported as one: its root and ids prefixed with its name |
+| **shell actions** | new workspace, import, export, export as a package, undo, redo: they reach a host port, not the graph. Export sits in the header and on the workspace tab, export as a package on the workspace tab alone. A package is authored as a workspace and written as one: its root and ids prefixed with its name |
 | **queries** | readable state, off the registry |
 | **finding** | filtering writes nothing and goes nowhere |
 | **display preferences** | outside the log: interfaces shown, guides, frame, folds, theme |

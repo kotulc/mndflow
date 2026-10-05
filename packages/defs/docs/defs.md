@@ -4,7 +4,7 @@
 
 | Package | Ships |
 |---|---|
-| `base` | one definition per functionally distinct kind: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, and the relation kinds `line` and `tie`. The traits the kinds carry (tie, resizable, body content). Frozen; the engine knows it by id |
+| `base` | one definition per functionally distinct kind: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, and the relation kinds `line` and `tie`. The traits the kinds carry (`tied`, `resizable`, `body content`). Frozen; the engine knows it by id |
 | `requirements` | a worked vocabulary: a shall statement and a verification method |
 | `sysml` | formal names and stereotypes over the base definitions |
 

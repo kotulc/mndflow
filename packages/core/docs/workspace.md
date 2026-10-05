@@ -4,7 +4,7 @@
 
 | | Is |
 |---|---|
-| **workspace root** | a package root with a reserved id. Holds the handle counters and the pinned definitions |
+| **workspace root** | a package root with a reserved id. Holds the handle counters |
 | **new workspace** | its root and one plain definition, `main`, opened by default. Groupings are the user's; samples show them |
 | **what a package uses** | worked out from the types, traits and tags it names (`uses_of`), never stored |
 

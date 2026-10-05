@@ -42,11 +42,11 @@ The embedding weights and the ONNX runtime are vendored under `public/` and stor
 
 | Where | What you can do |
 |---|---|
-| **Header** | undo, redo, import, export, export as a package, a new workspace, the terminal, the theme — each reaches a **port**, never the graph |
+| **Header** | undo, redo, import, export, a new workspace, the terminal, the theme — each reaches a **port**, never the graph |
 | **Explorer** | a section chain — `packages`, `definitions` (a package's domain: its definitions in the folders and groups that organize them) and `structure` (the tree held, with its structure) — each listing what the section above holds, and the menu that hangs off the tree. **The explorer browses; the canvas is the target**: choosing a row selects it, opening one (Enter, double-click, →) moves the canvas. The canvas is either the **overview** — every package top-down, its definitions in their groups and folders, read down the page — or the **structure** of the definition opened |
 | **Stage** | **the left button works what is there; the right button makes something new.** Within the right button a click makes what sits at a point and a drag makes what has extent. A click here selects and never navigates |
 | **Options** | settings for the workspace or a new definition, then the groups the projection asks for — a layer's layout (`free`, `auto`, `outline`, `page`), what the drawing shows, and what a right drag draws |
-| **Tray** | open from the start, on whatever is picked — and on the root, with its `workspace` tab, when nothing is. What the open layer holds, as rows; a block's element, fields and contents; the card size, key and lattice. A block with a schema offers its fields as a diagram |
+| **Tray** | open from the start, on whatever is picked — and on the root, with its `workspace` tab, when nothing is: where the workspace is exported, whole or as a package. What the open layer holds, as rows; a block's element, fields and contents; the card size, key and lattice. A block with a schema offers its fields as a diagram |
 | **Terminal** | four commands — `+` add, `:` filter, `*` search, `?` help. Help is the fallback, and every registered action is reachable there |
 
 Work is kept in IndexedDB as you go; **export** writes the whole graph to a file that **import** reads back.

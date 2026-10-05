@@ -177,6 +177,13 @@ export function App({ storage }: { storage: Storage }) {
     }
     /** A package by name, fetched from the catalogue and brought in beside the workspace, frozen. */
     if (name === "@package") { void s.search(String(args!["name"])); return; }
+    /** The workspace written out, whole or as a package of its own; each reaches the files port. */
+    if (name === "@export") { void s.save(); return; }
+    if (name === "@export_package") {
+      const named = prompt("name the package", graph.blocks[graph.root]?.name ?? "")?.trim();
+      if (named) void s.save_package(named);
+      return;
+    }
     /** Where the tray is pointed; writes nothing. */
     if (name === "about") {
       const want = String(args!["scope"]);
@@ -230,10 +237,6 @@ export function App({ storage }: { storage: Storage }) {
           <button title="export the workspace" onClick={() => void s.save()}>
             <Icon name="export_workspace" />
           </button>
-          <button title="export the workspace as a package" onClick={() => {
-            const name = prompt("name the package")?.trim();
-            if (name) void s.save_package(name);
-          }}><Icon name="export_project" /></button>
           <button title="import a workspace" onClick={() => void load()}>
             <Icon name="import_file" />
           </button>

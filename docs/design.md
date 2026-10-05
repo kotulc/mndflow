@@ -72,6 +72,7 @@ Most rules below are one of these applied.
 - **`type` is one chain**: on a usage, what it is; on a definition, what it extends. It names one above: never itself, never one that extends it. Refused at the gesture; `isa` guards loaded files
 - own values only: inherited values are resolved on read, never copied
 - precedence, per link of the chain, self first: its own settings, then its traits in order. Nearest wins
+- a trait confers its own settings and those of the traits it extends, never its base's: how a tag draws is not what it gives
 - traits are inherited until a subtype states its own set; then its set is the only one. Reset gives it back to the chain
 - structure is a definition's own and is never inherited
 - a usage reads through one step: its type's own structure, never a chain
@@ -86,6 +87,7 @@ Most rules below are one of these applied.
 - a capability is added to or removed from a subtype as a trait, easily and visibly. Traits are stored in `traits`, apart from `tags`
 - `note` is a base carrying the resizable and body-content traits
 - relations and tags hold no structure. A tag is a definition with no structure, carried in `tags`
+- a tag definition draws as a block. Tags read alike, each in its own shade: the `tag` base sets a hue and `vary`, so each definition under it strays a little, keyed by its id
 - `tie` is a relation type like any other, chosen and never forced
 - a **tie trait** links a block made from, or dropped on, another block to it with a relation of a given type, on the same layer. Made on its own, it links nothing
 - definitions are never linked, except by a tie trait (a note tied to a definition)
@@ -116,8 +118,9 @@ Most rules below are one of these applied.
 - a **projection** draws the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it
 - **two canvas views**: the **overview** while nothing is open (`layer: null`), and the **structure** of the tree opened
 - the overview draws every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down and never zoomed out. It is 1:1 with the packages and definitions sections
-- there is no package or folder view: opening a package, folder or group focuses its box in the overview
+- there is no package view: opening a package, or a holder in a domain, focuses its box in the overview. In a structure, opening a folder descends into it, since it hides what it holds; a group or grid draws inline, so opening one reveals it in place
 - a layer's **layout** is a setting, `layout: { kind, … }`, said by its definition and overridable by the block, inherited like any setting. The kit ships `free`, `auto`, `outline` and `page`; an unknown kind draws as `auto`
+- **a row and its card read alike**: the explorer and the canvas ask core's `role_of` what a block is, and wear the same icon
 - **marks describe, and stack**: a stand-in wears one word (`Def`, `Ref`, `Pkg`); anything else wears what is true of it, and those stack — the first is `data`
 - **a layer draws its key**: what each kind's colour, mark and word mean. The workspace sets the default; a layer may override it
 - **a block's fields draw as a class diagram** on request: one card for the definition, one per usage with its values, drawn in place of the layer and never written

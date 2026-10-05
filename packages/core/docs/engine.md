@@ -29,7 +29,7 @@
 | `session.ts` | the log, undo, batches, bringing a package in, export, and the ports bound |
 | `actions/` | the action set, one file per subject, registered on import |
 
-**Placement and routing are not here** — they are layout, which depends on core and is equally headless. Splitting them keeps the fold free of geometry and lets either be tested without the other.
+**Placement and routing are not here** — they are in `views`, which depends on core and is equally headless. Splitting them keeps the fold free of geometry and lets either be tested without the other.
 
 ## The log
 
@@ -57,7 +57,7 @@
 - **An export is the graph, not the log** — `{ schema, id, graph, meta }`, pretty-printed JSON. Its size follows the model rather than how long somebody worked.
 - **A package is the smallest export**, and the workspace export is simply the workspace package's. One path, no special case.
 - **A workspace file is whole**: it carries every package brought in beside it, but `base`, which ships with every build. A file naming a definition it does not carry is refused.
-- **A package is the smallest export.** `write_package` writes the workspace as a package, its root and ids prefixed with the package's name.
+- **`write_package` writes the workspace as a package**, its root and ids prefixed with the package's name.
 - **A reference out of the subtree is kept, not tidied away**, and reads *missing* where it lands. Same rule as a deleted target, so importing needs no second answer. A relationship with one end outside is dropped, exactly as moving a block drops what does not travel.
 - **Importing one is a checkpoint**, so there is no second format and no second reader.
 - **Importing replaces the session and is saved from then on** — a file is a snapshot, the session is the working copy.

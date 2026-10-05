@@ -35,8 +35,8 @@ npm run typecheck -w @mnd/options
 
 ## The rules it lives by
 
-- **A view module declares which groups it offers**, and the shell knows how to build each. **A matrix has no interfaces toggle because it declares none**, never because one was greyed out.
-- **`relations` is drawn last**, because it is the only group that grows with the vocabulary.
+- **The projection declares which groups it offers**, and the shell knows how to build each. A group absent is not drawn, never greyed out.
+- **`relations` is drawn last** of the layer groups.
 - **A verb never lights.** There is no layout a layer is currently *in*, so `on` is left undefined and nothing in a verb group is ever highlighted.
 - **What does not apply is not drawn.** Greying out is for a fixed row whose positions are worth learning.
 

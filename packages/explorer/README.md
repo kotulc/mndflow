@@ -35,10 +35,10 @@ npx vitest run packages/explorer     # its suite, from the repo root
 ## What it draws
 
 - **A section chain, always.** The host declares its sections; mndflow's are `packages`, `definitions` and `structure`.
-- **Blocks, nested to any depth**, holders among them. Fields are never listed. **Interfaces are behind a toggle.**
+- **Blocks, nested to any depth**, holders among them. Fields are never listed, and interfaces are part of the block they sit on.
 - **A usage lists its definition's parts**, marked, before its own children.
 - **The open layer and the selection are two states with two looks** — *open* is what the canvas draws, *selected* is what is browsed and what an action would act on. They stack, and selected reads first.
-- **Every role carries a mark**, and a container is filled where a leaf is outlined, because the fill is what says it holds something. A package root wears the root mark, or the lock where frozen.
+- **Every row wears its card's icon**, read from core's `role_of`, so a row and its card never disagree; one that holds blocks lights it. A package root wears the root mark, or the lock where frozen; a relation definition its run.
 
 ## What it refuses to do
 

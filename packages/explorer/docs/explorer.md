@@ -66,7 +66,7 @@ pump1
 **One row renderer, one row height.** A mark, a name, and the guide columns behind them.
 
 - **Guide lines are drawn per indent column**; the last row in a branch turns an elbow.
-- **Every role carries a mark**: leaf, folder, group, grid, interface, reference, note, tag. A row that holds parts lights its icon.
+- **A row wears its card's icon**: the role core's `role_of` reads — block, folder, group, grid, interface, reference, note — so a tag reads as the block it is. A row that holds blocks lights its icon.
 - **A section's mark is a word**: `Pkg`, `Def`, `Use`. A word is never filled.
 - **A row is keyed by its section and route**, as a block may list in two sections and a part under two usages.
 - **Holders are rows like any other**, their contents nested under them. A group's head sits level with its group.

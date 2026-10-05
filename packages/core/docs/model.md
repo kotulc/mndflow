@@ -60,7 +60,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 | | Carried in | Says |
 |---|---|---|
 | **tag** | `tags` | a word, with its meaning in `body` |
-| **trait** | `traits` | a tag carrying settings: a capability, added or removed as one |
+| **trait** | `traits` | a tag carrying settings: a capability, added or removed as one. It confers its own settings and those of the traits it extends, never its base's |
 
 **The tie trait** links a block made from, or dropped on, another to it, on the same layer, by a relationship of the type it names. Made on its own, it links nothing. `note` carries it, with resizable and body content.
 
@@ -80,7 +80,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 | Corner | Says |
 |---|---|
 | **card icon**, top right | what sort of thing this is, or `card.icon`. Filled when the block holds parts |
-| **system mark**, bottom right | what the card stands in for: `Ref`, `Def`, `Pkg`, `Ext`. Derived |
+| **system mark**, bottom right | a stand-in wears one word for what it stands for (`Ref`, `Def`, `Pkg`); anything else wears what is true of it (`data`, `parts`), stacked. Derived |
 | **link mark** | a part seen through a usage: dimmed, with the link glyph, "from `D`" |
 
 

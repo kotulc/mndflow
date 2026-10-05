@@ -18,12 +18,10 @@ elements · layer · display · relations
 |---|---|
 | **`layer`** | the layer's layout — `free` or `auto`. A setting, and the one group here that writes to the log. `outline` and `page` are a definition's or a host's to set, never offered here; the overview offers no `layer` group at all |
 | **`display`** | what the drawing shows rather than what it holds: the frame, the guides, whether interfaces draw, whether folders are flattened, and whether this layer draws the key to itself. Nothing here enters the log |
-| **`relations`** | what a right drag and a `chain` draw: *straight*, *directed*, *tie*, or a pinned relation definition |
+| **`relations`** | what a right drag and a `chain` draw: *straight*, *directed* or *tie*. The shipped runs only; a relation definition is applied in the tray |
 | **`elements`** | which element the tray holds: the *workspace*, a blank *block* or a blank *relation* definition. Writes nothing |
 
 **`elements` is not a slot, and it leads.** A slot is what the projection can offer about the whole layer; this points the tray at an element — its element tab — and a toggle is lit for whichever the tray holds.
-
-**`relations` is last of the layer groups on purpose**: it is the only one that grows with the vocabulary, so it is the one to push off the bottom of a column that scrolls.
 
 ## What a control is
 
@@ -54,8 +52,4 @@ elements · layer · display · relations
 
 ## The rules it lives by
 
-**Every control the thing on the stage has is in one column, fixed to the right.** A real column, not an overlay: the stage ends where it begins, so chrome never sits on the drawing.
-
-- **The projection declares which groups it offers** and the column draws them in a fixed order. A group absent is a control that is not drawn, never one greyed out.
 - **Nothing picked is everything.**
-- **A verb never lights**, which is the plainer signal.

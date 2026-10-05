@@ -71,6 +71,13 @@ export function Workspace({ graph, display, onAct = NOOP, onDisplay = onAct }: W
           <Line label="definitions" tip="Every definition the workspace can name, a package's and the floor's among its own.">
             <span className="read">{all_defs(graph).length}</span>
           </Line>
+          {/* Leaving the workspace is the host's: it reaches a port, never the graph. */}
+          {readonly ? null : (
+            <Line label="export" tip="Write this workspace to a file — whole, with every package it draws on — or as a package of its own, its root and ids prefixed with the name it is given.">
+              <button className="opt" onClick={() => onAct("@export")}>workspace</button>
+              <button className="opt" onClick={() => onAct("@export_package")}>as package</button>
+            </Line>
+          )}
         </Body>
       </div>
 

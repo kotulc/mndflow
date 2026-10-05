@@ -120,7 +120,6 @@ const PATHS = {
   // Sending a file out, and taking one in. A workspace lands on a shelf; a
   // project is one page, so the two can never read as each other.
   export_workspace: "M12 3.5v9M8.5 9.5L12 13l3.5-3.5M4 16.5v4h16v-4",
-  export_project: "M6.5 3.5h7l4 4v13h-11zM12 10v6M9 13.5L12 16.5l3-3",
   import_file: "M12 13.5v-9M8.5 8L12 4.5 15.5 8M4 16.5v4h16v-4",
   /** A document to add: a page with its corner turned, and the plus inside it. */
   add_document: "M7 5h7l3.5 3.5V19H7zM14 5v3.5h3.5M12 10.5v5M9.5 13h5",

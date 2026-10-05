@@ -74,9 +74,10 @@
 | Term | Means |
 |---|---|
 | **setting** | what an element says about how it draws or what it may do, by component (`settings`) |
+| **vary** | a style setting: how far, in degrees, each definition under one that sets it strays from its inherited hue, keyed by its id. Kin read alike, each still itself |
 | **capability** | a setting saying what a block may do: `allows` (refused at the gesture) and `expects` (advice) |
 | **tag** | a definition on the `tag` base, carried in `tags`. A word with a meaning (`body`), no settings, no structure |
-| **trait** | **a tag carrying settings**: a capability tag. Carried in `traits`, listed apart from tags. Adding or removing a capability on a subtype is adding or removing a trait |
+| **trait** | **a tag carrying settings**: a capability tag. Carried in `traits`, listed apart from tags. Adding or removing a capability on a subtype is adding or removing a trait. It confers its own settings and its traits', never its base's |
 | **trait inheritance** | a definition's traits are its chain's until it states its own set; then its set is the only one. Reset gives it back to the chain |
 | **tie trait** | links a block made from, or dropped on, another to it with a relationship of a given type, on the same layer. Made on its own, it links nothing |
 | **name space** | one per package: a tag, a trait and a block definition never share a name |

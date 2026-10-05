@@ -2,7 +2,7 @@
 
 **One way to draw.** A layer is what is looked at; this package is the looking. It reads the graph and hands back a **Scene** — plain data, importing nothing drawable.
 
-**There is no longer a choice of view module.** `table` and `matrix` were absorbed by the grid, and `view` went with them: what was *which way is this layer shown* is now *how are the blocks in it placed*. ***View* is reserved, not retired** — it will name a data perspective over the model, and it comes back defined.
+**There is one way to draw.** A grid is how a layer states order and allocation; there is no choice of view module. The canvas's two views are the overview and a tree's structure; a data perspective over the model (a table, a matrix) still wants a word.
 
 ```
 project(graph, layer, config) → Scene
@@ -21,7 +21,7 @@ project(graph, layer, config) → Scene
 | `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off |
 | `route.ts` | where a run goes between two borders, round the cards it passes |
 | `block.ts` | the projection: graph and layer in, Scene out |
-| `look.ts` · `derive.ts` | what a card wears, and the marks it reads by — both derived every draw |
+| `look.ts` · `derive.ts` | what a card wears — its hue strayed by `vary` per definition, so kin read alike — and the marks it reads by; both derived every draw |
 | `legend.ts` | the key to one layer: the kinds it draws and the system marks they wear, folded and counted off the Scene alone |
 | `svg.ts` · `text.ts` | a Scene drawn without a browser |
 

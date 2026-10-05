@@ -1,6 +1,6 @@
 # @mnd/kit
 
-**The one surface mndflow offers anything outside this repo.** Seven packages are the shape of the design; one is the shape of the seam.
+**The one surface mndflow offers anything outside this repo.** The other packages are the shape of the design; this one is the shape of the seam.
 
 | | |
 |---|---|

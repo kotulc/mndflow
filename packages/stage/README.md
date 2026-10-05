@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Entry** | `src/index.ts` |
-| **Depends on** | `core`, `views`, `render`, `theme` |
+| **Depends on** | `core`, `views`, `theme` |
 | **Proven by** | its own dev server over a fixture Scene — driven, emitting action names and mutating nothing |
 
 ## Where it sits

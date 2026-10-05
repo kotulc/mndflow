@@ -6,7 +6,7 @@
 |---|---|
 | **Entry** | `src/index.ts` — everything public is exported here, and nothing imports a deep path |
 | **Depends on** | nothing. It may not even reach `defs`, which supplies its floor — an app hands the base definitions in, the same way it hands in a port |
-| **Proven by** | fold determinism, undo-by-refold, the door's repairs, file round-trip, byte-identical re-export, compaction, and the definition model — roles by position, chains and traits, pins, saved and removed definitions, tags, batches, grids |
+| **Proven by** | fold determinism, undo-by-refold, the door's repairs, file round-trip, byte-identical re-export, compaction, and the definition model — roles by position, chains and traits, saved and removed definitions, tags, batches, grids |
 
 ## Where it sits
 

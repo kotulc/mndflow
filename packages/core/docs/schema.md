@@ -88,7 +88,6 @@ Block {
   alias?        number            // handle serial, minted once
 
   counters?     Record<string, number>   // workspace root: handle counters per kind
-  pinned?       Id[]              // workspace root: pinned definitions, in order
 
   settings?     Components        // its own word, by component
   traits?       Id[]              // capability tags, in order
@@ -164,8 +163,8 @@ FieldDef { name, form, value?, unit?, choices?, many?, tags?, key? }
 | Key | Configures |
 |---|---|
 | `block` | which block module |
-| `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height`, `body`, `fields` |
-| `style` | slot and emphasis, weight and voice; never a colour or a pixel count |
+| `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height`, `fields`, `body`, `name`, `preview` |
+| `style` | a family, or a `hue` with its `intensity` and `vary`; `fill` and `opacity`; border and writing weight, face and contrast. Never a hex or a pixel count |
 | `line` | how a run draws |
 | `layout` | `kind`: `free`, `auto`, `outline` or `page`; `across` and `line` for the computed ones. An unknown kind draws as `auto` |
 | `tie` | the relation type a block made from or dropped on another is linked to it by |
@@ -194,7 +193,7 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | `checkpoint` | the whole graph |
 | `add_block` · `update_block` · `delete_block` | make; rename or retype; remove with its subtree |
 | `move_block` · `place_block` · `size_block` · `order_block` | re-parent, position, least size, sibling order |
-| `set_alias` · `set_counter` · `set_pinned` | handles, and the pinned list |
+| `set_alias` · `set_counter` | handles |
 | `set_body` · `set_schema` · `set_source` | text, a definition's fields, provenance |
 | `seat_cell` · `set_grid` | an address in the parent grid; a lattice, written whole |
 | `link_blocks` · `update_edge` · `delete_edge` | make, rename or retype, remove a relationship |
