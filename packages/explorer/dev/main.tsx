@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
-import { session, type Id } from "@mnd/core";
+import { session, view_on, EDITOR, type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { fixture, NAMES } from "@mnd/fixtures";
 import { Explorer, editor_slices, useChain } from "../src/index";
@@ -53,7 +53,7 @@ function Harness() {
       <div className="split">
         <Explorer
           graph={s.graph()}
-          open={open}
+          view={view_on(s.graph(), EDITOR, {}, open)}
           picked={picked}
           folded={folded}
           onAct={(action, args) => {

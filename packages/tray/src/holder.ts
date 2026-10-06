@@ -4,7 +4,6 @@ import { all_defs, config_of, def_at, def_of, domain_of, edge_base, frozen, hono
          may_retype, block_base, base_of, package_of, relation_base,
          type Block, type Definition, type Field, type FieldDef,
          type Graph, type Id, type Relation } from "@mnd/core";
-import { DRAFT } from "./draft";
 
 export type Held = {
   /** The definition, where the id names one. */
@@ -40,7 +39,7 @@ export function defined(graph: Graph, id: Id, it: Held, runs: boolean) {
   /** The relation definition this is about: itself, or the one a line follows. */
   const follows = runs ? (d ?? def_at(graph, def_of(graph, id))) : undefined;
   const own = runs ? follows : d ?? def_at(graph, b?.type);
-  const mine = !!own && !frozen(graph, own.id) && own.id !== DRAFT;
+  const mine = !!own && !frozen(graph, own.id);
   /** What came frozen is fixed: never renamed or removed. */
   const fixed = !own || frozen(graph, own.id);
   return { follows, own, mine, fixed };

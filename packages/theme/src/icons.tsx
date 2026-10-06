@@ -129,6 +129,12 @@ const PATHS = {
   layout_free: "M5 5h4.5v4.5H5zM14.5 8h4.5v4.5h-4.5zM8 14.5h5.5V19H8z",
   layout_grid: "M4.5 4.5h15v15h-15zM9.5 4.5v15M14.5 4.5v15M4.5 9.5h15M4.5 14.5h15",
 
+  // The three views of a section. **Internal: a card seen from inside its rim**; overview: the
+  // boxes a whole section nests, from above; profile: the same section stepped down the page.
+  view_internal: "M4.5 4.5h15v15h-15zM8.5 9.5h7v5h-7z",
+  view_overview: "M4.5 4.5h15v15h-15zM7.5 7.5h4v4h-4zM12.5 7.5h4v4h-4zM7.5 13.5h9v3h-9z",
+  view_profile: "M4.5 4.5h7v3h-7zM8.5 10.5h7v3h-7zM12.5 16.5h7v3h-7z",
+
   // The guides the drawing is measured against. **A hash: rules that run off
   // the edge**, which is what a guide is and what keeps it off `layout_grid`,
   // where the lines are bounded because they are the thing.

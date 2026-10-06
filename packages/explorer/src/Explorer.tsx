@@ -4,8 +4,8 @@
  *  is what moves the canvas. The focus is lit strongly, each section's pick more subtly. */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { about_of, children, def_named, frozen, may_hold, shown_name,
-         type Act, type Graph, type Id } from "@mnd/core";
+import { about_of, children, frozen, may_hold, name_taken, new_id, shown_name,
+         type Act, type Graph, type Id, type View } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
@@ -13,8 +13,8 @@ import { end_of, mark_icon, OPENED, opened, parent_of, tree_of, type Row } from 
 
 export type ExplorerProps = {
   graph: Graph;
-  /** The layer the canvas draws; null is the overview. */
-  open: Id | null;
+  /** What the canvas draws: the section it looks at, how, and the layer. */
+  view: View;
   /** What an action would act on. Takes the accent, and reads first. */
   picked: readonly Id[];
   /** Which branches are shut. Session state, handed down. */
@@ -50,6 +50,9 @@ export type ExplorerProps = {
    *  to opens, and nothing shuts. A row walked to is chosen as a plain click chooses it. */
   keys?: boolean;
 };
+
+/** What a definition is called until it is named. */
+const DEFINITION = "definition";
 
 /** The keys that walk the tree. */
 const WALK = ["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"];
@@ -127,7 +130,7 @@ function Fold({ icon, tip, onToggle }: { icon: IconName; tip: string; onToggle: 
 }
 
 export function Explorer(props: ExplorerProps) {
-  const { graph, open, picked, folded, lit = [], onAct, onFold, onPick, onOpen, onLeave,
+  const { graph, view, picked, folded, lit = [], onAct, onFold, onPick, onOpen, onLeave,
           menu: offered = true, chain, keys = false, tools: bar = {} } = props;
   const show = {
     filter: bar.filter !== false,
@@ -150,7 +153,7 @@ export function Explorer(props: ExplorerProps) {
   /** The row being renamed in place. */
   const [naming, set_naming] = useState<Id | null>(null);
   /** A block or folder being named in place, before it is made. */
-  const [draft, set_draft] = useState<{ parent: Id; type?: string } | null>(null);
+  const [draft, set_draft] = useState<{ parent: Id; type?: string; def?: boolean } | null>(null);
 
   /** Each section's own branches, so unfolding its header opens what it heads and nothing else,
    *  and every row as the arrows walk them. Read off the tree fully open, so a shut branch's own
@@ -167,8 +170,7 @@ export function Explorer(props: ExplorerProps) {
       out.set(all[i]!.id, kin);
     }
     /** Whether the section in focus lists definitions or packages rather than a structure. */
-    const library = chain.slices[chain.at]!.list(graph, chain.held.slice(0, chain.at))
-      .under !== "structure";
+    const library = chain.slices[chain.at]!.cut !== null;
     return { folds: out, all, library };
   }, [graph, chain?.at, chain?.held.join("|")]);
 
@@ -217,34 +219,35 @@ export function Explorer(props: ExplorerProps) {
     if (open_now.length) { open_now.forEach((r) => fold(r, true)); return; }
     fold_section(head.id, false);
   };
-  /** The section in focus, and the one block section the bar's tools answer in. */
+  /** The section in focus, and whether the bar's tools answer for definitions there: a section
+   *  cut above its blocks' structure lists trees. */
   const focus = chain.at;
   const library = sections.library;
-  /** The focus is lit strongly: the pick in a section of blocks — a part only where its usage is
-   *  what the canvas has open — else what its section holds. */
+  /** The layer seen from inside, where the canvas looks into one; a whole section has none. */
+  const open = view.kind === "internal" ? view.layer : null;
+  /** The picks the section in focus lists. */
+  const mine = picked.filter((id) => sections.all.some((r) => r.at === focus && r.ref === id));
+  /** The focus is lit strongly: the picks it lists — a part only where its usage is the layer
+   *  seen from inside — else what it holds. */
   const lights = (r: Row) => {
-    if (r.at !== focus || r.pick === undefined) return false;
-    if (picked.length && !library) {
-      return r.of === "block" && picked.includes(r.ref) && (!r.via || r.via === open);
-    }
-    return chain.held[chain.at] === r.pick && !r.via;
+    if (r.at !== focus || r.pick === undefined || r.of !== "block") return false;
+    if (mine.length) return mine.includes(r.ref) && (!r.via || r.via === open);
+    return chain.held[focus] === r.pick && !r.via;
   };
-  /** **The one row wearing the accent's edge: what the canvas shows.** A structure shows its open
-   *  layer, listed in the structure section; the overview shows what is picked — else the package
-   *  held — listed in the sections above it. */
-  const structural = (at: number | undefined) => at !== undefined && chain.slices[at]!
-    .list(graph, chain.held.slice(0, at)).under === "structure";
-  const shown = open ?? picked[0] ?? chain.held[0] ?? null;
-  const drawn_row = rows.find((r) => r.of === "block" && r.ref === shown && !r.via
-    && structural(r.at) === (open !== null))?.id;
+  /** **The one row wearing the accent's edge: what the canvas shows**, in the section it looks
+   *  at — the layer seen from inside, else what it brought into sight, else the section's root. */
+  const shown = view.kind === "internal" ? view.layer : view.pick ?? chain.roots[view.at] ?? null;
+  const drawn_row = rows.find((r) => r.of === "block" && r.at === view.at && r.ref === shown
+    && !r.via)?.id;
   /** What each other section holds, lit subtly. */
   const holds = (r: Row) => r.at !== undefined && r.at !== focus
     && r.pick !== undefined && chain.held[r.at] === r.pick;
   /** Only blocks answer a block question. */
   const blocks = rows.filter((r) => r.of === "block" && (focus === undefined || r.at === focus));
-  /** Where something new goes: what you picked, where it can hold one, else where you are. */
+  /** Where something new goes: what you picked, where it can hold one and is the workspace's,
+   *  else where you are. */
   const about = about_of(graph, open ?? null, picked);
-  const target = may_hold(graph, about) ? about : open ?? graph.root;
+  const target = may_hold(graph, about) && !frozen(graph, about) ? about : open ?? graph.root;
   /** What the delete would take, which is a pick and never the layer standing in for one. */
   const one = picked.length === 1 ? picked[0]! : null;
   /** The layer a drop would join. */
@@ -373,30 +376,36 @@ export function Explorer(props: ExplorerProps) {
     return (dragging.length ? [...dragging] : said ? [said] : []).filter((id) => !!graph.blocks[id]);
   };
 
-  /** On the library, the bar names a workspace definition or files a folder beside one;
-   *  elsewhere a block or folder, drafted in place. */
+  /** A block, folder or definition, drafted in place. On a section of definitions the bar names
+   *  a definition — beside the one in focus, else in the workspace — or files a folder beside it;
+   *  elsewhere a block or folder where you are. */
   const add = (type?: string) => {
-    if (library && !type) { add_def(); return; }
-    const parent = type === "folder" ? shelf : target;
+    const def = library && !type;
+    const parent = type === "folder" ? shelf : def ? shelf ?? graph.root : target;
     if (!parent) return;
     // A draft row opens where it goes, its branch unfolded to show it.
     const row = rows.find((r) => r.of === "block" && r.ref === parent && r.at === focus);
     if (row && folded.includes(row.id)) onFold(row.id, false);
-    set_draft({ parent, ...(type ? { type } : {}) });
+    set_draft({ parent, ...(type ? { type } : {}), ...(def ? { def } : {}) });
+  };
+
+  /** A new definition, chosen in the section in focus as a click chooses it, so the tray shows
+   *  it: a block's until what it extends says otherwise. Left at the offered word, it is
+   *  numbered clear of the names taken. */
+  const define = (label: string, parent: Id) => {
+    let name = label;
+    for (let n = 2; label === DEFINITION && name_taken(graph, graph.root, name); n++) {
+      name = `${label} ${n}`;
+    }
+    const id = new_id("def");
+    onAct("define", { id, name, domain: "block", parent });
+    chain.onChoose(focus, id);
   };
 
   /** The draft's slot in the tree, drawn in the rows' own order. */
   const slot = draft ? after(rows, draft.parent, focus) : null;
   const lines: (Row | null)[] = slot ? [...rows.slice(0, slot.index), null,
     ...rows.slice(slot.index)] : rows;
-
-  /** A block definition of the workspace's own, named by prompt. */
-  const add_def = () => {
-    const label = prompt("name the block definition")?.trim();
-    if (!label) return;
-    if (def_named(graph, label, "block")) { alert(`${label} already exists`); return; }
-    onAct("define", { name: label, domain: "block" });
-  };
 
   /** What the bar's delete would take: a picked block, or the workspace's row in focus. */
   const gone = library ? def : one;
@@ -419,7 +428,8 @@ export function Explorer(props: ExplorerProps) {
             ) : null}
             {props.extra}
             {show.block ? (
-              <button title={library ? "add a workspace definition" : `add a block in ${shown_name(graph, target)}`}
+              <button title={library ? "add a definition — what it extends says its kind"
+                               : `add a block in ${shown_name(graph, target)}`}
                       onClick={() => add()}><Icon name="add_block" /></button>
             ) : null}
             {show.folder ? (
@@ -445,12 +455,12 @@ export function Explorer(props: ExplorerProps) {
         <ul className="tree">
           {lines.map((r) => (!r ? (
             <Draft key="draft" icon={draft?.type === "folder" ? "role_folder" : "role_leaf"}
-                   word={draft?.type ?? "block"} depth={slot!.depth}
+                   word={draft?.def ? DEFINITION : draft?.type ?? "block"} depth={slot!.depth}
                    onDone={(label) => {
                      set_draft(null);
-                     if (label !== null && draft) {
-                       onAct("create", { name: label, parent: draft.parent, type: draft.type });
-                     }
+                     if (label === null || !draft) return;
+                     if (draft.def) define(label, draft.parent);
+                     else onAct("create", { name: label, parent: draft.parent, type: draft.type });
                    }} />
           ) : (
             <li key={r.id}

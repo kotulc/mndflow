@@ -3,14 +3,15 @@
 import { may_hold } from "../capabilities";
 import { shown_name } from "../names";
 import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_domain,
-         may_retype, name_taken, package_of, plain_type, setting_of, stored_type,
+         kind_free, may_retype, name_taken, package_of, plain_type, setting_of, stored_type,
          self_use } from "../defs";
 import { at_cell, covers, GRID, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
 import { children, is_interface, next_order, reorder, stands_for, subtree } from "../tree";
-import { leave_at, open_at, reveal_at } from "../navigate";
+import { leave_at, open_at, reveal_at, view_on, EDITOR, type Tiers, type View,
+         type Views } from "../navigate";
 import { new_id } from "../ids";
 import { BASE_PACKAGE, LAYOUTS, type Graph, type Id, type Layout, type Mutation } from "../types";
-import { register } from "./registry";
+import { register, type Context, type Result } from "./registry";
 import { cell_free, free_cell, seat_all } from "./grid";
 import { borrowed, cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS, spot,
          text, tied, typed } from "./helpers";
@@ -152,7 +153,7 @@ register(
       return {
         mutations: ids.map((id): Mutation => (ctx.graph.edges[id]
           ? { op: "delete_edge", id } : { op: "delete_block", id })),
-        effect: ids.includes(ctx.layer ?? "") ? { open: null, focus: null } : { focus: null },
+        effect: { focus: null },
       };
     },
   },
@@ -210,8 +211,10 @@ register(
         }
         if (b.def) {
           if (closes_cycle(ctx.graph, id, type)) return "a definition cannot extend itself";
-          if (type && domain_of(ctx.graph, type) !== domain_of(ctx.graph, id)) {
-            return `"${d!.name}" is not a ${domain_of(ctx.graph, id)} definition`;
+          /** What it extends says its kind; it changes kind only while nothing it shaped. */
+          if (type && domain_of(ctx.graph, type) !== domain_of(ctx.graph, id)
+              && !kind_free(ctx.graph, id)) {
+            return `"${d!.name}" is not a ${domain_of(ctx.graph, id)} definition, and this one is in use`;
           }
           continue;
         }
@@ -379,34 +382,43 @@ register(
     /** Opening and leaving are navigation's (`open_at`, `leave_at`). An interface left returns to
      *  the layer it was entered from. */
     run: (ctx, args) => {
+      const { tiers, views, view } = seen(ctx);
       const want = id_of(args, "id");
-      if (want) {
-        const to = open_at(ctx.graph, want);
-        return { mutations: [], effect: { open: to.layer, focus: to.pick } };
-      }
+      if (want) return moved(open_at(ctx.graph, tiers, views, want));
       const here = ctx.layer ? ctx.graph.blocks[ctx.layer] : undefined;
       const owner = here?.parent ? ctx.graph.blocks[here.parent] : undefined;
       const outside = owner?.parent ?? null;
       if (here && is_interface(here) && ctx.from !== undefined && ctx.from === outside) {
-        return { mutations: [], effect: { open: outside, focus: ctx.layer } };
+        return moved({ ...view, layer: outside, pick: ctx.layer });
       }
-      const to = leave_at(ctx.graph, ctx.layer);
-      return { mutations: [], effect: { open: to.layer, focus: to.pick } };
+      return moved(leave_at(ctx.graph, tiers, views, view));
     },
   },
   {
     name: "reveal",
-    about: "opens the layer a block is drawn on and selects it there",
+    about: "brings a block into sight where it is drawn, and selects it there",
     on: ["block"],
     args: [{ name: "id", form: "block", required: true }],
     run: (ctx, args) => {
+      const { tiers, views, view } = seen(ctx);
       const id = id_of(args, "id");
       /** Followed to the end, so a reference to a reference reveals what both stand for. */
-      const to = reveal_at(ctx.graph, stands_for(ctx.graph, id)?.id ?? id);
-      return { mutations: [], effect: { open: to.layer, focus: to.pick } };
+      return moved(reveal_at(ctx.graph, tiers, views, view, stands_for(ctx.graph, id)?.id ?? id));
     },
   },
 );
+
+/** What the canvas draws, as the context says it or as the editor's sections read it. */
+function seen(ctx: Context): { tiers: Tiers; views: Views; view: View } {
+  const tiers = ctx.tiers ?? EDITOR;
+  const views = ctx.views ?? {};
+  return { tiers, views, view: ctx.view ?? view_on(ctx.graph, tiers, views, ctx.layer) };
+}
+
+/** Where navigation went, as an effect: nowhere where it went nowhere. */
+function moved(to: View | null): Result {
+  return { mutations: [], ...(to ? { effect: { view: to, focus: to.pick } } : {}) };
+}
 
 register(
   {

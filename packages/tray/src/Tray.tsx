@@ -5,9 +5,9 @@
  *  of its own for blocks through `extras`. */
 
 import { useEffect, useState, type ReactNode } from "react";
-import { about_of, alias_of, children, def_at, def_named, def_of, domain_of, frame_of, frozen,
-         is_interface, new_id, owner_of, shown_name, stands_for,
-         type Act, type Definition, type Graph, type Id } from "@mnd/core";
+import { about_of, alias_of, children, def_at, def_of, domain_of, frame_of, frozen,
+         is_interface, owner_of, shown_name, stands_for,
+         type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Element } from "./Element";
@@ -19,13 +19,11 @@ import { lit_row, scope_chips, Table, type Column, type Scope } from "./Table";
 import { Usages } from "./Usages";
 import { Packages, type Offered } from "./Packages";
 import { Workspace, type Display } from "./Workspace";
-import { aimed, blank, DRAFT, redraft, with_draft, type DraftGroup } from "./draft";
 import { NOOP } from "./Body";
 
 /** What the tray holds that the canvas did not give it. */
 export type Hold =
   | { of: "id"; id: Id }
-  | { of: "draft"; group: DraftGroup }
   /** A library section in the explorer: every definition, or one narrowing of them. */
   | ({ of: "defs" } & Shelf);
 
@@ -156,18 +154,12 @@ export function Tray(props: TrayProps) {
   /** The row lit in a table, which is the tray's own and moves nothing. Lit nowhere, a table
    *  lights what the canvas holds, since that is what the tray is about. */
   const [lit, set_lit] = useState<Id | null>(null);
-  /** One draft per group, kept until saved. */
-  const [drafts, set_drafts] = useState<Record<DraftGroup, Definition>>(
-    () => ({ block: blank("block", graph.root), relation: blank("relation", graph.root) }));
-
   /** What the tray is about: a hold, else the one thing picked, else the open layer. */
-  const drafting = hold?.of === "draft" ? hold.group : null;
   /** Which library section the explorer pointed at, which is about no one element. */
   const library = hold?.of === "defs" ? hold : null;
-  const view = drafting ? with_draft(graph, drafts[drafting]) : graph;
-  const held_id = hold?.of === "id" && (def_at(view, hold.id) || view.blocks[hold.id])
+  const held_id = hold?.of === "id" && (def_at(graph, hold.id) || graph.blocks[hold.id])
     ? hold.id : null;
-  const about: Id = drafting ? DRAFT : held_id ?? about_of(graph, layer, picked);
+  const about: Id = held_id ?? about_of(graph, layer, picked);
 
   /** A new selection takes the light back, so no table lights what the tray is not about. */
   const on_canvas = picked.join();
@@ -176,9 +168,9 @@ export function Tray(props: TrayProps) {
   const context: Context = library
     ? (library.only === "packages" ? "packages" : "library")
     : about === graph.root ? "root"
-    : view.edges[about] ? "line"
-    : def_at(view, about) && domain_of(view, about) === "relation" ? "relation"
-    : def_at(view, about) ? "definition" : "block";
+    : graph.edges[about] ? "line"
+    : def_at(graph, about) && domain_of(graph, about) === "relation" ? "relation"
+    : def_at(graph, about) ? "definition" : "block";
   /** Whether the context is about lines rather than blocks. */
   const lined = context === "line" || context === "relation";
 
@@ -192,41 +184,17 @@ export function Tray(props: TrayProps) {
     ?? OPENS[context] ?? hosted[0] ?? tabs[tabs.length - 1]!;
   const set_tab = (t: string) => { set_seen((s) => ({ ...s, [family]: t })); props.onTab?.(t); };
 
-  /** A draft is edited through the registry, and everything else goes out. */
-  const act: Act = (name, args) => {
-    if (name === "@name") {
-      file_draft(String(args?.["name"] ?? "").trim());
-      return;
-    }
-    if (drafting && aimed(args).includes(DRAFT)) {
-      const next = redraft(view, drafts[drafting], name, args ?? {});
-      if (typeof next !== "string") set_drafts((d) => ({ ...d, [drafting]: next }));
-      return;
-    }
-    onAct?.(name, args);
-  };
+  /** Everything the panels do goes out. */
+  const act: Act = (name, args) => onAct?.(name, args);
   /** What a read-only listing acts with: nothing. */
   const reads = edits ? act : NOOP;
 
-  /** A draft is filed as one step the moment it is named, and the tray holds it. */
-  function file_draft(to: string) {
-    const draft = drafting ? drafts[drafting] : null;
-    const domain = drafting;
-    if (!draft || !domain || !to || def_named(graph, to, domain)) return;
-    /** Minted here, so the tray can hold what it filed. */
-    const id = new_id(domain === "relation" ? "rel" : "def");
-    onAct?.("define", { id, name: to, domain, extends: draft.type ?? "",
-                        settings: draft.settings, schema: draft.def.schema });
-    set_drafts((d) => ({ ...d, [domain]: blank(domain, graph.root) }));
-    onHold({ of: "id", id });
-  }
-
   /** Whether the definition in context has looks to reset, and whether it is a package's. */
-  const bag = def_at(view, about)?.settings;
+  const bag = def_at(graph, about)?.settings;
   const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
-  const borrowed = !!def_at(view, about) && frozen(view, about);
+  const borrowed = !!def_at(graph, about) && frozen(graph, about);
   /** Whether it states a trait set of its own, and so has one to give back. */
-  const own_traits = !!def_at(view, about)?.traits;
+  const own_traits = !!def_at(graph, about)?.traits;
 
   /** A reference holds nothing of its own — `of` is the whole of it — so its contents is the one
    *  it stands for, listed as a row like any other and offering the way there. */
@@ -297,20 +265,19 @@ export function Tray(props: TrayProps) {
   /** What a definition row applies to: the elements picked, of the context's own group — or the
    *  one element the tray is about, where the canvas has not picked it. */
   const picked_here = picked.filter((id) => (lined ? !!graph.edges[id] : !!graph.blocks[id]));
-  const instance = !def_at(view, about) && about !== graph.root
-    && !!(view.blocks[about] ?? view.edges[about]);
+  const instance = !def_at(graph, about) && about !== graph.root
+    && !!(graph.blocks[about] ?? graph.edges[about]);
   const targets = instance && !picked_here.includes(about) ? [about] : picked_here;
   const target_name = targets.length === 1 ? shown_name(graph, targets[0]!)
     : `${targets.length} ${lined ? "lines" : "blocks"}`;
 
   /** The head names the context, then says what sort it is: a definition, or a usage of one. */
   const word = library ? "definitions"
-    : drafting || def_at(view, about) ? "definition"
+    : def_at(graph, about) ? "definition"
     : context === "root" ? "workspace" : "usage";
-  const name = drafting ? drafts[drafting].name || `new ${drafting}`
-    : library ? [library.from ?? (library.only === "all" ? "" : library.only),
+  const name = library ? [library.from ?? (library.only === "all" ? "" : library.only),
                  library.group ? `${library.group}s` : ""].filter(Boolean).join(" · ")
-    : def_at(view, about) ? def_at(view, about)!.name : shown_name(graph, about);
+    : def_at(graph, about) ? def_at(graph, about)!.name : shown_name(graph, about);
 
   return (
     <TrayFrame
@@ -336,7 +303,7 @@ export function Tray(props: TrayProps) {
                     onClick={() => act("none", { ids: [about] })}>
               reset style
             </button>
-            {def_at(view, about) && domain_of(view, about) === "block" ? (
+            {def_at(graph, about) && domain_of(graph, about) === "block" ? (
               <button className="reset" disabled={borrowed || !own_traits}
                       title={own_traits ? "give the traits back to what it extends"
                                         : "it states no traits of its own to give back"}
@@ -354,15 +321,15 @@ export function Tray(props: TrayProps) {
                        {...(props.display ? { display: props.display } : {})} />
           ) : null}
           {tab === "element" ? (
-            <Element graph={view} id={about} {...(edits ? { onAct: act } : {})}
+            <Element graph={graph} id={about} {...(edits ? { onAct: act } : {})}
                      onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
           {onAct && tab === "settings" ? (
-            <Settings graph={view} id={about} onAct={act} />
+            <Settings graph={graph} id={about} onAct={act} />
           ) : null}
           {/* A definition declares fields and an instance answers them. */}
           {tab === "fields" ? (
-            <Fields graph={view} id={about} {...(edits ? { onAct: act } : {})} />
+            <Fields graph={graph} id={about} {...(edits ? { onAct: act } : {})} />
           ) : null}
           {/* A host's own tab, for the block the tray is about. */}
           {extras.find((x) => x.name === tab)?.draw(about) ?? null}
@@ -390,7 +357,7 @@ export function Tray(props: TrayProps) {
                     home={(id) => home_of(graph, id)} />
           ) : null}
 
-          {tab === "contents" && def_at(view, about) ? (
+          {tab === "contents" && def_at(graph, about) ? (
             <p className="empty">pick an instance to see its contents</p>
           ) : tab === "contents" && points_at ? (
             /** A reference holds nothing, so its contents is the one it stands for. */

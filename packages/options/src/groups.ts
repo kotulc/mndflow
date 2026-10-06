@@ -1,4 +1,4 @@
-import { LAYOUTS, type Act, type Dir, type Layout } from "@mnd/core";
+import { LAYOUTS, type Act, type Dir, type Layout, type ViewKind } from "@mnd/core";
 import type { IconName } from "@mnd/theme";
 
 /** One control. **One icon, lit or not** — a setting draws the same mark whichever way it is
@@ -27,6 +27,9 @@ export type Group = {
 export type Chrome = {
   /** Which groups the projection offers. */
   slots: readonly string[];
+  /** The views the canvas's section offers, and the one it shows. */
+  views?: readonly ViewKind[];
+  view?: ViewKind;
   layout?: Layout;
   /** Whether the backdrop draws the lattice everything lands on. */
   lattice?: boolean;
@@ -36,8 +39,6 @@ export type Chrome = {
   /** Whether this layer shows the key to what it draws, however it came to — its own answer, or
    *  the workspace's where it has none. */
   legend?: boolean;
-  /** Which context the tray holds that is not the canvas's, if any. */
-  held?: "workspace" | "block" | "relation" | null;
   /** What a right drag draws: which module, and which way it points. */
   module?: string;
   dir?: Dir;
@@ -49,6 +50,13 @@ export type Chrome = {
 const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
   free: { icon: "layout_free", tip: "Hand placement is what draws" },
   auto: { icon: "layout_grid", tip: "Auto-layout: related blocks share a row, a unit of air between everything" },
+};
+
+/** How the canvas may look at its section. */
+const VIEWS: Record<ViewKind, { icon: IconName; tip: string }> = {
+  internal: { icon: "view_internal", tip: "Internal: one block's layer, seen from inside it" },
+  overview: { icon: "view_overview", tip: "Overview: the whole section from above, as nested boxes" },
+  profile: { icon: "view_profile", tip: "Profile: the whole section stepped down the page, in reading order" },
 };
 
 /** What a right drag may draw: a line, straight or directed, or a tie. */
@@ -66,6 +74,18 @@ const LINES: { key: string; module: string; dir?: Dir;
 export function groups_of(chrome: Chrome, act: Act): Group[] {
   const has = (slot: string) => chrome.slots.includes(slot);
   const out: Group[] = [];
+
+  /** How the canvas looks at its section: a choice only where it offers more than one. */
+  if ((chrome.views?.length ?? 0) > 1) {
+    out.push({
+      key: "view", label: "view",
+      controls: chrome.views!.map((kind): Control => ({
+        key: kind, icon: VIEWS[kind].icon, word: kind, tip: VIEWS[kind].tip,
+        on: chrome.view === kind,
+        run: () => act("view", { kind }),
+      })),
+    });
+  }
 
   /** How the layer places what it holds. */
   if (has("layer")) {
@@ -121,24 +141,6 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
       })),
     });
   }
-
-  /** What the tray holds that the canvas does not. */
-  const toggle = (key: "workspace" | "block" | "relation") => () =>
-    act("about", { scope: chrome.held === key ? "canvas" : key });
-  out.push({
-    key: "elements", label: "elements",
-    controls: [
-      { key: "workspace", icon: "settings", word: "workspace", on: chrome.held === "workspace",
-        tip: "This project: what it is called, what it draws on, and everything it holds",
-        run: toggle("workspace") },
-      { key: "block", icon: "role_leaf", word: "block", on: chrome.held === "block",
-        tip: "A new block definition, written before anything names it",
-        run: toggle("block") },
-      { key: "relation", icon: "relation_typed", word: "relation", on: chrome.held === "relation",
-        tip: "A new relation definition, and the templates and stereotypes in use",
-        run: toggle("relation") },
-    ],
-  });
 
   return out;
 }

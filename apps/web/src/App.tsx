@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { block_base, def_at, domain_of, held_at, layout_of, offer, setting_of, session,
-         type Args, type Storage, type Dir, type Graph, type Id, type Point } from "@mnd/core";
+import { block_base, def_at, domain_of, held_at, layout_of, offer, setting_of, session, EDITOR,
+         type ViewKind, type Args, type Storage, type Dir, type Graph, type Id, type Point } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { box_of, clear_of, holds, project, set_card as apply_card, tidy, BLOCK,
          CARD, UNITS } from "@mnd/views";
@@ -68,10 +68,12 @@ export function App({ storage }: { storage: Storage }) {
   const [hovered, set_hovered] = useState<Id | null>(null);
   const { hold } = t;
   /** The explorer's sections — a package, a definition, its structure — and what each holds. */
-  const chain = useChain(s.graph(), SLICES);
+  const chain = useChain(s.graph(), SLICES, EDITOR.top, s.view());
   /** A pick on the canvas gives the context back to the canvas, and the sections follow it. */
   const pick = (ids: Id[]) => {
     set_aim(null);
+    /** One card picked on a whole section is brought into sight there: the canvas's own anchor. */
+    if (ids.length === 1 && s.view().kind !== "internal") { act("reveal", { id: ids[0] }); return; }
     s.pick(ids);
     t.release();
     if (ids.length === 1) follow();
@@ -89,11 +91,15 @@ export function App({ storage }: { storage: Storage }) {
   }, [theme]);
 
   const graph = s.graph();
-  const layer = s.layer();
+  const view = s.view();
+  /** The layer seen from inside, where the canvas looks into one; a whole section has none, and
+   *  is read only. */
+  const whole = view.kind !== "internal";
+  const layer = whole ? null : view.layer;
   const said = s.said();
   const laid_out = layout_of(graph, layer);
-  /** What the canvas has open: a layer, or the overview (keyed `""`). */
-  const here = layer ?? "";
+  /** What the canvas has open: a layer, or a whole section in one view. */
+  const here = whole ? `@${SLICES[view.at]!.id}:${view.kind}` : layer ?? "";
   const legend = keyed[here] ?? legends;
 
   /** The drawing's proportions are the views module's, so the session's card is applied before
@@ -105,19 +111,23 @@ export function App({ storage }: { storage: Storage }) {
   const room = useWidth(canvas);
   const across = Math.max(2, Math.floor(room / ((card.w + UNITS.gap) * UNITS.unit * READ)) );
 
-  /** Projected once per graph, layer or proportion change. With nothing open, the overview: every
-   *  package as the explorer lists it, a page as wide as the canvas. */
+  /** What a profile cuts through: what the canvas brought into sight — browsing never moves it. */
+  const target = view.kind !== "profile" ? null : view.pick ?? view.layer;
+
+  /** Projected once per graph, view, layer or proportion change — and, for a profile, per pick. */
   const scene = useMemo(
-    () => project(graph, layer, { interfaces: shown.interfaces, across }),
-    [graph, layer, shown.interfaces, card, across]);
+    () => project(graph, view.layer, { interfaces: shown.interfaces, across,
+                                       look: { kind: view.kind, cut: SLICES[view.at]!.cut,
+                                               tiers: EDITOR, target } }),
+    [graph, view.layer, view.kind, view.at, target, shown.interfaces, card, across]);
 
   /** **The sections follow the canvas** — one rule (`held_at`), whatever moved it: the layer opened,
    *  or a pick on the overview. Browsing the explorer moves neither. */
   const follow = () => {
-    const held = held_at(s.graph(), s.layer(), s.picked()[0] ?? null);
+    const held = held_at(s.graph(), EDITOR, s.view());
     if (held) chain.onTrace(held.path, held.at);
   };
-  useEffect(follow, [layer]);
+  useEffect(follow, [view.layer, view.kind, view.at]);
 
   /** What the open layer draws, by id. */
   const drawn = useMemo(() => new Set([...scene.nodes.map((n) => n.id),
@@ -145,7 +155,7 @@ export function App({ storage }: { storage: Storage }) {
       follow();
       /** Cleared first, so revealing the same block again pans again; leaving aims at nothing. */
       flushSync(() => set_aim(null));
-      if (args?.["id"] && s.layer() !== null) set_aim(s.picked()[0] ?? null);
+      if (args?.["id"] && s.view().kind === "internal") set_aim(s.picked()[0] ?? null);
     }
   };
 
@@ -159,6 +169,12 @@ export function App({ storage }: { storage: Storage }) {
 
   /** The rail's controls: display state here, everything else an action. */
   const chrome = (name: string, args?: Record<string, unknown>) => {
+    /** The canvas's section shown another way, keeping in sight what it holds. */
+    if (name === "view") {
+      s.see(args!["kind"] as ViewKind, chain.held[view.at] ?? null);
+      follow();
+      return;
+    }
     if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
     if (name === "frame") { set_shown((c) => ({ ...c, frame: !!args!["show"] })); return; }
     /** An answer that agrees with the workspace is dropped rather than stored, so the layer goes
@@ -196,16 +212,6 @@ export function App({ storage }: { storage: Storage }) {
       return;
     }
     /** Where the tray is pointed; writes nothing. */
-    if (name === "about") {
-      const want = String(args!["scope"]);
-      if (want === "canvas") { t.release(); return; }
-      s.pick([]);
-      t.onHold(want === "workspace" ? { of: "id", id: graph.root }
-               : { of: "draft", group: want === "relation" ? "relation" : "block" });
-      t.onOpen(true);
-      t.onTab(want === "workspace" ? "workspace" : "element");
-      return;
-    }
     act(name, args);
   };
 
@@ -219,7 +225,7 @@ export function App({ storage }: { storage: Storage }) {
       return;
     }
     t.release();
-    if (id && graph.blocks[id]) s.pick([id]);
+    if (id && s.graph().blocks[id]) s.pick([id]);
   };
 
   /** The terminal's commands; help is the fallback. */
@@ -284,7 +290,7 @@ export function App({ storage }: { storage: Storage }) {
 
       <Explorer
         graph={graph}
-        open={layer}
+        view={view}
         picked={s.picked()}
         folded={folded}
         lit={pointed}
@@ -318,7 +324,7 @@ export function App({ storage }: { storage: Storage }) {
               scene.nodes.filter((n) => n.id !== id && !holds(n) && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
-            if (layer === null) return;
+            if (whole) return;
             if (graph.blocks[id]?.def) {
               const made = dropped(graph, id, land.line ?? land.over, at, layer);
               if (typeof made === "string") s.say(made, "note"); else s.go(...made);
@@ -354,9 +360,9 @@ export function App({ storage }: { storage: Storage }) {
           }}
           onAct={act}
           /** The overview is read only, and read down the page. */
-          onAdjust={layer === null ? () => undefined : adjust}
-          scroll={layer === null}
-          focus={layer === null ? s.picked()[0] ?? null : aim}
+          onAdjust={whole ? () => undefined : adjust}
+          scroll={whole}
+          focus={whole ? view.pick : aim}
           most={1}
         />
         <Tray
@@ -378,13 +384,10 @@ export function App({ storage }: { storage: Storage }) {
       </main>
 
       <Options groups={groups_of({ slots: scene.slots, layout: laid_out,
+                                   views: SLICES[view.at]!.views, view: view.kind,
                                    interfaces: shown.interfaces,
                                    lattice: lattice ?? true, frame: shown.frame,
                                    legend,
-                                   /** Which settings toggle is lit. */
-                                   held: hold?.of === "draft" ? hold.group
-                                     : hold?.of === "id" ? (hold.id === graph.root ? "workspace" : null)
-                                     : layer === null && s.picked().length !== 1 ? "workspace" : null,
                                    module: drawing.module,
                                    ...(drawing.dir ? { dir: drawing.dir } : {}) },
                                  chrome)} />

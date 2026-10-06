@@ -3,12 +3,14 @@
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
 import { fold, replay, step, type Floor } from "./fold";
+import { home_at, sight, trace, view_of, view_on, EDITOR, type Tiers, type View,
+         type Views } from "./navigate";
+import type { ViewKind } from "./sections";
 import { package_of } from "./defs";
 import { path } from "./tree";
 import { compact, file_name, parse, read, unmet, write, write_package } from "./file";
 import { new_id } from "./ids";
 import { no_files, no_storage, type Ports } from "./ports";
-import { MAIN } from "./types";
 import type { Fault } from "./door";
 import type { Graph, Id, Log, Mutation, Step } from "./types";
 
@@ -25,6 +27,11 @@ export type Session = {
   log: () => Log;
   graph: () => Graph;
   layer: () => Id | null;
+  /** What the canvas draws: the section, how, the layer, and the anchor navigation brought into
+   *  sight — never what is only browsed. */
+  view: () => View;
+  /** The view each section was set to, by its id. */
+  views: () => Views;
   picked: () => Id[];
   /** Which cells are picked, beside the ids. */
   cells: () => Spot[];
@@ -38,6 +45,8 @@ export type Session = {
   batch: (fn: () => void) => void;
 
   look: (layer: Id | null) => void;
+  /** The canvas's section shown another way, keeping `id` in sight. */
+  see: (kind: ViewKind, id?: Id | null) => void;
   pick: (ids: Id[]) => void;
   pick_cells: (cells: readonly Spot[]) => void;
   say: (text: string, kind?: Said["kind"]) => void;
@@ -68,6 +77,8 @@ export type Seed = {
   catalogue?: string;
   /** The shipped packages every fold starts from. */
   floor?: Floor;
+  /** The host's sections; the editor's unless said. */
+  tiers?: Tiers;
 };
 
 export function session(ports: Partial<Ports> & Seed = {}): Session {
@@ -77,7 +88,9 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
   let log: Log = [];
   let graph: Graph = fold(log);
-  let layer: Id | null = null;
+  const tiers: Tiers = ports.tiers ?? EDITOR;
+  let views: Views = {};
+  let view: View = { at: 0, kind: "internal", layer: null, pick: null };
   /** The layer the open one was reached from, for leaving an interface. */
   let from: Id | null = null;
   let picked: Id[] = [];
@@ -103,15 +116,18 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     log = seeded();
   }
   graph = fold(log, floor);
-  layer = home(graph);
+  view = home(graph);
   if (opened_faults.length) said = { text: say(opened_faults), at: Date.now(), kind: "note" };
 
   const settle = () => {
     const was = graph;
     graph = fold(log, floor);
-    /** A layer that is gone gives way to its nearest surviving ancestor. */
+    /** A layer that is gone gives way to its nearest surviving ancestor, seen from inside in the
+     *  section listing it; a whole section whose scope is gone starts again. */
+    const layer = view.layer;
     if (layer && !graph.blocks[layer]) {
-      layer = path(was, layer).map((b) => b.id).reverse().find((id) => graph.blocks[id]) ?? null;
+      const kept = path(was, layer).map((b) => b.id).reverse().find((id) => graph.blocks[id]);
+      view = kept && view.kind === "internal" ? view_on(graph, tiers, views, kept) : home(graph);
       picked = picked.filter((id) => graph.blocks[id] || graph.edges[id]);
       cells = [];
     }
@@ -119,7 +135,22 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     listener?.();
   };
 
-  const ctx = (): Context => ({ graph, layer, picked, cells, from });
+  const ctx = (): Context => ({ graph, layer: view.layer, picked, cells, from, tiers, views,
+                                view });
+
+  /** Where the canvas starts on this graph. */
+  function home(on: Graph): View {
+    return home_at(on, tiers, views) ?? view_on(on, tiers, views, null);
+  }
+
+  /** The canvas moved: what it was looking into is kept for leaving an interface, and what it
+   *  brought into sight is its anchor — which browsing, a pick made elsewhere, never moves. */
+  const move = (next: View) => {
+    if (next.layer !== view.layer) from = view.layer;
+    view = next;
+    picked = [];
+    cells = [];
+  };
 
   const refuse = (why: string): null => {
     said = { text: why, at: Date.now(), kind: "note" };
@@ -154,12 +185,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
   const effect = (e: Effect | undefined) => {
     if (!e) return;
-    if (e.open !== undefined) {
-      if (e.open !== layer) from = layer;
-      layer = e.open;
-      picked = [];
-      cells = [];
-    }
+    if (e.view) move(e.view);
     if (e.focus !== undefined) picked = e.focus ? [e.focus] : [];
     if (e.say) said = { text: e.say, at: Date.now(), kind: "mirror" };
   };
@@ -167,7 +193,9 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   return {
     log: () => log,
     graph: () => graph,
-    layer: () => layer,
+    layer: () => view.layer,
+    view: () => view,
+    views: () => views,
     picked: () => picked,
     cells: () => cells,
     said: () => said,
@@ -196,10 +224,30 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     },
 
     look(next) {
-      if (next !== layer) from = layer;
-      layer = next;
-      picked = [];
-      cells = [];
+      move(view_on(graph, tiers, views, next));
+      listener?.();
+    },
+
+    see(kind, id) {
+      const section = tiers.sections[view.at];
+      if (!section) return;
+      /** What stays in sight: the pick, where it lies within what the canvas has open — the same
+       *  root in its section — else the canvas's anchor, its layer, or what the host says; the
+       *  first the section lists. A pick browsed elsewhere never moves the canvas. With none, a
+       *  whole section is shown as it is; inside, there is no layer to look into, so nothing
+       *  changes. */
+      const listed = (x: Id | null | undefined): x is Id =>
+        !!x && trace(graph, tiers, x).held[view.at] === x;
+      const root = (x: Id | null) => (x ? trace(graph, tiers, x).roots[view.at] : undefined);
+      const anchor = view.pick ?? view.layer;
+      const within = picked[0] && root(picked[0]) === root(anchor) ? picked[0] : null;
+      const keep = [within, view.pick, view.layer, id].find(listed);
+      if (!keep && kind === "internal") return;
+      views = { ...views, [section.id]: kind };
+      const to = keep ? sight(graph, tiers, views, view.at, keep)
+        : { ...view, kind: view_of(tiers, views, view.at) };
+      move(to);
+      if (to.pick) picked = [to.pick];
       listener?.();
     },
 
@@ -323,7 +371,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
     reset() {
       log = seeded();
-      layer = home(fold(log, floor));
+      view = home(fold(log, floor));
       picked = [];
       cells = [];
       said = { text: "a fresh workspace", at: Date.now(), kind: "note" };
@@ -338,7 +386,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
         return;
       }
       log = got.log;
-      layer = home(fold(log, floor));
+      view = home(fold(log, floor));
       picked = [];
       cells = [];
       said = got.faults.length ? { text: say(got.faults), at: Date.now(), kind: "note" } : null;
@@ -349,11 +397,6 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       listener = fn;
     },
   };
-}
-
-/** Where a workspace opens: `main`, where its structure is built, else its domain. */
-function home(graph: Graph): Id | null {
-  return graph.blocks[MAIN] ? MAIN : graph.root;
 }
 
 /** The catalogue, read defensively — it was written outside this workspace. */

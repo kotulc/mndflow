@@ -2,6 +2,7 @@
  *  through. */
 
 import type { Settings } from "./components";
+import { organizes } from "./holders";
 import { BASE_BLOCKS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, type Block, type BlockModule,
          type Components, type Definition, type FieldDef, type Graph, type Id } from "./types";
 
@@ -116,6 +117,13 @@ export function base_named(graph: Graph, type: Id | undefined): Id | undefined {
 /** A definition's domain: a relation where it descends from `line` or `tie`. */
 export function domain_of(graph: Graph, type: Id | undefined): Domain {
   return BASE_RELATIONS.includes(base_named(graph, type) ?? "") ? "relation" : "block";
+}
+
+/** Whether a definition may change kind — block to relation, or back — by what it extends:
+ *  nothing is typed by it, extends it or sits in it, so nothing it shaped would break. */
+export function kind_free(graph: Graph, id: Id): boolean {
+  return !Object.values(graph.blocks).some((b) => b.type === id || b.parent === id)
+    && !Object.values(graph.edges).some((e) => e.type === id);
 }
 
 /** A block's base: what its own shape says, else what its chain descends from. A definition's
@@ -304,7 +312,7 @@ export function tree_of(graph: Graph, id: Id): Id | null {
   for (let at = graph.blocks[id]; at && at.parent !== null && !seen.has(at.id);
        at = graph.blocks[at.parent]) {
     seen.add(at.id);
-    if (!holder_kind(graph, at.id)) tree = at.id;
+    if (!organizes(graph, at.id)) tree = at.id;
   }
   return tree;
 }
@@ -312,13 +320,6 @@ export function tree_of(graph: Graph, id: Id): Id | null {
 /** Whether a block sits in a domain: under its package through holders alone. */
 export function in_domain(graph: Graph, id: Id): boolean {
   return tree_of(graph, id) === id || (!!graph.blocks[id] && tree_of(graph, id) === null);
-}
-
-/** Whether a block organizes: folder, group or grid by its base, and never a definition. */
-function holder_kind(graph: Graph, id: Id): boolean {
-  const b = graph.blocks[id];
-  return !!b && !b.def && !b.of && b.side === undefined
-    && ["folder", "group", "grid"].includes(base_of(graph, id));
 }
 
 /** The definition a block sits in the structure of, where one is above it. */

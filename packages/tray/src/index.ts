@@ -1,7 +1,5 @@
 export { Tray, type TrayProps, type Tab, type Hold, type Extra } from "./Tray";
 export { useDisplay, useTray, type Pointed } from "./state";
-export { DRAFT, aimed, blank, redraft, with_draft,
-         type DraftGroup } from "./draft";
 export { Definitions, taken, type DefinitionsProps, type Only, type Shelf } from "./Definitions";
 export { Entry, type EntryProps } from "./Entry";
 export { Content, type ContentProps } from "./Content";

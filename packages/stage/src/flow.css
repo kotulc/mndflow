@@ -259,6 +259,8 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
 }
+/* Held on the way to the pick, where a profile cuts: the accent's edge, never its fill. */
+.mnd-card.held { border-color: var(--accent); }
 .mnd-card.card-face.picked[data-fill] {
   background: color-mix(in oklch, var(--card-ground-src, var(--card-fill)) 70%, var(--accent));
 }

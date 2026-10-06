@@ -2,24 +2,29 @@
 
 import { alias_of, layout_of, children, covers, edge_base, edges_in, group_depth, heading, holders_in,
          is_container, is_group, is_holder, is_interface, is_note, label_of, lattice_of,
-         members_of, schema_of, shape_of, stamps_of, role_of, shown_name,
-         type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
+         members_of, schema_of, shape_of, stamps_of, role_of, shown_name, trace, EDITOR, type Cut,
+         type Tiers, type ViewKind, type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
 import { at_seat, cell_box, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of, wire_of } from "./look";
 import { outline_graph } from "./outline";
 import { page_graph } from "./page";
-import { forest_graph, FOREST } from "./packages";
+import { profile_graph } from "./profile";
+import { survey_graph, FOREST } from "./survey";
 import { read_through } from "./through";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
          type Slot } from "./scene";
 
 export type Config = {
-  /** The packages the overview draws, in order; every package where unsaid. */
+  /** How the layer is looked at: from inside (`internal`); the whole section it scopes, down to
+   *  `cut` (`overview`); or a cross-section of the host's sections along `target` (`profile`).
+   *  Unsaid, inside — and with no layer, every package's domain as an overview. */
+  look?: { kind: ViewKind; cut: Cut; tiers?: Tiers; target?: Id | null };
+  /** The packages a forest draws, in order; every package where unsaid. */
   packages?: readonly Id[];
-  /** How many cards the overview's widest row holds. */
+  /** How many cards a section's widest row holds, drawn whole. */
   across?: number;
   /** What to show, when it is not the layer's own contents. */
   holds?: readonly Id[];
@@ -28,6 +33,9 @@ export type Config = {
 };
 
 const SLOTS: readonly Slot[] = ["layer", "display", "relations"];
+
+/** What a projection with no layer draws: every package's domain, as boxes down the page. */
+const OVERVIEW = { kind: "overview", cut: "tree" } as const;
 
 /** Every block a group carries when it moves, including nested groups. */
 function group_carries(graph: Graph, group: Id): Id[] {
@@ -45,12 +53,31 @@ function group_carries(graph: Graph, group: Id): Id[] {
 /** Project a layer through the block view, with what its usages read through laid in. A part of
  *  a definition seen through a usage wears the `part` mark. */
 export function project(given: Graph, layer: Id | null, config: Config = {}): Scene {
-  /** Nothing open is the forest: every package a box of its domain. */
-  /** The overview is read only: it offers what the drawing shows, and nothing to lay out. */
-  if (layer === null) {
-    const scene = project(forest_graph(given, config.packages, config.across), FOREST, config);
-    return { ...scene, slots: ["display"] };
+  /** A whole section is drawn from its scope, down to its cut, and read only: it offers what the
+   *  drawing shows, and nothing to lay out. */
+  const look: Config["look"] = config.look ?? (layer === null ? OVERVIEW : undefined);
+  if (look && look.kind !== "internal") {
+    const drawn = look.kind === "profile"
+      ? profile_graph(given, look.tiers ?? EDITOR, look.target ?? null, config.across)
+      : survey_graph(given, layer, look.cut,
+                     { ...(config.packages ? { only: config.packages } : {}),
+                       ...(config.across ? { across: config.across } : {}) });
+    const scene = project(drawn, FOREST, { ...config, look: { kind: "internal", cut: null } });
+    /** On a profile, what each section holds on the way to what it cuts through, that included,
+     *  wears the held mark. */
+    const target = look.kind === "profile" ? look.target ?? null : null;
+    const held = target && given.blocks[target] ? trace(given, look.tiers ?? EDITOR, target).held
+      : [];
+    const marked = (n: BoxNode, mark: CardClass): BoxNode =>
+      ({ ...n, data: { ...n.data, marks: [...n.data.marks, mark] } });
+    /** A part's copy wears the part mark, as it does inside its usage, and is only looked at:
+     *  it is picked and edited where it is a block — its definition, or inside its usage. */
+    const nodes = scene.nodes.map((n) => (!given.blocks[n.id]
+      ? { ...marked(n, "part"), selectable: false, draggable: false }
+      : held.includes(n.id) ? marked(n, "held") : n));
+    return { ...scene, nodes, slots: ["display"] };
   }
+  if (layer === null) return project(given, null, { ...config, look: OVERVIEW });
   const through = read_through(given, layer);
   /** An outline or a page places its layer as it reads; anything else places itself. */
   const how = layout_of(through, layer);

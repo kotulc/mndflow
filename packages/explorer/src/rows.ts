@@ -1,11 +1,11 @@
 /** The explorer's rows: each section's header, then what it lists, laid out with depth, guides
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
-import { alias_of, children, config_of, def_at, def_of, domain_of, is_holder, is_interface,
-         is_named, organizes, relation_base, role_of, shown_name, type Graph, type Id,
-         type Role } from "@mnd/core";
+import { alias_of, branch_of, children, config_of, def_of, domain_of, is_holder, is_interface,
+         is_named, organizes, relation_base, role_of, shown_name, tops_of, type Cut, type Graph,
+         type Id, type Role } from "@mnd/core";
 import { known, role_icon, type IconName } from "@mnd/theme";
-import type { Chain, Listing } from "./chain";
+import type { Chain } from "./chain";
 
 /** What a row reads as: a block's role, as its card reads, or one of the tree's own marks. */
 export type Mark = Role | Own;
@@ -93,9 +93,14 @@ export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain): Row[
     const key = `@${slice.id}`;
     out.push({ id: key, ref: key, depth: 0, label: slice.label, kids: 1, mark: slice.mark,
                of: "pack", at, named: true, alias: "", guides: [] });
-    if (folded.includes(key)) return;
+    const root = chain.roots[at];
+    if (folded.includes(key) || root === undefined) return;
     const start = out.length;
-    listing_of(graph, slice.list(graph, chain.held.slice(0, at)), folded, out, slice.id);
+    const keyed = (route: string) => `${slice.id}/${route}`;
+    for (const id of tops_of(graph, root)) {
+      branch_rows(graph, { cut: slice.cut, root }, id, id, undefined, folded, out, keyed, 1, 0,
+                  false, new Set());
+    }
     for (const row of out.slice(start)) row.at = at;
   });
   return tied(guided(out));
@@ -141,52 +146,16 @@ function placed(graph: Graph, id: Id, band: number, bare: boolean): Partial<Row>
            ...(bare ? { bare: true } : {}) };
 }
 
-/** A section's rows: each top row, and what it nests under it. */
-function listing_of(graph: Graph, listing: Listing, folded: readonly Id[], out: Row[],
-                    section: string): void {
-  const key = (route: string) => `${section}/${route}`;
-  for (const id of listing.top) {
-    if (listing.under === "none") { out.push(block_row(graph, id, 1, 0, key(id))); continue; }
-    if (listing.under === "domain") {
-      domain_rows(graph, id, folded, out, key, 1, 0, false);
-      continue;
-    }
-    structure_rows(graph, id, id, undefined, folded, out, key, 1, 0, false, new Set());
-  }
-}
-
-/** A domain row: a holder with what it organizes under it, or a tree, which lists alone — its
- *  structure is the next section's. A group or grid lists what it holds at its own level. */
-function domain_rows(graph: Graph, id: Id, folded: readonly Id[], out: Row[],
-                     key: (route: string) => string, depth: number, band: number,
-                     bare: boolean): void {
-  const at = placed(graph, id, band, bare);
-  if (!organizes(graph, id)) {
-    out.push({ ...block_row(graph, id, depth, 0, key(id)), ...at,
-               ...(held(graph, id) ? { held: true } : {}) });
-    return;
-  }
-  const kids = under(graph, id);
-  out.push({ ...block_row(graph, id, depth, kids.length, key(id)), ...at });
-  if (folded.includes(key(id))) return;
-  const next = nested(graph, id, depth, band);
-  for (const b of kids) {
-    domain_rows(graph, b.id, folded, out, key, next.depth, next.band, next.bare);
-  }
-}
-
-/** A structure row and what it shows under it: for a usage, its definition's blocks marked as
- *  parts, then its own children. Parts are listed only once the row is opened, so a definition
- *  reached through itself never lists forever. */
-function structure_rows(graph: Graph, id: Id, route: string, via: Id | undefined,
-                        folded: readonly Id[], out: Row[], key: (route: string) => string,
-                        depth: number, band: number, bare: boolean,
-                        seen: ReadonlySet<Id>): void {
-  const b = graph.blocks[id];
-  if (!b) return;
-  const used = !b.def ? def_at(graph, b.type) : undefined;
-  const parts = used && !seen.has(used.id) ? under(graph, used.id) : [];
-  const own = under(graph, id);
+/** A row and what its section lists under it: for a usage, its definition's blocks marked as
+ *  parts, then its own children; nothing past the section's cut. Parts are listed only once the
+ *  row is opened, so a definition reached through itself never lists forever. A group or grid
+ *  lists what it holds at its own level. */
+function branch_rows(graph: Graph, at: { cut: Cut; root: Id | null }, id: Id, route: string,
+                     via: Id | undefined, folded: readonly Id[], out: Row[],
+                     key: (route: string) => string, depth: number, band: number, bare: boolean,
+                     seen: ReadonlySet<Id>): void {
+  if (!graph.blocks[id]) return;
+  const { parts, own, used } = branch_of(graph, id, at.cut, at.root, seen);
   const row_key = key(route);
   const lazy = parts.length > 0;
   out.push({ ...block_row(graph, id, depth, parts.length + own.length, row_key),
@@ -194,15 +163,15 @@ function structure_rows(graph: Graph, id: Id, route: string, via: Id | undefined
              ...(lazy ? { lazy: true } : {}), ...(held(graph, id) ? { held: true } : {}) });
   const shut = lazy ? !opened(folded, row_key) : folded.includes(row_key);
   if (shut) return;
-  const deeper = used ? new Set([...seen, used.id]) : seen;
+  const deeper = used ? new Set([...seen, used]) : seen;
   const next = nested(graph, id, depth, band);
   for (const p of parts) {
-    structure_rows(graph, p.id, `${route}/${p.id}`, id, folded, out, key, next.depth, next.band,
-                   next.bare, deeper);
+    branch_rows(graph, at, p.id, `${route}/${p.id}`, id, folded, out, key, next.depth, next.band,
+                next.bare, deeper);
   }
   for (const c of own) {
-    structure_rows(graph, c.id, `${route}/${c.id}`, via, folded, out, key, next.depth, next.band,
-                   next.bare, deeper);
+    branch_rows(graph, at, c.id, `${route}/${c.id}`, via, folded, out, key, next.depth,
+                next.band, next.bare, deeper);
   }
 }
 

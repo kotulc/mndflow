@@ -51,6 +51,12 @@ export { CARD, UNITS, set_card, set_full, size_of } from "@mnd/views";
 /** The computed layouts: a layer as an outline of headed groups, or as a page of boxes. */
 export { outline_graph, page_graph } from "@mnd/views";
 
-/** Navigation: what opening, leaving and revealing do to the canvas, and what the sections hold. */
-export { held_at, leave_at, open_at, reveal_at, type Held, type View } from "@mnd/core";
+/** Sections and navigation: how a host cuts the workspace into layers, the views each offers,
+ *  what opening, leaving and revealing do to the canvas, and what the sections hold. */
+export { held_at, leave_at, open_at, reveal_at, sight, view_of, view_on, EDITOR, type Cut,
+         type Held, type Section, type Tiers, type Top, type View, type ViewKind,
+         type Views } from "@mnd/core";
+
+/** A whole section drawn — every root it lists, down to its cut — and a cross-section along a pick. */
+export { profile_graph, survey_graph } from "@mnd/views";
 

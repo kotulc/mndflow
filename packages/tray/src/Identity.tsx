@@ -5,14 +5,13 @@
  *  in the root docs. */
 
 import { all_defs, base_of, block_tags, def_at, def_of, def_tags, domain_of, edge_base, frozen,
-         is_base, isa, type Act, type Definition, type Graph,
+         is_base, isa, kind_free, type Act, type Definition, type Graph,
          type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
 import { taken } from "./Definitions";
 import { Entry } from "./Entry";
 import { Tags } from "./Tags";
-import { DRAFT } from "./draft";
 import { def_path, defined, held, kind_of, types_for } from "./holder";
 
 export type IdentityProps = {
@@ -29,14 +28,16 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
   const borrowed = !!d && frozen(graph, d.id);
   const { kind, runs } = kind_of(graph, id, it);
   const { own, mine, fixed } = defined(graph, id, it, runs);
-  const drafted = id === DRAFT;
   const element = !!(b || edge);
   const group = runs ? "relation" : "block";
 
   /** Where a definition lives: its package, then its name. */
   const path = (x: Definition) => def_path(graph, x);
+  /** What it may extend: its own kind's definitions, or either kind's while nothing it shaped —
+   *  what it extends is what says its kind. */
   const extendable = (self: Definition) =>
-    all_defs(graph).filter((x) => domain_of(graph, x.id) === domain_of(graph, self.id)
+    all_defs(graph).filter((x) => (domain_of(graph, x.id) === domain_of(graph, self.id)
+      || kind_free(graph, self.id))
       && x.id !== self.id && !isa(graph, x.id).some((up) => up.id === self.id))
       .sort((a, z) => rank(a) - rank(z) || path(a).localeCompare(path(z)));
 
@@ -70,16 +71,9 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
         {/* Type: the definition, by name. **The same question either way** — an element names the
            one it follows, and a definition names itself, which is what a type name is. */}
         <Line label="type" className="subtype"
-              tip={drafted
-                ? "What this definition will be called. Naming it adds it to the definitions."
-                : element ? type_tip(runs)
+              tip={element ? type_tip(runs)
                 : "What this definition is called, and the word every usage draws where it carries no name of its own. Renaming it keeps everything naming it."}>
-          {drafted ? (
-            /** Leaving the box files the draft under its name. */
-            <Entry key="draft" value="" label="type" placeholder="name it to add it"
-                   clash={(to) => taken(graph, to, group, DRAFT)}
-                   onCommit={(to) => onAct("@name", { name: to })} />
-          ) : element ? (
+          {element ? (
             <Entry key={`type-${id}-${own?.id ?? ""}`} value={mine && !fixed ? own!.name : ""}
                    label="type" blank placeholder={following?.name ?? kind}
                    clash={(to) => (types_for(graph, id).some((x) => x.name === to)
@@ -136,10 +130,7 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
           <Line label="extends" className="subtype"
                 tip="The definition this one refines — its kind's base unless another is picked.">
             <select value={d.type ?? ""} aria-label="extends"
-                    onChange={(e) => (drafted
-                      ? onAct("define", { id, name: d.name, domain: domain_of(graph, d.id),
-                                          extends: e.target.value })
-                      : onAct("retype", { ids: [d.id], type: e.target.value }))}>
+                    onChange={(e) => onAct("retype", { ids: [d.id], type: e.target.value })}>
               {d.type ? null : <option value="">{`base/${kind}`}</option>}
               {extendable(d).map((x) => <option key={x.id} value={x.id}>{path(x)}</option>)}
             </select>
