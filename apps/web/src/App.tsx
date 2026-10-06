@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { block_base, def_at, domain_of, held_at, layout_of, offer, setting_of, session, EDITOR,
-         type ViewKind, type Args, type Storage, type Dir, type Graph, type Id, type Point } from "@mnd/core";
+import { drop_of, held_at, layout_of, offer, session, EDITOR, type ViewKind, type Storage,
+         type Dir, type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { box_of, clear_of, holds, project, set_card as apply_card, tidy, BLOCK,
          CARD, UNITS } from "@mnd/views";
@@ -219,9 +219,8 @@ export function App({ storage }: { storage: Storage }) {
    *  canvas stays where it is. A package points the tray at its definitions. */
   const choose = (at: number, id: Id | null) => {
     chain.onChoose(at, id);
-    if (at === 0) {
-      const pack = id ? graph.blocks[id]?.name ?? id : undefined;
-      t.onSection({ of: "defs", only: "packages", ...(pack ? { from: pack } : {}) });
+    if (id && graph.blocks[id]?.parent === null) {
+      t.onSection({ of: "defs", only: "packages", from: graph.blocks[id]!.name ?? id });
       return;
     }
     t.release();
@@ -316,8 +315,8 @@ export function App({ storage }: { storage: Storage }) {
                   at={at} spot={spot} only={only} given={given}
                   onAct={act} onShut={shut} />
           )}
-          /** A block dropped on the drawing arrives as a reference; a definition retypes what it
-           *  lands on, or makes one where nothing is. */
+          /** What a drop comes to is core's: a block arrives as a reference, a definition retypes
+           *  what it lands on or makes one. Onto a cell is seated there. */
           onDrop={(id, spot, land) => {
             /** Where the pointer was, clear of what is already there. */
             const at = clear_of(
@@ -325,15 +324,12 @@ export function App({ storage }: { storage: Storage }) {
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
             if (whole) return;
-            if (graph.blocks[id]?.def) {
-              const made = dropped(graph, id, land.line ?? land.over, at, layer);
-              if (typeof made === "string") s.say(made, "note"); else s.go(...made);
-              return;
-            }
-            /** Onto a cell, the stand-in is seated there — which is how a header heads a block. */
-            const cell = land.cell && land.into
-              ? { parent: land.into, at: `${land.cell.r},${land.cell.c}` } : {};
-            s.go("refer", { target: id, spot: at, ...cell });
+            const cell = land.cell && land.into ? land.into : null;
+            const made = drop_of(graph, {
+              ids: [id], onto: "drawing", parent: cell ?? layer ?? graph.root,
+              on: land.line ?? land.over, spot: at,
+              ...(cell ? { cell: `${land.cell!.r},${land.cell!.c}` } : {}) });
+            if (made) s.go(made.act, made.args);
           }}
           picked={s.picked()}
           cells={s.cells()}
@@ -411,29 +407,4 @@ function useWidth(element: HTMLElement | null): number {
     return () => watch.disconnect();
   }, [element]);
   return width;
-}
-
-/** What a kind needs that the empty drawing cannot give it, in words. */
-const NEEDS: Record<string, string> = {
-  interface: "an interface sits on a block — add one to a block, then drop this onto it",
-  reference: "a reference stands for a block — drag that block from the tree instead",
-  tag: "a tag is carried, not placed — type it into a block's tags in the tray",
-};
-
-/** What a dragged definition does: one carrying a tie is made and tied to the block it lands on;
- *  any other retypes what it lands on, or makes one on the empty drawing. Refused in words where
- *  none can be. */
-function dropped(graph: Graph, type: Id, on: Id | null, at: Point,
-                 layer: Id | null): [string, Args] | string {
-  const ties = typeof setting_of(graph, type, "tie")["type"] === "string";
-  if (on && ties && graph.blocks[on]) {
-    return ["create", { name: "", type, parent: layer ?? graph.root, spot: at, from: on }];
-  }
-  if (on) return ["retype", { ids: [on], type }];
-  if (def_at(graph, type) && domain_of(graph, type) === "relation") {
-    return "lines must connect existing blocks — draw one from a block to another";
-  }
-  const kind = block_base(graph, type);
-  if (NEEDS[kind]) return NEEDS[kind]!;
-  return ["create", { name: "", type, parent: layer ?? graph.root, spot: at }];
 }

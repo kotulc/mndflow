@@ -26,8 +26,9 @@ export type Row = { id: Id; depth: number; label: string; kids: number; mark: Ma
                     pick?: Id;
                     /** The usage a part is seen through: a block of its definition's structure. */
                     via?: Id;
-                    /** Whether its parts are listed only once it is opened: a usage reading its
-                     *  definition through, folded until somebody unfolds it. */
+                    /** Whether it lists anything only once it is opened: a usage reading its
+                     *  definition through, or a package atop every package, folded until somebody
+                     *  unfolds it. */
                     lazy?: boolean;
                     /** Whether a tree has structure of its own: its icon lights, as a block's
                      *  that holds does. */
@@ -125,7 +126,8 @@ export function listed_of(graph: Graph, id: Id): Id {
 
 /** A row and what its section lists under it: for a usage, its definition's blocks marked as
  *  parts, then its own children; nothing past the section's cut. Parts are listed only once the
- *  row is opened, so a definition reached through itself never lists forever. */
+ *  row is opened, so a definition reached through itself never lists forever; so is a package
+ *  atop a section over every package, so a long list starts short. */
 function branch_rows(graph: Graph, at: { cut: Cut; root: Id | null }, id: Id, route: string,
                      via: Id | undefined, folded: readonly Id[], out: Row[],
                      key: (route: string) => string, depth: number,
@@ -135,7 +137,7 @@ function branch_rows(graph: Graph, at: { cut: Cut; root: Id | null }, id: Id, ro
   const parts = unheld(graph, branch.parts);
   const own = unheld(graph, branch.own);
   const row_key = key(route);
-  const lazy = parts.length > 0;
+  const lazy = parts.length > 0 || (at.root === null && graph.blocks[id]!.parent === null);
   out.push({ ...block_row(graph, id, depth, parts.length + own.length, row_key),
              ...(via ? { via } : {}), ...(lazy ? { lazy: true } : {}),
              ...(held(graph, id) ? { held: true } : {}) });

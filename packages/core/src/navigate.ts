@@ -29,11 +29,10 @@ export type View = { at: number; kind: ViewKind; layer: Id | null; pick: Id | nu
 /** What the sections hold for a view, outermost first, and which section is in focus. */
 export type Held = { path: Id[]; at: number };
 
-/** mndflow's sections: the packages, the domain of the one held, and a tree's structure. */
+/** mndflow's sections: every package's domain, each a top row, and a tree's structure. */
 export const EDITOR: Tiers = {
   top: "forest",
   sections: [
-    { id: "packages", label: "packages", cut: "package", views: ["overview", "profile"] },
     { id: "definitions", label: "definitions", cut: "tree",
       views: ["overview", "internal", "profile"] },
     { id: "structure", label: "structure", cut: null, views: ["internal", "overview", "profile"] },
@@ -160,16 +159,15 @@ export function held_at(graph: Graph, tiers: Tiers, view: View): Held | null {
 }
 
 /** A view of a layer where nothing says more: seen from inside it, in the section deepest listing
- *  it. With none, the whole section the top roots, never from inside: under a forest the second
- *  — every package's domain, the overview — else the first. */
+ *  it. With none, the first section whole, never from inside: under a forest, every package's
+ *  domain — the overview. */
 export function view_on(graph: Graph, tiers: Tiers, views: Views, layer: Id | null): View {
   if (layer && graph.blocks[layer]) {
     const at = Math.max(0, trace(graph, tiers, layer).held.lastIndexOf(layer));
     return { at, kind: "internal", layer, pick: null };
   }
-  const at = tiers.top === "forest" ? Math.min(1, tiers.sections.length - 1) : 0;
-  const said = view_of(tiers, views, at);
+  const said = view_of(tiers, views, 0);
   const kind = said !== "internal" ? said
-    : tiers.sections[at]?.views.find((v) => v !== "internal") ?? "overview";
-  return { at, kind, layer: tiers.top === "forest" ? null : graph.root, pick: null };
+    : tiers.sections[0]?.views.find((v) => v !== "internal") ?? "overview";
+  return { at: 0, kind, layer: tiers.top === "forest" ? null : graph.root, pick: null };
 }

@@ -118,9 +118,9 @@ export const run_type = (ctx: Context, args: Args): { type?: Id } => {
 
 /** Bases a layer cannot make on its own, and why. */
 export const NEEDS: Record<string, string> = {
-  interface: "interfaces may only be added to existing blocks",
-  reference: "a reference is made by dragging the block, not its definition",
-  tag: "a tag is carried, not placed: put it in a block's tags",
+  interface: "an interface sits on a block — add one to a block, then drop this onto it",
+  reference: "a reference stands for a block — drag that block from the tree instead",
+  tag: "a tag is carried, not placed — type it into a block's tags in the tray",
 };
 
 /** Makes a block, numbered and ordered like every other. */

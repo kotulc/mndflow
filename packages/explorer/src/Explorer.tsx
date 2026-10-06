@@ -4,8 +4,8 @@
  *  is what moves the canvas. The focus is lit strongly, each section's pick more subtly. */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { about_of, children, frozen, may_hold, name_taken, new_id, shown_name,
-         type Act, type Graph, type Id, type View } from "@mnd/core";
+import { about_of, at_cut, children, domain_of, drop_of, frozen, may_hold, name_taken, new_id,
+         shown_name, type Act, type Graph, type Id, type View } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
@@ -153,13 +153,15 @@ export function Explorer(props: ExplorerProps) {
   /** The row being renamed in place. */
   const [naming, set_naming] = useState<Id | null>(null);
   /** A block or folder being named in place, before it is made. */
-  const [draft, set_draft] = useState<{ parent: Id; type?: string; def?: boolean } | null>(null);
+  const [draft, set_draft] = useState<{ parent: Id; type?: string; def?: boolean;
+                                        extends?: Id } | null>(null);
 
   /** Each section's own branches, so unfolding its header opens what it heads and nothing else,
-   *  and every row as the arrows walk them. Read off the tree fully open, so a shut branch's own
-   *  branches still count. */
+   *  and every row as the arrows walk them. Read off the tree fully open, every package opened,
+   *  so a shut branch's own branches still count. */
   const sections = useMemo(() => {
-    const all = tree_of(graph, [], chain);
+    const packs = tree_of(graph, [], chain).filter((r) => r.lazy && !graph.blocks[r.ref]?.parent);
+    const all = tree_of(graph, packs.map((r) => `${OPENED}${r.id}`), chain);
     const out = new Map<Id, Id[]>();
     for (let i = 0; i < all.length; i++) {
       if (all[i]!.depth) continue;
@@ -180,7 +182,8 @@ export function Explorer(props: ExplorerProps) {
   const way = new Set(lit.flatMap((id) => [...holders(graph, id)]));
   const shut = folded.filter((id) => !way.has(refs.get(id) ?? id));
   /** Whether a row is shut: a lazy one until it was opened, any other once folded. */
-  const is_shut = (r: Row) => (r.lazy ? !opened(folded, r.id) : shut.includes(r.id));
+  const is_shut = (r: Row) => (r.lazy ? !opened(folded, r.id) && !way.has(r.ref)
+    : shut.includes(r.id));
   /** Folding a row: a lazy one remembers that it was opened, never that it was shut. */
   const fold = (r: Row, close: boolean) =>
     (r.lazy ? onFold(`${OPENED}${r.id}`, !close) : onFold(r.id, close));
@@ -196,9 +199,10 @@ export function Explorer(props: ExplorerProps) {
   const seen = picked.join("|");
   useEffect(() => {
     const up = new Set(picked.flatMap((id) => [...holders(graph, id)]));
-    for (const r of sections.all) if (r.kids && up.has(r.ref)) onFold(r.id, false);
+    for (const r of sections.all) if (r.kids && up.has(r.ref) && is_shut(r)) fold(r, false);
   }, [seen]);
-  const rows = tree_of(graph, [...shut, ...folded.filter((id) => id.startsWith(OPENED))], chain);
+  const rows = tree_of(graph, [...shut, ...folded.filter((id) => id.startsWith(OPENED)),
+    ...sections.all.filter((r) => r.lazy && way.has(r.ref)).map((r) => `${OPENED}${r.id}`)], chain);
   /** The lowest open layer, under every branch alike: each open branch with no open branch
    *  inside it. The bar's fold shuts them, a layer a click, until only the top rows show; with
    *  none left, it opens every section whole. */
@@ -374,6 +378,18 @@ export function Explorer(props: ExplorerProps) {
   const load = (id: Id): Id[] =>
     picked.includes(id) ? blocks.filter((r) => picked.includes(r.ref)).map((r) => r.ref) : [id];
 
+  /** Blocks landed in the list: what that comes to is core's. A new definition is named in place
+   *  first, its branch unfolded to show the draft. */
+  const land = (ids: Id[], parent: Id, before?: Id) => {
+    const made = drop_of(graph, { ids, onto: "list", parent, ...(before ? { before } : {}) });
+    if (!made) return;
+    if (made.ask !== "name") { onAct(made.act, made.args); return; }
+    const home = made.args["parent"] as Id;
+    const row = rows.find((x) => x.of === "block" && x.ref === home);
+    if (row && folded.includes(row.id)) onFold(row.id, false);
+    set_draft({ parent: home, def: true, extends: made.args["extends"] as Id });
+  };
+
   /** What is in hand at a drop, whichever surface started it. */
   const dropped = (e: React.DragEvent): Id[] => {
     const said = e.dataTransfer?.getData("text/mnd-block");
@@ -394,15 +410,16 @@ export function Explorer(props: ExplorerProps) {
   };
 
   /** A new definition, chosen in the section in focus as a click chooses it, so the tray shows
-   *  it: a block's until what it extends says otherwise. Left at the offered word, it is
+   *  it: a block's, or of the domain of the one it extends. Left at the offered word, it is
    *  numbered clear of the names taken. */
-  const define = (label: string, parent: Id) => {
+  const define = (label: string, parent: Id, up?: Id) => {
     let name = label;
     for (let n = 2; label === DEFINITION && name_taken(graph, graph.root, name); n++) {
       name = `${label} ${n}`;
     }
     const id = new_id("def");
-    onAct("define", { id, name, domain: "block", parent });
+    onAct("define", { id, name, domain: up ? domain_of(graph, up) : "block", parent,
+                      ...(up ? { extends: up } : {}) });
     chain.onChoose(focus, id);
   };
 
@@ -463,7 +480,7 @@ export function Explorer(props: ExplorerProps) {
                    onDone={(label) => {
                      set_draft(null);
                      if (label === null || !draft) return;
-                     if (draft.def) define(label, draft.parent);
+                     if (draft.def) define(label, draft.parent, draft.extends);
                      else onAct("create", { name: label, parent: draft.parent, type: draft.type });
                    }} />
           ) : (
@@ -522,14 +539,17 @@ export function Explorer(props: ExplorerProps) {
                   set_over(null);
                   set_dragging([]);
                   if (!ids.length) return;
-                  /** On a row is into it; between two rows is beside them. */
-                  if (where === "in") { onAct("move", { ids, parent: r.ref }); return; }
-                  const parent = graph.blocks[r.ref]?.parent ?? graph.root;
+                  /** On a row is into it, but a row at its section's cut holds nothing there, so
+                   *  that is beside it; between two rows is beside them. */
+                  const n = r.at ?? focus;
+                  const leaf = r.ref !== chain.roots[n]
+                    && at_cut(graph, chain.slices[n]?.cut ?? null, r.ref);
+                  const into = where === "in" && !leaf;
+                  const parent = into ? r.ref : graph.blocks[r.ref]?.parent ?? graph.root;
                   /** Siblings without the ones being moved, so `before` is never one of them. */
                   const kin = children(graph, parent).filter((b) => !ids.includes(b.id));
                   const next = kin[kin.findIndex((b) => b.id === r.ref) + 1];
-                  const before = where === "above" ? r.ref : next?.id;
-                  onAct("move", { ids, parent, ...(before ? { before } : {}) });
+                  land(ids, parent, into ? undefined : where === "above" ? r.ref : next?.id);
                 }}
                 /** A block is clicked as a pick; a header folds its section; any other row is
                     chosen, or only folds. */
@@ -605,7 +625,7 @@ export function Explorer(props: ExplorerProps) {
                 const ids = dropped(e);
                 set_out(false);
                 set_dragging([]);
-                if (ids.length) onAct("move", { ids, parent: open ?? graph.root });
+                land(ids, open ?? graph.root);
               }} />
         </ul>
 

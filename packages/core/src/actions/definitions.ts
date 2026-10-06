@@ -118,6 +118,8 @@ register(
     check: (ctx, args) => {
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
+      const home = args["parent"] ? borrowed(ctx.graph, id_of(args, "parent")) : null;
+      if (home) return home;
       const domain = domain_said(ctx, args);
       const held = def_named(ctx.graph, name, domain);
       const why = held ? borrowed(ctx.graph, held.id) : null;

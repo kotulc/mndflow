@@ -79,15 +79,13 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
   return chain;
 }
 
-/** The editor's sections, core's `EDITOR`: the packages, the domain of the one held — `main`
- *  first in the workspace — and the tree held with its structure under it. */
+/** The editor's sections, core's `EDITOR`: every package's domain — `main` held first — and the
+ *  tree held with its structure under it. */
 export function editor_slices(): Slice[] {
-  const [packages, definitions, structure] = EDITOR.sections;
+  const [definitions, structure] = EDITOR.sections;
   return [
-    { ...packages!, mark: "package", first: (graph) => graph.root },
     { ...definitions!, mark: "vocabulary",
-      first: (graph, root) => (root === graph.root && graph.blocks[MAIN] ? MAIN
-        : first_in(graph, root, "tree")) },
+      first: (graph, root) => (graph.blocks[MAIN] ? MAIN : first_in(graph, root, "tree")) },
     { ...structure!, mark: "usages" },
   ];
 }

@@ -91,12 +91,13 @@ function free_count(graph: Graph, grid: Id): number {
 register(
   {
     name: "create",
-    about: "makes a new block in a layer, where you pointed; made from a block, a tie links it",
+    about: "makes a new block in a layer, where you pointed, or before a block it holds; made "
+      + "from a block, a tie links it",
     on: ["layer", "block"],
     args: [{ name: "name", form: "text", asks: true },
            { name: "parent", form: "block" },
            { name: "type", form: "text" }, { name: "spot", form: "spot" },
-           { name: "from", form: "block" }],
+           { name: "from", form: "block" }, { name: "before", form: "block" }],
     check: (ctx, args) => {
       const type = args["type"] ? String(args["type"]) : "";
       const parent = (args["parent"] as Id) ?? here(ctx);
@@ -128,6 +129,12 @@ register(
       const cell = g ? free_cell(g, taken, null, { r: 0, c: 0 }, false) : null;
       if (cell) made.push({ op: "seat_cell", id, cell });
       else if (at) made.push({ op: "place_block", id, x: at.x, y: at.y });
+      /** Before a block it holds, the rest step along. */
+      if (args["before"]) {
+        for (const o of reorder(ctx.graph, parent, id, id_of(args, "before"))) {
+          made.push({ op: "order_block", id: o.id, order: o.order });
+        }
+      }
       made.push(...tied(ctx, id, type, args["from"] ? id_of(args, "from") : undefined));
       return { mutations: made };
     },

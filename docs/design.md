@@ -124,7 +124,7 @@ Most rules below are one of these applied.
 
 - a **projection** draws the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it
 - **three canvas views of one section**: **internal** draws the opened block from inside, what it holds as cards; **overview** draws the section from above, each block that holds flattened into a box of its contents; **profile** draws one row per section along the pick
-- the overview draws every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down and never zoomed out. It is 1:1 with the packages and definitions sections
+- the overview draws every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down and never zoomed out. It is 1:1 with the definitions section
 - the profile's row for a section draws the pick among its siblings, and each block on the way to it that holds as a box round the next step down. The only lines join a picked block to its parent or children in the rows beside it
 - there is no package view: opening a package, or a holder in a domain, focuses its box in the overview. In a structure, opening a folder descends into it, since it hides what it holds. A group or grid, picked on the canvas, is revealed in place and the explorer lights the nearest row that lists it. A note, which may hold nothing, is revealed too
 - a layer's **layout** is a setting, `layout: { kind, … }`, said by its definition and overridable by the block, inherited like any setting. The kit ships `free`, `auto` and `page`, which is how the overview and profile lay out; an unknown kind draws as `auto`
@@ -138,7 +138,7 @@ Most rules below are one of these applied.
 
 **The explorer browses; the canvas draws what was opened.**
 
-- the explorer is a **section chain**: each section holds one context and the next lists what it holds. mndflow: packages → definitions → structure. mndmap: collection → document, the package fixed and hidden
+- the explorer is a **section chain**: each section holds one context and the next lists what it holds. mndflow: definitions → structure, every package a top row of definitions, folded until opened, so any package's definitions are one unfold from the open structure. mndmap: collection → document, the package fixed and hidden
 - **browse**: choosing a row selects it and the tray shows it; the canvas stays
 - **every section reads the `parent` tree alike**: what holds branches; a group or grid does not list, and what it holds lists at its level
 - **open**: Enter, double-click or →. ← and Backspace leave; leaving a tree's top returns to the overview, focused on it

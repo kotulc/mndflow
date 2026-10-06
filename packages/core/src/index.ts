@@ -11,6 +11,7 @@ export * from "./tree";
 export * from "./navigate";
 export * from "./sections";
 export * from "./holders";
+export * from "./drop";
 export * from "./names";
 export * from "./tags";
 export * from "./door";

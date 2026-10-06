@@ -32,6 +32,8 @@
 | rows, marks and highlights | explorer `rows.ts` (holder members at their holder's level, `end_of`, `parent_of`, the ties joining them), `Explorer.tsx` |
 | what a layer draws, the overview, layouts | views `block.ts` (`project`), `packages.ts`, `page.ts`, `outline.ts`, `arrange.ts` |
 | gestures to actions | stage `moves.ts`, `Stage.tsx` |
+| what a drop comes to (move, refer, retype, tie, create a usage, define a subtype) | core `drop.ts` (`drop_of`); the canvas and the explorer, in both apps, call it. Stage `moves.ts` only reads a card's resting place off the drawn scene |
+| what a kind cannot be made from | core `actions/helpers.ts` `NEEDS`, asked by `create`'s check |
 | panning to a revealed block | stage `room.ts` (`useCamera`, from `focus`); the web app sets it on a reveal |
 | settings resolution | core `defs.ts` (`stated`, `setting_of`, `traits_of`) |
 
@@ -58,8 +60,6 @@
 | # | Lead | Suspicion | Likely home |
 |---|---|---|---|
 | 1 | **mndmap `edits.ts`** | a second action system: move, create, rename and delete re-implemented, with their own placement rules (`in_collection`, `filed`), beside core's actions | core's actions run on mndmap's held graph, or one shared placement check |
-| 2 | **`NEEDS` twice** | web `App.tsx` and core `actions/helpers.ts` each say what a kind cannot be made from, in different words | core's alone; the drop asks `create`'s `check` |
-| 3 | **drop resolution** | web `App.tsx` `dropped()` decides retype, tie or create; stage `moves.ts` resolves canvas drops; mndmap has its own | one resolver in stage or core |
 | 4 | **two kind readers left** | the explorer now asks `role_of` (a tag's row and card once wore different icons); views `marks_of` still decides what a card reads as on its own | `role_of`, with `marks_of` mapping its answer to classes |
 | 5 | **`?? graph.root`** | the workspace root as a fallback for "no layer", from when `null` meant the workspace | each site says what it means: the overview, or the workspace's domain |
 | 6 | **explorer `listed()` vs core roles** | the chain re-derives domain and structure membership | core's `in_domain` / `tree_of`, as `held_at` uses |

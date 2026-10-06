@@ -93,7 +93,7 @@
 | **card** | a block as drawn. **A definition always draws as a card**; its structure is reached by descending |
 | **canvas view** | how the canvas draws a section: **internal**, **overview** or **profile**. Session state, never stored |
 | **internal** | the opened block from inside: what it holds, as cards |
-| **overview** | what the canvas draws while nothing is open (`layer: null`): every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down. 1:1 with the packages and definitions sections |
+| **overview** | what the canvas draws while nothing is open (`layer: null`): every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down. 1:1 with the definitions section |
 | **flatten** | drawing each block that holds as a box of its contents, so a whole section reads on one page. The overview draws flattened |
 | **profile** | one row per section along the pick: the pick among its siblings, each block on the way to it that holds a box round the next step down |
 | **projection** | a view of the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it; nothing is stored |
@@ -108,7 +108,7 @@
 | Term | Means |
 |---|---|
 | **section** | one listing in the explorer: what the section above holds, filtered by role |
-| **mndflow** | packages → definitions → structure |
+| **mndflow** | definitions → structure: every package a top row of definitions, folded until opened |
 | **mndmap** | collection → document: mndflow's chain with the package fixed to the workspace and hidden |
 | **browse** | choosing a row: selects it, the tray shows it, the canvas stays |
 | **open** | Enter, double-click or →: a tree opens its structure on the canvas; a package or a holder in a domain is focused in the overview; a group or grid has no row; picked on the canvas, it is revealed where it is and the explorer lights the nearest row listing it. ← and Backspace leave, a tree's top for the overview |
