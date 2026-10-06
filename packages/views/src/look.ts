@@ -1,8 +1,8 @@
 /** How a usage of a definition draws. */
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, def_of, DISPLAYS,
-         domain_of, FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, kind_word,
-         previewed, relation_base, schema_of, SHOWN, stood_def, WEIGHTS, WIDTHS,
+         domain_of, FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, is_trait,
+         kind_word, previewed, relation_base, schema_of, SHOWN, stood_def, WEIGHTS, WIDTHS,
          type Definition, type Graph, type Id, type Settings } from "@mnd/core";
 
 export type Family = (typeof FAMILIES)[number];
@@ -122,7 +122,9 @@ export function look_of(graph: Graph, id: Id): Look {
 function stand_in(graph: Graph, id: Id, def: Definition): Look {
   const own = (graph.blocks[id]!.def ? {} : graph.blocks[id]!.settings) ?? {};
   const card = { ...config_of(graph, def.id, "card"), ...(own["card"] ?? {}) };
-  const body = graph.blocks[id]!.body ? card["body"] ?? "hide" : "hide";
+  /** A trait's settings grant capabilities to carriers; they are not how it draws in vocabulary. */
+  const body = is_trait(graph, def.id) ? "hide"
+    : graph.blocks[id]!.body ? card["body"] ?? "hide" : "hide";
   const style = { ...config_of(graph, def.id, "style"), ...(own["style"] ?? {}) };
   const relation = domain_of(graph, def.id) === "relation";
   const tie = relation && relation_base(graph, def.id) === "tie";

@@ -30,6 +30,10 @@
   background-clip: padding-box;
   color: var(--muted);
 }
+/* A folder or block a view flattens: a solid rim, so it never reads as a group somebody made. */
+.mnd-group.flat {
+  border-style: solid;
+}
 /* The inside is for what the band holds. */
 .mnd-group:not(.gridded) {
   pointer-events: none;

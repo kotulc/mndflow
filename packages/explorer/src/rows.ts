@@ -2,8 +2,8 @@
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
 import { alias_of, branch_of, children, config_of, def_of, domain_of, is_holder, is_interface,
-         is_named, organizes, relation_base, role_of, shown_name, tops_of, type Cut, type Graph,
-         type Id, type Role } from "@mnd/core";
+         is_named, organizes, relation_base, role_of, shown_name, tops_of, type Block, type Cut,
+         type Graph, type Id, type Role } from "@mnd/core";
 import { known, role_icon, type IconName } from "@mnd/theme";
 import type { Chain } from "./chain";
 
@@ -32,18 +32,6 @@ export type Row = { id: Id; depth: number; label: string; kids: number; mark: Ma
                     /** Whether a tree has structure of its own: its icon lights, as a block's
                      *  that holds does. */
                     held?: boolean;
-                    /** Whether it is a group's or grid's own row: a header over what it holds,
-                     *  which lists at its level rather than under it. */
-                    head?: boolean;
-                    /** How many groups and grids enclose it within its listing: what one holds
-                     *  is joined to it by a line through their marks, never by a branch. */
-                    band?: number;
-                    /** The lines joining a group or grid to its members that cross this row, by
-                     *  indent column: entering at its top, leaving at its foot, or both. */
-                    ties?: { col: number; top: boolean; foot: boolean }[];
-                    /** Whether its own tick is left out: a member hangs from its holder's row,
-                     *  not from the branch both sit on. */
-                    bare?: boolean;
                     /** Whether the label is a chosen name or the type word. */
                     named: boolean;
                     /** The handle an unnamed row wears. */
@@ -98,12 +86,12 @@ export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain): Row[
     const start = out.length;
     const keyed = (route: string) => `${slice.id}/${route}`;
     for (const id of tops_of(graph, root)) {
-      branch_rows(graph, { cut: slice.cut, root }, id, id, undefined, folded, out, keyed, 1, 0,
-                  false, new Set());
+      branch_rows(graph, { cut: slice.cut, root }, id, id, undefined, folded, out, keyed, 1,
+                  new Set());
     }
     for (const row of out.slice(start)) row.at = at;
   });
-  return tied(guided(out));
+  return guided(out);
 }
 
 /** Whether a lazy row was opened: its folds hold it as opened, never as shut. */
@@ -112,67 +100,59 @@ export function opened(folded: readonly Id[], id: Id): boolean {
 }
 
 
-/** Where a row's branch ends: past every row under it, and every member of a group or grid it
- *  heads, which list at its level. */
+/** Where a row's branch ends: past every row under it. */
 export function end_of(rows: readonly Row[], i: number): number {
   const r = rows[i]!;
   let j = i + 1;
-  while (j < rows.length && (rows[j]!.depth > r.depth
-         || (rows[j]!.depth === r.depth && (rows[j]!.band ?? 0) > (r.band ?? 0)))) j++;
+  while (j < rows.length && rows[j]!.depth > r.depth) j++;
   return j;
 }
 
-/** The row a row hangs from: the nearest above it that is shallower, or the group or grid it is a
- *  member of; -1 for a top row. */
+/** The row a row hangs from: the nearest above it that is shallower; -1 for a top row. */
 export function parent_of(rows: readonly Row[], i: number): number {
   const r = rows[i]!;
-  for (let j = i - 1; j >= 0; j--) {
-    const up = rows[j]!;
-    if (up.depth < r.depth || (up.depth === r.depth && (up.band ?? 0) < (r.band ?? 0))) return j;
-  }
+  for (let j = i - 1; j >= 0; j--) if (rows[j]!.depth < r.depth) return j;
   return -1;
 }
 
-/** A row nested under another: one deeper, still in every group it sits in, or, under a group
- *  or grid, a member at its level, one band further in. */
-function nested(graph: Graph, parent: Id, depth: number, band: number) {
-  const held = is_holder(graph, parent);
-  return { depth: held ? depth : depth + 1, band: held ? band + 1 : band, bare: held };
-}
-
-/** What a row says of how it nests: a holder's head, its band, and whether it is bare. */
-function placed(graph: Graph, id: Id, band: number, bare: boolean): Partial<Row> {
-  return { ...(is_holder(graph, id) ? { head: true } : {}), ...(band ? { band } : {}),
-           ...(bare ? { bare: true } : {}) };
+/** The block whose row stands for this one: itself, or for a group or grid, which has no row,
+ *  the nearest block holding it that is not one. */
+export function listed_of(graph: Graph, id: Id): Id {
+  let at = id;
+  while (is_holder(graph, at) && graph.blocks[at]?.parent) at = graph.blocks[at]!.parent!;
+  return at;
 }
 
 /** A row and what its section lists under it: for a usage, its definition's blocks marked as
  *  parts, then its own children; nothing past the section's cut. Parts are listed only once the
- *  row is opened, so a definition reached through itself never lists forever. A group or grid
- *  lists what it holds at its own level. */
+ *  row is opened, so a definition reached through itself never lists forever. */
 function branch_rows(graph: Graph, at: { cut: Cut; root: Id | null }, id: Id, route: string,
                      via: Id | undefined, folded: readonly Id[], out: Row[],
-                     key: (route: string) => string, depth: number, band: number, bare: boolean,
+                     key: (route: string) => string, depth: number,
                      seen: ReadonlySet<Id>): void {
   if (!graph.blocks[id]) return;
-  const { parts, own, used } = branch_of(graph, id, at.cut, at.root, seen);
+  const branch = branch_of(graph, id, at.cut, at.root, seen);
+  const parts = unheld(graph, branch.parts);
+  const own = unheld(graph, branch.own);
   const row_key = key(route);
   const lazy = parts.length > 0;
   out.push({ ...block_row(graph, id, depth, parts.length + own.length, row_key),
-             ...placed(graph, id, band, bare), ...(via ? { via } : {}),
-             ...(lazy ? { lazy: true } : {}), ...(held(graph, id) ? { held: true } : {}) });
+             ...(via ? { via } : {}), ...(lazy ? { lazy: true } : {}),
+             ...(held(graph, id) ? { held: true } : {}) });
   const shut = lazy ? !opened(folded, row_key) : folded.includes(row_key);
   if (shut) return;
-  const deeper = used ? new Set([...seen, used]) : seen;
-  const next = nested(graph, id, depth, band);
+  const deeper = branch.used ? new Set([...seen, branch.used]) : seen;
   for (const p of parts) {
-    branch_rows(graph, at, p.id, `${route}/${p.id}`, id, folded, out, key, next.depth, next.band,
-                next.bare, deeper);
+    branch_rows(graph, at, p.id, `${route}/${p.id}`, id, folded, out, key, depth + 1, deeper);
   }
   for (const c of own) {
-    branch_rows(graph, at, c.id, `${route}/${c.id}`, via, folded, out, key, next.depth,
-                next.band, next.bare, deeper);
+    branch_rows(graph, at, c.id, `${route}/${c.id}`, via, folded, out, key, depth + 1, deeper);
   }
+}
+
+/** What a row lists of these blocks: each, but a group or grid by what it holds, at its level. */
+function unheld(graph: Graph, blocks: readonly Block[]): Block[] {
+  return blocks.flatMap((b) => (is_holder(graph, b.id) ? unheld(graph, under(graph, b.id)) : [b]));
 }
 
 /** Whether a tree has structure of its own. */
@@ -198,32 +178,14 @@ function mark_of(graph: Graph, id: Id): Mark {
   return role_of(graph, id);
 }
 
-/** The line joining each open group or grid to its members, down its marks' column: from under
- *  its own mark to the top of its last member's, through every row between. */
-function tied(rows: Row[]): Row[] {
-  rows.forEach((h, i) => {
-    if (!h.head) return;
-    const end = end_of(rows, i);
-    let last = -1;
-    for (let j = i + 1; j < end; j++) if (rows[j]!.depth === h.depth) last = j;
-    if (last < 0) return;
-    const tie = (r: Row, top: boolean, foot: boolean) =>
-      (r.ties ??= []).push({ col: h.depth, top, foot });
-    tie(h, false, true);
-    for (let j = i + 1; j <= last; j++) tie(rows[j]!, true, j < last || rows[j]!.depth > h.depth);
-  });
-  return rows;
-}
-
 /** Each row's guide columns: whether a row one deeper carries on below it, before the tree steps
- *  back out past that column. A group's members are not that row's kin, so they never carry a
- *  line on past a group that ends its branch. */
+ *  back out past that column. */
 function guided(rows: Row[]): Row[] {
   rows.forEach((r, i) => {
     r.guides = Array.from({ length: r.depth }, (_, j) => {
       for (const next of rows.slice(i + 1)) {
         if (next.depth <= j) return false;
-        if (next.depth === j + 1 && !next.bare) return true;
+        if (next.depth === j + 1) return true;
       }
       return false;
     });

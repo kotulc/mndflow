@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, flat, nested, related, NAMES as FIXTURES } from "@mnd/fixtures";
 import { children, fold, session, MAIN, ROOT, type Graph, type Id } from "@mnd/core";
-import { box_of, draw, faults, outline, project, EMPTY, type Scene } from "../src/index";
+import { box_of, draw, faults, look_of, outline, project, EMPTY, type Scene } from "../src/index";
 
 const NAMES = FIXTURES;
 
@@ -219,6 +219,13 @@ describe("interfaces are seated, not placed", () => {
   });
 });
 
+
+describe("trait definitions in vocabulary", () => {
+  it("draw name-only though they grant body on carriers", () => {
+    const graph = fold([], FLOOR);
+    expect(look_of(graph, "content").body).toBeUndefined();
+  });
+});
 
 /** A projection is a pure function, and the drawing depends on it. */
 describe("the same graph projects the same scene", () => {

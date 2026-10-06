@@ -8,7 +8,6 @@ import { at_seat, cell_box, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of, wire_of } from "./look";
-import { outline_graph } from "./outline";
 import { page_graph } from "./page";
 import { profile_graph } from "./profile";
 import { survey_graph, FOREST } from "./survey";
@@ -79,10 +78,9 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   }
   if (layer === null) return project(given, null, { ...config, look: OVERVIEW });
   const through = read_through(given, layer);
-  /** An outline or a page places its layer as it reads; anything else places itself. */
+  /** A page places its layer as it reads; anything else places itself. */
   const how = layout_of(through, layer);
-  const graph = how === "outline" ? outline_graph(through, layer)
-    : how === "page" ? page_graph(through, layer) : through;
+  const graph = how === "page" ? page_graph(through, layer) : through;
   const parts = new Set(Object.keys(graph.blocks).filter((id) =>
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
   const carried_as = (id: Id): BoxData => {

@@ -57,7 +57,7 @@
 |---|---|
 | **block** | the unit of structure: a thing, a part, a step. Holds blocks, which it opens onto as a layer |
 | **folder** | a holder that **hides** what it holds: you descend to see it |
-| **group** | a holder that draws what it holds **inline**, inside its rim. Groups nest |
+| **group** | a holder that draws what it holds **inline**, inside its rim. Groups nest. Layer-local: the explorer gives it no row, as it gives a grid none |
 | **grid** | a holder that seats what it holds **in cells**. Anything in a cell draws compact, so any block may sit in one |
 | **reference** | a stand-in for a block, a definition or a package elsewhere |
 | **interface** | a block seated on a wall: where relationships enter and leave. Also **port** |
@@ -89,13 +89,15 @@
 | Term | Means |
 |---|---|
 | **layer** | what one block holds, drawn: the blocks drawn on it are those whose nearest **hiding** ancestor is that block |
-| **hides** | a folder, a definition and any block holding blocks hide what they hold; a group and a grid draw theirs inline |
+| **hides** | a folder, a definition and any block holding blocks hide what they hold, unless a view flattens them; a group and a grid draw theirs inline |
 | **card** | a block as drawn. **A definition always draws as a card**; its structure is reached by descending |
-| **canvas view** | what the canvas draws: the **overview** or the **structure** of the tree opened. There are no others |
+| **canvas view** | how the canvas draws a section: **internal**, **overview** or **profile**. Session state, never stored |
+| **internal** | the opened block from inside: what it holds, as cards |
 | **overview** | what the canvas draws while nothing is open (`layer: null`): every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down. 1:1 with the packages and definitions sections |
-| **flatten** | drawing folders as groups, so a whole domain reads on one page. The overview draws flattened |
+| **flatten** | drawing each block that holds as a box of its contents, so a whole section reads on one page. The overview draws flattened |
+| **profile** | one row per section along the pick: the pick among its siblings, each block on the way to it that holds a box round the next step down |
 | **projection** | a view of the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it; nothing is stored |
-| **layout** | how a layer places what it draws: a setting (`layout.kind`), `free`, `auto`, `outline` or `page`, said by a definition and overridable by a block |
+| **layout** | how a layer places what it draws: a setting (`layout.kind`), `free`, `auto` or `page`, said by a definition and overridable by a block |
 | **frame** / **wall** / **band** | the open layer's border seen from within, one of its four sides, and the dimmed margin outside it |
 | **mark** | how a card or row reads, derived every draw: reference, missing, note, holder, interface, container, part (from a definition) |
 | **seat** / **anchor** | a place on a border a line may meet; a seat a relationship arrives at with no block behind it |
@@ -109,7 +111,7 @@
 | **mndflow** | packages → definitions → structure |
 | **mndmap** | collection → document: mndflow's chain with the package fixed to the workspace and hidden |
 | **browse** | choosing a row: selects it, the tray shows it, the canvas stays |
-| **open** | Enter, double-click or →: a tree opens its structure on the canvas; a package or a holder in a domain is focused in the overview; a group or grid in a structure is revealed where it is, the canvas panning to it. ← and Backspace leave, a tree's top for the overview |
+| **open** | Enter, double-click or →: a tree opens its structure on the canvas; a package or a holder in a domain is focused in the overview; a group or grid has no row; picked on the canvas, it is revealed where it is and the explorer lights the nearest row listing it. ← and Backspace leave, a tree's top for the overview |
 | **context** | what the canvas has open. Highlighting and breadcrumbs show it, never what is browsed |
 | **reveal** | a pick within the open tree may move the canvas to the layer it sits on; browsing outside it never does |
 | **navigation** | `open_at`, `leave_at`, `reveal_at` and `held_at` in core: where the canvas goes, and what the sections hold for it. The one rule both apps use |

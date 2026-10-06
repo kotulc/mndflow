@@ -1,7 +1,7 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
 import { base_named, base_of, def_at, def_of, edge_base, frozen, schema_of } from "./defs";
-import { holders_in, is_holder, shape_of } from "./holders";
+import { holders_in, is_flat, is_holder, shape_of } from "./holders";
 import { children, is_container, stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
@@ -114,8 +114,9 @@ const ROLES: readonly string[] = ["block", "folder", "reference", "interface", "
 
 /** A block that holds wears the mark of its shape, whatever kind it descends from. */
 export function role_of(graph: Graph, id: Id): Role {
+  /** A block a view flattens still reads as what it is. */
   const shape = shape_of(graph, id);
-  if (shape) return shape;
+  if (shape && !is_flat(graph, id)) return shape;
   /** A stand-in for a definition wears its usages' role. */
   const stood = stood_def(graph, id);
   const base = stood ? base_named(graph, stood.id) ?? "block" : base_of(graph, id);

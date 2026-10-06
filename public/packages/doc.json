@@ -13,14 +13,14 @@
         "id": "doc.blocks",
         "parent": "doc",
         "name": "blocks",
-        "type": "group",
+        "type": "folder",
         "order": 1
       },
       "doc.relations": {
         "id": "doc.relations",
         "parent": "doc",
         "name": "relations",
-        "type": "group",
+        "type": "folder",
         "order": 2
       },
       "doc.set": {

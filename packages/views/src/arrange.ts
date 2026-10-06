@@ -25,7 +25,7 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
   const sized: Sized[] = structural.map((b) => ({
     b, s: is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   }));
-  /** A computed page or outline has written its places; only `auto` works them out here. */
+  /** A computed page has written its places; only `auto` works them out here. */
   const structural_spots = how === "auto" ? centred(pack_units(graph, layer, sized, unit))
     : free(sized);
 

@@ -51,8 +51,10 @@ Most rules below are one of these applied.
 ### Holders
 
 - **`parent` is the only containment.** Folder, group and grid hold by it alike and differ only in how they draw what they hold: hidden, inline, or in cells
-- a folder hides its contents (descend to see them); a group and a grid draw theirs inline
-- **a group or grid is layer-local**: it organizes the layer it sits on and is never a place you go. Opening one reveals it where it is seen
+- a folder hides its contents (descend to see them) unless a view flattens it; a group and a grid draw theirs inline
+- **the explorer lists the `parent` tree**: whatever holds lists as a row and branches. A group or grid is the one exception: it has no row, and what it holds lists at its level
+- folders organizing what is not structure (definitions, documents) is this app's convention, never a rule
+- **a group or grid is layer-local**: it organizes the layer it sits on, is drawn and edited on the canvas only, and is never a place you go
 - what holds and how it nests are traits: `container` lets a block hold; `inline` draws what it holds in place (a group); `matrix` seats it in cells (a grid). `base` keeps `group` and `grid` as ready-made definitions carrying them
 - a definition always draws as a card; its structure is reached by descending
 - the layer a block draws on is its nearest ancestor that hides its contents
@@ -121,10 +123,11 @@ Most rules below are one of these applied.
 **A perspective is one layer, drawn one way.** Nothing a perspective works out is stored.
 
 - a **projection** draws the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it
-- **two canvas views**: the **overview** while nothing is open (`layer: null`), and the **structure** of the tree opened
+- **three canvas views of one section**: **internal** draws the opened block from inside, what it holds as cards; **overview** draws the section from above, each block that holds flattened into a box of its contents; **profile** draws one row per section along the pick
 - the overview draws every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down and never zoomed out. It is 1:1 with the packages and definitions sections
-- there is no package view: opening a package, or a holder in a domain, focuses its box in the overview. In a structure, opening a folder descends into it, since it hides what it holds; a group or grid draws inline, so opening one reveals it in place and the canvas pans to it. A note, which may hold nothing, is revealed too
-- a layer's **layout** is a setting, `layout: { kind, … }`, said by its definition and overridable by the block, inherited like any setting. The kit ships `free`, `auto`, `outline` and `page`; an unknown kind draws as `auto`
+- the profile's row for a section draws the pick among its siblings, and each block on the way to it that holds as a box round the next step down. The only lines join a picked block to its parent or children in the rows beside it
+- there is no package view: opening a package, or a holder in a domain, focuses its box in the overview. In a structure, opening a folder descends into it, since it hides what it holds. A group or grid, picked on the canvas, is revealed in place and the explorer lights the nearest row that lists it. A note, which may hold nothing, is revealed too
+- a layer's **layout** is a setting, `layout: { kind, … }`, said by its definition and overridable by the block, inherited like any setting. The kit ships `free`, `auto` and `page`, which is how the overview and profile lay out; an unknown kind draws as `auto`
 - **a row and its card read alike**: the explorer and the canvas ask core's `role_of` what a block is, and wear the same icon
 - **marks describe, and stack**: a stand-in wears one word (`Def`, `Ref`, `Pkg`); anything else wears what is true of it, and those stack — the first is `data`
 - **a layer draws its key**: what each kind's colour, mark and word mean. The workspace sets the default; a layer may override it
@@ -137,7 +140,7 @@ Most rules below are one of these applied.
 
 - the explorer is a **section chain**: each section holds one context and the next lists what it holds. mndflow: packages → definitions → structure. mndmap: collection → document, the package fixed and hidden
 - **browse**: choosing a row selects it and the tray shows it; the canvas stays
-- **every section reads holders alike**: what a group or grid holds lists at its level beneath its row, with no branch of its own, joined to it by a line down their marks' column. Their own children branch as usual
+- **every section reads the `parent` tree alike**: what holds branches; a group or grid does not list, and what it holds lists at its level
 - **open**: Enter, double-click or →. ← and Backspace leave; leaving a tree's top returns to the overview, focused on it
 - highlighting and crumbs show the canvas's context, never what is browsed
 - selecting in the overview selects and the sections follow; opening a tree there opens its structure
@@ -173,6 +176,7 @@ Most rules below are one of these applied.
 - which documents are read is session state, never a field
 - `body` is a description only, never unread text
 - a collection is the same overview: its one package, folders flattened
+- a heading's section is a block holding its heading, content and own sections: a level in the explorer, read whole in the overview, which is how a document opens. The markdown package organizes its own definitions by folders
 
 
 ## Architecture
@@ -192,5 +196,5 @@ Most rules below are one of these applied.
 | **what drives a flow** | relation direction, grid reading order, or a behaviour of its own; and whether a flow is a perspective or an overlay |
 | **the agent surface** | whether every CLI verb reads and writes JSON, and whether actions are reachable by name from the CLI as from the terminal |
 | **the next translator** | code or hardware, and what its package names |
-| ***view*** | "canvas view" names the overview and structure; a data perspective (table, matrix, sequence) still wants a word |
-| **nested groups in the explorer** | a group inside a group lists at the same depth, so mndmap's sections read as one flat run rather than an outline. Whether a nested holder indents one step |
+| ***view*** | "canvas view" names internal, overview and profile; a data perspective (table, matrix, sequence) still wants a word |
+| **the drag round trip** | dragging a definition from another package into the open structure means leaving the structure in the explorer. Whether a definitions palette stays put beside it |

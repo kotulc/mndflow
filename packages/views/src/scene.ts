@@ -57,7 +57,9 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "group"
                  /** A block of a definition's structure, seen through a usage of it. */
                  | "part"
                  /** A block a section holds on the way to the pick: where a profile cuts. */
-                 | "held";
+                 | "held"
+                 /** A folder or block a view flattens into a box: not a group anybody made. */
+                 | "flat";
 
 /** One cell of a grid, placed inside the grid's own box. */
 export type GridCell = {

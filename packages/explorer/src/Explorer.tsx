@@ -9,7 +9,8 @@ import { about_of, children, frozen, may_hold, name_taken, new_id, shown_name,
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
-import { end_of, mark_icon, OPENED, opened, parent_of, tree_of, type Row } from "./rows";
+import { end_of, listed_of, mark_icon, OPENED, opened, parent_of, tree_of,
+         type Row } from "./rows";
 
 export type ExplorerProps = {
   graph: Graph;
@@ -80,8 +81,7 @@ function after(rows: readonly Row[], at: Id, focus?: number) {
   const focused = rows.findIndex((r) => of(r) && r.at === focus);
   const i = focused >= 0 ? focused : rows.findIndex(of);
   if (i < 0) return { index: rows.length, depth: 0 };
-  /** A group or grid takes it among its members, at its own level. */
-  return { index: end_of(rows, i), depth: rows[i]!.depth + (rows[i]!.head ? 0 : 1) };
+  return { index: end_of(rows, i), depth: rows[i]!.depth + 1 };
 }
 
 /** A row being named before it exists: enter makes it, escape or leaving drops it. */
@@ -225,23 +225,28 @@ export function Explorer(props: ExplorerProps) {
   const library = sections.library;
   /** The layer seen from inside, where the canvas looks into one; a whole section has none. */
   const open = view.kind === "internal" ? view.layer : null;
+  /** The row each block lights: its own, or a group's or grid's nearest listed holder's. */
+  const as_row = (id: Id | null | undefined) => (id ? listed_of(graph, id) : id);
+  const held = chain.held.map(as_row);
   /** The picks the section in focus lists. */
-  const mine = picked.filter((id) => sections.all.some((r) => r.at === focus && r.ref === id));
+  const mine = picked.map((id) => as_row(id)!)
+    .filter((id) => sections.all.some((r) => r.at === focus && r.ref === id));
   /** The focus is lit strongly: the picks it lists — a part only where its usage is the layer
    *  seen from inside — else what it holds. */
   const lights = (r: Row) => {
     if (r.at !== focus || r.pick === undefined || r.of !== "block") return false;
     if (mine.length) return mine.includes(r.ref) && (!r.via || r.via === open);
-    return chain.held[focus] === r.pick && !r.via;
+    return held[focus] === r.pick && !r.via;
   };
   /** **The one row wearing the accent's edge: what the canvas shows**, in the section it looks
    *  at — the layer seen from inside, else what it brought into sight, else the section's root. */
-  const shown = view.kind === "internal" ? view.layer : view.pick ?? chain.roots[view.at] ?? null;
+  const shown = as_row(view.kind === "internal" ? view.layer
+    : view.pick ?? chain.roots[view.at] ?? null);
   const drawn_row = rows.find((r) => r.of === "block" && r.at === view.at && r.ref === shown
     && !r.via)?.id;
   /** What each other section holds, lit subtly. */
   const holds = (r: Row) => r.at !== undefined && r.at !== focus
-    && r.pick !== undefined && chain.held[r.at] === r.pick;
+    && r.pick !== undefined && held[r.at] === r.pick;
   /** Only blocks answer a block question. */
   const blocks = rows.filter((r) => r.of === "block" && (focus === undefined || r.at === focus));
   /** Where something new goes: what you picked, where it can hold one and is the workspace's,
@@ -322,7 +327,7 @@ export function Explorer(props: ExplorerProps) {
       e.preventDefault();
       /** What a section holds, as its row. */
       const held_in = (n: number) => all.findIndex((r) => r.at === n && can(r)
-        && r.pick === chain.held[n] && !r.via);
+        && r.pick === held[n] && !r.via);
       const first_in = (n: number) => all.findIndex((r) => can(r) && r.at === n);
       const lit_at = all.findIndex(lights);
       const at = lit_at >= 0 ? lit_at : held_in(chain.at);
@@ -365,8 +370,7 @@ export function Explorer(props: ExplorerProps) {
   /** Where a drop on a row lands; nothing sits beside the workspace, so its drops land in it. */
   const where_on = (e: React.DragEvent, ref: Id) => (ref === graph.root ? "in" : seam(e));
 
-  /** What a drag off this row carries: the pick, or the row. A group's own row carries the
-   *  group, and what it holds goes with it. */
+  /** What a drag off this row carries: the pick, or the row. */
   const load = (id: Id): Id[] =>
     picked.includes(id) ? blocks.filter((r) => picked.includes(r.ref)).map((r) => r.ref) : [id];
 
@@ -472,7 +476,7 @@ export function Explorer(props: ExplorerProps) {
                   holds(r) ? "context" : "",
                   !r.depth && r.at === focus ? "holds" : "",
                   r.via ? "part" : "",
-                  r.head ? "head" : "",
+
                   lit.includes(r.ref) ? "lit" : "",
                   lit.length && !lit.includes(r.ref) ? "dim" : "",
                   r.id === drawn_row ? "open" : "",
@@ -543,25 +547,18 @@ export function Explorer(props: ExplorerProps) {
                 onDoubleClick={() => { if (r.of === "block") opening(r); }}>
               {/* One line per indent column, hung under the mark of the row it belongs to. */}
               {r.guides.map((more, i) => {
-                /** A member draws no tick: it hangs from its group, not from the branch. */
-                const tick = i === r.depth - 1 && !r.bare;
+                const tick = i === r.depth - 1;
                 return more || tick ? (
                   <i key={i} aria-hidden className={["guide", tick ? "tick" : "",
                                                      more ? "" : "stop"].filter(Boolean).join(" ")}
                      style={{ left: GUIDE + i * STEP }} />
                 ) : null;
               })}
-              {/* An open branch joins its own guide line; a group's members list at its level. */}
-              {r.kids && !r.head && !is_shut(r) ? (
+              {/* An open branch joins its own guide line. */}
+              {r.kids && !is_shut(r) ? (
                 <i aria-hidden className="guide down" style={{ left: GUIDE + r.depth * STEP }} />
               ) : null}
-              {/* A group or grid joined to its members down their marks' column: in the gaps
-                  between marks where the line meets one, straight through where it does not. */}
-              {(r.ties ?? []).map((t, k) => (
-                <i key={`tie${k}`} aria-hidden style={{ left: GUIDE + t.col * STEP }}
-                   className={["guide", t.col === r.depth ? (t.top && t.foot ? "gap" : t.top ? "up"
-                     : "down") : ""].filter(Boolean).join(" ")} />
-              ))}
+
               <span className={["mark", r.mark,
                                 r.kids ? (is_shut(r) ? "shut" : "on") : r.held ? "held" : ""]
                        .filter(Boolean).join(" ")}

@@ -48,8 +48,8 @@ export {
  *  and what one block measures under it — so a host placing blocks itself stacks them by it. */
 export { CARD, UNITS, set_card, set_full, size_of } from "@mnd/views";
 
-/** The computed layouts: a layer as an outline of headed groups, or as a page of boxes. */
-export { outline_graph, page_graph } from "@mnd/views";
+/** The computed layout: a layer as a page of boxes. */
+export { page_graph } from "@mnd/views";
 
 /** Sections and navigation: how a host cuts the workspace into layers, the views each offers,
  *  what opening, leaving and revealing do to the canvas, and what the sections hold. */

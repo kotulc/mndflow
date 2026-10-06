@@ -13,21 +13,21 @@
         "id": "base.blocks",
         "parent": "base",
         "name": "blocks",
-        "type": "group",
+        "type": "folder",
         "order": 1
       },
       "base.relations": {
         "id": "base.relations",
         "parent": "base",
         "name": "relations",
-        "type": "group",
+        "type": "folder",
         "order": 2
       },
       "base.traits": {
         "id": "base.traits",
         "parent": "base",
         "name": "traits",
-        "type": "group",
+        "type": "folder",
         "order": 3
       },
       "block": {

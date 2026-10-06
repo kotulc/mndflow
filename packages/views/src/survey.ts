@@ -15,6 +15,13 @@ export const FOREST = "@forest";
 const HIDDEN = `${FOREST}:hidden`;
 
 
+/** A block drawn as a box of what it holds: still what it is, but no definition, and marked flat
+ *  so it lays out as a group and reads as itself. */
+export function flattened(b: Block): Block {
+  const { def: _def, ...plain } = b;
+  return { ...plain, settings: { ...plain.settings, holder: { inline: true, flat: true } } };
+}
+
 /** The section under `scope` — every package where it is null, as `only` orders them — down to
  *  `cut`, on one layer. What holds rows reads as a box round them: a group or grid as it is, a
  *  folder or any other block as a group. A block at the cut, or holding nothing listed, is a card.
@@ -40,9 +47,8 @@ export function survey_graph(graph: Graph, scope: Id | null, cut: Cut,
     const listed = (via ? 0 : parts.length) + own.length > 0;
     const boxed = is_holder(graph, id) || is_folder(graph, id) || listed;
     const { def: _def, ...plain } = b;
-    blocks[drawn] = { ...(boxed ? plain : b), id: drawn, parent,
-                      ...(boxed && !is_holder(graph, id) ? { type: "group" } : {}),
-                      ...(order !== undefined ? { order } : {}) };
+    blocks[drawn] = { ...(!boxed ? b : is_holder(graph, id) ? plain : flattened(b)), id: drawn,
+                      parent, ...(order !== undefined ? { order } : {}) };
     /** A box seats no interfaces: they are part of what it stands for. A copy carries none. */
     if (boxed && !via) {
       for (const port of children(graph, id).filter(is_interface)) {

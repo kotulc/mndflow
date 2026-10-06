@@ -13,14 +13,14 @@
         "id": "sysml.blocks",
         "parent": "sysml",
         "name": "blocks",
-        "type": "group",
+        "type": "folder",
         "order": 1
       },
       "sysml.relations": {
         "id": "sysml.relations",
         "parent": "sysml",
         "name": "relations",
-        "type": "group",
+        "type": "folder",
         "order": 2
       },
       "sysml.part": {

@@ -1,8 +1,8 @@
 /** What every module derives the same way. */
 
-import { alias_of, def_at, schema_def, schema_of, head_of, is_container, is_interface, is_named,
-         base_of, path, previewed, role_of, shape_of, shown_name, stamps_of, stands_for, stood_def,
-         type Graph, type Id } from "@mnd/core";
+import { alias_of, def_at, schema_def, schema_of, head_of, is_container, is_flat, is_interface,
+         is_named, base_of, path, previewed, role_of, shape_of, shown_name, stamps_of, stands_for,
+         stood_def, type Graph, type Id } from "@mnd/core";
 import { look_of } from "./look";
 import type { BoxData, Listed, CardClass, Scene } from "./scene";
 
@@ -22,6 +22,7 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
   /** A block that holds wears its shape, whatever kind it descends from. */
   const shape = shape_of(graph, id);
   if (shape) out.push(shape);
+  if (is_flat(graph, id)) out.push("flat");
   if (is_interface(b)) {
     out.push("interface");
     if (b.flow === "in" || b.flow === "both") out.push("in");

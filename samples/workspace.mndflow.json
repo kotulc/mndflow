@@ -23,21 +23,21 @@
         "id": "workspace.blocks",
         "parent": "workspace",
         "name": "blocks",
-        "type": "group",
+        "type": "folder",
         "order": 1
       },
       "workspace.relations": {
         "id": "workspace.relations",
         "parent": "workspace",
         "name": "relations",
-        "type": "group",
+        "type": "folder",
         "order": 2
       },
       "workspace.tags": {
         "id": "workspace.tags",
         "parent": "workspace",
         "name": "tags",
-        "type": "group",
+        "type": "folder",
         "order": 3
       },
       "main": {

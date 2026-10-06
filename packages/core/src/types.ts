@@ -20,12 +20,12 @@ export type Side = "top" | "right" | "bottom" | "left";
 /** An interface's decorative mark. */
 export type Flow = "in" | "out" | "both";
 
-/** How a layer places what it draws: by hand, laid out for you, as an outline of headed groups, or
- *  as a page of full-width boxes. A setting (`layout.kind`), said by a definition and overridable
+/** How a layer places what it draws: by hand, laid out for you, or as a page of full-width
+ *  boxes. A setting (`layout.kind`), said by a definition and overridable
  *  by the layer. */
-export type Layout = "free" | "auto" | "outline" | "page";
+export type Layout = "free" | "auto" | "page";
 
-export const LAYOUTS: readonly Layout[] = ["free", "auto", "outline", "page"];
+export const LAYOUTS: readonly Layout[] = ["free", "auto", "page"];
 
 export type Dir = "none" | "forward" | "back" | "both";
 

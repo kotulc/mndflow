@@ -44,6 +44,12 @@ export function is_group(graph: Graph, id: Id | undefined): boolean {
   return shape_of(graph, id) === "group";
 }
 
+/** Whether a group is a block flattened by a view: drawn as a box of what it holds, but still
+ *  what it is — a folder or a block — rather than a group somebody made. */
+export function is_flat(graph: Graph, id: Id | undefined): boolean {
+  return is_group(graph, id) && setting_of(graph, id, "holder")["flat"] === true;
+}
+
 /** Whether this draws what it holds inline, either way. */
 export function is_holder(graph: Graph, id: Id | undefined): boolean {
   return shape_of(graph, id) !== null;
@@ -135,11 +141,11 @@ export function group_depth(graph: Graph, id: Id): number {
   return holders_over(graph, id).length;
 }
 
-/** The member heading a group: its first, where the group's definition says what may head it and
- *  that member is one. A head is never stored: it is whichever member comes first. */
+/** The block heading what holds it: its first, where the holder's definition says what may head
+ *  it and that block is one. A head is never stored: it is whichever block comes first. */
 export function group_head(graph: Graph, group: Id | undefined): Id | null {
-  const heads = group && is_group(graph, group) ? allows_of(graph, group).heads : undefined;
-  const first = group ? members_of(graph, group)[0] : undefined;
+  const heads = group ? allows_of(graph, group).heads : undefined;
+  const first = group ? children(graph, group).find((b) => b.side === undefined) : undefined;
   return first && permits(graph, heads, first.type) ? first.id : null;
 }
 

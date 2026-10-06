@@ -100,23 +100,6 @@
 /* A branch's own segment, joining the underside of its mark to the line under it. */
 .explorer .tree .guide.down { top: calc(50% + 7px); }
 
-/* A group or grid's name is underlined, as the head of what lists beneath it. Padded below, since
-   the label clips what overflows it. */
-.explorer .tree li.head .label {
-  text-decoration: underline;
-  text-decoration-color: var(--muted);
-  text-underline-offset: 2px;
-  padding-bottom: 3px;
-  margin-bottom: -3px;
-}
-
-/* A group's line meeting a member's mark from above, and passing it: broken around the mark. */
-.explorer .tree .guide.up { bottom: auto; height: calc(50% - 7px); }
-.explorer .tree .guide.gap {
-  background: linear-gradient(var(--divider) calc(50% - 7px), transparent calc(50% - 7px),
-                              transparent calc(50% + 7px), var(--divider) calc(50% + 7px));
-}
-
 /* The tick across to the row, ending where its mark begins. */
 .explorer .tree .guide.tick::after {
   content: "";

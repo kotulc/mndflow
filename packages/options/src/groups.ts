@@ -44,9 +44,8 @@ export type Chrome = {
   dir?: Dir;
 };
 
-/** How a person lays a layer out from the rail. `outline` and `page` are a definition's or a
- *  host's to set — a document reads as an outline, the overview as a page — so they are not
- *  offered here. */
+/** How a person lays a layer out from the rail. `page` is a definition's or a host's to set — the
+ *  overview reads as a page — so it is not offered here. */
 const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
   free: { icon: "layout_free", tip: "Hand placement is what draws" },
   auto: { icon: "layout_grid", tip: "Auto-layout: related blocks share a row, a unit of air between everything" },
