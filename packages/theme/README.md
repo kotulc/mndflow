@@ -12,7 +12,7 @@
 
 ```
 web · kit
-└─ explorer · stage · options · tray · terminal
+└─ explorer · stage · options · tray
    └─ theme   ◀ stylesheets, and nothing below
 ```
 

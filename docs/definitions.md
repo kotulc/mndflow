@@ -163,7 +163,7 @@
 | **action** | something somebody meant and could say: create, relate, define. Returns mutations rather than applying them |
 | **adjustment** | something positional: `place`, `size`, `seat`. Gesture-only. Several writes from one gesture land in one batch |
 | **refusal** | an action's `check` answer: why a gesture is not offered |
-| **host port** | one of the capabilities an app binds: `storage`, `files`, `net`, `score`. The entire host contract |
+| **host port** | one of the capabilities an app binds: `storage`, `files`, `net`. The entire host contract |
 
 **The word `port` carries two meanings and they never meet.** In the model a port is an **interface**; in the host contract a port is a host port.
 

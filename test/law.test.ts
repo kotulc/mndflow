@@ -22,7 +22,6 @@ const ALLOWED: Record<string, readonly string[]> = {
   kit: ["core", "defs", "explorer", "views", "stage", "theme", "tray"],
   options: ["core", "theme"],
   tray: ["core", "theme"],
-  terminal: ["core", "theme"],
 };
 
 /** Sample data is for proving things, never for shipping. */

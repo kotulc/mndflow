@@ -20,8 +20,6 @@ export type ExplorerProps = {
   picked: readonly Id[];
   /** Which branches are shut. Session state, handed down. */
   folded: readonly Id[];
-  /** What a narrowing matched, lit and never hidden. */
-  lit?: readonly Id[];
   /** Told `rename` on F2, plus whatever the offered list names. */
   onAct: Act;
   /** A row opened — Enter, a double click, or → — for the canvas to draw. A part names the usage
@@ -130,7 +128,7 @@ function Fold({ icon, tip, onToggle }: { icon: IconName; tip: string; onToggle: 
 }
 
 export function Explorer(props: ExplorerProps) {
-  const { graph, view, picked, folded, lit = [], onAct, onFold, onPick, onOpen, onLeave,
+  const { graph, view, picked, folded, onAct, onFold, onPick, onOpen, onLeave,
           menu: offered = true, chain, keys = false, tools: bar = {} } = props;
   const show = {
     filter: bar.filter !== false,
@@ -176,14 +174,8 @@ export function Explorer(props: ExplorerProps) {
     return { folds: out, all, library };
   }, [graph, chain?.at, chain?.held.join("|")]);
 
-  /** A match inside a shut branch opens the way to it, past its holders and the heads of the
-   *  groups it sits in, for as long as it matches. */
-  const refs = new Map(sections.all.map((r) => [r.id, r.ref]));
-  const way = new Set(lit.flatMap((id) => [...holders(graph, id)]));
-  const shut = folded.filter((id) => !way.has(refs.get(id) ?? id));
   /** Whether a row is shut: a lazy one until it was opened, any other once folded. */
-  const is_shut = (r: Row) => (r.lazy ? !opened(folded, r.id) && !way.has(r.ref)
-    : shut.includes(r.id));
+  const is_shut = (r: Row) => (r.lazy ? !opened(folded, r.id) : folded.includes(r.id));
   /** Folding a row: a lazy one remembers that it was opened, never that it was shut. */
   const fold = (r: Row, close: boolean) =>
     (r.lazy ? onFold(`${OPENED}${r.id}`, !close) : onFold(r.id, close));
@@ -201,12 +193,11 @@ export function Explorer(props: ExplorerProps) {
     const up = new Set(picked.flatMap((id) => [...holders(graph, id)]));
     for (const r of sections.all) if (r.kids && up.has(r.ref) && is_shut(r)) fold(r, false);
   }, [seen]);
-  const rows = tree_of(graph, [...shut, ...folded.filter((id) => id.startsWith(OPENED)),
-    ...sections.all.filter((r) => r.lazy && way.has(r.ref)).map((r) => `${OPENED}${r.id}`)], chain);
+  const rows = tree_of(graph, folded, chain);
   /** The lowest open layer, under every branch alike: each open branch with no open branch
    *  inside it. The bar's fold shuts them, a layer a click, until only the top rows show; with
    *  none left, it opens every section whole. */
-  const open_branch = (r: Row) => r.depth > 0 && r.kids > 0 && !is_shut(r) && !way.has(r.ref);
+  const open_branch = (r: Row) => r.depth > 0 && r.kids > 0 && !is_shut(r);
   const foldable = rows.filter((r, i) => {
     if (!open_branch(r)) return false;
     for (let j = i + 1; j < end_of(rows, i); j++) if (open_branch(rows[j]!)) return false;
@@ -493,9 +484,6 @@ export function Explorer(props: ExplorerProps) {
                   holds(r) ? "context" : "",
                   !r.depth && r.at === focus ? "holds" : "",
                   r.via ? "part" : "",
-
-                  lit.includes(r.ref) ? "lit" : "",
-                  lit.length && !lit.includes(r.ref) ? "dim" : "",
                   r.id === drawn_row ? "open" : "",
                   /** The layer a drop would join, and where in it. */
                   r.of === "block" && zone && zone !== graph.root && on_path(graph, r.ref, zone) ? "zone" : "",

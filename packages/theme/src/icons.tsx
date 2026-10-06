@@ -188,7 +188,6 @@ const PATHS = {
 
   // The strip that types. A prompt inside a frame, so it cannot read as the
   // retro screen above it.
-  terminal: "M3.5 5.5h17v13h-17zM7 10l3 2.5-3 2.5M13 15.5h4",
   // Clearing what is typed. Backspace — it is the text that goes.
   clear: "M9 5.5h10.5v13H9L3.5 12zM12 9.5l5 5M17 9.5l-5 5",
 

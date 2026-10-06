@@ -31,7 +31,7 @@ Type a few words into the explorer and **have what you are looking for come back
 | **what a result is** | the element's icon and its name in bold, and under it the properties that matched, so a hit says *why* it is a hit |
 | **what it spans** | blocks — holders among them — definitions and relations |
 
-**Open:** whether relevance is scored or merely ordered; whether a result is picked, revealed or opened in the tray; and whether this is the terminal's `search`, which already fetches packages.
+**Open:** whether relevance is scored or merely ordered; whether a result is picked, revealed or opened in the tray; and whether this is the CLI's package search as well.
 
 ### ST.18 — A block holds the content it stands for
 
@@ -59,10 +59,6 @@ Pull a package or a file from a **public GitHub repo** and have it land as block
 ### ST.6 — A model becomes something else
 
 Translate a project out — **the site first**, then simulator, parametrics and code in an order nobody has set. **One way out, and it never writes back.**
-
-### ST.7 — The terminal earns its place
-
-One collapsible strip that says **where you are, what you just did, and what you could do next** — with **four commands**, flexible verbs, and **the whole action surface behind `?`**. Not a command palette and not a chat.
 
 
 ## Future stories

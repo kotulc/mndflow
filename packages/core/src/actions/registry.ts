@@ -51,7 +51,7 @@ export type Context = {
 
 export type Action = {
   name: string;
-  /** The sentence a typed word is scored against. */
+  /** What the action does, in words. */
   about: string;
   on: readonly Scope[];
   args: readonly Arg[];

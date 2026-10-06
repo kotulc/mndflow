@@ -9,9 +9,7 @@
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ mndflow  12 blocks · 34 steps      undo redo  ex im  ▤  ◐    │  header: identity, and
-├──────────────────────────────────────────────────────────────┤  controls that reach a port
-│ + Heat Exchanger_                            add blocks      │  terminal: four commands
-├──────────────┬─────────────────────────────┬─────────────────┤
+├──────────────┬─────────────────────────────┬─────────────────┤  controls that reach a port
 │ packages     │   ┌╌╌╌╌╌╌╌╌┐                │ Layout          │
 │ definitions  │   ┆ Edge   ┆ ──▶ ( Billing )│   ○ free  ● auto│  stage: one layer, and a
 │ ▾ workspace  │   ┆ ▪ ▪    ┆                │                 │  grid is a block on it
@@ -23,31 +21,26 @@
                        tray: what the open layer holds
 ```
 
-Ranking is a **similarity** problem, not a generation one: MiniLM runs locally over ONNX, so `Invoices` scores close to `Billing` despite sharing no letters. That is the whole of what substring cannot answer, and it is why nothing here calls a model.
-
 ---
 
 ## Getting started
 
-**Prerequisites:** Node 18+, and [Git LFS](https://git-lfs.com), which ships with Git for Windows and most Git installs.
+**Prerequisites:** Node 18+.
 
 ```sh
 npm install
 npm run dev        # http://localhost:5173
 ```
 
-The embedding weights and the ONNX runtime are vendored under `public/` and stored in LFS — about 60MB of `.onnx` and `.wasm` that a normal clone fetches for you. The model is never downloaded at run time, so the app works offline and on first load; only package search reaches `public/packages`. A clone that came down without LFS still runs: ranking falls back to substring and the console says so, and `git lfs install && git lfs pull` fixes it.
-
 ### Using it
 
 | Where | What you can do |
 |---|---|
-| **Header** | undo, redo, import, export, a new workspace, the terminal, the theme — each reaches a **port**, never the graph |
+| **Header** | undo, redo, import, export, a new workspace, the theme — each reaches a **port**, never the graph |
 | **Explorer** | a section chain — `packages`, `definitions` (a package's domain: its definitions in the folders and groups that organize them) and `structure` (the tree held, with its structure) — each listing what the section above holds, and the menu that hangs off the tree. **The explorer browses; the canvas is the target**: choosing a row selects it, opening one (Enter, double-click, →) moves the canvas. The canvas is either the **overview** — every package top-down, its definitions in their groups and folders, read down the page — or the **structure** of the definition opened |
 | **Stage** | **the left button works what is there; the right button makes something new.** Within the right button a click makes what sits at a point and a drag makes what has extent. A click here selects and never navigates |
 | **Options** | settings for the workspace or a new definition, then the groups the projection asks for — a layer's layout (`free`, `auto`, `outline`, `page`), what the drawing shows, and what a right drag draws |
 | **Tray** | open from the start, on whatever is picked — and on the root, with its `workspace` tab, when nothing is: where the workspace is exported, whole or as a package. What the open layer holds, as rows; a block's element, fields and contents; the card size, key and lattice. A block with a schema offers its fields as a diagram |
-| **Terminal** | four commands — `+` add, `:` filter, `*` search, `?` help. Help is the fallback, and every registered action is reachable there |
 
 Work is kept in IndexedDB as you go; **export** writes the whole graph to a file that **import** reads back.
 
@@ -67,7 +60,7 @@ npm test                             # every suite in the workspace
 npm run typecheck                    # the whole tree, one pass
 npm run build -w @mnd/web            # a production bundle
 npm run release:kit                  # build, pack and stamp @mnd/kit
-npm run dev -w @mnd/stage            # one surface alone — also explorer, options, tray, terminal
+npm run dev -w @mnd/stage            # one surface alone — also explorer, options, tray
 npm run start -w @mnd/cli -- fold related
 ```
 

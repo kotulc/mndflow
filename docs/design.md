@@ -194,7 +194,7 @@ Most rules below are one of these applied.
 | Question | |
 |---|---|
 | **what drives a flow** | relation direction, grid reading order, or a behaviour of its own; and whether a flow is a perspective or an overlay |
-| **the agent surface** | whether every CLI verb reads and writes JSON, and whether actions are reachable by name from the CLI as from the terminal |
+| **the agent surface** | whether every CLI verb reads and writes JSON, and whether actions are reachable by name from the CLI |
 | **the next translator** | code or hardware, and what its package names |
 | ***view*** | "canvas view" names internal, overview and profile; a data perspective (table, matrix, sequence) still wants a word |
 | **the drag round trip** | dragging a definition from another package into the open structure means leaving the structure in the explorer. Whether a definitions palette stays put beside it |

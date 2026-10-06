@@ -5,13 +5,13 @@
 | | |
 |---|---|
 | **Entry** | `src/main.tsx` → `src/App.tsx` |
-| **Binds** | `storage` to IndexedDB, each body stored once by hash and read before the app mounts; `files` to a download and a picker; `net` to `fetch` — in `src/ports.ts`, the only file in the app that knows a browser is what it is running in. `score` is `src/score.ts`, handed to the terminal |
+| **Binds** | `storage` to IndexedDB, each body stored once by hash and read before the app mounts; `files` to a download and a picker; `net` to `fetch` — in `src/ports.ts`, the only file in the app that knows a browser is what it is running in. |
 
 ## Where it sits
 
 ```
 web   ◀
-└─ explorer · stage · options · tray · terminal
+└─ explorer · stage · options · tray
    └─ views
       └─ core · defs · theme
 ```

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { drop_of, held_at, layout_of, offer, session, EDITOR, type ViewKind, type Storage,
+import { drop_of, held_at, layout_of, session, EDITOR, type ViewKind, type Storage,
          type Dir, type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { box_of, clear_of, holds, project, set_card as apply_card, tidy, BLOCK,
@@ -12,9 +12,7 @@ import { Icon, WorkspaceHeader } from "@mnd/theme";
 import { Stage, type Move } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
 import { Tray, useDisplay, useTray, type Offered } from "@mnd/tray";
-import { Terminal, type Match } from "@mnd/terminal";
 import { browser_files, browser_net } from "./ports";
-import { browser_score } from "./score";
 
 /** The three looks, each with the mark it wears. */
 const THEMES = [
@@ -22,9 +20,6 @@ const THEMES = [
   { name: "modern", icon: "theme_modern" },
   { name: "light", icon: "theme_light" },
 ] as const;
-
-/** One scorer for the app, since it holds a cache. */
-const scoring = browser_score();
 
 /** Where this host keeps its definition packages. */
 const CATALOGUE = "/packages/index.json";
@@ -50,11 +45,6 @@ export function App({ storage }: { storage: Storage }) {
    *  holds and the log never sees, kept where every host keeps it. */
   const t = useTray();
   const { display, onDisplay } = useDisplay({ card: { ...UNITS.block }, range: CARD });
-  /** Whether the terminal is shown, and whether it is expanded. */
-  const [terminal, set_terminal] = useState(false);
-  const [wide, set_wide] = useState(false);
-  /** The mirror muted. */
-  const [quiet, set_quiet] = useState(false);
   const [shown, set_shown] = useState({ interfaces: true, frame: true });
   /** The layers that have said otherwise about drawing their key. **A layer holding no answer
    *  follows the workspace**, so changing the default moves every layer that never disagreed. */
@@ -62,8 +52,6 @@ export function App({ storage }: { storage: Storage }) {
   const { card, legend: legends, corner, lattice } = display;
   /** What a right drag draws, as the rail left it. */
   const [drawing, set_drawing] = useState<{ module: Id; dir?: Dir }>({ module: "line" });
-  /** What help is pointing at. */
-  const [pointed, set_pointed] = useState<readonly Id[]>([]);
   /** The tray row under the pointer, lit on the canvas where it is drawn. */
   const [hovered, set_hovered] = useState<Id | null>(null);
   const { hold } = t;
@@ -132,16 +120,6 @@ export function App({ storage }: { storage: Storage }) {
   /** What the open layer draws, by id. */
   const drawn = useMemo(() => new Set([...scene.nodes.map((n) => n.id),
                                        ...scene.edges.map((e) => e.id)]), [scene]);
-
-  /** What is offered here, read off the registry for help. */
-  const offered_here = offer({ graph, layer, picked: s.picked(), cells: s.cells() }).map((a) => ({
-    name: a.name,
-    about: a.about,
-    asks: a.args.filter((g) => g.required).map((g) => g.name).join(", "),
-    on: a.on.some((scope) => scope === "layer") && !s.picked().length
-      ? (layer ? [layer] : [])
-      : s.picked(),
-  }));
 
   const act = (name: string, args?: Record<string, unknown>) => {
     /** Undo and redo arrive through the same channel as actions. */
@@ -227,13 +205,6 @@ export function App({ storage }: { storage: Storage }) {
     if (id && s.graph().blocks[id]) s.pick([id]);
   };
 
-  /** The terminal's commands; help is the fallback. */
-  const command = (match: Match) => {
-    if (match.command === "add") { act("create", { name: match.rest }); return; }
-    if (match.command === "search") { void s.search(match.rest); return; }
-    s.say(`${match.command} is not built yet — “${match.rest}”`);
-  };
-
   const load = async () => {
     const text = await browser_files().open();
     if (text !== null) s.load(text);
@@ -260,39 +231,17 @@ export function App({ storage }: { storage: Storage }) {
           <button title="start a new workspace" onClick={() => {
             if (confirm("Start a new workspace? This session is replaced, and it cannot be undone. Export first to keep a copy.")) s.reset();
           }}><Icon name="remove" /></button>
-          <button title="the terminal" aria-pressed={terminal}
-                  onClick={() => set_terminal((t) => !t)}><Icon name="terminal" /></button>
           <button title={`theme: ${theme} — click for ${next_look.name}`}
                   onClick={() => set_theme(next_look.name)}>
             <Icon name={look.icon} />
           </button>
       </WorkspaceHeader>
 
-      {terminal ? (
-        <Terminal
-          offered={offered_here}
-          said={quiet && said?.kind === "mirror" ? null : said?.text ?? null}
-          context={layer ? `in ${graph.blocks[layer]?.name ?? "a layer"}` : "the workspace"}
-          expanded={wide}
-          onExpand={set_wide}
-          onAct={(name) => act(name)}
-          onCommand={command}
-          score={scoring}
-          quiet={quiet}
-          onQuiet={set_quiet}
-          onPoint={(o) => set_pointed((was) => {
-            const now = o?.on ?? [];
-            return was.length === now.length && was.every((id, n) => id === now[n]) ? was : now;
-          })}
-        />
-      ) : null}
-
       <Explorer
         graph={graph}
         view={view}
         picked={s.picked()}
         folded={folded}
-        lit={pointed}
         onAct={act}
         onFold={(id, shut) =>
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}

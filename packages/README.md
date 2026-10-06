@@ -26,7 +26,6 @@ Headless — no React, no DOM, no `window`.
 | explorer | the section chain, and the menu that hangs off it | core, theme |
 | tray | what the open layer holds, as rows — and the tray and display state every shell keeps | core, theme |
 | options | the control groups a projection's slots ask for | core, theme |
-| terminal | the strip: four commands, and help behind `?` | core, theme |
 
 **One surface each, and never a `ui` package.** Each carries its own dev server, so a surface is runnable before the app hosting it exists.
 

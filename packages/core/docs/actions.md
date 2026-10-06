@@ -6,9 +6,9 @@
 |---|---|
 | **a new sort of thing is a definition** | data, reaching the surface through the actions already here. Two actions saying one thing are one action |
 | **every action is sayable** | something somebody meant and could put in words. What cannot be said is an adjustment |
-| **an action returns mutations** | it never applies them. One seam serves the pointer, the keyboard and the terminal |
+| **an action returns mutations** | it never applies them. One seam serves the pointer, the keyboard and the CLI |
 | **scope is what a gesture asks** | `layer`: the open layer is enough; `block`, `edge`, `cell`, `selection`: one of those is picked |
-| **a sentence each** | what an action does, in words; what a typed word is scored against |
+| **a sentence each** | what an action does, in words |
 
 
 ## Actions
@@ -46,7 +46,7 @@
 
 ### Navigation
 
-**Writing no mutations makes an action navigation.** No step, nothing to undo, never offered by the terminal.
+**Writing no mutations makes an action navigation.** No step, nothing to undo.
 
 | | Does | Scope | Arguments | Effect |
 |---|---|---|---|---|
@@ -124,7 +124,7 @@
 
 ## Adjustments
 
-**Positional, unsayable, gesture-only**: never named, ranked or listed.
+**Positional, unsayable, gesture-only**: never named or listed.
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
@@ -137,7 +137,7 @@
 
 ## Gestures
 
-**The left button works what is already there; the right button makes something new.** The offered list is `offer(ctx)`; menus draw it in a fixed order, the terminal ranks it.
+**The left button works what is already there; the right button makes something new.** The offered list is `offer(ctx)`; menus draw it in a fixed order.
 
 ### Left button
 

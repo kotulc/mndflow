@@ -6,7 +6,7 @@
 
 ```
 cli   ◀
-└─ views · terminal · fixtures · defs
+└─ views · fixtures · defs
    └─ core
 ```
 

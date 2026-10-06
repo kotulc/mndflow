@@ -14,7 +14,6 @@ import "@mnd/options/src/options.css";
 import "@mnd/tray/src/tray.css";
 import "@mnd/tray/src/fields.css";
 import "@mnd/tray/src/preview.css";
-import "@mnd/terminal/src/terminal.css";
 
 /** The workspace is loaded before the app mounts, so the session reads it at once. */
 void browser_storage().then((storage) =>

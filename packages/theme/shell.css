@@ -54,7 +54,7 @@ input:focus { outline: none; border-color: var(--accent); }
    that is not there leaves no column behind. */
 .app {
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto 1fr;
   grid-template-columns: auto 1fr auto;
   height: 100%;
 }
@@ -154,11 +154,9 @@ input:focus { outline: none; border-color: var(--accent); }
   gap: 4px;
 }
 
-.app > .chat { grid-row: 2; grid-column: 1 / -1; }
-
-/* The body row is named, so an absent terminal row leaves no gap. */
+/* The body row, below the header. */
 .app > .explorer, .app > main, .app > .opts {
-  grid-row: 3;
+  grid-row: 2;
   /* The work begins here. */
   border-top: 1px solid var(--border);
 }

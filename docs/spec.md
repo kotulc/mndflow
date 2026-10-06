@@ -64,21 +64,20 @@ Scene {
 | `storage` | where the log lives between runs | IndexedDB, each body stored once by hash; read before the app mounts | a file |
 | `files` | anything leaving or entering — export, import, a rendered drawing | download / picker | `fs` |
 | `net` | fetching something from outside the workspace | `fetch` | `fetch`, or a local path |
-| `score` | text similarity, for ranking | the scorer, lazily, handed to the terminal | absent |
 
 - **Nothing but a port may assume where the workspace lives.**
-- **An unbound port is a capability the app does without**, never a feature reimplemented. With no `score`, ranking falls back to substring.
+- **An unbound port is a capability the app does without**, never a feature reimplemented.
 - **A new capability is a port or it is a package**, never a direct reach for a browser API from somewhere that is not an app.
-- **Ports stay four.** `storage`, `files` and `net` are bound through the session; `score` reaches the terminal directly, since ranking is the terminal's alone.
+- **Ports stay three**, each bound through the session.
 
 
 ## The surfaces
 
 **Branding, navigation and the workspace. They own nothing about a diagram.** Every component is a pure function of its props: it holds nothing, and every gesture leaves as an action name somebody else runs.
 
-**One surface, one package, and never a `ui` package** — `explorer`, `stage`, `options`, `tray`, `terminal`. Five panels split five ways keeps one from quietly doing another's work, and **only two of them know what a Scene is**. What each draws and refuses is its own `docs/`.
+**One surface, one package, and never a `ui` package** — `explorer`, `stage`, `options`, `tray`. Four panels split four ways keeps one from quietly doing another's work, and **only two of them know what a Scene is**. What each draws and refuses is its own `docs/`.
 
-**One page**: header, optional terminal, then explorer beside the stage, options to the right, the tray below the stage.
+**One page**: header, then explorer beside the stage, options to the right, the tray below the stage.
 
 
 ## Naming, and one channel
@@ -167,7 +166,7 @@ bind ports  ->  hold the log  ->  fold  ->  project  ->  render
 | `defs` | every shipped definition passes the door; every module it names exists | no |
 | `fixtures` | every log folds clean, and every file the seam opens leaves nothing for `validate` to find | no |
 | `kit` | packed, then a graph, a file and a drawing built from outside the workspace | no |
-| `explorer` · `stage` · `options` · `tray` · `terminal` | driven, not asserted | yes |
+| `explorer` · `stage` · `options` · `tray` | driven, not asserted | yes |
 
 - **The dependency law is a test**: the workspace graph matches the monorepo README's map, no package outside `core` declares a closed set, and nothing imports a deep path.
 - **Design first, test second.** While a design is still moving, running the thing is the verification that counts.

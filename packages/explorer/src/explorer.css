@@ -124,12 +124,6 @@
 .explorer .tree li.context { background: var(--tint); }
 .explorer .tree li.context .label { color: var(--text); }
 
-/* What a narrowing found, and what it did not. */
-.explorer .tree li.lit { background: var(--hover); }
-.explorer .tree li.lit .label { color: var(--text); font-weight: 600; }
-.explorer .tree li.dim { color: var(--faint); }
-.explorer .tree li.dim .mark { color: var(--faint); }
-
 /* Where a drop would land. */
 .explorer .tree li.floor.out {
   background: color-mix(in oklch, var(--accent) 6%, var(--bg));
