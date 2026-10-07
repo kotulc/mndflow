@@ -2,7 +2,8 @@
 
 import { may_hold } from "../capabilities";
 import { block_base, def_at, domain_of, self_use } from "../defs";
-import { can_hold, GRID, inside, is_grid, lattice_of, layer_of, members_of, shape_of } from "../holders";
+import { can_hold, HEADED, inside, is_grid, lattice_of, layer_of, members_of,
+         shape_of } from "../holders";
 import { shown_name } from "../names";
 import { next_order, reorder } from "../tree";
 import { new_id } from "../ids";
@@ -114,9 +115,11 @@ register(
         const made = make_block(ctx, "", home_of(ctx, members), type);
         group = (made[0] as { block: { id: Id } }).block.id;
         out.push(...made);
-        /** A block made here does not answer the graph yet, so its lattice is written whole. */
+        /** A block made here does not answer the graph yet, so its lattice is written whole: the
+         *  extent asked for is its body, under a header row and column. */
         if (shape === "grid") {
-          lattice = { ...GRID, ...(rows === null ? {} : { rows }), ...(cols === null ? {} : { cols }) };
+          lattice = { ...HEADED, ...(rows === null ? {} : { rows: rows + 1 }),
+                      ...(cols === null ? {} : { cols: cols + 1 }) };
           out.push({ op: "set_grid", id: group, grid: lattice });
         }
       } else if (rows !== null || cols !== null) {
@@ -131,7 +134,9 @@ register(
 
       /** A grid seats each member where it was swept, else in the nearest free body cell, growing
        *  when none is free. */
-      const given = new Map(seats(args).map((s) => [s.id, { r: s.r, c: s.c }]));
+      /** Swept into a new grid, each seat is a body cell, past the header lines. */
+      const past = into ? 0 : 1;
+      const given = new Map(seats(args).map((s) => [s.id, { r: s.r + past, c: s.c + past }]));
       const taken = into && lattice ? taken_in(ctx.graph, into, lattice) : new Set<string>();
       for (const c of given.values()) taken.add(`${c.r},${c.c}`);
       const moved: Id[] = [];

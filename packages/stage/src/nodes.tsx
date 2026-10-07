@@ -292,22 +292,21 @@ export function cell_key(at: Spot): string {
   return `${at.group}@${at.r},${at.c}`;
 }
 
-/** What a gutter tab says: rows count from one, columns letter from A. */
-function tab_name(line: GridLine): string {
-  if (line.way === "row") return String(line.i + 1);
-  let n = line.i;
-  let out = "";
-  do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0);
-  return out;
-}
-
 /** Whether a cell lies on a row or column, merged cells included. */
 function on_line(c: GridCell, line: GridLine): boolean {
   const [from, size] = line.way === "row" ? [c.y, c.h] : [c.x, c.w];
   return line.at >= from && line.at < from + size;
 }
 
-/** The lattice a grid draws; opened, with a gutter tab for every row and column. */
+/** The line a header heads, as the tab it is: where that line runs is where the header does. */
+function headed_line(c: GridCell): GridLine | null {
+  if (!c.line) return null;
+  const row = c.line.way === "row";
+  return { ...c.line, at: row ? c.y : c.x, size: row ? c.h : c.w, name: c.index ?? "" };
+}
+
+/** The lattice a grid draws; opened, its header lines are its rows' and columns' tabs, and a side
+ *  with no header line has a gutter of them. */
 function Lattice({ id, cells, lines }: { id: string; cells: readonly GridCell[];
                                          lines?: readonly GridLine[] }) {
   const { picked, pick } = useContext(CellsContext);
@@ -388,16 +387,21 @@ function Lattice({ id, cells, lines }: { id: string; cells: readonly GridCell[];
               data-at={`${c.r},${c.c}`}
               data-r={c.r}
               data-c={c.c}
+              {...(c.line ? { "data-way": c.line.way, "data-i": c.line.i } : {})}
               style={{ left: c.x, top: c.y, width: c.w, height: c.h }}
               onPointerEnter={(e) => {
+                if (c.line && lines) set_lit(headed_line(c));
                 if (e.buttons === 1 && from.current) pick(range(from.current, c));
-              }}>
+              }}
+              onPointerLeave={c.line && lines ? () => set_lit(null) : undefined}
+              onClick={c.line && lines ? () => pick(line_cells(headed_line(c)!)) : undefined}>
           {/* What the cell says, where no block sits in it, typed in place; the key column says
               so. */}
           {naming.id === cell_key({ group: id, r: c.r, c: c.c })
             ? <Name id={naming.id} className="mnd-grid-value" text={c.value ?? ""} clears />
             : c.value ? <Inline className="mnd-grid-value" text={c.value} /> : null}
           {c.key ? <Icon name="key" size={12} className="mnd-grid-key" /> : null}
+          {c.index && lines ? <span className="mnd-grid-index">{c.index}</span> : null}
         </span>
       ))}
       {/* A tab per line: it lights the line, a click picks it, and the right button offers what
@@ -412,7 +416,7 @@ function Lattice({ id, cells, lines }: { id: string; cells: readonly GridCell[];
               onPointerEnter={() => set_lit(line)}
               onPointerLeave={() => set_lit(null)}
               onClick={() => pick(line_cells(line))}>
-          {tab_name(line)}
+          {line.name}
         </span>
       ))}
     </span>

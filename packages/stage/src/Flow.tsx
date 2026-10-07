@@ -15,7 +15,7 @@ import { BAND, MIN_ZOOM, read_zoom } from "./arrays";
 import { useDrag } from "./drag";
 import { useDraw } from "./draw";
 import { Grips } from "./Grips";
-import { kind_of, spread } from "./pointer";
+import { kind_of, spread, LINES } from "./pointer";
 import { paged, useCamera, useRoom } from "./room";
 import { Sweeping } from "./Sweeping";
 import { useSync } from "./sync";
@@ -97,10 +97,12 @@ function Canvas(props: FlowViewProps) {
       ? { group: on, r: Number(el_at.split(",")[0]), c: Number(el_at.split(",")[1]) }
       : null;
     /** A line gesture carries its grid, which way the line runs and which it is. */
-    const tab = kind === "line" && on && target instanceof Element
-      ? target.closest(".mnd-grid-line") : null;
+    const tab = kind === "line" && on && target instanceof Element ? target.closest(LINES) : null;
+    /** A header is a cell too, so it carries its address beside its line. */
+    const cell_at = tab?.getAttribute("data-at")?.split(",").map(Number);
     const line = tab ? { group: on, way: tab.getAttribute("data-way"),
-                         i: Number(tab.getAttribute("data-i")) } : null;
+                         i: Number(tab.getAttribute("data-i")),
+                         ...(cell_at ? { r: cell_at[0], c: cell_at[1] } : {}) } : null;
     const given = spot ?? line ?? (seat
       ? { side: seat.side, at: seat.at, ...(kind === "brim" ? { owner: on } : {}) }
       : null);

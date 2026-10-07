@@ -81,8 +81,9 @@ const LINES: readonly Entry[] = [
   { name: "insert", label: "insert column", args: { way: "col" } },
 ];
 
-/** What a row or column offers from its gutter tab: lines beside it, taking it away, and the
- *  header line on that side. */
+/** What a row or column offers from its tab: lines beside it, taking it away, and the header line
+ *  its tabs sit in — a row's in the header column, a column's in the header row; from a header,
+ *  which is a cell too, a block made in it first. */
 function line_offers(given: Record<string, unknown>, graph: Graph): Entry[] {
   const group = String(given["group"]);
   const i = Number(given["i"]);
@@ -90,13 +91,19 @@ function line_offers(given: Record<string, unknown>, graph: Graph): Entry[] {
   const way = row ? "row" : "col";
   const [before, after, noun] = row ? ["above", "below", "row"] : ["left", "right", "column"];
   const head = lattice_of(graph, group)?.head;
-  const headed = row ? !!head?.top : !!head?.left;
+  const headed = row ? !!head?.left : !!head?.top;
+  const across = row ? "column" : "row";
+  const cell = typeof given["r"] === "number"
+    ? [{ name: "create", label: "new block here",
+         args: { parent: group, at: `${String(given["r"])},${String(given["c"])}` } }]
+    : [];
   return [
+    ...cell,
     { name: "insert", label: `insert ${noun} ${before}`, args: { group, way, at: i } },
     { name: "insert", label: `insert ${noun} ${after}`, args: { group, way, at: i + 1 } },
     { name: "remove", label: `remove ${noun}`, args: { group, way, at: i } },
-    { name: "heads", label: `${headed ? "remove" : "add"} header ${noun}`,
-      args: { group, way: row ? "top" : "left" } },
+    { name: "heads", label: `${headed ? "remove" : "add"} header ${across}`,
+      args: { group, way: row ? "left" : "top" } },
   ];
 }
 
@@ -274,8 +281,14 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   const MANY: readonly (string | Entry)[] = ["group", "delete"];
 
   const gesture = (g: Gesture) => {
-    /** A gutter tab picks its line itself. */
-    if (g.button === "left" && g.kind === "line") return;
+    /** A tab picks its line itself; two clicks on a header write its text, as on any cell. */
+    if (g.button === "left" && g.kind === "line") {
+      const at = g.given as { group?: string; r?: number; c?: number } | undefined;
+      if (g.count === 2 && at?.group && at.r !== undefined && at.c !== undefined) {
+        label_cell({ group: at.group, r: at.r, c: at.c });
+      }
+      return;
+    }
     /** Left clicks on cells are the lattice's own; two write the cell's text. */
     if (g.button === "left" && g.kind === "cell") {
       if (g.count === 2 && g.given) label_cell(g.given as Spot);

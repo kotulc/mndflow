@@ -36,6 +36,34 @@
 | **markdown** | content and card look are text passed through untouched: any value may come from a file. No markdown verbs; a card template is a setting, written with `look` |
 
 
+## The action surface
+
+**The registry was shaped for gestures, menus and the terminal; it is now an agent's API.** The model holds: every action is sayable, returns mutations, refuses in words, and navigation writes nothing. **No new actions are needed** — mapping this repo used only `create`, `relate`, `describe`, `source` and `layout` — and geometry stays unsayable by design: an agent states meaning and lets layout place it.
+
+**What the terminal leaves behind**
+
+| | Now |
+|---|---|
+| `about` | help text, read by `help` and the menus. No longer scored against anything |
+| `asks` | the menus' hint for what to prompt. Not part of the agent contract |
+| `on` (scope), `offer()`, `when` | what a menu offers for a pick. `do` never consults them: it runs what it is told and `check` refuses. `when` must never hold a rule `check` lacks (today only `interface` has one, and its `check` repeats it) |
+| ranking, fuzzy verbs, the command words | gone with the terminal |
+
+**One rule made explicit: context is only a default.** The pick, the picked cells and the open layer may fill an argument a gesture left unsaid, but **every action takes everything it needs as arguments**. This holds today — each read of `ctx.picked`, `ctx.cells` and `ctx.layer` in core `actions/` falls back from a named argument — and becomes a rule so it keeps holding.
+
+**What changes: the arguments say what they are, the same way everywhere.** The code has drifted from actions.md, which is the goal; the code converges on it.
+
+| # | Today | Becomes | Why |
+|---|---|---|---|
+| A1 | `form: "block"` covers blocks, relationships and lists; definition arguments (`type`, `extends`) are plain text taking an id | `ref` names what is referred to — `block`, `edge`, `def`, or `element` for either — and `many` marks a list | the CLI resolves names and paths from the declaration, never from an argument's name (G3) |
+| A2 | `group` takes `members`; the grid actions take `group`; `define` takes `extends` and `domain` | `ids`, `grid`, `type`, as actions.md says | one name per role: `id` for one target, `ids` for several, `type` for a definition, `grid` for a lattice |
+| A3 | `at` is a cell `"r,c"` (`create`, `move`, `refer`, `label`, `merge`), a line index (`insert`, `remove`), a fraction along a wall (`interface`) and a map of positions (`layout`) | `cell` for an address, `line` for an index; `at` stays only the wall fraction, as on a block | one word, one meaning |
+| A4 | `tags`, `traits`, `choices` are text the action splits | JSON lists, declared `many` | no hidden comma syntax |
+| A5 | `spot` and `layout`'s positions are arguments like any other | declared positional: a gesture's, listed apart by `help` | an agent never needs a coordinate to say what it means |
+
+**Where:** core `actions/registry.ts` (`Arg`), every declaration in core `actions/`, their readers in the explorer's menu and the stage, and actions.md where it already says the goal. Lands in step 2, before `do`, so the CLI is built on the final names.
+
+
 ## The surface
 
 ```
@@ -238,7 +266,7 @@ The httpie conventions, so they need no teaching. A script line is already JSON,
 
 | Task | Where |
 |---|---|
-| `ref` and `many` on `Arg`, set on every action declaration | core `actions/` |
+| the action surface: `ref` and `many` on `Arg`, one name per role, `at` split, lists as lists, positional arguments declared (A1–A5) | core `actions/`, the menu and stage callers |
 | path resolution with candidates | core |
 | `state.ts`, `args.ts`, `refs.ts`; the result and exit codes | cli |
 | `new`; `do` for one action and for a script, inside `session.batch`, written once on success | cli |
@@ -318,6 +346,7 @@ The httpie conventions, so they need no teaching. A script line is already JSON,
 
 | Question | |
 |---|---|
+| **`define` and ids** | actions.md gives `define` an `id?` "passed in by a caller that must know it"; the code takes none, and this plan says ids are never chosen. Which caller needs one — if none, it leaves actions.md |
 | **sibling names** | the docs say unique among siblings; actions allow duplicates. Paths stay safe either way — ambiguity is refused — but the model should settle it |
 | **card templates** | which settings key carries a markdown card layout, and what it may reference (fields, body, children) |
 | **source fetch** | `bring` takes a package from a URL; ST.5 still needs a translator for an arbitrary fetched file to become blocks |

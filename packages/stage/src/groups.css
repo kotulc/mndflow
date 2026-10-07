@@ -128,8 +128,9 @@
 /* The lattice and its gutter tabs sit over the dimmed outside, not under it. */
 .mnd-group.room > .mnd-grid-cells { z-index: 1; }
 
-/* Above the column gutter. */
-.mnd-group-shell.room > .mnd-group-title { color: var(--muted); margin-bottom: 26px; }
+/* Close over the grid, and above the column gutter where there is one. */
+.mnd-group-shell.room > .mnd-group-title { color: var(--muted); }
+.mnd-group-shell.room:has(.mnd-grid-line.col) > .mnd-group-title { margin-bottom: 26px; }
 
 /* Opened, a cell shows it is a target: a wash and an edge on hover, and a mark where it is
    empty. A lit line is every cell its gutter tab points at. */
@@ -138,7 +139,7 @@
   border-color: color-mix(in oklch, var(--accent) 55%, transparent);
   background: color-mix(in oklch, var(--accent) 7%, transparent);
 }
-.mnd-group.room .mnd-grid-cell:not(.seated):not(:has(> .mnd-grid-value)):hover::after {
+.mnd-group.room .mnd-grid-cell:not(.seated):not([data-way]):not(:has(> .mnd-grid-value)):hover::after {
   content: "+";
   position: absolute;
   inset: 0;
@@ -149,7 +150,8 @@
   pointer-events: none;
 }
 
-/* A gutter tab per row and column, just outside the grid: narrow, quiet until pointed at. */
+/* A gutter tab per row and column, on a side with no header line: narrow, see-through, and quiet
+   until pointed at. */
 .mnd-grid-line {
   position: absolute;
   box-sizing: border-box;
@@ -157,13 +159,28 @@
   place-items: center;
   border: 1px solid color-mix(in oklch, var(--card-line) 28%, transparent);
   border-radius: 2px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 10px;
+  background: color-mix(in oklch, var(--surface) 72%, transparent);
+  color: color-mix(in oklch, var(--muted) 60%, transparent);
+  font-size: 9px;
   pointer-events: auto;
   cursor: pointer;
   user-select: none;
 }
+
+/* A header's line name, faint in its corner, never in the way of what it says. */
+.mnd-grid-index {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  color: color-mix(in oklch, var(--muted) 55%, transparent);
+  font-size: 9px;
+  line-height: 1;
+  pointer-events: none;
+}
+.mnd-grid-cell.upright > .mnd-grid-index { right: auto; left: 3px; }
+/* A column's letter sits in the middle of its header. */
+.mnd-grid-cell[data-way="col"] > .mnd-grid-index { left: 0; right: 0; text-align: center; }
+.mnd-group.room .mnd-grid-cell[data-way] { cursor: context-menu; }
 .mnd-grid-line.row { left: -22px; width: 18px; }
 .mnd-grid-line.col { top: -22px; height: 18px; }
 .mnd-grid-line:hover {
@@ -194,9 +211,10 @@
   cursor: pointer;
 }
 
-/* A header cell keeps the same faint edge as every other cell. */
+/* A header cell keeps the same faint edge as every other cell, and lets the guides through. */
 .mnd-grid-cell.header {
-  background: color-mix(in oklch, var(--card-line) 5%, var(--surface));
+  background: color-mix(in oklch, color-mix(in oklch, var(--card-line) 5%, var(--surface)) 72%,
+                        transparent);
 }
 .mnd-grid-cell.header:hover {
   background: color-mix(in oklch, var(--accent) 7%, var(--surface));

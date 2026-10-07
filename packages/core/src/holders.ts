@@ -9,6 +9,9 @@ import type { Block, Cell, Graph, Grid, HeaderRole, Id, Shape, Span } from "./ty
 /** The extent a grid draws where it has not said one. */
 export const GRID: Grid = { rows: 2, cols: 2 };
 
+/** What a new grid is made with: two by two, under a header row and a header column. */
+export const HEADED: Grid = { rows: 3, cols: 3, head: { top: true, left: true } };
+
 /** The stable order a layer and every holder in it read in. */
 const by_order = (a: { order?: number; id: Id }, b: { order?: number; id: Id }): number =>
   (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id);

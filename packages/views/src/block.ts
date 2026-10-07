@@ -3,7 +3,7 @@
 import { alias_of, layout_of, children, covers, edge_base, edges_in, group_depth, heading, holders_in,
          inline, is_container, is_grid, is_group, is_interface, is_note, label_of, lattice_of,
          members_of, schema_of, shape_of, stamps_of, role_of, shown_name, trace, EDITOR, type Cut,
-         type Tiers, type ViewKind, type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
+         type Tiers, type ViewKind, type Graph, type Grid, type Id, type Relation, type Side, type Span } from "@mnd/core";
 import { at_seat, cell_box, laid, line_span, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
@@ -82,12 +82,13 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
    *  but never moves, under the grid's own crumbs. */
   if (layer !== GRID_LAYER && is_grid(given, layer)) {
     const { frame: _room, ...scene } = project(sheet_graph(given, layer), GRID_LAYER, config);
+    /** A side with a header line has its tabs in it; a side without one has a gutter of tabs. */
     const g = lattice_of(given, layer)!;
-    const lines: GridLine[] = [
-      ...Array.from({ length: g.rows }, (_, i) => ({ way: "row" as const, i,
-                                                      ...line_span(g, "row", i) })),
-      ...Array.from({ length: g.cols }, (_, i) => ({ way: "col" as const, i,
-                                                      ...line_span(g, "col", i) }))];
+    const tabs = (way: "row" | "col", n: number): GridLine[] =>
+      Array.from({ length: n }, (_, i) => ({ way, i, ...line_span(g, way, i),
+                                              name: line_name(g, way, i) }));
+    const lines = [...(g.head?.left ? [] : tabs("row", g.rows)),
+                   ...(g.head?.top ? [] : tabs("col", g.cols))];
     const nodes = scene.nodes.map((n) => (n.id !== layer ? n : {
       ...n, draggable: false,
       data: { ...n.data, lines, marks: [...n.data.marks, "room" as const] } }));
@@ -226,10 +227,27 @@ function lattice(graph: Graph, id: Id): GridCell[] {
       if (role === "row") marks.push("upright");
       const value = said(r, c);
       const def = r === 0 ? g.columns?.[c] : undefined;
+      /** A header heading one line is that line's tab; the corner heads none. */
+      const line = role === "row" ? { way: "row" as const, i: r }
+        : role === "col" ? { way: "col" as const, i: c } : null;
+      const index = line ? line_name(g, line.way, line.i) : "";
       out.push({ r, c, ...cell_box(g, r, c), marks, ...(value ? { value } : {}),
-                 ...(def ? { def } : {}), ...(r === 0 && c === key ? { key: true } : {}) });
+                 ...(def ? { def } : {}), ...(r === 0 && c === key ? { key: true } : {}),
+                 ...(line ? { line } : {}), ...(index ? { index } : {}) });
     }
   }
+  return out;
+}
+
+/** What a row or column of a grid is called: rows count from one and columns letter from A, past
+ *  the header line, which is nameless. */
+function line_name(g: Grid, way: "row" | "col", i: number): string {
+  const head = way === "row" ? !!g.head?.top : !!g.head?.left;
+  let n = i - (head ? 1 : 0);
+  if (n < 0) return "";
+  if (way === "row") return String(n + 1);
+  let out = "";
+  do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0);
   return out;
 }
 
