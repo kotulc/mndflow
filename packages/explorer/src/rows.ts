@@ -1,7 +1,7 @@
 /** The explorer's rows: each section's header, then what it lists, laid out with depth, guides
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
-import { alias_of, branch_of, children, config_of, def_of, domain_of, is_holder, is_interface,
+import { alias_of, branch_of, children, config_of, def_of, domain_of, is_group, is_interface,
          is_named, organizes, relation_base, role_of, shown_name, tops_of, type Block, type Cut,
          type Graph, type Id, type Role } from "@mnd/core";
 import { known, role_icon, type IconName } from "@mnd/theme";
@@ -116,11 +116,11 @@ export function parent_of(rows: readonly Row[], i: number): number {
   return -1;
 }
 
-/** The block whose row stands for this one: itself, or for a group or grid, which has no row,
- *  the nearest block holding it that is not one. */
+/** The block whose row stands for this one: itself, or for a group, which has no row, the
+ *  nearest block holding it that is not one. */
 export function listed_of(graph: Graph, id: Id): Id {
   let at = id;
-  while (is_holder(graph, at) && graph.blocks[at]?.parent) at = graph.blocks[at]!.parent!;
+  while (is_group(graph, at) && graph.blocks[at]?.parent) at = graph.blocks[at]!.parent!;
   return at;
 }
 
@@ -152,9 +152,9 @@ function branch_rows(graph: Graph, at: { cut: Cut; root: Id | null }, id: Id, ro
   }
 }
 
-/** What a row lists of these blocks: each, but a group or grid by what it holds, at its level. */
+/** What a row lists of these blocks: each, but a group by what it holds, at its level. */
 function unheld(graph: Graph, blocks: readonly Block[]): Block[] {
-  return blocks.flatMap((b) => (is_holder(graph, b.id) ? unheld(graph, under(graph, b.id)) : [b]));
+  return blocks.flatMap((b) => (is_group(graph, b.id) ? unheld(graph, under(graph, b.id)) : [b]));
 }
 
 /** Whether a tree has structure of its own. */

@@ -7,7 +7,7 @@ import { shown_name } from "../names";
 import { next_order, reorder } from "../tree";
 import { new_id } from "../ids";
 import type { Graph, Grid, Id, Mutation, Shape } from "../types";
-import { free_cell, put, with_merges } from "./grid";
+import { put, seat_in, taken_in, with_merges } from "./grid";
 import { register, type Args, type Context } from "./registry";
 import { handles, here, id_of, make_block, num, seats, spot, text, tied } from "./helpers";
 
@@ -129,22 +129,21 @@ register(
       const at = spot(args);
       if (at) out.push({ op: "place_block", id: group, x: at.x, y: at.y });
 
-      /** A grid seats each member where it was swept, else in the nearest free body cell; one
-       *  with nowhere to sit stays out. */
+      /** A grid seats each member where it was swept, else in the nearest free body cell, growing
+       *  when none is free. */
       const given = new Map(seats(args).map((s) => [s.id, { r: s.r, c: s.c }]));
-      const held = into ? members_of(ctx.graph, into) : [];
-      const taken = new Set([...held.filter((b) => b.cell && lattice && inside(lattice, b.cell))
-                               .map((b) => b.cell!), ...given.values()]
-        .map((c) => `${c.r},${c.c}`));
+      const taken = into && lattice ? taken_in(ctx.graph, into, lattice) : new Set<string>();
+      for (const c of given.values()) taken.add(`${c.r},${c.c}`);
       const moved: Id[] = [];
+      const loose: Id[] = [];
       for (const id of members) {
         const was = ctx.graph.blocks[id]!.parent === group;
-        const cell = !lattice ? null : given.get(id) ?? (was ? null
-          : free_cell(lattice, taken, null, { r: 0, c: 0 }, false));
-        if (lattice && !cell) continue;
         if (!was) { out.push({ op: "move_block", id, parent: group }); moved.push(id); }
-        if (cell) { taken.add(`${cell.r},${cell.c}`); out.push({ op: "seat_cell", id, cell }); }
+        const cell = lattice ? given.get(id) : undefined;
+        if (cell) out.push({ op: "seat_cell", id, cell });
+        else if (lattice && !was) loose.push(id);
       }
+      if (lattice && loose.length) out.push(...seat_in(group, lattice, taken, loose, null));
       /** Arriving members keep the order they had among themselves. */
       const orders = into ? reorder(ctx.graph, group, moved)
         : moved.map((id, n) => ({ id, order: n + 1 }));

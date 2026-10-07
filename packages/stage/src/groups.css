@@ -117,6 +117,62 @@
 .mnd-group.gridded:hover > .mnd-group-edge,
 .mnd-group.gridded.picked > .mnd-group-edge { border-color: var(--accent); }
 
+/* An opened grid is the room: its edge is the wall, the guides show inside, and outside is dimmed
+   as round any room. */
+.mnd-group.room > .mnd-group-edge {
+  border-color: var(--wall);
+  border-radius: 3px;
+  background: none;
+  box-shadow: 0 0 0 9999px var(--outside);
+}
+/* The lattice and its gutter tabs sit over the dimmed outside, not under it. */
+.mnd-group.room > .mnd-grid-cells { z-index: 1; }
+
+/* Above the column gutter. */
+.mnd-group-shell.room > .mnd-group-title { color: var(--muted); margin-bottom: 26px; }
+
+/* Opened, a cell shows it is a target: a wash and an edge on hover, and a mark where it is
+   empty. A lit line is every cell its gutter tab points at. */
+.mnd-group.room .mnd-grid-cell:hover,
+.mnd-group.room .mnd-grid-cell.lit {
+  border-color: color-mix(in oklch, var(--accent) 55%, transparent);
+  background: color-mix(in oklch, var(--accent) 7%, transparent);
+}
+.mnd-group.room .mnd-grid-cell:not(.seated):not(:has(> .mnd-grid-value)):hover::after {
+  content: "+";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: color-mix(in oklch, var(--accent) 70%, transparent);
+  font-size: 20px;
+  pointer-events: none;
+}
+
+/* A gutter tab per row and column, just outside the grid: narrow, quiet until pointed at. */
+.mnd-grid-line {
+  position: absolute;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in oklch, var(--card-line) 28%, transparent);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+}
+.mnd-grid-line.row { left: -22px; width: 18px; }
+.mnd-grid-line.col { top: -22px; height: 18px; }
+.mnd-grid-line:hover {
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 12%, var(--surface));
+  color: var(--text);
+}
+.mnd-flow.frameless .mnd-group.room > .mnd-group-edge { box-shadow: none; }
+
 /* A grid inside another group is still a boundary, not a top-level frame. */
 .mnd-group.member.gridded > .mnd-group-edge {
   border-style: dashed;

@@ -220,7 +220,7 @@ export function Explorer(props: ExplorerProps) {
   const library = sections.library;
   /** The layer seen from inside, where the canvas looks into one; a whole section has none. */
   const open = view.kind === "internal" ? view.layer : null;
-  /** The row each block lights: its own, or a group's or grid's nearest listed holder's. */
+  /** The row each block lights: its own, or a group's nearest listed holder's. */
   const as_row = (id: Id | null | undefined) => (id ? listed_of(graph, id) : id);
   const held = chain.held.map(as_row);
   /** The picks the section in focus lists. */

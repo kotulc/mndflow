@@ -183,7 +183,7 @@ describe("the keyboard", () => {
     expect(view.onAct).toHaveBeenCalledWith("open", { id: "block_pump" });
   });
 
-  it("does not descend into a grid on a double click", () => {
+  it("descends into a grid on a double click", () => {
     const graph = fold(gridded(), FLOOR);
     const scene = project(graph, "block_board");
     const onAct = vi.fn();
@@ -191,7 +191,7 @@ describe("the keyboard", () => {
       <Stage scene={scene} graph={graph} picked={[]} onAct={onAct} onPick={vi.fn()} />,
     );
     fireEvent.doubleClick(card(view, "block_lanes"));
-    expect(onAct).not.toHaveBeenCalledWith("open", expect.anything());
+    expect(onAct).toHaveBeenCalledWith("open", { id: "block_lanes" });
     cleanup();
   });
 

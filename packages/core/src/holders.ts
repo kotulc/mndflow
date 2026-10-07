@@ -25,13 +25,14 @@ export function covers(s: Span, r: number, c: number): boolean {
   return r >= s.r && r < s.r + s.rows && c >= s.c && c < s.c + s.cols;
 }
 
-/** Which inline holder a block is, or null: what its traits say — `inline`, and `matrix` for a
- *  grid. **A definition always draws as a card**, so it is never one, whatever it extends. */
+/** Which holder with a shape a block is, or null: what its traits say — `matrix` for a grid,
+ *  `inline` for a group. **A definition always draws as a card**, so it is never one, whatever it
+ *  extends. */
 export function shape_of(graph: Graph, id: Id | undefined): Shape | null {
   const b = id ? graph.blocks[id] : undefined;
   if (!b || b.def || b.of || b.side !== undefined) return null;
   const said = setting_of(graph, b.id, "holder");
-  return said["inline"] !== true ? null : said["matrix"] === true ? "grid" : "group";
+  return said["matrix"] === true ? "grid" : said["inline"] === true ? "group" : null;
 }
 
 /** Whether this is a grid — a region with an extent and cells to seat in. */
@@ -50,7 +51,7 @@ export function is_flat(graph: Graph, id: Id | undefined): boolean {
   return is_group(graph, id) && setting_of(graph, id, "holder")["flat"] === true;
 }
 
-/** Whether this draws what it holds inline, either way. */
+/** Whether this is a group or a grid. */
 export function is_holder(graph: Graph, id: Id | undefined): boolean {
   return shape_of(graph, id) !== null;
 }
@@ -66,10 +67,12 @@ export function organizes(graph: Graph, id: Id | undefined): boolean {
   return is_holder(graph, id) || is_folder(graph, id);
 }
 
-/** Whether a block draws what it holds on the layer it sits on, rather than behind its card.
- *  Flattened, a folder does too. */
+/** Whether a block draws what it holds on the layer it sits on, rather than behind its card: a
+ *  group, and a grid only where a view flattens it. Flattened, a folder does too. */
 export function inline(graph: Graph, id: Id | undefined, flat = false): boolean {
-  return is_holder(graph, id) || (flat && is_folder(graph, id));
+  if (is_group(graph, id)) return true;
+  if (is_grid(graph, id)) return setting_of(graph, id, "holder")["flat"] === true;
+  return flat && is_folder(graph, id);
 }
 
 /** The layer a block draws on: its nearest ancestor that hides what it holds. */
@@ -106,12 +109,12 @@ export function lattice_of(graph: Graph, id: Id | undefined): Grid | null {
   return { ...GRID, ...graph.blocks[id]!.grid };
 }
 
-/** Every inline holder drawn in one layer, in a stable order. */
+/** Every holder drawn inline in one layer, in a stable order. */
 export function holders_in(graph: Graph, layer: Id | null, flat = false): Block[] {
   return drawn_in(graph, layer, flat).filter((b) => inline(graph, b.id, flat));
 }
 
-/** The inline holder a block sits in, or null. */
+/** The group or grid a block sits in, or null. */
 export function grid_of(graph: Graph, id: Id): Block | null {
   const at = graph.blocks[id]?.parent;
   return at && is_holder(graph, at) ? graph.blocks[at]! : null;
@@ -123,7 +126,7 @@ export function cell_of(graph: Graph, id: Id): Cell | null {
   return b?.cell && is_grid(graph, b.parent ?? undefined) ? { ...b.cell } : null;
 }
 
-/** The inline holders enclosing a block, nearest first. */
+/** The groups and grids enclosing a block, nearest first. */
 export function holders_over(graph: Graph, id: Id): Block[] {
   const out: Block[] = [];
   const seen = new Set<Id>([id]);
@@ -136,9 +139,16 @@ export function holders_over(graph: Graph, id: Id): Block[] {
   return out;
 }
 
-/** How many inline holders enclose a block — zero for one sitting on the layer. */
+/** How many holders drawn inline enclose a block — zero for one sitting on the layer. */
 export function group_depth(graph: Graph, id: Id): number {
-  return holders_over(graph, id).length;
+  let n = 0;
+  const seen = new Set<Id>([id]);
+  for (let at = graph.blocks[id]?.parent; at && !seen.has(at) && inline(graph, at);
+       at = graph.blocks[at]?.parent) {
+    seen.add(at);
+    n++;
+  }
+  return n;
 }
 
 /** The block heading what holds it: its first, where the holder's definition says what may head
@@ -155,13 +165,13 @@ export function headed_group(graph: Graph, id: Id): Id | null {
   return group && group_head(graph, group) === id ? group : null;
 }
 
-/** Everything an inline holder holds, in order. */
+/** Everything a group or grid holds, in order. */
 export function members_of(graph: Graph, group: Id): Block[] {
   if (!is_holder(graph, group)) return [];
   return children(graph, group).filter((b) => b.side === undefined);
 }
 
-/** Whether `holder` may take `id`: an inline holder, not itself, and not a cycle. Any block may
+/** Whether `holder` may take `id`: a group or grid, not itself, and not a cycle. Any block may
  *  sit in a group or a cell; what it may be is its settings' to say. */
 export function can_hold(graph: Graph, holder: Id, id: Id): boolean {
   const h = graph.blocks[holder];

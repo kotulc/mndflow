@@ -7,7 +7,7 @@
  *  keeps its id, so a pick on one is a pick on the block it is — or a line of a grid the schema
  *  heads, drawn as a card for as long as the diagram is. */
 
-import { children, holders_in, lattice_of, schema_def, schema_of, type Block, type Graph,
+import { children, drawn_in, lattice_of, schema_def, schema_of, type Block, type Graph,
          type Id, type Relation } from "@mnd/core";
 import { size_of, snap, GAP } from "./size";
 
@@ -34,7 +34,8 @@ const ACROSS = 4;
 export function fields_graph(graph: Graph, layer: Id): Graph | null {
   const def = schema_def(graph, layer);
   const uses = def ? [...children(graph, layer).filter((b) => b.type === def),
-                      ...holders_in(graph, layer).filter((h) => lattice_of(graph, h.id)?.schema === def)
+                      ...drawn_in(graph, layer)
+                        .filter((h) => lattice_of(graph, h.id)?.schema === def)
                         .flatMap((grid) => lines(graph, grid, def))] : [];
   if (!def || !uses.length) return null;
   const top = `${CLASS}${def}`;

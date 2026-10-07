@@ -16,7 +16,8 @@ export function kind_of(scene: Scene, id: string | null,
   /** A card's border is a wall, not the card. */
   if (el?.closest(".mnd-brim")) return "brim";
   if (scene.frame?.ports.some((p) => p.id === id)) return "seat";
-  /** A cell has no id, so its address is read off the DOM. */
+  /** A cell or a line has no id, so its address is read off the DOM. */
+  if (el?.closest(".mnd-grid-line")) return "line";
   if (el?.closest(".mnd-grid-cell")) return "cell";
   const node = scene.nodes.find((n) => n.id === id);
   /** Boundaries and notes have no inside. */

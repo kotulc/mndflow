@@ -1,6 +1,6 @@
 /** Bands and grids inside a layer: members packed in a band, seated blocks placed by cell. */
 
-import { edges_in, group_depth, is_group, is_grid, is_header, is_holder, is_interface,
+import { edges_in, group_depth, inline, is_group, is_grid, is_header, is_interface,
          lattice_of, layout_of, members_of, type Block, type Graph, type Id, type Layout }
   from "@mnd/core";
 import type { Placed } from "./arrange";
@@ -175,11 +175,11 @@ export function member_in_holder(graph: Graph, layer: Id | null, holder_id: Id, 
   return null;
 }
 
-/** Which loose unit a block belongs to for placement — a band or grid is one thing. */
+/** Which loose unit a block belongs to for placement — a band or open grid is one thing. */
 export function loose_unit(graph: Graph, id: Id): Id {
   const b = graph.blocks[id];
   if (!b) return id;
   if (is_interface(b) && b.parent) return loose_unit(graph, b.parent);
-  if (is_holder(graph, b.parent ?? undefined)) return b.parent!;
+  if (inline(graph, b.parent ?? undefined)) return b.parent!;
   return id;
 }

@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR } from "@mnd/fixtures";
-import { MAIN, ROOT, check, children, def_of, holders_in, is_grid,
+import { MAIN, ROOT, check, children, def_of, is_grid,
          session, type Id, type Session } from "../src/index";
 
 /** A seeded session holding blocks of these names in `main`. */
@@ -105,6 +105,6 @@ describe("a group", () => {
   it("stands when it was made empty", () => {
     const { s } = made();
     s.go("group", { rows: 1, cols: 1 });
-    expect(holders_in(s.graph(), MAIN).some((h) => is_grid(s.graph(), h.id))).toBe(true);
+    expect(children(s.graph(), MAIN).some((h) => is_grid(s.graph(), h.id))).toBe(true);
   });
 });

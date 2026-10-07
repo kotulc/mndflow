@@ -1,7 +1,7 @@
 /** What a box looks like, as React Flow node types. */
 
 import { type CSSProperties, createContext, memo, useContext, useEffect,
-         useRef } from "react";
+         useRef, useState } from "react";
 import { Handle, NodeResizer, Position, useUpdateNodeInternals,
          type NodeProps } from "@xyflow/react";
 import type { Side } from "@mnd/core";
@@ -10,9 +10,9 @@ import type { Side } from "@mnd/core";
 export const DRAGGED = "text/mnd-block";
 
 import { FRAME, PLAIN, look_key,
-         type BoxData, type BoxNode, type GridCell, type Look } from "@mnd/views";
+         type BoxData, type BoxNode, type GridCell, type GridLine, type Look } from "@mnd/views";
 import type { Mark, Role } from "@mnd/core";
-import { Icon, Name, known, mark_icon, role_icon } from "@mnd/theme";
+import { Icon, Name, known, mark_icon, role_icon, useNaming } from "@mnd/theme";
 import { Inline, Markdown, plain } from "./Markdown";
 
 
@@ -287,9 +287,35 @@ export type Picking = { picked: readonly Spot[]; pick: (cells: readonly Spot[]) 
 
 export const CellsContext = createContext<Picking>({ picked: [], pick: () => {} });
 
-/** The lattice a grid draws. */
-function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
+/** What a cell's text is typed as: the name a cell answers to while it is being written. */
+export function cell_key(at: Spot): string {
+  return `${at.group}@${at.r},${at.c}`;
+}
+
+/** What a gutter tab says: rows count from one, columns letter from A. */
+function tab_name(line: GridLine): string {
+  if (line.way === "row") return String(line.i + 1);
+  let n = line.i;
+  let out = "";
+  do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0);
+  return out;
+}
+
+/** Whether a cell lies on a row or column, merged cells included. */
+function on_line(c: GridCell, line: GridLine): boolean {
+  const [from, size] = line.way === "row" ? [c.y, c.h] : [c.x, c.w];
+  return line.at >= from && line.at < from + size;
+}
+
+/** The lattice a grid draws; opened, with a gutter tab for every row and column. */
+function Lattice({ id, cells, lines }: { id: string; cells: readonly GridCell[];
+                                         lines?: readonly GridLine[] }) {
   const { picked, pick } = useContext(CellsContext);
+  const naming = useNaming();
+  /** The line a gutter tab is lighting. */
+  const [lit, set_lit] = useState<GridLine | null>(null);
+  const line_cells = (line: GridLine): Spot[] =>
+    cells.filter((c) => on_line(c, line)).map((c) => ({ group: id, r: c.r, c: c.c }));
   const held = (c: GridCell) =>
     picked.some((p) => p.group === id && p.r === c.r && p.c === c.c);
 
@@ -357,7 +383,8 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
         /** `nopan` because a sweep across cells is not a drag of the canvas. */
         <span key={`${c.r},${c.c}`}
               className={["mnd-grid-cell", "nopan", ...c.marks, c.def ? "allocated" : "",
-                          held(c) ? "picked" : ""].filter(Boolean).join(" ")}
+                          held(c) ? "picked" : "", lit && on_line(c, lit) ? "lit" : ""]
+                .filter(Boolean).join(" ")}
               data-at={`${c.r},${c.c}`}
               data-r={c.r}
               data-c={c.c}
@@ -365,9 +392,27 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
               onPointerEnter={(e) => {
                 if (e.buttons === 1 && from.current) pick(range(from.current, c));
               }}>
-          {/* What the cell says, where no block sits in it; the key column says so. */}
-          {c.value ? <Inline className="mnd-grid-value" text={c.value} /> : null}
+          {/* What the cell says, where no block sits in it, typed in place; the key column says
+              so. */}
+          {naming.id === cell_key({ group: id, r: c.r, c: c.c })
+            ? <Name id={naming.id} className="mnd-grid-value" text={c.value ?? ""} clears />
+            : c.value ? <Inline className="mnd-grid-value" text={c.value} /> : null}
           {c.key ? <Icon name="key" size={12} className="mnd-grid-key" /> : null}
+        </span>
+      ))}
+      {/* A tab per line: it lights the line, a click picks it, and the right button offers what
+          may be done to it. */}
+      {lines?.map((line) => (
+        <span key={`${line.way}${line.i}`}
+              className={`mnd-grid-line ${line.way} nopan`}
+              data-way={line.way}
+              data-i={line.i}
+              style={line.way === "row" ? { top: line.at, height: line.size }
+                                        : { left: line.at, width: line.size }}
+              onPointerEnter={() => set_lit(line)}
+              onPointerLeave={() => set_lit(null)}
+              onClick={() => pick(line_cells(line))}>
+          {tab_name(line)}
         </span>
       ))}
     </span>
@@ -392,9 +437,10 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
   const has_cells = !!data.grid?.length;
-  const shell = ["mnd-group-shell", has_cells ? "gridded" : ""].filter(Boolean).join(" ");
+  const room = data.marks.includes("room") ? "room" : "";
+  const shell = ["mnd-group-shell", has_cells ? "gridded" : "", room].filter(Boolean).join(" ");
   const group = ["mnd-group", has_cells ? "gridded" : "", data.marks.includes("flat") ? "flat" : "",
-                 selected ? "picked" : ""].filter(Boolean).join(" ");
+                 room, selected ? "picked" : ""].filter(Boolean).join(" ");
   return (
     <div className={shell} {...dressed(look)}>
       {/* The name and label float above the frame together. */}
@@ -407,7 +453,8 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
         ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
       <div className={group} title={data.label}>
         {has_cells ? null : <BandRim />}
-        {has_cells ? <Lattice id={id} cells={data.grid!} /> : null}
+        {has_cells ? <Lattice id={id} cells={data.grid!}
+                              {...(data.lines ? { lines: data.lines } : {})} /> : null}
         {has_cells ? <Edge /> : null}
         {has_cells ? (
           <NodeResizer isVisible={selected} minWidth={96} minHeight={48}

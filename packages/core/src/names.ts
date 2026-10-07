@@ -1,7 +1,7 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
 import { base_named, base_of, def_at, def_of, edge_base, frozen, schema_of } from "./defs";
-import { holders_in, is_flat, is_holder, shape_of } from "./holders";
+import { drawn_in, is_flat, is_group, shape_of } from "./holders";
 import { children, is_container, stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
@@ -153,7 +153,7 @@ export function schema_def(graph: Graph, id: Id): Id | null {
   /** A grid is described by the schema heading it first, then by what it is. */
   return own(b.grid?.schema) ?? own(b.type)
     ?? children(graph, id).map((k) => own(k.type)).find(Boolean)
-    ?? holders_in(graph, id).map((h) => own(h.grid?.schema)).find(Boolean) ?? null;
+    ?? drawn_in(graph, id).map((h) => own(h.grid?.schema)).find(Boolean) ?? null;
 }
 
 /** What a card is stamped with: what it stands in for, or else what describes it — a stand-in
@@ -184,11 +184,11 @@ export function subtypes(graph: Graph, def: Id): Block[] {
 }
 
 /** Whether a card opens onto a drawing of its own: a block holding blocks, a usage whose
- *  definition does, a reference to one that does, or a stand-in for a definition. A group or grid
- *  never does: what it holds is drawn in place. */
+ *  definition does, a reference to one that does, or a stand-in for a definition. A group never
+ *  does: what it holds is drawn in place. A grid opens onto its grid view. */
 export function opens(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
-  if (!b || is_holder(graph, id)) return false;
+  if (!b || is_group(graph, id)) return false;
   if (is_container(graph, id)) return true;
   if (!b.def && def_at(graph, b.type) && is_container(graph, b.type!)) return true;
   if (b.of && def_at(graph, b.of)) return is_container(graph, b.of);

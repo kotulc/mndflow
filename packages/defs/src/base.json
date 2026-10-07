@@ -143,7 +143,7 @@
         "id": "grid",
         "parent": "base.blocks",
         "name": "grid",
-        "body": "A lattice of cells drawing what it holds in place: a header allocates what its row or column holds.",
+        "body": "A spreadsheet of cells holding text or blocks, opened as a grid view: a header allocates what its row or column holds.",
         "def": {},
         "settings": {
           "block": {
@@ -158,7 +158,7 @@
         },
         "traits": [
           "container",
-          "inline",
+          "ports",
           "matrix"
         ],
         "order": 6
@@ -355,7 +355,7 @@
         "parent": "base.traits",
         "name": "matrix",
         "type": "tag",
-        "body": "Seats what it holds in the cells of a grid.",
+        "body": "Seats text and blocks in the cells of a grid, drawn when it is opened.",
         "def": {},
         "settings": {
           "holder": {

@@ -5,14 +5,14 @@ import { shown_name } from "../names";
 import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_domain,
          kind_free, may_retype, name_taken, package_of, plain_type, setting_of, stored_type,
          self_use } from "../defs";
-import { at_cell, covers, GRID, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
-import { children, is_interface, next_order, reorder, stands_for, subtree } from "../tree";
+import { GRID, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
+import { is_interface, next_order, reorder, stands_for, subtree } from "../tree";
 import { leave_at, open_at, reveal_at, view_on, EDITOR, type Tiers, type View,
          type Views } from "../navigate";
 import { new_id } from "../ids";
 import { BASE_PACKAGE, LAYOUTS, type Graph, type Id, type Layout, type Mutation } from "../types";
 import { register, type Context, type Result } from "./registry";
-import { cell_free, free_cell, seat_all } from "./grid";
+import { seat_all, seat_in, taken_in } from "./grid";
 import { borrowed, cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS, spot,
          text, tied, typed } from "./helpers";
 
@@ -73,21 +73,6 @@ function in_use(graph: Graph, id: Id, gone: ReadonlySet<Id>): string | null {
     + `is used by ${users.length === 1 ? "one element" : `${users.length} elements`}`;
 }
 
-/** How many cells of a grid are free: its addresses, merges counted once, none seated. */
-function free_count(graph: Graph, grid: Id): number {
-  const g = lattice_of(graph, grid);
-  if (!g) return 0;
-  let n = 0;
-  for (let r = 0; r < g.rows; r++) {
-    for (let c = 0; c < g.cols; c++) {
-      const span = g.merges?.find((s) => covers(s, r, c));
-      if (span && (span.r !== r || span.c !== c)) continue;
-      if (!at_cell(graph, grid, r, c)) n++;
-    }
-  }
-  return n;
-}
-
 register(
   {
     name: "create",
@@ -97,7 +82,9 @@ register(
     args: [{ name: "name", form: "text", asks: true },
            { name: "parent", form: "block" },
            { name: "type", form: "text" }, { name: "spot", form: "spot" },
-           { name: "from", form: "block" }, { name: "before", form: "block" }],
+           { name: "from", form: "block" }, { name: "before", form: "block" },
+           /** The cell it is made in, where the parent is a grid. */
+           { name: "at", form: "text" }],
     check: (ctx, args) => {
       const type = args["type"] ? String(args["type"]) : "";
       const parent = (args["parent"] as Id) ?? here(ctx);
@@ -109,7 +96,6 @@ register(
       const why = borrowed(ctx.graph, parent);
       if (why) return why;
       if (self_use(ctx.graph, parent, type)) return "a definition cannot use itself";
-      if (is_grid(ctx.graph, parent) && !free_count(ctx.graph, parent)) return "every cell is taken";
       const from = args["from"] ? id_of(args, "from") : null;
       if (from && layer_of(ctx.graph, from) !== drawn_on(ctx.graph, parent)) {
         return "a tie joins blocks on one layer";
@@ -123,11 +109,12 @@ register(
       const made = make_block(ctx, text(args, "name"), parent, type);
       const at = spot(args);
       const id = (made[0] as { block: { id: Id } }).block.id;
+      /** In a grid, it takes the cell pointed at, else the nearest free one. */
       const g = lattice_of(ctx.graph, parent);
-      const taken = new Set(children(ctx.graph, parent).filter((b) => b.cell)
-        .map((b) => `${b.cell!.r},${b.cell!.c}`));
-      const cell = g ? free_cell(g, taken, null, { r: 0, c: 0 }, false) : null;
-      if (cell) made.push({ op: "seat_cell", id, cell });
+      if (g) {
+        made.push(...seat_in(parent, g, taken_in(ctx.graph, parent, g), [id],
+                             cell_of_arg(args, "at")));
+      }
       else if (at) made.push({ op: "place_block", id, x: at.x, y: at.y });
       /** Before a block it holds, the rest step along. */
       if (args["before"]) {
@@ -283,9 +270,6 @@ register(
       if (g) {
         const cell = cell_of_arg(args, "at");
         if (cell && !inside(g, cell)) return "that cell is outside the grid";
-        /** A member of a grid always sits in a cell, so a full grid takes nothing more. */
-        const arriving = ids.filter((id) => ctx.graph.blocks[id]!.parent !== parent).length;
-        if (arriving > free_count(ctx.graph, parent)) return "every cell is taken";
       }
       return null;
     },
@@ -302,16 +286,8 @@ register(
       /** Into a grid, each seats: where it was pointed, else the nearest free cell. */
       const g = lattice_of(ctx.graph, parent);
       if (g) {
-        const taken = new Set(children(ctx.graph, parent).filter((b) => b.cell && !ids.includes(b.id))
-          .map((b) => `${b.cell!.r},${b.cell!.c}`));
-        const said = cell_of_arg(args, "at");
-        for (const id of ids) {
-          const want = said && inside(g, said) && !taken.has(`${said.r},${said.c}`) ? said
-            : free_cell(g, taken, null, said ?? { r: 0, c: 0 }, false);
-          if (!want) continue;
-          taken.add(`${want.r},${want.c}`);
-          out.push({ op: "seat_cell", id, cell: want });
-        }
+        out.push(...seat_in(parent, g, taken_in(ctx.graph, parent, g, ids), ids,
+                            cell_of_arg(args, "at")));
       }
       /** Only a single block is placed at a spot. */
       const at = ids.length === 1 && !g ? spot(args) : null;
@@ -336,24 +312,26 @@ register(
       const why = borrowed(ctx.graph, parent);
       if (why) return why;
       if (target === parent) return "a block cannot hold a stand-in for itself";
-      if (is_grid(ctx.graph, parent)) {
-        return cell_free(ctx, parent, cell_of_arg(args, "at"))
-          ?? (may_hold(ctx.graph, parent, text(args, "type") || undefined)
-            ? null : `"${shown_name(ctx.graph, parent)}" takes nothing of that sort`);
-      }
-      return null;
+      const type = text(args, "type") || undefined;
+      return !is_grid(ctx.graph, parent) || may_hold(ctx.graph, parent, type)
+        ? null : `"${shown_name(ctx.graph, parent)}" takes nothing of that sort`;
     },
     run: (ctx, args) => {
       const id = new_id("block");
       const at = spot(args);
       const parent = args["parent"] ? id_of(args, "parent") : here(ctx);
-      const cell = is_grid(ctx.graph, parent) ? cell_of_arg(args, "at") : null;
+      const g = lattice_of(ctx.graph, parent);
       const ref = handles(ctx, "reference");
       const out: Mutation[] = [{ op: "add_block", block: {
         id, parent, of: id_of(args, "target"), order: next_order(ctx.graph, parent),
-        alias: ref.take(), ...typed(ctx, args), ...(cell ? { cell } : {}),
+        alias: ref.take(), ...typed(ctx, args),
       } }, ...ref.bump()];
-      if (at && !cell) out.push({ op: "place_block", id, x: at.x, y: at.y });
+      /** In a grid, it takes the cell pointed at, else the nearest free one. */
+      if (g) {
+        out.push(...seat_in(parent, g, taken_in(ctx.graph, parent, g), [id],
+                            cell_of_arg(args, "at")));
+      }
+      else if (at) out.push({ op: "place_block", id, x: at.x, y: at.y });
       return { mutations: out };
     },
   },

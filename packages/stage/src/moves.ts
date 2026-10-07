@@ -41,11 +41,11 @@ function placed(id: Id, to: At): Move {
 function written(graph: Graph, scene: Scene, a: Adjust): Move[] {
   /** A corner dragged sizes the card and moves it where a left or top handle moved. */
   if (a.kind === "size") {
-    /** A grid is sized in cells, never in pixels. */
+    /** A grid is sized in cells, never in pixels; opened, it keeps its place on its layer. */
     const g = lattice_of(graph, a.on);
     if (g) {
-      return [act("group", { into: a.on, ...extent_in(g, a.w, a.h),
-                             spot: { x: snap(a.to.x), y: snap(a.to.y) } })];
+      const spot = a.on === scene.layer ? {} : { spot: { x: snap(a.to.x), y: snap(a.to.y) } };
+      return [act("group", { into: a.on, ...extent_in(g, a.w, a.h), ...spot })];
     }
     return [{ adjust: "size", mutations: adjustments.size(a.on, a.w, a.h) }, placed(a.on, a.to)];
   }
@@ -86,6 +86,8 @@ function written(graph: Graph, scene: Scene, a: Adjust): Move[] {
 
   /** Where a block came to rest says which holder or cell it is in: a cell, header or body. */
   if (a.cell && here) return [into(here, at)];
+  /** In an opened grid there is nowhere off the lattice: it stays in its cell. */
+  if (held && held === layer) return [];
   if (held === here) return [placed(a.on, a.to)];
   return here ? [into(here)] : [into(layer), placed(a.on, a.to)];
 }

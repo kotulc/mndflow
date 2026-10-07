@@ -16,9 +16,13 @@ function layer_of(name: string): { graph: Graph; layer: Id } {
   return { graph, layer };
 }
 
+/** A layer laid out one way, its grids drawn open as a view flattens them. */
 function under(graph: Graph, layer: Id, how: Layout): Placed[] {
   const g: Graph = structuredClone(graph);
   g.blocks[layer]!.settings = { ...g.blocks[layer]!.settings, layout: { kind: how } };
+  for (const b of Object.values(g.blocks)) {
+    if (is_grid(g, b.id)) b.settings = { ...b.settings, holder: { flat: true } };
+  }
   return laid(g, layer);
 }
 

@@ -1,6 +1,6 @@
 /** How big a thing is, before anything is placed. */
 
-import { covers, is_grid, is_interface, lattice_of, previewed,
+import { covers, inline, is_grid, is_interface, lattice_of, previewed,
          type Graph, type Grid, type Id, type Point } from "@mnd/core";
 import { listed } from "./derive";
 import { look_of } from "./look";
@@ -68,6 +68,16 @@ export function cell_size(g: Grid): Size {
 /** Where line `i` starts along one axis: **a header line is one unit across**, every other a cell. */
 function line_at(i: number, cell: number, head: boolean): number {
   return i === 0 || !head ? i * cell : UNIT + (i - 1) * cell;
+}
+
+/** Where one row or column of a grid runs, relative to its corner: its start along its axis, and
+ *  how far across it is. */
+export function line_span(g: Grid, way: "row" | "col", i: number): { at: number; size: number } {
+  const cell = cell_size(g);
+  const head = way === "row" ? !!g.head?.top : !!g.head?.left;
+  const across = way === "row" ? cell.h : cell.w;
+  const at = line_at(i, across, head);
+  return { at, size: line_at(i + 1, across, head) - at };
 }
 
 /** What a grid takes up: its extent in cells, and nothing besides. */
@@ -155,10 +165,11 @@ export function gridded(graph: Graph, id: Id): boolean {
 
 /** What this block needs. Every card is the one card size; a card whose definition asked for its
  *  own height keeps what it was given, one that fits grows to what it shows while the drawing
- *  shows content in full, and a grid is the extent it was drawn with. */
+ *  shows content in full, and a grid drawn open is the extent it was drawn with. */
 export function size_of(graph: Graph, id: Id): Size {
-  /** A grid is its extent; a boundary is sized from what it holds, by the caller. */
-  if (is_grid(graph, id)) return grid_size(lattice_of(graph, id)!);
+  /** An open grid is its extent, a closed one a card; a boundary is sized from what it holds, by
+   *  the caller. */
+  if (is_grid(graph, id) && inline(graph, id)) return grid_size(lattice_of(graph, id)!);
   const b = graph.blocks[id];
   if (!b) return BLOCK;
   if (is_interface(b)) return PORT;

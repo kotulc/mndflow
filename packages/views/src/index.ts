@@ -20,4 +20,5 @@ export { BARE, PLAIN, look_key, look_of, wire_of, type Align,
 export { survey_graph, FOREST } from "./survey";
 export { profile_graph } from "./profile";
 export { page_graph } from "./page";
+export { sheet_graph, GRID_LAYER } from "./sheet";
 export { read_through } from "./through";

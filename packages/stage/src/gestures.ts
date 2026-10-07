@@ -6,8 +6,8 @@ import type { Scene } from "@mnd/views";
 /** What a gesture on the canvas meant. */
 export type Gesture = {
   on: string | null;
-  kind: "box" | "band" | "cell" | "brim" | "seat" | "route" | "anchor" | "frame" | "title"
-      | "name" | "note" | "empty";
+  kind: "box" | "band" | "cell" | "line" | "brim" | "seat" | "route" | "anchor" | "frame"
+      | "title" | "name" | "note" | "empty";
   button: "left" | "right";
   count: 1 | 2;
   /** Where, in scene coordinates. A position can only come from a gesture. */

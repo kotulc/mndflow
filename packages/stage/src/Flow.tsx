@@ -96,7 +96,12 @@ function Canvas(props: FlowViewProps) {
     const spot = kind === "cell" && el_at && on
       ? { group: on, r: Number(el_at.split(",")[0]), c: Number(el_at.split(",")[1]) }
       : null;
-    const given = spot ?? (seat
+    /** A line gesture carries its grid, which way the line runs and which it is. */
+    const tab = kind === "line" && on && target instanceof Element
+      ? target.closest(".mnd-grid-line") : null;
+    const line = tab ? { group: on, way: tab.getAttribute("data-way"),
+                         i: Number(tab.getAttribute("data-i")) } : null;
+    const given = spot ?? line ?? (seat
       ? { side: seat.side, at: seat.at, ...(kind === "brim" ? { owner: on } : {}) }
       : null);
     /** A chip's name belongs to the block it stands for. */

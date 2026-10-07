@@ -57,8 +57,8 @@
 |---|---|
 | **block** | the unit of structure: a thing, a part, a step. Holds blocks, which it opens onto as a layer |
 | **folder** | a holder that **hides** what it holds: you descend to see it |
-| **group** | a holder that draws what it holds **inline**, inside its rim. Groups nest. Layer-local: the explorer gives it no row, as it gives a grid none |
-| **grid** | a holder that seats what it holds **in cells**. Anything in a cell draws compact, so any block may sit in one |
+| **group** | a holder that draws what it holds **inline**, inside its rim. Groups nest. Layer-local: the explorer gives it no row |
+| **grid** | a holder that seats text and blocks **in cells**. A card outside; opened, its **grid view**. Lists as a row, like a folder |
 | **reference** | a stand-in for a block, a definition or a package elsewhere |
 | **interface** | a block seated on a wall: where relationships enter and leave. Also **port** |
 | **note** | a remark: resizable, carries body text, ties to the block it is made from |
@@ -89,7 +89,7 @@
 | Term | Means |
 |---|---|
 | **layer** | what one block holds, drawn: the blocks drawn on it are those whose nearest **hiding** ancestor is that block |
-| **hides** | a folder, a definition and any block holding blocks hide what they hold, unless a view flattens them; a group and a grid draw theirs inline |
+| **hides** | a folder, a definition and any block holding blocks hide what they hold, unless a view flattens them; a grid hides its in cells; a group draws its inline |
 | **card** | a block as drawn. **A definition always draws as a card**; its structure is reached by descending |
 | **canvas view** | how the canvas draws a section: **internal**, **overview** or **profile**. Session state, never stored |
 | **internal** | the opened block from inside: what it holds, as cards |
@@ -111,7 +111,7 @@
 | **mndflow** | definitions → structure: every package a top row of definitions, folded until opened |
 | **mndmap** | collection → document: mndflow's chain with the package fixed to the workspace and hidden |
 | **browse** | choosing a row: selects it, the tray shows it, the canvas stays |
-| **open** | Enter, double-click or →: a tree opens its structure on the canvas; a package or a holder in a domain is focused in the overview; a group or grid has no row; picked on the canvas, it is revealed where it is and the explorer lights the nearest row listing it. ← and Backspace leave, a tree's top for the overview |
+| **open** | Enter, double-click or →: a tree opens its structure on the canvas; a package or a holder in a domain is focused in the overview; a grid descends to its grid view; a group has no row; picked on the canvas, it is revealed where it is and the explorer lights the nearest row listing it. ← and Backspace leave, a tree's top for the overview |
 | **context** | what the canvas has open. Highlighting and breadcrumbs show it, never what is browsed |
 | **reveal** | a pick within the open tree may move the canvas to the layer it sits on; browsing outside it never does |
 | **navigation** | `open_at`, `leave_at`, `reveal_at` and `held_at` in core: where the canvas goes, and what the sections hold for it. The one rule both apps use |
@@ -124,12 +124,12 @@
 
 | Term | Means |
 |---|---|
-| **cell** | an address in a grid, `cell: {r, c}` on the block seated there. Replaces `x`/`y` |
+| **cell** | an address in a grid, `cell: {r, c}` on the block seated there. Replaces `x`/`y`. Holds one label or one block, drawn as a card |
 | **extent** | a grid's `rows` and `cols`. Unsaid, two by two |
 | **merge** | a cell's extent, stated on the grid as a `Span`. Stays on one side of a header line |
 | **header line** | the top row or the left column, made to head the rest (`head.top`, `head.left`). One unit across |
-| **header** | what a header cell holds: any block, drawn compact. What it stands for is what its line is allocated to |
-| **label** | a plain value in a cell, held on the grid in `values` |
+| **header** | what a header cell holds: a label or any block, drawn compact. What it stands for is what its line is allocated to |
+| **label** | a text value in a cell or header, typed by double-click, held on the grid in `values` |
 | **allocation** | a body block is allocated to what its row and column headers stand for, and to every holder it sits in. Derived, never stored |
 
 

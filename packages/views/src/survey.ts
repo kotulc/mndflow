@@ -5,7 +5,7 @@
  *  id but a part, which is drawn as its usage's copy (`part_id`, keyed by the usage as drawn, so
  *  two usages' copies never meet). */
 
-import { branch_of, children, is_folder, is_holder, is_interface, packages, part_id,
+import { branch_of, children, is_folder, is_group, is_holder, is_interface, packages, part_id,
          setting_of, type Block, type Cut, type Graph, type Id } from "@mnd/core";
 
 /** The layer a section is drawn on: above every root it draws. */
@@ -23,9 +23,9 @@ export function flattened(b: Block): Block {
 }
 
 /** The section under `scope` — every package where it is null, as `only` orders them — down to
- *  `cut`, on one layer. What holds rows reads as a box round them: a group or grid as it is, a
- *  folder or any other block as a group. A block at the cut, or holding nothing listed, is a card.
- *  A usage holds its definition's parts, read through one step. */
+ *  `cut`, on one layer. What holds rows reads as a box round them: a group as it is, a grid as its
+ *  cells, a folder or any other block as a group. A block at the cut, or holding nothing listed,
+ *  is a card. A usage holds its definition's parts, read through one step. */
 export function survey_graph(graph: Graph, scope: Id | null, cut: Cut,
                              config: { only?: readonly Id[]; across?: number } = {}): Graph {
   const all = scope === null ? packages(graph).map((p) => p.id) : [scope];
@@ -47,7 +47,7 @@ export function survey_graph(graph: Graph, scope: Id | null, cut: Cut,
     const listed = (via ? 0 : parts.length) + own.length > 0;
     const boxed = is_holder(graph, id) || is_folder(graph, id) || listed;
     const { def: _def, ...plain } = b;
-    blocks[drawn] = { ...(!boxed ? b : is_holder(graph, id) ? plain : flattened(b)), id: drawn,
+    blocks[drawn] = { ...(!boxed ? b : is_group(graph, id) ? plain : flattened(b)), id: drawn,
                       parent, ...(order !== undefined ? { order } : {}) };
     /** A box seats no interfaces: they are part of what it stands for. A copy carries none. */
     if (boxed && !via) {

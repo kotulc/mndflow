@@ -50,25 +50,29 @@ Most rules below are one of these applied.
 
 ### Holders
 
-- **`parent` is the only containment.** Folder, group and grid hold by it alike and differ only in how they draw what they hold: hidden, inline, or in cells
-- a folder hides its contents (descend to see them) unless a view flattens it; a group and a grid draw theirs inline
-- **the explorer lists the `parent` tree**: whatever holds lists as a row and branches. A group or grid is the one exception: it has no row, and what it holds lists at its level
+- **`parent` is the only containment.** Folder, grid and group hold by it alike and differ only in how they draw what they hold: hidden, in cells on a canvas of its own, or inline
+- a folder and a grid hide their contents (descend to see them) unless a view flattens them; a group draws its inline
+- **the explorer lists the `parent` tree**: whatever holds lists as a row and branches. A group is the one exception: it has no row, and what it holds lists at its level
 - folders organizing what is not structure (definitions, documents) is this app's convention, never a rule
-- **a group or grid is layer-local**: it organizes the layer it sits on, is drawn and edited on the canvas only, and is never a place you go
-- what holds and how it nests are traits: `container` lets a block hold; `inline` draws what it holds in place (a group); `matrix` seats it in cells (a grid). `base` keeps `group` and `grid` as ready-made definitions carrying them
+- **a group is layer-local**: it organizes the layer it sits on, is drawn and edited on the canvas only, and is never a place you go
+- what holds and how it nests are traits: `container` lets a block hold; `inline` draws what it holds in place (a group); `matrix` seats it in cells and opens as a grid view (a grid). `base` keeps `group` and `grid` as ready-made definitions carrying them
 - a definition always draws as a card; its structure is reached by descending
 - the layer a block draws on is its nearest ancestor that hides its contents
 - deleting a holder deletes its subtree
 
 ### The grid
 
-**The one place a position states meaning.** A cell address along the reading direction is an order, and a header is an allocation — both stated rather than guessed.
+**A spreadsheet whose cells hold text or blocks, and the one place a position states meaning.** A cell address along the reading direction is an order, and a header is an allocation — both stated rather than guessed.
 
-- anything in a cell draws compact, so any block may sit in one, holders and grids included; a header holds any block
-- one block a cell: two sharing one leaves *what is allocated here* without an answer. A grid's member always sits in a cell
+- outside, a grid is a card like any other; opened, it draws its **grid view**: a frame of card-sized cells, with narrower header lines along its edges
+- a cell or header holds one thing: a text value or a block. Two sharing one leaves *what is allocated here* without an answer. A grid's member always sits in a cell
+- double-clicking a cell or header edits its text, or opens the block in it as anywhere; right-clicking makes a block in it; dragging a block onto it seats it there
+- any block may sit in a cell, holders and grids included; it draws as a card, compact in a header
+- a block dropped on a grid's card from outside takes the next free cell in reading order, adding a row when none is free
 - reading order is left to right, then down
-- a block dropped past the last line lands free beside the grid; a grid never grows by accident
-- removing a line moves what it held to the nearest spare cell on its side; what has nowhere to go leaves the grid
+- the frame grows and shrinks by its handles, as a grid on a layer does
+- relationships enter and leave a grid through its interfaces, as on any layer
+- removing a line moves what it held to the nearest spare cell on its side; what has nowhere to go leaves the grid for its layer
 - allocation is derived, never stored: a body block is allocated to what its row and column headers stand for, and to every holder it sits in
 
 ### Types and read-through
@@ -123,10 +127,10 @@ Most rules below are one of these applied.
 **A perspective is one layer, drawn one way.** Nothing a perspective works out is stored.
 
 - a **projection** draws the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it
-- **three canvas views of one section**: **internal** draws the opened block from inside, what it holds as cards; **overview** draws the section from above, each block that holds flattened into a box of its contents; **profile** draws one row per section along the pick
+- **three canvas views of one section**: **internal** draws the opened block from inside, what it holds as cards, or as a grid view for a grid; **overview** draws the section from above, each block that holds flattened into a box of its contents; **profile** draws one row per section along the pick
 - the overview draws every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down and never zoomed out. It is 1:1 with the definitions section
 - the profile's row for a section draws the pick among its siblings, and each block on the way to it that holds as a box round the next step down. The only lines join a picked block to its parent or children in the rows beside it
-- there is no package view: opening a package, or a holder in a domain, focuses its box in the overview. In a structure, opening a folder descends into it, since it hides what it holds. A group or grid, picked on the canvas, is revealed in place and the explorer lights the nearest row that lists it. A note, which may hold nothing, is revealed too
+- there is no package view: opening a package, or a holder in a domain, focuses its box in the overview. In a structure, opening a folder or grid descends into it, since it hides what it holds. A group, picked on the canvas, is revealed in place and the explorer lights the nearest row that lists it. A note, which may hold nothing, is revealed too
 - a layer's **layout** is a setting, `layout: { kind, … }`, said by its definition and overridable by the block, inherited like any setting. The kit ships `free`, `auto` and `page`, which is how the overview and profile lay out; an unknown kind draws as `auto`
 - **a row and its card read alike**: the explorer and the canvas ask core's `role_of` what a block is, and wear the same icon
 - **marks describe, and stack**: a stand-in wears one word (`Def`, `Ref`, `Pkg`); anything else wears what is true of it, and those stack — the first is `data`
@@ -140,7 +144,7 @@ Most rules below are one of these applied.
 
 - the explorer is a **section chain**: each section holds one context and the next lists what it holds. mndflow: definitions → structure, every package a top row of definitions, folded until opened, so any package's definitions are one unfold from the open structure. mndmap: collection → document, the package fixed and hidden
 - **browse**: choosing a row selects it and the tray shows it; the canvas stays
-- **every section reads the `parent` tree alike**: what holds branches; a group or grid does not list, and what it holds lists at its level
+- **every section reads the `parent` tree alike**: what holds branches; a group does not list, and what it holds lists at its level
 - **open**: Enter, double-click or →. ← and Backspace leave; leaving a tree's top returns to the overview, focused on it
 - highlighting and crumbs show the canvas's context, never what is browsed
 - selecting in the overview selects and the sections follow; opening a tree there opens its structure

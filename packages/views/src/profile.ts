@@ -6,7 +6,7 @@
  *
  *  Drawn, never stored: a graph handed back for a projection to read, every block keeping its id. */
 
-import { children, is_holder, is_interface, packages, shown_name, trace, type Block, type Graph,
+import { children, is_group, is_interface, packages, shown_name, trace, type Block, type Graph,
          type Id, type Relation, type Tiers } from "@mnd/core";
 import { flattened, FOREST } from "./survey";
 
@@ -27,17 +27,17 @@ export function profile_graph(graph: Graph, tiers: Tiers, target: Id | null,
     ? trace(graph, tiers, target) : { roots: [], held: [] };
 
   /** A block drawn in a band: a box round what it holds where the way to the pick runs through
-   *  it, else a card — a group or grid one too, its members behind it. */
+   *  it, else a card — a group one too, its members behind it. */
   const draw = (b: Block, parent: Id, order: number, way: ReadonlySet<Id>, ids: Id[]) => {
     ids.push(b.id);
     if (!way.has(b.id)) {
-      blocks[b.id] = { ...b, parent, order, ...(is_holder(graph, b.id) ? { type: "folder" } : {}) };
+      blocks[b.id] = { ...b, parent, order, ...(is_group(graph, b.id) ? { type: "folder" } : {}) };
       return;
     }
-    /** A group or grid stays a group; anything else is flattened, still reading as itself. A box
-     *  seats no interfaces. */
+    /** A group stays a group; anything else is flattened, still reading as itself — a grid as
+     *  its cells. A box seats no interfaces. */
     const { def: _def, ...plain } = b;
-    blocks[b.id] = { ...(is_holder(graph, b.id) ? { ...plain, type: "group" } : flattened(b)),
+    blocks[b.id] = { ...(is_group(graph, b.id) ? { ...plain, type: "group" } : flattened(b)),
                      parent, order, name: shown_name(graph, b.id) };
     for (const port of children(graph, b.id).filter(is_interface)) {
       blocks[port.id] = { ...port, parent: HIDDEN };

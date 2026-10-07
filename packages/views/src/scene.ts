@@ -35,6 +35,8 @@ export type BoxData = {
   preview?: string;
   /** The lattice a grid draws, as boxes inside its own. */
   grid?: readonly GridCell[];
+  /** An opened grid's rows and columns, each a tab in the gutter beside it. */
+  lines?: readonly GridLine[];
   /** Whom a boundary is drawn round. */
   holds?: readonly Id[];
   /** Every block nested inside a group, at any depth. */
@@ -54,6 +56,10 @@ export type BoxData = {
 export type CardClass = "container" | "reference" | "missing" | "note" | "group" | "grid"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "upright" | "merged"
+                 /** An opened grid, standing in for the room. */
+                 | "room"
+                 /** A cell a block sits in. */
+                 | "seated"
                  /** A block of a definition's structure, seen through a usage of it. */
                  | "part"
                  /** A block a section holds on the way to the pick: where a profile cuts. */
@@ -62,6 +68,9 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "group"
                  | "flat";
 
 /** One cell of a grid, placed inside the grid's own box. */
+/** One row or column of an opened grid, as its gutter tab: where it runs along its axis. */
+export type GridLine = { way: "row" | "col"; i: number; at: number; size: number };
+
 export type GridCell = {
   r: number;
   c: number;

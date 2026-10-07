@@ -9,6 +9,7 @@ export type Entry = { name: string; label?: string; args?: Args };
 import { FlowView, type Adjust, type Gesture, type Landing } from "./Flow";
 import { Legend, type Corner } from "./Legend";
 import { moves_of, type Move } from "./moves";
+import { cell_key } from "./nodes";
 import { Icon } from "@mnd/theme";
 import { box_of, clear_of, holds, swept_cells, BLOCK, CELL, type Scene } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
@@ -74,6 +75,31 @@ function head_offers(group: string, graph: Graph): Entry[] {
   ];
 }
 
+/** Adding a line to a grid: at the picked cell's line, else at its end. */
+const LINES: readonly Entry[] = [
+  { name: "insert", label: "insert row", args: { way: "row" } },
+  { name: "insert", label: "insert column", args: { way: "col" } },
+];
+
+/** What a row or column offers from its gutter tab: lines beside it, taking it away, and the
+ *  header line on that side. */
+function line_offers(given: Record<string, unknown>, graph: Graph): Entry[] {
+  const group = String(given["group"]);
+  const i = Number(given["i"]);
+  const row = given["way"] === "row";
+  const way = row ? "row" : "col";
+  const [before, after, noun] = row ? ["above", "below", "row"] : ["left", "right", "column"];
+  const head = lattice_of(graph, group)?.head;
+  const headed = row ? !!head?.top : !!head?.left;
+  return [
+    { name: "insert", label: `insert ${noun} ${before}`, args: { group, way, at: i } },
+    { name: "insert", label: `insert ${noun} ${after}`, args: { group, way, at: i + 1 } },
+    { name: "remove", label: `remove ${noun}`, args: { group, way, at: i } },
+    { name: "heads", label: `${headed ? "remove" : "add"} header ${noun}`,
+      args: { group, way: row ? "top" : "left" } },
+  ];
+}
+
 /** What a run offers about its direction. */
 function route_offers(id: string, graph: Graph): Entry[] {
   const dir = graph.edges[id]?.dir ?? "none";
@@ -125,9 +151,9 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
     : readonly (string | Entry)[] | undefined {
   if (g.kind === "brim" && g.on) {
     const n = scene.nodes.find((x) => x.id === g.on);
-    /** Fill is a grid's: a boundary has no cells to fill. */
+    /** Fill and lines are a grid's: a boundary has no cells. */
     if (holds(n)) {
-      return n?.type === "grid" ? offers.band
+      return n?.type === "grid" ? [...(offers.band ?? []), ...head_offers(g.on, graph), ...LINES]
         : offers.band?.filter((e) => (typeof e === "string" ? e : e.name) !== "fill");
     }
     return box_offers();
@@ -135,6 +161,7 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
   if (g.kind === "box" && g.on) return box_offers();
   /** A cell offers what can be done to the lattice there, and to its header lines. */
   if (g.kind === "cell" && g.on) return [...(offers.cell ?? []), ...head_offers(g.on, graph)];
+  if (g.kind === "line" && g.given) return line_offers(g.given, graph);
   /** A run and its name are one subject. */
   if ((g.kind === "route" || g.kind === "name") && g.on && graph.edges[g.on]) {
     return wire_offers(g.on, graph);
@@ -154,10 +181,13 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
                     ...(type ? { type } : {}) };
-  /** The name being typed on the drawing, as the thing it names. */
-  const [naming, set_naming] = useState<string | null>(null);
+  /** The name being typed on the drawing, as the thing it names, with the cell when it is a
+   *  cell's text: one state, so a rename never lands as a cell's text. */
+  const [typing, set_typing] = useState<{ id: string; cell?: Spot } | null>(null);
+  const naming = typing?.id ?? null;
+  const set_naming = (id: string) => set_typing({ id });
   /** Nothing typed survives a layer change. */
-  useEffect(() => set_naming(null), [scene.layer]);
+  useEffect(() => set_typing(null), [scene.layer]);
   const [at, set_at] = useState<
     { x: number; y: number; on: string | null; spot: { x: number; y: number };
       only?: readonly (string | Entry)[]; given?: Record<string, unknown> } | null>(null);
@@ -224,8 +254,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     cell: [
       { name: "label", label: "label cell" },
       "merge",
-      { name: "insert", label: "insert row", args: { way: "row" } },
-      { name: "insert", label: "insert column", args: { way: "col" } },
+      ...LINES,
       { name: "remove", label: "remove row", args: { way: "row" } },
       { name: "remove", label: "remove column", args: { way: "col" } },
       { name: "fill", label: "fill grid" },
@@ -238,19 +267,16 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     frame: ["rename", "open", "interface", "note", "delete"],
   };
 
-  /** Asks for a cell's plain value, starting from what it says now. */
-  const label_cell = (at: Spot) => {
-    const cell = scene.nodes.find((n) => n.id === at.group)?.data.grid
-      ?.find((c) => c.r === at.r && c.c === at.c);
-    const text = prompt("label", cell?.value ?? "");
-    if (text !== null) onAct("label", { group: at.group, at: `${at.r},${at.c}`, text });
-  };
+  /** Types a cell's text in place, starting from what it says now. */
+  const label_cell = (at: Spot) => set_typing({ id: cell_key(at), cell: at });
 
   /** What a selection of several offers. */
   const MANY: readonly (string | Entry)[] = ["group", "delete"];
 
   const gesture = (g: Gesture) => {
-    /** Left clicks on cells are the lattice's own; two write the cell's label. */
+    /** A gutter tab picks its line itself. */
+    if (g.button === "left" && g.kind === "line") return;
+    /** Left clicks on cells are the lattice's own; two write the cell's text. */
     if (g.button === "left" && g.kind === "cell") {
       if (g.count === 2 && g.given) label_cell(g.given as Spot);
       return;
@@ -281,11 +307,17 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       if (name !== null) onAct("create", { name, spot: made_at(scene, g.at) });
       return;
     }
-    /** A right-click inside the picked cells is about them. */
+    /** A right-click on a cell makes a block in it; inside the picked cells, it is about them. */
     if (g.kind === "cell" && g.given) {
       const at = g.given as Spot;
       const among = cells?.some((c) => c.group === at.group && c.r === at.r && c.c === at.c);
-      if (!among) onPickCells?.([at]);
+      if (!among) {
+        const name = prompt("name it");
+        if (name !== null) {
+          onAct("create", { name, parent: at.group, at: `${at.r},${at.c}` });
+        }
+        return;
+      }
     }
     if (menu) {
       const among = picked.length > 1 && g.on !== null && picked.includes(g.on);
@@ -312,9 +344,12 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         most={most}
         naming={naming}
         onNamed={(label) => {
-          const id = naming;
-          set_naming(null);
-          if (id && label !== null) onAct("rename", { id, name: label });
+          const was = typing;
+          set_typing(null);
+          if (!was || label === null) return;
+          const { id, cell } = was;
+          if (cell) onAct("label", { group: cell.group, at: `${cell.r},${cell.c}`, text: label });
+          else onAct("rename", { id, name: label });
         }}
         onGesture={gesture}
         onPick={onPick}

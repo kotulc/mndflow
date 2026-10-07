@@ -1,19 +1,20 @@
 /** The block view: any planar projection. */
 
 import { alias_of, layout_of, children, covers, edge_base, edges_in, group_depth, heading, holders_in,
-         is_container, is_group, is_holder, is_interface, is_note, label_of, lattice_of,
+         inline, is_container, is_grid, is_group, is_interface, is_note, label_of, lattice_of,
          members_of, schema_of, shape_of, stamps_of, role_of, shown_name, trace, EDITOR, type Cut,
          type Tiers, type ViewKind, type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
-import { at_seat, cell_box, laid, perch_id, roomed, seated,
+import { at_seat, cell_box, laid, line_span, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of, wire_of } from "./look";
 import { page_graph } from "./page";
 import { profile_graph } from "./profile";
 import { survey_graph, FOREST } from "./survey";
+import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
-         type GridCell, type LineEdge, type Port, type CardClass, type Scene,
+         type GridCell, type GridLine, type LineEdge, type Port, type CardClass, type Scene,
          type Slot } from "./scene";
 
 export type Config = {
@@ -77,6 +78,21 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
     return { ...scene, nodes, slots: ["display"] };
   }
   if (layer === null) return project(given, null, { ...config, look: OVERVIEW });
+  /** An opened grid draws its grid view: its frame of cells is the room, which the hand sizes
+   *  but never moves, under the grid's own crumbs. */
+  if (layer !== GRID_LAYER && is_grid(given, layer)) {
+    const { frame: _room, ...scene } = project(sheet_graph(given, layer), GRID_LAYER, config);
+    const g = lattice_of(given, layer)!;
+    const lines: GridLine[] = [
+      ...Array.from({ length: g.rows }, (_, i) => ({ way: "row" as const, i,
+                                                      ...line_span(g, "row", i) })),
+      ...Array.from({ length: g.cols }, (_, i) => ({ way: "col" as const, i,
+                                                      ...line_span(g, "col", i) }))];
+    const nodes = scene.nodes.map((n) => (n.id !== layer ? n : {
+      ...n, draggable: false,
+      data: { ...n.data, lines, marks: [...n.data.marks, "room" as const] } }));
+    return { ...scene, layer, nodes, trail: trail_of(given, layer) };
+  }
   const through = read_through(given, layer);
   /** A page places its layer as it reads; anything else places itself. */
   const how = layout_of(through, layer);
@@ -97,7 +113,7 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
 
   /** Which component draws each box. Every card is the one card height, so nothing minifies. */
   const boxes: BoxNode[] = spots
-    .filter((p) => !is_holder(graph, p.id))
+    .filter((p) => !inline(graph, p.id))
     .map((p) => node(p.id, p, { ...carried_as(p.id), nest: group_depth(graph, p.id) },
                      is_note(graph, p.id) ? "note" : "card"));
 
@@ -204,6 +220,7 @@ function lattice(graph: Graph, id: Id): GridCell[] {
       if (span && (span.r !== r || span.c !== c)) continue;
       const marks: CardClass[] = ["cell"];
       if (span) marks.push("merged");
+      if (seated.has(`${r},${c}`)) marks.push("seated");
       const role = heading(g, r, c);
       if (role || (names && r === 0)) marks.push("header");
       if (role === "row") marks.push("upright");

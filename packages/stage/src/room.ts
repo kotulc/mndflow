@@ -4,7 +4,17 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useReactFlow, useStore } from "@xyflow/react";
 import type { Id } from "@mnd/core";
 import { box_of, extent, FRAME, type BoxNode, type Frame, type Scene } from "@mnd/views";
-import { BAND, FIT, FLIGHT, met_on, MIN_ZOOM, panelled, scroll_zoom, still } from "./arrays";
+import { BAND, FIT, FLIGHT, met_on, MIN_ZOOM, panelled, READ_ZOOM, scroll_zoom,
+         still } from "./arrays";
+
+/** How much of the view an opened grid leaves round it, as a share of its own size, so there is
+ *  room to drag into it and to grow it. */
+const GRID_AIR = 0.5;
+
+/** The open layer where it draws as its own node — an opened grid — or null. */
+function own_node(scene: Scene): BoxNode | null {
+  return scene.nodes.find((n) => n.id === scene.layer) ?? null;
+}
 
 
 /** The room, kept until the layer or panel changes or the work outgrows it, and its fit. */
@@ -101,6 +111,16 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
       void flow.setViewport({ zoom, x: seen.w / 2 - (left + w / 2) * zoom, y }, { duration });
       return;
     }
+    /** An opened grid is the room: fitted as large as a room is drawn, with air round it. */
+    const own = frame ? null : own_node(scene);
+    if (own) {
+      const b = box_of(own);
+      const zoom = Math.min(READ_ZOOM, seen.w / (b.w * (1 + GRID_AIR)),
+                            seen.h / (b.h * (1 + GRID_AIR)));
+      void flow.setViewport({ zoom, x: seen.w / 2 - (b.x + b.w / 2) * zoom,
+                              y: seen.h / 2 - (b.y + b.h / 2) * zoom }, { duration });
+      return;
+    }
     if (!frame) { void flow.fitView({ ...FIT, duration }); return; }
     void flow.fitBounds({ x: frame.x, y: frame.y, width: frame.w, height: frame.h },
                         { padding: fit.padding, duration });
@@ -135,7 +155,8 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
     const quiet = still();
     const last = was.current;
     const moved_layer = last !== undefined && last !== scene.layer;
-    const rect = frame ? `${frame.x},${frame.y},${frame.w},${frame.h}` : "";
+    const own = frame ?? (own_node(scene) ? box_of(own_node(scene)!) : null);
+    const rect = own ? `${own.x},${own.y},${own.w},${own.h}` : "";
     const grew = !moved_layer && room.current !== rect;
     was.current = scene.layer;
     room.current = rect;
@@ -186,7 +207,9 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
   /** At the root, the camera opens out when the drawing outgrows it. */
   const took = useRef<{ of: Id | null; box: string } | null>(null);
   useEffect(() => {
-    if (scroll || frame || !nodes.length || nodes.some((n) => n.dragging)) return;
+    if (scroll || frame || own_node(scene) || !nodes.length || nodes.some((n) => n.dragging)) {
+      return;
+    }
     const box = extent(scene);
     const size = `${box.x},${box.y},${box.w},${box.h}`;
     const before = took.current;

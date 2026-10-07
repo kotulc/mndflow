@@ -1,6 +1,6 @@
 /** Auto-layout: related clusters placed around their mates, and satellites seated beside theirs. */
 
-import { edge_base, edges_in, is_holder, is_note, is_reference, type Layout, type Block,
+import { edge_base, edges_in, inline, is_note, is_reference, type Layout, type Block,
          type Graph, type Id, type Point, type Relation } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { loose_unit, member_in_holder, type Sized } from "./bands";
@@ -113,7 +113,7 @@ function open_at(taken: readonly Rect[], x: number, y: number, s: Size): boolean
 
 function inner_of(graph: Graph, layer: Id | null, id: Id, holder: Placed,
                   taken: Placed[]): Placed | null {
-  if (!is_holder(graph, holder.id)) return null;
+  if (!inline(graph, holder.id)) return null;
   return member_spot(graph, layer, id, holder.id, taken, "auto");
 }
 

@@ -72,12 +72,17 @@ describe("what the projection shows", () => {
     expect(scene.nodes.every((n) => !!n.type)).toBe(true);
   });
 
-  it("projects a grid as a lattice, not a card", () => {
+  it("projects a grid as a card on its layer", () => {
     const scene = project(fold(fixture("gridded"), FLOOR), "block_board");
+    expect(scene.nodes.find((n) => n.id === "block_lanes")!.type).toBe("card");
+  });
+
+  it("projects an opened grid as its lattice, under its own layer", () => {
+    const scene = project(fold(fixture("gridded"), FLOOR), "block_lanes");
     const lanes = scene.nodes.find((n) => n.id === "block_lanes")!;
+    expect(scene.layer).toBe("block_lanes");
     expect(lanes.type).toBe("grid");
     expect(lanes.data.grid?.length).toBeGreaterThan(0);
-    expect(scene.nodes.some((n) => n.id === "block_lanes" && n.type === "card")).toBe(false);
   });
 
   it("marks how a block reads without anything declaring it", () => {
