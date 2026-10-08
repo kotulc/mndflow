@@ -2,7 +2,7 @@
 
 import { may_hold } from "../capabilities";
 import { block_base, def_at, domain_of, self_use } from "../defs";
-import { can_hold, HEADED, inside, is_grid, lattice_of, layer_of, members_of,
+import { can_hold, GRID, inside, is_grid, lattice_of, layer_of, members_of,
          shape_of } from "../holders";
 import { shown_name } from "../names";
 import { next_order, reorder } from "../tree";
@@ -118,7 +118,7 @@ register(
         /** A block made here does not answer the graph yet, so its lattice is written whole: the
          *  extent asked for is its body, under a header row and column. */
         if (shape === "grid") {
-          lattice = { ...HEADED, ...(rows === null ? {} : { rows: rows + 1 }),
+          lattice = { ...GRID, ...(rows === null ? {} : { rows: rows + 1 }),
                       ...(cols === null ? {} : { cols: cols + 1 }) };
           out.push({ op: "set_grid", id: group, grid: lattice });
         }

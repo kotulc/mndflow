@@ -127,7 +127,7 @@
 | **cell** | an address in a grid, `cell: {r, c}` on the block seated there. Replaces `x`/`y`. Holds one label or one block, drawn as a card |
 | **extent** | a grid's `rows` and `cols`. Unsaid, two by two |
 | **merge** | a cell's extent, stated on the grid as a `Span`. Stays on one side of a header line |
-| **header line** | the top row or the left column, made to head the rest (`head.top`, `head.left`). One unit across |
+| **header line** | the top row and the left column. Every grid has both, heading the rest; opened, each header is its line's tab. One unit across |
 | **header** | what a header cell holds: a label or any block, drawn compact. What it stands for is what its line is allocated to |
 | **label** | a text value in a cell or header, typed by double-click, held on the grid in `values` |
 | **allocation** | a body block is allocated to what its row and column headers stand for, and to every holder it sits in. Derived, never stored |

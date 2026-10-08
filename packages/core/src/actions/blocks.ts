@@ -5,7 +5,7 @@ import { shown_name } from "../names";
 import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_domain,
          kind_free, may_retype, name_taken, package_of, plain_type, setting_of, stored_type,
          self_use } from "../defs";
-import { GRID, HEADED, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
+import { GRID, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
 import { is_interface, next_order, reorder, stands_for, subtree } from "../tree";
 import { leave_at, open_at, reveal_at, view_on, EDITOR, type Tiers, type View,
          type Views } from "../navigate";
@@ -232,10 +232,7 @@ register(
       for (const id of ids_of(ctx, args)) {
         const b = ctx.graph.blocks[id];
         if (b && !b.def && said && setting_of(ctx.graph, said, "holder")["matrix"] === true) {
-          /** One that never was a grid is made headed. */
-          const g = b.grid ? { ...GRID, ...b.grid } : HEADED;
-          if (!b.grid) out.push({ op: "set_grid", id, grid: g });
-          out.push(...seat_all(ctx.graph, id, g));
+          out.push(...seat_all(ctx.graph, id, { ...GRID, ...b.grid }));
         }
       }
       return { mutations: out };

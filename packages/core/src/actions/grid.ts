@@ -10,7 +10,7 @@ import { register, type Args, type Context } from "./registry";
 import { cell_of_arg, handles, id_of, num, region, run_type, text } from "./helpers";
 
 /** Whether a cell is a header's or the body's; a block moved within a grid stays on its side. */
-const heads_at = (g: Grid, at: Cell): boolean => heading(g, at.r, at.c) !== null;
+const heads_at = (at: Cell): boolean => heading(at.r, at.c) !== null;
 
 /** A grid's lattice written back whole. */
 const set = (id: Id, grid: Grid): Mutation => ({ op: "set_grid", id, grid });
@@ -31,7 +31,7 @@ export function seat_all(graph: Graph, id: Id, g: Grid): Mutation[] {
   const kept = new Set<Id>();
   for (const b of held) {
     const at = b.cell;
-    if (!at || !inside(g, at) || heads_at(g, at) || taken.has(`${at.r},${at.c}`)) continue;
+    if (!at || !inside(g, at) || heads_at(at) || taken.has(`${at.r},${at.c}`)) continue;
     taken.add(`${at.r},${at.c}`);
     kept.add(b.id);
   }
@@ -64,8 +64,7 @@ export function seat_in(group: Id, g: Grid, taken: Set<string>, ids: readonly Id
       cell = free_cell(grid, taken, null, want ?? { r: 0, c: 0 }, false);
       if (cell) break;
       /** A grid that is all header column has no body a row could add. */
-      grid = grid.head?.left && grid.cols === 1 ? { ...grid, cols: 2 }
-        : { ...grid, rows: grid.rows + 1 };
+      grid = grid.cols === 1 ? { ...grid, cols: 2 } : { ...grid, rows: grid.rows + 1 };
     }
     if (grid.values?.[cell.r]?.[cell.c]) cleared.push(cell);
     taken.add(`${cell.r},${cell.c}`);
@@ -91,9 +90,6 @@ function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
   if (!g) return [];
   const axis = way === "row" ? "r" : "c";
   const size = way === "row" ? "rows" : "cols";
-  const edge = way === "row" ? "top" : "left";
-  /** Taking the header line away takes its heading with it, and what it held goes to the body. */
-  const unheaded = by < 0 && at === 0 && !!g.head?.[edge];
   const out: Mutation[] = [];
 
   const held = new Set<string>();
@@ -120,8 +116,7 @@ function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
     if (moved[size] > 0) merges.push(moved);
   }
 
-  const head = unheaded ? { ...g.head, [edge]: false } : g.head;
-  const next = with_merges({ ...g, [size]: Math.max(1, g[size] + by), head,
+  const next = with_merges({ ...g, [size]: Math.max(1, g[size] + by),
                              ...(g.values ? { values: moved_values(g.values, way, at, by) } : {}) },
                            merges);
 
@@ -130,7 +125,7 @@ function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
   next.values?.forEach((row, r) => row.forEach((v, c) => { if (v) held.add(`${r},${c}`); }));
   for (const { id, was } of homeless) {
     const want = { r: Math.min(was.r, next.rows - 1), c: Math.min(was.c, next.cols - 1) };
-    const spare = free_cell(next, held, null, want, !unheaded && heads_at(g, was));
+    const spare = free_cell(next, held, null, want, heads_at(was));
     if (spare) held.add(`${spare.r},${spare.c}`);
     out.push(put(graph, id, spare));
   }
@@ -156,13 +151,11 @@ export function with_merges(g: Grid, merges: Span[]): Grid {
   return rest;
 }
 
-/** A lattice without the keys it says nothing with: no headers, and no values at all. */
+/** A lattice without the keys it says nothing with: no values at all. */
 function tidy(g: Grid): Grid {
-  const { head, values, ...rest } = g;
-  const heads = { ...(head?.top ? { top: true } : {}), ...(head?.left ? { left: true } : {}) };
+  const { values, ...rest } = g;
   const said = values?.some((row) => row.some(Boolean));
-  return { ...rest, ...(Object.keys(heads).length ? { head: heads } : {}),
-           ...(said ? { values } : {}) };
+  return { ...rest, ...(said ? { values } : {}) };
 }
 
 /** Filled body cells in reading order, as one run. */
@@ -173,7 +166,7 @@ function reading(graph: Graph, group: Id): Id[] {
   for (let r = 0; r < g.rows; r++) {
     for (let c = 0; c < g.cols; c++) {
       const held = at_cell(graph, group, r, c);
-      if (held && !heads_at(g, { r, c }) && run[run.length - 1] !== held.id) run.push(held.id);
+      if (held && !heads_at({ r, c }) && run[run.length - 1] !== held.id) run.push(held.id);
     }
   }
   return run;
@@ -188,7 +181,7 @@ function empty_cells(graph: Graph, group: Id): Cell[] {
     for (let c = 0; c < g.cols; c++) {
       const span = g.merges?.find((s) => covers(s, r, c));
       if (span && (span.r !== r || span.c !== c)) continue;
-      if (heads_at(g, { r, c }) || g.values?.[r]?.[c] || at_cell(graph, group, r, c)) continue;
+      if (heads_at({ r, c }) || g.values?.[r]?.[c] || at_cell(graph, group, r, c)) continue;
       out.push({ r, c });
     }
   }
@@ -204,7 +197,7 @@ export function free_cell(g: Grid, taken: ReadonlySet<string>, span: Span | null
   for (let r = 0; r < g.rows; r++) {
     for (let c = 0; c < g.cols; c++) {
       if ((span && covers(span, r, c)) || taken.has(`${r},${c}`)) continue;
-      if (heads_at(g, { r, c }) !== header) continue;
+      if (heads_at({ r, c }) !== header) continue;
       if (g.merges?.some((m) => covers(m, r, c) && (m.r !== r || m.c !== c))) continue;
       const off = Math.hypot(r - want.r, c - want.c);
       if (off < gap) { gap = off; best = { r, c }; }
@@ -239,41 +232,14 @@ function address(ctx: Context, args: Args, group: Id): Cell | null {
   return picked ? { r: picked.r, c: picked.c } : null;
 }
 
-/** A header line added or taken away. **Adding one inserts a new first line** to head the rest,
- *  so nothing seated is displaced; taking it away removes that line, and what it held goes to the
- *  body. A grid of one line only drops the heading. */
-function headed(graph: Graph, group: Id, edge: "top" | "left", on: boolean): Mutation[] {
-  const g = lattice_of(graph, group)!;
-  const way = edge === "top" ? "row" : "col";
-  if (!!g.head?.[edge] === on) return [];
-  if (!on && (way === "row" ? g.rows : g.cols) > 1) return shifted(graph, group, way, 0, -1);
-  if (!on) return [set(group, tidy({ ...g, head: { ...g.head, [edge]: false } }))];
-  const [lattice, ...moved] = shifted(graph, group, way, 0, 1);
-  const next = (lattice as { grid: Grid }).grid;
-  return [set(group, tidy({ ...next, head: { ...next.head, [edge]: true } })), ...moved];
+/** The line a removal points at: the one said, else the picked cell's, else the last. */
+function removing(ctx: Context, args: Args, group: Id, way: "row" | "col"): number {
+  const g = lattice_of(ctx.graph, group)!;
+  const last = (way === "row" ? g.rows : g.cols) - 1;
+  return Math.min(last, Math.max(0, num(args, "at") ?? pointed(ctx, group, way) ?? last));
 }
 
 register(
-  {
-    name: "heads",
-    about: "adds a header row or column to a grid, or takes it away",
-    on: ["block", "cell"],
-    /** Absent `on` turns it over. */
-    args: [{ name: "group", form: "block" },
-           { name: "way", form: "choice", required: true, choices: ["top", "left"] },
-           { name: "on", form: "choice", choices: ["yes", "no"] }],
-    check: (ctx, args) => {
-      if (!grid_named(ctx, args)) return "point at a grid, or a cell of one";
-      return ["top", "left"].includes(String(args["way"])) ? null : "say top or left";
-    },
-    run: (ctx, args) => {
-      const group = grid_named(ctx, args)!;
-      const edge = args["way"] === "left" ? "left" : "top";
-      const was = !!lattice_of(ctx.graph, group)!.head?.[edge];
-      const on = args["on"] === undefined ? !was : args["on"] === "yes";
-      return { mutations: headed(ctx.graph, group, edge, on) };
-    },
-  },
   {
     name: "label",
     about: "writes text in a cell of a grid, or clears it",
@@ -315,9 +281,8 @@ register(
       const way = args["way"] === "col" ? "col" : "row";
       const g = lattice_of(ctx.graph, group)!;
       const last = way === "row" ? g.rows : g.cols;
-      /** A header line stays first. */
-      const first = (way === "row" ? g.head?.top : g.head?.left) ? 1 : 0;
-      const at = Math.min(last, Math.max(first, num(args, "at") ?? pointed(ctx, group, way) ?? last));
+      /** The header line stays first. */
+      const at = Math.min(last, Math.max(1, num(args, "at") ?? pointed(ctx, group, way) ?? last));
       return { mutations: shifted(ctx.graph, group, way, at, 1) };
     },
   },
@@ -332,15 +297,14 @@ register(
       const group = grid_named(ctx, args);
       if (!group) return "point at a grid, or a cell of one";
       const g = lattice_of(ctx.graph, group)!;
-      return (args["way"] === "col" ? g.cols : g.rows) > 1 ? null : "a grid keeps one line";
+      const way = args["way"] === "col" ? "col" : "row";
+      if (removing(ctx, args, group, way) === 0) return "the header line stays";
+      return (way === "col" ? g.cols : g.rows) > 2 ? null : "a grid keeps one line past its header";
     },
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
       const way = args["way"] === "col" ? "col" : "row";
-      const g = lattice_of(ctx.graph, group)!;
-      const last = (way === "row" ? g.rows : g.cols) - 1;
-      const at = Math.min(last, Math.max(0, num(args, "at") ?? pointed(ctx, group, way) ?? last));
-      return { mutations: shifted(ctx.graph, group, way, at, -1) };
+      return { mutations: shifted(ctx.graph, group, way, removing(ctx, args, group, way), -1) };
     },
   },
   {
@@ -355,7 +319,7 @@ register(
       const g = lattice_of(ctx.graph, said.group)!;
       const { r, c, rows, cols } = said.span;
       if (r < 0 || c < 0 || r + rows > g.rows || c + cols > g.cols) return "that reaches past the grid";
-      return one_side(g, said.span) ? null : "a merge stays on one side of a header line";
+      return one_side(said.span) ? null : "a merge stays on one side of a header line";
     },
     /** Merges the picked span, or splits a single cell; covered blocks move to free cells. */
     run: (ctx, args) => {
@@ -380,7 +344,7 @@ register(
           }
           continue;
         }
-        const spare = free_cell(g, taken, span, b.cell, heads_at(g, b.cell));
+        const spare = free_cell(g, taken, span, b.cell, heads_at(b.cell));
         if (spare) taken.add(`${spare.r},${spare.c}`);
         out.push(put(ctx.graph, b.id, spare));
       }
@@ -402,9 +366,8 @@ register(
         .map((s): Span => ({ r: s.c, c: s.r, rows: s.cols, cols: s.rows }));
       const values = g.values ? Array.from({ length: g.cols }, (_, c) =>
         Array.from({ length: g.rows }, (_, r) => g.values![r]?.[c] ?? "")) : undefined;
-      const head = { top: !!g.head?.left, left: !!g.head?.top };
       const out: Mutation[] = [set(group, tidy(with_merges(
-        { ...g, rows: g.cols, cols: g.rows, head, ...(values ? { values } : {}) }, turned)))];
+        { ...g, rows: g.cols, cols: g.rows, ...(values ? { values } : {}) }, turned)))];
       for (const b of members_of(ctx.graph, group)) {
         if (b.cell) out.push({ op: "seat_cell", id: b.id, cell: { r: b.cell.c, c: b.cell.r } });
       }

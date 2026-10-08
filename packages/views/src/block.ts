@@ -3,8 +3,8 @@
 import { alias_of, layout_of, children, covers, edge_base, edges_in, group_depth, heading, holders_in,
          inline, is_container, is_grid, is_group, is_interface, is_note, label_of, lattice_of,
          members_of, schema_of, shape_of, stamps_of, role_of, shown_name, trace, EDITOR, type Cut,
-         type Tiers, type ViewKind, type Graph, type Grid, type Id, type Relation, type Side, type Span } from "@mnd/core";
-import { at_seat, cell_box, laid, line_span, perch_id, roomed, seated,
+         type Tiers, type ViewKind, type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
+import { at_seat, cell_box, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of, wire_of } from "./look";
@@ -14,7 +14,7 @@ import { survey_graph, FOREST } from "./survey";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
-         type GridCell, type GridLine, type LineEdge, type Port, type CardClass, type Scene,
+         type GridCell, type LineEdge, type Port, type CardClass, type Scene,
          type Slot } from "./scene";
 
 export type Config = {
@@ -82,16 +82,8 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
    *  but never moves, under the grid's own crumbs. */
   if (layer !== GRID_LAYER && is_grid(given, layer)) {
     const { frame: _room, ...scene } = project(sheet_graph(given, layer), GRID_LAYER, config);
-    /** A side with a header line has its tabs in it; a side without one has a gutter of tabs. */
-    const g = lattice_of(given, layer)!;
-    const tabs = (way: "row" | "col", n: number): GridLine[] =>
-      Array.from({ length: n }, (_, i) => ({ way, i, ...line_span(g, way, i),
-                                              name: line_name(g, way, i) }));
-    const lines = [...(g.head?.left ? [] : tabs("row", g.rows)),
-                   ...(g.head?.top ? [] : tabs("col", g.cols))];
     const nodes = scene.nodes.map((n) => (n.id !== layer ? n : {
-      ...n, draggable: false,
-      data: { ...n.data, lines, marks: [...n.data.marks, "room" as const] } }));
+      ...n, draggable: false, data: { ...n.data, marks: [...n.data.marks, "room" as const] } }));
     return { ...scene, layer, nodes, trail: trail_of(given, layer) };
   }
   const through = read_through(given, layer);
@@ -222,7 +214,7 @@ function lattice(graph: Graph, id: Id): GridCell[] {
       const marks: CardClass[] = ["cell"];
       if (span) marks.push("merged");
       if (seated.has(`${r},${c}`)) marks.push("seated");
-      const role = heading(g, r, c);
+      const role = heading(r, c);
       if (role || (names && r === 0)) marks.push("header");
       if (role === "row") marks.push("upright");
       const value = said(r, c);
@@ -230,7 +222,7 @@ function lattice(graph: Graph, id: Id): GridCell[] {
       /** A header heading one line is that line's tab; the corner heads none. */
       const line = role === "row" ? { way: "row" as const, i: r }
         : role === "col" ? { way: "col" as const, i: c } : null;
-      const index = line ? line_name(g, line.way, line.i) : "";
+      const index = line ? line_name(line.way, line.i) : "";
       out.push({ r, c, ...cell_box(g, r, c), marks, ...(value ? { value } : {}),
                  ...(def ? { def } : {}), ...(r === 0 && c === key ? { key: true } : {}),
                  ...(line ? { line } : {}), ...(index ? { index } : {}) });
@@ -241,9 +233,8 @@ function lattice(graph: Graph, id: Id): GridCell[] {
 
 /** What a row or column of a grid is called: rows count from one and columns letter from A, past
  *  the header line, which is nameless. */
-function line_name(g: Grid, way: "row" | "col", i: number): string {
-  const head = way === "row" ? !!g.head?.top : !!g.head?.left;
-  let n = i - (head ? 1 : 0);
+function line_name(way: "row" | "col", i: number): string {
+  let n = i - 1;
   if (n < 0) return "";
   if (way === "row") return String(n + 1);
   let out = "";

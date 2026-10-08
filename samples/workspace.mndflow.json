@@ -292,10 +292,6 @@
         "grid": {
           "rows": 3,
           "cols": 3,
-          "head": {
-            "top": true,
-            "left": true
-          },
           "values": [
             [
               "",

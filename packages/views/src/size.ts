@@ -65,25 +65,16 @@ export function cell_size(g: Grid): Size {
   return g.size ? { w: g.size.w * UNIT, h: g.size.h * UNIT } : CELL;
 }
 
-/** Where line `i` starts along one axis: **a header line is one unit across**, every other a cell. */
-function line_at(i: number, cell: number, head: boolean): number {
-  return i === 0 || !head ? i * cell : UNIT + (i - 1) * cell;
-}
-
-/** Where one row or column of a grid runs, relative to its corner: its start along its axis, and
- *  how far across it is. */
-export function line_span(g: Grid, way: "row" | "col", i: number): { at: number; size: number } {
-  const cell = cell_size(g);
-  const head = way === "row" ? !!g.head?.top : !!g.head?.left;
-  const across = way === "row" ? cell.h : cell.w;
-  const at = line_at(i, across, head);
-  return { at, size: line_at(i + 1, across, head) - at };
+/** Where line `i` starts along one axis: **the header line is one unit across**, every other a
+ *  cell. */
+function line_at(i: number, cell: number): number {
+  return i === 0 ? 0 : UNIT + (i - 1) * cell;
 }
 
 /** What a grid takes up: its extent in cells, and nothing besides. */
 export function grid_size(g: Grid): Size {
   const cell = cell_size(g);
-  return { w: line_at(g.cols, cell.w, !!g.head?.left), h: line_at(g.rows, cell.h, !!g.head?.top) };
+  return { w: line_at(g.cols, cell.w), h: line_at(g.rows, cell.h) };
 }
 
 /** Where one cell sits inside its grid, relative to the grid's own corner. */
@@ -91,12 +82,9 @@ export function cell_box(g: Grid, r: number, c: number): Box {
   const span = g.merges?.find((s) => covers(s, r, c));
   const at = span ?? { r, c, rows: 1, cols: 1 };
   const cell = cell_size(g);
-  const top = !!g.head?.top;
-  const left = !!g.head?.left;
-  const x = line_at(at.c, cell.w, left);
-  const y = line_at(at.r, cell.h, top);
-  return { x, y, w: line_at(at.c + at.cols, cell.w, left) - x,
-           h: line_at(at.r + at.rows, cell.h, top) - y };
+  const x = line_at(at.c, cell.w);
+  const y = line_at(at.r, cell.h);
+  return { x, y, w: line_at(at.c + at.cols, cell.w) - x, h: line_at(at.r + at.rows, cell.h) - y };
 }
 
 /** How many rows and columns a region of this size is, in whole cells. */
@@ -108,9 +96,8 @@ export function extent_of(w: number, h: number): { rows: number; cols: number } 
 /** How many rows and columns this grid's region of this size is, counting its header lines. */
 export function extent_in(g: Grid, w: number, h: number): { rows: number; cols: number } {
   const cell = cell_size(g);
-  const lines = (px: number, size: number, head: boolean) => head
-    ? 1 + Math.max(1, Math.round((px - UNIT) / size)) : Math.max(1, Math.round(px / size));
-  return { rows: lines(h, cell.h, !!g.head?.top), cols: lines(w, cell.w, !!g.head?.left) };
+  const lines = (px: number, size: number) => 1 + Math.max(1, Math.round((px - UNIT) / size));
+  return { rows: lines(h, cell.h), cols: lines(w, cell.w) };
 }
 
 /** Whether a card that fits its content grows to show all of it, or previews it at the one card

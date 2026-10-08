@@ -159,8 +159,8 @@
         "type": "grid",
         "alias": 1,
         "grid": {
-          "rows": 3,
-          "cols": 2
+          "rows": 4,
+          "cols": 3
         },
         "order": 10,
         "x": -240,
@@ -179,12 +179,12 @@
         "type": "grid",
         "alias": 2,
         "grid": {
-          "rows": 3,
-          "cols": 2,
+          "rows": 4,
+          "cols": 3,
           "merges": [
             {
-              "r": 0,
-              "c": 0,
+              "r": 1,
+              "c": 1,
               "rows": 3,
               "cols": 1
             }
@@ -200,8 +200,8 @@
         "type": "grid",
         "alias": 3,
         "grid": {
-          "rows": 2,
-          "cols": 1
+          "rows": 3,
+          "cols": 2
         },
         "order": 1,
         "x": -216,
@@ -213,8 +213,8 @@
         "type": "grid",
         "alias": 4,
         "grid": {
-          "rows": 2,
-          "cols": 2
+          "rows": 3,
+          "cols": 3
         },
         "order": 5,
         "x": 0,
@@ -293,8 +293,8 @@
         "alias": 20,
         "order": 12,
         "cell": {
-          "r": 0,
-          "c": 0
+          "r": 1,
+          "c": 1
         }
       },
       "block_ga0xoyy306a1": {
@@ -330,8 +330,8 @@
         "alias": 19,
         "order": 11,
         "cell": {
-          "r": 0,
-          "c": 0
+          "r": 1,
+          "c": 1
         }
       },
       "block_h1gmpej2w1tl": {
@@ -425,8 +425,8 @@
           }
         },
         "cell": {
-          "r": 0,
-          "c": 1
+          "r": 1,
+          "c": 2
         }
       },
       "block_lisf1xwo11gs": {
@@ -446,8 +446,8 @@
         "alias": 5,
         "order": 7,
         "cell": {
-          "r": 1,
-          "c": 0
+          "r": 2,
+          "c": 1
         }
       },
       "block_pcm8tjwdotm2": {
@@ -462,8 +462,8 @@
           }
         },
         "cell": {
-          "r": 0,
-          "c": 0
+          "r": 1,
+          "c": 1
         }
       },
       "block_phj6wc786dlo": {
@@ -482,8 +482,8 @@
         "alias": 14,
         "order": 1,
         "cell": {
-          "r": 0,
-          "c": 0
+          "r": 1,
+          "c": 1
         }
       },
       "block_pmjakumsauvt": {
@@ -567,8 +567,8 @@
         "alias": 21,
         "order": 6,
         "cell": {
-          "r": 0,
-          "c": 1
+          "r": 1,
+          "c": 2
         }
       },
       "block_sah425bet8e7": {
@@ -604,8 +604,8 @@
         "alias": 16,
         "order": 3,
         "cell": {
-          "r": 0,
-          "c": 0
+          "r": 1,
+          "c": 1
         }
       },
       "block_t1f7x1vfkadb": {
@@ -633,8 +633,8 @@
         "type": "grid",
         "alias": 5,
         "grid": {
-          "rows": 1,
-          "cols": 1
+          "rows": 2,
+          "cols": 2
         },
         "order": 9,
         "x": -48,

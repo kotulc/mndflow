@@ -123,7 +123,7 @@ export function gridded(): Log {
     step("group", [
       { op: "add_block", block: { id: "block_lanes", parent: "block_board", name: "Lanes",
                                   type: "grid", x: 0, y: 0, order: 1 } },
-      { op: "set_grid", id: "block_lanes", grid: { rows: 3, cols: 4, head: { left: true } } },
+      { op: "set_grid", id: "block_lanes", grid: { rows: 3, cols: 4 } },
     ]),
     ...named.map(([id, label]) =>
       step("create", [block(id, "block_board", label, "block")])),

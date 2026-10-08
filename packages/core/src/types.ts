@@ -62,8 +62,6 @@ export type Shape = "group" | "grid";
 export type Grid = {
   rows: number;
   cols: number;
-  /** Which outer lines head the rest: the top row heads columns, the left column heads rows. */
-  head?: { top?: boolean; left?: boolean };
   /** Cells with an extent of their own. */
   merges?: Span[];
   /** A plain value per cell, by row then column. A value is data, not a part: a cell seating a

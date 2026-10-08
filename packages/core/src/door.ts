@@ -266,7 +266,7 @@ function fitted(graph: Graph, g: Grid): { grid: Grid; dropped: number; said: boo
   const kept: Span[] = [];
   for (const s of g.merges ?? []) {
     const sane = s.rows > 0 && s.cols > 0 && s.r >= 0 && s.c >= 0
-              && s.r + s.rows <= rows && s.c + s.cols <= cols && one_side(sized, s);
+              && s.r + s.rows <= rows && s.c + s.cols <= cols && one_side(s);
     if (sane && !kept.some((k) => overlaps(k, s))) kept.push(s);
   }
   const dropped = (g.merges ?? []).length - kept.length;

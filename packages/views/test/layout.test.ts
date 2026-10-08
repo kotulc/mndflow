@@ -149,8 +149,8 @@ describe("the grid arrangement", () => {
       if (!is_grid(graph, p.id)) continue;
       const g = lattice_of(graph, p.id)!;
       /** A header line is one unit across, every other line a cell. */
-      expect(p.w).toBe((g.cols - (g.head?.left ? 1 : 0)) * CELL.w + (g.head?.left ? UNIT : 0));
-      expect(p.h).toBe((g.rows - (g.head?.top ? 1 : 0)) * CELL.h + (g.head?.top ? UNIT : 0));
+      expect(p.w).toBe((g.cols - 1) * CELL.w + UNIT);
+      expect(p.h).toBe((g.rows - 1) * CELL.h + UNIT);
       expect(CELL.w % UNIT).toBe(0);
       expect(CELL.h % UNIT).toBe(0);
     }

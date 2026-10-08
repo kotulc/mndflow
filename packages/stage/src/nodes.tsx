@@ -10,7 +10,7 @@ import type { Side } from "@mnd/core";
 export const DRAGGED = "text/mnd-block";
 
 import { FRAME, PLAIN, look_key,
-         type BoxData, type BoxNode, type GridCell, type GridLine, type Look } from "@mnd/views";
+         type BoxData, type BoxNode, type GridCell, type Look } from "@mnd/views";
 import type { Mark, Role } from "@mnd/core";
 import { Icon, Name, known, mark_icon, role_icon, useNaming } from "@mnd/theme";
 import { Inline, Markdown, plain } from "./Markdown";
@@ -293,27 +293,28 @@ export function cell_key(at: Spot): string {
 }
 
 /** Whether a cell lies on a row or column, merged cells included. */
-function on_line(c: GridCell, line: GridLine): boolean {
+function on_line(c: GridCell, line: { way: "row" | "col"; at: number }): boolean {
   const [from, size] = line.way === "row" ? [c.y, c.h] : [c.x, c.w];
   return line.at >= from && line.at < from + size;
 }
 
-/** The line a header heads, as the tab it is: where that line runs is where the header does. */
-function headed_line(c: GridCell): GridLine | null {
+/** A row or column of an opened grid, as its header reads it: where the line runs. */
+type Line = { way: "row" | "col"; at: number; size: number };
+
+/** The line a header heads: where that line runs is where the header does. */
+function headed_line(c: GridCell): Line | null {
   if (!c.line) return null;
   const row = c.line.way === "row";
-  return { ...c.line, at: row ? c.y : c.x, size: row ? c.h : c.w, name: c.index ?? "" };
+  return { way: c.line.way, at: row ? c.y : c.x, size: row ? c.h : c.w };
 }
 
-/** The lattice a grid draws; opened, its header lines are its rows' and columns' tabs, and a side
- *  with no header line has a gutter of them. */
-function Lattice({ id, cells, lines }: { id: string; cells: readonly GridCell[];
-                                         lines?: readonly GridLine[] }) {
+/** The lattice a grid draws; opened, its headers are its rows' and columns' tabs. */
+function Lattice({ id, cells, open }: { id: string; cells: readonly GridCell[]; open: boolean }) {
   const { picked, pick } = useContext(CellsContext);
   const naming = useNaming();
   /** The line a gutter tab is lighting. */
-  const [lit, set_lit] = useState<GridLine | null>(null);
-  const line_cells = (line: GridLine): Spot[] =>
+  const [lit, set_lit] = useState<Line | null>(null);
+  const line_cells = (line: Line): Spot[] =>
     cells.filter((c) => on_line(c, line)).map((c) => ({ group: id, r: c.r, c: c.c }));
   const held = (c: GridCell) =>
     picked.some((p) => p.group === id && p.r === c.r && p.c === c.c);
@@ -390,33 +391,18 @@ function Lattice({ id, cells, lines }: { id: string; cells: readonly GridCell[];
               {...(c.line ? { "data-way": c.line.way, "data-i": c.line.i } : {})}
               style={{ left: c.x, top: c.y, width: c.w, height: c.h }}
               onPointerEnter={(e) => {
-                if (c.line && lines) set_lit(headed_line(c));
+                if (c.line && open) set_lit(headed_line(c));
                 if (e.buttons === 1 && from.current) pick(range(from.current, c));
               }}
-              onPointerLeave={c.line && lines ? () => set_lit(null) : undefined}
-              onClick={c.line && lines ? () => pick(line_cells(headed_line(c)!)) : undefined}>
+              onPointerLeave={c.line && open ? () => set_lit(null) : undefined}
+              onClick={c.line && open ? () => pick(line_cells(headed_line(c)!)) : undefined}>
           {/* What the cell says, where no block sits in it, typed in place; the key column says
               so. */}
           {naming.id === cell_key({ group: id, r: c.r, c: c.c })
             ? <Name id={naming.id} className="mnd-grid-value" text={c.value ?? ""} clears />
             : c.value ? <Inline className="mnd-grid-value" text={c.value} /> : null}
           {c.key ? <Icon name="key" size={12} className="mnd-grid-key" /> : null}
-          {c.index && lines ? <span className="mnd-grid-index">{c.index}</span> : null}
-        </span>
-      ))}
-      {/* A tab per line: it lights the line, a click picks it, and the right button offers what
-          may be done to it. */}
-      {lines?.map((line) => (
-        <span key={`${line.way}${line.i}`}
-              className={`mnd-grid-line ${line.way} nopan`}
-              data-way={line.way}
-              data-i={line.i}
-              style={line.way === "row" ? { top: line.at, height: line.size }
-                                        : { left: line.at, width: line.size }}
-              onPointerEnter={() => set_lit(line)}
-              onPointerLeave={() => set_lit(null)}
-              onClick={() => pick(line_cells(line))}>
-          {line.name}
+          {c.index && open ? <span className="mnd-grid-index">{c.index}</span> : null}
         </span>
       ))}
     </span>
@@ -457,8 +443,7 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
         ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
       <div className={group} title={data.label}>
         {has_cells ? null : <BandRim />}
-        {has_cells ? <Lattice id={id} cells={data.grid!}
-                              {...(data.lines ? { lines: data.lines } : {})} /> : null}
+        {has_cells ? <Lattice id={id} cells={data.grid!} open={!!room} /> : null}
         {has_cells ? <Edge /> : null}
         {has_cells ? (
           <NodeResizer isVisible={selected} minWidth={96} minHeight={48}

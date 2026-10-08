@@ -6,11 +6,9 @@ import { children, stands_for } from "./tree";
 import type { Block, Cell, Graph, Grid, HeaderRole, Id, Shape, Span } from "./types";
 
 
-/** The extent a grid draws where it has not said one. */
-export const GRID: Grid = { rows: 2, cols: 2 };
-
-/** What a new grid is made with: two by two, under a header row and a header column. */
-export const HEADED: Grid = { rows: 3, cols: 3, head: { top: true, left: true } };
+/** The extent a grid draws where it has not said one: two by two, under its header row and
+ *  header column. */
+export const GRID: Grid = { rows: 3, cols: 3 };
 
 /** The stable order a layer and every holder in it read in. */
 const by_order = (a: { order?: number; id: Id }, b: { order?: number; id: Id }): number =>
@@ -199,11 +197,11 @@ export function at_cell(graph: Graph, group: Id, r: number, c: number): Block | 
     .find((b) => b.cell?.r === want.r && b.cell?.c === want.c) ?? null;
 }
 
-/** Which line a cell of this lattice heads, or null: the top row heads columns, the left column
- *  heads rows, and the corner both. */
-export function heading(g: Grid, r: number, c: number): HeaderRole | null {
-  const top = !!g.head?.top && r === 0;
-  const left = !!g.head?.left && c === 0;
+/** Which line a cell heads, or null. **Every grid is headed**: the top row heads columns, the
+ *  left column heads rows, and the corner both. */
+export function heading(r: number, c: number): HeaderRole | null {
+  const top = r === 0;
+  const left = c === 0;
   return top && left ? "both" : top ? "col" : left ? "row" : null;
 }
 
@@ -213,15 +211,14 @@ export function inside(g: Grid, at: Cell): boolean {
 }
 
 /** Whether a span stays on one side of the header lines, as a merge must. */
-export function one_side(g: Grid, s: Span): boolean {
-  return heading(g, s.r, s.c) === heading(g, s.r + s.rows - 1, s.c + s.cols - 1);
+export function one_side(s: Span): boolean {
+  return heading(s.r, s.c) === heading(s.r + s.rows - 1, s.c + s.cols - 1);
 }
 
 /** Which line a seated block heads, or null where it sits in the body or nowhere. */
 export function head_of(graph: Graph, id: Id): HeaderRole | null {
   const b = graph.blocks[id];
-  const g = lattice_of(graph, b?.parent ?? undefined);
-  return g && b?.cell ? heading(g, b.cell.r, b.cell.c) : null;
+  return b?.cell && is_grid(graph, b.parent ?? undefined) ? heading(b.cell.r, b.cell.c) : null;
 }
 
 /** Whether a block heads a line of its grid. */

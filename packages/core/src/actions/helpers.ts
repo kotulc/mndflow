@@ -1,8 +1,8 @@
 /** Argument readers and makers shared by the actions. */
 
-import { block_base, config_of, def_at, def_named, frozen, package_of, relation_base, setting_of,
+import { block_base, def_at, def_named, frozen, package_of, relation_base, setting_of,
          stored_type, type Domain } from "../defs";
-import { HEADED, is_grid } from "../holders";
+import { is_grid } from "../holders";
 import { next_alias } from "../names";
 import { next_order } from "../tree";
 import { new_id } from "../ids";
@@ -127,13 +127,10 @@ export const NEEDS: Record<string, string> = {
 export function make_block(ctx: Context, name: string, parent: Id | null, type?: Id): Mutation[] {
   const id = new_id("block");
   const serial = handles(ctx, block_base(ctx.graph, type));
-  /** A grid is made headed. */
-  const grid: Mutation[] = config_of(ctx.graph, type, "holder")["matrix"] === true
-    ? [{ op: "set_grid", id, grid: HEADED }] : [];
   return [{ op: "add_block", block: {
     id, parent, name: name || undefined, type: stored_type(ctx.graph, type),
     order: next_order(ctx.graph, parent), alias: serial.take(),
-  } }, ...grid, ...serial.bump()];
+  } }, ...serial.bump()];
 }
 
 /** The definition a word names: an id, or a name within the domain. */

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
-import { is_interface, lattice_of } from "@mnd/core";
+import { is_interface } from "@mnd/core";
 
 /** One named menu entry; the shape the explorer's menu agrees on. */
 export type Entry = { name: string; label?: string; args?: Args };
@@ -65,34 +65,20 @@ function box_offers(): readonly (string | Entry)[] {
           { name: "delete", label: "delete block" }];
 }
 
-/** Turning a grid's header lines on and off, worded for how they are now. */
-function head_offers(group: string, graph: Graph): Entry[] {
-  const head = lattice_of(graph, group)?.head;
-  return [
-    { name: "heads", label: `${head?.top ? "remove" : "add"} header row`, args: { way: "top" } },
-    { name: "heads", label: `${head?.left ? "remove" : "add"} header column`,
-      args: { way: "left" } },
-  ];
-}
-
 /** Adding a line to a grid: at the picked cell's line, else at its end. */
 const LINES: readonly Entry[] = [
   { name: "insert", label: "insert row", args: { way: "row" } },
   { name: "insert", label: "insert column", args: { way: "col" } },
 ];
 
-/** What a row or column offers from its tab: lines beside it, taking it away, and the header line
- *  its tabs sit in — a row's in the header column, a column's in the header row; from a header,
- *  which is a cell too, a block made in it first. */
-function line_offers(given: Record<string, unknown>, graph: Graph): Entry[] {
+/** What a row or column offers from its header: a block made in that header, which is a cell
+ *  too, then lines beside it and taking it away. */
+function line_offers(given: Record<string, unknown>): Entry[] {
   const group = String(given["group"]);
   const i = Number(given["i"]);
   const row = given["way"] === "row";
   const way = row ? "row" : "col";
   const [before, after, noun] = row ? ["above", "below", "row"] : ["left", "right", "column"];
-  const head = lattice_of(graph, group)?.head;
-  const headed = row ? !!head?.left : !!head?.top;
-  const across = row ? "column" : "row";
   const cell = typeof given["r"] === "number"
     ? [{ name: "create", label: "new block here",
          args: { parent: group, at: `${String(given["r"])},${String(given["c"])}` } }]
@@ -102,8 +88,6 @@ function line_offers(given: Record<string, unknown>, graph: Graph): Entry[] {
     { name: "insert", label: `insert ${noun} ${before}`, args: { group, way, at: i } },
     { name: "insert", label: `insert ${noun} ${after}`, args: { group, way, at: i + 1 } },
     { name: "remove", label: `remove ${noun}`, args: { group, way, at: i } },
-    { name: "heads", label: `${headed ? "remove" : "add"} header ${across}`,
-      args: { group, way: row ? "left" : "top" } },
   ];
 }
 
@@ -160,15 +144,15 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
     const n = scene.nodes.find((x) => x.id === g.on);
     /** Fill and lines are a grid's: a boundary has no cells. */
     if (holds(n)) {
-      return n?.type === "grid" ? [...(offers.band ?? []), ...head_offers(g.on, graph), ...LINES]
+      return n?.type === "grid" ? [...(offers.band ?? []), ...LINES]
         : offers.band?.filter((e) => (typeof e === "string" ? e : e.name) !== "fill");
     }
     return box_offers();
   }
   if (g.kind === "box" && g.on) return box_offers();
-  /** A cell offers what can be done to the lattice there, and to its header lines. */
-  if (g.kind === "cell" && g.on) return [...(offers.cell ?? []), ...head_offers(g.on, graph)];
-  if (g.kind === "line" && g.given) return line_offers(g.given, graph);
+  /** A cell offers what can be done to the lattice there. */
+  if (g.kind === "cell" && g.on) return offers.cell;
+  if (g.kind === "line" && g.given) return line_offers(g.given);
   /** A run and its name are one subject. */
   if ((g.kind === "route" || g.kind === "name") && g.on && graph.edges[g.on]) {
     return wire_offers(g.on, graph);

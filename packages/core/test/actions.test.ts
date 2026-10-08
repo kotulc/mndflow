@@ -11,15 +11,15 @@ import { MAIN, adjustments, all, children, def_named, fold,
 const ctx = (picked: string[] = [], layer: string | null = "block_loop"): Context =>
   ({ graph: fold(related(), FLOOR), layer, picked });
 
-/** A grid of three cells, two filled, one picked. */
+/** A grid of three body cells under its headers, two filled, one picked. */
 const gridded = (): Context => {
   const c = ctx(["block_pump"]);
   const b = c.graph.blocks;
   b["block_loop"] = { ...b["block_loop"]!, settings: { layout: { kind: "auto" } } };
-  b["block_hot"] = { ...b["block_hot"]!, type: "grid", grid: { rows: 1, cols: 3 } };
-  b["block_tank"] = { ...b["block_tank"]!, parent: "block_hot", cell: { r: 0, c: 0 } };
-  b["block_valve"] = { ...b["block_valve"]!, parent: "block_hot", cell: { r: 0, c: 1 } };
-  return { ...c, cells: [{ group: "block_hot", r: 0, c: 0 }] };
+  b["block_hot"] = { ...b["block_hot"]!, type: "grid", grid: { rows: 2, cols: 4 } };
+  b["block_tank"] = { ...b["block_tank"]!, parent: "block_hot", cell: { r: 1, c: 1 } };
+  b["block_valve"] = { ...b["block_valve"]!, parent: "block_hot", cell: { r: 1, c: 2 } };
+  return { ...c, cells: [{ group: "block_hot", r: 1, c: 1 }] };
 };
 
 describe("the registry", () => {

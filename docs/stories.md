@@ -71,6 +71,7 @@ Translate a project out — **the site first**, then simulator, parametrics and 
 | **Behaviour** | a cell address is an order and a header is an allocation; nothing reads either as behaviour yet. Likely what drives ST.23 |
 | **SysML round trip** | a `tie` goes out as `comment` and comes back as a `line`. Part of ST.6 |
 | **A named package is checked** | reconciling what each package brought and what is in use against the catalogue |
+| **Status columns** | a kanban grid whose column headers are options of a type (`Status`): a card's column sets its attribute, and its attribute seats it. Waits on types and attributes |
 | **Constraints** | what a kind may hold, seat, take or connect to *by definition* (`allows` lists, `degree`, `ends`) and what its values must say (`expects`). Traits grant a capability whole and never limit it; these stay raw settings with no editor until reworked: stating a constraint, and seeing where a model breaks it |
 
 

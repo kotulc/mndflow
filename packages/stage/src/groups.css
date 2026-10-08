@@ -128,9 +128,7 @@
 /* The lattice and its gutter tabs sit over the dimmed outside, not under it. */
 .mnd-group.room > .mnd-grid-cells { z-index: 1; }
 
-/* Close over the grid, and above the column gutter where there is one. */
 .mnd-group-shell.room > .mnd-group-title { color: var(--muted); }
-.mnd-group-shell.room:has(.mnd-grid-line.col) > .mnd-group-title { margin-bottom: 26px; }
 
 /* Opened, a cell shows it is a target: a wash and an edge on hover, and a mark where it is
    empty. A lit line is every cell its gutter tab points at. */
@@ -148,23 +146,6 @@
   color: color-mix(in oklch, var(--accent) 70%, transparent);
   font-size: 20px;
   pointer-events: none;
-}
-
-/* A gutter tab per row and column, on a side with no header line: narrow, see-through, and quiet
-   until pointed at. */
-.mnd-grid-line {
-  position: absolute;
-  box-sizing: border-box;
-  display: grid;
-  place-items: center;
-  border: 1px solid color-mix(in oklch, var(--card-line) 28%, transparent);
-  border-radius: 2px;
-  background: color-mix(in oklch, var(--surface) 72%, transparent);
-  color: color-mix(in oklch, var(--muted) 60%, transparent);
-  font-size: 9px;
-  pointer-events: auto;
-  cursor: pointer;
-  user-select: none;
 }
 
 /* A header's line name, faint in its corner, never in the way of what it says. */

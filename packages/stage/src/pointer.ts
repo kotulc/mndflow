@@ -26,8 +26,8 @@ export function kind_of(scene: Scene, id: string | null,
   return node?.data.on ? "seat" : "box";
 }
 
-/** Everything standing for a row or column of an opened grid: a gutter tab, or a header. */
-export const LINES = ".mnd-grid-line, .mnd-grid-cell[data-way]";
+/** What stands for a row or column of an opened grid: the header heading it. */
+export const LINES = ".mnd-grid-cell[data-way]";
 
 /** Everywhere a name is drawn on a card. */
 export const NAMES = ".mnd-label, .mnd-group-name, .mnd-wire-text";

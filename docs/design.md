@@ -65,8 +65,9 @@ Most rules below are one of these applied.
 **A spreadsheet whose cells hold text or blocks, and the one place a position states meaning.** A cell address along the reading direction is an order, and a header is an allocation — both stated rather than guessed.
 
 - outside, a grid is a card like any other; opened, it draws its **grid view**: a frame of card-sized cells, with narrower header lines along its edges
+- every grid has a header row and a header column; opened, each header is its line's tab: pointing at it lights the line, a click picks it, and the right button offers what may be done to the line
 - a cell or header holds one thing: a text value or a block. Two sharing one leaves *what is allocated here* without an answer. A grid's member always sits in a cell
-- double-clicking a cell or header edits its text, or opens the block in it as anywhere; right-clicking makes a block in it; dragging a block onto it seats it there
+- double-clicking a cell or header edits its text, or opens the block in it as anywhere; right-clicking a cell makes a block in it; dragging a block onto either seats it there
 - any block may sit in a cell, holders and grids included; it draws as a card, compact in a header
 - a block dropped on a grid's card from outside takes the next free cell in reading order, adding a row when none is free
 - reading order is left to right, then down
