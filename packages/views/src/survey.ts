@@ -1,4 +1,4 @@
-/** The `overview` view: a whole section, drawn — every root it lists, from the scope above it,
+/** The `overhead` view: a whole section, drawn — every root it lists, from the scope above it,
  *  down to its cut, as boxes down the page. What the explorer's section lists, the canvas draws.
  *
  *  Drawn, never stored: a graph handed back for a projection to read. Every block keeps its real

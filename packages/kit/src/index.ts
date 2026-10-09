@@ -55,7 +55,7 @@ export {
 export { CARD, LARGE, UNITS, face_of, set_card, size_of, type Face } from "@mnd/views";
 
 /** What a card carries, the large face's markdown, and its attributes as a table. */
-export { carried, face_text, listed, table, type Listed } from "@mnd/views";
+export { carried, face_table, face_text, listed, table, type Listed, type Ruled } from "@mnd/views";
 
 /** The computed layout: a layer as a page of boxes. */
 export { page_graph } from "@mnd/views";

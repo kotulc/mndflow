@@ -1,13 +1,14 @@
-/** The large face: the markdown it shows, and the room that markdown needs.
+/** The large face: the table of attributes and the markdown it shows, and the room they need.
  *
  *  Measured from the text, never the page, so a layout sizes its cards headless. The estimate
  *  follows the face's stylesheet — monospace, a line of 16px, a table row of 17px — near enough
- *  that what is shown fits, rounded up to whole units. */
+ *  that what is shown fits. A table's columns are measured exactly once, here, and drawn at those
+ *  widths, and **a table card is exactly its table**: its title row, its rows and its border. */
 
-import { alias_of, attributes_of, def_at, links_to, schema_def, shown_name,
+import { alias_of, attributes_of, def_at, links_to, schema_def, shown_name, stamps_of,
          type Graph, type Id } from "@mnd/core";
 import { look_of, type Look } from "./look";
-import type { Listed } from "./scene";
+import type { Listed, Ruled } from "./scene";
 
 /** One glyph's width, in pixels, at each size the face writes in. */
 const GLYPH = { name: 7.8, body: 7.2, table: 6.6 };
@@ -16,28 +17,47 @@ const GLYPH = { name: 7.8, body: 7.2, table: 6.6 };
 const LINE = 16;
 const ROW = 17;
 
-/** The widest a table's cell reads, in characters, before it is cut off: the face's `12ch`. */
-const CELL = 12;
+/** The widest a table's cell reads, in characters, before it is cut off. */
+const CELL = 16;
 
 /** The room an image takes in a large face, in pixels. */
 const IMAGE = { w: 192, h: 96 };
 
 /** What a large face spends round its body, in pixels: the card's padding, the corner's gutter,
- *  the head line and its divider, and the room a handle over the name takes. */
-const PAD = { x: 16, gutter: 13, y: 6, head: 24, handle: 8, gap: 4 };
+ *  the head line and its divider, the room a handle over the name takes, and the same over a
+ *  table card, which has no padding of its own — then a table's title row and the room beside its
+ *  name for the icon, what a cell spends beside its text, and the room each mark takes at the end
+ *  of the last row, inset from the corner. All as `face.css` draws them. */
+const PAD = { x: 16, gutter: 13, y: 6, head: 24, handle: 8, over: 11, gap: 4, title: 21, side: 32,
+              cell: 10, mark: 15, corner: 4 };
+
+/** A card's border, in pixels, at each width `ramp.css` weighs it. */
+const EDGE: Record<string, number> = { thin: 1, medium: 2, thick: 4 };
 
 
-/** The large face's markdown: each part the look shows, in its order — the attributes as a
- *  table, the body as written, the preview as an image. */
+/** The large face's markdown: the parts the look shows that are prose, in its order — the body
+ *  as written, the preview as an image. Its attributes are a table of their own (`face_table`). */
 export function face_text(graph: Graph, id: Id, look: Look = look_of(graph, id)): string {
   const b = graph.blocks[id];
   if (!b) return "";
   const parts = look.shows.map((part) => {
     if (part === "body") return b.body?.trim() ?? "";
     if (part === "preview") return b.source ? `![${shown_name(graph, id)}](<${b.source}>)` : "";
-    return table(listed(graph, id));
+    return "";
   });
   return parts.filter(Boolean).join("\n\n");
+}
+
+/** The large face's attributes, where its look shows them and it has any, with room at the end
+ *  of the last row for the card's marks. */
+export function face_table(graph: Graph, id: Id, look: Look = look_of(graph, id),
+                           marks = stamps_of(graph, id).length): Ruled | null {
+  return look.shows.includes("attributes") ? table(listed(graph, id), marks) : null;
+}
+
+/** How wide a card's border is, in pixels. */
+export function edge_of(look: Look): number {
+  return EDGE[look.border_width] ?? 1;
 }
 
 /** The handle a card wears over its name: while it is unnamed, or always or never where its
@@ -46,36 +66,46 @@ export function handle_of(graph: Graph, id: Id, look: Look = look_of(graph, id))
   return look.alias === undefined ? alias_of(graph, id) : look.alias ? alias_of(graph, id, true) : "";
 }
 
-/** The room a large face needs, in pixels: its name and handle over its markdown, every table
- *  whole and its prose wrapped at the width that leaves. Unbounded; the caller holds it. */
-export function fit_of(name: string, text: string, handle: boolean, most_w: number): Size {
+/** The room a large face needs, in pixels: its name and handle — over its table of attributes,
+ *  as that table's title row, inside a border `edge` wide — then its markdown, every table whole
+ *  and its prose wrapped at the width that leaves. Unbounded; the caller holds it. */
+export function fit_of(name: string, text: string, handle: boolean, most_w: number,
+                       ruled: Ruled | null = null, edge = 1): Size {
   const blocks = blocks_of(text);
-  const head = PAD.x + PAD.gutter + name.length * GLYPH.name;
-  const wide = Math.max(head, ...blocks.map((b) => PAD.x + (b.kind === "table" ? table_width(b.rows)
-    : b.kind === "image" ? IMAGE.w : PAD.gutter + longest(b.lines) * GLYPH.body)));
+  const head = (ruled ? PAD.side : PAD.x + PAD.gutter) + name.length * GLYPH.name;
+  const across = ruled ? ruled.widths.reduce((sum, w) => sum + w, 0) : 0;
+  const wide = Math.max(head, across, ...blocks.map((b) => PAD.x + (b.kind === "table"
+    ? table_width(b.rows) : b.kind === "image" ? IMAGE.w : PAD.gutter + longest(b.lines) * GLYPH.body)));
   const w = Math.min(wide, most_w);
   const per = Math.max(1, Math.floor((w - PAD.x - PAD.gutter) / GLYPH.body));
   const body = blocks.reduce((h, b) => h + PAD.gap + (b.kind === "table" ? b.rows.length * ROW + 1
     : b.kind === "image" ? IMAGE.h
     : b.kind === "fence" ? b.lines.length * LINE
     : b.lines.reduce((n, l) => n + Math.max(1, Math.ceil(l.length / per)), 0) * LINE), 0);
-  return { w: wide, h: PAD.y + (handle ? PAD.handle : 0) + PAD.head + body };
+  if (!ruled) return { w: wide, h: PAD.y + PAD.head + (handle ? PAD.handle : 0) + body };
+  /** A table is ruled edge to edge, its title its top row and its last rule the border's — unless
+   *  a padded body follows it. */
+  const rows = PAD.title + ruled.cells.length * ROW + (blocks.length ? PAD.y + body : -1);
+  return { w: wide + edge * 2, h: rows + edge * 2 + (handle ? PAD.over : 0) };
 }
 
-/** Attributes as a markdown table, a row each: type, name, then key, value and note where any
- *  row says one. Its header is empty, which the face leaves undrawn: the columns read by place. */
-export function table(rows: readonly Listed[]): string {
-  if (!rows.length) return "";
-  const cell = (s: string) => s.replace(/\|/g, "\\|").replace(/\n/g, " ");
+/** Attributes as a ruled table, a row each: type, name, then key, value and note where any row
+ *  says one. Each column as wide as its widest cell, no wider than `CELL` characters; the last
+ *  wider by the room `marks` take at the end of the last row. */
+export function table(rows: readonly Listed[], marks = 0): Ruled | null {
+  if (!rows.length) return null;
   const keyed = rows.some((r) => r.key || r.link);
   const valued = rows.some((r) => r.value);
   const noted = rows.some((r) => r.note);
-  const line = (r: Listed) => [r.type, r.name, ...(keyed ? [r.key ? "PK" : r.link ? "FK" : ""] : []),
-                               ...(valued ? [r.value ?? ""] : []), ...(noted ? [r.note ?? ""] : [])];
-  const said = (cells: string[]) => `| ${cells.map(cell).join(" | ")} |`;
-  const width = line(rows[0]!).length;
-  return [said(Array(width).fill("")), said(Array(width).fill("---")),
-          ...rows.map((r) => said(line(r)))].join("\n");
+  const cells = rows.map((r) => [r.type, r.name,
+                                 ...(keyed ? [r.key ? "PK" : r.link ? "FK" : ""] : []),
+                                 ...(valued ? [r.value ?? ""] : []), ...(noted ? [r.note ?? ""] : [])]
+    .map((c) => c.replace(/\n/g, " ")));
+  const last = cells[0]!.length - 1;
+  const room = marks ? PAD.corner + marks * PAD.mark : 0;
+  const widths = cells[0]!.map((_, c) => Math.ceil(PAD.cell + (c === last ? room : 0)
+    + Math.min(CELL, Math.max(...cells.map((row) => row[c]!.length))) * GLYPH.table));
+  return { cells, widths };
 }
 
 /** What a card's attributes list. A stand-in for a definition lists what it declares, with its
@@ -154,13 +184,14 @@ function longest(lines: readonly string[]): number {
   return Math.max(0, ...lines.map((l) => l.length));
 }
 
-/** A table's width: each column as wide as its widest cell, no wider than the face cuts one. */
+/** A markdown table's width: each column as wide as its widest cell, no wider than the face
+ *  cuts one. */
 function table_width(rows: readonly string[][]): number {
   const cols = Math.max(0, ...rows.map((r) => r.length));
   let w = 1;
   for (let c = 0; c < cols; c++) {
     const chars = Math.min(CELL, Math.max(0, ...rows.map((r) => r[c]?.length ?? 0)));
-    w += chars * GLYPH.table + 9;
+    w += chars * GLYPH.table + PAD.cell;
   }
   return w;
 }

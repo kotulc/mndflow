@@ -129,11 +129,16 @@ const PATHS = {
   layout_free: "M5 5h4.5v4.5H5zM14.5 8h4.5v4.5h-4.5zM8 14.5h5.5V19H8z",
   layout_grid: "M4.5 4.5h15v15h-15zM9.5 4.5v15M14.5 4.5v15M4.5 9.5h15M4.5 14.5h15",
 
-  // The three views of a section. **Internal: a card seen from inside its rim**; overview: the
-  // boxes a whole section nests, from above; profile: the same section stepped down the page.
+  // The views. A section's: overhead, the boxes a whole section nests, from above; profile, the
+  // same section stepped down the page. A block's: **internal, a card seen from inside its rim**;
+  // entity, a card ruled into its attributes; lineage, a card extending the one above it;
+  // definitions, a package's cards joined.
   view_internal: "M4.5 4.5h15v15h-15zM8.5 9.5h7v5h-7z",
-  view_overview: "M4.5 4.5h15v15h-15zM7.5 7.5h4v4h-4zM12.5 7.5h4v4h-4zM7.5 13.5h9v3h-9z",
+  view_overhead: "M4.5 4.5h15v15h-15zM7.5 7.5h4v4h-4zM12.5 7.5h4v4h-4zM7.5 13.5h9v3h-9z",
   view_profile: "M4.5 4.5h7v3h-7zM8.5 10.5h7v3h-7zM12.5 16.5h7v3h-7z",
+  view_entity: "M4.5 5.5h15v13h-15zM4.5 9.5h15M4.5 14h15M9.5 9.5v9",
+  view_lineage: "M8.5 3.5h7v4.5h-7zM8.5 16h7v4.5h-7zM12 16V8M9.5 10.5L12 8l2.5 2.5",
+  view_definitions: "M4.5 4.5h6v5h-6zM13.5 4.5h6v5h-6zM4.5 14.5h6v5h-6zM13.5 14.5h6v5h-6zM7.5 9.5v5M10.5 7h3",
 
   // The guides the drawing is measured against. **A hash: rules that run off
   // the edge**, which is what a guide is and what keeps it off `layout_grid`,

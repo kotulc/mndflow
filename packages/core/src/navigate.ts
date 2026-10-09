@@ -2,15 +2,16 @@
  *  sections hold for it. **One rule for every section and every host.**
  *
  *  A host cuts the workspace into sections (`sections.ts`); the canvas looks at one of them in
- *  one view. `internal` draws one block's layer from inside it; `overview` and `profile` draw the
- *  whole section — every root the section above lists — down to its cut, the pick brought into
- *  sight. */
+ *  one view. A layer view draws one block, and **the block says which** (`lenses_of`); `overhead`
+ *  and `profile` draw the whole section — every root the section above lists — down to its cut,
+ *  the pick brought into sight. */
 
 import { holds_any } from "./capabilities";
-import { inline, layer_of } from "./holders";
+import { attributes_of, def_of, frozen } from "./defs";
+import { inline, is_grid, layer_of } from "./holders";
 import { opens } from "./names";
-import { at_cut, in_section, type Section, type ViewKind } from "./sections";
-import { is_interface, path } from "./tree";
+import { at_cut, in_section, is_layer_view, type Section, type ViewKind } from "./sections";
+import { is_interface, path, stood_def } from "./tree";
 import { MAIN, type Graph, type Id } from "./types";
 
 /** Where a host's sections start: the forest above every package, or the workspace's root. */
@@ -34,10 +35,39 @@ export const EDITOR: Tiers = {
   top: "forest",
   sections: [
     { id: "definitions", label: "definitions", cut: "tree",
-      views: ["overview", "internal", "profile"] },
-    { id: "structure", label: "structure", cut: null, views: ["internal", "overview", "profile"] },
+      views: ["overhead", "internal", "profile"] },
+    { id: "structure", label: "structure", cut: null, views: ["internal", "overhead", "profile"] },
   ],
 };
+
+
+/** The layer views a block has something to draw in, the one it opens on first: a package, its
+ *  definitions; a block with structure, from inside; one with attributes, as an entity; one that
+ *  may hold and is editable, from inside, to be built; else what it extends and what uses it. */
+export function lenses_of(graph: Graph, id: Id): ViewKind[] {
+  const b = graph.blocks[id];
+  if (!b) return [];
+  if (b.parent === null) return ["definitions"];
+  const built = is_interface(b) || is_grid(graph, id) || opens(graph, id);
+  const room = holds_any(graph, id);
+  const entity = attributes_of(graph, stood_def(graph, id)?.id ?? def_of(graph, id)).length > 0;
+  const first: ViewKind = built ? "internal" : entity ? "entity"
+    : room && !frozen(graph, id) ? "internal" : "lineage";
+  const offered: ViewKind[] = [...(built || room ? ["internal" as const] : []),
+                               ...(entity ? ["entity" as const] : []), "lineage"];
+  return [first, ...offered.filter((k) => k !== first)];
+}
+
+/** The layer view a block opens on. */
+export function lens_of(graph: Graph, id: Id): ViewKind {
+  return lenses_of(graph, id)[0] ?? "internal";
+}
+
+/** The view a layer is drawn in as the place a block sits on it: a package's definitions, else
+ *  from inside. */
+function home_of(graph: Graph, layer: Id | null): ViewKind {
+  return layer && graph.blocks[layer]?.parent === null ? "definitions" : "internal";
+}
 
 
 /** The way to a block through the sections: the root each section lists, and what each holds on
@@ -83,44 +113,56 @@ export function scope_of(roots: readonly (Id | null)[], at: number): Id | null {
  *  surveys. */
 export function draws(graph: Graph, tiers: Tiers, view: View, id: Id): boolean {
   if (!graph.blocks[id]) return false;
-  if (view.kind === "internal") return layer_of(graph, id) === view.layer;
+  if (is_layer_view(view.kind)) return layer_of(graph, id) === view.layer;
   return in_section(graph, id, view.layer, tiers.sections[view.at]?.cut ?? null);
 }
 
 /** A block brought into sight in a section, as that section shows it: picked on the whole
- *  section; seen from inside, picked on the layer it draws on — or, the section's root, opened. */
+ *  section; seen from inside, picked on the layer it draws on — or, the section's root, opened on
+ *  its own view. */
 export function sight(graph: Graph, tiers: Tiers, views: Views, at: number, id: Id): View {
   const kind = view_of(tiers, views, at);
   const { roots } = trace(graph, tiers, id);
-  if (kind !== "internal") return { at, kind, layer: scope_of(roots, at), pick: id };
-  if (roots[at] === id) return { at, kind, layer: id, pick: null };
-  return { at, kind, layer: layer_of(graph, id), pick: id };
+  if (!is_layer_view(kind)) return { at, kind, layer: scope_of(roots, at), pick: id };
+  if (roots[at] === id) return { at, kind: lens_of(graph, id), layer: id, pick: null };
+  const up = layer_of(graph, id);
+  return { at, kind: home_of(graph, up), layer: up, pick: id };
 }
 
-/** What opening a block does. One at a cut enters the section it roots. Inside a section seen
- *  from inside, one that opens onto a drawing or may hold — a folder among them, an interface —
- *  draws as its own layer; anything else, and anything on a whole section, is brought into
- *  sight. */
+/** A block drawn on a layer view of its own, in the section deepest listing it. */
+export function lens_at(graph: Graph, tiers: Tiers, id: Id,
+                        kind: ViewKind = lens_of(graph, id)): View | null {
+  const at = trace(graph, tiers, id).held.lastIndexOf(id);
+  return at < 0 ? null : { at, kind, layer: id, pick: null };
+}
+
+/** What opening a block does: **opening goes in**, whatever the section was shown as. A package
+ *  opens on its definitions; a block at a cut, or one that opens onto a drawing or may hold — a
+ *  folder among them, an interface — on its own view. Anything else is brought into sight. */
 export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id): View | null {
   const b = graph.blocks[id];
   if (!b) return null;
-  const at = trace(graph, tiers, id).held.lastIndexOf(id);
+  if (b.parent === null) return lens_at(graph, tiers, id, "definitions");
+  const { roots, held } = trace(graph, tiers, id);
+  const at = held.lastIndexOf(id);
   if (at < 0) return null;
   const holds = !inline(graph, id) && (is_interface(b) || opens(graph, id) || holds_any(graph, id));
-  if (view_of(tiers, views, at) === "internal" && holds) {
-    return { at, kind: "internal", layer: id, pick: null };
-  }
+  if (holds || roots[at] === id) return { at, kind: lens_of(graph, id), layer: id, pick: null };
   return sight(graph, tiers, views, at, id);
 }
 
 /** What leaving does: from inside, the layer above, until the section's root; from there, or from
  *  a whole section, the section above with the way back picked — the pick's root, else the scope.
- *  Nothing above the first. */
+ *  A package leaves for the first section whole. Nothing above the first. */
 export function leave_at(graph: Graph, tiers: Tiers, views: Views, view: View): View | null {
   const { at, kind, layer, pick } = view;
-  if (kind === "internal" && layer && graph.blocks[layer]) {
+  if (is_layer_view(kind) && layer && graph.blocks[layer]?.parent === null) {
+    return { ...view_on(graph, tiers, views, null), pick: layer };
+  }
+  if (is_layer_view(kind) && layer && graph.blocks[layer]) {
     const { roots } = trace(graph, tiers, layer);
-    if (roots[at] !== layer) return { at, kind, layer: layer_of(graph, layer), pick: layer };
+    const up = layer_of(graph, layer);
+    if (roots[at] !== layer) return { at, kind: home_of(graph, up), layer: up, pick: layer };
     return at > 0 ? sight(graph, tiers, views, at - 1, layer) : null;
   }
   if (at === 0) return null;
@@ -133,7 +175,7 @@ export function leave_at(graph: Graph, tiers: Tiers, views: Views, view: View): 
 export function reveal_at(graph: Graph, tiers: Tiers, views: Views, view: View | null,
                           id: Id): View | null {
   if (!graph.blocks[id]) return null;
-  if (view && view.kind !== "internal" && draws(graph, tiers, view, id)) return { ...view, pick: id };
+  if (view && !is_layer_view(view.kind) && draws(graph, tiers, view, id)) return { ...view, pick: id };
   const { roots, held } = trace(graph, tiers, id);
   const members = held.flatMap((h, n) => (h === id && roots[n] !== id ? [n] : []));
   const at = members.length ? members[members.length - 1]! : held.lastIndexOf(id);
@@ -150,7 +192,7 @@ export function home_at(graph: Graph, tiers: Tiers, views: Views): View | null {
  *  whole section; null with nothing to follow. The section in focus is the deepest listing it, no
  *  deeper than the view's. */
 export function held_at(graph: Graph, tiers: Tiers, view: View): Held | null {
-  const target = view.kind === "internal" ? view.layer ?? view.pick : view.pick;
+  const target = is_layer_view(view.kind) ? view.layer ?? view.pick : view.pick;
   if (!target || !graph.blocks[target]) return null;
   const { held } = trace(graph, tiers, target);
   const deepest = held.lastIndexOf(target);
@@ -158,16 +200,16 @@ export function held_at(graph: Graph, tiers: Tiers, view: View): Held | null {
   return at < 0 ? null : { path: held.slice(0, at + 1), at };
 }
 
-/** A view of a layer where nothing says more: seen from inside it, in the section deepest listing
- *  it. With none, the first section whole, never from inside: under a forest, every package's
- *  domain — the overview. */
+/** A view of a layer where nothing says more: on its own view, in the section deepest listing it.
+ *  With none, the first section whole, never from inside: under a forest, every package's
+ *  domain — the overhead. */
 export function view_on(graph: Graph, tiers: Tiers, views: Views, layer: Id | null): View {
   if (layer && graph.blocks[layer]) {
     const at = Math.max(0, trace(graph, tiers, layer).held.lastIndexOf(layer));
-    return { at, kind: "internal", layer, pick: null };
+    return { at, kind: lens_of(graph, layer), layer, pick: null };
   }
   const said = view_of(tiers, views, 0);
-  const kind = said !== "internal" ? said
-    : tiers.sections[0]?.views.find((v) => v !== "internal") ?? "overview";
+  const kind = !is_layer_view(said) ? said
+    : tiers.sections[0]?.views.find((v) => !is_layer_view(v)) ?? "overhead";
   return { at: 0, kind, layer: tiers.top === "forest" ? null : graph.root, pick: null };
 }

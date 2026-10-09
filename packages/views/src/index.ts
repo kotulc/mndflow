@@ -20,6 +20,7 @@ export { BARE, PLAIN, face_attrs, look_key, look_of, wire_of, type Align,
          type Wire } from "./look";
 export { linked_graph, LINK } from "./links";
 export { survey_graph, FOREST } from "./survey";
+export { lens_graph, LENS } from "./lens";
 export { profile_graph } from "./profile";
 export { page_graph } from "./page";
 export { sheet_graph, GRID_LAYER } from "./sheet";

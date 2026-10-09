@@ -148,7 +148,7 @@
 .mnd-card.missing { border-color: var(--error); color: var(--error); }
 
 
-/* ── The large face: its name on one line, then its markdown ── */
+/* ── The large face: its name on one line, then its table, then its markdown ── */
 
 .mnd-card.large > .mnd-head { flex: none; height: 20px; }
 /* A handle over a large face's name takes a line of its own, so the two never overlap. */
@@ -192,15 +192,49 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 12ch;
+  max-width: 16ch;
 }
 .mnd-face-body th { color: var(--muted); font-weight: 400; }
-/* A header with nothing in it is not drawn: its columns read by place. */
-.mnd-face-body thead:not(:has(th:not(:empty))) { display: none; }
-/* A body opening on a table needs no divider over it: the table's rule is one. */
-.mnd-head + .mnd-face-body:has(> table:first-child) { border-top: 0; padding-top: 2px; }
-/* A body that is a table spans the card evenly: the corner mark sits under it, not beside it. */
-.mnd-face-body:has(> table:first-child) { padding-right: 0; }
+
+
+/* ── A table card: the name its title row, the card's border the table's ── */
+
+.mnd-card.large.tabled { padding: 0; }
+.mnd-card.large.tabled:has(> .mnd-alias) { padding-top: 11px; }
+
+/* The title row: the name, and the icon at its right end. The marks end the last row, in the
+   room views left them there. */
+.mnd-card.large.tabled > .mnd-head {
+  box-sizing: content-box;
+  padding: 0 24px 0 8px;
+  border-bottom: 1px solid var(--card-dim);
+}
+.mnd-card.tabled > .mnd-marks { bottom: 1px; }
+
+/* Every row ruled, every column the width the card was sized by; the type reads quieter than the
+   name it types. */
+.mnd-face-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 11px;
+  line-height: 16px;
+}
+.mnd-face-table td {
+  padding: 0 4px;
+  border-right: 1px solid var(--card-dim);
+  border-bottom: 1px solid var(--card-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mnd-face-table td:first-child { color: var(--card-dim); }
+.mnd-face-table td:last-child { border-right: 0; }
+/* The card's border is the table's last rule, unless a body follows it. */
+.mnd-face-table:not(:has(+ .mnd-face-body)) tr:last-child td { border-bottom: 0; }
+
+/* A body under the table, padded as a card's is. */
+.mnd-card.tabled > .mnd-face-body { padding: 3px 21px 3px 8px; }
 
 /* A link reads as one, and answers ctrl+click; a plain click is the card's. */
 .md-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }

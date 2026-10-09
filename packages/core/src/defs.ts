@@ -282,11 +282,11 @@ export function name_taken(graph: Graph, pkg: Id, name: string, except?: Id): bo
     && package_of(graph, d.id) === pkg);
 }
 
-/** Every package root, the workspace's last. */
+/** Every package root: `base` first, the workspace's last, the rest by name between. */
 export function packages(graph: Graph): Block[] {
+  const rank = (b: Block) => (b.id === BASE_PACKAGE ? 0 : b.id === graph.root ? 2 : 1);
   return Object.values(graph.blocks).filter((b) => b.parent === null)
-    .sort((a, z) => Number(a.id === graph.root) - Number(z.id === graph.root)
-      || (a.name ?? a.id).localeCompare(z.name ?? z.id));
+    .sort((a, z) => rank(a) - rank(z) || (a.name ?? a.id).localeCompare(z.name ?? z.id));
 }
 
 /** A package root by id, or by the name somebody calls it. */

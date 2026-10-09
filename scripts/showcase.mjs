@@ -1,6 +1,6 @@
 /** Writes samples/workspace.showcase.json: one layer per capability, each with a note saying what
  *  it shows. Fixed ids, so a re-run after a schema change re-saves it as a readable diff; the door
- *  checks it (`mnd check`). The `erd` package is read from the catalogue and carried whole.
+ *  checks it (`mnd check`). The `entity-relation` package is read from the catalogue and carried whole.
  *
  *  node scripts/showcase.mjs */
 
@@ -28,9 +28,14 @@ function order(parent) {
   return orders[parent];
 }
 
-/** A workspace definition. */
-function def(id, name, type, settings, more = {}) {
-  blocks[id] = { id, parent: "workspace.blocks", name, type, def: {}, order: order("workspace.blocks"),
+/** A folder of the workspace's definitions, named for what it holds, under a parent. */
+function shelf(id, name, parent = "workspace") {
+  blocks[id] = { id, parent, name, type: "folder", order: order(parent) };
+}
+
+/** A workspace definition, in a folder. */
+function def(id, name, type, settings, more = {}, parent = "workspace") {
+  blocks[id] = { id, parent, name, type, def: {}, order: order(parent),
                  ...(settings ? { settings } : {}), ...more };
 }
 
@@ -56,24 +61,23 @@ function link(id, from, to, more = {}) {
 }
 
 
-/* ── The workspace's floor ── */
+/* ── The workspace: its scratch definition, then folders saying what each holds ── */
 
 blocks.workspace = { id: "workspace", parent: null, name: "workspace" };
-for (const [i, name] of ["blocks", "relations", "tags"].entries()) {
-  blocks[`workspace.${name}`] = { id: `workspace.${name}`, parent: "workspace", name, type: "folder",
-                                  order: i + 1 };
-}
-orders["workspace.blocks"] = 0;
 def("main", "main", undefined);
 delete blocks.main.type;
+shelf("w_looks", "looks");
+shelf("w_faces", "faces");
+shelf("w_machines", "machines");
+shelf("w_holders", "holders");
 def("def_large", "Large layer", "folder", { layout: { face: "large" } },
-    { body: "A layer whose cards draw their large face." });
+    { body: "A layer whose cards draw their large face." }, "w_faces");
 
 
-/* ── Cards: every block kind, and the looks a definition gives ── */
+/* ── Cards: every block kind, and the looks: each a trait in the looks folder, and on a card ── */
 
 layer("l_cards", "Cards", [0, 0]);
-note("l_cards", "Every block kind on its small face, then the looks a definition gives: families, fills, label places and borders. Each row varies one setting.", 27);
+note("l_cards", "Every block kind on its small face, then the looks: families, fills, label places and borders, each row varying one setting. Each look is a trait in the looks folder, for a definition to carry; here each card says it as its own.", 27);
 put("c_block", "l_cards", "block", [0, 0], { name: "Block" });
 put("c_folder", "l_cards", "folder", [1, 0], { name: "Folder", type: "folder" });
 put("c_inside", "c_folder", "block", [0, 0], { name: "Inside" });
@@ -87,10 +91,10 @@ const looks = [
   ["border", ["dashed", "dotted", "double", "none"], (v) => ({ style: { border_style: v } })],
 ];
 for (const [row, [key, values, settings]] of looks.entries()) {
+  shelf(`w_looks_${key}`, key, "w_looks");
   for (const [col, v] of values.entries()) {
-    const id = `def_${key}_${v}`;
-    def(id, `${key} ${v}`, "block", settings(v));
-    put(`c_${key}_${v}`, "l_cards", "block", [col, row + 1.5], { name: v, type: id });
+    def(`look_${key}_${v}`, `${key} ${v}`, "tag", settings(v), {}, `w_looks_${key}`);
+    put(`c_${key}_${v}`, "l_cards", "block", [col, row + 1.5], { name: v, settings: settings(v) });
   }
 }
 
@@ -102,13 +106,15 @@ const PICTURE = "/showcase/picture.svg";
 
 layer("l_faces", "Faces", [1, 0], "def_large");
 note("l_faces", "The large face, on a layer that asks for it. Each card fits what it shows unless its definition gives a size; a plain block shows nothing, so it is the small face.", 27);
-def("def_doc", "Document", "block", { card: { shows: ["body"] } });
+def("def_doc", "Document", "block", { card: { shows: ["body"] } }, {}, "w_faces");
 def("def_spec", "Spec", "block", { card: { shows: ["attributes", "body"] } }, {
   def: { attributes: [{ name: "tag", key: true }, { name: "rating", type: "number", unit: "kW" },
-                      { name: "duty", note: "how it runs" }] } });
-def("def_media", "Picture", "block", undefined, { traits: ["container", "ports", "media"] });
-def("def_headless", "Headless", "block", { card: { shows: ["body"], name: "hide" } });
-def("def_sized", "Sized", "block", { card: { shows: ["body"], size: { w: 8, h: 3 } } });
+                      { name: "duty", note: "how it runs" }] } }, "w_faces");
+def("def_media", "Picture", "block", undefined, { traits: ["container", "ports", "media"] },
+    "w_faces");
+def("def_headless", "Headless", "block", { card: { shows: ["body"], name: "hide" } }, {}, "w_faces");
+def("def_sized", "Sized", "block", { card: { shows: ["body"], size: { w: 8, h: 3 } } }, {},
+    "w_faces");
 const FACE = [3 * COL, 2.5 * ROW];
 const face = (id, at, more) => put(id, "l_faces", "block", null,
                                    { x: at[0] * FACE[0], y: at[1] * FACE[1], ...more });
@@ -128,13 +134,14 @@ face("f_plain", [2, 1], { name: "Plain" });
 /* ── Definitions: stand-ins, and settings down a chain ── */
 
 layer("l_defs", "Definitions", [2, 0], "def_large");
-note("l_defs", "A chain: Pump extends Machine, Big pump extends Pump. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it.", 27);
-def("def_machine", "Machine", "block", { style: { family: "secondary" }, card: { shows: ["attributes"] } }, {
-  def: { attributes: [{ name: "power", type: "number", unit: "kW" }] } });
+note("l_defs", "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the family secondary look as a trait. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it.", 27);
+def("def_machine", "Machine", "block", { card: { shows: ["attributes"] } }, {
+  traits: ["container", "ports", "look_family_secondary"],
+  def: { attributes: [{ name: "power", type: "number", unit: "kW" }] } }, "w_machines");
 def("def_pump", "Pump", "def_machine", { style: { hue: 200 } }, {
-  def: { attributes: [{ name: "flow", type: "number", unit: "m3/h" }] } });
+  def: { attributes: [{ name: "flow", type: "number", unit: "m3/h" }] } }, "w_machines");
 def("def_bigpump", "Big pump", "def_pump", { style: { border_width: "thick" } }, {
-  def: { attributes: [{ name: "stages", type: "number", default: "2" }] } });
+  def: { attributes: [{ name: "stages", type: "number", default: "2" }] } }, "w_machines");
 for (const [col, d] of ["def_machine", "def_pump", "def_bigpump"].entries()) {
   put(`s_${d}`, "l_defs", "reference", [col * 2, 0], { of: d });
 }
@@ -212,7 +219,8 @@ put("h_inner", "h_outer", "group", [0, 0], { name: "Skid", type: "group" });
 put("h_g1", "h_inner", "block", [0, 0], { name: "Motor" });
 put("h_g2", "h_inner", "block", [1, 0], { name: "Gearbox" });
 put("h_g3", "h_outer", "block", [0, 1.5], { name: "Panel" });
-def("def_table", "Table", "grid", undefined, { traits: ["container", "ports", "matrix", "headed"] });
+def("def_table", "Table", "grid", undefined, { traits: ["container", "ports", "matrix", "headed"] },
+    "w_holders");
 put("h_grid", "l_hold", "grid", [4, 0], { name: "Duty roster", type: "def_table",
   grid: { rows: 4, cols: 4, merges: [{ r: 1, c: 1, rows: 2, cols: 1 }] } });
 const cell = (id, r, c, name) => put(id, "h_grid", "block", null, { name, cell: { r, c } });
@@ -233,36 +241,36 @@ put("x_def", "l_refs", "reference", [1.5, 0], { of: "def_pump" });
 put("x_gone", "l_refs", "reference", [3, 0], { name: "Gone", of: "nothing_here" });
 
 
-/* ── Data: the erd package, as a model and as data ── */
+/* ── Data: the entity-relation package, as a model and as data ── */
 
 const W = 18 * U;
 const H = 8 * U;
 const at = (x, y) => ({ x: x * W, y: y * H });
 layer("l_model", "Data model", [3, 1], "def_large");
-note("l_model", "The erd package's entities as stand-ins: each attribute typed by another entity draws a link.", 22);
-put("m_customer", "l_model", "reference", null, { of: "erd.customer", ...at(0, 0) });
-put("m_order", "l_model", "reference", null, { of: "erd.order", ...at(1, 0) });
-put("m_line", "l_model", "reference", null, { of: "erd.line", ...at(2, 0) });
-put("m_product", "l_model", "reference", null, { of: "erd.product", ...at(2, 1) });
+note("l_model", "The entity-relation package's entities as stand-ins: each attribute typed by another entity draws a link.", 22);
+put("m_customer", "l_model", "reference", null, { of: "entity-relation.customer", ...at(0, 0) });
+put("m_order", "l_model", "reference", null, { of: "entity-relation.order", ...at(1, 0) });
+put("m_line", "l_model", "reference", null, { of: "entity-relation.line", ...at(2, 0) });
+put("m_product", "l_model", "reference", null, { of: "entity-relation.product", ...at(2, 1) });
 layer("l_rows", "Data rows", [0, 2], "def_large");
 note("l_rows", "Usages answering the entities: a value naming another card on the layer draws a link.", 22);
 const vals = (o) => Object.entries(o).map(([name, value]) => ({ name, value }));
 const row = (id, name, type, values, x, y) =>
   put(id, "l_rows", "block", null, { name, type, values: vals(values), ...at(x, y) });
-row("u_ada", "Ada Lovelace", "erd.customer", { id: "1", name: "Ada Lovelace", email: "ada@example.com" }, 0, 0);
-row("u_1001", "Order 1001", "erd.order", { number: "1001", customer: "Ada Lovelace", placed: "2026-10-01",
+row("u_ada", "Ada Lovelace", "entity-relation.customer", { id: "1", name: "Ada Lovelace", email: "ada@example.com" }, 0, 0);
+row("u_1001", "Order 1001", "entity-relation.order", { number: "1001", customer: "Ada Lovelace", placed: "2026-10-01",
                                           status: "shipped", paid: "true" }, 1, 0);
-row("u_l1", "1001 · widgets", "erd.line", { order: "Order 1001", product: "Widget", qty: "3" }, 2, 0);
-row("u_l2", "1001 · gadget", "erd.line", { order: "Order 1001", product: "Gadget" }, 2, 1);
-row("u_widget", "Widget", "erd.product", { sku: "W-1", name: "Widget", price: "4.50" }, 3, 0);
-row("u_gadget", "Gadget", "erd.product", { sku: "G-2", name: "Gadget", price: "12.00" }, 3, 1);
+row("u_l1", "1001 · widgets", "entity-relation.line", { order: "Order 1001", product: "Widget", qty: "3" }, 2, 0);
+row("u_l2", "1001 · gadget", "entity-relation.line", { order: "Order 1001", product: "Gadget" }, 2, 1);
+row("u_widget", "Widget", "entity-relation.product", { sku: "W-1", name: "Widget", price: "4.50" }, 3, 0);
+row("u_gadget", "Gadget", "entity-relation.product", { sku: "G-2", name: "Gadget", price: "12.00" }, 3, 1);
 
 
 /* ── The file ── */
 
-const erd = JSON.parse(readFileSync("public/packages/erd.json", "utf8")).graph.blocks;
+const er = JSON.parse(readFileSync("public/packages/entity-relation.json", "utf8")).graph.blocks;
 blocks.workspace.counters = counters;
-const graph = { root: "workspace", blocks: { ...blocks, ...erd }, edges };
+const graph = { root: "workspace", blocks: { ...blocks, ...er }, edges };
 writeFileSync("samples/workspace.showcase.json",
               JSON.stringify({ schema: "1.0", id: "workspace", graph }, null, 2) + "\n");
 console.log(`wrote ${Object.keys(blocks).length} blocks, ${Object.keys(edges).length} relations`);

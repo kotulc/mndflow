@@ -154,7 +154,7 @@ The httpie conventions, so they need no teaching. A script line is already JSON,
 | Flag | Viewer prop | |
 |---|---|---|
 | `[ref]` | `layer` | the layer to draw; the workspace's domain unless said |
-| `--view internal \| overview \| profile` | `config.look` | the canvas views that already exist; `internal` unless said |
+| `--view internal \| overhead \| profile` | `config.look` | the canvas views that already exist; `internal` unless said |
 | `--fields` | `fields` | the layer drawn as its fields' class diagram |
 | `--focus <ref>` | `focus` | brought to the middle of a scrolled layer |
 | `--no-frame`, `--no-lattice`, `--legend` | `chrome` | the canvas's chrome |

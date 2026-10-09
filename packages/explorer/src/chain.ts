@@ -7,8 +7,8 @@
  *  inside lists the canvas's tree**, so browsing above it never takes away what is open. */
 
 import { useState } from "react";
-import { first_in, in_section, root_below, trace, EDITOR, MAIN, type Graph, type Id,
-         type Section, type Top, type View } from "@mnd/core";
+import { first_in, in_section, is_layer_view, root_below, trace, EDITOR, MAIN, type Graph,
+         type Id, type Section, type Top, type View } from "@mnd/core";
 import type { Mark } from "./rows";
 
 /** One section, as a host declares it: core's section, the word its header wears, and what it
@@ -42,7 +42,7 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
   const roots: (Id | null | undefined)[] = [];
   const key = (n: number, root: Id | null) => `${slices[n]!.id}|${root ?? "*"}`;
   /** The section the canvas looks into, and the root it lists there. */
-  const pin = graph && view?.kind === "internal" && view.layer && graph.blocks[view.layer]
+  const pin = graph && view && is_layer_view(view.kind) && view.layer && graph.blocks[view.layer]
     ? { at: view.at, root: trace(graph, { top, sections: slices }, view.layer).roots[view.at] }
     : null;
   /** The root a section lists below a block held above it. */

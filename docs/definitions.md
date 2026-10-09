@@ -95,13 +95,18 @@
 | **layer** | what one block holds, drawn: the blocks drawn on it are those whose nearest **hiding** ancestor is that block |
 | **hides** | a folder, a definition and any block holding blocks hide what they hold, unless a view flattens them; a grid hides its in cells; a group draws its inline |
 | **card** | a block as drawn. **A definition always draws as a card**; its structure is reached by descending |
-| **face** | how much of a card is drawn: **small** — the workspace card size, its handle, name, icon and marks — or **large** — sized to fit its content, or its definition's `card.size`, its name and the parts `card.shows` lists, rendered as markdown. Chosen by the view and `layout.face`, never by zoom |
+| **face** | how much of a card is drawn: **small** — the workspace card size, its handle, name, icon and marks — or **large** — sized to fit its content, or its definition's `card.size`, its name and the parts `card.shows` lists: its attributes as a ruled table under its name, its body and preview as markdown. Chosen by the view and `layout.face`, never by zoom |
+| **table card** | a large face showing attributes: the name its title row, the card's border the table's, each column the width views measured it at |
 | **card source** | a card as markdown: frontmatter for its identity and values, then its body. Rendered from the graph, read back as ordinary changes; **attach** copies a file's onto a block |
 | **collection** | a package on disk: `package.json` of definitions and a tree of `.md` card sources, each a usage |
-| **canvas view** | how the canvas draws a section: **internal**, **overview** or **profile**. Session state, never stored |
+| **canvas view** | how the canvas draws: a **system view** — **overhead** or **profile** — of a whole section, or a **layer view** — **internal**, **entity**, **lineage** or **definitions** — of one block. Session state, never stored |
+| **layer view** | a view of one block, which the block chooses by what it has (`lenses_of`): structure or cells, internal; attributes, entity; room to hold and editable, internal; else lineage; a package, definitions |
 | **internal** | the opened block from inside: what it holds, as cards |
-| **overview** | what the canvas draws while nothing is open (`layer: null`): every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down. 1:1 with the definitions section |
-| **flatten** | drawing each block that holds as a box of its contents, so a whole section reads on one page. The overview draws flattened |
+| **entity** | a block's class card, the entities its links reach and those linking to it; for a usage, what it is too |
+| **lineage** | a block's chain, farthest first, then itself, the traits it carries, its subtypes and what uses it |
+| **definitions** | a package's definitions as the overhead boxes them, joined where one extends or links another |
+| **overhead** | what the canvas draws while nothing is open (`layer: null`): every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down. 1:1 with the definitions section |
+| **flatten** | drawing each block that holds as a box of its contents, so a whole section reads on one page. The overhead draws flattened |
 | **profile** | one row per section along the pick: the pick among its siblings, each block on the way to it that holds a box round the next step down |
 | **projection** | a view of the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it; nothing is stored |
 | **layout** | how a layer places what it draws: a setting (`layout.kind`), `free`, `auto` or `page`, said by a definition and overridable by a block |
@@ -115,14 +120,16 @@
 | Term | Means |
 |---|---|
 | **section** | one listing in the explorer: what the section above holds, filtered by role |
-| **mndflow** | definitions → structure: every package a top row of definitions, folded until opened |
+| **mndflow** | definitions → structure: every package a top row of definitions, `base` first, folded until opened |
 | **mndmap** | collection → document: mndflow's chain with the package fixed to the workspace and hidden |
-| **browse** | choosing a row: selects it, the tray shows it, the canvas stays |
-| **open** | Enter, double-click or →: a tree opens its structure on the canvas; a package or a holder in a domain is focused in the overview; a grid descends to its grid view; a group has no row; picked on the canvas, it is revealed where it is and the explorer lights the nearest row listing it. ← and Backspace leave, a tree's top for the overview |
+| **browse** | choosing a row: selects it and the tray shows it. Inside the structure the canvas draws it reveals the block; anywhere else the canvas stays |
+| **open** | Enter, double-click or →: goes in, whatever view the section was shown in. A block opens on its own layer view; a package on its definitions; a grid descends to its grid view; a group has no row; picked on the canvas, it is revealed where it is and the explorer lights the nearest row listing it. ← and Backspace leave, a tree's top for the overhead |
 | **context** | what the canvas has open. Highlighting and breadcrumbs show it, never what is browsed |
-| **reveal** | a pick within the open tree may move the canvas to the layer it sits on; browsing outside it never does |
+| **reveal** | a row picked within the structure the canvas draws moves the canvas to the layer it sits on and picks it; browsing outside it never does |
+| **branch** | the row of the block the canvas draws from inside and the rows under it, lit subtly in the explorer |
+| **crumbs** | the layers from the tree the open layer is in down to it — never the package and folders above the tree — then the view drawn |
 | **navigation** | `open_at`, `leave_at`, `reveal_at` and `held_at` in core: where the canvas goes, and what the sections hold for it. The one rule both apps use |
-| **accent edge** | the explorer row of what the canvas shows: a structure's open layer in the structure section; on the overview, what is picked (else the held package) in the sections above |
+| **accent edge** | the explorer row of what the canvas shows: a structure's open layer in the structure section; on the overhead, what is picked (else the held package) in the sections above |
 
 
 ## The grid

@@ -118,6 +118,7 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
               classes={[...data.marks, selected ? "picked" : ""]}
               dress={{ ...face_attrs(look), "data-def": data.def }}
               {...(data.text !== undefined ? { text: data.text } : {})}
+              {...(data.table ? { table: data.table } : {})}
               head={look.head !== false}
               name={<Name id={id} className="mnd-label card-name" text={data.label} />}>
       {/* A card keeps the size its face says unless its definition asked for its own. */}

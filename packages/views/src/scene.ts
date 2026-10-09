@@ -11,6 +11,10 @@ export type Listed = {
   name: string; type: string; key?: boolean; link?: boolean; value?: string; note?: string;
 };
 
+/** A large face's attributes as a ruled table: each row's cells, and each column's width in
+ *  pixels — worked out once, so the card is sized and drawn alike. */
+export type Ruled = { cells: readonly (readonly string[])[]; widths: readonly number[] };
+
 /** What one drawn thing carries beyond where it sits and how big it is. */
 export type BoxData = {
   /** The mark a thing wears beside its name while nobody has named it. */
@@ -30,8 +34,10 @@ export type BoxData = {
   role?: Role;
   /** How its definition says it draws. */
   look?: Look;
-  /** Which face it draws with, and the large face's markdown: the parts its look shows. */
+  /** Which face it draws with, and the large face's parts its look shows: its attributes as a
+   *  table, and its body and preview as markdown. */
   face?: "small" | "large";
+  table?: Ruled;
   text?: string;
   /** The lattice a grid draws, as boxes inside its own. */
   grid?: readonly GridCell[];

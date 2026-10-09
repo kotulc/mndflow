@@ -26,10 +26,6 @@ export type Row = { id: Id; depth: number; label: string; kids: number; mark: Ma
                     pick?: Id;
                     /** The usage a part is seen through: a block of its definition's structure. */
                     via?: Id;
-                    /** Whether it lists anything only once it is opened: a usage reading its
-                     *  definition through, or a package atop every package, folded until somebody
-                     *  unfolds it. */
-                    lazy?: boolean;
                     /** Whether a tree has structure of its own: its icon lights, as a block's
                      *  that holds does. */
                     held?: boolean;
@@ -40,7 +36,8 @@ export type Row = { id: Id; depth: number; label: string; kids: number; mark: Ma
                     /** Per indent column, whether its guide line carries on past this row. */
                     guides: boolean[] };
 
-/** What the explorer stores, in its folds, for a lazy row somebody opened. */
+/** What the explorer stores, in its folds, for a branch somebody opened. **Every branch is shut
+ *  until opened**, so a long tree starts short. */
 export const OPENED = "+";
 
 /** The icons of the tree's own marks. A role wears its card's icon, so a row and its card agree. */
@@ -75,8 +72,8 @@ export function card_icon(graph: Graph, id: Id): IconName | undefined {
 }
 
 /** The panel's rows: each section's header — a label, never chosen — then what it lists for the
- *  picks the sections above hold. */
-export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain): Row[] {
+ *  picks the sections above hold. `every` lists every branch, opened or not. */
+export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain, every = false): Row[] {
   const out: Row[] = [];
   chain.slices.forEach((slice, at) => {
     const key = `@${slice.id}`;
@@ -87,15 +84,15 @@ export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain): Row[
     const start = out.length;
     const keyed = (route: string) => `${slice.id}/${route}`;
     for (const id of tops_of(graph, root)) {
-      branch_rows(graph, { cut: slice.cut, root }, id, id, undefined, folded, out, keyed, 1,
-                  new Set());
+      branch_rows(graph, { cut: slice.cut, root, every }, id, id, undefined, folded, out, keyed,
+                  1, new Set());
     }
     for (const row of out.slice(start)) row.at = at;
   });
   return guided(out);
 }
 
-/** Whether a lazy row was opened: its folds hold it as opened, never as shut. */
+/** Whether a branch was opened: its folds hold it as opened. */
 export function opened(folded: readonly Id[], id: Id): boolean {
   return folded.includes(`${OPENED}${id}`);
 }
@@ -125,10 +122,11 @@ export function listed_of(graph: Graph, id: Id): Id {
 }
 
 /** A row and what its section lists under it: for a usage, its definition's blocks marked as
- *  parts, then its own children; nothing past the section's cut. Parts are listed only once the
- *  row is opened, so a definition reached through itself never lists forever; so is a package
- *  atop a section over every package, so a long list starts short. */
-function branch_rows(graph: Graph, at: { cut: Cut; root: Id | null }, id: Id, route: string,
+ *  parts, then its own children; nothing past the section's cut. What a row holds lists only
+ *  once it is opened — so a definition reached through itself never lists forever — unless
+ *  every branch is asked for. */
+function branch_rows(graph: Graph, at: { cut: Cut; root: Id | null; every: boolean }, id: Id,
+                     route: string,
                      via: Id | undefined, folded: readonly Id[], out: Row[],
                      key: (route: string) => string, depth: number,
                      seen: ReadonlySet<Id>): void {
@@ -137,12 +135,11 @@ function branch_rows(graph: Graph, at: { cut: Cut; root: Id | null }, id: Id, ro
   const parts = unheld(graph, branch.parts);
   const own = unheld(graph, branch.own);
   const row_key = key(route);
-  const lazy = parts.length > 0 || (at.root === null && graph.blocks[id]!.parent === null);
   out.push({ ...block_row(graph, id, depth, parts.length + own.length, row_key),
-             ...(via ? { via } : {}), ...(lazy ? { lazy: true } : {}),
-             ...(held(graph, id) ? { held: true } : {}) });
-  const shut = lazy ? !opened(folded, row_key) : folded.includes(row_key);
-  if (shut) return;
+             ...(via ? { via } : {}), ...(held(graph, id) ? { held: true } : {}) });
+  /** Parts are never listed whole: a definition may be reached through itself. */
+  const every = at.every && !via && !parts.length;
+  if (!every && !opened(folded, row_key)) return;
   const deeper = branch.used ? new Set([...seen, branch.used]) : seen;
   for (const p of parts) {
     branch_rows(graph, at, p.id, `${route}/${p.id}`, id, folded, out, key, depth + 1, deeper);

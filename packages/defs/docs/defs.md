@@ -7,7 +7,7 @@
 | `base` | one definition per functionally distinct kind: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, `value`, and the relation kinds `line` and `tie`. The value types under `value` — `text`, `number`, `flag`, `link`, `choice` — that attributes name. The traits that grant what a kind may do (`container`, `ports`, `inline`, `matrix`, `headed`, `resizable`, `content`, `media`, `tied`), carried by the kinds that need them. Frozen; the engine knows it by id |
 | `requirements` | a worked vocabulary: a shall statement and a verification method |
 | `sysml` | formal names and stereotypes over the base definitions |
-| `erd` | entities with keyed attributes, some typed by another entity, drawn large as tables and linked. the showcase workspace draws it twice: a model layer of stand-ins, and a data layer of usages |
+| `entity-relation` | entities with keyed attributes, some typed by another entity, drawn large as tables and linked. the showcase workspace draws it twice: a model layer of stand-ins, and a data layer of usages |
 
 - **Every package is a JSON file**, `base` included. Code keeps only the id constants it reads.
 - **A package is a graph root**: its definitions sit in its domain, organized by holders the package chooses.

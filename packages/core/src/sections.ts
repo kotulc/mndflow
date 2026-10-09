@@ -11,14 +11,25 @@ import type { Block, Graph, Id } from "./types";
 /** Where a section stops: at package roots, at trees, or nowhere. */
 export type Cut = "package" | "tree" | null;
 
-/** How the canvas draws a section: from inside one block (`internal`), the whole layer from above
- *  as nested boxes (`overview`), or the whole layer as a depth-wise slice (`profile`). */
-export type ViewKind = "internal" | "overview" | "profile";
+/** How the canvas draws. **Layer views** draw one block: from inside (`internal`), as an entity
+ *  and what it links (`entity`), as what it extends and what uses it (`lineage`), or a package as
+ *  its definitions (`definitions`). **System views** draw a whole section: from above as nested
+ *  boxes (`overhead`), or as a depth-wise slice (`profile`). */
+export type ViewKind = "internal" | "entity" | "lineage" | "definitions" | "overhead" | "profile";
+
+/** The views that draw one block. A section offers them as one choice, `internal`, and the block
+ *  opened says which it shows. */
+export const LAYER_VIEWS: readonly ViewKind[] = ["internal", "entity", "lineage", "definitions"];
 
 /** One section, as a host declares it: where it stops, and the views it offers, its default
- *  first. */
+ *  first. `internal` stands for every layer view. */
 export type Section = { id: string; label: string; cut: Cut; views: readonly ViewKind[] };
 
+
+/** Whether a view draws one block rather than a whole section. */
+export function is_layer_view(kind: ViewKind): boolean {
+  return LAYER_VIEWS.includes(kind);
+}
 
 /** Whether a block sits at a cut: a package root, or a tree. */
 export function at_cut(graph: Graph, cut: Cut, id: Id): boolean {

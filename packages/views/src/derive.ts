@@ -1,8 +1,9 @@
 /** What every module derives the same way. */
 
-import { head_of, is_container, is_flat, is_interface, is_named, base_of, path, previewed, role_of,
-         shape_of, shown_name, stamps_of, stands_for, stood_def, type Graph, type Id } from "@mnd/core";
-import { face_text, handle_of } from "./face";
+import { attributes_of, def_of, frozen, head_of, is_container, is_flat, is_interface, is_named,
+         base_of, path, previewed, role_of, shape_of, shown_name, stamps_of, stands_for, stood_def,
+         subtypes, tree_of, used_by, type Graph, type Id } from "@mnd/core";
+import { face_table, face_text, handle_of } from "./face";
 import { look_of } from "./look";
 import { face_of, type Face } from "./size";
 import type { BoxData, CardClass, Scene } from "./scene";
@@ -41,13 +42,15 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
 }
 
 /** Everything a drawn block carries beyond where it sits: what its card is, and — where it
- *  draws with the large face, which the view may ask for — the markdown that face shows. */
+ *  draws with the large face, which the view may ask for — the table and markdown it shows. */
 export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): BoxData {
   /** A reference to a block carries what its target carries. */
   const b = graph.blocks[previewed(graph, id)]!;
   const look = look_of(graph, id);
   /** The handle, over the name. */
   const alias = handle_of(graph, id, look);
+  /** Room at the end of its table for the marks this card wears, previewing or not. */
+  const ruled = face === "large" ? face_table(graph, b.id, look, stamps_of(graph, id).length) : null;
   return {
     label: shown_name(graph, id),
     ...(alias ? { alias } : {}),
@@ -59,6 +62,7 @@ export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): 
     look,
     face,
     ...(face === "large" ? { text: face_text(graph, b.id, look) } : {}),
+    ...(face === "large" && ruled ? { table: ruled } : {}),
   };
 }
 
@@ -67,7 +71,24 @@ export function link_of(graph: Graph, id: Id): string | undefined {
   return graph.blocks[id]?.source || undefined;
 }
 
-/** The trail from the package down to the layer, for a breadcrumb. */
+/** What an empty layer says: that it holds nothing — and, where it is editable, how to add —
+ *  then what else there is to see of it. */
+export function empty_of(graph: Graph, id: Id): string {
+  const count = (n: number, word: string) => (n ? `${n} ${word}${n === 1 ? "" : "s"}` : "");
+  const def = graph.blocks[id]?.def;
+  const facts = [count(attributes_of(graph, def_of(graph, id)).length, "attribute"),
+                 def ? count(subtypes(graph, id).length, "subtype") : "",
+                 def && used_by(graph, id).length ? `used by ${used_by(graph, id).length}` : ""];
+  const holds = `${shown_name(graph, id)} holds nothing yet`;
+  const add = frozen(graph, id) ? "" : " — right-click to add a block";
+  return [holds + add, ...facts.filter(Boolean)].join(" · ");
+}
+
+/** The trail down to the layer, for a breadcrumb: layers only, from the tree it is in — never
+ *  the package and folders above the tree. A layer in no tree is its own trail. */
 export function trail_of(graph: Graph, layer: Id | null): Scene["trail"] {
-  return path(graph, layer ?? graph.root).map((b) => ({ id: b.id, label: shown_name(graph, b.id) }));
+  const way = path(graph, layer ?? graph.root);
+  const tree = tree_of(graph, layer ?? graph.root);
+  const from = Math.max(0, tree ? way.findIndex((b) => b.id === tree) : way.length - 1);
+  return way.slice(from).map((b) => ({ id: b.id, label: shown_name(graph, b.id) }));
 }

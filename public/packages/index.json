@@ -1,9 +1,9 @@
 {
   "packages": [
     {
-      "name": "erd",
+      "name": "entity-relation",
       "about": "entities with keyed attributes, some naming another entity: an entity-relationship model",
-      "at": "erd.json"
+      "at": "entity-relation.json"
     },
     {
       "name": "doc",

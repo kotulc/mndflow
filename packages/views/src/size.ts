@@ -1,9 +1,10 @@
 /** How big a thing is, before anything is placed. */
 
-import { covers, inline, is_grid, is_interface, lattice_of, previewed, setting_of, shown_name, FACES,
-         type Graph, type Grid, type Id, type Point } from "@mnd/core";
-import { fit_of, face_text, handle_of } from "./face";
+import { covers, inline, is_grid, is_interface, lattice_of, previewed, setting_of, shown_name,
+         stamps_of, FACES, type Graph, type Grid, type Id, type Point } from "@mnd/core";
+import { edge_of, fit_of, face_table, face_text, handle_of } from "./face";
 import { look_of } from "./look";
+import type { Ruled } from "./scene";
 
 /** The one place the drawing's proportions are set, and the unit is the only measure there is. */
 export const UNITS = {
@@ -149,8 +150,10 @@ export function gridded(graph: Graph, id: Id): boolean {
 
 /** What this block needs: the size of the face it draws with — the one card size small, its
  *  definition's large — or what it was given, where its card keeps that. A grid drawn open is the
- *  extent it was drawn with. */
-export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id)): Size {
+ *  extent it was drawn with. `card` is the card drawn, whose marks a table makes room for: itself,
+ *  or the reference previewing it. */
+export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
+                        card: Id = id): Size {
   /** An open grid is its extent, a closed one a card; a boundary is sized from what it holds, by
    *  the caller. */
   if (is_grid(graph, id) && inline(graph, id)) return grid_size(lattice_of(graph, id)!);
@@ -160,8 +163,8 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id)): 
   if (b.w !== undefined && b.h !== undefined && free_height(graph, id)) return { w: b.w, h: b.h };
   /** A reference to a block previews it, at its size, with the face where it sits. */
   const source = previewed(graph, id);
-  if (source !== id && !is_grid(graph, source)) return size_of(graph, source, face);
-  return face === "large" ? large_of(graph, id) : { ...BLOCK };
+  if (source !== id && !is_grid(graph, source)) return size_of(graph, source, face, card);
+  return face === "large" ? large_of(graph, id, card) : { ...BLOCK };
 }
 
 /** Which face a block draws with: what the nearest ancestor saying `layout.face` asks for, else
@@ -179,16 +182,22 @@ export function face_of(graph: Graph, id: Id): Face {
 }
 
 /** The large face: its definition's `card.size`, else what its content fits — so one that shows
- *  nothing is the small face. */
-function large_of(graph: Graph, id: Id): Size {
+ *  nothing is the small face — with room for the marks `card` wears. */
+function large_of(graph: Graph, id: Id, card: Id): Size {
   const look = look_of(graph, id);
   if (look.size) return held_large(look.size);
-  return fitted(shown_name(graph, id), face_text(graph, id, look), !!handle_of(graph, id, look));
+  return fitted(shown_name(graph, id), face_text(graph, id, look), !!handle_of(graph, id, look),
+                face_table(graph, id, look, stamps_of(graph, card).length), edge_of(look));
 }
 
-/** The size a large face's name, handle and markdown fit, in whole units. */
-export function fitted(name: string, text: string, handle: boolean): Size {
-  const { w, h } = fit_of(name, text, handle, LARGE.max.w * UNIT);
+/** The size a large face's name, handle, table and markdown fit: in whole units, or a table
+ *  card's exactly — no larger than `LARGE.max` either way. */
+export function fitted(name: string, text: string, handle: boolean,
+                       ruled: Ruled | null = null, edge = 1): Size {
+  const { w, h } = fit_of(name, text, handle, LARGE.max.w * UNIT, ruled, edge);
+  if (ruled) {
+    return { w: Math.min(Math.ceil(w), LARGE.max.w * UNIT), h: Math.min(h, LARGE.max.h * UNIT) };
+  }
   return held_large({ w: Math.ceil(w / UNIT), h: Math.ceil(h / UNIT) });
 }
 

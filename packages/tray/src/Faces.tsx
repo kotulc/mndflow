@@ -6,8 +6,8 @@
 import { useEffect, useRef, useState } from "react";
 import { alias_name, alias_of, base_of, def_at, next_alias, type Graph, type Id } from "@mnd/core";
 import { CardFace } from "@mnd/theme";
-import { carried, face_attrs, face_text, fitted, size_of, PLAIN, type Face,
-         type Look } from "@mnd/views";
+import { carried, edge_of, face_attrs, face_table, face_text, fitted, size_of, PLAIN,
+         type Face, type Look } from "@mnd/views";
 
 export type FacesProps = { graph: Graph; id: Id };
 
@@ -33,9 +33,12 @@ function One({ graph, id, face }: FacesProps & { face: Face }) {
   const look = data.look ?? PLAIN;
   /** A large face showing nothing previews what it could, at the size that fits it. */
   const bare = face === "large" && !look.size && !look.shows.length;
-  const text = bare ? face_text(graph, id, { ...look, shows: PARTS }) || SAMPLE : data.text;
+  const previewed = { ...look, shows: PARTS };
+  const table = bare ? face_table(graph, id, previewed) : data.table ?? null;
+  const text = bare ? face_text(graph, id, previewed) || (table ? "" : SAMPLE) : data.text;
   const alias = look.alias === false ? "" : handle(graph, id);
-  const { w, h } = bare ? fitted(data.label, text ?? "", !!alias) : size_of(graph, id, face);
+  const { w, h } = bare ? fitted(data.label, text ?? "", !!alias, table, edge_of(look))
+    : size_of(graph, id, face);
   const [held, scale] = useFit(w);
   return (
     <div className="face-room" ref={held} style={{ height: h * scale }}>
@@ -48,6 +51,7 @@ function One({ graph, id, face }: FacesProps & { face: Face }) {
                   {...(data.stamps ? { stamps: data.stamps } : {})}
                   classes={data.marks} dress={face_attrs(look)}
                   {...(text !== undefined ? { text } : {})}
+                  {...(table ? { table } : {})}
                   head={look.head !== false} />
       </div>
     </div>

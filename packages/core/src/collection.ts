@@ -110,7 +110,8 @@ function defined(graph: Graph, slug: Id, text: string): void {
 }
 
 /** The definition a word names: this package's, or the one loaded package's that holds it.
- *  Nothing, or more than one, and it is made here. */
+ *  Nothing, or more than one, and it is made here, at the package's root: how a package is
+ *  arranged is its own file's to say. */
 function named(graph: Graph, slug: Id, word: string, kind: "block" | "tag",
                made: Map<string, Id>): Id {
   const fits = (id: Id) => (kind === "tag") === is_tag(graph, id);
@@ -123,10 +124,7 @@ function named(graph: Graph, slug: Id, word: string, kind: "block" | "tag",
   if (hit) return hit.id;
   const id = `${slug}.${kind === "tag" ? "tag" : "type"}.${slug_of(word)}`;
   if (!graph.blocks[id]) {
-    const holder = `${slug}.${kind === "tag" ? "tags" : "types"}`;
-    graph.blocks[holder] ??= { id: holder, parent: slug, name: kind === "tag" ? "tags" : "types",
-                               type: "folder", order: 0 };
-    graph.blocks[id] = { id, parent: holder, name: word, def: {},
+    graph.blocks[id] = { id, parent: slug, name: word, def: {},
                          ...(kind === "tag" ? { type: "tag" } : {}) } as Block;
     made.set(word, id);
   }

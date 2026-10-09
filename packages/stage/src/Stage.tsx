@@ -34,6 +34,10 @@ export type StageProps = {
           spot: { x: number; y: number }, only: readonly (string | Entry)[] | undefined,
           /** What the gesture already knew, for actions that need more than an id. */
           given?: Record<string, unknown>) => React.ReactNode;
+  /** The view the canvas draws in, named in the crumbs. */
+  view?: string;
+  /** What to say where the drawing has nothing in it: why, and what is there instead. */
+  empty?: string | null;
   /** What the app is saying. One strip, over the drawing. */
   said?: string | null;
   onSaid?: () => void;
@@ -167,8 +171,8 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 }
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
-                       menu, said, onSaid, lattice, frame, legend, corner, module, dir, type,
-                       lit = [], scroll = false, focus = null, most = null }: StageProps) {
+                       menu, said, onSaid, view, empty, lattice, frame, legend, corner, module,
+                       dir, type, lit = [], scroll = false, focus = null, most = null }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
                     ...(type ? { type } : {}) };
@@ -327,7 +331,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
 
   return (
     <section className="stage">
-      <Crumbs trail={scene.trail} onAct={onAct} />
+      <Crumbs trail={scene.trail} {...(view ? { view } : {})} onAct={onAct} />
+      {empty ? <p className="empty">{empty}</p> : null}
       {lit.length ? <style>{lit_rules(lit)}</style> : null}
       <FlowView
         scene={scene}

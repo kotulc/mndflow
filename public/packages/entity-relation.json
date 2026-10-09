@@ -1,24 +1,24 @@
 {
   "schema": "1.0",
-  "id": "erd",
+  "id": "entity-relation",
   "graph": {
-    "root": "erd",
+    "root": "entity-relation",
     "blocks": {
-      "erd": {
-        "id": "erd",
+      "entity-relation": {
+        "id": "entity-relation",
         "parent": null,
-        "name": "erd"
+        "name": "entity-relation"
       },
-      "erd.blocks": {
-        "id": "erd.blocks",
-        "parent": "erd",
+      "entity-relation.blocks": {
+        "id": "entity-relation.blocks",
+        "parent": "entity-relation",
         "name": "blocks",
         "type": "folder",
         "order": 1
       },
-      "erd.entity": {
-        "id": "erd.entity",
-        "parent": "erd.blocks",
+      "entity-relation.entity": {
+        "id": "entity-relation.entity",
+        "parent": "entity-relation.blocks",
         "name": "Entity",
         "type": "block",
         "body": "A thing the data model records: its attributes, keyed, some naming another entity.",
@@ -33,9 +33,9 @@
           }
         }
       },
-      "erd.status": {
-        "id": "erd.status",
-        "parent": "erd.blocks",
+      "entity-relation.status": {
+        "id": "entity-relation.status",
+        "parent": "entity-relation.blocks",
         "name": "Order status",
         "type": "choice",
         "body": "Where an order is.",
@@ -51,11 +51,11 @@
           }
         }
       },
-      "erd.customer": {
-        "id": "erd.customer",
-        "parent": "erd.blocks",
+      "entity-relation.customer": {
+        "id": "entity-relation.customer",
+        "parent": "entity-relation.blocks",
         "name": "Customer",
-        "type": "erd.entity",
+        "type": "entity-relation.entity",
         "body": "Somebody who places orders.",
         "def": {
           "attributes": [
@@ -75,11 +75,11 @@
         },
         "order": 3
       },
-      "erd.product": {
-        "id": "erd.product",
-        "parent": "erd.blocks",
+      "entity-relation.product": {
+        "id": "entity-relation.product",
+        "parent": "entity-relation.blocks",
         "name": "Product",
-        "type": "erd.entity",
+        "type": "entity-relation.entity",
         "body": "Something an order may carry.",
         "def": {
           "attributes": [
@@ -100,11 +100,11 @@
         },
         "order": 4
       },
-      "erd.order": {
-        "id": "erd.order",
-        "parent": "erd.blocks",
+      "entity-relation.order": {
+        "id": "entity-relation.order",
+        "parent": "entity-relation.blocks",
         "name": "Order",
-        "type": "erd.entity",
+        "type": "entity-relation.entity",
         "body": "One customer's purchase.",
         "def": {
           "attributes": [
@@ -115,7 +115,7 @@
             },
             {
               "name": "customer",
-              "type": "erd.customer"
+              "type": "entity-relation.customer"
             },
             {
               "name": "placed",
@@ -123,7 +123,7 @@
             },
             {
               "name": "status",
-              "type": "erd.status",
+              "type": "entity-relation.status",
               "default": "open"
             },
             {
@@ -134,21 +134,21 @@
         },
         "order": 5
       },
-      "erd.line": {
-        "id": "erd.line",
-        "parent": "erd.blocks",
+      "entity-relation.line": {
+        "id": "entity-relation.line",
+        "parent": "entity-relation.blocks",
         "name": "Line item",
-        "type": "erd.entity",
+        "type": "entity-relation.entity",
         "body": "One product on an order, and how many.",
         "def": {
           "attributes": [
             {
               "name": "order",
-              "type": "erd.order"
+              "type": "entity-relation.order"
             },
             {
               "name": "product",
-              "type": "erd.product"
+              "type": "entity-relation.product"
             },
             {
               "name": "qty",

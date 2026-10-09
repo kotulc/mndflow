@@ -1,7 +1,7 @@
 /** The `page` layout: a layer's holders as full-width boxes down the page.
  *
  *  Each box lays its cards in rows `across` cards wide, wrapping at its width, and its own groups
- *  under them as boxes of their own, each a margin narrower. What the overview draws: every
+ *  under them as boxes of their own, each a margin narrower. What the overhead draws: every
  *  package a box, its groups and folders nested inside it. Drawn, never stored: a place and a width
  *  live only in the graph handed back. */
 

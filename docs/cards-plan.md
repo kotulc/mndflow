@@ -23,7 +23,7 @@
 | **renderer** | `react-markdown` + `remark-gfm`, behind `theme`'s `Markdown`. The hand-written renderer goes. Frontmatter is read with `yaml` |
 | **one card** | `CardFace` in `theme` draws every card; views' `carried` (`card_of`) is the one place a card's data is worked out |
 | **small face** | the workspace card size (`display.card`, default 5×2, held inside `CARD`): the handle above the name, the icon, the marks. Never a body |
-| **large face** | fits its content — name, handle and markdown, estimated from the text — or the definition's `card.size`, either held inside `LARGE` (20×16 units): the name, then `card.shows` — `attributes`, `body`, `preview` — in order, as one markdown document |
+| **large face** | fits its content — name, handle, table and markdown, estimated from the text — or the definition's `card.size`, either held inside `LARGE` (20×16 units): the name, then `card.shows` — `attributes` as a ruled table from data, `body` and `preview` as markdown under it |
 | **which face** | the view's: canvas small unless the nearest ancestor saying `layout.face` asks for large; the tray large then small. Never zoom |
 | **fit and full** | a large face fits its content by default; `card.height: fit`, the `fitted` trait, `set_full` and the *full content* toggle are gone |
 | **attributes** | `def.attributes`: `{ name, type?, key?, default?, unit?, many?, optional?, note?, extra? }`. Replaces `FieldDef` and `def.schema` |
@@ -102,7 +102,7 @@ Pumps feed water from the **tank** to the boiler.
 |---|---|
 | `face_of(graph, id)` — small or large | views `size.ts` |
 | `size_of` — the face's size | views `size.ts` |
-| `face_text`, `listed`, `table` — the large face's markdown; `fit_of` — the room it needs, from the text | views `face.ts` |
+| `face_table`, `listed`, `table` — the large face's ruled attributes and their column widths; `face_text` — its markdown; `fit_of` — the room both need | views `face.ts` |
 | `face_attrs(look)` — a look as attributes | views `look.ts` |
 | `CardFace`, `Markdown`, `Inline` | theme |
 
@@ -187,8 +187,8 @@ Pumps feed water from the **tank** to the boiler.
 | **value types live in `base`** | the `value` kind, its types in a `types` folder; a separate package needed plumbing for nothing |
 | **an unknown attribute type** | makes a value type of the workspace's, extending `text` |
 | **a large face showing nothing** | is the small face's size on the canvas; the tray previews it with its attributes, else sample content, at the size that fits |
-| **fit is estimated, not measured** | from the markdown: glyph widths, a 16px line, a 17px table row, cells cut at 12 characters; rounded up to units. Headless, so the CLI and layout size cards without a page |
-| **the attributes table** | a ruled grid, a row each: type, name, then key, value and note where any row says one. No header row: columns read by place, as an ERD entity does |
+| **fit is estimated, not measured** | from the text: glyph widths, a 16px line, a 17px table row, cells cut at 16 characters; rounded up to units, but a table card is its table exactly. Headless, so the CLI and layout size cards without a page |
+| **the attributes table** | a ruled grid, a row each: type, name, then key, value and note where any row says one. The name is its title row; the marks end the last row; no header row: columns read by place, as an ERD entity does. Widths measured once in views and drawn as measured |
 | **the tray's handle** | both faces wear it top left: a usage its own, a definition its next usage's; `card.alias: hide` removes it |
 | **choice options** | words in `value.choices` on the type, for now |
 | **`shows` merging** | the nearest `shows` replaces, whole; traits giving parts do not add up |

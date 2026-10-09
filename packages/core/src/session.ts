@@ -3,9 +3,9 @@
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
 import { fold, replay, step, type Floor } from "./fold";
-import { home_at, sight, trace, view_of, view_on, EDITOR, type Tiers, type View,
-         type Views } from "./navigate";
-import type { ViewKind } from "./sections";
+import { home_at, lens_at, lenses_of, sight, trace, view_of, view_on, EDITOR, type Tiers,
+         type View, type Views } from "./navigate";
+import { is_layer_view, type ViewKind } from "./sections";
 import { package_of } from "./defs";
 import { path } from "./tree";
 import { compact, file_name, parse, read, unmet, write, write_package } from "./file";
@@ -127,7 +127,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     const layer = view.layer;
     if (layer && !graph.blocks[layer]) {
       const kept = path(was, layer).map((b) => b.id).reverse().find((id) => graph.blocks[id]);
-      view = kept && view.kind === "internal" ? view_on(graph, tiers, views, kept) : home(graph);
+      view = kept && is_layer_view(view.kind) ? view_on(graph, tiers, views, kept) : home(graph);
       picked = picked.filter((id) => graph.blocks[id] || graph.edges[id]);
       cells = [];
     }
@@ -145,8 +145,14 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
   /** The canvas moved: what it was looking into is kept for leaving an interface, and what it
    *  brought into sight is its anchor — which browsing, a pick made elsewhere, never moves. */
+  /** Each section remembers how it was last shown: whole, or from a block. A package's
+   *  definitions are neither, so they leave it as it was. */
   const move = (next: View) => {
     if (next.layer !== view.layer) from = view.layer;
+    const section = tiers.sections[next.at];
+    if (section && next.kind !== "definitions") {
+      views = { ...views, [section.id]: is_layer_view(next.kind) ? "internal" : next.kind };
+    }
     view = next;
     picked = [];
     cells = [];
@@ -242,6 +248,19 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       const anchor = view.pick ?? view.layer;
       const within = picked[0] && root(picked[0]) === root(anchor) ? picked[0] : null;
       const keep = [within, view.pick, view.layer, id].find(listed);
+      /** A block's own views draw the block in hand: the one seen, else the one the host says,
+       *  else what is kept in sight. From inside is that too, where the canvas already looks at
+       *  one block; it stays in the section it is in. */
+      const seen = is_layer_view(view.kind);
+      const on = seen ? view.layer : id ?? keep;
+      if (is_layer_view(kind) && (kind !== "internal" || seen)) {
+        if (!on || !lenses_of(graph, on).includes(kind)) return;
+        const to = seen ? { ...view, kind, pick: null } : lens_at(graph, tiers, on, kind);
+        if (!to) return;
+        move(to);
+        listener?.();
+        return;
+      }
       if (!keep && kind === "internal") return;
       views = { ...views, [section.id]: kind };
       const to = keep ? sight(graph, tiers, views, view.at, keep)

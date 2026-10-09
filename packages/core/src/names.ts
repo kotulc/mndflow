@@ -167,11 +167,12 @@ export function stamps_of(graph: Graph, id: Id): Mark[] {
   return out;
 }
 
-/** The blocks a definition is used by: those it types, those tagged with it, and the
- *  definitions with an attribute typed by it. A subtype extends it rather than using it. */
+/** The blocks a definition is used by: those it types, those tagged with it or carrying it as a
+ *  trait, and the definitions with an attribute typed by it. A subtype extends it rather than
+ *  using it. */
 export function used_by(graph: Graph, def: Id): Block[] {
-  return Object.values(graph.blocks).filter((b) => (!b.def
-    && (b.type === def || b.tags?.includes(def)))
+  return Object.values(graph.blocks).filter((b) => (!b.def && b.type === def)
+    || !!b.tags?.includes(def) || !!b.traits?.includes(def)
     || !!b.def?.attributes?.some((a) => a.type === def));
 }
 

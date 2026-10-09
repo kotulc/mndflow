@@ -143,11 +143,23 @@ Most rules below are one of these applied.
 **A perspective is one layer, drawn one way.** Nothing a perspective works out is stored.
 
 - a **projection** draws the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it
-- **three canvas views of one section**: **internal** draws the opened block from inside, what it holds as cards, or as a grid view for a grid; **overview** draws the section from above, each block that holds flattened into a box of its contents; **profile** draws one row per section along the pick
-- the overview draws every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down and never zoomed out. It is 1:1 with the definitions section
+- **two system views** draw a whole section: **overhead** from above, each block that holds flattened into a box of its contents; **profile** one row per section along the pick
+- **layer views** draw one block, and **the block says which it opens on**, worked out on every draw and never stored:
+
+| Block has | Opens on | Draws |
+|---|---|---|
+| cells | **internal** | its grid view |
+| structure | **internal** | what it holds, as cards |
+| attributes, no structure | **entity** | its class card, what its links reach and what links to it |
+| room to hold, editable | **internal** | an empty layer, to be built |
+| none of these | **lineage** | what it extends, the traits it carries, its subtypes, and what uses it |
+| a package | **definitions** | its definitions as the overhead boxes them, joined where one extends or links another |
+
+- any layer view with something to draw can be picked from the rail; an empty layer says why it is empty and what else there is, never a blank canvas
+- the overhead draws every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down and never zoomed out. It is 1:1 with the definitions section
 - the profile's row for a section draws the pick among its siblings, and each block on the way to it that holds as a box round the next step down. The only lines join a picked block to its parent or children in the rows beside it
-- there is no package view: opening a package, or a holder in a domain, focuses its box in the overview. In a structure, opening a folder or grid descends into it, since it hides what it holds. A group, picked on the canvas, is revealed in place and the explorer lights the nearest row that lists it. A note, which may hold nothing, is revealed too
-- a layer's **layout** is a setting, `layout: { kind, … }`, said by its definition and overridable by the block, inherited like any setting. The kit ships `free`, `auto` and `page`, which is how the overview and profile lay out; an unknown kind draws as `auto`
+- opening a package draws its definitions. In a structure, opening a folder or grid descends into it, since it hides what it holds. A group, picked on the canvas, is revealed in place and the explorer lights the nearest row that lists it. A note, which may hold nothing, is revealed too
+- a layer's **layout** is a setting, `layout: { kind, … }`, said by its definition and overridable by the block, inherited like any setting. The kit ships `free`, `auto` and `page`, which is how the overhead, the profile and the meaning views lay out; an unknown kind draws as `auto`
 - **a row and its card read alike**: the explorer and the canvas ask core's `role_of` what a block is, and wear the same icon
 - **marks describe, and stack**: a stand-in wears one word (`Def`, `Ref`, `Pkg`); anything else wears what is true of it, and those stack — the first is `data`
 - **a layer draws its key**: what each kind's colour, mark and word mean. The workspace sets the default; a layer may override it
@@ -156,9 +168,10 @@ Most rules below are one of these applied.
 
 ## Cards
 
-**A card is drawn by one renderer everywhere** — the canvas, the tray, mndmap — and what it shows beyond its identity is rendered markdown.
+**A card is drawn by one renderer everywhere** — the canvas, the tray, mndmap — and what it shows beyond its identity is its attributes as a table and its content as rendered markdown.
 
-- **two faces.** The **small** face is the workspace's card size: its handle above its name, its icon and its marks, nothing more. The **large** face fits its content, or takes its definition's `card.size`, held under a preset maximum: its name, then the parts its definition lists in `card.shows` — `attributes`, `body`, `preview` — in that order, rendered as one markdown document
+- **two faces.** The **small** face is the workspace's card size: its handle above its name, its icon and its marks, nothing more. The **large** face fits its content, or takes its definition's `card.size`, held under a preset maximum: its name, then the parts its definition lists in `card.shows` — `attributes`, `body`, `preview`
+- **attributes draw as one ruled table**, from data, never markdown: the name is its top row, with the icon at its right; the marks end the last row; the card's border is the table's; columns are type, name, then key, value and note where any row says one. Column widths are worked out once in views and used both to size the card and to draw it. **A table card is sized by its table**, exactly, never rounded to units. A body shown under the table is markdown
 - **the face is the view's, never the zoom's**: a canvas draws small unless a layer's `layout.face` asks for large; the tray draws a block large, then small. A face is laid out at its size from the start, so nothing reflows
 - `card.name: hide` leaves the large face its parts alone; the small face always names
 - **a card's markdown is its source**: frontmatter for its identity and values, then its body. The JSON graph is the truth; the markdown is rendered from it, and read back into ordinary changes
@@ -186,12 +199,13 @@ Most rules below are one of these applied.
 **The explorer browses; the canvas draws what was opened.**
 
 - the explorer is a **section chain**: each section holds one context and the next lists what it holds. mndflow: definitions → structure, every package a top row of definitions, folded until opened, so any package's definitions are one unfold from the open structure. mndmap: collection → document, the package fixed and hidden
-- **browse**: choosing a row selects it and the tray shows it; the canvas stays
+- **browse**: choosing a row selects it and the tray shows it. **Inside the structure the canvas draws, the canvas follows**: it goes to the layer the block is drawn on and picks it there. Browsing anywhere else never moves it
+- **focus is lit**: a subtle wash on the row of the block the canvas draws and every row under it, the accent's edge on its own row too, and a strong wash on the selected row and its card
+- **trees start folded**: every branch is shut until opened, and the way to the open layer and to a new pick opens once. `base` lists first among the packages
 - **every section reads the `parent` tree alike**: what holds branches; a group does not list, and what it holds lists at its level
-- **open**: Enter, double-click or →. ← and Backspace leave; leaving a tree's top returns to the overview, focused on it
-- highlighting and crumbs show the canvas's context, never what is browsed
-- selecting in the overview selects and the sections follow; opening a tree there opens its structure
-- picking within the opened tree may move the canvas to the pick's layer (reveal); browsing outside it never does
+- **open**: Enter, double-click or →. **Opening goes in**, whatever view the section was shown in: a block opens on its own layer view. ← and Backspace leave; leaving a tree's top returns to the overhead, focused on it
+- highlighting and crumbs show the canvas's context, never what is browsed. **Crumbs name layers only**, from the tree the layer is in — never the package and folders above it — then the view drawn
+- selecting in the overhead selects and the sections follow
 - **one navigation**: core's `open_at`, `leave_at`, `reveal_at` and `held_at` decide where the canvas goes and what the sections hold. Both apps call them and decide nothing of their own
 - a definition dragged from any package onto the canvas lands in the opened structure
 - a usage's row lists its definition's blocks, then its own children, folded by default. Those parts are marked on row and card (dimmed, a link glyph, "from `D`") and carry their route (`usage/block`), so two usages of one definition light apart
@@ -225,8 +239,8 @@ Most rules below are one of these applied.
 - a document is a **usage** in the collection's domain, typed `md.document` or by its frontmatter; its content blocks are its own children
 - a document's frontmatter is its card source; a table in it is a content block, never a grid
 - the page draws a document's content with the large face, at the sizes the markdown package's definitions say; the kit's layouts place them
-- a collection is the same overview: its one package, folders flattened
-- a heading's section is a block holding its heading, content and own sections: a level in the explorer, read whole in the overview, which is how a document opens. The markdown package organizes its own definitions by folders
+- a collection is the same overhead: its one package, folders flattened
+- a heading's section is a block holding its heading, content and own sections: a level in the explorer, read whole in the overhead, which is how a document opens. The markdown package organizes its own definitions by folders
 
 
 ## Architecture
@@ -246,5 +260,5 @@ Most rules below are one of these applied.
 | **what drives a flow** | relation direction, grid reading order, or a behaviour of its own; and whether a flow is a perspective or an overlay |
 | **the agent surface** | whether every CLI verb reads and writes JSON, and whether actions are reachable by name from the CLI |
 | **the next translator** | code or hardware, and what its package names |
-| ***view*** | "canvas view" names internal, overview and profile; a data perspective (table, matrix, sequence) still wants a word |
+| ***view*** | "canvas view" names the system views and the layer views; a data perspective (table, matrix, sequence) still wants a word |
 | **the drag round trip** | dragging a definition from another package into the open structure means leaving the structure in the explorer. Whether a definitions palette stays put beside it |

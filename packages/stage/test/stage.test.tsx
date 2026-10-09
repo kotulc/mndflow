@@ -239,8 +239,9 @@ describe("the keyboard", () => {
 describe("the surrounds", () => {
   it("draws a crumb per layer, and climbs", () => {
     const view = mount();
-    fireEvent.click(view.getByText("workspace"));
-    expect(view.onAct).toHaveBeenCalledWith("open", { id: "workspace" });
+    const top = view.scene.trail[0]!;
+    fireEvent.click(view.container.querySelector(`.crumbs button[title="${top.label}"]`)!);
+    expect(view.onAct).toHaveBeenCalledWith("open", { id: top.id });
     fireEvent.click(view.getByTitle(/up one layer/));
     expect(view.onAct).toHaveBeenCalledWith("open");
   });

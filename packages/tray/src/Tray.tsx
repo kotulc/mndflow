@@ -5,8 +5,8 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { about_of, alias_of, children, def_at, def_of, domain_of, frame_of, frozen,
-         is_interface, owner_of, shown_name, stands_for,
-         type Act, type Graph, type Id } from "@mnd/core";
+         is_interface, is_tag, is_trait, is_value_type, owner_of, shown_name, stands_for,
+         stood_def, type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Attributes } from "./Attributes";
@@ -123,6 +123,20 @@ function home_of(graph: Graph, id: Id): Id | null {
   const home = is_interface(b) ? graph.blocks[b.parent ?? ""]?.parent : b.parent;
   /** The root layer is `null`, as the open layer names it. */
   return !home || home === graph.root ? null : home;
+}
+
+/** What sort of thing the tray is about, in a word. */
+function what_of(graph: Graph, id: Id): string {
+  const b = graph.blocks[id];
+  if (graph.edges[id]) return "relation";
+  if (!b) return "";
+  if (id === graph.root) return "workspace";
+  if (b.parent === null) return "package";
+  if (b.def) {
+    return is_trait(graph, id) ? "trait" : is_tag(graph, id) ? "tag"
+      : is_value_type(graph, id) ? "type" : "definition";
+  }
+  return stood_def(graph, id) ? "stand-in" : b.of ? "reference" : "usage";
 }
 
 export function Tray(props: TrayProps) {
@@ -251,10 +265,9 @@ export function Tray(props: TrayProps) {
   const on_row = lit_row(shown, asked_row);
   const on_stood = lit_row(stood ? [stood] : [], asked_row);
 
-  /** The head names the context, then says what sort it is: a definition, or a usage of one. */
-  const word = library ? "definitions"
-    : def_at(graph, about) ? "definition"
-    : context === "root" ? "workspace" : "usage";
+  /** The head names the context, then says what sort it is: a definition — a trait, tag or type
+   *  among them — a package, a stand-in for a definition, a reference, a relation, or a usage. */
+  const word = library ? "definitions" : what_of(graph, about);
   const name = library ? [library.from ?? (library.only === "all" ? "" : library.only),
                  library.group ? `${library.group}s` : ""].filter(Boolean).join(" · ")
     : def_at(graph, about) ? def_at(graph, about)!.name : shown_name(graph, about);

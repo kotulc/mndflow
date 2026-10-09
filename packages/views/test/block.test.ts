@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, flat, nested, related, NAMES as FIXTURES } from "@mnd/fixtures";
-import { children, fold, session, MAIN, ROOT, type Graph, type Id } from "@mnd/core";
+import { children, fold, session, MAIN, type Graph, type Id } from "@mnd/core";
 import { box_of, draw, faults, look_of, outline, project, EMPTY, type Scene } from "../src/index";
 
 const NAMES = FIXTURES;
@@ -119,10 +119,10 @@ describe("what the projection shows", () => {
     expect(ref().data.marks).toContain("missing");
   });
 
-  it("carries a trail from the root down to the layer", () => {
+  it("carries a trail from the tree down to the layer, never the package", () => {
     const graph = fold(nested(), FLOOR);
     const trail = project(graph, "block_rate").trail.map((t) => t.id);
-    expect(trail[0]).toBe(ROOT);
+    expect(trail[0]).toBe(MAIN);
     expect(trail.at(-1)).toBe("block_rate");
   });
 

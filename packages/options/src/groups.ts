@@ -1,4 +1,4 @@
-import { LAYOUTS, type Act, type Dir, type Layout, type ViewKind } from "@mnd/core";
+import { is_layer_view, LAYOUTS, type Act, type Dir, type Layout, type ViewKind } from "@mnd/core";
 import type { IconName } from "@mnd/theme";
 
 /** One control. **One icon, lit or not** — a setting draws the same mark whichever way it is
@@ -27,7 +27,8 @@ export type Group = {
 export type Chrome = {
   /** Which groups the projection offers. */
   slots: readonly string[];
-  /** The views the canvas's section offers, and the one it shows. */
+  /** The views the canvas offers — its section's whole views, then the block's own — and the one
+   *  it shows. */
   views?: readonly ViewKind[];
   view?: ViewKind;
   layout?: Layout;
@@ -45,17 +46,26 @@ export type Chrome = {
 };
 
 /** How a person lays a layer out from the rail. `page` is a definition's or a host's to set — the
- *  overview reads as a page — so it is not offered here. */
+ *  overhead reads as a page — so it is not offered here. */
 const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
   free: { icon: "layout_free", tip: "Hand placement is what draws" },
   auto: { icon: "layout_grid", tip: "Auto-layout: related blocks share a row, a unit of air between everything" },
 };
 
-/** How the canvas may look at its section. */
-const VIEWS: Record<ViewKind, { icon: IconName; tip: string }> = {
-  internal: { icon: "view_internal", tip: "Internal: one block's layer, seen from inside it" },
-  overview: { icon: "view_overview", tip: "Overview: the whole section from above, as nested boxes" },
-  profile: { icon: "view_profile", tip: "Profile: the whole section stepped down the page, in reading order" },
+/** How the canvas may look: at its whole section, or at one block. */
+const VIEWS: Record<ViewKind, { icon: IconName; word: string; tip: string }> = {
+  overhead: { icon: "view_overhead", word: "overhead",
+              tip: "Overhead: the whole section from above, as nested boxes" },
+  profile: { icon: "view_profile", word: "profile",
+             tip: "Profile: the whole section stepped down the page, along the pick" },
+  internal: { icon: "view_internal", word: "internal",
+              tip: "Internal: the block from inside, what it holds" },
+  entity: { icon: "view_entity", word: "entity",
+            tip: "Entity: the block's attributes, what they link to and what links to it" },
+  lineage: { icon: "view_lineage", word: "lineage",
+             tip: "Lineage: what the block extends, its subtypes, and what uses it" },
+  definitions: { icon: "view_definitions", word: "defs",
+                 tip: "Definitions: the package's definitions, and how they extend and link" },
 };
 
 /** What a right drag may draw: a line, straight or directed, or a tie. */
@@ -78,9 +88,12 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
   if ((chrome.views?.length ?? 0) > 1) {
     out.push({
       key: "view", label: "view",
-      controls: chrome.views!.map((kind): Control => ({
-        key: kind, icon: VIEWS[kind].icon, word: kind, tip: VIEWS[kind].tip,
+      controls: chrome.views!.map((kind, i): Control => ({
+        key: kind, icon: VIEWS[kind].icon, word: VIEWS[kind].word, tip: VIEWS[kind].tip,
         on: chrome.view === kind,
+        /** A rule between the section's views and the block's. */
+        ...(i > 0 && is_layer_view(kind) && !is_layer_view(chrome.views![i - 1]!)
+          ? { ruled: true } : {}),
         run: () => act("view", { kind }),
       })),
     });

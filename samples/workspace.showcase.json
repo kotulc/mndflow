@@ -19,41 +19,48 @@
           "grid": 1
         }
       },
-      "workspace.blocks": {
-        "id": "workspace.blocks",
-        "parent": "workspace",
-        "name": "blocks",
-        "type": "folder",
-        "order": 1
-      },
-      "workspace.relations": {
-        "id": "workspace.relations",
-        "parent": "workspace",
-        "name": "relations",
-        "type": "folder",
-        "order": 2
-      },
-      "workspace.tags": {
-        "id": "workspace.tags",
-        "parent": "workspace",
-        "name": "tags",
-        "type": "folder",
-        "order": 3
-      },
       "main": {
         "id": "main",
-        "parent": "workspace.blocks",
+        "parent": "workspace",
         "name": "main",
         "def": {},
         "order": 1
       },
+      "w_looks": {
+        "id": "w_looks",
+        "parent": "workspace",
+        "name": "looks",
+        "type": "folder",
+        "order": 2
+      },
+      "w_faces": {
+        "id": "w_faces",
+        "parent": "workspace",
+        "name": "faces",
+        "type": "folder",
+        "order": 3
+      },
+      "w_machines": {
+        "id": "w_machines",
+        "parent": "workspace",
+        "name": "machines",
+        "type": "folder",
+        "order": 4
+      },
+      "w_holders": {
+        "id": "w_holders",
+        "parent": "workspace",
+        "name": "holders",
+        "type": "folder",
+        "order": 5
+      },
       "def_large": {
         "id": "def_large",
-        "parent": "workspace.blocks",
+        "parent": "w_faces",
         "name": "Large layer",
         "type": "folder",
         "def": {},
-        "order": 2,
+        "order": 1,
         "settings": {
           "layout": {
             "face": "large"
@@ -78,7 +85,7 @@
         "order": 1,
         "x": 0,
         "y": -144,
-        "name": "Every block kind on its small face, then the looks a definition gives: families, fills, label places and borders. Each row varies one setting.",
+        "name": "Every block kind on its small face, then the looks: families, fills, label places and borders, each row varying one setting. Each look is a trait in the looks folder, for a definition to carry; here each card says it as its own.",
         "type": "note",
         "w": 648,
         "h": 72
@@ -133,13 +140,20 @@
         "w": 144,
         "h": 48
       },
-      "def_family_primary": {
-        "id": "def_family_primary",
-        "parent": "workspace.blocks",
+      "w_looks_family": {
+        "id": "w_looks_family",
+        "parent": "w_looks",
+        "name": "family",
+        "type": "folder",
+        "order": 1
+      },
+      "look_family_primary": {
+        "id": "look_family_primary",
+        "parent": "w_looks_family",
         "name": "family primary",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 3,
+        "order": 1,
         "settings": {
           "style": {
             "family": "primary"
@@ -154,15 +168,19 @@
         "x": 0,
         "y": 144,
         "name": "primary",
-        "type": "def_family_primary"
+        "settings": {
+          "style": {
+            "family": "primary"
+          }
+        }
       },
-      "def_family_secondary": {
-        "id": "def_family_secondary",
-        "parent": "workspace.blocks",
+      "look_family_secondary": {
+        "id": "look_family_secondary",
+        "parent": "w_looks_family",
         "name": "family secondary",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 4,
+        "order": 2,
         "settings": {
           "style": {
             "family": "secondary"
@@ -177,15 +195,19 @@
         "x": 168,
         "y": 144,
         "name": "secondary",
-        "type": "def_family_secondary"
+        "settings": {
+          "style": {
+            "family": "secondary"
+          }
+        }
       },
-      "def_family_neutral": {
-        "id": "def_family_neutral",
-        "parent": "workspace.blocks",
+      "look_family_neutral": {
+        "id": "look_family_neutral",
+        "parent": "w_looks_family",
         "name": "family neutral",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 5,
+        "order": 3,
         "settings": {
           "style": {
             "family": "neutral"
@@ -200,15 +222,19 @@
         "x": 336,
         "y": 144,
         "name": "neutral",
-        "type": "def_family_neutral"
+        "settings": {
+          "style": {
+            "family": "neutral"
+          }
+        }
       },
-      "def_family_muted": {
-        "id": "def_family_muted",
-        "parent": "workspace.blocks",
+      "look_family_muted": {
+        "id": "look_family_muted",
+        "parent": "w_looks_family",
         "name": "family muted",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 6,
+        "order": 4,
         "settings": {
           "style": {
             "family": "muted"
@@ -223,15 +249,19 @@
         "x": 504,
         "y": 144,
         "name": "muted",
-        "type": "def_family_muted"
+        "settings": {
+          "style": {
+            "family": "muted"
+          }
+        }
       },
-      "def_family_away": {
-        "id": "def_family_away",
-        "parent": "workspace.blocks",
+      "look_family_away": {
+        "id": "look_family_away",
+        "parent": "w_looks_family",
         "name": "family away",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 7,
+        "order": 5,
         "settings": {
           "style": {
             "family": "away"
@@ -246,15 +276,19 @@
         "x": 672,
         "y": 144,
         "name": "away",
-        "type": "def_family_away"
+        "settings": {
+          "style": {
+            "family": "away"
+          }
+        }
       },
-      "def_family_note": {
-        "id": "def_family_note",
-        "parent": "workspace.blocks",
+      "look_family_note": {
+        "id": "look_family_note",
+        "parent": "w_looks_family",
         "name": "family note",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 8,
+        "order": 6,
         "settings": {
           "style": {
             "family": "note"
@@ -269,15 +303,26 @@
         "x": 840,
         "y": 144,
         "name": "note",
-        "type": "def_family_note"
+        "settings": {
+          "style": {
+            "family": "note"
+          }
+        }
       },
-      "def_fill_solid": {
-        "id": "def_fill_solid",
-        "parent": "workspace.blocks",
+      "w_looks_fill": {
+        "id": "w_looks_fill",
+        "parent": "w_looks",
+        "name": "fill",
+        "type": "folder",
+        "order": 2
+      },
+      "look_fill_solid": {
+        "id": "look_fill_solid",
+        "parent": "w_looks_fill",
         "name": "fill solid",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 9,
+        "order": 1,
         "settings": {
           "style": {
             "fill": "solid"
@@ -292,15 +337,19 @@
         "x": 0,
         "y": 240,
         "name": "solid",
-        "type": "def_fill_solid"
+        "settings": {
+          "style": {
+            "fill": "solid"
+          }
+        }
       },
-      "def_fill_hatch": {
-        "id": "def_fill_hatch",
-        "parent": "workspace.blocks",
+      "look_fill_hatch": {
+        "id": "look_fill_hatch",
+        "parent": "w_looks_fill",
         "name": "fill hatch",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 10,
+        "order": 2,
         "settings": {
           "style": {
             "fill": "hatch"
@@ -315,15 +364,19 @@
         "x": 168,
         "y": 240,
         "name": "hatch",
-        "type": "def_fill_hatch"
+        "settings": {
+          "style": {
+            "fill": "hatch"
+          }
+        }
       },
-      "def_fill_wash": {
-        "id": "def_fill_wash",
-        "parent": "workspace.blocks",
+      "look_fill_wash": {
+        "id": "look_fill_wash",
+        "parent": "w_looks_fill",
         "name": "fill wash",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 11,
+        "order": 3,
         "settings": {
           "style": {
             "fill": "wash"
@@ -338,15 +391,19 @@
         "x": 336,
         "y": 240,
         "name": "wash",
-        "type": "def_fill_wash"
+        "settings": {
+          "style": {
+            "fill": "wash"
+          }
+        }
       },
-      "def_fill_none": {
-        "id": "def_fill_none",
-        "parent": "workspace.blocks",
+      "look_fill_none": {
+        "id": "look_fill_none",
+        "parent": "w_looks_fill",
         "name": "fill none",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 12,
+        "order": 4,
         "settings": {
           "style": {
             "fill": "none"
@@ -361,15 +418,26 @@
         "x": 504,
         "y": 240,
         "name": "none",
-        "type": "def_fill_none"
+        "settings": {
+          "style": {
+            "fill": "none"
+          }
+        }
       },
-      "def_label_above": {
-        "id": "def_label_above",
-        "parent": "workspace.blocks",
+      "w_looks_label": {
+        "id": "w_looks_label",
+        "parent": "w_looks",
+        "name": "label",
+        "type": "folder",
+        "order": 3
+      },
+      "look_label_above": {
+        "id": "look_label_above",
+        "parent": "w_looks_label",
         "name": "label above",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 13,
+        "order": 1,
         "settings": {
           "card": {
             "label": "above"
@@ -384,15 +452,19 @@
         "x": 0,
         "y": 336,
         "name": "above",
-        "type": "def_label_above"
+        "settings": {
+          "card": {
+            "label": "above"
+          }
+        }
       },
-      "def_label_inside": {
-        "id": "def_label_inside",
-        "parent": "workspace.blocks",
+      "look_label_inside": {
+        "id": "look_label_inside",
+        "parent": "w_looks_label",
         "name": "label inside",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 14,
+        "order": 2,
         "settings": {
           "card": {
             "label": "inside"
@@ -407,15 +479,19 @@
         "x": 168,
         "y": 336,
         "name": "inside",
-        "type": "def_label_inside"
+        "settings": {
+          "card": {
+            "label": "inside"
+          }
+        }
       },
-      "def_label_below": {
-        "id": "def_label_below",
-        "parent": "workspace.blocks",
+      "look_label_below": {
+        "id": "look_label_below",
+        "parent": "w_looks_label",
         "name": "label below",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 15,
+        "order": 3,
         "settings": {
           "card": {
             "label": "below"
@@ -430,15 +506,19 @@
         "x": 336,
         "y": 336,
         "name": "below",
-        "type": "def_label_below"
+        "settings": {
+          "card": {
+            "label": "below"
+          }
+        }
       },
-      "def_label_none": {
-        "id": "def_label_none",
-        "parent": "workspace.blocks",
+      "look_label_none": {
+        "id": "look_label_none",
+        "parent": "w_looks_label",
         "name": "label none",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 16,
+        "order": 4,
         "settings": {
           "card": {
             "label": "none"
@@ -453,15 +533,26 @@
         "x": 504,
         "y": 336,
         "name": "none",
-        "type": "def_label_none"
+        "settings": {
+          "card": {
+            "label": "none"
+          }
+        }
       },
-      "def_border_dashed": {
-        "id": "def_border_dashed",
-        "parent": "workspace.blocks",
+      "w_looks_border": {
+        "id": "w_looks_border",
+        "parent": "w_looks",
+        "name": "border",
+        "type": "folder",
+        "order": 4
+      },
+      "look_border_dashed": {
+        "id": "look_border_dashed",
+        "parent": "w_looks_border",
         "name": "border dashed",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 17,
+        "order": 1,
         "settings": {
           "style": {
             "border_style": "dashed"
@@ -476,15 +567,19 @@
         "x": 0,
         "y": 432,
         "name": "dashed",
-        "type": "def_border_dashed"
+        "settings": {
+          "style": {
+            "border_style": "dashed"
+          }
+        }
       },
-      "def_border_dotted": {
-        "id": "def_border_dotted",
-        "parent": "workspace.blocks",
+      "look_border_dotted": {
+        "id": "look_border_dotted",
+        "parent": "w_looks_border",
         "name": "border dotted",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 18,
+        "order": 2,
         "settings": {
           "style": {
             "border_style": "dotted"
@@ -499,15 +594,19 @@
         "x": 168,
         "y": 432,
         "name": "dotted",
-        "type": "def_border_dotted"
+        "settings": {
+          "style": {
+            "border_style": "dotted"
+          }
+        }
       },
-      "def_border_double": {
-        "id": "def_border_double",
-        "parent": "workspace.blocks",
+      "look_border_double": {
+        "id": "look_border_double",
+        "parent": "w_looks_border",
         "name": "border double",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 19,
+        "order": 3,
         "settings": {
           "style": {
             "border_style": "double"
@@ -522,15 +621,19 @@
         "x": 336,
         "y": 432,
         "name": "double",
-        "type": "def_border_double"
+        "settings": {
+          "style": {
+            "border_style": "double"
+          }
+        }
       },
-      "def_border_none": {
-        "id": "def_border_none",
-        "parent": "workspace.blocks",
+      "look_border_none": {
+        "id": "look_border_none",
+        "parent": "w_looks_border",
         "name": "border none",
-        "type": "block",
+        "type": "tag",
         "def": {},
-        "order": 20,
+        "order": 4,
         "settings": {
           "style": {
             "border_style": "none"
@@ -545,7 +648,11 @@
         "x": 504,
         "y": 432,
         "name": "none",
-        "type": "def_border_none"
+        "settings": {
+          "style": {
+            "border_style": "none"
+          }
+        }
       },
       "l_faces": {
         "id": "l_faces",
@@ -571,11 +678,11 @@
       },
       "def_doc": {
         "id": "def_doc",
-        "parent": "workspace.blocks",
+        "parent": "w_faces",
         "name": "Document",
         "type": "block",
         "def": {},
-        "order": 21,
+        "order": 2,
         "settings": {
           "card": {
             "shows": [
@@ -586,7 +693,7 @@
       },
       "def_spec": {
         "id": "def_spec",
-        "parent": "workspace.blocks",
+        "parent": "w_faces",
         "name": "Spec",
         "type": "block",
         "def": {
@@ -606,7 +713,7 @@
             }
           ]
         },
-        "order": 22,
+        "order": 3,
         "settings": {
           "card": {
             "shows": [
@@ -618,11 +725,11 @@
       },
       "def_media": {
         "id": "def_media",
-        "parent": "workspace.blocks",
+        "parent": "w_faces",
         "name": "Picture",
         "type": "block",
         "def": {},
-        "order": 23,
+        "order": 4,
         "traits": [
           "container",
           "ports",
@@ -631,11 +738,11 @@
       },
       "def_headless": {
         "id": "def_headless",
-        "parent": "workspace.blocks",
+        "parent": "w_faces",
         "name": "Headless",
         "type": "block",
         "def": {},
-        "order": 24,
+        "order": 5,
         "settings": {
           "card": {
             "shows": [
@@ -647,11 +754,11 @@
       },
       "def_sized": {
         "id": "def_sized",
-        "parent": "workspace.blocks",
+        "parent": "w_faces",
         "name": "Sized",
         "type": "block",
         "def": {},
-        "order": 25,
+        "order": 6,
         "settings": {
           "card": {
             "shows": [
@@ -759,14 +866,14 @@
         "order": 1,
         "x": 0,
         "y": -144,
-        "name": "A chain: Pump extends Machine, Big pump extends Pump. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it.",
+        "name": "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the family secondary look as a trait. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it.",
         "type": "note",
         "w": 648,
         "h": 72
       },
       "def_machine": {
         "id": "def_machine",
-        "parent": "workspace.blocks",
+        "parent": "w_machines",
         "name": "Machine",
         "type": "block",
         "def": {
@@ -778,21 +885,23 @@
             }
           ]
         },
-        "order": 26,
+        "order": 1,
         "settings": {
-          "style": {
-            "family": "secondary"
-          },
           "card": {
             "shows": [
               "attributes"
             ]
           }
-        }
+        },
+        "traits": [
+          "container",
+          "ports",
+          "look_family_secondary"
+        ]
       },
       "def_pump": {
         "id": "def_pump",
-        "parent": "workspace.blocks",
+        "parent": "w_machines",
         "name": "Pump",
         "type": "def_machine",
         "def": {
@@ -804,7 +913,7 @@
             }
           ]
         },
-        "order": 27,
+        "order": 2,
         "settings": {
           "style": {
             "hue": 200
@@ -813,7 +922,7 @@
       },
       "def_bigpump": {
         "id": "def_bigpump",
-        "parent": "workspace.blocks",
+        "parent": "w_machines",
         "name": "Big pump",
         "type": "def_pump",
         "def": {
@@ -825,7 +934,7 @@
             }
           ]
         },
-        "order": 28,
+        "order": 3,
         "settings": {
           "style": {
             "border_width": "thick"
@@ -1344,11 +1453,11 @@
       },
       "def_table": {
         "id": "def_table",
-        "parent": "workspace.blocks",
+        "parent": "w_holders",
         "name": "Table",
         "type": "grid",
         "def": {},
-        "order": 29,
+        "order": 1,
         "traits": [
           "container",
           "ports",
@@ -1555,7 +1664,7 @@
         "order": 1,
         "x": 0,
         "y": -144,
-        "name": "The erd package's entities as stand-ins: each attribute typed by another entity draws a link.",
+        "name": "The entity-relation package's entities as stand-ins: each attribute typed by another entity draws a link.",
         "type": "note",
         "w": 528,
         "h": 72
@@ -1565,7 +1674,7 @@
         "parent": "l_model",
         "alias": 8,
         "order": 2,
-        "of": "erd.customer",
+        "of": "entity-relation.customer",
         "x": 0,
         "y": 0
       },
@@ -1574,7 +1683,7 @@
         "parent": "l_model",
         "alias": 9,
         "order": 3,
-        "of": "erd.order",
+        "of": "entity-relation.order",
         "x": 432,
         "y": 0
       },
@@ -1583,7 +1692,7 @@
         "parent": "l_model",
         "alias": 10,
         "order": 4,
-        "of": "erd.line",
+        "of": "entity-relation.line",
         "x": 864,
         "y": 0
       },
@@ -1592,7 +1701,7 @@
         "parent": "l_model",
         "alias": 11,
         "order": 5,
-        "of": "erd.product",
+        "of": "entity-relation.product",
         "x": 864,
         "y": 192
       },
@@ -1624,7 +1733,7 @@
         "alias": 70,
         "order": 2,
         "name": "Ada Lovelace",
-        "type": "erd.customer",
+        "type": "entity-relation.customer",
         "values": [
           {
             "name": "id",
@@ -1648,7 +1757,7 @@
         "alias": 71,
         "order": 3,
         "name": "Order 1001",
-        "type": "erd.order",
+        "type": "entity-relation.order",
         "values": [
           {
             "name": "number",
@@ -1680,7 +1789,7 @@
         "alias": 72,
         "order": 4,
         "name": "1001 · widgets",
-        "type": "erd.line",
+        "type": "entity-relation.line",
         "values": [
           {
             "name": "order",
@@ -1704,7 +1813,7 @@
         "alias": 73,
         "order": 5,
         "name": "1001 · gadget",
-        "type": "erd.line",
+        "type": "entity-relation.line",
         "values": [
           {
             "name": "order",
@@ -1724,7 +1833,7 @@
         "alias": 74,
         "order": 6,
         "name": "Widget",
-        "type": "erd.product",
+        "type": "entity-relation.product",
         "values": [
           {
             "name": "sku",
@@ -1748,7 +1857,7 @@
         "alias": 75,
         "order": 7,
         "name": "Gadget",
-        "type": "erd.product",
+        "type": "entity-relation.product",
         "values": [
           {
             "name": "sku",
@@ -1766,21 +1875,21 @@
         "x": 1296,
         "y": 192
       },
-      "erd": {
-        "id": "erd",
+      "entity-relation": {
+        "id": "entity-relation",
         "parent": null,
-        "name": "erd"
+        "name": "entity-relation"
       },
-      "erd.blocks": {
-        "id": "erd.blocks",
-        "parent": "erd",
+      "entity-relation.blocks": {
+        "id": "entity-relation.blocks",
+        "parent": "entity-relation",
         "name": "blocks",
         "type": "folder",
         "order": 1
       },
-      "erd.entity": {
-        "id": "erd.entity",
-        "parent": "erd.blocks",
+      "entity-relation.entity": {
+        "id": "entity-relation.entity",
+        "parent": "entity-relation.blocks",
         "name": "Entity",
         "type": "block",
         "body": "A thing the data model records: its attributes, keyed, some naming another entity.",
@@ -1795,9 +1904,9 @@
           }
         }
       },
-      "erd.status": {
-        "id": "erd.status",
-        "parent": "erd.blocks",
+      "entity-relation.status": {
+        "id": "entity-relation.status",
+        "parent": "entity-relation.blocks",
         "name": "Order status",
         "type": "choice",
         "body": "Where an order is.",
@@ -1813,11 +1922,11 @@
           }
         }
       },
-      "erd.customer": {
-        "id": "erd.customer",
-        "parent": "erd.blocks",
+      "entity-relation.customer": {
+        "id": "entity-relation.customer",
+        "parent": "entity-relation.blocks",
         "name": "Customer",
-        "type": "erd.entity",
+        "type": "entity-relation.entity",
         "body": "Somebody who places orders.",
         "def": {
           "attributes": [
@@ -1837,11 +1946,11 @@
         },
         "order": 3
       },
-      "erd.product": {
-        "id": "erd.product",
-        "parent": "erd.blocks",
+      "entity-relation.product": {
+        "id": "entity-relation.product",
+        "parent": "entity-relation.blocks",
         "name": "Product",
-        "type": "erd.entity",
+        "type": "entity-relation.entity",
         "body": "Something an order may carry.",
         "def": {
           "attributes": [
@@ -1862,11 +1971,11 @@
         },
         "order": 4
       },
-      "erd.order": {
-        "id": "erd.order",
-        "parent": "erd.blocks",
+      "entity-relation.order": {
+        "id": "entity-relation.order",
+        "parent": "entity-relation.blocks",
         "name": "Order",
-        "type": "erd.entity",
+        "type": "entity-relation.entity",
         "body": "One customer's purchase.",
         "def": {
           "attributes": [
@@ -1877,7 +1986,7 @@
             },
             {
               "name": "customer",
-              "type": "erd.customer"
+              "type": "entity-relation.customer"
             },
             {
               "name": "placed",
@@ -1885,7 +1994,7 @@
             },
             {
               "name": "status",
-              "type": "erd.status",
+              "type": "entity-relation.status",
               "default": "open"
             },
             {
@@ -1896,21 +2005,21 @@
         },
         "order": 5
       },
-      "erd.line": {
-        "id": "erd.line",
-        "parent": "erd.blocks",
+      "entity-relation.line": {
+        "id": "entity-relation.line",
+        "parent": "entity-relation.blocks",
         "name": "Line item",
-        "type": "erd.entity",
+        "type": "entity-relation.entity",
         "body": "One product on an order, and how many.",
         "def": {
           "attributes": [
             {
               "name": "order",
-              "type": "erd.order"
+              "type": "entity-relation.order"
             },
             {
               "name": "product",
-              "type": "erd.product"
+              "type": "entity-relation.product"
             },
             {
               "name": "qty",

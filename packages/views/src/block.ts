@@ -14,14 +14,16 @@ import { survey_graph, FOREST } from "./survey";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { linked_graph, LINK } from "./links";
+import { lens_graph, LENS } from "./lens";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
          type Slot } from "./scene";
 
 export type Config = {
-  /** How the layer is looked at: from inside (`internal`); the whole section it scopes, down to
-   *  `cut` (`overview`); or a cross-section of the host's sections along `target` (`profile`).
-   *  Unsaid, inside — and with no layer, every package's domain as an overview. */
+  /** How the layer is looked at: from inside (`internal`); as what it means (`entity`,
+   *  `lineage`, or a package's `definitions`); the whole section it scopes, down to `cut`
+   *  (`overhead`); or a cross-section of the host's sections along `target` (`profile`).
+   *  Unsaid, inside — and with no layer, every package's domain as an overhead. */
   look?: { kind: ViewKind; cut: Cut; tiers?: Tiers; target?: Id | null };
   /** The packages a forest draws, in order; every package where unsaid. */
   packages?: readonly Id[];
@@ -36,7 +38,7 @@ export type Config = {
 const SLOTS: readonly Slot[] = ["layer", "display", "relations"];
 
 /** What a projection with no layer draws: every package's domain, as boxes down the page. */
-const OVERVIEW = { kind: "overview", cut: "tree" } as const;
+const OVERHEAD = { kind: "overhead", cut: "tree" } as const;
 
 /** Every block a group carries when it moves, including nested groups. */
 function group_carries(graph: Graph, group: Id): Id[] {
@@ -56,7 +58,20 @@ function group_carries(graph: Graph, group: Id): Id[] {
 export function project(given: Graph, layer: Id | null, config: Config = {}): Scene {
   /** A whole section is drawn from its scope, down to its cut, and read only: it offers what the
    *  drawing shows, and nothing to lay out. */
-  const look: Config["look"] = config.look ?? (layer === null ? OVERVIEW : undefined);
+  const look: Config["look"] = config.look ?? (layer === null ? OVERHEAD : undefined);
+  /** A block drawn as what it means is drawn from its own layer, the block itself lit, and read
+   *  only, under its own crumbs: nothing moves, and only a real block is picked — never a band. */
+  if (look && layer && given.blocks[layer]
+      && (look.kind === "entity" || look.kind === "lineage" || look.kind === "definitions")) {
+    const drawn = lens_graph(given, layer, look.kind, config.across);
+    const scene = project(drawn, look.kind === "definitions" ? FOREST : LENS,
+                          { ...config, look: { kind: "internal", cut: null } });
+    const nodes = scene.nodes.map((n) => ({
+      ...n, draggable: false, ...(given.blocks[n.id] ? {} : { selectable: false }),
+      ...(n.id === layer ? { data: { ...n.data, marks: [...n.data.marks, "held" as const] } } : {}),
+    }));
+    return { ...scene, layer, nodes, slots: ["display"], trail: trail_of(given, layer) };
+  }
   if (look && look.kind !== "internal") {
     const drawn = look.kind === "profile"
       ? profile_graph(given, look.tiers ?? EDITOR, look.target ?? null, config.across)
@@ -76,9 +91,10 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
     const nodes = scene.nodes.map((n) => (!given.blocks[n.id]
       ? { ...marked(n, "part"), selectable: false, draggable: false }
       : held.includes(n.id) ? marked(n, "held") : n));
-    return { ...scene, nodes, slots: ["display"] };
+    /** A whole section has no layer of its own to trail to. */
+    return { ...scene, nodes, slots: ["display"], trail: [] };
   }
-  if (layer === null) return project(given, null, { ...config, look: OVERVIEW });
+  if (layer === null) return project(given, null, { ...config, look: OVERHEAD });
   /** An opened grid draws its grid view: its frame of cells is the room, which the hand sizes
    *  but never moves, under the grid's own crumbs. */
   if (layer !== GRID_LAYER && is_grid(given, layer)) {

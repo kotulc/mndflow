@@ -1,8 +1,9 @@
 /** A card's face: the one drawing of a card, wherever one is drawn — the canvas, the tray, a host.
  *
- *  **Small**, it is the handle over the name, the icon and the marks. **Large**, it is the name
- *  and then its markdown, rendered. What it says and how it is painted are worked out before it
- *  is drawn; a face only draws them, naming no graph. */
+ *  **Small**, it is the handle over the name, the icon and the marks. **Large**, it is the name,
+ *  then its attributes as a ruled table — the name its title row, the card's border the table's —
+ *  then its markdown, rendered. What it says, how wide each column is and how it is painted are
+ *  worked out before it is drawn; a face only draws them, naming no graph. */
 
 import { type ReactNode } from "react";
 import { Icon, known, mark_icon, role_icon } from "./icons";
@@ -31,6 +32,8 @@ export type FaceProps = {
   dress?: Record<string, unknown>;
   /** The large face's markdown. Absent, the face is small. */
   text?: string;
+  /** The large face's attributes: each row's cells, and each column's width in pixels. */
+  table?: { cells: readonly (readonly string[])[]; widths: readonly number[] };
   /** False where a large face is its markdown alone. */
   head?: boolean;
   /** The name as drawn, where a host draws it itself — the canvas's, which renames in place. */
@@ -41,13 +44,15 @@ export type FaceProps = {
 };
 
 export function CardFace({ label, alias, kind, kinded, role, icon, holds, stamps, classes = [],
-                           dress = {}, text, head = true, name, title, children }: FaceProps) {
+                           dress = {}, text, table, head = true, name, title,
+                           children }: FaceProps) {
   const large = text !== undefined;
   const named = !large || head;
+  const ruled = large && !!table?.cells.length;
   const word = (where: string) => <span className={`${where} mnd-kind card-label`}>{kind}</span>;
   return (
     <div className={["mnd-card", "card-face", large ? "large" : "small", named ? "" : "headless",
-                     ...classes].filter(Boolean).join(" ")}
+                     ruled ? "tabled" : "", ...classes].filter(Boolean).join(" ")}
          {...dress} title={title ?? label}>
       {children}
       <Wears role={role} icon={icon} holds={holds} />
@@ -62,9 +67,27 @@ export function CardFace({ label, alias, kind, kinded, role, icon, holds, stamps
           {kinded === "inside" ? word("") : null}
         </div>
       ) : null}
+      {ruled ? <Ruled cells={table!.cells} widths={table!.widths} /> : null}
       {large && text ? <Markdown className="mnd-face-body" text={text} /> : null}
       {kinded === "below" ? word("mnd-under") : null}
     </div>
+  );
+}
+
+/** A large face's attributes, ruled: every column the width it was measured at, the last taking
+ *  whatever room the card has over. A cell cut short says itself whole when pointed at. */
+function Ruled({ cells, widths }: NonNullable<FaceProps["table"]>) {
+  return (
+    <table className="mnd-face-table">
+      <colgroup>
+        {widths.map((w, i) => <col key={i} style={i < widths.length - 1 ? { width: w } : {}} />)}
+      </colgroup>
+      <tbody>
+        {cells.map((row, r) => (
+          <tr key={r}>{row.map((cell, c) => <td key={c} title={cell}>{cell}</td>)}</tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
