@@ -112,7 +112,7 @@ register(
       /** In a grid, it takes the cell pointed at, else the nearest free one. */
       const g = lattice_of(ctx.graph, parent);
       if (g) {
-        made.push(...seat_in(parent, g, taken_in(ctx.graph, parent, g), [id],
+        made.push(...seat_in(parent, g, taken_in(ctx.graph, parent), [id],
                              cell_of_arg(args, "at")));
       }
       else if (at) made.push({ op: "place_block", id, x: at.x, y: at.y });
@@ -286,7 +286,7 @@ register(
       /** Into a grid, each seats: where it was pointed, else the nearest free cell. */
       const g = lattice_of(ctx.graph, parent);
       if (g) {
-        out.push(...seat_in(parent, g, taken_in(ctx.graph, parent, g, ids), ids,
+        out.push(...seat_in(parent, g, taken_in(ctx.graph, parent, ids), ids,
                             cell_of_arg(args, "at")));
       }
       /** Only a single block is placed at a spot. */
@@ -328,7 +328,7 @@ register(
       } }, ...ref.bump()];
       /** In a grid, it takes the cell pointed at, else the nearest free one. */
       if (g) {
-        out.push(...seat_in(parent, g, taken_in(ctx.graph, parent, g), [id],
+        out.push(...seat_in(parent, g, taken_in(ctx.graph, parent), [id],
                             cell_of_arg(args, "at")));
       }
       else if (at) out.push({ op: "place_block", id, x: at.x, y: at.y });

@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Entry** | `src/index.ts` |
-| **Depends on** | `core`, `theme` |
+| **Depends on** | `core`, `views`, `theme` |
 | **Proven by** | its own dev server over a fixture — driven, emitting selections and mutating nothing |
 
 ## Where it sits
@@ -13,7 +13,7 @@
 ```
 web · kit
 └─ tray   ◀
-   └─ core · theme
+   └─ core · views · theme
 ```
 
 ## Running it
@@ -33,7 +33,8 @@ npm run typecheck -w @mnd/tray
 | `state.ts` | `useTray` — open from the start, the tab, the hold, and the explorer section it lights. `useDisplay` — the card, the key, its corner and the lattice, and the workspace tab's answers to them. **Every shell's state, kept once**: the app and the kit's hosts run on the same two |
 | `Workspace.tsx` | the root's tab: identity, display, file — and export, whole or as a package, which it emits as `@export` and `@export_package` for the host to run. Its display answers `onDisplay`, so it still works where the workspace itself is read only |
 | `rows.ts` | `rows_of` — what the layer holds, read straight from the graph. Headless, so the CLI could print it |
-| `tray.css` · `fields.css` · `preview.css` | the look: the tables; the label-and-answer rows; the card and run previews and chips. Loaded in that order. The frame round them — bar, tabs, open and shut — is dressed in `@mnd/theme/shell.css` |
+| `CardTab.tsx` · `Faces.tsx` · `Attributes.tsx` | the card tab — its faces, drawn by theme's `CardFace` from views' `carried`, and its markdown source; and the one attributes table, for a definition and a usage alike |
+| `tray.css` · `fields.css` · `preview.css` | the look: the tables and the card tab; the label-and-answer rows; the faces, the run preview and chips. Loaded in that order. The frame round them — bar, tabs, open and shut — is dressed in `@mnd/theme/shell.css` |
 
 ## The rules it lives by
 
@@ -42,7 +43,7 @@ npm run typecheck -w @mnd/tray
 - **Nothing closes it but its own control**, because a click on the canvas is how a row gets selected.
 - **Everything is derived.** It reads the graph and stores nothing, so it cannot fall out of step with the drawing.
 - **Nothing picked on the root layer is the root.** The tray opens on the workspace tab, which is where the drawing's defaults are set.
-- **A fields tab offers the diagram.** Where a block answers a workspace schema, `view diagram` hands its id to `onFields`.
+- **Every card is drawn as the canvas draws it.** The tray reads views for what a card carries and theme for its face; it draws no card of its own.
 
 ## The detail
 

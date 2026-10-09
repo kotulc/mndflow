@@ -71,6 +71,12 @@ const svg = draw_svg(project(back, layer, {}));
 - **A consumer says what a model *is*, never what changed.** Round-tripping is read a graph and write a graph, and diffing belongs to whoever cares. **That is the price of a mutation union that stays free to grow**, and it is the right one.
 - **The export list is written out**, one name at a time. `export *` from the engine is how the log leaks.
 
+## Cards as markdown
+
+**A card's content is markdown; its identity is data.** `card_text(graph, id)` writes a block or a definition as its card source — frontmatter, then its body — and `read_card(text)` splits one back. `collect(name, files, graph)` reads a folder of markdown usages and the `package.json` definitions they name as one package file, for `open` or a session to bring in.
+
+`@mnd/kit/react` draws them the one way every surface does: `CardFace`, a card's small or large face, and `Markdown` / `Inline`, the renderer it reads through. `carried`, `face_text` and `size_of` say what a face carries and how big it is.
+
 ## The embedded view
 
 ```tsx
@@ -106,9 +112,9 @@ The rest of what a drawing looks like is the host's to hand down, and `useDispla
 
 | Prop | Is |
 |---|---|
-| `card` | the default card, in lattice units — applied before anything is measured |
+| `card` | the small face's card, in lattice units — applied before anything is measured. A large face fits its content, or takes its definition's `card.size`, drawn where a layer's `layout.face` asks |
 | `chrome.legend` · `chrome.corner` | the key to what the layer draws, in the top or bottom right-hand corner |
-| `fields` · `onFields` | a block or definition whose fields are drawn **instead of the layer**, as a class diagram: one card standing for its schema, one per usage listing its values. A pick on the class card is told as its definition; `close diagram` and the crumbs tell `onFields(null)` |
+| `fields` · `onFields` | a block or definition whose attributes are drawn **instead of the layer**, as a class diagram: one card standing for its definition, one per usage listing its values. A pick on the class card is told as its definition; `close diagram` and the crumbs tell `onFields(null)` |
 
 ## The tray
 
@@ -116,7 +122,7 @@ The rest of what a drawing looks like is the host's to hand down, and `useDispla
 import { Tray, useDisplay, useTray } from "@mnd/kit/react";
 
 const tray = useTray();                                        // open, its tab, what it holds
-const { display, onDisplay } = useDisplay({ card: { w: 10, h: 3 }, range: CARD });
+const { display, onDisplay } = useDisplay({ card: { w: 6, h: 2 }, range: CARD });
 
 <Explorer ... section={tray.section(graph.root)} onSection={tray.onSection} />
 <Viewer ... card={display.card} chrome={{ lattice: display.lattice, legend: display.legend }} />

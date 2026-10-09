@@ -84,14 +84,12 @@
         "parent": "sysml.blocks",
         "name": "requirement",
         "def": {
-          "schema": [
+          "attributes": [
             {
-              "name": "id",
-              "form": "text"
+              "name": "id"
             },
             {
-              "name": "text",
-              "form": "text"
+              "name": "text"
             }
           ]
         },

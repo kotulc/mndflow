@@ -3,15 +3,20 @@
 /** The model, and the vocabulary it is written in. */
 export {
   type Layout, type Block, type BlockModule, type Components, type DefBody,
-  type Definition, type Dir, type Domain, type Field, type FieldDef, type File, type Floor,
-  type Flow, type Graph, type Id, type Point, type Relation, type Side,
-  type Cell, type Grid, type HeaderRole, type Shape, type Span, type ValueForm,
+  type Attribute, type Definition, type Dir, type Domain, type File, type Floor,
+  type Flow, type Form, type Graph, type Id, type Point, type Relation, type Side,
+  type Cell, type Grid, type HeaderRole, type Shape, type Span, type Value,
   LAYOUTS, BASE_PACKAGE, BLOCK_MODULES, MAIN, ROOT, SCHEMA,
   empty_graph, new_id,
 } from "@mnd/core";
 
 /** Files. An envelope holding a graph, in and out. */
 export { type Opened, hash, open, unmet, write } from "@mnd/core";
+
+/** Cards as markdown: a block or definition written as its card source, one read back into its
+ *  frontmatter and body, and a folder of them collected as a package. */
+export { type Card, type Collected, type Leaf, card_text, collect, names_in, read_card,
+         said_as } from "@mnd/core";
 
 /** The door, asked rather than run: what a graph violates, and how to say it. */
 export { type Fault, say, validate } from "@mnd/core";
@@ -22,7 +27,8 @@ export { type Allowed, type Allows, type Expects, type Note, type NoteKind, type
 
 /** Reading a graph. Every derived answer the engine gives about one. */
 export {
-  all_defs, allocated_to, allocations_of, layout_of, at_cell, cell_of, children, def_at,
+  all_defs, allocated_to, allocations_of, attributes_of, form_of, is_value_type, links_to,
+  layout_of, at_cell, cell_of, children, def_at,
   def_of, domain_of, edge_base, edges_in, frozen, grid_of, group_head, head_of, headed_group,
   heading, holders_in, isa, is_container, is_grid, is_group, is_header, is_holder,
   is_interface, lattice_of, is_reference, layer_of, drawn_in, inline, is_folder, organizes,
@@ -46,7 +52,10 @@ export {
 
 /** The card's default size and the range it is held inside, in units of the lattice; setting it,
  *  and what one block measures under it — so a host placing blocks itself stacks them by it. */
-export { CARD, UNITS, set_card, set_full, size_of } from "@mnd/views";
+export { CARD, LARGE, UNITS, face_of, set_card, size_of, type Face } from "@mnd/views";
+
+/** What a card carries, the large face's markdown, and its attributes as a table. */
+export { carried, face_text, listed, table, type Listed } from "@mnd/views";
 
 /** The computed layout: a layer as a page of boxes. */
 export { page_graph } from "@mnd/views";

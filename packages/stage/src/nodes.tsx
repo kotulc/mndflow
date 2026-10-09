@@ -1,6 +1,6 @@
 /** What a box looks like, as React Flow node types. */
 
-import { type CSSProperties, createContext, memo, useContext, useEffect,
+import { createContext, memo, useContext, useEffect,
          useRef, useState } from "react";
 import { Handle, NodeResizer, Position, useUpdateNodeInternals,
          type NodeProps } from "@xyflow/react";
@@ -9,42 +9,11 @@ import type { Side } from "@mnd/core";
 /** What a row or a chip being dragged onto the drawing carries. */
 export const DRAGGED = "text/mnd-block";
 
-import { FRAME, PLAIN, look_key,
-         type BoxData, type BoxNode, type GridCell, type Look } from "@mnd/views";
-import type { Mark, Role } from "@mnd/core";
-import { Icon, Name, known, mark_icon, role_icon, useNaming } from "@mnd/theme";
-import { Inline, Markdown, plain } from "./Markdown";
+import { FRAME, PLAIN, face_attrs, look_key,
+         type BoxData, type BoxNode, type GridCell } from "@mnd/views";
+import { CardFace, Name, Stamps, Wears, useNaming } from "@mnd/theme";
 
 
-
-/** The icon in a card's top corner: what sort of thing it is, or the one somebody set instead.
- *  **A card that holds parts lights it** — that, and not a second mark, is what containing looks
- *  like. A fill would do for a square and blot a pilcrow, so it is the colour that says so. */
-function Wears({ role, icon, holds }: { role?: Role; icon?: string; holds?: boolean }) {
-  if (!role) return null;
-  const worn = icon && known(icon) ? icon : role_icon(role);
-  return (
-    <span className="mnd-role" data-role={role} {...(holds ? { "data-holds": "" } : {})}>
-      <Icon name={worn} size={11} />
-    </span>
-  );
-}
-
-/** The system marks in a card's bottom corner, each written as a word: what it stands in for,
- *  or what describes it. The app chooses them, which is what the highlight colour says. */
-function Stamps({ stamps }: { stamps?: readonly Mark[] }) {
-  const drawn = (stamps ?? []).filter((mark) => mark_icon(mark));
-  if (!drawn.length) return null;
-  return (
-    <span className="mnd-marks">
-      {drawn.map((mark) => (
-        <span key={mark} className="mnd-mark" data-mark={mark}>
-          <Icon name={mark_icon(mark)!} size={13} />
-        </span>
-      ))}
-    </span>
-  );
-}
 
 /** What this node would draw, as a value. */
 function seen(p: NodeProps<BoxNode>): string {
@@ -52,12 +21,10 @@ function seen(p: NodeProps<BoxNode>): string {
   return [
     p.selected, p.dragging, p.width, p.height,
     d.label, d.alias ?? "", d.def, d.on, d.side, d.role, (d.stamps ?? []).join(","),
-    (d.fields ?? []).map((f) => `${f.name}=${f.value ?? f.form}`).join(","), d.marks.join(","),
-    d.body ?? "",
+    d.face ?? "", d.text ?? "", d.marks.join(","),
     /** Read off the look, so no property is forgotten. */
     look_key(d.look),
-    d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}${c.value ?? ""}`
-      + `${c.def ?? ""}${c.key ? "key" : ""}`).join(","),
+    d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(","),
     d.seats?.map((t) => `${t.id}${t.side}${t.at}`).join(","),
   ].join("|");
 }
@@ -136,120 +103,30 @@ function Middle({ side, inward }: { side?: Side; inward?: boolean }) {
   );
 }
 
-/** What a definition said, as attributes the stylesheet reads. */
-export function dressed(look: Look) {
-  const tinted = look.hue !== undefined;
-  /** Opacity rides as a number, not a percentage. */
-  const sheer = look.opacity !== undefined && look.opacity < 1;
-  return {
-    "data-family": tinted ? "tint" : look.family,
-    "data-fill": look.fill,
-    "data-border-width": look.border_width,
-    "data-border-style": look.border_style,
-    "data-name-font": look.name_font,
-    "data-name-weight": look.name_weight,
-    "data-label-font": look.label_font,
-    "data-label-weight": look.label_weight,
-    "data-label": look.label,
-    "data-align": look.align,
-    "data-label-align": look.label_align,
-    ...(look.border_contrast ? { "data-border-contrast": look.border_contrast } : {}),
-    ...(look.name_contrast ? { "data-name-contrast": look.name_contrast } : {}),
-    ...(look.label_contrast ? { "data-label-contrast": look.label_contrast } : {}),
-    ...(sheer ? { "data-sheer": "" } : {}),
-    ...(tinted
-      /** The ceiling stays in the ramp. */
-      ? { style: { "--card-h": String(look.hue),
-                   "--card-c": `calc(var(--tint-ceiling) * ${look.intensity ?? 0.65})`,
-                   ...(sheer ? { "--card-opacity": String(look.opacity) } : {}),
-                 } as CSSProperties }
-      : sheer
-        ? { style: { "--card-opacity": String(look.opacity) } as CSSProperties }
-        : {}),
-  };
-}
-
-/** How tall a line of a card's body is, and what a card spends above its body: its padding, and a
- *  head with the divider under it where there is one. */
-const LINE = 16;
-const ABOVE = { head: 30, bare: 9 };
-
-/** How many lines of body a card of this height has room for; unknown until it is measured. */
-function room(height: number | undefined, head: boolean): number | undefined {
-  if (!height) return undefined;
-  return Math.max(1, Math.floor((height - (head ? ABOVE.head : ABOVE.bare)) / LINE));
-}
-
-/** The ordinary card: a container, a reference, a note, a lane or a cell.
- *
- *  A head — its name — and, under a divider, a compartment where its look asks for one: its fields,
- *  a line each, or its body, formatted. A card whose look hides its name is its body alone. */
-function CardNode({ id, data, selected, height }: NodeProps<BoxNode>) {
+/** The ordinary card: the face every card draws with, and what the canvas lays over it — its
+ *  border's targets, its grips where it keeps its own size, and the seats lines meet. Its name
+ *  renames in place. */
+function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
-  /** The name always, the label where asked. */
-  const label = look.label;
-  const head = look.head !== false;
-  /** A value that only repeats the card's name is said once, by the name. */
-  const fields = data.fields?.filter((f) => !f.value || plain(f.value) !== data.label);
-  const parted = !!fields || !!data.body || !!data.preview;
-  /** As many fields as the card has lines for; past that, the last line says there are more. */
-  const lines = room(height, head);
-  const cut = !!fields && lines !== undefined && fields.length > lines;
-  const kept = cut ? fields.slice(0, lines - 1) : fields;
   return (
-    <div className={["mnd-card", "card-face", ...data.marks, parted ? "parted" : "",
-                     head ? "" : "headless", selected ? "picked" : ""]
-            .filter(Boolean).join(" ")}
-         {...dressed(look)} data-def={data.def} title={data.label}>
-      {/* A card keeps the one card height unless its definition asked for its own. */}
+    <CardFace label={data.label} {...(data.alias ? { alias: data.alias } : {})}
+              kind={look.kind} kinded={look.label} {...(data.role ? { role: data.role } : {})}
+              {...(look.icon ? { icon: look.icon } : {})}
+              holds={data.marks.includes("container")}
+              {...(data.stamps ? { stamps: data.stamps } : {})}
+              classes={[...data.marks, selected ? "picked" : ""]}
+              dress={{ ...face_attrs(look), "data-def": data.def }}
+              {...(data.text !== undefined ? { text: data.text } : {})}
+              head={look.head !== false}
+              name={<Name id={id} className="mnd-label card-name" text={data.label} />}>
+      {/* A card keeps the size its face says unless its definition asked for its own. */}
       {look.height === "free"
         ? <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
                        lineClassName="mnd-edge" handleClassName="mnd-grip" /> : null}
       <Brim />
-      <Wears role={data.role} icon={data.look?.icon}
-             holds={data.marks.includes("container")} />
-      <Stamps stamps={data.stamps} />
-      {label === "above"
-        ? <span className="mnd-over mnd-kind card-label">{look.kind}</span> : null}
-      {head ? (
-        <div className="mnd-head">
-          {/* The name and its handle are separate elements, so renaming replaces the word alone. */}
-          <span className="mnd-named">
-            <Name id={id} className="mnd-label card-name" text={data.label} />
-            {data.alias ? <span className="mnd-alias">{data.alias}</span> : null}
-          </span>
-          {/* What sort of thing it is, where it was asked for. */}
-          {label === "inside"
-            ? <span className="mnd-kind card-label">{look.kind}</span> : null}
-        </div>
-      ) : null}
-      {/* What it carries, one line each: a value where it has one, its form where it has not. */}
-      {fields ? (
-        <ul className="mnd-fields">
-          {kept!.map((f) => (
-            <li key={f.name} title={`${f.name}: ${f.value ?? f.form}`}>
-              <span className="mnd-field-name">{f.name}</span>
-              {f.key ? <Icon name="key" size={12} className="mnd-field-key" /> : null}
-              {f.value === undefined
-                ? <span className="mnd-field-form">{f.form}</span>
-                : <Inline className="mnd-field-value" text={f.value} />}
-            </li>
-          ))}
-          {cut ? <li className="mnd-field-more">…</li> : null}
-        </ul>
-      ) : null}
-      {/* What it shows: an image that will not load leaves its name to say what it was. */}
-      {data.preview ? <img className="mnd-preview" src={data.preview} alt="" draggable={false}
-                           onError={(e) => { e.currentTarget.hidden = true; }} /> : null}
-      {/* What it says. */}
-      {data.body
-        ? <Markdown className="mnd-body" text={data.body} lines={lines} /> : null}
-      {/* Under the card rather than in it. */}
-      {label === "below"
-        ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
-    </div>
+    </CardFace>
   );
 }
 
@@ -260,7 +137,7 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
   return (
     <div className={["mnd-card", "card-face", "note", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
-         {...dressed(look)} data-def={data.def}>
+         {...face_attrs(look)} data-def={data.def}>
       <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
                    lineClassName="mnd-edge" handleClassName="mnd-grip" />
       {/* A note wears its icon above and whatever mark it earns below. */}
@@ -382,7 +259,7 @@ function Lattice({ id, cells, open }: { id: string; cells: readonly GridCell[]; 
       {cells.map((c) => (
         /** `nopan` because a sweep across cells is not a drag of the canvas. */
         <span key={`${c.r},${c.c}`}
-              className={["mnd-grid-cell", "nopan", ...c.marks, c.def ? "allocated" : "",
+              className={["mnd-grid-cell", "nopan", ...c.marks,
                           held(c) ? "picked" : "", lit && on_line(c, lit) ? "lit" : ""]
                 .filter(Boolean).join(" ")}
               data-at={`${c.r},${c.c}`}
@@ -396,12 +273,9 @@ function Lattice({ id, cells, open }: { id: string; cells: readonly GridCell[]; 
               }}
               onPointerLeave={c.line && open ? () => set_lit(null) : undefined}
               onClick={c.line && open ? () => pick(line_cells(headed_line(c)!)) : undefined}>
-          {/* What the cell says, where no block sits in it, typed in place; the key column says
-              so. */}
+          {/* An empty cell is named in place: the name is the block it makes. */}
           {naming.id === cell_key({ group: id, r: c.r, c: c.c })
-            ? <Name id={naming.id} className="mnd-grid-value" text={c.value ?? ""} clears />
-            : c.value ? <Inline className="mnd-grid-value" text={c.value} /> : null}
-          {c.key ? <Icon name="key" size={12} className="mnd-grid-key" /> : null}
+            ? <Name id={naming.id} className="mnd-grid-value" text="" clears /> : null}
           {c.index && open ? <span className="mnd-grid-index">{c.index}</span> : null}
         </span>
       ))}
@@ -432,7 +306,7 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   const group = ["mnd-group", has_cells ? "gridded" : "", data.marks.includes("flat") ? "flat" : "",
                  room, selected ? "picked" : ""].filter(Boolean).join(" ");
   return (
-    <div className={shell} {...dressed(look)}>
+    <div className={shell} {...face_attrs(look)}>
       {/* The name and label float above the frame together. */}
       <span className="mnd-group-title">
         {look.label === "above" ? <span className="mnd-kind card-label">{look.kind}</span> : null}

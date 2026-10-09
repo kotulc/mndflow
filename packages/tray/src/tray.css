@@ -157,7 +157,7 @@ fieldset.fields { padding: 0; }
 .drawing > .preview { padding-inline: 8px; }
 
 /* The drawing fills its column; the run scales with it. */
-.drawing .preview-card, .drawing .preview-wire { width: 100%; }
+.drawing .preview-wire { width: 100%; }
 .drawing .preview-run { width: 100%; height: auto; }
 
 /* The card draws at its own height on the element tab and the style tab alike: it is the same
@@ -166,6 +166,48 @@ fieldset.fields { padding: 0; }
 .panel.element {
   grid-template-areas: "drawing rows" "body body" "source source" "data data";
 }
+
+/* The card tab: the card drawn, what it says beside it, and a definition's record under both. */
+.panel.card {
+  grid-template-columns: minmax(220px, 2fr) minmax(0, 3fr);
+  grid-template-areas: "drawing said" "data data";
+}
+.panel > .col.said { grid-area: said; }
+.panel.card > .content.data { grid-area: data; padding: 0; }
+.col.said > .content { padding: 6px 0 0; }
+.col.said > .content > textarea { min-height: 16em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.col.said .rail { gap: 6px; }
+
+/* What a card says, rendered: its frontmatter as a quiet list, then its body. */
+.card-front { color: var(--muted); font-size: 12px; }
+.card-front ul { margin: 0; padding-left: 0; list-style: none; }
+.card-front strong { color: var(--text); font-weight: 600; margin-right: 0.5ch; }
+.card-body { line-height: 1.55; font-size: 13px; }
+.card-body :first-child { margin-top: 0; }
+.card-body pre, .card-record pre {
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: var(--band);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.card-record pre { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.card-body table { border-collapse: collapse; }
+.card-body :where(th, td) { padding: 2px 8px; border: 1px solid var(--divider); text-align: left; }
+.card-body img { max-width: 100%; }
+.content.said > .empty { color: var(--faint); font-style: italic; margin: 0; }
+
+/* A usage's settings are its definition's, read here: a box drawn as nothing. */
+fieldset.panel-set { border: 0; margin: 0; padding: 0; min-width: 0; }
+
+/* The attributes table: what a definition inherits reads faint, and a link names its target. */
+.attributes { padding: 4px 10px 10px; }
+.contents-table tr.inherited td { color: var(--faint); }
+.contents-table td .type { color: var(--muted); }
+.contents-table td .type.link { color: var(--accent); }
+.contents-table td .faint { color: var(--faint); font-style: italic; }
 
 /* The settings tab: the drawing and its looks side by side, and what its usages may do in the
    card column under the drawing. */

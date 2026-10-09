@@ -81,6 +81,49 @@ function Answer({ q, read, set, off, runs, app }: {
     );
   }
 
+  /** Several of a set, in the order picked: pressing one adds it last, or takes it away. */
+  if (q.form === "parts") {
+    const at = (mine ? own as string[] : (chain(q.key, q.name) || "").split(",")).filter(Boolean);
+    return (
+      <Line label={q.word} tip={q.tip} className="options">
+        {(q.of ?? []).map((c) => {
+          const on = at.includes(c.value);
+          const next = on ? at.filter((x) => x !== c.value) : [...at, c.value];
+          return (
+            <button key={c.value} className={["opt", on ? "on" : "", on && mine ? "set" : ""]
+                      .filter(Boolean).join(" ")}
+                    title={on ? `${c.word} — shown ${at.indexOf(c.value) + 1}` : c.word}
+                    onClick={() => set(q.key, q.name, next.join(","))}>
+              {c.word}
+            </button>
+          );
+        })}
+        <button className="opt" title="give it back to whatever it inherits" disabled={!mine}
+                onClick={() => set(q.key, q.name, "")}>clear</button>
+      </Line>
+    );
+  }
+
+  /** A width and a height, in units. */
+  if (q.form === "size") {
+    const read = (mine ? own : JSON.parse(chain(q.key, q.name) || "null")) as
+      { w: number; h: number } | null;
+    const was = read ?? { w: 12, h: 8 };
+    const side = (axis: "w" | "h") => (
+      <input type="number" min={1} step={1} aria-label={axis === "w" ? "width" : "height"}
+             value={was[axis]}
+             onChange={(e) => set(q.key, q.name, axis === "w" ? `${e.target.value}x${was.h}`
+                                                              : `${was.w}x${e.target.value}`)} />
+    );
+    return (
+      <Line label={q.word} tip={q.tip} className="card">
+        {side("w")}<span className="into">×</span>{side("h")}<span className="alias">units</span>
+        <button className="opt" title="give it back to whatever it inherits" disabled={!mine}
+                onClick={() => set(q.key, q.name, "")}>clear</button>
+      </Line>
+    );
+  }
+
   /** Every mark this build ships, rather than the nine a role wears. */
   if (q.form === "marks") {
     return (

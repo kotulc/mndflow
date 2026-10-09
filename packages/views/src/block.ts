@@ -2,7 +2,7 @@
 
 import { alias_of, layout_of, children, covers, edge_base, edges_in, group_depth, heading, holders_in,
          inline, is_container, is_grid, is_group, is_interface, is_note, label_of, lattice_of,
-         members_of, schema_of, shape_of, stamps_of, role_of, shown_name, trace, EDITOR, type Cut,
+         members_of, shape_of, stamps_of, role_of, shown_name, trace, EDITOR, type Cut,
          type Tiers, type ViewKind, type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
 import { at_seat, cell_box, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
@@ -13,6 +13,7 @@ import { profile_graph } from "./profile";
 import { survey_graph, FOREST } from "./survey";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
+import { linked_graph, LINK } from "./links";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
          type Slot } from "./scene";
@@ -86,7 +87,8 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
       ...n, draggable: false, data: { ...n.data, marks: [...n.data.marks, "room" as const] } }));
     return { ...scene, layer, nodes, trail: trail_of(given, layer) };
   }
-  const through = read_through(given, layer);
+  /** What its usages read through, and the links its cards' attributes draw between them. */
+  const through = linked_graph(read_through(given, layer), layer);
   /** A page places its layer as it reads; anything else places itself. */
   const how = layout_of(through, layer);
   const graph = how === "page" ? page_graph(through, layer) : through;
@@ -191,21 +193,12 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   };
 }
 
-/** The cells a grid draws, placed inside its own box, each with what it says. A header line's
- *  cells are marked so, and the left column's read upright. */
+/** The cells a grid draws, placed inside its own box. A header line's cells are marked so, and
+ *  the left column's read upright; what sits in a cell is a block, drawn as one. */
 function lattice(graph: Graph, id: Id): GridCell[] {
   const g = lattice_of(graph, id)!;
   const seated = new Set<string>();
   for (const b of members_of(graph, id)) if (b.cell) seated.add(`${b.cell.r},${b.cell.c}`);
-  /** Allocated columns head the first line with their own first values, or where a column has
-   *  none, its definition's name; a schema with its fields'. The key column is the one the grid's
-   *  own field marks. */
-  const names = g.columns
-    ? g.columns.map((def, c) => g.values?.[0]?.[c] || (graph.blocks[def]?.name ?? ""))
-    : g.schema ? schema_of(graph, g.schema).map((f) => f.name) : null;
-  const key = graph.blocks[id]?.values?.findIndex((f) => f.key) ?? -1;
-  const said = (r: number, c: number) =>
-    seated.has(`${r},${c}`) ? undefined : names && r === 0 ? names[c] : g.values?.[r]?.[c];
   const out: GridCell[] = [];
   for (let r = 0; r < g.rows; r++) {
     for (let c = 0; c < g.cols; c++) {
@@ -215,16 +208,13 @@ function lattice(graph: Graph, id: Id): GridCell[] {
       if (span) marks.push("merged");
       if (seated.has(`${r},${c}`)) marks.push("seated");
       const role = heading(r, c);
-      if (role || (names && r === 0)) marks.push("header");
+      if (role) marks.push("header");
       if (role === "row") marks.push("upright");
-      const value = said(r, c);
-      const def = r === 0 ? g.columns?.[c] : undefined;
       /** A header heading one line is that line's tab; the corner heads none. */
       const line = role === "row" ? { way: "row" as const, i: r }
         : role === "col" ? { way: "col" as const, i: c } : null;
       const index = line ? line_name(line.way, line.i) : "";
-      out.push({ r, c, ...cell_box(g, r, c), marks, ...(value ? { value } : {}),
-                 ...(def ? { def } : {}), ...(r === 0 && c === key ? { key: true } : {}),
+      out.push({ r, c, ...cell_box(g, r, c), marks,
                  ...(line ? { line } : {}), ...(index ? { index } : {}) });
     }
   }
@@ -306,14 +296,18 @@ function line_edges(graph: Graph, linked: readonly Relation[], perches: readonly
     const wire = wire_of(graph, e.id);
     const label = wire.name ? label_of(graph, e.id) : "";
     const alias = wire.alias ? alias_of(graph, e.id, true) : "";
+    /** A link is drawn to be read, never picked. */
+    const link = e.id.startsWith(LINK);
     return {
       id: e.id,
+      ...(link ? { selectable: false, focusable: false } : {}),
       source: e.from,
       target: e.to,
       sourceHandle: handle(met, e.id, "from", "s"),
       targetHandle: handle(met, e.id, "to", "t"),
       ...(label ? { label } : {}),
       data: { module: edge_base(graph, e.id), dir: e.dir ?? "none", wire,
+              ...(link ? { link: true } : {}),
               ...(alias ? { alias } : {}),
               ...(solid.length ? { clear: solid } : {}) },
     };

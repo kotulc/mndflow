@@ -71,7 +71,7 @@ Block {
   name?         string            // required on a definition
   body?         string            // a block's text; a definition's description
 
-  def?          { schema?: FieldDef[] }   // present on a definition, and only there
+  def?          { attributes?: Attribute[] }   // present on a definition, and only there
 
   of?           Id                // reference: what it stands for
   source?       string            // provenance: one uri
@@ -92,7 +92,7 @@ Block {
   settings?     Components        // its own word, by component
   traits?       Id[]              // capability tags, in order; definitions only
   tags?         Id[]              // tag definitions it carries
-  values?       Field[]           // a usage's values
+  values?       Value[]           // a usage's answers, in order
 }
 ```
 
@@ -109,13 +109,8 @@ Block {
 
 ```
 Grid {
-  rows, cols    number            // its extent; unsaid, two by two
-  head?         {top?, left?}     // which outer lines head the rest
+  rows, cols    number            // its extent, header lines included
   merges?       Span[]            // cells with an extent of their own
-  values?       string[][]        // a label per cell, by row then column
-  schema?       Id                // the definition whose fields head its columns
-  columns?      Id[]              // the definition each column allocates
-  size?         {w, h}            // one cell's size in units
 }
 ```
 
@@ -146,14 +141,19 @@ Relation {
 | **no route** | where a line goes is derived every draw |
 
 
-### Field
+**A grid is allocation and nothing else**: its top row heads columns, its left column heads rows, and what sits in a cell is a block. There are no text labels and no records.
+
+
+### Attribute and value
 
 ```
-Field    { name, form, value?, tags?, key? }
-FieldDef { name, form, value?, unit?, choices?, many?, tags?, key? }
+Attribute { name, type?, key?, default?, unit?, many?, optional?, note?, extra? }
+Value     { name, value }
 ```
 
-**Five value forms, and the set is closed**: `text`, `number` (`unit`), `flag`, `choice` (`choices`), `link` (`many`). A field has no identity: it is addressed by name on its holder.
+**A definition declares attributes; a usage answers them.** An attribute's `type` is a value type (a definition under `value`) or a block definition, which makes it a link; absent, it is text. `extra` keeps any other property as written. A value is typed by its attribute, never by itself, and is addressed by name on its holder. Neither has an identity of its own.
+
+**How a value is edited is closed** (`value.form`: `text`, `number`, `flag`, `choice`, `link`); **what a value is, is open**: `base` ships `text`, `number`, `flag`, `link` and `choice`, and a package adds its own as definitions.
 
 
 ### Components
@@ -163,14 +163,15 @@ FieldDef { name, form, value?, unit?, choices?, many?, tags?, key? }
 | Key | Configures |
 |---|---|
 | `block` | which block module |
-| `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height`, `fields`, `body`, `name`, `preview` |
+| `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `shows` (a list of `attributes`, `body`, `preview`), `size` (`{w, h}` in units): what the large face shows and how big it is |
 | `style` | a family, or a `hue` with its `intensity` and `vary`; `fill` and `opacity`; border and writing weight, face and contrast. Never a hex or a pixel count |
 | `line` | how a run draws |
-| `layout` | `kind`: `free`, `auto`, `outline` or `page`; `across` and `line` for the computed ones. An unknown kind draws as `auto` |
+| `layout` | `kind`: `free`, `auto` or `page`; `across` and `line` for the computed ones; `face`: `small` or `large`, the face what it holds draws with. An unknown kind draws as `auto` |
 | `tie` | the relation type a block made from or dropped on another is linked to it by |
 | `allows` | `ports`, `holds`, `heads`, `degree`, `ends`. Refused at the gesture; absent is a no. Usually granted whole by a trait |
 | `holder` | `inline`, `matrix`: how a block draws what it holds — in place, and in cells. Granted by the traits of the same names; which holder a block is comes from here |
 | `expects` | `required`, `match`. Advice, never a refusal |
+| `value` | `form`, `choices`, `unit`: how a value type's values are edited, and what a choice may be |
 
 - **A component owns its key and validates it at the door.** One absent from the build is left unvalidated, not wrong.
 - **A malformed setting is dropped**, that key only.
@@ -195,11 +196,11 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | `add_block` · `update_block` · `delete_block` | make; rename or retype; remove with its subtree |
 | `move_block` · `place_block` · `size_block` · `order_block` | re-parent, position, least size, sibling order |
 | `set_alias` · `set_counter` | handles |
-| `set_body` · `set_schema` · `set_source` | text, a definition's fields, provenance |
+| `set_body` · `set_attributes` · `set_source` | text, a definition's attributes, provenance |
 | `seat_cell` · `set_grid` | an address in the parent grid; a lattice, written whole |
 | `link_blocks` · `update_edge` · `delete_edge` | make, rename or retype, remove a relationship |
 | `set_dir` · `flip_edge` · `set_end` · `set_port` · `set_side` · `mark_port` | direction, ends, interfaces |
-| `set_value` · `drop_value` · `order_values` | a usage's values |
+| `set_value` · `drop_value` · `order_values` | a usage's answers, by name |
 | `set_tags` · `set_traits` | the tags and traits an element carries; `traits: null` gives the set back to the chain |
 | `set_setting` · `drop_settings` | one property of one component; everything at once given back |
 
@@ -214,7 +215,7 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | **frozen** | a mutation writing under a frozen package is dropped |
 | **ends** | both ends name blocks, and a named part is in the end's definition, or the relationship is dropped |
 | **references** | `of` names nothing: the reference reads missing and is kept |
-| **cells** | a seated block sits inside its grid's extent, one to a cell; no merge crosses another or a header line. A repair unseats, never deletes |
+| **cells** | a seated block sits inside its grid's extent, one to a cell; no merge crosses another or a header line; a lattice carries nothing but its extent and merges. A repair unseats, never deletes |
 | **components** | each key validated by its own component; an unknown component is left alone |
 | **modules** | a module the build does not know falls back to the base block, and says so |
 | **names** | unique among siblings; a definition is named |
@@ -245,5 +246,26 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | **a holder's members** | its children |
 | **a definition's domain** | its base: block or relation |
 | **allocation** | a cell's position and its headers |
+| **used by** | every attribute and usage typed by a definition |
+| **links** | an attribute typed by a block definition, between two cards a layer draws |
+| **faces** | which face a card draws with, its size, and the large face's markdown |
 | **seats and routes** | the layer, every draw |
 | **what refers to a block** | asked of the graph; never a back-reference |
+
+
+## Card sources
+
+**A card as markdown: frontmatter, then its body.** The graph is the truth; `card_text` writes a block or a definition as its source, and the `markdown` and `attach` actions read one back as ordinary changes. Frontmatter is YAML.
+
+| Key | On a usage | On a definition |
+|---|---|---|
+| `name` | its name | its name |
+| `type` / `extends` | the definition it is, by name | what it extends, by name |
+| `tags` | its tags, by name | its tags, by name |
+| `traits` | — | the traits it states, by name |
+| `source` | where its content lives outside | — |
+| anything else | a value | an attribute's default |
+
+- the body after the frontmatter is `body`, as written. Tables in it are content
+- a type or tag name nothing loaded holds, or more than one package holds, makes a plain definition in the workspace, and is said
+- **a collection** is a folder: `package.json` of definitions and `.md` usages under folders. `collect` reads one as a package file; a type its usages name and nothing defines is made, its attributes the union of what they answer

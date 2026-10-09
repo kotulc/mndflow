@@ -4,132 +4,6 @@
   "graph": {
     "root": "workspace",
     "blocks": {
-      "workspace": {
-        "id": "workspace",
-        "parent": null,
-        "name": "testspace",
-        "counters": {
-          "block": 25,
-          "folder": 3,
-          "group": 5,
-          "note": 1,
-          "grid": 5,
-          "reference": 7,
-          "relation": 24,
-          "interface": 1
-        }
-      },
-      "workspace.blocks": {
-        "id": "workspace.blocks",
-        "parent": "workspace",
-        "name": "blocks",
-        "type": "folder",
-        "order": 1
-      },
-      "workspace.relations": {
-        "id": "workspace.relations",
-        "parent": "workspace",
-        "name": "relations",
-        "type": "folder",
-        "order": 2
-      },
-      "workspace.tags": {
-        "id": "workspace.tags",
-        "parent": "workspace",
-        "name": "tags",
-        "type": "folder",
-        "order": 3
-      },
-      "main": {
-        "id": "main",
-        "parent": "workspace.blocks",
-        "name": "main",
-        "def": {},
-        "order": 4,
-        "settings": {
-          "layout": {
-            "kind": "auto"
-          }
-        }
-      },
-      "def_base": {
-        "id": "def_base",
-        "parent": "workspace.relations",
-        "name": "Base",
-        "def": {},
-        "type": "def_default",
-        "settings": {
-          "style": {
-            "hue": 292,
-            "intensity": 0.15
-          }
-        }
-      },
-      "def_default": {
-        "id": "def_default",
-        "parent": "workspace.relations",
-        "name": "line",
-        "def": {},
-        "type": "line"
-      },
-      "def_relates": {
-        "id": "def_relates",
-        "parent": "workspace.relations",
-        "name": "<<relates>>",
-        "def": {},
-        "type": "def_default",
-        "settings": {
-          "style": {
-            "hue": 314
-          }
-        }
-      },
-      "def_relation": {
-        "id": "def_relation",
-        "parent": "workspace.relations",
-        "name": "relation",
-        "def": {},
-        "type": "def_default"
-      },
-      "def_special": {
-        "id": "def_special",
-        "parent": "workspace.blocks",
-        "name": "special",
-        "def": {},
-        "type": "folder",
-        "settings": {
-          "style": {
-            "family": "secondary",
-            "hue": 300,
-            "intensity": 0.4,
-            "name_font": "italic"
-          },
-          "card": {
-            "label": "below"
-          }
-        }
-      },
-      "def_specialer": {
-        "id": "def_specialer",
-        "parent": "workspace.blocks",
-        "name": "specialer",
-        "def": {},
-        "type": "def_special"
-      },
-      "def_test": {
-        "id": "def_test",
-        "parent": "workspace.relations",
-        "name": "Test",
-        "def": {},
-        "type": "def_default"
-      },
-      "def_test_block": {
-        "id": "def_test_block",
-        "parent": "workspace.blocks",
-        "name": "Test Block",
-        "def": {},
-        "type": "block"
-      },
       "block_026ym9qvc4q2": {
         "id": "block_026ym9qvc4q2",
         "parent": "block_ew5quzihwe9g",
@@ -278,24 +152,24 @@
         "parent": "block_pcm8tjwdotm2",
         "alias": 1,
         "order": 2,
-        "x": -48,
-        "y": -48,
         "settings": {
           "layout": {
             "kind": "auto"
           }
-        }
+        },
+        "x": -48,
+        "y": -48
       },
       "block_g7r7pich1xuz": {
         "id": "block_g7r7pich1xuz",
         "parent": "block_x6q9cg79pk62",
         "name": "Hello World",
         "alias": 20,
-        "order": 12,
         "cell": {
           "r": 1,
           "c": 1
-        }
+        },
+        "order": 12
       },
       "block_ga0xoyy306a1": {
         "id": "block_ga0xoyy306a1",
@@ -328,11 +202,11 @@
         "parent": "block_4718pot6xuhs",
         "name": "Test",
         "alias": 19,
-        "order": 11,
         "cell": {
           "r": 1,
           "c": 1
-        }
+        },
+        "order": 11
       },
       "block_h1gmpej2w1tl": {
         "id": "block_h1gmpej2w1tl",
@@ -349,8 +223,6 @@
         "name": "resource A",
         "alias": 25,
         "order": 3,
-        "x": 120,
-        "y": 0,
         "settings": {
           "style": {
             "intensity": 0.5,
@@ -359,7 +231,9 @@
           "card": {
             "align": "left"
           }
-        }
+        },
+        "x": 120,
+        "y": 0
       },
       "block_i5g6cnrkmsa1": {
         "id": "block_i5g6cnrkmsa1",
@@ -387,13 +261,13 @@
         "type": "group",
         "alias": 3,
         "order": 9,
-        "x": -96,
-        "y": -288,
         "settings": {
           "style": {
             "border_width": "thick"
           }
-        }
+        },
+        "x": -96,
+        "y": -288
       },
       "block_ktni5736gxyy": {
         "id": "block_ktni5736gxyy",
@@ -402,19 +276,23 @@
         "type": "def_specialer",
         "alias": 3,
         "order": 13,
-        "x": 120,
-        "y": 0,
         "settings": {
           "card": {
             "alias": "show"
           }
-        }
+        },
+        "x": 120,
+        "y": 0
       },
       "block_lidqmag9iygj": {
         "id": "block_lidqmag9iygj",
         "parent": "block_2nzmkg5bbb6e",
         "name": "hello world",
         "alias": 11,
+        "cell": {
+          "r": 1,
+          "c": 2
+        },
         "order": 4,
         "settings": {
           "style": {
@@ -423,10 +301,6 @@
           "layout": {
             "kind": "auto"
           }
-        },
-        "cell": {
-          "r": 1,
-          "c": 2
         }
       },
       "block_lisf1xwo11gs": {
@@ -444,26 +318,26 @@
         "name": "B",
         "of": "block_gikyjb1138b4",
         "alias": 5,
-        "order": 7,
         "cell": {
           "r": 2,
           "c": 1
-        }
+        },
+        "order": 7
       },
       "block_pcm8tjwdotm2": {
         "id": "block_pcm8tjwdotm2",
         "parent": "block_2nzmkg5bbb6e",
         "name": "block",
         "alias": 4,
+        "cell": {
+          "r": 1,
+          "c": 1
+        },
         "order": 3,
         "settings": {
           "layout": {
             "kind": "auto"
           }
-        },
-        "cell": {
-          "r": 1,
-          "c": 1
         }
       },
       "block_phj6wc786dlo": {
@@ -480,11 +354,11 @@
         "id": "block_pjwhm997jirl",
         "parent": "block_356h5um4i1v2",
         "alias": 14,
-        "order": 1,
         "cell": {
           "r": 1,
           "c": 1
-        }
+        },
+        "order": 1
       },
       "block_pmjakumsauvt": {
         "id": "block_pmjakumsauvt",
@@ -502,8 +376,6 @@
         "type": "def_test_block",
         "alias": 5,
         "order": 2,
-        "x": 120,
-        "y": -120,
         "settings": {
           "card": {
             "label": "below"
@@ -512,20 +384,19 @@
         "values": [
           {
             "name": "is_block",
-            "form": "flag",
             "value": "true"
           },
           {
             "name": "rows",
-            "form": "number",
             "value": ""
           },
           {
             "name": "metadata",
-            "form": "text",
             "value": ""
           }
-        ]
+        ],
+        "x": 120,
+        "y": -120
       },
       "block_r7p0oaz4i8ol": {
         "id": "block_r7p0oaz4i8ol",
@@ -565,11 +436,11 @@
         "id": "block_roesrpnridkj",
         "parent": "block_4dxph88c5cyj",
         "alias": 21,
-        "order": 6,
         "cell": {
           "r": 1,
           "c": 2
-        }
+        },
+        "order": 6
       },
       "block_sah425bet8e7": {
         "id": "block_sah425bet8e7",
@@ -602,11 +473,11 @@
         "parent": "block_4dxph88c5cyj",
         "name": "Block",
         "alias": 16,
-        "order": 3,
         "cell": {
           "r": 1,
           "c": 1
-        }
+        },
+        "order": 3
       },
       "block_t1f7x1vfkadb": {
         "id": "block_t1f7x1vfkadb",
@@ -646,13 +517,13 @@
         "name": "parent",
         "alias": 15,
         "order": 2,
-        "x": -240,
-        "y": -288,
         "settings": {
           "layout": {
             "kind": "auto"
           }
-        }
+        },
+        "x": -240,
+        "y": -288
       },
       "block_yaf0hip7kk3j": {
         "id": "block_yaf0hip7kk3j",
@@ -661,164 +532,290 @@
         "order": 3,
         "x": -48,
         "y": -312
-      }
-    },
-    "edges": {
-      "edge_1oordonyaxvk": {
-        "id": "edge_1oordonyaxvk",
-        "from": "block_ew5quzihwe9g",
-        "alias": 1,
-        "to": "block_wgrensjcv5bt"
       },
-      "edge_2sn9h1rulw7k": {
-        "id": "edge_2sn9h1rulw7k",
-        "from": "block_rh7ulbcyydze",
-        "alias": 2,
-        "to": "block_6mkkngq8lsy9",
+      "def_base": {
+        "id": "def_base",
+        "parent": "workspace.relations",
+        "name": "Base",
+        "type": "def_default",
+        "def": {},
+        "settings": {
+          "style": {
+            "hue": 292,
+            "intensity": 0.15
+          }
+        }
+      },
+      "def_default": {
+        "id": "def_default",
+        "parent": "workspace.relations",
+        "name": "line",
+        "type": "line",
+        "def": {}
+      },
+      "def_relates": {
+        "id": "def_relates",
+        "parent": "workspace.relations",
+        "name": "<<relates>>",
+        "type": "def_default",
+        "def": {},
         "settings": {
           "style": {
             "hue": 314
           }
         }
       },
+      "def_relation": {
+        "id": "def_relation",
+        "parent": "workspace.relations",
+        "name": "relation",
+        "type": "def_default",
+        "def": {}
+      },
+      "def_special": {
+        "id": "def_special",
+        "parent": "workspace.blocks",
+        "name": "special",
+        "type": "folder",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "secondary",
+            "hue": 300,
+            "intensity": 0.4,
+            "name_font": "italic"
+          },
+          "card": {
+            "label": "below"
+          }
+        }
+      },
+      "def_specialer": {
+        "id": "def_specialer",
+        "parent": "workspace.blocks",
+        "name": "specialer",
+        "type": "def_special",
+        "def": {}
+      },
+      "def_test": {
+        "id": "def_test",
+        "parent": "workspace.relations",
+        "name": "Test",
+        "type": "def_default",
+        "def": {}
+      },
+      "def_test_block": {
+        "id": "def_test_block",
+        "parent": "workspace.blocks",
+        "name": "Test Block",
+        "type": "block",
+        "def": {}
+      },
+      "main": {
+        "id": "main",
+        "parent": "workspace.blocks",
+        "name": "main",
+        "def": {},
+        "order": 4,
+        "settings": {
+          "layout": {
+            "kind": "auto"
+          }
+        }
+      },
+      "workspace": {
+        "id": "workspace",
+        "parent": null,
+        "name": "testspace",
+        "counters": {
+          "block": 25,
+          "folder": 3,
+          "group": 5,
+          "note": 1,
+          "grid": 5,
+          "reference": 7,
+          "relation": 24,
+          "interface": 1
+        }
+      },
+      "workspace.blocks": {
+        "id": "workspace.blocks",
+        "parent": "workspace",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1
+      },
+      "workspace.relations": {
+        "id": "workspace.relations",
+        "parent": "workspace",
+        "name": "relations",
+        "type": "folder",
+        "order": 2
+      },
+      "workspace.tags": {
+        "id": "workspace.tags",
+        "parent": "workspace",
+        "name": "tags",
+        "type": "folder",
+        "order": 3
+      }
+    },
+    "edges": {
+      "edge_1oordonyaxvk": {
+        "id": "edge_1oordonyaxvk",
+        "alias": 1,
+        "from": "block_ew5quzihwe9g",
+        "to": "block_wgrensjcv5bt"
+      },
+      "edge_2sn9h1rulw7k": {
+        "id": "edge_2sn9h1rulw7k",
+        "alias": 2,
+        "from": "block_rh7ulbcyydze",
+        "settings": {
+          "style": {
+            "hue": 314
+          }
+        },
+        "to": "block_6mkkngq8lsy9"
+      },
       "edge_43o9s7aodw1k": {
         "id": "edge_43o9s7aodw1k",
-        "from": "block_8lbbe57fkwiz",
         "alias": 3,
+        "from": "block_8lbbe57fkwiz",
         "to": "block_6mkkngq8lsy9"
       },
       "edge_4nhycvtf8zbu": {
         "id": "edge_4nhycvtf8zbu",
-        "from": "block_g7r7pich1xuz",
         "alias": 4,
+        "from": "block_g7r7pich1xuz",
         "to": "block_gwetekpeykck"
       },
       "edge_5w8zpeg1znas": {
         "id": "edge_5w8zpeg1znas",
-        "from": "block_h1gmpej2w1tl",
         "alias": 5,
+        "from": "block_h1gmpej2w1tl",
         "to": "block_gwetekpeykck"
       },
       "edge_71o9x6outskz": {
         "id": "edge_71o9x6outskz",
-        "from": "block_d7b79oajslu5",
         "alias": 6,
+        "from": "block_d7b79oajslu5",
         "to": "block_rj10qdx5jhn9"
       },
       "edge_7bomo3xdu80j": {
         "id": "edge_7bomo3xdu80j",
-        "from": "block_i5x9yytvukem",
         "alias": 7,
+        "from": "block_i5x9yytvukem",
         "to": "block_ew5quzihwe9g"
       },
       "edge_8pj32ea5dj6w": {
         "id": "edge_8pj32ea5dj6w",
-        "from": "block_oud23vt3ldeo",
         "alias": 8,
+        "from": "block_oud23vt3ldeo",
         "to": "block_ew5quzihwe9g"
       },
       "edge_9fg4gtjkuve0": {
         "id": "edge_9fg4gtjkuve0",
-        "from": "block_ew5quzihwe9g",
         "alias": 9,
+        "from": "block_ew5quzihwe9g",
         "to": "block_pcm8tjwdotm2",
         "toSide": "left"
       },
       "edge_9vqi9b29txu1": {
         "id": "edge_9vqi9b29txu1",
-        "from": "block_d7b79oajslu5",
         "alias": 10,
+        "from": "block_d7b79oajslu5",
         "to": "block_lidqmag9iygj"
       },
       "edge_adr55k2me3et": {
         "id": "edge_adr55k2me3et",
-        "from": "block_roesrpnridkj",
         "dir": "forward",
         "alias": 11,
+        "from": "block_roesrpnridkj",
         "to": "block_sxbqlnfb9zl6"
       },
       "edge_cktxtb5g5aa3": {
         "id": "edge_cktxtb5g5aa3",
-        "from": "block_t1f7x1vfkadb",
         "alias": 12,
+        "from": "block_t1f7x1vfkadb",
         "to": "block_lidqmag9iygj"
       },
       "edge_egs2l5lsnid0": {
         "id": "edge_egs2l5lsnid0",
-        "from": "block_r1u3fmlv2njn",
         "alias": 13,
+        "from": "block_r1u3fmlv2njn",
         "to": "block_ew5quzihwe9g"
       },
       "edge_eiu51lknmwwg": {
         "id": "edge_eiu51lknmwwg",
-        "from": "block_d7b79oajslu5",
         "alias": 14,
-        "to": "block_squino1ojal3",
+        "from": "block_d7b79oajslu5",
         "settings": {
           "line": {
             "alias": "show"
           }
-        }
+        },
+        "to": "block_squino1ojal3"
       },
       "edge_hoab40s8w31k": {
         "id": "edge_hoab40s8w31k",
-        "from": "block_23iri9bhaf1y",
+        "type": "tie",
         "alias": 15,
-        "to": "block_pcm8tjwdotm2",
-        "type": "tie"
+        "from": "block_23iri9bhaf1y",
+        "to": "block_pcm8tjwdotm2"
       },
       "edge_ijoo4gd9dzwq": {
         "id": "edge_ijoo4gd9dzwq",
-        "from": "block_r1u3fmlv2njn",
         "alias": 16,
+        "from": "block_r1u3fmlv2njn",
         "to": "block_swt7wg3ubr7p"
       },
       "edge_keh9vphojxzf": {
         "id": "edge_keh9vphojxzf",
-        "from": "block_xpgood1tsdl8",
         "alias": 17,
+        "from": "block_xpgood1tsdl8",
         "to": "block_rj10qdx5jhn9"
       },
       "edge_l17yb8tyzsio": {
         "id": "edge_l17yb8tyzsio",
-        "from": "block_gikyjb1138b4",
         "alias": 18,
+        "from": "block_gikyjb1138b4",
         "to": "block_9vmqohl7du88"
       },
       "edge_n4md0pvs4o71": {
         "id": "edge_n4md0pvs4o71",
-        "from": "block_pcm8tjwdotm2",
         "alias": 19,
+        "from": "block_pcm8tjwdotm2",
         "to": "block_oud23vt3ldeo"
       },
       "edge_ol38mnbe6vqi": {
         "id": "edge_ol38mnbe6vqi",
-        "from": "block_ga0xoyy306a1",
         "alias": 20,
+        "from": "block_ga0xoyy306a1",
         "to": "block_h1gmpej2w1tl"
       },
       "edge_reii0joxi0c4": {
         "id": "edge_reii0joxi0c4",
-        "from": "block_sah425bet8e7",
         "alias": 21,
+        "from": "block_sah425bet8e7",
         "to": "block_6mkkngq8lsy9"
       },
       "edge_rf5hkz6gbnyo": {
         "id": "edge_rf5hkz6gbnyo",
-        "from": "block_2y5dibibfcqa",
         "alias": 22,
+        "from": "block_2y5dibibfcqa",
         "to": "block_lidqmag9iygj"
       },
       "edge_svi4zfuyruut": {
         "id": "edge_svi4zfuyruut",
-        "from": "block_i5x9yytvukem",
         "alias": 23,
+        "from": "block_i5x9yytvukem",
         "to": "block_lidqmag9iygj"
       },
       "edge_yoc1umj8z28q": {
         "id": "edge_yoc1umj8z28q",
-        "from": "block_pjwhm997jirl",
         "alias": 24,
+        "from": "block_pjwhm997jirl",
         "to": "block_lidqmag9iygj",
         "toSide": "left"
       }

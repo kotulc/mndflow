@@ -1,18 +1,17 @@
-/** A layer's fields, drawn as a class diagram.
+/** A layer's attributes, drawn as a class diagram.
  *
  *  A projection, never an edit: the same graph with one layer drawn another way, so it opens in the
  *  layer's own frame and navigates as the layer does. The schema is one class card standing for its
  *  definition, on top; its instances are cards in rows under it listing their values, each with a
- *  dashed *instance of* line up to the class. An instance is a block typed by the schema, which
- *  keeps its id, so a pick on one is a pick on the block it is — or a line of a grid the schema
- *  heads, drawn as a card for as long as the diagram is. */
+ *  dashed *instance of* line up to the class. An instance is a block typed by the definition,
+ *  which keeps its id, so a pick on one is a pick on the block it is. Every card draws its large
+ *  face, its attributes shown. */
 
-import { children, drawn_in, lattice_of, schema_def, schema_of, type Block, type Graph,
-         type Id, type Relation } from "@mnd/core";
+import { children, schema_def, type Block, type Graph, type Id, type Relation } from "@mnd/core";
 import { size_of, snap, GAP } from "./size";
 
-/** What every card in the diagram asks of its look: its fields, listed. */
-const LISTED = { card: { fields: "show" } };
+/** What every card in the diagram asks of its look: its attributes, shown. */
+const LISTED = { card: { shows: ["attributes"] } };
 
 /** The class card reads as a heading over its usages: solid, and named in bold at full contrast. */
 const CLASS_LOOK = {
@@ -29,21 +28,18 @@ const CLASS = "class:";
 const ACROSS = 4;
 
 
-/** The graph with this layer drawn as its fields' diagram, or null where it holds no usages of a
- *  schema. Everything outside the layer is left as it was. */
+/** The graph with this layer drawn as its attributes' diagram, or null where it holds no usages
+ *  of a definition with attributes. Everything outside the layer is left as it was. */
 export function fields_graph(graph: Graph, layer: Id): Graph | null {
   const def = schema_def(graph, layer);
-  const uses = def ? [...children(graph, layer).filter((b) => b.type === def),
-                      ...drawn_in(graph, layer)
-                        .filter((h) => lattice_of(graph, h.id)?.schema === def)
-                        .flatMap((grid) => lines(graph, grid, def))] : [];
+  const uses = def ? children(graph, layer).filter((b) => b.type === def) : [];
   if (!def || !uses.length) return null;
   const top = `${CLASS}${def}`;
   const blocks: Record<Id, Block> = { ...graph.blocks };
   /** Whatever else the layer held stands aside while the diagram is drawn. */
   for (const b of children(graph, layer)) delete blocks[b.id];
   const at = blocks[layer]!;
-  blocks[layer] = { ...at, settings: { ...at.settings, layout: { kind: "free" } } };
+  blocks[layer] = { ...at, settings: { ...at.settings, layout: { kind: "free", face: "large" } } };
   blocks[top] = { id: top, parent: layer, of: def, name: graph.blocks[def]!.name, order: 0,
                   settings: CLASS_LOOK };
   /** And so do the lines meeting it. */
@@ -62,21 +58,6 @@ export function fields_graph(graph: Graph, layer: Id): Graph | null {
 /** The definition a diagram's class card stands for, or null for any other id. */
 export function class_def(id: Id): Id | null {
   return id.startsWith(CLASS) ? id.slice(CLASS.length) : null;
-}
-
-/** A grid's lines under its header, each as a block of the schema: named by its first cell, and
- *  carrying a value per field. */
-function lines(graph: Graph, grid: Block, def: Id): Block[] {
-  const fields = schema_of(graph, def);
-  return (lattice_of(graph, grid.id)!.values ?? []).slice(1).map((row, n) => ({
-    id: `${grid.id}:${n + 1}`, parent: grid.parent, type: def, name: bare(row[0] ?? ""),
-    fields: fields.map(({ name, form }, c) => ({ name, form, value: row[c] ?? "" })),
-  }));
-}
-
-/** A cell's words as a name: a link keeps its text, and emphasis and code marks go. */
-function bare(cell: string): string {
-  return cell.replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[`*_~]+/g, "").trim();
 }
 
 /** The class centred over its usages, and the usages in rows of `ACROSS` under it. */

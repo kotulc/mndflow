@@ -37,6 +37,8 @@ import "@mnd/theme/base.css";
 | `shell.css` | the chrome — the reset, the header, the `.app` grid, the one bar height, the crumbs, the strip and the tray's frame. What `@mnd/kit/shell.css` is |
 | `base.css` | the page ground: `shell.css` first, then what the app alone reads |
 | `src/shell.tsx` | `WorkspaceHeader` and `TrayFrame` — the chrome as components, naming no graph |
+| `src/markdown.tsx` | `Markdown` and `Inline` — **the one renderer**: `react-markdown` with GitHub's tables and task lists, never an HTML string. A link answers ctrl+click |
+| `src/face.tsx` · `face.css` | `CardFace` — **the one drawing of a card**, wherever one is drawn: small, the handle over the name, the icon and the marks; large, the name and its markdown. It names no graph: what it says and how it is painted are handed to it |
 | `src/icons.tsx` | the icon set: roles (the root among them), the explorer's section words, and the system marks — **a stand-in's written as a word** (`Def`, `Ref`, `Pkg`), **what describes a card drawn** (`data`, a database) |
 
 ## How the ramp works

@@ -1,0 +1,165 @@
+{
+  "schema": "1.0",
+  "id": "erd",
+  "graph": {
+    "root": "erd",
+    "blocks": {
+      "erd": {
+        "id": "erd",
+        "parent": null,
+        "name": "erd"
+      },
+      "erd.blocks": {
+        "id": "erd.blocks",
+        "parent": "erd",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1
+      },
+      "erd.entity": {
+        "id": "erd.entity",
+        "parent": "erd.blocks",
+        "name": "Entity",
+        "type": "block",
+        "body": "A thing the data model records: its attributes, keyed, some naming another entity.",
+        "def": {},
+        "order": 1,
+        "settings": {
+          "card": {
+            "shows": [
+              "attributes"
+            ],
+            "align": "center"
+          }
+        }
+      },
+      "erd.status": {
+        "id": "erd.status",
+        "parent": "erd.blocks",
+        "name": "Order status",
+        "type": "choice",
+        "body": "Where an order is.",
+        "def": {},
+        "order": 2,
+        "settings": {
+          "value": {
+            "choices": [
+              "open",
+              "shipped",
+              "closed"
+            ]
+          }
+        }
+      },
+      "erd.customer": {
+        "id": "erd.customer",
+        "parent": "erd.blocks",
+        "name": "Customer",
+        "type": "erd.entity",
+        "body": "Somebody who places orders.",
+        "def": {
+          "attributes": [
+            {
+              "name": "id",
+              "type": "number",
+              "key": true
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "email",
+              "note": "where receipts go"
+            }
+          ]
+        },
+        "order": 3
+      },
+      "erd.product": {
+        "id": "erd.product",
+        "parent": "erd.blocks",
+        "name": "Product",
+        "type": "erd.entity",
+        "body": "Something an order may carry.",
+        "def": {
+          "attributes": [
+            {
+              "name": "sku",
+              "key": true
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "price",
+              "type": "number",
+              "unit": "USD",
+              "note": "per unit, in USD"
+            }
+          ]
+        },
+        "order": 4
+      },
+      "erd.order": {
+        "id": "erd.order",
+        "parent": "erd.blocks",
+        "name": "Order",
+        "type": "erd.entity",
+        "body": "One customer's purchase.",
+        "def": {
+          "attributes": [
+            {
+              "name": "number",
+              "type": "number",
+              "key": true
+            },
+            {
+              "name": "customer",
+              "type": "erd.customer"
+            },
+            {
+              "name": "placed",
+              "note": "ISO date"
+            },
+            {
+              "name": "status",
+              "type": "erd.status",
+              "default": "open"
+            },
+            {
+              "name": "paid",
+              "type": "flag"
+            }
+          ]
+        },
+        "order": 5
+      },
+      "erd.line": {
+        "id": "erd.line",
+        "parent": "erd.blocks",
+        "name": "Line item",
+        "type": "erd.entity",
+        "body": "One product on an order, and how many.",
+        "def": {
+          "attributes": [
+            {
+              "name": "order",
+              "type": "erd.order"
+            },
+            {
+              "name": "product",
+              "type": "erd.product"
+            },
+            {
+              "name": "qty",
+              "type": "number",
+              "default": "1"
+            }
+          ]
+        },
+        "order": 6
+      }
+    },
+    "edges": {}
+  }
+}

@@ -14,6 +14,7 @@ const SHEETS = [
   "../theme/ramp.css",
   "../theme/icons.css",
   "../theme/card.css",
+  "../theme/face.css",
   "../stage/src/flow.css",
   "../stage/src/routes.css",
   "../stage/src/groups.css",
@@ -47,6 +48,8 @@ function sheet(files: string[]): string {
 export default defineConfig({
   entry: { index: "src/index.ts", react: "src/react.ts", shell: "src/shell.ts" },
   format: ["esm"],
+  /** Every host draws in a browser, so a library with a browser build is bundled as that. */
+  platform: "browser",
   /** Declarations are bundled separately — `rollup.dts.mjs` says why. */
   dts: false,
   noExternal: [/^@mnd\//],

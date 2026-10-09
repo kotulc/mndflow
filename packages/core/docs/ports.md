@@ -5,7 +5,7 @@
 | Port | Is | web | cli |
 |---|---|---|---|
 | `storage` | where the log lives between runs | IndexedDB, each body stored once by SHA-256 and the log carrying the hash; read before the app mounts | a file |
-| `files` | anything leaving or entering — export, import, a rendered drawing | download / picker | `fs` |
+| `files` | anything leaving or entering — export, import, a rendered drawing; a card's markdown (`text`) and a collection's folder (`folder`), where the host can ask for them | download / picker | `fs` |
 | `net` | fetching something from outside the workspace — package search | `fetch` | `fetch`, or a local path |
 
 - **Nothing but a port may assume where a project lives.** A direct reach for a browser API from anywhere else is the coupling this package exists to prevent.

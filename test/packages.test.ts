@@ -17,7 +17,7 @@ const opened = (at: string) => open(readFileSync(join(CATALOGUE, at), "utf8"), F
 
 describe("every package in the catalogue", () => {
   it("lists at least the three that ship", () => {
-    expect(listed.map((p) => p.name).sort()).toEqual(["doc", "requirements", "sysml"]);
+    expect(listed.map((p) => p.name)).toEqual(expect.arrayContaining(["doc", "requirements", "sysml"]));
   });
 
   it.each(listed)("reads $name with nothing repaired or dropped", ({ at }) => {

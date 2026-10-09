@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { drop_of, held_at, layout_of, session, EDITOR, type ViewKind, type Storage,
+import { collect, drop_of, held_at, layout_of, session, EDITOR, type ViewKind, type Storage,
          type Dir, type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { box_of, clear_of, holds, project, set_card as apply_card, tidy, BLOCK,
@@ -189,8 +189,24 @@ export function App({ storage }: { storage: Storage }) {
       if (named) void s.save_package(named);
       return;
     }
+    /** A markdown file copied onto a card, and where it came from: attached again, refreshed. */
+    if (name === "@attach") {
+      void browser_files().text?.([".md", ".mdx", "text/markdown"]).then((got) => {
+        if (got) act("attach", { id: args!["id"], text: got.text, source: got.path });
+      });
+      return;
+    }
     /** Where the tray is pointed; writes nothing. */
     act(name, args);
+  };
+
+  /** A folder of markdown usages and the definitions they name, brought in as one package. */
+  const gather = async () => {
+    const got = await browser_files().folder?.();
+    if (!got) return;
+    const { text, made } = collect(got.name, got.files, s.graph());
+    const faults = s.bring(text);
+    if (!faults.length && made.length) s.say(`brought in ${got.name} — made ${made.join(", ")}`, "note");
   };
 
   /** **The explorer browses**: a row chosen is held in its section and shown in the tray, and the
@@ -226,6 +242,10 @@ export function App({ storage }: { storage: Storage }) {
           </button>
           <button title="import a workspace" onClick={() => void load()}>
             <Icon name="import_file" />
+          </button>
+          <button title="import a collection: a folder of markdown cards and the definitions they name"
+                  onClick={() => void gather()}>
+            <Icon name="add_folder" />
           </button>
           {/* The one control that cannot be undone, so it asks first. */}
           <button title="start a new workspace" onClick={() => {

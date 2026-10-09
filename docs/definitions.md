@@ -16,9 +16,11 @@
 | **definition** | **a named tree in a package**: a block carrying `def`. Usable and extendable by `type` whether or not anything does. **Abstract**: never placed or linked as an instance |
 | **usage** | a block without `def`. Its `type` names a definition, a base when it names nothing |
 | **type** | on a usage, the definition it *is*; on a definition, the one it *extends*. One field, one chain |
-| **value** | a named, typed value on a usage (`values`). Never structural, no identity of its own. **A relationship holds none** |
+| **attribute** | what a definition declares its usages answer: a name, a `type`, and what else it says (`key`, `default`, `unit`, `many`, `optional`, `note`, any other property as written). Held in `def.attributes`, inherited along the chain |
+| **value** | a usage's answer to an attribute, by name (`values`). Typed by its attribute, never by itself. Never structural, no identity of its own. **A relationship holds none** |
+| **entity** | a definition with attributes, as an ERD draws it. Nothing new: a word for a use |
 | **reference** | a block that **stands for** another, a definition or a package (`of`). Drawn, never owning. A gone target reads **missing** and is kept |
-| **link** | a value pointing at a block without drawing it. **A reference is drawn; a link is not** |
+| **link** | an attribute typed by a block definition: a foreign key. A reference is a block; a link is a value, drawn as a line only where a view allows it |
 
 
 ## Where a block sits
@@ -63,6 +65,7 @@
 | **interface** | a block seated on a wall: where relationships enter and leave. Also **port** |
 | **note** | a remark: resizable, carries body text, ties to the block it is made from |
 | **tag** | a word carried by other elements. Holds nothing |
+| **value** | a value type: what an attribute holds. `text`, `number`, `flag`, `link` and `choice` ship under it; never placed |
 | **line** | the plain relationship. `dir` says which way it points |
 | **tie** | a dashed relationship with no heads. **A type like any other**, chosen, never forced |
 
@@ -75,10 +78,11 @@
 |---|---|
 | **setting** | what an element says about how it draws or what it may do, by component (`settings`) |
 | **vary** | a style setting: how far, in degrees, each definition under one that sets it strays from its inherited hue, keyed by its id. Kin read alike, each still itself |
+| **type** (of a value) | a definition under the `value` base. Its `value.form` says how a value is edited (closed, like a module); a choice lists its options in `value.choices` |
 | **capability** | what a block may do, granted by a trait: hold (`container`), seat interfaces (`ports`), draw what it holds in place (`inline`), seat it in cells (`matrix`), be headed (`headed`). **Absent is a no**: what nothing grants is refused at the gesture |
 | **constraint** | a capability limited to definitions (`allows` lists, `degree`, `ends`), or what values must say (`expects`). Settings, not traits; to be reworked |
 | **tag** | a definition on the `tag` base, carried in `tags`. A word with a meaning (`body`), no settings, no structure |
-| **trait** | **a tag carrying settings**: a capability tag, named positively. Carried in `traits`, listed apart from tags. Adding or removing a capability on a subtype is adding or removing a trait. It confers its own settings and its traits', never its base's. A definition's alone |
+| **trait** | **a tag carrying settings**: a capability, a style preset, or both, named positively. Carried in `traits`, listed apart from tags. Adding or removing a capability on a subtype is adding or removing a trait. It confers its own settings and its traits', never its base's. A definition's alone |
 | **trait inheritance** | a definition's traits are its chain's until it states its own set; then its set is the only one. Reset gives it back to the chain |
 | **tie trait** | links a block made from, or dropped on, another to it with a relationship of a given type, on the same layer. Made on its own, it links nothing |
 | **name space** | one per package: a tag, a trait and a block definition never share a name |
@@ -91,6 +95,9 @@
 | **layer** | what one block holds, drawn: the blocks drawn on it are those whose nearest **hiding** ancestor is that block |
 | **hides** | a folder, a definition and any block holding blocks hide what they hold, unless a view flattens them; a grid hides its in cells; a group draws its inline |
 | **card** | a block as drawn. **A definition always draws as a card**; its structure is reached by descending |
+| **face** | how much of a card is drawn: **small** — the workspace card size, its handle, name, icon and marks — or **large** — sized to fit its content, or its definition's `card.size`, its name and the parts `card.shows` lists, rendered as markdown. Chosen by the view and `layout.face`, never by zoom |
+| **card source** | a card as markdown: frontmatter for its identity and values, then its body. Rendered from the graph, read back as ordinary changes; **attach** copies a file's onto a block |
+| **collection** | a package on disk: `package.json` of definitions and a tree of `.md` card sources, each a usage |
 | **canvas view** | how the canvas draws a section: **internal**, **overview** or **profile**. Session state, never stored |
 | **internal** | the opened block from inside: what it holds, as cards |
 | **overview** | what the canvas draws while nothing is open (`layer: null`): every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down. 1:1 with the definitions section |
@@ -120,16 +127,15 @@
 
 ## The grid
 
-**A visual spreadsheet for blocks**, and the one place a position carries stated meaning.
+**Pure allocation: a lattice of blocks**, and the one place a position carries stated meaning. No text labels and no records
 
 | Term | Means |
 |---|---|
-| **cell** | an address in a grid, `cell: {r, c}` on the block seated there. Replaces `x`/`y`. Holds one label or one block, drawn as a card |
+| **cell** | an address in a grid, `cell: {r, c}` on the block seated there. Replaces `x`/`y`. Holds one block, drawn as a card |
 | **extent** | a grid's `rows` and `cols`. Unsaid, two by two |
 | **merge** | a cell's extent, stated on the grid as a `Span`. Stays on one side of a header line |
 | **header line** | the top row and the left column. Every grid has both, heading the rest; opened, each header is its line's tab. One unit across |
-| **header** | what a header cell holds: a label or any block, drawn compact. What it stands for is what its line is allocated to |
-| **label** | a text value in a cell or header, typed by double-click, held on the grid in `values` |
+| **header** | the block a header cell holds, drawn compact: a role from position. What it stands for is what its line is allocated to. Typing into an empty one makes a plain block of that name |
 | **allocation** | a body block is allocated to what its row and column headers stand for, and to every holder it sits in. Derived, never stored |
 
 
@@ -140,7 +146,7 @@
 | **workspace** | the editable package and everything the user holds: its root, the log, the metadata. A new one is its root and `main`, nothing else |
 | **graph** | `root`, `blocks`, `edges`. Every package in use, one graph, folded from one log |
 | **file** | the graph in an envelope, `{ schema, id, graph, meta }`, as JSON. **State, never history** |
-| **package file** | a package as JSON. **Every package is one**, `base` and `markdown` included; workspaces, settings and every element are definable as JSON |
+| **package file** | a package as JSON. **Every package is one**, `base` and `markdown` included; workspaces, settings and every element are definable as JSON. A collection adds markdown card sources beside it |
 | **session state** | the open layer, the selection, the folds, the theme, the toggles; a host may keep more of its own. Outside the log, never in a file. **mndflow reads and writes only package and workspace files** |
 
 
@@ -187,6 +193,6 @@
 | Closed: never add one | Open: extend additively |
 |---|---|
 | the two element kinds | bases, when a kind is functionally distinct |
-| value forms: `text`, `number`, `flag`, `choice`, `link` | components, capabilities, layouts |
+| value forms (`value.form`): `text`, `number`, `flag`, `choice`, `link` | value types, which are definitions; components, capabilities, layouts |
 | mutation ops | definitions, tags and traits, which are data |
 | host ports | the action set |

@@ -57,6 +57,20 @@ const within = (key: string, value: unknown,
       && value >= range.min && value <= range.max)
     ? null : `\`${key}\` has to be a number from ${range.min} to ${range.max}`;
 
+/** A list drawn from one set. */
+const some_of = (key: string, value: unknown, set: readonly string[]): string | null =>
+  value === undefined || (Array.isArray(value) && value.every((v) => set.includes(v)))
+    ? null : `\`${key}\` has to be a list of ${set.join(", ")}`;
+
+/** A size in units: two whole numbers. */
+const sized = (key: string, value: unknown): string | null => {
+  if (value === undefined) return null;
+  const s = value as { w?: unknown; h?: unknown };
+  return value && typeof value === "object" && Number.isInteger(s.w) && Number.isInteger(s.h)
+    && (s.w as number) > 0 && (s.h as number) > 0
+    ? null : `\`${key}\` has to be a width and a height in units`;
+};
+
 const words = (key: string, value: unknown): string | null =>
   value === undefined || (Array.isArray(value) && value.every((v) => typeof v === "string"))
     ? null : `\`${key}\` has to be a list of names`;
@@ -79,9 +93,17 @@ export const SHOWN = ["show", "hide"] as const;
 /** Which end of the card its writing reads from. */
 export const ALIGNS = ["left", "center", "right"] as const;
 
-/** Whether a card is the one card height, keeps whatever size it was given, or grows to fit what
- *  it shows. */
-export const HEIGHTS = ["uniform", "free", "fit"] as const;
+/** Whether a card is the size its face says, or keeps whatever size it was given. */
+export const HEIGHTS = ["uniform", "free"] as const;
+
+/** What a card's large face shows under its name, in the order said. */
+export const PARTS = ["attributes", "body", "preview"] as const;
+
+/** Which face a layer draws its cards with: the name and marks alone, or what they say. */
+export const FACES = ["small", "large"] as const;
+
+/** How a value is edited: what a value type says, as a module is what a kind says. */
+export const FORMS = ["text", "number", "flag", "choice", "link"] as const;
 
 /** The named families a definition may pick from. */
 export const FAMILIES = ["primary", "secondary", "neutral", "muted",
@@ -149,7 +171,8 @@ export const DEFAULTS = {
 export const DRAWN: readonly string[] = ["card", "style", "line"];
 
 /** What each module honours, and the keys it owns of its own. */
-const CARD: readonly string[] = ["card", "style", "allows", "expects", "holder", "layout", "tie"];
+const CARD: readonly string[] = ["card", "style", "allows", "expects", "holder", "layout", "tie",
+                                 "value"];
 const WALL: readonly string[] = ["style", "allows", "expects"];
 const WIRE: readonly string[] = ["line", "style", "allows", "expects"];
 
@@ -191,16 +214,13 @@ const card: Component = {
     /** `alias` shows the handle beside a name that was set. */
     ?? one_of("card.alias", config["alias"], SHOWN)
     ?? one_of("card.height", config["height"], HEIGHTS)
-    /** `fields` lists what the card carries in a compartment under its name. */
-    ?? one_of("card.fields", config["fields"], SHOWN)
-    /** `body` shows what the block says under the divider; `name` hides the head, so the body is
-     *  the whole card. */
-    ?? one_of("card.body", config["body"], SHOWN)
+    /** `name` hides the large face's head, so what it shows is the whole card. */
     ?? one_of("card.name", config["name"], SHOWN)
-    /** `preview` shows the image the block's source points at under the divider. */
-    ?? one_of("card.preview", config["preview"], SHOWN)
-    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "fields",
-                              "body", "name", "preview"]),
+    /** `shows` is what the large face draws under the name, in order; `size` its size. */
+    ?? some_of("card.shows", config["shows"], PARTS)
+    ?? sized("card.size", config["size"])
+    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "name",
+                              "shows", "size"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings. */
@@ -292,7 +312,8 @@ const layout: Component = {
       ? null : "`layout.across` has to be a number")
     ?? (config["line"] === undefined || typeof config["line"] === "string"
       ? null : "`layout.line` has to be a relation definition")
-    ?? stray("layout", config, ["kind", "across", "line"]),
+    ?? one_of("layout.face", config["face"], FACES)
+    ?? stray("layout", config, ["kind", "across", "line", "face"]),
 };
 
 /** What a block made from, or dropped on, another is linked to it by: a relation definition. */
@@ -314,5 +335,16 @@ const holder: Component = {
     ?? stray("holder", config, ["inline", "matrix"]),
 };
 
+/** How a value of a value type is edited, what a choice may be, and the unit a number is in. */
+const value: Component = {
+  name: "value",
+  check: (config) =>
+    one_of("value.form", config["form"], FORMS)
+    ?? words("value.choices", config["choices"])
+    ?? (config["unit"] === undefined || typeof config["unit"] === "string"
+      ? null : "`value.unit` has to be a word")
+    ?? stray("value", config, ["form", "choices", "unit"]),
+};
+
 /** What this build publishes. */
-publish(allows, block, card, expects, holder, layout, line, style, tie);
+publish(allows, block, card, expects, holder, layout, line, style, tie, value);

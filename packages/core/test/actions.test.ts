@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { FLOOR, related } from "@mnd/fixtures";
 import { MAIN, adjustments, all, children, def_named, fold,
-         holders_in, offer, run, schema_of, session,
+         attributes_of, holders_in, offer, run, session,
          writes,
          type Context } from "../src/index";
 
@@ -234,26 +234,26 @@ describe("a field on a layer", () => {
   });
 
   /** A definition holder declares rather than sets. */
-  it("adds a field to a definition when the holder is one", () => {
+  it("declares an attribute on a definition when the holder is one", () => {
     const s = seeded();
     s.go("define", { name: "Machine", domain: "block" });
     const id = def_named(s.graph(), "Machine", "block")!.id;
-    expect(s.go("field", { holder: id, name: "mass", form: "number",
+    expect(s.go("field", { holder: id, name: "mass", type: "number",
                            unit: "kg" })).toBeNull();
-    expect(s.graph().blocks[id]!.def!.schema)
-      .toEqual([{ name: "mass", form: "number", unit: "kg", choices: undefined }]);
+    expect(s.graph().blocks[id]!.def!.attributes)
+      .toEqual([{ name: "mass", type: "number", unit: "kg" }]);
     expect(s.go("unfield", { holder: id, name: "mass" })).toBeNull();
-    expect(s.graph().blocks[id]!.def!.schema).toBeUndefined();
+    expect(s.graph().blocks[id]!.def!.attributes).toBeUndefined();
   });
 
   /** The floor is never written: a base is extended, never edited. */
-  it("refuses a field on a base, and a subtype reads its own", () => {
+  it("refuses an attribute on a base, and a subtype reads its own", () => {
     const s = seeded();
-    expect(s.go("field", { holder: "block", name: "mass", form: "number" })).not.toBeNull();
+    expect(s.go("field", { holder: "block", name: "mass", type: "number" })).not.toBeNull();
     s.go("define", { name: "Machine", domain: "block" });
     const machine = def_named(s.graph(), "Machine", "block")!.id;
-    s.go("field", { holder: machine, name: "mass", form: "number" });
-    expect(schema_of(s.graph(), machine).map((f) => f.name)).toContain("mass");
+    s.go("field", { holder: machine, name: "mass", type: "number" });
+    expect(attributes_of(s.graph(), machine).map((f) => f.name)).toContain("mass");
   });
 });
 

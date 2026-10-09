@@ -2,7 +2,7 @@
 
 import { all_defs, config_of, def_at, def_of, domain_of, edge_base, frozen, honours, is_base,
          may_retype, block_base, base_of, package_of, relation_base,
-         type Block, type Definition, type Field, type FieldDef,
+         type Block, type Definition,
          type Graph, type Id, type Relation } from "@mnd/core";
 
 export type Held = {
@@ -10,17 +10,15 @@ export type Held = {
   def: Definition | null;
   block: Block | null;
   edge: Relation | null;
-  /** What it carries — a block's values, or a definition's schema. */
-  fields: readonly (Field | FieldDef)[];
 };
 
 export function held(graph: Graph, id: Id): Held | null {
   const d = def_at(graph, id);
-  if (d) return { def: d, block: null, edge: null, fields: d.def.schema ?? [] };
+  if (d) return { def: d, block: null, edge: null };
   const b = graph.blocks[id];
-  if (b) return { def: null, block: b, edge: null, fields: b.values ?? [] };
+  if (b) return { def: null, block: b, edge: null };
   const e = graph.edges[id];
-  if (e) return { def: null, block: null, edge: e, fields: [] };
+  if (e) return { def: null, block: null, edge: e };
   return null;
 }
 
@@ -74,7 +72,8 @@ export function reading(graph: Graph, id: Id, it: Held) {
   /** What it inherits, for the answers it has not overridden. */
   const chain = (key: string, name: string) => {
     const from = config_of(graph, d ? d.type : def_of(graph, id), key)[name];
-    return from === undefined || from === null ? "" : String(from);
+    return from === undefined || from === null ? ""
+      : typeof from === "object" && !Array.isArray(from) ? JSON.stringify(from) : String(from);
   };
   const now = (key: string, name: string, fallback: string) =>
     String(said(key, name) ?? chain(key, name) ?? "") || fallback;

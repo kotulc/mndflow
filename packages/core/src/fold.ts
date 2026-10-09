@@ -89,11 +89,13 @@ function apply(graph: Graph, m: Mutation): void {
       if (b) b.body = m.body;
       return;
     }
-    case "set_schema": {
+    case "set_attributes": {
       const d = graph.blocks[m.id];
       if (!d?.def) return;
-      if (m.schema.length) d.def = { ...d.def, schema: m.schema.map((f) => ({ ...f })) };
-      else { const { schema: _gone, ...rest } = d.def; d.def = rest; }
+      if (m.attributes.length) {
+        d.def = { ...d.def, attributes: m.attributes.map((a) => ({ ...a })) };
+      }
+      else { const { attributes: _gone, ...rest } = d.def; d.def = rest; }
       return;
     }
     case "set_source": {
@@ -173,14 +175,14 @@ function apply(graph: Graph, m: Mutation): void {
       else b.flow = m.flow;
       return;
     }
-    /** Set in place where the field exists, else appended. */
+    /** Set in place where the answer exists, else appended. */
     case "set_value": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      const had = (b.values ?? []).some((f) => f.name === m.field.name);
-      b.values = had
-        ? b.values!.map((f) => (f.name === m.field.name ? { ...m.field } : f))
-        : [...(b.values ?? []), { ...m.field }];
+      const said = { name: m.name, value: m.value };
+      const had = (b.values ?? []).some((v) => v.name === m.name);
+      b.values = had ? b.values!.map((v) => (v.name === m.name ? said : v))
+        : [...(b.values ?? []), said];
       return;
     }
     case "drop_value": {

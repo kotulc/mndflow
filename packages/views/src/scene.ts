@@ -5,10 +5,13 @@ import type { Dir, Id, Mark, Role, Side } from "@mnd/core";
 import type { Arrow, Look, Wire } from "./look";
 import type { Perch } from "./seat";
 
-/** What one drawn thing carries beyond where it sits and how big it is. */
-/** One line of a card's compartment. A schema line has a form and no value. */
-export type Listed = { name: string; form: string; value?: string; key?: boolean };
+/** One row of a card's attributes: its name, its type's name, whether it keys, and the value a
+ *  usage answers or the default a definition declares. */
+export type Listed = {
+  name: string; type: string; key?: boolean; link?: boolean; value?: string; note?: string;
+};
 
+/** What one drawn thing carries beyond where it sits and how big it is. */
 export type BoxData = {
   /** The mark a thing wears beside its name while nobody has named it. */
   alias?: string;
@@ -27,12 +30,9 @@ export type BoxData = {
   role?: Role;
   /** How its definition says it draws. */
   look?: Look;
-  /** What its compartment lists, where its look asks for one: each field's name, form and value. */
-  fields?: readonly Listed[];
-  /** What it says, as markdown, where its look asks for its body. */
-  body?: string;
-  /** The image its source points at, where its look asks for a preview. */
-  preview?: string;
+  /** Which face it draws with, and the large face's markdown: the parts its look shows. */
+  face?: "small" | "large";
+  text?: string;
   /** The lattice a grid draws, as boxes inside its own. */
   grid?: readonly GridCell[];
   /** Whom a boundary is drawn round. */
@@ -74,13 +74,6 @@ export type GridCell = {
   w: number;
   h: number;
   marks: readonly CardClass[];
-  /** What the cell says where no block is seated in it: a value, or its column's name on a line
-   *  the grid's schema heads. */
-  value?: string;
-  /** On the header line: the block definition its column allocates, and whether its column is
-   *  the key that names each line. */
-  def?: Id;
-  key?: boolean;
   /** On a header line, the line it heads and that line's name: opened, the header is its
    *  line's tab. */
   line?: { way: "row" | "col"; i: number };
@@ -91,6 +84,8 @@ export type GridCell = {
 export type LineData = {
   /** The shipped base this run draws as: `line`, or `tie` where a note sits at an end. */
   module: Id;
+  /** A link an attribute draws: derived, and nothing to pick. */
+  link?: boolean;
   dir: Dir;
   /** How it is painted and what draws at its ends. */
   wire?: Wire;

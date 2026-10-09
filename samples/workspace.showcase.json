@@ -1,0 +1,2042 @@
+{
+  "schema": "1.0",
+  "id": "workspace",
+  "graph": {
+    "root": "workspace",
+    "blocks": {
+      "workspace": {
+        "id": "workspace",
+        "parent": null,
+        "name": "workspace",
+        "counters": {
+          "folder": 10,
+          "note": 11,
+          "block": 75,
+          "reference": 11,
+          "relation": 15,
+          "interface": 6,
+          "group": 2,
+          "grid": 1
+        }
+      },
+      "workspace.blocks": {
+        "id": "workspace.blocks",
+        "parent": "workspace",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1
+      },
+      "workspace.relations": {
+        "id": "workspace.relations",
+        "parent": "workspace",
+        "name": "relations",
+        "type": "folder",
+        "order": 2
+      },
+      "workspace.tags": {
+        "id": "workspace.tags",
+        "parent": "workspace",
+        "name": "tags",
+        "type": "folder",
+        "order": 3
+      },
+      "main": {
+        "id": "main",
+        "parent": "workspace.blocks",
+        "name": "main",
+        "def": {},
+        "order": 1
+      },
+      "def_large": {
+        "id": "def_large",
+        "parent": "workspace.blocks",
+        "name": "Large layer",
+        "type": "folder",
+        "def": {},
+        "order": 2,
+        "settings": {
+          "layout": {
+            "face": "large"
+          }
+        },
+        "body": "A layer whose cards draw their large face."
+      },
+      "l_cards": {
+        "id": "l_cards",
+        "parent": "main",
+        "alias": 1,
+        "order": 1,
+        "x": 0,
+        "y": 0,
+        "name": "Cards",
+        "type": "folder"
+      },
+      "l_cards_note": {
+        "id": "l_cards_note",
+        "parent": "l_cards",
+        "alias": 1,
+        "order": 1,
+        "x": 0,
+        "y": -144,
+        "name": "Every block kind on its small face, then the looks a definition gives: families, fills, label places and borders. Each row varies one setting.",
+        "type": "note",
+        "w": 648,
+        "h": 72
+      },
+      "c_block": {
+        "id": "c_block",
+        "parent": "l_cards",
+        "alias": 1,
+        "order": 2,
+        "x": 0,
+        "y": 0,
+        "name": "Block"
+      },
+      "c_folder": {
+        "id": "c_folder",
+        "parent": "l_cards",
+        "alias": 2,
+        "order": 3,
+        "x": 168,
+        "y": 0,
+        "name": "Folder",
+        "type": "folder"
+      },
+      "c_inside": {
+        "id": "c_inside",
+        "parent": "c_folder",
+        "alias": 2,
+        "order": 1,
+        "x": 0,
+        "y": 0,
+        "name": "Inside"
+      },
+      "c_ref": {
+        "id": "c_ref",
+        "parent": "l_cards",
+        "alias": 1,
+        "order": 4,
+        "x": 336,
+        "y": 0,
+        "name": "",
+        "of": "c_block"
+      },
+      "c_note": {
+        "id": "c_note",
+        "parent": "l_cards",
+        "alias": 2,
+        "order": 5,
+        "x": 504,
+        "y": 0,
+        "name": "A note: text, resized by hand",
+        "type": "note",
+        "w": 144,
+        "h": 48
+      },
+      "def_family_primary": {
+        "id": "def_family_primary",
+        "parent": "workspace.blocks",
+        "name": "family primary",
+        "type": "block",
+        "def": {},
+        "order": 3,
+        "settings": {
+          "style": {
+            "family": "primary"
+          }
+        }
+      },
+      "c_family_primary": {
+        "id": "c_family_primary",
+        "parent": "l_cards",
+        "alias": 3,
+        "order": 6,
+        "x": 0,
+        "y": 144,
+        "name": "primary",
+        "type": "def_family_primary"
+      },
+      "def_family_secondary": {
+        "id": "def_family_secondary",
+        "parent": "workspace.blocks",
+        "name": "family secondary",
+        "type": "block",
+        "def": {},
+        "order": 4,
+        "settings": {
+          "style": {
+            "family": "secondary"
+          }
+        }
+      },
+      "c_family_secondary": {
+        "id": "c_family_secondary",
+        "parent": "l_cards",
+        "alias": 4,
+        "order": 7,
+        "x": 168,
+        "y": 144,
+        "name": "secondary",
+        "type": "def_family_secondary"
+      },
+      "def_family_neutral": {
+        "id": "def_family_neutral",
+        "parent": "workspace.blocks",
+        "name": "family neutral",
+        "type": "block",
+        "def": {},
+        "order": 5,
+        "settings": {
+          "style": {
+            "family": "neutral"
+          }
+        }
+      },
+      "c_family_neutral": {
+        "id": "c_family_neutral",
+        "parent": "l_cards",
+        "alias": 5,
+        "order": 8,
+        "x": 336,
+        "y": 144,
+        "name": "neutral",
+        "type": "def_family_neutral"
+      },
+      "def_family_muted": {
+        "id": "def_family_muted",
+        "parent": "workspace.blocks",
+        "name": "family muted",
+        "type": "block",
+        "def": {},
+        "order": 6,
+        "settings": {
+          "style": {
+            "family": "muted"
+          }
+        }
+      },
+      "c_family_muted": {
+        "id": "c_family_muted",
+        "parent": "l_cards",
+        "alias": 6,
+        "order": 9,
+        "x": 504,
+        "y": 144,
+        "name": "muted",
+        "type": "def_family_muted"
+      },
+      "def_family_away": {
+        "id": "def_family_away",
+        "parent": "workspace.blocks",
+        "name": "family away",
+        "type": "block",
+        "def": {},
+        "order": 7,
+        "settings": {
+          "style": {
+            "family": "away"
+          }
+        }
+      },
+      "c_family_away": {
+        "id": "c_family_away",
+        "parent": "l_cards",
+        "alias": 7,
+        "order": 10,
+        "x": 672,
+        "y": 144,
+        "name": "away",
+        "type": "def_family_away"
+      },
+      "def_family_note": {
+        "id": "def_family_note",
+        "parent": "workspace.blocks",
+        "name": "family note",
+        "type": "block",
+        "def": {},
+        "order": 8,
+        "settings": {
+          "style": {
+            "family": "note"
+          }
+        }
+      },
+      "c_family_note": {
+        "id": "c_family_note",
+        "parent": "l_cards",
+        "alias": 8,
+        "order": 11,
+        "x": 840,
+        "y": 144,
+        "name": "note",
+        "type": "def_family_note"
+      },
+      "def_fill_solid": {
+        "id": "def_fill_solid",
+        "parent": "workspace.blocks",
+        "name": "fill solid",
+        "type": "block",
+        "def": {},
+        "order": 9,
+        "settings": {
+          "style": {
+            "fill": "solid"
+          }
+        }
+      },
+      "c_fill_solid": {
+        "id": "c_fill_solid",
+        "parent": "l_cards",
+        "alias": 9,
+        "order": 12,
+        "x": 0,
+        "y": 240,
+        "name": "solid",
+        "type": "def_fill_solid"
+      },
+      "def_fill_hatch": {
+        "id": "def_fill_hatch",
+        "parent": "workspace.blocks",
+        "name": "fill hatch",
+        "type": "block",
+        "def": {},
+        "order": 10,
+        "settings": {
+          "style": {
+            "fill": "hatch"
+          }
+        }
+      },
+      "c_fill_hatch": {
+        "id": "c_fill_hatch",
+        "parent": "l_cards",
+        "alias": 10,
+        "order": 13,
+        "x": 168,
+        "y": 240,
+        "name": "hatch",
+        "type": "def_fill_hatch"
+      },
+      "def_fill_wash": {
+        "id": "def_fill_wash",
+        "parent": "workspace.blocks",
+        "name": "fill wash",
+        "type": "block",
+        "def": {},
+        "order": 11,
+        "settings": {
+          "style": {
+            "fill": "wash"
+          }
+        }
+      },
+      "c_fill_wash": {
+        "id": "c_fill_wash",
+        "parent": "l_cards",
+        "alias": 11,
+        "order": 14,
+        "x": 336,
+        "y": 240,
+        "name": "wash",
+        "type": "def_fill_wash"
+      },
+      "def_fill_none": {
+        "id": "def_fill_none",
+        "parent": "workspace.blocks",
+        "name": "fill none",
+        "type": "block",
+        "def": {},
+        "order": 12,
+        "settings": {
+          "style": {
+            "fill": "none"
+          }
+        }
+      },
+      "c_fill_none": {
+        "id": "c_fill_none",
+        "parent": "l_cards",
+        "alias": 12,
+        "order": 15,
+        "x": 504,
+        "y": 240,
+        "name": "none",
+        "type": "def_fill_none"
+      },
+      "def_label_above": {
+        "id": "def_label_above",
+        "parent": "workspace.blocks",
+        "name": "label above",
+        "type": "block",
+        "def": {},
+        "order": 13,
+        "settings": {
+          "card": {
+            "label": "above"
+          }
+        }
+      },
+      "c_label_above": {
+        "id": "c_label_above",
+        "parent": "l_cards",
+        "alias": 13,
+        "order": 16,
+        "x": 0,
+        "y": 336,
+        "name": "above",
+        "type": "def_label_above"
+      },
+      "def_label_inside": {
+        "id": "def_label_inside",
+        "parent": "workspace.blocks",
+        "name": "label inside",
+        "type": "block",
+        "def": {},
+        "order": 14,
+        "settings": {
+          "card": {
+            "label": "inside"
+          }
+        }
+      },
+      "c_label_inside": {
+        "id": "c_label_inside",
+        "parent": "l_cards",
+        "alias": 14,
+        "order": 17,
+        "x": 168,
+        "y": 336,
+        "name": "inside",
+        "type": "def_label_inside"
+      },
+      "def_label_below": {
+        "id": "def_label_below",
+        "parent": "workspace.blocks",
+        "name": "label below",
+        "type": "block",
+        "def": {},
+        "order": 15,
+        "settings": {
+          "card": {
+            "label": "below"
+          }
+        }
+      },
+      "c_label_below": {
+        "id": "c_label_below",
+        "parent": "l_cards",
+        "alias": 15,
+        "order": 18,
+        "x": 336,
+        "y": 336,
+        "name": "below",
+        "type": "def_label_below"
+      },
+      "def_label_none": {
+        "id": "def_label_none",
+        "parent": "workspace.blocks",
+        "name": "label none",
+        "type": "block",
+        "def": {},
+        "order": 16,
+        "settings": {
+          "card": {
+            "label": "none"
+          }
+        }
+      },
+      "c_label_none": {
+        "id": "c_label_none",
+        "parent": "l_cards",
+        "alias": 16,
+        "order": 19,
+        "x": 504,
+        "y": 336,
+        "name": "none",
+        "type": "def_label_none"
+      },
+      "def_border_dashed": {
+        "id": "def_border_dashed",
+        "parent": "workspace.blocks",
+        "name": "border dashed",
+        "type": "block",
+        "def": {},
+        "order": 17,
+        "settings": {
+          "style": {
+            "border_style": "dashed"
+          }
+        }
+      },
+      "c_border_dashed": {
+        "id": "c_border_dashed",
+        "parent": "l_cards",
+        "alias": 17,
+        "order": 20,
+        "x": 0,
+        "y": 432,
+        "name": "dashed",
+        "type": "def_border_dashed"
+      },
+      "def_border_dotted": {
+        "id": "def_border_dotted",
+        "parent": "workspace.blocks",
+        "name": "border dotted",
+        "type": "block",
+        "def": {},
+        "order": 18,
+        "settings": {
+          "style": {
+            "border_style": "dotted"
+          }
+        }
+      },
+      "c_border_dotted": {
+        "id": "c_border_dotted",
+        "parent": "l_cards",
+        "alias": 18,
+        "order": 21,
+        "x": 168,
+        "y": 432,
+        "name": "dotted",
+        "type": "def_border_dotted"
+      },
+      "def_border_double": {
+        "id": "def_border_double",
+        "parent": "workspace.blocks",
+        "name": "border double",
+        "type": "block",
+        "def": {},
+        "order": 19,
+        "settings": {
+          "style": {
+            "border_style": "double"
+          }
+        }
+      },
+      "c_border_double": {
+        "id": "c_border_double",
+        "parent": "l_cards",
+        "alias": 19,
+        "order": 22,
+        "x": 336,
+        "y": 432,
+        "name": "double",
+        "type": "def_border_double"
+      },
+      "def_border_none": {
+        "id": "def_border_none",
+        "parent": "workspace.blocks",
+        "name": "border none",
+        "type": "block",
+        "def": {},
+        "order": 20,
+        "settings": {
+          "style": {
+            "border_style": "none"
+          }
+        }
+      },
+      "c_border_none": {
+        "id": "c_border_none",
+        "parent": "l_cards",
+        "alias": 20,
+        "order": 23,
+        "x": 504,
+        "y": 432,
+        "name": "none",
+        "type": "def_border_none"
+      },
+      "l_faces": {
+        "id": "l_faces",
+        "parent": "main",
+        "alias": 3,
+        "order": 2,
+        "x": 168,
+        "y": 0,
+        "name": "Faces",
+        "type": "def_large"
+      },
+      "l_faces_note": {
+        "id": "l_faces_note",
+        "parent": "l_faces",
+        "alias": 3,
+        "order": 1,
+        "x": 0,
+        "y": -144,
+        "name": "The large face, on a layer that asks for it. Each card fits what it shows unless its definition gives a size; a plain block shows nothing, so it is the small face.",
+        "type": "note",
+        "w": 648,
+        "h": 72
+      },
+      "def_doc": {
+        "id": "def_doc",
+        "parent": "workspace.blocks",
+        "name": "Document",
+        "type": "block",
+        "def": {},
+        "order": 21,
+        "settings": {
+          "card": {
+            "shows": [
+              "body"
+            ]
+          }
+        }
+      },
+      "def_spec": {
+        "id": "def_spec",
+        "parent": "workspace.blocks",
+        "name": "Spec",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "tag",
+              "key": true
+            },
+            {
+              "name": "rating",
+              "type": "number",
+              "unit": "kW"
+            },
+            {
+              "name": "duty",
+              "note": "how it runs"
+            }
+          ]
+        },
+        "order": 22,
+        "settings": {
+          "card": {
+            "shows": [
+              "attributes",
+              "body"
+            ]
+          }
+        }
+      },
+      "def_media": {
+        "id": "def_media",
+        "parent": "workspace.blocks",
+        "name": "Picture",
+        "type": "block",
+        "def": {},
+        "order": 23,
+        "traits": [
+          "container",
+          "ports",
+          "media"
+        ]
+      },
+      "def_headless": {
+        "id": "def_headless",
+        "parent": "workspace.blocks",
+        "name": "Headless",
+        "type": "block",
+        "def": {},
+        "order": 24,
+        "settings": {
+          "card": {
+            "shows": [
+              "body"
+            ],
+            "name": "hide"
+          }
+        }
+      },
+      "def_sized": {
+        "id": "def_sized",
+        "parent": "workspace.blocks",
+        "name": "Sized",
+        "type": "block",
+        "def": {},
+        "order": 25,
+        "settings": {
+          "card": {
+            "shows": [
+              "body"
+            ],
+            "size": {
+              "w": 8,
+              "h": 3
+            }
+          }
+        }
+      },
+      "f_body": {
+        "id": "f_body",
+        "parent": "l_faces",
+        "alias": 21,
+        "order": 2,
+        "x": 0,
+        "y": 0,
+        "name": "Body",
+        "type": "def_doc",
+        "body": "# A heading\n\nProse with **bold**, `code` and a [link](https://example.com).\n\n- a point\n- another point"
+      },
+      "f_spec": {
+        "id": "f_spec",
+        "parent": "l_faces",
+        "alias": 22,
+        "order": 3,
+        "x": 504,
+        "y": 0,
+        "name": "Spec",
+        "type": "def_spec",
+        "body": "Attributes, then the body.",
+        "values": [
+          {
+            "name": "tag",
+            "value": "P-101"
+          },
+          {
+            "name": "rating",
+            "value": "15"
+          },
+          {
+            "name": "duty",
+            "value": "continuous"
+          }
+        ]
+      },
+      "f_media": {
+        "id": "f_media",
+        "parent": "l_faces",
+        "alias": 23,
+        "order": 4,
+        "x": 1008,
+        "y": 0,
+        "name": "Picture",
+        "type": "def_media",
+        "source": "/showcase/picture.svg"
+      },
+      "f_headless": {
+        "id": "f_headless",
+        "parent": "l_faces",
+        "alias": 24,
+        "order": 5,
+        "x": 0,
+        "y": 240,
+        "name": "Headless",
+        "type": "def_headless",
+        "body": "A card that is its markdown alone: no name over it."
+      },
+      "f_sized": {
+        "id": "f_sized",
+        "parent": "l_faces",
+        "alias": 25,
+        "order": 6,
+        "x": 504,
+        "y": 240,
+        "name": "Sized",
+        "type": "def_sized",
+        "body": "A size its definition gives: 8 by 3 units, whatever it says. What does not fit is cut off at the card's edge, however long the text runs on and on."
+      },
+      "f_plain": {
+        "id": "f_plain",
+        "parent": "l_faces",
+        "alias": 26,
+        "order": 7,
+        "x": 1008,
+        "y": 240,
+        "name": "Plain"
+      },
+      "l_defs": {
+        "id": "l_defs",
+        "parent": "main",
+        "alias": 4,
+        "order": 3,
+        "x": 336,
+        "y": 0,
+        "name": "Definitions",
+        "type": "def_large"
+      },
+      "l_defs_note": {
+        "id": "l_defs_note",
+        "parent": "l_defs",
+        "alias": 4,
+        "order": 1,
+        "x": 0,
+        "y": -144,
+        "name": "A chain: Pump extends Machine, Big pump extends Pump. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it.",
+        "type": "note",
+        "w": 648,
+        "h": 72
+      },
+      "def_machine": {
+        "id": "def_machine",
+        "parent": "workspace.blocks",
+        "name": "Machine",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "power",
+              "type": "number",
+              "unit": "kW"
+            }
+          ]
+        },
+        "order": 26,
+        "settings": {
+          "style": {
+            "family": "secondary"
+          },
+          "card": {
+            "shows": [
+              "attributes"
+            ]
+          }
+        }
+      },
+      "def_pump": {
+        "id": "def_pump",
+        "parent": "workspace.blocks",
+        "name": "Pump",
+        "type": "def_machine",
+        "def": {
+          "attributes": [
+            {
+              "name": "flow",
+              "type": "number",
+              "unit": "m3/h"
+            }
+          ]
+        },
+        "order": 27,
+        "settings": {
+          "style": {
+            "hue": 200
+          }
+        }
+      },
+      "def_bigpump": {
+        "id": "def_bigpump",
+        "parent": "workspace.blocks",
+        "name": "Big pump",
+        "type": "def_pump",
+        "def": {
+          "attributes": [
+            {
+              "name": "stages",
+              "type": "number",
+              "default": "2"
+            }
+          ]
+        },
+        "order": 28,
+        "settings": {
+          "style": {
+            "border_width": "thick"
+          }
+        }
+      },
+      "s_def_machine": {
+        "id": "s_def_machine",
+        "parent": "l_defs",
+        "alias": 2,
+        "order": 2,
+        "x": 0,
+        "y": 0,
+        "of": "def_machine"
+      },
+      "s_def_pump": {
+        "id": "s_def_pump",
+        "parent": "l_defs",
+        "alias": 3,
+        "order": 3,
+        "x": 336,
+        "y": 0,
+        "of": "def_pump"
+      },
+      "s_def_bigpump": {
+        "id": "s_def_bigpump",
+        "parent": "l_defs",
+        "alias": 4,
+        "order": 4,
+        "x": 672,
+        "y": 0,
+        "of": "def_bigpump"
+      },
+      "d_m1": {
+        "id": "d_m1",
+        "parent": "l_defs",
+        "alias": 27,
+        "order": 5,
+        "x": 0,
+        "y": 192,
+        "name": "Compressor",
+        "type": "def_machine",
+        "values": [
+          {
+            "name": "power",
+            "value": "30"
+          }
+        ]
+      },
+      "d_p1": {
+        "id": "d_p1",
+        "parent": "l_defs",
+        "alias": 28,
+        "order": 6,
+        "x": 336,
+        "y": 192,
+        "name": "Feed pump",
+        "type": "def_pump",
+        "values": [
+          {
+            "name": "power",
+            "value": "15"
+          },
+          {
+            "name": "flow",
+            "value": "40"
+          }
+        ]
+      },
+      "d_b1": {
+        "id": "d_b1",
+        "parent": "l_defs",
+        "alias": 29,
+        "order": 7,
+        "x": 672,
+        "y": 192,
+        "name": "Main pump",
+        "type": "def_bigpump",
+        "values": [
+          {
+            "name": "power",
+            "value": "90"
+          },
+          {
+            "name": "flow",
+            "value": "200"
+          }
+        ]
+      },
+      "l_rel": {
+        "id": "l_rel",
+        "parent": "main",
+        "alias": 5,
+        "order": 4,
+        "x": 504,
+        "y": 0,
+        "name": "Relations",
+        "type": "folder"
+      },
+      "l_rel_note": {
+        "id": "l_rel_note",
+        "parent": "l_rel",
+        "alias": 5,
+        "order": 1,
+        "x": 0,
+        "y": -144,
+        "name": "Top: each direction, a name, arrows and a tie. Below: a detour round a blocker, two runs between one pair, a crossing, and a tight gap.",
+        "type": "note",
+        "w": 648,
+        "h": 72
+      },
+      "r_fwd_a": {
+        "id": "r_fwd_a",
+        "parent": "l_rel",
+        "alias": 30,
+        "order": 2,
+        "x": 0,
+        "y": 0,
+        "name": "From"
+      },
+      "r_fwd_b": {
+        "id": "r_fwd_b",
+        "parent": "l_rel",
+        "alias": 31,
+        "order": 3,
+        "x": 252,
+        "y": 0,
+        "name": "Forward"
+      },
+      "r_back_a": {
+        "id": "r_back_a",
+        "parent": "l_rel",
+        "alias": 32,
+        "order": 4,
+        "x": 504,
+        "y": 0,
+        "name": "From"
+      },
+      "r_back_b": {
+        "id": "r_back_b",
+        "parent": "l_rel",
+        "alias": 33,
+        "order": 5,
+        "x": 756,
+        "y": 0,
+        "name": "Back"
+      },
+      "r_both_a": {
+        "id": "r_both_a",
+        "parent": "l_rel",
+        "alias": 34,
+        "order": 6,
+        "x": 0,
+        "y": 96,
+        "name": "From"
+      },
+      "r_both_b": {
+        "id": "r_both_b",
+        "parent": "l_rel",
+        "alias": 35,
+        "order": 7,
+        "x": 252,
+        "y": 96,
+        "name": "Both"
+      },
+      "r_none_a": {
+        "id": "r_none_a",
+        "parent": "l_rel",
+        "alias": 36,
+        "order": 8,
+        "x": 504,
+        "y": 96,
+        "name": "From"
+      },
+      "r_none_b": {
+        "id": "r_none_b",
+        "parent": "l_rel",
+        "alias": 37,
+        "order": 9,
+        "x": 756,
+        "y": 96,
+        "name": "None"
+      },
+      "r_named_a": {
+        "id": "r_named_a",
+        "parent": "l_rel",
+        "alias": 38,
+        "order": 10,
+        "x": 0,
+        "y": 192,
+        "name": "Pump"
+      },
+      "r_named_b": {
+        "id": "r_named_b",
+        "parent": "l_rel",
+        "alias": 39,
+        "order": 11,
+        "x": 252,
+        "y": 192,
+        "name": "Tank"
+      },
+      "r_arrows_a": {
+        "id": "r_arrows_a",
+        "parent": "l_rel",
+        "alias": 40,
+        "order": 12,
+        "x": 504,
+        "y": 192,
+        "name": "Whole"
+      },
+      "r_arrows_b": {
+        "id": "r_arrows_b",
+        "parent": "l_rel",
+        "alias": 41,
+        "order": 13,
+        "x": 756,
+        "y": 192,
+        "name": "Part"
+      },
+      "r_tie_note": {
+        "id": "r_tie_note",
+        "parent": "l_rel",
+        "alias": 6,
+        "order": 14,
+        "x": 1008,
+        "y": 0,
+        "name": "A tie joins a note to what it is about",
+        "type": "note",
+        "w": 120,
+        "h": 48
+      },
+      "r_tie_to": {
+        "id": "r_tie_to",
+        "parent": "l_rel",
+        "alias": 42,
+        "order": 15,
+        "x": 1008,
+        "y": 144,
+        "name": "Tied"
+      },
+      "r_det_a": {
+        "id": "r_det_a",
+        "parent": "l_rel",
+        "alias": 43,
+        "order": 16,
+        "x": 0,
+        "y": 384,
+        "name": "Left"
+      },
+      "r_det_x": {
+        "id": "r_det_x",
+        "parent": "l_rel",
+        "alias": 44,
+        "order": 17,
+        "x": 252,
+        "y": 384,
+        "name": "Blocker"
+      },
+      "r_det_b": {
+        "id": "r_det_b",
+        "parent": "l_rel",
+        "alias": 45,
+        "order": 18,
+        "x": 504,
+        "y": 384,
+        "name": "Right"
+      },
+      "r_par_a": {
+        "id": "r_par_a",
+        "parent": "l_rel",
+        "alias": 46,
+        "order": 19,
+        "x": 756,
+        "y": 384,
+        "name": "Asks"
+      },
+      "r_par_b": {
+        "id": "r_par_b",
+        "parent": "l_rel",
+        "alias": 47,
+        "order": 20,
+        "x": 756,
+        "y": 576,
+        "name": "Answers"
+      },
+      "r_x_a": {
+        "id": "r_x_a",
+        "parent": "l_rel",
+        "alias": 48,
+        "order": 21,
+        "x": 0,
+        "y": 576,
+        "name": "North"
+      },
+      "r_x_b": {
+        "id": "r_x_b",
+        "parent": "l_rel",
+        "alias": 49,
+        "order": 22,
+        "x": 336,
+        "y": 576,
+        "name": "East"
+      },
+      "r_x_c": {
+        "id": "r_x_c",
+        "parent": "l_rel",
+        "alias": 50,
+        "order": 23,
+        "x": 0,
+        "y": 720,
+        "name": "West"
+      },
+      "r_x_d": {
+        "id": "r_x_d",
+        "parent": "l_rel",
+        "alias": 51,
+        "order": 24,
+        "x": 336,
+        "y": 720,
+        "name": "South"
+      },
+      "r_gap_a": {
+        "id": "r_gap_a",
+        "parent": "l_rel",
+        "alias": 52,
+        "order": 25,
+        "x": 1008,
+        "y": 384,
+        "name": "Close"
+      },
+      "r_gap_b": {
+        "id": "r_gap_b",
+        "parent": "l_rel",
+        "alias": 53,
+        "order": 26,
+        "x": 1008,
+        "y": 480,
+        "name": "Closer"
+      },
+      "l_ports": {
+        "id": "l_ports",
+        "parent": "main",
+        "alias": 6,
+        "order": 5,
+        "x": 0,
+        "y": 96,
+        "name": "Interfaces",
+        "type": "folder"
+      },
+      "l_ports_note": {
+        "id": "l_ports_note",
+        "parent": "l_ports",
+        "alias": 7,
+        "order": 1,
+        "x": 0,
+        "y": -144,
+        "name": "Ports on each side of a block, flowing in, out, both or neither; lines may land on a port or on the block.",
+        "type": "note",
+        "w": 528,
+        "h": 72
+      },
+      "p_pump": {
+        "id": "p_pump",
+        "parent": "l_ports",
+        "alias": 54,
+        "order": 2,
+        "x": 0,
+        "y": 96,
+        "name": "Pump"
+      },
+      "p_tank": {
+        "id": "p_tank",
+        "parent": "l_ports",
+        "alias": 55,
+        "order": 3,
+        "x": 504,
+        "y": 96,
+        "name": "Tank"
+      },
+      "p_valve": {
+        "id": "p_valve",
+        "parent": "l_ports",
+        "alias": 56,
+        "order": 4,
+        "x": 0,
+        "y": 288,
+        "name": "Valve"
+      },
+      "p_pump_in": {
+        "id": "p_pump_in",
+        "parent": "p_pump",
+        "alias": 1,
+        "order": 1,
+        "name": "",
+        "side": "left",
+        "at": 0.5,
+        "flow": "in"
+      },
+      "p_pump_out": {
+        "id": "p_pump_out",
+        "parent": "p_pump",
+        "alias": 2,
+        "order": 2,
+        "name": "",
+        "side": "right",
+        "at": 0.5,
+        "flow": "out"
+      },
+      "p_pump_top": {
+        "id": "p_pump_top",
+        "parent": "p_pump",
+        "alias": 3,
+        "order": 3,
+        "name": "",
+        "side": "top",
+        "at": 0.5,
+        "flow": "both"
+      },
+      "p_pump_low": {
+        "id": "p_pump_low",
+        "parent": "p_pump",
+        "alias": 4,
+        "order": 4,
+        "name": "",
+        "side": "bottom",
+        "at": 0.5
+      },
+      "p_tank_in": {
+        "id": "p_tank_in",
+        "parent": "p_tank",
+        "alias": 5,
+        "order": 1,
+        "name": "",
+        "side": "left",
+        "at": 0.5,
+        "flow": "in"
+      },
+      "p_valve_out": {
+        "id": "p_valve_out",
+        "parent": "p_valve",
+        "alias": 6,
+        "order": 1,
+        "name": "",
+        "side": "top",
+        "at": 0.5,
+        "flow": "out"
+      },
+      "l_hold": {
+        "id": "l_hold",
+        "parent": "main",
+        "alias": 7,
+        "order": 6,
+        "x": 168,
+        "y": 96,
+        "name": "Holders",
+        "type": "folder"
+      },
+      "l_hold_note": {
+        "id": "l_hold_note",
+        "parent": "l_hold",
+        "alias": 8,
+        "order": 1,
+        "x": 0,
+        "y": -144,
+        "name": "A group gathers blocks where they sit, and nests. A grid seats blocks in cells: its top row and left column head the lines; a merge spans cells. Select the grid and press Enter to see its cells.",
+        "type": "note",
+        "w": 648,
+        "h": 72
+      },
+      "h_outer": {
+        "id": "h_outer",
+        "parent": "l_hold",
+        "alias": 1,
+        "order": 2,
+        "x": 0,
+        "y": 0,
+        "name": "Plant",
+        "type": "group"
+      },
+      "h_inner": {
+        "id": "h_inner",
+        "parent": "h_outer",
+        "alias": 2,
+        "order": 1,
+        "x": 0,
+        "y": 0,
+        "name": "Skid",
+        "type": "group"
+      },
+      "h_g1": {
+        "id": "h_g1",
+        "parent": "h_inner",
+        "alias": 57,
+        "order": 1,
+        "x": 0,
+        "y": 0,
+        "name": "Motor"
+      },
+      "h_g2": {
+        "id": "h_g2",
+        "parent": "h_inner",
+        "alias": 58,
+        "order": 2,
+        "x": 168,
+        "y": 0,
+        "name": "Gearbox"
+      },
+      "h_g3": {
+        "id": "h_g3",
+        "parent": "h_outer",
+        "alias": 59,
+        "order": 2,
+        "x": 0,
+        "y": 144,
+        "name": "Panel"
+      },
+      "def_table": {
+        "id": "def_table",
+        "parent": "workspace.blocks",
+        "name": "Table",
+        "type": "grid",
+        "def": {},
+        "order": 29,
+        "traits": [
+          "container",
+          "ports",
+          "matrix",
+          "headed"
+        ]
+      },
+      "h_grid": {
+        "id": "h_grid",
+        "parent": "l_hold",
+        "alias": 1,
+        "order": 3,
+        "x": 672,
+        "y": 0,
+        "name": "Duty roster",
+        "type": "def_table",
+        "grid": {
+          "rows": 4,
+          "cols": 4,
+          "merges": [
+            {
+              "r": 1,
+              "c": 1,
+              "rows": 2,
+              "cols": 1
+            }
+          ]
+        }
+      },
+      "h_col_0": {
+        "id": "h_col_0",
+        "parent": "h_grid",
+        "alias": 60,
+        "order": 1,
+        "name": "Mon",
+        "cell": {
+          "r": 0,
+          "c": 1
+        }
+      },
+      "h_col_1": {
+        "id": "h_col_1",
+        "parent": "h_grid",
+        "alias": 61,
+        "order": 2,
+        "name": "Tue",
+        "cell": {
+          "r": 0,
+          "c": 2
+        }
+      },
+      "h_col_2": {
+        "id": "h_col_2",
+        "parent": "h_grid",
+        "alias": 62,
+        "order": 3,
+        "name": "Wed",
+        "cell": {
+          "r": 0,
+          "c": 3
+        }
+      },
+      "h_row_0": {
+        "id": "h_row_0",
+        "parent": "h_grid",
+        "alias": 63,
+        "order": 4,
+        "name": "Day",
+        "cell": {
+          "r": 1,
+          "c": 0
+        }
+      },
+      "h_row_1": {
+        "id": "h_row_1",
+        "parent": "h_grid",
+        "alias": 64,
+        "order": 5,
+        "name": "Swing",
+        "cell": {
+          "r": 2,
+          "c": 0
+        }
+      },
+      "h_row_2": {
+        "id": "h_row_2",
+        "parent": "h_grid",
+        "alias": 65,
+        "order": 6,
+        "name": "Night",
+        "cell": {
+          "r": 3,
+          "c": 0
+        }
+      },
+      "h_c1": {
+        "id": "h_c1",
+        "parent": "h_grid",
+        "alias": 66,
+        "order": 7,
+        "name": "Ana",
+        "cell": {
+          "r": 1,
+          "c": 1
+        }
+      },
+      "h_c2": {
+        "id": "h_c2",
+        "parent": "h_grid",
+        "alias": 67,
+        "order": 8,
+        "name": "Ben",
+        "cell": {
+          "r": 1,
+          "c": 2
+        }
+      },
+      "h_c3": {
+        "id": "h_c3",
+        "parent": "h_grid",
+        "alias": 68,
+        "order": 9,
+        "name": "Cy",
+        "cell": {
+          "r": 2,
+          "c": 3
+        }
+      },
+      "h_c4": {
+        "id": "h_c4",
+        "parent": "h_grid",
+        "alias": 69,
+        "order": 10,
+        "name": "Di",
+        "cell": {
+          "r": 3,
+          "c": 2
+        }
+      },
+      "l_refs": {
+        "id": "l_refs",
+        "parent": "main",
+        "alias": 8,
+        "order": 7,
+        "x": 336,
+        "y": 96,
+        "name": "References",
+        "type": "folder"
+      },
+      "l_refs_note": {
+        "id": "l_refs_note",
+        "parent": "l_refs",
+        "alias": 9,
+        "order": 1,
+        "x": 0,
+        "y": -144,
+        "name": "A reference stands for something drawn elsewhere: a block on the cards layer, a definition, or something since deleted.",
+        "type": "note",
+        "w": 528,
+        "h": 72
+      },
+      "x_block": {
+        "id": "x_block",
+        "parent": "l_refs",
+        "alias": 5,
+        "order": 2,
+        "x": 0,
+        "y": 0,
+        "of": "c_block"
+      },
+      "x_def": {
+        "id": "x_def",
+        "parent": "l_refs",
+        "alias": 6,
+        "order": 3,
+        "x": 252,
+        "y": 0,
+        "of": "def_pump"
+      },
+      "x_gone": {
+        "id": "x_gone",
+        "parent": "l_refs",
+        "alias": 7,
+        "order": 4,
+        "x": 504,
+        "y": 0,
+        "name": "Gone",
+        "of": "nothing_here"
+      },
+      "l_model": {
+        "id": "l_model",
+        "parent": "main",
+        "alias": 9,
+        "order": 8,
+        "x": 504,
+        "y": 96,
+        "name": "Data model",
+        "type": "def_large"
+      },
+      "l_model_note": {
+        "id": "l_model_note",
+        "parent": "l_model",
+        "alias": 10,
+        "order": 1,
+        "x": 0,
+        "y": -144,
+        "name": "The erd package's entities as stand-ins: each attribute typed by another entity draws a link.",
+        "type": "note",
+        "w": 528,
+        "h": 72
+      },
+      "m_customer": {
+        "id": "m_customer",
+        "parent": "l_model",
+        "alias": 8,
+        "order": 2,
+        "of": "erd.customer",
+        "x": 0,
+        "y": 0
+      },
+      "m_order": {
+        "id": "m_order",
+        "parent": "l_model",
+        "alias": 9,
+        "order": 3,
+        "of": "erd.order",
+        "x": 432,
+        "y": 0
+      },
+      "m_line": {
+        "id": "m_line",
+        "parent": "l_model",
+        "alias": 10,
+        "order": 4,
+        "of": "erd.line",
+        "x": 864,
+        "y": 0
+      },
+      "m_product": {
+        "id": "m_product",
+        "parent": "l_model",
+        "alias": 11,
+        "order": 5,
+        "of": "erd.product",
+        "x": 864,
+        "y": 192
+      },
+      "l_rows": {
+        "id": "l_rows",
+        "parent": "main",
+        "alias": 10,
+        "order": 9,
+        "x": 0,
+        "y": 192,
+        "name": "Data rows",
+        "type": "def_large"
+      },
+      "l_rows_note": {
+        "id": "l_rows_note",
+        "parent": "l_rows",
+        "alias": 11,
+        "order": 1,
+        "x": 0,
+        "y": -144,
+        "name": "Usages answering the entities: a value naming another card on the layer draws a link.",
+        "type": "note",
+        "w": 528,
+        "h": 72
+      },
+      "u_ada": {
+        "id": "u_ada",
+        "parent": "l_rows",
+        "alias": 70,
+        "order": 2,
+        "name": "Ada Lovelace",
+        "type": "erd.customer",
+        "values": [
+          {
+            "name": "id",
+            "value": "1"
+          },
+          {
+            "name": "name",
+            "value": "Ada Lovelace"
+          },
+          {
+            "name": "email",
+            "value": "ada@example.com"
+          }
+        ],
+        "x": 0,
+        "y": 0
+      },
+      "u_1001": {
+        "id": "u_1001",
+        "parent": "l_rows",
+        "alias": 71,
+        "order": 3,
+        "name": "Order 1001",
+        "type": "erd.order",
+        "values": [
+          {
+            "name": "number",
+            "value": "1001"
+          },
+          {
+            "name": "customer",
+            "value": "Ada Lovelace"
+          },
+          {
+            "name": "placed",
+            "value": "2026-10-01"
+          },
+          {
+            "name": "status",
+            "value": "shipped"
+          },
+          {
+            "name": "paid",
+            "value": "true"
+          }
+        ],
+        "x": 432,
+        "y": 0
+      },
+      "u_l1": {
+        "id": "u_l1",
+        "parent": "l_rows",
+        "alias": 72,
+        "order": 4,
+        "name": "1001 · widgets",
+        "type": "erd.line",
+        "values": [
+          {
+            "name": "order",
+            "value": "Order 1001"
+          },
+          {
+            "name": "product",
+            "value": "Widget"
+          },
+          {
+            "name": "qty",
+            "value": "3"
+          }
+        ],
+        "x": 864,
+        "y": 0
+      },
+      "u_l2": {
+        "id": "u_l2",
+        "parent": "l_rows",
+        "alias": 73,
+        "order": 5,
+        "name": "1001 · gadget",
+        "type": "erd.line",
+        "values": [
+          {
+            "name": "order",
+            "value": "Order 1001"
+          },
+          {
+            "name": "product",
+            "value": "Gadget"
+          }
+        ],
+        "x": 864,
+        "y": 192
+      },
+      "u_widget": {
+        "id": "u_widget",
+        "parent": "l_rows",
+        "alias": 74,
+        "order": 6,
+        "name": "Widget",
+        "type": "erd.product",
+        "values": [
+          {
+            "name": "sku",
+            "value": "W-1"
+          },
+          {
+            "name": "name",
+            "value": "Widget"
+          },
+          {
+            "name": "price",
+            "value": "4.50"
+          }
+        ],
+        "x": 1296,
+        "y": 0
+      },
+      "u_gadget": {
+        "id": "u_gadget",
+        "parent": "l_rows",
+        "alias": 75,
+        "order": 7,
+        "name": "Gadget",
+        "type": "erd.product",
+        "values": [
+          {
+            "name": "sku",
+            "value": "G-2"
+          },
+          {
+            "name": "name",
+            "value": "Gadget"
+          },
+          {
+            "name": "price",
+            "value": "12.00"
+          }
+        ],
+        "x": 1296,
+        "y": 192
+      },
+      "erd": {
+        "id": "erd",
+        "parent": null,
+        "name": "erd"
+      },
+      "erd.blocks": {
+        "id": "erd.blocks",
+        "parent": "erd",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1
+      },
+      "erd.entity": {
+        "id": "erd.entity",
+        "parent": "erd.blocks",
+        "name": "Entity",
+        "type": "block",
+        "body": "A thing the data model records: its attributes, keyed, some naming another entity.",
+        "def": {},
+        "order": 1,
+        "settings": {
+          "card": {
+            "shows": [
+              "attributes"
+            ],
+            "align": "center"
+          }
+        }
+      },
+      "erd.status": {
+        "id": "erd.status",
+        "parent": "erd.blocks",
+        "name": "Order status",
+        "type": "choice",
+        "body": "Where an order is.",
+        "def": {},
+        "order": 2,
+        "settings": {
+          "value": {
+            "choices": [
+              "open",
+              "shipped",
+              "closed"
+            ]
+          }
+        }
+      },
+      "erd.customer": {
+        "id": "erd.customer",
+        "parent": "erd.blocks",
+        "name": "Customer",
+        "type": "erd.entity",
+        "body": "Somebody who places orders.",
+        "def": {
+          "attributes": [
+            {
+              "name": "id",
+              "type": "number",
+              "key": true
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "email",
+              "note": "where receipts go"
+            }
+          ]
+        },
+        "order": 3
+      },
+      "erd.product": {
+        "id": "erd.product",
+        "parent": "erd.blocks",
+        "name": "Product",
+        "type": "erd.entity",
+        "body": "Something an order may carry.",
+        "def": {
+          "attributes": [
+            {
+              "name": "sku",
+              "key": true
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "price",
+              "type": "number",
+              "unit": "USD",
+              "note": "per unit, in USD"
+            }
+          ]
+        },
+        "order": 4
+      },
+      "erd.order": {
+        "id": "erd.order",
+        "parent": "erd.blocks",
+        "name": "Order",
+        "type": "erd.entity",
+        "body": "One customer's purchase.",
+        "def": {
+          "attributes": [
+            {
+              "name": "number",
+              "type": "number",
+              "key": true
+            },
+            {
+              "name": "customer",
+              "type": "erd.customer"
+            },
+            {
+              "name": "placed",
+              "note": "ISO date"
+            },
+            {
+              "name": "status",
+              "type": "erd.status",
+              "default": "open"
+            },
+            {
+              "name": "paid",
+              "type": "flag"
+            }
+          ]
+        },
+        "order": 5
+      },
+      "erd.line": {
+        "id": "erd.line",
+        "parent": "erd.blocks",
+        "name": "Line item",
+        "type": "erd.entity",
+        "body": "One product on an order, and how many.",
+        "def": {
+          "attributes": [
+            {
+              "name": "order",
+              "type": "erd.order"
+            },
+            {
+              "name": "product",
+              "type": "erd.product"
+            },
+            {
+              "name": "qty",
+              "type": "number",
+              "default": "1"
+            }
+          ]
+        },
+        "order": 6
+      }
+    },
+    "edges": {
+      "r_fwd": {
+        "id": "r_fwd",
+        "from": "r_fwd_a",
+        "to": "r_fwd_b",
+        "alias": 1,
+        "dir": "forward"
+      },
+      "r_back": {
+        "id": "r_back",
+        "from": "r_back_a",
+        "to": "r_back_b",
+        "alias": 2,
+        "dir": "back"
+      },
+      "r_both": {
+        "id": "r_both",
+        "from": "r_both_a",
+        "to": "r_both_b",
+        "alias": 3,
+        "dir": "both"
+      },
+      "r_none": {
+        "id": "r_none",
+        "from": "r_none_a",
+        "to": "r_none_b",
+        "alias": 4,
+        "dir": "none"
+      },
+      "r_named": {
+        "id": "r_named",
+        "from": "r_named_a",
+        "to": "r_named_b",
+        "alias": 5,
+        "dir": "forward",
+        "name": "feeds"
+      },
+      "r_arrows": {
+        "id": "r_arrows",
+        "from": "r_arrows_a",
+        "to": "r_arrows_b",
+        "alias": 6,
+        "settings": {
+          "line": {
+            "from_arrow": "diamond",
+            "to_arrow": "open"
+          }
+        }
+      },
+      "r_tie": {
+        "id": "r_tie",
+        "from": "r_tie_note",
+        "to": "r_tie_to",
+        "alias": 7,
+        "type": "tie"
+      },
+      "r_detour": {
+        "id": "r_detour",
+        "from": "r_det_a",
+        "to": "r_det_b",
+        "alias": 8,
+        "dir": "forward"
+      },
+      "r_par_1": {
+        "id": "r_par_1",
+        "from": "r_par_a",
+        "to": "r_par_b",
+        "alias": 9,
+        "dir": "forward",
+        "name": "request"
+      },
+      "r_par_2": {
+        "id": "r_par_2",
+        "from": "r_par_b",
+        "to": "r_par_a",
+        "alias": 10,
+        "dir": "forward",
+        "name": "reply"
+      },
+      "r_cross_1": {
+        "id": "r_cross_1",
+        "from": "r_x_a",
+        "to": "r_x_d",
+        "alias": 11,
+        "dir": "forward"
+      },
+      "r_cross_2": {
+        "id": "r_cross_2",
+        "from": "r_x_b",
+        "to": "r_x_c",
+        "alias": 12,
+        "dir": "forward"
+      },
+      "r_gap": {
+        "id": "r_gap",
+        "from": "r_gap_a",
+        "to": "r_gap_b",
+        "alias": 13,
+        "dir": "forward"
+      },
+      "p_flow": {
+        "id": "p_flow",
+        "from": "p_pump_out",
+        "to": "p_tank_in",
+        "alias": 14,
+        "dir": "forward",
+        "name": "water"
+      },
+      "p_feed": {
+        "id": "p_feed",
+        "from": "p_valve_out",
+        "to": "p_pump_low",
+        "alias": 15,
+        "dir": "forward"
+      }
+    }
+  }
+}

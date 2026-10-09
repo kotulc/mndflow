@@ -1,0 +1,206 @@
+/* A card's face, wherever one is drawn: the canvas, the tray, a host. How it is painted is
+   `card.css`; this is how it is laid out. */
+
+/* A ground for a card that carries no family of its own. */
+:where(.mnd-card) {
+  --card-fill: var(--s-neutral-fill);
+  --card-line: var(--s-neutral-line);
+  --card-ink: var(--s-neutral-ink);
+  --card-edge: var(--s-neutral-stroke);
+  --card-dim: var(--s-neutral-dim);
+  --step-line: var(--s-neutral-line);
+  --step-ink: var(--s-neutral-ink);
+}
+
+/* ── The card ───────────────────────────────────────────────────────────── */
+
+.mnd-card {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font: inherit;
+  /* The card clips its contents, not itself. */
+  overflow: visible;
+}
+
+/* The name, the subtype it names, and whatever room is left over. */
+.mnd-head {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  /* The gutter the corner mark stands in, so a long name clips before it. */
+  padding-right: 13px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The name and its kind sit together at the head's left end. */
+.mnd-named {
+  display: inline-flex;
+  align-items: baseline;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* One line, always. A card is a wide bar, and a name wrapped over two lines in one is a different
+   shape from its neighbours. */
+.mnd-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  /* A name is its own target: two clicks on it rename whatever it names. */
+  pointer-events: auto;
+  cursor: text;
+}
+
+/* Two lines, where there is room for two. */
+[data-label="above"] > .mnd-head > .mnd-named > .mnd-label,
+[data-label="below"] > .mnd-head > .mnd-named > .mnd-label,
+[data-label="none"] > .mnd-head > .mnd-named > .mnd-label {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow: hidden;
+}
+
+/* Nobody has named it, so what it reads is its type and the handle it was handed. */
+.mnd-card.unnamed > .mnd-head > .mnd-named > .mnd-label { opacity: 0.55; font-style: italic; }
+
+/* Which end the name reads from. */
+[data-align="center"] > .mnd-head > .mnd-named { justify-content: center; }
+[data-align="right"] > .mnd-head > .mnd-named { justify-content: flex-end; }
+
+/* The handle, small over the name, in the corner the icon leaves free. */
+.mnd-alias {
+  position: absolute;
+  top: 2px;
+  left: 8px;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  opacity: 0.45;
+  pointer-events: none;
+}
+[data-align="center"] > .mnd-alias { left: 0; right: 0; text-align: center; }
+[data-align="right"] > .mnd-alias { left: auto; right: 21px; }
+
+/* The icon in the top corner: what this card is, said without being read. */
+.mnd-role {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  display: inline-flex;
+  color: var(--text);
+  pointer-events: none;
+}
+/* A card holding blocks lights its icon: the colour, and only that, says so. */
+.mnd-role[data-holds] { color: var(--accent); }
+
+/* The system marks, in the bottom corner: quiet, so the icon above is the one that speaks. */
+.mnd-marks {
+  position: absolute;
+  bottom: 3px;
+  right: 4px;
+  display: inline-flex;
+  gap: 2px;
+  color: var(--muted);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.mnd-mark { display: inline-flex; }
+
+/* The subtype, where somebody set one. */
+.mnd-kind {
+  flex: none;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* Over the card and under it, hanging into the gutter between cards. */
+.mnd-over, .mnd-under {
+  position: absolute;
+  left: 0;
+  right: 0;
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--card-dim);
+  text-align: left;
+  pointer-events: none;
+}
+.mnd-over { bottom: 100%; margin-bottom: 2px; }
+.mnd-under { top: 100%; margin-top: 2px; }
+[data-label-align="center"] > :is(.mnd-over, .mnd-under) { text-align: center; }
+[data-label-align="right"] > :is(.mnd-over, .mnd-under) { text-align: right; }
+
+/* The app speaking, not the model. */
+.mnd-card.missing { border-color: var(--error); color: var(--error); }
+
+
+/* ── The large face: its name on one line, then its markdown ── */
+
+.mnd-card.large > .mnd-head { flex: none; height: 20px; }
+/* A handle over a large face's name takes a line of its own, so the two never overlap. */
+.mnd-card.large:has(> .mnd-alias) { padding-top: 11px; }
+.mnd-card.large > .mnd-head > .mnd-named > .mnd-label { display: block; white-space: nowrap; }
+
+/* The divider, drawn only under a head: a card that is its markdown alone has nothing over it. */
+.mnd-head + .mnd-face-body {
+  margin-top: 1px;
+  padding-top: 3px;
+  border-top: 1px solid currentColor;
+}
+
+/* What it says: the room a card has, and no more. */
+.mnd-face-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding-right: 13px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.mnd-card.headless > .mnd-face-body { padding-top: 3px; }
+.mnd-face-body :where(p, pre, ul, ol, blockquote, hr, table, h1, h2, h3, h4, h5, h6) {
+  margin: 0 0 4px;
+}
+.mnd-face-body :where(h1, h2, h3, h4, h5, h6) { font-size: inherit; font-weight: 700; }
+.mnd-face-body pre { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.mnd-face-body code { font: inherit; color: var(--card-dim); }
+.mnd-face-body :where(ul, ol) { padding-left: 14px; }
+.mnd-face-body li:has(> input[type="checkbox"]) { list-style: none; margin-left: -14px; }
+.mnd-face-body blockquote { padding-left: 6px; border-left: 2px solid var(--card-dim); }
+.mnd-face-body hr { border: 0; border-top: 1px dashed var(--card-dim); }
+.mnd-face-body img { display: block; max-width: 100%; max-height: 100%; object-fit: cover; }
+.mnd-face-body table { border-collapse: collapse; font-size: 11px; width: 100%; }
+/* A table is a grid: every cell ruled, as an entity's attributes read. */
+.mnd-face-body :where(th, td) {
+  padding: 0 4px;
+  border: 1px solid var(--card-dim);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 12ch;
+}
+.mnd-face-body th { color: var(--muted); font-weight: 400; }
+/* A header with nothing in it is not drawn: its columns read by place. */
+.mnd-face-body thead:not(:has(th:not(:empty))) { display: none; }
+/* A body opening on a table needs no divider over it: the table's rule is one. */
+.mnd-head + .mnd-face-body:has(> table:first-child) { border-top: 0; padding-top: 2px; }
+/* A body that is a table spans the card evenly: the corner mark sits under it, not beside it. */
+.mnd-face-body:has(> table:first-child) { padding-right: 0; }
+
+/* A link reads as one, and answers ctrl+click; a plain click is the card's. */
+.md-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }

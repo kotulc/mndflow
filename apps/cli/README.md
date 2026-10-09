@@ -28,8 +28,9 @@ npm run start -w @mnd/cli -- fold related    # the one to try first
 | `search` | fetch a definition package, through the door |
 | `translate` | write the graph as SysML, and check it comes back |
 | `export` | fold and write the file |
+| `collect` | a folder of markdown cards and its `package.json`, as one package file: `collect <folder> [out.json]` |
 
-`<source>` is a fixture name, an exported file, or a raw log — **a log is harness input only**, since a file is a graph. `--how` sets the layout, `--layer` which layer, `--from` the catalogue `search` reads, and `--with` a vocabulary to bring in first. `--svg` draws instead of printing, and `--round` checks a translation comes back.
+`<source>` is a fixture name, an exported file, or a raw log — **a log is harness input only**, since a file is a graph. `--how` sets the layout, `--layer` which layer, `--from` the catalogue `search` reads, and `--with` a vocabulary to bring in first. `--svg` draws instead of printing, and `--round` checks a translation comes back. A value said as `k=@path` is that file's text: `run x.json attach id=pump text=@cards/pump.md`.
 
 ## Why it exists
 

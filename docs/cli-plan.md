@@ -33,7 +33,7 @@
 | **perspective** | **the Viewer's own props**, given as flags: layer, view, fields, focus, chrome. No sidecar file until multi-view handoff needs one |
 | **the text drawing** | dropped from the CLI. views keeps `draw` and `outline`, which its shape tests use |
 | **edge labels** | unchanged: `label_of` (core `names.ts`) draws an edge's own name, else its definition's name, and nothing for an unnamed base `line` or `tie`. Simple edges use base `line`; a custom relation definition labels every edge it types, so a map reaches for one only when that label is wanted |
-| **markdown** | content and card look are text passed through untouched: any value may come from a file. No markdown verbs; a card template is a setting, written with `look` |
+| **markdown** | content is text passed through untouched: any value may come from a file. A card's markdown source is read by the `markdown` and `attach` actions; how a card draws is `card.shows`, `card.size` and `layout.face`, written with `look` (cards-plan.md) |
 
 
 ## The action surface
@@ -183,7 +183,8 @@ The httpie conventions, so they need no teaching. A script line is already JSON,
 | Need | Met by |
 |---|---|
 | an agent writes a card's content | `body=@file.md`, on any block |
-| an agent writes a card's layout or template | a setting on a definition, written with `look` and `value=@file.md` — **a setting, not a new field** (schema.md: settings is the one place the schema grows) |
+| an agent writes a card whole | `attach body=@file.md source=…`: frontmatter for identity and values, then the body |
+| an agent says what a card shows | `card.shows` and `card.size` on its definition, written with `look` — **settings, not a new field** (schema.md: settings is the one place the schema grows) |
 | an agent restyles to taste across a workspace | definitions carry the look and usages follow: `show` a definition, `look` it once, `draw` to see |
 | a style is shared | `export --package`, then `bring` it elsewhere |
 | content round-trips byte-stable | `show` returns `body` raw; `export` never rewrites it |
@@ -348,5 +349,4 @@ The httpie conventions, so they need no teaching. A script line is already JSON,
 |---|---|
 | **`define` and ids** | actions.md gives `define` an `id?` "passed in by a caller that must know it"; the code takes none, and this plan says ids are never chosen. Which caller needs one — if none, it leaves actions.md |
 | **sibling names** | the docs say unique among siblings; actions allow duplicates. Paths stay safe either way — ambiguity is refused — but the model should settle it |
-| **card templates** | which settings key carries a markdown card layout, and what it may reference (fields, body, children) |
 | **source fetch** | `bring` takes a package from a URL; ST.5 still needs a translator for an arbitrary fetched file to become blocks |

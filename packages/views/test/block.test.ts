@@ -228,7 +228,7 @@ describe("interfaces are seated, not placed", () => {
 describe("trait definitions in vocabulary", () => {
   it("draw name-only though they grant body on carriers", () => {
     const graph = fold([], FLOOR);
-    expect(look_of(graph, "content").body).toBeUndefined();
+    expect(look_of(graph, "content").shows).not.toContain("body");
   });
 });
 

@@ -86,7 +86,7 @@
 |---|---|---|---|---|
 | `group` | makes a group round what is selected, or a grid over a region, and moves the selection into it | layer, selection | ids?, rows?, cols?, type?, spot? | `add_block` + `move_block`… (+ `set_grid`, `seat_cell`) |
 | `heads` | adds a header row or column to a grid, or takes it away | block, cell | grid?, way, on? | `set_grid` + `seat_cell`… |
-| `label` | writes a plain value in a cell, or clears it | cell | grid?, at?, text? | `set_grid` |
+| `label` | names the block in a cell, or makes a plain block of that name in an empty one | cell | grid?, at?, text? | `update_block` / `add_block` + `seat_cell` |
 | `fill` | puts a new block in every empty body cell | block, cell | grid? | `add_block` + `seat_cell`… |
 | `insert` · `remove` | adds or takes away a row or column | block, cell | grid?, way, at? | `set_grid` + `seat_cell`… |
 | `merge` | spans the picked cells, or splits a merged one | cell | grid?, at?, into? | `set_grid` |
@@ -99,19 +99,31 @@
 - **`heads` adds or removes a line**, never converts one, so nothing seated moves.
 - **A cell is an address, not a thing**: `Context` carries `cells` beside `picked`.
 
-### Fields and definitions
+### Attributes and definitions
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `field` | sets a value on a usage, or declares a field on a definition | layer, block | holder, name, value?, form?, unit?, choices? | `set_value` / `set_schema` |
-| `order_field` | moves a value or a declared field before another | layer, block | holder, name, before? | `order_values` / `set_schema` |
-| `unfield` | drops a value from a usage, or a field from a definition | layer, block | holder, name | `drop_value` / `set_schema` |
+| `field` | answers an attribute on a usage, or declares one on a definition | layer, block | holder, name, value?, type?, key?, default?, unit?, many?, optional?, note?, to? | `set_value` / `set_attributes` |
+| `order_field` | moves an answer or an attribute before another | layer, block | holder, name, before? | `order_values` / `set_attributes` |
+| `unfield` | drops an answer from a usage, or an attribute from a definition | layer, block | holder, name | `drop_value` / `set_attributes` |
 | `define` | makes a definition in a domain | layer | name, type?, parent?, id? | `add_block{def}` |
 | `define_from` | makes a definition of how a block or line is set, and makes it a usage of it | block, edge | id, name | `add_block{def}` + `update_block` / `update_edge` + `drop_settings` |
 
-- **One act, and the holder says which**: a value on a usage and a field on a definition are the same thing said of two holders.
+- **One act, and the holder says which**: a value on a usage and an attribute on a definition are the same thing said of two holders.
+- **A type is named, never typed out**: `type` names a value type or a block definition by id or name; a name nothing holds makes a value type of the workspace's, extending `text`.
 - **`define` lands where the user is**: in the open domain, in the holder picked. Its domain (block or relation) is read off what it extends; absent, `block`. Its id is minted, or passed in by a caller that must know it.
 - **A name is unique in its package**, across definitions, tags and traits.
+
+### Card sources
+
+| | Does | Scope | Arguments | Writes |
+|---|---|---|---|---|
+| `markdown` | rewrites a block or a definition from its card source: frontmatter, then its body | layer, block | id, text | what `rename`, `retype`, `tag`, `trait`, `source`, `field`, `unfield` and `describe` write |
+| `attach` | copies a markdown file onto a usage, and says where it came from; attached again, it refreshes | block | id, text, source? | as `markdown`, and `set_source` |
+
+- **A card source is the actions a person would have run**, each checked against the graph the ones before it made. Nothing is decided here.
+- **Permissive**: a type or tag nothing loaded holds, or more than one package holds, is made in the workspace and said. A trait gives settings, so a trait word naming none is refused.
+- **A definition is never written in markdown** whole: its card source is its name, what it extends, its tags and traits, its attributes' defaults and its body. `attach` is a usage's.
 
 ### The layer
 

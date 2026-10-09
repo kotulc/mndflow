@@ -24,7 +24,7 @@ export type Inspection = { faults: Fault[]; repairs: Mutation[] };
 const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
   "place_block", "order_block", "set_alias", "set_counter", "size_block",
-  "set_body", "set_schema", "seat_cell", "set_grid", "link_blocks",
+  "set_body", "set_attributes", "seat_cell", "set_grid", "link_blocks",
   "update_edge", "delete_edge", "set_dir", "flip_edge", "set_end", "set_port",
   "set_side", "mark_port", "set_value", "drop_value", "order_values", "set_source",
   "set_tags", "set_traits", "set_setting", "drop_settings",
@@ -172,7 +172,7 @@ function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
   /** One lattice is mended in one write, so no mend undoes another. */
   for (const b of Object.values(graph.blocks)) {
     if (!b.grid) continue;
-    const mended = fitted(graph, b.grid);
+    const mended = fitted(b.grid);
     if (mended.grid === b.grid) continue;
     if (mended.dropped) say("dropped", `${plural(mended.dropped, "merge")} "${name(b.id)}" could not hold`);
     say("repaired", mended.said ? `"${name(b.id)}" said more of its cells than it holds` : "",
@@ -254,13 +254,12 @@ export function say(faults: Fault[]): string {
   return parts.join(", ");
 }
 
-/** A lattice with a whole extent, merges inside it that neither overlap nor cross a header line,
- *  and only the values, schema and cell size it can carry; the same lattice where it already is. */
-function fitted(graph: Graph, g: Grid): { grid: Grid; dropped: number; said: boolean } {
+/** A lattice with a whole extent and merges inside it that neither overlap nor cross a header
+ *  line, and nothing else; the same lattice where it already is. */
+function fitted(g: Grid): { grid: Grid; dropped: number; said: boolean } {
   const whole = (n: unknown) => typeof n === "number" && Number.isInteger(n) && n > 0;
   const rows = whole(g.rows) ? g.rows : 1;
   const cols = whole(g.cols) ? g.cols : 1;
-  const sized: Grid = { ...g, rows, cols };
 
   /** A merge may not reach from a header into the body. */
   const kept: Span[] = [];
@@ -270,22 +269,11 @@ function fitted(graph: Graph, g: Grid): { grid: Grid; dropped: number; said: boo
     if (sane && !kept.some((k) => overlaps(k, s))) kept.push(s);
   }
   const dropped = (g.merges ?? []).length - kept.length;
-
-  const { values, schema, size, merges: _m, ...rest } = sized;
-  const strings = Array.isArray(values)
-    && values.every((row) => Array.isArray(row) && row.every((v) => typeof v === "string"));
-  const trimmed = strings ? values!.slice(0, rows).map((row) => row.slice(0, cols)) : undefined;
-  const cell = !!size && [size.w, size.h].every(whole);
-  const named = !!schema && !!def_at(graph, schema);
-  const same_values = values === undefined || (!!trimmed && trimmed.length === values.length
-    && trimmed.every((row, n) => row.length === values[n]!.length));
-  const said = !same_values || (schema !== undefined && !named) || (size !== undefined && !cell);
+  /** Anything a lattice does not carry is dropped. */
+  const said = Object.keys(g).some((k) => !["rows", "cols", "merges"].includes(k));
 
   if (!said && !dropped && rows === g.rows && cols === g.cols) return { grid: g, dropped, said };
-  return { grid: { ...rest, ...(kept.length ? { merges: kept } : {}),
-                   ...(trimmed ? { values: trimmed } : {}), ...(named ? { schema } : {}),
-                   ...(cell ? { size } : {}) },
-           dropped, said };
+  return { grid: { rows, cols, ...(kept.length ? { merges: kept } : {}) }, dropped, said };
 }
 
 function plural(n: number, word: string): string {

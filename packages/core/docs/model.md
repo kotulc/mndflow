@@ -43,7 +43,8 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 
 - **Deleting a holder deletes its subtree.**
 - **A grid's member always has a cell.** One that loses its cell (a line removed, a merge, a smaller extent) moves to the nearest spare cell on its side, else leaves the grid.
-- **Headers are lines.** `head.top` heads the columns, `head.left` the rows. A header cell holds any block, drawn compact.
+- **Headers are lines.** The top row heads the columns, the left column the rows. A header cell holds any block, drawn compact; typing into an empty one makes a plain block of that name.
+- **A grid is allocation only**: no text labels and no records. Records are usages, or a table in a card's body.
 
 
 ## Reading through

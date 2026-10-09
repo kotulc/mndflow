@@ -1,0 +1,268 @@
+/** Writes samples/workspace.showcase.json: one layer per capability, each with a note saying what
+ *  it shows. Fixed ids, so a re-run after a schema change re-saves it as a readable diff; the door
+ *  checks it (`mnd check`). The `erd` package is read from the catalogue and carried whole.
+ *
+ *  node scripts/showcase.mjs */
+
+import { readFileSync, writeFileSync } from "node:fs";
+
+const U = 24;
+const COL = 7 * U;
+const ROW = 4 * U;
+
+const blocks = {};
+const edges = {};
+const counters = {};
+const orders = {};
+
+
+/** The next serial for a kind, which is what an alias is. */
+function serial(kind) {
+  counters[kind] = (counters[kind] ?? 0) + 1;
+  return counters[kind];
+}
+
+/** The next order under a parent. */
+function order(parent) {
+  orders[parent] = (orders[parent] ?? 0) + 1;
+  return orders[parent];
+}
+
+/** A workspace definition. */
+function def(id, name, type, settings, more = {}) {
+  blocks[id] = { id, parent: "workspace.blocks", name, type, def: {}, order: order("workspace.blocks"),
+                 ...(settings ? { settings } : {}), ...more };
+}
+
+/** A usage of some kind under a parent, at a column and row of the layer's lattice. */
+function put(id, parent, kind, at, more = {}) {
+  blocks[id] = { id, parent, alias: serial(kind), order: order(parent),
+                 ...(at ? { x: at[0] * COL, y: at[1] * ROW } : {}), ...more };
+}
+
+/** A layer: a folder on the root canvas, of the given type. */
+function layer(id, name, at, type = "folder", more = {}) {
+  put(id, "main", "folder", at, { name, type, ...more });
+}
+
+/** The note heading a layer, saying what to look for. */
+function note(layer_id, text, w = 15) {
+  put(`${layer_id}_note`, layer_id, "note", [0, -1.5], { name: text, type: "note", w: w * U, h: 3 * U });
+}
+
+/** A relation. */
+function link(id, from, to, more = {}) {
+  edges[id] = { id, from, to, alias: serial("relation"), ...more };
+}
+
+
+/* ── The workspace's floor ── */
+
+blocks.workspace = { id: "workspace", parent: null, name: "workspace" };
+for (const [i, name] of ["blocks", "relations", "tags"].entries()) {
+  blocks[`workspace.${name}`] = { id: `workspace.${name}`, parent: "workspace", name, type: "folder",
+                                  order: i + 1 };
+}
+orders["workspace.blocks"] = 0;
+def("main", "main", undefined);
+delete blocks.main.type;
+def("def_large", "Large layer", "folder", { layout: { face: "large" } },
+    { body: "A layer whose cards draw their large face." });
+
+
+/* ── Cards: every block kind, and the looks a definition gives ── */
+
+layer("l_cards", "Cards", [0, 0]);
+note("l_cards", "Every block kind on its small face, then the looks a definition gives: families, fills, label places and borders. Each row varies one setting.", 27);
+put("c_block", "l_cards", "block", [0, 0], { name: "Block" });
+put("c_folder", "l_cards", "folder", [1, 0], { name: "Folder", type: "folder" });
+put("c_inside", "c_folder", "block", [0, 0], { name: "Inside" });
+put("c_ref", "l_cards", "reference", [2, 0], { name: "", of: "c_block" });
+put("c_note", "l_cards", "note", [3, 0], { name: "A note: text, resized by hand", type: "note",
+                                           w: 6 * U, h: 2 * U });
+const looks = [
+  ["family", ["primary", "secondary", "neutral", "muted", "away", "note"], (v) => ({ style: { family: v } })],
+  ["fill", ["solid", "hatch", "wash", "none"], (v) => ({ style: { fill: v } })],
+  ["label", ["above", "inside", "below", "none"], (v) => ({ card: { label: v } })],
+  ["border", ["dashed", "dotted", "double", "none"], (v) => ({ style: { border_style: v } })],
+];
+for (const [row, [key, values, settings]] of looks.entries()) {
+  for (const [col, v] of values.entries()) {
+    const id = `def_${key}_${v}`;
+    def(id, `${key} ${v}`, "block", settings(v));
+    put(`c_${key}_${v}`, "l_cards", "block", [col, row + 1.5], { name: v, type: id });
+  }
+}
+
+
+/* ── Faces: what a large face shows, fitted or sized ── */
+
+/** A picture the web app serves, from `public/`. */
+const PICTURE = "/showcase/picture.svg";
+
+layer("l_faces", "Faces", [1, 0], "def_large");
+note("l_faces", "The large face, on a layer that asks for it. Each card fits what it shows unless its definition gives a size; a plain block shows nothing, so it is the small face.", 27);
+def("def_doc", "Document", "block", { card: { shows: ["body"] } });
+def("def_spec", "Spec", "block", { card: { shows: ["attributes", "body"] } }, {
+  def: { attributes: [{ name: "tag", key: true }, { name: "rating", type: "number", unit: "kW" },
+                      { name: "duty", note: "how it runs" }] } });
+def("def_media", "Picture", "block", undefined, { traits: ["container", "ports", "media"] });
+def("def_headless", "Headless", "block", { card: { shows: ["body"], name: "hide" } });
+def("def_sized", "Sized", "block", { card: { shows: ["body"], size: { w: 8, h: 3 } } });
+const FACE = [3 * COL, 2.5 * ROW];
+const face = (id, at, more) => put(id, "l_faces", "block", null,
+                                   { x: at[0] * FACE[0], y: at[1] * FACE[1], ...more });
+face("f_body", [0, 0], { name: "Body", type: "def_doc",
+  body: "# A heading\n\nProse with **bold**, `code` and a [link](https://example.com).\n\n- a point\n- another point" });
+face("f_spec", [1, 0], { name: "Spec", type: "def_spec", body: "Attributes, then the body.",
+  values: [{ name: "tag", value: "P-101" }, { name: "rating", value: "15" },
+           { name: "duty", value: "continuous" }] });
+face("f_media", [2, 0], { name: "Picture", type: "def_media", source: PICTURE });
+face("f_headless", [0, 1], { name: "Headless", type: "def_headless",
+  body: "A card that is its markdown alone: no name over it." });
+face("f_sized", [1, 1], { name: "Sized", type: "def_sized",
+  body: "A size its definition gives: 8 by 3 units, whatever it says. What does not fit is cut off at the card's edge, however long the text runs on and on." });
+face("f_plain", [2, 1], { name: "Plain" });
+
+
+/* ── Definitions: stand-ins, and settings down a chain ── */
+
+layer("l_defs", "Definitions", [2, 0], "def_large");
+note("l_defs", "A chain: Pump extends Machine, Big pump extends Pump. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it.", 27);
+def("def_machine", "Machine", "block", { style: { family: "secondary" }, card: { shows: ["attributes"] } }, {
+  def: { attributes: [{ name: "power", type: "number", unit: "kW" }] } });
+def("def_pump", "Pump", "def_machine", { style: { hue: 200 } }, {
+  def: { attributes: [{ name: "flow", type: "number", unit: "m3/h" }] } });
+def("def_bigpump", "Big pump", "def_pump", { style: { border_width: "thick" } }, {
+  def: { attributes: [{ name: "stages", type: "number", default: "2" }] } });
+for (const [col, d] of ["def_machine", "def_pump", "def_bigpump"].entries()) {
+  put(`s_${d}`, "l_defs", "reference", [col * 2, 0], { of: d });
+}
+put("d_m1", "l_defs", "block", [0, 2], { name: "Compressor", type: "def_machine",
+  values: [{ name: "power", value: "30" }] });
+put("d_p1", "l_defs", "block", [2, 2], { name: "Feed pump", type: "def_pump",
+  values: [{ name: "power", value: "15" }, { name: "flow", value: "40" }] });
+put("d_b1", "l_defs", "block", [4, 2], { name: "Main pump", type: "def_bigpump",
+  values: [{ name: "power", value: "90" }, { name: "flow", value: "200" }] });
+
+
+/* ── Relations: every kind and direction, then what routing has to get right ── */
+
+layer("l_rel", "Relations", [3, 0]);
+note("l_rel", "Top: each direction, a name, arrows and a tie. Below: a detour round a blocker, two runs between one pair, a crossing, and a tight gap.", 27);
+const pair = (id, row, col, name_a, name_b, more) => {
+  put(`${id}_a`, "l_rel", "block", [col, row], { name: name_a });
+  put(`${id}_b`, "l_rel", "block", [col + 1.5, row], { name: name_b });
+  link(id, `${id}_a`, `${id}_b`, more);
+};
+pair("r_fwd", 0, 0, "From", "Forward", { dir: "forward" });
+pair("r_back", 0, 3, "From", "Back", { dir: "back" });
+pair("r_both", 1, 0, "From", "Both", { dir: "both" });
+pair("r_none", 1, 3, "From", "None", { dir: "none" });
+pair("r_named", 2, 0, "Pump", "Tank", { dir: "forward", name: "feeds" });
+pair("r_arrows", 2, 3, "Whole", "Part", { settings: { line: { from_arrow: "diamond", to_arrow: "open" } } });
+put("r_tie_note", "l_rel", "note", [6, 0], { name: "A tie joins a note to what it is about", type: "note",
+                                             w: 5 * U, h: 2 * U });
+put("r_tie_to", "l_rel", "block", [6, 1.5], { name: "Tied" });
+link("r_tie", "r_tie_note", "r_tie_to", { type: "tie" });
+put("r_det_a", "l_rel", "block", [0, 4], { name: "Left" });
+put("r_det_x", "l_rel", "block", [1.5, 4], { name: "Blocker" });
+put("r_det_b", "l_rel", "block", [3, 4], { name: "Right" });
+link("r_detour", "r_det_a", "r_det_b", { dir: "forward" });
+put("r_par_a", "l_rel", "block", [4.5, 4], { name: "Asks" });
+put("r_par_b", "l_rel", "block", [4.5, 6], { name: "Answers" });
+link("r_par_1", "r_par_a", "r_par_b", { dir: "forward", name: "request" });
+link("r_par_2", "r_par_b", "r_par_a", { dir: "forward", name: "reply" });
+put("r_x_a", "l_rel", "block", [0, 6], { name: "North" });
+put("r_x_b", "l_rel", "block", [2, 6], { name: "East" });
+put("r_x_c", "l_rel", "block", [0, 7.5], { name: "West" });
+put("r_x_d", "l_rel", "block", [2, 7.5], { name: "South" });
+link("r_cross_1", "r_x_a", "r_x_d", { dir: "forward" });
+link("r_cross_2", "r_x_b", "r_x_c", { dir: "forward" });
+put("r_gap_a", "l_rel", "block", [6, 4], { name: "Close" });
+put("r_gap_b", "l_rel", "block", [6, 5], { name: "Closer" });
+link("r_gap", "r_gap_a", "r_gap_b", { dir: "forward" });
+
+
+/* ── Interfaces: ports on each side, and flow ── */
+
+layer("l_ports", "Interfaces", [0, 1]);
+note("l_ports", "Ports on each side of a block, flowing in, out, both or neither; lines may land on a port or on the block.", 22);
+put("p_pump", "l_ports", "block", [0, 1], { name: "Pump" });
+put("p_tank", "l_ports", "block", [3, 1], { name: "Tank" });
+put("p_valve", "l_ports", "block", [0, 3], { name: "Valve" });
+const port = (id, parent, side, flow) =>
+  put(id, parent, "interface", null, { name: "", side, at: 0.5, ...(flow ? { flow } : {}) });
+port("p_pump_in", "p_pump", "left", "in");
+port("p_pump_out", "p_pump", "right", "out");
+port("p_pump_top", "p_pump", "top", "both");
+port("p_pump_low", "p_pump", "bottom");
+port("p_tank_in", "p_tank", "left", "in");
+port("p_valve_out", "p_valve", "top", "out");
+link("p_flow", "p_pump_out", "p_tank_in", { dir: "forward", name: "water" });
+link("p_feed", "p_valve_out", "p_pump_low", { dir: "forward" });
+
+
+/* ── Holders: groups inside groups, and a grid with headers and a merge ── */
+
+layer("l_hold", "Holders", [1, 1]);
+note("l_hold", "A group gathers blocks where they sit, and nests. A grid seats blocks in cells: its top row and left column head the lines; a merge spans cells. Select the grid and press Enter to see its cells.", 27);
+put("h_outer", "l_hold", "group", [0, 0], { name: "Plant", type: "group" });
+put("h_inner", "h_outer", "group", [0, 0], { name: "Skid", type: "group" });
+put("h_g1", "h_inner", "block", [0, 0], { name: "Motor" });
+put("h_g2", "h_inner", "block", [1, 0], { name: "Gearbox" });
+put("h_g3", "h_outer", "block", [0, 1.5], { name: "Panel" });
+def("def_table", "Table", "grid", undefined, { traits: ["container", "ports", "matrix", "headed"] });
+put("h_grid", "l_hold", "grid", [4, 0], { name: "Duty roster", type: "def_table",
+  grid: { rows: 4, cols: 4, merges: [{ r: 1, c: 1, rows: 2, cols: 1 }] } });
+const cell = (id, r, c, name) => put(id, "h_grid", "block", null, { name, cell: { r, c } });
+["Mon", "Tue", "Wed"].forEach((d, i) => cell(`h_col_${i}`, 0, i + 1, d));
+["Day", "Swing", "Night"].forEach((s, i) => cell(`h_row_${i}`, i + 1, 0, s));
+cell("h_c1", 1, 1, "Ana");
+cell("h_c2", 1, 2, "Ben");
+cell("h_c3", 2, 3, "Cy");
+cell("h_c4", 3, 2, "Di");
+
+
+/* ── References: to a block, to a definition, to nothing ── */
+
+layer("l_refs", "References", [2, 1]);
+note("l_refs", "A reference stands for something drawn elsewhere: a block on the cards layer, a definition, or something since deleted.", 22);
+put("x_block", "l_refs", "reference", [0, 0], { of: "c_block" });
+put("x_def", "l_refs", "reference", [1.5, 0], { of: "def_pump" });
+put("x_gone", "l_refs", "reference", [3, 0], { name: "Gone", of: "nothing_here" });
+
+
+/* ── Data: the erd package, as a model and as data ── */
+
+const W = 18 * U;
+const H = 8 * U;
+const at = (x, y) => ({ x: x * W, y: y * H });
+layer("l_model", "Data model", [3, 1], "def_large");
+note("l_model", "The erd package's entities as stand-ins: each attribute typed by another entity draws a link.", 22);
+put("m_customer", "l_model", "reference", null, { of: "erd.customer", ...at(0, 0) });
+put("m_order", "l_model", "reference", null, { of: "erd.order", ...at(1, 0) });
+put("m_line", "l_model", "reference", null, { of: "erd.line", ...at(2, 0) });
+put("m_product", "l_model", "reference", null, { of: "erd.product", ...at(2, 1) });
+layer("l_rows", "Data rows", [0, 2], "def_large");
+note("l_rows", "Usages answering the entities: a value naming another card on the layer draws a link.", 22);
+const vals = (o) => Object.entries(o).map(([name, value]) => ({ name, value }));
+const row = (id, name, type, values, x, y) =>
+  put(id, "l_rows", "block", null, { name, type, values: vals(values), ...at(x, y) });
+row("u_ada", "Ada Lovelace", "erd.customer", { id: "1", name: "Ada Lovelace", email: "ada@example.com" }, 0, 0);
+row("u_1001", "Order 1001", "erd.order", { number: "1001", customer: "Ada Lovelace", placed: "2026-10-01",
+                                          status: "shipped", paid: "true" }, 1, 0);
+row("u_l1", "1001 · widgets", "erd.line", { order: "Order 1001", product: "Widget", qty: "3" }, 2, 0);
+row("u_l2", "1001 · gadget", "erd.line", { order: "Order 1001", product: "Gadget" }, 2, 1);
+row("u_widget", "Widget", "erd.product", { sku: "W-1", name: "Widget", price: "4.50" }, 3, 0);
+row("u_gadget", "Gadget", "erd.product", { sku: "G-2", name: "Gadget", price: "12.00" }, 3, 1);
+
+
+/* ── The file ── */
+
+const erd = JSON.parse(readFileSync("public/packages/erd.json", "utf8")).graph.blocks;
+blocks.workspace.counters = counters;
+const graph = { root: "workspace", blocks: { ...blocks, ...erd }, edges };
+writeFileSync("samples/workspace.showcase.json",
+              JSON.stringify({ schema: "1.0", id: "workspace", graph }, null, 2) + "\n");
+console.log(`wrote ${Object.keys(blocks).length} blocks, ${Object.keys(edges).length} relations`);

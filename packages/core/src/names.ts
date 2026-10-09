@@ -1,7 +1,7 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
-import { base_named, base_of, def_at, def_of, edge_base, frozen, schema_of } from "./defs";
-import { drawn_in, is_flat, is_group, shape_of } from "./holders";
+import { attributes_of, base_named, base_of, def_at, def_of, edge_base, frozen } from "./defs";
+import { is_flat, is_group, shape_of } from "./holders";
 import { children, is_container, stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
@@ -134,26 +134,22 @@ export const MARK_MEANING: Record<Mark, string> = {
   reference: "stands for a block elsewhere",
   definition: "stands for a definition",
   package: "stands for a package",
-  data: "carries data: field values, or a schema",
+  data: "carries data: values, or attributes",
   parts: "opens onto a drawing of its own",
 };
 
-/** The workspace definition whose fields a block's data answers, or null where it has none: a
- *  definition of its own that declares fields, else the one what it holds answers — a table's
- *  schema is its rows', or its grid's. A package's own fields are its vocabulary, not the
- *  workspace's data. */
+/** The workspace definition whose attributes a block's data answers, or null where it has none:
+ *  a definition of its own that declares attributes, else the one what it holds answers. A
+ *  package's own attributes are its vocabulary, not the workspace's data. */
 export function schema_def(graph: Graph, id: Id): Id | null {
   const own = (type: Id | undefined) => {
     const d = def_at(graph, type);
-    return d && !frozen(graph, d.id) && schema_of(graph, d.id).length ? d.id : null;
+    return d && !frozen(graph, d.id) && attributes_of(graph, d.id).length ? d.id : null;
   };
   if (def_at(graph, id)) return own(id);
   const b = graph.blocks[id];
   if (!b) return null;
-  /** A grid is described by the schema heading it first, then by what it is. */
-  return own(b.grid?.schema) ?? own(b.type)
-    ?? children(graph, id).map((k) => own(k.type)).find(Boolean)
-    ?? drawn_in(graph, id).map((h) => own(h.grid?.schema)).find(Boolean) ?? null;
+  return own(b.type) ?? children(graph, id).map((k) => own(k.type)).find(Boolean) ?? null;
 }
 
 /** What a card is stamped with: what it stands in for, or else what describes it — a stand-in
@@ -166,16 +162,17 @@ export function stamps_of(graph: Graph, id: Id): Mark[] {
     const at = graph.blocks[b.of];
     out.push(at?.def ? "definition" : at?.parent === null ? "package" : "reference");
   }
-  else if (b.values?.some((f) => f.value) || schema_of(graph, b.type).length) out.push("data");
+  else if (b.values?.some((v) => v.value) || attributes_of(graph, b.type).length) out.push("data");
   if (opens(graph, id)) out.push("parts");
   return out;
 }
 
-/** The blocks a definition is used by: those it types, those tagged with it, and the grids whose
- *  header allocates it. A subtype extends it rather than using it. */
+/** The blocks a definition is used by: those it types, those tagged with it, and the
+ *  definitions with an attribute typed by it. A subtype extends it rather than using it. */
 export function used_by(graph: Graph, def: Id): Block[] {
-  return Object.values(graph.blocks).filter((b) => !b.def
-    && (b.type === def || b.tags?.includes(def) || b.grid?.columns?.includes(def)));
+  return Object.values(graph.blocks).filter((b) => (!b.def
+    && (b.type === def || b.tags?.includes(def)))
+    || !!b.def?.attributes?.some((a) => a.type === def));
 }
 
 /** The definitions that extend this one directly. */

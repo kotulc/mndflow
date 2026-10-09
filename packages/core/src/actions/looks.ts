@@ -65,11 +65,13 @@ register(
 );
 
 /** The component keys a look may set. */
-const LOOKS: readonly string[] = ["card", "style", "line", "layout", "tie", "allows", "expects"];
+const LOOKS: readonly string[] = ["card", "style", "line", "layout", "tie", "allows", "expects",
+                                  "value"];
 
 /** Properties whose value is a list, split on commas. */
 const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.heads",
-                                  "expects.required", "expects.match"];
+                                  "expects.required", "expects.match", "value.choices",
+                                  "card.shows"];
 
 /** Capabilities that are nested records, stated only on a definition. */
 const NESTED: readonly string[] = ["ends", "degree"];
@@ -120,6 +122,11 @@ function value_of(args: Args): unknown {
   const key = String(args["key"]);
   const name = text(args, "name");
   if (said === undefined || said === null || said === "") return null;
+  /** A size is said as a pair, `8x4` or `8,4`, or as one already. */
+  if (`${key}.${name}` === "card.size" && typeof said !== "object") {
+    const [w, h] = String(said).split(/[x,\s]+/).map(Number);
+    return { w, h };
+  }
   if (LISTS.includes(`${key}.${name}`)) {
     /** A capability answers with a flag as readily as with a list of definitions. */
     const word = String(said).trim();

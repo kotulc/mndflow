@@ -31,7 +31,8 @@ npx vitest run packages/stage        # its suite, from the repo root
 | `Crumbs.tsx` | the trail down to the open layer, as `open` acts. Shared with the kit's `Viewer`, and dressed by the theme's `shell.css` |
 | `Flow.tsx` | the canvas, composed from `room`, `sync`, `draw` and `drag` hooks and `Grips` |
 | `moves.ts` | what a canvas adjustment writes, handed to the host as one batch |
-| `flow.css` · `routes.css` · `groups.css` | cards and the frame, their stamped marks and field compartments; runs and their ends; bands and grids |
+| `nodes.tsx` | the node types. **A card is theme's `CardFace`**, with what the canvas lays over it: its border's targets, its grips, its seats, and its name renamed in place |
+| `flow.css` · `routes.css` · `groups.css` | what the canvas adds to a card — picked, part, header, in and out — and the frame; runs and their ends; bands and grids. How a face is laid out is theme's `face.css` |
 | `stage.css` | the stage box, the legend, and the diagram's way out. Bundled into the kit's sheet, since `Viewer` draws the legend too |
 | `dev/` | its own Vite root, and a harness holding the state the component refuses to |
 

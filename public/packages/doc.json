@@ -68,10 +68,10 @@
         "parent": "doc.blocks",
         "name": "section",
         "def": {
-          "schema": [
+          "attributes": [
             {
               "name": "level",
-              "form": "number"
+              "type": "number"
             }
           ]
         },
@@ -119,10 +119,9 @@
         "parent": "doc.blocks",
         "name": "code",
         "def": {
-          "schema": [
+          "attributes": [
             {
-              "name": "lang",
-              "form": "text"
+              "name": "lang"
             }
           ]
         },

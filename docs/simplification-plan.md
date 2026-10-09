@@ -36,6 +36,9 @@
 | what a kind cannot be made from | core `actions/helpers.ts` `NEEDS`, asked by `create`'s check |
 | panning to a revealed block | stage `room.ts` (`useCamera`, from `focus`); the web app sets it on a reveal |
 | settings resolution | core `defs.ts` (`stated`, `setting_of`, `traits_of`) |
+| what a card carries, its face and its size | views `derive.ts` (`carried`, `face_text`) and `size.ts` (`face_of`, `size_of`); drawn by theme `CardFace` on the canvas, in the tray and in mndmap alike. Three card renderers became one (2026-10-08) |
+| markdown, rendered | theme `Markdown` and `Inline`; nothing else parses markdown to draw it |
+| a card as markdown, and a folder of them | core `card.ts` (`card_text`, `read_card`), the `markdown` and `attach` actions, `collection.ts` (`collect`) |
 
 
 ## How to look

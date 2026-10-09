@@ -1,10 +1,11 @@
 /** The headless app: folds, acts, projects and checks without React. */
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { all_defs, alias_of, check, children, domain_of, fold, read, review, say, session,
-         shown_name, write, type Fault, type Id, type Log, type Storage } from "@mnd/core";
+import { all_defs, alias_of, check, children, collect, domain_of, fold, read, review, say,
+         session, shown_name, write, type Fault, type Id, type Leaf, type Log,
+         type Storage } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
 import { draw, draw_svg, faults, outline, project } from "@mnd/views";
@@ -24,6 +25,7 @@ const USAGE = `mnd — the headless harness
   mnd translate <source> [--round]     write the graph as SysML, and check it comes back
                         [--with <pkg>] bring a vocabulary in first, so its names are used
   mnd export <source> [out.json]       fold and write the file
+  mnd collect <folder> [out.json]      a folder of markdown cards and package.json, as a package
 
   <source> is a log fixture (${NAMES.join(", ")}),
            a file fixture (${GRAPH_NAMES.join(", ")}),
@@ -31,6 +33,7 @@ const USAGE = `mnd — the headless harness
   A log is harness input only: a file is a graph, and that is what export writes.
   --how sets the arrangement: free auto
   --svg writes the drawing instead of the text projection
+  k=@path reads that value from a file: body=@cards/pump.md
   --from sets the package catalogue search reads (default public/packages/index.json)
 `;
 
@@ -106,10 +109,22 @@ function pairs(args: string[]): Record<string, unknown> {
     if (eq < 0) continue;
     const key = a.slice(0, eq);
     const value = a.slice(eq + 1);
-    out[key] = value === "true" ? true : value === "false" ? false
+    /** A value said as `@path` is that file's text, where there is such a file. */
+    out[key] = value.startsWith("@") && existsSync(value.slice(1)) ? readFileSync(value.slice(1), "utf8")
+             : value === "true" ? true : value === "false" ? false
              : /^-?\d+$/.test(value) ? Number(value) : value;
   }
   return out;
+}
+
+/** Every file under a folder, by its path from it, skipping what is hidden. */
+function leaves(folder: string, at = folder): Leaf[] {
+  return readdirSync(at).flatMap((name): Leaf[] => {
+    if (name.startsWith(".") || name === "node_modules") return [];
+    const full = join(at, name);
+    if (statSync(full).isDirectory()) return leaves(folder, full);
+    return [{ path: relative(folder, full).split(sep).join("/"), text: readFileSync(full, "utf8") }];
+  });
 }
 
 /** Where the packages catalogue lives, at the repo root. */
@@ -121,6 +136,16 @@ async function main(argv: string[]): Promise<void> {
   if (!verb || !source) {
     console.log(USAGE);
     process.exit(verb ? 1 : 0);
+  }
+
+  /** A collection is a folder, not a log: read whole, and written as a package file. */
+  if (verb === "collect") {
+    const { text, made } = collect(basename(resolve(source)), leaves(source), fold([], FLOOR));
+    const out = loose(rest)[0];
+    if (out) writeFileSync(out, text);
+    else process.stdout.write(text);
+    if (made.length) console.error(`  made ${made.join(", ")}`);
+    return;
   }
 
   const { log, faults: reading } = load(source);

@@ -2,7 +2,7 @@
 
 import { legend_of, type Row, type Scene } from "@mnd/views";
 import { Icon, known, mark_icon, role_icon } from "@mnd/theme";
-import { dressed } from "./nodes";
+import { face_attrs } from "@mnd/views";
 
 /** Which right-hand corner it sits in. */
 export type Corner = "top" | "bottom";
@@ -31,7 +31,7 @@ function Kind({ row }: { row: Row }) {
   const worn = icon && known(icon) ? icon : role_icon(row.role);
   return (
     <li title={`${row.count} on this layer`}>
-      <span className="mark" {...(row.look ? dressed(row.look) : {})}>
+      <span className="mark" {...(row.look ? face_attrs(row.look) : {})}>
         <Icon name={worn} size={12} />
       </span>
       <span className="word">{row.word}</span>

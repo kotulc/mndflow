@@ -16,6 +16,41 @@
         "type": "folder",
         "order": 1
       },
+      "requirements.group": {
+        "id": "requirements.group",
+        "parent": "requirements.blocks",
+        "name": "requirement group",
+        "def": {},
+        "type": "folder",
+        "settings": {
+          "card": {},
+          "allows": {
+            "holds": [
+              "requirements.requirement",
+              "requirements.group"
+            ]
+          }
+        }
+      },
+      "requirements.method": {
+        "id": "requirements.method",
+        "parent": "requirements.blocks",
+        "name": "verification method",
+        "type": "choice",
+        "body": "How a requirement is shown to hold.",
+        "def": {},
+        "settings": {
+          "value": {
+            "choices": [
+              "inspection",
+              "analysis",
+              "demonstration",
+              "test"
+            ]
+          }
+        },
+        "order": 3
+      },
       "requirements.relations": {
         "id": "requirements.relations",
         "parent": "requirements",
@@ -28,24 +63,16 @@
         "parent": "requirements.blocks",
         "name": "requirement",
         "def": {
-          "schema": [
+          "attributes": [
             {
-              "name": "id",
-              "form": "text"
+              "name": "id"
             },
             {
-              "name": "shall",
-              "form": "text"
+              "name": "shall"
             },
             {
               "name": "method",
-              "form": "choice",
-              "choices": [
-                "inspection",
-                "analysis",
-                "demonstration",
-                "test"
-              ]
+              "type": "requirements.method"
             }
           ]
         },
@@ -63,22 +90,6 @@
             "required": [
               "id",
               "shall"
-            ]
-          }
-        }
-      },
-      "requirements.group": {
-        "id": "requirements.group",
-        "parent": "requirements.blocks",
-        "name": "requirement group",
-        "def": {},
-        "type": "folder",
-        "settings": {
-          "card": {},
-          "allows": {
-            "holds": [
-              "requirements.requirement",
-              "requirements.group"
             ]
           }
         }
@@ -104,6 +115,17 @@
           }
         }
       },
+      "requirements.table": {
+        "id": "requirements.table",
+        "parent": "requirements.blocks",
+        "name": "requirements",
+        "def": {},
+        "settings": {
+          "view": {
+            "module": "table"
+          }
+        }
+      },
       "requirements.verify": {
         "id": "requirements.verify",
         "parent": "requirements.relations",
@@ -117,17 +139,6 @@
                 "requirements.requirement"
               ]
             }
-          }
-        }
-      },
-      "requirements.table": {
-        "id": "requirements.table",
-        "parent": "requirements.blocks",
-        "name": "requirements",
-        "def": {},
-        "settings": {
-          "view": {
-            "module": "table"
           }
         }
       }

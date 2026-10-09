@@ -56,7 +56,6 @@ export function useDisplay(start: Pick<Display, "card" | "range"> & Partial<Disp
       set_display((was) => ({ ...was, corner: args?.["at"] === "bottom" ? "bottom" : "top" }));
     }
     if (name === "lattice") set_display((was) => ({ ...was, lattice: !!args?.["show"] }));
-    if (name === "full") set_display((was) => ({ ...was, full: !!args?.["show"] }));
   };
 
   return { display, onDisplay };

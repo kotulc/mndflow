@@ -9,8 +9,9 @@ export { editor_slices, useChain,
  *  reads; its workspace tab still sets how the drawing looks. */
 export { Tray, useDisplay, useTray,
          type Display, type Extra, type Hold, type Pointed, type TrayProps } from "@mnd/tray";
-/** Markdown as a card draws it: React elements, never an HTML string. */
-export { Inline, Markdown } from "@mnd/stage";
+/** Markdown as every card and tray draws it: React elements, never an HTML string. And the one
+ *  card face every surface draws. */
+export { CardFace, Inline, Markdown, type FaceProps } from "@mnd/theme";
 export { WorkspaceHeader, TrayFrame, Icon,
          type WorkspaceHeaderProps, type TrayFrameProps } from "./shell";
 

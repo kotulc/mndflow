@@ -261,7 +261,9 @@
         "def": {},
         "settings": {
           "card": {
-            "body": "show"
+            "shows": [
+              "body"
+            ]
           }
         },
         "order": 13
@@ -308,20 +310,6 @@
         },
         "order": 17
       },
-      "fitted": {
-        "id": "fitted",
-        "parent": "base.traits",
-        "name": "fitted",
-        "type": "tag",
-        "body": "Grows to fit what it shows.",
-        "def": {},
-        "settings": {
-          "card": {
-            "height": "fit"
-          }
-        },
-        "order": 18
-      },
       "media": {
         "id": "media",
         "parent": "base.traits",
@@ -331,7 +319,9 @@
         "def": {},
         "settings": {
           "card": {
-            "preview": "show"
+            "shows": [
+              "preview"
+            ]
           }
         },
         "order": 19
@@ -363,6 +353,103 @@
           }
         },
         "order": 20
+      },
+      "value": {
+        "id": "value",
+        "parent": "base.blocks",
+        "name": "value",
+        "body": "What an attribute holds: a value type. Never placed; a definition's attributes name one, and how a value is edited is its `value.form`.",
+        "def": {},
+        "settings": {
+          "block": {
+            "module": "block"
+          },
+          "card": {},
+          "style": {
+            "family": "secondary"
+          },
+          "value": {
+            "form": "text"
+          }
+        },
+        "order": 21
+      },
+      "base.types": {
+        "id": "base.types",
+        "parent": "base",
+        "name": "types",
+        "type": "folder",
+        "order": 22
+      },
+      "text": {
+        "id": "text",
+        "parent": "base.types",
+        "name": "text",
+        "type": "value",
+        "body": "Words: anything said in a line.",
+        "def": {},
+        "settings": {
+          "value": {
+            "form": "text"
+          }
+        },
+        "order": 23
+      },
+      "number": {
+        "id": "number",
+        "parent": "base.types",
+        "name": "number",
+        "type": "value",
+        "body": "A count or a measure, in the unit an attribute says.",
+        "def": {},
+        "settings": {
+          "value": {
+            "form": "number"
+          }
+        },
+        "order": 24
+      },
+      "flag": {
+        "id": "flag",
+        "parent": "base.types",
+        "name": "flag",
+        "type": "value",
+        "body": "A yes or a no.",
+        "def": {},
+        "settings": {
+          "value": {
+            "form": "flag"
+          }
+        },
+        "order": 25
+      },
+      "link": {
+        "id": "link",
+        "parent": "base.types",
+        "name": "link",
+        "type": "value",
+        "body": "Where something lives: a uri.",
+        "def": {},
+        "settings": {
+          "value": {
+            "form": "link"
+          }
+        },
+        "order": 26
+      },
+      "choice": {
+        "id": "choice",
+        "parent": "base.types",
+        "name": "choice",
+        "type": "value",
+        "body": "One of a set: a subtype lists its options in `value.choices`.",
+        "def": {},
+        "settings": {
+          "value": {
+            "form": "choice"
+          }
+        },
+        "order": 27
       }
     },
     "edges": {}

@@ -43,7 +43,7 @@ Open a block and **find the thing it stands for in its body**: a requirement's t
 | **format is the definition's** | `Requirement` says markdown, `Script` says code. Not a new value form — `body` is a slot beside `fields` |
 | **storage stays reversible** | the browser log stores each body once by hash; the graph and the file carry text, never a content id |
 
-**Open:** whether a definition's data becomes editable in place; what a body's format is and who says so, the definition or the block.
+**Settled (cards-plan.md):** a body is markdown, rendered by one renderer; a definition's data is never typed in place — it changes by traits, pickers and its card source.
 
 
 ## Agents and data

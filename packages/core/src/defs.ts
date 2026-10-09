@@ -1,13 +1,16 @@
 /** Definitions: blocks carrying `def`. Chains, bases, packages, and what an element resolves
  *  through. */
 
-import type { Settings } from "./components";
+import { FORMS, type Settings } from "./components";
 import { organizes } from "./holders";
 import { BASE_BLOCKS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, type Block, type BlockModule,
-         type Components, type Definition, type FieldDef, type Graph, type Id } from "./types";
+         type Attribute, type Components, type Definition, type Graph, type Id } from "./types";
 
 /** A definition's domain: what its usages are. Read off its base, never stored. */
 export type Domain = "block" | "relation";
+
+/** How a value is edited. */
+export type Form = (typeof FORMS)[number];
 
 
 /** The definition with this id, where a block is one. */
@@ -89,17 +92,37 @@ export function ordered_by<T extends { name: string }>(fields: readonly T[],
   return [...named, ...fields.filter((f) => !names.includes(f.name))];
 }
 
-/** A definition's field schema down its chain, nearer fields replacing farther ones. */
-export function schema_of(graph: Graph, type: Id | undefined): (FieldDef & { from: Id })[] {
-  const out: (FieldDef & { from: Id })[] = [];
+/** A definition's attributes down its chain, nearer ones replacing farther ones by name. */
+export function attributes_of(graph: Graph, type: Id | undefined): (Attribute & { from: Id })[] {
+  const out: (Attribute & { from: Id })[] = [];
   for (const d of isa(graph, type).reverse()) {
-    for (const f of d.def.schema ?? []) {
-      const at = out.findIndex((x) => x.name === f.name);
-      if (at < 0) out.push({ ...f, from: d.id });
-      else out[at] = { ...f, from: d.id };
+    for (const a of d.def.attributes ?? []) {
+      const at = out.findIndex((x) => x.name === a.name);
+      if (at < 0) out.push({ ...a, from: d.id });
+      else out[at] = { ...a, from: d.id };
     }
   }
   return out;
+}
+
+/** Whether a definition is a value type: what an attribute holds, never placed. */
+export function is_value_type(graph: Graph, id: Id | undefined): boolean {
+  return !!def_at(graph, id) && base_named(graph, id) === "value";
+}
+
+/** How a value of this type is edited: its value type's form, a link where the type is a block
+ *  definition — a foreign key — and text where it names nothing. */
+export function form_of(graph: Graph, type: Id | undefined): Form {
+  if (!def_at(graph, type)) return "text";
+  if (!is_value_type(graph, type)) return "link";
+  const said = setting_of(graph, type, "value")["form"];
+  return FORMS.includes(said as Form) ? said as Form : "text";
+}
+
+/** Whether an attribute links to a block definition: a foreign key. */
+export function links_to(graph: Graph, attribute: Attribute): Id | null {
+  return def_at(graph, attribute.type) && !is_value_type(graph, attribute.type)
+    && domain_of(graph, attribute.type) === "block" ? attribute.type! : null;
 }
 
 /** Whether an id names a base: a definition the kit ships with nothing above it. */

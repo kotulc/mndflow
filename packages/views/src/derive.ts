@@ -1,10 +1,11 @@
 /** What every module derives the same way. */
 
-import { alias_of, def_at, schema_def, schema_of, head_of, is_container, is_flat, is_interface,
-         is_named, base_of, path, previewed, role_of, shape_of, shown_name, stamps_of, stands_for,
-         stood_def, type Graph, type Id } from "@mnd/core";
+import { head_of, is_container, is_flat, is_interface, is_named, base_of, path, previewed, role_of,
+         shape_of, shown_name, stamps_of, stands_for, stood_def, type Graph, type Id } from "@mnd/core";
+import { face_text, handle_of } from "./face";
 import { look_of } from "./look";
-import type { BoxData, Listed, CardClass, Scene } from "./scene";
+import { face_of, type Face } from "./size";
+import type { BoxData, CardClass, Scene } from "./scene";
 
 /** How a block reads, derived from what it holds or where it sits. */
 export function marks_of(graph: Graph, id: Id): CardClass[] {
@@ -39,14 +40,14 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
   return out;
 }
 
-/** Everything a drawn block carries beyond where it sits. */
-export function carried(graph: Graph, id: Id): BoxData {
+/** Everything a drawn block carries beyond where it sits: what its card is, and — where it
+ *  draws with the large face, which the view may ask for — the markdown that face shows. */
+export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): BoxData {
   /** A reference to a block carries what its target carries. */
   const b = graph.blocks[previewed(graph, id)]!;
   const look = look_of(graph, id);
-  /** The handle, beside the name rather than inside it. */
-  const alias = look.alias === undefined ? alias_of(graph, id)
-    : look.alias ? alias_of(graph, id, true) : "";
+  /** The handle, over the name. */
+  const alias = handle_of(graph, id, look);
   return {
     label: shown_name(graph, id),
     ...(alias ? { alias } : {}),
@@ -56,41 +57,14 @@ export function carried(graph: Graph, id: Id): BoxData {
     ...(link_of(graph, id) ? { link: link_of(graph, id) } : {}),
     marks: marks_of(graph, id),
     look,
-    ...(look.fields ? { fields: listed(graph, b.id) } : {}),
-    ...(look.body && "body" in b && b.body ? { body: b.body } : {}),
-    ...(look.preview && b.source ? { preview: b.source } : {}),
+    face,
+    ...(face === "large" ? { text: face_text(graph, b.id, look) } : {}),
   };
 }
 
-/** What a card's compartment lists. A stand-in for a definition lists its schema, and so does a
- *  block holding usages of one — a table lists its columns. Anything else lists the schema it
- *  answers, with its values, then whatever it carries beyond it. */
-export function listed(graph: Graph, id: Id): Listed[] {
-  const b = graph.blocks[id];
-  if (!b) return [];
-  const form_only = (def: Id) => schema_of(graph, def).map(({ name, form }) => ({ name, form }));
-  if (b.of && def_at(graph, b.of)) return form_only(b.of);
-  const held = schema_def(graph, id);
-  if (held && held !== b.type) return form_only(held);
-  const own = b.values ?? [];
-  const schema = schema_of(graph, b.type);
-  const extra = own.filter((f) => !schema.some((s) => s.name === f.name));
-  return [...schema, ...extra].map(({ name, form }) => {
-    const mine = own.find((f) => f.name === name);
-    return { name, form, ...(mine?.value ? { value: mine.value } : {}),
-             ...(mine?.key ? { key: true } : {}) };
-  });
-}
-
-/** The field a box's link is read from. */
-export const SOURCE = "source";
-
-/** Where a block points, if it says: the source slot first, then the field that predates it. */
+/** Where a box points, if it says: its source. */
 export function link_of(graph: Graph, id: Id): string | undefined {
-  const b = graph.blocks[id];
-  if (b?.source) return b.source;
-  const said = b?.values?.find((f) => f.name === SOURCE && f.form === "link");
-  return said?.value || undefined;
+  return graph.blocks[id]?.source || undefined;
 }
 
 /** The trail from the package down to the layer, for a breadcrumb. */

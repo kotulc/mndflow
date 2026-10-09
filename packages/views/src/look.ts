@@ -2,7 +2,8 @@
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, def_of, DISPLAYS,
          domain_of, FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, is_trait,
-         kind_word, previewed, relation_base, schema_of, SHOWN, stood_def, WEIGHTS, WIDTHS,
+         kind_word, PARTS, previewed, relation_base, attributes_of, SHOWN, stood_def, WEIGHTS,
+         WIDTHS,
          type Definition, type Graph, type Id, type Settings } from "@mnd/core";
 
 export type Family = (typeof FAMILIES)[number];
@@ -16,6 +17,7 @@ export type Align = (typeof ALIGNS)[number];
 export type Fill = (typeof FILLS)[number];
 export type Contrast = (typeof CONTRASTS)[number];
 export type Arrow = (typeof ARROWS)[number];
+export type Part = (typeof PARTS)[number];
 
 /** What one usage looks like, as names from closed sets. */
 export type Look = {
@@ -41,18 +43,16 @@ export type Look = {
   align: Align;
   /** Which end of the card its label reads from. */
   label_align: Align;
-  /** Whether this card is the one card height, or keeps whatever size it was given. */
+  /** Whether this card is the size its face says, or keeps whatever size it was given. */
   height: Height;
   /** Whether the handle is drawn, where somebody said. */
   alias?: boolean;
-  /** Whether the card lists its fields in a compartment under its name. */
-  fields?: boolean;
-  /** Whether the card shows its body, formatted, under its name. */
-  body?: boolean;
-  /** False where the name is not drawn, so the body is the whole card. */
+  /** What the large face shows under the name, in order. */
+  shows: readonly Part[];
+  /** The large face's size in units, where its definition said one. */
+  size?: { w: number; h: number };
+  /** False where the large face does not draw the name, so what it shows is the whole card. */
   head?: boolean;
-  /** Whether the card shows the image its source points at, under its name. */
-  preview?: boolean;
   /** What sort of thing this is, as a word: the subtype where somebody named one, the base kind
    *  otherwise. */
   kind: string;
@@ -78,6 +78,7 @@ export const PLAIN: Look = {
   align: DEFAULTS["card.align"],
   label_align: DEFAULTS["card.label_align"],
   height: DEFAULTS["card.height"],
+  shows: [],
   kind: "block",
 };
 
@@ -116,22 +117,21 @@ export function look_of(graph: Graph, id: Id): Look {
                  source.type ?? source.id);
 }
 
-/** How a stand-in for a definition draws: as its usages, named rather than showing a body it
- *  has not got — unless one was handed to it, as a chart hands a tag what it means — listing a
- *  schema only where there is one, and a relation wearing its line. */
+/** How a stand-in for a definition draws: as its usages, named, showing only what it has — a
+ *  body handed to it, as a chart hands a tag what it means, and attributes where it has some —
+ *  and a relation wearing its line. */
 function stand_in(graph: Graph, id: Id, def: Definition): Look {
   const own = (graph.blocks[id]!.def ? {} : graph.blocks[id]!.settings) ?? {};
   const card = { ...config_of(graph, def.id, "card"), ...(own["card"] ?? {}) };
   /** A trait's settings grant capabilities to carriers; they are not how it draws in vocabulary. */
-  const body = is_trait(graph, def.id) ? "hide"
-    : graph.blocks[id]!.body ? card["body"] ?? "hide" : "hide";
+  const has = (part: unknown) => part === "body"
+    ? !is_trait(graph, def.id) && !!graph.blocks[id]!.body
+    : part === "attributes" && attributes_of(graph, def.id).length > 0;
+  const shows = Array.isArray(card["shows"]) ? card["shows"].filter(has) : [];
   const style = { ...config_of(graph, def.id, "style"), ...(own["style"] ?? {}) };
   const relation = domain_of(graph, def.id) === "relation";
   const tie = relation && relation_base(graph, def.id) === "tie";
-  const listed = card["fields"] === "show" && schema_of(graph, def.id).length > 0;
-  const look = dressed(graph, id, { ...card, name: "show", body, preview: "hide",
-                                    fields: listed ? "show" : "hide" },
-                       style, def.name, def.id);
+  const look = dressed(graph, id, { ...card, name: "show", shows }, style, def.name, def.id);
   return relation && !look.icon ? { ...look, icon: tie ? "relation_tie" : "relation_plain" } : look;
 }
 
@@ -153,10 +153,10 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
     label_align: one(card["label_align"], ALIGNS, PLAIN.label_align),
     height: one(card["height"], HEIGHTS, PLAIN.height),
     ...(SHOWN.includes(card["alias"] as never) ? { alias: card["alias"] === "show" } : {}),
-    ...(card["fields"] === "show" ? { fields: true } : {}),
-    ...(card["body"] === "show" ? { body: true } : {}),
+    shows: Array.isArray(card["shows"])
+      ? card["shows"].filter((p): p is Part => (PARTS as readonly unknown[]).includes(p)) : [],
+    ...(sized(card["size"]) ? { size: card["size"] as { w: number; h: number } } : {}),
     ...(card["name"] === "hide" ? { head: false } : {}),
-    ...(card["preview"] === "show" ? { preview: true } : {}),
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
     ...contrast("label_contrast", style["label_contrast"]),
@@ -182,6 +182,12 @@ function hue_of(style: Settings, of: Id): Record<string, number> {
   for (const c of of) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   const stray = ((h % 1000) / 999 - 0.5) * vary;
   return { hue: Math.round((hue + stray + 360) % 360) };
+}
+
+/** Whether a setting is a size in units the door let through. */
+function sized(said: unknown): boolean {
+  const s = said as { w?: unknown; h?: unknown } | undefined;
+  return !!s && typeof s.w === "number" && typeof s.h === "number";
 }
 
 /** One contrast, under its own name, and absent where nobody said. */
@@ -254,7 +260,8 @@ export function look_key(look?: Look | Wire): string {
   return Object.keys(look).sort()
     .map((k) => {
       const v = (look as Record<string, unknown>)[k];
-      return `${k}=${Array.isArray(v) ? v.join("+") : String(v)}`;
+      return `${k}=${Array.isArray(v) ? v.join("+") : typeof v === "object" ? JSON.stringify(v)
+        : String(v)}`;
     })
     .join(";");
 }
@@ -264,4 +271,34 @@ function width_of(graph: Graph, id: Id): Width {
   const b = graph.blocks[id];
   if (!b || is_interface(b)) return "thin";
   return is_container(graph, id) ? "medium" : "thin";
+}
+
+/** What a look says, as the attributes the card table reads: the face's paint. */
+export function face_attrs(look: Look): Record<string, unknown> {
+  const tinted = look.hue !== undefined;
+  /** Opacity rides as a number, not a percentage. */
+  const sheer = look.opacity !== undefined && look.opacity < 1;
+  return {
+    "data-family": tinted ? "tint" : look.family,
+    "data-fill": look.fill,
+    "data-border-width": look.border_width,
+    "data-border-style": look.border_style,
+    "data-name-font": look.name_font,
+    "data-name-weight": look.name_weight,
+    "data-label-font": look.label_font,
+    "data-label-weight": look.label_weight,
+    "data-label": look.label,
+    "data-align": look.align,
+    "data-label-align": look.label_align,
+    ...(look.border_contrast ? { "data-border-contrast": look.border_contrast } : {}),
+    ...(look.name_contrast ? { "data-name-contrast": look.name_contrast } : {}),
+    ...(look.label_contrast ? { "data-label-contrast": look.label_contrast } : {}),
+    ...(sheer ? { "data-sheer": "" } : {}),
+    ...(tinted
+      /** The ceiling stays in the ramp. */
+      ? { style: { "--card-h": String(look.hue),
+                   "--card-c": `calc(var(--tint-ceiling) * ${look.intensity ?? 0.65})`,
+                   ...(sheer ? { "--card-opacity": String(look.opacity) } : {}) } }
+      : sheer ? { style: { "--card-opacity": String(look.opacity) } } : {}),
+  };
 }

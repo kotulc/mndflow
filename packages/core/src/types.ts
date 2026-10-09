@@ -29,21 +29,27 @@ export const LAYOUTS: readonly Layout[] = ["free", "auto", "page"];
 
 export type Dir = "none" | "forward" | "back" | "both";
 
-/** The value forms a field may take. Closed. */
-export type ValueForm = "text" | "number" | "flag" | "choice" | "link";
-
-export const VALUE_FORMS: readonly ValueForm[] = ["text", "number", "flag", "choice", "link"];
-
-export type Field = {
+/** What a definition declares its usages answer. Its `type` is a value type, or a block
+ *  definition, which makes it a link; absent, it is text. Anything else said of it is kept as
+ *  written, in `extra`. */
+export type Attribute = {
   name: string;
-  form: ValueForm;
-  value?: string;
-  tags?: string[];
-  /** Whether its value names what carries it: a table's key column. */
+  type?: Id;
+  /** Whether its value names what carries it: the key. */
   key?: boolean;
+  /** What a usage answers where it says nothing. */
+  default?: string;
+  unit?: string;
+  /** Whether a usage may answer it with several values. */
+  many?: boolean;
+  /** Whether a usage may leave it unanswered. */
+  optional?: boolean;
+  note?: string;
+  extra?: Record<string, string>;
 };
 
-export type FieldDef = Field & { unit?: string; choices?: string[]; many?: boolean };
+/** A usage's answer to an attribute, by name. Typed by the attribute, never by itself. */
+export type Value = { name: string; value: string };
 
 /** An address inside a grid. */
 export type Cell = { r: number; c: number };
@@ -58,29 +64,19 @@ export type HeaderRole = "row" | "col" | "both";
  *  Which one a block is comes from its base. */
 export type Shape = "group" | "grid";
 
-/** A grid's lattice, held on the block that is one. */
+/** A grid's lattice, held on the block that is one: allocation, and nothing else. Its top row
+ *  heads columns and its left column heads rows; what sits in a cell is a block. */
 export type Grid = {
   rows: number;
   cols: number;
   /** Cells with an extent of their own. */
   merges?: Span[];
-  /** A plain value per cell, by row then column. A value is data, not a part: a cell seating a
-   *  block draws the block. */
-  values?: string[][];
-  /** The definition whose fields head its columns. Its first row reads their names and holds no
-   *  values. */
-  schema?: Id;
-  /** The block definition each column allocates, in order, or `""` for one allocating none. Its
-   *  first row reads its own first values, or where a column has none, its definition's name. */
-  columns?: Id[];
-  /** One cell's size in units, where its cells are not a card's. */
-  size?: { w: number; h: number };
 };
 
 /** What makes a block a definition: explicit, and holding what only a definition says. */
 export type DefBody = {
-  /** The fields its usages carry values for. */
-  schema?: FieldDef[];
+  /** What its usages answer. */
+  attributes?: Attribute[];
 };
 
 /** The one element. **A definition is a block too**: one carrying `def`, sitting in a package's
@@ -126,8 +122,8 @@ export type Block = {
    *  replace the chain's set. A usage carries none. */
   traits?: Id[];
   flow?: Flow;
-  /** A usage's field values. */
-  values?: Field[];
+  /** A usage's answers, in order. */
+  values?: Value[];
 };
 
 export type Relation = {
@@ -165,7 +161,7 @@ export const BLOCK_MODULES: readonly BlockModule[] = ["block", "reference", "int
  *  `grid` and `tag` differ from `block` by what they configure and nothing else. **There is no `resource`**: every block may
  *  point at external content through `source`, so a kind for it said nothing the slot does not. */
 export const BASE_BLOCKS: readonly Id[] = [
-  "block", "folder", "reference", "interface", "group", "grid", "note", "tag",
+  "block", "folder", "reference", "interface", "group", "grid", "note", "tag", "value",
 ];
 
 /** The shipped relation bases. `tie` is a definition — a dashed run with no heads — chosen like
@@ -208,8 +204,8 @@ export type Mutation =
   /** The whole shortlist, in order. */
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
-  /** A definition's field schema, written whole. */
-  | { op: "set_schema"; id: Id; schema: FieldDef[] }
+  /** A definition's attributes, written whole. */
+  | { op: "set_attributes"; id: Id; attributes: Attribute[] }
   /** Where a block came from; null gives it back. */
   | { op: "set_source"; id: Id; source: string | null }
   | { op: "seat_cell"; id: Id; cell: Cell | null }
@@ -226,8 +222,8 @@ export type Mutation =
   | { op: "set_port"; id: Id; side: Side; at: number }
   | { op: "set_side"; id: Id; end: "from" | "to"; side: Side | null }
   | { op: "mark_port"; id: Id; flow: Flow | null }
-  /** A value on a block. An edge has none to set — see `Relation`. */
-  | { op: "set_value"; id: Id; field: Field }
+  /** An answer on a block. An edge has none to set — see `Relation`. */
+  | { op: "set_value"; id: Id; name: string; value: string }
   | { op: "drop_value"; id: Id; name: string }
   /** The order a block's values are listed in, by name. */
   | { op: "order_values"; id: Id; names: string[] }

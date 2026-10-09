@@ -1,8 +1,8 @@
 /** How big a thing is, before anything is placed. */
 
-import { covers, inline, is_grid, is_interface, lattice_of, previewed,
+import { covers, inline, is_grid, is_interface, lattice_of, previewed, setting_of, shown_name, FACES,
          type Graph, type Grid, type Id, type Point } from "@mnd/core";
-import { listed } from "./derive";
+import { fit_of, face_text, handle_of } from "./face";
 import { look_of } from "./look";
 
 /** The one place the drawing's proportions are set, and the unit is the only measure there is. */
@@ -35,8 +35,15 @@ export const CELL: Size = { w: BLOCK.w + GAP * 2, h: BLOCK.h + GAP * 2 };
 /** An interface is smaller than a seat is wide, so two never touch. */
 export const PORT: Size = { w: SEAT - 1, h: SEAT - 1 };
 
-/** What the default card may be set to, in units. */
+/** What the default card — the small face — may be set to, in units. */
 export const CARD = { min: { w: 4, h: 2 }, max: { w: 12, h: 6 } };
+
+/** The large face, in units: what a definition asks for, or what its content fits, is held under
+ *  `max`. */
+export const LARGE = { max: { w: 20, h: 16 } };
+
+/** Which face a card draws with. */
+export type Face = (typeof FACES)[number];
 
 export type Box = { x: number; y: number; w: number; h: number };
 
@@ -60,9 +67,9 @@ export function roomed(box: Box): Box {
            h: Math.ceil((box.y + box.h - y) / UNIT) * UNIT };
 }
 
-/** One cell of a grid: its own size where it says one, a card with air round it otherwise. */
-export function cell_size(g: Grid): Size {
-  return g.size ? { w: g.size.w * UNIT, h: g.size.h * UNIT } : CELL;
+/** One cell of a grid: a card with air round it. */
+export function cell_size(_g: Grid): Size {
+  return CELL;
 }
 
 /** Where line `i` starts along one axis: **the header line is one unit across**, every other a
@@ -98,16 +105,6 @@ export function extent_in(g: Grid, w: number, h: number): { rows: number; cols: 
   const cell = cell_size(g);
   const lines = (px: number, size: number) => 1 + Math.max(1, Math.round((px - UNIT) / size));
   return { rows: lines(h, cell.h), cols: lines(w, cell.w) };
-}
-
-/** Whether a card that fits its content grows to show all of it, or previews it at the one card
- *  height. The drawing's, like the card size, so it is held beside it and set the same way. */
-export const CONTENT = { full: false };
-
-/** Sets whether fitting cards show all of what they say, and says what it took. */
-export function set_full(full: boolean): boolean {
-  CONTENT.full = full;
-  return full;
 }
 
 /** A block of this size, centred in the cell it was given. */
@@ -150,10 +147,10 @@ export function gridded(graph: Graph, id: Id): boolean {
   return !!b?.cell && is_grid(graph, b.parent ?? undefined);
 }
 
-/** What this block needs. Every card is the one card size; a card whose definition asked for its
- *  own height keeps what it was given, one that fits grows to what it shows while the drawing
- *  shows content in full, and a grid drawn open is the extent it was drawn with. */
-export function size_of(graph: Graph, id: Id): Size {
+/** What this block needs: the size of the face it draws with — the one card size small, its
+ *  definition's large — or what it was given, where its card keeps that. A grid drawn open is the
+ *  extent it was drawn with. */
+export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id)): Size {
   /** An open grid is its extent, a closed one a card; a boundary is sized from what it holds, by
    *  the caller. */
   if (is_grid(graph, id) && inline(graph, id)) return grid_size(lattice_of(graph, id)!);
@@ -161,58 +158,44 @@ export function size_of(graph: Graph, id: Id): Size {
   if (!b) return BLOCK;
   if (is_interface(b)) return PORT;
   if (b.w !== undefined && b.h !== undefined && free_height(graph, id)) return { w: b.w, h: b.h };
-  /** A reference to a block previews it, at its size — a grid as a card listing its columns. */
+  /** A reference to a block previews it, at its size, with the face where it sits. */
   const source = previewed(graph, id);
-  if (source !== id && !is_grid(graph, source)) return size_of(graph, source);
+  if (source !== id && !is_grid(graph, source)) return size_of(graph, source, face);
+  return face === "large" ? large_of(graph, id) : { ...BLOCK };
+}
+
+/** Which face a block draws with: what the nearest ancestor saying `layout.face` asks for, else
+ *  the small one — always the small one in a grid's cell, which is a card's size. Never the
+ *  zoom's. */
+export function face_of(graph: Graph, id: Id): Face {
+  if (gridded(graph, id)) return "small";
+  const seen = new Set<Id>();
+  for (let at = graph.blocks[id]?.parent; at && !seen.has(at); at = graph.blocks[at]?.parent) {
+    seen.add(at);
+    const said = setting_of(graph, at, "layout")["face"];
+    if ((FACES as readonly unknown[]).includes(said)) return said as Face;
+  }
+  return "small";
+}
+
+/** The large face: its definition's `card.size`, else what its content fits — so one that shows
+ *  nothing is the small face. */
+function large_of(graph: Graph, id: Id): Size {
   const look = look_of(graph, id);
-  if (look.fields) return listing(listed(graph, source).length);
-  if (CONTENT.full && look.height === "fit" && look.body && b.body) {
-    return { w: BLOCK.w, h: parted(wrapped(b.body, BLOCK.w), look.head !== false) };
-  }
-  return { ...BLOCK };
+  if (look.size) return held_large(look.size);
+  return fitted(shown_name(graph, id), face_text(graph, id, look), !!handle_of(graph, id, look));
 }
 
-/** How tall a line of a card's compartment is, in pixels. */
-export const LISTED = 16;
-
-/** How wide a card listing its fields is at least, in units: room for a name and a value. */
-const LISTING = 10;
-
-/** How wide one character of a compartment is, near enough, in pixels. */
-const GLYPH = 7.2;
-
-/** What a card spends beside its compartment: its padding, the divider, and the corner's gutter. */
-const INSET = { x: 29, y: 10 };
-
-/** The most lines a card grows by; past it, what it shows is clipped. */
-const MOST = 16;
-
-/** A card listing its fields: at least `LISTING` wide, and tall enough for every line. */
-function listing(lines: number): Size {
-  return { w: Math.max(BLOCK.w, LISTING * UNIT), h: parted(lines, true) };
+/** The size a large face's name, handle and markdown fit, in whole units. */
+export function fitted(name: string, text: string, handle: boolean): Size {
+  const { w, h } = fit_of(name, text, handle, LARGE.max.w * UNIT);
+  return held_large({ w: Math.ceil(w / UNIT), h: Math.ceil(h / UNIT) });
 }
 
-/** A card's height with a head line over `lines` of compartment, never less than the one card
- *  height. It grows two units at a time, so it differs from any other card by an even number and a
- *  row of them centres on the lattice. */
-function parted(lines: number, head: boolean): number {
-  const px = (head ? UNIT : 0) + Math.min(lines, MOST) * LISTED + INSET.y;
-  const step = UNIT * 2;
-  return BLOCK.h + Math.max(0, Math.ceil((px - BLOCK.h) / step)) * step;
-}
-
-/** How many lines a body wraps to at this width. A fence draws nothing and what it holds never
- *  wraps; a blank line draws nothing, and a link draws its text rather than where it points. */
-function wrapped(body: string, w: number): number {
-  const per = Math.max(1, Math.floor((w - INSET.x) / GLYPH));
-  let fenced = false;
-  let n = 0;
-  for (const line of body.split("\n")) {
-    if (/^\s*(```|~~~)/.test(line)) { fenced = !fenced; continue; }
-    if (fenced) { n += 1; continue; }
-    if (line.trim()) n += Math.ceil(line.replace(/\]\([^)]*\)/g, "]").length / per);
-  }
-  return n;
+/** A large face's size in units, held between the small face and `LARGE.max`, in pixels. */
+function held_large(units: Size): Size {
+  return { w: ranged(units.w, UNITS.block.w, LARGE.max.w) * UNIT,
+           h: ranged(units.h, UNITS.block.h, LARGE.max.h) * UNIT };
 }
 
 /** Whether this card keeps whatever size it was given, rather than the one card height. */

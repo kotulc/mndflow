@@ -55,8 +55,7 @@ function resized(graph: Graph, group: Id, rows: number | null, cols: number | nu
   for (const b of members_of(graph, group)) {
     if (b.cell && !inside(g, b.cell)) out.push(put(graph, b.id, null));
   }
-  const values = g.values?.slice(0, g.rows).map((row) => row.slice(0, g.cols));
-  const fit = with_merges({ ...g, ...(values ? { values } : {}) }, (g.merges ?? [])
+  const fit = with_merges(g, (g.merges ?? [])
     .filter((s) => s.r + s.rows <= g.rows && s.c + s.cols <= g.cols));
   return [{ op: "set_grid", id: group, grid: fit }, ...out];
 }
@@ -137,7 +136,7 @@ register(
       /** Swept into a new grid, each seat is a body cell, past the header lines. */
       const past = into ? 0 : 1;
       const given = new Map(seats(args).map((s) => [s.id, { r: s.r + past, c: s.c + past }]));
-      const taken = into && lattice ? taken_in(ctx.graph, into, lattice) : new Set<string>();
+      const taken = into && lattice ? taken_in(ctx.graph, into) : new Set<string>();
       for (const c of given.values()) taken.add(`${c.r},${c.c}`);
       const moved: Id[] = [];
       const loose: Id[] = [];

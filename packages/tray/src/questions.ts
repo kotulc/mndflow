@@ -1,10 +1,10 @@
 /** The questions the settings panel asks of how something draws, as data. */
 
 import { ALIGNS, ARROWS, BORDERS, CONTRASTS, DISPLAYS, FAMILIES, FILLS, FONTS, HUE,
-         INTENSITY, OPACITY, SHOWN, VARY, WEIGHTS, WIDTHS } from "@mnd/core";
+         INTENSITY, OPACITY, PARTS, SHOWN, VARY, WEIGHTS, WIDTHS } from "@mnd/core";
 
 /** The parts of a drawing, and the questions each part is asked. */
-const GROUPS = ["name", "label", "head", "colour", "border", "icon"] as const;
+const GROUPS = ["name", "label", "face", "head", "colour", "border", "icon"] as const;
 export type Group = (typeof GROUPS)[number];
 
 /** The parts, in the order the rail lists them. */
@@ -15,15 +15,17 @@ export const AS_RUN: Partial<Record<Group, string>> = { border: "stroke" };
 
 /** Which component each part belongs to; the rail filters on it. */
 export const ASKS: Record<Group, string> = {
-  name: "style", label: "card", head: "line", colour: "style", border: "style", icon: "card",
+  name: "style", label: "card", face: "card", head: "line", colour: "style", border: "style",
+  icon: "card",
 };
 
 export type Key = "card" | "style" | "line";
 
-/** One question. `form` says how it is answered: */
+/** One question. `form` says how it is answered: one of a set, a quantity, a mark, several of a
+ *  set in order, or a size in units. */
 export type Question = {
   word: string; key: Key; name: string; tip: string;
-  form: "chips" | "range" | "marks";
+  form: "chips" | "range" | "marks" | "parts" | "size";
   of?: readonly { value: string; word: string }[];
   omit?: readonly string[];
   range?: { min: number; max: number; step: number; fallback: string };
@@ -71,6 +73,18 @@ export const ROWS: Record<Group, Question[]> = {
       of: plain(CONTRASTS) },
     { word: "align", key: "card", name: "label_align", form: "chips",
       tip: "Which end of the card the label reads from.", of: plain(ALIGNS) },
+  ],
+  /** What the large face shows, and how big it is. The small face is the workspace's card. */
+  face: [
+    { word: "shows", key: "card", name: "shows", form: "parts",
+      tip: "What the large face shows under its name, in the order picked: its attributes as a "
+         + "table, its body as written, the image its source points at.", of: plain(PARTS) },
+    { word: "size", key: "card", name: "size", form: "size",
+      tip: "How big the large face is, in units of the lattice. The small face is the "
+         + "workspace's card size." },
+    { word: "name", key: "card", name: "name", form: "chips",
+      tip: "Whether the large face writes its name, or is what it shows alone. The small face "
+         + "always names.", of: plain(SHOWN) },
   ],
   /** What draws where a run ends, which is what a run has in place of a face. */
   head: [

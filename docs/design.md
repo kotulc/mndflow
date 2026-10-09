@@ -15,7 +15,7 @@
 | Principle | Means |
 |---|---|
 | **understanding is the purpose** | the end user is a person exploring a visual translation of a system that already exists. Building a model is the means, not the end |
-| **agent and data first** | every element, package, workspace and setting is JSON. The CLI does headless what the app does, in formats an agent reads and writes. The apps call no model: agents and translators work through files and the CLI |
+| **agent and data first** | every element, package, workspace and setting is JSON; a card's content is markdown. The CLI does headless what the app does, in formats an agent reads and writes. The apps call no model: agents and translators work through files and the CLI |
 | **motion communicates** | data and logic flows animate along their relations, and moving between related components animates, so a person sees what moves and never loses their place |
 | **no notation to learn** | the parts, what they are made of, what flows between them and what must be true is the whole base model. A standard is a translation layer on top, never a shape the model bends to |
 | **rapid** | the cheapest gesture carries meaning: ten blocks in a row already say an order |
@@ -62,12 +62,13 @@ Most rules below are one of these applied.
 
 ### The grid
 
-**A spreadsheet whose cells hold text or blocks, and the one place a position states meaning.** A cell address along the reading direction is an order, and a header is an allocation — both stated rather than guessed.
+**Pure allocation: a lattice whose cells hold blocks, and the one place a position states meaning.** A cell address along the reading direction is an order, and a header is an allocation — both stated rather than guessed. A grid carries nothing special: an extent, header lines and merges, and blocks seated in its cells.
 
 - outside, a grid is a card like any other; opened, it draws its **grid view**: a frame of card-sized cells, with narrower header lines along its edges
 - every grid has a header row and a header column; opened, each header is its line's tab: pointing at it lights the line, a click picks it, and the right button offers what may be done to the line
-- a cell or header holds one thing: a text value or a block. Two sharing one leaves *what is allocated here* without an answer. A grid's member always sits in a cell
-- double-clicking a cell or header edits its text, or opens the block in it as anywhere; right-clicking a cell makes a block in it; dragging a block onto either seats it there
+- a cell or header holds one block. Two sharing one leaves *what is allocated here* without an answer. A grid's member always sits in a cell
+- **there are no text labels**: typing into an empty cell or header makes a plain block named what was typed, which reads as a label because its small face is its name. A header is a role from position, never stored
+- double-clicking a cell or header opens the block in it as anywhere, or names a new one in an empty cell; right-clicking a cell makes a block in it; dragging a block onto either seats it there
 - any block may sit in a cell, holders and grids included; it draws as a card, compact in a header
 - a block dropped on a grid's card from outside takes the next free cell in reading order, adding a row when none is free
 - reading order is left to right, then down
@@ -75,6 +76,7 @@ Most rules below are one of these applied.
 - relationships enter and leave a grid through its interfaces, as on any layer
 - removing a line moves what it held to the nearest spare cell on its side; what has nowhere to go leaves the grid for its layer
 - allocation is derived, never stored: a body block is allocated to what its row and column headers stand for, and to every holder it sits in
+- records — rows of values answering a definition's attributes — are not a grid's: they are usages, or a table in a card's body
 
 ### Types and read-through
 
@@ -91,13 +93,14 @@ Most rules below are one of these applied.
 
 ### Kinds, capabilities and relations
 
-- **`base` enumerates the functionally distinct kinds and stays minimal**: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, `line`, `tie`. Kinds are data; engine modules are three (`block`, `reference`, `interface`)
+- **`base` enumerates the functionally distinct kinds and stays minimal**: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, `value`, `line`, `tie`. Kinds are data; engine modules are three (`block`, `reference`, `interface`)
 - **traits say what a kind may do, and absent is a no**: a capability nobody grants is refused at the gesture. The base kinds carry the traits that make them what they are
-- trait names are positive, each a capability granted: `container`, `ports`, `inline`, `matrix`, `headed`, `resizable`, `fitted`, `content`, `media`, `tied`
+- trait names are positive, each a capability granted: `container`, `ports`, `inline`, `matrix`, `headed`, `resizable`, `content`, `media`, `tied`
 - a trait grants a capability whole. Limiting one to definitions, and asking what values must say, is a constraint (`allows` lists, `degree`, `ends`, `expects`): kept as settings, to be reworked
 - which holder a block is: a folder by its base; a group or grid by its `inline` and `matrix` traits
 - a capability is added to or removed from a subtype as a trait, easily and visibly. Traits are stored in `traits`, apart from `tags`: a trait carries settings, a tag only organizes
 - `note` is a base carrying the tied, resizable and body-content traits
+- **a trait gives settings: a capability, a style, or both.** A style preset is a trait carrying only `style`, dropped on a definition like any other; there is no second list
 - relations and tags hold no structure. A tag is a definition with no structure, carried in `tags`
 - a tag definition draws as a block. Tags read alike, each in its own shade: the `tag` base sets a hue and `vary`, so each definition under it strays a little, keyed by its id
 - `tie` is a relation type like any other, chosen and never forced
@@ -106,13 +109,25 @@ Most rules below are one of these applied.
 - one name space per package: a tag, a trait and a block definition never share a name
 - a reference points at what it stands for, and nothing points back. A gone target reads missing and is kept
 
+### Attributes and types
+
+**A definition declares attributes; a usage answers them.** An entity is nothing new: a definition with attributes, as an ERD draws one.
+
+- an **attribute** is a definition's own: a name, a `type`, and what it may say beside — `key`, `default`, `unit`, `many`, `optional`, `note`, and any other property kept as written. Inherited along the chain, nearer replacing farther by name
+- a **value** is a usage's answer to an attribute, by name. Its type is the attribute's, never stored beside it. A usage may answer names nothing declares, as its own
+- **a type is a definition.** `base` ships the value types under the `value` kind — `text`, `number`, `flag`, `link`, `choice` — and a workspace or package adds its own (`uuid extends text`, `Region extends choice`). How a value is edited is its type's `value.form`, engine code as a module is; a choice's options are its `value.choices`
+- **an attribute typed by a block definition is a link**: a foreign key. Its line is drawn only where a view allows it — the internal view, both ends on the layer — and never added on its own anywhere else
+- **used by** is derived for every type and entity: the attributes and usages typed by it, as allocation is
+- a value type is never placed: it is what an attribute holds
+
 ### Definitions and packages
 
 - a package is a root block. `base` ships with the kit, the workspace's is editable, any other is frozen (read only)
 - a definition is named; new definitions land where the user is
 - removing a used definition is refused. `base` and the workspace are never removed; a used package is not removed
 - a new workspace is its root and `main`, nothing else; groupings are the user's
-- every package, `base` and `markdown` included, is a `.json` file. Hosts keep only the id constants their code reads
+- **definitions are JSON; structure may be markdown.** Every package, `base` and `markdown` included, is a `.json` file of definitions; a package may also hold a tree of markdown files, each a usage pointing at a definition. Hosts keep only the id constants their code reads
+- **every import is a package**, frozen; new definitions are made in the workspace only
 - a package is the smallest unit of export; there are no subtree files
 - a package is authored as a workspace and exported as a package: its root and ids prefixed with the package's name
 - importing a package adds it, frozen, beside the workspace. A package whose ids clash with one loaded is refused
@@ -136,7 +151,34 @@ Most rules below are one of these applied.
 - **a row and its card read alike**: the explorer and the canvas ask core's `role_of` what a block is, and wear the same icon
 - **marks describe, and stack**: a stand-in wears one word (`Def`, `Ref`, `Pkg`); anything else wears what is true of it, and those stack — the first is `data`
 - **a layer draws its key**: what each kind's colour, mark and word mean. The workspace sets the default; a layer may override it
-- **a block's fields draw as a class diagram** on request: one card for the definition, one per usage with its values, drawn in place of the layer and never written
+- **a block's attributes draw as a class diagram** on request: one card for the definition, one per usage with its values, drawn in place of the layer and never written
+
+
+## Cards
+
+**A card is drawn by one renderer everywhere** — the canvas, the tray, mndmap — and what it shows beyond its identity is rendered markdown.
+
+- **two faces.** The **small** face is the workspace's card size: its handle above its name, its icon and its marks, nothing more. The **large** face fits its content, or takes its definition's `card.size`, held under a preset maximum: its name, then the parts its definition lists in `card.shows` — `attributes`, `body`, `preview` — in that order, rendered as one markdown document
+- **the face is the view's, never the zoom's**: a canvas draws small unless a layer's `layout.face` asks for large; the tray draws a block large, then small. A face is laid out at its size from the start, so nothing reflows
+- `card.name: hide` leaves the large face its parts alone; the small face always names
+- **a card's markdown is its source**: frontmatter for its identity and values, then its body. The JSON graph is the truth; the markdown is rendered from it, and read back into ordinary changes
+
+### Card sources
+
+**Markdown is content: structure and usages.** A definition is never written in markdown.
+
+| Frontmatter key | On a usage |
+|---|---|
+| `name` | its name |
+| `type` | the definition it is, by name |
+| `tags` | its tags, by name |
+| `source` | where its content lives outside |
+| anything else | a value, answering the attribute of that name |
+
+- the body after the frontmatter is the block's `body`, kept as written. Tables in it are content, never parsed into values
+- **attach** copies a file's markdown onto a block and records `source`; **refresh** is the same gesture asked again. Nothing syncs
+- **permissive**: a name in frontmatter that nothing loaded holds, or that more than one package holds, becomes a plain definition where the card lands, and is reported
+- **a collection is a package on disk**: a folder holding `package.json` (definitions) and a tree of `.md` files (usages), each folder a folder holder. Importing one adds it frozen. A definition its usages name and nothing defines is made, its attributes the union of their keys, each type read off the values; a JSON definition wins over anything inferred
 
 
 ## Navigation
@@ -179,7 +221,10 @@ Most rules below are one of these applied.
 - a scan records names and `source` paths only; no text enters the graph
 - the host keeps the session's file handles by `source`. Opening a document reads its current text and parses it into structure
 - which documents are read is session state, never a field
-- `body` is a description only, never unread text
+- `body` holds what was read, never unread text: a block's body is its content, a definition's describes it
+- a document is a **usage** in the collection's domain, typed `md.document` or by its frontmatter; its content blocks are its own children
+- a document's frontmatter is its card source; a table in it is a content block, never a grid
+- the page draws a document's content with the large face, at the sizes the markdown package's definitions say; the kit's layouts place them
 - a collection is the same overview: its one package, folders flattened
 - a heading's section is a block holding its heading, content and own sections: a level in the explorer, read whole in the overview, which is how a document opens. The markdown package organizes its own definitions by folders
 

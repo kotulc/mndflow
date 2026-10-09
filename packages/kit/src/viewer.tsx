@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { is_container, type Graph, type Id } from "@mnd/core";
-import { class_def, fields_graph, project, set_card, set_full, type Config } from "@mnd/views";
+import { class_def, fields_graph, project, set_card, type Config } from "@mnd/views";
 import { Crumbs, FlowView, Legend, lit_rules, type Corner, type Gesture } from "@mnd/stage";
 
 /** Nothing picked, as one constant so it never reads as a change. */
@@ -19,9 +19,6 @@ export type ViewerProps = {
   config?: Config;
   /** The default card, in units of the lattice. The layout's own default unless said. */
   card?: { w: number; h: number };
-  /** Whether a card that fits its content grows to show all of it. Off, it previews it at the one
-   *  card height and cuts it off. */
-  full?: boolean;
   /** Chrome over the canvas. */
   chrome?: {
     crumbs?: boolean;
@@ -42,7 +39,7 @@ export type ViewerProps = {
   onOpen?: (id: Id) => void;
   /** Told where a box points, when one that holds nothing is opened. */
   onFollow?: (link: string, id: Id) => void;
-  /** The layer drawn as its fields' class diagram rather than its contents. */
+  /** The layer drawn as its attributes' class diagram rather than its contents. */
   fields?: Id | null;
   /** Told what the view toggle asks for: the open layer drawn as a diagram, or null for its
    *  contents. Given it, a layer whose blocks carry fields offers the toggle in the canvas's bottom
@@ -66,7 +63,7 @@ export type ViewerProps = {
   onTrail?: (id: string | null) => void;
 };
 
-export function Viewer({ graph, layer: said, picked = NONE, lit: pointed = NONE, config, card, full = false, chrome,
+export function Viewer({ graph, layer: said, picked = NONE, lit: pointed = NONE, config, card, chrome,
                         onLook, onPick, onOpen, onFollow, fields = null, onFields, scroll = false,
                         focus = null, reach = null, widest = null, most = null, trail = null,
                         onTrail }: ViewerProps) {
@@ -77,7 +74,6 @@ export function Viewer({ graph, layer: said, picked = NONE, lit: pointed = NONE,
 
   /** The card size is the layout's, held in one place, so it is set before anything measures. */
   if (card) set_card(card.w, card.h);
-  set_full(full);
   /** A fields diagram is the open layer drawn another way, in its own frame. It is only ever the
    *  open layer's: one asked for elsewhere draws nothing until that layer is open. */
   const diagram = at ? fields_graph(graph, at) : null;

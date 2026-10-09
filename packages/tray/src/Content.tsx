@@ -1,5 +1,5 @@
 /** The prose of whatever the panel has hold of: a block's body, which is the content itself, or
- *  a definition's, which describes it. The definition's record is `Data`. */
+ *  a definition's, which describes it. */
 
 import { useState } from "react";
 import type { Act, Graph, Id } from "@mnd/core";

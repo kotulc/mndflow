@@ -1,10 +1,10 @@
-/** The card column: what it is and how many name it, then the drawing itself. */
+/** The card column: what it is, then the drawing itself — a card's faces, or a run. */
 
 import { alias_of, label_of, SCHEMA, role_of, shown_name,
          type Graph, type Id } from "@mnd/core";
 import { Icon, role_icon, type IconName } from "@mnd/theme";
 import { Band } from "./Body";
-import { Card } from "./Card";
+import { Faces } from "./Faces";
 import { Wire } from "./Wire";
 import { defined, held, kind_of, reading } from "./holder";
 
@@ -23,11 +23,9 @@ export function Drawing({ graph, id }: DrawingProps) {
    *  name else its kind's word — the same fallback a nameless card reads. */
   const label = runs && edge ? label_of(graph, id)
     : d ? d.name || titled(kind) : runs ? own?.name ?? "" : shown_name(graph, id);
-  const word = (d ?? graph.blocks[b?.type ?? ""])?.name ?? kind;
 
   const mark: IconName = runs ? (kind === "tie" ? "relation_tie" : "relation_plain")
     : role_icon(role ?? kind) ?? "role_leaf";
-  const alias = now("card", "alias", "");
 
   return (
     <div className="drawing">
@@ -40,13 +38,7 @@ export function Drawing({ graph, id }: DrawingProps) {
       {runs ? (
         <Wire label={label} alias={edge ? alias_of(graph, id, true) : undefined}
               said={said} now={now} />
-      ) : (
-        <Card label={label}
-              alias={!b ? undefined : alias === "show" ? alias_of(graph, id, true)
-                : alias === "hide" ? undefined : alias_of(graph, id)}
-              kind={word} icon={(now("card", "icon", "") || role_icon(role ?? kind)) as IconName}
-              role={role ?? kind} said={said} now={now} />
-      )}
+      ) : <Faces graph={graph} id={id} />}
     </div>
   );
 }

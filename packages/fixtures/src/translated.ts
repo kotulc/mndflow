@@ -1,6 +1,6 @@
 /** A graph as a translator hands one over, in a vocabulary this repo does not own. */
 
-import { MAIN, ROOT, type Block, type Definition, type FieldDef, type Graph,
+import { MAIN, ROOT, type Attribute, type Block, type Definition, type Graph,
          type Id } from "@mnd/core";
 import { base_graph } from "@mnd/defs";
 
@@ -8,39 +8,39 @@ import { base_graph } from "@mnd/defs";
 const HOME = "docs";
 
 function def(name: string, extend: string, card: Record<string, unknown>,
-             schema: FieldDef[] = []): Definition {
+             attributes: Attribute[] = []): Definition {
   return { id: `doc.${name}`, parent: ROOT, name: `doc.${name}`, type: extend,
-           def: { schema }, settings: { card } };
+           def: { attributes }, settings: { card } };
 }
 
 /** Folders, pages, sections and the things inside a section. */
 const VOCAB: Definition[] = [
   def("set", "folder", {  },
-      [{ name: "source", form: "link" }]),
+      [{ name: "source", type: "link" }]),
   def("page", "block", { label: "inside" },
-      [{ name: "source", form: "link" }, { name: "title", form: "text" }]),
+      [{ name: "source", type: "link" }, { name: "title" }]),
   def("section", "block", { label: "inside" },
-      [{ name: "source", form: "link" }, { name: "heading", form: "text" },
-       { name: "depth", form: "number" }]),
+      [{ name: "source", type: "link" }, { name: "heading" },
+       { name: "depth", type: "number" }]),
   def("table", "block", {  },
-      [{ name: "source", form: "link" }, { name: "headers", form: "text", many: true }]),
+      [{ name: "source", type: "link" }, { name: "headers", many: true }]),
   def("row", "block", {  },
-      [{ name: "source", form: "link" }, { name: "term", form: "text" },
-       { name: "means", form: "text" }]),
+      [{ name: "source", type: "link" }, { name: "term" },
+       { name: "means" }]),
   def("item", "block", {  },
-      [{ name: "source", form: "link" }, { name: "text", form: "text" },
-       { name: "checked", form: "flag" }]),
+      [{ name: "source", type: "link" }, { name: "text" },
+       { name: "checked", type: "flag" }]),
   def("term", "note", {  },
-      [{ name: "source", form: "link" }]),
-  /** A relation definition declares no fields. */
+      [{ name: "source", type: "link" }]),
+  /** A relation definition declares no attributes. */
   { id: "doc.link", parent: ROOT, name: "doc.link", type: "line", def: {} },
 ];
 
-/** Where a block came from, as the one field name every view module reads. */
+/** Where a block came from, as an answer, and its source. */
 function block(id: Id, parent: Id | null, type: string, name: string,
                source: string, order: number, more: Partial<Block> = {}): Block {
   return { id, parent, type, name, order,
-           values: [{ name: "source", form: "link", value: source }],
+           source, values: [{ name: "source", value: source }],
            ...more };
 }
 

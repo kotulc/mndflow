@@ -121,6 +121,7 @@ export const NEEDS: Record<string, string> = {
   interface: "an interface sits on a block — add one to a block, then drop this onto it",
   reference: "a reference stands for a block — drag that block from the tree instead",
   tag: "a tag is carried, not placed — type it into a block's tags in the tray",
+  value: "a value type is what an attribute holds — give an attribute this type instead",
 };
 
 /** Makes a block, numbered and ordered like every other. */

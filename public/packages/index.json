@@ -1,6 +1,11 @@
 {
   "packages": [
     {
+      "name": "erd",
+      "about": "entities with keyed attributes, some naming another entity: an entity-relationship model",
+      "at": "erd.json"
+    },
+    {
       "name": "doc",
       "about": "markdown as blocks: pages, sections, items, code and links",
       "at": "doc.json"

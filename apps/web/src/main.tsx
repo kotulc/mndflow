@@ -5,6 +5,7 @@ import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
 import "@mnd/theme/icons.css";
 import "@mnd/theme/card.css";
+import "@mnd/theme/face.css";
 import "@mnd/stage/src/flow.css";
 import "@mnd/stage/src/routes.css";
 import "@mnd/stage/src/groups.css";
