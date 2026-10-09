@@ -11,17 +11,15 @@
 The groups arrive as `slots` on the Scene. The rail draws them in a fixed order whatever order it was handed:
 
 ```
-elements · layer · display · relations
+view · layer · display · relations
 ```
 
 | | Is |
 |---|---|
-| **`layer`** | the layer's layout — `free` or `auto`. A setting, and the one group here that writes to the log. `outline` and `page` are a definition's or a host's to set, never offered here; the overview offers no `layer` group at all |
+| **`view`** | the section's **system views** — *package* and *profile* — the only views chosen; choosing one leaves the open layer for the whole section. Last, the layer view, never chosen, only shown: lit while the canvas draws it, and on a system view the way back to where the block in hand is drawn |
+| **`layer`** | the layer's layout — `free` or `auto`. A setting, and the one group here that writes to the log. `page` is a definition's or a host's to set, never offered here; a system view, a definition view and a paged folder offer no `layer` group at all |
 | **`display`** | what the drawing shows rather than what it holds: the frame, the guides, whether interfaces draw, whether folders are flattened, and whether this layer draws the key to itself. Nothing here enters the log |
 | **`relations`** | what a right drag and a `chain` draw: *straight*, *directed* or *tie*. The shipped runs only; a relation definition is applied in the tray |
-| **`elements`** | which element the tray holds: the *workspace*, a blank *block* or a blank *relation* definition. Writes nothing |
-
-**`elements` is not a slot, and it leads.** A slot is what the projection can offer about the whole layer; this points the tray at an element — its element tab — and a toggle is lit for whichever the tray holds.
 
 ## What a control is
 

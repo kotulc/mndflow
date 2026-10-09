@@ -140,7 +140,7 @@ Pumps feed water from the **tank** to the boiler.
 ### 5 — The tray
 
 - tabs **card · settings · attributes · usages/contents**; a line keeps element; root keeps workspace · contents
-- `CardTab`: large and small faces, the card rendered, *edit source*, *attach* (emitted as `@attach` for the host), a definition's JSON read only
+- the card tab (tray `Element`, shared with a line's), in the settings tab's layout: the large and small faces left, identity right, the source open under both, *attach* on the tab strip (emitted as `@attach` for the host), the definition's JSON read only under all
 - `Attributes`: one `Table`, quiet until a row is lit; inherited rows first and faint; declare on a definition, answer on a usage; extra columns where any row has them
 - `Settings` read only on a usage, showing its definition's
 - `Element` for lines only; `Fields`, `Content` (but the workspace's), `Data`, `Card` and the type tab go
@@ -195,7 +195,7 @@ Pumps feed water from the **tank** to the boiler.
 | **a definition's unknown keys** | read as attribute defaults, declaring the attribute where nothing does — as a usage's keys are values |
 | **a card source worked out once** | `markdown` and `attach` keep what `check` found, by args and graph, for `run` |
 | **a block in a grid's cell** | draws the small face, whatever its layer asks |
-| **attach says only what the file says** | a key it leaves out is kept; edit source, which is whole, takes it away |
+| **attach says only what the file says** | a key it leaves out is kept; editing the source, which is whole, takes it away |
 | **a body opening with `---`** | is written after an empty frontmatter fence, so it never reads as frontmatter |
 | **collection ids** | `<package>.dir.<path>`, `<package>.md.<path>`, `<package>.type.<word>`, `<package>.tag.<word>`: they follow paths and names |
 | **mndmap makes no definitions** | a frontmatter type or tag word nothing loaded holds stays a value |
@@ -222,4 +222,4 @@ Pumps feed water from the **tank** to the boiler.
 | `ValueForm`, `VALUE_FORMS` | `FORMS` and `value.form` on value types |
 | `grid.values`, `.schema`, `.columns`, `.size`; text labels | gone; `label` names or makes the block in a cell |
 | `card.fields`, `.body`, `.preview`, `height: fit`; `fitted`; `set_full` | `card.shows`, `card.size`, `layout.face` |
-| stage `Markdown`, tray `Card`, `Data`, `Fields`, `Source`; mndmap `Preview`, `forms.ts`, `sized()`, `md.front` | theme `Markdown` and `CardFace`; tray `CardTab`, `Faces`, `Attributes`; mndmap `Document` |
+| stage `Markdown`, tray `Card`, `Data`, `Fields`, `Source`; mndmap `Preview`, `forms.ts`, `sized()`, `md.front` | theme `Markdown` and `CardFace`; tray `Element`, `Faces`, `Attributes`; mndmap `Document` |

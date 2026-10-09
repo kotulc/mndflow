@@ -11,15 +11,19 @@ import type { Block, Graph, Id } from "./types";
 /** Where a section stops: at package roots, at trees, or nowhere. */
 export type Cut = "package" | "tree" | null;
 
-/** How the canvas draws. **Layer views** draw one block: from inside (`internal`), as an entity
- *  and what it links (`entity`), as what it extends and what uses it (`lineage`), or a package as
- *  its definitions (`definitions`). **System views** draw a whole section: from above as nested
- *  boxes (`overhead`), or as a depth-wise slice (`profile`). */
-export type ViewKind = "internal" | "entity" | "lineage" | "definitions" | "overhead" | "profile";
+/** How the canvas draws. **Layer views** draw one block, and its card's kind says which: from
+ *  inside (`internal`), an opened grid's lattice (`grid`), a package's or folder's contents read
+ *  down the page (`folder`), or a definition with what describes it round it (`definition`).
+ *  **System views** draw a whole section, and are the only ones chosen: from above as nested
+ *  boxes (`package`), or as a depth-wise slice (`profile`). */
+export type ViewKind = "internal" | "grid" | "folder" | "definition" | "package" | "profile";
 
 /** The views that draw one block. A section offers them as one choice, `internal`, and the block
  *  opened says which it shows. */
-export const LAYER_VIEWS: readonly ViewKind[] = ["internal", "entity", "lineage", "definitions"];
+export const LAYER_VIEWS: readonly ViewKind[] = ["internal", "grid", "folder", "definition"];
+
+/** The layer views drawn from inside, where what the layer holds is built. */
+const INSIDE: readonly ViewKind[] = ["internal", "grid", "folder"];
 
 /** One section, as a host declares it: where it stops, and the views it offers, its default
  *  first. `internal` stands for every layer view. */
@@ -29,6 +33,11 @@ export type Section = { id: string; label: string; cut: Cut; views: readonly Vie
 /** Whether a view draws one block rather than a whole section. */
 export function is_layer_view(kind: ViewKind): boolean {
   return LAYER_VIEWS.includes(kind);
+}
+
+/** Whether a view draws a layer from inside, where what it holds is built. */
+export function is_inside(kind: ViewKind): boolean {
+  return INSIDE.includes(kind);
 }
 
 /** Whether a block sits at a cut: a package root, or a tree. */

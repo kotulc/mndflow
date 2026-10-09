@@ -51,7 +51,7 @@
 
 ## Scrolled drawings
 
-**A scrolled drawing is a page held still across**: fitted to its width (or `reach`), centred where it is narrower than the view and read from its left where wider, and never magnified past `most`. The overview and mndmap's pages are scrolled.
+**A scrolled drawing is a page held still across**: fitted to its width (or `reach`), centred where it is narrower than the view and read from its left where wider, and never magnified past `most`. The system views, the folder and definition views, and mndmap's pages are scrolled. **A scrolled drawing's room hugs what it draws** rather than growing to the panel, so a short folder reads without empty space.
 
 | Rule | |
 |---|---|

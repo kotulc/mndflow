@@ -86,7 +86,7 @@ import "@mnd/kit/react.css";
 <Viewer graph={graph} layer={layer} />   // click highlights, double-click walks
 ```
 
-**Which layer**: unsaid, the workspace's domain; a block's id, that layer; `null`, the overview — every package a box of its domain, read down the page. `config={{ packages, across }}` narrows the overview to those packages and sets how many cards its rows hold.
+**Which layer**: unsaid, the workspace's domain; a block's id, that layer; `null`, the package view — every package a box of its domain, read down the page. `config={{ packages, across }}` narrows the package view to those packages and sets how many cards its rows hold.
 
 **Interactive, self-contained, and not editable.** `draw_svg` makes a picture; this makes one you can walk. It holds the graph, projects the layer being looked at, and goes in and out of layers on a double-click. **Nothing in it writes.**
 

@@ -1,6 +1,7 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
-import { attributes_of, base_named, base_of, def_at, def_of, edge_base, frozen } from "./defs";
+import { attributes_of, base_named, base_of, def_at, def_of, edge_base, frozen,
+         tree_of } from "./defs";
 import { is_flat, is_group, shape_of } from "./holders";
 import { children, is_container, stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
@@ -123,19 +124,18 @@ export function role_of(graph: Graph, id: Id): Role {
   return ROLES.includes(base) ? base as Role : "block";
 }
 
-/** The system marks a card wears in its bottom corner. Derived, never set. A stand-in wears the
- *  one thing it stands for; anything else wears what describes it, and those stack: carrying data.
- *  Opening onto a drawing of its own — parts — stacks with either, since a stand-in may open too,
- *  and a card's icon alone says so too quietly. */
-export type Mark = "reference" | "definition" | "package" | "data" | "parts";
+/** The system marks a card wears in its bottom corner: **what it stands for**, never how it
+ *  opens — its icon says that. Derived, never set. At most three, in this order: what a stand-in
+ *  stands in for, then whether it holds structure, then whether it carries data. */
+export type Mark = "reference" | "definition" | "package" | "structure" | "data";
 
 /** What each mark means, in a phrase — the legend's wording, kept beside the type it reads. */
 export const MARK_MEANING: Record<Mark, string> = {
   reference: "stands for a block elsewhere",
   definition: "stands for a definition",
   package: "stands for a package",
+  structure: "holds structure: blocks of its own",
   data: "carries data: values, or attributes",
-  parts: "opens onto a drawing of its own",
 };
 
 /** The workspace definition whose attributes a block's data answers, or null where it has none:
@@ -152,18 +152,27 @@ export function schema_def(graph: Graph, id: Id): Id | null {
   return own(b.type) ?? children(graph, id).map((k) => own(k.type)).find(Boolean) ?? null;
 }
 
-/** What a card is stamped with: what it stands in for, or else what describes it — a stand-in
- *  carries nothing of its own, so the two never meet — and either way, whether it opens. */
+/** Whether a block holds structure: it sits in a tree and holds blocks there, its interfaces
+ *  apart. A package or a folder of definitions holds none. */
+export function holds_structure(graph: Graph, id: Id): boolean {
+  return tree_of(graph, id) !== null && is_container(graph, id);
+}
+
+/** What a card is stamped with: what a stand-in stands in for, then — of the block it stands for,
+ *  where it is one — whether that is a definition holding structure, and whether it carries data.
+ *  The structure mark tells a definition with structure from one without; a block inside a
+ *  structure never wears it. */
 export function stamps_of(graph: Graph, id: Id): Mark[] {
   const b = graph.blocks[id];
   if (!b) return [];
   const out: Mark[] = [];
-  if (b.of) {
-    const at = graph.blocks[b.of];
-    out.push(at?.def ? "definition" : at?.parent === null ? "package" : "reference");
+  const at = b.of ? graph.blocks[b.of] : undefined;
+  if (b.of) out.push(at?.def ? "definition" : at?.parent === null ? "package" : "reference");
+  const self = at && at.id !== id ? at : b;
+  if (self.def && holds_structure(graph, self.id)) out.push("structure");
+  if (self.values?.some((v) => v.value) || attributes_of(graph, self.def ? self.id : self.type).length) {
+    out.push("data");
   }
-  else if (b.values?.some((v) => v.value) || attributes_of(graph, b.type).length) out.push("data");
-  if (opens(graph, id)) out.push("parts");
   return out;
 }
 

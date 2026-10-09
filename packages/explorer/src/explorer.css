@@ -174,6 +174,7 @@
 /* A part of a definition seen through a usage: dimmed, with the link glyph after its name. */
 .explorer .tree li.part .label,
 .explorer .tree li.part .mark { opacity: 0.6; }
+.explorer .tree .stamp { display: inline-flex; flex: none; margin-left: 4px; color: var(--faint); }
 .explorer .tree li.part .from { display: inline-flex; margin-left: 4px; color: var(--faint); }
 
 .explorer .tree .alias {

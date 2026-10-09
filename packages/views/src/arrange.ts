@@ -4,6 +4,7 @@ import { children, drawn_in, is_group, is_interface, layout_of,
          type Block, type Graph, type Id } from "@mnd/core";
 import { band_members, band_size, celled, loose_unit, type Sized } from "./bands";
 import { is_satellite, pack_units, seat_satellites } from "./pack";
+import { page_wide } from "./page";
 import { gridded, size_of, snap, GAP, UNIT, type Size } from "./size";
 
 export type Placed = { id: Id; x: number; y: number; w: number; h: number };
@@ -25,8 +26,10 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
   const sized: Sized[] = structural.map((b) => ({
     b, s: is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   }));
-  /** A computed page has written its places; only `auto` works them out here. */
-  const structural_spots = how === "auto" ? centred(pack_units(graph, layer, sized, unit))
+  /** A computed page has written its places; only `auto` works them out here, its clusters
+   *  shelved down a page as wide as the page layout's. */
+  const structural_spots = how === "auto"
+    ? centred(pack_units(graph, layer, sized, unit, undefined, page_wide(graph, layer)))
     : free(sized);
 
   /** Bands first, then cells: a grid in a band takes its spot from the band. */

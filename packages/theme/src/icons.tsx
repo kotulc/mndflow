@@ -98,8 +98,6 @@ const PATHS = {
   /** Carries data: populated fields, or the schema they are read against. A database, drawn:
    *  the one mark every tool already spends on *records live here*. */
   data: "M5 6.5c0-1.4 3.1-2.5 7-2.5s7 1.1 7 2.5-3.1 2.5-7 2.5-7-1.1-7-2.5M5 6.5v11c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-11M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5",
-  /** Holds parts: four boxes, the mark every tool already spends on *there is more in here*. */
-  parts: "M5 5h5.5v5.5H5zM13.5 5H19v5.5h-5.5zM5 13.5h5.5V19H5zM13.5 13.5H19V19h-5.5z",
   define: "M12 9.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5M12 3.5l1.2 2.3 2.5-.7.6 2.6 2.4 1-1.3 2.3 1.3 2.3-2.4 1-.6 2.6-2.5-.7L12 20.5l-1.2-2.3-2.5.7-.6-2.6-2.4-1L6.6 13 5.3 10.7l2.4-1 .6-2.6 2.5.7z",
 
   // A thing fixed where it was put. A shackle over a body, closed — and the
@@ -129,16 +127,17 @@ const PATHS = {
   layout_free: "M5 5h4.5v4.5H5zM14.5 8h4.5v4.5h-4.5zM8 14.5h5.5V19H8z",
   layout_grid: "M4.5 4.5h15v15h-15zM9.5 4.5v15M14.5 4.5v15M4.5 9.5h15M4.5 14.5h15",
 
-  // The views. A section's: overhead, the boxes a whole section nests, from above; profile, the
+  // The views. A section's: package, the boxes a whole section nests, from above; profile, the
   // same section stepped down the page. A block's: **internal, a card seen from inside its rim**;
   // entity, a card ruled into its attributes; lineage, a card extending the one above it;
   // definitions, a package's cards joined.
   view_internal: "M4.5 4.5h15v15h-15zM8.5 9.5h7v5h-7z",
-  view_overhead: "M4.5 4.5h15v15h-15zM7.5 7.5h4v4h-4zM12.5 7.5h4v4h-4zM7.5 13.5h9v3h-9z",
+  view_package: "M4.5 4.5h15v15h-15zM7.5 7.5h4v4h-4zM12.5 7.5h4v4h-4zM7.5 13.5h9v3h-9z",
   view_profile: "M4.5 4.5h7v3h-7zM8.5 10.5h7v3h-7zM12.5 16.5h7v3h-7z",
-  view_entity: "M4.5 5.5h15v13h-15zM4.5 9.5h15M4.5 14h15M9.5 9.5v9",
-  view_lineage: "M8.5 3.5h7v4.5h-7zM8.5 16h7v4.5h-7zM12 16V8M9.5 10.5L12 8l2.5 2.5",
-  view_definitions: "M4.5 4.5h6v5h-6zM13.5 4.5h6v5h-6zM4.5 14.5h6v5h-6zM13.5 14.5h6v5h-6zM7.5 9.5v5M10.5 7h3",
+  view_grid: "M4.5 4.5h15v15h-15zM4.5 9.5h15M4.5 14.5h15M9.5 4.5v15M14.5 4.5v15",
+  view_folder: "M3.5 6.5h6l2 2h9v11h-17zM7 12h10M7 15.5h10",
+  // A definition and what surrounds it: a card in the middle, a box on each side.
+  view_definition: "M8.5 9h7v6h-7zM10 3.5h4v2.5h-4zM3.5 10.5h2.5v3H3.5zM18 10.5h2.5v3H18zM10 18h4v2.5h-4z",
 
   // The guides the drawing is measured against. **A hash: rules that run off
   // the edge**, which is what a guide is and what keeps it off `layout_grid`,
@@ -258,7 +257,7 @@ export function role_icon(role: string | undefined): IconName {
  *  drawn, since there is no icon above it to repeat. */
 export const MARK_ICON: Record<string, IconName> = {
   reference: "word_ref", definition: "word_def",
-  package: "word_pkg", data: "data", parts: "parts",
+  package: "word_pkg", structure: "role_root", data: "data",
 };
 
 /** The icon for a system mark, or null where a card carries none. */

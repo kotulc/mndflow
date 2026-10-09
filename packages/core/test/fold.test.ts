@@ -72,9 +72,9 @@ describe("derived readings", () => {
     }
   });
 
-  it("gives a layer that says nothing the free layout", () => {
+  it("gives a layer that says nothing the auto layout", () => {
     const graph = fold(flat(), FLOOR);
-    expect(layout_of(graph, "block_ledger")).toBe("free");
+    expect(layout_of(graph, "block_ledger")).toBe("auto");
     expect(layout_of(fold(related(), FLOOR), "block_loop")).toBe("auto");
   });
 

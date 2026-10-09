@@ -9,6 +9,7 @@ export * from "./fold";
 export * from "./defs";
 export * from "./tree";
 export * from "./navigate";
+export * from "./aspects";
 export * from "./sections";
 export * from "./holders";
 export * from "./drop";

@@ -160,31 +160,16 @@ fieldset.fields { padding: 0; }
 .drawing .preview-wire { width: 100%; }
 .drawing .preview-run { width: 100%; height: auto; }
 
-/* The card draws at its own height on the element tab and the style tab alike: it is the same
-   drawing of the same thing, so it is the same size. Source runs full width under the content it
-   is the provenance of, and a definition's record under that. */
-.panel.element {
-  grid-template-areas: "drawing rows" "body body" "source source" "data data";
-}
+/* The first tab, a card's or a line's, the settings tab's layout: how it appears beside what it
+   is, its source under both, and the definition it follows under all. A line has no source. */
+.panel.element { grid-template-areas: "drawing rows" "source source" "data data"; }
+.panel.element.lined { grid-template-areas: "drawing rows" "data data"; }
+.panel > .col.source { grid-area: source; }
+.col.source > .content { padding: 6px 0 0; }
+.col.source > .content > textarea { min-height: 12em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-/* The card tab: the card drawn, what it says beside it, and a definition's record under both. */
-.panel.card {
-  grid-template-columns: minmax(220px, 2fr) minmax(0, 3fr);
-  grid-template-areas: "drawing said" "data data";
-}
-.panel > .col.said { grid-area: said; }
-.panel.card > .content.data { grid-area: data; padding: 0; }
-.col.said > .content { padding: 6px 0 0; }
-.col.said > .content > textarea { min-height: 16em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-.col.said .rail { gap: 6px; }
-
-/* What a card says, rendered: its frontmatter as a quiet list, then its body. */
-.card-front { color: var(--muted); font-size: 12px; }
-.card-front ul { margin: 0; padding-left: 0; list-style: none; }
-.card-front strong { color: var(--text); font-weight: 600; margin-right: 0.5ch; }
-.card-body { line-height: 1.55; font-size: 13px; }
-.card-body :first-child { margin-top: 0; }
-.card-body pre, .card-record pre {
+/* A definition's record, read only. */
+.card-record pre {
   margin: 0;
   padding: 6px 8px;
   border: 1px solid var(--divider);
@@ -194,10 +179,6 @@ fieldset.fields { padding: 0; }
   overflow-wrap: anywhere;
 }
 .card-record pre { color: var(--muted); font-size: 11px; line-height: 1.5; }
-.card-body table { border-collapse: collapse; }
-.card-body :where(th, td) { padding: 2px 8px; border: 1px solid var(--divider); text-align: left; }
-.card-body img { max-width: 100%; }
-.content.said > .empty { color: var(--faint); font-style: italic; margin: 0; }
 
 /* A usage's settings are its definition's, read here: a box drawn as nothing. */
 fieldset.panel-set { border: 0; margin: 0; padding: 0; min-width: 0; }
@@ -209,13 +190,11 @@ fieldset.panel-set { border: 0; margin: 0; padding: 0; min-width: 0; }
 .contents-table td .type.link { color: var(--accent); }
 .contents-table td .faint { color: var(--faint); font-style: italic; }
 
-/* The settings tab: the drawing and its looks side by side, and what its usages may do in the
-   card column under the drawing. */
-.panel.style { grid-template-areas: "drawing rows" "traits rows"; grid-template-rows: auto 1fr; }
+/* The settings tab: the drawing and its looks side by side, and what its usages may do across
+   the whole tab under both. */
+.panel.style { grid-template-areas: "drawing rows" "traits traits"; }
 .panel > .col.traits { grid-area: traits; }
 
-/* A definition is a block, so it may carry both: each takes its own row. */
-.panel > .source { grid-area: source; }
 .panel > .content.data { grid-area: data; }
 
 /* The workspace draws nowhere, so there is no card column: what it is and what it is made of
@@ -230,11 +209,6 @@ fieldset.panel-set { border: 0; margin: 0; padding: 0; min-width: 0; }
 
 /* Wide: one row across — the body takes a third column, the style groups a column of their own. */
 @container tray (min-width: 960px) {
-  .panel.element {
-    grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "drawing rows body" "source source source" "data data data";
-  }
-
   .panel.workspace {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas: "identity file body";

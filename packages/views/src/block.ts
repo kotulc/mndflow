@@ -1,30 +1,31 @@
 /** The block view: any planar projection. */
 
-import { alias_of, layout_of, children, covers, edge_base, edges_in, group_depth, heading, holders_in,
+import { alias_of, layout_of, children, setting_of, ABOUT, covers, edge_base, edges_in, group_depth, heading, holders_in,
          inline, is_container, is_grid, is_group, is_interface, is_note, label_of, lattice_of,
-         members_of, shape_of, stamps_of, role_of, shown_name, trace, EDITOR, type Cut,
-         type Tiers, type ViewKind, type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
+         members_of, shape_of, stamps_of, role_of, shown_name, path, type Cut,
+         type ViewKind, type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
 import { at_seat, cell_box, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of, wire_of } from "./look";
 import { page_graph } from "./page";
-import { profile_graph } from "./profile";
+import { profile_graph, ROW } from "./profile";
 import { survey_graph, FOREST } from "./survey";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { linked_graph, LINK } from "./links";
-import { lens_graph, LENS } from "./lens";
-import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
+import { definition_graph, ASPECT } from "./definition";
+import { box_of, cell as node, extent, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
          type Slot } from "./scene";
 
 export type Config = {
-  /** How the layer is looked at: from inside (`internal`); as what it means (`entity`,
-   *  `lineage`, or a package's `definitions`); the whole section it scopes, down to `cut`
-   *  (`overhead`); or a cross-section of the host's sections along `target` (`profile`).
-   *  Unsaid, inside — and with no layer, every package's domain as an overhead. */
-  look?: { kind: ViewKind; cut: Cut; tiers?: Tiers; target?: Id | null };
+  /** How the layer is looked at: from inside (`internal`, `grid`); a package or folder read down
+   *  the page (`folder`); a definition with what describes it round it (`definition`); the whole
+   *  section it scopes, down to `cut`, each block there boxing its top level where `tops` says
+   *  (`package`); or a cross-section of the host's sections along `target` (`profile`). Unsaid,
+   *  inside — and with no layer, every package's domain as an package view. */
+  look?: { kind: ViewKind; cut: Cut; tops?: boolean; target?: Id | null };
   /** The packages a forest draws, in order; every package where unsaid. */
   packages?: readonly Id[];
   /** How many cards a section's widest row holds, drawn whole. */
@@ -33,12 +34,21 @@ export type Config = {
   holds?: readonly Id[];
   /** Whether interfaces draw. A display preference the shell hands down. */
   interfaces?: boolean;
+  /** Whether a package root opened is drawn in a room, as a folder is. */
+  room?: boolean;
 };
 
 const SLOTS: readonly Slot[] = ["layer", "display", "relations"];
 
 /** What a projection with no layer draws: every package's domain, as boxes down the page. */
-const OVERHEAD = { kind: "overhead", cut: "tree" } as const;
+const WHOLE = { kind: "package", cut: "tree" } as const;
+
+/** A graph whose layer says how many cards its page holds across. */
+function with_across(graph: Graph, layer: Id, across: number): Graph {
+  const b = graph.blocks[layer]!;
+  const layout = { ...setting_of(graph, layer, "layout"), across };
+  return { ...graph, blocks: { ...graph.blocks, [layer]: { ...b, settings: { ...b.settings, layout } } } };
+}
 
 /** Every block a group carries when it moves, including nested groups. */
 function group_carries(graph: Graph, group: Id): Id[] {
@@ -58,43 +68,63 @@ function group_carries(graph: Graph, group: Id): Id[] {
 export function project(given: Graph, layer: Id | null, config: Config = {}): Scene {
   /** A whole section is drawn from its scope, down to its cut, and read only: it offers what the
    *  drawing shows, and nothing to lay out. */
-  const look: Config["look"] = config.look ?? (layer === null ? OVERHEAD : undefined);
-  /** A block drawn as what it means is drawn from its own layer, the block itself lit, and read
-   *  only, under its own crumbs: nothing moves, and only a real block is picked — never a band. */
-  if (look && layer && given.blocks[layer]
-      && (look.kind === "entity" || look.kind === "lineage" || look.kind === "definitions")) {
-    const drawn = lens_graph(given, layer, look.kind, config.across);
-    const scene = project(drawn, look.kind === "definitions" ? FOREST : LENS,
+  const look: Config["look"] = config.look ?? (layer === null ? WHOLE : undefined);
+  /** A definition is drawn on its own layer, itself lit, what describes it round it: placed, so
+   *  nothing moves, and only a real block or the note is picked — never a box. */
+  if (look?.kind === "definition" && layer && given.blocks[layer]) {
+    const scene = project(definition_graph(given, layer), ASPECT,
                           { ...config, look: { kind: "internal", cut: null } });
     const nodes = scene.nodes.map((n) => ({
-      ...n, draggable: false, ...(given.blocks[n.id] ? {} : { selectable: false }),
+      ...n, draggable: false, ...(given.blocks[n.id] || n.id === ABOUT ? {} : { selectable: false }),
       ...(n.id === layer ? { data: { ...n.data, marks: [...n.data.marks, "held" as const] } } : {}),
     }));
     return { ...scene, layer, nodes, slots: ["display"], trail: trail_of(given, layer) };
   }
-  if (look && look.kind !== "internal") {
+  /** A package or folder nobody arranged reads as a page, as wide as the canvas; its places are
+   *  the page's, so nothing is dragged. One somebody arranged draws as it was left. Either way
+   *  its room hugs what it holds. */
+  if (look?.kind === "folder" && layer && given.blocks[layer]) {
+    const b = given.blocks[layer]!;
+    const said = setting_of(given, layer, "layout")["kind"];
+    const arranged = (said !== undefined && said !== "free")
+      || children(given, layer).some((c) => c.x !== undefined);
+    const layout = { ...setting_of(given, layer, "layout"), kind: "page",
+                     ...(config.across ? { across: config.across } : {}) };
+    const paged = arranged ? given : { ...given, blocks: { ...given.blocks,
+      [layer]: { ...b, settings: { ...b.settings, layout } } } };
+    const scene = project(paged, layer, { ...config, look: undefined, room: true });
+    const nodes = arranged ? scene.nodes : scene.nodes.map((n) => ({ ...n, draggable: false }));
+    const held = extent({ ...scene, frame: undefined });
+    const frame = scene.frame && nodes.length
+      ? { ...scene.frame, ...roomed({ x: held.x - GAP, y: held.y - GAP, w: held.w + GAP * 2,
+                                      h: held.h + GAP * 2 }) } : scene.frame;
+    return { ...scene, nodes, ...(frame ? { frame } : {}),
+             slots: arranged ? scene.slots : scene.slots.filter((x) => x !== "layer") };
+  }
+  if (look && (look.kind === "package" || look.kind === "profile")) {
     const drawn = look.kind === "profile"
-      ? profile_graph(given, look.tiers ?? EDITOR, look.target ?? null, config.across)
+      ? profile_graph(given, look.target ?? null, config.across)
       : survey_graph(given, layer, look.cut,
                      { ...(config.packages ? { only: config.packages } : {}),
+                       ...(look.tops ? { tops: true } : {}),
                        ...(config.across ? { across: config.across } : {}) });
     const scene = project(drawn, FOREST, { ...config, look: { kind: "internal", cut: null } });
-    /** On a profile, what each section holds on the way to what it cuts through, that included,
-     *  wears the held mark. */
+    /** On a profile, each block on the way to what it cuts through, that included, wears the
+     *  held mark. */
     const target = look.kind === "profile" ? look.target ?? null : null;
-    const held = target && given.blocks[target] ? trace(given, look.tiers ?? EDITOR, target).held
-      : [];
+    const held = target && given.blocks[target] ? path(given, target).map((b) => b.id) : [];
     const marked = (n: BoxNode, mark: CardClass): BoxNode =>
       ({ ...n, data: { ...n.data, marks: [...n.data.marks, mark] } });
     /** A part's copy wears the part mark, as it does inside its usage, and is only looked at:
      *  it is picked and edited where it is a block — its definition, or inside its usage. */
-    const nodes = scene.nodes.map((n) => (!given.blocks[n.id]
-      ? { ...marked(n, "part"), selectable: false, draggable: false }
+    const nodes = scene.nodes.map((n) => (n.id.startsWith(ROW)
+      ? { ...n, selectable: false, draggable: false }
+      : !given.blocks[n.id] ? { ...marked(n, "part"), selectable: false, draggable: false }
       : held.includes(n.id) ? marked(n, "held") : n));
     /** A whole section has no layer of its own to trail to. */
     return { ...scene, nodes, slots: ["display"], trail: [] };
   }
-  if (layer === null) return project(given, null, { ...config, look: OVERHEAD });
+  if (layer === null) return project(given, null, { ...config, look: WHOLE });
   /** An opened grid draws its grid view: its frame of cells is the room, which the hand sizes
    *  but never moves, under the grid's own crumbs. */
   if (layer !== GRID_LAYER && is_grid(given, layer)) {
@@ -105,9 +135,12 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   }
   /** What its usages read through, and the links its cards' attributes draw between them. */
   const through = linked_graph(read_through(given, layer), layer);
-  /** A page places its layer as it reads; anything else places itself. */
+  /** A page places its layer as it reads; anything else places itself — `auto` shelving down a
+   *  page as wide as the canvas, as a page does. */
   const how = layout_of(through, layer);
-  const graph = how === "page" ? page_graph(through, layer) : through;
+  const across = config.across && how !== "free" && through.blocks[layer]
+    ? with_across(through, layer, config.across) : through;
+  const graph = how === "page" ? page_graph(across, layer) : across;
   const parts = new Set(Object.keys(graph.blocks).filter((id) =>
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
   const carried_as = (id: Id): BoxData => {
@@ -161,7 +194,7 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   const drawn = [...holders, ...boxes, ...seats];
 
   /** The room, before anything is seated on it. */
-  const room = frame_of(graph, layer, drawn, hidden);
+  const room = frame_of(graph, layer, drawn, hidden, config.room);
   const boxes_full = new Map(drawn.map((n) => [n.id, box_of(n)]));
   if (room) {
     boxes_full.set(FRAME, room);
@@ -250,11 +283,13 @@ function line_name(way: "row" | "col", i: number): string {
 
 /** The border a layer is seen from inside. */
 function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
-                  hidden: boolean): Frame | null {
-  /** A package root and the forest are seen from no block's inside. */
-  if (layer === null || !graph.blocks[layer] || graph.blocks[layer]!.parent === null) return null;
+                  hidden: boolean, pkg = false): Frame | null {
+  /** The forest is seen from no block's inside, nor a package root unless it is asked for. */
+  if (layer === null || !graph.blocks[layer]) return null;
+  if (graph.blocks[layer]!.parent === null && !pkg) return null;
   const label = shown_name(graph, layer);
-  const role = role_of(graph, layer);
+  /** A package's room reads as the folder it is opened as. */
+  const role = graph.blocks[layer]!.parent === null ? "folder" : role_of(graph, layer);
   const stamps = stamps_of(graph, layer);
   const holds_parts = is_container(graph, layer);
   const ports = wall_of(graph, layer, hidden);

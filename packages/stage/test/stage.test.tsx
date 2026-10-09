@@ -47,7 +47,7 @@ function typing(el: Element, text: string) {
 /** A card says what it is without being read. */
 describe("what a card wears", () => {
   /** The closed set of system marks: what a card stands in for, or what describes it. */
-  const MARKS = ["reference", "definition", "package", "data", "parts"];
+  const MARKS = ["reference", "definition", "package", "structure", "data"];
   const worn = (view: { container: HTMLElement }) =>
     Array.from(view.container.querySelectorAll(".react-flow__node .mnd-role"),
                (el) => el.getAttribute("data-role"));
@@ -70,9 +70,8 @@ describe("what a card wears", () => {
     const view = mount();
     expect(card(view, "block_pump").querySelector(".mnd-mark")).toBeNull();
     expect(card(view, "block_note").querySelector(".mnd-mark")).toBeNull();
-    /** Holding parts is a mark: the frame holds everything, and says so. */
-    expect(view.container.querySelector(".mnd-frame .mnd-mark")?.getAttribute("data-mark"))
-      .toBe("parts");
+    /** Structure is a definition's mark alone: a usage's frame holds blocks and wears none. */
+    expect(view.container.querySelector(".mnd-frame .mnd-mark")).toBeNull();
     expect(stamped(view).every((m) => m !== null && MARKS.includes(m))).toBe(true);
   });
 

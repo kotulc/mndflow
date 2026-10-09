@@ -9,12 +9,12 @@
         "parent": null,
         "name": "workspace",
         "counters": {
-          "folder": 10,
+          "block": 84,
           "note": 11,
-          "block": 75,
+          "folder": 1,
           "reference": 11,
+          "interface": 9,
           "relation": 15,
-          "interface": 6,
           "group": 2,
           "grid": 1
         }
@@ -58,7 +58,7 @@
         "id": "def_large",
         "parent": "w_faces",
         "name": "Large layer",
-        "type": "folder",
+        "type": "block",
         "def": {},
         "order": 1,
         "settings": {
@@ -73,19 +73,14 @@
         "parent": "main",
         "alias": 1,
         "order": 1,
-        "x": 0,
-        "y": 0,
-        "name": "Cards",
-        "type": "folder"
+        "name": "Cards"
       },
       "l_cards_note": {
         "id": "l_cards_note",
         "parent": "l_cards",
         "alias": 1,
         "order": 1,
-        "x": 0,
-        "y": -144,
-        "name": "Every block kind on its small face, then the looks: families, fills, label places and borders, each row varying one setting. Each look is a trait in the looks folder, for a definition to carry; here each card says it as its own.",
+        "name": "Every block kind on its small face, then the looks: families, fills, label places and borders, each card varying one setting. Each look is a trait in the looks folder, for a definition to carry; here each card says it as its own.",
         "type": "note",
         "w": 648,
         "h": 72
@@ -93,29 +88,23 @@
       "c_block": {
         "id": "c_block",
         "parent": "l_cards",
-        "alias": 1,
+        "alias": 2,
         "order": 2,
-        "x": 0,
-        "y": 0,
         "name": "Block"
       },
       "c_folder": {
         "id": "c_folder",
         "parent": "l_cards",
-        "alias": 2,
+        "alias": 1,
         "order": 3,
-        "x": 168,
-        "y": 0,
         "name": "Folder",
         "type": "folder"
       },
       "c_inside": {
         "id": "c_inside",
         "parent": "c_folder",
-        "alias": 2,
+        "alias": 3,
         "order": 1,
-        "x": 0,
-        "y": 0,
         "name": "Inside"
       },
       "c_ref": {
@@ -123,8 +112,6 @@
         "parent": "l_cards",
         "alias": 1,
         "order": 4,
-        "x": 336,
-        "y": 0,
         "name": "",
         "of": "c_block"
       },
@@ -133,8 +120,6 @@
         "parent": "l_cards",
         "alias": 2,
         "order": 5,
-        "x": 504,
-        "y": 0,
         "name": "A note: text, resized by hand",
         "type": "note",
         "w": 144,
@@ -163,10 +148,8 @@
       "c_family_primary": {
         "id": "c_family_primary",
         "parent": "l_cards",
-        "alias": 3,
+        "alias": 4,
         "order": 6,
-        "x": 0,
-        "y": 144,
         "name": "primary",
         "settings": {
           "style": {
@@ -190,10 +173,8 @@
       "c_family_secondary": {
         "id": "c_family_secondary",
         "parent": "l_cards",
-        "alias": 4,
+        "alias": 5,
         "order": 7,
-        "x": 168,
-        "y": 144,
         "name": "secondary",
         "settings": {
           "style": {
@@ -217,10 +198,8 @@
       "c_family_neutral": {
         "id": "c_family_neutral",
         "parent": "l_cards",
-        "alias": 5,
+        "alias": 6,
         "order": 8,
-        "x": 336,
-        "y": 144,
         "name": "neutral",
         "settings": {
           "style": {
@@ -244,10 +223,8 @@
       "c_family_muted": {
         "id": "c_family_muted",
         "parent": "l_cards",
-        "alias": 6,
+        "alias": 7,
         "order": 9,
-        "x": 504,
-        "y": 144,
         "name": "muted",
         "settings": {
           "style": {
@@ -271,10 +248,8 @@
       "c_family_away": {
         "id": "c_family_away",
         "parent": "l_cards",
-        "alias": 7,
+        "alias": 8,
         "order": 10,
-        "x": 672,
-        "y": 144,
         "name": "away",
         "settings": {
           "style": {
@@ -298,10 +273,8 @@
       "c_family_note": {
         "id": "c_family_note",
         "parent": "l_cards",
-        "alias": 8,
+        "alias": 9,
         "order": 11,
-        "x": 840,
-        "y": 144,
         "name": "note",
         "settings": {
           "style": {
@@ -332,10 +305,8 @@
       "c_fill_solid": {
         "id": "c_fill_solid",
         "parent": "l_cards",
-        "alias": 9,
+        "alias": 10,
         "order": 12,
-        "x": 0,
-        "y": 240,
         "name": "solid",
         "settings": {
           "style": {
@@ -359,10 +330,8 @@
       "c_fill_hatch": {
         "id": "c_fill_hatch",
         "parent": "l_cards",
-        "alias": 10,
+        "alias": 11,
         "order": 13,
-        "x": 168,
-        "y": 240,
         "name": "hatch",
         "settings": {
           "style": {
@@ -386,10 +355,8 @@
       "c_fill_wash": {
         "id": "c_fill_wash",
         "parent": "l_cards",
-        "alias": 11,
+        "alias": 12,
         "order": 14,
-        "x": 336,
-        "y": 240,
         "name": "wash",
         "settings": {
           "style": {
@@ -413,10 +380,8 @@
       "c_fill_none": {
         "id": "c_fill_none",
         "parent": "l_cards",
-        "alias": 12,
+        "alias": 13,
         "order": 15,
-        "x": 504,
-        "y": 240,
         "name": "none",
         "settings": {
           "style": {
@@ -447,10 +412,8 @@
       "c_label_above": {
         "id": "c_label_above",
         "parent": "l_cards",
-        "alias": 13,
+        "alias": 14,
         "order": 16,
-        "x": 0,
-        "y": 336,
         "name": "above",
         "settings": {
           "card": {
@@ -474,10 +437,8 @@
       "c_label_inside": {
         "id": "c_label_inside",
         "parent": "l_cards",
-        "alias": 14,
+        "alias": 15,
         "order": 17,
-        "x": 168,
-        "y": 336,
         "name": "inside",
         "settings": {
           "card": {
@@ -501,10 +462,8 @@
       "c_label_below": {
         "id": "c_label_below",
         "parent": "l_cards",
-        "alias": 15,
+        "alias": 16,
         "order": 18,
-        "x": 336,
-        "y": 336,
         "name": "below",
         "settings": {
           "card": {
@@ -528,10 +487,8 @@
       "c_label_none": {
         "id": "c_label_none",
         "parent": "l_cards",
-        "alias": 16,
+        "alias": 17,
         "order": 19,
-        "x": 504,
-        "y": 336,
         "name": "none",
         "settings": {
           "card": {
@@ -562,10 +519,8 @@
       "c_border_dashed": {
         "id": "c_border_dashed",
         "parent": "l_cards",
-        "alias": 17,
+        "alias": 18,
         "order": 20,
-        "x": 0,
-        "y": 432,
         "name": "dashed",
         "settings": {
           "style": {
@@ -589,10 +544,8 @@
       "c_border_dotted": {
         "id": "c_border_dotted",
         "parent": "l_cards",
-        "alias": 18,
+        "alias": 19,
         "order": 21,
-        "x": 168,
-        "y": 432,
         "name": "dotted",
         "settings": {
           "style": {
@@ -616,10 +569,8 @@
       "c_border_double": {
         "id": "c_border_double",
         "parent": "l_cards",
-        "alias": 19,
+        "alias": 20,
         "order": 22,
-        "x": 336,
-        "y": 432,
         "name": "double",
         "settings": {
           "style": {
@@ -643,10 +594,8 @@
       "c_border_none": {
         "id": "c_border_none",
         "parent": "l_cards",
-        "alias": 20,
+        "alias": 21,
         "order": 23,
-        "x": 504,
-        "y": 432,
         "name": "none",
         "settings": {
           "style": {
@@ -657,10 +606,8 @@
       "l_faces": {
         "id": "l_faces",
         "parent": "main",
-        "alias": 3,
+        "alias": 22,
         "order": 2,
-        "x": 168,
-        "y": 0,
         "name": "Faces",
         "type": "def_large"
       },
@@ -669,8 +616,6 @@
         "parent": "l_faces",
         "alias": 3,
         "order": 1,
-        "x": 0,
-        "y": -144,
         "name": "The large face, on a layer that asks for it. Each card fits what it shows unless its definition gives a size; a plain block shows nothing, so it is the small face.",
         "type": "note",
         "w": 648,
@@ -774,10 +719,8 @@
       "f_body": {
         "id": "f_body",
         "parent": "l_faces",
-        "alias": 21,
+        "alias": 23,
         "order": 2,
-        "x": 0,
-        "y": 0,
         "name": "Body",
         "type": "def_doc",
         "body": "# A heading\n\nProse with **bold**, `code` and a [link](https://example.com).\n\n- a point\n- another point"
@@ -785,10 +728,8 @@
       "f_spec": {
         "id": "f_spec",
         "parent": "l_faces",
-        "alias": 22,
+        "alias": 24,
         "order": 3,
-        "x": 504,
-        "y": 0,
         "name": "Spec",
         "type": "def_spec",
         "body": "Attributes, then the body.",
@@ -810,10 +751,8 @@
       "f_media": {
         "id": "f_media",
         "parent": "l_faces",
-        "alias": 23,
+        "alias": 25,
         "order": 4,
-        "x": 1008,
-        "y": 0,
         "name": "Picture",
         "type": "def_media",
         "source": "/showcase/picture.svg"
@@ -821,10 +760,8 @@
       "f_headless": {
         "id": "f_headless",
         "parent": "l_faces",
-        "alias": 24,
+        "alias": 26,
         "order": 5,
-        "x": 0,
-        "y": 240,
         "name": "Headless",
         "type": "def_headless",
         "body": "A card that is its markdown alone: no name over it."
@@ -832,10 +769,8 @@
       "f_sized": {
         "id": "f_sized",
         "parent": "l_faces",
-        "alias": 25,
+        "alias": 27,
         "order": 6,
-        "x": 504,
-        "y": 240,
         "name": "Sized",
         "type": "def_sized",
         "body": "A size its definition gives: 8 by 3 units, whatever it says. What does not fit is cut off at the card's edge, however long the text runs on and on."
@@ -843,19 +778,15 @@
       "f_plain": {
         "id": "f_plain",
         "parent": "l_faces",
-        "alias": 26,
+        "alias": 28,
         "order": 7,
-        "x": 1008,
-        "y": 240,
         "name": "Plain"
       },
       "l_defs": {
         "id": "l_defs",
         "parent": "main",
-        "alias": 4,
+        "alias": 29,
         "order": 3,
-        "x": 336,
-        "y": 0,
         "name": "Definitions",
         "type": "def_large"
       },
@@ -864,9 +795,7 @@
         "parent": "l_defs",
         "alias": 4,
         "order": 1,
-        "x": 0,
-        "y": -144,
-        "name": "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the family secondary look as a trait. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it.",
+        "name": "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the family secondary look as a trait. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it. Open a stand-in for its definition view: Pump shows what it extends, its ports, its tag, its traits and its description.",
         "type": "note",
         "w": 648,
         "h": 72
@@ -899,6 +828,14 @@
           "look_family_secondary"
         ]
       },
+      "tag_rotating": {
+        "id": "tag_rotating",
+        "parent": "w_machines",
+        "name": "rotating",
+        "type": "tag",
+        "def": {},
+        "order": 2
+      },
       "def_pump": {
         "id": "def_pump",
         "parent": "w_machines",
@@ -913,12 +850,46 @@
             }
           ]
         },
-        "order": 2,
+        "order": 3,
         "settings": {
           "style": {
             "hue": 200
           }
-        }
+        },
+        "body": "Moves liquid from its inlet to its outlet, driven by a motor.",
+        "tags": [
+          "tag_rotating"
+        ]
+      },
+      "dp_inlet": {
+        "id": "dp_inlet",
+        "parent": "def_pump",
+        "alias": 1,
+        "order": 1,
+        "name": "inlet",
+        "side": "left",
+        "at": 0.5,
+        "flow": "in"
+      },
+      "dp_outlet": {
+        "id": "dp_outlet",
+        "parent": "def_pump",
+        "alias": 2,
+        "order": 2,
+        "name": "outlet",
+        "side": "right",
+        "at": 0.5,
+        "flow": "out"
+      },
+      "dp_seal": {
+        "id": "dp_seal",
+        "parent": "def_pump",
+        "alias": 3,
+        "order": 3,
+        "name": "seal",
+        "side": "bottom",
+        "at": 0.5,
+        "flow": "both"
       },
       "def_bigpump": {
         "id": "def_bigpump",
@@ -934,7 +905,7 @@
             }
           ]
         },
-        "order": 3,
+        "order": 4,
         "settings": {
           "style": {
             "border_width": "thick"
@@ -946,8 +917,6 @@
         "parent": "l_defs",
         "alias": 2,
         "order": 2,
-        "x": 0,
-        "y": 0,
         "of": "def_machine"
       },
       "s_def_pump": {
@@ -955,8 +924,6 @@
         "parent": "l_defs",
         "alias": 3,
         "order": 3,
-        "x": 336,
-        "y": 0,
         "of": "def_pump"
       },
       "s_def_bigpump": {
@@ -964,17 +931,13 @@
         "parent": "l_defs",
         "alias": 4,
         "order": 4,
-        "x": 672,
-        "y": 0,
         "of": "def_bigpump"
       },
       "d_m1": {
         "id": "d_m1",
         "parent": "l_defs",
-        "alias": 27,
+        "alias": 30,
         "order": 5,
-        "x": 0,
-        "y": 192,
         "name": "Compressor",
         "type": "def_machine",
         "values": [
@@ -987,10 +950,8 @@
       "d_p1": {
         "id": "d_p1",
         "parent": "l_defs",
-        "alias": 28,
+        "alias": 31,
         "order": 6,
-        "x": 336,
-        "y": 192,
         "name": "Feed pump",
         "type": "def_pump",
         "values": [
@@ -1007,10 +968,8 @@
       "d_b1": {
         "id": "d_b1",
         "parent": "l_defs",
-        "alias": 29,
+        "alias": 32,
         "order": 7,
-        "x": 672,
-        "y": 192,
         "name": "Main pump",
         "type": "def_bigpump",
         "values": [
@@ -1027,21 +986,16 @@
       "l_rel": {
         "id": "l_rel",
         "parent": "main",
-        "alias": 5,
+        "alias": 33,
         "order": 4,
-        "x": 504,
-        "y": 0,
-        "name": "Relations",
-        "type": "folder"
+        "name": "Relations"
       },
       "l_rel_note": {
         "id": "l_rel_note",
         "parent": "l_rel",
         "alias": 5,
         "order": 1,
-        "x": 0,
-        "y": -144,
-        "name": "Top: each direction, a name, arrows and a tie. Below: a detour round a blocker, two runs between one pair, a crossing, and a tight gap.",
+        "name": "Each direction, a name, arrows and a tie; then a run past a third block, two runs between one pair, two runs that cross, and a pair close together. All laid out automatically.",
         "type": "note",
         "w": 648,
         "h": 72
@@ -1049,109 +1003,85 @@
       "r_fwd_a": {
         "id": "r_fwd_a",
         "parent": "l_rel",
-        "alias": 30,
+        "alias": 34,
         "order": 2,
-        "x": 0,
-        "y": 0,
         "name": "From"
       },
       "r_fwd_b": {
         "id": "r_fwd_b",
         "parent": "l_rel",
-        "alias": 31,
+        "alias": 35,
         "order": 3,
-        "x": 252,
-        "y": 0,
         "name": "Forward"
       },
       "r_back_a": {
         "id": "r_back_a",
         "parent": "l_rel",
-        "alias": 32,
+        "alias": 36,
         "order": 4,
-        "x": 504,
-        "y": 0,
         "name": "From"
       },
       "r_back_b": {
         "id": "r_back_b",
         "parent": "l_rel",
-        "alias": 33,
+        "alias": 37,
         "order": 5,
-        "x": 756,
-        "y": 0,
         "name": "Back"
       },
       "r_both_a": {
         "id": "r_both_a",
         "parent": "l_rel",
-        "alias": 34,
+        "alias": 38,
         "order": 6,
-        "x": 0,
-        "y": 96,
         "name": "From"
       },
       "r_both_b": {
         "id": "r_both_b",
         "parent": "l_rel",
-        "alias": 35,
+        "alias": 39,
         "order": 7,
-        "x": 252,
-        "y": 96,
         "name": "Both"
       },
       "r_none_a": {
         "id": "r_none_a",
         "parent": "l_rel",
-        "alias": 36,
+        "alias": 40,
         "order": 8,
-        "x": 504,
-        "y": 96,
         "name": "From"
       },
       "r_none_b": {
         "id": "r_none_b",
         "parent": "l_rel",
-        "alias": 37,
+        "alias": 41,
         "order": 9,
-        "x": 756,
-        "y": 96,
         "name": "None"
       },
       "r_named_a": {
         "id": "r_named_a",
         "parent": "l_rel",
-        "alias": 38,
+        "alias": 42,
         "order": 10,
-        "x": 0,
-        "y": 192,
         "name": "Pump"
       },
       "r_named_b": {
         "id": "r_named_b",
         "parent": "l_rel",
-        "alias": 39,
+        "alias": 43,
         "order": 11,
-        "x": 252,
-        "y": 192,
         "name": "Tank"
       },
       "r_arrows_a": {
         "id": "r_arrows_a",
         "parent": "l_rel",
-        "alias": 40,
+        "alias": 44,
         "order": 12,
-        "x": 504,
-        "y": 192,
         "name": "Whole"
       },
       "r_arrows_b": {
         "id": "r_arrows_b",
         "parent": "l_rel",
-        "alias": 41,
+        "alias": 45,
         "order": 13,
-        "x": 756,
-        "y": 192,
         "name": "Part"
       },
       "r_tie_note": {
@@ -1159,8 +1089,6 @@
         "parent": "l_rel",
         "alias": 6,
         "order": 14,
-        "x": 1008,
-        "y": 0,
         "name": "A tie joins a note to what it is about",
         "type": "note",
         "w": 120,
@@ -1169,128 +1097,99 @@
       "r_tie_to": {
         "id": "r_tie_to",
         "parent": "l_rel",
-        "alias": 42,
+        "alias": 46,
         "order": 15,
-        "x": 1008,
-        "y": 144,
         "name": "Tied"
       },
       "r_det_a": {
         "id": "r_det_a",
         "parent": "l_rel",
-        "alias": 43,
+        "alias": 47,
         "order": 16,
-        "x": 0,
-        "y": 384,
         "name": "Left"
       },
       "r_det_x": {
         "id": "r_det_x",
         "parent": "l_rel",
-        "alias": 44,
+        "alias": 48,
         "order": 17,
-        "x": 252,
-        "y": 384,
         "name": "Blocker"
       },
       "r_det_b": {
         "id": "r_det_b",
         "parent": "l_rel",
-        "alias": 45,
+        "alias": 49,
         "order": 18,
-        "x": 504,
-        "y": 384,
         "name": "Right"
       },
       "r_par_a": {
         "id": "r_par_a",
         "parent": "l_rel",
-        "alias": 46,
+        "alias": 50,
         "order": 19,
-        "x": 756,
-        "y": 384,
         "name": "Asks"
       },
       "r_par_b": {
         "id": "r_par_b",
         "parent": "l_rel",
-        "alias": 47,
+        "alias": 51,
         "order": 20,
-        "x": 756,
-        "y": 576,
         "name": "Answers"
       },
       "r_x_a": {
         "id": "r_x_a",
         "parent": "l_rel",
-        "alias": 48,
+        "alias": 52,
         "order": 21,
-        "x": 0,
-        "y": 576,
         "name": "North"
       },
       "r_x_b": {
         "id": "r_x_b",
         "parent": "l_rel",
-        "alias": 49,
+        "alias": 53,
         "order": 22,
-        "x": 336,
-        "y": 576,
         "name": "East"
       },
       "r_x_c": {
         "id": "r_x_c",
         "parent": "l_rel",
-        "alias": 50,
+        "alias": 54,
         "order": 23,
-        "x": 0,
-        "y": 720,
         "name": "West"
       },
       "r_x_d": {
         "id": "r_x_d",
         "parent": "l_rel",
-        "alias": 51,
+        "alias": 55,
         "order": 24,
-        "x": 336,
-        "y": 720,
         "name": "South"
       },
       "r_gap_a": {
         "id": "r_gap_a",
         "parent": "l_rel",
-        "alias": 52,
+        "alias": 56,
         "order": 25,
-        "x": 1008,
-        "y": 384,
         "name": "Close"
       },
       "r_gap_b": {
         "id": "r_gap_b",
         "parent": "l_rel",
-        "alias": 53,
+        "alias": 57,
         "order": 26,
-        "x": 1008,
-        "y": 480,
         "name": "Closer"
       },
       "l_ports": {
         "id": "l_ports",
         "parent": "main",
-        "alias": 6,
+        "alias": 58,
         "order": 5,
-        "x": 0,
-        "y": 96,
-        "name": "Interfaces",
-        "type": "folder"
+        "name": "Interfaces"
       },
       "l_ports_note": {
         "id": "l_ports_note",
         "parent": "l_ports",
         "alias": 7,
         "order": 1,
-        "x": 0,
-        "y": -144,
         "name": "Ports on each side of a block, flowing in, out, both or neither; lines may land on a port or on the block.",
         "type": "note",
         "w": 528,
@@ -1299,34 +1198,28 @@
       "p_pump": {
         "id": "p_pump",
         "parent": "l_ports",
-        "alias": 54,
+        "alias": 59,
         "order": 2,
-        "x": 0,
-        "y": 96,
         "name": "Pump"
       },
       "p_tank": {
         "id": "p_tank",
         "parent": "l_ports",
-        "alias": 55,
+        "alias": 60,
         "order": 3,
-        "x": 504,
-        "y": 96,
         "name": "Tank"
       },
       "p_valve": {
         "id": "p_valve",
         "parent": "l_ports",
-        "alias": 56,
+        "alias": 61,
         "order": 4,
-        "x": 0,
-        "y": 288,
         "name": "Valve"
       },
       "p_pump_in": {
         "id": "p_pump_in",
         "parent": "p_pump",
-        "alias": 1,
+        "alias": 4,
         "order": 1,
         "name": "",
         "side": "left",
@@ -1336,7 +1229,7 @@
       "p_pump_out": {
         "id": "p_pump_out",
         "parent": "p_pump",
-        "alias": 2,
+        "alias": 5,
         "order": 2,
         "name": "",
         "side": "right",
@@ -1346,7 +1239,7 @@
       "p_pump_top": {
         "id": "p_pump_top",
         "parent": "p_pump",
-        "alias": 3,
+        "alias": 6,
         "order": 3,
         "name": "",
         "side": "top",
@@ -1356,7 +1249,7 @@
       "p_pump_low": {
         "id": "p_pump_low",
         "parent": "p_pump",
-        "alias": 4,
+        "alias": 7,
         "order": 4,
         "name": "",
         "side": "bottom",
@@ -1365,7 +1258,7 @@
       "p_tank_in": {
         "id": "p_tank_in",
         "parent": "p_tank",
-        "alias": 5,
+        "alias": 8,
         "order": 1,
         "name": "",
         "side": "left",
@@ -1375,7 +1268,7 @@
       "p_valve_out": {
         "id": "p_valve_out",
         "parent": "p_valve",
-        "alias": 6,
+        "alias": 9,
         "order": 1,
         "name": "",
         "side": "top",
@@ -1385,20 +1278,15 @@
       "l_hold": {
         "id": "l_hold",
         "parent": "main",
-        "alias": 7,
+        "alias": 62,
         "order": 6,
-        "x": 168,
-        "y": 96,
-        "name": "Holders",
-        "type": "folder"
+        "name": "Holders"
       },
       "l_hold_note": {
         "id": "l_hold_note",
         "parent": "l_hold",
         "alias": 8,
         "order": 1,
-        "x": 0,
-        "y": -144,
         "name": "A group gathers blocks where they sit, and nests. A grid seats blocks in cells: its top row and left column head the lines; a merge spans cells. Select the grid and press Enter to see its cells.",
         "type": "note",
         "w": 648,
@@ -1409,8 +1297,6 @@
         "parent": "l_hold",
         "alias": 1,
         "order": 2,
-        "x": 0,
-        "y": 0,
         "name": "Plant",
         "type": "group"
       },
@@ -1419,36 +1305,28 @@
         "parent": "h_outer",
         "alias": 2,
         "order": 1,
-        "x": 0,
-        "y": 0,
         "name": "Skid",
         "type": "group"
       },
       "h_g1": {
         "id": "h_g1",
         "parent": "h_inner",
-        "alias": 57,
+        "alias": 63,
         "order": 1,
-        "x": 0,
-        "y": 0,
         "name": "Motor"
       },
       "h_g2": {
         "id": "h_g2",
         "parent": "h_inner",
-        "alias": 58,
+        "alias": 64,
         "order": 2,
-        "x": 168,
-        "y": 0,
         "name": "Gearbox"
       },
       "h_g3": {
         "id": "h_g3",
         "parent": "h_outer",
-        "alias": 59,
+        "alias": 65,
         "order": 2,
-        "x": 0,
-        "y": 144,
         "name": "Panel"
       },
       "def_table": {
@@ -1470,8 +1348,6 @@
         "parent": "l_hold",
         "alias": 1,
         "order": 3,
-        "x": 672,
-        "y": 0,
         "name": "Duty roster",
         "type": "def_table",
         "grid": {
@@ -1490,7 +1366,7 @@
       "h_col_0": {
         "id": "h_col_0",
         "parent": "h_grid",
-        "alias": 60,
+        "alias": 66,
         "order": 1,
         "name": "Mon",
         "cell": {
@@ -1501,7 +1377,7 @@
       "h_col_1": {
         "id": "h_col_1",
         "parent": "h_grid",
-        "alias": 61,
+        "alias": 67,
         "order": 2,
         "name": "Tue",
         "cell": {
@@ -1512,7 +1388,7 @@
       "h_col_2": {
         "id": "h_col_2",
         "parent": "h_grid",
-        "alias": 62,
+        "alias": 68,
         "order": 3,
         "name": "Wed",
         "cell": {
@@ -1523,7 +1399,7 @@
       "h_row_0": {
         "id": "h_row_0",
         "parent": "h_grid",
-        "alias": 63,
+        "alias": 69,
         "order": 4,
         "name": "Day",
         "cell": {
@@ -1534,7 +1410,7 @@
       "h_row_1": {
         "id": "h_row_1",
         "parent": "h_grid",
-        "alias": 64,
+        "alias": 70,
         "order": 5,
         "name": "Swing",
         "cell": {
@@ -1545,7 +1421,7 @@
       "h_row_2": {
         "id": "h_row_2",
         "parent": "h_grid",
-        "alias": 65,
+        "alias": 71,
         "order": 6,
         "name": "Night",
         "cell": {
@@ -1556,7 +1432,7 @@
       "h_c1": {
         "id": "h_c1",
         "parent": "h_grid",
-        "alias": 66,
+        "alias": 72,
         "order": 7,
         "name": "Ana",
         "cell": {
@@ -1567,7 +1443,7 @@
       "h_c2": {
         "id": "h_c2",
         "parent": "h_grid",
-        "alias": 67,
+        "alias": 73,
         "order": 8,
         "name": "Ben",
         "cell": {
@@ -1578,7 +1454,7 @@
       "h_c3": {
         "id": "h_c3",
         "parent": "h_grid",
-        "alias": 68,
+        "alias": 74,
         "order": 9,
         "name": "Cy",
         "cell": {
@@ -1589,7 +1465,7 @@
       "h_c4": {
         "id": "h_c4",
         "parent": "h_grid",
-        "alias": 69,
+        "alias": 75,
         "order": 10,
         "name": "Di",
         "cell": {
@@ -1600,20 +1476,15 @@
       "l_refs": {
         "id": "l_refs",
         "parent": "main",
-        "alias": 8,
+        "alias": 76,
         "order": 7,
-        "x": 336,
-        "y": 96,
-        "name": "References",
-        "type": "folder"
+        "name": "References"
       },
       "l_refs_note": {
         "id": "l_refs_note",
         "parent": "l_refs",
         "alias": 9,
         "order": 1,
-        "x": 0,
-        "y": -144,
         "name": "A reference stands for something drawn elsewhere: a block on the cards layer, a definition, or something since deleted.",
         "type": "note",
         "w": 528,
@@ -1624,8 +1495,6 @@
         "parent": "l_refs",
         "alias": 5,
         "order": 2,
-        "x": 0,
-        "y": 0,
         "of": "c_block"
       },
       "x_def": {
@@ -1633,8 +1502,6 @@
         "parent": "l_refs",
         "alias": 6,
         "order": 3,
-        "x": 252,
-        "y": 0,
         "of": "def_pump"
       },
       "x_gone": {
@@ -1642,18 +1509,14 @@
         "parent": "l_refs",
         "alias": 7,
         "order": 4,
-        "x": 504,
-        "y": 0,
         "name": "Gone",
         "of": "nothing_here"
       },
       "l_model": {
         "id": "l_model",
         "parent": "main",
-        "alias": 9,
+        "alias": 77,
         "order": 8,
-        "x": 504,
-        "y": 96,
         "name": "Data model",
         "type": "def_large"
       },
@@ -1662,8 +1525,6 @@
         "parent": "l_model",
         "alias": 10,
         "order": 1,
-        "x": 0,
-        "y": -144,
         "name": "The entity-relation package's entities as stand-ins: each attribute typed by another entity draws a link.",
         "type": "note",
         "w": 528,
@@ -1674,44 +1535,34 @@
         "parent": "l_model",
         "alias": 8,
         "order": 2,
-        "of": "entity-relation.customer",
-        "x": 0,
-        "y": 0
+        "of": "entity-relation.customer"
       },
       "m_order": {
         "id": "m_order",
         "parent": "l_model",
         "alias": 9,
         "order": 3,
-        "of": "entity-relation.order",
-        "x": 432,
-        "y": 0
+        "of": "entity-relation.order"
       },
       "m_line": {
         "id": "m_line",
         "parent": "l_model",
         "alias": 10,
         "order": 4,
-        "of": "entity-relation.line",
-        "x": 864,
-        "y": 0
+        "of": "entity-relation.line"
       },
       "m_product": {
         "id": "m_product",
         "parent": "l_model",
         "alias": 11,
         "order": 5,
-        "of": "entity-relation.product",
-        "x": 864,
-        "y": 192
+        "of": "entity-relation.product"
       },
       "l_rows": {
         "id": "l_rows",
         "parent": "main",
-        "alias": 10,
+        "alias": 78,
         "order": 9,
-        "x": 0,
-        "y": 192,
         "name": "Data rows",
         "type": "def_large"
       },
@@ -1720,8 +1571,6 @@
         "parent": "l_rows",
         "alias": 11,
         "order": 1,
-        "x": 0,
-        "y": -144,
         "name": "Usages answering the entities: a value naming another card on the layer draws a link.",
         "type": "note",
         "w": 528,
@@ -1730,7 +1579,7 @@
       "u_ada": {
         "id": "u_ada",
         "parent": "l_rows",
-        "alias": 70,
+        "alias": 79,
         "order": 2,
         "name": "Ada Lovelace",
         "type": "entity-relation.customer",
@@ -1747,14 +1596,12 @@
             "name": "email",
             "value": "ada@example.com"
           }
-        ],
-        "x": 0,
-        "y": 0
+        ]
       },
       "u_1001": {
         "id": "u_1001",
         "parent": "l_rows",
-        "alias": 71,
+        "alias": 80,
         "order": 3,
         "name": "Order 1001",
         "type": "entity-relation.order",
@@ -1779,14 +1626,12 @@
             "name": "paid",
             "value": "true"
           }
-        ],
-        "x": 432,
-        "y": 0
+        ]
       },
       "u_l1": {
         "id": "u_l1",
         "parent": "l_rows",
-        "alias": 72,
+        "alias": 81,
         "order": 4,
         "name": "1001 · widgets",
         "type": "entity-relation.line",
@@ -1803,14 +1648,12 @@
             "name": "qty",
             "value": "3"
           }
-        ],
-        "x": 864,
-        "y": 0
+        ]
       },
       "u_l2": {
         "id": "u_l2",
         "parent": "l_rows",
-        "alias": 73,
+        "alias": 82,
         "order": 5,
         "name": "1001 · gadget",
         "type": "entity-relation.line",
@@ -1823,14 +1666,12 @@
             "name": "product",
             "value": "Gadget"
           }
-        ],
-        "x": 864,
-        "y": 192
+        ]
       },
       "u_widget": {
         "id": "u_widget",
         "parent": "l_rows",
-        "alias": 74,
+        "alias": 83,
         "order": 6,
         "name": "Widget",
         "type": "entity-relation.product",
@@ -1847,14 +1688,12 @@
             "name": "price",
             "value": "4.50"
           }
-        ],
-        "x": 1296,
-        "y": 0
+        ]
       },
       "u_gadget": {
         "id": "u_gadget",
         "parent": "l_rows",
-        "alias": 75,
+        "alias": 84,
         "order": 7,
         "name": "Gadget",
         "type": "entity-relation.product",
@@ -1871,9 +1710,7 @@
             "name": "price",
             "value": "12.00"
           }
-        ],
-        "x": 1296,
-        "y": 192
+        ]
       },
       "entity-relation": {
         "id": "entity-relation",

@@ -3,7 +3,6 @@ export { useDisplay, useTray, type Pointed } from "./state";
 export { Definitions, taken, type DefinitionsProps, type Only, type Shelf } from "./Definitions";
 export { Entry, type EntryProps } from "./Entry";
 export { Content, type ContentProps } from "./Content";
-export { CardTab, type CardTabProps } from "./CardTab";
 export { Attributes, type AttributesProps } from "./Attributes";
 export { Faces, type FacesProps } from "./Faces";
 export { def_rows, rows_of, usage_rows, type DefRow, type Row, type Sort,

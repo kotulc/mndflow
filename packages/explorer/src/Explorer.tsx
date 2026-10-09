@@ -6,9 +6,10 @@
  *  draws and each section's pick subtly. */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { about_of, at_cut, children, domain_of, drop_of, frozen, is_layer_view, may_hold,
-         name_taken, new_id, shown_name, type Act, type Graph, type Id, type View } from "@mnd/core";
-import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
+import { about_of, at_cut, children, domain_of, drop_of, frozen, is_inside, is_layer_view, may_hold,
+         name_taken, new_id, shown_name, tree_of as tree_holding, type Act, type Graph, type Id,
+         type View } from "@mnd/core";
+import { Icon, Name, NamingContext, MARK_ICON, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
 import { end_of, listed_of, mark_icon, OPENED, opened, parent_of, tree_of,
@@ -208,6 +209,19 @@ export function Explorer(props: ExplorerProps) {
       if (is_shut(r)) fold(r, false);
     }
   }, [seen, sections]);
+  /** In a section listing every tree, the definition held above opens as it is held, and so do
+   *  the canvas's tree and the one its own pick sits inside: choosing a definition shows its
+   *  structure. Once per change, so folding it again stays folded. */
+  const trees = [...chain.roots, ...chain.held].join("|");
+  useEffect(() => {
+    for (const r of sections.all) {
+      if (r.at === undefined || r.depth !== 1 || !r.kids || !chain.slices[r.at]?.trees) continue;
+      const own = chain.held[r.at];
+      const opens = r.ref === chain.held[r.at - 1] || r.ref === chain.roots[r.at]
+        || (!!own && own !== r.ref && r.ref === tree_holding(graph, own));
+      if (opens && is_shut(r)) fold(r, false);
+    }
+  }, [trees]);
   const rows = tree_of(graph, folded, chain);
   /** The lowest open layer, under every branch alike: each open branch with no open branch
    *  inside it. The bar's fold shuts them, a layer a click, until only the top rows show; with
@@ -234,7 +248,7 @@ export function Explorer(props: ExplorerProps) {
   const focus = chain.at;
   const library = sections.library;
   /** The layer seen from inside, where the canvas looks into one; anything else has none. */
-  const open = view.kind === "internal" ? view.layer : null;
+  const open = is_inside(view.kind) ? view.layer : null;
   /** The row each block lights: its own, or a group's nearest listed holder's. */
   const as_row = (id: Id | null | undefined) => (id ? listed_of(graph, id) : id);
   const held = chain.held.map(as_row);
@@ -255,9 +269,8 @@ export function Explorer(props: ExplorerProps) {
   const drawn_at = rows.findIndex((r) => r.of === "block" && r.at === view.at && r.ref === shown
     && !r.via);
   const drawn_row = rows[drawn_at]?.id;
-  /** **The branch in focus**, lit subtly: what the canvas draws from inside — its layer, or a
-   *  package's definitions — and the rows under it. */
-  const branch = drawn_at >= 0 && (view.kind === "internal" || view.kind === "definitions")
+  /** **The branch in focus**, lit subtly: the block a layer view draws and the rows under it. */
+  const branch = drawn_at >= 0 && is_layer_view(view.kind)
     ? new Set(rows.slice(drawn_at, end_of(rows, drawn_at)).map((r) => r.id)) : new Set<Id>();
   /** What each other section holds, lit subtly. */
   const holds = (r: Row) => r.at !== undefined && r.at !== focus
@@ -603,6 +616,13 @@ export function Explorer(props: ExplorerProps) {
                 ? <span className="label">{r.label}</span>
                 : <Name id={r.id} className="label" text={r.label} />}
               {r.alias ? <span className="alias">{r.alias}</span> : null}
+              {/* Structure of its own wears the card's structure mark, so a row says it before
+                  it is picked. A package holds its definitions, not structure. */}
+              {r.held && graph.blocks[r.ref]?.parent !== null ? (
+                <span className="stamp" title="holds structure">
+                  <Icon name={MARK_ICON["structure"]!} size={MARK_SIZE - 2} />
+                </span>
+              ) : null}
               {r.via ? (
                 <span className="from"
                       title={`from ${shown_name(graph, graph.blocks[r.via]?.type ?? r.via)}`}>

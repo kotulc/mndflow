@@ -37,8 +37,10 @@ function One({ graph, id, face }: FacesProps & { face: Face }) {
   const table = bare ? face_table(graph, id, previewed) : data.table ?? null;
   const text = bare ? face_text(graph, id, previewed) || (table ? "" : SAMPLE) : data.text;
   const alias = look.alias === false ? "" : handle(graph, id);
-  const { w, h } = bare ? fitted(data.label, text ?? "", !!alias, table, edge_of(look))
-    : size_of(graph, id, face);
+  /** A large face is fitted here, with the handle the tray always draws; one its definition
+   *  sizes, and the small face, take the canvas's size. */
+  const { w, h } = face === "large" && !look.size
+    ? fitted(data.label, text ?? "", !!alias, table, edge_of(look)) : size_of(graph, id, face);
   const [held, scale] = useFit(w);
   return (
     <div className="face-room" ref={held} style={{ height: h * scale }}>

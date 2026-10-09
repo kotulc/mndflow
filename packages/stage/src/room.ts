@@ -17,8 +17,9 @@ function own_node(scene: Scene): BoxNode | null {
 }
 
 
-/** The room, kept until the layer or panel changes or the work outgrows it, and its fit. */
-export function useRoom(scene: Scene) {
+/** The room, kept until the layer or panel changes or the work outgrows it, and its fit. A page
+ *  read down the view hugs what it draws rather than growing to the panel. */
+export function useRoom(scene: Scene, scroll = false) {
   /** How much room there is to draw in. */
   const seen = useStore(useCallback((st) => ({ w: st.width, h: st.height }), []),
                         (a, b) => a.w === b.w && a.h === b.h);
@@ -35,10 +36,10 @@ export function useRoom(scene: Scene) {
     const room = holds
       ? { ...held!.room, label: f.label, ports: f.ports,
           ...(f.side ? { side: f.side } : {}), ...(f.seats ? { seats: f.seats } : {}) }
-      : panelled(f, seen);
+      : scroll ? f : panelled(f, seen);
     kept.current = { of: scene.layer, seen: seen_key, room };
     return met_on(room, scene);
-  }, [scene, seen]);
+  }, [scene, seen, scroll]);
 
   /** The same band on every side. */
   const fit = useMemo(() => (frame && seen.w > BAND * 2
@@ -49,11 +50,10 @@ export function useRoom(scene: Scene) {
 }
 
 /** A scrolled drawing as the camera and the scroll limit both read it: the page (what is drawn,
- *  without the room round it), the width it is read at, and the one zoom for both. */
+ *  with the room that hugs it), the width it is read at, and the one zoom for both. */
 export function paged(scene: Scene, seen: { w: number; h: number }, reach: number | null,
                       widest: number | null, most: number | null) {
-  const page = extent({ ...scene, frame: undefined,
-                        nodes: scene.nodes.filter((n) => n.id !== FRAME) });
+  const page = extent({ ...scene, nodes: scene.nodes.filter((n) => n.id !== FRAME) });
   const w = Math.min(reach ?? page.w, widest ?? Infinity);
   // A page's zoom is its width's alone: the camera scrolls to a focus, never zooms to it.
   return { page, w, zoom: scroll_zoom(w, null, seen, widest, most) };
@@ -144,7 +144,7 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
   }, [focus]);
 
   /** A page that changes width, or a view that does, is fitted again at once. */
-  const span = scroll ? Math.round(extent({ ...scene, frame: undefined,
+  const span = scroll ? Math.round(extent({ ...scene,
     nodes: scene.nodes.filter((n) => n.id !== FRAME) }).w) : 0;
   useEffect(() => {
     if (scroll) settle(0);

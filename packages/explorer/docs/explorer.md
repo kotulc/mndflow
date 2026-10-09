@@ -4,7 +4,7 @@ The explorer files the graph as a **section chain**: a host declares its section
 
 | Host | Sections |
 |---|---|
-| **mndflow** (editor) | `packages` → `definitions` → `structure` |
+| **mndflow** (editor) | `definitions` and `structure`, standing apart: structure lists every tree whatever definitions holds |
 | **mndmap** (reader) | `collection` → `document`: the editor's chain with the package fixed to the workspace and hidden |
 
 **The bar is tools only**: filter, add, add folder, delete, and a fold that shuts a layer a click. It follows the section in focus. The filter keys off tags and is not built yet.
@@ -15,18 +15,19 @@ The explorer files the graph as a **section chain**: a host declares its section
 | Rule | |
 |---|---|
 | **split by role** | each section lists one role's subtree under the pick above: package roots, a domain, a tree's structure |
-| **host defined** | each `Slice` says its label, mark, listing (`list`) and first pick (`first`) |
-| **remembered** | a section remembers its pick per pick above; session state (`useChain`), never logged |
+| **host defined** | each `Slice` says its label, mark, first pick (`first`), and whether it lists every tree (`trees`) |
+| **apart** | a section listing every tree stands apart from the chain: what the section above holds never changes what it lists or holds. Its root is the tree of its own pick, or the canvas's tree |
+| **remembered** | a section remembers its pick per pick above — one standing apart, one pick; session state (`useChain`), never logged |
 | **headers are labels** | never chosen; clicking one hides or shows its whole section |
 | **section folds** | a section's chevron folds its branches and never its top rows: with any open it shuts them all, else it opens every one. A usage's parts stay listed only once it is opened |
 | **a layer a click** | the bar's fold, drawn like a section's, shuts the lowest open layer under every branch alike — each open branch with no open branch inside it — until only the top rows show. With nothing left to shut, it opens every section whole |
-| **three cues** | the accent's edge on the one row the canvas shows — a structure's open layer in the structure section, else on the overview what is picked (or the held package) above it; the pick a strong wash; each section's own pick a faint one |
+| **three cues** | the accent's edge on the one row the canvas shows — the open layer, else on a system view what is picked (or the held package) above it; the pick a strong wash; each section's own pick a faint one |
 
 | Section | Lists |
 |---|---|
-| **packages** | every package root, flat |
-| **definitions** / **collection** | the held package's domain: its trees, nested under the folders, groups and grids that organize them |
-| **structure** / **document** | the held tree's own row, its structure under it |
+| **definitions** / **collection** | every package a top row, `base` first, folded; under each its domain: its trees, nested under the folders, groups and grids that organize them |
+| **structure** | **every tree holding structure a top row, always**, in every loaded package — whatever definitions holds — and the tree the canvas draws from inside, however little it holds. **The definition chosen above opens here**, once, as do the canvas's tree and the tree of a pick inside one, so choosing a definition shows its structure. A definition with none adds nothing |
+| **document** | the held tree's own row, its structure under it |
 
 
 ## Browse and open
@@ -36,9 +37,9 @@ The explorer files the graph as a **section chain**: a host declares its section
 | Gesture | Does |
 |---|---|
 | choose (click, ↑ ↓) | selects the row; the tray shows it. The canvas stays |
-| open (Enter, double-click, →) | a tree: the canvas draws its structure. A package, or a holder in a domain: the overview, focused on its box. A group or grid in a structure: revealed where it is, the canvas panning to it |
-| leave (←, Backspace) | the canvas draws the layer above; from a tree's top, the overview focused on the tree |
-| pick within the open tree | may move the canvas to the layer the block sits on (reveal) |
+| open (Enter, double-click, →) | the canvas draws the block on the view its kind calls for: a package or folder its folder view, a definition its definition view — opened from the structure section, or again, its structure — a grid its grid view, a block that holds from inside. A group, a note or a leaf is revealed where it is, the canvas panning to it |
+| leave (←, Backspace) | the canvas draws the layer above; a definition's structure leaves for its definition view; a package for the package view |
+| pick within the open tree | moves the canvas to the layer the block sits on (reveal) |
 
 - **Context highlighting and breadcrumbs show what the canvas has open**, never what is browsed.
 - **Dragging a definition from any section onto the canvas** makes a usage of it in the open structure, or retypes what it lands on where the kinds agree. A tag is refused: it is carried.
@@ -67,6 +68,7 @@ pump1
 
 - **Guide lines are drawn per indent column**; the last row in a branch turns an elbow.
 - **A row wears its card's icon**: the role core's `role_of` reads — block, folder, group, grid, interface, reference, note — so a tag reads as the block it is. A row that holds blocks lights its icon.
+- **A definition's row holding structure wears its card's structure mark** after its name, so a definition says it has structure before it is picked. Nothing else does — not a block inside a structure, a package or a folder. The workspace's row wears a folder.
 - **A section's mark is a word**: `Pkg`, `Def`, `Use`. A word is never filled.
 - **A row is keyed by its section and route**, as a block may list in two sections and a part under two usages.
 - **A group or grid heads what it holds, as a table's head does its rows**, in every section alike: its row keeps its branch and its name is underlined, and its members list at its level beneath it with no tick of their own, joined to it by a line down their marks' column. A member's own children branch as usual. A folder nests like any block. Enter, → or a double click on a group's row reveals it on the canvas, which pans to it.

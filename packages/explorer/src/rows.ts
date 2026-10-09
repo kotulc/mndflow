@@ -1,9 +1,10 @@
 /** The explorer's rows: each section's header, then what it lists, laid out with depth, guides
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
-import { alias_of, branch_of, children, config_of, def_of, domain_of, is_group, is_interface,
-         is_named, organizes, relation_base, role_of, shown_name, tops_of, type Block, type Cut,
-         type Graph, type Id, type Role } from "@mnd/core";
+import { alias_of, all_defs, branch_of, children, config_of, def_of, domain_of,
+         holds_structure, is_group, is_interface, is_named, package_of, packages, relation_base,
+         role_of, shown_name, stamps_of, tops_of, type Block, type Cut, type Graph, type Id,
+         type Role } from "@mnd/core";
 import { known, role_icon, type IconName } from "@mnd/theme";
 import type { Chain } from "./chain";
 
@@ -26,8 +27,7 @@ export type Row = { id: Id; depth: number; label: string; kids: number; mark: Ma
                     pick?: Id;
                     /** The usage a part is seen through: a block of its definition's structure. */
                     via?: Id;
-                    /** Whether a tree has structure of its own: its icon lights, as a block's
-                     *  that holds does. */
+                    /** Whether it holds structure, as its card's structure mark says. */
                     held?: boolean;
                     /** Whether the label is a chosen name or the type word. */
                     named: boolean;
@@ -45,7 +45,7 @@ const OWN: Record<Own, IconName> = {
   locked: "locked",
   vocabulary: "word_def",
   usages: "word_use",
-  root: "role_root",
+  root: "role_folder",
   package: "word_pkg",
   line: "relation_plain",
   tie: "relation_tie",
@@ -83,7 +83,8 @@ export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain, every
     if (folded.includes(key) || root === undefined) return;
     const start = out.length;
     const keyed = (route: string) => `${slice.id}/${route}`;
-    for (const id of tops_of(graph, root)) {
+    const tops = slice.trees ? trees_of(graph, chain.drawn) : tops_of(graph, root);
+    for (const id of tops) {
       branch_rows(graph, { cut: slice.cut, root, every }, id, id, undefined, folded, out, keyed,
                   1, new Set());
     }
@@ -136,7 +137,8 @@ function branch_rows(graph: Graph, at: { cut: Cut; root: Id | null; every: boole
   const own = unheld(graph, branch.own);
   const row_key = key(route);
   out.push({ ...block_row(graph, id, depth, parts.length + own.length, row_key),
-             ...(via ? { via } : {}), ...(held(graph, id) ? { held: true } : {}) });
+             ...(via ? { via } : {}),
+             ...(stamps_of(graph, id).includes("structure") ? { held: true } : {}) });
   /** Parts are never listed whole: a definition may be reached through itself. */
   const every = at.every && !via && !parts.length;
   if (!every && !opened(folded, row_key)) return;
@@ -154,9 +156,13 @@ function unheld(graph: Graph, blocks: readonly Block[]): Block[] {
   return blocks.flatMap((b) => (is_group(graph, b.id) ? unheld(graph, under(graph, b.id)) : [b]));
 }
 
-/** Whether a tree has structure of its own. */
-function held(graph: Graph, id: Id): boolean {
-  return !organizes(graph, id) && under(graph, id).length > 0;
+/** Every tree holding structure, by its package's place, and the one the canvas draws among them
+ *  however little it holds. */
+function trees_of(graph: Graph, drawn: Id | null): Id[] {
+  const rank = new Map(packages(graph).map((p, n) => [p.id, n]));
+  return all_defs(graph).filter((d) => d.id === drawn || holds_structure(graph, d.id))
+    .sort((a, z) => (rank.get(package_of(graph, a.id)) ?? 0) - (rank.get(package_of(graph, z.id)) ?? 0))
+    .map((d) => d.id);
 }
 
 /** A block's row: its name, its mark, and how many rows it holds. */

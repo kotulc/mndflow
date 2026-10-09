@@ -42,7 +42,7 @@ function Canvas(props: FlowViewProps) {
   };
   /** Whether the press under way is one, so the pane's own reset leaves the pick alone. */
   const second = useRef(false);
-  const { frame, fit, seen } = useRoom(scene);
+  const { frame, fit, seen } = useRoom(scene, scroll);
   const { nodes, edges, moved, rewired, chose, key, again } =
     useSync(scene, picked, frame, onPick, second);
   useCamera(scene, frame, fit, seen, key, nodes, scroll, focus, wide, widest, most);
@@ -129,9 +129,9 @@ function Canvas(props: FlowViewProps) {
   const only = useMemo(() => {
     if (picked.length !== 1) return null;
     const n = scene.nodes.find((x) => x.id === picked[0]);
-    /** Only a card that opens onto a drawing of its own offers to: a note has no inside, and nor
+    /** Only a card that opens onto a view of its own offers to: a note has no inside, and nor
      *  has a leaf, linked or not — a link is followed by double-click, not opened. */
-    const opens = n?.data.stamps?.includes("parts");
+    const opens = n?.data.opens;
     return n && opens && !n.data.on && n.selectable !== false && n.type !== "note" ? n.id : null;
   }, [picked, scene]);
 

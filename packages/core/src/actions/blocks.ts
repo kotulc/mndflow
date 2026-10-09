@@ -357,9 +357,11 @@ register(
   },
   {
     name: "open",
-    about: "opens a block on the canvas — a tree draws its structure — or leaves this layer",
+    about: "opens a block on the canvas on the view its kind calls for — a definition opened "
+      + "again draws its structure — or leaves this layer",
     on: ["block"],
-    args: [{ name: "id", form: "block" }],
+    /** `at`: the section it was opened from, where a definition's structure is listed. */
+    args: [{ name: "id", form: "block" }, { name: "at", form: "number" }],
     check: (ctx, args) => {
       const want = id_of(args, "id");
       return !want || ctx.graph.blocks[want] ? null : "that is not here any more";
@@ -369,7 +371,8 @@ register(
     run: (ctx, args) => {
       const { tiers, views, view } = seen(ctx);
       const want = id_of(args, "id");
-      if (want) return moved(open_at(ctx.graph, tiers, views, want));
+      const from = typeof args["at"] === "number" ? args["at"] : undefined;
+      if (want) return moved(open_at(ctx.graph, tiers, views, want, from, view));
       const here = ctx.layer ? ctx.graph.blocks[ctx.layer] : undefined;
       const owner = here?.parent ? ctx.graph.blocks[here.parent] : undefined;
       const outside = owner?.parent ?? null;

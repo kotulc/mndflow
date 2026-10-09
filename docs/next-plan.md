@@ -14,6 +14,8 @@
 | 5 | **table card** | an entity draws as one ruled table, its title the top row, nothing overlapping, its size exactly what it draws |
 | 6 | **line routing** | the showcase's relations layer draws without crowded labels, hugging runs or needless turns |
 | 7 | **canvas gestures** | a diagram is built fast from the canvas alone |
+| 8 | **views by card** | the rail offers only the system views; each card opens on the one layer view its kind calls for, and a definition opens onto itself with what describes it round it |
+| 9 | **two trees, one system** | structure always lists every tree whatever definitions holds; the system views draw both trees; every layer lays itself out `auto`, as wide as the page |
 
 
 ## 1 — Showcase
@@ -84,7 +86,7 @@
 | definitions.md | *canvas view*, *overview*; adds *entity*, *lineage*, *definitions* views |
 | core `navigate.ts` | `ViewKind`, `EDITOR`'s view lists, `open_at` choosing the view from the block |
 
-**Built 2026-10-08.** core `lenses_of` decides; views `lens.ts` draws the three new views in bands down the page, read only. Settled while driving: a block with room to hold that is editable opens inside, to be built; lineage draws only its chain's spine as lines, plus a **carries** band for the traits in force; an entity of a usage shows what it **is a** too; `used_by` now counts trait carriers.
+**Superseded by step 8**, 2026-10-09: layer views are no longer chosen, and entity, lineage and definitions are gone. **Built 2026-10-08.** core `lenses_of` decides; views `lens.ts` draws the three new views in bands down the page, read only. Settled while driving: a block with room to hold that is editable opens inside, to be built; lineage draws only its chain's spine as lines, plus a **carries** band for the traits in force; an entity of a usage shows what it **is a** too; `used_by` now counts trait carriers.
 
 
 ## 4 — Folders that read
@@ -125,6 +127,7 @@ Collected on the showcase's relations layer first, then fixed.
 |---|---|
 | **labels crowd card edges** | a name set at a run's middle lands on a short run beside a card |
 | **parallel runs share a lane** | *request* and *reply* between one pair draw on top of each other, their names overlapping |
+| **a tie lands mid-side** | a tie should meet the card at its nearest corner |
 | **a crossing is avoided by sharing lanes** | North→South and East→West run together along a row rather than crossing once |
 
 
@@ -139,6 +142,80 @@ Collected on the showcase's relations layer first, then fixed.
 | **drop a definition** | from the explorer onto the canvas, as a usage |
 
 
+## 8 — Views by card
+
+**System views are the rail's; layer views are the card's.** Workshopped 2026-10-09. The rail offered every layer view a block could draw, so what the canvas showed and why was unclear.
+
+| Card | Opens on |
+|---|---|
+| definition | **definition** |
+| grid | **grid** |
+| package, folder | **folder**: what it holds, fitted to its content's width, scrolled down, no derived lines |
+| structure, or room to hold | **internal** |
+| stand-in | what it stands for |
+| leaf, note | nothing: revealed in place |
+
+| Definition view | |
+|---|---|
+| **middle** | the definition, large |
+| **above** | what it extends, the immediate one only, joined by an extends line |
+| **left · right** | its in ports, its out ports, a box each |
+| **below** | its both-way ports directly under it, then its tags and its traits, a box each |
+| **top right** | a note tied to it: its body, the definition's description |
+| **lines** | each box to the middle card only, plain |
+| **only what is there** | a box draws only with something in it |
+| **edits** | a definition dropped on the view attaches — a trait to traits, a tag to tags; deleting one from its box detaches it; ports are added on the middle card, deleted from their box; the note writes the body. What it extends is set in the tray |
+| **structure** | reached from the middle card (Enter) and from the structure section |
+
+| Also | |
+|---|---|
+| **package view** | the system view called overhead is renamed **package** |
+| **explorer** | a definition's row holding structure wears the card's structure mark after its name; the structure section lists every definition holding structure, the held one opened as it is held |
+| **folder rooms** | a package opened on its folder view gets the folder's room; every folder's room hugs what it holds |
+| **tray, one shape** | every element: first tab · settings · attributes · contents or usages, a line having no attributes. The first tab is named for what is drawn, *card* or *line*: identity over the drawing, the source open beside them, the definition read only under all. *Attach* on the tab strip; traits across the settings tab |
+
+| System marks | |
+|---|---|
+| **one meaning** | what a card stands for, never how it opens — the icon says that |
+| **at most three** | a stand-in's word (`Def`, `Ref`, `Pkg`), **structure** (the tree mark, taken from the workspace's row, which becomes a folder), **data** (the database) |
+| **a stand-in** | wears its target's structure and data too |
+
+| Revises | |
+|---|---|
+| step 3 | entity, lineage and definitions views go; no layer view is chosen |
+| design.md *Perspectives*, definitions.md, model.md *Marks* | revised 2026-10-09 |
+
+**Built 2026-10-09**, driven in Edge. core `lens_of` decides the view; `open_at` opens a definition on itself, inside when opened again or from the structure section; core `aspects.ts` says what an edit on the definition view does; views `definition.ts` draws it. A folder nobody arranged is laid as a page; one somebody arranged keeps its layout; either way its room hugs what it holds. The showcase's Pump carries a description, a tag and a port of each flow.
+
+| Follow up | |
+|---|---|
+| **lineage and links as a package** | the chain, subtypes and links diagram, as a general structure rather than a view |
+| **usages and their groups** | boxes for a definition's usages and the groups they belong to, once those are blocks |
+
+
+## 9 — Two trees, one system
+
+**Definitions and structure are two trees; the system views draw both.** Workshopped and built 2026-10-09. Chaining structure to the definition held made a definition with no structure show an empty tree.
+
+| Decided | |
+|---|---|
+| **structure stands apart** | it always lists every definition holding structure, in every loaded package; choosing a definition opens its tree there and never changes what it lists. A definition opened to be built lists while the canvas is inside it |
+| **system views draw the system** | the package view: the definitions tree, each definition holding structure a box of its top-level blocks as cards, never deeper. The profile: one page-wide row per level along the pick, a line pointing from each block on the way to the row it holds |
+| **structure mark** | only on a definition holding structure, and a stand-in for one — never a block inside a structure, a package or a folder; a row and its card ask core alike (`stamps_of`, from `holds_structure`) |
+| **every tab draws the element in hand** | the settings tab draws a usage wearing its definition's settings, as the card tab does. One renderer was always the case: the two tabs drew different blocks |
+| **card tab** | the settings tab's layout: the drawing left, identity right, the source under both, the definition under all |
+| **`auto` is the default** | a layer saying nothing is `auto`: clusters in reading order, shelved as wide as the page layout (`across` the canvas), read down the page. Moving a card hands the layer to `free` |
+| **the showcase lays itself out** | no positions written; its layers are blocks, not folders, so each opens inside on `auto`. A folder still opens on its folder view, a page |
+
+| Seen on `auto`, for step 6 and the layout | |
+|---|---|
+| **Relations** | a tie runs through a card between the note and what it ties; *request* and *reply* names squeeze between Asks and Answers |
+| **Definitions** | the stand-ins seat beside the usages that answer them, off the shelf's rows |
+| **Data model** | the layer's note lands among the entities, links running across it |
+| **Interfaces** | the feed run loops round Pump; *water* squeezes between Pump and Tank |
+| **profile lines** | each drops, runs across, then drops into the row's middle; straight down from the card would read better |
+
+
 ## Open
 
 | Question | |
@@ -150,12 +227,13 @@ Collected on the showcase's relations layer first, then fixed.
 
 ## Handoff
 
-**State, 2026-10-09: steps 1–5 built and driven in Edge, nothing committed.** Typecheck clean, 293 tests green, CSS lint clean, the showcase checks clean. Code-reviewed; its ten findings fixed and re-driven. Revised 2026-10-09: `erd` renamed `entity-relation`, table cards sized exactly by their table with the marks ending the last row, and the open layer's own row lit with its branch. Next is step 6.
+**State, 2026-10-09: steps 1–5, 8 and 9 built and driven in Edge, nothing committed.** Typecheck clean, 293 tests green, CSS lint clean, the showcase checks clean. Step 8 was code-reviewed; step 9 was not. Next is step 6, line routing — judged now on what `auto` lays out, since the showcase places nothing by hand: step 9's *Seen on `auto`* table is the starting list.
 
 | Not yet | |
 |---|---|
-| **tests for steps 2–5** | none written: the views and navigation are still moving. Write them once they settle — `lenses_of`, `open_at` / `leave_at` per view, `table` widths, `fit_of` for a table card |
+| **tests** | none written for steps 2–5, 8 or 9: the views, navigation and tray are still moving. Once settled — `lens_of`, `open_at` / `leave_at` per view, `aspect_acts` / `attach_of`, `definition_graph`'s boxes, `stamps_of` / `holds_structure`, `table` widths, `fit_of` for a table card, `survey_graph` with `tops`, `profile_graph`'s rows and lines, `useChain` with a `trees` section, `pack_units` shelving at `page_wide`. One test changed: core `fold.test.ts` now expects `auto` for a layer saying nothing |
 | **driving** | the Edge drives lived in the session's scratchpad, not the repo; the `vitest` skill says how to drive again |
+| **commit** | suggested: *Views by card and two trees: system views on the rail drawing both trees, definition and folder views, structure apart from definitions, auto layout by default, one-shape tray* |
 
 ### Running it
 
@@ -165,49 +243,64 @@ Collected on the showcase's relations layer first, then fixed.
 | **check a file through the door** | `npm run start -s -w @mnd/cli -- check ../../samples/workspace.showcase.json` — prints `clean` |
 | **see what a layer holds** | `npm run start -s -w @mnd/cli -- outline ../../samples/workspace.showcase.json l_rel` — layer ids are `l_cards`, `l_faces`, `l_defs`, `l_rel`, `l_ports`, `l_hold`, `l_refs`, `l_model`, `l_rows` |
 | **drive the web app** | `npm run dev`, read the port off the log; import through the header's *import a workspace* button (a file chooser) |
-| **open a card** | select it and press Enter; double-click on a name renames it |
+| **open a card** | select it and press Enter; double-click on a name renames it. A definition opens on its definition view; Enter on its middle card opens its structure. The showcase's layers are blocks: each opens inside, on `auto`; dragging a card there hands the layer to `free` |
+| **see the system views** | *package* and *profile* on the rail. The profile follows what is picked on it |
+| **see every definition view box** | the showcase's *Pump*: what it extends, ports in, out and both, a tag, its traits, its description |
 
-### Where steps 2–5 live
+### Where it lives
 
 | File | Holds |
 |---|---|
-| core `navigate.ts` | `lenses_of` / `lens_of` (which view a block opens on), `lens_at`, and `open_at` / `leave_at` / `sight` choosing views |
-| core `sections.ts` | `ViewKind`, `LAYER_VIEWS`, `is_layer_view` |
-| core `session.ts` | `see` switching a block's views; `move` remembering each section's last view |
-| views `lens.ts` | the entity, lineage and definitions graphs, drawn in bands |
+| core `navigate.ts` | `lens_of` (which view a block opens on), and `open_at` / `leave_at` / `sight` choosing views |
+| core `sections.ts` | `ViewKind`, `LAYER_VIEWS`, `is_layer_view`, `is_inside` |
+| core `aspects.ts` | what the definition view draws round a definition, and what an edit there does |
+| core `names.ts` | `stamps_of`, the system marks: a stand-in's word, structure, data; `holds_structure` |
+| core `tree.ts` | `layout_of`: `auto` where nothing says |
+| core `session.ts` | `see`: a system view chosen, or back to the layer; `move` remembering each section's last view |
+| views `definition.ts` | the definition view's graph |
+| views `block.ts` | the projection per view; the folder view paged where nobody arranged it, its room hugging what it holds; `across` handed to an `auto` layer |
+| views `survey.ts` · `profile.ts` | the package view, `tops` boxing a tree's top level; the profile's rows per level and the lines into them |
+| views `pack.ts` · `arrange.ts` · `page.ts` | `auto`'s clusters in reading order, shelved at `page_wide` |
 | views `face.ts` | `face_table` / `table` (rows and column widths), `fit_of` sizing both |
-| views `derive.ts` | `trail_of` from the tree; `empty_of`, what an empty layer says |
-| explorer `rows.ts` · `Explorer.tsx` | every branch shut until opened; the branch and pick lit |
-| web `App.tsx` | a row chosen inside the open structure reveals; the rail's view list |
+| views `derive.ts` | `carried`, with `opens`; `trail_of`; `empty_of` |
+| stage `room.ts` | a scrolled drawing's room hugs it; the camera reads it as a page |
+| explorer `rows.ts` · `chain.ts` · `Explorer.tsx` | every branch shut until opened; the structure section standing apart (`trees`, `drawn`), the definition held above opening its tree; the structure stamp |
+| tray `Element.tsx` · `Settings.tsx` · `Tray.tsx` | the one first tab, card or line, in the settings tab's layout; the settings tab drawing the element in hand (`shown`); the tab sets |
+| web `App.tsx` | the rail's views, drawn with `tops`; an `auto` layer read as a page; definition view edits routed through `aspect_acts` and `attach_of` |
 
 ### Step 6 — where to start
 
 | File | Holds |
 |---|---|
 | views `route.ts` | runs, lanes and detours |
-| views `seat.ts` | where a run meets a card |
+| views `seat.ts` | where a run meets a card — and where a tie should meet a corner |
 | stage `Wire.tsx` | how a run and its name draw |
 
 ### Carried over
 
 | From | To do |
 |---|---|
-| cards-plan | commit; `npm run release:kit` and re-pin mndmap's vendored kit. The kit changed under it: `ViewKind` says `overhead` for `overview` and has the layer views; `table` returns rows and widths, not markdown; `face_text` leaves the attributes out |
+| cards-plan | commit; `npm run release:kit` and re-pin mndmap's vendored kit. The kit changed under it: `ViewKind` is `internal`, `grid`, `folder`, `definition`, `package`, `profile`; `Mark` says `structure` for `parts`; `CardTab` is gone into `Element`; `table` returns rows and widths, not markdown; `face_text` leaves the attributes out. Step 9: `profile_graph(graph, target, across)`, no tiers; `look.tiers` gone, `look.tops` added; a layer saying nothing is `auto`, not `free`; `draws` counts a tree's top level on a system view; `Chain` carries `drawn` |
 | cards-plan | drive *import a collection* and *attach* in the web app |
 | cards-plan | notes draw their name, not their body, through `NoteNode` rather than `CardFace` |
 | this plan | mndmap, or anything fetching the catalogue by name, asks for `entity-relation`, not `erd` |
+| step 8 | lineage and links as a package structure; boxes for a definition's usages and their groups |
 
 ### Known rough edges
 
 | | |
 |---|---|
-| **tray handle vs canvas size** | the tray always shows a card's handle, the canvas only while it is unnamed, so a tray large face can be 8px tighter than sized |
 | **the root layer is a definition** | `main` lists in both explorer sections; open above |
-| **a lone entity** | a definition with no links draws one card in a full-width band; the bands could shrink to what they hold |
+| **the package view's name** | it draws both trees — every package and each tree's top level — so *package* undersells it |
+| **the rail's system views** | both sections offer *package* and *profile*, which now draw the same thing; they could be listed once |
+| **camera on a profile** | picking on the profile re-draws it lower on the page than it first opens |
+| **a React warning** | `flushSync was called from inside a lifecycle method` showed once while driving the profile; not traced, and not checked against the last commit |
 | **a usage cannot carry a trait** | traits are a definition's alone, so the cards layer shows each look as a card's own setting |
-| **a page under the crumbs** | the overhead and the definitions view scroll their top under the crumbs; the page could start below them |
+| **a page under the crumbs** | the package view scrolls its top under the crumbs; the page could start below them |
 | **`dir: "one"`** | an old value the door passed silently in the retired sample; worth the door refusing unknown `dir` |
 | **faint marks on table cards** | marks draw at the theme's half opacity, so on a dark card the last row's mark is hard to see |
-| **meaning views are read only** | entity, lineage and definitions draw and pick but take no edits; editing goes back inside |
+| **definition view lines** | lines from boxes below the card share one run into its foot; step 6's routing |
+| **definition view menu** | the middle card's menu still offers *delete block*, and the note's *delete note*; on this view both do nothing |
+| **inherited ports** | the definition view draws a definition's own ports, not those it inherits |
 | **a preview's size** | a reference previewing a table is sized from what it previews, its own marks added; its own look's border is not read |
-
+| **the definition record's chip is gone** | the tray shows a definition's own word only; what it reads resolved down its chain is no longer shown anywhere |

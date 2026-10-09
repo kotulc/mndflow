@@ -10,10 +10,10 @@ type Rect = { x: number; y: number; w: number; h: number };
 type Side = "left" | "right" | "above" | "below";
 
 
-/** Auto-layout: related clusters first, leftovers on a square-ish shelf. */
+/** Auto-layout: related clusters first, leftovers on a shelf `wide` across, else square-ish. */
 export function pack_units(graph: Graph, layer: Id | null, sized: Sized[],
                     unit: (id: Id) => Id,
-                    edges = edges_in(graph, layer)): Placed[] {
+                    edges = edges_in(graph, layer), wide?: number): Placed[] {
   if (!sized.length) return [];
   const by_id = new Map(sized.map((it) => [it.b.id, it]));
   const components = connected(graph, layer, sized.map((it) => it.b), unit, edges);
@@ -22,10 +22,11 @@ export function pack_units(graph: Graph, layer: Id | null, sized: Sized[],
     const items = order.map((b) => by_id.get(b.id)!);
     return place_cluster(graph, layer, items, unit, edges);
   });
-  return shelf(local);
+  return shelf(local, wide);
 }
 
-/** Connected components of the placement graph, largest first, then tree order. */
+/** Connected components of the placement graph, in reading order: each where its first member
+ *  sits in the tree, as a page reads. */
 function connected(graph: Graph, layer: Id | null, units: Block[],
                    unit: (id: Id) => Id,
                    edges = edges_in(graph, layer)): Block[][] {
@@ -55,9 +56,7 @@ function connected(graph: Graph, layer: Id | null, units: Block[],
     }
     out.push(comp);
   }
-  return out.sort((a, b) => b.length - a.length
-    || (a[0]!.order ?? 0) - (b[0]!.order ?? 0)
-    || a[0]!.id.localeCompare(b[0]!.id));
+  return out;
 }
 
 /** One related cluster, each unit in the nearest free cell around a mate. */
@@ -77,7 +76,7 @@ function place_cluster(graph: Graph, layer: Id | null, items: Sized[],
 }
 
 /** Shelf component bounding boxes into a block about as wide as it is tall. */
-function shelf(components: Placed[][]): Placed[] {
+function shelf(components: Placed[][], wide?: number): Placed[] {
   const boxes = components.filter((spots) => spots.length);
   if (boxes.length === 0) return [];
   if (boxes.length === 1) return boxes[0]!;
@@ -89,7 +88,7 @@ function shelf(components: Placed[][]): Placed[] {
              h: Math.max(...spots.map((p) => p.y + p.h)) - y };
   });
   const area = framed.reduce((n, b) => n + (b.w + GAP) * (b.h + GAP), 0);
-  const want = Math.max(...framed.map((b) => b.w), Math.sqrt(area));
+  const want = Math.max(...framed.map((b) => b.w), wide ?? Math.sqrt(area));
   const out: Placed[] = [];
   let x = 0;
   let y = 0;

@@ -29,10 +29,12 @@ npm run start -w @mnd/cli -- project related  # a Scene as text, which is the se
 | | Is |
 |---|---|
 | `scene.ts` | the seam: `BoxNode`, `LineEdge`, `Perch`, `Frame`, `Scene` |
-| `block.ts` | the projection: a frame, cards, holders, seated interfaces, routed lines. `project(graph, null)` is the overview |
-| `packages.ts` | the overview's graph: every package a box of its domain, folders flattened. Internal: nothing outside views names it |
+| `block.ts` | the projection: a frame, cards, holders, seated interfaces, routed lines, in the view `config.look` says — the folder view paged where nobody placed what it holds. `project(graph, null)` is the package view |
+| `survey.ts` · `profile.ts` | the system views' graphs, both trees: boxes down the page, a tree to its top level (package), or one page-wide row per level along the pick, a line into each (profile) |
+| `definition.ts` | the definition view's graph: the definition large, what describes it in placed boxes round it, its body a tied note |
+| `sheet.ts` | an opened grid's lattice, the grid view |
 | `through.ts` | read-through: an opened usage's definition structure laid on its layer, its interfaces on its walls |
-| `outline.ts` · `page.ts` | the computed layouts: headed groups as a staircase, and full-width boxes down a page |
+| `page.ts` | the computed page layout: full-width boxes down a page |
 | `size.ts` | the one measure: `UNIT`, a `CELL` as a block plus its air, and **faces** — `face_of` (small, or large where an ancestor's `layout.face` asks) and the size each draws at: the workspace card small; large, the definition's `card.size` or what its content fits (`fitted`), under `LARGE` |
 | `arrange.ts` · `bands.ts` · `pack.ts` | where everything sits: hand placement or auto-layout, bands and cells, clusters and satellites |
 | `seat.ts` · `ends.ts` · `route.ts` | where a line meets a border, which way it sets off, and where it runs |

@@ -7,8 +7,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 const U = 24;
-const COL = 7 * U;
-const ROW = 4 * U;
 
 const blocks = {};
 const edges = {};
@@ -39,20 +37,19 @@ function def(id, name, type, settings, more = {}, parent = "workspace") {
                  ...(settings ? { settings } : {}), ...more };
 }
 
-/** A usage of some kind under a parent, at a column and row of the layer's lattice. */
-function put(id, parent, kind, at, more = {}) {
-  blocks[id] = { id, parent, alias: serial(kind), order: order(parent),
-                 ...(at ? { x: at[0] * COL, y: at[1] * ROW } : {}), ...more };
+/** A usage of some kind under a parent. Nothing is placed: every layer lays itself out. */
+function put(id, parent, kind, more = {}) {
+  blocks[id] = { id, parent, alias: serial(kind), order: order(parent), ...more };
 }
 
-/** A layer: a folder on the root canvas, of the given type. */
-function layer(id, name, at, type = "folder", more = {}) {
-  put(id, "main", "folder", at, { name, type, ...more });
+/** A layer: a block on the root canvas, of the given type, opening onto its own drawing. */
+function layer(id, name, type = undefined, more = {}) {
+  put(id, "main", "block", { name, ...(type ? { type } : {}), ...more });
 }
 
 /** The note heading a layer, saying what to look for. */
 function note(layer_id, text, w = 15) {
-  put(`${layer_id}_note`, layer_id, "note", [0, -1.5], { name: text, type: "note", w: w * U, h: 3 * U });
+  put(`${layer_id}_note`, layer_id, "note", { name: text, type: "note", w: w * U, h: 3 * U });
 }
 
 /** A relation. */
@@ -70,19 +67,19 @@ shelf("w_looks", "looks");
 shelf("w_faces", "faces");
 shelf("w_machines", "machines");
 shelf("w_holders", "holders");
-def("def_large", "Large layer", "folder", { layout: { face: "large" } },
+def("def_large", "Large layer", "block", { layout: { face: "large" } },
     { body: "A layer whose cards draw their large face." }, "w_faces");
 
 
 /* ── Cards: every block kind, and the looks: each a trait in the looks folder, and on a card ── */
 
-layer("l_cards", "Cards", [0, 0]);
-note("l_cards", "Every block kind on its small face, then the looks: families, fills, label places and borders, each row varying one setting. Each look is a trait in the looks folder, for a definition to carry; here each card says it as its own.", 27);
-put("c_block", "l_cards", "block", [0, 0], { name: "Block" });
-put("c_folder", "l_cards", "folder", [1, 0], { name: "Folder", type: "folder" });
-put("c_inside", "c_folder", "block", [0, 0], { name: "Inside" });
-put("c_ref", "l_cards", "reference", [2, 0], { name: "", of: "c_block" });
-put("c_note", "l_cards", "note", [3, 0], { name: "A note: text, resized by hand", type: "note",
+layer("l_cards", "Cards");
+note("l_cards", "Every block kind on its small face, then the looks: families, fills, label places and borders, each card varying one setting. Each look is a trait in the looks folder, for a definition to carry; here each card says it as its own.", 27);
+put("c_block", "l_cards", "block", { name: "Block" });
+put("c_folder", "l_cards", "folder", { name: "Folder", type: "folder" });
+put("c_inside", "c_folder", "block", { name: "Inside" });
+put("c_ref", "l_cards", "reference", { name: "", of: "c_block" });
+put("c_note", "l_cards", "note", { name: "A note: text, resized by hand", type: "note",
                                            w: 6 * U, h: 2 * U });
 const looks = [
   ["family", ["primary", "secondary", "neutral", "muted", "away", "note"], (v) => ({ style: { family: v } })],
@@ -94,7 +91,7 @@ for (const [row, [key, values, settings]] of looks.entries()) {
   shelf(`w_looks_${key}`, key, "w_looks");
   for (const [col, v] of values.entries()) {
     def(`look_${key}_${v}`, `${key} ${v}`, "tag", settings(v), {}, `w_looks_${key}`);
-    put(`c_${key}_${v}`, "l_cards", "block", [col, row + 1.5], { name: v, settings: settings(v) });
+    put(`c_${key}_${v}`, "l_cards", "block", { name: v, settings: settings(v) });
   }
 }
 
@@ -104,7 +101,7 @@ for (const [row, [key, values, settings]] of looks.entries()) {
 /** A picture the web app serves, from `public/`. */
 const PICTURE = "/showcase/picture.svg";
 
-layer("l_faces", "Faces", [1, 0], "def_large");
+layer("l_faces", "Faces", "def_large");
 note("l_faces", "The large face, on a layer that asks for it. Each card fits what it shows unless its definition gives a size; a plain block shows nothing, so it is the small face.", 27);
 def("def_doc", "Document", "block", { card: { shows: ["body"] } }, {}, "w_faces");
 def("def_spec", "Spec", "block", { card: { shows: ["attributes", "body"] } }, {
@@ -115,91 +112,94 @@ def("def_media", "Picture", "block", undefined, { traits: ["container", "ports",
 def("def_headless", "Headless", "block", { card: { shows: ["body"], name: "hide" } }, {}, "w_faces");
 def("def_sized", "Sized", "block", { card: { shows: ["body"], size: { w: 8, h: 3 } } }, {},
     "w_faces");
-const FACE = [3 * COL, 2.5 * ROW];
-const face = (id, at, more) => put(id, "l_faces", "block", null,
-                                   { x: at[0] * FACE[0], y: at[1] * FACE[1], ...more });
-face("f_body", [0, 0], { name: "Body", type: "def_doc",
+const face = (id, more) => put(id, "l_faces", "block", more);
+face("f_body", { name: "Body", type: "def_doc",
   body: "# A heading\n\nProse with **bold**, `code` and a [link](https://example.com).\n\n- a point\n- another point" });
-face("f_spec", [1, 0], { name: "Spec", type: "def_spec", body: "Attributes, then the body.",
+face("f_spec", { name: "Spec", type: "def_spec", body: "Attributes, then the body.",
   values: [{ name: "tag", value: "P-101" }, { name: "rating", value: "15" },
            { name: "duty", value: "continuous" }] });
-face("f_media", [2, 0], { name: "Picture", type: "def_media", source: PICTURE });
-face("f_headless", [0, 1], { name: "Headless", type: "def_headless",
+face("f_media", { name: "Picture", type: "def_media", source: PICTURE });
+face("f_headless", { name: "Headless", type: "def_headless",
   body: "A card that is its markdown alone: no name over it." });
-face("f_sized", [1, 1], { name: "Sized", type: "def_sized",
+face("f_sized", { name: "Sized", type: "def_sized",
   body: "A size its definition gives: 8 by 3 units, whatever it says. What does not fit is cut off at the card's edge, however long the text runs on and on." });
-face("f_plain", [2, 1], { name: "Plain" });
+face("f_plain", { name: "Plain" });
 
 
 /* ── Definitions: stand-ins, and settings down a chain ── */
 
-layer("l_defs", "Definitions", [2, 0], "def_large");
-note("l_defs", "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the family secondary look as a trait. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it.", 27);
+layer("l_defs", "Definitions", "def_large");
+note("l_defs", "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the family secondary look as a trait. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it. Open a stand-in for its definition view: Pump shows what it extends, its ports, its tag, its traits and its description.", 27);
 def("def_machine", "Machine", "block", { card: { shows: ["attributes"] } }, {
   traits: ["container", "ports", "look_family_secondary"],
   def: { attributes: [{ name: "power", type: "number", unit: "kW" }] } }, "w_machines");
+def("tag_rotating", "rotating", "tag", undefined, {}, "w_machines");
 def("def_pump", "Pump", "def_machine", { style: { hue: 200 } }, {
+  body: "Moves liquid from its inlet to its outlet, driven by a motor.", tags: ["tag_rotating"],
   def: { attributes: [{ name: "flow", type: "number", unit: "m3/h" }] } }, "w_machines");
+put("dp_inlet", "def_pump", "interface", { name: "inlet", side: "left", at: 0.5, flow: "in" });
+put("dp_outlet", "def_pump", "interface", { name: "outlet", side: "right", at: 0.5, flow: "out" });
+put("dp_seal", "def_pump", "interface", { name: "seal", side: "bottom", at: 0.5, flow: "both" });
 def("def_bigpump", "Big pump", "def_pump", { style: { border_width: "thick" } }, {
   def: { attributes: [{ name: "stages", type: "number", default: "2" }] } }, "w_machines");
 for (const [col, d] of ["def_machine", "def_pump", "def_bigpump"].entries()) {
-  put(`s_${d}`, "l_defs", "reference", [col * 2, 0], { of: d });
+  put(`s_${d}`, "l_defs", "reference", { of: d });
 }
-put("d_m1", "l_defs", "block", [0, 2], { name: "Compressor", type: "def_machine",
+put("d_m1", "l_defs", "block", { name: "Compressor", type: "def_machine",
   values: [{ name: "power", value: "30" }] });
-put("d_p1", "l_defs", "block", [2, 2], { name: "Feed pump", type: "def_pump",
+put("d_p1", "l_defs", "block", { name: "Feed pump", type: "def_pump",
   values: [{ name: "power", value: "15" }, { name: "flow", value: "40" }] });
-put("d_b1", "l_defs", "block", [4, 2], { name: "Main pump", type: "def_bigpump",
+put("d_b1", "l_defs", "block", { name: "Main pump", type: "def_bigpump",
   values: [{ name: "power", value: "90" }, { name: "flow", value: "200" }] });
 
 
 /* ── Relations: every kind and direction, then what routing has to get right ── */
 
-layer("l_rel", "Relations", [3, 0]);
-note("l_rel", "Top: each direction, a name, arrows and a tie. Below: a detour round a blocker, two runs between one pair, a crossing, and a tight gap.", 27);
-const pair = (id, row, col, name_a, name_b, more) => {
-  put(`${id}_a`, "l_rel", "block", [col, row], { name: name_a });
-  put(`${id}_b`, "l_rel", "block", [col + 1.5, row], { name: name_b });
+layer("l_rel", "Relations");
+note("l_rel", "Each direction, a name, arrows and a tie; then a run past a third block, two runs between one pair, two runs that cross, and a pair close together. All laid out automatically.", 27);
+const pair = (id, name_a, name_b, more) => {
+  put(`${id}_a`, "l_rel", "block", { name: name_a });
+  put(`${id}_b`, "l_rel", "block", { name: name_b });
   link(id, `${id}_a`, `${id}_b`, more);
 };
-pair("r_fwd", 0, 0, "From", "Forward", { dir: "forward" });
-pair("r_back", 0, 3, "From", "Back", { dir: "back" });
-pair("r_both", 1, 0, "From", "Both", { dir: "both" });
-pair("r_none", 1, 3, "From", "None", { dir: "none" });
-pair("r_named", 2, 0, "Pump", "Tank", { dir: "forward", name: "feeds" });
-pair("r_arrows", 2, 3, "Whole", "Part", { settings: { line: { from_arrow: "diamond", to_arrow: "open" } } });
-put("r_tie_note", "l_rel", "note", [6, 0], { name: "A tie joins a note to what it is about", type: "note",
+pair("r_fwd", "From", "Forward", { dir: "forward" });
+pair("r_back", "From", "Back", { dir: "back" });
+pair("r_both", "From", "Both", { dir: "both" });
+pair("r_none", "From", "None", { dir: "none" });
+pair("r_named", "Pump", "Tank", { dir: "forward", name: "feeds" });
+pair("r_arrows", "Whole", "Part", { settings: { line: { from_arrow: "diamond", to_arrow: "open" } } });
+put("r_tie_note", "l_rel", "note", { name: "A tie joins a note to what it is about", type: "note",
                                              w: 5 * U, h: 2 * U });
-put("r_tie_to", "l_rel", "block", [6, 1.5], { name: "Tied" });
+put("r_tie_to", "l_rel", "block", { name: "Tied" });
 link("r_tie", "r_tie_note", "r_tie_to", { type: "tie" });
-put("r_det_a", "l_rel", "block", [0, 4], { name: "Left" });
-put("r_det_x", "l_rel", "block", [1.5, 4], { name: "Blocker" });
-put("r_det_b", "l_rel", "block", [3, 4], { name: "Right" });
+put("r_det_a", "l_rel", "block", { name: "Left" });
+put("r_det_x", "l_rel", "block", { name: "Blocker" });
+put("r_det_b", "l_rel", "block", { name: "Right" });
 link("r_detour", "r_det_a", "r_det_b", { dir: "forward" });
-put("r_par_a", "l_rel", "block", [4.5, 4], { name: "Asks" });
-put("r_par_b", "l_rel", "block", [4.5, 6], { name: "Answers" });
+put("r_par_a", "l_rel", "block", { name: "Asks" });
+put("r_par_b", "l_rel", "block", { name: "Answers" });
 link("r_par_1", "r_par_a", "r_par_b", { dir: "forward", name: "request" });
 link("r_par_2", "r_par_b", "r_par_a", { dir: "forward", name: "reply" });
-put("r_x_a", "l_rel", "block", [0, 6], { name: "North" });
-put("r_x_b", "l_rel", "block", [2, 6], { name: "East" });
-put("r_x_c", "l_rel", "block", [0, 7.5], { name: "West" });
-put("r_x_d", "l_rel", "block", [2, 7.5], { name: "South" });
+put("r_x_a", "l_rel", "block", { name: "North" });
+put("r_x_b", "l_rel", "block", { name: "East" });
+put("r_x_c", "l_rel", "block", { name: "West" });
+put("r_x_d", "l_rel", "block", { name: "South" });
 link("r_cross_1", "r_x_a", "r_x_d", { dir: "forward" });
 link("r_cross_2", "r_x_b", "r_x_c", { dir: "forward" });
-put("r_gap_a", "l_rel", "block", [6, 4], { name: "Close" });
-put("r_gap_b", "l_rel", "block", [6, 5], { name: "Closer" });
+put("r_gap_a", "l_rel", "block", { name: "Close" });
+put("r_gap_b", "l_rel", "block", { name: "Closer" });
 link("r_gap", "r_gap_a", "r_gap_b", { dir: "forward" });
 
 
 /* ── Interfaces: ports on each side, and flow ── */
 
-layer("l_ports", "Interfaces", [0, 1]);
+layer("l_ports", "Interfaces");
 note("l_ports", "Ports on each side of a block, flowing in, out, both or neither; lines may land on a port or on the block.", 22);
-put("p_pump", "l_ports", "block", [0, 1], { name: "Pump" });
-put("p_tank", "l_ports", "block", [3, 1], { name: "Tank" });
-put("p_valve", "l_ports", "block", [0, 3], { name: "Valve" });
+put("p_pump", "l_ports", "block", { name: "Pump" });
+put("p_tank", "l_ports", "block", { name: "Tank" });
+put("p_valve", "l_ports", "block", { name: "Valve" });
 const port = (id, parent, side, flow) =>
-  put(id, parent, "interface", null, { name: "", side, at: 0.5, ...(flow ? { flow } : {}) });
+  put(id, parent, "interface", { name: "", side, at: 0.5, ...(flow ? { flow } : {}) });
 port("p_pump_in", "p_pump", "left", "in");
 port("p_pump_out", "p_pump", "right", "out");
 port("p_pump_top", "p_pump", "top", "both");
@@ -212,18 +212,18 @@ link("p_feed", "p_valve_out", "p_pump_low", { dir: "forward" });
 
 /* ── Holders: groups inside groups, and a grid with headers and a merge ── */
 
-layer("l_hold", "Holders", [1, 1]);
+layer("l_hold", "Holders");
 note("l_hold", "A group gathers blocks where they sit, and nests. A grid seats blocks in cells: its top row and left column head the lines; a merge spans cells. Select the grid and press Enter to see its cells.", 27);
-put("h_outer", "l_hold", "group", [0, 0], { name: "Plant", type: "group" });
-put("h_inner", "h_outer", "group", [0, 0], { name: "Skid", type: "group" });
-put("h_g1", "h_inner", "block", [0, 0], { name: "Motor" });
-put("h_g2", "h_inner", "block", [1, 0], { name: "Gearbox" });
-put("h_g3", "h_outer", "block", [0, 1.5], { name: "Panel" });
+put("h_outer", "l_hold", "group", { name: "Plant", type: "group" });
+put("h_inner", "h_outer", "group", { name: "Skid", type: "group" });
+put("h_g1", "h_inner", "block", { name: "Motor" });
+put("h_g2", "h_inner", "block", { name: "Gearbox" });
+put("h_g3", "h_outer", "block", { name: "Panel" });
 def("def_table", "Table", "grid", undefined, { traits: ["container", "ports", "matrix", "headed"] },
     "w_holders");
-put("h_grid", "l_hold", "grid", [4, 0], { name: "Duty roster", type: "def_table",
+put("h_grid", "l_hold", "grid", { name: "Duty roster", type: "def_table",
   grid: { rows: 4, cols: 4, merges: [{ r: 1, c: 1, rows: 2, cols: 1 }] } });
-const cell = (id, r, c, name) => put(id, "h_grid", "block", null, { name, cell: { r, c } });
+const cell = (id, r, c, name) => put(id, "h_grid", "block", { name, cell: { r, c } });
 ["Mon", "Tue", "Wed"].forEach((d, i) => cell(`h_col_${i}`, 0, i + 1, d));
 ["Day", "Swing", "Night"].forEach((s, i) => cell(`h_row_${i}`, i + 1, 0, s));
 cell("h_c1", 1, 1, "Ana");
@@ -234,36 +234,33 @@ cell("h_c4", 3, 2, "Di");
 
 /* ── References: to a block, to a definition, to nothing ── */
 
-layer("l_refs", "References", [2, 1]);
+layer("l_refs", "References");
 note("l_refs", "A reference stands for something drawn elsewhere: a block on the cards layer, a definition, or something since deleted.", 22);
-put("x_block", "l_refs", "reference", [0, 0], { of: "c_block" });
-put("x_def", "l_refs", "reference", [1.5, 0], { of: "def_pump" });
-put("x_gone", "l_refs", "reference", [3, 0], { name: "Gone", of: "nothing_here" });
+put("x_block", "l_refs", "reference", { of: "c_block" });
+put("x_def", "l_refs", "reference", { of: "def_pump" });
+put("x_gone", "l_refs", "reference", { name: "Gone", of: "nothing_here" });
 
 
 /* ── Data: the entity-relation package, as a model and as data ── */
 
-const W = 18 * U;
-const H = 8 * U;
-const at = (x, y) => ({ x: x * W, y: y * H });
-layer("l_model", "Data model", [3, 1], "def_large");
+layer("l_model", "Data model", "def_large");
 note("l_model", "The entity-relation package's entities as stand-ins: each attribute typed by another entity draws a link.", 22);
-put("m_customer", "l_model", "reference", null, { of: "entity-relation.customer", ...at(0, 0) });
-put("m_order", "l_model", "reference", null, { of: "entity-relation.order", ...at(1, 0) });
-put("m_line", "l_model", "reference", null, { of: "entity-relation.line", ...at(2, 0) });
-put("m_product", "l_model", "reference", null, { of: "entity-relation.product", ...at(2, 1) });
-layer("l_rows", "Data rows", [0, 2], "def_large");
+put("m_customer", "l_model", "reference", { of: "entity-relation.customer" });
+put("m_order", "l_model", "reference", { of: "entity-relation.order" });
+put("m_line", "l_model", "reference", { of: "entity-relation.line" });
+put("m_product", "l_model", "reference", { of: "entity-relation.product" });
+layer("l_rows", "Data rows", "def_large");
 note("l_rows", "Usages answering the entities: a value naming another card on the layer draws a link.", 22);
 const vals = (o) => Object.entries(o).map(([name, value]) => ({ name, value }));
-const row = (id, name, type, values, x, y) =>
-  put(id, "l_rows", "block", null, { name, type, values: vals(values), ...at(x, y) });
-row("u_ada", "Ada Lovelace", "entity-relation.customer", { id: "1", name: "Ada Lovelace", email: "ada@example.com" }, 0, 0);
+const row = (id, name, type, values) =>
+  put(id, "l_rows", "block", { name, type, values: vals(values) });
+row("u_ada", "Ada Lovelace", "entity-relation.customer", { id: "1", name: "Ada Lovelace", email: "ada@example.com" });
 row("u_1001", "Order 1001", "entity-relation.order", { number: "1001", customer: "Ada Lovelace", placed: "2026-10-01",
-                                          status: "shipped", paid: "true" }, 1, 0);
-row("u_l1", "1001 · widgets", "entity-relation.line", { order: "Order 1001", product: "Widget", qty: "3" }, 2, 0);
-row("u_l2", "1001 · gadget", "entity-relation.line", { order: "Order 1001", product: "Gadget" }, 2, 1);
-row("u_widget", "Widget", "entity-relation.product", { sku: "W-1", name: "Widget", price: "4.50" }, 3, 0);
-row("u_gadget", "Gadget", "entity-relation.product", { sku: "G-2", name: "Gadget", price: "12.00" }, 3, 1);
+                                          status: "shipped", paid: "true" });
+row("u_l1", "1001 · widgets", "entity-relation.line", { order: "Order 1001", product: "Widget", qty: "3" });
+row("u_l2", "1001 · gadget", "entity-relation.line", { order: "Order 1001", product: "Gadget" });
+row("u_widget", "Widget", "entity-relation.product", { sku: "W-1", name: "Widget", price: "4.50" });
+row("u_gadget", "Gadget", "entity-relation.product", { sku: "G-2", name: "Gadget", price: "12.00" });
 
 
 /* ── The file ── */

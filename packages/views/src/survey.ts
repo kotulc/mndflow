@@ -1,12 +1,13 @@
-/** The `overhead` view: a whole section, drawn — every root it lists, from the scope above it,
- *  down to its cut, as boxes down the page. What the explorer's section lists, the canvas draws.
+/** The `package` view: a whole section, drawn — every root it lists, from the scope above it,
+ *  down to its cut, as boxes down the page. What the explorer's section lists, the canvas draws;
+ *  asked, a block at the cut boxes its top level as cards, standing for what lies below.
  *
  *  Drawn, never stored: a graph handed back for a projection to read. Every block keeps its real
  *  id but a part, which is drawn as its usage's copy (`part_id`, keyed by the usage as drawn, so
  *  two usages' copies never meet). */
 
-import { branch_of, children, is_folder, is_group, is_holder, is_interface, packages, part_id,
-         setting_of, type Block, type Cut, type Graph, type Id } from "@mnd/core";
+import { at_cut, branch_of, children, is_folder, is_group, is_holder, is_interface, packages,
+         part_id, setting_of, type Block, type Cut, type Graph, type Id } from "@mnd/core";
 
 /** The layer a section is drawn on: above every root it draws. */
 export const FOREST = "@forest";
@@ -25,9 +26,11 @@ export function flattened(b: Block): Block {
 /** The section under `scope` — every package where it is null, as `only` orders them — down to
  *  `cut`, on one layer. What holds rows reads as a box round them: a group as it is, a grid as its
  *  cells, a folder or any other block as a group. A block at the cut, or holding nothing listed,
- *  is a card. A usage holds its definition's parts, read through one step. */
+ *  is a card — but with `tops`, one at the cut holding blocks is a box of them, each a card. A
+ *  usage holds its definition's parts, read through one step. */
 export function survey_graph(graph: Graph, scope: Id | null, cut: Cut,
-                             config: { only?: readonly Id[]; across?: number } = {}): Graph {
+                             config: { only?: readonly Id[]; across?: number;
+                                       tops?: boolean } = {}): Graph {
   const all = scope === null ? packages(graph).map((p) => p.id) : [scope];
   const tops = scope === null && config.only
     ? config.only.filter((id) => all.includes(id)) : all;
@@ -44,7 +47,9 @@ export function survey_graph(graph: Graph, scope: Id | null, cut: Cut,
     const b = graph.blocks[id]!;
     const { parts, own, used } = branch_of(graph, id, cut, scope, seen);
     const drawn = via ? part_id(via, id) : id;
-    const listed = (via ? 0 : parts.length) + own.length > 0;
+    const heads = config.tops && !via && id !== scope && at_cut(graph, cut, id)
+      ? top_level(graph, id) : [];
+    const listed = (via ? 0 : parts.length) + own.length + heads.length > 0;
     const boxed = is_holder(graph, id) || is_folder(graph, id) || listed;
     const { def: _def, ...plain } = b;
     blocks[drawn] = { ...(!boxed ? b : is_group(graph, id) ? plain : flattened(b)), id: drawn,
@@ -55,6 +60,13 @@ export function survey_graph(graph: Graph, scope: Id | null, cut: Cut,
         blocks[port.id] = { ...port, parent: HIDDEN };
       }
     }
+    /** The top level, each a card; a group's members sit in its place. */
+    heads.forEach((h, n) => { blocks[h.id] = { ...h, parent: drawn, order: n + 1 }; });
+    if (heads.length) {
+      for (const g of children(graph, id).filter((c) => is_group(graph, c.id))) {
+        blocks[g.id] = { ...g, parent: HIDDEN };
+      }
+    }
     /** One step: a part's own usages are not read through again. */
     const deeper = used ? new Set([...seen, used]) : seen;
     for (const p of via ? [] : parts) draw(p.id, drawn, drawn, undefined, deeper);
@@ -62,4 +74,10 @@ export function survey_graph(graph: Graph, scope: Id | null, cut: Cut,
   };
   tops.forEach((id, n) => draw(id, FOREST, undefined, n + 1, new Set()));
   return { ...graph, blocks };
+}
+
+/** What a block holds at its top level, its interfaces apart, a group by its members. */
+function top_level(graph: Graph, id: Id): Block[] {
+  return children(graph, id).filter((b) => !is_interface(b))
+    .flatMap((b) => (is_group(graph, b.id) ? top_level(graph, b.id) : [b]));
 }

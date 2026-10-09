@@ -1,6 +1,6 @@
 /** What every module derives the same way. */
 
-import { attributes_of, def_of, frozen, head_of, is_container, is_flat, is_interface, is_named,
+import { attributes_of, def_of, frozen, head_of, lens_of, is_container, is_flat, is_interface, is_named,
          base_of, path, previewed, role_of, shape_of, shown_name, stamps_of, stands_for, stood_def,
          subtypes, tree_of, used_by, type Graph, type Id } from "@mnd/core";
 import { face_table, face_text, handle_of } from "./face";
@@ -55,6 +55,7 @@ export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): 
     label: shown_name(graph, id),
     ...(alias ? { alias } : {}),
     role: role_of(graph, id),
+    ...(lens_of(graph, id) ? { opens: true } : {}),
     ...(stamps_of(graph, id).length ? { stamps: stamps_of(graph, id) } : {}),
     ...("type" in b && b.type ? { def: b.type } : {}),
     ...(link_of(graph, id) ? { link: link_of(graph, id) } : {}),

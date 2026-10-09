@@ -10,7 +10,6 @@ import { about_of, alias_of, children, def_at, def_of, domain_of, frame_of, froz
 import { Icon, TrayFrame } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Attributes } from "./Attributes";
-import { CardTab } from "./CardTab";
 import { Element } from "./Element";
 import { Settings } from "./Settings";
 import { Definitions, type Shelf } from "./Definitions";
@@ -59,7 +58,7 @@ export type TrayProps = {
 /** A host's tab: what it is called, and what it shows for the block the tray is about. */
 export type Extra = { name: string; draw: (about: Id) => ReactNode };
 
-export type Tab = "card" | "element" | "settings" | "attributes" | "contents" | "definitions"
+export type Tab = "card" | "line" | "settings" | "attributes" | "contents" | "definitions"
                 | "packages" | "usages" | "workspace";
 
 /** What the tray is about. The root is not a block anybody draws, so it is its own context. */
@@ -71,13 +70,14 @@ type Context = "root" | "block" | "line" | "definition" | "relation" | "library"
 const SLOTS: Record<Context, readonly Tab[]> = {
   /** The root draws nowhere, so it is asked about itself and about what it holds, and no more. */
   root: ["workspace", "contents"],
-  /** **A definition and a usage ask the same questions**: what it is and says, how it draws,
-   *  what it carries, and what it lists — a usage its contents, a definition its usages. A
-   *  usage's settings are its definition's, read here and edited there. */
+  /** **Every element asks the same questions, in the same order**: what it is and says — its
+   *  first tab named for what is drawn, a card or a line — how it draws, what it carries, and
+   *  what it lists: a usage its contents, a definition its usages. A usage's settings are its
+   *  definition's, read here and edited there. A line holds no values and nothing else. */
   block: ["card", "settings", "attributes", "contents"],
-  line: ["element"],
+  line: ["line", "settings"],
   definition: ["card", "settings", "attributes", "usages"],
-  relation: ["element", "settings", "usages"],
+  relation: ["line", "settings", "usages"],
   library: ["definitions"],
   packages: ["packages"],
 };
@@ -183,7 +183,10 @@ export function Tray(props: TrayProps) {
   /** What the app asks for, else what this family was last read on, else where it opens. */
   const tabs: string[] = [...hosted, ...SLOTS[context]];
   const family = FAMILY[context];
-  const tab: string = [props.tab, seen[family]].find((t) => t && tabs.includes(t))
+  /** A card's first tab and a line's are the same tab, named for what is drawn. */
+  const alike = (t?: string) => (t === "card" || t === "line"
+    ? tabs.find((x) => x === "card" || x === "line") : t);
+  const tab: string = [props.tab, seen[family]].map(alike).find((t) => t && tabs.includes(t))
     ?? OPENS[context] ?? hosted[0] ?? tabs[tabs.length - 1]!;
   const set_tab = (t: string) => { set_seen((s) => ({ ...s, [family]: t })); props.onTab?.(t); };
 
@@ -287,6 +290,15 @@ export function Tray(props: TrayProps) {
       {...(open && tab === "contents" && !points_at ? {
         tools: <span className="holds">{shown.length} {shown.length === 1 ? "element" : "elements"}</span>,
       } : {})}
+      {...(edits && tab === "card" && graph.blocks[about] && !def_at(graph, about) ? {
+        /** A usage may take a markdown file's card source; again, to refresh it. */
+        tabTools: (
+          <button className="reset" title="copy a markdown file onto this card; again, to refresh"
+                  onClick={() => act("@attach", { id: about })}>
+            attach
+          </button>
+        ),
+      } : {})}
       {...(onAct && tab === "settings" && def_at(graph, about) ? {
         tabTools: (
           <>
@@ -313,11 +325,7 @@ export function Tray(props: TrayProps) {
                        onDisplay={props.onDisplay ?? act}
                        {...(props.display ? { display: props.display } : {})} />
           ) : null}
-          {tab === "card" ? (
-            <CardTab key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})}
-                     onOpen={(id) => onHold({ of: "id", id })} />
-          ) : null}
-          {tab === "element" ? (
+          {tab === "card" || tab === "line" ? (
             <Element graph={graph} id={about} {...(edits ? { onAct: act } : {})}
                      onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
@@ -326,7 +334,7 @@ export function Tray(props: TrayProps) {
             <fieldset className="panel-set" disabled={!edits || !held_def
                                                       || frozen(graph, held_def)
                                                       || held_def !== about}>
-              {held_def ? <Settings graph={graph} id={held_def} onAct={reads} /> : null}
+              {held_def ? <Settings graph={graph} id={held_def} shown={about} onAct={reads} /> : null}
             </fieldset>
           ) : null}
           {/* A definition declares attributes and a usage answers them. */}

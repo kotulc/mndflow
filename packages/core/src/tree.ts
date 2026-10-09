@@ -140,10 +140,10 @@ export function edges_in(graph: Graph, layer: Id | null, flat = false): Relation
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** How a layer lays out: its own word, else its definition's. `free` is what nobody said, and a
- *  kind this build does not know draws as `auto`. */
+/** How a layer lays out: its own word, else its definition's. `auto` is what nobody said, and a
+ *  kind this build does not know draws as `auto` too. */
 export function layout_of(graph: Graph, layer: Id | null): Layout {
   const kind = layer ? setting_of(graph, layer, "layout")["kind"] : undefined;
-  if (kind === undefined) return "free";
+  if (kind === undefined) return "auto";
   return LAYOUTS.includes(kind as Layout) ? kind as Layout : "auto";
 }

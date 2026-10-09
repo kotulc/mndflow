@@ -32,6 +32,8 @@ export type BoxData = {
   stamps?: readonly Mark[];
   /** What sort of thing it is: the icon it wears unless somebody set their own. */
   role?: Role;
+  /** Whether it opens onto a view of its own. */
+  opens?: boolean;
   /** How its definition says it draws. */
   look?: Look;
   /** Which face it draws with, and the large face's parts its look shows: its attributes as a

@@ -1,7 +1,7 @@
 /** The `page` layout: a layer's holders as full-width boxes down the page.
  *
  *  Each box lays its cards in rows `across` cards wide, wrapping at its width, and its own groups
- *  under them as boxes of their own, each a margin narrower. What the overhead draws: every
+ *  under them as boxes of their own, each a margin narrower. What the package view draws: every
  *  package a box, its groups and folders nested inside it. Drawn, never stored: a place and a width
  *  live only in the graph handed back. */
 
@@ -12,15 +12,19 @@ import { GAP, size_of, UNITS } from "./size";
 const ACROSS = 4;
 
 
+/** How wide a layer's page is: as many cards as its `layout` setting's `across` says, else four,
+ *  and the gaps between them. */
+export function page_wide(graph: Graph, layer: Id | null): number {
+  const said = layer ? setting_of(graph, layer, "layout") : {};
+  const across = typeof said["across"] === "number" ? Math.max(1, said["across"]) : ACROSS;
+  return across * UNITS.block.w * UNITS.unit + (across - 1) * UNITS.gap * UNITS.unit;
+}
+
 /** A layer placed as a page, its blocks already sized. Its `layout` setting may say how many cards
  *  the widest row holds (`across`). */
 export function page_graph(graph: Graph, layer: Id): Graph {
-  const said = setting_of(graph, layer, "layout");
-  const across = typeof said["across"] === "number" ? Math.max(1, said["across"]) : ACROSS;
-  const air = UNITS.unit;
-  const gap = UNITS.gap * air;
-  const card = UNITS.block.w * air;
-  const wide = across * card + (across - 1) * gap;
+  const gap = UNITS.gap * UNITS.unit;
+  const wide = page_wide(graph, layer);
   const blocks = { ...graph.blocks };
   const put = (id: Id, x: number, y: number) => { blocks[id] = { ...blocks[id]!, x, y }; };
 

@@ -34,7 +34,7 @@ npm run typecheck -w @mnd/core
 | `defs.ts` | definitions: chains, kinds, settings and traits resolved (`stated`, `setting_of`, `traits_of`), packages and what they use, roles by position (`tree_of`, `in_domain`), self-use and cycles |
 | `navigate.ts` | **navigation, one rule for every host**: `open_at`, `leave_at`, `reveal_at` say where the canvas goes; `held_at` what the explorer's sections hold for it |
 | `tags.ts` | tags, and the badges a definition's settings read as |
-| `names.ts` | names, handles, labels and roles; the system marks a card is stamped with — **what it stands in for** (`definition`, `reference`, `package`), alone, **or what describes it** (`data`), which stack; and `schema_def`, the workspace definition a block's data answers |
+| `names.ts` | names, handles, labels and roles; the system marks a card is stamped with — **what it stands in for** (`definition`, `reference`, `package`), alone, **or what describes it** (`structure` on a definition holding it, `data`), which stack; and `schema_def`, the workspace definition a block's data answers |
 | `components.ts` | what a definition configures, each component validating its own key |
 | `door.ts` | the one way a log comes in. Checks and repairs what it can, drops what it cannot, and writes the repair as a step. **Never migrates** |
 | `capabilities.ts` | `allows` (refused at the gesture) and `expects` (advice), merged along the chain; `review` reports what loaded data breaks, and never repairs |

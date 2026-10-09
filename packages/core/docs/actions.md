@@ -50,10 +50,11 @@
 
 | | Does | Scope | Arguments | Effect |
 |---|---|---|---|---|
-| `open` | draws a tree's structure, the overview with none, or leaves this one: from a tree's top, for the overview | block | id? | `open` |
+| `open` | draws a block on the view its kind calls for, or leaves this layer. `at`, the section it was opened from: a definition opened from where its structure is listed draws that | block | id?, at? | `open` |
 | `reveal` | opens the layer a block sits on and picks it there, followed through references | block | id | `open` + `focus` |
 
-- **Where the canvas goes is navigation's** (core `navigate.ts`): opening a tree draws its structure; any other block in a structure that opens onto a drawing or may hold — a folder among them — draws as its own layer; a group or grid, which draw inline, and a note, which may hold nothing, are revealed in place; a package or anything in a domain is revealed on the overview. Leaving a tree's top returns to the overview, the tree picked. Both apps use the same functions.
+- **Where the canvas goes is navigation's** (core `navigate.ts`): **the card's kind says the view** (`lens_of`) — a package or folder its folder view, a definition its definition view, a grid its grid view, a block that holds or may hold from inside, a stand-in what it stands for. A definition opened again, or from the section its structure roots, draws its structure. A group, a note and a leaf are revealed in place. Leaving a definition's structure returns to its definition view; leaving a package, to the package view. Both apps use the same functions.
+- **Editing on a definition view edits the definition** (core `aspects.ts`): a tag or trait dropped there is attached, one deleted from its box detached, a port deleted from its box deleted, and the note's text written as the body.
 - **Opening a part opens its definition**, the part picked there.
 - **The way out of an interface is the way in**: leaving lands in whichever of its two layers you came from.
 
@@ -131,7 +132,7 @@
 |---|---|---|---|---|
 | `layout` | sets how the layer lays out, and tidies it into that shape | layer | kind, at? | `set_setting{layout}` + `place_block`… |
 
-**Layout is a setting**, said by a definition and overridable by the layer: `free`, `auto`, `outline`, `page`. The tidy is written on the way out of a computed layout, so `free` keeps where it put everything. **Moving anything by hand on a computed layout sets it `free`**, positions written first, in the same step.
+**Layout is a setting**, said by a definition and overridable by the layer: `free`, `auto` or `page`, and `auto` where nothing says. The tidy is written on the way out of a computed layout, so `free` keeps where it put everything. **Moving anything by hand on a computed layout sets it `free`**, positions written first, in the same step.
 
 
 ## Adjustments

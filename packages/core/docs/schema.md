@@ -39,7 +39,7 @@ File {
 
 ```
 Session {
-  open      Id | null          // the tree layer the canvas draws; null is the overview
+  open      Id | null          // the layer the canvas draws; null is the package view
   selected  Route[]            // a block, or usage/part
   folded    Id[]
   theme     string
@@ -166,7 +166,7 @@ Value     { name, value }
 | `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `shows` (a list of `attributes`, `body`, `preview`), `size` (`{w, h}` in units): what the large face shows and how big it is |
 | `style` | a family, or a `hue` with its `intensity` and `vary`; `fill` and `opacity`; border and writing weight, face and contrast. Never a hex or a pixel count |
 | `line` | how a run draws |
-| `layout` | `kind`: `free`, `auto` or `page`; `across` and `line` for the computed ones; `face`: `small` or `large`, the face what it holds draws with. An unknown kind draws as `auto` |
+| `layout` | `kind`: `free`, `auto` or `page`; `across` and `line` for the computed ones; `face`: `small` or `large`, the face what it holds draws with. Unsaid, or a kind this build does not know, draws as `auto` |
 | `tie` | the relation type a block made from or dropped on another is linked to it by |
 | `allows` | `ports`, `holds`, `heads`, `degree`, `ends`. Refused at the gesture; absent is a no. Usually granted whole by a trait |
 | `holder` | `inline`, `matrix`: how a block draws what it holds — in place, and in cells. Granted by the traits of the same names; which holder a block is comes from here |

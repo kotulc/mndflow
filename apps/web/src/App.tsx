@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { collect, drop_of, held_at, is_layer_view, layout_of, lenses_of, session, trace, EDITOR,
-         LAYER_VIEWS, type ViewKind, type Storage, type Dir, type Id } from "@mnd/core";
+import { aspect_acts, attach_of, collect, drop_of, held_at, is_inside, is_layer_view, layout_of,
+         session, trace, EDITOR, type ViewKind, type Storage, type Dir, type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { box_of, clear_of, empty_of, holds, project, set_card as apply_card, tidy, BLOCK,
          CARD, UNITS } from "@mnd/views";
@@ -84,9 +84,11 @@ export function App({ storage }: { storage: Storage }) {
   const graph = s.graph();
   const view = s.view();
   /** The layer seen from inside, where the canvas looks into one. Anything else — a whole
-   *  section, or a block drawn as what it means — has none, and is read only. */
-  const whole = view.kind !== "internal";
+   *  section, or a definition drawn with what describes it — has none, and is not built on. */
+  const whole = !is_inside(view.kind);
   const system = !is_layer_view(view.kind);
+  /** A definition drawn with what describes it: edits there edit it (core `aspect_acts`). */
+  const described = view.kind === "definition" ? view.layer : null;
   const layer = whole ? null : view.layer;
   const said = s.said();
   const laid_out = layout_of(graph, layer);
@@ -94,20 +96,19 @@ export function App({ storage }: { storage: Storage }) {
   const here = whole ? `@${SLICES[view.at]!.id}:${view.kind}` : layer ?? "";
   const legend = keyed[here] ?? legends;
 
-  /** The views the rail offers: the section's whole views, then the block in hand's own, in one
-   *  order — the block seen, else the one brought into sight, else what the section holds. On a
-   *  whole section, from inside is always one: it goes where the pick is drawn. */
+  /** The views the rail offers: the section's whole views, then the layer view — never chosen,
+   *  only shown, or on a whole section the way back to where the block in hand is drawn: the one
+   *  brought into sight, else what the section holds. */
   const in_hand = system ? view.pick ?? chain.held[view.at] ?? null : view.layer;
-  const lenses = in_hand ? lenses_of(graph, in_hand) : [];
-  const seeing: ViewKind[] = [
-    ...SLICES[view.at]!.views.filter((k) => !is_layer_view(k)),
-    ...LAYER_VIEWS.filter((k) => lenses.includes(k) || (system && k === "internal"))];
+  const back: ViewKind | null = !system ? view.kind : in_hand ? "internal" : null;
+  const seeing: ViewKind[] = [...SLICES[view.at]!.views.filter((k) => !is_layer_view(k)),
+                              ...(back ? [back] : [])];
 
   /** The drawing's proportions are the views module's, so the session's card is applied before
    *  anything is placed. */
   apply_card(card.w, card.h);
 
-  /** How many cards the overhead's rows hold: as many as the canvas is wide. */
+  /** How many cards the package view's rows hold: as many as the canvas is wide. */
   const [canvas, set_canvas] = useState<HTMLElement | null>(null);
   const room = useWidth(canvas);
   const across = Math.max(2, Math.floor(room / ((card.w + UNITS.gap) * UNITS.unit * READ)) );
@@ -118,12 +119,12 @@ export function App({ storage }: { storage: Storage }) {
   /** Projected once per graph, view, layer or proportion change — and, for a profile, per pick. */
   const scene = useMemo(
     () => project(graph, view.layer, { interfaces: shown.interfaces, across,
-                                       look: { kind: view.kind, cut: SLICES[view.at]!.cut,
-                                               tiers: EDITOR, target } }),
+                                       look: { kind: view.kind, cut: SLICES[0]!.cut,
+                                               tops: true, target } }),
     [graph, view.layer, view.kind, view.at, target, shown.interfaces, card, across]);
 
   /** **The sections follow the canvas** — one rule (`held_at`), whatever moved it: the layer opened,
-   *  or a pick on the overhead. Browsing outside the open structure moves neither. */
+   *  or a pick on the package view. Browsing outside the open structure moves neither. */
   const follow = () => {
     const held = held_at(s.graph(), EDITOR, s.view());
     if (held) chain.onTrace(held.path, held.at);
@@ -138,7 +139,11 @@ export function App({ storage }: { storage: Storage }) {
     /** Undo and redo arrive through the same channel as actions. */
     if (name === "undo") { s.undo(); return; }
     if (name === "redo") { s.redo(); return; }
-    s.go(name, args ?? {});
+    if (described) {
+      s.batch(() => aspect_acts(s.graph(), described, name, args ?? {})
+        .forEach((a) => s.go(a.act, a.args)));
+    }
+    else s.go(name, args ?? {});
     /** Opening, leaving and revealing are navigation's: the sections follow where it went, and
      *  the canvas pans to what it revealed inside a layer. */
     if (name === "open" || name === "reveal") {
@@ -146,7 +151,7 @@ export function App({ storage }: { storage: Storage }) {
       follow();
       /** Cleared first, so revealing the same block again pans again; leaving aims at nothing. */
       flushSync(() => set_aim(null));
-      if (args?.["id"] && s.view().kind === "internal") set_aim(s.picked()[0] ?? null);
+      if (args?.["id"] && is_inside(s.view().kind)) set_aim(s.picked()[0] ?? null);
     }
   };
 
@@ -286,7 +291,7 @@ export function App({ storage }: { storage: Storage }) {
         onFold={(id, shut) =>
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
         onPick={pick}
-        onOpen={({ id, via }) => act(via ? "reveal" : "open", { id })}
+        onOpen={({ at, id, via }) => act(via ? "reveal" : "open", { id, at })}
         onLeave={() => act("open")}
         chain={{ ...chain, onChoose: choose }}
         keys
@@ -297,7 +302,7 @@ export function App({ storage }: { storage: Storage }) {
           scene={scene}
           graph={graph}
           view={view.kind}
-          empty={view.kind === "internal" && layer && !scene.nodes.length
+          empty={!whole && layer && !scene.nodes.length
             ? empty_of(graph, layer) : null}
           /** The shared menu; a right-click inside the selection is about the selection. */
           menu={(at, on, shut, spot, only, given) => (
@@ -315,6 +320,13 @@ export function App({ storage }: { storage: Storage }) {
               scene.nodes.filter((n) => n.id !== id && !holds(n) && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
+            /** On a definition, a tag or trait dropped is attached. */
+            if (described) {
+              const made = attach_of(graph, described, id);
+              if (made) s.go(made.act, made.args);
+              else s.say("drop a tag or a trait here to attach it", "note");
+              return;
+            }
             if (whole) return;
             const cell = land.cell && land.into ? land.into : null;
             const made = drop_of(graph, {
@@ -347,10 +359,12 @@ export function App({ storage }: { storage: Storage }) {
             if (!echo) pick(ids);
           }}
           onAct={act}
-          /** A whole section, or a block drawn as what it means, is read only and read down the
-           *  page: a section from its anchor, a block's view from the top. */
+          /** A whole section, or a definition drawn with what describes it, is not moved about.
+           *  Those, a folder and a layer laid out `auto` are read down the page, fitted to their
+           *  width: a section from its anchor. */
           onAdjust={whole ? () => undefined : adjust}
-          scroll={whole}
+          scroll={whole || view.kind === "folder"
+                  || (view.kind === "internal" && laid_out === "auto")}
           focus={system ? view.pick : whole ? null : aim}
           most={1}
         />
@@ -388,7 +402,7 @@ export function App({ storage }: { storage: Storage }) {
 /** The editor's sections, made once. */
 const SLICES = editor_slices();
 
-/** How large the overhead draws a card: its own size. */
+/** How large the package view draws a card: its own size. */
 const READ = 1;
 
 /** How wide an element is, in pixels, as it is resized; nothing until there is one. */

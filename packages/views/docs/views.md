@@ -2,7 +2,7 @@
 
 **One way to draw.** A layer is what is looked at; this package is the looking. It reads the graph and hands back a **Scene** — plain data, importing nothing drawable.
 
-**There is one way to draw.** A grid is how a layer states order and allocation; there is no choice of view module. The canvas's two views are the overview and a tree's structure; a data perspective over the model (a table, a matrix) still wants a word.
+**There is one way to draw.** A grid is how a layer states order and allocation; there is no choice of view module. The canvas draws the whole system in a system view — **package** (`survey.ts`) or **profile** (`profile.ts`), both trees, a definition's structure to its top level only — or one block in the layer view its kind calls for: **internal**, **grid**, **folder** or **definition**. A data perspective over the model (a table, a matrix) still wants a word.
 
 ```
 project(graph, layer, config) → Scene
@@ -17,7 +17,7 @@ project(graph, layer, config) → Scene
 | `size.ts` | **the one measure.** `UNIT` is a square of the guides; `CELL` is a block plus a gap on every side. Everything else is derived from those |
 | `arrange.ts` | where everything in a layer sits — hand placement under `free`, auto-layout under `auto` |
 | `bands.ts` | members packed inside a band, and seated blocks placed by their cell |
-| `pack.ts` | auto-layout: related clusters around their mates, notes and references beside what they name |
+| `pack.ts` | auto-layout: related clusters around their mates, notes and references beside what they name, the clusters shelved in reading order |
 | `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off |
 | `route.ts` | where a run goes between two borders, round the cards it passes |
 | `block.ts` | the projection: graph and layer in, Scene out |
@@ -37,12 +37,11 @@ project(graph, layer, config) → Scene
 
 | | Is |
 |---|---|
-| `free` | hand placement, rounded to the lattice. What a layer says nothing about |
-| `auto` | auto-layout: stored positions are ignored and every loose block gets a box worked out from the relationships and the sizes |
-| `outline` | headed groups down the page as a staircase: each group's head, its members beside it, its own groups stepped in under them, flow lines from head to head and through members in order. Stores neither a place nor a line |
-| `page` | holders as full-width boxes down the page: each box's cards in rows wrapping at its width (`layout.across` cards), its own holders below them. What the overview draws |
+| `free` | hand placement, rounded to the lattice |
+| `auto` | auto-layout: stored positions are ignored and every loose block gets a box worked out from the relationships and the sizes. What a layer says nothing about |
+| `page` | holders as full-width boxes down the page: each box's cards in rows wrapping at its width (`layout.across` cards), its own holders below them. What the package view and a folder nobody arranged draw |
 
-**Related blocks share a row or a column and sit one gap apart**; unrelated ones fill the next slots of a square-ish shelf. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
+**Related blocks share a row or a column and sit one gap apart**; the clusters follow in reading order on a shelf as wide as the page layout's (`page_wide`: `layout.across` cards, which the projection sets to the canvas's width), so a layer laid out `auto` reads down the page as a folder does. Inside a group the shelf is square-ish. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
 
 **The picture is written down on the way out of `auto`**, as ordinary placements, so `free` carries on from where `auto` left off.
 
@@ -75,7 +74,9 @@ project(graph, layer, config) → Scene
 |---|---|
 | **read-through** | an opened usage draws its definition's structure beside its own children, one step; a usage on the layer wears its definition's interfaces as `usage/part`. Parts wear the link mark |
 | **flatten** | folders draw as groups, so a whole domain reads on one page |
-| **overview** | nothing open (`open: null`): every package a full-width box of its domain, flattened, laid out as a `page` and scrolled rather than zoomed. Which packages, and how many cards across, are the host's to say. Cards keep their real ids, so a pick is the block itself |
+| **package view** | a whole section (`look.kind: "package"`, and nothing open, `open: null`): every package a full-width box of its domain, flattened, laid out as a `page` and scrolled rather than zoomed. Which packages, and how many cards across, are the host's to say. Cards keep their real ids, so a pick is the block itself |
+| **folder** | a package or folder's own layer, editable; laid as a `page` where nobody placed what it holds, else as placed. Its room hugs what it holds, and the page is read down the view |
+| **definition** | `definition.ts`: the definition large on its own layer, placed boxes round it — what it extends above, in and out ports left and right, both-way ports then tags and traits below, its body as a tied note top right. Placed, so nothing is dragged |
 | **layout** | the layer's layout kind places what is drawn |
 
 ## The Scene is the seam

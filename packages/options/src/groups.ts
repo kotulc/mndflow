@@ -46,7 +46,7 @@ export type Chrome = {
 };
 
 /** How a person lays a layer out from the rail. `page` is a definition's or a host's to set — the
- *  overhead reads as a page — so it is not offered here. */
+ *  package view reads as a page — so it is not offered here. */
 const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
   free: { icon: "layout_free", tip: "Hand placement is what draws" },
   auto: { icon: "layout_grid", tip: "Auto-layout: related blocks share a row, a unit of air between everything" },
@@ -54,18 +54,18 @@ const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
 
 /** How the canvas may look: at its whole section, or at one block. */
 const VIEWS: Record<ViewKind, { icon: IconName; word: string; tip: string }> = {
-  overhead: { icon: "view_overhead", word: "overhead",
-              tip: "Overhead: the whole section from above, as nested boxes" },
+  package: { icon: "view_package", word: "package",
+              tip: "Package: the whole section from above, as nested boxes" },
   profile: { icon: "view_profile", word: "profile",
              tip: "Profile: the whole section stepped down the page, along the pick" },
   internal: { icon: "view_internal", word: "internal",
               tip: "Internal: the block from inside, what it holds" },
-  entity: { icon: "view_entity", word: "entity",
-            tip: "Entity: the block's attributes, what they link to and what links to it" },
-  lineage: { icon: "view_lineage", word: "lineage",
-             tip: "Lineage: what the block extends, its subtypes, and what uses it" },
-  definitions: { icon: "view_definitions", word: "defs",
-                 tip: "Definitions: the package's definitions, and how they extend and link" },
+  grid: { icon: "view_grid", word: "grid",
+          tip: "Grid: the opened grid's cells and what sits in them" },
+  folder: { icon: "view_folder", word: "folder",
+            tip: "Folder: what the package or folder holds, read down the page" },
+  definition: { icon: "view_definition", word: "def",
+                tip: "Definition: the definition, what it extends, its ports, tags and traits round it" },
 };
 
 /** What a right drag may draw: a line, straight or directed, or a tie. */
