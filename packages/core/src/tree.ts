@@ -1,6 +1,6 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import { base_of, setting_of } from "./defs";
+import { base_of, isa, setting_of } from "./defs";
 import { drawn_in } from "./holders";
 import { LAYOUTS, type Block, type Definition, type Graph, type Id, type Layout,
          type Relation } from "./types";
@@ -58,6 +58,13 @@ export function path(graph: Graph, id: Id): Block[] {
 export function is_interface(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
   return !!b && !b.def && base_of(graph, id) === "interface";
+}
+
+/** A definition's interfaces: its own, then those its chain declares, nearest first.
+ *  **Interfaces inherit**, as attributes do; parts never. Each keeps its id, so an edit to one goes
+ *  home to the definition declaring it. */
+export function ports_of(graph: Graph, def: Id | undefined): Block[] {
+  return isa(graph, def).flatMap((d) => children(graph, d.id).filter((b) => is_interface(graph, b.id)));
 }
 
 export function is_reference(b: Block): boolean {

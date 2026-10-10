@@ -5,7 +5,7 @@
  *  in the root docs. */
 
 import { all_defs, base_of, carried_tags, def_at, def_of, domain_of, edge_base, entry, frozen,
-         is_base, is_trait, isa, kind_free, type Act, type Definition, type Graph,
+         gives, is_base, isa, kind_free, type Act, type Definition, type Graph,
          type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
@@ -109,16 +109,16 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
         </Line>
 
         {/* Tags index a thing, so a definition wears them as an element does: its own, then what
-           its definition's chain carries. Traits share the list and are edited apart, so they
-           are kept through. */}
+           its definition's chain carries. Traits and styles share the list and are edited apart,
+           so they are kept through. */}
         <Line label="tags"
               tip="Tags that say what this is like. A new word makes a tag; it also carries its definition's, and may drop one here.">
-          <Tags tags={own_tags.filter((t) => !is_trait(graph, entry(t).id))}
-                carried={carried_tags(graph, id).filter((c) => c.from !== id && !is_trait(graph, c.id))
+          <Tags tags={own_tags.filter((t) => !gives(graph, entry(t).id))}
+                carried={carried_tags(graph, id).filter((c) => c.from !== id && !gives(graph, c.id))
                   .map((c) => c.id)}
                 name={(t) => graph.blocks[t]?.name ?? t}
                 onCommit={(to) => onAct("tag", { ids: [id], tags:
-                  [...own_tags.filter((t) => is_trait(graph, entry(t).id)), ...to] })} />
+                  [...own_tags.filter((t) => gives(graph, entry(t).id)), ...to] })} />
         </Line>
 
         {/* Extends: what the definition in force is built on. An element with none of its own has

@@ -1,24 +1,33 @@
-/** What an element may do and how it looks by trait: any element's — a usage, a line or a
- *  definition — since each carries what its definition does and may add its own. Each trait grants
- *  its settings; what none grants, a block may not do. */
+/** What an element may do, by trait, and how it looks, by style: any element's — a usage, a line
+ *  or a definition — since each carries what its definition does and may add its own. Each grants
+ *  its settings; what no trait grants, a block may not do. */
 
-import { all_defs, carried_tags, entry, frozen, is_trait, traits_of, type Act, type Graph,
+import { all_defs, carried_tags, entry, frozen, is_style, is_trait, type Act, type Graph,
          type Id } from "@mnd/core";
 import { Band, Body, Line } from "./Body";
 
-export type TraitsProps = { graph: Graph; id: Id; onAct: Act };
+export type TraitsProps = { graph: Graph; id: Id; onAct: Act;
+                            /** Which it lists: capabilities, or looks. */
+                            of?: "traits" | "styles" };
+
+/** What each listing offers, and what it says of itself. */
+const KINDS = {
+  traits: { is: is_trait, tip: "What it may do: each trait grants a capability. It carries its definition's, and may add or drop its own." },
+  styles: { is: is_style, tip: "How it looks: each style gives a look. It carries its definition's, and may add or drop its own." },
+};
 
 /** Every trait as a toggle, lit two ways as a look is: **on** while in force, **set** where this
  *  element says so itself — added here, or dropped (struck) where its chain carries it. Toggling
  *  writes the element's own list, tags kept. A frozen element's traits read only. */
-export function Traits({ graph, id, onAct }: TraitsProps) {
+export function Traits({ graph, id, onAct, of = "traits" }: TraitsProps) {
   const target = graph.blocks[id] ?? graph.edges[id];
   if (!target) return null;
   const own = target.tags ?? [];
-  const held = traits_of(graph, id);
+  const { is, tip: about } = KINDS[of];
+  const held = carried_tags(graph, id).map((c) => c.id).filter((t) => is(graph, t));
   const inherited = carried_tags(graph, id).filter((c) => c.from !== id).map((c) => c.id);
   const fixed = frozen(graph, graph.blocks[id] ? id : (target as { from: Id }).from);
-  const offered = all_defs(graph).filter((d) => is_trait(graph, d.id));
+  const offered = all_defs(graph).filter((d) => is(graph, d.id));
   const called = (t: Id) => graph.blocks[t]?.name ?? t;
 
   /** Off where it is on — taken off its own list, or dropped where inherited — else on: a drop
@@ -31,10 +40,10 @@ export function Traits({ graph, id, onAct }: TraitsProps) {
   };
 
   return (
-    <div className="col traits">
-      <Band label="traits" />
+    <div className={`col ${of}`}>
+      <Band label={of} />
       <Body>
-        <Line tip="What it may do and how it looks: each trait grants settings. It carries its definition's, and may add or drop its own.">
+        <Line tip={about}>
           <span className="picks">
             {offered.map((d) => {
               const on = held.includes(d.id);

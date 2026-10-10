@@ -56,7 +56,7 @@ Most rules below are one of these applied.
 - **the explorer lists the `parent` tree**: whatever holds lists as a row and branches. A group is the one exception: it has no row, and what it holds lists at its level
 - folders organizing what is not structure (definitions, documents) is this app's convention, never a rule
 - **a group is layer-local**: it organizes the layer it sits on, is drawn and edited on the canvas only, and is never a place you go
-- what holds and how it nests are traits: `container` lets a block hold; `inline` draws what it holds in place (a group); `matrix` seats it in cells and opens as a grid view (a grid). `base` keeps `group` and `grid` as ready-made definitions carrying them
+- what holds and how it nests are traits: *has parts* lets a block hold; *is group* draws what it holds in place; *is grid* seats it in cells and opens as a grid view. `base` keeps `group` and `grid` as ready-made definitions carrying them
 - a definition always draws as a card; its structure is reached by descending
 - the layer a block draws on is its nearest ancestor that hides its contents
 - deleting a holder deletes its subtree
@@ -82,12 +82,12 @@ Most rules below are one of these applied.
 ### Types and read-through
 
 - **`type` is one chain**: on a usage, what it is; on a definition, what it extends. It names one above: never itself, never one that extends it. Refused at the gesture; `isa` guards loaded files
-- a chain ends at a base: a definition extending nothing extends `block`, and reads as it does
+- a chain ends at a root: `block` for blocks, `line` for relations. **Every other base kind extends one** — `folder`, `group`, `grid`, `note`, `reference`, `interface`, `tag` and `value` extend `block`, `tie` extends `line` — and drops what it must not do (`tag` carries `-has_parts`, `-has_ports`, `-has_values`). A definition extending nothing extends `block`, and reads as it does
 - own values only: inherited values are resolved on read, never copied
 - precedence, per link of the chain, self first: its own settings, then its traits in order. Nearest wins
 - a trait confers its own settings and those of the traits it extends, never its base's: how a tag draws is not what it gives
 - **what an element carries adds up down its chain**: tags, traits and labels are one list, `tags`; each link adds its own, and `-id` drops one a farther link carries. A usage and a line carry everything their definition does, and may add or drop their own
-- structure is a definition's own and is never inherited
+- structure is a definition's own and is never inherited; **interfaces are**, as attributes are: a subtype and every usage wear the interfaces its chain declares, each edited where it is declared
 - a usage reads through one step: its type's own structure, never a chain
 - edits go home: changing a part through a usage edits the definition that owns it
 - **a definition never uses itself**: no usage typed by it, by exact type, at any depth of its own structure (`D` may hold an `S` where `S extends D`). Refused at every gesture that makes or retypes a usage; reported by `review` in loaded data. Checked directly only, for now: `D` holding an `E` that holds a `D` is not checked
@@ -96,15 +96,16 @@ Most rules below are one of these applied.
 
 - **`base` enumerates the functionally distinct kinds and stays minimal**: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, `value`, `line`, `tie`. Kinds are data; engine modules are three (`block`, `reference`, `interface`)
 - **traits say what a kind may do, and absent is a no**: a capability nobody grants is refused at the gesture. The base kinds carry the traits that make them what they are
-- trait names are positive, each a capability granted: `container`, `ports`, `inline`, `matrix`, `headed`, `resizable`, `content`, `media`, `tied`
+- **trait names say *has X* or *is X***: *has* for a capability granted — *has parts*, *has values*, *has ports*, *has head*, *has body*, *has preview*, *has size* — *is* for what sort of thing it is — *is group*, *is grid*, *is tied*, *is port*, *is reference*. Ids follow (`has_parts`). One capability a trait, so a drop is exact
+- **a kind says what it is in traits and styles, not in engine code**: `reference` carries *is reference* (the `reference` module) and drops *has parts* and *has values*; `interface` carries *is port* (the `interface` module). A kind's look is the styles it wears
 - a trait grants a capability whole. Limiting one to definitions, and asking what values must say, is a constraint (`allows` lists, `degree`, `ends`, `expects`): kept as settings, to be reworked
-- which holder a block is: a folder by its base; a group or grid by its `inline` and `matrix` traits
+- which holder a block is: a folder by its base; a group or grid by its *is group* and *is grid* traits
 - a capability is added to or removed from a subtype, or a single usage, as a trait, easily and visibly: added, or dropped with `-id`. **A trait is a tag by its chain** (`extends trait`), as a label is (`extends label`): stored with tags, listed apart
 - `note` is a base carrying the tied, resizable and body-content traits
-- **a trait gives settings: a capability, a style, or both.** A style preset is a trait carrying only `style`, dropped on a definition like any other; there is no second list
+- **traits are capabilities, styles are looks**: both are tags giving settings, carried and inherited alike, listed apart. A style is a definition whose `settings` are the look, filed under `styles`: making one in the explorer is writing that JSON
 - relations and tags hold no structure. A tag is a definition with no structure, carried in `tags`
-- a tag definition draws as a block. **Each branch reads in its own hue** — tags, traits, labels, value types — and each definition under it strays a little (`vary`), keyed by its id: kin read alike, each still itself
-- `base` is filed by branch: `blocks`, `relations`, `tags` (with `traits` inside) and `types`
+- a tag definition draws as a block. **Each branch reads in its own hue** — tags, traits, styles, labels, value types — and each definition under it strays a little (`vary`), keyed by its id: kin read alike, each still itself
+- `base` is filed by branch: `blocks`, `relations`, `tags` (with `traits` and `styles` inside) and `types`
 - `tie` is a relation type like any other, chosen and never forced
 - **a relation definition says what a line describes, never its name**: which way it points is the setting `line.dir`, inherited down the chain like any block setting and overridable on the line. A line's name is a label, read as a tag, and decides nothing
 - **two blocks are joined once per relation type**: drawing a line where one of that type already joins the same ends draws no second line; the line already there takes the new way too, so a line back makes it point both ways
@@ -172,8 +173,8 @@ Most rules below are one of these applied.
 | a stand-in | what it stands for | that block's own view |
 | a leaf or a note | nothing | revealed where it is |
 
-- the **definition view** draws its definition large in the middle. Above it, what it extends, a card of its own in no box, joined by a line named *extends*; to its left and right, its input and output ports in a box each; directly below it, ports flowing both ways; below those, its tags and its traits in a box each. Only boxes with something in them draw, each joined to the middle card by a plain line. A note at the top right says what the definition is for: its body
-- **editing the definition view edits the definition**: a definition dropped there is attached — a trait to its traits, a tag to its tags — and one deleted from its box is detached; ports are added on the middle card and deleted from their boxes; the note writes its body. What it extends is set in the tray
+- the **definition view** draws everything a definition is, its chain's included, on a three by three grid round the definition, large in the middle. Above it, what it extends, a card of its own joined by a line named *extends*, between its tags and a note, a box wide, saying what the definition is for: its body. To its left and right, its input and output ports; below it, its both-way ports, its settings — the styles it wears that still say something, then a small card for each setting it or its chain states itself — and its traits. Every box is joined to the middle card by a plain line, and only boxes with something in them draw. **What it reads from its chain wears the part mark**, dimmed; **what its chain drops draws struck** where it would sit, and deleting a drop it says itself takes it back
+- **editing the definition view edits the definition**: a tag or trait dropped there is added to what it carries; one deleted from its box is taken off — or, where its chain carries it, dropped (`-id`); its own ports are added on the middle card and deleted from their boxes, an inherited one only where it is declared; the note writes its body. What it extends is set in the tray
 - an empty layer says why it is empty, never a blank canvas
 - the overhead view draws every package top-down in the explorer's order, each a box hugging its domain, folders flattened, definitions at their own size, the page scrolled down and never zoomed out. **A definition holding structure is a box of its top-level blocks**, each a card standing for what lies below it — never deeper, so the system view stays readable
 - the profile is the system seen from the side: **one row per level**, top to bottom, every row a box as wide as the widest — every package, then what each block on the way to the pick holds, and last what the pick holds — each row named for what holds it. **The only lines run from each block on the way down to the row it holds**, pointing straight down; never one block to another
@@ -192,7 +193,7 @@ Most rules below are one of these applied.
 **A card is drawn by one renderer everywhere** — the canvas, the tray, mndmap — and what it shows beyond its identity is its attributes as a table and its content as rendered markdown.
 
 - **two faces.** The **small** face is the workspace's card size: its handle above its name, its icon and its marks, nothing more. The **large** face fits its content, or takes its definition's `card.size`, held under a preset maximum: its name, then the parts its definition lists in `card.shows` — `attributes`, `body`, `preview`
-- **attributes draw as one ruled table**, from data, never markdown: the name is its top row, with the icon at its right; the marks end the last row; the card's border is the table's; columns are type, name, then key, value and note where any row says one. Column widths are worked out once in views and used both to size the card and to draw it. **A table card is sized by its table**, exactly, never rounded to units. A body shown under the table is markdown
+- **one table look, wherever a card draws a table** (`.mnd-face-table`): its attributes, and any table its markdown says — ruled inside, no box of its own, a quiet header. **Attributes draw as that table**, from data, never markdown: the name is its top row, with the icon at its right; the marks end the last row; the card's border is the table's; columns are type, name, then key, value and note where any row says one. Column widths are worked out once in views and used both to size the card and to draw it. **A table card is sized by its table**, exactly, never rounded to units. A body shown under the table is markdown
 - **the face is the view's, never the zoom's**: a canvas draws small unless a layer's `layout.face` asks for large; the tray draws a block large, then small. A face is laid out at its size from the start, so nothing reflows
 - **the tray asks every element the same questions, in one order**: what it is, how it draws, what it carries, what it lists. A card and a line share one first tab, named for what is drawn, laid out as the settings tab is — the drawing left, identity right, the source under both, the definition read only under all. **Every tab draws the element in hand**: a usage's settings tab draws the usage wearing its definition's settings, never the definition
 - `card.name: hide` leaves the large face its parts alone; the small face always names

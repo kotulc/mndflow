@@ -1,9 +1,9 @@
 /** Aspects: what the definition view draws round a definition, and what an edit there does to
  *  it. Views draws them; **what an edit there means is decided here**, so every host edits alike. */
 
-import { carried_tags, chain_of, def_at, is_trait, type Carried } from "./defs";
+import { carried_tags, chain_of, def_at, dropped_tags, gives, is_style, is_trait, type Carried } from "./defs";
 import { is_tag } from "./tags";
-import { children, is_interface } from "./tree";
+import { ports_of } from "./tree";
 import type { Args } from "./actions";
 import type { Drop } from "./drop";
 import type { Block, Graph, Id } from "./types";
@@ -11,22 +11,24 @@ import type { Block, Graph, Id } from "./types";
 /** The note the definition view ties to its definition: the definition's body. */
 export const ABOUT = "@about";
 
-/** What surrounds a definition: what it extends, its ports by flow — unmarked with both — and the
- *  tags and traits it carries, its chain's included, each with the link adding it. */
+/** What surrounds a definition: what it extends, its ports by flow — unmarked with both — the
+ *  tags, traits and styles it carries, and what its chain drops; its chain's included, a port's `parent` saying whose it is. */
 export type Aspects = { extends: Id | null; ins: Block[]; outs: Block[]; both: Block[];
-                        tags: Carried[]; traits: Carried[] };
+                        tags: Carried[]; traits: Carried[]; styles: Carried[]; dropped: Carried[] };
 
 
 /** The aspects of a definition: what it extends — the nearest link of its chain, a base included
  *  — its ports, and everything it carries. */
 export function aspects_of(graph: Graph, def: Id): Aspects {
-  const ports = children(graph, def).filter((b) => is_interface(graph, b.id));
+  const ports = ports_of(graph, def);
   const flowing = (...flows: (string | undefined)[]) => ports.filter((p) => flows.includes(p.flow));
   const all = carried_tags(graph, def);
   return { extends: chain_of(graph, def)[1]?.id ?? null,
            ins: flowing("in"), outs: flowing("out"), both: flowing("both", undefined),
-           tags: all.filter((c) => !is_trait(graph, c.id)),
-           traits: all.filter((c) => is_trait(graph, c.id)) };
+           tags: all.filter((c) => !gives(graph, c.id)),
+           traits: all.filter((c) => is_trait(graph, c.id)),
+           styles: all.filter((c) => is_style(graph, c.id)),
+           dropped: dropped_tags(graph, def) };
 }
 
 /** What dropping a definition onto a definition's view does: a tag, trait or label it does not
@@ -40,7 +42,7 @@ export function attach_of(graph: Graph, def: Id, id: Id): Drop | null {
 }
 
 /** An act on a definition's view, as it edits the definition: deleting what it carries takes it
- *  off its own list, or drops it where its chain carries it; deleting deletes its ports, never the
+ *  off its own list, or drops it where its chain carries it, and deleting a drop takes it back; deleting deletes its ports, never the
  *  definitions drawn round it; renaming the note writes the body. Anything else passes as it is. */
 export function aspect_acts(graph: Graph, def: Id, name: string, args: Args): Drop[] {
   if (name === "rename" && args["id"] === ABOUT) {
@@ -49,13 +51,18 @@ export function aspect_acts(graph: Graph, def: Id, name: string, args: Args): Dr
   if (name !== "delete") return [{ act: name, args }];
   const ids = Array.isArray(args["ids"]) ? args["ids"].map(String) : [];
   const { ins, outs, both } = aspects_of(graph, def);
-  const ports = [...ins, ...outs, ...both].map((p) => p.id).filter((p) => ids.includes(p));
+  /** Only its own: an inherited port is deleted where it is declared. */
+  const ports = [...ins, ...outs, ...both].filter((p) => p.parent === def && ids.includes(p.id))
+    .map((p) => p.id);
   const gone = carried_tags(graph, def).filter((c) => ids.includes(c.id));
+  /** A drop it says itself, deleted, is taken back. */
+  const back = dropped_tags(graph, def).filter((c) => c.from === def && ids.includes(c.id))
+    .map((c) => `-${c.id}`);
   const own = def_at(graph, def)?.tags ?? [];
-  const tags = [...own.filter((t) => !gone.some((c) => c.id === t)),
+  const tags = [...own.filter((t) => !gone.some((c) => c.id === t) && !back.includes(t)),
                 ...gone.filter((c) => c.from !== def).map((c) => `-${c.id}`)];
   return [
-    ...(gone.length ? [{ act: "tag", args: { ids: [def], tags } }] : []),
+    ...(gone.length || back.length ? [{ act: "tag", args: { ids: [def], tags } }] : []),
     ...(ports.length ? [{ act: "delete", args: { ids: ports } }] : []),
   ];
 }

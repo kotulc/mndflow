@@ -17,6 +17,8 @@ const INLINE = ["p", "strong", "em", "del", "code", "a", "br"];
 
 /** How each element draws, where it differs from plain HTML. */
 const PARTS: Components = {
+  /** A table reads as a card's attributes do: one table, one look (`face.css`). */
+  table: ({ children }) => <table className="mnd-face-table">{children}</table>,
   a: ({ href, children }) => <Link href={href ?? ""}>{children}</Link>,
   img: ({ src, alt }) => (
     <img src={typeof src === "string" ? src : ""} alt={alt ?? ""} draggable={false}

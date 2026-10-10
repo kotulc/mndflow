@@ -13,7 +13,7 @@
           "note": 11,
           "folder": 1,
           "reference": 11,
-          "interface": 10,
+          "interface": 11,
           "relation": 20,
           "group": 2,
           "grid": 1
@@ -26,10 +26,10 @@
         "def": {},
         "order": 1
       },
-      "w_looks": {
-        "id": "w_looks",
+      "w_styles": {
+        "id": "w_styles",
         "parent": "workspace",
-        "name": "looks",
+        "name": "styles",
         "type": "folder",
         "order": 2
       },
@@ -80,10 +80,10 @@
         "parent": "l_cards",
         "alias": 1,
         "order": 1,
-        "name": "Every block kind on its small face, then the looks: families, fills, label places and borders, each card varying one setting. Each look is a trait in the looks folder; each card carries one, as any usage or definition may.",
+        "name": "Every block kind on its small face, then the looks: families, fills, label places and borders, each card varying one setting. Each look is a style: families and fills ship in base, labels and borders are the workspace's, in its styles folder. Each card carries one, as any usage or definition may.",
         "type": "note",
         "w": 648,
-        "h": 72
+        "h": 96
       },
       "c_block": {
         "id": "c_block",
@@ -125,26 +125,6 @@
         "w": 144,
         "h": 48
       },
-      "w_looks_family": {
-        "id": "w_looks_family",
-        "parent": "w_looks",
-        "name": "family",
-        "type": "folder",
-        "order": 1
-      },
-      "look_family_primary": {
-        "id": "look_family_primary",
-        "parent": "w_looks_family",
-        "name": "family primary",
-        "type": "trait",
-        "def": {},
-        "order": 1,
-        "settings": {
-          "style": {
-            "family": "primary"
-          }
-        }
-      },
       "c_family_primary": {
         "id": "c_family_primary",
         "parent": "l_cards",
@@ -152,21 +132,8 @@
         "order": 6,
         "name": "primary",
         "tags": [
-          "look_family_primary"
+          "family_primary"
         ]
-      },
-      "look_family_secondary": {
-        "id": "look_family_secondary",
-        "parent": "w_looks_family",
-        "name": "family secondary",
-        "type": "trait",
-        "def": {},
-        "order": 2,
-        "settings": {
-          "style": {
-            "family": "secondary"
-          }
-        }
       },
       "c_family_secondary": {
         "id": "c_family_secondary",
@@ -175,21 +142,8 @@
         "order": 7,
         "name": "secondary",
         "tags": [
-          "look_family_secondary"
+          "family_secondary"
         ]
-      },
-      "look_family_neutral": {
-        "id": "look_family_neutral",
-        "parent": "w_looks_family",
-        "name": "family neutral",
-        "type": "trait",
-        "def": {},
-        "order": 3,
-        "settings": {
-          "style": {
-            "family": "neutral"
-          }
-        }
       },
       "c_family_neutral": {
         "id": "c_family_neutral",
@@ -198,21 +152,8 @@
         "order": 8,
         "name": "neutral",
         "tags": [
-          "look_family_neutral"
+          "family_neutral"
         ]
-      },
-      "look_family_muted": {
-        "id": "look_family_muted",
-        "parent": "w_looks_family",
-        "name": "family muted",
-        "type": "trait",
-        "def": {},
-        "order": 4,
-        "settings": {
-          "style": {
-            "family": "muted"
-          }
-        }
       },
       "c_family_muted": {
         "id": "c_family_muted",
@@ -221,21 +162,8 @@
         "order": 9,
         "name": "muted",
         "tags": [
-          "look_family_muted"
+          "family_muted"
         ]
-      },
-      "look_family_away": {
-        "id": "look_family_away",
-        "parent": "w_looks_family",
-        "name": "family away",
-        "type": "trait",
-        "def": {},
-        "order": 5,
-        "settings": {
-          "style": {
-            "family": "away"
-          }
-        }
       },
       "c_family_away": {
         "id": "c_family_away",
@@ -244,21 +172,8 @@
         "order": 10,
         "name": "away",
         "tags": [
-          "look_family_away"
+          "family_away"
         ]
-      },
-      "look_family_note": {
-        "id": "look_family_note",
-        "parent": "w_looks_family",
-        "name": "family note",
-        "type": "trait",
-        "def": {},
-        "order": 6,
-        "settings": {
-          "style": {
-            "family": "note"
-          }
-        }
       },
       "c_family_note": {
         "id": "c_family_note",
@@ -267,28 +182,8 @@
         "order": 11,
         "name": "note",
         "tags": [
-          "look_family_note"
+          "family_note"
         ]
-      },
-      "w_looks_fill": {
-        "id": "w_looks_fill",
-        "parent": "w_looks",
-        "name": "fill",
-        "type": "folder",
-        "order": 2
-      },
-      "look_fill_solid": {
-        "id": "look_fill_solid",
-        "parent": "w_looks_fill",
-        "name": "fill solid",
-        "type": "trait",
-        "def": {},
-        "order": 1,
-        "settings": {
-          "style": {
-            "fill": "solid"
-          }
-        }
       },
       "c_fill_solid": {
         "id": "c_fill_solid",
@@ -297,21 +192,8 @@
         "order": 12,
         "name": "solid",
         "tags": [
-          "look_fill_solid"
+          "fill_solid"
         ]
-      },
-      "look_fill_hatch": {
-        "id": "look_fill_hatch",
-        "parent": "w_looks_fill",
-        "name": "fill hatch",
-        "type": "trait",
-        "def": {},
-        "order": 2,
-        "settings": {
-          "style": {
-            "fill": "hatch"
-          }
-        }
       },
       "c_fill_hatch": {
         "id": "c_fill_hatch",
@@ -320,21 +202,8 @@
         "order": 13,
         "name": "hatch",
         "tags": [
-          "look_fill_hatch"
+          "fill_hatch"
         ]
-      },
-      "look_fill_wash": {
-        "id": "look_fill_wash",
-        "parent": "w_looks_fill",
-        "name": "fill wash",
-        "type": "trait",
-        "def": {},
-        "order": 3,
-        "settings": {
-          "style": {
-            "fill": "wash"
-          }
-        }
       },
       "c_fill_wash": {
         "id": "c_fill_wash",
@@ -343,21 +212,8 @@
         "order": 14,
         "name": "wash",
         "tags": [
-          "look_fill_wash"
+          "fill_wash"
         ]
-      },
-      "look_fill_none": {
-        "id": "look_fill_none",
-        "parent": "w_looks_fill",
-        "name": "fill none",
-        "type": "trait",
-        "def": {},
-        "order": 4,
-        "settings": {
-          "style": {
-            "fill": "none"
-          }
-        }
       },
       "c_fill_none": {
         "id": "c_fill_none",
@@ -366,21 +222,21 @@
         "order": 15,
         "name": "none",
         "tags": [
-          "look_fill_none"
+          "fill_none"
         ]
       },
-      "w_looks_label": {
-        "id": "w_looks_label",
-        "parent": "w_looks",
+      "w_styles_label": {
+        "id": "w_styles_label",
+        "parent": "w_styles",
         "name": "label",
         "type": "folder",
-        "order": 3
+        "order": 1
       },
-      "look_label_above": {
-        "id": "look_label_above",
-        "parent": "w_looks_label",
+      "style_label_above": {
+        "id": "style_label_above",
+        "parent": "w_styles_label",
         "name": "label above",
-        "type": "trait",
+        "type": "style",
         "def": {},
         "order": 1,
         "settings": {
@@ -396,14 +252,14 @@
         "order": 16,
         "name": "above",
         "tags": [
-          "look_label_above"
+          "style_label_above"
         ]
       },
-      "look_label_inside": {
-        "id": "look_label_inside",
-        "parent": "w_looks_label",
+      "style_label_inside": {
+        "id": "style_label_inside",
+        "parent": "w_styles_label",
         "name": "label inside",
-        "type": "trait",
+        "type": "style",
         "def": {},
         "order": 2,
         "settings": {
@@ -419,14 +275,14 @@
         "order": 17,
         "name": "inside",
         "tags": [
-          "look_label_inside"
+          "style_label_inside"
         ]
       },
-      "look_label_below": {
-        "id": "look_label_below",
-        "parent": "w_looks_label",
+      "style_label_below": {
+        "id": "style_label_below",
+        "parent": "w_styles_label",
         "name": "label below",
-        "type": "trait",
+        "type": "style",
         "def": {},
         "order": 3,
         "settings": {
@@ -442,14 +298,14 @@
         "order": 18,
         "name": "below",
         "tags": [
-          "look_label_below"
+          "style_label_below"
         ]
       },
-      "look_label_none": {
-        "id": "look_label_none",
-        "parent": "w_looks_label",
+      "style_label_none": {
+        "id": "style_label_none",
+        "parent": "w_styles_label",
         "name": "label none",
-        "type": "trait",
+        "type": "style",
         "def": {},
         "order": 4,
         "settings": {
@@ -465,21 +321,21 @@
         "order": 19,
         "name": "none",
         "tags": [
-          "look_label_none"
+          "style_label_none"
         ]
       },
-      "w_looks_border": {
-        "id": "w_looks_border",
-        "parent": "w_looks",
+      "w_styles_border": {
+        "id": "w_styles_border",
+        "parent": "w_styles",
         "name": "border",
         "type": "folder",
-        "order": 4
+        "order": 2
       },
-      "look_border_dashed": {
-        "id": "look_border_dashed",
-        "parent": "w_looks_border",
+      "style_border_dashed": {
+        "id": "style_border_dashed",
+        "parent": "w_styles_border",
         "name": "border dashed",
-        "type": "trait",
+        "type": "style",
         "def": {},
         "order": 1,
         "settings": {
@@ -495,14 +351,14 @@
         "order": 20,
         "name": "dashed",
         "tags": [
-          "look_border_dashed"
+          "style_border_dashed"
         ]
       },
-      "look_border_dotted": {
-        "id": "look_border_dotted",
-        "parent": "w_looks_border",
+      "style_border_dotted": {
+        "id": "style_border_dotted",
+        "parent": "w_styles_border",
         "name": "border dotted",
-        "type": "trait",
+        "type": "style",
         "def": {},
         "order": 2,
         "settings": {
@@ -518,14 +374,14 @@
         "order": 21,
         "name": "dotted",
         "tags": [
-          "look_border_dotted"
+          "style_border_dotted"
         ]
       },
-      "look_border_double": {
-        "id": "look_border_double",
-        "parent": "w_looks_border",
+      "style_border_double": {
+        "id": "style_border_double",
+        "parent": "w_styles_border",
         "name": "border double",
-        "type": "trait",
+        "type": "style",
         "def": {},
         "order": 3,
         "settings": {
@@ -541,14 +397,14 @@
         "order": 22,
         "name": "double",
         "tags": [
-          "look_border_double"
+          "style_border_double"
         ]
       },
-      "look_border_none": {
-        "id": "look_border_none",
-        "parent": "w_looks_border",
+      "style_border_none": {
+        "id": "style_border_none",
+        "parent": "w_styles_border",
         "name": "border none",
-        "type": "trait",
+        "type": "style",
         "def": {},
         "order": 4,
         "settings": {
@@ -564,7 +420,7 @@
         "order": 23,
         "name": "none",
         "tags": [
-          "look_border_none"
+          "style_border_none"
         ]
       },
       "l_faces": {
@@ -640,7 +496,7 @@
         "def": {},
         "order": 4,
         "tags": [
-          "media"
+          "has_preview"
         ]
       },
       "def_headless": {
@@ -685,7 +541,7 @@
         "order": 2,
         "name": "Body",
         "type": "def_doc",
-        "body": "# A heading\n\nProse with **bold**, `code` and a [link](https://example.com).\n\n- a point\n- another point"
+        "body": "# A heading\n\nProse with **bold**, `code` and a [link](https://example.com).\n\n- a point\n- another point\n\n| part | qty | note |\n|---|---|---|\n| impeller | 1 | cast |\n| seal | 2 | spare |"
       },
       "f_spec": {
         "id": "f_spec",
@@ -757,10 +613,10 @@
         "parent": "l_defs",
         "alias": 4,
         "order": 1,
-        "name": "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the family secondary look as a trait. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it. Open a stand-in for its definition view: Pump shows what it extends, its ports, its tag, its traits and its description.",
+        "name": "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the family secondary style. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it. Machine declares a power port that Pump and Big pump inherit. Open a stand-in for its definition view: Big pump shows everything it is, what it reads from its chain dimmed.",
         "type": "note",
         "w": 648,
-        "h": 72
+        "h": 96
       },
       "def_machine": {
         "id": "def_machine",
@@ -785,8 +641,17 @@
           }
         },
         "tags": [
-          "look_family_secondary"
+          "family_secondary"
         ]
+      },
+      "dm_power": {
+        "id": "dm_power",
+        "parent": "def_machine",
+        "alias": 1,
+        "order": 1,
+        "name": "power",
+        "type": "interface",
+        "flow": "in"
       },
       "tag_rotating": {
         "id": "tag_rotating",
@@ -824,7 +689,7 @@
       "dp_inlet": {
         "id": "dp_inlet",
         "parent": "def_pump",
-        "alias": 1,
+        "alias": 2,
         "order": 1,
         "name": "inlet",
         "type": "interface",
@@ -833,7 +698,7 @@
       "dp_outlet": {
         "id": "dp_outlet",
         "parent": "def_pump",
-        "alias": 2,
+        "alias": 3,
         "order": 2,
         "name": "outlet",
         "type": "interface",
@@ -842,7 +707,7 @@
       "dp_seal": {
         "id": "dp_seal",
         "parent": "def_pump",
-        "alias": 3,
+        "alias": 4,
         "order": 3,
         "name": "seal",
         "type": "interface",
@@ -955,7 +820,7 @@
         "name": "Each direction, a name, arrows and a tie; then a run past a third block, a pair related both ways as one line, two runs that cross, a pair close together, and a hub whose lines share a trunk and fan out. Lines leave the middle of a face, run straight or in one Z, and draw under cards; a tie joins nearest corners.",
         "type": "note",
         "w": 648,
-        "h": 72
+        "h": 96
       },
       "r_fwd_a": {
         "id": "r_fwd_a",
@@ -1178,7 +1043,7 @@
         "name": "Ports placed on each side of Pump, flowing in, out, both or neither; Pump's top port is placed in the middle of a face no line meets; Tank and Valve's ports place themselves, in a face's middle unless a line's anchor holds it. Lines to the room meet its wall straight across: Gauge's line to the room itself, and Drain, the room's own port, placing itself.",
         "type": "note",
         "w": 528,
-        "h": 72
+        "h": 120
       },
       "p_pump": {
         "id": "p_pump",
@@ -1204,7 +1069,7 @@
       "p_pump_in": {
         "id": "p_pump_in",
         "parent": "p_pump",
-        "alias": 4,
+        "alias": 5,
         "order": 1,
         "name": "",
         "type": "interface",
@@ -1215,7 +1080,7 @@
       "p_pump_out": {
         "id": "p_pump_out",
         "parent": "p_pump",
-        "alias": 5,
+        "alias": 6,
         "order": 2,
         "name": "",
         "type": "interface",
@@ -1226,7 +1091,7 @@
       "p_pump_top": {
         "id": "p_pump_top",
         "parent": "p_pump",
-        "alias": 6,
+        "alias": 7,
         "order": 3,
         "name": "",
         "type": "interface",
@@ -1237,7 +1102,7 @@
       "p_pump_low": {
         "id": "p_pump_low",
         "parent": "p_pump",
-        "alias": 7,
+        "alias": 8,
         "order": 4,
         "name": "",
         "type": "interface",
@@ -1247,7 +1112,7 @@
       "p_tank_in": {
         "id": "p_tank_in",
         "parent": "p_tank",
-        "alias": 8,
+        "alias": 9,
         "order": 1,
         "name": "",
         "type": "interface",
@@ -1256,7 +1121,7 @@
       "p_valve_out": {
         "id": "p_valve_out",
         "parent": "p_valve",
-        "alias": 9,
+        "alias": 10,
         "order": 1,
         "name": "",
         "type": "interface",
@@ -1272,7 +1137,7 @@
       "p_drain": {
         "id": "p_drain",
         "parent": "l_ports",
-        "alias": 10,
+        "alias": 11,
         "order": 6,
         "name": "",
         "type": "interface",
@@ -1340,7 +1205,7 @@
         "def": {},
         "order": 1,
         "tags": [
-          "headed"
+          "has_head"
         ]
       },
       "h_grid": {

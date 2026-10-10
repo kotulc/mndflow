@@ -15,6 +15,9 @@ const GLYPH = { name: 7.8, body: 7.2, table: 6.6 };
 
 /** A line of prose, and a table's row with its rule, in pixels. */
 const LINE = 16;
+
+/** A line of a note's text, which reads taller than a face's prose. */
+const NOTE_LINE = 20;
 const ROW = 17;
 
 /** The widest a table's cell reads, in characters, before it is cut off. */
@@ -87,6 +90,23 @@ export function fit_of(name: string, text: string, handle: boolean, most_w: numb
    *  a padded body follows it. */
   const rows = PAD.title + ruled.cells.length * ROW + (blocks.length ? PAD.y + body : -1);
   return { w: wide + edge * 2, h: rows + edge * 2 + (handle ? PAD.over : 0) };
+}
+
+/** How tall a note writing `text` is, `w` pixels wide: its words wrapped whole, a line
+ *  `NOTE_LINE` tall, and the card's padding. */
+export function note_h(text: string, w: number): number {
+  const per = Math.max(1, Math.floor((w - PAD.x - PAD.gutter) / GLYPH.body));
+  let lines = 0;
+  for (const para of text.split("\n")) {
+    let at = 0;
+    lines += 1;
+    for (const word of para.split(/\s+/).filter(Boolean)) {
+      const need = at ? at + 1 + word.length : word.length;
+      if (at && need > per) { lines += Math.ceil(word.length / per); at = word.length % per; }
+      else at = need;
+    }
+  }
+  return PAD.y * 2 + lines * NOTE_LINE;
 }
 
 /** Attributes as a ruled table, a row each: type, name, then key, value and note where any row

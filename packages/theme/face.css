@@ -183,18 +183,6 @@
 .mnd-face-body blockquote { padding-left: 6px; border-left: 2px solid var(--card-dim); }
 .mnd-face-body hr { border: 0; border-top: 1px dashed var(--card-dim); }
 .mnd-face-body img { display: block; max-width: 100%; max-height: 100%; object-fit: cover; }
-.mnd-face-body table { border-collapse: collapse; font-size: 11px; width: 100%; }
-/* A table is a grid: every cell ruled, as an entity's attributes read. */
-.mnd-face-body :where(th, td) {
-  padding: 0 4px;
-  border: 1px solid var(--card-dim);
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 16ch;
-}
-.mnd-face-body th { color: var(--muted); font-weight: 400; }
 
 
 /* ── A table card: the name its title row, the card's border the table's ── */
@@ -211,8 +199,10 @@
 }
 .mnd-card.tabled > .mnd-marks { bottom: 1px; }
 
-/* Every row ruled, every column the width the card was sized by; the type reads quieter than the
-   name it types. */
+/* **One table, wherever a card draws one**: its attributes, and any table its markdown says. Every
+   row ruled inside, no box of its own — the card's border is its edge. An attributes table's
+   columns are the widths views measured (its `colgroup`), and its type reads quieter than the name
+   it types; a markdown table lays its own columns out, its header row quiet. */
 .mnd-face-table {
   width: 100%;
   table-layout: fixed;
@@ -220,18 +210,23 @@
   font-size: 11px;
   line-height: 16px;
 }
-.mnd-face-table td {
+.mnd-face-table:not(:has(> colgroup)) { table-layout: auto; }
+.mnd-face-table :is(th, td) {
   padding: 0 4px;
   border-right: 1px solid var(--card-dim);
   border-bottom: 1px solid var(--card-dim);
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 16ch;
 }
-.mnd-face-table td:first-child { color: var(--card-dim); }
-.mnd-face-table td:last-child { border-right: 0; }
-/* The card's border is the table's last rule, unless a body follows it. */
-.mnd-face-table:not(:has(+ .mnd-face-body)) tr:last-child td { border-bottom: 0; }
+.mnd-face-table th { color: var(--card-dim); font-weight: 400; }
+.mnd-face-table:has(> colgroup) td:first-child { color: var(--card-dim); }
+.mnd-face-table :is(th, td):last-child { border-right: 0; }
+/* The card's border is the table's last rule, unless something follows it. */
+.mnd-face-table:last-child tr:last-child td,
+.mnd-face-table:not(:has(+ .mnd-face-body)):has(> colgroup) tr:last-child td { border-bottom: 0; }
 
 /* A body under the table, padded as a card's is. */
 .mnd-card.tabled > .mnd-face-body { padding: 3px 21px 3px 8px; }

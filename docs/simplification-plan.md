@@ -23,7 +23,7 @@
 | Concern | Home |
 |---|---|
 | roles by position (domain, tree, structure, holder) | core `defs.ts` (`tree_of`, `in_domain`, `owner_def`), `holders.ts` (`organizes`, `inline`, `layer_of`, `drawn_in`) |
-| which holder a block is (group, grid) | core `holders.ts` `shape_of`, read off the `inline` and `matrix` traits; everything else asks `is_holder`, `is_group`, `is_grid` |
+| which holder a block is (group, grid) | core `holders.ts` `shape_of`, read off the *is group* and *is grid* traits' `holder` settings; everything else asks `is_holder`, `is_group`, `is_grid` |
 | what a block may do | traits in `base.json`; core `capabilities.ts` (`allows_of`, `may_hold`, `holds_any`), absent is a no |
 | whether a card opens | core `names.ts` `opens` (the stamp and the open button) and `navigate.ts` `open_at` (where it goes) |
 | navigation | core `navigate.ts` (`open_at`, `leave_at`, `reveal_at`, `held_at`) |
@@ -36,7 +36,10 @@
 | what a drop comes to (move, refer, retype, tie, create a usage, define a subtype) | core `drop.ts` (`drop_of`); the canvas and the explorer, in both apps, call it. Stage `moves.ts` only reads a card's resting place off the drawn scene |
 | what a kind cannot be made from | core `actions/helpers.ts` `NEEDS`, asked by `create`'s check |
 | panning to a revealed block | stage `room.ts` (`useCamera`, from `focus`); the web app sets it on a reveal |
-| settings resolution | core `defs.ts` (`stated`, `setting_of`, `traits_of`) |
+| settings resolution | core `defs.ts` (`statements`, `stated`, `setting_of`, `said_of`). views `look.ts` and explorer `rows.ts` merged definition and element by hand, skipping a usage's traits; both ask `setting_of` (2026-10-10) |
+| what an element carries | core `defs.ts` (`carried_tags`, `dropped_tags`, `traits_of`, `styles_of`; `entry` / `remap` for `-id`) |
+| a definition's interfaces, its chain's included | core `tree.ts` `ports_of`; views `through.ts` lays them on usages, definition cards and rooms |
+| how a table in a card looks | theme `face.css` `.mnd-face-table`: an attributes table and a markdown table alike. Two table styles became one (2026-10-10) |
 | what a card carries, its face and its size | views `derive.ts` (`carried`, `face_text`) and `size.ts` (`face_of`, `size_of`); drawn by theme `CardFace` on the canvas, in the tray and in mndmap alike. Three card renderers became one (2026-10-08) |
 | markdown, rendered | theme `Markdown` and `Inline`; nothing else parses markdown to draw it |
 | a card as markdown, and a folder of them | core `card.ts` (`card_text`, `read_card`), the `markdown` and `attach` actions, `collection.ts` (`collect`) |
@@ -69,6 +72,7 @@
 | 6 | **explorer `listed()` vs core roles** | the chain re-derives domain and structure membership | core's `in_domain` / `tree_of`, as `held_at` uses |
 | 7 | **tray listings** | the tray's definition grouping and `rows.ts` may re-list what the explorer's chain lists | the chain's listings |
 | 8 | **stage menus** | `Stage.tsx` offers per kind (box, band, seat, note) by base strings | the registry's scopes and `when` |
+| 10 | **reference readers** | about 65 sites in 27 files each ask `of`, `previewed` or `stands_for` and read the target instead: size, face, look, marks, tray, navigation, explorer | views `through.ts`: swap each reference for its target once, keeping its id and the `Ref` mark; *is reference* then decides it, not `of` |
 | 9 | **highlight rules** | `lights`, `holds` and the edge in `Explorer.tsx` each read the chain and the picks differently | one function from the canvas view and the chain |
 
 

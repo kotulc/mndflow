@@ -3,10 +3,11 @@
  *
  *  - The layer a usage opens onto holds its definition's structure beside its own blocks. The
  *    parts keep their ids, so an edit to one goes home to the definition.
- *  - A usage's card wears its definition's interfaces, each under `usage/part`, and a run naming
- *    a part (`fromPart`, `toPart`) meets it there. */
+ *  - A usage's card wears its definition's interfaces, its chain's included, each under
+ *    `usage/part`, and a run naming a part (`fromPart`, `toPart`) meets it there. A definition's
+ *    card and room wear the interfaces its chain declares the same way. */
 
-import { children, def_at, is_interface, part_id, type Block, type Graph, type Id,
+import { children, def_at, is_interface, part_id, ports_of, type Block, type Graph, type Id,
          type Relation } from "@mnd/core";
 
 
@@ -21,12 +22,10 @@ export function read_through(graph: Graph, layer: Id | null): Graph {
       if (!part.def && !is_interface(graph, part.id)) blocks[part.id] = { ...part, parent: layer };
     }
   }
-  /** Each usage on the layer wears its definition's interfaces. */
+  /** Each card on the layer, and the room, wears the interfaces it reads through. */
   const drawn: Graph = { ...graph, blocks };
-  for (const b of children(drawn, layer)) {
-    const used = !b.def ? def_at(graph, b.type) : undefined;
-    if (!used) continue;
-    for (const port of children(graph, used.id).filter((b) => is_interface(graph, b.id))) {
+  for (const b of [...children(drawn, layer), ...(opened ? [opened] : [])]) {
+    for (const port of worn(graph, b)) {
       const id = part_id(b.id, port.id);
       blocks[id] = { ...port, id, parent: b.id };
     }
@@ -34,6 +33,12 @@ export function read_through(graph: Graph, layer: Id | null): Graph {
   const edges: Record<Id, Relation> = {};
   for (const [id, e] of Object.entries(graph.edges)) edges[id] = met(blocks, e);
   return { ...graph, blocks, edges };
+}
+
+/** The interfaces a block reads through: a usage its definition's, a definition its chain's. */
+function worn(graph: Graph, b: Block): Block[] {
+  if (b.def) return ports_of(graph, b.id).filter((p) => p.parent !== b.id);
+  return def_at(graph, b.type) ? ports_of(graph, b.type) : [];
 }
 
 /** A run as drawn: an end naming a part meets the usage's copy of it, where there is one. */

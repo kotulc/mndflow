@@ -26,153 +26,136 @@
           "block": {
             "module": "block"
           },
-          "card": {},
-          "style": {
-            "family": "primary"
-          }
+          "card": {}
         },
         "order": 2,
         "tags": [
-          "container",
-          "ports"
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "family_primary"
         ]
       },
       "folder": {
         "id": "folder",
         "parent": "base.blocks",
         "name": "folder",
+        "type": "block",
         "body": "Files blocks away: a quiet container whose contents are reached by opening it.",
         "def": {},
         "settings": {
-          "block": {
-            "module": "block"
-          },
-          "card": {},
-          "style": {
-            "family": "neutral",
-            "border_contrast": "faint",
-            "name_contrast": "faint"
-          }
+          "card": {}
         },
         "order": 3,
         "tags": [
-          "container",
-          "ports"
+          "family_neutral",
+          "contrast_faint"
         ]
       },
       "reference": {
         "id": "reference",
         "parent": "base.blocks",
         "name": "reference",
+        "type": "block",
         "body": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
         "def": {},
         "settings": {
-          "block": {
-            "module": "reference"
-          },
           "card": {},
           "style": {
-            "family": "away",
-            "border_contrast": "strong",
-            "name_contrast": "strong",
-            "fill": "hatch",
             "opacity": 0.55
           }
         },
         "order": 4,
         "tags": [
-          "ports"
+          "is_reference",
+          "-has_parts",
+          "-has_values",
+          "family_away",
+          "fill_hatch",
+          "contrast_strong"
         ]
       },
       "interface": {
         "id": "interface",
         "parent": "base.blocks",
         "name": "interface",
+        "type": "block",
         "body": "A port seated on a block's wall: where relations enter and leave it.",
         "def": {},
         "settings": {
-          "block": {
-            "module": "interface"
-          },
           "card": {},
           "style": {
-            "family": "secondary",
             "border_width": "thin"
           }
         },
-        "order": 5
+        "order": 5,
+        "tags": [
+          "is_port",
+          "-has_parts",
+          "-has_ports",
+          "-has_values",
+          "family_secondary"
+        ]
       },
       "group": {
         "id": "group",
         "parent": "base.blocks",
         "name": "group",
+        "type": "block",
         "body": "A boundary drawing what it holds inline, inside its rim.",
         "def": {},
         "settings": {
-          "block": {
-            "module": "block"
-          },
-          "card": {},
-          "style": {
-            "family": "muted",
-            "border_contrast": "faint",
-            "name_contrast": "faint"
-          }
+          "card": {}
         },
         "order": 6,
         "tags": [
-          "container",
-          "inline"
+          "is_group",
+          "-has_ports",
+          "family_muted",
+          "contrast_faint"
         ]
       },
       "grid": {
         "id": "grid",
         "parent": "base.blocks",
         "name": "grid",
+        "type": "block",
         "body": "A spreadsheet of cells holding text or blocks, opened as a grid view: a header allocates what its row or column holds.",
         "def": {},
         "settings": {
-          "block": {
-            "module": "block"
-          },
-          "card": {},
-          "style": {
-            "family": "muted",
-            "border_contrast": "faint",
-            "name_contrast": "faint"
-          }
+          "card": {}
         },
         "order": 7,
         "tags": [
-          "container",
-          "ports",
-          "matrix"
+          "is_grid",
+          "family_muted",
+          "contrast_faint"
         ]
       },
       "note": {
         "id": "note",
         "parent": "base.blocks",
         "name": "note",
+        "type": "block",
         "body": "A remark about what it is tied to. It holds nothing.",
         "def": {},
         "settings": {
-          "block": {
-            "module": "block"
-          },
           "card": {},
           "style": {
-            "family": "note",
             "border_contrast": "strong",
             "name_contrast": "faint",
-            "fill": "wash",
             "opacity": 0.06
           }
         },
         "order": 8,
         "tags": [
-          "tied",
-          "resizable",
-          "content"
+          "is_tied",
+          "has_size",
+          "has_body",
+          "-has_parts",
+          "-has_ports",
+          "family_note",
+          "fill_wash"
         ]
       },
       "base.relations": {
@@ -188,12 +171,16 @@
         "name": "line",
         "body": "A relation between two blocks: what flows, connects or depends.",
         "def": {},
-        "order": 10
+        "order": 10,
+        "tags": [
+          "has_values"
+        ]
       },
       "tie": {
         "id": "tie",
         "parent": "base.relations",
         "name": "tie",
+        "type": "line",
         "body": "A dashed run with no heads: what ties a remark to what it is about.",
         "def": {},
         "order": 11
@@ -209,12 +196,10 @@
         "id": "tag",
         "parent": "base.tags",
         "name": "tag",
-        "body": "A word carried by blocks, lines and definitions to say what they are like. Its body says what it means. Traits and labels are tags too.",
+        "type": "block",
+        "body": "A word carried by blocks, lines and definitions to say what they are like. Its body says what it means. Traits, styles and labels are tags too.",
         "def": {},
         "settings": {
-          "block": {
-            "module": "block"
-          },
           "card": {},
           "style": {
             "hue": 300,
@@ -222,14 +207,19 @@
             "vary": 48
           }
         },
-        "order": 13
+        "order": 13,
+        "tags": [
+          "-has_parts",
+          "-has_ports",
+          "-has_values"
+        ]
       },
       "trait": {
         "id": "trait",
         "parent": "base.tags",
         "name": "trait",
         "type": "tag",
-        "body": "A tag giving settings: a capability, a look, or both. What carries it reads them as its own, and so does everything down its chain.",
+        "body": "A tag giving a capability: what what carries it may do. What carries it reads its settings as its own, and so does everything down its chain.",
         "def": {},
         "settings": {
           "style": {
@@ -239,6 +229,22 @@
           }
         },
         "order": 14
+      },
+      "style": {
+        "id": "style",
+        "parent": "base.tags",
+        "name": "style",
+        "type": "tag",
+        "body": "A tag giving a look: how what carries it draws. Its settings are the look; carrying it applies them, nearest first.",
+        "def": {},
+        "order": 15,
+        "settings": {
+          "style": {
+            "hue": 90,
+            "intensity": 0.5,
+            "vary": 48
+          }
+        }
       },
       "label": {
         "id": "label",
@@ -254,19 +260,19 @@
             "vary": 48
           }
         },
-        "order": 15
+        "order": 16
       },
       "base.traits": {
         "id": "base.traits",
         "parent": "base.tags",
         "name": "traits",
         "type": "folder",
-        "order": 16
+        "order": 17
       },
-      "tied": {
-        "id": "tied",
+      "is_tied": {
+        "id": "is_tied",
         "parent": "base.traits",
-        "name": "tied",
+        "name": "is tied",
         "type": "trait",
         "body": "Made from, or dropped on, a block, it is tied to it.",
         "def": {},
@@ -275,12 +281,12 @@
             "type": "tie"
           }
         },
-        "order": 17
+        "order": 18
       },
-      "resizable": {
-        "id": "resizable",
+      "has_size": {
+        "id": "has_size",
         "parent": "base.traits",
-        "name": "resizable",
+        "name": "has size",
         "type": "trait",
         "body": "Keeps whatever size it was given.",
         "def": {},
@@ -289,12 +295,12 @@
             "height": "free"
           }
         },
-        "order": 18
+        "order": 19
       },
-      "content": {
-        "id": "content",
+      "has_body": {
+        "id": "has_body",
         "parent": "base.traits",
-        "name": "body content",
+        "name": "has body",
         "type": "trait",
         "body": "Shows what it says under its name.",
         "def": {},
@@ -305,12 +311,12 @@
             ]
           }
         },
-        "order": 19
+        "order": 20
       },
-      "container": {
-        "id": "container",
+      "has_parts": {
+        "id": "has_parts",
         "parent": "base.traits",
-        "name": "container",
+        "name": "has parts",
         "type": "trait",
         "body": "Holds blocks of its own, which it opens onto as a layer.",
         "def": {},
@@ -319,26 +325,26 @@
             "holds": true
           }
         },
-        "order": 20
+        "order": 21
       },
-      "ports": {
-        "id": "ports",
+      "has_ports": {
+        "id": "has_ports",
         "parent": "base.traits",
-        "name": "ports",
+        "name": "has ports",
         "type": "trait",
-        "body": "Takes interfaces on its walls.",
+        "body": "Has ports: interfaces may sit on its walls.",
         "def": {},
         "settings": {
           "allows": {
             "ports": true
           }
         },
-        "order": 21
+        "order": 22
       },
-      "headed": {
-        "id": "headed",
+      "has_head": {
+        "id": "has_head",
         "parent": "base.traits",
-        "name": "headed",
+        "name": "has head",
         "type": "trait",
         "body": "Its first member heads it.",
         "def": {},
@@ -347,12 +353,12 @@
             "heads": true
           }
         },
-        "order": 22
+        "order": 23
       },
-      "inline": {
-        "id": "inline",
+      "is_group": {
+        "id": "is_group",
         "parent": "base.traits",
-        "name": "inline",
+        "name": "is group",
         "type": "trait",
         "body": "Draws what it holds in place, on the layer it sits on, rather than behind its card.",
         "def": {},
@@ -361,12 +367,12 @@
             "inline": true
           }
         },
-        "order": 23
+        "order": 24
       },
-      "matrix": {
-        "id": "matrix",
+      "is_grid": {
+        "id": "is_grid",
         "parent": "base.traits",
-        "name": "matrix",
+        "name": "is grid",
         "type": "trait",
         "body": "Seats text and blocks in the cells of a grid, drawn when it is opened.",
         "def": {},
@@ -375,12 +381,12 @@
             "matrix": true
           }
         },
-        "order": 24
+        "order": 25
       },
-      "media": {
-        "id": "media",
+      "has_preview": {
+        "id": "has_preview",
         "parent": "base.traits",
-        "name": "media",
+        "name": "has preview",
         "type": "trait",
         "body": "Previews the file it stands for.",
         "def": {},
@@ -391,25 +397,230 @@
             ]
           }
         },
-        "order": 25
+        "order": 26
+      },
+      "is_reference": {
+        "id": "is_reference",
+        "parent": "base.traits",
+        "name": "is reference",
+        "type": "trait",
+        "body": "Stands for another block, definition or package (`of`): draws as it, opens onto it, owns nothing.",
+        "def": {},
+        "settings": {
+          "block": {
+            "module": "reference"
+          }
+        },
+        "order": 27
+      },
+      "is_port": {
+        "id": "is_port",
+        "parent": "base.traits",
+        "name": "is port",
+        "type": "trait",
+        "body": "Is a port: an interface seated on its owner's wall, where relationships enter and leave.",
+        "def": {},
+        "settings": {
+          "block": {
+            "module": "interface"
+          }
+        },
+        "order": 28
+      },
+      "has_values": {
+        "id": "has_values",
+        "parent": "base.traits",
+        "name": "has values",
+        "type": "trait",
+        "body": "Holds values of its own: answers to its definition's attributes.",
+        "def": {},
+        "settings": {
+          "allows": {
+            "values": true
+          }
+        },
+        "order": 29
+      },
+      "base.styles": {
+        "id": "base.styles",
+        "parent": "base.tags",
+        "name": "styles",
+        "type": "folder",
+        "order": 30
+      },
+      "family_primary": {
+        "id": "family_primary",
+        "parent": "base.styles",
+        "name": "family primary",
+        "type": "style",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "primary"
+          }
+        },
+        "order": 31
+      },
+      "family_secondary": {
+        "id": "family_secondary",
+        "parent": "base.styles",
+        "name": "family secondary",
+        "type": "style",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "secondary"
+          }
+        },
+        "order": 32
+      },
+      "family_neutral": {
+        "id": "family_neutral",
+        "parent": "base.styles",
+        "name": "family neutral",
+        "type": "style",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "neutral"
+          }
+        },
+        "order": 33
+      },
+      "family_muted": {
+        "id": "family_muted",
+        "parent": "base.styles",
+        "name": "family muted",
+        "type": "style",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "muted"
+          }
+        },
+        "order": 34
+      },
+      "family_away": {
+        "id": "family_away",
+        "parent": "base.styles",
+        "name": "family away",
+        "type": "style",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "away"
+          }
+        },
+        "order": 35
+      },
+      "family_note": {
+        "id": "family_note",
+        "parent": "base.styles",
+        "name": "family note",
+        "type": "style",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "note"
+          }
+        },
+        "order": 36
+      },
+      "fill_solid": {
+        "id": "fill_solid",
+        "parent": "base.styles",
+        "name": "fill solid",
+        "type": "style",
+        "def": {},
+        "settings": {
+          "style": {
+            "fill": "solid"
+          }
+        },
+        "order": 37
+      },
+      "fill_hatch": {
+        "id": "fill_hatch",
+        "parent": "base.styles",
+        "name": "fill hatch",
+        "type": "style",
+        "def": {},
+        "settings": {
+          "style": {
+            "fill": "hatch"
+          }
+        },
+        "order": 38
+      },
+      "fill_wash": {
+        "id": "fill_wash",
+        "parent": "base.styles",
+        "name": "fill wash",
+        "type": "style",
+        "def": {},
+        "settings": {
+          "style": {
+            "fill": "wash"
+          }
+        },
+        "order": 39
+      },
+      "fill_none": {
+        "id": "fill_none",
+        "parent": "base.styles",
+        "name": "fill none",
+        "type": "style",
+        "def": {},
+        "settings": {
+          "style": {
+            "fill": "none"
+          }
+        },
+        "order": 40
+      },
+      "contrast_strong": {
+        "id": "contrast_strong",
+        "parent": "base.styles",
+        "name": "contrast strong",
+        "type": "style",
+        "def": {},
+        "settings": {
+          "style": {
+            "border_contrast": "strong",
+            "name_contrast": "strong"
+          }
+        },
+        "order": 41
+      },
+      "contrast_faint": {
+        "id": "contrast_faint",
+        "parent": "base.styles",
+        "name": "contrast faint",
+        "type": "style",
+        "def": {},
+        "settings": {
+          "style": {
+            "border_contrast": "faint",
+            "name_contrast": "faint"
+          }
+        },
+        "order": 42
       },
       "base.types": {
         "id": "base.types",
         "parent": "base",
         "name": "types",
         "type": "folder",
-        "order": 26
+        "order": 43
       },
       "value": {
         "id": "value",
         "parent": "base.types",
         "name": "value",
+        "type": "block",
         "body": "What an attribute holds: a value type. Never placed; a definition's attributes name one, and how a value is edited is its `value.form`.",
         "def": {},
         "settings": {
-          "block": {
-            "module": "block"
-          },
           "card": {},
           "style": {
             "hue": 150,
@@ -420,7 +631,12 @@
             "form": "text"
           }
         },
-        "order": 27
+        "order": 44,
+        "tags": [
+          "-has_parts",
+          "-has_ports",
+          "-has_values"
+        ]
       },
       "text": {
         "id": "text",
@@ -434,7 +650,7 @@
             "form": "text"
           }
         },
-        "order": 28
+        "order": 45
       },
       "number": {
         "id": "number",
@@ -448,7 +664,7 @@
             "form": "number"
           }
         },
-        "order": 29
+        "order": 46
       },
       "flag": {
         "id": "flag",
@@ -462,7 +678,7 @@
             "form": "flag"
           }
         },
-        "order": 30
+        "order": 47
       },
       "link": {
         "id": "link",
@@ -476,7 +692,7 @@
             "form": "link"
           }
         },
-        "order": 31
+        "order": 48
       },
       "choice": {
         "id": "choice",
@@ -490,7 +706,7 @@
             "form": "choice"
           }
         },
-        "order": 32
+        "order": 49
       }
     },
     "edges": {}

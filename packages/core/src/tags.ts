@@ -1,7 +1,7 @@
-/** Tags: definitions on the `tag` base that blocks, lines and definitions carry by id. Traits and
- *  labels are tags too, by their chain (`is_trait`, `is_label`, in defs). */
+/** Tags: definitions on the `tag` base that blocks, lines and definitions carry by id. Traits,
+ *  styles and labels are tags too, by their chain (`is_trait`, `is_style`, `is_label`, in defs). */
 
-import { all_defs, block_base, carried_tags, def_at, is_trait } from "./defs";
+import { all_defs, block_base, carried_tags, def_at, gives } from "./defs";
 import type { Definition, Graph, Id } from "./types";
 
 
@@ -10,9 +10,9 @@ export function is_tag(graph: Graph, def: Id | undefined): boolean {
   return !!def_at(graph, def) && block_base(graph, def) === "tag";
 }
 
-/** The tags an element carries that are not traits — plain tags and labels — nearest first. */
+/** The tags an element carries that give nothing — plain tags and labels — nearest first. */
 export function tags_of(graph: Graph, id: Id): Id[] {
-  return carried_tags(graph, id).map((c) => c.id).filter((t) => !is_trait(graph, t));
+  return carried_tags(graph, id).map((c) => c.id).filter((t) => !gives(graph, t));
 }
 
 /** The tag a word names: by id, or by name. */

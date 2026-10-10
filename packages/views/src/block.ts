@@ -14,7 +14,7 @@ import { survey_graph, FOREST } from "./survey";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { linked_graph, LINK } from "./links";
-import { definition_graph, ASPECT } from "./definition";
+import { definition_graph, dropped_in, inherited_in, ASPECT } from "./definition";
 import { box_of, cell as node, extent, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
          type Slot } from "./scene";
@@ -74,9 +74,16 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   if (look?.kind === "definition" && layer && given.blocks[layer]) {
     const scene = project(definition_graph(given, layer), ASPECT,
                           { ...config, look: { kind: "internal", cut: null } });
+    /** What it reads from its chain wears the part mark: edited where it is declared. What its
+     *  chain drops is struck. */
+    const inherited = inherited_in(given, layer);
+    const dropped = dropped_in(given, layer);
+    const mark = (n: BoxNode): CardClass[] => [...n.data.marks,
+      ...(n.id === layer ? ["held" as const] : []), ...(inherited.includes(n.id) ? ["part" as const] : []),
+      ...(dropped.includes(n.id) ? ["dropped" as const] : [])];
     const nodes = scene.nodes.map((n) => ({
       ...n, draggable: false, ...(given.blocks[n.id] || n.id === ABOUT ? {} : { selectable: false }),
-      ...(n.id === layer ? { data: { ...n.data, marks: [...n.data.marks, "held" as const] } } : {}),
+      data: { ...n.data, marks: mark(n) },
     }));
     return { ...scene, layer, nodes, slots: ["display"], trail: trail_of(given, layer) };
   }

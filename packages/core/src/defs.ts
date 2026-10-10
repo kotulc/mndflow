@@ -45,9 +45,10 @@ export function chain_of(graph: Graph, def: Id | undefined): Definition[] {
   return base ? [...chain, base] : chain;
 }
 
-/** The kinds of tag under `tag`: a trait gives settings, a label names a line. Each is a tag by its
- *  chain, as an interface is an interface by its. */
+/** The kinds of tag under `tag`: a trait gives a capability, a style gives a look, a label names a
+ *  line. Each is a tag by its chain, as an interface is an interface by its. */
 export const TRAIT = "trait";
+export const STYLE = "style";
 export const LABEL = "label";
 
 /** What one link of a chain says: the element itself, or a definition along it. */
@@ -70,6 +71,16 @@ export function remap(said: string, at: (id: Id) => Id): string {
 /** Whether a definition is a trait: a tag giving settings, by its chain. */
 export function is_trait(graph: Graph, def: Id | undefined): boolean {
   return !!def && def !== TRAIT && isa(graph, def).some((d) => d.id === TRAIT);
+}
+
+/** Whether a definition is a style: a tag giving a look, by its chain. */
+export function is_style(graph: Graph, def: Id | undefined): boolean {
+  return !!def && def !== STYLE && isa(graph, def).some((d) => d.id === STYLE);
+}
+
+/** Whether a tag gives settings: a trait or a style. */
+export function gives(graph: Graph, def: Id | undefined): boolean {
+  return is_trait(graph, def) || is_style(graph, def);
 }
 
 /** Whether a definition is a label: a tag naming lines, by its chain. */
@@ -104,29 +115,71 @@ export function carried_tags(graph: Graph, id: Id | undefined): Carried[] {
   return out;
 }
 
+/** What an element's chain drops (`-id`) that a farther link carries, each with the link
+ *  dropping it, nearest first. */
+export function dropped_tags(graph: Graph, id: Id | undefined): Carried[] {
+  const links = links_of(graph, id);
+  const out: Carried[] = [];
+  links.forEach((link, n) => {
+    for (const t of (link.tags ?? []).map(entry)) {
+      const farther = links.slice(n + 1).some((l) => (l.tags ?? []).includes(t.id));
+      if (t.drop && farther && !out.some((c) => c.id === t.id)) out.push({ id: t.id, from: link.id });
+    }
+  });
+  return out;
+}
+
 /** The traits an element carries, nearest first. */
 export function traits_of(graph: Graph, id: Id | undefined): Id[] {
   return carried_tags(graph, id).map((c) => c.id).filter((t) => is_trait(graph, t));
 }
 
-/** What a trait gives: its own settings and those of the traits it extends, never its kind's. */
-function conferred(graph: Graph, trait: Id): Components[] {
-  const out: Components[] = [];
-  for (const d of isa(graph, trait)) {
-    if (d.id === TRAIT || is_base(d.id)) break;
-    if (d.settings) out.push(d.settings);
+/** One statement of settings over an element, and the link or trait making it. */
+export type Statement = { from: Id; settings: Components };
+
+/** The styles an element carries, nearest first. */
+export function styles_of(graph: Graph, id: Id | undefined): Id[] {
+  return carried_tags(graph, id).map((c) => c.id).filter((t) => is_style(graph, t));
+}
+
+/** What a trait or a style gives: its own settings and those of the ones it extends, never its
+ *  kind's. */
+function conferred(graph: Graph, giver: Id): Statement[] {
+  const out: Statement[] = [];
+  for (const d of isa(graph, giver)) {
+    if (d.id === TRAIT || d.id === STYLE || is_base(d.id)) break;
+    if (d.settings) out.push({ from: d.id, settings: d.settings });
   }
   return out;
 }
 
-/** What states settings over an element, nearest first: per link, its own word, then the traits
- *  that link adds. **Nearest wins.** */
-export function stated(graph: Graph, id: Id | undefined): Components[] {
-  const traits = carried_tags(graph, id).filter((c) => is_trait(graph, c.id));
-  const out: Components[] = [];
+/** What states settings over an element, nearest first, each with who says it: per link, its own
+ *  word, then the traits and styles that link adds. **Nearest wins.** */
+export function statements(graph: Graph, id: Id | undefined): Statement[] {
+  const traits = carried_tags(graph, id).filter((c) => gives(graph, c.id));
+  const out: Statement[] = [];
   for (const link of links_of(graph, id)) {
-    if (link.settings) out.push(link.settings);
+    if (link.settings) out.push({ from: link.id, settings: link.settings });
     for (const t of traits) if (t.from === link.id) out.push(...conferred(graph, t.id));
+  }
+  return out;
+}
+
+/** What states settings over an element, nearest first. */
+export function stated(graph: Graph, id: Id | undefined): Components[] {
+  return statements(graph, id).map((s) => s.settings);
+}
+
+/** Every property in force over an element, once each, with who says it: nearest wins. */
+export function said_of(graph: Graph, id: Id | undefined):
+    { key: string; name: string; value: unknown; from: Id }[] {
+  const out: { key: string; name: string; value: unknown; from: Id }[] = [];
+  for (const { from, settings } of statements(graph, id)) {
+    for (const [key, props] of Object.entries(settings)) {
+      for (const [name, value] of Object.entries(props ?? {})) {
+        if (!out.some((p) => p.key === key && p.name === name)) out.push({ key, name, value, from });
+      }
+    }
   }
   return out;
 }

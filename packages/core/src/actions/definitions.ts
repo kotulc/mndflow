@@ -2,6 +2,8 @@
 
 import { closes_cycle, def_at, def_named, def_of, domain_of, in_domain, name_taken, ordered_by,
          package_of, type Domain } from "../defs";
+import { holds_values } from "../capabilities";
+import { shown_name } from "../names";
 import { next_order } from "../tree";
 import { type Attribute, type Components, type Definition, type Graph, type Id,
          type Mutation } from "../types";
@@ -39,8 +41,12 @@ register(
            { name: "to", form: "text" }],
     check: (ctx, args) => {
       if (!text(args, "name")) return "an attribute needs a name";
-      const why = borrowed(ctx.graph, id_of(args, "holder"));
+      const holder = id_of(args, "holder");
+      const why = borrowed(ctx.graph, holder);
       if (why) return why;
+      if (!holds_values(ctx.graph, holder)) {
+        return `"${shown_name(ctx.graph, holder)}" holds no values of its own`;
+      }
       const to = text(args, "to");
       const had = held_fields(ctx.graph, id_of(args, "holder"));
       return to && to !== text(args, "name") && had.some((f) => f.name === to)

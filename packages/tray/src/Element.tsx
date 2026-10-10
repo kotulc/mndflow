@@ -25,8 +25,10 @@ export function Element({ graph, id, onAct = NOOP, onOpen }: ElementProps) {
               disabled={onAct === NOOP}>
       <Drawing graph={graph} id={id} />
       <Identity graph={graph} id={id} onAct={onAct} {...(onOpen ? { onOpen } : {})} />
-      {/* A definition's traits are on its settings tab; a usage's and a line's are here. */}
+      {/* A definition's traits and styles are on its settings tab; a usage's and a line's are
+         here. */}
       {def_at(graph, id) ? null : <Traits graph={graph} id={id} onAct={onAct} />}
+      {def_at(graph, id) ? null : <Traits graph={graph} id={id} onAct={onAct} of="styles" />}
       {card ? <Source key={id} graph={graph} id={id} onAct={onAct} /> : null}
       {follows ? <Record graph={graph} id={follows} /> : null}
     </fieldset>

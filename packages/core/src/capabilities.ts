@@ -6,8 +6,8 @@ import { is_grid } from "./holders";
 import { children, is_interface, subtree } from "./tree";
 import type { Components, Flow, Graph, Id } from "./types";
 
-export type NoteKind = "required" | "ends" | "holds" | "ports" | "degree" | "match" | "nested"
-  | "self" | "cycle" | "cell";
+export type NoteKind = "required" | "ends" | "holds" | "ports" | "values" | "degree" | "match"
+  | "nested" | "self" | "cycle" | "cell";
 
 /** What a usage asked for and did not get. */
 export type Note = {
@@ -32,6 +32,8 @@ export type Allows = {
   /** What may head a group: its first member, where that member is one of these. Absent, a group
    *  has no head. */
   heads?: Allowed;
+  /** Whether it may hold values of its own. */
+  values?: boolean;
   /** How many relationships may meet a usage, counted separately. */
   degree?: { in?: Range; out?: Range };
   /** Which definitions may sit at each end of a relation, and optionally which flow. */
@@ -97,6 +99,8 @@ function read_allows(components: Components | undefined): Allows {
     if (said !== undefined) out[key] = said;
   }
 
+  if (typeof a["values"] === "boolean") out.values = a["values"];
+
   const degree = a["degree"];
   if (degree && typeof degree === "object") {
     const g = degree as Record<string, unknown>;
@@ -139,6 +143,12 @@ export function permits(graph: Graph, setting: Allowed | undefined,
   if (setting === true) return true;
   if (setting === undefined || setting === false) return false;
   return setting.length ? is_one_of(graph, type, setting) : false;
+}
+
+/** Whether an element may hold values of its own: granted by the `values` trait. A definition
+ *  declares attributes rather than holding values, so it always may. */
+export function holds_values(graph: Graph, id: Id): boolean {
+  return !!graph.blocks[id]?.def || allows_of(graph, id).values === true;
 }
 
 /** Whether this block may own anything at all: granted outright, or limited to some definitions. */
@@ -201,6 +211,9 @@ export function review(graph: Graph, scope?: Id): Note[] {
                    what: `"${label(graph, b.id)}" sits in a grid but in no cell, so it is not drawn` });
     }
     const expects = expects_of(graph, b.id);
+    if (b.values?.length && !holds_values(graph, b.id)) {
+      notes.push({ kind: "values", id: b.id, what: `"${label(graph, b.id)}" holds no values` });
+    }
 
     /** A definition is a template, never allocated: what it asks is asked of its usages. */
     if (!b.def) notes.push(...unanswered(graph, b.id, label(graph, b.id), expects));

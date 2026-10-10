@@ -289,7 +289,10 @@ const allows: Component = {
       const wrong = stray("allows.degree", degree as Settings, ["in", "out"]);
       if (wrong) return wrong;
     }
-    return stray("allows", config, ["ports", "holds", "heads", "degree", "ends"]);
+    if (config["values"] !== undefined && typeof config["values"] !== "boolean") {
+      return "`allows.values` is a yes or a no";
+    }
+    return stray("allows", config, ["ports", "holds", "heads", "values", "degree", "ends"]);
   },
 };
 

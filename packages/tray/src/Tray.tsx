@@ -5,7 +5,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { about_of, alias_of, children, def_at, def_of, domain_of, entry, frame_of, frozen,
-         is_interface, is_tag, is_trait, is_value_type, owner_of, shown_name, stands_for,
+         is_interface, is_style, is_tag, is_trait, is_value_type, owner_of, shown_name, stands_for,
          stood_def, type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
@@ -133,7 +133,7 @@ function what_of(graph: Graph, id: Id): string {
   if (id === graph.root) return "workspace";
   if (b.parent === null) return "package";
   if (b.def) {
-    return is_trait(graph, id) ? "trait" : is_tag(graph, id) ? "tag"
+    return is_trait(graph, id) ? "trait" : is_style(graph, id) ? "style" : is_tag(graph, id) ? "tag"
       : is_value_type(graph, id) ? "type" : "definition";
   }
   return stood_def(graph, id) ? "stand-in" : b.of ? "reference" : "usage";

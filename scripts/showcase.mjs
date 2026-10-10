@@ -47,9 +47,12 @@ function layer(id, name, type = undefined, more = {}) {
   put(id, "main", "block", { name, ...(type ? { type } : {}), ...more });
 }
 
-/** The note heading a layer, saying what to look for. */
+/** The note heading a layer, saying what to look for: as tall as its text wraps to, at the
+ *  face's measure (views `note_h`). */
 function note(layer_id, text, w = 15) {
-  put(`${layer_id}_note`, layer_id, "note", { name: text, type: "note", w: w * U, h: 3 * U });
+  const lines = Math.ceil(text.length / Math.floor((w * U - 29) / 7.2));
+  const h = Math.max(3, Math.ceil((12 + lines * 16) / U));
+  put(`${layer_id}_note`, layer_id, "note", { name: text, type: "note", w: w * U, h: h * U });
 }
 
 /** A relation. */
@@ -66,7 +69,7 @@ function link(id, from, to, { dir, ...more } = {}) {
 blocks.workspace = { id: "workspace", parent: null, name: "workspace" };
 def("main", "main", undefined);
 delete blocks.main.type;
-shelf("w_looks", "looks");
+shelf("w_styles", "styles");
 shelf("w_faces", "faces");
 shelf("w_machines", "machines");
 shelf("w_holders", "holders");
@@ -74,27 +77,31 @@ def("def_large", "Large layer", "block", { layout: { face: "large" } },
     { body: "A layer whose cards draw their large face." }, "w_faces");
 
 
-/* ── Cards: every block kind, and the looks: each a trait in the looks folder, and on a card ── */
+/* ── Cards: every block kind, and the styles: base's and the workspace's, each on a card ── */
 
 layer("l_cards", "Cards");
-note("l_cards", "Every block kind on its small face, then the looks: families, fills, label places and borders, each card varying one setting. Each look is a trait in the looks folder; each card carries one, as any usage or definition may.", 27);
+note("l_cards", "Every block kind on its small face, then the looks: families, fills, label places and borders, each card varying one setting. Each look is a style: families and fills ship in base, labels and borders are the workspace's, in its styles folder. Each card carries one, as any usage or definition may.", 27);
 put("c_block", "l_cards", "block", { name: "Block" });
 put("c_folder", "l_cards", "folder", { name: "Folder", type: "folder" });
 put("c_inside", "c_folder", "block", { name: "Inside" });
 put("c_ref", "l_cards", "reference", { name: "", of: "c_block" });
 put("c_note", "l_cards", "note", { name: "A note: text, resized by hand", type: "note",
                                            w: 6 * U, h: 2 * U });
-const looks = [
-  ["family", ["primary", "secondary", "neutral", "muted", "away", "note"], (v) => ({ style: { family: v } })],
-  ["fill", ["solid", "hatch", "wash", "none"], (v) => ({ style: { fill: v } })],
+/** The base package's styles, then the workspace's own: each card carries one. */
+const shipped = [["family", ["primary", "secondary", "neutral", "muted", "away", "note"]],
+                 ["fill", ["solid", "hatch", "wash", "none"]]];
+for (const [key, values] of shipped) {
+  for (const v of values) put(`c_${key}_${v}`, "l_cards", "block", { name: v, tags: [`${key}_${v}`] });
+}
+const own = [
   ["label", ["above", "inside", "below", "none"], (v) => ({ card: { label: v } })],
   ["border", ["dashed", "dotted", "double", "none"], (v) => ({ style: { border_style: v } })],
 ];
-for (const [row, [key, values, settings]] of looks.entries()) {
-  shelf(`w_looks_${key}`, key, "w_looks");
-  for (const [col, v] of values.entries()) {
-    def(`look_${key}_${v}`, `${key} ${v}`, "trait", settings(v), {}, `w_looks_${key}`);
-    put(`c_${key}_${v}`, "l_cards", "block", { name: v, tags: [`look_${key}_${v}`] });
+for (const [key, values, settings] of own) {
+  shelf(`w_styles_${key}`, key, "w_styles");
+  for (const v of values) {
+    def(`style_${key}_${v}`, `${key} ${v}`, "style", settings(v), {}, `w_styles_${key}`);
+    put(`c_${key}_${v}`, "l_cards", "block", { name: v, tags: [`style_${key}_${v}`] });
   }
 }
 
@@ -110,14 +117,14 @@ def("def_doc", "Document", "block", { card: { shows: ["body"] } }, {}, "w_faces"
 def("def_spec", "Spec", "block", { card: { shows: ["attributes", "body"] } }, {
   def: { attributes: [{ name: "tag", key: true }, { name: "rating", type: "number", unit: "kW" },
                       { name: "duty", note: "how it runs" }] } }, "w_faces");
-def("def_media", "Picture", "block", undefined, { tags: ["media"] },
+def("def_media", "Picture", "block", undefined, { tags: ["has_preview"] },
     "w_faces");
 def("def_headless", "Headless", "block", { card: { shows: ["body"], name: "hide" } }, {}, "w_faces");
 def("def_sized", "Sized", "block", { card: { shows: ["body"], size: { w: 8, h: 3 } } }, {},
     "w_faces");
 const face = (id, more) => put(id, "l_faces", "block", more);
 face("f_body", { name: "Body", type: "def_doc",
-  body: "# A heading\n\nProse with **bold**, `code` and a [link](https://example.com).\n\n- a point\n- another point" });
+  body: "# A heading\n\nProse with **bold**, `code` and a [link](https://example.com).\n\n- a point\n- another point\n\n| part | qty | note |\n|---|---|---|\n| impeller | 1 | cast |\n| seal | 2 | spare |" });
 face("f_spec", { name: "Spec", type: "def_spec", body: "Attributes, then the body.",
   values: [{ name: "tag", value: "P-101" }, { name: "rating", value: "15" },
            { name: "duty", value: "continuous" }] });
@@ -132,10 +139,11 @@ face("f_plain", { name: "Plain" });
 /* ── Definitions: stand-ins, and settings down a chain ── */
 
 layer("l_defs", "Definitions", "def_large");
-note("l_defs", "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the family secondary look as a trait. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it. Open a stand-in for its definition view: Pump shows what it extends, its ports, its tag, its traits and its description.", 27);
+note("l_defs", "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the family secondary style. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it. Machine declares a power port that Pump and Big pump inherit. Open a stand-in for its definition view: Big pump shows everything it is, what it reads from its chain dimmed.", 27);
 def("def_machine", "Machine", "block", { card: { shows: ["attributes"] } }, {
-  tags: ["look_family_secondary"],
+  tags: ["family_secondary"],
   def: { attributes: [{ name: "power", type: "number", unit: "kW" }] } }, "w_machines");
+put("dm_power", "def_machine", "interface", { name: "power", type: "interface", flow: "in" });
 def("tag_rotating", "rotating", "tag", undefined, {}, "w_machines");
 def("def_pump", "Pump", "def_machine", { style: { hue: 200 } }, {
   body: "Moves liquid from its inlet to its outlet, driven by a motor.", tags: ["tag_rotating"],
@@ -233,7 +241,7 @@ put("h_inner", "h_outer", "group", { name: "Skid", type: "group" });
 put("h_g1", "h_inner", "block", { name: "Motor" });
 put("h_g2", "h_inner", "block", { name: "Gearbox" });
 put("h_g3", "h_outer", "block", { name: "Panel" });
-def("def_table", "Table", "grid", undefined, { tags: ["headed"] },
+def("def_table", "Table", "grid", undefined, { tags: ["has_head"] },
     "w_holders");
 put("h_grid", "l_hold", "grid", { name: "Duty roster", type: "def_table",
   grid: { rows: 4, cols: 4, merges: [{ r: 1, c: 1, rows: 2, cols: 1 }] } });

@@ -324,36 +324,65 @@ Collected on the showcase's relations layer first, then fixed.
 
 ## 11 — Unified definitions
 
-**Every element carries alike, and a definition shows everything it is.** Workshopped 2026-10-10, toward the *patterns compose* principle: definitions and their parts reused across packages.
+**Every element carries alike, a kind says what it is in traits and styles, and a definition's view draws its JSON as blocks.** Workshopped and built 2026-10-10 over several review rounds, toward the *patterns compose* principle.
+
+**The principle: a block is one discrete part of a definition's JSON, at the level of a reusable part or pattern — never an enumeration of values.** A trait is one capability, a style is one whole look, a port is one part; a definition's own settings read as one table card per component.
 
 | Decided | |
 |---|---|
-| **one carried list** | `traits` goes: tags, traits and labels are one `tags` list, on a usage, a line or a definition alike |
-| **adds up** | each link of the chain adds its own; `-id` drops one a farther link carries. One rule for tags and traits |
-| **kinds by chain** | `trait` and `label` extend `tag`; what a tag is comes from its chain, as an interface's does |
-| **values on lines** | a relation definition may declare attributes and a line answers them, as a usage does |
-| **types stay a branch** | a type is what a thing is, a tag what it carries: types are not tag subtypes. Each branch reads in its own hue |
-| **base by branch** | `blocks`, `relations`, `tags` (`tag`, `trait`, `label`, `traits/`), `types` (`value` and the value types) |
-| **definition view whole** | what it extends, ports, tags, traits, attributes and settings, inherited ones dimmed with where they come from |
+| **one carried list** | `traits` goes: tags, traits, styles and labels are one `tags` list, on a usage, a line or a definition alike |
+| **adds up** | each link of the chain adds its own; `-id` drops one a farther link carries |
+| **kinds by chain** | `trait`, `style` and `label` extend `tag`; what a tag is comes from its chain |
+| **traits are capabilities** | one capability each, named *has X* or *is X*: `has_parts`, `has_values`, `has_ports`, `has_head`, `has_body`, `has_preview`, `has_size`; `is_group`, `is_grid`, `is_tied`, `is_port`, `is_reference` |
+| **styles are looks** | a style is a definition whose `settings` are the look; carrying it applies it |
+| **values are a capability** | `has_values`; `reference`, `interface`, `tag` and `value` drop it. A line may hold values; a relation definition may declare attributes |
+| **two roots** | `block` and `line`; every other base kind extends one and drops what it must not do |
+| **kinds in traits** | `reference` carries *is reference*, `interface` *is port*: each names its engine module |
+| **base by branch** | `blocks`, `relations`, `tags` (`tag`, `trait`, `style`, `label`, `traits/`, `styles/`), `types` |
+| **types stay a branch** | a type is what a thing is, a tag what it carries; each branch reads in its own hue |
 | **ports inherit** | interfaces are features, as attributes are; parts stay a definition's own |
-| **a line's name is a label** | to be built: the name a label tag, shared by lines saying one word |
+| **definition view** | 3×3 round the definition: tags · extends · note over in · it · out over ports · settings · traits; every box joined by a line; inherited dimmed (part mark), drops struck |
+| **one table look** | a markdown table in a card reads as an attributes table does (`.mnd-face-table`) |
+| **references resolve once** | a stand-in stays a concept (definitions on diagrams, one block in many diagrams, packages as cards) but is resolved in one place, views `through.ts`, rather than by every reader |
 
 | Order | | |
 |---|---|---|
-| 1 | schema and core: `carried_tags`, `stated`, edges carrying everything | **built** |
+| 1 | schema and core: `carried_tags`, `stated` per link, edges carrying everything | **built** |
 | 2 | `base` by branch, hues | **built** |
-| 3 | tray: traits on any element, tags dropped and taken back, attributes on lines | **built** |
-| 4 | definition view: everything, inherited included; ports inherited | |
+| 3 | tray: traits and styles on any element, tags dropped and taken back, attributes on lines | **built** |
+| 4 | definition view, inherited included; ports inherited | **built** |
+| 4b | two roots; styles beside traits; `has_values`; trait names *has* / *is*; *is port*; drops struck | **built** |
+| 4c | **one look per kind** (*plain*, *folder*, *reference*, *port*, *group*, *grid*, *note*) replacing the twelve one-value styles; a definition's own settings as **one table card per component** (`style`, `card`, `layout`…) | next |
+| 4d | **references resolved once** in views `through.ts`; *is reference* decides a stand-in, not `of` (simplification-plan lead 10) | |
 | 5 | relation definition view: extends, ends, `dir`, tags, traits, attributes | |
 | 6 | labels: a line's name as a label tag | |
 
-**Steps 1–3 built 2026-10-10, driven in Edge.** core `carried_tags` (each tag with the link adding it), `traits_of`, `stated` per link; `entry` / `remap` read and map `-id`; the `trait` act and `set_traits` op are gone into `tag`; `field`, `order_field` and `unfield` take a line; `review` asks a line for its required values. views `look.ts` and explorer `rows.ts` read `setting_of` rather than merging definition and element by hand, which had skipped a usage's traits. The showcase's look cards carry their trait.
+**Built 2026-10-10, driven in Edge.**
+
+| Where | What |
+|---|---|
+| core `defs.ts` | `carried_tags` (each with the link adding it), `dropped_tags`, `traits_of`, `styles_of`, `is_trait` / `is_style` / `is_label` / `gives`; `statements` / `said_of` (each setting with who says it); `entry` / `remap` for `-id` |
+| core `tree.ts` · `aspects.ts` | `ports_of` (interfaces down the chain); `aspects_of` with tags, traits, styles, drops, inherited ports; deleting on the view drops, or takes a drop back |
+| core `capabilities.ts` · `actions/definitions.ts` | `allows.values`, `holds_values`; `field` refuses a value where nothing grants it; review notes values held without it, and a line's required values |
+| core `actions/looks.ts` · `fold.ts` | the `trait` act and `set_traits` op gone into `tag`; value ops take a line |
+| defs `base.json` | roots, branches, traits renamed, `is_port`, `is_reference`, `has_values`, styles; kinds stating their looks as styles |
+| views `definition.ts` · `block.ts` · `through.ts` · `face.ts` | the 3×3 view, `inherited_in`, `dropped_in`, `settings_of`; inherited interfaces on usages, definition cards and rooms; `note_h` |
+| views `look.ts` · explorer `rows.ts` | ask `setting_of` (they had merged definition and element by hand, skipping a usage's traits) |
+| theme `face.css` · `markdown.tsx` | one table class for attributes and markdown |
+| tray `Traits.tsx` · `Tags.tsx` · `Identity.tsx` · `Attributes.tsx` | traits and styles toggles on any element; tags dropped and taken back; attributes on lines |
+| `scripts/showcase.mjs` | a styles folder (labels, borders) beside base's families and fills; Machine's inherited `power` port; a markdown table on the Body card; notes sized to their text |
 
 | Seen, still open | |
 |---|---|
-| **traits panel on the card tab** | a usage's and a line's traits draw under everything, full width; a better place is open |
+| **setting cards enumerate** | a definition's own settings draw a card each (`border_widt… thick`); 4c makes them one table card per component |
+| **twelve one-value styles** | base's families, fills and contrasts are enumerations; 4c replaces them with one look per kind |
+| **inherited attributes** | the middle card's table lists them but does not dim them: the table's rows carry no source yet |
+| **a line to an inherited port inside a subtype** | a run stored on the ancestor's port id is not met at the subtype room's copy (`part_id`) |
+| **traits panel on the card tab** | a usage's and a line's traits and styles draw full width under the identity; a better place is open |
 | **label hue** | a label's card reads more by its border than its fill |
-| **block and relation definitions** | no hue of their own yet: a hue on `block` would recolour every usage, since usages read their definition's style |
+| **block and relation definitions** | no hue of their own: a hue on `block` would recolour every usage |
+| **a relation definition's view** | `tie` shows only what it extends: ends and `dir` are step 5 |
+
 
 ## Open
 
@@ -362,25 +391,27 @@ Collected on the showcase's relations layer first, then fixed.
 | **the root layer is a definition** | `main` shows in both explorer sections; whether the structure section hides that |
 | **gesture set** | which of step 7's candidates, and what else, once step 2 lands |
 | **double-click a grid** | lands on its name and renames it; Enter opens it |
-| **tag / trait / type split** | under way as step 11 |
+| **tag / trait / type split** | settled in step 11; 4c, 4d, 5 and 6 remain |
 
 
 ## Handoff
 
-**State, 2026-10-10: steps 1–6, 6b, 8, 9 and 10 built, driven in Edge and committed; step 11 under way (1–3 of 6 built, not committed).** Typecheck clean (packages, web and cli), 270 tests green, CSS lint clean, both samples check clean. Step 10 was not code-reviewed.
+**State, 2026-10-10: steps 1–6, 6b, 8, 9 and 10 built, driven and committed; step 11's 1–3 committed (`b5b8e7c`); 4 and 4b built and driven in Edge, not committed, not code-reviewed.** Typecheck clean (packages, web and cli), 270 tests green, CSS lint clean, both samples check clean.
 
 | Next | |
 |---|---|
-| **keep libavoid?** | confirm: design.md and spec.md now describe routing round cards. If kept, weigh LGPL-2.1, a beta (`0.5.0-beta.5`) and a ~490KB wasm, also in the kit mndmap vendors |
-| **arrange, generally** | a rule for the layout to read relations: crossing reduction by reordering within reading order is the candidate |
-| **tag / trait / type split** | then whether a line's label is a tag |
+| **step 11 · 4c** | one look per kind; a definition's own settings as one table card per component. The principle heads step 11 |
+| **step 11 · 4d** | references resolved once in views `through.ts` (simplification-plan lead 10) |
+| **step 11 · 5, 6** | the relation definition view; a line's name as a label |
+| **keep libavoid?** | confirm: design.md and spec.md describe routing round cards. If kept, weigh LGPL-2.1, a beta (`0.5.0-beta.5`) and a ~490KB wasm, also in the kit mndmap vendors |
+| **arrange, generally** | crossing reduction by reordering within reading order is the candidate |
 | **step 7** | canvas gestures |
 
 | Not yet | |
 |---|---|
-| **tests** | none for steps 2–10: views, layout and routing still move. Once settled — `seat_all` (anchors, auto and placed interfaces, tie seats, box ends), `routes_of` / `avoided_run`, `route`, `middle_of` (upright), `flow` (overhang) / `on_grid`, `page_graph` (`even`), `definition_graph`, the `arrange` act, `is_interface` by chain; `dir_of`, `relate` joining a twin, `direct` |
-| **driving** | the Edge drives lived in the session's scratchpad; the `vitest` skill says how to drive again |
-| **commit** | suggested, as one or split: *Overhead and profile draw boxes; profile drops straight down* · *Route lines round cards with libavoid* · *Make line direction an inherited setting; join a line drawn over one already there* |
+| **tests** | none for steps 2–11: views, layout, routing and the definition model still move. Once settled — `carried_tags` / `dropped_tags` (adds up, drops, nearest), `statements` / `said_of`, `ports_of`, `holds_values` and the `field` refusal, `aspect_acts` (drop, take back, own ports only), `seat_all`, `routes_of`, `flow` / `on_grid`, `definition_graph`, `dir_of`, `relate` joining a twin |
+| **driving** | the Edge drives lived in the session's scratchpad; the `vitest` skill says how. Open a block with select + Enter: double-click on a name renames it |
+| **commit** | suggested for what is left, as one or split: *Definition view draws everything a definition is; interfaces inherit* · *Two roots; traits as has/is capabilities; styles as looks; values a capability* · *One table look for attributes and markdown* |
 
 ### Running it
 
@@ -392,7 +423,7 @@ Collected on the showcase's relations layer first, then fixed.
 | **drive the web app** | `npm run dev`, read the port off the log; import through the header's *import a workspace* button (a file chooser) |
 | **open a card** | select it and press Enter; double-click on a name renames it. A definition opens on its definition view; Enter on its middle card opens its structure. The showcase's layers are blocks: each opens inside, on `auto`; dragging a card there hands the layer to `free` |
 | **see the system views** | *overhead* and *profile* on the rail. The profile follows what is picked on it, each row a box, its line dropping straight down |
-| **see every definition view box** | the showcase's *Pump*: what it extends, ports in, out and both, a tag, its traits, its description |
+| **see definition views** | `base` → `blocks` → `reference`, `interface` or `note` (select, Enter): traits, styles, drops struck. `workspace` → `machines` → *Big pump*: inherited ports, tags, traits and settings dimmed |
 | **see routing** | the showcase's *Relations*, *Interfaces* and *Data model* layers: lines round cards, a hub's shared trunk, *request / reply* as one line both ways; *Interfaces* has ports placed, auto, in a face's middle, a line to the room and the room's own port |
 | **join a line** | the *directed* tool, right drag one card to another, then back: one line, both ways |
 | **arrange a layer** | *arrange* on the rail, while the layer is `auto`: an ordinary step, undone like any other |
@@ -403,11 +434,12 @@ Collected on the showcase's relations layer first, then fixed.
 |---|---|
 | core `navigate.ts` | `lens_of` (which view a block opens on), and `open_at` / `leave_at` / `sight` choosing views |
 | core `sections.ts` | `ViewKind`, `LAYER_VIEWS`, `is_layer_view`, `is_inside` |
-| core `aspects.ts` | what the definition view draws round a definition, and what an edit there does |
+| core `aspects.ts` | what the definition view draws round a definition — carried, dropped, inherited ports — and what an edit there does |
+| core `defs.ts` (carrying) | `carried_tags`, `dropped_tags`, `statements` / `said_of`: what an element carries and who says each setting |
 | core `names.ts` | `stamps_of`, the system marks: a stand-in's word, structure, data; `holds_structure` |
 | core `tree.ts` | `layout_of`: `auto` where nothing says |
 | core `session.ts` | `see`: a system view chosen, or back to the layer; `move` remembering each section's last view |
-| views `definition.ts` | the definition view's graph |
+| views `definition.ts` | the definition view's graph: the 3×3 grid, `inherited_in`, `dropped_in`, `settings_of` |
 | views `block.ts` | the projection per view; the folder view paged where nobody arranged it, its room hugging what it holds; `across` handed to an `auto` layer |
 | views `survey.ts` · `profile.ts` | the overhead view, `tops` boxing a tree's top level; the profile's rows per level and the lines into them |
 | views `seat.ts` | `seat_all`: one anchor per face, an end on a box straight across (`across_box`), interfaces auto and placed, tie seats, fan points; `nearest_seat` |
@@ -443,7 +475,7 @@ Collected on the showcase's relations layer first, then fixed.
 | cards-plan | notes draw their name, not their body, through `NoteNode` rather than `CardFace` |
 | this plan | mndmap, or anything fetching the catalogue by name, asks for `entity-relation`, not `erd` |
 | step 8 | lineage and links as a package structure; boxes for a definition's usages and their groups |
-| steps 6, 6b | the kit changed again under mndmap: `is_interface(graph, id)`, by type chain, and a plain interface stores `type: "interface"`; `fromSide` / `toSide` and `set_side` gone; `set_port` carries `seat`, a side and place or null; `seat_all` replaces `assign_seats` / `seated` / `perched`; `Seating.hidden`; `LineData.fan` replaces `clear`; `nearest_seat(on, at, taken)` and `taken_on`; `tidy(graph, scene)`; `pack_units(sized, across)`; `page_wide` gone for `across_of`; `GAP` is 2 units and `PAD` 1; new `free` and `arrange` acts. 2026-10-10: `ViewKind` says `overhead` for `package`; the icon is `view_overhead`. Step 10: `Relation.dir` and the `set_dir` op are gone for the `line.dir` setting (`dir_of`, `DIRS`); `relate` joins a line already there; views depends on `libavoid-js`, whose wasm a host loads once (`load_avoid`) and routes with `routes_of` / `avoided_run` — a host that does not draws with `route` as before; `middle_of` takes the name's length; `layout.even` for pages |
+| steps 6, 6b | the kit changed again under mndmap: `is_interface(graph, id)`, by type chain, and a plain interface stores `type: "interface"`; `fromSide` / `toSide` and `set_side` gone; `set_port` carries `seat`, a side and place or null; `seat_all` replaces `assign_seats` / `seated` / `perched`; `Seating.hidden`; `LineData.fan` replaces `clear`; `nearest_seat(on, at, taken)` and `taken_on`; `tidy(graph, scene)`; `pack_units(sized, across)`; `page_wide` gone for `across_of`; `GAP` is 2 units and `PAD` 1; new `free` and `arrange` acts. 2026-10-10: `ViewKind` says `overhead` for `package`; the icon is `view_overhead`. Step 10: `Relation.dir` and the `set_dir` op are gone for the `line.dir` setting (`dir_of`, `DIRS`); `relate` joins a line already there; views depends on `libavoid-js`, whose wasm a host loads once (`load_avoid`) and routes with `routes_of` / `avoided_run` — a host that does not draws with `route` as before; `middle_of` takes the name's length; `layout.even` for pages. Step 11: `Block.traits` and the `set_traits` op are gone — everything carried is in `tags`, `-id` a drop; `block_tags` / `def_tags` gone for `carried_tags` / `tags_of` / `traits_of` / `styles_of`; base trait ids renamed (`container` → `has_parts`, `ports` → `has_ports`, `inline` → `is_group`, `matrix` → `is_grid`, and so on); base kinds extend `block` / `line`; `definition_graph` lays a 3×3 grid; relations may carry `values` |
 
 ### Known rough edges
 
@@ -457,7 +489,6 @@ Collected on the showcase's relations layer first, then fixed.
 | **the door passes unknown relation fields** | a file still storing `dir` on a relation (no longer a field) reads in silently and its arrows vanish; worth the door refusing fields it does not know, as it once passed `dir: "one"` |
 | **faint marks on table cards** | marks draw at the theme's half opacity, so on a dark card the last row's mark is hard to see |
 | **definition view menu** | the middle card's menu still offers *delete block*, and the note's *delete note*; on this view both do nothing |
-| **inherited ports** | the definition view draws a definition's own ports, not those it inherits |
 | **a preview's size** | a reference previewing a table is sized from what it previews, its own marks added; its own look's border is not read |
 | **the definition record's chip is gone** | the tray shows a definition's own word only; what it reads resolved down its chain is no longer shown anywhere |
 | **relation-heavy layers wait for *arrange*** | `auto` reads in order, so a data model draws Z-shaped links until arranged |
