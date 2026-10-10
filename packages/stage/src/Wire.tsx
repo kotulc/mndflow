@@ -1,13 +1,17 @@
 /** What a relationship looks like. */
 
-import type { CSSProperties } from "react";
+import { createContext, useContext, type CSSProperties } from "react";
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
-import { drawn, heads, middle_of, route, BARE, type LineEdge,
+import { avoided_run, drawn, heads, middle_of, route, BARE, type LineEdge,
          type Wire as Look } from "@mnd/views";
 import { head_url, Heads, Name, useNaming } from "@mnd/theme";
 
 /** How square a right-angled corner is. */
 const BEND = 6;
+
+/** The runs routed round cards for the drawing as it stands, by line. */
+export const RunsContext = createContext<ReadonlyMap<string, readonly { x: number; y: number }[]>>(
+  new Map());
 
 /** How a run paints itself, as the attributes `card.css` already reads. */
 function paint(look: Look): { attrs: Record<string, string>; style: CSSProperties } {
@@ -41,12 +45,15 @@ export function Wire(props: EdgeProps<LineEdge>) {
 
   /** A line with no name still has somewhere to type one. */
   const naming = useNaming();
-  /** A run is straight or one Z, turning where its lines fan; a tie runs straight. */
-  const run = route({ x: sourceX, y: sourceY }, sourcePosition,
-                    { x: targetX, y: targetY }, targetPosition,
-                    data?.fan, data?.module === "tie");
+  const runs = useContext(RunsContext);
+  /** The run routed round cards, while it still meets both ends; else straight or one Z, turning
+   *  where its lines fan. A tie runs straight. */
+  const routed = avoided_run(runs.get(id), { x: sourceX, y: sourceY }, { x: targetX, y: targetY });
+  const run = routed ?? route({ x: sourceX, y: sourceY }, sourcePosition,
+                              { x: targetX, y: targetY }, targetPosition,
+                              data?.fan, data?.module === "tie");
+  const fan = routed ? undefined : data?.fan;
   const path = drawn(run, BEND);
-  const { x, y } = middle_of(run, data?.fan);
   const look = data?.wire ?? BARE;
   const end = heads(data);
   const { attrs, style: tint } = paint(look);
@@ -54,6 +61,8 @@ export function Wire(props: EdgeProps<LineEdge>) {
   /** The name and the handle, composed rather than folded together. */
   const middle = [label ? String(label) : "", data?.alias ?? ""]
     .filter(Boolean).join(" ");
+  /** Too wide for its leg, a name reads upright across it. */
+  const { x, y, upright } = middle_of(run, fan, middle.length);
 
   return (
     <>
@@ -69,7 +78,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
           {/* `nodrag` and `nopan`, so a press on a name does not pan. */}
           <div className="mnd-wire-name nodrag nopan" data-edge={id} {...attrs}
                style={{ ...tint,
-                        transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
+                        transform: `translate(-50%, -50%) translate(${x}px, ${y}px)${upright ? " rotate(-90deg)" : ""}` }}
                title={middle}>
             <Name id={id} className="mnd-wire-text card-name" text={middle} />
           </div>

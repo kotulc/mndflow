@@ -7,7 +7,7 @@
 
 import { children, is_group, is_interface, packages, path, shown_name, type Block, type Graph,
          type Id, type Relation } from "@mnd/core";
-import { FOREST } from "./survey";
+import { flattened, FOREST } from "./survey";
 
 /** What a row's box is called: it stands for a level, not a block. */
 export const ROW = "@row:";
@@ -21,7 +21,7 @@ const HIDDEN = `${FOREST}:hidden`;
 export function profile_graph(graph: Graph, target: Id | null, across?: number): Graph {
   const blocks: Record<Id, Block> = { ...graph.blocks,
     [FOREST]: { id: FOREST, parent: null, name: "profile",
-                settings: { layout: { kind: "page", ...(across ? { across } : {}) } } } };
+                settings: { layout: { kind: "page", even: true, ...(across ? { across } : {}) } } } };
   for (const p of packages(graph)) blocks[p.id] = { ...p, parent: HIDDEN };
   const edges: Record<Id, Relation> = {};
 
@@ -33,10 +33,11 @@ export function profile_graph(graph: Graph, target: Id | null, across?: number):
     const row = holder === null ? packages(graph) : level(graph, holder);
     if (!row.length) return;
     const id = `${ROW}${n}`;
-    blocks[id] = { id, parent: FOREST, type: "group", order: n + 1,
-                   name: holder === null ? "packages" : shown_name(graph, holder) };
+    blocks[id] = flattened({ id, parent: FOREST, order: n + 1,
+                             name: holder === null ? "packages" : shown_name(graph, holder) });
     row.forEach((b, at) => { blocks[b.id] = { ...b, parent: id, order: at + 1 }; });
-    if (holder) edges[`@step:${n}`] = { id: `@step:${n}`, from: holder, to: id, dir: "forward" };
+    if (holder) edges[`@step:${n}`] = { id: `@step:${n}`, from: holder, to: id,
+                                                   settings: { line: { dir: "forward" } } };
   });
   return { ...graph, blocks, edges };
 }

@@ -46,7 +46,7 @@ export type Chrome = {
 };
 
 /** How a person lays a layer out from the rail. `page` is a definition's or a host's to set — the
- *  package view reads as a page — so it is not offered here. */
+ *  overhead view reads as a page — so it is not offered here. */
 const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
   free: { icon: "layout_free", tip: "Hand placement is what draws" },
   auto: { icon: "layout_grid", tip: "Auto-layout: everything in reading order on a grid; lines never move it" },
@@ -54,8 +54,8 @@ const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
 
 /** How the canvas may look: at its whole section, or at one block. */
 const VIEWS: Record<ViewKind, { icon: IconName; word: string; tip: string }> = {
-  package: { icon: "view_package", word: "package",
-              tip: "Package: the whole section from above, as nested boxes" },
+  overhead: { icon: "view_overhead", word: "overhead",
+              tip: "Overhead: the whole system from above, as nested boxes" },
   profile: { icon: "view_profile", word: "profile",
              tip: "Profile: the whole section stepped down the page, along the pick" },
   internal: { icon: "view_internal", word: "internal",
@@ -64,7 +64,7 @@ const VIEWS: Record<ViewKind, { icon: IconName; word: string; tip: string }> = {
           tip: "Grid: the opened grid's cells and what sits in them" },
   folder: { icon: "view_folder", word: "folder",
             tip: "Folder: what the package or folder holds, read down the page" },
-  definition: { icon: "view_definition", word: "def",
+  definition: { icon: "word_def", word: "definition",
                 tip: "Definition: the definition, what it extends, its ports, tags and traits round it" },
 };
 

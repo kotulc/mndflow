@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
-import { is_interface } from "@mnd/core";
+import { dir_of, is_interface } from "@mnd/core";
 
 /** One named menu entry; the shape the explorer's menu agrees on. */
 export type Entry = { name: string; label?: string; args?: Args };
@@ -97,7 +97,7 @@ function line_offers(given: Record<string, unknown>): Entry[] {
 
 /** What a run offers about its direction. */
 function route_offers(id: string, graph: Graph): Entry[] {
-  const dir = graph.edges[id]?.dir ?? "none";
+  const dir = graph.edges[id] ? dir_of(graph, id) : "none";
   if (dir === "none") {
     return [{ name: "direct", label: "add direction", args: { dir: "forward" } }];
   }

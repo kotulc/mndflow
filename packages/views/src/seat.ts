@@ -1,6 +1,6 @@
 /** Where line ends and interfaces meet a border: one anchor per face, interfaces beside it. */
 
-import { children, edge_base, is_interface, type Flow, type Graph, type Id, type Relation,
+import { children, edge_base, is_group, is_interface, type Flow, type Graph, type Id, type Relation,
          type Side } from "@mnd/core";
 import { STUB } from "./route";
 import { PORT, SEAT, seat_frac, seat_marks } from "./size";
@@ -119,26 +119,41 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
     return free_at(box, side, mid, held.get(`${on}|${side}`) ?? []);
   };
 
-  /** A card end: the face looking at the other end, at its anchor. An end on the room meets its
-   *  wall straight across from the card. */
+  /** Where an end on a box — the room, or a box drawn round others — meets its wall: straight
+   *  across from where the other end leaves, its anchor or its interface. On a box, only where
+   *  that lies along the wall. */
+  const across_box = (id: Id, far: Id): { side: Side; along: number } | null => {
+    const card = boxes.get(far);
+    const seat = owned.has(far) ? ports.get(far) : undefined;
+    if (!card && !seat) return null;
+    const box = boxes.get(id)!;
+    const is_room = id === frame?.id;
+    const leave = card ? face_of(far, id) : null;
+    const side = leave ? (is_room ? leave : OPPOSITE[leave])
+                       : is_room ? nearest(box, box_of(far)!) : facing(box, box_of(far)!);
+    const mid = card ? point_at(card, { side: leave!, at: anchor_at(far, leave!) })
+                     : point_at(box_of(far)!, seat!);
+    const along = side === "left" || side === "right" ? mid.y : mid.x;
+    const o = origin(box, side);
+    const on = along >= o + SEAT && along <= o + extent(box, side) - SEAT;
+    return is_room || on ? { side, along } : null;
+  };
+
+  /** A card end: the face looking at the other end, at its anchor. An end on a box meets it
+   *  straight across from the other end, where it can. */
   const anchor = (e: Relation, end: "from" | "to") => {
     const id = e[end];
     const far = end === "from" ? e.to : e.from;
     if (owned.has(id)) return;
-    if (id === frame?.id) {
-      /** Straight across from where the other end leaves: its anchor, or its interface. */
-      const card = boxes.get(far);
-      const seat = owned.has(far) ? ports.get(far) : undefined;
-      if (!card && !seat) return;
-      const side = card ? face_of(far, id) : nearest(room!, box_of(far)!);
-      const mid = card ? point_at(card, { side, at: anchor_at(far, side) })
-                       : point_at(box_of(far)!, seat!);
-      const along = side === "left" || side === "right" ? mid.y : mid.x;
-      const at = seat_frac(along, origin(room!, side), extent(room!, side));
-      perches.push({ edge: e.id, end, on: id, side, at });
-      take(id, side, along);
+    const straight = id === frame?.id || is_group(graph, id) ? across_box(id, far) : null;
+    if (straight) {
+      const box = boxes.get(id)!;
+      const at = seat_frac(straight.along, origin(box, straight.side), extent(box, straight.side));
+      perches.push({ edge: e.id, end, on: id, side: straight.side, at });
+      take(id, straight.side, straight.along);
       return;
     }
+    if (id === frame?.id) return;
     const side = face_of(id, far);
     const at = anchor_at(id, side);
     perches.push({ edge: e.id, end, on: id, side, at });
@@ -223,6 +238,8 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
 }
 
 const ENDS = ["from", "to"] as const;
+
+const OPPOSITE: Record<Side, Side> = { left: "right", right: "left", top: "bottom", bottom: "top" };
 
 /** A card's corners, as seats at either end of its top and bottom. */
 const CORNERS: readonly Seat[] = [{ side: "top", at: 0 }, { side: "top", at: 1 },

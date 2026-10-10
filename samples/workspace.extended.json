@@ -728,10 +728,14 @@
       },
       "edge_adr55k2me3et": {
         "id": "edge_adr55k2me3et",
-        "dir": "forward",
         "alias": 11,
         "from": "block_roesrpnridkj",
-        "to": "block_sxbqlnfb9zl6"
+        "to": "block_sxbqlnfb9zl6",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "edge_cktxtb5g5aa3": {
         "id": "edge_cktxtb5g5aa3",

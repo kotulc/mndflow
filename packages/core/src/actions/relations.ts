@@ -1,11 +1,11 @@
 /** Relationships and the interfaces they meet. */
 
 import { may_seat } from "../capabilities";
-import { def_at, domain_of, setting_of, stored_type } from "../defs";
+import { def_at, dir_of, domain_of, setting_of, stored_type } from "../defs";
 import { shown_name } from "../names";
 import { is_interface, next_order, part_end } from "../tree";
 import { new_id } from "../ids";
-import type { Dir, Flow, Graph, Id, Mutation, Side } from "../types";
+import type { Dir, Flow, Graph, Id, Mutation, Relation, Side } from "../types";
 import { register, type Args, type Context } from "./registry";
 import { handles, id_of, may_wear, run_type, side_of, SIDES, text } from "./helpers";
 
@@ -43,13 +43,21 @@ register(
       const from = part_end(ctx.graph, id_of(args, "from"));
       const to = part_end(ctx.graph, id_of(args, "to"));
       const dir = String(args["dir"] ?? "none") as Dir;
+      const { type } = run_type(ctx, args);
+      /** A line of this type already joining these ends takes this one's way instead. */
+      const twin = twin_of(ctx.graph, from, to, type);
+      if (twin) {
+        const way = joined(ctx.graph, twin.edge, twin.turned ? turned(dir) : dir);
+        return way ? { mutations: [way], effect: { focus: twin.edge.id } }
+          : { mutations: [], effect: { say: "these two are related this way already" } };
+      }
       const line = handles(ctx, "relation");
       const alias = line.take();
+      const said = dir === inherited(ctx.graph, type) ? {} : { settings: { line: { dir } } };
       const out: Mutation[] = [...line.bump(), { op: "link_blocks", edge: {
         id: new_id("edge"), from: from.block, to: to.block,
         ...(from.part ? { fromPart: from.part } : {}), ...(to.part ? { toPart: to.part } : {}),
-        ...run_type(ctx, args),
-        alias, ...(dir !== "none" ? { dir } : {}),
+        ...(type ? { type } : {}), alias, ...said,
       } }];
       return { mutations: out };
     },
@@ -102,11 +110,62 @@ register(
            { name: "dir", form: "choice", required: true,
              choices: ["none", "forward", "back", "both"] }],
     check: (ctx, args) => (ctx.graph.edges[id_of(args, "id")] ? null : "needs a relationship"),
-    run: (_ctx, args) => ({ mutations: [
-      { op: "set_dir", id: id_of(args, "id"), dir: String(args["dir"]) as Dir },
+    run: (ctx, args) => ({ mutations: [
+      directed(ctx.graph, id_of(args, "id"), String(args["dir"]) as Dir),
     ] }),
   },
 );
+
+/** Which way a line points, as its two heads: at the end it goes to, at the end it leaves. */
+const HEADS: Record<Dir, readonly [boolean, boolean]> = {
+  none: [false, false], forward: [true, false], back: [false, true], both: [true, true],
+};
+
+/** The way two heads say. */
+function way_of(to: boolean, from: boolean): Dir {
+  return to && from ? "both" : to ? "forward" : from ? "back" : "none";
+}
+
+/** A way seen from the other end. */
+function turned(dir: Dir): Dir {
+  const [to, from] = HEADS[dir];
+  return way_of(from, to);
+}
+
+/** The way a relation type's lines point where they say nothing: plain lines' where none. */
+function inherited(graph: Graph, type: Id | undefined): Dir {
+  return dir_of(graph, type ?? "line");
+}
+
+/** The line already joining two ends with this type, either way round, and whether it runs from
+ *  the second to the first. */
+function twin_of(graph: Graph, from: { block: Id; part?: Id }, to: { block: Id; part?: Id },
+                 type: Id | undefined): { edge: Relation; turned: boolean } | null {
+  const meets = (e: Relation, a: typeof from, b: typeof to) => e.from === a.block
+    && e.to === b.block && e.fromPart === a.part && e.toPart === b.part;
+  for (const e of Object.values(graph.edges)) {
+    if (e.type !== type) continue;
+    if (meets(e, from, to)) return { edge: e, turned: false };
+    if (meets(e, to, from)) return { edge: e, turned: true };
+  }
+  return null;
+}
+
+/** A line taking another's way too: its heads and the new ones together. Null where that adds
+ *  nothing. */
+function joined(graph: Graph, edge: Relation, dir: Dir): Mutation | null {
+  const was = dir_of(graph, edge.id);
+  const [to, from] = HEADS[was];
+  const [more_to, more_from] = HEADS[dir];
+  const now = way_of(to || more_to, from || more_from);
+  return now === was ? null : directed(graph, edge.id, now);
+}
+
+/** A line set to point a way: said on the line, or given back where its type says it already. */
+function directed(graph: Graph, id: Id, dir: Dir): Mutation {
+  const own = dir === inherited(graph, graph.edges[id]?.type) ? null : dir;
+  return { op: "set_setting", id, key: "line", name: "dir", value: own };
+}
 
 /** The owners this act seats interfaces on: one named, or a run's ends. */
 function promoted(ctx: Context, args: Args): { owner: Id; end?: "from" | "to" }[] {

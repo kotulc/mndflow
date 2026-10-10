@@ -1,6 +1,7 @@
 /** A Scene as one standalone SVG. */
 
 import { box_of, extent, heads, type BoxNode, type LineEdge, type Scene } from "./scene";
+import { avoided_run, routes_of } from "./avoid";
 import { end_of } from "./ends";
 import { drawn, middle_of, route } from "./route";
 
@@ -115,7 +116,8 @@ export function draw_svg(scene: Scene, paper: Paper = {}): string {
       + `<text x="${round(f.x + 12)}" y="${round(f.y)}">${esc(f.label)}</text></g>`);
   }
 
-  for (const e of scene.edges) parts.push(line(e, scene, key));
+  const runs = routes_of(scene);
+  for (const e of scene.edges) parts.push(line(e, scene, runs, key));
   scene.nodes.forEach((n, i) => parts.push(card(n, `${key}-clip-${i}`)));
 
   parts.push(`</svg>`);
@@ -149,22 +151,24 @@ function label(node: BoxNode, clip: string): string {
 }
 
 /** One line, routed the same way the canvas routes it. */
-function line(edge: LineEdge, scene: Scene, key: string): string {
+function line(edge: LineEdge, scene: Scene, runs: ReadonlyMap<string, { x: number; y: number }[]>,
+              key: string): string {
   const a = end_of(edge, "from", scene.nodes, scene.perches, scene.frame);
   const b = end_of(edge, "to", scene.nodes, scene.perches, scene.frame);
   if (!a || !b || edge.hidden) return ``;
-  const run = route(a, a.face, b, b.face, edge.data?.fan, edge.data?.module === "tie");
-  const mid = middle_of(run, edge.data?.fan);
-
+  const routed = avoided_run(runs.get(edge.id), a, b);
+  const run = routed ?? route(a, a.face, b, b.face, edge.data?.fan, edge.data?.module === "tie");
   const data = edge.data;
   const end = heads(data);
-  /** The name, and the handle where the line asked for one. */
+  /** The name, and the handle where the line asked for one: upright where its leg is too short. */
   const middle = [String(edge.label ?? ""), data?.alias ?? ""].filter(Boolean).join(" ");
+  const mid = middle_of(run, routed ? undefined : data?.fan, middle.length);
+  const turn = mid.upright ? ` transform="rotate(-90 ${round(mid.x)} ${round(mid.y)})"` : ``;
   return `<g class="route ${data?.module ?? "line"}"><path d="${drawn(run, 6)}"`
     + (end.from === "none" ? `` : ` marker-start="url(#${key}-${end.from})"`)
     + (end.to === "none" ? `` : ` marker-end="url(#${key}-${end.to})"`) + ` />`
     + (middle
-        ? `<text x="${round(mid.x)}" y="${round(mid.y - 4)}" text-anchor="middle">`
+        ? `<text x="${round(mid.x)}" y="${round(mid.y - 4)}" text-anchor="middle"${turn}>`
           + `${esc(middle)}</text>`
         : ``)
     + `</g>`;

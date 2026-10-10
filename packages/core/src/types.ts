@@ -27,7 +27,11 @@ export type Layout = "free" | "auto" | "page";
 
 export const LAYOUTS: readonly Layout[] = ["free", "auto", "page"];
 
-export type Dir = "none" | "forward" | "back" | "both";
+/** Which way a line points: a setting, `line.dir`, said by its definition and overridable on the
+ *  line, like any other. */
+export const DIRS = ["none", "forward", "back", "both"] as const;
+
+export type Dir = (typeof DIRS)[number];
 
 /** What a definition declares its usages answer. Its `type` is a value type, or a block
  *  definition, which makes it a link; absent, it is text. Anything else said of it is kept as
@@ -138,7 +142,6 @@ export type Relation = {
   fromPart?: Id;
   /** A part of the `to` block's definition the run arrives at. */
   toPart?: Id;
-  dir?: Dir;
   /** A handle serial, as a block carries. */
   alias?: number;
   /** Words describing this line; its own, never inherited. */
@@ -212,7 +215,6 @@ export type Mutation =
   /** As `update_block`: only what is said changes, and `type: null` clears it. */
   | { op: "update_edge"; id: Id; name?: string; type?: Id | null }
   | { op: "delete_edge"; id: Id }
-  | { op: "set_dir"; id: Id; dir: Dir }
   | { op: "flip_edge"; id: Id }
   /** An end moved onto a block, and optionally onto a part its definition holds. */
   | { op: "set_end"; id: Id; end: "from" | "to"; port: Id; part?: Id | null }

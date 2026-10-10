@@ -1,6 +1,6 @@
 /** The block view: any planar projection. */
 
-import { alias_of, layout_of, children, setting_of, ABOUT, covers, edge_base, edges_in, group_depth, heading, holders_in,
+import { alias_of, dir_of, layout_of, children, setting_of, ABOUT, covers, edge_base, edges_in, group_depth, heading, holders_in,
          inline, is_container, is_grid, is_group, is_note, label_of, lattice_of,
          members_of, shape_of, stamps_of, role_of, shown_name, path, type Cut,
          type ViewKind, type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
@@ -23,8 +23,8 @@ export type Config = {
   /** How the layer is looked at: from inside (`internal`, `grid`); a package or folder read down
    *  the page (`folder`); a definition with what describes it round it (`definition`); the whole
    *  section it scopes, down to `cut`, each block there boxing its top level where `tops` says
-   *  (`package`); or a cross-section of the host's sections along `target` (`profile`). Unsaid,
-   *  inside — and with no layer, every package's domain as an package view. */
+   *  (`overhead`); or a cross-section of the host's sections along `target` (`profile`). Unsaid,
+   *  inside — and with no layer, every package's domain as an overhead view. */
   look?: { kind: ViewKind; cut: Cut; tops?: boolean; target?: Id | null };
   /** The packages a forest draws, in order; every package where unsaid. */
   packages?: readonly Id[];
@@ -41,7 +41,7 @@ export type Config = {
 const SLOTS: readonly Slot[] = ["layer", "display", "relations"];
 
 /** What a projection with no layer draws: every package's domain, as boxes down the page. */
-const WHOLE = { kind: "package", cut: "tree" } as const;
+const WHOLE = { kind: "overhead", cut: "tree" } as const;
 
 /** A graph whose layer says how many cards its page holds across. */
 function with_across(graph: Graph, layer: Id, across: number): Graph {
@@ -101,7 +101,7 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
     return { ...scene, nodes, ...(frame ? { frame } : {}),
              slots: arranged ? scene.slots : scene.slots.filter((x) => x !== "layer") };
   }
-  if (look && (look.kind === "package" || look.kind === "profile")) {
+  if (look && (look.kind === "overhead" || look.kind === "profile")) {
     const drawn = look.kind === "profile"
       ? profile_graph(given, look.target ?? null, config.across)
       : survey_graph(given, layer, look.cut,
@@ -341,7 +341,7 @@ function line_edges(graph: Graph, linked: readonly Relation[], seating: Seating)
       sourceHandle: handle(met, e.id, "from", "s"),
       targetHandle: handle(met, e.id, "to", "t"),
       ...(label ? { label } : {}),
-      data: { module, dir: e.dir ?? "none", wire,
+      data: { module, dir: dir_of(graph, e.id), wire,
               ...(link ? { link: true } : {}),
               ...(alias ? { alias } : {}),
               ...(fan ? { fan } : {}) },

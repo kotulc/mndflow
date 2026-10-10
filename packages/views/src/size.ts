@@ -12,9 +12,8 @@ export const UNITS = {
   unit: 24,
   /** A block in units: five by two. */
   block: { w: 5, h: 2 },
-  /** How far apart the layout sets two cells, in units: room for a name between two cards, and
-   *  for two groups' air with a unit between them. */
-  gap: 3,
+  /** How far apart the layout sets two cells, in units. */
+  gap: 2,
   /** The air round what a group, a room or a grid's cell holds, in units. */
   pad: 1,
 };

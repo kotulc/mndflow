@@ -1,8 +1,8 @@
 /** The `definition` view: a definition large in the middle, and what describes it round it — what
- *  it extends above, joined by an extends line; its in and out ports left and right; its both-way
- *  ports, then its tags and traits, below; a note tied to it at the top right, its body. Each is a
- *  box drawn only with something in it, joined to the middle card by a plain line — what it
- *  extends by an extends line.
+ *  it extends above, a card of its own joined by a line named *extends*; its in and out ports left
+ *  and right; its both-way ports, then its tags and traits, below; a note tied to it at the top
+ *  right, its body. Each of the rest is a box drawn only with something in it, joined to the
+ *  middle card by a plain line.
  *
  *  Drawn, never stored: a graph handed back for a projection to read. Every block keeps its id, so
  *  a pick is the block's and an edit goes home (core `aspect_acts`). */
@@ -17,7 +17,7 @@ import { size_of } from "./size";
 export const ASPECT = "@aspect";
 
 /** How an extends line draws: an open triangle at what is extended. */
-const EXTENDS = { line: { to_arrow: "hollow" } };
+const EXTENDS = { line: { dir: "forward", to_arrow: "hollow" } };
 
 /** What a note says where the definition says nothing yet. */
 const UNSAID = "what is this for? — double-click to say";
@@ -31,9 +31,8 @@ export function definition_graph(graph: Graph, def: Id): Graph {
   const d = graph.blocks[def]!;
   const aspects = aspects_of(graph, def);
   const defs = (ids: readonly Id[]) => ids.map((t) => def_at(graph, t)).filter((t): t is Definition => !!t);
+  const parent = defs(aspects.extends ? [aspects.extends] : [])[0];
   const boxes: Box[] = [
-    { key: "extends", name: "extends", blocks: defs(aspects.extends ? [aspects.extends] : []),
-      down: false },
     { key: "in", name: "in", blocks: aspects.ins, down: true },
     { key: "out", name: "out", blocks: aspects.outs, down: true },
     { key: "both", name: "ports", blocks: aspects.both, down: false },
@@ -47,6 +46,10 @@ export function definition_graph(graph: Graph, def: Id): Graph {
                 settings: { layout: { kind: "free", face: "large" } } } };
   const seen = new Set<Id>([def]);
   blocks[def] = { ...d, parent: ASPECT };
+  if (parent) {
+    seen.add(parent.id);
+    blocks[parent.id] = { ...parent, parent: ASPECT };
+  }
   for (const box of boxes) {
     const id = `${ASPECT}:${box.key}`;
     blocks[id] = { id, parent: ASPECT, type: "group", name: box.name,
@@ -73,20 +76,20 @@ export function definition_graph(graph: Graph, def: Id): Graph {
   const drawn: Graph = { ...graph, blocks };
   const size = (id: Id) => (blocks[id]?.type === "group"
     ? band_size(drawn, ASPECT, blocks[id]!, "free") : size_of(drawn, id));
-  const cells = ([[def, 1, 1], [ABOUT, 3, 0], [`${ASPECT}:extends`, 1, 0], [`${ASPECT}:in`, 0, 1],
+  const cells = ([[def, 1, 1], [ABOUT, 3, 0], [parent?.id ?? "", 1, 0], [`${ASPECT}:in`, 0, 1],
                   [`${ASPECT}:out`, 2, 1], [`${ASPECT}:both`, 1, 2], [`${ASPECT}:tags`, 0, 3],
                   [`${ASPECT}:traits`, 2, 3]] as const)
-    .filter(([id]) => blocks[id])
+    .filter(([id]) => id && blocks[id])
     .map(([id, c, r]) => ({ id, c, r, ...size(id) }));
   for (const p of on_grid(cells)) blocks[p.id] = { ...blocks[p.id]!, x: p.x, y: p.y };
 
   /** An extends line up, a tie to the note, and a plain line from each box. */
   const edges: Relation[] = [
     { id: `${ASPECT}:about`, from: ABOUT, to: def, type: "tie" },
-    ...boxes.map((b): Relation => (b.key === "extends"
-      ? { id: `${ASPECT}:extends:line`, from: def, to: `${ASPECT}:extends`, dir: "forward",
-          settings: EXTENDS }
-      : { id: `${ASPECT}:${b.key}:line`, from: `${ASPECT}:${b.key}`, to: def })),
+    ...(parent ? [{ id: `${ASPECT}:extends`, from: def, to: parent.id, name: "extends",
+                    settings: EXTENDS } as Relation] : []),
+    ...boxes.map((b): Relation =>
+      ({ id: `${ASPECT}:${b.key}:line`, from: `${ASPECT}:${b.key}`, to: def })),
   ];
   return { ...graph, blocks, edges: Object.fromEntries(edges.map((e) => [e.id, e])) };
 }

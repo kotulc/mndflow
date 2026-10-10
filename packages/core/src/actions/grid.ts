@@ -370,7 +370,7 @@ register(
         drawn.add(`${from}|${to}`);
         out.push({ op: "link_blocks", edge: {
           id: new_id("edge"), from, to, alias: line.take(), ...run_type(ctx, args),
-          ...(dir !== "none" ? { dir } : {}) } });
+          ...(dir !== "none" ? { settings: { line: { dir } } } : {}) } });
       }
       out.push(...line.bump());
       return { mutations: out,

@@ -12,7 +12,7 @@ import { attributes_of, def_at, drawn_in, is_interface, isa, links_to, shown_nam
 export const LINK = "link:";
 
 /** How a link draws: dashed, an open head at what it names, and the attribute's name. */
-const DRAWN = { line: { to_arrow: "open" }, style: { border_style: "dashed" } };
+const DRAWN = { line: { dir: "forward", to_arrow: "open" }, style: { border_style: "dashed" } };
 
 
 /** The graph with a line for every link between two cards the layer draws. */
@@ -28,7 +28,7 @@ export function linked_graph(graph: Graph, layer: Id | null): Graph {
       for (const to of cards) {
         if (to.id === from.id || !names(graph, from, to, target, answer)) continue;
         const id = `${LINK}${from.id}:${a.name}:${to.id}`;
-        edges[id] = { id, from: from.id, to: to.id, name: a.name, dir: "forward", settings: DRAWN };
+        edges[id] = { id, from: from.id, to: to.id, name: a.name, settings: DRAWN };
       }
     }
   }

@@ -17,9 +17,9 @@ const block = (id: string, parent: string | null, name: string, type?: string): 
 
 const start = () => { n = 0; counts = {}; };
 
-/** A run points because `dir` says so. */
+/** A run points because its `line.dir` setting says so. */
 const link = (id: string, from: string, to: string, dir?: Dir): Mutation =>
-  ({ op: "link_blocks", edge: { id, from, to, ...(dir ? { dir } : {}) } });
+  ({ op: "link_blocks", edge: { id, from, to, ...(dir ? { settings: { line: { dir } } } : {}) } });
 
 /** The shipped floor, which every fold of a fixture starts from. */
 export const FLOOR = BASE_FLOOR;

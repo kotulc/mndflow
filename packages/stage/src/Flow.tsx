@@ -6,10 +6,11 @@ import {
   PanOnScrollMode, ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useReactFlow,
 } from "@xyflow/react";
 import type { Point, Spot } from "@mnd/core";
-import { box_of, nearest_seat, taken_on, FRAME, LINK, UNIT, type BoxNode } from "@mnd/views";
+import { box_of, nearest_seat, routes_of, taken_on, FRAME, LINK, UNIT,
+         type BoxNode } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
-import { EDGE_TYPES, Heads } from "./Wire";
+import { EDGE_TYPES, Heads, RunsContext } from "./Wire";
 import type { Adjust, FlowViewProps, Gesture, Landing } from "./gestures";
 import { BAND, MIN_ZOOM, read_zoom } from "./arrays";
 import { useDrag } from "./drag";
@@ -136,7 +137,12 @@ function Canvas(props: FlowViewProps) {
     return n && opens && !n.data.on && n.selectable !== false && n.type !== "note" ? n.id : null;
   }, [picked, scene]);
 
+  /** Every line routed round the cards where they stand — mid-drag too — in the room as hung. */
+  const runs = useMemo(() => routes_of({ ...scene, nodes, ...(frame ? { frame } : {}) }),
+                       [scene, nodes, frame]);
+
   return (
+    <RunsContext.Provider value={runs}>
     <ReactFlow
       className={framed ? "mnd-flow" : "mnd-flow frameless"}
       nodes={nodes}
@@ -282,6 +288,7 @@ function Canvas(props: FlowViewProps) {
       ) : null}
       {chrome && !scroll ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
     </ReactFlow>
+    </RunsContext.Provider>
   );
 }
 

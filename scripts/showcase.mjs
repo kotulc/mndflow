@@ -53,8 +53,11 @@ function note(layer_id, text, w = 15) {
 }
 
 /** A relation. */
-function link(id, from, to, more = {}) {
-  edges[id] = { id, from, to, alias: serial("relation"), ...more };
+/** A line; `dir` is said as its `line.dir` setting, as any line says which way it points. */
+function link(id, from, to, { dir, ...more } = {}) {
+  const settings = dir && dir !== "none"
+    ? { ...more.settings, line: { ...more.settings?.line, dir } } : more.settings;
+  edges[id] = { id, from, to, alias: serial("relation"), ...more, ...(settings ? { settings } : {}) };
 }
 
 
@@ -156,7 +159,7 @@ put("d_b1", "l_defs", "block", { name: "Main pump", type: "def_bigpump",
 /* ── Relations: every kind and direction, then what routing has to get right ── */
 
 layer("l_rel", "Relations");
-note("l_rel", "Each direction, a name, arrows and a tie; then a run past a third block, two runs between one pair (they overlap), two runs that cross, a pair close together, and a hub whose lines share a trunk and fan out. Lines leave the middle of a face, run straight or in one Z, and draw under cards; a tie joins nearest corners.", 27);
+note("l_rel", "Each direction, a name, arrows and a tie; then a run past a third block, a pair related both ways as one line, two runs that cross, a pair close together, and a hub whose lines share a trunk and fan out. Lines leave the middle of a face, run straight or in one Z, and draw under cards; a tie joins nearest corners.", 27);
 const pair = (id, name_a, name_b, more) => {
   put(`${id}_a`, "l_rel", "block", { name: name_a });
   put(`${id}_b`, "l_rel", "block", { name: name_b });
@@ -178,8 +181,7 @@ put("r_det_b", "l_rel", "block", { name: "Right" });
 link("r_detour", "r_det_a", "r_det_b", { dir: "forward" });
 put("r_par_a", "l_rel", "block", { name: "Asks" });
 put("r_par_b", "l_rel", "block", { name: "Answers" });
-link("r_par_1", "r_par_a", "r_par_b", { dir: "forward", name: "request" });
-link("r_par_2", "r_par_b", "r_par_a", { dir: "forward", name: "reply" });
+link("r_par", "r_par_a", "r_par_b", { dir: "both", name: "request / reply" });
 put("r_x_a", "l_rel", "block", { name: "North" });
 put("r_x_b", "l_rel", "block", { name: "East" });
 put("r_x_c", "l_rel", "block", { name: "West" });

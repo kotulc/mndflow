@@ -17,6 +17,7 @@
 | 7 | **canvas gestures** | a diagram is built fast from the canvas alone |
 | 8 | **views by card** | the rail offers only the system views; each card opens on the one layer view its kind calls for, and a definition opens onto itself with what describes it round it |
 | 9 | **two trees, one system** | structure always lists every tree whatever definitions holds; the system views draw both trees; every layer lays itself out `auto`, as wide as the page |
+| 10 | **routing and system views, again** | lines leave the face that bends least and never run under a card; names fit; the profile drops straight down; the layout may read relations by a general rule |
 
 
 ## 1 — Showcase
@@ -153,6 +154,18 @@ Collected on the showcase's relations layer first, then fixed.
 | core `door.ts` · `fold.ts` · `actions/relations.ts` | `fromSide`/`toSide`/`set_side` gone; an interface refusing what it may not carry |
 | stage `Wire.tsx` · `draw.ts` · `gestures.ts` | ties drawn straight; names on their own leg; side gestures gone |
 
+**Built 2026-10-09, driven in Edge, code-reviewed.** Settled while driving:
+
+| Settled | |
+|---|---|
+| **a face's middle** | an auto interface takes it while no line meets that face; a hand-placed one may sit there, and a line later meeting that face anchors at the free seat nearest it |
+| **ties straight across** | two cards facing squarely are tied across the gap at the middle of where their faces overlap; corners only for diagonal neighbours or where the spot is taken |
+| **placing snaps to free seats** | `nearest_seat` takes the seats in use (`taken_on`): anchors and other interfaces |
+| **back to auto** | *place itself* (the `free` act) on an interface's menu clears its seat; promoting an end makes an auto interface |
+| **a drawn tie is a tie** | `relate` and `chain` read the rail's `module` as the relation's type where none is said |
+| **handles re-measured** | a seat node re-measures when its side changes; React Flow otherwise keeps the side it first measured |
+| **lined up within 1.5px** | a seat drawn as a percentage lands a fraction of a pixel off; `route` counts that as straight |
+
 
 ## 6b — Grid layout
 
@@ -163,20 +176,25 @@ Collected on the showcase's relations layer first, then fixed.
 | **cells** | each unit — a card, a group, a grid — takes one cell; a row is as tall as its tallest |
 | **centred** | a card sits in the middle of its cell, so middles along a row or column always line up, whatever a card's size; a card's own edges may fall between guides |
 | **whole-unit cells** | cell edges stay on the guides |
-| **spacing** | `GAP`, 3 units, between cells; `PAD`, 1 unit, round what a group, a room or a grid's cell holds — two neighbouring groups keep a unit of air between them |
+| **spacing** | `GAP`, 2 units (3 until 2026-10-10), between cells; `PAD`, 1 unit, round what a group, a room or a grid's cell holds — two neighbouring groups keep a unit of air between them |
 | **reading order** | auto and pages flow in reading order onto columns a default card wide, wrapping at the page's width; a wider unit spans the columns it needs |
 | **lines never move cards** | relations and ties draw lines and nothing else; a note made tied to a block is ordered right after it when made; *arrange*, on the rail, reorders a layer once so related blocks, and notes by their blocks, read side by side |
 | **fitted grids** | the definition view and the class diagram place by cell, each column as wide as its widest card |
 | **boxes hug** | a page's boxes, as the package and profile views draw them, are as wide as what they hold and their air |
-| **one grid** | auto layers, groups, pages, the package and profile views and the definition view (a 3×3 grid round its middle card) all lay out through it |
+| **one grid** | auto layers, groups, pages, the package and profile views, the class diagram and the definition view (cells round its middle card, the note in a column of its own) all lay out through `grid.ts` |
 | **`free` stays** | hand placement draws exactly where it was put |
 
 | Changes | |
 |---|---|
-| views `grid.ts` | new: cells to places — columns and rows sized, cards centred |
-| views `pack.ts` | clusters placed by cell, not by pixel |
-| views `bands.ts` · `page.ts` · `definition.ts` | groups, pages and the definition view through the grid |
-| views `size.ts` | `GAP` 3 units, `PAD` 1 unit |
+| views `grid.ts` | new: `flow` (reading order onto standard columns, spans across, rows fit), `on_grid` (fitted cells), `in_rows` |
+| views `pack.ts` | `pack_units` is reading order through `flow`; the cluster packer and live satellite placement are gone |
+| views `bands.ts` · `page.ts` · `definition.ts` · `fields.ts` | groups, pages, the definition view and the class diagram through the grid; page boxes hug |
+| views `arrange.ts` | `free` draws positions as stored, no snapping; `tidy(graph, scene)` writes what the canvas draws |
+| views `size.ts` | `GAP` 2 units, `PAD` 1 unit |
+| core `actions/blocks.ts` · `helpers.ts` | the `arrange` act; a tied block ordered after its anchor when made |
+| options `groups.ts` | *arrange* on the rail's layer group, while `auto` |
+
+**Built 2026-10-09, driven in Edge.** Workshopped as it went: clusters on their own grids, then spans in both directions, then reading order alone — the first two rejected for reshuffling when a line was drawn and for reserving empty rows.
 
 ## 7 — Canvas gestures
 
@@ -263,6 +281,64 @@ Collected on the showcase's relations layer first, then fixed.
 | **profile lines** | each drops, runs across, then drops into the row's middle; straight down from the card would read better |
 
 
+## 10 — Routing and system views, again
+
+**Workshopped 2026-10-10.** The two system views are different projections of one hierarchy, not the same thing: overhead from above, profile from the side.
+
+| Decided | |
+|---|---|
+| **overhead** | the system view called *package* is renamed back to **overhead** |
+| **boxes, not groups** | what a view draws round what a block holds is a **box**, solid rimmed (`flattened`): the overhead view's folders and the profile's rows alike. A **group** is one somebody made, dashed — kept apart for tracing |
+| **profile rows even** | every row is as wide as the widest (`layout.even`), so each block on the way is over the row it holds |
+| **a line to a box meets it straight across** | from where the other end leaves, wherever that lies along the box's wall: the room's rule, generalized. The profile's lines drop straight down |
+| **`GAP` 2 units** | trying 2 between cells, from 3 |
+| **layout may read relations** | the problem was how, not whether: the rule needs to be general |
+| **direction is a setting** | `line.dir`, inherited down a relation's chain and overridable on the line, replaces the stored `dir` field and the `set_dir` op; `direct` writes it, given back where it is what the type says |
+| **one line per pair and type** | `relate` (and so a right drag) onto ends a line of that type already joins adds no line: the line takes the new way too, so drawing back makes it `both`. A tie beside a line stays apart |
+| **labels as vocabulary** | leaning yes, once the tag / trait / type split is reworked: relation settings show no traits, and definition views show only a definition's own traits and settings, not those it inherits |
+| **shared seats stay** | lines on a face share its middle and branch off past the fan point; a separate seat is stated, by placing an interface. Own seats per line were tried 2026-10-10 and dropped: messier, and awkward routing downstream |
+
+| Seen at `GAP` 2 | |
+|---|---|
+| **names clip** | *reply / request*, *to one*, *to three*, *feeds* cut short in a 2-unit gap |
+| **lines under cards** | the tie from *Both* runs under the tie note; *Part* to *Answers* runs under it too |
+| **a different face, fewer bends** | lines Z where leaving another face would draw an L or a straight run |
+
+| Built 2026-10-10 | |
+|---|---|
+| core `sections.ts` · `navigate.ts` · options `groups.ts` · theme `icons.tsx` · views `block.ts` | `overhead` for `package` |
+| views `profile.ts` · `page.ts` | rows as flattened boxes; `even` widths |
+| views `seat.ts` | `across_box`: an end on the room or a box, straight across |
+| views `size.ts` | `GAP` 2 units |
+| views `route.ts` · stage `Wire.tsx` · views `svg.ts` | a name too wide for its level leg reads upright (`middle_of(run, fan, chars)`) |
+| views `grid.ts` | a unit overhangs into half a gap before it spans another column: a hand-sized note no longer leaves empty cells |
+| views `definition.ts` | what it extends is a card, no box, joined by a line named *extends* |
+| theme `icons.tsx` · options | profile icon a stack; the definition view wears the `Def` word, says *definition*; the rail 74px wide to fit it |
+
+| Routing, next | |
+|---|---|
+| **try libavoid-js** | orthogonal routing round cards, fewest bends, parallel runs nudged apart. Kept in our hands: where an end meets a card (pins at our seats, with the faces it may leave by), straight runs we decide (not routed), checkpoints, penalties. To find out: shared trunks, async wasm load, LGPL-2.1 |
+| **arrange stays explicit** | the layout reads relations only on *arrange* |
+
+**libavoid tried 2026-10-10, driven in Edge.** views `avoid.ts`: `load_avoid` (web `main.tsx`, the wasm by a Vite alias); `routes_of(scene)` routes every line at once. The stage routes from its live nodes and the room as it hangs it (`Flow` → `RunsContext` → `Wire`), so a drag routes as its drop will, about 2ms a pass on the relations layer; `svg` routes the scene as projected. A run is drawn only while its ends lie within half a unit of the handles and every leg is square, else `route` as before (libavoid not loaded: the CLI, tests). design.md's *Interfaces and lines* still says the old rules until this is kept.
+
+| Kept ours | |
+|---|---|
+| **seats** | every end a pin at the seat `seat_all` gives, leaving only by its face; ends are never nudged off it |
+| **ties** | straight, never routed |
+| **what is solid** | cards and notes; boxes, rooms and grids are not, so a line crosses a box's rim |
+
+| Seen | |
+|---|---|
+| **round cards** | *to two* and *to three* go over *One*; the data model's *customer* link goes round the note; Valve's run passes under Tank |
+| **names fit** | a routed run's own leg is long, so names read level more often |
+| **parallel lines overlap** | by design: lines between one pair share both seats until an interface is placed to part them |
+| **reading order shows** | rows wrap, so a line from a row's end to the next row's start runs round the whole row |
+| **a library quirk** | a second pin on the same spot of a shape is ignored and the line drops to the shape's middle: pins are keyed by spot and shared |
+| **angled runs, fixed** | the stage widens the room to the viewport, so runs routed against the projection's room met its walls elsewhere and the end snap left them diagonal. Routed against the room as hung, and a run snapped off square is refused |
+| **drag and drop disagreed, fixed** | routes were worked out once per projection, so a drag drew the old router and the drop libavoid |
+
+
 ## Open
 
 | Question | |
@@ -270,17 +346,18 @@ Collected on the showcase's relations layer first, then fixed.
 | **the root layer is a definition** | `main` shows in both explorer sections; whether the structure section hides that |
 | **gesture set** | which of step 7's candidates, and what else, once step 2 lands |
 | **double-click a grid** | lands on its name and renames it; Enter opens it |
+| **tag / trait / type split** | relation settings show no traits; definition views show only what a definition says itself, not the traits and settings it inherits. Settles whether a line's label is a tag |
 
 
 ## Handoff
 
-**State, 2026-10-09: steps 1–5, 8 and 9 built and driven in Edge, nothing committed.** Typecheck clean, 293 tests green, CSS lint clean, the showcase checks clean. Step 8 was code-reviewed; step 9 was not. Next is step 6, line routing — judged now on what `auto` lays out, since the showcase places nothing by hand: step 9's *Seen on `auto`* table is the starting list.
+**State, 2026-10-10: steps 1–6, 6b, 8 and 9 built, driven in Edge and committed; step 10 under way.** Typecheck clean (packages, web and cli), 270 tests green, CSS lint clean, both samples check clean. Steps 6 and 6b were code-reviewed and every finding fixed. Next: step 10, routing and layout; then step 7, canvas gestures.
 
 | Not yet | |
 |---|---|
-| **tests** | none written for steps 2–5, 8 or 9: the views, navigation and tray are still moving. Once settled — `lens_of`, `open_at` / `leave_at` per view, `aspect_acts` / `attach_of`, `definition_graph`'s boxes, `stamps_of` / `holds_structure`, `table` widths, `fit_of` for a table card, `survey_graph` with `tops`, `profile_graph`'s rows and lines, `useChain` with a `trees` section, `pack_units` shelving at `page_wide`. One test changed: core `fold.test.ts` now expects `auto` for a layer saying nothing |
+| **tests** | none written for steps 2–6b: the views, layout and routing are still moving. Removed as testing replaced behaviour: the seat fan-out and `seated` cases, the pixel packer's placement and satellite cases, the old `tidy`. Once settled — `seat_all` (anchors, auto and placed interfaces, tie seats, fans), `route` (straight, Z, L, stubs), `middle_of` past the fan, `flow` / `on_grid`, `page_graph` hugging, `definition_graph` cells, the `arrange` act, `tied` ordering, `is_interface` by chain. Two core tests changed: an interface asked for with a side and no `at` is refused, so they make one with neither |
 | **driving** | the Edge drives lived in the session's scratchpad, not the repo; the `vitest` skill says how to drive again |
-| **commit** | suggested: *Views by card and two trees: system views on the rail drawing both trees, definition and folder views, structure apart from definitions, auto layout by default, one-shape tray* |
+| **commit** | suggested, as one or split: *Route lines from shared face anchors; interfaces place themselves* · *Lay out auto layers on a reading-order grid; arrange by relations on request* |
 
 ### Running it
 
@@ -293,6 +370,8 @@ Collected on the showcase's relations layer first, then fixed.
 | **open a card** | select it and press Enter; double-click on a name renames it. A definition opens on its definition view; Enter on its middle card opens its structure. The showcase's layers are blocks: each opens inside, on `auto`; dragging a card there hands the layer to `free` |
 | **see the system views** | *package* and *profile* on the rail. The profile follows what is picked on it |
 | **see every definition view box** | the showcase's *Pump*: what it extends, ports in, out and both, a tag, its traits, its description |
+| **see routing** | the showcase's *Relations* and *Interfaces* layers; *Interfaces* has ports placed, auto, in a face's middle, a line to the room and the room's own port |
+| **arrange a layer** | *arrange* on the rail, while the layer is `auto`: an ordinary step, undone like any other |
 
 ### Where it lives
 
@@ -306,8 +385,12 @@ Collected on the showcase's relations layer first, then fixed.
 | core `session.ts` | `see`: a system view chosen, or back to the layer; `move` remembering each section's last view |
 | views `definition.ts` | the definition view's graph |
 | views `block.ts` | the projection per view; the folder view paged where nobody arranged it, its room hugging what it holds; `across` handed to an `auto` layer |
-| views `survey.ts` · `profile.ts` | the package view, `tops` boxing a tree's top level; the profile's rows per level and the lines into them |
-| views `pack.ts` · `arrange.ts` · `page.ts` | `auto`'s clusters in reading order, shelved at `page_wide` |
+| views `survey.ts` · `profile.ts` | the overhead view, `tops` boxing a tree's top level; the profile's rows per level and the lines into them |
+| views `seat.ts` | `seat_all`: one anchor per face, interfaces auto and placed, tie seats, fan points; `nearest_seat` |
+| views `route.ts` | `route`: straight, Z at the fan point, L, or stubs joined; `middle_of` past the fan |
+| views `grid.ts` | `flow`, `on_grid`, `in_rows`, `whole` |
+| views `pack.ts` · `arrange.ts` · `page.ts` | `auto` in reading order through `flow` at `across_of`; `free` as stored; `tidy` from the scene; page boxes hugging |
+| core `actions/relations.ts` | `relate`, the `interface` act (a seat both or neither), `free`; `module` as a run's type |
 | views `face.ts` | `face_table` / `table` (rows and column widths), `fit_of` sizing both |
 | views `derive.ts` | `carried`, with `opens`; `trail_of`; `empty_of` |
 | stage `room.ts` | a scrolled drawing's room hugs it; the camera reads it as a page |
@@ -315,13 +398,14 @@ Collected on the showcase's relations layer first, then fixed.
 | tray `Element.tsx` · `Settings.tsx` · `Tray.tsx` | the one first tab, card or line, in the settings tab's layout; the settings tab drawing the element in hand (`shown`); the tab sets |
 | web `App.tsx` | the rail's views, drawn with `tops`; an `auto` layer read as a page; definition view edits routed through `aspect_acts` and `attach_of` |
 
-### Step 6 — where to start
+### Step 7 — where to start
 
 | File | Holds |
 |---|---|
-| views `route.ts` | runs, lanes and detours |
-| views `seat.ts` | where a run meets a card — and where a tie should meet a corner |
-| stage `Wire.tsx` | how a run and its name draw |
+| stage `Flow.tsx` · `gestures.ts` | pointer gestures and what each reports |
+| stage `draw.ts` · `drag.ts` · `moves.ts` | right-drag drawing, dragging, and the writes a drop makes |
+| stage `Stage.tsx` | the right-button menus per gesture (`OFFERS`, `list_for`) |
+| core `actions/` | the acts a gesture ends in: `create`, `relate`, `interface`, `note` |
 
 ### Carried over
 
@@ -332,22 +416,27 @@ Collected on the showcase's relations layer first, then fixed.
 | cards-plan | notes draw their name, not their body, through `NoteNode` rather than `CardFace` |
 | this plan | mndmap, or anything fetching the catalogue by name, asks for `entity-relation`, not `erd` |
 | step 8 | lineage and links as a package structure; boxes for a definition's usages and their groups |
+| steps 6, 6b | the kit changed again under mndmap: `is_interface(graph, id)`, by type chain, and a plain interface stores `type: "interface"`; `fromSide` / `toSide` and `set_side` gone; `set_port` carries `seat`, a side and place or null; `seat_all` replaces `assign_seats` / `seated` / `perched`; `Seating.hidden`; `LineData.fan` replaces `clear`; `nearest_seat(on, at, taken)` and `taken_on`; `tidy(graph, scene)`; `pack_units(sized, across)`; `page_wide` gone for `across_of`; `GAP` is 2 units and `PAD` 1; new `free` and `arrange` acts. 2026-10-10: `ViewKind` says `overhead` for `package`; the icon is `view_overhead`. Step 10: `Relation.dir` and the `set_dir` op are gone for the `line.dir` setting (`dir_of`, `DIRS`); `relate` joins a line already there |
 
 ### Known rough edges
 
 | | |
 |---|---|
 | **the root layer is a definition** | `main` lists in both explorer sections; open above |
-| **the package view's name** | it draws both trees — every package and each tree's top level — so *package* undersells it |
-| **the rail's system views** | both sections offer *package* and *profile*, which now draw the same thing; they could be listed once |
 | **camera on a profile** | picking on the profile re-draws it lower on the page than it first opens |
 | **a React warning** | `flushSync was called from inside a lifecycle method` showed once while driving the profile; not traced, and not checked against the last commit |
 | **a usage cannot carry a trait** | traits are a definition's alone, so the cards layer shows each look as a card's own setting |
-| **a page under the crumbs** | the package view scrolls its top under the crumbs; the page could start below them |
-| **`dir: "one"`** | an old value the door passed silently in the retired sample; worth the door refusing unknown `dir` |
+| **a page under the crumbs** | the overhead view scrolls its top under the crumbs; the page could start below them |
+| **the door passes unknown relation fields** | a file still storing `dir` on a relation (no longer a field) reads in silently and its arrows vanish; worth the door refusing fields it does not know, as it once passed `dir: "one"` |
 | **faint marks on table cards** | marks draw at the theme's half opacity, so on a dark card the last row's mark is hard to see |
-| **definition view lines** | lines from boxes below the card share one run into its foot; step 6's routing |
 | **definition view menu** | the middle card's menu still offers *delete block*, and the note's *delete note*; on this view both do nothing |
 | **inherited ports** | the definition view draws a definition's own ports, not those it inherits |
 | **a preview's size** | a reference previewing a table is sized from what it previews, its own marks added; its own look's border is not read |
 | **the definition record's chip is gone** | the tray shows a definition's own word only; what it reads resolved down its chain is no longer shown anywhere |
+| **relation-heavy layers wait for *arrange*** | `auto` reads in order, so a data model draws Z-shaped links until arranged |
+| **a tall card makes a tall row** | short cards beside it leave space under them; rows never span |
+| **a card off the guides** | a card narrower than its column, or a table card sized to the pixel, sits centred, its edges half a unit off the guides |
+| **a group aligns by its middle** | a card related to a member inside a group lines up with the group, not the member, so its line may Z |
+| **a port in the definition view** | it draws as a plain card, its type dropped, so it reads *block* there |
+| **ports dragged a short way** | React Flow's drag threshold eats the first pixels, so a short drag can land a seat short of where it was let go |
+| **the React warning** | `flushSync was called from inside a lifecycle method` showed again once, opening the overhead view from a layer |

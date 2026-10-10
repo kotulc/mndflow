@@ -32,11 +32,12 @@ export function in_rows(sized: readonly ({ id: Id } & Size)[], across: number): 
 }
 
 /** Units flowed in reading order onto standard columns, a default card wide and `across` to a
- *  row: one wider spans as many columns as it needs, centred across them. Each row is as tall as
- *  its tallest unit, every unit at its top. */
+ *  row: one wider spans as many columns as it needs, centred across them, overhanging into at
+ *  most half a gap before it takes another. Each row is as tall as its tallest unit, every unit
+ *  at its top. */
 export function flow(units: readonly ({ id: Id } & Size)[], across: number): Placed[] {
   const pitch = BLOCK.w + GAP;
-  const span = (u: Size) => Math.max(1, Math.ceil((u.w + GAP) / pitch - 1e-6));
+  const span = (u: Size) => Math.max(1, Math.ceil((u.w + GAP / 2) / pitch - 1e-6));
   const wide = Math.max(across, ...units.map(span));
 
   /** Rows in reading order, a new one when the next unit would pass `wide` columns. */

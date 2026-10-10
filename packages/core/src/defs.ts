@@ -3,8 +3,9 @@
 
 import { FORMS, type Settings } from "./components";
 import { organizes } from "./holders";
-import { BASE_BLOCKS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, type Block, type BlockModule,
-         type Attribute, type Components, type Definition, type Graph, type Id } from "./types";
+import { BASE_BLOCKS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIRS, type Block,
+         type BlockModule, type Attribute, type Components, type Definition, type Dir, type Graph,
+         type Id } from "./types";
 
 /** A definition's domain: what its usages are. Read off its base, never stored. */
 export type Domain = "block" | "relation";
@@ -156,6 +157,13 @@ export function base_of(graph: Graph, id: Id): Id {
   if (!b) return "block";
   if (b.of) return "reference";
   return base_named(graph, b.def ? b.id : b.type) ?? "block";
+}
+
+/** Which way a line points, or a relation definition's lines: `line.dir` down its chain, none
+ *  where nothing says. */
+export function dir_of(graph: Graph, id: Id): Dir {
+  const said = setting_of(graph, id, "line")["dir"];
+  return (DIRS as readonly unknown[]).includes(said) ? said as Dir : "none";
 }
 
 /** What a relation descends from: its type's base, a plain `line` where it names none. */

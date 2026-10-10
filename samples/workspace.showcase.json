@@ -14,7 +14,7 @@
           "folder": 1,
           "reference": 11,
           "interface": 10,
-          "relation": 21,
+          "relation": 20,
           "group": 2,
           "grid": 1
         }
@@ -992,7 +992,7 @@
         "parent": "l_rel",
         "alias": 5,
         "order": 1,
-        "name": "Each direction, a name, arrows and a tie; then a run past a third block, two runs between one pair (they overlap), two runs that cross, a pair close together, and a hub whose lines share a trunk and fan out. Lines leave the middle of a face, run straight or in one Z, and draw under cards; a tie joins nearest corners.",
+        "name": "Each direction, a name, arrows and a tie; then a run past a third block, a pair related both ways as one line, two runs that cross, a pair close together, and a hub whose lines share a trunk and fan out. Lines leave the middle of a face, run straight or in one Z, and draw under cards; a tie joins nearest corners.",
         "type": "note",
         "w": 648,
         "h": 72
@@ -1917,36 +1917,51 @@
         "from": "r_fwd_a",
         "to": "r_fwd_b",
         "alias": 1,
-        "dir": "forward"
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "r_back": {
         "id": "r_back",
         "from": "r_back_a",
         "to": "r_back_b",
         "alias": 2,
-        "dir": "back"
+        "settings": {
+          "line": {
+            "dir": "back"
+          }
+        }
       },
       "r_both": {
         "id": "r_both",
         "from": "r_both_a",
         "to": "r_both_b",
         "alias": 3,
-        "dir": "both"
+        "settings": {
+          "line": {
+            "dir": "both"
+          }
+        }
       },
       "r_none": {
         "id": "r_none",
         "from": "r_none_a",
         "to": "r_none_b",
-        "alias": 4,
-        "dir": "none"
+        "alias": 4
       },
       "r_named": {
         "id": "r_named",
         "from": "r_named_a",
         "to": "r_named_b",
         "alias": 5,
-        "dir": "forward",
-        "name": "feeds"
+        "name": "feeds",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "r_arrows": {
         "id": "r_arrows",
@@ -1972,105 +1987,145 @@
         "from": "r_det_a",
         "to": "r_det_b",
         "alias": 8,
-        "dir": "forward"
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
-      "r_par_1": {
-        "id": "r_par_1",
+      "r_par": {
+        "id": "r_par",
         "from": "r_par_a",
         "to": "r_par_b",
         "alias": 9,
-        "dir": "forward",
-        "name": "request"
-      },
-      "r_par_2": {
-        "id": "r_par_2",
-        "from": "r_par_b",
-        "to": "r_par_a",
-        "alias": 10,
-        "dir": "forward",
-        "name": "reply"
+        "name": "request / reply",
+        "settings": {
+          "line": {
+            "dir": "both"
+          }
+        }
       },
       "r_cross_1": {
         "id": "r_cross_1",
         "from": "r_x_a",
         "to": "r_x_d",
-        "alias": 11,
-        "dir": "forward"
+        "alias": 10,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "r_cross_2": {
         "id": "r_cross_2",
         "from": "r_x_b",
         "to": "r_x_c",
-        "alias": 12,
-        "dir": "forward"
+        "alias": 11,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "r_gap": {
         "id": "r_gap",
         "from": "r_gap_a",
         "to": "r_gap_b",
-        "alias": 13,
-        "dir": "forward"
+        "alias": 12,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "r_fan_0": {
         "id": "r_fan_0",
         "from": "r_hub",
         "to": "r_spoke_0",
-        "alias": 14,
-        "dir": "forward",
-        "name": "to one"
+        "alias": 13,
+        "name": "to one",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "r_fan_1": {
         "id": "r_fan_1",
         "from": "r_hub",
         "to": "r_spoke_1",
-        "alias": 15,
-        "dir": "forward",
-        "name": "to two"
+        "alias": 14,
+        "name": "to two",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "r_fan_2": {
         "id": "r_fan_2",
         "from": "r_hub",
         "to": "r_spoke_2",
-        "alias": 16,
-        "dir": "forward",
-        "name": "to three"
+        "alias": 15,
+        "name": "to three",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "p_read": {
         "id": "p_read",
         "from": "p_gauge",
         "to": "l_ports",
-        "alias": 17,
-        "dir": "forward",
-        "name": "reading"
+        "alias": 16,
+        "name": "reading",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "p_spill": {
         "id": "p_spill",
         "from": "p_tank",
         "to": "p_drain",
-        "alias": 18,
-        "dir": "forward"
+        "alias": 17,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "p_tank_pump": {
         "id": "p_tank_pump",
         "from": "p_tank",
         "to": "p_pump",
-        "alias": 19,
+        "alias": 18,
         "name": "level"
       },
       "p_flow": {
         "id": "p_flow",
         "from": "p_pump_out",
         "to": "p_tank_in",
-        "alias": 20,
-        "dir": "forward",
-        "name": "water"
+        "alias": 19,
+        "name": "water",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "p_feed": {
         "id": "p_feed",
         "from": "p_valve_out",
         "to": "p_pump_low",
-        "alias": 21,
-        "dir": "forward"
+        "alias": 20,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       }
     }
   }

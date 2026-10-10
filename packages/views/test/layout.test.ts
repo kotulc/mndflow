@@ -404,7 +404,8 @@ describe("seats", () => {
     graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group",
                                    order: 51 };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", order: 52 };
-    graph.edges["edge_out"] = { id: "edge_out", from: "block_ship", to: "block_out", dir: "forward" };
+    graph.edges["edge_out"] = { id: "edge_out", from: "block_ship", to: "block_out",
+                                settings: { line: { dir: "forward" } } };
     graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes" };
     graph.blocks["block_pad"]!.parent = "block_mid";
     const spots = under(graph, "block_board", "auto");

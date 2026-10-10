@@ -25,7 +25,7 @@ const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
   "place_block", "order_block", "set_alias", "set_counter", "size_block",
   "set_body", "set_attributes", "seat_cell", "set_grid", "link_blocks",
-  "update_edge", "delete_edge", "set_dir", "flip_edge", "set_end", "set_port",
+  "update_edge", "delete_edge", "flip_edge", "set_end", "set_port",
   "mark_port", "set_value", "drop_value", "order_values", "set_source",
   "set_tags", "set_traits", "set_setting", "drop_settings",
 ]);

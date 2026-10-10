@@ -132,12 +132,10 @@ const PATHS = {
   // entity, a card ruled into its attributes; lineage, a card extending the one above it;
   // definitions, a package's cards joined.
   view_internal: "M4.5 4.5h15v15h-15zM8.5 9.5h7v5h-7z",
-  view_package: "M4.5 4.5h15v15h-15zM7.5 7.5h4v4h-4zM12.5 7.5h4v4h-4zM7.5 13.5h9v3h-9z",
-  view_profile: "M4.5 4.5h7v3h-7zM8.5 10.5h7v3h-7zM12.5 16.5h7v3h-7z",
+  view_overhead: "M4.5 4.5h15v15h-15zM7.5 7.5h4v4h-4zM12.5 7.5h4v4h-4zM7.5 13.5h9v3h-9z",
+  view_profile: "M6.5 4.5h11v4h-11zM6.5 10h11v4h-11zM6.5 15.5h11v4h-11z",
   view_grid: "M4.5 4.5h15v15h-15zM4.5 9.5h15M4.5 14.5h15M9.5 4.5v15M14.5 4.5v15",
   view_folder: "M3.5 6.5h6l2 2h9v11h-17zM7 12h10M7 15.5h10",
-  // A definition and what surrounds it: a card in the middle, a box on each side.
-  view_definition: "M8.5 9h7v6h-7zM10 3.5h4v2.5h-4zM3.5 10.5h2.5v3H3.5zM18 10.5h2.5v3H18zM10 18h4v2.5h-4z",
 
   // The guides the drawing is measured against. **A hash: rules that run off
   // the edge**, which is what a guide is and what keeps it off `layout_grid`,

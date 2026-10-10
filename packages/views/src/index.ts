@@ -9,6 +9,7 @@ export * from "./size";
 export * from "./arrange";
 export * from "./seat";
 export { drawn, middle_of, route, STUB } from "./route";
+export { avoided_run, load_avoid, routes_of } from "./avoid";
 export * from "./svg";
 export * from "./text";
 

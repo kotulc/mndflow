@@ -135,11 +135,6 @@ function apply(graph: Graph, m: Mutation): void {
     case "delete_edge":
       delete graph.edges[m.id];
       return;
-    case "set_dir": {
-      const e = graph.edges[m.id];
-      if (e) e.dir = m.dir;
-      return;
-    }
     case "flip_edge": {
       const e = graph.edges[m.id];
       if (!e) return;

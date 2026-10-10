@@ -20,7 +20,8 @@ const CLASS_LOOK = {
 };
 
 /** An instance's line: dashed, an open head at the class, and no name of its own. */
-const INSTANCE = { line: { to_arrow: "open", name: "hide" }, style: { border_style: "dashed" } };
+const INSTANCE = { line: { dir: "forward", to_arrow: "open", name: "hide" },
+                   style: { border_style: "dashed" } };
 
 /** The class card's id is its definition's, under this prefix. */
 const CLASS = "class:";
@@ -49,8 +50,7 @@ export function fields_graph(graph: Graph, layer: Id): Graph | null {
   uses.forEach((use, n) => {
     blocks[use.id] = { ...use, order: n + 1, settings: LISTED };
     const line = `instance:${use.id}`;
-    edges[line] = { id: line, from: use.id, to: top, type: "line", dir: "forward",
-                    settings: INSTANCE };
+    edges[line] = { id: line, from: use.id, to: top, type: "line", settings: INSTANCE };
   });
   const drawn: Graph = { ...graph, blocks, edges };
   return { ...drawn, blocks: placed(drawn, top, uses.map((use) => use.id)) };

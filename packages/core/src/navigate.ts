@@ -3,7 +3,7 @@
  *
  *  A host cuts the workspace into sections (`sections.ts`); the canvas looks at one of them in
  *  one view. A layer view draws one block, and **its card's kind says which** (`lens_of`);
- *  `package` and `profile`, the only views chosen, draw the whole section — every root the
+ *  `overhead` and `profile`, the only views chosen, draw the whole section — every root the
  *  section above lists — down to its cut, the pick brought into sight. */
 
 import { holds_any } from "./capabilities";
@@ -34,8 +34,8 @@ export const EDITOR: Tiers = {
   top: "forest",
   sections: [
     { id: "definitions", label: "definitions", cut: "tree",
-      views: ["package", "internal", "profile"] },
-    { id: "structure", label: "structure", cut: null, views: ["internal", "package", "profile"] },
+      views: ["overhead", "internal", "profile"] },
+    { id: "structure", label: "structure", cut: null, views: ["internal", "overhead", "profile"] },
   ],
 };
 
@@ -216,7 +216,7 @@ export function held_at(graph: Graph, tiers: Tiers, view: View): Held | null {
 
 /** A view of a layer where nothing says more: on its own view, in the section deepest listing it.
  *  With none, the first section whole, never from inside: under a forest, every package's
- *  domain — the package view. */
+ *  domain — the overhead view. */
 export function view_on(graph: Graph, tiers: Tiers, views: Views, layer: Id | null): View {
   if (layer && graph.blocks[layer]) {
     const { roots, held } = trace(graph, tiers, layer);
@@ -225,6 +225,6 @@ export function view_on(graph: Graph, tiers: Tiers, views: Views, layer: Id | nu
   }
   const said = view_of(tiers, views, 0);
   const kind = !is_layer_view(said) ? said
-    : tiers.sections[0]?.views.find((v) => !is_layer_view(v)) ?? "package";
+    : tiers.sections[0]?.views.find((v) => !is_layer_view(v)) ?? "overhead";
   return { at: 0, kind, layer: tiers.top === "forest" ? null : graph.root, pick: null };
 }

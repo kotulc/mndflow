@@ -19,7 +19,7 @@ function trim<T extends object>(o: T): T {
 }
 
 /** Keys a record writes first; the rest follow alphabetically. */
-const FIRST = ["id", "parent", "name", "type", "def", "of", "side", "dir"];
+const FIRST = ["id", "parent", "name", "type", "def", "of", "side"];
 
 const by_key = ([a]: [string, unknown], [b]: [string, unknown]): number => {
   const x = FIRST.indexOf(a), y = FIRST.indexOf(b);

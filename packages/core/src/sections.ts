@@ -15,8 +15,8 @@ export type Cut = "package" | "tree" | null;
  *  inside (`internal`), an opened grid's lattice (`grid`), a package's or folder's contents read
  *  down the page (`folder`), or a definition with what describes it round it (`definition`).
  *  **System views** draw a whole section, and are the only ones chosen: from above as nested
- *  boxes (`package`), or as a depth-wise slice (`profile`). */
-export type ViewKind = "internal" | "grid" | "folder" | "definition" | "package" | "profile";
+ *  boxes (`overhead`), or as a depth-wise slice (`profile`). */
+export type ViewKind = "internal" | "grid" | "folder" | "definition" | "overhead" | "profile";
 
 /** The views that draw one block. A section offers them as one choice, `internal`, and the block
  *  opened says which it shows. */

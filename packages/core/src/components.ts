@@ -1,6 +1,6 @@
 /** The module contract: what a module publishes, and what validates it. */
 
-import { BASE_RELATIONS, BLOCK_MODULES, type Components } from "./types";
+import { BASE_RELATIONS, BLOCK_MODULES, DIRS, type Components } from "./types";
 
 /** What a definition holds under one component's key. */
 export type Settings = Record<string, unknown>;
@@ -250,16 +250,18 @@ const style: Component = {
                                "label_font", "label_weight", "label_contrast"]),
 };
 
-/** What a run draws: a head at each end, and whether it says its own name. */
+/** What a run is and draws: which way it points, a head at each end, and whether it says its own
+ *  name. */
 const line: Component = {
   name: "line",
   check: (config) =>
-    one_of("line.from_arrow", config["from_arrow"], ARROWS)
+    one_of("line.dir", config["dir"], DIRS)
+    ?? one_of("line.from_arrow", config["from_arrow"], ARROWS)
     ?? one_of("line.to_arrow", config["to_arrow"], ARROWS)
     /** The identity line, exactly as a card asks it. */
     ?? one_of("line.name", config["name"], SHOWN)
     ?? one_of("line.alias", config["alias"], SHOWN)
-    ?? stray("line", config, ["from_arrow", "to_arrow", "name", "alias"]),
+    ?? stray("line", config, ["dir", "from_arrow", "to_arrow", "name", "alias"]),
 };
 
 

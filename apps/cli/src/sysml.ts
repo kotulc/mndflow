@@ -157,7 +157,7 @@ export function from_sysml(text: string, known: readonly Block[] = []): Graph {
     if (!from || !to) continue;
     const id = `sysml:edge:${from}>${to}`;
     graph.edges[id] = { id, from, to, type: l.type,
-                        ...(l.word === "flow" ? { dir: "forward" as const } : {}) };
+                        ...(l.word === "flow" ? { settings: { line: { dir: "forward" } } } : {}) };
   }
   return graph;
 }

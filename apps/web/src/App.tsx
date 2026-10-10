@@ -108,7 +108,7 @@ export function App({ storage }: { storage: Storage }) {
    *  anything is placed. */
   apply_card(card.w, card.h);
 
-  /** How many cards the package view's rows hold: as many as the canvas is wide. */
+  /** How many cards the overhead view's rows hold: as many as the canvas is wide. */
   const [canvas, set_canvas] = useState<HTMLElement | null>(null);
   const room = useWidth(canvas);
   const across = Math.max(2, Math.floor(room / ((card.w + UNITS.gap) * UNITS.unit * READ)) );
@@ -124,7 +124,7 @@ export function App({ storage }: { storage: Storage }) {
     [graph, view.layer, view.kind, view.at, target, shown.interfaces, card, across]);
 
   /** **The sections follow the canvas** — one rule (`held_at`), whatever moved it: the layer opened,
-   *  or a pick on the package view. Browsing outside the open structure moves neither. */
+   *  or a pick on the overhead view. Browsing outside the open structure moves neither. */
   const follow = () => {
     const held = held_at(s.graph(), EDITOR, s.view());
     if (held) chain.onTrace(held.path, held.at);
@@ -402,7 +402,7 @@ export function App({ storage }: { storage: Storage }) {
 /** The editor's sections, made once. */
 const SLICES = editor_slices();
 
-/** How large the package view draws a card: its own size. */
+/** How large the overhead view draws a card: its own size. */
 const READ = 1;
 
 /** How wide an element is, in pixels, as it is resized; nothing until there is one. */

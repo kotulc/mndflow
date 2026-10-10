@@ -1,7 +1,7 @@
 /** The `page` layout: a layer's holders as boxes down the page.
  *
  *  Each box flows its cards onto standard cells, `across` to a row, and its own groups under them
- *  as boxes of their own, each hugging what it holds. What the package view draws: every package a box, its groups
+ *  as boxes of their own, each hugging what it holds. What the overhead view draws: every package a box, its groups
  *  and folders nested inside it. Drawn, never stored: a place and a width live only in the graph
  *  handed back. */
 
@@ -36,6 +36,10 @@ export function page_graph(graph: Graph, layer: Id): Graph {
   const need = (at: Id | null): number => Math.max(
     reach(grid(at)), ...boxes(at).map((b) => need(b.id) + PAD * 2));
 
+  /** Where the layer says `even`, its own boxes are all as wide as the widest. */
+  const even = setting_of(graph, layer, "layout")["even"] === true
+    ? Math.max(0, ...boxes(layer).map((b) => need(b.id))) : 0;
+
   /** What a box holds, from its own corner: its cards, then its groups below, each hugging what it
    *  holds. How far down it reaches. */
   const lay = (at: Id | null): number => {
@@ -46,7 +50,7 @@ export function page_graph(graph: Graph, layer: Id): Graph {
       if (y > 0) y += GAP;
       const tall = lay(box.id);
       const b = blocks[box.id]!;
-      blocks[box.id] = { ...b, w: need(box.id),
+      blocks[box.id] = { ...b, w: at === layer ? Math.max(even, need(box.id)) : need(box.id),
                          settings: { ...b.settings, layout: { kind: "free" } } };
       put(box.id, 0, y);
       y += Math.max(tall, size_of(graph, box.id).h) + PAD * 2;
