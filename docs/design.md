@@ -116,13 +116,13 @@ Most rules below are one of these applied.
 - **an interface is a light block, a part of its owner**: a name, a type, a flow (`in`, `out`, `both`; absent is both), tags and settings. It holds nothing, has no interfaces, no cell and no size, and lists in the explorer only as a definition. It is an interface by its type chain, not by a field
 - **auto or placed**: an interface with no `side` and `at` is auto: on every draw it sits on the face most of its lines look out of, at the free seat nearest the middle — the middle itself while no line meets that face. One with both is placed: it keeps its seat, the middle included, and no line lands there
 - **a line leaves the middle of the face looking at its other end**: every line on a face shares that anchor; where a placed interface holds the middle, the anchor is the free seat nearest it. Placing an interface is the only way to move an end
-- **a run is straight, or a Z**: lines sharing an anchor run as one trunk to a fan point — halfway across the gap to the nearest card they reach — and split there. A Z's cross leg sits at the busier end's fan point
-- **lines draw under cards**: a run never detours round a card it does not end on
+- **a run goes round cards**: square, round every card and note it does not end on, with the fewest bends; boxes, rooms and grids are never in its way. Lines sharing an anchor share a trunk and branch where their ways part. Where seats are ours, the path is the router's: an end never leaves its seat or its face
+- where the router is not loaded (the CLI, tests), a run is straight or one Z, under cards: lines sharing an anchor run as one trunk to a fan point, halfway across the gap to the nearest card they reach, and split there
 - **several lines between one pair overlap** unless an interface is placed to part them: separate seats are always stated, never worked out
 - **a line to a box meets it straight across**: a box drawn round others — a room, a group, a flattened folder, a profile's row — is met straight across from where the other end leaves, wherever that lies along its wall; else at its anchor
 - **in an internal view a line ends at the frame**: it leaves the card's face nearest a wall and runs straight to it. The layer's auto interfaces sit straight across from the card they link; a placed one keeps its seat, and its line may Z
 - **a tie runs straight**: where two cards face each other squarely, across the gap at the middle of where their faces overlap, unless a line or interface already meets the face there; otherwise from nearest corner to nearest corner. It shares no anchor and never fans; overlapping cards draw no tie
-- a line's name sits on its own leg, past the fan point, never on a shared trunk; too wide for a level leg, it reads upright across it
+- a line's name sits on its own longest leg, never on a shared trunk; too wide for a level leg, it reads upright across it
 
 ### Attributes and types
 

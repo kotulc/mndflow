@@ -154,7 +154,7 @@ Collected on the showcase's relations layer first, then fixed.
 | core `door.ts` · `fold.ts` · `actions/relations.ts` | `fromSide`/`toSide`/`set_side` gone; an interface refusing what it may not carry |
 | stage `Wire.tsx` · `draw.ts` · `gestures.ts` | ties drawn straight; names on their own leg; side gestures gone |
 
-**Built 2026-10-09, driven in Edge, code-reviewed.** Settled while driving:
+**Revised by step 10**, 2026-10-10: lines go round cards (libavoid) rather than under them, and a line to a box meets it straight across; shared anchors and trunks stay. **Built 2026-10-09, driven in Edge, code-reviewed.** Settled while driving:
 
 | Settled | |
 |---|---|
@@ -283,60 +283,42 @@ Collected on the showcase's relations layer first, then fixed.
 
 ## 10 — Routing and system views, again
 
-**Workshopped 2026-10-10.** The two system views are different projections of one hierarchy, not the same thing: overhead from above, profile from the side.
+**Workshopped and built 2026-10-10, driven in Edge.** The two system views are different projections of one hierarchy: overhead from above, profile from the side. Lines go round cards; a relation's definition says what it describes, never its name.
 
 | Decided | |
 |---|---|
 | **overhead** | the system view called *package* is renamed back to **overhead** |
 | **boxes, not groups** | what a view draws round what a block holds is a **box**, solid rimmed (`flattened`): the overhead view's folders and the profile's rows alike. A **group** is one somebody made, dashed — kept apart for tracing |
-| **profile rows even** | every row is as wide as the widest (`layout.even`), so each block on the way is over the row it holds |
+| **profile rows even** | every row as wide as the widest (`layout.even`), so each block on the way is over the row it holds |
 | **a line to a box meets it straight across** | from where the other end leaves, wherever that lies along the box's wall: the room's rule, generalized. The profile's lines drop straight down |
-| **`GAP` 2 units** | trying 2 between cells, from 3 |
-| **layout may read relations** | the problem was how, not whether: the rule needs to be general |
-| **direction is a setting** | `line.dir`, inherited down a relation's chain and overridable on the line, replaces the stored `dir` field and the `set_dir` op; `direct` writes it, given back where it is what the type says |
-| **one line per pair and type** | `relate` (and so a right drag) onto ends a line of that type already joins adds no line: the line takes the new way too, so drawing back makes it `both`. A tie beside a line stays apart |
-| **labels as vocabulary** | leaning yes, once the tag / trait / type split is reworked: relation settings show no traits, and definition views show only a definition's own traits and settings, not those it inherits |
-| **shared seats stay** | lines on a face share its middle and branch off past the fan point; a separate seat is stated, by placing an interface. Own seats per line were tried 2026-10-10 and dropped: messier, and awkward routing downstream |
+| **`GAP` 2 units** | from 3; names crowd more, so a name too wide for its level leg reads upright |
+| **spans overhang** | a unit overhangs into half a gap before it takes another column: a hand-sized note no longer leaves empty cells |
+| **lines go round cards** | libavoid routes every line at once, square, fewest bends, round cards and notes. Ours: each end is a pin at our seat, leaving only by its face; ties never routed; boxes, rooms and grids not in the way |
+| **shared seats stay** | lines on a face share its middle and branch where their ways part; a separate seat is stated, by placing an interface. Own seats per line were tried and dropped: messier, awkward routing downstream |
+| **direction is a setting** | `line.dir`, inherited down a relation's chain and overridable on the line, replaces the stored `dir` field and `set_dir`; `direct` writes it, given back where it is what the type says |
+| **one line per pair and type** | `relate` onto ends a line of that type already joins adds no line: the line takes the new way too, so drawing back makes it `both`. A tie beside a line stays apart |
+| **extends is a line** | on the definition view, what a definition extends is a card of its own, no box, joined by a line named *extends* |
+| **icons** | profile a stack of blocks; the definition view wears the `Def` word and says *definition*; the rail 74px wide to fit it |
+| **arrange stays explicit** | the layout reads relations only on *arrange*; a general rule for it is still open |
 
-| Seen at `GAP` 2 | |
+| Built | |
 |---|---|
-| **names clip** | *reply / request*, *to one*, *to three*, *feeds* cut short in a 2-unit gap |
-| **lines under cards** | the tie from *Both* runs under the tie note; *Part* to *Answers* runs under it too |
-| **a different face, fewer bends** | lines Z where leaving another face would draw an L or a straight run |
+| core `sections.ts` · `navigate.ts` · options `groups.ts` · theme `icons.tsx` · views `block.ts` | `overhead` for `package`; icons |
+| views `profile.ts` · `page.ts` · `survey.ts` | rows as flattened boxes; `even` widths |
+| views `seat.ts` | `across_box`: an end on the room or a box, straight across; one shared anchor per face otherwise |
+| views `avoid.ts` | `load_avoid` (web `main.tsx`, the wasm by a Vite alias), `routes_of(scene)`, `avoided_run` |
+| stage `Flow.tsx` · `Wire.tsx` · views `svg.ts` | the stage routes from its nodes as they stand and the room as it hangs it (`RunsContext`), about 2ms a pass; a run is drawn while its ends lie within half a unit of the handles and every leg is square, else `route` |
+| views `route.ts` | `middle_of(run, fan, chars)`: upright names |
+| views `grid.ts` · `size.ts` · `definition.ts` | overhang; `GAP` 2; *extends* as a line |
+| core `types.ts` · `defs.ts` · `components.ts` · `actions/relations.ts` · `actions/grid.ts` | `DIRS`, `dir_of`, `line.dir` checked; `relate` joins a twin (`twin_of`, `joined`); `direct` and `chain` write the setting |
+| samples · fixtures · `scripts/showcase.mjs` | `line.dir`; request / reply one `both` line |
 
-| Built 2026-10-10 | |
+| Seen, still open | |
 |---|---|
-| core `sections.ts` · `navigate.ts` · options `groups.ts` · theme `icons.tsx` · views `block.ts` | `overhead` for `package` |
-| views `profile.ts` · `page.ts` | rows as flattened boxes; `even` widths |
-| views `seat.ts` | `across_box`: an end on the room or a box, straight across |
-| views `size.ts` | `GAP` 2 units |
-| views `route.ts` · stage `Wire.tsx` · views `svg.ts` | a name too wide for its level leg reads upright (`middle_of(run, fan, chars)`) |
-| views `grid.ts` | a unit overhangs into half a gap before it spans another column: a hand-sized note no longer leaves empty cells |
-| views `definition.ts` | what it extends is a card, no box, joined by a line named *extends* |
-| theme `icons.tsx` · options | profile icon a stack; the definition view wears the `Def` word, says *definition*; the rail 74px wide to fit it |
-
-| Routing, next | |
-|---|---|
-| **try libavoid-js** | orthogonal routing round cards, fewest bends, parallel runs nudged apart. Kept in our hands: where an end meets a card (pins at our seats, with the faces it may leave by), straight runs we decide (not routed), checkpoints, penalties. To find out: shared trunks, async wasm load, LGPL-2.1 |
-| **arrange stays explicit** | the layout reads relations only on *arrange* |
-
-**libavoid tried 2026-10-10, driven in Edge.** views `avoid.ts`: `load_avoid` (web `main.tsx`, the wasm by a Vite alias); `routes_of(scene)` routes every line at once. The stage routes from its live nodes and the room as it hangs it (`Flow` → `RunsContext` → `Wire`), so a drag routes as its drop will, about 2ms a pass on the relations layer; `svg` routes the scene as projected. A run is drawn only while its ends lie within half a unit of the handles and every leg is square, else `route` as before (libavoid not loaded: the CLI, tests). design.md's *Interfaces and lines* still says the old rules until this is kept.
-
-| Kept ours | |
-|---|---|
-| **seats** | every end a pin at the seat `seat_all` gives, leaving only by its face; ends are never nudged off it |
-| **ties** | straight, never routed |
-| **what is solid** | cards and notes; boxes, rooms and grids are not, so a line crosses a box's rim |
-
-| Seen | |
-|---|---|
-| **round cards** | *to two* and *to three* go over *One*; the data model's *customer* link goes round the note; Valve's run passes under Tank |
-| **names fit** | a routed run's own leg is long, so names read level more often |
-| **parallel lines overlap** | by design: lines between one pair share both seats until an interface is placed to part them |
-| **reading order shows** | rows wrap, so a line from a row's end to the next row's start runs round the whole row |
-| **a library quirk** | a second pin on the same spot of a shape is ignored and the line drops to the shape's middle: pins are keyed by spot and shared |
-| **angled runs, fixed** | the stage widens the room to the viewport, so runs routed against the projection's room met its walls elsewhere and the end snap left them diagonal. Routed against the room as hung, and a run snapped off square is refused |
-| **drag and drop disagreed, fixed** | routes were worked out once per projection, so a drag drew the old router and the drop libavoid |
+| **reading order shows** | rows wrap, so a line from a row's end to the next row's start runs round the whole row until *arrange* |
+| **names crowd** | two upright names in one 2-unit gap meet |
+| **libavoid's quirk** | a second pin on the same spot of a shape is ignored and its line drops to the shape's middle: pins are keyed by spot and shared |
+| **labels as vocabulary** | leaning yes, once the tag / trait / type split is reworked (see Open) |
 
 
 ## Open
@@ -351,13 +333,20 @@ Collected on the showcase's relations layer first, then fixed.
 
 ## Handoff
 
-**State, 2026-10-10: steps 1–6, 6b, 8 and 9 built, driven in Edge and committed; step 10 under way.** Typecheck clean (packages, web and cli), 270 tests green, CSS lint clean, both samples check clean. Steps 6 and 6b were code-reviewed and every finding fixed. Next: step 10, routing and layout; then step 7, canvas gestures.
+**State, 2026-10-10: steps 1–6, 6b, 8, 9 and 10 built and driven in Edge; step 10 not committed.** Typecheck clean (packages, web and cli), 270 tests green, CSS lint clean, both samples check clean. Step 10 was not code-reviewed.
+
+| Next | |
+|---|---|
+| **keep libavoid?** | confirm: design.md and spec.md now describe routing round cards. If kept, weigh LGPL-2.1, a beta (`0.5.0-beta.5`) and a ~490KB wasm, also in the kit mndmap vendors |
+| **arrange, generally** | a rule for the layout to read relations: crossing reduction by reordering within reading order is the candidate |
+| **tag / trait / type split** | then whether a line's label is a tag |
+| **step 7** | canvas gestures |
 
 | Not yet | |
 |---|---|
-| **tests** | none written for steps 2–6b: the views, layout and routing are still moving. Removed as testing replaced behaviour: the seat fan-out and `seated` cases, the pixel packer's placement and satellite cases, the old `tidy`. Once settled — `seat_all` (anchors, auto and placed interfaces, tie seats, fans), `route` (straight, Z, L, stubs), `middle_of` past the fan, `flow` / `on_grid`, `page_graph` hugging, `definition_graph` cells, the `arrange` act, `tied` ordering, `is_interface` by chain. Two core tests changed: an interface asked for with a side and no `at` is refused, so they make one with neither |
-| **driving** | the Edge drives lived in the session's scratchpad, not the repo; the `vitest` skill says how to drive again |
-| **commit** | suggested, as one or split: *Route lines from shared face anchors; interfaces place themselves* · *Lay out auto layers on a reading-order grid; arrange by relations on request* |
+| **tests** | none for steps 2–10: views, layout and routing still move. Once settled — `seat_all` (anchors, auto and placed interfaces, tie seats, box ends), `routes_of` / `avoided_run`, `route`, `middle_of` (upright), `flow` (overhang) / `on_grid`, `page_graph` (`even`), `definition_graph`, the `arrange` act, `is_interface` by chain; `dir_of`, `relate` joining a twin, `direct` |
+| **driving** | the Edge drives lived in the session's scratchpad; the `vitest` skill says how to drive again |
+| **commit** | suggested, as one or split: *Overhead and profile draw boxes; profile drops straight down* · *Route lines round cards with libavoid* · *Make line direction an inherited setting; join a line drawn over one already there* |
 
 ### Running it
 
@@ -368,9 +357,10 @@ Collected on the showcase's relations layer first, then fixed.
 | **see what a layer holds** | `npm run start -s -w @mnd/cli -- outline ../../samples/workspace.showcase.json l_rel` — layer ids are `l_cards`, `l_faces`, `l_defs`, `l_rel`, `l_ports`, `l_hold`, `l_refs`, `l_model`, `l_rows` |
 | **drive the web app** | `npm run dev`, read the port off the log; import through the header's *import a workspace* button (a file chooser) |
 | **open a card** | select it and press Enter; double-click on a name renames it. A definition opens on its definition view; Enter on its middle card opens its structure. The showcase's layers are blocks: each opens inside, on `auto`; dragging a card there hands the layer to `free` |
-| **see the system views** | *package* and *profile* on the rail. The profile follows what is picked on it |
+| **see the system views** | *overhead* and *profile* on the rail. The profile follows what is picked on it, each row a box, its line dropping straight down |
 | **see every definition view box** | the showcase's *Pump*: what it extends, ports in, out and both, a tag, its traits, its description |
-| **see routing** | the showcase's *Relations* and *Interfaces* layers; *Interfaces* has ports placed, auto, in a face's middle, a line to the room and the room's own port |
+| **see routing** | the showcase's *Relations*, *Interfaces* and *Data model* layers: lines round cards, a hub's shared trunk, *request / reply* as one line both ways; *Interfaces* has ports placed, auto, in a face's middle, a line to the room and the room's own port |
+| **join a line** | the *directed* tool, right drag one card to another, then back: one line, both ways |
 | **arrange a layer** | *arrange* on the rail, while the layer is `auto`: an ordinary step, undone like any other |
 
 ### Where it lives
@@ -386,11 +376,14 @@ Collected on the showcase's relations layer first, then fixed.
 | views `definition.ts` | the definition view's graph |
 | views `block.ts` | the projection per view; the folder view paged where nobody arranged it, its room hugging what it holds; `across` handed to an `auto` layer |
 | views `survey.ts` · `profile.ts` | the overhead view, `tops` boxing a tree's top level; the profile's rows per level and the lines into them |
-| views `seat.ts` | `seat_all`: one anchor per face, interfaces auto and placed, tie seats, fan points; `nearest_seat` |
-| views `route.ts` | `route`: straight, Z at the fan point, L, or stubs joined; `middle_of` past the fan |
+| views `seat.ts` | `seat_all`: one anchor per face, an end on a box straight across (`across_box`), interfaces auto and placed, tie seats, fan points; `nearest_seat` |
+| views `avoid.ts` | libavoid: `load_avoid`, `routes_of` (every line of a scene at once, pins at our seats), `avoided_run` (drawn only while it meets the handles, square) |
+| views `route.ts` | `route` where libavoid is not loaded: straight, Z at the fan point, L, or stubs joined; `middle_of`, upright where a name is too wide |
+| stage `Flow.tsx` · `Wire.tsx` | the live routes (`RunsContext`), drawn by `Wire` |
+| core `defs.ts` | `dir_of`: `line.dir` down a line's chain |
 | views `grid.ts` | `flow`, `on_grid`, `in_rows`, `whole` |
 | views `pack.ts` · `arrange.ts` · `page.ts` | `auto` in reading order through `flow` at `across_of`; `free` as stored; `tidy` from the scene; page boxes hugging |
-| core `actions/relations.ts` | `relate`, the `interface` act (a seat both or neither), `free`; `module` as a run's type |
+| core `actions/relations.ts` | `relate` (joining a line already there, `twin_of` / `joined`), `direct`, the `interface` act (a seat both or neither), `free`; `module` as a run's type |
 | views `face.ts` | `face_table` / `table` (rows and column widths), `fit_of` sizing both |
 | views `derive.ts` | `carried`, with `opens`; `trail_of`; `empty_of` |
 | stage `room.ts` | a scrolled drawing's room hugs it; the camera reads it as a page |
@@ -416,7 +409,7 @@ Collected on the showcase's relations layer first, then fixed.
 | cards-plan | notes draw their name, not their body, through `NoteNode` rather than `CardFace` |
 | this plan | mndmap, or anything fetching the catalogue by name, asks for `entity-relation`, not `erd` |
 | step 8 | lineage and links as a package structure; boxes for a definition's usages and their groups |
-| steps 6, 6b | the kit changed again under mndmap: `is_interface(graph, id)`, by type chain, and a plain interface stores `type: "interface"`; `fromSide` / `toSide` and `set_side` gone; `set_port` carries `seat`, a side and place or null; `seat_all` replaces `assign_seats` / `seated` / `perched`; `Seating.hidden`; `LineData.fan` replaces `clear`; `nearest_seat(on, at, taken)` and `taken_on`; `tidy(graph, scene)`; `pack_units(sized, across)`; `page_wide` gone for `across_of`; `GAP` is 2 units and `PAD` 1; new `free` and `arrange` acts. 2026-10-10: `ViewKind` says `overhead` for `package`; the icon is `view_overhead`. Step 10: `Relation.dir` and the `set_dir` op are gone for the `line.dir` setting (`dir_of`, `DIRS`); `relate` joins a line already there |
+| steps 6, 6b | the kit changed again under mndmap: `is_interface(graph, id)`, by type chain, and a plain interface stores `type: "interface"`; `fromSide` / `toSide` and `set_side` gone; `set_port` carries `seat`, a side and place or null; `seat_all` replaces `assign_seats` / `seated` / `perched`; `Seating.hidden`; `LineData.fan` replaces `clear`; `nearest_seat(on, at, taken)` and `taken_on`; `tidy(graph, scene)`; `pack_units(sized, across)`; `page_wide` gone for `across_of`; `GAP` is 2 units and `PAD` 1; new `free` and `arrange` acts. 2026-10-10: `ViewKind` says `overhead` for `package`; the icon is `view_overhead`. Step 10: `Relation.dir` and the `set_dir` op are gone for the `line.dir` setting (`dir_of`, `DIRS`); `relate` joins a line already there; views depends on `libavoid-js`, whose wasm a host loads once (`load_avoid`) and routes with `routes_of` / `avoided_run` — a host that does not draws with `route` as before; `middle_of` takes the name's length; `layout.even` for pages |
 
 ### Known rough edges
 
@@ -427,6 +420,7 @@ Collected on the showcase's relations layer first, then fixed.
 | **a React warning** | `flushSync was called from inside a lifecycle method` showed once while driving the profile; not traced, and not checked against the last commit |
 | **a usage cannot carry a trait** | traits are a definition's alone, so the cards layer shows each look as a card's own setting |
 | **a page under the crumbs** | the overhead view scrolls its top under the crumbs; the page could start below them |
+| **the tray's line preview** | draws the look's head shapes only, never `line.dir`, so a directed line previews with none |
 | **the door passes unknown relation fields** | a file still storing `dir` on a relation (no longer a field) reads in silently and its arrows vanish; worth the door refusing fields it does not know, as it once passed `dir: "one"` |
 | **faint marks on table cards** | marks draw at the theme's half opacity, so on a dark card the last row's mark is hard to see |
 | **definition view menu** | the middle card's menu still offers *delete block*, and the note's *delete note*; on this view both do nothing |

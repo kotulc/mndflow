@@ -35,7 +35,7 @@ Scene {
 
 **A projection returns data, never elements.** Plain data, importing nothing drawable: a notation becomes a pure function, a translator reuses the projection instead of reimplementing it, and most of the product is provably correct before anything is drawn. **Only what draws needs a browser.** Anything that needs to break this is something to redesign rather than to allow.
 
-**Nodes and edges are in React Flow's own shape**, its types imported for shape and erased at build, so nothing headless resolves React. `stage` hands them straight to the canvas; the `cli` draws them as text and SVG with React Flow's own path functions. **Where a line runs is the projection's** (`views/route.ts`), so the canvas and the SVG export draw the same path; hit testing, the viewport and the drag stay React Flow's.
+**Nodes and edges are in React Flow's own shape**, its types imported for shape and erased at build, so nothing headless resolves React. `stage` hands them straight to the canvas; the `cli` draws them as text and SVG with React Flow's own path functions. **Where a line runs is the projection's** (`views/avoid.ts` round cards by libavoid, `views/route.ts` where it is not loaded), so the canvas and the SVG export draw the same path; the stage routes from its nodes as they stand, so a drag routes as its drop will. libavoid is a wasm the app loads once at start (`load_avoid`). Hit testing, the viewport and the drag stay React Flow's.
 
 **`views` is one package and there is one way to draw.** Sizes, placement and routing live with the projection because they are one answer, and none of them is separately runnable.
 

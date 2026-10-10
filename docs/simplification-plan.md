@@ -65,7 +65,7 @@
 |---|---|---|---|
 | 1 | **mndmap `edits.ts`** | a second action system: move, create, rename and delete re-implemented, with their own placement rules (`in_collection`, `filed`), beside core's actions | core's actions run on mndmap's held graph, or one shared placement check |
 | 4 | **two kind readers left** | the explorer now asks `role_of` (a tag's row and card once wore different icons); views `marks_of` still decides what a card reads as on its own | `role_of`, with `marks_of` mapping its answer to classes |
-| 5 | **`?? graph.root`** | the workspace root as a fallback for "no layer", from when `null` meant the workspace | each site says what it means: the package view, or the workspace's domain |
+| 5 | **`?? graph.root`** | the workspace root as a fallback for "no layer", from when `null` meant the workspace | each site says what it means: the overhead view, or the workspace's domain |
 | 6 | **explorer `listed()` vs core roles** | the chain re-derives domain and structure membership | core's `in_domain` / `tree_of`, as `held_at` uses |
 | 7 | **tray listings** | the tray's definition grouping and `rows.ts` may re-list what the explorer's chain lists | the chain's listings |
 | 8 | **stage menus** | `Stage.tsx` offers per kind (box, band, seat, note) by base strings | the registry's scopes and `when` |
