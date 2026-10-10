@@ -1,5 +1,5 @@
-/** The `base` package: one definition per functionally distinct kind, its traits, and the relation
- *  kinds — shipped and frozen. **Defined as JSON** (`base.json`), as every package is; this reads it. */
+/** The `base` package: one definition per functionally distinct kind, in a folder per branch —
+ *  blocks, relations, tags (traits and labels among them) and value types — shipped and frozen. **Defined as JSON** (`base.json`), as every package is; this reads it. */
 
 import { BASE_PACKAGE, empty_graph, type Block, type Definition, type File, type Graph } from "@mnd/core";
 import file from "./base.json";
@@ -14,8 +14,8 @@ export const FLOOR: Block[] = Object.values((file as unknown as File).graph.bloc
 /** The definitions alone. */
 export const ALL: Definition[] = FLOOR.filter((b): b is Definition => !!b.def);
 
-/** The block kinds. */
-export const BASE: Definition[] = ALL.filter((d) => !["line", "tie"].includes(d.id) && d.type !== "tag");
+/** The kinds: every definition extending nothing. */
+export const BASE: Definition[] = ALL.filter((d) => !d.type && !["line", "tie"].includes(d.id));
 
 /** The relation kinds. */
 export const RELATIONS: Definition[] = ALL.filter((d) => ["line", "tie"].includes(d.id));

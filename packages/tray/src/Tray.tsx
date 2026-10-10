@@ -4,7 +4,7 @@
  *  tabs of its own for blocks through `extras`. */
 
 import { useEffect, useState, type ReactNode } from "react";
-import { about_of, alias_of, children, def_at, def_of, domain_of, frame_of, frozen,
+import { about_of, alias_of, children, def_at, def_of, domain_of, entry, frame_of, frozen,
          is_interface, is_tag, is_trait, is_value_type, owner_of, shown_name, stands_for,
          stood_def, type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
@@ -75,9 +75,9 @@ const SLOTS: Record<Context, readonly Tab[]> = {
    *  what it lists: a usage its contents, a definition its usages. A usage's settings are its
    *  definition's, read here and edited there. A line holds no values and nothing else. */
   block: ["card", "settings", "attributes", "contents"],
-  line: ["line", "settings"],
+  line: ["line", "settings", "attributes"],
   definition: ["card", "settings", "attributes", "usages"],
-  relation: ["line", "settings", "usages"],
+  relation: ["line", "settings", "attributes", "usages"],
   library: ["definitions"],
   packages: ["packages"],
 };
@@ -199,8 +199,9 @@ export function Tray(props: TrayProps) {
   const bag = def_at(graph, about)?.settings;
   const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
   const borrowed = !!def_at(graph, about) && frozen(graph, about);
-  /** Whether it states a trait set of its own, and so has one to give back. */
-  const own_traits = !!def_at(graph, about)?.traits;
+  /** The traits it says itself, added or dropped, and so has to give back. */
+  const own_tags = def_at(graph, about)?.tags ?? [];
+  const own_traits = own_tags.some((t) => is_trait(graph, entry(t).id));
 
   /** A reference holds nothing of its own — `of` is the whole of it — so its contents is the one
    *  it stands for, listed as a row like any other and offering the way there. */
@@ -308,14 +309,13 @@ export function Tray(props: TrayProps) {
                     onClick={() => act("none", { ids: [about] })}>
               reset style
             </button>
-            {def_at(graph, about) && domain_of(graph, about) === "block" ? (
-              <button className="reset" disabled={borrowed || !own_traits}
-                      title={own_traits ? "give the traits back to what it extends"
-                                        : "it states no traits of its own to give back"}
-                      onClick={() => act("trait", { ids: [about], traits: null })}>
-                reset traits
-              </button>
-            ) : null}
+            <button className="reset" disabled={borrowed || !own_traits}
+                    title={own_traits ? "carry just the traits of what it extends"
+                                      : "it adds and drops no traits of its own"}
+                    onClick={() => act("tag", { ids: [about],
+                      tags: own_tags.filter((t) => !is_trait(graph, entry(t).id)) })}>
+              reset traits
+            </button>
           </>
         ),
       } : {})}

@@ -45,31 +45,89 @@ export function chain_of(graph: Graph, def: Id | undefined): Definition[] {
   return base ? [...chain, base] : chain;
 }
 
-/** The traits in force for an element or a definition: the nearest set stated along its
- *  definition's chain. A set stated replaces its chain's; nobody stating one leaves none. */
-export function traits_of(graph: Graph, id: Id | undefined): Id[] {
-  return chain_of(graph, id ? def_of(graph, id) : undefined).find((d) => d.traits)?.traits ?? [];
+/** The kinds of tag under `tag`: a trait gives settings, a label names a line. Each is a tag by its
+ *  chain, as an interface is an interface by its. */
+export const TRAIT = "trait";
+export const LABEL = "label";
+
+/** What one link of a chain says: the element itself, or a definition along it. */
+type Link = { id: Id; settings?: Components; tags?: string[] };
+
+/** A tag an element carries, and the link of its chain that adds it. */
+export type Carried = { id: Id; from: Id };
+
+/** One entry of a `tags` list read: `-id` drops the tag the chain carries. */
+export function entry(said: string): { id: Id; drop: boolean } {
+  return said.startsWith("-") ? { id: said.slice(1), drop: true } : { id: said, drop: false };
 }
 
-/** What states settings over an element, nearest first: per link, its own word, then the traits in
- *  force where that link states them. **Nearest wins.** A trait confers its own settings and those
- *  of the traits it extends, never its base's: how a tag draws is not what it gives. */
-export function stated(graph: Graph, id: Id | undefined): Components[] {
+/** A `tags` entry with its tag's id mapped, a drop kept a drop. */
+export function remap(said: string, at: (id: Id) => Id): string {
+  const { id, drop } = entry(said);
+  return `${drop ? "-" : ""}${at(id)}`;
+}
+
+/** Whether a definition is a trait: a tag giving settings, by its chain. */
+export function is_trait(graph: Graph, def: Id | undefined): boolean {
+  return !!def && def !== TRAIT && isa(graph, def).some((d) => d.id === TRAIT);
+}
+
+/** Whether a definition is a label: a tag naming lines, by its chain. */
+export function is_label(graph: Graph, def: Id | undefined): boolean {
+  return !!def && def !== LABEL && isa(graph, def).some((d) => d.id === LABEL);
+}
+
+/** The links an element reads through, nearest first: a definition's chain starts at itself; a
+ *  usage's and a line's at themselves, then their definition's. */
+function links_of(graph: Graph, id: Id | undefined): Link[] {
   const it = id ? graph.blocks[id] ?? graph.edges[id] : undefined;
   if (!it) return [];
-  const own_def = "def" in it && !!it.def;
-  const links: { settings?: Components; traits?: Id[] }[] =
-    own_def ? chain_of(graph, it.id)
-      : [{ settings: it.settings }, ...chain_of(graph, def_of(graph, it.id))];
-  const out: Components[] = [];
-  const said = links.findIndex((l) => l.traits);
-  links.forEach((l, n) => {
-    if (l.settings) out.push(l.settings);
-    if (n !== said) return;
-    for (const t of l.traits!) {
-      for (const d of isa(graph, t)) if (d.settings && !is_base(d.id)) out.push(d.settings);
+  if ("def" in it && it.def) return chain_of(graph, it.id);
+  return [it, ...chain_of(graph, def_of(graph, it.id))];
+}
+
+/** What an element carries — tags, traits and labels — **added up down its chain**: each link adds
+ *  its own, nearest first, unless a nearer link dropped it (`-id`). Each tag once, from the nearest
+ *  link adding it. */
+export function carried_tags(graph: Graph, id: Id | undefined): Carried[] {
+  const out: Carried[] = [];
+  const dropped = new Set<Id>();
+  for (const link of links_of(graph, id)) {
+    const said = (link.tags ?? []).map(entry);
+    for (const t of said) {
+      if (!t.drop && !dropped.has(t.id) && !out.some((c) => c.id === t.id)) {
+        out.push({ id: t.id, from: link.id });
+      }
     }
-  });
+    for (const t of said) if (t.drop) dropped.add(t.id);
+  }
+  return out;
+}
+
+/** The traits an element carries, nearest first. */
+export function traits_of(graph: Graph, id: Id | undefined): Id[] {
+  return carried_tags(graph, id).map((c) => c.id).filter((t) => is_trait(graph, t));
+}
+
+/** What a trait gives: its own settings and those of the traits it extends, never its kind's. */
+function conferred(graph: Graph, trait: Id): Components[] {
+  const out: Components[] = [];
+  for (const d of isa(graph, trait)) {
+    if (d.id === TRAIT || is_base(d.id)) break;
+    if (d.settings) out.push(d.settings);
+  }
+  return out;
+}
+
+/** What states settings over an element, nearest first: per link, its own word, then the traits
+ *  that link adds. **Nearest wins.** */
+export function stated(graph: Graph, id: Id | undefined): Components[] {
+  const traits = carried_tags(graph, id).filter((c) => is_trait(graph, c.id));
+  const out: Components[] = [];
+  for (const link of links_of(graph, id)) {
+    if (link.settings) out.push(link.settings);
+    for (const t of traits) if (t.from === link.id) out.push(...conferred(graph, t.id));
+  }
   return out;
 }
 
@@ -303,7 +361,7 @@ export function package_named(graph: Graph, said: string | undefined): Block | u
   return roots.find((p) => p.id === want) ?? roots.find((p) => p.name === want);
 }
 
-/** The packages a package uses: worked out from every type and trait its blocks and relations
+/** The packages a package uses: worked out from every type and tag its blocks and relations
  *  name, and what those extend. Never stored. */
 export function uses_of(graph: Graph, pkg: Id): Id[] {
   const out = new Set<Id>();
@@ -316,12 +374,12 @@ export function uses_of(graph: Graph, pkg: Id): Id[] {
   for (const b of Object.values(graph.blocks)) {
     if (package_of(graph, b.id) !== pkg) continue;
     reach(b.type);
-    for (const t of [...(b.traits ?? []), ...(b.tags ?? [])]) reach(t);
+    for (const t of b.tags ?? []) reach(entry(t).id);
     if (b.of) { const home = package_of(graph, b.of); if (home !== pkg) out.add(home); }
   }
   for (const e of Object.values(graph.edges)) {
     if (package_of(graph, e.from) !== pkg && package_of(graph, e.to) !== pkg) continue;
-    for (const t of [e.type, ...(e.tags ?? [])]) reach(t);
+    for (const t of [e.type, ...(e.tags ?? []).map((t) => entry(t).id)]) reach(t);
   }
   return [...out].filter((id) => graph.blocks[id]).sort();
 }

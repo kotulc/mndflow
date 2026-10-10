@@ -6,7 +6,7 @@
  *  more than one package holds, is made in the workspace, and said. */
 
 import { DEFINITION_KEYS, names_in, read_card, said_as, USAGE_KEYS, type Card } from "../card";
-import { all_defs, def_at, domain_of, frozen } from "../defs";
+import { all_defs, def_at, domain_of, frozen, remap } from "../defs";
 import { replay } from "../fold";
 import { new_id } from "../ids";
 import { is_tag } from "../tags";
@@ -144,8 +144,8 @@ function usage_calls(graph: Graph, id: Id, { front, body }: Card, whole: boolean
   return { calls, made, after };
 }
 
-/** A definition's card: its name, what it extends, its tags and traits, its attributes'
- *  defaults and what it is for. Never its JSON. */
+/** A definition's card: its name, what it extends, what it carries, its attributes' defaults and
+ *  what it is for. Never its JSON. */
 function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
   const d = def_at(graph, id)!;
   const calls: Call[] = [];
@@ -167,12 +167,6 @@ function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
   }
 
   calls.push(...tagged(graph, id, front["tags"]));
-  /** Traits give settings, so a word naming none is refused rather than made. */
-  const traits = front["traits"] === undefined ? null : names_in(front["traits"]);
-  const own = d.traits?.map((t) => graph.blocks[t]?.name ?? t) ?? null;
-  if (JSON.stringify(traits) !== JSON.stringify(own)) {
-    calls.push(["trait", { ids: [id], traits }]);
-  }
 
   /** Any other key is an attribute's default, declared where nothing declares it; a default the
    *  card no longer says is cleared. */
@@ -196,7 +190,7 @@ function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
 /** The tag call a frontmatter list comes to, where it differs from what is carried. */
 function tagged(graph: Graph, id: Id, said: unknown): Call[] {
   const want = names_in(said);
-  const had = (graph.blocks[id]?.tags ?? []).map((t) => graph.blocks[t]?.name ?? t);
+  const had = (graph.blocks[id]?.tags ?? []).map((t) => remap(t, (x) => graph.blocks[x]?.name ?? x));
   return JSON.stringify(want) === JSON.stringify(had) ? [] : [["tag", { ids: [id], tags: want }]];
 }
 

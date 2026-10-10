@@ -16,20 +16,6 @@
         "type": "folder",
         "order": 1
       },
-      "base.relations": {
-        "id": "base.relations",
-        "parent": "base",
-        "name": "relations",
-        "type": "folder",
-        "order": 2
-      },
-      "base.traits": {
-        "id": "base.traits",
-        "parent": "base",
-        "name": "traits",
-        "type": "folder",
-        "order": 3
-      },
       "block": {
         "id": "block",
         "parent": "base.blocks",
@@ -45,11 +31,11 @@
             "family": "primary"
           }
         },
-        "traits": [
+        "order": 2,
+        "tags": [
           "container",
           "ports"
-        ],
-        "order": 1
+        ]
       },
       "folder": {
         "id": "folder",
@@ -68,11 +54,11 @@
             "name_contrast": "faint"
           }
         },
-        "traits": [
+        "order": 3,
+        "tags": [
           "container",
           "ports"
-        ],
-        "order": 2
+        ]
       },
       "reference": {
         "id": "reference",
@@ -93,10 +79,10 @@
             "opacity": 0.55
           }
         },
-        "traits": [
+        "order": 4,
+        "tags": [
           "ports"
-        ],
-        "order": 3
+        ]
       },
       "interface": {
         "id": "interface",
@@ -114,7 +100,7 @@
             "border_width": "thin"
           }
         },
-        "order": 4
+        "order": 5
       },
       "group": {
         "id": "group",
@@ -133,11 +119,11 @@
             "name_contrast": "faint"
           }
         },
-        "traits": [
+        "order": 6,
+        "tags": [
           "container",
           "inline"
-        ],
-        "order": 5
+        ]
       },
       "grid": {
         "id": "grid",
@@ -156,12 +142,12 @@
             "name_contrast": "faint"
           }
         },
-        "traits": [
+        "order": 7,
+        "tags": [
           "container",
           "ports",
           "matrix"
-        ],
-        "order": 6
+        ]
       },
       "note": {
         "id": "note",
@@ -182,18 +168,48 @@
             "opacity": 0.06
           }
         },
-        "traits": [
+        "order": 8,
+        "tags": [
           "tied",
           "resizable",
           "content"
-        ],
-        "order": 7
+        ]
+      },
+      "base.relations": {
+        "id": "base.relations",
+        "parent": "base",
+        "name": "relations",
+        "type": "folder",
+        "order": 9
+      },
+      "line": {
+        "id": "line",
+        "parent": "base.relations",
+        "name": "line",
+        "body": "A relation between two blocks: what flows, connects or depends.",
+        "def": {},
+        "order": 10
+      },
+      "tie": {
+        "id": "tie",
+        "parent": "base.relations",
+        "name": "tie",
+        "body": "A dashed run with no heads: what ties a remark to what it is about.",
+        "def": {},
+        "order": 11
+      },
+      "base.tags": {
+        "id": "base.tags",
+        "parent": "base",
+        "name": "tags",
+        "type": "folder",
+        "order": 12
       },
       "tag": {
         "id": "tag",
-        "parent": "base.blocks",
+        "parent": "base.tags",
         "name": "tag",
-        "body": "A word carried by blocks, lines and definitions to say what they are like. Its body says what it means; one carrying settings is a trait.",
+        "body": "A word carried by blocks, lines and definitions to say what they are like. Its body says what it means. Traits and labels are tags too.",
         "def": {},
         "settings": {
           "block": {
@@ -206,29 +222,52 @@
             "vary": 48
           }
         },
-        "order": 8
+        "order": 13
       },
-      "line": {
-        "id": "line",
-        "parent": "base.relations",
-        "name": "line",
-        "body": "A relation between two blocks: what flows, connects or depends.",
+      "trait": {
+        "id": "trait",
+        "parent": "base.tags",
+        "name": "trait",
+        "type": "tag",
+        "body": "A tag giving settings: a capability, a look, or both. What carries it reads them as its own, and so does everything down its chain.",
         "def": {},
-        "order": 9
+        "settings": {
+          "style": {
+            "hue": 230,
+            "intensity": 0.5,
+            "vary": 48
+          }
+        },
+        "order": 14
       },
-      "tie": {
-        "id": "tie",
-        "parent": "base.relations",
-        "name": "tie",
-        "body": "A dashed run with no heads: what ties a remark to what it is about.",
+      "label": {
+        "id": "label",
+        "parent": "base.tags",
+        "name": "label",
+        "type": "tag",
+        "body": "A tag naming a line: the word a relation reads by. Lines saying one word share it.",
         "def": {},
-        "order": 10
+        "settings": {
+          "style": {
+            "hue": 30,
+            "intensity": 0.5,
+            "vary": 48
+          }
+        },
+        "order": 15
+      },
+      "base.traits": {
+        "id": "base.traits",
+        "parent": "base.tags",
+        "name": "traits",
+        "type": "folder",
+        "order": 16
       },
       "tied": {
         "id": "tied",
         "parent": "base.traits",
         "name": "tied",
-        "type": "tag",
+        "type": "trait",
         "body": "Made from, or dropped on, a block, it is tied to it.",
         "def": {},
         "settings": {
@@ -236,13 +275,13 @@
             "type": "tie"
           }
         },
-        "order": 11
+        "order": 17
       },
       "resizable": {
         "id": "resizable",
         "parent": "base.traits",
         "name": "resizable",
-        "type": "tag",
+        "type": "trait",
         "body": "Keeps whatever size it was given.",
         "def": {},
         "settings": {
@@ -250,13 +289,13 @@
             "height": "free"
           }
         },
-        "order": 12
+        "order": 18
       },
       "content": {
         "id": "content",
         "parent": "base.traits",
         "name": "body content",
-        "type": "tag",
+        "type": "trait",
         "body": "Shows what it says under its name.",
         "def": {},
         "settings": {
@@ -266,13 +305,13 @@
             ]
           }
         },
-        "order": 13
+        "order": 19
       },
       "container": {
         "id": "container",
         "parent": "base.traits",
         "name": "container",
-        "type": "tag",
+        "type": "trait",
         "body": "Holds blocks of its own, which it opens onto as a layer.",
         "def": {},
         "settings": {
@@ -280,13 +319,13 @@
             "holds": true
           }
         },
-        "order": 14
+        "order": 20
       },
       "ports": {
         "id": "ports",
         "parent": "base.traits",
         "name": "ports",
-        "type": "tag",
+        "type": "trait",
         "body": "Takes interfaces on its walls.",
         "def": {},
         "settings": {
@@ -294,13 +333,13 @@
             "ports": true
           }
         },
-        "order": 15
+        "order": 21
       },
       "headed": {
         "id": "headed",
         "parent": "base.traits",
         "name": "headed",
-        "type": "tag",
+        "type": "trait",
         "body": "Its first member heads it.",
         "def": {},
         "settings": {
@@ -308,13 +347,41 @@
             "heads": true
           }
         },
-        "order": 17
+        "order": 22
+      },
+      "inline": {
+        "id": "inline",
+        "parent": "base.traits",
+        "name": "inline",
+        "type": "trait",
+        "body": "Draws what it holds in place, on the layer it sits on, rather than behind its card.",
+        "def": {},
+        "settings": {
+          "holder": {
+            "inline": true
+          }
+        },
+        "order": 23
+      },
+      "matrix": {
+        "id": "matrix",
+        "parent": "base.traits",
+        "name": "matrix",
+        "type": "trait",
+        "body": "Seats text and blocks in the cells of a grid, drawn when it is opened.",
+        "def": {},
+        "settings": {
+          "holder": {
+            "matrix": true
+          }
+        },
+        "order": 24
       },
       "media": {
         "id": "media",
         "parent": "base.traits",
         "name": "media",
-        "type": "tag",
+        "type": "trait",
         "body": "Previews the file it stands for.",
         "def": {},
         "settings": {
@@ -324,39 +391,18 @@
             ]
           }
         },
-        "order": 19
+        "order": 25
       },
-      "inline": {
-        "id": "inline",
-        "parent": "base.traits",
-        "name": "inline",
-        "type": "tag",
-        "body": "Draws what it holds in place, on the layer it sits on, rather than behind its card.",
-        "def": {},
-        "settings": {
-          "holder": {
-            "inline": true
-          }
-        },
-        "order": 16
-      },
-      "matrix": {
-        "id": "matrix",
-        "parent": "base.traits",
-        "name": "matrix",
-        "type": "tag",
-        "body": "Seats text and blocks in the cells of a grid, drawn when it is opened.",
-        "def": {},
-        "settings": {
-          "holder": {
-            "matrix": true
-          }
-        },
-        "order": 20
+      "base.types": {
+        "id": "base.types",
+        "parent": "base",
+        "name": "types",
+        "type": "folder",
+        "order": 26
       },
       "value": {
         "id": "value",
-        "parent": "base.blocks",
+        "parent": "base.types",
         "name": "value",
         "body": "What an attribute holds: a value type. Never placed; a definition's attributes name one, and how a value is edited is its `value.form`.",
         "def": {},
@@ -366,20 +412,15 @@
           },
           "card": {},
           "style": {
-            "family": "secondary"
+            "hue": 150,
+            "intensity": 0.5,
+            "vary": 48
           },
           "value": {
             "form": "text"
           }
         },
-        "order": 21
-      },
-      "base.types": {
-        "id": "base.types",
-        "parent": "base",
-        "name": "types",
-        "type": "folder",
-        "order": 22
+        "order": 27
       },
       "text": {
         "id": "text",
@@ -393,7 +434,7 @@
             "form": "text"
           }
         },
-        "order": 23
+        "order": 28
       },
       "number": {
         "id": "number",
@@ -407,7 +448,7 @@
             "form": "number"
           }
         },
-        "order": 24
+        "order": 29
       },
       "flag": {
         "id": "flag",
@@ -421,7 +462,7 @@
             "form": "flag"
           }
         },
-        "order": 25
+        "order": 30
       },
       "link": {
         "id": "link",
@@ -435,7 +476,7 @@
             "form": "link"
           }
         },
-        "order": 26
+        "order": 31
       },
       "choice": {
         "id": "choice",
@@ -449,7 +490,7 @@
             "form": "choice"
           }
         },
-        "order": 27
+        "order": 32
       }
     },
     "edges": {}

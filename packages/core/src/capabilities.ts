@@ -159,9 +159,15 @@ export function may_seat(graph: Graph, id: Id, type: Id = "interface"): boolean 
 
 // ------------------------------------------------------------------- the review
 
-/** What a block answers for one field name. */
+/** What a block or a line answers for one field name. */
 function value_of(graph: Graph, id: Id, name: string): string | undefined {
-  return graph.blocks[id]?.values?.find((f) => f.name === name)?.value;
+  return (graph.blocks[id] ?? graph.edges[id])?.values?.find((f) => f.name === name)?.value;
+}
+
+/** What an element is asked for and leaves unanswered. */
+function unanswered(graph: Graph, id: Id, name: string, expects: Expects): Note[] {
+  return (expects.required ?? []).filter((n) => !value_of(graph, id, n))
+    .map((n) => ({ kind: "required", id, what: `"${name}" needs a value for ${n}` }));
 }
 
 function label(graph: Graph, id: Id): string {
@@ -197,12 +203,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
     const expects = expects_of(graph, b.id);
 
     /** A definition is a template, never allocated: what it asks is asked of its usages. */
-    for (const name of b.def ? [] : expects.required ?? []) {
-      if (!value_of(graph, b.id, name)) {
-        notes.push({ kind: "required", id: b.id,
-                     what: `"${label(graph, b.id)}" needs a value for ${name}` });
-      }
-    }
+    if (!b.def) notes.push(...unanswered(graph, b.id, label(graph, b.id), expects));
 
     /** What it holds without the containment capability, or of a sort it does not take. */
     for (const child of children(graph, b.id)) {
@@ -236,7 +237,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
     const allows = allows_of(graph, e.id);
     const expects = expects_of(graph, e.id);
 
-    /** An edge has no `required`: it carries no values. */
+    notes.push(...unanswered(graph, e.id, e.name ?? e.id, expects));
     if (allows.ends) {
       end(notes, graph, e.id, "from", e.from, allows.ends.from, allows.ends.fromFlow);
       end(notes, graph, e.id, "to", e.to, allows.ends.to, allows.ends.toFlow);

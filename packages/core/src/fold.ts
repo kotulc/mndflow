@@ -165,7 +165,7 @@ function apply(graph: Graph, m: Mutation): void {
     }
     /** Set in place where the answer exists, else appended. */
     case "set_value": {
-      const b = graph.blocks[m.id];
+      const b = element(graph, m.id);
       if (!b) return;
       const said = { name: m.name, value: m.value };
       const had = (b.values ?? []).some((v) => v.name === m.name);
@@ -174,12 +174,12 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     }
     case "drop_value": {
-      const b = graph.blocks[m.id];
+      const b = element(graph, m.id);
       if (b?.values) b.values = b.values.filter((f) => f.name !== m.name);
       return;
     }
     case "order_values": {
-      const b = graph.blocks[m.id];
+      const b = element(graph, m.id);
       if (b?.values) b.values = ordered_by(b.values, m.names);
       return;
     }
@@ -189,15 +189,6 @@ function apply(graph: Graph, m: Mutation): void {
       /** Trimmed, deduplicated and in the order they were given. */
       const kept = [...new Set(m.tags.map((t) => t.trim()).filter(Boolean))];
       if (kept.length) b.tags = kept; else delete b.tags;
-      return;
-    }
-    case "set_traits": {
-      /** A definition's alone: a usage or a line carries none. */
-      const b = graph.blocks[m.id];
-      if (!b?.def) return;
-      /** Null gives the set back to the chain; an empty list says none. */
-      if (m.traits === null) delete b.traits;
-      else b.traits = [...new Set(m.traits.filter(Boolean))];
       return;
     }
     /** Gives back the drawing settings of whichever element the id names. */

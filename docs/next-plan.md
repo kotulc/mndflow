@@ -18,6 +18,7 @@
 | 8 | **views by card** | the rail offers only the system views; each card opens on the one layer view its kind calls for, and a definition opens onto itself with what describes it round it |
 | 9 | **two trees, one system** | structure always lists every tree whatever definitions holds; the system views draw both trees; every layer lays itself out `auto`, as wide as the page |
 | 10 | **routing and system views, again** | lines leave the face that bends least and never run under a card; names fit; the profile drops straight down; the layout may read relations by a general rule |
+| 11 | **unified definitions** | every element carries alike — tags, traits, labels, values — down one chain rule; the definition view draws everything a definition is, inherited included; a relation definition reads as a block definition does |
 
 
 ## 1 — Showcase
@@ -321,6 +322,39 @@ Collected on the showcase's relations layer first, then fixed.
 | **labels as vocabulary** | leaning yes, once the tag / trait / type split is reworked (see Open) |
 
 
+## 11 — Unified definitions
+
+**Every element carries alike, and a definition shows everything it is.** Workshopped 2026-10-10, toward the *patterns compose* principle: definitions and their parts reused across packages.
+
+| Decided | |
+|---|---|
+| **one carried list** | `traits` goes: tags, traits and labels are one `tags` list, on a usage, a line or a definition alike |
+| **adds up** | each link of the chain adds its own; `-id` drops one a farther link carries. One rule for tags and traits |
+| **kinds by chain** | `trait` and `label` extend `tag`; what a tag is comes from its chain, as an interface's does |
+| **values on lines** | a relation definition may declare attributes and a line answers them, as a usage does |
+| **types stay a branch** | a type is what a thing is, a tag what it carries: types are not tag subtypes. Each branch reads in its own hue |
+| **base by branch** | `blocks`, `relations`, `tags` (`tag`, `trait`, `label`, `traits/`), `types` (`value` and the value types) |
+| **definition view whole** | what it extends, ports, tags, traits, attributes and settings, inherited ones dimmed with where they come from |
+| **ports inherit** | interfaces are features, as attributes are; parts stay a definition's own |
+| **a line's name is a label** | to be built: the name a label tag, shared by lines saying one word |
+
+| Order | | |
+|---|---|---|
+| 1 | schema and core: `carried_tags`, `stated`, edges carrying everything | **built** |
+| 2 | `base` by branch, hues | **built** |
+| 3 | tray: traits on any element, tags dropped and taken back, attributes on lines | **built** |
+| 4 | definition view: everything, inherited included; ports inherited | |
+| 5 | relation definition view: extends, ends, `dir`, tags, traits, attributes | |
+| 6 | labels: a line's name as a label tag | |
+
+**Steps 1–3 built 2026-10-10, driven in Edge.** core `carried_tags` (each tag with the link adding it), `traits_of`, `stated` per link; `entry` / `remap` read and map `-id`; the `trait` act and `set_traits` op are gone into `tag`; `field`, `order_field` and `unfield` take a line; `review` asks a line for its required values. views `look.ts` and explorer `rows.ts` read `setting_of` rather than merging definition and element by hand, which had skipped a usage's traits. The showcase's look cards carry their trait.
+
+| Seen, still open | |
+|---|---|
+| **traits panel on the card tab** | a usage's and a line's traits draw under everything, full width; a better place is open |
+| **label hue** | a label's card reads more by its border than its fill |
+| **block and relation definitions** | no hue of their own yet: a hue on `block` would recolour every usage, since usages read their definition's style |
+
 ## Open
 
 | Question | |
@@ -328,12 +362,12 @@ Collected on the showcase's relations layer first, then fixed.
 | **the root layer is a definition** | `main` shows in both explorer sections; whether the structure section hides that |
 | **gesture set** | which of step 7's candidates, and what else, once step 2 lands |
 | **double-click a grid** | lands on its name and renames it; Enter opens it |
-| **tag / trait / type split** | relation settings show no traits; definition views show only what a definition says itself, not the traits and settings it inherits. Settles whether a line's label is a tag |
+| **tag / trait / type split** | under way as step 11 |
 
 
 ## Handoff
 
-**State, 2026-10-10: steps 1–6, 6b, 8, 9 and 10 built and driven in Edge; step 10 not committed.** Typecheck clean (packages, web and cli), 270 tests green, CSS lint clean, both samples check clean. Step 10 was not code-reviewed.
+**State, 2026-10-10: steps 1–6, 6b, 8, 9 and 10 built, driven in Edge and committed; step 11 under way (1–3 of 6 built, not committed).** Typecheck clean (packages, web and cli), 270 tests green, CSS lint clean, both samples check clean. Step 10 was not code-reviewed.
 
 | Next | |
 |---|---|
@@ -418,7 +452,6 @@ Collected on the showcase's relations layer first, then fixed.
 | **the root layer is a definition** | `main` lists in both explorer sections; open above |
 | **camera on a profile** | picking on the profile re-draws it lower on the page than it first opens |
 | **a React warning** | `flushSync was called from inside a lifecycle method` showed once while driving the profile; not traced, and not checked against the last commit |
-| **a usage cannot carry a trait** | traits are a definition's alone, so the cards layer shows each look as a card's own setting |
 | **a page under the crumbs** | the overhead view scrolls its top under the crumbs; the page could start below them |
 | **the tray's line preview** | draws the look's head shapes only, never `line.dir`, so a directed line previews with none |
 | **the door passes unknown relation fields** | a file still storing `dir` on a relation (no longer a field) reads in silently and its arrows vanish; worth the door refusing fields it does not know, as it once passed `dir: "one"` |

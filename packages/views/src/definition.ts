@@ -36,8 +36,8 @@ export function definition_graph(graph: Graph, def: Id): Graph {
     { key: "in", name: "in", blocks: aspects.ins, down: true },
     { key: "out", name: "out", blocks: aspects.outs, down: true },
     { key: "both", name: "ports", blocks: aspects.both, down: false },
-    { key: "tags", name: "tags", blocks: defs(aspects.tags), down: false },
-    { key: "traits", name: "traits", blocks: defs(aspects.traits), down: false },
+    { key: "tags", name: "tags", blocks: defs(aspects.tags.map((c) => c.id)), down: false },
+    { key: "traits", name: "traits", blocks: defs(aspects.traits.map((c) => c.id)), down: false },
   ].filter((b) => b.blocks.length);
 
   /** Everything drawn, the middle large and the rest small, before any is placed. */

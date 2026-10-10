@@ -2,7 +2,8 @@
 
 import { component, NUMBERS } from "../components";
 import { new_id } from "../ids";
-import { is_trait, tag_named } from "../tags";
+import { entry } from "../defs";
+import { tag_named } from "../tags";
 import type { Id, Mutation } from "../types";
 import { register, type Args } from "./registry";
 import { borrowed, ids_of, list, text } from "./helpers";
@@ -11,10 +12,10 @@ import { new_def } from "./definitions";
 register(
   {
     name: "tag",
-    about: "puts tags on an element or a definition to say what it is like — a new word makes a "
-      + "tag of the workspace's",
+    about: "sets what an element or a definition carries — tags, traits and labels, `-word` "
+      + "dropping one its definition carries; a new word makes a tag of the workspace's",
     on: ["block", "edge", "layer", "selection"],
-    /** The whole tag list, replaced in one step: tag ids or names, or new words. */
+    /** The element's own list, replaced in one step: tag ids or names, or new words; `-` drops. */
     args: [{ name: "ids", form: "block", required: true },
            { name: "tags", form: "text", required: true }],
     check: (ctx, args) => {
@@ -25,41 +26,20 @@ register(
     run: (ctx, args) => {
       const out: Mutation[] = [];
       const made = new Map<string, Id>();
-      /** Each word as the tag it names, or a new one of the workspace's. */
-      const tags = list(args["tags"]).map((word) => {
+      /** Each word as the tag it names, or a new one of the workspace's; a drop names one
+       *  already, or says nothing. */
+      const tags = list(args["tags"]).map((said) => {
+        const { id: word, drop } = entry(said);
         const hit = tag_named(ctx.graph, word)?.id ?? made.get(word);
+        if (drop) return hit ? `-${hit}` : "";
         if (hit) return hit;
         const id = new_id("def");
         made.set(word, id);
         out.push(new_def(ctx.graph, { id, name: word, type: "tag", def: {} }));
         return id;
-      });
+      }).filter(Boolean);
       out.push(...ids_of(ctx, args).map((id): Mutation => ({ op: "set_tags", id, tags })));
       return { mutations: out };
-    },
-  },
-  {
-    name: "trait",
-    about: "sets the traits a definition carries — capability tags — or gives the set back to "
-      + "what it extends",
-    on: ["block", "layer", "selection"],
-    /** The whole trait list, by id or name; absent gives the set back to the chain. */
-    args: [{ name: "ids", form: "block", required: true }, { name: "traits", form: "text" }],
-    check: (ctx, args) => {
-      const ids = ids_of(ctx, args);
-      if (!ids.length) return "nothing is selected";
-      if (ids.some((id) => !ctx.graph.blocks[id]?.def)) return "traits are a definition's";
-      const why = ids.map((id) => borrowed(ctx.graph, id)).find(Boolean);
-      if (why) return why;
-      const missing = list(args["traits"])
-        .find((word) => !is_trait(ctx.graph, tag_named(ctx.graph, word)?.id));
-      return missing ? `there is no trait called "${missing}"` : null;
-    },
-    run: (ctx, args) => {
-      const said = args["traits"] === undefined || args["traits"] === null ? null
-        : list(args["traits"]).map((word) => tag_named(ctx.graph, word)!.id);
-      return { mutations: ids_of(ctx, args)
-        .map((id): Mutation => ({ op: "set_traits", id, traits: said })) };
     },
   },
 );

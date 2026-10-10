@@ -2,7 +2,7 @@
 
 import { may_hold } from "../capabilities";
 import { shown_name } from "../names";
-import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_domain,
+import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, entry, in_domain,
          kind_free, may_retype, name_taken, package_of, plain_type, setting_of, stored_type,
          self_use } from "../defs";
 import { GRID, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
@@ -64,8 +64,8 @@ function in_use(graph: Graph, id: Id, gone: ReadonlySet<Id>): string | null {
   }
   const defs = subtree(graph, id).filter((g) => graph.blocks[g]?.def);
   if (!defs.length) return null;
-  const names = (x: { type?: Id; traits?: Id[]; tags?: string[]; of?: Id }) =>
-    [x.type, x.of, ...(x.traits ?? []), ...(x.tags ?? [])];
+  const names = (x: { type?: Id; tags?: string[]; of?: Id }) =>
+    [x.type, x.of, ...(x.tags ?? []).map((t) => entry(t).id)];
   const users = [...Object.values(graph.blocks).filter((u) => !gone.has(u.id)),
                  ...Object.values(graph.edges).filter((e) => !gone.has(e.from) && !gone.has(e.to))]
     .filter((u) => names(u).some((n) => n && defs.includes(n)));

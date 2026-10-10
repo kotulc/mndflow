@@ -20,6 +20,7 @@
 | **no notation to learn** | the parts, what they are made of, what flows between them and what must be true is the whole base model. A standard is a translation layer on top, never a shape the model bends to |
 | **rapid** | the cheapest gesture carries meaning: ten blocks in a row already say an order |
 | **general** | nothing is forbidden for being unusual. Where a choice could be enforced or left to the user, it is left to the user |
+| **patterns compose** | good designs and architectures are encoded once, generally, as definitions and their parts in packages, and plugged into bigger systems. Users and agents grow vast libraries of them; packages exist so they can be shared and composed |
 
 
 ## Driving concepts
@@ -85,7 +86,7 @@ Most rules below are one of these applied.
 - own values only: inherited values are resolved on read, never copied
 - precedence, per link of the chain, self first: its own settings, then its traits in order. Nearest wins
 - a trait confers its own settings and those of the traits it extends, never its base's: how a tag draws is not what it gives
-- traits are inherited until a subtype states its own set; then its set is the only one. Reset gives it back to the chain
+- **what an element carries adds up down its chain**: tags, traits and labels are one list, `tags`; each link adds its own, and `-id` drops one a farther link carries. A usage and a line carry everything their definition does, and may add or drop their own
 - structure is a definition's own and is never inherited
 - a usage reads through one step: its type's own structure, never a chain
 - edits go home: changing a part through a usage edits the definition that owns it
@@ -98,11 +99,12 @@ Most rules below are one of these applied.
 - trait names are positive, each a capability granted: `container`, `ports`, `inline`, `matrix`, `headed`, `resizable`, `content`, `media`, `tied`
 - a trait grants a capability whole. Limiting one to definitions, and asking what values must say, is a constraint (`allows` lists, `degree`, `ends`, `expects`): kept as settings, to be reworked
 - which holder a block is: a folder by its base; a group or grid by its `inline` and `matrix` traits
-- a capability is added to or removed from a subtype as a trait, easily and visibly. Traits are stored in `traits`, apart from `tags`: a trait carries settings, a tag only organizes
+- a capability is added to or removed from a subtype, or a single usage, as a trait, easily and visibly: added, or dropped with `-id`. **A trait is a tag by its chain** (`extends trait`), as a label is (`extends label`): stored with tags, listed apart
 - `note` is a base carrying the tied, resizable and body-content traits
 - **a trait gives settings: a capability, a style, or both.** A style preset is a trait carrying only `style`, dropped on a definition like any other; there is no second list
 - relations and tags hold no structure. A tag is a definition with no structure, carried in `tags`
-- a tag definition draws as a block. Tags read alike, each in its own shade: the `tag` base sets a hue and `vary`, so each definition under it strays a little, keyed by its id
+- a tag definition draws as a block. **Each branch reads in its own hue** — tags, traits, labels, value types — and each definition under it strays a little (`vary`), keyed by its id: kin read alike, each still itself
+- `base` is filed by branch: `blocks`, `relations`, `tags` (with `traits` inside) and `types`
 - `tie` is a relation type like any other, chosen and never forced
 - **a relation definition says what a line describes, never its name**: which way it points is the setting `line.dir`, inherited down the chain like any block setting and overridable on the line. A line's name is a label, read as a tag, and decides nothing
 - **two blocks are joined once per relation type**: drawing a line where one of that type already joins the same ends draws no second line; the line already there takes the new way too, so a line back makes it point both ways
@@ -129,7 +131,7 @@ Most rules below are one of these applied.
 **A definition declares attributes; a usage answers them.** An entity is nothing new: a definition with attributes, as an ERD draws one.
 
 - an **attribute** is a definition's own: a name, a `type`, and what it may say beside — `key`, `default`, `unit`, `many`, `optional`, `note`, and any other property kept as written. Inherited along the chain, nearer replacing farther by name
-- a **value** is a usage's answer to an attribute, by name. Its type is the attribute's, never stored beside it. A usage may answer names nothing declares, as its own
+- a **value** is a usage's or a line's answer to an attribute, by name. Its type is the attribute's, never stored beside it. A usage may answer names nothing declares, as its own
 - **a type is a definition.** `base` ships the value types under the `value` kind — `text`, `number`, `flag`, `link`, `choice` — and a workspace or package adds its own (`uuid extends text`, `Region extends choice`). How a value is edited is its type's `value.form`, engine code as a module is; a choice's options are its `value.choices`
 - **an attribute typed by a block definition is a link**: a foreign key. Its line is drawn only where a view allows it — the internal view, both ends on the layer — and never added on its own anywhere else
 - **used by** is derived for every type and entity: the attributes and usages typed by it, as allocation is

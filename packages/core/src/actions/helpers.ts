@@ -147,14 +147,6 @@ export function mint_def(domain: Domain): Id {
   return new_id(domain === "relation" ? "rel" : "def");
 }
 
-/** Why a holder cannot take a value: only an edge cannot. */
-export function holds_values(ctx: Context, args: Args): string | null {
-  const id = id_of(args, "holder");
-  return ctx.graph.edges[id]
-    ? "a relationship holds no values — promote an end and put it on the port"
-    : null;
-}
-
 /** Why a block is not the workspace's to change: it sits in a package that came frozen. */
 export function borrowed(graph: Graph, id: Id): string | null {
   if (!frozen(graph, id)) return null;

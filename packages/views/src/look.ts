@@ -1,8 +1,8 @@
 /** How a usage of a definition draws. */
 
-import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, def_of, DISPLAYS,
+import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, DISPLAYS,
          domain_of, FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, is_trait,
-         kind_word, PARTS, previewed, relation_base, attributes_of, SHOWN, stood_def, WEIGHTS,
+         kind_word, PARTS, previewed, relation_base, attributes_of, setting_of, SHOWN, stood_def, WEIGHTS,
          WIDTHS,
          type Definition, type Graph, type Id, type Settings } from "@mnd/core";
 
@@ -82,14 +82,6 @@ export const PLAIN: Look = {
   kind: "block",
 };
 
-/** What this element says under one component key, chain first and its own last word over it. */
-function settings(graph: Graph, id: Id, key: string): Settings {
-  /** A definition is its own last word. */
-  if (def_at(graph, id)) return config_of(graph, id, key);
-  const it = graph.blocks[id] ?? graph.edges[id];
-  return { ...config_of(graph, def_of(graph, id), key), ...(it?.settings?.[key] ?? {}) };
-}
-
 /** One value if it is in the set, or the fallback. */
 function one<T extends string>(value: unknown, set: readonly T[], fallback: T): T {
   return typeof value === "string" && (set as readonly string[]).includes(value)
@@ -109,9 +101,9 @@ export function look_of(graph: Graph, id: Id): Look {
   /** A definition drawn on its package's layer reads as its usages do. */
   if (block.def) return stand_in(graph, id, block as Definition);
   const source = graph.blocks[previewed(graph, id)]!;
-  const card = settings(graph, source.id, "card");
-  const style = source === block ? settings(graph, id, "style")
-    : { ...settings(graph, source.id, "style"), ...(block.settings?.["style"] ?? {}) };
+  const card = setting_of(graph, source.id, "card");
+  const style = source === block ? setting_of(graph, id, "style")
+    : { ...setting_of(graph, source.id, "style"), ...(block.settings?.["style"] ?? {}) };
   const named = def_at(graph, source.type)?.name;
   return dressed(graph, id, card, style, named ?? kind_word(graph, source).toLowerCase(),
                  source.type ?? source.id);
@@ -223,8 +215,8 @@ export const BARE: Wire = { name: true, alias: false };
 export function wire_of(graph: Graph, id: Id): Wire {
   /** A run or the definition of one. */
   if (!graph.edges[id] && !(def_at(graph, id) && domain_of(graph, id) === "relation")) return BARE;
-  const style = settings(graph, id, "style");
-  const line = settings(graph, id, "line");
+  const style = setting_of(graph, id, "style");
+  const line = setting_of(graph, id, "line");
 
   return {
     name: one(line["name"], SHOWN, DEFAULTS["line.name"]) === "show",

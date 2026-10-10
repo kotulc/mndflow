@@ -4,8 +4,8 @@
  *  name of their own, and what either draws where it has none is its type's name. See types.md
  *  in the root docs. */
 
-import { all_defs, base_of, block_tags, def_at, def_of, def_tags, domain_of, edge_base, frozen,
-         is_base, isa, kind_free, type Act, type Definition, type Graph,
+import { all_defs, base_of, carried_tags, def_at, def_of, domain_of, edge_base, entry, frozen,
+         is_base, is_trait, isa, kind_free, type Act, type Definition, type Graph,
          type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
@@ -28,6 +28,8 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
   const borrowed = !!d && frozen(graph, d.id);
   const { kind, runs } = kind_of(graph, id, it);
   const { own, mine, fixed } = defined(graph, id, it, runs);
+  /** What it says it carries itself: tags, traits and drops, one list. */
+  const own_tags = (b ?? edge ?? d)!.tags ?? [];
   const element = !!(b || edge);
   const group = runs ? "relation" : "block";
 
@@ -107,13 +109,16 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
         </Line>
 
         {/* Tags index a thing, so a definition wears them as an element does: its own, then what
-           its definition's chain and its traits carry. */}
+           its definition's chain carries. Traits share the list and are edited apart, so they
+           are kept through. */}
         <Line label="tags"
-              tip="Tags that say what this is like. A new word makes a tag; a block also carries its definition's tags and traits.">
-          <Tags tags={(b ?? edge ?? d)!.tags ?? []}
-                carried={b || edge ? block_tags(graph, id) : d ? def_tags(graph, d.id) : []}
+              tip="Tags that say what this is like. A new word makes a tag; it also carries its definition's, and may drop one here.">
+          <Tags tags={own_tags.filter((t) => !is_trait(graph, entry(t).id))}
+                carried={carried_tags(graph, id).filter((c) => c.from !== id && !is_trait(graph, c.id))
+                  .map((c) => c.id)}
                 name={(t) => graph.blocks[t]?.name ?? t}
-                onCommit={(to) => onAct("tag", { ids: [id], tags: to })} />
+                onCommit={(to) => onAct("tag", { ids: [id], tags:
+                  [...own_tags.filter((t) => is_trait(graph, entry(t).id)), ...to] })} />
         </Line>
 
         {/* Extends: what the definition in force is built on. An element with none of its own has

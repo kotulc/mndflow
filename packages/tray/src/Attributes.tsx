@@ -1,10 +1,10 @@
-/** The attributes tab: one table, the same for a definition and a usage. A definition declares —
+/** The attributes tab: one table, the same for a definition, a usage and a line. A definition declares —
  *  name, type, key, default, unit, and any other property its attributes say — and a usage
  *  answers. Quiet until a row is lit: only the lit row's cells are controls. What a definition
  *  inherits reads first and faint; it is edited where it is declared. */
 
 import { useState } from "react";
-import { all_defs, attributes_of, def_at, domain_of, form_of, frozen, is_tag, links_to, previewed,
+import { all_defs, attributes_of, def_at, def_of, domain_of, form_of, frozen, is_tag, links_to, previewed,
          setting_of, type Act, type Attribute, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { NOOP } from "./Body";
@@ -21,15 +21,15 @@ export function Attributes({ graph, id, onAct = NOOP }: AttributesProps) {
   const [adding, set_adding] = useState("");
   const readonly = onAct === NOOP;
   const d = def_at(graph, id);
-  const b = graph.blocks[id];
+  const b = graph.blocks[id] ?? graph.edges[id];
   if (!b) return <p className="empty">that is not here any more</p>;
   /** A stand-in reads as what it stands for, as its card does: edited there, never here. */
-  const target = previewed(graph, id);
+  const target = graph.blocks[id] ? previewed(graph, id) : id;
   if (target !== id) return <Attributes graph={graph} id={target} />;
   const fixed = readonly || frozen(graph, id);
   const field = (args: Record<string, unknown>) => onAct("field", { holder: id, ...args });
 
-  const all = attributes_of(graph, d ? id : b.type);
+  const all = attributes_of(graph, def_of(graph, id));
   const values = d ? [] : b.values ?? [];
   const extra = values.filter((v) => !all.some((a) => a.name === v.name));
   const own = d ? (d.def.attributes ?? []).map((a) => a.name) : [];

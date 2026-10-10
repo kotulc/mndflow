@@ -38,7 +38,7 @@ export {
 } from "@mnd/core";
 
 /** Tags: definitions blocks and definitions carry. */
-export { block_tags, def_tags, is_tag, is_trait, tag_named } from "@mnd/core";
+export { carried_tags, entry, is_label, is_tag, is_trait, remap, tag_named, tags_of, type Carried } from "@mnd/core";
 
 /** The floor. `FLOOR` is the base package's blocks; `base_graph()` a fresh workspace on it. */
 export { ALL, BASE, FLOOR, RELATIONS, base_graph, by_id } from "@mnd/defs";

@@ -6,7 +6,7 @@ import { next_order } from "../tree";
 import { type Attribute, type Components, type Definition, type Graph, type Id,
          type Mutation } from "../types";
 import { register } from "./registry";
-import { borrowed, holds_values, id_of, ids_of, mint_def, rooted, text } from "./helpers";
+import { borrowed, id_of, ids_of, mint_def, rooted, text } from "./helpers";
 
 /** A new definition of the workspace's, where the user is: in the domain or holder named, else
  *  the workspace's domain. */
@@ -23,9 +23,8 @@ const FLAGS = ["key", "many", "optional"] as const;
 register(
   {
     name: "field",
-    about: "answers an attribute on a block, or declares one on a definition",
-    /** Blocks and definitions only; an edge holds no values. */
-    on: ["layer", "block"],
+    about: "answers an attribute on a block or a line, or declares one on a definition",
+    on: ["layer", "block", "edge"],
     args: [{ name: "holder", form: "block", required: true },
            { name: "name", form: "text", required: true },
            { name: "value", form: "text" },
@@ -40,7 +39,7 @@ register(
            { name: "to", form: "text" }],
     check: (ctx, args) => {
       if (!text(args, "name")) return "an attribute needs a name";
-      const why = holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder"));
+      const why = borrowed(ctx.graph, id_of(args, "holder"));
       if (why) return why;
       const to = text(args, "to");
       const had = held_fields(ctx.graph, id_of(args, "holder"));
@@ -80,12 +79,12 @@ register(
   {
     name: "order_field",
     about: "moves an answer or an attribute to before another",
-    on: ["layer", "block"],
+    on: ["layer", "block", "edge"],
     args: [{ name: "holder", form: "block", required: true },
            { name: "name", form: "text", required: true },
            /** Which it goes in front of. Absent is last. */
            { name: "before", form: "text" }],
-    check: (ctx, args) => holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder")),
+    check: (ctx, args) => borrowed(ctx.graph, id_of(args, "holder")),
     run: (ctx, args) => {
       const holder = id_of(args, "holder");
       const name = text(args, "name");
@@ -103,11 +102,11 @@ register(
   },
   {
     name: "unfield",
-    about: "drops an answer from a block, or an attribute from a definition",
-    on: ["layer", "block"],
+    about: "drops an answer from a block or a line, or an attribute from a definition",
+    on: ["layer", "block", "edge"],
     args: [{ name: "holder", form: "block", required: true },
            { name: "name", form: "text", required: true }],
-    check: (ctx, args) => holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder")),
+    check: (ctx, args) => borrowed(ctx.graph, id_of(args, "holder")),
     run: (ctx, args) => {
       const holder = id_of(args, "holder");
       const name = text(args, "name");
@@ -251,13 +250,13 @@ function domain_said(ctx: Parameters<typeof rooted>[0], args: { [k: string]: unk
 /** A holder's own: a definition's attributes, or a block's answers. */
 function held_fields(graph: Graph, id: Id): { name: string }[] {
   const b = graph.blocks[id];
-  return b?.def ? b.def.attributes ?? [] : b?.values ?? [];
+  return b?.def ? b.def.attributes ?? [] : (b ?? graph.edges[id])?.values ?? [];
 }
 
-/** A block's answer, set in place, or renamed in place where it was renamed. */
+/** A block's or a line's answer, set in place, or renamed in place where it was renamed. */
 function answered(graph: Graph, holder: Id, name: string, to: string,
                   args: Record<string, unknown>): Mutation[] {
-  const values = graph.blocks[holder]?.values ?? [];
+  const values = (graph.blocks[holder] ?? graph.edges[holder])?.values ?? [];
   const had = values.find((v) => v.name === name);
   const value = args["value"] !== undefined ? String(args["value"] ?? "") : had?.value ?? "";
   if (to === name) return [{ op: "set_value", id: holder, name, value }];

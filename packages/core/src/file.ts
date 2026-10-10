@@ -1,7 +1,7 @@
 /** The envelope, and the canonical layout. */
 
 import { inspect, type Fault } from "./door";
-import { package_of, packages, uses_of } from "./defs";
+import { entry, package_of, packages, remap, uses_of } from "./defs";
 import { fold, type Floor } from "./fold";
 import { new_id } from "./ids";
 import { empty_graph, BASE_PACKAGE, SCHEMA, type File, type Graph, type Id, type Log,
@@ -66,18 +66,18 @@ export function write(graph: Graph, id = "workspace", pkg: Id = graph.root): str
   return JSON.stringify(file, null, 2) + "\n";
 }
 
-/** What a graph names that it does not carry: types, traits and tags. A reference to something
+/** What a graph names that it does not carry: types and tags. A reference to something
  *  gone is kept and reads missing, so `of` is not asked. */
 export function unmet(graph: Graph): Id[] {
   const out = new Set<Id>();
   const need = (id: Id | undefined) => { if (id && !graph.blocks[id]) out.add(id); };
   for (const b of Object.values(graph.blocks)) {
     need(b.type);
-    for (const t of [...(b.traits ?? []), ...(b.tags ?? [])]) need(t);
+    for (const t of b.tags ?? []) need(entry(t).id);
   }
   for (const e of Object.values(graph.edges)) {
     need(e.type);
-    for (const t of e.tags ?? []) need(t);
+    for (const t of e.tags ?? []) need(entry(t).id);
   }
   return [...out].sort();
 }
@@ -92,7 +92,7 @@ export function write_package(graph: Graph, name: string): string {
     ids.set(b.id, b.id === graph.root ? slug : `${slug}.${b.id}`);
   }
   const at = (id: Id | undefined) => (id === undefined ? id : ids.get(id) ?? id);
-  const all = (list: Id[] | undefined) => list?.map((id) => at(id)!);
+  const all = (list: string[] | undefined) => list?.map((t) => remap(t, (id) => at(id)!));
   const blocks: Graph["blocks"] = { ...graph.blocks };
   for (const [was, now] of ids) {
     const b = graph.blocks[was]!;
@@ -100,7 +100,6 @@ export function write_package(graph: Graph, name: string): string {
     blocks[now] = { ...b, id: now, parent: at(b.parent ?? undefined) ?? null,
                     ...(b.type ? { type: at(b.type) } : {}), ...(b.of ? { of: at(b.of) } : {}),
                     ...(b.tags ? { tags: all(b.tags) } : {}),
-                    ...(b.traits ? { traits: all(b.traits) } : {}),
                     ...(b.id === graph.root ? { name } : {}) };
     delete blocks[now]!.counters;
   }

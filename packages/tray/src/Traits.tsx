@@ -1,45 +1,45 @@
-/** What a block may do: a definition's traits, a section of their own on its settings tab.
- *  **Stated on the definition**, so every block following it answers the same; a block shows none
- *  of its own. Each trait grants its settings; what none grants, a block may not do. */
+/** What an element may do and how it looks by trait: any element's — a usage, a line or a
+ *  definition — since each carries what its definition does and may add its own. Each trait grants
+ *  its settings; what none grants, a block may not do. */
 
-import { all_defs, chain_of, def_at, domain_of, frozen, is_trait, traits_of, type Act,
-         type Graph, type Id } from "@mnd/core";
+import { all_defs, carried_tags, entry, frozen, is_trait, traits_of, type Act, type Graph,
+         type Id } from "@mnd/core";
 import { Band, Body, Line } from "./Body";
 
 export type TraitsProps = { graph: Graph; id: Id; onAct: Act };
 
 /** Every trait as a toggle, lit two ways as a look is: **on** while in force, **set** where this
- *  definition changed it from what it extends, and struck where it let an inherited one go.
- *  Stating one states the whole set; a set matching the chain's gives it back. A frozen
- *  definition's traits read only. */
+ *  element says so itself — added here, or dropped (struck) where its chain carries it. Toggling
+ *  writes the element's own list, tags kept. A frozen element's traits read only. */
 export function Traits({ graph, id, onAct }: TraitsProps) {
-  const target = def_at(graph, id);
-  if (!target || domain_of(graph, id) !== "block") return null;
-  const own = target.traits;
-  const held = traits_of(graph, target.id);
-  const inherited = chain_of(graph, target.id).slice(1).find((d) => d.traits)?.traits ?? [];
-  const fixed = frozen(graph, target.id);
+  const target = graph.blocks[id] ?? graph.edges[id];
+  if (!target) return null;
+  const own = target.tags ?? [];
+  const held = traits_of(graph, id);
+  const inherited = carried_tags(graph, id).filter((c) => c.from !== id).map((c) => c.id);
+  const fixed = frozen(graph, graph.blocks[id] ? id : (target as { from: Id }).from);
   const offered = all_defs(graph).filter((d) => is_trait(graph, d.id));
   const called = (t: Id) => graph.blocks[t]?.name ?? t;
 
-  /** The set with one trait toggled; the chain's own set is said by saying nothing. */
+  /** Off where it is on — taken off its own list, or dropped where inherited — else on: a drop
+   *  taken back, or added. */
   const toggle = (t: Id) => {
-    const next = held.includes(t) ? held.filter((x) => x !== t) : [...held, t];
-    const same = next.length === inherited.length && next.every((x) => inherited.includes(x));
-    onAct("trait", { ids: [target.id], traits: same ? null : next });
+    const rest = own.filter((e) => entry(e).id !== t);
+    const next = held.includes(t) ? (own.includes(t) ? rest : [...rest, `-${t}`])
+      : inherited.includes(t) ? rest : [...rest, t];
+    onAct("tag", { ids: [id], tags: next });
   };
 
   return (
     <div className="col traits">
       <Band label="traits" />
       <Body>
-        <Line tip="What it may do: each trait grants settings. Inherited until this definition states its own set.">
+        <Line tip="What it may do and how it looks: each trait grants settings. It carries its definition's, and may add or drop its own.">
           <span className="picks">
             {offered.map((d) => {
               const on = held.includes(d.id);
-              const was = inherited.includes(d.id);
-              const set = !!own && on !== was;
-              const tip = set ? (on ? "added here" : "let go here") : on ? "inherited" : "";
+              const set = own.some((e) => entry(e).id === d.id);
+              const tip = set ? (on ? "added here" : "dropped here") : on ? "inherited" : "";
               return (
                 <button key={d.id} disabled={fixed}
                         className={["opt", on ? "on" : "", set ? "set" : "", set && !on ? "dropped" : ""]

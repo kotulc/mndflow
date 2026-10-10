@@ -17,7 +17,7 @@
 | **usage** | a block without `def`. Its `type` names a definition, a base when it names nothing |
 | **type** | on a usage, the definition it *is*; on a definition, the one it *extends*. One field, one chain |
 | **attribute** | what a definition declares its usages answer: a name, a `type`, and what else it says (`key`, `default`, `unit`, `many`, `optional`, `note`, any other property as written). Held in `def.attributes`, inherited along the chain |
-| **value** | a usage's answer to an attribute, by name (`values`). Typed by its attribute, never by itself. Never structural, no identity of its own. **A relationship holds none** |
+| **value** | a usage's or a relationship's answer to an attribute, by name (`values`). Typed by its attribute, never by itself. Never structural, no identity of its own |
 | **entity** | a definition with attributes, as an ERD draws it. Nothing new: a word for a use |
 | **reference** | a block that **stands for** another, a definition or a package (`of`). Drawn, never owning. A gone target reads **missing** and is kept |
 | **link** | an attribute typed by a block definition: a foreign key. A reference is a block; a link is a value, drawn as a line only where a view allows it |
@@ -64,7 +64,7 @@
 | **reference** | a stand-in for a block, a definition or a package elsewhere |
 | **interface** | a block seated on a wall: where relationships enter and leave. Also **port** |
 | **note** | a remark: resizable, carries body text, ties to the block it is made from |
-| **tag** | a word carried by other elements. Holds nothing |
+| **tag** | a word carried by other elements. Holds nothing. **trait** and **label** are tags too, by their chain |
 | **value** | a value type: what an attribute holds. `text`, `number`, `flag`, `link` and `choice` ship under it; never placed |
 | **line** | the plain relationship. Which way it points is a setting, `line.dir` (`none`, `forward`, `back`, `both`), said by its definition and overridable on the line |
 | **tie** | a dashed relationship with no heads. **A type like any other**, chosen, never forced |
@@ -81,9 +81,10 @@
 | **type** (of a value) | a definition under the `value` base. Its `value.form` says how a value is edited (closed, like a module); a choice lists its options in `value.choices` |
 | **capability** | what a block may do, granted by a trait: hold (`container`), seat interfaces (`ports`), draw what it holds in place (`inline`), seat it in cells (`matrix`), be headed (`headed`). **Absent is a no**: what nothing grants is refused at the gesture |
 | **constraint** | a capability limited to definitions (`allows` lists, `degree`, `ends`), or what values must say (`expects`). Settings, not traits; to be reworked |
-| **tag** | a definition on the `tag` base, carried in `tags`. A word with a meaning (`body`), no settings, no structure |
-| **trait** | **a tag carrying settings**: a capability, a style preset, or both, named positively. Carried in `traits`, listed apart from tags. Adding or removing a capability on a subtype is adding or removing a trait. It confers its own settings and its traits', never its base's. A definition's alone |
-| **trait inheritance** | a definition's traits are its chain's until it states its own set; then its set is the only one. Reset gives it back to the chain |
+| **tag** | a definition on the `tag` base. A word with a meaning (`body`), no structure |
+| **trait** | **a tag giving settings**, by its chain (`extends trait`): a capability, a style preset, or both, named positively. Listed apart from tags. It confers its own settings and those of the traits it extends, never its kind's |
+| **label** | a tag naming lines, by its chain (`extends label`) |
+| **carried** | what an element carries: tags, traits and labels, one list (`tags`), on a usage, a line or a definition alike. **Added up down the chain**: each link adds its own; `-id` drops one a farther link carries. A usage carries everything its definition does, and may add or drop its own |
 | **tie trait** | links a block made from, or dropped on, another to it with a relationship of a given type, on the same layer. Made on its own, it links nothing |
 | **name space** | one per package: a tag, a trait and a block definition never share a name |
 

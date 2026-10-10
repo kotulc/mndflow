@@ -120,11 +120,9 @@ export type Block = {
   /** How it draws and what it may do, by component: a definition's own word, or a usage's
    *  override of its definition's. Inherited down the `type` chain, nearest first. */
   settings?: Components;
-  /** The tag definitions it carries, by id. */
+  /** The tag definitions it carries — tags, traits and labels alike — by id, in order. Added to
+   *  what its chain carries; `-id` drops one the chain carries. */
   tags?: string[];
-  /** A definition's capability tags, by id, in order: tags carrying settings. Stated, they
-   *  replace the chain's set. A usage carries none. */
-  traits?: Id[];
   flow?: Flow;
   /** A usage's answers, in order. */
   values?: Value[];
@@ -144,11 +142,12 @@ export type Relation = {
   toPart?: Id;
   /** A handle serial, as a block carries. */
   alias?: number;
-  /** Words describing this line; its own, never inherited. */
+  /** What it carries, as a block does: added to its definition's, `-id` dropping one. */
   tags?: string[];
   /** What this one line says about how it draws, over whatever its definition said. */
   settings?: Components;
-  /** No fields: what a connection says belongs to the blocks at its ends. */
+  /** Its answers to its definition's attributes, as a usage's. */
+  values?: Value[];
 };
 
 /** Which block module the engine dispatches on. Three, because `folder`, `note`, `group` and
@@ -221,14 +220,13 @@ export type Mutation =
   /** A seat places an interface; none lets it place itself again. */
   | { op: "set_port"; id: Id; seat: { side: Side; at: number } | null }
   | { op: "mark_port"; id: Id; flow: Flow | null }
-  /** An answer on a block. An edge has none to set — see `Relation`. */
+  /** An answer on a block or a line. */
   | { op: "set_value"; id: Id; name: string; value: string }
   | { op: "drop_value"; id: Id; name: string }
   /** The order a block's values are listed in, by name. */
   | { op: "order_values"; id: Id; names: string[] }
+  /** What an element carries, in order: ids, and `-id` for one its chain carries, dropped. */
   | { op: "set_tags"; id: Id; tags: string[] }
-  /** The traits an element carries, in order; null gives the set back to its chain. */
-  | { op: "set_traits"; id: Id; traits: Id[] | null }
   /** Everything this element says about how it draws, given back at once. */
   | { op: "drop_settings"; id: Id }
   /** One property of one component on one element. */

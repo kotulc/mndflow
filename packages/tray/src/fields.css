@@ -169,7 +169,8 @@
 }
 .rows > .row > .line > .tags > .tag { display: inline-flex; align-items: center; gap: 3px; }
 /* A tag carried from the definition reads faint, and takes no click. */
-.rows > .row > .line > .tags > .tag.carried { color: var(--faint); border-style: dashed; cursor: default; }
+.rows > .row > .line > .tags > .tag.carried { color: var(--faint); border-style: dashed; }
+.rows > .row > .line > .tags > .tag.dropped { color: var(--faint); border-style: dashed; text-decoration: line-through; }
 .rows > .row > .line > .tags > input {
   flex: 1 1 8ch;
   min-width: 8ch;

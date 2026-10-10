@@ -1,9 +1,9 @@
 /** The explorer's rows: each section's header, then what it lists, laid out with depth, guides
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
-import { alias_of, all_defs, branch_of, children, config_of, def_of, domain_of,
+import { alias_of, all_defs, branch_of, children, domain_of,
          holds_structure, is_group, is_interface, is_named, package_of, packages, relation_base,
-         role_of, shown_name, stamps_of, tops_of, type Block, type Cut, type Graph, type Id,
+         role_of, setting_of, shown_name, stamps_of, tops_of, type Block, type Cut, type Graph, type Id,
          type Role } from "@mnd/core";
 import { known, MARK_ICON, role_icon, type IconName } from "@mnd/theme";
 import type { Chain } from "./chain";
@@ -66,8 +66,7 @@ export function under(graph: Graph, parent: Id | null) {
 /** The icon a block names with `card.icon`, where this set draws it: its own word first, then its
  *  definition's chain. */
 export function card_icon(graph: Graph, id: Id): IconName | undefined {
-  const own = graph.blocks[id]?.settings?.["card"]?.["icon"];
-  const said = own ?? config_of(graph, def_of(graph, id), "card")["icon"];
+  const said = setting_of(graph, id, "card")["icon"];
   return typeof said === "string" && known(said) ? said : undefined;
 }
 

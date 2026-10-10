@@ -80,7 +80,7 @@
         "parent": "l_cards",
         "alias": 1,
         "order": 1,
-        "name": "Every block kind on its small face, then the looks: families, fills, label places and borders, each card varying one setting. Each look is a trait in the looks folder, for a definition to carry; here each card says it as its own.",
+        "name": "Every block kind on its small face, then the looks: families, fills, label places and borders, each card varying one setting. Each look is a trait in the looks folder; each card carries one, as any usage or definition may.",
         "type": "note",
         "w": 648,
         "h": 72
@@ -136,7 +136,7 @@
         "id": "look_family_primary",
         "parent": "w_looks_family",
         "name": "family primary",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 1,
         "settings": {
@@ -151,17 +151,15 @@
         "alias": 4,
         "order": 6,
         "name": "primary",
-        "settings": {
-          "style": {
-            "family": "primary"
-          }
-        }
+        "tags": [
+          "look_family_primary"
+        ]
       },
       "look_family_secondary": {
         "id": "look_family_secondary",
         "parent": "w_looks_family",
         "name": "family secondary",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 2,
         "settings": {
@@ -176,17 +174,15 @@
         "alias": 5,
         "order": 7,
         "name": "secondary",
-        "settings": {
-          "style": {
-            "family": "secondary"
-          }
-        }
+        "tags": [
+          "look_family_secondary"
+        ]
       },
       "look_family_neutral": {
         "id": "look_family_neutral",
         "parent": "w_looks_family",
         "name": "family neutral",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 3,
         "settings": {
@@ -201,17 +197,15 @@
         "alias": 6,
         "order": 8,
         "name": "neutral",
-        "settings": {
-          "style": {
-            "family": "neutral"
-          }
-        }
+        "tags": [
+          "look_family_neutral"
+        ]
       },
       "look_family_muted": {
         "id": "look_family_muted",
         "parent": "w_looks_family",
         "name": "family muted",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 4,
         "settings": {
@@ -226,17 +220,15 @@
         "alias": 7,
         "order": 9,
         "name": "muted",
-        "settings": {
-          "style": {
-            "family": "muted"
-          }
-        }
+        "tags": [
+          "look_family_muted"
+        ]
       },
       "look_family_away": {
         "id": "look_family_away",
         "parent": "w_looks_family",
         "name": "family away",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 5,
         "settings": {
@@ -251,17 +243,15 @@
         "alias": 8,
         "order": 10,
         "name": "away",
-        "settings": {
-          "style": {
-            "family": "away"
-          }
-        }
+        "tags": [
+          "look_family_away"
+        ]
       },
       "look_family_note": {
         "id": "look_family_note",
         "parent": "w_looks_family",
         "name": "family note",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 6,
         "settings": {
@@ -276,11 +266,9 @@
         "alias": 9,
         "order": 11,
         "name": "note",
-        "settings": {
-          "style": {
-            "family": "note"
-          }
-        }
+        "tags": [
+          "look_family_note"
+        ]
       },
       "w_looks_fill": {
         "id": "w_looks_fill",
@@ -293,7 +281,7 @@
         "id": "look_fill_solid",
         "parent": "w_looks_fill",
         "name": "fill solid",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 1,
         "settings": {
@@ -308,17 +296,15 @@
         "alias": 10,
         "order": 12,
         "name": "solid",
-        "settings": {
-          "style": {
-            "fill": "solid"
-          }
-        }
+        "tags": [
+          "look_fill_solid"
+        ]
       },
       "look_fill_hatch": {
         "id": "look_fill_hatch",
         "parent": "w_looks_fill",
         "name": "fill hatch",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 2,
         "settings": {
@@ -333,17 +319,15 @@
         "alias": 11,
         "order": 13,
         "name": "hatch",
-        "settings": {
-          "style": {
-            "fill": "hatch"
-          }
-        }
+        "tags": [
+          "look_fill_hatch"
+        ]
       },
       "look_fill_wash": {
         "id": "look_fill_wash",
         "parent": "w_looks_fill",
         "name": "fill wash",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 3,
         "settings": {
@@ -358,17 +342,15 @@
         "alias": 12,
         "order": 14,
         "name": "wash",
-        "settings": {
-          "style": {
-            "fill": "wash"
-          }
-        }
+        "tags": [
+          "look_fill_wash"
+        ]
       },
       "look_fill_none": {
         "id": "look_fill_none",
         "parent": "w_looks_fill",
         "name": "fill none",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 4,
         "settings": {
@@ -383,11 +365,9 @@
         "alias": 13,
         "order": 15,
         "name": "none",
-        "settings": {
-          "style": {
-            "fill": "none"
-          }
-        }
+        "tags": [
+          "look_fill_none"
+        ]
       },
       "w_looks_label": {
         "id": "w_looks_label",
@@ -400,7 +380,7 @@
         "id": "look_label_above",
         "parent": "w_looks_label",
         "name": "label above",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 1,
         "settings": {
@@ -415,17 +395,15 @@
         "alias": 14,
         "order": 16,
         "name": "above",
-        "settings": {
-          "card": {
-            "label": "above"
-          }
-        }
+        "tags": [
+          "look_label_above"
+        ]
       },
       "look_label_inside": {
         "id": "look_label_inside",
         "parent": "w_looks_label",
         "name": "label inside",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 2,
         "settings": {
@@ -440,17 +418,15 @@
         "alias": 15,
         "order": 17,
         "name": "inside",
-        "settings": {
-          "card": {
-            "label": "inside"
-          }
-        }
+        "tags": [
+          "look_label_inside"
+        ]
       },
       "look_label_below": {
         "id": "look_label_below",
         "parent": "w_looks_label",
         "name": "label below",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 3,
         "settings": {
@@ -465,17 +441,15 @@
         "alias": 16,
         "order": 18,
         "name": "below",
-        "settings": {
-          "card": {
-            "label": "below"
-          }
-        }
+        "tags": [
+          "look_label_below"
+        ]
       },
       "look_label_none": {
         "id": "look_label_none",
         "parent": "w_looks_label",
         "name": "label none",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 4,
         "settings": {
@@ -490,11 +464,9 @@
         "alias": 17,
         "order": 19,
         "name": "none",
-        "settings": {
-          "card": {
-            "label": "none"
-          }
-        }
+        "tags": [
+          "look_label_none"
+        ]
       },
       "w_looks_border": {
         "id": "w_looks_border",
@@ -507,7 +479,7 @@
         "id": "look_border_dashed",
         "parent": "w_looks_border",
         "name": "border dashed",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 1,
         "settings": {
@@ -522,17 +494,15 @@
         "alias": 18,
         "order": 20,
         "name": "dashed",
-        "settings": {
-          "style": {
-            "border_style": "dashed"
-          }
-        }
+        "tags": [
+          "look_border_dashed"
+        ]
       },
       "look_border_dotted": {
         "id": "look_border_dotted",
         "parent": "w_looks_border",
         "name": "border dotted",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 2,
         "settings": {
@@ -547,17 +517,15 @@
         "alias": 19,
         "order": 21,
         "name": "dotted",
-        "settings": {
-          "style": {
-            "border_style": "dotted"
-          }
-        }
+        "tags": [
+          "look_border_dotted"
+        ]
       },
       "look_border_double": {
         "id": "look_border_double",
         "parent": "w_looks_border",
         "name": "border double",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 3,
         "settings": {
@@ -572,17 +540,15 @@
         "alias": 20,
         "order": 22,
         "name": "double",
-        "settings": {
-          "style": {
-            "border_style": "double"
-          }
-        }
+        "tags": [
+          "look_border_double"
+        ]
       },
       "look_border_none": {
         "id": "look_border_none",
         "parent": "w_looks_border",
         "name": "border none",
-        "type": "tag",
+        "type": "trait",
         "def": {},
         "order": 4,
         "settings": {
@@ -597,11 +563,9 @@
         "alias": 21,
         "order": 23,
         "name": "none",
-        "settings": {
-          "style": {
-            "border_style": "none"
-          }
-        }
+        "tags": [
+          "look_border_none"
+        ]
       },
       "l_faces": {
         "id": "l_faces",
@@ -675,9 +639,7 @@
         "type": "block",
         "def": {},
         "order": 4,
-        "traits": [
-          "container",
-          "ports",
+        "tags": [
           "media"
         ]
       },
@@ -822,9 +784,7 @@
             ]
           }
         },
-        "traits": [
-          "container",
-          "ports",
+        "tags": [
           "look_family_secondary"
         ]
       },
@@ -1379,10 +1339,7 @@
         "type": "grid",
         "def": {},
         "order": 1,
-        "traits": [
-          "container",
-          "ports",
-          "matrix",
+        "tags": [
           "headed"
         ]
       },

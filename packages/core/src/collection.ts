@@ -7,7 +7,7 @@
  *  attributes the union of what its usages answer, each type read off the values. */
 
 import { names_in, read_card, said_as, USAGE_KEYS } from "./card";
-import { all_defs, def_at, package_of } from "./defs";
+import { all_defs, def_at, package_of, remap } from "./defs";
 import { write } from "./file";
 import { is_tag } from "./tags";
 import type { Leaf } from "./ports";
@@ -97,8 +97,7 @@ function defined(graph: Graph, slug: Id, text: string): void {
     const id = at(b.id)!;
     graph.blocks[id] = { ...b, id, parent: at(b.parent ?? undefined) ?? slug,
                          ...(b.type ? { type: at(b.type) } : {}), ...(b.of ? { of: at(b.of) } : {}),
-                         ...(b.tags ? { tags: b.tags.map((t) => at(t)!) } : {}),
-                         ...(b.traits ? { traits: b.traits.map((t) => at(t)!) } : {}),
+                         ...(b.tags ? { tags: b.tags.map((t) => remap(t, (x) => at(x)!)) } : {}),
                          ...(b.def?.attributes ? { def: { attributes: b.def.attributes
                            .map((a) => (a.type ? { ...a, type: at(a.type) } : a)) } } : {}) };
   }

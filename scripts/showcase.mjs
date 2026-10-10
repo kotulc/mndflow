@@ -77,7 +77,7 @@ def("def_large", "Large layer", "block", { layout: { face: "large" } },
 /* ── Cards: every block kind, and the looks: each a trait in the looks folder, and on a card ── */
 
 layer("l_cards", "Cards");
-note("l_cards", "Every block kind on its small face, then the looks: families, fills, label places and borders, each card varying one setting. Each look is a trait in the looks folder, for a definition to carry; here each card says it as its own.", 27);
+note("l_cards", "Every block kind on its small face, then the looks: families, fills, label places and borders, each card varying one setting. Each look is a trait in the looks folder; each card carries one, as any usage or definition may.", 27);
 put("c_block", "l_cards", "block", { name: "Block" });
 put("c_folder", "l_cards", "folder", { name: "Folder", type: "folder" });
 put("c_inside", "c_folder", "block", { name: "Inside" });
@@ -93,8 +93,8 @@ const looks = [
 for (const [row, [key, values, settings]] of looks.entries()) {
   shelf(`w_looks_${key}`, key, "w_looks");
   for (const [col, v] of values.entries()) {
-    def(`look_${key}_${v}`, `${key} ${v}`, "tag", settings(v), {}, `w_looks_${key}`);
-    put(`c_${key}_${v}`, "l_cards", "block", { name: v, settings: settings(v) });
+    def(`look_${key}_${v}`, `${key} ${v}`, "trait", settings(v), {}, `w_looks_${key}`);
+    put(`c_${key}_${v}`, "l_cards", "block", { name: v, tags: [`look_${key}_${v}`] });
   }
 }
 
@@ -110,7 +110,7 @@ def("def_doc", "Document", "block", { card: { shows: ["body"] } }, {}, "w_faces"
 def("def_spec", "Spec", "block", { card: { shows: ["attributes", "body"] } }, {
   def: { attributes: [{ name: "tag", key: true }, { name: "rating", type: "number", unit: "kW" },
                       { name: "duty", note: "how it runs" }] } }, "w_faces");
-def("def_media", "Picture", "block", undefined, { traits: ["container", "ports", "media"] },
+def("def_media", "Picture", "block", undefined, { tags: ["media"] },
     "w_faces");
 def("def_headless", "Headless", "block", { card: { shows: ["body"], name: "hide" } }, {}, "w_faces");
 def("def_sized", "Sized", "block", { card: { shows: ["body"], size: { w: 8, h: 3 } } }, {},
@@ -134,7 +134,7 @@ face("f_plain", { name: "Plain" });
 layer("l_defs", "Definitions", "def_large");
 note("l_defs", "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the family secondary look as a trait. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it. Open a stand-in for its definition view: Pump shows what it extends, its ports, its tag, its traits and its description.", 27);
 def("def_machine", "Machine", "block", { card: { shows: ["attributes"] } }, {
-  traits: ["container", "ports", "look_family_secondary"],
+  tags: ["look_family_secondary"],
   def: { attributes: [{ name: "power", type: "number", unit: "kW" }] } }, "w_machines");
 def("tag_rotating", "rotating", "tag", undefined, {}, "w_machines");
 def("def_pump", "Pump", "def_machine", { style: { hue: 200 } }, {
@@ -233,7 +233,7 @@ put("h_inner", "h_outer", "group", { name: "Skid", type: "group" });
 put("h_g1", "h_inner", "block", { name: "Motor" });
 put("h_g2", "h_inner", "block", { name: "Gearbox" });
 put("h_g3", "h_outer", "block", { name: "Panel" });
-def("def_table", "Table", "grid", undefined, { traits: ["container", "ports", "matrix", "headed"] },
+def("def_table", "Table", "grid", undefined, { tags: ["headed"] },
     "w_holders");
 put("h_grid", "l_hold", "grid", { name: "Duty roster", type: "def_table",
   grid: { rows: 4, cols: 4, merges: [{ r: 1, c: 1, rows: 2, cols: 1 }] } });
