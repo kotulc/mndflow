@@ -82,7 +82,7 @@ const PATHS = {
   // What a thing is, opened out to be set. A cog: the one mark every app
   // already spends on *the settings of this*.
   // The system's own words, written rather than drawn: three letters on one grid, one weight,
-  // so `Wks`, `Pkg`, `Def`, `Ref` and `Use` read as one family wherever they are stamped.
+  // so `Wks`, `Pkg`, `Def` and `Ref` read as one family wherever they are stamped.
   /** The workspace: everything the project holds. */
   word_wks: "M2.5 7.5l1.75 9 1.75-5.5 1.75 5.5 1.75-9M11.5 7.5v9M15.5 11.5l-4 3.25M13.1 13.1l2.4 3.4M20.8 12.5a1.7 1.7 0 0 0-3 1c0 1.6 3.2.7 3.2 2.2a1.8 1.8 0 0 1-3.2.9",
   /** The packages: what the workspace draws on. */
@@ -93,8 +93,6 @@ const PATHS = {
   word_ref: "M3 16.5V7.5h2.2a2.6 2.6 0 0 1 0 5.2H3M5.9 12.7l2.6 3.8M10 13.9h4.4a2.2 2.2 0 1 0-4.4 0v.2a2.2 2.2 0 0 0 4 1.3M21 8.2a2 2 0 0 0-3 1.8v6.5M16.3 12.2h3.7",
   /** A stand-in for something outside the workspace. */
   word_ext: "M8 7.5H3v9h5M3 12h4.2M10 11.9l4.2 4.6M14.2 11.9L10 16.5M18 8.5v6.2a1.8 1.8 0 0 0 2.6 1.6M16.4 11.9h3.5",
-  /** The usages: the blocks the workspace is made of. */
-  word_use: "M3 7.5v6a3 3 0 0 0 6 0v-6M14.5 12.5a1.7 1.7 0 0 0-3 1c0 1.6 3.2.7 3.2 2.2a1.8 1.8 0 0 1-3.2.9M16.6 13.9h4.4a2.2 2.2 0 1 0-4.4 0v.2a2.2 2.2 0 0 0 4 1.3",
   /** Carries data: populated fields, or the schema they are read against. A database, drawn:
    *  the one mark every tool already spends on *records live here*. */
   data: "M5 6.5c0-1.4 3.1-2.5 7-2.5s7 1.1 7 2.5-3.1 2.5-7 2.5-7-1.1-7-2.5M5 6.5v11c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-11M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5",

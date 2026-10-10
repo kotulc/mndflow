@@ -5,7 +5,7 @@ import { alias_of, all_defs, branch_of, children, config_of, def_of, domain_of,
          holds_structure, is_group, is_interface, is_named, package_of, packages, relation_base,
          role_of, shown_name, stamps_of, tops_of, type Block, type Cut, type Graph, type Id,
          type Role } from "@mnd/core";
-import { known, role_icon, type IconName } from "@mnd/theme";
+import { known, MARK_ICON, role_icon, type IconName } from "@mnd/theme";
 import type { Chain } from "./chain";
 
 /** What a row reads as: a block's role, as its card reads, or one of the tree's own marks. */
@@ -44,7 +44,7 @@ export const OPENED = "+";
 const OWN: Record<Own, IconName> = {
   locked: "locked",
   vocabulary: "word_def",
-  usages: "word_use",
+  usages: MARK_ICON.structure!,
   root: "role_folder",
   package: "word_pkg",
   line: "relation_plain",
@@ -85,8 +85,8 @@ export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain, every
     const keyed = (route: string) => `${slice.id}/${route}`;
     const tops = slice.trees ? trees_of(graph, chain.drawn) : tops_of(graph, root);
     for (const id of tops) {
-      branch_rows(graph, { cut: slice.cut, root, every }, id, id, undefined, folded, out, keyed,
-                  1, new Set());
+      branch_rows(graph, { cut: slice.cut, root, every, trees: slice.trees }, id, id, undefined,
+                  folded, out, keyed, 1, new Set());
     }
     for (const row of out.slice(start)) row.at = at;
   });
@@ -126,7 +126,8 @@ export function listed_of(graph: Graph, id: Id): Id {
  *  parts, then its own children; nothing past the section's cut. What a row holds lists only
  *  once it is opened — so a definition reached through itself never lists forever — unless
  *  every branch is asked for. */
-function branch_rows(graph: Graph, at: { cut: Cut; root: Id | null; every: boolean }, id: Id,
+function branch_rows(graph: Graph,
+                     at: { cut: Cut; root: Id | null; every: boolean; trees?: boolean }, id: Id,
                      route: string,
                      via: Id | undefined, folded: readonly Id[], out: Row[],
                      key: (route: string) => string, depth: number,
@@ -138,7 +139,7 @@ function branch_rows(graph: Graph, at: { cut: Cut; root: Id | null; every: boole
   const row_key = key(route);
   out.push({ ...block_row(graph, id, depth, parts.length + own.length, row_key),
              ...(via ? { via } : {}),
-             ...(stamps_of(graph, id).includes("structure") ? { held: true } : {}) });
+             ...(stamps_of(graph, id).includes("structure") && !at.trees ? { held: true } : {}) });
   /** Parts are never listed whole: a definition may be reached through itself. */
   const every = at.every && !via && !parts.length;
   if (!every && !opened(folded, row_key)) return;

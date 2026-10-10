@@ -68,8 +68,8 @@ pump1
 
 - **Guide lines are drawn per indent column**; the last row in a branch turns an elbow.
 - **A row wears its card's icon**: the role core's `role_of` reads — block, folder, group, grid, interface, reference, note — so a tag reads as the block it is. A row that holds blocks lights its icon.
-- **A definition's row holding structure wears its card's structure mark** after its name, so a definition says it has structure before it is picked. Nothing else does — not a block inside a structure, a package or a folder. The workspace's row wears a folder.
-- **A section's mark is a word**: `Pkg`, `Def`, `Use`. A word is never filled.
+- **A definition's row holding structure wears its card's structure mark** after its name in the definitions section, so a definition says it has structure before it is picked. The structure section wears that mark on its header instead, so its rows do not repeat it. Nothing else does — not a block inside a structure, a package or a folder. The workspace's row wears a folder.
+- **A section's mark is a word or the structure tree**: `Def` for definitions; the structure section wears the same tree-root mark definitions stamp when they hold structure. Package sections wear `Pkg`. Words are never filled.
 - **A row is keyed by its section and route**, as a block may list in two sections and a part under two usages.
 - **A group or grid heads what it holds, as a table's head does its rows**, in every section alike: its row keeps its branch and its name is underlined, and its members list at its level beneath it with no tick of their own, joined to it by a line down their marks' column. A member's own children branch as usual. A folder nests like any block. Enter, → or a double click on a group's row reveals it on the canvas, which pans to it.
 
