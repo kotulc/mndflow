@@ -1,13 +1,13 @@
 /** Relationships and the interfaces they meet. */
 
 import { may_seat } from "../capabilities";
-import { def_at, domain_of, setting_of } from "../defs";
+import { def_at, domain_of, setting_of, stored_type } from "../defs";
 import { shown_name } from "../names";
-import { children, is_interface, next_order, part_end } from "../tree";
+import { is_interface, next_order, part_end } from "../tree";
 import { new_id } from "../ids";
 import type { Dir, Flow, Graph, Id, Mutation, Side } from "../types";
 import { register, type Args, type Context } from "./registry";
-import { handles, id_of, may_wear, run_type, side_of, SIDES, text, typed } from "./helpers";
+import { handles, id_of, may_wear, run_type, side_of, SIDES, text } from "./helpers";
 
 register(
   {
@@ -19,8 +19,8 @@ register(
            { name: "to", form: "block", required: true },
            { name: "type", form: "text" },
            { name: "dir", form: "choice", choices: ["none", "forward", "back", "both"] },
-           { name: "fromSide", form: "choice", choices: SIDES },
-           { name: "toSide", form: "choice", choices: SIDES }],
+           /** The drawing tool's base, where no type is said. */
+           { name: "module", form: "choice", choices: ["line", "tie"] }],
     check: (ctx, args) => {
       const from = part_end(ctx.graph, id_of(args, "from"));
       const to = part_end(ctx.graph, id_of(args, "to"));
@@ -43,7 +43,6 @@ register(
       const from = part_end(ctx.graph, id_of(args, "from"));
       const to = part_end(ctx.graph, id_of(args, "to"));
       const dir = String(args["dir"] ?? "none") as Dir;
-      /** A wall the gesture named. */
       const line = handles(ctx, "relation");
       const alias = line.take();
       const out: Mutation[] = [...line.bump(), { op: "link_blocks", edge: {
@@ -51,8 +50,6 @@ register(
         ...(from.part ? { fromPart: from.part } : {}), ...(to.part ? { toPart: to.part } : {}),
         ...run_type(ctx, args),
         alias, ...(dir !== "none" ? { dir } : {}),
-        ...(side_of(args, "fromSide") ? { fromSide: side_of(args, "fromSide") } : {}),
-        ...(side_of(args, "toSide") ? { toSide: side_of(args, "toSide") } : {}),
       } }];
       return { mutations: out };
     },
@@ -74,15 +71,11 @@ register(
       if (!ctx.graph.blocks[to.block]) return "needs a block to land on";
       return abstract(ctx.graph, other, to.block) ? "a definition is never linked, only tied" : null;
     },
-    /** Moving an end clears its pinned wall; its type goes with it. */
     run: (ctx, args) => {
       const id = id_of(args, "id");
       const end = args["end"] as "from" | "to";
       const to = part_end(ctx.graph, id_of(args, "to"));
-      return { mutations: [
-        { op: "set_end", id, end, port: to.block, part: to.part ?? null },
-        { op: "set_side", id, end, side: null },
-      ] };
+      return { mutations: [{ op: "set_end", id, end, port: to.block, part: to.part ?? null }] };
     },
   },
   {
@@ -115,25 +108,24 @@ register(
   },
 );
 
-/** The walls this act sets interfaces into: an owner's, or a run's ends. */
-function promoted(ctx: Context, args: Args)
-    : { owner: Id; side: Side; end?: "from" | "to" }[] {
+/** The owners this act seats interfaces on: one named, or a run's ends. */
+function promoted(ctx: Context, args: Args): { owner: Id; end?: "from" | "to" }[] {
   const edge = ctx.graph.edges[text(args, "edge")];
   const said = String(args["end"] ?? "");
   const ends: ("from" | "to")[] = said === "both" ? ["from", "to"]
     : said === "from" || said === "to" ? [said] : [];
   if (!edge || !ends.length) {
     const owner = id_of(args, "owner");
-    return owner ? [{ owner, side: side_of(args, "side") ?? "right" }] : [];
+    return owner ? [{ owner }] : [];
   }
-  const asked = side_of(args, "side");
-  return ends.map((end) => ({
-      owner: edge[end],
-      /** The released wall for one end, else the wall each end already leaves by. */
-      side: (ends.length === 1 ? asked : undefined)
-        ?? (end === "from" ? edge.fromSide : edge.toSide) ?? "right",
-      end,
-    }));
+  return ends.map((end) => ({ owner: edge[end], end }));
+}
+
+/** The seat an act names: a side and a place along it, both or neither. */
+function seat_of(args: Args): { side: Side; at: number } | null {
+  const side = side_of(args, "side");
+  const at = args["at"];
+  return side && typeof at === "number" ? { side, at } : null;
 }
 
 /** Whether a relationship between these would link a definition: allowed only where the other end
@@ -144,27 +136,16 @@ function abstract(graph: Graph, a: Id, b: Id): boolean {
   return (def(a) && !ties(b)) || (def(b) && !ties(a));
 }
 
-/** The free fraction nearest a wall's middle. */
-function mid_of(graph: Graph, owner: Id, side: Side): number {
-  const taken = new Set(children(graph, owner)
-    .filter((b) => is_interface(b) && b.side === side).map((b) => b.at ?? 0.5));
-  for (const at of SHARED) if (!taken.has(at)) return at;
-  return 0.5;
-}
-
 /** Why nothing may be seated here. The capability decides; these are its words. */
 function no_wall(graph: Graph, id: Id): string {
   return `"${shown_name(graph, id)}" takes no interfaces`;
 }
 
-/** Fractions along a wall, middle first and then outward in pairs. */
-const SHARED: readonly number[] =
-  [2, 3, 4, 5, 6].flatMap((d) => Array.from({ length: d - 1 }, (_, n) => (n + 1) / d));
-
 register(
   {
     name: "interface",
-    about: "puts an interface on the border of a block, and takes a relationship to it",
+    about: "puts an interface on the border of a block, and takes a relationship to it; one "
+      + "given no seat places itself",
     on: ["block", "edge"],
     when: (ctx) => {
       const one = ctx.picked.length === 1 ? ctx.picked[0] : undefined;
@@ -186,40 +167,48 @@ register(
       if (wrong) return wrong;
       const on = promoted(ctx, args);
       if (!on.length) return "needs a border to sit on";
+      if ((args["side"] !== undefined) !== (args["at"] !== undefined)) {
+        return "a seat needs both a side and a place along it, or neither";
+      }
       for (const { owner } of on) {
         const met = ctx.graph.blocks[owner];
         if (!met) return "needs a border to sit on";
         /** An end that is already an interface has nothing to promote. */
-        if (edge && is_interface(met)) return "that end is already an interface";
+        if (edge && is_interface(ctx.graph, met.id)) return "that end is already an interface";
         if (!may_seat(ctx.graph, owner, text(args, "type") || "interface")) {
           return no_wall(ctx.graph, owner);
         }
       }
       return null;
     },
-    /** Promoting an end clears its pinned wall. */
+    /** A promoted end places itself; only an owner named with a seat is placed. */
     run: (ctx, args) => {
       const edge = text(args, "edge");
       const out: Mutation[] = [];
       let last = "";
       const port = handles(ctx, "interface");
-      for (const { owner, side, end } of promoted(ctx, args)) {
+      const type = stored_type(ctx.graph, text(args, "type") || "interface");
+      for (const { owner, end } of promoted(ctx, args)) {
         const id = new_id("block");
         last = id;
+        const seat = end === undefined ? seat_of(args) : null;
         out.push({ op: "add_block", block: {
-          id, parent: owner, side,
-          at: end === undefined && typeof args["at"] === "number"
-            ? (args["at"] as number) : mid_of(ctx.graph, owner, side),
-          order: next_order(ctx.graph, owner), alias: port.take(), ...typed(ctx, args),
+          id, parent: owner, ...(seat ?? {}), ...(type ? { type } : {}),
+          order: next_order(ctx.graph, owner), alias: port.take(),
         } });
-        if (edge && end) {
-          out.push({ op: "set_end", id: edge, end, port: id },
-                   { op: "set_side", id: edge, end, side: null });
-        }
+        if (edge && end) out.push({ op: "set_end", id: edge, end, port: id });
       }
       out.push(...port.bump());
       return { mutations: out, effect: { focus: last } };
     },
+  },
+  {
+    name: "free",
+    about: "lets an interface place itself again",
+    on: ["interface"],
+    args: [{ name: "id", form: "block", required: true }],
+    check: (ctx, args) => (ctx.graph.blocks[id_of(args, "id")]?.side ? null : "it places itself"),
+    run: (_ctx, args) => ({ mutations: [{ op: "set_port", id: id_of(args, "id"), seat: null }] }),
   },
   {
     name: "mark",

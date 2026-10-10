@@ -52,7 +52,7 @@ export function lens_of(graph: Graph, id: Id): ViewKind | null {
   if (target && target.id !== id) return lens_of(graph, target.id);
   if (is_grid(graph, id)) return "grid";
   if (inline(graph, id)) return null;
-  return is_interface(b) || opens(graph, id) || holds_any(graph, id) ? "internal" : null;
+  return is_interface(graph, b.id) || opens(graph, id) || holds_any(graph, id) ? "internal" : null;
 }
 
 /** The view a block is drawn in, rooting section `at` or reached in it: a definition rooting a

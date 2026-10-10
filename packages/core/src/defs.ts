@@ -155,7 +155,6 @@ export function base_of(graph: Graph, id: Id): Id {
   const b = graph.blocks[id];
   if (!b) return "block";
   if (b.of) return "reference";
-  if (b.side !== undefined) return "interface";
   return base_named(graph, b.def ? b.id : b.type) ?? "block";
 }
 
@@ -169,7 +168,6 @@ export function module_of(graph: Graph, id: Id): BlockModule {
   const b = graph.blocks[id];
   if (!b) return "block";
   if (b.of) return "reference";
-  if (b.side !== undefined) return "interface";
   return module_named(graph, b.def ? b.id : b.type);
 }
 
@@ -233,7 +231,7 @@ export function plain_type(base: Id): Id | null {
 }
 
 /** Bases an element's own shape says, so a plain one names nothing. */
-const STRUCTURAL: readonly Id[] = ["block", "reference", "interface"];
+const STRUCTURAL: readonly Id[] = ["block", "reference"];
 
 /** The package root a block sits under. */
 export function package_of(graph: Graph, id: Id): Id {

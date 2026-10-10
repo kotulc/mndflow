@@ -49,7 +49,7 @@ export type Chrome = {
  *  package view reads as a page — so it is not offered here. */
 const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
   free: { icon: "layout_free", tip: "Hand placement is what draws" },
-  auto: { icon: "layout_grid", tip: "Auto-layout: related blocks share a row, a unit of air between everything" },
+  auto: { icon: "layout_grid", tip: "Auto-layout: everything in reading order on a grid; lines never move it" },
 };
 
 /** How the canvas may look: at its whole section, or at one block. */
@@ -103,11 +103,19 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
   if (has("layer")) {
     out.push({
       key: "layer", label: "layer",
-      controls: LAYOUTS.filter((how) => LAYOUT[how]).map((how): Control => ({
-        key: how, icon: LAYOUT[how]!.icon, word: how, tip: LAYOUT[how]!.tip,
-        on: (chrome.layout ?? "free") === how,
-        run: () => act("layout", { kind: how }),
-      })),
+      controls: [
+        ...LAYOUTS.filter((how) => LAYOUT[how]).map((how): Control => ({
+          key: how, icon: LAYOUT[how]!.icon, word: how, tip: LAYOUT[how]!.tip,
+          on: (chrome.layout ?? "free") === how,
+          run: () => act("layout", { kind: how }),
+        })),
+        /** Auto reads in order; this reorders once, so related blocks read side by side. */
+        ...(chrome.layout === "auto" ? [{
+          key: "arrange", icon: "align" as const, word: "arrange", verb: true, ruled: true,
+          tip: "Order what the layer holds so related blocks read side by side",
+          run: () => act("arrange", {}),
+        }] : []),
+      ],
     });
   }
 

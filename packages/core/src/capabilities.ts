@@ -190,7 +190,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
     if (b.def && closes_cycle(graph, b.id, b.type)) {
       notes.push({ kind: "cycle", id: b.id, what: `"${label(graph, b.id)}" extends itself` });
     }
-    if (!b.cell && !is_interface(b) && is_grid(graph, b.parent ?? undefined)) {
+    if (!b.cell && !is_interface(graph, b.id) && is_grid(graph, b.parent ?? undefined)) {
       notes.push({ kind: "cell", id: b.id,
                    what: `"${label(graph, b.id)}" sits in a grid but in no cell, so it is not drawn` });
     }
@@ -206,7 +206,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
 
     /** What it holds without the containment capability, or of a sort it does not take. */
     for (const child of children(graph, b.id)) {
-      if (is_interface(child) || permits(graph, allows.holds, child.type)) continue;
+      if (is_interface(graph, child.id) || permits(graph, allows.holds, child.type)) continue;
       notes.push({ kind: "holds", id: child.id,
                    what: `"${label(graph, b.id)}" may not hold "${label(graph, child.id)}"` });
     }
@@ -214,7 +214,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
     /** A wall that takes no interfaces, said about the ones already on it. */
     if (!permits(graph, allows.ports, "interface")) {
       for (const child of children(graph, b.id)) {
-        if (!is_interface(child)) continue;
+        if (!is_interface(graph, child.id)) continue;
         notes.push({ kind: "ports", id: child.id,
                      what: `"${label(graph, b.id)}" takes no interfaces` });
       }
@@ -270,7 +270,7 @@ function count(notes: Note[], id: Id, name: string, way: "in" | "out",
 function end(notes: Note[], graph: Graph, id: Id, way: "from" | "to", at: Id,
              allowed: Id[] | undefined, flow: Flow | undefined): void {
   const met = graph.blocks[at];
-  const owner = met && is_interface(met) && met.parent
+  const owner = met && is_interface(graph, met.id) && met.parent
     ? graph.blocks[met.parent] : undefined;
   if (allowed && !is_one_of(graph, met?.type, allowed)
       && !is_one_of(graph, owner?.type, allowed)) {

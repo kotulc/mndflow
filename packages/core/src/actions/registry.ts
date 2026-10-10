@@ -88,7 +88,7 @@ function in_scope(a: Action, ctx: Context): boolean {
     s === "layer" ? true
     : s === "block" ? !!one
     : s === "edge" ? !!edge
-    : s === "interface" ? !!one && is_interface(one)
+    : s === "interface" ? !!one && is_interface(ctx.graph, one.id)
     : s === "cell" ? !!ctx.cells?.length
     : ctx.picked.length > 0);
 }

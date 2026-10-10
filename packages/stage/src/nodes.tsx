@@ -334,6 +334,9 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
 /** An interface, seated on its owner's wall. */
 function SeatNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
+  /** A seat that changes wall faces anew, so its handle is measured again. */
+  const remeasure = useUpdateNodeInternals();
+  useEffect(() => remeasure(id), [id, data.side, remeasure]);
   return (
     <div className={["mnd-seat", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}

@@ -42,9 +42,8 @@ export type FlowViewProps = {
   scene: Scene;
   picked?: readonly Id[];
   onGesture?: (g: Gesture) => void;
-  /** A right drag from one card to another, with any room wall let go on. */
-  onRelate?: (from: string, to: string,
-              walls?: { fromSide?: Side; toSide?: Side }) => void;
+  /** A right drag from one card to another. */
+  onRelate?: (from: string, to: string) => void;
   /** A right drag across empty ground: the region a grid will fill. */
   onSweep?: (box: { x: number; y: number; w: number; h: number }) => void;
   onAdjust?: (adjust: Adjust) => void;

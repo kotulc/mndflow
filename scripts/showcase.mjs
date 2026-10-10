@@ -137,9 +137,9 @@ def("tag_rotating", "rotating", "tag", undefined, {}, "w_machines");
 def("def_pump", "Pump", "def_machine", { style: { hue: 200 } }, {
   body: "Moves liquid from its inlet to its outlet, driven by a motor.", tags: ["tag_rotating"],
   def: { attributes: [{ name: "flow", type: "number", unit: "m3/h" }] } }, "w_machines");
-put("dp_inlet", "def_pump", "interface", { name: "inlet", side: "left", at: 0.5, flow: "in" });
-put("dp_outlet", "def_pump", "interface", { name: "outlet", side: "right", at: 0.5, flow: "out" });
-put("dp_seal", "def_pump", "interface", { name: "seal", side: "bottom", at: 0.5, flow: "both" });
+put("dp_inlet", "def_pump", "interface", { name: "inlet", type: "interface", flow: "in" });
+put("dp_outlet", "def_pump", "interface", { name: "outlet", type: "interface", flow: "out" });
+put("dp_seal", "def_pump", "interface", { name: "seal", type: "interface", flow: "both" });
 def("def_bigpump", "Big pump", "def_pump", { style: { border_width: "thick" } }, {
   def: { attributes: [{ name: "stages", type: "number", default: "2" }] } }, "w_machines");
 for (const [col, d] of ["def_machine", "def_pump", "def_bigpump"].entries()) {
@@ -156,7 +156,7 @@ put("d_b1", "l_defs", "block", { name: "Main pump", type: "def_bigpump",
 /* ── Relations: every kind and direction, then what routing has to get right ── */
 
 layer("l_rel", "Relations");
-note("l_rel", "Each direction, a name, arrows and a tie; then a run past a third block, two runs between one pair, two runs that cross, and a pair close together. All laid out automatically.", 27);
+note("l_rel", "Each direction, a name, arrows and a tie; then a run past a third block, two runs between one pair (they overlap), two runs that cross, a pair close together, and a hub whose lines share a trunk and fan out. Lines leave the middle of a face, run straight or in one Z, and draw under cards; a tie joins nearest corners.", 27);
 const pair = (id, name_a, name_b, more) => {
   put(`${id}_a`, "l_rel", "block", { name: name_a });
   put(`${id}_b`, "l_rel", "block", { name: name_b });
@@ -189,23 +189,35 @@ link("r_cross_2", "r_x_b", "r_x_c", { dir: "forward" });
 put("r_gap_a", "l_rel", "block", { name: "Close" });
 put("r_gap_b", "l_rel", "block", { name: "Closer" });
 link("r_gap", "r_gap_a", "r_gap_b", { dir: "forward" });
+put("r_hub", "l_rel", "block", { name: "Hub" });
+for (const [n, name] of ["One", "Two", "Three"].entries()) {
+  put(`r_spoke_${n}`, "l_rel", "block", { name });
+  link(`r_fan_${n}`, "r_hub", `r_spoke_${n}`, { dir: "forward", name: `to ${name.toLowerCase()}` });
+}
 
 
 /* ── Interfaces: ports on each side, and flow ── */
 
 layer("l_ports", "Interfaces");
-note("l_ports", "Ports on each side of a block, flowing in, out, both or neither; lines may land on a port or on the block.", 22);
+note("l_ports", "Ports placed on each side of Pump, flowing in, out, both or neither; Pump's top port is placed in the middle of a face no line meets; Tank and Valve's ports place themselves, in a face's middle unless a line's anchor holds it. Lines to the room meet its wall straight across: Gauge's line to the room itself, and Drain, the room's own port, placing itself.", 22);
 put("p_pump", "l_ports", "block", { name: "Pump" });
 put("p_tank", "l_ports", "block", { name: "Tank" });
 put("p_valve", "l_ports", "block", { name: "Valve" });
-const port = (id, parent, side, flow) =>
-  put(id, parent, "interface", { name: "", side, at: 0.5, ...(flow ? { flow } : {}) });
+/** A port: placed where a side is given, a quarter along unless said, else placing itself. */
+const port = (id, parent, side, flow, at = 0.25) =>
+  put(id, parent, "interface", { name: "", type: "interface", ...(side ? { side, at } : {}),
+                                 ...(flow ? { flow } : {}) });
 port("p_pump_in", "p_pump", "left", "in");
 port("p_pump_out", "p_pump", "right", "out");
-port("p_pump_top", "p_pump", "top", "both");
+port("p_pump_top", "p_pump", "top", "both", 0.5);
 port("p_pump_low", "p_pump", "bottom");
-port("p_tank_in", "p_tank", "left", "in");
-port("p_valve_out", "p_valve", "top", "out");
+port("p_tank_in", "p_tank", undefined, "in");
+port("p_valve_out", "p_valve", undefined, "out");
+put("p_gauge", "l_ports", "block", { name: "Gauge" });
+port("p_drain", "l_ports", undefined, "out");
+link("p_read", "p_gauge", "l_ports", { dir: "forward", name: "reading" });
+link("p_spill", "p_tank", "p_drain", { dir: "forward" });
+link("p_tank_pump", "p_tank", "p_pump", { name: "level" });
 link("p_flow", "p_pump_out", "p_tank_in", { dir: "forward", name: "water" });
 link("p_feed", "p_valve_out", "p_pump_low", { dir: "forward" });
 

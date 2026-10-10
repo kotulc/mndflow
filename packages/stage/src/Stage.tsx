@@ -113,7 +113,7 @@ function bare_ends(id: string, graph: Graph): ("from" | "to")[] {
   if (!e) return [];
   return (["from", "to"] as const).filter((end) => {
     const b = graph.blocks[e[end]];
-    return !!b && !is_interface(b);
+    return !!b && !is_interface(graph, b.id);
   });
 }
 
@@ -240,7 +240,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     note: [{ name: "rename", label: "rename note" },
            { name: "delete", label: "delete note" }],
     box: ["rename", "open", "interface", "note", "delete"],
-    seat: ["rename", "open", "interface", "note", "delete"],
+    /** An interface holds no interfaces; a placed one may place itself again. */
+    seat: ["rename", "open", { name: "free", label: "place itself" }, "note", "delete"],
     /** A group and a grid write their name on the frame when told to. */
     band: [{ name: "rename", label: "rename group" }, "open", "note", "fill",
            { name: "chain", args: drawing },
@@ -356,7 +357,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onGesture={gesture}
         onPick={onPick}
         onDrop={onDrop}
-        onRelate={(from, to, walls) => onAct("relate", { from, to, ...walls, ...drawing })}
+        onRelate={(from, to) => onAct("relate", { from, to, ...drawing })}
         /** A right drag across empty ground draws a grid, seating what it covered. */
         onSweep={(box) => onAct("group", swept(scene, box))}
         onAdjust={(adjust) => onAdjust?.(moves_of(graph, scene, adjust))}

@@ -12,16 +12,22 @@ export const UNITS = {
   unit: 24,
   /** A block in units: five by two. */
   block: { w: 5, h: 2 },
-  /** How far apart the layout sets any two things, in units. */
-  gap: 1,
+  /** How far apart the layout sets two cells, in units: room for a name between two cards, and
+   *  for two groups' air with a unit between them. */
+  gap: 3,
+  /** The air round what a group, a room or a grid's cell holds, in units. */
+  pad: 1,
 };
 
 /** One square of the guides. Everything lands on this: what the layout places, what a hand drops,
  *  what a grid seats. */
 export const UNIT = UNITS.unit;
 
-/** How far apart the layout sets any two things. */
+/** How far apart the layout sets two cells. */
 export const GAP = UNITS.gap * UNIT;
+
+/** The air round what a holder holds. */
+export const PAD = UNITS.pad * UNIT;
 
 /** Seats fall every half unit, never on a corner. */
 export const SEAT = UNIT / 2;
@@ -31,7 +37,7 @@ export type Size = { w: number; h: number };
 export const BLOCK: Size = { w: UNITS.block.w * UNIT, h: UNITS.block.h * UNIT };
 
 /** A group's cell, and the one thing a cell is: a block with a gap of air on every side of it. */
-export const CELL: Size = { w: BLOCK.w + GAP * 2, h: BLOCK.h + GAP * 2 };
+export const CELL: Size = { w: BLOCK.w + PAD * 2, h: BLOCK.h + PAD * 2 };
 
 /** An interface is smaller than a seat is wide, so two never touch. */
 export const PORT: Size = { w: SEAT - 1, h: SEAT - 1 };
@@ -132,8 +138,8 @@ export function set_card(w: number, h: number): Size {
   UNITS.block = { w: ranged(w, CARD.min.w, CARD.max.w), h: ranged(h, CARD.min.h, CARD.max.h) };
   BLOCK.w = UNITS.block.w * UNIT;
   BLOCK.h = UNITS.block.h * UNIT;
-  CELL.w = BLOCK.w + GAP * 2;
-  CELL.h = BLOCK.h + GAP * 2;
+  CELL.w = BLOCK.w + PAD * 2;
+  CELL.h = BLOCK.h + PAD * 2;
   return { ...UNITS.block };
 }
 
@@ -159,7 +165,7 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
   if (is_grid(graph, id) && inline(graph, id)) return grid_size(lattice_of(graph, id)!);
   const b = graph.blocks[id];
   if (!b) return BLOCK;
-  if (is_interface(b)) return PORT;
+  if (is_interface(graph, b.id)) return PORT;
   if (b.w !== undefined && b.h !== undefined && free_height(graph, id)) return { w: b.w, h: b.h };
   /** A reference to a block previews it, at its size, with the face where it sits. */
   const source = previewed(graph, id);

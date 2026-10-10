@@ -9,12 +9,12 @@
         "parent": null,
         "name": "workspace",
         "counters": {
-          "block": 84,
+          "block": 89,
           "note": 11,
           "folder": 1,
           "reference": 11,
-          "interface": 9,
-          "relation": 15,
+          "interface": 10,
+          "relation": 21,
           "group": 2,
           "grid": 1
         }
@@ -867,8 +867,7 @@
         "alias": 1,
         "order": 1,
         "name": "inlet",
-        "side": "left",
-        "at": 0.5,
+        "type": "interface",
         "flow": "in"
       },
       "dp_outlet": {
@@ -877,8 +876,7 @@
         "alias": 2,
         "order": 2,
         "name": "outlet",
-        "side": "right",
-        "at": 0.5,
+        "type": "interface",
         "flow": "out"
       },
       "dp_seal": {
@@ -887,8 +885,7 @@
         "alias": 3,
         "order": 3,
         "name": "seal",
-        "side": "bottom",
-        "at": 0.5,
+        "type": "interface",
         "flow": "both"
       },
       "def_bigpump": {
@@ -995,7 +992,7 @@
         "parent": "l_rel",
         "alias": 5,
         "order": 1,
-        "name": "Each direction, a name, arrows and a tie; then a run past a third block, two runs between one pair, two runs that cross, and a pair close together. All laid out automatically.",
+        "name": "Each direction, a name, arrows and a tie; then a run past a third block, two runs between one pair (they overlap), two runs that cross, a pair close together, and a hub whose lines share a trunk and fan out. Lines leave the middle of a face, run straight or in one Z, and draw under cards; a tie joins nearest corners.",
         "type": "note",
         "w": 648,
         "h": 72
@@ -1178,10 +1175,38 @@
         "order": 26,
         "name": "Closer"
       },
+      "r_hub": {
+        "id": "r_hub",
+        "parent": "l_rel",
+        "alias": 58,
+        "order": 27,
+        "name": "Hub"
+      },
+      "r_spoke_0": {
+        "id": "r_spoke_0",
+        "parent": "l_rel",
+        "alias": 59,
+        "order": 28,
+        "name": "One"
+      },
+      "r_spoke_1": {
+        "id": "r_spoke_1",
+        "parent": "l_rel",
+        "alias": 60,
+        "order": 29,
+        "name": "Two"
+      },
+      "r_spoke_2": {
+        "id": "r_spoke_2",
+        "parent": "l_rel",
+        "alias": 61,
+        "order": 30,
+        "name": "Three"
+      },
       "l_ports": {
         "id": "l_ports",
         "parent": "main",
-        "alias": 58,
+        "alias": 62,
         "order": 5,
         "name": "Interfaces"
       },
@@ -1190,7 +1215,7 @@
         "parent": "l_ports",
         "alias": 7,
         "order": 1,
-        "name": "Ports on each side of a block, flowing in, out, both or neither; lines may land on a port or on the block.",
+        "name": "Ports placed on each side of Pump, flowing in, out, both or neither; Pump's top port is placed in the middle of a face no line meets; Tank and Valve's ports place themselves, in a face's middle unless a line's anchor holds it. Lines to the room meet its wall straight across: Gauge's line to the room itself, and Drain, the room's own port, placing itself.",
         "type": "note",
         "w": 528,
         "h": 72
@@ -1198,21 +1223,21 @@
       "p_pump": {
         "id": "p_pump",
         "parent": "l_ports",
-        "alias": 59,
+        "alias": 63,
         "order": 2,
         "name": "Pump"
       },
       "p_tank": {
         "id": "p_tank",
         "parent": "l_ports",
-        "alias": 60,
+        "alias": 64,
         "order": 3,
         "name": "Tank"
       },
       "p_valve": {
         "id": "p_valve",
         "parent": "l_ports",
-        "alias": 61,
+        "alias": 65,
         "order": 4,
         "name": "Valve"
       },
@@ -1222,8 +1247,9 @@
         "alias": 4,
         "order": 1,
         "name": "",
+        "type": "interface",
         "side": "left",
-        "at": 0.5,
+        "at": 0.25,
         "flow": "in"
       },
       "p_pump_out": {
@@ -1232,8 +1258,9 @@
         "alias": 5,
         "order": 2,
         "name": "",
+        "type": "interface",
         "side": "right",
-        "at": 0.5,
+        "at": 0.25,
         "flow": "out"
       },
       "p_pump_top": {
@@ -1242,6 +1269,7 @@
         "alias": 6,
         "order": 3,
         "name": "",
+        "type": "interface",
         "side": "top",
         "at": 0.5,
         "flow": "both"
@@ -1252,8 +1280,9 @@
         "alias": 7,
         "order": 4,
         "name": "",
+        "type": "interface",
         "side": "bottom",
-        "at": 0.5
+        "at": 0.25
       },
       "p_tank_in": {
         "id": "p_tank_in",
@@ -1261,8 +1290,7 @@
         "alias": 8,
         "order": 1,
         "name": "",
-        "side": "left",
-        "at": 0.5,
+        "type": "interface",
         "flow": "in"
       },
       "p_valve_out": {
@@ -1271,14 +1299,29 @@
         "alias": 9,
         "order": 1,
         "name": "",
-        "side": "top",
-        "at": 0.5,
+        "type": "interface",
+        "flow": "out"
+      },
+      "p_gauge": {
+        "id": "p_gauge",
+        "parent": "l_ports",
+        "alias": 66,
+        "order": 5,
+        "name": "Gauge"
+      },
+      "p_drain": {
+        "id": "p_drain",
+        "parent": "l_ports",
+        "alias": 10,
+        "order": 6,
+        "name": "",
+        "type": "interface",
         "flow": "out"
       },
       "l_hold": {
         "id": "l_hold",
         "parent": "main",
-        "alias": 62,
+        "alias": 67,
         "order": 6,
         "name": "Holders"
       },
@@ -1311,21 +1354,21 @@
       "h_g1": {
         "id": "h_g1",
         "parent": "h_inner",
-        "alias": 63,
+        "alias": 68,
         "order": 1,
         "name": "Motor"
       },
       "h_g2": {
         "id": "h_g2",
         "parent": "h_inner",
-        "alias": 64,
+        "alias": 69,
         "order": 2,
         "name": "Gearbox"
       },
       "h_g3": {
         "id": "h_g3",
         "parent": "h_outer",
-        "alias": 65,
+        "alias": 70,
         "order": 2,
         "name": "Panel"
       },
@@ -1366,7 +1409,7 @@
       "h_col_0": {
         "id": "h_col_0",
         "parent": "h_grid",
-        "alias": 66,
+        "alias": 71,
         "order": 1,
         "name": "Mon",
         "cell": {
@@ -1377,7 +1420,7 @@
       "h_col_1": {
         "id": "h_col_1",
         "parent": "h_grid",
-        "alias": 67,
+        "alias": 72,
         "order": 2,
         "name": "Tue",
         "cell": {
@@ -1388,7 +1431,7 @@
       "h_col_2": {
         "id": "h_col_2",
         "parent": "h_grid",
-        "alias": 68,
+        "alias": 73,
         "order": 3,
         "name": "Wed",
         "cell": {
@@ -1399,7 +1442,7 @@
       "h_row_0": {
         "id": "h_row_0",
         "parent": "h_grid",
-        "alias": 69,
+        "alias": 74,
         "order": 4,
         "name": "Day",
         "cell": {
@@ -1410,7 +1453,7 @@
       "h_row_1": {
         "id": "h_row_1",
         "parent": "h_grid",
-        "alias": 70,
+        "alias": 75,
         "order": 5,
         "name": "Swing",
         "cell": {
@@ -1421,7 +1464,7 @@
       "h_row_2": {
         "id": "h_row_2",
         "parent": "h_grid",
-        "alias": 71,
+        "alias": 76,
         "order": 6,
         "name": "Night",
         "cell": {
@@ -1432,7 +1475,7 @@
       "h_c1": {
         "id": "h_c1",
         "parent": "h_grid",
-        "alias": 72,
+        "alias": 77,
         "order": 7,
         "name": "Ana",
         "cell": {
@@ -1443,7 +1486,7 @@
       "h_c2": {
         "id": "h_c2",
         "parent": "h_grid",
-        "alias": 73,
+        "alias": 78,
         "order": 8,
         "name": "Ben",
         "cell": {
@@ -1454,7 +1497,7 @@
       "h_c3": {
         "id": "h_c3",
         "parent": "h_grid",
-        "alias": 74,
+        "alias": 79,
         "order": 9,
         "name": "Cy",
         "cell": {
@@ -1465,7 +1508,7 @@
       "h_c4": {
         "id": "h_c4",
         "parent": "h_grid",
-        "alias": 75,
+        "alias": 80,
         "order": 10,
         "name": "Di",
         "cell": {
@@ -1476,7 +1519,7 @@
       "l_refs": {
         "id": "l_refs",
         "parent": "main",
-        "alias": 76,
+        "alias": 81,
         "order": 7,
         "name": "References"
       },
@@ -1515,7 +1558,7 @@
       "l_model": {
         "id": "l_model",
         "parent": "main",
-        "alias": 77,
+        "alias": 82,
         "order": 8,
         "name": "Data model",
         "type": "def_large"
@@ -1561,7 +1604,7 @@
       "l_rows": {
         "id": "l_rows",
         "parent": "main",
-        "alias": 78,
+        "alias": 83,
         "order": 9,
         "name": "Data rows",
         "type": "def_large"
@@ -1579,7 +1622,7 @@
       "u_ada": {
         "id": "u_ada",
         "parent": "l_rows",
-        "alias": 79,
+        "alias": 84,
         "order": 2,
         "name": "Ada Lovelace",
         "type": "entity-relation.customer",
@@ -1601,7 +1644,7 @@
       "u_1001": {
         "id": "u_1001",
         "parent": "l_rows",
-        "alias": 80,
+        "alias": 85,
         "order": 3,
         "name": "Order 1001",
         "type": "entity-relation.order",
@@ -1631,7 +1674,7 @@
       "u_l1": {
         "id": "u_l1",
         "parent": "l_rows",
-        "alias": 81,
+        "alias": 86,
         "order": 4,
         "name": "1001 · widgets",
         "type": "entity-relation.line",
@@ -1653,7 +1696,7 @@
       "u_l2": {
         "id": "u_l2",
         "parent": "l_rows",
-        "alias": 82,
+        "alias": 87,
         "order": 5,
         "name": "1001 · gadget",
         "type": "entity-relation.line",
@@ -1671,7 +1714,7 @@
       "u_widget": {
         "id": "u_widget",
         "parent": "l_rows",
-        "alias": 83,
+        "alias": 88,
         "order": 6,
         "name": "Widget",
         "type": "entity-relation.product",
@@ -1693,7 +1736,7 @@
       "u_gadget": {
         "id": "u_gadget",
         "parent": "l_rows",
-        "alias": 84,
+        "alias": 89,
         "order": 7,
         "name": "Gadget",
         "type": "entity-relation.product",
@@ -1968,11 +2011,57 @@
         "alias": 13,
         "dir": "forward"
       },
+      "r_fan_0": {
+        "id": "r_fan_0",
+        "from": "r_hub",
+        "to": "r_spoke_0",
+        "alias": 14,
+        "dir": "forward",
+        "name": "to one"
+      },
+      "r_fan_1": {
+        "id": "r_fan_1",
+        "from": "r_hub",
+        "to": "r_spoke_1",
+        "alias": 15,
+        "dir": "forward",
+        "name": "to two"
+      },
+      "r_fan_2": {
+        "id": "r_fan_2",
+        "from": "r_hub",
+        "to": "r_spoke_2",
+        "alias": 16,
+        "dir": "forward",
+        "name": "to three"
+      },
+      "p_read": {
+        "id": "p_read",
+        "from": "p_gauge",
+        "to": "l_ports",
+        "alias": 17,
+        "dir": "forward",
+        "name": "reading"
+      },
+      "p_spill": {
+        "id": "p_spill",
+        "from": "p_tank",
+        "to": "p_drain",
+        "alias": 18,
+        "dir": "forward"
+      },
+      "p_tank_pump": {
+        "id": "p_tank_pump",
+        "from": "p_tank",
+        "to": "p_pump",
+        "alias": 19,
+        "name": "level"
+      },
       "p_flow": {
         "id": "p_flow",
         "from": "p_pump_out",
         "to": "p_tank_in",
-        "alias": 14,
+        "alias": 20,
         "dir": "forward",
         "name": "water"
       },
@@ -1980,7 +2069,7 @@
         "id": "p_feed",
         "from": "p_valve_out",
         "to": "p_pump_low",
-        "alias": 15,
+        "alias": 21,
         "dir": "forward"
       }
     }

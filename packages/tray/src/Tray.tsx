@@ -120,7 +120,7 @@ function home_of(graph: Graph, id: Id): Id | null {
   const e = graph.edges[id];
   const b = graph.blocks[e ? owner_of(graph, e.from) : id];
   if (!b) return null;
-  const home = is_interface(b) ? graph.blocks[b.parent ?? ""]?.parent : b.parent;
+  const home = is_interface(graph, b.id) ? graph.blocks[b.parent ?? ""]?.parent : b.parent;
   /** The root layer is `null`, as the open layer names it. */
   return !home || home === graph.root ? null : home;
 }

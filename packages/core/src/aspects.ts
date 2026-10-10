@@ -21,7 +21,7 @@ export type Aspects = { extends: Id | null; ins: Block[]; outs: Block[]; both: B
  *  — its ports, and its own tags and traits. */
 export function aspects_of(graph: Graph, def: Id): Aspects {
   const d = def_at(graph, def);
-  const ports = children(graph, def).filter(is_interface);
+  const ports = children(graph, def).filter((b) => is_interface(graph, b.id));
   const flowing = (...flows: (string | undefined)[]) => ports.filter((p) => flows.includes(p.flow));
   return { extends: chain_of(graph, def)[1]?.id ?? null,
            ins: flowing("in"), outs: flowing("out"), both: flowing("both", undefined),

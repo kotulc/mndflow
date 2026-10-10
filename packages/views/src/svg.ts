@@ -152,9 +152,9 @@ function label(node: BoxNode, clip: string): string {
 function line(edge: LineEdge, scene: Scene, key: string): string {
   const a = end_of(edge, "from", scene.nodes, scene.perches, scene.frame);
   const b = end_of(edge, "to", scene.nodes, scene.perches, scene.frame);
-  if (!a || !b) return ``;
-  const run = route(a, a.face, b, b.face, edge.data?.clear ?? []);
-  const mid = middle_of(run);
+  if (!a || !b || edge.hidden) return ``;
+  const run = route(a, a.face, b, b.face, edge.data?.fan, edge.data?.module === "tie");
+  const mid = middle_of(run, edge.data?.fan);
 
   const data = edge.data;
   const end = heads(data);

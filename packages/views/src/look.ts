@@ -269,7 +269,7 @@ export function look_key(look?: Look | Wire): string {
 /** How heavy a border is when the definition has not said. */
 function width_of(graph: Graph, id: Id): Width {
   const b = graph.blocks[id];
-  if (!b || is_interface(b)) return "thin";
+  if (!b || is_interface(graph, b.id)) return "thin";
   return is_container(graph, id) ? "medium" : "thin";
 }
 

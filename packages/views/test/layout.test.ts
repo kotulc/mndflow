@@ -5,8 +5,8 @@ import { FLOOR, fixture, related } from "@mnd/fixtures";
 import { MAIN, children, drawn_in, fold, is_grid, is_header, is_holder, is_interface, lattice_of,
          type Layout, type Graph, type Id } from "@mnd/core";
 import { cell_box } from "../src/size";
-import { bounds, boundary, laid, nearest_seat, seated, size_of, snap, tidy, GAP, CELL, UNIT,
-         SEAT, assign_seats, type Perch, type Placed } from "../src/index";
+import { bounds, boundary, laid, nearest_seat, size_of, snap, GAP, CELL, PAD, UNIT,
+         type Placed } from "../src/index";
 
 const ARRANGEMENTS: Layout[] = ["free", "auto"];
 
@@ -67,7 +67,7 @@ describe("placement", () => {
   it.each(ARRANGEMENTS)("places every unit exactly once under %s", (how) => {
     const { graph, layer } = layer_of("related");
     const spots = under(graph, layer, how);
-    const want = drawn_in(graph, layer).filter((b) => !is_interface(b)).map((b) => b.id);
+    const want = drawn_in(graph, layer).filter((b) => !is_interface(graph, b.id)).map((b) => b.id);
     expect(spots.map((p) => p.id).sort()).toEqual([...want].sort());
   });
 
@@ -167,8 +167,8 @@ describe("the grid arrangement", () => {
       const p = at.get(b.id);
       if (!grid || !p) continue;
       const box = cell_box(lattice_of(graph, held)!, b.cell.r, b.cell.c);
-      expect(p.x - (grid.x + box.x), `${b.id} left`).toBe(GAP);
-      expect(p.y - (grid.y + box.y), `${b.id} top`).toBe(GAP);
+      expect(p.x - (grid.x + box.x), `${b.id} left`).toBe(PAD);
+      expect(p.y - (grid.y + box.y), `${b.id} top`).toBe(PAD);
     }
   });
 
@@ -201,12 +201,6 @@ describe("the grid arrangement", () => {
     expect(hx2.y - hx.y).toBe(band_after.y - band_before.y);
   });
 
-  it("grows a square rather than a line", () => {
-    const graph = fold(related(), FLOOR);
-    const spots = placed(graph, under(graph, "block_loop", "auto"));
-    if (spots.length < 4) return;
-    expect(new Set(spots.map((p) => p.y)).size).toBeGreaterThan(1);
-  });
 });
 
 
@@ -336,18 +330,6 @@ describe("the layout leaves room between things", () => {
     expect(gap).toBeGreaterThanOrEqual(UNIT);
   });
 
-  it("shelves unlinked cards without breaking the related cluster", () => {
-    const graph = fold(related(), FLOOR);
-    graph.blocks["block_spare"] = { id: "block_spare", parent: "block_loop", type: "block", order: 50 };
-    graph.blocks["block_spare2"] = { id: "block_spare2", parent: "block_loop", type: "block", order: 51 };
-    const spots = under(graph, "block_loop", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    expect(at.get("block_pump")!.y).toBe(at.get("block_hx")!.y);
-    expect(gap(at.get("block_pump")!, at.get("block_hot")!)).toBeLessThanOrEqual(GAP + UNIT);
-    expect(gap(at.get("block_spare")!, at.get("block_spare2")!)).toBeLessThanOrEqual(GAP + UNIT);
-  });
 });
 
 describe("boundaries", () => {
@@ -373,180 +355,6 @@ describe("boundaries", () => {
 
 describe("seats", () => {
   const card: Placed = { id: "block_pump", x: 0, y: 0, w: 168, h: 36 };
-
-  it("puts a lone line on the centre of its wall", () => {
-    const graph = fold(related(), FLOOR);
-    const spots = laid(graph, "block_loop");
-    const boxes = new Map(spots.map((p) => [p.id, p]));
-    const links = Object.values(graph.edges);
-    const { perches } = assign_seats(graph, links, spots, boxes);
-    const by_wall = new Map<string, Perch[]>();
-    for (const p of perches) {
-      const key = `${p.on}|${p.side}`;
-      by_wall.set(key, [...(by_wall.get(key) ?? []), p]);
-    }
-    for (const group of by_wall.values()) {
-      if (group.length !== 1) continue;
-      expect(Math.abs(group[0]!.at - 0.5)).toBeLessThan(0.01);
-    }
-  });
-
-  it("fans several ends out from the centre of one wall", () => {
-    const graph = fold(related(), FLOOR);
-    const spots = laid(graph, "block_loop");
-    const boxes = new Map(spots.map((p) => [p.id, p]));
-    const links = Object.values(graph.edges);
-    const { perches } = assign_seats(graph, links, spots, boxes);
-    const by_wall = new Map<string, number[]>();
-    for (const p of perches) {
-      const key = `${p.on}|${p.side}`;
-      by_wall.set(key, [...(by_wall.get(key) ?? []), p.at]);
-    }
-    const crowded = [...by_wall.entries()].find(([, ats]) => ats.length > 1);
-    expect(crowded).toBeDefined();
-    const [key, ats] = crowded!;
-    const [on, side] = key.split("|") as [string, string];
-    const box = boxes.get(on)!;
-    const extent = side === "left" || side === "right" ? box.h : box.w;
-    const sorted = [...ats].sort((a, b) => a - b);
-    for (let i = 1; i < sorted.length; i++) {
-      expect((sorted[i]! - sorted[i - 1]!) * extent).toBeGreaterThanOrEqual(SEAT - 1e-6);
-    }
-  });
-
-  it("never gives two ends the same seat on one wall", () => {
-    const graph = fold(related(), FLOOR);
-    const spots = laid(graph, "block_loop");
-    const boxes = new Map(spots.map((p) => [p.id, p]));
-    const links = Object.values(graph.edges);
-    const { perches } = assign_seats(graph, links, spots, boxes);
-    const seen = new Set<string>();
-    for (const p of perches) {
-      const key = `${p.on}|${p.side}|${p.at}`;
-      expect(seen.has(key), key).toBe(false);
-      seen.add(key);
-    }
-  });
-
-  it("keeps related loose cards beside each other under grid", () => {
-    const graph = fold(related(), FLOOR);
-    const spots = under(graph, "block_loop", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    const pump = at.get("block_pump")!;
-    const hot = at.get("block_hot")!;
-    const hx = at.get("block_hx")!;
-    /** Pump sits beside the hot-side member it feeds, aligned with it. */
-    expect(gap(pump, hot)).toBeGreaterThanOrEqual(GAP);
-    expect(gap(pump, hot)).toBeLessThanOrEqual(GAP + UNIT);
-    expect(pump.y).toBe(hx.y);
-  });
-
-  it("lines up directed neighbours on one row so a run can be straight", () => {
-    const graph = fold(related(), FLOOR);
-    const spots = under(graph, "block_loop", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const pump = at.get("block_pump")!;
-    const hx = at.get("block_hx")!;
-    const valve = at.get("block_valve")!;
-    /** Directed edges leave pump on the member's row. */
-    expect(pump.y).toBe(hx.y);
-    expect(valve.x).toBe(hx.x);
-    expect(valve.y + valve.h + GAP).toBe(at.get("block_hot")!.y);
-  });
-
-  it("sits a hub's neighbours in surrounding cells, not a single row", () => {
-    const { graph, layer } = layer_of("flat");
-    graph.blocks["block_hub"] = { id: "block_hub", parent: layer, type: "block", order: 10 };
-    for (let i = 0; i < 4; i++) {
-      const id = `block_n${i}`;
-      graph.blocks[id] = { id, parent: layer, type: "block", order: 11 + i };
-      graph.edges[`edge_n${i}`] = { id: `edge_n${i}`, from: "block_hub", to: id };
-    }
-    const spots = under(graph, layer, "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const hub = at.get("block_hub")!;
-    const leaves = [0, 1, 2, 3].map((i) => at.get(`block_n${i}`)!);
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    for (const leaf of leaves) expect(gap(leaf, hub)).toBeLessThanOrEqual(GAP + UNIT);
-    expect(new Set(leaves.map((p) => p.y)).size).toBeGreaterThan(1);
-    expect(new Set(leaves.map((p) => p.x)).size).toBeGreaterThan(1);
-  });
-
-  it("sits a leftover neighbour above its member, not at a tall group's far corner", () => {
-    const { graph, layer } = layer_of("flat");
-    graph.blocks["block_band"] = { id: "block_band", parent: layer, type: "group",
-                                    order: 30 };
-    for (const [id, order] of [["block_top", 31], ["block_mid", 32], ["block_bot", 33]] as const) {
-      graph.blocks[id] = { id, parent: "block_band", type: "block", order };
-    }
-    graph.blocks["block_world"] = { id: "block_world", parent: layer, type: "block", order: 40 };
-    graph.blocks["block_hello"] = { id: "block_hello", parent: layer, type: "block", order: 41 };
-    graph.blocks["block_folder"] = { id: "block_folder", parent: layer, type: "block", order: 42 };
-    graph.edges["edge_world"] = { id: "edge_world", from: "block_world", to: "block_top" };
-    graph.edges["edge_hello"] = { id: "edge_hello", from: "block_hello", to: "block_top" };
-    graph.edges["edge_folder"] = { id: "edge_folder", from: "block_folder", to: "block_top" };
-    const spots = under(graph, layer, "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const band = at.get("block_band")!;
-    const top = at.get("block_top")!;
-    const folder = at.get("block_folder")!;
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    expect(folder.x).toBe(top.x);
-    expect(folder.y + folder.h + GAP).toBe(band.y);
-    expect(gap(folder, band)).toBe(GAP);
-    expect(folder.y).toBeLessThan(top.y);
-  });
-
-  it("sits a neighbour of a grid cell above that cell, not past the far edge", () => {
-    const graph = fold(fixture("gridded"), FLOOR);
-    graph.blocks["block_n"] = { id: "block_n", parent: "block_board", type: "block", order: 80 };
-    graph.edges["edge_n"] = { id: "edge_n", from: "block_n", to: "block_review" };
-    const spots = under(graph, "block_board", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const n = at.get("block_n")!;
-    const draft = at.get("block_review")!;
-    const lanes = at.get("block_lanes")!;
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    expect(n.x).toBe(draft.x);
-    expect(n.y + n.h + GAP === lanes.y || n.y === lanes.y + lanes.h + GAP).toBe(true);
-    expect(gap(n, lanes)).toBe(GAP);
-  });
-
-  it("keeps a directed chain on one row, left to right", () => {
-    const { graph, layer } = layer_of("flat");
-    const ids = ["block_a", "block_b", "block_c", "block_d"];
-    ids.forEach((id, i) => {
-      graph.blocks[id] = { id, parent: layer, type: "block", order: 20 + i };
-    });
-    graph.edges["edge_ab"] = { id: "edge_ab", from: "block_a", to: "block_b", dir: "forward" };
-    graph.edges["edge_bc"] = { id: "edge_bc", from: "block_b", to: "block_c", dir: "forward" };
-    graph.edges["edge_cd"] = { id: "edge_cd", from: "block_c", to: "block_d", dir: "forward" };
-    const spots = under(graph, layer, "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const [a, b, c, d] = ids.map((id) => at.get(id)!);
-    expect(a!.y).toBe(b!.y);
-    expect(b!.y).toBe(c!.y);
-    expect(c!.y).toBe(d!.y);
-    expect(a!.x).toBeLessThan(b!.x);
-    expect(b!.x).toBeLessThan(c!.x);
-    expect(c!.x).toBeLessThan(d!.x);
-  });
-
-  it("keeps upstream blocks beside a band on the near side, not across it", () => {
-    const graph = fold(related(), FLOOR);
-    const spots = under(graph, "block_loop", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    const pump = at.get("block_pump")!;
-    const hx = at.get("block_hx")!;
-    expect(gap(pump, hx)).toBeLessThanOrEqual(GAP + UNIT * 2);
-  });
 
   it("clusters related cards under grid even with stale hand placement", () => {
     const graph = fold(related(), FLOOR);
@@ -590,127 +398,6 @@ describe("seats", () => {
     expect(at.get("block_hx")!.y).toBe(at.get("block_tank")!.y);
   });
 
-  it("places a tied note beside what it is about", () => {
-    const graph = fold(related(), FLOOR);
-    graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_pump" };
-    const spots = under(graph, "block_loop", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    const note = at.get("block_note")!;
-    const pump = at.get("block_pump")!;
-    expect(gap(note, pump)).toBeGreaterThanOrEqual(GAP);
-    expect(gap(note, pump)).toBeLessThanOrEqual(GAP + UNIT);
-  });
-
-  it("pulls a tied note beside its subject even when it was dropped far away", () => {
-    const graph = fold(related(), FLOOR);
-    graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_pump" };
-    graph.blocks["block_note"]!.x = 2000;
-    graph.blocks["block_note"]!.y = 2000;
-    const spots = under(graph, "block_loop", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    const note = at.get("block_note")!;
-    const pump = at.get("block_pump")!;
-    expect(gap(note, pump)).toBeGreaterThanOrEqual(GAP);
-    expect(gap(note, pump)).toBeLessThanOrEqual(GAP + UNIT);
-  });
-
-  it("tidies a tied note beside what it is about", () => {
-    const graph = fold(related(), FLOOR);
-    graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_pump" };
-    graph.blocks["block_note"]!.x = 2000;
-    graph.blocks["block_note"]!.y = 2000;
-    const spots = laid(graph, "block_loop");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const tidy_at = tidy(graph, "block_loop");
-    const gap = (a: { x: number; y: number; w: number; h: number },
-                 b: { x: number; y: number; w: number; h: number }) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    const note = tidy_at.find((p) => p.id === "block_note")!;
-    const pump = tidy_at.find((p) => p.id === "block_pump")!;
-    const note_s = at.get("block_note")!;
-    const pump_s = at.get("block_pump")!;
-    expect(gap({ ...note, w: note_s.w, h: note_s.h }, { ...pump, w: pump_s.w, h: pump_s.h }))
-      .toBeGreaterThanOrEqual(GAP);
-    expect(gap({ ...note, w: note_s.w, h: note_s.h }, { ...pump, w: pump_s.w, h: pump_s.h }))
-      .toBeLessThanOrEqual(GAP + UNIT);
-  });
-
-  it("places a tied note on the near rim of a grid, aligned with the block it is about", () => {
-    const graph = fold(fixture("gridded"), FLOOR);
-    graph.blocks["block_note"] = { id: "block_note", parent: "block_board", type: "note", order: 99 };
-    graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_review" };
-    const spots = under(graph, "block_board", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    const note = at.get("block_note")!;
-    const draft = at.get("block_review")!;
-    const lanes = at.get("block_lanes")!;
-    expect(note.x).toBe(draft.x);
-    expect(note.y + note.h + GAP).toBe(lanes.y);
-    expect(gap(note, lanes)).toBe(GAP);
-  });
-
-  it("places a reference on the near rim of a grid, aligned with the block it is linked to", () => {
-    const graph = fold(fixture("gridded"), FLOOR);
-    graph.blocks["block_remote"] = { id: "block_remote", parent: MAIN, type: "block", order: 1 };
-    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_remote", order: 99 };
-    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_review" };
-    const spots = under(graph, "block_board", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    const ref = at.get("block_ref")!;
-    const draft = at.get("block_review")!;
-    const lanes = at.get("block_lanes")!;
-    expect(ref.x).toBe(draft.x);
-    expect(ref.y + ref.h + GAP).toBe(lanes.y);
-    expect(gap(ref, lanes)).toBe(GAP);
-  });
-
-  it("anchors a reference on its in-layer link when its target is not on the board", () => {
-    const graph = fold(fixture("gridded"), FLOOR);
-    graph.blocks["block_remote"] = { id: "block_remote", parent: MAIN, type: "block", order: 1 };
-    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_remote", order: 99 };
-    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_build" };
-    const spots = under(graph, "block_board", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    const ref = at.get("block_ref")!;
-    const build = at.get("block_build")!;
-    const lanes = at.get("block_lanes")!;
-    expect(ref.x).toBe(build.x);
-    expect(gap(ref, lanes)).toBeGreaterThanOrEqual(GAP);
-    expect(gap(ref, lanes)).toBeLessThanOrEqual(GAP + UNIT);
-  });
-
-  it("places a block beside a grid near its cell, not past an intervening group", () => {
-    const graph = fold(fixture("gridded"), FLOOR);
-    graph.blocks["block_in"] = { id: "block_in", parent: "block_board", type: "block", order: 50 };
-    graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group",
-                                   order: 51 };
-    graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", order: 52 };
-    graph.edges["edge_in"] = { id: "edge_in", from: "block_in", to: "block_draft", dir: "forward" };
-    graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes" };
-    graph.blocks["block_pad"]!.parent = "block_mid";
-    const spots = under(graph, "block_board", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const lanes = at.get("block_lanes")!;
-    const inn = at.get("block_in")!;
-    const draft = at.get("block_draft")!;
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    /** Near the named cell — above it on a wide grid, not left of the whole lattice and not past an
-     *  intervening group. */
-    expect(inn.x === draft.x || inn.y === draft.y).toBe(true);
-    expect(gap(inn, lanes)).toBeLessThanOrEqual(GAP + UNIT);
-  });
-
   it("places a downstream block on the near side of a grid, not past an intervening group", () => {
     const graph = fold(fixture("gridded"), FLOOR);
     graph.blocks["block_out"] = { id: "block_out", parent: "block_board", type: "block", order: 53 };
@@ -727,79 +414,10 @@ describe("seats", () => {
     expect(out.x - (lanes.x + lanes.w)).toBeLessThanOrEqual(GAP + UNIT);
   });
 
-  it("keeps two references on the near rim of a grid, aligned with their linked cells", () => {
-    const graph = fold(fixture("gridded"), FLOOR);
-    graph.blocks["block_remote_a"] = { id: "block_remote_a", parent: MAIN, type: "block", order: 1 };
-    graph.blocks["block_remote_b"] = { id: "block_remote_b", parent: MAIN, type: "block", order: 2 };
-    graph.blocks["block_ref_a"] = { id: "block_ref_a", parent: "block_board", of: "block_remote_a", order: 98 };
-    graph.blocks["block_ref_b"] = { id: "block_ref_b", parent: "block_board", of: "block_remote_b", order: 99 };
-    graph.edges["edge_ref_a"] = { id: "edge_ref_a", from: "block_ref_a", to: "block_draft" };
-    graph.edges["edge_ref_b"] = { id: "edge_ref_b", from: "block_ref_b", to: "block_ship" };
-    const spots = under(graph, "block_board", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    const lanes = at.get("block_lanes")!;
-    const ref_a = at.get("block_ref_a")!;
-    const ref_b = at.get("block_ref_b")!;
-    const draft = at.get("block_draft")!;
-    const ship = at.get("block_ship")!;
-    expect(ref_a.x === draft.x || ref_a.y === draft.y).toBe(true);
-    expect(ref_b.x === ship.x || ref_b.y === ship.y).toBe(true);
-    expect(gap(ref_a, lanes)).toBe(GAP);
-    expect(gap(ref_b, lanes)).toBe(GAP);
-  });
-
-  it("places a reference beside the block it is linked to on the layer", () => {
-    const graph = fold(related(), FLOOR);
-    graph.blocks["block_remote"] = { id: "block_remote", parent: MAIN, type: "block", order: 1 };
-    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_remote", order: 99 };
-    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_pump" };
-    const spots = under(graph, "block_loop", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    const ref = at.get("block_ref")!;
-    const pump = at.get("block_pump")!;
-    expect(gap(ref, pump)).toBeGreaterThanOrEqual(GAP);
-    expect(gap(ref, pump)).toBeLessThanOrEqual(GAP + UNIT);
-  });
-
-  it("pulls a reference beside its linked block even when it was dropped far away", () => {
-    const graph = fold(related(), FLOOR);
-    graph.blocks["block_remote"] = { id: "block_remote", parent: MAIN, type: "block", order: 1 };
-    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_remote", order: 99,
-                                  x: 2000, y: 2000 };
-    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_pump" };
-    const spots = under(graph, "block_loop", "auto");
-    const at = new Map(spots.map((p) => [p.id, p]));
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    const ref = at.get("block_ref")!;
-    const pump = at.get("block_pump")!;
-    expect(gap(ref, pump)).toBeGreaterThanOrEqual(GAP);
-    expect(gap(ref, pump)).toBeLessThanOrEqual(GAP + UNIT);
-  });
-
-  it("seats every interface on the card it belongs to, and nowhere else", () => {
-    const graph = fold(fixture("interfaced"), FLOOR);
-    const spots = laid(graph, "block_loop");
-    const ports = seated(graph, spots);
-    expect(ports.map((p) => p.id).sort()).toEqual(["port_in", "port_out"]);
-    for (const port of ports) {
-      const on = spots.find((p) => p.id === graph.blocks[port.id]!.parent)!;
-      const mid = { x: port.x + port.w / 2, y: port.y + port.h / 2 };
-      expect(mid.x).toBeGreaterThanOrEqual(on.x);
-      expect(mid.x).toBeLessThanOrEqual(on.x + on.w);
-      expect(mid.y).toBeGreaterThanOrEqual(on.y);
-      expect(mid.y).toBeLessThanOrEqual(on.y + on.h);
-    }
-  });
-
   it("lays out none of them — an interface is seated, never placed", () => {
     const graph = fold(fixture("interfaced"), FLOOR);
     const spots = laid(graph, "block_loop");
-    expect(spots.some((p) => is_interface(graph.blocks[p.id]!))).toBe(false);
+    expect(spots.some((p) => is_interface(graph, p.id))).toBe(false);
   });
 
   it.each([

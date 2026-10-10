@@ -4,7 +4,7 @@ import { block_base, def_at, def_named, frozen, package_of, relation_base, setti
          stored_type, type Domain } from "../defs";
 import { is_grid } from "../holders";
 import { next_alias } from "../names";
-import { next_order } from "../tree";
+import { children, next_order, reorder } from "../tree";
 import { new_id } from "../ids";
 import type { Cell, Graph, Id, Mutation, Side, Span } from "../types";
 import type { Args, Context } from "./registry";
@@ -111,7 +111,8 @@ export const typed = (ctx: Context, args: Args): { type?: Id } => {
 
 /** The relation type a run stores, where it names a relation definition. */
 export const run_type = (ctx: Context, args: Args): { type?: Id } => {
-  const type = rooted(ctx, text(args, "type"), "relation");
+  /** A drawing tool names a base, `line` or `tie`; a type said outright wins. */
+  const type = rooted(ctx, text(args, "type") || text(args, "module"), "relation");
   return type && def_at(ctx.graph, type) && relation_base(ctx.graph, type)
     ? (stored_type(ctx.graph, type) ? { type: stored_type(ctx.graph, type)! } : {}) : {};
 };
@@ -170,12 +171,23 @@ export function list(raw: unknown): string[] {
 
 /** The link a tie trait makes from a new block to the one it was made from: a relationship of the
  *  type its `tie` setting names. Nothing where its definition carries no tie. */
-export function tied(ctx: Context, id: Id, type: Id | undefined, from: Id | undefined): Mutation[] {
+export function tied(ctx: Context, id: Id, parent: Id | null, type: Id | undefined,
+                     from: Id | undefined): Mutation[] {
   const said = setting_of(ctx.graph, type, "tie")["type"];
   if (!from || !ctx.graph.blocks[from] || typeof said !== "string") return [];
   const kind = def_at(ctx.graph, said) ? stored_type(ctx.graph, said) : undefined;
   const line = handles(ctx, "relation");
   return [{ op: "link_blocks", edge: { id: new_id("edge"), from: id, to: from,
                                        alias: line.take(), ...(kind ? { type: kind } : {}) } },
-          ...line.bump()];
+          ...line.bump(), ...after(ctx, id, parent, from)];
+}
+
+/** A block just made, read right after `anchor` where the two share a parent: placed once, when
+ *  it is made, so no later line moves it. */
+function after(ctx: Context, id: Id, parent: Id | null, anchor: Id): Mutation[] {
+  if ((ctx.graph.blocks[anchor]?.parent ?? null) !== parent) return [];
+  const siblings = children(ctx.graph, parent).map((b) => b.id);
+  const next = siblings[siblings.indexOf(anchor) + 1] ?? null;
+  return reorder(ctx.graph, parent, id, next)
+    .map(({ id: at, order }): Mutation => ({ op: "order_block", id: at, order }));
 }

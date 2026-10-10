@@ -2,7 +2,7 @@
 
 import { allows_of, permits } from "./capabilities";
 import { base_of, setting_of } from "./defs";
-import { children, stands_for } from "./tree";
+import { children, is_interface, stands_for } from "./tree";
 import type { Block, Cell, Graph, Grid, HeaderRole, Id, Shape, Span } from "./types";
 
 
@@ -31,7 +31,7 @@ export function covers(s: Span, r: number, c: number): boolean {
  *  extends. */
 export function shape_of(graph: Graph, id: Id | undefined): Shape | null {
   const b = id ? graph.blocks[id] : undefined;
-  if (!b || b.def || b.of || b.side !== undefined) return null;
+  if (!b || b.def || b.of || is_interface(graph, b.id)) return null;
   const said = setting_of(graph, b.id, "holder");
   return said["matrix"] === true ? "grid" : said["inline"] === true ? "group" : null;
 }
@@ -156,7 +156,7 @@ export function group_depth(graph: Graph, id: Id): number {
  *  it and that block is one. A head is never stored: it is whichever block comes first. */
 export function group_head(graph: Graph, group: Id | undefined): Id | null {
   const heads = group ? allows_of(graph, group).heads : undefined;
-  const first = group ? children(graph, group).find((b) => b.side === undefined) : undefined;
+  const first = group ? children(graph, group).find((b) => !is_interface(graph, b.id)) : undefined;
   return first && permits(graph, heads, first.type) ? first.id : null;
 }
 
@@ -169,7 +169,7 @@ export function headed_group(graph: Graph, id: Id): Id | null {
 /** Everything a group or grid holds, in order. */
 export function members_of(graph: Graph, group: Id): Block[] {
   if (!is_holder(graph, group)) return [];
-  return children(graph, group).filter((b) => b.side === undefined);
+  return children(graph, group).filter((b) => !is_interface(graph, b.id));
 }
 
 /** Whether `holder` may take `id`: a group or grid, not itself, and not a cycle. Any block may

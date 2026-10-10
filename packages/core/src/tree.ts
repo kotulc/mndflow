@@ -1,6 +1,6 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import { setting_of } from "./defs";
+import { base_of, setting_of } from "./defs";
 import { drawn_in } from "./holders";
 import { LAYOUTS, type Block, type Definition, type Graph, type Id, type Layout,
          type Relation } from "./types";
@@ -54,8 +54,10 @@ export function path(graph: Graph, id: Id): Block[] {
   return out;
 }
 
-export function is_interface(b: Block): boolean {
-  return b.side !== undefined;
+/** Whether a block is an interface: a usage whose chain descends from `interface`. */
+export function is_interface(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  return !!b && !b.def && base_of(graph, id) === "interface";
 }
 
 export function is_reference(b: Block): boolean {
@@ -64,7 +66,7 @@ export function is_reference(b: Block): boolean {
 
 /** A block holding blocks draws as a container. */
 export function is_container(graph: Graph, id: Id): boolean {
-  return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(b));
+  return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(graph, b.id));
 }
 
 /** What a reference stands for, followed to the end. */
@@ -128,7 +130,7 @@ export function part_end(graph: Graph, id: Id): { block: Id; part?: Id } {
 /** The block an end is drawn on: an interface's owner, or itself. */
 export function owner_of(graph: Graph, id: Id): Id {
   const b = graph.blocks[id];
-  return b && is_interface(b) && b.parent ? b.parent : id;
+  return b && is_interface(graph, b.id) && b.parent ? b.parent : id;
 }
 
 /** Relations with both ends drawn in this layer. */

@@ -3,7 +3,7 @@
 import type { Edge, Node } from "@xyflow/react";
 import type { Dir, Id, Mark, Role, Side } from "@mnd/core";
 import type { Arrow, Look, Wire } from "./look";
-import type { Perch } from "./seat";
+import type { Fan, Perch, Seat } from "./seat";
 
 /** One row of a card's attributes: its name, its type's name, whether it keys, and the value a
  *  usage answers or the default a definition declares. */
@@ -99,8 +99,8 @@ export type LineData = {
   wire?: Wire;
   /** The handle, beside the name rather than inside it. */
   alias?: string;
-  /** The boxes this run must stay outside of: every card on the layer. */
-  clear?: readonly { x: number; y: number; w: number; h: number }[];
+  /** Where its cross leg sits, out from the end its lines fan from. */
+  fan?: Fan;
 };
 
 /** One drawn thing. React Flow's node, with our data on it. */
@@ -194,6 +194,28 @@ export function box_of(node: BoxNode): { x: number; y: number; w: number; h: num
     w: node.width ?? node.measured?.width ?? 0,
     h: node.height ?? node.measured?.height ?? 0,
   };
+}
+
+/** The seats spoken for on a border: its lines' anchors and its interfaces but `except`. A face's
+ *  middle is free while no line meets that face. */
+export function taken_on(scene: Scene, on: Id, except?: Id): Seat[] {
+  const out: Seat[] = scene.perches.filter((p) => p.on === on)
+    .map(({ side, at }) => ({ side, at }));
+  if (on === FRAME) {
+    const ports = (scene.frame?.ports ?? []).filter((p) => p.id !== except);
+    return [...out, ...ports.map(({ side, at }) => ({ side, at }))];
+  }
+  const host = scene.nodes.find((n) => n.id === on);
+  if (!host) return out;
+  const box = box_of(host);
+  for (const n of scene.nodes) {
+    if (n.data.on !== on || n.id === except || !n.data.side) continue;
+    const c = box_of(n);
+    const down = n.data.side === "left" || n.data.side === "right";
+    out.push({ side: n.data.side,
+               at: down ? (c.y + c.h / 2 - box.y) / box.h : (c.x + c.w / 2 - box.x) / box.w });
+  }
+  return out;
 }
 
 /** What the whole projection takes up, plus room for something new. */

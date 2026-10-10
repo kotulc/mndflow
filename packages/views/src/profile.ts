@@ -1,6 +1,6 @@
 /** The `profile` view: the workspace seen from the side, along what is picked. **One row per
  *  level**, top to bottom: every package, then what each block on the way to the pick holds, and
- *  last what the pick holds. Each row is a box as wide as the page, named for what holds it; the
+ *  last what the pick holds. Each row is a box hugging its blocks, named for what holds it; the
  *  only lines run from the block on the way to the row of what it holds, pointing down.
  *
  *  Drawn, never stored: a graph handed back for a projection to read, every block keeping its id. */
@@ -43,6 +43,6 @@ export function profile_graph(graph: Graph, target: Id | null, across?: number):
 
 /** What a block holds at one level: its interfaces apart, a group by its members. */
 function level(graph: Graph, id: Id): Block[] {
-  return children(graph, id).filter((b) => !is_interface(b))
+  return children(graph, id).filter((b) => !is_interface(graph, b.id))
     .flatMap((b) => (is_group(graph, b.id) ? level(graph, b.id) : [b]));
 }

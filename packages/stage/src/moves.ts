@@ -2,7 +2,8 @@
 
 import { adjustments, can_hold, grid_of, is_holder, lattice_of, layout_of, type Args, type Graph,
          type Id, type Mutation } from "@mnd/core";
-import { box_of, extent_in, nearest_seat, snap, tidy, BLOCK, PORT, type Scene } from "@mnd/views";
+import { box_of, extent_in, nearest_seat, snap, taken_on, tidy, BLOCK, PORT,
+         type Scene } from "@mnd/views";
 import type { Adjust } from "./gestures";
 
 /** One write: a said action, or an unsayable adjustment. */
@@ -20,10 +21,10 @@ export function moves_of(graph: Graph, scene: Scene, a: Adjust): Move[] {
     return [act("move", { id: a.on, parent: a.over })];
   }
   const out: Move[] = [];
-  /** Moving anything by hand on an `auto` layer hands it to `free`, keeping the positions. */
+  /** Moving anything by hand on an `auto` layer hands it to `free`, keeping what it draws. */
   const layer = scene.layer;
   if (layout_of(graph, layer) !== "free" && ["place", "move", "wall-seat"].includes(a.kind)) {
-    out.push(act("layout", { layer, kind: "free", at: tidy(graph, layer) }));
+    out.push(act("layout", { layer, kind: "free", at: tidy(graph, scene) }));
   }
   return [...out, ...written(graph, scene, a)];
 }
@@ -64,7 +65,8 @@ function written(graph: Graph, scene: Scene, a: Adjust): Move[] {
   const drawn = scene.nodes.find((n) => n.id === a.on);
   const host = drawn?.data.on ? scene.nodes.find((n) => n.id === drawn.data.on) : null;
   if (host) {
-    const seat = nearest_seat(box_of(host), { x: a.to.x + PORT.w / 2, y: a.to.y + PORT.h / 2 });
+    const seat = nearest_seat(box_of(host), { x: a.to.x + PORT.w / 2, y: a.to.y + PORT.h / 2 },
+                              taken_on(scene, host.id, a.on));
     return [{ adjust: "seat", mutations: adjustments.seat(a.on, seat.side, seat.at) }];
   }
 

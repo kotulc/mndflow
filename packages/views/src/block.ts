@@ -1,11 +1,11 @@
 /** The block view: any planar projection. */
 
 import { alias_of, layout_of, children, setting_of, ABOUT, covers, edge_base, edges_in, group_depth, heading, holders_in,
-         inline, is_container, is_grid, is_group, is_interface, is_note, label_of, lattice_of,
+         inline, is_container, is_grid, is_group, is_note, label_of, lattice_of,
          members_of, shape_of, stamps_of, role_of, shown_name, path, type Cut,
          type ViewKind, type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
-import { at_seat, cell_box, laid, perch_id, roomed, seated,
-         assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
+import { at_seat, cell_box, laid, perch_id, roomed, seat_all, PAD, UNIT, type Perch,
+         type Rect, type Seat, type Seating } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of, wire_of } from "./look";
 import { page_graph } from "./page";
@@ -96,8 +96,8 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
     const nodes = arranged ? scene.nodes : scene.nodes.map((n) => ({ ...n, draggable: false }));
     const held = extent({ ...scene, frame: undefined });
     const frame = scene.frame && nodes.length
-      ? { ...scene.frame, ...roomed({ x: held.x - GAP, y: held.y - GAP, w: held.w + GAP * 2,
-                                      h: held.h + GAP * 2 }) } : scene.frame;
+      ? { ...scene.frame, ...roomed({ x: held.x - PAD, y: held.y - PAD, w: held.w + PAD * 2,
+                                      h: held.h + PAD * 2 }) } : scene.frame;
     return { ...scene, nodes, ...(frame ? { frame } : {}),
              slots: arranged ? scene.slots : scene.slots.filter((x) => x !== "layer") };
   }
@@ -150,10 +150,7 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   const spots = laid(graph, layer);
   /** Interfaces are seated after the cards; hidden ones still hold their seat. */
   const hidden = config.interfaces === false;
-  const linked = edges_in(graph, layer).map((e) => landed(graph, e, layer));
-  const boxes_at = new Map(spots.map((p) => [p.id, p]));
-  const { perches, port_at } = assign_seats(graph, linked, spots, boxes_at);
-  const ports = seated(graph, spots, port_at);
+  const linked = edges_in(graph, layer).map((e) => landed(e, layer));
 
   /** Which component draws each box. Every card is the one card height, so nothing minifies. */
   const boxes: BoxNode[] = spots
@@ -178,64 +175,55 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   /** Shallowest first, so a holder inside another draws over it. */
   holders.sort((a, b) => (a.data.nest ?? 0) - (b.data.nest ?? 0));
 
+  /** The room round what the layer holds, then every end and interface seated on it all. */
+  const room = frame_of(graph, layer, [...holders, ...boxes], config.room);
+  const at = new Map<Id, Rect>(spots.map((p) => [p.id, p]));
+  if (room) at.set(FRAME, room);
+  const seating = seat_all(graph, linked, at, room && layer ? { id: FRAME, of: layer } : undefined);
+
   /** A seated interface draws over the card it sits on, so it comes last. */
-  const seats: BoxNode[] = ports.map((p) => {
-    const b = graph.blocks[p.id]!;
-    const nest = b.parent ? group_depth(graph, b.parent) : 0;
-    const data: BoxData = { ...carried(graph, p.id), side: b.side!, nest,
-                            ...(b.parent ? { on: b.parent } : {}) };
-    if (hidden) {
-      return { ...node(p.id, p, { ...data, marks: [...data.marks, "berth"] }, "seat"),
-               selectable: false, draggable: false };
-    }
-    return node(p.id, p, data, "seat");
-  });
+  const seats: BoxNode[] = [...seating.ports]
+    .filter(([id]) => graph.blocks[id]?.parent !== layer)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, seat]) => {
+      const b = graph.blocks[id]!;
+      const box = at_seat(at.get(b.parent!)!, seat);
+      const nest = b.parent ? group_depth(graph, b.parent) : 0;
+      const data: BoxData = { ...carried(graph, id), side: seat.side, nest,
+                              ...(b.parent ? { on: b.parent } : {}) };
+      if (hidden) {
+        return { ...node(id, box, { ...data, marks: [...data.marks, "berth"] }, "seat"),
+                 selectable: false, draggable: false };
+      }
+      return node(id, box, data, "seat");
+    });
 
-  const drawn = [...holders, ...boxes, ...seats];
-
-  /** The room, before anything is seated on it. */
-  const room = frame_of(graph, layer, drawn, hidden, config.room);
-  const boxes_full = new Map(drawn.map((n) => [n.id, box_of(n)]));
-  if (room) {
-    boxes_full.set(FRAME, room);
-    for (const p of room.ports) boxes_full.set(p.id, at_seat(room, p));
-  }
-  const walls = room && layer ? { id: FRAME, of: layer } : undefined;
-  const assigned = walls ? assign_seats(graph, linked, spots, boxes_full, walls)
-                       : { perches, port_at };
-
-  /** Runs route round cards and notes, not holders, the room or interfaces. */
-  const held = new Set(holders.map((n) => n.id));
-  const solid = drawn
-    .filter((n) => !held.has(n.id) && !n.data.on)
-    .map(box_of);
-
-  const met = new Map(assigned.perches.map((p) => [`${p.edge}|${p.end}`, p]));
   const offered = new Map<Id, { id: string; side: Side; at: number }[]>();
-  for (const p of assigned.perches) {
+  for (const p of seating.perches) {
     const kept = offered.get(p.on) ?? [];
     kept.push({ id: perch_id(p.edge, p.end), side: p.side, at: p.at });
     offered.set(p.on, kept);
   }
 
   /** The seats each box offers, put onto the box that offers them. */
-  const placed = drawn.map((n) => {
+  const placed = [...holders, ...boxes, ...seats].map((n) => {
     const own = offered.get(n.id);
     return own ? { ...n, data: { ...n.data, seats: own } } : n;
   });
 
-  const edges = line_edges(graph, linked, assigned.perches, solid, met);
-
-  /** The walls' own seats, put on the frame that offers them. */
+  /** The room's own interfaces and seats, set into its walls. */
   const walled = offered.get(FRAME);
-  const framed = room && walled ? { ...room, seats: walled } : room;
+  const framed: Frame | null = room && layer
+    ? { ...room, ports: wall_of(graph, layer, hidden, seating.ports),
+        ...(walled ? { seats: walled } : {}) }
+    : null;
 
   return {
     layer,
     ...(framed ? { frame: framed } : {}),
     nodes: placed,
-    edges,
-    perches: assigned.perches,
+    edges: line_edges(graph, linked, seating),
+    perches: seating.perches,
     /** A slot says what this projection can offer, never what it is doing. */
     slots: SLOTS,
     trail: trail_of(graph, layer),
@@ -281,9 +269,9 @@ function line_name(way: "row" | "col", i: number): string {
   return out;
 }
 
-/** The border a layer is seen from inside. */
+/** The border a layer is seen from inside, before its interfaces are seated on it. */
 function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
-                  hidden: boolean, pkg = false): Frame | null {
+                  pkg = false): Omit<Frame, "ports"> | null {
   /** The forest is seen from no block's inside, nor a package root unless it is asked for. */
   if (layer === null || !graph.blocks[layer]) return null;
   if (graph.blocks[layer]!.parent === null && !pkg) return null;
@@ -292,7 +280,6 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   const role = graph.blocks[layer]!.parent === null ? "folder" : role_of(graph, layer);
   const stamps = stamps_of(graph, layer);
   const holds_parts = is_container(graph, layer);
-  const ports = wall_of(graph, layer, hidden);
   /** An interface opened from inside keeps the wall it is set into. */
   const side = graph.blocks[layer]?.side;
   const set_in = side ? { side } : {};
@@ -300,67 +287,64 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   /** A room is a whole number of cells. */
   if (drawn.length === 0) {
     return { ...roomed({ x: -least.w / 2, y: -least.h / 2, ...least }),
-             label, role, ...(stamps.length ? { stamps } : {}), holds_parts, ports, ...set_in };
+             label, role, ...(stamps.length ? { stamps } : {}), holds_parts, ...set_in };
   }
-  const pad = GAP;
+  const pad = PAD;
   const at = drawn.map(box_of);
   const x = Math.min(...at.map((b) => b.x)) - pad;
   const y = Math.min(...at.map((b) => b.y)) - pad;
   const w = Math.max(least.w, Math.max(...at.map((b) => b.x + b.w)) + pad - x);
   const h = Math.max(least.h, Math.max(...at.map((b) => b.y + b.h)) + pad - y);
   return { ...roomed({ x, y, w, h }), label, role, ...(stamps.length ? { stamps } : {}),
-           holds_parts, ports, ...set_in };
+           holds_parts, ...set_in };
 }
 
-/** The layer's own interfaces, set into its walls and seen from inside. */
-function wall_of(graph: Graph, layer: Id, hidden: boolean): Port[] {
+/** The layer's own interfaces, set into its walls where they were seated, seen from inside. */
+function wall_of(graph: Graph, layer: Id, hidden: boolean,
+                 seats: ReadonlyMap<Id, Seat>): Port[] {
   return children(graph, layer)
-    .filter(is_interface)
+    .filter((b) => seats.has(b.id))
     .map((b) => ({
       id: b.id,
       label: shown_name(graph, b.id),
-      side: b.side!,
-      at: b.at ?? 0.5,
+      ...seats.get(b.id)!,
       marks: hidden ? [...marks_of(graph, b.id), "berth" as CardClass] : marks_of(graph, b.id),
       look: look_of(graph, b.id),
     }))
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** Where a relationship's ends land. */
-function landed(graph: Graph, e: Relation, layer: Id | null): Relation {
-  const side = (id: Id): Side | undefined => {
-    const b = graph.blocks[id];
-    return b && is_interface(b) ? b.side : undefined;
-  };
-  /** The layer itself is the frame. */
+/** Where a relationship's ends land: the layer itself is the frame. */
+function landed(e: Relation, layer: Id | null): Relation {
   const here = (id: Id): Id => (layer !== null && id === layer ? FRAME : id);
-  return { ...e, from: here(e.from), to: here(e.to),
-           fromSide: e.fromSide ?? side(e.from), toSide: e.toSide ?? side(e.to) };
+  return { ...e, from: here(e.from), to: here(e.to) };
 }
 
-/** Every line as the canvas draws it: ends, seats and label. */
-function line_edges(graph: Graph, linked: readonly Relation[], perches: readonly Perch[],
-                    solid: readonly { x: number; y: number; w: number; h: number }[],
-                    met = new Map(perches.map((p) => [`${p.edge}|${p.end}`, p]))): LineEdge[] {
+/** Every line as the canvas draws it: ends, seats, label, and where it turns. A tie between
+ *  cards that overlap draws nothing. */
+function line_edges(graph: Graph, linked: readonly Relation[], seating: Seating): LineEdge[] {
+  const met = new Map(seating.perches.map((p) => [`${p.edge}|${p.end}`, p]));
   return linked.map((e): LineEdge => {
     const wire = wire_of(graph, e.id);
     const label = wire.name ? label_of(graph, e.id) : "";
     const alias = wire.alias ? alias_of(graph, e.id, true) : "";
     /** A link is drawn to be read, never picked. */
     const link = e.id.startsWith(LINK);
+    const module = edge_base(graph, e.id);
+    const fan = seating.fans.get(e.id);
     return {
       id: e.id,
       ...(link ? { selectable: false, focusable: false } : {}),
+      ...(seating.hidden.has(e.id) ? { hidden: true } : {}),
       source: e.from,
       target: e.to,
       sourceHandle: handle(met, e.id, "from", "s"),
       targetHandle: handle(met, e.id, "to", "t"),
       ...(label ? { label } : {}),
-      data: { module: edge_base(graph, e.id), dir: e.dir ?? "none", wire,
+      data: { module, dir: e.dir ?? "none", wire,
               ...(link ? { link: true } : {}),
               ...(alias ? { alias } : {}),
-              ...(solid.length ? { clear: solid } : {}) },
+              ...(fan ? { fan } : {}) },
     };
   });
 }
@@ -370,4 +354,3 @@ function handle(met: ReadonlyMap<string, Perch>, edge: Id,
                 end: "from" | "to", role: "s" | "t"): string {
   return met.has(`${edge}|${end}`) ? `${role}-${perch_id(edge, end)}` : role;
 }
-

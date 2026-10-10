@@ -6,7 +6,8 @@ import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_do
          kind_free, may_retype, name_taken, package_of, plain_type, setting_of, stored_type,
          self_use } from "../defs";
 import { GRID, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
-import { is_interface, next_order, reorder, stands_for, subtree } from "../tree";
+import { children, edges_in, is_interface, layout_of, next_order, reorder, stands_for,
+         subtree } from "../tree";
 import { leave_at, open_at, reveal_at, view_on, EDITOR, type Tiers, type View,
          type Views } from "../navigate";
 import { new_id } from "../ids";
@@ -122,7 +123,7 @@ register(
           made.push({ op: "order_block", id: o.id, order: o.order });
         }
       }
-      made.push(...tied(ctx, id, type, args["from"] ? id_of(args, "from") : undefined));
+      made.push(...tied(ctx, id, parent, type, args["from"] ? id_of(args, "from") : undefined));
       return { mutations: made };
     },
   },
@@ -209,6 +210,11 @@ register(
           if (type && domain_of(ctx.graph, type) !== domain_of(ctx.graph, id)
               && !kind_free(ctx.graph, id)) {
             return `"${d!.name}" is not a ${domain_of(ctx.graph, id)} definition, and this one is in use`;
+          }
+          /** Its usages are interfaces by its chain, so that too is fixed while it is used. */
+          const port = (t: Id | undefined) => block_base(ctx.graph, t) === "interface";
+          if (type && port(type) !== port(id) && !kind_free(ctx.graph, id)) {
+            return `"${d!.name}" ${port(id) ? "defines" : "does not define"} an interface, and this one is in use`;
           }
           continue;
         }
@@ -376,7 +382,7 @@ register(
       const here = ctx.layer ? ctx.graph.blocks[ctx.layer] : undefined;
       const owner = here?.parent ? ctx.graph.blocks[here.parent] : undefined;
       const outside = owner?.parent ?? null;
-      if (here && is_interface(here) && ctx.from !== undefined && ctx.from === outside) {
+      if (here && is_interface(ctx.graph, here.id) && ctx.from !== undefined && ctx.from === outside) {
         return moved({ ...view, layer: outside, pick: ctx.layer });
       }
       return moved(leave_at(ctx.graph, tiers, views, view));
@@ -433,4 +439,57 @@ register(
       ] };
     },
   },
+  {
+    name: "arrange",
+    about: "orders what the layer holds so related blocks read next to each other",
+    on: ["layer"],
+    args: [{ name: "layer", form: "block" }],
+    check: (ctx, args) => {
+      const layer = (args["layer"] as Id) ?? here(ctx);
+      if (layout_of(ctx.graph, layer) === "free") return "a free layer draws where things were put";
+      return borrowed(ctx.graph, layer);
+    },
+    run: (ctx, args) => {
+      const layer = (args["layer"] as Id) ?? here(ctx);
+      return { mutations: related_order(ctx.graph, layer)
+        .map(({ id, order }): Mutation => ({ op: "order_block", id, order })) };
+    },
+  },
 );
+
+/** The layer's blocks in an order that keeps related ones together: reading order, each followed
+ *  by what it relates to — a tied note by its block — breadth first. */
+function related_order(graph: Graph, layer: Id): { id: Id; order: number }[] {
+  const units = children(graph, layer).filter((b) => !is_interface(graph, b.id));
+  const ids = new Set(units.map((b) => b.id));
+  /** The block on this layer an end sits in. */
+  const top = (id: Id): Id | null => {
+    for (let at: Id | null | undefined = id; at; at = graph.blocks[at]?.parent) {
+      if (ids.has(at)) return at;
+    }
+    return null;
+  };
+  const mates = new Map<Id, Set<Id>>();
+  for (const e of edges_in(graph, layer)) {
+    const [a, b] = [top(e.from), top(e.to)];
+    if (!a || !b || a === b) continue;
+    mates.set(a, new Set([...(mates.get(a) ?? []), b]));
+    mates.set(b, new Set([...(mates.get(b) ?? []), a]));
+  }
+  const rank = new Map(units.map((b, i) => [b.id, i]));
+  const read = (x: Id, y: Id) => rank.get(x)! - rank.get(y)!;
+  const out: Id[] = [];
+  const seen = new Set<Id>();
+  for (const start of units) {
+    const queue = [start.id];
+    while (queue.length) {
+      const id = queue.shift()!;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(id);
+      queue.push(...[...(mates.get(id) ?? [])].sort(read).filter((m) => !seen.has(m)));
+    }
+  }
+  return out.map((id, i) => ({ id, order: i + 1 }))
+    .filter(({ id, order }) => graph.blocks[id]?.order !== order);
+}

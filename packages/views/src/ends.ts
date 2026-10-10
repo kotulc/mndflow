@@ -27,7 +27,9 @@ export function end_of(edge: LineEdge, which: "from" | "to", nodes: readonly Box
   if (!box) return null;
   if (perch) {
     const seat = at_seat(box, perch);
-    return { ...centre(seat), face: FACE[perch.side] };
+    /** A seat on the room's wall is looked at from inside, so it faces in. */
+    const side = id === FRAME ? TURNED[perch.side] : perch.side;
+    return { ...centre(seat), face: FACE[side] };
   }
   /** A port in the room's wall is looked at from inside, so it faces in. */
   if (port) return { ...centre(box), face: FACE[TURNED[port.side]] };

@@ -144,7 +144,6 @@ function apply(graph: Graph, m: Mutation): void {
       const e = graph.edges[m.id];
       if (!e) return;
       [e.from, e.to] = [e.to, e.from];
-      [e.fromSide, e.toSide] = [e.toSide, e.fromSide];
       return;
     }
     case "set_end": {
@@ -157,15 +156,9 @@ function apply(graph: Graph, m: Mutation): void {
     }
     case "set_port": {
       const b = graph.blocks[m.id];
-      if (b) { b.side = m.side; b.at = m.at; }
-      return;
-    }
-    case "set_side": {
-      const e = graph.edges[m.id];
-      if (!e) return;
-      const key = m.end === "from" ? "fromSide" : "toSide";
-      if (m.side === null) delete e[key];
-      else e[key] = m.side;
+      if (!b) return;
+      if (m.seat) { b.side = m.seat.side; b.at = m.seat.at; }
+      else { delete b.side; delete b.at; }
       return;
     }
     case "mark_port": {

@@ -174,7 +174,7 @@ describe("the way out of a layer", () => {
     s.look(loop);
     s.go("create", { name: "Pump" });
     const pump = children(s.graph(), loop)[0]!.id;
-    s.go("interface", { owner: pump, side: "right" });
+    s.go("interface", { owner: pump });
     const port = children(s.graph(), pump)[0]!.id;
     return { s, loop, pump, port };
   };
@@ -214,7 +214,7 @@ describe("interfaces sit where a capability allows them", () => {
     const ids = children(s.graph(), MAIN).map((b) => b.id);
     s.go("group", { members: ids });
     const group = holders_in(s.graph(), MAIN)[0]!;
-    expect(s.go("interface", { owner: group.id, side: "right" }))
+    expect(s.go("interface", { owner: group.id }))
       .toMatch(/takes no interfaces/);
   });
 });

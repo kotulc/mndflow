@@ -162,7 +162,7 @@ bind ports  ->  hold the log  ->  fold  ->  project  ->  render
 | Package | Proven by | Needs a browser |
 |---|---|---|
 | `core` | fold determinism, door repairs, undo-by-refold, file round-trip, byte-identical re-export | no |
-| `views` | no overlap, on the lattice, stable under reorder, no two ends share a seat; Scene invariants over text projections of **shape, not coordinates** | no |
+| `views` | no overlap, cells on the lattice and middles aligned along a row or column, stable under reorder, ends on a face share its anchor, a placed interface's seat is its own; Scene invariants over text projections of **shape, not coordinates** | no |
 | `defs` | every shipped definition passes the door; every module it names exists | no |
 | `fixtures` | every log folds clean, and every file the seam opens leaves nothing for `validate` to find | no |
 | `kit` | packed, then a graph, a file and a drawing built from outside the workspace | no |

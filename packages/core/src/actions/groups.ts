@@ -187,7 +187,7 @@ register(
       if (typeof w === "number" && typeof h === "number" && w > 0 && h > 0) {
         out.push({ op: "size_block", id, w, h });
       }
-      out.push(...tied(ctx, id, "note", about));
+      out.push(...tied(ctx, id, here(ctx), "note", about));
       return { mutations: out, effect: { focus: id } };
     },
   },

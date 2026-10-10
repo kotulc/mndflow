@@ -60,7 +60,7 @@ export function mark_icon(mark: Mark): IconName {
 /** What the tree draws under a block: every block it holds, in order, but the interfaces seated
  *  on its walls, which are part of it. */
 export function under(graph: Graph, parent: Id | null) {
-  return children(graph, parent).filter((b) => !is_interface(b));
+  return children(graph, parent).filter((b) => !is_interface(graph, b.id));
 }
 
 /** The icon a block names with `card.icon`, where this set draws it: its own word first, then its

@@ -102,5 +102,5 @@ export function root_below(graph: Graph, cut: Cut, held: Id | null): Id | undefi
 
 /** What a block shows under it: every block it holds, in order, but its interfaces. */
 function shown(graph: Graph, id: Id): Block[] {
-  return children(graph, id).filter((b) => !is_interface(b));
+  return children(graph, id).filter((b) => !is_interface(graph, b.id));
 }

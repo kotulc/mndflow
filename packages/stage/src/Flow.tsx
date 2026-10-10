@@ -6,7 +6,7 @@ import {
   PanOnScrollMode, ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useReactFlow,
 } from "@xyflow/react";
 import type { Point, Spot } from "@mnd/core";
-import { box_of, nearest_seat, FRAME, LINK, UNIT, type BoxNode } from "@mnd/views";
+import { box_of, nearest_seat, taken_on, FRAME, LINK, UNIT, type BoxNode } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 import { EDGE_TYPES, Heads } from "./Wire";
@@ -89,7 +89,8 @@ function Canvas(props: FlowViewProps) {
     /** Which wall and how far along, for a border pointed at. */
     const box = kind === "frame" ? frame
       : kind === "box" || kind === "brim" ? scene.nodes.find((n) => n.id === on) : null;
-    const seat = box ? nearest_seat("w" in box ? box : box_of(box as BoxNode), at(e)) : null;
+    const seat = box ? nearest_seat("w" in box ? box : box_of(box as BoxNode), at(e),
+                                    taken_on(scene, kind === "frame" ? FRAME : on ?? "")) : null;
     /** A cell gesture carries its grid and address. */
     const el_at = target instanceof Element
       ? target.closest(".mnd-grid-cell")?.getAttribute("data-at") : null;

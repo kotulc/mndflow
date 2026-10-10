@@ -27,7 +27,7 @@ export const put = (graph: Graph, id: Id, cell: Cell | null): Mutation => {
 /** What a block holds, seated as it becomes a grid of this lattice: those already in a body cell
  *  of their own stay there, and the rest take the nearest free cells in reading order. */
 export function seat_all(graph: Graph, id: Id, g: Grid): Mutation[] {
-  const held = children(graph, id).filter((b) => !is_interface(b));
+  const held = children(graph, id).filter((b) => !is_interface(graph, b.id));
   const taken = new Set<string>();
   const kept = new Set<Id>();
   for (const b of held) {
@@ -341,7 +341,9 @@ register(
     on: ["block", "cell"],
     args: [{ name: "group", form: "block" },
            { name: "dir", form: "choice", choices: ["none", "forward", "back", "both"] },
-           { name: "type", form: "text" }],
+           { name: "type", form: "text" },
+           /** The drawing tool's base, where no type is said. */
+           { name: "module", form: "choice", choices: ["line", "tie"] }],
     check: (ctx, args) => {
       const group = grid_named(ctx, args);
       if (!group) return "point at a grid, or a cell of one";

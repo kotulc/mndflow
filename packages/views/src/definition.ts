@@ -7,16 +7,14 @@
  *  Drawn, never stored: a graph handed back for a projection to read. Every block keeps its id, so
  *  a pick is the block's and an edit goes home (core `aspect_acts`). */
 
-import { aspects_of, def_at, shown_name, ABOUT, type Block, type Definition, type Graph, type Id,
+import { aspects_of, def_at, is_interface, shown_name, ABOUT, type Block, type Definition, type Graph, type Id,
          type Relation } from "@mnd/core";
 import { band_size } from "./bands";
-import { GAP, size_of, UNIT } from "./size";
+import { in_rows, on_grid } from "./grid";
+import { size_of } from "./size";
 
 /** The layer a definition view is drawn on. */
 export const ASPECT = "@aspect";
-
-/** How far a box stands from the middle card. */
-const APART = UNIT * 3;
 
 /** How an extends line draws: an open triangle at what is extended. */
 const EXTENDS = { line: { to_arrow: "hollow" } };
@@ -53,46 +51,34 @@ export function definition_graph(graph: Graph, def: Id): Graph {
     const id = `${ASPECT}:${box.key}`;
     blocks[id] = { id, parent: ASPECT, type: "group", name: box.name,
                    settings: { layout: { kind: "free", face: "small" } } };
-    let at = 0;
-    for (const b of box.blocks.filter((x) => !seen.has(x.id))) {
+    const held = box.blocks.filter((x) => !seen.has(x.id));
+    for (const b of held) {
       seen.add(b.id);
-      /** A port draws as a card here, not on a wall, still called what it was. */
+      /** A port draws as a plain card here, not on a wall, still called what it was. */
       const { side: _side, at: _at, ...card } = b;
-      blocks[b.id] = { ...card, name: b.name ?? shown_name(graph, b.id), parent: id,
-                       x: box.down ? 0 : at, y: box.down ? at : 0 };
-      const s = size_of({ ...graph, blocks }, b.id);
-      at += (box.down ? s.h : s.w) + GAP;
+      if (is_interface(graph, b.id)) delete card.type;
+      blocks[b.id] = { ...card, name: b.name ?? shown_name(graph, b.id), parent: id };
+    }
+    /** What a box holds, on the grid: a column where it runs down, else a row. */
+    const sized = held.map((b) => ({ id: b.id, ...size_of({ ...graph, blocks }, b.id) }));
+    for (const p of on_grid(in_rows(sized, box.down ? 1 : sized.length))) {
+      blocks[p.id] = { ...blocks[p.id]!, x: p.x, y: p.y };
     }
   }
   blocks[ABOUT] = { id: ABOUT, parent: ASPECT, type: "note",
                     name: d.body?.trim() || UNSAID };
 
-  /** Placed round the middle card, sized as drawn. */
+  /** Round the middle card on the grid: what it extends above, the note out at the top right, its
+   *  ins and outs either side, its both-way ports below, and below those its tags and traits. */
   const drawn: Graph = { ...graph, blocks };
   const size = (id: Id) => (blocks[id]?.type === "group"
     ? band_size(drawn, ASPECT, blocks[id]!, "free") : size_of(drawn, id));
-  const mid = size(def);
-  const put = (id: Id, x: number, y: number) => { blocks[id] = { ...blocks[id]!, x, y }; };
-  put(def, 0, 0);
-  const row = (ids: readonly Id[], y: number) => {
-    const wide = ids.reduce((n, id) => n + size(id).w, 0) + APART * (ids.length - 1);
-    let x = mid.w / 2 - wide / 2;
-    for (const id of ids) { put(id, x, y); x += size(id).w + APART; }
-  };
-  const at = (key: string) => (blocks[`${ASPECT}:${key}`] ? `${ASPECT}:${key}` : null);
-  const above = at("extends");
-  const top = above ? -(size(above).h + APART) : 0;
-  if (above) row([above], top);
-  const note = size(ABOUT);
-  put(ABOUT, mid.w + APART, Math.min(top, -(note.h + APART)));
-  const left = at("in");
-  if (left) put(left, -(size(left).w + APART), mid.h / 2 - size(left).h / 2);
-  const right = at("out");
-  if (right) put(right, mid.w + APART, mid.h / 2 - size(right).h / 2);
-  const both = at("both");
-  let y = mid.h + APART;
-  if (both) { row([both], y); y += size(both).h + APART; }
-  row([at("tags"), at("traits")].filter((x): x is Id => !!x), y);
+  const cells = ([[def, 1, 1], [ABOUT, 3, 0], [`${ASPECT}:extends`, 1, 0], [`${ASPECT}:in`, 0, 1],
+                  [`${ASPECT}:out`, 2, 1], [`${ASPECT}:both`, 1, 2], [`${ASPECT}:tags`, 0, 3],
+                  [`${ASPECT}:traits`, 2, 3]] as const)
+    .filter(([id]) => blocks[id])
+    .map(([id, c, r]) => ({ id, c, r, ...size(id) }));
+  for (const p of on_grid(cells)) blocks[p.id] = { ...blocks[p.id]!, x: p.x, y: p.y };
 
   /** An extends line up, a tie to the note, and a plain line from each box. */
   const edges: Relation[] = [

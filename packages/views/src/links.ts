@@ -17,7 +17,7 @@ const DRAWN = { line: { to_arrow: "open" }, style: { border_style: "dashed" } };
 
 /** The graph with a line for every link between two cards the layer draws. */
 export function linked_graph(graph: Graph, layer: Id | null): Graph {
-  const cards = drawn_in(graph, layer).filter((b) => !is_interface(b));
+  const cards = drawn_in(graph, layer).filter((b) => !is_interface(graph, b.id));
   const edges: Record<Id, Relation> = {};
   for (const from of cards) {
     const def = stood(graph, from) ?? from.type;

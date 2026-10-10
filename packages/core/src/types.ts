@@ -139,9 +139,6 @@ export type Relation = {
   /** A part of the `to` block's definition the run arrives at. */
   toPart?: Id;
   dir?: Dir;
-  /** Which wall a relationship end leaves by. */
-  fromSide?: Side;
-  toSide?: Side;
   /** A handle serial, as a block carries. */
   alias?: number;
   /** Words describing this line; its own, never inherited. */
@@ -219,8 +216,8 @@ export type Mutation =
   | { op: "flip_edge"; id: Id }
   /** An end moved onto a block, and optionally onto a part its definition holds. */
   | { op: "set_end"; id: Id; end: "from" | "to"; port: Id; part?: Id | null }
-  | { op: "set_port"; id: Id; side: Side; at: number }
-  | { op: "set_side"; id: Id; end: "from" | "to"; side: Side | null }
+  /** A seat places an interface; none lets it place itself again. */
+  | { op: "set_port"; id: Id; seat: { side: Side; at: number } | null }
   | { op: "mark_port"; id: Id; flow: Flow | null }
   /** An answer on a block. An edge has none to set — see `Relation`. */
   | { op: "set_value"; id: Id; name: string; value: string }

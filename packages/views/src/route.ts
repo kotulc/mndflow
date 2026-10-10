@@ -1,16 +1,17 @@
-/** Where a line runs between two borders. */
+/** Where a line runs between two borders: straight where it can, else one Z. Runs draw under
+ *  cards, so nothing is routed round. */
 
 import { Position } from "@xyflow/system";
-import { GAP } from "./size";
+import type { Fan } from "./seat";
 
-type Rect = { x: number; y: number; w: number; h: number };
 type Point = { x: number; y: number };
 
-/** How far a line runs straight out of a border before it may turn. */
+/** How far a run goes straight out of a face before it may turn back on itself. */
 export const STUB = 16;
 
-/** Clear space kept between a run and a box it goes round. */
-const MARGIN = GAP;
+/** How far apart two ends may be and still count as lined up: a seat drawn as a percentage of
+ *  its wall lands a fraction of a pixel off. */
+const LEVEL = 1.5;
 
 /** Which way a run sets off from each face. */
 const AWAY: Record<string, Point> = {
@@ -20,125 +21,48 @@ const AWAY: Record<string, Point> = {
   [Position.Bottom]: { x: 0, y: 1 },
 };
 
-/** The corners of a run, in order. */
+/** The corners of a run, in order. `fan` says where its cross leg sits; a tie runs straight. */
 export function route(from: Point, out: Position, to: Point, into: Position,
-                      clear: readonly Rect[]): Point[] {
-  const a = step(from, out);
-  const b = step(to, into);
-  return tidy([from, ...shortest(a, b, out, into, clear), to]);
-}
+                      fan?: Fan, straight = false): Point[] {
+  if (straight) return [from, to];
+  const a = AWAY[out] ?? AWAY[Position.Right]!;
+  const b = AWAY[into] ?? AWAY[Position.Right]!;
+  const across = a.x !== 0;
 
-function step(at: Point, face: Position): Point {
-  const d = AWAY[face] ?? AWAY[Position.Right]!;
-  return { x: at.x + d.x * STUB, y: at.y + d.y * STUB };
-}
-
-/** What a corner costs, as a length of run it is worth going out of the way to avoid. */
-const TURN = 60;
-
-type Way = 0 | 1 | 2 | 3;
-const WAYS: Point[] = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
-
-/** Which way a face sends a run: out of the border, square to it. */
-function way_of(face: Position): Way {
-  const d = AWAY[face] ?? AWAY[Position.Right]!;
-  return WAYS.findIndex((w) => w.x === d.x && w.y === d.y) as Way;
-}
-
-/** The same way, back again. The pairs are laid out so this is one bit. */
-function back(w: Way): Way {
-  return (w ^ 1) as Way;
-}
-
-/** The lines a turn may happen on. */
-function lanes(a: Point, b: Point, clear: readonly Rect[]) {
-  const xs = new Set<number>([a.x, b.x]);
-  const ys = new Set<number>([a.y, b.y]);
-  for (const r of clear) {
-    xs.add(r.x - MARGIN);
-    xs.add(r.x + r.w + MARGIN);
-    ys.add(r.y - MARGIN);
-    ys.add(r.y + r.h + MARGIN);
-  }
-  /** A lane outside everything, on all four sides. */
-  const out = (set: Set<number>) => {
-    const all = [...set];
-    set.add(Math.min(...all) - STUB * 2);
-    set.add(Math.max(...all) + STUB * 2);
-  };
-  out(xs);
-  out(ys);
-  return { xs: [...xs].sort((p, q) => p - q), ys: [...ys].sort((p, q) => p - q) };
-}
-
-/** The cheapest run between the two stubs that stays out of every box. */
-function shortest(a: Point, b: Point, out: Position, into: Position,
-                  clear: readonly Rect[]): Point[] {
-  const { xs, ys } = lanes(a, b, clear);
-  const ax = xs.indexOf(a.x);
-  const ay = ys.indexOf(a.y);
-  const bx = xs.indexOf(b.x);
-  const by = ys.indexOf(b.y);
-  if (ax < 0 || ay < 0 || bx < 0 || by < 0) return [a, { x: b.x, y: a.y }, b];
-
-  const at = (ix: number, iy: number): Point => ({ x: xs[ix]!, y: ys[iy]! });
-  const key = (ix: number, iy: number, w: Way) => (iy * xs.length + ix) * 4 + w;
-  const best = new Map<number, number>();
-  const came = new Map<number, number>();
-  /** The way *in*, which is the far face's own way turned round. */
-  const arrive = back(way_of(into));
-  const start = key(ax, ay, way_of(out));
-  const queue: { k: number; ix: number; iy: number; w: Way; cost: number }[] =
-    [{ k: start, ix: ax, iy: ay, w: way_of(out), cost: 0 }];
-  best.set(start, 0);
-  let done: number | null = null;
-
-  while (queue.length) {
-    /** A linear scan for the cheapest beats a heap at this size. */
-    let n = 0;
-    for (let i = 1; i < queue.length; i++) if (queue[i]!.cost < queue[n]!.cost) n = i;
-    const here = queue.splice(n, 1)[0]!;
-    if (best.get(here.k)! < here.cost) continue;
-    if (here.ix === bx && here.iy === by && here.w === arrive) { done = here.k; break; }
-
-    for (let w = 0 as Way; w < 4; w = (w + 1) as Way) {
-      const step = WAYS[w]!;
-      const ix = here.ix + step.x;
-      const iy = here.iy + step.y;
-      if (ix < 0 || iy < 0 || ix >= xs.length || iy >= ys.length) continue;
-      const from = at(here.ix, here.iy);
-      const to = at(ix, iy);
-      if (blocked(from, to, clear)) continue;
-      const cost = here.cost + Math.abs(to.x - from.x) + Math.abs(to.y - from.y)
-                 + (w === here.w ? 0 : TURN);
-      const k = key(ix, iy, w);
-      if (cost >= (best.get(k) ?? Infinity)) continue;
-      best.set(k, cost);
-      came.set(k, here.k);
-      queue.push({ k, ix, iy, w, cost });
-    }
+  /** Facing each other: straight where they line up, else a Z turning at the fan point. */
+  if (a.x === -b.x && a.y === -b.y) {
+    if (Math.abs(across ? from.y - to.y : from.x - to.x) < LEVEL) return [from, to];
+    const hub = fan?.end === "to" ? { at: to, way: b } : { at: from, way: a };
+    const by = fan?.by ?? half(from, to, across);
+    const c = across ? hub.at.x + hub.way.x * by : hub.at.y + hub.way.y * by;
+    return tidy(across ? [from, { x: c, y: from.y }, { x: c, y: to.y }, to]
+                       : [from, { x: from.x, y: c }, { x: to.x, y: c }, to]);
   }
 
-  /** Nothing got through — every lane out of one end is walled. */
-  if (done === null) return [a, { x: b.x, y: a.y }, b];
+  /** Square to each other: one corner, where it lies ahead of both. */
+  const corner = across ? { x: to.x, y: from.y } : { x: from.x, y: to.y };
+  if (ahead(from, a, corner) && ahead(to, b, corner)) return [from, corner, to];
 
-  const run: Point[] = [];
-  for (let k: number | undefined = done; k !== undefined; k = came.get(k)) {
-    const cell = (k - (k % 4)) / 4;
-    run.push(at(cell % xs.length, Math.floor(cell / xs.length)));
+  /** Anything else steps out of both faces and joins the stubs. */
+  const p = { x: from.x + a.x * STUB, y: from.y + a.y * STUB };
+  const q = { x: to.x + b.x * STUB, y: to.y + b.y * STUB };
+  if (a.x === b.x && a.y === b.y) {
+    const c = across ? (a.x > 0 ? Math.max(p.x, q.x) : Math.min(p.x, q.x))
+                     : (a.y > 0 ? Math.max(p.y, q.y) : Math.min(p.y, q.y));
+    return tidy(across ? [from, { x: c, y: from.y }, { x: c, y: to.y }, to]
+                       : [from, { x: from.x, y: c }, { x: to.x, y: c }, to]);
   }
-  return run.reverse();
+  return tidy([from, p, across ? { x: p.x, y: q.y } : { x: q.x, y: p.y }, q, to]);
 }
 
-/** Whether one leg passes through a box. */
-function blocked(p: Point, q: Point, clear: readonly Rect[]): boolean {
-  const lo = { x: Math.min(p.x, q.x), y: Math.min(p.y, q.y) };
-  const hi = { x: Math.max(p.x, q.x), y: Math.max(p.y, q.y) };
-  for (const r of clear) {
-    if (lo.x < r.x + r.w - 0.5 && hi.x > r.x + 0.5
-     && lo.y < r.y + r.h - 0.5 && hi.y > r.y + 0.5) return true;
-  }
-  return false;
+/** Half the way between two ends, along the way they face. */
+function half(from: Point, to: Point, across: boolean): number {
+  return Math.abs(across ? to.x - from.x : to.y - from.y) / 2;
+}
+
+/** Whether a point lies out of a face, not behind it. */
+function ahead(at: Point, way: Point, p: Point): boolean {
+  return (p.x - at.x) * way.x + (p.y - at.y) * way.y > 0;
 }
 
 /** The same run without the points that turn nothing. */
@@ -172,7 +96,7 @@ export function drawn(run: readonly Point[], bend: number): string {
   return `${d} L${end.x},${end.y}`;
 }
 
-const len = (a: Point, b: Point) => Math.abs(b.x - a.x) + Math.abs(b.y - a.y);
+const len = (a: Point, b: Point) => Math.hypot(b.x - a.x, b.y - a.y);
 
 function toward(from: Point, to: Point, by: number): Point {
   const d = len(from, to) || 1;
@@ -180,15 +104,29 @@ function toward(from: Point, to: Point, by: number): Point {
            y: from.y + ((to.y - from.y) / d) * by };
 }
 
-/** Where a name sits on a run: the middle of its longest leg, so a label lands on a stretch of line
- *  rather than on a corner. */
-export function middle_of(run: readonly Point[]): Point {
-  let best = { at: { x: run[0]!.x, y: run[0]!.y }, span: -1 };
-  for (let i = 1; i < run.length; i++) {
-    const p = run[i - 1]!;
-    const q = run[i]!;
+/** Where a name sits: the middle of the longest leg past the fan point, so it lands on the line's
+ *  own stretch rather than on a trunk it shares. */
+export function middle_of(run: readonly Point[], fan?: Fan): Point {
+  const own = fan ? past(fan.end === "to" ? [...run].reverse() : run, fan.by) : run;
+  let best = { at: { x: own[0]!.x, y: own[0]!.y }, span: -1 };
+  for (let i = 1; i < own.length; i++) {
+    const p = own[i - 1]!;
+    const q = own[i]!;
     const span = len(p, q);
     if (span > best.span) best = { at: { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 }, span };
   }
   return best.at;
+}
+
+/** What is left of a run after its first `by` of length. */
+function past(run: readonly Point[], by: number): Point[] {
+  let left = by;
+  for (let i = 1; i < run.length; i++) {
+    const p = run[i - 1]!;
+    const q = run[i]!;
+    const span = len(p, q);
+    if (span > left) return [toward(p, q, left), ...run.slice(i)];
+    left -= span;
+  }
+  return [...run];
 }

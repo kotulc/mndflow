@@ -718,8 +718,7 @@
         "id": "edge_9fg4gtjkuve0",
         "alias": 9,
         "from": "block_ew5quzihwe9g",
-        "to": "block_pcm8tjwdotm2",
-        "toSide": "left"
+        "to": "block_pcm8tjwdotm2"
       },
       "edge_9vqi9b29txu1": {
         "id": "edge_9vqi9b29txu1",
@@ -816,8 +815,7 @@
         "id": "edge_yoc1umj8z28q",
         "alias": 24,
         "from": "block_pjwhm997jirl",
-        "to": "block_lidqmag9iygj",
-        "toSide": "left"
+        "to": "block_lidqmag9iygj"
       }
     }
   }

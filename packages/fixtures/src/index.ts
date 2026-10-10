@@ -91,9 +91,9 @@ export function interfaced(): Log {
     step("create", [block("block_pump", "block_loop", "Pump", "block")]),
     step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
     step("interface", [
-      { op: "add_block", block: { id: "port_out", parent: "block_pump",
+      { op: "add_block", block: { id: "port_out", parent: "block_pump", type: "interface",
                                   side: "right", at: 0.5, flow: "out", order: 1 } },
-      { op: "add_block", block: { id: "port_in", parent: "block_hx",
+      { op: "add_block", block: { id: "port_in", parent: "block_hx", type: "interface",
                                   side: "left", at: 0.5, flow: "in", order: 1 } },
     ]),
     step("relate", [link("edge_flow", "port_out", "port_in", "forward")]),

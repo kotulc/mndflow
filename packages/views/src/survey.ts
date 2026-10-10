@@ -56,7 +56,7 @@ export function survey_graph(graph: Graph, scope: Id | null, cut: Cut,
                       parent, ...(order !== undefined ? { order } : {}) };
     /** A box seats no interfaces: they are part of what it stands for. A copy carries none. */
     if (boxed && !via) {
-      for (const port of children(graph, id).filter(is_interface)) {
+      for (const port of children(graph, id).filter((b) => is_interface(graph, b.id))) {
         blocks[port.id] = { ...port, parent: HIDDEN };
       }
     }
@@ -78,6 +78,6 @@ export function survey_graph(graph: Graph, scope: Id | null, cut: Cut,
 
 /** What a block holds at its top level, its interfaces apart, a group by its members. */
 function top_level(graph: Graph, id: Id): Block[] {
-  return children(graph, id).filter((b) => !is_interface(b))
+  return children(graph, id).filter((b) => !is_interface(graph, b.id))
     .flatMap((b) => (is_group(graph, b.id) ? top_level(graph, b.id) : [b]));
 }

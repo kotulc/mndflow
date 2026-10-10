@@ -195,7 +195,7 @@ export function App({ storage }: { storage: Storage }) {
     /** Leaving a computed layout writes its positions so `free` keeps them. */
     if (name === "layout") {
       const leaving = laid_out !== "free" && args!["kind"] === "free";
-      act("layout", { layer, ...args, ...(leaving ? { at: tidy(graph, layer) } : {}) });
+      act("layout", { layer, ...args, ...(leaving ? { at: tidy(graph, scene) } : {}) });
       return;
     }
     /** A package by name, fetched from the catalogue and brought in beside the workspace, frozen. */

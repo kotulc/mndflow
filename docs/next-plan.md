@@ -13,6 +13,7 @@
 | 4 | **folders that read** | `base` lists first; no code invents a package's folders; the showcase's presets are traits, its definitions in folders that say what they are |
 | 5 | **table card** | an entity draws as one ruled table, its title the top row, nothing overlapping, its size exactly what it draws |
 | 6 | **line routing** | the showcase's relations layer draws without crowded labels, hugging runs or needless turns |
+| 6b | **grid layout** | every auto layer is a row/column grid: middles line up, names fit between cards, nothing needs moving by hand |
 | 7 | **canvas gestures** | a diagram is built fast from the canvas alone |
 | 8 | **views by card** | the rail offers only the system views; each card opens on the one layer view its kind calls for, and a definition opens onto itself with what describes it round it |
 | 9 | **two trees, one system** | structure always lists every tree whatever definitions holds; the system views draw both trees; every layer lays itself out `auto`, as wide as the page |
@@ -130,6 +131,52 @@ Collected on the showcase's relations layer first, then fixed.
 | **a tie lands mid-side** | a tie should meet the card at its nearest corner |
 | **a crossing is avoided by sharing lanes** | North→South and East→West run together along a row rather than crossing once |
 
+**Workshopped 2026-10-09: anchors shared, runs straight or Z, lines under cards, ties corner to corner.** The rules are design.md's *Interfaces and lines*.
+
+| Decided | |
+|---|---|
+| **one anchor per face** | the middle of the face looking at the other end; every line on it shares it |
+| **trunk, then fan** | shared lines run together to the fan point, halfway to the nearest card reached, and split there |
+| **straight or Z** | no detours: lines draw under cards; the Z's cross leg at the busier end's fan point |
+| **parallel lines overlap** | parted only by placing interfaces |
+| **frame ends** | straight from the card's face nearest a wall to that wall; the layer's auto interfaces straight across, a placed one fixed |
+| **ties apart** | straight: across the gap where two cards face squarely and the faces are free there, else nearest corner to nearest corner; no anchor, no fan |
+| **names** | on a line's own leg past the fan point |
+| **interface, a light block** | an interface by its type chain; `side` + `at` together mean placed, absent means auto; holds nothing, no cell, no size |
+| **one way to move an end** | `fromSide`, `toSide` and `set_side` go; placing an interface replaces them |
+
+| Changes | |
+|---|---|
+| views `route.ts` | the lane search goes: straight, Z, or a trunk and its branches |
+| views `seat.ts` | `fan_out` lanes go: one anchor per face, placed interfaces read from `at` |
+| core `tree.ts` · `defs.ts` | `is_interface` by type chain, not `side` |
+| core `door.ts` · `fold.ts` · `actions/relations.ts` | `fromSide`/`toSide`/`set_side` gone; an interface refusing what it may not carry |
+| stage `Wire.tsx` · `draw.ts` · `gestures.ts` | ties drawn straight; names on their own leg; side gestures gone |
+
+
+## 6b — Grid layout
+
+**Every auto layout is one row/column grid; `auto` is the default and good enough for every system and layer view.** Workshopped 2026-10-09, after step 6 left names crowded and table cards bending lines.
+
+| Rule | |
+|---|---|
+| **cells** | each unit — a card, a group, a grid — takes one cell; a row is as tall as its tallest |
+| **centred** | a card sits in the middle of its cell, so middles along a row or column always line up, whatever a card's size; a card's own edges may fall between guides |
+| **whole-unit cells** | cell edges stay on the guides |
+| **spacing** | `GAP`, 3 units, between cells; `PAD`, 1 unit, round what a group, a room or a grid's cell holds — two neighbouring groups keep a unit of air between them |
+| **reading order** | auto and pages flow in reading order onto columns a default card wide, wrapping at the page's width; a wider unit spans the columns it needs |
+| **lines never move cards** | relations and ties draw lines and nothing else; a note made tied to a block is ordered right after it when made; *arrange*, on the rail, reorders a layer once so related blocks, and notes by their blocks, read side by side |
+| **fitted grids** | the definition view and the class diagram place by cell, each column as wide as its widest card |
+| **boxes hug** | a page's boxes, as the package and profile views draw them, are as wide as what they hold and their air |
+| **one grid** | auto layers, groups, pages, the package and profile views and the definition view (a 3×3 grid round its middle card) all lay out through it |
+| **`free` stays** | hand placement draws exactly where it was put |
+
+| Changes | |
+|---|---|
+| views `grid.ts` | new: cells to places — columns and rows sized, cards centred |
+| views `pack.ts` | clusters placed by cell, not by pixel |
+| views `bands.ts` · `page.ts` · `definition.ts` | groups, pages and the definition view through the grid |
+| views `size.ts` | `GAP` 3 units, `PAD` 1 unit |
 
 ## 7 — Canvas gestures
 

@@ -1,7 +1,7 @@
 /** A graph out as SysML, and the same text back as a graph. */
 
-import { children, config_of, edge_base, edges_in, empty_graph, is_interface, is_reference,
-         base_of, owner_of, path, shown_name, MAIN, SCHEMA,
+import { block_base, children, config_of, edge_base, edges_in, empty_graph, is_interface,
+         is_reference, base_of, owner_of, path, shown_name, MAIN, SCHEMA,
          type Block, type Graph, type Id, type Relation } from "@mnd/core";
 
 /** What each block module is called, absent a definition that says otherwise. */
@@ -26,7 +26,7 @@ function keyword(graph: Graph, id: Id): string {
 /** How an end is written: a port by its owner and its own name, anything else by its name alone. */
 function end_of(graph: Graph, id: Id): string {
   const b = graph.blocks[id];
-  if (b && is_interface(b) && b.parent) {
+  if (b && is_interface(graph, b.id) && b.parent) {
     return `${quoted(shown_name(graph, b.parent))}.${quoted(shown_name(graph, id))}`;
   }
   return quoted(shown_name(graph, id));
@@ -133,10 +133,10 @@ export function from_sysml(text: string, known: readonly Block[] = []): Graph {
     const id = at(trail);
     const parent = here();
     const port = word === "port";
-    graph.blocks[id] = {
-      id, parent, name, type, order: ++n,
-      ...(port ? { side: "right" as const, at: 0.5 } : {}),
-    };
+    /** A port places itself, typed by what it names where that is an interface definition, else
+     *  a plain interface. */
+    const typed = port && block_base(graph, type) !== "interface" ? "interface" : type;
+    graph.blocks[id] = { id, parent, name, type: typed, order: ++n };
     if (points) {
       stands.push({ id, at: [...points.matchAll(STEPS)].map((m) => unquote(m[1]!)) });
     }

@@ -30,24 +30,24 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
 
   /** Every layer below, or just this one. */
   const walk = (at: Id | null): Block[] => children(graph, at)
-    .flatMap((b) => (deep && !is_interface(b) ? [b, ...walk(b.id)] : [b]));
+    .flatMap((b) => (deep && !is_interface(graph, b.id) ? [b, ...walk(b.id)] : [b]));
 
   for (const b of walk(layer)) {
     const kind = base_of(graph, b.id);
-    const held = children(graph, b.id).filter((k) => !is_interface(k)).length;
-    const ports = children(graph, b.id).filter((k) => is_interface(k)).length;
+    const held = children(graph, b.id).filter((k) => !is_interface(graph, k.id)).length;
+    const ports = children(graph, b.id).filter((k) => is_interface(graph, k.id)).length;
     /** Where it sits, once the listing crosses layers. */
     const within = deep && b.parent && b.parent !== layer
       ? `in ${called(b.parent)}` : "";
     out.push({
       id: b.id,
-      sort: is_interface(b) ? "interface"
+      sort: is_interface(graph, b.id) ? "interface"
           : is_holder(graph, b.id) ? "group" : kind === "note" ? kind : "block",
-      kind: is_interface(b) ? "interface" : kind,
+      kind: is_interface(graph, b.id) ? "interface" : kind,
       fields: Object.fromEntries((b.values ?? []).map((f) => [f.name, f.value ?? ""])),
       name: called(b.id),
-      what: is_interface(b)
-        ? `on the ${b.side} wall${b.flow ? `, ${b.flow}` : ""}`
+      what: is_interface(graph, b.id)
+        ? `${wall(b.side)}${b.flow ? `, ${b.flow}` : ""}`
         : [within, held ? `holds ${held}` : "",
            ports ? `${ports} interface${ports > 1 ? "s" : ""}` : ""]
             .filter(Boolean).join(" · "),
@@ -55,11 +55,11 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
     });
 
     for (const port of children(graph, b.id)) {
-      if (!is_interface(port)) continue;
+      if (!is_interface(graph, port.id)) continue;
       out.push({
         id: port.id, sort: "interface", kind: "interface", name: called(port.id),
         fields: Object.fromEntries((port.values ?? []).map((f) => [f.name, f.value ?? ""])),
-        what: `on ${called(b.id)}, ${port.side} wall`,
+        what: `on ${called(b.id)}, ${wall(port.side)}`,
         type: plain(graph, port.type) ? "" : graph.blocks[port.type!]?.name ?? port.type!,
       });
     }
@@ -182,4 +182,9 @@ function layer_path(graph: Graph, end: Id): string {
   const holder = graph.blocks[end]?.parent;
   if (!holder) return shown_name(graph, graph.root);
   return path(graph, holder).map((b) => shown_name(graph, b.id)).join(" / ");
+}
+
+/** Where an interface sits: the wall it was placed on, or wherever it places itself. */
+function wall(side: string | undefined): string {
+  return side ? `on the ${side} wall` : "placed by its lines";
 }

@@ -8,7 +8,8 @@
  *  face, its attributes shown. */
 
 import { children, schema_def, type Block, type Graph, type Id, type Relation } from "@mnd/core";
-import { size_of, snap, GAP } from "./size";
+import { in_rows, on_grid } from "./grid";
+import { size_of, GAP } from "./size";
 
 /** What every card in the diagram asks of its look: its attributes, shown. */
 const LISTED = { card: { shows: ["attributes"] } };
@@ -60,21 +61,14 @@ export function class_def(id: Id): Id | null {
   return id.startsWith(CLASS) ? id.slice(CLASS.length) : null;
 }
 
-/** The class centred over its usages, and the usages in rows of `ACROSS` under it. */
+/** The class centred over its usages, and the usages on the grid under it, `ACROSS` to a row. */
 function placed(graph: Graph, top: Id, uses: Id[]): Record<Id, Block> {
   const blocks = { ...graph.blocks };
   const size = (id: Id) => size_of(graph, id);
-  const w = Math.max(0, ...uses.map((use) => size(use).w));
-  const step = w + GAP * 2;
-  const wide = Math.min(uses.length, ACROSS) * step - GAP * 2;
-
-  /** Air enough between the class and its usages for the lines to read as lines. */
-  let y = size(top).h + GAP * 3;
-  for (let at = 0; at < uses.length; at += ACROSS) {
-    const row = uses.slice(at, at + ACROSS);
-    row.forEach((use, n) => { blocks[use] = { ...blocks[use]!, x: n * step, y }; });
-    y += Math.max(...row.map((use) => size(use).h)) + GAP * 2;
-  }
-  blocks[top] = { ...blocks[top]!, x: snap((wide - size(top).w) / 2), y: 0 };
+  const grid = on_grid(in_rows(uses.map((id) => ({ id, ...size(id) })), ACROSS));
+  const wide = Math.max(...grid.map((p) => p.x + p.w));
+  const below = size(top).h + GAP;
+  for (const p of grid) blocks[p.id] = { ...blocks[p.id]!, x: p.x, y: p.y + below };
+  blocks[top] = { ...blocks[top]!, x: (wide - size(top).w) / 2, y: 0 };
   return blocks;
 }

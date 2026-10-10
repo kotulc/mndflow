@@ -41,11 +41,12 @@ export function Wire(props: EdgeProps<LineEdge>) {
 
   /** A line with no name still has somewhere to type one. */
   const naming = useNaming();
-  /** A run routes round the cards it ends on. */
+  /** A run is straight or one Z, turning where its lines fan; a tie runs straight. */
   const run = route({ x: sourceX, y: sourceY }, sourcePosition,
-                    { x: targetX, y: targetY }, targetPosition, data?.clear ?? []);
+                    { x: targetX, y: targetY }, targetPosition,
+                    data?.fan, data?.module === "tie");
   const path = drawn(run, BEND);
-  const { x, y } = middle_of(run);
+  const { x, y } = middle_of(run, data?.fan);
   const look = data?.wire ?? BARE;
   const end = heads(data);
   const { attrs, style: tint } = paint(look);

@@ -18,7 +18,7 @@ export function read_through(graph: Graph, layer: Id | null): Graph {
   const def = opened && !opened.def ? def_at(graph, opened.type) : undefined;
   if (def && layer) {
     for (const part of children(graph, def.id)) {
-      if (!part.def && !is_interface(part)) blocks[part.id] = { ...part, parent: layer };
+      if (!part.def && !is_interface(graph, part.id)) blocks[part.id] = { ...part, parent: layer };
     }
   }
   /** Each usage on the layer wears its definition's interfaces. */
@@ -26,7 +26,7 @@ export function read_through(graph: Graph, layer: Id | null): Graph {
   for (const b of children(drawn, layer)) {
     const used = !b.def ? def_at(graph, b.type) : undefined;
     if (!used) continue;
-    for (const port of children(graph, used.id).filter(is_interface)) {
+    for (const port of children(graph, used.id).filter((b) => is_interface(graph, b.id))) {
       const id = part_id(b.id, port.id);
       blocks[id] = { ...port, id, parent: b.id };
     }

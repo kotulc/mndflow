@@ -25,7 +25,7 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
   const shape = shape_of(graph, id);
   if (shape) out.push(shape);
   if (is_flat(graph, id)) out.push("flat");
-  if (is_interface(b)) {
+  if (is_interface(graph, b.id)) {
     out.push("interface");
     if (b.flow === "in" || b.flow === "both") out.push("in");
     if (b.flow === "out" || b.flow === "both") out.push("out");
