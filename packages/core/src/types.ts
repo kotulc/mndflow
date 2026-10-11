@@ -120,9 +120,12 @@ export type Block = {
   /** How it draws and what it may do, by component: a definition's own word, or a usage's
    *  override of its definition's. Inherited down the `type` chain, nearest first. */
   settings?: Components;
-  /** The tag definitions it carries — tags, traits and labels alike — by id, in order. Added to
-   *  what its chain carries; `-id` drops one the chain carries. */
-  tags?: string[];
+  /** What a definition can do: its trait definitions, by id, in order. **Stated, the list replaces
+   *  its chain's**; unsaid, it carries its chain's. A definition's alone. */
+  traits?: Id[];
+  /** The tag definitions it carries, by id, in order: an index for finding it. **Stated, the list
+   *  replaces its definition's**; unsaid, it carries its definition's. An empty list says none. */
+  tags?: Id[];
   flow?: Flow;
   /** A usage's answers, in order. */
   values?: Value[];
@@ -132,6 +135,9 @@ export type Relation = {
   id: Id;
   from: Id;
   to: Id;
+  /** What it is called, exactly as a block carries one. Absent draws its definition's name, the
+   *  way an unnamed card draws its kind word. */
+  name?: string;
   type?: Id;
   /** A part of the `from` block's definition the run leaves from: a usage reads it through. */
   fromPart?: Id;
@@ -139,9 +145,8 @@ export type Relation = {
   toPart?: Id;
   /** A handle serial, as a block carries. */
   alias?: number;
-  /** What it carries, as a block does: added to its definition's, `-id` dropping one. **Its name
-   *  is a label it carries**, never a field of its own. */
-  tags?: string[];
+  /** Its tags, as a block's: stated, they replace its definition's. */
+  tags?: Id[];
   /** What this one line says about how it draws, over whatever its definition said. */
   settings?: Components;
   /** Its answers to its definition's attributes, as a usage's. */
@@ -177,11 +182,16 @@ export type Graph = {
   edges: Record<Id, Relation>;
 };
 
-/** A fresh workspace: its package root and `main`. Groupings are the user's. */
+/** The folder a workspace files the tags it makes in. */
+export const TAGS = "tags";
+
+/** A fresh workspace: its package root, `main`, and the folder its tags are filed in. Every other
+ *  grouping is the user's. */
 export function empty_graph(): Graph {
   const blocks: Block[] = [
     { id: ROOT, parent: null, name: "workspace" },
     { id: MAIN, parent: ROOT, name: "main", def: {}, order: 1 },
+    { id: TAGS, parent: ROOT, name: "tags", type: "folder", order: 2 },
   ];
   return { root: ROOT, blocks: Object.fromEntries(blocks.map((b) => [b.id, b])), edges: {} };
 }
@@ -209,8 +219,8 @@ export type Mutation =
   /** A block's lattice, written whole: its shape is one thing. Null gives it back. */
   | { op: "set_grid"; id: Id; grid: Grid | null }
   | { op: "link_blocks"; edge: Relation }
-  /** Only what is said changes, and `type: null` clears it. */
-  | { op: "update_edge"; id: Id; type?: Id | null }
+  /** As `update_block`: only what is said changes, and `type: null` clears it. */
+  | { op: "update_edge"; id: Id; name?: string; type?: Id | null }
   | { op: "delete_edge"; id: Id }
   | { op: "flip_edge"; id: Id }
   /** An end moved onto a block, and optionally onto a part its definition holds. */
@@ -223,8 +233,10 @@ export type Mutation =
   | { op: "drop_value"; id: Id; name: string }
   /** The order a block's values are listed in, by name. */
   | { op: "order_values"; id: Id; names: string[] }
-  /** What an element carries, in order: ids, and `-id` for one its chain carries, dropped. */
-  | { op: "set_tags"; id: Id; tags: string[] }
+  /** An element's tags, in order; null gives the list back to its definition. */
+  | { op: "set_tags"; id: Id; tags: Id[] | null }
+  /** A definition's traits, in order; null gives the list back to its chain. */
+  | { op: "set_traits"; id: Id; traits: Id[] | null }
   /** Everything this element says about how it draws, given back at once. */
   | { op: "drop_settings"; id: Id }
   /** One property of one component on one element. */

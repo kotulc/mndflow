@@ -25,7 +25,9 @@ const USAGE = `mnd — the headless harness
   mnd translate <source> [--round]     write the graph as SysML, and check it comes back
                         [--with <pkg>] bring a vocabulary in first, so its names are used
   mnd export <source> [out.json]       fold and write the file
-  mnd collect <folder> [out.json]      a folder of markdown cards and package.json, as a package
+  mnd collect <folder> [out.json]      a folder as a package: package.json, a .json file per
+                                       definition and markdown cards
+                        [--bare]       keep the ids it says, as base's are kept
 
   <source> is a log fixture (${NAMES.join(", ")}),
            a file fixture (${GRAPH_NAMES.join(", ")}),
@@ -140,11 +142,13 @@ async function main(argv: string[]): Promise<void> {
 
   /** A collection is a folder, not a log: read whole, and written as a package file. */
   if (verb === "collect") {
-    const { text, made } = collect(basename(resolve(source)), leaves(source), fold([], FLOOR));
+    const { text, made, clashes } = collect(basename(resolve(source)), leaves(source),
+                                            fold([], FLOOR), { bare: rest.includes("--bare") });
     const out = loose(rest)[0];
     if (out) writeFileSync(out, text);
     else process.stdout.write(text);
     if (made.length) console.error(`  made ${made.join(", ")}`);
+    if (clashes.length) console.error(`  refused, said twice: ${clashes.join(", ")}`);
     return;
   }
 

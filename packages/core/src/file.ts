@@ -1,22 +1,26 @@
 /** The envelope, and the canonical layout. */
 
 import { inspect, type Fault } from "./door";
-import { entry, package_of, packages, remap, uses_of } from "./defs";
+import { package_of, packages, uses_of } from "./defs";
 import { fold, type Floor } from "./fold";
 import { new_id } from "./ids";
 import { empty_graph, BASE_PACKAGE, SCHEMA, type File, type Graph, type Id, type Log,
          type Step } from "./types";
 
-/** Nothing still at its default is written — a file the size of the choices in it. */
+/** Nothing still at its default is written — a file the size of the choices in it. An empty
+ *  `tags` or `traits` is a choice: it says none over what its chain carries. */
 function trim<T extends object>(o: T): T {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(o).sort(by_key)) {
     if (v === undefined) continue;
-    if (Array.isArray(v) && v.length === 0) continue;
+    if (Array.isArray(v) && v.length === 0 && !STATED.includes(k)) continue;
     out[k] = v;
   }
   return out as T;
 }
+
+/** Lists whose being said is itself a choice, even empty. */
+const STATED = ["tags", "traits"];
 
 /** Keys a record writes first; the rest follow alphabetically. */
 const FIRST = ["id", "parent", "name", "type", "def", "of", "side"];
@@ -51,10 +55,10 @@ function closure(graph: Graph, pkg: Id): Id[] {
 
 /** A package as a file, laid out for reading: the package, and every package it uses but `base`,
  *  which ships with every build — **so a file is whole**. The workspace carries every package
- *  brought in beside it, used yet or not. */
+ *  brought in beside it, used yet or not. `base` is written only as itself. */
 export function write(graph: Graph, id = "workspace", pkg: Id = graph.root): string {
   const reached = pkg === graph.root ? packages(graph).map((p) => p.id) : closure(graph, pkg);
-  const kept = new Set(reached.filter((p) => p !== BASE_PACKAGE));
+  const kept = new Set(reached.filter((p) => p !== BASE_PACKAGE || p === pkg));
   const inside = (b: Id) => kept.has(package_of(graph, b));
   const file: File = {
     schema: SCHEMA,
@@ -73,11 +77,11 @@ export function unmet(graph: Graph): Id[] {
   const need = (id: Id | undefined) => { if (id && !graph.blocks[id]) out.add(id); };
   for (const b of Object.values(graph.blocks)) {
     need(b.type);
-    for (const t of b.tags ?? []) need(entry(t).id);
+    for (const t of [...(b.tags ?? []), ...(b.traits ?? [])]) need(t);
   }
   for (const e of Object.values(graph.edges)) {
     need(e.type);
-    for (const t of e.tags ?? []) need(entry(t).id);
+    for (const t of e.tags ?? []) need(t);
   }
   return [...out].sort();
 }
@@ -92,7 +96,7 @@ export function write_package(graph: Graph, name: string): string {
     ids.set(b.id, b.id === graph.root ? slug : `${slug}.${b.id}`);
   }
   const at = (id: Id | undefined) => (id === undefined ? id : ids.get(id) ?? id);
-  const all = (list: string[] | undefined) => list?.map((t) => remap(t, (id) => at(id)!));
+  const all = (list: Id[] | undefined) => list?.map((id) => at(id)!);
   const blocks: Graph["blocks"] = { ...graph.blocks };
   for (const [was, now] of ids) {
     const b = graph.blocks[was]!;
@@ -100,6 +104,7 @@ export function write_package(graph: Graph, name: string): string {
     blocks[now] = { ...b, id: now, parent: at(b.parent ?? undefined) ?? null,
                     ...(b.type ? { type: at(b.type) } : {}), ...(b.of ? { of: at(b.of) } : {}),
                     ...(b.tags ? { tags: all(b.tags) } : {}),
+                    ...(b.traits ? { traits: all(b.traits) } : {}),
                     ...(b.id === graph.root ? { name } : {}) };
     delete blocks[now]!.counters;
   }
@@ -107,7 +112,7 @@ export function write_package(graph: Graph, name: string): string {
   for (const e of Object.values(graph.edges)) {
     const id = ids.has(e.from) || ids.has(e.to) ? `${slug}.${e.id}` : e.id;
     edges[id] = { ...e, id, from: at(e.from)!, to: at(e.to)!,
-                  ...(e.type ? { type: at(e.type) } : {}),
+                  ...(e.type ? { type: at(e.type) } : {}), ...(e.tags ? { tags: all(e.tags) } : {}),
                   ...(e.fromPart ? { fromPart: at(e.fromPart) } : {}),
                   ...(e.toPart ? { toPart: at(e.toPart) } : {}) };
   }

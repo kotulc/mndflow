@@ -4,8 +4,8 @@
  *  tabs of its own for blocks through `extras`. */
 
 import { useEffect, useState, type ReactNode } from "react";
-import { about_of, alias_of, children, def_at, def_of, domain_of, entry, frame_of, frozen,
-         is_interface, is_style, is_tag, is_trait, is_value_type, of_ref, owner_of, shown_name,
+import { about_of, alias_of, children, def_at, def_of, domain_of, frame_of, frozen,
+         is_interface, is_tag, is_trait, is_value_type, of_ref, owner_of, shown_name,
          stands_for, type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { resolved } from "@mnd/views";
@@ -134,7 +134,7 @@ function what_of(graph: Graph, id: Id): string {
   if (id === graph.root) return "workspace";
   if (b.parent === null) return "package";
   if (b.def) {
-    return is_trait(graph, id) ? "trait" : is_style(graph, id) ? "style" : is_tag(graph, id) ? "tag"
+    return is_trait(graph, id) ? "trait" : is_tag(graph, id) ? "tag"
       : is_value_type(graph, id) ? "type" : "definition";
   }
   return resolved(graph, id).stands_in ? "stand-in" : of_ref(graph, id) ? "reference" : "usage";
@@ -200,9 +200,8 @@ export function Tray(props: TrayProps) {
   const bag = def_at(graph, about)?.settings;
   const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
   const borrowed = !!def_at(graph, about) && frozen(graph, about);
-  /** The traits it says itself, added or dropped, and so has to give back. */
-  const own_tags = def_at(graph, about)?.tags ?? [];
-  const own_traits = own_tags.some((t) => is_trait(graph, entry(t).id));
+  /** Whether it states its own traits, and so has a list to give back. */
+  const own_traits = !!def_at(graph, about)?.traits;
 
   /** A reference holds nothing of its own — `of` is the whole of it — so its contents is the one
    *  it stands for, listed as a row like any other and offering the way there. */
@@ -311,10 +310,9 @@ export function Tray(props: TrayProps) {
               reset style
             </button>
             <button className="reset" disabled={borrowed || !own_traits}
-                    title={own_traits ? "carry just the traits of what it extends"
-                                      : "it adds and drops no traits of its own"}
-                    onClick={() => act("tag", { ids: [about],
-                      tags: own_tags.filter((t) => !is_trait(graph, entry(t).id)) })}>
+                    title={own_traits ? "carry the traits of what it extends"
+                                      : "it lists no traits of its own"}
+                    onClick={() => act("trait", { ids: [about] })}>
               reset traits
             </button>
           </>

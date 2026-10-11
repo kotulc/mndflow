@@ -1,0 +1,14 @@
+{
+  "id": "folder",
+  "name": "folder",
+  "type": "block",
+  "body": "Files blocks away: a quiet container whose contents are reached by opening it.",
+  "def": {},
+  "settings": {
+    "style": {
+      "family": "neutral",
+      "border_contrast": "faint",
+      "name_contrast": "faint"
+    }
+  }
+}

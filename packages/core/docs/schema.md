@@ -30,6 +30,7 @@ File {
 | **laid out for reading** | blocks then relationships, each flat and sorted by id; identity keys first, the rest alphabetical |
 | **a workspace file** | the workspace package and every package brought in beside it; `base` never travels. A file naming a definition it does not carry is refused |
 | **a package is the smallest export** | a package root, everything under it, and its relationships. Nothing smaller is written as a file |
+| **definitions may be authored as files** | one JSON file per definition, in a source folder collected into one package file (see *Card sources*). Read one way: the app writes package files only |
 | **import is a checkpoint** | no second format, no second reader. Bringing a package in adds it beside the workspace, frozen; a clash of ids is refused |
 
 
@@ -73,7 +74,7 @@ Block {
 
   def?          { attributes?: Attribute[] }   // present on a definition, and only there
 
-  of?           Id                // reference: what it stands for
+  of?           Id                // what a reference stands for: read only where its kind is one
   source?       string            // provenance: one uri
 
   cell?         {r, c}            // seated in its parent grid, in place of x/y
@@ -90,8 +91,8 @@ Block {
   counters?     Record<string, number>   // workspace root: handle counters per kind
 
   settings?     Components        // its own word, by component
-  traits?       Id[]              // capability tags, in order; definitions only
-  tags?         Id[]              // tag definitions it carries
+  traits?       Id[]              // what the engine lets it do, in order; definitions only
+  tags?         Id[]              // tag definitions it carries, to be found by
   values?       Value[]           // a usage's answers, in order
 }
 ```
@@ -102,7 +103,7 @@ Block {
 | **`def` is explicit** | a definition is a block carrying it. Holders, packages and usages never do |
 | **one `type`** | extends on a definition, is-a on a usage. Absent: a plain block |
 | **own values only** | `settings`, `traits`, `tags`, `values` store what this block says; the rest resolves on read |
-| **traits replace, settings merge** | a block stating `traits` replaces its chain's set; `settings` merge per property, nearest first |
+| **lists replace, settings merge** | stating `traits` or `tags` replaces its chain's list whole; unsaid, it carries the nearest list stated. An empty list says none. `settings` merge per property, nearest first |
 
 
 ### Grid
@@ -123,13 +124,12 @@ Relation {
   from, to    Id                 // blocks, never a relationship
   fromPart?   Id                 // a part of from's definition the run leaves
   toPart?     Id                 // a part of to's definition the run reaches
+  name?       string             // what it is called; absent draws its definition's name
   type?       Id                 // a relation definition; absent: line
-  name?       string
-  dir?        "none" | "forward" | "back" | "both"
-  fromSide?, toSide?   Side
   alias?      number
-  tags?       Id[]
-  settings?   Components
+  tags?       Id[]               // as a block's: stated, they replace its definition's
+  settings?   Components         // `line.dir` says which way it points
+  values?     Value[]
 }
 ```
 
@@ -163,7 +163,7 @@ Value     { name, value }
 | Key | Configures |
 |---|---|
 | `block` | which block module |
-| `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `shows` (a list of `attributes`, `body`, `preview`), `size` (`{w, h}` in units): what the large face shows and how big it is |
+| `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `face` (`table`, `document`, `picture`), `size` (`{w, h}` in units): which large face it draws with and how big it is. Unsaid, a card has no large face |
 | `style` | a family, or a `hue` with its `intensity` and `vary`; `fill` and `opacity`; border and writing weight, face and contrast. Never a hex or a pixel count |
 | `line` | how a run draws |
 | `layout` | `kind`: `free`, `auto` or `page`; `across` and `line` for the computed ones; `face`: `small` or `large`, the face what it holds draws with. Unsaid, or a kind this build does not know, draws as `auto` |
@@ -199,9 +199,9 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | `set_body` · `set_attributes` · `set_source` | text, a definition's attributes, provenance |
 | `seat_cell` · `set_grid` | an address in the parent grid; a lattice, written whole |
 | `link_blocks` · `update_edge` · `delete_edge` | make, rename or retype, remove a relationship |
-| `set_dir` · `flip_edge` · `set_end` · `set_port` · `set_side` · `mark_port` | direction, ends, interfaces |
+| `flip_edge` · `set_end` · `set_port` · `mark_port` | ends, interfaces |
 | `set_value` · `drop_value` · `order_values` | a usage's answers, by name |
-| `set_tags` · `set_traits` | the tags and traits an element carries; `traits: null` gives the set back to the chain |
+| `set_tags` · `set_traits` | an element's tags; a definition's traits. A list, or null to give it back to the chain |
 | `set_setting` · `drop_settings` | one property of one component; everything at once given back |
 
 
@@ -268,4 +268,4 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 
 - the body after the frontmatter is `body`, as written. Tables in it are content
 - a type or tag name nothing loaded holds, or more than one package holds, makes a plain definition in the workspace, and is said
-- **a collection** is a folder: `package.json` of definitions and `.md` usages under folders. `collect` reads one as a package file; a type its usages name and nothing defines is made, its attributes the union of what they answer
+- **a collection** is a folder: `package.json` (the package's graph), a `.json` file per definition, and `.md` usages, each directory a folder. `collect` reads one as a package file; a definition said twice is refused; a type its usages name and nothing defines is made, its attributes the union of what they answer. `base` is one: `packages/defs/src/base/`, collected by `npm run base`, its ids kept bare

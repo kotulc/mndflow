@@ -5,14 +5,14 @@
  *  turn into ordinary changes. The frontmatter is YAML. */
 
 import { parse, stringify } from "yaml";
-import { def_at, remap } from "./defs";
+import { def_at } from "./defs";
 import type { Block, Graph, Id } from "./types";
 
 /** The keys a usage's frontmatter says itself with; any other is a value. */
 export const USAGE_KEYS = ["name", "type", "tags", "source"] as const;
 
 /** The keys a definition's frontmatter says itself with; any other is an attribute's default. */
-export const DEFINITION_KEYS = ["name", "extends", "tags"] as const;
+export const DEFINITION_KEYS = ["name", "extends", "tags", "traits"] as const;
 
 /** Frontmatter: a fence of dashes, YAML, a fence of dashes. */
 const FRONT = /^---\r?\n([\s\S]*?)\r?\n?---[ \t]*(?:\r?\n|$)/;
@@ -67,7 +67,7 @@ function used(graph: Graph, b: Block): Record<string, unknown> {
   if (b.name) front["name"] = b.name;
   const type = def_at(graph, b.type);
   if (type) front["type"] = type.name;
-  if (b.tags?.length) front["tags"] = named(graph, b.tags);
+  if (b.tags) front["tags"] = named(graph, b.tags);
   if (b.source) front["source"] = b.source;
   for (const v of b.values ?? []) {
     if (!(USAGE_KEYS as readonly string[]).includes(v.name)) front[v.name] = scalar(v.value);
@@ -81,7 +81,8 @@ function defined(graph: Graph, b: Block): Record<string, unknown> {
   const front: Record<string, unknown> = { name: b.name ?? "" };
   const up = def_at(graph, b.type);
   if (up) front["extends"] = up.name;
-  if (b.tags?.length) front["tags"] = named(graph, b.tags);
+  if (b.tags) front["tags"] = named(graph, b.tags);
+  if (b.traits) front["traits"] = named(graph, b.traits);
   for (const a of b.def?.attributes ?? []) {
     if (a.default !== undefined && !(DEFINITION_KEYS as readonly string[]).includes(a.name)) {
       front[a.name] = scalar(a.default);
@@ -90,9 +91,9 @@ function defined(graph: Graph, b: Block): Record<string, unknown> {
   return front;
 }
 
-/** A `tags` list by name, a drop kept a drop. */
-function named(graph: Graph, tags: string[]): string[] {
-  return tags.map((t) => remap(t, (id) => graph.blocks[id]?.name ?? id));
+/** A list of definitions by name. */
+function named(graph: Graph, ids: Id[]): string[] {
+  return ids.map((id) => graph.blocks[id]?.name ?? id);
 }
 
 /** A value as YAML says it: a number or a yes and a no unquoted where it reads back the same,

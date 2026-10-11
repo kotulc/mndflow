@@ -2,7 +2,7 @@
  *  it. Views draws them; **what an edit there means is decided here**, so every host edits alike. */
 
 import { allows_of } from "./capabilities";
-import { carried_tags, chain_of, def_at, dropped_tags, gives, is_style, is_trait, type Carried } from "./defs";
+import { chain_of, is_trait, tags_stated, traits_stated, type Stated } from "./defs";
 import { is_tag } from "./tags";
 import { ports_of } from "./tree";
 import type { Args } from "./actions";
@@ -13,62 +13,56 @@ import type { Block, Graph, Id } from "./types";
 export const ABOUT = "@about";
 
 /** What surrounds a definition: what it extends, its ports by flow — unmarked with both — the
- *  definitions a relation's ends may join (`allows.ends`), the tags, traits and styles it
- *  carries, and what its chain drops; its chain's included, a port's `parent` saying whose it
+ *  definitions a relation's ends may join (`allows.ends`), and the tags and traits in force, each
+ *  with the link of its chain stating it; its chain's included, a port's `parent` saying whose it
  *  is. */
 export type Aspects = { extends: Id | null; ins: Block[]; outs: Block[]; both: Block[];
-                        from: Id[]; to: Id[];
-                        tags: Carried[]; traits: Carried[]; styles: Carried[]; dropped: Carried[] };
+                        from: Id[]; to: Id[]; tags: Stated; traits: Stated };
 
 
 /** The aspects of a definition: what it extends — the nearest link of its chain, a base included
- *  — its ports, and everything it carries. */
+ *  — its ports, and what it carries. */
 export function aspects_of(graph: Graph, def: Id): Aspects {
   const ports = ports_of(graph, def);
   const flowing = (...flows: (string | undefined)[]) => ports.filter((p) => flows.includes(p.flow));
-  const all = carried_tags(graph, def);
   const ends = allows_of(graph, def).ends;
   return { extends: chain_of(graph, def)[1]?.id ?? null,
            ins: flowing("in"), outs: flowing("out"), both: flowing("both", undefined),
            from: ends?.from ?? [], to: ends?.to ?? [],
-           tags: all.filter((c) => !gives(graph, c.id)),
-           traits: all.filter((c) => is_trait(graph, c.id)),
-           styles: all.filter((c) => is_style(graph, c.id)),
-           dropped: dropped_tags(graph, def) };
+           tags: tags_stated(graph, def), traits: traits_stated(graph, def) };
 }
 
-/** What dropping a definition onto a definition's view does: a tag, trait or label it does not
- *  carry is added to its own list — or, where it drops it, the drop is taken back. Anything else
- *  does nothing. */
+/** What dropping a definition onto a definition's view does: a trait or a tag it does not carry
+ *  is added to the list in force, which it then states itself. Anything else does nothing. */
 export function attach_of(graph: Graph, def: Id, id: Id): Drop | null {
-  if (id === def || !is_tag(graph, id) || carried_tags(graph, def).some((c) => c.id === id)) return null;
-  const own = def_at(graph, def)?.tags ?? [];
-  const tags = own.includes(`-${id}`) ? own.filter((t) => t !== `-${id}`) : [...own, id];
-  return { act: "tag", args: { ids: [def], tags } };
+  if (id === def || !is_tag(graph, id)) return null;
+  const trait = is_trait(graph, id);
+  const held = (trait ? traits_stated(graph, def) : tags_stated(graph, def)).ids;
+  if (held.includes(id)) return null;
+  return trait ? { act: "trait", args: { ids: [def], traits: [...held, id] } }
+    : { act: "tag", args: { ids: [def], tags: [...held, id] } };
 }
 
-/** An act on a definition's view, as it edits the definition: deleting what it carries takes it
- *  off its own list, or drops it where its chain carries it, and deleting a drop takes it back; deleting deletes its ports, never the
- *  definitions drawn round it; renaming the note writes the body. Anything else passes as it is. */
+/** An act on a definition's view, as it edits the definition: deleting a tag or trait takes it
+ *  out of the list in force, which it then states itself; deleting deletes its own ports, never
+ *  the definitions drawn round it; renaming the note writes the body. Anything else passes as it
+ *  is. */
 export function aspect_acts(graph: Graph, def: Id, name: string, args: Args): Drop[] {
   if (name === "rename" && args["id"] === ABOUT) {
     return [{ act: "describe", args: { id: def, body: String(args["name"] ?? "") } }];
   }
   if (name !== "delete") return [{ act: name, args }];
   const ids = Array.isArray(args["ids"]) ? args["ids"].map(String) : [];
-  const { ins, outs, both } = aspects_of(graph, def);
+  const { ins, outs, both, tags, traits } = aspects_of(graph, def);
   /** Only its own: an inherited port is deleted where it is declared. */
   const ports = [...ins, ...outs, ...both].filter((p) => p.parent === def && ids.includes(p.id))
     .map((p) => p.id);
-  const gone = carried_tags(graph, def).filter((c) => ids.includes(c.id));
-  /** A drop it says itself, deleted, is taken back. */
-  const back = dropped_tags(graph, def).filter((c) => c.from === def && ids.includes(c.id))
-    .map((c) => `-${c.id}`);
-  const own = def_at(graph, def)?.tags ?? [];
-  const tags = [...own.filter((t) => !gone.some((c) => c.id === t) && !back.includes(t)),
-                ...gone.filter((c) => c.from !== def).map((c) => `-${c.id}`)];
+  const left = (held: Stated) => held.ids.filter((t) => !ids.includes(t));
   return [
-    ...(gone.length || back.length ? [{ act: "tag", args: { ids: [def], tags } }] : []),
+    ...(tags.ids.some((t) => ids.includes(t))
+      ? [{ act: "tag", args: { ids: [def], tags: left(tags) } }] : []),
+    ...(traits.ids.some((t) => ids.includes(t))
+      ? [{ act: "trait", args: { ids: [def], traits: left(traits) } }] : []),
     ...(ports.length ? [{ act: "delete", args: { ids: ports } }] : []),
   ];
 }

@@ -1,8 +1,8 @@
 /** How a usage of a definition draws. */
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, DISPLAYS,
-         domain_of, FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, is_trait,
-         kind_word, PARTS, relation_base, attributes_of, setting_of, SHOWN, WEIGHTS,
+         domain_of, FACE_PARTS, FAMILIES, FILLS, FONTS, HEIGHTS, is_container,
+         is_interface, is_tie, is_trait, kind_word, PARTS, attributes_of, setting_of, SHOWN, WEIGHTS,
          WIDTHS,
          type Definition, type Graph, type Id, type Settings } from "@mnd/core";
 import { resolved } from "./through";
@@ -120,18 +120,23 @@ function stand_in(graph: Graph, id: Id, def: Definition): Look {
   const has = (part: unknown) => part === "body"
     ? !is_trait(graph, def.id) && !!graph.blocks[id]!.body
     : part === "attributes" && attributes_of(graph, def.id).length > 0;
-  const shows = Array.isArray(card["shows"]) ? card["shows"].filter(has) : [];
+  const shows = parts_of(card).filter(has);
   const style = { ...config_of(graph, def.id, "style"), ...(own["style"] ?? {}) };
   const relation = domain_of(graph, def.id) === "relation";
-  const tie = relation && relation_base(graph, def.id) === "tie";
-  const look = dressed(graph, id, { ...card, name: "show", shows }, style, def.name, def.id);
+  const tie = relation && is_tie(graph, def.id);
+  const look = dressed(graph, id, { ...card, name: "show" }, style, def.name, def.id, shows);
   return relation && !look.icon ? { ...look, icon: tie ? "relation_tie" : "relation_plain" } : look;
+}
+
+/** What a card's large face shows, in order: what its `card.face` maps onto, nothing unsaid. */
+function parts_of(card: Settings): readonly Part[] {
+  return FACE_PARTS[card["face"] as keyof typeof FACE_PARTS] ?? [];
 }
 
 /** A look from what the chain and the element say, under the kind it reads as. `of` is the
  *  definition it reads as, which keys its shade. */
 function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: string,
-                 of: Id): Look {
+                 of: Id, shows: readonly Part[] = parts_of(card)): Look {
   return {
     family: one(style["family"], FAMILIES, PLAIN.family),
     fill: one(style["fill"], FILLS, PLAIN.fill),
@@ -146,8 +151,7 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
     label_align: one(card["label_align"], ALIGNS, PLAIN.label_align),
     height: one(card["height"], HEIGHTS, PLAIN.height),
     ...(SHOWN.includes(card["alias"] as never) ? { alias: card["alias"] === "show" } : {}),
-    shows: Array.isArray(card["shows"])
-      ? card["shows"].filter((p): p is Part => (PARTS as readonly unknown[]).includes(p)) : [],
+    shows,
     ...(sized(card["size"]) ? { size: card["size"] as { w: number; h: number } } : {}),
     ...(card["name"] === "hide" ? { head: false } : {}),
     ...contrast("border_contrast", style["border_contrast"]),

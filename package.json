@@ -7,7 +7,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint:css": "node scripts/lint-css.mjs",
-    "release:kit": "node scripts/release-kit.mjs"
+    "release:kit": "node scripts/release-kit.mjs",
+    "base": "npm run start -s -w @mnd/cli -- collect ../../packages/defs/src/base ../../packages/defs/src/base.json --bare"
   },
   "dependencies": {
     "@xyflow/react": "^12.3.5",

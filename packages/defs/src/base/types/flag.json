@@ -1,0 +1,12 @@
+{
+  "id": "flag",
+  "name": "flag",
+  "type": "value",
+  "body": "A yes or a no.",
+  "def": {},
+  "settings": {
+    "value": {
+      "form": "flag"
+    }
+  }
+}

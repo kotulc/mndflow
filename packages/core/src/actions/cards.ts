@@ -6,7 +6,7 @@
  *  more than one package holds, is made in the workspace, and said. */
 
 import { DEFINITION_KEYS, names_in, read_card, said_as, USAGE_KEYS, type Card } from "../card";
-import { all_defs, def_at, domain_of, frozen, remap } from "../defs";
+import { all_defs, def_at, domain_of, frozen } from "../defs";
 import { replay } from "../fold";
 import { new_id } from "../ids";
 import { is_tag } from "../tags";
@@ -120,7 +120,7 @@ function usage_calls(graph: Graph, id: Id, { front, body }: Card, whole: boolean
     calls.push(["retype", { ids: [id], type: "" }]);
   }
 
-  if (says("tags")) calls.push(...tagged(graph, id, front["tags"]));
+  if (says("tags")) calls.push(...listed(graph, id, "tags", front));
   const source = said_as(front["source"]).trim();
   if (says("source") && source !== (b.source ?? "")) calls.push(["source", { id, uri: source }]);
 
@@ -166,7 +166,7 @@ function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
     calls.push(["retype", { ids: [id], type: to }]);
   }
 
-  calls.push(...tagged(graph, id, front["tags"]));
+  calls.push(...listed(graph, id, "tags", front), ...listed(graph, id, "traits", front));
 
   /** Any other key is an attribute's default, declared where nothing declares it; a default the
    *  card no longer says is cleared. */
@@ -187,11 +187,15 @@ function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
   return { calls, made, after: [] };
 }
 
-/** The tag call a frontmatter list comes to, where it differs from what is carried. */
-function tagged(graph: Graph, id: Id, said: unknown): Call[] {
-  const want = names_in(said);
-  const had = (graph.blocks[id]?.tags ?? []).map((t) => remap(t, (x) => graph.blocks[x]?.name ?? x));
-  return JSON.stringify(want) === JSON.stringify(had) ? [] : [["tag", { ids: [id], tags: want }]];
+/** The `tag` or `trait` call a frontmatter list comes to, where it differs from what the block
+ *  states: a list said is stated; one left out gives the list back to its chain. */
+function listed(graph: Graph, id: Id, key: "tags" | "traits", front: Card["front"]): Call[] {
+  const act = key === "tags" ? "tag" : "trait";
+  const own = graph.blocks[id]?.[key];
+  if (!(key in front)) return own ? [[act, { ids: [id] }]] : [];
+  const want = names_in(front[key]);
+  const had = own?.map((x) => graph.blocks[x]?.name ?? x);
+  return JSON.stringify(want) === JSON.stringify(had) ? [] : [[act, { ids: [id], [key]: want }]];
 }
 
 /** The one definition a name means: by id, the workspace's own, or the only one loaded of that

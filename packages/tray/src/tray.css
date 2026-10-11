@@ -162,8 +162,8 @@ fieldset.fields { padding: 0; }
 
 /* The first tab, a card's or a line's, the settings tab's layout: how it appears beside what it
    is, its source under both, and the definition it follows under all. A line has no source. */
-.panel.element { grid-template-areas: "drawing rows" "traits traits" "styles styles" "source source" "data data"; }
-.panel.element.lined { grid-template-areas: "drawing rows" "traits traits" "styles styles" "data data"; }
+.panel.element { grid-template-areas: "drawing rows" "source source" "data data"; }
+.panel.element.lined { grid-template-areas: "drawing rows" "data data"; }
 .panel > .col.source { grid-area: source; }
 .col.source > .content { padding: 6px 0 0; }
 .col.source > .content > textarea { min-height: 12em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
@@ -191,10 +191,9 @@ fieldset.panel-set { border: 0; margin: 0; padding: 0; min-width: 0; }
 .contents-table td .faint { color: var(--faint); font-style: italic; }
 
 /* The settings tab: the drawing and its looks side by side, and under both, across the whole
-   tab, what it may do and the styles it wears. */
-.panel.style { grid-template-areas: "drawing rows" "traits traits" "styles styles"; }
+   tab, what it may do. */
+.panel.style { grid-template-areas: "drawing rows" "traits traits"; }
 .panel > .col.traits { grid-area: traits; }
-.panel > .col.styles { grid-area: styles; }
 
 .panel > .content.data { grid-area: data; }
 
@@ -261,6 +260,8 @@ fieldset.panel-set { border: 0; margin: 0; padding: 0; min-width: 0; }
 
 /* A note in a band, or beside an answer: a count, where it came from, a warning. */
 .rail > .from { color: var(--faint); font-size: 10px; }
+/* What a band adds to its list, at its far end. */
+.rail > .add { flex: none; margin-left: auto; }
 .rows > .row > .line > .from { flex: none; color: var(--faint); font-size: 10px; font-style: italic; }
 .rows > .row > .line > .from.warn { color: var(--warn); }
 

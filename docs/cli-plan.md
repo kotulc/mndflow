@@ -32,7 +32,7 @@
 | **rendering** | **one renderer: the stage.** `draw` mounts the kit's `Viewer` in a headless browser and screenshots it, so the picture matches the app by construction. views' `svg.ts` stays as it is and is not grown to parity |
 | **perspective** | **the Viewer's own props**, given as flags: layer, view, fields, focus, chrome. No sidecar file until multi-view handoff needs one |
 | **the text drawing** | dropped from the CLI. views keeps `draw` and `outline`, which its shape tests use |
-| **edge labels** | unchanged: `label_of` (core `names.ts`) draws an edge's own name, else its definition's name, and nothing for an unnamed base `line` or `tie`. Simple edges use base `line`; a custom relation definition labels every edge it types, so a map reaches for one only when that label is wanted |
+| **edge labels** | `label_of` (core `names.ts`) draws the label an edge carries, its own or its definition's, else its definition's name, and nothing for an unnamed base `line` or `tie`. Simple edges use base `line`; a custom relation definition labels every edge it types, so a map reaches for one only when that label is wanted |
 | **markdown** | content is text passed through untouched: any value may come from a file. A card's markdown source is read by the `markdown` and `attach` actions; how a card draws is `card.shows`, `card.size` and `layout.face`, written with `look` (cards-plan.md) |
 
 

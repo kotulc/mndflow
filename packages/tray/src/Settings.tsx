@@ -17,7 +17,6 @@ export function Settings({ graph, id, onAct, shown = id }: SettingsProps) {
       <Drawing graph={graph} id={shown} />
       <Looks graph={graph} id={id} onAct={onAct} />
       <Traits graph={graph} id={id} onAct={onAct} />
-      <Traits graph={graph} id={id} onAct={onAct} of="styles" />
     </div>
   );
 }

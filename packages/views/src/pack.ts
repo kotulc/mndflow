@@ -2,7 +2,7 @@
  *  move a card: a tied note is ordered after its block when it is made, and arranging by relations
  *  is an act of its own. */
 
-import { edge_base, edges_in, is_note, is_reference, type Block, type Graph, type Id }
+import { edges_in, is_note, is_reference, is_tie, type Block, type Graph, type Id }
   from "@mnd/core";
 import type { Placed } from "./arrange";
 import type { Sized } from "./bands";
@@ -26,7 +26,7 @@ export function belongs_to(graph: Graph, layer: Id | null, b: Block): Id[] {
 function tie_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
   const out: Id[] = [];
   for (const e of edges_in(graph, layer)) {
-    if (edge_base(graph, e.id) !== "tie") continue;
+    if (!is_tie(graph, e.id)) continue;
     if (e.from === id) out.push(e.to);
     else if (e.to === id) out.push(e.from);
   }

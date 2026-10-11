@@ -4,9 +4,8 @@
  *  name of their own, and what either draws where it has none is its type's name. See types.md
  *  in the root docs. */
 
-import { all_defs, base_of, carried_tags, def_at, def_of, domain_of, edge_base, entry, frozen,
-         gives, is_base, is_label, isa, kind_free, type Act, type Definition, type Graph,
-         type Id } from "@mnd/core";
+import { all_defs, base_of, def_at, def_of, domain_of, edge_base, frozen, is_base, isa,
+         kind_free, tags_stated, type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
 import { taken } from "./Definitions";
@@ -28,8 +27,8 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
   const borrowed = !!d && frozen(graph, d.id);
   const { kind, runs } = kind_of(graph, id, it);
   const { own, mine, fixed } = defined(graph, id, it, runs);
-  /** What it says it carries itself: tags, traits and drops, one list. */
-  const own_tags = (b ?? edge ?? d)!.tags ?? [];
+  /** The tags in force: its own list where it states one, else its definition's. */
+  const tags = tags_stated(graph, id);
   const element = !!(b || edge);
   const group = runs ? "relation" : "block";
 
@@ -45,10 +44,6 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
 
   /** The definition in force, whose name this element draws where it carries none. */
   const following = def_at(graph, def_of(graph, id));
-  /** A line's name is the label it carries: its own, else one its definition carries. */
-  const label = edge ? carried_tags(graph, id).find((c) => is_label(graph, c.id)) : undefined;
-  const said_label = label?.from === id ? def_at(graph, label.id) : undefined;
-  const read_label = label && !said_label ? def_at(graph, label.id) : undefined;
   /** Which extends row applies: one it owns and may re-base, or none of its own, or theirs. */
   const re_base = element && mine && !fixed;
   const base_only = element && (!own || is_base(own.id));
@@ -61,14 +56,13 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
            anywhere, and what its usages draw is its type name, on the row below. */}
         <Line label="name"
               tip={element
-                ? edge ? "What this line is called: a label it carries, the workspace's of that name, made where there is none. Left blank it draws its type's."
-                  : "What this is called, as the drawing writes it. Left blank it draws its type's name."
+                ? "What this is called, as the drawing writes it. Left blank it draws its type's name."
                 : "A definition is not drawn anywhere, so it carries no name of its own. What its usages draw is its type name, below."}>
           {element ? (
             /** Committed when it is left, like every other box: renaming per keystroke made one
              *  undo step per character, and trimmed the space off the end as you typed it. */
-            <Entry key={`name-${id}`} value={(b ? b.name : said_label?.name) ?? ""} label="name" blank
-                   placeholder={read_label?.name ?? following?.name ?? kind}
+            <Entry key={`name-${id}`} value={(b ?? edge)!.name ?? ""} label="name" blank
+                   placeholder={following?.name ?? kind}
                    onCommit={(to) => onAct("rename", { id, name: to })} />
           ) : (
             <input value="" readOnly aria-label="name" placeholder={d?.name || kind} />
@@ -113,17 +107,14 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
           ) : null}
         </Line>
 
-        {/* Tags index a thing, so a definition wears them as an element does: its own, then what
-           its definition's chain carries. Traits and styles share the list and are edited apart,
-           so they are kept through. */}
+        {/* Tags index a thing, so a definition wears them as an element does: its own list,
+           else its definition's. Editing an inherited list makes it its own. */}
         <Line label="tags"
-              tip="Tags that say what this is like. A new word makes a tag; it also carries its definition's, and may drop one here.">
-          <Tags tags={own_tags.filter((t) => !gives(graph, entry(t).id))}
-                carried={carried_tags(graph, id).filter((c) => c.from !== id && !gives(graph, c.id))
-                  .map((c) => c.id)}
+              tip="Tags to find this by. A new word makes a tag in the workspace's tags folder. It carries its definition's until it says its own.">
+          <Tags tags={tags.ids} inherited={tags.from !== id}
                 name={(t) => graph.blocks[t]?.name ?? t}
-                onCommit={(to) => onAct("tag", { ids: [id], tags:
-                  [...own_tags.filter((t) => gives(graph, entry(t).id)), ...to] })} />
+                onCommit={(to) => onAct("tag", { ids: [id], tags: to })}
+                onReset={() => onAct("tag", { ids: [id] })} />
         </Line>
 
         {/* Extends: what the definition in force is built on. An element with none of its own has

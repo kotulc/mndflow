@@ -1,51 +1,73 @@
 /** A collection: a folder of markdown usages, and the JSON definitions they point at, as one
- *  package.
+ *  package. **Read one way**: a folder becomes a package file, never the reverse.
  *
- *  `package.json`, where there is one, holds the definitions; every `.md` file under the folder is
- *  a usage — its frontmatter its identity and answers, the rest its body — and every folder a
- *  folder holder. A type or tag a usage names and nothing loaded holds is made here, its
- *  attributes the union of what its usages answer, each type read off the values. */
+ *  `package.json`, where there is one, holds the package's graph; every other `.json` file under
+ *  the folder is **one definition**, filed under the folder its directory names; every `.md` file
+ *  is a usage — its frontmatter its identity and answers, the rest its body — and every directory
+ *  a folder holder. A definition said twice is a clash, and refused. A type or tag a usage names
+ *  and nothing loaded holds is made here, its attributes the union of what its usages answer,
+ *  each type read off the values. */
 
 import { names_in, read_card, said_as, USAGE_KEYS } from "./card";
-import { all_defs, def_at, package_of, remap } from "./defs";
+import { all_defs, def_at, package_of } from "./defs";
 import { write } from "./file";
 import { is_tag } from "./tags";
 import type { Leaf } from "./ports";
 import type { Attribute, Block, Graph, Id, Value } from "./types";
 
-/** What a collection came to: the package file, and the definitions it had to make. */
-export type Collected = { text: string; made: string[] };
+/** What a collection came to: the package file, the definitions it had to make, and the files
+ *  saying a definition already said, which it refused. */
+export type Collected = { text: string; made: string[]; clashes: string[] };
 
 /** The file a collection keeps its definitions in. */
 export const DEFINITIONS = "package.json";
 
 const MARKDOWN = /\.(md|mdx)$/i;
+const JSON_FILE = /\.json$/i;
 
 
 /** A collection's files as a package file, read against what `over` already holds. */
-export function collect(name: string, leaves: readonly Leaf[], over: Graph): Collected {
+export function collect(name: string, leaves: readonly Leaf[], over: Graph,
+                        { bare = false }: { bare?: boolean } = {}): Collected {
   const slug = slug_of(name);
-  const graph: Graph = { root: over.root, blocks: { ...over.blocks }, edges: { ...over.edges } };
+  /** Collected again, a package replaces what was loaded of it, relationships and all. */
+  const mine = (id: Id) => package_of(over, id) === slug;
+  const graph: Graph = { root: over.root,
+    blocks: Object.fromEntries(Object.entries(over.blocks).filter(([id]) => !mine(id))),
+    edges: Object.fromEntries(Object.entries(over.edges)
+      .filter(([, e]) => !mine(e.from) && !mine(e.to))) };
   graph.blocks[slug] = { id: slug, parent: null, name };
-  const own = leaves.find((l) => l.path === DEFINITIONS);
-  if (own) defined(graph, slug, own.text);
+  const sorted = [...leaves].sort((a, z) => a.path.localeCompare(z.path));
+  const files = sorted.filter((l) => l.path !== DEFINITIONS && JSON_FILE.test(l.path));
+  const { filed, clashes } = defined(graph, slug,
+                                     sorted.find((l) => l.path === DEFINITIONS)?.text, files, bare);
 
   const orders = new Map<Id, number>();
   const next = (parent: Id) => { orders.set(parent, (orders.get(parent) ?? 0) + 1);
                                  return orders.get(parent)!; };
-  const made = new Map<string, Id>();
-  const answers = new Map<Id, Value[][]>();
-
-  for (const leaf of [...leaves].sort((a, z) => a.path.localeCompare(z.path))) {
-    if (!MARKDOWN.test(leaf.path)) continue;
-    const parts = leaf.path.split("/").filter(Boolean);
-    const file = parts.pop()!;
+  /** The folder holder a directory names, made the first time it is met. */
+  const folder = (parts: readonly string[]): Id => {
     let parent = slug;
     for (const [n, part] of parts.entries()) {
       const id = `${slug}.dir.${parts.slice(0, n + 1).join(".")}`;
       graph.blocks[id] ??= { id, parent, name: part, type: "folder", order: next(parent) };
       parent = id;
     }
+    return parent;
+  };
+  /** A definition file sits in its directory's folder, after what is there. */
+  for (const [path, id] of filed) {
+    const parent = folder(path.split("/").filter(Boolean).slice(0, -1));
+    graph.blocks[id] = { ...graph.blocks[id]!, parent, order: next(parent) };
+  }
+  const made = new Map<string, Id>();
+  const answers = new Map<Id, Value[][]>();
+
+  for (const leaf of sorted) {
+    if (!MARKDOWN.test(leaf.path)) continue;
+    const parts = leaf.path.split("/").filter(Boolean);
+    const file = parts.pop()!;
+    const parent = folder(parts);
     let card: ReturnType<typeof read_card>;
     try { card = read_card(leaf.text); }
     catch { card = { front: {}, body: leaf.text }; }
@@ -60,7 +82,7 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph): Col
     const id = `${slug}.md.${[...parts, file.replace(MARKDOWN, "")].join(".")}`;
     graph.blocks[id] = {
       id, parent, name: said_as(front["name"]).trim() || file.replace(MARKDOWN, ""),
-      ...(type ? { type } : {}), ...(tags.length ? { tags } : {}),
+      ...(type ? { type } : {}), ...("tags" in front ? { tags } : {}),
       source: said_as(front["source"]).trim() || leaf.path, order: next(parent),
       ...(values.length ? { values } : {}), ...(body ? { body } : {}),
     };
@@ -72,40 +94,59 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph): Col
     if (!d?.def || ![...made.values()].includes(type)) continue;
     d.def = { attributes: inferred(sets) };
   }
-  return { text: write(graph, slug, slug), made: [...made.keys()] };
+  return { text: write(graph, slug, slug), made: [...made.keys()], clashes };
 }
 
 
-/** A package's definitions, laid under the collection's root: its root becomes this one, and
- *  every id it wrote keeps its own prefix or takes this one. */
-function defined(graph: Graph, slug: Id, text: string): void {
-  let file: { graph?: Graph };
-  try { file = JSON.parse(text) as { graph?: Graph }; }
-  catch { return; }
-  const from = file.graph;
-  if (!from?.blocks || !from.root) return;
+/** A package's graph and its definition files, laid under the collection's root: its root
+ *  becomes this one, and every id they wrote keeps its own prefix or takes this one — or stays
+ *  bare, where asked, as `base`'s do. A file saying a definition already said is a clash, and
+ *  skipped; one that is a package file, not a definition, is not read. Gives back which block each
+ *  file came to, by path, and the clashes. */
+function defined(graph: Graph, slug: Id, text: string | undefined, files: readonly Leaf[],
+                 bare: boolean): { filed: Map<string, Id>; clashes: string[] } {
+  let from: Graph = { root: slug, blocks: {}, edges: {} };
+  try {
+    const read = text ? (JSON.parse(text) as { graph?: Graph }).graph : undefined;
+    if (read?.blocks && read.root) from = { ...read, edges: read.edges ?? {} };
+  } catch { /* an unreadable package file says nothing */ }
+  const blocks = { ...from.blocks };
+  const said = new Map<string, Id>();
+  const clashes: string[] = [];
+  for (const leaf of files) {
+    let b: Block | null = null;
+    try { b = JSON.parse(leaf.text) as Block; } catch { /* not a definition */ }
+    if (!b?.id || !b.name || "graph" in b || b.id === from.root) continue;
+    if (blocks[b.id]) { clashes.push(leaf.path); continue; }
+    blocks[b.id] = { ...b, parent: from.root, def: b.def ?? {} };
+    said.set(leaf.path, b.id);
+  }
   const ids = new Map<Id, Id>([[from.root, slug]]);
-  for (const id of Object.keys(from.blocks)) {
+  for (const id of Object.keys(blocks)) {
     if (id === from.root) continue;
-    ids.set(id, id.startsWith(`${slug}.`) ? id
+    ids.set(id, bare || id.startsWith(`${slug}.`) ? id
       : id.startsWith(`${from.root}.`) ? `${slug}.${id.slice(from.root.length + 1)}`
       : `${slug}.${id}`);
   }
   const at = (id: Id | undefined) => (id === undefined ? undefined : ids.get(id) ?? id);
-  for (const b of Object.values(from.blocks)) {
+  const all = (list: Id[] | undefined) => list?.map((x) => at(x)!);
+  for (const b of Object.values(blocks)) {
     if (b.id === from.root) continue;
     const id = at(b.id)!;
     graph.blocks[id] = { ...b, id, parent: at(b.parent ?? undefined) ?? slug,
                          ...(b.type ? { type: at(b.type) } : {}), ...(b.of ? { of: at(b.of) } : {}),
-                         ...(b.tags ? { tags: b.tags.map((t) => remap(t, (x) => at(x)!)) } : {}),
+                         ...(b.tags ? { tags: all(b.tags) } : {}),
+                         ...(b.traits ? { traits: all(b.traits) } : {}),
                          ...(b.def?.attributes ? { def: { attributes: b.def.attributes
                            .map((a) => (a.type ? { ...a, type: at(a.type) } : a)) } } : {}) };
   }
-  for (const e of Object.values(from.edges ?? {})) {
+  for (const e of Object.values(from.edges)) {
     const id = `${slug}.${e.id}`;
     graph.edges[id] = { ...e, id, from: at(e.from)!, to: at(e.to)!,
-                        ...(e.type ? { type: at(e.type) } : {}) };
+                        ...(e.type ? { type: at(e.type) } : {}),
+                        ...(e.tags ? { tags: all(e.tags) } : {}) };
   }
+  return { filed: new Map([...said].map(([path, id]) => [path, at(id)!])), clashes };
 }
 
 /** The definition a word names: this package's, or the one loaded package's that holds it.

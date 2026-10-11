@@ -1,6 +1,6 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
-import { attributes_of, base_named, base_of, def_at, def_of, edge_base, frozen, label_carried,
+import { attributes_of, base_named, base_of, def_at, def_of, edge_base, frozen,
          tree_of } from "./defs";
 import { is_flat, is_group, shape_of } from "./holders";
 import { children, is_container, of_ref, stands_for, stood_def } from "./tree";
@@ -55,7 +55,8 @@ export function next_alias(graph: Graph, kind: string): number {
 /** Whether somebody named this element, as against the tag it wears until they do. A line counts
  *  as named by its own name or by the type it follows. */
 export function is_named(graph: Graph, id: Id): boolean {
-  if (graph.edges[id]) return !!label_carried(graph, id) || !!graph.edges[id]!.type;
+  const e = graph.edges[id];
+  if (e) return !!e.name?.trim() || !!e.type;
   const b = graph.blocks[id];
   if (!b) return false;
   /** A stand-in for a definition or a package reads as what it points at. */
@@ -91,12 +92,12 @@ function named(graph: Graph, b: Block): string {
   return b.name?.trim() || kind_word(graph, b);
 }
 
-/** What a line draws beside itself: the label it carries, its own or its definition's, else the
- *  name of the definition it follows, and nothing where it follows none. **The same rule a card
- *  reads** — `kind_word` answers it for a block, off the same key. */
+/** What a line draws beside itself: its own name, else the name of the definition it follows, and
+ *  nothing where it follows none. **The same rule a card reads** — `kind_word` answers it for a
+ *  block, off the same key. */
 export function label_of(graph: Graph, id: Id): string {
-  const named = graph.edges[id] ? label_carried(graph, id) : undefined;
-  if (named) return named.name;
+  const e = graph.edges[id];
+  if (e?.name?.trim()) return e.name.trim();
   const d = def_at(graph, id) ?? def_at(graph, def_of(graph, id));
   return d && !shipped_name(d.name) ? d.name : "";
 }
@@ -178,11 +179,12 @@ export function stamps_of(graph: Graph, id: Id): Mark[] {
   return out;
 }
 
-/** The blocks a definition is used by: those it types, those carrying it as a tag, and the definitions with an attribute typed by it. A subtype extends it rather than
+/** The blocks a definition is used by: those it types, those carrying it as a tag or a trait,
+ *  and the definitions with an attribute typed by it. A subtype extends it rather than
  *  using it. */
 export function used_by(graph: Graph, def: Id): Block[] {
   return Object.values(graph.blocks).filter((b) => (!b.def && b.type === def)
-    || !!b.tags?.includes(def)
+    || !!b.tags?.includes(def) || !!b.traits?.includes(def)
     || !!b.def?.attributes?.some((a) => a.type === def));
 }
 

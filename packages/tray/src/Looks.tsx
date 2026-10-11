@@ -81,29 +81,6 @@ function Answer({ q, read, set, off, runs, app }: {
     );
   }
 
-  /** Several of a set, in the order picked: pressing one adds it last, or takes it away. */
-  if (q.form === "parts") {
-    const at = (mine ? own as string[] : (chain(q.key, q.name) || "").split(",")).filter(Boolean);
-    return (
-      <Line label={q.word} tip={q.tip} className="options">
-        {(q.of ?? []).map((c) => {
-          const on = at.includes(c.value);
-          const next = on ? at.filter((x) => x !== c.value) : [...at, c.value];
-          return (
-            <button key={c.value} className={["opt", on ? "on" : "", on && mine ? "set" : ""]
-                      .filter(Boolean).join(" ")}
-                    title={on ? `${c.word} — shown ${at.indexOf(c.value) + 1}` : c.word}
-                    onClick={() => set(q.key, q.name, next.join(","))}>
-              {c.word}
-            </button>
-          );
-        })}
-        <button className="opt" title="give it back to whatever it inherits" disabled={!mine}
-                onClick={() => set(q.key, q.name, "")}>clear</button>
-      </Line>
-    );
-  }
-
   /** A width and a height, in units. */
   if (q.form === "size") {
     const read = (mine ? own : JSON.parse(chain(q.key, q.name) || "null")) as

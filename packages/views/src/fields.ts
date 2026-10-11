@@ -12,7 +12,7 @@ import { in_rows, on_grid } from "./grid";
 import { size_of, GAP } from "./size";
 
 /** What every card in the diagram asks of its look: its attributes, shown. */
-const LISTED = { card: { shows: ["attributes"] } };
+const LISTED = { card: { face: "table" } };
 
 /** The class card reads as a heading over its usages: solid, and named in bold at full contrast. */
 const CLASS_LOOK = {
@@ -42,6 +42,7 @@ export function fields_graph(graph: Graph, layer: Id): Graph | null {
   for (const b of children(graph, layer)) delete blocks[b.id];
   const at = blocks[layer]!;
   blocks[layer] = { ...at, settings: { ...at.settings, layout: { kind: "free", face: "large" } } };
+  /** A stand-in of its own, so the class card draws its attributes, never its body. */
   blocks[top] = { id: top, parent: layer, of: def, name: graph.blocks[def]!.name, order: 0,
                   settings: CLASS_LOOK };
   /** And so do the lines meeting it. */

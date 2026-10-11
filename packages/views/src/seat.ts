@@ -1,6 +1,6 @@
 /** Where line ends and interfaces meet a border: one anchor per face, interfaces beside it. */
 
-import { children, edge_base, is_group, is_interface, type Flow, type Graph, type Id, type Relation,
+import { children, is_group, is_interface, is_tie, type Flow, type Graph, type Id, type Relation,
          type Side } from "@mnd/core";
 import { STUB } from "./route";
 import { PORT, SEAT, seat_frac, seat_marks } from "./size";
@@ -77,8 +77,8 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
   }
   const owner = (id: Id): Id => owned.get(id) ?? id;
   const box_of = (id: Id): Rect | undefined => boxes.get(owner(id));
-  const ties = links.filter((e) => edge_base(graph, e.id) === "tie");
-  const lines = links.filter((e) => edge_base(graph, e.id) !== "tie"
+  const ties = links.filter((e) => is_tie(graph, e.id));
+  const lines = links.filter((e) => !is_tie(graph, e.id)
                                  && box_of(e.from) && box_of(e.to));
 
   const perches: Perch[] = [];

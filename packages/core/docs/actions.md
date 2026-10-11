@@ -19,7 +19,7 @@
 |---|---|---|---|---|
 | `create` | makes a block in a layer, where you pointed; made from a block, a tie trait links it | layer, block | name?, parent?, type?, spot?, from? | `add_block` (+ `link_blocks`) |
 | `delete` | removes blocks with everything under them, or relationships | block, edge, selection | ids | `delete_block` / `delete_edge` |
-| `rename` | changes what a block or a relationship is called | block, edge | id, name | `update_block` / `update_edge` |
+| `rename` | changes what a block or a relationship is called: a line carries the label of that name | block, edge | id, name | `update_block` / `add_block{def}` + `set_tags` |
 | `retype` | sets which definition a block or relationship is, or a definition extends | block, edge | ids, type | `update_block` / `update_edge` |
 | `describe` | writes a block's body text | block | id, body | `set_body` |
 | `move` | puts blocks under a different parent, in the place you dropped them | block, selection | ids, parent, before?, spot? | `move_block` (+ `seat_cell`) |
@@ -66,7 +66,7 @@
 | `relink` | takes one end of a relationship to another block or part | edge | id, end, to, part? | `set_end` + `set_side` |
 | `unlink` | removes a relationship, leaving the interfaces it met | edge | id | `delete_edge` |
 | `flip` | turns a relationship around | edge | id | `flip_edge` |
-| `direct` | sets which way a relationship's arrows point | edge | id, dir | `set_dir` |
+| `direct` | sets which way a relationship's arrows point | edge | id, dir | `set_setting` (`line.dir`) |
 
 - **Both ends are blocks**, on any layers. A relationship never ends on another.
 - **`relate` carries the type**; absent, a `line`. `tie` is chosen like any other type.

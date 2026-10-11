@@ -1,0 +1,11 @@
+{
+  "id": "tie",
+  "name": "tie",
+  "type": "line",
+  "body": "A dashed run with no heads: what ties a remark to what it is about.",
+  "def": {},
+  "traits": [
+    "has_values",
+    "is_tie"
+  ]
+}

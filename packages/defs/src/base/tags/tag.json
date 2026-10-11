@@ -1,0 +1,15 @@
+{
+  "id": "tag",
+  "name": "tag",
+  "type": "block",
+  "body": "A word carried by blocks, lines and definitions, to find them by. Its body says what it means; its usages are what carries it.",
+  "def": {},
+  "traits": [],
+  "settings": {
+    "style": {
+      "hue": 300,
+      "intensity": 0.5,
+      "vary": 48
+    }
+  }
+}

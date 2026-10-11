@@ -1,7 +1,7 @@
 /** The block view: any planar projection. */
 
-import { alias_of, dir_of, layout_of, children, setting_of, ABOUT, covers, edge_base, edges_in, group_depth, heading, holders_in,
-         inline, is_container, is_grid, is_group, is_note, label_of, lattice_of,
+import { alias_of, dir_of, layout_of, children, setting_of, ABOUT, covers, edges_in, group_depth, heading, holders_in,
+         inline, is_container, is_grid, is_group, is_note, is_tie, label_of, lattice_of,
          members_of, shape_of, stamps_of, role_of, shown_name, path, type Cut,
          type ViewKind, type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
 import { at_seat, cell_box, laid, perch_id, roomed, seat_all, PAD, UNIT, type Perch,
@@ -14,7 +14,7 @@ import { survey_graph, FOREST } from "./survey";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { linked_graph, LINK } from "./links";
-import { definition_graph, dropped_in, inherited_in, ASPECT } from "./definition";
+import { definition_graph, inherited_in, ASPECT } from "./definition";
 import { box_of, cell as node, extent, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
          type Slot } from "./scene";
@@ -74,13 +74,11 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   if (look?.kind === "definition" && layer && given.blocks[layer]) {
     const scene = project(definition_graph(given, layer), ASPECT,
                           { ...config, look: { kind: "internal", cut: null } });
-    /** What it reads from its chain wears the part mark: edited where it is declared. What its
-     *  chain drops is struck. */
+    /** What it reads from its chain wears the part mark: edited where it is declared. */
     const inherited = inherited_in(given, layer);
-    const dropped = dropped_in(given, layer);
     const mark = (n: BoxNode): CardClass[] => [...n.data.marks,
-      ...(n.id === layer ? ["held" as const] : []), ...(inherited.includes(n.id) ? ["part" as const] : []),
-      ...(dropped.includes(n.id) ? ["dropped" as const] : [])];
+      ...(n.id === layer ? ["held" as const] : []),
+      ...(inherited.includes(n.id) ? ["part" as const] : [])];
     const nodes = scene.nodes.map((n) => ({
       ...n, draggable: false, ...(given.blocks[n.id] || n.id === ABOUT ? {} : { selectable: false }),
       data: { ...n.data, marks: mark(n) },
@@ -337,7 +335,8 @@ function line_edges(graph: Graph, linked: readonly Relation[], seating: Seating)
     const alias = wire.alias ? alias_of(graph, e.id, true) : "";
     /** A link is drawn to be read, never picked. */
     const link = e.id.startsWith(LINK);
-    const module = edge_base(graph, e.id);
+    /** A tie by its trait: drawn straight and never routed. */
+    const module = is_tie(graph, e.id) ? "tie" : "line";
     const fan = seating.fans.get(e.id);
     return {
       id: e.id,

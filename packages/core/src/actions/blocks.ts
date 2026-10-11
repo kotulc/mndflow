@@ -2,7 +2,7 @@
 
 import { may_hold } from "../capabilities";
 import { shown_name } from "../names";
-import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, entry, in_domain,
+import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_domain,
          kind_free, may_retype, name_taken, package_of, plain_type, setting_of, stored_type,
          self_use } from "../defs";
 import { GRID, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
@@ -14,7 +14,6 @@ import { new_id } from "../ids";
 import { BASE_PACKAGE, LAYOUTS, type Graph, type Id, type Layout, type Mutation } from "../types";
 import { register, type Context, type Result } from "./registry";
 import { seat_all, seat_in, taken_in } from "./grid";
-import { name_line, unnamable } from "./relations";
 import { borrowed, cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS, spot,
          text, tied, typed } from "./helpers";
 
@@ -65,8 +64,8 @@ function in_use(graph: Graph, id: Id, gone: ReadonlySet<Id>): string | null {
   }
   const defs = subtree(graph, id).filter((g) => graph.blocks[g]?.def);
   if (!defs.length) return null;
-  const names = (x: { type?: Id; tags?: string[]; of?: Id }) =>
-    [x.type, x.of, ...(x.tags ?? []).map((t) => entry(t).id)];
+  const names = (x: { type?: Id; tags?: Id[]; traits?: Id[]; of?: Id }) =>
+    [x.type, x.of, ...(x.tags ?? []), ...(x.traits ?? [])];
   const users = [...Object.values(graph.blocks).filter((u) => !gone.has(u.id)),
                  ...Object.values(graph.edges).filter((e) => !gone.has(e.from) && !gone.has(e.to))]
     .filter((u) => names(u).some((n) => n && defs.includes(n)));
@@ -165,7 +164,6 @@ register(
       if (!ctx.graph.blocks[id] && !ctx.graph.edges[id]) return "that is not here any more";
       const why = borrowed(ctx.graph, id);
       if (why) return why;
-      if (ctx.graph.edges[id]) return unnamable(ctx.graph, text(args, "name"));
       if (!def_at(ctx.graph, id)) return null;
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
@@ -175,8 +173,8 @@ register(
     run: (ctx, args) => {
       const id = id_of(args, "id");
       const name = text(args, "name");
-      return { mutations: ctx.graph.edges[id] ? name_line(ctx.graph, id, name)
-                                              : [{ op: "update_block", id, name }] };
+      return { mutations: [ctx.graph.edges[id] ? { op: "update_edge", id, name }
+                                               : { op: "update_block", id, name }] };
     },
   },
   {

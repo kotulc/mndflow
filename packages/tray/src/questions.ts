@@ -1,7 +1,7 @@
 /** The questions the settings panel asks of how something draws, as data. */
 
 import { ALIGNS, ARROWS, BORDERS, CONTRASTS, DISPLAYS, FAMILIES, FILLS, FONTS, HUE,
-         INTENSITY, OPACITY, PARTS, SHOWN, VARY, WEIGHTS, WIDTHS } from "@mnd/core";
+         INTENSITY, LARGE_FACES, OPACITY, SHOWN, VARY, WEIGHTS, WIDTHS } from "@mnd/core";
 
 /** The parts of a drawing, and the questions each part is asked. */
 const GROUPS = ["name", "label", "face", "head", "colour", "border", "icon"] as const;
@@ -21,11 +21,11 @@ export const ASKS: Record<Group, string> = {
 
 export type Key = "card" | "style" | "line";
 
-/** One question. `form` says how it is answered: one of a set, a quantity, a mark, several of a
- *  set in order, or a size in units. */
+/** One question. `form` says how it is answered: one of a set, a quantity, a mark, or a size in
+ *  units. */
 export type Question = {
   word: string; key: Key; name: string; tip: string;
-  form: "chips" | "range" | "marks" | "parts" | "size";
+  form: "chips" | "range" | "marks" | "size";
   of?: readonly { value: string; word: string }[];
   omit?: readonly string[];
   range?: { min: number; max: number; step: number; fallback: string };
@@ -76,9 +76,10 @@ export const ROWS: Record<Group, Question[]> = {
   ],
   /** What the large face shows, and how big it is. The small face is the workspace's card. */
   face: [
-    { word: "shows", key: "card", name: "shows", form: "parts",
-      tip: "What the large face shows under its name, in the order picked: its attributes as a "
-         + "table, its body as written, the image its source points at.", of: plain(PARTS) },
+    { word: "face", key: "card", name: "face", form: "chips",
+      tip: "Which large face it draws with: a table of its attributes with its body under it, a "
+         + "document of its body, or a picture of what its source points at. Unsaid, its name "
+         + "is the whole card.", of: plain(LARGE_FACES) },
     { word: "size", key: "card", name: "size", form: "size",
       tip: "How big the large face is, in units of the lattice. The small face is the "
          + "workspace's card size." },

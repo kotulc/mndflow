@@ -32,13 +32,14 @@ export {
   def_of, domain_of, edge_base, edges_in, frozen, grid_of, group_head, head_of, headed_group,
   heading, holders_in, isa, is_container, is_grid, is_group, is_header, is_holder,
   is_interface, lattice_of, is_reference, layer_of, drawn_in, inline, is_folder, organizes,
-  tree_of, in_domain, setting_of, traits_of, uses_of, members_of, merge_at, base_of, opens,
+  tree_of, in_domain, setting_of, uses_of, members_of, merge_at, base_of, opens,
   owner_of, package_of, packages, path, region_of, shape_of, shown_name, stands_for, subtree,
   subtypes, used_by,
 } from "@mnd/core";
 
 /** Tags: definitions blocks and definitions carry. */
-export { carried_tags, entry, gives, is_label, is_style, is_tag, is_trait, remap, styles_of, tag_named, tags_of, type Carried } from "@mnd/core";
+export { has_trait, is_tag, is_tie, is_trait, tag_home, tag_named, tags_of, tags_stated, traits_of,
+         traits_stated, type Stated } from "@mnd/core";
 
 /** The floor. `FLOOR` is the base package's blocks; `base_graph()` a fresh workspace on it. */
 export { ALL, BASE, FLOOR, RELATIONS, base_graph, by_id } from "@mnd/defs";

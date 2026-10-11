@@ -1,0 +1,12 @@
+{
+  "id": "text",
+  "name": "text",
+  "type": "value",
+  "body": "Words: anything said in a line.",
+  "def": {},
+  "settings": {
+    "value": {
+      "form": "text"
+    }
+  }
+}

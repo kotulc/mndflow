@@ -26,10 +26,8 @@
         "order": 1,
         "settings": {
           "card": {
-            "shows": [
-              "attributes"
-            ],
-            "align": "center"
+            "align": "center",
+            "face": "table"
           }
         }
       },

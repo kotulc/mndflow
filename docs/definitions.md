@@ -19,7 +19,7 @@
 | **attribute** | what a definition declares its usages answer: a name, a `type`, and what else it says (`key`, `default`, `unit`, `many`, `optional`, `note`, any other property as written). Held in `def.attributes`, inherited along the chain |
 | **value** | a usage's or a relationship's answer to an attribute, by name (`values`). Typed by its attribute, never by itself. Never structural, no identity of its own |
 | **entity** | a definition with attributes, as an ERD draws it. Nothing new: a word for a use |
-| **reference** | a block that **stands for** another, a definition or a package (`of`). Drawn, never owning. A gone target reads **missing** and is kept |
+| **reference** | a block that **stands for** another, a definition or a package (`of`). **A reference by its kind**: it stores `type: "reference"` (or a subtype) and carries *is reference*; `of` is read only where it is one. Drawn, never owning. A gone target reads **missing** and is kept |
 | **link** | an attribute typed by a block definition: a foreign key. A reference is a block; a link is a value, drawn as a line only where a view allows it |
 
 
@@ -69,7 +69,7 @@
 | **line** | the plain relationship. Which way it points is a setting, `line.dir` (`none`, `forward`, `back`, `both`), said by its definition and overridable on the line |
 | **tie** | a dashed relationship with no heads. **A type like any other**, chosen, never forced |
 
-**Block modules are engine code, kinds are data.** Three modules, each read from a stored field: `block`, `reference` (`of` is set), `interface` (`side` is set). Every other kind is the `block` module configured.
+**Block modules are engine code, kinds are data.** Three modules, each named by the trait its kind carries: `block`, `reference` (*is reference*), `interface` (*is port*). Every other kind is the `block` module configured.
 
 
 ## Tags, traits and capabilities
@@ -83,10 +83,10 @@
 | **constraint** | a capability limited to definitions (`allows` lists, `degree`, `ends`), or what values must say (`expects`). Settings, not traits; to be reworked |
 | **tag** | a definition on the `tag` base. A word with a meaning (`body`), no structure |
 | **trait** | **a tag giving a capability**, by its chain (`extends trait`), named *has X* (a capability) or *is X* (what sort of thing it is, which engine module runs it). One capability a trait. Listed apart from tags. It confers its own settings and those of the traits it extends, never its kind's |
-| **style** | **a tag giving a look**, by its chain (`extends style`): its `settings.style` (or `card`) *is* the preset, and carrying it applies it. `base` ships families, fills and contrasts in its `styles` folder |
+| **style** | **a tag giving a look**, by its chain (`extends style`): its `settings.style` (or `card`) *is* the preset, and carrying it applies it. `base` ships **one style per kind**, a whole look each — *plain style*, *folder style*, *reference style*, *port style*, *group style*, *grid style*, *note style* — in its `styles` folder, each kind carrying its own |
 | **is reference** · **is port** | the traits naming a kind's engine module: a stand-in, reading `of`; an interface, seated on a wall. `reference` and `interface` carry them |
 | **drop** | `-id` in a `tags` list: the element no longer carries what its chain does. Drawn struck on the definition view |
-| **label** | a tag naming lines, by its chain (`extends label`) |
+| **label** | a tag naming lines, by its chain (`extends label`). **A line's name is the label it carries**, its own or its definition's: naming a line carries the workspace's label of that name, made at the workspace's root where there is none; clearing it takes its own off |
 | **carried** | what an element carries: tags, traits, styles and labels, one list (`tags`), on a usage, a line or a definition alike. **Added up down the chain**: each link adds its own; `-id` drops one a farther link carries. A usage carries everything its definition does, and may add or drop its own |
 | **tie trait** | links a block made from, or dropped on, another to it with a relationship of a given type, on the same layer. Made on its own, it links nothing |
 | **name space** | one per package: a tag, a trait and a block definition never share a name |
@@ -108,7 +108,7 @@
 | **internal** | the opened block from inside: what it holds, as cards |
 | **grid** | an opened grid's lattice, its cells and what sits in them |
 | **folder** | what a package or folder holds, the page fitted to its content's width and scrolled down |
-| **definition** | everything a definition is, its chain's included: large in the middle; above, what it extends and a note with its body; left and right, its in and out ports; below, its both-way ports, each port box joined to it by a plain line; under all, one row of its tags, traits and settings. What it reads from its chain wears the part mark. Edits there edit the definition |
+| **definition** | everything a definition is, its chain's included, on a three by three grid: large in the middle, showing its attributes; above, its tags, what it extends and a note with its body; left and right, a block definition's in and out ports, or the definitions a relation definition's ends may join (`from`, `to`); below, its both-way ports, its settings — the styles it wears, then **one table card per component** its chain states (`style`, `card`, `line`…), a row per setting naming who says it where that is further up — and its traits. Each box joined to it by a plain line. What it reads from its chain wears the part mark; what its chain drops draws struck. Edits there edit the definition |
 | **overhead view** | what the canvas draws while nothing is open (`layer: null`): every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down. A definition holding structure is a box of its top-level blocks as cards, nothing deeper |
 | **flatten** | drawing each block that holds as a box of its contents, so the whole system reads on one page. The overhead and profile views draw flattened, every box a solid rim; a group is a box somebody made, dashed |
 | **profile** | the system from the side: one row per level along the pick, each a box as wide as the widest — every package, then what each block on the way holds, last what the pick holds. A line points from each block on the way down to the row it holds |

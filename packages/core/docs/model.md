@@ -20,13 +20,13 @@ The object graph: **two element kinds**, blocks and relationships, and every oth
 
 ## Block modules and kinds
 
-**A module is engine code; a kind is a definition.** Three modules, each read from a stored field:
+**A module is engine code; a kind is a definition.** Three modules, each named by a trait the kind carries (`block.module`):
 
 | Module | Read from |
 |---|---|
 | `block` | nothing else said |
-| `reference` | `of` is set |
-| `interface` | `side` is set |
+| `reference` | *is reference*: `of` names what it stands for |
+| `interface` | *is port*: seated on its owner's wall |
 
 The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, and the relation kinds `line` and `tie`. **The set is minimal and enumerates what is functionally distinct**; anything else is a subtype. **There is no untyped block**: a block naming nothing is a `block`.
 
@@ -68,7 +68,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 
 ## Relationships
 
-**A join between exactly two blocks**, on any layers. Its type is a relation definition: `line` when it names none, `tie` or any subtype when it does. `dir` says which way a line points. **Definitions are never linked**, except by a tie trait.
+**A join between exactly two blocks**, on any layers. Its type is a relation definition: `line` when it names none, `tie` or any subtype when it does. `line.dir`, a setting inherited down its chain, says which way a line points. **Its name is a label it carries**, never a field. **Definitions are never linked**, except by a tie trait.
 
 
 ## Capabilities

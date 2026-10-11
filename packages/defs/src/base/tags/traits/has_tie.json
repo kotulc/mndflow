@@ -1,0 +1,12 @@
+{
+  "id": "has_tie",
+  "name": "has_tie",
+  "type": "trait",
+  "body": "Made from, or dropped on, a block, it is tied to it.",
+  "def": {},
+  "settings": {
+    "tie": {
+      "type": "tie"
+    }
+  }
+}

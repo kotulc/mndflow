@@ -222,9 +222,12 @@ export function App({ storage }: { storage: Storage }) {
   const gather = async () => {
     const got = await browser_files().folder?.();
     if (!got) return;
-    const { text, made } = collect(got.name, got.files, s.graph());
+    const { text, made, clashes } = collect(got.name, got.files, s.graph());
     const faults = s.bring(text);
-    if (!faults.length && made.length) s.say(`brought in ${got.name} — made ${made.join(", ")}`, "note");
+    if (faults.length) return;
+    const said = [made.length ? `made ${made.join(", ")}` : "",
+                  clashes.length ? `refused ${clashes.join(", ")}, said twice` : ""].filter(Boolean);
+    if (said.length) s.say(`brought in ${got.name} — ${said.join("; ")}`, "note");
   };
 
   /** **The explorer browses**: a row chosen is held in its section and shown in the tray. Inside

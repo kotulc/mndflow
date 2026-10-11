@@ -1,0 +1,12 @@
+{
+  "id": "is_group",
+  "name": "is_group",
+  "type": "trait",
+  "body": "Draws what it holds in place, on the layer it sits on, rather than behind its card.",
+  "def": {},
+  "settings": {
+    "holder": {
+      "inline": true
+    }
+  }
+}

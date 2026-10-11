@@ -124,6 +124,9 @@ function apply(graph: Graph, m: Mutation): void {
     case "update_edge": {
       const e = graph.edges[m.id];
       if (!e) return;
+      if (m.name !== undefined) {
+        if (m.name) e.name = m.name; else delete e.name;
+      }
       /** Null clears the type; absent leaves it alone. */
       if (m.type === null) delete e.type;
       else if (m.type !== undefined) e.type = m.type;
@@ -183,9 +186,17 @@ function apply(graph: Graph, m: Mutation): void {
     case "set_tags": {
       const b = element(graph, m.id);
       if (!b) return;
-      /** Trimmed, deduplicated and in the order they were given. */
-      const kept = [...new Set(m.tags.map((t) => t.trim()).filter(Boolean))];
-      if (kept.length) b.tags = kept; else delete b.tags;
+      /** Null gives the list back; a list is kept trimmed, once each, in the order given. */
+      if (m.tags === null) delete b.tags;
+      else b.tags = [...new Set(m.tags.map((t) => t.trim()).filter(Boolean))];
+      return;
+    }
+    case "set_traits": {
+      /** A definition's alone: a usage or a line carries its definition's. */
+      const b = graph.blocks[m.id];
+      if (!b?.def) return;
+      if (m.traits === null) delete b.traits;
+      else b.traits = [...new Set(m.traits.map((t) => t.trim()).filter(Boolean))];
       return;
     }
     /** Gives back the drawing settings of whichever element the id names. */

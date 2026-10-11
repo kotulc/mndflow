@@ -1,0 +1,20 @@
+{
+  "id": "reference",
+  "name": "reference",
+  "type": "block",
+  "body": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
+  "def": {},
+  "traits": [
+    "has_ports",
+    "is_reference"
+  ],
+  "settings": {
+    "style": {
+      "family": "away",
+      "fill": "hatch",
+      "border_contrast": "strong",
+      "name_contrast": "strong",
+      "opacity": 0.55
+    }
+  }
+}

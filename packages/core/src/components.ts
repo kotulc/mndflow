@@ -57,11 +57,6 @@ const within = (key: string, value: unknown,
       && value >= range.min && value <= range.max)
     ? null : `\`${key}\` has to be a number from ${range.min} to ${range.max}`;
 
-/** A list drawn from one set. */
-const some_of = (key: string, value: unknown, set: readonly string[]): string | null =>
-  value === undefined || (Array.isArray(value) && value.every((v) => set.includes(v)))
-    ? null : `\`${key}\` has to be a list of ${set.join(", ")}`;
-
 /** A size in units: two whole numbers. */
 const sized = (key: string, value: unknown): string | null => {
   if (value === undefined) return null;
@@ -98,6 +93,16 @@ export const HEIGHTS = ["uniform", "free"] as const;
 
 /** What a card's large face shows under its name, in the order said. */
 export const PARTS = ["attributes", "body", "preview"] as const;
+
+/** The large faces: each an engine renderer mapping what a card has onto how it reads — a
+ *  `table` of its attributes with its body under it, a `document` of its body, a `picture` of
+ *  what its source points at. Unsaid, a card has no large face: its name is the whole of it. */
+export const LARGE_FACES = ["table", "document", "picture"] as const;
+
+/** What each large face shows, in order. */
+export const FACE_PARTS: Record<(typeof LARGE_FACES)[number], readonly (typeof PARTS)[number][]> = {
+  table: ["attributes", "body"], document: ["body"], picture: ["preview"],
+};
 
 /** Which face a layer draws its cards with: the name and marks alone, or what they say. */
 export const FACES = ["small", "large"] as const;
@@ -216,11 +221,11 @@ const card: Component = {
     ?? one_of("card.height", config["height"], HEIGHTS)
     /** `name` hides the large face's head, so what it shows is the whole card. */
     ?? one_of("card.name", config["name"], SHOWN)
-    /** `shows` is what the large face draws under the name, in order; `size` its size. */
-    ?? some_of("card.shows", config["shows"], PARTS)
+    /** `face` is which large face it draws with; `size` its size. */
+    ?? one_of("card.face", config["face"], LARGE_FACES)
     ?? sized("card.size", config["size"])
     ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "name",
-                              "shows", "size"]),
+                              "face", "size"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings. */

@@ -54,6 +54,8 @@
 /* A form picker keeps a short box; the name takes the rest. */
 .rows > .row.add > .line > select { flex: 0 0 8em; }
 .rows > .row > .line > .drop { flex: none; }
+/* What a row's answer means, said in full: a trait's description. */
+.rows > .row > .line > .about { flex: 1 1 auto; min-width: 0; color: var(--muted); font-size: 11px; }
 /* A row of chips, wrapping as they fill. */
 .rows > .row > .line > .picks {
   display: flex;
