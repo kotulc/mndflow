@@ -1,13 +1,35 @@
 /** Relationships and the interfaces they meet. */
 
 import { may_seat } from "../capabilities";
-import { def_at, dir_of, domain_of, setting_of, stored_type } from "../defs";
+import { def_at, dir_of, domain_of, entry, is_label, label_named, name_taken, setting_of,
+         stored_type } from "../defs";
 import { shown_name } from "../names";
 import { is_interface, next_order, part_end } from "../tree";
 import { new_id } from "../ids";
 import type { Dir, Flow, Graph, Id, Mutation, Relation, Side } from "../types";
 import { register, type Args, type Context } from "./registry";
-import { handles, id_of, may_wear, run_type, side_of, SIDES, text } from "./helpers";
+import { handles, id_of, may_wear, mint_def, run_type, side_of, SIDES, text } from "./helpers";
+import { new_def } from "./definitions";
+
+
+/** Why a line cannot be called this: the name is a definition's that is not a label. */
+export function unnamable(graph: Graph, name: string): string | null {
+  return name && !label_named(graph, name) && name_taken(graph, graph.root, name)
+    ? `"${name}" already names a definition that is not a label` : null;
+}
+
+/** Naming a line: **its name is a label it carries**. The workspace's label of that name, made
+ *  where there is none, replaces any label the line carries itself; no name takes them off, so it
+ *  reads its definition's again. */
+export function name_line(graph: Graph, id: Id, name: string): Mutation[] {
+  const own = (graph.edges[id]?.tags ?? [])
+    .filter((t) => entry(t).drop || !is_label(graph, entry(t).id));
+  if (!name) return [{ op: "set_tags", id, tags: own }];
+  const held = label_named(graph, name);
+  const label = held?.id ?? mint_def("block");
+  return [...(held ? [] : [new_def(graph, { id: label, name, type: "label", def: {} }, graph.root)]),
+          { op: "set_tags", id, tags: [...own, label] }];
+}
 
 register(
   {

@@ -2,7 +2,7 @@
 
 import { allows_of, permits } from "./capabilities";
 import { base_of, setting_of } from "./defs";
-import { children, is_interface, stands_for } from "./tree";
+import { children, is_interface, is_reference, stands_for } from "./tree";
 import type { Block, Cell, Graph, Grid, HeaderRole, Id, Shape, Span } from "./types";
 
 
@@ -31,7 +31,7 @@ export function covers(s: Span, r: number, c: number): boolean {
  *  extends. */
 export function shape_of(graph: Graph, id: Id | undefined): Shape | null {
   const b = id ? graph.blocks[id] : undefined;
-  if (!b || b.def || b.of || is_interface(graph, b.id)) return null;
+  if (!b || b.def || is_reference(graph, b.id) || is_interface(graph, b.id)) return null;
   const said = setting_of(graph, b.id, "holder");
   return said["matrix"] === true ? "grid" : said["inline"] === true ? "group" : null;
 }

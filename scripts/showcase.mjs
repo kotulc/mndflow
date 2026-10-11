@@ -55,12 +55,21 @@ function note(layer_id, text, w = 15) {
   put(`${layer_id}_note`, layer_id, "note", { name: text, type: "note", w: w * U, h: h * U });
 }
 
-/** A relation. */
-/** A line; `dir` is said as its `line.dir` setting, as any line says which way it points. */
-function link(id, from, to, { dir, ...more } = {}) {
+/** A line; `dir` is said as its `line.dir` setting, as any line says which way it points, and
+ *  `name` as a label it carries, filed in the workspace's labels folder. */
+function link(id, from, to, { dir, name, ...more } = {}) {
   const settings = dir && dir !== "none"
     ? { ...more.settings, line: { ...more.settings?.line, dir } } : more.settings;
-  edges[id] = { id, from, to, alias: serial("relation"), ...more, ...(settings ? { settings } : {}) };
+  const tags = name ? [...(more.tags ?? []), label(name)] : more.tags;
+  edges[id] = { id, from, to, alias: serial("relation"), ...more, ...(settings ? { settings } : {}),
+                ...(tags ? { tags } : {}) };
+}
+
+/** The workspace's label of this name, made the first time it is used. */
+function label(name) {
+  const id = `label_${name.replace(/\W+/g, "_")}`;
+  if (!blocks[id]) def(id, name, "label", undefined, {}, "w_labels");
+  return id;
 }
 
 
@@ -73,6 +82,8 @@ shelf("w_styles", "styles");
 shelf("w_faces", "faces");
 shelf("w_machines", "machines");
 shelf("w_holders", "holders");
+shelf("w_relations", "relations");
+shelf("w_labels", "labels");
 def("def_large", "Large layer", "block", { layout: { face: "large" } },
     { body: "A layer whose cards draw their large face." }, "w_faces");
 
@@ -80,23 +91,23 @@ def("def_large", "Large layer", "block", { layout: { face: "large" } },
 /* ── Cards: every block kind, and the styles: base's and the workspace's, each on a card ── */
 
 layer("l_cards", "Cards");
-note("l_cards", "Every block kind on its small face, then the looks: families, fills, label places and borders, each card varying one setting. Each look is a style: families and fills ship in base, labels and borders are the workspace's, in its styles folder. Each card carries one, as any usage or definition may.", 27);
+note("l_cards", "Every block kind on its small face, then the styles: base ships one whole look per kind; label places, borders and a secondary family are the workspace's, in its styles folder. Each card carries one, as any usage or definition may.", 27);
 put("c_block", "l_cards", "block", { name: "Block" });
 put("c_folder", "l_cards", "folder", { name: "Folder", type: "folder" });
 put("c_inside", "c_folder", "block", { name: "Inside" });
-put("c_ref", "l_cards", "reference", { name: "", of: "c_block" });
+put("c_ref", "l_cards", "reference", { name: "", type: "reference", of: "c_block" });
 put("c_note", "l_cards", "note", { name: "A note: text, resized by hand", type: "note",
                                            w: 6 * U, h: 2 * U });
-/** The base package's styles, then the workspace's own: each card carries one. */
-const shipped = [["family", ["primary", "secondary", "neutral", "muted", "away", "note"]],
-                 ["fill", ["solid", "hatch", "wash", "none"]]];
-for (const [key, values] of shipped) {
-  for (const v of values) put(`c_${key}_${v}`, "l_cards", "block", { name: v, tags: [`${key}_${v}`] });
+/** The base package's styles, one whole look per kind, then the workspace's own: each card
+ *  carries one. */
+for (const kind of ["plain", "folder", "reference", "port", "group", "grid", "note"]) {
+  put(`c_style_${kind}`, "l_cards", "block", { name: `${kind} style`, tags: [`${kind}_style`] });
 }
 const own = [
   ["label", ["above", "inside", "below", "none"], (v) => ({ card: { label: v } })],
   ["border", ["dashed", "dotted", "double", "none"], (v) => ({ style: { border_style: v } })],
 ];
+def("style_secondary", "secondary", "style", { style: { family: "secondary" } }, {}, "w_styles");
 for (const [key, values, settings] of own) {
   shelf(`w_styles_${key}`, key, "w_styles");
   for (const v of values) {
@@ -139,9 +150,9 @@ face("f_plain", { name: "Plain" });
 /* ── Definitions: stand-ins, and settings down a chain ── */
 
 layer("l_defs", "Definitions", "def_large");
-note("l_defs", "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the family secondary style. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it. Machine declares a power port that Pump and Big pump inherit. Open a stand-in for its definition view: Big pump shows everything it is, what it reads from its chain dimmed.", 27);
+note("l_defs", "A chain: Pump extends Machine, Big pump extends Pump. Machine carries the workspace's secondary style. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it. Machine declares a power port that Pump and Big pump inherit. Open a stand-in for its definition view: Big pump shows everything it is, what it reads from its chain dimmed. Compressor drives Feed pump by a relation definition, drives: select the line and open its definition from the tray, or find it under workspace › relations.", 27);
 def("def_machine", "Machine", "block", { card: { shows: ["attributes"] } }, {
-  tags: ["family_secondary"],
+  tags: ["style_secondary"],
   def: { attributes: [{ name: "power", type: "number", unit: "kW" }] } }, "w_machines");
 put("dm_power", "def_machine", "interface", { name: "power", type: "interface", flow: "in" });
 def("tag_rotating", "rotating", "tag", undefined, {}, "w_machines");
@@ -154,7 +165,7 @@ put("dp_seal", "def_pump", "interface", { name: "seal", type: "interface", flow:
 def("def_bigpump", "Big pump", "def_pump", { style: { border_width: "thick" } }, {
   def: { attributes: [{ name: "stages", type: "number", default: "2" }] } }, "w_machines");
 for (const [col, d] of ["def_machine", "def_pump", "def_bigpump"].entries()) {
-  put(`s_${d}`, "l_defs", "reference", { of: d });
+  put(`s_${d}`, "l_defs", "reference", { type: "reference", of: d });
 }
 put("d_m1", "l_defs", "block", { name: "Compressor", type: "def_machine",
   values: [{ name: "power", value: "30" }] });
@@ -162,6 +173,13 @@ put("d_p1", "l_defs", "block", { name: "Feed pump", type: "def_pump",
   values: [{ name: "power", value: "15" }, { name: "flow", value: "40" }] });
 put("d_b1", "l_defs", "block", { name: "Main pump", type: "def_bigpump",
   values: [{ name: "power", value: "90" }, { name: "flow", value: "200" }] });
+/** A relation definition: which way its lines point, what its ends may be, what they answer. */
+def("rel_drives", "drives", "line", {
+  line: { dir: "forward", to_arrow: "open" },
+  allows: { ends: { from: ["def_machine"], to: ["def_pump"] } } }, {
+  body: "A machine turning a pump's shaft.", tags: ["tag_rotating"],
+  def: { attributes: [{ name: "ratio", type: "number" }] } }, "w_relations");
+link("d_drive", "d_m1", "d_p1", { type: "rel_drives", values: [{ name: "ratio", value: "3" }] });
 
 
 /* ── Relations: every kind and direction, then what routing has to get right ── */
@@ -258,19 +276,19 @@ cell("h_c4", 3, 2, "Di");
 
 layer("l_refs", "References");
 note("l_refs", "A reference stands for something drawn elsewhere: a block on the cards layer, a definition, or something since deleted.", 22);
-put("x_block", "l_refs", "reference", { of: "c_block" });
-put("x_def", "l_refs", "reference", { of: "def_pump" });
-put("x_gone", "l_refs", "reference", { name: "Gone", of: "nothing_here" });
+put("x_block", "l_refs", "reference", { type: "reference", of: "c_block" });
+put("x_def", "l_refs", "reference", { type: "reference", of: "def_pump" });
+put("x_gone", "l_refs", "reference", { name: "Gone", type: "reference", of: "nothing_here" });
 
 
 /* ── Data: the entity-relation package, as a model and as data ── */
 
 layer("l_model", "Data model", "def_large");
 note("l_model", "The entity-relation package's entities as stand-ins: each attribute typed by another entity draws a link.", 22);
-put("m_customer", "l_model", "reference", { of: "entity-relation.customer" });
-put("m_order", "l_model", "reference", { of: "entity-relation.order" });
-put("m_line", "l_model", "reference", { of: "entity-relation.line" });
-put("m_product", "l_model", "reference", { of: "entity-relation.product" });
+put("m_customer", "l_model", "reference", { type: "reference", of: "entity-relation.customer" });
+put("m_order", "l_model", "reference", { type: "reference", of: "entity-relation.order" });
+put("m_line", "l_model", "reference", { type: "reference", of: "entity-relation.line" });
+put("m_product", "l_model", "reference", { type: "reference", of: "entity-relation.product" });
 layer("l_rows", "Data rows", "def_large");
 note("l_rows", "Usages answering the entities: a value naming another card on the layer draws a link.", 22);
 const vals = (o) => Object.entries(o).map(([name, value]) => ({ name, value }));

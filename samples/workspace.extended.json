@@ -122,6 +122,7 @@
       "block_9vmqohl7du88": {
         "id": "block_9vmqohl7du88",
         "parent": "block_ew5quzihwe9g",
+        "type": "reference",
         "of": "block_2y5dibibfcqa",
         "alias": 1,
         "order": 9,
@@ -131,6 +132,7 @@
       "block_a8com2k9rugg": {
         "id": "block_a8com2k9rugg",
         "parent": "block_i5g6cnrkmsa1",
+        "type": "reference",
         "of": "block_ht3r5k5pz2lg",
         "alias": 2,
         "order": 2,
@@ -191,6 +193,7 @@
       "block_gn1qmh8w3xli": {
         "id": "block_gn1qmh8w3xli",
         "parent": "block_i5g6cnrkmsa1",
+        "type": "reference",
         "of": "block_swt7wg3ubr7p",
         "alias": 3,
         "order": 3,
@@ -248,6 +251,7 @@
         "id": "block_i5x9yytvukem",
         "parent": "main",
         "name": "Ref",
+        "type": "reference",
         "of": "block_6mkkngq8lsy9",
         "alias": 4,
         "order": 6,
@@ -316,6 +320,7 @@
         "id": "block_oud23vt3ldeo",
         "parent": "block_2nzmkg5bbb6e",
         "name": "B",
+        "type": "reference",
         "of": "block_gikyjb1138b4",
         "alias": 5,
         "cell": {
@@ -483,6 +488,7 @@
         "id": "block_t1f7x1vfkadb",
         "parent": "main",
         "name": "R",
+        "type": "reference",
         "of": "block_2y5dibibfcqa",
         "alias": 6,
         "order": 12,
@@ -492,6 +498,7 @@
       "block_wgrensjcv5bt": {
         "id": "block_wgrensjcv5bt",
         "parent": "block_pcm8tjwdotm2",
+        "type": "reference",
         "of": "block_6mkkngq8lsy9",
         "alias": 7,
         "order": 3,

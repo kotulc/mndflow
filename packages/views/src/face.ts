@@ -9,6 +9,7 @@ import { alias_of, attributes_of, def_at, links_to, schema_def, shown_name, stam
          type Graph, type Id } from "@mnd/core";
 import { look_of, type Look } from "./look";
 import type { Listed, Ruled } from "./scene";
+import { resolved } from "./through";
 
 /** One glyph's width, in pixels, at each size the face writes in. */
 const GLYPH = { name: 7.8, body: 7.2, table: 6.6 };
@@ -141,7 +142,8 @@ export function listed(graph: Graph, id: Id): Listed[] {
     ...(a.note ? { note: a.note } : {}),
   }));
   if (b.def) return declared(b.id);
-  if (b.of && def_at(graph, b.of)) return declared(b.of);
+  const stands_in = resolved(graph, id).stands_in;
+  if (stands_in) return declared(stands_in.id);
   const held = schema_def(graph, id);
   if (held && held !== b.type) return declared(held);
   const own = b.values ?? [];

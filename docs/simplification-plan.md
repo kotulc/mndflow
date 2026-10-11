@@ -38,6 +38,8 @@
 | panning to a revealed block | stage `room.ts` (`useCamera`, from `focus`); the web app sets it on a reveal |
 | settings resolution | core `defs.ts` (`statements`, `stated`, `setting_of`, `said_of`). views `look.ts` and explorer `rows.ts` merged definition and element by hand, skipping a usage's traits; both ask `setting_of` (2026-10-10) |
 | what an element carries | core `defs.ts` (`carried_tags`, `dropped_tags`, `traits_of`, `styles_of`; `entry` / `remap` for `-id`) |
+| whether a block is a reference, and what it points at | core `tree.ts` (`is_reference` by its kind, `of_ref`, `stands_for`); `of` is read nowhere else. A reference stores `type: "reference"` (2026-10-10) |
+| what a reference's card draws as | views `through.ts` `resolved` (what it previews, the definition it stands in for, missing); look, size, marks, face, links and the tray ask it. `previewed` and every reader's own `b.of` are gone (2026-10-10) |
 | a definition's interfaces, its chain's included | core `tree.ts` `ports_of`; views `through.ts` lays them on usages, definition cards and rooms |
 | how a table in a card looks | theme `face.css` `.mnd-face-table`: an attributes table and a markdown table alike. Two table styles became one (2026-10-10) |
 | what a card carries, its face and its size | views `derive.ts` (`carried`, `face_text`) and `size.ts` (`face_of`, `size_of`); drawn by theme `CardFace` on the canvas, in the tray and in mndmap alike. Three card renderers became one (2026-10-08) |
@@ -72,7 +74,6 @@
 | 6 | **explorer `listed()` vs core roles** | the chain re-derives domain and structure membership | core's `in_domain` / `tree_of`, as `held_at` uses |
 | 7 | **tray listings** | the tray's definition grouping and `rows.ts` may re-list what the explorer's chain lists | the chain's listings |
 | 8 | **stage menus** | `Stage.tsx` offers per kind (box, band, seat, note) by base strings | the registry's scopes and `when` |
-| 10 | **reference readers** | about 65 sites in 27 files each ask `of`, `previewed` or `stands_for` and read the target instead: size, face, look, marks, tray, navigation, explorer | views `through.ts`: swap each reference for its target once, keeping its id and the `Ref` mark; *is reference* then decides it, not `of` |
 | 9 | **highlight rules** | `lights`, `holds` and the edge in `Explorer.tsx` each read the chain and the picks differently | one function from the canvas view and the chain |
 
 

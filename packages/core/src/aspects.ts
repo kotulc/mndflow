@@ -1,6 +1,7 @@
 /** Aspects: what the definition view draws round a definition, and what an edit there does to
  *  it. Views draws them; **what an edit there means is decided here**, so every host edits alike. */
 
+import { allows_of } from "./capabilities";
 import { carried_tags, chain_of, def_at, dropped_tags, gives, is_style, is_trait, type Carried } from "./defs";
 import { is_tag } from "./tags";
 import { ports_of } from "./tree";
@@ -12,8 +13,11 @@ import type { Block, Graph, Id } from "./types";
 export const ABOUT = "@about";
 
 /** What surrounds a definition: what it extends, its ports by flow — unmarked with both — the
- *  tags, traits and styles it carries, and what its chain drops; its chain's included, a port's `parent` saying whose it is. */
+ *  definitions a relation's ends may join (`allows.ends`), the tags, traits and styles it
+ *  carries, and what its chain drops; its chain's included, a port's `parent` saying whose it
+ *  is. */
 export type Aspects = { extends: Id | null; ins: Block[]; outs: Block[]; both: Block[];
+                        from: Id[]; to: Id[];
                         tags: Carried[]; traits: Carried[]; styles: Carried[]; dropped: Carried[] };
 
 
@@ -23,8 +27,10 @@ export function aspects_of(graph: Graph, def: Id): Aspects {
   const ports = ports_of(graph, def);
   const flowing = (...flows: (string | undefined)[]) => ports.filter((p) => flows.includes(p.flow));
   const all = carried_tags(graph, def);
+  const ends = allows_of(graph, def).ends;
   return { extends: chain_of(graph, def)[1]?.id ?? null,
            ins: flowing("in"), outs: flowing("out"), both: flowing("both", undefined),
+           from: ends?.from ?? [], to: ends?.to ?? [],
            tags: all.filter((c) => !gives(graph, c.id)),
            traits: all.filter((c) => is_trait(graph, c.id)),
            styles: all.filter((c) => is_style(graph, c.id)),

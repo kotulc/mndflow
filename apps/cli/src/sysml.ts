@@ -1,7 +1,7 @@
 /** A graph out as SysML, and the same text back as a graph. */
 
 import { block_base, children, config_of, edge_base, edges_in, empty_graph, is_interface,
-         is_reference, base_of, owner_of, path, shown_name, MAIN, SCHEMA,
+         of_ref, base_of, owner_of, path, shown_name, MAIN, SCHEMA,
          type Block, type Graph, type Id, type Relation } from "@mnd/core";
 
 /** What each block module is called, absent a definition that says otherwise. */
@@ -47,7 +47,8 @@ function block(graph: Graph, b: Block, depth: number): string[] {
   const pad = "  ".repeat(depth);
   const type = b.type ? ` : ${b.type}` : "";
   /** A reference writes what it stands for. */
-  const stands = b.of ? ` -> ${address(graph, b.of)}` : "";
+  const of = of_ref(graph, b.id);
+  const stands = of ? ` -> ${address(graph, of)}` : "";
   const head = `${pad}${keyword(graph, b.id)} ${quoted(shown_name(graph, b.id))}${type}${stands}`;
   const inside = [
     ...children(graph, b.id).flatMap((k) => block(graph, k, depth + 1)),
@@ -147,7 +148,12 @@ export function from_sysml(text: string, known: readonly Block[] = []): Graph {
   /** What a reference stands for, once everything it could name is placed. */
   for (const r of stands) {
     const target = graph.blocks[at(r.at)];
-    if (target) graph.blocks[r.id] = { ...graph.blocks[r.id]!, of: target.id, name: undefined };
+    const b = graph.blocks[r.id]!;
+    if (target) {
+      /** A reference is one by its kind: a type that is not a reference kind gives way to it. */
+      const type = block_base(graph, b.type) === "reference" ? b.type : "reference";
+      graph.blocks[r.id] = { ...b, type, of: target.id, name: undefined };
+    }
   }
 
   /** Ends resolve once everything is placed. */
@@ -183,8 +189,11 @@ export function shape_of(graph: Graph): string[] {
   const trail = (id: Id) => path(graph, id).slice(2).map((b) => shown_name(graph, b.id)).join("/");
   const blocks = Object.values(graph.blocks)
     .filter((b) => !b.def && b.parent)
-    .map((b) => `${keyword(graph, b.id)} ${trail(b.id)}${b.type ? ` : ${b.type}` : ""}`
-              + (is_reference(b) && b.of ? ` -> ${trail(b.of)}` : ""));
+    .map((b) => {
+      const of = of_ref(graph, b.id);
+      return `${keyword(graph, b.id)} ${trail(b.id)}${b.type ? ` : ${b.type}` : ""}`
+        + (of ? ` -> ${trail(of)}` : "");
+    });
   const edges = Object.values(graph.edges)
     .map((e) => `${edge_base(graph, e.id)} ${trail(owner_of(graph, e.from))} -> ${trail(owner_of(graph, e.to))}`);
   return [...blocks.sort(), ...edges.sort()];

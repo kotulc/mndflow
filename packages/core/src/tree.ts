@@ -1,6 +1,6 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import { base_of, isa, setting_of } from "./defs";
+import { base_of, isa, module_of, setting_of } from "./defs";
 import { drawn_in } from "./holders";
 import { LAYOUTS, type Block, type Definition, type Graph, type Id, type Layout,
          type Relation } from "./types";
@@ -67,8 +67,17 @@ export function ports_of(graph: Graph, def: Id | undefined): Block[] {
   return isa(graph, def).flatMap((d) => children(graph, d.id).filter((b) => is_interface(graph, b.id)));
 }
 
-export function is_reference(b: Block): boolean {
-  return b.of !== undefined;
+/** Whether a block is a reference: a usage whose chain carries *is reference*, which runs the
+ *  `reference` module. **Its kind decides it, never `of`.** */
+export function is_reference(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  /** A plain block stores no type, so it is never one. */
+  return !!b?.type && !b.def && module_of(graph, id) === "reference";
+}
+
+/** What a reference points at, as it stores it: `of`, read only where the block is one. */
+export function of_ref(graph: Graph, id: Id): Id | undefined {
+  return is_reference(graph, id) ? graph.blocks[id]!.of : undefined;
 }
 
 /** A block holding blocks draws as a container. */
@@ -80,23 +89,18 @@ export function is_container(graph: Graph, id: Id): boolean {
 export function stands_for(graph: Graph, id: Id): Block | null {
   let b: Block | undefined = graph.blocks[id];
   const seen = new Set<Id>();
-  while (b?.of && !seen.has(b.id)) {
+  for (let of = b && of_ref(graph, b.id); b && of && !seen.has(b.id);
+       of = b && of_ref(graph, b.id)) {
     seen.add(b.id);
-    b = graph.blocks[b.of];
+    b = graph.blocks[of];
   }
   return b ?? null;
-}
-
-/** The block a card previews: what a reference to a block stands for, else the block itself. */
-export function previewed(graph: Graph, id: Id): Id {
-  const target = graph.blocks[id]?.of ? stands_for(graph, id) : null;
-  return target && target.id !== id ? target.id : id;
 }
 
 /** The definition a stand-in stands for, where it stands for one: it draws as that definition's
  *  usages do. */
 export function stood_def(graph: Graph, id: Id): Definition | undefined {
-  const of = graph.blocks[id]?.of;
+  const of = of_ref(graph, id);
   const at = of ? graph.blocks[of] : undefined;
   return at?.def ? (at as Definition) : undefined;
 }

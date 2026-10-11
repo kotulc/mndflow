@@ -5,8 +5,10 @@
  *  links to a stand-in for the definition its attribute names; a usage links to the usage its
  *  value names. A link line is looked at, never picked. */
 
-import { attributes_of, def_at, drawn_in, is_interface, isa, links_to, shown_name, type Block,
+import { attributes_of, drawn_in, is_interface, isa, links_to, shown_name, type Block,
          type Graph, type Id, type Relation } from "@mnd/core";
+import { drawn_label, with_labels } from "./label";
+import { resolved } from "./through";
 
 /** What a link's id starts with, so nothing takes it for a relationship. */
 export const LINK = "link:";
@@ -19,6 +21,7 @@ const DRAWN = { line: { dir: "forward", to_arrow: "open" }, style: { border_styl
 export function linked_graph(graph: Graph, layer: Id | null): Graph {
   const cards = drawn_in(graph, layer).filter((b) => !is_interface(graph, b.id));
   const edges: Record<Id, Relation> = {};
+  const labels: Block[] = [];
   for (const from of cards) {
     const def = stood(graph, from) ?? from.type;
     for (const a of attributes_of(graph, def)) {
@@ -28,11 +31,14 @@ export function linked_graph(graph: Graph, layer: Id | null): Graph {
       for (const to of cards) {
         if (to.id === from.id || !names(graph, from, to, target, answer)) continue;
         const id = `${LINK}${from.id}:${a.name}:${to.id}`;
-        edges[id] = { id, from: from.id, to: to.id, name: a.name, settings: DRAWN };
+        const label = drawn_label(a.name);
+        labels.push(label);
+        edges[id] = { id, from: from.id, to: to.id, tags: [label.id], settings: DRAWN };
       }
     }
   }
-  return Object.keys(edges).length ? { ...graph, edges: { ...graph.edges, ...edges } } : graph;
+  return Object.keys(edges).length ? { ...graph, blocks: with_labels(graph.blocks, labels),
+                                       edges: { ...graph.edges, ...edges } } : graph;
 }
 
 /** Whether `to` is what `from`'s link names: a stand-in for the definition, where `from` stands
@@ -45,5 +51,5 @@ function names(graph: Graph, from: Block, to: Block, target: Id, answer?: string
 
 /** The definition a block stands in for, where it stands for one. */
 function stood(graph: Graph, b: Block): Id | undefined {
-  return b.of && def_at(graph, b.of) ? b.of : undefined;
+  return resolved(graph, b.id).stands_in?.id;
 }

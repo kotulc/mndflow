@@ -1,10 +1,11 @@
 /** How big a thing is, before anything is placed. */
 
-import { covers, inline, is_grid, is_interface, lattice_of, previewed, setting_of, shown_name,
+import { covers, inline, is_grid, is_interface, lattice_of, setting_of, shown_name,
          stamps_of, FACES, type Graph, type Grid, type Id, type Point } from "@mnd/core";
 import { edge_of, fit_of, face_table, face_text, handle_of } from "./face";
 import { look_of } from "./look";
 import type { Ruled } from "./scene";
+import { resolved } from "./through";
 
 /** The one place the drawing's proportions are set, and the unit is the only measure there is. */
 export const UNITS = {
@@ -167,7 +168,7 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
   if (is_interface(graph, b.id)) return PORT;
   if (b.w !== undefined && b.h !== undefined && free_height(graph, id)) return { w: b.w, h: b.h };
   /** A reference to a block previews it, at its size, with the face where it sits. */
-  const source = previewed(graph, id);
+  const source = resolved(graph, id).card;
   if (source !== id && !is_grid(graph, source)) return size_of(graph, source, face, card);
   return face === "large" ? large_of(graph, id, card) : { ...BLOCK };
 }

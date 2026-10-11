@@ -88,6 +88,19 @@ export function is_label(graph: Graph, def: Id | undefined): boolean {
   return !!def && def !== LABEL && isa(graph, def).some((d) => d.id === LABEL);
 }
 
+/** The label a line is called by: the nearest its chain carries. */
+export function label_carried(graph: Graph, id: Id): Definition | undefined {
+  const hit = carried_tags(graph, id).find((c) => is_label(graph, c.id));
+  return hit ? def_at(graph, hit.id) : undefined;
+}
+
+/** The label called this, the workspace's first, where there is one. */
+export function label_named(graph: Graph, name: string): Definition | undefined {
+  const want = name.trim();
+  const hits = all_defs(graph).filter((d) => d.name === want && is_label(graph, d.id));
+  return hits.find((d) => !frozen(graph, d.id)) ?? hits[0];
+}
+
 /** The links an element reads through, nearest first: a definition's chain starts at itself; a
  *  usage's and a line's at themselves, then their definition's. */
 function links_of(graph: Graph, id: Id | undefined): Link[] {
@@ -261,12 +274,10 @@ export function kind_free(graph: Graph, id: Id): boolean {
     && !Object.values(graph.edges).some((e) => e.type === id);
 }
 
-/** A block's base: what its own shape says, else what its chain descends from. A definition's
- *  chain starts at itself. */
+/** A block's base: what its chain descends from. A definition's chain starts at itself. */
 export function base_of(graph: Graph, id: Id): Id {
   const b = graph.blocks[id];
   if (!b) return "block";
-  if (b.of) return "reference";
   return base_named(graph, b.def ? b.id : b.type) ?? "block";
 }
 
@@ -286,7 +297,6 @@ export function edge_base(graph: Graph, id: Id): Id {
 export function module_of(graph: Graph, id: Id): BlockModule {
   const b = graph.blocks[id];
   if (!b) return "block";
-  if (b.of) return "reference";
   return module_named(graph, b.def ? b.id : b.type);
 }
 
@@ -350,7 +360,7 @@ export function plain_type(base: Id): Id | null {
 }
 
 /** Bases an element's own shape says, so a plain one names nothing. */
-const STRUCTURAL: readonly Id[] = ["block", "reference"];
+const STRUCTURAL: readonly Id[] = ["block"];
 
 /** The package root a block sits under. */
 export function package_of(graph: Graph, id: Id): Id {
@@ -428,7 +438,10 @@ export function uses_of(graph: Graph, pkg: Id): Id[] {
     if (package_of(graph, b.id) !== pkg) continue;
     reach(b.type);
     for (const t of b.tags ?? []) reach(entry(t).id);
-    if (b.of) { const home = package_of(graph, b.of); if (home !== pkg) out.add(home); }
+    if (b.of && module_of(graph, b.id) === "reference") {
+      const home = package_of(graph, b.of);
+      if (home !== pkg) out.add(home);
+    }
   }
   for (const e of Object.values(graph.edges)) {
     if (package_of(graph, e.from) !== pkg && package_of(graph, e.to) !== pkg) continue;

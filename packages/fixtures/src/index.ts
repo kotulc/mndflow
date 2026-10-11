@@ -128,9 +128,9 @@ export function gridded(): Log {
     ...named.map(([id, label]) =>
       step("create", [block(id, "block_board", label, "block")])),
     step("seat", [
-      { op: "add_block", block: { id: "ref_alice", parent: "block_board", of: "block_alice" } },
+      { op: "add_block", block: { id: "ref_alice", parent: "block_board", type: "reference", of: "block_alice" } },
       joins("ref_alice"), seat("ref_alice", 1, 0),
-      { op: "add_block", block: { id: "ref_bob", parent: "block_board", of: "block_bob" } },
+      { op: "add_block", block: { id: "ref_bob", parent: "block_board", type: "reference", of: "block_bob" } },
       joins("ref_bob"), seat("ref_bob", 2, 0),
       joins("block_draft"), seat("block_draft", 1, 1),
       joins("block_review"), seat("block_review", 1, 2),

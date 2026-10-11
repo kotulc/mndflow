@@ -10,7 +10,7 @@ import { holds_any } from "./capabilities";
 import { inline, is_folder, is_grid, layer_of } from "./holders";
 import { opens } from "./names";
 import { at_cut, in_section, is_layer_view, type Section, type ViewKind } from "./sections";
-import { is_interface, path, stands_for } from "./tree";
+import { is_interface, of_ref, path, stands_for } from "./tree";
 import { MAIN, type Graph, type Id } from "./types";
 
 /** Where a host's sections start: the forest above every package, or the workspace's root. */
@@ -48,7 +48,7 @@ export function lens_of(graph: Graph, id: Id): ViewKind | null {
   if (!b) return null;
   if (b.parent === null || is_folder(graph, id)) return "folder";
   if (b.def) return "definition";
-  const target = b.of ? stands_for(graph, id) : null;
+  const target = of_ref(graph, id) ? stands_for(graph, id) : null;
   if (target && target.id !== id) return lens_of(graph, target.id);
   if (is_grid(graph, id)) return "grid";
   if (inline(graph, id)) return null;
@@ -140,7 +140,7 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
                         now?: View | null): View | null {
   const b = graph.blocks[id];
   if (!b) return null;
-  const target = b.of ? stands_for(graph, id) : null;
+  const target = of_ref(graph, id) ? stands_for(graph, id) : null;
   if (target && target.id !== id) return open_at(graph, tiers, views, target.id);
   const { roots, held } = trace(graph, tiers, id);
   if (b.def) {

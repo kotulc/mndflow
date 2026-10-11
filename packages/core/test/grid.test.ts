@@ -30,7 +30,7 @@ function commit(name: string, mutations: Mutation[]): void {
 function seat(id: Id, r: number, c: number, of?: Id): Id {
   commit("seat", [
     { op: "add_block", block: { id, parent: "lanes", type: "block", name: id,
-                                cell: { r, c }, ...(of ? { of } : {}) } },
+                                cell: { r, c }, ...(of ? { type: "reference", of } : {}) } },
   ]);
   return id;
 }

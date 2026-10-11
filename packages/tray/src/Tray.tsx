@@ -5,9 +5,10 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { about_of, alias_of, children, def_at, def_of, domain_of, entry, frame_of, frozen,
-         is_interface, is_style, is_tag, is_trait, is_value_type, owner_of, shown_name, stands_for,
-         stood_def, type Act, type Graph, type Id } from "@mnd/core";
+         is_interface, is_style, is_tag, is_trait, is_value_type, of_ref, owner_of, shown_name,
+         stands_for, type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
+import { resolved } from "@mnd/views";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Attributes } from "./Attributes";
 import { Element } from "./Element";
@@ -136,7 +137,7 @@ function what_of(graph: Graph, id: Id): string {
     return is_trait(graph, id) ? "trait" : is_style(graph, id) ? "style" : is_tag(graph, id) ? "tag"
       : is_value_type(graph, id) ? "type" : "definition";
   }
-  return stood_def(graph, id) ? "stand-in" : b.of ? "reference" : "usage";
+  return resolved(graph, id).stands_in ? "stand-in" : of_ref(graph, id) ? "reference" : "usage";
 }
 
 export function Tray(props: TrayProps) {
@@ -205,7 +206,7 @@ export function Tray(props: TrayProps) {
 
   /** A reference holds nothing of its own — `of` is the whole of it — so its contents is the one
    *  it stands for, listed as a row like any other and offering the way there. */
-  const points_at = graph.blocks[about]?.of;
+  const points_at = of_ref(graph, about);
   const stands = points_at ? stands_for(graph, about) : null;
   /** The one it stands for, read as a row of the layer it really lives in. */
   const stood = stands

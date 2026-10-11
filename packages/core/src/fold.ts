@@ -124,9 +124,6 @@ function apply(graph: Graph, m: Mutation): void {
     case "update_edge": {
       const e = graph.edges[m.id];
       if (!e) return;
-      if (m.name !== undefined) {
-        if (m.name) e.name = m.name; else delete e.name;
-      }
       /** Null clears the type; absent leaves it alone. */
       if (m.type === null) delete e.type;
       else if (m.type !== undefined) e.type = m.type;

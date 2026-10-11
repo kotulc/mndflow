@@ -94,7 +94,7 @@ describe("references", () => {
 
     s.look(ROOT);
     s.go("refer", { target: auth });
-    const ref = children(s.graph(), ROOT).find((b) => is_reference(b))!;
+    const ref = children(s.graph(), ROOT).find((b) => is_reference(s.graph(), b.id))!;
 
     expect(shown_name(s.graph(), ref.id)).toBe("Auth");
     expect(stands_for(s.graph(), ref.id)?.id).toBe(auth);

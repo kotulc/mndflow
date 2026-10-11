@@ -5,7 +5,7 @@
  *  in the root docs. */
 
 import { all_defs, base_of, carried_tags, def_at, def_of, domain_of, edge_base, entry, frozen,
-         gives, is_base, isa, kind_free, type Act, type Definition, type Graph,
+         gives, is_base, is_label, isa, kind_free, type Act, type Definition, type Graph,
          type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
@@ -45,6 +45,10 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
 
   /** The definition in force, whose name this element draws where it carries none. */
   const following = def_at(graph, def_of(graph, id));
+  /** A line's name is the label it carries: its own, else one its definition carries. */
+  const label = edge ? carried_tags(graph, id).find((c) => is_label(graph, c.id)) : undefined;
+  const said_label = label?.from === id ? def_at(graph, label.id) : undefined;
+  const read_label = label && !said_label ? def_at(graph, label.id) : undefined;
   /** Which extends row applies: one it owns and may re-base, or none of its own, or theirs. */
   const re_base = element && mine && !fixed;
   const base_only = element && (!own || is_base(own.id));
@@ -57,13 +61,14 @@ export function Identity({ graph, id, onAct, onOpen }: IdentityProps) {
            anywhere, and what its usages draw is its type name, on the row below. */}
         <Line label="name"
               tip={element
-                ? "What this is called, as the drawing writes it. Left blank it draws its type's name."
+                ? edge ? "What this line is called: a label it carries, the workspace's of that name, made where there is none. Left blank it draws its type's."
+                  : "What this is called, as the drawing writes it. Left blank it draws its type's name."
                 : "A definition is not drawn anywhere, so it carries no name of its own. What its usages draw is its type name, below."}>
           {element ? (
             /** Committed when it is left, like every other box: renaming per keystroke made one
              *  undo step per character, and trimmed the space off the end as you typed it. */
-            <Entry key={`name-${id}`} value={(b ?? edge)!.name ?? ""} label="name" blank
-                   placeholder={following?.name ?? kind}
+            <Entry key={`name-${id}`} value={(b ? b.name : said_label?.name) ?? ""} label="name" blank
+                   placeholder={read_label?.name ?? following?.name ?? kind}
                    onCommit={(to) => onAct("rename", { id, name: to })} />
           ) : (
             <input value="" readOnly aria-label="name" placeholder={d?.name || kind} />

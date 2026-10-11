@@ -3,6 +3,7 @@
 
 import { closes_cycle, frozen, isa, owner_def, stated, tree_of } from "./defs";
 import { is_grid } from "./holders";
+import { label_of } from "./names";
 import { children, is_interface, subtree } from "./tree";
 import type { Components, Flow, Graph, Id } from "./types";
 
@@ -250,7 +251,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
     const allows = allows_of(graph, e.id);
     const expects = expects_of(graph, e.id);
 
-    notes.push(...unanswered(graph, e.id, e.name ?? e.id, expects));
+    notes.push(...unanswered(graph, e.id, label_of(graph, e.id) || e.id, expects));
     if (allows.ends) {
       end(notes, graph, e.id, "from", e.from, allows.ends.from, allows.ends.fromFlow);
       end(notes, graph, e.id, "to", e.to, allows.ends.to, allows.ends.toFlow);

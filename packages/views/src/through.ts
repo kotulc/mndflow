@@ -5,10 +5,26 @@
  *    parts keep their ids, so an edit to one goes home to the definition.
  *  - A usage's card wears its definition's interfaces, its chain's included, each under
  *    `usage/part`, and a run naming a part (`fromPart`, `toPart`) meets it there. A definition's
- *    card and room wear the interfaces its chain declares the same way. */
+ *    card and room wear the interfaces its chain declares the same way.
+ *  - **A reference is resolved here, once** (`resolved`): what its card previews, the definition
+ *    it stands in for, or that it names nothing. Every reader in views asks this, never `of`. */
 
-import { children, def_at, is_interface, part_id, ports_of, type Block, type Graph, type Id,
-         type Relation } from "@mnd/core";
+import { children, def_at, is_interface, is_reference, of_ref, part_id, ports_of, stands_for, type Block,
+         type Definition, type Graph, type Id, type Relation } from "@mnd/core";
+
+/** What a card draws as: the block it previews — what a reference stands for, else itself — the
+ *  definition a reference stands in for, and whether a reference names nothing there. */
+export type Resolved = { card: Id; stands_in?: Definition; missing: boolean };
+
+
+/** What a card draws as, a reference resolved: decided by *is reference*, never by `of`. */
+export function resolved(graph: Graph, id: Id): Resolved {
+  if (!is_reference(graph, id)) return { card: id, missing: false };
+  const target = stands_for(graph, id);
+  if (!target || target.id === id) return { card: id, missing: true };
+  const def = def_at(graph, of_ref(graph, id));
+  return { card: target.id, ...(def ? { stands_in: def } : {}), missing: false };
+}
 
 
 /** The graph a layer is drawn from, with what its usages read through laid in. */

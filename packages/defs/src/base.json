@@ -33,7 +33,7 @@
           "has_parts",
           "has_ports",
           "has_values",
-          "family_primary"
+          "plain_style"
         ]
       },
       "folder": {
@@ -48,8 +48,7 @@
         },
         "order": 3,
         "tags": [
-          "family_neutral",
-          "contrast_faint"
+          "folder_style"
         ]
       },
       "reference": {
@@ -60,19 +59,14 @@
         "body": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
         "def": {},
         "settings": {
-          "card": {},
-          "style": {
-            "opacity": 0.55
-          }
+          "card": {}
         },
         "order": 4,
         "tags": [
           "is_reference",
           "-has_parts",
           "-has_values",
-          "family_away",
-          "fill_hatch",
-          "contrast_strong"
+          "reference_style"
         ]
       },
       "interface": {
@@ -83,10 +77,7 @@
         "body": "A port seated on a block's wall: where relations enter and leave it.",
         "def": {},
         "settings": {
-          "card": {},
-          "style": {
-            "border_width": "thin"
-          }
+          "card": {}
         },
         "order": 5,
         "tags": [
@@ -94,7 +85,7 @@
           "-has_parts",
           "-has_ports",
           "-has_values",
-          "family_secondary"
+          "port_style"
         ]
       },
       "group": {
@@ -111,8 +102,7 @@
         "tags": [
           "is_group",
           "-has_ports",
-          "family_muted",
-          "contrast_faint"
+          "group_style"
         ]
       },
       "grid": {
@@ -128,8 +118,7 @@
         "order": 7,
         "tags": [
           "is_grid",
-          "family_muted",
-          "contrast_faint"
+          "grid_style"
         ]
       },
       "note": {
@@ -140,12 +129,7 @@
         "body": "A remark about what it is tied to. It holds nothing.",
         "def": {},
         "settings": {
-          "card": {},
-          "style": {
-            "border_contrast": "strong",
-            "name_contrast": "faint",
-            "opacity": 0.06
-          }
+          "card": {}
         },
         "order": 8,
         "tags": [
@@ -154,8 +138,7 @@
           "has_body",
           "-has_parts",
           "-has_ports",
-          "family_note",
-          "fill_wash"
+          "note_style"
         ]
       },
       "base.relations": {
@@ -448,11 +431,12 @@
         "type": "folder",
         "order": 30
       },
-      "family_primary": {
-        "id": "family_primary",
+      "plain_style": {
+        "id": "plain_style",
         "parent": "base.styles",
-        "name": "family primary",
+        "name": "plain style",
         "type": "style",
+        "body": "How a plain block reads: the primary family.",
         "def": {},
         "settings": {
           "style": {
@@ -461,150 +445,104 @@
         },
         "order": 31
       },
-      "family_secondary": {
-        "id": "family_secondary",
+      "folder_style": {
+        "id": "folder_style",
         "parent": "base.styles",
-        "name": "family secondary",
+        "name": "folder style",
         "type": "style",
+        "body": "How a folder reads: quiet, neutral and faint.",
         "def": {},
         "settings": {
           "style": {
-            "family": "secondary"
-          }
-        },
-        "order": 32
-      },
-      "family_neutral": {
-        "id": "family_neutral",
-        "parent": "base.styles",
-        "name": "family neutral",
-        "type": "style",
-        "def": {},
-        "settings": {
-          "style": {
-            "family": "neutral"
-          }
-        },
-        "order": 33
-      },
-      "family_muted": {
-        "id": "family_muted",
-        "parent": "base.styles",
-        "name": "family muted",
-        "type": "style",
-        "def": {},
-        "settings": {
-          "style": {
-            "family": "muted"
-          }
-        },
-        "order": 34
-      },
-      "family_away": {
-        "id": "family_away",
-        "parent": "base.styles",
-        "name": "family away",
-        "type": "style",
-        "def": {},
-        "settings": {
-          "style": {
-            "family": "away"
-          }
-        },
-        "order": 35
-      },
-      "family_note": {
-        "id": "family_note",
-        "parent": "base.styles",
-        "name": "family note",
-        "type": "style",
-        "def": {},
-        "settings": {
-          "style": {
-            "family": "note"
-          }
-        },
-        "order": 36
-      },
-      "fill_solid": {
-        "id": "fill_solid",
-        "parent": "base.styles",
-        "name": "fill solid",
-        "type": "style",
-        "def": {},
-        "settings": {
-          "style": {
-            "fill": "solid"
-          }
-        },
-        "order": 37
-      },
-      "fill_hatch": {
-        "id": "fill_hatch",
-        "parent": "base.styles",
-        "name": "fill hatch",
-        "type": "style",
-        "def": {},
-        "settings": {
-          "style": {
-            "fill": "hatch"
-          }
-        },
-        "order": 38
-      },
-      "fill_wash": {
-        "id": "fill_wash",
-        "parent": "base.styles",
-        "name": "fill wash",
-        "type": "style",
-        "def": {},
-        "settings": {
-          "style": {
-            "fill": "wash"
-          }
-        },
-        "order": 39
-      },
-      "fill_none": {
-        "id": "fill_none",
-        "parent": "base.styles",
-        "name": "fill none",
-        "type": "style",
-        "def": {},
-        "settings": {
-          "style": {
-            "fill": "none"
-          }
-        },
-        "order": 40
-      },
-      "contrast_strong": {
-        "id": "contrast_strong",
-        "parent": "base.styles",
-        "name": "contrast strong",
-        "type": "style",
-        "def": {},
-        "settings": {
-          "style": {
-            "border_contrast": "strong",
-            "name_contrast": "strong"
-          }
-        },
-        "order": 41
-      },
-      "contrast_faint": {
-        "id": "contrast_faint",
-        "parent": "base.styles",
-        "name": "contrast faint",
-        "type": "style",
-        "def": {},
-        "settings": {
-          "style": {
+            "family": "neutral",
             "border_contrast": "faint",
             "name_contrast": "faint"
           }
         },
-        "order": 42
+        "order": 32
+      },
+      "reference_style": {
+        "id": "reference_style",
+        "parent": "base.styles",
+        "name": "reference style",
+        "type": "style",
+        "body": "How a reference reads: hatched and sheer, away from what it stands for.",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "away",
+            "fill": "hatch",
+            "border_contrast": "strong",
+            "name_contrast": "strong",
+            "opacity": 0.55
+          }
+        },
+        "order": 33
+      },
+      "port_style": {
+        "id": "port_style",
+        "parent": "base.styles",
+        "name": "port style",
+        "type": "style",
+        "body": "How a port reads: the secondary family, thinly bordered.",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "secondary",
+            "border_width": "thin"
+          }
+        },
+        "order": 34
+      },
+      "group_style": {
+        "id": "group_style",
+        "parent": "base.styles",
+        "name": "group style",
+        "type": "style",
+        "body": "How a group reads: a muted, faint rim.",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "muted",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
+          }
+        },
+        "order": 35
+      },
+      "grid_style": {
+        "id": "grid_style",
+        "parent": "base.styles",
+        "name": "grid style",
+        "type": "style",
+        "body": "How a grid reads: muted and faint, as a group does.",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "muted",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
+          }
+        },
+        "order": 36
+      },
+      "note_style": {
+        "id": "note_style",
+        "parent": "base.styles",
+        "name": "note style",
+        "type": "style",
+        "body": "How a note reads: a wash of the note family, its border strong and its text faint.",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "note",
+            "fill": "wash",
+            "border_contrast": "strong",
+            "name_contrast": "faint",
+            "opacity": 0.06
+          }
+        },
+        "order": 37
       },
       "base.types": {
         "id": "base.types",

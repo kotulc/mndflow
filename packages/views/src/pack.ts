@@ -20,7 +20,7 @@ export function pack_units(sized: readonly Sized[], across?: number): Placed[] {
 
 /** What a satellite belongs to: what a reference links on the layer, or what a note is tied to. */
 export function belongs_to(graph: Graph, layer: Id | null, b: Block): Id[] {
-  return is_reference(b) ? layer_targets(graph, layer, b.id) : tie_targets(graph, layer, b.id);
+  return is_reference(graph, b.id) ? layer_targets(graph, layer, b.id) : tie_targets(graph, layer, b.id);
 }
 
 function tie_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
@@ -35,7 +35,7 @@ function tie_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
 
 /** A tied note or a reference: on a `free` layer, one never placed sits by what it names. */
 export function is_satellite(graph: Graph, layer: Id | null, b: Block): boolean {
-  if (is_reference(b) && b.of) return true;
+  if (is_reference(graph, b.id)) return true;
   return is_note(graph, b.id) && tie_targets(graph, layer, b.id).length > 0;
 }
 

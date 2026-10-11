@@ -4,9 +4,10 @@
  *  inherits reads first and faint; it is edited where it is declared. */
 
 import { useState } from "react";
-import { all_defs, attributes_of, def_at, def_of, domain_of, form_of, frozen, is_tag, links_to, previewed,
+import { all_defs, attributes_of, def_at, def_of, domain_of, form_of, frozen, is_tag, links_to,
          setting_of, type Act, type Attribute, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
+import { resolved } from "@mnd/views";
 import { NOOP } from "./Body";
 import { Entry } from "./Entry";
 import { Table, type Column, type Line } from "./Table";
@@ -24,7 +25,7 @@ export function Attributes({ graph, id, onAct = NOOP }: AttributesProps) {
   const b = graph.blocks[id] ?? graph.edges[id];
   if (!b) return <p className="empty">that is not here any more</p>;
   /** A stand-in reads as what it stands for, as its card does: edited there, never here. */
-  const target = graph.blocks[id] ? previewed(graph, id) : id;
+  const target = graph.blocks[id] ? resolved(graph, id).card : id;
   if (target !== id) return <Attributes graph={graph} id={target} />;
   const fixed = readonly || frozen(graph, id);
   const field = (args: Record<string, unknown>) => onAct("field", { holder: id, ...args });

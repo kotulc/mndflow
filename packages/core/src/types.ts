@@ -132,9 +132,6 @@ export type Relation = {
   id: Id;
   from: Id;
   to: Id;
-  /** What it is called, exactly as a block carries one. Absent draws its definition's name, the
-   *  way an unnamed card draws its kind word. */
-  name?: string;
   type?: Id;
   /** A part of the `from` block's definition the run leaves from: a usage reads it through. */
   fromPart?: Id;
@@ -142,7 +139,8 @@ export type Relation = {
   toPart?: Id;
   /** A handle serial, as a block carries. */
   alias?: number;
-  /** What it carries, as a block does: added to its definition's, `-id` dropping one. */
+  /** What it carries, as a block does: added to its definition's, `-id` dropping one. **Its name
+   *  is a label it carries**, never a field of its own. */
   tags?: string[];
   /** What this one line says about how it draws, over whatever its definition said. */
   settings?: Components;
@@ -211,8 +209,8 @@ export type Mutation =
   /** A block's lattice, written whole: its shape is one thing. Null gives it back. */
   | { op: "set_grid"; id: Id; grid: Grid | null }
   | { op: "link_blocks"; edge: Relation }
-  /** As `update_block`: only what is said changes, and `type: null` clears it. */
-  | { op: "update_edge"; id: Id; name?: string; type?: Id | null }
+  /** Only what is said changes, and `type: null` clears it. */
+  | { op: "update_edge"; id: Id; type?: Id | null }
   | { op: "delete_edge"; id: Id }
   | { op: "flip_edge"; id: Id }
   /** An end moved onto a block, and optionally onto a part its definition holds. */

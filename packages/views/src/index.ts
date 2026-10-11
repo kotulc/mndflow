@@ -25,4 +25,4 @@ export { definition_graph, dropped_in, inherited_in, ASPECT } from "./definition
 export { profile_graph } from "./profile";
 export { page_graph } from "./page";
 export { sheet_graph, GRID_LAYER } from "./sheet";
-export { read_through } from "./through";
+export { read_through, resolved, type Resolved } from "./through";

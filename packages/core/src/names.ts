@@ -1,9 +1,9 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
-import { attributes_of, base_named, base_of, def_at, def_of, edge_base, frozen,
+import { attributes_of, base_named, base_of, def_at, def_of, edge_base, frozen, label_carried,
          tree_of } from "./defs";
 import { is_flat, is_group, shape_of } from "./holders";
-import { children, is_container, stands_for, stood_def } from "./tree";
+import { children, is_container, of_ref, stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
 
@@ -55,13 +55,13 @@ export function next_alias(graph: Graph, kind: string): number {
 /** Whether somebody named this element, as against the tag it wears until they do. A line counts
  *  as named by its own name or by the type it follows. */
 export function is_named(graph: Graph, id: Id): boolean {
-  const e = graph.edges[id];
-  if (e) return !!e.name?.trim() || !!e.type;
+  if (graph.edges[id]) return !!label_carried(graph, id) || !!graph.edges[id]!.type;
   const b = graph.blocks[id];
   if (!b) return false;
   /** A stand-in for a definition or a package reads as what it points at. */
-  if (b.of && (def_at(graph, b.of) || graph.blocks[b.of]?.parent === null)) return true;
-  const target = b.of ? stands_for(graph, id) : b;
+  const of = of_ref(graph, id);
+  if (of && (def_at(graph, of) || graph.blocks[of]?.parent === null)) return true;
+  const target = of ? stands_for(graph, id) : b;
   if (!target) return false;
   /** Only the name counts, never the body. */
   return !!target.name?.trim();
@@ -71,10 +71,11 @@ export function is_named(graph: Graph, id: Id): boolean {
 export function shown_name(graph: Graph, id: Id): string {
   const b = graph.blocks[id];
   if (!b) return graph.edges[id] ? label_of(graph, id) || edge_base(graph, id) : "missing";
-  if (b.of) {
+  const of = of_ref(graph, id);
+  if (of) {
     /** A stand-in for a definition or a package reads as what it points at, unless it was named
      *  itself. */
-    const at = graph.blocks[b.of];
+    const at = graph.blocks[of];
     const said = at && (at.def || at.parent === null) ? at.name : undefined;
     if (said && b.name?.trim()) return b.name.trim();
     if (said) return said;
@@ -90,12 +91,12 @@ function named(graph: Graph, b: Block): string {
   return b.name?.trim() || kind_word(graph, b);
 }
 
-/** What a line draws beside itself: its own name, else the name of the definition it follows, and
- *  nothing where it follows none. **The same rule a card reads** — `kind_word` answers it for a
- *  block, off the same key. */
+/** What a line draws beside itself: the label it carries, its own or its definition's, else the
+ *  name of the definition it follows, and nothing where it follows none. **The same rule a card
+ *  reads** — `kind_word` answers it for a block, off the same key. */
 export function label_of(graph: Graph, id: Id): string {
-  const e = graph.edges[id];
-  if (e?.name?.trim()) return e.name.trim();
+  const named = graph.edges[id] ? label_carried(graph, id) : undefined;
+  if (named) return named.name;
   const d = def_at(graph, id) ?? def_at(graph, def_of(graph, id));
   return d && !shipped_name(d.name) ? d.name : "";
 }
@@ -166,8 +167,9 @@ export function stamps_of(graph: Graph, id: Id): Mark[] {
   const b = graph.blocks[id];
   if (!b) return [];
   const out: Mark[] = [];
-  const at = b.of ? graph.blocks[b.of] : undefined;
-  if (b.of) out.push(at?.def ? "definition" : at?.parent === null ? "package" : "reference");
+  const of = of_ref(graph, id);
+  const at = of ? graph.blocks[of] : undefined;
+  if (of) out.push(at?.def ? "definition" : at?.parent === null ? "package" : "reference");
   const self = at && at.id !== id ? at : b;
   if (self.def && holds_structure(graph, self.id)) out.push("structure");
   if (self.values?.some((v) => v.value) || attributes_of(graph, self.def ? self.id : self.type).length) {
@@ -197,7 +199,8 @@ export function opens(graph: Graph, id: Id): boolean {
   if (!b || is_group(graph, id)) return false;
   if (is_container(graph, id)) return true;
   if (!b.def && def_at(graph, b.type) && is_container(graph, b.type!)) return true;
-  if (b.of && def_at(graph, b.of)) return is_container(graph, b.of);
-  const target = b.of ? stands_for(graph, id) : null;
+  const of = of_ref(graph, id);
+  if (of && def_at(graph, of)) return is_container(graph, of);
+  const target = of ? stands_for(graph, id) : null;
   return !!target && target.id !== id && is_container(graph, target.id);
 }

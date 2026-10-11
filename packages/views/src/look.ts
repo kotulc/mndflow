@@ -2,9 +2,10 @@
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, DISPLAYS,
          domain_of, FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, is_trait,
-         kind_word, PARTS, previewed, relation_base, attributes_of, setting_of, SHOWN, stood_def, WEIGHTS,
+         kind_word, PARTS, relation_base, attributes_of, setting_of, SHOWN, WEIGHTS,
          WIDTHS,
          type Definition, type Graph, type Id, type Settings } from "@mnd/core";
+import { resolved } from "./through";
 
 export type Family = (typeof FAMILIES)[number];
 export type Width = (typeof WIDTHS)[number];
@@ -96,11 +97,11 @@ export function look_of(graph: Graph, id: Id): Look {
   /** The chain, then the element's own last word. A reference to a block previews it, and a
    *  stand-in for a definition looks as its usages do: as what it stands for, but for what it
    *  says of itself, and its mark says it stands in. */
-  const stood = stood_def(graph, id);
-  if (stood) return stand_in(graph, id, stood);
+  const ref = resolved(graph, id);
+  if (ref.stands_in) return stand_in(graph, id, ref.stands_in);
   /** A definition drawn on its package's layer reads as its usages do. */
   if (block.def) return stand_in(graph, id, block as Definition);
-  const source = graph.blocks[previewed(graph, id)]!;
+  const source = graph.blocks[ref.card]!;
   const card = setting_of(graph, source.id, "card");
   const style = source === block ? setting_of(graph, id, "style")
     : { ...setting_of(graph, source.id, "style"), ...(block.settings?.["style"] ?? {}) };

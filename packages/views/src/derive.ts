@@ -1,12 +1,13 @@
 /** What every module derives the same way. */
 
 import { attributes_of, def_of, frozen, head_of, lens_of, is_container, is_flat, is_interface, is_named,
-         base_of, path, previewed, role_of, shape_of, shown_name, stamps_of, stands_for, stood_def,
-         subtypes, tree_of, used_by, type Graph, type Id } from "@mnd/core";
+         base_of, path, role_of, shape_of, shown_name, stamps_of, subtypes, tree_of, used_by,
+         type Graph, type Id } from "@mnd/core";
 import { face_table, face_text, handle_of } from "./face";
 import { look_of } from "./look";
 import { face_of, type Face } from "./size";
 import type { BoxData, CardClass, Scene } from "./scene";
+import { resolved } from "./through";
 
 /** How a block reads, derived from what it holds or where it sits. */
 export function marks_of(graph: Graph, id: Id): CardClass[] {
@@ -14,11 +15,12 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
   const out: CardClass[] = [];
   if (!b) return out;
   const module = base_of(graph, id);
+  const ref = resolved(graph, id);
   /** A stand-in for a definition draws as its usages; only its stamp says it stands in. */
-  if (module === "reference" && !b.def && !stood_def(graph, id)) {
+  if (module === "reference" && !b.def && !ref.stands_in) {
     out.push("reference");
     /** Missing is naming nothing at all. */
-    if (!stands_for(graph, id) || stands_for(graph, id)!.id === id) out.push("missing");
+    if (ref.missing) out.push("missing");
   }
   if (module === "note") out.push("note");
   /** A block that holds wears its shape, whatever kind it descends from. */
@@ -31,7 +33,7 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
     if (b.flow === "out" || b.flow === "both") out.push("out");
   }
   /** A reference to a block holds what it previews, and whatever it holds itself. */
-  if (is_container(graph, id) || is_container(graph, previewed(graph, id))) out.push("container");
+  if (is_container(graph, id) || is_container(graph, ref.card)) out.push("container");
   /** Wearing its type rather than a name somebody chose. */
   if (!is_named(graph, id)) out.push("unnamed");
   /** A header, and one heading a row reads upright in its one-unit column. */
@@ -45,7 +47,7 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
  *  draws with the large face, which the view may ask for — the table and markdown it shows. */
 export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): BoxData {
   /** A reference to a block carries what its target carries. */
-  const b = graph.blocks[previewed(graph, id)]!;
+  const b = graph.blocks[resolved(graph, id).card]!;
   const look = look_of(graph, id);
   /** The handle, over the name. */
   const alias = handle_of(graph, id, look);
