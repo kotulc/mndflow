@@ -32,8 +32,8 @@
 | **rendering** | **one renderer: the stage.** `draw` mounts the kit's `Viewer` in a headless browser and screenshots it, so the picture matches the app by construction. views' `svg.ts` stays as it is and is not grown to parity |
 | **perspective** | **the Viewer's own props**, given as flags: layer, view, fields, focus, chrome. No sidecar file until multi-view handoff needs one |
 | **the text drawing** | dropped from the CLI. views keeps `draw` and `outline`, which its shape tests use |
-| **edge labels** | `label_of` (core `names.ts`) draws the label an edge carries, its own or its definition's, else its definition's name, and nothing for an unnamed base `line` or `tie`. Simple edges use base `line`; a custom relation definition labels every edge it types, so a map reaches for one only when that label is wanted |
-| **markdown** | content is text passed through untouched: any value may come from a file. A card's markdown source is read by the `markdown` and `attach` actions; how a card draws is `card.shows`, `card.size` and `layout.face`, written with `look` (cards-plan.md) |
+| **edge labels** | `label_of` (core `names.ts`) draws an edge's own `name`, else its definition's name, and nothing for an unnamed base `line` or `tie`. Simple edges use base `line`; a custom relation definition labels every edge it types, so a map reaches for one only when that label is wanted |
+| **markdown** | content is text passed through untouched: any value may come from a file. A card's markdown source is read by the `markdown` and `attach` actions; how a card draws is `card.face`, `card.size` and `layout.face`, written with `look` (cards-plan.md) |
 
 
 ## The action surface
@@ -184,7 +184,7 @@ The httpie conventions, so they need no teaching. A script line is already JSON,
 |---|---|
 | an agent writes a card's content | `body=@file.md`, on any block |
 | an agent writes a card whole | `attach body=@file.md source=…`: frontmatter for identity and values, then the body |
-| an agent says what a card shows | `card.shows` and `card.size` on its definition, written with `look` — **settings, not a new field** (schema.md: settings is the one place the schema grows) |
+| an agent says what a card shows | `card.face` and `card.size` on its definition, written with `look` — **settings, not a new field** (schema.md: settings is the one place the schema grows) |
 | an agent restyles to taste across a workspace | definitions carry the look and usages follow: `show` a definition, `look` it once, `draw` to see |
 | a style is shared | `export --package`, then `bring` it elsewhere |
 | content round-trips byte-stable | `show` returns `body` raw; `export` never rewrites it |

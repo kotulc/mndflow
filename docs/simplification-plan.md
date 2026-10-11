@@ -37,7 +37,7 @@
 | what a kind cannot be made from | core `actions/helpers.ts` `NEEDS`, asked by `create`'s check |
 | panning to a revealed block | stage `room.ts` (`useCamera`, from `focus`); the web app sets it on a reveal |
 | settings resolution | core `defs.ts` (`statements`, `stated`, `setting_of`, `said_of`). views `look.ts` and explorer `rows.ts` merged definition and element by hand, skipping a usage's traits; both ask `setting_of` (2026-10-10) |
-| what an element carries | core `defs.ts` (`carried_tags`, `dropped_tags`, `traits_of`, `styles_of`; `entry` / `remap` for `-id`) |
+| what an element carries | core `defs.ts` (`tags_stated`, `traits_stated`: the nearest list, and who states it; `has_trait`, `is_tie`). Drops, styles and labels went with step 12 (2026-10-10) |
 | whether a block is a reference, and what it points at | core `tree.ts` (`is_reference` by its kind, `of_ref`, `stands_for`); `of` is read nowhere else. A reference stores `type: "reference"` (2026-10-10) |
 | what a reference's card draws as | views `through.ts` `resolved` (what it previews, the definition it stands in for, missing); look, size, marks, face, links and the tray ask it. `previewed` and every reader's own `b.of` are gone (2026-10-10) |
 | a definition's interfaces, its chain's included | core `tree.ts` `ports_of`; views `through.ts` lays them on usages, definition cards and rooms |

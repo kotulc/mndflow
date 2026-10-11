@@ -64,7 +64,6 @@
 | thing | is |
 |---|---|
 | **a package's** | a definition in a frozen package, `base` among them. Read only: subtyped, never edited |
-| **label** | what a line naming a relation definition draws, **exactly as typed** — a stereotype such as `<<relates>>`. Its own and never inherited |
 
 - **Styling edits the definition.** The settings tab is a definition's, so every usage follows. A frozen definition's settings are read only.
 - **Naming a type makes one, once.** A name one already holds applies that one. A name nothing holds **renames the workspace definition the element already follows** — so editing the box is editing that one definition, never filing another per edit — and files a new one only where the element follows a base or a frozen definition. Clearing the box gives the element back to its base. **View definition** beside the row makes that definition the context, which is where it is styled and given capabilities. A line keeps the label it was drawing.
@@ -91,14 +90,14 @@
 - **A definition's card source** is its name, what it extends, its tags and traits, its attributes' defaults and what it is for. **Its body is its description**, the note its definition view ties to it.
 - **A body is what the block represents**: a block's is its content, a definition's describes it. Markdown, rendered by the one renderer the cards use. See ST.18.
 - **Permissive**: a type or tag name nothing holds is made, and said.
-- **A line is named by its definition.** Its type row shows the definition it follows and, typed into, files a new definition over it and moves the line onto it.
-- **Label is editable wherever it reads** — on the relation definition, and on a line, where it edits the definition the line follows.
+- **A line is named as a block is**: its name row writes its own `name`; left blank, it draws its definition's. Its type row shows the definition it follows and, typed into, files a new definition over it and moves the line onto it.
+- **Tags are one list**: a usage's, a line's or a definition's own, else its definition's, drawn faint. Any edit makes the list its own; *inherit* gives it back. A new word makes a tag in the workspace's `tags` folder.
 
 ## Settings
 
 **How it draws, beside the drawing; what it may do, across the tab under both.**
 
-- **Traits are a block definition's**: every trait as a toggle chip, lit **on** while in force, **set** (accent) where this definition differs from what it extends, struck where it lets an inherited one go. A style preset is a trait like any other. **Reset traits**, beside *reset style* on the tab strip, gives the set back. A frozen definition's traits read only.
+- **Traits are a definition's**: **one row per trait** — its name, its description, × to take it off — with `+` at the far end of the group's head to add one. An inherited list says where it comes from; any edit makes the list its own. **Reset traits**, beside *reset style* on the tab strip, gives the list back. A frozen definition's traits read only, and a usage's and a line's show none.
 - **Reset style** sits at the far end of the tab strip, and gives the definition's settings back to what it extends.
 - **A usage's and a line's settings are their definition's**, read only here.
 - **The workspace carries a *display* band**: the small card's size, and whether a layer draws the key to itself. **Display, not model** — the log never sees it and no file carries it.
@@ -113,7 +112,7 @@
 |---|---|
 | name | font, weight, contrast, align, handle — and *shown*, for a run only |
 | label | display, font, weight, contrast, align |
-| face | what the large face shows, in order; its size in units; whether it names itself |
+| face | which large face it draws with — table, document, picture; its size in units; whether it names itself |
 | head | from head, to head — a run only |
 | colour | family, pattern, hue, intensity, vary, opacity |
 | border | width, contrast, style — *stroke* on a run |
@@ -152,13 +151,13 @@
 - **A reference lists the one it stands for.** It holds nothing of its own, so its contents is that one block, under a *stands for* column head and offering *view*. Nothing is read through a reference: what it points at is listed as what it is, where it really lives.
 - **Chips narrow by what a row is.**
 - **A column is a field in scope**, asked for by name, and its values are edited in the row.
-- **A block is renamed in its row**; a line is named by its definition.
+- **A block or a line is renamed in its row**.
 - **The lit row offers *view***, which selects it — opening its layer first where it lives in another.
 
 ### Definitions
 
-- **The definitions tab is every definition the workspace can name**, its own first: name, label *(relations)*, extends, source, used. **Nothing is left out** — a package's and the shipped floor's read here beside the workspace's, since hiding them only made *all* a smaller word for *workspace*. **Source says the package, or *workspace* for its own**. Chips narrow by domain — *blocks*, *relations* — and by *all* or *workspace*. A frozen package's row is read but not written.
-- **Name, label and extends are edited in the row**; a frozen package's are not.
+- **The definitions tab is every definition the workspace can name**, its own first: name, extends, source, used. **Nothing is left out** — a package's and the shipped floor's read here beside the workspace's, since hiding them only made *all* a smaller word for *workspace*. **Source says the package, or *workspace* for its own**. Chips narrow by domain — *blocks*, *relations* — and by *all* or *workspace*. A frozen package's row is read but not written.
+- **Name and extends are edited in the row**; a frozen package's are not.
 - **The last row adds one**, where one domain is in view.
 
 ### Packages
@@ -178,7 +177,7 @@
 ### Usages
 
 - **The lines, or the blocks**, by the context's group. Chips narrow by scope, by *line / tie* for lines, and by *any / the definition in context* — **narrowed to that definition until somebody widens it**. The choice is kept as what it means rather than as one definition's id, so widening to *any* survives the move to the next definition, and leaving it narrowed follows each to its own.
-- **Each row offers the definitions it may follow** — for a block, only its own kind's — and a line's row shows the label it draws.
+- **Each row offers the definitions it may follow** — for a block, only its own kind's — and a line's row shows the name it draws.
 - ***Retype all* points every listed usage at one definition**, in one step and one undo.
 - **The lit row offers *view***.
 

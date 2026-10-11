@@ -63,11 +63,11 @@
 | **grid** | a holder that seats text and blocks **in cells**. A card outside; opened, its **grid view**. Lists as a row, like a folder |
 | **reference** | a stand-in for a block, a definition or a package elsewhere |
 | **interface** | a block seated on a wall: where relationships enter and leave. Also **port** |
-| **note** | a remark: resizable, carries body text, ties to the block it is made from |
-| **tag** | a word carried by other elements. Holds nothing. **trait** and **label** are tags too, by their chain |
+| **note** | a remark: resizable, draws its body as a document, ties to the block it is made from |
+| **tag** | a word carried by other elements, to find them by. Holds nothing. A **trait** is a tag too, by its chain |
 | **value** | a value type: what an attribute holds. `text`, `number`, `flag`, `link` and `choice` ship under it; never placed |
 | **line** | the plain relationship. Which way it points is a setting, `line.dir` (`none`, `forward`, `back`, `both`), said by its definition and overridable on the line |
-| **tie** | a dashed relationship with no heads. **A type like any other**, chosen, never forced |
+| **tie** | a dashed relationship with no heads, drawn straight. **A type like any other**, chosen, never forced; it lists *is tie* |
 
 **Block modules are engine code, kinds are data.** Three modules, each named by the trait its kind carries: `block`, `reference` (*is reference*), `interface` (*is port*). Every other kind is the `block` module configured.
 
@@ -79,15 +79,13 @@
 | **setting** | what an element says about how it draws or what it may do, by component (`settings`) |
 | **vary** | a style setting: how far, in degrees, each definition under one that sets it strays from its inherited hue, keyed by its id. Kin read alike, each still itself |
 | **type** (of a value) | a definition under the `value` base. Its `value.form` says how a value is edited (closed, like a module); a choice lists its options in `value.choices` |
-| **capability** | what a block may do, granted by a trait: hold (*has parts*), hold values of its own (*has values*), have ports (*has ports*), draw what it holds in place (*is group*), seat it in cells (*is grid*), be headed (*has head*). **Absent is a no**: what nothing grants is refused at the gesture |
+| **capability** | what a block may do, granted by a trait: hold (*has parts*), hold values of its own (*has values*), have ports (*has ports*), draw what it holds in place (*is group*), seat it in cells (*is grid*), be headed (*has head*), be tied to what it is made from (*has tie*). **Absent is a no**: what nothing grants is refused at the gesture |
 | **constraint** | a capability limited to definitions (`allows` lists, `degree`, `ends`), or what values must say (`expects`). Settings, not traits; to be reworked |
-| **tag** | a definition on the `tag` base. A word with a meaning (`body`), no structure |
-| **trait** | **a tag giving a capability**, by its chain (`extends trait`), named *has X* (a capability) or *is X* (what sort of thing it is, which engine module runs it). One capability a trait. Listed apart from tags. It confers its own settings and those of the traits it extends, never its kind's |
-| **style** | **a tag giving a look**, by its chain (`extends style`): its `settings.style` (or `card`) *is* the preset, and carrying it applies it. `base` ships **one style per kind**, a whole look each — *plain style*, *folder style*, *reference style*, *port style*, *group style*, *grid style*, *note style* — in its `styles` folder, each kind carrying its own |
-| **is reference** · **is port** | the traits naming a kind's engine module: a stand-in, reading `of`; an interface, seated on a wall. `reference` and `interface` carry them |
-| **drop** | `-id` in a `tags` list: the element no longer carries what its chain does. Drawn struck on the definition view |
-| **label** | a tag naming lines, by its chain (`extends label`). **A line's name is the label it carries**, its own or its definition's: naming a line carries the workspace's label of that name, made at the workspace's root where there is none; clearing it takes its own off |
-| **carried** | what an element carries: tags, traits, styles and labels, one list (`tags`), on a usage, a line or a definition alike. **Added up down the chain**: each link adds its own; `-id` drops one a farther link carries. A usage carries everything its definition does, and may add or drop its own |
+| **tag** | a definition on the `tag` base. A word with a meaning (`body`), no structure, **for finding things**: search, filters, lookup. Carried in `tags` by a usage, a line or a definition; a new one is filed in the workspace's `tags` folder |
+| **trait** | **a tag naming an engine function**, by its chain (`extends trait`), named *has X* (a capability) or *is X* (what sort of thing it is, which engine module runs it). One function a trait, its body describing it. Carried in `traits`, **a definition's alone**. It confers its own settings and those of the traits it extends, never its kind's |
+| **style** | how a card draws: a definition's own `style` and `card` settings, overridable on a usage. Not a tag |
+| **is reference** · **is port** · **is tie** | the traits naming a kind's engine behaviour: a stand-in, reading `of`; an interface, seated on a wall; a tie, drawn straight. `reference`, `interface` and `tie` list them |
+| **stated list** | `traits` or `tags` said by an element or definition: **every entry it keeps**, replacing its chain's list whole. Unsaid, it carries the nearest list stated down its chain; an empty list says none |
 | **tie trait** | links a block made from, or dropped on, another to it with a relationship of a given type, on the same layer. Made on its own, it links nothing |
 | **name space** | one per package: a tag, a trait and a block definition never share a name |
 
@@ -99,16 +97,17 @@
 | **layer** | what one block holds, drawn: the blocks drawn on it are those whose nearest **hiding** ancestor is that block |
 | **hides** | a folder, a definition and any block holding blocks hide what they hold, unless a view flattens them; a grid hides its in cells; a group draws its inline |
 | **card** | a block as drawn. **A definition always draws as a card**; its structure is reached by descending |
-| **face** | how much of a card is drawn: **small** — the workspace card size, its handle, name, icon and marks — or **large** — sized to fit its content, or its definition's `card.size`, its name and the parts `card.shows` lists: its attributes as a ruled table under its name, its body and preview as markdown. Chosen by the view and `layout.face`, never by zoom |
+| **face** | how much of a card is drawn: **small** — the workspace card size, its handle, name, icon and marks — or **large** — sized to fit its content, or its definition's `card.size`. Small or large is chosen by the view and `layout.face`, never by zoom; **which** large face by the definition's `card.face`: **table** (its attributes as a ruled table under its name, its body under that), **document** (its body as markdown), **picture** (what its source points at). Naming none, the name is the whole card |
 | **table card** | a large face showing attributes: the name its title row, the card's border the table's, each column the width views measured it at |
 | **card source** | a card as markdown: frontmatter for its identity and values, then its body. Rendered from the graph, read back as ordinary changes; **attach** copies a file's onto a block |
-| **collection** | a package on disk: `package.json` of definitions and a tree of `.md` card sources, each a usage |
+| **collection** | a package on disk: `package.json` (its graph), a `.json` file per definition, and a tree of `.md` card sources, each a usage. Collected one way into a package file |
+| **definition file** | one definition as a JSON file, filed under the folder its directory names. `base` is authored as them |
 | **canvas view** | how the canvas draws: a **system view** — **overhead** or **profile** — of the whole system, both trees, chosen on the rail, or a **layer view** — **internal**, **grid**, **folder** or **definition** — of one block, never chosen. Session state, never stored |
 | **layer view** | a view of one block, which its card's kind decides (`lens_of`): a definition, definition; a grid, grid; a package or folder, folder; a block with structure or room to hold, internal; a stand-in, its target's |
 | **internal** | the opened block from inside: what it holds, as cards |
 | **grid** | an opened grid's lattice, its cells and what sits in them |
 | **folder** | what a package or folder holds, the page fitted to its content's width and scrolled down |
-| **definition** | everything a definition is, its chain's included, on a three by three grid: large in the middle, showing its attributes; above, its tags, what it extends and a note with its body; left and right, a block definition's in and out ports, or the definitions a relation definition's ends may join (`from`, `to`); below, its both-way ports, its settings — the styles it wears, then **one table card per component** its chain states (`style`, `card`, `line`…), a row per setting naming who says it where that is further up — and its traits. Each box joined to it by a plain line. What it reads from its chain wears the part mark; what its chain drops draws struck. Edits there edit the definition |
+| **definition** | everything a definition is, its chain's included, on a three by three grid: large in the middle, showing its attributes; above, its tags, what it extends and a note with its body; left and right, a block definition's in and out ports, or the definitions a relation definition's ends may join (`from`, `to`); below, its both-way ports, its settings — **one table card per component** its chain states (`style`, `card`, `line`…), a row per setting naming who says it where that is further up — and its traits; under all, its **usages**. Each box joined to it by a plain line. What it reads from its chain wears the part mark. Edits there edit the definition |
 | **overhead view** | what the canvas draws while nothing is open (`layer: null`): every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down. A definition holding structure is a box of its top-level blocks as cards, nothing deeper |
 | **flatten** | drawing each block that holds as a box of its contents, so the whole system reads on one page. The overhead and profile views draw flattened, every box a solid rim; a group is a box somebody made, dashed |
 | **profile** | the system from the side: one row per level along the pick, each a box as wide as the widest — every package, then what each block on the way holds, last what the pick holds. A line points from each block on the way down to the row it holds |

@@ -19,14 +19,14 @@
 |---|---|---|---|---|
 | `create` | makes a block in a layer, where you pointed; made from a block, a tie trait links it | layer, block | name?, parent?, type?, spot?, from? | `add_block` (+ `link_blocks`) |
 | `delete` | removes blocks with everything under them, or relationships | block, edge, selection | ids | `delete_block` / `delete_edge` |
-| `rename` | changes what a block or a relationship is called: a line carries the label of that name | block, edge | id, name | `update_block` / `add_block{def}` + `set_tags` |
+| `rename` | changes what a block or a relationship is called | block, edge | id, name | `update_block` / `update_edge` |
 | `retype` | sets which definition a block or relationship is, or a definition extends | block, edge | ids, type | `update_block` / `update_edge` |
 | `describe` | writes a block's body text | block | id, body | `set_body` |
 | `move` | puts blocks under a different parent, in the place you dropped them | block, selection | ids, parent, before?, spot? | `move_block` (+ `seat_cell`) |
 | `refer` | places a stand-in for a block, a definition or a package | layer | target, type?, spot?, parent?, at? | `add_block{of}` (+ `seat_cell`) |
 | `source` | says where a block's content lives outside the workspace, or gives it back | block | id, uri? | `set_source` |
-| `tag` | puts tags on an element; a new word makes a workspace tag | block, edge, selection | ids, tags | `set_tags` (+ `add_block`) |
-| `trait` | sets the traits a definition carries, or gives the set back to its chain. Refuses a usage, and a tag carrying no settings | block, selection | ids, traits? | `set_traits` |
+| `tag` | sets an element's tags, the whole list; a new word makes a tag in the workspace's `tags` folder; none gives the list back to its definition. Refuses a trait | block, edge, selection | ids, tags? | `set_tags` (+ `add_block`) |
+| `trait` | sets the traits a definition carries, the whole list, or gives it back to its chain. Refuses a usage, and a word naming no trait | block, selection | ids, traits? | `set_traits` |
 | `look` | sets one property of how this draws or what it asks | block, edge, selection | ids, key, name, value? | `set_setting` |
 | `none` | gives back everything this says for itself | block, edge, selection | ids | `drop_settings` |
 | `note` | writes a note about a block, tied to it | block | about, text, spot?, w?, h? | `add_block` + `set_body` + `link_blocks` |
@@ -54,7 +54,7 @@
 | `reveal` | opens the layer a block sits on and picks it there, followed through references | block | id | `open` + `focus` |
 
 - **Where the canvas goes is navigation's** (core `navigate.ts`): **the card's kind says the view** (`lens_of`) — a package or folder its folder view, a definition its definition view, a grid its grid view, a block that holds or may hold from inside, a stand-in what it stands for. A definition opened again, or from the section its structure roots, draws its structure. A group, a note and a leaf are revealed in place. Leaving a definition's structure returns to its definition view; leaving a package, to the package view. Both apps use the same functions.
-- **Editing on a definition view edits the definition** (core `aspects.ts`): a tag or trait dropped there is attached, one deleted from its box detached, a port deleted from its box deleted, and the note's text written as the body.
+- **Editing on a definition view edits the definition** (core `aspects.ts`): a tag or trait dropped there is added to the list in force, one deleted from its box taken out — the list becomes its own — a port deleted from its box deleted, and the note's text written as the body.
 - **Opening a part opens its definition**, the part picked there.
 - **The way out of an interface is the way in**: leaving lands in whichever of its two layers you came from.
 

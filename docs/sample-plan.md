@@ -159,13 +159,14 @@ Keep:
 
 - `workspace` — package root and counters.
 - `main` — scratch definition and root structure.
-- `w_looks`, `w_faces`, `w_machines`, `w_holders` — current lab vocabulary.
+- `tags` — the folder the workspace files its tags in (`rotating` today); new tags land here.
+- `w_faces`, `w_machines`, `w_holders`, `w_relations` — current lab vocabulary.
 
 Add:
 
 - `w_platform` — component/service/database/queue/external-system definitions.
 - `w_domain` — editable subtypes of the frozen entity-relation definitions.
-- `w_relations` — calls, publishes, reads, integrates and scenario-message definitions.
+- `w_relations` — kept; add calls, publishes, reads, integrates and scenario-message definitions.
 - `w_docs` — document and decision definitions used by markdown cards.
 - `w_scenarios` — the scenario-grid definition.
 
@@ -206,16 +207,16 @@ the old layers; remove the aliases when all references are updated.
 Add these workspace definitions with fixed IDs:
 
 - `def_component` — attributes `owner: text`, `technology: text`.
-- `def_service` extends `def_component` — service style and `card.shows: [attributes]`.
+- `def_service` extends `def_component` — service style and `card.face: table`.
 - `def_order_service` extends `def_service` — attributes and a reusable structure that demonstrates
   read-through.
 - `def_database` extends `def_component` — attribute `engine: text`.
 - `def_queue` extends `def_component`.
 - `def_external` extends `def_component` — away/dashed look.
-- `def_document` extends `block` — `card.shows: [body]`, large-face documentation.
+- `def_document` extends `block` — `card.face: document`, large-face documentation.
 - `def_decision` extends `def_document` — note/decision look.
-- `def_scenario` extends `grid` — carries the matrix/headed capability expected by current grid
-  semantics.
+- `def_scenario` extends `grid` — lists every trait it keeps, `is_grid` and `has_head` among them,
+  as the lab's `def_table` does.
 
 `def_order_service` owns three fixed-ID parts so `svc_orders` proves one-step read-through:
 
@@ -243,12 +244,11 @@ Relation definitions:
 - `rel_reads` extends `line`, forward.
 - `rel_integrates` extends `line`, forward.
 - `rel_message` extends `line`, forward; used by scenario transitions.
-- `rel_reply` extends `line`, back or a distinct visual setting if the final unified-label work
-  requires it.
+- `rel_reply` extends `line`, back or a distinct visual setting.
 
-Names describe semantics, not presentation. Direction remains `line.dir` through settings. When
-step 11's labels land, scenario message text moves to label tags; until then the existing relation
-name field remains a migration detail in the generator.
+Names describe semantics, not presentation. Direction remains `line.dir` through settings. **Scenario
+message text is the relation's own `name`** (next-plan step 12: labels are gone); a message that
+means something of its own is a relation definition.
 
 ### Canonical architecture blocks
 
@@ -631,8 +631,7 @@ The first milestone must explicitly prove:
 - **Fields:** toggle the existing fields diagram on `story_orders`.
 
 Add concise catalog cards/notes that say what to open, what view should appear, and what visual
-fact proves success. Remove stale routing text from `l_rel`: current lines route round cards through
-libavoid, with the documented fallback only where the router is absent.
+fact proves success. `l_rel`'s note already says lines go round cards (step 12).
 
 
 ## Perspective framework
@@ -933,13 +932,12 @@ npm run dev
 
 ## Implementation order
 
-### 0 — Stabilize the current model
+### 0 — Stabilize the current model — **done**
 
-- Land or explicitly carry forward the unfinished unified-definition work in
-  [`docs/next-plan.md`](next-plan.md), especially relation definition/label decisions that affect
-  message labels.
-- Regenerate the existing showcase and establish a clean baseline.
-- Do not begin class/sequence projections against two competing relation schemas.
+- Landed as next-plan step 12 (`44e1979`): traits replace and are a definition's, tags index,
+  styles are settings, named faces (`card.face`), **a line's name is its own `name`**, base as
+  definition files.
+- The showcase is regenerated and checks clean; tests, typecheck and CSS lint pass.
 
 Done when the current showcase checks clean, tests/typecheck/CSS pass, and the relation label shape
 used by the generator is decided.

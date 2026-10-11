@@ -60,15 +60,17 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 
 | | Carried in | Says |
 |---|---|---|
-| **tag** | `tags` | a word, with its meaning in `body` |
-| **trait** | `traits` | a tag carrying settings: a capability, added or removed as one. It confers its own settings and those of the traits it extends, never its base's. Definitions only |
+| **tag** | `tags` | a word to find it by, with its meaning in `body`. Any element; a new one is filed in the workspace's `tags` folder |
+| **trait** | `traits` | an engine function: a capability, or what sort of thing it is. It confers its own settings and those of the traits it extends, never its base's. Definitions only |
 
-**The tie trait** links a block made from, or dropped on, another to it, on the same layer, by a relationship of the type it names. Made on its own, it links nothing. `note` carries it, with resizable and body content.
+**Both lists replace**: stated, a list holds every entry kept; unsaid, the nearest list down the chain is carried whole; empty says none. There are no drops. **A look is settings, never a tag.**
+
+**The tie trait** (*has tie*) links a block made from, or dropped on, another to it, on the same layer, by a relationship of the type it names. Made on its own, it links nothing. `note` lists it.
 
 
 ## Relationships
 
-**A join between exactly two blocks**, on any layers. Its type is a relation definition: `line` when it names none, `tie` or any subtype when it does. `line.dir`, a setting inherited down its chain, says which way a line points. **Its name is a label it carries**, never a field. **Definitions are never linked**, except by a tie trait.
+**A join between exactly two blocks**, on any layers. Its type is a relation definition: `line` when it names none, `tie` or any subtype when it does. `line.dir`, a setting inherited down its chain, says which way a line points. **Its name is its own `name`**, as a block's; unnamed, it draws its definition's. A tie is one by its *is tie* trait. **Definitions are never linked**, except by a tie trait.
 
 
 ## Capabilities
