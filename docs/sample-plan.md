@@ -1,1034 +1,442 @@
 # Sample plan
 
-**Turn the showcase into the product's visual specification: one coherent order-fulfillment
-architecture, one compact visual lab, and several derived perspectives over the same graph.**
-The workspace remains canonical JSON. A project YAML file initializes the default workspace and
-app state; markdown files provide card content. Class, swimlane, sequence and lifelines are
-derived readings, never new base kinds or stored diagram geometry.
+**Two sample workspaces and three diagram views, built in small tasks a simpler agent can finish and check alone.** The **showcase** stays the visual lab: every card, face, holder, relation and view, small and synthetic. A new **architecture** workspace tells one believable story — order fulfillment — through context, service, domain, data and scenario diagrams. **Class, swimlane and sequence** are layer views a card's kind opens on, like grid, never a toggle. Workshopped 2026-10-11, replacing the plan written before next-plan steps 11–12.
 
 
-## Outcome
+## Goal
 
-The completed sample answers four questions:
-
-1. **What does mndflow draw?** The visual lab enumerates cards, faces, marks, definitions,
-   relations, routing, interfaces, holders, grids, references, markdown and failure states.
-2. **What is it useful for?** The order-fulfillment story communicates one realistic system through
-   context, service, domain, data and interaction diagrams.
-3. **How do views relate?** Overhead, profile, internal, folder, grid and definition views, plus
-   fields, class, swimlane and sequence perspectives, all read one graph.
-4. **Can it be reproduced?** One generator writes the checked JSON file; one YAML bootstrap opens
-   it consistently; markdown sources, tests and a walkthrough are checked in beside it.
-
-The first milestone stops before new perspective renderers. It delivers the refactored story,
-lab, YAML bootstrap, markdown sources and explicit coverage of every existing view. That baseline
-is used to decide what the class, swimlane and sequence projections must add.
+| Question | Answered by |
+|---|---|
+| **What does mndflow draw?** | the showcase: one layer per thing it draws, each with a note saying what to look for |
+| **What is it for?** | the architecture workspace: one system, many diagrams, every component stated once |
+| **How do diagrams relate?** | class, swimlane and sequence cards drawing data the graph already holds — nothing stored for the drawing |
+| **Do patterns compose?** | the story's vocabulary is a package collected from definition files, extended in the workspace |
 
 
 ## Decisions
 
-### One graph, two zones
-
-- `main` holds two folders:
-  - `story` — the order-fulfillment architecture and its scenarios.
-  - `lab` — concentrated visual and routing cases.
-- Opening either folder uses the existing folder view and makes the workspace's organization
-  obvious on the canvas and in the explorer.
-- Existing lab IDs are retained where possible (`l_cards`, `l_faces`, `l_defs`, `l_rel`,
-  `l_ports`, `l_hold`, `l_refs`). Tests and docs may continue to name them.
-- Architecture components exist once. Other layers use references to those canonical blocks;
-  they do not create separate copies for each diagram.
-
-### One source of model truth
-
-- [`samples/workspace.showcase.json`](../samples/workspace.showcase.json) is the canonical sample
-  workspace imported by the app and checked by the door.
-- [`scripts/showcase.mjs`](../scripts/showcase.mjs) is replaced by a typed, modular generator.
-- JSON remains the workspace/package interchange format and the only format exported after edits.
-- YAML is bootstrap configuration, not a second graph format and not a round-trip target.
-- Markdown is card content. Its YAML frontmatter is read through the existing card-source rules.
-
-### View taxonomy
-
-- **System views** remain core `ViewKind`s: `overhead`, `profile`.
-- **Layer views** remain core `ViewKind`s selected by `lens_of`: `internal`, `folder`, `grid`,
-  `definition`.
-- **Derived perspectives** are session overlays on a layer:
-  `contents`, `fields`, `class`, `swimlane`, `sequence`.
-- Perspectives never change `open_at`, `leave_at`, `reveal_at`, section state or graph data.
-- The existing `fields_graph` is a **schema and instances** perspective. It is not renamed into,
-  or mistaken for, the new package/layer-wide class perspective.
-
-### Diagram semantics
-
-- **Class:** definitions, inheritance and typed attributes are truth; class boxes and association
-  lines are derived.
-- **Swimlane:** a grid is truth. Top headers allocate participant columns, left headers allocate
-  phases/time rows, cells allocate steps, and relations state flow.
-- **Sequence:** the same scenario grid is truth. Participant columns become lifelines; row order
-  becomes time; relations between allocated steps become messages.
-- **Lifelines:** projected guides/nodes only. No block, tag, position or relationship is stored
-  merely to draw a lifeline.
-- Do not add `class`, `lane`, `lifeline`, `message` or `sequence` as base kinds.
-
-
-## Target files
-
-### Existing files changed
-
-- [`scripts/showcase.mjs`](../scripts/showcase.mjs) — becomes a compatibility entry that invokes
-  the modular generator, or is retired after the root npm script replaces it.
-- [`samples/workspace.showcase.json`](../samples/workspace.showcase.json) — regenerated output.
-- [`apps/web/src/main.tsx`](../apps/web/src/main.tsx) — loads bootstrap before mounting.
-- [`apps/web/src/App.tsx`](../apps/web/src/App.tsx) — accepts bootstrap defaults and perspective
-  session state.
-- [`apps/web/vite.config.ts`](../apps/web/vite.config.ts) — serves/emits the root bootstrap and
-  configured workspace without duplicating checked-in JSON.
-- [`packages/core/src/sections.ts`](../packages/core/src/sections.ts) — names the closed
-  `PerspectiveKind` set when perspectives begin.
-- [`packages/core/src/index.ts`](../packages/core/src/index.ts) — exports bootstrap and perspective
-  types.
-- [`packages/views/src/index.ts`](../packages/views/src/index.ts) — exports perspective projection
-  functions.
-- [`packages/kit/src/viewer.tsx`](../packages/kit/src/viewer.tsx) — generalizes the fields toggle to
-  a perspective.
-- [`packages/options/src/groups.ts`](../packages/options/src/groups.ts) — perspective controls.
-- Stage and SVG renderer files are changed only for the sequence perspective.
-
-### New source files
-
-```text
-mndflow.yaml
-
-scripts/showcase/
-  index.ts
-  graph.ts
-  content.ts
-  workspace.ts
-  story.ts
-  scenarios.ts
-  lab/
-    index.ts
-    cards.ts
-    faces.ts
-    definitions.ts
-    relations.ts
-    interfaces.ts
-    holders.ts
-    references.ts
-
-samples/showcase/cards/
-  story.md
-  order-service.md
-  payment-service.md
-  idempotency.md
-  payment-failure.md
-
-packages/core/src/bootstrap.ts
-packages/core/test/bootstrap.test.ts
-
-packages/views/src/perspectives.ts
-packages/views/src/class.ts
-packages/views/src/swimlane.ts
-packages/views/src/sequence.ts
-packages/views/test/perspectives.test.ts
-
-test/showcase.test.ts
-```
-
-Use `vite-node` for the typed generator so it can call core's card, file and validation functions
-instead of reimplementing frontmatter or the door. Add a root script:
-
-```json
-{
-  "scripts": {
-    "showcase": "vite-node scripts/showcase/index.ts"
-  }
-}
-```
-
-Declare `vite-node` directly in root dev dependencies at the same version as Vitest; do not rely
-on a transitive binary.
-
-
-## Workspace structure
-
-### Root and definition folders
-
-Keep:
-
-- `workspace` — package root and counters.
-- `main` — scratch definition and root structure.
-- `tags` — the folder the workspace files its tags in (`rotating` today); new tags land here.
-- `w_faces`, `w_machines`, `w_holders`, `w_relations` — current lab vocabulary.
-
-Add:
-
-- `w_platform` — component/service/database/queue/external-system definitions.
-- `w_domain` — editable subtypes of the frozen entity-relation definitions.
-- `w_relations` — kept; add calls, publishes, reads, integrates and scenario-message definitions.
-- `w_docs` — document and decision definitions used by markdown cards.
-- `w_scenarios` — the scenario-grid definition.
-
-Do not extract a `fulfillment-patterns` package in the first milestone. Keep definitions editable
-while the sample exposes model changes. Once the story stabilizes, export `w_platform`,
-`w_relations` and `w_scenarios` as a frozen package to prove **patterns compose**.
-
-### Structure under `main`
-
-```text
-main
-├─ story/                         folder
-│  ├─ story_intro                explanatory large card
-│  ├─ story_context              context layer
-│  ├─ story_platform             canonical service architecture
-│  ├─ story_domain               definition references / class scope
-│  ├─ story_data                 mixed sample instances and value links
-│  ├─ story_orders              Order-only instances for fields perspective
-│  ├─ story_place_order          scenario layer holding a grid
-│  └─ story_fulfill_order        scenario layer holding a grid
-└─ lab/                           folder
-   ├─ lab_intro
-   ├─ l_cards
-   ├─ l_faces
-   ├─ l_defs
-   ├─ l_rel
-   ├─ l_ports
-   ├─ l_hold
-   └─ l_refs
-```
-
-Move the useful content of `l_model` and `l_rows` into `story_domain`, `story_data` and
-`story_orders`. Keep temporary alias notes for one iteration if docs or manual scripts still name
-the old layers; remove the aliases when all references are updated.
-
-### Story vocabulary
-
-Add these workspace definitions with fixed IDs:
-
-- `def_component` — attributes `owner: text`, `technology: text`.
-- `def_service` extends `def_component` — service style and `card.face: table`.
-- `def_order_service` extends `def_service` — attributes and a reusable structure that demonstrates
-  read-through.
-- `def_database` extends `def_component` — attribute `engine: text`.
-- `def_queue` extends `def_component`.
-- `def_external` extends `def_component` — away/dashed look.
-- `def_document` extends `block` — `card.face: document`, large-face documentation.
-- `def_decision` extends `def_document` — note/decision look.
-- `def_scenario` extends `grid` — lists every trait it keeps, `is_grid` and `has_head` among them,
-  as the lab's `def_table` does.
-
-`def_order_service` owns three fixed-ID parts so `svc_orders` proves one-step read-through:
-
-- `part_order_api` — API.
-- `part_order_workflow` — workflow.
-- `part_order_repository` — repository adapter.
-
-Add editable domain definitions under `w_domain`:
-
-- `def_customer_record` extends `entity-relation.customer`.
-- `def_order_record` extends `entity-relation.order`.
-- `def_line_record` extends `entity-relation.line`.
-- `def_product_record` extends `entity-relation.product`.
-- `def_payment_record` extends the package's payment definition where one exists; otherwise extends
-  `block` and declares the minimal payment attributes.
-
-The workspace subtypes are deliberate: package definitions stay frozen, the sample demonstrates
-composition by extension, and `schema_def` can offer the existing fields perspective because its
-schema definition belongs to the editable workspace.
-
-Relation definitions:
-
-- `rel_calls` extends `line`, forward/open arrow.
-- `rel_publishes` extends `line`, forward.
-- `rel_reads` extends `line`, forward.
-- `rel_integrates` extends `line`, forward.
-- `rel_message` extends `line`, forward; used by scenario transitions.
-- `rel_reply` extends `line`, back or a distinct visual setting.
-
-Names describe semantics, not presentation. Direction remains `line.dir` through settings. **Scenario
-message text is the relation's own `name`** (next-plan step 12: labels are gone); a message that
-means something of its own is a relation definition.
-
-### Canonical architecture blocks
-
-`story_platform` owns the real architecture blocks:
-
-- `svc_storefront` — Storefront, Service, technology React.
-- `svc_gateway` — API gateway, Service.
-- `svc_orders` — Order service, Order Service, owner Commerce.
-- `svc_payments` — Payment service, Service, owner Payments.
-- `svc_inventory` — Inventory service, Service, owner Fulfillment.
-- `svc_warehouse` — Warehouse adapter, Service.
-- `infra_events` — Order events, Queue.
-- `db_orders` — Orders database, Database, engine PostgreSQL.
-- `db_inventory` — Inventory database, Database, engine PostgreSQL.
-- `ext_payment` — Payment provider, External system.
-- `ext_warehouse` — Warehouse system, External system.
-
-Architecture relations:
-
-- Storefront → Gateway → Order service (`rel_calls`).
-- Order service → Payment service and Inventory service (`rel_calls`).
-- Payment service → Payment provider (`rel_integrates`).
-- Inventory service → Warehouse adapter → Warehouse system (`rel_integrates`).
-- Order service → Orders database (`rel_reads`).
-- Inventory service → Inventory database (`rel_reads`).
-- Order service and Inventory service → Order events (`rel_publishes`).
-
-`story_context` contains an Online customer block and references to `story_platform`,
-`svc_storefront`, `ext_payment` and `ext_warehouse`. The references, not cloned services, provide
-the context diagram.
-
-`story_domain` contains references to the editable workspace subtypes Customer record, Order
-record, Line record, Product record and Payment record. The class perspective includes their
-frozen ancestors when it draws inheritance.
-
-`story_data` contains a mixed, linked data set:
-
-- Ada Lovelace and Charles Babbage.
-- Orders 1001 and 1002.
-- Four line items.
-- Widget, Gadget and Spare products.
-- One payment record if the entity-relation vocabulary supports it; otherwise add a workspace
-  Payment subtype with explicit attributes.
-
-`story_orders` contains at least three usages of `def_order_record` and any references needed to
-explain them. Put an Order usage first so `schema_def(story_orders)` deterministically offers the
-existing fields diagram.
-
-
-## Scenario graph convention
-
-Both scenarios are ordinary grids. This convention is normative for the showcase and becomes the
-input contract for swimlane and sequence projections.
-
-### Grid orientation
-
-- Row `0` is the participant header row.
-- Column `0` is the phase/time header column.
-- Participant headers are **reference blocks** pointing to canonical architecture blocks.
-- Phase headers are plain blocks named for the stage: Submit, Validate, Reserve, Pay, Fulfill,
-  Complete, or Failure.
-- Body cells contain step blocks. Their names state what happens.
-- A participant's lane is the column allocated by its top header.
-- Time is the body row order from top to bottom.
-- Relations between body steps state messages or flow.
-- A merge states a step spanning phases; no separate duration field is added.
-
-This orientation lets one grid support both derived readings:
-
-- Swimlane: participant columns become lanes.
-- Sequence: participant columns become vertical lifelines; rows become message time.
-
-### Place-order grid
-
-ID `scenario_place`, parent `story_place_order`, type `def_scenario`.
-
-- Participants: Customer, Storefront, Gateway, Order service, Payment service, Inventory service.
-- Phases: Submit, Create, Authorize, Reserve, Confirm, Failure.
-- Steps:
-  - Submit cart.
-  - POST checkout.
-  - Create pending order.
-  - Authorize payment.
-  - Reserve stock.
-  - Confirm order.
-  - Reject payment (failure branch).
-- Relations join each transition with `rel_message` or `rel_reply`.
-- Include one return/reply, one asynchronous publish and one failure branch.
-
-### Fulfill-order grid
-
-ID `scenario_fulfill`, parent `story_fulfill_order`, type `def_scenario`.
-
-- Participants: Order service, Order events, Inventory service, Warehouse adapter, Warehouse.
-- Phases: Ordered, Pick, Pack, Ship, Complete.
-- Steps and relations form one readable path plus one delayed-stock branch.
-
-### Ordinary-view requirement
-
-Before any new perspective is implemented, opening each grid in its grid view must communicate the
-same participants, phases, steps and flow. If it does not, fix the graph convention before writing
-a specialized renderer.
-
-
-## Markdown card sources
-
-Use the existing [`read_card`](../packages/core/src/card.ts) and `attach`/`markdown` action rules;
-the generator must not parse YAML frontmatter independently.
-
-Suggested files:
-
-- `story.md` — workspace walkthrough and links between the story layers.
-- `order-service.md` — name/type/tags/values frontmatter plus service responsibility and API
-  contract.
-- `payment-service.md` — external dependency and failure behavior.
-- `idempotency.md` — architecture decision, rationale and consequences.
-- `payment-failure.md` — scenario explanation and recovery notes.
-
-Each file uses YAML frontmatter only for keys already understood by card sources:
-
-```markdown
----
-name: Order service
-type: Order Service
-tags: [critical]
-owner: Commerce
-technology: TypeScript
-source: samples/showcase/cards/order-service.md
----
-# Responsibility
-
-Own the order lifecycle and coordinate payment and inventory.
-
-## Contract
-
-- Accept a checkout request.
-- Persist a pending order.
-- Publish confirmed or rejected events.
-```
-
-Generator sequence:
-
-1. Build definitions and fixed-ID usages.
-2. Load card-source text.
-3. Run the real `attach` or `markdown` action against each target block in an in-memory graph/log.
-4. Fail generation on any refusal or unexpected newly minted definition.
-5. Fold and write the canonical JSON with core `write` after the generator's canonical-writer
-   migration in Phase B.
-
-The checked JSON carries body text and source provenance. The markdown files remain editable input
-for regeneration; app edits/export do not modify them.
-
-
-## YAML bootstrap contract
-
-Add root [`mndflow.yaml`](../mndflow.yaml):
-
-```yaml
-schema: mndflow/bootstrap-1
-
-workspace:
-  file: samples/workspace.showcase.json
-  load: when-empty
-
-catalogue: public/packages/index.json
-
-app:
-  theme: retro
-  tray:
-    open: true
-  display:
-    card: { w: 5, h: 2 }
-    lattice: true
-    legend: false
-    corner: top
-    interfaces: true
-    frame: true
-  start:
-    section: structure
-    view: overhead
-    focus: story
-```
-
-### Semantics
-
-- Paths are relative to `mndflow.yaml`.
-- `load: when-empty` means an existing IndexedDB log wins. The default workspace seeds only a
-  fresh browser session.
-- Local user theme preference wins over the YAML theme; YAML supplies the default.
-- URL/deep-link handoff will eventually win over YAML start state.
-- Start state applies once after a default workspace load. It is never logged or exported.
-- Reset creates the normal empty workspace; it does not silently re-import the showcase.
-- Export and import remain JSON.
-- The YAML file is never modified by the app.
-
-### Core API
-
-Add [`packages/core/src/bootstrap.ts`](../packages/core/src/bootstrap.ts):
-
-```ts
-export const BOOTSTRAP_SCHEMA = "mndflow/bootstrap-1";
-
-export type Bootstrap = {
-  schema: typeof BOOTSTRAP_SCHEMA;
-  workspace?: { file: string; load?: "when-empty" };
-  catalogue?: string;
-  app?: {
-    theme?: "retro" | "modern" | "light";
-    tray?: { open?: boolean };
-    display?: {
-      card?: { w: number; h: number };
-      lattice?: boolean;
-      legend?: boolean;
-      corner?: "top" | "bottom";
-      interfaces?: boolean;
-      frame?: boolean;
-    };
-    start?: {
-      section?: "definitions" | "structure";
-      view?: ViewKind;
-      focus?: Id;
-      perspective?: PerspectiveKind;
-    };
-  };
-};
-
-export type BootstrapFault = { path: string; what: string };
-
-export function parse_bootstrap(text: string): {
-  bootstrap: Bootstrap | null;
-  faults: BootstrapFault[];
-};
-```
-
-Parsing uses core's existing `yaml` dependency. Reject unknown major/schema identifiers, invalid
-enums, missing workspace paths, non-positive card sizes and unknown keys. Parsing is pure and does
-no I/O.
-
-### Web host loading
-
-Add `apps/web/src/bootstrap.ts` for host I/O:
-
-1. Fetch `/mndflow.yaml`.
-2. Parse with core.
-3. Resolve configured paths relative to the repository bootstrap URL.
-4. Read IndexedDB storage and libavoid as today.
-5. If storage is empty and the config says `when-empty`, fetch the workspace JSON.
-6. Mount `App` with `{ storage, bootstrap, workspaceText?, startupFaults }`.
-
-`App`:
-
-- Constructs the session with the configured catalogue.
-- Loads `workspaceText` exactly once before applying start state.
-- Seeds `useTray(bootstrap.app?.tray?.open ?? true)`.
-- Seeds `useDisplay` by merging existing shell defaults with `bootstrap.app.display`.
-- Seeds frame/interfaces state from config.
-- Applies theme precedence: localStorage → bootstrap → `retro`.
-- Resolves and applies the configured start view/focus once; invalid IDs become a stage message,
-  not an exception.
-
-Start-state application uses existing navigation rather than constructing a `View` in the app:
-
-1. `s.go("reveal", { id: focus })` establishes the correct section/layer.
-2. Verify the resulting section matches the optional configured section.
-3. For `overhead` or `profile`, call `s.see(view, focus)`.
-4. Set the requested derived perspective only after the real layer is open and eligible.
-
-Run this sequence once while constructing the initial session, before registering `watch`. It must
-not replay on React renders or after the user navigates.
-
-### Vite asset bridge
-
-The browser cannot fetch arbitrary repository paths. Add a small Vite plugin in
-[`apps/web/vite.config.ts`](../apps/web/vite.config.ts):
-
-- In dev, serve `/mndflow.yaml` from the repository root and
-  `/samples/workspace.showcase.json` from the canonical sample.
-- In build, emit those same two files as build assets.
-- Watch both files so regeneration or config edits reload dev.
-- Do not check in a second copy under `public/`.
-
-The plugin performs file I/O only; parsing and validation remain core's.
-
-### Bootstrap tests
-
-Add core tests for:
-
-- valid parse and defaults;
-- bad schema;
-- bad enum and dimensions;
-- unknown key diagnostics;
-- path-relative config values preserved for the host.
-
-Add web tests for:
-
-- existing storage wins over default workspace;
-- empty storage loads the showcase checkpoint;
-- bootstrap display defaults initialize the shell;
-- invalid workspace/config still mounts and reports a startup message;
-- reset returns to an empty workspace.
-
-
-## Generator implementation
-
-### Phase A: extract without changing output
-
-Move current helpers into `scripts/showcase/graph.ts`:
-
-- `serial(kind)`
-- `order(parent)`
-- `shelf(id, name, parent)`
-- `def(id, name, type, settings, more, parent)`
-- `put(id, parent, kind, more)`
-- `layer(id, name, type, more)`
-- `note(layer, text, width)`
-- `link(id, from, to, options)`
-
-Wrap state in a `ShowcaseBuilder` instead of module globals:
-
-```ts
-type ShowcaseBuilder = {
-  graph: Graph;
-  counters: Record<string, number>;
-  order(parent: Id): number;
-  shelf(...): Block;
-  def(...): Definition;
-  put(...): Block;
-  layer(...): Block;
-  note(...): Block;
-  link(...): Relation;
-};
-```
-
-Phase A is complete only when the regenerated JSON is byte-identical to the pre-refactor sample.
-Retain the current insertion-order `JSON.stringify` emitter for this phase; changing module
-boundaries and file ordering in one diff would hide mistakes.
-
-### Phase B: module boundaries
-
-- `workspace.ts` — root, `main`, definition folders, shared definitions.
-- `story.ts` — story folder, context, platform, domain, data and order layers.
-- `scenarios.ts` — scenario grids, headers, steps and relations.
-- `lab/*` — direct ports of existing sections with IDs and content unchanged.
-- `content.ts` — reads markdown and applies it through core actions.
-- `index.ts` — composes modules, merges packages, validates and writes.
-
-Merge the full package graph from `public/packages/entity-relation.json`, including relationships,
-not only `graph.blocks`. Refuse block or edge ID collisions.
-
-Phase B deliberately switches emission to core `write`. Accept the resulting one-time canonical
-ordering diff only after the story/lab data is reviewed; from then on generation and ordinary
-export use the same writer.
-
-### Generation checks
-
-Before writing:
-
-1. Lay `FLOOR` under the generated graph.
-2. Run door inspection/open semantics.
-3. Run `review`.
-4. Project every normal story/lab layer and require no Scene faults.
-5. Canonically write the workspace.
-6. Print block, relation, layer and perspective-eligible counts.
-
-Generation exits non-zero on any fault, note that violates the sample's strict policy, collision,
-card-source refusal or perspective prerequisite failure.
-
-
-## Existing-view baseline
-
-The first milestone must explicitly prove:
-
-- **Internal:** open `story_platform`.
-- **Folder:** open `story`, then `lab`.
-- **Grid:** open `scenario_place` and `scenario_fulfill`.
-- **Definition:** open `def_order_service` and `def_pump`.
-- **Read-through:** open `svc_orders`; it shows the structure owned by `def_order_service`.
-- **Overhead:** show the whole definitions/structure system with story and lab boxes.
-- **Profile:** pick `svc_orders` and verify the hierarchy reads top to bottom.
-- **Fields:** toggle the existing fields diagram on `story_orders`.
-
-Add concise catalog cards/notes that say what to open, what view should appear, and what visual
-fact proves success. `l_rel`'s note already says lines go round cards (step 12).
-
-
-## Perspective framework
-
-Implement the framework only after the existing-view baseline is accepted.
-
-### Core types
-
-In [`packages/core/src/sections.ts`](../packages/core/src/sections.ts):
-
-```ts
-export type PerspectiveKind =
-  | "contents"
-  | "fields"
-  | "class"
-  | "swimlane"
-  | "sequence";
-
-export const PERSPECTIVES: readonly PerspectiveKind[] = [
-  "contents", "fields", "class", "swimlane", "sequence",
-];
-```
-
-`ViewKind` is unchanged.
-
-### Views API
-
-Add:
-
-```ts
-export type Perspective = {
-  kind: PerspectiveKind;
-};
-
-export type ProjectedPerspective = {
-  scene: Scene;
-  target: (id: Id) => Id | null;
-};
-
-export function perspectives_of(graph: Graph, layer: Id): PerspectiveKind[];
-
-export function project_perspective(
-  graph: Graph,
-  layer: Id,
-  perspective: Perspective,
-  config?: Config,
-): ProjectedPerspective;
-```
+| | Decided |
+|---|---|
+| **two workspaces** | `samples/workspace.showcase.json` (the lab) and `samples/workspace.architecture.json` (the story). Each written by its own generator, both checked by the door |
+| **one view per card** | a card's kind decides its layer view (`lens_of`). Class, swimlane and sequence join internal, grid, folder and definition. The rail keeps only overhead and profile |
+| **the view is a setting** | `layout.view` names a diagram view, a closed engine set like `card.face`: `class`, `swimlane`, `sequence`. Said by a definition, inherited, overridable on a block. Drawing-only, so a setting, not a trait (step 12) |
+| **a view needs its input** | `sequence` and `swimlane` draw only a grid; `class` only a block that may hold (`has_parts`). A block that cannot feed the view it names, or names one this build does not know, opens on its capability view (grid or internal) |
+| **diagram kinds in a package** | `diagrams`, collected from definition files: *class diagram*, *swimlane*, *sequence diagram*. Base stays minimal; renderers are general code in views |
+| **story vocabulary in a package** | `architecture`, collected from definition files, revised by editing a file and collecting again. The workspace extends it where it needs structure (definition files hold no parts) |
+| **story instances by generator** | a typed generator writes the architecture workspace with fixed ids, merging the packages it uses |
+| **read only first** | the three new views project and never edit: `slots: ["display"]`, nothing dragged. The grid, explorer, tray and CLI edit what they draw. Canvas editing comes after the drawings are right |
+| **scenarios are grids** | header row = participants (references to architecture blocks), header column = phases, body cells = steps, relations between steps = messages / flow. One grid feeds both swimlane and sequence |
+| **SVG not grown** | per cli-plan, the stage is the one renderer: the sequence view changes Stage only, never views `svg.ts` |
+| **YAML bootstrap last** | opening a fresh browser on a sample is the final phase |
+| **a view on a stand-in** | a reference stating its own `layout.view` opens that view over its target, where the target feeds it. One dataset, many diagrams, nothing copied: a scenario grid draws as a sequence, and through a reference as a swimlane |
+| **no fields toggle** | the kit Viewer's *contents / diagram* toggle goes once the class view lands: one view per card. A schema-and-instances drawing, if still wanted, is a class diagram card |
+| **`layout.cards`** | `layout.face` (small / large) is renamed `layout.cards`, so *face* means only `card.face` |
+| **lanes are columns** | a swimlane's participants are its columns; no orientation setting |
+
+
+## Rules for implementers
+
+| | |
+|---|---|
+| **one task at a time** | each task below is sized for one agent session. Do its *Steps*, run its *Verify*, stop at *Done when* |
+| **no tests** | the design is moving: verify by running the generator, the door and the app. Write no test files unless the user asks |
+| **no commits** | suggest a commit message; never commit, amend or rewrite history |
+| **no legacy** | on a schema change, re-run every generator and re-collect every package; the door repairs no old shapes; no aliases or compatibility entries |
+| **match the code** | snake_case functions, short names, a docstring per module and function, short comments per block, lines ≤ 100 columns. Read the neighbouring file first |
+| **docs are the goal** | do not edit design.md, definitions.md or package docs unless the task says so |
+| **search first** | reuse core and views functions named in each task before writing new ones |
+| **report honestly** | if a Verify step fails, say so with the output; do not mark the task done |
+
+**Verify commands used throughout**
+
+| Do | Command |
+|---|---|
+| typecheck | `npm run typecheck` |
+| tests still pass | `npm test` |
+| CSS lint | `npm run lint:css` |
+| check a file | `npm run start -s -w @mnd/cli -- check ../../samples/<file>.json` → prints `clean` |
+| list a layer | `npm run start -s -w @mnd/cli -- outline ../../samples/<file>.json <layer-id>` |
+| project a layer | `npm run start -s -w @mnd/cli -- project ../../samples/<file>.json <layer-id>` |
+| drive the app | `npm run dev`; import the file through the header's *import a workspace* button; the `vitest` skill says how to drive it |
+
+
+## Phases
+
+| # | Phase | Done when |
+|---|---|---|
+| 1 | **generator groundwork** | the showcase is written by a typed generator sharing a builder; output reviewed through core `write` |
+| 2 | **view by setting** | `layout.view` validates; `lens_of` reads it, on a stand-in too; the three new view kinds open, drawn as their capability view until their phase; `layout.face` is `layout.cards` |
+| 3 | **packages from folders** | `diagrams` and `architecture` collected from definition files by one script, listed in the catalogue |
+| 4 | **architecture workspace** | the story generator writes a clean workspace whose context, platform, domain, data and scenario layers read on existing views |
+| 5 | **class view** | a class diagram card draws its definitions, extends lines and attribute links; the fields toggle is gone |
+| 6 | **swimlane view** | a swimlane grid draws participants as lanes, phases as rows, steps and their relations |
+| 7 | **sequence view** | a sequence grid draws lifelines and horizontal messages in time order |
+| 8 | **lab refresh** | every showcase layer note matches what it draws; a diagrams layer shows each new view's small and edge cases |
+| 9 | **opening on a sample** | a fresh browser opens a configured sample; then the YAML bootstrap |
+| 10 | **docs and kit** | on the user's direction: docs brought up, kit released, mndmap re-pinned |
+
+
+## 1 — Generator groundwork
+
+### 1a · Typed showcase generator, byte-identical
+
+| | |
+|---|---|
+| **Goal** | port `scripts/showcase.mjs` to TypeScript run by `vite-node`, its helpers in a shared builder, output unchanged |
+| **Files** | new `scripts/lib/builder.ts`, `scripts/showcase.ts`; delete `scripts/showcase.mjs`; root `package.json` |
+
+Steps:
+
+1. Add `vite-node` to root `devDependencies` at the version Vitest already pulls in (`npm ls vite-node`: 2.1.9 today), so nothing relies on a transitive binary.
+2. Add root script `"showcase": "vite-node scripts/showcase.ts"`.
+3. Move `serial`, `order`, `shelf`, `def`, `put`, `layer`, `note`, `link` into `scripts/lib/builder.ts` as methods of a `Builder` made by `builder()`; state (`blocks`, `edges`, `counters`, `orders`) lives on it, not in module globals. Type with core's `Block`, `Relation`, `Graph`, `Id`.
+4. `scripts/showcase.ts` builds the same layers in the same order through one `Builder`, then writes exactly as today (`JSON.stringify` of the same object, same key order).
+5. Delete `scripts/showcase.mjs`; update next-plan's *Running it* row only if the user directs (docs rule) — otherwise mention it in the report.
+
+Verify: `npm run showcase`, then `git diff --stat samples/` shows **no change**; `check` prints `clean`; typecheck passes.
+
+Done when: the sample is byte-identical and the old script is gone.
+
+### 1b · Packages merged whole, written by core `write`
+
+| | |
+|---|---|
+| **Goal** | the generator merges a package file whole and emits through core's canonical writer |
+| **Files** | `scripts/lib/builder.ts`, `scripts/showcase.ts` |
+
+Steps:
+
+1. Add `merge(file_path)` to the builder: reads a package file, adds **all** its blocks and edges, and throws on any id already present.
+2. Replace the showcase's `entity-relation` merge (blocks only) with `merge`.
+3. Emit with core `write(graph)` instead of `JSON.stringify`. Before writing, run core `read` on the text against `FLOOR` (from `@mnd/defs`) and throw on any fault.
+4. Run once; review the diff: it must be **ordering only** (plus the package's edges, if any). Report anything else.
+
+Verify: `npm run showcase`; `git diff samples/workspace.showcase.json` is reordering only; `check` clean; the app imports it and every lab layer opens as before.
+
+Done when: the generator emits through `write` and the one-time ordering diff is reviewed by the user.
+
+
+## 2 — View by setting
+
+### 2a · `layout.view` and the new view kinds in core
+
+| | |
+|---|---|
+| **Goal** | a block's chain may say `layout.view`; `lens_of` opens the named view where the block can feed it |
+| **Files** | core `components.ts`, `sections.ts`, `navigate.ts`; `index.ts` exports |
+
+Steps:
+
+1. `components.ts` → `layout` component: accept `view` (a name; check like `kind`, "has to be a name"); add it to the `stray` list. Export `DIAGRAM_VIEWS = ["class", "swimlane", "sequence"] as const`.
+2. `sections.ts`: add the three to `ViewKind` and `LAYER_VIEWS`, and to `INSIDE` (they open from inside a structure).
+3. `navigate.ts`: add `diagram_of(graph, id): ViewKind | null` — `setting_of(graph, id, "layout")["view"]`, returned only if in `DIAGRAM_VIEWS` and fed: `sequence` / `swimlane` need `is_grid(graph, id)`; `class` needs the block to hold (`allows_of(...)` / `has_trait(..., "has_parts")` — read how `opens` decides room to hold and reuse it).
+4. `lens_of`: for a stand-in, first ask whether the **reference itself** states `layout.view` (its own settings, not its chain's) and the target feeds that view — if so return it; otherwise follow the target as today. Then, after the stand-in line and before `is_grid`, return `diagram_of(graph, id)` when non-null.
+5. Where a stand-in opens on its own view, `project` draws the **target's** content in that view while trail and crumbs name the reference's layer. Note in the report every reader of `lens_of` that assumes a stand-in's view is its target's (grep `lens_of`, `open_at`).
+6. Grep every `ViewKind` switch (core `names.ts`, `session.ts`; options `groups.ts`; theme `icons.tsx`; tray `Tray.tsx`; views `block.ts`; web `App.tsx`; kit `index.ts`) and give the new kinds a case. Icons: `view_class`, `view_swimlane`, `view_sequence` in theme `icons.tsx`, drawn in the existing 24-unit path style.
+
+Verify: typecheck; `npm test`; both samples `check` clean.
+
+Done when: the kinds exist, nothing in the repo yet says `layout.view`, and behaviour is unchanged.
+
+### 2b · New kinds drawn by their fallback
+
+| | |
+|---|---|
+| **Goal** | opening a block whose view is class / swimlane / sequence draws something sensible before each renderer lands |
+| **Files** | views `block.ts`, web `App.tsx` |
+
+Steps:
+
+1. In views `project`, a `look.kind` of `class` draws as `internal`; `swimlane` and `sequence` as the grid view. All three read only: `slots: ["display"]`, nodes `draggable: false`.
+2. Crumbs name the view drawn (existing behaviour: check App's crumb label uses the kind).
+3. Add a throwaway workspace block by hand in the app (or via `mnd run`) carrying `layout.view: sequence` on a grid; open it; confirm it opens, reads only, crumbs say *sequence*. Do not keep it in a sample yet.
+
+Verify: typecheck; drive the app as above; report what you saw.
+
+Done when: each new kind opens without error and edits are refused on it.
+
+### 2c · Rename `layout.face` to `layout.cards`
+
+| | |
+|---|---|
+| **Goal** | one meaning for *face*: `card.face`. Which size a layer draws its cards at is `layout.cards`, small or large |
+| **Files** | core `components.ts` (the `layout` check and `stray` list; rename `FACES` if it names only small / large); views `size.ts`, `definition.ts`, `fields.ts`; `scripts/showcase.ts`; `public/packages/entity-relation.json`; base definition files saying it, then `npm run base` |
+
+Steps: grep `layout.*face` and `"face"` across `packages/`, `apps/`, `scripts/`, `public/packages/`, `packages/defs/src/base/`; rename every layout use, leaving every `card.face` alone; re-collect `base`; re-run the showcase generator.
+
+Verify: typecheck; `npm test`; both samples `check` clean; grep finds no `layout` saying `face`; the showcase's large-face layer still draws large.
+
+
+## 3 — Packages from definition folders
+
+### 3a · One script collects every catalogue package with a source folder
+
+| | |
+|---|---|
+| **Goal** | `npm run packages` collects each folder under `packages/defs/src/packages/` into `public/packages/<name>.json` |
+| **Files** | new `scripts/packages.mjs` (or a root script line per package), root `package.json`, `public/packages/index.json` |
+
+Steps:
+
+1. Read how `npm run base` calls `mnd collect`; do the same for each subfolder of `packages/defs/src/packages/`, writing `public/packages/<folder>.json`.
+2. **Check cross-package types**: `architecture` will not extend `diagrams`, but a later package might. Collect runs over `base` only (`fold([], FLOOR)`); if a definition file names another catalogue package's id, confirm what `write` keeps. If it drops or faults, add `--with <pkg>` to `collect` as `translate` has it, and report.
+3. Add `diagrams` and `architecture` entries to `public/packages/index.json` (`name`, `about`, `at`).
+
+Verify: `npm run packages` prints no `refused` and no `made` lines; each output passes `check`.
+
+### 3b · The `diagrams` package
+
+Folder `packages/defs/src/packages/diagrams/`, one definition file each, the shape base's files use (`id`, `name`, `type`, `body`, `def`, `traits` where it keeps a different list, `settings`):
+
+| File | Extends | Settings | Body says |
+|---|---|---|---|
+| `class_diagram.json` | `block` | `layout: { view: "class", cards: "large" }` | the definitions its references stand for, with what they extend and link to |
+| `swimlane.json` | `grid` | `layout: { view: "swimlane" }` | each participant column a lane, each phase row a band, steps and their flow |
+| `sequence_diagram.json` | `grid` | `layout: { view: "sequence" }` | each participant a lifeline, rows as time, relations between steps as messages |
+
+Verify: `npm run packages`; import the package in the app (catalogue); each definition's definition view shows its `layout` table with `view`.
+
+### 3c · The `architecture` package
+
+Folder `packages/defs/src/packages/architecture/`, with `blocks/` and `relations/` subfolders (directories become folders):
+
+| File | Extends | Says |
+|---|---|---|
+| `blocks/component.json` | `block` | attributes `owner: text`, `technology: text`; `card.face: table` |
+| `blocks/service.json` | `component` | its own style family |
+| `blocks/database.json` | `component` | attribute `engine: text`; its own style |
+| `blocks/queue.json` | `component` | its own style |
+| `blocks/external.json` | `component` | dashed border: outside the system |
+| `blocks/document.json` | `block` | `card.face: document` |
+| `blocks/decision.json` | `document` | note-like style: an architecture decision |
+| `relations/calls.json` | `line` | `line.dir: forward` |
+| `relations/publishes.json` | `line` | forward, dashed: asynchronous |
+| `relations/reads.json` | `line` | forward |
+| `relations/integrates.json` | `line` | forward |
+| `relations/message.json` | `line` | forward: a scenario step's message |
+| `relations/reply.json` | `line` | forward, dashed: a reply |
+
+Ids inside files are bare (`component`); collection prefixes them (`architecture.component`). Each `body` says in one sentence what the kind means. Style values: copy names from existing base/showcase settings only.
+
+Verify: `npm run packages`; `check` clean; in the app, `architecture` lists two folders and every definition opens on its definition view.
+
+Done when: both packages are collected by one command and revised by editing a file and running it again.
+
+
+## 4 — Architecture workspace
+
+**One generator, `scripts/architecture.ts` (root script `"architecture"`), using the builder from 1a and `merge` from 1b; writes `samples/workspace.architecture.json`.** It merges `architecture`, `diagrams` and `entity-relation`. Every id below is fixed. Do 4a–4e in order, re-running and checking after each.
+
+### 4a · Workspace and platform
+
+| Id | Is |
+|---|---|
+| `workspace`, `main` | root and scratch definition, as `empty_graph` makes them, plus its `tags` folder |
+| `w_defs` | folder of workspace definitions |
+| `def_order_service` | extends `architecture.service`; owns parts `part_order_api`, `part_order_workflow`, `part_order_repository` (so a usage reads through one step) |
+| `story` | folder under `main` holding every story layer |
+| `story_intro` | a document usage: what the workspace shows and where to look |
+| `story_platform` | layer (a block) holding the canonical architecture |
+
+`story_platform` holds, each with `owner` / `technology` / `engine` values where it has them:
+
+| Id | Name | Type |
+|---|---|---|
+| `svc_storefront` | Storefront | service (React) |
+| `svc_gateway` | API gateway | service |
+| `svc_orders` | Order service | `def_order_service` (owner Commerce) |
+| `svc_payments` | Payment service | service (owner Payments) |
+| `svc_inventory` | Inventory service | service (owner Fulfillment) |
+| `svc_warehouse` | Warehouse adapter | service |
+| `infra_events` | Order events | queue |
+| `db_orders` | Orders database | database (PostgreSQL) |
+| `db_inventory` | Inventory database | database (PostgreSQL) |
+| `ext_payment` | Payment provider | external |
+| `ext_warehouse` | Warehouse system | external |
+
+Relations: Storefront → Gateway → Order service (*calls*); Order service → Payment service, Inventory service (*calls*); Payment service → Payment provider, Inventory service → Warehouse adapter → Warehouse system (*integrates*); Order service → Orders database, Inventory service → Inventory database (*reads*); Order service, Inventory service → Order events (*publishes*).
+
+Verify: generate; `check` clean; `outline` `story_platform` lists 11 cards; in the app, Platform reads left to right after *arrange*; opening Order service shows its three parts.
+
+### 4b · Context
+
+`story_context`: an *Online customer* block, and **references** (not copies) to `svc_storefront`, `ext_payment`, `ext_warehouse` and to `story_platform` itself; relations customer → storefront reference, platform reference → the two externals.
+
+Verify: `check` clean; Context draws five cards, the references marked `Ref`.
+
+### 4c · Domain and data
+
+| Id | Holds |
+|---|---|
+| `w_domain` (folder) | `def_customer_record`, `def_order_record`, `def_line_record`, `def_product_record` extending the `entity-relation` definitions; `def_payment_record` extending `block` with `amount: number`, `status: text`, `order: def_order_record` |
+| `story_domain` | a **class diagram** usage (`diagrams.class_diagram`) holding references to the five record definitions |
+| `story_data` | Ada Lovelace, Charles Babbage; orders 1001, 1002; four lines; Widget, Gadget, Spare; one payment — values naming each other so links draw |
+
+Verify: `check` clean; `review` on `story_data` reports nothing; Domain opens (drawn as internal until phase 5) showing five definition stand-ins with link lines.
+
+### 4d · Scenarios
+
+Each scenario is a `diagrams.sequence_diagram` grid in its own layer. Header row: references to platform blocks (plus a plain *Customer* block where no platform block fits). Header column: plain phase blocks. Body: step blocks named for what happens. Relations between steps: *message* or *reply*, named where the step's name does not say it.
+
+| Grid | Participants | Phases | Steps |
+|---|---|---|---|
+| `scenario_place` in `story_place_order` | Customer, Storefront, Gateway, Order service, Payment service, Inventory service | Submit, Create, Authorize, Reserve, Confirm, Failure | Submit cart; POST checkout; Create pending order; Authorize payment; Reserve stock; Confirm order; Reject payment — one reply, one publish, one failure branch |
+| `scenario_fulfill` in `story_fulfill_order` | Order service, Order events, Inventory service, Warehouse adapter, Warehouse system | Ordered, Pick, Pack, Ship, Complete | one path through, plus a delayed-stock branch |
+
+Verify: `check` clean; each grid, opened (as grid until phase 6/7), shows participants across the top, phases down the left, steps in cells and their lines. **If the grid view does not tell the story, fix the data now**, not the renderer later.
+
+### 4e · Markdown cards
+
+Files under `samples/architecture/cards/`: `story.md` (→ `story_intro`), `order-service.md` (→ `svc_orders`), `payment-service.md` (→ `svc_payments`), `idempotency.md` (a decision usage on `story_platform`), `payment-failure.md` (a document beside `scenario_place`).
+
+Steps: read each with core `read_card`; set the block's `body` and `source`, and values from frontmatter keys outside `USAGE_KEYS` (as `collect` does). Frontmatter uses only `name`, `type`, `tags`, `source` and attribute names. Any tag a file names must already exist in the workspace's `tags` folder — the generator throws otherwise.
+
+Verify: `check` clean; editing a markdown file and regenerating changes only that block's `body` / values in the diff; the cards draw their large faces in the app.
+
+Done when (phase): the user has driven every story layer on existing views and the data reads.
+
+
+## 5 — Class view
+
+| | |
+|---|---|
+| **Goal** | a card whose view is `class` draws the definitions its references stand for as table cards, with *extends* lines and attribute links |
+| **Files** | new views `class.ts`; views `block.ts` (replace the 2b fallback), `index.ts` |
 
 Rules:
 
-- `contents` delegates to `project`.
-- `fields` wraps existing `fields_graph`.
-- Ineligible perspectives are omitted by `perspectives_of`; callers do not render a blank view.
-- Synthetic nodes are read-only and map through `target`.
-- Scene `trail` and `layer` always refer to the real layer.
-- Perspective switches never mutate graph settings or stored positions.
+| | |
+|---|---|
+| **members** | the layer's children that are references to definitions (`is_reference` + `stood_def`), deduplicated by definition. Anything else on the layer is left out |
+| **cards** | each member drawn with its **reference's id** (a pick selects the reference; the tray shows it and what it stands for), large face, `card.face: table` |
+| **extends** | for each member, walk its chain to the **nearest member** ancestor; one line `class:extends:<ref>` from it to that ancestor's card: `line.dir: forward`, `to_arrow: "hollow"`, name *extends*, not selectable |
+| **associations** | reuse views `links.ts` `linked_graph`, which already links stand-ins for definitions by attributes; add multiplicity to the name where the attribute says `many` (`*`) or `optional` (`0..1`) |
+| **layout** | `auto`, through the existing grid; *arrange* not offered (read only) |
+| **never** | usages, values, stored edges added to the source graph |
 
-### Host state
+Steps: write `class_graph(graph, layer): Graph | null` in `class.ts` (pattern: views `fields.ts` builds a temporary graph the same way); in `project`, a `class` look projects `class_graph` as internal, read only, trail of the real layer.
 
-`App.tsx` holds:
+Verify: typecheck; `npm test`; in the app, architecture → Domain draws five table cards, *extends* lines only where one member extends another, and links `order`, `customer`, `product` named; picking a card shows the reference in the tray; the source file is unchanged after (`git diff`).
 
-```ts
-type ActivePerspective = {
-  layer: Id;
-  kind: PerspectiveKind;
-} | null;
-```
+Done when: Domain reads as a class diagram and nothing is stored for it.
 
-- Clear it when the real open layer changes.
-- Normalize picks through the projection's `target` before sending them to the session/tray.
-- Perspectives are available only on inside layer views, not overhead/profile/folder/definition
-  unless a later design explicitly allows one.
-- Crumbs continue to name real layers; show the perspective as a small canvas/chrome label, not a
-  fake crumb.
+### 5b · Retire the fields toggle
 
-Generalize kit `Viewer`:
+| | |
+|---|---|
+| **Goal** | no layer has a second view: the Viewer's *contents / diagram* toggle goes |
+| **Files** | kit `viewer.tsx` (`fields`, `onFields`, the toggle buttons, the `fields_graph` / `class_def` use); web `App.tsx` (its fields state and handler); views `fields.ts` and its exports, once nothing imports them; cli-plan's *perspective* flags mention `fields` — report it, do not edit the doc |
 
-```ts
-perspective?: PerspectiveKind;
-onPerspective?: (kind: PerspectiveKind) => void;
-```
+Steps: grep `fields_graph`, `class_def`, `onFields`, `fields` in kit, web, cli and views; remove the toggle and its state; delete `fields.ts` if unused; keep any helper the class view reuses by moving it into `class.ts`.
 
-Replace `fields`/`onFields` after updating mndmap; no compatibility layer is required inside this
-repo, but the kit release and mndmap pin must happen in the same tracked milestone.
+Verify: typecheck; `npm test`; in the app, a data layer (showcase `l_rows`) draws its cards with no toggle at the bottom.
 
-Options receive `perspectives` and `perspective` in `Chrome`. Add a `perspective` group beneath
-view controls; it emits host chrome intent and never a core mutation/action.
 
+## 6 — Swimlane view
 
-## Class perspective
+| | |
+|---|---|
+| **Goal** | a grid whose view is `swimlane` draws each participant column as a lane, phases as rows, steps in place and their relations routed as usual |
+| **Files** | new views `swimlane.ts`; views `block.ts`, `index.ts`. Read holders `heading`, `lattice_of`, `at_cell` in core first |
 
-### Eligibility and scope
+Rules:
 
-Eligible when the open layer contains at least two references to definitions, or when its direct
-children resolve to at least two definitions.
+| | |
+|---|---|
+| **lanes** | one per header-row column `c ≥ 1`: a view-drawn **box** (solid rim, as overhead's boxes), id `@lane:<c>`, named the header block's shown name, not selectable |
+| **header** | the header block's card at the top of its lane, its real id |
+| **phases** | the header-column blocks, small cards in a narrow first column, each at its row, real ids |
+| **steps** | each body block at its lane's centre, its row's y; a row is as tall as its tallest card plus `GAP`; a lane as wide as its widest card plus `PAD` each side |
+| **merges** | a step spanning rows sits at its first row (spans drawn later, if wanted) |
+| **relations** | the real edges between steps, unchanged: seats and libavoid route them |
+| **read only** | positions computed every draw, never written |
 
-For `story_domain`, resolve each reference's `of` target. Deduplicate by definition ID.
+Steps: `swimlane_graph(graph, grid): Graph | null` (null where fewer than two participant columns or no body step); `project` routes `swimlane` there.
 
-### Temporary graph
+Data: the story adds `story_place_lanes`, a layer holding a reference to `scenario_place` that states `layout.view: swimlane` (the stand-in rule from 2a). Opening the reference draws the place-order grid as lanes.
 
-Add `class_graph(graph, layer): Graph | null`:
+Verify: typecheck; in the app, the place-order swimlane shows six lanes, phases in order, every message line; moving a step to another cell in the grid view moves it to that lane in the swimlane.
 
-- Create synthetic layer `@class`, `layout.kind: auto`, `layout.face: large`.
-- Clone each real definition into `@class` with its real ID and large attribute table.
-- Do not clone usages or values.
-- Add synthetic inheritance edges:
-  `@class:extends:<sub>:<super>`, source subtype, target supertype, hollow arrow, label `extends`.
-- Add synthetic association edges for attributes typed by another included definition:
-  `@class:attribute:<owner>:<attribute>`.
-- Association labels include the attribute name and multiplicity derived from `many`/`optional`.
-- Deduplicate associations by owner definition + attribute, not merely endpoint pair.
-- Project `@class` through the ordinary internal projector.
-- Mark synthetic edges unpickable; picks on class cards remain real definition IDs.
+Done when: grid and swimlane agree for both scenarios.
 
-No graph schema, mutation, base kind or stored relation is added.
 
-### Tests
+## 7 — Sequence view
 
-- Inheritance edge direction and styling.
-- Attribute associations and multiplicity.
-- Frozen package definitions included.
-- No usage values in class cards.
-- Perspective switch leaves source graph byte-equivalent.
-- Resulting Scene passes `faults`.
+| | |
+|---|---|
+| **Goal** | a grid whose view is `sequence` draws participants as lifelines and relations between steps as horizontal messages in row order |
+| **Files** | new views `sequence.ts`; views `scene.ts` (`LineData.points`, `faults`), `avoid.ts`, `block.ts`, `index.ts`; stage `Wire.tsx`, stage CSS |
 
+Rules:
 
-## Swimlane perspective
+| | |
+|---|---|
+| **lifelines** | per participant column: the header block's small card at top (real id), and a dashed stem from its bottom to the last row: a line between two synthetic zero-size nodes, not selectable |
+| **time** | body row order, top to bottom: `y = top + r × pitch` |
+| **steps** | each step a narrow activation bar on its lifeline at its row (real id, small, its name beside it) |
+| **messages** | each real relation between two steps: from the source step's lifeline x to the target's, at the **target's row**; several in one row offset evenly within it. Arrows and dash from the relation's settings |
+| **name** | the relation's own `name`, else the target step's name |
+| **self message** | source and target on one lifeline: a three-leg loop to the right |
+| **phases** | header-column blocks as small cards left of the first lifeline, at their rows |
+| **not yet** | activation spans, fragments, durations, conditions — added only when the two scenarios show a need |
 
-### Eligibility
+Steps:
 
-Eligible only for a grid with:
+1. views `scene.ts`: `LineData.points?: readonly { x: number; y: number }[]`; `faults` refuses a non-finite point.
+2. stage `Wire.tsx`: where `data.points` is given, draw that polyline (with the existing heads and label placement) and skip routing; views `avoid.ts` `routes_of` skips such edges.
+3. `sequence_scene(graph, grid): Scene | null` in `sequence.ts`, built directly as a Scene (time is geometry here), using `size_of` for card sizes. `project` routes `sequence` there; trail is the real grid's.
 
-- a top header block in at least two participant columns;
-- at least one body step;
-- at least one relation between body steps.
+Verify: typecheck; `npm test`; `npm run lint:css`; in the app, place order shows six lifelines, messages strictly downward by row, the reply dashed, the failure branch last; picking a header or step selects the real block.
 
-### Temporary graph
+Done when: both scenarios read as sequence diagrams and every pick resolves to a real element.
 
-Add `swimlane_graph(graph, grid): Graph | null`:
 
-- Synthetic root `@swimlane`, free layout.
-- One synthetic group per participant column: `@lane:<header-id>`.
-- Group label is the participant reference's shown name.
-- Reparent real body-step blocks into their lane group, retaining real IDs.
-- Place steps vertically by grid row; equal row indices align horizontally.
-- Use fixed lane widths from the widest card in each lane and a shared row pitch.
-- Draw phase names from left-header blocks as read-only note/label cards in a narrow leading lane.
-- Preserve real relations between step blocks; ordinary projection handles seats/routing.
-- Synthetic lane/phase nodes are unpickable or map to their real header block.
-- Return `slots: ["display"]`; no layer/layout/relation editing while the perspective is active.
+## 8 — Lab refresh
 
-### Tests
+| | |
+|---|---|
+| **Goal** | the showcase is the visual checklist for everything above |
+| **Files** | `scripts/showcase.ts` (split into `scripts/showcase/` modules only if it passes ~400 lines) |
 
-- Column allocation chooses lanes.
-- Row allocation preserves order/alignment.
-- Moving a step to another cell changes lane without changing any other field.
-- Cross-lane relations retain IDs and direction.
-- Synthetic picks map to header blocks.
-- Scene passes `faults`.
+Steps:
 
+1. Merge `diagrams` into the showcase. Add `l_diagrams`: a small class diagram (two references to lab definitions, one extending the other, one link), a 3×3 swimlane grid, and a 3×3 sequence grid with a self message, an empty lane and a header referring to nothing.
+2. Re-read every layer's note against what it draws today (step 12: names on lines, faces named, lines round cards) and correct it. Each note says what to open, what should appear, what proves it right.
+3. Retire layers the architecture workspace now covers better only if the user agrees; list candidates (`l_model`, `l_rows`) in the report.
 
-## Sequence perspective and lifelines
+Verify: `npm run showcase`; `check` clean; drive every lab layer and report anything that draws wrong.
 
-Sequence uses the same scenario grid; it requires a specialized Scene because time is vertical and
-message lines must meet lifelines at their event row rather than route between card borders.
 
-### Derived data
+## 9 — Opening on a sample
 
-- Participant order: top-header column order.
-- Participant identity: header reference target; fallback to the header block itself.
-- Time order: body row index.
-- Message source/target: relation endpoint steps → each step's allocated participant column.
-- Message y: target step row, with stable offsets for multiple messages in one row.
-- Message label: relation label/name when present, otherwise target step name.
-- Self-message: relation whose allocated source/target participant is the same.
-- Steps with no incoming cross-participant relation may draw as small annotations on their
-  lifeline; they do not invent a message.
+### 9a · A fresh browser opens a sample
 
-### Scene additions
-
-Extend `BoxData`:
-
-```ts
-lifeline?: {
-  participant: Id;
-  headerHeight: number;
-};
-```
+The web app, finding its storage empty, imports a default workspace file (the showcase) instead of an empty one. Served through Vite, not copied into `public/`. Reset still makes an empty workspace; an existing log always wins.
 
-Extend `LineData`:
+### 9b · YAML bootstrap
 
-```ts
-points?: readonly Point[];
-message?: {
-  row: number;
-  kind: "call" | "reply" | "async";
-};
-```
+Root `mndflow.yaml` names the default workspace, the catalogue, and app defaults (theme, tray, display, start view). Parsed by core with its `yaml` dependency; never written by the app; never a graph format. Scope it when 9a is in use — the old plan's contract is in git history (`44e1979`).
 
-Add node type `lifeline`:
 
-- One node per participant, ID `@life:<header-id>`.
-- Node spans header plus full sequence height.
-- Node component draws the participant's small card at top and a vertical dashed stem below.
-- Only the header accepts pointer events; picking maps to the canonical participant block.
+## 10 — Docs and kit (on direction)
 
-`sequence_scene(graph, grid): Scene | null`:
+| Doc | Gains |
+|---|---|
+| design.md *Perspectives* | three layer views, `layout.view`, a view needs its input, read only |
+| definitions.md | *class*, *swimlane*, *sequence* views; *lifeline*, *message* as drawn things, never stored |
+| core model / schema docs | `layout.view` |
+| defs docs | catalogue packages collected from folders |
+| cli-plan | the *perspective* flags lose `fields` |
+| next-plan *Carried over* | kit changes: `ViewKind` gains three kinds; `DIAGRAM_VIEWS`; `layout.face` → `layout.cards`; `LineData.points`; the Viewer's `fields` / `onFields` and views `fields_graph` / `class_def` gone; a stand-in may state its own view |
 
-- Places lifeline nodes at fixed column x positions.
-- Creates real-relation edges between lifeline node IDs with explicit horizontal `points`.
-- Uses a three-leg loop for self-messages.
-- Reuses existing wire heads/look; bypasses libavoid and `route` when `data.points` is present.
-- Keeps real relation IDs so edge selection/tray context is meaningful.
-- Uses the real grid's trail and layer ID.
-- Offers display controls only.
-
-### Renderer changes
-
-- `packages/stage/src/nodes.tsx`: add `LifelineNode` and include lifeline fields in memo comparison.
-- `packages/stage/src/Wire.tsx`: prefer `data.points` before libavoid/fallback routing.
-- Stage CSS: participant header, dashed stem, read-only cursor behavior.
-- `packages/views/src/svg.ts`: render the same lifeline stem and explicit message path.
-- `packages/views/src/text.ts`: add a simple ordered message outline for tests/debugging; it is not
-  the visual acceptance renderer.
-- `faults(scene)`: explicit points must be finite; sequence message paths must be horizontal except
-  self loops; endpoints must name lifeline nodes.
-
-### Deferred sequence notation
-
-Do not implement activation bars, combined fragments, durations, concurrency or conditions in the
-first pass. Add them only after the two realistic scenarios demonstrate that graph order, cells,
-relations and markdown cannot communicate the needed fact.
-
-
-## Tests and release gate
-
-### Generator/sample tests
-
-Add [`test/showcase.test.ts`](../test/showcase.test.ts):
-
-- Build the showcase in memory and compare canonical output byte-for-byte with the checked file.
-- Open with `FLOOR`; require no door faults.
-- Run `review`; strict showcase policy requires no notes.
-- Assert required fixed IDs/layers and embedded entity-relation package.
-- Assert every scenario header/body block has a valid cell and every participant header is a
-  reference.
-- Assert every markdown source applies without minting an unexpected definition.
-- Project every standard layer and require no Scene faults.
-
-Do not execute the generator as a side effect of Vitest. Export a pure `build_showcase()` and
-compare its string result.
-
-### Perspective tests
-
-- `fields`: existing schema/instances behavior, class card pick mapping and instance edges.
-- `class`: definitions, inheritance, associations, multiplicity.
-- `swimlane`: lane allocation, phase order, relation preservation.
-- `sequence`: lifeline order, monotonically increasing message rows, explicit paths, self-message.
-- `project_perspective`: eligibility, target mapping, graph immutability, real trail/layer.
-- Stage: lifeline node and explicit wire path render.
-- SVG: perspective output contains the same participants/messages as Stage.
-
-Avoid coordinate snapshots for ordinary layouts. Sequence tests may assert row monotonicity and
-horizontal paths because those coordinates are the perspective's semantics.
-
-### Manual walkthrough
-
-At a fixed browser viewport:
-
-1. Clear IndexedDB and start the app; bootstrap opens the showcase at Story in overhead view.
-2. Open Story and Lab folders; verify folder views.
-3. Open Platform; verify internal architecture and routing.
-4. Open Order service; verify read-through.
-5. Open Order Service definition; verify definition view.
-6. Select a platform block and switch to profile.
-7. Open Place order grid; verify participant and phase allocation.
-8. Toggle fields on Sample orders.
-9. After each new perspective lands, toggle class, swimlane and sequence and compare with the
-   ordinary internal/grid source.
-10. Walk the lab layers and verify existing cards, faces, routing, interfaces, holders and broken
-    reference cases.
-
-Record visual issues in [`docs/next-plan.md`](next-plan.md); do not encode fixes as sample-only
-coordinates unless the layer is deliberately testing `free`.
-
-### Commands
-
-```sh
-npm run showcase
-npm run start -s -w @mnd/cli -- check ../../samples/workspace.showcase.json
-npm test
-npm run typecheck
-npm run lint:css
-npm run dev
-```
-
-
-## Implementation order
-
-### 0 — Stabilize the current model — **done**
-
-- Landed as next-plan step 12 (`44e1979`): traits replace and are a definition's, tags index,
-  styles are settings, named faces (`card.face`), **a line's name is its own `name`**, base as
-  definition files.
-- The showcase is regenerated and checks clean; tests, typecheck and CSS lint pass.
-
-Done when the current showcase checks clean, tests/typecheck/CSS pass, and the relation label shape
-used by the generator is decided.
-
-### 1 — Modular generator, no content changes
-
-- Convert the generator to typed modules.
-- Keep output byte-identical.
-- Add the pure generator drift test.
-
-Done when `npm run showcase` produces no diff.
-
-### 2 — Story and lab workspace
-
-- Add Story/Lab folders.
-- Move existing lab layers without changing their contents/IDs.
-- Add architecture definitions, canonical platform, context, domain, data and scenario grids.
-- Update layer notes to current routing/view language.
-- Switch the generated file to core's canonical `write` and review the one-time ordering diff.
-
-Done when existing views communicate the architecture and the lab retains current coverage.
-
-### 3 — Markdown card sources
-
-- Add the five markdown files.
-- Apply them through real card actions during generation.
-- Exercise source provenance and large markdown faces.
-
-Done when changing markdown and regenerating changes only the intended JSON body/value/source lines.
-
-### 4 — YAML bootstrap
-
-- Add core parser/types/tests.
-- Add Vite asset bridge and web loading precedence.
-- Initialize app display/start state without entering graph/log/export.
-
-Done when a fresh browser opens the showcase as configured, existing storage wins, reset is empty,
-and export is JSON.
-
-### 5 — Existing-view acceptance
-
-- Add catalog instructions and automated projection checks.
-- Expose the existing fields diagram in the web app through the generalized perspective plumbing.
-- Drive overhead, profile, internal, folder, grid, definition, read-through and fields.
-
-Done when every existing view has one focused story case and one recorded acceptance statement.
-
-### 6 — Class perspective
-
-- Implement `PerspectiveKind`, projection framework and `class_graph`.
-- Add options/Viewer/web wiring and tests.
-
-Done when `story_domain` draws inheritance, attributes and associations without stored diagram
-edges.
-
-### 7 — Swimlane perspective
-
-- Implement `swimlane_graph` over scenario grids.
-- Add eligibility, target mapping, controls and tests.
-
-Done when moving a step's grid cell changes its lane and both ordinary grid and swimlane remain
-consistent.
-
-### 8 — Sequence and lifelines
-
-- Implement `sequence_scene`, Scene extensions, Stage/SVG rendering and tests.
-- Use both realistic scenarios, including reply, async and failure paths.
-
-Done when lifelines/messages are fully derived, picks resolve to real graph elements, and Stage/SVG
-agree.
-
-### 9 — Documentation, kit and later agent integration
-
-- Update [`docs/design.md`](design.md), [`docs/definitions.md`](definitions.md),
-  [`docs/spec.md`](spec.md), package docs and the walkthrough.
-- Export perspective APIs through kit and update/pin mndmap.
-- Only after the sample contract stabilizes, add these perspectives and bootstrap defaults to
-  [`docs/cli-plan.md`](cli-plan.md) and the agent interface.
+Then `npm run release:kit` and re-pin mndmap.
 
 
 ## Guardrails
 
-- No second canonical workspace format.
-- No YAML synchronization after bootstrap.
-- No perspective-specific graph fields, positions, routes or duplicate components.
-- No new base kinds for notation.
-- No class association or instance-of relationship stored solely for drawing.
-- No lifeline blocks or sequence numbers in the graph.
-- No sample-only behavior in the web app; every new rule belongs in core or views and is reusable
-  by kit/CLI.
-- No weakening of Scene as the plain-data seam.
-- No coordinate snapshots for layouts still being refined.
-- Keep the visual lab synthetic and the architecture story believable; do not mix routing torture
-  nodes into the domain story.
+- no stored diagram geometry, lifelines, lanes, message numbers or class edges
+- no new base kinds: diagram kinds are a package's definitions
+- every component stated once; other diagrams refer to it
+- no sample-only behaviour in the app: every rule lives in core or views, reusable by kit and CLI
+- Scene stays plain data
+- the lab stays synthetic; the story stays believable — no routing torture cases in the story
