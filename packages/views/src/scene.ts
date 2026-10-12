@@ -101,6 +101,8 @@ export type LineData = {
   alias?: string;
   /** Where its cross leg sits, out from the end its lines fan from. */
   fan?: Fan;
+  /** A run already drawn, in the scene's own coordinates. Routing is skipped. */
+  points?: readonly { x: number; y: number }[];
 };
 
 /** One drawn thing. React Flow's node, with our data on it. */
@@ -251,6 +253,11 @@ export function faults(scene: Scene): string[] {
   for (const e of scene.edges) {
     if (!met(e.source)) out.push(`edge ${e.id} leaves a node that is not drawn`);
     if (!met(e.target)) out.push(`edge ${e.id} reaches a node that is not drawn`);
+    for (const p of e.data?.points ?? []) {
+      if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) {
+        out.push(`edge ${e.id} has a point off the page`);
+      }
+    }
   }
 
   if (scene.frame && (scene.frame.w <= 0 || scene.frame.h <= 0)) {

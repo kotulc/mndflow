@@ -30,10 +30,10 @@
 | **batches** | one verb, `do`, takes one action or a JSONL script. A script is one intent: all or nothing, one step |
 | **repairs** | **one rule with the app**: the door repairs what it can and the result lists every repair. No `--repair` mode |
 | **rendering** | **one renderer: the stage.** `draw` mounts the kit's `Viewer` in a headless browser and screenshots it, so the picture matches the app by construction. views' `svg.ts` stays as it is and is not grown to parity |
-| **perspective** | **the Viewer's own props**, given as flags: layer, view, fields, focus, chrome. No sidecar file until multi-view handoff needs one |
+| **perspective** | **the Viewer's own props**, given as flags: layer, view, focus, chrome. No sidecar file until multi-view handoff needs one |
 | **the text drawing** | dropped from the CLI. views keeps `draw` and `outline`, which its shape tests use |
 | **edge labels** | `label_of` (core `names.ts`) draws an edge's own `name`, else its definition's name, and nothing for an unnamed base `line` or `tie`. Simple edges use base `line`; a custom relation definition labels every edge it types, so a map reaches for one only when that label is wanted |
-| **markdown** | content is text passed through untouched: any value may come from a file. A card's markdown source is read by the `markdown` and `attach` actions; how a card draws is `card.face`, `card.size` and `layout.face`, written with `look` (cards-plan.md) |
+| **markdown** | content is text passed through untouched: any value may come from a file. A card's markdown source is read by the `markdown` and `attach` actions; how a card draws is `card.face`, `card.size` and `layout.cards`, written with `look` (cards-plan.md) |
 
 
 ## The action surface
@@ -154,8 +154,7 @@ The httpie conventions, so they need no teaching. A script line is already JSON,
 | Flag | Viewer prop | |
 |---|---|---|
 | `[ref]` | `layer` | the layer to draw; the workspace's domain unless said |
-| `--view internal \| overhead \| profile` | `config.look` | the canvas views that already exist; `internal` unless said |
-| `--fields` | `fields` | the layer drawn as its fields' class diagram |
+| `--view internal \| overhead \| profile` | `config.look` | the canvas views that already exist; `internal` unless said. A diagram is the layer's own `layout.view`, not a flag |
 | `--focus <ref>` | `focus` | brought to the middle of a scrolled layer |
 | `--no-frame`, `--no-lattice`, `--legend` | `chrome` | the canvas's chrome |
 | `--size 1600x900` | — | the viewport, so a picture is reproducible |

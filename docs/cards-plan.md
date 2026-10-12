@@ -166,7 +166,7 @@ Pumps feed water from the **tank** to the boiler.
 
 | | Waits on |
 |---|---|
-| **definition view** | a canvas view kind: the large card centred, its interfaces on the walls, its traits, tags and attributes around it, composed by drag and drop |
+| **definition view** | built: next-plan step 8, revised in steps 11 and 12 |
 | **choice options as blocks** | a choice wanting options with icons or notes of their own |
 | **link index** | a layer large enough for `linked_graph`'s card-by-card match to show; a name index fixes it |
 | **records tables** | many usages read from one markdown table |
@@ -177,7 +177,9 @@ Pumps feed water from the **tank** to the boiler.
 
 ## Status
 
-**Steps 1–7 built and step 8's docs written, 2026-10-08; nothing committed.** Typecheck clean in both repos, 291 tests green, CSS lint clean. Both apps driven in Edge; `collect`, `attach` and `markdown` driven from the CLI. Link lines driven on a canvas, 2026-10-08, with the `erd` package, now the showcase's data layers.
+**Renamed since** (next-plan step 12, sample-plan): `card.shows` is `card.face` (`table`, `document`, `picture`), and `layout.face` is `layout.cards`. The plan below keeps the names it was written with.
+
+**Steps 1–7 built and step 8's docs written, 2026-10-08; mndflow committed since.** Typecheck clean in both repos, 291 tests green, CSS lint clean. Both apps driven in Edge; `collect`, `attach` and `markdown` driven from the CLI. Link lines driven on a canvas, 2026-10-08, with the `erd` package, now the showcase's data layers.
 
 ### Settled while building
 
@@ -208,8 +210,8 @@ Pumps feed water from the **tank** to the boiler.
 
 | # | To do |
 |---|---|
-| 1 | commit both repos |
-| 2 | `npm run release:kit` — it stamps the commit, so after 1 — then copy the tarball into mndmap's `vendor/` and point its `package.json` at it. Until then mndmap builds only against the linked kit in dev |
+| 1 | commit mndmap: as of 2026-10-12 it still holds this plan's uncommitted work (`Preview` → `Document`, `forms.ts` gone, `scan`, `read`, `edits`) |
+| 2 | re-pin mndmap: kit **0.12.0** is packed (2026-10-12; re-run `npm run release:kit` once mndflow's work is committed, so it stamps that commit), then copy the tarball into mndmap's `vendor/` and point its `package.json` at it. mndmap still vendors 0.11.0 from 2026-10-04 |
 | 3 | drive the web app's *import a collection* and *attach*: both are bound, neither has been clicked |
 | 4 | notes draw their name, not their body, and through `NoteNode` rather than `CardFace` |
 

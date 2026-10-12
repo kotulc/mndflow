@@ -7,6 +7,8 @@
  *  section above lists — down to its cut, the pick brought into sight. */
 
 import { holds_any } from "./capabilities";
+import { DIAGRAM_VIEWS } from "./components";
+import { has_trait, setting_of } from "./defs";
 import { inline, is_folder, is_grid, layer_of } from "./holders";
 import { opens } from "./names";
 import { at_cut, in_section, is_layer_view, type Section, type ViewKind } from "./sections";
@@ -40,16 +42,59 @@ export const EDITOR: Tiers = {
 };
 
 
+/** A block's own `layout.view`, not what its chain says. A stand-in uses this to name a diagram
+ *  over its target. */
+function own_view(graph: Graph, id: Id): string | undefined {
+  const view = graph.blocks[id]?.settings?.["layout"]?.["view"];
+  return typeof view === "string" ? view : undefined;
+}
+
+/** Whether a block can feed a diagram view. A sequence or a swimlane needs a grid. A class
+ *  diagram needs room to hold: `has_parts` grants it, and `holds_any` is what the engine reads. */
+function feeds(graph: Graph, id: Id, view: string): boolean {
+  if (view === "sequence" || view === "swimlane") return is_grid(graph, id);
+  if (view === "class") return holds_any(graph, id) || has_trait(graph, id, "has_parts");
+  return false;
+}
+
+/** The diagram view a block's chain names, where the block can feed it. A name this build does
+ *  not know, or a block that cannot feed the one it names, is null: the block opens on its
+ *  capability view. */
+export function diagram_of(graph: Graph, id: Id): ViewKind | null {
+  const said = setting_of(graph, id, "layout")["view"];
+  if (typeof said !== "string" || !(DIAGRAM_VIEWS as readonly string[]).includes(said)) return null;
+  return feeds(graph, id, said) ? said as ViewKind : null;
+}
+
+/** The block a diagram draws. A stand-in that states its own `layout.view`, and whose target can
+ *  feed it, draws the target. One dataset, many diagrams. */
+export function diagram_subject(graph: Graph, id: Id): Id {
+  const target = of_ref(graph, id) ? stands_for(graph, id) : null;
+  const own = own_view(graph, id);
+  if (target && target.id !== id && own && (DIAGRAM_VIEWS as readonly string[]).includes(own)
+      && feeds(graph, target.id, own)) return target.id;
+  return id;
+}
+
+/** The diagram a stand-in states for its target, where the target can feed it. */
+function own_diagram(graph: Graph, id: Id): ViewKind | null {
+  return diagram_subject(graph, id) !== id ? own_view(graph, id) as ViewKind : null;
+}
+
+
 /** The layer view a block opens on, by its card's kind, or null where it opens on nothing: a
- *  package or folder, its folder; a definition, itself; a grid, its lattice; a block with
- *  structure or room to hold, from inside. A stand-in opens as what it stands for. */
+ *  package or folder, its folder; a definition, itself; a diagram it names and can feed; a grid,
+ *  its lattice; a block with structure or room to hold, from inside. A stand-in opens as what it
+ *  stands for, unless it states its own diagram view and the target can feed that. */
 export function lens_of(graph: Graph, id: Id): ViewKind | null {
   const b = graph.blocks[id];
   if (!b) return null;
   if (b.parent === null || is_folder(graph, id)) return "folder";
   if (b.def) return "definition";
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
-  if (target && target.id !== id) return lens_of(graph, target.id);
+  if (target && target.id !== id) return own_diagram(graph, id) ?? lens_of(graph, target.id);
+  const diagram = diagram_of(graph, id);
+  if (diagram) return diagram;
   if (is_grid(graph, id)) return "grid";
   if (inline(graph, id)) return null;
   return is_interface(graph, b.id) || opens(graph, id) || holds_any(graph, id) ? "internal" : null;
@@ -141,7 +186,11 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
   const b = graph.blocks[id];
   if (!b) return null;
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
-  if (target && target.id !== id) return open_at(graph, tiers, views, target.id);
+  /** A stand-in that names its own diagram stays the layer: the drawing is the target's, and the
+   *  trail names the reference. Anything else opens what it stands for. */
+  if (target && target.id !== id && !own_diagram(graph, id)) {
+    return open_at(graph, tiers, views, target.id);
+  }
   const { roots, held } = trace(graph, tiers, id);
   if (b.def) {
     const inside = held.lastIndexOf(id);

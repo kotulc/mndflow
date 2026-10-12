@@ -1,0 +1,240 @@
+{
+  "schema": "1.0",
+  "id": "architecture",
+  "graph": {
+    "root": "architecture",
+    "blocks": {
+      "architecture": {
+        "id": "architecture",
+        "parent": null,
+        "name": "architecture"
+      },
+      "architecture.calls": {
+        "id": "architecture.calls",
+        "parent": "architecture.dir.relations",
+        "name": "calls",
+        "type": "line",
+        "def": {},
+        "body": "A service asks another to do something.",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "architecture.component": {
+        "id": "architecture.component",
+        "parent": "architecture.dir.blocks",
+        "name": "component",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "owner",
+              "type": "text"
+            },
+            {
+              "name": "technology",
+              "type": "text"
+            }
+          ]
+        },
+        "body": "A piece of the system somebody owns and a technology implements.",
+        "order": 1,
+        "settings": {
+          "card": {
+            "face": "table"
+          },
+          "style": {
+            "family": "primary"
+          }
+        }
+      },
+      "architecture.database": {
+        "id": "architecture.database",
+        "parent": "architecture.dir.blocks",
+        "name": "database",
+        "type": "architecture.component",
+        "def": {
+          "attributes": [
+            {
+              "name": "engine",
+              "type": "text"
+            }
+          ]
+        },
+        "body": "A component that stores what the services read.",
+        "order": 2,
+        "settings": {
+          "style": {
+            "family": "muted"
+          }
+        }
+      },
+      "architecture.decision": {
+        "id": "architecture.decision",
+        "parent": "architecture.dir.blocks",
+        "name": "decision",
+        "type": "architecture.document",
+        "def": {},
+        "body": "A choice the story records, drawn like a note.",
+        "order": 3,
+        "settings": {
+          "style": {
+            "family": "note",
+            "fill": "wash"
+          }
+        }
+      },
+      "architecture.dir.blocks": {
+        "id": "architecture.dir.blocks",
+        "parent": "architecture",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1
+      },
+      "architecture.dir.relations": {
+        "id": "architecture.dir.relations",
+        "parent": "architecture",
+        "name": "relations",
+        "type": "folder",
+        "order": 2
+      },
+      "architecture.document": {
+        "id": "architecture.document",
+        "parent": "architecture.dir.blocks",
+        "name": "document",
+        "type": "block",
+        "def": {},
+        "body": "A page of the story, read as a document.",
+        "order": 4,
+        "settings": {
+          "card": {
+            "face": "document"
+          }
+        }
+      },
+      "architecture.external": {
+        "id": "architecture.external",
+        "parent": "architecture.dir.blocks",
+        "name": "external",
+        "type": "architecture.component",
+        "def": {},
+        "body": "A component outside the system, drawn with a dashed border.",
+        "order": 5,
+        "settings": {
+          "style": {
+            "family": "away",
+            "border_style": "dashed"
+          }
+        }
+      },
+      "architecture.integrates": {
+        "id": "architecture.integrates",
+        "parent": "architecture.dir.relations",
+        "name": "integrates",
+        "type": "line",
+        "def": {},
+        "body": "A service reaches a system outside its own.",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "architecture.message": {
+        "id": "architecture.message",
+        "parent": "architecture.dir.relations",
+        "name": "message",
+        "type": "line",
+        "def": {},
+        "body": "One step asks the next to continue.",
+        "order": 3,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "architecture.publishes": {
+        "id": "architecture.publishes",
+        "parent": "architecture.dir.relations",
+        "name": "publishes",
+        "type": "line",
+        "def": {},
+        "body": "A service puts an event on a queue.",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          },
+          "style": {
+            "border_style": "dashed"
+          }
+        }
+      },
+      "architecture.queue": {
+        "id": "architecture.queue",
+        "parent": "architecture.dir.blocks",
+        "name": "queue",
+        "type": "architecture.component",
+        "def": {},
+        "body": "A component that carries events from one service to another.",
+        "order": 6,
+        "settings": {
+          "style": {
+            "family": "away"
+          }
+        }
+      },
+      "architecture.reads": {
+        "id": "architecture.reads",
+        "parent": "architecture.dir.relations",
+        "name": "reads",
+        "type": "line",
+        "def": {},
+        "body": "A service reads what a database stores.",
+        "order": 5,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "architecture.reply": {
+        "id": "architecture.reply",
+        "parent": "architecture.dir.relations",
+        "name": "reply",
+        "type": "line",
+        "def": {},
+        "body": "A step answers the one that asked it.",
+        "order": 6,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          },
+          "style": {
+            "border_style": "dashed"
+          }
+        }
+      },
+      "architecture.service": {
+        "id": "architecture.service",
+        "parent": "architecture.dir.blocks",
+        "name": "service",
+        "type": "architecture.component",
+        "def": {},
+        "body": "A component that answers requests.",
+        "order": 7,
+        "settings": {
+          "style": {
+            "family": "secondary"
+          }
+        }
+      }
+    },
+    "edges": {}
+  }
+}

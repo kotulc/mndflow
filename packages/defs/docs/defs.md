@@ -8,11 +8,13 @@
 | `requirements` | a worked vocabulary: a shall statement and a verification method |
 | `sysml` | formal names and stereotypes over the base definitions |
 | `entity-relation` | entities with keyed attributes, some typed by another entity, drawn large as tables and linked. the showcase workspace draws it twice: a model layer of stand-ins, and a data layer of usages |
+| `diagrams` | the diagram views a card's kind opens on: `class diagram`, `swimlane`, `sequence diagram`. Each says `layout.view`. Collected from `src/packages/diagrams` |
+| `architecture` | an order-fulfillment vocabulary: components, documents and the relations between them. Collected from `src/packages/architecture`. The architecture sample extends it; the definition files hold no parts |
 
 - **Every package is a JSON file**, `base` included. Code keeps only the id constants it reads.
 - **A package is a graph root**: its definitions sit in its domain, organized by holders the package chooses.
 - **Proven by**: every shipped package passes the door, and every module any of them names exists.
-- **Where they live**: `base` ships with the build; every other package is JSON in `public/packages`, listed in its `index.json`, fetched through the `net` port.
+- **Where they live**: `base` ships with the build; every other package is JSON in `public/packages`, listed in its `index.json`, fetched through the `net` port. A package with a source folder under `packages/defs/src/packages` is collected by `npm run packages`, one definition file per kind.
 
 
 ## The rules a package lives by

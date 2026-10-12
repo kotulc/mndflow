@@ -1,0 +1,14 @@
+{
+  "id": "database",
+  "name": "database",
+  "type": "component",
+  "body": "A component that stores what the services read.",
+  "def": {
+    "attributes": [
+      { "name": "engine", "type": "text" }
+    ]
+  },
+  "settings": {
+    "style": { "family": "muted" }
+  }
+}

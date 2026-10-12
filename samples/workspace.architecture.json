@@ -1,0 +1,1987 @@
+{
+  "schema": "1.0",
+  "id": "workspace",
+  "graph": {
+    "root": "workspace",
+    "blocks": {
+      "actor_customer": {
+        "id": "actor_customer",
+        "parent": "story_context",
+        "name": "Online customer",
+        "type": "block",
+        "alias": 16,
+        "order": 1
+      },
+      "architecture": {
+        "id": "architecture",
+        "parent": null,
+        "name": "architecture"
+      },
+      "architecture.calls": {
+        "id": "architecture.calls",
+        "parent": "architecture.dir.relations",
+        "name": "calls",
+        "type": "line",
+        "def": {},
+        "body": "A service asks another to do something.",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "architecture.component": {
+        "id": "architecture.component",
+        "parent": "architecture.dir.blocks",
+        "name": "component",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "owner",
+              "type": "text"
+            },
+            {
+              "name": "technology",
+              "type": "text"
+            }
+          ]
+        },
+        "body": "A piece of the system somebody owns and a technology implements.",
+        "order": 1,
+        "settings": {
+          "card": {
+            "face": "table"
+          },
+          "style": {
+            "family": "primary"
+          }
+        }
+      },
+      "architecture.database": {
+        "id": "architecture.database",
+        "parent": "architecture.dir.blocks",
+        "name": "database",
+        "type": "architecture.component",
+        "def": {
+          "attributes": [
+            {
+              "name": "engine",
+              "type": "text"
+            }
+          ]
+        },
+        "body": "A component that stores what the services read.",
+        "order": 2,
+        "settings": {
+          "style": {
+            "family": "muted"
+          }
+        }
+      },
+      "architecture.decision": {
+        "id": "architecture.decision",
+        "parent": "architecture.dir.blocks",
+        "name": "decision",
+        "type": "architecture.document",
+        "def": {},
+        "body": "A choice the story records, drawn like a note.",
+        "order": 3,
+        "settings": {
+          "style": {
+            "family": "note",
+            "fill": "wash"
+          }
+        }
+      },
+      "architecture.dir.blocks": {
+        "id": "architecture.dir.blocks",
+        "parent": "architecture",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1
+      },
+      "architecture.dir.relations": {
+        "id": "architecture.dir.relations",
+        "parent": "architecture",
+        "name": "relations",
+        "type": "folder",
+        "order": 2
+      },
+      "architecture.document": {
+        "id": "architecture.document",
+        "parent": "architecture.dir.blocks",
+        "name": "document",
+        "type": "block",
+        "def": {},
+        "body": "A page of the story, read as a document.",
+        "order": 4,
+        "settings": {
+          "card": {
+            "face": "document"
+          }
+        }
+      },
+      "architecture.external": {
+        "id": "architecture.external",
+        "parent": "architecture.dir.blocks",
+        "name": "external",
+        "type": "architecture.component",
+        "def": {},
+        "body": "A component outside the system, drawn with a dashed border.",
+        "order": 5,
+        "settings": {
+          "style": {
+            "family": "away",
+            "border_style": "dashed"
+          }
+        }
+      },
+      "architecture.integrates": {
+        "id": "architecture.integrates",
+        "parent": "architecture.dir.relations",
+        "name": "integrates",
+        "type": "line",
+        "def": {},
+        "body": "A service reaches a system outside its own.",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "architecture.message": {
+        "id": "architecture.message",
+        "parent": "architecture.dir.relations",
+        "name": "message",
+        "type": "line",
+        "def": {},
+        "body": "One step asks the next to continue.",
+        "order": 3,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "architecture.publishes": {
+        "id": "architecture.publishes",
+        "parent": "architecture.dir.relations",
+        "name": "publishes",
+        "type": "line",
+        "def": {},
+        "body": "A service puts an event on a queue.",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          },
+          "style": {
+            "border_style": "dashed"
+          }
+        }
+      },
+      "architecture.queue": {
+        "id": "architecture.queue",
+        "parent": "architecture.dir.blocks",
+        "name": "queue",
+        "type": "architecture.component",
+        "def": {},
+        "body": "A component that carries events from one service to another.",
+        "order": 6,
+        "settings": {
+          "style": {
+            "family": "away"
+          }
+        }
+      },
+      "architecture.reads": {
+        "id": "architecture.reads",
+        "parent": "architecture.dir.relations",
+        "name": "reads",
+        "type": "line",
+        "def": {},
+        "body": "A service reads what a database stores.",
+        "order": 5,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "architecture.reply": {
+        "id": "architecture.reply",
+        "parent": "architecture.dir.relations",
+        "name": "reply",
+        "type": "line",
+        "def": {},
+        "body": "A step answers the one that asked it.",
+        "order": 6,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          },
+          "style": {
+            "border_style": "dashed"
+          }
+        }
+      },
+      "architecture.service": {
+        "id": "architecture.service",
+        "parent": "architecture.dir.blocks",
+        "name": "service",
+        "type": "architecture.component",
+        "def": {},
+        "body": "A component that answers requests.",
+        "order": 7,
+        "settings": {
+          "style": {
+            "family": "secondary"
+          }
+        }
+      },
+      "data_1001": {
+        "id": "data_1001",
+        "parent": "story_data",
+        "name": "Order 1001",
+        "type": "def_order_record",
+        "alias": 21,
+        "order": 3,
+        "values": [
+          {
+            "name": "number",
+            "value": "1001"
+          },
+          {
+            "name": "customer",
+            "value": "Ada Lovelace"
+          },
+          {
+            "name": "placed",
+            "value": "2026-10-01"
+          },
+          {
+            "name": "status",
+            "value": "shipped"
+          },
+          {
+            "name": "paid",
+            "value": "true"
+          },
+          {
+            "name": "lines",
+            "value": "1001 · widgets"
+          }
+        ]
+      },
+      "data_1002": {
+        "id": "data_1002",
+        "parent": "story_data",
+        "name": "Order 1002",
+        "type": "def_order_record",
+        "alias": 22,
+        "order": 4,
+        "values": [
+          {
+            "name": "number",
+            "value": "1002"
+          },
+          {
+            "name": "customer",
+            "value": "Charles Babbage"
+          },
+          {
+            "name": "placed",
+            "value": "2026-10-02"
+          },
+          {
+            "name": "status",
+            "value": "open"
+          },
+          {
+            "name": "paid",
+            "value": "false"
+          },
+          {
+            "name": "lines",
+            "value": "1002 · spare"
+          }
+        ]
+      },
+      "data_ada": {
+        "id": "data_ada",
+        "parent": "story_data",
+        "name": "Ada Lovelace",
+        "type": "def_customer_record",
+        "alias": 19,
+        "order": 1,
+        "values": [
+          {
+            "name": "id",
+            "value": "1"
+          },
+          {
+            "name": "name",
+            "value": "Ada Lovelace"
+          },
+          {
+            "name": "email",
+            "value": "ada@example.com"
+          }
+        ]
+      },
+      "data_charles": {
+        "id": "data_charles",
+        "parent": "story_data",
+        "name": "Charles Babbage",
+        "type": "def_customer_record",
+        "alias": 20,
+        "order": 2,
+        "values": [
+          {
+            "name": "id",
+            "value": "2"
+          },
+          {
+            "name": "name",
+            "value": "Charles Babbage"
+          },
+          {
+            "name": "email",
+            "value": "charles@example.com"
+          }
+        ]
+      },
+      "data_gadget": {
+        "id": "data_gadget",
+        "parent": "story_data",
+        "name": "Gadget",
+        "type": "def_product_record",
+        "alias": 28,
+        "order": 10,
+        "values": [
+          {
+            "name": "sku",
+            "value": "G-2"
+          },
+          {
+            "name": "name",
+            "value": "Gadget"
+          },
+          {
+            "name": "price",
+            "value": "12.00"
+          }
+        ]
+      },
+      "data_l1": {
+        "id": "data_l1",
+        "parent": "story_data",
+        "name": "1001 · widgets",
+        "type": "def_line_record",
+        "alias": 23,
+        "order": 5,
+        "values": [
+          {
+            "name": "order",
+            "value": "Order 1001"
+          },
+          {
+            "name": "product",
+            "value": "Widget"
+          },
+          {
+            "name": "qty",
+            "value": "3"
+          }
+        ]
+      },
+      "data_l2": {
+        "id": "data_l2",
+        "parent": "story_data",
+        "name": "1001 · gadget",
+        "type": "def_line_record",
+        "alias": 24,
+        "order": 6,
+        "values": [
+          {
+            "name": "order",
+            "value": "Order 1001"
+          },
+          {
+            "name": "product",
+            "value": "Gadget"
+          },
+          {
+            "name": "qty",
+            "value": "1"
+          }
+        ]
+      },
+      "data_l3": {
+        "id": "data_l3",
+        "parent": "story_data",
+        "name": "1002 · spare",
+        "type": "def_line_record",
+        "alias": 25,
+        "order": 7,
+        "values": [
+          {
+            "name": "order",
+            "value": "Order 1002"
+          },
+          {
+            "name": "product",
+            "value": "Spare"
+          },
+          {
+            "name": "qty",
+            "value": "2"
+          }
+        ]
+      },
+      "data_l4": {
+        "id": "data_l4",
+        "parent": "story_data",
+        "name": "1002 · open",
+        "type": "def_line_record",
+        "alias": 26,
+        "order": 8,
+        "values": [
+          {
+            "name": "order",
+            "value": "Order 1002"
+          },
+          {
+            "name": "qty",
+            "value": "1"
+          }
+        ]
+      },
+      "data_pay": {
+        "id": "data_pay",
+        "parent": "story_data",
+        "name": "Payment 1001",
+        "type": "def_payment_record",
+        "alias": 30,
+        "order": 12,
+        "values": [
+          {
+            "name": "amount",
+            "value": "42.00"
+          },
+          {
+            "name": "status",
+            "value": "authorized"
+          },
+          {
+            "name": "order",
+            "value": "Order 1001"
+          }
+        ]
+      },
+      "data_spare": {
+        "id": "data_spare",
+        "parent": "story_data",
+        "name": "Spare",
+        "type": "def_product_record",
+        "alias": 29,
+        "order": 11,
+        "values": [
+          {
+            "name": "sku",
+            "value": "S-3"
+          },
+          {
+            "name": "name",
+            "value": "Spare"
+          },
+          {
+            "name": "price",
+            "value": "2.00"
+          }
+        ]
+      },
+      "data_widget": {
+        "id": "data_widget",
+        "parent": "story_data",
+        "name": "Widget",
+        "type": "def_product_record",
+        "alias": 27,
+        "order": 9,
+        "values": [
+          {
+            "name": "sku",
+            "value": "W-1"
+          },
+          {
+            "name": "name",
+            "value": "Widget"
+          },
+          {
+            "name": "price",
+            "value": "4.50"
+          }
+        ]
+      },
+      "db_inventory": {
+        "id": "db_inventory",
+        "parent": "story_platform",
+        "name": "Inventory",
+        "type": "architecture.database",
+        "alias": 11,
+        "order": 9,
+        "values": [
+          {
+            "name": "engine",
+            "value": "PostgreSQL"
+          }
+        ]
+      },
+      "db_orders": {
+        "id": "db_orders",
+        "parent": "story_platform",
+        "name": "Orders",
+        "type": "architecture.database",
+        "alias": 10,
+        "order": 8,
+        "values": [
+          {
+            "name": "engine",
+            "value": "PostgreSQL"
+          }
+        ]
+      },
+      "dec_idempotency": {
+        "id": "dec_idempotency",
+        "parent": "story_platform",
+        "name": "Charge once",
+        "type": "architecture.decision",
+        "alias": 14,
+        "body": "\r\nCheckout retries the same request. The order service treats a repeated checkout key as the order it already created, so a retry never charges twice.\r\n",
+        "order": 12,
+        "source": "samples/architecture/cards/idempotency.md",
+        "tags": [
+          "tag_decision"
+        ]
+      },
+      "def_customer_record": {
+        "id": "def_customer_record",
+        "parent": "w_domain",
+        "name": "Customer",
+        "type": "entity-relation.customer",
+        "def": {},
+        "order": 1,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        }
+      },
+      "def_line_record": {
+        "id": "def_line_record",
+        "parent": "w_domain",
+        "name": "Line",
+        "type": "entity-relation.line",
+        "def": {
+          "attributes": [
+            {
+              "name": "order",
+              "type": "def_order_record"
+            },
+            {
+              "name": "product",
+              "type": "def_product_record",
+              "optional": true
+            }
+          ]
+        },
+        "order": 4,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        }
+      },
+      "def_order_record": {
+        "id": "def_order_record",
+        "parent": "w_domain",
+        "name": "Order",
+        "type": "entity-relation.order",
+        "def": {
+          "attributes": [
+            {
+              "name": "customer",
+              "type": "def_customer_record"
+            },
+            {
+              "name": "lines",
+              "type": "def_line_record",
+              "many": true
+            }
+          ]
+        },
+        "order": 3,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        }
+      },
+      "def_order_service": {
+        "id": "def_order_service",
+        "parent": "w_defs",
+        "name": "Order service",
+        "type": "architecture.service",
+        "def": {},
+        "body": "Records an order, then asks payment and inventory to complete it.",
+        "order": 1
+      },
+      "def_payment_record": {
+        "id": "def_payment_record",
+        "parent": "w_domain",
+        "name": "Payment",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "amount",
+              "type": "number"
+            },
+            {
+              "name": "status",
+              "type": "text"
+            },
+            {
+              "name": "order",
+              "type": "def_order_record"
+            }
+          ]
+        },
+        "order": 5,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        }
+      },
+      "def_product_record": {
+        "id": "def_product_record",
+        "parent": "w_domain",
+        "name": "Product",
+        "type": "entity-relation.product",
+        "def": {},
+        "order": 2,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        }
+      },
+      "diagrams": {
+        "id": "diagrams",
+        "parent": null,
+        "name": "diagrams"
+      },
+      "diagrams.class_diagram": {
+        "id": "diagrams.class_diagram",
+        "parent": "diagrams",
+        "name": "class diagram",
+        "type": "block",
+        "def": {},
+        "body": "A diagram of the definitions its references stand for, and what they extend.",
+        "order": 1,
+        "settings": {
+          "layout": {
+            "view": "class",
+            "cards": "large"
+          }
+        }
+      },
+      "diagrams.sequence_diagram": {
+        "id": "diagrams.sequence_diagram",
+        "parent": "diagrams",
+        "name": "sequence diagram",
+        "type": "grid",
+        "def": {},
+        "body": "A grid read as time: the header row names the participants, and each row is a moment.",
+        "order": 2,
+        "settings": {
+          "layout": {
+            "view": "sequence"
+          }
+        }
+      },
+      "diagrams.swimlane": {
+        "id": "diagrams.swimlane",
+        "parent": "diagrams",
+        "name": "swimlane",
+        "type": "grid",
+        "def": {},
+        "body": "A grid read as lanes: the header row names the participants, the header column the phases.",
+        "order": 3,
+        "settings": {
+          "layout": {
+            "view": "swimlane"
+          }
+        }
+      },
+      "doc_payment_failure": {
+        "id": "doc_payment_failure",
+        "parent": "story_place_order",
+        "name": "When payment fails",
+        "type": "architecture.document",
+        "alias": 48,
+        "body": "\r\nA declined authorization does not reserve stock. The order stays unconfirmed and the customer is told on the storefront. They may try another card.\r\n",
+        "order": 2,
+        "source": "samples/architecture/cards/payment-failure.md"
+      },
+      "entity-relation": {
+        "id": "entity-relation",
+        "parent": null,
+        "name": "entity-relation"
+      },
+      "entity-relation.blocks": {
+        "id": "entity-relation.blocks",
+        "parent": "entity-relation",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1
+      },
+      "entity-relation.customer": {
+        "id": "entity-relation.customer",
+        "parent": "entity-relation.blocks",
+        "name": "Customer",
+        "type": "entity-relation.entity",
+        "def": {
+          "attributes": [
+            {
+              "name": "id",
+              "type": "number",
+              "key": true
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "email",
+              "note": "where receipts go"
+            }
+          ]
+        },
+        "body": "Somebody who places orders.",
+        "order": 3
+      },
+      "entity-relation.entity": {
+        "id": "entity-relation.entity",
+        "parent": "entity-relation.blocks",
+        "name": "Entity",
+        "type": "block",
+        "def": {},
+        "body": "A thing the data model records: its attributes, keyed, some naming another entity.",
+        "order": 1,
+        "settings": {
+          "card": {
+            "align": "center",
+            "face": "table"
+          }
+        }
+      },
+      "entity-relation.line": {
+        "id": "entity-relation.line",
+        "parent": "entity-relation.blocks",
+        "name": "Line item",
+        "type": "entity-relation.entity",
+        "def": {
+          "attributes": [
+            {
+              "name": "order",
+              "type": "entity-relation.order"
+            },
+            {
+              "name": "product",
+              "type": "entity-relation.product"
+            },
+            {
+              "name": "qty",
+              "type": "number",
+              "default": "1"
+            }
+          ]
+        },
+        "body": "One product on an order, and how many.",
+        "order": 6
+      },
+      "entity-relation.order": {
+        "id": "entity-relation.order",
+        "parent": "entity-relation.blocks",
+        "name": "Order",
+        "type": "entity-relation.entity",
+        "def": {
+          "attributes": [
+            {
+              "name": "number",
+              "type": "number",
+              "key": true
+            },
+            {
+              "name": "customer",
+              "type": "entity-relation.customer"
+            },
+            {
+              "name": "placed",
+              "note": "ISO date"
+            },
+            {
+              "name": "status",
+              "type": "entity-relation.status",
+              "default": "open"
+            },
+            {
+              "name": "paid",
+              "type": "flag"
+            }
+          ]
+        },
+        "body": "One customer's purchase.",
+        "order": 5
+      },
+      "entity-relation.product": {
+        "id": "entity-relation.product",
+        "parent": "entity-relation.blocks",
+        "name": "Product",
+        "type": "entity-relation.entity",
+        "def": {
+          "attributes": [
+            {
+              "name": "sku",
+              "key": true
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "price",
+              "type": "number",
+              "unit": "USD",
+              "note": "per unit, in USD"
+            }
+          ]
+        },
+        "body": "Something an order may carry.",
+        "order": 4
+      },
+      "entity-relation.status": {
+        "id": "entity-relation.status",
+        "parent": "entity-relation.blocks",
+        "name": "Order status",
+        "type": "choice",
+        "def": {},
+        "body": "Where an order is.",
+        "order": 2,
+        "settings": {
+          "value": {
+            "choices": [
+              "open",
+              "shipped",
+              "closed"
+            ]
+          }
+        }
+      },
+      "ext_payment": {
+        "id": "ext_payment",
+        "parent": "story_platform",
+        "name": "Payment provider",
+        "type": "architecture.external",
+        "alias": 12,
+        "order": 10
+      },
+      "ext_warehouse": {
+        "id": "ext_warehouse",
+        "parent": "story_platform",
+        "name": "Warehouse system",
+        "type": "architecture.external",
+        "alias": 13,
+        "order": 11
+      },
+      "f_done": {
+        "id": "f_done",
+        "parent": "scenario_fulfill",
+        "name": "Mark fulfilled",
+        "type": "block",
+        "alias": 61,
+        "cell": {
+          "r": 5,
+          "c": 1
+        },
+        "order": 17
+      },
+      "f_event": {
+        "id": "f_event",
+        "parent": "scenario_fulfill",
+        "name": "Publish placed",
+        "type": "block",
+        "alias": 57,
+        "cell": {
+          "r": 1,
+          "c": 2
+        },
+        "order": 13
+      },
+      "f_hold": {
+        "id": "f_hold",
+        "parent": "scenario_fulfill",
+        "name": "Hold for stock",
+        "type": "block",
+        "alias": 62,
+        "cell": {
+          "r": 6,
+          "c": 3
+        },
+        "order": 18
+      },
+      "f_pack": {
+        "id": "f_pack",
+        "parent": "scenario_fulfill",
+        "name": "Pack shipment",
+        "type": "block",
+        "alias": 59,
+        "cell": {
+          "r": 3,
+          "c": 4
+        },
+        "order": 15
+      },
+      "f_pick": {
+        "id": "f_pick",
+        "parent": "scenario_fulfill",
+        "name": "Pick items",
+        "type": "block",
+        "alias": 58,
+        "cell": {
+          "r": 2,
+          "c": 3
+        },
+        "order": 14
+      },
+      "f_placed": {
+        "id": "f_placed",
+        "parent": "scenario_fulfill",
+        "name": "Order placed",
+        "type": "block",
+        "alias": 56,
+        "cell": {
+          "r": 1,
+          "c": 1
+        },
+        "order": 12
+      },
+      "f_ship": {
+        "id": "f_ship",
+        "parent": "scenario_fulfill",
+        "name": "Ship",
+        "type": "block",
+        "alias": 60,
+        "cell": {
+          "r": 4,
+          "c": 5
+        },
+        "order": 16
+      },
+      "infra_events": {
+        "id": "infra_events",
+        "parent": "story_platform",
+        "name": "Order events",
+        "type": "architecture.queue",
+        "alias": 9,
+        "order": 7
+      },
+      "main": {
+        "id": "main",
+        "parent": "workspace",
+        "name": "main",
+        "def": {},
+        "order": 1
+      },
+      "part_order_api": {
+        "id": "part_order_api",
+        "parent": "def_order_service",
+        "name": "Order API",
+        "type": "block",
+        "order": 1
+      },
+      "part_order_repository": {
+        "id": "part_order_repository",
+        "parent": "def_order_service",
+        "name": "Order repository",
+        "type": "block",
+        "order": 3
+      },
+      "part_order_workflow": {
+        "id": "part_order_workflow",
+        "parent": "def_order_service",
+        "name": "Order workflow",
+        "type": "block",
+        "order": 2
+      },
+      "ref_ctx_pay": {
+        "id": "ref_ctx_pay",
+        "parent": "story_context",
+        "type": "reference",
+        "of": "ext_payment",
+        "alias": 2,
+        "order": 3
+      },
+      "ref_ctx_platform": {
+        "id": "ref_ctx_platform",
+        "parent": "story_context",
+        "name": "Platform",
+        "type": "reference",
+        "of": "story_platform",
+        "alias": 4,
+        "order": 5
+      },
+      "ref_ctx_store": {
+        "id": "ref_ctx_store",
+        "parent": "story_context",
+        "type": "reference",
+        "of": "svc_storefront",
+        "alias": 1,
+        "order": 2
+      },
+      "ref_ctx_wh": {
+        "id": "ref_ctx_wh",
+        "parent": "story_context",
+        "type": "reference",
+        "of": "ext_warehouse",
+        "alias": 3,
+        "order": 4
+      },
+      "ref_def_customer_record": {
+        "id": "ref_def_customer_record",
+        "parent": "story_domain",
+        "type": "reference",
+        "of": "def_customer_record",
+        "alias": 5,
+        "order": 1
+      },
+      "ref_def_line_record": {
+        "id": "ref_def_line_record",
+        "parent": "story_domain",
+        "type": "reference",
+        "of": "def_line_record",
+        "alias": 7,
+        "order": 3
+      },
+      "ref_def_order_record": {
+        "id": "ref_def_order_record",
+        "parent": "story_domain",
+        "type": "reference",
+        "of": "def_order_record",
+        "alias": 6,
+        "order": 2
+      },
+      "ref_def_payment_record": {
+        "id": "ref_def_payment_record",
+        "parent": "story_domain",
+        "type": "reference",
+        "of": "def_payment_record",
+        "alias": 9,
+        "order": 5
+      },
+      "ref_def_product_record": {
+        "id": "ref_def_product_record",
+        "parent": "story_domain",
+        "type": "reference",
+        "of": "def_product_record",
+        "alias": 8,
+        "order": 4
+      },
+      "ref_fulfill_lanes": {
+        "id": "ref_fulfill_lanes",
+        "parent": "story_fulfill_lanes",
+        "name": "Fulfill order",
+        "type": "reference",
+        "of": "scenario_fulfill",
+        "alias": 21,
+        "order": 1,
+        "settings": {
+          "layout": {
+            "view": "swimlane"
+          }
+        }
+      },
+      "ref_place_lanes": {
+        "id": "ref_place_lanes",
+        "parent": "story_place_lanes",
+        "name": "Place order",
+        "type": "reference",
+        "of": "scenario_place",
+        "alias": 20,
+        "order": 1,
+        "settings": {
+          "layout": {
+            "view": "swimlane"
+          }
+        }
+      },
+      "s_auth": {
+        "id": "s_auth",
+        "parent": "scenario_place",
+        "name": "Authorize payment",
+        "type": "block",
+        "alias": 43,
+        "cell": {
+          "r": 3,
+          "c": 5
+        },
+        "order": 17
+      },
+      "s_confirm": {
+        "id": "s_confirm",
+        "parent": "scenario_place",
+        "name": "Confirm order",
+        "type": "block",
+        "alias": 45,
+        "cell": {
+          "r": 5,
+          "c": 4
+        },
+        "order": 19
+      },
+      "s_create": {
+        "id": "s_create",
+        "parent": "scenario_place",
+        "name": "Create pending order",
+        "type": "block",
+        "alias": 42,
+        "cell": {
+          "r": 2,
+          "c": 4
+        },
+        "order": 16
+      },
+      "s_post": {
+        "id": "s_post",
+        "parent": "scenario_place",
+        "name": "POST checkout",
+        "type": "block",
+        "alias": 40,
+        "cell": {
+          "r": 1,
+          "c": 2
+        },
+        "order": 14
+      },
+      "s_reject": {
+        "id": "s_reject",
+        "parent": "scenario_place",
+        "name": "Reject payment",
+        "type": "block",
+        "alias": 46,
+        "cell": {
+          "r": 6,
+          "c": 5
+        },
+        "order": 20
+      },
+      "s_reserve": {
+        "id": "s_reserve",
+        "parent": "scenario_place",
+        "name": "Reserve stock",
+        "type": "block",
+        "alias": 44,
+        "cell": {
+          "r": 4,
+          "c": 6
+        },
+        "order": 18
+      },
+      "s_route": {
+        "id": "s_route",
+        "parent": "scenario_place",
+        "name": "Route checkout",
+        "type": "block",
+        "alias": 41,
+        "cell": {
+          "r": 2,
+          "c": 3
+        },
+        "order": 15
+      },
+      "s_submit": {
+        "id": "s_submit",
+        "parent": "scenario_place",
+        "name": "Submit cart",
+        "type": "block",
+        "alias": 39,
+        "cell": {
+          "r": 1,
+          "c": 1
+        },
+        "order": 13
+      },
+      "s_tell": {
+        "id": "s_tell",
+        "parent": "scenario_place",
+        "name": "Tell the customer",
+        "type": "block",
+        "alias": 47,
+        "cell": {
+          "r": 6,
+          "c": 2
+        },
+        "order": 21
+      },
+      "scenario_fulfill": {
+        "id": "scenario_fulfill",
+        "parent": "story_fulfill_order",
+        "name": "Fulfill order",
+        "type": "diagrams.sequence_diagram",
+        "alias": 2,
+        "grid": {
+          "rows": 7,
+          "cols": 6
+        },
+        "order": 1
+      },
+      "scenario_fulfill_h1": {
+        "id": "scenario_fulfill_h1",
+        "parent": "scenario_fulfill",
+        "type": "reference",
+        "of": "svc_orders",
+        "alias": 15,
+        "cell": {
+          "r": 0,
+          "c": 1
+        },
+        "order": 1
+      },
+      "scenario_fulfill_h2": {
+        "id": "scenario_fulfill_h2",
+        "parent": "scenario_fulfill",
+        "type": "reference",
+        "of": "infra_events",
+        "alias": 16,
+        "cell": {
+          "r": 0,
+          "c": 2
+        },
+        "order": 2
+      },
+      "scenario_fulfill_h3": {
+        "id": "scenario_fulfill_h3",
+        "parent": "scenario_fulfill",
+        "type": "reference",
+        "of": "svc_inventory",
+        "alias": 17,
+        "cell": {
+          "r": 0,
+          "c": 3
+        },
+        "order": 3
+      },
+      "scenario_fulfill_h4": {
+        "id": "scenario_fulfill_h4",
+        "parent": "scenario_fulfill",
+        "type": "reference",
+        "of": "svc_warehouse",
+        "alias": 18,
+        "cell": {
+          "r": 0,
+          "c": 4
+        },
+        "order": 4
+      },
+      "scenario_fulfill_h5": {
+        "id": "scenario_fulfill_h5",
+        "parent": "scenario_fulfill",
+        "type": "reference",
+        "of": "ext_warehouse",
+        "alias": 19,
+        "cell": {
+          "r": 0,
+          "c": 5
+        },
+        "order": 5
+      },
+      "scenario_fulfill_p1": {
+        "id": "scenario_fulfill_p1",
+        "parent": "scenario_fulfill",
+        "name": "Ordered",
+        "type": "block",
+        "alias": 50,
+        "cell": {
+          "r": 1,
+          "c": 0
+        },
+        "order": 6
+      },
+      "scenario_fulfill_p2": {
+        "id": "scenario_fulfill_p2",
+        "parent": "scenario_fulfill",
+        "name": "Pick",
+        "type": "block",
+        "alias": 51,
+        "cell": {
+          "r": 2,
+          "c": 0
+        },
+        "order": 7
+      },
+      "scenario_fulfill_p3": {
+        "id": "scenario_fulfill_p3",
+        "parent": "scenario_fulfill",
+        "name": "Pack",
+        "type": "block",
+        "alias": 52,
+        "cell": {
+          "r": 3,
+          "c": 0
+        },
+        "order": 8
+      },
+      "scenario_fulfill_p4": {
+        "id": "scenario_fulfill_p4",
+        "parent": "scenario_fulfill",
+        "name": "Ship",
+        "type": "block",
+        "alias": 53,
+        "cell": {
+          "r": 4,
+          "c": 0
+        },
+        "order": 9
+      },
+      "scenario_fulfill_p5": {
+        "id": "scenario_fulfill_p5",
+        "parent": "scenario_fulfill",
+        "name": "Complete",
+        "type": "block",
+        "alias": 54,
+        "cell": {
+          "r": 5,
+          "c": 0
+        },
+        "order": 10
+      },
+      "scenario_fulfill_p6": {
+        "id": "scenario_fulfill_p6",
+        "parent": "scenario_fulfill",
+        "name": "Delay",
+        "type": "block",
+        "alias": 55,
+        "cell": {
+          "r": 6,
+          "c": 0
+        },
+        "order": 11
+      },
+      "scenario_place": {
+        "id": "scenario_place",
+        "parent": "story_place_order",
+        "name": "Place order",
+        "type": "diagrams.sequence_diagram",
+        "alias": 1,
+        "grid": {
+          "rows": 7,
+          "cols": 7
+        },
+        "order": 1
+      },
+      "scenario_place_h1": {
+        "id": "scenario_place_h1",
+        "parent": "scenario_place",
+        "name": "Customer",
+        "type": "block",
+        "alias": 32,
+        "cell": {
+          "r": 0,
+          "c": 1
+        },
+        "order": 1
+      },
+      "scenario_place_h2": {
+        "id": "scenario_place_h2",
+        "parent": "scenario_place",
+        "type": "reference",
+        "of": "svc_storefront",
+        "alias": 10,
+        "cell": {
+          "r": 0,
+          "c": 2
+        },
+        "order": 2
+      },
+      "scenario_place_h3": {
+        "id": "scenario_place_h3",
+        "parent": "scenario_place",
+        "type": "reference",
+        "of": "svc_gateway",
+        "alias": 11,
+        "cell": {
+          "r": 0,
+          "c": 3
+        },
+        "order": 3
+      },
+      "scenario_place_h4": {
+        "id": "scenario_place_h4",
+        "parent": "scenario_place",
+        "type": "reference",
+        "of": "svc_orders",
+        "alias": 12,
+        "cell": {
+          "r": 0,
+          "c": 4
+        },
+        "order": 4
+      },
+      "scenario_place_h5": {
+        "id": "scenario_place_h5",
+        "parent": "scenario_place",
+        "type": "reference",
+        "of": "svc_payments",
+        "alias": 13,
+        "cell": {
+          "r": 0,
+          "c": 5
+        },
+        "order": 5
+      },
+      "scenario_place_h6": {
+        "id": "scenario_place_h6",
+        "parent": "scenario_place",
+        "type": "reference",
+        "of": "svc_inventory",
+        "alias": 14,
+        "cell": {
+          "r": 0,
+          "c": 6
+        },
+        "order": 6
+      },
+      "scenario_place_p1": {
+        "id": "scenario_place_p1",
+        "parent": "scenario_place",
+        "name": "Submit",
+        "type": "block",
+        "alias": 33,
+        "cell": {
+          "r": 1,
+          "c": 0
+        },
+        "order": 7
+      },
+      "scenario_place_p2": {
+        "id": "scenario_place_p2",
+        "parent": "scenario_place",
+        "name": "Create",
+        "type": "block",
+        "alias": 34,
+        "cell": {
+          "r": 2,
+          "c": 0
+        },
+        "order": 8
+      },
+      "scenario_place_p3": {
+        "id": "scenario_place_p3",
+        "parent": "scenario_place",
+        "name": "Authorize",
+        "type": "block",
+        "alias": 35,
+        "cell": {
+          "r": 3,
+          "c": 0
+        },
+        "order": 9
+      },
+      "scenario_place_p4": {
+        "id": "scenario_place_p4",
+        "parent": "scenario_place",
+        "name": "Reserve",
+        "type": "block",
+        "alias": 36,
+        "cell": {
+          "r": 4,
+          "c": 0
+        },
+        "order": 10
+      },
+      "scenario_place_p5": {
+        "id": "scenario_place_p5",
+        "parent": "scenario_place",
+        "name": "Confirm",
+        "type": "block",
+        "alias": 37,
+        "cell": {
+          "r": 5,
+          "c": 0
+        },
+        "order": 11
+      },
+      "scenario_place_p6": {
+        "id": "scenario_place_p6",
+        "parent": "scenario_place",
+        "name": "Failure",
+        "type": "block",
+        "alias": 38,
+        "cell": {
+          "r": 6,
+          "c": 0
+        },
+        "order": 12
+      },
+      "story": {
+        "id": "story",
+        "parent": "main",
+        "name": "Story",
+        "type": "folder",
+        "alias": 1,
+        "order": 1,
+        "settings": {
+          "layout": {
+            "kind": "auto",
+            "cards": "large"
+          }
+        }
+      },
+      "story_context": {
+        "id": "story_context",
+        "parent": "story",
+        "name": "Context",
+        "alias": 15,
+        "order": 3
+      },
+      "story_data": {
+        "id": "story_data",
+        "parent": "story",
+        "name": "Data",
+        "alias": 18,
+        "order": 5
+      },
+      "story_domain": {
+        "id": "story_domain",
+        "parent": "story",
+        "name": "Domain",
+        "type": "diagrams.class_diagram",
+        "alias": 17,
+        "order": 4
+      },
+      "story_fulfill_lanes": {
+        "id": "story_fulfill_lanes",
+        "parent": "story",
+        "name": "Fulfill order, as lanes",
+        "alias": 64,
+        "order": 9
+      },
+      "story_fulfill_order": {
+        "id": "story_fulfill_order",
+        "parent": "story",
+        "name": "Fulfill order",
+        "alias": 49,
+        "order": 7
+      },
+      "story_intro": {
+        "id": "story_intro",
+        "parent": "story",
+        "name": "The story",
+        "type": "architecture.document",
+        "alias": 1,
+        "body": "\r\nA customer places an order. The storefront takes the cart, the order service records it, payment is authorized and stock is reserved. What cannot be reserved is held, and the warehouse ships what can.\r\n",
+        "order": 1,
+        "source": "samples/architecture/cards/story.md"
+      },
+      "story_place_lanes": {
+        "id": "story_place_lanes",
+        "parent": "story",
+        "name": "Place order, as lanes",
+        "alias": 63,
+        "order": 8
+      },
+      "story_place_order": {
+        "id": "story_place_order",
+        "parent": "story",
+        "name": "Place order",
+        "alias": 31,
+        "order": 6
+      },
+      "story_platform": {
+        "id": "story_platform",
+        "parent": "story",
+        "name": "Platform",
+        "alias": 2,
+        "order": 2
+      },
+      "svc_gateway": {
+        "id": "svc_gateway",
+        "parent": "story_platform",
+        "name": "API gateway",
+        "type": "architecture.service",
+        "alias": 4,
+        "order": 2,
+        "values": [
+          {
+            "name": "owner",
+            "value": "Commerce"
+          },
+          {
+            "name": "technology",
+            "value": "Envoy"
+          }
+        ]
+      },
+      "svc_inventory": {
+        "id": "svc_inventory",
+        "parent": "story_platform",
+        "name": "Inventory service",
+        "type": "architecture.service",
+        "alias": 7,
+        "order": 5,
+        "values": [
+          {
+            "name": "owner",
+            "value": "Fulfillment"
+          },
+          {
+            "name": "technology",
+            "value": "Java"
+          }
+        ]
+      },
+      "svc_orders": {
+        "id": "svc_orders",
+        "parent": "story_platform",
+        "name": "Order service",
+        "type": "def_order_service",
+        "alias": 5,
+        "body": "\r\nOwns the order from the moment it is pending until it is fulfilled. It calls payment and inventory, writes the orders database, and publishes what happened.\r\n",
+        "order": 3,
+        "source": "samples/architecture/cards/order-service.md",
+        "values": [
+          {
+            "name": "owner",
+            "value": "Commerce"
+          },
+          {
+            "name": "technology",
+            "value": "Java"
+          }
+        ]
+      },
+      "svc_payments": {
+        "id": "svc_payments",
+        "parent": "story_platform",
+        "name": "Payment service",
+        "type": "architecture.service",
+        "alias": 6,
+        "body": "\r\nAuthorizes a charge with the payment provider and answers the order service. A declined charge is a reply, not a second charge.\r\n",
+        "order": 4,
+        "source": "samples/architecture/cards/payment-service.md",
+        "values": [
+          {
+            "name": "owner",
+            "value": "Payments"
+          },
+          {
+            "name": "technology",
+            "value": "Java"
+          }
+        ]
+      },
+      "svc_storefront": {
+        "id": "svc_storefront",
+        "parent": "story_platform",
+        "name": "Storefront",
+        "type": "architecture.service",
+        "alias": 3,
+        "order": 1,
+        "values": [
+          {
+            "name": "owner",
+            "value": "Commerce"
+          },
+          {
+            "name": "technology",
+            "value": "React"
+          }
+        ]
+      },
+      "svc_warehouse": {
+        "id": "svc_warehouse",
+        "parent": "story_platform",
+        "name": "Warehouse adapter",
+        "type": "architecture.service",
+        "alias": 8,
+        "order": 6,
+        "values": [
+          {
+            "name": "owner",
+            "value": "Fulfillment"
+          },
+          {
+            "name": "technology",
+            "value": "Java"
+          }
+        ]
+      },
+      "tag_decision": {
+        "id": "tag_decision",
+        "parent": "tags",
+        "name": "decision",
+        "type": "tag",
+        "def": {},
+        "order": 1
+      },
+      "tags": {
+        "id": "tags",
+        "parent": "workspace",
+        "name": "tags",
+        "type": "folder",
+        "order": 2
+      },
+      "w_defs": {
+        "id": "w_defs",
+        "parent": "workspace",
+        "name": "definitions",
+        "type": "folder",
+        "order": 3
+      },
+      "w_domain": {
+        "id": "w_domain",
+        "parent": "workspace",
+        "name": "domain",
+        "type": "folder",
+        "order": 4
+      },
+      "workspace": {
+        "id": "workspace",
+        "parent": null,
+        "name": "workspace",
+        "counters": {
+          "folder": 1,
+          "block": 64,
+          "relation": 28,
+          "reference": 21,
+          "grid": 2
+        }
+      }
+    },
+    "edges": {
+      "f_delay": {
+        "id": "f_delay",
+        "name": "short",
+        "type": "architecture.reply",
+        "alias": 28,
+        "from": "f_pick",
+        "to": "f_hold"
+      },
+      "f_pub": {
+        "id": "f_pub",
+        "name": "order placed",
+        "type": "architecture.publishes",
+        "alias": 23,
+        "from": "f_placed",
+        "to": "f_event"
+      },
+      "f_to_done": {
+        "id": "f_to_done",
+        "name": "fulfilled",
+        "type": "architecture.message",
+        "alias": 27,
+        "from": "f_ship",
+        "to": "f_done"
+      },
+      "f_to_pack": {
+        "id": "f_to_pack",
+        "name": "pack",
+        "type": "architecture.message",
+        "alias": 25,
+        "from": "f_pick",
+        "to": "f_pack"
+      },
+      "f_to_pick": {
+        "id": "f_to_pick",
+        "name": "pick",
+        "type": "architecture.message",
+        "alias": 24,
+        "from": "f_event",
+        "to": "f_pick"
+      },
+      "f_to_ship": {
+        "id": "f_to_ship",
+        "name": "ship",
+        "type": "architecture.message",
+        "alias": 26,
+        "from": "f_pack",
+        "to": "f_ship"
+      },
+      "m_auth": {
+        "id": "m_auth",
+        "name": "reserve",
+        "type": "architecture.message",
+        "alias": 19,
+        "from": "s_auth",
+        "to": "s_reserve"
+      },
+      "m_create": {
+        "id": "m_create",
+        "name": "authorize",
+        "type": "architecture.message",
+        "alias": 18,
+        "from": "s_create",
+        "to": "s_auth"
+      },
+      "m_post": {
+        "id": "m_post",
+        "name": "checkout",
+        "type": "architecture.message",
+        "alias": 16,
+        "from": "s_post",
+        "to": "s_route"
+      },
+      "m_publish": {
+        "id": "m_publish",
+        "name": "order placed",
+        "type": "architecture.publishes",
+        "alias": 21,
+        "from": "s_confirm",
+        "to": "s_confirm"
+      },
+      "m_reject": {
+        "id": "m_reject",
+        "name": "declined",
+        "type": "architecture.reply",
+        "alias": 22,
+        "from": "s_reject",
+        "to": "s_tell"
+      },
+      "m_reserve": {
+        "id": "m_reserve",
+        "name": "confirm",
+        "type": "architecture.message",
+        "alias": 20,
+        "from": "s_reserve",
+        "to": "s_confirm"
+      },
+      "m_route": {
+        "id": "m_route",
+        "name": "create",
+        "type": "architecture.message",
+        "alias": 17,
+        "from": "s_route",
+        "to": "s_create"
+      },
+      "m_submit": {
+        "id": "m_submit",
+        "name": "checkout",
+        "type": "architecture.message",
+        "alias": 15,
+        "from": "s_submit",
+        "to": "s_post"
+      },
+      "rel_adapter_warehouse": {
+        "id": "rel_adapter_warehouse",
+        "type": "architecture.integrates",
+        "alias": 7,
+        "from": "svc_warehouse",
+        "to": "ext_warehouse"
+      },
+      "rel_customer_store": {
+        "id": "rel_customer_store",
+        "type": "architecture.calls",
+        "alias": 12,
+        "from": "actor_customer",
+        "to": "ref_ctx_store"
+      },
+      "rel_gateway_orders": {
+        "id": "rel_gateway_orders",
+        "type": "architecture.calls",
+        "alias": 2,
+        "from": "svc_gateway",
+        "to": "svc_orders"
+      },
+      "rel_inventory_adapter": {
+        "id": "rel_inventory_adapter",
+        "type": "architecture.calls",
+        "alias": 6,
+        "from": "svc_inventory",
+        "to": "svc_warehouse"
+      },
+      "rel_inventory_db": {
+        "id": "rel_inventory_db",
+        "type": "architecture.reads",
+        "alias": 9,
+        "from": "svc_inventory",
+        "to": "db_inventory"
+      },
+      "rel_inventory_events": {
+        "id": "rel_inventory_events",
+        "type": "architecture.publishes",
+        "alias": 11,
+        "from": "svc_inventory",
+        "to": "infra_events"
+      },
+      "rel_orders_db": {
+        "id": "rel_orders_db",
+        "type": "architecture.reads",
+        "alias": 8,
+        "from": "svc_orders",
+        "to": "db_orders"
+      },
+      "rel_orders_events": {
+        "id": "rel_orders_events",
+        "type": "architecture.publishes",
+        "alias": 10,
+        "from": "svc_orders",
+        "to": "infra_events"
+      },
+      "rel_orders_inventory": {
+        "id": "rel_orders_inventory",
+        "type": "architecture.calls",
+        "alias": 4,
+        "from": "svc_orders",
+        "to": "svc_inventory"
+      },
+      "rel_orders_payments": {
+        "id": "rel_orders_payments",
+        "type": "architecture.calls",
+        "alias": 3,
+        "from": "svc_orders",
+        "to": "svc_payments"
+      },
+      "rel_payments_provider": {
+        "id": "rel_payments_provider",
+        "type": "architecture.integrates",
+        "alias": 5,
+        "from": "svc_payments",
+        "to": "ext_payment"
+      },
+      "rel_platform_pay": {
+        "id": "rel_platform_pay",
+        "type": "architecture.integrates",
+        "alias": 13,
+        "from": "ref_ctx_platform",
+        "to": "ref_ctx_pay"
+      },
+      "rel_platform_wh": {
+        "id": "rel_platform_wh",
+        "type": "architecture.integrates",
+        "alias": 14,
+        "from": "ref_ctx_platform",
+        "to": "ref_ctx_wh"
+      },
+      "rel_store_gateway": {
+        "id": "rel_store_gateway",
+        "type": "architecture.calls",
+        "alias": 1,
+        "from": "svc_storefront",
+        "to": "svc_gateway"
+      }
+    }
+  }
+}

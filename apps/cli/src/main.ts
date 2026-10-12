@@ -3,9 +3,9 @@
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { all_defs, alias_of, check, children, collect, domain_of, fold, read, review, say,
-         session, shown_name, write, type Fault, type Id, type Leaf, type Log,
-         type Storage } from "@mnd/core";
+import { lens_of, DIAGRAM_VIEWS, all_defs, alias_of, check, children, collect, domain_of, fold,
+         read, review, say, session, shown_name, write, type Fault, type Graph, type Id, type Leaf,
+         type Log, type Storage } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
 import { draw, draw_svg, faults, outline, project } from "@mnd/views";
@@ -83,6 +83,14 @@ function find_layer(log: Log, want: string | undefined): Id | null {
     process.exit(1);
   }
   return hit.id;
+}
+
+/** A diagram view is asked for by name. Every other layer is projected as the command always did. */
+function look_of(graph: Graph, layer: Id | null) {
+  if (!layer) return undefined;
+  const kind = lens_of(graph, layer);
+  if (!kind || !(DIAGRAM_VIEWS as readonly string[]).includes(kind)) return undefined;
+  return { look: { kind, cut: null } };
 }
 
 function flag(args: string[], name: string): string | undefined {
@@ -187,7 +195,7 @@ async function main(argv: string[]): Promise<void> {
       if (how && layer !== null) graph = { ...graph,
         blocks: { ...graph.blocks, [layer]: { ...graph.blocks[layer]!,
           settings: { ...graph.blocks[layer]!.settings, layout: { kind: how } } } } };
-      const scene = project(graph, layer);
+      const scene = project(graph, layer, look_of(graph, layer));
       const wrong = faults(scene);
       if (wrong.length) {
         console.error("the scene is not well-formed:");

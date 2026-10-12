@@ -8,7 +8,10 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint:css": "node scripts/lint-css.mjs",
     "release:kit": "node scripts/release-kit.mjs",
-    "base": "npm run start -s -w @mnd/cli -- collect ../../packages/defs/src/base ../../packages/defs/src/base.json --bare"
+    "base": "npm run start -s -w @mnd/cli -- collect ../../packages/defs/src/base ../../packages/defs/src/base.json --bare",
+    "showcase": "vite-node scripts/showcase.ts",
+    "architecture": "vite-node scripts/architecture.ts",
+    "packages": "node scripts/packages.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.3.5",
@@ -28,6 +31,7 @@
     "tsup": "^8.5.1",
     "typescript": "^5.6.3",
     "vite": "^5.4.10",
+    "vite-node": "2.1.9",
     "vitest": "^2.1.9"
   },
   "workspaces": [

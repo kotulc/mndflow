@@ -1,7 +1,7 @@
 /** How big a thing is, before anything is placed. */
 
 import { covers, inline, is_grid, is_interface, lattice_of, setting_of, shown_name,
-         stamps_of, FACES, type Graph, type Grid, type Id, type Point } from "@mnd/core";
+         stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
 import { edge_of, fit_of, face_table, face_text, handle_of } from "./face";
 import { look_of } from "./look";
 import type { Ruled } from "./scene";
@@ -50,7 +50,7 @@ export const CARD = { min: { w: 4, h: 2 }, max: { w: 12, h: 6 } };
 export const LARGE = { max: { w: 20, h: 16 } };
 
 /** Which face a card draws with. */
-export type Face = (typeof FACES)[number];
+export type Face = (typeof CARDS)[number];
 
 export type Box = { x: number; y: number; w: number; h: number };
 
@@ -173,7 +173,7 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
   return face === "large" ? large_of(graph, id, card) : { ...BLOCK };
 }
 
-/** Which face a block draws with: what the nearest ancestor saying `layout.face` asks for, else
+/** Which face a block draws with: what the nearest ancestor saying `layout.cards` asks for, else
  *  the small one — always the small one in a grid's cell, which is a card's size. Never the
  *  zoom's. */
 export function face_of(graph: Graph, id: Id): Face {
@@ -181,8 +181,8 @@ export function face_of(graph: Graph, id: Id): Face {
   const seen = new Set<Id>();
   for (let at = graph.blocks[id]?.parent; at && !seen.has(at); at = graph.blocks[at]?.parent) {
     seen.add(at);
-    const said = setting_of(graph, at, "layout")["face"];
-    if ((FACES as readonly unknown[]).includes(said)) return said as Face;
+    const said = setting_of(graph, at, "layout")["cards"];
+    if ((CARDS as readonly unknown[]).includes(said)) return said as Face;
   }
   return "small";
 }

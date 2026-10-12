@@ -21,7 +21,7 @@ npm run start -w @mnd/cli -- fold related    # the one to try first
 |---|---|
 | `fold` | fold a log and print the block tree |
 | `check` | run the door, print faults and repairs |
-| `project` | project a layer and draw the Scene as text |
+| `project` | project a layer and draw the Scene as text; a layer naming a diagram (`layout.view`) is projected as that diagram |
 | `outline` | list what a projection holds — composition rather than placement |
 | `review` | ask what the definitions wanted |
 | `run` | apply an action and print what it wrote |

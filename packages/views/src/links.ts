@@ -26,10 +26,12 @@ export function linked_graph(graph: Graph, layer: Id | null): Graph {
       const target = links_to(graph, a);
       if (!target) continue;
       const answer = from.values?.find((v) => v.name === a.name)?.value;
+      const mark = a.many ? "*" : a.optional ? "0..1" : "";
+      const name = mark ? `${a.name} ${mark}` : a.name;
       for (const to of cards) {
         if (to.id === from.id || !names(graph, from, to, target, answer)) continue;
         const id = `${LINK}${from.id}:${a.name}:${to.id}`;
-        edges[id] = { id, from: from.id, to: to.id, name: a.name, settings: DRAWN };
+        edges[id] = { id, from: from.id, to: to.id, name, settings: DRAWN };
       }
     }
   }

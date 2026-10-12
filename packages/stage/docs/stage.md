@@ -43,6 +43,7 @@
 | `Grips.tsx` | the ends of what is picked, and the berths of hidden interfaces |
 | `Legend.tsx` | the key, in a right-hand corner. **The icon is dressed as the card is**, so its colour is the card's own paint rather than a second answer about it |
 | `moves.ts` | what an adjustment writes, as actions and positional changes |
+| `Wire.tsx` | one run: the route libavoid found while it meets its handles, else `route`; **a run the Scene already drew (`data.points`) is drawn as given** |
 | `flow.css` · `routes.css` · `groups.css` | cards and the frame; runs and their ends; bands and grids — loaded in that order |
 
 ## Hover and pick

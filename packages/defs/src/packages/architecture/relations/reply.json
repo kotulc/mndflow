@@ -1,0 +1,11 @@
+{
+  "id": "reply",
+  "name": "reply",
+  "type": "line",
+  "body": "A step answers the one that asked it.",
+  "def": {},
+  "settings": {
+    "line": { "dir": "forward" },
+    "style": { "border_style": "dashed" }
+  }
+}

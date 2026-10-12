@@ -104,8 +104,12 @@ export const FACE_PARTS: Record<(typeof LARGE_FACES)[number], readonly (typeof P
   table: ["attributes", "body"], document: ["body"], picture: ["preview"],
 };
 
-/** Which face a layer draws its cards with: the name and marks alone, or what they say. */
-export const FACES = ["small", "large"] as const;
+/** Which size a layer draws its cards at: the name and marks alone, or what they say. */
+export const CARDS = ["small", "large"] as const;
+
+/** The diagram views a layer may name with `layout.view`. Closed, like `card.face`: a name outside
+ *  this set is drawn as the block's capability view, never refused. */
+export const DIAGRAM_VIEWS = ["class", "swimlane", "sequence"] as const;
 
 /** How a value is edited: what a value type says, as a module is what a kind says. */
 export const FORMS = ["text", "number", "flag", "choice", "link"] as const;
@@ -322,8 +326,10 @@ const layout: Component = {
       ? null : "`layout.across` has to be a number")
     ?? (config["line"] === undefined || typeof config["line"] === "string"
       ? null : "`layout.line` has to be a relation definition")
-    ?? one_of("layout.face", config["face"], FACES)
-    ?? stray("layout", config, ["kind", "across", "line", "face"]),
+    ?? (config["view"] === undefined || typeof config["view"] === "string"
+      ? null : "`layout.view` has to be a name")
+    ?? one_of("layout.cards", config["cards"], CARDS)
+    ?? stray("layout", config, ["kind", "across", "line", "cards", "view"]),
 };
 
 /** What a block made from, or dropped on, another is linked to it by: a relation definition. */

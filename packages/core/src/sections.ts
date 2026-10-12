@@ -13,17 +13,22 @@ export type Cut = "package" | "tree" | null;
 
 /** How the canvas draws. **Layer views** draw one block, and its card's kind says which: from
  *  inside (`internal`), an opened grid's lattice (`grid`), a package's or folder's contents read
- *  down the page (`folder`), or a definition with what describes it round it (`definition`).
- *  **System views** draw a whole section, and are the only ones chosen: from above as nested
- *  boxes (`overhead`), or as a depth-wise slice (`profile`). */
-export type ViewKind = "internal" | "grid" | "folder" | "definition" | "overhead" | "profile";
+ *  down the page (`folder`), a definition with what describes it round it (`definition`), or a
+ *  diagram the block names (`class`, `swimlane`, `sequence`). **System views** draw a whole
+ *  section, and are the only ones chosen: from above as nested boxes (`overhead`), or as a
+ *  depth-wise slice (`profile`). */
+export type ViewKind = "internal" | "grid" | "folder" | "definition"
+  | "class" | "swimlane" | "sequence" | "overhead" | "profile";
 
 /** The views that draw one block. A section offers them as one choice, `internal`, and the block
  *  opened says which it shows. */
-export const LAYER_VIEWS: readonly ViewKind[] = ["internal", "grid", "folder", "definition"];
+export const LAYER_VIEWS: readonly ViewKind[] = [
+  "internal", "grid", "folder", "definition", "class", "swimlane", "sequence"];
 
-/** The layer views drawn from inside, where what the layer holds is built. */
-const INSIDE: readonly ViewKind[] = ["internal", "grid", "folder"];
+/** The layer views drawn from inside, where what the layer holds is built. A diagram is read from
+ *  inside too: it draws what the block holds, and nothing is laid out there. */
+const INSIDE: readonly ViewKind[] = [
+  "internal", "grid", "folder", "class", "swimlane", "sequence"];
 
 /** One section, as a host declares it: where it stops, and the views it offers, its default
  *  first. `internal` stands for every layer view. */

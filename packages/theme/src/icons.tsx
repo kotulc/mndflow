@@ -134,6 +134,9 @@ const PATHS = {
   view_profile: "M6.5 4.5h11v4h-11zM6.5 10h11v4h-11zM6.5 15.5h11v4h-11z",
   view_grid: "M4.5 4.5h15v15h-15zM4.5 9.5h15M4.5 14.5h15M9.5 4.5v15M14.5 4.5v15",
   view_folder: "M3.5 6.5h6l2 2h9v11h-17zM7 12h10M7 15.5h10",
+  view_class: "M5 14h6v5H5zM13 5h6v5h-6zM8 14V9.5h5V10M13 7.5l-1.6 1.4M13 7.5l1.6 1.4",
+  view_swimlane: "M4.5 4.5h15v15h-15zM9.5 4.5v15M14.5 4.5v15",
+  view_sequence: "M7 4.5v15M12 4.5v15M17 4.5v15M7 11h8.5M15.2 9.3L17 11l-1.8 1.7",
 
   // The guides the drawing is measured against. **A hash: rules that run off
   // the edge**, which is what a guide is and what keeps it off `layout_grid`,

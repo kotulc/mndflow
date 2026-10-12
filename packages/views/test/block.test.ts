@@ -38,7 +38,7 @@ describe("the invariants catch what they are for", () => {
   });
 
   it("a node with no size", () => {
-    const bad: Scene = { ...good, nodes: [{ ...good.nodes[0]!, width: 0 }] };
+    const bad: Scene = { ...good, nodes: [{ ...good.nodes[0]!, width: -1 }] };
     expect(faults(bad)).toContainEqual(expect.stringContaining("no size"));
   });
 

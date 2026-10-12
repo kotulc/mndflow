@@ -1,0 +1,16 @@
+{
+  "id": "component",
+  "name": "component",
+  "type": "block",
+  "body": "A piece of the system somebody owns and a technology implements.",
+  "def": {
+    "attributes": [
+      { "name": "owner", "type": "text" },
+      { "name": "technology", "type": "text" }
+    ]
+  },
+  "settings": {
+    "card": { "face": "table" },
+    "style": { "family": "primary" }
+  }
+}

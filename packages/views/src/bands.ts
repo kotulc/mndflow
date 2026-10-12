@@ -1,6 +1,6 @@
 /** Bands and grids inside a layer: members packed in a band, seated blocks placed by cell. */
 
-import { group_depth, inline, is_group, is_header, is_interface,
+import { group_depth, inline, is_flat, is_group, is_header, is_interface,
          lattice_of, layout_of, members_of, type Block, type Graph, type Id, type Layout }
   from "@mnd/core";
 import type { Placed } from "./arrange";
@@ -28,7 +28,9 @@ export function band_size(graph: Graph, layer: Id | null, band: Block, how: Layo
   /** An empty band keeps room for a card. */
   if (!layout.length) return { w: BLOCK.w + PAD * 2, h: BLOCK.h + PAD * 2 };
   const right = Math.max(band.w ?? 0, ...layout.map((p) => p.x + p.w));
-  const bottom = Math.max(...layout.map((p) => p.y + p.h));
+  /** A view-drawn band may say how tall it is, so every lane of one diagram shares its rows. */
+  const bottom = Math.max(is_flat(graph, band.id) ? band.h ?? 0 : 0,
+                           ...layout.map((p) => p.y + p.h));
   return { w: right + PAD * 2, h: bottom + PAD * 2 };
 }
 

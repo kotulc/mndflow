@@ -40,7 +40,7 @@ const USAGES = 9;
 
 /** A box: its name, what it holds, how many to a row, and its cell round the middle card. */
 type Box = { key: string; name: string; blocks: readonly Block[]; across: number; c: number;
-             r: number; face?: "large" };
+             r: number; cards?: "large" };
 
 
 /** What the view draws that the definition reads from its chain: ports declared further up, a
@@ -72,7 +72,7 @@ export function definition_graph(graph: Graph, def: Id): Graph {
       : [{ key: "in", name: "in", blocks: aspects.ins, across: 1, c: 0, r: 1 },
          { key: "out", name: "out", blocks: aspects.outs, across: 1, c: 2, r: 1 }]),
     { key: "both", name: "ports", blocks: aspects.both, across: SIDE, c: 0, r: 2 },
-    { key: "settings", name: "settings", across: UNDER, c: 1, r: 2, face: "large" as const,
+    { key: "settings", name: "settings", across: UNDER, c: 1, r: 2, cards: "large" as const,
       blocks: settings_of(graph, def) },
     { key: "traits", name: "traits", across: SIDE, c: 2, r: 2, blocks: defs(aspects.traits.ids) },
     { key: "usages", name: more > 0 ? `usages · ${more} more` : "usages", across: UNDER, c: 1,
@@ -82,7 +82,7 @@ export function definition_graph(graph: Graph, def: Id): Graph {
   /** Everything drawn, the middle large and the rest small, before any is placed. */
   const blocks: Record<Id, Block> = { ...graph.blocks,
     [ASPECT]: { id: ASPECT, parent: null, name: "definition",
-                settings: { layout: { kind: "free", face: "large" } } } };
+                settings: { layout: { kind: "free", cards: "large" } } } };
   const seen = new Set<Id>([def]);
   /** The middle card shows its attributes as a table, whatever face its chain gives it elsewhere. */
   const card = attributes_of(graph, def).length
@@ -97,7 +97,7 @@ export function definition_graph(graph: Graph, def: Id): Graph {
   for (const box of boxes) {
     const id = `${ASPECT}:${box.key}`;
     blocks[id] = { id, parent: ASPECT, type: "group", name: box.name,
-                   settings: { layout: { kind: "free", face: box.face ?? "small" } } };
+                   settings: { layout: { kind: "free", cards: box.cards ?? "small" } } };
     /** One drawn already — a definition at both ends — is drawn again under the box's id. */
     const held = box.blocks.map((x) => (seen.has(x.id) ? { ...x, id: `${id}:${x.id}` } : x));
     for (const b of held) {

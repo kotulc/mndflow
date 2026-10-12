@@ -166,7 +166,7 @@ Value     { name, value }
 | `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `face` (`table`, `document`, `picture`), `size` (`{w, h}` in units): which large face it draws with and how big it is. Unsaid, a card has no large face |
 | `style` | a family, or a `hue` with its `intensity` and `vary`; `fill` and `opacity`; border and writing weight, face and contrast. Never a hex or a pixel count |
 | `line` | how a run draws |
-| `layout` | `kind`: `free`, `auto` or `page`; `across` and `line` for the computed ones; `face`: `small` or `large`, the face what it holds draws with. Unsaid, or a kind this build does not know, draws as `auto` |
+| `layout` | `kind`: `free`, `auto` or `page`; `across` and `line` for the computed ones; `cards`: `small` or `large`, the size what it holds draws at; `view`: `class`, `swimlane` or `sequence`, the diagram the block opens on. Unsaid kind, or a kind this build does not know, draws as `auto`. A `view` this build does not know, or that the block cannot feed, opens on the capability view |
 | `tie` | the relation type a block made from or dropped on another is linked to it by |
 | `allows` | `ports`, `holds`, `heads`, `degree`, `ends`. Refused at the gesture; absent is a no. Usually granted whole by a trait |
 | `holder` | `inline`, `matrix`: how a block draws what it holds — in place, and in cells. Granted by the traits of the same names; which holder a block is comes from here |

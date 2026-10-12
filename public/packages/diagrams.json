@@ -1,0 +1,58 @@
+{
+  "schema": "1.0",
+  "id": "diagrams",
+  "graph": {
+    "root": "diagrams",
+    "blocks": {
+      "diagrams": {
+        "id": "diagrams",
+        "parent": null,
+        "name": "diagrams"
+      },
+      "diagrams.class_diagram": {
+        "id": "diagrams.class_diagram",
+        "parent": "diagrams",
+        "name": "class diagram",
+        "type": "block",
+        "def": {},
+        "body": "A diagram of the definitions its references stand for, and what they extend.",
+        "order": 1,
+        "settings": {
+          "layout": {
+            "view": "class",
+            "cards": "large"
+          }
+        }
+      },
+      "diagrams.sequence_diagram": {
+        "id": "diagrams.sequence_diagram",
+        "parent": "diagrams",
+        "name": "sequence diagram",
+        "type": "grid",
+        "def": {},
+        "body": "A grid read as time: the header row names the participants, and each row is a moment.",
+        "order": 2,
+        "settings": {
+          "layout": {
+            "view": "sequence"
+          }
+        }
+      },
+      "diagrams.swimlane": {
+        "id": "diagrams.swimlane",
+        "parent": "diagrams",
+        "name": "swimlane",
+        "type": "grid",
+        "def": {},
+        "body": "A grid read as lanes: the header row names the participants, the header column the phases.",
+        "order": 3,
+        "settings": {
+          "layout": {
+            "view": "swimlane"
+          }
+        }
+      }
+    },
+    "edges": {}
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "service",
+  "name": "service",
+  "type": "component",
+  "body": "A component that answers requests.",
+  "def": {},
+  "settings": {
+    "style": { "family": "secondary" }
+  }
+}

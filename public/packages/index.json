@@ -19,6 +19,16 @@
       "name": "sysml",
       "about": "SysML names and stereotypes over the base definitions",
       "at": "sysml.json"
+    },
+    {
+      "name": "diagrams",
+      "about": "diagram views a card's kind opens on: class, swimlane and sequence",
+      "at": "diagrams.json"
+    },
+    {
+      "name": "architecture",
+      "about": "an order-fulfillment story: components, records and the scenarios that run them",
+      "at": "architecture.json"
     }
   ]
 }

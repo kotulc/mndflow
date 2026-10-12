@@ -1,9 +1,10 @@
 /** The block view: any planar projection. */
 
-import { alias_of, dir_of, layout_of, children, setting_of, ABOUT, covers, edges_in, group_depth, heading, holders_in,
-         inline, is_container, is_grid, is_group, is_note, is_tie, label_of, lattice_of,
-         members_of, shape_of, stamps_of, role_of, shown_name, path, type Cut,
-         type ViewKind, type Graph, type Id, type Relation, type Side, type Span } from "@mnd/core";
+import { alias_of, dir_of, layout_of, children, setting_of, ABOUT, covers, diagram_subject,
+         edges_in, group_depth, heading, holders_in, inline, is_container, is_grid, is_group,
+         is_note, is_tie, label_of, lattice_of, members_of, shape_of, stamps_of, role_of,
+         shown_name, path, type Cut, type ViewKind, type Graph, type Id, type Relation, type Side,
+         type Span } from "@mnd/core";
 import { at_seat, cell_box, laid, perch_id, roomed, seat_all, PAD, UNIT, type Perch,
          type Rect, type Seat, type Seating } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
@@ -13,7 +14,10 @@ import { profile_graph, ROW } from "./profile";
 import { survey_graph, FOREST } from "./survey";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
+import { class_graph } from "./class";
 import { linked_graph, LINK } from "./links";
+import { sequence_scene } from "./sequence";
+import { swimlane_graph } from "./swimlane";
 import { definition_graph, inherited_in, ASPECT } from "./definition";
 import { box_of, cell as node, extent, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
@@ -21,10 +25,11 @@ import { box_of, cell as node, extent, FRAME, type BoxData, type BoxNode, type F
 
 export type Config = {
   /** How the layer is looked at: from inside (`internal`, `grid`); a package or folder read down
-   *  the page (`folder`); a definition with what describes it round it (`definition`); the whole
-   *  section it scopes, down to `cut`, each block there boxing its top level where `tops` says
-   *  (`overhead`); or a cross-section of the host's sections along `target` (`profile`). Unsaid,
-   *  inside — and with no layer, every package's domain as an overhead view. */
+   *  the page (`folder`); a definition with what describes it round it (`definition`); a diagram
+   *  the block names (`class`, `swimlane`, `sequence`); the whole section it scopes, down to
+   *  `cut`, each block there boxing its top level where `tops` says (`overhead`); or a
+   *  cross-section of the host's sections along `target` (`profile`). Unsaid, inside — and with
+   *  no layer, every package's domain as an overhead view. */
   look?: { kind: ViewKind; cut: Cut; tops?: boolean; target?: Id | null };
   /** The packages a forest draws, in order; every package where unsaid. */
   packages?: readonly Id[];
@@ -130,6 +135,11 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
     return { ...scene, nodes, slots: ["display"], trail: [] };
   }
   if (layer === null) return project(given, null, { ...config, look: WHOLE });
+  /** A diagram is a projection: it draws what the block holds, and the canvas does not edit it.
+   *  A grid would otherwise open as its lattice, so this comes first. */
+  if (layer && (look?.kind === "class" || look?.kind === "swimlane" || look?.kind === "sequence")) {
+    return quiet(given, layer, diagram_scene(given, layer, look.kind));
+  }
   /** An opened grid draws its grid view: its frame of cells is the room, which the hand sizes
    *  but never moves, under the grid's own crumbs. */
   if (layer !== GRID_LAYER && is_grid(given, layer)) {
@@ -333,8 +343,8 @@ function line_edges(graph: Graph, linked: readonly Relation[], seating: Seating)
     const wire = wire_of(graph, e.id);
     const label = wire.name ? label_of(graph, e.id) : "";
     const alias = wire.alias ? alias_of(graph, e.id, true) : "";
-    /** A link is drawn to be read, never picked. */
-    const link = e.id.startsWith(LINK);
+    /** A link, or a line a diagram drew, is read and never picked. */
+    const link = e.id.startsWith(LINK) || e.id.startsWith("class:");
     /** A tie by its trait: drawn straight and never routed. */
     const module = is_tie(graph, e.id) ? "tie" : "line";
     const fan = seating.fans.get(e.id);
@@ -359,4 +369,43 @@ function line_edges(graph: Graph, linked: readonly Relation[], seating: Seating)
 function handle(met: ReadonlyMap<string, Perch>, edge: Id,
                 end: "from" | "to", role: "s" | "t"): string {
   return met.has(`${edge}|${end}`) ? `${role}-${perch_id(edge, end)}` : role;
+}
+
+/** The scene a diagram kind draws. The subject is the block that feeds it: a stand-in's target
+ *  when the stand-in names the view. A kind the block cannot fill falls back to the capability
+ *  view, still read only. */
+function diagram_scene(graph: Graph, layer: Id, kind: "class" | "swimlane" | "sequence"): Scene {
+  const subject = diagram_subject(graph, layer);
+  const scene = kind === "sequence" ? sequence_of(graph, subject)
+    : kind === "swimlane" ? swimlane_of(graph, subject) : class_of(graph, subject);
+  if (layer === subject || !scene.frame) return scene;
+  return { ...scene, frame: { ...scene.frame, label: shown_name(graph, layer) } };
+}
+
+/** A class diagram, or the block's own capability view where it holds no definition reference.
+ *  The diagram's graph no longer calls its host a grid, so it is drawn from inside. */
+function class_of(graph: Graph, subject: Id): Scene {
+  return project(class_graph(graph, subject) ?? graph, subject);
+}
+
+/** A swimlane, or the grid itself where it has too few lanes or no step. */
+function swimlane_of(graph: Graph, subject: Id): Scene {
+  const drawn = swimlane_graph(graph, subject);
+  return drawn ? project(drawn, subject) : project(graph, subject);
+}
+
+/** A sequence, or the grid itself where it has no step. */
+function sequence_of(graph: Graph, subject: Id): Scene {
+  return sequence_scene(graph, subject) ?? project(graph, subject);
+}
+
+/** A diagram offers nothing to drag or to build. Marks a view drew (`@`, `class:`) are not
+ *  picked. The trail names the block that was opened, which may be a stand-in for the subject. */
+function quiet(graph: Graph, layer: Id, scene: Scene): Scene {
+  const drawn = (id: string) => id.startsWith("@") || id.startsWith("class:");
+  const nodes = scene.nodes.map((n) => ({ ...n, draggable: false,
+    ...(drawn(n.id) ? { selectable: false, focusable: false } : {}) }));
+  const edges = scene.edges.map((e) =>
+    drawn(e.id) ? { ...e, selectable: false, focusable: false } : e);
+  return { ...scene, layer, nodes, edges, slots: ["display"], trail: trail_of(graph, layer) };
 }

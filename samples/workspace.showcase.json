@@ -4,152 +4,269 @@
   "graph": {
     "root": "workspace",
     "blocks": {
-      "workspace": {
-        "id": "workspace",
-        "parent": null,
-        "name": "workspace",
-        "counters": {
-          "block": 71,
-          "note": 11,
-          "folder": 1,
-          "reference": 11,
-          "interface": 11,
-          "relation": 21,
-          "group": 2,
-          "grid": 1
-        }
-      },
-      "main": {
-        "id": "main",
-        "parent": "workspace",
-        "name": "main",
-        "def": {},
-        "order": 1
-      },
-      "tags": {
-        "id": "tags",
-        "parent": "workspace",
-        "name": "tags",
-        "type": "folder",
-        "order": 2
-      },
-      "w_faces": {
-        "id": "w_faces",
-        "parent": "workspace",
-        "name": "faces",
-        "type": "folder",
-        "order": 3
-      },
-      "w_machines": {
-        "id": "w_machines",
-        "parent": "workspace",
-        "name": "machines",
-        "type": "folder",
-        "order": 4
-      },
-      "w_holders": {
-        "id": "w_holders",
-        "parent": "workspace",
-        "name": "holders",
-        "type": "folder",
-        "order": 5
-      },
-      "w_relations": {
-        "id": "w_relations",
-        "parent": "workspace",
-        "name": "relations",
-        "type": "folder",
-        "order": 6
-      },
-      "def_large": {
-        "id": "def_large",
-        "parent": "w_faces",
-        "name": "Large layer",
-        "type": "block",
-        "def": {},
-        "order": 1,
-        "settings": {
-          "layout": {
-            "face": "large"
-          }
-        },
-        "body": "A layer whose cards draw their large face."
-      },
-      "l_cards": {
-        "id": "l_cards",
-        "parent": "main",
-        "alias": 1,
-        "order": 1,
-        "name": "Cards"
-      },
-      "l_cards_note": {
-        "id": "l_cards_note",
-        "parent": "l_cards",
-        "alias": 1,
-        "order": 1,
-        "name": "Every block kind on its small face, each in the look its own definition states. Groups and grids are on Holders, ports on Interfaces.",
-        "type": "note",
-        "w": 528,
-        "h": 72
-      },
       "c_block": {
         "id": "c_block",
         "parent": "l_cards",
+        "name": "Block",
         "alias": 2,
-        "order": 2,
-        "name": "Block"
+        "order": 2
       },
       "c_folder": {
         "id": "c_folder",
         "parent": "l_cards",
-        "alias": 1,
-        "order": 3,
         "name": "Folder",
-        "type": "folder"
+        "type": "folder",
+        "alias": 1,
+        "order": 3
       },
       "c_inside": {
         "id": "c_inside",
         "parent": "c_folder",
+        "name": "Inside",
         "alias": 3,
-        "order": 1,
-        "name": "Inside"
-      },
-      "c_ref": {
-        "id": "c_ref",
-        "parent": "l_cards",
-        "alias": 1,
-        "order": 4,
-        "name": "",
-        "type": "reference",
-        "of": "c_block"
+        "order": 1
       },
       "c_note": {
         "id": "c_note",
         "parent": "l_cards",
-        "alias": 2,
-        "order": 5,
         "name": "A note: text, resized by hand",
         "type": "note",
-        "w": 144,
-        "h": 48
+        "alias": 2,
+        "h": 48,
+        "order": 5,
+        "w": 144
       },
-      "l_faces": {
-        "id": "l_faces",
-        "parent": "main",
-        "alias": 4,
-        "order": 2,
-        "name": "Faces",
-        "type": "def_large"
+      "c_ref": {
+        "id": "c_ref",
+        "parent": "l_cards",
+        "name": "",
+        "type": "reference",
+        "of": "c_block",
+        "alias": 1,
+        "order": 4
       },
-      "l_faces_note": {
-        "id": "l_faces_note",
-        "parent": "l_faces",
+      "d_b1": {
+        "id": "d_b1",
+        "parent": "l_defs",
+        "name": "Main pump",
+        "type": "def_bigpump",
+        "alias": 14,
+        "order": 7,
+        "values": [
+          {
+            "name": "power",
+            "value": "90"
+          },
+          {
+            "name": "flow",
+            "value": "200"
+          }
+        ]
+      },
+      "d_class": {
+        "id": "d_class",
+        "parent": "l_diagrams",
+        "name": "Classes",
+        "type": "diagrams.class_diagram",
+        "alias": 73,
+        "order": 2
+      },
+      "d_class_part": {
+        "id": "d_class_part",
+        "parent": "d_class",
+        "type": "reference",
+        "of": "def_part",
+        "alias": 13,
+        "order": 2
+      },
+      "d_class_unit": {
+        "id": "d_class_unit",
+        "parent": "d_class",
+        "type": "reference",
+        "of": "def_unit",
+        "alias": 12,
+        "order": 1
+      },
+      "d_lane_a": {
+        "id": "d_lane_a",
+        "parent": "d_lanes",
+        "name": "Left",
+        "alias": 74,
+        "cell": {
+          "r": 0,
+          "c": 1
+        },
+        "order": 1
+      },
+      "d_lane_b": {
+        "id": "d_lane_b",
+        "parent": "d_lanes",
+        "name": "Right",
+        "alias": 75,
+        "cell": {
+          "r": 0,
+          "c": 2
+        },
+        "order": 2
+      },
+      "d_lane_p1": {
+        "id": "d_lane_p1",
+        "parent": "d_lanes",
+        "name": "One",
+        "alias": 76,
+        "cell": {
+          "r": 1,
+          "c": 0
+        },
+        "order": 3
+      },
+      "d_lane_p2": {
+        "id": "d_lane_p2",
+        "parent": "d_lanes",
+        "name": "Two",
+        "alias": 77,
+        "cell": {
+          "r": 2,
+          "c": 0
+        },
+        "order": 4
+      },
+      "d_lane_s1": {
+        "id": "d_lane_s1",
+        "parent": "d_lanes",
+        "name": "Do",
+        "alias": 78,
+        "cell": {
+          "r": 1,
+          "c": 1
+        },
+        "order": 5
+      },
+      "d_lane_s2": {
+        "id": "d_lane_s2",
+        "parent": "d_lanes",
+        "name": "Done",
+        "alias": 79,
+        "cell": {
+          "r": 2,
+          "c": 2
+        },
+        "order": 6
+      },
+      "d_lanes": {
+        "id": "d_lanes",
+        "parent": "l_diagrams",
+        "name": "Lanes",
+        "type": "diagrams.swimlane",
+        "alias": 2,
+        "order": 3
+      },
+      "d_m1": {
+        "id": "d_m1",
+        "parent": "l_defs",
+        "name": "Compressor",
+        "type": "def_machine",
+        "alias": 12,
+        "order": 5,
+        "values": [
+          {
+            "name": "power",
+            "value": "30"
+          }
+        ]
+      },
+      "d_p1": {
+        "id": "d_p1",
+        "parent": "l_defs",
+        "name": "Feed pump",
+        "type": "def_pump",
+        "alias": 13,
+        "order": 6,
+        "values": [
+          {
+            "name": "power",
+            "value": "15"
+          },
+          {
+            "name": "flow",
+            "value": "40"
+          }
+        ]
+      },
+      "d_seq": {
+        "id": "d_seq",
+        "parent": "l_diagrams",
+        "name": "Messages",
+        "type": "diagrams.sequence_diagram",
         "alias": 3,
-        "order": 1,
-        "name": "The large faces, on a layer that asks for them: a document, a table with its body under it, a picture; then a document without its name, and one its definition sizes. A plain block names no face, so its name is the whole card.",
-        "type": "note",
-        "w": 648,
-        "h": 72
+        "order": 4
+      },
+      "d_seq_gone": {
+        "id": "d_seq_gone",
+        "parent": "d_seq",
+        "name": "Gone",
+        "type": "reference",
+        "of": "nothing_here",
+        "alias": 14,
+        "cell": {
+          "r": 0,
+          "c": 2
+        },
+        "order": 2
+      },
+      "d_seq_loop": {
+        "id": "d_seq_loop",
+        "parent": "d_seq",
+        "name": "Loop",
+        "alias": 82,
+        "cell": {
+          "r": 1,
+          "c": 1
+        },
+        "order": 4
+      },
+      "d_seq_now": {
+        "id": "d_seq_now",
+        "parent": "d_seq",
+        "name": "Now",
+        "alias": 81,
+        "cell": {
+          "r": 1,
+          "c": 0
+        },
+        "order": 3
+      },
+      "d_seq_self": {
+        "id": "d_seq_self",
+        "parent": "d_seq",
+        "name": "Self",
+        "alias": 80,
+        "cell": {
+          "r": 0,
+          "c": 1
+        },
+        "order": 1
+      },
+      "def_bigpump": {
+        "id": "def_bigpump",
+        "parent": "w_machines",
+        "name": "Big pump",
+        "type": "def_pump",
+        "def": {
+          "attributes": [
+            {
+              "name": "stages",
+              "type": "number",
+              "default": "2"
+            }
+          ]
+        },
+        "order": 3,
+        "settings": {
+          "style": {
+            "border_width": "thick"
+          }
+        }
       },
       "def_doc": {
         "id": "def_doc",
@@ -161,6 +278,129 @@
         "settings": {
           "card": {
             "face": "document"
+          }
+        }
+      },
+      "def_headless": {
+        "id": "def_headless",
+        "parent": "w_faces",
+        "name": "Headless",
+        "type": "block",
+        "def": {},
+        "order": 5,
+        "settings": {
+          "card": {
+            "face": "document",
+            "name": "hide"
+          }
+        }
+      },
+      "def_large": {
+        "id": "def_large",
+        "parent": "w_faces",
+        "name": "Large layer",
+        "type": "block",
+        "def": {},
+        "body": "A layer whose cards draw their large face.",
+        "order": 1,
+        "settings": {
+          "layout": {
+            "cards": "large"
+          }
+        }
+      },
+      "def_machine": {
+        "id": "def_machine",
+        "parent": "w_machines",
+        "name": "Machine",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "power",
+              "type": "number",
+              "unit": "kW"
+            }
+          ]
+        },
+        "order": 1,
+        "settings": {
+          "card": {
+            "face": "table"
+          },
+          "style": {
+            "family": "secondary"
+          }
+        }
+      },
+      "def_media": {
+        "id": "def_media",
+        "parent": "w_faces",
+        "name": "Picture",
+        "type": "block",
+        "def": {},
+        "order": 4,
+        "settings": {
+          "card": {
+            "face": "picture"
+          }
+        }
+      },
+      "def_part": {
+        "id": "def_part",
+        "parent": "w_machines",
+        "name": "Part",
+        "type": "def_unit",
+        "def": {
+          "attributes": [
+            {
+              "name": "unit",
+              "type": "def_unit"
+            }
+          ]
+        },
+        "body": "A part of a unit.",
+        "order": 5
+      },
+      "def_pump": {
+        "id": "def_pump",
+        "parent": "w_machines",
+        "name": "Pump",
+        "type": "def_machine",
+        "def": {
+          "attributes": [
+            {
+              "name": "flow",
+              "type": "number",
+              "unit": "m3/h"
+            }
+          ]
+        },
+        "body": "Moves liquid from its inlet to its outlet, driven by a motor.",
+        "order": 2,
+        "settings": {
+          "style": {
+            "hue": 200
+          }
+        },
+        "tags": [
+          "tag_rotating"
+        ]
+      },
+      "def_sized": {
+        "id": "def_sized",
+        "parent": "w_faces",
+        "name": "Sized",
+        "type": "block",
+        "def": {},
+        "order": 6,
+        "settings": {
+          "card": {
+            "face": "document",
+            "size": {
+              "w": 8,
+              "h": 3
+            }
           }
         }
       },
@@ -193,749 +433,6 @@
           }
         }
       },
-      "def_media": {
-        "id": "def_media",
-        "parent": "w_faces",
-        "name": "Picture",
-        "type": "block",
-        "def": {},
-        "order": 4,
-        "settings": {
-          "card": {
-            "face": "picture"
-          }
-        }
-      },
-      "def_headless": {
-        "id": "def_headless",
-        "parent": "w_faces",
-        "name": "Headless",
-        "type": "block",
-        "def": {},
-        "order": 5,
-        "settings": {
-          "card": {
-            "face": "document",
-            "name": "hide"
-          }
-        }
-      },
-      "def_sized": {
-        "id": "def_sized",
-        "parent": "w_faces",
-        "name": "Sized",
-        "type": "block",
-        "def": {},
-        "order": 6,
-        "settings": {
-          "card": {
-            "face": "document",
-            "size": {
-              "w": 8,
-              "h": 3
-            }
-          }
-        }
-      },
-      "f_body": {
-        "id": "f_body",
-        "parent": "l_faces",
-        "alias": 5,
-        "order": 2,
-        "name": "Body",
-        "type": "def_doc",
-        "body": "# A heading\n\nProse with **bold**, `code` and a [link](https://example.com).\n\n- a point\n- another point\n\n| part | qty | note |\n|---|---|---|\n| impeller | 1 | cast |\n| seal | 2 | spare |"
-      },
-      "f_spec": {
-        "id": "f_spec",
-        "parent": "l_faces",
-        "alias": 6,
-        "order": 3,
-        "name": "Spec",
-        "type": "def_spec",
-        "body": "Attributes, then the body.",
-        "values": [
-          {
-            "name": "tag",
-            "value": "P-101"
-          },
-          {
-            "name": "rating",
-            "value": "15"
-          },
-          {
-            "name": "duty",
-            "value": "continuous"
-          }
-        ]
-      },
-      "f_media": {
-        "id": "f_media",
-        "parent": "l_faces",
-        "alias": 7,
-        "order": 4,
-        "name": "Picture",
-        "type": "def_media",
-        "source": "/showcase/picture.svg"
-      },
-      "f_headless": {
-        "id": "f_headless",
-        "parent": "l_faces",
-        "alias": 8,
-        "order": 5,
-        "name": "Headless",
-        "type": "def_headless",
-        "body": "A card that is its markdown alone: no name over it."
-      },
-      "f_sized": {
-        "id": "f_sized",
-        "parent": "l_faces",
-        "alias": 9,
-        "order": 6,
-        "name": "Sized",
-        "type": "def_sized",
-        "body": "A size its definition gives: 8 by 3 units, whatever it says. What does not fit is cut off at the card's edge, however long the text runs on and on."
-      },
-      "f_plain": {
-        "id": "f_plain",
-        "parent": "l_faces",
-        "alias": 10,
-        "order": 7,
-        "name": "Plain"
-      },
-      "l_defs": {
-        "id": "l_defs",
-        "parent": "main",
-        "alias": 11,
-        "order": 3,
-        "name": "Definitions",
-        "type": "def_large"
-      },
-      "l_defs_note": {
-        "id": "l_defs_note",
-        "parent": "l_defs",
-        "alias": 4,
-        "order": 1,
-        "name": "A chain: Pump extends Machine, Big pump extends Pump. Machine draws in the secondary family; Pump carries the rotating tag, filed in the workspace's tags folder. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it. Machine declares a power port that Pump and Big pump inherit. Open a stand-in for its definition view: Big pump shows everything it is, what it reads from its chain dimmed. Compressor drives Feed pump by a relation definition, drives: select the line and open its definition from the tray, or find it under workspace › relations.",
-        "type": "note",
-        "w": 648,
-        "h": 144
-      },
-      "def_machine": {
-        "id": "def_machine",
-        "parent": "w_machines",
-        "name": "Machine",
-        "type": "block",
-        "def": {
-          "attributes": [
-            {
-              "name": "power",
-              "type": "number",
-              "unit": "kW"
-            }
-          ]
-        },
-        "order": 1,
-        "settings": {
-          "card": {
-            "face": "table"
-          },
-          "style": {
-            "family": "secondary"
-          }
-        }
-      },
-      "dm_power": {
-        "id": "dm_power",
-        "parent": "def_machine",
-        "alias": 1,
-        "order": 1,
-        "name": "power",
-        "type": "interface",
-        "flow": "in"
-      },
-      "tag_rotating": {
-        "id": "tag_rotating",
-        "parent": "tags",
-        "name": "rotating",
-        "type": "tag",
-        "def": {},
-        "order": 1
-      },
-      "def_pump": {
-        "id": "def_pump",
-        "parent": "w_machines",
-        "name": "Pump",
-        "type": "def_machine",
-        "def": {
-          "attributes": [
-            {
-              "name": "flow",
-              "type": "number",
-              "unit": "m3/h"
-            }
-          ]
-        },
-        "order": 2,
-        "settings": {
-          "style": {
-            "hue": 200
-          }
-        },
-        "body": "Moves liquid from its inlet to its outlet, driven by a motor.",
-        "tags": [
-          "tag_rotating"
-        ]
-      },
-      "dp_inlet": {
-        "id": "dp_inlet",
-        "parent": "def_pump",
-        "alias": 2,
-        "order": 1,
-        "name": "inlet",
-        "type": "interface",
-        "flow": "in"
-      },
-      "dp_outlet": {
-        "id": "dp_outlet",
-        "parent": "def_pump",
-        "alias": 3,
-        "order": 2,
-        "name": "outlet",
-        "type": "interface",
-        "flow": "out"
-      },
-      "dp_seal": {
-        "id": "dp_seal",
-        "parent": "def_pump",
-        "alias": 4,
-        "order": 3,
-        "name": "seal",
-        "type": "interface",
-        "flow": "both"
-      },
-      "def_bigpump": {
-        "id": "def_bigpump",
-        "parent": "w_machines",
-        "name": "Big pump",
-        "type": "def_pump",
-        "def": {
-          "attributes": [
-            {
-              "name": "stages",
-              "type": "number",
-              "default": "2"
-            }
-          ]
-        },
-        "order": 3,
-        "settings": {
-          "style": {
-            "border_width": "thick"
-          }
-        }
-      },
-      "s_def_machine": {
-        "id": "s_def_machine",
-        "parent": "l_defs",
-        "alias": 2,
-        "order": 2,
-        "type": "reference",
-        "of": "def_machine"
-      },
-      "s_def_pump": {
-        "id": "s_def_pump",
-        "parent": "l_defs",
-        "alias": 3,
-        "order": 3,
-        "type": "reference",
-        "of": "def_pump"
-      },
-      "s_def_bigpump": {
-        "id": "s_def_bigpump",
-        "parent": "l_defs",
-        "alias": 4,
-        "order": 4,
-        "type": "reference",
-        "of": "def_bigpump"
-      },
-      "d_m1": {
-        "id": "d_m1",
-        "parent": "l_defs",
-        "alias": 12,
-        "order": 5,
-        "name": "Compressor",
-        "type": "def_machine",
-        "values": [
-          {
-            "name": "power",
-            "value": "30"
-          }
-        ]
-      },
-      "d_p1": {
-        "id": "d_p1",
-        "parent": "l_defs",
-        "alias": 13,
-        "order": 6,
-        "name": "Feed pump",
-        "type": "def_pump",
-        "values": [
-          {
-            "name": "power",
-            "value": "15"
-          },
-          {
-            "name": "flow",
-            "value": "40"
-          }
-        ]
-      },
-      "d_b1": {
-        "id": "d_b1",
-        "parent": "l_defs",
-        "alias": 14,
-        "order": 7,
-        "name": "Main pump",
-        "type": "def_bigpump",
-        "values": [
-          {
-            "name": "power",
-            "value": "90"
-          },
-          {
-            "name": "flow",
-            "value": "200"
-          }
-        ]
-      },
-      "rel_drives": {
-        "id": "rel_drives",
-        "parent": "w_relations",
-        "name": "drives",
-        "type": "line",
-        "def": {
-          "attributes": [
-            {
-              "name": "ratio",
-              "type": "number"
-            }
-          ]
-        },
-        "order": 1,
-        "settings": {
-          "line": {
-            "dir": "forward",
-            "to_arrow": "open"
-          },
-          "allows": {
-            "ends": {
-              "from": [
-                "def_machine"
-              ],
-              "to": [
-                "def_pump"
-              ]
-            }
-          }
-        },
-        "body": "A machine turning a pump's shaft.",
-        "tags": [
-          "tag_rotating"
-        ]
-      },
-      "l_rel": {
-        "id": "l_rel",
-        "parent": "main",
-        "alias": 15,
-        "order": 4,
-        "name": "Relations"
-      },
-      "l_rel_note": {
-        "id": "l_rel_note",
-        "parent": "l_rel",
-        "alias": 5,
-        "order": 1,
-        "name": "Each direction, a name, arrows and a tie; then a run past a third block, a pair related both ways as one line, two runs that cross, a pair close together, and a hub whose lines share a trunk and fan out. Lines leave the middle of a face and go round cards; a tie runs straight from card to card.",
-        "type": "note",
-        "w": 648,
-        "h": 96
-      },
-      "r_fwd_a": {
-        "id": "r_fwd_a",
-        "parent": "l_rel",
-        "alias": 16,
-        "order": 2,
-        "name": "From"
-      },
-      "r_fwd_b": {
-        "id": "r_fwd_b",
-        "parent": "l_rel",
-        "alias": 17,
-        "order": 3,
-        "name": "Forward"
-      },
-      "r_back_a": {
-        "id": "r_back_a",
-        "parent": "l_rel",
-        "alias": 18,
-        "order": 4,
-        "name": "From"
-      },
-      "r_back_b": {
-        "id": "r_back_b",
-        "parent": "l_rel",
-        "alias": 19,
-        "order": 5,
-        "name": "Back"
-      },
-      "r_both_a": {
-        "id": "r_both_a",
-        "parent": "l_rel",
-        "alias": 20,
-        "order": 6,
-        "name": "From"
-      },
-      "r_both_b": {
-        "id": "r_both_b",
-        "parent": "l_rel",
-        "alias": 21,
-        "order": 7,
-        "name": "Both"
-      },
-      "r_none_a": {
-        "id": "r_none_a",
-        "parent": "l_rel",
-        "alias": 22,
-        "order": 8,
-        "name": "From"
-      },
-      "r_none_b": {
-        "id": "r_none_b",
-        "parent": "l_rel",
-        "alias": 23,
-        "order": 9,
-        "name": "None"
-      },
-      "r_named_a": {
-        "id": "r_named_a",
-        "parent": "l_rel",
-        "alias": 24,
-        "order": 10,
-        "name": "Pump"
-      },
-      "r_named_b": {
-        "id": "r_named_b",
-        "parent": "l_rel",
-        "alias": 25,
-        "order": 11,
-        "name": "Tank"
-      },
-      "r_arrows_a": {
-        "id": "r_arrows_a",
-        "parent": "l_rel",
-        "alias": 26,
-        "order": 12,
-        "name": "Whole"
-      },
-      "r_arrows_b": {
-        "id": "r_arrows_b",
-        "parent": "l_rel",
-        "alias": 27,
-        "order": 13,
-        "name": "Part"
-      },
-      "r_tie_note": {
-        "id": "r_tie_note",
-        "parent": "l_rel",
-        "alias": 6,
-        "order": 14,
-        "name": "A tie joins a note to what it is about",
-        "type": "note",
-        "w": 120,
-        "h": 48
-      },
-      "r_tie_to": {
-        "id": "r_tie_to",
-        "parent": "l_rel",
-        "alias": 28,
-        "order": 15,
-        "name": "Tied"
-      },
-      "r_det_a": {
-        "id": "r_det_a",
-        "parent": "l_rel",
-        "alias": 29,
-        "order": 16,
-        "name": "Left"
-      },
-      "r_det_x": {
-        "id": "r_det_x",
-        "parent": "l_rel",
-        "alias": 30,
-        "order": 17,
-        "name": "Blocker"
-      },
-      "r_det_b": {
-        "id": "r_det_b",
-        "parent": "l_rel",
-        "alias": 31,
-        "order": 18,
-        "name": "Right"
-      },
-      "r_par_a": {
-        "id": "r_par_a",
-        "parent": "l_rel",
-        "alias": 32,
-        "order": 19,
-        "name": "Asks"
-      },
-      "r_par_b": {
-        "id": "r_par_b",
-        "parent": "l_rel",
-        "alias": 33,
-        "order": 20,
-        "name": "Answers"
-      },
-      "r_x_a": {
-        "id": "r_x_a",
-        "parent": "l_rel",
-        "alias": 34,
-        "order": 21,
-        "name": "North"
-      },
-      "r_x_b": {
-        "id": "r_x_b",
-        "parent": "l_rel",
-        "alias": 35,
-        "order": 22,
-        "name": "East"
-      },
-      "r_x_c": {
-        "id": "r_x_c",
-        "parent": "l_rel",
-        "alias": 36,
-        "order": 23,
-        "name": "West"
-      },
-      "r_x_d": {
-        "id": "r_x_d",
-        "parent": "l_rel",
-        "alias": 37,
-        "order": 24,
-        "name": "South"
-      },
-      "r_gap_a": {
-        "id": "r_gap_a",
-        "parent": "l_rel",
-        "alias": 38,
-        "order": 25,
-        "name": "Close"
-      },
-      "r_gap_b": {
-        "id": "r_gap_b",
-        "parent": "l_rel",
-        "alias": 39,
-        "order": 26,
-        "name": "Closer"
-      },
-      "r_hub": {
-        "id": "r_hub",
-        "parent": "l_rel",
-        "alias": 40,
-        "order": 27,
-        "name": "Hub"
-      },
-      "r_spoke_0": {
-        "id": "r_spoke_0",
-        "parent": "l_rel",
-        "alias": 41,
-        "order": 28,
-        "name": "One"
-      },
-      "r_spoke_1": {
-        "id": "r_spoke_1",
-        "parent": "l_rel",
-        "alias": 42,
-        "order": 29,
-        "name": "Two"
-      },
-      "r_spoke_2": {
-        "id": "r_spoke_2",
-        "parent": "l_rel",
-        "alias": 43,
-        "order": 30,
-        "name": "Three"
-      },
-      "l_ports": {
-        "id": "l_ports",
-        "parent": "main",
-        "alias": 44,
-        "order": 5,
-        "name": "Interfaces"
-      },
-      "l_ports_note": {
-        "id": "l_ports_note",
-        "parent": "l_ports",
-        "alias": 7,
-        "order": 1,
-        "name": "Ports placed on each side of Pump, flowing in, out, both or neither; Pump's top port is placed in the middle of a face no line meets; Tank and Valve's ports place themselves, in a face's middle unless a line's anchor holds it. Lines to the room meet its wall straight across: Gauge's line to the room itself, and Drain, the room's own port, placing itself.",
-        "type": "note",
-        "w": 528,
-        "h": 120
-      },
-      "p_pump": {
-        "id": "p_pump",
-        "parent": "l_ports",
-        "alias": 45,
-        "order": 2,
-        "name": "Pump"
-      },
-      "p_tank": {
-        "id": "p_tank",
-        "parent": "l_ports",
-        "alias": 46,
-        "order": 3,
-        "name": "Tank"
-      },
-      "p_valve": {
-        "id": "p_valve",
-        "parent": "l_ports",
-        "alias": 47,
-        "order": 4,
-        "name": "Valve"
-      },
-      "p_pump_in": {
-        "id": "p_pump_in",
-        "parent": "p_pump",
-        "alias": 5,
-        "order": 1,
-        "name": "",
-        "type": "interface",
-        "side": "left",
-        "at": 0.25,
-        "flow": "in"
-      },
-      "p_pump_out": {
-        "id": "p_pump_out",
-        "parent": "p_pump",
-        "alias": 6,
-        "order": 2,
-        "name": "",
-        "type": "interface",
-        "side": "right",
-        "at": 0.25,
-        "flow": "out"
-      },
-      "p_pump_top": {
-        "id": "p_pump_top",
-        "parent": "p_pump",
-        "alias": 7,
-        "order": 3,
-        "name": "",
-        "type": "interface",
-        "side": "top",
-        "at": 0.5,
-        "flow": "both"
-      },
-      "p_pump_low": {
-        "id": "p_pump_low",
-        "parent": "p_pump",
-        "alias": 8,
-        "order": 4,
-        "name": "",
-        "type": "interface",
-        "side": "bottom",
-        "at": 0.25
-      },
-      "p_tank_in": {
-        "id": "p_tank_in",
-        "parent": "p_tank",
-        "alias": 9,
-        "order": 1,
-        "name": "",
-        "type": "interface",
-        "flow": "in"
-      },
-      "p_valve_out": {
-        "id": "p_valve_out",
-        "parent": "p_valve",
-        "alias": 10,
-        "order": 1,
-        "name": "",
-        "type": "interface",
-        "flow": "out"
-      },
-      "p_gauge": {
-        "id": "p_gauge",
-        "parent": "l_ports",
-        "alias": 48,
-        "order": 5,
-        "name": "Gauge"
-      },
-      "p_drain": {
-        "id": "p_drain",
-        "parent": "l_ports",
-        "alias": 11,
-        "order": 6,
-        "name": "",
-        "type": "interface",
-        "flow": "out"
-      },
-      "l_hold": {
-        "id": "l_hold",
-        "parent": "main",
-        "alias": 49,
-        "order": 6,
-        "name": "Holders"
-      },
-      "l_hold_note": {
-        "id": "l_hold_note",
-        "parent": "l_hold",
-        "alias": 8,
-        "order": 1,
-        "name": "A group gathers blocks where they sit, and nests. A grid seats blocks in cells: its top row and left column head the lines; a merge spans cells. Its definition, Table, lists every trait it keeps, has head among them. Select the grid and press Enter to see its cells.",
-        "type": "note",
-        "w": 648,
-        "h": 96
-      },
-      "h_outer": {
-        "id": "h_outer",
-        "parent": "l_hold",
-        "alias": 1,
-        "order": 2,
-        "name": "Plant",
-        "type": "group"
-      },
-      "h_inner": {
-        "id": "h_inner",
-        "parent": "h_outer",
-        "alias": 2,
-        "order": 1,
-        "name": "Skid",
-        "type": "group"
-      },
-      "h_g1": {
-        "id": "h_g1",
-        "parent": "h_inner",
-        "alias": 50,
-        "order": 1,
-        "name": "Motor"
-      },
-      "h_g2": {
-        "id": "h_g2",
-        "parent": "h_inner",
-        "alias": 51,
-        "order": 2,
-        "name": "Gearbox"
-      },
-      "h_g3": {
-        "id": "h_g3",
-        "parent": "h_outer",
-        "alias": 52,
-        "order": 2,
-        "name": "Panel"
-      },
       "def_table": {
         "id": "def_table",
         "parent": "w_holders",
@@ -951,381 +448,98 @@
           "has_head"
         ]
       },
-      "h_grid": {
-        "id": "h_grid",
-        "parent": "l_hold",
+      "def_unit": {
+        "id": "def_unit",
+        "parent": "w_machines",
+        "name": "Unit",
+        "type": "block",
+        "def": {},
+        "body": "A thing a part extends.",
+        "order": 4
+      },
+      "diagrams": {
+        "id": "diagrams",
+        "parent": null,
+        "name": "diagrams"
+      },
+      "diagrams.class_diagram": {
+        "id": "diagrams.class_diagram",
+        "parent": "diagrams",
+        "name": "class diagram",
+        "type": "block",
+        "def": {},
+        "body": "A diagram of the definitions its references stand for, and what they extend.",
+        "order": 1,
+        "settings": {
+          "layout": {
+            "view": "class",
+            "cards": "large"
+          }
+        }
+      },
+      "diagrams.sequence_diagram": {
+        "id": "diagrams.sequence_diagram",
+        "parent": "diagrams",
+        "name": "sequence diagram",
+        "type": "grid",
+        "def": {},
+        "body": "A grid read as time: the header row names the participants, and each row is a moment.",
+        "order": 2,
+        "settings": {
+          "layout": {
+            "view": "sequence"
+          }
+        }
+      },
+      "diagrams.swimlane": {
+        "id": "diagrams.swimlane",
+        "parent": "diagrams",
+        "name": "swimlane",
+        "type": "grid",
+        "def": {},
+        "body": "A grid read as lanes: the header row names the participants, the header column the phases.",
+        "order": 3,
+        "settings": {
+          "layout": {
+            "view": "swimlane"
+          }
+        }
+      },
+      "dm_power": {
+        "id": "dm_power",
+        "parent": "def_machine",
+        "name": "power",
+        "type": "interface",
         "alias": 1,
-        "order": 3,
-        "name": "Duty roster",
-        "type": "def_table",
-        "grid": {
-          "rows": 4,
-          "cols": 4,
-          "merges": [
-            {
-              "r": 1,
-              "c": 1,
-              "rows": 2,
-              "cols": 1
-            }
-          ]
-        }
+        "flow": "in",
+        "order": 1
       },
-      "h_col_0": {
-        "id": "h_col_0",
-        "parent": "h_grid",
-        "alias": 53,
-        "order": 1,
-        "name": "Mon",
-        "cell": {
-          "r": 0,
-          "c": 1
-        }
+      "dp_inlet": {
+        "id": "dp_inlet",
+        "parent": "def_pump",
+        "name": "inlet",
+        "type": "interface",
+        "alias": 2,
+        "flow": "in",
+        "order": 1
       },
-      "h_col_1": {
-        "id": "h_col_1",
-        "parent": "h_grid",
-        "alias": 54,
-        "order": 2,
-        "name": "Tue",
-        "cell": {
-          "r": 0,
-          "c": 2
-        }
+      "dp_outlet": {
+        "id": "dp_outlet",
+        "parent": "def_pump",
+        "name": "outlet",
+        "type": "interface",
+        "alias": 3,
+        "flow": "out",
+        "order": 2
       },
-      "h_col_2": {
-        "id": "h_col_2",
-        "parent": "h_grid",
-        "alias": 55,
-        "order": 3,
-        "name": "Wed",
-        "cell": {
-          "r": 0,
-          "c": 3
-        }
-      },
-      "h_row_0": {
-        "id": "h_row_0",
-        "parent": "h_grid",
-        "alias": 56,
-        "order": 4,
-        "name": "Day",
-        "cell": {
-          "r": 1,
-          "c": 0
-        }
-      },
-      "h_row_1": {
-        "id": "h_row_1",
-        "parent": "h_grid",
-        "alias": 57,
-        "order": 5,
-        "name": "Swing",
-        "cell": {
-          "r": 2,
-          "c": 0
-        }
-      },
-      "h_row_2": {
-        "id": "h_row_2",
-        "parent": "h_grid",
-        "alias": 58,
-        "order": 6,
-        "name": "Night",
-        "cell": {
-          "r": 3,
-          "c": 0
-        }
-      },
-      "h_c1": {
-        "id": "h_c1",
-        "parent": "h_grid",
-        "alias": 59,
-        "order": 7,
-        "name": "Ana",
-        "cell": {
-          "r": 1,
-          "c": 1
-        }
-      },
-      "h_c2": {
-        "id": "h_c2",
-        "parent": "h_grid",
-        "alias": 60,
-        "order": 8,
-        "name": "Ben",
-        "cell": {
-          "r": 1,
-          "c": 2
-        }
-      },
-      "h_c3": {
-        "id": "h_c3",
-        "parent": "h_grid",
-        "alias": 61,
-        "order": 9,
-        "name": "Cy",
-        "cell": {
-          "r": 2,
-          "c": 3
-        }
-      },
-      "h_c4": {
-        "id": "h_c4",
-        "parent": "h_grid",
-        "alias": 62,
-        "order": 10,
-        "name": "Di",
-        "cell": {
-          "r": 3,
-          "c": 2
-        }
-      },
-      "l_refs": {
-        "id": "l_refs",
-        "parent": "main",
-        "alias": 63,
-        "order": 7,
-        "name": "References"
-      },
-      "l_refs_note": {
-        "id": "l_refs_note",
-        "parent": "l_refs",
-        "alias": 9,
-        "order": 1,
-        "name": "A reference stands for something drawn elsewhere: a block on the cards layer, a definition, or something since deleted.",
-        "type": "note",
-        "w": 528,
-        "h": 72
-      },
-      "x_block": {
-        "id": "x_block",
-        "parent": "l_refs",
-        "alias": 5,
-        "order": 2,
-        "type": "reference",
-        "of": "c_block"
-      },
-      "x_def": {
-        "id": "x_def",
-        "parent": "l_refs",
-        "alias": 6,
-        "order": 3,
-        "type": "reference",
-        "of": "def_pump"
-      },
-      "x_gone": {
-        "id": "x_gone",
-        "parent": "l_refs",
-        "alias": 7,
-        "order": 4,
-        "name": "Gone",
-        "type": "reference",
-        "of": "nothing_here"
-      },
-      "l_model": {
-        "id": "l_model",
-        "parent": "main",
-        "alias": 64,
-        "order": 8,
-        "name": "Data model",
-        "type": "def_large"
-      },
-      "l_model_note": {
-        "id": "l_model_note",
-        "parent": "l_model",
-        "alias": 10,
-        "order": 1,
-        "name": "The entity-relation package's entities as stand-ins: each attribute typed by another entity draws a link.",
-        "type": "note",
-        "w": 528,
-        "h": 72
-      },
-      "m_customer": {
-        "id": "m_customer",
-        "parent": "l_model",
-        "alias": 8,
-        "order": 2,
-        "type": "reference",
-        "of": "entity-relation.customer"
-      },
-      "m_order": {
-        "id": "m_order",
-        "parent": "l_model",
-        "alias": 9,
-        "order": 3,
-        "type": "reference",
-        "of": "entity-relation.order"
-      },
-      "m_line": {
-        "id": "m_line",
-        "parent": "l_model",
-        "alias": 10,
-        "order": 4,
-        "type": "reference",
-        "of": "entity-relation.line"
-      },
-      "m_product": {
-        "id": "m_product",
-        "parent": "l_model",
-        "alias": 11,
-        "order": 5,
-        "type": "reference",
-        "of": "entity-relation.product"
-      },
-      "l_rows": {
-        "id": "l_rows",
-        "parent": "main",
-        "alias": 65,
-        "order": 9,
-        "name": "Data rows",
-        "type": "def_large"
-      },
-      "l_rows_note": {
-        "id": "l_rows_note",
-        "parent": "l_rows",
-        "alias": 11,
-        "order": 1,
-        "name": "Usages answering the entities: a value naming another card on the layer draws a link.",
-        "type": "note",
-        "w": 528,
-        "h": 72
-      },
-      "u_ada": {
-        "id": "u_ada",
-        "parent": "l_rows",
-        "alias": 66,
-        "order": 2,
-        "name": "Ada Lovelace",
-        "type": "entity-relation.customer",
-        "values": [
-          {
-            "name": "id",
-            "value": "1"
-          },
-          {
-            "name": "name",
-            "value": "Ada Lovelace"
-          },
-          {
-            "name": "email",
-            "value": "ada@example.com"
-          }
-        ]
-      },
-      "u_1001": {
-        "id": "u_1001",
-        "parent": "l_rows",
-        "alias": 67,
-        "order": 3,
-        "name": "Order 1001",
-        "type": "entity-relation.order",
-        "values": [
-          {
-            "name": "number",
-            "value": "1001"
-          },
-          {
-            "name": "customer",
-            "value": "Ada Lovelace"
-          },
-          {
-            "name": "placed",
-            "value": "2026-10-01"
-          },
-          {
-            "name": "status",
-            "value": "shipped"
-          },
-          {
-            "name": "paid",
-            "value": "true"
-          }
-        ]
-      },
-      "u_l1": {
-        "id": "u_l1",
-        "parent": "l_rows",
-        "alias": 68,
-        "order": 4,
-        "name": "1001 · widgets",
-        "type": "entity-relation.line",
-        "values": [
-          {
-            "name": "order",
-            "value": "Order 1001"
-          },
-          {
-            "name": "product",
-            "value": "Widget"
-          },
-          {
-            "name": "qty",
-            "value": "3"
-          }
-        ]
-      },
-      "u_l2": {
-        "id": "u_l2",
-        "parent": "l_rows",
-        "alias": 69,
-        "order": 5,
-        "name": "1001 · gadget",
-        "type": "entity-relation.line",
-        "values": [
-          {
-            "name": "order",
-            "value": "Order 1001"
-          },
-          {
-            "name": "product",
-            "value": "Gadget"
-          }
-        ]
-      },
-      "u_widget": {
-        "id": "u_widget",
-        "parent": "l_rows",
-        "alias": 70,
-        "order": 6,
-        "name": "Widget",
-        "type": "entity-relation.product",
-        "values": [
-          {
-            "name": "sku",
-            "value": "W-1"
-          },
-          {
-            "name": "name",
-            "value": "Widget"
-          },
-          {
-            "name": "price",
-            "value": "4.50"
-          }
-        ]
-      },
-      "u_gadget": {
-        "id": "u_gadget",
-        "parent": "l_rows",
-        "alias": 71,
-        "order": 7,
-        "name": "Gadget",
-        "type": "entity-relation.product",
-        "values": [
-          {
-            "name": "sku",
-            "value": "G-2"
-          },
-          {
-            "name": "name",
-            "value": "Gadget"
-          },
-          {
-            "name": "price",
-            "value": "12.00"
-          }
-        ]
+      "dp_seal": {
+        "id": "dp_seal",
+        "parent": "def_pump",
+        "name": "seal",
+        "type": "interface",
+        "alias": 4,
+        "flow": "both",
+        "order": 3
       },
       "entity-relation": {
         "id": "entity-relation",
@@ -1339,45 +553,11 @@
         "type": "folder",
         "order": 1
       },
-      "entity-relation.entity": {
-        "id": "entity-relation.entity",
-        "parent": "entity-relation.blocks",
-        "name": "Entity",
-        "type": "block",
-        "body": "A thing the data model records: its attributes, keyed, some naming another entity.",
-        "def": {},
-        "order": 1,
-        "settings": {
-          "card": {
-            "align": "center",
-            "face": "table"
-          }
-        }
-      },
-      "entity-relation.status": {
-        "id": "entity-relation.status",
-        "parent": "entity-relation.blocks",
-        "name": "Order status",
-        "type": "choice",
-        "body": "Where an order is.",
-        "def": {},
-        "order": 2,
-        "settings": {
-          "value": {
-            "choices": [
-              "open",
-              "shipped",
-              "closed"
-            ]
-          }
-        }
-      },
       "entity-relation.customer": {
         "id": "entity-relation.customer",
         "parent": "entity-relation.blocks",
         "name": "Customer",
         "type": "entity-relation.entity",
-        "body": "Somebody who places orders.",
         "def": {
           "attributes": [
             {
@@ -1394,39 +574,54 @@
             }
           ]
         },
+        "body": "Somebody who places orders.",
         "order": 3
       },
-      "entity-relation.product": {
-        "id": "entity-relation.product",
+      "entity-relation.entity": {
+        "id": "entity-relation.entity",
         "parent": "entity-relation.blocks",
-        "name": "Product",
+        "name": "Entity",
+        "type": "block",
+        "def": {},
+        "body": "A thing the data model records: its attributes, keyed, some naming another entity.",
+        "order": 1,
+        "settings": {
+          "card": {
+            "align": "center",
+            "face": "table"
+          }
+        }
+      },
+      "entity-relation.line": {
+        "id": "entity-relation.line",
+        "parent": "entity-relation.blocks",
+        "name": "Line item",
         "type": "entity-relation.entity",
-        "body": "Something an order may carry.",
         "def": {
           "attributes": [
             {
-              "name": "sku",
-              "key": true
+              "name": "order",
+              "type": "entity-relation.order"
             },
             {
-              "name": "name"
+              "name": "product",
+              "type": "entity-relation.product"
             },
             {
-              "name": "price",
+              "name": "qty",
               "type": "number",
-              "unit": "USD",
-              "note": "per unit, in USD"
+              "default": "1"
             }
           ]
         },
-        "order": 4
+        "body": "One product on an order, and how many.",
+        "order": 6
       },
       "entity-relation.order": {
         "id": "entity-relation.order",
         "parent": "entity-relation.blocks",
         "name": "Order",
         "type": "entity-relation.entity",
-        "body": "One customer's purchase.",
         "def": {
           "attributes": [
             {
@@ -1453,41 +648,1088 @@
             }
           ]
         },
+        "body": "One customer's purchase.",
         "order": 5
       },
-      "entity-relation.line": {
-        "id": "entity-relation.line",
+      "entity-relation.product": {
+        "id": "entity-relation.product",
         "parent": "entity-relation.blocks",
-        "name": "Line item",
+        "name": "Product",
         "type": "entity-relation.entity",
-        "body": "One product on an order, and how many.",
         "def": {
           "attributes": [
             {
-              "name": "order",
-              "type": "entity-relation.order"
+              "name": "sku",
+              "key": true
             },
             {
-              "name": "product",
-              "type": "entity-relation.product"
+              "name": "name"
             },
             {
-              "name": "qty",
+              "name": "price",
               "type": "number",
-              "default": "1"
+              "unit": "USD",
+              "note": "per unit, in USD"
             }
           ]
         },
+        "body": "Something an order may carry.",
+        "order": 4
+      },
+      "entity-relation.status": {
+        "id": "entity-relation.status",
+        "parent": "entity-relation.blocks",
+        "name": "Order status",
+        "type": "choice",
+        "def": {},
+        "body": "Where an order is.",
+        "order": 2,
+        "settings": {
+          "value": {
+            "choices": [
+              "open",
+              "shipped",
+              "closed"
+            ]
+          }
+        }
+      },
+      "f_body": {
+        "id": "f_body",
+        "parent": "l_faces",
+        "name": "Body",
+        "type": "def_doc",
+        "alias": 5,
+        "body": "# A heading\n\nProse with **bold**, `code` and a [link](https://example.com).\n\n- a point\n- another point\n\n| part | qty | note |\n|---|---|---|\n| impeller | 1 | cast |\n| seal | 2 | spare |",
+        "order": 2
+      },
+      "f_headless": {
+        "id": "f_headless",
+        "parent": "l_faces",
+        "name": "Headless",
+        "type": "def_headless",
+        "alias": 8,
+        "body": "A card that is its markdown alone: no name over it.",
+        "order": 5
+      },
+      "f_media": {
+        "id": "f_media",
+        "parent": "l_faces",
+        "name": "Picture",
+        "type": "def_media",
+        "alias": 7,
+        "order": 4,
+        "source": "/showcase/picture.svg"
+      },
+      "f_plain": {
+        "id": "f_plain",
+        "parent": "l_faces",
+        "name": "Plain",
+        "alias": 10,
+        "order": 7
+      },
+      "f_sized": {
+        "id": "f_sized",
+        "parent": "l_faces",
+        "name": "Sized",
+        "type": "def_sized",
+        "alias": 9,
+        "body": "A size its definition gives: 8 by 3 units, whatever it says. What does not fit is cut off at the card's edge, however long the text runs on and on.",
         "order": 6
+      },
+      "f_spec": {
+        "id": "f_spec",
+        "parent": "l_faces",
+        "name": "Spec",
+        "type": "def_spec",
+        "alias": 6,
+        "body": "Attributes, then the body.",
+        "order": 3,
+        "values": [
+          {
+            "name": "tag",
+            "value": "P-101"
+          },
+          {
+            "name": "rating",
+            "value": "15"
+          },
+          {
+            "name": "duty",
+            "value": "continuous"
+          }
+        ]
+      },
+      "h_c1": {
+        "id": "h_c1",
+        "parent": "h_grid",
+        "name": "Ana",
+        "alias": 59,
+        "cell": {
+          "r": 1,
+          "c": 1
+        },
+        "order": 7
+      },
+      "h_c2": {
+        "id": "h_c2",
+        "parent": "h_grid",
+        "name": "Ben",
+        "alias": 60,
+        "cell": {
+          "r": 1,
+          "c": 2
+        },
+        "order": 8
+      },
+      "h_c3": {
+        "id": "h_c3",
+        "parent": "h_grid",
+        "name": "Cy",
+        "alias": 61,
+        "cell": {
+          "r": 2,
+          "c": 3
+        },
+        "order": 9
+      },
+      "h_c4": {
+        "id": "h_c4",
+        "parent": "h_grid",
+        "name": "Di",
+        "alias": 62,
+        "cell": {
+          "r": 3,
+          "c": 2
+        },
+        "order": 10
+      },
+      "h_col_0": {
+        "id": "h_col_0",
+        "parent": "h_grid",
+        "name": "Mon",
+        "alias": 53,
+        "cell": {
+          "r": 0,
+          "c": 1
+        },
+        "order": 1
+      },
+      "h_col_1": {
+        "id": "h_col_1",
+        "parent": "h_grid",
+        "name": "Tue",
+        "alias": 54,
+        "cell": {
+          "r": 0,
+          "c": 2
+        },
+        "order": 2
+      },
+      "h_col_2": {
+        "id": "h_col_2",
+        "parent": "h_grid",
+        "name": "Wed",
+        "alias": 55,
+        "cell": {
+          "r": 0,
+          "c": 3
+        },
+        "order": 3
+      },
+      "h_g1": {
+        "id": "h_g1",
+        "parent": "h_inner",
+        "name": "Motor",
+        "alias": 50,
+        "order": 1
+      },
+      "h_g2": {
+        "id": "h_g2",
+        "parent": "h_inner",
+        "name": "Gearbox",
+        "alias": 51,
+        "order": 2
+      },
+      "h_g3": {
+        "id": "h_g3",
+        "parent": "h_outer",
+        "name": "Panel",
+        "alias": 52,
+        "order": 2
+      },
+      "h_grid": {
+        "id": "h_grid",
+        "parent": "l_hold",
+        "name": "Duty roster",
+        "type": "def_table",
+        "alias": 1,
+        "grid": {
+          "rows": 4,
+          "cols": 4,
+          "merges": [
+            {
+              "r": 1,
+              "c": 1,
+              "rows": 2,
+              "cols": 1
+            }
+          ]
+        },
+        "order": 3
+      },
+      "h_inner": {
+        "id": "h_inner",
+        "parent": "h_outer",
+        "name": "Skid",
+        "type": "group",
+        "alias": 2,
+        "order": 1
+      },
+      "h_outer": {
+        "id": "h_outer",
+        "parent": "l_hold",
+        "name": "Plant",
+        "type": "group",
+        "alias": 1,
+        "order": 2
+      },
+      "h_row_0": {
+        "id": "h_row_0",
+        "parent": "h_grid",
+        "name": "Day",
+        "alias": 56,
+        "cell": {
+          "r": 1,
+          "c": 0
+        },
+        "order": 4
+      },
+      "h_row_1": {
+        "id": "h_row_1",
+        "parent": "h_grid",
+        "name": "Swing",
+        "alias": 57,
+        "cell": {
+          "r": 2,
+          "c": 0
+        },
+        "order": 5
+      },
+      "h_row_2": {
+        "id": "h_row_2",
+        "parent": "h_grid",
+        "name": "Night",
+        "alias": 58,
+        "cell": {
+          "r": 3,
+          "c": 0
+        },
+        "order": 6
+      },
+      "l_cards": {
+        "id": "l_cards",
+        "parent": "main",
+        "name": "Cards",
+        "alias": 1,
+        "order": 1
+      },
+      "l_cards_note": {
+        "id": "l_cards_note",
+        "parent": "l_cards",
+        "name": "Every block kind on its small face, each in the look its own definition states. Groups and grids are on Holders, ports on Interfaces.",
+        "type": "note",
+        "alias": 1,
+        "h": 72,
+        "order": 1,
+        "w": 528
+      },
+      "l_defs": {
+        "id": "l_defs",
+        "parent": "main",
+        "name": "Definitions",
+        "type": "def_large",
+        "alias": 11,
+        "order": 3
+      },
+      "l_defs_note": {
+        "id": "l_defs_note",
+        "parent": "l_defs",
+        "name": "A chain: Pump extends Machine, Big pump extends Pump. Machine draws in the secondary family; Pump carries the rotating tag, filed in the workspace's tags folder. Each stand-in draws the definition as its usages do, with everything it inherits; the usages below answer it. Machine declares a power port that Pump and Big pump inherit. Open a stand-in for its definition view: Big pump shows everything it is, what it reads from its chain dimmed. Compressor drives Feed pump by a relation definition, drives: select the line and open its definition from the tray, or find it under workspace › relations.",
+        "type": "note",
+        "alias": 4,
+        "h": 144,
+        "order": 1,
+        "w": 648
+      },
+      "l_diagrams": {
+        "id": "l_diagrams",
+        "parent": "main",
+        "name": "Diagrams",
+        "alias": 72,
+        "order": 10
+      },
+      "l_diagrams_note": {
+        "id": "l_diagrams_note",
+        "parent": "l_diagrams",
+        "name": "Three diagrams. Open Classes: Part extends Unit, and a link named unit. Open Lanes: two columns, a step in each, and a line between them. Open Messages: a self message on Self, an empty lifeline whose header refers to nothing, and a phase named Now.",
+        "type": "note",
+        "alias": 12,
+        "h": 96,
+        "order": 1,
+        "w": 528
+      },
+      "l_faces": {
+        "id": "l_faces",
+        "parent": "main",
+        "name": "Faces",
+        "type": "def_large",
+        "alias": 4,
+        "order": 2
+      },
+      "l_faces_note": {
+        "id": "l_faces_note",
+        "parent": "l_faces",
+        "name": "The large faces, on a layer that asks for them: a document, a table with its body under it, a picture; then a document without its name, and one its definition sizes. A plain block names no face, so its name is the whole card.",
+        "type": "note",
+        "alias": 3,
+        "h": 72,
+        "order": 1,
+        "w": 648
+      },
+      "l_hold": {
+        "id": "l_hold",
+        "parent": "main",
+        "name": "Holders",
+        "alias": 49,
+        "order": 6
+      },
+      "l_hold_note": {
+        "id": "l_hold_note",
+        "parent": "l_hold",
+        "name": "A group gathers blocks where they sit, and nests. A grid seats blocks in cells: its top row and left column head the lines; a merge spans cells. Its definition, Table, lists every trait it keeps, has head among them. Select the grid and press Enter to see its cells.",
+        "type": "note",
+        "alias": 8,
+        "h": 96,
+        "order": 1,
+        "w": 648
+      },
+      "l_model": {
+        "id": "l_model",
+        "parent": "main",
+        "name": "Data model",
+        "type": "def_large",
+        "alias": 64,
+        "order": 8
+      },
+      "l_model_note": {
+        "id": "l_model_note",
+        "parent": "l_model",
+        "name": "The entity-relation package's entities as stand-ins: each attribute typed by another entity draws a link.",
+        "type": "note",
+        "alias": 10,
+        "h": 72,
+        "order": 1,
+        "w": 528
+      },
+      "l_ports": {
+        "id": "l_ports",
+        "parent": "main",
+        "name": "Interfaces",
+        "alias": 44,
+        "order": 5
+      },
+      "l_ports_note": {
+        "id": "l_ports_note",
+        "parent": "l_ports",
+        "name": "Ports placed on each side of Pump, flowing in, out, both or neither; Pump's top port is placed in the middle of a face no line meets; Tank and Valve's ports place themselves, in a face's middle unless a line's anchor holds it. Lines to the room meet its wall straight across: Gauge's line to the room itself, and Drain, the room's own port, placing itself.",
+        "type": "note",
+        "alias": 7,
+        "h": 120,
+        "order": 1,
+        "w": 528
+      },
+      "l_refs": {
+        "id": "l_refs",
+        "parent": "main",
+        "name": "References",
+        "alias": 63,
+        "order": 7
+      },
+      "l_refs_note": {
+        "id": "l_refs_note",
+        "parent": "l_refs",
+        "name": "A reference stands for something drawn elsewhere: a block on the cards layer, a definition, or something since deleted.",
+        "type": "note",
+        "alias": 9,
+        "h": 72,
+        "order": 1,
+        "w": 528
+      },
+      "l_rel": {
+        "id": "l_rel",
+        "parent": "main",
+        "name": "Relations",
+        "alias": 15,
+        "order": 4
+      },
+      "l_rel_note": {
+        "id": "l_rel_note",
+        "parent": "l_rel",
+        "name": "Each direction, a name, arrows and a tie; then a run past a third block, a pair related both ways as one line, two runs that cross, a pair close together, and a hub whose lines share a trunk and fan out. Lines leave the middle of a face and go round cards; a tie runs straight from card to card.",
+        "type": "note",
+        "alias": 5,
+        "h": 96,
+        "order": 1,
+        "w": 648
+      },
+      "l_rows": {
+        "id": "l_rows",
+        "parent": "main",
+        "name": "Data rows",
+        "type": "def_large",
+        "alias": 65,
+        "order": 9
+      },
+      "l_rows_note": {
+        "id": "l_rows_note",
+        "parent": "l_rows",
+        "name": "Usages answering the entities: a value naming another card on the layer draws a link.",
+        "type": "note",
+        "alias": 11,
+        "h": 72,
+        "order": 1,
+        "w": 528
+      },
+      "m_customer": {
+        "id": "m_customer",
+        "parent": "l_model",
+        "type": "reference",
+        "of": "entity-relation.customer",
+        "alias": 8,
+        "order": 2
+      },
+      "m_line": {
+        "id": "m_line",
+        "parent": "l_model",
+        "type": "reference",
+        "of": "entity-relation.line",
+        "alias": 10,
+        "order": 4
+      },
+      "m_order": {
+        "id": "m_order",
+        "parent": "l_model",
+        "type": "reference",
+        "of": "entity-relation.order",
+        "alias": 9,
+        "order": 3
+      },
+      "m_product": {
+        "id": "m_product",
+        "parent": "l_model",
+        "type": "reference",
+        "of": "entity-relation.product",
+        "alias": 11,
+        "order": 5
+      },
+      "main": {
+        "id": "main",
+        "parent": "workspace",
+        "name": "main",
+        "def": {},
+        "order": 1
+      },
+      "p_drain": {
+        "id": "p_drain",
+        "parent": "l_ports",
+        "name": "",
+        "type": "interface",
+        "alias": 11,
+        "flow": "out",
+        "order": 6
+      },
+      "p_gauge": {
+        "id": "p_gauge",
+        "parent": "l_ports",
+        "name": "Gauge",
+        "alias": 48,
+        "order": 5
+      },
+      "p_pump": {
+        "id": "p_pump",
+        "parent": "l_ports",
+        "name": "Pump",
+        "alias": 45,
+        "order": 2
+      },
+      "p_pump_in": {
+        "id": "p_pump_in",
+        "parent": "p_pump",
+        "name": "",
+        "type": "interface",
+        "side": "left",
+        "alias": 5,
+        "at": 0.25,
+        "flow": "in",
+        "order": 1
+      },
+      "p_pump_low": {
+        "id": "p_pump_low",
+        "parent": "p_pump",
+        "name": "",
+        "type": "interface",
+        "side": "bottom",
+        "alias": 8,
+        "at": 0.25,
+        "order": 4
+      },
+      "p_pump_out": {
+        "id": "p_pump_out",
+        "parent": "p_pump",
+        "name": "",
+        "type": "interface",
+        "side": "right",
+        "alias": 6,
+        "at": 0.25,
+        "flow": "out",
+        "order": 2
+      },
+      "p_pump_top": {
+        "id": "p_pump_top",
+        "parent": "p_pump",
+        "name": "",
+        "type": "interface",
+        "side": "top",
+        "alias": 7,
+        "at": 0.5,
+        "flow": "both",
+        "order": 3
+      },
+      "p_tank": {
+        "id": "p_tank",
+        "parent": "l_ports",
+        "name": "Tank",
+        "alias": 46,
+        "order": 3
+      },
+      "p_tank_in": {
+        "id": "p_tank_in",
+        "parent": "p_tank",
+        "name": "",
+        "type": "interface",
+        "alias": 9,
+        "flow": "in",
+        "order": 1
+      },
+      "p_valve": {
+        "id": "p_valve",
+        "parent": "l_ports",
+        "name": "Valve",
+        "alias": 47,
+        "order": 4
+      },
+      "p_valve_out": {
+        "id": "p_valve_out",
+        "parent": "p_valve",
+        "name": "",
+        "type": "interface",
+        "alias": 10,
+        "flow": "out",
+        "order": 1
+      },
+      "r_arrows_a": {
+        "id": "r_arrows_a",
+        "parent": "l_rel",
+        "name": "Whole",
+        "alias": 26,
+        "order": 12
+      },
+      "r_arrows_b": {
+        "id": "r_arrows_b",
+        "parent": "l_rel",
+        "name": "Part",
+        "alias": 27,
+        "order": 13
+      },
+      "r_back_a": {
+        "id": "r_back_a",
+        "parent": "l_rel",
+        "name": "From",
+        "alias": 18,
+        "order": 4
+      },
+      "r_back_b": {
+        "id": "r_back_b",
+        "parent": "l_rel",
+        "name": "Back",
+        "alias": 19,
+        "order": 5
+      },
+      "r_both_a": {
+        "id": "r_both_a",
+        "parent": "l_rel",
+        "name": "From",
+        "alias": 20,
+        "order": 6
+      },
+      "r_both_b": {
+        "id": "r_both_b",
+        "parent": "l_rel",
+        "name": "Both",
+        "alias": 21,
+        "order": 7
+      },
+      "r_det_a": {
+        "id": "r_det_a",
+        "parent": "l_rel",
+        "name": "Left",
+        "alias": 29,
+        "order": 16
+      },
+      "r_det_b": {
+        "id": "r_det_b",
+        "parent": "l_rel",
+        "name": "Right",
+        "alias": 31,
+        "order": 18
+      },
+      "r_det_x": {
+        "id": "r_det_x",
+        "parent": "l_rel",
+        "name": "Blocker",
+        "alias": 30,
+        "order": 17
+      },
+      "r_fwd_a": {
+        "id": "r_fwd_a",
+        "parent": "l_rel",
+        "name": "From",
+        "alias": 16,
+        "order": 2
+      },
+      "r_fwd_b": {
+        "id": "r_fwd_b",
+        "parent": "l_rel",
+        "name": "Forward",
+        "alias": 17,
+        "order": 3
+      },
+      "r_gap_a": {
+        "id": "r_gap_a",
+        "parent": "l_rel",
+        "name": "Close",
+        "alias": 38,
+        "order": 25
+      },
+      "r_gap_b": {
+        "id": "r_gap_b",
+        "parent": "l_rel",
+        "name": "Closer",
+        "alias": 39,
+        "order": 26
+      },
+      "r_hub": {
+        "id": "r_hub",
+        "parent": "l_rel",
+        "name": "Hub",
+        "alias": 40,
+        "order": 27
+      },
+      "r_named_a": {
+        "id": "r_named_a",
+        "parent": "l_rel",
+        "name": "Pump",
+        "alias": 24,
+        "order": 10
+      },
+      "r_named_b": {
+        "id": "r_named_b",
+        "parent": "l_rel",
+        "name": "Tank",
+        "alias": 25,
+        "order": 11
+      },
+      "r_none_a": {
+        "id": "r_none_a",
+        "parent": "l_rel",
+        "name": "From",
+        "alias": 22,
+        "order": 8
+      },
+      "r_none_b": {
+        "id": "r_none_b",
+        "parent": "l_rel",
+        "name": "None",
+        "alias": 23,
+        "order": 9
+      },
+      "r_par_a": {
+        "id": "r_par_a",
+        "parent": "l_rel",
+        "name": "Asks",
+        "alias": 32,
+        "order": 19
+      },
+      "r_par_b": {
+        "id": "r_par_b",
+        "parent": "l_rel",
+        "name": "Answers",
+        "alias": 33,
+        "order": 20
+      },
+      "r_spoke_0": {
+        "id": "r_spoke_0",
+        "parent": "l_rel",
+        "name": "One",
+        "alias": 41,
+        "order": 28
+      },
+      "r_spoke_1": {
+        "id": "r_spoke_1",
+        "parent": "l_rel",
+        "name": "Two",
+        "alias": 42,
+        "order": 29
+      },
+      "r_spoke_2": {
+        "id": "r_spoke_2",
+        "parent": "l_rel",
+        "name": "Three",
+        "alias": 43,
+        "order": 30
+      },
+      "r_tie_note": {
+        "id": "r_tie_note",
+        "parent": "l_rel",
+        "name": "A tie joins a note to what it is about",
+        "type": "note",
+        "alias": 6,
+        "h": 48,
+        "order": 14,
+        "w": 120
+      },
+      "r_tie_to": {
+        "id": "r_tie_to",
+        "parent": "l_rel",
+        "name": "Tied",
+        "alias": 28,
+        "order": 15
+      },
+      "r_x_a": {
+        "id": "r_x_a",
+        "parent": "l_rel",
+        "name": "North",
+        "alias": 34,
+        "order": 21
+      },
+      "r_x_b": {
+        "id": "r_x_b",
+        "parent": "l_rel",
+        "name": "East",
+        "alias": 35,
+        "order": 22
+      },
+      "r_x_c": {
+        "id": "r_x_c",
+        "parent": "l_rel",
+        "name": "West",
+        "alias": 36,
+        "order": 23
+      },
+      "r_x_d": {
+        "id": "r_x_d",
+        "parent": "l_rel",
+        "name": "South",
+        "alias": 37,
+        "order": 24
+      },
+      "rel_drives": {
+        "id": "rel_drives",
+        "parent": "w_relations",
+        "name": "drives",
+        "type": "line",
+        "def": {
+          "attributes": [
+            {
+              "name": "ratio",
+              "type": "number"
+            }
+          ]
+        },
+        "body": "A machine turning a pump's shaft.",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward",
+            "to_arrow": "open"
+          },
+          "allows": {
+            "ends": {
+              "from": [
+                "def_machine"
+              ],
+              "to": [
+                "def_pump"
+              ]
+            }
+          }
+        },
+        "tags": [
+          "tag_rotating"
+        ]
+      },
+      "s_def_bigpump": {
+        "id": "s_def_bigpump",
+        "parent": "l_defs",
+        "type": "reference",
+        "of": "def_bigpump",
+        "alias": 4,
+        "order": 4
+      },
+      "s_def_machine": {
+        "id": "s_def_machine",
+        "parent": "l_defs",
+        "type": "reference",
+        "of": "def_machine",
+        "alias": 2,
+        "order": 2
+      },
+      "s_def_pump": {
+        "id": "s_def_pump",
+        "parent": "l_defs",
+        "type": "reference",
+        "of": "def_pump",
+        "alias": 3,
+        "order": 3
+      },
+      "tag_rotating": {
+        "id": "tag_rotating",
+        "parent": "tags",
+        "name": "rotating",
+        "type": "tag",
+        "def": {},
+        "order": 1
+      },
+      "tags": {
+        "id": "tags",
+        "parent": "workspace",
+        "name": "tags",
+        "type": "folder",
+        "order": 2
+      },
+      "u_1001": {
+        "id": "u_1001",
+        "parent": "l_rows",
+        "name": "Order 1001",
+        "type": "entity-relation.order",
+        "alias": 67,
+        "order": 3,
+        "values": [
+          {
+            "name": "number",
+            "value": "1001"
+          },
+          {
+            "name": "customer",
+            "value": "Ada Lovelace"
+          },
+          {
+            "name": "placed",
+            "value": "2026-10-01"
+          },
+          {
+            "name": "status",
+            "value": "shipped"
+          },
+          {
+            "name": "paid",
+            "value": "true"
+          }
+        ]
+      },
+      "u_ada": {
+        "id": "u_ada",
+        "parent": "l_rows",
+        "name": "Ada Lovelace",
+        "type": "entity-relation.customer",
+        "alias": 66,
+        "order": 2,
+        "values": [
+          {
+            "name": "id",
+            "value": "1"
+          },
+          {
+            "name": "name",
+            "value": "Ada Lovelace"
+          },
+          {
+            "name": "email",
+            "value": "ada@example.com"
+          }
+        ]
+      },
+      "u_gadget": {
+        "id": "u_gadget",
+        "parent": "l_rows",
+        "name": "Gadget",
+        "type": "entity-relation.product",
+        "alias": 71,
+        "order": 7,
+        "values": [
+          {
+            "name": "sku",
+            "value": "G-2"
+          },
+          {
+            "name": "name",
+            "value": "Gadget"
+          },
+          {
+            "name": "price",
+            "value": "12.00"
+          }
+        ]
+      },
+      "u_l1": {
+        "id": "u_l1",
+        "parent": "l_rows",
+        "name": "1001 · widgets",
+        "type": "entity-relation.line",
+        "alias": 68,
+        "order": 4,
+        "values": [
+          {
+            "name": "order",
+            "value": "Order 1001"
+          },
+          {
+            "name": "product",
+            "value": "Widget"
+          },
+          {
+            "name": "qty",
+            "value": "3"
+          }
+        ]
+      },
+      "u_l2": {
+        "id": "u_l2",
+        "parent": "l_rows",
+        "name": "1001 · gadget",
+        "type": "entity-relation.line",
+        "alias": 69,
+        "order": 5,
+        "values": [
+          {
+            "name": "order",
+            "value": "Order 1001"
+          },
+          {
+            "name": "product",
+            "value": "Gadget"
+          }
+        ]
+      },
+      "u_widget": {
+        "id": "u_widget",
+        "parent": "l_rows",
+        "name": "Widget",
+        "type": "entity-relation.product",
+        "alias": 70,
+        "order": 6,
+        "values": [
+          {
+            "name": "sku",
+            "value": "W-1"
+          },
+          {
+            "name": "name",
+            "value": "Widget"
+          },
+          {
+            "name": "price",
+            "value": "4.50"
+          }
+        ]
+      },
+      "w_faces": {
+        "id": "w_faces",
+        "parent": "workspace",
+        "name": "faces",
+        "type": "folder",
+        "order": 3
+      },
+      "w_holders": {
+        "id": "w_holders",
+        "parent": "workspace",
+        "name": "holders",
+        "type": "folder",
+        "order": 5
+      },
+      "w_machines": {
+        "id": "w_machines",
+        "parent": "workspace",
+        "name": "machines",
+        "type": "folder",
+        "order": 4
+      },
+      "w_relations": {
+        "id": "w_relations",
+        "parent": "workspace",
+        "name": "relations",
+        "type": "folder",
+        "order": 6
+      },
+      "workspace": {
+        "id": "workspace",
+        "parent": null,
+        "name": "workspace",
+        "counters": {
+          "block": 82,
+          "note": 12,
+          "folder": 1,
+          "reference": 14,
+          "interface": 11,
+          "relation": 23,
+          "group": 2,
+          "grid": 3
+        }
+      },
+      "x_block": {
+        "id": "x_block",
+        "parent": "l_refs",
+        "type": "reference",
+        "of": "c_block",
+        "alias": 5,
+        "order": 2
+      },
+      "x_def": {
+        "id": "x_def",
+        "parent": "l_refs",
+        "type": "reference",
+        "of": "def_pump",
+        "alias": 6,
+        "order": 3
+      },
+      "x_gone": {
+        "id": "x_gone",
+        "parent": "l_refs",
+        "name": "Gone",
+        "type": "reference",
+        "of": "nothing_here",
+        "alias": 7,
+        "order": 4
       }
     },
     "edges": {
       "d_drive": {
         "id": "d_drive",
+        "type": "rel_drives",
+        "alias": 1,
         "from": "d_m1",
         "to": "d_p1",
-        "alias": 1,
-        "type": "rel_drives",
         "values": [
           {
             "name": "ratio",
@@ -1495,220 +1737,234 @@
           }
         ]
       },
-      "r_fwd": {
-        "id": "r_fwd",
-        "from": "r_fwd_a",
-        "to": "r_fwd_b",
-        "alias": 2,
+      "d_lane_flow": {
+        "id": "d_lane_flow",
+        "name": "then",
+        "alias": 22,
+        "from": "d_lane_s1",
+        "to": "d_lane_s2"
+      },
+      "d_seq_again": {
+        "id": "d_seq_again",
+        "name": "again",
+        "alias": 23,
+        "from": "d_seq_loop",
+        "to": "d_seq_loop"
+      },
+      "p_feed": {
+        "id": "p_feed",
+        "alias": 21,
+        "from": "p_valve_out",
         "settings": {
           "line": {
             "dir": "forward"
           }
-        }
+        },
+        "to": "p_pump_low"
       },
-      "r_back": {
-        "id": "r_back",
-        "from": "r_back_a",
-        "to": "r_back_b",
-        "alias": 3,
-        "settings": {
-          "line": {
-            "dir": "back"
-          }
-        }
-      },
-      "r_both": {
-        "id": "r_both",
-        "from": "r_both_a",
-        "to": "r_both_b",
-        "alias": 4,
-        "settings": {
-          "line": {
-            "dir": "both"
-          }
-        }
-      },
-      "r_none": {
-        "id": "r_none",
-        "from": "r_none_a",
-        "to": "r_none_b",
-        "alias": 5
-      },
-      "r_named": {
-        "id": "r_named",
-        "from": "r_named_a",
-        "to": "r_named_b",
-        "alias": 6,
-        "name": "feeds",
+      "p_flow": {
+        "id": "p_flow",
+        "name": "water",
+        "alias": 20,
+        "from": "p_pump_out",
         "settings": {
           "line": {
             "dir": "forward"
           }
-        }
+        },
+        "to": "p_tank_in"
+      },
+      "p_read": {
+        "id": "p_read",
+        "name": "reading",
+        "alias": 17,
+        "from": "p_gauge",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "l_ports"
+      },
+      "p_spill": {
+        "id": "p_spill",
+        "alias": 18,
+        "from": "p_tank",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "p_drain"
+      },
+      "p_tank_pump": {
+        "id": "p_tank_pump",
+        "name": "level",
+        "alias": 19,
+        "from": "p_tank",
+        "to": "p_pump"
       },
       "r_arrows": {
         "id": "r_arrows",
-        "from": "r_arrows_a",
-        "to": "r_arrows_b",
         "alias": 7,
+        "from": "r_arrows_a",
         "settings": {
           "line": {
             "from_arrow": "diamond",
             "to_arrow": "open"
           }
-        }
+        },
+        "to": "r_arrows_b"
       },
-      "r_tie": {
-        "id": "r_tie",
-        "from": "r_tie_note",
-        "to": "r_tie_to",
-        "alias": 8,
-        "type": "tie"
-      },
-      "r_detour": {
-        "id": "r_detour",
-        "from": "r_det_a",
-        "to": "r_det_b",
-        "alias": 9,
+      "r_back": {
+        "id": "r_back",
+        "alias": 3,
+        "from": "r_back_a",
         "settings": {
           "line": {
-            "dir": "forward"
+            "dir": "back"
           }
-        }
+        },
+        "to": "r_back_b"
       },
-      "r_par": {
-        "id": "r_par",
-        "from": "r_par_a",
-        "to": "r_par_b",
-        "alias": 10,
-        "name": "request / reply",
+      "r_both": {
+        "id": "r_both",
+        "alias": 4,
+        "from": "r_both_a",
         "settings": {
           "line": {
             "dir": "both"
           }
-        }
+        },
+        "to": "r_both_b"
       },
       "r_cross_1": {
         "id": "r_cross_1",
-        "from": "r_x_a",
-        "to": "r_x_d",
         "alias": 11,
+        "from": "r_x_a",
         "settings": {
           "line": {
             "dir": "forward"
           }
-        }
+        },
+        "to": "r_x_d"
       },
       "r_cross_2": {
         "id": "r_cross_2",
-        "from": "r_x_b",
-        "to": "r_x_c",
         "alias": 12,
+        "from": "r_x_b",
         "settings": {
           "line": {
             "dir": "forward"
           }
-        }
+        },
+        "to": "r_x_c"
       },
-      "r_gap": {
-        "id": "r_gap",
-        "from": "r_gap_a",
-        "to": "r_gap_b",
-        "alias": 13,
+      "r_detour": {
+        "id": "r_detour",
+        "alias": 9,
+        "from": "r_det_a",
         "settings": {
           "line": {
             "dir": "forward"
           }
-        }
+        },
+        "to": "r_det_b"
       },
       "r_fan_0": {
         "id": "r_fan_0",
-        "from": "r_hub",
-        "to": "r_spoke_0",
-        "alias": 14,
         "name": "to one",
+        "alias": 14,
+        "from": "r_hub",
         "settings": {
           "line": {
             "dir": "forward"
           }
-        }
+        },
+        "to": "r_spoke_0"
       },
       "r_fan_1": {
         "id": "r_fan_1",
-        "from": "r_hub",
-        "to": "r_spoke_1",
-        "alias": 15,
         "name": "to two",
+        "alias": 15,
+        "from": "r_hub",
         "settings": {
           "line": {
             "dir": "forward"
           }
-        }
+        },
+        "to": "r_spoke_1"
       },
       "r_fan_2": {
         "id": "r_fan_2",
-        "from": "r_hub",
-        "to": "r_spoke_2",
-        "alias": 16,
         "name": "to three",
+        "alias": 16,
+        "from": "r_hub",
         "settings": {
           "line": {
             "dir": "forward"
           }
-        }
+        },
+        "to": "r_spoke_2"
       },
-      "p_read": {
-        "id": "p_read",
-        "from": "p_gauge",
-        "to": "l_ports",
-        "alias": 17,
-        "name": "reading",
+      "r_fwd": {
+        "id": "r_fwd",
+        "alias": 2,
+        "from": "r_fwd_a",
         "settings": {
           "line": {
             "dir": "forward"
           }
-        }
+        },
+        "to": "r_fwd_b"
       },
-      "p_spill": {
-        "id": "p_spill",
-        "from": "p_tank",
-        "to": "p_drain",
-        "alias": 18,
+      "r_gap": {
+        "id": "r_gap",
+        "alias": 13,
+        "from": "r_gap_a",
         "settings": {
           "line": {
             "dir": "forward"
           }
-        }
+        },
+        "to": "r_gap_b"
       },
-      "p_tank_pump": {
-        "id": "p_tank_pump",
-        "from": "p_tank",
-        "to": "p_pump",
-        "alias": 19,
-        "name": "level"
-      },
-      "p_flow": {
-        "id": "p_flow",
-        "from": "p_pump_out",
-        "to": "p_tank_in",
-        "alias": 20,
-        "name": "water",
+      "r_named": {
+        "id": "r_named",
+        "name": "feeds",
+        "alias": 6,
+        "from": "r_named_a",
         "settings": {
           "line": {
             "dir": "forward"
           }
-        }
+        },
+        "to": "r_named_b"
       },
-      "p_feed": {
-        "id": "p_feed",
-        "from": "p_valve_out",
-        "to": "p_pump_low",
-        "alias": 21,
+      "r_none": {
+        "id": "r_none",
+        "alias": 5,
+        "from": "r_none_a",
+        "to": "r_none_b"
+      },
+      "r_par": {
+        "id": "r_par",
+        "name": "request / reply",
+        "alias": 10,
+        "from": "r_par_a",
         "settings": {
           "line": {
-            "dir": "forward"
+            "dir": "both"
           }
-        }
+        },
+        "to": "r_par_b"
+      },
+      "r_tie": {
+        "id": "r_tie",
+        "type": "tie",
+        "alias": 8,
+        "from": "r_tie_note",
+        "to": "r_tie_to"
       }
     }
   }

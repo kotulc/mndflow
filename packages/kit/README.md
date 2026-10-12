@@ -112,9 +112,8 @@ The rest of what a drawing looks like is the host's to hand down, and `useDispla
 
 | Prop | Is |
 |---|---|
-| `card` | the small face's card, in lattice units — applied before anything is measured. A large face fits its content, or takes its definition's `card.size`, drawn where a layer's `layout.face` asks |
+| `card` | the small face's card, in lattice units — applied before anything is measured. A large face fits its content, or takes its definition's `card.size`, drawn where a layer's `layout.cards` asks |
 | `chrome.legend` · `chrome.corner` | the key to what the layer draws, in the top or bottom right-hand corner |
-| `fields` · `onFields` | a block or definition whose attributes are drawn **instead of the layer**, as a class diagram: one card standing for its definition, one per usage listing its values. A pick on the class card is told as its definition; `close diagram` and the crumbs tell `onFields(null)` |
 
 ## The tray
 
@@ -129,7 +128,7 @@ const { display, onDisplay } = useDisplay({ card: { w: 6, h: 2 }, range: CARD })
 <Tray graph={graph} layer={layer} picked={picked}
       open={tray.open} onOpen={tray.onOpen} onTab={tray.onTab}
       hold={tray.hold} onHold={tray.onHold}
-      display={display} onDisplay={onDisplay} onFields={set_fields}
+      display={display} onDisplay={onDisplay}
       extras={[{ name: "preview", draw: (id) => <Preview id={id} /> }]} />
 ```
 
@@ -138,7 +137,6 @@ const { display, onDisplay } = useDisplay({ card: { w: 6, h: 2 }, range: CARD })
 - **Open from the start**, and pointed at the workspace: nothing picked on the root layer is the root picked, which opens on its `workspace` tab and lights the root row in the explorer.
 - **Read only without `onAct`.** Only the tabs that read are offered — workspace, element, fields, contents, and the library's — and nothing in them takes input. **The workspace tab's display still answers `onDisplay`**, because how a drawing looks is the session's and changes nothing.
 - **A host's own tabs come after the tray's**, for blocks, through `extras`.
-- **The fields tab offers `view diagram`** wherever the block answers a workspace schema, and hands the id to `onFields`.
 
 ## The tree
 

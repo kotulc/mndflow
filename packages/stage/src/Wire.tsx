@@ -49,10 +49,13 @@ export function Wire(props: EdgeProps<LineEdge>) {
   /** The run routed round cards, while it still meets both ends; else straight or one Z, turning
    *  where its lines fan. A tie runs straight. */
   const routed = avoided_run(runs.get(id), { x: sourceX, y: sourceY }, { x: targetX, y: targetY });
-  const run = routed ?? route({ x: sourceX, y: sourceY }, sourcePosition,
-                              { x: targetX, y: targetY }, targetPosition,
-                              data?.fan, data?.module === "tie");
-  const fan = routed ? undefined : data?.fan;
+  /** A sequence message already knows its run. Everything else is routed, or one Z. */
+  const given = data?.points;
+  const run = given && given.length > 1 ? given
+    : routed ?? route({ x: sourceX, y: sourceY }, sourcePosition,
+                      { x: targetX, y: targetY }, targetPosition,
+                      data?.fan, data?.module === "tie");
+  const fan = given || routed ? undefined : data?.fan;
   const path = drawn(run, BEND);
   const look = data?.wire ?? BARE;
   const end = heads(data);

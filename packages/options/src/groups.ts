@@ -66,6 +66,12 @@ const VIEWS: Record<ViewKind, { icon: IconName; word: string; tip: string }> = {
             tip: "Folder: what the package or folder holds, read down the page" },
   definition: { icon: "word_def", word: "definition",
                 tip: "Definition: the definition, what it extends, its ports, tags and traits round it" },
+  class: { icon: "view_class", word: "class",
+           tip: "Class: the definitions this layer's references stand for, and what they extend" },
+  swimlane: { icon: "view_swimlane", word: "swimlane",
+              tip: "Swimlane: each participant a column, each phase a row" },
+  sequence: { icon: "view_sequence", word: "sequence",
+              tip: "Sequence: participants as lifelines, relations as messages in time" },
 };
 
 /** What a right drag may draw: a line, straight or directed, or a tie. */

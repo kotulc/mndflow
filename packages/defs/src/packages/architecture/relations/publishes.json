@@ -1,0 +1,11 @@
+{
+  "id": "publishes",
+  "name": "publishes",
+  "type": "line",
+  "body": "A service puts an event on a queue.",
+  "def": {},
+  "settings": {
+    "line": { "dir": "forward" },
+    "style": { "border_style": "dashed" }
+  }
+}

@@ -80,6 +80,11 @@ export type Seed = {
   floor?: Floor;
   /** The host's sections; the editor's unless said. */
   tiers?: Tiers;
+  /** A workspace file to open when storage is empty. An existing log always wins, and reset still
+   *  starts empty. */
+  opening?: string;
+  /** A system view to land on when `opening` is used. A layer view is ignored. */
+  start?: ViewKind;
 };
 
 export function session(ports: Partial<Ports> & Seed = {}): Session {
@@ -113,11 +118,22 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     /** Repairs are kept, so the next open is clean. */
     if (checked.faults.length) storage.write(log);
     opened_faults = checked.faults;
+  } else if (ports.opening) {
+    const got = read(ports.opening, floor);
+    if (got.log.length && !got.faults.length) log = got.log;
+    else {
+      log = seeded();
+      opened_faults = got.faults;
+    }
   } else {
     log = seeded();
   }
   graph = fold(log, floor);
   view = home(graph);
+  /** The bootstrap may name a system view. Home still opens the sample's own layer. */
+  if (!opened && ports.opening && log.length && ports.start && !is_layer_view(ports.start)) {
+    view = { at: 0, kind: ports.start, layer: null, pick: view.layer ?? view.pick ?? graph.root };
+  }
   if (opened_faults.length) said = { text: say(opened_faults), at: Date.now(), kind: "note" };
 
   const settle = () => {

@@ -35,13 +35,15 @@ npm run start -w @mnd/cli -- project related  # a Scene as text, which is the se
 | `sheet.ts` | an opened grid's lattice, the grid view |
 | `through.ts` | read-through: an opened usage's definition structure laid on its layer, its interfaces on its walls |
 | `page.ts` | the computed page layout: full-width boxes down a page |
-| `size.ts` | the one measure: `UNIT`, a `CELL` as a block plus its air, and **faces** — `face_of` (small, or large where an ancestor's `layout.face` asks) and the size each draws at: the workspace card small; large, the definition's `card.size` or what its content fits (`fitted`), under `LARGE` |
+| `size.ts` | the one measure: `UNIT`, a `CELL` as a block plus its air, and **faces** — `face_of` (small, or large where an ancestor's `layout.cards` asks) and the size each draws at: the workspace card small; large, the definition's `card.size` or what its content fits (`fitted`), under `LARGE` |
 | `arrange.ts` · `bands.ts` · `pack.ts` | where everything sits: hand placement or auto-layout, bands and cells, clusters and satellites |
 | `seat.ts` · `ends.ts` · `route.ts` | where a line meets a border, which way it sets off, and where it runs |
 | `look.ts` · `derive.ts` | what a card wears (`face_attrs`, the attributes the card table reads), its marks and trail, and `carried` — **the one place a card's data is worked out**, for the canvas and the tray alike |
 | `face.ts` | the large face: `face_text`, its markdown — the parts its `card.face` maps onto, attributes as a ruled table — `handle_of`, and `fit_of`, the room that markdown needs, estimated from the text so layout stays headless |
-| `fields.ts` | `fields_graph` — a block's attributes as a class diagram: one large card standing for the definition, one per usage. A graph, drawn instead of the layer; never written |
-| `links.ts` | `linked_graph` — an attribute typed by a block definition drawn as a dashed line between two cards on the layer. The internal view only; never picked |
+| `class.ts` | `class_graph` — a layer's definition references as one diagram: extends lines and attribute links. Never written |
+| `swimlane.ts` | `swimlane_graph` — a grid read as lanes. Positions are computed every draw |
+| `sequence.ts` | `sequence_scene` — a grid read as time. A scene, because the lifelines and messages are geometry |
+| `links.ts` | `linked_graph` — an attribute typed by a block definition drawn as a dashed line between two cards on the layer. The name carries `*` or `0..1` where the attribute says so. Never picked |
 | `svg.ts` · `text.ts` | a Scene drawn without a browser |
 
 **A producer proves its Scene well-formed; a consumer proves it draws anything that is.** Neither imports the other.

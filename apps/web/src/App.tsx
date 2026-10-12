@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { aspect_acts, attach_of, collect, drop_of, held_at, is_inside, is_layer_view, layout_of,
-         session, trace, EDITOR, type ViewKind, type Storage, type Dir, type Id } from "@mnd/core";
+         session, trace, writes, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
+         type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { box_of, clear_of, empty_of, holds, project, set_card as apply_card, tidy, BLOCK,
          CARD, UNITS } from "@mnd/views";
@@ -24,12 +25,20 @@ const THEMES = [
 /** Where this host keeps its definition packages. */
 const CATALOGUE = "/packages/index.json";
 
-export function App({ storage }: { storage: Storage }) {
+export function App({ storage, boot, opening }: {
+  storage: Storage; boot?: Boot; opening?: string;
+}) {
   /** The session, made once. */
   const held = useRef<ReturnType<typeof session> | null>(null);
+  const catalogue = boot?.catalogue ?? CATALOGUE;
   held.current ??= session({ storage, files: browser_files(),
-                             net: browser_net(), catalogue: CATALOGUE, floor: FLOOR });
+                             net: browser_net(), catalogue, floor: FLOOR, opening,
+                             ...(boot?.view ? { start: boot.view as ViewKind } : {}) });
   const s = held.current;
+  /** A bootstrap saying what this build does not read is told once, and still opens. */
+  useEffect(() => {
+    if (boot?.stray?.length) s.say(`mndflow.yaml: not read — ${boot.stray.join(", ")}`, "note");
+  }, [s, boot]);
   const [, bump] = useState(0);
   const [folded, set_folded] = useState<Id[]>([]);
   /** What a reveal inside a layer asked the canvas to pan to, until the next pick. */
@@ -38,13 +47,18 @@ export function App({ storage }: { storage: Storage }) {
   const [offered, set_offered] = useState<readonly Offered[]>([]);
   useEffect(() => { void s.listing().then(set_offered); }, [s]);
   const [theme, set_theme] = useState<string>(
-    () => localStorage.getItem("mnd.theme") ?? "retro");
+    () => localStorage.getItem("mnd.theme") ?? boot?.theme ?? "retro");
   const look = THEMES.find((t) => t.name === theme) ?? THEMES[0];
   const next_look = THEMES[(THEMES.indexOf(look) + 1) % THEMES.length]!;
   /** The tray — open, its tab, what it holds — and how the drawing looks: chrome the shell
    *  holds and the log never sees, kept where every host keeps it. */
-  const t = useTray();
-  const { display, onDisplay } = useDisplay({ card: { ...UNITS.block }, range: CARD });
+  const t = useTray(boot?.tray ?? true);
+  const { display, onDisplay } = useDisplay({
+    card: { ...UNITS.block }, range: CARD,
+    ...(boot?.display?.lattice !== undefined ? { lattice: boot.display.lattice } : {}),
+    ...(boot?.display?.legend !== undefined ? { legend: boot.display.legend } : {}),
+    ...(boot?.display?.corner ? { corner: boot.display.corner } : {}),
+  });
   const [shown, set_shown] = useState({ interfaces: true, frame: true });
   /** The layers that have said otherwise about drawing their key. **A layer holding no answer
    *  follows the workspace**, so changing the default moves every layer that never disagreed. */
@@ -89,6 +103,8 @@ export function App({ storage }: { storage: Storage }) {
   const system = !is_layer_view(view.kind);
   /** A definition drawn with what describes it: edits there edit it (core `aspect_acts`). */
   const described = view.kind === "definition" ? view.layer : null;
+  /** A diagram is read, never built in: its room hugs what it draws, as a page's does. */
+  const diagram = (DIAGRAM_VIEWS as readonly string[]).includes(view.kind);
   const layer = whole ? null : view.layer;
   const said = s.said();
   const laid_out = layout_of(graph, layer);
@@ -122,6 +138,13 @@ export function App({ storage }: { storage: Storage }) {
                                        look: { kind: view.kind, cut: SLICES[0]!.cut,
                                                tops: true, target } }),
     [graph, view.layer, view.kind, view.at, target, shown.interfaces, card, across]);
+
+  /** A diagram names no layer slot: the canvas may open a card, and it writes nothing. */
+  const editing = scene.slots.includes("layer");
+  const on_canvas = (name: string, args?: Record<string, unknown>) => {
+    if (!editing && writes(name)) return;
+    act(name, args);
+  };
 
   /** **The sections follow the canvas** — one rule (`held_at`), whatever moved it: the layer opened,
    *  or a pick on the overhead view. Browsing outside the open structure moves neither. */
@@ -313,11 +336,11 @@ export function App({ storage }: { storage: Storage }) {
                          picked: !on ? [...s.picked()]
                                : s.picked().includes(on) ? [...s.picked()] : [on] }}
                   at={at} spot={spot} only={only} given={given}
-                  onAct={act} onShut={shut} />
+                  onAct={on_canvas} onShut={shut} />
           )}
           /** What a drop comes to is core's: a block arrives as a reference, a definition retypes
-           *  what it lands on or makes one. Onto a cell is seated there. */
-          onDrop={(id, spot, land) => {
+           *  what it lands on or makes one. Onto a cell is seated there. A diagram takes no drop. */
+          onDrop={editing ? (id, spot, land) => {
             /** Where the pointer was, clear of what is already there. */
             const at = clear_of(
               scene.nodes.filter((n) => n.id !== id && !holds(n) && !n.data.on)
@@ -337,7 +360,7 @@ export function App({ storage }: { storage: Storage }) {
               on: land.line ?? land.over, spot: at,
               ...(cell ? { cell: `${land.cell!.r},${land.cell!.c}` } : {}) });
             if (made) s.go(made.act, made.args);
-          }}
+          } : undefined}
           picked={s.picked()}
           cells={s.cells()}
           onPickCells={(cells) => {
@@ -361,12 +384,13 @@ export function App({ storage }: { storage: Storage }) {
               && ids.every((id) => shown.includes(id));
             if (!echo) pick(ids);
           }}
-          onAct={act}
-          /** A whole section, or a definition drawn with what describes it, is not moved about.
-           *  Those, a folder and a layer laid out `auto` are read down the page, fitted to their
-           *  width: a section from its anchor. */
-          onAdjust={whole ? () => undefined : adjust}
-          scroll={whole || view.kind === "folder"
+          onAct={on_canvas}
+          /** A whole section, a definition drawn with what describes it, or a diagram, is not
+           *  moved about. Those, a folder and a layer laid out `auto` are read down the page,
+           *  fitted to their width: a section from its anchor. A class diagram laid out `auto`
+           *  scrolls the same way. */
+          onAdjust={editing && !whole ? adjust : () => undefined}
+          scroll={whole || view.kind === "folder" || diagram
                   || (view.kind === "internal" && laid_out === "auto")}
           focus={system ? view.pick : whole ? null : aim}
           most={1}

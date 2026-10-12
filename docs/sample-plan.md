@@ -309,7 +309,7 @@ Rules:
 |---|---|
 | **members** | the layer's children that are references to definitions (`is_reference` + `stood_def`), deduplicated by definition. Anything else on the layer is left out |
 | **cards** | each member drawn with its **reference's id** (a pick selects the reference; the tray shows it and what it stands for), large face, `card.face: table` |
-| **extends** | for each member, walk its chain to the **nearest member** ancestor; one line `class:extends:<ref>` from it to that ancestor's card: `line.dir: forward`, `to_arrow: "hollow"`, name *extends*, not selectable |
+| **extends** | for each member, walk its chain to the **nearest member** ancestor; one line `class:extends:<ref>` from it to that ancestor's card: `line.dir: forward`, `to_arrow: "hollow"`, named *extends* but its name hidden (the hollow head says it, as UML draws it), not selectable |
 | **associations** | reuse views `links.ts` `linked_graph`, which already links stand-ins for definitions by attributes; add multiplicity to the name where the attribute says `many` (`*`) or `optional` (`0..1`) |
 | **layout** | `auto`, through the existing grid; *arrange* not offered (read only) |
 | **never** | usages, values, stored edges added to the source graph |
@@ -343,7 +343,7 @@ Rules:
 
 | | |
 |---|---|
-| **lanes** | one per header-row column `c ≥ 1`: a view-drawn **box** (solid rim, as overhead's boxes), id `@lane:<c>`, named the header block's shown name, not selectable |
+| **lanes** | one per header-row column `c ≥ 1`: a view-drawn **box** (solid rim, as overhead's boxes), id `@lane:<c>`, unnamed (`card.name: hide`): the header card names it; not selectable |
 | **header** | the header block's card at the top of its lane, its real id |
 | **phases** | the header-column blocks, small cards in a narrow first column, each at its row, real ids |
 | **steps** | each body block at its lane's centre, its row's y; a row is as tall as its tallest card plus `GAP`; a lane as wide as its widest card plus `PAD` each side |
@@ -373,11 +373,11 @@ Rules:
 |---|---|
 | **lifelines** | per participant column: the header block's small card at top (real id), and a dashed stem from its bottom to the last row: a line between two synthetic zero-size nodes, not selectable |
 | **time** | body row order, top to bottom: `y = top + r × pitch` |
-| **steps** | each step a narrow activation bar on its lifeline at its row (real id, small, its name beside it) |
-| **messages** | each real relation between two steps: from the source step's lifeline x to the target's, at the **target's row**; several in one row offset evenly within it. Arrows and dash from the relation's settings |
+| **steps** | each step its small card centred on its lifeline at its row (real id); columns sit the widest card plus two gaps apart, so a message's name reads across |
+| **messages** | each real relation between two steps, at the **target's row**: from the source's lifeline (its card's edge where it sits on that row) to the edge of the target's card facing it, so the head shows; several in one row offset evenly within it. Arrows and dash from the relation's settings |
 | **name** | the relation's own `name`, else the target step's name |
-| **self message** | source and target on one lifeline: a three-leg loop to the right |
-| **phases** | header-column blocks as small cards left of the first lifeline, at their rows |
+| **self message** | source and target on one lifeline: a three-leg loop out of the card's right edge, inside the air its column keeps |
+| **phases** | header-column blocks as small cards left of the first lifeline, at their rows, reading across (not upright, as in the grid's header column) |
 | **not yet** | activation spans, fragments, durations, conditions — added only when the two scenarios show a need |
 
 Steps:
@@ -430,6 +430,27 @@ Root `mndflow.yaml` names the default workspace, the catalogue, and app defaults
 | next-plan *Carried over* | kit changes: `ViewKind` gains three kinds; `DIAGRAM_VIEWS`; `layout.face` → `layout.cards`; `LineData.points`; the Viewer's `fields` / `onFields` and views `fields_graph` / `class_def` gone; a stand-in may state its own view |
 
 Then `npm run release:kit` and re-pin mndmap.
+
+
+## Status
+
+**Phases 1–10 built 2026-10-12, driven in Edge, code-reviewed; the review's fixes landed the same day.** Typecheck clean (packages, web, cli), 274 tests green, CSS lint clean; both generators and `npm run packages` reproduce their files byte for byte; both samples check clean. Kit packed as 0.12.0; mndmap not yet re-pinned.
+
+| Fixed after review | |
+|---|---|
+| sequence | step cards centred on the lifeline; messages end at the facing card edge; self loops stay in their column; phases read across; columns wide enough for names |
+| swimlane | lanes unnamed, the header card names them (a group or box honours `card.name: hide`) |
+| class | *extends* drawn by its hollow head, unnamed |
+| diagrams | the room hugs what they draw (the web app reads them as pages) |
+| code | Scene `faults` refuses a zero-size node again; a grid asked for `internal` is its grid view again; `lens_of` asks `own_diagram`; the bootstrap's start view picks what home opened; `boot_of` lists what it does not read (`stray`), said once on the stage |
+
+| Seen, still open | |
+|---|---|
+| **a self message's name** | stands upright on the loop's short leg: the column keeps too little air beside the card for it to read across |
+| **two lines between one pair** | on the class view, *extends* and an attribute link share a face's anchor and run together |
+| **a document opens empty** | a document card has room to hold, so it opens onto an empty internal layer, as design.md says a block with room does |
+| **release stamp** | the 0.12.0 tarball was packed from an uncommitted tree; re-run `npm run release:kit` after committing |
+| **not driven** | *reset* returning to an empty workspace; a block naming a view it cannot feed |
 
 
 ## Guardrails

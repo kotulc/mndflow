@@ -442,8 +442,8 @@ Collected on the showcase's relations layer first, then fixed.
 
 | Seen, still open | |
 |---|---|
-| **two `face` keys** | `layout.face` (small / large) and `card.face` (which large face) share a word |
-| **a class card's body** | the class diagram's `table` face now shows a body under the attributes, where it showed attributes only |
+| **two `face` keys** | settled by sample-plan: `layout.face` is `layout.cards` |
+| **a class card's body** | gone with the fields diagram (sample-plan); the class view's table cards show a body under the attributes |
 | **a line carrying a tag** | the usages box lists blocks only; lines carrying a tag are not drawn there |
 | **tags inherit `block`'s look** | a tag reads `family: primary` from `block`, under its own hue |
 | **definition files hold no parts** | a definition file is the definition alone; its ports and parts live in `package.json` |
@@ -465,32 +465,35 @@ Collected on the showcase's relations layer first, then fixed.
 
 ## Handoff
 
-**State, 2026-10-10: steps 1–6, 6b, 8, 9 and 10 built, driven and committed; step 11 built and committed (`b5b8e7c`, `c78ca11`, `d799ef4`), driven in Edge and code-reviewed; its docs updated after. Step 12 built, driven in Edge, code-reviewed and committed (`44e1979`); every doc brought up to it after (design, definitions, model, actions, schema, tray, defs, cli-plan, simplification-plan, sample-plan).** Typecheck clean (packages, web and cli), 270 tests green, CSS lint clean, both samples check clean. **Next is sample-plan.md**: its step 0 is done by step 12; step 1, the modular generator, is next.
+**State, 2026-10-12: steps 1–6, 6b and 8–12 built, driven and committed (7, canvas gestures, not started) (step 12 `44e1979`, its docs `4543db4`). sample-plan.md built on top, uncommitted** (phases 1–10, driven in Edge, code-reviewed, the review's fixes landed; see its *Status*): two sample workspaces, the `diagrams` and `architecture` packages collected from definition folders, the class, swimlane and sequence views, `layout.cards`, the fields toggle gone, the bootstrap. Every doc brought up to it. Typecheck clean (packages, web and cli), 274 tests green, CSS lint clean, both samples check clean and regenerate byte for byte. Kit packed as 0.12.0.
 
 | Next | |
 |---|---|
-| **commit** | the docs brought up to step 12 (design, definitions, model, actions, tray, defs, cli-plan, simplification-plan, sample-plan, this plan) |
-| **sample-plan step 1** | the modular, typed showcase generator, output byte-identical |
-| **decide** | the Open rows: `resolved` in core, the door and unknown fields; and step 12's *seen, still open* — two `face` keys, where a tag's line usages show |
-| **release the kit** | `npm run release:kit` and re-pin mndmap: see Carried over |
+| **commit, then release** | sample-plan's work; `npm run release:kit` again so 0.12.0 stamps that commit; then commit mndmap's own pending work and re-pin it (cards-plan *Before the next session*, Carried over below) |
+| **diagram views, next** | sample-plan *Status* · *seen, still open*: a self message's upright name, two lines between one pair on the class view. Then canvas editing on the diagrams (read only today) |
+| **decide** | the Open rows: `resolved` in core, the door and unknown fields; step 12's *where a tag's line usages show* |
+| **CLI plan** | none of its six steps is built; step 1 (exit codes, `fixture:` sources, SysML round trip, `Said.kind`) is independent and small |
 | **keep libavoid?** | confirm: design.md and spec.md describe routing round cards. If kept, weigh LGPL-2.1, a beta (`0.5.0-beta.5`) and a ~490KB wasm, also in the kit mndmap vendors |
 | **arrange, generally** | crossing reduction by reordering within reading order is the candidate |
 | **step 7** | canvas gestures |
 
 | Not yet | |
 |---|---|
-| **tests** | none for steps 2–12: views, layout, routing and the definition model still move. Once settled — `tags_stated` / `traits_stated` (nearest list, replace, empty says none), `statements` / `said_of`, `ports_of`, `holds_values` and the `field` refusal, `aspect_acts` (lists made own, own ports only), `collect` (definition files, clashes, re-collect replaces, `bare`), `tag_home`, the `tag` act refusing a trait, `seat_all`, `routes_of`, `flow` / `on_grid`, `definition_graph` (component tables, ends), `dir_of`, `relate` joining a twin, `is_reference` / `resolved`, `is_tie` |
+| **tests** | none for steps 2–12 or sample-plan: views, layout, routing, diagrams and the definition model still move. Once settled — `diagram_of` / `diagram_subject` / `lens_of` on a stand-in, `class_graph`, `swimlane_graph`, `sequence_scene` (rows monotonic, horizontal runs, picks real), `boot_of` (`stray`), `tags_stated` / `traits_stated` (nearest list, replace, empty says none), `statements` / `said_of`, `ports_of`, `holds_values` and the `field` refusal, `aspect_acts` (lists made own, own ports only), `collect` (definition files, clashes, re-collect replaces, `bare`), `tag_home`, the `tag` act refusing a trait, `seat_all`, `routes_of`, `flow` / `on_grid`, `definition_graph` (component tables, ends), `dir_of`, `relate` joining a twin, `is_reference` / `resolved`, `is_tie` |
 | **driving** | the Edge drives lived in the session's scratchpad; the `vitest` skill says how. Open a block with select + Enter: double-click on a name renames it. Import through the header's *import a workspace* button (`setFiles`); a line is `[data-testid="rf__edge-<id>"]`, clicked with `force`; the tray remembers its tab, so click *line* or *card* first; the name box is `[aria-label="name"]`; a reference is made by dragging an explorer row onto `.react-flow__pane` |
 
 ### Running it
 
 | Do | How |
 |---|---|
-| **re-write the showcase** | `node scripts/showcase.mjs` from the repo root |
+| **re-write the showcase** | `npm run showcase` from the repo root |
+| **re-write the architecture sample** | `npm run architecture` |
+| **re-collect a catalogue package** | edit a file under `packages/defs/src/packages/<name>/`, then `npm run packages` |
 | **re-collect `base`** | edit a file under `packages/defs/src/base/`, then `npm run base` |
 | **check a file through the door** | `npm run start -s -w @mnd/cli -- check ../../samples/workspace.showcase.json` — prints `clean` |
-| **see what a layer holds** | `npm run start -s -w @mnd/cli -- outline ../../samples/workspace.showcase.json l_rel` — layer ids are `l_cards`, `l_faces`, `l_defs`, `l_rel`, `l_ports`, `l_hold`, `l_refs`, `l_model`, `l_rows` |
-| **drive the web app** | `npm run dev`, read the port off the log; import through the header's *import a workspace* button (a file chooser) |
+| **see what a layer holds** | `npm run start -s -w @mnd/cli -- outline ../../samples/workspace.showcase.json l_rel` — the showcase's layer ids are `l_cards`, `l_faces`, `l_defs`, `l_rel`, `l_ports`, `l_hold`, `l_refs`, `l_model`, `l_rows`, `l_diagrams`; the architecture sample's `story_platform`, `story_context`, `story_domain`, `story_data`, `scenario_place`, `scenario_fulfill`, `ref_place_lanes`, `ref_fulfill_lanes` |
+| **drive the web app** | `npm run dev`, read the port off the log. A fresh browser opens the showcase (`mndflow.yaml`); another file through the header's *import a workspace* button (a file chooser) |
+| **see the diagram views** | showcase *Diagrams*: *Classes*, *Lanes*, *Messages*. Architecture *Story* → *Domain* (class), *Place order* → *Place order* (sequence), *Place order, as lanes* → *Place order* (a reference stating `swimlane`). Read only: picks select the real block, drags are refused |
 | **open a card** | select it and press Enter; double-click on a name renames it. A definition opens on its definition view; Enter on its middle card opens its structure. The showcase's layers are blocks: each opens inside, on `auto`; dragging a card there hands the layer to `free` |
 | **see the system views** | *overhead* and *profile* on the rail. The profile follows what is picked on it, each row a box, its line dropping straight down |
 | **see definition views** | `base` → `blocks` → `reference`, `interface` or `note` (select, Enter): traits, its style, drops struck. `workspace` → `machines` → *Big pump*: inherited ports, tags and traits dimmed, its `style` and `card` tables naming who says each row. `workspace` → `relations` → *drives*: a relation definition, its ends, `line` table and attributes |
@@ -507,6 +510,10 @@ Collected on the showcase's relations layer first, then fixed.
 |---|---|
 | core `navigate.ts` | `lens_of` (which view a block opens on), and `open_at` / `leave_at` / `sight` choosing views |
 | core `sections.ts` | `ViewKind`, `LAYER_VIEWS`, `is_layer_view`, `is_inside` |
+| core `navigate.ts` (diagrams) | `diagram_of` (the view a block's `layout.view` names, where it can feed it), `diagram_subject` (a stand-in's target, where the stand-in states its own view) |
+| views `class.ts` · `swimlane.ts` · `sequence.ts` | the diagram views; `block.ts` `diagram_scene` routes to them, read only (`quiet`) |
+| core `boot.ts` · web `main.tsx` · `vite.config.ts` | the bootstrap: `boot_of`, the workspace opened while storage is empty, `repo_files` serving `mndflow.yaml` and `samples/` |
+| `scripts/lib/builder.ts` · `showcase.ts` · `architecture.ts` · `packages.mjs` | the sample generators, written through core `write`, and the catalogue packages collected from `packages/defs/src/packages/` |
 | core `aspects.ts` | what the definition view draws round a definition — tags and traits in force, inherited ports — and what an edit there does |
 | core `defs.ts` (carrying) | `tags_stated`, `traits_stated`, `has_trait`, `is_tie`, `statements` / `said_of`: what an element carries and who says each setting |
 | core `tags.ts` | `is_tag`, `tags_of`, `tag_named`, `tag_home` (the workspace's `tags` folder) |
@@ -552,6 +559,7 @@ Collected on the showcase's relations layer first, then fixed.
 | cards-plan | drive *import a collection* and *attach* in the web app |
 | cards-plan | notes draw their name, not their body, through `NoteNode` rather than `CardFace` |
 | this plan | mndmap, or anything fetching the catalogue by name, asks for `entity-relation`, not `erd` |
+| this plan | the kit changed again: `ViewKind` gains `class`, `swimlane` and `sequence`; `DIAGRAM_VIEWS`; `layout.face` is `layout.cards` (`CARDS`, no alias); `LineData.points` is a run the sequence view already drew, and routing skips it; the Viewer's `fields` / `onFields` and views `fields_graph` / `class_def` are gone; a stand-in may state its own `layout.view`, and `diagram_subject` is the block that view draws; a group or box honours `card.name: hide`; core `boot_of` and `Boot` (with `stray`); session `Seed.opening` / `start`. Packed as **0.12.0** |
 | step 8 | lineage and links as a package structure; boxes for a definition's usages and their groups |
 | steps 6, 6b | the kit changed again under mndmap: `is_interface(graph, id)`, by type chain, and a plain interface stores `type: "interface"`; `fromSide` / `toSide` and `set_side` gone; `set_port` carries `seat`, a side and place or null; `seat_all` replaces `assign_seats` / `seated` / `perched`; `Seating.hidden`; `LineData.fan` replaces `clear`; `nearest_seat(on, at, taken)` and `taken_on`; `tidy(graph, scene)`; `pack_units(sized, across)`; `page_wide` gone for `across_of`; `GAP` is 2 units and `PAD` 1; new `free` and `arrange` acts. 2026-10-10: `ViewKind` says `overhead` for `package`; the icon is `view_overhead`. Step 10: `Relation.dir` and the `set_dir` op are gone for the `line.dir` setting (`dir_of`, `DIRS`); `relate` joins a line already there; views depends on `libavoid-js`, whose wasm a host loads once (`load_avoid`) and routes with `routes_of` / `avoided_run` — a host that does not draws with `route` as before; `middle_of` takes the name's length; `layout.even` for pages. Step 11: `Block.traits` and the `set_traits` op are gone — everything carried is in `tags`, `-id` a drop; `block_tags` / `def_tags` gone for `carried_tags` / `tags_of` / `traits_of` / `styles_of`; base trait ids renamed (`container` → `has_parts`, `ports` → `has_ports`, `inline` → `is_group`, `matrix` → `is_grid`, and so on); base kinds extend `block` / `line`; `definition_graph` lays a 3×3 grid; relations may carry `values`. Step 11, second round: base's style ids are `plain_style` … `note_style` (the `family_*`, `fill_*`, `contrast_*` styles are gone); `Relation.name` and `update_edge`'s `name` are gone — a line is named by a label in `tags` (`label_carried`, `name_line`); a reference stores `type: "reference"`; `is_reference(graph, id)`; `previewed` gone for views `resolved`; `Aspects` has `from` / `to`. **Step 12**: `Block.traits` (definitions only) and `set_traits` are back, `set_tags` / `set_traits` take null to give back, both lists replace — no `-id`; `carried_tags`, `dropped_tags`, `entry`, `remap`, `gives`, `styles_of`, `is_style`, `is_label`, `label_carried`, `label_named`, `name_line` gone for `tags_stated` / `traits_stated` / `has_trait` / `is_tie` / `tag_home` (type `Stated`); `Relation.name` and `update_edge`'s `name` are back; base's `style`, `label`, the seven kind styles, `has_body`, `has_preview`, `has_size` gone, `is_tied` → `has_tie`, `is_tie` new; `card.shows` → `card.face` (`LARGE_FACES`, `FACE_PARTS`); `empty_graph` makes a `tags` folder; `collect` takes `{ bare }` and returns `clashes`; `Aspects` has `tags` / `traits` as `Stated`, no `styles` / `dropped`; views `label.ts`, `dropped_in` and the `dropped` card class gone |
 

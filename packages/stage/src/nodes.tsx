@@ -308,10 +308,11 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
                  room, selected ? "picked" : ""].filter(Boolean).join(" ");
   return (
     <div className={shell} {...face_attrs(look)}>
-      {/* The name and label float above the frame together. */}
+      {/* The name and label float above the frame together; `card.name: hide` leaves no name. */}
       <span className="mnd-group-title">
         {look.label === "above" ? <span className="mnd-kind card-label">{look.kind}</span> : null}
-        <Name id={id} className="mnd-group-name card-name" text={data.label} />
+        {look.head === false
+          ? null : <Name id={id} className="mnd-group-name card-name" text={data.label} />}
         {look.label === "inside" ? <span className="mnd-kind card-label">{look.kind}</span> : null}
       </span>
       {look.label === "below"

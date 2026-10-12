@@ -32,12 +32,14 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
+A fresh browser opens the showcase, as `mndflow.yaml` says; an existing workspace in the browser always wins.
+
 ### Using it
 
 | Where | What you can do |
 |---|---|
 | **Header** | undo, redo, import, export, a new workspace, the theme — each reaches a **port**, never the graph |
-| **Explorer** | a section chain — `definitions` (every package, its definitions in the folders and groups that organize them) and `structure` (every definition holding structure, always, standing apart from what definitions holds; the definition chosen there opens) — and the menu that hangs off the tree. **The explorer browses; the canvas is the target**: choosing a row selects it, opening one (Enter, double-click, →) moves the canvas. The canvas draws a whole section in a **system view** — **package** or **profile**, the rail's only views — or one block in the **layer view** its kind calls for: a folder, a definition, a grid, or a block from inside |
+| **Explorer** | a section chain — `definitions` (every package, its definitions in the folders and groups that organize them) and `structure` (every definition holding structure, always, standing apart from what definitions holds; the definition chosen there opens) — and the menu that hangs off the tree. **The explorer browses; the canvas is the target**: choosing a row selects it, opening one (Enter, double-click, →) moves the canvas. The canvas draws a whole section in a **system view** — **overhead** or **profile**, the rail's only views — or one block in the **layer view** its kind calls for: a folder, a definition, a grid, a block from inside, or the diagram it names — class, swimlane or sequence |
 | **Stage** | **the left button works what is there; the right button makes something new.** Within the right button a click makes what sits at a point and a drag makes what has extent. A click here selects and never navigates |
 | **Options** | settings for the workspace or a new definition, then the groups the projection asks for — a layer's layout (`free`, `auto`, `page`), the system views, what the drawing shows, and what a right drag draws |
 | **Tray** | open from the start, on whatever is picked — and on the root, with its `workspace` tab, when nothing is: where the workspace is exported, whole or as a package. What the open layer holds, as rows; a block's element, fields and contents; the card size, key and lattice. A block with a schema offers its fields as a diagram |
@@ -62,6 +64,10 @@ npm run build -w @mnd/web            # a production bundle
 npm run release:kit                  # build, pack and stamp @mnd/kit
 npm run dev -w @mnd/stage            # one surface alone — also explorer, options, tray
 npm run start -w @mnd/cli -- fold related
+npm run showcase                     # re-write samples/workspace.showcase.json, the visual lab
+npm run architecture                 # re-write samples/workspace.architecture.json, the story
+npm run packages                     # re-collect catalogue packages from packages/defs/src/packages/
+npm run base                         # re-collect base from packages/defs/src/base/
 ```
 
 **`@mnd/kit` is the one thing that ships.** The headless stack as a single built package, plus `kit/react` and `kit/react.css` — the viewer, the explorer and a read-only tray, with the tray and display state the app itself runs on — packed, never published. `release/` carries the tarball and a manifest naming its version, commit and integrity, so a consumer can check what it is holding.
@@ -91,5 +97,6 @@ Under `docs/`, and they describe the **goal state** rather than what is built. T
 | `spec.md` | what crosses packages: the seams, ports, kit, apps and tests |
 | `stories.md` | what somebody is trying to do |
 | `simplification-plan.md` | one rule, one home: where code lives and the leads to consolidate |
+| `next-plan.md` · `sample-plan.md` · `cards-plan.md` · `cli-plan.md` | the plans: what was decided, what is built, and the handoff. next-plan's *Handoff* is where to start |
 
 **What one package alone decides lives in that package's `docs/`**, never here.

@@ -1,0 +1,8 @@
+{
+  "id": "reads",
+  "name": "reads",
+  "type": "line",
+  "body": "A service reads what a database stores.",
+  "def": {},
+  "settings": { "line": { "dir": "forward" } }
+}
