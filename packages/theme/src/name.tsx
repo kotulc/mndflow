@@ -28,9 +28,11 @@ export type NameProps = {
   className: string;
   text: string;
   style?: React.CSSProperties;
+  /** Whether typing it empty clears it, as a cell's text does, rather than doing nothing. */
+  clears?: boolean;
 };
 
-export function Name({ id, className, text, style }: NameProps) {
+export function Name({ id, className, text, style, clears = false }: NameProps) {
   const naming = useNaming();
   const editing = naming.id === id;
   /** Whether leaving keeps what was typed. */
@@ -49,8 +51,8 @@ export function Name({ id, className, text, style }: NameProps) {
     const typed = (e.currentTarget.innerText ?? e.currentTarget.textContent ?? "").trim();
     const kept = keep.current;
     keep.current = true;
-    /** Nothing typed and nothing changed are both nothing done. */
-    naming.done(kept && typed && typed !== text ? typed : null);
+    /** Nothing changed is nothing done, and so is nothing typed, unless that clears it. */
+    naming.done(kept && (typed || clears) && typed !== text ? typed : null);
   };
 
   return (

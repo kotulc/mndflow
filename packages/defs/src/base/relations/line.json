@@ -1,0 +1,9 @@
+{
+  "id": "line",
+  "name": "line",
+  "body": "A relation between two blocks: what flows, connects or depends.",
+  "def": {},
+  "traits": [
+    "has_values"
+  ]
+}

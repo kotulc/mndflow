@@ -15,7 +15,6 @@
     "@mnd/fixtures": "*",
     "@mnd/views": "*",
         "@mnd/defs": "*",
-    "@mnd/terminal": "*",
     "js-yaml": "^4.1.0"
   }
 }

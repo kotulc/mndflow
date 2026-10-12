@@ -12,10 +12,12 @@ export type EntryProps = {
   blank?: boolean;
   /** Nothing to answer yet, because something this depends on is unset. */
   disabled?: boolean;
+  /** The suggestions it offers, by the id of a list on the page. */
+  list?: string;
   onCommit: (to: string) => void;
 };
 
-export function Entry({ value, label, placeholder, clash, blank, disabled,
+export function Entry({ value, label, placeholder, clash, blank, disabled, list,
                         onCommit }: EntryProps) {
   /** Null while nothing is being typed, so a value changed elsewhere shows. */
   const [draft, set_draft] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export function Entry({ value, label, placeholder, clash, blank, disabled,
   return (
     <>
       <input value={draft ?? value} aria-label={label} placeholder={placeholder}
-             disabled={disabled}
+             disabled={disabled} list={list}
              onClick={(e) => e.stopPropagation()}
              onChange={(e) => set_draft(e.target.value)}
              onBlur={() => {

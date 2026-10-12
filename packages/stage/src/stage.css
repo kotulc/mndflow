@@ -10,6 +10,21 @@
 /* The crumbs are chrome, and dressed in `@mnd/theme/shell.css` — so the kit's `Viewer` may draw
    them without this sheet. */
 
+/* What an empty layer says: why it is empty, and what else there is. Read, never clicked. */
+.stage > .empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  max-width: 60%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  pointer-events: none;
+}
+
 /* The key to the open layer, in one of the two right-hand corners. Top mirrors the crumbs
    across the canvas; bottom sits opposite the zoom controls. */
 .stage > .legend {

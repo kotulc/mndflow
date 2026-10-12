@@ -2,7 +2,7 @@
  *  carries. Given no `onAct` the workspace itself is read only; its display still answers
  *  `onDisplay`, since how a drawing looks is the session's and changes nothing. */
 
-import { file_name, packages, SCHEMA, shown_name,
+import { all_defs, def_at, file_name, packages, SCHEMA, shown_name,
          type Act, type Graph } from "@mnd/core";
 import { Band, Body, Check, Line, NOOP, Pick } from "./Body";
 import { Content } from "./Content";
@@ -21,8 +21,6 @@ export type Display = {
   corner: "top" | "bottom";
   /** Whether the lattice draws behind the cards, where the host offers it here. */
   lattice?: boolean;
-  /** Whether a card that fits its content shows all of it, where the host offers it here. */
-  full?: boolean;
 };
 
 /** The two corners a legend may sit in. Right either way — the left is the crumbs' and the zoom
@@ -47,8 +45,8 @@ export function Workspace({ graph, display, onAct = NOOP, onDisplay = onAct }: W
                    placeholder={shown_name(graph, graph.root)}
                    onCommit={(to) => onAct("rename", { id: graph.root, name: to })} />
           </Line>
-          <Line label="tags" tip="Words that say what this is like. Tags carry nothing and are never inherited.">
-            <Tags tags={root.tags ?? []}
+          <Line label="tags" tip="Tags that say what this is like. A new word makes a tag.">
+            <Tags tags={root.tags ?? []} name={(t) => def_at(graph, t)?.name ?? t}
                   onCommit={(to) => onAct("tag", { ids: [graph.root], tags: to })} />
           </Line>
         </Body>
@@ -69,8 +67,15 @@ export function Workspace({ graph, display, onAct = NOOP, onDisplay = onAct }: W
             <span className="read">{packages(graph).length}</span>
           </Line>
           <Line label="definitions" tip="Every definition the workspace can name, a package's and the floor's among its own.">
-            <span className="read">{Object.keys(graph.defs).length}</span>
+            <span className="read">{all_defs(graph).length}</span>
           </Line>
+          {/* Leaving the workspace is the host's: it reaches a port, never the graph. */}
+          {readonly ? null : (
+            <Line label="export" tip="Write this workspace to a file — whole, with every package it draws on — or as a package of its own, its root and ids prefixed with the name it is given.">
+              <button className="opt" onClick={() => onAct("@export")}>workspace</button>
+              <button className="opt" onClick={() => onAct("@export_package")}>as package</button>
+            </Line>
+          )}
         </Body>
       </div>
 
@@ -106,17 +111,10 @@ function Drawing({ display, onAct }: { display: Display; onAct: Act }) {
           <Pick name="legend-corner" on={display.corner} of={CORNERS}
                 onPick={(at) => onAct("legend_corner", { at })} />
         </Line>
-        {display.lattice === undefined && display.full === undefined ? null : (
-          <Line label="layer" tip="How every layer draws: the lattice behind its cards, and whether a card shows all it says or a preview of it.">
-            {display.lattice === undefined ? null : (
-              <Check on={display.lattice} word="lattice" tip="Draw the lattice behind every layer"
-                     onPick={(yes) => onAct("lattice", { show: yes })} />
-            )}
-            {display.full === undefined ? null : (
-              <Check on={display.full} word="full content"
-                     tip="Grow a card to show all it says, rather than cut it off at the card height"
-                     onPick={(yes) => onAct("full", { show: yes })} />
-            )}
+        {display.lattice === undefined ? null : (
+          <Line label="layer" tip="How every layer draws: the lattice behind its cards.">
+            <Check on={display.lattice} word="lattice" tip="Draw the lattice behind every layer"
+                   onPick={(yes) => onAct("lattice", { show: yes })} />
           </Line>
         )}
       </Body>

@@ -47,7 +47,7 @@ function typing(el: Element, text: string) {
 /** A card says what it is without being read. */
 describe("what a card wears", () => {
   /** The closed set of system marks: what a card stands in for, or what describes it. */
-  const MARKS = ["reference", "definition", "package", "data", "parts"];
+  const MARKS = ["reference", "definition", "package", "structure", "data"];
   const worn = (view: { container: HTMLElement }) =>
     Array.from(view.container.querySelectorAll(".react-flow__node .mnd-role"),
                (el) => el.getAttribute("data-role"));
@@ -70,9 +70,8 @@ describe("what a card wears", () => {
     const view = mount();
     expect(card(view, "block_pump").querySelector(".mnd-mark")).toBeNull();
     expect(card(view, "block_note").querySelector(".mnd-mark")).toBeNull();
-    /** Holding parts is a mark: the frame holds everything, and says so. */
-    expect(view.container.querySelector(".mnd-frame .mnd-mark")?.getAttribute("data-mark"))
-      .toBe("parts");
+    /** Structure is a definition's mark alone: a usage's frame holds blocks and wears none. */
+    expect(view.container.querySelector(".mnd-frame .mnd-mark")).toBeNull();
     expect(stamped(view).every((m) => m !== null && MARKS.includes(m))).toBe(true);
   });
 
@@ -183,7 +182,7 @@ describe("the keyboard", () => {
     expect(view.onAct).toHaveBeenCalledWith("open", { id: "block_pump" });
   });
 
-  it("does not descend into a grid on a double click", () => {
+  it("descends into a grid on a double click", () => {
     const graph = fold(gridded(), FLOOR);
     const scene = project(graph, "block_board");
     const onAct = vi.fn();
@@ -191,7 +190,7 @@ describe("the keyboard", () => {
       <Stage scene={scene} graph={graph} picked={[]} onAct={onAct} onPick={vi.fn()} />,
     );
     fireEvent.doubleClick(card(view, "block_lanes"));
-    expect(onAct).not.toHaveBeenCalledWith("open", expect.anything());
+    expect(onAct).toHaveBeenCalledWith("open", { id: "block_lanes" });
     cleanup();
   });
 
@@ -239,8 +238,9 @@ describe("the keyboard", () => {
 describe("the surrounds", () => {
   it("draws a crumb per layer, and climbs", () => {
     const view = mount();
-    fireEvent.click(view.getByText("workspace"));
-    expect(view.onAct).toHaveBeenCalledWith("open", { id: "ws" });
+    const top = view.scene.trail[0]!;
+    fireEvent.click(view.container.querySelector(`.crumbs button[title="${top.label}"]`)!);
+    expect(view.onAct).toHaveBeenCalledWith("open", { id: top.id });
     fireEvent.click(view.getByTitle(/up one layer/));
     expect(view.onAct).toHaveBeenCalledWith("open");
   });

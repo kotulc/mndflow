@@ -1,93 +1,8 @@
 {
-  "schema": "3.0",
+  "schema": "1.0",
   "id": "workspace",
   "graph": {
-    "root": "ws",
-    "packages": {},
-    "defs": {
-      "def_base": {
-        "id": "def_base",
-        "name": "Base",
-        "group": "relation",
-        "extends": "def_default",
-        "components": {
-          "line": {},
-          "style": {
-            "hue": 292,
-            "intensity": 0.15
-          }
-        }
-      },
-      "def_default": {
-        "id": "def_default",
-        "name": "line",
-        "group": "relation",
-        "extends": "line",
-        "default": "line",
-        "components": {
-          "line": {}
-        }
-      },
-      "def_relates": {
-        "id": "def_relates",
-        "name": "<<relates>>",
-        "group": "relation",
-        "extends": "def_default",
-        "components": {
-          "line": {},
-          "style": {
-            "hue": 314
-          }
-        }
-      },
-      "def_relation": {
-        "id": "def_relation",
-        "name": "relation",
-        "group": "relation",
-        "extends": "def_default",
-        "components": {
-          "line": {}
-        }
-      },
-      "def_special": {
-        "id": "def_special",
-        "name": "special",
-        "group": "block",
-        "extends": "folder",
-        "components": {
-          "style": {
-            "family": "secondary",
-            "hue": 300,
-            "intensity": 0.4,
-            "name_font": "italic"
-          },
-          "card": {
-            "label": "below"
-          }
-        }
-      },
-      "def_specialer": {
-        "id": "def_specialer",
-        "name": "specialer",
-        "group": "block",
-        "extends": "def_special"
-      },
-      "def_test": {
-        "id": "def_test",
-        "name": "Test",
-        "group": "relation",
-        "extends": "def_default",
-        "components": {
-          "line": {}
-        }
-      },
-      "def_test_block": {
-        "id": "def_test_block",
-        "name": "Test Block",
-        "group": "block",
-        "extends": "block"
-      }
-    },
+    "root": "workspace",
     "blocks": {
       "block_026ym9qvc4q2": {
         "id": "block_026ym9qvc4q2",
@@ -101,7 +16,7 @@
       },
       "block_23iri9bhaf1y": {
         "id": "block_23iri9bhaf1y",
-        "parent": "ws",
+        "parent": "main",
         "name": "Note contents",
         "type": "note",
         "alias": 1,
@@ -114,12 +29,12 @@
       },
       "block_2nzmkg5bbb6e": {
         "id": "block_2nzmkg5bbb6e",
-        "parent": "ws",
+        "parent": "main",
         "type": "grid",
         "alias": 1,
         "grid": {
-          "rows": 3,
-          "cols": 2
+          "rows": 4,
+          "cols": 3
         },
         "order": 10,
         "x": -240,
@@ -138,12 +53,12 @@
         "type": "grid",
         "alias": 2,
         "grid": {
-          "rows": 3,
-          "cols": 2,
+          "rows": 4,
+          "cols": 3,
           "merges": [
             {
-              "r": 0,
-              "c": 0,
+              "r": 1,
+              "c": 1,
               "rows": 3,
               "cols": 1
             }
@@ -159,8 +74,8 @@
         "type": "grid",
         "alias": 3,
         "grid": {
-          "rows": 2,
-          "cols": 1
+          "rows": 3,
+          "cols": 2
         },
         "order": 1,
         "x": -216,
@@ -172,8 +87,8 @@
         "type": "grid",
         "alias": 4,
         "grid": {
-          "rows": 2,
-          "cols": 2
+          "rows": 3,
+          "cols": 3
         },
         "order": 5,
         "x": 0,
@@ -181,8 +96,7 @@
       },
       "block_6mkkngq8lsy9": {
         "id": "block_6mkkngq8lsy9",
-        "parent": "block_ew5quzihwe9g",
-        "group": "block_026ym9qvc4q2",
+        "parent": "block_026ym9qvc4q2",
         "alias": 3,
         "order": 1,
         "x": -360,
@@ -208,6 +122,7 @@
       "block_9vmqohl7du88": {
         "id": "block_9vmqohl7du88",
         "parent": "block_ew5quzihwe9g",
+        "type": "reference",
         "of": "block_2y5dibibfcqa",
         "alias": 1,
         "order": 9,
@@ -216,8 +131,8 @@
       },
       "block_a8com2k9rugg": {
         "id": "block_a8com2k9rugg",
-        "parent": "block_xpgood1tsdl8",
-        "group": "block_i5g6cnrkmsa1",
+        "parent": "block_i5g6cnrkmsa1",
+        "type": "reference",
         "of": "block_ht3r5k5pz2lg",
         "alias": 2,
         "order": 2,
@@ -226,9 +141,8 @@
       },
       "block_d7b79oajslu5": {
         "id": "block_d7b79oajslu5",
-        "parent": "ws",
+        "parent": "block_phj6wc786dlo",
         "name": "resources",
-        "group": "block_phj6wc786dlo",
         "type": "folder",
         "alias": 2,
         "order": 1,
@@ -239,30 +153,30 @@
         "id": "block_ew5quzihwe9g",
         "parent": "block_pcm8tjwdotm2",
         "alias": 1,
-        "arrangement": "auto",
         "order": 2,
+        "settings": {
+          "layout": {
+            "kind": "auto"
+          }
+        },
         "x": -48,
         "y": -48
       },
       "block_g7r7pich1xuz": {
         "id": "block_g7r7pich1xuz",
-        "parent": "block_xpgood1tsdl8",
+        "parent": "block_x6q9cg79pk62",
         "name": "Hello World",
-        "group": "block_x6q9cg79pk62",
         "alias": 20,
         "cell": {
-          "r": 0,
-          "c": 0
+          "r": 1,
+          "c": 1
         },
-        "order": 12,
-        "x": -144,
-        "y": 168
+        "order": 12
       },
       "block_ga0xoyy306a1": {
         "id": "block_ga0xoyy306a1",
-        "parent": "block_xpgood1tsdl8",
+        "parent": "block_lisf1xwo11gs",
         "name": "Block 2",
-        "group": "block_lisf1xwo11gs",
         "alias": 18,
         "order": 5,
         "x": -96,
@@ -270,8 +184,7 @@
       },
       "block_gikyjb1138b4": {
         "id": "block_gikyjb1138b4",
-        "parent": "block_ew5quzihwe9g",
-        "group": "block_026ym9qvc4q2",
+        "parent": "block_026ym9qvc4q2",
         "alias": 2,
         "order": 2,
         "x": -24,
@@ -279,8 +192,8 @@
       },
       "block_gn1qmh8w3xli": {
         "id": "block_gn1qmh8w3xli",
-        "parent": "block_xpgood1tsdl8",
-        "group": "block_i5g6cnrkmsa1",
+        "parent": "block_i5g6cnrkmsa1",
+        "type": "reference",
         "of": "block_swt7wg3ubr7p",
         "alias": 3,
         "order": 3,
@@ -289,23 +202,19 @@
       },
       "block_gwetekpeykck": {
         "id": "block_gwetekpeykck",
-        "parent": "block_xpgood1tsdl8",
+        "parent": "block_4718pot6xuhs",
         "name": "Test",
-        "group": "block_4718pot6xuhs",
         "alias": 19,
         "cell": {
-          "r": 0,
-          "c": 0
+          "r": 1,
+          "c": 1
         },
-        "order": 11,
-        "x": 24,
-        "y": -192
+        "order": 11
       },
       "block_h1gmpej2w1tl": {
         "id": "block_h1gmpej2w1tl",
-        "parent": "block_xpgood1tsdl8",
+        "parent": "block_lisf1xwo11gs",
         "name": "Block 1",
-        "group": "block_lisf1xwo11gs",
         "alias": 17,
         "order": 4,
         "x": -96,
@@ -316,7 +225,8 @@
         "parent": "block_d7b79oajslu5",
         "name": "resource A",
         "alias": 25,
-        "looks": {
+        "order": 3,
+        "settings": {
           "style": {
             "intensity": 0.5,
             "family": "muted"
@@ -325,7 +235,6 @@
             "align": "left"
           }
         },
-        "order": 3,
         "x": 120,
         "y": 0
       },
@@ -340,8 +249,9 @@
       },
       "block_i5x9yytvukem": {
         "id": "block_i5x9yytvukem",
-        "parent": "ws",
+        "parent": "main",
         "name": "Ref",
+        "type": "reference",
         "of": "block_6mkkngq8lsy9",
         "alias": 4,
         "order": 6,
@@ -350,53 +260,52 @@
       },
       "block_ka9vluxhbn5n": {
         "id": "block_ka9vluxhbn5n",
-        "parent": "ws",
+        "parent": "main",
         "name": "Outter",
         "type": "group",
         "alias": 3,
-        "looks": {
+        "order": 9,
+        "settings": {
           "style": {
             "border_width": "thick"
           }
         },
-        "order": 9,
         "x": -96,
         "y": -288
       },
       "block_ktni5736gxyy": {
         "id": "block_ktni5736gxyy",
-        "parent": "ws",
+        "parent": "main",
         "name": "Test",
         "type": "def_specialer",
         "alias": 3,
-        "looks": {
+        "order": 13,
+        "settings": {
           "card": {
             "alias": "show"
           }
         },
-        "order": 13,
         "x": 120,
         "y": 0
       },
       "block_lidqmag9iygj": {
         "id": "block_lidqmag9iygj",
-        "parent": "ws",
+        "parent": "block_2nzmkg5bbb6e",
         "name": "hello world",
-        "group": "block_2nzmkg5bbb6e",
         "alias": 11,
-        "arrangement": "auto",
         "cell": {
-          "r": 0,
-          "c": 0
-        },
-        "looks": {
-          "style": {
-            "family": "primary"
-          }
+          "r": 1,
+          "c": 2
         },
         "order": 4,
-        "x": 48,
-        "y": -480
+        "settings": {
+          "style": {
+            "family": "primary"
+          },
+          "layout": {
+            "kind": "auto"
+          }
+        }
       },
       "block_lisf1xwo11gs": {
         "id": "block_lisf1xwo11gs",
@@ -409,39 +318,37 @@
       },
       "block_oud23vt3ldeo": {
         "id": "block_oud23vt3ldeo",
-        "parent": "ws",
+        "parent": "block_2nzmkg5bbb6e",
         "name": "B",
-        "group": "block_2nzmkg5bbb6e",
+        "type": "reference",
         "of": "block_gikyjb1138b4",
         "alias": 5,
-        "cell": {
-          "r": 1,
-          "c": 1
-        },
-        "order": 7,
-        "x": -144,
-        "y": -168
-      },
-      "block_pcm8tjwdotm2": {
-        "id": "block_pcm8tjwdotm2",
-        "parent": "ws",
-        "name": "block",
-        "group": "block_2nzmkg5bbb6e",
-        "alias": 4,
-        "arrangement": "auto",
         "cell": {
           "r": 2,
           "c": 1
         },
+        "order": 7
+      },
+      "block_pcm8tjwdotm2": {
+        "id": "block_pcm8tjwdotm2",
+        "parent": "block_2nzmkg5bbb6e",
+        "name": "block",
+        "alias": 4,
+        "cell": {
+          "r": 1,
+          "c": 1
+        },
         "order": 3,
-        "x": -144,
-        "y": -72
+        "settings": {
+          "layout": {
+            "kind": "auto"
+          }
+        }
       },
       "block_phj6wc786dlo": {
         "id": "block_phj6wc786dlo",
-        "parent": "ws",
+        "parent": "block_ka9vluxhbn5n",
         "name": "Inner",
-        "group": "block_ka9vluxhbn5n",
         "type": "group",
         "alias": 5,
         "order": 11,
@@ -450,22 +357,18 @@
       },
       "block_pjwhm997jirl": {
         "id": "block_pjwhm997jirl",
-        "parent": "block_lidqmag9iygj",
-        "group": "block_356h5um4i1v2",
+        "parent": "block_356h5um4i1v2",
         "alias": 14,
         "cell": {
-          "r": 0,
-          "c": 0
+          "r": 1,
+          "c": 1
         },
-        "order": 1,
-        "x": -144,
-        "y": 0
+        "order": 1
       },
       "block_pmjakumsauvt": {
         "id": "block_pmjakumsauvt",
-        "parent": "block_ew5quzihwe9g",
+        "parent": "block_026ym9qvc4q2",
         "name": "Test",
-        "group": "block_026ym9qvc4q2",
         "alias": 8,
         "order": 4,
         "x": -168,
@@ -477,29 +380,26 @@
         "name": "new block",
         "type": "def_test_block",
         "alias": 5,
-        "fields": [
-          {
-            "name": "is_block",
-            "form": "flag",
-            "value": "true"
-          },
-          {
-            "name": "rows",
-            "form": "number",
-            "value": ""
-          },
-          {
-            "name": "metadata",
-            "form": "text",
-            "value": ""
-          }
-        ],
-        "looks": {
+        "order": 2,
+        "settings": {
           "card": {
             "label": "below"
           }
         },
-        "order": 2,
+        "values": [
+          {
+            "name": "is_block",
+            "value": "true"
+          },
+          {
+            "name": "rows",
+            "value": ""
+          },
+          {
+            "name": "metadata",
+            "value": ""
+          }
+        ],
         "x": 120,
         "y": -120
       },
@@ -508,7 +408,8 @@
         "parent": "block_ht3r5k5pz2lg",
         "name": "projection of l56 block",
         "alias": 22,
-        "looks": {
+        "order": 1,
+        "settings": {
           "card": {
             "align": "left",
             "icon": "role_table"
@@ -516,8 +417,7 @@
           "style": {
             "name_font": "none"
           }
-        },
-        "order": 1
+        }
       },
       "block_rh7ulbcyydze": {
         "id": "block_rh7ulbcyydze",
@@ -530,9 +430,8 @@
       },
       "block_rj10qdx5jhn9": {
         "id": "block_rj10qdx5jhn9",
-        "parent": "ws",
+        "parent": "block_ka9vluxhbn5n",
         "name": "block",
-        "group": "block_ka9vluxhbn5n",
         "alias": 6,
         "order": 5,
         "x": -192,
@@ -540,16 +439,13 @@
       },
       "block_roesrpnridkj": {
         "id": "block_roesrpnridkj",
-        "parent": "block_rj10qdx5jhn9",
-        "group": "block_4dxph88c5cyj",
+        "parent": "block_4dxph88c5cyj",
         "alias": 21,
         "cell": {
-          "r": 0,
-          "c": 0
+          "r": 1,
+          "c": 2
         },
-        "order": 6,
-        "x": 24,
-        "y": 336
+        "order": 6
       },
       "block_sah425bet8e7": {
         "id": "block_sah425bet8e7",
@@ -579,22 +475,20 @@
       },
       "block_sxbqlnfb9zl6": {
         "id": "block_sxbqlnfb9zl6",
-        "parent": "block_rj10qdx5jhn9",
+        "parent": "block_4dxph88c5cyj",
         "name": "Block",
-        "group": "block_4dxph88c5cyj",
         "alias": 16,
         "cell": {
-          "r": 0,
+          "r": 1,
           "c": 1
         },
-        "order": 3,
-        "x": 216,
-        "y": 336
+        "order": 3
       },
       "block_t1f7x1vfkadb": {
         "id": "block_t1f7x1vfkadb",
-        "parent": "ws",
+        "parent": "main",
         "name": "R",
+        "type": "reference",
         "of": "block_2y5dibibfcqa",
         "alias": 6,
         "order": 12,
@@ -604,6 +498,7 @@
       "block_wgrensjcv5bt": {
         "id": "block_wgrensjcv5bt",
         "parent": "block_pcm8tjwdotm2",
+        "type": "reference",
         "of": "block_6mkkngq8lsy9",
         "alias": 7,
         "order": 3,
@@ -616,8 +511,8 @@
         "type": "grid",
         "alias": 5,
         "grid": {
-          "rows": 1,
-          "cols": 1
+          "rows": 2,
+          "cols": 2
         },
         "order": 9,
         "x": -48,
@@ -625,11 +520,15 @@
       },
       "block_xpgood1tsdl8": {
         "id": "block_xpgood1tsdl8",
-        "parent": "ws",
+        "parent": "main",
         "name": "parent",
         "alias": 15,
-        "arrangement": "auto",
         "order": 2,
+        "settings": {
+          "layout": {
+            "kind": "auto"
+          }
+        },
         "x": -240,
         "y": -288
       },
@@ -641,12 +540,100 @@
         "x": -48,
         "y": -312
       },
-      "ws": {
-        "id": "ws",
+      "def_base": {
+        "id": "def_base",
+        "parent": "workspace.relations",
+        "name": "Base",
+        "type": "def_default",
+        "def": {},
+        "settings": {
+          "style": {
+            "hue": 292,
+            "intensity": 0.15
+          }
+        }
+      },
+      "def_default": {
+        "id": "def_default",
+        "parent": "workspace.relations",
+        "name": "line",
+        "type": "line",
+        "def": {}
+      },
+      "def_relates": {
+        "id": "def_relates",
+        "parent": "workspace.relations",
+        "name": "<<relates>>",
+        "type": "def_default",
+        "def": {},
+        "settings": {
+          "style": {
+            "hue": 314
+          }
+        }
+      },
+      "def_relation": {
+        "id": "def_relation",
+        "parent": "workspace.relations",
+        "name": "relation",
+        "type": "def_default",
+        "def": {}
+      },
+      "def_special": {
+        "id": "def_special",
+        "parent": "workspace.blocks",
+        "name": "special",
+        "type": "folder",
+        "def": {},
+        "settings": {
+          "style": {
+            "family": "secondary",
+            "hue": 300,
+            "intensity": 0.4,
+            "name_font": "italic"
+          },
+          "card": {
+            "label": "below"
+          }
+        }
+      },
+      "def_specialer": {
+        "id": "def_specialer",
+        "parent": "workspace.blocks",
+        "name": "specialer",
+        "type": "def_special",
+        "def": {}
+      },
+      "def_test": {
+        "id": "def_test",
+        "parent": "workspace.relations",
+        "name": "Test",
+        "type": "def_default",
+        "def": {}
+      },
+      "def_test_block": {
+        "id": "def_test_block",
+        "parent": "workspace.blocks",
+        "name": "Test Block",
+        "type": "block",
+        "def": {}
+      },
+      "main": {
+        "id": "main",
+        "parent": "workspace.blocks",
+        "name": "main",
+        "def": {},
+        "order": 4,
+        "settings": {
+          "layout": {
+            "kind": "auto"
+          }
+        }
+      },
+      "workspace": {
+        "id": "workspace",
         "parent": null,
         "name": "testspace",
-        "type": "folder",
-        "arrangement": "auto",
         "counters": {
           "block": 25,
           "folder": 3,
@@ -656,26 +643,42 @@
           "reference": 7,
           "relation": 24,
           "interface": 1
-        },
-        "pinned": [
-          "def_special",
-          "def_specialer",
-          "def_test_block"
-        ]
+        }
+      },
+      "workspace.blocks": {
+        "id": "workspace.blocks",
+        "parent": "workspace",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1
+      },
+      "workspace.relations": {
+        "id": "workspace.relations",
+        "parent": "workspace",
+        "name": "relations",
+        "type": "folder",
+        "order": 2
+      },
+      "workspace.tags": {
+        "id": "workspace.tags",
+        "parent": "workspace",
+        "name": "tags",
+        "type": "folder",
+        "order": 3
       }
     },
     "edges": {
       "edge_1oordonyaxvk": {
         "id": "edge_1oordonyaxvk",
-        "from": "block_ew5quzihwe9g",
         "alias": 1,
+        "from": "block_ew5quzihwe9g",
         "to": "block_wgrensjcv5bt"
       },
       "edge_2sn9h1rulw7k": {
         "id": "edge_2sn9h1rulw7k",
-        "from": "block_rh7ulbcyydze",
         "alias": 2,
-        "looks": {
+        "from": "block_rh7ulbcyydze",
+        "settings": {
           "style": {
             "hue": 314
           }
@@ -684,77 +687,80 @@
       },
       "edge_43o9s7aodw1k": {
         "id": "edge_43o9s7aodw1k",
-        "from": "block_8lbbe57fkwiz",
         "alias": 3,
+        "from": "block_8lbbe57fkwiz",
         "to": "block_6mkkngq8lsy9"
       },
       "edge_4nhycvtf8zbu": {
         "id": "edge_4nhycvtf8zbu",
-        "from": "block_g7r7pich1xuz",
         "alias": 4,
+        "from": "block_g7r7pich1xuz",
         "to": "block_gwetekpeykck"
       },
       "edge_5w8zpeg1znas": {
         "id": "edge_5w8zpeg1znas",
-        "from": "block_h1gmpej2w1tl",
         "alias": 5,
+        "from": "block_h1gmpej2w1tl",
         "to": "block_gwetekpeykck"
       },
       "edge_71o9x6outskz": {
         "id": "edge_71o9x6outskz",
-        "from": "block_d7b79oajslu5",
         "alias": 6,
+        "from": "block_d7b79oajslu5",
         "to": "block_rj10qdx5jhn9"
       },
       "edge_7bomo3xdu80j": {
         "id": "edge_7bomo3xdu80j",
-        "from": "block_i5x9yytvukem",
         "alias": 7,
+        "from": "block_i5x9yytvukem",
         "to": "block_ew5quzihwe9g"
       },
       "edge_8pj32ea5dj6w": {
         "id": "edge_8pj32ea5dj6w",
-        "from": "block_oud23vt3ldeo",
         "alias": 8,
+        "from": "block_oud23vt3ldeo",
         "to": "block_ew5quzihwe9g"
       },
       "edge_9fg4gtjkuve0": {
         "id": "edge_9fg4gtjkuve0",
-        "from": "block_ew5quzihwe9g",
         "alias": 9,
-        "to": "block_pcm8tjwdotm2",
-        "toSide": "left"
+        "from": "block_ew5quzihwe9g",
+        "to": "block_pcm8tjwdotm2"
       },
       "edge_9vqi9b29txu1": {
         "id": "edge_9vqi9b29txu1",
-        "from": "block_d7b79oajslu5",
         "alias": 10,
+        "from": "block_d7b79oajslu5",
         "to": "block_lidqmag9iygj"
       },
       "edge_adr55k2me3et": {
         "id": "edge_adr55k2me3et",
-        "from": "block_roesrpnridkj",
-        "dir": "forward",
         "alias": 11,
-        "to": "block_sxbqlnfb9zl6"
+        "from": "block_roesrpnridkj",
+        "to": "block_sxbqlnfb9zl6",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "edge_cktxtb5g5aa3": {
         "id": "edge_cktxtb5g5aa3",
-        "from": "block_t1f7x1vfkadb",
         "alias": 12,
+        "from": "block_t1f7x1vfkadb",
         "to": "block_lidqmag9iygj"
       },
       "edge_egs2l5lsnid0": {
         "id": "edge_egs2l5lsnid0",
-        "from": "block_r1u3fmlv2njn",
         "alias": 13,
+        "from": "block_r1u3fmlv2njn",
         "to": "block_ew5quzihwe9g"
       },
       "edge_eiu51lknmwwg": {
         "id": "edge_eiu51lknmwwg",
-        "from": "block_d7b79oajslu5",
         "alias": 14,
-        "looks": {
+        "from": "block_d7b79oajslu5",
+        "settings": {
           "line": {
             "alias": "show"
           }
@@ -763,64 +769,64 @@
       },
       "edge_hoab40s8w31k": {
         "id": "edge_hoab40s8w31k",
-        "from": "block_23iri9bhaf1y",
+        "type": "tie",
         "alias": 15,
+        "from": "block_23iri9bhaf1y",
         "to": "block_pcm8tjwdotm2"
       },
       "edge_ijoo4gd9dzwq": {
         "id": "edge_ijoo4gd9dzwq",
-        "from": "block_r1u3fmlv2njn",
         "alias": 16,
+        "from": "block_r1u3fmlv2njn",
         "to": "block_swt7wg3ubr7p"
       },
       "edge_keh9vphojxzf": {
         "id": "edge_keh9vphojxzf",
-        "from": "block_xpgood1tsdl8",
         "alias": 17,
+        "from": "block_xpgood1tsdl8",
         "to": "block_rj10qdx5jhn9"
       },
       "edge_l17yb8tyzsio": {
         "id": "edge_l17yb8tyzsio",
-        "from": "block_gikyjb1138b4",
         "alias": 18,
+        "from": "block_gikyjb1138b4",
         "to": "block_9vmqohl7du88"
       },
       "edge_n4md0pvs4o71": {
         "id": "edge_n4md0pvs4o71",
-        "from": "block_pcm8tjwdotm2",
         "alias": 19,
+        "from": "block_pcm8tjwdotm2",
         "to": "block_oud23vt3ldeo"
       },
       "edge_ol38mnbe6vqi": {
         "id": "edge_ol38mnbe6vqi",
-        "from": "block_ga0xoyy306a1",
         "alias": 20,
+        "from": "block_ga0xoyy306a1",
         "to": "block_h1gmpej2w1tl"
       },
       "edge_reii0joxi0c4": {
         "id": "edge_reii0joxi0c4",
-        "from": "block_sah425bet8e7",
         "alias": 21,
+        "from": "block_sah425bet8e7",
         "to": "block_6mkkngq8lsy9"
       },
       "edge_rf5hkz6gbnyo": {
         "id": "edge_rf5hkz6gbnyo",
-        "from": "block_2y5dibibfcqa",
         "alias": 22,
+        "from": "block_2y5dibibfcqa",
         "to": "block_lidqmag9iygj"
       },
       "edge_svi4zfuyruut": {
         "id": "edge_svi4zfuyruut",
-        "from": "block_i5x9yytvukem",
         "alias": 23,
+        "from": "block_i5x9yytvukem",
         "to": "block_lidqmag9iygj"
       },
       "edge_yoc1umj8z28q": {
         "id": "edge_yoc1umj8z28q",
-        "from": "block_pjwhm997jirl",
         "alias": 24,
-        "to": "block_lidqmag9iygj",
-        "toSide": "left"
+        "from": "block_pjwhm997jirl",
+        "to": "block_lidqmag9iygj"
       }
     }
   }

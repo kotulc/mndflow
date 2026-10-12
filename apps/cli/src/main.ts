@@ -1,11 +1,12 @@
 /** The headless app: folds, acts, projects and checks without React. */
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { alias_of, check, children, fold, read, review, say, session, shown_name, write,
-         type Fault, type Graph, type Id, type Log, type Storage } from "@mnd/core";
-import { seed } from "@mnd/defs";
+import { all_defs, alias_of, check, children, collect, domain_of, fold, read, review, say,
+         session, shown_name, write, type Fault, type Id, type Leaf, type Log,
+         type Storage } from "@mnd/core";
+import { FLOOR } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
 import { draw, draw_svg, faults, outline, project } from "@mnd/views";
 import { node_net } from "./ports";
@@ -24,6 +25,9 @@ const USAGE = `mnd — the headless harness
   mnd translate <source> [--round]     write the graph as SysML, and check it comes back
                         [--with <pkg>] bring a vocabulary in first, so its names are used
   mnd export <source> [out.json]       fold and write the file
+  mnd collect <folder> [out.json]      a folder as a package: package.json, a .json file per
+                                       definition and markdown cards
+                        [--bare]       keep the ids it says, as base's are kept
 
   <source> is a log fixture (${NAMES.join(", ")}),
            a file fixture (${GRAPH_NAMES.join(", ")}),
@@ -31,12 +35,9 @@ const USAGE = `mnd — the headless harness
   A log is harness input only: a file is a graph, and that is what export writes.
   --how sets the arrangement: free auto
   --svg writes the drawing instead of the text projection
+  k=@path reads that value from a file: body=@cards/pump.md
   --from sets the package catalogue search reads (default public/packages/index.json)
 `;
-
-/** The shipped package, as the floor every fold here starts from. */
-const FLOOR: Graph["defs"] = {};
-for (const m of seed()) FLOOR[m.def.id] = m.def;
 
 /** A fixture of either kind, an exported file, or a raw log. */
 function load(source: string): { log: Log; faults: Fault[] } {
@@ -110,10 +111,22 @@ function pairs(args: string[]): Record<string, unknown> {
     if (eq < 0) continue;
     const key = a.slice(0, eq);
     const value = a.slice(eq + 1);
-    out[key] = value === "true" ? true : value === "false" ? false
+    /** A value said as `@path` is that file's text, where there is such a file. */
+    out[key] = value.startsWith("@") && existsSync(value.slice(1)) ? readFileSync(value.slice(1), "utf8")
+             : value === "true" ? true : value === "false" ? false
              : /^-?\d+$/.test(value) ? Number(value) : value;
   }
   return out;
+}
+
+/** Every file under a folder, by its path from it, skipping what is hidden. */
+function leaves(folder: string, at = folder): Leaf[] {
+  return readdirSync(at).flatMap((name): Leaf[] => {
+    if (name.startsWith(".") || name === "node_modules") return [];
+    const full = join(at, name);
+    if (statSync(full).isDirectory()) return leaves(folder, full);
+    return [{ path: relative(folder, full).split(sep).join("/"), text: readFileSync(full, "utf8") }];
+  });
 }
 
 /** Where the packages catalogue lives, at the repo root. */
@@ -125,6 +138,18 @@ async function main(argv: string[]): Promise<void> {
   if (!verb || !source) {
     console.log(USAGE);
     process.exit(verb ? 1 : 0);
+  }
+
+  /** A collection is a folder, not a log: read whole, and written as a package file. */
+  if (verb === "collect") {
+    const { text, made, clashes } = collect(basename(resolve(source)), leaves(source),
+                                            fold([], FLOOR), { bare: rest.includes("--bare") });
+    const out = loose(rest)[0];
+    if (out) writeFileSync(out, text);
+    else process.stdout.write(text);
+    if (made.length) console.error(`  made ${made.join(", ")}`);
+    if (clashes.length) console.error(`  refused, said twice: ${clashes.join(", ")}`);
+    return;
   }
 
   const { log, faults: reading } = load(source);
@@ -160,7 +185,8 @@ async function main(argv: string[]): Promise<void> {
       const layer = find_layer(log, plain[0]);
       let graph = fold(log, FLOOR);
       if (how && layer !== null) graph = { ...graph,
-        blocks: { ...graph.blocks, [layer]: { ...graph.blocks[layer]!, arrangement: how as never } } };
+        blocks: { ...graph.blocks, [layer]: { ...graph.blocks[layer]!,
+          settings: { ...graph.blocks[layer]!.settings, layout: { kind: how } } } } };
       const scene = project(graph, layer);
       const wrong = faults(scene);
       if (wrong.length) {
@@ -180,7 +206,7 @@ async function main(argv: string[]): Promise<void> {
         console.error("  which action?");
         process.exit(1);
       }
-      const s = session({ storage: held(log), defs: seed() });
+      const s = session({ storage: held(log), floor: FLOOR });
       const before = s.log().length;
       const layer = find_layer(s.log(), flag(rest, "layer"));
       if (layer !== null) s.look(layer);
@@ -202,14 +228,14 @@ async function main(argv: string[]): Promise<void> {
 
     /** A package from outside, in through the door against the workspace it joins. */
     case "search": {
-      const s = session({ storage: held(log), defs: seed(), net: node_net(),
+      const s = session({ storage: held(log), floor: FLOOR, net: node_net(),
                           catalogue: flag(rest, "from") ?? CATALOGUE });
-      const before = new Set(Object.keys(s.graph().defs));
+      const before = new Set(all_defs(s.graph()).map((d) => d.id));
       const found = await s.search(plain.join(" "));
       console.log(s.said()?.text ?? "");
       if (!found) process.exit(1);
-      for (const d of Object.values(s.graph().defs)) {
-        if (!before.has(d.id)) console.log(`  ${d.group} ${d.name}`);
+      for (const d of all_defs(s.graph())) {
+        if (!before.has(d.id)) console.log(`  ${domain_of(s.graph(), d.id)} ${d.name}`);
       }
       for (const f of found.faults) console.log(`  ${f.kind}: ${f.what}`);
       return;
@@ -222,7 +248,7 @@ async function main(argv: string[]): Promise<void> {
       const want = flag(rest, "with");
       let held_log = log;
       if (want) {
-        const s = session({ storage: held(log), defs: seed(), net: node_net(),
+        const s = session({ storage: held(log), floor: FLOOR, net: node_net(),
                             catalogue: flag(rest, "from") ?? CATALOGUE });
         if (!(await s.search(want))) {
           console.error(`  ${s.said()?.text ?? ""}`);
@@ -236,7 +262,7 @@ async function main(argv: string[]): Promise<void> {
         process.stdout.write(text);
         return;
       }
-      const back = read(as_file(from_sysml(text, graph.defs)), FLOOR);
+      const back = read(as_file(from_sysml(text, all_defs(graph))), FLOOR);
       for (const f of back.faults) console.log(`  ${f.kind}: ${f.what}`);
       const again = fold(back.log, FLOOR);
       const was = shape_of(graph);

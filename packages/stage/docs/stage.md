@@ -2,7 +2,7 @@
 
 **The working area, and the one thing that never yields.** Chrome gives way under pressure — the crumbs truncate, the option groups scroll, the explorer bounds itself — and the stage keeps its room.
 
-**The stage hosts the diagram, and there is one way to draw it.** `table` and `matrix` were view modules and the grid absorbed them.
+**The stage hosts the diagram, and there is one way to draw it.**
 
 | | Fills the stage with |
 |---|---|
@@ -18,14 +18,11 @@
 
 ## The gestures it names
 
-**The working area, and the one thing that never yields.** Chrome gives way under pressure and the stage keeps its room.
-
-- **The stage hosts the diagram**, and a grid is a block drawn on it rather than a second surface.
 - **The left button works what is already there; the right button makes something new.** Within the right button, a click makes the thing that sits at a point and a drag makes the thing that has extent.
-- **A click in the explorer navigates; a click on the stage selects and never navigates.**
+- **A click on the stage selects and never navigates**; opening (a double-click, Enter) moves the canvas, as in the explorer.
 - **A left drag is decided at the press and never revised** — a gesture that changes its mind halfway is the aim-and-hope this design is written against.
 - **Dropping a card on another card is a `move`, which is sayable; dropping it anywhere else is a `place`, which is not.**
-- **The stage works out what an adjustment writes** (`moves.ts`) — a place and a `group`, a `leave`, a `seat`, a `refer` into a header cell, a `relink`, an `arrange` to `free` on an `auto` layer — and hands the list to the host, which runs it as one batch. **One gesture, one step.**
+- **The stage works out what an adjustment writes** (`moves.ts`) — a place and a `group`, a `leave`, a `seat`, a `refer` into a header cell, a `relink`, a `layout` to `free` on an `auto` layer — and hands the list to the host, which runs it as one batch. **One gesture, one step.**
 - **A header cell is its own drop target, read from the pointer.** A header line is one unit across, narrower than any card, so where the card's middle lands cannot find one; the cell lights alone while it is the target.
 - **A relationship may end on a group or a grid**, at its rim, as on any block.
 - **A drop lands on a box and never on the frame** — the frame spans the whole layer, so counting it would make every drop a re-parent.
@@ -51,3 +48,13 @@
 ## Hover and pick
 
 **Another surface points; only a gesture picks.** A hovered table row arrives as `lit` and draws an accent outline round a card or an accent stroke on a run. A pick draws an accent border and a raised fill on a card, and the grips on a run — so the two differ in what is shown, never only in strength.
+
+## Scrolled drawings
+
+**A scrolled drawing is a page held still across**: fitted to its width (or `reach`), centred where it is narrower than the view and read from its left where wider, and never magnified past `most`. The system views, the folder and definition views, and mndmap's pages are scrolled. **A scrolled drawing's room hugs what it draws** rather than growing to the panel, so a short folder reads without empty space.
+
+| Rule | |
+|---|---|
+| **read from top to bottom, no further** | the page stops a band past its content's top and foot; a page shorter than the view sits in its middle |
+| **scrolled into view, never centred** | a focus already in view leaves the page still; one out of view moves it just far enough |
+| **one reckoning** | the camera and the scroll limit read the same page and zoom (`paged`, `bounded` in `room.ts`), so neither undoes the other |

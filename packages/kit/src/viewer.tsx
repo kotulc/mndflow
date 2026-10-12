@@ -2,24 +2,23 @@
 
 import { useState } from "react";
 import { is_container, type Graph, type Id } from "@mnd/core";
-import { class_def, fields_graph, project, set_card, set_full, type Config } from "@mnd/views";
-import { Crumbs, FlowView, Legend, type Corner, type Gesture } from "@mnd/stage";
+import { class_def, fields_graph, project, set_card, type Config } from "@mnd/views";
+import { Crumbs, FlowView, Legend, lit_rules, type Corner, type Gesture } from "@mnd/stage";
 
 /** Nothing picked, as one constant so it never reads as a change. */
 const NONE: readonly Id[] = [];
 
 export type ViewerProps = {
   graph: Graph;
-  /** Which layer to draw. The root layer unless said otherwise. */
+  /** Which layer to draw: the workspace's domain unless said otherwise; null draws the forest. */
   layer?: Id | null;
   /** Which blocks are lit, without moving the layer. */
   picked?: readonly Id[];
+  /** What another surface is pointing at, drawn in the hover look; never a pick. */
+  lit?: readonly Id[];
   config?: Config;
   /** The default card, in units of the lattice. The layout's own default unless said. */
   card?: { w: number; h: number };
-  /** Whether a card that fits its content grows to show all of it. Off, it previews it at the one
-   *  card height and cuts it off. */
-  full?: boolean;
   /** Chrome over the canvas. */
   chrome?: {
     crumbs?: boolean;
@@ -40,7 +39,7 @@ export type ViewerProps = {
   onOpen?: (id: Id) => void;
   /** Told where a box points, when one that holds nothing is opened. */
   onFollow?: (link: string, id: Id) => void;
-  /** The layer drawn as its fields' class diagram rather than its contents. */
+  /** The layer drawn as its attributes' class diagram rather than its contents. */
   fields?: Id | null;
   /** Told what the view toggle asks for: the open layer drawn as a diagram, or null for its
    *  contents. Given it, a layer whose blocks carry fields offers the toggle in the canvas's bottom
@@ -64,16 +63,17 @@ export type ViewerProps = {
   onTrail?: (id: string | null) => void;
 };
 
-export function Viewer({ graph, layer = null, picked = NONE, config, card, full = false, chrome,
+export function Viewer({ graph, layer: said, picked = NONE, lit: pointed = NONE, config, card, chrome,
                         onLook, onPick, onOpen, onFollow, fields = null, onFields, scroll = false,
                         focus = null, reach = null, widest = null, most = null, trail = null,
                         onTrail }: ViewerProps) {
+  /** Unsaid, the workspace's own domain; null is the forest above every package. */
+  const layer = said === undefined ? graph.root : said;
   const [at, set_at] = driven<Id | null>(layer);
   const [lit, set_lit] = driven<readonly Id[]>(picked);
 
   /** The card size is the layout's, held in one place, so it is set before anything measures. */
   if (card) set_card(card.w, card.h);
-  set_full(full);
   /** A fields diagram is the open layer drawn another way, in its own frame. It is only ever the
    *  open layer's: one asked for elsewhere draws nothing until that layer is open. */
   const diagram = at ? fields_graph(graph, at) : null;
@@ -117,12 +117,15 @@ export function Viewer({ graph, layer = null, picked = NONE, config, card, full 
   };
 
   const flow = (
-    /** A view of its own, so the camera frames each afresh: a room is kept per layer, and the
-     *  diagram's is not the contents'. */
-    <FlowView key={drawn ? "diagram" : "contents"} scene={scene} picked={lit}
-      lattice={chrome?.lattice ?? true} frame={chrome?.frame ?? true} scroll={scroll}
-      focus={focus} reach={reach} widest={widest} most={most}
-      onGesture={gesture} onPick={pick} />
+    <>
+      {pointed.length ? <style>{lit_rules(pointed)}</style> : null}
+      {/* A view of its own, so the camera frames each afresh: a room is kept per layer, and the
+          diagram's is not the contents'. */}
+      <FlowView key={drawn ? "diagram" : "contents"} scene={scene} picked={lit}
+        lattice={chrome?.lattice ?? true} frame={chrome?.frame ?? true} scroll={scroll}
+        focus={focus} reach={reach} widest={widest} most={most}
+        onGesture={gesture} onPick={pick} />
+    </>
   );
   if (!chrome?.crumbs && !chrome?.legend && !onFields) return flow;
 

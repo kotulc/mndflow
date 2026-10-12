@@ -16,7 +16,8 @@ export function kind_of(scene: Scene, id: string | null,
   /** A card's border is a wall, not the card. */
   if (el?.closest(".mnd-brim")) return "brim";
   if (scene.frame?.ports.some((p) => p.id === id)) return "seat";
-  /** A cell has no id, so its address is read off the DOM. */
+  /** A cell or a line has no id, so its address is read off the DOM. */
+  if (el?.closest(LINES)) return "line";
   if (el?.closest(".mnd-grid-cell")) return "cell";
   const node = scene.nodes.find((n) => n.id === id);
   /** Boundaries and notes have no inside. */
@@ -24,6 +25,9 @@ export function kind_of(scene: Scene, id: string | null,
   if (node?.type === "note") return "note";
   return node?.data.on ? "seat" : "box";
 }
+
+/** What stands for a row or column of an opened grid: the header heading it. */
+export const LINES = ".mnd-grid-cell[data-way]";
 
 /** Everywhere a name is drawn on a card. */
 export const NAMES = ".mnd-label, .mnd-group-name, .mnd-wire-text";

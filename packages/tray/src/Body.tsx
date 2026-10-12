@@ -105,8 +105,9 @@ export function Pick({ name, on, of, onPick }: PickProps) {
 }
 
 export type LineProps = {
-  /** The word in the left gutter. One question per row, so it is a word and not a sentence. */
-  label: ReactNode;
+  /** The word in the left gutter. One question per row, so it is a word and not a sentence.
+   *  Absent, the answer takes the whole row. */
+  label?: ReactNode;
   /** What the row is asking, in full, on hover. */
   tip?: string;
   /** Drawn as unreachable, not merely unset. */
@@ -120,7 +121,7 @@ export function Line({ label, tip, off, className, children }: LineProps) {
   return (
     <div className={["row", className].filter(Boolean).join(" ")}
          title={tip} aria-disabled={off || undefined}>
-      <label>{label}</label>
+      {label ? <label>{label}</label> : null}
       <span className="line">{children}</span>
     </div>
   );

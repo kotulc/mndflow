@@ -3,12 +3,19 @@
 import type { Edge, Node } from "@xyflow/react";
 import type { Dir, Id, Mark, Role, Side } from "@mnd/core";
 import type { Arrow, Look, Wire } from "./look";
-import type { Perch } from "./seat";
+import type { Fan, Perch, Seat } from "./seat";
+
+/** One row of a card's attributes: its name, its type's name, whether it keys, and the value a
+ *  usage answers or the default a definition declares. */
+export type Listed = {
+  name: string; type: string; key?: boolean; link?: boolean; value?: string; note?: string;
+};
+
+/** A large face's attributes as a ruled table: each row's cells, and each column's width in
+ *  pixels — worked out once, so the card is sized and drawn alike. */
+export type Ruled = { cells: readonly (readonly string[])[]; widths: readonly number[] };
 
 /** What one drawn thing carries beyond where it sits and how big it is. */
-/** One line of a card's compartment. A schema line has a form and no value. */
-export type Listed = { name: string; form: string; value?: string; key?: boolean };
-
 export type BoxData = {
   /** The mark a thing wears beside its name while nobody has named it. */
   alias?: string;
@@ -20,19 +27,20 @@ export type BoxData = {
   /** Where the box points, if it points anywhere. */
   link?: string;
   /** Everything true of it at once, drawn as classes. */
-  marks: readonly Trait[];
+  marks: readonly CardClass[];
   /** The system marks, derived: what this card stands in for, or what describes it. */
   stamps?: readonly Mark[];
   /** What sort of thing it is: the icon it wears unless somebody set their own. */
   role?: Role;
+  /** Whether it opens onto a view of its own. */
+  opens?: boolean;
   /** How its definition says it draws. */
   look?: Look;
-  /** What its compartment lists, where its look asks for one: each field's name, form and value. */
-  fields?: readonly Listed[];
-  /** What it says, as markdown, where its look asks for its body. */
-  body?: string;
-  /** The image its source points at, where its look asks for a preview. */
-  preview?: string;
+  /** Which face it draws with, and the large face's parts its look shows: its attributes as a
+   *  table, and its body and preview as markdown. */
+  face?: "small" | "large";
+  table?: Ruled;
+  text?: string;
   /** The lattice a grid draws, as boxes inside its own. */
   grid?: readonly GridCell[];
   /** Whom a boundary is drawn round. */
@@ -51,9 +59,19 @@ export type BoxData = {
 
 /** What a card wears as classes: everything true of it at once, as against the one system
  *  mark it carries. */
-export type Trait = "container" | "reference" | "missing" | "note" | "group" | "grid"
+export type CardClass = "container" | "reference" | "missing" | "note" | "group" | "grid"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
-                 | "cell" | "header" | "upright" | "merged";
+                 | "cell" | "header" | "upright" | "merged"
+                 /** An opened grid, standing in for the room. */
+                 | "room"
+                 /** A cell a block sits in. */
+                 | "seated"
+                 /** A block of a definition's structure, seen through a usage of it. */
+                 | "part"
+                 /** A block a section holds on the way to the pick: where a profile cuts. */
+                 | "held"
+                 /** A folder or block a view flattens into a box: not a group anybody made. */
+                 | "flat";
 
 /** One cell of a grid, placed inside the grid's own box. */
 export type GridCell = {
@@ -63,27 +81,26 @@ export type GridCell = {
   y: number;
   w: number;
   h: number;
-  marks: readonly Trait[];
-  /** What the cell says where no block is seated in it: a value, or its column's name on a line
-   *  the grid's schema heads. */
-  value?: string;
-  /** On the header line: the block definition its column allocates, and whether its column is
-   *  the key that names each line. */
-  def?: Id;
-  key?: boolean;
+  marks: readonly CardClass[];
+  /** On a header line, the line it heads and that line's name: opened, the header is its
+   *  line's tab. */
+  line?: { way: "row" | "col"; i: number };
+  index?: string;
 };
 
 /** What one line carries; routing is the renderer's. */
 export type LineData = {
   /** The shipped base this run draws as: `line`, or `tie` where a note sits at an end. */
   module: Id;
+  /** A link an attribute draws: derived, and nothing to pick. */
+  link?: boolean;
   dir: Dir;
   /** How it is painted and what draws at its ends. */
   wire?: Wire;
   /** The handle, beside the name rather than inside it. */
   alias?: string;
-  /** The boxes this run must stay outside of: every card on the layer. */
-  clear?: readonly { x: number; y: number; w: number; h: number }[];
+  /** Where its cross leg sits, out from the end its lines fan from. */
+  fan?: Fan;
 };
 
 /** One drawn thing. React Flow's node, with our data on it. */
@@ -117,7 +134,7 @@ export type Port = {
   label: string;
   side: Side;
   at: number;
-  marks: readonly Trait[];
+  marks: readonly CardClass[];
   look?: Look;
 };
 
@@ -177,6 +194,28 @@ export function box_of(node: BoxNode): { x: number; y: number; w: number; h: num
     w: node.width ?? node.measured?.width ?? 0,
     h: node.height ?? node.measured?.height ?? 0,
   };
+}
+
+/** The seats spoken for on a border: its lines' anchors and its interfaces but `except`. A face's
+ *  middle is free while no line meets that face. */
+export function taken_on(scene: Scene, on: Id, except?: Id): Seat[] {
+  const out: Seat[] = scene.perches.filter((p) => p.on === on)
+    .map(({ side, at }) => ({ side, at }));
+  if (on === FRAME) {
+    const ports = (scene.frame?.ports ?? []).filter((p) => p.id !== except);
+    return [...out, ...ports.map(({ side, at }) => ({ side, at }))];
+  }
+  const host = scene.nodes.find((n) => n.id === on);
+  if (!host) return out;
+  const box = box_of(host);
+  for (const n of scene.nodes) {
+    if (n.data.on !== on || n.id === except || !n.data.side) continue;
+    const c = box_of(n);
+    const down = n.data.side === "left" || n.data.side === "right";
+    out.push({ side: n.data.side,
+               at: down ? (c.y + c.h / 2 - box.y) / box.h : (c.x + c.w / 2 - box.x) / box.w });
+  }
+  return out;
 }
 
 /** What the whole projection takes up, plus room for something new. */

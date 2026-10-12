@@ -1,0 +1,12 @@
+{
+  "id": "is_reference",
+  "name": "is_reference",
+  "type": "trait",
+  "body": "Stands for another block, definition or package (`of`): draws as it, opens onto it, owns nothing.",
+  "def": {},
+  "settings": {
+    "block": {
+      "module": "reference"
+    }
+  }
+}

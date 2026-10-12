@@ -1,17 +1,16 @@
 /** Argument readers and makers shared by the actions. */
 
-import { def_named, default_for, block_base, outside, relation_base,
-         stored_type } from "../defs";
+import { block_base, def_at, def_named, frozen, package_of, relation_base, setting_of,
+         stored_type, type Domain } from "../defs";
 import { is_grid } from "../holders";
 import { next_alias } from "../names";
-import { layer_id, next_order } from "../tree";
+import { children, next_order, reorder } from "../tree";
 import { new_id } from "../ids";
-import type { Cell, Definition, Graph, Id, Mutation, Side,
-              Span } from "../types";
+import type { Cell, Graph, Id, Mutation, Side, Span } from "../types";
 import type { Args, Context } from "./registry";
 
-/** The layer an action lands in; null is the root. */
-export const here = (ctx: Context): Id => layer_id(ctx.graph, ctx.layer);
+/** The layer an action lands in: the open one, else the workspace's domain. */
+export const here = (ctx: Context): Id => ctx.layer ?? ctx.graph.root;
 
 export const text = (args: Args, key: string): string => String(args[key] ?? "").trim();
 export const id_of = (args: Args, key: string): Id => String(args[key] ?? "");
@@ -98,29 +97,32 @@ export function handles(ctx: Context, kind: string) {
 export function may_wear(ctx: Context, args: Args, kind: Id): string | null {
   const type = text(args, "type");
   if (!type) return null;
-  const d = ctx.graph.defs[type];
+  const d = def_at(ctx.graph, type);
   if (!d) return `there is no definition called "${type}"`;
   return block_base(ctx.graph, type) === kind
     ? null : `"${d.name}" is not a ${kind} definition`;
 }
 
-/** The type an action stores; a base or a default stores as plain. */
+/** The type an action stores; a structural base stores as plain. */
 export const typed = (ctx: Context, args: Args): { type?: Id } => {
   const type = stored_type(ctx.graph, text(args, "type"));
   return type ? { type } : {};
 };
 
-/** The relation type a run stores, only when it is of the run's module. */
-export const run_type = (ctx: Context, args: Args, base: Id): { type?: Id } => {
-  const type = text(args, "type");
-  return type && relation_base(ctx.graph, type) === base ? typed(ctx, args) : {};
+/** The relation type a run stores, where it names a relation definition. */
+export const run_type = (ctx: Context, args: Args): { type?: Id } => {
+  /** A drawing tool names a base, `line` or `tie`; a type said outright wins. */
+  const type = rooted(ctx, text(args, "type") || text(args, "module"), "relation");
+  return type && def_at(ctx.graph, type) && relation_base(ctx.graph, type)
+    ? (stored_type(ctx.graph, type) ? { type: stored_type(ctx.graph, type)! } : {}) : {};
 };
 
 /** Bases a layer cannot make on its own, and why. */
 export const NEEDS: Record<string, string> = {
-  interface: "interfaces may only be added to existing blocks",
-  reference: "a reference is made by dragging the block, not its definition",
-  note: "a note is written about something",
+  interface: "an interface sits on a block — add one to a block, then drop this onto it",
+  reference: "a reference stands for a block — drag that block from the tree instead",
+  tag: "a tag is carried, not placed — type it into a block's tags in the tray",
+  value: "a value type is what an attribute holds — give an attribute this type instead",
 };
 
 /** Makes a block, numbered and ordered like every other. */
@@ -133,48 +135,51 @@ export function make_block(ctx: Context, name: string, parent: Id | null, type?:
   } }, ...serial.bump()];
 }
 
-/** The definition `extends` names: an id, or a name within the group. */
-export function rooted(ctx: Context, said: string, group?: "block" | "relation"): Id | undefined {
+/** The definition a word names: an id, or a name within the domain. */
+export function rooted(ctx: Context, said: string, domain?: Domain): Id | undefined {
   if (!said) return undefined;
-  if (ctx.graph.defs[said]) return said;
-  return def_named(ctx.graph, said, group)?.id;
+  if (def_at(ctx.graph, said)) return said;
+  return def_named(ctx.graph, said, domain)?.id;
 }
 
 /** A fresh definition id. Names are labels; ids never derive from them. */
-export function mint_def(group: "block" | "relation"): Id {
-  return new_id(group === "relation" ? "rel" : "def");
+export function mint_def(domain: Domain): Id {
+  return new_id(domain === "relation" ? "rel" : "def");
 }
 
-/** Why a holder cannot take a value: only an edge cannot. */
-export function holds_values(ctx: Context, args: Args): string | null {
-  const id = id_of(args, "holder");
-  return ctx.graph.edges[id]
-    ? "a relationship holds no values — promote an end and put it on the port"
-    : null;
-}
-
-/** Why a definition's identity is not yours to change. A package's name and its very existence
- *  are its own; what it *says* you may override — see `writable`. */
+/** Why a block is not the workspace's to change: it sits in a package that came frozen. */
 export function borrowed(graph: Graph, id: Id): string | null {
-  const d = graph.defs[id];
-  if (!outside(d)) return null;
-  return `"${d!.name}" comes from ${d!.from ?? "the floor"} — extend it with a subtype instead`;
-}
-
-/** The definition an edit actually writes. **Nothing from outside the workspace is ever written**:
- *  an edit to one goes to the workspace's word about it — the override already there, or a fresh
- *  one minted here — which stands in front of it in every chain that reaches it. */
-export function writable(ctx: Context, id: Id): Definition | null {
-  const d = ctx.graph.defs[id];
-  if (!d) return null;
-  if (!outside(d)) return d;
-  const held = default_for(ctx.graph, d.id, d.group);
-  if (held) return ctx.graph.defs[held] ?? null;
-  return { id: mint_def(d.group), group: d.group, name: d.name, extends: d.id, default: d.id };
+  if (!frozen(graph, id)) return null;
+  const pkg = graph.blocks[package_of(graph, id)];
+  const name = graph.blocks[id]?.name ?? id;
+  return `"${name}" comes from ${pkg?.name ?? pkg?.id ?? "a package"} — extend it with a subtype instead`;
 }
 
 /** Names from one answer, split on commas. */
 export function list(raw: unknown): string[] {
   if (Array.isArray(raw)) return raw.map(String).map((v) => v.trim()).filter(Boolean);
   return String(raw ?? "").split(",").map((v) => v.trim()).filter(Boolean);
+}
+
+/** The link a tie trait makes from a new block to the one it was made from: a relationship of the
+ *  type its `tie` setting names. Nothing where its definition carries no tie. */
+export function tied(ctx: Context, id: Id, parent: Id | null, type: Id | undefined,
+                     from: Id | undefined): Mutation[] {
+  const said = setting_of(ctx.graph, type, "tie")["type"];
+  if (!from || !ctx.graph.blocks[from] || typeof said !== "string") return [];
+  const kind = def_at(ctx.graph, said) ? stored_type(ctx.graph, said) : undefined;
+  const line = handles(ctx, "relation");
+  return [{ op: "link_blocks", edge: { id: new_id("edge"), from: id, to: from,
+                                       alias: line.take(), ...(kind ? { type: kind } : {}) } },
+          ...line.bump(), ...after(ctx, id, parent, from)];
+}
+
+/** A block just made, read right after `anchor` where the two share a parent: placed once, when
+ *  it is made, so no later line moves it. */
+function after(ctx: Context, id: Id, parent: Id | null, anchor: Id): Mutation[] {
+  if ((ctx.graph.blocks[anchor]?.parent ?? null) !== parent) return [];
+  const siblings = children(ctx.graph, parent).map((b) => b.id);
+  const next = siblings[siblings.indexOf(anchor) + 1] ?? null;
+  return reorder(ctx.graph, parent, id, next)
+    .map(({ id: at, order }): Mutation => ({ op: "order_block", id: at, order }));
 }

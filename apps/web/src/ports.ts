@@ -138,19 +138,35 @@ export function browser_files(): Files {
       a.click();
       URL.revokeObjectURL(url);
     },
-    open() {
-      return new Promise((done) => {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "application/json,.json";
-        input.onchange = () => {
-          const file = input.files?.[0];
-          if (!file) return done(null);
-          void file.text().then(done);
-        };
-        input.oncancel = () => done(null);
-        input.click();
-      });
+    async open() {
+      const [got] = await picked(["application/json", ".json"], false);
+      return got ? got.text() : null;
+    },
+    async text(accept) {
+      const [got] = await picked(accept, false);
+      return got ? { path: got.name, text: await got.text() } : null;
+    },
+    async folder() {
+      const got = await picked([], true);
+      if (!got.length) return null;
+      const name = got[0]!.webkitRelativePath.split("/")[0] || "collection";
+      const files = await Promise.all(got.map(async (f) => ({
+        path: f.webkitRelativePath.split("/").slice(1).join("/") || f.name, text: await f.text(),
+      })));
+      return { name, files };
     },
   };
+}
+
+/** What the user picks: one file of the sorts said, or every file under a folder. */
+function picked(accept: readonly string[], folder: boolean): Promise<File[]> {
+  return new Promise((done) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    if (folder) input.setAttribute("webkitdirectory", "");
+    else input.accept = accept.join(",");
+    input.onchange = () => done(Array.from(input.files ?? []));
+    input.oncancel = () => done([]);
+    input.click();
+  });
 }

@@ -2,9 +2,9 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, flat, nested, related } from "@mnd/fixtures";
-import { arrangement_of, children, config_of, edges_in, fold, is_container, is_reference,
-         is_top_block, block_base, base_of, next_order, path, session,
-         shown_name, stands_for, subtree, ROOT, type Definition } from "../src/index";
+import { children, config_of, edges_in, fold, is_container, is_reference, layer_of, layout_of,
+         block_base, base_of, next_order, path, session,
+         shown_name, stands_for, subtree, MAIN, ROOT, type Block } from "../src/index";
 
 describe("fold", () => {
   it.each(["flat", "nested", "related"])("is deterministic over %s", (name) => {
@@ -50,16 +50,10 @@ describe("derived readings", () => {
     expect(is_container(graph, "block_auth")).toBe(false);
   });
 
-  it("reads a tier root from position, and nothing stores one", () => {
-    const graph = fold(nested(), FLOOR);
-    expect(is_top_block(graph, "block_shelf")).toBe(true);
-    expect(is_top_block(graph, "block_ledger")).toBe(false);
-  });
-
   it("walks a path from root to the block, itself last", () => {
     const graph = fold(nested(), FLOOR);
     const trail = path(graph, "block_rate").map((b) => b.id);
-    expect(trail[0]).toBe(ROOT);
+    expect(trail.slice(0, 2)).toEqual([ROOT, MAIN]);
     expect(trail.at(-1)).toBe("block_rate");
   });
 
@@ -73,22 +67,15 @@ describe("derived readings", () => {
   it("lists only relations with both ends in the layer", () => {
     const graph = fold(related(), FLOOR);
     for (const e of edges_in(graph, "block_loop")) {
-      expect(graph.blocks[e.from]?.parent).toBe("block_loop");
-      expect(graph.blocks[e.to]?.parent).toBe("block_loop");
+      expect(layer_of(graph, e.from)).toBe("block_loop");
+      expect(layer_of(graph, e.to)).toBe("block_loop");
     }
   });
 
-  it("gives a layer that says nothing the free arrangement", () => {
+  it("gives a layer that says nothing the auto layout", () => {
     const graph = fold(flat(), FLOOR);
-    expect(arrangement_of(graph, "block_ledger")).toBe("free");
-    expect(arrangement_of(fold(related(), FLOOR), "block_loop")).toBe("auto");
-  });
-
-  it("reads a null layer as the root layer, and never as the root itself", () => {
-    const graph = fold(nested(), FLOOR);
-    expect(children(graph, null).map((b) => b.name)).toEqual(["Shelf", "Site"]);
-    expect(children(graph, null).map((b) => b.id)).not.toContain(ROOT);
-    expect(children(graph, null)).toEqual(children(graph, ROOT));
+    expect(layout_of(graph, "block_ledger")).toBe("auto");
+    expect(layout_of(fold(related(), FLOOR), "block_loop")).toBe("auto");
   });
 
   it("takes the lowest number not in use among siblings", () => {
@@ -99,15 +86,15 @@ describe("derived readings", () => {
 
 describe("references", () => {
   it("reads its target's name, and missing when the target is gone", () => {
-    const s = session();
+    const s = session({ floor: FLOOR });
     s.go("create", { name: "Ledger" });
-    const ledger = children(s.graph(), ROOT)[0]!.id;
+    const ledger = children(s.graph(), MAIN)[0]!.id;
     s.go("create", { name: "Auth", parent: ledger });
     const auth = children(s.graph(), ledger)[0]!.id;
 
-    s.look(null);
+    s.look(ROOT);
     s.go("refer", { target: auth });
-    const ref = children(s.graph(), null).find((b) => is_reference(b))!;
+    const ref = children(s.graph(), ROOT).find((b) => is_reference(s.graph(), b.id))!;
 
     expect(shown_name(s.graph(), ref.id)).toBe("Auth");
     expect(stands_for(s.graph(), ref.id)?.id).toBe(auth);
@@ -119,36 +106,28 @@ describe("references", () => {
 });
 
 /** The cascade, and the one rule it exists to make true. */
-/** The base kinds, as the seven definitions that name them. */
-const BASE: Definition[] = ["block", "folder", "reference",
-                            "interface", "group", "grid", "note"].map((name) => ({
-  id: name, group: "block" as const, name,
-  components: { block: { module: name } },
-}));
-
-const kinds = (more: Definition[] = []) => session({
-  defs: [...BASE, ...more].map((def) => ({ op: "set_def" as const, def })),
-});
+/** A session on the base package, and any definitions added beside it. */
+const kinds = (more: Block[] = []) => session({ floor: [...FLOOR, ...more] });
 
 describe("definitions cascade", () => {
-  const with_defs = (defs: Definition[]) => kinds(defs).graph();
+  const with_defs = (defs: Block[]) => kinds(defs).graph();
 
   it("keeps what a refinement did not restate", () => {
     const graph = with_defs([
-      { id: "d_base", group: "block", name: "base",
-        components: { style: { slot: "primary", emphasis: "quiet" } } },
-      { id: "d_sub", group: "block", name: "sub", extends: "d_base",
-        components: { style: { slot: "secondary" } } },
+      { id: "d_base", parent: "base", name: "base", def: {},
+        settings: { style: { slot: "primary", emphasis: "quiet" } } },
+      { id: "d_sub", parent: "base", name: "sub", type: "d_base", def: {},
+        settings: { style: { slot: "secondary" } } },
     ]);
     /** The nearest wins on what it says, and says nothing about the rest. */
     expect(config_of(graph, "d_sub", "style"))
-      .toEqual({ slot: "secondary", emphasis: "quiet" });
+      .toMatchObject({ slot: "secondary", emphasis: "quiet" });
   });
 
   it("reads a kind from the nearest link that names one", () => {
     const graph = with_defs([
-      { id: "d_bin", group: "block", name: "bin", extends: "folder",
-        components: { style: { slot: "muted" } } },
+      { id: "d_bin", parent: "base", name: "bin", type: "folder", def: {},
+        settings: { style: { slot: "muted" } } },
     ]);
     expect(block_base(graph, "d_bin")).toBe("folder");
     expect(block_base(graph, "note")).toBe("note");
@@ -161,7 +140,7 @@ describe("what a block may become", () => {
   it("takes a definition of its own kind", () => {
     const s = kinds();
     s.go("create", { name: "A" });
-    const id = children(s.graph(), ROOT)[0]!.id;
+    const id = children(s.graph(), MAIN)[0]!.id;
     expect(s.go("retype", { id, type: "block" })).toBeNull();
     expect(base_of(s.graph(), id)).toBe("block");
   });
@@ -171,7 +150,7 @@ describe("what a block may become", () => {
   it.each(["folder", "note", "group", "grid"])("makes a block a %s", (type) => {
     const s = kinds();
     s.go("create", { name: "A" });
-    const id = children(s.graph(), ROOT)[0]!.id;
+    const id = children(s.graph(), MAIN)[0]!.id;
     expect(s.go("retype", { id, type })).toBeNull();
     expect(base_of(s.graph(), id)).toBe(type);
   });
@@ -181,7 +160,7 @@ describe("what a block may become", () => {
     "refuses to make a block a %s", (type) => {
       const s = kinds();
       s.go("create", { name: "A" });
-      const id = children(s.graph(), ROOT)[0]!.id;
+      const id = children(s.graph(), MAIN)[0]!.id;
       expect(s.go("retype", { id, type })).toEqual(expect.any(String));
       expect(base_of(s.graph(), id)).toBe("block");
     });

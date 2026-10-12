@@ -3,7 +3,8 @@
 import { useCallback, useState } from "react";
 import type { Node, NodeChange } from "@xyflow/react";
 import type { Point } from "@mnd/core";
-import { box_of, holds, nearest_seat, PORT, type BoxNode, type Frame, type Scene } from "@mnd/views";
+import { box_of, holds, nearest_seat, taken_on, FRAME, PORT, type BoxNode, type Frame,
+         type Scene } from "@mnd/views";
 import type { Adjust } from "./gestures";
 
 type Box = { x: number; y: number; w: number; h: number };
@@ -109,7 +110,8 @@ export function useDrag(scene: Scene, frame: Frame | null,
     if (port && frame) {
       /** Read from the port's middle, not its corner. */
       const seat = nearest_seat(frame, { x: node.position.x + PORT.w / 2,
-                                         y: node.position.y + PORT.h / 2 });
+                                         y: node.position.y + PORT.h / 2 },
+                                taken_on(scene, FRAME, node.id));
       onAdjust?.({ kind: "wall-seat", on: node.id, side: seat.side, at: seat.at });
       return;
     }

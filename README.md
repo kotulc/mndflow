@@ -1,19 +1,17 @@
 # mndflow
 
-**A client-only editor for rapidly composing descriptive blocks into systems models.** No server and no language model. One log lives in the browser, the graph is folded from it, and everything runs there — the only thing fetched at run time is a definition package somebody searches for.
+**Rapid visual modeling for understanding complex systems.** Documents, code, hardware — any existing system, translated into blocks and explored from several perspectives: the block diagram of each layer, and the section slices the explorer cuts through the same tree. mndflow is the editor and the kit; **mndmap**, a separate repo, is the viewer built on it.
 
-**Everything is a block.** A note, a folder, an interface, a group and a grid are placed, dragged, named and laid out alike. What a block *is* comes from a **definition** in a shipped package rather than from a form the engine hardcodes — so the same graph reads as plain blocks and flows to one person and as SysML to another, because what changed is the names and the drawing, never the structure.
+**Agent and data first.** Every element, package and workspace is JSON, and the CLI does headless what the app does. No server and no language model: one log lives in the browser, the graph is folded from it, and agents work through files and the CLI.
 
-**Nobody should have to learn a notation to use one.** Somebody says what the parts are, what they are made of, what flows between them and what has to be true, and that is already the whole base model. A standard is a translation layer on top, not a toll on the way in.
+**Everything is a block.** What a block *is* comes from a **definition** in a package rather than a form the engine hardcodes, so the same graph reads as plain blocks to one person and as SysML to another. Nobody has to learn a notation to use it.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ mndflow  12 blocks · 34 steps      undo redo  ex im  ▤  ◐    │  header: identity, and
-├──────────────────────────────────────────────────────────────┤  controls that reach a port
-│ + Heat Exchanger_                            add blocks      │  terminal: four commands
-├──────────────┬─────────────────────────────┬─────────────────┤
-│ packages     │   ┌╌╌╌╌╌╌╌╌┐                │ Arrangement     │
-│ definitions  │   ┆ Edge   ┆ ──▶ ( Billing )│   ○ free  ● grid│  stage: one layer, and a
+├──────────────┬─────────────────────────────┬─────────────────┤  controls that reach a port
+│ packages     │   ┌╌╌╌╌╌╌╌╌┐                │ Layout          │
+│ definitions  │   ┆ Edge   ┆ ──▶ ( Billing )│   ○ free  ● auto│  stage: one layer, and a
 │ ▾ workspace  │   ┆ ▪ ▪    ┆                │                 │  grid is a block on it
 │   ▾ Ledger/  │   └╌╌╌╌╌╌╌╌┘                │ Shows           │
 │    ├─ Auth   ├─────────────────────────────┤   ☑ label       │  options: the slots the
@@ -23,31 +21,26 @@
                        tray: what the open layer holds
 ```
 
-Ranking is a **similarity** problem, not a generation one: MiniLM runs locally over ONNX, so `Invoices` scores close to `Billing` despite sharing no letters. That is the whole of what substring cannot answer, and it is why nothing here calls a model.
-
 ---
 
 ## Getting started
 
-**Prerequisites:** Node 18+, and [Git LFS](https://git-lfs.com), which ships with Git for Windows and most Git installs.
+**Prerequisites:** Node 18+.
 
 ```sh
 npm install
 npm run dev        # http://localhost:5173
 ```
 
-The embedding weights and the ONNX runtime are vendored under `public/` and stored in LFS — about 60MB of `.onnx` and `.wasm` that a normal clone fetches for you. The model is never downloaded at run time, so the app works offline and on first load; only package search reaches `public/packages`. A clone that came down without LFS still runs: ranking falls back to substring and the console says so, and `git lfs install && git lfs pull` fixes it.
-
 ### Using it
 
 | Where | What you can do |
 |---|---|
-| **Header** | undo, redo, import, export, a new workspace, the terminal, the theme — each reaches a **port**, never the graph |
-| **Explorer** | three sections — `packages` (what was brought in), `definitions` (the workspace's own) and `usages` (the tree, under its root) — and the menu that hangs off the tree. **A click on a block navigates; a click on a library row points the tray** |
+| **Header** | undo, redo, import, export, a new workspace, the theme — each reaches a **port**, never the graph |
+| **Explorer** | a section chain — `definitions` (every package, its definitions in the folders and groups that organize them) and `structure` (every definition holding structure, always, standing apart from what definitions holds; the definition chosen there opens) — and the menu that hangs off the tree. **The explorer browses; the canvas is the target**: choosing a row selects it, opening one (Enter, double-click, →) moves the canvas. The canvas draws a whole section in a **system view** — **package** or **profile**, the rail's only views — or one block in the **layer view** its kind calls for: a folder, a definition, a grid, or a block from inside |
 | **Stage** | **the left button works what is there; the right button makes something new.** Within the right button a click makes what sits at a point and a drag makes what has extent. A click here selects and never navigates |
-| **Options** | settings for the workspace or a new definition, then the groups the projection asks for — arrangement, what the drawing shows, and what a right drag draws |
-| **Tray** | open from the start, on whatever is picked — and on the root, with its `workspace` tab, when nothing is. What the open layer holds, as rows; a block's element, fields and contents; the card size, key and lattice. A block with a schema offers its fields as a diagram |
-| **Terminal** | four commands — `+` add, `:` filter, `*` search, `?` help. Help is the fallback, and every registered action is reachable there |
+| **Options** | settings for the workspace or a new definition, then the groups the projection asks for — a layer's layout (`free`, `auto`, `page`), the system views, what the drawing shows, and what a right drag draws |
+| **Tray** | open from the start, on whatever is picked — and on the root, with its `workspace` tab, when nothing is: where the workspace is exported, whole or as a package. What the open layer holds, as rows; a block's element, fields and contents; the card size, key and lattice. A block with a schema offers its fields as a diagram |
 
 Work is kept in IndexedDB as you go; **export** writes the whole graph to a file that **import** reads back.
 
@@ -55,45 +48,7 @@ Work is kept in IndexedDB as you go; **export** writes the whole graph to a file
 
 ## The repo
 
-**One repo, npm workspaces, one version, never published.** Boundaries exist to enforce direction and to let each package be proven on its own — they are not an API surface anyone has to keep.
-
-```
-packages/
-  core/       @mnd/core       graph, log, door, actions, ports
-  views/      @mnd/views      sizes, placement, routing, projection -> Scene
-  defs/       @mnd/defs       the definition packages. data, no code
-  theme/      @mnd/theme      the ramp and the icons. css only
-  fixtures/   @mnd/fixtures   sample logs, and sample files for the seam
-  explorer/   @mnd/explorer   the tree
-  stage/      @mnd/stage      the working area
-  options/    @mnd/options    the control rail
-  tray/       @mnd/tray       what the open layer holds
-  terminal/   @mnd/terminal   the strip
-  kit/        @mnd/kit        the seam, built and packed
-apps/
-  web/        @mnd/web        the product
-  cli/        @mnd/cli        the harness
-```
-
-**One surface, one package, and never a `ui` package.** Five panels split five ways is what keeps one of them from quietly doing another's work. Each carries its own dev server, so a surface is runnable before the app hosting it exists.
-
-The monorepo README under `packages/` owns the dependency map, and every package carries its own README and `docs/`.
-
-### The one law
-
-**Dependencies run one way, and only `core` may name a closed set.** Anything else enumerating sorts of things is doing the engine's job in the wrong place. Both halves are a test — `test/law.test.ts` — so an arrow pointed the wrong way fails with the file and the arrow named.
-
-### The loop
-
-```
-bind ports  ->  hold the log  ->  fold  ->  project  ->  render
-                     ^                                      |
-                     +-------------- action ----------------+
-```
-
-**Every gesture returns an action name, which the app runs, which returns mutations, which it appends.** That loop is the whole app, and `apps/web` adds nothing to it: it binds the ports, holds the log, and passes derived data down. **If that app turns out to be interesting, a seam is in the wrong place.**
-
-**The log is the source of truth.** A graph is only ever derived by folding applied mutations in order, so undo needs no inverse operations — it flips a status and the graph is rebuilt by the same code that built it.
+**One repo, npm workspaces, one version, never published.** The package map and what each package may depend on live in the monorepo README under `packages/`; every package carries its own README and `docs/`. **The one law** — dependencies run one way, and only `core` names a closed set — is a test, `test/law.test.ts`. The loop and the seams are in `docs/spec.md`.
 
 ---
 
@@ -105,17 +60,17 @@ npm test                             # every suite in the workspace
 npm run typecheck                    # the whole tree, one pass
 npm run build -w @mnd/web            # a production bundle
 npm run release:kit                  # build, pack and stamp @mnd/kit
-npm run dev -w @mnd/stage            # one surface alone — also explorer, options, tray, terminal
+npm run dev -w @mnd/stage            # one surface alone — also explorer, options, tray
 npm run start -w @mnd/cli -- fold related
 ```
-
-**A passing suite proves the code agrees with itself; the CLI proves the packages compose** — that a log folds, an action writes, a layer projects, and a Scene is complete enough to draw from. It runs headless with no React in the process, which is what lets core and views be built and driven before any UI exists. A notation regression is a diff rather than a screenshot.
 
 **`@mnd/kit` is the one thing that ships.** The headless stack as a single built package, plus `kit/react` and `kit/react.css` — the viewer, the explorer and a read-only tray, with the tray and display state the app itself runs on — packed, never published. `release/` carries the tarball and a manifest naming its version, commit and integrity, so a consumer can check what it is holding.
 
 ### Releasing the kit
 
 **The manifest stamps `HEAD`, so commit before packing** — a dirty tree packs something the recorded commit does not describe.
+
+**Re-pinning mndmap** to a tarball of the same version: `npm install ./vendor/mnd-kit-<version>.tgz` there, not a plain `npm install` — npm otherwise keeps its cached copy of that version.
 
 1. `npm version minor -w @mnd/kit --no-git-tag-version` — or `patch` / `major`
 2. Commit the bump, `package-lock.json` included
@@ -127,14 +82,14 @@ npm run start -w @mnd/cli -- fold related
 
 ## The documents
 
-Under `docs/`, and they describe the **goal state** rather than what is built:
+Under `docs/`, and they describe the **goal state** rather than what is built. They span both mndflow and mndmap:
 
 | | |
 |---|---|
-| `design.md` | why mndflow is the way it is — the vision, the goals, and what each rule was chosen over. **Authoritative** |
-| `spec.md` | what crosses packages, and the rules every package obeys. Short, scannable |
-| `definitions.md` | the vocabulary the other two are written in |
-| `stories.md` | what somebody is actually trying to do |
-| `todo.md` | what is decided but not built, and what is still undesigned |
+| `design.md` | the vision, the driving concepts, and the model's rules. **Authoritative** |
+| `definitions.md` | the vocabulary the others are written in |
+| `spec.md` | what crosses packages: the seams, ports, kit, apps and tests |
+| `stories.md` | what somebody is trying to do |
+| `simplification-plan.md` | one rule, one home: where code lives and the leads to consolidate |
 
 **What one package alone decides lives in that package's `docs/`**, never here.

@@ -8,23 +8,18 @@ export type Storage = {
   clear: () => void;
 };
 
+/** A file read in: where it was, and what it says. One of a collection is a leaf of its folder. */
+export type Leaf = { path: string; text: string };
+
 export type Files = {
   /** Hand the user a file. */
   save: (name: string, text: string) => Promise<void>;
-  /** Ask the user for one. */
+  /** Ask the user for a workspace or package file. */
   open: () => Promise<string | null>;
-};
-
-/** Text similarity, for ranking. */
-export type Score = {
-  /** How close the text is to each option, 0 to 1, in the order given. */
-  rank: (text: string, against: readonly string[]) => number[];
-  /** Which option the text means, by position, or null when none is close. */
-  nearest: (text: string, against: readonly string[]) => number | null;
-  /** Ask for these ahead of being asked about them. */
-  warm: (texts: readonly string[]) => void;
-  /** Called when more can be answered. */
-  watch: (fn: () => void) => () => void;
+  /** Ask the user for one text file of the sorts said, by extension: a card's markdown, say. */
+  text?: (accept: readonly string[]) => Promise<Leaf | null>;
+  /** Ask the user for a folder, and read every file under it. */
+  folder?: () => Promise<{ name: string; files: Leaf[] } | null>;
 };
 
 /** Fetching something from outside the workspace. */
@@ -37,7 +32,6 @@ export type Ports = {
   files: Files;
   /** Unbound means the app does without. */
   net?: Net;
-  score?: Score;
 };
 
 /** A storage that forgets. The default, so nothing has to guard for absence. */

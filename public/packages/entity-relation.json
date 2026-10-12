@@ -1,0 +1,163 @@
+{
+  "schema": "1.0",
+  "id": "entity-relation",
+  "graph": {
+    "root": "entity-relation",
+    "blocks": {
+      "entity-relation": {
+        "id": "entity-relation",
+        "parent": null,
+        "name": "entity-relation"
+      },
+      "entity-relation.blocks": {
+        "id": "entity-relation.blocks",
+        "parent": "entity-relation",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1
+      },
+      "entity-relation.entity": {
+        "id": "entity-relation.entity",
+        "parent": "entity-relation.blocks",
+        "name": "Entity",
+        "type": "block",
+        "body": "A thing the data model records: its attributes, keyed, some naming another entity.",
+        "def": {},
+        "order": 1,
+        "settings": {
+          "card": {
+            "align": "center",
+            "face": "table"
+          }
+        }
+      },
+      "entity-relation.status": {
+        "id": "entity-relation.status",
+        "parent": "entity-relation.blocks",
+        "name": "Order status",
+        "type": "choice",
+        "body": "Where an order is.",
+        "def": {},
+        "order": 2,
+        "settings": {
+          "value": {
+            "choices": [
+              "open",
+              "shipped",
+              "closed"
+            ]
+          }
+        }
+      },
+      "entity-relation.customer": {
+        "id": "entity-relation.customer",
+        "parent": "entity-relation.blocks",
+        "name": "Customer",
+        "type": "entity-relation.entity",
+        "body": "Somebody who places orders.",
+        "def": {
+          "attributes": [
+            {
+              "name": "id",
+              "type": "number",
+              "key": true
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "email",
+              "note": "where receipts go"
+            }
+          ]
+        },
+        "order": 3
+      },
+      "entity-relation.product": {
+        "id": "entity-relation.product",
+        "parent": "entity-relation.blocks",
+        "name": "Product",
+        "type": "entity-relation.entity",
+        "body": "Something an order may carry.",
+        "def": {
+          "attributes": [
+            {
+              "name": "sku",
+              "key": true
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "price",
+              "type": "number",
+              "unit": "USD",
+              "note": "per unit, in USD"
+            }
+          ]
+        },
+        "order": 4
+      },
+      "entity-relation.order": {
+        "id": "entity-relation.order",
+        "parent": "entity-relation.blocks",
+        "name": "Order",
+        "type": "entity-relation.entity",
+        "body": "One customer's purchase.",
+        "def": {
+          "attributes": [
+            {
+              "name": "number",
+              "type": "number",
+              "key": true
+            },
+            {
+              "name": "customer",
+              "type": "entity-relation.customer"
+            },
+            {
+              "name": "placed",
+              "note": "ISO date"
+            },
+            {
+              "name": "status",
+              "type": "entity-relation.status",
+              "default": "open"
+            },
+            {
+              "name": "paid",
+              "type": "flag"
+            }
+          ]
+        },
+        "order": 5
+      },
+      "entity-relation.line": {
+        "id": "entity-relation.line",
+        "parent": "entity-relation.blocks",
+        "name": "Line item",
+        "type": "entity-relation.entity",
+        "body": "One product on an order, and how many.",
+        "def": {
+          "attributes": [
+            {
+              "name": "order",
+              "type": "entity-relation.order"
+            },
+            {
+              "name": "product",
+              "type": "entity-relation.product"
+            },
+            {
+              "name": "qty",
+              "type": "number",
+              "default": "1"
+            }
+          ]
+        },
+        "order": 6
+      }
+    },
+    "edges": {}
+  }
+}

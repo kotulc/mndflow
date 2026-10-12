@@ -16,6 +16,8 @@ export type Line = {
   onDrop?: () => void;
   /** Said on the remove button. */
   drop?: string;
+  /** How the row reads apart from the rest: inherited, say. */
+  className?: string;
 };
 
 /** What a table lights: whatever is picked and listed, else its first row — **a table always has
@@ -91,7 +93,7 @@ export function Table(props: TableProps) {
   /** One row of the body, wherever it sits. */
   const line = (row: Line, lone?: boolean) => (
     <tr key={row.id}
-        className={[lone ? "lead" : "", picked.includes(row.id) ? "picked" : ""]
+        className={[lone ? "lead" : "", picked.includes(row.id) ? "picked" : "", row.className ?? ""]
           .filter(Boolean).join(" ")}
         onMouseEnter={() => onHover?.(row.id)}
         onClick={onPick ? () => onPick(row.id) : undefined}>

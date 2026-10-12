@@ -1,8 +1,9 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
-import { base_named, base_of, def_of, edge_base, outside, schema_of } from "./defs";
-import { holders_in, shape_of } from "./holders";
-import { children, is_container, stands_for, stood_def } from "./tree";
+import { attributes_of, base_named, base_of, def_at, def_of, edge_base, frozen,
+         tree_of } from "./defs";
+import { is_flat, is_group, shape_of } from "./holders";
+import { children, is_container, of_ref, stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
 
@@ -13,7 +14,7 @@ const WORD: Record<string, string> = {
 };
 
 export function kind_word(graph: Graph, b: Block): string {
-  const def = b.type ? graph.defs[b.type] : undefined;
+  const def = def_at(graph, b.def ? b.id : b.type);
   if (def && !BASE_BLOCKS.includes(def.name)) {
     return def.name.charAt(0).toUpperCase() + def.name.slice(1);
   }
@@ -58,9 +59,10 @@ export function is_named(graph: Graph, id: Id): boolean {
   if (e) return !!e.name?.trim() || !!e.type;
   const b = graph.blocks[id];
   if (!b) return false;
-  /** A definition and a package both carry a name of their own. */
-  if (b.of && (graph.defs[b.of] || graph.packages[b.of])) return true;
-  const target = b.of ? stands_for(graph, id) : b;
+  /** A stand-in for a definition or a package reads as what it points at. */
+  const of = of_ref(graph, id);
+  if (of && (def_at(graph, of) || graph.blocks[of]?.parent === null)) return true;
+  const target = of ? stands_for(graph, id) : b;
   if (!target) return false;
   /** Only the name counts, never the body. */
   return !!target.name?.trim();
@@ -70,10 +72,12 @@ export function is_named(graph: Graph, id: Id): boolean {
 export function shown_name(graph: Graph, id: Id): string {
   const b = graph.blocks[id];
   if (!b) return graph.edges[id] ? label_of(graph, id) || edge_base(graph, id) : "missing";
-  if (b.of) {
+  const of = of_ref(graph, id);
+  if (of) {
     /** A stand-in for a definition or a package reads as what it points at, unless it was named
      *  itself. */
-    const said = graph.defs[b.of]?.name ?? graph.packages[b.of]?.name;
+    const at = graph.blocks[of];
+    const said = at && (at.def || at.parent === null) ? at.name : undefined;
     if (said && b.name?.trim()) return b.name.trim();
     if (said) return said;
     const target = stands_for(graph, id);
@@ -94,7 +98,7 @@ function named(graph: Graph, b: Block): string {
 export function label_of(graph: Graph, id: Id): string {
   const e = graph.edges[id];
   if (e?.name?.trim()) return e.name.trim();
-  const d = graph.defs[id] ?? graph.defs[def_of(graph, id) ?? ""];
+  const d = def_at(graph, id) ?? def_at(graph, def_of(graph, id));
   return d && !shipped_name(d.name) ? d.name : "";
 }
 
@@ -113,75 +117,92 @@ const ROLES: readonly string[] = ["block", "folder", "reference", "interface", "
 
 /** A block that holds wears the mark of its shape, whatever kind it descends from. */
 export function role_of(graph: Graph, id: Id): Role {
+  /** A block a view flattens still reads as what it is. */
   const shape = shape_of(graph, id);
-  if (shape) return shape;
+  if (shape && !is_flat(graph, id)) return shape;
   /** A stand-in for a definition wears its usages' role. */
   const stood = stood_def(graph, id);
   const base = stood ? base_named(graph, stood.id) ?? "block" : base_of(graph, id);
   return ROLES.includes(base) ? base as Role : "block";
 }
 
-/** The system marks a card wears in its bottom corner. Derived, never set. A stand-in wears the
- *  one thing it stands for; anything else wears what describes it, and those stack: carrying data.
- *  Opening onto a drawing of its own — parts — stacks with either, since a stand-in may open too,
- *  and a card's icon alone says so too quietly. */
-export type Mark = "reference" | "definition" | "package" | "data" | "parts";
+/** The system marks a card wears in its bottom corner: **what it stands for**, never how it
+ *  opens — its icon says that. Derived, never set. At most three, in this order: what a stand-in
+ *  stands in for, then whether it holds structure, then whether it carries data. */
+export type Mark = "reference" | "definition" | "package" | "structure" | "data";
 
 /** What each mark means, in a phrase — the legend's wording, kept beside the type it reads. */
 export const MARK_MEANING: Record<Mark, string> = {
   reference: "stands for a block elsewhere",
   definition: "stands for a definition",
   package: "stands for a package",
-  data: "carries data: field values, or a schema",
-  parts: "opens onto a drawing of its own",
+  structure: "holds structure: blocks of its own",
+  data: "carries data: values, or attributes",
 };
 
-/** The workspace definition whose fields a block's data answers, or null where it has none: a
- *  definition of its own that declares fields, else the one what it holds answers — a table's
- *  schema is its rows', or its grid's. A package's own fields are its vocabulary, not the
- *  workspace's data. */
+/** The workspace definition whose attributes a block's data answers, or null where it has none:
+ *  a definition of its own that declares attributes, else the one what it holds answers. A
+ *  package's own attributes are its vocabulary, not the workspace's data. */
 export function schema_def(graph: Graph, id: Id): Id | null {
   const own = (type: Id | undefined) => {
-    const d = type ? graph.defs[type] : undefined;
-    return d && !outside(d) && schema_of(graph, d.id).length ? d.id : null;
+    const d = def_at(graph, type);
+    return d && !frozen(graph, d.id) && attributes_of(graph, d.id).length ? d.id : null;
   };
-  if (graph.defs[id]) return own(id);
+  if (def_at(graph, id)) return own(id);
   const b = graph.blocks[id];
   if (!b) return null;
-  /** A grid is described by the schema heading it first, then by what it is. */
-  return own(b.grid?.schema) ?? own(b.type)
-    ?? children(graph, id).map((k) => own(k.type)).find(Boolean)
-    ?? holders_in(graph, id).map((h) => own(h.grid?.schema)).find(Boolean) ?? null;
+  return own(b.type) ?? children(graph, id).map((k) => own(k.type)).find(Boolean) ?? null;
 }
 
-/** What a card is stamped with: what it stands in for, or else what describes it — a stand-in
- *  carries nothing of its own, so the two never meet — and either way, whether it opens. */
+/** Whether a block holds structure: it sits in a tree and holds blocks there, its interfaces
+ *  apart. A package or a folder of definitions holds none. */
+export function holds_structure(graph: Graph, id: Id): boolean {
+  return tree_of(graph, id) !== null && is_container(graph, id);
+}
+
+/** What a card is stamped with: what a stand-in stands in for, then — of the block it stands for,
+ *  where it is one — whether that is a definition holding structure, and whether it carries data.
+ *  The structure mark tells a definition with structure from one without; a block inside a
+ *  structure never wears it. */
 export function stamps_of(graph: Graph, id: Id): Mark[] {
   const b = graph.blocks[id];
   if (!b) return [];
   const out: Mark[] = [];
-  if (b.of) {
-    out.push(graph.defs[b.of] ? "definition" : graph.packages[b.of] ? "package" : "reference");
+  const of = of_ref(graph, id);
+  const at = of ? graph.blocks[of] : undefined;
+  if (of) out.push(at?.def ? "definition" : at?.parent === null ? "package" : "reference");
+  const self = at && at.id !== id ? at : b;
+  if (self.def && holds_structure(graph, self.id)) out.push("structure");
+  if (self.values?.some((v) => v.value) || attributes_of(graph, self.def ? self.id : self.type).length) {
+    out.push("data");
   }
-  else if (b.fields?.some((f) => f.value) || schema_of(graph, b.type).length) out.push("data");
-  if (opens(graph, id)) out.push("parts");
   return out;
 }
 
-/** The blocks a definition is used by: those it types, and the grids whose header allocates it.
- *  The root is the workspace itself, never a usage. */
+/** The blocks a definition is used by: those it types, those carrying it as a tag or a trait,
+ *  and the definitions with an attribute typed by it. A subtype extends it rather than
+ *  using it. */
 export function used_by(graph: Graph, def: Id): Block[] {
-  return Object.values(graph.blocks).filter((b) => b.id !== graph.root
-    && (b.type === def || b.grid?.columns?.includes(def)));
+  return Object.values(graph.blocks).filter((b) => (!b.def && b.type === def)
+    || !!b.tags?.includes(def) || !!b.traits?.includes(def)
+    || !!b.def?.attributes?.some((a) => a.type === def));
 }
 
-/** Whether a card opens onto a drawing of its own: a block holding blocks, a reference to one that
- *  does, or a stand-in for a definition something uses. */
+/** The definitions that extend this one directly. */
+export function subtypes(graph: Graph, def: Id): Block[] {
+  return Object.values(graph.blocks).filter((b) => b.def && b.type === def);
+}
+
+/** Whether a card opens onto a drawing of its own: a block holding blocks, a usage whose
+ *  definition does, a reference to one that does, or a stand-in for a definition. A group never
+ *  does: what it holds is drawn in place. A grid opens onto its grid view. */
 export function opens(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
-  if (!b) return false;
+  if (!b || is_group(graph, id)) return false;
   if (is_container(graph, id)) return true;
-  if (b.of && graph.defs[b.of]) return used_by(graph, b.of).length > 0;
-  const target = b.of ? stands_for(graph, id) : null;
+  if (!b.def && def_at(graph, b.type) && is_container(graph, b.type!)) return true;
+  const of = of_ref(graph, id);
+  if (of && def_at(graph, of)) return is_container(graph, of);
+  const target = of ? stands_for(graph, id) : null;
   return !!target && target.id !== id && is_container(graph, target.id);
 }

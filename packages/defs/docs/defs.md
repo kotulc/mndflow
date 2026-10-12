@@ -1,23 +1,24 @@
 # Defs
 
-**Data only. No code.** The definition packages the engine and the user draw on, validated by core's door in CI, and every module any of them names must exist.
+**Data only.** The packages the engine and the user draw on, as JSON, validated by core's door in CI.
 
-| | Ships |
+| Package | Ships |
 |---|---|
-| `base` | one definition per block kind — `block`, `folder`, `note` and the derived kinds — and one per relation module, `line` and `tie`. **Shipped and locked, and the engine knows it by id**. Built in code, in `src/base.ts` |
+| `base` | one definition per functionally distinct kind: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, `value`, and the relation kinds `line` and `tie`. The value types under `value` — `text`, `number`, `flag`, `link`, `choice` — that attributes name. Under `tags`: `tag` and `trait`, and the traits naming what the engine does, one each (`has_parts`, `has_values`, `has_ports`, `has_head`, `has_tie`, `is_group`, `is_grid`, `is_port`, `is_reference`, `is_tie`), listed by the kinds that need them. Each kind states its own look. **Authored as one JSON file per definition** under `src/base/`, collected into `src/base.json` by `npm run base`. Frozen; the engine knows it by id |
 | `requirements` | a worked vocabulary: a shall statement and a verification method |
-| `sysml` | formal `names` and stereotypes over the base definitions |
+| `sysml` | formal names and stereotypes over the base definitions |
+| `entity-relation` | entities with keyed attributes, some typed by another entity, drawn large as tables and linked. the showcase workspace draws it twice: a model layer of stand-ins, and a data layer of usages |
 
-- **The engine may key off a base definition only for how a block draws and where it sits** — never for what it is, and never for what may contain what.
-- **A package must be useful with portable presentation alone.** It brings its data and renders on the simple typed fields, gaining its custom look only where the module it names is in the build. It degrades rather than breaks.
-- **Proven by**: every shipped definition passes the door, and every module any of them names exists.
+- **Every package is a JSON file**, `base` included. Code keeps only the id constants it reads.
+- **A package is a graph root**: its definitions sit in its domain, organized by holders the package chooses.
+- **Proven by**: every shipped package passes the door, and every module any of them names exists.
+- **Where they live**: `base` ships with the build; every other package is JSON in `public/packages`, listed in its `index.json`, fetched through the `net` port.
 
-**Where they live.** `base` ships with the build. Every other package is JSON in `public/packages`, listed in its `index.json` and **fetched at run time** through the `net` port when somebody searches for it.
 
 ## The rules a package lives by
 
-- **The engine may key off a base definition only for how a block draws and where it sits** — never for what it is, and never for what may contain what. A notation's word for a block — *action*, *state*, *requirement* — is a definition the package supplies, never a module the engine knows.
-- **Core cannot reach the package that supplies its floor.** `defs` depends on core, so core may not depend back — an app hands the base definitions in, the same way it hands in a port.
-- **A package is data; a module is code.** A package ships definitions and costs nobody anything. **A package maps names and presentation, never structure** — a notation needing structural change is a module instead, and then it is one engine capability plus a package, shipping together.
-- **A package resists editing.** A write against one refuses with the reason; saving a look over one files a workspace definition instead.
-- **A standard is a translation layer, never a shape the model bends to.** A part property is a block with a parent, a value property is a typed field, a port is an interface, a requirement is a block with two fields. **A notation that cannot be reached this way is a notation this tool does not do.**
+- **The engine keys off a base only for how a block draws and where it sits**, never for what it is or what may contain what.
+- **Core cannot reach the package that supplies its floor.** An app hands `base` in, as it hands in a port.
+- **A package is data; a module is code.** A package ships definitions, tags and traits. A notation needing a new kind of behaviour is a module plus a package, shipping together.
+- **A package is frozen** where it is used: subtyped, never edited.
+- **A standard is a translation layer**, never a shape the model bends to.

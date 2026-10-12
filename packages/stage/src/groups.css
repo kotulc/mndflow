@@ -30,6 +30,10 @@
   background-clip: padding-box;
   color: var(--muted);
 }
+/* A folder or block a view flattens: a solid rim, so it never reads as a group somebody made. */
+.mnd-group.flat {
+  border-style: solid;
+}
 /* The inside is for what the band holds. */
 .mnd-group:not(.gridded) {
   pointer-events: none;
@@ -113,6 +117,60 @@
 .mnd-group.gridded:hover > .mnd-group-edge,
 .mnd-group.gridded.picked > .mnd-group-edge { border-color: var(--accent); }
 
+/* An opened grid is the room: its edge is the wall, the guides show inside, and outside is dimmed
+   as round any room. */
+.mnd-group.room > .mnd-group-edge {
+  border-color: var(--wall);
+  border-radius: 3px;
+  background: none;
+  box-shadow: 0 0 0 9999px var(--outside);
+}
+/* The lattice and its gutter tabs sit over the dimmed outside, not under it. */
+.mnd-group.room > .mnd-grid-cells { z-index: 1; }
+
+.mnd-group-shell.room > .mnd-group-title { color: var(--muted); }
+
+/* Opened, a cell shows it is a target: a wash and an edge on hover, and a mark where it is
+   empty. A lit line is every cell its gutter tab points at. */
+.mnd-group.room .mnd-grid-cell:hover,
+.mnd-group.room .mnd-grid-cell.lit {
+  border-color: color-mix(in oklch, var(--accent) 55%, transparent);
+  background: color-mix(in oklch, var(--accent) 7%, transparent);
+}
+.mnd-group.room .mnd-grid-cell:not(.seated):not([data-way]):not(:has(> .mnd-grid-value)):hover::after {
+  content: "+";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: color-mix(in oklch, var(--accent) 70%, transparent);
+  font-size: 20px;
+  pointer-events: none;
+}
+
+/* A header's line name, faint in its corner, never in the way of what it says. */
+.mnd-grid-index {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  color: color-mix(in oklch, var(--muted) 55%, transparent);
+  font-size: 9px;
+  line-height: 1;
+  pointer-events: none;
+}
+.mnd-grid-cell.upright > .mnd-grid-index { right: auto; left: 3px; }
+/* A column's letter sits in the middle of its header. */
+.mnd-grid-cell[data-way="col"] > .mnd-grid-index { left: 0; right: 0; text-align: center; }
+.mnd-group.room .mnd-grid-cell[data-way] { cursor: context-menu; }
+.mnd-grid-line.row { left: -22px; width: 18px; }
+.mnd-grid-line.col { top: -22px; height: 18px; }
+.mnd-grid-line:hover {
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 12%, var(--surface));
+  color: var(--text);
+}
+.mnd-flow.frameless .mnd-group.room > .mnd-group-edge { box-shadow: none; }
+
 /* A grid inside another group is still a boundary, not a top-level frame. */
 .mnd-group.member.gridded > .mnd-group-edge {
   border-style: dashed;
@@ -134,9 +192,10 @@
   cursor: pointer;
 }
 
-/* A header cell keeps the same faint edge as every other cell. */
+/* A header cell keeps the same faint edge as every other cell, and lets the guides through. */
 .mnd-grid-cell.header {
-  background: color-mix(in oklch, var(--card-line) 5%, var(--surface));
+  background: color-mix(in oklch, color-mix(in oklch, var(--card-line) 5%, var(--surface)) 72%,
+                        transparent);
 }
 .mnd-grid-cell.header:hover {
   background: color-mix(in oklch, var(--accent) 7%, var(--surface));

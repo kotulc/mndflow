@@ -1,8 +1,8 @@
 /** The usages tab: the lines or the blocks, and what each is. */
 
 import { useState } from "react";
-import { BASE_RELATIONS, edge_base, may_retype, relation_base, relations, shipped,
-         type Act, type Graph, type Id } from "@mnd/core";
+import { all_defs, BASE_RELATIONS, def_at, domain_of, edge_base, is_base, may_retype,
+         relation_base, relations, type Act, type Graph, type Id } from "@mnd/core";
 import { Choice, lit_row, scope_chips, Table, type Column, type Scope } from "./Table";
 import { block_usage_rows, usage_rows } from "./rows";
 
@@ -43,15 +43,15 @@ export function Usages({ graph, group, scope, onScope, layer, about, lit, onLit,
   const all = lines ? usage_rows(graph, layer, deep) : block_usage_rows(graph, layer, deep);
   /** The default is blank: an element naming nothing follows its kind's. */
   const offered = [{ value: "", word: "default" },
-    ...(lines ? relations(graph) : Object.values(graph.defs).filter((d) => d.group === "block"))
-      .filter((d) => !shipped(d) && d.default === undefined)
+    ...(lines ? relations(graph) : all_defs(graph).filter((d) => domain_of(graph, d.id) === "block"))
+      .filter((d) => !is_base(d.id))
       .map((d) => ({ value: d.id, word: d.name }))];
   /** What one usage may be retyped to: its own kind's or module's definitions only. */
   const fits = (id: Id) => offered.filter((o) => !o.value
     || (lines ? relation_base(graph, o.value) === edge_base(graph, id)
               : may_retype(graph, id, o.value)));
 
-  const held = about ? graph.defs[about] : undefined;
+  const held = about ? def_at(graph, about) : undefined;
   const narrow = [
     { key: "any", word: "any", keep: (_r: (typeof all)[number]) => true },
     ...(held ? [{ key: "own", word: held.name,

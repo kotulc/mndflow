@@ -1,17 +1,36 @@
 {
-  "schema": "3.0",
+  "schema": "1.0",
   "id": "doc",
   "graph": {
-    "root": "ws",
-    "defs": {
+    "root": "doc",
+    "blocks": {
+      "doc": {
+        "id": "doc",
+        "parent": null,
+        "name": "doc"
+      },
+      "doc.blocks": {
+        "id": "doc.blocks",
+        "parent": "doc",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1
+      },
+      "doc.relations": {
+        "id": "doc.relations",
+        "parent": "doc",
+        "name": "relations",
+        "type": "folder",
+        "order": 2
+      },
       "doc.set": {
         "id": "doc.set",
-        "from": "doc",
-        "group": "block",
+        "parent": "doc.blocks",
         "name": "document set",
-        "about": "A tree of pages: a site, a manual, a repository's docs.",
-        "extends": "folder",
-        "components": {
+        "def": {},
+        "type": "folder",
+        "body": "A tree of pages: a site, a manual, a repository's docs.",
+        "settings": {
           "card": {},
           "allows": {
             "holds": [
@@ -24,12 +43,12 @@
       },
       "doc.page": {
         "id": "doc.page",
-        "from": "doc",
-        "group": "block",
+        "parent": "doc.blocks",
         "name": "page",
-        "about": "One markdown file. Its body is the prose before the first heading.",
-        "extends": "block",
-        "components": {
+        "def": {},
+        "type": "block",
+        "body": "One markdown file. Its body is the prose before the first heading.",
+        "settings": {
           "card": {},
           "style": {
             "family": "primary",
@@ -46,18 +65,19 @@
       },
       "doc.section": {
         "id": "doc.section",
-        "from": "doc",
-        "group": "block",
+        "parent": "doc.blocks",
         "name": "section",
-        "about": "A heading and what reads under it. `level` is the heading depth.",
-        "extends": "block",
-        "fields": [
-          {
-            "name": "level",
-            "form": "number"
-          }
-        ],
-        "components": {
+        "def": {
+          "attributes": [
+            {
+              "name": "level",
+              "type": "number"
+            }
+          ]
+        },
+        "type": "block",
+        "body": "A heading and what reads under it. `level` is the heading depth.",
+        "settings": {
           "card": {},
           "style": {
             "family": "secondary"
@@ -78,12 +98,12 @@
       },
       "doc.item": {
         "id": "doc.item",
-        "from": "doc",
-        "group": "block",
+        "parent": "doc.blocks",
         "name": "item",
-        "about": "A paragraph, a list entry, a table cell \u00e2\u20ac\u201d one run of prose, held in its body.",
-        "extends": "block",
-        "components": {
+        "def": {},
+        "type": "block",
+        "body": "A paragraph, a list entry, a table cell â€” one run of prose, held in its body.",
+        "settings": {
           "card": {},
           "style": {
             "family": "muted"
@@ -96,18 +116,18 @@
       },
       "doc.code": {
         "id": "doc.code",
-        "from": "doc",
-        "group": "block",
+        "parent": "doc.blocks",
         "name": "code",
-        "about": "A fenced block. Its body is the source; `lang` is the word on the fence.",
-        "extends": "block",
-        "fields": [
-          {
-            "name": "lang",
-            "form": "text"
-          }
-        ],
-        "components": {
+        "def": {
+          "attributes": [
+            {
+              "name": "lang"
+            }
+          ]
+        },
+        "type": "block",
+        "body": "A fenced block. Its body is the source; `lang` is the word on the fence.",
+        "settings": {
           "card": {},
           "style": {
             "family": "neutral",
@@ -121,24 +141,16 @@
       },
       "doc.link": {
         "id": "doc.link",
-        "from": "doc",
-        "group": "relation",
+        "parent": "doc.relations",
         "name": "link",
-        "about": "A markdown link, from where it was written to what it names.",
-        "extends": "line",
-        "components": {
+        "def": {},
+        "type": "line",
+        "body": "A markdown link, from where it was written to what it names.",
+        "settings": {
           "line": {
             "to_arrow": "open"
           }
         }
-      }
-    },
-    "blocks": {
-      "ws": {
-        "id": "ws",
-        "parent": null,
-        "type": "folder",
-        "name": "workspace"
       }
     },
     "edges": {}

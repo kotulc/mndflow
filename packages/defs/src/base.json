@@ -1,0 +1,478 @@
+{
+  "schema": "1.0",
+  "id": "base",
+  "graph": {
+    "root": "base",
+    "blocks": {
+      "base": {
+        "id": "base",
+        "parent": null,
+        "name": "base"
+      },
+      "base.dir.blocks": {
+        "id": "base.dir.blocks",
+        "parent": "base",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1
+      },
+      "base.dir.relations": {
+        "id": "base.dir.relations",
+        "parent": "base",
+        "name": "relations",
+        "type": "folder",
+        "order": 2
+      },
+      "base.dir.tags": {
+        "id": "base.dir.tags",
+        "parent": "base",
+        "name": "tags",
+        "type": "folder",
+        "order": 3
+      },
+      "base.dir.tags.traits": {
+        "id": "base.dir.tags.traits",
+        "parent": "base.dir.tags",
+        "name": "traits",
+        "type": "folder",
+        "order": 3
+      },
+      "base.dir.types": {
+        "id": "base.dir.types",
+        "parent": "base",
+        "name": "types",
+        "type": "folder",
+        "order": 4
+      },
+      "block": {
+        "id": "block",
+        "parent": "base.dir.blocks",
+        "name": "block",
+        "def": {},
+        "body": "The unit of structure: a thing, a part or a step. It may hold blocks of its own, which it opens onto as a layer.",
+        "order": 1,
+        "settings": {
+          "block": {
+            "module": "block"
+          },
+          "style": {
+            "family": "primary"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values"
+        ]
+      },
+      "choice": {
+        "id": "choice",
+        "parent": "base.dir.types",
+        "name": "choice",
+        "type": "value",
+        "def": {},
+        "body": "One of a set: a subtype lists its options in `value.choices`.",
+        "order": 1,
+        "settings": {
+          "value": {
+            "form": "choice"
+          }
+        }
+      },
+      "flag": {
+        "id": "flag",
+        "parent": "base.dir.types",
+        "name": "flag",
+        "type": "value",
+        "def": {},
+        "body": "A yes or a no.",
+        "order": 2,
+        "settings": {
+          "value": {
+            "form": "flag"
+          }
+        }
+      },
+      "folder": {
+        "id": "folder",
+        "parent": "base.dir.blocks",
+        "name": "folder",
+        "type": "block",
+        "def": {},
+        "body": "Files blocks away: a quiet container whose contents are reached by opening it.",
+        "order": 2,
+        "settings": {
+          "style": {
+            "family": "neutral",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
+          }
+        }
+      },
+      "grid": {
+        "id": "grid",
+        "parent": "base.dir.blocks",
+        "name": "grid",
+        "type": "block",
+        "def": {},
+        "body": "A spreadsheet of cells holding text or blocks, opened as a grid view: a header allocates what its row or column holds.",
+        "order": 3,
+        "settings": {
+          "style": {
+            "family": "muted",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_grid"
+        ]
+      },
+      "group": {
+        "id": "group",
+        "parent": "base.dir.blocks",
+        "name": "group",
+        "type": "block",
+        "def": {},
+        "body": "A boundary drawing what it holds inline, inside its rim.",
+        "order": 4,
+        "settings": {
+          "style": {
+            "family": "muted",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_values",
+          "is_group"
+        ]
+      },
+      "has_head": {
+        "id": "has_head",
+        "parent": "base.dir.tags.traits",
+        "name": "has_head",
+        "type": "trait",
+        "def": {},
+        "body": "Its first member heads it.",
+        "order": 1,
+        "settings": {
+          "allows": {
+            "heads": true
+          }
+        }
+      },
+      "has_parts": {
+        "id": "has_parts",
+        "parent": "base.dir.tags.traits",
+        "name": "has_parts",
+        "type": "trait",
+        "def": {},
+        "body": "Holds blocks of its own, which it opens onto as a layer.",
+        "order": 2,
+        "settings": {
+          "allows": {
+            "holds": true
+          }
+        }
+      },
+      "has_ports": {
+        "id": "has_ports",
+        "parent": "base.dir.tags.traits",
+        "name": "has_ports",
+        "type": "trait",
+        "def": {},
+        "body": "Has ports: interfaces may sit on its walls.",
+        "order": 3,
+        "settings": {
+          "allows": {
+            "ports": true
+          }
+        }
+      },
+      "has_tie": {
+        "id": "has_tie",
+        "parent": "base.dir.tags.traits",
+        "name": "has_tie",
+        "type": "trait",
+        "def": {},
+        "body": "Made from, or dropped on, a block, it is tied to it.",
+        "order": 4,
+        "settings": {
+          "tie": {
+            "type": "tie"
+          }
+        }
+      },
+      "has_values": {
+        "id": "has_values",
+        "parent": "base.dir.tags.traits",
+        "name": "has_values",
+        "type": "trait",
+        "def": {},
+        "body": "Holds values of its own: answers to its definition's attributes.",
+        "order": 5,
+        "settings": {
+          "allows": {
+            "values": true
+          }
+        }
+      },
+      "interface": {
+        "id": "interface",
+        "parent": "base.dir.blocks",
+        "name": "interface",
+        "type": "block",
+        "def": {},
+        "body": "A port seated on a block's wall: where relations enter and leave it.",
+        "order": 5,
+        "settings": {
+          "style": {
+            "family": "secondary",
+            "border_width": "thin"
+          }
+        },
+        "traits": [
+          "is_port"
+        ]
+      },
+      "is_grid": {
+        "id": "is_grid",
+        "parent": "base.dir.tags.traits",
+        "name": "is_grid",
+        "type": "trait",
+        "def": {},
+        "body": "Seats text and blocks in the cells of a grid, drawn when it is opened.",
+        "order": 6,
+        "settings": {
+          "holder": {
+            "matrix": true
+          }
+        }
+      },
+      "is_group": {
+        "id": "is_group",
+        "parent": "base.dir.tags.traits",
+        "name": "is_group",
+        "type": "trait",
+        "def": {},
+        "body": "Draws what it holds in place, on the layer it sits on, rather than behind its card.",
+        "order": 7,
+        "settings": {
+          "holder": {
+            "inline": true
+          }
+        }
+      },
+      "is_port": {
+        "id": "is_port",
+        "parent": "base.dir.tags.traits",
+        "name": "is_port",
+        "type": "trait",
+        "def": {},
+        "body": "Is a port: an interface seated on its owner's wall, where relationships enter and leave.",
+        "order": 8,
+        "settings": {
+          "block": {
+            "module": "interface"
+          }
+        }
+      },
+      "is_reference": {
+        "id": "is_reference",
+        "parent": "base.dir.tags.traits",
+        "name": "is_reference",
+        "type": "trait",
+        "def": {},
+        "body": "Stands for another block, definition or package (`of`): draws as it, opens onto it, owns nothing.",
+        "order": 9,
+        "settings": {
+          "block": {
+            "module": "reference"
+          }
+        }
+      },
+      "is_tie": {
+        "id": "is_tie",
+        "parent": "base.dir.tags.traits",
+        "name": "is_tie",
+        "type": "trait",
+        "def": {},
+        "body": "Is a tie: a line drawn straight from card to card, dashed, never routed round what lies between.",
+        "order": 10
+      },
+      "line": {
+        "id": "line",
+        "parent": "base.dir.relations",
+        "name": "line",
+        "def": {},
+        "body": "A relation between two blocks: what flows, connects or depends.",
+        "order": 1,
+        "traits": [
+          "has_values"
+        ]
+      },
+      "link": {
+        "id": "link",
+        "parent": "base.dir.types",
+        "name": "link",
+        "type": "value",
+        "def": {},
+        "body": "Where something lives: a uri.",
+        "order": 3,
+        "settings": {
+          "value": {
+            "form": "link"
+          }
+        }
+      },
+      "note": {
+        "id": "note",
+        "parent": "base.dir.blocks",
+        "name": "note",
+        "type": "block",
+        "def": {},
+        "body": "A remark about what it is tied to. It holds nothing.",
+        "order": 6,
+        "settings": {
+          "card": {
+            "face": "document",
+            "height": "free"
+          },
+          "style": {
+            "family": "note",
+            "fill": "wash",
+            "border_contrast": "strong",
+            "name_contrast": "faint",
+            "opacity": 0.06
+          }
+        },
+        "traits": [
+          "has_values",
+          "has_tie"
+        ]
+      },
+      "number": {
+        "id": "number",
+        "parent": "base.dir.types",
+        "name": "number",
+        "type": "value",
+        "def": {},
+        "body": "A count or a measure, in the unit an attribute says.",
+        "order": 4,
+        "settings": {
+          "value": {
+            "form": "number"
+          }
+        }
+      },
+      "reference": {
+        "id": "reference",
+        "parent": "base.dir.blocks",
+        "name": "reference",
+        "type": "block",
+        "def": {},
+        "body": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
+        "order": 7,
+        "settings": {
+          "style": {
+            "family": "away",
+            "fill": "hatch",
+            "border_contrast": "strong",
+            "name_contrast": "strong",
+            "opacity": 0.55
+          }
+        },
+        "traits": [
+          "has_ports",
+          "is_reference"
+        ]
+      },
+      "tag": {
+        "id": "tag",
+        "parent": "base.dir.tags",
+        "name": "tag",
+        "type": "block",
+        "def": {},
+        "body": "A word carried by blocks, lines and definitions, to find them by. Its body says what it means; its usages are what carries it.",
+        "order": 1,
+        "settings": {
+          "style": {
+            "hue": 300,
+            "intensity": 0.5,
+            "vary": 48
+          }
+        },
+        "traits": []
+      },
+      "text": {
+        "id": "text",
+        "parent": "base.dir.types",
+        "name": "text",
+        "type": "value",
+        "def": {},
+        "body": "Words: anything said in a line.",
+        "order": 5,
+        "settings": {
+          "value": {
+            "form": "text"
+          }
+        }
+      },
+      "tie": {
+        "id": "tie",
+        "parent": "base.dir.relations",
+        "name": "tie",
+        "type": "line",
+        "def": {},
+        "body": "A dashed run with no heads: what ties a remark to what it is about.",
+        "order": 2,
+        "traits": [
+          "has_values",
+          "is_tie"
+        ]
+      },
+      "trait": {
+        "id": "trait",
+        "parent": "base.dir.tags",
+        "name": "trait",
+        "type": "tag",
+        "def": {},
+        "body": "A tag naming something the engine does: what a definition carrying it may do. A definition lists every trait it keeps; one listing none carries what it extends.",
+        "order": 2,
+        "settings": {
+          "style": {
+            "hue": 230,
+            "intensity": 0.5,
+            "vary": 48
+          }
+        }
+      },
+      "value": {
+        "id": "value",
+        "parent": "base.dir.types",
+        "name": "value",
+        "type": "block",
+        "def": {},
+        "body": "What an attribute holds: a value type. Never placed; a definition's attributes name one, and how a value is edited is its `value.form`.",
+        "order": 6,
+        "settings": {
+          "style": {
+            "hue": 150,
+            "intensity": 0.5,
+            "vary": 48
+          },
+          "value": {
+            "form": "text"
+          }
+        },
+        "traits": []
+      }
+    },
+    "edges": {}
+  }
+}

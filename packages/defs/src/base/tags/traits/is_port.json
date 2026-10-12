@@ -1,0 +1,12 @@
+{
+  "id": "is_port",
+  "name": "is_port",
+  "type": "trait",
+  "body": "Is a port: an interface seated on its owner's wall, where relationships enter and leave.",
+  "def": {},
+  "settings": {
+    "block": {
+      "module": "interface"
+    }
+  }
+}

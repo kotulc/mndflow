@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mnd/core": "*",
-    "@xyflow/react": "^12.3.5"
+    "@xyflow/react": "^12.3.5",
+    "libavoid-js": "^0.5.0-beta.5"
   }
 }

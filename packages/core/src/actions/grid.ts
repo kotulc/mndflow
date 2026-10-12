@@ -1,37 +1,81 @@
-/** Cells, headers, labels, rows and columns of a grid. */
+/** Cells, headers, rows and columns of a grid: allocation, and nothing a cell says but the
+ *  block in it. */
 
-import { may_take } from "../capabilities";
-import { derived_base } from "../defs";
-import { at_cell, can_hold, covers, heading, inside, is_grid, lattice_of, members_of, one_side,
+import { def_at, domain_of } from "../defs";
+import { at_cell, covers, heading, inside, is_grid, lattice_of, members_of, one_side,
          overlaps } from "../holders";
-import { shown_name } from "../names";
-import { edges_in, next_order } from "../tree";
+import { children, edges_in, is_interface, next_order } from "../tree";
 import { new_id } from "../ids";
-import type { Block, Cell, Dir, Graph, Grid, Id, Mutation, Span } from "../types";
+import type { Cell, Dir, Graph, Grid, Id, Mutation, Span } from "../types";
 import { register, type Args, type Context } from "./registry";
-import { cell_of_arg, handles, id_of, num, region, run_type, text } from "./helpers";
+import { cell_of_arg, handles, id_of, make_block, num, region, run_type, text } from "./helpers";
 
 /** Whether a cell is a header's or the body's; a block moved within a grid stays on its side. */
-const heads_at = (g: Grid, at: Cell): boolean => heading(g, at.r, at.c) !== null;
+const heads_at = (at: Cell): boolean => heading(at.r, at.c) !== null;
 
 /** A grid's lattice written back whole. */
 const set = (id: Id, grid: Grid): Mutation => ({ op: "set_grid", id, grid });
 
-/** A block put at an address in its grid — or, where there is none for it, out of the grid
- *  altogether: **a member of a grid always sits in a cell**. */
-export const put = (id: Id, cell: Cell | null): Mutation =>
-  cell ? { op: "seat_cell", id, cell } : { op: "set_group", id, group: null };
+/** A block put at an address in its grid — or, where there is none for it, out of the grid onto
+ *  what holds the grid: **a member of a grid always sits in a cell**. */
+export const put = (graph: Graph, id: Id, cell: Cell | null): Mutation => {
+  if (cell) return { op: "seat_cell", id, cell };
+  const grid = graph.blocks[id]?.parent;
+  return { op: "move_block", id, parent: (grid && graph.blocks[grid]?.parent) ?? grid ?? null };
+};
 
-/** A row or column added or removed; blocks, values and merges after it shift. */
+/** What a block holds, seated as it becomes a grid of this lattice: those already in a body cell
+ *  of their own stay there, and the rest take the nearest free cells in reading order. */
+export function seat_all(graph: Graph, id: Id, g: Grid): Mutation[] {
+  const held = children(graph, id).filter((b) => !is_interface(graph, b.id));
+  const taken = new Set<string>();
+  const kept = new Set<Id>();
+  for (const b of held) {
+    const at = b.cell;
+    if (!at || !inside(g, at) || heads_at(at) || taken.has(`${at.r},${at.c}`)) continue;
+    taken.add(`${at.r},${at.c}`);
+    kept.add(b.id);
+  }
+  return seat_in(id, g, taken, held.filter((b) => !kept.has(b.id)).map((b) => b.id), null);
+}
+
+/** The addresses of a grid a block already sits in. */
+export function taken_in(graph: Graph, group: Id, leaving: readonly Id[] = []): Set<string> {
+  const out = new Set<string>();
+  for (const b of members_of(graph, group)) {
+    if (b.cell && !leaving.includes(b.id)) out.add(`${b.cell.r},${b.cell.c}`);
+  }
+  return out;
+}
+
+/** Blocks seated in a grid: the first where it was pointed, else each in the nearest free body
+ *  cell, **growing a row whenever none is free**. */
+export function seat_in(group: Id, g: Grid, taken: Set<string>, ids: readonly Id[],
+                        want: Cell | null): Mutation[] {
+  const out: Mutation[] = [];
+  let grid = g;
+  for (const [n, id] of ids.entries()) {
+    const said = n === 0 && want && inside(grid, want) ? want : null;
+    let cell = said && !taken.has(`${said.r},${said.c}`) ? said : null;
+    while (!cell) {
+      cell = free_cell(grid, taken, null, want ?? { r: 0, c: 0 }, false);
+      if (cell) break;
+      /** A grid that is all header column has no body a row could add. */
+      grid = grid.cols === 1 ? { ...grid, cols: 2 } : { ...grid, rows: grid.rows + 1 };
+    }
+    taken.add(`${cell.r},${cell.c}`);
+    out.push({ op: "seat_cell", id, cell });
+  }
+  return grid === g ? out : [set(group, grid), ...out];
+}
+
+/** A row or column added or removed; blocks and merges after it shift. */
 function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
                  by: 1 | -1): Mutation[] {
   const g = lattice_of(graph, group);
   if (!g) return [];
   const axis = way === "row" ? "r" : "c";
   const size = way === "row" ? "rows" : "cols";
-  const edge = way === "row" ? "top" : "left";
-  /** Taking the header line away takes its heading with it, and what it held goes to the body. */
-  const unheaded = by < 0 && at === 0 && !!g.head?.[edge];
   const out: Mutation[] = [];
 
   const held = new Set<string>();
@@ -58,31 +102,16 @@ function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
     if (moved[size] > 0) merges.push(moved);
   }
 
-  const head = unheaded ? { ...g.head, [edge]: false } : g.head;
-  const next = with_merges({ ...g, [size]: Math.max(1, g[size] + by), head,
-                             ...(g.values ? { values: moved_values(g.values, way, at, by) } : {}) },
-                           merges);
+  const next = with_merges({ ...g, [size]: Math.max(1, g[size] + by) }, merges);
 
   /** A removed line's blocks move to the nearest free cell on their own side. */
   for (const { id, was } of homeless) {
     const want = { r: Math.min(was.r, next.rows - 1), c: Math.min(was.c, next.cols - 1) };
-    const spare = free_cell(next, held, null, want, !unheaded && heads_at(g, was));
+    const spare = free_cell(next, held, null, want, heads_at(was));
     if (spare) held.add(`${spare.r},${spare.c}`);
-    out.push(put(id, spare));
+    out.push(put(graph, id, spare));
   }
-  return [set(group, tidy(next)), ...out];
-}
-
-/** Values moved with the line they sit on: a new line is empty, and a removed one's go. */
-function moved_values(values: string[][], way: "row" | "col", at: number,
-                      by: 1 | -1): string[][] {
-  const moved = <T,>(line: T[], blank: T): T[] => {
-    const out = [...line];
-    if (by < 0) out.splice(at, 1);
-    else if (at <= out.length) out.splice(at, 0, blank);
-    return out;
-  };
-  return way === "row" ? moved(values, []) : values.map((row) => moved(row, ""));
+  return [set(group, next), ...out];
 }
 
 /** This lattice carrying exactly these merges; none leaves the key off. */
@@ -90,15 +119,6 @@ export function with_merges(g: Grid, merges: Span[]): Grid {
   if (merges.length) return { ...g, merges };
   const { merges: _gone, ...rest } = g;
   return rest;
-}
-
-/** A lattice without the keys it says nothing with: no headers, and no values at all. */
-function tidy(g: Grid): Grid {
-  const { head, values, ...rest } = g;
-  const heads = { ...(head?.top ? { top: true } : {}), ...(head?.left ? { left: true } : {}) };
-  const said = values?.some((row) => row.some(Boolean));
-  return { ...rest, ...(Object.keys(heads).length ? { head: heads } : {}),
-           ...(said ? { values } : {}) };
 }
 
 /** Filled body cells in reading order, as one run. */
@@ -109,7 +129,7 @@ function reading(graph: Graph, group: Id): Id[] {
   for (let r = 0; r < g.rows; r++) {
     for (let c = 0; c < g.cols; c++) {
       const held = at_cell(graph, group, r, c);
-      if (held && !heads_at(g, { r, c }) && run[run.length - 1] !== held.id) run.push(held.id);
+      if (held && !heads_at({ r, c }) && run[run.length - 1] !== held.id) run.push(held.id);
     }
   }
   return run;
@@ -124,7 +144,8 @@ function empty_cells(graph: Graph, group: Id): Cell[] {
     for (let c = 0; c < g.cols; c++) {
       const span = g.merges?.find((s) => covers(s, r, c));
       if (span && (span.r !== r || span.c !== c)) continue;
-      if (!heads_at(g, { r, c }) && !at_cell(graph, group, r, c)) out.push({ r, c });
+      if (heads_at({ r, c }) || at_cell(graph, group, r, c)) continue;
+      out.push({ r, c });
     }
   }
   return out;
@@ -139,7 +160,7 @@ export function free_cell(g: Grid, taken: ReadonlySet<string>, span: Span | null
   for (let r = 0; r < g.rows; r++) {
     for (let c = 0; c < g.cols; c++) {
       if ((span && covers(span, r, c)) || taken.has(`${r},${c}`)) continue;
-      if (heads_at(g, { r, c }) !== header) continue;
+      if (heads_at({ r, c }) !== header) continue;
       if (g.merges?.some((m) => covers(m, r, c) && (m.r !== r || m.c !== c))) continue;
       const off = Math.hypot(r - want.r, c - want.c);
       if (off < gap) { gap = off; best = { r, c }; }
@@ -148,9 +169,9 @@ export function free_cell(g: Grid, taken: ReadonlySet<string>, span: Span | null
   return best;
 }
 
-/** Which line the picked cell is in. */
-function pointed(ctx: Context, way: "row" | "col"): number | null {
-  const at = ctx.cells?.[0];
+/** Which line the picked cell of this grid is in. */
+function pointed(ctx: Context, group: Id, way: "row" | "col"): number | null {
+  const at = ctx.cells?.find((c) => c.group === group);
   return at ? (way === "row" ? at.r : at.c) : null;
 }
 
@@ -158,7 +179,7 @@ function pointed(ctx: Context, way: "row" | "col"): number | null {
  *  where it is one, or the grid that block sits in. */
 function grid_named(ctx: Context, args: Args): Id | null {
   const at = ctx.picked[0];
-  const held = at ? ctx.graph.blocks[at]?.group : undefined;
+  const held = at ? ctx.graph.blocks[at]?.parent ?? undefined : undefined;
   for (const said of [args["group"] ? id_of(args, "group") : undefined,
                       ctx.cells?.[0]?.group, ctx.picked[0], held]) {
     if (said && is_grid(ctx.graph, said)) return said;
@@ -174,99 +195,17 @@ function address(ctx: Context, args: Args, group: Id): Cell | null {
   return picked ? { r: picked.r, c: picked.c } : null;
 }
 
-/** Why a cell of this grid could not take a new block, or null: it has to be a grid on this layer,
- *  and the cell inside it and empty. */
-export function cell_free(ctx: Context, group: Id, cell: Cell | null): string | null {
-  const g = lattice_of(ctx.graph, group);
-  if (!g) return "that is not a grid";
-  if (ctx.graph.blocks[group]!.parent !== (ctx.layer ?? ctx.graph.root)) {
-    return "that grid is not in this layer";
-  }
-  if (!cell) return "no cell is pointed at";
-  if (!inside(g, cell)) return "that cell is outside the grid";
-  return at_cell(ctx.graph, group, cell.r, cell.c) ? "that cell is taken" : null;
-}
-
-/** A header line added or taken away. **Adding one inserts a new first line** to head the rest,
- *  so nothing seated is displaced; taking it away removes that line, and what it held goes to the
- *  body. A grid of one line only drops the heading. */
-function headed(graph: Graph, group: Id, edge: "top" | "left", on: boolean): Mutation[] {
-  const g = lattice_of(graph, group)!;
-  const way = edge === "top" ? "row" : "col";
-  if (!!g.head?.[edge] === on) return [];
-  if (!on && (way === "row" ? g.rows : g.cols) > 1) return shifted(graph, group, way, 0, -1);
-  if (!on) return [set(group, tidy({ ...g, head: { ...g.head, [edge]: false } }))];
-  const [lattice, ...moved] = shifted(graph, group, way, 0, 1);
-  const next = (lattice as { grid: Grid }).grid;
-  return [set(group, tidy({ ...next, head: { ...next.head, [edge]: true } })), ...moved];
-}
-
-/** The block a seat is about, and the grid and address it is going to. */
-function seating(ctx: Context, args: Args): { b: Block | undefined; group: Id | undefined;
-                                               cell: Cell | null } {
-  const id = id_of(args, "id");
-  return { b: ctx.graph.blocks[id],
-           group: args["group"] ? id_of(args, "group") : ctx.graph.blocks[id]?.group,
-           cell: cell_of_arg(args, "at") };
+/** The line a removal points at: the one said, else the picked cell's, else the last. */
+function removing(ctx: Context, args: Args, group: Id, way: "row" | "col"): number {
+  const g = lattice_of(ctx.graph, group)!;
+  const last = (way === "row" ? g.rows : g.cols) - 1;
+  return Math.min(last, Math.max(0, num(args, "at") ?? pointed(ctx, group, way) ?? last));
 }
 
 register(
   {
-    name: "seat",
-    about: "puts a block in a cell of a grid, or takes it out of the grid",
-    on: ["block"],
-    args: [{ name: "id", form: "block", required: true },
-           { name: "group", form: "block" },
-           { name: "at", form: "text" }],
-    check: (ctx, args) => {
-      const { b, group, cell } = seating(ctx, args);
-      if (!b) return "that block is not there";
-      if (!cell) return null;
-      const g = lattice_of(ctx.graph, group);
-      if (!g) return "that is not a grid";
-      /** A cell holds a block, never another holder. */
-      if (!can_hold(ctx.graph, group!, b.id)) return "a cell cannot hold that";
-      if (!may_take(ctx.graph, group!, b.type)) {
-        return `"${shown_name(ctx.graph, group!)}" takes nothing of that sort`;
-      }
-      if (!inside(g, cell)) return "that cell is outside the grid";
-      if (heads_at(g, cell) && !b.of) return "a header holds a label, or a reference to a block";
-      /** A cell holds one block. */
-      const held = at_cell(ctx.graph, group!, cell.r, cell.c);
-      return held && held.id !== b.id ? "that cell is taken" : null;
-    },
-    run: (ctx, args) => {
-      const { b, group, cell } = seating(ctx, args);
-      const out: Mutation[] = [];
-      if (group && b!.group !== group) out.push({ op: "set_group", id: b!.id, group });
-      /** No address takes it out of the grid. */
-      out.push(put(b!.id, cell));
-      return { mutations: out };
-    },
-  },
-  {
-    name: "heads",
-    about: "adds a header row or column to a grid, or takes it away",
-    on: ["block", "cell"],
-    /** Absent `on` turns it over. */
-    args: [{ name: "group", form: "block" },
-           { name: "way", form: "choice", required: true, choices: ["top", "left"] },
-           { name: "on", form: "choice", choices: ["yes", "no"] }],
-    check: (ctx, args) => {
-      if (!grid_named(ctx, args)) return "point at a grid, or a cell of one";
-      return ["top", "left"].includes(String(args["way"])) ? null : "say top or left";
-    },
-    run: (ctx, args) => {
-      const group = grid_named(ctx, args)!;
-      const edge = args["way"] === "left" ? "left" : "top";
-      const was = !!lattice_of(ctx.graph, group)!.head?.[edge];
-      const on = args["on"] === undefined ? !was : args["on"] === "yes";
-      return { mutations: headed(ctx.graph, group, edge, on) };
-    },
-  },
-  {
     name: "label",
-    about: "writes a plain value in a cell of a grid, or clears it",
+    about: "names the block in a cell of a grid, or makes one of that name where the cell is empty",
     on: ["cell"],
     args: [{ name: "group", form: "block" }, { name: "at", form: "text" },
            { name: "text", form: "text", asks: true }],
@@ -276,18 +215,20 @@ register(
       const g = lattice_of(ctx.graph, group)!;
       const at = address(ctx, args, group);
       if (!at) return "no cell is pointed at";
-      return inside(g, at) ? null : "that cell is outside the grid";
+      if (!inside(g, at)) return "that cell is outside the grid";
+      return at_cell(ctx.graph, group, at.r, at.c) || text(args, "text")
+        ? null : "an empty cell is named by typing a name into it";
     },
+    /** A cell holds a block, so typing into one names it — or makes a plain block of that name. */
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
-      const g = lattice_of(ctx.graph, group)!;
       const { r, c } = address(ctx, args, group)!;
-      const values = (g.values ?? []).map((row) => [...row]);
-      while (values.length <= r) values.push([]);
-      const row = values[r]!;
-      while (row.length <= c) row.push("");
-      row[c] = String(args["text"] ?? "").trim();
-      return { mutations: [set(group, tidy({ ...g, values }))] };
+      const name = text(args, "text");
+      const held = at_cell(ctx.graph, group, r, c);
+      if (held) return { mutations: [{ op: "update_block", id: held.id, name }] };
+      const made = make_block(ctx, name, group);
+      const id = (made[0] as { block: { id: Id } }).block.id;
+      return { mutations: [...made, { op: "seat_cell", id, cell: { r, c } }] };
     },
   },
   {
@@ -303,9 +244,8 @@ register(
       const way = args["way"] === "col" ? "col" : "row";
       const g = lattice_of(ctx.graph, group)!;
       const last = way === "row" ? g.rows : g.cols;
-      /** A header line stays first. */
-      const first = (way === "row" ? g.head?.top : g.head?.left) ? 1 : 0;
-      const at = Math.min(last, Math.max(first, num(args, "at") ?? pointed(ctx, way) ?? last));
+      /** The header line stays first. */
+      const at = Math.min(last, Math.max(1, num(args, "at") ?? pointed(ctx, group, way) ?? last));
       return { mutations: shifted(ctx.graph, group, way, at, 1) };
     },
   },
@@ -320,15 +260,14 @@ register(
       const group = grid_named(ctx, args);
       if (!group) return "point at a grid, or a cell of one";
       const g = lattice_of(ctx.graph, group)!;
-      return (args["way"] === "col" ? g.cols : g.rows) > 1 ? null : "a grid keeps one line";
+      const way = args["way"] === "col" ? "col" : "row";
+      if (removing(ctx, args, group, way) === 0) return "the header line stays";
+      return (way === "col" ? g.cols : g.rows) > 2 ? null : "a grid keeps one line past its header";
     },
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
       const way = args["way"] === "col" ? "col" : "row";
-      const g = lattice_of(ctx.graph, group)!;
-      const last = (way === "row" ? g.rows : g.cols) - 1;
-      const at = Math.min(last, Math.max(0, num(args, "at") ?? pointed(ctx, way) ?? last));
-      return { mutations: shifted(ctx.graph, group, way, at, -1) };
+      return { mutations: shifted(ctx.graph, group, way, removing(ctx, args, group, way), -1) };
     },
   },
   {
@@ -343,7 +282,7 @@ register(
       const g = lattice_of(ctx.graph, said.group)!;
       const { r, c, rows, cols } = said.span;
       if (r < 0 || c < 0 || r + rows > g.rows || c + cols > g.cols) return "that reaches past the grid";
-      return one_side(g, said.span) ? null : "a merge stays on one side of a header line";
+      return one_side(said.span) ? null : "a merge stays on one side of a header line";
     },
     /** Merges the picked span, or splits a single cell; covered blocks move to free cells. */
     run: (ctx, args) => {
@@ -368,9 +307,9 @@ register(
           }
           continue;
         }
-        const spare = free_cell(g, taken, span, b.cell, heads_at(g, b.cell));
+        const spare = free_cell(g, taken, span, b.cell, heads_at(b.cell));
         if (spare) taken.add(`${spare.r},${spare.c}`);
-        out.push(put(b.id, spare));
+        out.push(put(ctx.graph, b.id, spare));
       }
       return { mutations: [...out, set(group, with_merges(g,
         [...(g.merges ?? []).filter((m) => !overlaps(m, span)), { ...span }]))] };
@@ -382,17 +321,14 @@ register(
     on: ["block", "cell"],
     args: [{ name: "group", form: "block" }],
     check: (ctx, args) => (grid_named(ctx, args) ? null : "point at a grid, or a cell of one"),
-    /** Rows become columns, and its headers and values turn with it; relations are unchanged. */
+    /** Rows become columns, and its headers turn with it; relations are unchanged. */
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
       const g = lattice_of(ctx.graph, group)!;
       const turned = (g.merges ?? [])
         .map((s): Span => ({ r: s.c, c: s.r, rows: s.cols, cols: s.rows }));
-      const values = g.values ? Array.from({ length: g.cols }, (_, c) =>
-        Array.from({ length: g.rows }, (_, r) => g.values![r]?.[c] ?? "")) : undefined;
-      const head = { top: !!g.head?.left, left: !!g.head?.top };
-      const out: Mutation[] = [set(group, tidy(with_merges(
-        { ...g, rows: g.cols, cols: g.rows, head, ...(values ? { values } : {}) }, turned)))];
+      const out: Mutation[] = [set(group, with_merges({ ...g, rows: g.cols, cols: g.rows },
+                                                      turned))];
       for (const b of members_of(ctx.graph, group)) {
         if (b.cell) out.push({ op: "seat_cell", id: b.id, cell: { r: b.cell.c, c: b.cell.r } });
       }
@@ -405,12 +341,14 @@ register(
     on: ["block", "cell"],
     args: [{ name: "group", form: "block" },
            { name: "dir", form: "choice", choices: ["none", "forward", "back", "both"] },
-           { name: "type", form: "text" }],
+           { name: "type", form: "text" },
+           /** The drawing tool's base, where no type is said. */
+           { name: "module", form: "choice", choices: ["line", "tie"] }],
     check: (ctx, args) => {
       const group = grid_named(ctx, args);
       if (!group) return "point at a grid, or a cell of one";
       const type = text(args, "type");
-      if (type && ctx.graph.defs[type]?.group !== "relation") {
+      if (type && (!def_at(ctx.graph, type) || domain_of(ctx.graph, type) !== "relation")) {
         return `"${type}" is not a relation definition`;
       }
       return reading(ctx.graph, group).length > 1
@@ -420,7 +358,8 @@ register(
       const group = grid_named(ctx, args)!;
       /** A chain runs forward unless told. */
       const dir = String(args["dir"] ?? "forward") as Dir;
-      const drawn = new Set(edges_in(ctx.graph, ctx.layer).map((e) => `${e.from}|${e.to}`));
+      /** A grid is its members' layer, so what links them is drawn there. */
+      const drawn = new Set(edges_in(ctx.graph, group).map((e) => `${e.from}|${e.to}`));
       const run = reading(ctx.graph, group);
       const out: Mutation[] = [];
       const line = handles(ctx, "relation");
@@ -429,10 +368,9 @@ register(
         const to = run[n]!;
         if (drawn.has(`${from}|${to}`)) continue;
         drawn.add(`${from}|${to}`);
-        const module = derived_base(ctx.graph, from, to);
         out.push({ op: "link_blocks", edge: {
-          id: new_id("edge"), from, to, alias: line.take(), ...run_type(ctx, args, module),
-          ...(dir !== "none" ? { dir } : {}) } });
+          id: new_id("edge"), from, to, alias: line.take(), ...run_type(ctx, args),
+          ...(dir !== "none" ? { settings: { line: { dir } } } : {}) } });
       }
       out.push(...line.bump());
       return { mutations: out,
@@ -451,17 +389,14 @@ register(
     },
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
-      const parent = ctx.graph.blocks[group]!.parent;
       /** Orders are counted forward within the act. */
-      let order = next_order(ctx.graph, parent);
+      let order = next_order(ctx.graph, group);
       const made = handles(ctx, "block");
       const out: Mutation[] = [];
       for (const cell of empty_cells(ctx.graph, group)) {
         const id = new_id("block");
-        out.push({ op: "add_block", block: { id, parent, order: order++,
-                                             alias: made.take() } });
-        out.push({ op: "set_group", id, group });
-        out.push({ op: "seat_cell", id, cell });
+        out.push({ op: "add_block", block: { id, parent: group, order: order++,
+                                             alias: made.take(), cell } });
       }
       out.push(...made.bump());
       return { mutations: out };

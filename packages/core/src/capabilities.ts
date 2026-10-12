@@ -1,11 +1,14 @@
 /** What a block may do, and what its values are asked for. `allows` is refused at the gesture;
  *  `expects` is only ever advice. */
 
-import { base_of, def_of, isa, outside } from "./defs";
+import { closes_cycle, frozen, isa, owner_def, stated, tree_of } from "./defs";
+import { is_grid } from "./holders";
+import { label_of } from "./names";
 import { children, is_interface, subtree } from "./tree";
-import type { Components, Flow, Graph, Id, Shape } from "./types";
+import type { Components, Flow, Graph, Id } from "./types";
 
-export type NoteKind = "required" | "ends" | "holds" | "ports" | "degree" | "match";
+export type NoteKind = "required" | "ends" | "holds" | "ports" | "values" | "degree" | "match"
+  | "nested" | "self" | "cycle" | "cell";
 
 /** What a usage asked for and did not get. */
 export type Note = {
@@ -18,13 +21,8 @@ export type Note = {
 export type Range = { min?: number; max?: number };
 
 /** One capability's setting: anything, nothing, or these definitions and whatever extends them.
- *  Absent is not this — it means nobody said, and the chain answers instead. */
+ *  Absent means nobody said, and is a no: a capability is granted, by a trait or a setting. */
 export type Allowed = boolean | Id[];
-
-/** Which holder a usage is, or `none` to say it is not one. Absent lets the chain answer. */
-export type Holding = Shape | "none";
-
-export const HOLDINGS: readonly Holding[] = ["none", "group", "grid"];
 
 /** What may attach to or be held by a usage. Refused when a gesture would break it. */
 export type Allows = {
@@ -32,10 +30,11 @@ export type Allows = {
   ports?: Allowed;
   /** What it may own as children. */
   holds?: Allowed;
-  /** Whether it holds blocks on its own layer, and which way: a group or a grid. */
-  holder?: Holding;
-  /** What a holder may take as members. */
-  members?: Allowed;
+  /** What may head a group: its first member, where that member is one of these. Absent, a group
+   *  has no head. */
+  heads?: Allowed;
+  /** Whether it may hold values of its own. */
+  values?: boolean;
   /** How many relationships may meet a usage, counted separately. */
   degree?: { in?: Range; out?: Range };
   /** Which definitions may sit at each end of a relation, and optionally which flow. */
@@ -74,15 +73,6 @@ export function expects_of(graph: Graph, id: Id | undefined): Expects {
   return merged(layers_of(graph, id, "expects", read_expects));
 }
 
-/** A definition's capabilities split in two: what its own word states — the workspace's, since
- *  nothing from outside is written — and what the rest of its chain would give it without that. */
-export function allows_split(graph: Graph, def: Id): { own: Allows; inherited: Allows } {
-  const chain = isa(graph, def);
-  const mine = !!chain[0] && !outside(chain[0]);
-  return { own: mine ? read_allows(chain[0]!.components) : {},
-           inherited: merged(chain.slice(mine ? 1 : 0).map((d) => read_allows(d.components))) };
-}
-
 /** Nearest first, so the first declaration of each key is the one in force. */
 function merged<T extends object>(layers: T[]): T {
   const out = {} as T;
@@ -94,26 +84,23 @@ function merged<T extends object>(layers: T[]): T {
   return out;
 }
 
-/** What states this key over an element, nearest first: its own look, then its chain. */
+/** What states this key over an element, nearest first: per link of its chain, its own word, then
+ *  its traits. A definition's chain starts at itself. */
 function layers_of<T>(graph: Graph, id: Id | undefined, key: string,
                       read: (c: Components | undefined) => T): T[] {
-  if (!id) return [];
-  if (graph.defs[id]) return isa(graph, id).map((d) => read(d.components));
-  const chain = isa(graph, def_of(graph, id)).map((d) => read(d.components));
-  const own = (graph.blocks[id] ?? graph.edges[id])?.looks;
-  return own?.[key] ? [read(own), ...chain] : chain;
+  return stated(graph, id).filter((c) => c[key]).map(read);
 }
 
 function read_allows(components: Components | undefined): Allows {
   const a = components?.["allows"] ?? {};
   const out: Allows = {};
 
-  for (const key of ["ports", "holds", "members"] as const) {
+  for (const key of ["ports", "holds", "heads"] as const) {
     const said = allowed(a[key]);
     if (said !== undefined) out[key] = said;
   }
 
-  if (HOLDINGS.includes(a["holder"] as Holding)) out.holder = a["holder"] as Holding;
+  if (typeof a["values"] === "boolean") out.values = a["values"];
 
   const degree = a["degree"];
   if (degree && typeof degree === "object") {
@@ -151,20 +138,28 @@ function is_one_of(graph: Graph, type: Id | undefined, allowed: Id[]): boolean {
   return isa(graph, type).some((d) => allowed.includes(d.id));
 }
 
-/** Whether a setting lets this type through. Absent is a yes: nobody said otherwise. */
+/** Whether a setting lets this type through. Absent is a no: nobody granted it. */
 export function permits(graph: Graph, setting: Allowed | undefined,
                         type?: Id): boolean {
-  if (setting === undefined || setting === true) return true;
-  if (setting === false) return false;
+  if (setting === true) return true;
+  if (setting === undefined || setting === false) return false;
   return setting.length ? is_one_of(graph, type, setting) : false;
 }
 
-/** Whether this block may own a child of that definition. */
+/** Whether an element may hold values of its own: granted by the `values` trait. A definition
+ *  declares attributes rather than holding values, so it always may. */
+export function holds_values(graph: Graph, id: Id): boolean {
+  return !!graph.blocks[id]?.def || allows_of(graph, id).values === true;
+}
+
+/** Whether this block may own anything at all: granted outright, or limited to some definitions. */
+export function holds_any(graph: Graph, id: Id): boolean {
+  const said = allows_of(graph, id).holds;
+  return said === true || (Array.isArray(said) && said.length > 0);
+}
+
+/** Whether this block may own a child of that definition: its settings say, and nothing else. */
 export function may_hold(graph: Graph, parent: Id, type?: Id): boolean {
-  /** The kind answers first: a reference stands in for a block living elsewhere and a note is a
-   *  remark about one, so neither holds blocks, whatever a vocabulary says of it. */
-  const base = base_of(graph, parent);
-  if (base === "reference" || base === "note") return false;
   return permits(graph, allows_of(graph, parent).holds, type);
 }
 
@@ -173,16 +168,17 @@ export function may_seat(graph: Graph, id: Id, type: Id = "interface"): boolean 
   return permits(graph, allows_of(graph, id).ports, type);
 }
 
-/** Whether this holder may take that block as a member. */
-export function may_take(graph: Graph, holder: Id, type?: Id): boolean {
-  return permits(graph, allows_of(graph, holder).members, type);
-}
-
 // ------------------------------------------------------------------- the review
 
-/** What a block answers for one field name. */
+/** What a block or a line answers for one field name. */
 function value_of(graph: Graph, id: Id, name: string): string | undefined {
-  return graph.blocks[id]?.fields?.find((f) => f.name === name)?.value;
+  return (graph.blocks[id] ?? graph.edges[id])?.values?.find((f) => f.name === name)?.value;
+}
+
+/** What an element is asked for and leaves unanswered. */
+function unanswered(graph: Graph, id: Id, name: string, expects: Expects): Note[] {
+  return (expects.required ?? []).filter((n) => !value_of(graph, id, n))
+    .map((n) => ({ kind: "required", id, what: `"${name}" needs a value for ${n}` }));
 }
 
 function label(graph: Graph, id: Id): string {
@@ -197,39 +193,51 @@ export function review(graph: Graph, scope?: Id): Note[] {
   const holds_block = (id: Id) => !within || within.has(id);
 
   for (const b of Object.values(graph.blocks)) {
-    if (!holds_block(b.id)) continue;
+    if (!holds_block(b.id) || frozen(graph, b.id)) continue;
     const allows = allows_of(graph, b.id);
-    const expects = expects_of(graph, b.id);
 
-    for (const name of expects.required ?? []) {
-      if (!value_of(graph, b.id, name)) {
-        notes.push({ kind: "required", id: b.id,
-                     what: `"${label(graph, b.id)}" needs a value for ${name}` });
-      }
+    /** The rules a gesture refuses, said of data that arrived another way. */
+    if (b.def && tree_of(graph, b.id) !== b.id) {
+      notes.push({ kind: "nested", id: b.id, what: `"${label(graph, b.id)}" sits in a structure` });
+    }
+    const home = b.def ? null : owner_def(graph, b.id);
+    if (home && home === b.type) {
+      notes.push({ kind: "self", id: b.id, what: `"${label(graph, home)}" uses itself` });
+    }
+    if (b.def && closes_cycle(graph, b.id, b.type)) {
+      notes.push({ kind: "cycle", id: b.id, what: `"${label(graph, b.id)}" extends itself` });
+    }
+    if (!b.cell && !is_interface(graph, b.id) && is_grid(graph, b.parent ?? undefined)) {
+      notes.push({ kind: "cell", id: b.id,
+                   what: `"${label(graph, b.id)}" sits in a grid but in no cell, so it is not drawn` });
+    }
+    const expects = expects_of(graph, b.id);
+    if (b.values?.length && !holds_values(graph, b.id)) {
+      notes.push({ kind: "values", id: b.id, what: `"${label(graph, b.id)}" holds no values` });
     }
 
-    /** The vocabulary's containment capability. */
-    if (allows.holds !== undefined) {
-      for (const child of children(graph, b.id)) {
-        if (is_interface(child)) continue;
-        if (!permits(graph, allows.holds, child.type)) {
-          notes.push({ kind: "holds", id: child.id,
-                       what: `"${label(graph, b.id)}" may not hold "${label(graph, child.id)}"` });
-        }
-      }
+    /** A definition is a template, never allocated: what it asks is asked of its usages. */
+    if (!b.def) notes.push(...unanswered(graph, b.id, label(graph, b.id), expects));
+
+    /** What it holds without the containment capability, or of a sort it does not take. */
+    for (const child of children(graph, b.id)) {
+      if (is_interface(graph, child.id) || permits(graph, allows.holds, child.type)) continue;
+      notes.push({ kind: "holds", id: child.id,
+                   what: `"${label(graph, b.id)}" may not hold "${label(graph, child.id)}"` });
     }
 
     /** A wall that takes no interfaces, said about the ones already on it. */
-    if (allows.ports !== undefined && !permits(graph, allows.ports, "interface")) {
+    if (!permits(graph, allows.ports, "interface")) {
       for (const child of children(graph, b.id)) {
-        if (!is_interface(child)) continue;
+        if (!is_interface(graph, child.id)) continue;
         notes.push({ kind: "ports", id: child.id,
                      what: `"${label(graph, b.id)}" takes no interfaces` });
       }
     }
 
-    /** Degree counts every relation meeting the block, in any layer. */
-    if (allows.degree) {
+    /** Degree counts every relation meeting the block, in any layer — a usage's, never a
+     *  definition's. */
+    if (allows.degree && !b.def) {
       const met = Object.values(graph.edges);
       count(notes, b.id, label(graph, b.id), "in",
             met.filter((e) => e.to === b.id).length, allows.degree.in);
@@ -243,7 +251,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
     const allows = allows_of(graph, e.id);
     const expects = expects_of(graph, e.id);
 
-    /** An edge has no `required`: it carries no values. */
+    notes.push(...unanswered(graph, e.id, label_of(graph, e.id) || e.id, expects));
     if (allows.ends) {
       end(notes, graph, e.id, "from", e.from, allows.ends.from, allows.ends.fromFlow);
       end(notes, graph, e.id, "to", e.to, allows.ends.to, allows.ends.toFlow);
@@ -277,7 +285,7 @@ function count(notes: Note[], id: Id, name: string, way: "in" | "out",
 function end(notes: Note[], graph: Graph, id: Id, way: "from" | "to", at: Id,
              allowed: Id[] | undefined, flow: Flow | undefined): void {
   const met = graph.blocks[at];
-  const owner = met && is_interface(met) && met.parent
+  const owner = met && is_interface(graph, met.id) && met.parent
     ? graph.blocks[met.parent] : undefined;
   if (allowed && !is_one_of(graph, met?.type, allowed)
       && !is_one_of(graph, owner?.type, allowed)) {

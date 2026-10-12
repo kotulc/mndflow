@@ -1,6 +1,9 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import type { Arrangement, Block, Definition, Graph, Id, Relation } from "./types";
+import { base_of, isa, module_of, setting_of } from "./defs";
+import { drawn_in } from "./holders";
+import { LAYOUTS, type Block, type Definition, type Graph, type Id, type Layout,
+         type Relation } from "./types";
 
 
 /** Every block under this one, itself included. */
@@ -15,16 +18,11 @@ export function subtree(graph: Graph, id: Id): Id[] {
   return out;
 }
 
-/** A null layer is the root layer. */
-export function layer_id(graph: Graph, layer: Id | null): Id {
-  return layer ?? graph.root;
-}
-
 /** What a gesture is about: the one element picked, else the open layer. Picking several, or
  *  nothing, leaves the layer to answer — **one rule, so every view is about the same thing**. */
 export function about_of(graph: Graph, layer: Id | null, picked: readonly Id[]): Id {
   const one = picked.length === 1 ? picked[0]! : null;
-  return one && (graph.blocks[one] ?? graph.edges[one]) ? one : layer_id(graph, layer);
+  return one && (graph.blocks[one] ?? graph.edges[one]) ? one : layer ?? graph.root;
 }
 
 /** What a listing frames: the block in context, else the open layer. **A block frames its own
@@ -34,11 +32,10 @@ export function frame_of(graph: Graph, layer: Id | null, about: Id): Id | null {
   return graph.blocks[about] && about !== graph.root ? about : layer;
 }
 
-/** The direct children of a layer, in a stable order. */
+/** What a block holds, in a stable order. Null holds the package roots. */
 export function children(graph: Graph, layer: Id | null): Block[] {
-  const here = layer_id(graph, layer);
   return Object.values(graph.blocks)
-    .filter((b) => b.parent === here)
+    .filter((b) => b.parent === layer)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
 }
 
@@ -57,47 +54,55 @@ export function path(graph: Graph, id: Id): Block[] {
   return out;
 }
 
-export function is_interface(b: Block): boolean {
-  return b.side !== undefined;
+/** Whether a block is an interface: a usage whose chain descends from `interface`. */
+export function is_interface(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  return !!b && !b.def && base_of(graph, id) === "interface";
 }
 
-export function is_reference(b: Block): boolean {
-  return b.of !== undefined;
+/** A definition's interfaces: its own, then those its chain declares, nearest first.
+ *  **Interfaces inherit**, as attributes do; parts never. Each keeps its id, so an edit to one goes
+ *  home to the definition declaring it. */
+export function ports_of(graph: Graph, def: Id | undefined): Block[] {
+  return isa(graph, def).flatMap((d) => children(graph, d.id).filter((b) => is_interface(graph, b.id)));
+}
+
+/** Whether a block is a reference: a usage whose chain carries *is reference*, which runs the
+ *  `reference` module. **Its kind decides it, never `of`.** */
+export function is_reference(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  /** A plain block stores no type, so it is never one. */
+  return !!b?.type && !b.def && module_of(graph, id) === "reference";
+}
+
+/** What a reference points at, as it stores it: `of`, read only where the block is one. */
+export function of_ref(graph: Graph, id: Id): Id | undefined {
+  return is_reference(graph, id) ? graph.blocks[id]!.of : undefined;
 }
 
 /** A block holding blocks draws as a container. */
 export function is_container(graph: Graph, id: Id): boolean {
-  return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(b));
-}
-
-/** A block no other block contains. */
-export function is_top_block(graph: Graph, id: Id): boolean {
-  const b = graph.blocks[id];
-  return !!b && b.parent === graph.root;
+  return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(graph, b.id));
 }
 
 /** What a reference stands for, followed to the end. */
 export function stands_for(graph: Graph, id: Id): Block | null {
   let b: Block | undefined = graph.blocks[id];
   const seen = new Set<Id>();
-  while (b?.of && !seen.has(b.id)) {
+  for (let of = b && of_ref(graph, b.id); b && of && !seen.has(b.id);
+       of = b && of_ref(graph, b.id)) {
     seen.add(b.id);
-    b = graph.blocks[b.of];
+    b = graph.blocks[of];
   }
   return b ?? null;
-}
-
-/** The block a card previews: what a reference to a block stands for, else the block itself. */
-export function previewed(graph: Graph, id: Id): Id {
-  const target = graph.blocks[id]?.of ? stands_for(graph, id) : null;
-  return target && target.id !== id ? target.id : id;
 }
 
 /** The definition a stand-in stands for, where it stands for one: it draws as that definition's
  *  usages do. */
 export function stood_def(graph: Graph, id: Id): Definition | undefined {
-  const of = graph.blocks[id]?.of;
-  return of ? graph.defs[of] : undefined;
+  const of = of_ref(graph, id);
+  const at = of ? graph.blocks[of] : undefined;
+  return at?.def ? (at as Definition) : undefined;
 }
 
 /** The number a new sibling takes: one past the last. */
@@ -118,23 +123,40 @@ export function reorder(graph: Graph, parent: Id | null, moved: Id | readonly Id
     .filter(({ id, order }) => (graph.blocks[id]?.order ?? 0) !== order);
 }
 
+/** What separates a usage from a part of its definition it reads through: `usage/part`. */
+const PART = "/";
+
+/** The id a part of a usage's definition is drawn under on that usage. */
+export function part_id(usage: Id, part: Id): Id {
+  return `${usage}${PART}${part}`;
+}
+
+/** An end as drawn, read back: the block, and the part of its definition it names, if any. */
+export function part_end(graph: Graph, id: Id): { block: Id; part?: Id } {
+  const at = id.indexOf(PART);
+  if (graph.blocks[id] || at < 0) return { block: id };
+  return { block: id.slice(0, at), part: id.slice(at + PART.length) };
+}
+
 /** The block an end is drawn on: an interface's owner, or itself. */
 export function owner_of(graph: Graph, id: Id): Id {
   const b = graph.blocks[id];
-  return b && is_interface(b) && b.parent ? b.parent : id;
+  return b && is_interface(graph, b.id) && b.parent ? b.parent : id;
 }
 
 /** Relations with both ends drawn in this layer. */
-export function edges_in(graph: Graph, layer: Id | null): Relation[] {
-  const here = new Set(children(graph, layer).map((b) => b.id));
-  const room = layer_id(graph, layer);
-  const drawn = (id: Id) => here.has(owner_of(graph, id)) || owner_of(graph, id) === room;
+export function edges_in(graph: Graph, layer: Id | null, flat = false): Relation[] {
+  const here = new Set(drawn_in(graph, layer, flat).map((b) => b.id));
+  const drawn = (id: Id) => here.has(owner_of(graph, id)) || (!!layer && owner_of(graph, id) === layer);
   return Object.values(graph.edges)
     .filter((e) => drawn(e.from) && drawn(e.to))
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** The layer's arrangement. `free` is what a layer says nothing about. */
-export function arrangement_of(graph: Graph, layer: Id | null): Arrangement {
-  return graph.blocks[layer_id(graph, layer)]?.arrangement ?? "free";
+/** How a layer lays out: its own word, else its definition's. `auto` is what nobody said, and a
+ *  kind this build does not know draws as `auto` too. */
+export function layout_of(graph: Graph, layer: Id | null): Layout {
+  const kind = layer ? setting_of(graph, layer, "layout")["kind"] : undefined;
+  if (kind === undefined) return "auto";
+  return LAYOUTS.includes(kind as Layout) ? kind as Layout : "auto";
 }

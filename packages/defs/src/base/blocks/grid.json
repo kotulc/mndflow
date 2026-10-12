@@ -1,0 +1,20 @@
+{
+  "id": "grid",
+  "name": "grid",
+  "type": "block",
+  "body": "A spreadsheet of cells holding text or blocks, opened as a grid view: a header allocates what its row or column holds.",
+  "def": {},
+  "traits": [
+    "has_parts",
+    "has_ports",
+    "has_values",
+    "is_grid"
+  ],
+  "settings": {
+    "style": {
+      "family": "muted",
+      "border_contrast": "faint",
+      "name_contrast": "faint"
+    }
+  }
+}

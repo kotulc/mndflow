@@ -6,17 +6,18 @@ import {
   PanOnScrollMode, ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useReactFlow,
 } from "@xyflow/react";
 import type { Point, Spot } from "@mnd/core";
-import { box_of, extent, nearest_seat, FRAME, UNIT, type BoxNode } from "@mnd/views";
+import { box_of, nearest_seat, routes_of, taken_on, FRAME, LINK, UNIT,
+         type BoxNode } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
-import { EDGE_TYPES, Heads } from "./Wire";
+import { EDGE_TYPES, Heads, RunsContext } from "./Wire";
 import type { Adjust, FlowViewProps, Gesture, Landing } from "./gestures";
-import { MIN_ZOOM, read_zoom, scroll_zoom } from "./arrays";
+import { BAND, MIN_ZOOM, read_zoom } from "./arrays";
 import { useDrag } from "./drag";
 import { useDraw } from "./draw";
 import { Grips } from "./Grips";
-import { kind_of, spread } from "./pointer";
-import { useCamera, useRoom } from "./room";
+import { kind_of, spread, LINES } from "./pointer";
+import { paged, useCamera, useRoom } from "./room";
 import { Sweeping } from "./Sweeping";
 import { useSync } from "./sync";
 
@@ -42,19 +43,19 @@ function Canvas(props: FlowViewProps) {
   };
   /** Whether the press under way is one, so the pane's own reset leaves the pick alone. */
   const second = useRef(false);
-  const { frame, fit, seen } = useRoom(scene);
+  const { frame, fit, seen } = useRoom(scene, scroll);
   const { nodes, edges, moved, rewired, chose, key, again } =
     useSync(scene, picked, frame, onPick, second);
   useCamera(scene, frame, fit, seen, key, nodes, scroll, focus, wide, widest, most);
 
-  /** Scrolled, the drawing can be read from its first card to its last, and no further. */
+  /** Scrolled, the drawing reads from the top of its content to the bottom and no further — the
+   *  same limits the camera keeps, at the same zoom, so a scroll and a followed focus agree. */
   const reach = useMemo((): [[number, number], [number, number]] | undefined => {
     if (!scroll) return undefined;
-    const b = frame ?? extent(scene);
-    const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
-    const air = seen.h / 2 / scroll_zoom(wide ?? b.w, on ? box_of(on) : b, seen, widest, most);
-    return [[-Infinity, b.y - air], [Infinity, b.y + b.h + air]];
-  }, [scroll, frame, scene, seen, wide, widest, most, focus]);
+    const { page, zoom } = paged(scene, seen, wide, widest, most);
+    const air = Math.max(BAND / zoom, (seen.h / zoom - page.h) / 2);
+    return [[-Infinity, page.y - air], [Infinity, page.y + page.h + air]];
+  }, [scroll, scene, seen, wide, widest, most]);
 
   /** Where the pointer is on the drawing, unsnapped. */
   const at = useCallback((e: { clientX: number; clientY: number }): Point =>
@@ -89,14 +90,22 @@ function Canvas(props: FlowViewProps) {
     /** Which wall and how far along, for a border pointed at. */
     const box = kind === "frame" ? frame
       : kind === "box" || kind === "brim" ? scene.nodes.find((n) => n.id === on) : null;
-    const seat = box ? nearest_seat("w" in box ? box : box_of(box as BoxNode), at(e)) : null;
+    const seat = box ? nearest_seat("w" in box ? box : box_of(box as BoxNode), at(e),
+                                    taken_on(scene, kind === "frame" ? FRAME : on ?? "")) : null;
     /** A cell gesture carries its grid and address. */
     const el_at = target instanceof Element
       ? target.closest(".mnd-grid-cell")?.getAttribute("data-at") : null;
     const spot = kind === "cell" && el_at && on
       ? { group: on, r: Number(el_at.split(",")[0]), c: Number(el_at.split(",")[1]) }
       : null;
-    const given = spot ?? (seat
+    /** A line gesture carries its grid, which way the line runs and which it is. */
+    const tab = kind === "line" && on && target instanceof Element ? target.closest(LINES) : null;
+    /** A header is a cell too, so it carries its address beside its line. */
+    const cell_at = tab?.getAttribute("data-at")?.split(",").map(Number);
+    const line = tab ? { group: on, way: tab.getAttribute("data-way"),
+                         i: Number(tab.getAttribute("data-i")),
+                         ...(cell_at ? { r: cell_at[0], c: cell_at[1] } : {}) } : null;
+    const given = spot ?? line ?? (seat
       ? { side: seat.side, at: seat.at, ...(kind === "brim" ? { owner: on } : {}) }
       : null);
     /** A chip's name belongs to the block it stands for. */
@@ -122,13 +131,18 @@ function Canvas(props: FlowViewProps) {
   const only = useMemo(() => {
     if (picked.length !== 1) return null;
     const n = scene.nodes.find((x) => x.id === picked[0]);
-    /** Only a card that opens onto a drawing of its own offers to: a note has no inside, and nor
+    /** Only a card that opens onto a view of its own offers to: a note has no inside, and nor
      *  has a leaf, linked or not — a link is followed by double-click, not opened. */
-    const opens = n?.data.stamps?.includes("parts");
+    const opens = n?.data.opens;
     return n && opens && !n.data.on && n.selectable !== false && n.type !== "note" ? n.id : null;
   }, [picked, scene]);
 
+  /** Every line routed round the cards where they stand — mid-drag too — in the room as hung. */
+  const runs = useMemo(() => routes_of({ ...scene, nodes, ...(frame ? { frame } : {}) }),
+                       [scene, nodes, frame]);
+
   return (
+    <RunsContext.Provider value={runs}>
     <ReactFlow
       className={framed ? "mnd-flow" : "mnd-flow frameless"}
       nodes={nodes}
@@ -138,7 +152,9 @@ function Canvas(props: FlowViewProps) {
       onNodesChange={changed}
       onEdgesChange={rewired}
       onSelectionChange={chose}
-      fitView
+      /** A scrolled drawing is fitted by its camera, as a page; React Flow's own first fit would
+          fit its height instead. */
+      fitView={!scroll}
       fitViewOptions={fit}
       minZoom={scroll && widest ? read_zoom(widest, seen) : MIN_ZOOM}
       maxZoom={4}
@@ -194,14 +210,18 @@ function Canvas(props: FlowViewProps) {
         e.preventDefault();
         say(ns[0]?.id ?? null, e, "right", 1);
       }}
-      onEdgeClick={(e, edge) => say(edge.id, e, "left", 1)}
-      onEdgeContextMenu={(e, edge) => { e.preventDefault(); say(edge.id, e, "right", 1); }}
+      /** A link is drawn to be read: a press on it is a press on the ground. */
+      onEdgeClick={(e, edge) => say(edge.data?.link ? null : edge.id, e, "left", 1)}
+      onEdgeContextMenu={(e, edge) => {
+        e.preventDefault();
+        say(edge.data?.link ? null : edge.id, e, "right", 1);
+      }}
       onPaneClick={(e) => say(null, e as React.MouseEvent, "left", 1)}
       /** A relationship's name is outside every node and edge, so its right-click is caught here. */
       onContextMenu={(e: React.MouseEvent) => {
         const wire = (e.target as HTMLElement).closest<HTMLElement>(".mnd-wire-name");
         const on = wire?.dataset["edge"];
-        if (!on) return;
+        if (!on || on.startsWith(LINK)) return;
         e.preventDefault();
         say(on, e, "right", 1);
       }}
@@ -268,6 +288,7 @@ function Canvas(props: FlowViewProps) {
       ) : null}
       {chrome && !scroll ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
     </ReactFlow>
+    </RunsContext.Provider>
   );
 }
 

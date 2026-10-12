@@ -1,32 +1,25 @@
 /** The right button draws: from a card a relationship, across the ground a grid. */
 
 import { useCallback, useRef, useState } from "react";
-import type { Id, Point, Side } from "@mnd/core";
+import type { Id, Point } from "@mnd/core";
 import { FRAME, type Scene } from "@mnd/views";
 import { NUDGE } from "./arrays";
 import type { FlowViewProps } from "./gestures";
 import { spread } from "./pointer";
 
-/** The four walls, in the order they are drawn. */
-const SIDES: readonly Side[] = ["top", "right", "bottom", "left"];
-
 
 export function useDraw(scene: Scene, at: (e: { clientX: number; clientY: number }) => Point,
                         onRelate: FlowViewProps["onRelate"], onSweep: FlowViewProps["onSweep"]) {
   const drew = useRef<
-    { x: number; y: number; on: string | null; side?: Side; cell?: boolean } | null>(null);
+    { x: number; y: number; on: string | null; cell?: boolean } | null>(null);
   const [drawing, draw] = useState<{ from: Point; to: Point; on: string | null } | null>(null);
   /** Set after a draw, so the context menu that follows is ignored. */
   const swallow = useRef(false);
 
-  /** The card under a page point, and the room wall where that is the frame. */
-  const over = useCallback((x: number, y: number): { on: Id | null; side?: Side } => {
+  /** The card under a page point, or the frame where that is the room's rim. */
+  const over = useCallback((x: number, y: number): { on: Id | null } => {
     const el = document.elementFromPoint(x, y);
-    const rim = el instanceof Element ? el.closest(".mnd-rim") : null;
-    if (rim) {
-      const side = SIDES.find((s) => rim.classList.contains(`mnd-rim-${s}`));
-      return { on: FRAME, ...(side ? { side } : {}) };
-    }
+    if (el instanceof Element && el.closest(".mnd-rim")) return { on: FRAME };
     const node = el instanceof Element ? el.closest(".react-flow__node") : null;
     const id = node?.getAttribute("data-id") ?? null;
     return { on: id === FRAME ? null : id };
@@ -60,11 +53,7 @@ export function useDraw(scene: Scene, at: (e: { clientX: number; clientY: number
     const began = from.on === FRAME ? scene.layer : from.on;
     const landed = to.on === FRAME ? scene.layer : to.on;
     if (began && landed && landed !== began) {
-      /** The wall let go on is the wall the line meets. */
-      onRelate?.(began, landed, {
-        ...(from.on === FRAME && from.side ? { fromSide: from.side } : {}),
-        ...(to.on === FRAME && to.side ? { toSide: to.side } : {}),
-      });
+      onRelate?.(began, landed);
       return;
     }
     if (!from.on && !to.on && !from.cell) onSweep?.(spread(was.from, was.to));

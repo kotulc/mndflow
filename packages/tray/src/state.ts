@@ -8,10 +8,10 @@ import { useState } from "react";
 import type { Act, Id } from "@mnd/core";
 import type { Hold } from "./Tray";
 import type { Display } from "./Workspace";
-import type { Shelf } from "./Definitions";
+import type { Only, Shelf } from "./Definitions";
 
 /** A library row, as the explorer names one: a narrowing of the definitions, or one of them. */
-export type Pointed = ({ of: "defs" } & Shelf) | { of: "def"; id: Id };
+export type Pointed = ({ of: "defs" } & Shelf) | { of: "def"; id: Id; only?: Only };
 
 /** How the drawing starts where the host says nothing: the lattice on, the key off. */
 const DISPLAY: Omit<Display, "card" | "range"> = { legend: false, corner: "top", lattice: true };
@@ -23,7 +23,7 @@ export function useTray(first = true) {
   const [tab, set_tab] = useState<string | undefined>(undefined);
   const [hold, set_hold] = useState<Hold | null>(null);
 
-  /** A library row points the tray: a definition at its own tabs, a folder at its list. */
+  /** A library row points the tray: a definition at its own tabs, a package at its list. */
   const onSection = (at: Pointed) => {
     set_open(true);
     if (at.of === "def") { set_hold({ of: "id", id: at.id }); return; }
@@ -31,14 +31,9 @@ export function useTray(first = true) {
     set_tab(at.only === "packages" ? "packages" : "definitions");
   };
 
-  /** Which library row the explorer lights: whatever the tray holds, bar the root. */
-  const section = (root: Id): Pointed | null =>
-    hold?.of === "defs" ? hold
-    : hold?.of === "id" && hold.id !== root ? { of: "def", id: hold.id } : null;
-
   return {
     open, onOpen: set_open, tab, onTab: set_tab, hold, onHold: set_hold,
-    section, onSection,
+    onSection,
     /** A selection made anywhere but the tray gives the context back to the canvas. */
     release: () => set_hold(null),
   };
@@ -61,7 +56,6 @@ export function useDisplay(start: Pick<Display, "card" | "range"> & Partial<Disp
       set_display((was) => ({ ...was, corner: args?.["at"] === "bottom" ? "bottom" : "top" }));
     }
     if (name === "lattice") set_display((was) => ({ ...was, lattice: !!args?.["show"] }));
-    if (name === "full") set_display((was) => ({ ...was, full: !!args?.["show"] }));
   };
 
   return { display, onDisplay };

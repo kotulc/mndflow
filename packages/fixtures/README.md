@@ -30,6 +30,7 @@ npm run typecheck -w @mnd/fixtures
 
 | | Is |
 |---|---|
+| `blank` | the floor alone: a new workspace |
 | `flat` | one tree, three siblings, nothing else. The simplest thing that draws |
 | `nested` | two trees, one nested two deep, one folder. Exercises the tree |
 | `related` | a chain and a fan, with a note and a boundary. What routing is tested on |
@@ -58,5 +59,3 @@ npm run typecheck -w @mnd/fixtures
 **Sample data is for proving things, never for shipping.** A test and a dev harness may reach a fixture; nothing under any package's `src/` may, and the dependency-law test enforces both halves.
 
 **A sample of the engine is a log, never a graph.** Building one as a graph would skip the fold, the door and the step shape — which is most of what there is to get wrong. **A sample of the seam is the opposite**, and the two do not substitute for one another: a log proves the engine agrees with itself, a file proves it reads what it did not write.
-
-**`num` is fixed at creation**, so a fixture counts per parent exactly as the `create` action does and the explorer reads the order it expects.

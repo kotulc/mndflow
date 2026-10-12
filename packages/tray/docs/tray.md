@@ -10,9 +10,8 @@
 |---|---|
 | pick one thing on the canvas | that thing |
 | pick nothing, several things, or click the ground | the open layer — the workspace at the root |
-| an elements toggle on the rail | the workspace, or a blank block or relation definition |
 | a definition row in the explorer | that definition |
-| a definitions folder in the explorer — *pinned*, *blocks*, *relations*, a folder somebody made | every definition, narrowed to that folder |
+| a definitions folder in the explorer — *blocks*, *relations*, a folder somebody made | every definition, narrowed to that folder |
 | the *packages* section, or one package | what the workspace draws on, on the **packages** tab |
 | a row in any of the tray's tables | nothing changes — the row lights and offers what acts on it |
 | *view* on a lit row | that thing, selected where it lives |
@@ -34,82 +33,78 @@
 
 ## Tabs
 
-**A tab that cannot be answered is absent rather than empty.**
+**A definition and a usage ask the same questions, and the fewest of them.** A tab that cannot be answered is absent rather than empty; one that is not the context's own to change reads only.
 
 | context | tabs |
 |---|---|
-| block | element · type · fields · contents |
-| a line | element · type |
-| block definition | element · settings · fields · usages |
-| relation definition | element · settings · usages |
+| block | card · settings · attributes · contents |
+| block definition | card · settings · attributes · usages |
+| a line | line · settings |
+| relation definition | line · settings · usages |
+| the workspace | workspace · contents |
 | a definitions folder | definitions |
 | the packages section | packages |
 
-**Usages are a definition's question.** An instance *is* one usage and has none of its own, so the tab is a definition's and a relation definition's only.
+**Every element asks in one order**: what it is, how it draws, what it carries, what it lists. **The first tab is named for what is drawn** — *card* or *line* — and laid out alike; a line has no attributes, since a relation holds no values.
 
-**Settings are a definition's too.** How it draws and what its usages may do are said once, on the definition, and every usage follows — so a usage has no settings tab, and is restyled by restyling what it follows or by following something else.
+**The fourth tab is what a thing lists**: a usage its contents, a definition its usages. Same place, its label says which.
 
-**The tab is sticky by family.** Every instance is read the same way and so is every definition, so each family remembers the tab it was last read on: move from one block to the next, or from one definition to the next, and the question being asked stays put. A tab that does not fit the new context falls to what that family last read, and only then to the last that fits.
+**Settings are a definition's.** How it draws and what its usages may do are said once, on the definition, and every usage follows — so a usage's settings tab is its definition's, read only, and is restyled where it is defined. A definition's own settings change by its traits and the pickers, which is the only way its JSON changes: **nobody types JSON**.
 
-**Element and settings are two tabs over one definition.** Element is what it *is*; settings are how it is painted and, under that, full width, its **capabilities** — what its usages may do. Both draw the same card, so it stays where it was when the tab changes.
+**The tab is sticky by family.** Every instance is read the same way and so is every definition, so each family remembers the tab it was last read on: move from one block to the next, or from one definition to the next, and the question being asked stays put. *Card* and *line* are the same tab, so moving between a block and a line keeps it. A tab that does not fit the new context falls to what that family last read, and only then to the last that fits.
 
-**The element tab reads down each column, and each column is headed.** *type* heads the card column — bold, with the base kind and its mark following it directly — and the drawing comes under it, **taking whatever height the identity column set**, so the two read as one block rather than a small picture beside a long list. A run keeps its own size: a line has no height to fill. *identity* heads the rows beside it, ending in an **options** row of boxes — what is true of the thing as against what it is. *content* runs under both, and **source** under that.
+**There is no type tab.** A block is retyped by its card source's `type`, or by dragging a definition onto it; the definitions tab is the whole vocabulary, reached by holding a library folder.
 
-**Type is an element's, definitions is the workspace's.** The type tab lists what the one thing in context may follow — its own kind's definitions, and nothing else. The definitions tab is the whole vocabulary, reached by holding a library folder, and says where each came from.
-
-**What an element follows heads its type tab.** It is lifted out of the listing to the top, ruled off from the candidates under it, and tagged *applied* beside its actions — a state of that row, never a section heading and never something to press.
-
-**Contents are an instance's.** With a definition in context, the fields tab declares that definition's schema instead of values.
-
-**The workspace is a block, and nothing more.** It takes the same tabs as any block, styled for wherever an export is used, with its schema beside the card.
+**The workspace is a block, and nothing more.** It takes the same tabs as any block, styled for wherever an export is used.
 
 ## Definitions
 
-**A definition is a name and what it extends**; a relation definition also carries a `label`. A block or a line names one definition and draws through its chain.
+**A definition is a named block in a package, and what it extends.** A block or a line names one definition and draws through its chain.
 
 | thing | is |
 |---|---|
-| **a package's** | a definition somebody else wrote — the shipped floor's among them, since `base` is a package like any other. Its identity is theirs: never renamed, never re-pointed, never removed |
-| **a word about one** | what an edit to a package's definition mints — the workspace's own, wearing that definition's name and standing in front of it in every chain that reaches it. Dropping it gives the package's word back |
-| **label** | what a line naming a relation definition draws, **exactly as typed** — a stereotype such as `<<relates>>`. Its own and never inherited |
+| **a package's** | a definition in a frozen package, `base` among them. Read only: subtyped, never edited |
 
-- **Styling edits the definition.** The settings tab is a definition's, so every usage follows; a package's definition is styled by writing the workspace's word about it.
-- **Naming a type makes one, once.** A name one already holds applies that one. A name nothing holds **renames the workspace definition the element already follows** — so editing the box is editing that one definition, never filing another per edit — and files a new one only where the element follows a base or a package's definition. Clearing the box gives the element back to its base. **View definition** beside the row makes that definition the context, which is where it is styled and given capabilities. A line keeps the label it was drawing. **Making one never pins.**
-- **Pinned offers a definition; it never makes or removes one.** A pinned relation definition is on the rail — a line definition only, since the rail offers no *tie*; a pinned block definition is in the explorer's *pinned* folder. **Pinning is a shortlist, not a listing**: the explorer lists every definition either way.
-- **Removing dissolves.** Its looks go down into each usage, anything extending it extends what it extended, and it is unpinned.
-- **A name is unique within its group.** A block definition and a relation definition may share one. A name already taken is said, never looked up.
+- **Styling edits the definition.** The settings tab is a definition's, so every usage follows. A frozen definition's settings are read only.
+- **Naming a type makes one, once.** A name one already holds applies that one. A name nothing holds **renames the workspace definition the element already follows** — so editing the box is editing that one definition, never filing another per edit — and files a new one only where the element follows a base or a frozen definition. Clearing the box gives the element back to its base. **View definition** beside the row makes that definition the context, which is where it is styled and given capabilities. A line keeps the label it was drawing.
+- **Removing a used definition is refused**, and says what uses it. An unused one is deleted with its structure.
+- **A name is unique within its package**, across definitions, tags and traits. A name already taken is said, never looked up.
 - **Renaming keeps the id**, so every usage reads the new name and nothing is retyped.
-- **Filed when first needed.** A default is laid by the fold until its first edit files it, so a workspace nobody customised writes nothing.
 - **Ids are minted**, never a slug of the name, so renaming touches nothing but the name.
 
-## Element
+## Card and line
 
-**What it is, then the drawing.** The card is a column of its own on the left, headed *type* and its base kind, with the drawing under that head. The identity rows sit beside it and end in an *options* row of boxes. The content runs below both, and source or the definition's record under that.
+**The first tab, one layout for both — the settings tab's.** Nothing hides behind a button.
 
-| holder | identity rows |
+| group | holds |
 |---|---|
-| workspace | name, tags — then a *display* band of its own |
-| block | name, type *(with view definition)*, tags |
-| a line | name, type, label, tags |
-| block definition | name, extends |
-| relation definition | name, label, extends |
+| **drawing** | left, unheaded: a card's faces — **the large face over the small one**, each at its own size, scaled into the column only where it is narrower — or a line's run |
+| **identity** | right of the drawing: name, type, tags, extends — the same rows for a block, a definition and a line. *View definition* in the type row makes what a usage follows the context |
+| **source** | under both, a card's alone: its whole markdown — frontmatter, then body — in an open box, committed when the box is left as ordinary changes. Escape gives it back; a refused edit stays to be put right |
+| **definition** | under all, read only: the definition it follows, or itself, as JSON — its own word as filed. Straight under the drawing and identity on a line, which has no source |
 
-- **An instance is named for itself; a line is named by its definition.** A block's name is its own. A line's name row shows the definition it follows and, typed into, files a new definition over it and moves the line onto it — so a line and a block are named by the same gesture.
-- **Type is a dropdown** of every definition of the element's own kind. **A block moves among `block`, `folder`, `note`, `group` and `grid` freely** and no further; every other kind is fixed when it is made.
-- **Capabilities are a block definition's**, a section of its settings tab and never an instance's — a block follows its definition's, so it shows none. One radio row each, **its answers in fixed columns so every row lines up**, and the picklist in the last, wrapping as it fills — the row grows rather than the answers moving: **holder** — inherit, none, group or grid — and **children**, **members** and **ports** — inherit, yes, no, or *limit to:* the definitions in the picklist beside it. **The picklist is always drawn**, taking input only while limiting; otherwise it reads what the chain gives, where that is a list, and is empty where it is not. *Members* shows only while the definition holds. Editing a package's definition writes the workspace's word about it, as styling does.
-- **Extends is a definition's**, and says the same word for both groups. Read-only for a base.
-- **Label is editable wherever it reads** — on the relation definition, and on a line, where it edits the definition the line follows.
-- **Source is a block's own**, never its definition's, and has a section of its own under the content it is the provenance of: one *uri* row. **Provenance, not a link** — nothing syncs to it, so it may go stale and nothing breaks. Whatever anchor or revision the locator needs is part of the uri, since nothing here parses one. Clearing it gives the slot back, and a block carrying one wears the `Ext` mark.
-- **Tags are chips**, on a block or a line, with a box to add another. Never inherited.
-- **The workspace carries a *display* band** the other holders have none of: the room a card takes where its definition asked for none, and whether a layer draws the key to itself with which corner it keeps it in. **Display, not model** — the log never sees it and no file carries it, which is what keeps it off the identity rows above.
-- ***Pinned* sits under the card.** Bases and defaults offer none.
-- **Reset style** sits at the far end of the settings tab's strip, and gives the definition's looks back to what it extends.
+- **Every tab draws the element in hand, through one renderer** (`Faces`, theme's `CardFace`): the settings tab draws a usage wearing its definition's settings, never the definition in its place, so the card and settings tabs show the same card.
 
-**A body is what the block represents.** A block's is its text — the workspace's included, as its description — and a definition's is its data, the stored definition exactly as filed, read only. A line has none. Text is committed when the box is left. See ST.20.
+- **A large face that shows nothing yet previews** its attributes, else sample content, at the size that fits, drawn faint, so a definition's look can be judged before it says anything. **Both faces wear the handle top left**: a usage its own, a definition the one its next usage takes, unless `card.alias` hides it. The large face is sized with its handle, so a table card's rows stay inside its border.
+- **Attach** sits at the far right of the tab strip on a usage's card tab: the host asks for a markdown file and copies it on, recording where it came from. Attached again, it refreshes.
+- **A definition's card source** is its name, what it extends, its tags and traits, its attributes' defaults and what it is for. **Its body is its description**, the note its definition view ties to it.
+- **A body is what the block represents**: a block's is its content, a definition's describes it. Markdown, rendered by the one renderer the cards use. See ST.18.
+- **Permissive**: a type or tag name nothing holds is made, and said.
+- **A line is named as a block is**: its name row writes its own `name`; left blank, it draws its definition's. Its type row shows the definition it follows and, typed into, files a new definition over it and moves the line onto it.
+- **Tags are one list**: a usage's, a line's or a definition's own, else its definition's, drawn faint. Any edit makes the list its own; *inherit* gives it back. A new word makes a tag in the workspace's `tags` folder.
+
+## Settings
+
+**How it draws, beside the drawing; what it may do, across the tab under both.**
+
+- **Traits are a definition's**: **one row per trait** — its name, its description, × to take it off — with `+` at the far end of the group's head to add one. An inherited list says where it comes from; any edit makes the list its own. **Reset traits**, beside *reset style* on the tab strip, gives the list back. A frozen definition's traits read only, and a usage's and a line's show none.
+- **Reset style** sits at the far end of the tab strip, and gives the definition's settings back to what it extends.
+- **A usage's and a line's settings are their definition's**, read only here.
+- **The workspace carries a *display* band**: the small card's size, and whether a layer draws the key to itself. **Display, not model** — the log never sees it and no file carries it.
 
 ## Two shapes, by width
 
-**The tray lays its tabs out by its own width**, not the window's, since the explorer and the rail take from it. **Under the tabs a gutter each side** holds the content off the explorer and the options rail; **the tab strip itself spans the tray**, edge to edge, since it is the tray's own ground. **Its bar is the same height as theirs** and drops its top rule at full height, so the three read as one line across the page. Narrow is the card beside its rows with the body under both; wide puts everything in one row, the body a third column on the element tab and the style groups a column of their own on the settings tab, its capabilities full width under both.
+**The tray lays its tabs out by its own width**, not the window's, since the explorer and the rail take from it. **Under the tabs a gutter each side** holds the content off the explorer and the options rail; **the tab strip itself spans the tray**, edge to edge, since it is the tray's own ground. **Its bar is the same height as theirs** and drops its top rule at full height, so the three read as one line across the page. The style groups take a column of their own on the settings tab, its traits across the tab under them.
 
 ### Style groups
 
@@ -117,16 +112,17 @@
 |---|---|
 | name | font, weight, contrast, align, handle — and *shown*, for a run only |
 | label | display, font, weight, contrast, align |
+| face | which large face it draws with — table, document, picture; its size in units; whether it names itself |
 | head | from head, to head — a run only |
-| colour | family, pattern, hue, intensity, opacity |
+| colour | family, pattern, hue, intensity, vary, opacity |
 | border | width, contrast, style — *stroke* on a run |
 | icon | the mark in the top corner |
 
-**A card always writes its name.** Its bottom-right corner is reserved for a system mark — see ST.19.
+**A card's small face always writes its name**, its handle over it. Its bottom-right corner is reserved for a system mark: marks describe, and stack (design.md).
 
 ## Drafts
 
-**A blank definition is filed when it is named.** Its id is minted up front, it is edited through the same actions as a real one, and it is kept through clicking away. Until something is picked, its extends shows `base/<kind>`.
+**A blank definition is filed when it is named**, where the user is: in the open domain, in the holder picked. Its id is minted up front, it is edited through the same actions as a real one, and it is kept through clicking away. Until something is picked, its extends shows `base/<kind>`.
 
 ## Tables
 
@@ -155,20 +151,18 @@
 - **A reference lists the one it stands for.** It holds nothing of its own, so its contents is that one block, under a *stands for* column head and offering *view*. Nothing is read through a reference: what it points at is listed as what it is, where it really lives.
 - **Chips narrow by what a row is.**
 - **A column is a field in scope**, asked for by name, and its values are edited in the row.
-- **A block is renamed in its row**; a line is named by its definition.
+- **A block or a line is renamed in its row**.
 - **The lit row offers *view***, which selects it — opening its layer first where it lives in another.
 
-### Definitions and type
+### Definitions
 
-- **The definitions tab is every definition the workspace can name**, its own first: name, label *(relations)*, extends, source, used. **Nothing is left out** — a package's and the shipped floor's read here beside the workspace's, since hiding them only made *all* a smaller word for *workspace*. **Source says the package, or *workspace* for its own**. Chips narrow by group — *blocks*, *relations* — and by *all*, *pinned* or *workspace*. A package's row is read but not written: its name and what it extends are its package's, and an edit elsewhere mints the workspace's word about it.
-- **The type tab is the same table, narrowed to one element**: what the thing in context may follow, and nothing else. It offers no chips and adds no row, since a definition is added in the explorer, on the definitions tab, or by naming a type. **The lit row offers two acts**: *apply*, which points the element at it — never offered on the one already applied — and *view definition*, which makes it the context.
-- **Name, label and extends are edited in the row**; a package's are not, and neither is the name of a word about one — it wears that definition's.
-- **The last row adds one**, where one group is in view — a definition needs a group, and a mixed listing has none to give it.
-- **Removing a word about a package's definition gives that package's word back**, which is the only way to undo an override.
+- **The definitions tab is every definition the workspace can name**, its own first: name, extends, source, used. **Nothing is left out** — a package's and the shipped floor's read here beside the workspace's, since hiding them only made *all* a smaller word for *workspace*. **Source says the package, or *workspace* for its own**. Chips narrow by domain — *blocks*, *relations* — and by *all* or *workspace*. A frozen package's row is read but not written.
+- **Name and extends are edited in the row**; a frozen package's are not.
+- **The last row adds one**, where one domain is in view.
 
 ### Packages
 
-**Not a table — the `fields` pattern**, since what it lists is a set and not rows of data. Reached by the *packages* section in the explorer, or one package under it.
+**Not a table — the label-and-answer pattern**, since what it lists is a set and not rows of data. Reached by the *packages* section in the explorer, or one package under it.
 
 | band | holds |
 |---|---|
@@ -178,18 +172,24 @@
 
 - **A package comes in once**: what is held is filtered out of what is offered.
 - **The catalogue is read once at startup** and may be empty — an unbound `net` leaves it so, and then only the add line is there.
-- **The type tab's *apply* points the element in context at a definition** — or everything picked, where the canvas has picked several. Picking alone never changes a drawing. **Dragging a definition out of the explorer does the same thing** on the drawing.
+- **Dragging a definition out of the explorer points what it lands on at it.** Picking alone never changes a drawing.
 
 ### Usages
 
 - **The lines, or the blocks**, by the context's group. Chips narrow by scope, by *line / tie* for lines, and by *any / the definition in context* — **narrowed to that definition until somebody widens it**. The choice is kept as what it means rather than as one definition's id, so widening to *any* survives the move to the next definition, and leaving it narrowed follows each to its own.
-- **Each row offers the definitions it may follow** — for a block, only its own kind's — and a line's row shows the label it draws.
+- **Each row offers the definitions it may follow** — for a block, only its own kind's — and a line's row shows the name it draws.
 - ***Retype all* points every listed usage at one definition**, in one step and one undo.
 - **The lit row offers *view***.
 
-## Fields
+## Attributes
 
-- **A usage lists its whole schema**, answered or not, then values of its own.
+**One table, the same for a definition and a usage.** A definition declares — name, type, key, default, unit, and a column for any other property one of its attributes says — and a usage answers, a value beside each.
+
+- **Quiet until lit**: rows read as text; only the lit row's cells are controls. Remove, and up and down, are offered on the lit row only.
+- **What a definition inherits reads first, faint**, saying where it came from; it is edited where it is declared.
+- **Type names a definition**: a value type, offered from every one loaded, or a block definition, which makes the attribute a link and its key column says *FK*. A name nothing holds makes a value type of the workspace's.
+- **A value is answered as its type says**: a box, a yes or a no, or one of a choice's options.
+- **The last row adds one**: declared on a definition, answered on a usage.
 - **Text is committed when the box is left**, never per keystroke.
 
 ## Two sizes
@@ -198,5 +198,4 @@
 
 ## Still open
 
-- **Rules** — see ST.17.
-- **Adding a field from the bar**, which the legacy app had.
+- **What a definition extends is set here only**: the definition view attaches tags and traits by drop, but not a type.

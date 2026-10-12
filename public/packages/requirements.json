@@ -1,28 +1,46 @@
 {
-  "schema": "3.0",
+  "schema": "1.0",
   "id": "requirements",
   "graph": {
-    "root": "ws",
-    "defs": {
-      "req.requirement": {
-        "id": "req.requirement",
-        "from": "requirements",
-        "group": "block",
-        "name": "requirement",
-        "about": "Something the system shall do, and how that is shown.",
-        "extends": "block",
-        "fields": [
-          {
-            "name": "id",
-            "form": "text"
-          },
-          {
-            "name": "shall",
-            "form": "text"
-          },
-          {
-            "name": "method",
-            "form": "choice",
+    "root": "requirements",
+    "blocks": {
+      "requirements": {
+        "id": "requirements",
+        "parent": null,
+        "name": "requirements"
+      },
+      "requirements.blocks": {
+        "id": "requirements.blocks",
+        "parent": "requirements",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1
+      },
+      "requirements.group": {
+        "id": "requirements.group",
+        "parent": "requirements.blocks",
+        "name": "requirement group",
+        "def": {},
+        "type": "folder",
+        "settings": {
+          "card": {},
+          "allows": {
+            "holds": [
+              "requirements.requirement",
+              "requirements.group"
+            ]
+          }
+        }
+      },
+      "requirements.method": {
+        "id": "requirements.method",
+        "parent": "requirements.blocks",
+        "name": "verification method",
+        "type": "choice",
+        "body": "How a requirement is shown to hold.",
+        "def": {},
+        "settings": {
+          "value": {
             "choices": [
               "inspection",
               "analysis",
@@ -30,8 +48,37 @@
               "test"
             ]
           }
-        ],
-        "components": {
+        },
+        "order": 3
+      },
+      "requirements.relations": {
+        "id": "requirements.relations",
+        "parent": "requirements",
+        "name": "relations",
+        "type": "folder",
+        "order": 2
+      },
+      "requirements.requirement": {
+        "id": "requirements.requirement",
+        "parent": "requirements.blocks",
+        "name": "requirement",
+        "def": {
+          "attributes": [
+            {
+              "name": "id"
+            },
+            {
+              "name": "shall"
+            },
+            {
+              "name": "method",
+              "type": "requirements.method"
+            }
+          ]
+        },
+        "type": "block",
+        "body": "Something the system shall do, and how that is shown.",
+        "settings": {
           "card": {},
           "style": {
             "family": "neutral",
@@ -47,33 +94,17 @@
           }
         }
       },
-      "req.group": {
-        "id": "req.group",
-        "from": "requirements",
-        "group": "block",
-        "name": "requirement group",
-        "extends": "folder",
-        "components": {
-          "card": {},
-          "allows": {
-            "holds": [
-              "req.requirement",
-              "req.group"
-            ]
-          }
-        }
-      },
-      "req.satisfy": {
-        "id": "req.satisfy",
-        "from": "requirements",
-        "group": "relation",
+      "requirements.satisfy": {
+        "id": "requirements.satisfy",
+        "parent": "requirements.relations",
         "name": "satisfies",
-        "extends": "line",
-        "components": {
+        "def": {},
+        "type": "line",
+        "settings": {
           "allows": {
             "ends": {
               "to": [
-                "req.requirement"
+                "requirements.requirement"
               ]
             },
             "degree": {
@@ -84,40 +115,32 @@
           }
         }
       },
-      "req.verify": {
-        "id": "req.verify",
-        "from": "requirements",
-        "group": "relation",
-        "name": "verifies",
-        "extends": "line",
-        "components": {
-          "allows": {
-            "ends": {
-              "to": [
-                "req.requirement"
-              ]
-            }
-          }
-        }
-      },
-      "req.table": {
-        "id": "req.table",
-        "from": "requirements",
-        "group": "view",
+      "requirements.table": {
+        "id": "requirements.table",
+        "parent": "requirements.blocks",
         "name": "requirements",
-        "components": {
+        "def": {},
+        "settings": {
           "view": {
             "module": "table"
           }
         }
-      }
-    },
-    "blocks": {
-      "ws": {
-        "id": "ws",
-        "parent": null,
-        "type": "folder",
-        "name": "workspace"
+      },
+      "requirements.verify": {
+        "id": "requirements.verify",
+        "parent": "requirements.relations",
+        "name": "verifies",
+        "def": {},
+        "type": "line",
+        "settings": {
+          "allows": {
+            "ends": {
+              "to": [
+                "requirements.requirement"
+              ]
+            }
+          }
+        }
       }
     },
     "edges": {}

@@ -1,45 +1,46 @@
 /** A graph as a translator hands one over, in a vocabulary this repo does not own. */
 
-import { ROOT, type Block, type Definition, type Graph, type Id } from "@mnd/core";
+import { MAIN, ROOT, type Attribute, type Block, type Definition, type Graph,
+         type Id } from "@mnd/core";
 import { base_graph } from "@mnd/defs";
 
 /** The tier root the vocabulary is filed on, so it travels with the graph. */
 const HOME = "docs";
 
 function def(name: string, extend: string, card: Record<string, unknown>,
-             fields: Definition["fields"] = []): Definition {
-  return { id: `doc.${name}`, group: "block", name: `doc.${name}`,
-           extends: extend, fields, components: { card } };
+             attributes: Attribute[] = []): Definition {
+  return { id: `doc.${name}`, parent: ROOT, name: `doc.${name}`, type: extend,
+           def: { attributes }, settings: { card } };
 }
 
 /** Folders, pages, sections and the things inside a section. */
 const VOCAB: Definition[] = [
   def("set", "folder", {  },
-      [{ name: "source", form: "link" }]),
+      [{ name: "source", type: "link" }]),
   def("page", "block", { label: "inside" },
-      [{ name: "source", form: "link" }, { name: "title", form: "text" }]),
+      [{ name: "source", type: "link" }, { name: "title" }]),
   def("section", "block", { label: "inside" },
-      [{ name: "source", form: "link" }, { name: "heading", form: "text" },
-       { name: "depth", form: "number" }]),
+      [{ name: "source", type: "link" }, { name: "heading" },
+       { name: "depth", type: "number" }]),
   def("table", "block", {  },
-      [{ name: "source", form: "link" }, { name: "headers", form: "text", many: true }]),
+      [{ name: "source", type: "link" }, { name: "headers", many: true }]),
   def("row", "block", {  },
-      [{ name: "source", form: "link" }, { name: "term", form: "text" },
-       { name: "means", form: "text" }]),
+      [{ name: "source", type: "link" }, { name: "term" },
+       { name: "means" }]),
   def("item", "block", {  },
-      [{ name: "source", form: "link" }, { name: "text", form: "text" },
-       { name: "checked", form: "flag" }]),
+      [{ name: "source", type: "link" }, { name: "text" },
+       { name: "checked", type: "flag" }]),
   def("term", "note", {  },
-      [{ name: "source", form: "link" }]),
-  /** A relation definition declares no fields. */
-  { id: "doc.link", group: "relation", name: "doc.link", extends: "line" },
+      [{ name: "source", type: "link" }]),
+  /** A relation definition declares no attributes. */
+  { id: "doc.link", parent: ROOT, name: "doc.link", type: "line", def: {} },
 ];
 
-/** Where a block came from, as the one field name every view module reads. */
+/** Where a block came from, as an answer, and its source. */
 function block(id: Id, parent: Id | null, type: string, name: string,
                source: string, order: number, more: Partial<Block> = {}): Block {
   return { id, parent, type, name, order,
-           fields: [{ name: "source", form: "link", value: source }],
+           source, values: [{ name: "source", value: source }],
            ...more };
 }
 
@@ -47,8 +48,8 @@ function block(id: Id, parent: Id | null, type: string, name: string,
 export function translated(): Graph {
   const graph = base_graph();
 
-  graph.blocks[HOME] = { id: HOME, parent: ROOT, type: "folder", name: "Handbook", order: 1 };
-  for (const d of VOCAB) graph.defs[d.id] = d;
+  graph.blocks[HOME] = { id: HOME, parent: MAIN, type: "folder", name: "Handbook", order: 1 };
+  for (const d of VOCAB) graph.blocks[d.id] = d;
 
   const blocks: Block[] = [
     block("set_guides", HOME, "doc.set", "Guides", "/guides/", 1),
@@ -75,7 +76,7 @@ export function translated(): Graph {
 
   graph.edges["link_start_vocab"] = {
     id: "link_start_vocab", from: "sec_config", to: "page_vocab",
-    dir: "forward", type: "doc.link",
+    type: "doc.link", settings: { line: { dir: "forward" } },
   };
 
   return graph;

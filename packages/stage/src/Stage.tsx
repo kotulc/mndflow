@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
-import { is_interface, lattice_of } from "@mnd/core";
+import { dir_of, is_interface } from "@mnd/core";
 
 /** One named menu entry; the shape the explorer's menu agrees on. */
 export type Entry = { name: string; label?: string; args?: Args };
 import { FlowView, type Adjust, type Gesture, type Landing } from "./Flow";
 import { Legend, type Corner } from "./Legend";
 import { moves_of, type Move } from "./moves";
+import { cell_key } from "./nodes";
 import { Icon } from "@mnd/theme";
 import { box_of, clear_of, holds, swept_cells, BLOCK, CELL, type Scene } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
@@ -33,6 +34,10 @@ export type StageProps = {
           spot: { x: number; y: number }, only: readonly (string | Entry)[] | undefined,
           /** What the gesture already knew, for actions that need more than an id. */
           given?: Record<string, unknown>) => React.ReactNode;
+  /** The view the canvas draws in, named in the crumbs. */
+  view?: string;
+  /** What to say where the drawing has nothing in it: why, and what is there instead. */
+  empty?: string | null;
   /** What the app is saying. One strip, over the drawing. */
   said?: string | null;
   onSaid?: () => void;
@@ -43,37 +48,56 @@ export type StageProps = {
   /** Whether the key to what this layer draws sits in its corner, and which corner that is. */
   legend?: boolean;
   corner?: Corner;
-  /** What a right drag draws: which module, which way it points, and which pinned definition it
-   *  names. */
+  /** What a right drag draws: which module, which way it points, and which definition it names. */
   module?: string;
   dir?: string;
   type?: string;
   /** What another surface is pointing at, drawn in the hover look. */
   lit?: readonly string[];
+  /** The drawing read down the page: fitted to its width, scrolled rather than zoomed, the camera
+   *  following `focus`. */
+  scroll?: boolean;
+  focus?: string | null;
+  /** The most a scrolled drawing magnifies. */
+  most?: number | null;
 };
 
-/** What has no inside to open. */
-const INERT = ["note"];
 
 /** What a card's menu lists besides the shared box actions. */
 function box_offers(): readonly (string | Entry)[] {
   return [{ name: "rename", label: "rename block" }, "open", "interface", "note",
-          "leave", { name: "delete", label: "delete block" }];
+          { name: "delete", label: "delete block" }];
 }
 
-/** Turning a grid's header lines on and off, worded for how they are now. */
-function head_offers(group: string, graph: Graph): Entry[] {
-  const head = lattice_of(graph, group)?.head;
+/** Adding a line to a grid: at the picked cell's line, else at its end. */
+const LINES: readonly Entry[] = [
+  { name: "insert", label: "insert row", args: { way: "row" } },
+  { name: "insert", label: "insert column", args: { way: "col" } },
+];
+
+/** What a row or column offers from its header: a block made in that header, which is a cell
+ *  too, then lines beside it and taking it away. */
+function line_offers(given: Record<string, unknown>): Entry[] {
+  const group = String(given["group"]);
+  const i = Number(given["i"]);
+  const row = given["way"] === "row";
+  const way = row ? "row" : "col";
+  const [before, after, noun] = row ? ["above", "below", "row"] : ["left", "right", "column"];
+  const cell = typeof given["r"] === "number"
+    ? [{ name: "create", label: "new block here",
+         args: { parent: group, at: `${String(given["r"])},${String(given["c"])}` } }]
+    : [];
   return [
-    { name: "heads", label: `${head?.top ? "remove" : "add"} header row`, args: { way: "top" } },
-    { name: "heads", label: `${head?.left ? "remove" : "add"} header column`,
-      args: { way: "left" } },
+    ...cell,
+    { name: "insert", label: `insert ${noun} ${before}`, args: { group, way, at: i } },
+    { name: "insert", label: `insert ${noun} ${after}`, args: { group, way, at: i + 1 } },
+    { name: "remove", label: `remove ${noun}`, args: { group, way, at: i } },
   ];
 }
 
 /** What a run offers about its direction. */
 function route_offers(id: string, graph: Graph): Entry[] {
-  const dir = graph.edges[id]?.dir ?? "none";
+  const dir = graph.edges[id] ? dir_of(graph, id) : "none";
   if (dir === "none") {
     return [{ name: "direct", label: "add direction", args: { dir: "forward" } }];
   }
@@ -89,7 +113,7 @@ function bare_ends(id: string, graph: Graph): ("from" | "to")[] {
   if (!e) return [];
   return (["from", "to"] as const).filter((end) => {
     const b = graph.blocks[e[end]];
-    return !!b && !is_interface(b);
+    return !!b && !is_interface(graph, b.id);
   });
 }
 
@@ -122,16 +146,17 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
     : readonly (string | Entry)[] | undefined {
   if (g.kind === "brim" && g.on) {
     const n = scene.nodes.find((x) => x.id === g.on);
-    /** Fill is a grid's: a boundary has no cells to fill. */
+    /** Fill and lines are a grid's: a boundary has no cells. */
     if (holds(n)) {
-      return n?.type === "grid" ? offers.band
+      return n?.type === "grid" ? [...(offers.band ?? []), ...LINES]
         : offers.band?.filter((e) => (typeof e === "string" ? e : e.name) !== "fill");
     }
     return box_offers();
   }
   if (g.kind === "box" && g.on) return box_offers();
-  /** A cell offers what can be done to the lattice there, and to its header lines. */
-  if (g.kind === "cell" && g.on) return [...(offers.cell ?? []), ...head_offers(g.on, graph)];
+  /** A cell offers what can be done to the lattice there. */
+  if (g.kind === "cell" && g.on) return offers.cell;
+  if (g.kind === "line" && g.given) return line_offers(g.given);
   /** A run and its name are one subject. */
   if ((g.kind === "route" || g.kind === "name") && g.on && graph.edges[g.on]) {
     return wire_offers(g.on, graph);
@@ -146,15 +171,18 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 }
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
-                       menu, said, onSaid, lattice, frame, legend, corner, module, dir, type,
-                       lit = [] }: StageProps) {
+                       menu, said, onSaid, view, empty, lattice, frame, legend, corner, module,
+                       dir, type, lit = [], scroll = false, focus = null, most = null }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
                     ...(type ? { type } : {}) };
-  /** The name being typed on the drawing, as the thing it names. */
-  const [naming, set_naming] = useState<string | null>(null);
+  /** The name being typed on the drawing, as the thing it names, with the cell when it is a
+   *  cell's text: one state, so a rename never lands as a cell's text. */
+  const [typing, set_typing] = useState<{ id: string; cell?: Spot } | null>(null);
+  const naming = typing?.id ?? null;
+  const set_naming = (id: string) => set_typing({ id });
   /** Nothing typed survives a layer change. */
-  useEffect(() => set_naming(null), [scene.layer]);
+  useEffect(() => set_typing(null), [scene.layer]);
   const [at, set_at] = useState<
     { x: number; y: number; on: string | null; spot: { x: number; y: number };
       only?: readonly (string | Entry)[]; given?: Record<string, unknown> } | null>(null);
@@ -181,9 +209,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onPick([]);
         onSaid?.();
       }
-      /** Enter opens the one picked card, unless it has no inside. */
-      else if (e.key === "Enter" && one && !scene.edges.some((r) => r.id === one)
-               && !INERT.includes(scene.nodes.find((n) => n.id === one)?.type ?? "")) {
+      /** Enter opens the one picked card; navigation says where that goes. */
+      else if (e.key === "Enter" && one && !scene.edges.some((r) => r.id === one)) {
         onAct("open", { id: one });
       }
       else if (e.key === "F2" && one) set_naming(one);
@@ -212,18 +239,18 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     /** A note is a remark, not a block. */
     note: [{ name: "rename", label: "rename note" },
            { name: "delete", label: "delete note" }],
-    box: ["rename", "open", "interface", "note", "leave", "delete"],
-    seat: ["rename", "open", "interface", "note", "delete"],
+    box: ["rename", "open", "interface", "note", "delete"],
+    /** An interface holds no interfaces; a placed one may place itself again. */
+    seat: ["rename", "open", { name: "free", label: "place itself" }, "note", "delete"],
     /** A group and a grid write their name on the frame when told to. */
     band: [{ name: "rename", label: "rename group" }, "open", "note", "fill",
            { name: "chain", args: drawing },
-           "leave", { name: "delete", label: "delete group" }],
+           { name: "delete", label: "delete group" }],
     /** A cell offers what can be done to the lattice there. */
     cell: [
       { name: "label", label: "label cell" },
       "merge",
-      { name: "insert", label: "insert row", args: { way: "row" } },
-      { name: "insert", label: "insert column", args: { way: "col" } },
+      ...LINES,
       { name: "remove", label: "remove row", args: { way: "row" } },
       { name: "remove", label: "remove column", args: { way: "col" } },
       { name: "fill", label: "fill grid" },
@@ -233,22 +260,25 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     /** Replaced per run by `wire_offers`, and per grip by `promote_offers`. */
     route: ["rename", "delete"],
     /** The room's wall offers what a card's border does. */
-    frame: ["rename", "open", "interface", "note", "leave", "delete"],
+    frame: ["rename", "open", "interface", "note", "delete"],
   };
 
-  /** Asks for a cell's plain value, starting from what it says now. */
-  const label_cell = (at: Spot) => {
-    const cell = scene.nodes.find((n) => n.id === at.group)?.data.grid
-      ?.find((c) => c.r === at.r && c.c === at.c);
-    const text = prompt("label", cell?.value ?? "");
-    if (text !== null) onAct("label", { group: at.group, at: `${at.r},${at.c}`, text });
-  };
+  /** Types a cell's text in place, starting from what it says now. */
+  const label_cell = (at: Spot) => set_typing({ id: cell_key(at), cell: at });
 
   /** What a selection of several offers. */
-  const MANY: readonly (string | Entry)[] = ["group", "leave", "delete"];
+  const MANY: readonly (string | Entry)[] = ["group", "delete"];
 
   const gesture = (g: Gesture) => {
-    /** Left clicks on cells are the lattice's own; two write the cell's label. */
+    /** A tab picks its line itself; two clicks on a header write its text, as on any cell. */
+    if (g.button === "left" && g.kind === "line") {
+      const at = g.given as { group?: string; r?: number; c?: number } | undefined;
+      if (g.count === 2 && at?.group && at.r !== undefined && at.c !== undefined) {
+        label_cell({ group: at.group, r: at.r, c: at.c });
+      }
+      return;
+    }
+    /** Left clicks on cells are the lattice's own; two write the cell's text. */
     if (g.button === "left" && g.kind === "cell") {
       if (g.count === 2 && g.given) label_cell(g.given as Spot);
       return;
@@ -279,11 +309,17 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       if (name !== null) onAct("create", { name, spot: made_at(scene, g.at) });
       return;
     }
-    /** A right-click inside the picked cells is about them. */
+    /** A right-click on a cell makes a block in it; inside the picked cells, it is about them. */
     if (g.kind === "cell" && g.given) {
       const at = g.given as Spot;
       const among = cells?.some((c) => c.group === at.group && c.r === at.r && c.c === at.c);
-      if (!among) onPickCells?.([at]);
+      if (!among) {
+        const name = prompt("name it");
+        if (name !== null) {
+          onAct("create", { name, parent: at.group, at: `${at.r},${at.c}` });
+        }
+        return;
+      }
     }
     if (menu) {
       const among = picked.length > 1 && g.on !== null && picked.includes(g.on);
@@ -296,7 +332,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
 
   return (
     <section className="stage">
-      <Crumbs trail={scene.trail} onAct={onAct} />
+      <Crumbs trail={scene.trail} {...(view ? { view } : {})} onAct={onAct} />
+      {empty ? <p className="empty">{empty}</p> : null}
       {lit.length ? <style>{lit_rules(lit)}</style> : null}
       <FlowView
         scene={scene}
@@ -305,16 +342,22 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onPickCells={onPickCells}
         lattice={lattice}
         {...(frame === undefined ? {} : { frame })}
+        scroll={scroll}
+        focus={focus}
+        most={most}
         naming={naming}
         onNamed={(label) => {
-          const id = naming;
-          set_naming(null);
-          if (id && label !== null) onAct("rename", { id, name: label });
+          const was = typing;
+          set_typing(null);
+          if (!was || label === null) return;
+          const { id, cell } = was;
+          if (cell) onAct("label", { group: cell.group, at: `${cell.r},${cell.c}`, text: label });
+          else onAct("rename", { id, name: label });
         }}
         onGesture={gesture}
         onPick={onPick}
         onDrop={onDrop}
-        onRelate={(from, to, walls) => onAct("relate", { from, to, ...walls, ...drawing })}
+        onRelate={(from, to) => onAct("relate", { from, to, ...drawing })}
         /** A right drag across empty ground draws a grid, seating what it covered. */
         onSweep={(box) => onAct("group", swept(scene, box))}
         onAdjust={(adjust) => onAdjust?.(moves_of(graph, scene, adjust))}
@@ -380,7 +423,7 @@ function made_at(scene: Scene, at: { x: number; y: number }) {
 }
 
 /** The hover look, as a style rule so lighting never rebuilds the arrays. */
-function lit_rules(ids: readonly string[]): string {
+export function lit_rules(ids: readonly string[]): string {
   const at = (kind: string, inner: string) =>
     ids.map((id) => `.react-flow [data-testid="rf__${kind}-${CSS.escape(id)}"]${inner}`).join(",");
   return [`${at("node", "")} { outline: 2px solid var(--accent); outline-offset: 2px; }`,

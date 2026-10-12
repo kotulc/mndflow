@@ -1,6 +1,6 @@
 # @mnd/kit
 
-**The one surface mndflow offers anything outside this repo.** Seven packages are the shape of the design; one is the shape of the seam.
+**The one surface mndflow offers anything outside this repo.** The other packages are the shape of the design; this one is the shape of the seam.
 
 | | |
 |---|---|
@@ -71,6 +71,12 @@ const svg = draw_svg(project(back, layer, {}));
 - **A consumer says what a model *is*, never what changed.** Round-tripping is read a graph and write a graph, and diffing belongs to whoever cares. **That is the price of a mutation union that stays free to grow**, and it is the right one.
 - **The export list is written out**, one name at a time. `export *` from the engine is how the log leaks.
 
+## Cards as markdown
+
+**A card's content is markdown; its identity is data.** `card_text(graph, id)` writes a block or a definition as its card source — frontmatter, then its body — and `read_card(text)` splits one back. `collect(name, files, graph)` reads a folder of markdown usages and the `package.json` definitions they name as one package file, for `open` or a session to bring in.
+
+`@mnd/kit/react` draws them the one way every surface does: `CardFace`, a card's small or large face, and `Markdown` / `Inline`, the renderer it reads through. `carried`, `face_text` and `size_of` say what a face carries and how big it is.
+
 ## The embedded view
 
 ```tsx
@@ -79,6 +85,8 @@ import "@mnd/kit/react.css";
 
 <Viewer graph={graph} layer={layer} />   // click highlights, double-click walks
 ```
+
+**Which layer**: unsaid, the workspace's domain; a block's id, that layer; `null`, the package view — every package a box of its domain, read down the page. `config={{ packages, across }}` narrows the package view to those packages and sets how many cards its rows hold.
 
 **Interactive, self-contained, and not editable.** `draw_svg` makes a picture; this makes one you can walk. It holds the graph, projects the layer being looked at, and goes in and out of layers on a double-click. **Nothing in it writes.**
 
@@ -104,9 +112,9 @@ The rest of what a drawing looks like is the host's to hand down, and `useDispla
 
 | Prop | Is |
 |---|---|
-| `card` | the default card, in lattice units — applied before anything is measured |
+| `card` | the small face's card, in lattice units — applied before anything is measured. A large face fits its content, or takes its definition's `card.size`, drawn where a layer's `layout.face` asks |
 | `chrome.legend` · `chrome.corner` | the key to what the layer draws, in the top or bottom right-hand corner |
-| `fields` · `onFields` | a block or definition whose fields are drawn **instead of the layer**, as a class diagram: one card standing for its schema, one per usage listing its values. A pick on the class card is told as its definition; `close diagram` and the crumbs tell `onFields(null)` |
+| `fields` · `onFields` | a block or definition whose attributes are drawn **instead of the layer**, as a class diagram: one card standing for its definition, one per usage listing its values. A pick on the class card is told as its definition; `close diagram` and the crumbs tell `onFields(null)` |
 
 ## The tray
 
@@ -114,7 +122,7 @@ The rest of what a drawing looks like is the host's to hand down, and `useDispla
 import { Tray, useDisplay, useTray } from "@mnd/kit/react";
 
 const tray = useTray();                                        // open, its tab, what it holds
-const { display, onDisplay } = useDisplay({ card: { w: 10, h: 3 }, range: CARD });
+const { display, onDisplay } = useDisplay({ card: { w: 6, h: 2 }, range: CARD });
 
 <Explorer ... section={tray.section(graph.root)} onSection={tray.onSection} />
 <Viewer ... card={display.card} chrome={{ lattice: display.lattice, legend: display.legend }} />
@@ -135,13 +143,18 @@ const { display, onDisplay } = useDisplay({ card: { w: 10, h: 3 }, range: CARD }
 ## The tree
 
 ```tsx
-import { Explorer } from "@mnd/kit/react";
+import { Explorer, useChain, editor_slices } from "@mnd/kit/react";
 
-<Explorer graph={graph} open={at} picked={picked} folded={folded}
+const chain = useChain(graph, SLICES);       // the host's sections, and what each holds
+<Explorer graph={graph} open={layer} picked={picked} folded={folded} chain={chain}
           menu={false}                       // your vocabulary, not this engine's
           onAct={(name, args) => { /* mean whatever you like by it */ }}
-          onFold={...} onPick={...} />
+          onOpen={({ id, via }) => ...}      // Enter, double-click, →
+          onLeave={() => ...}                // ←, Backspace
+          onFold={...} onPick={...} keys />
 ```
+
+**Sections are required**: a host declares its slices (mndflow's are `editor_slices()`). **The explorer browses; the canvas is the host's**: choosing a row holds it in its section, and only `onOpen` asks the canvas to move. Where it moves is the kit's navigation — `open_at`, `leave_at`, `reveal_at`, and `held_at` for what the sections then hold — so every host moves the same way.
 
 **It emits intent, never change.** `onAct` is a name and arguments — `Act = (name, args?) => void` — so nothing here writes and nothing here assumes a log exists. A host over a **derived** graph handles `move` by rewriting its own store and rebuilding; a host over a real workspace runs the action. The explorer cannot tell the difference, which is the point.
 

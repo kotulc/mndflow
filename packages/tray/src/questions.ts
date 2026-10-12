@@ -1,10 +1,10 @@
 /** The questions the settings panel asks of how something draws, as data. */
 
 import { ALIGNS, ARROWS, BORDERS, CONTRASTS, DISPLAYS, FAMILIES, FILLS, FONTS, HUE,
-         INTENSITY, OPACITY, SHOWN, WEIGHTS, WIDTHS } from "@mnd/core";
+         INTENSITY, LARGE_FACES, OPACITY, SHOWN, VARY, WEIGHTS, WIDTHS } from "@mnd/core";
 
 /** The parts of a drawing, and the questions each part is asked. */
-const GROUPS = ["name", "label", "head", "colour", "border", "icon"] as const;
+const GROUPS = ["name", "label", "face", "head", "colour", "border", "icon"] as const;
 export type Group = (typeof GROUPS)[number];
 
 /** The parts, in the order the rail lists them. */
@@ -15,15 +15,17 @@ export const AS_RUN: Partial<Record<Group, string>> = { border: "stroke" };
 
 /** Which component each part belongs to; the rail filters on it. */
 export const ASKS: Record<Group, string> = {
-  name: "style", label: "card", head: "line", colour: "style", border: "style", icon: "card",
+  name: "style", label: "card", face: "card", head: "line", colour: "style", border: "style",
+  icon: "card",
 };
 
 export type Key = "card" | "style" | "line";
 
-/** One question. `form` says how it is answered: */
+/** One question. `form` says how it is answered: one of a set, a quantity, a mark, or a size in
+ *  units. */
 export type Question = {
   word: string; key: Key; name: string; tip: string;
-  form: "chips" | "range" | "marks";
+  form: "chips" | "range" | "marks" | "size";
   of?: readonly { value: string; word: string }[];
   omit?: readonly string[];
   range?: { min: number; max: number; step: number; fallback: string };
@@ -72,6 +74,19 @@ export const ROWS: Record<Group, Question[]> = {
     { word: "align", key: "card", name: "label_align", form: "chips",
       tip: "Which end of the card the label reads from.", of: plain(ALIGNS) },
   ],
+  /** What the large face shows, and how big it is. The small face is the workspace's card. */
+  face: [
+    { word: "face", key: "card", name: "face", form: "chips",
+      tip: "Which large face it draws with: a table of its attributes with its body under it, a "
+         + "document of its body, or a picture of what its source points at. Unsaid, its name "
+         + "is the whole card.", of: plain(LARGE_FACES) },
+    { word: "size", key: "card", name: "size", form: "size",
+      tip: "How big the large face is, in units of the lattice. The small face is the "
+         + "workspace's card size." },
+    { word: "name", key: "card", name: "name", form: "chips",
+      tip: "Whether the large face writes its name, or is what it shows alone. The small face "
+         + "always names.", of: plain(SHOWN) },
+  ],
   /** What draws where a run ends, which is what a run has in place of a face. */
   head: [
     { word: "from head", key: "line", name: "from_arrow", form: "chips",
@@ -110,6 +125,10 @@ export const ROWS: Record<Group, Question[]> = {
     { word: "intensity", key: "style", name: "intensity", form: "range",
       tip: "How far the hue is taken, as a fraction of the theme's own ceiling.",
       range: { ...INTENSITY, step: 0.05, fallback: "0.65" } },
+    { word: "vary", key: "style", name: "vary", form: "range",
+      tip: "How far, in degrees, each definition under this one strays from its hue — kin "
+         + "read alike, and each still reads as itself.",
+      range: { ...VARY, step: 1, fallback: "0" } },
     /** Transparency is a quantity, so it is a slider rather than named steps. */
     { word: "opacity", key: "style", name: "opacity", form: "range",
       tip: "How opaque the fill is. The fill alone, so the writing stays readable "

@@ -1,24 +1,13 @@
-/** Mutation replay: a log folded into a graph over the shipped floor. */
+/** Mutation replay: a log folded into a graph over the packages it starts from. */
 
 import { DRAWN } from "./components";
 import { ordered_by } from "./defs";
 import { subtree } from "./tree";
-import { empty_graph, type Block, type Graph, type Id, type Log,
-         type Mutation, type Step } from "./types";
+import { empty_graph, type Block, type Graph, type Id, type Log, type Mutation,
+         type Step } from "./types";
 
-/** A block leaving its holder leaves its address there too. */
-function leave(b: Block): void {
-  delete b.group;
-  delete b.cell;
-}
-
-/** Members whose holder is gone, or is no longer on their layer, sit loose. */
-function freed(graph: Graph, holder: Id): void {
-  const h = graph.blocks[holder];
-  for (const b of Object.values(graph.blocks)) {
-    if (b.group === holder && (!h || h.parent !== b.parent)) leave(b);
-  }
-}
+/** The shipped packages every fold starts from: their blocks, laid under whatever a log says. */
+export type Floor = readonly Block[];
 
 /** Every relation with an end on this block goes with it. */
 function drop_edges(graph: Graph, id: Id): void {
@@ -39,8 +28,6 @@ function apply(graph: Graph, m: Mutation): void {
       graph.root = m.graph.root;
       graph.blocks = structuredClone(m.graph.blocks);
       graph.edges = structuredClone(m.graph.edges);
-      graph.defs = structuredClone(m.graph.defs);
-      graph.packages = structuredClone(m.graph.packages ?? {});
       return;
     case "add_block":
       graph.blocks[m.block.id] = { ...m.block };
@@ -54,25 +41,21 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     }
     case "delete_block": {
-      /** A holder that goes frees what it held rather than taking it along. */
-      const gone = subtree(graph, m.id);
-      for (const id of gone) {
+      /** A block goes with everything under it, holders included. */
+      for (const id of subtree(graph, m.id)) {
         delete graph.blocks[id];
         drop_edges(graph, id);
       }
-      freed(graph, m.id);
       return;
     }
     case "move_block": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      /** Leaving a layer drops the block's place and group there, and what it held there. */
+      /** Leaving a parent drops the place and the cell it had there. */
       if (b.parent !== m.parent) {
-        delete b.x; delete b.y;
-        leave(b);
+        delete b.x; delete b.y; delete b.cell;
       }
       b.parent = m.parent;
-      freed(graph, m.id);
       return;
     }
     case "order_block": {
@@ -91,20 +74,6 @@ function apply(graph: Graph, m: Mutation): void {
       if (ws) ws.counters = { ...(ws.counters ?? {}), [m.kind]: m.n };
       return;
     }
-    case "set_pinned": {
-      const ws = graph.blocks[graph.root];
-      if (!ws) return;
-      /** Deduplicated, in order, and dropped when empty. */
-      const kept = [...new Set(m.ids.filter(Boolean))];
-      if (kept.length) ws.pinned = kept; else delete ws.pinned;
-      return;
-    }
-    case "set_shelf": {
-      const ws = graph.blocks[graph.root];
-      if (!ws) return;
-      if (m.shelf.length) ws.shelf = m.shelf.map((s) => ({ ...s })); else delete ws.shelf;
-      return;
-    }
     case "place_block": {
       const b = graph.blocks[m.id];
       if (b) { b.x = m.x; b.y = m.y; }
@@ -120,23 +89,19 @@ function apply(graph: Graph, m: Mutation): void {
       if (b) b.body = m.body;
       return;
     }
-    case "set_about": {
-      const d = graph.defs[m.id];
-      if (d) { if (m.about) d.about = m.about; else delete d.about; }
+    case "set_attributes": {
+      const d = graph.blocks[m.id];
+      if (!d?.def) return;
+      if (m.attributes.length) {
+        d.def = { ...d.def, attributes: m.attributes.map((a) => ({ ...a })) };
+      }
+      else { const { attributes: _gone, ...rest } = d.def; d.def = rest; }
       return;
     }
     case "set_source": {
       const b = graph.blocks[m.id];
       if (!b) return;
       if (m.source) b.source = m.source; else delete b.source;
-      return;
-    }
-    case "set_group": {
-      const b = graph.blocks[m.id];
-      if (!b) return;
-      /** An address is the grid's, so leaving one drops it. */
-      if (m.group === null) leave(b);
-      else if (b.group !== m.group) { delete b.cell; b.group = m.group; }
       return;
     }
     case "seat_cell": {
@@ -170,34 +135,25 @@ function apply(graph: Graph, m: Mutation): void {
     case "delete_edge":
       delete graph.edges[m.id];
       return;
-    case "set_dir": {
-      const e = graph.edges[m.id];
-      if (e) e.dir = m.dir;
-      return;
-    }
     case "flip_edge": {
       const e = graph.edges[m.id];
       if (!e) return;
       [e.from, e.to] = [e.to, e.from];
-      [e.fromSide, e.toSide] = [e.toSide, e.fromSide];
       return;
     }
     case "set_end": {
       const e = graph.edges[m.id];
-      if (e) e[m.end] = m.port;
+      if (!e) return;
+      e[m.end] = m.port;
+      const key = m.end === "from" ? "fromPart" : "toPart";
+      if (m.part) e[key] = m.part; else delete e[key];
       return;
     }
     case "set_port": {
       const b = graph.blocks[m.id];
-      if (b) { b.side = m.side; b.at = m.at; }
-      return;
-    }
-    case "set_side": {
-      const e = graph.edges[m.id];
-      if (!e) return;
-      const key = m.end === "from" ? "fromSide" : "toSide";
-      if (m.side === null) delete e[key];
-      else e[key] = m.side;
+      if (!b) return;
+      if (m.seat) { b.side = m.seat.side; b.at = m.seat.at; }
+      else { delete b.side; delete b.at; }
       return;
     }
     case "mark_port": {
@@ -207,78 +163,67 @@ function apply(graph: Graph, m: Mutation): void {
       else b.flow = m.flow;
       return;
     }
-    /** Set in place where the field exists, else appended. */
-    case "set_field": {
-      const b = graph.blocks[m.id];
+    /** Set in place where the answer exists, else appended. */
+    case "set_value": {
+      const b = element(graph, m.id);
       if (!b) return;
-      const had = (b.fields ?? []).some((f) => f.name === m.field.name);
-      b.fields = had
-        ? b.fields!.map((f) => (f.name === m.field.name ? { ...m.field } : f))
-        : [...(b.fields ?? []), { ...m.field }];
+      const said = { name: m.name, value: m.value };
+      const had = (b.values ?? []).some((v) => v.name === m.name);
+      b.values = had ? b.values!.map((v) => (v.name === m.name ? said : v))
+        : [...(b.values ?? []), said];
       return;
     }
-    case "drop_field": {
-      const b = graph.blocks[m.id];
-      if (b?.fields) b.fields = b.fields.filter((f) => f.name !== m.name);
+    case "drop_value": {
+      const b = element(graph, m.id);
+      if (b?.values) b.values = b.values.filter((f) => f.name !== m.name);
       return;
     }
-    case "order_fields": {
-      const b = graph.blocks[m.id];
-      if (b?.fields) b.fields = ordered_by(b.fields, m.names);
+    case "order_values": {
+      const b = element(graph, m.id);
+      if (b?.values) b.values = ordered_by(b.values, m.names);
       return;
     }
-    case "set_def":
-      graph.defs[m.def.id] = { ...m.def };
-      return;
-    case "drop_def":
-      delete graph.defs[m.id];
-      return;
-    case "set_package":
-      graph.packages[m.pkg.id] = { ...m.pkg };
-      return;
-    case "drop_package":
-      delete graph.packages[m.id];
-      /** What it brought goes with it. */
-      for (const d of Object.values(graph.defs)) if (d.from === m.id) delete graph.defs[d.id];
-      return;
     case "set_tags": {
-      const b = graph.blocks[m.id] ?? graph.edges[m.id] ?? graph.defs[m.id];
+      const b = element(graph, m.id);
       if (!b) return;
-      /** Trimmed, deduplicated and in the order they were given. */
-      const kept = [...new Set(m.tags.map((t) => t.trim()).filter(Boolean))];
-      if (kept.length) b.tags = kept; else delete b.tags;
+      /** Null gives the list back; a list is kept trimmed, once each, in the order given. */
+      if (m.tags === null) delete b.tags;
+      else b.tags = [...new Set(m.tags.map((t) => t.trim()).filter(Boolean))];
       return;
     }
-    /** Gives back the drawing looks of whichever element the id names. */
-    case "drop_looks": {
+    case "set_traits": {
+      /** A definition's alone: a usage or a line carries its definition's. */
+      const b = graph.blocks[m.id];
+      if (!b?.def) return;
+      if (m.traits === null) delete b.traits;
+      else b.traits = [...new Set(m.traits.map((t) => t.trim()).filter(Boolean))];
+      return;
+    }
+    /** Gives back the drawing settings of whichever element the id names. */
+    case "drop_settings": {
       const it = element(graph, m.id);
-      if (!it?.looks) return;
-      const looks = { ...it.looks };
-      for (const key of DRAWN) delete looks[key];
-      if (Object.keys(looks).length) it.looks = looks; else delete it.looks;
+      if (!it?.settings) return;
+      const settings = { ...it.settings };
+      for (const key of DRAWN) delete settings[key];
+      if (Object.keys(settings).length) it.settings = settings; else delete it.settings;
       return;
     }
-    case "set_look": {
+    case "set_setting": {
       const it = element(graph, m.id);
       if (!it) return;
-      const held = { ...(it.looks?.[m.key] ?? {}) };
+      const held = { ...(it.settings?.[m.key] ?? {}) };
       if (m.value === null || m.value === undefined) delete held[m.name];
       else held[m.name] = m.value;
-      const looks = { ...(it.looks ?? {}) };
-      if (Object.keys(held).length) looks[m.key] = held; else delete looks[m.key];
-      if (Object.keys(looks).length) it.looks = looks; else delete it.looks;
-      return;
-    }
-    case "set_arrangement": {
-      const b = graph.blocks[m.layer];
-      if (b) b.arrangement = m.arrangement;
+      const settings = { ...(it.settings ?? {}) };
+      if (Object.keys(held).length) settings[m.key] = held; else delete settings[m.key];
+      if (Object.keys(settings).length) it.settings = settings; else delete it.settings;
       return;
     }
   }
 }
 
 /** Rebuild the graph by replaying every applied step over the floor. */
-export function fold(log: Log, floor: Graph["defs"] = {}): Graph {
+export function fold(log: Log, floor: Floor = []): Graph {
   const graph = empty_graph();
   lay(graph, floor);
   for (const step of log) {
@@ -289,22 +234,19 @@ export function fold(log: Log, floor: Graph["defs"] = {}): Graph {
       if (m.op === "checkpoint") lay(graph, floor);
     }
   }
-  lay_packages(graph);
   return graph;
 }
 
-/** The shipped package, over whatever is there. */
-function lay(graph: Graph, floor: Graph["defs"]): void {
-  for (const [id, def] of Object.entries(floor)) graph.defs[id] = def;
+/** The shipped packages, over whatever is there. Copied, so no fold can write into them. */
+function lay(graph: Graph, floor: Floor): void {
+  for (const b of floor) graph.blocks[b.id] = structuredClone(b);
 }
 
-/** A record for every package a definition names, so nothing points at a package that is not
- *  there. One a file did not carry is named after its id. */
-function lay_packages(graph: Graph): void {
-  for (const d of Object.values(graph.defs)) {
-    if (!d.from || graph.packages[d.from]) continue;
-    graph.packages[d.from] = { id: d.from, name: d.from };
-  }
+/** A graph with these mutations applied over a copy of it: what a step would make, without a log. */
+export function replay(graph: Graph, mutations: readonly Mutation[]): Graph {
+  const out = structuredClone(graph);
+  for (const m of mutations) apply(out, m);
+  return out;
 }
 
 /** One step, applied. */

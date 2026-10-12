@@ -34,7 +34,7 @@ function drop(view: { container: HTMLElement }, id: string) {
 
 /** What the open layer holds that stands for something else. */
 const refs = (id: string | null) =>
-  Object.values(fold_of()).filter((b) => b.parent === (id ?? "ws") && b.of).map((b) => b.of);
+  Object.values(fold_of()).filter((b) => b.parent === (id ?? "main") && b.of).map((b) => b.of);
 
 function fold_of(): Record<string, { parent: string | null; of?: string }> {
   const blocks: Record<string, { parent: string | null; of?: string }> = {};
@@ -69,12 +69,4 @@ describe("a block dropped from the tree onto the drawing", () => {
     expect(fold_of()["block_rate"]!.parent).toBe("block_edge");
   });
 
-  /** The one exception, and it is the whole of it. */
-  it("does nothing with a block this layer already holds", () => {
-    const view = render(<App storage={storage} />);
-    const was = log().length;
-    drop(view, "block_shelf");
-    expect(since(was)).toEqual([]);
-    expect(refs(null)).toEqual([]);
-  });
 });

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
-import { session, type Arrangement, type Id } from "@mnd/core";
-import { seed } from "@mnd/defs";
+import { layout_of, session, LAYOUTS, type Id } from "@mnd/core";
+import { FLOOR } from "@mnd/defs";
 import { fixture, NAMES } from "@mnd/fixtures";
 import { project } from "@mnd/views";
 import { Stage } from "../src/index";
@@ -11,13 +11,14 @@ import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
 import "@mnd/theme/icons.css";
 import "@mnd/theme/card.css";
+import "@mnd/theme/face.css";
 import "../src/flow.css";
 import "../src/routes.css";
 import "../src/groups.css";
 import "../src/stage.css";
 import "./dev.css";
 
-const HOWS: Arrangement[] = ["free", "auto"];
+const HOWS = LAYOUTS;
 
 function Harness() {
   const [name, set_name] = useState<string>(NAMES[2]!);
@@ -29,7 +30,7 @@ function Harness() {
   const [said, set_said] = useState<string | null>(null);
 
   if (!held.has(name)) {
-    const made = session({ defs: seed() });
+    const made = session({ floor: FLOOR });
     for (const step of fixture(name)) made.adjust(step.action, step.mutations);
     held.set(name, made);
   }
@@ -38,7 +39,7 @@ function Harness() {
 
   const say = (line: string) => set_log((l) => [line, ...l].slice(0, 14));
   const scene = project(s.graph(), layer);
-  const how = (layer && s.graph().blocks[layer]?.arrangement) || "free";
+  const how = layout_of(s.graph(), layer);
 
   const act = (action: string, args?: Record<string, unknown>) => {
     say(`${action} ${JSON.stringify(args ?? {})}`);
@@ -63,7 +64,7 @@ function Harness() {
           {NAMES.map((n) => <option key={n}>{n}</option>)}
         </select>
         <select value={how} disabled={!layer}
-                onChange={(e) => act("arrange", { layer, arrangement: e.target.value })}>
+                onChange={(e) => act("layout", { layer, kind: e.target.value })}>
           {HOWS.map((h) => <option key={h}>{h}</option>)}
         </select>
         <span className="where">

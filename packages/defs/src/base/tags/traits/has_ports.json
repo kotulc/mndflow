@@ -1,0 +1,12 @@
+{
+  "id": "has_ports",
+  "name": "has_ports",
+  "type": "trait",
+  "body": "Has ports: interfaces may sit on its walls.",
+  "def": {},
+  "settings": {
+    "allows": {
+      "ports": true
+    }
+  }
+}

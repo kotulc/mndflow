@@ -46,8 +46,6 @@
   cursor: pointer;
 }
 
-.explorer .bar > .fold { color: var(--muted); }
-
 .explorer .bar > .fold:hover,
 .explorer .tree li > .fold:hover { color: var(--accent); background: none; }
 
@@ -116,22 +114,18 @@
 /* The last row in a branch turns the elbow: the tick sits at the foot of the stopped line. */
 .explorer .tree .guide.tick.stop::after { top: 100%; }
 
-/* Two states, two looks, and never the same wash. */
-.explorer .tree li.open { background: var(--tint); }
+/* The accent's edge marks one row only: the block the canvas draws, and a faint wash the branch
+   it draws. The pick is the strong wash, and each section's own pick a faint one, so neither
+   reads as what is open. */
+.explorer .tree li.open { border-left-color: var(--accent); }
+.explorer .tree li.branch { background: color-mix(in oklch, var(--accent) 5%, transparent); }
+.explorer .tree li.context { background: var(--tint); }
+.explorer .tree li.context .label { color: var(--text); }
 .explorer .tree li.picked {
-  border-left-color: var(--accent);
   color: var(--accent);
-  background: var(--hover);
+  background: color-mix(in oklch, var(--accent) 18%, transparent);
 }
-
-/* What a narrowing found, and what it did not. */
-.explorer .tree li.lit {
-  background: var(--hover);
-  border-left-color: var(--accent);
-}
-.explorer .tree li.lit .label { color: var(--text); font-weight: 600; }
-.explorer .tree li.dim { color: var(--faint); }
-.explorer .tree li.dim .mark { color: var(--faint); }
+.explorer .tree li.picked .label { font-weight: 600; }
 
 /* Where a drop would land. */
 .explorer .tree li.floor.out {
@@ -159,10 +153,29 @@
 }
 /* A row holding blocks lights its mark, open or shut: the colour, and only that, says so. */
 .explorer .tree .mark.on, .explorer .tree .mark.shut { color: var(--accent); cursor: pointer; }
+/* A definition with structure of its own lights its icon, as a block that holds does. */
+.explorer .tree .mark.held { color: var(--accent); }
 .explorer .tree .label { overflow: hidden; text-overflow: ellipsis; }
+
+/* A row being named before it is made: the name typed where it will read. */
+.explorer .tree li.draft input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 2px;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--accent);
+  outline: none;
+}
 
 /* An unnamed row reads quietly. */
 .explorer .tree li.unnamed .label { opacity: 0.6; font-style: italic; }
+/* A part of a definition seen through a usage: dimmed, with the link glyph after its name. */
+.explorer .tree li.part .label,
+.explorer .tree li.part .mark { opacity: 0.6; }
+.explorer .tree .stamp { display: inline-flex; flex: none; margin-left: 4px; color: var(--faint); }
+.explorer .tree li.part .from { display: inline-flex; margin-left: 4px; color: var(--faint); }
 
 .explorer .tree .alias {
   flex: none;
@@ -223,6 +236,3 @@
 /* The section holding what is lit reads in the accent, folded or not. */
 .explorer .tree li.top.holds .label,
 .explorer .tree li.top.holds .mark { color: var(--accent); }
-
-/* Folds held: the bar's fold wears the accent while it holds them. */
-.explorer .bar > .fold[aria-pressed="true"] { color: var(--accent); }

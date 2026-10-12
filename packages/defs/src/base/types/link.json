@@ -1,0 +1,12 @@
+{
+  "id": "link",
+  "name": "link",
+  "type": "value",
+  "body": "Where something lives: a uri.",
+  "def": {},
+  "settings": {
+    "value": {
+      "form": "link"
+    }
+  }
+}

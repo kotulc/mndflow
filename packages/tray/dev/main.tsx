@@ -9,6 +9,7 @@ import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
 import "@mnd/theme/icons.css";
 import "@mnd/theme/card.css";
+import "@mnd/theme/face.css";
 import "../src/tray.css";
 import "../src/fields.css";
 import "../src/preview.css";

@@ -25,10 +25,8 @@ const PATHS = {
   // shown in the state it names, so `fold_all` is what an open section wears.
   fold_all: "M6.5 9l5.5 5.5L17.5 9",
   unfold_all: "M9 6.5l5.5 5.5L9 17.5",
-  /** Whether folds follow the walk: a chevron up and one down, opening and shutting; held, a bar
-   *  between them keeps them as they are. */
-  folds_follow: "M8 9.5l4-4 4 4M8 14.5l4 4 4-4",
-  folds_held: "M8 8l4-4 4 4M8 16l4 4 4-4M6.5 12h11",
+  /** Folding the lowest open layer back toward the top rows: a chevron folding against a bar. */
+  fold_branches: "M14 6.5L8.5 12l5.5 5.5M17.5 6v12",
   show_empty: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5",
   hide_empty: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 19.5l15-15",
 
@@ -74,8 +72,8 @@ const PATHS = {
   content_quote: "M5 17.5c2.5-1 3.5-3 3.5-6V7.5H5V11h3.5M13.5 17.5c2.5-1 3.5-3 3.5-6V7.5h-3.5V11H17",
   content_image: "M4 5.5h16v13H4zM4 16l5-5 4 4 2.5-2.5L20 17M15.5 8.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2",
   content_rule: "M3.5 12h4M10 12h4M16.5 12h4",
-  // The document's metadata: a tag, since that is what it says about the page.
-  content_front: "M4 4.5h8l8 8-7.5 7.5-8.5-8.5zM8 8.5h.5",
+  // The document's metadata: braces, since it is data about the page.
+  content_front: "M9 4.5c-1.5 0-2.5.7-2.5 2.5v2.5c0 1.5-.8 2.5-2.5 2.5 1.7 0 2.5 1 2.5 2.5V17c0 1.8 1 2.5 2.5 2.5M15 4.5c1.5 0 2.5.7 2.5 2.5v2.5c0 1.5.8 2.5 2.5 2.5-1.7 0-2.5 1-2.5 2.5V17c0 1.8-1 2.5-2.5 2.5",
   content_lead: "M3.5 12h11M11 8.5l3.5 3.5-3.5 3.5M18.5 6v12",
   content_more: "M4 7.5h16v9H4zM7.5 12h1M11.5 12h1M15.5 12h1",
   // One record: a single row of cells, where `role_table` is the whole lattice.
@@ -83,10 +81,8 @@ const PATHS = {
 
   // What a thing is, opened out to be set. A cog: the one mark every app
   // already spends on *the settings of this*.
-  /** A pinned definition. */
-  pin: "M9 3.5h6M12 3.5v7M12 10.5l4.5 4.5v2h-9v-2zM12 17v3.5",
   // The system's own words, written rather than drawn: three letters on one grid, one weight,
-  // so `Wks`, `Pkg`, `Def`, `Ref` and `Use` read as one family wherever they are stamped.
+  // so `Wks`, `Pkg`, `Def` and `Ref` read as one family wherever they are stamped.
   /** The workspace: everything the project holds. */
   word_wks: "M2.5 7.5l1.75 9 1.75-5.5 1.75 5.5 1.75-9M11.5 7.5v9M15.5 11.5l-4 3.25M13.1 13.1l2.4 3.4M20.8 12.5a1.7 1.7 0 0 0-3 1c0 1.6 3.2.7 3.2 2.2a1.8 1.8 0 0 1-3.2.9",
   /** The packages: what the workspace draws on. */
@@ -97,13 +93,9 @@ const PATHS = {
   word_ref: "M3 16.5V7.5h2.2a2.6 2.6 0 0 1 0 5.2H3M5.9 12.7l2.6 3.8M10 13.9h4.4a2.2 2.2 0 1 0-4.4 0v.2a2.2 2.2 0 0 0 4 1.3M21 8.2a2 2 0 0 0-3 1.8v6.5M16.3 12.2h3.7",
   /** A stand-in for something outside the workspace. */
   word_ext: "M8 7.5H3v9h5M3 12h4.2M10 11.9l4.2 4.6M14.2 11.9L10 16.5M18 8.5v6.2a1.8 1.8 0 0 0 2.6 1.6M16.4 11.9h3.5",
-  /** The usages: the blocks the workspace is made of. */
-  word_use: "M3 7.5v6a3 3 0 0 0 6 0v-6M14.5 12.5a1.7 1.7 0 0 0-3 1c0 1.6 3.2.7 3.2 2.2a1.8 1.8 0 0 1-3.2.9M16.6 13.9h4.4a2.2 2.2 0 1 0-4.4 0v.2a2.2 2.2 0 0 0 4 1.3",
   /** Carries data: populated fields, or the schema they are read against. A database, drawn:
    *  the one mark every tool already spends on *records live here*. */
   data: "M5 6.5c0-1.4 3.1-2.5 7-2.5s7 1.1 7 2.5-3.1 2.5-7 2.5-7-1.1-7-2.5M5 6.5v11c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-11M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5",
-  /** Holds parts: four boxes, the mark every tool already spends on *there is more in here*. */
-  parts: "M5 5h5.5v5.5H5zM13.5 5H19v5.5h-5.5zM5 13.5h5.5V19H5zM13.5 13.5H19V19h-5.5z",
   define: "M12 9.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5M12 3.5l1.2 2.3 2.5-.7.6 2.6 2.4 1-1.3 2.3 1.3 2.3-2.4 1-.6 2.6-2.5-.7L12 20.5l-1.2-2.3-2.5.7-.6-2.6-2.4-1L6.6 13 5.3 10.7l2.4-1 .6-2.6 2.5.7z",
 
   // A thing fixed where it was put. A shackle over a body, closed — and the
@@ -124,7 +116,6 @@ const PATHS = {
   // Sending a file out, and taking one in. A workspace lands on a shelf; a
   // project is one page, so the two can never read as each other.
   export_workspace: "M12 3.5v9M8.5 9.5L12 13l3.5-3.5M4 16.5v4h16v-4",
-  export_project: "M6.5 3.5h7l4 4v13h-11zM12 10v6M9 13.5L12 16.5l3-3",
   import_file: "M12 13.5v-9M8.5 8L12 4.5 15.5 8M4 16.5v4h16v-4",
   /** A document to add: a page with its corner turned, and the plus inside it. */
   add_document: "M7 5h7l3.5 3.5V19H7zM14 5v3.5h3.5M12 10.5v5M9.5 13h5",
@@ -133,6 +124,16 @@ const PATHS = {
   // twice: scattered where the hand put them, and slotted into a lattice.
   layout_free: "M5 5h4.5v4.5H5zM14.5 8h4.5v4.5h-4.5zM8 14.5h5.5V19H8z",
   layout_grid: "M4.5 4.5h15v15h-15zM9.5 4.5v15M14.5 4.5v15M4.5 9.5h15M4.5 14.5h15",
+
+  // The views. A section's: package, the boxes a whole section nests, from above; profile, the
+  // same section stepped down the page. A block's: **internal, a card seen from inside its rim**;
+  // entity, a card ruled into its attributes; lineage, a card extending the one above it;
+  // definitions, a package's cards joined.
+  view_internal: "M4.5 4.5h15v15h-15zM8.5 9.5h7v5h-7z",
+  view_overhead: "M4.5 4.5h15v15h-15zM7.5 7.5h4v4h-4zM12.5 7.5h4v4h-4zM7.5 13.5h9v3h-9z",
+  view_profile: "M6.5 4.5h11v4h-11zM6.5 10h11v4h-11zM6.5 15.5h11v4h-11z",
+  view_grid: "M4.5 4.5h15v15h-15zM4.5 9.5h15M4.5 14.5h15M9.5 4.5v15M14.5 4.5v15",
+  view_folder: "M3.5 6.5h6l2 2h9v11h-17zM7 12h10M7 15.5h10",
 
   // The guides the drawing is measured against. **A hash: rules that run off
   // the edge**, which is what a guide is and what keeps it off `layout_grid`,
@@ -187,7 +188,6 @@ const PATHS = {
 
   // The strip that types. A prompt inside a frame, so it cannot read as the
   // retro screen above it.
-  terminal: "M3.5 5.5h17v13h-17zM7 10l3 2.5-3 2.5M13 15.5h4",
   // Clearing what is typed. Backspace — it is the text that goes.
   clear: "M9 5.5h10.5v13H9L3.5 12zM12 9.5l5 5M17 9.5l-5 5",
 
@@ -253,7 +253,7 @@ export function role_icon(role: string | undefined): IconName {
  *  drawn, since there is no icon above it to repeat. */
 export const MARK_ICON: Record<string, IconName> = {
   reference: "word_ref", definition: "word_def",
-  package: "word_pkg", data: "data", parts: "parts",
+  package: "word_pkg", structure: "role_root", data: "data",
 };
 
 /** The icon for a system mark, or null where a card carries none. */

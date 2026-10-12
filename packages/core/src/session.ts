@@ -2,14 +2,15 @@
 
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
-import { base_of, plain_type, touched } from "./defs";
-import { fold, step } from "./fold";
-import { alias_kind, next_alias } from "./names";
+import { fold, replay, step, type Floor } from "./fold";
+import { home_at, sight, trace, view_of, view_on, EDITOR, type Tiers,
+         type View, type Views } from "./navigate";
+import { is_layer_view, type ViewKind } from "./sections";
+import { package_of } from "./defs";
 import { path } from "./tree";
-import { compact, file_name, parse, read, write } from "./file";
+import { compact, file_name, parse, read, unmet, write, write_package } from "./file";
 import { new_id } from "./ids";
 import { no_files, no_storage, type Ports } from "./ports";
-import { ROOT } from "./types";
 import type { Fault } from "./door";
 import type { Graph, Id, Log, Mutation, Step } from "./types";
 
@@ -26,6 +27,11 @@ export type Session = {
   log: () => Log;
   graph: () => Graph;
   layer: () => Id | null;
+  /** What the canvas draws: the section, how, the layer, and the anchor navigation brought into
+   *  sight — never what is only browsed. */
+  view: () => View;
+  /** The view each section was set to, by its id. */
+  views: () => Views;
   picked: () => Id[];
   /** Which cells are picked, beside the ids. */
   cells: () => Spot[];
@@ -39,6 +45,9 @@ export type Session = {
   batch: (fn: () => void) => void;
 
   look: (layer: Id | null) => void;
+  /** The canvas's section shown whole another way, keeping `id` in sight; a layer view, which is
+   *  never chosen, goes back to where what is kept in sight is drawn. */
+  see: (kind: ViewKind, id?: Id | null) => void;
   pick: (ids: Id[]) => void;
   pick_cells: (cells: readonly Spot[]) => void;
   say: (text: string, kind?: Said["kind"]) => void;
@@ -47,11 +56,14 @@ export type Session = {
   redo: () => boolean;
 
   save: (name?: string) => Promise<void>;
+  /** The workspace exported as a package called `name`, its ids prefixed with it. */
+  save_package: (name: string) => Promise<void>;
   load: (text: string) => void;
   /** Back to a fresh, empty workspace; not undoable. */
   reset: () => void;
-  /** Grafts a file's definitions and elements into a layer, as one step. */
-  graft: (text: string, into?: Id | null) => Fault[];
+  /** Brings the packages a file carries in beside the workspace, whole and frozen, as one step.
+   *  A package already here, or one whose ids clash with one here, is refused. */
+  bring: (text: string) => Fault[];
   /** A definition package from outside the workspace, in through the door. */
   search: (want: string) => Promise<Found | null>;
   /** What the catalogue offers, for a surface to list. */
@@ -64,8 +76,10 @@ export type Session = {
 export type Seed = {
   /** Where the definition packages are listed. */
   catalogue?: string;
-  /** The shipped floor every fold starts from. */
-  defs?: Mutation[];
+  /** The shipped packages every fold starts from. */
+  floor?: Floor;
+  /** The host's sections; the editor's unless said. */
+  tiers?: Tiers;
 };
 
 export function session(ports: Partial<Ports> & Seed = {}): Session {
@@ -75,7 +89,9 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
   let log: Log = [];
   let graph: Graph = fold(log);
-  let layer: Id | null = null;
+  const tiers: Tiers = ports.tiers ?? EDITOR;
+  let views: Views = {};
+  let view: View = { at: 0, kind: "internal", layer: null, pick: null };
   /** The layer the open one was reached from, for leaving an interface. */
   let from: Id | null = null;
   let picked: Id[] = [];
@@ -84,9 +100,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   let listener: (() => void) | null = null;
   let opened_faults: import("./door").Fault[] = [];
 
-  /** The shipped package, as the floor every fold starts from. */
-  const floor: Graph["defs"] = {};
-  for (const m of ports.defs ?? []) if (m.op === "set_def") floor[m.def.id] = m.def;
+  /** The shipped packages, as the floor every fold starts from. */
+  const floor: Floor = ports.floor ?? [];
 
   /** A fresh log is empty. The floor is already under it. */
   const seeded = (): Log => [];
@@ -102,15 +117,18 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     log = seeded();
   }
   graph = fold(log, floor);
+  view = home(graph);
   if (opened_faults.length) said = { text: say(opened_faults), at: Date.now(), kind: "note" };
 
   const settle = () => {
     const was = graph;
     graph = fold(log, floor);
-    /** A layer that is gone gives way to its nearest surviving ancestor. */
+    /** A layer that is gone gives way to its nearest surviving ancestor, seen from inside in the
+     *  section listing it; a whole section whose scope is gone starts again. */
+    const layer = view.layer;
     if (layer && !graph.blocks[layer]) {
-      layer = path(was, layer).map((b) => b.id).reverse().find((id) => graph.blocks[id]) ?? null;
-      if (layer === graph.root) layer = null;
+      const kept = path(was, layer).map((b) => b.id).reverse().find((id) => graph.blocks[id]);
+      view = kept && is_layer_view(view.kind) ? view_on(graph, tiers, views, kept) : home(graph);
       picked = picked.filter((id) => graph.blocks[id] || graph.edges[id]);
       cells = [];
     }
@@ -118,7 +136,29 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     listener?.();
   };
 
-  const ctx = (): Context => ({ graph, layer, picked, cells, from });
+  const ctx = (): Context => ({ graph, layer: view.layer, picked, cells, from, tiers, views,
+                                view });
+
+  /** Where the canvas starts on this graph. */
+  function home(on: Graph): View {
+    return home_at(on, tiers, views) ?? view_on(on, tiers, views, null);
+  }
+
+  /** The canvas moved: what it was looking into is kept for leaving an interface, and what it
+   *  brought into sight is its anchor — which browsing, a pick made elsewhere, never moves. */
+  /** Each section remembers how it was last shown: whole, or from a block. A package's own view
+   *  is neither, so it leaves it as it was. */
+  const move = (next: View) => {
+    if (next.layer !== view.layer) from = view.layer;
+    const section = tiers.sections[next.at];
+    const pkg = next.layer !== null && graph.blocks[next.layer]?.parent === null;
+    if (section && !pkg) {
+      views = { ...views, [section.id]: is_layer_view(next.kind) ? "internal" : next.kind };
+    }
+    view = next;
+    picked = [];
+    cells = [];
+  };
 
   const refuse = (why: string): null => {
     said = { text: why, at: Date.now(), kind: "note" };
@@ -153,12 +193,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
   const effect = (e: Effect | undefined) => {
     if (!e) return;
-    if (e.open !== undefined) {
-      if (e.open !== layer) from = layer;
-      layer = e.open;
-      picked = [];
-      cells = [];
-    }
+    if (e.view) move(e.view);
     if (e.focus !== undefined) picked = e.focus ? [e.focus] : [];
     if (e.say) said = { text: e.say, at: Date.now(), kind: "mirror" };
   };
@@ -166,7 +201,9 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   return {
     log: () => log,
     graph: () => graph,
-    layer: () => layer,
+    layer: () => view.layer,
+    view: () => view,
+    views: () => views,
     picked: () => picked,
     cells: () => cells,
     said: () => said,
@@ -195,10 +232,32 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     },
 
     look(next) {
-      if (next !== layer) from = layer;
-      layer = next;
-      picked = [];
-      cells = [];
+      move(view_on(graph, tiers, views, next));
+      listener?.();
+    },
+
+    see(kind, id) {
+      const section = tiers.sections[view.at];
+      if (!section) return;
+      /** What stays in sight: the pick, where it lies within what the canvas has open — the same
+       *  root in its section — else the canvas's anchor, its layer, or what the host says; the
+       *  first the section lists. A pick browsed elsewhere never moves the canvas. With none, a
+       *  whole section is shown as it is; inside, there is no layer to look into, so nothing
+       *  changes. */
+      const listed = (x: Id | null | undefined): x is Id =>
+        !!x && trace(graph, tiers, x).held[view.at] === x;
+      const root = (x: Id | null) => (x ? trace(graph, tiers, x).roots[view.at] : undefined);
+      const anchor = view.pick ?? view.layer;
+      const within = picked[0] && root(picked[0]) === root(anchor) ? picked[0] : null;
+      const keep = [within, view.pick, view.layer, id].find(listed);
+      /** A layer view is never chosen: from one, there is nowhere else to go. */
+      if (is_layer_view(kind) && is_layer_view(view.kind)) return;
+      if (!keep && is_layer_view(kind)) return;
+      views = { ...views, [section.id]: is_layer_view(kind) ? "internal" : kind };
+      const to = keep ? sight(graph, tiers, views, view.at, keep)
+        : { ...view, kind: view_of(tiers, views, view.at) };
+      move(to);
+      if (to.pick) picked = [to.pick];
       listener?.();
     },
 
@@ -244,55 +303,50 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       await files.save(`${name}.json`, write(graph, name));
     },
 
-    graft(text, into) {
-      const got = parse(text);
-      if (!got.graph) {
-        said = { text: say(got.faults) || "that file could not be read",
-                 at: Date.now(), kind: "note" };
-        listener?.();
-        return got.faults;
-      }
-      const from = fold([step("import", "import", 0, [{ op: "checkpoint", graph: got.graph }])], floor);
-      const target = into ?? layer ?? graph.root;
-      const mutations: Mutation[] = [];
-      /** The workspace always wins: nothing it holds is replaced, and its defaults stand for the
-       *  file's. */
-      const plain = (type: Id | undefined) => !!type && from.defs[type]?.default !== undefined;
-      for (const d of Object.values(from.defs)) {
-        if (touched(d) && d.default === undefined && !graph.defs[d.id]) {
-          mutations.push({ op: "set_def", def: d });
-        }
-      }
-      /** Incoming elements take the workspace's next handles, in their own order. */
-      const counts: Record<string, number> = {};
-      const serial = (id: Id) => {
-        const kind = alias_kind(from, id);
-        counts[kind] = (counts[kind] ?? next_alias(graph, kind) - 1) + 1;
-        return counts[kind]!;
-      };
-      const by_alias = <T extends { id: Id; alias?: number }>(all: T[]) =>
-        all.sort((a, z) => (a.alias ?? 0) - (z.alias ?? 0) || a.id.localeCompare(z.id));
-      for (const b of by_alias(Object.values(from.blocks))) {
-        if (b.id === from.root || graph.blocks[b.id]) continue;
-        const parent = b.parent === from.root || !b.parent ? target : b.parent;
-        const type = plain(b.type) ? plain_type(base_of(from, b.id)) ?? undefined : b.type;
-        mutations.push({ op: "add_block", block: { ...b, parent, type, alias: serial(b.id) } });
-      }
-      for (const e of by_alias(Object.values(from.edges))) {
-        if (graph.edges[e.id]) continue;
-        const type = plain(e.type) ? undefined : e.type;
-        mutations.push({ op: "link_blocks", edge: { ...e, type, alias: serial(e.id) } });
-      }
-      for (const [kind, n] of Object.entries(counts)) mutations.push({ op: "set_counter", kind, n });
-      append("import", mutations);
+    async save_package(name) {
+      const text = write_package(graph, name);
+      await files.save(`${JSON.parse(text).id}.json`, text);
+    },
 
-      /** The door runs over the workspace as it now stands. */
+    bring(text) {
+      const got = parse(text);
+      const fail = (faults: Fault[]) => {
+        said = { text: say(faults) || "that file could not be read", at: Date.now(), kind: "note" };
+        listener?.();
+        return faults;
+      };
+      if (!got.graph) return fail(got.faults);
+      const from = fold([step("import", "import", 0, [{ op: "checkpoint", graph: got.graph }])], floor);
+      /** Every package the file carries but the workspace and `base`, each whole and frozen. */
+      const roots = Object.values(from.blocks)
+        .filter((b) => b.parent === null && b.id !== graph.root && !floor.some((f) => f.id === b.id));
+      if (!roots.length) return fail([{ kind: "dropped", what: "a file carrying no package" }]);
+      const fresh = roots.filter((r) => !graph.blocks[r.id]);
+      if (!fresh.length) return fail([{ kind: "dropped", what: "that package is here already" }]);
+      const incoming = Object.values(from.blocks)
+        .filter((b) => fresh.some((r) => r.id === package_of(from, b.id)));
+      const clash = incoming.find((b) => graph.blocks[b.id]);
+      if (clash) {
+        return fail([{ kind: "dropped", what: `a package whose ids clash with one here: ${clash.id}` }]);
+      }
+      const ids = new Set(incoming.map((b) => b.id));
+      const mutations: Mutation[] = [
+        ...incoming.map((b): Mutation => ({ op: "add_block", block: b })),
+        ...Object.values(from.edges).filter((e) => ids.has(e.from) || ids.has(e.to))
+          .filter((e) => !graph.edges[e.id])
+          .map((e): Mutation => ({ op: "link_blocks", edge: e })),
+      ];
+      const missing = unmet(replay(graph, mutations));
+      if (missing.length) {
+        return fail([{ kind: "dropped",
+                       what: `a package naming what it does not carry: ${missing.slice(0, 3).join(", ")}` }]);
+      }
+      append("import", mutations);
       const mend = inspect(graph);
       if (mend.repairs.length) append("repair", mend.repairs);
-      const faults = [...got.faults, ...mend.faults];
-      if (faults.length) said = { text: say(faults), at: Date.now(), kind: "note" };
+      if (mend.faults.length) said = { text: say(mend.faults), at: Date.now(), kind: "note" };
       listener?.();
-      return faults;
+      return mend.faults;
     },
 
     /** What the catalogue offers, so a surface can list it rather than guess a name. Empty where
@@ -318,8 +372,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       const text = await net.get(beside(catalogue, hit.at));
       if (text === null) return refuse(`“${hit.name}” could not be fetched`);
 
-      /** Packages are filed under the workspace root. */
-      const faults = this.graft(text, ROOT);
+      const faults = this.bring(text);
       said = { text: faults.length ? `brought in ${hit.name} — ${say(faults)}`
                                    : `brought in ${hit.name}`, at: Date.now(), kind: "note" };
       listener?.();
@@ -328,7 +381,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
     reset() {
       log = seeded();
-      layer = null;
+      view = home(fold(log, floor));
       picked = [];
       cells = [];
       said = { text: "a fresh workspace", at: Date.now(), kind: "note" };
@@ -343,7 +396,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
         return;
       }
       log = got.log;
-      layer = null;
+      view = home(fold(log, floor));
       picked = [];
       cells = [];
       said = got.faults.length ? { text: say(got.faults), at: Date.now(), kind: "note" } : null;
@@ -388,9 +441,8 @@ function beside(catalogue: string, at: string): string {
  *  made on purpose. What is here is what a *drag* streams. */
 function slot_of(m: Mutation): string | null {
   switch (m.op) {
-    /** A slider, on an element and on the definition it follows. */
-    case "set_look": return `${m.id}|${m.key}|${m.name}`;
-    case "set_def": return m.def.id;
+    /** A slider, on an element or a definition. */
+    case "set_setting": return `${m.id}|${m.key}|${m.name}`;
     /** A card dragged or resized. A lattice is written once per edit, so it never folds. */
     case "place_block": case "size_block": case "seat_cell": return m.id;
     default: return null;

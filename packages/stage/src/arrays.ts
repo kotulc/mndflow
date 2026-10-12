@@ -164,7 +164,7 @@ export function signature(scene: Scene, frame: Frame | null): string {
       return [
         n.id, n.type, `${b.x},${b.y},${b.w},${b.h}`, n.data.label, n.data.alias ?? "",
         n.data.marks.join(""), n.data.side ?? "",
-        look_key(n.data.look),
+        look_key(n.data.look), n.data.face ?? "", n.data.text ?? "",
         /** The lattice is what a grid draws. */
         n.data.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(""),
         /** Where a line meets this card is part of what it draws. */

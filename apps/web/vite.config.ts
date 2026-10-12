@@ -2,11 +2,13 @@ import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-/** The vendored weights and ONNX runtime live at the repo root. */
+/** The definition packages are served from the repo root. */
 export default defineConfig({
   root: __dirname,
   publicDir: resolve(__dirname, "../../public"),
   plugins: [react()],
-  optimizeDeps: { include: ["@xenova/transformers"] },
+  /** libavoid's wasm, which its package does not export, served as a url. */
+  resolve: { alias: [{ find: /^libavoid-wasm/,
+                       replacement: resolve(__dirname, "../../node_modules/libavoid-js/dist/libavoid.wasm") }] },
   build: { chunkSizeWarningLimit: 900 },
 });

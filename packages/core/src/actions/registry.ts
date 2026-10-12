@@ -1,5 +1,6 @@
 /** The action registry: the closed surface every input method works against. */
 
+import type { Tiers, View, Views } from "../navigate";
 import { is_interface } from "../tree";
 import type { Graph, Id, Mutation } from "../types";
 
@@ -24,7 +25,7 @@ export type Args = Record<string, unknown>;
 export type Act = (name: string, args?: Args) => void;
 
 /** Where the app should be looking afterwards. */
-export type Effect = { open?: Id | null; focus?: Id | null; say?: string };
+export type Effect = { view?: View; focus?: Id | null; say?: string };
 
 export type Result = { mutations: Mutation[]; effect?: Effect };
 
@@ -41,11 +42,16 @@ export type Context = {
   cells?: readonly Spot[];
   /** The layer this one was opened from; `open` uses it to leave an interface. */
   from?: Id | null;
+  /** What the canvas draws, the host's sections, and the view chosen for each. Unsaid, the
+   *  editor's sections, each in its first view, seen from inside `layer`. */
+  view?: View | null;
+  tiers?: Tiers;
+  views?: Views;
 };
 
 export type Action = {
   name: string;
-  /** The sentence a typed word is scored against. */
+  /** What the action does, in words. */
   about: string;
   on: readonly Scope[];
   args: readonly Arg[];
@@ -82,7 +88,7 @@ function in_scope(a: Action, ctx: Context): boolean {
     s === "layer" ? true
     : s === "block" ? !!one
     : s === "edge" ? !!edge
-    : s === "interface" ? !!one && is_interface(one)
+    : s === "interface" ? !!one && is_interface(ctx.graph, one.id)
     : s === "cell" ? !!ctx.cells?.length
     : ctx.picked.length > 0);
 }
