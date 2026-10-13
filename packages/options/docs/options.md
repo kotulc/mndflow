@@ -16,7 +16,7 @@ view · layer · display · relations
 
 | | Is |
 |---|---|
-| **`view`** | the section's **system views** — *overhead* and *profile* — the only views chosen; choosing one leaves the open layer for the whole section. Last, the layer view — internal, grid, folder, definition, class, swimlane or sequence — never chosen, only shown: lit while the canvas draws it, and on a system view the way back to where the block in hand is drawn |
+| **`view`** | the section's **system views** — *overhead* and *profile* — the only views chosen; choosing one leaves the open layer for the whole section. Last, the layer view — package, internal, definition, allocation, sequence or table — never chosen, only shown: lit while the canvas draws it, and on a system view the way back to where the block in hand is drawn |
 | **`layer`** | the layer's layout — `free` or `auto`. A setting, and the one group here that writes to the log. `page` is a definition's or a host's to set, never offered here; a system view, a definition view and a paged folder offer no `layer` group at all |
 | **`display`** | what the drawing shows rather than what it holds: the frame, the guides, whether interfaces draw, whether folders are flattened, and whether this layer draws the key to itself. Nothing here enters the log |
 | **`relations`** | what a right drag and a `chain` draw: *straight*, *directed* or *tie*. The shipped runs only; a relation definition is applied in the tray |

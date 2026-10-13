@@ -2,7 +2,7 @@
 
 **One way to draw.** A layer is what is looked at; this package is the looking. It reads the graph and hands back a **Scene** — plain data, importing nothing drawable.
 
-**There is one way to draw.** A grid is how a layer states order and allocation; there is no choice of view module. The canvas draws the whole system in a system view — **overhead** (`survey.ts`) or **profile** (`profile.ts`), both trees, a definition's structure to its top level only, every card on its small face, a grid as one card, and the overhead without notes — or one block in the layer view its kind calls for: **internal**, **grid**, **folder** or **definition**, or the diagram its `layout.view` names: **class** (`class.ts`), **swimlane** (`swimlane.ts`) or **sequence** (`sequence.ts`). A diagram is read only and stores nothing it draws.
+**There is one way to draw.** A grid is how a layer states order and allocation; there is no choice of view module. The canvas draws the whole system in a system view — **overhead** (`survey.ts`) or **profile** (`profile.ts`), both trees, a definition's structure to its top level only, every card on its small face, a grid as one card, and the overhead without notes — or one block in the layer view its kind calls for: **package**, **internal**, **definition** or **allocation**, or the diagram its `layout.view` names: **table** (`class.ts`) or **sequence** (`sequence.ts`). A diagram is read only and stores nothing it draws. `layered` lays an internal layer out by its relations.
 
 ```
 project(graph, layer, config) → Scene
@@ -21,7 +21,7 @@ project(graph, layer, config) → Scene
 | `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off |
 | `route.ts` | where a run goes between two borders, round the cards it passes |
 | `block.ts` | the projection: graph and layer in, Scene out |
-| `class.ts` · `swimlane.ts` · `sequence.ts` | the diagram views: a graph drawn as internal (class, swimlane), or a Scene built directly where time is the geometry (sequence, its runs given as `points`) |
+| `class.ts` · `sequence.ts` | the diagram views: a graph drawn as internal (table), or a Scene built directly where time is the geometry (sequence, its runs given as `points`) |
 | `look.ts` · `derive.ts` | what a card wears — its hue strayed by `vary` per definition, so kin read alike — and the marks it reads by; both derived every draw |
 | `legend.ts` | the key to one layer: the kinds it draws and the system marks they wear, folded and counted off the Scene alone |
 | `svg.ts` · `text.ts` | a Scene drawn without a browser |

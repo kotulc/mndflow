@@ -1,14 +1,18 @@
 /** The first tab, a card's or a line's — named for what is drawn. **One layout for both**, the
- *  settings tab's: how it appears beside what it is, its source under them (a card's alone: a line
- *  has none), and the definition it follows under all, read only. Given no `onAct`, nothing takes
- *  input. */
+ *  settings tab's: how it appears beside its source — the frontmatter as editable rows, then a
+ *  card's body (a line has none) — and the definition it follows under all, read only. Given no
+ *  `onAct`, nothing takes input. */
 
 import { useEffect, useState } from "react";
-import { card_text, def_at, def_of, type Act, type Graph, type Id } from "@mnd/core";
+import { card_text, def_at, def_of, read_card, said_as, type Act, type Graph,
+         type Id } from "@mnd/core";
 import { Markdown } from "@mnd/theme";
-import { Band, NOOP } from "./Body";
+import { Band, Line, NOOP } from "./Body";
 import { Drawing } from "./Drawing";
 import { Identity } from "./Identity";
+
+/** The frontmatter keys the identity rows answer; any other is drawn as it is filed. */
+const IDENTITY = ["name", "type", "extends", "tags"];
 
 export type ElementProps = {
   graph: Graph; id: Id; onAct?: Act;
@@ -23,29 +27,51 @@ export function Element({ graph, id, onAct = NOOP, onOpen }: ElementProps) {
     <fieldset className={card ? "panel element" : "panel element lined"}
               disabled={onAct === NOOP}>
       <Drawing graph={graph} id={id} />
-      <Identity graph={graph} id={id} onAct={onAct} {...(onOpen ? { onOpen } : {})} />
-      {card ? <Source key={id} graph={graph} id={id} onAct={onAct} /> : null}
+      <div className="col source">
+        <Band label="source" />
+        <div className="frontmatter">
+          <span className="fence">---</span>
+          <Identity graph={graph} id={id} onAct={onAct} {...(onOpen ? { onOpen } : {})} />
+          {card ? <Rest graph={graph} id={id} /> : null}
+          <span className="fence">---</span>
+        </div>
+        {card ? <Text key={id} graph={graph} id={id} onAct={onAct} /> : null}
+      </div>
       {follows ? <Record graph={graph} id={follows} /> : null}
     </fieldset>
   );
 }
 
-/** A card as markdown — frontmatter, then its body — edited in place and committed as ordinary
- *  changes when it is left. A refused edit stays in the box to be put right. */
-function Source({ graph, id, onAct }: { graph: Graph; id: Id; onAct: Act }) {
-  const text = card_text(graph, id);
-  const [draft, set_draft] = useState(text);
-  /** What landed replaces what was typed. */
-  useEffect(() => set_draft(text), [text]);
+/** The frontmatter the identity rows do not answer — values, traits, defaults — as filed. */
+function Rest({ graph, id }: { graph: Graph; id: Id }) {
+  const rest = Object.entries(read_card(card_text(graph, id)).front)
+    .filter(([key]) => !IDENTITY.includes(key));
+  if (!rest.length) return null;
   return (
-    <div className="col source">
-      <Band label="source" />
-      <div className="content">
-        <textarea value={draft} aria-label="card source" spellCheck
-                  onChange={(e) => set_draft(e.target.value)}
-                  onBlur={() => { if (draft !== text) onAct("markdown", { id, text: draft }); }}
-                  onKeyDown={(e) => { if (e.key === "Escape") set_draft(text); }} />
-      </div>
+    <div className="rows">
+      {rest.map(([key, value]) => (
+        <Line key={key} label={key}><span className="read">{said_as(value)}</span></Line>
+      ))}
+    </div>
+  );
+}
+
+/** A card's body, edited in place and committed with its frontmatter unchanged when it is left.
+ *  A refused edit stays in the box to be put right. */
+function Text({ graph, id, onAct }: { graph: Graph; id: Id; onAct: Act }) {
+  const body = graph.blocks[id]?.body ?? "";
+  const text = card_text(graph, id);
+  /** The frontmatter as filed, which the body is committed under. */
+  const front = text.slice(0, text.length - body.length);
+  const [draft, set_draft] = useState(body);
+  /** What landed replaces what was typed. */
+  useEffect(() => set_draft(body), [body]);
+  return (
+    <div className="content">
+      <textarea value={draft} aria-label="card body" spellCheck
+                onChange={(e) => set_draft(e.target.value)}
+                onBlur={() => { if (draft !== body) onAct("markdown", { id, text: front + draft }); }}
+                onKeyDown={(e) => { if (e.key === "Escape") set_draft(body); }} />
     </div>
   );
 }

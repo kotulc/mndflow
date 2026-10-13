@@ -30,7 +30,7 @@ File {
 | **laid out for reading** | blocks then relationships, each flat and sorted by id; identity keys first, the rest alphabetical |
 | **a workspace file** | the workspace package and every package brought in beside it; `base` never travels. A file naming a definition it does not carry is refused |
 | **a package is the smallest export** | a package root, everything under it, and its relationships. Nothing smaller is written as a file |
-| **definitions may be authored as files** | one JSON file per definition, in a source folder collected into one package file (see *Card sources*). Read one way: the app writes package files only |
+| **definitions may be authored as files** | one JSON file per definition, or a YAML diagram file, in a source folder collected into one package file (see *Card sources* and *Diagram files*). Read one way: the app writes package files only |
 | **import is a checkpoint** | no second format, no second reader. Bringing a package in adds it beside the workspace, frozen; a clash of ids is refused |
 
 
@@ -166,7 +166,7 @@ Value     { name, value }
 | `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `face` (`table`, `document`, `picture`), `size` (`{w, h}` in units): which large face it draws with and how big it is. Unsaid, a card has no large face. `place` (`flow`, `aside`): aside floats it beside what it is tied to, granted by *is aside* |
 | `style` | a family, or a `hue` with its `intensity` and `vary`; `fill` and `opacity`; border and writing weight, face and contrast. Never a hex or a pixel count |
 | `line` | how a run draws: `dir`, `from_arrow`, `to_arrow`, `name`, `alias`; `module` (`line`, `tie`): a tie runs straight and is never routed, granted by *is tie* |
-| `layout` | `kind`: `free`, `auto` or `page`; `across` and `line` for the computed ones; `cards`: `small` or `large`, the size what it holds draws at; `view`: `class`, `swimlane` or `sequence`, the diagram the block opens on. Unsaid kind, or a kind this build does not know, draws as `auto`. A `view` this build does not know, or that the block cannot feed, opens on the capability view |
+| `layout` | `kind`: `free`, `auto`, `page` or `layered`; `across` and `line` for the computed ones; `cards`: `small` or `large`, the size what it holds draws at; `view`: `package`, `internal`, `allocation`, `sequence` or `table`, the layer view the block opens on (a definition opens on `definition`). Unsaid kind, or a kind this build does not know, draws as `auto`. A `view` this build does not know, or that the block cannot feed, opens on the one its kind's `base` definition names |
 | `tie` | the relation type a block made from or dropped on another is linked to it by |
 | `allows` | `ports`, `holds`, `heads`, `degree`, `ends`. Refused at the gesture; absent is a no. Usually granted whole by a trait |
 | `holder` | `inline`, `matrix`: how a block draws what it holds — in place, and in cells. Granted by the traits of the same names; which holder a block is comes from here |
@@ -264,8 +264,10 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | `tags` | its tags, by name | its tags, by name |
 | `traits` | — | the traits it states, by name |
 | `source` | where its content lives outside | — |
+| `blocks`, `relations`, `packages` | the layer it holds, as a diagram file | the layer it holds, as a diagram file |
 | anything else | a value | an attribute's default |
 
 - the body after the frontmatter is `body`, as written. Tables in it are content
 - a type or tag name nothing loaded holds, or more than one package holds, makes a plain definition in the workspace, and is said
-- **a collection** is a folder: `package.json` (the package's graph), a `.json` file per definition, and `.md` usages, each directory a folder. `collect` reads one as a package file; a definition said twice is refused; a type its usages name and nothing defines is made, its attributes the union of what they answer. `base` is one: `packages/defs/src/base/`, collected by `npm run base`, its ids kept bare
+- frontmatter and a diagram file are one schema, read by one reader
+- **a collection** is a folder: `package.json` (the package's graph), a `.json` file per definition, `.yaml` diagram files, and `.md` usages, each directory a folder. `collect` reads one as a package file; a definition said twice is refused; a type its usages name and nothing defines is made, its attributes the union of what they answer. `base` is one: `packages/defs/src/base/`, collected by `npm run base`, its ids kept bare

@@ -24,7 +24,7 @@ project(graph, layer, config) → Scene
 
 **A system view draws both trees**: the overhead view, with `look.tops`, boxes each definition holding structure round its top-level blocks as cards; the profile's rows are boxes standing for a level, never picked or dragged, and the path to its target wears the held mark.
 
-**A system view has no frame, nor a package root unless its folder view asks for one** (`config.room`). A frame is a block seen from inside. A folder view's frame hugs what it holds. Everywhere else it is what the layer holds plus a margin, and never smaller than the room a first block needs — so descending into an empty block shows somewhere to put something rather than a blank page.
+**A system view has no frame, nor a package root unless its package view asks for one** (`config.room`). A frame is a block seen from inside. A package view's frame hugs what it holds. Everywhere else it is what the layer holds plus a margin, and never smaller than the room a first block needs — so descending into an empty block shows somewhere to put something rather than a blank page.
 
 ## Marks
 

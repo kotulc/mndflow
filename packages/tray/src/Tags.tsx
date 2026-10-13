@@ -1,4 +1,5 @@
-/** An element's tags, one chip each, with a box to add more. **Its own list, or its definition's**:
+/** An element's tags, one chip each, with a box to add more — Enter makes a chip, and Backspace
+ *  on the empty box makes the last one text again. **Its own list, or its definition's**:
  *  an inherited list reads faint, and any edit makes it the element's own; a list of its own can
  *  be given back. */
 
@@ -41,7 +42,15 @@ export function Tags({ tags, inherited = false, name = (id) => id, onCommit, onR
       ))}
       <input value={adding} aria-label="add a tag" placeholder={tags.length ? "" : "add a tag"}
              onChange={(e) => set_adding(e.target.value)} onBlur={add}
-             onKeyDown={(e) => { if (e.key === "Enter") add(); }} />
+             onKeyDown={(e) => {
+               if (e.key === "Enter") add();
+               /** Backspace on an empty box turns the last chip back into text. */
+               if (e.key === "Backspace" && !adding && !inherited && tags.length) {
+                 e.preventDefault();
+                 set_adding(names[names.length - 1]!);
+                 onCommit(tags.slice(0, -1));
+               }
+             }} />
       {!inherited && onReset ? (
         <button className="opt" title="carry its definition's tags again" onClick={onReset}>
           inherit

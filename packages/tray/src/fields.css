@@ -186,3 +186,84 @@
   font: inherit;
 }
 .rows > .row > .line > .tags > input:focus { outline: none; border-color: var(--accent); }
+
+/* ── The source's frontmatter: the identity rows read as YAML, their controls inline as text ── */
+.frontmatter {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 8px;
+  font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.frontmatter > .fence { color: var(--faint); }
+.frontmatter .rows { font-size: inherit; }
+.frontmatter .rows + .rows { margin-top: 0; }
+.frontmatter .rows > .row { min-height: 0; padding: 0; gap: 0; border: 0; }
+/* The key as YAML writes it: lowercase, then a colon. */
+.frontmatter .rows > .row > label {
+  width: auto;
+  margin-right: 1ch;
+  color: var(--muted);
+  font-size: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.frontmatter .rows > .row > label::after { content: ":"; }
+.frontmatter .rows > .row > .line { gap: 0 1ch; }
+/* A box reads as the text it holds, sized to it, and shows it is one only when touched. */
+.frontmatter .rows > .row > .line > input,
+.frontmatter .rows > .row > .line > select,
+.frontmatter .rows > .row > .line > .tags > input {
+  flex: 0 1 auto;
+  field-sizing: content;
+  min-width: 4ch;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dotted transparent;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+}
+.frontmatter .rows > .row > .line > input:hover,
+.frontmatter .rows > .row > .line > select:hover,
+.frontmatter .rows > .row > .line > .tags > input:hover { border-color: var(--divider); }
+.frontmatter .rows > .row > .line > input:focus,
+.frontmatter .rows > .row > .line > select:focus,
+.frontmatter .rows > .row > .line > .tags > input:focus { border-color: var(--accent); }
+.frontmatter input::placeholder { color: var(--faint); }
+.frontmatter .rows > .row > .line > select { color: var(--accent); cursor: pointer; }
+.frontmatter .rows > .row > .line > .tags { flex: 1 1 auto; gap: 0 1ch; }
+/* A chip is a word in brackets, in the line's own type. */
+.frontmatter .rows .opt {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: inherit;
+  line-height: inherit;
+}
+.frontmatter .rows .opt::before { content: "["; color: var(--faint); }
+.frontmatter .rows .opt::after { content: "]"; color: var(--faint); }
+.frontmatter .rows .opt:hover { background: none; color: var(--accent); }
+.frontmatter .rows > .row > .line > .tags > .tag { gap: 0; }
+.frontmatter .rows .tags > .tag > svg { margin-left: 0.5ch; }
+.frontmatter .rows .tags > .tag.carried { color: var(--faint); }
+/* An action is a link in the line, not a box. */
+.frontmatter .rows .tags > .opt:not(.tag) { color: var(--accent); }
+.frontmatter .rows .tags > .opt:not(.tag)::before,
+.frontmatter .rows .tags > .opt:not(.tag)::after { content: none; }
+.frontmatter .rows .chip,
+.frontmatter .rows .drop {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+.frontmatter .rows .chip:hover { text-decoration: underline; }
+/* What is not this tab's to change reads as plain faint text. */
+.frontmatter .rows .read { color: var(--faint); }
+/* A refusal is a comment after the value. */
+.frontmatter .rows .warn { color: var(--warn); font-size: inherit; }
+.frontmatter .rows .warn::before { content: "# "; }

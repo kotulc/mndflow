@@ -160,12 +160,10 @@ fieldset.fields { padding: 0; }
 .drawing .preview-wire { width: 100%; }
 .drawing .preview-run { width: 100%; height: auto; }
 
-/* The first tab, a card's or a line's, the settings tab's layout: how it appears beside what it
-   is, its source under both, and the definition it follows under all. A line has no source. */
-.panel.element { grid-template-areas: "drawing rows" "source source" "data data"; }
-.panel.element.lined { grid-template-areas: "drawing rows" "data data"; }
-.panel > .col.source { grid-area: source; }
-.col.source > .content { padding: 6px 0 0; }
+/* The first tab, a card's or a line's, the settings tab's layout: how it appears beside its
+   source, and the definition it follows under both. A line's source is its frontmatter alone. */
+.panel.element { grid-template-areas: "drawing rows" "data data"; }
+.col.source > .content { padding: 0; }
 .col.source > .content > textarea { min-height: 12em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
 /* A definition's record, read only. */

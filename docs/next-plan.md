@@ -8,12 +8,13 @@
 | # | Work | Done when |
 |---|---|---|
 | 2 | **arrangement by kind** | `auto` lays a layer out by each block's preferred arrangement; the acceptance run in *Arrangement by kind* passes |
-| 3 | **CLI fixes** | `check` on a broken file exits 1; `export --sysml --round` on the repo map brings back all 490 relations |
-| 4 | **diagram views** | their known issues fixed; diagrams editable from the canvas (read only today) |
-| 5 | **canvas gestures** | a diagram is built fast from the canvas alone |
-| 6 | **open decisions** | each row of *Decide* answered and recorded in design.md |
-| 7 | **simplification leads** | each lead consolidated into one home, recorded in code-homes.md |
-| 8 | **CLI surface** | the acceptance run in *CLI* passes |
+| 3 | **diagram YAML** | the whole showcase is written as YAML diagram files, collected into the showcase package, and draws as today |
+| 4 | **CLI fixes** | `check` on a broken file exits 1; `export --sysml --round` on the repo map brings back all 490 relations |
+| 5 | **diagram views** | their known issues fixed |
+| 6 | **canvas gestures** | a diagram is built fast from the canvas alone |
+| 7 | **open decisions** | each row of *Decide* answered and recorded in design.md |
+| 8 | **simplification leads** | each lead consolidated into one home, recorded in code-homes.md |
+| 9 | **CLI surface** | the acceptance run in *CLI* passes |
 
 *Rough edges* is a backlog, taken when a step passes near one.
 
@@ -71,7 +72,70 @@ Drive the app (`vitest` skill) on the showcase, then `outline` the same layers:
 | a folder, the overhead, a diagram | as before this step |
 
 
-## 3 — CLI fixes
+## 3 — Diagram YAML
+
+**A diagram file is one block and its single layer: the blocks it holds and the relations between them, written in the Block and Relation schema with names in place of ids.** It mocks up a diagram quickly, reliably and the same way every time; the text is the truth and determines what is drawn. The long form is the schema; short forms are other spellings of the same fields. Decisions confirmed and goal docs written 2026-10-13.
+
+### The file
+
+```yaml
+name: Order flow
+packages: [architecture, ./patterns]      # base is always loaded
+type: architecture.service                # definition: what it extends; structure: what it is
+def: {}                                   # present: a definition; absent: structure
+settings:
+  layout: { view: internal }
+body: How an order moves through the service.
+
+blocks:
+  - User                                  # short: a plain block
+  - architecture.component: [API, Logic]  # short: type → names
+  - name: Store                           # long: the schema
+    type: database
+    tags: [critical]
+    engine: postgres                      # an unknown key is a value
+  - name: Edge
+    type: base.group
+  - name: Gateway
+    type: external
+    parent: Edge                          # a holder in this file only: still one layer
+
+relations:
+  - User -> API                           # short: a plain line
+  - API -> Logic: hands over              # short: with a name
+  - architecture.reads: [Logic -> Store]  # short: type → edges
+  - from: Gateway                         # long: the schema
+    to: API
+    type: architecture.calls
+```
+
+The rules, short forms and the six views are in design.md (*Diagram files*, *Perspectives*) and definitions.md.
+
+### Tasks
+
+Do in order; after each, `npm run typecheck` and `npm test` pass. No new tests.
+
+| # | Task | Do | Done when |
+|---|---|---|---|
+| 1 | **name refs** | core resolves `pkg.name`, a bare name (listed packages, then base), a sibling name and an `a::b` path; actions refuse a duplicate sibling name | a ref by name finds the one block; a duplicate is refused |
+| 2 | **the reader** | core `collection.ts` / `card.ts`: one reader turns a YAML file or frontmatter into a block and its layer: long form, short forms, `packages` and the base fallback, ids minted in file order, `source` recorded | a file of every form reads to the same graph as its long form |
+| 3 | **grids** | `cell` by header names; extent from cells | a grid file needs no `rows` / `cols` |
+| 4 | **collect** | `collect` takes `.yaml` beside `.json` and `.md`, landing each by folder; CLI `check <dir>` and `collect <dir>` | a folder of files collects and `check`s clean |
+| 5 | **views** | rename folder → package, grid → allocation, class → table; swimlane merges into allocation; the diagrams package and base kinds name their view (core `components.ts`, `sections.ts`, `navigate.ts`, views `block.ts`, options `groups.ts`, defs) | grep finds no `swimlane` or `class` view |
+| 6 | **showcase** | every showcase layer a file under `samples/showcase/`; content cards stay `.md` or are pointed at by `source`; the generator becomes a collect; published as a package too | `outline` of every layer matches today's; `check` clean |
+| 7 | **layered** | `layout.kind: layered` on elkjs; a flowchart and a state layer in the showcase | both draw readably with no hand placement |
+| 8 | **homes** | code-homes.md: name refs, the reader, collect; this plan | this step removed |
+
+### Later
+
+| | |
+|---|---|
+| **links in content** | a markdown link to a block path (`[Store](arch::Store)`) read as a `link` value: the same refs, no wikilinks |
+| **ties** | a short form for a tied note, once the forms above are settled |
+| **table split** | class and schema views apart from table, only if a need shows |
+
+
+## 4 — CLI fixes
 
 | Task | Where |
 |---|---|
@@ -83,17 +147,17 @@ Drive the app (`vitest` skill) on the showcase, then `outline` the same layers:
 | drop `Said.kind`: nothing reads it | core `session.ts` and its readers |
 
 
-## 4 — Diagram views
+## 5 — Diagram views
 
 | Issue | |
 |---|---|
 | **a self message's name** | stands upright on the loop's short leg: the column keeps too little air beside the card |
-| **two lines between one pair** | on the class view, *extends* and an attribute link share an anchor and run together |
+| **two lines between one pair** | on the table view, *extends* and an attribute link share an anchor and run together |
 | **a document opens empty** | a document card has room to hold, so it opens onto an empty internal layer |
-| **canvas editing** | class, swimlane and sequence views are read only: picks select, drags are refused |
+| **swimlanes on allocation** | what the swimlane view draws (a header card at the lane's top, steps in lanes) drawn by the allocation view, which stays editable; done with step 3 task 5 |
 
 
-## 5 — Canvas gestures
+## 6 — Canvas gestures
 
 | Candidate | |
 |---|---|
@@ -104,7 +168,7 @@ Drive the app (`vitest` skill) on the showcase, then `outline` the same layers:
 Start in stage `Flow.tsx` · `gestures.ts` (gestures), `draw.ts` · `drag.ts` · `moves.ts` (drawing and drops), `Stage.tsx` (menus per gesture), ending in core `actions/` (`create`, `relate`, `interface`, `note`).
 
 
-## 6 — Decide
+## 7 — Decide
 
 | Question | |
 |---|---|
@@ -115,11 +179,11 @@ Start in stage `Flow.tsx` · `gestures.ts` (gestures), `draw.ts` · `drag.ts` ·
 | **double-click a grid** | lands on its name and renames it; Enter opens it |
 | **a line carrying a tag** | where a tag's line usages show: the usages box lists blocks only |
 | **`define` and ids** | actions.md gives `define` an `id?`; the code takes none and the CLI says ids are never chosen. If no caller needs one, it leaves actions.md |
-| **sibling names** | the docs say unique among siblings; actions allow duplicates |
+| **editing table and sequence** | design.md keeps them projections the canvas never drags or creates on; whether either should be edited from the canvas after all |
 | **source fetch** | `bring` takes a package from a URL; an arbitrary fetched file still needs a translator to become blocks (ST.5) |
 
 
-## 7 — Simplification leads
+## 8 — Simplification leads
 
 Take each as code-homes.md's *How to take one* says, then record its home there.
 
@@ -134,7 +198,7 @@ Take each as code-homes.md's *How to take one* says, then record its home there.
 | **highlight rules** | `lights`, `holds` and the edge in `Explorer.tsx` each read the chain and picks differently | one function from the canvas view and the chain |
 
 
-## 8 — CLI surface
+## 9 — CLI surface
 
 **The CLI is the one terminal: an agent writes meaning as data, sees what the person will see, and hands over that view.** The file is the state, written in place; one JSON result per verb; references are an id or a path `a::b::c` (plus `$key` in a script); the CLI adds no rules.
 
@@ -144,7 +208,8 @@ Take each as code-homes.md's *How to take one* says, then record its home there.
 | `do <file> <action> [k=v…]` · `do <file> <script.jsonl \| ->` | yes | one action, or a script: all or nothing |
 | `show <file> [ref] [--depth n] [--text]` | no | the tree, or one element whole |
 | `find <file> <text>` | no | matches by name, then type, then body |
-| `check <file>` | no | faults and notes, each naming its element; exit 1 on faults |
+| `check <file \| dir>` | no | faults and notes, each naming its element, of a file or a source folder collected first; exit 1 on faults |
+| `collect <dir> [-o out.json]` | no | a source folder (definitions, card sources, diagram files) as one package or workspace file |
 | `help [action]` | no | the registry's actions and arguments |
 | `draw <file> [ref] [flags] -o x.png` · `--open` | no | the kit `Viewer` screenshotted headless; `--open` hands the same view to a browser |
 | `bring <file> <name \| path \| url>` | yes | a package, frozen, through the door |
@@ -212,9 +277,10 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | routing: detours, shared trunks, crossings | `l_routing` |
 | references to blocks, definitions, nothing | `l_refs` |
 | attributes, value types, links | `l_model`, `l_values` |
-| class, swimlane, sequence views | `l_class`, `l_swimlane`, `l_sequence` |
+| table, allocation (a swimlane), sequence views | `l_class`, `l_swimlane`, `l_sequence` |
+| diagram files: long and short forms, packages, the base fallback | every layer, once step 3 lands |
 | a stand-in stating its own view | `l_two_views` |
-| catalogue packages; overhead, profile, folder view; explorer sections, the structure mark, add by section | `about` note |
+| catalogue packages; overhead, profile, package view; explorer sections, the structure mark, add by section | `about` note |
 | notes column and aside notes in `auto` | every layer |
 
 ### Commands
