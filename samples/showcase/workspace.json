@@ -9,15 +9,15 @@
         "parent": "workspace",
         "name": "About",
         "alias": 1,
-        "order": 10
+        "order": 15
       },
       "about_note": {
         "id": "about_note",
         "parent": "about",
-        "name": "The showcase is one layer per thing mndflow draws. Read the header note, then the tied note on each block: it names the field or setting that makes the block look that way. Overhead and profile on the rail draw the whole tree. Opening a folder draws its folder view. Definitions lists the folders and definitions; structure lists the layers. The workspace roots structure; a definition roots it once it holds blocks of its own. This workspace merges the diagrams package.",
+        "name": "The showcase is one layer per thing mndflow draws. Read the header note, then the tied note on each block: it names the field or setting that makes the block look that way. Overhead on the rail draws the section in focus. Opening a folder draws its folder view; a definition, its definition view under the package and folders on its path. Definitions and structure are two trees, each with folders of its own: definitions lists the definitions, structure the layers. The workspace roots structure; a definition roots it once it holds blocks of its own. This workspace merges the diagrams package.",
         "type": "note",
         "alias": 1,
-        "h": 192,
+        "h": 240,
         "order": 1,
         "w": 360
       },
@@ -101,6 +101,14 @@
           }
         ]
       },
+      "d_cards": {
+        "id": "d_cards",
+        "parent": "workspace",
+        "name": "Cards",
+        "type": "folder",
+        "order": 1,
+        "tree": "definitions"
+      },
       "d_class": {
         "id": "d_class",
         "parent": "l_class",
@@ -124,6 +132,38 @@
         "of": "def_unit",
         "alias": 19,
         "order": 1
+      },
+      "d_data": {
+        "id": "d_data",
+        "parent": "workspace",
+        "name": "Data",
+        "type": "folder",
+        "order": 4,
+        "tree": "definitions"
+      },
+      "d_definitions": {
+        "id": "d_definitions",
+        "parent": "workspace",
+        "name": "Definitions",
+        "type": "folder",
+        "order": 2,
+        "tree": "definitions"
+      },
+      "d_diagrams": {
+        "id": "d_diagrams",
+        "parent": "workspace",
+        "name": "Diagrams",
+        "type": "folder",
+        "order": 5,
+        "tree": "definitions"
+      },
+      "d_holders": {
+        "id": "d_holders",
+        "parent": "workspace",
+        "name": "Holders",
+        "type": "folder",
+        "order": 3,
+        "tree": "definitions"
       },
       "d_lane_a": {
         "id": "d_lane_a",
@@ -377,7 +417,7 @@
       },
       "def_asset": {
         "id": "def_asset",
-        "parent": "t_data",
+        "parent": "d_data",
         "name": "Asset",
         "type": "block",
         "def": {
@@ -406,7 +446,7 @@
       },
       "def_bigpump": {
         "id": "def_bigpump",
-        "parent": "t_definitions",
+        "parent": "d_definitions",
         "name": "Big pump",
         "type": "def_pump",
         "def": {
@@ -427,7 +467,7 @@
       },
       "def_doc": {
         "id": "def_doc",
-        "parent": "t_cards",
+        "parent": "d_cards",
         "name": "Document",
         "type": "block",
         "def": {},
@@ -440,7 +480,7 @@
       },
       "def_headless": {
         "id": "def_headless",
-        "parent": "t_cards",
+        "parent": "d_cards",
         "name": "Headless",
         "type": "block",
         "def": {},
@@ -454,7 +494,7 @@
       },
       "def_large": {
         "id": "def_large",
-        "parent": "t_cards",
+        "parent": "d_cards",
         "name": "Large layer",
         "type": "block",
         "def": {},
@@ -468,7 +508,7 @@
       },
       "def_machine": {
         "id": "def_machine",
-        "parent": "t_definitions",
+        "parent": "d_definitions",
         "name": "Machine",
         "type": "block",
         "def": {
@@ -492,7 +532,7 @@
       },
       "def_media": {
         "id": "def_media",
-        "parent": "t_cards",
+        "parent": "d_cards",
         "name": "Picture",
         "type": "block",
         "def": {},
@@ -505,7 +545,7 @@
       },
       "def_part": {
         "id": "def_part",
-        "parent": "t_diagrams",
+        "parent": "d_diagrams",
         "name": "Part",
         "type": "def_unit",
         "def": {
@@ -521,7 +561,7 @@
       },
       "def_pump": {
         "id": "def_pump",
-        "parent": "t_definitions",
+        "parent": "d_definitions",
         "name": "Pump",
         "type": "def_machine",
         "def": {
@@ -546,7 +586,7 @@
       },
       "def_site": {
         "id": "def_site",
-        "parent": "t_data",
+        "parent": "d_data",
         "name": "Site",
         "type": "block",
         "def": {
@@ -570,7 +610,7 @@
       },
       "def_sized": {
         "id": "def_sized",
-        "parent": "t_cards",
+        "parent": "d_cards",
         "name": "Sized",
         "type": "block",
         "def": {},
@@ -587,7 +627,7 @@
       },
       "def_spec": {
         "id": "def_spec",
-        "parent": "t_cards",
+        "parent": "d_cards",
         "name": "Spec",
         "type": "block",
         "def": {
@@ -616,7 +656,7 @@
       },
       "def_state": {
         "id": "def_state",
-        "parent": "t_data",
+        "parent": "d_data",
         "name": "State",
         "type": "choice",
         "def": {},
@@ -633,7 +673,7 @@
       },
       "def_table": {
         "id": "def_table",
-        "parent": "t_holders",
+        "parent": "d_holders",
         "name": "Table",
         "type": "grid",
         "def": {},
@@ -648,7 +688,7 @@
       },
       "def_unit": {
         "id": "def_unit",
-        "parent": "t_diagrams",
+        "parent": "d_diagrams",
         "name": "Unit",
         "type": "block",
         "def": {},
@@ -680,7 +720,8 @@
         "parent": "diagrams",
         "name": "relations",
         "type": "folder",
-        "order": 2
+        "order": 2,
+        "tree": "definitions"
       },
       "diagrams.message": {
         "id": "diagrams.message",
@@ -1026,7 +1067,7 @@
         "name": "Chain",
         "type": "def_large",
         "alias": 23,
-        "order": 5
+        "order": 1
       },
       "l_chain_note": {
         "id": "l_chain_note",
@@ -1043,7 +1084,7 @@
         "parent": "t_diagrams",
         "name": "Class",
         "alias": 86,
-        "order": 3
+        "order": 1
       },
       "l_class_note": {
         "id": "l_class_note",
@@ -1061,7 +1102,7 @@
         "name": "Faces",
         "type": "def_large",
         "alias": 5,
-        "order": 8
+        "order": 2
       },
       "l_faces_note": {
         "id": "l_faces_note",
@@ -1078,7 +1119,7 @@
         "parent": "t_holders",
         "name": "Grids",
         "alias": 69,
-        "order": 3
+        "order": 2
       },
       "l_grids_note": {
         "id": "l_grids_note",
@@ -1095,7 +1136,7 @@
         "parent": "t_holders",
         "name": "Groups",
         "alias": 65,
-        "order": 2
+        "order": 1
       },
       "l_groups_note": {
         "id": "l_groups_note",
@@ -1112,7 +1153,7 @@
         "parent": "t_cards",
         "name": "Kinds",
         "alias": 2,
-        "order": 7
+        "order": 1
       },
       "l_kinds_note": {
         "id": "l_kinds_note",
@@ -1129,7 +1170,7 @@
         "parent": "t_definitions",
         "name": "Line definitions",
         "alias": 27,
-        "order": 6
+        "order": 2
       },
       "l_line_defs_note": {
         "id": "l_line_defs_note",
@@ -1164,7 +1205,7 @@
         "name": "Markdown",
         "type": "def_large",
         "alias": 21,
-        "order": 10
+        "order": 4
       },
       "l_markdown_note": {
         "id": "l_markdown_note",
@@ -1182,7 +1223,7 @@
         "name": "Model",
         "type": "def_large",
         "alias": 81,
-        "order": 4
+        "order": 1
       },
       "l_model_note": {
         "id": "l_model_note",
@@ -1250,7 +1291,7 @@
         "parent": "t_diagrams",
         "name": "Sequence",
         "alias": 95,
-        "order": 5
+        "order": 3
       },
       "l_sequence_note": {
         "id": "l_sequence_note",
@@ -1267,7 +1308,7 @@
         "parent": "t_cards",
         "name": "Styles",
         "alias": 12,
-        "order": 9
+        "order": 3
       },
       "l_styles_note": {
         "id": "l_styles_note",
@@ -1284,7 +1325,7 @@
         "parent": "t_diagrams",
         "name": "Swimlane",
         "alias": 88,
-        "order": 4
+        "order": 2
       },
       "l_swimlane_note": {
         "id": "l_swimlane_note",
@@ -1301,7 +1342,7 @@
         "parent": "t_diagrams",
         "name": "Two views",
         "alias": 99,
-        "order": 6
+        "order": 4
       },
       "l_two_views_note": {
         "id": "l_two_views_note",
@@ -1319,7 +1360,7 @@
         "name": "Values",
         "type": "def_large",
         "alias": 82,
-        "order": 5
+        "order": 2
       },
       "l_values_note": {
         "id": "l_values_note",
@@ -1774,10 +1815,10 @@
       "n_r_tie_to": {
         "id": "n_r_tie_to",
         "parent": "l_lines",
-        "name": "type is tie: it runs straight, and is not routed.",
+        "name": "type is tie, whose is tie trait gives line.module tie: it runs straight, never routed.",
         "type": "note",
         "alias": 51,
-        "h": 72,
+        "h": 96,
         "order": 22,
         "w": 192
       },
@@ -2443,7 +2484,7 @@
       },
       "rel_drives": {
         "id": "rel_drives",
-        "parent": "t_definitions",
+        "parent": "d_definitions",
         "name": "drives",
         "type": "line",
         "def": {
@@ -2601,56 +2642,56 @@
         "parent": "workspace",
         "name": "Cards",
         "type": "folder",
-        "order": 1
+        "order": 7
       },
       "t_data": {
         "id": "t_data",
         "parent": "workspace",
         "name": "Data",
         "type": "folder",
-        "order": 7
+        "order": 13
       },
       "t_definitions": {
         "id": "t_definitions",
         "parent": "workspace",
         "name": "Definitions",
         "type": "folder",
-        "order": 2
+        "order": 8
       },
       "t_diagrams": {
         "id": "t_diagrams",
         "parent": "workspace",
         "name": "Diagrams",
         "type": "folder",
-        "order": 8
+        "order": 14
       },
       "t_holders": {
         "id": "t_holders",
         "parent": "workspace",
         "name": "Holders",
         "type": "folder",
-        "order": 5
+        "order": 11
       },
       "t_interfaces": {
         "id": "t_interfaces",
         "parent": "workspace",
         "name": "Interfaces",
         "type": "folder",
-        "order": 4
+        "order": 10
       },
       "t_references": {
         "id": "t_references",
         "parent": "workspace",
         "name": "References",
         "type": "folder",
-        "order": 6
+        "order": 12
       },
       "t_relations": {
         "id": "t_relations",
         "parent": "workspace",
         "name": "Relations",
         "type": "folder",
-        "order": 3
+        "order": 9
       },
       "tag_rotating": {
         "id": "tag_rotating",
@@ -2665,7 +2706,8 @@
         "parent": "workspace",
         "name": "tags",
         "type": "folder",
-        "order": 9
+        "order": 6,
+        "tree": "definitions"
       },
       "u_north": {
         "id": "u_north",

@@ -71,7 +71,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 
 ## Relationships
 
-**A join between exactly two blocks**, on any layers. Its type is a relation definition: `line` when it names none, `tie` or any subtype when it does. `line.dir`, a setting inherited down its chain, says which way a line points. **Its name is its own `name`**, as a block's; unnamed, it draws its definition's. A tie is one by its *is tie* trait. **Definitions are never linked**, except by a tie trait.
+**A join between exactly two blocks**, on any layers. Its type is a relation definition: `line` when it names none, `tie` or any subtype when it does. `line.dir`, a setting inherited down its chain, says which way a line points. **Its name is its own `name`**, as a block's; unnamed, it draws its definition's. A tie is one by `line.module: tie`, which its *is tie* trait grants. **Definitions are never linked**, except by a tie trait.
 
 
 ## Capabilities

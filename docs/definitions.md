@@ -67,7 +67,7 @@
 | **tag** | a word carried by other elements, to find them by. Holds nothing. A **trait** is a tag too, by its chain |
 | **value** | a value type: what an attribute holds. `text`, `number`, `flag`, `link` and `choice` ship under it; never placed |
 | **line** | the plain relationship. Which way it points is a setting, `line.dir` (`none`, `forward`, `back`, `both`), said by its definition and overridable on the line |
-| **tie** | a dashed relationship with no heads, drawn straight. **A type like any other**, chosen, never forced; it lists *is tie* |
+| **tie** | a dashed relationship with no heads, drawn straight. **A type like any other**, chosen, never forced; it lists *is tie*, which grants `line.module: tie` |
 
 **Block modules are engine code, kinds are data.** Three modules, each named by the trait its kind carries: `block`, `reference` (*is reference*), `interface` (*is port*). Every other kind is the `block` module configured.
 
@@ -84,7 +84,7 @@
 | **tag** | a definition on the `tag` base. A word with a meaning (`body`), no structure, **for finding things**: search, filters, lookup. Carried in `tags` by a usage, a line or a definition; a new one is filed in the workspace's `tags` folder |
 | **trait** | **a tag naming an engine function**, by its chain (`extends trait`), named *has X* (a capability) or *is X* (what sort of thing it is, which engine module runs it). One function a trait, its body describing it. Carried in `traits`, **a definition's alone**. It confers its own settings and those of the traits it extends, never its kind's |
 | **style** | how a card draws: a definition's own `style` and `card` settings, overridable on a usage. Not a tag |
-| **is reference** · **is port** · **is tie** | the traits naming a kind's engine behaviour: a stand-in, reading `of`; an interface, seated on a wall; a tie, drawn straight. `reference`, `interface` and `tie` list them |
+| **is reference** · **is port** · **is tie** · **is aside** | the traits naming a kind's engine behaviour: a stand-in, reading `of`; an interface, seated on a wall; a tie, drawn straight; a card floating beside what it is tied to. Each grants a setting — `block.module`, `line.module: tie`, `card.place: aside` — that the engine reads. `reference`, `interface`, `tie` and `note` list them |
 | **stated list** | `traits` or `tags` said by an element or definition: **every entry it keeps**, replacing its chain's list whole. Unsaid, it carries the nearest list stated down its chain; an empty list says none |
 | **tie trait** | links a block made from, or dropped on, another to it with a relationship of a given type, on the same layer. Made on its own, it links nothing |
 | **name space** | one per package: a tag, a trait and a block definition never share a name |
@@ -111,7 +111,7 @@
 | **grid** | an opened grid's lattice, its cells and what sits in them |
 | **folder** | what a package or folder holds, the page fitted to its content's width and scrolled down |
 | **definition** | everything a definition is, its chain's included, on a three by three grid: large in the middle, showing its attributes; above, its tags, what it extends and a note with its body; left and right, a block definition's in and out ports, or the definitions a relation definition's ends may join (`from`, `to`); below, its both-way ports, its settings — **one table card per component** its chain states (`style`, `card`, `line`…), a row per setting naming who says it where that is further up — and its traits; under all, its **usages**. Each box joined to it by a plain line. What it reads from its chain wears the part mark. Edits there edit the definition |
-| **overhead view** | what the canvas draws while nothing is open (`layer: null`): every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, definitions at their own size, the page scrolled down. A definition holding structure is a box of its top-level blocks as cards, nothing deeper |
+| **overhead view** | what the canvas draws while nothing is open (`layer: null`): every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, every card small, a grid one card, no notes, the page scrolled down. A definition holding structure is a box of its top-level blocks as cards, nothing deeper |
 | **flatten** | drawing each block that holds as a box of its contents, so the whole system reads on one page. The overhead and profile views draw flattened, every box a solid rim; a group is a box somebody made, dashed |
 | **profile** | the system from the side: one row per level along the pick, each a box as wide as the widest — every package, then what each block on the way holds, last what the pick holds. A line points from each block on the way down to the row it holds |
 | **projection** | a view of the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it; nothing is stored |

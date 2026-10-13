@@ -7,42 +7,71 @@
 
 | # | Work | Done when |
 |---|---|---|
-| 1 | **commit and release** | this branch's work committed; kit released from that commit; mndmap's own work committed and re-pinned to the new kit |
-| 2 | **CLI fixes** | `check` on a broken file exits 1; `export --sysml --round` on the repo map brings back all 490 relations |
-| 3 | **diagram views** | their known issues fixed; diagrams editable from the canvas (read only today) |
-| 4 | **canvas gestures** | a diagram is built fast from the canvas alone |
-| 5 | **open decisions** | each row of *Decide* answered and recorded in design.md |
-| 6 | **simplification leads** | each lead consolidated into one home, recorded in code-homes.md |
-| 7 | **CLI surface** | the acceptance run in *CLI* passes |
+| 2 | **arrangement by kind** | `auto` lays a layer out by each block's preferred arrangement; the acceptance run in *Arrangement by kind* passes |
+| 3 | **CLI fixes** | `check` on a broken file exits 1; `export --sysml --round` on the repo map brings back all 490 relations |
+| 4 | **diagram views** | their known issues fixed; diagrams editable from the canvas (read only today) |
+| 5 | **canvas gestures** | a diagram is built fast from the canvas alone |
+| 6 | **open decisions** | each row of *Decide* answered and recorded in design.md |
+| 7 | **simplification leads** | each lead consolidated into one home, recorded in code-homes.md |
+| 8 | **CLI surface** | the acceptance run in *CLI* passes |
 
 *Rough edges* is a backlog, taken when a step passes near one.
 
 
-## 1 — Commit and release
+## 2 — Arrangement by kind
 
-| Step | |
+**A view is how an opened block draws its inside; an arrangement is how a block sits in its parent's layer.** Every kind states its preferred arrangement; `auto` lays a layer's blocks out in explorer order, each run of one preference its own way, and notes float in the nearest free space beside what they are tied to. Views (folder, internal, grid, definition, diagrams, and the `page` layout they use) are unchanged here: aligning them is a later plan. Decisions confirmed 2026-10-12.
+
+### The rule
+
+| Kind | `card.arrange` | Sits in an `auto` layer |
+|---|---|---|
+| block | `column` | one column at the left, left edges aligned |
+| folder | `rows` | small cards in rows, `layout.across` to a row, as the package view lays cards |
+| grid, group, reference | `column` (inherited from block) | as a block: a grid is a small card, a group its box |
+| note | `aside` | the nearest free space beside what it is tied to, a unit clear of every card (today's `beside`) |
+
+| Rule | |
 |---|---|
-| **commit mndflow** | this branch: the two samples, the catalogue packages from folders, the diagram views, the structure root mark and *add structure* (no commits by an agent: suggest the message) |
-| **release the kit** | `npm run release:kit`, so its version stamps that commit |
-| **commit mndmap** | it still holds the cards work uncommitted (`Preview` → `Document`, `forms.ts` gone, `scan`, `read`, `edits`) |
-| **re-pin mndmap** | copy the tarball into mndmap's `vendor/` and point its `package.json` at it. It vendors 0.11.0 (2026-10-04) |
-| **drive in the web app** | *import a collection* and *attach*: both are wired up, but nobody has clicked either |
+| **one setting** | `card.arrange` (`column`, `rows`, `aside`) on the definition, inherited and overridable like any setting. Replaces `card.place` (`flow`, `aside`) and the *is aside* trait |
+| **explorer order** | `auto` places non-aside blocks in `children` order, the explorer's. Consecutive blocks sharing a preference form a run; runs stack top to bottom, left-aligned, a gap apart. No other ordering |
+| **asides** | tied: beside the target, as today, a tie to an interface after it is seated. Untied: beside everything the layer arranged. The notes column is gone |
+| **relations** | only ties place anything; a line never moves a card (unchanged). *arrange* still reorders `order` on request |
+| **inside a group** | members arranged by the same rule inside its box; a note tied to the group floats beside its contents (as today) |
+| **free** | `layout.kind: free` still overrides: stored places draw, an unplaced aside floats beside its target (as today) |
+| **views untouched** | `page` (folder, overhead, profile views, with their note column), the grid view, diagrams and the definition view lay out as today |
 
-**What mndmap must absorb since 0.11.0**
+### Tasks
 
-| Area | Changed |
+Do in order; after each, `npm run typecheck` and `npm test` pass. Existing assertions naming `card.place`, `is_aside` (the trait) or today's auto geometry are updated to the new answer; no new tests.
+
+| # | Task | Files | Do | Done when |
+|---|---|---|---|---|
+| 0 | **goal docs** (on the user's word) | design.md (`auto` bullets in *Perspectives*), definitions.md (*is aside*, *layout*, capability list), core `schema.md` (`card` row), views `views.md` (*Layouts*, `pack.ts` row), defs `defs.md` | write *The rule* in | no doc names `card.place`, the *is aside* trait or an `auto` notes column |
+| 1 | **the setting** | core `components.ts`, `defs.ts` | `PLACES` → `ARRANGES = ["column", "rows", "aside"]`; the `card` check reads `arrange` (one_of) and lists it in its keys in place of `place`. Add `arrange_of(graph, id)`: `setting_of(graph, id, "card")["arrange"]` if in `ARRANGES`, else `"column"`. `is_aside(graph, id)` becomes `arrange_of(...) === "aside"` (keep the name: views call it) | typecheck clean |
+| 2 | **base data** | defs `src/base/blocks/block.json`, `folder.json`, `note.json`; delete `src/base/tags/traits/is_aside.json` | block `settings.card.arrange: "column"`; folder `"rows"`; note `"aside"`, and `is_aside` out of its traits. `npm run base`, `npm run packages` | `base.json` carries the three, no `is_aside` |
+| 3 | **runs** | views `float.ts` | new `runs(graph, units, across)` → `Placed[]`: units sorted (`order`, id); split into consecutive runs by `arrange_of`; lay each from `y` at `x 0`: `column` → each unit at `x 0`, next `y` = `y + whole(h) + GAP`; `rows` → `flow(run, across)` shifted down to `y`. The next run starts `GAP` below the last one's bottom | blocks, two folders, a block: a column, a row, a column |
+| 4 | **notes float** | views `float.ts` | `noted`: every aside goes to `floated`, everything else to `runs`, then `centred`. In `floated`, an untied aside targets `extent(placed)`, as a note tied to the holder does. Delete `column()` | a note sits beside its block; an untied note beside the arrangement |
+| 5 | **groups** | views `bands.ts` | the `auto` branch already calls `noted` with `band_id`: nothing to change but check it; the non-auto `packed` branch is unchanged | a group of blocks draws as a column in its box |
+| 6 | **layer floating** | views `block.ts` | check only: the layer-level `floating` set (aside, tied, not a page) re-seats tied asides after interfaces, as today | a note tied to an interface still sits beside its seat |
+| 7 | **dead code** | views `pack.ts`, `index.ts`; kit `index.ts` | delete `pack_units` if grep finds no caller; add removed exports and `card.place` → `card.arrange` to step 1's mndmap table | no export of a deleted function |
+| 8 | **samples** | `scripts/samples/showcase.ts`, the architecture generator | rename any `card.place`; add layer `l_arrange`: blocks with tied and untied notes, two folders between them in `order`, a group of blocks, a grid. Coverage row *notes column and aside notes in auto* → *arrangement by kind* · `l_arrange`. `npm run samples` | `check` clean on both samples |
+| 9 | **homes** | `docs/code-homes.md`; this plan | record: arrangement preference = core `arrange_of`; auto runs and floating = views `float.ts`. Update the *layout* rough edge to what still holds, and remove this step | grep finds no `card.place` or `is_aside` trait |
+
+### Acceptance
+
+Drive the app (`vitest` skill) on the showcase, then `outline` the same layers:
+
+| Open | Sees |
 |---|---|
-| **views and navigation** | `ViewKind`: `internal`, `grid`, `folder`, `definition`, `overhead`, `profile`, `class`, `swimlane`, `sequence`; `DIAGRAM_VIEWS`; `diagram_subject`; `Section.lists` (unset leaves mndmap's sections as they are); `MAIN` gone, a new workspace is its root alone |
-| **cards and faces** | `card.shows` → `card.face` (`table`, `document`, `picture`; `LARGE_FACES`, `FACE_PARTS`); `layout.face` → `layout.cards`; `CardTab` into `Element`; `table` returns rows and widths; `face_text` leaves attributes out; the Viewer's `fields` / `onFields` and views `fields_graph` / `class_def` gone; `Mark` says `structure` (`roots_structure`) |
-| **definitions** | `Block.traits` on definitions only; `set_tags` / `set_traits` replace, null gives back; `tags_stated`, `traits_stated`, `has_trait`, `is_tie`, `tag_home`; base trait ids `has_*` / `is_*` (`is_aside` new); `Relation.name` back, labels gone; a reference stores `type: "reference"`, `is_reference(graph, id)`, views `resolved` |
-| **lines and seats** | `line.dir` setting (`dir_of`, `DIRS`) replaces `Relation.dir` and `set_dir`; `relate` joins a line already there; `is_interface` by type chain; `fromSide` / `toSide` / `set_side` gone, `set_port` carries `seat`; `seat_all`, `nearest_seat`, `taken_on`; `LineData.fan`, `LineData.points` |
-| **layout** | a layer saying nothing is `auto`; `GAP` 2 units, `PAD` 1; `pack_units(sized, across)`, `across_of`; `tidy(graph, scene)`; `free` and `arrange` acts; `layout.even`; `look.tops`; `profile_graph(graph, target, across)`; `beside` (views) |
-| **routing** | views depend on `libavoid-js`: a host loads the wasm once (`load_avoid`) and routes with `routes_of` / `avoided_run`, else `route` as before |
-| **packages** | the catalogue's `erd` is `entity-relation`, now one generic `entity`; `message` / `reply` live in `diagrams`; `collect` takes `{ bare }` and returns `clashes` |
-| **session** | core `boot_of` and `Boot` (`stray`); `Seed.opening` / `start` |
+| `l_arrange` | blocks in a left column and folders in a row, in explorer order; each tied note beside its block, clear of every card |
+| a group in it | its blocks a column inside its box |
+| a note tied to an interface | beside its seat, as before |
+| drag a card, then *auto* | the layer turns `free` keeping places; *auto* arranges by preference again |
+| a folder, the overhead, a diagram | as before this step |
 
 
-## 2 — CLI fixes
+## 3 — CLI fixes
 
 | Task | Where |
 |---|---|
@@ -54,7 +83,7 @@
 | drop `Said.kind`: nothing reads it | core `session.ts` and its readers |
 
 
-## 3 — Diagram views
+## 4 — Diagram views
 
 | Issue | |
 |---|---|
@@ -64,7 +93,7 @@
 | **canvas editing** | class, swimlane and sequence views are read only: picks select, drags are refused |
 
 
-## 4 — Canvas gestures
+## 5 — Canvas gestures
 
 | Candidate | |
 |---|---|
@@ -75,7 +104,7 @@
 Start in stage `Flow.tsx` · `gestures.ts` (gestures), `draw.ts` · `drag.ts` · `moves.ts` (drawing and drops), `Stage.tsx` (menus per gesture), ending in core `actions/` (`create`, `relate`, `interface`, `note`).
 
 
-## 5 — Decide
+## 6 — Decide
 
 | Question | |
 |---|---|
@@ -90,7 +119,7 @@ Start in stage `Flow.tsx` · `gestures.ts` (gestures), `draw.ts` · `drag.ts` ·
 | **source fetch** | `bring` takes a package from a URL; an arbitrary fetched file still needs a translator to become blocks (ST.5) |
 
 
-## 6 — Simplification leads
+## 7 — Simplification leads
 
 Take each as code-homes.md's *How to take one* says, then record its home there.
 
@@ -105,7 +134,7 @@ Take each as code-homes.md's *How to take one* says, then record its home there.
 | **highlight rules** | `lights`, `holds` and the edge in `Explorer.tsx` each read the chain and picks differently | one function from the canvas view and the chain |
 
 
-## 7 — CLI surface
+## 8 — CLI surface
 
 **The CLI is the one terminal: an agent writes meaning as data, sees what the person will see, and hands over that view.** The file is the state, written in place; one JSON result per verb; references are an id or a path `a::b::c` (plus `$key` in a script); the CLI adds no rules.
 

@@ -39,8 +39,8 @@ export function builder() {
   }
 
   /** A folder holding the definitions a topic needs and the layers that show them. */
-  function folder(id: Id, name: string, parent: Id = "workspace"): void {
-    blocks[id] = { id, parent, name, type: "folder", order: order(parent) };
+  function folder(id: Id, name: string, parent: Id = "workspace", tree?: "definitions"): void {
+    blocks[id] = { id, parent, name, type: "folder", order: order(parent), ...(tree ? { tree } : {}) };
   }
 
   /** A workspace definition. Its default parent is the root. */

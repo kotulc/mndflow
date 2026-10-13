@@ -4,8 +4,8 @@ import { group_depth, inline, is_aside, is_flat, is_group, is_header, is_interfa
          lattice_of, layout_of, members_of, type Block, type Graph, type Id, type Layout }
   from "@mnd/core";
 import type { Placed } from "./arrange";
-import { beside } from "./float";
-import { pack_units, tie_targets } from "./pack";
+import { floated, noted } from "./float";
+import { tie_targets } from "./pack";
 import { cell_box, centred_in, fills_cell, gridded, size_of, BLOCK, GAP, PAD,
          type Size } from "./size";
 
@@ -47,44 +47,19 @@ export function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: La
       ...(is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id)) })));
   }
 
-  /** A note tied to something in the band floats beside it, rather than taking a cell of the flow. */
-  const floats = (b: Block) => is_aside(graph, b.id) && tie_targets(graph, layer, b.id)
-    .some((t) => t === band_id || members.some((m) => m.id === t));
-  const held = members.filter(floats);
-  const sized = members.filter((b) => !floats(b)).map((b): Sized => ({
+  /** Notes sit as on a layer: untied ones in a column, an aside beside what it is tied to. */
+  const sized = members.map((b): Sized => ({
     b, s: is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   }));
-  /** The grid starts at the band's corner, its cells on the guides. */
-  const laid_out = how === "auto" ? pack_units(sized) : packed(
-    [...sized].sort((a, b) => (a.b.order ?? 0) - (b.b.order ?? 0) || a.b.id.localeCompare(b.b.id)),
+  if (how === "auto") return from_corner(noted(graph, layer, sized, [], undefined, band_id));
+  const floats = (it: Sized) => is_aside(graph, it.b.id)
+    && tie_targets(graph, layer, it.b.id).length > 0;
+  const laid_out = packed(
+    sized.filter((it) => !floats(it))
+      .sort((a, b) => (a.b.order ?? 0) - (b.b.order ?? 0) || a.b.id.localeCompare(b.b.id)),
     graph.blocks[band_id]?.w, (id) => is_group(graph, id)).layout;
-  return from_corner(tuck(graph, layer, band_id, held, laid_out));
-}
-
-/** Aside members, each in the nearest free space beside what it is tied to. */
-function tuck(graph: Graph, layer: Id | null, band: Id, held: readonly Block[],
-              layout: Placed[]): Placed[] {
-  const out = [...layout];
-  const bounds = (): Placed => {
-    const x = Math.min(...out.map((p) => p.x));
-    const y = Math.min(...out.map((p) => p.y));
-    const w = Math.max(...out.map((p) => p.x + p.w)) - x;
-    const h = Math.max(...out.map((p) => p.y + p.h)) - y;
-    return { id: band, x, y, w, h };
-  };
-  for (const b of [...held].sort((a, c) => a.id.localeCompare(c.id))) {
-    const s = size_of(graph, b.id);
-    const ids = tie_targets(graph, layer, b.id);
-    const target = out.find((p) => ids.includes(p.id)) ?? (ids.includes(band) && out.length
-      ? bounds() : undefined);
-    if (!target) {
-      const y = out.length ? Math.max(...out.map((p) => p.y + p.h)) + GAP : 0;
-      out.push({ id: b.id, x: 0, y, ...s });
-      continue;
-    }
-    out.push({ id: b.id, ...beside(out, target, s), ...s });
-  }
-  return out;
+  return from_corner([...laid_out,
+    ...floated(graph, layer, sized.filter(floats), laid_out, band_id)]);
 }
 
 /** A band's layout shifted so its own corner is the top-left of everything in it. */

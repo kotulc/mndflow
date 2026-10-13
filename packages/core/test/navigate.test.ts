@@ -5,15 +5,18 @@ import { FLOOR } from "@mnd/fixtures";
 import { EDITOR, branch_of, fold, held_at, in_section, leave_at, open_at, roots_structure,
          stamps_of, ROOT, type Log } from "../src/index";
 
-/** A folder that holds a definition and a layer, and a definition that holds a part. */
+/** A definitions folder holding two definitions, one holding a part, and a structure folder
+ *  holding a layer. */
 function workspace() {
   const log: Log = [{
     id: "s1", action: "build", at: 1, status: "applied", mutations: [
       { op: "add_block", block: { id: "cards", parent: ROOT, name: "Cards", type: "folder",
-                                  order: 1 } },
+                                  tree: "definitions", order: 1 } },
+      { op: "add_block", block: { id: "scenes", parent: ROOT, name: "Scenes", type: "folder",
+                                  order: 2 } },
       { op: "add_block", block: { id: "large", parent: "cards", name: "Large", def: {},
                                   order: 1 } },
-      { op: "add_block", block: { id: "kinds", parent: "cards", name: "Kinds", type: "block",
+      { op: "add_block", block: { id: "kinds", parent: "scenes", name: "Kinds", type: "block",
                                   order: 2 } },
       { op: "add_block", block: { id: "pattern", parent: "cards", name: "Pattern", def: {},
                                   order: 3 } },
@@ -107,7 +110,8 @@ describe("the structure mark", () => {
   it("lists an open definition, and the folders on the way, before it holds anything", () => {
     const log: Log = [{
       id: "s1", action: "build", at: 1, status: "applied", mutations: [
-        { op: "add_block", block: { id: "shelf", parent: ROOT, name: "Shelf", type: "folder" } },
+        { op: "add_block", block: { id: "shelf", parent: ROOT, name: "Shelf", type: "folder",
+                                    tree: "definitions" } },
         { op: "add_block", block: { id: "only", parent: "shelf", name: "Only", def: {} } },
       ],
     }];

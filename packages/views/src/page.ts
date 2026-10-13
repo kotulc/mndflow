@@ -52,7 +52,8 @@ export function page_graph(graph: Graph, layer: Id): Graph {
       const tall = lay(box.id);
       const b = blocks[box.id]!;
       blocks[box.id] = { ...b, w: at === layer ? Math.max(even, need(box.id)) : need(box.id),
-                         settings: { ...b.settings, layout: { kind: "free" } } };
+                         settings: { ...b.settings,
+                         layout: { ...b.settings?.["layout"], kind: "free" } } };
       put(box.id, 0, y);
       y += Math.max(tall, size_of(graph, box.id).h) + PAD * 2;
     }

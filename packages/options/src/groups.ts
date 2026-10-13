@@ -56,8 +56,6 @@ const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
 const VIEWS: Record<ViewKind, { icon: IconName; word: string; tip: string }> = {
   overhead: { icon: "view_overhead", word: "overhead",
               tip: "Overhead: the whole system from above, as nested boxes" },
-  profile: { icon: "view_profile", word: "profile",
-             tip: "Profile: the whole section stepped down the page, along the pick" },
   internal: { icon: "view_internal", word: "internal",
               tip: "Internal: the block from inside, what it holds" },
   grid: { icon: "view_grid", word: "grid",
@@ -65,7 +63,7 @@ const VIEWS: Record<ViewKind, { icon: IconName; word: string; tip: string }> = {
   folder: { icon: "view_folder", word: "folder",
             tip: "Folder: what the package or folder holds, read down the page" },
   definition: { icon: "word_def", word: "definition",
-                tip: "Definition: the definition, what it extends, its ports, tags and traits round it" },
+                tip: "Definition: where the definition sits, what it extends, its ports, tags and traits round it" },
   class: { icon: "view_class", word: "class",
            tip: "Class: the definitions this layer's references stand for, and what they extend" },
   swimlane: { icon: "view_swimlane", word: "swimlane",

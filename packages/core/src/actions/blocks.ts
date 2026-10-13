@@ -2,10 +2,10 @@
 
 import { may_hold } from "../capabilities";
 import { shown_name } from "../names";
-import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_domain,
+import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_definitions, is_domain,
          kind_free, may_retype, name_taken, package_of, plain_type, setting_of, stored_type,
          self_use } from "../defs";
-import { GRID, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
+import { GRID, inline, inside, is_folder, is_grid, lattice_of, layer_of } from "../holders";
 import { children, edges_in, is_interface, layout_of, next_order, reorder, stands_for,
          subtree } from "../tree";
 import { leave_at, open_at, reveal_at, view_on, EDITOR, type Tiers, type View,
@@ -22,6 +22,9 @@ function drawn_on(graph: Graph, parent: Id): Id | null {
   return inline(graph, parent) ? layer_of(graph, parent) : parent;
 }
 
+/** What a definitions folder says to structure put in it: the two trees stay apart. */
+const APART = "a definitions folder holds definitions and folders, not structure";
+
 /** Why putting these blocks under `parent` would break the model, or null. */
 function placing(graph: Graph, ids: readonly Id[], parent: Id): string | null {
   const to = graph.blocks[parent];
@@ -33,9 +36,16 @@ function placing(graph: Graph, ids: readonly Id[], parent: Id): string | null {
     if (id === parent || subtree(graph, id).includes(parent)) {
       return "a block cannot be moved inside itself";
     }
-    /** A definition sits in a domain, never in a structure. */
-    if (b.def && !(to.parent === null || in_domain(graph, parent) && !to.def)) {
+    /** A definition sits in the definitions tree, never in a structure. */
+    if (b.def && !(is_domain(graph, parent) && !to.def)) {
       return "a definition sits in a package, not in a structure";
+    }
+    /** Structure never sits in a definitions folder. */
+    if (!b.def && !is_folder(graph, id) && in_definitions(graph, parent)) return APART;
+    /** A folder holding anything keeps to its tree. */
+    if (is_folder(graph, id) && subtree(graph, id).length > 1
+        && is_domain(graph, id) !== lands_in_definitions(graph, id, parent)) {
+      return "a folder keeps to its tree: definitions and structure stay apart";
     }
     /** A definition never uses itself, however deep the usage arrives. */
     for (const under of subtree(graph, id)) {
@@ -49,6 +59,23 @@ function placing(graph: Graph, ids: readonly Id[], parent: Id): string | null {
     }
   }
   return null;
+}
+
+/** Whether a folder moved under `parent` is in the definitions tree: as its parent folder is, or
+ *  as it was where it lands at its package's root. */
+function lands_in_definitions(graph: Graph, id: Id, parent: Id): boolean {
+  if (graph.blocks[parent]?.parent === null) return is_domain(graph, id);
+  return in_definitions(graph, parent);
+}
+
+/** The folders moved under `parent` saying their tree where they land at a package's root, and
+ *  saying none elsewhere. */
+function trees_of(graph: Graph, ids: readonly Id[], parent: Id): Mutation[] {
+  const at_root = graph.blocks[parent]?.parent === null;
+  return ids.filter((id) => is_folder(graph, id)).flatMap((id): Mutation[] => {
+    const tree = at_root && lands_in_definitions(graph, id, parent) ? "definitions" : undefined;
+    return graph.blocks[id]!.tree === tree ? [] : [{ op: "update_block", id, tree: tree ?? null }];
+  });
 }
 
 /** Why removing this would leave something naming nothing: a definition used outside what goes
@@ -85,10 +112,15 @@ register(
            { name: "type", form: "text" }, { name: "spot", form: "spot" },
            { name: "from", form: "block" }, { name: "before", form: "block" },
            /** The cell it is made in, where the parent is a grid. */
-           { name: "at", form: "text" }],
+           { name: "at", form: "text" },
+           /** The tree a folder made at a package's root belongs to; unsaid, structure. */
+           { name: "tree", form: "choice", choices: ["definitions", "structure"] }],
     check: (ctx, args) => {
       const type = args["type"] ? String(args["type"]) : "";
       const parent = (args["parent"] as Id) ?? here(ctx);
+      if (block_base(ctx.graph, type) !== "folder" && in_definitions(ctx.graph, parent)) {
+        return APART;
+      }
       if (type && !def_at(ctx.graph, type)) return `there is no definition called "${type}"`;
       if (type && NEEDS[block_base(ctx.graph, type)]) return NEEDS[block_base(ctx.graph, type)]!;
       if (type && domain_of(ctx.graph, type) === "relation") {
@@ -110,6 +142,11 @@ register(
       const made = make_block(ctx, text(args, "name"), parent, type);
       const at = spot(args);
       const id = (made[0] as { block: { id: Id } }).block.id;
+      /** A folder made at a package's root belongs to the tree it was made in. */
+      if (args["tree"] === "definitions" && block_base(ctx.graph, type) === "folder"
+          && ctx.graph.blocks[parent]?.parent === null) {
+        made.push({ op: "update_block", id, tree: "definitions" });
+      }
       /** In a grid, it takes the cell pointed at, else the nearest free one. */
       const g = lattice_of(ctx.graph, parent);
       if (g) {
@@ -286,6 +323,7 @@ register(
       const out: Mutation[] = ids
         .filter((id) => ctx.graph.blocks[id]!.parent !== parent)
         .map((id): Mutation => ({ op: "move_block", id, parent }));
+      out.push(...trees_of(ctx.graph, ids, parent));
       for (const at of reorder(ctx.graph, parent, ids, before)) {
         out.push({ op: "order_block", id: at.id, order: at.order });
       }
@@ -318,6 +356,7 @@ register(
       const why = borrowed(ctx.graph, parent);
       if (why) return why;
       if (target === parent) return "a block cannot hold a stand-in for itself";
+      if (in_definitions(ctx.graph, parent)) return APART;
       const type = text(args, "type") || undefined;
       return !is_grid(ctx.graph, parent) || may_hold(ctx.graph, parent, type)
         ? null : `"${shown_name(ctx.graph, parent)}" takes nothing of that sort`;

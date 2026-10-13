@@ -46,8 +46,9 @@ export type Session = {
 
   look: (layer: Id | null) => void;
   /** The canvas's section shown whole another way, keeping `id` in sight; a layer view, which is
-   *  never chosen, goes back to where what is kept in sight is drawn. */
-  see: (kind: ViewKind, id?: Id | null) => void;
+   *  never chosen, goes back to where what is kept in sight is drawn. A section named by `at` is
+   *  shown whole from its top instead, nothing kept in sight or picked. */
+  see: (kind: ViewKind, id?: Id | null, at?: number) => void;
   pick: (ids: Id[]) => void;
   pick_cells: (cells: readonly Spot[]) => void;
   say: (text: string, kind?: Said["kind"]) => void;
@@ -255,8 +256,19 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       listener?.();
     },
 
-    see(kind, id) {
-      const section = tiers.sections[view.at];
+    see(kind, id, named) {
+      /** A section named starts clean: from its top, nothing picked. */
+      if (named !== undefined) {
+        const section = tiers.sections[named];
+        if (!section || is_layer_view(kind)) return;
+        views = { ...views, [section.id]: kind };
+        move({ at: named, kind, layer: null, pick: null });
+        picked = [];
+        listener?.();
+        return;
+      }
+      const at = view.at;
+      const section = tiers.sections[at];
       if (!section) return;
       /** What stays in sight: the pick, where it lies within what the canvas has open — the same
        *  root in its section — else the canvas's anchor, its layer, or what the host says; the
@@ -264,8 +276,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
        *  whole section is shown as it is; inside, there is no layer to look into, so nothing
        *  changes. */
       const listed = (x: Id | null | undefined): x is Id =>
-        !!x && trace(graph, tiers, x).held[view.at] === x;
-      const root = (x: Id | null) => (x ? trace(graph, tiers, x).roots[view.at] : undefined);
+        !!x && trace(graph, tiers, x).held[at] === x;
+      const root = (x: Id | null) => (x ? trace(graph, tiers, x).roots[at] : undefined);
       const anchor = view.pick ?? view.layer;
       const within = picked[0] && root(picked[0]) === root(anchor) ? picked[0] : null;
       const keep = [within, view.pick, view.layer, id].find(listed);
@@ -273,8 +285,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       if (is_layer_view(kind) && is_layer_view(view.kind)) return;
       if (!keep && is_layer_view(kind)) return;
       views = { ...views, [section.id]: is_layer_view(kind) ? "internal" : kind };
-      const to = keep ? sight(graph, tiers, views, view.at, keep)
-        : { ...view, kind: view_of(tiers, views, view.at) };
+      const to = keep ? sight(graph, tiers, views, at, keep)
+        : { ...view, kind: view_of(tiers, views, at) };
       move(to);
       if (to.pick) picked = [to.pick];
       listener?.();

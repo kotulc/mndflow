@@ -68,7 +68,7 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "group"
                  | "seated"
                  /** A block of a definition's structure, seen through a usage of it. */
                  | "part"
-                 /** A block a section holds on the way to the pick: where a profile cuts. */
+                 /** A block on a definition's path, the definition included. */
                  | "held"
                  /** A folder or block a view flattens into a box: not a group anybody made. */
                  | "flat";

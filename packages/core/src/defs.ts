@@ -255,9 +255,10 @@ export function is_note(graph: Graph, id: Id): boolean {
   return !!graph.blocks[id] && base_of(graph, id) === "note";
 }
 
-/** Whether a block floats beside what it is tied to: it carries *is aside*. */
+/** Whether a block floats beside what it is tied to: its `card.place` is aside, which *is aside*
+ *  grants. */
 export function is_aside(graph: Graph, id: Id | undefined): boolean {
-  return has_trait(graph, id, "is_aside");
+  return setting_of(graph, id, "card")["place"] === "aside";
 }
 
 
@@ -324,9 +325,9 @@ export function frozen(graph: Graph, id: Id): boolean {
   return !!graph.blocks[id] && package_of(graph, id) !== graph.root;
 }
 
-/** Whether a line is a tie: its definition carries *is tie*. */
+/** Whether a line is a tie: its `line.module` is tie, which *is tie* grants. */
 export function is_tie(graph: Graph, id: Id): boolean {
-  return has_trait(graph, id, "is_tie");
+  return setting_of(graph, id, "line")["module"] === "tie";
 }
 
 /** Whether this definition is one the kit ships. */
@@ -419,29 +420,30 @@ export function tree_of(graph: Graph, id: Id): Id | null {
   return tree;
 }
 
-/** Whether a block sits in a domain: under its package through holders alone. */
-export function in_domain(graph: Graph, id: Id): boolean {
-  return tree_of(graph, id) === id || (!!graph.blocks[id] && tree_of(graph, id) === null);
-}
-
-/** Whether a block is on the definition side: a package root, a definition, or a folder whose
- *  every ancestor up to its package root is a folder. */
+/** Whether a block is on the definition side: a package root, a definition, or a folder in the
+ *  definitions tree — under its package root through folders alone, the one at the root saying
+ *  `tree: "definitions"`. */
 export function is_domain(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
   if (!b) return false;
   if (b.parent === null || b.def) return true;
   if (!is_folder(graph, id)) return false;
   const seen = new Set<Id>();
-  let at: Id | null = b.parent;
-  while (at && !seen.has(at)) {
-    seen.add(at);
-    const up: Block | undefined = graph.blocks[at];
+  for (let top = b; !seen.has(top.id); ) {
+    seen.add(top.id);
+    const up: Block | undefined = graph.blocks[top.parent ?? ""];
     if (!up) return false;
-    if (up.parent === null) return true;
-    if (!is_folder(graph, at)) return false;
-    at = up.parent;
+    if (up.parent === null) return top.tree === "definitions";
+    if (!is_folder(graph, up.id)) return false;
+    top = up;
   }
   return false;
+}
+
+/** Whether a block is a folder in the definitions tree, which holds definitions and folders
+ *  alone. */
+export function in_definitions(graph: Graph, id: Id): boolean {
+  return is_folder(graph, id) && is_domain(graph, id);
 }
 
 /** Whether a definition-side block holds structure directly: a child, interfaces apart, that is

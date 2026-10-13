@@ -27,7 +27,7 @@ The explorer files the graph as a **section chain**: a host declares its section
 |---|---|
 | **definitions** | every package a top row, `base` first, folded; under each its folders and definitions, a definition a leaf. No structure |
 | **collection** | every package a top row, folded; under each its domain: its trees, nested under the folders that organize them |
-| **structure** | a package a top row only when it holds structure, `base` first among those that do, folded; under each the definition-side blocks on the way to any structure, and the structure itself. A definition or folder with no structure below it does not list. **The definition chosen above opens here**, once, as do the canvas's layer and the way to a pick inside it |
+| **structure** | a package a top row only when it holds structure, `base` first among those that do, folded; under each the definition-side blocks on the way to any structure, and the structure itself. A definition or folder with no structure below it does not list. **Nothing chosen in definitions folds or unfolds it**: only the canvas's own layer and the way to a pick inside it open here, once each |
 | **document** | the held tree's own row, its structure under it |
 
 

@@ -45,12 +45,14 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   const orders = new Map<Id, number>();
   const next = (parent: Id) => { orders.set(parent, (orders.get(parent) ?? 0) + 1);
                                  return orders.get(parent)!; };
-  /** The folder holder a directory names, made the first time it is met. */
+  /** The folder a directory names, made the first time it is met: in the definitions tree, since
+   *  it files definitions. */
   const folder = (parts: readonly string[]): Id => {
     let parent = slug;
     for (const [n, part] of parts.entries()) {
       const id = `${slug}.dir.${parts.slice(0, n + 1).join(".")}`;
-      graph.blocks[id] ??= { id, parent, name: part, type: "folder", order: next(parent) };
+      graph.blocks[id] ??= { id, parent, name: part, type: "folder", order: next(parent),
+                             ...(n === 0 ? { tree: "definitions" as const } : {}) };
       parent = id;
     }
     return parent;

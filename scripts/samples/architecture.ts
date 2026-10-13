@@ -11,19 +11,22 @@ const b = builder();
 b.place({ id: "workspace", parent: null, name: "workspace" });
 b.merge("public/packages/architecture.json");
 b.merge("public/packages/diagrams.json");
-b.merge("public/packages/entity-relation.json");
 
+/* The definitions tree: the records, and the workspace's tags. */
+b.folder("d_domain", "Domain", "workspace", "definitions");
+b.folder("tags", "tags", "workspace", "definitions");
+
+/* The structure tree: the diagrams. */
 b.folder("t_system", "System");
 b.folder("t_domain", "Domain");
 b.folder("t_scenarios", "Scenarios");
 b.folder("t_decisions", "Decisions");
-b.folder("tags", "tags");
 b.def("tag_decision", "decision", "tag", undefined, {}, "tags");
 
-/* ── Records, each extending the generic entity except status, which is a choice ── */
+/* ── Records, each a block drawn as its table of attributes, except status, which is a choice ── */
 
 const record = (id: string, name: string, body: string, attributes: Record<string, unknown>[]) =>
-  b.def(id, name, "entity-relation.entity", undefined, { body, def: { attributes } }, "t_domain");
+  b.def(id, name, "block", { card: { face: "table" } }, { body, def: { attributes } }, "d_domain");
 record("rec_customer", "Customer", "Someone who places an order.", [
   { name: "id", type: "number", key: true }, { name: "name" }, { name: "email" } ]);
 record("rec_product", "Product", "Something that can be ordered.", [
@@ -42,7 +45,7 @@ record("rec_payment", "Payment", "A charge taken against an order.", [
   { name: "order", type: "rec_order" } ]);
 b.def("rec_status", "Order status", "choice",
       { value: { choices: ["open", "shipped", "closed"] } },
-      { body: "Where an order is: open, shipped, or closed." }, "t_domain");
+      { body: "Where an order is: open, shipped, or closed." }, "d_domain");
 
 /* ── About ── */
 

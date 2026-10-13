@@ -1,11 +1,6 @@
 {
   "packages": [
     {
-      "name": "entity-relation",
-      "about": "a generic entity: a table of keyed attributes, some naming another entity",
-      "at": "entity-relation.json"
-    },
-    {
       "name": "doc",
       "about": "markdown as blocks: pages, sections, items, code and links",
       "at": "doc.json"

@@ -35,6 +35,7 @@ export function tag_home(graph: Graph): Id {
 export function tag_folder(graph: Graph): Mutation[] {
   if (graph.blocks[TAGS] || tag_home(graph) !== graph.root) return [];
   return [{ op: "add_block", block: {
-    id: TAGS, parent: graph.root, name: TAGS, type: "folder", order: next_order(graph, graph.root),
+    id: TAGS, parent: graph.root, name: TAGS, type: "folder", tree: "definitions",
+    order: next_order(graph, graph.root),
   } }];
 }

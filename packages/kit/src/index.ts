@@ -32,7 +32,7 @@ export {
   def_of, domain_of, edge_base, edges_in, frozen, grid_of, group_head, head_of, headed_group,
   heading, holders_in, isa, is_container, is_grid, is_group, is_header, is_holder,
   is_interface, lattice_of, is_reference, layer_of, drawn_in, inline, is_folder, organizes,
-  tree_of, in_domain, setting_of, uses_of, members_of, merge_at, base_of, opens,
+  tree_of, in_definitions, setting_of, uses_of, members_of, merge_at, base_of, opens,
   owner_of, package_of, packages, path, region_of, shape_of, shown_name, stands_for, subtree,
   subtypes, used_by,
 } from "@mnd/core";
@@ -68,5 +68,5 @@ export { held_at, leave_at, open_at, reveal_at, sight, view_of, view_on, EDITOR,
          type Views } from "@mnd/core";
 
 /** A whole section drawn — every root it lists, down to its cut — and a cross-section along a pick. */
-export { profile_graph, survey_graph } from "@mnd/views";
+export { survey_graph } from "@mnd/views";
 

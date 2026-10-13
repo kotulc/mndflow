@@ -124,7 +124,7 @@ export function App({ storage, boot, opening }: {
    *  anything is placed. */
   apply_card(card.w, card.h);
 
-  /** How many cards a row holds: a page (overhead, profile, folder) as many as the canvas is wide;
+  /** How many cards a row holds: a page (overhead, folder) as many as the canvas is wide;
    *  any other layer four on a landscape canvas, two on a taller one. */
   const [canvas, set_canvas] = useState<HTMLElement | null>(null);
   const room = useBox(canvas);
@@ -133,17 +133,14 @@ export function App({ storage, boot, opening }: {
     ? Math.max(2, Math.floor(room.w / ((card.w + UNITS.gap) * UNITS.unit)))
     : room.h > room.w ? 2 : 4;
 
-  /** What a profile cuts through: what the canvas brought into sight — browsing never moves it. */
-  const target = view.kind !== "profile" ? null : view.pick ?? view.layer;
-
-  /** Projected once per graph, view, layer or proportion change — and, for a profile, per pick. */
+  /** Projected once per graph, view, layer or proportion change. */
   const scene = useMemo(
     () => project(graph, view.layer, { interfaces: shown.interfaces, across,
                                        look: { kind: view.kind, cut: SLICES[view.at]!.cut,
-                                               tops: true, target,
+                                               tops: true,
                                                ...(SLICES[view.at]!.lists
                                                  ? { lists: SLICES[view.at]!.lists } : {}) } }),
-    [graph, view.layer, view.kind, view.at, target, shown.interfaces, card, across]);
+    [graph, view.layer, view.kind, view.at, shown.interfaces, card, across]);
 
   /** A diagram names no layer slot: the canvas may open a card, and it writes nothing. */
   const editing = scene.slots.includes("layer");
@@ -259,6 +256,18 @@ export function App({ storage, boot, opening }: {
     if (said.length) s.say(`brought in ${got.name} — ${said.join("; ")}`, "note");
   };
 
+  /** A section's header: the canvas draws it whole from its top, nothing held or picked; the tray
+   *  shows the section — every definition, or the workspace. */
+  const section = (at: number) => {
+    s.see("overhead", null, at);
+    chain.onClear?.(at);
+    if (SLICES[at]!.lists === "domain") {
+      t.onHold({ of: "defs", only: "all" });
+      t.onTab("definitions");
+    }
+    else t.release();
+  };
+
   /** **The explorer browses**: a row chosen is held in its section and shown in the tray. Inside
    *  the structure the canvas draws, the canvas follows: it goes to where the block is drawn and
    *  picks it there — the open layer's own row stays where it is. Anywhere else it stays. A
@@ -325,6 +334,7 @@ export function App({ storage, boot, opening }: {
         onPick={pick}
         onOpen={({ at, id, via }) => act(via ? "reveal" : "open", { id, at })}
         onLeave={() => act("open")}
+        onSection={section}
         chain={{ ...chain, onChoose: choose }}
         keys
       />

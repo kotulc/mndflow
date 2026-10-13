@@ -9,7 +9,7 @@
         "parent": "workspace",
         "name": "About",
         "alias": 1,
-        "order": 6
+        "order": 7
       },
       "about_card": {
         "id": "about_card",
@@ -176,14 +176,16 @@
         "parent": "architecture",
         "name": "blocks",
         "type": "folder",
-        "order": 1
+        "order": 1,
+        "tree": "definitions"
       },
       "architecture.dir.relations": {
         "id": "architecture.dir.relations",
         "parent": "architecture",
         "name": "relations",
         "type": "folder",
-        "order": 2
+        "order": 2,
+        "tree": "definitions"
       },
       "architecture.document": {
         "id": "architecture.document",
@@ -598,6 +600,14 @@
         "order": 1,
         "w": 360
       },
+      "d_domain": {
+        "id": "d_domain",
+        "parent": "workspace",
+        "name": "Domain",
+        "type": "folder",
+        "order": 1,
+        "tree": "definitions"
+      },
       "dec_idempotency": {
         "id": "dec_idempotency",
         "parent": "decisions",
@@ -653,7 +663,8 @@
         "parent": "diagrams",
         "name": "relations",
         "type": "folder",
-        "order": 2
+        "order": 2,
+        "tree": "definitions"
       },
       "diagrams.message": {
         "id": "diagrams.message",
@@ -737,7 +748,7 @@
         "parent": "t_domain",
         "name": "Model",
         "alias": 15,
-        "order": 7
+        "order": 1
       },
       "domain_model_note": {
         "id": "domain_model_note",
@@ -748,33 +759,6 @@
         "h": 72,
         "order": 1,
         "w": 360
-      },
-      "entity-relation": {
-        "id": "entity-relation",
-        "parent": null,
-        "name": "entity-relation"
-      },
-      "entity-relation.dir.blocks": {
-        "id": "entity-relation.dir.blocks",
-        "parent": "entity-relation",
-        "name": "blocks",
-        "type": "folder",
-        "order": 1
-      },
-      "entity-relation.entity": {
-        "id": "entity-relation.entity",
-        "parent": "entity-relation.dir.blocks",
-        "name": "Entity",
-        "type": "block",
-        "def": {},
-        "body": "A thing the data model records: its attributes, keyed, some naming another entity.",
-        "order": 1,
-        "settings": {
-          "card": {
-            "align": "center",
-            "face": "table"
-          }
-        }
       },
       "ext_payment": {
         "id": "ext_payment",
@@ -1428,9 +1412,9 @@
       },
       "rec_customer": {
         "id": "rec_customer",
-        "parent": "t_domain",
+        "parent": "d_domain",
         "name": "Customer",
-        "type": "entity-relation.entity",
+        "type": "block",
         "def": {
           "attributes": [
             {
@@ -1447,13 +1431,18 @@
           ]
         },
         "body": "Someone who places an order.",
-        "order": 1
+        "order": 1,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        }
       },
       "rec_line": {
         "id": "rec_line",
-        "parent": "t_domain",
+        "parent": "d_domain",
         "name": "Line",
-        "type": "entity-relation.entity",
+        "type": "block",
         "def": {
           "attributes": [
             {
@@ -1472,13 +1461,18 @@
           ]
         },
         "body": "One product on an order, and how many.",
-        "order": 3
+        "order": 3,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        }
       },
       "rec_order": {
         "id": "rec_order",
-        "parent": "t_domain",
+        "parent": "d_domain",
         "name": "Order",
-        "type": "entity-relation.entity",
+        "type": "block",
         "def": {
           "attributes": [
             {
@@ -1502,13 +1496,18 @@
           ]
         },
         "body": "A customer's request, and the lines on it.",
-        "order": 4
+        "order": 4,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        }
       },
       "rec_payment": {
         "id": "rec_payment",
-        "parent": "t_domain",
+        "parent": "d_domain",
         "name": "Payment",
-        "type": "entity-relation.entity",
+        "type": "block",
         "def": {
           "attributes": [
             {
@@ -1526,13 +1525,18 @@
           ]
         },
         "body": "A charge taken against an order.",
-        "order": 5
+        "order": 5,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        }
       },
       "rec_product": {
         "id": "rec_product",
-        "parent": "t_domain",
+        "parent": "d_domain",
         "name": "Product",
-        "type": "entity-relation.entity",
+        "type": "block",
         "def": {
           "attributes": [
             {
@@ -1550,11 +1554,16 @@
           ]
         },
         "body": "Something that can be ordered.",
-        "order": 2
+        "order": 2,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        }
       },
       "rec_status": {
         "id": "rec_status",
-        "parent": "t_domain",
+        "parent": "d_domain",
         "name": "Order status",
         "type": "choice",
         "def": {},
@@ -1918,28 +1927,28 @@
         "parent": "workspace",
         "name": "Decisions",
         "type": "folder",
-        "order": 4
+        "order": 6
       },
       "t_domain": {
         "id": "t_domain",
         "parent": "workspace",
         "name": "Domain",
         "type": "folder",
-        "order": 2
+        "order": 4
       },
       "t_scenarios": {
         "id": "t_scenarios",
         "parent": "workspace",
         "name": "Scenarios",
         "type": "folder",
-        "order": 3
+        "order": 5
       },
       "t_system": {
         "id": "t_system",
         "parent": "workspace",
         "name": "System",
         "type": "folder",
-        "order": 1
+        "order": 3
       },
       "tag_decision": {
         "id": "tag_decision",
@@ -1954,7 +1963,8 @@
         "parent": "workspace",
         "name": "tags",
         "type": "folder",
-        "order": 5
+        "order": 2,
+        "tree": "definitions"
       },
       "workspace": {
         "id": "workspace",

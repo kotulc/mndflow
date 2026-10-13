@@ -74,6 +74,9 @@ export type Grid = {
   merges?: Span[];
 };
 
+/** The tree a folder at a package's root belongs to, where it is not structure. */
+export type Tree = "definitions";
+
 /** What makes a block a definition: explicit, and holding what only a definition says. */
 export type DefBody = {
   /** What its usages answer. */
@@ -92,6 +95,9 @@ export type Block = {
   body?: string;
   /** Present on a definition, and only there. */
   def?: DefBody;
+  /** A folder at its package's root: the tree it belongs to, which what it holds follows. Unset,
+   *  structure. */
+  tree?: Tree;
   /** A reference: the block it stands for — a usage, a definition or a package. */
   of?: Id;
   /** Where its content lives outside the workspace: one uri, whatever locator syntax the thing
@@ -193,8 +199,8 @@ export function empty_graph(): Graph {
 export type Mutation =
   | { op: "checkpoint"; graph: Graph }
   | { op: "add_block"; block: Block }
-  /** `type: null` clears it. */
-  | { op: "update_block"; id: Id; name?: string; type?: Id | null }
+  /** `type: null` and `tree: null` clear them. */
+  | { op: "update_block"; id: Id; name?: string; type?: Id | null; tree?: Tree | null }
   | { op: "delete_block"; id: Id }
   | { op: "move_block"; id: Id; parent: Id | null }
   | { op: "place_block"; id: Id; x: number; y: number }

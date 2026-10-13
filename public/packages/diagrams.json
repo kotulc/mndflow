@@ -29,7 +29,8 @@
         "parent": "diagrams",
         "name": "relations",
         "type": "folder",
-        "order": 2
+        "order": 2,
+        "tree": "definitions"
       },
       "diagrams.message": {
         "id": "diagrams.message",

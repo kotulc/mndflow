@@ -14,21 +14,24 @@
         "parent": "base",
         "name": "blocks",
         "type": "folder",
-        "order": 1
+        "order": 1,
+        "tree": "definitions"
       },
       "base.dir.relations": {
         "id": "base.dir.relations",
         "parent": "base",
         "name": "relations",
         "type": "folder",
-        "order": 2
+        "order": 2,
+        "tree": "definitions"
       },
       "base.dir.tags": {
         "id": "base.dir.tags",
         "parent": "base",
         "name": "tags",
         "type": "folder",
-        "order": 3
+        "order": 3,
+        "tree": "definitions"
       },
       "base.dir.tags.traits": {
         "id": "base.dir.tags.traits",
@@ -42,7 +45,8 @@
         "parent": "base",
         "name": "types",
         "type": "folder",
-        "order": 4
+        "order": 4,
+        "tree": "definitions"
       },
       "block": {
         "id": "block",
@@ -247,7 +251,12 @@
         "type": "trait",
         "def": {},
         "body": "Floats in the nearest free space beside what it is tied to, a unit clear of surrounding cards.",
-        "order": 6
+        "order": 6,
+        "settings": {
+          "card": {
+            "place": "aside"
+          }
+        }
       },
       "is_grid": {
         "id": "is_grid",
@@ -311,8 +320,13 @@
         "name": "is_tie",
         "type": "trait",
         "def": {},
-        "body": "Is a tie: a straight run from a corner of an aside card to a free slot on what it is tied to. No anchor, and never routed.",
-        "order": 11
+        "body": "Is a tie: a straight run between the nearest corners of the two cards. No anchor, no end mark, and never routed.",
+        "order": 11,
+        "settings": {
+          "line": {
+            "module": "tie"
+          }
+        }
       },
       "line": {
         "id": "line",

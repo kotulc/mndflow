@@ -13,6 +13,15 @@ const PICTURE = "/showcase/picture.svg";
 b.place({ id: "workspace", parent: null, name: "workspace" });
 b.merge("public/packages/diagrams.json");
 
+/* The definitions tree: one folder per topic with definitions of its own. */
+b.folder("d_cards", "Cards", "workspace", "definitions");
+b.folder("d_definitions", "Definitions", "workspace", "definitions");
+b.folder("d_holders", "Holders", "workspace", "definitions");
+b.folder("d_data", "Data", "workspace", "definitions");
+b.folder("d_diagrams", "Diagrams", "workspace", "definitions");
+b.folder("tags", "tags", "workspace", "definitions");
+
+/* The structure tree: one folder per topic, holding its layers. */
 b.folder("t_cards", "Cards");
 b.folder("t_definitions", "Definitions");
 b.folder("t_relations", "Relations");
@@ -21,65 +30,65 @@ b.folder("t_holders", "Holders");
 b.folder("t_references", "References");
 b.folder("t_data", "Data");
 b.folder("t_diagrams", "Diagrams");
-b.folder("tags", "tags");
 
 b.def("def_large", "Large layer", "block", { layout: { cards: "large" } },
-      { body: "A layer whose cards draw their large face." }, "t_cards");
-b.def("def_doc", "Document", "block", { card: { face: "document" } }, {}, "t_cards");
+      { body: "A layer whose cards draw their large face." }, "d_cards");
+b.def("def_doc", "Document", "block", { card: { face: "document" } }, {}, "d_cards");
 b.def("def_spec", "Spec", "block", { card: { face: "table" } }, {
   def: { attributes: [{ name: "tag", key: true }, { name: "rating", type: "number", unit: "kW" },
-                      { name: "duty", note: "how it runs" }] } }, "t_cards");
-b.def("def_media", "Picture", "block", { card: { face: "picture" } }, {}, "t_cards");
+                      { name: "duty", note: "how it runs" }] } }, "d_cards");
+b.def("def_media", "Picture", "block", { card: { face: "picture" } }, {}, "d_cards");
 b.def("def_headless", "Headless", "block", { card: { face: "document", name: "hide" } }, {},
-      "t_cards");
+      "d_cards");
 b.def("def_sized", "Sized", "block", { card: { face: "document", size: { w: 8, h: 3 } } }, {},
-      "t_cards");
+      "d_cards");
 
 b.def("def_machine", "Machine", "block",
       { card: { face: "table" }, style: { family: "secondary" } }, {
-        def: { attributes: [{ name: "power", type: "number", unit: "kW" }] } }, "t_definitions");
+        def: { attributes: [{ name: "power", type: "number", unit: "kW" }] } }, "d_definitions");
 b.put("dm_power", "def_machine", "interface", { name: "power", type: "interface", flow: "in" });
 b.def("tag_rotating", "rotating", "tag", undefined, {}, "tags");
 b.def("def_pump", "Pump", "def_machine", { style: { hue: 200 } }, {
   body: "Moves liquid from its inlet to its outlet.", tags: ["tag_rotating"],
-  def: { attributes: [{ name: "flow", type: "number", unit: "m3/h" }] } }, "t_definitions");
+  def: { attributes: [{ name: "flow", type: "number", unit: "m3/h" }] } }, "d_definitions");
 b.put("dp_inlet", "def_pump", "interface", { name: "inlet", type: "interface", flow: "in" });
 b.put("dp_outlet", "def_pump", "interface", { name: "outlet", type: "interface", flow: "out" });
 b.put("dp_seal", "def_pump", "interface", { name: "seal", type: "interface", flow: "both" });
 b.def("def_bigpump", "Big pump", "def_pump", { style: { border_width: "thick" } }, {
-  def: { attributes: [{ name: "stages", type: "number", default: "2" }] } }, "t_definitions");
+  def: { attributes: [{ name: "stages", type: "number", default: "2" }] } }, "d_definitions");
 b.def("rel_drives", "drives", "line", {
   line: { dir: "forward", to_arrow: "open" },
   allows: { ends: { from: ["def_machine"], to: ["def_pump"] } } }, {
   body: "A machine turning a pump's shaft.", tags: ["tag_rotating"],
-  def: { attributes: [{ name: "ratio", type: "number" }] } }, "t_definitions");
+  def: { attributes: [{ name: "ratio", type: "number" }] } }, "d_definitions");
 
 b.def("def_table", "Table", "grid", undefined, {
-  traits: ["has_parts", "has_ports", "has_values", "is_grid", "has_head"] }, "t_holders");
+  traits: ["has_parts", "has_ports", "has_values", "is_grid", "has_head"] }, "d_holders");
 
 b.def("def_site", "Site", "block", { card: { face: "table" } }, {
   body: "A place that holds assets.",
-  def: { attributes: [{ name: "name", key: true }, { name: "region" }] } }, "t_data");
+  def: { attributes: [{ name: "name", key: true }, { name: "region" }] } }, "d_data");
 b.def("def_state", "State", "choice", undefined, {
   body: "Whether an asset is running.",
-  settings: { value: { choices: ["running", "stopped"] } } }, "t_data");
+  settings: { value: { choices: ["running", "stopped"] } } }, "d_data");
 b.def("def_asset", "Asset", "block", { card: { face: "table" } }, {
   body: "A thing at a site, in a state.",
   def: { attributes: [{ name: "tag", key: true }, { name: "site", type: "def_site" },
-                      { name: "state", type: "def_state" }] } }, "t_data");
+                      { name: "state", type: "def_state" }] } }, "d_data");
 
-b.def("def_unit", "Unit", "block", undefined, { body: "A thing a part extends." }, "t_diagrams");
+b.def("def_unit", "Unit", "block", undefined, { body: "A thing a part extends." }, "d_diagrams");
 b.def("def_part", "Part", "def_unit", undefined, {
   body: "A part of a unit.",
-  def: { attributes: [{ name: "unit", type: "def_unit" }] } }, "t_diagrams");
+  def: { attributes: [{ name: "unit", type: "def_unit" }] } }, "d_diagrams");
 
 /* ── About ── */
 b.layer("about", "About", "workspace");
 b.note("about", "The showcase is one layer per thing mndflow draws. Read the header note, then "
   + "the tied note on each block: it names the field or setting that makes the block look that "
-  + "way. Overhead and profile on the rail draw the whole tree. Opening a folder draws its "
-  + "folder view. Definitions lists the folders and definitions; structure lists the layers. The "
-  + "workspace roots structure; a definition roots it once it holds blocks of its own. This "
+  + "way. Overhead on the rail draws the section in focus. Opening a folder draws its folder "
+  + "view; a definition, its definition view under the package and folders on its path. "
+  + "Definitions and structure are two trees, each with folders of its own: definitions lists "
+  + "the definitions, structure the layers. The workspace roots structure; a definition roots it once it holds blocks of its own. This "
   + "workspace merges the diagrams package.");
 for (const [id, of, name, said] of [
   ["ref_cards", "t_cards", "Cards", "Block kinds, faces, styles and a markdown card."],
@@ -219,7 +228,7 @@ b.explain("r_both_b", "line.dir is both.");
 b.explain("r_none_b", "line.dir is none.");
 b.explain("r_named_b", "The line's own name is feeds.");
 b.explain("r_arrows_b", "line.from_arrow is diamond and line.to_arrow is open.");
-b.explain("r_tie_to", "type is tie: it runs straight, and is not routed.");
+b.explain("r_tie_to", "type is tie, whose is tie trait gives line.module tie: it runs straight, never routed.");
 
 b.layer("l_routing", "Routing", "t_relations");
 b.note("l_routing", "What the router must get right: a detour, one line both ways, a crossing, "

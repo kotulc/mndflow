@@ -38,6 +38,8 @@ function apply(graph: Graph, m: Mutation): void {
       if (m.name !== undefined) b.name = m.name;
       if (m.type === null) delete b.type;
       else if (m.type !== undefined) b.type = m.type;
+      if (m.tree === null) delete b.tree;
+      else if (m.tree !== undefined) b.tree = m.tree;
       return;
     }
     case "delete_block": {

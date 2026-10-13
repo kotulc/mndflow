@@ -11,7 +11,6 @@ import { at_seat, beside, cell_box, laid, perch_id, roomed, seat_all, PAD, UNIT,
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of, wire_of } from "./look";
 import { page_graph } from "./page";
-import { profile_graph, ROW } from "./profile";
 import { survey_graph, FOREST } from "./survey";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
@@ -29,11 +28,9 @@ export type Config = {
   /** How the layer is looked at: from inside (`internal`, `grid`); a package or folder read down
    *  the page (`folder`); a definition with what describes it round it (`definition`); a diagram
    *  the block names (`class`, `swimlane`, `sequence`); the whole section it scopes, down to
-   *  `cut`, each block there boxing its top level where `tops` says (`overhead`); or a
-   *  cross-section of the host's sections along `target` (`profile`). Unsaid, inside — and with
-   *  no layer, every package's domain as an overhead view. */
-  look?: { kind: ViewKind; cut: Cut; tops?: boolean; target?: Id | null;
-           lists?: "domain" | "structure" };
+   *  `cut`, each block there boxing its top level where `tops` says (`overhead`). Unsaid,
+   *  inside — and with no layer, every package's domain as an overhead view. */
+  look?: { kind: ViewKind; cut: Cut; tops?: boolean; lists?: "domain" | "structure" };
   /** The packages a forest draws, in order; every package where unsaid. */
   packages?: readonly Id[];
   /** How many cards a section's widest row holds, drawn whole. */
@@ -101,10 +98,12 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   if (look?.kind === "definition" && layer && given.blocks[layer]) {
     const scene = project(definition_graph(given, layer), ASPECT,
                           { ...config, look: { kind: "internal", cut: null } });
-    /** What it reads from its chain wears the part mark: edited where it is declared. */
+    /** What it reads from its chain wears the part mark: edited where it is declared. It, and
+     *  each card on the way to it, wears the held mark. */
     const inherited = inherited_in(given, layer);
+    const held = path(given, layer).map((b) => b.id);
     const mark = (n: BoxNode): CardClass[] => [...n.data.marks,
-      ...(n.id === layer ? ["held" as const] : []),
+      ...(held.includes(n.id) ? ["held" as const] : []),
       ...(inherited.includes(n.id) ? ["part" as const] : [])];
     const nodes = scene.nodes.map((n) => ({
       ...n, draggable: false, ...(given.blocks[n.id] || n.id === ABOUT ? {} : { selectable: false }),
@@ -134,26 +133,17 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
     return { ...scene, nodes, ...(frame ? { frame } : {}),
              slots: arranged ? scene.slots : scene.slots.filter((x) => x !== "layer") };
   }
-  if (look && (look.kind === "overhead" || look.kind === "profile")) {
-    const drawn = look.kind === "profile"
-      ? profile_graph(given, look.target ?? null, config.across)
-      : survey_graph(given, layer, look.cut,
-                     { ...(config.packages ? { only: config.packages } : {}),
-                       ...(look.tops ? { tops: true } : {}),
-                       ...(config.across ? { across: config.across } : {}) });
+  if (look?.kind === "overhead") {
+    const drawn = survey_graph(given, layer, look.cut,
+                               { ...(config.packages ? { only: config.packages } : {}),
+                                 ...(look.tops ? { tops: true } : {}),
+                                 ...(look.lists ? { lists: look.lists } : {}),
+                                 ...(config.across ? { across: config.across } : {}) });
     const scene = project(drawn, FOREST, { ...config, look: { kind: "internal", cut: null } });
-    /** On a profile, each block on the way to what it cuts through, that included, wears the
-     *  held mark. */
-    const target = look.kind === "profile" ? look.target ?? null : null;
-    const held = target && given.blocks[target] ? path(given, target).map((b) => b.id) : [];
-    const marked = (n: BoxNode, mark: CardClass): BoxNode =>
-      ({ ...n, data: { ...n.data, marks: [...n.data.marks, mark] } });
     /** A part's copy wears the part mark, as it does inside its usage, and is only looked at:
      *  it is picked and edited where it is a block — its definition, or inside its usage. */
-    const nodes = scene.nodes.map((n) => (n.id.startsWith(ROW)
-      ? { ...n, selectable: false, draggable: false }
-      : !given.blocks[n.id] ? { ...marked(n, "part"), selectable: false, draggable: false }
-      : held.includes(n.id) ? marked(n, "held") : n));
+    const nodes = scene.nodes.map((n) => (given.blocks[n.id] ? n : { ...n, selectable: false,
+      draggable: false, data: { ...n.data, marks: [...n.data.marks, "part" as const] } }));
     /** A whole section has no layer of its own to trail to. */
     return { ...scene, nodes, slots: ["display"], trail: [] };
   }

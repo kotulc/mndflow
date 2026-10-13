@@ -3,12 +3,12 @@
  *
  *  A host cuts the workspace into sections (`sections.ts`); the canvas looks at one of them in
  *  one view. A layer view draws one block, and **its card's kind says which** (`lens_of`);
- *  `overhead` and `profile`, the only views chosen, draw the whole section — every root the
+ *  `overhead`, the only view chosen, draws the whole section — every root the
  *  section above lists — down to its cut, the pick brought into sight. */
 
 import { holds_any } from "./capabilities";
 import { DIAGRAM_VIEWS } from "./components";
-import { has_trait, setting_of } from "./defs";
+import { setting_of } from "./defs";
 import { inline, is_folder, is_grid, layer_of } from "./holders";
 import { opens } from "./names";
 import { at_cut, in_section, is_inside, is_layer_view, on_side, type Section, type ViewKind }
@@ -37,9 +37,9 @@ export const EDITOR: Tiers = {
   top: "forest",
   sections: [
     { id: "definitions", label: "definitions", cut: "tree", lists: "domain",
-      views: ["overhead", "internal", "profile"] },
+      views: ["overhead", "internal"] },
     { id: "structure", label: "structure", cut: null, lists: "structure",
-      views: ["internal", "overhead", "profile"] },
+      views: ["internal", "overhead"] },
   ],
 };
 
@@ -52,10 +52,10 @@ function own_view(graph: Graph, id: Id): string | undefined {
 }
 
 /** Whether a block can feed a diagram view. A sequence or a swimlane needs a grid. A class
- *  diagram needs room to hold: `has_parts` grants it, and `holds_any` is what the engine reads. */
+ *  diagram needs room to hold: `allows.holds`, which *has parts* grants. */
 function feeds(graph: Graph, id: Id, view: string): boolean {
   if (view === "sequence" || view === "swimlane") return is_grid(graph, id);
-  if (view === "class") return holds_any(graph, id) || has_trait(graph, id, "has_parts");
+  if (view === "class") return holds_any(graph, id);
   return false;
 }
 

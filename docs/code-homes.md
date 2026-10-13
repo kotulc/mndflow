@@ -31,6 +31,8 @@
 | whether a block roots a structure | core `defs.ts` (`roots_structure`, over `holds_usages`); the structure mark in `names.ts` `stamps_of`. The workspace always, a definition that holds structure, never a folder; the explorer's row marks, the cards and the tree-root button ask it, so a row and its card agree (2026-10-12) |
 | what a block reads as (its role, and so its icon) | core `names.ts` (`role_of`); theme `role_icon`. The explorer's rows and the stage's cards both ask it |
 | rows, marks and highlights | explorer `rows.ts` (holder members at their holder's level, `end_of`, `parent_of`, the ties joining them), `Explorer.tsx` |
+| where notes sit: the column, and aside cards beside what they are tied to | views `float.ts` (`noted`, `floated`, `beside`), called by a layer (`arrange.ts`) and a group (`bands.ts`) (2026-10-12) |
+| whether an element is a tie, or floats aside | core `defs.ts` `is_tie` and `is_aside`, reading `line.module` and `card.place`, which *is tie* and *is aside* grant: no trait is matched by id (2026-10-12) |
 | what a layer draws, the system and layer views, layouts | views `block.ts` (`project`), `survey.ts`, `profile.ts`, `definition.ts`, `page.ts`, `arrange.ts` |
 | which diagram a block opens on, and what it draws | core `navigate.ts` (`diagram_of`; `diagram_subject` for a stand-in stating its own view; `lens_of` asks both, through `own_diagram`); views `class.ts`, `swimlane.ts`, `sequence.ts`. The stand-in rule was written twice in `lens_of` and `diagram_subject`; one now (2026-10-12) |
 | gestures to actions | stage `moves.ts`, `Stage.tsx` |
@@ -38,7 +40,7 @@
 | what a kind cannot be made from | core `actions/helpers.ts` `NEEDS`, asked by `create`'s check |
 | panning to a revealed block | stage `room.ts` (`useCamera`, from `focus`); the web app sets it on a reveal |
 | settings resolution | core `defs.ts` (`statements`, `stated`, `setting_of`, `said_of`). views `look.ts` and explorer `rows.ts` merged definition and element by hand, skipping a usage's traits; both ask `setting_of` (2026-10-10) |
-| what an element carries | core `defs.ts` (`tags_stated`, `traits_stated`: the nearest list, and who states it; `has_trait`, `is_tie`). Drops, styles and labels went with step 12 (2026-10-10) |
+| what an element carries | core `defs.ts` (`tags_stated`, `traits_stated`: the nearest list, and who states it; `has_trait`). Drops, styles and labels went with step 12 (2026-10-10) |
 | whether a block is a reference, and what it points at | core `tree.ts` (`is_reference` by its kind, `of_ref`, `stands_for`); `of` is read nowhere else. A reference stores `type: "reference"` (2026-10-10) |
 | what a reference's card draws as | views `through.ts` `resolved` (what it previews, the definition it stands in for, missing); look, size, marks, face, links and the tray ask it. `previewed` and every reader's own `b.of` are gone (2026-10-10) |
 | a definition's interfaces, its chain's included | core `tree.ts` `ports_of`; views `through.ts` lays them on usages, definition cards and rooms |

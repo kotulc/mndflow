@@ -141,14 +141,16 @@
         "parent": "architecture",
         "name": "blocks",
         "type": "folder",
-        "order": 1
+        "order": 1,
+        "tree": "definitions"
       },
       "architecture.dir.relations": {
         "id": "architecture.dir.relations",
         "parent": "architecture",
         "name": "relations",
         "type": "folder",
-        "order": 2
+        "order": 2,
+        "tree": "definitions"
       },
       "architecture.document": {
         "id": "architecture.document",

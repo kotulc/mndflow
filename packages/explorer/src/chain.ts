@@ -36,14 +36,17 @@ export type Chain = {
   onChoose: (at: number, id: Id | null) => void;
   /** Hold a whole path at once, outermost first; the last is in focus unless `at` says which. */
   onTrace: (path: readonly (Id | null)[], at?: number) => void;
+  /** Hold nothing in any section, `at` in focus. */
+  onClear?: (at: number) => void;
 };
 
 
 /** What each section holds, remembered per root, and which is in focus. `view` is what the canvas
- *  draws: the section it looks into from inside lists the canvas's tree. */
+ *  draws: the section it looks into from inside lists the canvas's tree. Unsaid, a section holds
+ *  its first block; cleared, it holds nothing. */
 export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top = "forest",
                          view: View | null = null) {
-  const [said, set_said] = useState<Record<string, Id | null>>({});
+  const [said, set_said] = useState<Record<string, Id | null | undefined>>({});
   const [at, set_at] = useState(slices.length - 1);
   const held: (Id | null)[] = [];
   const roots: (Id | null | undefined)[] = [];
@@ -69,7 +72,9 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
       roots.push(graph ? root : undefined);
       if (!graph) { held.push(null); return; }
       const was = said[key(n, root)];
-      const kept = was != null && in_section(graph, was, root, slice.cut, slice.lists, opening);
+      if (was === null) { held.push(null); return; }
+      const kept = was !== undefined
+        && in_section(graph, was, root, slice.cut, slice.lists, opening);
       held.push(kept ? was
         : slice.first ? slice.first(graph, root) : first_in(graph, root, slice.cut, slice.lists));
       return;
@@ -79,7 +84,8 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
     roots.push(root);
     if (!graph || root === undefined) { held.push(null); return; }
     const was = said[key(n, root)];
-    const kept = was !== undefined && was !== null
+    if (was === null) { held.push(null); return; }
+    const kept = was !== undefined
       && in_section(graph, was, root, slice.cut, slice.lists, opening);
     held.push(kept ? was : slice.first ? slice.first(graph, root)
       : first_in(graph, root, slice.cut, slice.lists));
@@ -95,18 +101,26 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
     if (root !== undefined) set_said((was) => ({ ...was, [key(n, root)]: id }));
     set_at(n);
   };
-  /** A whole path held at once, each under the root the one above it gives. */
+  /** A whole path held at once, each under the root the one above it gives; a section the path
+   *  holds nothing in goes back to holding its first. */
   const onTrace = (path: readonly (Id | null)[], focus = path.length - 1) => {
-    const kept: Record<string, Id | null> = {};
+    const kept: Record<string, Id | undefined> = {};
     path.forEach((id, n) => {
       const root = slices[n]?.lists === "structure" ? null : below(n, path[n - 1] ?? null);
-      if (root !== undefined) kept[key(n, root)] = id;
+      if (root !== undefined) kept[key(n, root)] = id ?? undefined;
     });
     set_said((was) => ({ ...was, ...kept }));
     set_at(Math.max(0, focus));
   };
+  /** Every section, under the root it lists now, holding nothing. */
+  const onClear = (focus: number) => {
+    const none = Object.fromEntries(roots.flatMap((root, n) =>
+      root === undefined ? [] : [[key(n, root), null]]));
+    set_said((was) => ({ ...was, ...none }));
+    set_at(focus);
+  };
   const chain: Chain = { slices, roots, held, at: Math.min(at, slices.length - 1),
-                         drawn, opening, onChoose, onTrace };
+                         drawn, opening, onChoose, onTrace, onClear };
   return chain;
 }
 

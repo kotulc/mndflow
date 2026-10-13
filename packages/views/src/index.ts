@@ -24,7 +24,6 @@ export { BARE, PLAIN, face_attrs, look_key, look_of, wire_of, type Align,
 export { linked_graph, LINK } from "./links";
 export { survey_graph, FOREST } from "./survey";
 export { definition_graph, inherited_in, ASPECT } from "./definition";
-export { profile_graph } from "./profile";
 export { page_graph } from "./page";
 export { sheet_graph, GRID_LAYER } from "./sheet";
 export { read_through, resolved, type Resolved } from "./through";
