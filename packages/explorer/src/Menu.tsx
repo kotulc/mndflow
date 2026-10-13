@@ -12,6 +12,8 @@ export type MenuProps = {
   given?: Record<string, unknown>;
   /** The actions this context offers, in the order they are drawn. */
   only?: readonly (string | Entry)[];
+  /** A row of this explorer's own, drawn ahead of the offered actions. */
+  lead?: { label: string; go: () => void } | null;
   onAct: (name: string, args?: Record<string, unknown>) => void;
   onShut: () => void;
 };
@@ -29,7 +31,7 @@ function askable(a: Action, spot: boolean): boolean {
 /** How close to the window's edge a menu may come before it is moved. */
 const EDGE = 8;
 
-export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
+export function Menu({ ctx, at, spot, given, only, lead, onAct, onShut }: MenuProps) {
   const box = useRef<HTMLDivElement>(null);
   const [asking, set_asking] = useState<(Action & { filled?: Args }) | null>(null);
   const [typed, set_typed] = useState("");
@@ -134,12 +136,17 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
           <p className="about">{asking.about}</p>
         </div>
       ) : (
-        entries.map((x, n) => (
-          <button key={`${x.action.name}-${n}`} className="entry" title={x.action.about}
-                  onClick={() => take(x)}>
-            {x.label}
-          </button>
-        ))
+        <>
+          {lead ? (
+            <button className="entry" onClick={() => { lead.go(); onShut(); }}>{lead.label}</button>
+          ) : null}
+          {entries.map((x, n) => (
+            <button key={`${x.action.name}-${n}`} className="entry" title={x.action.about}
+                    onClick={() => take(x)}>
+              {x.label}
+            </button>
+          ))}
+        </>
       )}
     </div>
   );

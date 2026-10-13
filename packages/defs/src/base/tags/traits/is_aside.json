@@ -1,0 +1,7 @@
+{
+  "id": "is_aside",
+  "name": "is_aside",
+  "type": "trait",
+  "body": "Floats in the nearest free space beside what it is tied to, a unit clear of surrounding cards.",
+  "def": {}
+}

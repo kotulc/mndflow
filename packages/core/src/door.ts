@@ -6,7 +6,7 @@ import { fold, type Floor } from "./fold";
 import { covers, inside, lattice_of, one_side, overlaps } from "./holders";
 import { subtree } from "./tree";
 import { new_id } from "./ids";
-import { MAIN, type Graph, type Grid, type Id, type Log, type Mutation, type Span,
+import { type Graph, type Grid, type Id, type Log, type Mutation, type Span,
          type Step } from "./types";
 
 export type Fault = {
@@ -106,18 +106,16 @@ export function inspect(graph: Graph): Inspection {
         { op: "add_block", block: { id: graph.root, parent: null, name: "workspace" } });
   }
 
-  /** Every block sits under something that is there, and never under itself: a definition goes
-   *  home to the workspace's domain, a usage to `main` where there is one. A package root sits
-   *  under nothing. */
-  const home = (id: Id) => (graph.blocks[id]?.def || !graph.blocks[MAIN] ? graph.root : MAIN);
+  /** Every block sits under something that is there, and never under itself. A block with no
+   *  parent goes to the workspace root. A package root sits under nothing. */
   for (const b of Object.values(graph.blocks)) {
     if (b.parent === null) continue;
     if (!graph.blocks[b.parent]) {
       say("repaired", `"${name(b.id)}" had no parent`,
-          { op: "move_block", id: b.id, parent: home(b.id) });
+          { op: "move_block", id: b.id, parent: graph.root });
     } else if (subtree(graph, b.id).includes(b.parent)) {
       say("repaired", `"${name(b.id)}" contained itself`,
-          { op: "move_block", id: b.id, parent: home(b.id) });
+          { op: "move_block", id: b.id, parent: graph.root });
     }
   }
 

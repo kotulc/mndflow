@@ -1,6 +1,6 @@
 # Design
 
-**Why mndflow and mndmap are the way they are, and the rules that follow from it.** Authoritative: where another document disagrees, this one wins. Words are defined in definitions.md; what crosses packages is in spec.md; where code should live is in simplification-plan.md.
+**Why mndflow and mndmap are the way they are, and the rules that follow from it.** Authoritative: where another document disagrees, this one wins. Words are defined in definitions.md; what crosses packages is in spec.md; where code should live is in code-homes.md.
 
 
 ## Vision
@@ -96,12 +96,12 @@ Most rules below are one of these applied.
 
 - **`base` enumerates the functionally distinct kinds and stays minimal**: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, `value`, `line`, `tie`. Kinds are data; engine modules are three (`block`, `reference`, `interface`)
 - **traits say what a kind may do, and absent is a no**: a capability nobody grants is refused at the gesture. The base kinds carry the traits that make them what they are
-- **traits are what the engine does**: each names one engine-supported function, *has X* for a capability granted — *has parts*, *has values*, *has ports*, *has head*, *has tie* — *is X* for what sort of thing it is — *is group*, *is grid*, *is port*, *is reference*, *is tie*. Ids follow (`has_parts`). Each carries a description, its body. What only changes how a card draws is a setting, never a trait
+- **traits are what the engine does**: each names one engine-supported function, *has X* for a capability granted — *has parts*, *has values*, *has ports*, *has head*, *has tie* — *is X* for what sort of thing it is — *is group*, *is grid*, *is port*, *is reference*, *is tie*, *is aside*. Ids follow (`has_parts`). Each carries a description, its body. What only changes how a card draws is a setting, never a trait
 - **a kind says what it is in traits and settings, not in engine code**: `reference` lists *has ports* and *is reference* (the `reference` module); `interface` lists *is port* (the `interface` module); `tie` lists *is tie*, which the engine reads to draw it straight. **A kind's look is its own settings** — `style` and `card` — written in its definition
 - a trait grants a capability whole. Limiting one to definitions, and asking what values must say, is a constraint (`allows` lists, `degree`, `ends`, `expects`): kept as settings, to be reworked
 - which holder a block is: a folder by its base; a group or grid by its *is group* and *is grid* traits
 - a capability is added to or removed from a subtype as a trait, easily and visibly: its definition lists every trait it keeps. **Traits are a definition's**: a usage and a line carry their definition's. **A trait is a tag by its chain** (`extends trait`), stored in `traits`, listed apart
-- `note` is a base listing *has values* and *has tie*; its settings give it the `document` face and a height of its own
+- `note` is a base listing *has values*, *has tie* and *is aside*; its settings give it the `document` face and a height of its own. Anything carrying *is aside* floats the same way
 - **tags are for finding things**: user-facing indexing, for search, filters and lookup, carried in `tags` by a usage, a line or a definition. **A new tag is filed in the workspace's `tags` folder**, which a new workspace is made with. A tag's definition view lists what carries it
 - **styles are settings**: how a card draws is its definition's `style` and `card`, and its own where a usage overrides them. There are no style tags
 - relations and tags hold no structure. A tag is a definition with no structure
@@ -125,7 +125,7 @@ Most rules below are one of these applied.
 - **several lines between one pair overlap** unless an interface is placed to part them: separate seats are always stated, never worked out
 - **a line to a box meets it straight across**: a box drawn round others — a room, a group, a flattened folder, a profile's row — is met straight across from where the other end leaves, wherever that lies along its wall; else at its anchor
 - **in an internal view a line ends at the frame**: it leaves the card's face nearest a wall and runs straight to it. The layer's auto interfaces sit straight across from the card they link; a placed one keeps its seat, and its line may Z
-- **a tie runs straight**: where two cards face each other squarely, across the gap at the middle of where their faces overlap, unless a line or interface already meets the face there; otherwise from nearest corner to nearest corner. It shares no anchor and never fans; overlapping cards draw no tie
+- **a tie has no anchor and no end mark**: it runs straight. Where a note sits directly beside or below its card, the tie crosses that gap straight, each end at the free slot nearest the middle of where the two edges overlap. Where the note sits off a corner, it keeps that corner — the distinctive tie — and the card meets it at the free slot nearest the note. A tie to an interface meets a corner of that interface. It is never routed. Overlapping cards draw no tie. **A tie draws above every card**
 - a line's name sits on its own longest leg, never on a shared trunk; too wide for a level leg, it reads upright across it
 
 ### Attributes and types
@@ -144,7 +144,9 @@ Most rules below are one of these applied.
 - a package is a root block. `base` ships with the kit, the workspace's is editable, any other is frozen (read only)
 - a definition is named; new definitions land where the user is
 - removing a used definition is refused. `base` and the workspace are never removed; a used package is not removed
-- a new workspace is its root and `main`, nothing else; groupings are the user's
+- a new workspace is its root and one plain block named `block`, so the workspace lists in structure. No `tags` folder until the first tag is made. Groupings are the user's
+- **no special blocks**: the workspace root is a package root like any other; only its id is reserved
+- **definition side and structure**: a package root, a definition, or a folder reached from its package root through folders alone is on the definition side; every other block is structure. A definition-side folder may hold both
 - **definitions are JSON; structure may be markdown.** Every package, `base` and `markdown` included, is a `.json` file of definitions; a package may also hold a tree of markdown files, each a usage pointing at a definition. Hosts keep only the id constants their code reads
 - **every import is a package**, frozen; new definitions are made in the workspace only
 - a package is the smallest unit of export; there are no subtree files
@@ -186,11 +188,11 @@ Most rules below are one of these applied.
 - a layer's **layout** is a setting, `layout: { kind, cards, view, … }`, said by its definition and overridable by the block, inherited like any setting. The kit ships `free`, `auto` and `page`, which is how the overhead view and the profile lay out; an unknown kind draws as `auto`. `cards` is `small` or `large`. `view` names a diagram — `class`, `swimlane` or `sequence` — and a name this build does not know, or a block that cannot feed the one it names, opens on the capability view
 - a **diagram is a projection**. It draws what the block already holds and writes nothing back: no lanes, lifelines, message numbers or class edges are stored. The canvas does not drag or create on one, and its room hugs what it draws, as a page's does. The grid, the explorer, the tray and the CLI still edit the same blocks
 - **one dataset, many diagrams.** A reference that states its own `layout.view` opens that view over its target when the target can feed it. The trail names the reference
-- **`auto` is what nobody said.** Everything follows in reading order, as wide as the page layout's — the canvas's width in cards — and reads down the page like a folder. **A line never moves a card**: a note made tied to a block is ordered right after it, once, when it is made; *arrange* reorders a layer once, on request, so related blocks — and notes by their blocks — read side by side. Moving a card by hand hands the layer to `free`, keeping every place
+- **`auto` is what nobody said.** Blocks follow in reading order, `layout.across` to a row — unsaid, the host's default for its page shape (landscape 4, portrait 2; the CLI and exports 4) — and read down the page like a folder. **Untied notes stand in their own column** right of the blocks. **A card carrying *is aside* floats** in the nearest free space wide enough beside what it is tied to — a card, or an interface where that interface sits, including on the room's wall — and a unit of air stays between it and every surrounding card. A tie to an interface is seated first, so that note keeps the nearest spot. **A line never moves a card**; *arrange* reorders a layer once, on request, so related blocks read side by side. Moving a card by hand hands the layer to `free`, keeping every place
 - **every layout but `free` is a row/column grid**: each unit takes a cell; a card sits in the middle of its cell's width, so middles down a column line up whatever its size. Cell edges sit on the guides, 2 units apart; a group, a room, a page's box and a grid's cell keep 1 unit of air round what they hold
 - **auto and pages flow onto standard columns**: units take columns a default card wide in reading order; one wider spans as many as it needs, centred across them — overhanging into at most half a gap before it takes another — and each row is as tall as its tallest, every unit at its top, so the rest keep a regular grid
 - **a row and its card read alike**: the explorer and the canvas ask core's `role_of` what a block is, and wear the same icon
-- **system marks say what a card stands for**, never how it opens — the icon says that. At most three, stacked in this order: the word for what a stand-in stands in for (`Def`, `Ref`, `Pkg`), **structure** (the tree mark) on a definition holding structure — never a block inside one, a package or a folder, so a definition with structure reads apart from one without — **data** (the database mark) where it carries attributes or values. A stand-in wears its target's structure and data
+- **system marks say what a card stands for**, never how it opens — the icon says that. At most three, stacked in this order: the word for what a stand-in stands in for (`Def`, `Ref`, `Pkg`), **structure** (the tree mark) on a structure root — the workspace, always, and a definition that holds structure; never a folder, another package, or a block inside a structure — **data** (the database mark) where it carries attributes or values. A stand-in wears its target's structure and data
 - **a layer draws its key**: what each kind's colour, mark and word mean. The workspace sets the default; a layer may override it
 
 
@@ -228,13 +230,14 @@ Most rules below are one of these applied.
 **The explorer browses; the canvas draws what was opened.**
 
 - the explorer is a **section chain**: each section holds one context and the next lists what it holds. mndmap: collection → document, the package fixed and hidden
-- **mndflow's two sections stand apart**: definitions lists every package, a top row each, folded until opened; **structure always lists every definition holding structure**, in every loaded package, whatever definitions holds. Choosing a definition opens its tree in structure, never changes what structure lists. A definition opened to be built lists there while the canvas is inside it
+- **mndflow's two sections list by kind**: both folded until opened. **Definitions lists every package**, then the definition side — folders and definitions, a definition as a leaf. **Structure lists a package only when it holds structure**: under it, the definition-side blocks on the way to any structure, and the structure itself. A definition or folder with nothing below it in structure does not list, unless the canvas is inside that definition, in which case it lists until you leave. A new workspace holds one plain block, so the workspace lists. Choosing a definition opens its row in structure once it has one, and never changes what structure lists
+- **add makes what its section lists**: with structure in focus, a plain block under the picked row, or under the package root; with definitions in focus, a definition. Never in a frozen package
 - **browse**: choosing a row selects it and the tray shows it. **Inside the structure the canvas draws, the canvas follows**: it goes to the layer the block is drawn on and picks it there. Browsing anywhere else never moves it
 - **focus is lit**: a subtle wash on the row of the block the canvas draws and every row under it, the accent's edge on its own row too, and a strong wash on the selected row and its card
 - **trees start folded**: every branch is shut until opened, and the way to the open layer and to a new pick opens once. `base` lists first among the packages
 - **every section reads the `parent` tree alike**: what holds branches; a group does not list, and what it holds lists at its level
-- **a row says what its card says**: its icon is the card's, and a definition's row holding structure wears the card's structure mark
-- **open**: Enter, double-click or →. **Opening goes in**, whatever view the section was shown in: a block opens on its own layer view; a definition opened again, or from the structure section, opens on its structure. ← and Backspace leave; a definition's structure leaves for its definition view, a package for the overhead view
+- **a row says what its card says**: its icon is the card's, and a structure root wears the card's structure mark, in both sections. That is the workspace, always, and a definition that holds structure. A folder does not
+- **open**: Enter, double-click or →. **Opening goes in**, whatever view the section was shown in: a block opens on its own layer view; a definition opened again, or from the structure section, opens on its structure; a folder or package root holding both kinds draws what the section it was opened from lists. The canvas starts on the workspace root, as opened from structure. ← and Backspace leave, staying in the section: up to what holds the layer. A package leaves for the overhead view
 - highlighting and crumbs show the canvas's context, never what is browsed. **Crumbs name layers only**, from the tree the layer is in — never the package and folders above it — then the view drawn
 - selecting in the overhead view selects and the sections follow
 - **one navigation**: core's `open_at`, `leave_at`, `reveal_at` and `held_at` decide where the canvas goes and what the sections hold. Both apps call them and decide nothing of their own

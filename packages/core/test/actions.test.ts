@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, related } from "@mnd/fixtures";
-import { MAIN, adjustments, all, children, def_named, fold,
+import { ROOT, adjustments, all, children, def_named, fold,
          attributes_of, holders_in, offer, run, session,
          writes,
          type Context } from "../src/index";
@@ -41,7 +41,7 @@ describe("the registry", () => {
     for (const a of all()) {
       const out = a.run(c, { id: "block_tank", to: "block_hx", from: "block_tank",
                              body: "x", text: "x", name: "f", owner: "block_tank",
-                             target: "block_hx", parent: MAIN, holder: "block_tank",
+                             target: "block_hx", parent: ROOT, holder: "block_tank",
                              members: ["block_tank"], group: "block_hot", dir: "forward",
                              module: "line", kind: "auto", flow: "in",
                              way: "row", at: "0,0", as: "row",
@@ -88,12 +88,12 @@ describe("what an action absorbs", () => {
   it("move covers nesting, promotion and filing with one argument", () => {
     const s = session({ floor: FLOOR });
     s.go("create", { name: "Ledger" });
-    const ledger = children(s.graph(), MAIN)[0]!.id;
+    const ledger = children(s.graph(), ROOT).find((b) => b.name === "Ledger")!.id;
     s.go("create", { name: "Auth", parent: ledger });
     const auth = children(s.graph(), ledger)[0]!.id;
 
-    s.go("move", { id: auth, parent: MAIN });
-    expect(s.graph().blocks[auth]!.parent).toBe(MAIN);
+    s.go("move", { id: auth, parent: ROOT });
+    expect(s.graph().blocks[auth]!.parent).toBe(ROOT);
 
     s.go("move", { id: auth, parent: ledger });
     expect(s.graph().blocks[auth]!.parent).toBe(ledger);
@@ -102,44 +102,46 @@ describe("what an action absorbs", () => {
   /** Where it sits is where you put it. */
   it("orders siblings as they are added, and as they are dropped", () => {
     const s = session({ floor: FLOOR });
+    s.go("delete", { ids: ["start"] });
     for (const name of ["A", "B", "C"]) s.go("create", { name });
-    const named = () => children(s.graph(), MAIN).map((b) => b.name);
+    const named = () => children(s.graph(), ROOT).map((b) => b.name);
     expect(named()).toEqual(["A", "B", "C"]);
 
     /** A gap left by a delete is not somewhere to put the next one. */
-    s.go("delete", { ids: [children(s.graph(), MAIN)[1]!.id] });
+    s.go("delete", { ids: [children(s.graph(), ROOT)[1]!.id] });
     s.go("create", { name: "D" });
     expect(named()).toEqual(["A", "C", "D"]);
 
-    const [a, c, d] = children(s.graph(), MAIN).map((b) => b.id);
-    s.go("move", { id: d!, parent: MAIN, before: a });
+    const [a, c, d] = children(s.graph(), ROOT).map((b) => b.id);
+    s.go("move", { id: d!, parent: ROOT, before: a });
     expect(named()).toEqual(["D", "A", "C"]);
 
     /** Nothing to go in front of is the end of the list. */
-    s.go("move", { id: c!, parent: MAIN });
+    s.go("move", { id: c!, parent: ROOT });
     expect(named()).toEqual(["D", "A", "C"]);
-    s.go("move", { id: a!, parent: MAIN });
+    s.go("move", { id: a!, parent: ROOT });
     expect(named()).toEqual(["D", "C", "A"]);
   });
 
   /** A reorder is not a move out of anywhere, so it shifts no card. */
   it("keeps where a block sits when it stays under the same parent", () => {
     const s = session({ floor: FLOOR });
+    s.go("delete", { ids: ["start"] });
     for (const name of ["A", "B"]) s.go("create", { name });
-    const [a, b] = children(s.graph(), MAIN).map((x) => x.id);
+    const [a, b] = children(s.graph(), ROOT).map((x) => x.id);
     s.adjust("place", adjustments.place([{ id: a!, x: 96, y: 48 }]));
 
-    s.go("move", { id: a!, parent: MAIN, before: b });
+    s.go("move", { id: a!, parent: ROOT, before: b });
     expect(s.graph().blocks[a!]).toMatchObject({ x: 96, y: 48 });
   });
 
   it("appends what arrives from somewhere else", () => {
     const s = session({ floor: FLOOR });
     s.go("create", { name: "Shelf" });
-    const shelf = children(s.graph(), MAIN)[0]!.id;
+    const shelf = children(s.graph(), ROOT).find((b) => b.name === "Shelf")!.id;
     for (const name of ["A", "B"]) s.go("create", { name, parent: shelf });
     s.go("create", { name: "Loose" });
-    const loose = children(s.graph(), MAIN).find((b) => b.name === "Loose")!.id;
+    const loose = children(s.graph(), ROOT).find((b) => b.name === "Loose")!.id;
 
     s.go("move", { id: loose, parent: shelf });
     expect(children(s.graph(), shelf).map((b) => b.name)).toEqual(["A", "B", "Loose"]);
@@ -148,7 +150,7 @@ describe("what an action absorbs", () => {
   it("group makes a boundary without an into, and joins one with it", () => {
     const s = session({ floor: FLOOR });
     s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), MAIN)[0]!.id;
+    const loop = children(s.graph(), ROOT).find((b) => b.name === "Loop")!.id;
     s.look(loop);
     s.go("create", { name: "A" });
     s.go("create", { name: "B" });
@@ -170,7 +172,7 @@ describe("the way out of a layer", () => {
   const seated = () => {
     const s = session({ floor: FLOOR });
     s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), MAIN)[0]!.id;
+    const loop = children(s.graph(), ROOT).find((b) => b.name === "Loop")!.id;
     s.look(loop);
     s.go("create", { name: "Pump" });
     const pump = children(s.graph(), loop)[0]!.id;
@@ -201,7 +203,7 @@ describe("the way out of a layer", () => {
     s.go("open");
     expect(s.layer()).toBe(loop);
     s.go("open");
-    expect(s.layer()).toBe(MAIN);
+    expect(s.layer()).toBe(ROOT);
   });
 });
 
@@ -211,9 +213,9 @@ describe("interfaces sit where a capability allows them", () => {
     const s = session({ floor: FLOOR });
     s.go("create", { name: "A" });
     s.go("create", { name: "B" });
-    const ids = children(s.graph(), MAIN).map((b) => b.id);
+    const ids = children(s.graph(), ROOT).map((b) => b.id);
     s.go("group", { members: ids });
-    const group = holders_in(s.graph(), MAIN)[0]!;
+    const group = holders_in(s.graph(), ROOT)[0]!;
     expect(s.go("interface", { owner: group.id }))
       .toMatch(/takes no interfaces/);
   });
@@ -225,7 +227,7 @@ describe("a field on a layer", () => {
   it("records what a layer draws definitions from", () => {
     const s = seeded();
     s.go("create", { name: "Loop" });
-    const loop = children(s.graph(), MAIN)[0]!.id;
+    const loop = children(s.graph(), ROOT).find((b) => b.name === "Loop")!.id;
     s.look(loop);
     expect(s.go("field", { holder: loop, name: "vocabulary",
                            value: "structure note" })).toBeNull();

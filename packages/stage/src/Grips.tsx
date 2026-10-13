@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ViewportPortal } from "@xyflow/react";
 import type { Id, Point } from "@mnd/core";
-import { box_of, holds, perch_id, FRAME, type Frame, type Scene } from "@mnd/views";
+import { at_seat, box_of, holds, perch_id, FRAME, type Frame, type Scene } from "@mnd/views";
 import type { Adjust, Gesture } from "./gestures";
 import { middle, type Grip } from "./pointer";
 
@@ -23,7 +23,10 @@ export function Grips({ scene, picked, frame, at, onAdjust, onGesture }: GripsPr
     const chosen = new Set(picked);
     const boxes = new Map(scene.nodes.map((n) => [n.id, box_of(n)]));
     /** The room is a border like a card's. */
-    if (frame) boxes.set(FRAME, frame);
+    if (frame) {
+      boxes.set(FRAME, frame);
+      for (const p of frame.ports) boxes.set(p.id, at_seat(frame, p));
+    }
     /** Where the line meets the grown room's wall. */
     const met = new Map((frame?.seats ?? []).map((t) => [t.id, t]));
     const out: Grip[] = [];

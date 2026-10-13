@@ -1,7 +1,7 @@
 /** Where line ends and interfaces meet a border: one anchor per face, interfaces beside it. */
 
-import { children, is_group, is_interface, is_tie, type Flow, type Graph, type Id, type Relation,
-         type Side } from "@mnd/core";
+import { children, is_aside, is_group, is_interface, is_tie, type Flow, type Graph, type Id,
+         type Relation, type Side } from "@mnd/core";
 import { STUB } from "./route";
 import { PORT, SEAT, seat_frac, seat_marks } from "./size";
 
@@ -198,40 +198,54 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
   /** Ends meeting an interface look at where it now sits. */
   for (const e of lines.filter(to_port)) for (const end of ENDS) anchor(e, end);
 
-  /** Two boxes facing each other squarely, met straight across the gap: at the middle of where
-   *  their faces overlap, where no line or interface is there already. */
-  const across = (ia: Id, a: Rect, ib: Id, b: Rect): [Seat, Seat] | null => {
-    const sa = facing(a, b);
-    const sb = facing(b, a);
-    const down = sa === "left" || sa === "right";
-    const lo = Math.max(down ? a.y : a.x, down ? b.y : b.x);
-    const hi = Math.min(down ? a.y + a.h : a.x + a.w, down ? b.y + b.h : b.x + b.w);
-    if (hi <= lo || (sa === "left" || sa === "right") !== (sb === "left" || sb === "right")) {
-      return null;
-    }
-    const mid = (lo + hi) / 2;
-    const free = (id: Id, side: Side) =>
-      (taken.get(`${id}|${side}`) ?? []).every((t) => Math.abs(t - mid) >= SEAT / 2);
-    if (!free(ia, sa) || !free(ib, sb)) return null;
-    return [{ side: sa, at: seat_frac(mid, origin(a, sa), extent(a, sa)) },
-            { side: sb, at: seat_frac(mid, origin(b, sb), extent(b, sb)) }];
-  };
-
-  /** A tie meets a card or the room straight across where they face each other, else at their
-   *  nearest corners; an interface at its middle. */
+  /** A tie runs straight. Where the two cards sit square — directly beside or below — each meets
+   *  the tie at the free slot nearest the middle of the overlap, so the run crosses the gap
+   *  straight. Where a note sits off a corner, that note keeps the corner and the card takes the
+   *  slot nearest it. An interface is its small box, and the tie meets a corner of that. */
   const hidden = new Set<Id>();
   const tie_box = (id: Id): Rect | undefined => {
     const seat = owned.has(id) ? ports.get(id) : undefined;
     return seat ? at_seat(box_of(id)!, seat) : boxes.get(id);
+  };
+  const land = (e: Relation, end: "from" | "to", seat: Seat) => {
+    const id = e[end];
+    if (!owned.has(id) && !boxes.has(id)) return;
+    perches.push({ edge: e.id, end, on: id, ...seat });
+  };
+  /** The free central slot on `side` nearest `along`. */
+  const slot_at = (id: Id, self: Rect, side: Side, along: number): Seat => {
+    const at = free_at(self, side, along, taken.get(`${id}|${side}`) ?? []);
+    take(id, side, origin(self, side) + at * extent(self, side));
+    return { side, at };
+  };
+  /** The free central slot on the face looking at `other`, nearest where `other` sits. */
+  const slot_for = (id: Id, self: Rect, other: Rect): Seat => {
+    const side = facing(self, other);
+    const along = side === "left" || side === "right"
+      ? other.y + other.h / 2 : other.x + other.w / 2;
+    return slot_at(id, self, side, along);
+  };
+  /** A square neighbour meets at the overlap; a note off a corner keeps the corner. */
+  const meet = (id: Id, self: Rect, other: Rect, aside: boolean): Seat => {
+    const square = square_side(self, other);
+    if (square) return slot_at(id, self, square, overlap_mid(self, other, square));
+    return aside ? corner_near(self, other) : slot_for(id, self, other);
   };
   for (const e of ties) {
     const a = tie_box(e.from);
     const b = tie_box(e.to);
     if (!a || !b) continue;
     if (overlaps(a, b) && !holds(a, b) && !holds(b, a)) { hidden.add(e.id); continue; }
-    const [p, q] = across(e.from, a, e.to, b) ?? corners(a, b);
-    if (!owned.has(e.from)) perches.push({ edge: e.id, end: "from", on: e.from, ...p });
-    if (!owned.has(e.to)) perches.push({ edge: e.id, end: "to", on: e.to, ...q });
+    const cornered = owned.has(e.from) || owned.has(e.to)
+      || (is_aside(graph, e.from) && is_aside(graph, e.to));
+    if (cornered) {
+      const pair = nearest_corners(a, b);
+      land(e, "from", pair.from);
+      land(e, "to", pair.to);
+      continue;
+    }
+    land(e, "from", meet(e.from, a, b, is_aside(graph, e.from)));
+    land(e, "to", meet(e.to, b, a, is_aside(graph, e.to)));
   }
 
   return { perches, ports, fans: fans_of(lines, perches, ports, owned, boxes, frame?.id), hidden };
@@ -241,22 +255,58 @@ const ENDS = ["from", "to"] as const;
 
 const OPPOSITE: Record<Side, Side> = { left: "right", right: "left", top: "bottom", bottom: "top" };
 
-/** A card's corners, as seats at either end of its top and bottom. */
-const CORNERS: readonly Seat[] = [{ side: "top", at: 0 }, { side: "top", at: 1 },
-                                  { side: "bottom", at: 0 }, { side: "bottom", at: 1 }];
+/** The four corners of a card. A tie leaves one when a note sits off a corner. */
+const CORNERS: readonly Seat[] = [
+  { side: "top", at: 0 }, { side: "top", at: 1 },
+  { side: "bottom", at: 0 }, { side: "bottom", at: 1 },
+];
 
-/** The nearest corners of two boxes, one on each. */
-function corners(a: Rect, b: Rect): [Seat, Seat] {
+/** The corner of `box` nearest `to`. A box is read at its centre. */
+function corner_near(box: Rect, to: Rect | { x: number; y: number }): Seat {
+  const point = "w" in to ? { x: to.x + to.w / 2, y: to.y + to.h / 2 } : to;
+  let best = { d: Infinity, seat: CORNERS[0]! };
+  for (const seat of CORNERS) {
+    const p = point_at(box, seat);
+    const d = Math.hypot(p.x - point.x, p.y - point.y);
+    if (d < best.d - 0.5) best = { d, seat };
+  }
+  return best.seat;
+}
+
+/** The side `self` faces `other` across a gap, when their other axis overlaps. Otherwise they
+ *  sit off a corner of each other. */
+function square_side(self: Rect, other: Rect): Side | null {
+  const ox = Math.min(self.x + self.w, other.x + other.w) - Math.max(self.x, other.x);
+  const oy = Math.min(self.y + self.h, other.y + other.h) - Math.max(self.y, other.y);
+  if (ox > SEAT && oy <= 0) return self.y + self.h <= other.y ? "bottom" : "top";
+  if (oy > SEAT && ox <= 0) return self.x + self.w <= other.x ? "right" : "left";
+  return null;
+}
+
+/** The middle of where two boxes overlap, along `side`. */
+function overlap_mid(self: Rect, other: Rect, side: Side): number {
+  if (side === "left" || side === "right") {
+    const lo = Math.max(self.y, other.y);
+    const hi = Math.min(self.y + self.h, other.y + other.h);
+    return (lo + hi) / 2;
+  }
+  const lo = Math.max(self.x, other.x);
+  const hi = Math.min(self.x + self.w, other.x + other.w);
+  return (lo + hi) / 2;
+}
+
+/** The nearest corners of two cards, one on each. A tie to an interface runs between them. */
+function nearest_corners(a: Rect, b: Rect): { from: Seat; to: Seat } {
   let best = { d: Infinity, from: CORNERS[0]!, to: CORNERS[0]! };
-  for (const p of CORNERS) {
-    for (const q of CORNERS) {
-      const s = point_at(a, p);
-      const t = point_at(b, q);
-      const d = Math.hypot(t.x - s.x, t.y - s.y);
-      if (d < best.d - 0.5) best = { d, from: p, to: q };
+  for (const from of CORNERS) {
+    const p = point_at(a, from);
+    for (const to of CORNERS) {
+      const q = point_at(b, to);
+      const d = Math.hypot(q.x - p.x, q.y - p.y);
+      if (d < best.d - 0.5) best = { d, from, to };
     }
   }
-  return [best.from, best.to];
+  return best;
 }
 
 /** Where each line turns: out from the busier end, halfway to the nearest card its anchor reaches.

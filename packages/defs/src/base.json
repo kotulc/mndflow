@@ -240,6 +240,15 @@
           "is_port"
         ]
       },
+      "is_aside": {
+        "id": "is_aside",
+        "parent": "base.dir.tags.traits",
+        "name": "is_aside",
+        "type": "trait",
+        "def": {},
+        "body": "Floats in the nearest free space beside what it is tied to, a unit clear of surrounding cards.",
+        "order": 6
+      },
       "is_grid": {
         "id": "is_grid",
         "parent": "base.dir.tags.traits",
@@ -247,7 +256,7 @@
         "type": "trait",
         "def": {},
         "body": "Seats text and blocks in the cells of a grid, drawn when it is opened.",
-        "order": 6,
+        "order": 7,
         "settings": {
           "holder": {
             "matrix": true
@@ -261,7 +270,7 @@
         "type": "trait",
         "def": {},
         "body": "Draws what it holds in place, on the layer it sits on, rather than behind its card.",
-        "order": 7,
+        "order": 8,
         "settings": {
           "holder": {
             "inline": true
@@ -275,7 +284,7 @@
         "type": "trait",
         "def": {},
         "body": "Is a port: an interface seated on its owner's wall, where relationships enter and leave.",
-        "order": 8,
+        "order": 9,
         "settings": {
           "block": {
             "module": "interface"
@@ -289,7 +298,7 @@
         "type": "trait",
         "def": {},
         "body": "Stands for another block, definition or package (`of`): draws as it, opens onto it, owns nothing.",
-        "order": 9,
+        "order": 10,
         "settings": {
           "block": {
             "module": "reference"
@@ -302,8 +311,8 @@
         "name": "is_tie",
         "type": "trait",
         "def": {},
-        "body": "Is a tie: a line drawn straight from card to card, dashed, never routed round what lies between.",
-        "order": 10
+        "body": "Is a tie: a straight run from a corner of an aside card to a free slot on what it is tied to. No anchor, and never routed.",
+        "order": 11
       },
       "line": {
         "id": "line",
@@ -353,7 +362,8 @@
         },
         "traits": [
           "has_values",
-          "has_tie"
+          "has_tie",
+          "is_aside"
         ]
       },
       "number": {

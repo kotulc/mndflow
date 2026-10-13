@@ -1,7 +1,7 @@
 /** A graph out as SysML, and the same text back as a graph. */
 
 import { block_base, children, config_of, edge_base, edges_in, empty_graph, is_interface,
-         of_ref, base_of, owner_of, path, shown_name, MAIN, SCHEMA,
+         of_ref, on_side, base_of, owner_of, path, shown_name, SCHEMA,
          type Block, type Graph, type Id, type Relation } from "@mnd/core";
 
 /** What each block module is called, absent a definition that says otherwise. */
@@ -51,17 +51,22 @@ function block(graph: Graph, b: Block, depth: number): string[] {
   const stands = of ? ` -> ${address(graph, of)}` : "";
   const head = `${pad}${keyword(graph, b.id)} ${quoted(shown_name(graph, b.id))}${type}${stands}`;
   const inside = [
-    ...children(graph, b.id).flatMap((k) => block(graph, k, depth + 1)),
+    ...structure(graph, b.id).flatMap((k) => block(graph, k, depth + 1)),
     ...edges_in(graph, b.id).map((e) => `${pad}  ${relation(graph, e)}`),
   ];
   return inside.length ? [`${head} {`, ...inside, `${pad}}`] : [`${head};`];
 }
 
-/** The workspace's structure, built in `main`, as one package. */
+/** What a block holds that is structure: definitions, and folders of nothing else, stay out. */
+function structure(graph: Graph, id: Id): Block[] {
+  return children(graph, id).filter((k) => !k.def && on_side(graph, k.id, "structure"));
+}
+
+/** The workspace root's structure, as one package. */
 export function to_sysml(graph: Graph): string {
   const inside = [
-    ...children(graph, MAIN).flatMap((b) => block(graph, b, 1)),
-    ...edges_in(graph, MAIN).map((e) => `  ${relation(graph, e)}`),
+    ...structure(graph, graph.root).flatMap((b) => block(graph, b, 1)),
+    ...edges_in(graph, graph.root).map((e) => `  ${relation(graph, e)}`),
   ];
   return [`package ${quoted(shown_name(graph, graph.root))} {`, ...inside, "}", ""].join("\n");
 }
@@ -95,7 +100,7 @@ export function from_sysml(text: string, known: readonly Block[] = []): Graph {
   const graph = empty_graph();
   for (const b of known) graph.blocks[b.id] ??= b;
   const trail: string[] = [];
-  const held: Id[] = [MAIN];
+  const held: Id[] = [graph.root];
   const links: { word: string; from: string[]; to: string[]; type?: string }[] = [];
   const stands: { id: Id; at: string[] }[] = [];
   let n = 0;
@@ -126,7 +131,7 @@ export function from_sysml(text: string, known: readonly Block[] = []): Graph {
     /** The outermost package is the workspace itself, not a block in it. */
     if (held.length === 1 && word === "package" && !graph.blocks[at([label])]) {
       graph.blocks[graph.root]!.name = name;
-      if (line.opens) held.push(MAIN);
+      if (line.opens) held.push(graph.root);
       continue;
     }
 

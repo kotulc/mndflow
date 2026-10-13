@@ -29,7 +29,7 @@
 
 | Term | Means |
 |---|---|
-| **holder** | a block holding by `parent` and organizing what it holds: **folder**, **group**, **grid**. A folder is one by its base; a group or grid by its *is group* and *is grid* traits. Not a definition; it organizes a domain or a structure alike |
+| **holder** | a block holding by `parent` and organizing what it holds: **folder**, **group**, **grid**. A folder is one by its base; a group or grid by its *is group* and *is grid* traits. Not a definition; it organizes a domain or a structure alike, and a folder in a domain may hold both |
 | **tree** | a non-holder block whose ancestors up to its package are all holders: a definition, or a usage placed in the domain |
 | **domain** | a package root, the holders under it, and the trees they organize |
 | **structure** | everything under a tree's root: usages and holders, to any depth |
@@ -115,10 +115,10 @@
 | **flatten** | drawing each block that holds as a box of its contents, so the whole system reads on one page. The overhead and profile views draw flattened, every box a solid rim; a group is a box somebody made, dashed |
 | **profile** | the system from the side: one row per level along the pick, each a box as wide as the widest — every package, then what each block on the way holds, last what the pick holds. A line points from each block on the way down to the row it holds |
 | **projection** | a view of the slice the sections hold, from one layer. Read-through, flatten and layout are applied in it; nothing is stored |
-| **layout** | how a layer places what it draws, and which diagram it opens on: a setting (`layout.kind`, `layout.cards`, `layout.view`), said by a definition and overridable by a block. `kind` is `free`, `auto` or `page`. Unsaid, `auto`. `view` is `class`, `swimlane` or `sequence`; a name this build does not know opens on the capability view |
+| **layout** | how a layer places what it draws, and which diagram it opens on: a setting (`layout.kind`, `layout.cards`, `layout.view`, `layout.across`), said by a definition and overridable by a block. `kind` is `free`, `auto` or `page`. Unsaid, `auto`: blocks `across` to a row, notes in a column on the right, a tied note on its block's row. `across` unsaid is the host's default for its page shape. `view` is `class`, `swimlane` or `sequence`; a name this build does not know opens on the capability view |
 | **frame** / **wall** / **band** | the open layer's border seen from within, one of its four sides, and the dimmed margin outside it |
 | **mark** | how a card or row reads, derived every draw: reference, missing, note, holder, interface, container, part (from a definition) |
-| **system mark** | what a card stands for, bottom right, at most three stacked: a stand-in's word (`Def`, `Ref`, `Pkg`), **structure** on a definition holding structure — never a block inside one, a package or a folder — **data** where it carries attributes or values |
+| **system mark** | what a card stands for, bottom right, at most three stacked: a stand-in's word (`Def`, `Ref`, `Pkg`), **structure** on a structure root — the workspace, always, and a definition that holds structure; never a folder, another package, or a block inside a structure — **data** where it carries attributes or values |
 | **seat** / **anchor** | a place on a border a line may meet; a seat a relationship arrives at with no block behind it |
 
 
@@ -127,10 +127,10 @@
 | Term | Means |
 |---|---|
 | **section** | one listing in the explorer: what the section above holds, filtered by role — or, standing apart, a listing of its own |
-| **mndflow** | definitions and structure, standing apart: definitions lists every package a top row, `base` first, folded until opened; structure always lists every definition holding structure, in every package, and the definition chosen above opens there |
+| **mndflow** | definitions and structure, listing by kind, folded until opened. Definitions lists every package, `base` first, then the definition side. Structure lists a package only when it holds structure, through the definition-side blocks on the way to it. A new workspace holds one plain block, so the workspace lists. A definition with no structure lists there only while the canvas is inside it. The explorer header's tree-root button stays put and is disabled until a definition that may hold is in focus; it opens that definition's empty structure, and the structure section's add parents the first block under it. *Add* makes what the section in focus lists |
 | **mndmap** | collection → document: mndflow's chain with the package fixed to the workspace and hidden |
 | **browse** | choosing a row: selects it and the tray shows it. Inside the structure the canvas draws it reveals the block; anywhere else the canvas stays |
-| **open** | Enter, double-click or →: goes in, whatever view the section was shown in. A block opens on its own layer view: a package or folder on its folder view, a definition on its definition view, a grid on its grid view; a group has no row; picked on the canvas, it is revealed where it is and the explorer lights the nearest row listing it. ← and Backspace leave, a tree's top for the overhead view |
+| **open** | Enter, double-click or →: goes in, whatever view the section was shown in. A block opens on its own layer view: a package or folder on its folder view, drawing what the section it was opened from lists, a definition on its definition view, a grid on its grid view; a group has no row; picked on the canvas, it is revealed where it is and the explorer lights the nearest row listing it. ← and Backspace leave, a tree's top for the overhead view |
 | **context** | what the canvas has open. Highlighting and breadcrumbs show it, never what is browsed |
 | **reveal** | a row picked within the structure the canvas draws moves the canvas to the layer it sits on and picks it; browsing outside it never does |
 | **branch** | the row of the block the canvas draws from inside and the rows under it, lit subtly in the explorer |
@@ -157,7 +157,8 @@
 
 | Term | Means |
 |---|---|
-| **workspace** | the editable package and everything the user holds: its root, the log, the metadata. A new one is its root and `main`, nothing else |
+| **workspace** | the editable package and everything the user holds: its root, the log, the metadata. A new one is its root, nothing else; its `tags` folder is made with its first tag |
+| **definition side** | a package root, a definition, or a folder reached from its package root through folders alone. Every other block is structure. A definition-side folder may hold both |
 | **graph** | `root`, `blocks`, `edges`. Every package in use, one graph, folded from one log |
 | **file** | the graph in an envelope, `{ schema, id, graph, meta }`, as JSON. **State, never history** |
 | **package file** | a package as JSON. **Every package is one**, `base` and `markdown` included; workspaces, settings and every element are definable as JSON. A collection adds markdown card sources beside it |

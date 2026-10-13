@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, flat, nested, related, NAMES as FIXTURES } from "@mnd/fixtures";
-import { children, fold, session, MAIN, type Graph, type Id } from "@mnd/core";
+import { children, fold, session, ROOT, type Graph, type Id } from "@mnd/core";
 import { box_of, draw, faults, look_of, outline, project, EMPTY, type Scene } from "../src/index";
 
 const NAMES = FIXTURES;
@@ -106,12 +106,12 @@ describe("what the projection shows", () => {
   it("reads a reference's target, and says missing when it is gone", () => {
     const s = session({ floor: FLOOR });
     s.go("create", { name: "Ledger" });
-    const ledger = children(s.graph(), MAIN)[0]!.id;
+    const ledger = children(s.graph(), ROOT).find((b) => b.name === "Ledger")!.id;
     s.go("create", { name: "Auth", parent: ledger });
     const auth = children(s.graph(), ledger)[0]!.id;
     s.go("refer", { target: auth });
 
-    const ref = () => project(s.graph(), MAIN).nodes.find((b) =>
+    const ref = () => project(s.graph(), ROOT).nodes.find((b) =>
       b.data.marks.includes("reference"))!;
     expect(ref().data.label).toBe("Auth");
 
@@ -122,7 +122,7 @@ describe("what the projection shows", () => {
   it("carries a trail from the tree down to the layer, never the package", () => {
     const graph = fold(nested(), FLOOR);
     const trail = project(graph, "block_rate").trail.map((t) => t.id);
-    expect(trail[0]).toBe(MAIN);
+    expect(trail[0]).toBe("block_ledger");
     expect(trail.at(-1)).toBe("block_rate");
   });
 

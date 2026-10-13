@@ -23,7 +23,7 @@ export function belongs_to(graph: Graph, layer: Id | null, b: Block): Id[] {
   return is_reference(graph, b.id) ? layer_targets(graph, layer, b.id) : tie_targets(graph, layer, b.id);
 }
 
-function tie_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
+export function tie_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
   const out: Id[] = [];
   for (const e of edges_in(graph, layer)) {
     if (!is_tie(graph, e.id)) continue;

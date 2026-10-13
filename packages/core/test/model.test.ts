@@ -3,14 +3,14 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR } from "@mnd/fixtures";
-import { MAIN, ROOT, check, children, def_of, is_grid,
+import { ROOT, check, children, def_of, is_grid,
          session, type Id, type Session } from "../src/index";
 
 /** A seeded session holding blocks of these names in `main`. */
 function made(...names: string[]): { s: Session; at: (name: string) => Id } {
   const s = session({ floor: FLOOR });
   for (const name of names) s.go("create", { name });
-  const at = (name: string) => children(s.graph(), MAIN).find((b) => b.name === name)!.id;
+  const at = (name: string) => children(s.graph(), ROOT).find((b) => b.name === name)!.id;
   return { s, at };
 }
 
@@ -96,7 +96,7 @@ describe("a batch", () => {
     });
     expect(s.log().length).toBe(was + 1);
     s.undo();
-    expect(children(s.graph(), MAIN)).toEqual([]);
+    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["block"]);
   });
 });
 
@@ -105,6 +105,6 @@ describe("a group", () => {
   it("stands when it was made empty", () => {
     const { s } = made();
     s.go("group", { rows: 1, cols: 1 });
-    expect(children(s.graph(), MAIN).some((h) => is_grid(s.graph(), h.id))).toBe(true);
+    expect(children(s.graph(), ROOT).some((h) => is_grid(s.graph(), h.id))).toBe(true);
   });
 });

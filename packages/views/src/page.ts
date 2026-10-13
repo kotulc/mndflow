@@ -14,10 +14,11 @@ import { size_of, GAP, PAD } from "./size";
 const ACROSS = 4;
 
 
-/** How many cards a layer's rows hold: as many as its `layout` setting's `across` says, else four. */
-export function across_of(graph: Graph, layer: Id | null): number {
+/** How many cards a layer's rows hold: as many as its `layout` setting's `across` says, else the
+ *  host's fallback (four, where the host says nothing). */
+export function across_of(graph: Graph, layer: Id | null, fallback = ACROSS): number {
   const said = layer ? setting_of(graph, layer, "layout") : {};
-  return typeof said["across"] === "number" ? Math.max(1, said["across"]) : ACROSS;
+  return typeof said["across"] === "number" ? Math.max(1, said["across"]) : fallback;
 }
 
 /** A layer placed as a page, its blocks already sized. Its `layout` setting may say how many cards

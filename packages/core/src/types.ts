@@ -8,9 +8,6 @@ export const ROOT = "workspace";
 /** The shipped package's root. */
 export const BASE_PACKAGE = "base";
 
-/** The plain definition a new workspace builds its structure in. */
-export const MAIN = "main";
-
 /** A place on a layer. */
 export type Point = { x: number; y: number };
 
@@ -185,15 +182,11 @@ export type Graph = {
 /** The folder a workspace files the tags it makes in. */
 export const TAGS = "tags";
 
-/** A fresh workspace: its package root, `main`, and the folder its tags are filed in. Every other
- *  grouping is the user's. */
+/** A fresh workspace: its package root, and nothing else. Tags are filed when the first one is
+ *  made. Every grouping is the user's. */
 export function empty_graph(): Graph {
-  const blocks: Block[] = [
-    { id: ROOT, parent: null, name: "workspace" },
-    { id: MAIN, parent: ROOT, name: "main", def: {}, order: 1 },
-    { id: TAGS, parent: ROOT, name: "tags", type: "folder", order: 2 },
-  ];
-  return { root: ROOT, blocks: Object.fromEntries(blocks.map((b) => [b.id, b])), edges: {} };
+  const root: Block = { id: ROOT, parent: null, name: "workspace" };
+  return { root: ROOT, blocks: { [ROOT]: root }, edges: {} };
 }
 
 /** The closed mutation set. A new sort of thing is a definition, not an op. */

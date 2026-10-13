@@ -124,10 +124,14 @@ export function App({ storage, boot, opening }: {
    *  anything is placed. */
   apply_card(card.w, card.h);
 
-  /** How many cards the overhead view's rows hold: as many as the canvas is wide. */
+  /** How many cards a row holds: a page (overhead, profile, folder) as many as the canvas is wide;
+   *  any other layer four on a landscape canvas, two on a taller one. */
   const [canvas, set_canvas] = useState<HTMLElement | null>(null);
-  const room = useWidth(canvas);
-  const across = Math.max(2, Math.floor(room / ((card.w + UNITS.gap) * UNITS.unit * READ)) );
+  const room = useBox(canvas);
+  const paged = !is_layer_view(view.kind) || view.kind === "folder";
+  const across = paged
+    ? Math.max(2, Math.floor(room.w / ((card.w + UNITS.gap) * UNITS.unit)))
+    : room.h > room.w ? 2 : 4;
 
   /** What a profile cuts through: what the canvas brought into sight — browsing never moves it. */
   const target = view.kind !== "profile" ? null : view.pick ?? view.layer;
@@ -135,8 +139,10 @@ export function App({ storage, boot, opening }: {
   /** Projected once per graph, view, layer or proportion change — and, for a profile, per pick. */
   const scene = useMemo(
     () => project(graph, view.layer, { interfaces: shown.interfaces, across,
-                                       look: { kind: view.kind, cut: SLICES[0]!.cut,
-                                               tops: true, target } }),
+                                       look: { kind: view.kind, cut: SLICES[view.at]!.cut,
+                                               tops: true, target,
+                                               ...(SLICES[view.at]!.lists
+                                                 ? { lists: SLICES[view.at]!.lists } : {}) } }),
     [graph, view.layer, view.kind, view.at, target, shown.interfaces, card, across]);
 
   /** A diagram names no layer slot: the canvas may open a card, and it writes nothing. */
@@ -429,17 +435,16 @@ export function App({ storage, boot, opening }: {
 /** The editor's sections, made once. */
 const SLICES = editor_slices();
 
-/** How large the overhead view draws a card: its own size. */
-const READ = 1;
-
-/** How wide an element is, in pixels, as it is resized; nothing until there is one. */
-function useWidth(element: HTMLElement | null): number {
-  const [width, set_width] = useState(0);
+/** How big an element is, in pixels, as it is resized; nothing until there is one. */
+function useBox(element: HTMLElement | null): { w: number; h: number } {
+  const [box, set_box] = useState({ w: 0, h: 0 });
   useEffect(() => {
     if (!element) return;
-    const watch = new ResizeObserver(([entry]) => set_width(entry?.contentRect.width ?? 0));
+    const watch = new ResizeObserver(([entry]) => set_box({
+      w: entry?.contentRect.width ?? 0, h: entry?.contentRect.height ?? 0,
+    }));
     watch.observe(element);
     return () => watch.disconnect();
   }, [element]);
-  return width;
+  return box;
 }

@@ -4,7 +4,8 @@
  *  `emit` writes through core and refuses a file the door would fault. */
 
 import { readFileSync } from "node:fs";
-import { read, write, type Block, type Graph, type Id, type Relation } from "@mnd/core";
+import { names_in, read_card, write, read, USAGE_KEYS, type Block, type Graph, type Id,
+         type Relation } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 
 const U = 24;
@@ -37,12 +38,12 @@ export function builder() {
     blocks[block.id] = block;
   }
 
-  /** A folder of the workspace's definitions, named for what it holds, under a parent. */
-  function shelf(id: Id, name: string, parent: Id = "workspace"): void {
+  /** A folder holding the definitions a topic needs and the layers that show them. */
+  function folder(id: Id, name: string, parent: Id = "workspace"): void {
     blocks[id] = { id, parent, name, type: "folder", order: order(parent) };
   }
 
-  /** A workspace definition, in a folder. */
+  /** A workspace definition. Its default parent is the root. */
   function def(id: Id, name: string, type: Id | undefined, settings?: More,
                more: More = {}, parent: Id = "workspace"): void {
     blocks[id] = { id, parent, name, type, def: {}, order: order(parent),
@@ -54,13 +55,12 @@ export function builder() {
     blocks[id] = { id, parent, alias: serial(kind), order: order(parent), ...more } as Block;
   }
 
-  /** A layer: a block on the root canvas, of the given type, opening onto its own drawing. */
-  function layer(id: Id, name: string, type?: Id, more: More = {}): void {
-    put(id, "main", "block", { name, ...(type ? { type } : {}), ...more });
+  /** A block under a folder or the root, opening onto its own drawing. */
+  function layer(id: Id, name: string, parent: Id, type?: Id, more: More = {}): void {
+    put(id, parent, "block", { name, ...(type ? { type } : {}), ...more });
   }
 
-  /** The note heading a layer, saying what to look for: as tall as its text wraps to, at the
-   *  face's measure (views `note_h`). */
+  /** The note heading a layer: as tall as its text wraps to, at the face's measure. */
   function note(layer_id: Id, text: string, w = 15): void {
     const lines = Math.ceil(text.length / Math.floor((w * U - 29) / 7.2));
     const h = Math.max(3, Math.ceil((12 + lines * 16) / U));
@@ -68,7 +68,40 @@ export function builder() {
         { name: text, type: "note", w: w * U, h: h * U });
   }
 
-  /** A line; `dir` is said as its `line.dir` setting, as any line says which way it points. */
+  /** A note beside a block, and a tie from the note to it. The block must already be put. */
+  function explain(id: Id, text: string, w = 8): void {
+    const at = blocks[id];
+    if (!at?.parent) throw new Error(`explain ${id} before it is put`);
+    const lines = Math.ceil(text.length / Math.floor((w * U - 29) / 7.2));
+    const h = Math.max(2, Math.ceil((12 + lines * 16) / U));
+    const note_id = `n_${id}`;
+    put(note_id, at.parent, "note", { name: text, type: "note", w: w * U, h: h * U });
+    link(`t_${id}`, note_id, id, { type: "tie" });
+  }
+
+  /** A markdown file onto a new block, or onto one already put when no parent is given. */
+  function card(id: Id, file: string, parent?: Id): void {
+    const { front, body } = read_card(readFileSync(file, "utf8"));
+    const tags = names_in(front["tags"]);
+    for (const tag of tags) {
+      if (!blocks[tag]) throw new Error(`${file} names ${tag}, which is not a tag here`);
+    }
+    const values = Object.entries(front)
+      .filter(([k]) => !(USAGE_KEYS as readonly string[]).includes(k))
+      .map(([name, value]) => ({ name, value: String(value) }));
+    const more = {
+      name: String(front["name"] ?? id),
+      ...(front["type"] ? { type: String(front["type"]) } : {}),
+      ...(tags.length ? { tags } : {}),
+      source: String(front["source"] ?? file),
+      ...(values.length ? { values } : {}),
+      ...(body ? { body } : {}),
+    };
+    if (parent) put(id, parent, "block", more);
+    else tune(id, more);
+  }
+
+  /** A line. `dir` is said as its `line.dir` setting. */
   function link(id: Id, from: Id, to: Id, more: More & { dir?: string } = {}): void {
     const { dir, ...rest } = more;
     const prior = rest["settings"] as { line?: More } | undefined;
@@ -117,7 +150,8 @@ export function builder() {
     return text;
   }
 
-  return { serial, order, place, shelf, def, put, layer, note, link, merge, tune, graph, emit };
+  return { serial, order, place, folder, def, put, layer, note, explain, card, link, merge,
+           tune, graph, emit };
 }
 
 export type Builder = ReturnType<typeof builder>;

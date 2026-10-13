@@ -6,9 +6,9 @@
  *  draws and each section's pick subtly. */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { about_of, at_cut, children, domain_of, drop_of, frozen, is_inside, is_layer_view, may_hold,
-         name_taken, new_id, shown_name, tree_of as tree_holding, type Act, type Graph, type Id,
-         type View } from "@mnd/core";
+import { about_of, at_cut, children, domain_of, drop_of, frozen, is_inside,
+         is_layer_view, may_hold, name_taken, new_id, path, roots_structure, shown_name,
+         type Act, type Graph, type Id, type View } from "@mnd/core";
 import { Icon, Name, NamingContext, MARK_ICON, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
@@ -147,7 +147,7 @@ export function Explorer(props: ExplorerProps) {
   const [over, set_over] = useState<{ id: Id; ref: Id; where: "in" | "above" | "below" } | null>(null);
   /** Whether the drop would land on the panel itself, which is the workspace. */
   const [out, set_out] = useState(false);
-  const [menu, set_menu] = useState<{ x: number; y: number } | null>(null);
+  const [menu, set_menu] = useState<{ x: number; y: number; id?: Id } | null>(null);
   /** How wide the panel is, and where a drag of its edge started. */
   const [width, set_width] = useState(WIDTH.first);
   const grip = useRef<{ x: number; w: number } | null>(null);
@@ -171,8 +171,9 @@ export function Explorer(props: ExplorerProps) {
       }
       out.set(all[i]!.id, kin);
     }
-    /** Whether the section in focus lists definitions or packages rather than a structure. */
-    const library = chain.slices[chain.at]!.cut !== null;
+    /** Whether the section in focus lists the definition side. */
+    const slice = chain.slices[chain.at]!;
+    const library = slice.lists === "domain" || (slice.lists === undefined && slice.cut !== null);
     return { folds: out, all, library };
   }, [graph, chain?.at, chain?.held.join("|")]);
 
@@ -209,17 +210,23 @@ export function Explorer(props: ExplorerProps) {
       if (is_shut(r)) fold(r, false);
     }
   }, [seen, sections]);
-  /** In a section listing every tree, the definition held above opens as it is held, and so do
-   *  the canvas's tree and the one its own pick sits inside: choosing a definition shows its
-   *  structure. Once per change, so folding it again stays folded. */
-  const trees = [...chain.roots, ...chain.held].join("|");
+  /** In structure, the definition chosen above, the canvas's layer and the pick open once, so
+   *  folding one again stays folded until the way to it changes. */
+  const trees = [...chain.roots, ...chain.held, view.layer].join("|");
   useEffect(() => {
+    const struct = chain.slices.findIndex((s) => s.lists === "structure");
+    if (struct < 0) return;
+    const want = new Set<Id>();
+    const add = (id: Id | null | undefined) => {
+      if (!id || !graph.blocks[id]) return;
+      for (const b of path(graph, id)) want.add(b.id);
+    };
+    add(chain.held[struct - 1]);
+    add(chain.held[struct]);
+    if (is_layer_view(view.kind)) add(view.layer);
     for (const r of sections.all) {
-      if (r.at === undefined || r.depth !== 1 || !r.kids || !chain.slices[r.at]?.trees) continue;
-      const own = chain.held[r.at];
-      const opens = r.ref === chain.held[r.at - 1] || r.ref === chain.roots[r.at]
-        || (!!own && own !== r.ref && r.ref === tree_holding(graph, own));
-      if (opens && is_shut(r)) fold(r, false);
+      if (r.at !== struct || !r.kids || !want.has(r.ref) || !is_shut(r)) continue;
+      fold(r, false);
     }
   }, [trees]);
   const rows = tree_of(graph, folded, chain);
@@ -287,6 +294,22 @@ export function Explorer(props: ExplorerProps) {
   const zone = landing(graph, over);
   /** The definition held in focus, which the bar's delete takes on the library. */
   const def = library && chain ? chain.held[chain.at] ?? null : null;
+  /** A definition that may be given structure: it can hold, and its package is the workspace's. */
+  const rootable = (id: Id | null | undefined): id is Id => {
+    const b = id ? graph.blocks[id] : undefined;
+    return !!b?.def && may_hold(graph, id!) && !frozen(graph, id!);
+  };
+  const structure_at = chain.slices.findIndex((s) => s.lists === "structure");
+  const structure_tip = (id: Id) => (roots_structure(graph, id)
+    ? "open structure" : `add structure to ${shown_name(graph, id)}`);
+  const open_structure = (id: Id) => onOpen?.({ at: structure_at, id });
+  const header_def = structure_at >= 0 && library && rootable(def) ? def : null;
+  const menu_def = structure_at >= 0 && menu?.id && rootable(menu.id) ? menu.id : null;
+  /** Where the bar's add puts a block: under the row held in focus where it may hold one, else
+   *  under the workspace: every other package is frozen. */
+  const held_row = chain.held[focus];
+  const under_at = held_row && graph.blocks[held_row] ? held_row : graph.root;
+  const under = may_hold(graph, under_at) && !frozen(graph, under_at) ? under_at : graph.root;
   /** Where a new folder goes: on the library, beside the workspace definition in focus. */
   const shelf = !library ? target
     : def && graph.blocks[def] && !frozen(graph, def) ? graph.blocks[def]!.parent : null;
@@ -425,7 +448,7 @@ export function Explorer(props: ExplorerProps) {
    *  elsewhere a block or folder where you are. */
   const add = (type?: string) => {
     const def = library && !type;
-    const parent = type === "folder" ? shelf : def ? shelf ?? graph.root : target;
+    const parent = type === "folder" ? shelf : def ? shelf ?? graph.root : under;
     if (!parent) return;
     // A draft row opens where it goes, its branch unfolded to show it.
     const row = rows.find((r) => r.of === "block" && r.ref === parent && r.at === focus);
@@ -462,6 +485,7 @@ export function Explorer(props: ExplorerProps) {
     <NamingContext.Provider value={typing}>
     <nav className="explorer" aria-label="workspace"
          style={{ width }}>
+      <div className="scroller">
       <div className="bar">
         {/* The bar is tools only; the workspace names itself in the tree. */}
         {(props.extra || show.filter || show.block || show.folder || show.remove) ? (
@@ -474,7 +498,7 @@ export function Explorer(props: ExplorerProps) {
             {props.extra}
             {show.block ? (
               <button title={library ? "add a definition — what it extends says its kind"
-                               : `add a block in ${shown_name(graph, target)}`}
+                               : `add a block in ${shown_name(graph, under)}`}
                       onClick={() => add()}><Icon name="add_block" /></button>
             ) : null}
             {show.folder ? (
@@ -483,6 +507,17 @@ export function Explorer(props: ExplorerProps) {
                       disabled={!shelf}
                       onClick={() => add("folder")}><Icon name="add_folder" /></button>
             ) : null}
+            {/* Only where a structure section exists to open it in. */}
+            {structure_at < 0 ? null : header_def ? (
+              <button title={structure_tip(header_def)}
+                      onClick={() => open_structure(header_def)}>
+                <Icon name="role_root" />
+              </button>
+            ) : (
+              <button title="add structure to the definition in focus" disabled>
+                <Icon name="role_root" />
+              </button>
+            )}
             {show.remove ? (
               <button title={library ? "remove the definition in focus" : "delete what is picked"}
                       disabled={!drop} onClick={() => drop?.()}><Icon name="remove" /></button>
@@ -584,7 +619,7 @@ export function Explorer(props: ExplorerProps) {
                   if (r.of !== "block") return;
                   e.preventDefault();
                   if (!picked.includes(r.ref)) choose(r);
-                  set_menu({ x: e.clientX, y: e.clientY });
+                  set_menu({ x: e.clientX, y: e.clientY, id: r.ref });
                 }}
                 onDoubleClick={() => { if (r.of === "block") opening(r); }}>
               {/* One line per indent column, hung under the mark of the row it belongs to. */}
@@ -616,10 +651,10 @@ export function Explorer(props: ExplorerProps) {
                 ? <span className="label">{r.label}</span>
                 : <Name id={r.id} className="label" text={r.label} />}
               {r.alias ? <span className="alias">{r.alias}</span> : null}
-              {/* Structure of its own wears the card's structure mark, so a row says it before
-                  it is picked. A package holds its definitions, not structure. */}
-              {r.held && graph.blocks[r.ref]?.parent !== null ? (
-                <span className="stamp" title="holds structure">
+              {/* A structure root wears the card's structure mark before it is picked. The
+                  workspace always does; a definition does once it holds structure. */}
+              {r.held ? (
+                <span className="stamp" title="roots structure">
                   <Icon name={MARK_ICON["structure"]!} size={MARK_SIZE - 2} />
                 </span>
               ) : null}
@@ -657,6 +692,7 @@ export function Explorer(props: ExplorerProps) {
                 land(ids, open ?? graph.root);
               }} />
         </ul>
+      </div>
 
       {/* Drag the edge to resize the panel. */}
       <div className="grip" role="separator" aria-orientation="vertical"
@@ -674,6 +710,8 @@ export function Explorer(props: ExplorerProps) {
 
       {menu && offered ? (
         <Menu ctx={{ graph, layer: open, picked: [...picked] }} at={menu}
+              lead={menu_def ? { label: structure_tip(menu_def),
+                                 go: () => open_structure(menu_def) } : null}
               onAct={onAct} onShut={() => set_menu(null)} />
       ) : null}
     </nav>

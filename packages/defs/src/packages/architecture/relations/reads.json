@@ -2,7 +2,7 @@
   "id": "reads",
   "name": "reads",
   "type": "line",
-  "body": "A service reads what a database stores.",
+  "body": "A component reads what a store holds.",
   "def": {},
   "settings": { "line": { "dir": "forward" } }
 }

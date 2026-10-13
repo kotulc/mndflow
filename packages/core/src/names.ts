@@ -1,7 +1,7 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
 import { attributes_of, base_named, base_of, def_at, def_of, edge_base, frozen,
-         tree_of } from "./defs";
+         roots_structure } from "./defs";
 import { is_flat, is_group, shape_of } from "./holders";
 import { children, is_container, of_ref, stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
@@ -128,7 +128,7 @@ export function role_of(graph: Graph, id: Id): Role {
 
 /** The system marks a card wears in its bottom corner: **what it stands for**, never how it
  *  opens — its icon says that. Derived, never set. At most three, in this order: what a stand-in
- *  stands in for, then whether it holds structure, then whether it carries data. */
+ *  stands in for, then whether it roots a structure, then whether it carries data. */
 export type Mark = "reference" | "definition" | "package" | "structure" | "data";
 
 /** What each mark means, in a phrase — the legend's wording, kept beside the type it reads. */
@@ -136,7 +136,7 @@ export const MARK_MEANING: Record<Mark, string> = {
   reference: "stands for a block elsewhere",
   definition: "stands for a definition",
   package: "stands for a package",
-  structure: "holds structure: blocks of its own",
+  structure: "roots a structure",
   data: "carries data: values, or attributes",
 };
 
@@ -154,16 +154,10 @@ export function schema_def(graph: Graph, id: Id): Id | null {
   return own(b.type) ?? children(graph, id).map((k) => own(k.type)).find(Boolean) ?? null;
 }
 
-/** Whether a block holds structure: it sits in a tree and holds blocks there, its interfaces
- *  apart. A package or a folder of definitions holds none. */
-export function holds_structure(graph: Graph, id: Id): boolean {
-  return tree_of(graph, id) !== null && is_container(graph, id);
-}
-
 /** What a card is stamped with: what a stand-in stands in for, then — of the block it stands for,
- *  where it is one — whether that is a definition holding structure, and whether it carries data.
- *  The structure mark tells a definition with structure from one without; a block inside a
- *  structure never wears it. */
+ *  where it is one — whether that block roots a structure, and whether it carries data. The
+ *  structure mark is a structure root: the workspace, or a definition that holds structure.
+ *  Never a folder, and never a block inside a structure. */
 export function stamps_of(graph: Graph, id: Id): Mark[] {
   const b = graph.blocks[id];
   if (!b) return [];
@@ -172,7 +166,7 @@ export function stamps_of(graph: Graph, id: Id): Mark[] {
   const at = of ? graph.blocks[of] : undefined;
   if (of) out.push(at?.def ? "definition" : at?.parent === null ? "package" : "reference");
   const self = at && at.id !== id ? at : b;
-  if (self.def && holds_structure(graph, self.id)) out.push("structure");
+  if (roots_structure(graph, self.id)) out.push("structure");
   if (self.values?.some((v) => v.value) || attributes_of(graph, self.def ? self.id : self.type).length) {
     out.push("data");
   }

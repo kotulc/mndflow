@@ -343,6 +343,7 @@ function SeatNode({ id, data, selected }: NodeProps<BoxNode>) {
             .filter(Boolean).join(" ")}
          title={data.label}>
       <Middle side={data.side} inward={data.on === FRAME} />
+      {data.seats?.length ? <Seats seats={data.seats} inward={data.on === FRAME} /> : null}
     </div>
   );
 }

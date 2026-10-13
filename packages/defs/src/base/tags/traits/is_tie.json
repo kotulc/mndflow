@@ -2,6 +2,6 @@
   "id": "is_tie",
   "name": "is_tie",
   "type": "trait",
-  "body": "Is a tie: a line drawn straight from card to card, dashed, never routed round what lies between.",
+  "body": "Is a tie: a straight run between the nearest corners of the two cards. No anchor, no end mark, and never routed.",
   "def": {}
 }

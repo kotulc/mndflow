@@ -10,10 +10,11 @@ The object graph: **two element kinds**, blocks and relationships, and every oth
 | **package** | a root block (`parent: null`) | its domain: holders and trees |
 | **definition** | a block carrying `def`, in a domain | its structure |
 | **usage** | a block without `def` | its own children; shows its type's structure through |
-| **holder** | a folder, group or grid | whatever its place allows: definitions in a domain, usages in a structure |
+| **holder** | a folder, group or grid | whatever its place allows: a folder in a domain holds definitions and structure alike; in a structure, usages |
 
 - **A definition is a named tree.** It is used and extended by `type`, whether or not anything does, and is never itself placed or linked as an instance.
-- **A usage may be a tree too**, placed straight in a domain. The structure section opens on any tree.
+- **A usage may be a tree too**, placed straight in a domain, under a package root or a domain folder.
+- **Definition side and structure**: a package root, a definition, or a folder reached from its package root through folders alone is on the definition side (`is_domain`); everything else is structure. The explorer's sections list by side. The structure mark (`roots_structure`) is the workspace, always, and a definition that holds structure. A folder never wears it.
 - **Frozen**: any package but the workspace's is read only. A definition from one is subtyped, never edited.
 - **Removing a definition or a package that something uses is refused.** Nothing is rewritten to make way.
 
@@ -83,7 +84,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 | Corner | Says |
 |---|---|
 | **card icon**, top right | what sort of thing this is, or `card.icon`. Filled when the block holds parts |
-| **system mark**, bottom right | what the card stands for, at most three stacked: a stand-in's word (`Ref`, `Def`, `Pkg`), `structure` on a definition holding structure — never a block inside one, a package or a folder — `data` where it carries attributes or values. A stand-in wears its target's. Derived |
+| **system mark**, bottom right | what the card stands for, at most three stacked: a stand-in's word (`Ref`, `Def`, `Pkg`), `structure` on the workspace and on a definition that holds structure — never a folder, another package, or a block inside a structure — `data` where it carries attributes or values. A stand-in wears its target's. Derived |
 | **link mark** | a part seen through a usage: dimmed, with the link glyph, "from `D`" |
 
 

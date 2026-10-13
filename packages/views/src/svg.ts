@@ -157,7 +157,9 @@ function line(edge: LineEdge, scene: Scene, runs: ReadonlyMap<string, { x: numbe
   const b = end_of(edge, "to", scene.nodes, scene.perches, scene.frame);
   if (!a || !b || edge.hidden) return ``;
   const routed = avoided_run(runs.get(edge.id), a, b);
-  const run = routed ?? route(a, a.face, b, b.face, edge.data?.fan, edge.data?.module === "tie");
+  const given = edge.data?.points;
+  const run = given && given.length > 1 ? given
+    : routed ?? route(a, a.face, b, b.face, edge.data?.fan, edge.data?.module === "tie");
   const data = edge.data;
   const end = heads(data);
   /** The name, and the handle where the line asked for one: upright where its leg is too short. */

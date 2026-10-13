@@ -17,7 +17,7 @@ project(graph, layer, config) → Scene
 | `size.ts` | **the one measure.** `UNIT` is a square of the guides; `CELL` is a block plus a gap on every side. Everything else is derived from those |
 | `arrange.ts` | where everything in a layer sits — hand placement under `free`, auto-layout under `auto` |
 | `bands.ts` | members packed inside a band, and seated blocks placed by their cell |
-| `pack.ts` | auto-layout: related clusters around their mates, notes and references beside what they name, the clusters shelved in reading order |
+| `pack.ts` | auto-layout: blocks in reading order, `across` to a row; notes in a column on the right, a tied note on its block's row |
 | `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off |
 | `route.ts` | where a run goes between two borders, round the cards it passes |
 | `block.ts` | the projection: graph and layer in, Scene out |
@@ -39,10 +39,10 @@ project(graph, layer, config) → Scene
 | | Is |
 |---|---|
 | `free` | hand placement, rounded to the lattice |
-| `auto` | auto-layout: stored positions are ignored and every loose block gets a box worked out from the relationships and the sizes. What a layer says nothing about |
+| `auto` | auto-layout: stored positions are ignored; blocks flow in reading order and notes stand in a column on their right. What a layer says nothing about |
 | `page` | holders as full-width boxes down the page: each box's cards in rows wrapping at its width (`layout.across` cards), its own holders below them. What the package view and a folder nobody arranged draw |
 
-**Related blocks share a row or a column and sit one gap apart**; the clusters follow in reading order on a shelf as wide as the page layout's (`page_wide`: `layout.across` cards, which the projection sets to the canvas's width), so a layer laid out `auto` reads down the page as a folder does. Inside a group the shelf is square-ish. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
+**Blocks follow in reading order, `layout.across` to a row** (`across_of`): unsaid, the host's default for its page shape — the web app 4 landscape, 2 portrait; the CLI and exports 4 — so a layer laid out `auto` reads down the page as a folder does. **Notes stand in one column**, a gap right of the widest row: untied notes first, then each tied note at the top of its block's row, stacked where several share one; a row is as tall as the taller of its blocks and its notes. A tie is never routed: it runs straight and draws above the cards it crosses. Inside a group the shelf is square-ish. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
 
 **The picture is written down on the way out of `auto`**, as ordinary placements, so `free` carries on from where `auto` left off.
 

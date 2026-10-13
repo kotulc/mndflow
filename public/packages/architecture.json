@@ -9,13 +9,62 @@
         "parent": null,
         "name": "architecture"
       },
+      "architecture.ad_client": {
+        "id": "architecture.ad_client",
+        "parent": "architecture.adapter",
+        "name": "Client",
+        "type": "architecture.component",
+        "body": "Speaks the outside system's protocol.",
+        "order": 4
+      },
+      "architecture.ad_in": {
+        "id": "architecture.ad_in",
+        "parent": "architecture.adapter",
+        "name": "in",
+        "type": "interface",
+        "flow": "in",
+        "order": 5
+      },
+      "architecture.ad_out": {
+        "id": "architecture.ad_out",
+        "parent": "architecture.adapter",
+        "name": "out",
+        "type": "interface",
+        "flow": "out",
+        "order": 6
+      },
+      "architecture.ad_port": {
+        "id": "architecture.ad_port",
+        "parent": "architecture.adapter",
+        "name": "Inbound API",
+        "type": "architecture.component",
+        "body": "Accepts our model's request.",
+        "order": 2
+      },
+      "architecture.ad_translate": {
+        "id": "architecture.ad_translate",
+        "parent": "architecture.adapter",
+        "name": "Translator",
+        "type": "architecture.component",
+        "body": "Maps the outside model to ours and back.",
+        "order": 3
+      },
+      "architecture.adapter": {
+        "id": "architecture.adapter",
+        "parent": "architecture.patterns",
+        "name": "adapter",
+        "type": "architecture.service",
+        "def": {},
+        "body": "Use when an outside system must be reached without its model leaking into ours.",
+        "order": 3
+      },
       "architecture.calls": {
         "id": "architecture.calls",
         "parent": "architecture.dir.relations",
         "name": "calls",
         "type": "line",
         "def": {},
-        "body": "A service asks another to do something.",
+        "body": "One component asks another to do something.",
         "order": 1,
         "settings": {
           "line": {
@@ -40,7 +89,7 @@
             }
           ]
         },
-        "body": "A piece of the system somebody owns and a technology implements.",
+        "body": "A piece of a system somebody owns and a technology implements.",
         "order": 1,
         "settings": {
           "card": {
@@ -64,7 +113,7 @@
             }
           ]
         },
-        "body": "A component that stores what the services read.",
+        "body": "A component that stores state other components read.",
         "order": 2,
         "settings": {
           "style": {
@@ -78,7 +127,7 @@
         "name": "decision",
         "type": "architecture.document",
         "def": {},
-        "body": "A choice the story records, drawn like a note.",
+        "body": "A recorded choice, drawn like a note.",
         "order": 3,
         "settings": {
           "style": {
@@ -107,7 +156,7 @@
         "name": "document",
         "type": "block",
         "def": {},
-        "body": "A page of the story, read as a document.",
+        "body": "A page read as a document.",
         "order": 4,
         "settings": {
           "card": {
@@ -121,7 +170,7 @@
         "name": "external",
         "type": "architecture.component",
         "def": {},
-        "body": "A component outside the system, drawn with a dashed border.",
+        "body": "A component outside this system, drawn with a dashed border.",
         "order": 5,
         "settings": {
           "style": {
@@ -136,7 +185,7 @@
         "name": "integrates",
         "type": "line",
         "def": {},
-        "body": "A service reaches a system outside its own.",
+        "body": "A component reaches a system outside its own.",
         "order": 2,
         "settings": {
           "line": {
@@ -144,17 +193,290 @@
           }
         }
       },
-      "architecture.message": {
-        "id": "architecture.message",
-        "parent": "architecture.dir.relations",
-        "name": "message",
-        "type": "line",
+      "architecture.layered_service": {
+        "id": "architecture.layered_service",
+        "parent": "architecture.patterns",
+        "name": "layered service",
+        "type": "architecture.service",
         "def": {},
-        "body": "One step asks the next to continue.",
-        "order": 3,
+        "body": "Use when one service owns its rules and its store, and every request should meet them in the same order.",
+        "order": 1
+      },
+      "architecture.ls_api": {
+        "id": "architecture.ls_api",
+        "parent": "architecture.layered_service",
+        "name": "API",
+        "type": "architecture.component",
+        "body": "Accepts a request and hands it to the domain logic.",
+        "order": 2
+      },
+      "architecture.ls_logic": {
+        "id": "architecture.ls_logic",
+        "parent": "architecture.layered_service",
+        "name": "Domain logic",
+        "type": "architecture.component",
+        "body": "Applies the rules. It does not talk to the store.",
+        "order": 3
+      },
+      "architecture.ls_repo": {
+        "id": "architecture.ls_repo",
+        "parent": "architecture.layered_service",
+        "name": "Repository",
+        "type": "architecture.component",
+        "body": "Reads and writes the store for the domain logic.",
+        "order": 4
+      },
+      "architecture.ls_requests": {
+        "id": "architecture.ls_requests",
+        "parent": "architecture.layered_service",
+        "name": "requests",
+        "type": "interface",
+        "flow": "in",
+        "order": 6
+      },
+      "architecture.ls_store": {
+        "id": "architecture.ls_store",
+        "parent": "architecture.layered_service",
+        "name": "Store",
+        "type": "architecture.database",
+        "body": "Holds the service's state.",
+        "order": 5
+      },
+      "architecture.n_ad_client": {
+        "id": "architecture.n_ad_client",
+        "parent": "architecture.adapter",
+        "name": "The only part that speaks the outside protocol.",
+        "type": "note",
+        "h": 72,
+        "order": 9,
+        "w": 216
+      },
+      "architecture.n_ad_port": {
+        "id": "architecture.n_ad_port",
+        "parent": "architecture.adapter",
+        "name": "Accepts a request already in our model.",
+        "type": "note",
+        "h": 72,
+        "order": 7,
+        "w": 216
+      },
+      "architecture.n_ad_translate": {
+        "id": "architecture.n_ad_translate",
+        "parent": "architecture.adapter",
+        "name": "Maps the outside model to ours and back.",
+        "type": "note",
+        "h": 72,
+        "order": 8,
+        "w": 216
+      },
+      "architecture.n_adapter": {
+        "id": "architecture.n_adapter",
+        "parent": "architecture.adapter",
+        "name": "Keeps an outside system's model out of ours: everything crossing is translated in one place.",
+        "type": "note",
+        "h": 96,
+        "order": 1,
+        "w": 288
+      },
+      "architecture.n_layered_service": {
+        "id": "architecture.n_layered_service",
+        "parent": "architecture.layered_service",
+        "name": "Requests enter at the API, rules live in one layer, storage is reached only through the repository.",
+        "type": "note",
+        "h": 96,
+        "order": 1,
+        "w": 288
+      },
+      "architecture.n_ls_api": {
+        "id": "architecture.n_ls_api",
+        "parent": "architecture.layered_service",
+        "name": "The only way in: it accepts the request and does no work of its own.",
+        "type": "note",
+        "h": 72,
+        "order": 7,
+        "w": 216
+      },
+      "architecture.n_ls_logic": {
+        "id": "architecture.n_ls_logic",
+        "parent": "architecture.layered_service",
+        "name": "The rules live here, and nowhere else in the service.",
+        "type": "note",
+        "h": 72,
+        "order": 8,
+        "w": 216
+      },
+      "architecture.n_ls_repo": {
+        "id": "architecture.n_ls_repo",
+        "parent": "architecture.layered_service",
+        "name": "Reads and writes the store; nothing else touches it.",
+        "type": "note",
+        "h": 72,
+        "order": 9,
+        "w": 216
+      },
+      "architecture.n_ls_store": {
+        "id": "architecture.n_ls_store",
+        "parent": "architecture.layered_service",
+        "name": "The service's state, reached only through the repository.",
+        "type": "note",
+        "h": 72,
+        "order": 10,
+        "w": 216
+      },
+      "architecture.n_ob_api": {
+        "id": "architecture.n_ob_api",
+        "parent": "architecture.outbox_service",
+        "name": "The only way in: it accepts the request and does no work of its own.",
+        "type": "note",
+        "h": 72,
+        "order": 10,
+        "w": 216
+      },
+      "architecture.n_ob_logic": {
+        "id": "architecture.n_ob_logic",
+        "parent": "architecture.outbox_service",
+        "name": "Writes the state change and the event in one transaction.",
+        "type": "note",
+        "h": 72,
+        "order": 11,
+        "w": 216
+      },
+      "architecture.n_ob_outbox": {
+        "id": "architecture.n_ob_outbox",
+        "parent": "architecture.outbox_service",
+        "name": "The events, written beside the state they announce.",
+        "type": "note",
+        "h": 72,
+        "order": 14,
+        "w": 216
+      },
+      "architecture.n_ob_relay": {
+        "id": "architecture.n_ob_relay",
+        "parent": "architecture.outbox_service",
+        "name": "Polls the outbox and publishes each event at least once.",
+        "type": "note",
+        "h": 72,
+        "order": 15,
+        "w": 216
+      },
+      "architecture.n_ob_repo": {
+        "id": "architecture.n_ob_repo",
+        "parent": "architecture.outbox_service",
+        "name": "Reads and writes the store; nothing else touches it.",
+        "type": "note",
+        "h": 72,
+        "order": 12,
+        "w": 216
+      },
+      "architecture.n_ob_store": {
+        "id": "architecture.n_ob_store",
+        "parent": "architecture.outbox_service",
+        "name": "The service's state, reached only through the repository.",
+        "type": "note",
+        "h": 72,
+        "order": 13,
+        "w": 216
+      },
+      "architecture.n_outbox_service": {
+        "id": "architecture.n_outbox_service",
+        "parent": "architecture.outbox_service",
+        "name": "A state change and the event announcing it are written together, so neither is lost.",
+        "type": "note",
+        "h": 96,
+        "order": 1,
+        "w": 288
+      },
+      "architecture.ob_api": {
+        "id": "architecture.ob_api",
+        "parent": "architecture.outbox_service",
+        "name": "API",
+        "type": "architecture.component",
+        "body": "Accepts a request and hands it to the domain logic.",
+        "order": 2
+      },
+      "architecture.ob_events": {
+        "id": "architecture.ob_events",
+        "parent": "architecture.outbox_service",
+        "name": "events",
+        "type": "interface",
+        "flow": "out",
+        "order": 9
+      },
+      "architecture.ob_logic": {
+        "id": "architecture.ob_logic",
+        "parent": "architecture.outbox_service",
+        "name": "Domain logic",
+        "type": "architecture.component",
+        "body": "Applies the rules and writes the announcement in the same transaction.",
+        "order": 3
+      },
+      "architecture.ob_outbox": {
+        "id": "architecture.ob_outbox",
+        "parent": "architecture.outbox_service",
+        "name": "Outbox",
+        "type": "architecture.database",
+        "body": "Holds the events written in the same transaction as the state change.",
+        "order": 6
+      },
+      "architecture.ob_relay": {
+        "id": "architecture.ob_relay",
+        "parent": "architecture.outbox_service",
+        "name": "Outbox relay",
+        "type": "architecture.component",
+        "body": "Publishes each outbox event, and retries until it has.",
+        "order": 7
+      },
+      "architecture.ob_repo": {
+        "id": "architecture.ob_repo",
+        "parent": "architecture.outbox_service",
+        "name": "Repository",
+        "type": "architecture.component",
+        "body": "Reads and writes the store for the domain logic.",
+        "order": 4
+      },
+      "architecture.ob_requests": {
+        "id": "architecture.ob_requests",
+        "parent": "architecture.outbox_service",
+        "name": "requests",
+        "type": "interface",
+        "flow": "in",
+        "order": 8
+      },
+      "architecture.ob_store": {
+        "id": "architecture.ob_store",
+        "parent": "architecture.outbox_service",
+        "name": "Store",
+        "type": "architecture.database",
+        "body": "Holds the service's state.",
+        "order": 5
+      },
+      "architecture.outbox_service": {
+        "id": "architecture.outbox_service",
+        "parent": "architecture.patterns",
+        "name": "outbox service",
+        "type": "architecture.service",
+        "def": {},
+        "body": "Use when a state change must announce itself, and neither the change nor the announcement may be lost.",
+        "order": 2
+      },
+      "architecture.patterns": {
+        "id": "architecture.patterns",
+        "parent": "architecture",
+        "name": "patterns",
+        "type": "folder",
+        "order": 1
+      },
+      "architecture.person": {
+        "id": "architecture.person",
+        "parent": "architecture.dir.blocks",
+        "name": "person",
+        "type": "block",
+        "def": {},
+        "body": "Someone outside the system who uses it.",
+        "order": 6,
         "settings": {
-          "line": {
-            "dir": "forward"
+          "style": {
+            "family": "neutral"
           }
         }
       },
@@ -164,8 +486,8 @@
         "name": "publishes",
         "type": "line",
         "def": {},
-        "body": "A service puts an event on a queue.",
-        "order": 4,
+        "body": "A component puts a message on a queue.",
+        "order": 3,
         "settings": {
           "line": {
             "dir": "forward"
@@ -181,8 +503,8 @@
         "name": "queue",
         "type": "architecture.component",
         "def": {},
-        "body": "A component that carries events from one service to another.",
-        "order": 6,
+        "body": "A component that carries messages from one component to another.",
+        "order": 7,
         "settings": {
           "style": {
             "family": "away"
@@ -195,28 +517,11 @@
         "name": "reads",
         "type": "line",
         "def": {},
-        "body": "A service reads what a database stores.",
-        "order": 5,
+        "body": "A component reads what a store holds.",
+        "order": 4,
         "settings": {
           "line": {
             "dir": "forward"
-          }
-        }
-      },
-      "architecture.reply": {
-        "id": "architecture.reply",
-        "parent": "architecture.dir.relations",
-        "name": "reply",
-        "type": "line",
-        "def": {},
-        "body": "A step answers the one that asked it.",
-        "order": 6,
-        "settings": {
-          "line": {
-            "dir": "forward"
-          },
-          "style": {
-            "border_style": "dashed"
           }
         }
       },
@@ -227,7 +532,7 @@
         "type": "architecture.component",
         "def": {},
         "body": "A component that answers requests.",
-        "order": 7,
+        "order": 8,
         "settings": {
           "style": {
             "family": "secondary"
@@ -235,6 +540,176 @@
         }
       }
     },
-    "edges": {}
+    "edges": {
+      "architecture.ad_client_out": {
+        "id": "architecture.ad_client_out",
+        "type": "architecture.integrates",
+        "from": "architecture.ad_client",
+        "to": "architecture.ad_out"
+      },
+      "architecture.ad_enter": {
+        "id": "architecture.ad_enter",
+        "type": "architecture.calls",
+        "from": "architecture.ad_in",
+        "to": "architecture.ad_port"
+      },
+      "architecture.ad_port_translate": {
+        "id": "architecture.ad_port_translate",
+        "type": "architecture.calls",
+        "from": "architecture.ad_port",
+        "to": "architecture.ad_translate"
+      },
+      "architecture.ad_translate_client": {
+        "id": "architecture.ad_translate_client",
+        "type": "architecture.calls",
+        "from": "architecture.ad_translate",
+        "to": "architecture.ad_client"
+      },
+      "architecture.ls_api_logic": {
+        "id": "architecture.ls_api_logic",
+        "type": "architecture.calls",
+        "from": "architecture.ls_api",
+        "to": "architecture.ls_logic"
+      },
+      "architecture.ls_in": {
+        "id": "architecture.ls_in",
+        "type": "architecture.calls",
+        "from": "architecture.ls_requests",
+        "to": "architecture.ls_api"
+      },
+      "architecture.ls_logic_repo": {
+        "id": "architecture.ls_logic_repo",
+        "type": "architecture.calls",
+        "from": "architecture.ls_logic",
+        "to": "architecture.ls_repo"
+      },
+      "architecture.ls_repo_store": {
+        "id": "architecture.ls_repo_store",
+        "type": "architecture.reads",
+        "from": "architecture.ls_repo",
+        "to": "architecture.ls_store"
+      },
+      "architecture.ob_api_logic": {
+        "id": "architecture.ob_api_logic",
+        "type": "architecture.calls",
+        "from": "architecture.ob_api",
+        "to": "architecture.ob_logic"
+      },
+      "architecture.ob_in": {
+        "id": "architecture.ob_in",
+        "type": "architecture.calls",
+        "from": "architecture.ob_requests",
+        "to": "architecture.ob_api"
+      },
+      "architecture.ob_logic_outbox": {
+        "id": "architecture.ob_logic_outbox",
+        "name": "same transaction",
+        "type": "architecture.reads",
+        "from": "architecture.ob_logic",
+        "to": "architecture.ob_outbox"
+      },
+      "architecture.ob_logic_repo": {
+        "id": "architecture.ob_logic_repo",
+        "type": "architecture.calls",
+        "from": "architecture.ob_logic",
+        "to": "architecture.ob_repo"
+      },
+      "architecture.ob_relay_events": {
+        "id": "architecture.ob_relay_events",
+        "type": "architecture.publishes",
+        "from": "architecture.ob_relay",
+        "to": "architecture.ob_events"
+      },
+      "architecture.ob_relay_outbox": {
+        "id": "architecture.ob_relay_outbox",
+        "type": "architecture.reads",
+        "from": "architecture.ob_relay",
+        "to": "architecture.ob_outbox"
+      },
+      "architecture.ob_repo_store": {
+        "id": "architecture.ob_repo_store",
+        "type": "architecture.reads",
+        "from": "architecture.ob_repo",
+        "to": "architecture.ob_store"
+      },
+      "architecture.t_ad_client": {
+        "id": "architecture.t_ad_client",
+        "type": "tie",
+        "from": "architecture.n_ad_client",
+        "to": "architecture.ad_client"
+      },
+      "architecture.t_ad_port": {
+        "id": "architecture.t_ad_port",
+        "type": "tie",
+        "from": "architecture.n_ad_port",
+        "to": "architecture.ad_port"
+      },
+      "architecture.t_ad_translate": {
+        "id": "architecture.t_ad_translate",
+        "type": "tie",
+        "from": "architecture.n_ad_translate",
+        "to": "architecture.ad_translate"
+      },
+      "architecture.t_ls_api": {
+        "id": "architecture.t_ls_api",
+        "type": "tie",
+        "from": "architecture.n_ls_api",
+        "to": "architecture.ls_api"
+      },
+      "architecture.t_ls_logic": {
+        "id": "architecture.t_ls_logic",
+        "type": "tie",
+        "from": "architecture.n_ls_logic",
+        "to": "architecture.ls_logic"
+      },
+      "architecture.t_ls_repo": {
+        "id": "architecture.t_ls_repo",
+        "type": "tie",
+        "from": "architecture.n_ls_repo",
+        "to": "architecture.ls_repo"
+      },
+      "architecture.t_ls_store": {
+        "id": "architecture.t_ls_store",
+        "type": "tie",
+        "from": "architecture.n_ls_store",
+        "to": "architecture.ls_store"
+      },
+      "architecture.t_ob_api": {
+        "id": "architecture.t_ob_api",
+        "type": "tie",
+        "from": "architecture.n_ob_api",
+        "to": "architecture.ob_api"
+      },
+      "architecture.t_ob_logic": {
+        "id": "architecture.t_ob_logic",
+        "type": "tie",
+        "from": "architecture.n_ob_logic",
+        "to": "architecture.ob_logic"
+      },
+      "architecture.t_ob_outbox": {
+        "id": "architecture.t_ob_outbox",
+        "type": "tie",
+        "from": "architecture.n_ob_outbox",
+        "to": "architecture.ob_outbox"
+      },
+      "architecture.t_ob_relay": {
+        "id": "architecture.t_ob_relay",
+        "type": "tie",
+        "from": "architecture.n_ob_relay",
+        "to": "architecture.ob_relay"
+      },
+      "architecture.t_ob_repo": {
+        "id": "architecture.t_ob_repo",
+        "type": "tie",
+        "from": "architecture.n_ob_repo",
+        "to": "architecture.ob_repo"
+      },
+      "architecture.t_ob_store": {
+        "id": "architecture.t_ob_store",
+        "type": "tie",
+        "from": "architecture.n_ob_store",
+        "to": "architecture.ob_store"
+      }
+    }
   }
 }

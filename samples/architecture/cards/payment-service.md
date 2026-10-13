@@ -1,6 +1,6 @@
 ---
 name: Payment service
-type: architecture.service
+type: architecture.layered_service
 owner: Payments
 technology: Java
 source: samples/architecture/cards/payment-service.md

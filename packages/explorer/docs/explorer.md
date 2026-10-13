@@ -4,19 +4,19 @@ The explorer files the graph as a **section chain**: a host declares its section
 
 | Host | Sections |
 |---|---|
-| **mndflow** (editor) | `definitions` and `structure`, standing apart: structure lists every tree whatever definitions holds |
+| **mndflow** (editor) | `definitions` and `structure`, listing by kind: the definition side in one, structure in the other. Definitions lists every package; structure lists a package only when it holds structure |
 | **mndmap** (reader) | `collection` → `document`: the editor's chain with the package fixed to the workspace and hidden |
 
-**The bar is tools only**: filter, add, add folder, delete, and a fold that shuts a layer a click. It follows the section in focus. The filter keys off tags and is not built yet.
+**The bar is tools only**: filter, add, add folder, the tree-root button, delete, and a fold that shuts a layer a click. It follows the section in focus: **add makes what that section lists** — in structure a plain block under the picked row where it may hold one, else the workspace, in definitions a definition. The tree-root button keeps its place. It is disabled unless definitions is in focus and the pick is a definition that may hold and is not frozen; then it reads **add structure to** that definition, or **open structure** once it already roots one. The same words sit on the row's menu. Nothing is added to a frozen package. The filter keys off tags and is not built yet.
 
 
 ## The chain
 
 | Rule | |
 |---|---|
-| **split by role** | each section lists one role's subtree under the pick above: package roots, a domain, a tree's structure |
-| **host defined** | each `Slice` says its label, mark, first pick (`first`), and whether it lists every tree (`trees`) |
-| **apart** | a section listing every tree stands apart from the chain: what the section above holds never changes what it lists or holds. Its root is the tree of its own pick, or the canvas's tree |
+| **split by kind** | a section may say which side it lists (`Section.lists`): `domain` keeps the definition side — package roots, definitions, folders reached through folders alone — and `structure` keeps the rest, through the definition-side blocks on the way to it. Unsaid, a section lists every role under the pick above, as mndmap's do |
+| **host defined** | each `Slice` says its label, mark, first pick (`first`) and which side it lists |
+| **apart** | the structure section stands apart from the chain: what definitions holds never changes what it lists, only which row opens |
 | **remembered** | a section remembers its pick per pick above — one standing apart, one pick; session state (`useChain`), never logged |
 | **headers are labels** | never chosen; clicking one hides or shows its whole section |
 | **section folds** | a section's chevron folds its branches and never its top rows: with any open it shuts them all, else it opens every one. A usage's parts stay listed only once it is opened |
@@ -25,8 +25,9 @@ The explorer files the graph as a **section chain**: a host declares its section
 
 | Section | Lists |
 |---|---|
-| **definitions** / **collection** | every package a top row, `base` first, folded; under each its domain: its trees, nested under the folders, groups and grids that organize them |
-| **structure** | **every tree holding structure a top row, always**, in every loaded package — whatever definitions holds — and the tree the canvas draws from inside, however little it holds. **The definition chosen above opens here**, once, as do the canvas's tree and the tree of a pick inside one, so choosing a definition shows its structure. A definition with none adds nothing |
+| **definitions** | every package a top row, `base` first, folded; under each its folders and definitions, a definition a leaf. No structure |
+| **collection** | every package a top row, folded; under each its domain: its trees, nested under the folders that organize them |
+| **structure** | a package a top row only when it holds structure, `base` first among those that do, folded; under each the definition-side blocks on the way to any structure, and the structure itself. A definition or folder with no structure below it does not list. **The definition chosen above opens here**, once, as do the canvas's layer and the way to a pick inside it |
 | **document** | the held tree's own row, its structure under it |
 
 
@@ -37,8 +38,8 @@ The explorer files the graph as a **section chain**: a host declares its section
 | Gesture | Does |
 |---|---|
 | choose (click, ↑ ↓) | selects the row; the tray shows it. The canvas stays |
-| open (Enter, double-click, →) | the canvas draws the block on the view its kind calls for: a package or folder its folder view, a definition its definition view — opened from the structure section, or again, its structure — a grid its grid view, a block that holds from inside. A group, a note or a leaf is revealed where it is, the canvas panning to it |
-| leave (←, Backspace) | the canvas draws the layer above; a definition's structure leaves for its definition view; a package for the package view |
+| open (Enter, double-click, →) | the canvas draws the block on the view its kind calls for: a package or folder its folder view — drawing what the section it was opened from lists — a definition its definition view — opened from the structure section, or again, its structure — a grid its grid view, a block that holds from inside. A group, a note or a leaf is revealed where it is, the canvas panning to it |
+| leave (←, Backspace) | the canvas draws the layer above, in the same section; a package leaves for the overhead view |
 | pick within the open tree | moves the canvas to the layer the block sits on (reveal) |
 
 - **Context highlighting and breadcrumbs show what the canvas has open**, never what is browsed.
@@ -68,8 +69,8 @@ pump1
 
 - **Guide lines are drawn per indent column**; the last row in a branch turns an elbow.
 - **A row wears its card's icon**: the role core's `role_of` reads — block, folder, group, grid, interface, reference, note — so a tag reads as the block it is. A row that holds blocks lights its icon.
-- **A definition's row holding structure wears its card's structure mark** after its name in the definitions section, so a definition says it has structure before it is picked. The structure section wears that mark on its header instead, so its rows do not repeat it. Nothing else does — not a block inside a structure, a package or a folder. The workspace's row wears a folder.
-- **A section's mark is a word or the structure tree**: `Def` for definitions; the structure section wears the same tree-root mark definitions stamp when they hold structure. Package sections wear `Pkg`. Words are never filled.
+- **A structure root wears its card's structure mark** after its name, in both sections: the workspace, always, and a definition that holds structure. A folder does not, nor a definition with none, nor a block inside a structure. The row says so before it is picked.
+- **A section's mark is a word or the structure tree**: `Def` for definitions; the structure section wears the tree-root mark. Package sections wear `Pkg`. Words are never filled.
 - **A row is keyed by its section and route**, as a block may list in two sections and a part under two usages.
 - **A group or grid heads what it holds, as a table's head does its rows**, in every section alike: its row keeps its branch and its name is underlined, and its members list at its level beneath it with no tick of their own, joined to it by a line down their marks' column. A member's own children branch as usual. A folder nests like any block. Enter, → or a double click on a group's row reveals it on the canvas, which pans to it.
 

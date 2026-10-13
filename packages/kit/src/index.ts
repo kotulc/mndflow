@@ -6,7 +6,7 @@ export {
   type Attribute, type Definition, type Dir, type Domain, type File, type Floor,
   type Flow, type Form, type Graph, type Id, type Point, type Relation, type Side,
   type Cell, type Grid, type HeaderRole, type Shape, type Span, type Value,
-  LAYOUTS, BASE_PACKAGE, BLOCK_MODULES, MAIN, ROOT, SCHEMA,
+  LAYOUTS, BASE_PACKAGE, BLOCK_MODULES, ROOT, SCHEMA,
   empty_graph, new_id,
 } from "@mnd/core";
 

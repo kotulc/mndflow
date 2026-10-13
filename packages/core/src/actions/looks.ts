@@ -3,7 +3,8 @@
 import { component, NUMBERS } from "../components";
 import { new_id } from "../ids";
 import { is_trait } from "../defs";
-import { tag_home, tag_named } from "../tags";
+import { tag_folder, tag_home, tag_named } from "../tags";
+import { TAGS } from "../types";
 import type { Id, Mutation } from "../types";
 import { register, type Args } from "./registry";
 import { borrowed, ids_of, list, text } from "./helpers";
@@ -32,13 +33,16 @@ register(
       }
       const out: Mutation[] = [];
       const made = new Map<string, Id>();
+      const folder = tag_folder(ctx.graph);
+      const home = folder.length ? TAGS : tag_home(ctx.graph);
       /** Each word as the tag it names, or a new one filed with the workspace's tags. */
       const tags = list(args["tags"]).map((word) => {
         const hit = tag_named(ctx.graph, word)?.id ?? made.get(word);
         if (hit) return hit;
         const id = new_id("def");
         made.set(word, id);
-        out.push(new_def(ctx.graph, { id, name: word, type: "tag", def: {} }, tag_home(ctx.graph)));
+        if (!out.length) out.push(...folder);
+        out.push(new_def(ctx.graph, { id, name: word, type: "tag", def: {} }, home));
         return id;
       });
       out.push(...ids_of(ctx, args).map((id): Mutation => ({ op: "set_tags", id, tags })));

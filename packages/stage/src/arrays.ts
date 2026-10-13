@@ -45,7 +45,7 @@ export const MIN_ZOOM = 0.1;
 
 /** Draw order: room, holders, cards, then seats; selection never lifts a node. */
 export const DEPTH: Record<string, number> = {
-  frame: 0, group: 1, grid: 1, card: 3, control: 3, seat: 4,
+  frame: 0, group: 1, grid: 1, card: 3, control: 3, seat: 4, tie: 1000,
 };
 
 /** The layer's room, grown to the panel's shape and size in whole cells. */
@@ -99,6 +99,9 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
   /** The layer's own interfaces, set into the room's walls. */
   for (const p of frame?.ports ?? []) {
     const at = at_seat(frame!, { side: p.side, at: p.at });
+    const seats = scene.perches.filter((perch) => perch.on === p.id).map((perch) => ({
+      id: perch_id(perch.edge, perch.end), side: perch.side, at: perch.at,
+    }));
     out.push({
       id: p.id,
       type: "seat",
@@ -106,6 +109,7 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
       width: at.w,
       height: at.h,
       data: { label: p.label, marks: p.marks, on: FRAME, side: p.side,
+              ...(seats.length ? { seats } : {}),
               ...(p.look ? { look: p.look } : {}) },
       selected: picked.includes(p.id),
       zIndex: DEPTH["seat"],
@@ -144,6 +148,8 @@ export function edges_of(scene: Scene, picked: readonly Id[]): LineEdge[] {
       data: d ?? { module: "line" as const, dir: "none" as const },
       selected: picked.includes(e.id),
       className: READS[d?.module ?? "line"] ?? "line",
+      /** A tie draws above every card; other lines stay under them. */
+      ...(d?.module === "tie" ? { zIndex: DEPTH["tie"] } : {}),
       /** An end is dragged by its own grip, not the library's anchor. */
       reconnectable: false,
     };

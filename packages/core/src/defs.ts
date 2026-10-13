@@ -2,7 +2,7 @@
  *  through. */
 
 import { FORMS, type Settings } from "./components";
-import { organizes } from "./holders";
+import { is_folder, organizes } from "./holders";
 import { BASE_BLOCKS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIRS, type Block,
          type BlockModule, type Attribute, type Components, type Definition, type Dir, type Graph,
          type Id } from "./types";
@@ -255,6 +255,11 @@ export function is_note(graph: Graph, id: Id): boolean {
   return !!graph.blocks[id] && base_of(graph, id) === "note";
 }
 
+/** Whether a block floats beside what it is tied to: it carries *is aside*. */
+export function is_aside(graph: Graph, id: Id | undefined): boolean {
+  return has_trait(graph, id, "is_aside");
+}
+
 
 /** What a block definition descends from, defaulting to the plain block. */
 export function block_base(graph: Graph, type: Id | undefined): Id {
@@ -417,6 +422,42 @@ export function tree_of(graph: Graph, id: Id): Id | null {
 /** Whether a block sits in a domain: under its package through holders alone. */
 export function in_domain(graph: Graph, id: Id): boolean {
   return tree_of(graph, id) === id || (!!graph.blocks[id] && tree_of(graph, id) === null);
+}
+
+/** Whether a block is on the definition side: a package root, a definition, or a folder whose
+ *  every ancestor up to its package root is a folder. */
+export function is_domain(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  if (!b) return false;
+  if (b.parent === null || b.def) return true;
+  if (!is_folder(graph, id)) return false;
+  const seen = new Set<Id>();
+  let at: Id | null = b.parent;
+  while (at && !seen.has(at)) {
+    seen.add(at);
+    const up: Block | undefined = graph.blocks[at];
+    if (!up) return false;
+    if (up.parent === null) return true;
+    if (!is_folder(graph, at)) return false;
+    at = up.parent;
+  }
+  return false;
+}
+
+/** Whether a definition-side block holds structure directly: a child, interfaces apart, that is
+ *  not on the definition side. */
+export function holds_usages(graph: Graph, id: Id): boolean {
+  if (!is_domain(graph, id)) return false;
+  return Object.values(graph.blocks).some((c) => c.parent === id
+    && base_of(graph, c.id) !== "interface" && !is_domain(graph, c.id));
+}
+
+/** Whether a block roots a structure. The workspace does, empty or not. A definition does when it
+ *  holds structure directly. A folder never does, nor any other package root, nor a block already
+ *  inside a structure. */
+export function roots_structure(graph: Graph, id: Id): boolean {
+  if (id === graph.root) return true;
+  return !!graph.blocks[id]?.def && holds_usages(graph, id);
 }
 
 /** The definition a block sits in the structure of, where one is above it. */

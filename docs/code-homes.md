@@ -1,6 +1,6 @@
-# Simplification plan
+# Code homes
 
-**One rule, one home.** Successive refactors left the same decision made in several places — each app, each panel, and core — each copy with its own special cases, drifting apart. This plan says where things live, how to find what has no home, and the leads found so far. Spans mndflow (the kit and the editor) and mndmap (the viewer). What the model decides is design.md; this is about where code lives.
+**One rule, one home.** Successive refactors left the same decision made in several places — each app, each panel, and core — each copy with its own special cases, drifting apart. This doc says where each rule lives and how to find one that has no home. Open leads are in next-plan.md. Spans mndflow (the kit and the editor) and mndmap (the viewer). What the model decides is design.md; this is about where code lives.
 
 
 ## The smell
@@ -28,7 +28,7 @@
 | whether a card opens | core `names.ts` `opens` (the stamp and the open button) and `navigate.ts` `open_at` (where it goes) |
 | navigation | core `navigate.ts` (`open_at`, `leave_at`, `reveal_at`, `held_at`) |
 | what a section lists | explorer `chain.ts` (`editor_slices`, `useChain`; a `trees` section stands apart) and `rows.ts` (`tree_of`, `trees_of`) |
-| whether a block holds structure | core `names.ts` (`holds_structure`; the structure mark in `stamps_of`). The mark is a definition's alone; the explorer's top rows and row marks ask them, so a row and its card agree (2026-10-09) |
+| whether a block roots a structure | core `defs.ts` (`roots_structure`, over `holds_usages`); the structure mark in `names.ts` `stamps_of`. The workspace always, a definition that holds structure, never a folder; the explorer's row marks, the cards and the tree-root button ask it, so a row and its card agree (2026-10-12) |
 | what a block reads as (its role, and so its icon) | core `names.ts` (`role_of`); theme `role_icon`. The explorer's rows and the stage's cards both ask it |
 | rows, marks and highlights | explorer `rows.ts` (holder members at their holder's level, `end_of`, `parent_of`, the ties joining them), `Explorer.tsx` |
 | what a layer draws, the system and layer views, layouts | views `block.ts` (`project`), `survey.ts`, `profile.ts`, `definition.ts`, `page.ts`, `arrange.ts` |
@@ -62,22 +62,6 @@
 | props added for one case | read each component's props for ones only one host passes |
 | several "what kind is this" readers | `role_of` (core `names.ts`), `mark_of` (explorer `rows.ts`), `marks_of` (views `derive.ts`) |
 
-**Survey counts (2026-10-04)** — base-kind strings outside core and defs: stage `Stage.tsx` 19, explorer `rows.ts` 16, stage `drag.ts` 10, tray `rows.ts` 9, views `scene.ts` 7, tray `Tray.tsx` 7. Hand-derived roles: stage `nodes.tsx` 5, explorer `rows.ts` 4, views `through.ts` 3. Some are drawing kinds (a node's type), not base ids — confirm before moving.
-
-
-## Leads
-
-| # | Lead | Suspicion | Likely home |
-|---|---|---|---|
-| 1 | **mndmap `edits.ts`** | a second action system: move, create, rename and delete re-implemented, with their own placement rules (`in_collection`, `filed`), beside core's actions | core's actions run on mndmap's held graph, or one shared placement check |
-| 4 | **two kind readers left** | the explorer now asks `role_of` (a tag's row and card once wore different icons); views `marks_of` still decides what a card reads as on its own | `role_of`, with `marks_of` mapping its answer to classes |
-| 5 | **`?? graph.root`** | the workspace root as a fallback for "no layer", from when `null` meant the workspace | each site says what it means: the overhead view, or the workspace's domain |
-| 6 | **explorer `listed()` vs core roles** | the chain re-derives domain and structure membership | core's `in_domain` / `tree_of`, as `held_at` uses |
-| 7 | **tray listings** | the tray's definition grouping and `rows.ts` may re-list what the explorer's chain lists | the chain's listings |
-| 8 | **stage menus** | `Stage.tsx` offers per kind (box, band, seat, note) by base strings | the registry's scopes and `when` |
-| 9 | **highlight rules** | `lights`, `holds` and the edge in `Explorer.tsx` each read the chain and the picks differently | one function from the canvas view and the chain |
-
-
 ## How to take one
 
 | Step | |
@@ -86,4 +70,4 @@
 | **pick the home** | the lowest package that can answer it without knowing a host: core for model rules, a kit package for presentation |
 | **move, then delete** | one function in the home; each copy becomes a call; nothing kept for compatibility |
 | **drive both apps** | a rule moved is unverified until both hosts have run it on the samples |
-| **record** | add its home to *Where things live* and remove the lead |
+| **record** | add its home to *Where things live* and remove the lead from next-plan.md |

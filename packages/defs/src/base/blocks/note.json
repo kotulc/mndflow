@@ -6,7 +6,8 @@
   "def": {},
   "traits": [
     "has_values",
-    "has_tie"
+    "has_tie",
+    "is_aside"
   ],
   "settings": {
     "card": {

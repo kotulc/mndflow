@@ -33,8 +33,8 @@ function drop(view: { container: HTMLElement }, id: string) {
 }
 
 /** What the open layer holds that stands for something else. */
-const refs = (id: string | null) =>
-  Object.values(fold_of()).filter((b) => b.parent === (id ?? "main") && b.of).map((b) => b.of);
+const refs = (id: string) =>
+  Object.values(fold_of()).filter((b) => b.parent === id && b.of).map((b) => b.of);
 
 function fold_of(): Record<string, { parent: string | null; of?: string }> {
   const blocks: Record<string, { parent: string | null; of?: string }> = {};
@@ -48,24 +48,36 @@ function fold_of(): Record<string, { parent: string | null; of?: string }> {
   return blocks;
 }
 
+/** The tree row of this name. A folder that holds structure is also drawn on the canvas, so the
+ *  name is no longer unique. */
+function open_row(view: { getAllByText: (text: string) => HTMLElement[] }, name: string) {
+  const row = view.getAllByText(name).find((el) => el.classList.contains("label"));
+  if (!row) throw new Error(`${name} is not in the tree`);
+  fireEvent.doubleClick(row);
+}
+
 describe("a block dropped from the tree onto the drawing", () => {
-  /** Ledger is held by Shelf, which is drawn in this layer. */
+  /** Ledger draws Billing. The canvas opens on the workspace, so the layer is opened first. */
   it("refers to a child of something drawn in this layer", () => {
     const view = render(<App storage={storage} />);
+    open_row(view, "Shelf");
+    open_row(view, "Ledger");
     const was = log().length;
-    drop(view, "block_ledger");
+    drop(view, "block_billing");
     expect(since(was)).toEqual(["refer"]);
-    expect(refs(null)).toContain("block_ledger");
+    expect(refs("block_ledger")).toContain("block_billing");
     /** A reference is an appearance, so the block stays where it lives. */
-    expect(fold_of()["block_ledger"]!.parent).toBe("block_shelf");
+    expect(fold_of()["block_billing"]!.parent).toBe("block_ledger");
   });
 
   it("refers to a block from deeper in the tree", () => {
     const view = render(<App storage={storage} />);
+    open_row(view, "Shelf");
+    open_row(view, "Ledger");
     const was = log().length;
     drop(view, "block_rate");
     expect(since(was)).toEqual(["refer"]);
-    expect(refs(null)).toContain("block_rate");
+    expect(refs("block_ledger")).toContain("block_rate");
     expect(fold_of()["block_rate"]!.parent).toBe("block_edge");
   });
 

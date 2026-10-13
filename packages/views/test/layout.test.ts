@@ -2,7 +2,8 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, related } from "@mnd/fixtures";
-import { MAIN, children, drawn_in, fold, is_grid, is_header, is_holder, is_interface, lattice_of,
+import { ROOT, children, drawn_in, fold, is_grid, is_header, is_holder, is_interface, is_note,
+         lattice_of,
          type Layout, type Graph, type Id } from "@mnd/core";
 import { cell_box } from "../src/size";
 import { bounds, boundary, laid, nearest_seat, size_of, snap, GAP, CELL, PAD, UNIT,
@@ -12,7 +13,7 @@ const ARRANGEMENTS: Layout[] = ["free", "auto"];
 
 function layer_of(name: string): { graph: Graph; layer: Id } {
   const graph = fold(fixture(name), FLOOR);
-  const layer = children(graph, MAIN)[0]!.id;
+  const layer = children(graph, ROOT)[0]!.id;
   return { graph, layer };
 }
 
@@ -113,7 +114,8 @@ describe("placement", () => {
 
   it("stays centred on the layer as it grows", () => {
     const { graph, layer } = layer_of("related");
-    const spots = placed(graph, under(graph, layer, "auto"));
+    const spots = placed(graph, under(graph, layer, "auto"))
+      .filter((p) => !is_note(graph, p.id));
     const left = Math.min(...spots.map((p) => p.x));
     const right = Math.max(...spots.map((p) => p.x + p.w));
     expect(Math.abs(left + right)).toBeLessThanOrEqual(CELL.w);

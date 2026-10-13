@@ -11,9 +11,10 @@ import { DIAGRAM_VIEWS } from "./components";
 import { has_trait, setting_of } from "./defs";
 import { inline, is_folder, is_grid, layer_of } from "./holders";
 import { opens } from "./names";
-import { at_cut, in_section, is_layer_view, type Section, type ViewKind } from "./sections";
+import { at_cut, in_section, is_inside, is_layer_view, on_side, type Section, type ViewKind }
+  from "./sections";
 import { is_interface, of_ref, path, stands_for } from "./tree";
-import { MAIN, type Graph, type Id } from "./types";
+import { type Graph, type Id } from "./types";
 
 /** Where a host's sections start: the forest above every package, or the workspace's root. */
 export type Top = "forest" | "workspace";
@@ -31,13 +32,14 @@ export type View = { at: number; kind: ViewKind; layer: Id | null; pick: Id | nu
 /** What the sections hold for a view, outermost first, and which section is in focus. */
 export type Held = { path: Id[]; at: number };
 
-/** mndflow's sections: every package's domain, each a top row, and a tree's structure. */
+/** mndflow's sections: the definition side, and the structure under every package. */
 export const EDITOR: Tiers = {
   top: "forest",
   sections: [
-    { id: "definitions", label: "definitions", cut: "tree",
+    { id: "definitions", label: "definitions", cut: "tree", lists: "domain",
       views: ["overhead", "internal", "profile"] },
-    { id: "structure", label: "structure", cut: null, views: ["internal", "overhead", "profile"] },
+    { id: "structure", label: "structure", cut: null, lists: "structure",
+      views: ["internal", "overhead", "profile"] },
   ],
 };
 
@@ -100,9 +102,11 @@ export function lens_of(graph: Graph, id: Id): ViewKind | null {
   return is_interface(graph, b.id) || opens(graph, id) || holds_any(graph, id) ? "internal" : null;
 }
 
-/** The view a block is drawn in, rooting section `at` or reached in it: a definition rooting a
- *  section is its structure, from inside; anything else its own view. */
-function kind_at(graph: Graph, roots: readonly (Id | null)[], at: number, id: Id): ViewKind {
+/** The view a block is drawn in, reached in section `at`: a definition in a structure section is
+ *  its structure, from inside; one rooting a section is too. Anything else is its own view. */
+function kind_at(graph: Graph, tiers: Tiers, roots: readonly (Id | null)[], at: number,
+                 id: Id): ViewKind {
+  if (graph.blocks[id]?.def && tiers.sections[at]?.lists === "structure") return "internal";
   if (graph.blocks[id]?.def && roots[at] === id) return "internal";
   return lens_of(graph, id) ?? "internal";
 }
@@ -115,28 +119,47 @@ function home_of(graph: Graph, layer: Id | null): ViewKind {
 }
 
 
-/** The way to a block through the sections: the root each section lists, and what each holds on
- *  the way — the block at its cut above this one, then this block wherever a section lists it. A
- *  block at a cut is held there and roots the next section. */
+/** The way to a block through the sections: what each holds, and the root of the next. A block at
+ *  a cut roots the next section. One that lists structure on its own records the block wherever
+ *  it lists it, and a package is the only block that roots it — a folder or a definition on the
+ *  way does not. */
 export function trace(graph: Graph, tiers: Tiers, id: Id): { roots: (Id | null)[]; held: Id[] } {
   const roots: (Id | null)[] = [tiers.top === "workspace" ? graph.root : null];
   const held: Id[] = [];
   if (!graph.blocks[id]) return { roots, held };
   const up = path(graph, id).map((b) => b.id);
   for (const [n, section] of tiers.sections.entries()) {
-    const root = roots[n]!;
-    if (!in_section(graph, id, root, section.cut)) {
-      // Not listed here: held through the block at this section's cut above it, if any.
-      const from = root === null ? 0 : up.indexOf(root) + 1;
-      const anchor = from > 0 || root === null
-        ? up.slice(from).find((a) => at_cut(graph, section.cut, a)) : undefined;
-      if (!anchor) break;
-      held.push(anchor);
-      roots.push(anchor);
+    const root = section.lists === "structure" ? null : roots[n]!;
+    const next = tiers.sections[n + 1];
+    const stands = next?.lists === "structure";
+    if (!in_section(graph, id, root, section.cut, section.lists)) {
+      /** Not listed here: held through the block at this section's cut above it. Never this
+       *  block, which the section has already declined. A later structure section still gets its
+       *  own row, through the nearest ancestor it would list. */
+      const from = roots[n] === null ? 0 : up.indexOf(roots[n]!) + 1;
+      const anchor = from > 0 || roots[n] === null
+        ? up.slice(from).find((a) => a !== id && at_cut(graph, section.cut, a)
+            && on_side(graph, a, section.lists)) : undefined;
+      if (anchor) {
+        held.push(anchor);
+        roots.push(anchor);
+        continue;
+      }
+      if (!stands) break;
+      const above = [...up].reverse().find((a) => a !== id
+        && in_section(graph, a, root, section.cut, section.lists));
+      if (!above) break;
+      held.push(above);
+      roots.push(null);
       continue;
     }
     held.push(id);
-    if (id === root || !at_cut(graph, section.cut, id)) break;
+    const more = stands && graph.blocks[id]?.parent === null;
+    if (stands && !more) {
+      roots.push(null);
+      continue;
+    }
+    if (!more && (id === root || !at_cut(graph, section.cut, id))) break;
     roots.push(id);
   }
   return { roots, held };
@@ -159,10 +182,11 @@ export function scope_of(roots: readonly (Id | null)[], at: number): Id | null {
 export function draws(graph: Graph, tiers: Tiers, view: View, id: Id): boolean {
   if (!graph.blocks[id]) return false;
   if (is_layer_view(view.kind)) return layer_of(graph, id) === view.layer;
-  const cut = tiers.sections[0]?.cut ?? null;
+  const section = tiers.sections[view.at] ?? tiers.sections[0];
+  const cut = section?.cut ?? null;
   const up = layer_of(graph, id);
-  return in_section(graph, id, view.layer, cut)
-    || (!!up && at_cut(graph, cut, up) && in_section(graph, up, view.layer, cut));
+  return in_section(graph, id, view.layer, cut, section?.lists)
+    || (!!up && at_cut(graph, cut, up) && in_section(graph, up, view.layer, cut, section?.lists));
 }
 
 /** A block brought into sight in a section, as that section shows it: picked on the whole
@@ -172,46 +196,55 @@ export function sight(graph: Graph, tiers: Tiers, views: Views, at: number, id: 
   const kind = view_of(tiers, views, at);
   const { roots } = trace(graph, tiers, id);
   if (!is_layer_view(kind)) return { at, kind, layer: scope_of(roots, at), pick: id };
-  if (roots[at] === id) return { at, kind: kind_at(graph, roots, at, id), layer: id, pick: null };
+  if (roots[at] === id) return { at, kind: kind_at(graph, tiers, roots, at, id), layer: id, pick: null };
   const up = layer_of(graph, id);
   return { at, kind: home_of(graph, up), layer: up, pick: id };
 }
 
-/** What opening a block does: **opening goes in**, whatever the section was shown as, on the
- *  view its card's kind calls for. A definition opens on itself; opened again, or from the section
- *  its structure roots (`from`), inside. A stand-in opens what it stands for. Anything that opens
- *  on nothing is brought into sight. */
+/** What opening a block does: **opening goes in**, on the view its card's kind calls for, in the
+ *  section it was opened from — `from`, else the section the canvas is already on, where that
+ *  section lists it. A definition opens on itself. Opened from structure, or again, it opens on
+ *  its structure. A folder draws what that section lists. A stand-in opens what it stands for.
+ *  Anything that opens on nothing is brought into sight. */
 export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?: number,
                         now?: View | null): View | null {
   const b = graph.blocks[id];
   if (!b) return null;
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
   /** A stand-in that names its own diagram stays the layer: the drawing is the target's, and the
-   *  trail names the reference. Anything else opens what it stands for. */
+   *  trail names the reference. Anything else opens what it stands for, in the same section. */
   if (target && target.id !== id && !own_diagram(graph, id)) {
-    return open_at(graph, tiers, views, target.id);
+    return open_at(graph, tiers, views, target.id, from, now);
   }
   const { roots, held } = trace(graph, tiers, id);
+  const origin = from !== undefined ? from : now?.at;
   if (b.def) {
-    const inside = held.lastIndexOf(id);
-    const again = now?.layer === id && now.kind === "definition";
-    if (inside >= 0 && roots[inside] === id && (again || (from !== undefined && roots[from] === id))) {
-      return { at: inside, kind: "internal", layer: id, pick: null };
+    const structure_at = tiers.sections.findIndex((s, n) =>
+      s.lists === "structure" && held[n] === id);
+    /** From the structure section, even before this definition holds anything. */
+    const from_structure = origin !== undefined
+      && tiers.sections[origin]?.lists === "structure";
+    const again = now?.layer === id && now.kind === "definition" && structure_at >= 0;
+    if (from_structure || again) {
+      return { at: from_structure ? origin! : structure_at, kind: "internal", layer: id,
+               pick: null };
     }
     const at = held.indexOf(id);
     return at < 0 ? null : { at, kind: "definition", layer: id, pick: null };
   }
-  const at = held.lastIndexOf(id);
-  if (at < 0) return null;
   const kind = lens_of(graph, id);
-  if (kind || roots[at] === id) return { at, kind: kind ?? "internal", layer: id, pick: null };
-  return sight(graph, tiers, views, at, id);
+  const listed = origin !== undefined && held[origin] === id ? origin : held.lastIndexOf(id);
+  if (listed < 0) return null;
+  if (kind || roots[listed] === id) {
+    return { at: listed, kind: kind ?? "internal", layer: id, pick: null };
+  }
+  return sight(graph, tiers, views, listed, id);
 }
 
-/** What leaving does: from inside, the layer above, until the section's root — a definition's
- *  structure leaving for the definition itself; from there, or from a whole section, the section
- *  above with the way back picked — the pick's root, else the scope. A package leaves for the
- *  first section whole. Nothing above the first. */
+/** What leaving does: from inside, the layer above, in the same section — a definition's
+ *  structure leaves for what holds it there. From the section's root, or from a whole section,
+ *  the section above with the way back picked — the pick's root, else the scope. A package leaves
+ *  for the first section whole. Nothing above the first. */
 export function leave_at(graph: Graph, tiers: Tiers, views: Views, view: View): View | null {
   const { at, kind, layer, pick } = view;
   if (is_layer_view(kind) && layer && graph.blocks[layer]?.parent === null) {
@@ -222,8 +255,16 @@ export function leave_at(graph: Graph, tiers: Tiers, views: Views, view: View): 
     const up = layer_of(graph, layer);
     if (roots[at] !== layer) return { at, kind: home_of(graph, up), layer: up, pick: layer };
     const shown = held.indexOf(layer);
+    /** Only where this layer roots the section. Structure that stands apart does not, so a
+     *  definition's structure has already left for what holds it. */
     if (graph.blocks[layer]!.def && kind !== "definition" && shown >= 0 && shown < at) {
       return { at: shown, kind: "definition", layer, pick: null };
+    }
+    /** A layer under the package root leaves for that root, drawn from structure. */
+    if (up && graph.blocks[up]?.parent === null) {
+      const from = tiers.sections.findIndex((s) => s.lists === "structure");
+      const n = from < 0 ? Math.max(0, at - 1) : from;
+      return { at: n, kind: lens_of(graph, up) ?? "folder", layer: up, pick: layer };
     }
     return at > 0 ? sight(graph, tiers, views, at - 1, layer) : null;
   }
@@ -244,11 +285,12 @@ export function reveal_at(graph: Graph, tiers: Tiers, views: Views, view: View |
   return at < 0 ? null : sight(graph, tiers, views, at, id);
 }
 
-/** Where the canvas starts: inside `main`, else the workspace, brought into sight. */
+/** Where the canvas starts: the workspace root, drawn as opened from structure. */
 export function home_at(graph: Graph, tiers: Tiers, views: Views): View | null {
-  const id = graph.blocks[MAIN] ? MAIN : graph.root;
-  return open_at(graph, tiers, views, id, tiers.sections.length - 1)
-    ?? reveal_at(graph, tiers, views, null, id);
+  const at = tiers.sections.findIndex((s) => s.lists === "structure");
+  const from = at < 0 ? tiers.sections.length - 1 : at;
+  return open_at(graph, tiers, views, graph.root, from)
+    ?? reveal_at(graph, tiers, views, null, graph.root);
 }
 
 /** What the sections hold for a view: the way to the layer seen from inside, or to the pick on a
@@ -258,6 +300,11 @@ export function held_at(graph: Graph, tiers: Tiers, view: View): Held | null {
   const target = is_layer_view(view.kind) ? view.layer ?? view.pick : view.pick;
   if (!target || !graph.blocks[target]) return null;
   const { held } = trace(graph, tiers, target);
+  /** Inside a definition on a structure section, that section holds it before it has children. */
+  if (is_inside(view.kind) && view.layer === target && graph.blocks[target]?.def
+      && tiers.sections[view.at]?.lists === "structure") {
+    return { path: [...held.slice(0, view.at), target], at: view.at };
+  }
   const deepest = held.lastIndexOf(target);
   const at = Math.min(view.at, deepest >= 0 ? deepest : held.length - 1);
   return at < 0 ? null : { path: held.slice(0, at + 1), at };
@@ -270,7 +317,7 @@ export function view_on(graph: Graph, tiers: Tiers, views: Views, layer: Id | nu
   if (layer && graph.blocks[layer]) {
     const { roots, held } = trace(graph, tiers, layer);
     const at = Math.max(0, held.lastIndexOf(layer));
-    return { at, kind: kind_at(graph, roots, at, layer), layer, pick: null };
+    return { at, kind: kind_at(graph, tiers, roots, at, layer), layer, pick: null };
   }
   const said = view_of(tiers, views, 0);
   const kind = !is_layer_view(said) ? said

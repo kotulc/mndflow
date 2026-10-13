@@ -12,7 +12,7 @@ import { compact, file_name, parse, read, unmet, write, write_package } from "./
 import { new_id } from "./ids";
 import { no_files, no_storage, type Ports } from "./ports";
 import type { Fault } from "./door";
-import type { Graph, Id, Log, Mutation, Step } from "./types";
+import { ROOT, type Graph, type Id, type Log, type Mutation, type Step } from "./types";
 
 /** What the app says: a mirror of what was done, or a note of its own. */
 export type Said = { text: string; at: number; kind: "mirror" | "note" };
@@ -108,8 +108,11 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   /** The shipped packages, as the floor every fold starts from. */
   const floor: Floor = ports.floor ?? [];
 
-  /** A fresh log is empty. The floor is already under it. */
-  const seeded = (): Log => [];
+  /** A fresh log holds one plain block, so the workspace lists in structure. */
+  const seeded = (): Log => [step("start", "create", 1, [
+    { op: "add_block", block: { id: "start", parent: ROOT, name: "block", order: 1, alias: 1 } },
+    { op: "set_counter", kind: "block", n: 1 },
+  ])];
 
   const opened = storage.read();
   if (opened) {

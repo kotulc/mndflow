@@ -1,6 +1,6 @@
 /** A graph as a translator hands one over, in a vocabulary this repo does not own. */
 
-import { MAIN, ROOT, type Attribute, type Block, type Definition, type Graph,
+import { ROOT, type Attribute, type Block, type Definition, type Graph,
          type Id } from "@mnd/core";
 import { base_graph } from "@mnd/defs";
 
@@ -48,7 +48,7 @@ function block(id: Id, parent: Id | null, type: string, name: string,
 export function translated(): Graph {
   const graph = base_graph();
 
-  graph.blocks[HOME] = { id: HOME, parent: MAIN, type: "folder", name: "Handbook", order: 1 };
+  graph.blocks[HOME] = { id: HOME, parent: ROOT, type: "folder", name: "Handbook", order: 1 };
   for (const d of VOCAB) graph.blocks[d.id] = d;
 
   const blocks: Block[] = [

@@ -2,7 +2,7 @@
   "packages": [
     {
       "name": "entity-relation",
-      "about": "entities with keyed attributes, some naming another entity: an entity-relationship model",
+      "about": "a generic entity: a table of keyed attributes, some naming another entity",
       "at": "entity-relation.json"
     },
     {
@@ -27,7 +27,7 @@
     },
     {
       "name": "architecture",
-      "about": "an order-fulfillment story: components, records and the scenarios that run them",
+      "about": "architecture vocabulary and patterns: components, people, documents, the relations between them, and reusable service patterns",
       "at": "architecture.json"
     }
   ]

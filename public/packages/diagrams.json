@@ -24,6 +24,44 @@
           }
         }
       },
+      "diagrams.dir.relations": {
+        "id": "diagrams.dir.relations",
+        "parent": "diagrams",
+        "name": "relations",
+        "type": "folder",
+        "order": 2
+      },
+      "diagrams.message": {
+        "id": "diagrams.message",
+        "parent": "diagrams.dir.relations",
+        "name": "message",
+        "type": "line",
+        "def": {},
+        "body": "One participant asks another to act: a message between two steps.",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "diagrams.reply": {
+        "id": "diagrams.reply",
+        "parent": "diagrams.dir.relations",
+        "name": "reply",
+        "type": "line",
+        "def": {},
+        "body": "An answer to a message, drawn dashed.",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          },
+          "style": {
+            "border_style": "dashed"
+          }
+        }
+      },
       "diagrams.sequence_diagram": {
         "id": "diagrams.sequence_diagram",
         "parent": "diagrams",
@@ -31,7 +69,7 @@
         "type": "grid",
         "def": {},
         "body": "A grid read as time: the header row names the participants, and each row is a moment.",
-        "order": 2,
+        "order": 3,
         "settings": {
           "layout": {
             "view": "sequence"
@@ -45,7 +83,7 @@
         "type": "grid",
         "def": {},
         "body": "A grid read as lanes: the header row names the participants, the header column the phases.",
-        "order": 3,
+        "order": 4,
         "settings": {
           "layout": {
             "view": "swimlane"

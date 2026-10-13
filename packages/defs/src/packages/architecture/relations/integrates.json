@@ -2,7 +2,7 @@
   "id": "integrates",
   "name": "integrates",
   "type": "line",
-  "body": "A service reaches a system outside its own.",
+  "body": "A component reaches a system outside its own.",
   "def": {},
   "settings": { "line": { "dir": "forward" } }
 }
