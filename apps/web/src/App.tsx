@@ -124,7 +124,7 @@ export function App({ storage, boot, opening }: {
    *  anything is placed. */
   apply_card(card.w, card.h);
 
-  /** How many cards a row holds: a page (overhead, folder) as many as the canvas is wide;
+  /** How many cards a row holds: a page (package, folder) as many as the canvas is wide;
    *  any other layer four on a landscape canvas, two on a taller one. */
   const [canvas, set_canvas] = useState<HTMLElement | null>(null);
   const room = useBox(canvas);
@@ -259,7 +259,7 @@ export function App({ storage, boot, opening }: {
   /** A section's header: the canvas draws it whole from its top, nothing held or picked; the tray
    *  shows the section — every definition, or the workspace. */
   const section = (at: number) => {
-    s.see("overhead", null, at);
+    s.see("package", null, at);
     chain.onClear?.(at);
     if (SLICES[at]!.lists === "domain") {
       t.onHold({ of: "defs", only: "all" });

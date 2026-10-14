@@ -358,7 +358,7 @@ describe("boundaries", () => {
 describe("seats", () => {
   const card: Placed = { id: "block_pump", x: 0, y: 0, w: 168, h: 36 };
 
-  it("clusters related cards under grid even with stale hand placement", () => {
+  it("stacks blocks in a column in explorer order, whatever stale places say", () => {
     const graph = fold(related(), FLOOR);
     graph.blocks["block_pump"]!.x = 0;
     graph.blocks["block_pump"]!.y = 0;
@@ -368,15 +368,13 @@ describe("seats", () => {
     graph.blocks["block_hot"]!.y = 0;
     const spots = under(graph, "block_loop", "auto");
     const at = new Map(spots.map((p) => [p.id, p]));
-    const gap = (a: Placed, b: Placed) => Math.max(
-      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    /** Both hang off the band they actually relate to — not off each other in a line stretching
-     *  past it. */
-    expect(gap(at.get("block_pump")!, at.get("block_hot")!)).toBeLessThanOrEqual(GAP + UNIT);
-    expect(gap(at.get("block_valve")!, at.get("block_hot")!)).toBeLessThanOrEqual(GAP + UNIT);
+    const [pump, valve, hot] = ["block_pump", "block_valve", "block_hot"].map((id) => at.get(id)!);
+    expect(new Set([pump!.x, valve!.x, hot!.x]).size).toBe(1);
+    expect(pump!.y).toBeLessThan(valve!.y);
+    expect(valve!.y).toBeLessThan(hot!.y);
   });
 
-  it("lines up related band members on one row under grid", () => {
+  it("stacks band members in a column, a gap apart", () => {
     const graph = fold(related(), FLOOR);
     const spots = under(graph, "block_loop", "auto");
     const at = new Map(spots.map((p) => [p.id, p]));
@@ -384,7 +382,7 @@ describe("seats", () => {
     const tank = at.get("block_tank")!;
     const gap = (a: Placed, b: Placed) => Math.max(
       b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    expect(hx.y).toBe(tank.y);
+    expect(hx.x).toBe(tank.x);
     expect(gap(hx, tank)).toBeGreaterThanOrEqual(GAP);
     expect(gap(hx, tank)).toBeLessThanOrEqual(GAP + UNIT);
   });
@@ -397,7 +395,7 @@ describe("seats", () => {
     graph.blocks["block_tank"]!.y = 0;
     const spots = under(graph, "block_loop", "auto");
     const at = new Map(spots.map((p) => [p.id, p]));
-    expect(at.get("block_hx")!.y).toBe(at.get("block_tank")!.y);
+    expect(at.get("block_hx")!.x).toBe(at.get("block_tank")!.x);
   });
 
   it("places a downstream block on the near side of a grid, not past an intervening group", () => {

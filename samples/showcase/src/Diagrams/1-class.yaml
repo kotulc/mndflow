@@ -1,0 +1,14 @@
+name: Class
+packages: [diagrams]
+blocks:
+  - name: Open Classes for the table view.
+    type: note
+    w: 360
+  - name: Classes
+    type: diagrams.class_diagram
+    note: "layout.view is table: Part extends Unit, and a link is named unit."
+    blocks:
+      - type: reference
+        of: Unit
+      - type: reference
+        of: Part

@@ -39,7 +39,7 @@ A fresh browser opens the showcase, as `mndflow.yaml` says; an existing workspac
 | Where | What you can do |
 |---|---|
 | **Header** | undo, redo, import, export, a new workspace, the theme — each reaches a **port**, never the graph |
-| **Explorer** | a section chain — `definitions` (every package, its definitions in the folders and groups that organize them) and `structure` (each package that holds structure, through the definition-side blocks on the way to it, standing apart from what definitions holds; the definition chosen there opens) — and the menu that hangs off the tree. **The explorer browses; the canvas is the target**: choosing a row selects it, opening one (Enter, double-click, →) moves the canvas. The canvas draws a whole section in a **system view** — **overhead** or **profile**, the rail's only views — or one block in the **layer view** its kind calls for: the package, internal, definition or allocation view, or the diagram it names — table or sequence |
+| **Explorer** | a section chain — `definitions` (every package, its definitions in the folders and groups that organize them) and `structure` (each package that holds structure, through the definition-side blocks on the way to it, standing apart from what definitions holds; the definition chosen there opens) — and the menu that hangs off the tree. **The explorer browses; the canvas is the target**: choosing a row selects it, opening one (Enter, double-click, →) moves the canvas. The canvas draws a whole section in a **system view** — **package** or **profile**, the rail's only views — or one block in the **layer view** its kind calls for: the internal, definition or allocation view, or the diagram it names — table or sequence |
 
 | **Stage** | **the left button works what is there; the right button makes something new.** Within the right button a click makes what sits at a point and a drag makes what has extent. A click here selects and never navigates |
 | **Options** | settings for the workspace or a new definition, then the groups the projection asks for — a layer's layout (`free`, `auto`, `page`), the system views, what the drawing shows, and what a right drag draws |
@@ -66,7 +66,7 @@ npm run release:kit                  # build, pack and stamp @mnd/kit
 npm run dev -w @mnd/stage            # one surface alone — also explorer, options, tray
 npm run start -w @mnd/cli -- fold related
 npm run samples                      # collect the packages, then write both samples
-npm run showcase                     # re-write samples/showcase/workspace.json, every capability explained
+npm run showcase                     # collect samples/showcase/src, one diagram file per layer, into the workspace and its package
 npm run architecture                 # re-write samples/architecture/workspace.json, patterns in use
 npm run packages                     # re-collect catalogue packages from packages/defs/src/packages/
 npm run base                         # re-collect base from packages/defs/src/base/

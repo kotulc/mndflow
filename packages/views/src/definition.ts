@@ -20,7 +20,7 @@ import { aspects_of, attributes_of, chain_of, children, def_at, domain_of, is_gr
 import { band_size } from "./bands";
 import { note_h } from "./face";
 import { flow, in_rows, on_grid, whole } from "./grid";
-import { size_of, BLOCK, GAP, PAD } from "./size";
+import { note_w, size_of, BLOCK, GAP, PAD } from "./size";
 import { flattened } from "./survey";
 
 /** The layer a definition view is drawn on. */
@@ -39,7 +39,6 @@ const EXTENDS = { line: { dir: "forward", to_arrow: "hollow" } };
 const UNSAID = "what is this for? — double-click to say";
 
 /** How wide the note is: a box holding one card. */
-const NOTE_W = BLOCK.w + PAD * 2;
 
 /** How many cards a box beside the middle lays to a row before it wraps, and the one under it. */
 const SIDE = 2;
@@ -126,8 +125,8 @@ export function definition_graph(graph: Graph, def: Id): Graph {
   }
   /** The note, a box wide, as tall as what it says. */
   const said = d.body?.trim() || UNSAID;
-  blocks[ABOUT] = { id: ABOUT, parent: OWN, type: "note", name: said, w: NOTE_W,
-                    h: whole(note_h(said, NOTE_W)) };
+  blocks[ABOUT] = { id: ABOUT, parent: OWN, type: "note", name: said, w: note_w(),
+                    h: whole(note_h(said, note_w())) };
 
   /** Round the middle card on the grid: what it extends above, between its tags and the note;
    *  every box in its cell. */

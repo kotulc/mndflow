@@ -1,0 +1,13 @@
+name: Asset
+def:
+  attributes:
+    - name: tag
+      key: true
+    - name: site
+      type: Site
+    - name: state
+      type: State
+body: A thing at a site, in a state.
+settings:
+  card:
+    face: table

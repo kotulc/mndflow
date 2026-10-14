@@ -4,7 +4,7 @@
  *  `emit` writes through core and refuses a file the door would fault. */
 
 import { readFileSync } from "node:fs";
-import { names_in, read_card, write, read, USAGE_KEYS, type Block, type Graph, type Id,
+import { is_own_key, names_in, read_card, write, read, type Block, type Graph, type Id,
          type Relation } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 
@@ -87,7 +87,7 @@ export function builder() {
       if (!blocks[tag]) throw new Error(`${file} names ${tag}, which is not a tag here`);
     }
     const values = Object.entries(front)
-      .filter(([k]) => !(USAGE_KEYS as readonly string[]).includes(k))
+      .filter(([k]) => !is_own_key(k))
       .map(([name, value]) => ({ name, value: String(value) }));
     const more = {
       name: String(front["name"] ?? id),

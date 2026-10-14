@@ -1,0 +1,5 @@
+name: Document
+def: {}
+settings:
+  card:
+    face: document

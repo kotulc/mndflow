@@ -1,0 +1,45 @@
+name: Styles
+blocks:
+  - name: Settings change a card's look, on a definition or on a single block.
+    type: note
+    w: 360
+  - name: style.family primary
+    settings:
+      style:
+        family: primary
+    note: style.family is primary.
+  - name: style.family away
+    settings:
+      style:
+        family: away
+    note: style.family is away, a second value of the same setting.
+  - name: style.hue 200
+    settings:
+      style:
+        hue: 200
+    note: style.hue is 200.
+  - name: style.fill hatch
+    settings:
+      style:
+        fill: hatch
+    note: style.fill is hatch.
+  - name: style.border_width thick
+    settings:
+      style:
+        border_width: thick
+    note: style.border_width is thick.
+  - name: style.border_style dashed
+    settings:
+      style:
+        border_style: dashed
+    note: style.border_style is dashed.
+  - name: style.opacity 0.45
+    settings:
+      style:
+        opacity: 0.45
+    note: style.opacity is 0.45.
+  - name: card.label above
+    settings:
+      card:
+        label: above
+    note: card.label is above.

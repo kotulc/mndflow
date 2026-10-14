@@ -6,8 +6,8 @@ import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_de
          kind_free, may_retype, name_taken, package_of, plain_type, setting_of, stored_type,
          self_use } from "../defs";
 import { GRID, inline, inside, is_folder, is_grid, lattice_of, layer_of } from "../holders";
-import { children, edges_in, is_interface, layout_of, next_order, reorder, stands_for,
-         subtree } from "../tree";
+import { children, edges_in, is_interface, layout_of, next_order, reorder, sibling_named,
+         stands_for, subtree } from "../tree";
 import { leave_at, open_at, reveal_at, view_on, EDITOR, type Tiers, type View,
          type Views } from "../navigate";
 import { new_id } from "../ids";
@@ -129,6 +129,9 @@ register(
       const why = borrowed(ctx.graph, parent);
       if (why) return why;
       if (self_use(ctx.graph, parent, type)) return "a definition cannot use itself";
+      if (sibling_named(ctx.graph, parent, text(args, "name"))) {
+        return `"${text(args, "name")}" is already here`;
+      }
       const from = args["from"] ? id_of(args, "from") : null;
       if (from && layer_of(ctx.graph, from) !== drawn_on(ctx.graph, parent)) {
         return "a tie joins blocks on one layer";
@@ -201,8 +204,10 @@ register(
       if (!ctx.graph.blocks[id] && !ctx.graph.edges[id]) return "that is not here any more";
       const why = borrowed(ctx.graph, id);
       if (why) return why;
-      if (!def_at(ctx.graph, id)) return null;
       const name = text(args, "name");
+      const b = ctx.graph.blocks[id];
+      if (b && sibling_named(ctx.graph, b.parent, name, [id])) return `"${name}" is already here`;
+      if (!def_at(ctx.graph, id)) return null;
       if (!name) return "a definition needs a name";
       return name_taken(ctx.graph, package_of(ctx.graph, id), name, id)
         ? `"${name}" already exists` : null;
@@ -309,6 +314,11 @@ register(
       const why = borrowed(ctx.graph, parent) ?? ids.map((id) => borrowed(ctx.graph, id))
         .find(Boolean) ?? placing(ctx.graph, ids, parent);
       if (why) return why;
+      /** Landing beside a block of the same name, or with one, would leave a name finding two. */
+      const names = ids.map((id) => ctx.graph.blocks[id]?.name?.trim() ?? "").filter(Boolean);
+      const twice = names.find((n, i) => names.indexOf(n) !== i
+        || sibling_named(ctx.graph, parent, n, ids));
+      if (twice) return `"${twice}" is already here`;
       const g = lattice_of(ctx.graph, parent);
       if (g) {
         const cell = cell_of_arg(args, "at");

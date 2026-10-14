@@ -14,6 +14,12 @@
     },
     "style": {
       "family": "primary"
+    },
+    "card": {
+      "arrange": "column"
+    },
+    "layout": {
+      "view": "internal"
     }
   }
 }

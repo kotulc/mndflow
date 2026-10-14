@@ -1,0 +1,7 @@
+name: State
+type: choice
+def: {}
+body: Whether an asset is running.
+settings:
+  value:
+    choices: [ running, stopped ]

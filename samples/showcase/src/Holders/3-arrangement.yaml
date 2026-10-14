@@ -1,0 +1,20 @@
+name: Arrangement
+blocks:
+  - name: "auto arranges each kind its own way, in explorer order: blocks in a column, folders in rows, a note beside what it is tied to. This note is tied to nothing, so it floats beside the whole arrangement."
+    type: note
+    w: 360
+  - name: First
+    note: "card.arrange is column: blocks stack, left edges aligned."
+  - Second
+  - name: Files
+    type: folder
+    note: "A folder's card.arrange is rows: folders run across."
+  - name: More files
+    type: folder
+  - name: Kept together
+    type: group
+    note: A group sits as a block; its members stack inside its box.
+    blocks: [ Inside one, Inside two ]
+  - name: Rota
+    type: grid
+  - Last

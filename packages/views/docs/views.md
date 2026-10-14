@@ -2,7 +2,7 @@
 
 **One way to draw.** A layer is what is looked at; this package is the looking. It reads the graph and hands back a **Scene** — plain data, importing nothing drawable.
 
-**There is one way to draw.** A grid is how a layer states order and allocation; there is no choice of view module. The canvas draws the whole system in a system view — **overhead** (`survey.ts`) or **profile** (`profile.ts`), both trees, a definition's structure to its top level only, every card on its small face, a grid as one card, and the overhead without notes — or one block in the layer view its kind calls for: **package**, **internal**, **definition** or **allocation**, or the diagram its `layout.view` names: **table** (`class.ts`) or **sequence** (`sequence.ts`). A diagram is read only and stores nothing it draws. `layered` lays an internal layer out by its relations.
+**There is one way to draw.** A grid is how a layer states order and allocation; there is no choice of view module. The canvas draws the whole system in a system view — **package** (`survey.ts`) or **profile** (`profile.ts`), both trees, a definition's structure to its top level only, every card on its small face, a grid as one card, and the package view without notes — or one block in the layer view its kind calls for: **internal**, **definition** or **allocation**, or the diagram its `layout.view` names: **table** (`table.ts`) or **sequence** (`sequence.ts`). A diagram is read only and stores nothing it draws. `layered` lays an internal layer out by its relations.
 
 ```
 project(graph, layer, config) → Scene
@@ -17,11 +17,11 @@ project(graph, layer, config) → Scene
 | `size.ts` | **the one measure.** `UNIT` is a square of the guides; `CELL` is a block plus a gap on every side. Everything else is derived from those |
 | `arrange.ts` | where everything in a layer sits — hand placement under `free`, auto-layout under `auto` |
 | `bands.ts` | members packed inside a band, and seated blocks placed by their cell |
-| `pack.ts` | auto-layout: blocks in reading order, `across` to a row; notes in a column on the right, a tied note on its block's row |
+| `pack.ts` · `float.ts` | auto-layout: runs of one arrangement in explorer order — a column, rows `across` to a row — and aside cards floating beside what they are tied to |
 | `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off |
 | `route.ts` | where a run goes between two borders, round the cards it passes |
 | `block.ts` | the projection: graph and layer in, Scene out |
-| `class.ts` · `sequence.ts` | the diagram views: a graph drawn as internal (table), or a Scene built directly where time is the geometry (sequence, its runs given as `points`) |
+| `table.ts` · `sequence.ts` | the diagram views: a graph drawn as internal (table), or a Scene built directly where time is the geometry (sequence, its runs given as `points`) |
 | `look.ts` · `derive.ts` | what a card wears — its hue strayed by `vary` per definition, so kin read alike — and the marks it reads by; both derived every draw |
 | `legend.ts` | the key to one layer: the kinds it draws and the system marks they wear, folded and counted off the Scene alone |
 | `svg.ts` · `text.ts` | a Scene drawn without a browser |
@@ -42,7 +42,7 @@ project(graph, layer, config) → Scene
 | `auto` | auto-layout: stored positions are ignored; blocks flow in reading order and notes stand in a column on their right. What a layer says nothing about |
 | `page` | holders as full-width boxes down the page: each box's cards in rows wrapping at its width (`layout.across` cards), its own holders below them. What the package view and a folder nobody arranged draw |
 
-**Blocks follow in reading order, `layout.across` to a row** (`across_of`): unsaid, the host's default for its page shape — the web app 4 landscape, 2 portrait; the CLI and exports 4 — so a layer laid out `auto` reads down the page as a folder does. **Untied notes stand in one column**, a gap right of the widest row; a tied note that is not aside stands at the top of its block's row there, stacked where several share one; a row is as tall as the taller of its blocks and its notes. **A card whose `card.place` is aside** (granted by *is aside*, as a note carries) floats in the nearest free space beside what it is tied to. **One rule places notes on a layer and in a group** (`noted`, `float.ts`). A tie is never routed: it runs straight and draws above the cards it crosses. Inside a group the shelf is square-ish. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
+**Each kind arranges its own way, in explorer order** (`runs`, `float.ts`): consecutive cards sharing a `card.arrange` form a run; a `column` stacks its cards, left edges aligned; `rows` flows them `layout.across` to a row (`across_of`: unsaid, the host's default for its page shape — the web app 4 landscape, 2 portrait; the CLI and exports 4). Runs stack top to bottom, a gap apart. **A card arranged aside** (a note) floats in the nearest free space beside what it is tied to; untied, beside the whole arrangement. **One rule places cards on a layer and in a group** (`noted`, `float.ts`). A tie is never routed: it runs straight and draws above the cards it crosses. Inside a group the shelf is square-ish. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
 
 **The picture is written down on the way out of `auto`**, as ordinary placements, so `free` carries on from where `auto` left off.
 

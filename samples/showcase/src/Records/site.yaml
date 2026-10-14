@@ -1,0 +1,10 @@
+name: Site
+def:
+  attributes:
+    - name: name
+      key: true
+    - name: region
+body: A place that holds assets.
+settings:
+  card:
+    face: table

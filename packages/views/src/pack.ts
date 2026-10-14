@@ -23,12 +23,14 @@ export function belongs_to(graph: Graph, layer: Id | null, b: Block): Id[] {
   return is_reference(graph, b.id) ? layer_targets(graph, layer, b.id) : tie_targets(graph, layer, b.id);
 }
 
+/** What a card is tied to on a layer. A tie to the layer itself places nothing there: the card
+ *  floats beside everything the layer holds, as an untied one does. */
 export function tie_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
   const out: Id[] = [];
   for (const e of edges_in(graph, layer)) {
     if (!is_tie(graph, e.id)) continue;
-    if (e.from === id) out.push(e.to);
-    else if (e.to === id) out.push(e.from);
+    const other = e.from === id ? e.to : e.to === id ? e.from : undefined;
+    if (other !== undefined && other !== layer) out.push(other);
   }
   return out;
 }

@@ -2,7 +2,7 @@
 
 export * from "./derive";
 export * from "./face";
-export { class_graph } from "./class";
+export { table_graph } from "./table";
 export { legend_of, type Legend, type Row } from "./legend";
 export * from "./scene";
 export * from "./size";
@@ -10,7 +10,6 @@ export * from "./arrange";
 export * from "./seat";
 export { drawn, middle_of, route, STUB } from "./route";
 export { sequence_scene } from "./sequence";
-export { swimlane_graph } from "./swimlane";
 export { avoided_run, load_avoid, routes_of } from "./avoid";
 export * from "./svg";
 export * from "./text";

@@ -125,7 +125,7 @@
 
 - **A card source is the actions a person would have run**, each checked against the graph the ones before it made. Nothing is decided here.
 - **Permissive**: a type or tag nothing loaded holds, or more than one package holds, is made in the workspace and said. A trait gives settings, so a trait word naming none is refused.
-- **A definition is never written in markdown** whole: its card source is its name, what it extends, its tags and traits, its attributes' defaults and its body. `attach` is a usage's.
+- **A card source states a block whole**, a definition included: its frontmatter is a diagram file's (`name`, `type`, `def`, `tags`, `traits`, `settings`, values, `blocks`, `relations`) and its body is `body`.
 
 ### The layer
 

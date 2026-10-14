@@ -6,13 +6,13 @@
   "def": {},
   "traits": [
     "has_values",
-    "has_tie",
-    "is_aside"
+    "has_tie"
   ],
   "settings": {
     "card": {
       "face": "document",
-      "height": "free"
+      "height": "free",
+      "arrange": "aside"
     },
     "style": {
       "family": "note",

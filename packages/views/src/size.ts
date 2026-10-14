@@ -2,7 +2,7 @@
 
 import { covers, inline, is_grid, is_interface, lattice_of, setting_of, shown_name,
          stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
-import { edge_of, fit_of, face_table, face_text, handle_of } from "./face";
+import { edge_of, fit_of, face_table, face_text, handle_of, note_h } from "./face";
 import { look_of } from "./look";
 import type { Ruled } from "./scene";
 import { resolved } from "./through";
@@ -35,6 +35,12 @@ export const SEAT = UNIT / 2;
 export type Size = { w: number; h: number };
 
 export const BLOCK: Size = { w: UNITS.block.w * UNIT, h: UNITS.block.h * UNIT };
+
+/** A note's width where nothing sized it: a card and its air either side, at the card size in
+ *  force. */
+export function note_w(): number {
+  return BLOCK.w + UNITS.pad * UNIT * 2;
+}
 
 /** A group's cell, and the one thing a cell is: a block with a gap of air on every side of it. */
 export const CELL: Size = { w: BLOCK.w + PAD * 2, h: BLOCK.h + PAD * 2 };
@@ -170,6 +176,12 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
   /** A reference to a block previews it, at its size, with the face where it sits. */
   const source = resolved(graph, id).card;
   if (source !== id && !is_grid(graph, source)) return size_of(graph, source, face, card);
+  /** Never sized, a card of its own height is as tall as its words run at a note's width. */
+  if (free_height(graph, id)) {
+    const w = b.w ?? note_w();
+    const text = [shown_name(graph, id), b.body ?? ""].filter(Boolean).join("\n");
+    return { w, h: b.h ?? Math.max(BLOCK.h, Math.ceil(note_h(text, w) / UNIT) * UNIT) };
+  }
   return face === "large" ? large_of(graph, id, card) : { ...BLOCK };
 }
 

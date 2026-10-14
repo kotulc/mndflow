@@ -1,4 +1,4 @@
-/** The class view: a layer's definition references, drawn as one diagram.
+/** The table view: a layer's definition references, drawn as one diagram of attribute tables.
  *
  *  Members are the references that stand for definitions, one card each. A line joins a member to
  *  the nearest member it extends. Attribute links are the same ones the internal view draws.
@@ -8,16 +8,16 @@ import { children, isa, is_reference, stood_def, type Block, type Graph, type Id
          type Relation } from "@mnd/core";
 import { linked_graph } from "./links";
 
-const EXTENDS = "class:extends:";
+const EXTENDS = "table:extends:";
 
 /** An extends line: the hollow head at the ancestor says it, as UML draws it, so its name is not
  *  drawn. Never a stored edge. */
 const DRAWN = { line: { dir: "forward", to_arrow: "hollow", name: "hide" } };
 
 
-/** The class diagram of a layer, or null where it holds no definition reference. Drawn as an
+/** The table diagram of a layer, or null where it holds no definition reference. Drawn as an
  *  internal view of the graph returned. */
-export function class_graph(graph: Graph, layer: Id): Graph | null {
+export function table_graph(graph: Graph, layer: Id): Graph | null {
   const by_def = new Map<Id, Id>();
   const kept: Id[] = [];
   for (const b of children(graph, layer)) {

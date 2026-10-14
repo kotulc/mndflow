@@ -1,0 +1,17 @@
+name: Flowchart
+settings:
+  layout: { kind: layered }
+note: "layout.kind is layered: cards rank the way their lines point, and nothing is placed by hand."
+blocks:
+  - Order in
+  - name: In stock?
+    note: A decision is a block; its lines say where each answer goes.
+  - Pick
+  - Back-order
+  - Ship
+relations:
+  - Order in -> In stock?
+  - In stock? -> Pick: yes
+  - In stock? -> Back-order: no
+  - Back-order -> Pick: restocked
+  - Pick -> Ship

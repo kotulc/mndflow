@@ -20,9 +20,9 @@ export type Flow = "in" | "out" | "both";
 /** How a layer places what it draws: by hand, laid out for you, or as a page of full-width
  *  boxes. A setting (`layout.kind`), said by a definition and overridable
  *  by the layer. */
-export type Layout = "free" | "auto" | "page";
+export type Layout = "free" | "auto" | "page" | "layered";
 
-export const LAYOUTS: readonly Layout[] = ["free", "auto", "page"];
+export const LAYOUTS: readonly Layout[] = ["free", "auto", "page", "layered"];
 
 /** Which way a line points: a setting, `line.dir`, said by its definition and overridable on the
  *  line, like any other. */

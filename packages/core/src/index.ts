@@ -20,6 +20,8 @@ export * from "./capabilities";
 export * from "./actions";
 export * from "./file";
 export * from "./card";
+export * from "./refs";
+export * from "./diagram";
 export * from "./collection";
 export * from "./session";
 export * from "./boot";

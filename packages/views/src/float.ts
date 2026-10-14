@@ -1,10 +1,12 @@
-/** Where notes sit: untied notes in a column right of the blocks, and an aside card in the nearest
- *  free space beside what it is tied to. The one rule for a layer, a group and a page box. */
+/** Where cards sit in an `auto` layout: each kind's arrangement in explorer order, and an aside
+ *  card in the nearest free space beside what it is tied to. The one rule for a layer and a
+ *  group. */
 
-import { is_aside, is_note, type Graph, type Id } from "@mnd/core";
+import { arrange_of, is_aside, type Graph, type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
 import type { Sized } from "./bands";
 import { pack_units, tie_targets } from "./pack";
+import { whole } from "./grid";
 import { snap, GAP, PAD, UNIT, type Size } from "./size";
 
 type Rect = { x: number; y: number; w: number; h: number };
@@ -99,79 +101,49 @@ function pair(a: Rect, b: Rect): { d: number; tilt: number } {
   return { d: best.d, tilt };
 }
 
-/** Notes placed the one way every layout uses — a layer, a group and a page box alike: blocks
- *  flowed `across` to a row, untied notes in a column on the right, and a card carrying *is aside*
- *  in the nearest free space beside what it is tied to. Ties are read on `layer`; `holder` is the
- *  box being laid out, where it is not the layer, so a note tied to it floats beside its content. */
-export function noted(graph: Graph, layer: Id | null, structural: Sized[], satellites: Sized[],
-                      across?: number, holder?: Id): Placed[] {
-  const floats = (it: Sized) => is_aside(graph, it.b.id)
-    && tie_targets(graph, layer, it.b.id).length > 0;
-  const aside = [...structural, ...satellites].filter(floats);
-  const placed = column(graph, layer, structural.filter((it) => !floats(it)),
-                        satellites.filter((it) => !floats(it)), across);
+/** A layer's or a group's units placed the one way every `auto` layout uses: each kind's
+ *  arrangement in explorer order, then every aside card in the nearest free space beside what it
+ *  is tied to — or, untied, beside the arrangement. Ties are read on `layer`; `holder` is the box
+ *  being laid out, where it is not the layer, so a note tied to it floats beside its content. */
+export function noted(graph: Graph, layer: Id | null, units: readonly Sized[], across?: number,
+                      holder?: Id): Placed[] {
+  const aside = units.filter((it) => is_aside(graph, it.b.id));
+  const placed = centred(runs(graph, units.filter((it) => !is_aside(graph, it.b.id)), across));
   return [...placed, ...floated(graph, layer, aside, placed, holder)];
 }
 
-/** Untied notes in one column a gap to the right of the blocks. */
-function column(graph: Graph, layer: Id | null, structural: Sized[], satellites: Sized[],
-                across?: number): Placed[] {
-  const note = (it: Sized) => is_note(graph, it.b.id);
-  const flowing = [...structural.filter((it) => !note(it)),
-                   ...satellites.filter((it) => !note(it))];
-  const notes = [...structural, ...satellites].filter(note).sort((a, b) =>
+/** Units in explorer order, split into runs of one arrangement: a column stacks its cards, left
+ *  edges aligned; rows flow `across` to a row. Runs stack top to bottom, a gap apart. */
+export function runs(graph: Graph, units: readonly Sized[], across?: number): Placed[] {
+  const read = [...units].sort((a, b) =>
     (a.b.order ?? 0) - (b.b.order ?? 0) || a.b.id.localeCompare(b.b.id));
-  const placed = centred(pack_units(flowing, across));
-  if (!notes.length) return placed;
-  const at = new Map(placed.map((p) => [p.id, p]));
-  const hits = (it: Sized) => tie_targets(graph, layer, it.b.id)
-    .map((id) => at.get(id)).filter((p): p is Placed => !!p);
-  const untied = notes.filter((it) => hits(it).length === 0);
-  const right = placed.length ? Math.max(...placed.map((p) => p.x + p.w)) : 0;
-  const x = snap(right + GAP);
-  const top = placed.length ? Math.min(...placed.map((p) => p.y)) : 0;
-  const column: Placed[] = [];
+  const out: Placed[] = [];
+  let y = 0;
+  for (let i = 0; i < read.length;) {
+    const how = arrange_of(graph, read[i]!.b.id);
+    let j = i;
+    while (j < read.length && arrange_of(graph, read[j]!.b.id) === how) j++;
+    const run = read.slice(i, j);
+
+    /** A column takes a unit per row; rows flow from the run's top. */
+    const laid = how === "rows"
+      ? pack_units(run, across).map((p) => ({ ...p, y: p.y + y }))
+      : stacked(run, y);
+    out.push(...laid);
+    y = Math.max(...laid.map((p) => p.y + p.h)) + GAP;
+    i = j;
+  }
+  return out;
+}
+
+/** A column of units from `top`, each at the left edge, a gap below the last. */
+function stacked(run: readonly Sized[], top: number): Placed[] {
   let y = top;
-  for (const it of untied) {
-    column.push({ id: it.b.id, x, y, ...it.s });
-    y += it.s.h + GAP;
-  }
-  const after_untied = y;
-  const by_row = new Map<number, Placed[]>();
-  const row_of = new Map<number, Sized[]>();
-  for (const it of notes) {
-    if (untied.includes(it)) continue;
-    const row = Math.min(...hits(it).map((p) => p.y));
-    const list = row_of.get(row) ?? [];
-    list.push(it);
-    row_of.set(row, list);
-  }
-  for (const row of [...row_of.keys()].sort((a, b) => a - b)) {
-    let ny = row < after_untied ? Math.max(row, after_untied) : row;
-    const list: Placed[] = [];
-    for (const it of row_of.get(row)!) {
-      const spot = { id: it.b.id, x, y: ny, ...it.s };
-      list.push(spot);
-      column.push(spot);
-      ny += it.s.h + GAP;
-    }
-    by_row.set(row, list);
-  }
-  const rows = [...new Set(placed.map((p) => p.y))].sort((a, b) => a - b);
-  let push = 0;
-  for (const row of rows) {
-    for (const p of placed) if (p.y === row) p.y += push;
-    for (const n of by_row.get(row) ?? []) n.y += push;
-    const blocks = placed.filter((p) => p.y === row + push);
-    const block_bottom = blocks.length ? Math.max(...blocks.map((p) => p.y + p.h)) : row + push;
-    const ns = [
-      ...(row === rows[0] ? column.filter((n) => untied.some((u) => u.b.id === n.id)) : []),
-      ...(by_row.get(row) ?? []),
-    ];
-    const note_bottom = ns.length ? Math.max(...ns.map((n) => n.y + n.h)) : block_bottom;
-    push += Math.max(0, note_bottom - block_bottom);
-  }
-  return [...placed, ...column];
+  return run.map((it) => {
+    const spot = { id: it.b.id, x: 0, y, ...it.s };
+    y += whole(it.s.h) + GAP;
+    return spot;
+  });
 }
 
 /** Aside cards, each in the nearest free space beside what it is tied to. One tied only to an
@@ -183,9 +155,10 @@ export function floated(graph: Graph, layer: Id | null, held: readonly Sized[],
   for (let guard = pending.length; pending.length && guard >= 0; guard--) {
     const it = pending.shift()!;
     const ties = tie_targets(graph, layer, it.b.id);
-    /** Tied to the box itself, it floats beside what the box holds. */
+    /** Tied to the box itself, or to nothing, it floats beside what the box holds. */
     const target = ties.map((id) => out.find((p) => p.id === id)).find((p) => !!p)
-      ?? (holder && ties.includes(holder) && placed.length ? extent(placed) : undefined);
+      ?? ((!ties.length || (holder && ties.includes(holder))) && placed.length
+        ? extent(placed) : undefined);
     if (!target) { pending.push(it); continue; }
     out.push({ id: it.b.id, ...beside(out, target, it.s), ...it.s });
   }

@@ -3,11 +3,11 @@
  *
  *  A host cuts the workspace into sections (`sections.ts`); the canvas looks at one of them in
  *  one view. A layer view draws one block, and **its card's kind says which** (`lens_of`);
- *  `overhead`, the only view chosen, draws the whole section — every root the
+ *  `package`, the only view chosen, draws the whole section — every root the
  *  section above lists — down to its cut, the pick brought into sight. */
 
 import { holds_any } from "./capabilities";
-import { DIAGRAM_VIEWS } from "./components";
+import { NAMED_VIEWS } from "./components";
 import { setting_of } from "./defs";
 import { inline, is_folder, is_grid, layer_of } from "./holders";
 import { opens } from "./names";
@@ -37,9 +37,9 @@ export const EDITOR: Tiers = {
   top: "forest",
   sections: [
     { id: "definitions", label: "definitions", cut: "tree", lists: "domain",
-      views: ["overhead", "internal"] },
+      views: ["package", "internal"] },
     { id: "structure", label: "structure", cut: null, lists: "structure",
-      views: ["internal", "overhead"] },
+      views: ["internal", "package"] },
   ],
 };
 
@@ -51,21 +51,30 @@ function own_view(graph: Graph, id: Id): string | undefined {
   return typeof view === "string" ? view : undefined;
 }
 
-/** Whether a block can feed a diagram view. A sequence or a swimlane needs a grid. A class
- *  diagram needs room to hold: `allows.holds`, which *has parts* grants. */
+/** Whether a block can feed a view it names. Allocation and a sequence need a grid; a table
+ *  needs room to hold, `allows.holds`, which *has parts* grants; the inside, a block that opens
+ *  rather than drawing what it holds in place. */
 function feeds(graph: Graph, id: Id, view: string): boolean {
-  if (view === "sequence" || view === "swimlane") return is_grid(graph, id);
-  if (view === "class") return holds_any(graph, id);
+  if (view === "allocation" || view === "sequence") return is_grid(graph, id);
+  if (view === "table") return holds_any(graph, id);
+  if (view === "internal") {
+    return !is_grid(graph, id) && !inline(graph, id)
+      && (is_interface(graph, id) || opens(graph, id) || holds_any(graph, id));
+  }
   return false;
 }
 
-/** The diagram view a block's chain names, where the block can feed it. A name this build does
- *  not know, or a block that cannot feed the one it names, is null: the block opens on its
- *  capability view. */
+/** Whether a word is a view a block may name with `layout.view`. */
+function is_named_view(view: unknown): view is ViewKind {
+  return (NAMED_VIEWS as readonly unknown[]).includes(view);
+}
+
+/** The view a block's chain names, where the block can feed it. A name this build does not know,
+ *  or a block that cannot feed the one it names, is null: the block opens on the view its kind
+ *  gives. */
 export function diagram_of(graph: Graph, id: Id): ViewKind | null {
   const said = setting_of(graph, id, "layout")["view"];
-  if (typeof said !== "string" || !(DIAGRAM_VIEWS as readonly string[]).includes(said)) return null;
-  return feeds(graph, id, said) ? said as ViewKind : null;
+  return is_named_view(said) && feeds(graph, id, said) ? said : null;
 }
 
 /** The block a diagram draws. A stand-in that states its own `layout.view`, and whose target can
@@ -73,7 +82,7 @@ export function diagram_of(graph: Graph, id: Id): ViewKind | null {
 export function diagram_subject(graph: Graph, id: Id): Id {
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
   const own = own_view(graph, id);
-  if (target && target.id !== id && own && (DIAGRAM_VIEWS as readonly string[]).includes(own)
+  if (target && target.id !== id && own && is_named_view(own)
       && feeds(graph, target.id, own)) return target.id;
   return id;
 }
@@ -85,8 +94,8 @@ function own_diagram(graph: Graph, id: Id): ViewKind | null {
 
 
 /** The layer view a block opens on, by its card's kind, or null where it opens on nothing: a
- *  package or folder, its folder; a definition, itself; a diagram it names and can feed; a grid,
- *  its lattice; a block with structure or room to hold, from inside. A stand-in opens as what it
+ *  package or folder, its folder; a definition, itself; a view it names and can feed; a grid,
+ *  its allocation; a block with structure or room to hold, from inside. A stand-in opens as what it
  *  stands for, unless it states its own diagram view and the target can feed that. */
 export function lens_of(graph: Graph, id: Id): ViewKind | null {
   const b = graph.blocks[id];
@@ -97,7 +106,7 @@ export function lens_of(graph: Graph, id: Id): ViewKind | null {
   if (target && target.id !== id) return own_diagram(graph, id) ?? lens_of(graph, target.id);
   const diagram = diagram_of(graph, id);
   if (diagram) return diagram;
-  if (is_grid(graph, id)) return "grid";
+  if (is_grid(graph, id)) return "allocation";
   if (inline(graph, id)) return null;
   return is_interface(graph, b.id) || opens(graph, id) || holds_any(graph, id) ? "internal" : null;
 }
@@ -312,7 +321,7 @@ export function held_at(graph: Graph, tiers: Tiers, view: View): Held | null {
 
 /** A view of a layer where nothing says more: on its own view, in the section deepest listing it.
  *  With none, the first section whole, never from inside: under a forest, every package's
- *  domain — the overhead view. */
+ *  domain — the package view. */
 export function view_on(graph: Graph, tiers: Tiers, views: Views, layer: Id | null): View {
   if (layer && graph.blocks[layer]) {
     const { roots, held } = trace(graph, tiers, layer);
@@ -321,6 +330,6 @@ export function view_on(graph: Graph, tiers: Tiers, views: Views, layer: Id | nu
   }
   const said = view_of(tiers, views, 0);
   const kind = !is_layer_view(said) ? said
-    : tiers.sections[0]?.views.find((v) => !is_layer_view(v)) ?? "overhead";
+    : tiers.sections[0]?.views.find((v) => !is_layer_view(v)) ?? "package";
   return { at: 0, kind, layer: tiers.top === "forest" ? null : graph.root, pick: null };
 }

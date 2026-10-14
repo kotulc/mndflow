@@ -5,7 +5,7 @@
  *  against the graph the ones before it made. Permissive: a type or tag nothing holds, or that
  *  more than one package holds, is made in the workspace, and said. */
 
-import { DEFINITION_KEYS, names_in, read_card, said_as, USAGE_KEYS, type Card } from "../card";
+import { is_own_key, names_in, read_card, said_as, type Card } from "../card";
 import { all_defs, def_at, domain_of, frozen } from "../defs";
 import { replay } from "../fold";
 import { new_id } from "../ids";
@@ -125,7 +125,7 @@ function usage_calls(graph: Graph, id: Id, { front, body }: Card, whole: boolean
   if (says("source") && source !== (b.source ?? "")) calls.push(["source", { id, uri: source }]);
 
   /** Every other key answers the attribute of its name; an answer it no longer gives goes. */
-  const said = Object.entries(front).filter(([k]) => !(USAGE_KEYS as readonly string[]).includes(k));
+  const said = Object.entries(front).filter(([k]) => !is_own_key(k));
   const names = said.map(([k]) => k);
   for (const [n, v] of said) {
     const value = said_as(v);
@@ -135,7 +135,7 @@ function usage_calls(graph: Graph, id: Id, { front, body }: Card, whole: boolean
   }
   /** An answer named as a key the card says itself with is never written, so never taken. */
   for (const v of b.values ?? []) {
-    if (whole && !names.includes(v.name) && !(USAGE_KEYS as readonly string[]).includes(v.name)) {
+    if (whole && !names.includes(v.name) && !is_own_key(v.name)) {
       calls.push(["unfield", { holder: id, name: v.name }]);
     }
   }
@@ -153,7 +153,7 @@ function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
   const name = said_as(front["name"]).trim();
   if (name !== d.name) calls.push(["rename", { id, name }]);
 
-  const up = said_as(front["extends"]).trim();
+  const up = said_as(front["type"]).trim();
   const was = def_at(graph, d.type)?.name ?? "";
   if (up !== was) {
     const hit = up ? one_named(graph, up, (x) => x !== id) : "";
@@ -171,7 +171,7 @@ function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
   /** Any other key is an attribute's default, declared where nothing declares it; a default the
    *  card no longer says is cleared. */
   for (const [n, v] of Object.entries(front)) {
-    if ((DEFINITION_KEYS as readonly string[]).includes(n)) continue;
+    if (is_own_key(n)) continue;
     const value = said_as(v);
     if (d.def.attributes?.find((a) => a.name === n)?.default !== value) {
       calls.push(["field", { holder: id, name: n, default: value }]);
@@ -179,7 +179,7 @@ function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
   }
   for (const a of d.def.attributes ?? []) {
     if (a.default !== undefined && !(a.name in front)
-        && !(DEFINITION_KEYS as readonly string[]).includes(a.name)) {
+        && !is_own_key(a.name)) {
       calls.push(["field", { holder: id, name: a.name, default: "" }]);
     }
   }

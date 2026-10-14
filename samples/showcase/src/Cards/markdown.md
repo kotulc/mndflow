@@ -1,8 +1,7 @@
 ---
 name: From a file
-tags: tag_rotating
+tags: rotating
 duty: continuous
-source: samples/showcase/cards/markdown.md
 ---
 
 # Read from the file

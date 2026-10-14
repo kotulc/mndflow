@@ -39,7 +39,7 @@ The explorer files the graph as a **section chain**: a host declares its section
 |---|---|
 | choose (click, ↑ ↓) | selects the row; the tray shows it. The canvas stays |
 | open (Enter, double-click, →) | the canvas draws the block on the view its kind calls for: a package or folder its package view — drawing what the section it was opened from lists — a definition its definition view — opened from the structure section, or again, its structure — a grid its allocation view, a block that holds from inside. A group, a note or a leaf is revealed where it is, the canvas panning to it |
-| leave (←, Backspace) | the canvas draws the layer above, in the same section; a package leaves for the overhead view |
+| leave (←, Backspace) | the canvas draws the layer above, in the same section; a package leaves for the package view |
 | pick within the open tree | moves the canvas to the layer the block sits on (reveal) |
 
 - **Context highlighting and breadcrumbs show what the canvas has open**, never what is browsed.

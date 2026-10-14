@@ -32,9 +32,11 @@
 | what a block reads as (its role, and so its icon) | core `names.ts` (`role_of`); theme `role_icon`. The explorer's rows and the stage's cards both ask it |
 | rows, marks and highlights | explorer `rows.ts` (holder members at their holder's level, `end_of`, `parent_of`, the ties joining them), `Explorer.tsx` |
 | where notes sit: the column, and aside cards beside what they are tied to | views `float.ts` (`noted`, `floated`, `beside`), called by a layer (`arrange.ts`) and a group (`bands.ts`) (2026-10-12) |
-| whether an element is a tie, or floats aside | core `defs.ts` `is_tie` and `is_aside`, reading `line.module` and `card.place`, which *is tie* and *is aside* grant: no trait is matched by id (2026-10-12) |
+| whether an element is a tie | core `defs.ts` `is_tie`, reading `line.module`, which *is tie* grants: no trait is matched by id (2026-10-12) |
+| how a block sits in its parent's `auto` layer | core `defs.ts` `arrange_of` (`card.arrange`); `is_aside` asks it (2026-10-13) |
+| `auto` runs and aside floating | views `float.ts`: `noted`, `runs`, `floated`, for a layer and a group alike (2026-10-13) |
 | what a layer draws, the system and layer views, layouts | views `block.ts` (`project`), `survey.ts`, `profile.ts`, `definition.ts`, `page.ts`, `arrange.ts` |
-| which diagram a block opens on, and what it draws | core `navigate.ts` (`diagram_of`; `diagram_subject` for a stand-in stating its own view; `lens_of` asks both, through `own_diagram`); views `class.ts`, `swimlane.ts`, `sequence.ts`. The stand-in rule was written twice in `lens_of` and `diagram_subject`; one now (2026-10-12) |
+| which diagram a block opens on, and what it draws | core `navigate.ts` (`diagram_of`; `diagram_subject` for a stand-in stating its own view; `lens_of` asks both, through `own_diagram`); views `table.ts`, `sequence.ts`, and the grid's own view for `allocation`. The stand-in rule was written twice in `lens_of` and `diagram_subject`; one now (2026-10-12). The views a block may name are core `NAMED_VIEWS`, fed by `feeds` (2026-10-13) |
 | gestures to actions | stage `moves.ts`, `Stage.tsx` |
 | what a drop comes to (move, refer, retype, tie, create a usage, define a subtype) | core `drop.ts` (`drop_of`); the canvas and the explorer, in both apps, call it. Stage `moves.ts` only reads a card's resting place off the drawn scene |
 | what a kind cannot be made from | core `actions/helpers.ts` `NEEDS`, asked by `create`'s check |
@@ -48,6 +50,11 @@
 | what a card carries, its face and its size | views `derive.ts` (`carried`, `face_text`) and `size.ts` (`face_of`, `size_of`); drawn by theme `CardFace` on the canvas, in the tray and in mndmap alike. Three card renderers became one (2026-10-08) |
 | markdown, rendered | theme `Markdown` and `Inline`; nothing else parses markdown to draw it |
 | a card as markdown, and a folder of them | core `card.ts` (`card_text`, `read_card`), the `markdown` and `attach` actions, `collection.ts` (`collect`) |
+| a diagram file or frontmatter spelled out: short forms into the long form | core `diagram.ts` (`long_form`); syntax only, no name read (2026-10-13) |
+| what a name stands for: a path, `pkg.name`, a bare definition name | core `refs.ts` (`path_to`, `def_ref`); `collection.ts` reads every file's names through them (2026-10-13) |
+| names unique among siblings | core `tree.ts` `sibling_named`, asked by `create`, `rename` and `move` (2026-10-13) |
+| a source folder with the packages its files list | cli `main.ts` `gathered`, over core `wanted` and `collect` (2026-10-13) |
+| `layered`: a layer ranked by its relations | views `layered.ts`, on `@dagrejs/dagre` (2026-10-13) |
 
 
 ## How to look

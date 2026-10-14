@@ -1,0 +1,7 @@
+name: Part
+type: Unit
+def:
+  attributes:
+    - name: unit
+      type: Unit
+body: A part of a unit.

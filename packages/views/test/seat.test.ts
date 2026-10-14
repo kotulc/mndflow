@@ -4,11 +4,20 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { FLOOR } from "@mnd/fixtures";
-import { fold, open, is_aside, ROOT, type Log } from "@mnd/core";
+import { fold, open, is_aside, path_to, ROOT, type Graph, type Id, type Log } from "@mnd/core";
 import { laid } from "../src/arrange";
 import { project } from "../src/block";
 import { at_seat, seat_all, type Rect } from "../src/seat";
 import { box_of } from "../src/scene";
+
+/** A showcase block by its path of names, and the note tied to it. */
+const named = (graph: Graph, path: string): Id => path_to(graph, path, graph.root)!;
+const tie_on = (graph: Graph, id: Id) => Object.values(graph.edges).find((e) => e.type === "tie"
+  && (e.from === id || e.to === id))!;
+const note_on = (graph: Graph, id: Id): Id => {
+  const tie = tie_on(graph, id);
+  return tie.from === id ? tie.to : tie.from;
+};
 
 describe("a tie", () => {
   const log: Log = [{
@@ -65,14 +74,16 @@ describe("a tie", () => {
   it("crosses straight where a group note sits square beside the group", () => {
     const text = readFileSync("samples/showcase/workspace.json", "utf8");
     const { graph } = open(text, FLOOR);
-    const scene = project(graph, "l_groups");
+    const scene = project(graph, named(graph, "Holders::Groups"));
     const opposite: Record<string, string> = {
       top: "bottom", bottom: "top", left: "right", right: "left",
     };
-    for (const id of ["h_outer", "h_inner"]) {
-      const on_group = scene.perches.find((p) => p.edge === `t_${id}` && p.on === id)!;
-      const on_note = scene.perches.find((p) => p.edge === `t_${id}` && p.on === `n_${id}`)!;
-      const note = scene.nodes.find((n) => n.id === `n_${id}`)!;
+    for (const path of ["Plant", "Plant::Skid"]) {
+      const id = named(graph, `Holders::Groups::${path}`);
+      const tie = tie_on(graph, id).id;
+      const on_group = scene.perches.find((p) => p.edge === tie && p.on === id)!;
+      const on_note = scene.perches.find((p) => p.edge === tie && p.on === note_on(graph, id))!;
+      const note = scene.nodes.find((n) => n.id === note_on(graph, id))!;
       const group = scene.nodes.find((n) => n.id === id)!;
       expect(nearest_pair(box_of(note), box_of(group)).d).toBeLessThanOrEqual(24 * 2);
       expect(faces_square(box_of(note), box_of(group))).toBe(true);
@@ -156,9 +167,10 @@ describe("a note tied to an interface", () => {
   it("floats the showcase note beside the room port on Ports", () => {
     const text = readFileSync("samples/showcase/workspace.json", "utf8");
     const { graph } = open(text, FLOOR);
-    const scene = project(graph, "l_ports");
-    const note = scene.nodes.find((n) => n.id === "n_p_drain")!;
-    const port = scene.frame!.ports.find((p) => p.id === "p_drain")!;
+    const scene = project(graph, named(graph, "Interfaces::Ports"));
+    const drain = named(graph, "Interfaces::Ports::drain");
+    const note = scene.nodes.find((n) => n.id === note_on(graph, drain))!;
+    const port = scene.frame!.ports.find((p) => p.id === drain)!;
     const gap = nearest_pair(box_of(note), at_seat(scene.frame!, port));
     expect(gap.d).toBeLessThan(24 * 4);
     const box = box_of(note);

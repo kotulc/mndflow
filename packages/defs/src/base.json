@@ -61,6 +61,12 @@
           },
           "style": {
             "family": "primary"
+          },
+          "card": {
+            "arrange": "column"
+          },
+          "layout": {
+            "view": "internal"
           }
         },
         "traits": [
@@ -110,6 +116,9 @@
             "family": "neutral",
             "border_contrast": "faint",
             "name_contrast": "faint"
+          },
+          "card": {
+            "arrange": "rows"
           }
         }
       },
@@ -119,13 +128,16 @@
         "name": "grid",
         "type": "block",
         "def": {},
-        "body": "A spreadsheet of cells holding text or blocks, opened as a grid view: a header allocates what its row or column holds.",
+        "body": "A spreadsheet of cells holding text or blocks, opened on the allocation view: a header allocates what its row or column holds.",
         "order": 3,
         "settings": {
           "style": {
             "family": "muted",
             "border_contrast": "faint",
             "name_contrast": "faint"
+          },
+          "layout": {
+            "view": "allocation"
           }
         },
         "traits": [
@@ -244,20 +256,6 @@
           "is_port"
         ]
       },
-      "is_aside": {
-        "id": "is_aside",
-        "parent": "base.dir.tags.traits",
-        "name": "is_aside",
-        "type": "trait",
-        "def": {},
-        "body": "Floats in the nearest free space beside what it is tied to, a unit clear of surrounding cards.",
-        "order": 6,
-        "settings": {
-          "card": {
-            "place": "aside"
-          }
-        }
-      },
       "is_grid": {
         "id": "is_grid",
         "parent": "base.dir.tags.traits",
@@ -265,7 +263,7 @@
         "type": "trait",
         "def": {},
         "body": "Seats text and blocks in the cells of a grid, drawn when it is opened.",
-        "order": 7,
+        "order": 6,
         "settings": {
           "holder": {
             "matrix": true
@@ -279,7 +277,7 @@
         "type": "trait",
         "def": {},
         "body": "Draws what it holds in place, on the layer it sits on, rather than behind its card.",
-        "order": 8,
+        "order": 7,
         "settings": {
           "holder": {
             "inline": true
@@ -293,7 +291,7 @@
         "type": "trait",
         "def": {},
         "body": "Is a port: an interface seated on its owner's wall, where relationships enter and leave.",
-        "order": 9,
+        "order": 8,
         "settings": {
           "block": {
             "module": "interface"
@@ -307,7 +305,7 @@
         "type": "trait",
         "def": {},
         "body": "Stands for another block, definition or package (`of`): draws as it, opens onto it, owns nothing.",
-        "order": 10,
+        "order": 9,
         "settings": {
           "block": {
             "module": "reference"
@@ -321,7 +319,7 @@
         "type": "trait",
         "def": {},
         "body": "Is a tie: a straight run between the nearest corners of the two cards. No anchor, no end mark, and never routed.",
-        "order": 11,
+        "order": 10,
         "settings": {
           "line": {
             "module": "tie"
@@ -364,7 +362,8 @@
         "settings": {
           "card": {
             "face": "document",
-            "height": "free"
+            "height": "free",
+            "arrange": "aside"
           },
           "style": {
             "family": "note",
@@ -376,8 +375,7 @@
         },
         "traits": [
           "has_values",
-          "has_tie",
-          "is_aside"
+          "has_tie"
         ]
       },
       "number": {

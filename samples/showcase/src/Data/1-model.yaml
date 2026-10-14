@@ -1,0 +1,15 @@
+name: Model
+type: Large layer
+blocks:
+  - name: Attributes typed by a definition draw links between stand-ins.
+    type: note
+    w: 360
+  - type: reference
+    of: Site
+    note: A stand-in for Site.
+  - type: reference
+    of: Asset
+    note: Asset's site attribute is typed Site, so a link draws.
+  - type: reference
+    of: State
+    note: "State extends choice: running or stopped."

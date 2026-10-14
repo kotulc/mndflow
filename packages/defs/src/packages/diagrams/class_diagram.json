@@ -2,11 +2,11 @@
   "id": "class_diagram",
   "name": "class diagram",
   "type": "block",
-  "body": "A diagram of the definitions its references stand for, and what they extend.",
+  "body": "A diagram of the definitions its references stand for, as attribute tables, and what they extend.",
   "def": {},
   "settings": {
     "layout": {
-      "view": "class",
+      "view": "table",
       "cards": "large"
     }
   }

@@ -1,0 +1,15 @@
+name: Machine
+def:
+  attributes:
+    - name: power
+      type: number
+      unit: kW
+settings:
+  card:
+    face: table
+  style:
+    family: secondary
+blocks:
+  - name: power
+    type: interface
+    flow: in

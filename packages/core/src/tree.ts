@@ -39,6 +39,15 @@ export function children(graph: Graph, layer: Id | null): Block[] {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
 }
 
+/** Whether a block under `parent`, other than those `except` names, already goes by `name`.
+ *  Names are unique among siblings, so a name finds one block; an unnamed block never clashes. */
+export function sibling_named(graph: Graph, parent: Id | null, name: string,
+                              except: readonly Id[] = []): boolean {
+  const want = name.trim();
+  return !!want && children(graph, parent)
+    .some((b) => !except.includes(b.id) && (b.name ?? "").trim() === want);
+}
+
 /** The chain from root down to this block, itself last. */
 export function path(graph: Graph, id: Id): Block[] {
   const out: Block[] = [];

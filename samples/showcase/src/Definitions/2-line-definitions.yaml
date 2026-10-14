@@ -1,0 +1,16 @@
+name: Line definitions
+blocks:
+  - name: A relation definition says direction, arrows, allowed ends and attributes. Select the line and open its definition from the tray.
+    type: note
+    w: 360
+  - name: Compressor
+    type: Machine
+    note: A machine, one end drives allows.
+  - name: Feed pump
+    type: Pump
+    note: drives runs here from the compressor, ratio 3, pointing forward.
+relations:
+  - from: Compressor
+    to: Feed pump
+    type: drives
+    ratio: "3"

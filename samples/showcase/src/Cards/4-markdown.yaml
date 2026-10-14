@@ -1,0 +1,8 @@
+name: Markdown
+type: Large layer
+blocks:
+  - name: "A card can be a markdown file: regenerating reads it again."
+    type: note
+    w: 360
+  - source: markdown.md
+    note: "source is the markdown file: name, tags and one attribute come from its frontmatter."

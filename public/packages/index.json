@@ -17,13 +17,18 @@
     },
     {
       "name": "diagrams",
-      "about": "diagram views a card's kind opens on: class, swimlane and sequence",
+      "about": "diagrams a card's kind opens on: class (table), swimlane (allocation) and sequence",
       "at": "diagrams.json"
     },
     {
       "name": "architecture",
       "about": "architecture vocabulary and patterns: components, people, documents, the relations between them, and reusable service patterns",
       "at": "architecture.json"
+    },
+    {
+      "name": "showcase",
+      "about": "one layer per thing mndflow draws, every layer a diagram file",
+      "at": "showcase.json"
     }
   ]
 }

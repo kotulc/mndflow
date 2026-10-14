@@ -46,7 +46,7 @@ export type Chrome = {
 };
 
 /** How a person lays a layer out from the rail. `page` is a definition's or a host's to set — the
- *  overhead view reads as a page — so it is not offered here. */
+ *  package view reads as a page — so it is not offered here. */
 const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
   free: { icon: "layout_free", tip: "Hand placement is what draws" },
   auto: { icon: "layout_grid", tip: "Auto-layout: everything in reading order on a grid; lines never move it" },
@@ -54,20 +54,18 @@ const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
 
 /** How the canvas may look: at its whole section, or at one block. */
 const VIEWS: Record<ViewKind, { icon: IconName; word: string; tip: string }> = {
-  overhead: { icon: "view_overhead", word: "overhead",
-              tip: "Overhead: the whole system from above, as nested boxes" },
+  package: { icon: "view_package", word: "package",
+             tip: "Package: the whole system from above, as nested boxes" },
   internal: { icon: "view_internal", word: "internal",
               tip: "Internal: the block from inside, what it holds" },
-  grid: { icon: "view_grid", word: "grid",
-          tip: "Grid: the opened grid's cells and what sits in them" },
+  allocation: { icon: "view_grid", word: "allocation",
+                tip: "Allocation: the grid's cells, what sits in them, and their lines" },
   folder: { icon: "view_folder", word: "folder",
             tip: "Folder: what the package or folder holds, read down the page" },
   definition: { icon: "word_def", word: "definition",
                 tip: "Definition: where the definition sits, what it extends, its ports, tags and traits round it" },
-  class: { icon: "view_class", word: "class",
-           tip: "Class: the definitions this layer's references stand for, and what they extend" },
-  swimlane: { icon: "view_swimlane", word: "swimlane",
-              tip: "Swimlane: each participant a column, each phase a row" },
+  table: { icon: "view_table", word: "table",
+           tip: "Table: the definitions this layer's references stand for, as tables" },
   sequence: { icon: "view_sequence", word: "sequence",
               tip: "Sequence: participants as lifelines, relations as messages in time" },
 };

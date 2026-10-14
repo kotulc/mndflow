@@ -76,11 +76,11 @@ describe("one step per action", () => {
     const s = session({ floor: FLOOR });
     const before = s.log().length;
     expect(s.go("create", { name: "" })).toBeNull();
-    /** A sibling may wear the same name, so two of these are two steps. */
+    /** Names are unique among siblings, so the second of these is refused. */
     s.go("create", { name: "A" });
-    expect(s.go("create", { name: "A" })).toBeNull();
+    expect(s.go("create", { name: "A" })).toMatch(/already here/);
     expect(s.go("refer", { target: "block_nowhere" })).toMatch(/not there/);
-    expect(s.log().length).toBe(before + 3);
+    expect(s.log().length).toBe(before + 2);
   });
 
   it("writes no step for navigation", () => {

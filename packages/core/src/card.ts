@@ -2,17 +2,24 @@
  *
  *  **The graph is the truth.** `card_text` writes a block or a definition as its card source;
  *  `read_card` splits one back into frontmatter and body, for the `markdown` and `attach` actions to
- *  turn into ordinary changes. The frontmatter is YAML. */
+ *  turn into ordinary changes. The frontmatter is a diagram file's: one schema, YAML. */
 
 import { parse, stringify } from "yaml";
 import { def_at } from "./defs";
 import type { Block, Graph, Id } from "./types";
 
-/** The keys a usage's frontmatter says itself with; any other is a value. */
-export const USAGE_KEYS = ["name", "type", "tags", "source"] as const;
+/** The keys a block says itself with, in a diagram file and a card source alike. Any other key is
+ *  a value — on a definition, an attribute's default. */
+export const BLOCK_KEYS = [
+  "name", "type", "def", "tags", "traits", "settings", "body", "source", "of", "parent", "cell",
+  "grid", "values", "w", "h", "side", "at", "flow", "rows", "cols", "blocks", "relations",
+  "packages", "note",
+] as const;
 
-/** The keys a definition's frontmatter says itself with; any other is an attribute's default. */
-export const DEFINITION_KEYS = ["name", "extends", "tags", "traits"] as const;
+/** Whether a key is one a block says itself with, rather than a value. */
+export function is_own_key(key: string): boolean {
+  return (BLOCK_KEYS as readonly string[]).includes(key);
+}
 
 /** Frontmatter: a fence of dashes, YAML, a fence of dashes. */
 const FRONT = /^---\r?\n([\s\S]*?)\r?\n?---[ \t]*(?:\r?\n|$)/;
@@ -70,21 +77,22 @@ function used(graph: Graph, b: Block): Record<string, unknown> {
   if (b.tags) front["tags"] = named(graph, b.tags);
   if (b.source) front["source"] = b.source;
   for (const v of b.values ?? []) {
-    if (!(USAGE_KEYS as readonly string[]).includes(v.name)) front[v.name] = scalar(v.value);
+    if (!is_own_key(v.name)) front[v.name] = scalar(v.value);
   }
   return front;
 }
 
-/** A definition's frontmatter: its name, what it extends, what it carries, then its attributes'
- *  defaults. */
+/** A definition's frontmatter: its name, what it extends, that it is one, what it carries, then
+ *  its attributes' defaults. */
 function defined(graph: Graph, b: Block): Record<string, unknown> {
   const front: Record<string, unknown> = { name: b.name ?? "" };
   const up = def_at(graph, b.type);
-  if (up) front["extends"] = up.name;
+  if (up) front["type"] = up.name;
+  front["def"] = {};
   if (b.tags) front["tags"] = named(graph, b.tags);
   if (b.traits) front["traits"] = named(graph, b.traits);
   for (const a of b.def?.attributes ?? []) {
-    if (a.default !== undefined && !(DEFINITION_KEYS as readonly string[]).includes(a.name)) {
+    if (a.default !== undefined && !is_own_key(a.name)) {
       front[a.name] = scalar(a.default);
     }
   }

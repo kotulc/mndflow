@@ -5,6 +5,7 @@ import { children, drawn_in, is_aside, is_group, is_interface, layout_of,
 import { band_members, band_size, celled, loose_unit, type Sized } from "./bands";
 import { beside, centred, noted } from "./float";
 import { belongs_to, is_satellite, tie_targets } from "./pack";
+import { layered } from "./layered";
 import { across_of } from "./page";
 import { gridded, size_of, snap, GAP, PAD, UNIT, type Size } from "./size";
 
@@ -29,10 +30,11 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
   const satellites = loose.filter((b) => is_satellite(graph, layer, b))
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id)).map(sized_of);
 
-  /** `auto` flows the blocks, then stands the notes in a column on the right. A computed page
-   *  has written its places, and `free` draws what was put where it was put. */
+  /** `auto` arranges each kind its own way, notes floating beside what they are tied to. A
+   *  computed page has written its places, and `free` draws what was put where it was put. */
   const spots = how === "auto"
-    ? noted(graph, layer, structural, satellites, across_of(graph, layer))
+    ? noted(graph, layer, [...structural, ...satellites], across_of(graph, layer))
+    : how === "layered" ? layered(graph, layer, [...structural, ...satellites])
     : free(structural, satellites, (b) => belongs_to(graph, layer, b).map(unit));
 
   /** Bands first, then cells: a grid in a band takes its spot from the band. */

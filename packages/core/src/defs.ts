@@ -1,7 +1,7 @@
 /** Definitions: blocks carrying `def`. Chains, bases, packages, and what an element resolves
  *  through. */
 
-import { FORMS, type Settings } from "./components";
+import { ARRANGES, FORMS, type Settings } from "./components";
 import { is_folder, organizes } from "./holders";
 import { BASE_BLOCKS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIRS, type Block,
          type BlockModule, type Attribute, type Components, type Definition, type Dir, type Graph,
@@ -12,6 +12,9 @@ export type Domain = "block" | "relation";
 
 /** How a value is edited. */
 export type Form = (typeof FORMS)[number];
+
+/** How a card sits in its parent's `auto` layer. */
+export type Arrange = (typeof ARRANGES)[number];
 
 
 /** The definition with this id, where a block is one. */
@@ -255,10 +258,15 @@ export function is_note(graph: Graph, id: Id): boolean {
   return !!graph.blocks[id] && base_of(graph, id) === "note";
 }
 
-/** Whether a block floats beside what it is tied to: its `card.place` is aside, which *is aside*
- *  grants. */
+/** How a block sits in its parent's `auto` layer: its `card.arrange`, a column unsaid. */
+export function arrange_of(graph: Graph, id: Id | undefined): Arrange {
+  const said = setting_of(graph, id, "card")["arrange"];
+  return ARRANGES.includes(said as Arrange) ? said as Arrange : "column";
+}
+
+/** Whether a block floats beside what it is tied to: it arranges aside. */
 export function is_aside(graph: Graph, id: Id | undefined): boolean {
-  return setting_of(graph, id, "card")["place"] === "aside";
+  return arrange_of(graph, id) === "aside";
 }
 
 

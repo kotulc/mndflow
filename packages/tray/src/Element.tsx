@@ -12,7 +12,7 @@ import { Drawing } from "./Drawing";
 import { Identity } from "./Identity";
 
 /** The frontmatter keys the identity rows answer; any other is drawn as it is filed. */
-const IDENTITY = ["name", "type", "extends", "tags"];
+const IDENTITY = ["name", "type", "def", "tags"];
 
 export type ElementProps = {
   graph: Graph; id: Id; onAct?: Act;

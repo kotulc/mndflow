@@ -1,0 +1,18 @@
+name: Kinds
+blocks:
+  - name: "Every block kind on its small face. Open Folder: it holds Inside, and that is not structure."
+    type: note
+    w: 360
+  - name: Block
+    note: type is block, the default kind.
+  - name: Folder
+    type: folder
+    note: "type is folder: it holds Inside, and holds no structure."
+    blocks: [ Inside ]
+  - type: reference
+    of: Block
+    note: "type is reference, of Block: it stands in, and wears Ref."
+  - name: "type is note: its text is the card, and its size was set by hand"
+    type: note
+    w: 192
+    h: 48

@@ -1,0 +1,14 @@
+name: Groups
+blocks:
+  - name: A group gathers blocks where they sit, and nests.
+    type: note
+    w: 360
+  - name: Plant
+    type: group
+    note: "type is group: it gathers the blocks where they sit."
+    blocks:
+      - name: Skid
+        type: group
+        note: A group inside a group.
+        blocks: [ Motor, Gearbox ]
+      - Panel

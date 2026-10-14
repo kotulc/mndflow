@@ -14,10 +14,9 @@ import { page_graph } from "./page";
 import { survey_graph, FOREST } from "./survey";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
-import { class_graph } from "./class";
+import { table_graph } from "./table";
 import { linked_graph, LINK } from "./links";
 import { sequence_scene } from "./sequence";
-import { swimlane_graph } from "./swimlane";
 import { definition_graph, inherited_in, ASPECT } from "./definition";
 import { tie_targets } from "./pack";
 import { box_of, cell as node, extent, FRAME, type BoxData, type BoxNode, type Frame,
@@ -25,11 +24,11 @@ import { box_of, cell as node, extent, FRAME, type BoxData, type BoxNode, type F
          type Slot } from "./scene";
 
 export type Config = {
-  /** How the layer is looked at: from inside (`internal`, `grid`); a package or folder read down
-   *  the page (`folder`); a definition with what describes it round it (`definition`); a diagram
-   *  the block names (`class`, `swimlane`, `sequence`); the whole section it scopes, down to
-   *  `cut`, each block there boxing its top level where `tops` says (`overhead`). Unsaid,
-   *  inside — and with no layer, every package's domain as an overhead view. */
+  /** How the layer is looked at: from inside (`internal`, `allocation`); a package or folder read
+   *  down the page (`folder`); a definition with what describes it round it (`definition`); a
+   *  diagram the block names (`table`, `sequence`); the whole section it scopes, down to `cut`,
+   *  each block there boxing its top level where `tops` says (`package`). Unsaid, inside — and
+   *  with no layer, every package's domain as the package view. */
   look?: { kind: ViewKind; cut: Cut; tops?: boolean; lists?: "domain" | "structure" };
   /** The packages a forest draws, in order; every package where unsaid. */
   packages?: readonly Id[];
@@ -46,7 +45,7 @@ export type Config = {
 const SLOTS: readonly Slot[] = ["layer", "display", "relations"];
 
 /** What a projection with no layer draws: every package's domain, as boxes down the page. */
-const WHOLE = { kind: "overhead", cut: "tree" } as const;
+const WHOLE = { kind: "package", cut: "tree" } as const;
 
 /** The layer with only what this section lists still parented to it, waypoints included. The
  *  rest move aside, so a folder opened from one section draws that section's kind. */
@@ -133,7 +132,7 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
     return { ...scene, nodes, ...(frame ? { frame } : {}),
              slots: arranged ? scene.slots : scene.slots.filter((x) => x !== "layer") };
   }
-  if (look?.kind === "overhead") {
+  if (look?.kind === "package") {
     const drawn = survey_graph(given, layer, look.cut,
                                { ...(config.packages ? { only: config.packages } : {}),
                                  ...(look.tops ? { tops: true } : {}),
@@ -150,7 +149,11 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   if (layer === null) return project(given, null, { ...config, look: WHOLE });
   /** A diagram is a projection: it draws what the block holds, and the canvas does not edit it.
    *  A grid would otherwise open as its lattice, so this comes first. */
-  if (layer && (look?.kind === "class" || look?.kind === "swimlane" || look?.kind === "sequence")) {
+  if (layer && (look?.kind === "table" || look?.kind === "sequence")) {
+    return quiet(given, layer, diagram_scene(given, layer, look.kind));
+  }
+  /** A stand-in naming the allocation view draws its grid's cells, read only. */
+  if (layer && look?.kind === "allocation" && diagram_subject(given, layer) !== layer) {
     return quiet(given, layer, diagram_scene(given, layer, look.kind));
   }
   /** An opened grid draws its grid view: its frame of cells is the room, which the hand sizes
@@ -491,7 +494,7 @@ function line_edges(graph: Graph, linked: readonly Relation[], seating: Seating)
     const label = wire.name ? label_of(graph, e.id) : "";
     const alias = wire.alias ? alias_of(graph, e.id, true) : "";
     /** A link, or a line a diagram drew, is read and never picked. */
-    const link = e.id.startsWith(LINK) || e.id.startsWith("class:");
+    const link = e.id.startsWith(LINK) || e.id.startsWith("table:");
     /** A tie by its trait: drawn straight and never routed. */
     const module = is_tie(graph, e.id) ? "tie" : "line";
     const fan = seating.fans.get(e.id);
@@ -521,24 +524,18 @@ function handle(met: ReadonlyMap<string, Perch>, edge: Id,
 /** The scene a diagram kind draws. The subject is the block that feeds it: a stand-in's target
  *  when the stand-in names the view. A kind the block cannot fill falls back to the capability
  *  view, still read only. */
-function diagram_scene(graph: Graph, layer: Id, kind: "class" | "swimlane" | "sequence"): Scene {
+function diagram_scene(graph: Graph, layer: Id, kind: "table" | "allocation" | "sequence"): Scene {
   const subject = diagram_subject(graph, layer);
   const scene = kind === "sequence" ? sequence_of(graph, subject)
-    : kind === "swimlane" ? swimlane_of(graph, subject) : class_of(graph, subject);
+    : kind === "allocation" ? project(graph, subject) : table_of(graph, subject);
   if (layer === subject || !scene.frame) return scene;
   return { ...scene, frame: { ...scene.frame, label: shown_name(graph, layer) } };
 }
 
-/** A class diagram, or the block's own capability view where it holds no definition reference.
+/** A table diagram, or the block's own capability view where it holds no definition reference.
  *  The diagram's graph no longer calls its host a grid, so it is drawn from inside. */
-function class_of(graph: Graph, subject: Id): Scene {
-  return project(class_graph(graph, subject) ?? graph, subject);
-}
-
-/** A swimlane, or the grid itself where it has too few lanes or no step. */
-function swimlane_of(graph: Graph, subject: Id): Scene {
-  const drawn = swimlane_graph(graph, subject);
-  return drawn ? project(drawn, subject) : project(graph, subject);
+function table_of(graph: Graph, subject: Id): Scene {
+  return project(table_graph(graph, subject) ?? graph, subject);
 }
 
 /** A sequence, or the grid itself where it has no step. */

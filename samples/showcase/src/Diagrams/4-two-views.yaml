@@ -1,0 +1,34 @@
+name: Two views
+packages: [diagrams]
+blocks:
+  - name: "One grid drawn two ways: the grid as a sequence, and a reference to it with layout.view allocation as lanes."
+    type: note
+    w: 360
+  - name: Handoff
+    type: diagrams.sequence_diagram
+    note: The grid's layout.view is sequence.
+    cols:
+      - name: Left
+        body: The first participant.
+      - name: Right
+        body: The second participant.
+    rows:
+      - name: Pass
+        body: The phase.
+    blocks:
+      - name: Send
+        body: The first step.
+        cell: [ Pass, Left ]
+      - name: Take
+        body: The second step.
+        cell: [ Pass, Right ]
+  - name: Handoff, as lanes
+    type: reference
+    of: Handoff
+    settings:
+      layout:
+        view: allocation
+    note: "This reference states its own layout.view: allocation."
+relations:
+  - diagrams.message:
+      - Send -> Take: hand

@@ -107,12 +107,17 @@ export const FACE_PARTS: Record<(typeof LARGE_FACES)[number], readonly (typeof P
 /** Which size a layer draws its cards at: the name and marks alone, or what they say. */
 export const CARDS = ["small", "large"] as const;
 
-/** Where a card sits in an `auto` layout: in the flow, or aside, beside what it is tied to. */
-export const PLACES = ["flow", "aside"] as const;
+/** How a card sits in its parent's `auto` layer: in a column, in rows, or aside, beside what it
+ *  is tied to. */
+export const ARRANGES = ["column", "rows", "aside"] as const;
 
-/** The diagram views a layer may name with `layout.view`. Closed, like `card.face`: a name outside
- *  this set is drawn as the block's capability view, never refused. */
-export const DIAGRAM_VIEWS = ["class", "swimlane", "sequence"] as const;
+/** The layer views a block may name with `layout.view`, where it can feed them. Closed, like
+ *  `card.face`: a name outside this set opens the block on the view its kind gives, never
+ *  refused. */
+export const NAMED_VIEWS = ["internal", "allocation", "sequence", "table"] as const;
+
+/** The views that are projections: they draw what a block holds and write nothing back. */
+export const DIAGRAM_VIEWS = ["sequence", "table"] as const;
 
 /** How a value is edited: what a value type says, as a module is what a kind says. */
 export const FORMS = ["text", "number", "flag", "choice", "link"] as const;
@@ -231,10 +236,10 @@ const card: Component = {
     /** `face` is which large face it draws with; `size` its size. */
     ?? one_of("card.face", config["face"], LARGE_FACES)
     ?? sized("card.size", config["size"])
-    /** `place` aside floats it beside what it is tied to. Granted by *is aside*. */
-    ?? one_of("card.place", config["place"], PLACES)
+    /** `arrange` is how it sits in its parent's `auto` layer. */
+    ?? one_of("card.arrange", config["arrange"], ARRANGES)
     ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "name",
-                              "face", "size", "place"]),
+                              "face", "size", "arrange"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings. */

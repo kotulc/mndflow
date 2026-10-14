@@ -71,10 +71,9 @@ describe("check agrees with run", () => {
   });
 
   /** A name is not an identity, so nothing is refused for wearing one. */
-  it("allows a name a sibling already has", () => {
-    expect(run("create", ctx(), { name: "Pump" })).not.toHaveProperty("refused");
-    expect(run("rename", ctx(), { id: "block_hx", name: "Pump" }))
-      .not.toHaveProperty("refused");
+  it("refuses a name a sibling already has", () => {
+    expect(run("create", ctx(), { name: "Pump" })).toHaveProperty("refused");
+    expect(run("rename", ctx(), { id: "block_hx", name: "Reservoir" })).toHaveProperty("refused");
     expect(run("move", ctx(), { ids: ["block_pump"], parent: "block_hx" }))
       .not.toHaveProperty("refused");
   });

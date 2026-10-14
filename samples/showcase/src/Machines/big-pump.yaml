@@ -1,0 +1,10 @@
+name: Big pump
+type: Pump
+def:
+  attributes:
+    - name: stages
+      type: number
+      default: "2"
+settings:
+  style:
+    border_width: thick

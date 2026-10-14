@@ -47,11 +47,11 @@ export function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: La
       ...(is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id)) })));
   }
 
-  /** Notes sit as on a layer: untied ones in a column, an aside beside what it is tied to. */
+  /** Members sit as on a layer: each kind arranged its own way, an aside beside its tie. */
   const sized = members.map((b): Sized => ({
     b, s: is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   }));
-  if (how === "auto") return from_corner(noted(graph, layer, sized, [], undefined, band_id));
+  if (how === "auto") return from_corner(noted(graph, layer, sized, undefined, band_id));
   const floats = (it: Sized) => is_aside(graph, it.b.id)
     && tie_targets(graph, layer, it.b.id).length > 0;
   const laid_out = packed(

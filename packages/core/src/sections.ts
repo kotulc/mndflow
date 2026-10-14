@@ -12,22 +12,23 @@ import type { Block, Graph, Id } from "./types";
 export type Cut = "package" | "tree" | null;
 
 /** How the canvas draws. **Layer views** draw one block, and its card's kind says which: from
- *  inside (`internal`), an opened grid's lattice (`grid`), a package's or folder's contents read
- *  down the page (`folder`), a definition with what describes it round it (`definition`), or a
- *  diagram the block names (`class`, `swimlane`, `sequence`). The **system view** draws a whole
- *  section from above as nested boxes (`overhead`), and is the only one chosen. */
-export type ViewKind = "internal" | "grid" | "folder" | "definition"
-  | "class" | "swimlane" | "sequence" | "overhead";
+ *  inside (`internal`), an opened grid's cells and the relations between them (`allocation`), a
+ *  package's or folder's contents read down the page (`folder`), a definition with what
+ *  describes it round it (`definition`), or a diagram the block names (`table`, `sequence`). The
+ *  **system view** draws a whole section from above as nested boxes (`package`), and is the
+ *  only one chosen. */
+export type ViewKind = "internal" | "allocation" | "folder" | "definition"
+  | "table" | "sequence" | "package";
 
 /** The views that draw one block. A section offers them as one choice, `internal`, and the block
  *  opened says which it shows. */
 export const LAYER_VIEWS: readonly ViewKind[] = [
-  "internal", "grid", "folder", "definition", "class", "swimlane", "sequence"];
+  "internal", "allocation", "folder", "definition", "table", "sequence"];
 
 /** The layer views drawn from inside, where what the layer holds is built. A diagram is read from
  *  inside too: it draws what the block holds, and nothing is laid out there. */
 const INSIDE: readonly ViewKind[] = [
-  "internal", "grid", "folder", "class", "swimlane", "sequence"];
+  "internal", "allocation", "folder", "table", "sequence"];
 
 /** Which side a section lists. Unset, it lists every role, as a host that has not split does. */
 export type Lists = "domain" | "structure";

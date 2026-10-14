@@ -7,8 +7,6 @@
 
 | # | Work | Done when |
 |---|---|---|
-| 2 | **arrangement by kind** | `auto` lays a layer out by each block's preferred arrangement; the acceptance run in *Arrangement by kind* passes |
-| 3 | **diagram YAML** | the whole showcase is written as YAML diagram files, collected into the showcase package, and draws as today |
 | 4 | **CLI fixes** | `check` on a broken file exits 1; `export --sysml --round` on the repo map brings back all 490 relations |
 | 5 | **diagram views** | their known issues fixed |
 | 6 | **canvas gestures** | a diagram is built fast from the canvas alone |
@@ -17,122 +15,6 @@
 | 9 | **CLI surface** | the acceptance run in *CLI* passes |
 
 *Rough edges* is a backlog, taken when a step passes near one.
-
-
-## 2 — Arrangement by kind
-
-**A view is how an opened block draws its inside; an arrangement is how a block sits in its parent's layer.** Every kind states its preferred arrangement; `auto` lays a layer's blocks out in explorer order, each run of one preference its own way, and notes float in the nearest free space beside what they are tied to. Views (folder, internal, grid, definition, diagrams, and the `page` layout they use) are unchanged here: aligning them is a later plan. Decisions confirmed 2026-10-12.
-
-### The rule
-
-| Kind | `card.arrange` | Sits in an `auto` layer |
-|---|---|---|
-| block | `column` | one column at the left, left edges aligned |
-| folder | `rows` | small cards in rows, `layout.across` to a row, as the package view lays cards |
-| grid, group, reference | `column` (inherited from block) | as a block: a grid is a small card, a group its box |
-| note | `aside` | the nearest free space beside what it is tied to, a unit clear of every card (today's `beside`) |
-
-| Rule | |
-|---|---|
-| **one setting** | `card.arrange` (`column`, `rows`, `aside`) on the definition, inherited and overridable like any setting. Replaces `card.place` (`flow`, `aside`) and the *is aside* trait |
-| **explorer order** | `auto` places non-aside blocks in `children` order, the explorer's. Consecutive blocks sharing a preference form a run; runs stack top to bottom, left-aligned, a gap apart. No other ordering |
-| **asides** | tied: beside the target, as today, a tie to an interface after it is seated. Untied: beside everything the layer arranged. The notes column is gone |
-| **relations** | only ties place anything; a line never moves a card (unchanged). *arrange* still reorders `order` on request |
-| **inside a group** | members arranged by the same rule inside its box; a note tied to the group floats beside its contents (as today) |
-| **free** | `layout.kind: free` still overrides: stored places draw, an unplaced aside floats beside its target (as today) |
-| **views untouched** | `page` (folder, overhead, profile views, with their note column), the grid view, diagrams and the definition view lay out as today |
-
-### Tasks
-
-Do in order; after each, `npm run typecheck` and `npm test` pass. Existing assertions naming `card.place`, `is_aside` (the trait) or today's auto geometry are updated to the new answer; no new tests.
-
-| # | Task | Files | Do | Done when |
-|---|---|---|---|---|
-| 0 | **goal docs** (on the user's word) | design.md (`auto` bullets in *Perspectives*), definitions.md (*is aside*, *layout*, capability list), core `schema.md` (`card` row), views `views.md` (*Layouts*, `pack.ts` row), defs `defs.md` | write *The rule* in | no doc names `card.place`, the *is aside* trait or an `auto` notes column |
-| 1 | **the setting** | core `components.ts`, `defs.ts` | `PLACES` → `ARRANGES = ["column", "rows", "aside"]`; the `card` check reads `arrange` (one_of) and lists it in its keys in place of `place`. Add `arrange_of(graph, id)`: `setting_of(graph, id, "card")["arrange"]` if in `ARRANGES`, else `"column"`. `is_aside(graph, id)` becomes `arrange_of(...) === "aside"` (keep the name: views call it) | typecheck clean |
-| 2 | **base data** | defs `src/base/blocks/block.json`, `folder.json`, `note.json`; delete `src/base/tags/traits/is_aside.json` | block `settings.card.arrange: "column"`; folder `"rows"`; note `"aside"`, and `is_aside` out of its traits. `npm run base`, `npm run packages` | `base.json` carries the three, no `is_aside` |
-| 3 | **runs** | views `float.ts` | new `runs(graph, units, across)` → `Placed[]`: units sorted (`order`, id); split into consecutive runs by `arrange_of`; lay each from `y` at `x 0`: `column` → each unit at `x 0`, next `y` = `y + whole(h) + GAP`; `rows` → `flow(run, across)` shifted down to `y`. The next run starts `GAP` below the last one's bottom | blocks, two folders, a block: a column, a row, a column |
-| 4 | **notes float** | views `float.ts` | `noted`: every aside goes to `floated`, everything else to `runs`, then `centred`. In `floated`, an untied aside targets `extent(placed)`, as a note tied to the holder does. Delete `column()` | a note sits beside its block; an untied note beside the arrangement |
-| 5 | **groups** | views `bands.ts` | the `auto` branch already calls `noted` with `band_id`: nothing to change but check it; the non-auto `packed` branch is unchanged | a group of blocks draws as a column in its box |
-| 6 | **layer floating** | views `block.ts` | check only: the layer-level `floating` set (aside, tied, not a page) re-seats tied asides after interfaces, as today | a note tied to an interface still sits beside its seat |
-| 7 | **dead code** | views `pack.ts`, `index.ts`; kit `index.ts` | delete `pack_units` if grep finds no caller; add removed exports and `card.place` → `card.arrange` to step 1's mndmap table | no export of a deleted function |
-| 8 | **samples** | `scripts/samples/showcase.ts`, the architecture generator | rename any `card.place`; add layer `l_arrange`: blocks with tied and untied notes, two folders between them in `order`, a group of blocks, a grid. Coverage row *notes column and aside notes in auto* → *arrangement by kind* · `l_arrange`. `npm run samples` | `check` clean on both samples |
-| 9 | **homes** | `docs/code-homes.md`; this plan | record: arrangement preference = core `arrange_of`; auto runs and floating = views `float.ts`. Update the *layout* rough edge to what still holds, and remove this step | grep finds no `card.place` or `is_aside` trait |
-
-### Acceptance
-
-Drive the app (`vitest` skill) on the showcase, then `outline` the same layers:
-
-| Open | Sees |
-|---|---|
-| `l_arrange` | blocks in a left column and folders in a row, in explorer order; each tied note beside its block, clear of every card |
-| a group in it | its blocks a column inside its box |
-| a note tied to an interface | beside its seat, as before |
-| drag a card, then *auto* | the layer turns `free` keeping places; *auto* arranges by preference again |
-| a folder, the overhead, a diagram | as before this step |
-
-
-## 3 — Diagram YAML
-
-**A diagram file is one block and its single layer: the blocks it holds and the relations between them, written in the Block and Relation schema with names in place of ids.** It mocks up a diagram quickly, reliably and the same way every time; the text is the truth and determines what is drawn. The long form is the schema; short forms are other spellings of the same fields. Decisions confirmed and goal docs written 2026-10-13.
-
-### The file
-
-```yaml
-name: Order flow
-packages: [architecture, ./patterns]      # base is always loaded
-type: architecture.service                # definition: what it extends; structure: what it is
-def: {}                                   # present: a definition; absent: structure
-settings:
-  layout: { view: internal }
-body: How an order moves through the service.
-
-blocks:
-  - User                                  # short: a plain block
-  - architecture.component: [API, Logic]  # short: type → names
-  - name: Store                           # long: the schema
-    type: database
-    tags: [critical]
-    engine: postgres                      # an unknown key is a value
-  - name: Edge
-    type: base.group
-  - name: Gateway
-    type: external
-    parent: Edge                          # a holder in this file only: still one layer
-
-relations:
-  - User -> API                           # short: a plain line
-  - API -> Logic: hands over              # short: with a name
-  - architecture.reads: [Logic -> Store]  # short: type → edges
-  - from: Gateway                         # long: the schema
-    to: API
-    type: architecture.calls
-```
-
-The rules, short forms and the six views are in design.md (*Diagram files*, *Perspectives*) and definitions.md.
-
-### Tasks
-
-Do in order; after each, `npm run typecheck` and `npm test` pass. No new tests.
-
-| # | Task | Do | Done when |
-|---|---|---|---|
-| 1 | **name refs** | core resolves `pkg.name`, a bare name (listed packages, then base), a sibling name and an `a::b` path; actions refuse a duplicate sibling name | a ref by name finds the one block; a duplicate is refused |
-| 2 | **the reader** | core `collection.ts` / `card.ts`: one reader turns a YAML file or frontmatter into a block and its layer: long form, short forms, `packages` and the base fallback, ids minted in file order, `source` recorded | a file of every form reads to the same graph as its long form |
-| 3 | **grids** | `cell` by header names; extent from cells | a grid file needs no `rows` / `cols` |
-| 4 | **collect** | `collect` takes `.yaml` beside `.json` and `.md`, landing each by folder; CLI `check <dir>` and `collect <dir>` | a folder of files collects and `check`s clean |
-| 5 | **views** | rename folder → package, grid → allocation, class → table; swimlane merges into allocation; the diagrams package and base kinds name their view (core `components.ts`, `sections.ts`, `navigate.ts`, views `block.ts`, options `groups.ts`, defs) | grep finds no `swimlane` or `class` view |
-| 6 | **showcase** | every showcase layer a file under `samples/showcase/`; content cards stay `.md` or are pointed at by `source`; the generator becomes a collect; published as a package too | `outline` of every layer matches today's; `check` clean |
-| 7 | **layered** | `layout.kind: layered` on elkjs; a flowchart and a state layer in the showcase | both draw readably with no hand placement |
-| 8 | **homes** | code-homes.md: name refs, the reader, collect; this plan | this step removed |
-
-### Later
-
-| | |
-|---|---|
-| **links in content** | a markdown link to a block path (`[Store](arch::Store)`) read as a `link` value: the same refs, no wikilinks |
-| **ties** | a short form for a tied note, once the forms above are settled |
-| **table split** | class and schema views apart from table, only if a need shows |
 
 
 ## 4 — CLI fixes
@@ -180,6 +62,9 @@ Start in stage `Flow.tsx` · `gestures.ts` (gestures), `draw.ts` · `drag.ts` ·
 | **a line carrying a tag** | where a tag's line usages show: the usages box lists blocks only |
 | **`define` and ids** | actions.md gives `define` an `id?`; the code takes none and the CLI says ids are never chosen. If no caller needs one, it leaves actions.md |
 | **editing table and sequence** | design.md keeps them projections the canvas never drags or creates on; whether either should be edited from the canvas after all |
+| **the folder view and the package view** | design.md says a package or folder opens on the package view scoped to it; the code still draws the folder layer view (core `ViewKind` `folder`), since folding it into the system view changes navigation's layer/system split and drops building inside a folder on the canvas |
+| **tied notes in a file** | `note:` on a block or the file is built provisionally (core `diagram.ts`); confirm the syntax, or pick another |
+| **layered on dagre** | the plan named elkjs; its layout is async and `project` is not, so `layered` runs on `@dagrejs/dagre` (MIT, synchronous). Keep it, or make projection async for ELK |
 | **source fetch** | `bring` takes a package from a URL; an arbitrary fetched file still needs a translator to become blocks (ST.5) |
 
 
@@ -232,7 +117,7 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 
 | Area | Edge |
 |---|---|
-| **layout** | `auto` reads in order, so a line from a row's end to the next row's start runs round the row until *arrange*; a tall card makes a tall row; a card narrower than its column sits half a unit off the guides; a card related to a member inside a group lines up with the group, not the member |
+| **layout** | `auto` reads in explorer order, so a line between cards far apart in a column runs its length until *arrange*; a tall card makes a tall row in a `rows` run; a card related to a member inside a group lines up with the group, not the member |
 | **routing** | two upright names in one 2-unit gap meet; libavoid ignores a second pin on the same spot of a shape (pins are keyed by spot and shared); a line to an inherited port inside a subtype is not met at the subtype room's copy (`part_id`) |
 | **definition view** | the middle card's menu offers *delete block* and the note's *delete note*, which do nothing; React Flow logs *Couldn't create edge for handle* (#008) as boxes mount; a port draws as a plain card reading *block*; inherited attributes are listed but not dimmed; inherited ends are dimmed only where the relation states no `allows.ends` itself |
 | **cards** | marks on a dark table card are faint (half opacity); a reference previewing a table ignores its own look's border; tags inherit `block`'s `family: primary`; block and relation definitions have no hue of their own; check that notes draw through `CardFace`, not only `NoteNode` |
@@ -240,6 +125,9 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **camera and page** | picking on the profile re-draws it lower than it first opens; the overhead view scrolls its top under the crumbs; a short port drag lands short (React Flow's drag threshold) |
 | **React** | `flushSync was called from inside a lifecycle method`, seen opening the profile and the overhead view from a layer; not traced |
 | **packages** | `base` collects alphabetically (`choice` before `value`); a definition file holds no parts, so a pattern's parts live in its package's `package.json` |
+| **names** | unique siblings are refused only by `create`, `rename` and `move`; `label` (grid cells) and `group` write names unchecked, so a path can still find none. One home: where a name is written |
+| **diagram files** | a value named like a schema key (`side`, `note`, `w`…) never shows in a card source, and a block's `side`/`at`/`flow` off an interface become such values; a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
+| **kit** | mndmap's re-pin meets: views `overhead` → `package`, `grid` → `allocation`, `class` → `table`, `swimlane` gone; `class_graph` → `table_graph`, `swimlane_graph` gone; `card.place` → `card.arrange`, the *is aside* trait gone; card sources say `type`/`def`, not `extends` |
 | **follow-ups** | lineage and links as a package structure rather than a view; boxes for a definition's usages and the groups they belong to |
 
 
@@ -265,30 +153,36 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 
 | Capability | Layer |
 |---|---|
-| block kinds: block, folder, reference, note | `l_kinds` |
-| group, grid, header lines, merges | `l_groups`, `l_grids` |
-| interfaces: placed, auto, flow, room ports | `l_ports` |
-| large faces: document, table, picture; `card.name`, `card.size` | `l_faces` |
-| styles and card settings | `l_styles` |
-| markdown cards (`source`, frontmatter, tags) | `l_markdown` |
-| definition chains, inheritance, stand-ins, definition view, tags | `l_chain` |
-| relation definitions, allowed ends, values on lines | `l_line_defs` |
-| line direction, names, arrows, ties | `l_lines` |
-| routing: detours, shared trunks, crossings | `l_routing` |
-| references to blocks, definitions, nothing | `l_refs` |
-| attributes, value types, links | `l_model`, `l_values` |
-| table, allocation (a swimlane), sequence views | `l_class`, `l_swimlane`, `l_sequence` |
-| diagram files: long and short forms, packages, the base fallback | every layer, once step 3 lands |
-| a stand-in stating its own view | `l_two_views` |
-| catalogue packages; overhead, profile, package view; explorer sections, the structure mark, add by section | `about` note |
-| notes column and aside notes in `auto` | every layer |
+Every layer is a diagram file under `samples/showcase/src`; `npm run showcase` collects them into the workspace and `public/packages/showcase.json`.
+
+| Capability | File |
+|---|---|
+| block kinds: block, folder, reference, note | `Cards/1-kinds.yaml` |
+| large faces: document, table, picture; `card.name`, `card.size` | `Cards/2-faces.yaml` |
+| styles and card settings | `Cards/3-styles.yaml` |
+| markdown cards drawn in by `source` (frontmatter, tags) | `Cards/4-markdown.yaml`, `Cards/markdown.md` |
+| definition chains, inheritance, stand-ins, definition view, tags | `Definitions/1-chain.yaml` |
+| relation definitions, allowed ends, values on lines | `Definitions/2-line-definitions.yaml` |
+| definitions as files, a definition with ports | `Machines/`, `Card kinds/`, `Records/` |
+| line direction, names, arrows, ties | `Relations/1-lines.yaml` |
+| routing: detours, shared trunks, crossings | `Relations/2-routing.yaml` |
+| interfaces: placed, auto, flow, room ports | `Interfaces/1-ports.yaml` |
+| group, grid, header lines, merges | `Holders/1-groups.yaml`, `Holders/2-grids.yaml` |
+| arrangement by kind: columns, rows, aside notes | `Holders/3-arrangement.yaml` |
+| references to blocks, definitions, nothing | `References/1-stand-ins.yaml` |
+| attributes, value types, links | `Data/1-model.yaml`, `Data/2-values.yaml` |
+| table, allocation (a swimlane), sequence views | `Diagrams/1-class.yaml`, `2-swimlane.yaml`, `3-sequence.yaml` |
+| a stand-in stating its own view | `Diagrams/4-two-views.yaml` |
+| `layered`: a flowchart and a state machine | `Diagrams/5-flowchart.yaml`, `6-states.yaml` |
+| diagram files: short forms, `packages`, `note:` | `Diagrams/7-short-forms.yaml` |
+| catalogue packages; package and profile views; explorer sections, the structure mark, add by section | `about.yaml` |
 
 ### Commands
 
 | Do | Command |
 |---|---|
 | check everything | `npm run typecheck`, `npm test`, `npm run lint:css` |
-| re-write both samples | `npm run samples` (packages, then both generators); one at a time `npm run showcase` / `npm run architecture` |
+| re-write both samples | `npm run samples` (packages, the showcase collected from `samples/showcase/src`, then the architecture generator); one at a time `npm run showcase` / `npm run architecture` |
 | re-collect packages | edit under `packages/defs/src/packages/<name>/`, then `npm run packages`; `base` under `packages/defs/src/base/`, then `npm run base` |
 | check a file | `npm run start -s -w @mnd/cli -- check ../../samples/<name>/workspace.json` → `clean` |
 | list a layer | `npm run start -s -w @mnd/cli -- outline ../../samples/<name>/workspace.json <layer-id>` |

@@ -163,7 +163,7 @@ Value     { name, value }
 | Key | Configures |
 |---|---|
 | `block` | which block module |
-| `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `face` (`table`, `document`, `picture`), `size` (`{w, h}` in units): which large face it draws with and how big it is. Unsaid, a card has no large face. `place` (`flow`, `aside`): aside floats it beside what it is tied to, granted by *is aside* |
+| `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `face` (`table`, `document`, `picture`), `size` (`{w, h}` in units): which large face it draws with and how big it is. Unsaid, a card has no large face. `arrange` (`column`, `rows`, `aside`): how it sits in its parent's `auto` layer; aside floats it beside what it is tied to |
 | `style` | a family, or a `hue` with its `intensity` and `vary`; `fill` and `opacity`; border and writing weight, face and contrast. Never a hex or a pixel count |
 | `line` | how a run draws: `dir`, `from_arrow`, `to_arrow`, `name`, `alias`; `module` (`line`, `tie`): a tie runs straight and is never routed, granted by *is tie* |
 | `layout` | `kind`: `free`, `auto`, `page` or `layered`; `across` and `line` for the computed ones; `cards`: `small` or `large`, the size what it holds draws at; `view`: `package`, `internal`, `allocation`, `sequence` or `table`, the layer view the block opens on (a definition opens on `definition`). Unsaid kind, or a kind this build does not know, draws as `auto`. A `view` this build does not know, or that the block cannot feed, opens on the one its kind's `base` definition names |
@@ -260,7 +260,8 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | Key | On a usage | On a definition |
 |---|---|---|
 | `name` | its name | its name |
-| `type` / `extends` | the definition it is, by name | what it extends, by name |
+| `type` | the definition it is, by name | what it extends, by name |
+| `def` | — | present: it is a definition; its `attributes` |
 | `tags` | its tags, by name | its tags, by name |
 | `traits` | — | the traits it states, by name |
 | `source` | where its content lives outside | — |
