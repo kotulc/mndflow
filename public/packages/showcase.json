@@ -466,7 +466,8 @@
         "parent": "architecture",
         "name": "patterns",
         "type": "folder",
-        "order": 1
+        "order": 1,
+        "tree": "definitions"
       },
       "architecture.person": {
         "id": "architecture.person",
@@ -631,7 +632,7 @@
       "src": {
         "id": "src",
         "parent": null,
-        "name": "src"
+        "name": "showcase"
       },
       "src.dir.Card kinds": {
         "id": "src.dir.Card kinds",

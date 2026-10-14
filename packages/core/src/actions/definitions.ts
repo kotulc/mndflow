@@ -1,6 +1,6 @@
 /** Fields, definitions, and giving settings back. */
 
-import { closes_cycle, def_at, def_named, def_of, domain_of, is_domain, name_taken, ordered_by,
+import { closes_cycle, def_at, def_named, def_of, domain_of, holds_defs, name_taken, ordered_by,
          package_of, type Domain } from "../defs";
 import { holds_values } from "../capabilities";
 import { shown_name } from "../names";
@@ -13,8 +13,8 @@ import { borrowed, id_of, ids_of, mint_def, rooted, text } from "./helpers";
 /** A new definition of the workspace's, where the user is: in the definitions folder named, else
  *  at the workspace's root. */
 export function new_def(graph: Graph, said: Omit<Definition, "parent">, parent?: Id | null): Mutation {
-  const at = parent && is_domain(graph, parent) && !graph.blocks[parent]!.def
-    && package_of(graph, parent) === graph.root ? parent : graph.root;
+  const at = parent && holds_defs(graph, parent) && package_of(graph, parent) === graph.root
+    ? parent : graph.root;
   return { op: "add_block", block: { ...said, parent: at, order: next_order(graph, at) } };
 }
 

@@ -466,7 +466,8 @@
         "parent": "architecture",
         "name": "patterns",
         "type": "folder",
-        "order": 1
+        "order": 1,
+        "tree": "definitions"
       },
       "architecture.person": {
         "id": "architecture.person",
@@ -735,7 +736,7 @@
       "workspace": {
         "id": "workspace",
         "parent": null,
-        "name": "workspace",
+        "name": "showcase",
         "counters": {
           "block": 127,
           "note": 98,

@@ -6,7 +6,7 @@
     "blocks": {
       "architecture": { "id": "architecture", "parent": null, "name": "architecture" },
       "patterns": { "id": "patterns", "parent": "architecture", "name": "patterns",
-                    "type": "folder", "order": 1 },
+                    "type": "folder", "tree": "definitions", "order": 1 },
 
       "layered_service": { "id": "layered_service", "parent": "patterns",
         "name": "layered service", "type": "service", "def": {}, "order": 1,

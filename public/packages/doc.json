@@ -14,14 +14,16 @@
         "parent": "doc",
         "name": "blocks",
         "type": "folder",
-        "order": 1
+        "order": 1,
+        "tree": "definitions"
       },
       "doc.relations": {
         "id": "doc.relations",
         "parent": "doc",
         "name": "relations",
         "type": "folder",
-        "order": 2
+        "order": 2,
+        "tree": "definitions"
       },
       "doc.set": {
         "id": "doc.set",

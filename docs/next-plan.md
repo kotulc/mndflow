@@ -3,21 +3,32 @@
 **What is left to do, in one place.** Merged 2026-10-12 from the next, sample, cards, CLI, structure and simplification plans. Everything built is gone from here: the code and the goal docs (design.md, definitions.md) record it, and git history keeps the old plans.
 
 
+## Where things stand
+
+| | |
+|---|---|
+| **last built** | arrangement by kind (`card.arrange`), diagram files (one block and its layer as YAML, frontmatter the same schema), names unique among siblings, the views renamed (package, allocation, table; swimlane merged), `layered`, the showcase as YAML. Committed in `db776f9` (2026-10-13) |
+| **first, ask** | the three new rows of *Decide*: the folder view and the package view, `note:` in a file, dagre for `layered`. Each changes code already written |
+| **then** | step 1 |
+| **the kit** | not re-released since; mndmap's re-pin meets the renames listed under *Rough edges* · **kit** |
+| **verify** | *Commands*: everything green, both samples `check` clean, the showcase drawn in the app |
+
+
 ## Order
 
 | # | Work | Done when |
 |---|---|---|
-| 4 | **CLI fixes** | `check` on a broken file exits 1; `export --sysml --round` on the repo map brings back all 490 relations |
-| 5 | **diagram views** | their known issues fixed |
-| 6 | **canvas gestures** | a diagram is built fast from the canvas alone |
-| 7 | **open decisions** | each row of *Decide* answered and recorded in design.md |
-| 8 | **simplification leads** | each lead consolidated into one home, recorded in code-homes.md |
-| 9 | **CLI surface** | the acceptance run in *CLI* passes |
+| 1 | **CLI fixes** | `check` on a broken file exits 1; `export --sysml --round` on the repo map brings back all 490 relations |
+| 2 | **diagram views** | their known issues fixed |
+| 3 | **canvas gestures** | a diagram is built fast from the canvas alone |
+| 4 | **open decisions** | each row of *Decide* answered and recorded in design.md |
+| 5 | **simplification leads** | each lead consolidated into one home, recorded in code-homes.md |
+| 6 | **CLI surface** | the acceptance run in *CLI* passes |
 
 *Rough edges* is a backlog, taken when a step passes near one.
 
 
-## 4 — CLI fixes
+## 1 — CLI fixes
 
 | Task | Where |
 |---|---|
@@ -29,17 +40,17 @@
 | drop `Said.kind`: nothing reads it | core `session.ts` and its readers |
 
 
-## 5 — Diagram views
+## 2 — Diagram views
 
 | Issue | |
 |---|---|
 | **a self message's name** | stands upright on the loop's short leg: the column keeps too little air beside the card |
 | **two lines between one pair** | on the table view, *extends* and an attribute link share an anchor and run together |
 | **a document opens empty** | a document card has room to hold, so it opens onto an empty internal layer |
-| **swimlanes on allocation** | what the swimlane view draws (a header card at the lane's top, steps in lanes) drawn by the allocation view, which stays editable; done with step 3 task 5 |
+| **swimlane lanes** | the allocation view draws a swimlane's steps and the lines between them, but not the old view's lanes (a header card at each lane's top, the lane unnamed); whether allocation should |
 
 
-## 6 — Canvas gestures
+## 3 — Canvas gestures
 
 | Candidate | |
 |---|---|
@@ -50,7 +61,7 @@
 Start in stage `Flow.tsx` · `gestures.ts` (gestures), `draw.ts` · `drag.ts` · `moves.ts` (drawing and drops), `Stage.tsx` (menus per gesture), ending in core `actions/` (`create`, `relate`, `interface`, `note`).
 
 
-## 7 — Decide
+## 4 — Decide
 
 | Question | |
 |---|---|
@@ -68,7 +79,7 @@ Start in stage `Flow.tsx` · `gestures.ts` (gestures), `draw.ts` · `drag.ts` ·
 | **source fetch** | `bring` takes a package from a URL; an arbitrary fetched file still needs a translator to become blocks (ST.5) |
 
 
-## 8 — Simplification leads
+## 5 — Simplification leads
 
 Take each as code-homes.md's *How to take one* says, then record its home there.
 
@@ -83,7 +94,7 @@ Take each as code-homes.md's *How to take one* says, then record its home there.
 | **highlight rules** | `lights`, `holds` and the edge in `Explorer.tsx` each read the chain and picks differently | one function from the canvas view and the chain |
 
 
-## 9 — CLI surface
+## 6 — CLI surface
 
 **The CLI is the one terminal: an agent writes meaning as data, sees what the person will see, and hands over that view.** The file is the state, written in place; one JSON result per verb; references are an id or a path `a::b::c` (plus `$key` in a script); the CLI adds no rules.
 
@@ -122,8 +133,8 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **definition view** | the middle card's menu offers *delete block* and the note's *delete note*, which do nothing; React Flow logs *Couldn't create edge for handle* (#008) as boxes mount; a port draws as a plain card reading *block*; inherited attributes are listed but not dimmed; inherited ends are dimmed only where the relation states no `allows.ends` itself |
 | **cards** | marks on a dark table card are faint (half opacity); a reference previewing a table ignores its own look's border; tags inherit `block`'s `family: primary`; block and relation definitions have no hue of their own; check that notes draw through `CardFace`, not only `NoteNode` |
 | **tray** | a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; the traits panel on a usage's or line's card tab draws full width under identity |
-| **camera and page** | picking on the profile re-draws it lower than it first opens; the overhead view scrolls its top under the crumbs; a short port drag lands short (React Flow's drag threshold) |
-| **React** | `flushSync was called from inside a lifecycle method`, seen opening the profile and the overhead view from a layer; not traced |
+| **camera and page** | picking on the profile re-draws it lower than it first opens; the package view scrolls its top under the crumbs; a short port drag lands short (React Flow's drag threshold) |
+| **React** | `flushSync was called from inside a lifecycle method`, seen opening the profile and the package view from a layer; not traced |
 | **packages** | `base` collects alphabetically (`choice` before `value`); a definition file holds no parts, so a pattern's parts live in its package's `package.json` |
 | **names** | unique siblings are refused only by `create`, `rename` and `move`; `label` (grid cells) and `group` write names unchecked, so a path can still find none. One home: where a name is written |
 | **diagram files** | a value named like a schema key (`side`, `note`, `w`…) never shows in a card source, and a block's `side`/`at`/`flow` off an interface become such values; a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
@@ -133,7 +144,7 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 
 ## Tests, once settled
 
-**None until the user says a design is settled.** Candidates then: `diagram_of` / `diagram_subject` / `lens_of` on a stand-in; `class_graph`, `swimlane_graph`, `sequence_scene`; `boot_of`; `tags_stated` / `traits_stated`; `statements` / `said_of`; `ports_of`; `holds_values` and the `field` refusal; `aspect_acts`; `collect`; `tag_home`; `seat_all`, `routes_of`; `flow` / `on_grid`; `definition_graph`; `dir_of`; `relate` joining a twin; `is_reference` / `resolved`; `is_tie`; `beside`. The CLI's tests pin refs, all-or-nothing scripts and write-in-place, never wording or coordinates.
+**None until the user says a design is settled.** Candidates then: `diagram_of` / `diagram_subject` / `lens_of` on a stand-in; `table_graph`, `sequence_scene`; `long_form`, `path_to`, `def_ref`, `wanted`; `runs`, `layered`; `sibling_named`; `boot_of`; `tags_stated` / `traits_stated`; `statements` / `said_of`; `ports_of`; `holds_values` and the `field` refusal; `aspect_acts`; `collect`; `tag_home`; `seat_all`, `routes_of`; `flow` / `on_grid`; `definition_graph`; `dir_of`; `relate` joining a twin; `is_reference` / `resolved`; `is_tie`; `beside`. The CLI's tests pin refs, all-or-nothing scripts and write-in-place, never wording or coordinates.
 
 `packages/views/test/far.test.ts` is a temporary debug print with no assertions: delete it.
 
@@ -144,15 +155,13 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 |---|---|
 | **one task at a time** | do it, verify it, stop; report a failed check with its output |
 | **no commits** | suggest a message |
-| **no legacy** | on a schema change re-run every generator and `npm run packages`; the door repairs no old shapes |
+| **no legacy** | on a schema change re-run `npm run base` and `npm run samples`; the door repairs no old shapes |
 | **docs are the goal** | code catches up; report where code and a doc disagree |
 | **one rule, one home** | fragmentation found is consolidated in the same task and recorded in code-homes.md |
 | **the showcase is living docs** | a capability added or changed updates its showcase layer, notes and the coverage table in the same task; one removed takes its layer and row |
 
 ### Showcase coverage
 
-| Capability | Layer |
-|---|---|
 Every layer is a diagram file under `samples/showcase/src`; `npm run showcase` collects them into the workspace and `public/packages/showcase.json`.
 
 | Capability | File |
@@ -184,6 +193,6 @@ Every layer is a diagram file under `samples/showcase/src`; `npm run showcase` c
 | check everything | `npm run typecheck`, `npm test`, `npm run lint:css` |
 | re-write both samples | `npm run samples` (packages, the showcase collected from `samples/showcase/src`, then the architecture generator); one at a time `npm run showcase` / `npm run architecture` |
 | re-collect packages | edit under `packages/defs/src/packages/<name>/`, then `npm run packages`; `base` under `packages/defs/src/base/`, then `npm run base` |
-| check a file | `npm run start -s -w @mnd/cli -- check ../../samples/<name>/workspace.json` → `clean` |
-| list a layer | `npm run start -s -w @mnd/cli -- outline ../../samples/<name>/workspace.json <layer-id>` |
-| drive the app | `npm run dev`; a fresh browser opens the showcase (`mndflow.yaml`); another file through the header's *import a workspace*. Open a card with select + Enter (double-click renames); the `vitest` skill says how to drive it |
+| check a file or a source folder | `npm run start -s -w @mnd/cli -- check ../../samples/<name>/workspace.json` → `clean`; a folder the same: `check ../../samples/showcase/src` |
+| list a layer | `npm run start -s -w @mnd/cli -- outline ../../samples/<name>/workspace.json <layer name or id>`; showcase ids are minted from file paths (`yaml.Diagrams.5-flowchart`) |
+| drive the app | `npm run dev`; a fresh browser opens the showcase (`mndflow.yaml`); another file through the header's *import a workspace*. Open a card with select + Enter (double-click renames); in the explorer, select a row and → unfolds it. The `vitest` skill says how to drive it, though it is stale (step 6) |

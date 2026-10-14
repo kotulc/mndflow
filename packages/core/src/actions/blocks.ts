@@ -2,9 +2,9 @@
 
 import { may_hold } from "../capabilities";
 import { shown_name } from "../names";
-import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_definitions, is_domain,
-         kind_free, may_retype, name_taken, package_of, plain_type, setting_of, stored_type,
-         self_use } from "../defs";
+import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, holds_defs,
+         in_definitions, is_domain, kind_free, may_retype, name_taken, package_of, plain_type,
+         setting_of, stored_type, self_use } from "../defs";
 import { GRID, inline, inside, is_folder, is_grid, lattice_of, layer_of } from "../holders";
 import { children, edges_in, is_interface, layout_of, next_order, reorder, sibling_named,
          stands_for, subtree } from "../tree";
@@ -37,7 +37,7 @@ function placing(graph: Graph, ids: readonly Id[], parent: Id): string | null {
       return "a block cannot be moved inside itself";
     }
     /** A definition sits in the definitions tree, never in a structure. */
-    if (b.def && !(is_domain(graph, parent) && !to.def)) {
+    if (b.def && !holds_defs(graph, parent)) {
       return "a definition sits in a package, not in a structure";
     }
     /** Structure never sits in a definitions folder. */

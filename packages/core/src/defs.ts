@@ -448,6 +448,12 @@ export function is_domain(graph: Graph, id: Id): boolean {
   return false;
 }
 
+/** Whether a block may hold definitions: a package root, or a folder in the definitions tree.
+ *  A definition sits nowhere else — never in a structure, nor in another definition. */
+export function holds_defs(graph: Graph, id: Id): boolean {
+  return is_domain(graph, id) && !graph.blocks[id]!.def;
+}
+
 /** Whether a block is a folder in the definitions tree, which holds definitions and folders
  *  alone. */
 export function in_definitions(graph: Graph, id: Id): boolean {

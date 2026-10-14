@@ -14,7 +14,8 @@
         "parent": "requirements",
         "name": "blocks",
         "type": "folder",
-        "order": 1
+        "order": 1,
+        "tree": "definitions"
       },
       "requirements.group": {
         "id": "requirements.group",
@@ -56,7 +57,8 @@
         "parent": "requirements",
         "name": "relations",
         "type": "folder",
-        "order": 2
+        "order": 2,
+        "tree": "definitions"
       },
       "requirements.requirement": {
         "id": "requirements.requirement",

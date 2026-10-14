@@ -298,7 +298,8 @@ export function App({ storage, boot, opening }: {
         where={
           <button className="where" title="This session is kept in the browser. Export a snapshot to keep a copy elsewhere."
                   onClick={() => void s.save()}>
-            {Object.values(graph.blocks).filter((b) => !b.def && b.parent).length} blocks · {s.log().length} steps
+            {graph.blocks[graph.root]?.name ?? graph.root} · {Object.values(graph.blocks)
+              .filter((b) => !b.def && b.parent).length} blocks · {s.log().length} steps
           </button>
         }>
           <button title="undo" onClick={() => s.undo()}><Icon name="undo" /></button>

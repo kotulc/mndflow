@@ -52,6 +52,7 @@
 | a card as markdown, and a folder of them | core `card.ts` (`card_text`, `read_card`), the `markdown` and `attach` actions, `collection.ts` (`collect`) |
 | a diagram file or frontmatter spelled out: short forms into the long form | core `diagram.ts` (`long_form`); syntax only, no name read (2026-10-13) |
 | what a name stands for: a path, `pkg.name`, a bare definition name | core `refs.ts` (`path_to`, `def_ref`); `collection.ts` reads every file's names through them (2026-10-13) |
+| where a definition may sit | core `defs.ts` `holds_defs`: a package root or a definitions-tree folder, never a structure or another definition; asked by `move`, `new_def` and the door, which moves a stray definition to its package root (2026-10-13) |
 | names unique among siblings | core `tree.ts` `sibling_named`, asked by `create`, `rename` and `move` (2026-10-13) |
 | a source folder with the packages its files list | cli `main.ts` `gathered`, over core `wanted` and `collect` (2026-10-13) |
 | `layered`: a layer ranked by its relations | views `layered.ts`, on `@dagrejs/dagre` (2026-10-13) |

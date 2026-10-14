@@ -30,10 +30,10 @@ function rows(view: { getAllByText: (text: string) => HTMLElement[] }, name: str
 }
 
 describe("adding structure", () => {
-  it("marks the workspace, and a definition only after a block is added under it", () => {
+  it("marks the workspace outside structure, and a definition once it holds a block", () => {
     const view = render(<App storage={storage} />);
     for (const row of rows(view, "workspace")) fireEvent.click(row.querySelector(".mark")!);
-    expect(rows(view, "workspace").every((row) => row.querySelector(".stamp"))).toBe(true);
+    expect(rows(view, "workspace").filter((row) => row.querySelector(".stamp"))).toHaveLength(1);
     expect(rows(view, "Shelf").some((row) => row.querySelector(".stamp"))).toBe(false);
     expect(rows(view, "Pump")[0]!.querySelector(".stamp")).toBeNull();
 
@@ -47,8 +47,8 @@ describe("adding structure", () => {
     fireEvent.change(named, { target: { value: "Motor" } });
     fireEvent.keyDown(named, { key: "Enter" });
 
-    expect(rows(view, "Pump").every((row) => row.querySelector("[title='roots structure']")))
-      .toBe(true);
+    expect(rows(view, "Pump").filter((row) => row.querySelector("[title='roots structure']")))
+      .toHaveLength(1);
     const motor = held.flatMap((s) => s.mutations).find((m) =>
       m.op === "add_block" && m.block.name === "Motor");
     expect(motor && motor.op === "add_block" ? motor.block.parent : null).toBe("pump");

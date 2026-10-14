@@ -1,7 +1,7 @@
 /** The one door a log comes in through. */
 
 import { component } from "./components";
-import { all_defs, def_at, is_base, package_of, packages } from "./defs";
+import { all_defs, def_at, holds_defs, is_base, package_of, packages } from "./defs";
 import { fold, type Floor } from "./fold";
 import { covers, inside, lattice_of, one_side, overlaps } from "./holders";
 import { subtree } from "./tree";
@@ -193,12 +193,17 @@ function settings(graph: Graph, name: (id: Id) => string, say: Say): void {
   }
 }
 
-/** Every definition is named, and extends something that is there — or a base, which every
- *  build ships whether or not it is laid. */
+/** Every definition is named, sits in its package's definitions tree, and extends something
+ *  that is there — or a base, which every build ships whether or not it is laid. */
 function definitions(graph: Graph, say: Say): void {
   for (const d of all_defs(graph)) {
     if (!d.name?.trim()) {
       say("repaired", "a definition had no name", { op: "update_block", id: d.id, name: d.id });
+    }
+    /** A definition sits in its package's definitions tree; one elsewhere goes to its root. */
+    if (d.parent && graph.blocks[d.parent] && !holds_defs(graph, d.parent)) {
+      say("repaired", `"${d.name}" sat outside the definitions tree`,
+          { op: "move_block", id: d.id, parent: package_of(graph, d.id) });
     }
     if (d.type && !def_at(graph, d.type) && !is_base(d.type)) {
       say("repaired", `"${d.name}" extended something that is not there`,

@@ -642,8 +642,9 @@ export function Explorer(props: ExplorerProps) {
                 ? <span className="label">{r.label}</span>
                 : <Name id={r.id} className="label" text={r.label} />}
               {r.alias ? <span className="alias">{r.alias}</span> : null}
-              {/* A structure root wears the card's structure mark before it is picked. The
-                  workspace always does; a definition does once it holds structure. */}
+              {/* A structure root wears the card's structure mark before it is picked, outside the
+                  structure section. The workspace always does; a definition does once it holds
+                  structure. */}
               {r.held ? (
                 <span className="stamp" title="roots structure">
                   <Icon name={MARK_ICON["structure"]!} size={MARK_SIZE - 2} />

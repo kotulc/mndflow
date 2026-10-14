@@ -59,8 +59,11 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   graph.blocks[slug] = { id: slug, parent: null, name: over.blocks[slug]?.name ?? name };
   const sorted = [...leaves].sort((a, z) => a.path.localeCompare(z.path));
   const files = sorted.filter((l) => l.path !== DEFINITIONS && JSON_FILE.test(l.path));
-  const { filed, clashes } = defined(graph, slug,
-                                     sorted.find((l) => l.path === DEFINITIONS)?.text, files, bare);
+  const { filed, clashes, named } = defined(graph, slug,
+                                            sorted.find((l) => l.path === DEFINITIONS)?.text, files,
+                                            bare);
+  /** The package file names its root, the workspace's too. */
+  if (named) graph.blocks[slug]!.name = named;
   const notes: string[] = [];
 
   const orders = new Map<Id, number>();
@@ -391,9 +394,9 @@ function holds_structure(graph: Graph, id: Id): boolean {
  *  becomes this one, and every id they wrote keeps its own prefix or takes this one — or stays
  *  bare, where asked, as `base`'s do. A file saying a definition already said is a clash, and
  *  skipped; one that is a package file, not a definition, is not read. Gives back which block each
- *  file came to, by path, and the clashes. */
+ *  file came to, by path, the clashes, and the name the package file gives its root. */
 function defined(graph: Graph, slug: Id, text: string | undefined, files: readonly Leaf[],
-                 bare: boolean): { filed: Map<string, Id>; clashes: string[] } {
+                 bare: boolean): { filed: Map<string, Id>; clashes: string[]; named?: string } {
   let from: Graph = { root: slug, blocks: {}, edges: {} };
   try {
     const read = text ? (JSON.parse(text) as { graph?: Graph }).graph : undefined;
@@ -435,7 +438,8 @@ function defined(graph: Graph, slug: Id, text: string | undefined, files: readon
                         ...(e.type ? { type: at(e.type) } : {}),
                         ...(e.tags ? { tags: all(e.tags) } : {}) };
   }
-  return { filed: new Map([...said].map(([path, id]) => [path, at(id)!])), clashes };
+  return { filed: new Map([...said].map(([path, id]) => [path, at(id)!])), clashes,
+           named: from.blocks[from.root]?.name };
 }
 
 /** The definition a word names: an id or `pkg.name`; this package's; or the one the file's

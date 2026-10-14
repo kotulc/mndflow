@@ -8,7 +8,7 @@ import { builder } from "./builder.ts";
 
 const b = builder();
 
-b.place({ id: "workspace", parent: null, name: "workspace" });
+b.place({ id: "workspace", parent: null, name: "order platform" });
 b.merge("public/packages/architecture.json");
 b.merge("public/packages/diagrams.json");
 

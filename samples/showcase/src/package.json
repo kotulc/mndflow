@@ -1,0 +1,10 @@
+{
+  "schema": "1.0",
+  "id": "showcase",
+  "graph": {
+    "root": "showcase",
+    "blocks": {
+      "showcase": { "id": "showcase", "parent": null, "name": "showcase" }
+    }
+  }
+}

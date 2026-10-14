@@ -73,7 +73,7 @@ const svg = draw_svg(project(back, layer, {}));
 
 ## Cards as markdown
 
-**A card's content is markdown; its identity is data.** `card_text(graph, id)` writes a block or a definition as its card source — frontmatter, then its body — and `read_card(text)` splits one back. `collect(name, files, graph)` reads a folder of markdown usages and the `package.json` definitions they name as one package file, for `open` or a session to bring in.
+**A card's content is markdown; its identity is data.** `card_text(graph, id)` writes a block or a definition as its card source — frontmatter, then its body — and `read_card(text)` splits one back. `collect(name, files, graph)` reads a folder of definition files, diagram files and markdown cards — one schema, names in place of ids — as one package file, for `open` or a session to bring in.
 
 `@mnd/kit/react` draws them the one way every surface does: `CardFace`, a card's small or large face, and `Markdown` / `Inline`, the renderer it reads through. `carried`, `face_text` and `size_of` say what a face carries and how big it is.
 

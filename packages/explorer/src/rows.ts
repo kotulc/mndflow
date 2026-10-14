@@ -141,7 +141,8 @@ function branch_rows(graph: Graph,
   const row_key = key(route);
   out.push({ ...block_row(graph, id, depth, parts.length + own.length, row_key),
              ...(via ? { via } : {}),
-             ...(stamps_of(graph, id).includes("structure") ? { held: true } : {}) });
+             ...(at.lists !== "structure" && stamps_of(graph, id).includes("structure")
+               ? { held: true } : {}) });
   /** Parts are never listed whole: a definition may be reached through itself. */
   const every = at.every && !via && !parts.length;
   if (!every && !opened(folded, row_key)) return;
