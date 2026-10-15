@@ -5,9 +5,11 @@ import { Faces } from "./Faces";
 import { Wire } from "./Wire";
 import { defined, held, kind_of, reading } from "./holder";
 
-export type DrawingProps = { graph: Graph; id: Id };
+export type DrawingProps = { graph: Graph; id: Id;
+                              /** One face: the large where it draws one, else the small. */
+                              one?: boolean };
 
-export function Drawing({ graph, id }: DrawingProps) {
+export function Drawing({ graph, id, one = false }: DrawingProps) {
   const it = held(graph, id);
   if (!it) return null;
   const { def: d, edge } = it;
@@ -25,7 +27,7 @@ export function Drawing({ graph, id }: DrawingProps) {
       {runs ? (
         <Wire label={label} alias={edge ? alias_of(graph, id, true) : undefined}
               said={said} now={now} />
-      ) : <Faces graph={graph} id={id} />}
+      ) : <Faces graph={graph} id={id} one={one} />}
     </div>
   );
 }

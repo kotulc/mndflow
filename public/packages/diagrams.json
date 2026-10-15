@@ -15,7 +15,7 @@
         "name": "class diagram",
         "type": "block",
         "def": {},
-        "body": "A diagram of the definitions its references stand for, as attribute tables, and what they extend.",
+        "description": "A diagram of the definitions its references stand for, as attribute tables, and what they extend.",
         "order": 1,
         "settings": {
           "layout": {
@@ -38,7 +38,7 @@
         "name": "message",
         "type": "line",
         "def": {},
-        "body": "One participant asks another to act: a message between two steps.",
+        "description": "One participant asks another to act: a message between two steps.",
         "order": 1,
         "settings": {
           "line": {
@@ -52,7 +52,7 @@
         "name": "reply",
         "type": "line",
         "def": {},
-        "body": "An answer to a message, drawn dashed.",
+        "description": "An answer to a message, drawn dashed.",
         "order": 2,
         "settings": {
           "line": {
@@ -69,7 +69,7 @@
         "name": "sequence diagram",
         "type": "grid",
         "def": {},
-        "body": "A grid read as time: the header row names the participants, and each row is a moment.",
+        "description": "A grid read as time: the header row names the participants, and each row is a moment.",
         "order": 3,
         "settings": {
           "layout": {
@@ -83,7 +83,7 @@
         "name": "swimlane",
         "type": "grid",
         "def": {},
-        "body": "A grid read as lanes: the header row names the participants, the header column the phases, and the lines between steps are drawn.",
+        "description": "A grid read as lanes: the header row names the participants, the header column the phases, and the lines between steps are drawn.",
         "order": 4,
         "settings": {
           "layout": {

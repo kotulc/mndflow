@@ -21,7 +21,8 @@
 | `delete` | removes blocks with everything under them, or relationships | block, edge, selection | ids | `delete_block` / `delete_edge` |
 | `rename` | changes what a block or a relationship is called | block, edge | id, name | `update_block` / `update_edge` |
 | `retype` | sets which definition a block or relationship is, or a definition extends | block, edge | ids, type | `update_block` / `update_edge` |
-| `describe` | writes a block's body text | block | id, body | `set_body` |
+| `write` | writes what a block holds as text, its body | block | id, body | `set_body` |
+| `describe` | says in a line what a block or a definition is for | block | id, description | `set_description` |
 | `move` | puts blocks under a different parent, in the place you dropped them | block, selection | ids, parent, before?, spot? | `move_block` (+ `seat_cell`) |
 | `refer` | places a stand-in for a block, a definition or a package | layer | target, type?, spot?, parent?, at? | `add_block{of}` (+ `seat_cell`) |
 | `source` | says where a block's content lives outside the workspace, or gives it back | block | id, uri? | `set_source` |
@@ -54,7 +55,7 @@
 | `reveal` | opens the layer a block sits on and picks it there, followed through references | block | id | `open` + `focus` |
 
 - **Where the canvas goes is navigation's** (core `navigate.ts`): **the card's kind says the view** (`lens_of`) — a package or folder its package view, a definition its definition view, a grid its allocation view, a block that holds or may hold from inside, a stand-in what it stands for. A definition opened again, or from the section its structure roots, draws its structure. A group, a note and a leaf are revealed in place. Leaving a definition's structure returns to its definition view; leaving a package, to the package view. Both apps use the same functions.
-- **Editing on a definition view edits the definition** (core `aspects.ts`): a tag or trait dropped there is added to the list in force, one deleted from its box taken out — the list becomes its own — a port deleted from its box deleted, and the note's text written as the body.
+- **Editing on a definition view edits the definition** (core `aspects.ts`): a tag or trait dropped there is added to the list in force, one deleted from its box taken out — the list becomes its own — a port deleted from its box deleted, and the note's text written as its description.
 - **Opening a part opens its definition**, the part picked there.
 - **The way out of an interface is the way in**: leaving lands in whichever of its two layers you came from.
 
@@ -120,12 +121,12 @@
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `markdown` | rewrites a block or a definition from its card source: frontmatter, then its body | layer, block | id, text | what `rename`, `retype`, `tag`, `trait`, `source`, `field`, `unfield` and `describe` write |
+| `markdown` | rewrites a block or a definition from its card source: frontmatter, then its body | layer, block | id, text | what `rename`, `retype`, `tag`, `trait`, `source`, `field`, `unfield`, `describe` and `write` write |
 | `attach` | copies a markdown file onto a usage, and says where it came from; attached again, it refreshes | block | id, text, source? | as `markdown`, and `set_source` |
 
 - **A card source is the actions a person would have run**, each checked against the graph the ones before it made. Nothing is decided here.
 - **Permissive**: a type or tag nothing loaded holds, or more than one package holds, is made in the workspace and said. A trait gives settings, so a trait word naming none is refused.
-- **A card source states a block whole**, a definition included: its frontmatter is a diagram file's (`name`, `type`, `def`, `tags`, `traits`, `settings`, values, `blocks`, `relations`) and its body is `body`.
+- **A card source states a block whole**, a definition included: its frontmatter is a diagram file's (`name`, `type`, `def`, `description`, `tags`, `traits`, `settings`, values, `blocks`, `relations`) and its body is `body`.
 
 ### The layer
 

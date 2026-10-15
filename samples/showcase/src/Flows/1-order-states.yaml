@@ -1,0 +1,18 @@
+name: Order states
+settings:
+  layout: { kind: layered }
+note: A state machine, ranked by where its lines point. A line back up the ranks still reads the way it points.
+blocks:
+  - Pending
+  - Paid
+  - Shipped
+  - Delivered
+  - Payment failed
+  - Cancelled
+relations:
+  - Pending -> Paid: charged
+  - Pending -> Payment failed: declined
+  - Payment failed -> Pending: retry
+  - Payment failed -> Cancelled: gave up
+  - Paid -> Shipped: handed over
+  - Shipped -> Delivered: signed for

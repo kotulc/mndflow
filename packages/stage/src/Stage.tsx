@@ -60,6 +60,8 @@ export type StageProps = {
   focus?: string | null;
   /** The most a scrolled drawing magnifies. */
   most?: number | null;
+  /** Whether the canvas has the keys. Undo and redo answer wherever the keys are. */
+  keys?: boolean;
 };
 
 
@@ -172,7 +174,8 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
                        menu, said, onSaid, view, empty, lattice, frame, legend, corner, module,
-                       dir, type, lit = [], scroll = false, focus = null, most = null }: StageProps) {
+                       dir, type, lit = [], scroll = false, focus = null, most = null,
+                       keys = true }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
                     ...(type ? { type } : {}) };
@@ -203,6 +206,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         e.preventDefault();
         onAct("redo");
       }
+      /** Everything else is the canvas's only while it has the keys. */
+      else if (!keys) return;
       /** Escape closes the nearest thing. */
       else if (e.key === "Escape") {
         if (at) { set_at(null); return; }

@@ -1,37 +1,11 @@
-name: About
+name: Overview
+type: Large layer
+packages: [architecture]
 blocks:
-  - name: "The showcase is one layer per thing mndflow draws. Read the header note, then the tied note on each block: it names the field or setting that makes the block look that way. Package on the rail draws the section in focus. Opening a folder draws its folder view; a definition, its definition view under the package and folders on its path. Definitions and structure are two trees, each with folders of its own: definitions lists the definitions, structure the layers. The workspace roots structure; a definition roots it once it holds blocks of its own. Every layer is a diagram file under samples/showcase/src; the Diagrams layers use the diagrams package."
-    type: note
-    w: 360
-  - name: Cards
-    type: reference
-    of: Cards
-    note: Block kinds, faces, styles and a markdown card.
-  - name: Definitions
-    type: reference
-    of: Definitions
-    note: A definition chain, and a relation definition.
-  - name: Relations
-    type: reference
-    of: Relations
-    note: Line direction, arrows, ties and routing.
-  - name: Interfaces
-    type: reference
-    of: Interfaces
-    note: Ports placed, and ports that place themselves.
-  - name: Holders
-    type: reference
-    of: Holders
-    note: A group that nests, and a grid with headers.
-  - name: References
-    type: reference
-    of: References
-    note: A reference to a block, a definition, or nothing.
-  - name: Data
-    type: reference
-    of: Data
-    note: Attributes typed by a definition, and the usages that answer them.
-  - name: Diagrams
-    type: reference
-    of: Diagrams
-    note: Table, allocation and sequence views, layered flows, and one grid drawn two ways.
+  - source: about.md
+  - type: reference
+    of: System::Containers
+  - type: reference
+    of: Flows::Place order
+  - type: reference
+    of: Catalogue::Docs

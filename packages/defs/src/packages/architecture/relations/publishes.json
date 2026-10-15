@@ -2,7 +2,7 @@
   "id": "publishes",
   "name": "publishes",
   "type": "line",
-  "body": "A component puts a message on a queue.",
+  "description": "A component puts a message on a queue.",
   "def": {},
   "settings": {
     "line": { "dir": "forward" },

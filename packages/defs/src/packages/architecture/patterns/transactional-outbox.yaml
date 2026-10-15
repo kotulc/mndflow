@@ -1,0 +1,30 @@
+name: Transactional outbox
+type: service
+def: {}
+body: Use when a state change must announce itself, and neither the change nor the announcement may be lost.
+note: A state change and the event announcing it are written in one transaction, so neither is lost.
+blocks:
+  - name: API
+    type: component
+  - name: Domain logic
+    type: component
+    note: Writes the state change and the event together.
+  - name: Store
+    type: database
+  - name: Outbox
+    type: database
+    note: The events, written beside the state they announce.
+  - name: Relay
+    type: component
+    note: Reads the outbox and publishes each event at least once.
+  - name: requests
+    type: interface
+    flow: in
+  - name: events
+    type: interface
+    flow: out
+relations:
+  - calls: [ requests -> API, API -> Domain logic ]
+  - reads: [ Domain logic -> Store, Relay -> Outbox ]
+  - Domain logic -> Outbox: same transaction
+  - publishes: [ Relay -> events ]

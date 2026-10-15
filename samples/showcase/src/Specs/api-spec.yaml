@@ -1,0 +1,11 @@
+name: API spec
+type: Service spec
+def:
+  attributes:
+    - name: base path
+    - name: version
+      default: v1
+description: A service spec for a service with an HTTP API.
+settings:
+  style:
+    hue: 200

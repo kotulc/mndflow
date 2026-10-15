@@ -2,7 +2,7 @@
   "id": "calls",
   "name": "calls",
   "type": "line",
-  "body": "One component asks another to do something.",
+  "description": "One component asks another to do something.",
   "def": {},
   "settings": { "line": { "dir": "forward" } }
 }

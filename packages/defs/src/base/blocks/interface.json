@@ -2,7 +2,7 @@
   "id": "interface",
   "name": "interface",
   "type": "block",
-  "body": "A port seated on a block's wall: where relations enter and leave it.",
+  "description": "A port seated on a block's wall: where relations enter and leave it.",
   "def": {},
   "traits": [
     "is_port"

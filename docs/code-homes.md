@@ -41,6 +41,8 @@
 | what a drop comes to (move, refer, retype, tie, create a usage, define a subtype) | core `drop.ts` (`drop_of`); the canvas and the explorer, in both apps, call it. Stage `moves.ts` only reads a card's resting place off the drawn scene |
 | what a kind cannot be made from | core `actions/helpers.ts` `NEEDS`, asked by `create`'s check |
 | panning to a revealed block | stage `room.ts` (`useCamera`, from `focus`); the web app sets it on a reveal |
+| every key an element says, and its choices | tray `pairs.ts` (`pairs_of`, and `settings_of` for how a definition draws); the card and settings tabs draw them through one `Element`. Identity rows, the traits panel and the source box became one (2026-10-14) |
+| which region has the keys | theme `shell.tsx` `useZone`; the explorer's and the canvas's keys ask it through their `keys` props (2026-10-14) |
 | settings resolution | core `defs.ts` (`statements`, `stated`, `setting_of`, `said_of`). views `look.ts` and explorer `rows.ts` merged definition and element by hand, skipping a usage's traits; both ask `setting_of` (2026-10-10) |
 | what an element carries | core `defs.ts` (`tags_stated`, `traits_stated`: the nearest list, and who states it; `has_trait`). Drops, styles and labels went with step 12 (2026-10-10) |
 | whether a block is a reference, and what it points at | core `tree.ts` (`is_reference` by its kind, `of_ref`, `stands_for`); `of` is read nowhere else. A reference stores `type: "reference"` (2026-10-10) |

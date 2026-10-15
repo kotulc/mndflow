@@ -1,0 +1,18 @@
+name: Payment retry
+settings:
+  layout: { kind: layered }
+note: A flowchart. A decision is a block; its lines say where each answer goes.
+blocks:
+  - Charge card
+  - Approved?
+  - Retries left?
+  - Wait and back off
+  - Confirm order
+  - Cancel order
+relations:
+  - Charge card -> Approved?
+  - Approved? -> Confirm order: yes
+  - Approved? -> Retries left?: no
+  - Retries left? -> Wait and back off: yes
+  - Wait and back off -> Charge card
+  - Retries left? -> Cancel order: no

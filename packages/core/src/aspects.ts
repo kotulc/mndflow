@@ -45,11 +45,11 @@ export function attach_of(graph: Graph, def: Id, id: Id): Drop | null {
 
 /** An act on a definition's view, as it edits the definition: deleting a tag or trait takes it
  *  out of the list in force, which it then states itself; deleting deletes its own ports, never
- *  the definitions drawn round it; renaming the note writes the body. Anything else passes as it
+ *  the definitions drawn round it; renaming the note writes its description. Anything else passes as it
  *  is. */
 export function aspect_acts(graph: Graph, def: Id, name: string, args: Args): Drop[] {
   if (name === "rename" && args["id"] === ABOUT) {
-    return [{ act: "describe", args: { id: def, body: String(args["name"] ?? "") } }];
+    return [{ act: "describe", args: { id: def, description: String(args["name"] ?? "") } }];
   }
   if (name !== "delete") return [{ act: name, args }];
   const ids = Array.isArray(args["ids"]) ? args["ids"].map(String) : [];

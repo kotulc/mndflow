@@ -1,0 +1,24 @@
+name: Anti-corruption layer
+type: service
+def: {}
+body: Use when an outside system must be reached without its model leaking into ours.
+note: Keeps an outside model out of ours. Everything crossing is translated in one place.
+blocks:
+  - name: Facade
+    type: component
+    note: Accepts a request already in our model.
+  - name: Translator
+    type: component
+    note: Maps the outside model to ours and back.
+  - name: Client
+    type: component
+    note: The only part that speaks the outside protocol.
+  - name: in
+    type: interface
+    flow: in
+  - name: out
+    type: interface
+    flow: out
+relations:
+  - calls: [ in -> Facade, Facade -> Translator, Translator -> Client ]
+  - integrates: [ Client -> out ]

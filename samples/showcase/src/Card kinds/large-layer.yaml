@@ -1,6 +1,0 @@
-name: Large layer
-def: {}
-body: A layer whose cards draw their large face.
-settings:
-  layout:
-    cards: large

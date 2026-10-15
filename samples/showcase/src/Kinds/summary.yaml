@@ -1,0 +1,9 @@
+name: Summary
+def: {}
+description: A document card held to 8 by 3 units; what does not fit is cut off.
+settings:
+  card:
+    face: document
+    size:
+      w: 8
+      h: 3

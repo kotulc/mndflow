@@ -65,9 +65,8 @@ npm run build -w @mnd/web            # a production bundle
 npm run release:kit                  # build, pack and stamp @mnd/kit
 npm run dev -w @mnd/stage            # one surface alone — also explorer, options, tray
 npm run start -w @mnd/cli -- fold related
-npm run samples                      # collect the packages, then write both samples
+npm run samples                      # collect the packages, then the showcase
 npm run showcase                     # collect samples/showcase/src, one diagram file per layer, into the workspace and its package
-npm run architecture                 # re-write samples/architecture/workspace.json, patterns in use
 npm run packages                     # re-collect catalogue packages from packages/defs/src/packages/
 npm run base                         # re-collect base from packages/defs/src/base/
 ```

@@ -2,7 +2,7 @@
   "id": "has_head",
   "name": "has_head",
   "type": "trait",
-  "body": "Its first member heads it.",
+  "description": "Its first member heads it.",
   "def": {},
   "settings": {
     "allows": {

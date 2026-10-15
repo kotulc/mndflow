@@ -1,0 +1,13 @@
+name: Product
+def:
+  attributes:
+    - name: sku
+      key: true
+    - name: name
+    - name: price
+      type: number
+      unit: USD
+description: Something that can be ordered.
+settings:
+  card:
+    face: table

@@ -1,7 +1,7 @@
 /** A card as every surface draws it: the large face over the small one, each at its own size,
- *  scaled down only where the column is narrower than the card. A large face that shows nothing
- *  yet previews what it could — its attributes and body, else sample content — at the size that
- *  fits, so its look can be judged. */
+ *  scaled down only where the column is narrower than the card — or, asked for one, the large
+ *  where its look draws one, else the small. A large face that shows nothing yet previews what it
+ *  could — its attributes and body, else sample content — at the size that fits. */
 
 import { useEffect, useRef, useState } from "react";
 import { alias_name, alias_of, base_of, def_at, next_alias, type Graph, type Id } from "@mnd/core";
@@ -9,7 +9,9 @@ import { CardFace } from "@mnd/theme";
 import { carried, edge_of, face_attrs, face_table, face_text, fitted, size_of, PLAIN,
          type Face, type Look } from "@mnd/views";
 
-export type FacesProps = { graph: Graph; id: Id };
+export type FacesProps = { graph: Graph; id: Id;
+                            /** One face: the large where its look draws one, else the small. */
+                            one?: boolean };
 
 /** What a large face previews where it shows nothing yet: its attributes, then its body. */
 const PARTS: Look["shows"] = ["attributes", "body"];
@@ -18,7 +20,16 @@ const PARTS: Look["shows"] = ["attributes", "body"];
 const SAMPLE = "Sample content: what a card **says**, rendered as markdown.\n\n"
   + "- a point\n- another point";
 
-export function Faces({ graph, id }: FacesProps) {
+export function Faces({ graph, id, one = false }: FacesProps) {
+  if (one) {
+    const look = carried(graph, id, "large").look ?? PLAIN;
+    const large = !!look.size || look.shows.length > 0;
+    return (
+      <div className="faces">
+        <One graph={graph} id={id} face={large ? "large" : "small"} />
+      </div>
+    );
+  }
   return (
     <div className="faces">
       <One graph={graph} id={id} face="large" />
@@ -28,7 +39,7 @@ export function Faces({ graph, id }: FacesProps) {
 }
 
 /** One face, as the canvas draws it, but for its handle and a large face's preview. */
-function One({ graph, id, face }: FacesProps & { face: Face }) {
+function One({ graph, id, face }: { graph: Graph; id: Id; face: Face }) {
   const data = carried(graph, id, face);
   const look = data.look ?? PLAIN;
   /** A large face showing nothing previews what it could, at the size that fits it. */

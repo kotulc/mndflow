@@ -1,0 +1,12 @@
+name: Public API spec
+type: API spec
+def:
+  attributes:
+    - name: rate limit
+      type: number
+      unit: req/s
+description: An API spec for an API that callers outside the shop reach.
+tags: [ critical ]
+settings:
+  style:
+    border_width: thick

@@ -1,0 +1,6 @@
+name: Large layer
+def: {}
+description: A layer whose cards draw their large face.
+settings:
+  layout:
+    cards: large

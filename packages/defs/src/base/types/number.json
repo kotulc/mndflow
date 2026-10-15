@@ -2,7 +2,7 @@
   "id": "number",
   "name": "number",
   "type": "value",
-  "body": "A count or a measure, in the unit an attribute says.",
+  "description": "A count or a measure, in the unit an attribute says.",
   "def": {},
   "settings": {
     "value": {

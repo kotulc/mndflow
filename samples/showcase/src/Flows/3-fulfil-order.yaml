@@ -1,0 +1,33 @@
+name: Fulfil order
+packages: [diagrams]
+note: "A swimlane: columns are lanes, rows are phases."
+blocks:
+  - name: Fulfilment
+    type: diagrams.swimlane
+    cols:
+      - name: Order service
+        body: Owns the order.
+      - name: Inventory service
+        body: Owns the stock.
+      - name: Shipping adapter
+        body: Speaks to the carrier.
+    rows:
+      - name: Ordered
+      - name: Pick
+      - name: Ship
+    blocks:
+      - name: Publish placed
+        body: The relay publishes order placed.
+        cell: [ Ordered, Order service ]
+      - name: Pick items
+        body: Stock is taken off the shelf.
+        cell: [ Pick, Inventory service ]
+      - name: Book carrier
+        body: The adapter books a pickup in the carrier's terms.
+        cell: [ Ship, Shipping adapter ]
+      - name: Mark shipped
+        cell: [ Ship, Order service ]
+relations:
+  - Publish placed -> Pick items: order placed
+  - Pick items -> Book carrier: picked
+  - Book carrier -> Mark shipped: tracking number

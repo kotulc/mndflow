@@ -2,7 +2,7 @@
   "id": "is_tie",
   "name": "is_tie",
   "type": "trait",
-  "body": "Is a tie: a straight run between the nearest corners of the two cards. No anchor, no end mark, and never routed.",
+  "description": "Is a tie: a straight run between the nearest corners of the two cards. No anchor, no end mark, and never routed.",
   "def": {},
   "settings": {
     "line": {

@@ -91,8 +91,10 @@ export type Block = {
   parent: Id | null;
   type?: Id;
   name?: string;
-  /** What a block holds as text, or what a definition is for. */
+  /** What a block holds as text. */
   body?: string;
+  /** What it is for, in a line: shown beside it and on hover. */
+  description?: string;
   /** Present on a definition, and only there. */
   def?: DefBody;
   /** A folder at its package's root: the tree it belongs to, which what it holds follows. Unset,
@@ -210,6 +212,7 @@ export type Mutation =
   /** The whole shortlist, in order. */
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
+  | { op: "set_description"; id: Id; description: string }
   /** A definition's attributes, written whole. */
   | { op: "set_attributes"; id: Id; attributes: Attribute[] }
   /** Where a block came from; null gives it back. */

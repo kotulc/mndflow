@@ -1,0 +1,49 @@
+name: Docs
+type: Large layer
+packages: [architecture]
+blocks:
+  - name: Order service runbook
+    type: document
+    body: |-
+      # When orders stop flowing
+
+      Check the **relay** first: `kubectl logs deploy/order-relay`. See the [outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).
+
+      - the outbox table is growing
+      - consumers report no new events
+
+      | signal | threshold | page |
+      |---|---|---|
+      | outbox rows | 10 000 | yes |
+      | relay lag | 60 s | no |
+  - source: charge-once.md
+  - source: payment-failure.md
+  - name: Checkout dashboard
+    settings:
+      card:
+        arrange: rows
+    type: Screenshot
+    source: /showcase/picture.svg
+  - name: Release notes
+    settings:
+      card:
+        arrange: rows
+    type: Headless
+    body: "v2 of the orders API: the checkout key is required."
+  - name: Incident summary
+    settings:
+      card:
+        arrange: rows
+    type: Summary
+    body: "Checkout was slow for twenty minutes while the card processor timed out. The breaker opened, the fallback queued charges, and every queued charge was taken once the processor came back, so nothing was lost and nothing was charged twice."
+  - name: Plain block
+    settings:
+      card:
+        arrange: rows
+  - name: "A note sized by hand: w and h"
+    type: note
+    w: 192
+    h: 48
+relations:
+  - tie:
+      - Charge once -- Order service runbook

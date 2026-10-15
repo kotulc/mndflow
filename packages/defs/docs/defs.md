@@ -8,7 +8,7 @@
 | `requirements` | a worked vocabulary: a shall statement and a verification method |
 | `sysml` | formal names and stereotypes over the base definitions |
 | `diagrams` | the diagrams a card's kind opens on: `class diagram` (`table`), `swimlane` (a grid, `allocation`), `sequence diagram` (`sequence`), each saying `layout.view`; and the relations a scenario's steps exchange, `message` and `reply`. Collected from `src/packages/diagrams` |
-| `architecture` | general architecture vocabulary — person, component, service, database, queue, external, document, decision, and the relations `calls`, `publishes`, `reads`, `integrates` — and **patterns with parts**: `layered service`, `outbox service`, `adapter`, each part explained by a tied note. Kinds are definition files; patterns live in the folder's `package.json`, since definition files hold no parts. Collected from `src/packages/architecture`; the architecture sample uses it |
+| `architecture` | general architecture vocabulary — person, component, service, database, queue, external, document, decision, and the relations `calls`, `publishes`, `reads`, `integrates` — and **patterns with parts**: `API gateway`, `layered architecture`, `transactional outbox`, `anti-corruption layer`, `circuit breaker`, `saga orchestrator`, each a diagram file under `patterns/` whose parts are explained by tied notes. Kinds are definition files. Collected from `src/packages/architecture`; the showcase's services are usages of its patterns |
 
 - **Every package is a JSON file**, `base` included. Code keeps only the id constants it reads.
 - **A package is a graph root**: its definitions sit in its domain, organized by holders the package chooses.

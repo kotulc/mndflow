@@ -20,7 +20,8 @@ function seen(p: NodeProps<BoxNode>): string {
   const d = p.data;
   return [
     p.selected, p.dragging, p.width, p.height,
-    d.label, d.alias ?? "", d.def, d.on, d.side, d.role, (d.stamps ?? []).join(","),
+    d.label, d.alias ?? "", d.description ?? "", d.def, d.on, d.side, d.role,
+    (d.stamps ?? []).join(","),
     d.face ?? "", d.text ?? "", d.marks.join(","),
     /** Read off the look, so no property is forgotten. */
     look_key(d.look),
@@ -120,6 +121,7 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
               {...(data.text !== undefined ? { text: data.text } : {})}
               {...(data.table ? { table: data.table } : {})}
               head={look.head !== false}
+              title={data.description ? `${data.label} — ${data.description}` : data.label}
               name={<Name id={id} className="mnd-label card-name" text={data.label} />}>
       {/* A card keeps the size its face says unless its definition asked for its own. */}
       {look.height === "free"

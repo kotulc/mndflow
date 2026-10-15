@@ -2,7 +2,7 @@
   "id": "queue",
   "name": "queue",
   "type": "component",
-  "body": "A component that carries messages from one component to another.",
+  "description": "A component that carries messages from one component to another.",
   "def": {},
   "settings": {
     "style": { "family": "away" }

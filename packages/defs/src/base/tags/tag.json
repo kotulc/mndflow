@@ -2,7 +2,7 @@
   "id": "tag",
   "name": "tag",
   "type": "block",
-  "body": "A word carried by blocks, lines and definitions, to find them by. Its body says what it means; its usages are what carries it.",
+  "description": "A word carried by blocks, lines and definitions, to find them by. Its body says what it means; its usages are what carries it.",
   "def": {},
   "traits": [],
   "settings": {

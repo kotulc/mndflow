@@ -59,6 +59,15 @@ input:focus { outline: none; border-color: var(--accent); }
   height: 100%;
 }
 
+/* The region with the keys wears a quiet outline, drawn inside it so nothing shifts. */
+.app[data-zone="explorer"] .explorer,
+.app[data-zone="canvas"] .stage,
+.app[data-zone="tray"] .tray,
+.app[data-zone="options"] .opts {
+  outline: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: -1px;
+}
+
 .app > header {
   grid-row: 1;
   grid-column: 1 / -1;

@@ -2,7 +2,7 @@
   "id": "value",
   "name": "value",
   "type": "block",
-  "body": "What an attribute holds: a value type. Never placed; a definition's attributes name one, and how a value is edited is its `value.form`.",
+  "description": "What an attribute holds: a value type. Never placed; a definition's attributes name one, and how a value is edited is its `value.form`.",
   "def": {},
   "traits": [],
   "settings": {

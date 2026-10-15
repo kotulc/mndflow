@@ -98,8 +98,8 @@ export function definition_graph(graph: Graph, def: Id): Graph {
   /** The middle card shows its attributes as a table, whatever face its chain gives it elsewhere. */
   const card = attributes_of(graph, def).length
     ? { settings: { ...d.settings, card: { ...d.settings?.["card"], face: "table" } } } : {};
-  /** Its body is what it is for, which the note says: the card draws its attributes alone. */
-  const { body: _about, ...plain } = d;
+  /** What it is for is the note's to say: the card draws its attributes alone. */
+  const { description: _about, ...plain } = d;
   blocks[def] = { ...plain, ...card, parent: OWN };
   if (parent) {
     seen.add(parent.id);
@@ -124,7 +124,7 @@ export function definition_graph(graph: Graph, def: Id): Graph {
     }
   }
   /** The note, a box wide, as tall as what it says. */
-  const said = d.body?.trim() || UNSAID;
+  const said = d.description?.trim() || UNSAID;
   blocks[ABOUT] = { id: ABOUT, parent: OWN, type: "note", name: said, w: note_w(),
                     h: whole(note_h(said, note_w())) };
 

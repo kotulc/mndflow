@@ -1,0 +1,23 @@
+name: Layered architecture
+type: service
+def: {}
+body: Use when one service owns its rules and its store, and every request should meet them in the same order.
+note: Requests enter at the API, rules live in one layer, storage is reached only through the repository.
+blocks:
+  - name: API
+    type: component
+    note: The only way in. It accepts the request and does no work of its own.
+  - name: Domain logic
+    type: component
+    note: The rules live here, and nowhere else in the service.
+  - name: Repository
+    type: component
+    note: Reads and writes the store; nothing else touches it.
+  - name: Store
+    type: database
+  - name: requests
+    type: interface
+    flow: in
+relations:
+  - calls: [ requests -> API, API -> Domain logic, Domain logic -> Repository ]
+  - reads: [ Repository -> Store ]

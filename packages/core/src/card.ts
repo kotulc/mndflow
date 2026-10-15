@@ -11,7 +11,7 @@ import type { Block, Graph, Id } from "./types";
 /** The keys a block says itself with, in a diagram file and a card source alike. Any other key is
  *  a value — on a definition, an attribute's default. */
 export const BLOCK_KEYS = [
-  "name", "type", "def", "tags", "traits", "settings", "body", "source", "of", "parent", "cell",
+  "name", "type", "def", "description", "tags", "traits", "settings", "body", "source", "of", "parent", "cell",
   "grid", "values", "w", "h", "side", "at", "flow", "rows", "cols", "blocks", "relations",
   "packages", "note",
 ] as const;
@@ -74,6 +74,7 @@ function used(graph: Graph, b: Block): Record<string, unknown> {
   if (b.name) front["name"] = b.name;
   const type = def_at(graph, b.type);
   if (type) front["type"] = type.name;
+  if (b.description) front["description"] = b.description;
   if (b.tags) front["tags"] = named(graph, b.tags);
   if (b.source) front["source"] = b.source;
   for (const v of b.values ?? []) {
@@ -89,6 +90,7 @@ function defined(graph: Graph, b: Block): Record<string, unknown> {
   const up = def_at(graph, b.type);
   if (up) front["type"] = up.name;
   front["def"] = {};
+  if (b.description) front["description"] = b.description;
   if (b.tags) front["tags"] = named(graph, b.tags);
   if (b.traits) front["traits"] = named(graph, b.traits);
   for (const a of b.def?.attributes ?? []) {

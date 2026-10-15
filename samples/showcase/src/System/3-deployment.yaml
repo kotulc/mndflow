@@ -1,0 +1,58 @@
+name: Deployment
+packages: [architecture]
+note: Where the containers run. Groups nest; the matrix says which environments each region runs.
+blocks:
+  - name: eu-west cluster
+    type: group
+    note: One Kubernetes cluster per region.
+    blocks:
+      - name: shop namespace
+        type: group
+        note: The services customers reach.
+        blocks: [ storefront pod, gateway pod, orders pod ]
+      - name: data namespace
+        type: group
+        blocks:
+          - name: Orders primary
+            type: database
+            engine: Postgres
+          - name: Orders replica
+            type: database
+            engine: Postgres
+  - name: Environments
+    type: Matrix
+    grid:
+      merges:
+        - r: 1
+          c: 1
+          rows: 1
+          cols: 2
+    cols:
+      - name: dev
+        body: Where changes land first.
+      - name: staging
+        body: A copy of production.
+      - name: prod
+        body: What customers reach.
+    rows:
+      - name: eu-west
+        body: The first region.
+      - name: us-east
+        body: The second region.
+    blocks:
+      - name: shared cluster
+        body: Dev and staging share one cluster.
+        cell: [ eu-west, dev ]
+      - name: eu-west prod
+        cell: [ eu-west, prod ]
+      - name: us-east prod
+        cell: [ us-east, prod ]
+  - name: Billing v1
+    type: reference
+    of: Retired::Billing v1
+    note: Retired; what it referred to is gone.
+relations:
+  - from: Orders primary
+    to: Orders replica
+    type: replicates
+    lag: "2"

@@ -2,7 +2,7 @@
   "id": "group",
   "name": "group",
   "type": "block",
-  "body": "A boundary drawing what it holds inline, inside its rim.",
+  "description": "A boundary drawing what it holds inline, inside its rim.",
   "def": {},
   "traits": [
     "has_parts",

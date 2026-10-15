@@ -2,7 +2,7 @@
   "id": "note",
   "name": "note",
   "type": "block",
-  "body": "A remark about what it is tied to. It holds nothing.",
+  "description": "A remark about what it is tied to. It holds nothing.",
   "def": {},
   "traits": [
     "has_values",

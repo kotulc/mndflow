@@ -1,0 +1,38 @@
+name: Specs
+type: Large layer
+note: A chain of definitions, and usages answering it. Open a stand-in for its definition view.
+blocks:
+  - type: reference
+    of: Service spec
+  - type: reference
+    of: API spec
+  - type: reference
+    of: Public API spec
+  - name: Billing job
+    settings:
+      card:
+        arrange: rows
+    type: Service spec
+    owner: Payments
+    slo: "99"
+    tier: "3"
+  - name: Inventory API
+    settings:
+      card:
+        arrange: rows
+    type: API spec
+    owner: Fulfilment
+    slo: "99.5"
+    tier: "2"
+    base path: /inventory
+  - name: Orders API
+    settings:
+      card:
+        arrange: rows
+    type: Public API spec
+    owner: Commerce
+    slo: "99.9"
+    tier: "1"
+    base path: /orders
+    version: v2
+    rate limit: "200"

@@ -1,7 +1,7 @@
 {
   "id": "block",
   "name": "block",
-  "body": "The unit of structure: a thing, a part or a step. It may hold blocks of its own, which it opens onto as a layer.",
+  "description": "The unit of structure: a thing, a part or a step. It may hold blocks of its own, which it opens onto as a layer.",
   "def": {},
   "traits": [
     "has_parts",

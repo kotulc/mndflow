@@ -1,0 +1,17 @@
+name: Order
+def:
+  attributes:
+    - name: number
+      type: number
+      key: true
+    - name: customer
+      type: Customer
+    - name: status
+      type: Order status
+    - name: lines
+      type: Line
+      many: true
+description: A customer's request, and the lines on it.
+settings:
+  card:
+    face: table

@@ -11,7 +11,7 @@
 | **first, ask** | the three new rows of *Decide*: the folder view and the package view, `note:` in a file, dagre for `layered`. Each changes code already written |
 | **then** | step 1 |
 | **the kit** | not re-released since; mndmap's re-pin meets the renames listed under *Rough edges* · **kit** |
-| **verify** | *Commands*: everything green, both samples `check` clean, the showcase drawn in the app |
+| **verify** | *Commands*: everything green, the showcase `check` clean and drawn in the app |
 
 
 ## Order
@@ -140,6 +140,7 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **diagram files** | a value named like a schema key (`side`, `note`, `w`…) never shows in a card source, and a block's `side`/`at`/`flow` off an interface become such values; a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
 | **kit** | mndmap's re-pin meets: views `overhead` → `package`, `grid` → `allocation`, `class` → `table`, `swimlane` gone; `class_graph` → `table_graph`, `swimlane_graph` gone; `card.place` → `card.arrange`, the *is aside* trait gone; card sources say `type`/`def`, not `extends` |
 | **follow-ups** | lineage and links as a package structure rather than a view; boxes for a definition's usages and the groups they belong to |
+| **base looks** | the base blocks draw alike but for their icons (and notes): give each more visual distinction through its faces and traits |
 
 
 ## Tests, once settled
@@ -158,41 +159,33 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **no legacy** | on a schema change re-run `npm run base` and `npm run samples`; the door repairs no old shapes |
 | **docs are the goal** | code catches up; report where code and a doc disagree |
 | **one rule, one home** | fragmentation found is consolidated in the same task and recorded in code-homes.md |
-| **the showcase is living docs** | a capability added or changed updates its showcase layer, notes and the coverage table in the same task; one removed takes its layer and row |
+| **the showcase is the visual check** | one online shop built from the `architecture` catalogue's patterns; a visual feature added or changed shows up somewhere natural in it, and in the coverage table. Non-visual capabilities need not appear |
 
 ### Showcase coverage
 
-Every layer is a diagram file under `samples/showcase/src`; `npm run showcase` collects them into the workspace and `public/packages/showcase.json`.
+Every layer is a diagram file under `samples/showcase/src`; `npm run showcase` collects them into the workspace and `public/packages/showcase.json`. The services are usages of the `architecture` catalogue's patterns.
 
-| Capability | File |
+| Visual | Where |
 |---|---|
-| block kinds: block, folder, reference, note | `Cards/1-kinds.yaml` |
-| large faces: document, table, picture; `card.name`, `card.size` | `Cards/2-faces.yaml` |
-| styles and card settings | `Cards/3-styles.yaml` |
-| markdown cards drawn in by `source` (frontmatter, tags) | `Cards/4-markdown.yaml`, `Cards/markdown.md` |
-| definition chains, inheritance, stand-ins, definition view, tags | `Definitions/1-chain.yaml` |
-| relation definitions, allowed ends, values on lines | `Definitions/2-line-definitions.yaml` |
-| definitions as files, a definition with ports | `Machines/`, `Card kinds/`, `Records/` |
-| line direction, names, arrows, ties | `Relations/1-lines.yaml` |
-| routing: detours, shared trunks, crossings | `Relations/2-routing.yaml` |
-| interfaces: placed, auto, flow, room ports | `Interfaces/1-ports.yaml` |
-| group, grid, header lines, merges | `Holders/1-groups.yaml`, `Holders/2-grids.yaml` |
-| arrangement by kind: columns, rows, aside notes | `Holders/3-arrangement.yaml` |
-| references to blocks, definitions, nothing | `References/1-stand-ins.yaml` |
-| attributes, value types, links | `Data/1-model.yaml`, `Data/2-values.yaml` |
-| table, allocation (a swimlane), sequence views | `Diagrams/1-class.yaml`, `2-swimlane.yaml`, `3-sequence.yaml` |
-| a stand-in stating its own view | `Diagrams/4-two-views.yaml` |
-| `layered`: a flowchart and a state machine | `Diagrams/5-flowchart.yaml`, `6-states.yaml` |
-| diagram files: short forms, `packages`, `note:` | `Diagrams/7-short-forms.yaml` |
-| catalogue packages; package and profile views; explorer sections, the structure mark, add by section | `about.yaml` |
+| markdown card from `source`, references to layers | `about.yaml` (Overview), `about.md` |
+| persons, externals, every `line.dir`, names, a label above | `System/1-context.yaml` |
+| pattern usages read through, ports placed / self-placing / flowless, a room port, fan-out, hatch / faded / dashed / thick / hue | `System/2-containers.yaml` |
+| nested groups, a matrix with headers and a merge, a missing reference, a line definition with a value | `System/3-deployment.yaml` |
+| table view (class diagram) and attribute links | `Data/1-model.yaml` |
+| table faces answering attributes, value links, a diamond-ended line | `Data/2-orders.yaml` |
+| `layered`: a state machine and a flowchart | `Flows/1-order-states.yaml`, `Flows/4-payment-retry.yaml` |
+| sequence: reference lifelines, a missing header, a self message, a reply; the same grid as lanes | `Flows/2-place-order.yaml` |
+| swimlane (allocation) | `Flows/3-fulfil-order.yaml` |
+| a definition chain on large faces, usages answering it | `Catalogue/1-specs.yaml`, `Specs/` |
+| document, picture, headless and sized faces; markdown and decision cards; a tie; a hand-sized note; rows arrangement | `Catalogue/2-docs.yaml`, `Kinds/` |
 
 ### Commands
 
 | Do | Command |
 |---|---|
 | check everything | `npm run typecheck`, `npm test`, `npm run lint:css` |
-| re-write both samples | `npm run samples` (packages, the showcase collected from `samples/showcase/src`, then the architecture generator); one at a time `npm run showcase` / `npm run architecture` |
+| re-write the showcase | `npm run samples` (packages, then the showcase collected from `samples/showcase/src`); the showcase alone `npm run showcase` |
 | re-collect packages | edit under `packages/defs/src/packages/<name>/`, then `npm run packages`; `base` under `packages/defs/src/base/`, then `npm run base` |
-| check a file or a source folder | `npm run start -s -w @mnd/cli -- check ../../samples/<name>/workspace.json` → `clean`; a folder the same: `check ../../samples/showcase/src` |
-| list a layer | `npm run start -s -w @mnd/cli -- outline ../../samples/<name>/workspace.json <layer name or id>`; showcase ids are minted from file paths (`yaml.Diagrams.5-flowchart`) |
+| check a file or a source folder | `npm run start -s -w @mnd/cli -- check ../../samples/showcase/workspace.json` → `clean`; a folder the same: `check ../../samples/showcase/src` |
+| list a layer | `npm run start -s -w @mnd/cli -- outline ../../samples/showcase/workspace.json <layer name or id>`; showcase ids are minted from file paths (`yaml.System.2-containers`) |
 | drive the app | `npm run dev`; a fresh browser opens the showcase (`mndflow.yaml`); another file through the header's *import a workspace*. Open a card with select + Enter (double-click renames); in the explorer, select a row and → unfolds it. The `vitest` skill says how to drive it, though it is stale (step 6) |

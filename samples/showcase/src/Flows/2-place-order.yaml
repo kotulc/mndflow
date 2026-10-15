@@ -1,0 +1,59 @@
+name: Place order
+packages: [diagrams, architecture]
+note: "Checkout runs the saga: each lifeline refers to a block in Context or Containers. Place order, as lanes, is the same grid drawn as an allocation."
+blocks:
+  - name: Checkout saga
+    type: diagrams.sequence_diagram
+    cols:
+      - name: Customer
+        type: reference
+        of: System::Context::Customer
+      - name: Gateway
+        type: reference
+        of: System::Containers::Gateway
+      - name: Checkout
+        type: reference
+        of: System::Containers::Checkout
+      - name: Payment service
+        type: reference
+        of: System::Containers::Payment service
+      - name: Inventory service
+        type: reference
+        of: System::Containers::Inventory service
+      - name: Fraud check
+        type: reference
+        of: Planned::Fraud check
+        body: Not built yet, so its header refers to nothing.
+    rows:
+      - name: Submit
+      - name: Charge
+      - name: Reserve
+      - name: Confirm
+    blocks:
+      - name: Submit cart
+        cell: [ Submit, Customer ]
+      - name: Route checkout
+        cell: [ Submit, Gateway ]
+      - name: Start saga
+        cell: [ Charge, Checkout ]
+      - name: Authorize
+        cell: [ Charge, Payment service ]
+      - name: Reserve stock
+        cell: [ Reserve, Inventory service ]
+      - name: Confirm order
+        cell: [ Confirm, Checkout ]
+  - name: Place order, as lanes
+    type: reference
+    of: Flows::Place order::Checkout saga
+    settings:
+      layout:
+        view: allocation
+relations:
+  - diagrams.message:
+      - Submit cart -> Route checkout: checkout
+      - Route checkout -> Start saga: start
+      - Start saga -> Authorize: charge
+      - Authorize -> Reserve stock: reserve
+      - Confirm order -> Confirm order: log step
+  - diagrams.reply:
+      - Reserve stock -> Confirm order: reserved

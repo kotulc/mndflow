@@ -1,15 +1,15 @@
 name: Model
-type: Large layer
+type: diagrams.class_diagram
+packages: [diagrams]
+note: The records as classes. A link is an attribute typed by another record. Order status is a choice, so it is not a table here.
 blocks:
-  - name: Attributes typed by a definition draw links between stand-ins.
-    type: note
-    w: 360
   - type: reference
-    of: Site
-    note: A stand-in for Site.
+    of: Customer
   - type: reference
-    of: Asset
-    note: Asset's site attribute is typed Site, so a link draws.
+    of: Order
   - type: reference
-    of: State
-    note: "State extends choice: running or stopped."
+    of: Line
+  - type: reference
+    of: Product
+  - type: reference
+    of: Payment

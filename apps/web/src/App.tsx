@@ -9,7 +9,7 @@ import { FLOOR } from "@mnd/defs";
 import { box_of, clear_of, empty_of, holds, project, set_card as apply_card, tidy, BLOCK,
          CARD, UNITS } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
-import { Icon, WorkspaceHeader } from "@mnd/theme";
+import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
 import { Stage, type Move } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
 import { Tray, useDisplay, useTray, type Offered } from "@mnd/tray";
@@ -41,6 +41,8 @@ export function App({ storage, boot, opening }: {
   }, [s, boot]);
   const [, bump] = useState(0);
   const [folded, set_folded] = useState<Id[]>([]);
+  /** Which region has the keys: the one last pressed or focused in. */
+  const zones = useZone();
   /** What a reveal inside a layer asked the canvas to pan to, until the next pick. */
   const [aim, set_aim] = useState<Id | null>(null);
   /** What the catalogue offers, read once. An unbound `net` leaves it empty. */
@@ -293,7 +295,7 @@ export function App({ storage, boot, opening }: {
   };
 
   return (
-    <div className="app">
+    <div className="app" {...zones.bind}>
       <WorkspaceHeader brand="mndflow"
         where={
           <button className="where" title="This session is kept in the browser. Export a snapshot to keep a copy elsewhere."
@@ -337,7 +339,7 @@ export function App({ storage, boot, opening }: {
         onLeave={() => act("open")}
         onSection={section}
         chain={{ ...chain, onChoose: choose }}
-        keys
+        keys={zones.zone === "explorer"}
       />
 
       <main ref={set_canvas}>
@@ -411,6 +413,7 @@ export function App({ storage, boot, opening }: {
                   || (view.kind === "internal" && laid_out === "auto")}
           focus={system ? view.pick : whole ? null : aim}
           most={1}
+          keys={zones.zone === "canvas"}
         />
         <Tray
           graph={graph}

@@ -12,7 +12,7 @@ import { resolved } from "@mnd/views";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Attributes } from "./Attributes";
 import { Element } from "./Element";
-import { Settings } from "./Settings";
+import { Content } from "./Content";
 import { Definitions, type Shelf } from "./Definitions";
 import { Entry } from "./Entry";
 import { lit_row, scope_chips, Table, type Column, type Scope } from "./Table";
@@ -71,12 +71,12 @@ type Context = "root" | "block" | "line" | "definition" | "relation" | "library"
 const SLOTS: Record<Context, readonly Tab[]> = {
   /** The root draws nowhere, so it is asked about itself and about what it holds, and no more. */
   root: ["workspace", "contents"],
-  /** **Every element asks the same questions, in the same order**: what it is and says — its
-   *  first tab named for what is drawn, a card or a line — how it draws, what it carries, and
-   *  what it lists: a usage its contents, a definition its usages. A usage's settings are its
-   *  definition's, read here and edited there. A line holds no values and nothing else. */
-  block: ["card", "settings", "attributes", "contents"],
-  line: ["line", "settings", "attributes"],
+  /** **Every element asks the same questions, in the same order**: what it is — its first tab
+   *  named for what is drawn, a card or a line — on a definition how it draws, what it carries,
+   *  and what it lists: a usage its contents, a definition its usages. A usage lists no settings,
+   *  since it cannot change them. */
+  block: ["card", "attributes", "contents"],
+  line: ["line", "attributes"],
   definition: ["card", "settings", "attributes", "usages"],
   relation: ["line", "settings", "attributes", "usages"],
   library: ["definitions"],
@@ -124,6 +124,12 @@ function home_of(graph: Graph, id: Id): Id | null {
   const home = is_interface(graph, b.id) ? graph.blocks[b.parent ?? ""]?.parent : b.parent;
   /** The root layer is `null`, as the open layer names it. */
   return !home || home === graph.root ? null : home;
+}
+
+/** Whether a definition says anything of its own about how it draws. */
+function own_looks(graph: Graph, id: Id): boolean {
+  const bag = def_at(graph, id)?.settings;
+  return ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
 }
 
 /** What sort of thing the tray is about, in a word. */
@@ -195,13 +201,6 @@ export function Tray(props: TrayProps) {
   const act: Act = (name, args) => onAct?.(name, args);
   /** What a read-only listing acts with: nothing. */
   const reads = edits ? act : NOOP;
-
-  /** Whether the definition in context has looks to reset, and whether it is a package's. */
-  const bag = def_at(graph, about)?.settings;
-  const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
-  const borrowed = !!def_at(graph, about) && frozen(graph, about);
-  /** Whether it states its own traits, and so has a list to give back. */
-  const own_traits = !!def_at(graph, about)?.traits;
 
   /** A reference holds nothing of its own — `of` is the whole of it — so its contents is the one
    *  it stands for, listed as a row like any other and offering the way there. */
@@ -300,22 +299,13 @@ export function Tray(props: TrayProps) {
           </button>
         ),
       } : {})}
-      {...(onAct && tab === "settings" && def_at(graph, about) ? {
+      {...(onAct && tab === "settings" && def_at(graph, about) && !frozen(graph, about) ? {
         tabTools: (
-          <>
-            <button className="reset" disabled={borrowed || !its_own}
-                    title={its_own ? "give every look back to what it inherits"
-                                      : "it says nothing of its own to give back"}
-                    onClick={() => act("none", { ids: [about] })}>
-              reset style
-            </button>
-            <button className="reset" disabled={borrowed || !own_traits}
-                    title={own_traits ? "carry the traits of what it extends"
-                                      : "it lists no traits of its own"}
-                    onClick={() => act("trait", { ids: [about] })}>
-              reset traits
-            </button>
-          </>
+          <button className="reset" disabled={!own_looks(graph, about)}
+                  title="give every part of how it draws back to what it inherits"
+                  onClick={() => act("none", { ids: [about] })}>
+            reset style
+          </button>
         ),
       } : {})}
     >
@@ -328,13 +318,10 @@ export function Tray(props: TrayProps) {
             <Element graph={graph} id={about} {...(edits ? { onAct: act } : {})}
                      onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
-          {/* How it draws: a definition's own, set here; a usage's, its definition's, read. */}
+          {/* How a definition draws, laid out as its card tab. */}
           {tab === "settings" ? (
-            <fieldset className="panel-set" disabled={!edits || !held_def
-                                                      || frozen(graph, held_def)
-                                                      || held_def !== about}>
-              {held_def ? <Settings graph={graph} id={held_def} shown={about} onAct={reads} /> : null}
-            </fieldset>
+            <Element graph={graph} id={about} keys="settings" {...(edits ? { onAct: act } : {})}
+                     onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
           {/* A definition declares attributes and a usage answers them. */}
           {tab === "attributes" ? (
@@ -381,6 +368,9 @@ export function Tray(props: TrayProps) {
                 ) : null,
               } } : {})} />
           ) : tab === "contents" ? (
+            <>
+            {/* What it holds as text, over what it holds as blocks. */}
+            <Content key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})} />
             <Table
               columns={[...HEAD, ...columns.map((n) => ({ key: `@${n}`, label: n }))]}
               chips={[scope_chips(scope, set_scope), chips]} tools={tools} acts="6rem"
@@ -424,6 +414,7 @@ export function Tray(props: TrayProps) {
                                 drop: `delete ${row.name}` } : {}),
                 };
               })} />
+            </>
           ) : null}
     </TrayFrame>
   );

@@ -15,6 +15,7 @@ export type Entry = {
   tags?: string[];
   traits?: string[];
   settings?: Record<string, unknown>;
+  description?: string;
   body?: string;
   source?: string;
   of?: string;
@@ -137,6 +138,7 @@ function entry(map: Map): Entry {
     if (value !== undefined && value !== "") e[key] = value;
   };
   set("type", word("type"));
+  set("description", word("description"));
   set("body", map["body"] === undefined ? undefined : said_as(map["body"]));
   set("source", word("source"));
   set("of", word("of"));

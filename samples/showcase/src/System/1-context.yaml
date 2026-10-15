@@ -1,0 +1,31 @@
+name: Context
+packages: [architecture]
+settings:
+  layout: { kind: layered }
+note: The shop seen from outside. Open Containers to go inside.
+blocks:
+  - name: Customer
+    type: person
+    settings:
+      card:
+        label: above
+  - name: Support agent
+    type: person
+    settings:
+      card:
+        label: above
+  - name: Shop
+    type: reference
+    of: System::Containers
+  - name: Card processor
+    type: external
+  - name: Carrier
+    type: external
+  - name: Email provider
+    type: external
+relations:
+  - Customer -> Shop: places orders
+  - Support agent -- Shop: looks up orders
+  - Shop <-> Card processor: authorize / result
+  - Carrier <- Shop: hands over parcels
+  - integrates: [ Shop -> Email provider ]

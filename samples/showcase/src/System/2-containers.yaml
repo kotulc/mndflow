@@ -1,0 +1,82 @@
+name: Containers
+packages: [architecture]
+settings:
+  layout: { kind: layered }
+note: Every service is a usage of a catalogue pattern. Open one to see the pattern inside it.
+blocks:
+  - name: Storefront
+    type: service
+    owner: Web
+    technology: React
+  - name: Gateway
+    type: API gateway
+    owner: Platform
+    technology: Envoy
+    settings:
+      style:
+        hue: 200
+  - name: Checkout
+    type: Saga orchestrator
+    owner: Commerce
+    technology: Go
+  - name: Order service
+    type: Transactional outbox
+    owner: Commerce
+    technology: Java
+  - name: Payment service
+    type: Layered architecture
+    owner: Payments
+    technology: Java
+    tags: [ critical ]
+    settings:
+      style:
+        border_width: thick
+    blocks:
+      - name: Card guard
+        type: Circuit breaker
+  - name: Inventory service
+    type: Layered architecture
+    owner: Fulfilment
+    technology: Kotlin
+  - name: Shipping adapter
+    type: Anti-corruption layer
+    owner: Fulfilment
+  - name: Order events
+    type: queue
+    technology: Kafka
+  - name: Recommendations
+    type: service
+    note: Planned, not built yet.
+    settings:
+      style:
+        fill: hatch
+  - name: Legacy billing
+    type: service
+    note: Being retired.
+    settings:
+      style:
+        opacity: 0.45
+        border_style: dashed
+  - name: Card processor
+    type: external
+  - name: Carrier
+    type: external
+  - name: https
+    type: interface
+    flow: in
+    note: Public traffic enters here.
+relations:
+  - https -> Storefront
+  - calls:
+      - Storefront -> Gateway::requests
+      - Gateway::routes -> Checkout::start
+      - Gateway::routes -> Order service::requests
+      - Gateway::routes -> Inventory service::requests
+      - Inventory service -> Shipping adapter::in
+      - Storefront -> Recommendations
+  - Checkout::bus <-> Order events: commands / replies
+  - publishes: [ Order service::events -> Order events ]
+  - Order events -> Payment service::requests: charge
+  - Order events -> Inventory service::requests: reserve
+  - integrates: [ Payment service -> Card processor, Shipping adapter::out -> Carrier ]
+  - Legacy billing -- Order service: reconciles nightly

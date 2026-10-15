@@ -63,7 +63,7 @@
 .contents-table tr.empty td { color: var(--faint); font-style: italic; cursor: default; }
 .contents-table tr.empty:hover td { background: none; }
 
-/* ── The body under both columns ─────────────────────────────────────────── */
+/* ── What a block holds as text, over its contents table ───────────────────── */
 .content { display: flex; flex-direction: column; gap: 6px; padding: 0 10px 10px; }
 .content > textarea {
   min-height: 6em;
@@ -78,21 +78,6 @@
   font-size: 12px;
 }
 .content > textarea:focus { outline: none; border-color: var(--accent); }
-/* The record is read, never written. **It grows with what it holds**, so the tray body's scroll
-   is the only one — and it wraps rather than running off the side. Code face, and quieter. */
-.content > pre.data {
-  margin: 0;
-  padding: 6px 8px;
-  border: 1px solid var(--divider);
-  border-radius: 2px;
-  background: var(--band);
-  color: var(--muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
 
 /* A value read rather than set. */
 .rows > .row > .line > .read { color: var(--muted); }
@@ -159,27 +144,11 @@ fieldset.fields { padding: 0; }
 /* The drawing fills its column; the run scales with it. */
 .drawing .preview-wire { width: 100%; }
 .drawing .preview-run { width: 100%; height: auto; }
-
-/* The first tab, a card's or a line's, the settings tab's layout: how it appears beside its
-   source, and the definition it follows under both. A line's source is its frontmatter alone. */
-.panel.element { grid-template-areas: "drawing rows" "data data"; }
-.col.source > .content { padding: 0; }
-.col.source > .content > textarea { min-height: 12em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-
-/* A definition's record, read only. */
-.card-record pre {
-  margin: 0;
-  padding: 6px 8px;
-  border: 1px solid var(--divider);
-  border-radius: 2px;
-  background: var(--band);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.card-record pre { color: var(--muted); font-size: 11px; line-height: 1.5; }
-
-/* A usage's settings are its definition's, read here: a box drawn as nothing. */
-fieldset.panel-set { border: 0; margin: 0; padding: 0; min-width: 0; }
+/* The card and settings tabs: the drawing and its keys in a third, the lit key's choices in the rest. */
+/* The first tab, a card's or a line's: its source on the left, the lit key's choices right. */
+.panel.element { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); grid-template-areas: "source choices"; }
+.panel.element > .col.source { grid-area: source; gap: 6px; }
+.panel.element > .col.choices { grid-area: choices; }
 
 /* The attributes table: what a definition inherits reads faint, and a link names its target. */
 .attributes { padding: 4px 10px 10px; }
@@ -188,38 +157,15 @@ fieldset.panel-set { border: 0; margin: 0; padding: 0; min-width: 0; }
 .contents-table td .type.link { color: var(--accent); }
 .contents-table td .faint { color: var(--faint); font-style: italic; }
 
-/* The settings tab: the drawing and its looks side by side, and under both, across the whole
-   tab, what it may do. */
-.panel.style { grid-template-areas: "drawing rows" "traits traits"; }
-.panel > .col.traits { grid-area: traits; }
-
-.panel > .content.data { grid-area: data; }
-
 /* The workspace draws nowhere, so there is no card column: what it is and what it is made of
-   take a column each, and the description runs under both. */
+   take a column each. */
 .panel.workspace {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-areas: "identity file" "body body";
+  grid-template-areas: "identity file";
 }
 
 .panel.workspace > .col.identity { grid-area: identity; }
 .panel.workspace > .col.file { grid-area: file; }
-
-/* Wide: one row across — the body takes a third column, the style groups a column of their own. */
-@container tray (min-width: 960px) {
-  .panel.workspace {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "identity file body";
-  }
-
-  .panel.style > .draws {
-    display: grid;
-    grid-template-columns: 7.5em minmax(0, 1fr);
-    align-items: start;
-  }
-  .panel.style > .draws > .rail { flex-direction: column; align-items: stretch; height: 100%; }
-  .panel.style > .draws > .rail > .filters { flex-direction: column; align-items: stretch; }
-}
 
 /* ── A rail over a table ── */
 /* The rail heads its table the way the contents table heads its own. */

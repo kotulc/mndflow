@@ -2,7 +2,7 @@
   "id": "sequence_diagram",
   "name": "sequence diagram",
   "type": "grid",
-  "body": "A grid read as time: the header row names the participants, and each row is a moment.",
+  "description": "A grid read as time: the header row names the participants, and each row is a moment.",
   "def": {},
   "settings": {
     "layout": {

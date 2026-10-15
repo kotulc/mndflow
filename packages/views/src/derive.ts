@@ -53,8 +53,10 @@ export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): 
   const alias = handle_of(graph, id, look);
   /** Room at the end of its table for the marks this card wears, previewing or not. */
   const ruled = face === "large" ? face_table(graph, b.id, look, stamps_of(graph, id).length) : null;
+  const description = b.description ?? graph.blocks[def_of(graph, b.id) ?? ""]?.description;
   return {
     label: shown_name(graph, id),
+    ...(description ? { description } : {}),
     ...(alias ? { alias } : {}),
     role: role_of(graph, id),
     ...(lens_of(graph, id) ? { opens: true } : {}),

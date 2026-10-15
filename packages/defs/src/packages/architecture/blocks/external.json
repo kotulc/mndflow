@@ -2,7 +2,7 @@
   "id": "external",
   "name": "external",
   "type": "component",
-  "body": "A component outside this system, drawn with a dashed border.",
+  "description": "A component outside this system, drawn with a dashed border.",
   "def": {},
   "settings": {
     "style": { "family": "away", "border_style": "dashed" }

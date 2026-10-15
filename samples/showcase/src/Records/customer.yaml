@@ -1,0 +1,12 @@
+name: Customer
+def:
+  attributes:
+    - name: id
+      type: number
+      key: true
+    - name: name
+    - name: email
+description: Someone who places an order.
+settings:
+  card:
+    face: table

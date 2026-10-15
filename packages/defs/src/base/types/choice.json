@@ -2,7 +2,7 @@
   "id": "choice",
   "name": "choice",
   "type": "value",
-  "body": "One of a set: a subtype lists its options in `value.choices`.",
+  "description": "One of a set: a subtype lists its options in `value.choices`.",
   "def": {},
   "settings": {
     "value": {

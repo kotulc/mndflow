@@ -1,8 +1,0 @@
-name: Sized
-def: {}
-settings:
-  card:
-    face: document
-    size:
-      w: 8
-      h: 3

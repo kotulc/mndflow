@@ -70,7 +70,8 @@ Block {
   parent        Id | null         // null only for a package root
   type?         Id                // a usage: what it is; a definition: what it extends
   name?         string            // required on a definition
-  body?         string            // a block's text; a definition's description
+  body?         string            // what a block holds as text
+  description?  string            // what it is for, in a line: shown on hover
 
   def?          { attributes?: Attribute[] }   // present on a definition, and only there
 
@@ -196,7 +197,7 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | `add_block` · `update_block` · `delete_block` | make; rename or retype; remove with its subtree |
 | `move_block` · `place_block` · `size_block` · `order_block` | re-parent, position, least size, sibling order |
 | `set_alias` · `set_counter` | handles |
-| `set_body` · `set_attributes` · `set_source` | text, a definition's attributes, provenance |
+| `set_body` · `set_description` · `set_attributes` · `set_source` | text, what it is for, a definition's attributes, provenance |
 | `seat_cell` · `set_grid` | an address in the parent grid; a lattice, written whole |
 | `link_blocks` · `update_edge` · `delete_edge` | make, rename or retype, remove a relationship |
 | `flip_edge` · `set_end` · `set_port` · `mark_port` | ends, interfaces |
@@ -219,6 +220,7 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | **components** | each key validated by its own component; an unknown component is left alone |
 | **modules** | a module the build does not know falls back to the base block, and says so |
 | **names** | unique among siblings; a definition is named |
+| **definitions** | a definition sits under a package root or a folder in the definitions tree, never in a structure or another definition; one elsewhere moves to its package root |
 
 
 ## What review reports

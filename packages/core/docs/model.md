@@ -61,7 +61,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 
 | | Carried in | Says |
 |---|---|---|
-| **tag** | `tags` | a word to find it by, with its meaning in `body`. Any element; a new one is filed in the workspace's `tags` folder |
+| **tag** | `tags` | a word to find it by, with its meaning in `description`. Any element; a new one is filed in the workspace's `tags` folder |
 | **trait** | `traits` | an engine function: a capability, or what sort of thing it is. It confers its own settings and those of the traits it extends, never its base's. Definitions only |
 
 **Both lists replace**: stated, a list holds every entry kept; unsaid, the nearest list down the chain is carried whole; empty says none. There are no drops. **A look is settings, never a tag.**

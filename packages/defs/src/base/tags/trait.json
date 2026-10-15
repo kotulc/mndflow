@@ -2,7 +2,7 @@
   "id": "trait",
   "name": "trait",
   "type": "tag",
-  "body": "A tag naming something the engine does: what a definition carrying it may do. A definition lists every trait it keeps; one listing none carries what it extends.",
+  "description": "A tag naming something the engine does: what a definition carrying it may do. A definition lists every trait it keeps; one listing none carries what it extends.",
   "def": {},
   "settings": {
     "style": {

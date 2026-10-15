@@ -2,7 +2,7 @@
   "id": "reads",
   "name": "reads",
   "type": "line",
-  "body": "A component reads what a store holds.",
+  "description": "A component reads what a store holds.",
   "def": {},
   "settings": { "line": { "dir": "forward" } }
 }

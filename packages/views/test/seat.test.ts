@@ -74,12 +74,12 @@ describe("a tie", () => {
   it("crosses straight where a group note sits square beside the group", () => {
     const text = readFileSync("samples/showcase/workspace.json", "utf8");
     const { graph } = open(text, FLOOR);
-    const scene = project(graph, named(graph, "Holders::Groups"));
+    const scene = project(graph, named(graph, "System::Deployment"));
     const opposite: Record<string, string> = {
       top: "bottom", bottom: "top", left: "right", right: "left",
     };
-    for (const path of ["Plant", "Plant::Skid"]) {
-      const id = named(graph, `Holders::Groups::${path}`);
+    for (const path of ["eu-west cluster", "eu-west cluster::shop namespace"]) {
+      const id = named(graph, `System::Deployment::${path}`);
       const tie = tie_on(graph, id).id;
       const on_group = scene.perches.find((p) => p.edge === tie && p.on === id)!;
       const on_note = scene.perches.find((p) => p.edge === tie && p.on === note_on(graph, id))!;
@@ -164,11 +164,11 @@ describe("a note tied to an interface", () => {
     expect(gap.d).toBeLessThan(24 * 4);
   });
 
-  it("floats the showcase note beside the room port on Ports", () => {
+  it("floats the showcase note beside the room port on Containers", () => {
     const text = readFileSync("samples/showcase/workspace.json", "utf8");
     const { graph } = open(text, FLOOR);
-    const scene = project(graph, named(graph, "Interfaces::Ports"));
-    const drain = named(graph, "Interfaces::Ports::drain");
+    const scene = project(graph, named(graph, "System::Containers"));
+    const drain = named(graph, "System::Containers::https");
     const note = scene.nodes.find((n) => n.id === note_on(graph, drain))!;
     const port = scene.frame!.ports.find((p) => p.id === drain)!;
     const gap = nearest_pair(box_of(note), at_seat(scene.frame!, port));

@@ -1,0 +1,14 @@
+name: Payment
+def:
+  attributes:
+    - name: order
+      type: Order
+    - name: amount
+      type: number
+      unit: USD
+    - name: result
+      optional: true
+description: A charge taken against an order.
+settings:
+  card:
+    face: table

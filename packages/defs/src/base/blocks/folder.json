@@ -2,7 +2,7 @@
   "id": "folder",
   "name": "folder",
   "type": "block",
-  "body": "Files blocks away: a quiet container whose contents are reached by opening it.",
+  "description": "Files blocks away: a quiet container whose contents are reached by opening it.",
   "def": {},
   "settings": {
     "style": {

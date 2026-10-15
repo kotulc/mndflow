@@ -1,11 +1,10 @@
 /** The workspace tab: what the root is called, how the drawing defaults, and what its file
- *  carries. Given no `onAct` the workspace itself is read only; its display still answers
+ *  carries. What it holds as text is the contents tab's. Given no `onAct` the workspace itself is read only; its display still answers
  *  `onDisplay`, since how a drawing looks is the session's and changes nothing. */
 
 import { all_defs, def_at, file_name, packages, SCHEMA, shown_name,
          type Act, type Graph } from "@mnd/core";
 import { Band, Body, Check, Line, NOOP, Pick } from "./Body";
-import { Content } from "./Content";
 import { Entry } from "./Entry";
 import { Tags } from "./Tags";
 
@@ -79,8 +78,6 @@ export function Workspace({ graph, display, onAct = NOOP, onDisplay = onAct }: W
         </Body>
       </div>
 
-      <Content key={graph.root} graph={graph} id={graph.root}
-               {...(readonly ? {} : { onAct })} />
     </div>
   );
 }

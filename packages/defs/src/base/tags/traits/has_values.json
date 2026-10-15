@@ -2,7 +2,7 @@
   "id": "has_values",
   "name": "has_values",
   "type": "trait",
-  "body": "Holds values of its own: answers to its definition's attributes.",
+  "description": "Holds values of its own: answers to its definition's attributes.",
   "def": {},
   "settings": {
     "allows": {

@@ -86,6 +86,12 @@ function apply(graph: Graph, m: Mutation): void {
       if (b) { b.w = m.w; b.h = m.h; }
       return;
     }
+    case "set_description": {
+      const b = graph.blocks[m.id];
+      if (b && m.description) b.description = m.description;
+      else if (b) delete b.description;
+      return;
+    }
     case "set_body": {
       const b = graph.blocks[m.id];
       if (b) b.body = m.body;

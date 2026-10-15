@@ -10,7 +10,7 @@ import { all_defs, def_at, domain_of, frozen } from "../defs";
 import { replay } from "../fold";
 import { new_id } from "../ids";
 import { is_tag } from "../tags";
-import type { Graph, Id, Mutation } from "../types";
+import type { Block, Graph, Id, Mutation } from "../types";
 import { action, register, type Args, type Context, type Result } from "./registry";
 import { borrowed, id_of, text } from "./helpers";
 import { new_def } from "./definitions";
@@ -139,7 +139,8 @@ function usage_calls(graph: Graph, id: Id, { front, body }: Card, whole: boolean
       calls.push(["unfield", { holder: id, name: v.name }]);
     }
   }
-  if (body !== (b.body ?? "")) calls.push(["describe", { id, body }]);
+  calls.push(...described(b, front));
+  if (body !== (b.body ?? "")) calls.push(["write", { id, body }]);
   const after: Mutation[] = whole && names.length > 1 ? [{ op: "order_values", id, names }] : [];
   return { calls, made, after };
 }
@@ -183,8 +184,15 @@ function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
       calls.push(["field", { holder: id, name: a.name, default: "" }]);
     }
   }
-  if (body !== (d.body ?? "")) calls.push(["describe", { id, body }]);
+  calls.push(...described(d, front));
+  if (body !== (d.body ?? "")) calls.push(["write", { id, body }]);
   return { calls, made, after: [] };
+}
+
+/** The `describe` call a frontmatter `description` comes to, where it differs. */
+function described(b: Block, front: Card["front"]): Call[] {
+  const said = said_as(front["description"]).trim();
+  return said !== (b.description ?? "") ? [["describe", { id: b.id, description: said }]] : [];
 }
 
 /** The `tag` or `trait` call a frontmatter list comes to, where it differs from what the block

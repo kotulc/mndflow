@@ -2,7 +2,7 @@
   "id": "grid",
   "name": "grid",
   "type": "block",
-  "body": "A spreadsheet of cells holding text or blocks, opened on the allocation view: a header allocates what its row or column holds.",
+  "description": "A spreadsheet of cells holding text or blocks, opened on the allocation view: a header allocates what its row or column holds.",
   "def": {},
   "traits": [
     "has_parts",

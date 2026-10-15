@@ -20,6 +20,8 @@ export type BoxData = {
   /** The mark a thing wears beside its name while nobody has named it. */
   alias?: string;
   label: string;
+  /** What it is for, in a line: its own, else its definition's. Shown on hover. */
+  description?: string;
   /** The definition this usage names, if any. */
   def?: Id;
   /** What this is drawn on, where it is seated rather than placed. */

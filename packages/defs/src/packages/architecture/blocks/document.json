@@ -2,7 +2,7 @@
   "id": "document",
   "name": "document",
   "type": "block",
-  "body": "A page read as a document.",
+  "description": "A page read as a document.",
   "def": {},
   "settings": {
     "card": { "face": "document" }

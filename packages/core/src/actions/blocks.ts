@@ -287,14 +287,26 @@ register(
     },
   },
   {
-    name: "describe",
-    about: "writes what a block holds, or what a definition is for",
+    name: "write",
+    about: "writes what a block holds as text",
     on: ["block", "layer"],
     args: [{ name: "id", form: "block", required: true },
            { name: "body", form: "text", required: true }],
     check: (ctx, args) => borrowed(ctx.graph, id_of(args, "id")),
     run: (_ctx, args) => ({ mutations: [
       { op: "set_body", id: id_of(args, "id"), body: String(args["body"] ?? "") },
+    ] }),
+  },
+  {
+    name: "describe",
+    about: "says in a line what a block or a definition is for",
+    on: ["block", "layer"],
+    args: [{ name: "id", form: "block", required: true },
+           { name: "description", form: "text", required: true }],
+    check: (ctx, args) => borrowed(ctx.graph, id_of(args, "id")),
+    run: (_ctx, args) => ({ mutations: [
+      { op: "set_description", id: id_of(args, "id"),
+        description: String(args["description"] ?? "").trim() },
     ] }),
   },
   {

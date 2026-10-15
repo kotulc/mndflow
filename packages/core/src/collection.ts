@@ -17,7 +17,7 @@ import { long_form, type Edge, type Entry, type LongForm } from "./diagram";
 import { write } from "./file";
 import { def_ref, fits_domain, is_path, path_to, STEP } from "./refs";
 import { is_tag } from "./tags";
-import { children } from "./tree";
+import { children, ports_of } from "./tree";
 import type { Leaf } from "./ports";
 import type { Attribute, Block, Graph, Id, Relation, Value } from "./types";
 
@@ -208,6 +208,7 @@ function sourced(reads: readonly Read[]): Set<string> {
       if (!card || path === r.path) continue;
       e.type ??= card.type;
       e.body ??= card.body;
+      e.description ??= card.description;
       e.tags ??= card.tags;
       e.settings ??= card.settings;
       e.name ||= card.name;
@@ -249,6 +250,7 @@ function lay(graph: Graph, r: Read, parent: Id, order: number): void {
     graph.blocks[id] = {
       id, parent: up, order: id === r.id ? order : orders.get(up)!,
       ...(e.name ? { name: e.name } : {}), ...(e.body !== undefined ? { body: e.body } : {}),
+      ...(e.description ? { description: e.description } : {}),
       ...(e.source ? { source: e.source } : {}), ...(e.def ? { def: {} } : {}),
       ...(e.settings ? { settings: e.settings as Block["settings"] } : {}),
       ...(e.values.length ? { values: e.values } : {}),
@@ -332,8 +334,8 @@ function extent(graph: Graph, id: Id, e: Entry): void {
 /** A relation's names read: its ends, its type, and the way it points, kept where its arrow says
  *  otherwise than its type. */
 function relation(ctx: Ctx, id: Id, e: Edge): Relation | undefined {
-  const from = ref(ctx, e.from, false);
-  const to = ref(ctx, e.to, false);
+  const from = end_of(ctx, e.from);
+  const to = end_of(ctx, e.to);
   if (!from || !to) {
     ctx.notes.push(`${ctx.file.path}: ${e.from} to ${e.to} names a block that is not here`);
     return undefined;
@@ -343,11 +345,25 @@ function relation(ctx: Ctx, id: Id, e: Edge): Relation | undefined {
   const dir = e.dir && e.dir !== dir_of(ctx.graph, type ?? "line") ? e.dir : undefined;
   const line = { ...(settings?.["line"] as object | undefined), ...(dir ? { dir } : {}) };
   const all = { ...settings, ...(Object.keys(line).length ? { line } : {}) };
-  return { id, from, to, ...(type && type !== "line" ? { type } : {}),
+  return { id, from: from.at, to: to.at, ...(from.part ? { fromPart: from.part } : {}),
+           ...(to.part ? { toPart: to.part } : {}), ...(type && type !== "line" ? { type } : {}),
            ...(e.name ? { name: e.name } : {}),
            ...(e.tags ? { tags: e.tags.map((t) => named(ctx, t, "tag")) } : {}),
            ...(Object.keys(all).length ? { settings: all as Relation["settings"] } : {}),
            ...(e.values.length ? { values: e.values } : {}) };
+}
+
+/** A relation's end a word names: a block, else `usage::port` — a usage and an interface its
+ *  definition's chain declares, read through. */
+function end_of(ctx: Ctx, word: string): { at: Id; part?: Id } | undefined {
+  const at = ref(ctx, word, false);
+  if (at) return { at };
+  const steps = word.split(STEP).map((s) => s.trim());
+  const port = steps.pop();
+  const usage = steps.length ? ref(ctx, steps.join(STEP), false) : undefined;
+  const part = usage ? ports_of(ctx.graph, ctx.graph.blocks[usage]?.type)
+    .find((p) => p.name === port) : undefined;
+  return usage && part ? { at: usage, part: part.id } : undefined;
 }
 
 /** A block a word names, other than the one asking: one in this file, by name or path; else a

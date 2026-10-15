@@ -1,6 +1,0 @@
-name: Headless
-def: {}
-settings:
-  card:
-    face: document
-    name: hide

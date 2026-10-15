@@ -1,4 +1,0 @@
-name: Table
-type: grid
-def: {}
-traits: [ has_parts, has_ports, has_values, is_grid, has_head ]

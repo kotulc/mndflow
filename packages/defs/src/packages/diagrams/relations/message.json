@@ -2,7 +2,7 @@
   "id": "message",
   "name": "message",
   "type": "line",
-  "body": "One participant asks another to act: a message between two steps.",
+  "description": "One participant asks another to act: a message between two steps.",
   "def": {},
   "settings": { "line": { "dir": "forward" } }
 }
