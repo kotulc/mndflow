@@ -12,6 +12,7 @@ import { resolved } from "@mnd/views";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Attributes } from "./Attributes";
 import { Element } from "./Element";
+import { Json } from "./Json";
 import { Content } from "./Content";
 import { Definitions, type Shelf } from "./Definitions";
 import { Entry } from "./Entry";
@@ -82,6 +83,9 @@ const SLOTS: Record<Context, readonly Tab[]> = {
   library: ["definitions"],
   packages: ["packages"],
 };
+
+/** The contexts about one element, which carry a json chip. */
+const ELEMENTS: readonly Context[] = ["block", "line", "definition", "relation"];
 
 /** Where a context opens when nothing was asked: the root on what the workspace is, anything
  *  else on its last tab. */
@@ -155,6 +159,8 @@ export function Tray(props: TrayProps) {
   const [seen, set_seen] = useState<Record<string, string>>({});
   /** Full height, as a control of its own. */
   const [big, set_big] = useState(false);
+  /** Whether the body reads as the JSON it follows, kept as the context moves. */
+  const [raw, set_raw] = useState(false);
   const [only, set_only] = useState<Sort | "all">("all");
   /** Field columns the reader asked for, in the order they asked. */
   const [columns, set_columns] = useState<string[]>([]);
@@ -195,7 +201,12 @@ export function Tray(props: TrayProps) {
     ? tabs.find((x) => x === "card" || x === "line") : t);
   const tab: string = [props.tab, seen[family]].map(alike).find((t) => t && tabs.includes(t))
     ?? OPENS[context] ?? hosted[0] ?? tabs[tabs.length - 1]!;
-  const set_tab = (t: string) => { set_seen((s) => ({ ...s, [family]: t })); props.onTab?.(t); };
+  /** Picking a tab, even the one shown, turns the json off. */
+  const set_tab = (t: string) => {
+    set_raw(false);
+    set_seen((s) => ({ ...s, [family]: t }));
+    props.onTab?.(t);
+  };
 
   /** Everything the panels do goes out. */
   const act: Act = (name, args) => onAct?.(name, args);
@@ -275,6 +286,11 @@ export function Tray(props: TrayProps) {
                  library.group ? `${library.group}s` : ""].filter(Boolean).join(" · ")
     : def_at(graph, about) ? def_at(graph, about)!.name : shown_name(graph, about);
 
+  /** The definition an element follows, or itself, which the json chip reads as filed. */
+  const filed = ELEMENTS.includes(context) ? held_def : null;
+  /** What the body draws: the json, while the chip is on, else the tab. */
+  const shows = raw && filed ? "json" : tab;
+
   return (
     <TrayFrame
       open={open}
@@ -290,56 +306,64 @@ export function Tray(props: TrayProps) {
       {...(open && tab === "contents" && !points_at ? {
         tools: <span className="holds">{shown.length} {shown.length === 1 ? "element" : "elements"}</span>,
       } : {})}
-      {...(edits && tab === "card" && graph.blocks[about] && !def_at(graph, about) ? {
-        /** A usage may take a markdown file's card source; again, to refresh it. */
-        tabTools: (
-          <button className="reset" title="copy a markdown file onto this card; again, to refresh"
-                  onClick={() => act("@attach", { id: about })}>
-            attach
-          </button>
-        ),
-      } : {})}
-      {...(onAct && tab === "settings" && def_at(graph, about) && !frozen(graph, about) ? {
-        tabTools: (
-          <button className="reset" disabled={!own_looks(graph, about)}
-                  title="give every part of how it draws back to what it inherits"
-                  onClick={() => act("none", { ids: [about] })}>
-            reset style
-          </button>
-        ),
-      } : {})}
+      tabTools={(
+        <>
+          {/* A usage may take a markdown file's card source; again, to refresh it. */}
+          {edits && tab === "card" && graph.blocks[about] && !def_at(graph, about) ? (
+            <button className="reset" title="copy a markdown file onto this card; again, to refresh"
+                    onClick={() => act("@attach", { id: about })}>
+              attach
+            </button>
+          ) : null}
+          {onAct && tab === "settings" && def_at(graph, about) && !frozen(graph, about) ? (
+            <button className="reset" disabled={!own_looks(graph, about)}
+                    title="give every part of how it draws back to what it inherits"
+                    onClick={() => act("none", { ids: [about] })}>
+              reset style
+            </button>
+          ) : null}
+          {filed ? (
+            <button className={raw ? "reset on" : "reset"} aria-pressed={raw}
+                    title="read the definition it follows as filed"
+                    onClick={() => set_raw(!raw)}>
+              json
+            </button>
+          ) : null}
+        </>
+      )}
     >
-          {tab === "workspace" ? (
+          {shows === "workspace" ? (
             <Workspace graph={graph} {...(edits ? { onAct: act } : {})}
                        onDisplay={props.onDisplay ?? act}
                        {...(props.display ? { display: props.display } : {})} />
           ) : null}
-          {tab === "card" || tab === "line" ? (
+          {shows === "card" || shows === "line" ? (
             <Element graph={graph} id={about} {...(edits ? { onAct: act } : {})}
                      onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
+          {shows === "json" ? <Json graph={graph} id={about} /> : null}
           {/* How a definition draws, laid out as its card tab. */}
-          {tab === "settings" ? (
+          {shows === "settings" ? (
             <Element graph={graph} id={about} keys="settings" {...(edits ? { onAct: act } : {})}
                      onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
           {/* A definition declares attributes and a usage answers them. */}
-          {tab === "attributes" ? (
+          {shows === "attributes" ? (
             <Attributes key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})} />
           ) : null}
           {/* A host's own tab, for the block the tray is about. */}
-          {extras.find((x) => x.name === tab)?.draw(about) ?? null}
+          {extras.find((x) => x.name === shows)?.draw(about) ?? null}
           {/* The workspace's definitions for a library section; what one element may follow. */}
-          {tab === "definitions" ? (
+          {shows === "definitions" ? (
             <Definitions key={JSON.stringify(narrowed)} seed={narrowed} graph={graph}
                          follows={null} lines={[]} onAct={reads}
                          onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
           {/* What the workspace draws on, and how one more gets in. */}
-          {tab === "packages" ? (
+          {shows === "packages" ? (
             <Packages graph={graph} offered={props.offered} onAct={reads} />
           ) : null}
-          {tab === "usages" ? (
+          {shows === "usages" ? (
             <Usages graph={graph} group={lined ? "relation" : "block"}
                     scope={scope} onScope={set_scope}
                     layer={layer} about={held_def}
@@ -348,7 +372,7 @@ export function Tray(props: TrayProps) {
                     home={(id) => home_of(graph, id)} />
           ) : null}
 
-          {tab === "contents" && points_at ? (
+          {shows === "contents" && points_at ? (
             /** A reference holds nothing, so its contents is the one it stands for. */
             <Table
               columns={STANDS} acts="6rem" rows={[]}
@@ -367,7 +391,7 @@ export function Tray(props: TrayProps) {
                   </button>
                 ) : null,
               } } : {})} />
-          ) : tab === "contents" ? (
+          ) : shows === "contents" ? (
             <>
             {/* What it holds as text, over what it holds as blocks. */}
             <Content key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})} />

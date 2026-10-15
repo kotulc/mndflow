@@ -135,7 +135,7 @@ const { display, onDisplay } = useDisplay({ card: { w: 6, h: 2 }, range: CARD })
 **mndflow's own tray, and the state every shell keeps for it** — the same `useTray` and `useDisplay` the mndflow app runs on, so a host inherits the defaults rather than restating them:
 
 - **Open from the start**, and pointed at the workspace: nothing picked on the root layer is the root picked, which opens on its `workspace` tab and lights the root row in the explorer.
-- **Read only without `onAct`.** Only the tabs that read are offered — workspace, element, fields, contents, and the library's — and nothing in them takes input. **The workspace tab's display still answers `onDisplay`**, because how a drawing looks is the session's and changes nothing.
+- **Read only without `onAct`.** Only the tabs that read are offered — workspace, card or line, settings, attributes, contents, usages, and the library's — and nothing in them takes input. **The workspace tab's display still answers `onDisplay`**, because how a drawing looks is the session's and changes nothing.
 - **A host's own tabs come after the tray's**, for blocks, through `extras`.
 
 ## The tree

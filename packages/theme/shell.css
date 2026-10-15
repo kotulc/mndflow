@@ -429,4 +429,5 @@ input:focus { outline: none; border-color: var(--accent); }
   cursor: pointer;
 }
 .tab-tools > .reset:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.tab-tools > .reset.on { color: var(--accent); border-color: var(--accent); }
 .tab-tools > .reset:disabled { opacity: 0.35; cursor: default; }

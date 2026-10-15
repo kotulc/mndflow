@@ -7,9 +7,10 @@
 
 | | |
 |---|---|
-| **last built** | arrangement by kind (`card.arrange`), diagram files (one block and its layer as YAML, frontmatter the same schema), names unique among siblings, the views renamed (package, allocation, table; swimlane merged), `layered`, the showcase as YAML. Committed in `db776f9` (2026-10-13) |
-| **first, ask** | the three new rows of *Decide*: the folder view and the package view, `note:` in a file, dagre for `layered`. Each changes code already written |
-| **then** | step 1 |
+| **last committed** | arrangement by kind (`card.arrange`), diagram files (one block and its layer as YAML, frontmatter the same schema), names unique among siblings, the views renamed (package, allocation, table; swimlane merged), `layered`, the showcase as YAML. `db776f9` (2026-10-13) |
+| **built, uncommitted** | (2026-10-14) the tray's card and settings tabs as keys and choices (tray `pairs.ts`, `Source`, `Choices`); `description` on every block (`describe`), the body written by `write` and read at the top of the contents tab; definitions' old body text moved to `description` in every source; keys follow the focused region (theme `useZone`). Suggested message: *Tray tabs as keys and choices; add description; text moves to contents; keys follow focus* |
+| **first, ask** | step 0's open rows, then the three older rows of *Decide*: the folder view and the package view, `note:` in a file, dagre for `layered` |
+| **then** | step 0, then step 1 |
 | **the kit** | not re-released since; mndmap's re-pin meets the renames listed under *Rough edges* · **kit** |
 | **verify** | *Commands*: everything green, the showcase `check` clean and drawn in the app |
 
@@ -18,6 +19,7 @@
 
 | # | Work | Done when |
 |---|---|---|
+| 0 | **tray keys** | every tray input is a key and its choices: the workspace tab converted, step 0's rows answered |
 | 1 | **CLI fixes** | `check` on a broken file exits 1; `export --sysml --round` on the repo map brings back all 490 relations |
 | 2 | **diagram views** | their known issues fixed |
 | 3 | **canvas gestures** | a diagram is built fast from the canvas alone |
@@ -26,6 +28,21 @@
 | 6 | **CLI surface** | the acceptance run in *CLI* passes |
 
 *Rough edges* is a backlog, taken when a step passes near one.
+
+
+## 0 — Tray keys
+
+**The card and settings tabs are built** (tray.md *Card, line and settings*): the drawing over every key in the left third, the lit key's choices in the right two thirds. What is left:
+
+| Task or question | |
+|---|---|
+| **the workspace tab** | still the old label-and-answer rows (name, tags, display, file, export): convert it to keys and choices |
+| **attribute values in files** | a card source writes values as top-level keys, so a value named like a schema key vanishes (*Rough edges* · **diagram files**). Keep them flat, or nest them under `values:` — unambiguous, one more level to write, the core reader and writer and the showcase changed. Recommended: nested |
+| **usage settings in the schema** | the tray offers a usage no settings, but `Block.settings` still allows a usage's override. Drop it from the schema, or keep it for files and arrangement (`card.arrange` on a usage) |
+| **the attributes tab** | a usage's values are now answered on its card tab, so its attributes tab repeats them; a definition still declares attributes there. Drop the tab for usages, or keep it |
+| **traits** | on the card tab; they sat on the old settings tab. Keep them with what it is, or move them to settings |
+| **long chip lists** | a usage's *type* and *extends* list every definition, gathered by package and folder; a filter box, or folding a place, may be wanted |
+| **unset quantities** | a slider's key with nothing said reads `—` where its slider shows a fallback; read the fallback instead |
 
 
 ## 1 — CLI fixes
@@ -132,13 +149,14 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **routing** | two upright names in one 2-unit gap meet; libavoid ignores a second pin on the same spot of a shape (pins are keyed by spot and shared); a line to an inherited port inside a subtype is not met at the subtype room's copy (`part_id`) |
 | **definition view** | the middle card's menu offers *delete block* and the note's *delete note*, which do nothing; React Flow logs *Couldn't create edge for handle* (#008) as boxes mount; a port draws as a plain card reading *block*; inherited attributes are listed but not dimmed; inherited ends are dimmed only where the relation states no `allows.ends` itself |
 | **cards** | marks on a dark table card are faint (half opacity); a reference previewing a table ignores its own look's border; tags inherit `block`'s `family: primary`; block and relation definitions have no hue of their own; check that notes draw through `CardFace`, not only `NoteNode` |
-| **tray** | a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; the traits panel on a usage's or line's card tab draws full width under identity |
+| **tray** | a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else |
+| **tests** | `packages/views/test/seat.test.ts` › *crosses straight where a group note sits square beside the group* fails on the showcase's `System::Deployment`. It was mid-edit before 2026-10-14, and still fails with `description` moved back to `body`, so it is not the description change |
 | **camera and page** | picking on the profile re-draws it lower than it first opens; the package view scrolls its top under the crumbs; a short port drag lands short (React Flow's drag threshold) |
 | **React** | `flushSync was called from inside a lifecycle method`, seen opening the profile and the package view from a layer; not traced |
 | **packages** | `base` collects alphabetically (`choice` before `value`); a definition file holds no parts, so a pattern's parts live in its package's `package.json` |
 | **names** | unique siblings are refused only by `create`, `rename` and `move`; `label` (grid cells) and `group` write names unchecked, so a path can still find none. One home: where a name is written |
 | **diagram files** | a value named like a schema key (`side`, `note`, `w`…) never shows in a card source, and a block's `side`/`at`/`flow` off an interface become such values; a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
-| **kit** | mndmap's re-pin meets: views `overhead` → `package`, `grid` → `allocation`, `class` → `table`, `swimlane` gone; `class_graph` → `table_graph`, `swimlane_graph` gone; `card.place` → `card.arrange`, the *is aside* trait gone; card sources say `type`/`def`, not `extends` |
+| **kit** | mndmap's re-pin meets: views `overhead` → `package`, `grid` → `allocation`, `class` → `table`, `swimlane` gone; `class_graph` → `table_graph`, `swimlane_graph` gone; `card.place` → `card.arrange`, the *is aside* trait gone; card sources say `type`/`def`, not `extends`; `describe` now writes `description` and `write` the body; `Block.description` and the `set_description` op are new; tray exports `Identity`, `Settings`, `Looks` are gone (`Part` replaces `Looks`); theme and kit shell export `useZone`, and `Stage` takes `keys` |
 | **follow-ups** | lineage and links as a package structure rather than a view; boxes for a definition's usages and the groups they belong to |
 | **base looks** | the base blocks draw alike but for their icons (and notes): give each more visual distinction through its faces and traits |
 

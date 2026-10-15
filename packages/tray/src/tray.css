@@ -150,6 +150,21 @@ fieldset.fields { padding: 0; }
 .panel.element > .col.source { grid-area: source; gap: 6px; }
 .panel.element > .col.choices { grid-area: choices; }
 
+/* The json tab: a definition's record, read only. */
+.json { padding: 8px 10px 10px; }
+.card-record pre {
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: var(--band);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* The attributes table: what a definition inherits reads faint, and a link names its target. */
 .attributes { padding: 4px 10px 10px; }
 .contents-table tr.inherited td { color: var(--faint); }
