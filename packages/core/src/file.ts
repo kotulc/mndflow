@@ -77,7 +77,7 @@ export function unmet(graph: Graph): Id[] {
   const need = (id: Id | undefined) => { if (id && !graph.blocks[id]) out.add(id); };
   for (const b of Object.values(graph.blocks)) {
     need(b.type);
-    for (const t of [...(b.tags ?? []), ...(b.traits ?? [])]) need(t);
+    for (const t of b.tags ?? []) need(t);
   }
   for (const e of Object.values(graph.edges)) {
     need(e.type);
@@ -104,7 +104,6 @@ export function write_package(graph: Graph, name: string): string {
     blocks[now] = { ...b, id: now, parent: at(b.parent ?? undefined) ?? null,
                     ...(b.type ? { type: at(b.type) } : {}), ...(b.of ? { of: at(b.of) } : {}),
                     ...(b.tags ? { tags: all(b.tags) } : {}),
-                    ...(b.traits ? { traits: all(b.traits) } : {}),
                     ...(b.id === graph.root ? { name } : {}) };
     delete blocks[now]!.counters;
   }

@@ -91,8 +91,7 @@ function in_use(graph: Graph, id: Id, gone: ReadonlySet<Id>): string | null {
   }
   const defs = subtree(graph, id).filter((g) => graph.blocks[g]?.def);
   if (!defs.length) return null;
-  const names = (x: { type?: Id; tags?: Id[]; traits?: Id[]; of?: Id }) =>
-    [x.type, x.of, ...(x.tags ?? []), ...(x.traits ?? [])];
+  const names = (x: { type?: Id; tags?: Id[]; of?: Id }) => [x.type, x.of, ...(x.tags ?? [])];
   const users = [...Object.values(graph.blocks).filter((u) => !gone.has(u.id)),
                  ...Object.values(graph.edges).filter((e) => !gone.has(e.from) && !gone.has(e.to))]
     .filter((u) => names(u).some((n) => n && defs.includes(n)));

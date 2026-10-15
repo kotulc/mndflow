@@ -32,7 +32,6 @@ npm run typecheck -w @mnd/defs
 | `FLOOR` | every block of the `base` package, read from `src/base.json` — **the package is JSON**, as every package is |
 | `BASE` | the block kinds: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag` |
 | `RELATIONS` | the relation kinds `line` and `tie` |
-| traits | `tied`, `resizable`, `body content` — tags carrying settings; `note` carries all three |
 | `base_graph()` | a fresh workspace with the base package under it |
 
 ## The rules it lives by

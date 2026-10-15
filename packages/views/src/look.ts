@@ -2,7 +2,7 @@
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, DISPLAYS,
          domain_of, FACE_PARTS, FAMILIES, FILLS, FONTS, HEIGHTS, is_container,
-         is_interface, is_tie, is_trait, kind_word, PARTS, attributes_of, setting_of, SHOWN, WEIGHTS,
+         is_interface, is_tie, kind_word, PARTS, attributes_of, setting_of, SHOWN, WEIGHTS,
          WIDTHS,
          type Definition, type Graph, type Id, type Settings } from "@mnd/core";
 import { resolved } from "./through";
@@ -116,9 +116,8 @@ export function look_of(graph: Graph, id: Id): Look {
 function stand_in(graph: Graph, id: Id, def: Definition): Look {
   const own = (graph.blocks[id]!.def ? {} : graph.blocks[id]!.settings) ?? {};
   const card = { ...config_of(graph, def.id, "card"), ...(own["card"] ?? {}) };
-  /** A trait's settings grant capabilities to carriers; they are not how it draws in vocabulary. */
   const has = (part: unknown) => part === "body"
-    ? !is_trait(graph, def.id) && !!graph.blocks[id]!.body
+    ? !!graph.blocks[id]!.body
     : part === "attributes" && attributes_of(graph, def.id).length > 0;
   const shows = parts_of(card).filter(has);
   const style = { ...config_of(graph, def.id, "style"), ...(own["style"] ?? {}) };

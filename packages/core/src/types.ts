@@ -125,7 +125,7 @@ export type Block = {
   /** How it draws and what it may do, by component: a definition's own word, or a usage's
    *  override of its definition's. Inherited down the `type` chain, nearest first. */
   settings?: Components;
-  /** What a definition can do: its trait definitions, by id, in order. **Stated, the list replaces
+  /** What a definition can do: engine traits, by name, in order. **Stated, the list replaces
    *  its chain's**; unsaid, it carries its chain's. A definition's alone. */
   traits?: Id[];
   /** The tag definitions it carries, by id, in order: an index for finding it. **Stated, the list
@@ -177,6 +177,41 @@ export const BASE_RELATIONS: readonly Id[] = ["line", "tie"];
 
 
 export type Components = Record<string, Record<string, unknown>>;
+
+/** Traits: what the engine does, one capability each. **A fixed table, not definitions** — a
+ *  definition lists them by name in `traits`, and each grants the setting the engine reads. */
+/** One engine capability: its name, what it does, and the settings it grants. */
+export type Trait = { id: Id; description: string; settings: Components };
+
+/** Every trait the engine supports: *has X* for a capability granted, *is X* for what sort of
+ *  thing it is. */
+export const TRAITS: readonly Trait[] = [
+  { id: "has_head", description: "Its first member heads it.",
+    settings: { allows: { heads: true } } },
+  { id: "has_parts", description: "Holds blocks of its own, which it opens onto as a layer.",
+    settings: { allows: { holds: true } } },
+  { id: "has_ports", description: "Has ports: interfaces may sit on its walls.",
+    settings: { allows: { ports: true } } },
+  { id: "has_tie", description: "Made from, or dropped on, a block, it is tied to it.",
+    settings: { tie: { type: "tie" } } },
+  { id: "has_values", description: "Holds values of its own: answers to its definition's attributes.",
+    settings: { allows: { values: true } } },
+  { id: "is_grid", description: "Seats text and blocks in the cells of a grid, drawn when it is opened.",
+    settings: { holder: { matrix: true } } },
+  { id: "is_group", description: "Draws what it holds in place, on the layer it sits on, rather "
+      + "than behind its card.",
+    settings: { holder: { inline: true } } },
+  { id: "is_port", description: "Is a port: an interface seated on its owner's wall, where "
+      + "relationships enter and leave.",
+    settings: { block: { module: "interface" } } },
+  { id: "is_reference", description: "Stands for another block, definition or package (`of`): "
+      + "draws as it, opens onto it, owns nothing.",
+    settings: { block: { module: "reference" } } },
+  { id: "is_tie", description: "Is a tie: a straight run between the nearest corners of the two "
+      + "cards. No anchor, no end mark, and never routed.",
+    settings: { line: { module: "tie" } } },
+];
+
 
 /** A definition: a block carrying `def`, always named. */
 export type Definition = Block & { def: DefBody; name: string };

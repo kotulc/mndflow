@@ -24,7 +24,7 @@
 |---|---|
 | roles by position (domain, tree, structure, holder) | core `defs.ts` (`tree_of`, `in_domain`, `owner_def`), `holders.ts` (`organizes`, `inline`, `layer_of`, `drawn_in`) |
 | which holder a block is (group, grid) | core `holders.ts` `shape_of`, read off the *is group* and *is grid* traits' `holder` settings; everything else asks `is_holder`, `is_group`, `is_grid` |
-| what a block may do | traits in `base.json`; core `capabilities.ts` (`allows_of`, `may_hold`, `holds_any`), absent is a no |
+| what a block may do | traits in core `types.ts` `TRAITS` (read by `defs.ts` `trait_at`), a table since 2026-10-14; core `capabilities.ts` (`allows_of`, `may_hold`, `holds_any`), absent is a no |
 | whether a card opens | core `names.ts` `opens` (the stamp and the open button) and `navigate.ts` `open_at` (where it goes) |
 | navigation | core `navigate.ts` (`open_at`, `leave_at`, `reveal_at`, `held_at`) |
 | what a section lists | explorer `chain.ts` (`editor_slices`, `useChain`; a `trees` section stands apart) and `rows.ts` (`tree_of`, `trees_of`) |

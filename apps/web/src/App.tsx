@@ -365,11 +365,11 @@ export function App({ storage, boot, opening }: {
               scene.nodes.filter((n) => n.id !== id && !holds(n) && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
-            /** On a definition, a tag or trait dropped is attached. */
+            /** On a definition, a tag dropped is attached. */
             if (described) {
               const made = attach_of(graph, described, id);
               if (made) s.go(made.act, made.args);
-              else s.say("drop a tag or a trait here to attach it", "note");
+              else s.say("drop a tag here to attach it", "note");
               return;
             }
             if (whole) return;

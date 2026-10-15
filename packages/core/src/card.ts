@@ -92,7 +92,7 @@ function defined(graph: Graph, b: Block): Record<string, unknown> {
   front["def"] = {};
   if (b.description) front["description"] = b.description;
   if (b.tags) front["tags"] = named(graph, b.tags);
-  if (b.traits) front["traits"] = named(graph, b.traits);
+  if (b.traits) front["traits"] = [...b.traits];
   for (const a of b.def?.attributes ?? []) {
     if (a.default !== undefined && !is_own_key(a.name)) {
       front[a.name] = scalar(a.default);

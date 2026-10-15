@@ -283,7 +283,7 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
     }
   }
   if (e.tags) b.tags = e.tags.map((t) => named(ctx, t, "tag"));
-  if (e.traits) b.traits = e.traits.map((t) => def_ref(graph, t) ?? t);
+  if (e.traits) b.traits = [...e.traits];
   if (e.of) b.of = ref(ctx, e.of, true, id) ?? e.of;
   if (e.def) {
     const attributes = (e.def.attributes ?? []).map((a) => (typeof a["type"] === "string"
@@ -444,7 +444,6 @@ function defined(graph: Graph, slug: Id, text: string | undefined, files: readon
     graph.blocks[id] = { ...b, id, parent: at(b.parent ?? undefined) ?? slug,
                          ...(b.type ? { type: at(b.type) } : {}), ...(b.of ? { of: at(b.of) } : {}),
                          ...(b.tags ? { tags: all(b.tags) } : {}),
-                         ...(b.traits ? { traits: all(b.traits) } : {}),
                          ...(b.def?.attributes ? { def: { attributes: b.def.attributes
                            .map((a) => (a.type ? { ...a, type: at(a.type) } : a)) } } : {}) };
   }

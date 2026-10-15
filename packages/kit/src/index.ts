@@ -37,9 +37,9 @@ export {
   subtypes, used_by,
 } from "@mnd/core";
 
-/** Tags: definitions blocks and definitions carry. */
-export { has_trait, is_tag, is_tie, is_trait, tag_home, tag_named, tags_of, tags_stated, traits_of,
-         traits_stated, type Stated } from "@mnd/core";
+/** Tags: definitions blocks and definitions carry; traits: the engine's capabilities. */
+export { has_trait, is_tag, is_tie, is_trait, tag_home, tag_named, tags_of, tags_stated, trait_at,
+         traits_of, traits_stated, TRAITS, type Stated, type Trait } from "@mnd/core";
 
 /** The floor. `FLOOR` is the base package's blocks; `base_graph()` a fresh workspace on it. */
 export { ALL, BASE, FLOOR, RELATIONS, base_graph, by_id } from "@mnd/defs";

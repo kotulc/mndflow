@@ -68,7 +68,7 @@
 - **Styling edits the definition.** How it draws is a definition's keys, so every usage follows. A frozen definition's keys read only.
 - **A new type is filed over what the element follows.** A name one already holds applies that one; a name nothing holds files a definition extending what it followed and moves the element onto it. A base is one of the types offered, so going back to one is a pick like any other. **View definition** makes what an element follows the context, which is where it is styled and given capabilities. A line keeps the label it was drawing.
 - **Removing a used definition is refused**, and says what uses it. An unused one is deleted with its structure.
-- **A name is unique within its package**, across definitions, tags and traits. A name already taken is said, never looked up.
+- **A name is unique within its package**, across definitions and tags. A name already taken is said, never looked up.
 - **Renaming keeps the id**, so every usage reads the new name and nothing is retyped.
 - **Ids are minted**, never a slug of the name, so renaming touches nothing but the name.
 
@@ -209,4 +209,4 @@
 
 ## Still open
 
-- **What a definition extends is set here only**: the definition view attaches tags and traits by drop, but not a type.
+- **What a definition extends is set here only**: the definition view attaches tags by drop, but not a type.

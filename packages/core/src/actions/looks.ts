@@ -24,7 +24,7 @@ register(
       if (!ids.length) return "nothing is selected";
       const why = ids.map((id) => borrowed(ctx.graph, id)).find(Boolean);
       if (why) return why;
-      const trait = list(args["tags"]).find((w) => is_trait(ctx.graph, tag_named(ctx.graph, w)?.id));
+      const trait = list(args["tags"]).find((w) => is_trait(w));
       return trait ? `"${trait}" is a trait: a definition lists it in its traits` : null;
     },
     run: (ctx, args) => {
@@ -54,7 +54,7 @@ register(
     about: "sets the traits a definition carries — what the engine lets it do — replacing its "
       + "chain's; none gives the set back to what it extends",
     on: ["block", "layer", "selection"],
-    /** The whole list, by id or name; absent gives the set back to the chain. */
+    /** The whole list, by name; absent gives the set back to the chain. */
     args: [{ name: "ids", form: "block", required: true }, { name: "traits", form: "text" }],
     check: (ctx, args) => {
       const ids = ids_of(ctx, args);
@@ -62,13 +62,12 @@ register(
       if (ids.some((id) => !ctx.graph.blocks[id]?.def)) return "traits are a definition's";
       const why = ids.map((id) => borrowed(ctx.graph, id)).find(Boolean);
       if (why) return why;
-      const missing = list(args["traits"])
-        .find((word) => !is_trait(ctx.graph, tag_named(ctx.graph, word)?.id));
+      const missing = list(args["traits"]).find((word) => !is_trait(word));
       return missing ? `there is no trait called "${missing}"` : null;
     },
     run: (ctx, args) => {
       const said = args["traits"] === undefined || args["traits"] === null ? null
-        : list(args["traits"]).map((word) => tag_named(ctx.graph, word)!.id);
+        : list(args["traits"]).map((word) => word.trim());
       return { mutations: ids_of(ctx, args)
         .map((id): Mutation => ({ op: "set_traits", id, traits: said })) };
     },

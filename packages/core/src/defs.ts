@@ -3,9 +3,9 @@
 
 import { ARRANGES, FORMS, type Settings } from "./components";
 import { is_folder, organizes } from "./holders";
-import { BASE_BLOCKS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIRS, type Block,
+import { BASE_BLOCKS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIRS, TRAITS, type Block,
          type BlockModule, type Attribute, type Components, type Definition, type Dir, type Graph,
-         type Id } from "./types";
+         type Id, type Trait } from "./types";
 
 /** A definition's domain: what its usages are. Read off its base, never stored. */
 export type Domain = "block" | "relation";
@@ -48,20 +48,11 @@ export function chain_of(graph: Graph, def: Id | undefined): Definition[] {
   return base ? [...chain, base] : chain;
 }
 
-/** The kind of tag giving a capability: a trait is a tag by its chain, as an interface is an
- *  interface by its. */
-export const TRAIT = "trait";
-
 /** What one link of a chain says: the element itself, or a definition along it. */
 type Link = { id: Id; settings?: Components; tags?: Id[]; traits?: Id[] };
 
 /** A list in force over an element, and the link of its chain that states it. */
 export type Stated = { ids: Id[]; from: Id | null };
-
-/** Whether a definition is a trait: a tag giving a capability, by its chain. */
-export function is_trait(graph: Graph, def: Id | undefined): boolean {
-  return !!def && def !== TRAIT && isa(graph, def).some((d) => d.id === TRAIT);
-}
 
 /** The links an element reads through, nearest first: a definition's chain starts at itself; a
  *  usage's and a line's at themselves, then their definition's. */
@@ -95,17 +86,24 @@ export function has_trait(graph: Graph, id: Id | undefined, trait: Id): boolean 
   return traits_of(graph, id).includes(trait);
 }
 
+/** The trait a name says, where the engine has one. */
+export function trait_at(name: string | undefined): Trait | undefined {
+  const want = name?.trim();
+  return TRAITS.find((t) => t.id === want);
+}
+
+/** Whether a name is a trait the engine supports. */
+export function is_trait(name: string | undefined): boolean {
+  return !!trait_at(name);
+}
+
 /** One statement of settings over an element, and the link or trait making it. */
 export type Statement = { from: Id; settings: Components };
 
-/** What a trait gives: its own settings and those of the traits it extends, never its kind's. */
-function conferred(graph: Graph, trait: Id): Statement[] {
-  const out: Statement[] = [];
-  for (const d of isa(graph, trait)) {
-    if (d.id === TRAIT || is_base(d.id)) break;
-    if (d.settings) out.push({ from: d.id, settings: d.settings });
-  }
-  return out;
+/** What a trait gives: the settings the engine table grants it. */
+function conferred(trait: Id): Statement[] {
+  const t = trait_at(trait);
+  return t ? [{ from: t.id, settings: t.settings }] : [];
 }
 
 /** What states settings over an element, nearest first, each with who says it: per link, its own
@@ -115,7 +113,7 @@ export function statements(graph: Graph, id: Id | undefined): Statement[] {
   const out: Statement[] = [];
   for (const link of links_of(graph, id)) {
     if (link.settings) out.push({ from: link.id, settings: link.settings });
-    if (link.id === traits.from) for (const t of traits.ids) out.push(...conferred(graph, t));
+    if (link.id === traits.from) for (const t of traits.ids) out.push(...conferred(t));
   }
   return out;
 }
@@ -351,7 +349,7 @@ export function relations(graph: Graph): Definition[] {
 }
 
 /** A definition by what it is called: the workspace's own first. **One name space per package**:
- *  definitions, tags and traits share it. */
+ *  definitions and tags share it. */
 export function def_named(graph: Graph, name: string, domain?: Domain): Definition | undefined {
   const want = name.trim();
   if (!want) return undefined;
@@ -395,7 +393,7 @@ export function uses_of(graph: Graph, pkg: Id): Id[] {
   for (const b of Object.values(graph.blocks)) {
     if (package_of(graph, b.id) !== pkg) continue;
     reach(b.type);
-    for (const t of [...(b.tags ?? []), ...(b.traits ?? [])]) reach(t);
+    for (const t of b.tags ?? []) reach(t);
     if (b.of && module_of(graph, b.id) === "reference") {
       const home = package_of(graph, b.of);
       if (home !== pkg) out.add(home);

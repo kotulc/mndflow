@@ -64,7 +64,7 @@
 | **reference** | a stand-in for a block, a definition or a package elsewhere |
 | **interface** | a block seated on a wall: where relationships enter and leave. Also **port** |
 | **note** | a remark: resizable, draws its body as a document, ties to the block it is made from |
-| **tag** | a word carried by other elements, to find them by. Holds nothing. A **trait** is a tag too, by its chain |
+| **tag** | a word carried by other elements, to find them by. Holds nothing |
 | **value** | a value type: what an attribute holds. `text`, `number`, `flag`, `link` and `choice` ship under it; never placed |
 | **line** | the plain relationship. Which way it points is a setting, `line.dir` (`none`, `forward`, `back`, `both`), said by its definition and overridable on the line |
 | **tie** | a dashed relationship with no heads, drawn straight. **A type like any other**, chosen, never forced; it lists *is tie*, which grants `line.module: tie` |
@@ -82,13 +82,13 @@
 | **capability** | what a block may do, granted by a trait: hold (*has parts*), hold values of its own (*has values*), have ports (*has ports*), draw what it holds in place (*is group*), seat it in cells (*is grid*), be headed (*has head*), be tied to what it is made from (*has tie*). **Absent is a no**: what nothing grants is refused at the gesture |
 | **constraint** | a capability limited to definitions (`allows` lists, `degree`, `ends`), or what values must say (`expects`). Settings, not traits; to be reworked |
 | **tag** | a definition on the `tag` base. A word with a meaning (`description`), no structure, **for finding things**: search, filters, lookup. Carried in `tags` by a usage, a line or a definition; a new one is filed in the workspace's `tags` folder |
-| **trait** | **a tag naming an engine function**, by its chain (`extends trait`), named *has X* (a capability) or *is X* (what sort of thing it is, which engine module runs it). One function a trait, its description saying which. Carried in `traits`, **a definition's alone**. It confers its own settings and those of the traits it extends, never its kind's |
+| **trait** | **an engine function**, named *has X* (a capability) or *is X* (what sort of thing it is, which engine module runs it). One function a trait, its description saying which. **A fixed engine table, not a definition** (core `types.ts` `TRAITS`): carried by name in `traits`, **a definition's alone**, offered as chips and never drawn. It confers the settings the table grants it |
 | **style** | how a card draws: a definition's own `style` and `card` settings, overridable on a usage. Not a tag |
 | **is reference** · **is port** · **is tie** | the traits naming a kind's engine behaviour: a stand-in, reading `of`; an interface, seated on a wall; a tie, drawn straight. Each grants a setting — `block.module`, `line.module: tie` — that the engine reads. `reference`, `interface` and `tie` list them |
 | **arrangement** | how a block sits in its parent's `auto` layer: `card.arrange`, a setting each kind states and a block may override — `column` (block), `rows` (folder), `aside` (note: beside what it is tied to). A view is how an opened block draws its inside; an arrangement is how it sits in its parent |
 | **stated list** | `traits` or `tags` said by an element or definition: **every entry it keeps**, replacing its chain's list whole. Unsaid, it carries the nearest list stated down its chain; an empty list says none |
 | **tie trait** | links a block made from, or dropped on, another to it with a relationship of a given type, on the same layer. Made on its own, it links nothing |
-| **name space** | one per package: a tag, a trait and a block definition never share a name |
+| **name space** | one per package: a tag and a block definition never share a name |
 
 
 ## Layers and looking
@@ -110,7 +110,7 @@
 | **sequence** | the same grid read as time. Each participant is a lifeline: its header and a dashed stem. Body rows run top to bottom. A step is its small card centred on its lifeline. A relation is a message at the target's row, from the source's lifeline to the edge of the target's card facing it, dashed and headed as the relation says; one to its own lifeline loops out of the card's right side within its column. A lifeline, a message number and a table edge are drawn, never stored |
 | **internal** | the opened block from inside: what it holds, as cards — blocks, flows and states |
 | **allocation** | an opened grid's lattice, its cells, what sits in them and the relations between them as stored. A **swimlane** is a grid read this way: the header row names the participants, a header card at each lane's top; the header column names the phases; a step sits in the lane and phase its cell names |
-| **definition** | everything a definition is, its chain's included, on a three by three grid: large in the middle, showing its attributes; above, its tags, what it extends and a note with its description; left and right, a block definition's in and out ports, or the definitions a relation definition's ends may join (`from`, `to`); below, its both-way ports, its settings — **one table card per component** its chain states (`style`, `card`, `line`…), a row per setting naming who says it where that is further up — and its traits; under all, its **usages**. Each box joined to it by a plain line. What it reads from its chain wears the part mark. Edits there edit the definition |
+| **definition** | everything a definition is, its chain's included, on a three by three grid: large in the middle, showing its attributes; above, its tags, what it extends and a note with its description; left and right, a block definition's in and out ports, or the definitions a relation definition's ends may join (`from`, `to`); below, its both-way ports, its settings — **one table card per component** its chain states (`style`, `card`, `line`…), a row per setting naming who says it where that is further up; under all, its **usages**. Each box joined to it by a plain line. What it reads from its chain wears the part mark. Edits there edit the definition |
 | **package view** | the system view from above, scoped to the section: with nothing open (`layer: null`) every package top-down in the explorer's order, each a full-width box of its domain, folders flattened, every card small, a grid one card, no notes, the page scrolled down; a package or folder opened, what it holds, the same way. A definition holding structure is a box of its top-level blocks as cards, nothing deeper |
 | **flatten** | drawing each block that holds as a box of its contents, so the whole system reads on one page. The package and profile views draw flattened, every box a solid rim; a group is a box somebody made, dashed |
 | **profile** | the system from the side: one row per level along the pick, each a box as wide as the widest — every package, then what each block on the way holds, last what the pick holds. A line points from each block on the way down to the row it holds |
@@ -209,5 +209,5 @@
 |---|---|
 | the two element kinds | bases, when a kind is functionally distinct |
 | value forms (`value.form`): `text`, `number`, `flag`, `choice`, `link` | value types, which are definitions; components, capabilities, layouts |
-| mutation ops | definitions, tags and traits, which are data |
+| mutation ops; traits, the engine's own (core `types.ts` `TRAITS`) | definitions and tags, which are data |
 | host ports | the action set |

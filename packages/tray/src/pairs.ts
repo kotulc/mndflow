@@ -4,9 +4,9 @@
  *  source column draws the lines; the choices column draws the lit pair's questions as chips. */
 
 import { all_defs, attributes_of, def_at, def_of, domain_of, form_of, frozen, holds_defs, honours,
-         is_base, is_domain, is_holder, is_interface, is_tag, is_trait, is_value_type, isa,
+         is_base, is_domain, is_holder, is_interface, is_tag, is_value_type, isa,
          kind_free, may_hold, package_of, setting_of, shown_name, subtree, tags_stated,
-         traits_stated, type Act, type Attribute, type Block, type Definition, type Graph,
+         traits_stated, TRAITS, type Act, type Attribute, type Block, type Definition, type Graph,
          type Id } from "@mnd/core";
 import { taken } from "./Definitions";
 import { defined, held, kind_of, reading, types_for } from "./holder";
@@ -183,7 +183,7 @@ function extends_of(graph: Graph, d: Definition, onAct: Act, onOpen?: (id: Id) =
 function rebase(graph: Graph, d: Definition, onAct: Act, word: string): Ask {
   const { kind } = kind_of(graph, d.id, { def: d, block: null, edge: null });
   const at = d.type ?? kind;
-  const sort = (x: Id) => `${is_tag(graph, x)}${is_trait(graph, x)}${is_value_type(graph, x)}`;
+  const sort = (x: Id) => `${is_tag(graph, x)}${is_value_type(graph, x)}`;
   const offered = all_defs(graph)
     .filter((x) => (domain_of(graph, x.id) === domain_of(graph, d.id) || kind_free(graph, d.id))
       && sort(x.id) === sort(d.id)
@@ -231,9 +231,8 @@ function tags(graph: Graph, id: Id, onAct: Act): Pair {
   const said = from === id;
   const fixed = !!graph.blocks[id] && frozen(graph, id);
   const set = (to: string[]) => onAct("tag", { ids: [id], tags: to });
-  /** Tags proper: not the traits that are tags too, nor the bases. */
-  const all = all_defs(graph)
-    .filter((x) => is_tag(graph, x.id) && !is_trait(graph, x.id) && !is_base(x.id));
+  /** Tags proper, not the bases. */
+  const all = all_defs(graph).filter((x) => is_tag(graph, x.id) && !is_base(x.id));
   return {
     key: "tags", word: "tags", shown: listed(ids.map((t) => name_of(graph, t))), said, fixed,
     about: "Tags to find this by. It carries its definition's until it says its own; a new word "
@@ -250,22 +249,21 @@ function tags(graph: Graph, id: Id, onAct: Act): Pair {
   };
 }
 
-/** What a definition can do: one trait per capability. */
+/** What a definition can do: one engine trait per capability. */
 function traits(graph: Graph, d: Definition, onAct: Act): Pair {
   const { ids, from } = traits_stated(graph, d.id);
   const said = from === d.id;
   const fixed = frozen(graph, d.id);
   const set = (to: Id[]) => onAct("trait", { ids: [d.id], traits: to });
-  const all = all_defs(graph).filter((x) => is_trait(graph, x.id) && !is_base(x.id));
   return {
-    key: "traits", word: "traits", shown: listed(ids.map((t) => name_of(graph, t))), said, fixed,
+    key: "traits", word: "traits", shown: listed(ids), said, fixed,
     about: "What it can do, one capability each. It carries what it extends until it says its "
       + `own.${from && !said ? ` Now carried from ${name_of(graph, from)}.` : ""}${
         fixed ? FROZEN : ""}`,
     asks: [{
       word: "traits", tip: "Press one to give it that capability, or take it away.",
-      chips: all.map((x) => ({ value: x.id, word: x.name, on: ids.includes(x.id), set: said,
-                               group: where(graph, x.id), tip: x.description ?? x.name })),
+      chips: TRAITS.map((x) => ({ value: x.id, word: x.id, on: ids.includes(x.id), set: said,
+                                  tip: x.description })),
       pick: (c) => set(c.on ? ids.filter((t) => t !== c.value) : [...ids, c.value]),
     }],
     verbs: said && !fixed ? [{ word: "inherit", tip: "carry the traits of what it extends",

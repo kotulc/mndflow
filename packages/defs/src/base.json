@@ -33,13 +33,6 @@
         "order": 3,
         "tree": "definitions"
       },
-      "base.dir.tags.traits": {
-        "id": "base.dir.tags.traits",
-        "parent": "base.dir.tags",
-        "name": "traits",
-        "type": "folder",
-        "order": 3
-      },
       "base.dir.types": {
         "id": "base.dir.types",
         "parent": "base",
@@ -168,76 +161,6 @@
           "is_group"
         ]
       },
-      "has_head": {
-        "id": "has_head",
-        "parent": "base.dir.tags.traits",
-        "name": "has_head",
-        "type": "trait",
-        "def": {},
-        "description": "Its first member heads it.",
-        "order": 1,
-        "settings": {
-          "allows": {
-            "heads": true
-          }
-        }
-      },
-      "has_parts": {
-        "id": "has_parts",
-        "parent": "base.dir.tags.traits",
-        "name": "has_parts",
-        "type": "trait",
-        "def": {},
-        "description": "Holds blocks of its own, which it opens onto as a layer.",
-        "order": 2,
-        "settings": {
-          "allows": {
-            "holds": true
-          }
-        }
-      },
-      "has_ports": {
-        "id": "has_ports",
-        "parent": "base.dir.tags.traits",
-        "name": "has_ports",
-        "type": "trait",
-        "def": {},
-        "description": "Has ports: interfaces may sit on its walls.",
-        "order": 3,
-        "settings": {
-          "allows": {
-            "ports": true
-          }
-        }
-      },
-      "has_tie": {
-        "id": "has_tie",
-        "parent": "base.dir.tags.traits",
-        "name": "has_tie",
-        "type": "trait",
-        "def": {},
-        "description": "Made from, or dropped on, a block, it is tied to it.",
-        "order": 4,
-        "settings": {
-          "tie": {
-            "type": "tie"
-          }
-        }
-      },
-      "has_values": {
-        "id": "has_values",
-        "parent": "base.dir.tags.traits",
-        "name": "has_values",
-        "type": "trait",
-        "def": {},
-        "description": "Holds values of its own: answers to its definition's attributes.",
-        "order": 5,
-        "settings": {
-          "allows": {
-            "values": true
-          }
-        }
-      },
       "interface": {
         "id": "interface",
         "parent": "base.dir.blocks",
@@ -255,76 +178,6 @@
         "traits": [
           "is_port"
         ]
-      },
-      "is_grid": {
-        "id": "is_grid",
-        "parent": "base.dir.tags.traits",
-        "name": "is_grid",
-        "type": "trait",
-        "def": {},
-        "description": "Seats text and blocks in the cells of a grid, drawn when it is opened.",
-        "order": 6,
-        "settings": {
-          "holder": {
-            "matrix": true
-          }
-        }
-      },
-      "is_group": {
-        "id": "is_group",
-        "parent": "base.dir.tags.traits",
-        "name": "is_group",
-        "type": "trait",
-        "def": {},
-        "description": "Draws what it holds in place, on the layer it sits on, rather than behind its card.",
-        "order": 7,
-        "settings": {
-          "holder": {
-            "inline": true
-          }
-        }
-      },
-      "is_port": {
-        "id": "is_port",
-        "parent": "base.dir.tags.traits",
-        "name": "is_port",
-        "type": "trait",
-        "def": {},
-        "description": "Is a port: an interface seated on its owner's wall, where relationships enter and leave.",
-        "order": 8,
-        "settings": {
-          "block": {
-            "module": "interface"
-          }
-        }
-      },
-      "is_reference": {
-        "id": "is_reference",
-        "parent": "base.dir.tags.traits",
-        "name": "is_reference",
-        "type": "trait",
-        "def": {},
-        "description": "Stands for another block, definition or package (`of`): draws as it, opens onto it, owns nothing.",
-        "order": 9,
-        "settings": {
-          "block": {
-            "module": "reference"
-          }
-        }
-      },
-      "is_tie": {
-        "id": "is_tie",
-        "parent": "base.dir.tags.traits",
-        "name": "is_tie",
-        "type": "trait",
-        "def": {},
-        "description": "Is a tie: a straight run between the nearest corners of the two cards. No anchor, no end mark, and never routed.",
-        "order": 10,
-        "settings": {
-          "line": {
-            "module": "tie"
-          }
-        }
       },
       "line": {
         "id": "line",
@@ -457,22 +310,6 @@
           "has_values",
           "is_tie"
         ]
-      },
-      "trait": {
-        "id": "trait",
-        "parent": "base.dir.tags",
-        "name": "trait",
-        "type": "tag",
-        "def": {},
-        "description": "A tag naming something the engine does: what a definition carrying it may do. A definition lists every trait it keeps; one listing none carries what it extends.",
-        "order": 2,
-        "settings": {
-          "style": {
-            "hue": 230,
-            "intensity": 0.5,
-            "vary": 48
-          }
-        }
       },
       "value": {
         "id": "value",

@@ -212,8 +212,8 @@ function definitions(graph: Graph, say: Say): void {
   }
 }
 
-/** A definition is found by its name, so no two in one package may share one: definitions, tags
- *  and traits share the name space. */
+/** A definition is found by its name, so no two in one package may share one: definitions and
+ *  tags share the name space. */
 function named_defs(graph: Graph, say: Say): void {
   const taken = new Set<string>();
   for (const d of all_defs(graph).sort((a, z) => a.id.localeCompare(z.id))) {

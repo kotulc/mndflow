@@ -55,7 +55,7 @@
 | `reveal` | opens the layer a block sits on and picks it there, followed through references | block | id | `open` + `focus` |
 
 - **Where the canvas goes is navigation's** (core `navigate.ts`): **the card's kind says the view** (`lens_of`) — a package or folder its package view, a definition its definition view, a grid its allocation view, a block that holds or may hold from inside, a stand-in what it stands for. A definition opened again, or from the section its structure roots, draws its structure. A group, a note and a leaf are revealed in place. Leaving a definition's structure returns to its definition view; leaving a package, to the package view. Both apps use the same functions.
-- **Editing on a definition view edits the definition** (core `aspects.ts`): a tag or trait dropped there is added to the list in force, one deleted from its box taken out — the list becomes its own — a port deleted from its box deleted, and the note's text written as its description.
+- **Editing on a definition view edits the definition** (core `aspects.ts`): a tag dropped there is added to the list in force, one deleted from its box taken out — the list becomes its own — a port deleted from its box deleted, and the note's text written as its description.
 - **Opening a part opens its definition**, the part picked there.
 - **The way out of an interface is the way in**: leaving lands in whichever of its two layers you came from.
 
@@ -114,7 +114,7 @@
 - **One act, and the holder says which**: a value on a usage and an attribute on a definition are the same thing said of two holders.
 - **A type is named, never typed out**: `type` names a value type or a block definition by id or name; a name nothing holds makes a value type of the workspace's, extending `text`.
 - **`define` lands where the user is**: in the open domain, in the holder picked. Its domain (block or relation) is read off what it extends; absent, `block`. Its id is minted, or passed in by a caller that must know it.
-- **A name is unique in its package**, across definitions, tags and traits.
+- **A name is unique in its package**, across definitions and tags.
 - **A name is unique among its siblings**: an act giving two siblings one name is refused, so a name ref finds one block.
 
 ### Card sources

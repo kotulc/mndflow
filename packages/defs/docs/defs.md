@@ -4,7 +4,7 @@
 
 | Package | Ships |
 |---|---|
-| `base` | one definition per functionally distinct kind: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, `value`, and the relation kinds `line` and `tie`. The value types under `value` — `text`, `number`, `flag`, `link`, `choice` — that attributes name. Under `tags`: `tag` and `trait`, and the traits naming what the engine does, one each (`has_parts`, `has_values`, `has_ports`, `has_head`, `has_tie`, `is_group`, `is_grid`, `is_port`, `is_reference`, `is_tie`), listed by the kinds that need them; each grants the setting the engine reads. Each kind states its own look, its arrangement (`card.arrange`) and the layer view it opens on (`layout.view`). **Authored as one JSON file per definition** under `src/base/`, collected into `src/base.json` by `npm run base`. Frozen; the engine knows it by id |
+| `base` | one definition per functionally distinct kind: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, `value`, and the relation kinds `line` and `tie`. The value types under `value` — `text`, `number`, `flag`, `link`, `choice` — that attributes name. Under `tags`: `tag`. Each kind lists the engine traits it needs by name (`has_parts`, `is_port`…); the traits themselves are core's table, not definitions here. Each kind states its own look, its arrangement (`card.arrange`) and the layer view it opens on (`layout.view`). **Authored as one JSON file per definition** under `src/base/`, collected into `src/base.json` by `npm run base`. Frozen; the engine knows it by id |
 | `requirements` | a worked vocabulary: a shall statement and a verification method |
 | `sysml` | formal names and stereotypes over the base definitions |
 | `diagrams` | the diagrams a card's kind opens on: `class diagram` (`table`), `swimlane` (a grid, `allocation`), `sequence diagram` (`sequence`), each saying `layout.view`; and the relations a scenario's steps exchange, `message` and `reply`. Collected from `src/packages/diagrams` |
@@ -20,6 +20,6 @@
 
 - **The engine keys off a base only for how a block draws and where it sits**, never for what it is or what may contain what.
 - **Core cannot reach the package that supplies its floor.** An app hands `base` in, as it hands in a port.
-- **A package is data; a module is code.** A package ships definitions, tags and traits. A notation needing a new kind of behaviour is a module plus a package, shipping together.
+- **A package is data; a module is code.** A package ships definitions and tags. A notation needing a new kind of behaviour is a module plus a package, shipping together.
 - **A package is frozen** where it is used: subtyped, never edited.
 - **A standard is a translation layer**, never a shape the model bends to.

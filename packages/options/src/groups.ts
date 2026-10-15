@@ -63,7 +63,7 @@ const VIEWS: Record<ViewKind, { icon: IconName; word: string; tip: string }> = {
   folder: { icon: "view_folder", word: "folder",
             tip: "Folder: what the package or folder holds, read down the page" },
   definition: { icon: "word_def", word: "definition",
-                tip: "Definition: where the definition sits, what it extends, its ports, tags and traits round it" },
+                tip: "Definition: where the definition sits, what it extends, its ports and tags round it" },
   table: { icon: "view_table", word: "table",
            tip: "Table: the definitions this layer's references stand for, as tables" },
   sequence: { icon: "view_sequence", word: "sequence",

@@ -5,7 +5,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { about_of, alias_of, children, def_at, def_of, domain_of, frame_of, frozen,
-         is_interface, is_tag, is_trait, is_value_type, of_ref, owner_of, shown_name,
+         is_interface, is_tag, is_value_type, of_ref, owner_of, shown_name,
          stands_for, type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { resolved } from "@mnd/views";
@@ -144,7 +144,7 @@ function what_of(graph: Graph, id: Id): string {
   if (id === graph.root) return "workspace";
   if (b.parent === null) return "package";
   if (b.def) {
-    return is_trait(graph, id) ? "trait" : is_tag(graph, id) ? "tag"
+    return is_tag(graph, id) ? "tag"
       : is_value_type(graph, id) ? "type" : "definition";
   }
   return resolved(graph, id).stands_in ? "stand-in" : of_ref(graph, id) ? "reference" : "usage";
@@ -279,7 +279,7 @@ export function Tray(props: TrayProps) {
   const on_row = lit_row(shown, asked_row);
   const on_stood = lit_row(stood ? [stood] : [], asked_row);
 
-  /** The head names the context, then says what sort it is: a definition — a trait, tag or type
+  /** The head names the context, then says what sort it is: a definition — a tag or type
    *  among them — a package, a stand-in for a definition, a reference, a relation, or a usage. */
   const word = library ? "definitions" : what_of(graph, about);
   const name = library ? [library.from ?? (library.only === "all" ? "" : library.only),

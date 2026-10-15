@@ -1,12 +1,12 @@
 /** Tags: definitions on the `tag` base that blocks, lines and definitions carry by id, to be
- *  found by. Traits are tags too, by their chain (`is_trait`, in defs), carried apart. */
+ *  found by. */
 
 import { all_defs, base_of, block_base, def_at, tags_stated } from "./defs";
 import { next_order } from "./tree";
 import { TAGS, type Definition, type Graph, type Id, type Mutation } from "./types";
 
 
-/** Whether a definition is a tag: a plain tag or a trait. */
+/** Whether a definition is a tag. */
 export function is_tag(graph: Graph, def: Id | undefined): boolean {
   return !!def_at(graph, def) && block_base(graph, def) === "tag";
 }

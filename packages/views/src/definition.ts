@@ -53,14 +53,14 @@ type Box = { key: string; name: string; blocks: readonly Block[]; across: number
 
 
 /** What the view draws that the definition reads from its chain: ports declared further up, a
- *  relation's ends where it says none itself, and tags and traits where it states no list of its
+ *  relation's ends where it says none itself, and tags where it states no list of its
  *  own. They wear the part mark, and are edited where they are declared. */
 export function inherited_in(graph: Graph, def: Id): Id[] {
   const a = aspects_of(graph, def);
   const own_ends = graph.blocks[def]?.settings?.["allows"]?.["ends"] !== undefined;
   return [...[...a.ins, ...a.outs, ...a.both].filter((p) => p.parent !== def).map((p) => p.id),
           ...(own_ends ? [] : [...a.from, ...a.to, ...a.to.map((t) => `${ASPECT}:to:${t}`)]),
-          ...[a.tags, a.traits].flatMap((held) => (held.from === def ? [] : held.ids)),
+          ...(a.tags.from === def ? [] : a.tags.ids),
           ...settings_of(graph, def).filter((s) => s.from !== def).map((s) => s.id)];
 }
 
@@ -83,7 +83,6 @@ export function definition_graph(graph: Graph, def: Id): Graph {
     { key: "both", name: "ports", blocks: aspects.both, across: SIDE, c: 0, r: 2 },
     { key: "settings", name: "settings", across: UNDER, c: 1, r: 2, cards: "large" as const,
       blocks: settings_of(graph, def) },
-    { key: "traits", name: "traits", across: SIDE, c: 2, r: 2, blocks: defs(aspects.traits.ids) },
     { key: "usages", name: more > 0 ? `usages · ${more} more` : "usages", across: UNDER, c: 1,
       r: 3, blocks: usages.slice(0, USAGES) },
   ].filter((b) => b.blocks.length);
