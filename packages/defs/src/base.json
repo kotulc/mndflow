@@ -9,12 +9,36 @@
         "parent": null,
         "name": "base"
       },
+      "base.dir.annotations": {
+        "id": "base.dir.annotations",
+        "parent": "base",
+        "name": "annotations",
+        "type": "folder",
+        "order": 1,
+        "tree": "definitions"
+      },
       "base.dir.blocks": {
         "id": "base.dir.blocks",
         "parent": "base",
         "name": "blocks",
         "type": "folder",
-        "order": 1,
+        "order": 2,
+        "tree": "definitions"
+      },
+      "base.dir.components": {
+        "id": "base.dir.components",
+        "parent": "base",
+        "name": "components",
+        "type": "folder",
+        "order": 3,
+        "tree": "definitions"
+      },
+      "base.dir.organization": {
+        "id": "base.dir.organization",
+        "parent": "base",
+        "name": "organization",
+        "type": "folder",
+        "order": 4,
         "tree": "definitions"
       },
       "base.dir.relations": {
@@ -22,23 +46,7 @@
         "parent": "base",
         "name": "relations",
         "type": "folder",
-        "order": 2,
-        "tree": "definitions"
-      },
-      "base.dir.tags": {
-        "id": "base.dir.tags",
-        "parent": "base",
-        "name": "tags",
-        "type": "folder",
-        "order": 3,
-        "tree": "definitions"
-      },
-      "base.dir.types": {
-        "id": "base.dir.types",
-        "parent": "base",
-        "name": "types",
-        "type": "folder",
-        "order": 4,
+        "order": 5,
         "tree": "definitions"
       },
       "block": {
@@ -46,7 +54,7 @@
         "parent": "base.dir.blocks",
         "name": "block",
         "def": {},
-        "description": "The unit of structure: a thing, a part or a step. It may hold blocks of its own, which it opens onto as a layer.",
+        "description": "A part, a system, or the template of one: something with parts, data or deeper significance. What it holds is its layer.",
         "order": 1,
         "settings": {
           "block": {
@@ -68,42 +76,14 @@
           "has_values"
         ]
       },
-      "choice": {
-        "id": "choice",
-        "parent": "base.dir.types",
-        "name": "choice",
-        "type": "value",
-        "def": {},
-        "description": "One of a set: a subtype lists its options in `value.choices`.",
-        "order": 1,
-        "settings": {
-          "value": {
-            "form": "choice"
-          }
-        }
-      },
-      "flag": {
-        "id": "flag",
-        "parent": "base.dir.types",
-        "name": "flag",
-        "type": "value",
-        "def": {},
-        "description": "A yes or a no.",
-        "order": 2,
-        "settings": {
-          "value": {
-            "form": "flag"
-          }
-        }
-      },
       "folder": {
         "id": "folder",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.organization",
         "name": "folder",
         "type": "block",
         "def": {},
-        "description": "Files blocks away: a quiet container whose contents are reached by opening it.",
-        "order": 2,
+        "description": "Organization: a box on its parent's layer, what it holds drawn inside. It never makes a layer; selected in the explorer, the canvas zooms to it.",
+        "order": 1,
         "settings": {
           "style": {
             "family": "neutral",
@@ -113,16 +93,19 @@
           "card": {
             "arrange": "rows"
           }
-        }
+        },
+        "traits": [
+          "has_parts"
+        ]
       },
       "grid": {
         "id": "grid",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.organization",
         "name": "grid",
         "type": "block",
         "def": {},
         "description": "A spreadsheet of cells holding text or blocks, opened on the allocation view: a header allocates what its row or column holds.",
-        "order": 3,
+        "order": 2,
         "settings": {
           "style": {
             "family": "muted",
@@ -142,33 +125,33 @@
       },
       "group": {
         "id": "group",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.annotations",
         "name": "group",
         "type": "block",
         "def": {},
-        "description": "A boundary drawing what it holds inline, inside its rim.",
-        "order": 4,
+        "description": "A box drawn round its members, on the layer it sits on: its name tags them.",
+        "order": 1,
         "settings": {
           "style": {
             "family": "muted",
             "border_contrast": "faint",
-            "name_contrast": "faint"
+            "name_contrast": "faint",
+            "border_style": "dashed"
           }
         },
         "traits": [
           "has_parts",
-          "has_values",
           "is_group"
         ]
       },
       "interface": {
         "id": "interface",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.components",
         "name": "interface",
         "type": "block",
         "def": {},
-        "description": "A port seated on a block's wall: where relations enter and leave it.",
-        "order": 5,
+        "description": "A block's boundary, seated on its wall: where relations and flows enter and leave. A component: never a card, a layer or an explorer row. Its type says what it carries.",
+        "order": 1,
         "settings": {
           "style": {
             "family": "secondary",
@@ -176,7 +159,32 @@
           }
         },
         "traits": [
-          "is_port"
+          "has_values",
+          "is_interface"
+        ]
+      },
+      "label": {
+        "id": "label",
+        "parent": "base.dir.annotations",
+        "name": "label",
+        "type": "block",
+        "def": {},
+        "description": "One line of text and no card: free, or tied to what it names. Its name tags what it is tied to.",
+        "order": 2,
+        "settings": {
+          "card": {
+            "arrange": "aside",
+            "face": "text"
+          },
+          "style": {
+            "family": "note",
+            "fill": "none",
+            "border_style": "none",
+            "name_contrast": "strong"
+          }
+        },
+        "traits": [
+          "has_tie"
         ]
       },
       "line": {
@@ -190,28 +198,14 @@
           "has_values"
         ]
       },
-      "link": {
-        "id": "link",
-        "parent": "base.dir.types",
-        "name": "link",
-        "type": "value",
-        "def": {},
-        "description": "Where something lives: a uri.",
-        "order": 3,
-        "settings": {
-          "value": {
-            "form": "link"
-          }
-        }
-      },
       "note": {
         "id": "note",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.annotations",
         "name": "note",
         "type": "block",
         "def": {},
-        "description": "A remark about what it is tied to. It holds nothing.",
-        "order": 6,
+        "description": "A remark about what it is tied to: a markdown body. It holds nothing, and tags nothing.",
+        "order": 3,
         "settings": {
           "card": {
             "face": "document",
@@ -231,20 +225,6 @@
           "has_tie"
         ]
       },
-      "number": {
-        "id": "number",
-        "parent": "base.dir.types",
-        "name": "number",
-        "type": "value",
-        "def": {},
-        "description": "A count or a measure, in the unit an attribute says.",
-        "order": 4,
-        "settings": {
-          "value": {
-            "form": "number"
-          }
-        }
-      },
       "reference": {
         "id": "reference",
         "parent": "base.dir.blocks",
@@ -252,14 +232,15 @@
         "type": "block",
         "def": {},
         "description": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
-        "order": 7,
+        "order": 2,
         "settings": {
           "style": {
             "family": "away",
             "fill": "hatch",
             "border_contrast": "strong",
             "name_contrast": "strong",
-            "opacity": 0.55
+            "opacity": 0.55,
+            "border_style": "dashed"
           }
         },
         "traits": [
@@ -267,36 +248,25 @@
           "is_reference"
         ]
       },
-      "tag": {
-        "id": "tag",
-        "parent": "base.dir.tags",
-        "name": "tag",
+      "region": {
+        "id": "region",
+        "parent": "base.dir.annotations",
+        "name": "region",
         "type": "block",
         "def": {},
-        "description": "A word carried by blocks, lines and definitions, to find them by. Its body says what it means; its usages are what carries it.",
-        "order": 1,
+        "description": "A band across the layer, under its heading: what lies in it are its members, and its name tags them. Regions stack, and reorder by drag.",
+        "order": 4,
         "settings": {
           "style": {
-            "hue": 300,
-            "intensity": 0.5,
-            "vary": 48
+            "family": "muted",
+            "border_contrast": "faint",
+            "name_contrast": "soft"
           }
         },
-        "traits": []
-      },
-      "text": {
-        "id": "text",
-        "parent": "base.dir.types",
-        "name": "text",
-        "type": "value",
-        "def": {},
-        "description": "Words: anything said in a line.",
-        "order": 5,
-        "settings": {
-          "value": {
-            "form": "text"
-          }
-        }
+        "traits": [
+          "has_parts",
+          "is_region"
+        ]
       },
       "tie": {
         "id": "tie",
@@ -304,32 +274,12 @@
         "name": "tie",
         "type": "line",
         "def": {},
-        "description": "A dashed run with no heads: what ties a remark to what it is about.",
+        "description": "A relation with no model meaning: a dashed run with no heads, from a note or label to what it describes.",
         "order": 2,
         "traits": [
           "has_values",
           "is_tie"
         ]
-      },
-      "value": {
-        "id": "value",
-        "parent": "base.dir.types",
-        "name": "value",
-        "type": "block",
-        "def": {},
-        "description": "What an attribute holds: a value type. Never placed; a definition's attributes name one, and how a value is edited is its `value.form`.",
-        "order": 6,
-        "settings": {
-          "style": {
-            "hue": 150,
-            "intensity": 0.5,
-            "vary": 48
-          },
-          "value": {
-            "form": "text"
-          }
-        },
-        "traits": []
       }
     },
     "edges": {}

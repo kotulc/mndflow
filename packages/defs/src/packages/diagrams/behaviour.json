@@ -1,0 +1,19 @@
+{
+  "id": "behaviour",
+  "name": "behaviour",
+  "type": "block",
+  "description": "A method of what holds it: its layer is the flow or state machine that does it, its in-interfaces its parameters and its out-interfaces its return.",
+  "def": {},
+  "traits": [
+    "has_parts",
+    "has_ports",
+    "has_values",
+    "is_behaviour"
+  ],
+  "settings": {
+    "layout": {
+      "view": "internal",
+      "kind": "layered"
+    }
+  }
+}

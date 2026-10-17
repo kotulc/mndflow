@@ -7,7 +7,23 @@
       "requirements": {
         "id": "requirements",
         "parent": null,
-        "name": "requirements"
+        "name": "requirements",
+        "library": {
+          "types": [
+            {
+              "id": "requirements.method",
+              "name": "verification method",
+              "form": "choice",
+              "choices": [
+                "inspection",
+                "analysis",
+                "demonstration",
+                "test"
+              ],
+              "description": "How a requirement is shown to hold."
+            }
+          ]
+        }
       },
       "requirements.blocks": {
         "id": "requirements.blocks",
@@ -32,25 +48,6 @@
             ]
           }
         }
-      },
-      "requirements.method": {
-        "id": "requirements.method",
-        "parent": "requirements.blocks",
-        "name": "verification method",
-        "type": "choice",
-        "body": "How a requirement is shown to hold.",
-        "def": {},
-        "settings": {
-          "value": {
-            "choices": [
-              "inspection",
-              "analysis",
-              "demonstration",
-              "test"
-            ]
-          }
-        },
-        "order": 3
       },
       "requirements.relations": {
         "id": "requirements.relations",

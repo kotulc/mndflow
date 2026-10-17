@@ -14,7 +14,8 @@
       "fill": "hatch",
       "border_contrast": "strong",
       "name_contrast": "strong",
-      "opacity": 0.55
+      "opacity": 0.55,
+      "border_style": "dashed"
     }
   }
 }

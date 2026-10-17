@@ -11,13 +11,19 @@ import { ROOT, adjustments, all, children, def_named, fold,
 const ctx = (picked: string[] = [], layer: string | null = "block_loop"): Context =>
   ({ graph: fold(related(), FLOOR), layer, picked });
 
-/** A grid of three body cells under its headers, two filled, one picked. */
+/** A grid of three body cells under its headers, two filled, one picked. The tank is a usage of a
+ *  definition declaring a port, and a label is tied to it. */
 const gridded = (): Context => {
   const c = ctx(["block_pump"]);
   const b = c.graph.blocks;
   b["block_loop"] = { ...b["block_loop"]!, settings: { layout: { kind: "auto" } } };
   b["block_hot"] = { ...b["block_hot"]!, type: "grid", grid: { rows: 2, cols: 4 } };
-  b["block_tank"] = { ...b["block_tank"]!, parent: "block_hot", cell: { r: 1, c: 1 } };
+  b["def_tank"] = { id: "def_tank", parent: ROOT, name: "tank", def: {} };
+  b["port_t"] = { id: "port_t", parent: "def_tank", type: "interface" };
+  b["block_tank"] = { ...b["block_tank"]!, parent: "block_hot", cell: { r: 1, c: 1 },
+                      type: "def_tank" };
+  b["label_hot"] = { id: "label_hot", parent: "block_loop", name: "hot", type: "label" };
+  c.graph.edges["tie_hot"] = { id: "tie_hot", from: "label_hot", to: "block_tank", type: "tie" };
   b["block_valve"] = { ...b["block_valve"]!, parent: "block_hot", cell: { r: 1, c: 2 } };
   return { ...c, cells: [{ group: "block_hot", r: 1, c: 1 }] };
 };
@@ -38,14 +44,17 @@ describe("the registry", () => {
 
   it("marks navigation as writing nothing, and everything else as writing", () => {
     const c = gridded();
+    /** What only a component or a membership answers to. */
+    const own: Record<string, object> = { port: { id: "block_tank/port_t" },
+                                           unmember: { from: "label_hot" } };
     for (const a of all()) {
-      const out = a.run(c, { id: "block_tank", to: "block_hx", from: "block_tank",
+      const out = a.run(c, { ...{ id: "block_tank", to: "block_hx", from: "block_tank",
                              body: "x", text: "x", name: "f", owner: "block_tank",
                              target: "block_hx", parent: ROOT, holder: "block_tank",
                              members: ["block_tank"], group: "block_hot", dir: "forward",
                              module: "line", kind: "auto", flow: "in",
                              way: "row", at: "0,0", as: "row",
-                             def: "block", form: "number" });
+                             def: "block", form: "number" }, ...own[a.name] });
       expect(out.mutations.length > 0, a.name).toBe(writes(a.name));
     }
   });
@@ -167,37 +176,13 @@ describe("what an action absorbs", () => {
 });
 
 describe("the way out of a layer", () => {
-  /** An interface is drawn on its owner's border and in its owner's own wall. */
-  const seated = () => {
+  it("leaves an ordinary block for what holds it", () => {
     const s = session({ floor: FLOOR });
     s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT).find((b) => b.name === "Loop")!.id;
     s.look(loop);
     s.go("create", { name: "Pump" });
     const pump = children(s.graph(), loop)[0]!.id;
-    s.go("interface", { owner: pump });
-    const port = children(s.graph(), pump)[0]!.id;
-    return { s, loop, pump, port };
-  };
-
-  it("comes back to the layer an interface was opened from", () => {
-    const { s, loop, port } = seated();
-    s.go("open", { id: port });
-    expect(s.layer()).toBe(port);
-    s.go("open");
-    expect(s.layer()).toBe(loop);
-  });
-
-  it("comes back into the card when that is where the interface was opened", () => {
-    const { s, pump, port } = seated();
-    s.look(pump);
-    s.go("open", { id: port });
-    s.go("open");
-    expect(s.layer()).toBe(pump);
-  });
-
-  it("leaves an ordinary block for what holds it", () => {
-    const { s, loop, pump } = seated();
     s.go("open", { id: pump });
     s.go("open");
     expect(s.layer()).toBe(loop);

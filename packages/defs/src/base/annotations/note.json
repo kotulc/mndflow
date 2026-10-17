@@ -2,7 +2,7 @@
   "id": "note",
   "name": "note",
   "type": "block",
-  "description": "A remark about what it is tied to. It holds nothing.",
+  "description": "A remark about what it is tied to: a markdown body. It holds nothing, and tags nothing.",
   "def": {},
   "traits": [
     "has_values",

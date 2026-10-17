@@ -43,7 +43,7 @@ npm run typecheck -w @mnd/core
 | `card.ts` | a card as markdown: `card_text` writes a block or definition as its card source, `read_card` splits one into frontmatter and body; `BLOCK_KEYS`, the keys a block says itself with |
 | `diagram.ts` | a diagram file or frontmatter spelled out: `long_form` turns every short form into the long form. Syntax only |
 | `refs.ts` | names in place of ids: `path_to` (`a::b`), `def_ref` (`pkg.name`, a bare name in the packages listed) |
-| `collection.ts` | `collect`: a folder of definition files, diagram files and card sources as one package file, or as the workspace; `wanted`, the packages its files list |
+| `sources.ts` | `collect`: a folder of definition files, diagram files and card sources as one package file, or as the workspace; `wanted`, the packages its files list |
 | `file.ts` | the envelope, its canonical layout, and compaction. `write` carries the packages a workspace uses; `write_package` exports the workspace as a package; `unmet` is what a file names and does not carry. **Two readers**: `read` gives the log a session works in, `open` gives the graph and is the one offered outward |
 | `ports.ts` | the host contract, declared and never implemented |
 | `ids.ts` | id minting |

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { aspect_acts, attach_of, collect, drop_of, held_at, is_inside, is_layer_view, layout_of,
+import { collect, drop_of, held_at, is_inside, is_layer_view, layout_of,
          session, trace, writes, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
@@ -99,12 +99,10 @@ export function App({ storage, boot, opening }: {
 
   const graph = s.graph();
   const view = s.view();
-  /** The layer seen from inside, where the canvas looks into one. Anything else — a whole
-   *  section, or a definition drawn with what describes it — has none, and is not built on. */
+  /** The layer seen from inside, where the canvas looks into one. A whole section has none, and
+   *  is not built on. */
   const whole = !is_inside(view.kind);
   const system = !is_layer_view(view.kind);
-  /** A definition drawn with what describes it: edits there edit it (core `aspect_acts`). */
-  const described = view.kind === "definition" ? view.layer : null;
   /** A diagram is read, never built in: its room hugs what it draws, as a page's does. */
   const diagram = (DIAGRAM_VIEWS as readonly string[]).includes(view.kind);
   const layer = whole ? null : view.layer;
@@ -167,11 +165,7 @@ export function App({ storage, boot, opening }: {
     /** Undo and redo arrive through the same channel as actions. */
     if (name === "undo") { s.undo(); return; }
     if (name === "redo") { s.redo(); return; }
-    if (described) {
-      s.batch(() => aspect_acts(s.graph(), described, name, args ?? {})
-        .forEach((a) => s.go(a.act, a.args)));
-    }
-    else s.go(name, args ?? {});
+    s.go(name, args ?? {});
     /** Opening, leaving and revealing are navigation's: the sections follow where it went, and
      *  the canvas pans to what it revealed inside a layer. */
     if (name === "open" || name === "reveal") {
@@ -312,7 +306,7 @@ export function App({ storage, boot, opening }: {
           <button title="import a workspace" onClick={() => void load()}>
             <Icon name="import_file" />
           </button>
-          <button title="import a collection: a folder of markdown cards and the definitions they name"
+          <button title="import a source folder: a folder of markdown cards and the definitions they name"
                   onClick={() => void gather()}>
             <Icon name="add_folder" />
           </button>
@@ -338,6 +332,8 @@ export function App({ storage, boot, opening }: {
         onOpen={({ at, id, via }) => act(via ? "reveal" : "open", { id, at })}
         onLeave={() => act("open")}
         onSection={section}
+        onNamed={(id) => t.onHold({ of: "id", id })}
+        holding={hold?.of === "id" ? hold.id : null}
         chain={{ ...chain, onChoose: choose }}
         keys={zones.zone === "explorer"}
       />
@@ -365,13 +361,6 @@ export function App({ storage, boot, opening }: {
               scene.nodes.filter((n) => n.id !== id && !holds(n) && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
-            /** On a definition, a tag dropped is attached. */
-            if (described) {
-              const made = attach_of(graph, described, id);
-              if (made) s.go(made.act, made.args);
-              else s.say("drop a tag here to attach it", "note");
-              return;
-            }
             if (whole) return;
             const cell = land.cell && land.into ? land.into : null;
             const made = drop_of(graph, {

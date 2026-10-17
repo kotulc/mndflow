@@ -73,9 +73,11 @@ Block {
   body?         string            // what a block holds as text
   description?  string            // what it is for, in a line: shown on hover
 
-  def?          { attributes?: Attribute[] }   // present on a definition, and only there
+  def?          { attributes?: Attribute[]; ports?: Port[] }   // on a definition, and only there
 
   of?           Id                // what a reference stands for: read only where its kind is one
+  library?      Library           // a package root: its named components, types and tags
+  records?      {[name]: string}[] // a collection's records: values, never blocks
   source?       string            // provenance: one uri
 
   cell?         {r, c}            // seated in its parent grid, in place of x/y
@@ -83,9 +85,7 @@ Block {
 
   x?, y?        number            // placement, when hand-laid
   w?, h?        number            // least size
-  side?         Side              // interface: which wall
-  at?           number            // interface: 0–1 along it
-  flow?         "in"|"out"|"both" // interface: decorative
+  side?, at?, flow?               // an interface as a view draws it: never stored on a block
   order?        number            // among siblings
   alias?        number            // handle serial, minted once
 
@@ -93,7 +93,7 @@ Block {
 
   settings?     Components        // its own word, by component
   traits?       Id[]              // what the engine lets it do, in order; definitions only
-  tags?         Id[]              // tag definitions it carries, to be found by
+  tags?         Id[]              // tags it carries, by id, to be found by
   values?       Value[]           // a usage's answers, in order
 }
 ```
@@ -123,8 +123,9 @@ Grid {
 Relation {
   id          Id
   from, to    Id                 // blocks, never a relationship
-  fromPart?   Id                 // a part of from's definition the run leaves
+  fromPart?   Id                 // a part of from's definition the run leaves: an interface it reads through
   toPart?     Id                 // a part of to's definition the run reaches
+  ends?       Ends               // what its ends say over its definition's: multiplicity and role
   name?       string             // what it is called; absent draws its definition's name
   type?       Id                 // a relation definition; absent: line
   alias?      number
@@ -137,7 +138,8 @@ Relation {
 | Rule | |
 |---|---|
 | **ends anywhere** | a relationship may join blocks on different layers and in different holders |
-| **definitions are never linked** | except by a tie trait: a note tied to a definition |
+| **a definition and a usage never relate** | two definitions may (an association), two usages may; a tie joins anything |
+| **ends are data** | `Ends { from?, to? }`, each `End { multiplicity?, role?, ownership?, navigable? }`; a relation definition says them in `def.ends`, a line only multiplicity and role |
 | **no values, no structure** | what a connection says belongs to its ends |
 | **no route** | where a line goes is derived every draw |
 
@@ -148,13 +150,24 @@ Relation {
 ### Attribute and value
 
 ```
-Attribute { name, type?, key?, default?, unit?, many?, optional?, note?, extra? }
+Attribute { name, type?, key?, default?, unit?, many?, optional?, note?, extra? } // key: primary | unique
 Value     { name, value }
 ```
 
-**A definition declares attributes; a usage answers them.** An attribute's `type` is a value type (a definition under `value`) or a block definition, which makes it a link; absent, it is text. `extra` keeps any other property as written. A value is typed by its attribute, never by itself, and is addressed by name on its holder. Neither has an identity of its own.
+**A definition declares attributes; a usage answers them.** An attribute's `type` names a form, a type, or a block definition, which makes it a link; absent, it is text. `extra` keeps any other property as written. A value is typed by its attribute, never by itself, and is addressed by name on its holder. Neither has an identity of its own.
 
-**How a value is edited is closed** (`value.form`: `text`, `number`, `flag`, `choice`, `link`); **what a value is, is open**: `base` ships `text`, `number`, `flag`, `link` and `choice`, and a package adds its own as definitions.
+**How a value is edited is closed**: the forms `text`, `number`, `flag`, `choice`, `link`, named by their own word. **What a value is, is open**: a package's types.
+
+
+### Components: library, interfaces and behaviours
+
+```
+Library { types?: Type[]; tags?: Tag[] }               // on a package root
+Type    { id, name, description?, form, choices?, unit? } // an enum or an alias
+Tag     { id, name, description? }
+```
+
+**Named components are data, never blocks**: a package's types and tags live on its root, carried by id, one name space with its definitions. **Interfaces and behaviours are blocks** under what holds them: an interface's kind runs the `interface` module (*is interface*) and carries `flow`, `side` and `at`; a behaviour's kind carries *is behaviour*. A definition's interfaces are inherited down its chain as attributes are; a view draws each on the wall of every usage wearing it, as `usage/port`, and a relationship meets one there by `fromPart` or `toPart`. A block's own interface is met as itself.
 
 
 ### Components
@@ -163,16 +176,16 @@ Value     { name, value }
 
 | Key | Configures |
 |---|---|
-| `block` | which block module |
-| `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `face` (`table`, `document`, `picture`), `size` (`{w, h}` in units): which large face it draws with and how big it is. Unsaid, a card has no large face. `arrange` (`column`, `rows`, `aside`): how it sits in its parent's `auto` layer; aside floats it beside what it is tied to |
+| `block` | which block module; `behaviour`, granted by *is behaviour* |
+| `card` | `label`, `align`, `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `face` (`table`, `class`, `document`, `picture`, `text`), `size` (`{w, h}` in units): which large face it draws with and how big it is. Unsaid, a card has no large face. `arrange` (`column`, `rows`, `aside`): how it sits in its parent's `auto` layer; aside floats it beside what it is tied to |
 | `style` | a family, or a `hue` with its `intensity` and `vary`; `fill` and `opacity`; border and writing weight, face and contrast. Never a hex or a pixel count |
 | `line` | how a run draws: `dir`, `from_arrow`, `to_arrow`, `name`, `alias`; `module` (`line`, `tie`): a tie runs straight and is never routed, granted by *is tie* |
-| `layout` | `kind`: `free`, `auto`, `page` or `layered`; `across` and `line` for the computed ones; `cards`: `small` or `large`, the size what it holds draws at; `view`: `package`, `internal`, `allocation`, `sequence` or `table`, the layer view the block opens on (a definition opens on `definition`). Unsaid kind, or a kind this build does not know, draws as `auto`. A `view` this build does not know, or that the block cannot feed, opens on the one its kind's `base` definition names |
+| `layout` | `kind`: `free`, `auto`, `page` or `layered`; `across` and `line` for the computed ones; `cards`: `small` or `large`, the size what it holds draws at; `view`: `package`, `internal`, `allocation`, `sequence`, `class` or `er`, the layer view the block opens on (a definition opens as its usages do). Unsaid kind, or a kind this build does not know, draws as `auto`. A `view` this build does not know, or that the block cannot feed, opens on the one its kind's `base` definition names |
 | `tie` | the relation type a block made from or dropped on another is linked to it by |
 | `allows` | `ports`, `holds`, `heads`, `degree`, `ends`. Refused at the gesture; absent is a no. Usually granted whole by a trait |
-| `holder` | `inline`, `matrix`: how a block draws what it holds — in place, and in cells. Granted by the traits of the same names; which holder a block is comes from here |
+| `holder` | `inline`, `matrix`, `band`: how a block draws what it holds — in place, in cells, as a band across its layer. Granted by *is group*, *is grid* and *is region*; which holder a block is comes from here |
 | `expects` | `required`, `match`. Advice, never a refusal |
-| `value` | `form`, `choices`, `unit`: how a value type's values are edited, and what a choice may be |
+| `records` | `of`: the block definition a collection's records answer |
 
 - **A component owns its key and validates it at the door.** One absent from the build is left unvalidated, not wrong.
 - **A malformed setting is dropped**, that key only.
@@ -198,9 +211,11 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | `move_block` · `place_block` · `size_block` · `order_block` | re-parent, position, least size, sibling order |
 | `set_alias` · `set_counter` | handles |
 | `set_body` · `set_description` · `set_attributes` · `set_source` | text, what it is for, a definition's attributes, provenance |
+| `set_ends` · `set_library` · `set_records` | a relation's or relation definition's ends, a package's named components, a collection's records; each written whole |
 | `seat_cell` · `set_grid` | an address in the parent grid; a lattice, written whole |
 | `link_blocks` · `update_edge` · `delete_edge` | make, rename or retype, remove a relationship |
-| `flip_edge` · `set_end` · `set_port` · `mark_port` | ends, interfaces |
+| `flip_edge` · `set_end` | ends, and the part an end reads through |
+| `set_port` · `mark_port` | an interface's seat, or none to place itself; its flow |
 | `set_value` · `drop_value` · `order_values` | a usage's answers, by name |
 | `set_tags` · `set_traits` | an element's tags; a definition's traits. A list, or null to give it back to the chain |
 | `set_setting` · `drop_settings` | one property of one component; everything at once given back |
@@ -214,7 +229,7 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 |---|---|
 | **tree** | `parent: null` only on package roots; no cycles |
 | **frozen** | a mutation writing under a frozen package is dropped |
-| **ends** | both ends name blocks, and a named part is in the end's definition, or the relationship is dropped |
+| **ends** | both ends name blocks, or the relationship is dropped; an interface an end names that its block does not wear is let go |
 | **references** | `of` names nothing: the reference reads missing and is kept |
 | **cells** | a seated block sits inside its grid's extent, one to a cell; no merge crosses another or a header line; a lattice carries nothing but its extent and merges. A repair unseats, never deletes |
 | **components** | each key validated by its own component; an unknown component is left alone |
@@ -273,4 +288,4 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 - the body after the frontmatter is `body`, as written. Tables in it are content
 - a type or tag name nothing loaded holds, or more than one package holds, makes a plain definition in the workspace, and is said
 - frontmatter and a diagram file are one schema, read by one reader
-- **a collection** is a folder: `package.json` (the package's graph), a `.json` file per definition, `.yaml` diagram files, and `.md` usages, each directory a folder. `collect` reads one as a package file; a definition said twice is refused; a type its usages name and nothing defines is made, its attributes the union of what they answer. `base` is one: `packages/defs/src/base/`, collected by `npm run base`, its ids kept bare
+- **a source folder** is a package on disk: `package.json` (the package's graph), a `.json` file per definition, `.yaml` diagram files, and `.md` usages, each directory a folder. `collect` reads one as a package file; a definition said twice is refused; a type its usages name and nothing defines is made, its attributes the union of what they answer. `base` is one: `packages/defs/src/base/`, collected by `npm run base`, its ids kept bare

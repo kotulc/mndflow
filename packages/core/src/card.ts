@@ -6,6 +6,7 @@
 
 import { parse, stringify } from "yaml";
 import { def_at } from "./defs";
+import { tag_at } from "./library";
 import type { Block, Graph, Id } from "./types";
 
 /** The keys a block says itself with, in a diagram file and a card source alike. Any other key is
@@ -13,7 +14,7 @@ import type { Block, Graph, Id } from "./types";
 export const BLOCK_KEYS = [
   "name", "type", "def", "description", "tags", "traits", "settings", "body", "source", "of", "parent", "cell",
   "grid", "values", "w", "h", "side", "at", "flow", "rows", "cols", "blocks", "relations",
-  "packages", "note",
+  "packages", "note", "library", "records",
 ] as const;
 
 /** Whether a key is one a block says itself with, rather than a value. */
@@ -101,9 +102,9 @@ function defined(graph: Graph, b: Block): Record<string, unknown> {
   return front;
 }
 
-/** A list of definitions by name. */
+/** A list of tags by name. */
 function named(graph: Graph, ids: Id[]): string[] {
-  return ids.map((id) => graph.blocks[id]?.name ?? id);
+  return ids.map((id) => tag_at(graph, id)?.name ?? id);
 }
 
 /** A value as YAML says it: a number or a yes and a no unquoted where it reads back the same,

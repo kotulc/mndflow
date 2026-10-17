@@ -1,6 +1,7 @@
 /** What every module derives the same way. */
 
-import { attributes_of, def_of, frozen, head_of, lens_of, is_container, is_flat, is_interface, is_named,
+import { attributes_of, def_of, dir_of, domain_of, frozen, head_of, lens_of, is_box, is_container,
+         is_flat, is_interface, is_named,
          base_of, path, role_of, shape_of, shown_name, stamps_of, subtypes, tree_of, used_by,
          type Graph, type Id } from "@mnd/core";
 import { face_table, face_text, handle_of } from "./face";
@@ -22,10 +23,20 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
     /** Missing is naming nothing at all. */
     if (ref.missing) out.push("missing");
   }
+  /** A definition, or a stand-in for one: the canvas draws it outlined. A relation definition
+   *  reads as a wire swatch, its head where its lines point. */
+  const def = b.def ? b.id : ref.stands_in?.id;
+  if (def) out.push("definition");
+  if (def && domain_of(graph, def) === "relation") {
+    out.push("relation");
+    if (dir_of(graph, def) !== "none") out.push("directed");
+  }
   if (module === "note") out.push("note");
-  /** A block that holds wears its shape, whatever kind it descends from. */
+  if (module === "label") out.push("label");
+  /** A block that holds wears its shape, whatever kind it descends from; a folder is a box. */
   const shape = shape_of(graph, id);
   if (shape) out.push(shape);
+  else if (is_box(graph, id)) out.push("group");
   if (is_flat(graph, id)) out.push("flat");
   if (is_interface(graph, b.id)) {
     out.push("interface");

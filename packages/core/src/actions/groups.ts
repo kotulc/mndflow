@@ -5,12 +5,13 @@ import { block_base, def_at, domain_of, self_use } from "../defs";
 import { can_hold, GRID, inside, is_grid, lattice_of, layer_of, members_of,
          shape_of } from "../holders";
 import { shown_name } from "../names";
-import { next_order, reorder } from "../tree";
+import { children, next_order, part_end, reorder } from "../tree";
 import { new_id } from "../ids";
 import type { Graph, Grid, Id, Mutation, Shape } from "../types";
 import { put, seat_in, taken_in, with_merges } from "./grid";
 import { register, type Args, type Context } from "./registry";
-import { handles, here, id_of, make_block, num, seats, spot, text, tied } from "./helpers";
+import { given_of } from "../library";
+import { borrowed, handles, here, id_of, make_block, num, seats, spot, text, tied } from "./helpers";
 
 /** Whether an action says an extent, which only a grid has. */
 const asks_extent = (args: Args): boolean => num(args, "rows") !== null || num(args, "cols") !== null;
@@ -20,7 +21,7 @@ const asks_extent = (args: Args): boolean => num(args, "rows") !== null || num(a
 function made_as(graph: Graph, args: Args): { type: Id; shape: Shape | null } {
   const type = text(args, "type") || (asks_extent(args) ? "grid" : "group");
   const base = block_base(graph, type);
-  return { type, shape: base === "group" || base === "grid" ? base : null };
+  return { type, shape: base === "group" || base === "grid" || base === "region" ? base : null };
 }
 
 /** The members an action names, or the selection, that are blocks. */
@@ -78,8 +79,9 @@ register(
       const extent = asks_extent(args);
       const held = into ? shape_of(ctx.graph, into) : null;
       if (into && !held) return `"${shown_name(ctx.graph, into)}" holds nothing`;
-      if (!into && !members.length && !extent) return "nothing is selected";
       const { type, shape } = made_as(ctx.graph, args);
+      /** A region may start empty: a band across the layer, under its heading. */
+      if (!into && !members.length && !extent && shape !== "region") return "nothing is selected";
       if (!into) {
         const d = def_at(ctx.graph, type);
         if (!d || domain_of(ctx.graph, type) !== "block") return `there is no definition called "${type}"`;
@@ -157,8 +159,8 @@ register(
   },
   {
     name: "note",
-    about: "writes a note about a block, tied to it",
-    on: ["block"],
+    about: "writes a note about a block or an interface, tied to it",
+    on: ["block", "interface"],
     /** A note is always about something, and is made with its tie. */
     args: [{ name: "about", form: "block", required: true },
            { name: "text", form: "text", required: true, asks: true },
@@ -167,7 +169,8 @@ register(
     check: (ctx, args) => {
       if (!text(args, "text")) return "a note is its text";
       const about = id_of(args, "about") || ctx.picked[0] || "";
-      return ctx.graph.blocks[about] ? null : "a note is always about a block";
+      return ctx.graph.blocks[part_end(ctx.graph, about).block]
+        ? null : "a note is always about a block";
     },
     /** The drawing gesture may size a note. */
     run: (ctx, args) => {
@@ -191,4 +194,38 @@ register(
       return { mutations: out, effect: { focus: id } };
     },
   },
+  {
+    name: "unmember",
+    about: "takes away a tag an annotation gives: the block leaves the group or region for what "
+      + "holds it, or the label's tie to it goes; the annotation stays",
+    on: ["block"],
+    args: [{ name: "id", form: "block", required: true },
+           /** The group, region or label giving the tag. */
+           { name: "from", form: "block", required: true }],
+    check: (ctx, args) => {
+      const id = id_of(args, "id");
+      const given = given_of(ctx.graph, id).find((g) => g.from === id_of(args, "from"));
+      if (!given) return "that annotation gives it no tag";
+      /** Leaving an outer holder would leave the inner ones too: one membership at a time. */
+      if (!given.tie && ctx.graph.blocks[id]?.parent !== given.from) {
+        return "it sits in that box through another: take it out of that one first";
+      }
+      return borrowed(ctx.graph, given.tie ? given.from : id);
+    },
+    run: (ctx, args) => {
+      const id = id_of(args, "id");
+      const given = given_of(ctx.graph, id).find((g) => g.from === id_of(args, "from"))!;
+      if (given.tie) return { mutations: [{ op: "delete_edge", id: given.tie }] };
+      /** Out of the holder giving the tag, onto what holds it, read right after it. */
+      const up = ctx.graph.blocks[given.from]!.parent!;
+      const out: Mutation[] = [{ op: "move_block", id, parent: up }];
+      const siblings = children(ctx.graph, up).map((b) => b.id);
+      const next = siblings[siblings.indexOf(given.from) + 1] ?? null;
+      for (const at of reorder(ctx.graph, up, id, next)) {
+        out.push({ op: "order_block", id: at.id, order: at.order });
+      }
+      return { mutations: out };
+    },
+  },
 );
+

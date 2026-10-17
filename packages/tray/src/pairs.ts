@@ -3,11 +3,13 @@
  *  key is listed, said or not**, so anything a card carries can be changed from one place. The
  *  source column draws the lines; the choices column draws the lit pair's questions as chips. */
 
-import { all_defs, attributes_of, def_at, def_of, domain_of, form_of, frozen, holds_defs, honours,
-         is_base, is_domain, is_holder, is_interface, is_tag, is_value_type, isa,
-         kind_free, may_hold, package_of, setting_of, shown_name, subtree, tags_stated,
-         traits_stated, TRAITS, type Act, type Attribute, type Block, type Definition, type Graph,
-         type Id } from "@mnd/core";
+import { all_defs, all_tags, attributes_of, base_of, def_at, def_of, domain_of, ends_of, form_of,
+         frozen, OWNERSHIPS, type End,
+         given_of, holds_defs, honours, is_base, is_domain, is_holder, is_interface, isa, kind_free,
+         may_hold, package_of, shown_name, subtree, tag_at, tags_stated, traits_stated, type_at,
+         type_name, TRAITS, type Act, type Attribute, type Block,
+         type Definition, type Graph, type Id } from "@mnd/core";
+import { port_pairs, tag_pairs, type_pairs } from "./components";
 import { taken } from "./Definitions";
 import { defined, held, kind_of, reading, types_for } from "./holder";
 import { AS_RUN, ASKS, parts_in_order, ROWS, type Group } from "./questions";
@@ -56,14 +58,21 @@ export type Pair = {
 
 /** Every pair a card or a line says, in the order a card source writes them. */
 export function pairs_of(graph: Graph, id: Id, onAct: Act, onOpen?: (id: Id) => void): Pair[] {
+  /** A component is asked its own questions: an interface, a tag, a type. */
+  if (is_interface(graph, id)) return port_pairs(graph, id, onAct, onOpen);
+  if (tag_at(graph, id)) return tag_pairs(graph, id, onAct);
+  if (type_at(graph, id)) return type_pairs(graph, id, onAct);
   const it = held(graph, id);
   if (!it) return [];
   const d = it.def;
   if (it.edge) {
-    return [named(graph, id, onAct), typed(graph, id, onAct, onOpen), tags(graph, id, onAct)];
+    return [named(graph, id, onAct), typed(graph, id, onAct, onOpen), ...ended(graph, id, onAct),
+            tags(graph, id, onAct)];
   }
+  const relation = d && domain_of(graph, d.id) === "relation";
   return d ? [
     named_def(graph, d, onAct), described(graph, id, onAct), extends_of(graph, d, onAct, onOpen),
+    ...(relation ? ended(graph, id, onAct) : []),
     placed(graph, id, onAct), tags(graph, id, onAct), traits(graph, d, onAct),
     ...values(graph, id, onAct),
   ] : [
@@ -73,6 +82,58 @@ export function pairs_of(graph: Graph, id: Id, onAct: Act, onOpen?: (id: Id) => 
   ];
 }
 
+
+/** The multiplicities offered as chips; any other `m..n` is typed. */
+const MULTIPLICITIES = ["1", "0..1", "*", "1..*"];
+
+/** What each end of a relation means: how many meet it, its role, who owns whom, and whether it
+ *  can be reached. A line says multiplicity and role over its definition's; a relation definition
+ *  says all four. */
+function ended(graph: Graph, id: Id, onAct: Act): Pair[] {
+  const line = !!graph.edges[id];
+  const fixed = frozen(graph, id);
+  const held_ends = ends_of(graph, id);
+  const own = (line ? graph.edges[id]?.ends : def_at(graph, id)?.def.ends) ?? {};
+  return (["from", "to"] as const).map((way): Pair => {
+    const end: End = held_ends[way] ?? {};
+    const mine: End = own[way] ?? {};
+    const say = (args: Record<string, unknown>) => onAct("end", { id, end: way, ...args });
+    const shown = [end.multiplicity, end.role,
+                   end.ownership && end.ownership !== "none" ? end.ownership : "",
+                   end.navigable === true ? "navigable" : end.navigable === false ? "not navigable" : ""]
+      .filter(Boolean).join(", ");
+    const asks: Ask[] = [{
+      word: "multiplicity", tip: "How many meet this end. Press the one lit to give it back.",
+      chips: MULTIPLICITIES.map((m) => ({ value: m, word: m, on: end.multiplicity === m,
+                                          set: mine.multiplicity === m })),
+      pick: (c) => say({ multiplicity: c.set ? "" : c.value }),
+      add: { value: "", placeholder: "m..n", commit: (to) => say({ multiplicity: to }) },
+    }];
+    if (!line) {
+      asks.push({
+        word: "ownership", tip: "Who owns whom, said at the owner's end: shared is an aggregation, "
+          + "composite a composition.",
+        chips: OWNERSHIPS.map((o) => ({ value: o, word: o, on: (end.ownership ?? "none") === o,
+                                        set: mine.ownership === o })),
+        pick: (c) => say({ ownership: c.set ? "" : c.value }),
+      }, {
+        word: "navigable", tip: "Whether this end can be reached from the other: an open head, a "
+          + "cross half a unit in, or nothing said.",
+        chips: [["yes", true], ["no", false]].map(([w, v]) => ({
+          value: String(w), word: String(w), on: end.navigable === v, set: mine.navigable === v })),
+        pick: (c) => say({ navigable: c.set ? "unsaid" : c.value }),
+      });
+    }
+    return {
+      key: `end-${way}`, word: `${way} end`, shown, said: Object.keys(mine).length > 0, fixed,
+      about: `What the ${way} end means.${line ? " A line says its multiplicity and role; the "
+        + "rest is its definition's." : ""}${fixed ? FROZEN : ""}`,
+      ...(fixed ? {} : { text: { value: mine.role ?? "", placeholder: end.role ?? "role",
+                                 commit: (to: string) => say({ role: to }) } }),
+      asks: fixed ? [] : asks, verbs: [],
+    };
+  });
+}
 
 /** An element's name: its own, else its type's drawn faint. */
 function named(graph: Graph, id: Id, onAct: Act): Pair {
@@ -178,15 +239,12 @@ function extends_of(graph: Graph, d: Definition, onAct: Act, onOpen?: (id: Id) =
 }
 
 /** What a definition may be re-based on: its own kind's, or either kind's while nothing it
- *  shaped exists — and of its own sort, so a block is never offered a tag or a value type.
- *  Never itself, nor anything built on it. Its base is one of them. */
+ *  shaped exists. Never itself, nor anything built on it. Its base is one of them. */
 function rebase(graph: Graph, d: Definition, onAct: Act, word: string): Ask {
   const { kind } = kind_of(graph, d.id, { def: d, block: null, edge: null });
   const at = d.type ?? kind;
-  const sort = (x: Id) => `${is_tag(graph, x)}${is_value_type(graph, x)}`;
   const offered = all_defs(graph)
     .filter((x) => (domain_of(graph, x.id) === domain_of(graph, d.id) || kind_free(graph, d.id))
-      && sort(x.id) === sort(d.id)
       && x.id !== d.id && !isa(graph, x.id).some((up) => up.id === d.id));
   return {
     word, tip: `What ${d.name} is built on. Changing it re-bases it, so everything following it `
@@ -207,7 +265,6 @@ function placed(graph: Graph, id: Id, onAct: Act): Pair {
   const may = (x: Block) => !inside.has(x.id) && !frozen(graph, x.id)
     && (b.def ? holds_defs(graph, x.id)
       : !is_domain(graph, x.id) && package_of(graph, x.id) === home
-        && !is_interface(graph, x.id)
         && (x.id === graph.root || is_holder(graph, x.id) || may_hold(graph, x.id, b.type)));
   const up = graph.blocks[b.parent ?? ""];
   return {
@@ -225,29 +282,48 @@ function placed(graph: Graph, id: Id, onAct: Act): Pair {
   };
 }
 
-/** Its tags: its own list, else its definition's. Any edit makes the list its own. */
+/** Its tags, **grouped by source**: stated here, carried from its definition, and one group per
+ *  annotation giving one by its name. Every tag is removable: a stated one leaves the list, a
+ *  carried one makes the list its own without it, and one an annotation gives takes away the
+ *  membership — never the annotation. */
 function tags(graph: Graph, id: Id, onAct: Act): Pair {
   const { ids, from } = tags_stated(graph, id);
   const said = from === id;
   const fixed = !!graph.blocks[id] && frozen(graph, id);
   const set = (to: string[]) => onAct("tag", { ids: [id], tags: to });
-  /** Tags proper, not the bases. */
-  const all = all_defs(graph).filter((x) => is_tag(graph, x.id) && !is_base(x.id));
+  const given = graph.blocks[id] ? given_of(graph, id) : [];
+  const source = said ? "stated" : `carried from ${name_of(graph, from ?? "")}`;
+  const word = (t: Id) => tag_at(graph, t)?.name ?? t;
+  const chips: Chip[] = [
+    ...ids.map((t) => ({ value: t, word: word(t), on: true, set: said, group: source,
+                         tip: tag_at(graph, t)?.description ?? `take ${word(t)} off` })),
+    ...given.map((g) => ({ value: `${GIVEN}${g.from}`, word: g.name, on: true, set: true,
+                           group: `${base_of(graph, g.from)}: ${g.name}`,
+                           tip: g.tie ? `untie the label ${g.name}` : `take it out of ${g.name}` })),
+    ...all_tags(graph).filter((t) => !ids.includes(t.id))
+      .map((t) => ({ value: t.id, word: t.name, on: false, set: said, group: "library",
+                     tip: t.description ?? t.name })),
+  ];
   return {
-    key: "tags", word: "tags", shown: listed(ids.map((t) => name_of(graph, t))), said, fixed,
-    about: "Tags to find this by. It carries its definition's until it says its own; a new word "
-      + `makes a tag in the workspace's tags folder.${fixed ? FROZEN : ""}`,
+    key: "tags", word: "tags", shown: listed([...ids.map(word), ...given.map((g) => g.name)]),
+    said, fixed,
+    about: "Tags to find this by, grouped by where each comes from. It carries its definition's "
+      + "until it says its own; a group, a region or a label gives one by its name. A new word "
+      + `makes a tag in the workspace's library.${fixed ? FROZEN : ""}`,
     asks: [{
-      word: "tags", tip: "Press one to put it on or take it off.",
-      chips: all.map((x) => ({ value: x.id, word: x.name, on: ids.includes(x.id), set: said,
-                               group: where(graph, x.id), tip: x.description ?? x.name })),
-      pick: (c) => set(c.on ? ids.filter((t) => t !== c.value) : [...ids, c.value]),
+      word: "tags", tip: "Press one to put it on or take it off.", chips,
+      pick: (c) => (c.value.startsWith(GIVEN)
+        ? onAct("unmember", { id, from: c.value.slice(GIVEN.length) })
+        : set(c.on ? ids.filter((t) => t !== c.value) : [...ids, c.value])),
       add: { value: "", placeholder: "new tag", commit: (to) => { if (to) set([...ids, to]); } },
     }],
     verbs: said && from && !fixed ? [{ word: "inherit", tip: "carry its definition's tags again",
                                        run: () => onAct("tag", { ids: [id] }) }] : [],
   };
 }
+
+/** What marks a chip as a tag an annotation gives, by the annotation's id. */
+const GIVEN = "@given:";
 
 /** What a definition can do: one engine trait per capability. */
 function traits(graph: Graph, d: Definition, onAct: Act): Pair {
@@ -302,12 +378,11 @@ function values(graph: Graph, id: Id, onAct: Act): Pair[] {
                                                    [d ? "default" : "value"]: to });
     const shown = own ?? a.default ?? "";
     const form = form_of(graph, a.type);
-    const choices = setting_of(graph, a.type, "value")["choices"];
-    const of = form === "flag" ? ["true", "false"]
-      : form === "choice" && Array.isArray(choices) ? choices.map(String) : null;
+    const choices = type_at(graph, a.type)?.choices;
+    const of = form === "flag" ? ["true", "false"] : form === "choice" && choices ? choices : null;
     return {
       key: `@${a.name}`, word: a.name, shown, said: own !== undefined, fixed: !mine,
-      about: [a.note, `An attribute: ${def_at(graph, a.type)?.name ?? "text"}`
+      about: [a.note, `An attribute: ${type_name(graph, a.type)}`
                 + `${a.unit ? `, in ${a.unit}` : ""}.`,
               d && a.from !== id ? `Declared on ${name_of(graph, a.from!)}.` : ""]
         .filter(Boolean).join(" "),
@@ -368,7 +443,7 @@ const PARTS: Record<Group, string> = {
 
 
 /** Said after a frozen definition's about. */
-const FROZEN = " It came frozen with its package, so it reads only.";
+export const FROZEN = " It came frozen with its package, so it reads only.";
 
 /** A list as YAML flows it. */
 function listed(names: string[]): string {
@@ -381,7 +456,7 @@ function name_of(graph: Graph, id: Id): string {
 
 /** Where a block lives, as the path of what holds it — a package, then its folders — which the
  *  choices are gathered under. */
-function where(graph: Graph, id: Id): string {
+export function where(graph: Graph, id: Id): string {
   const path: string[] = [];
   for (let at = graph.blocks[graph.blocks[id]?.parent ?? ""]; at;
        at = graph.blocks[at.parent ?? ""]) {

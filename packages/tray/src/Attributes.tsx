@@ -4,8 +4,9 @@
  *  inherits reads first and faint; it is edited where it is declared. */
 
 import { useState } from "react";
-import { all_defs, attributes_of, def_at, def_of, domain_of, form_of, frozen, is_tag, links_to,
-         setting_of, type Act, type Attribute, type Graph, type Id } from "@mnd/core";
+import { all_defs, all_types, attributes_of, def_at, def_of, domain_of, form_of, frozen,
+         links_to, type_at, type_name, FORMS, type Act, type Attribute, type Graph,
+         type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { resolved } from "@mnd/views";
 import { NOOP } from "./Body";
@@ -42,7 +43,7 @@ export function Attributes({ graph, id, onAct = NOOP }: AttributesProps) {
     : [{ key: "name", label: "name" }, { key: "type", label: "type" },
        { key: "value", label: "value" }, { key: "unit", label: "unit" }];
 
-  const typed = (a: Attribute) => def_at(graph, a.type)?.name ?? "text";
+  const typed = (a: Attribute) => type_name(graph, a.type);
   const box = (a: Attribute, key: "unit" | "default" | "note") => (
     <Entry value={a[key] ?? ""} label={`${key} of ${a.name}`} blank
            onCommit={(to) => field({ name: a.name, [key]: to })} />
@@ -65,11 +66,14 @@ export function Attributes({ graph, id, onAct = NOOP }: AttributesProps) {
                           onCommit={(to) => field({ name: a.name, type: to })} />
           : <span className={link ? "type link" : "type"}>{typed(a)}</span>,
         key: on ? (
-          <label className="check" title="whether its value names what carries it">
-            <input type="checkbox" checked={!!a.key}
-                   onChange={(e) => field({ name: a.name, key: e.target.checked })} />PK
-          </label>
-        ) : a.key ? "PK" : link ? "FK" : "",
+          <select title="whether its value names what carries it: the primary key, or unique"
+                  value={a.key ?? "none"}
+                  onChange={(e) => field({ name: a.name, key: e.target.value })}>
+            <option value="none">—</option>
+            <option value="primary">PK</option>
+            <option value="unique">UK</option>
+          </select>
+        ) : a.key === "primary" ? "PK" : a.key === "unique" ? "UK" : link ? "FK" : "",
         default: on ? box(a, "default") : a.default ?? "",
         unit: on ? box(a, "unit") : a.unit ?? "",
         ...Object.fromEntries(said.map((k) => [`@${k}`, a.extra?.[k] ?? ""])),
@@ -121,8 +125,11 @@ export function Attributes({ graph, id, onAct = NOOP }: AttributesProps) {
                                      onChange={(e) => set_adding(e.target.value)}
                                      onKeyDown={(e) => { if (e.key === "Enter") add(); }} /> },
                ready: !!adding.trim(), onAdd: add, title: "add it" } })} />
+      {/* The forms, the libraries' types, then block definitions: links. */}
       <datalist id={TYPES}>
-        {all_defs(graph).filter((x) => domain_of(graph, x.id) === "block" && !is_tag(graph, x.id))
+        {FORMS.map((f) => <option key={f} value={f} />)}
+        {all_types(graph).map((t) => <option key={t.id} value={t.name} />)}
+        {all_defs(graph).filter((x) => domain_of(graph, x.id) === "block")
           .map((x) => <option key={x.id} value={x.name} />)}
       </datalist>
     </div>
@@ -153,8 +160,8 @@ function Answer({ graph, attribute, value, onSet }: {
              onChange={(e) => onSet(e.target.checked ? "true" : "false")} />
     );
   }
-  const choices = setting_of(graph, attribute.type, "value")["choices"];
-  if (form === "choice" && Array.isArray(choices) && choices.length) {
+  const choices = type_at(graph, attribute.type)?.choices;
+  if (form === "choice" && choices?.length) {
     return (
       <select value={value} aria-label={attribute.name} onChange={(e) => onSet(e.target.value)}>
         <option value="">{attribute.default || "—"}</option>

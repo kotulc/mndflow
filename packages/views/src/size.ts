@@ -196,13 +196,15 @@ export function face_of(graph: Graph, id: Id): Face {
     const said = setting_of(graph, at, "layout")["cards"];
     if ((CARDS as readonly unknown[]).includes(said)) return said as Face;
   }
-  return "small";
+  /** A collection draws its records as a table on its card, where nothing above says small. */
+  return graph.blocks[id]?.records?.length ? "large" : "small";
 }
 
 /** The large face: its definition's `card.size`, else what its content fits — so one that shows
  *  nothing is the small face — with room for the marks `card` wears. */
 function large_of(graph: Graph, id: Id, card: Id): Size {
-  const look = look_of(graph, id);
+  /** The card's own look, as it draws: a reference may say another face than its target. */
+  const look = look_of(graph, card);
   if (look.size) return held_large(look.size);
   return fitted(shown_name(graph, id), face_text(graph, id, look), !!handle_of(graph, id, look),
                 face_table(graph, id, look, stamps_of(graph, card).length), edge_of(look));

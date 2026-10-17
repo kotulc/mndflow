@@ -2,7 +2,7 @@
 
 export * from "./derive";
 export * from "./face";
-export { table_graph } from "./table";
+export { class_graph, DRAWN_BY } from "./classes";
 export { legend_of, type Legend, type Row } from "./legend";
 export * from "./scene";
 export * from "./size";
@@ -20,9 +20,7 @@ export { BARE, PLAIN, face_attrs, look_key, look_of, wire_of, type Align,
          type Arrow, type Border, type Contrast, type Display, type Height,
          type Family, type Fill, type Font, type Look, type Part, type Weight, type Width,
          type Wire } from "./look";
-export { linked_graph, LINK } from "./links";
 export { survey_graph, FOREST } from "./survey";
-export { definition_graph, inherited_in, ASPECT } from "./definition";
 export { page_graph } from "./page";
 export { sheet_graph, GRID_LAYER } from "./sheet";
 export { read_through, resolved, type Resolved } from "./through";

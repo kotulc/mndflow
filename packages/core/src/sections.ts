@@ -4,7 +4,7 @@
  *  A section lists its root's subtree down to its cut: a block at the cut lists as a leaf, and
  *  what it holds is the next section's. A null root is the forest above every package. */
 
-import { def_at, is_domain, packages, tree_of } from "./defs";
+import { def_at, is_domain, owner_def, packages, tree_of } from "./defs";
 import { children, is_interface } from "./tree";
 import type { Block, Graph, Id } from "./types";
 
@@ -13,22 +13,21 @@ export type Cut = "package" | "tree" | null;
 
 /** How the canvas draws. **Layer views** draw one block, and its card's kind says which: from
  *  inside (`internal`), an opened grid's cells and the relations between them (`allocation`), a
- *  package's or folder's contents read down the page (`folder`), a definition with what
- *  describes it round it (`definition`), or a diagram the block names (`table`, `sequence`). The
- *  **system view** draws a whole section from above as nested boxes (`package`), and is the
- *  only one chosen. */
-export type ViewKind = "internal" | "allocation" | "folder" | "definition"
-  | "table" | "sequence" | "package";
+ *  package's or folder's contents read down the page (`folder`), or a diagram the block names
+ *  (`class`, `er`, `sequence`). A definition opens on the view its chain names, as its usages
+ *  do. The **system view** draws a whole section from above as nested boxes (`package`), and is
+ *  the only one chosen. */
+export type ViewKind = "internal" | "allocation" | "folder" | "class" | "er" | "sequence"
+  | "package";
 
 /** The views that draw one block. A section offers them as one choice, `internal`, and the block
  *  opened says which it shows. */
 export const LAYER_VIEWS: readonly ViewKind[] = [
-  "internal", "allocation", "folder", "definition", "table", "sequence"];
+  "internal", "allocation", "folder", "class", "er", "sequence"];
 
 /** The layer views drawn from inside, where what the layer holds is built. A diagram is read from
  *  inside too: it draws what the block holds, and nothing is laid out there. */
-const INSIDE: readonly ViewKind[] = [
-  "internal", "allocation", "folder", "table", "sequence"];
+const INSIDE: readonly ViewKind[] = LAYER_VIEWS;
 
 /** Which side a section lists. Unset, it lists every role, as a host that has not split does. */
 export type Lists = "domain" | "structure";
@@ -64,40 +63,32 @@ export function tops_of(graph: Graph, root: Id | null): Id[] {
   return graph.blocks[root] ? [root] : [];
 }
 
-/** Whether a block is one this side lists. Unset lists every block. Structure keeps anything off
- *  the definition side, and a definition-side block with structure under it. A package with none
- *  does not list. */
+/** Whether a block is a template's: a definition, or a part of one at any depth. */
+function in_template(graph: Graph, id: Id): boolean {
+  return !!graph.blocks[id]?.def || owner_def(graph, id) !== null;
+}
+
+/** Whether a block is one this side lists. Unset lists every block. **The library** lists the
+ *  definition side — packages, their definition folders, definitions — and each definition's parts
+ *  under it. **The model** lists usages only: structure outside every definition, and the
+ *  package roots and folders on the way to it. A package with none does not list. */
 export function on_side(graph: Graph, id: Id, lists?: Lists): boolean {
   if (!lists) return !!graph.blocks[id];
   if (!graph.blocks[id]) return false;
-  if (lists === "domain") return is_domain(graph, id);
+  if (lists === "domain") return is_domain(graph, id) || in_template(graph, id);
+  if (in_template(graph, id)) return false;
   if (!is_domain(graph, id)) return true;
   return below_structure(graph, id);
 }
 
-/** Whether this side lists a block. `also` is a definition the canvas is inside: structure lists
- *  it, and the definition-side blocks on the way to it, before it holds anything. */
-function admits(graph: Graph, id: Id, lists?: Lists, also?: Id | null): boolean {
-  if (on_side(graph, id, lists)) return true;
-  if (lists !== "structure" || !also || !graph.blocks[also]?.def) return false;
-  if (!is_domain(graph, id)) return false;
-  if (id === also) return true;
-  const seen = new Set<Id>();
-  for (let at = graph.blocks[also]?.parent ?? null; at && !seen.has(at);
-       at = graph.blocks[at]?.parent ?? null) {
-    seen.add(at);
-    if (at === id) return true;
-  }
-  return false;
-}
-
-/** Whether structure sits anywhere under a definition-side block. */
+/** Whether structure sits anywhere under a definition-side block, definitions apart. */
 function below_structure(graph: Graph, id: Id): boolean {
   const seen = new Set<Id>();
   const walk = (at: Id): boolean => {
     if (seen.has(at)) return false;
     seen.add(at);
     for (const c of shown(graph, at)) {
+      if (c.def) continue;
       if (!is_domain(graph, c.id)) return true;
       if (walk(c.id)) return true;
     }
@@ -111,13 +102,12 @@ function below_structure(graph: Graph, id: Id): boolean {
  *  sit on. `seen` holds the definitions read through on the way down, so one reached through
  *  itself lists once. A side drops what it does not list. */
 export function branch_of(graph: Graph, id: Id, cut: Cut, root: Id | null,
-                          seen: ReadonlySet<Id> = new Set(), lists?: Lists,
-                          also?: Id | null):
+                          seen: ReadonlySet<Id> = new Set(), lists?: Lists):
     { parts: Block[]; own: Block[]; used?: Id } {
   const b = graph.blocks[id];
   if (!b || (id !== root && at_cut(graph, cut, id))) return { parts: [], own: [] };
   const used = !b.def ? def_at(graph, b.type) : undefined;
-  const keep = (c: Block) => admits(graph, c.id, lists, also);
+  const keep = (c: Block) => on_side(graph, c.id, lists);
   const parts = (used && !seen.has(used.id) ? shown(graph, used.id) : []).filter(keep);
   return { parts, own: shown(graph, id).filter(keep), ...(used ? { used: used.id } : {}) };
 }
@@ -125,8 +115,8 @@ export function branch_of(graph: Graph, id: Id, cut: Cut, root: Id | null,
 /** Whether a section lists a block: a top row, or under one without passing its cut, and on
  *  the side the section lists. */
 export function in_section(graph: Graph, id: Id, root: Id | null, cut: Cut,
-                           lists?: Lists, also?: Id | null): boolean {
-  if (!admits(graph, id, lists, also)) return false;
+                           lists?: Lists): boolean {
+  if (!on_side(graph, id, lists)) return false;
   const tops = lists === "structure" ? tops_of(graph, null) : tops_of(graph, root);
   const seen = new Set<Id>();
   for (let at: Id | null = id; at && !seen.has(at); at = graph.blocks[at]?.parent ?? null) {

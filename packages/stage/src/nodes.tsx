@@ -307,6 +307,7 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   const room = data.marks.includes("room") ? "room" : "";
   const shell = ["mnd-group-shell", has_cells ? "gridded" : "", room].filter(Boolean).join(" ");
   const group = ["mnd-group", has_cells ? "gridded" : "", data.marks.includes("flat") ? "flat" : "",
+                 data.marks.includes("region") ? "region" : "",
                  room, selected ? "picked" : ""].filter(Boolean).join(" ");
   return (
     <div className={shell} {...face_attrs(look)}>

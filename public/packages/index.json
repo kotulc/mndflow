@@ -17,7 +17,7 @@
     },
     {
       "name": "diagrams",
-      "about": "diagrams a card's kind opens on: class (table), swimlane (allocation) and sequence",
+      "about": "diagrams a card's kind opens on — class, entity relationship, swimlane, sequence — behaviours, and the relation notations: association, composition, aggregation, dependency, flow",
       "at": "diagrams.json"
     },
     {

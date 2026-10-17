@@ -1,7 +1,0 @@
-name: Order status
-type: choice
-def: {}
-description: Where an order is.
-settings:
-  value:
-    choices: [ pending, paid, shipped, cancelled ]

@@ -4,7 +4,7 @@ import { block_base, def_at, def_named, frozen, package_of, relation_base, setti
          stored_type, type Domain } from "../defs";
 import { is_grid } from "../holders";
 import { next_alias } from "../names";
-import { children, next_order, reorder } from "../tree";
+import { children, next_order, part_end, reorder } from "../tree";
 import { new_id } from "../ids";
 import type { Cell, Graph, Id, Mutation, Side, Span } from "../types";
 import type { Args, Context } from "./registry";
@@ -121,8 +121,6 @@ export const run_type = (ctx: Context, args: Args): { type?: Id } => {
 export const NEEDS: Record<string, string> = {
   interface: "an interface sits on a block — add one to a block, then drop this onto it",
   reference: "a reference stands for a block — drag that block from the tree instead",
-  tag: "a tag is carried, not placed — type it into a block's tags in the tray",
-  value: "a value type is what an attribute holds — give an attribute this type instead",
 };
 
 /** Makes a block, numbered and ordered like every other. */
@@ -161,17 +159,20 @@ export function list(raw: unknown): string[] {
   return String(raw ?? "").split(",").map((v) => v.trim()).filter(Boolean);
 }
 
-/** The link a tie trait makes from a new block to the one it was made from: a relationship of the
- *  type its `tie` setting names. Nothing where its definition carries no tie. */
+/** The link a tie trait makes from a new block to the one it was made from — or to a part a usage
+ *  reads through, drawn `usage/part` — a relationship of the type its `tie` setting names. Nothing
+ *  where its definition carries no tie. */
 export function tied(ctx: Context, id: Id, parent: Id | null, type: Id | undefined,
                      from: Id | undefined): Mutation[] {
   const said = setting_of(ctx.graph, type, "tie")["type"];
-  if (!from || !ctx.graph.blocks[from] || typeof said !== "string") return [];
+  const end = from ? part_end(ctx.graph, from) : undefined;
+  if (!end || !ctx.graph.blocks[end.block] || typeof said !== "string") return [];
   const kind = def_at(ctx.graph, said) ? stored_type(ctx.graph, said) : undefined;
   const line = handles(ctx, "relation");
-  return [{ op: "link_blocks", edge: { id: new_id("edge"), from: id, to: from,
+  return [{ op: "link_blocks", edge: { id: new_id("edge"), from: id, to: end.block,
+                                       ...(end.part ? { toPart: end.part } : {}),
                                        alias: line.take(), ...(kind ? { type: kind } : {}) } },
-          ...line.bump(), ...after(ctx, id, parent, from)];
+          ...line.bump(), ...after(ctx, id, parent, end.block)];
 }
 
 /** A block just made, read right after `anchor` where the two share a parent: placed once, when

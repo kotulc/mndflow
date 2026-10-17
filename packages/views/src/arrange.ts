@@ -1,6 +1,6 @@
 /** Where everything in a layer sits. */
 
-import { children, drawn_in, is_aside, is_group, is_interface, layout_of,
+import { children, drawn_in, is_aside, is_box, is_interface, is_region, layout_of,
          type Block, type Graph, type Id, type Point } from "@mnd/core";
 import { band_members, band_size, celled, loose_unit, type Sized } from "./bands";
 import { beside, centred, noted } from "./float";
@@ -24,7 +24,7 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
   const how = layout_of(graph, layer);
   const unit = (id: Id) => loose_unit(graph, id);
   const sized_of = (b: Block): Sized => ({
-    b, s: is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
+    b, s: is_box(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   });
   const structural = loose.filter((b) => !is_satellite(graph, layer, b)).map(sized_of);
   const satellites = loose.filter((b) => is_satellite(graph, layer, b))
@@ -32,15 +32,24 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
 
   /** `auto` arranges each kind its own way, notes floating beside what they are tied to. A
    *  computed page has written its places, and `free` draws what was put where it was put. */
-  const spots = how === "auto"
+  const spots = spanned(graph, layer, how === "auto"
     ? noted(graph, layer, [...structural, ...satellites], across_of(graph, layer))
     : how === "layered" ? layered(graph, layer, [...structural, ...satellites])
-    : free(structural, satellites, (b) => belongs_to(graph, layer, b).map(unit));
+    : free(structural, satellites, (b) => belongs_to(graph, layer, b).map(unit)));
 
   /** Bands first, then cells: a grid in a band takes its spot from the band. */
   const band_spots = band_members(graph, layer, how, units, spots);
   const cell_spots = celled(graph, units, [...spots, ...band_spots]);
   return unique([...spots, ...band_spots, ...cell_spots]);
+}
+
+/** Regions span their layer: each band on it as wide as the whole arrangement, from its left. */
+function spanned(graph: Graph, layer: Id | null, spots: Placed[]): Placed[] {
+  const band = (p: Placed) => graph.blocks[p.id]?.parent === layer && is_region(graph, p.id);
+  if (!spots.some(band)) return spots;
+  const left = Math.min(...spots.map((p) => p.x));
+  const right = Math.max(...spots.map((p) => p.x + p.w));
+  return spots.map((p) => (band(p) ? { ...p, x: left, w: right - left } : p));
 }
 
 function unique(spots: Placed[]): Placed[] {

@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR } from "@mnd/fixtures";
-import { ROOT, check, children, def_of, is_grid,
+import { ROOT, check, children, def_named, def_of, is_grid, tag_at,
          session, type Id, type Session } from "../src/index";
 
 /** A seeded session holding blocks of these names in `main`. */
@@ -41,6 +41,9 @@ describe("notes and ends", () => {
 
   it("refuses promoting an end that is already an interface", () => {
     const { s, at } = made("A", "B");
+    /** An interface is declared on a definition: B follows one. */
+    s.go("define", { name: "Kind" });
+    s.go("retype", { ids: [at("B")], type: def_named(s.graph(), "Kind")!.id });
     s.go("relate", { from: at("A"), to: at("B") });
     const line = newest(s);
     expect(s.go("interface", { edge: line, end: "to" })).toBeNull();
@@ -80,7 +83,7 @@ describe("tags", () => {
     const { s, at } = made("A", "B");
     s.go("relate", { from: at("A"), to: at("B") });
     s.go("tag", { ids: [at("A"), newest(s)], tags: "hot, hot , wet" });
-    const names = (ids: string[] | undefined) => (ids ?? []).map((id) => s.graph().blocks[id]?.name);
+    const names = (ids: string[] | undefined) => (ids ?? []).map((id) => tag_at(s.graph(), id)?.name);
     expect(names(s.graph().blocks[at("A")]!.tags)).toEqual(["hot", "wet"]);
     expect(names(s.graph().edges[newest(s)]!.tags)).toEqual(["hot", "wet"]);
   });

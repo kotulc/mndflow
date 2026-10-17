@@ -33,7 +33,7 @@ export type FaceProps = {
   /** The large face's markdown. Absent, the face is small. */
   text?: string;
   /** The large face's attributes: each row's cells, and each column's width in pixels. */
-  table?: { cells: readonly (readonly string[])[]; widths: readonly number[] };
+  table?: { cells: readonly (readonly string[])[]; widths: readonly number[]; split?: number };
   /** False where a large face is its markdown alone. */
   head?: boolean;
   /** The name as drawn, where a host draws it itself — the canvas's, which renames in place. */
@@ -67,7 +67,7 @@ export function CardFace({ label, alias, kind, kinded, role, icon, holds, stamps
           {kinded === "inside" ? word("") : null}
         </div>
       ) : null}
-      {ruled ? <Ruled cells={table!.cells} widths={table!.widths} /> : null}
+      {ruled ? <Ruled {...table!} /> : null}
       {large && text ? <Markdown className="mnd-face-body" text={text} /> : null}
       {kinded === "below" ? word("mnd-under") : null}
     </div>
@@ -76,7 +76,7 @@ export function CardFace({ label, alias, kind, kinded, role, icon, holds, stamps
 
 /** A large face's attributes, ruled: every column the width it was measured at, the last taking
  *  whatever room the card has over. A cell cut short says itself whole when pointed at. */
-function Ruled({ cells, widths }: NonNullable<FaceProps["table"]>) {
+function Ruled({ cells, widths, split }: NonNullable<FaceProps["table"]>) {
   return (
     <table className="mnd-face-table">
       <colgroup>
@@ -84,7 +84,9 @@ function Ruled({ cells, widths }: NonNullable<FaceProps["table"]>) {
       </colgroup>
       <tbody>
         {cells.map((row, r) => (
-          <tr key={r}>{row.map((cell, c) => <td key={c} title={cell}>{cell}</td>)}</tr>
+          <tr key={r} className={r === split ? "mnd-split" : undefined}>
+            {row.map((cell, c) => <td key={c} title={cell}>{cell}</td>)}
+          </tr>
         ))}
       </tbody>
     </table>

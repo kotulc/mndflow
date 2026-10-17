@@ -1,35 +1,38 @@
-/** A collection: a folder of definitions, diagram files and card sources, as one package — or
- *  as the workspace. **Read one way**: a folder becomes a package file, never the reverse.
+/** A source folder: a package on disk — definitions, diagram files and card sources — collected
+ *  into one package, or into the workspace. **Read one way**: a folder becomes a package file,
+ *  never the reverse.
  *
- *  `package.json`, where there is one, holds the package's graph; every other `.json` file under
- *  the folder is **one definition**, filed under the folder its directory names. Every `.yaml`
- *  file is a **diagram file** and every `.md` file a **card source** — one schema, a card source
- *  a diagram file with a body — each one block and its layer, named rather than identified: its
- *  ids are minted in file order and its names read here. Every directory is a folder holder; a
- *  top one holding only definitions files them. A definition said twice is a clash, and refused.
- *  A type or tag a file names and nothing loaded holds is made here, its attributes the union of
- *  what its usages answer, each type read off the values. */
+ *  `package.json`, where there is one, holds the package's graph, its library on its root; every
+ *  other `.json` file under the folder is **one definition**, filed under the folder its
+ *  directory names. Every `.yaml` file is a **diagram file** and every `.md` file a **card
+ *  source** — one schema, a card source a diagram file with a body — each one block and its layer,
+ *  named rather than identified: its ids are minted in file order and its names read here. Every
+ *  directory is a folder; a top one holding only definitions files them. A definition said twice
+ *  is a clash, and refused. A definition, type or tag a file names and nothing loaded holds is
+ *  made here — a definition's attributes the union of what its usages answer, each type read off
+ *  the values. */
 
 import { parse } from "yaml";
 import { read_card } from "./card";
 import { all_defs, block_base, def_at, dir_of, package_of } from "./defs";
 import { long_form, type Edge, type Entry, type LongForm } from "./diagram";
-import { write } from "./file";
+import { renamed, write } from "./file";
+import { all_tags, all_types, is_form } from "./library";
 import { def_ref, fits_domain, is_path, path_to, STEP } from "./refs";
-import { is_tag } from "./tags";
-import { children, ports_of } from "./tree";
+import { children, ports_on } from "./tree";
 import type { Leaf } from "./ports";
-import type { Attribute, Block, Graph, Id, Relation, Value } from "./types";
+import { FORMS, type Attribute, type Block, type Form, type Graph, type Id,
+         type Relation, type Tag, type Type, type Value } from "./types";
 
-/** What a collection came to: the package file, the definitions it had to make, the files saying
- *  a definition already said, which it refused, and what it could not read or find. */
+/** What collecting came to: the package file, what it had to make, the files saying a definition
+ *  already said, which it refused, and what it could not read or find. */
 export type Collected = { text: string; made: string[]; clashes: string[]; notes: string[] };
 
-/** How a collection is read: `bare` keeps definition files' ids as written, as `base`'s are;
+/** How a source folder is read: `bare` keeps definition files' ids as written, as `base`'s are;
  *  `root` collects into that root — the workspace's — rather than a package of its own. */
 export type Collecting = { bare?: boolean; root?: Id };
 
-/** The file a collection keeps its definitions in. */
+/** The file a source folder keeps its package's graph in. */
 export const DEFINITIONS = "package.json";
 
 const MARKDOWN = /\.(md|mdx)$/i;
@@ -40,11 +43,11 @@ const JSON_FILE = /\.json$/i;
 type Read = { path: string; dir: string[]; id: Id; form: LongForm };
 
 /** What a file's names are read against. */
-type Ctx = { graph: Graph; slug: Id; made: Map<string, Id>; notes: string[]; file: Read;
-             within: Id[] };
+type Ctx = { graph: Graph; slug: Id; pre: string; made: Map<string, Id>; notes: string[];
+             file: Read; within: Id[] };
 
 
-/** A collection's files as a package file, read against what `over` already holds. */
+/** A source folder's files as a package file, read against what `over` already holds. */
 export function collect(name: string, leaves: readonly Leaf[], over: Graph,
                         { bare = false, root }: Collecting = {}): Collected {
   const slug = root ?? slug_of(name);
@@ -59,11 +62,10 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   graph.blocks[slug] = { id: slug, parent: null, name: over.blocks[slug]?.name ?? name };
   const sorted = [...leaves].sort((a, z) => a.path.localeCompare(z.path));
   const files = sorted.filter((l) => l.path !== DEFINITIONS && JSON_FILE.test(l.path));
-  const { filed, clashes, named } = defined(graph, slug,
-                                            sorted.find((l) => l.path === DEFINITIONS)?.text, files,
-                                            bare);
+  const { filed, clashes, named: called } = defined(graph, slug,
+    sorted.find((l) => l.path === DEFINITIONS)?.text, files, bare);
   /** The package file names its root, the workspace's too. */
-  if (named) graph.blocks[slug]!.name = named;
+  if (called) graph.blocks[slug]!.name = called;
   const notes: string[] = [];
 
   const orders = new Map<Id, number>();
@@ -97,16 +99,18 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   const counters: Record<string, number> = { ...over.blocks[slug]?.counters };
   const alias = (kind: string) => (counters[kind] = (counters[kind] ?? 0) + 1);
 
-  /** Every block is laid first, so a name in one file finds a block in another. */
+  /** Every block, interface and named component is laid first, so a name in one file finds what
+   *  another says. */
   for (const r of own) {
     const parent = folder(r.dir);
     lay(graph, r, parent, next(parent));
+    library(graph, slug, pre, r.form.library);
   }
-  /** A file names its own collection's definitions as well as those of the packages it lists. */
-  const ctx_of = (r: Read): Ctx => ({ graph, slug, made, notes, file: r,
+  /** A file names its own package's definitions as well as those of the packages it lists. */
+  const ctx_of = (r: Read): Ctx => ({ graph, slug, pre, made, notes, file: r,
                                       within: [slug, ...r.form.packages.map(pkg_of)] });
-  /** What each definition extends comes first: whether a name is a tag or a relation is read off
-   *  the chain it heads. */
+  /** What each definition extends comes first: whether a name is a relation is read off the chain
+   *  it heads. */
   for (const r of own) {
     for (const [id, e] of entries_of(r)) {
       if (e.def && e.type) graph.blocks[id]!.type = extended(ctx_of(r), e.type);
@@ -151,7 +155,7 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
 }
 
 /** What the files want loaded before they are read: every package a diagram file or a card
- *  source lists, a path said from the collection's root. */
+ *  source lists, a path said from the source folder's root. */
 export function wanted(leaves: readonly Leaf[]): string[] {
   const out = new Set<string>();
   for (const r of read_all(leaves, "", [])) {
@@ -221,7 +225,7 @@ function sourced(reads: readonly Read[]): Set<string> {
   return drawn;
 }
 
-/** A path said relative to a file's directory, from the collection's root. */
+/** A path said relative to a file's directory, from the source folder's root. */
 function joined(dir: readonly string[], path: string): string {
   const out = [...dir];
   for (const step of path.split("/")) {
@@ -241,7 +245,8 @@ function entries_of(r: Read): [Id, Entry][] {
   return [[r.id, r.form.top], ...r.form.blocks.map((e, i): [Id, Entry] => [`${r.id}.${i + 1}`, e])];
 }
 
-/** A file's blocks laid under its folder, named and nested, before any name is read. */
+/** A file's blocks laid under its folder, named and nested, before any name is read: a
+ *  definition with the interfaces it declares, their types read later. */
 function lay(graph: Graph, r: Read, parent: Id, order: number): void {
   const orders = new Map<Id, number>();
   for (const [id, e] of entries_of(r)) {
@@ -251,9 +256,11 @@ function lay(graph: Graph, r: Read, parent: Id, order: number): void {
       id, parent: up, order: id === r.id ? order : orders.get(up)!,
       ...(e.name ? { name: e.name } : {}), ...(e.body !== undefined ? { body: e.body } : {}),
       ...(e.description ? { description: e.description } : {}),
-      ...(e.source ? { source: e.source } : {}), ...(e.def ? { def: {} } : {}),
+      ...(e.source ? { source: e.source } : {}),
+      ...(e.def ? { def: {} } : {}),
       ...(e.settings ? { settings: e.settings as Block["settings"] } : {}),
       ...(e.values.length ? { values: e.values } : {}),
+      ...(e.records?.length ? { records: e.records } : {}),
       ...(e.w !== undefined ? { w: e.w } : {}), ...(e.h !== undefined ? { h: e.h } : {}),
       ...(e.side ? { side: e.side as Block["side"] } : {}),
       ...(e.at !== undefined ? { at: e.at } : {}),
@@ -262,8 +269,40 @@ function lay(graph: Graph, r: Read, parent: Id, order: number): void {
   }
 }
 
+/** A file's named components put in its package's library, each by its name; one already there
+ *  is said again over it. */
+function library(graph: Graph, slug: Id, pre: string, said: LongForm["library"]): void {
+  const root = graph.blocks[slug]!;
+  const lib = { types: [...root.library?.types ?? []], tags: [...root.library?.tags ?? []] };
+  const text = (m: Record<string, unknown>, key: string) =>
+    (typeof m[key] === "string" ? (m[key] as string).trim() : "");
+  for (const t of said.types) {
+    const name = text(t, "name");
+    if (!name) continue;
+    const form = (is_form(text(t, "form")) ? text(t, "form")
+      : Array.isArray(t["choices"]) ? "choice" : "text") as Form;
+    const type: Type = { id: type_id(pre, name), name, form,
+      ...(Array.isArray(t["choices"]) ? { choices: (t["choices"] as unknown[]).map(String) } : {}),
+      ...(text(t, "unit") ? { unit: text(t, "unit") } : {}),
+      ...(text(t, "description") ? { description: text(t, "description") } : {}) };
+    lib.types = [...lib.types.filter((x) => x.id !== type.id), type];
+  }
+  for (const t of said.tags) {
+    const name = text(t, "name");
+    if (!name) continue;
+    const tag: Tag = { id: `${pre}tag.${slug_of(name)}`, name,
+                       ...(text(t, "description") ? { description: text(t, "description") } : {}) };
+    lib.tags = [...lib.tags.filter((x) => x.id !== tag.id), tag];
+  }
+  if (lib.types.length || lib.tags.length) {
+    root.library = { ...(lib.types.length ? { types: lib.types } : {}),
+                     ...(lib.tags.length ? { tags: lib.tags } : {}) };
+  }
+}
+
 /** A block's names read: a `parent` it names, what it is, what it carries, what it stands for,
- *  and the ids its attributes and settings name. Gives back its type, where it has one. */
+ *  and the ids its attributes, interfaces and settings name. Gives back its type, where it has
+ *  one. */
 function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
   const { graph } = ctx;
   const b = graph.blocks[id]!;
@@ -282,13 +321,12 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
       for (const k of said) delete b[k];
     }
   }
-  if (e.tags) b.tags = e.tags.map((t) => named(ctx, t, "tag"));
+  if (e.tags) b.tags = e.tags.map((t) => tag_of(ctx, t));
   if (e.traits) b.traits = [...e.traits];
   if (e.of) b.of = ref(ctx, e.of, true, id) ?? e.of;
   if (e.def) {
     const attributes = (e.def.attributes ?? []).map((a) => (typeof a["type"] === "string"
-      ? { ...a, type: def_ref(graph, a["type"], { within: ctx.within }) ?? a["type"] } : a)) as
-      unknown as Attribute[];
+      ? { ...a, type: type_of(ctx, a["type"]) } : a)) as unknown as Attribute[];
     /** On a definition, a value is an attribute's default. */
     for (const v of e.values) {
       const a = attributes.find((x) => x.name === v.name);
@@ -296,7 +334,8 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
       else attributes.push({ name: v.name, default: v.value } as Attribute);
     }
     delete b.values;
-    b.def = attributes.length ? { attributes } : {};
+    b.def = { ...(attributes.length ? { attributes } : {}),
+              ...(e.def.ends ? { ends: e.def.ends } : {}) };
   }
   if (b.settings) b.settings = ided(ctx, b.settings);
   return type;
@@ -348,22 +387,24 @@ function relation(ctx: Ctx, id: Id, e: Edge): Relation | undefined {
   return { id, from: from.at, to: to.at, ...(from.part ? { fromPart: from.part } : {}),
            ...(to.part ? { toPart: to.part } : {}), ...(type && type !== "line" ? { type } : {}),
            ...(e.name ? { name: e.name } : {}),
-           ...(e.tags ? { tags: e.tags.map((t) => named(ctx, t, "tag")) } : {}),
+           ...(e.tags ? { tags: e.tags.map((t) => tag_of(ctx, t)) } : {}),
            ...(Object.keys(all).length ? { settings: all as Relation["settings"] } : {}),
-           ...(e.values.length ? { values: e.values } : {}) };
+           ...(e.values.length ? { values: e.values } : {}),
+           ...(e.ends ? { ends: e.ends } : {}) };
 }
 
-/** A relation's end a word names: a block, else `usage::port` — a usage and an interface its
- *  definition's chain declares, read through. */
+/** A relation's end a word names: a block — an interface of this file's block included — else
+ *  `usage::port`: a usage and an interface it wears, its own or read through its definition. */
 function end_of(ctx: Ctx, word: string): { at: Id; part?: Id } | undefined {
   const at = ref(ctx, word, false);
   if (at) return { at };
   const steps = word.split(STEP).map((s) => s.trim());
   const port = steps.pop();
   const usage = steps.length ? ref(ctx, steps.join(STEP), false) : undefined;
-  const part = usage ? ports_of(ctx.graph, ctx.graph.blocks[usage]?.type)
-    .find((p) => p.name === port) : undefined;
-  return usage && part ? { at: usage, part: part.id } : undefined;
+  const hit = usage ? ports_on(ctx.graph, usage).find((p) => p.name === port) : undefined;
+  if (!usage || !hit) return undefined;
+  /** Its own is met as itself; its definition's is read through. */
+  return hit.parent === usage ? { at: hit.id } : { at: usage, part: hit.id };
 }
 
 /** A block a word names, other than the one asking: one in this file, by name or path; else a
@@ -383,7 +424,8 @@ function local(ctx: Ctx, word: string, asking?: Id): Id | undefined {
 }
 
 /** Settings naming definitions by id — what a usage may hold, what a relation's ends may join,
- *  the type a tie is — each name read as the definition it names. */
+ *  the type a tie is, what a collection's records are — each name read as the definition it
+ *  names. */
 function ided(ctx: Ctx, settings: Record<string, unknown>): Block["settings"] {
   const id = (word: unknown) => (typeof word === "string"
     ? def_ref(ctx.graph, word, { within: ctx.within }) ?? word : word);
@@ -396,6 +438,7 @@ function ided(ctx: Ctx, settings: Record<string, unknown>): Block["settings"] {
     if (ends) for (const key of ["from", "to"]) if (key in ends) ends[key] = ids(ends[key]);
   }
   if (out["tie"]?.["type"]) out["tie"]["type"] = id(out["tie"]["type"]);
+  if (out["records"]?.["of"]) out["records"]["of"] = id(out["records"]["of"]);
   return out as Block["settings"];
 }
 
@@ -406,11 +449,12 @@ function holds_structure(graph: Graph, id: Id): boolean {
 }
 
 
-/** A package's graph and its definition files, laid under the collection's root: its root
- *  becomes this one, and every id they wrote keeps its own prefix or takes this one — or stays
- *  bare, where asked, as `base`'s do. A file saying a definition already said is a clash, and
- *  skipped; one that is a package file, not a definition, is not read. Gives back which block each
- *  file came to, by path, the clashes, and the name the package file gives its root. */
+/** A package's graph and its definition files, laid under the source folder's root: its root
+ *  becomes this one, its library comes with it, and every id they wrote keeps its own prefix or
+ *  takes this one — or stays bare, where asked, as `base`'s do. A file saying a definition already
+ *  said is a clash, and skipped; one that is a package file, not a definition, is not read. Gives
+ *  back which block each file came to, by path, the clashes, and the name the package file gives
+ *  its root. */
 function defined(graph: Graph, slug: Id, text: string | undefined, files: readonly Leaf[],
                  bare: boolean): { filed: Map<string, Id>; clashes: string[]; named?: string } {
   let from: Graph = { root: slug, blocks: {}, edges: {} };
@@ -429,42 +473,36 @@ function defined(graph: Graph, slug: Id, text: string | undefined, files: readon
     blocks[b.id] = { ...b, parent: from.root, def: b.def ?? {} };
     said.set(leaf.path, b.id);
   }
+  const lib = from.blocks[from.root]?.library;
   const ids = new Map<Id, Id>([[from.root, slug]]);
-  for (const id of Object.keys(blocks)) {
-    if (id === from.root) continue;
-    ids.set(id, bare || id.startsWith(`${slug}.`) ? id
-      : id.startsWith(`${from.root}.`) ? `${slug}.${id.slice(from.root.length + 1)}`
-      : `${slug}.${id}`);
-  }
-  const at = (id: Id | undefined) => (id === undefined ? undefined : ids.get(id) ?? id);
-  const all = (list: Id[] | undefined) => list?.map((x) => at(x)!);
+  const prefixed = (id: Id) => (bare || id.startsWith(`${slug}.`) ? id
+    : id.startsWith(`${from.root}.`) ? `${slug}.${id.slice(from.root.length + 1)}` : `${slug}.${id}`);
+  for (const id of Object.keys(blocks)) if (id !== from.root) ids.set(id, prefixed(id));
+  for (const c of [...lib?.types ?? [], ...lib?.tags ?? []]) ids.set(c.id, prefixed(c.id));
   for (const b of Object.values(blocks)) {
-    if (b.id === from.root) continue;
-    const id = at(b.id)!;
-    graph.blocks[id] = { ...b, id, parent: at(b.parent ?? undefined) ?? slug,
-                         ...(b.type ? { type: at(b.type) } : {}), ...(b.of ? { of: at(b.of) } : {}),
-                         ...(b.tags ? { tags: all(b.tags) } : {}),
-                         ...(b.def?.attributes ? { def: { attributes: b.def.attributes
-                           .map((a) => (a.type ? { ...a, type: at(a.type) } : a)) } } : {}) };
+    const id = ids.get(b.id)!;
+    const kept = renamed(b, ids);
+    if (b.id === from.root) {
+      if (kept.library) graph.blocks[slug]!.library = kept.library;
+      continue;
+    }
+    graph.blocks[id] = { ...kept, id, parent: kept.parent ?? slug };
   }
   for (const e of Object.values(from.edges)) {
     const id = `${slug}.${e.id}`;
-    graph.edges[id] = { ...e, id, from: at(e.from)!, to: at(e.to)!,
-                        ...(e.type ? { type: at(e.type) } : {}),
-                        ...(e.tags ? { tags: all(e.tags) } : {}) };
+    graph.edges[id] = { ...renamed(e, ids), id };
   }
-  return { filed: new Map([...said].map(([path, id]) => [path, at(id)!])), clashes,
+  return { filed: new Map([...said].map(([path, id]) => [path, ids.get(id)!])), clashes,
            named: from.blocks[from.root]?.name };
 }
 
 /** The definition a word names: an id or `pkg.name`; this package's; or the one the file's
  *  packages — else anything loaded — hold. Nothing, or more than one, and it is made here, at the
  *  package's root — a relation definition as a plain line — and said. */
-function named(ctx: Ctx, word: string, kind: "block" | "tag" | "relation"): Id {
+function named(ctx: Ctx, word: string, kind: "block" | "relation"): Id {
   const { graph, slug, made } = ctx;
   const said = word.trim();
-  const of_kind = kind === "relation" ? fits_domain(graph, "relation")
-    : (id: Id) => fits_domain(graph, "block")(id) && (kind === "tag") === is_tag(graph, id);
+  const of_kind = fits_domain(graph, kind);
   /** A package never leans on the workspace, which it would have to carry. */
   const fits = (id: Id) => of_kind(id)
     && (slug === graph.root || package_of(graph, id) !== graph.root);
@@ -474,15 +512,57 @@ function named(ctx: Ctx, word: string, kind: "block" | "tag" | "relation"): Id {
   const hit = def_ref(graph, said, { within: ctx.within, fits });
   if (hit) return hit;
   /** Each kind its own id, so a made block type and a made relation of one name stay apart. */
-  const id = `${slug === graph.root ? "" : `${slug}.`}${kind === "block" ? "type" : kind}.`
-    + slug_of(said);
+  const id = `${ctx.pre}${kind === "block" ? "type" : kind}.${slug_of(said)}`;
   if (!def_at(graph, id)) {
     graph.blocks[id] = { id, parent: slug, name: said, def: {},
-                         ...(kind === "tag" ? { type: "tag" } : {}),
                          ...(kind === "relation" ? { type: "line" } : {}) } as Block;
     made.set(said, id);
   }
   return id;
+}
+
+/** The tag a word names: this package's, or one the file's packages hold. Nothing, and it is
+ *  made in this package's library. */
+function tag_of(ctx: Ctx, word: string): Id {
+  const said = word.trim();
+  const hit = in_scope(ctx, all_tags(ctx.graph), said);
+  if (hit) return hit;
+  const id = `${ctx.pre}tag.${slug_of(said)}`;
+  library(ctx.graph, ctx.slug, ctx.pre, { types: [], tags: [{ name: said }] });
+  ctx.made.set(said, id);
+  return id;
+}
+
+/** What an attribute or an interface carries, by name: a form, a type of this package or the
+ *  file's packages, or a block definition. Nothing, and an alias of text is made in this
+ *  package's library. */
+function type_of(ctx: Ctx, word: string): Id {
+  const said = word.trim();
+  if (is_form(said)) return said;
+  const hit = in_scope(ctx, all_types(ctx.graph), said)
+    ?? def_ref(ctx.graph, said, { within: ctx.within, fits: fits_domain(ctx.graph, "block") });
+  if (hit) return hit;
+  library(ctx.graph, ctx.slug, ctx.pre, { types: [{ name: said, form: "text" }], tags: [] });
+  ctx.made.set(said, type_id(ctx.pre, said));
+  return type_id(ctx.pre, said);
+}
+
+/** A library type's id: its own kind, so a made block definition of one name (`type.`) and a
+ *  made type stay apart. */
+function type_id(pre: string, name: string): Id {
+  return `${pre}datatype.${slug_of(name)}`;
+}
+
+/** The one named component of this name the file may see: its own package's, else its packages'
+ *  and `base`'s, else any loaded. */
+function in_scope(ctx: Ctx, held: readonly { id: Id; name: string; pkg: Id }[],
+                  name: string): Id | undefined {
+  const hits = held.filter((c) => c.id === name || c.name === name);
+  const own = hits.filter((c) => c.pkg === ctx.slug);
+  if (own.length) return own[0]!.id;
+  const seen = hits.filter((c) => ctx.within.includes(c.pkg));
+  const pick = seen.length ? seen : hits;
+  return pick.length === 1 ? pick[0]!.id : undefined;
 }
 
 /** Attributes from what usages answered: every name said, in the order first said, each typed
@@ -491,7 +571,7 @@ function inferred(sets: readonly Value[][]): Attribute[] {
   const names = [...new Set(sets.flatMap((s) => s.map((v) => v.name)))];
   return names.map((name) => {
     const said = sets.flatMap((s) => s.filter((v) => v.name === name && v.value).map((v) => v.value));
-    const type = !said.length ? "text"
+    const type: (typeof FORMS)[number] = !said.length ? "text"
       : said.every((v) => /^-?\d+(\.\d+)?$/.test(v)) ? "number"
       : said.every((v) => v === "true" || v === "false") ? "flag"
       : said.every((v) => /^https?:\/\/\S+$/.test(v)) ? "link" : "text";

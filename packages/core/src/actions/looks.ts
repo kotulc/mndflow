@@ -1,54 +1,12 @@
-/** Tags and looks on an element or a definition. */
+/** Traits and looks on an element or a definition. */
 
 import { component, NUMBERS } from "../components";
-import { new_id } from "../ids";
 import { is_trait } from "../defs";
-import { tag_folder, tag_home, tag_named } from "../tags";
-import { TAGS } from "../types";
-import type { Id, Mutation } from "../types";
+import type { Mutation } from "../types";
 import { register, type Args } from "./registry";
 import { borrowed, ids_of, list, text } from "./helpers";
-import { new_def } from "./definitions";
 
 register(
-  {
-    name: "tag",
-    about: "sets the tags an element or a definition carries, replacing what it carried — a new "
-      + "word makes a tag in the workspace's tags folder; none gives the list back",
-    on: ["block", "edge", "layer", "selection"],
-    /** The whole list, replaced in one step: tag ids or names, or new words. Absent gives the
-     *  element its definition's again. */
-    args: [{ name: "ids", form: "block", required: true }, { name: "tags", form: "text" }],
-    check: (ctx, args) => {
-      const ids = ids_of(ctx, args);
-      if (!ids.length) return "nothing is selected";
-      const why = ids.map((id) => borrowed(ctx.graph, id)).find(Boolean);
-      if (why) return why;
-      const trait = list(args["tags"]).find((w) => is_trait(w));
-      return trait ? `"${trait}" is a trait: a definition lists it in its traits` : null;
-    },
-    run: (ctx, args) => {
-      if (args["tags"] === undefined || args["tags"] === null) {
-        return { mutations: ids_of(ctx, args).map((id): Mutation => ({ op: "set_tags", id, tags: null })) };
-      }
-      const out: Mutation[] = [];
-      const made = new Map<string, Id>();
-      const folder = tag_folder(ctx.graph);
-      const home = folder.length ? TAGS : tag_home(ctx.graph);
-      /** Each word as the tag it names, or a new one filed with the workspace's tags. */
-      const tags = list(args["tags"]).map((word) => {
-        const hit = tag_named(ctx.graph, word)?.id ?? made.get(word);
-        if (hit) return hit;
-        const id = new_id("def");
-        made.set(word, id);
-        if (!out.length) out.push(...folder);
-        out.push(new_def(ctx.graph, { id, name: word, type: "tag", def: {} }, home));
-        return id;
-      });
-      out.push(...ids_of(ctx, args).map((id): Mutation => ({ op: "set_tags", id, tags })));
-      return { mutations: out };
-    },
-  },
   {
     name: "trait",
     about: "sets the traits a definition carries — what the engine lets it do — replacing its "
@@ -76,11 +34,11 @@ register(
 
 /** The component keys a look may set. */
 const LOOKS: readonly string[] = ["card", "style", "line", "layout", "tie", "allows", "expects",
-                                  "value"];
+                                  "records"];
 
 /** Properties whose value is a list, split on commas. */
 const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.heads",
-                                  "expects.required", "expects.match", "value.choices"];
+                                  "expects.required", "expects.match"];
 
 /** Capabilities that are nested records, stated only on a definition. */
 const NESTED: readonly string[] = ["ends", "degree"];

@@ -84,7 +84,7 @@
 }
 
 /* A root — the packages, the definitions, the workspace — carries its name a shade stronger, and
-   every collection is ruled off from the one above it. */
+   every section is ruled off from the one above it. */
 .explorer .tree li.top .label { font-weight: 600; }
 .explorer .tree li.top:not(:first-child) { margin-top: 8px; }
 .explorer .tree li.top:not(:first-child)::before {

@@ -1,6 +1,6 @@
 /** Bands and grids inside a layer: members packed in a band, seated blocks placed by cell. */
 
-import { group_depth, inline, is_aside, is_flat, is_group, is_header, is_interface,
+import { group_depth, inline, is_aside, is_box, is_flat, is_header, is_interface,
          lattice_of, layout_of, members_of, type Block, type Graph, type Id, type Layout }
   from "@mnd/core";
 import type { Placed } from "./arrange";
@@ -19,7 +19,7 @@ const APART = BLOCK.h;
 /** Whether a block sits in a dashed band drawn on the layer, rather than on the layer itself. */
 export function in_band(graph: Graph, id: Id, layer: Id | null = null): boolean {
   const at = graph.blocks[id]?.parent ?? undefined;
-  return at !== layer && is_group(graph, at);
+  return at !== layer && is_box(graph, at);
 }
 
 /** What a band takes up for spacing: its members packed, at least as wide as it says it is, plus
@@ -44,12 +44,12 @@ export function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: La
   /** A band set free keeps each member where it was put, from the band's own corner. */
   if (layout_of(graph, band_id) === "free" && graph.blocks[band_id]?.settings?.["layout"]) {
     return from_corner(members.map((b) => ({ id: b.id, x: b.x ?? 0, y: b.y ?? 0,
-      ...(is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id)) })));
+      ...(is_box(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id)) })));
   }
 
   /** Members sit as on a layer: each kind arranged its own way, an aside beside its tie. */
   const sized = members.map((b): Sized => ({
-    b, s: is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
+    b, s: is_box(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   }));
   if (how === "auto") return from_corner(noted(graph, layer, sized, undefined, band_id));
   const floats = (it: Sized) => is_aside(graph, it.b.id)
@@ -57,7 +57,7 @@ export function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: La
   const laid_out = packed(
     sized.filter((it) => !floats(it))
       .sort((a, b) => (a.b.order ?? 0) - (b.b.order ?? 0) || a.b.id.localeCompare(b.b.id)),
-    graph.blocks[band_id]?.w, (id) => is_group(graph, id)).layout;
+    graph.blocks[band_id]?.w, (id) => is_box(graph, id)).layout;
   return from_corner([...laid_out,
     ...floated(graph, layer, sized.filter(floats), laid_out, band_id)]);
 }
@@ -77,7 +77,7 @@ function lay_band(graph: Graph, layer: Id | null, band_id: Id, origin: Placed,
   for (const p of band_layout(graph, layer, band_id, how)) {
     const spot = { id: p.id, x: origin.x + PAD + p.x, y: origin.y + PAD + p.y, w: p.w, h: p.h };
     out.push(spot);
-    if (is_group(graph, p.id)) lay_band(graph, layer, p.id, spot, how, out);
+    if (is_box(graph, p.id)) lay_band(graph, layer, p.id, spot, how, out);
   }
 }
 
@@ -87,7 +87,7 @@ export function band_members(graph: Graph, layer: Id | null, how: Layout,
   const at = new Map(spots.map((p) => [p.id, p]));
   const out: Placed[] = [];
   for (const b of units) {
-    if (!is_group(graph, b.id) || in_band(graph, b.id, layer)) continue;
+    if (!is_box(graph, b.id) || in_band(graph, b.id, layer)) continue;
     const band = at.get(b.id);
     if (!band) continue;
     lay_band(graph, layer, b.id, band, how, out);

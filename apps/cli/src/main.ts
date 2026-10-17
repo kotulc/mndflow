@@ -187,7 +187,7 @@ async function main(argv: string[]): Promise<void> {
     process.exit(verb ? 1 : 0);
   }
 
-  /** A collection is a folder, not a log: read whole, and written as a package file. */
+  /** A source folder is a folder, not a log: read whole, and written as a package file. */
   if (verb === "collect") {
     const { text, made, clashes, notes } = gathered(source, rest.includes("--workspace"),
                                                     rest.includes("--bare"));

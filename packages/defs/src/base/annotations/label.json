@@ -1,0 +1,22 @@
+{
+  "id": "label",
+  "name": "label",
+  "type": "block",
+  "description": "One line of text and no card: free, or tied to what it names. Its name tags what it is tied to.",
+  "def": {},
+  "traits": [
+    "has_tie"
+  ],
+  "settings": {
+    "card": {
+      "arrange": "aside",
+      "face": "text"
+    },
+    "style": {
+      "family": "note",
+      "fill": "none",
+      "border_style": "none",
+      "name_contrast": "strong"
+    }
+  }
+}

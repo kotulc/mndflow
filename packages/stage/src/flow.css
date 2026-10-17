@@ -113,6 +113,22 @@
   background: color-mix(in oklch, var(--card-ground-src, var(--card-fill)) 70%, var(--accent));
 }
 
+/* **A definition is an outline on the canvas**: no ground, its border in its colour, a pill while
+   small. A usage is filled. The role says which; the family or hue says what it is. Picked, it
+   keeps no ground to wash, so its border and a glow say so. */
+.mnd-flow .mnd-card.card-face.definition:not([data-face="text"], .relation) {
+  background: none;
+  border-color: var(--card-edge);
+  border-width: var(--weight-medium);
+}
+.mnd-flow .mnd-card.card-face.definition.small:not(.relation) { border-radius: 999px; }
+.mnd-flow .mnd-card.card-face.definition.large { border-radius: 8px; }
+.mnd-flow .mnd-card.card-face.definition.picked {
+  background: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 35%, transparent);
+}
+
 /* An interface, seated on a wall. */
 .mnd-seat {
   width: 100%;

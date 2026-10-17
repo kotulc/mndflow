@@ -26,7 +26,9 @@
 | `move` | puts blocks under a different parent, in the place you dropped them | block, selection | ids, parent, before?, spot? | `move_block` (+ `seat_cell`) |
 | `refer` | places a stand-in for a block, a definition or a package | layer | target, type?, spot?, parent?, at? | `add_block{of}` (+ `seat_cell`) |
 | `source` | says where a block's content lives outside the workspace, or gives it back | block | id, uri? | `set_source` |
-| `tag` | sets an element's tags, the whole list; a new word makes a tag in the workspace's `tags` folder; none gives the list back to its definition. Refuses a trait | block, edge, selection | ids, tags? | `set_tags` (+ `add_block`) |
+| `tag` | sets an element's tags, the whole list; a new word makes a tag in the workspace's library; none gives the list back to its definition. Refuses a trait | block, edge, selection | ids, tags? | `set_tags` (+ `set_library`) |
+| `define_tag` · `define_type` | make or change a tag, or a type — an enum or an alias — in the workspace's library | layer | name, id?, description?; form?, choices?, unit? | `set_library` |
+| `unmember` | takes away a tag an annotation gives: out of the group or region, or the label's tie deleted | block | id, from | `move_block` or `delete_edge` |
 | `trait` | sets the traits a definition carries, the whole list, or gives it back to its chain. Refuses a usage, and a word naming no trait | block, selection | ids, traits? | `set_traits` |
 | `look` | sets one property of how this draws or what it asks | block, edge, selection | ids, key, name, value? | `set_setting` |
 | `none` | gives back everything this says for itself | block, edge, selection | ids | `drop_settings` |
@@ -51,19 +53,18 @@
 
 | | Does | Scope | Arguments | Effect |
 |---|---|---|---|---|
-| `open` | draws a block on the view its kind calls for, or leaves this layer. `at`, the section it was opened from: a definition opened from where its structure is listed draws that | block | id?, at? | `open` |
+| `open` | draws a block on the view its kind calls for — a definition as its usages are — or leaves this layer. `at`, the section it was opened from | block | id?, at? | `open` |
 | `reveal` | opens the layer a block sits on and picks it there, followed through references | block | id | `open` + `focus` |
 
-- **Where the canvas goes is navigation's** (core `navigate.ts`): **the card's kind says the view** (`lens_of`) — a package or folder its package view, a definition its definition view, a grid its allocation view, a block that holds or may hold from inside, a stand-in what it stands for. A definition opened again, or from the section its structure roots, draws its structure. A group, a note and a leaf are revealed in place. Leaving a definition's structure returns to its definition view; leaving a package, to the package view. Both apps use the same functions.
-- **Editing on a definition view edits the definition** (core `aspects.ts`): a tag dropped there is added to the list in force, one deleted from its box taken out — the list becomes its own — a port deleted from its box deleted, and the note's text written as its description.
+- **Where the canvas goes is navigation's** (core `navigate.ts`): **the card's kind says the view** (`lens_of`) — a package or folder its package view, a grid its allocation view, a block that holds or may hold from inside, a stand-in what it stands for; **a definition opens as its usages do**, on the view its chain names. A group, a note and a leaf are revealed in place. Leaving a package returns to the package view. Both apps use the same functions.
 - **Opening a part opens its definition**, the part picked there.
-- **The way out of an interface is the way in**: leaving lands in whichever of its two layers you came from.
+- **An interface opens nothing**: it is a component of its block, drawn on its wall, with no layer of its own.
 
 ### Relationships
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `relate` | draws a relationship from one block, or a part of one, to another | layer | from, to, fromPart?, toPart?, type?, dir?, fromSide?, toSide? | `link_blocks` |
+| `relate` | draws a relationship from one block, or a part a usage reads through (`usage/part`), to another. A definition and a usage never relate, but by a tie | layer | from, to, type?, dir?, module? | `link_blocks` |
 | `relink` | takes one end of a relationship to another block or part | edge | id, end, to, part? | `set_end` + `set_side` |
 | `unlink` | removes a relationship, leaving the interfaces it met | edge | id | `delete_edge` |
 | `flip` | turns a relationship around | edge | id | `flip_edge` |
@@ -77,8 +78,9 @@
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `interface` | puts an interface on a block's border, and takes a relationship to it | block, edge | owner?, side?, at?, type?, edge?, end? | `add_block` (+ `set_end`, `set_side`) |
-| `mark` | marks an interface in, out, both, or clears it | interface | id, flow? | `mark_port` |
+| `interface` | puts an interface — a block of `interface` or an interface definition — on any block that *has ports*, and takes a relationship's end to one | block, edge | owner?, side?, at?, name?, type?, flow?, edge?, end? | `add_block` (+ `set_end`) |
+| `port` | changes an interface where it is held — its definition's, for one a usage reads through: its flow or seat; `free` lets it place itself. Its name and type are `rename` and `retype`, as any block's | interface | id, flow?, side?, at?, free? | `mark_port`, `set_port` |
+| `end` | says what one end of a relationship means: multiplicity and role on a line; also ownership and navigable on a relation definition. An empty word takes one back | edge, block | id, end, multiplicity?, role?, ownership?, navigable? | `set_ends` |
 
 **`interface` absorbs promotion**: naming the seat a relationship meets makes an interface there. An end already an interface is never promoted.
 
@@ -86,7 +88,7 @@
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `group` | makes a group round what is selected, or a grid over a region, and moves the selection into it | layer, selection | ids?, rows?, cols?, type?, spot? | `add_block` + `move_block`… (+ `set_grid`, `seat_cell`) |
+| `group` | makes a group round what is selected, or a grid over a region, and moves the selection into it; a region may start empty (`members: []`) | layer, selection | ids?, rows?, cols?, type?, spot? | `add_block` + `move_block`… (+ `set_grid`, `seat_cell`) |
 | `heads` | adds a header row or column to a grid, or takes it away | block, cell | grid?, way, on? | `set_grid` + `seat_cell`… |
 | `label` | names the block in a cell, or makes a plain block of that name in an empty one | cell | grid?, at?, text? | `update_block` / `add_block` + `seat_cell` |
 | `fill` | puts a new block in every empty body cell | block, cell | grid? | `add_block` + `seat_cell`… |
@@ -112,9 +114,9 @@
 | `define_from` | makes a definition of how a block or line is set, and makes it a usage of it | block, edge | id, name | `add_block{def}` + `update_block` / `update_edge` + `drop_settings` |
 
 - **One act, and the holder says which**: a value on a usage and an attribute on a definition are the same thing said of two holders.
-- **A type is named, never typed out**: `type` names a value type or a block definition by id or name; a name nothing holds makes a value type of the workspace's, extending `text`.
+- **A type is named, never typed out**: `type` names a form, a type or a block definition by id or name; a name nothing holds makes a type of the workspace's, an alias of `text`.
 - **`define` lands where the user is**: in the open domain, in the holder picked. Its domain (block or relation) is read off what it extends; absent, `block`. Its id is minted, or passed in by a caller that must know it.
-- **A name is unique in its package**, across definitions and tags.
+- **A name is unique in its package**, across definitions, types and tags.
 - **A name is unique among its siblings**: an act giving two siblings one name is refused, so a name ref finds one block.
 
 ### Card sources
@@ -145,7 +147,7 @@
 |---|---|---|---|---|
 | `place` | where something came to rest | block | moved[] | `place_block`… |
 | `size` | how big a card was asked to be | block | id, w, h | `size_block` |
-| `seat` | where an interface sits on its edge | interface | id, side, at | `set_port` |
+| `seat` | where an interface sits on its edge, written where it is held | interface | id, side, at | `set_port` |
 
 **One gesture, one step.** A drag that comes to several writes (a place and a move, a layout and a place) runs inside `session.batch`. **A drop resolves to an action**: a card on a card or into a holder is `move`; into a cell, `move` seating it; a grid's corner dragged is `set_grid`; a relationship's end on another block is `relink`.
 

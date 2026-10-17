@@ -54,6 +54,12 @@ const PATHS = {
   // stands for something that lives elsewhere, and the mark says which way.
   role_reference: "M7 5h12v12z",
   role_note: "M5 8h14M5 12h14M5 16h9",
+  // A label: one line of text, no card.
+  role_label: "M5 12h14M5 12v-3M19 12v-3",
+  // A region: bands stacked, the top one headed.
+  role_region: "M3.5 5.5h17M3.5 12h17M3.5 18.5h17M6 8.5h6M6 15h6",
+  // A tag: a ticket with a hole.
+  tag: "M4.5 4.5h7l8 8-7 7-8-8zM8.5 8.5h.01",
   // A boundary drawn round what it holds — rules that run off the edge, the
   // same hash the guides wear, because both are an unbounded frame.
   role_group: "M9 4v16M15 4v16M4 9h16M4 15h16",
@@ -241,6 +247,7 @@ export function Icon({ name, size = 16, solid = false, className }: {
 export const ROLE_ICON: Record<string, IconName> = {
   block: "role_leaf", folder: "role_folder", reference: "role_reference",
   interface: "role_interface", group: "role_group", grid: "role_table", note: "role_note",
+  label: "role_label", region: "role_region",
 };
 
 /** The icon for a role, falling back to the plain block's. */

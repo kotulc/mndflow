@@ -146,9 +146,9 @@ describe("what a block may become", () => {
     expect(base_of(s.graph(), id)).toBe("block");
   });
 
-  /** Block, folder, note, group and grid are one open family: none carries a field a retype
-   *  cannot invent, so each is the plain block with different configuration. */
-  it.each(["folder", "note", "group", "grid"])("makes a block a %s", (type) => {
+  /** Block, folder and grid are one open family: each is the plain block arranging what it holds
+   *  another way. */
+  it.each(["folder", "grid"])("makes a block a %s", (type) => {
     const s = kinds();
     s.go("create", { name: "A" });
     const id = children(s.graph(), ROOT).find((b) => b.name === "A")!.id;
@@ -156,8 +156,9 @@ describe("what a block may become", () => {
     expect(base_of(s.graph(), id)).toBe(type);
   });
 
-  /** The derived kinds each carry something a change of type cannot invent. */
-  it.each(["interface", "reference"])(
+  /** The derived kinds each carry something a change of type cannot invent, and a block never
+   *  becomes an annotation. */
+  it.each(["interface", "reference", "note", "group"])(
     "refuses to make a block a %s", (type) => {
       const s = kinds();
       s.go("create", { name: "A" });

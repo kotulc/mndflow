@@ -1,7 +1,7 @@
-/** The `base` package: one definition per functionally distinct kind, in a folder per branch —
- *  blocks, relations, tags (traits among them) and value types — shipped and frozen. **Each
+/** The `base` package: one definition per kind the engine treats differently, in a folder per
+ *  category — blocks, relations, components, organization and annotations — shipped and frozen. **Each
  *  definition is a file of its own** under `base/`, collected into one package file, `base.json`
- *  (`npm run base`), as any collection is; this reads it. */
+ *  (`npm run base`), as any source folder is; this reads it. */
 
 import { BASE_BLOCKS, BASE_PACKAGE, empty_graph, type Block, type Definition, type File, type Graph } from "@mnd/core";
 import file from "./base.json";

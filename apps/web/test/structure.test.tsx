@@ -1,4 +1,4 @@
-/** The tree-root mark, and adding structure from the explorer header. */
+/** The tree-root mark, and adding a part to a definition from the library's header. */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
@@ -29,7 +29,7 @@ function rows(view: { getAllByText: (text: string) => HTMLElement[] }, name: str
     .map((el) => el.closest("li")!);
 }
 
-describe("adding structure", () => {
+describe("adding a part", () => {
   it("marks the workspace outside structure, and a definition once it holds a block", () => {
     const view = render(<App storage={storage} />);
     for (const row of rows(view, "workspace")) fireEvent.click(row.querySelector(".mark")!);
@@ -38,11 +38,7 @@ describe("adding structure", () => {
     expect(rows(view, "Pump")[0]!.querySelector(".stamp")).toBeNull();
 
     fireEvent.click(rows(view, "Pump")[0]!);
-    fireEvent.click(view.getByTitle("add structure to Pump"));
-    const root = view.getByTitle("add structure to the definition in focus");
-    expect(root).toHaveProperty("disabled", true);
-
-    fireEvent.click(view.getByTitle("add a block in Pump"));
+    fireEvent.click(view.getByTitle("add a part in Pump"));
     const named = view.getByLabelText("name the block");
     fireEvent.change(named, { target: { value: "Motor" } });
     fireEvent.keyDown(named, { key: "Enter" });

@@ -6,7 +6,7 @@ import { Icon } from "./icons";
 export type WorkspaceHeaderProps = {
   /** Product name — rendered as the header title when a string. */
   brand: ReactNode;
-  /** Session / collection label beside the brand. */
+  /** Session / source folder label beside the brand. */
   where?: ReactNode;
   /** Header tools (undo, export, theme, …). */
   children?: ReactNode;

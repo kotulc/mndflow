@@ -27,6 +27,7 @@ export const put = (graph: Graph, id: Id, cell: Cell | null): Mutation => {
 /** What a block holds, seated as it becomes a grid of this lattice: those already in a body cell
  *  of their own stay there, and the rest take the nearest free cells in reading order. */
 export function seat_all(graph: Graph, id: Id, g: Grid): Mutation[] {
+  /** Interfaces sit on its wall, never in a cell. */
   const held = children(graph, id).filter((b) => !is_interface(graph, b.id));
   const taken = new Set<string>();
   const kept = new Set<Id>();
@@ -205,7 +206,8 @@ function removing(ctx: Context, args: Args, group: Id, way: "row" | "col"): numb
 register(
   {
     name: "label",
-    about: "names the block in a cell of a grid, or makes one of that name where the cell is empty",
+    about: "names the block in a cell of a grid, or makes a label of that name where the cell is "
+      + "empty",
     on: ["cell"],
     args: [{ name: "group", form: "block" }, { name: "at", form: "text" },
            { name: "text", form: "text", asks: true }],
@@ -219,14 +221,14 @@ register(
       return at_cell(ctx.graph, group, at.r, at.c) || text(args, "text")
         ? null : "an empty cell is named by typing a name into it";
     },
-    /** A cell holds a block, so typing into one names it — or makes a plain block of that name. */
+    /** A cell holds a block, so typing into one names it — or, empty, makes a label of that name. */
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
       const { r, c } = address(ctx, args, group)!;
       const name = text(args, "text");
       const held = at_cell(ctx.graph, group, r, c);
       if (held) return { mutations: [{ op: "update_block", id: held.id, name }] };
-      const made = make_block(ctx, name, group);
+      const made = make_block(ctx, name, group, "label");
       const id = (made[0] as { block: { id: Id } }).block.id;
       return { mutations: [...made, { op: "seat_cell", id, cell: { r, c } }] };
     },

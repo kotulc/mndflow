@@ -35,7 +35,7 @@ export function useRoom(scene: Scene, scroll = false) {
       && f.y + f.h <= held.room.y + held.room.h;
     const room = holds
       ? { ...held!.room, label: f.label, ports: f.ports,
-          ...(f.side ? { side: f.side } : {}), ...(f.seats ? { seats: f.seats } : {}) }
+          ...(f.seats ? { seats: f.seats } : {}) }
       : scroll ? f : panelled(f, seen);
     kept.current = { of: scene.layer, seen: seen_key, room };
     return met_on(room, scene);
@@ -131,6 +131,11 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
     const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
     if (!on) return false;
     const b = box_of(on);
+    /** A folder is zoomed to: its box fills the view. */
+    if (on.type === "group" && on.data.role === "folder") {
+      void flow.fitBounds({ x: b.x, y: b.y, width: b.w, height: b.h }, { padding: 0.1, duration });
+      return true;
+    }
     void flow.setCenter(b.x + b.w / 2, b.y + b.h / 2, { zoom: flow.getViewport().zoom, duration });
     return true;
   }, [flow, focus, scene]);

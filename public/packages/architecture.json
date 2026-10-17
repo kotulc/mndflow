@@ -64,13 +64,19 @@
             }
           ]
         },
-        "description": "A component that stores state other components read.",
+        "description": "A component that stores state other components read: a collection, holding records of one type (`records.of`).",
         "order": 2,
         "settings": {
           "style": {
             "family": "muted"
           }
-        }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "has_records"
+        ]
       },
       "architecture.decision": {
         "id": "architecture.decision",
@@ -191,13 +197,19 @@
         "name": "queue",
         "type": "architecture.component",
         "def": {},
-        "description": "A component that carries messages from one component to another.",
+        "description": "A component that carries messages from one component to another: a collection, holding the messages waiting as records (`records.of`).",
         "order": 7,
         "settings": {
           "style": {
             "family": "away"
           }
-        }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "has_records"
+        ]
       },
       "architecture.reads": {
         "id": "architecture.reads",

@@ -5,8 +5,8 @@
  *  that what is shown fits. A table's columns are measured exactly once, here, and drawn at those
  *  widths, and **a table card is exactly its table**: its title row, its rows and its border. */
 
-import { alias_of, attributes_of, def_at, links_to, schema_def, shown_name, stamps_of,
-         type Graph, type Id } from "@mnd/core";
+import { alias_of, attributes_of, behaviours_of, holds_records, links_to, schema_def,
+         setting_of, shown_name, signature_of, stamps_of, type_name, type Graph, type Id } from "@mnd/core";
 import { look_of, type Look } from "./look";
 import type { Listed, Ruled } from "./scene";
 import { resolved } from "./through";
@@ -49,14 +49,43 @@ export function face_text(graph: Graph, id: Id, look: Look = look_of(graph, id))
     if (part === "preview") return b.source ? `![${shown_name(graph, id)}](<${b.source}>)` : "";
     return "";
   });
-  return parts.filter(Boolean).join("\n\n");
+  return [...parts, records_text(graph, id)].filter(Boolean).join("\n\n");
+}
+
+/** A collection's records as a markdown table: a column per attribute of what they are
+ *  (`records.of`), else per answer said, a row per record. Drawn in the one table look. */
+export function records_text(graph: Graph, id: Id): string {
+  const rows = graph.blocks[id]?.records ?? [];
+  if (!rows.length || !holds_records(graph, id)) return "";
+  const of = setting_of(graph, id, "records")["of"];
+  const declared = typeof of === "string" ? attributes_of(graph, of).map((a) => a.name) : [];
+  const names = declared.length ? declared : [...new Set(rows.flatMap((r) => Object.keys(r)))];
+  const cell = (v: string | undefined) => (v ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
+  return [`| ${names.join(" | ")} |`, `|${names.map(() => "---").join("|")}|`,
+          ...rows.map((r) => `| ${names.map((n) => cell(r[n])).join(" | ")} |`)].join("\n");
 }
 
 /** The large face's attributes, where its look shows them and it has any, with room at the end
- *  of the last row for the card's marks. */
+ *  of the last row for the card's marks. A class face lists its fields, then its behaviours. */
 export function face_table(graph: Graph, id: Id, look: Look = look_of(graph, id),
                            marks = stamps_of(graph, id).length): Ruled | null {
+  if (look.shows.includes("behaviours")) return class_table(graph, id, marks);
   return look.shows.includes("attributes") ? table(listed(graph, id), marks) : null;
+}
+
+/** A class card's compartments as one ruled column: each field `name: type`, then — split from
+ *  them by a rule — each behaviour's signature. */
+export function class_table(graph: Graph, id: Id, marks = 0): Ruled | null {
+  const fields = listed(graph, id).map((r) => (r.type === "text" ? r.name : `${r.name}: ${r.type}`));
+  const of = resolved(graph, id).stands_in?.id ?? id;
+  const methods = behaviours_of(graph, of).map((b) => signature_of(graph, b.id));
+  const rows = [...fields, ...methods];
+  if (!rows.length) return null;
+  const room = marks ? PAD.corner + marks * PAD.mark : 0;
+  const w = Math.ceil(PAD.cell + room + Math.min(CELL * 2, Math.max(...rows.map((r) => r.length)))
+    * GLYPH.table);
+  return { cells: rows.map((r) => [r]), widths: [w],
+           ...(fields.length && methods.length ? { split: fields.length } : {}) };
 }
 
 /** How wide a card's border is, in pixels. */
@@ -116,10 +145,12 @@ export function note_h(text: string, w: number): number {
 export function table(rows: readonly Listed[], marks = 0): Ruled | null {
   if (!rows.length) return null;
   const keyed = rows.some((r) => r.key || r.link);
+  const key = (r: Listed) => (r.key === "primary" ? "PK" : r.key === "unique" ? "UK"
+    : r.link ? "FK" : "");
   const valued = rows.some((r) => r.value);
   const noted = rows.some((r) => r.note);
   const cells = rows.map((r) => [r.type, r.name,
-                                 ...(keyed ? [r.key ? "PK" : r.link ? "FK" : ""] : []),
+                                 ...(keyed ? [key(r)] : []),
                                  ...(valued ? [r.value ?? ""] : []), ...(noted ? [r.note ?? ""] : [])]
     .map((c) => c.replace(/\n/g, " ")));
   const last = cells[0]!.length - 1;
@@ -135,9 +166,9 @@ export function table(rows: readonly Listed[], marks = 0): Ruled | null {
 export function listed(graph: Graph, id: Id): Listed[] {
   const b = graph.blocks[id];
   if (!b) return [];
-  const typed = (type: Id | undefined) => def_at(graph, type)?.name ?? "text";
+  const typed = (type: Id | undefined) => type_name(graph, type);
   const declared = (def: Id) => attributes_of(graph, def).map((a): Listed => ({
-    name: a.name, type: typed(a.type), ...(a.key ? { key: true } : {}),
+    name: a.name, type: typed(a.type), ...(a.key ? { key: a.key } : {}),
     ...(links_to(graph, a) ? { link: true } : {}), ...(a.default ? { value: a.default } : {}),
     ...(a.note ? { note: a.note } : {}),
   }));

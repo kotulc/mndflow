@@ -2,12 +2,50 @@
 
 import { createContext, useContext, type CSSProperties } from "react";
 import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
-import { avoided_run, drawn, heads, middle_of, route, BARE, type LineEdge,
-         type Wire as Look } from "@mnd/views";
+import { avoided_run, crossed, drawn, end_words, heads, middle_of, route, BARE, UNIT,
+         type LineEdge, type Wire as Look } from "@mnd/views";
 import { head_url, Heads, Name, useNaming } from "@mnd/theme";
 
 /** How square a right-angled corner is. */
 const BEND = 6;
+
+/** How far in from its end the cross saying an end cannot be reached sits: half a unit, clear of
+ *  the head and of the middle. */
+const CROSS_IN = UNIT / 2;
+
+/** Half the cross's arms. */
+const CROSS = 4;
+
+/** How far the words of an end sit along the line from it, and out to its side. */
+const WORDS = { along: 14, out: 9 };
+
+type Pt = { x: number; y: number };
+
+/** The point `d` along a run from one end, and the way the run heads there, as a unit step. */
+function along(run: readonly Pt[], way: "from" | "to", d: number): { at: Pt; dir: Pt } {
+  const pts = way === "from" ? run : [...run].reverse();
+  const [a, b] = [pts[0]!, pts[1] ?? pts[0]!];
+  const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  const dir = { x: (b.x - a.x) / len, y: (b.y - a.y) / len };
+  const t = Math.min(d, len);
+  return { at: { x: a.x + dir.x * t, y: a.y + dir.y * t }, dir };
+}
+
+/** The cross drawn half a unit in from an end that cannot be reached. */
+function cross_at(run: readonly Pt[], way: "from" | "to"): string {
+  const { at, dir } = along(run, way, CROSS_IN);
+  /** Two arms at right angles, each at forty-five degrees to the run. */
+  const u = { x: (dir.x - dir.y) * CROSS * Math.SQRT1_2, y: (dir.y + dir.x) * CROSS * Math.SQRT1_2 };
+  const v = { x: (dir.x + dir.y) * CROSS * Math.SQRT1_2, y: (dir.y - dir.x) * CROSS * Math.SQRT1_2 };
+  return `M ${at.x - u.x} ${at.y - u.y} L ${at.x + u.x} ${at.y + u.y} `
+    + `M ${at.x - v.x} ${at.y - v.y} L ${at.x + v.x} ${at.y + v.y}`;
+}
+
+/** Where an end's words sit: a little along the line, out to one side. */
+function words_at(run: readonly Pt[], way: "from" | "to"): Pt {
+  const { at, dir } = along(run, way, WORDS.along);
+  return { x: at.x - dir.y * WORDS.out, y: at.y + dir.x * WORDS.out };
+}
 
 /** The runs routed round cards for the drawing as it stands, by line. */
 export const RunsContext = createContext<ReadonlyMap<string, readonly { x: number; y: number }[]>>(
@@ -75,7 +113,23 @@ export function Wire(props: EdgeProps<LineEdge>) {
         {/* A double line is two strokes, not a thicker one. */}
         {look.border_style === "double"
           ? <path className="mnd-wire-core" d={path} /> : null}
+        {(["from", "to"] as const).filter((way) => crossed(data, way)).map((way) => (
+          <path key={way} className="mnd-wire-cross" d={cross_at(run, way)} />
+        ))}
       </g>
+      {(["from", "to"] as const).map((way) => {
+        const words = end_words(data, way);
+        if (!words) return null;
+        const at = words_at(run, way);
+        return (
+          <EdgeLabelRenderer key={way}>
+            <div className="mnd-wire-end nodrag nopan" {...attrs}
+                 style={{ ...tint, transform: `translate(-50%, -50%) translate(${at.x}px, ${at.y}px)` }}>
+              {words}
+            </div>
+          </EdgeLabelRenderer>
+        );
+      })}
       {middle || naming.id === id ? (
         <EdgeLabelRenderer>
           {/* `nodrag` and `nopan`, so a press on a name does not pan. */}

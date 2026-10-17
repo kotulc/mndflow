@@ -6,8 +6,10 @@ import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, holds
          in_definitions, is_domain, kind_free, may_retype, name_taken, package_of, plain_type,
          setting_of, stored_type, self_use } from "../defs";
 import { GRID, inline, inside, is_folder, is_grid, lattice_of, layer_of } from "../holders";
-import { children, edges_in, is_interface, layout_of, next_order, reorder, sibling_named,
-         stands_for, subtree } from "../tree";
+import { children, edges_in, is_interface, layout_of, next_order, ports_of, reorder,
+         sibling_named, stands_for, subtree } from "../tree";
+import { unnamed_refusal } from "./named";
+import { drop_named, library_home } from "../library";
 import { leave_at, open_at, reveal_at, view_on, EDITOR, type Tiers, type View,
          type Views } from "../navigate";
 import { new_id } from "../ids";
@@ -176,6 +178,11 @@ register(
       if (!ids.length) return "nothing is selected";
       const gone = new Set(ids.flatMap((id) => subtree(ctx.graph, id)));
       for (const id of ids) {
+        if (library_home(ctx.graph, id)) {
+          const why = unnamed_refusal(ctx.graph, id);
+          if (why) return why;
+          continue;
+        }
         const why = (ctx.graph.blocks[id]?.parent === null ? null : borrowed(ctx.graph, id))
           ?? in_use(ctx.graph, id, gone);
         if (why) return why;
@@ -184,17 +191,21 @@ register(
     },
     run: (ctx, args) => {
       const ids = ids_of(ctx, args);
+      /** A named component goes from its library. */
+      const named = ids.filter((id) => library_home(ctx.graph, id));
+      const rest = ids.filter((id) => !named.includes(id));
       return {
-        mutations: ids.map((id): Mutation => (ctx.graph.edges[id]
-          ? { op: "delete_edge", id } : { op: "delete_block", id })),
+        mutations: [...drop_named(ctx.graph, named),
+                    ...rest.map((id): Mutation => (ctx.graph.edges[id]
+                      ? { op: "delete_edge", id } : { op: "delete_block", id }))],
         effect: { focus: null },
       };
     },
   },
   {
     name: "rename",
-    about: "changes what a block or a relationship is called",
-    on: ["block", "edge"],
+    about: "changes what a block, a relationship or an interface is called",
+    on: ["block", "edge", "interface"],
     args: [{ name: "id", form: "block", required: true },
            { name: "name", form: "text", asks: true }],
     /** A definition is found by its name, so it takes one nothing else in its package has. */
@@ -275,6 +286,22 @@ register(
         if (ctx.graph.blocks[id]?.def) return { op: "update_block", id, type: said || null };
         return { op: "update_block", id, type: type ?? plain_type(base_of(ctx.graph, id)) };
       });
+      /** A run meeting a part — an interface or a block — the new definition does not hold lets
+       *  it go. */
+      for (const id of ids_of(ctx, args)) {
+        const b = ctx.graph.blocks[id];
+        if (!b || b.def) continue;
+        const kept = new Set([...ports_of(ctx.graph, type ?? undefined),
+                              ...children(ctx.graph, type ?? null)].map((p) => p.id));
+        for (const e of Object.values(ctx.graph.edges)) {
+          for (const end of ["from", "to"] as const) {
+            const part = end === "from" ? e.fromPart : e.toPart;
+            if (e[end] === id && part && !kept.has(part)) {
+              out.push({ op: "set_end", id: e.id, end, port: id, part: null });
+            }
+          }
+        }
+      }
       /** A block becoming a grid seats what it holds: a member always sits in a cell. */
       for (const id of ids_of(ctx, args)) {
         const b = ctx.graph.blocks[id];
@@ -432,19 +459,12 @@ register(
       const want = id_of(args, "id");
       return !want || ctx.graph.blocks[want] ? null : "that is not here any more";
     },
-    /** Opening and leaving are navigation's (`open_at`, `leave_at`). An interface left returns to
-     *  the layer it was entered from. */
+    /** Opening and leaving are navigation's (`open_at`, `leave_at`). */
     run: (ctx, args) => {
       const { tiers, views, view } = seen(ctx);
       const want = id_of(args, "id");
       const from = typeof args["at"] === "number" ? args["at"] : undefined;
       if (want) return moved(open_at(ctx.graph, tiers, views, want, from, view));
-      const here = ctx.layer ? ctx.graph.blocks[ctx.layer] : undefined;
-      const owner = here?.parent ? ctx.graph.blocks[here.parent] : undefined;
-      const outside = owner?.parent ?? null;
-      if (here && is_interface(ctx.graph, here.id) && ctx.from !== undefined && ctx.from === outside) {
-        return moved({ ...view, layer: outside, pick: ctx.layer });
-      }
       return moved(leave_at(ctx.graph, tiers, views, view));
     },
   },

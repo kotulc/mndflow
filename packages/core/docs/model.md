@@ -54,14 +54,14 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 - **Settings and traits walk the chain**: per link, its own settings, then its traits in order. Nearest wins.
 - **Traits are inherited until stated.** A definition stating its own set replaces its chain's; resetting gives it back.
 - **Structure does not walk.** A usage reads its type's own structure, one step; a subtype inherits no structure.
-- **Parts keep their ids.** An edit to one goes home to the definition that owns it. A run may name a part at either end (`fromPart`, `toPart`), and a usage wears its definition's interfaces on its walls.
+- **Parts keep their ids.** An edit to one goes home to the definition that owns it. A usage wears its definition's interfaces on its walls as `usage/port`, and a run meets one there by `fromPart` or `toPart`; a block's own interface, a block under it, is met as itself.
 
 
 ## Tags and traits
 
 | | Carried in | Says |
 |---|---|---|
-| **tag** | `tags` | a word to find it by, with its meaning in `description`. Any element; a new one is filed in the workspace's `tags` folder |
+| **tag** | `tags` | a word to find it by, with its meaning in `description`. Any element; a new one is filed in the workspace's library |
 | **trait** | `traits` | an engine function: a capability, or what sort of thing it is. One of the engine's fixed table (`TRAITS`), named, never a definition; it confers the settings the table grants it. Definitions only |
 
 **Both lists replace**: stated, a list holds every entry kept; unsaid, the nearest list down the chain is carried whole; empty says none. There are no drops. **A look is settings, never a tag.**
@@ -71,7 +71,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 
 ## Relationships
 
-**A join between exactly two blocks**, on any layers. Its type is a relation definition: `line` when it names none, `tie` or any subtype when it does. `line.dir`, a setting inherited down its chain, says which way a line points. **Its name is its own `name`**, as a block's; unnamed, it draws its definition's. A tie is one by `line.module: tie`, which its *is tie* trait grants. **Definitions are never linked**, except by a tie trait.
+**A join between exactly two blocks**, on any layers. Its type is a relation definition: `line` when it names none, `tie` or any subtype when it does. `line.dir`, a setting inherited down its chain, says which way a line points. **Its name is its own `name`**, as a block's; unnamed, it draws its definition's. A tie is one by `line.module: tie`, which its *is tie* trait grants. **A definition and a usage never relate**, except by a tie; two definitions may — an association — and two usages may. **Its ends are data** (`ends`, and its definition's `def.ends`): multiplicity, role, ownership, navigable; a line says multiplicity and role only (core `ends.ts`).
 
 
 ## Capabilities

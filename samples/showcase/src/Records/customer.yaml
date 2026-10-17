@@ -3,7 +3,7 @@ def:
   attributes:
     - name: id
       type: number
-      key: true
+      key: primary
     - name: name
     - name: email
 description: Someone who places an order.

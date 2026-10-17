@@ -88,7 +88,6 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
             marks: frame.holds_parts ? ["container" as const] : [],
             ...(frame.role ? { role: frame.role } : {}),
             ...(frame.stamps?.length ? { stamps: frame.stamps } : {}),
-            ...(frame.side ? { side: frame.side } : {}),
             ...(frame.seats ? { seats: frame.seats } : {}) },
     draggable: false,
     selectable: false,
@@ -160,8 +159,7 @@ export function edges_of(scene: Scene, picked: readonly Id[]): LineEdge[] {
 export function signature(scene: Scene, frame: Frame | null): string {
   return [
     scene.layer,
-    frame && `${frame.x},${frame.y},${frame.w},${frame.h},${frame.label},${frame.role ?? ""}`
-      + `,${frame.side ?? ""}`,
+    frame && `${frame.x},${frame.y},${frame.w},${frame.h},${frame.label},${frame.role ?? ""}`,
     frame?.seats?.map((t) => `${t.id}${t.side}${t.at}`).join("|"),
     frame?.ports.map((p) => `${p.id}${p.side}${p.at}${p.marks.join("")}`).join("|"),
     scene.nodes.map((n) => {

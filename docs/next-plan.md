@@ -9,6 +9,7 @@
 |---|---|
 | **last committed** | arrangement by kind (`card.arrange`), diagram files (one block and its layer as YAML, frontmatter the same schema), names unique among siblings, the views renamed (package, allocation, table; swimlane merged), `layered`, the showcase as YAML. `db776f9` (2026-10-13) |
 | **built, uncommitted** | (2026-10-14) the tray's card and settings tabs as keys and choices (tray `pairs.ts`, `Source`, `Choices`); `description` on every block (`describe`), the body written by `write` and read at the top of the contents tab; definitions' old body text moved to `description` in every source; keys follow the focused region (theme `useZone`). Suggested message: *Tray tabs as keys and choices; add description; text moves to contents; keys follow focus* |
+| **built, uncommitted** | (2026-10-16) redesign-plan.md steps 2–9: types and tags as a package root's `library` (core `library.ts`); interfaces as `def.ports`, drawn as `block/port` by views `read_through`, met by `fromPort`/`toPort`; `base` refiled by category with `label` and `region`, the forms, `tag`, `value` and `interface` gone; folders boxes on their parent's layer; annotation tags by source in the tray (`given_of`, `unmember`); regions as bands; collections (`has_records`, `records.of`); `collection.ts` renamed `sources.ts`; the explorer's library section. Suggested message: *Redesign: components as data, interfaces on definitions, folders as boxes, labels, regions, collections* |
 | **first, ask** | step 0's open rows, then the three older rows of *Decide*: the folder view and the package view, `note:` in a file, dagre for `layered` |
 | **then** | step 0, then step 1 |
 | **the kit** | not re-released since; mndmap's re-pin meets the renames listed under *Rough edges* · **kit** |
@@ -87,10 +88,9 @@ Start in stage `Flow.tsx` · `gestures.ts` (gestures), `draw.ts` · `drag.ts` ·
 | **keep libavoid?** | design.md and spec.md describe routing round cards. If kept: LGPL-2.1, a beta (`0.5.0-beta.5`), a ~490KB wasm, also in the kit mndmap vendors |
 | **arrange, generally** | crossing reduction by reordering within reading order is the candidate |
 | **double-click a grid** | lands on its name and renames it; Enter opens it |
-| **a line carrying a tag** | where a tag's line usages show: the usages box lists blocks only |
 | **`define` and ids** | actions.md gives `define` an `id?`; the code takes none and the CLI says ids are never chosen. If no caller needs one, it leaves actions.md |
 | **editing table and sequence** | design.md keeps them projections the canvas never drags or creates on; whether either should be edited from the canvas after all |
-| **the folder view and the package view** | design.md says a package or folder opens on the package view scoped to it; the code still draws the folder layer view (core `ViewKind` `folder`), since folding it into the system view changes navigation's layer/system split and drops building inside a folder on the canvas |
+| **the package view** | design.md says a package opens on the package view scoped to it; the code still draws the folder layer view (core `ViewKind` `folder`). A folder no longer opens (redesign step 6), so the view now serves packages alone |
 | **tied notes in a file** | `note:` on a block or the file is built provisionally (core `diagram.ts`); confirm the syntax, or pick another |
 | **layered on dagre** | the plan named elkjs; its layout is async and `project` is not, so `layered` runs on `@dagrejs/dagre` (MIT, synchronous). Keep it, or make projection async for ELK |
 | **source fetch** | `bring` takes a package from a URL; an arbitrary fetched file still needs a translator to become blocks (ST.5) |
@@ -147,23 +147,26 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 |---|---|
 | **layout** | `auto` reads in explorer order, so a line between cards far apart in a column runs its length until *arrange*; a tall card makes a tall row in a `rows` run; a card related to a member inside a group lines up with the group, not the member |
 | **routing** | two upright names in one 2-unit gap meet; libavoid ignores a second pin on the same spot of a shape (pins are keyed by spot and shared); a line to an inherited port inside a subtype is not met at the subtype room's copy (`part_id`) |
-| **definition view** | the middle card's menu offers *delete block* and the note's *delete note*, which do nothing; React Flow logs *Couldn't create edge for handle* (#008) as boxes mount; a port draws as a plain card reading *block*; inherited attributes are listed but not dimmed; inherited ends are dimmed only where the relation states no `allows.ends` itself |
-| **cards** | marks on a dark table card are faint (half opacity); a reference previewing a table ignores its own look's border; tags inherit `block`'s `family: primary`; block and relation definitions have no hue of their own; check that notes draw through `CardFace`, not only `NoteNode` |
+| **definition view** | the middle card's menu offers *delete block* and the note's *delete note*, which do nothing; React Flow logs *Couldn't create edge for handle* (#008) as boxes mount; tags and ports draw as plain cards until step 10 of redesign-plan.md redesigns it; inherited attributes are listed but not dimmed; inherited ends are dimmed only where the relation states no `allows.ends` itself |
+| **cards** | marks on a dark table card are faint (half opacity); a reference previewing a table ignores its own look's border; block and relation definitions have no hue of their own; check that notes draw through `CardFace`, not only `NoteNode` |
 | **tray** | a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else |
 | **tests** | `packages/views/test/seat.test.ts` › *crosses straight where a group note sits square beside the group* fails on the showcase's `System::Deployment`. It was mid-edit before 2026-10-14, and still fails with `description` moved back to `body`, so it is not the description change |
 | **camera and page** | picking on the profile re-draws it lower than it first opens; the package view scrolls its top under the crumbs; a short port drag lands short (React Flow's drag threshold) |
 | **React** | `flushSync was called from inside a lifecycle method`, seen opening the profile and the package view from a layer; not traced |
-| **packages** | `base` collects alphabetically (`choice` before `value`); a definition file holds no parts, so a pattern's parts live in its package's `package.json` |
+| **packages** | `base` collects alphabetically (`annotations` before `blocks`); a definition file holds no parts, so a pattern's parts live in its package's `package.json` |
 | **names** | unique siblings are refused only by `create`, `rename` and `move`; `label` (grid cells) and `group` write names unchecked, so a path can still find none. One home: where a name is written |
-| **diagram files** | a value named like a schema key (`side`, `note`, `w`…) never shows in a card source, and a block's `side`/`at`/`flow` off an interface become such values; a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
+| **diagram files** | a value named like a schema key (`side`, `note`, `w`…) never shows in a card source; a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
 | **kit** | mndmap's re-pin meets: views `overhead` → `package`, `grid` → `allocation`, `class` → `table`, `swimlane` gone; `class_graph` → `table_graph`, `swimlane_graph` gone; `card.place` → `card.arrange`, the *is aside* trait gone; card sources say `type`/`def`, not `extends`; `describe` now writes `description` and `write` the body; `Block.description` and the `set_description` op are new; tray exports `Identity`, `Settings`, `Looks` are gone (`Part` replaces `Looks`); theme and kit shell export `useZone`, and `Stage` takes `keys` |
 | **follow-ups** | lineage and links as a package structure rather than a view; boxes for a definition's usages and the groups they belong to |
+| **annotations** | a label floats aside, so on a layer cut into regions it lands across a band's heading; a free label and one seated on a line are open (redesign *Decide*); a picked region draws a full outline; a region is made only from a selection's menu |
+| **interfaces** | a plain block takes none: *interface* refuses until it is defined, where the old block-interfaces let any block have one; the showcase lost the room port on `Containers`; ports carry no settings or tags yet, though design.md gives them both |
+| **mndmap** | its content rows are not yet regions (redesign step 8); it meets the renames in *kit* and the new schema on its re-pin |
 | **base looks** | the base blocks draw alike but for their icons (and notes): give each more visual distinction through its faces and traits |
 
 
 ## Tests, once settled
 
-**None until the user says a design is settled.** Candidates then: `diagram_of` / `diagram_subject` / `lens_of` on a stand-in; `table_graph`, `sequence_scene`; `long_form`, `path_to`, `def_ref`, `wanted`; `runs`, `layered`; `sibling_named`; `boot_of`; `tags_stated` / `traits_stated`; `statements` / `said_of`; `ports_of`; `holds_values` and the `field` refusal; `aspect_acts`; `collect`; `tag_home`; `seat_all`, `routes_of`; `flow` / `on_grid`; `definition_graph`; `dir_of`; `relate` joining a twin; `is_reference` / `resolved`; `is_tie`; `beside`. The CLI's tests pin refs, all-or-nothing scripts and write-in-place, never wording or coordinates.
+**None until the user says a design is settled.** Candidates then: `diagram_of` / `diagram_subject` / `lens_of` on a stand-in; `table_graph`, `sequence_scene`; `long_form`, `path_to`, `def_ref`, `wanted`; `runs`, `layered`; `sibling_named`; `boot_of`; `tags_stated` / `traits_stated`; `statements` / `said_of`; `ports_of`; `holds_values` and the `field` refusal; `aspect_acts`; `collect`; `given_of`, `ported`, `typed_as`; `seat_all`, `routes_of`; `flow` / `on_grid`; `definition_graph`; `dir_of`; `relate` joining a twin; `is_reference` / `resolved`; `is_tie`; `beside`. The CLI's tests pin refs, all-or-nothing scripts and write-in-place, never wording or coordinates.
 
 `packages/views/test/far.test.ts` is a temporary debug print with no assertions: delete it.
 
@@ -187,10 +190,14 @@ Every layer is a diagram file under `samples/showcase/src`; `npm run showcase` c
 |---|---|
 | markdown card from `source`, references to layers | `about.yaml` (Overview), `about.md` |
 | persons, externals, every `line.dir`, names, a label above | `System/1-context.yaml` |
-| pattern usages read through, ports placed / self-placing / flowless, a room port, fan-out, hatch / faded / dashed / thick / hue | `System/2-containers.yaml` |
+| pattern usages read through, ports placed / self-placing / flowless, fan-out, hatch / faded / dashed / thick / hue | `System/2-containers.yaml` |
+| regions with headings, a label tied to a card | `System/4-bands.yaml` |
+| room ports on a definition's walls | the `architecture` patterns, opened from structure |
 | nested groups, a matrix with headers and a merge, a missing reference, a line definition with a value | `System/3-deployment.yaml` |
 | table view (class diagram) and attribute links | `Data/1-model.yaml` |
 | table faces answering attributes, value links, a diamond-ended line | `Data/2-orders.yaml` |
+| a collection's records as a table on its card | `Data/3-store.yaml` |
+| the library: a type and a tag declared in files | `Records/order.yaml`, `Specs/public-api-spec.yaml` |
 | `layered`: a state machine and a flowchart | `Flows/1-order-states.yaml`, `Flows/4-payment-retry.yaml` |
 | sequence: reference lifelines, a missing header, a self message, a reply; the same grid as lanes | `Flows/2-place-order.yaml` |
 | swimlane (allocation) | `Flows/3-fulfil-order.yaml` |

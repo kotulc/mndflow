@@ -2,7 +2,7 @@
   "id": "folder",
   "name": "folder",
   "type": "block",
-  "description": "Files blocks away: a quiet container whose contents are reached by opening it.",
+  "description": "Organization: a box on its parent's layer, what it holds drawn inside. It never makes a layer; selected in the explorer, the canvas zooms to it.",
   "def": {},
   "settings": {
     "style": {
@@ -13,5 +13,8 @@
     "card": {
       "arrange": "rows"
     }
-  }
+  },
+  "traits": [
+    "has_parts"
+  ]
 }

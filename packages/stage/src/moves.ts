@@ -1,7 +1,8 @@
 /** What a canvas adjustment writes: the actions and positional changes it comes to. */
 
-import { adjustments, can_hold, grid_of, is_holder, lattice_of, layout_of, type Args, type Graph,
-         type Id, type Mutation } from "@mnd/core";
+import { adjustments, can_hold, grid_of, is_holder, is_region, lattice_of, layout_of, part_end,
+         type Args,
+         type Graph, type Id, type Mutation } from "@mnd/core";
 import { box_of, extent_in, nearest_seat, snap, taken_on, tidy, BLOCK, PORT,
          type Scene } from "@mnd/views";
 import type { Adjust } from "./gestures";
@@ -19,6 +20,10 @@ export function moves_of(graph: Graph, scene: Scene, a: Adjust): Move[] {
   /** A card dropped on a card is a move into it, and places nothing. */
   if (a.kind === "move" && a.over && a.over !== a.on) {
     return [act("move", { id: a.on, parent: a.over })];
+  }
+  /** A region dragged up or down an arranged layer is reordered among the bands, never placed. */
+  if (a.kind === "move" && is_region(graph, a.on) && layout_of(graph, scene.layer) !== "free") {
+    return restacked(graph, scene, a.on, a.to.y);
   }
   const out: Move[] = [];
   /** Moving anything by hand on an `auto` layer hands it to `free`, keeping what it draws. */
@@ -51,10 +56,11 @@ function written(graph: Graph, scene: Scene, a: Adjust): Move[] {
     return [{ adjust: "size", mutations: adjustments.size(a.on, a.w, a.h) }, placed(a.on, a.to)];
   }
   if (a.kind === "wall-seat") {
-    return [{ adjust: "seat", mutations: adjustments.seat(a.on, a.side, a.at) }];
+    return [{ adjust: "seat", mutations: adjustments.seat(graph, a.on, a.side, a.at) }];
   }
   if (a.kind === "wall") {
-    return graph.blocks[a.to] ? [act("relink", { id: a.on, end: a.end, to: a.to })] : [];
+    return graph.blocks[part_end(graph, a.to).block]
+      ? [act("relink", { id: a.on, end: a.end, to: a.to })] : [];
   }
   /** Several cards put down at once. */
   if (a.kind === "place") {
@@ -67,7 +73,7 @@ function written(graph: Graph, scene: Scene, a: Adjust): Move[] {
   if (host) {
     const seat = nearest_seat(box_of(host), { x: a.to.x + PORT.w / 2, y: a.to.y + PORT.h / 2 },
                               taken_on(scene, host.id, a.on));
-    return [{ adjust: "seat", mutations: adjustments.seat(a.on, seat.side, seat.at) }];
+    return [{ adjust: "seat", mutations: adjustments.seat(graph, a.on, seat.side, seat.at) }];
   }
 
   const held = grid_of(graph, a.on)?.id ?? null;
@@ -92,6 +98,16 @@ function written(graph: Graph, scene: Scene, a: Adjust): Move[] {
   if (held && held === layer) return [];
   if (held === here) return [placed(a.on, a.to)];
   return here ? [into(here)] : [into(layer), placed(a.on, a.to)];
+}
+
+/** A region moved to rest at `y`: before the first unit of its layer whose top lies below it. */
+function restacked(graph: Graph, scene: Scene, id: Id, y: number): Move[] {
+  const parent = graph.blocks[id]?.parent;
+  if (!parent) return [];
+  const below = scene.nodes
+    .filter((n) => n.id !== id && graph.blocks[n.id]?.parent === parent && n.position.y > y)
+    .sort((a, b) => a.position.y - b.position.y)[0];
+  return [act("move", { ids: [id], parent, ...(below ? { before: below.id } : {}) })];
 }
 
 /** Which group a drop joins, read from where the block's middle came to rest. */

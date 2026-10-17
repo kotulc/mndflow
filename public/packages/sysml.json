@@ -53,20 +53,6 @@
           }
         }
       },
-      "sysml.port": {
-        "id": "sysml.port",
-        "parent": "sysml.blocks",
-        "name": "port",
-        "def": {},
-        "type": "interface",
-        "body": "A proxy or full port, seated on the edge of a block.",
-        "settings": {
-          "card": {},
-          "names": {
-            "sysml": "«port»"
-          }
-        }
-      },
       "sysml.activity": {
         "id": "sysml.activity",
         "parent": "sysml.blocks",

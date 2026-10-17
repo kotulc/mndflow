@@ -65,9 +65,10 @@ export type StageProps = {
 };
 
 
-/** What a card's menu lists besides the shared box actions. */
-function box_offers(): readonly (string | Entry)[] {
+/** What a card's menu lists besides the shared box actions: a label is made tied to it. */
+function box_offers(id: string): readonly (string | Entry)[] {
   return [{ name: "rename", label: "rename block" }, "open", "interface", "note",
+          { name: "create", label: "label", args: { type: "label", from: id } },
           { name: "delete", label: "delete block" }];
 }
 
@@ -109,14 +110,12 @@ function route_offers(id: string, graph: Graph): Entry[] {
   ];
 }
 
-/** The ends of a run that are not interfaces yet, and so may be promoted. */
+/** The ends of a run that meet no interface yet, and so may be promoted. */
 function bare_ends(id: string, graph: Graph): ("from" | "to")[] {
   const e = graph.edges[id];
   if (!e) return [];
-  return (["from", "to"] as const).filter((end) => {
-    const b = graph.blocks[e[end]];
-    return !!b && !is_interface(graph, b.id);
-  });
+  return (["from", "to"] as const).filter((end) => !(end === "from" ? e.fromPart : e.toPart)
+    && !is_interface(graph, e[end]));
 }
 
 /** Promoting what is bare: both ends, one, or nothing when both are interfaces already. */
@@ -153,9 +152,9 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
       return n?.type === "grid" ? [...(offers.band ?? []), ...LINES]
         : offers.band?.filter((e) => (typeof e === "string" ? e : e.name) !== "fill");
     }
-    return box_offers();
+    return box_offers(g.on);
   }
-  if (g.kind === "box" && g.on) return box_offers();
+  if (g.kind === "box" && g.on) return box_offers(g.on);
   /** A cell offers what can be done to the lattice there. */
   if (g.kind === "cell" && g.on) return offers.cell;
   if (g.kind === "line" && g.given) return line_offers(g.given);
@@ -245,8 +244,9 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     note: [{ name: "rename", label: "rename note" },
            { name: "delete", label: "delete note" }],
     box: ["rename", "open", "interface", "note", "delete"],
-    /** An interface holds no interfaces; a placed one may place itself again. */
-    seat: ["rename", "open", { name: "free", label: "place itself" }, "note", "delete"],
+    /** An interface opens nothing and holds no interfaces; a placed one may place itself again. */
+    seat: ["rename", { name: "port", label: "place itself", args: { free: "true" } }, "note",
+           "delete"],
     /** A group and a grid write their name on the frame when told to. */
     band: [{ name: "rename", label: "rename group" }, "open", "note", "fill",
            { name: "chain", args: drawing },
@@ -264,15 +264,18 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     ],
     /** Replaced per run by `wire_offers`, and per grip by `promote_offers`. */
     route: ["rename", "delete"],
-    /** The room's wall offers what a card's border does. */
-    frame: ["rename", "open", "interface", "note", "delete"],
+    /** The room's wall offers what a card's border does, and a region across the layer. */
+    frame: ["rename", "open", "interface", "note",
+            { name: "group", label: "new region", args: { type: "region", members: [] } },
+            "delete"],
   };
 
   /** Types a cell's text in place, starting from what it says now. */
   const label_cell = (at: Spot) => set_typing({ id: cell_key(at), cell: at });
 
   /** What a selection of several offers. */
-  const MANY: readonly (string | Entry)[] = ["group", "delete"];
+  const MANY: readonly (string | Entry)[] = ["group",
+    { name: "group", label: "region", args: { type: "region" } }, "delete"];
 
   const gesture = (g: Gesture) => {
     /** A tab picks its line itself; two clicks on a header write its text, as on any cell. */
@@ -294,7 +297,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         /** Two clicks rename a name or a note, open a card, reveal a reference, or leave. */
         if (g.on && g.kind === "title") set_naming(g.on);
         else if (g.on && g.kind === "name") set_naming(g.on);
-        else if (g.on && (g.kind === "box" || g.kind === "seat" || g.kind === "brim")) {
+        else if (g.on && (g.kind === "box" || g.kind === "brim")) {
           /** A stand-in holds nothing to open: a definition's says so by its stamp alone. */
           const node = scene.nodes.find((n) => n.id === g.on);
           const stands = node?.data.marks.includes("reference")

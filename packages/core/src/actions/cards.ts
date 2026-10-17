@@ -9,7 +9,7 @@ import { is_own_key, names_in, read_card, said_as, type Card } from "../card";
 import { all_defs, def_at, domain_of, frozen } from "../defs";
 import { replay } from "../fold";
 import { new_id } from "../ids";
-import { is_tag } from "../tags";
+import { tag_at } from "../library";
 import type { Block, Graph, Id, Mutation } from "../types";
 import { action, register, type Args, type Context, type Result } from "./registry";
 import { borrowed, id_of, text } from "./helpers";
@@ -108,7 +108,7 @@ function usage_calls(graph: Graph, id: Id, { front, body }: Card, whole: boolean
   const type = said_as(front["type"]).trim();
   const was = def_at(graph, b.type)?.name ?? "";
   if (type && type !== was) {
-    const hit = one_named(graph, type, (d) => domain_of(graph, d) === "block" && !is_tag(graph, d));
+    const hit = one_named(graph, type, (d) => domain_of(graph, d) === "block");
     const to = hit ?? new_id("def");
     if (!hit) {
       calls.push(new_def(graph, { id: to, name: type, def: {} }));
@@ -202,7 +202,7 @@ function listed(graph: Graph, id: Id, key: "tags" | "traits", front: Card["front
   const own = graph.blocks[id]?.[key];
   if (!(key in front)) return own ? [[act, { ids: [id] }]] : [];
   const want = names_in(front[key]);
-  const had = own?.map((x) => graph.blocks[x]?.name ?? x);
+  const had = own?.map((x) => (key === "tags" ? tag_at(graph, x)?.name : undefined) ?? x);
   return JSON.stringify(want) === JSON.stringify(had) ? [] : [[act, { ids: [id], [key]: want }]];
 }
 

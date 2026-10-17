@@ -2,7 +2,7 @@
  *  card in the nearest free space beside what it is tied to. The one rule for a layer and a
  *  group. */
 
-import { arrange_of, is_aside, type Graph, type Id } from "@mnd/core";
+import { arrange_of, is_aside, is_region, type Graph, type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
 import type { Sized } from "./bands";
 import { pack_units, tie_targets } from "./pack";
@@ -151,6 +151,10 @@ function stacked(run: readonly Sized[], top: number): Placed[] {
 export function floated(graph: Graph, layer: Id | null, held: readonly Sized[],
                  placed: readonly Placed[], holder?: Id): Placed[] {
   const out = [...placed];
+  /** A region's heading runs the width of its layer once spanned, so an aside never lands on
+   *  one: each heading's strip is taken, however far it reaches. */
+  const headings = placed.filter((p) => is_region(graph, p.id))
+    .map((p) => ({ id: "", x: -HEADING_REACH, y: p.y, w: HEADING_REACH * 2, h: PAD + UNIT }));
   const pending = [...held].sort((a, b) => a.b.id.localeCompare(b.b.id));
   for (let guard = pending.length; pending.length && guard >= 0; guard--) {
     const it = pending.shift()!;
@@ -160,7 +164,7 @@ export function floated(graph: Graph, layer: Id | null, held: readonly Sized[],
       ?? ((!ties.length || (holder && ties.includes(holder))) && placed.length
         ? extent(placed) : undefined);
     if (!target) { pending.push(it); continue; }
-    out.push({ id: it.b.id, ...beside(out, target, it.s), ...it.s });
+    out.push({ id: it.b.id, ...beside([...out, ...headings], target, it.s), ...it.s });
   }
   for (const it of pending) {
     const y = out.length ? Math.max(...out.map((p) => p.y + p.h)) + GAP : 0;
@@ -168,6 +172,9 @@ export function floated(graph: Graph, layer: Id | null, held: readonly Sized[],
   }
   return out.filter((p) => !placed.some((was) => was.id === p.id));
 }
+
+/** How far a region's heading strip is taken either side, in pixels: past any layer. */
+const HEADING_REACH = 100_000;
 
 /** Positions relative to the layer's centre. */
 export function centred(spots: Placed[]): Placed[] {

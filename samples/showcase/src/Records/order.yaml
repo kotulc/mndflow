@@ -1,9 +1,10 @@
+packages: [diagrams]
 name: Order
 def:
   attributes:
     - name: number
       type: number
-      key: true
+      key: primary
     - name: customer
       type: Customer
     - name: status
@@ -15,3 +16,29 @@ description: A customer's request, and the lines on it.
 settings:
   card:
     face: table
+library:
+  types:
+    - name: Order status
+      form: choice
+      choices: [ pending, paid, shipped, cancelled ]
+      description: Where an order is.
+blocks:
+  - name: place
+    type: diagrams.behaviour
+    description: Takes a customer's lines and gives back the order they make.
+    blocks:
+      - name: lines
+        type: interface
+        flow: in
+      - name: placed
+        type: interface
+        flow: out
+relations:
+  - diagrams.association:
+      - from: Order
+        to: Records::Customer
+        ends: { from: { multiplicity: "*" }, to: { multiplicity: "1", role: customer } }
+  - diagrams.composition:
+      - from: Order
+        to: Records::Line
+        ends: { to: { multiplicity: "1..*", role: lines } }

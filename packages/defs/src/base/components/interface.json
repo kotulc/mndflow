@@ -1,0 +1,17 @@
+{
+  "id": "interface",
+  "name": "interface",
+  "type": "block",
+  "description": "A block's boundary, seated on its wall: where relations and flows enter and leave. A component: never a card, a layer or an explorer row. Its type says what it carries.",
+  "def": {},
+  "traits": [
+    "has_values",
+    "is_interface"
+  ],
+  "settings": {
+    "style": {
+      "family": "secondary",
+      "border_width": "thin"
+    }
+  }
+}

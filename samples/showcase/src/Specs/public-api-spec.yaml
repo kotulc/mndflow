@@ -7,6 +7,10 @@ def:
       unit: req/s
 description: An API spec for an API that callers outside the shop reach.
 tags: [ critical ]
+library:
+  tags:
+    - name: critical
+      description: The shop stops taking orders when this fails.
 settings:
   style:
     border_width: thick

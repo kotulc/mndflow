@@ -1,11 +1,10 @@
 /** The block view: any planar projection. */
 
-import { alias_of, dir_of, layout_of, children, setting_of, ABOUT, covers, diagram_subject,
-         on_side,
-         edges_in, group_depth, heading, holders_in, inline, is_container, is_grid, is_group,
+import { alias_of, dir_of, layout_of, children, setting_of, covers, diagram_subject, on_side,
+         edges_in, group_depth, heading, holders_in, inline, is_box, is_container, is_grid,
          is_aside, is_note, is_tie, label_of, lattice_of, members_of, shape_of, stamps_of, role_of,
-         shown_name, path, type Cut, type ViewKind, type Graph, type Id, type Relation, type Side,
-         type Span } from "@mnd/core";
+         shown_name, type Cut, type Ends, type ViewKind, type Graph, type Id, type Relation,
+         type Side, type Span } from "@mnd/core";
 import { at_seat, beside, cell_box, laid, perch_id, roomed, seat_all, PAD, UNIT,
          type Perch, type Rect, type Seat, type Seating } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
@@ -14,10 +13,8 @@ import { page_graph } from "./page";
 import { survey_graph, FOREST } from "./survey";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
-import { table_graph } from "./table";
-import { linked_graph, LINK } from "./links";
+import { class_graph, DRAWN_BY } from "./classes";
 import { sequence_scene } from "./sequence";
-import { definition_graph, inherited_in, ASPECT } from "./definition";
 import { tie_targets } from "./pack";
 import { box_of, cell as node, extent, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
@@ -25,8 +22,8 @@ import { box_of, cell as node, extent, FRAME, type BoxData, type BoxNode, type F
 
 export type Config = {
   /** How the layer is looked at: from inside (`internal`, `allocation`); a package or folder read
-   *  down the page (`folder`); a definition with what describes it round it (`definition`); a
-   *  diagram the block names (`table`, `sequence`); the whole section it scopes, down to `cut`,
+   *  down the page (`folder`); a diagram the block names (`class`, `er`, `sequence`); the whole
+   *  section it scopes, down to `cut`,
    *  each block there boxing its top level where `tops` says (`package`). Unsaid, inside — and
    *  with no layer, every package's domain as the package view. */
   look?: { kind: ViewKind; cut: Cut; tops?: boolean; lists?: "domain" | "structure" };
@@ -40,6 +37,9 @@ export type Config = {
   interfaces?: boolean;
   /** Whether a package root opened is drawn in a room, as a folder is. */
   room?: boolean;
+  /** The diagram whose lines draw what their ends mean rather than their direction: a class
+   *  diagram, or an entity one, multiplicities as crow's feet. */
+  ends?: "class" | "er";
 };
 
 const SLOTS: readonly Slot[] = ["layer", "display", "relations"];
@@ -79,7 +79,7 @@ function group_carries(graph: Graph, group: Id): Id[] {
   const walk = (gid: Id) => {
     for (const m of members_of(graph, gid)) {
       out.push(m.id);
-      if (is_group(graph, m.id)) walk(m.id);
+      if (is_box(graph, m.id)) walk(m.id);
     }
   };
   walk(group);
@@ -92,24 +92,6 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   /** A whole section is drawn from its scope, down to its cut, and read only: it offers what the
    *  drawing shows, and nothing to lay out. */
   const look: Config["look"] = config.look ?? (layer === null ? WHOLE : undefined);
-  /** A definition is drawn on its own layer, itself lit, what describes it round it: placed, so
-   *  nothing moves, and only a real block or the note is picked — never a box. */
-  if (look?.kind === "definition" && layer && given.blocks[layer]) {
-    const scene = project(definition_graph(given, layer), ASPECT,
-                          { ...config, look: { kind: "internal", cut: null } });
-    /** What it reads from its chain wears the part mark: edited where it is declared. It, and
-     *  each card on the way to it, wears the held mark. */
-    const inherited = inherited_in(given, layer);
-    const held = path(given, layer).map((b) => b.id);
-    const mark = (n: BoxNode): CardClass[] => [...n.data.marks,
-      ...(held.includes(n.id) ? ["held" as const] : []),
-      ...(inherited.includes(n.id) ? ["part" as const] : [])];
-    const nodes = scene.nodes.map((n) => ({
-      ...n, draggable: false, ...(given.blocks[n.id] || n.id === ABOUT ? {} : { selectable: false }),
-      data: { ...n.data, marks: mark(n) },
-    }));
-    return { ...scene, layer, nodes, slots: ["display"], trail: trail_of(given, layer) };
-  }
   /** A package or folder nobody arranged reads as a page, as wide as the canvas; its places are
    *  the page's, so nothing is dragged. One somebody arranged draws as it was left. Either way
    *  its room hugs what it holds. */
@@ -149,7 +131,7 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   if (layer === null) return project(given, null, { ...config, look: WHOLE });
   /** A diagram is a projection: it draws what the block holds, and the canvas does not edit it.
    *  A grid would otherwise open as its lattice, so this comes first. */
-  if (layer && (look?.kind === "table" || look?.kind === "sequence")) {
+  if (layer && (look?.kind === "class" || look?.kind === "er" || look?.kind === "sequence")) {
     return quiet(given, layer, diagram_scene(given, layer, look.kind));
   }
   /** A stand-in naming the allocation view draws its grid's cells, read only. */
@@ -164,8 +146,8 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
       ...n, draggable: false, data: { ...n.data, marks: [...n.data.marks, "room" as const] } }));
     return { ...scene, layer, nodes, trail: trail_of(given, layer) };
   }
-  /** What its usages read through, and the links its cards' attributes draw between them. */
-  const through = linked_graph(read_through(given, layer), layer);
+  /** What its usages read through. **No line is derived**: only stored relations draw. */
+  const through = read_through(given, layer);
   /** A page places its layer as it reads; anything else places itself — `auto` shelving down a
    *  page as wide as the canvas, as a page does. */
   const how = layout_of(through, layer);
@@ -195,7 +177,8 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
     const box = spots.find((p) => p.id === g.id);
     if (!box) continue;
     const said = carried(graph, g.id);
-    const mark: CardClass = shape_of(graph, g.id)!;
+    /** A folder and a region are boxes as a group is, told apart by their marks. */
+    const mark: CardClass = shape_of(graph, g.id) === "grid" ? "grid" : "group";
     holders.push(node(g.id, box,
                       { ...said, nest: group_depth(graph, g.id),
                         holds: members_of(graph, g.id).map((b) => b.id),
@@ -300,8 +283,13 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
     offered.set(p.on, kept);
   }
 
+  /** A region on the layer is a band across the whole room. */
+  const spanning = (n: BoxNode): BoxNode => (room && n.data.marks.includes("region")
+    && graph.blocks[n.id]?.parent === layer
+    ? { ...n, position: { ...n.position, x: room.x + PAD }, width: room.w - PAD * 2 } : n);
+
   /** The seats each box offers, put onto the box that offers them. */
-  const placed = [...holders, ...cards, ...seats].map((n) => {
+  const placed = [...holders.map(spanning), ...cards, ...seats].map((n) => {
     const own = offered.get(n.id);
     return own ? { ...n, data: { ...n.data, seats: own } } : n;
   });
@@ -317,7 +305,7 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
     layer,
     ...(framed ? { frame: framed } : {}),
     nodes: placed,
-    edges: line_edges(graph, linked, seating),
+    edges: line_edges(graph, linked, seating, config.ends),
     perches: seating.perches,
     /** A slot says what this projection can offer, never what it is doing. */
     slots: SLOTS,
@@ -445,14 +433,11 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   const role = graph.blocks[layer]!.parent === null ? "folder" : role_of(graph, layer);
   const stamps = stamps_of(graph, layer);
   const holds_parts = is_container(graph, layer);
-  /** An interface opened from inside keeps the wall it is set into. */
-  const side = graph.blocks[layer]?.side;
-  const set_in = side ? { side } : {};
   const least = { w: UNIT * 14, h: UNIT * 9 };
   /** A room is a whole number of cells. */
   if (drawn.length === 0) {
     return { ...roomed({ x: -least.w / 2, y: -least.h / 2, ...least }),
-             label, role, ...(stamps.length ? { stamps } : {}), holds_parts, ...set_in };
+             label, role, ...(stamps.length ? { stamps } : {}), holds_parts };
   }
   const pad = PAD;
   const at = drawn.map(box_of);
@@ -461,7 +446,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   const w = Math.max(least.w, Math.max(...at.map((b) => b.x + b.w)) + pad - x);
   const h = Math.max(least.h, Math.max(...at.map((b) => b.y + b.h)) + pad - y);
   return { ...roomed({ x, y, w, h }), label, role, ...(stamps.length ? { stamps } : {}),
-           holds_parts, ...set_in };
+           holds_parts };
 }
 
 /** The layer's own interfaces, set into its walls where they were seated, seen from inside. */
@@ -486,15 +471,17 @@ function landed(e: Relation, layer: Id | null): Relation {
 }
 
 /** Every line as the canvas draws it: ends, seats, label, and where it turns. A tie between
- *  cards that overlap draws nothing. */
-function line_edges(graph: Graph, linked: readonly Relation[], seating: Seating): LineEdge[] {
+ *  cards that overlap draws nothing. Where `ends`, a line draws what its ends mean. */
+function line_edges(graph: Graph, linked: readonly Relation[], seating: Seating,
+                    ends?: "class" | "er"): LineEdge[] {
   const met = new Map(seating.perches.map((p) => [`${p.edge}|${p.end}`, p]));
   return linked.map((e): LineEdge => {
     const wire = wire_of(graph, e.id);
     const label = wire.name ? label_of(graph, e.id) : "";
     const alias = wire.alias ? alias_of(graph, e.id, true) : "";
-    /** A link, or a line a diagram drew, is read and never picked. */
-    const link = e.id.startsWith(LINK) || e.id.startsWith("table:");
+    /** A line a diagram drew is read and never picked. */
+    const link = e.id.startsWith(DRAWN_BY);
+    const meant: Ends | undefined = ends ? e.ends : undefined;
     /** A tie by its trait: drawn straight and never routed. */
     const module = is_tie(graph, e.id) ? "tie" : "line";
     const fan = seating.fans.get(e.id);
@@ -507,8 +494,8 @@ function line_edges(graph: Graph, linked: readonly Relation[], seating: Seating)
       sourceHandle: handle(met, e.id, "from", "s"),
       targetHandle: handle(met, e.id, "to", "t"),
       ...(label ? { label } : {}),
-      data: { module, dir: dir_of(graph, e.id), wire,
-              ...(link ? { link: true } : {}),
+      data: { module, dir: meant ? "none" : dir_of(graph, e.id), wire,
+              ...(meant ? { ends: meant } : {}), ...(ends === "er" ? { crows: true } : {}),
               ...(alias ? { alias } : {}),
               ...(fan ? { fan } : {}) },
     };
@@ -524,18 +511,21 @@ function handle(met: ReadonlyMap<string, Perch>, edge: Id,
 /** The scene a diagram kind draws. The subject is the block that feeds it: a stand-in's target
  *  when the stand-in names the view. A kind the block cannot fill falls back to the capability
  *  view, still read only. */
-function diagram_scene(graph: Graph, layer: Id, kind: "table" | "allocation" | "sequence"): Scene {
+function diagram_scene(graph: Graph, layer: Id,
+                       kind: "class" | "er" | "allocation" | "sequence"): Scene {
   const subject = diagram_subject(graph, layer);
   const scene = kind === "sequence" ? sequence_of(graph, subject)
-    : kind === "allocation" ? project(graph, subject) : table_of(graph, subject);
+    : kind === "allocation" ? project(graph, subject) : classes_of(graph, subject, kind);
   if (layer === subject || !scene.frame) return scene;
   return { ...scene, frame: { ...scene.frame, label: shown_name(graph, layer) } };
 }
 
-/** A table diagram, or the block's own capability view where it holds no definition reference.
- *  The diagram's graph no longer calls its host a grid, so it is drawn from inside. */
-function table_of(graph: Graph, subject: Id): Scene {
-  return project(table_graph(graph, subject) ?? graph, subject);
+/** A class or entity diagram, or the block's own view where it holds no definition reference.
+ *  The diagram's graph no longer calls its host a grid, so it is drawn from inside; its lines draw
+ *  what their ends mean. */
+function classes_of(graph: Graph, subject: Id, kind: "class" | "er"): Scene {
+  const drawn = class_graph(graph, subject, kind);
+  return drawn ? project(drawn, subject, { ends: kind }) : project(graph, subject);
 }
 
 /** A sequence, or the grid itself where it has no step. */
@@ -546,7 +536,7 @@ function sequence_of(graph: Graph, subject: Id): Scene {
 /** A diagram offers nothing to drag or to build. Marks a view drew (`@`, `class:`) are not
  *  picked. The trail names the block that was opened, which may be a stand-in for the subject. */
 function quiet(graph: Graph, layer: Id, scene: Scene): Scene {
-  const drawn = (id: string) => id.startsWith("@") || id.startsWith("class:");
+  const drawn = (id: string) => id.startsWith("@") || id.startsWith(DRAWN_BY);
   const nodes = scene.nodes.map((n) => ({ ...n, draggable: false,
     ...(drawn(n.id) ? { selectable: false, focusable: false } : {}) }));
   const edges = scene.edges.map((e) =>

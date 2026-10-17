@@ -2,15 +2,15 @@
 
 import { attributes_of, base_named, base_of, def_at, def_of, edge_base, frozen,
          roots_structure } from "./defs";
-import { is_flat, is_group, shape_of } from "./holders";
-import { children, is_container, of_ref, stands_for, stood_def } from "./tree";
+import { inline, is_flat, shape_of } from "./holders";
+import { children, is_container, is_interface, of_ref, stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
 
 /** The word each base reads as when nothing is named. */
 const WORD: Record<string, string> = {
-  block: "Block", folder: "Folder", interface: "Interface", reference: "Reference",
-  group: "Group", grid: "Grid", note: "Note",
+  block: "Block", folder: "Folder", reference: "Reference", group: "Group", grid: "Grid",
+  note: "Note", label: "Label", region: "Region",
 };
 
 export function kind_word(graph: Graph, b: Block): string {
@@ -24,7 +24,7 @@ export function kind_word(graph: Graph, b: Block): string {
 /** Which letter each kind's handles run under. */
 export const ALIAS_LETTER: Record<string, string> = {
   block: "B", folder: "F", interface: "I", reference: "R",
-  group: "G", grid: "D", note: "N", relation: "L",
+  group: "G", grid: "D", note: "N", label: "T", region: "S", relation: "L",
 };
 
 /** Which counter an element draws its handle from: its base, so a folder still runs under F. */
@@ -109,14 +109,16 @@ function shipped_name(name: string): boolean {
 
 /** What sort of thing a card is, as the icon it wears in its top corner. A person may set their
  *  own over it with `card.icon`; this is what it draws when nobody has. */
-export type Role = "block" | "folder" | "reference" | "interface" | "group" | "grid" | "note";
+export type Role = "block" | "folder" | "reference" | "interface" | "group" | "grid" | "note"
+  | "label" | "region";
 
 /** Every base that draws as itself. */
-const ROLES: readonly string[] = ["block", "folder", "reference", "interface", "note",
-                                  "group", "grid"];
+const ROLES: readonly string[] = ["block", "folder", "reference", "note", "label", "group",
+                                  "region", "grid"];
 
 /** A block that holds wears the mark of its shape, whatever kind it descends from. */
 export function role_of(graph: Graph, id: Id): Role {
+  if (is_interface(graph, id)) return "interface";
   /** A block a view flattens still reads as what it is. */
   const shape = shape_of(graph, id);
   if (shape && !is_flat(graph, id)) return shape;
@@ -173,12 +175,10 @@ export function stamps_of(graph: Graph, id: Id): Mark[] {
   return out;
 }
 
-/** The blocks a definition is used by: those it types, those carrying it as a tag,
- *  and the definitions with an attribute typed by it. A subtype extends it rather than
- *  using it. */
+/** The blocks a definition is used by: those it types, and the definitions with an attribute
+ *  typed by it. A subtype extends it rather than using it. */
 export function used_by(graph: Graph, def: Id): Block[] {
   return Object.values(graph.blocks).filter((b) => (!b.def && b.type === def)
-    || !!b.tags?.includes(def)
     || !!b.def?.attributes?.some((a) => a.type === def));
 }
 
@@ -188,11 +188,12 @@ export function subtypes(graph: Graph, def: Id): Block[] {
 }
 
 /** Whether a card opens onto a drawing of its own: a block holding blocks, a usage whose
- *  definition does, a reference to one that does, or a stand-in for a definition. A group never
- *  does: what it holds is drawn in place. A grid opens onto its grid view. */
+ *  definition does, a reference to one that does, or a stand-in for a definition. A folder, a
+ *  group and a region never do: what they hold is drawn in place. A grid opens onto its grid
+ *  view. */
 export function opens(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
-  if (!b || is_group(graph, id)) return false;
+  if (!b || inline(graph, id)) return false;
   if (is_container(graph, id)) return true;
   if (!b.def && def_at(graph, b.type) && is_container(graph, b.type!)) return true;
   const of = of_ref(graph, id);

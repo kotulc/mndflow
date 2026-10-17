@@ -1,3 +1,4 @@
+packages: [diagrams]
 name: Payment
 def:
   attributes:
@@ -12,3 +13,8 @@ description: A charge taken against an order.
 settings:
   card:
     face: table
+relations:
+  - diagrams.association:
+      - from: Payment
+        to: Records::Order
+        ends: { from: { multiplicity: "0..*", role: payments }, to: { multiplicity: "1", role: order } }

@@ -6,7 +6,7 @@ import {
   PanOnScrollMode, ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useReactFlow,
 } from "@xyflow/react";
 import type { Point, Spot } from "@mnd/core";
-import { box_of, nearest_seat, routes_of, taken_on, FRAME, LINK, UNIT,
+import { box_of, nearest_seat, routes_of, taken_on, DRAWN_BY, FRAME, UNIT,
          type BoxNode } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
@@ -210,18 +210,18 @@ function Canvas(props: FlowViewProps) {
         e.preventDefault();
         say(ns[0]?.id ?? null, e, "right", 1);
       }}
-      /** A link is drawn to be read: a press on it is a press on the ground. */
-      onEdgeClick={(e, edge) => say(edge.data?.link ? null : edge.id, e, "left", 1)}
+      /** A line a diagram drew is drawn to be read: a press on it is a press on the ground. */
+      onEdgeClick={(e, edge) => say(edge.id.startsWith(DRAWN_BY) ? null : edge.id, e, "left", 1)}
       onEdgeContextMenu={(e, edge) => {
         e.preventDefault();
-        say(edge.data?.link ? null : edge.id, e, "right", 1);
+        say(edge.id.startsWith(DRAWN_BY) ? null : edge.id, e, "right", 1);
       }}
       onPaneClick={(e) => say(null, e as React.MouseEvent, "left", 1)}
       /** A relationship's name is outside every node and edge, so its right-click is caught here. */
       onContextMenu={(e: React.MouseEvent) => {
         const wire = (e.target as HTMLElement).closest<HTMLElement>(".mnd-wire-name");
         const on = wire?.dataset["edge"];
-        if (!on || on.startsWith(LINK)) return;
+        if (!on || on.startsWith(DRAWN_BY)) return;
         e.preventDefault();
         say(on, e, "right", 1);
       }}

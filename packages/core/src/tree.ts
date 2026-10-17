@@ -1,6 +1,6 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import { base_of, isa, module_of, setting_of } from "./defs";
+import { isa, module_of, setting_of } from "./defs";
 import { drawn_in } from "./holders";
 import { LAYOUTS, type Block, type Definition, type Graph, type Id, type Layout,
          type Relation } from "./types";
@@ -63,17 +63,31 @@ export function path(graph: Graph, id: Id): Block[] {
   return out;
 }
 
-/** Whether a block is an interface: a usage whose chain descends from `interface`. */
+/** Whether a block is an interface: a usage whose kind runs the `interface` module. An interface
+ *  definition is a definition, and lists as one. */
 export function is_interface(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
-  return !!b && !b.def && base_of(graph, id) === "interface";
+  return !!b && !b.def && module_of(graph, id) === "interface";
 }
 
 /** A definition's interfaces: its own, then those its chain declares, nearest first.
  *  **Interfaces inherit**, as attributes do; parts never. Each keeps its id, so an edit to one goes
- *  home to the definition declaring it. */
+ *  home to the block holding it. */
 export function ports_of(graph: Graph, def: Id | undefined): Block[] {
-  return isa(graph, def).flatMap((d) => children(graph, d.id).filter((b) => is_interface(graph, b.id)));
+  return isa(graph, def).flatMap((d) => own_ports(graph, d.id));
+}
+
+/** The interfaces a block wears: a definition its chain's; a usage its own, then its
+ *  definition's, read through. **Any block may have its own.** */
+export function ports_on(graph: Graph, id: Id): Block[] {
+  const b = graph.blocks[id];
+  if (!b) return [];
+  return b.def ? ports_of(graph, b.id) : [...own_ports(graph, id), ...ports_of(graph, b.type)];
+}
+
+/** The interfaces a block holds itself. */
+function own_ports(graph: Graph, id: Id): Block[] {
+  return children(graph, id).filter((b) => is_interface(graph, b.id));
 }
 
 /** Whether a block is a reference: a usage whose chain carries *is reference*, which runs the
@@ -135,7 +149,7 @@ export function reorder(graph: Graph, parent: Id | null, moved: Id | readonly Id
 /** What separates a usage from a part of its definition it reads through: `usage/part`. */
 const PART = "/";
 
-/** The id a part of a usage's definition is drawn under on that usage. */
+/** The id a part of a usage's definition — a block, or an interface — is drawn under on it. */
 export function part_id(usage: Id, part: Id): Id {
   return `${usage}${PART}${part}`;
 }
@@ -147,8 +161,22 @@ export function part_end(graph: Graph, id: Id): { block: Id; part?: Id } {
   return { block: id.slice(0, at), part: id.slice(at + PART.length) };
 }
 
+/** An end as drawn: the block, or the part of its definition it reads through. */
+export function end_id(block: Id, part: Id | undefined): Id {
+  return part ? part_id(block, part) : block;
+}
+
+/** The block an id as drawn stands for: a part a usage reads through goes home to its
+ *  definition's block, so an edit to it lands where it is held. */
+export function stored_of(graph: Graph, id: Id): Id {
+  const { part } = part_end(graph, id);
+  return part && graph.blocks[part] ? part : id;
+}
+
 /** The block an end is drawn on: an interface's owner, or itself. */
 export function owner_of(graph: Graph, id: Id): Id {
+  const { block, part } = part_end(graph, id);
+  if (part) return block;
   const b = graph.blocks[id];
   return b && is_interface(graph, b.id) && b.parent ? b.parent : id;
 }

@@ -31,8 +31,6 @@ export type Chain = {
   at: number;
   /** The tree the canvas draws from inside, never its definition view, listed in its section even while it holds nothing. */
   drawn: Id | null;
-  /** A definition drawn from inside a structure section, listed there before it holds anything. */
-  opening: Id | null;
   onChoose: (at: number, id: Id | null) => void;
   /** Hold a whole path at once, outermost first; the last is in focus unless `at` says which. */
   onTrace: (path: readonly (Id | null)[], at?: number) => void;
@@ -61,10 +59,6 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
     : root_below(graph, slices[n - 1]!.cut, above));
   /** The tree the canvas draws from inside, never its definition view. */
   const drawn = pin && view && is_inside(view.kind) ? pin.root ?? null : null;
-  /** A definition the canvas is inside, which structure lists before it holds anything. */
-  const opening = graph && view && is_inside(view.kind) && view.layer
-    && graph.blocks[view.layer]?.def && slices[view.at]?.lists === "structure"
-    ? view.layer : null;
   slices.forEach((slice, n) => {
     /** Structure lists every package, whatever the section above holds. */
     if (slice.lists === "structure") {
@@ -74,7 +68,7 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
       const was = said[key(n, root)];
       if (was === null) { held.push(null); return; }
       const kept = was !== undefined
-        && in_section(graph, was, root, slice.cut, slice.lists, opening);
+        && in_section(graph, was, root, slice.cut, slice.lists);
       held.push(kept ? was
         : slice.first ? slice.first(graph, root) : first_in(graph, root, slice.cut, slice.lists));
       return;
@@ -86,7 +80,7 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
     const was = said[key(n, root)];
     if (was === null) { held.push(null); return; }
     const kept = was !== undefined
-      && in_section(graph, was, root, slice.cut, slice.lists, opening);
+      && in_section(graph, was, root, slice.cut, slice.lists);
     held.push(kept ? was : slice.first ? slice.first(graph, root)
       : first_in(graph, root, slice.cut, slice.lists));
   });
@@ -94,7 +88,7 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
   const onChoose = (n: number, id: Id | null) => {
     const root = roots[n];
     if (graph && id && root !== undefined
-        && !in_section(graph, id, root, slices[n]!.cut, slices[n]!.lists, opening)) {
+        && !in_section(graph, id, root, slices[n]!.cut, slices[n]!.lists)) {
       const way = trace(graph, { top, sections: slices }, id).held;
       if (way[n] === id) { onTrace(way.slice(0, n + 1), n); return; }
     }
@@ -120,16 +114,16 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
     set_at(focus);
   };
   const chain: Chain = { slices, roots, held, at: Math.min(at, slices.length - 1),
-                         drawn, opening, onChoose, onTrace, onClear };
+                         drawn, onChoose, onTrace, onClear };
   return chain;
 }
 
-/** The editor's sections, core's `EDITOR`: the definition side, and structure under every package.
- *  Structure starts on the workspace. */
+/** The editor's sections, core's `EDITOR`: the library — every package's definitions, their
+ *  parts, types and tags — then the model, usages only, starting on the workspace. */
 export function editor_slices(): Slice[] {
-  const [definitions, structure] = EDITOR.sections;
+  const [library, model] = EDITOR.sections;
   return [
-    { ...definitions!, mark: "vocabulary" },
-    { ...structure!, mark: "usages", first: (graph) => graph.root },
+    { ...library!, mark: "vocabulary" },
+    { ...model!, mark: "usages", first: (graph) => graph.root },
   ];
 }

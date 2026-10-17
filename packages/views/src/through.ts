@@ -5,12 +5,14 @@
  *    parts keep their ids, so an edit to one goes home to the definition.
  *  - A usage's card wears its definition's interfaces, its chain's included, each under
  *    `usage/part`, and a run naming a part (`fromPart`, `toPart`) meets it there. A definition's
- *    card and room wear the interfaces its chain declares the same way.
+ *    card and room wear the interfaces its chain declares the same way. Its own interfaces are
+ *    blocks under it, drawn as they are.
  *  - **A reference is resolved here, once** (`resolved`): what its card previews, the definition
  *    it stands in for, or that it names nothing. Every reader in views asks this, never `of`. */
 
-import { children, def_at, is_interface, is_reference, of_ref, part_id, ports_of, stands_for, type Block,
-         type Definition, type Graph, type Id, type Relation } from "@mnd/core";
+import { children, def_at, drawn_in, is_interface, is_reference, of_ref, part_id, ports_of,
+         stands_for, type Block, type Definition, type Graph, type Id,
+         type Relation } from "@mnd/core";
 
 /** What a card draws as: the block it previews — what a reference stands for, else itself — the
  *  definition a reference stands in for, and whether a reference names nothing there. */
@@ -40,14 +42,16 @@ export function read_through(graph: Graph, layer: Id | null): Graph {
   }
   /** Each card on the layer, and the room, wears the interfaces it reads through. */
   const drawn: Graph = { ...graph, blocks };
-  for (const b of [...children(drawn, layer), ...(opened ? [opened] : [])]) {
+  for (const b of [...drawn_in(drawn, layer), ...(opened ? [opened] : [])]) {
     for (const port of worn(graph, b)) {
       const id = part_id(b.id, port.id);
       blocks[id] = { ...port, id, parent: b.id };
     }
   }
   const edges: Record<Id, Relation> = {};
-  for (const [id, e] of Object.entries(graph.edges)) edges[id] = met(blocks, e);
+  for (const [id, e] of Object.entries(graph.edges)) {
+    edges[id] = met(graph, blocks, e, layer, def?.id);
+  }
   return { ...graph, blocks, edges };
 }
 
@@ -57,10 +61,16 @@ function worn(graph: Graph, b: Block): Block[] {
   return def_at(graph, b.type) ? ports_of(graph, b.type) : [];
 }
 
-/** A run as drawn: an end naming a part meets the usage's copy of it, where there is one. */
-function met(blocks: Record<Id, Block>, e: Relation): Relation {
-  const from = e.fromPart ? part_id(e.from, e.fromPart) : e.from;
-  const to = e.toPart ? part_id(e.to, e.toPart) : e.to;
-  if (from === e.from && to === e.to) return e;
-  return { ...e, from: blocks[from] ? from : e.from, to: blocks[to] ? to : e.to };
+/** A run as drawn: an end naming a part meets the usage's copy of it, where there is one. On a
+ *  usage's opened layer, an end at its definition's own wall meets the usage's room. */
+function met(graph: Graph, blocks: Record<Id, Block>, e: Relation, layer: Id | null,
+             def: Id | undefined): Relation {
+  const at = (end: Id, part: Id | undefined) => {
+    if (part) return blocks[part_id(end, part)] ? part_id(end, part) : end;
+    const wall = layer && def && graph.blocks[end]?.parent === def && is_interface(graph, end);
+    return wall && blocks[part_id(layer, end)] ? part_id(layer, end) : end;
+  };
+  const from = at(e.from, e.fromPart);
+  const to = at(e.to, e.toPart);
+  return from === e.from && to === e.to ? e : { ...e, from, to };
 }

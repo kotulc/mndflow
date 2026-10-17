@@ -51,16 +51,25 @@ function fold_of(): Record<string, { parent: string | null; of?: string }> {
 /** The tree row of this name. A folder that holds structure is also drawn on the canvas, so the
  *  name is no longer unique. */
 function open_row(view: { getAllByText: (text: string) => HTMLElement[] }, name: string) {
+  fireEvent.doubleClick(row_of(view, name));
+}
+
+/** Unfold a tree row's branch. A folder never opens: its box is drawn on its parent's layer. */
+function unfold_row(view: { getAllByText: (text: string) => HTMLElement[] }, name: string) {
+  fireEvent.click(row_of(view, name).closest("li")!.querySelector(".mark")!);
+}
+
+function row_of(view: { getAllByText: (text: string) => HTMLElement[] }, name: string) {
   const row = view.getAllByText(name).find((el) => el.classList.contains("label"));
   if (!row) throw new Error(`${name} is not in the tree`);
-  fireEvent.doubleClick(row);
+  return row;
 }
 
 describe("a block dropped from the tree onto the drawing", () => {
   /** Ledger draws Billing. The canvas opens on the workspace, so the layer is opened first. */
   it("refers to a child of something drawn in this layer", () => {
     const view = render(<App storage={storage} />);
-    open_row(view, "Shelf");
+    unfold_row(view, "Shelf");
     open_row(view, "Ledger");
     const was = log().length;
     drop(view, "block_billing");
@@ -72,7 +81,7 @@ describe("a block dropped from the tree onto the drawing", () => {
 
   it("refers to a block from deeper in the tree", () => {
     const view = render(<App storage={storage} />);
-    open_row(view, "Shelf");
+    unfold_row(view, "Shelf");
     open_row(view, "Ledger");
     const was = log().length;
     drop(view, "block_rate");

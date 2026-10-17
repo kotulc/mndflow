@@ -9,18 +9,97 @@
         "parent": null,
         "name": "diagrams"
       },
+      "diagrams.aggregation": {
+        "id": "diagrams.aggregation",
+        "parent": "diagrams.dir.relations",
+        "name": "aggregation",
+        "type": "line",
+        "def": {
+          "ends": {
+            "from": {
+              "ownership": "shared"
+            }
+          }
+        },
+        "description": "A whole and the parts it gathers, which live on without it. The hollow diamond is at the whole, the from end.",
+        "order": 1
+      },
+      "diagrams.association": {
+        "id": "diagrams.association",
+        "parent": "diagrams.dir.relations",
+        "name": "association",
+        "type": "line",
+        "def": {},
+        "description": "Two definitions that know of each other: each end says how many, in what role, and whether it can be reached.",
+        "order": 2
+      },
+      "diagrams.behaviour": {
+        "id": "diagrams.behaviour",
+        "parent": "diagrams",
+        "name": "behaviour",
+        "type": "block",
+        "def": {},
+        "description": "A method of what holds it: its layer is the flow or state machine that does it, its in-interfaces its parameters and its out-interfaces its return.",
+        "order": 1,
+        "settings": {
+          "layout": {
+            "view": "internal",
+            "kind": "layered"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_behaviour"
+        ]
+      },
       "diagrams.class_diagram": {
         "id": "diagrams.class_diagram",
         "parent": "diagrams",
         "name": "class diagram",
         "type": "block",
         "def": {},
-        "description": "A diagram of the definitions its references stand for, as attribute tables, and what they extend.",
-        "order": 1,
+        "description": "A class diagram: the definitions its references stand for, each a class card — fields, then behaviours — joined by what they extend and the relations stored between them.",
+        "order": 2,
         "settings": {
           "layout": {
-            "view": "table",
+            "view": "class",
             "cards": "large"
+          }
+        }
+      },
+      "diagrams.composition": {
+        "id": "diagrams.composition",
+        "parent": "diagrams.dir.relations",
+        "name": "composition",
+        "type": "line",
+        "def": {
+          "ends": {
+            "from": {
+              "ownership": "composite",
+              "multiplicity": "1"
+            }
+          }
+        },
+        "description": "A whole and the parts it owns: the parts go when the whole does. The filled diamond is at the whole, the from end.",
+        "order": 3
+      },
+      "diagrams.dependency": {
+        "id": "diagrams.dependency",
+        "parent": "diagrams.dir.relations",
+        "name": "dependency",
+        "type": "line",
+        "def": {},
+        "description": "One relies on another: a change to the supplier may change the client. Dashed, its head at the supplier.",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward",
+            "to_arrow": "open"
+          },
+          "style": {
+            "border_style": "dashed"
           }
         }
       },
@@ -29,8 +108,37 @@
         "parent": "diagrams",
         "name": "relations",
         "type": "folder",
-        "order": 2,
+        "order": 4,
         "tree": "definitions"
+      },
+      "diagrams.er_diagram": {
+        "id": "diagrams.er_diagram",
+        "parent": "diagrams",
+        "name": "entity relationship diagram",
+        "type": "block",
+        "def": {},
+        "description": "An entity relationship diagram: the definitions its references stand for, each a schema card — columns and keys — joined by the relations stored between them, their ends drawn as multiplicities.",
+        "order": 3,
+        "settings": {
+          "layout": {
+            "view": "er",
+            "cards": "large"
+          }
+        }
+      },
+      "diagrams.flow": {
+        "id": "diagrams.flow",
+        "parent": "diagrams.dir.relations",
+        "name": "flow",
+        "type": "line",
+        "def": {},
+        "description": "Something moves from one to the other: data, material, energy or control.",
+        "order": 5,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "diagrams.message": {
         "id": "diagrams.message",
@@ -39,7 +147,7 @@
         "type": "line",
         "def": {},
         "description": "One participant asks another to act: a message between two steps.",
-        "order": 1,
+        "order": 6,
         "settings": {
           "line": {
             "dir": "forward"
@@ -53,7 +161,7 @@
         "type": "line",
         "def": {},
         "description": "An answer to a message, drawn dashed.",
-        "order": 2,
+        "order": 7,
         "settings": {
           "line": {
             "dir": "forward"
@@ -69,13 +177,20 @@
         "name": "sequence diagram",
         "type": "grid",
         "def": {},
-        "description": "A grid read as time: the header row names the participants, and each row is a moment.",
-        "order": 3,
+        "description": "A grid read as time: the header row names the participants, and each row is a moment. As a block's behaviour, it is one of its methods.",
+        "order": 5,
         "settings": {
           "layout": {
             "view": "sequence"
           }
-        }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_grid",
+          "is_behaviour"
+        ]
       },
       "diagrams.swimlane": {
         "id": "diagrams.swimlane",
@@ -83,13 +198,20 @@
         "name": "swimlane",
         "type": "grid",
         "def": {},
-        "description": "A grid read as lanes: the header row names the participants, the header column the phases, and the lines between steps are drawn.",
-        "order": 4,
+        "description": "A grid read as lanes: the header row names the participants, the header column the phases, and the lines between steps are drawn. As a block's behaviour, it is one of its methods.",
+        "order": 6,
         "settings": {
           "layout": {
             "view": "allocation"
           }
-        }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_grid",
+          "is_behaviour"
+        ]
       }
     },
     "edges": {}

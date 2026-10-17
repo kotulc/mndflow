@@ -14,7 +14,7 @@ export type Point = { x: number; y: number };
 /** Which edge of a frame something sits on. */
 export type Side = "top" | "right" | "bottom" | "left";
 
-/** An interface's decorative mark. */
+/** Which way an interface carries: in, out, or both, which is what absent says. */
 export type Flow = "in" | "out" | "both";
 
 /** How a layer places what it draws: by hand, laid out for you, or as a page of full-width
@@ -30,14 +30,15 @@ export const DIRS = ["none", "forward", "back", "both"] as const;
 
 export type Dir = (typeof DIRS)[number];
 
-/** What a definition declares its usages answer. Its `type` is a value type, or a block
+/** What a definition declares its usages answer. Its `type` names a form, a type, or a block
  *  definition, which makes it a link; absent, it is text. Anything else said of it is kept as
  *  written, in `extra`. */
 export type Attribute = {
   name: string;
   type?: Id;
-  /** Whether its value names what carries it: the key. */
-  key?: boolean;
+  /** Whether its value names what carries it: `primary`, the key, or `unique` beside it. A
+   *  foreign key is an attribute typed by a definition. */
+  key?: Key;
   /** What a usage answers where it says nothing. */
   default?: string;
   unit?: string;
@@ -48,6 +49,31 @@ export type Attribute = {
   note?: string;
   extra?: Record<string, string>;
 };
+
+/** Which key an attribute is. */
+export const KEYS = ["primary", "unique"] as const;
+
+export type Key = (typeof KEYS)[number];
+
+/** Who owns whom at one end of a relation: nobody, shared (aggregation), or whole (composition).
+ *  Said at the owner's end. */
+export const OWNERSHIPS = ["none", "shared", "composite"] as const;
+
+export type Ownership = (typeof OWNERSHIPS)[number];
+
+/** What one end of a relation means: how many meet it, in what role, who owns whom, and whether
+ *  the other end can reach it. **Meaning, never drawing**: a view draws from it. */
+export type End = {
+  /** `1`, `0..1`, `*`, `1..*` or `m..n`. */
+  multiplicity?: string;
+  role?: string;
+  ownership?: Ownership;
+  /** Whether this end can be reached from the other; unsaid is unspecified, read as both ways. */
+  navigable?: boolean;
+};
+
+/** A relation's two ends. */
+export type Ends = { from?: End; to?: End };
 
 /** A usage's answer to an attribute, by name. Typed by the attribute, never by itself. */
 export type Value = { name: string; value: string };
@@ -61,9 +87,9 @@ export type Span = { r: number; c: number; rows: number; cols: number };
 /** Which line a header heads. Derived from where it sits, never stored — see `head_of`. */
 export type HeaderRole = "row" | "col" | "both";
 
-/** The two holders that draw what they hold inline: a boundary round it, or a lattice of cells.
- *  Which one a block is comes from its base. */
-export type Shape = "group" | "grid";
+/** The holders that draw what they hold inline: a boundary round it, a band across the layer, or
+ *  a lattice of cells. Which one a block is comes from its traits. */
+export type Shape = "group" | "grid" | "region";
 
 /** A grid's lattice, held on the block that is one: allocation, and nothing else. Its top row
  *  heads columns and its left column heads rows; what sits in a cell is a block. */
@@ -77,10 +103,37 @@ export type Grid = {
 /** The tree a folder at a package's root belongs to, where it is not structure. */
 export type Tree = "definitions";
 
+/** How a value is edited: the engine's, closed. A form is named by its own word wherever a type
+ *  is named. */
+export const FORMS = ["text", "number", "flag", "choice", "link"] as const;
+
+export type Form = (typeof FORMS)[number];
+
+/** A named, reusable data shape: an enum (`choice` and its options) or an alias (one form). A
+ *  component, stored as data in its package and never drawn on a layer. */
+export type Type = {
+  id: Id;
+  name: string;
+  description?: string;
+  form: Form;
+  /** An enum's options. */
+  choices?: string[];
+  /** What a number counts in. */
+  unit?: string;
+};
+
+/** A word to find things by: a component, stored as data in its package. */
+export type Tag = { id: Id; name: string; description?: string };
+
+/** A package's named components, held on its root. */
+export type Library = { types?: Type[]; tags?: Tag[] };
+
 /** What makes a block a definition: explicit, and holding what only a definition says. */
 export type DefBody = {
   /** What its usages answer. */
   attributes?: Attribute[];
+  /** A relation definition's ends: what each means, for every line it types. */
+  ends?: Ends;
 };
 
 /** The one element. **A definition is a block too**: one carrying `def`, sitting in a package's
@@ -102,6 +155,11 @@ export type Block = {
   tree?: Tree;
   /** A reference: the block it stands for — a usage, a definition or a package. */
   of?: Id;
+  /** A package root's named components: its types and tags. */
+  library?: Library;
+  /** A collection's records: rows of answers to its `records.of` attributes, by name. Values,
+   *  never blocks. */
+  records?: Record<string, string>[];
   /** Where its content lives outside the workspace: one uri, whatever locator syntax the thing
    *  it names spells. **Provenance rather than a link** — nothing syncs to it, so it may go stale
    *  without anything breaking, and nothing here parses it. A within-part and a revision are the
@@ -131,6 +189,7 @@ export type Block = {
   /** The tag definitions it carries, by id, in order: an index for finding it. **Stated, the list
    *  replaces its definition's**; unsaid, it carries its definition's. An empty list says none. */
   tags?: Id[];
+  /** An interface's flow: in, out, or both, which is what absent says. */
   flow?: Flow;
   /** A usage's answers, in order. */
   values?: Value[];
@@ -144,7 +203,8 @@ export type Relation = {
    *  way an unnamed card draws its kind word. */
   name?: string;
   type?: Id;
-  /** A part of the `from` block's definition the run leaves from: a usage reads it through. */
+  /** A part of the `from` block's definition the run leaves from — an interface its chain
+   *  declares: a usage reads it through. */
   fromPart?: Id;
   /** A part of the `to` block's definition the run arrives at. */
   toPart?: Id;
@@ -156,19 +216,21 @@ export type Relation = {
   settings?: Components;
   /** Its answers to its definition's attributes, as a usage's. */
   values?: Value[];
+  /** What its ends say over its definition's: a line narrows multiplicity and role only. */
+  ends?: Ends;
 };
 
-/** Which block module the engine dispatches on. Three, because `folder`, `note`, `group` and
- *  `grid` turned out to be the plain block with different configuration. */
+/** Which block module the engine dispatches on. Three: every other kind is the plain block,
+ *  configured. */
 export type BlockModule = "block" | "reference" | "interface";
 
 export const BLOCK_MODULES: readonly BlockModule[] = ["block", "reference", "interface"];
 
-/** The shipped block bases. A kind is a definition, not a module: `folder`, `note`, `group`,
- *  `grid` and `tag` differ from `block` by what they configure and nothing else. **There is no `resource`**: every block may
- *  point at external content through `source`, so a kind for it said nothing the slot does not. */
+/** The shipped block bases: only the kinds the engine treats differently. A kind is a definition,
+ *  not a module. **There is no `resource`**: every block may point at external content through
+ *  `source`, so a kind for it said nothing the slot does not. */
 export const BASE_BLOCKS: readonly Id[] = [
-  "block", "folder", "reference", "interface", "group", "grid", "note", "tag", "value",
+  "block", "reference", "interface", "folder", "grid", "note", "label", "group", "region",
 ];
 
 /** The shipped relation bases. `tie` is a definition — a dashed run with no heads — chosen like
@@ -192,17 +254,26 @@ export const TRAITS: readonly Trait[] = [
     settings: { allows: { holds: true } } },
   { id: "has_ports", description: "Has ports: interfaces may sit on its walls.",
     settings: { allows: { ports: true } } },
+  { id: "has_records", description: "Holds many records of one type (`records.of`), drawn as a "
+      + "table on its card.",
+    settings: { allows: { records: true } } },
   { id: "has_tie", description: "Made from, or dropped on, a block, it is tied to it.",
     settings: { tie: { type: "tie" } } },
   { id: "has_values", description: "Holds values of its own: answers to its definition's attributes.",
     settings: { allows: { values: true } } },
+  { id: "is_behaviour", description: "Is a behaviour: a method of what holds it, its layer the flow, "
+      + "state machine, swimlane or sequence that does it; its interfaces its parameters and return.",
+    settings: { block: { behaviour: true } } },
   { id: "is_grid", description: "Seats text and blocks in the cells of a grid, drawn when it is opened.",
     settings: { holder: { matrix: true } } },
   { id: "is_group", description: "Draws what it holds in place, on the layer it sits on, rather "
       + "than behind its card.",
     settings: { holder: { inline: true } } },
-  { id: "is_port", description: "Is a port: an interface seated on its owner's wall, where "
-      + "relationships enter and leave.",
+  { id: "is_region", description: "Draws as a band across the layer it sits on, under its "
+      + "heading, holding what lies in it.",
+    settings: { holder: { inline: true, band: true } } },
+  { id: "is_interface", description: "Is an interface: a block's boundary, seated on its owner's "
+      + "wall, where relationships and flows enter and leave. Never a card, a layer or a row.",
     settings: { block: { module: "interface" } } },
   { id: "is_reference", description: "Stands for another block, definition or package (`of`): "
       + "draws as it, opens onto it, owns nothing.",
@@ -222,11 +293,7 @@ export type Graph = {
   edges: Record<Id, Relation>;
 };
 
-/** The folder a workspace files the tags it makes in. */
-export const TAGS = "tags";
-
-/** A fresh workspace: its package root, and nothing else. Tags are filed when the first one is
- *  made. Every grouping is the user's. */
+/** A fresh workspace: its package root, and nothing else. Every grouping is the user's. */
 export function empty_graph(): Graph {
   const root: Block = { id: ROOT, parent: null, name: "workspace" };
   return { root: ROOT, blocks: { [ROOT]: root }, edges: {} };
@@ -250,6 +317,12 @@ export type Mutation =
   | { op: "set_description"; id: Id; description: string }
   /** A definition's attributes, written whole. */
   | { op: "set_attributes"; id: Id; attributes: Attribute[] }
+  /** A relation's ends, or a relation definition's, written whole; null gives them back. */
+  | { op: "set_ends"; id: Id; ends: Ends | null }
+  /** A package's named components, written whole; null gives them back. */
+  | { op: "set_library"; id: Id; library: Library | null }
+  /** A collection's records, written whole; null gives them back. */
+  | { op: "set_records"; id: Id; records: Record<string, string>[] | null }
   /** Where a block came from; null gives it back. */
   | { op: "set_source"; id: Id; source: string | null }
   | { op: "seat_cell"; id: Id; cell: Cell | null }

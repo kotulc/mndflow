@@ -2,16 +2,16 @@
  *  its long form: one block and its single layer, names in place of ids.
  *
  *  Syntax only. Short forms become the long form here; what a name stands for is the
- *  collection's to say. A key a block does not say itself with is a value. */
+ *  source folder's to say. A key a block does not say itself with is a value. */
 
 import { BLOCK_KEYS, names_in, said_as } from "./card";
-import type { Dir, Value } from "./types";
+import type { Dir, Ends, Value } from "./types";
 
 /** A block as a file states it: the schema's fields, named rather than identified. */
 export type Entry = {
   name: string;
   type?: string;
-  def?: { attributes?: Record<string, unknown>[] };
+  def?: { attributes?: Record<string, unknown>[]; ends?: Ends };
   tags?: string[];
   traits?: string[];
   settings?: Record<string, unknown>;
@@ -29,6 +29,8 @@ export type Entry = {
   cell?: [string | number, string | number];
   grid?: { merges?: unknown[] };
   values: Value[];
+  /** A collection's records: rows of answers, by attribute name. */
+  records?: Record<string, string>[];
   w?: number;
   h?: number;
   side?: string;
@@ -42,19 +44,23 @@ export type Edge = {
   to: string;
   type?: string;
   name?: string;
-  /** The way an arrow said it points; the collection stores it where the type says otherwise. */
+  /** The way an arrow said it points; the source folder stores it where the type says otherwise. */
   dir?: Dir;
   tags?: string[];
   settings?: Record<string, unknown>;
   values: Value[];
+  /** What its ends mean: multiplicity and role, as a line may say them. */
+  ends?: Ends;
 };
 
-/** A file, spelled out: its block, the blocks it holds in file order, its relations, and the
- *  packages it uses. */
-export type LongForm = { top: Entry; blocks: Entry[]; relations: Edge[]; packages: string[] };
+/** A file, spelled out: its block, the blocks it holds in file order, its relations, the packages
+ *  it uses, and the named components it adds to its package's library. */
+export type LongForm = { top: Entry; blocks: Entry[]; relations: Edge[]; packages: string[];
+                         library: { types: Record<string, unknown>[]; tags: Record<string, unknown>[] } };
 
 /** The keys a relation says itself with. Any other key is a value. */
-const EDGE_KEYS = ["from", "to", "type", "name", "dir", "tags", "settings", "values"] as const;
+const EDGE_KEYS = ["from", "to", "type", "name", "dir", "tags", "settings", "values",
+                   "ends"] as const;
 
 /** The arrows an edge is written with, and the way each points. */
 const ARROWS: readonly [string, Dir][] = [["<->", "both"], ["->", "forward"], ["<-", "back"],
@@ -76,7 +82,10 @@ export function long_form(front: Map, body?: string): LongForm {
   const relations = listed(front["relations"], "relations").flatMap(edges);
   const packages = listed(front["packages"], "packages").map((p) => said_as(p).trim())
     .filter(Boolean);
-  return { top, blocks, relations, packages };
+  const lib = (front["library"] ?? {}) as Map;
+  const named = (key: string) => listed(lib[key], `library.${key}`)
+    .map((item) => (typeof item === "string" ? { name: item } : item as Map));
+  return { top, blocks, relations, packages, library: { types: named("types"), tags: named("tags") } };
 }
 
 /** Whether a word is an edge: two names either side of an arrow. */
@@ -155,6 +164,10 @@ function entry(map: Map): Entry {
   if ("traits" in map) e.traits = names_in(map["traits"]);
   if (map["settings"] && typeof map["settings"] === "object") e.settings = map["settings"] as Map;
   if (map["grid"] && typeof map["grid"] === "object") e.grid = map["grid"] as Entry["grid"];
+  if (Array.isArray(map["records"])) {
+    e.records = (map["records"] as unknown[]).filter((r) => r && typeof r === "object")
+      .map((r) => Object.fromEntries(Object.entries(r as Map).map(([k, v]) => [k, said_as(v)])));
+  }
   set("cell", cell_of(map["cell"]));
   return e;
 }
@@ -188,6 +201,7 @@ function edges(item: unknown): Edge[] {
     if (ARROWS.some(([, d]) => d === dir)) e.dir = dir as Dir;
     if ("tags" in map) e.tags = names_in(map["tags"]);
     if (map["settings"] && typeof map["settings"] === "object") e.settings = map["settings"] as Map;
+    if (map["ends"] && typeof map["ends"] === "object") e.ends = map["ends"] as Ends;
     return [e];
   }
   const keys = Object.keys(map);

@@ -8,7 +8,7 @@ export type Storage = {
   clear: () => void;
 };
 
-/** A file read in: where it was, and what it says. One of a collection is a leaf of its folder. */
+/** A file read in: where it was, and what it says. One of a source folder is a leaf of it. */
 export type Leaf = { path: string; text: string };
 
 export type Files = {

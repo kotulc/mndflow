@@ -47,6 +47,8 @@
 
 **Every element asks in one order**: what it is, how it draws, what it carries, what it lists. **The first tab is named for what is drawn** — *card* or *line* — and holds every key saying what the element is. **A definition's settings tab is laid out as its card tab**, its keys how it draws.
 
+**A relation says what its ends mean on its line tab**: a *from end* and a *to end* key, each read `1..*, lines, composite`. On a line it answers multiplicity (chips, or `m..n` typed) and its role (typed); on a relation definition also ownership (`none`, `shared`, `composite`) and navigable (yes, no). **An attribute's key** is a choice: PK, UK or none; a foreign key reads FK from its type. **An interface's keys** — name, flow, its interface definition, seat, and where it is held — edit it where it is held: its definition's, for one a usage reads through.
+
 **The last tab is what a thing lists**: a usage its contents — its text, then its blocks — a definition its usages. Same place, its label says which.
 
 **Settings are a definition's, and a usage has no settings tab.** How it draws and what its usages may do are said once, on the definition, and every usage follows. A usage never lists what it cannot change: *view definition* on its type goes where they are changed. **Nobody types JSON**: a definition changes by its keys' choices alone.
@@ -198,7 +200,7 @@
 
 - **Quiet until lit**: rows read as text; only the lit row's cells are controls. Remove, and up and down, are offered on the lit row only.
 - **What a definition inherits reads first, faint**, saying where it came from; it is edited where it is declared.
-- **Type names a definition**: a value type, offered from every one loaded, or a block definition, which makes the attribute a link and its key column says *FK*. A name nothing holds makes a value type of the workspace's.
+- **Type names a form, a type or a definition**: the forms, every package's types, or a block definition, which makes the attribute a link and its key column says *FK*. A name nothing holds makes a type of the workspace's, an alias of text.
 - **A value is answered as its type says**: a box, a yes or a no, or one of a choice's options.
 - **The last row adds one**: declared on a definition, answered on a usage.
 - **Text is committed when the box is left**, never per keystroke.
@@ -209,4 +211,4 @@
 
 ## Still open
 
-- **What a definition extends is set here only**: the definition view attaches tags by drop, but not a type.
+- **What a definition extends is set here only**, and everything else that describes it: its tags, interfaces, settings and usages. There is no definition view.

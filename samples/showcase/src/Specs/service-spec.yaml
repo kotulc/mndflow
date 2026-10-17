@@ -2,7 +2,7 @@ name: Service spec
 def:
   attributes:
     - name: owner
-      key: true
+      key: primary
     - name: slo
       type: number
       unit: "%"

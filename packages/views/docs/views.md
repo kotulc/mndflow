@@ -21,8 +21,8 @@ project(graph, layer, config) → Scene
 | `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off |
 | `route.ts` | where a run goes between two borders, round the cards it passes |
 | `block.ts` | the projection: graph and layer in, Scene out |
-| `table.ts` · `sequence.ts` | the diagram views: a graph drawn as internal (table), or a Scene built directly where time is the geometry (sequence, its runs given as `points`) |
-| `look.ts` · `derive.ts` | what a card wears — its hue strayed by `vary` per definition, so kin read alike — and the marks it reads by; both derived every draw |
+| `classes.ts` · `sequence.ts` | the diagram views: a graph drawn as internal — class and entity diagrams (`class_graph`), stored lines carrying their ends — or a Scene built directly where time is the geometry (sequence, its runs given as `points`) |
+| `look.ts` · `derive.ts` | what a card wears — its hue strayed by `vary` from its parent's shade, so kin read alike — and the marks it reads by, `definition` (outlined on the canvas) and `relation` (a wire swatch) among them; both derived every draw |
 | `legend.ts` | the key to one layer: the kinds it draws and the system marks they wear, folded and counted off the Scene alone |
 | `svg.ts` · `text.ts` | a Scene drawn without a browser |
 
@@ -77,7 +77,7 @@ project(graph, layer, config) → Scene
 | **flatten** | folders draw as groups, so a whole domain reads on one page |
 | **package view** | a whole section (`look.kind: "package"`, and nothing open, `open: null`): every package a full-width box of its domain, flattened, laid out as a `page` and scrolled rather than zoomed. Which packages, and how many cards across, are the host's to say. Cards keep their real ids, so a pick is the block itself |
 | **folder** | a package or folder's own layer, editable; laid as a `page` where nobody placed what it holds, else as placed. Its room hugs what it holds, and the page is read down the view |
-| **definition** | `definition.ts`: the definition large on its own layer, placed boxes round it — what it extends above, in and out ports left and right, both-way ports then tags below, its description as a tied note top right. Placed, so nothing is dragged |
+| **no derived line** | a view draws stored relations only; the class diagram's *extends*, from `type`, is the one exception |
 | **layout** | the layer's layout kind places what is drawn |
 
 ## The Scene is the seam

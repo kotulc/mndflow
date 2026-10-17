@@ -1,0 +1,16 @@
+{
+  "id": "dependency",
+  "name": "dependency",
+  "type": "line",
+  "description": "One relies on another: a change to the supplier may change the client. Dashed, its head at the supplier.",
+  "def": {},
+  "settings": {
+    "line": {
+      "dir": "forward",
+      "to_arrow": "open"
+    },
+    "style": {
+      "border_style": "dashed"
+    }
+  }
+}

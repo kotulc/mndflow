@@ -1,17 +1,15 @@
 /** Definitions: blocks carrying `def`. Chains, bases, packages, and what an element resolves
  *  through. */
 
-import { ARRANGES, FORMS, type Settings } from "./components";
+import { ARRANGES, type Settings } from "./components";
 import { is_folder, organizes } from "./holders";
+import { is_form, library_home, library_names, type_at } from "./library";
 import { BASE_BLOCKS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIRS, TRAITS, type Block,
-         type BlockModule, type Attribute, type Components, type Definition, type Dir, type Graph,
-         type Id, type Trait } from "./types";
+         type BlockModule, type Attribute, type Components, type Definition, type Dir, type Form,
+         type Graph, type Id, type Trait } from "./types";
 
 /** A definition's domain: what its usages are. Read off its base, never stored. */
 export type Domain = "block" | "relation";
-
-/** How a value is edited. */
-export type Form = (typeof FORMS)[number];
 
 /** How a card sits in its parent's `auto` layer. */
 export type Arrange = (typeof ARRANGES)[number];
@@ -170,24 +168,19 @@ export function attributes_of(graph: Graph, type: Id | undefined): (Attribute & 
   return out;
 }
 
-/** Whether a definition is a value type: what an attribute holds, never placed. */
-export function is_value_type(graph: Graph, id: Id | undefined): boolean {
-  return !!def_at(graph, id) && base_named(graph, id) === "value";
-}
-
-/** How a value of this type is edited: its value type's form, a link where the type is a block
- *  definition — a foreign key — and text where it names nothing. */
+/** How a value of this type is edited: a form itself, a type's form, a link where the type is a
+ *  block definition — a foreign key — and text where it names nothing. */
 export function form_of(graph: Graph, type: Id | undefined): Form {
-  if (!def_at(graph, type)) return "text";
-  if (!is_value_type(graph, type)) return "link";
-  const said = setting_of(graph, type, "value")["form"];
-  return FORMS.includes(said as Form) ? said as Form : "text";
+  if (is_form(type)) return type;
+  const named = type_at(graph, type);
+  if (named) return named.form;
+  return def_at(graph, type) ? "link" : "text";
 }
 
 /** Whether an attribute links to a block definition: a foreign key. */
 export function links_to(graph: Graph, attribute: Attribute): Id | null {
-  return def_at(graph, attribute.type) && !is_value_type(graph, attribute.type)
-    && domain_of(graph, attribute.type) === "block" ? attribute.type! : null;
+  return def_at(graph, attribute.type) && domain_of(graph, attribute.type) === "block"
+    ? attribute.type! : null;
 }
 
 /** Whether an id names a base: a definition the kit ships with nothing above it. */
@@ -249,6 +242,15 @@ export function module_named(graph: Graph, type: Id | undefined): BlockModule {
   /** The type field can name the module directly. */
   if (type && BLOCK_MODULES.includes(type as BlockModule)) return type as BlockModule;
   return "block";
+}
+
+/** The bases that annotate a layer: they explain or organize it, and never list in the explorer. */
+const ANNOTATIONS: readonly Id[] = ["note", "label", "group", "region"];
+
+/** Whether a block is an annotation: a note, a label, a group or a region, by its base. */
+export function is_annotation(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  return !!b && !b.def && ANNOTATIONS.includes(base_of(graph, id));
 }
 
 /** Whether a block is a note. */
@@ -349,7 +351,7 @@ export function relations(graph: Graph): Definition[] {
 }
 
 /** A definition by what it is called: the workspace's own first. **One name space per package**:
- *  definitions and tags share it. */
+ *  definitions, types and tags share it. */
 export function def_named(graph: Graph, name: string, domain?: Domain): Definition | undefined {
   const want = name.trim();
   if (!want) return undefined;
@@ -361,8 +363,8 @@ export function def_named(graph: Graph, name: string, domain?: Domain): Definiti
 /** Whether a name is taken in a package, by anything but `except`. */
 export function name_taken(graph: Graph, pkg: Id, name: string, except?: Id): boolean {
   const want = name.trim();
-  return all_defs(graph).some((d) => d.id !== except && d.name === want
-    && package_of(graph, d.id) === pkg);
+  return library_names(graph, pkg, want, except) || all_defs(graph).some((d) => d.id !== except
+    && d.name === want && package_of(graph, d.id) === pkg);
 }
 
 /** Every package root: `base` first, the workspace's last, the rest by name between. */
@@ -380,11 +382,13 @@ export function package_named(graph: Graph, said: string | undefined): Block | u
   return roots.find((p) => p.id === want) ?? roots.find((p) => p.name === want);
 }
 
-/** The packages a package uses: worked out from every type and tag its blocks and relations
- *  name, and what those extend. Never stored. */
+/** The packages a package uses: worked out from every definition, type and tag its blocks and
+ *  relations name, and what those extend. Never stored. */
 export function uses_of(graph: Graph, pkg: Id): Id[] {
   const out = new Set<Id>();
   const reach = (type: Id | undefined) => {
+    const named = type ? library_home(graph, type) : undefined;
+    if (named && named !== pkg) out.add(named);
     for (const d of isa(graph, type)) {
       const home = package_of(graph, d.id);
       if (home !== pkg) out.add(home);
@@ -394,6 +398,7 @@ export function uses_of(graph: Graph, pkg: Id): Id[] {
     if (package_of(graph, b.id) !== pkg) continue;
     reach(b.type);
     for (const t of b.tags ?? []) reach(t);
+    for (const a of b.def?.attributes ?? []) reach(a.type);
     if (b.of && module_of(graph, b.id) === "reference") {
       const home = package_of(graph, b.of);
       if (home !== pkg) out.add(home);
@@ -463,7 +468,7 @@ export function in_definitions(graph: Graph, id: Id): boolean {
 export function holds_usages(graph: Graph, id: Id): boolean {
   if (!is_domain(graph, id)) return false;
   return Object.values(graph.blocks).some((c) => c.parent === id
-    && base_of(graph, c.id) !== "interface" && !is_domain(graph, c.id));
+    && module_of(graph, c.id) !== "interface" && !is_domain(graph, c.id));
 }
 
 /** Whether a block roots a structure. The workspace does, empty or not. A definition does when it
@@ -501,9 +506,12 @@ export function closes_cycle(graph: Graph, def: Id, type: Id | undefined): boole
   return !!type && (type === def || isa(graph, type).some((d) => d.id === def));
 }
 
-/** The bases a block moves among freely; every other base is fixed when it is made. A folder,
- *  group or grid is the plain block drawing what it holds another way, so it is retyped as freely. */
-const OPEN: readonly Id[] = ["block", "folder", "note", "group", "grid"];
+/** The bases a block moves among freely, in sets; every other base is fixed when it is made. A
+ *  folder or grid is the plain block arranging what it holds another way, so it is retyped as
+ *  freely; annotations move among themselves. **Never across**: a block never becomes an
+ *  annotation, or back. */
+const OPEN: readonly (readonly Id[])[] = [["block", "folder", "grid"],
+                                          ["note", "label", "group", "region"]];
 
 /** Whether this block may be told to name that definition. */
 export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean {
@@ -511,5 +519,5 @@ export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean 
   if (type && domain_of(graph, type) === "relation") return false;
   const from = base_of(graph, id);
   const to = block_base(graph, type);
-  return from === to || (OPEN.includes(from) && OPEN.includes(to));
+  return from === to || OPEN.some((set) => set.includes(from) && set.includes(to));
 }

@@ -1,19 +1,21 @@
 /** What a view module hands back. */
 
 import type { Edge, Node } from "@xyflow/react";
-import type { Dir, Id, Mark, Role, Side } from "@mnd/core";
+import type { Dir, End, Ends, Id, Key, Mark, Role, Side } from "@mnd/core";
 import type { Arrow, Look, Wire } from "./look";
 import type { Fan, Perch, Seat } from "./seat";
 
 /** One row of a card's attributes: its name, its type's name, whether it keys, and the value a
  *  usage answers or the default a definition declares. */
 export type Listed = {
-  name: string; type: string; key?: boolean; link?: boolean; value?: string; note?: string;
+  name: string; type: string; key?: Key; link?: boolean; value?: string; note?: string;
 };
 
 /** A large face's attributes as a ruled table: each row's cells, and each column's width in
  *  pixels — worked out once, so the card is sized and drawn alike. */
-export type Ruled = { cells: readonly (readonly string[])[]; widths: readonly number[] };
+export type Ruled = { cells: readonly (readonly string[])[]; widths: readonly number[];
+                      /** The row a second compartment starts at: a class card's behaviours. */
+                      split?: number };
 
 /** What one drawn thing carries beyond where it sits and how big it is. */
 export type BoxData = {
@@ -61,7 +63,12 @@ export type BoxData = {
 
 /** What a card wears as classes: everything true of it at once, as against the one system
  *  mark it carries. */
-export type CardClass = "container" | "reference" | "missing" | "note" | "group" | "grid"
+export type CardClass = "container" | "reference" | "missing" | "note" | "label" | "group"
+                 /** A definition, or a stand-in for one: outlined on the canvas. */
+                 | "definition"
+                 /** A relation definition, drawn as a wire swatch, and whether its lines point. */
+                 | "relation" | "directed"
+                 | "grid" | "region"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "upright" | "merged"
                  /** An opened grid, standing in for the room. */
@@ -94,9 +101,12 @@ export type GridCell = {
 export type LineData = {
   /** The shipped base this run draws as: `line`, or `tie` where a note sits at an end. */
   module: Id;
-  /** A link an attribute draws: derived, and nothing to pick. */
-  link?: boolean;
   dir: Dir;
+  /** What its ends mean, where the view draws them — a class or entity diagram — rather than
+   *  its direction. */
+  ends?: Ends;
+  /** Whether an entity diagram draws it: multiplicities as crow's feet. */
+  crows?: boolean;
   /** How it is painted and what draws at its ends. */
   wire?: Wire;
   /** The handle, beside the name rather than inside it. */
@@ -118,15 +128,52 @@ export function holds(n: { type?: string } | null | undefined): boolean {
 /** One line. React Flow's edge, with our data on it. */
 export type LineEdge = Edge<LineData>;
 
-/** What draws at each end of a run. */
-export function heads(data: LineData | undefined): { from: Arrow; to: Arrow } {
+/** What draws at each end of a run: what the line says, else what its end means — a diamond at
+ *  the owner, an open head where it can be reached, a crow's foot on an entity diagram — else its
+ *  direction. */
+export function heads(data: LineData | undefined): { from: Head; to: Head } {
   const dir = data?.dir ?? "none";
   const to = dir === "forward" || dir === "both";
   const from = dir === "back" || dir === "both";
   return {
-    from: data?.wire?.from_arrow ?? (from ? "arrow" : "none"),
-    to: data?.wire?.to_arrow ?? (to ? "arrow" : "none"),
+    from: data?.wire?.from_arrow ?? meant(data, "from") ?? (from ? "arrow" : "none"),
+    to: data?.wire?.to_arrow ?? meant(data, "to") ?? (to ? "arrow" : "none"),
   };
+}
+
+/** A head: one a line may name, or one only what an end means draws. */
+export type Head = Arrow | "filled" | "one" | "many" | "zero_one" | "zero_many";
+
+/** The head an end's meaning draws, or none said. */
+function meant(data: LineData | undefined, way: "from" | "to"): Head | undefined {
+  const end: End | undefined = data?.ends?.[way];
+  if (!end) return undefined;
+  if (end.ownership === "composite") return "filled";
+  if (end.ownership === "shared") return "diamond";
+  if (data?.crows && end.multiplicity) return crow(end.multiplicity);
+  return end.navigable ? "open" : undefined;
+}
+
+/** A crow's-foot head for a multiplicity: its lower bound zero or not, its upper one or many. A
+ *  bare `*` is zero or many. */
+function crow(multiplicity: string): Head {
+  const [low, high = low] = multiplicity.split("..");
+  const many = high === "*" || Number(high) > 1;
+  const none = low === "0" || low === "*";
+  return none ? (many ? "zero_many" : "zero_one") : many ? "many" : "one";
+}
+
+/** Whether an end draws the cross that says it cannot be reached. */
+export function crossed(data: LineData | undefined, way: "from" | "to"): boolean {
+  return data?.ends?.[way]?.navigable === false;
+}
+
+/** The words an end draws beside it: its role and its multiplicity — on an entity diagram the
+ *  crow's foot says the multiplicity. */
+export function end_words(data: LineData | undefined, way: "from" | "to"): string {
+  const end = data?.ends?.[way];
+  if (!end) return "";
+  return [end.role, data?.crows ? "" : end.multiplicity].filter(Boolean).join(" ");
 }
 
 /** Which control group this projection offers. */
@@ -157,8 +204,6 @@ export type Frame = {
   stamps?: readonly Mark[];
   /** Whether it holds anything, which is what fills its icon. */
   holds_parts?: boolean;
-  /** Which wall of its own parent this layer is set into, when the layer is itself an interface. */
-  side?: Side;
   /** The interfaces set into this layer's own walls. */
   ports: readonly Port[];
   /** Seats a relationship meets on these walls with no interface of its own. */

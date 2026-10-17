@@ -97,6 +97,18 @@ function apply(graph: Graph, m: Mutation): void {
       if (b) b.body = m.body;
       return;
     }
+    case "set_ends": {
+      const e = graph.edges[m.id];
+      const d = graph.blocks[m.id];
+      const said = m.ends && (m.ends.from || m.ends.to) ? structuredClone(m.ends) : null;
+      if (e) {
+        if (said) e.ends = said; else delete e.ends;
+      } else if (d?.def) {
+        if (said) d.def = { ...d.def, ends: said };
+        else { const { ends: _gone, ...rest } = d.def; d.def = rest; }
+      }
+      return;
+    }
     case "set_attributes": {
       const d = graph.blocks[m.id];
       if (!d?.def) return;
@@ -146,7 +158,14 @@ function apply(graph: Graph, m: Mutation): void {
     case "flip_edge": {
       const e = graph.edges[m.id];
       if (!e) return;
+      const { fromPart, toPart, ends } = e;
       [e.from, e.to] = [e.to, e.from];
+      if (toPart) e.fromPart = toPart; else delete e.fromPart;
+      if (fromPart) e.toPart = fromPart; else delete e.toPart;
+      /** What each end means turns with it. */
+      if (ends) {
+        e.ends = { ...(ends.to ? { from: ends.to } : {}), ...(ends.from ? { to: ends.from } : {}) };
+      }
       return;
     }
     case "set_end": {
@@ -169,6 +188,20 @@ function apply(graph: Graph, m: Mutation): void {
       if (!b) return;
       if (m.flow === null) delete b.flow;
       else b.flow = m.flow;
+      return;
+    }
+    case "set_library": {
+      const b = graph.blocks[m.id];
+      if (!b) return;
+      const lib = { ...(m.library?.types?.length ? { types: structuredClone(m.library.types) } : {}),
+                    ...(m.library?.tags?.length ? { tags: structuredClone(m.library.tags) } : {}) };
+      if (Object.keys(lib).length) b.library = lib; else delete b.library;
+      return;
+    }
+    case "set_records": {
+      const b = graph.blocks[m.id];
+      if (!b) return;
+      if (m.records?.length) b.records = structuredClone(m.records); else delete b.records;
       return;
     }
     /** Set in place where the answer exists, else appended. */

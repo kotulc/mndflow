@@ -30,53 +30,36 @@ function workspace() {
 const here = (at: number) => ({ at, kind: "folder" as const, layer: ROOT, pick: null });
 
 describe("definitions and structure open apart", () => {
-  it("opens a folder from structure onto the layers it holds", () => {
+  it("never opens a folder: it is picked on the layer its box is drawn on", () => {
     const g = workspace();
-    expect(open_at(g, EDITOR, {}, "cards", 1, here(1)))
-      .toMatchObject({ at: 1, kind: "folder", layer: "cards" });
+    expect(open_at(g, EDITOR, {}, "cards", 0, here(0))).toMatchObject({ at: 0, pick: "cards" });
   });
 
-  it("opens the same folder from definitions onto its definitions", () => {
-    const g = workspace();
-    expect(open_at(g, EDITOR, {}, "cards", 0, here(0)))
-      .toMatchObject({ at: 0, kind: "folder", layer: "cards" });
-  });
-
-  it("keeps a double-click in the section the canvas is already on", () => {
-    const g = workspace();
-    expect(open_at(g, EDITOR, {}, "cards", undefined, here(1)))
-      .toMatchObject({ at: 1, kind: "folder", layer: "cards" });
-  });
-
-  it("opens a definition from structure onto its structure", () => {
-    const g = workspace();
-    expect(open_at(g, EDITOR, {}, "pattern", 1, here(1)))
-      .toMatchObject({ at: 1, kind: "internal", layer: "pattern" });
-  });
-
-  it("opens a definition from definitions onto its definition view", () => {
+  it("opens a definition from the library on the view its chain names", () => {
     const g = workspace();
     expect(open_at(g, EDITOR, {}, "pattern", 0, here(0)))
-      .toMatchObject({ at: 0, kind: "definition", layer: "pattern" });
+      .toMatchObject({ at: 0, kind: "internal", layer: "pattern" });
   });
 
-  it("leaves a definition's structure for what holds it, still in structure", () => {
+  it("leaves a definition for the layer holding it, still in the library", () => {
     const g = workspace();
     const left = leave_at(g, EDITOR, {},
-                          { at: 1, kind: "internal", layer: "pattern", pick: null });
-    expect(left).toMatchObject({ at: 1, kind: "folder", layer: "cards", pick: "pattern" });
+                          { at: 0, kind: "internal", layer: "pattern", pick: null });
+    expect(left).toMatchObject({ at: 0, layer: ROOT, pick: "pattern" });
   });
 
-  it("opens a definition with no structure from the structure section", () => {
+  it("lists a definition's parts in the library, and never in the model", () => {
     const g = workspace();
-    expect(open_at(g, EDITOR, {}, "large", 1, here(1)))
-      .toMatchObject({ at: 1, kind: "internal", layer: "large" });
+    expect(in_section(g, "part", null, null, "domain")).toBe(true);
+    expect(in_section(g, "part", null, null, "structure")).toBe(false);
+    expect(in_section(g, "pattern", null, null, "structure")).toBe(false);
+    expect(in_section(g, "kinds", null, null, "structure")).toBe(true);
   });
 
-  it("holds that open definition in the structure section", () => {
+  it("holds an open definition in the library", () => {
     const g = workspace();
-    const view = { at: 1, kind: "internal" as const, layer: "large", pick: null };
-    expect(held_at(g, EDITOR, view)).toEqual({ path: ["large", "large"], at: 1 });
+    const view = { at: 0, kind: "internal" as const, layer: "large", pick: null };
+    expect(held_at(g, EDITOR, view)).toMatchObject({ at: 0 });
   });
 });
 
@@ -107,7 +90,7 @@ describe("the structure mark", () => {
     expect(roots_structure(g, "porty")).toBe(false);
   });
 
-  it("lists an open definition, and the folders on the way, before it holds anything", () => {
+  it("lists no definition in the model, nor the folders holding only definitions", () => {
     const log: Log = [{
       id: "s1", action: "build", at: 1, status: "applied", mutations: [
         { op: "add_block", block: { id: "shelf", parent: ROOT, name: "Shelf", type: "folder",
@@ -118,11 +101,7 @@ describe("the structure mark", () => {
     const g = fold(log, FLOOR);
     expect(in_section(g, "only", null, null, "structure")).toBe(false);
     expect(in_section(g, "shelf", null, null, "structure")).toBe(false);
-    expect(in_section(g, "only", null, null, "structure", "only")).toBe(true);
-    expect(in_section(g, "shelf", null, null, "structure", "only")).toBe(true);
-    const under = branch_of(g, ROOT, null, null, new Set(), "structure", "only");
-    expect(under.own.map((b) => b.id)).toContain("shelf");
-    const deeper = branch_of(g, "shelf", null, null, new Set(), "structure", "only");
-    expect(deeper.own.map((b) => b.id)).toEqual(["only"]);
+    const under = branch_of(g, "shelf", null, null, new Set(), "domain");
+    expect(under.own.map((b) => b.id)).toEqual(["only"]);
   });
 });

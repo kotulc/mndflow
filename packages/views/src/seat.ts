@@ -1,6 +1,6 @@
 /** Where line ends and interfaces meet a border: one anchor per face, interfaces beside it. */
 
-import { children, is_aside, is_group, is_interface, is_tie, type Flow, type Graph, type Id,
+import { children, is_aside, is_box, is_interface, is_tie, type Flow, type Graph, type Id,
          type Relation, type Side } from "@mnd/core";
 import { STUB } from "./route";
 import { PORT, SEAT, seat_frac, seat_marks } from "./size";
@@ -145,7 +145,7 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
     const id = e[end];
     const far = end === "from" ? e.to : e.from;
     if (owned.has(id)) return;
-    const straight = id === frame?.id || is_group(graph, id) ? across_box(id, far) : null;
+    const straight = id === frame?.id || is_box(graph, id) ? across_box(id, far) : null;
     if (straight) {
       const box = boxes.get(id)!;
       const at = seat_frac(straight.along, origin(box, straight.side), extent(box, straight.side));

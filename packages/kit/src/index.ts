@@ -27,7 +27,8 @@ export { type Allowed, type Allows, type Expects, type Note, type NoteKind, type
 
 /** Reading a graph. Every derived answer the engine gives about one. */
 export {
-  all_defs, allocated_to, allocations_of, attributes_of, form_of, is_value_type, links_to,
+  all_defs, allocated_to, allocations_of, attributes_of, form_of, links_to, ports_of, ports_on,
+  stored_of, is_box, is_region, ends_of, behaviours_of, is_behaviour, signature_of,
   layout_of, at_cell, cell_of, children, def_at,
   def_of, domain_of, edge_base, edges_in, frozen, grid_of, group_head, head_of, headed_group,
   heading, holders_in, isa, is_container, is_grid, is_group, is_header, is_holder,
@@ -37,9 +38,12 @@ export {
   subtypes, used_by,
 } from "@mnd/core";
 
-/** Tags: definitions blocks and definitions carry; traits: the engine's capabilities. */
-export { has_trait, is_tag, is_tie, is_trait, tag_home, tag_named, tags_of, tags_stated, trait_at,
-         traits_of, traits_stated, TRAITS, type Stated, type Trait } from "@mnd/core";
+/** Named components: the types and tags a package holds as data; traits: the engine's
+ *  capabilities. */
+export { all_tags, all_types, has_trait, is_form, is_tag, is_tie, is_trait, library_of, tag_at,
+         tag_named, tags_of, tags_stated, trait_at, traits_of, traits_stated, type_at, type_named,
+         typed_as, FORMS, TRAITS, type Library, type End, type Ends, type Stated, type Tag,
+         type Trait, type Type } from "@mnd/core";
 
 /** The floor. `FLOOR` is the base package's blocks; `base_graph()` a fresh workspace on it. */
 export { ALL, BASE, FLOOR, RELATIONS, base_graph, by_id } from "@mnd/defs";

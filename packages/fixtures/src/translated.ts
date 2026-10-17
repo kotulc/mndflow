@@ -15,8 +15,8 @@ function def(name: string, extend: string, card: Record<string, unknown>,
 
 /** Folders, pages, sections and the things inside a section. */
 const VOCAB: Definition[] = [
-  def("set", "folder", {  },
-      [{ name: "source", type: "link" }]),
+  /** A folder is organization: it holds no values, and says where it came from in `source`. */
+  def("set", "folder", {  }),
   def("page", "block", { label: "inside" },
       [{ name: "source", type: "link" }, { name: "title" }]),
   def("section", "block", { label: "inside" },
@@ -44,7 +44,7 @@ function block(id: Id, parent: Id | null, type: string, name: string,
            ...more };
 }
 
-/** A small documentation collection: a folder, pages, sections, a table, a list, a note, a link. */
+/** A small documentation set: a folder, pages, sections, a table, a list, a note, a link. */
 export function translated(): Graph {
   const graph = base_graph();
 
@@ -52,7 +52,7 @@ export function translated(): Graph {
   for (const d of VOCAB) graph.blocks[d.id] = d;
 
   const blocks: Block[] = [
-    block("set_guides", HOME, "doc.set", "Guides", "/guides/", 1),
+    block("set_guides", HOME, "doc.set", "Guides", "/guides/", 1, { values: undefined }),
     block("page_start", "set_guides", "doc.page", "Getting Started",
           "/guides/getting-started", 1),
     block("sec_install", "page_start", "doc.section", "Install",
@@ -82,5 +82,5 @@ export function translated(): Graph {
   return graph;
 }
 
-/** The tier root the vocabulary and collection hang from. */
+/** The tier root the vocabulary and the documents hang from. */
 export const TIER = HOME;

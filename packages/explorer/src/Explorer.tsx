@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { about_of, at_cut, children, domain_of, drop_of, frozen, is_domain, is_inside,
-         is_layer_view, may_hold, name_taken, new_id, path, roots_structure, shown_name,
+         is_layer_view, may_hold, name_taken, new_id, owner_def, path, shown_name,
          type Act, type Graph, type Id, type View } from "@mnd/core";
 import { Icon, Name, NamingContext, MARK_ICON, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
@@ -32,6 +32,10 @@ export type ExplorerProps = {
   onLeave?: () => void;
   /** A section's header clicked: the canvas draws that section whole, from above. */
   onSection?: (at: number) => void;
+  /** A library row chosen: a type or a tag, for the tray to show. */
+  onNamed?: (id: Id) => void;
+  /** The library row the tray shows, lit as a pick is. */
+  holding?: Id | null;
   onFold: (id: Id, shut: boolean) => void;
   onPick: (ids: Id[]) => void;
   /** Whether right-click opens this engine's offered list. */
@@ -156,8 +160,9 @@ export function Explorer(props: ExplorerProps) {
   /** The row being renamed in place. */
   const [naming, set_naming] = useState<Id | null>(null);
   /** A block or folder being named in place, before it is made. */
+  /** What is being drafted: a block, a folder, a definition, or a part of one. */
   const [draft, set_draft] = useState<{ parent: Id; type?: string; def?: boolean;
-                                        extends?: Id } | null>(null);
+                                        extends?: Id; part?: boolean } | null>(null);
 
   /** Each section's own branches, so unfolding its header opens what it heads and nothing else,
    *  and every row as the arrows walk them. Read off the tree fully open, so a shut branch's own
@@ -284,17 +289,16 @@ export function Explorer(props: ExplorerProps) {
   const zone = landing(graph, over);
   /** The definition held in focus, which the bar's delete takes on the library. */
   const def = library && chain ? chain.held[chain.at] ?? null : null;
-  /** A definition that may be given structure: it can hold, and its package is the workspace's. */
-  const rootable = (id: Id | null | undefined): id is Id => {
+  /** A definition, or a part of one, that may be given a part: it can hold, and its package is
+   *  the workspace's. Its parts list under it in the library. */
+  const holds_parts = (id: Id | null | undefined): id is Id => {
     const b = id ? graph.blocks[id] : undefined;
-    return !!b?.def && may_hold(graph, id!) && !frozen(graph, id!);
+    return !!b && (!!b.def || !!owner_def(graph, b.id)) && may_hold(graph, b.id)
+      && !frozen(graph, b.id);
   };
-  const structure_at = chain.slices.findIndex((s) => s.lists === "structure");
-  const structure_tip = (id: Id) => (roots_structure(graph, id)
-    ? "open structure" : `add structure to ${shown_name(graph, id)}`);
-  const open_structure = (id: Id) => onOpen?.({ at: structure_at, id });
-  const header_def = structure_at >= 0 && library && rootable(def) ? def : null;
-  const menu_def = structure_at >= 0 && menu?.id && rootable(menu.id) ? menu.id : null;
+  const library_at = chain.slices.findIndex((s) => s.lists === "domain");
+  const part_home = library && holds_parts(def) ? def : null;
+  const menu_def = library_at >= 0 && menu?.id && graph.blocks[menu.id]?.def ? menu.id : null;
   /** Where the bar's add puts a block: under the row held in focus where it may hold one, else
    *  under the workspace: every other package is frozen. */
   const held_row = chain.held[focus];
@@ -446,6 +450,13 @@ export function Explorer(props: ExplorerProps) {
     set_draft({ parent, ...(type ? { type } : {}), ...(def ? { def } : {}) });
   };
 
+  /** A part drafted in a definition, or in a part of one, its branch unfolded to show it. */
+  const add_part = (parent: Id) => {
+    const row = rows.find((r) => r.of === "block" && r.ref === parent && r.at === focus);
+    if (row && is_shut(row)) fold(row, false);
+    set_draft({ parent, part: true });
+  };
+
   /** A new definition, chosen in the section in focus as a click chooses it, so the tray shows
    *  it: a block's, or of the domain of the one it extends. Left at the offered word, it is
    *  numbered clear of the names taken. */
@@ -497,17 +508,15 @@ export function Explorer(props: ExplorerProps) {
                       disabled={!shelf}
                       onClick={() => add("folder")}><Icon name="add_folder" /></button>
             ) : null}
-            {/* Only where a structure section exists to open it in. */}
-            {structure_at < 0 ? null : header_def ? (
-              <button title={structure_tip(header_def)}
-                      onClick={() => open_structure(header_def)}>
+            {/* In the library, a part goes in the definition in focus. */}
+            {library ? (
+              <button title={part_home ? `add a part in ${shown_name(graph, part_home)}`
+                               : "pick a definition to add a part to it"}
+                      disabled={!part_home}
+                      onClick={() => { if (part_home) add_part(part_home); }}>
                 <Icon name="role_root" />
               </button>
-            ) : (
-              <button title="add structure to the definition in focus" disabled>
-                <Icon name="role_root" />
-              </button>
-            )}
+            ) : null}
             {show.remove ? (
               <button title={library ? "remove the definition in focus" : "delete what is picked"}
                       disabled={!drop} onClick={() => drop?.()}><Icon name="remove" /></button>
@@ -531,7 +540,7 @@ export function Explorer(props: ExplorerProps) {
                      if (label === null || !draft) return;
                      if (draft.def) define(label, draft.parent, draft.extends);
                      else onAct("create", { name: label, parent: draft.parent, type: draft.type,
-                                            ...(library ? { tree: "definitions" } : {}) });
+                                            ...(library && !draft.part ? { tree: "definitions" } : {}) });
                    }} />
           ) : (
             <li key={r.id}
@@ -539,7 +548,7 @@ export function Explorer(props: ExplorerProps) {
                   r.depth ? "" : "top",
                   r.named ? "" : "unnamed",
                   r.of === "block" ? "" : r.of,
-                  lights(r) ? "picked" : "",
+                  lights(r) || (r.of === "named" && r.ref === props.holding) ? "picked" : "",
                   holds(r) ? "context" : "",
                   !r.depth && r.at === focus ? "holds" : "",
                   r.via ? "part" : "",
@@ -603,7 +612,10 @@ export function Explorer(props: ExplorerProps) {
                     showing or hiding it; any other row is chosen, or only folds. */
                 onClick={(e) => {
                   if (r.of === "block") { clicked(e, r); return; }
-                  if (!r.depth) { props.onSection?.(r.at ?? 0); return; }
+                  if (r.of === "named") { props.onNamed?.(r.ref); return; }
+                  /** A package's group of types or tags only folds. */
+                  if (r.of === "group" || r.at === undefined) { fold(r, !is_shut(r)); return; }
+                  if (!r.depth) { props.onSection?.(r.at); return; }
                   choose(r);
                 }}
                 onContextMenu={(e) => {
@@ -702,8 +714,8 @@ export function Explorer(props: ExplorerProps) {
 
       {menu && offered ? (
         <Menu ctx={{ graph, layer: open, picked: [...picked] }} at={menu}
-              lead={menu_def ? { label: structure_tip(menu_def),
-                                 go: () => open_structure(menu_def) } : null}
+              lead={menu_def ? { label: "open",
+                                 go: () => onOpen?.({ at: library_at, id: menu_def }) } : null}
               onAct={onAct} onShut={() => set_menu(null)} />
       ) : null}
     </nav>

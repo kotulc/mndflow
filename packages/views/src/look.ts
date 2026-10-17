@@ -1,10 +1,9 @@
 /** How a usage of a definition draws. */
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, DISPLAYS,
-         domain_of, FACE_PARTS, FAMILIES, FILLS, FONTS, HEIGHTS, is_container,
-         is_interface, is_tie, kind_word, PARTS, attributes_of, setting_of, SHOWN, WEIGHTS,
-         WIDTHS,
-         type Definition, type Graph, type Id, type Settings } from "@mnd/core";
+         domain_of, FACE_PARTS, FAMILIES, FILLS, FONTS, HEIGHTS, is_container, isa,
+         is_interface, is_tie, kind_word, LARGE_FACES, PARTS, attributes_of, setting_of, SHOWN,
+         WEIGHTS, WIDTHS, type Definition, type Graph, type Id, type Settings } from "@mnd/core";
 import { resolved } from "./through";
 
 export type Family = (typeof FAMILIES)[number];
@@ -50,6 +49,8 @@ export type Look = {
   alias?: boolean;
   /** What the large face shows under the name, in order. */
   shows: readonly Part[];
+  /** Which face it draws with, where its definition names one: `text` is its name alone. */
+  face?: (typeof LARGE_FACES)[number];
   /** The large face's size in units, where its definition said one. */
   size?: { w: number; h: number };
   /** False where the large face does not draw the name, so what it shows is the whole card. */
@@ -119,7 +120,7 @@ function stand_in(graph: Graph, id: Id, def: Definition): Look {
   const has = (part: unknown) => part === "body"
     ? !!graph.blocks[id]!.body
     : part === "attributes" && attributes_of(graph, def.id).length > 0;
-  const shows = parts_of(card).filter(has);
+  const shows = parts_of(card).filter((part) => part === "behaviours" || has(part));
   const style = { ...config_of(graph, def.id, "style"), ...(own["style"] ?? {}) };
   const relation = domain_of(graph, def.id) === "relation";
   const tie = relation && is_tie(graph, def.id);
@@ -151,6 +152,8 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
     height: one(card["height"], HEIGHTS, PLAIN.height),
     ...(SHOWN.includes(card["alias"] as never) ? { alias: card["alias"] === "show" } : {}),
     shows,
+    ...((LARGE_FACES as readonly unknown[]).includes(card["face"])
+      ? { face: card["face"] as Look["face"] } : {}),
     ...(sized(card["size"]) ? { size: card["size"] as { w: number; h: number } } : {}),
     ...(card["name"] === "hide" ? { head: false } : {}),
     ...contrast("border_contrast", style["border_contrast"]),
@@ -160,24 +163,41 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
     kind,
     /** A mark of its own, where somebody picked one. */
     ...(typeof card["icon"] === "string" && card["icon"] ? { icon: card["icon"] } : {}),
-    ...hue_of(style, of),
+    ...hue_of(graph, id, style, of),
     /** A number the door already bounded. */
     ...number("intensity", style["intensity"]),
   };
 }
 
-/** The hue a card paints at, absent where nobody gave one: strayed by up to half of `vary` either
- *  way, keyed by its definition, so each definition under one that varies takes its own shade. */
-function hue_of(style: Settings, of: Id): Record<string, number> {
-  const hue = style["hue"];
-  const vary = style["vary"];
-  if (typeof hue !== "number" || !Number.isFinite(hue)) return {};
-  if (typeof vary !== "number" || !vary) return { hue };
-  // A small stable hash of the id, taken to a fraction from -1/2 to 1/2.
+/** The hue a card paints at, absent where nobody gave one. Its own word wins; else its
+ *  definition's shade: down the chain from the base, each definition that says a hue takes it, and
+ *  each that says none strays from **its parent's shade** by up to half of `vary` either way,
+ *  keyed by its id — halving `vary` at each step, so kin read alike and each still reads as
+ *  itself. */
+function hue_of(graph: Graph, id: Id, style: Settings, of: Id): Record<string, number> {
+  const own = graph.blocks[id]?.def ? undefined : graph.blocks[id]?.settings?.["style"]?.["hue"];
+  if (typeof own === "number" && Number.isFinite(own)) return { hue: own };
+  if (typeof style["hue"] !== "number") return {};
+  let hue: number | undefined;
+  let vary = 0;
+  for (const d of [...isa(graph, of)].reverse()) {
+    const said = d.settings?.["style"] ?? {};
+    if (typeof said["vary"] === "number") vary = said["vary"];
+    if (typeof said["hue"] === "number") hue = said["hue"];
+    else if (hue !== undefined && vary) {
+      hue += stray(d.id) * vary;
+      vary /= 2;
+    }
+  }
+  hue ??= style["hue"] as number;
+  return { hue: Math.round((hue + 360) % 360) };
+}
+
+/** A small stable hash of an id, taken to a fraction from -1/2 to 1/2. */
+function stray(id: Id): number {
   let h = 0;
-  for (const c of of) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  const stray = ((h % 1000) / 999 - 0.5) * vary;
-  return { hue: Math.round((hue + stray + 360) % 360) };
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return (h % 1000) / 999 - 0.5;
 }
 
 /** Whether a setting is a size in units the door let through. */
@@ -286,6 +306,7 @@ export function face_attrs(look: Look): Record<string, unknown> {
     "data-label": look.label,
     "data-align": look.align,
     "data-label-align": look.label_align,
+    ...(look.face ? { "data-face": look.face } : {}),
     ...(look.border_contrast ? { "data-border-contrast": look.border_contrast } : {}),
     ...(look.name_contrast ? { "data-name-contrast": look.name_contrast } : {}),
     ...(look.label_contrast ? { "data-label-contrast": look.label_contrast } : {}),

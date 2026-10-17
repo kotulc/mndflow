@@ -2,7 +2,7 @@
   "id": "tie",
   "name": "tie",
   "type": "line",
-  "description": "A dashed run with no heads: what ties a remark to what it is about.",
+  "description": "A relation with no model meaning: a dashed run with no heads, from a note or label to what it describes.",
   "def": {},
   "traits": [
     "has_values",

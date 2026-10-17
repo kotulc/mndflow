@@ -7,7 +7,8 @@ import { block_base, children, config_of, edge_base, edges_in, empty_graph, is_i
 /** What each block module is called, absent a definition that says otherwise. */
 const KEYWORD: Record<string, string> = {
   folder: "package", structure: "part", reference: "ref",
-  interface: "port", group: "package", note: "comment", view: "view",
+  interface: "port", group: "package", region: "package", note: "comment", label: "comment",
+  view: "view",
 };
 
 /** A relation module, as a keyword and back. */
@@ -23,8 +24,10 @@ function keyword(graph: Graph, id: Id): string {
   return KEYWORD[base_of(graph, id)] ?? "part";
 }
 
-/** How an end is written: a port by its owner and its own name, anything else by its name alone. */
-function end_of(graph: Graph, id: Id): string {
+/** How an end is written: a port by its owner and its own name — one a usage reads through its
+ *  definition by the usage — anything else by its name alone. */
+function end_of(graph: Graph, id: Id, part?: Id): string {
+  if (part) return `${quoted(shown_name(graph, id))}.${quoted(shown_name(graph, part))}`;
   const b = graph.blocks[id];
   if (b && is_interface(graph, b.id) && b.parent) {
     return `${quoted(shown_name(graph, b.parent))}.${quoted(shown_name(graph, id))}`;
@@ -35,7 +38,7 @@ function end_of(graph: Graph, id: Id): string {
 function relation(graph: Graph, e: Relation): string {
   const word = LINK[edge_base(graph, e.id)] ?? "connect";
   const type = e.type ? ` : ${e.type}` : "";
-  return `${word} ${end_of(graph, e.from)} to ${end_of(graph, e.to)}${type};`;
+  return `${word} ${end_of(graph, e.from, e.fromPart)} to ${end_of(graph, e.to, e.toPart)}${type};`;
 }
 
 /** A block's address, for anything the notation points at. */

@@ -2,7 +2,7 @@ name: Product
 def:
   attributes:
     - name: sku
-      key: true
+      key: primary
     - name: name
     - name: price
       type: number

@@ -1,0 +1,12 @@
+{
+  "id": "flow",
+  "name": "flow",
+  "type": "line",
+  "description": "Something moves from one to the other: data, material, energy or control.",
+  "def": {},
+  "settings": {
+    "line": {
+      "dir": "forward"
+    }
+  }
+}

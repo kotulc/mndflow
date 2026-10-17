@@ -290,3 +290,21 @@
 .mnd-flow .react-flow__background.mnd-lattice .react-flow__background-pattern {
   stroke: color-mix(in oklch, var(--card-line) 30%, transparent);
 }
+
+/* A region: a band across its layer, under its heading, set off by a separator above. */
+.mnd-group.region {
+  border: none;
+  border-top: 1px solid color-mix(in oklch, var(--muted) 55%, transparent);
+  border-radius: 0;
+  background: none;
+}
+.mnd-group.region.picked {
+  border-top-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 4%, transparent);
+  box-shadow: none;
+}
+.mnd-group-shell:has(.mnd-group.region) .mnd-group-title {
+  bottom: auto;
+  top: 4px;
+  left: 0;
+}

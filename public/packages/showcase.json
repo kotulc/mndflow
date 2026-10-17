@@ -64,13 +64,19 @@
             }
           ]
         },
-        "description": "A component that stores state other components read.",
+        "description": "A component that stores state other components read: a collection, holding records of one type (`records.of`).",
         "order": 2,
         "settings": {
           "style": {
             "family": "muted"
           }
-        }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "has_records"
+        ]
       },
       "architecture.decision": {
         "id": "architecture.decision",
@@ -191,13 +197,19 @@
         "name": "queue",
         "type": "architecture.component",
         "def": {},
-        "description": "A component that carries messages from one component to another.",
+        "description": "A component that carries messages from one component to another: a collection, holding the messages waiting as records (`records.of`).",
         "order": 7,
         "settings": {
           "style": {
             "family": "away"
           }
-        }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "has_records"
+        ]
       },
       "architecture.reads": {
         "id": "architecture.reads",
@@ -749,18 +761,97 @@
         "parent": null,
         "name": "diagrams"
       },
+      "diagrams.aggregation": {
+        "id": "diagrams.aggregation",
+        "parent": "diagrams.dir.relations",
+        "name": "aggregation",
+        "type": "line",
+        "def": {
+          "ends": {
+            "from": {
+              "ownership": "shared"
+            }
+          }
+        },
+        "description": "A whole and the parts it gathers, which live on without it. The hollow diamond is at the whole, the from end.",
+        "order": 1
+      },
+      "diagrams.association": {
+        "id": "diagrams.association",
+        "parent": "diagrams.dir.relations",
+        "name": "association",
+        "type": "line",
+        "def": {},
+        "description": "Two definitions that know of each other: each end says how many, in what role, and whether it can be reached.",
+        "order": 2
+      },
+      "diagrams.behaviour": {
+        "id": "diagrams.behaviour",
+        "parent": "diagrams",
+        "name": "behaviour",
+        "type": "block",
+        "def": {},
+        "description": "A method of what holds it: its layer is the flow or state machine that does it, its in-interfaces its parameters and its out-interfaces its return.",
+        "order": 1,
+        "settings": {
+          "layout": {
+            "view": "internal",
+            "kind": "layered"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_behaviour"
+        ]
+      },
       "diagrams.class_diagram": {
         "id": "diagrams.class_diagram",
         "parent": "diagrams",
         "name": "class diagram",
         "type": "block",
         "def": {},
-        "description": "A diagram of the definitions its references stand for, as attribute tables, and what they extend.",
-        "order": 1,
+        "description": "A class diagram: the definitions its references stand for, each a class card — fields, then behaviours — joined by what they extend and the relations stored between them.",
+        "order": 2,
         "settings": {
           "layout": {
-            "view": "table",
+            "view": "class",
             "cards": "large"
+          }
+        }
+      },
+      "diagrams.composition": {
+        "id": "diagrams.composition",
+        "parent": "diagrams.dir.relations",
+        "name": "composition",
+        "type": "line",
+        "def": {
+          "ends": {
+            "from": {
+              "ownership": "composite",
+              "multiplicity": "1"
+            }
+          }
+        },
+        "description": "A whole and the parts it owns: the parts go when the whole does. The filled diamond is at the whole, the from end.",
+        "order": 3
+      },
+      "diagrams.dependency": {
+        "id": "diagrams.dependency",
+        "parent": "diagrams.dir.relations",
+        "name": "dependency",
+        "type": "line",
+        "def": {},
+        "description": "One relies on another: a change to the supplier may change the client. Dashed, its head at the supplier.",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward",
+            "to_arrow": "open"
+          },
+          "style": {
+            "border_style": "dashed"
           }
         }
       },
@@ -769,8 +860,37 @@
         "parent": "diagrams",
         "name": "relations",
         "type": "folder",
-        "order": 2,
+        "order": 4,
         "tree": "definitions"
+      },
+      "diagrams.er_diagram": {
+        "id": "diagrams.er_diagram",
+        "parent": "diagrams",
+        "name": "entity relationship diagram",
+        "type": "block",
+        "def": {},
+        "description": "An entity relationship diagram: the definitions its references stand for, each a schema card — columns and keys — joined by the relations stored between them, their ends drawn as multiplicities.",
+        "order": 3,
+        "settings": {
+          "layout": {
+            "view": "er",
+            "cards": "large"
+          }
+        }
+      },
+      "diagrams.flow": {
+        "id": "diagrams.flow",
+        "parent": "diagrams.dir.relations",
+        "name": "flow",
+        "type": "line",
+        "def": {},
+        "description": "Something moves from one to the other: data, material, energy or control.",
+        "order": 5,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "diagrams.message": {
         "id": "diagrams.message",
@@ -779,7 +899,7 @@
         "type": "line",
         "def": {},
         "description": "One participant asks another to act: a message between two steps.",
-        "order": 1,
+        "order": 6,
         "settings": {
           "line": {
             "dir": "forward"
@@ -793,7 +913,7 @@
         "type": "line",
         "def": {},
         "description": "An answer to a message, drawn dashed.",
-        "order": 2,
+        "order": 7,
         "settings": {
           "line": {
             "dir": "forward"
@@ -809,13 +929,20 @@
         "name": "sequence diagram",
         "type": "grid",
         "def": {},
-        "description": "A grid read as time: the header row names the participants, and each row is a moment.",
-        "order": 3,
+        "description": "A grid read as time: the header row names the participants, and each row is a moment. As a block's behaviour, it is one of its methods.",
+        "order": 5,
         "settings": {
           "layout": {
             "view": "sequence"
           }
-        }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_grid",
+          "is_behaviour"
+        ]
       },
       "diagrams.swimlane": {
         "id": "diagrams.swimlane",
@@ -823,18 +950,48 @@
         "name": "swimlane",
         "type": "grid",
         "def": {},
-        "description": "A grid read as lanes: the header row names the participants, the header column the phases, and the lines between steps are drawn.",
-        "order": 4,
+        "description": "A grid read as lanes: the header row names the participants, the header column the phases, and the lines between steps are drawn. As a block's behaviour, it is one of its methods.",
+        "order": 6,
         "settings": {
           "layout": {
             "view": "allocation"
           }
-        }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_grid",
+          "is_behaviour"
+        ]
       },
       "src": {
         "id": "src",
         "parent": null,
-        "name": "showcase"
+        "name": "showcase",
+        "library": {
+          "types": [
+            {
+              "id": "src.datatype.order-status",
+              "name": "Order status",
+              "form": "choice",
+              "choices": [
+                "pending",
+                "paid",
+                "shipped",
+                "cancelled"
+              ],
+              "description": "Where an order is."
+            }
+          ],
+          "tags": [
+            {
+              "id": "src.tag.critical",
+              "name": "critical",
+              "description": "The shop stops taking orders when this fails."
+            }
+          ]
+        }
       },
       "src.dir.Catalogue": {
         "id": "src.dir.Catalogue",
@@ -887,14 +1044,6 @@
         "name": "System",
         "type": "folder",
         "order": 8
-      },
-      "src.dir.tags": {
-        "id": "src.dir.tags",
-        "parent": "src",
-        "name": "tags",
-        "type": "folder",
-        "order": 9,
-        "tree": "definitions"
       },
       "src.yaml.Catalogue.1-specs": {
         "id": "src.yaml.Catalogue.1-specs",
@@ -1062,7 +1211,7 @@
         "order": 2,
         "source": "Catalogue/charge-once.md",
         "tags": [
-          "src.yaml.tags.critical"
+          "src.tag.critical"
         ]
       },
       "src.yaml.Catalogue.2-docs.3": {
@@ -1151,7 +1300,7 @@
       "src.yaml.Data.1-model.1": {
         "id": "src.yaml.Data.1-model.1",
         "parent": "src.yaml.Data.1-model",
-        "name": "The records as classes. A link is an attribute typed by another record. Order status is a choice, so it is not a table here.",
+        "name": "The records as classes — fields, then behaviours — joined by the associations stored between them, each end saying how many and in what role. Order status is a type, so it draws no card of its own.",
         "type": "note",
         "alias": 3,
         "order": 1
@@ -1208,7 +1357,7 @@
       "src.yaml.Data.2-orders.1": {
         "id": "src.yaml.Data.2-orders.1",
         "parent": "src.yaml.Data.2-orders",
-        "name": "Usages answer their record's attributes. A value naming another card draws a link.",
+        "name": "Usages answer their record's attributes. Only stored lines draw; a value naming another card draws nothing of itself.",
         "type": "note",
         "alias": 4,
         "order": 1
@@ -1311,11 +1460,120 @@
           }
         ]
       },
+      "src.yaml.Data.3-store": {
+        "id": "src.yaml.Data.3-store",
+        "parent": "src.dir.Data",
+        "name": "Store",
+        "alias": 22,
+        "order": 3,
+        "source": "Data/3-store.yaml"
+      },
+      "src.yaml.Data.3-store.1": {
+        "id": "src.yaml.Data.3-store.1",
+        "parent": "src.yaml.Data.3-store",
+        "name": "A collection holds many records of one type, drawn as a table on its card. Records are values, never blocks.",
+        "type": "note",
+        "alias": 5,
+        "order": 1
+      },
+      "src.yaml.Data.3-store.2": {
+        "id": "src.yaml.Data.3-store.2",
+        "parent": "src.yaml.Data.3-store",
+        "name": "Orders",
+        "type": "architecture.database",
+        "alias": 23,
+        "order": 2,
+        "records": [
+          {
+            "number": "1001",
+            "customer": "Ada",
+            "status": "paid"
+          },
+          {
+            "number": "1002",
+            "customer": "Ada",
+            "status": "pending"
+          },
+          {
+            "number": "1003",
+            "customer": "Grace",
+            "status": "shipped"
+          }
+        ],
+        "settings": {
+          "records": {
+            "of": "src.yaml.Records.order"
+          }
+        },
+        "values": [
+          {
+            "name": "engine",
+            "value": "Postgres"
+          }
+        ]
+      },
+      "src.yaml.Data.4-schema": {
+        "id": "src.yaml.Data.4-schema",
+        "parent": "src.dir.Data",
+        "name": "Schema",
+        "type": "diagrams.er_diagram",
+        "alias": 24,
+        "order": 4,
+        "source": "Data/4-schema.yaml"
+      },
+      "src.yaml.Data.4-schema.1": {
+        "id": "src.yaml.Data.4-schema.1",
+        "parent": "src.yaml.Data.4-schema",
+        "name": "The records as an entity relationship diagram — columns and keys — the same associations drawn as crow's feet.",
+        "type": "note",
+        "alias": 6,
+        "order": 1
+      },
+      "src.yaml.Data.4-schema.2": {
+        "id": "src.yaml.Data.4-schema.2",
+        "parent": "src.yaml.Data.4-schema",
+        "type": "reference",
+        "of": "src.yaml.Records.customer",
+        "alias": 12,
+        "order": 2
+      },
+      "src.yaml.Data.4-schema.3": {
+        "id": "src.yaml.Data.4-schema.3",
+        "parent": "src.yaml.Data.4-schema",
+        "type": "reference",
+        "of": "src.yaml.Records.order",
+        "alias": 13,
+        "order": 3
+      },
+      "src.yaml.Data.4-schema.4": {
+        "id": "src.yaml.Data.4-schema.4",
+        "parent": "src.yaml.Data.4-schema",
+        "type": "reference",
+        "of": "src.yaml.Records.line",
+        "alias": 14,
+        "order": 4
+      },
+      "src.yaml.Data.4-schema.5": {
+        "id": "src.yaml.Data.4-schema.5",
+        "parent": "src.yaml.Data.4-schema",
+        "type": "reference",
+        "of": "src.yaml.Records.product",
+        "alias": 15,
+        "order": 5
+      },
+      "src.yaml.Data.4-schema.6": {
+        "id": "src.yaml.Data.4-schema.6",
+        "parent": "src.yaml.Data.4-schema",
+        "type": "reference",
+        "of": "src.yaml.Records.payment",
+        "alias": 16,
+        "order": 6
+      },
       "src.yaml.Flows.1-order-states": {
         "id": "src.yaml.Flows.1-order-states",
         "parent": "src.dir.Flows",
         "name": "Order states",
-        "alias": 22,
+        "alias": 25,
         "order": 1,
         "settings": {
           "layout": {
@@ -1329,56 +1587,56 @@
         "parent": "src.yaml.Flows.1-order-states",
         "name": "A state machine, ranked by where its lines point. A line back up the ranks still reads the way it points.",
         "type": "note",
-        "alias": 5,
+        "alias": 7,
         "order": 1
       },
       "src.yaml.Flows.1-order-states.2": {
         "id": "src.yaml.Flows.1-order-states.2",
         "parent": "src.yaml.Flows.1-order-states",
         "name": "Pending",
-        "alias": 23,
+        "alias": 26,
         "order": 2
       },
       "src.yaml.Flows.1-order-states.3": {
         "id": "src.yaml.Flows.1-order-states.3",
         "parent": "src.yaml.Flows.1-order-states",
         "name": "Paid",
-        "alias": 24,
+        "alias": 27,
         "order": 3
       },
       "src.yaml.Flows.1-order-states.4": {
         "id": "src.yaml.Flows.1-order-states.4",
         "parent": "src.yaml.Flows.1-order-states",
         "name": "Shipped",
-        "alias": 25,
+        "alias": 28,
         "order": 4
       },
       "src.yaml.Flows.1-order-states.5": {
         "id": "src.yaml.Flows.1-order-states.5",
         "parent": "src.yaml.Flows.1-order-states",
         "name": "Delivered",
-        "alias": 26,
+        "alias": 29,
         "order": 5
       },
       "src.yaml.Flows.1-order-states.6": {
         "id": "src.yaml.Flows.1-order-states.6",
         "parent": "src.yaml.Flows.1-order-states",
         "name": "Payment failed",
-        "alias": 27,
+        "alias": 30,
         "order": 6
       },
       "src.yaml.Flows.1-order-states.7": {
         "id": "src.yaml.Flows.1-order-states.7",
         "parent": "src.yaml.Flows.1-order-states",
         "name": "Cancelled",
-        "alias": 28,
+        "alias": 31,
         "order": 7
       },
       "src.yaml.Flows.2-place-order": {
         "id": "src.yaml.Flows.2-place-order",
         "parent": "src.dir.Flows",
         "name": "Place order",
-        "alias": 29,
+        "alias": 32,
         "order": 2,
         "source": "Flows/2-place-order.yaml"
       },
@@ -1387,14 +1645,14 @@
         "parent": "src.yaml.Flows.2-place-order",
         "name": "Checkout runs the saga: each lifeline refers to a block in Context or Containers. Place order, as lanes, is the same grid drawn as an allocation.",
         "type": "note",
-        "alias": 6,
+        "alias": 8,
         "order": 1
       },
       "src.yaml.Flows.2-place-order.10": {
         "id": "src.yaml.Flows.2-place-order.10",
         "parent": "src.yaml.Flows.2-place-order.2",
         "name": "Charge",
-        "alias": 31,
+        "alias": 34,
         "cell": {
           "r": 2,
           "c": 0
@@ -1405,7 +1663,7 @@
         "id": "src.yaml.Flows.2-place-order.11",
         "parent": "src.yaml.Flows.2-place-order.2",
         "name": "Reserve",
-        "alias": 32,
+        "alias": 35,
         "cell": {
           "r": 3,
           "c": 0
@@ -1416,7 +1674,7 @@
         "id": "src.yaml.Flows.2-place-order.12",
         "parent": "src.yaml.Flows.2-place-order.2",
         "name": "Confirm",
-        "alias": 33,
+        "alias": 36,
         "cell": {
           "r": 4,
           "c": 0
@@ -1427,7 +1685,7 @@
         "id": "src.yaml.Flows.2-place-order.13",
         "parent": "src.yaml.Flows.2-place-order.2",
         "name": "Submit cart",
-        "alias": 34,
+        "alias": 37,
         "cell": {
           "r": 1,
           "c": 1
@@ -1438,7 +1696,7 @@
         "id": "src.yaml.Flows.2-place-order.14",
         "parent": "src.yaml.Flows.2-place-order.2",
         "name": "Route checkout",
-        "alias": 35,
+        "alias": 38,
         "cell": {
           "r": 1,
           "c": 2
@@ -1449,7 +1707,7 @@
         "id": "src.yaml.Flows.2-place-order.15",
         "parent": "src.yaml.Flows.2-place-order.2",
         "name": "Start saga",
-        "alias": 36,
+        "alias": 39,
         "cell": {
           "r": 2,
           "c": 3
@@ -1460,7 +1718,7 @@
         "id": "src.yaml.Flows.2-place-order.16",
         "parent": "src.yaml.Flows.2-place-order.2",
         "name": "Authorize",
-        "alias": 37,
+        "alias": 40,
         "cell": {
           "r": 2,
           "c": 4
@@ -1471,7 +1729,7 @@
         "id": "src.yaml.Flows.2-place-order.17",
         "parent": "src.yaml.Flows.2-place-order.2",
         "name": "Reserve stock",
-        "alias": 38,
+        "alias": 41,
         "cell": {
           "r": 3,
           "c": 5
@@ -1482,7 +1740,7 @@
         "id": "src.yaml.Flows.2-place-order.18",
         "parent": "src.yaml.Flows.2-place-order.2",
         "name": "Confirm order",
-        "alias": 39,
+        "alias": 42,
         "cell": {
           "r": 4,
           "c": 3
@@ -1495,7 +1753,7 @@
         "name": "Place order, as lanes",
         "type": "reference",
         "of": "src.yaml.Flows.2-place-order.2",
-        "alias": 18,
+        "alias": 23,
         "order": 3,
         "settings": {
           "layout": {
@@ -1521,7 +1779,7 @@
         "name": "Customer",
         "type": "reference",
         "of": "src.yaml.System.1-context.2",
-        "alias": 12,
+        "alias": 17,
         "cell": {
           "r": 0,
           "c": 1
@@ -1534,7 +1792,7 @@
         "name": "Gateway",
         "type": "reference",
         "of": "src.yaml.System.2-containers.3",
-        "alias": 13,
+        "alias": 18,
         "cell": {
           "r": 0,
           "c": 2
@@ -1547,7 +1805,7 @@
         "name": "Checkout",
         "type": "reference",
         "of": "src.yaml.System.2-containers.4",
-        "alias": 14,
+        "alias": 19,
         "cell": {
           "r": 0,
           "c": 3
@@ -1560,7 +1818,7 @@
         "name": "Payment service",
         "type": "reference",
         "of": "src.yaml.System.2-containers.6",
-        "alias": 15,
+        "alias": 20,
         "cell": {
           "r": 0,
           "c": 4
@@ -1573,7 +1831,7 @@
         "name": "Inventory service",
         "type": "reference",
         "of": "src.yaml.System.2-containers.8",
-        "alias": 16,
+        "alias": 21,
         "cell": {
           "r": 0,
           "c": 5
@@ -1586,7 +1844,7 @@
         "name": "Fraud check",
         "type": "reference",
         "of": "Planned::Fraud check",
-        "alias": 17,
+        "alias": 22,
         "body": "Not built yet, so its header refers to nothing.",
         "cell": {
           "r": 0,
@@ -1598,7 +1856,7 @@
         "id": "src.yaml.Flows.2-place-order.9",
         "parent": "src.yaml.Flows.2-place-order.2",
         "name": "Submit",
-        "alias": 30,
+        "alias": 33,
         "cell": {
           "r": 1,
           "c": 0
@@ -1609,7 +1867,7 @@
         "id": "src.yaml.Flows.3-fulfil-order",
         "parent": "src.dir.Flows",
         "name": "Fulfil order",
-        "alias": 40,
+        "alias": 43,
         "order": 3,
         "source": "Flows/3-fulfil-order.yaml"
       },
@@ -1618,14 +1876,14 @@
         "parent": "src.yaml.Flows.3-fulfil-order",
         "name": "A swimlane: columns are lanes, rows are phases.",
         "type": "note",
-        "alias": 7,
+        "alias": 9,
         "order": 1
       },
       "src.yaml.Flows.3-fulfil-order.10": {
         "id": "src.yaml.Flows.3-fulfil-order.10",
         "parent": "src.yaml.Flows.3-fulfil-order.2",
         "name": "Pick items",
-        "alias": 48,
+        "alias": 51,
         "body": "Stock is taken off the shelf.",
         "cell": {
           "r": 2,
@@ -1637,7 +1895,7 @@
         "id": "src.yaml.Flows.3-fulfil-order.11",
         "parent": "src.yaml.Flows.3-fulfil-order.2",
         "name": "Book carrier",
-        "alias": 49,
+        "alias": 52,
         "body": "The adapter books a pickup in the carrier's terms.",
         "cell": {
           "r": 3,
@@ -1649,7 +1907,7 @@
         "id": "src.yaml.Flows.3-fulfil-order.12",
         "parent": "src.yaml.Flows.3-fulfil-order.2",
         "name": "Mark shipped",
-        "alias": 50,
+        "alias": 53,
         "cell": {
           "r": 3,
           "c": 1
@@ -1672,7 +1930,7 @@
         "id": "src.yaml.Flows.3-fulfil-order.3",
         "parent": "src.yaml.Flows.3-fulfil-order.2",
         "name": "Order service",
-        "alias": 41,
+        "alias": 44,
         "body": "Owns the order.",
         "cell": {
           "r": 0,
@@ -1684,7 +1942,7 @@
         "id": "src.yaml.Flows.3-fulfil-order.4",
         "parent": "src.yaml.Flows.3-fulfil-order.2",
         "name": "Inventory service",
-        "alias": 42,
+        "alias": 45,
         "body": "Owns the stock.",
         "cell": {
           "r": 0,
@@ -1696,7 +1954,7 @@
         "id": "src.yaml.Flows.3-fulfil-order.5",
         "parent": "src.yaml.Flows.3-fulfil-order.2",
         "name": "Shipping adapter",
-        "alias": 43,
+        "alias": 46,
         "body": "Speaks to the carrier.",
         "cell": {
           "r": 0,
@@ -1708,7 +1966,7 @@
         "id": "src.yaml.Flows.3-fulfil-order.6",
         "parent": "src.yaml.Flows.3-fulfil-order.2",
         "name": "Ordered",
-        "alias": 44,
+        "alias": 47,
         "cell": {
           "r": 1,
           "c": 0
@@ -1719,7 +1977,7 @@
         "id": "src.yaml.Flows.3-fulfil-order.7",
         "parent": "src.yaml.Flows.3-fulfil-order.2",
         "name": "Pick",
-        "alias": 45,
+        "alias": 48,
         "cell": {
           "r": 2,
           "c": 0
@@ -1730,7 +1988,7 @@
         "id": "src.yaml.Flows.3-fulfil-order.8",
         "parent": "src.yaml.Flows.3-fulfil-order.2",
         "name": "Ship",
-        "alias": 46,
+        "alias": 49,
         "cell": {
           "r": 3,
           "c": 0
@@ -1741,7 +1999,7 @@
         "id": "src.yaml.Flows.3-fulfil-order.9",
         "parent": "src.yaml.Flows.3-fulfil-order.2",
         "name": "Publish placed",
-        "alias": 47,
+        "alias": 50,
         "body": "The relay publishes order placed.",
         "cell": {
           "r": 1,
@@ -1753,7 +2011,7 @@
         "id": "src.yaml.Flows.4-payment-retry",
         "parent": "src.dir.Flows",
         "name": "Payment retry",
-        "alias": 51,
+        "alias": 54,
         "order": 4,
         "settings": {
           "layout": {
@@ -1767,49 +2025,49 @@
         "parent": "src.yaml.Flows.4-payment-retry",
         "name": "A flowchart. A decision is a block; its lines say where each answer goes.",
         "type": "note",
-        "alias": 8,
+        "alias": 10,
         "order": 1
       },
       "src.yaml.Flows.4-payment-retry.2": {
         "id": "src.yaml.Flows.4-payment-retry.2",
         "parent": "src.yaml.Flows.4-payment-retry",
         "name": "Charge card",
-        "alias": 52,
+        "alias": 55,
         "order": 2
       },
       "src.yaml.Flows.4-payment-retry.3": {
         "id": "src.yaml.Flows.4-payment-retry.3",
         "parent": "src.yaml.Flows.4-payment-retry",
         "name": "Approved?",
-        "alias": 53,
+        "alias": 56,
         "order": 3
       },
       "src.yaml.Flows.4-payment-retry.4": {
         "id": "src.yaml.Flows.4-payment-retry.4",
         "parent": "src.yaml.Flows.4-payment-retry",
         "name": "Retries left?",
-        "alias": 54,
+        "alias": 57,
         "order": 4
       },
       "src.yaml.Flows.4-payment-retry.5": {
         "id": "src.yaml.Flows.4-payment-retry.5",
         "parent": "src.yaml.Flows.4-payment-retry",
         "name": "Wait and back off",
-        "alias": 55,
+        "alias": 58,
         "order": 5
       },
       "src.yaml.Flows.4-payment-retry.6": {
         "id": "src.yaml.Flows.4-payment-retry.6",
         "parent": "src.yaml.Flows.4-payment-retry",
         "name": "Confirm order",
-        "alias": 56,
+        "alias": 59,
         "order": 6
       },
       "src.yaml.Flows.4-payment-retry.7": {
         "id": "src.yaml.Flows.4-payment-retry.7",
         "parent": "src.yaml.Flows.4-payment-retry",
         "name": "Cancel order",
-        "alias": 57,
+        "alias": 60,
         "order": 7
       },
       "src.yaml.Kinds.headless": {
@@ -1937,7 +2195,7 @@
             {
               "name": "id",
               "type": "number",
-              "key": true
+              "key": "primary"
             },
             {
               "name": "name"
@@ -1990,7 +2248,7 @@
             {
               "name": "number",
               "type": "number",
-              "key": true
+              "key": "primary"
             },
             {
               "name": "customer",
@@ -1998,7 +2256,7 @@
             },
             {
               "name": "status",
-              "type": "src.yaml.Records.order-status"
+              "type": "src.datatype.order-status"
             },
             {
               "name": "lines",
@@ -2008,7 +2266,7 @@
           ]
         },
         "description": "A customer's request, and the lines on it.",
-        "order": 4,
+        "order": 3,
         "settings": {
           "card": {
             "face": "table"
@@ -2016,25 +2274,32 @@
         },
         "source": "Records/order.yaml"
       },
-      "src.yaml.Records.order-status": {
-        "id": "src.yaml.Records.order-status",
-        "parent": "src.dir.Records",
-        "name": "Order status",
-        "type": "choice",
-        "def": {},
-        "description": "Where an order is.",
-        "order": 3,
-        "settings": {
-          "value": {
-            "choices": [
-              "pending",
-              "paid",
-              "shipped",
-              "cancelled"
-            ]
-          }
-        },
-        "source": "Records/order-status.yaml"
+      "src.yaml.Records.order.1": {
+        "id": "src.yaml.Records.order.1",
+        "parent": "src.yaml.Records.order",
+        "name": "place",
+        "type": "diagrams.behaviour",
+        "alias": 61,
+        "description": "Takes a customer's lines and gives back the order they make.",
+        "order": 1
+      },
+      "src.yaml.Records.order.2": {
+        "id": "src.yaml.Records.order.2",
+        "parent": "src.yaml.Records.order.1",
+        "name": "lines",
+        "type": "interface",
+        "alias": 1,
+        "flow": "in",
+        "order": 1
+      },
+      "src.yaml.Records.order.3": {
+        "id": "src.yaml.Records.order.3",
+        "parent": "src.yaml.Records.order.1",
+        "name": "placed",
+        "type": "interface",
+        "alias": 2,
+        "flow": "out",
+        "order": 2
       },
       "src.yaml.Records.payment": {
         "id": "src.yaml.Records.payment",
@@ -2058,7 +2323,7 @@
           ]
         },
         "description": "A charge taken against an order.",
-        "order": 5,
+        "order": 4,
         "settings": {
           "card": {
             "face": "table"
@@ -2074,7 +2339,7 @@
           "attributes": [
             {
               "name": "sku",
-              "key": true
+              "key": "primary"
             },
             {
               "name": "name"
@@ -2087,7 +2352,7 @@
           ]
         },
         "description": "Something that can be ordered.",
-        "order": 6,
+        "order": 5,
         "settings": {
           "card": {
             "face": "table"
@@ -2143,7 +2408,7 @@
         },
         "source": "Specs/public-api-spec.yaml",
         "tags": [
-          "src.yaml.tags.critical"
+          "src.tag.critical"
         ]
       },
       "src.yaml.Specs.service-spec": {
@@ -2154,7 +2419,7 @@
           "attributes": [
             {
               "name": "owner",
-              "key": true
+              "key": "primary"
             },
             {
               "name": "slo",
@@ -2180,7 +2445,7 @@
         "id": "src.yaml.System.1-context",
         "parent": "src.dir.System",
         "name": "Context",
-        "alias": 58,
+        "alias": 62,
         "order": 1,
         "settings": {
           "layout": {
@@ -2194,7 +2459,7 @@
         "parent": "src.yaml.System.1-context",
         "name": "The shop seen from outside. Open Containers to go inside.",
         "type": "note",
-        "alias": 9,
+        "alias": 11,
         "order": 1
       },
       "src.yaml.System.1-context.2": {
@@ -2202,7 +2467,7 @@
         "parent": "src.yaml.System.1-context",
         "name": "Customer",
         "type": "architecture.person",
-        "alias": 59,
+        "alias": 63,
         "order": 2,
         "settings": {
           "card": {
@@ -2215,7 +2480,7 @@
         "parent": "src.yaml.System.1-context",
         "name": "Support agent",
         "type": "architecture.person",
-        "alias": 60,
+        "alias": 64,
         "order": 3,
         "settings": {
           "card": {
@@ -2229,7 +2494,7 @@
         "name": "Shop",
         "type": "reference",
         "of": "src.yaml.System.2-containers",
-        "alias": 19,
+        "alias": 24,
         "order": 4
       },
       "src.yaml.System.1-context.5": {
@@ -2237,7 +2502,7 @@
         "parent": "src.yaml.System.1-context",
         "name": "Card processor",
         "type": "architecture.external",
-        "alias": 61,
+        "alias": 65,
         "order": 5
       },
       "src.yaml.System.1-context.6": {
@@ -2245,7 +2510,7 @@
         "parent": "src.yaml.System.1-context",
         "name": "Carrier",
         "type": "architecture.external",
-        "alias": 62,
+        "alias": 66,
         "order": 6
       },
       "src.yaml.System.1-context.7": {
@@ -2253,14 +2518,14 @@
         "parent": "src.yaml.System.1-context",
         "name": "Email provider",
         "type": "architecture.external",
-        "alias": 63,
+        "alias": 67,
         "order": 7
       },
       "src.yaml.System.2-containers": {
         "id": "src.yaml.System.2-containers",
         "parent": "src.dir.System",
         "name": "Containers",
-        "alias": 64,
+        "alias": 68,
         "order": 2,
         "settings": {
           "layout": {
@@ -2274,7 +2539,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Every service is a usage of a catalogue pattern. Open one to see the pattern inside it.",
         "type": "note",
-        "alias": 10,
+        "alias": 12,
         "order": 1
       },
       "src.yaml.System.2-containers.10": {
@@ -2282,7 +2547,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Order events",
         "type": "architecture.queue",
-        "alias": 73,
+        "alias": 77,
         "order": 9,
         "values": [
           {
@@ -2296,7 +2561,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Recommendations",
         "type": "architecture.service",
-        "alias": 74,
+        "alias": 78,
         "order": 10,
         "settings": {
           "style": {
@@ -2309,7 +2574,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Planned, not built yet.",
         "type": "note",
-        "alias": 11,
+        "alias": 13,
         "order": 11
       },
       "src.yaml.System.2-containers.13": {
@@ -2317,7 +2582,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Legacy billing",
         "type": "architecture.service",
-        "alias": 75,
+        "alias": 79,
         "order": 12,
         "settings": {
           "style": {
@@ -2331,7 +2596,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Being retired.",
         "type": "note",
-        "alias": 12,
+        "alias": 14,
         "order": 13
       },
       "src.yaml.System.2-containers.15": {
@@ -2339,7 +2604,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Card processor",
         "type": "architecture.external",
-        "alias": 76,
+        "alias": 80,
         "order": 14
       },
       "src.yaml.System.2-containers.16": {
@@ -2347,7 +2612,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Carrier",
         "type": "architecture.external",
-        "alias": 77,
+        "alias": 81,
         "order": 15
       },
       "src.yaml.System.2-containers.17": {
@@ -2355,7 +2620,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "https",
         "type": "interface",
-        "alias": 1,
+        "alias": 3,
         "flow": "in",
         "order": 16
       },
@@ -2364,7 +2629,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Public traffic enters here.",
         "type": "note",
-        "alias": 13,
+        "alias": 15,
         "order": 17
       },
       "src.yaml.System.2-containers.2": {
@@ -2372,7 +2637,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Storefront",
         "type": "architecture.service",
-        "alias": 65,
+        "alias": 69,
         "order": 2,
         "values": [
           {
@@ -2390,7 +2655,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Gateway",
         "type": "architecture.yaml.patterns.api-gateway",
-        "alias": 66,
+        "alias": 70,
         "order": 3,
         "settings": {
           "style": {
@@ -2413,7 +2678,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Checkout",
         "type": "architecture.yaml.patterns.saga-orchestrator",
-        "alias": 67,
+        "alias": 71,
         "order": 4,
         "values": [
           {
@@ -2431,7 +2696,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Order service",
         "type": "architecture.yaml.patterns.transactional-outbox",
-        "alias": 68,
+        "alias": 72,
         "order": 5,
         "values": [
           {
@@ -2449,7 +2714,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Payment service",
         "type": "architecture.yaml.patterns.layered-architecture",
-        "alias": 69,
+        "alias": 73,
         "order": 6,
         "settings": {
           "style": {
@@ -2457,7 +2722,7 @@
           }
         },
         "tags": [
-          "src.yaml.tags.critical"
+          "src.tag.critical"
         ],
         "values": [
           {
@@ -2475,7 +2740,7 @@
         "parent": "src.yaml.System.2-containers.6",
         "name": "Card guard",
         "type": "architecture.yaml.patterns.circuit-breaker",
-        "alias": 70,
+        "alias": 74,
         "order": 1
       },
       "src.yaml.System.2-containers.8": {
@@ -2483,7 +2748,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Inventory service",
         "type": "architecture.yaml.patterns.layered-architecture",
-        "alias": 71,
+        "alias": 75,
         "order": 7,
         "values": [
           {
@@ -2501,7 +2766,7 @@
         "parent": "src.yaml.System.2-containers",
         "name": "Shipping adapter",
         "type": "architecture.yaml.patterns.anti-corruption-layer",
-        "alias": 72,
+        "alias": 76,
         "order": 8,
         "values": [
           {
@@ -2514,7 +2779,7 @@
         "id": "src.yaml.System.3-deployment",
         "parent": "src.dir.System",
         "name": "Deployment",
-        "alias": 78,
+        "alias": 82,
         "order": 3,
         "source": "System/3-deployment.yaml"
       },
@@ -2523,7 +2788,7 @@
         "parent": "src.yaml.System.3-deployment",
         "name": "Where the containers run. Groups nest; the matrix says which environments each region runs.",
         "type": "note",
-        "alias": 14,
+        "alias": 16,
         "order": 1
       },
       "src.yaml.System.3-deployment.10": {
@@ -2531,7 +2796,7 @@
         "parent": "src.yaml.System.3-deployment.9",
         "name": "Orders primary",
         "type": "architecture.database",
-        "alias": 82,
+        "alias": 86,
         "order": 1,
         "values": [
           {
@@ -2545,7 +2810,7 @@
         "parent": "src.yaml.System.3-deployment.9",
         "name": "Orders replica",
         "type": "architecture.database",
-        "alias": 83,
+        "alias": 87,
         "order": 2,
         "values": [
           {
@@ -2578,7 +2843,7 @@
         "id": "src.yaml.System.3-deployment.13",
         "parent": "src.yaml.System.3-deployment.12",
         "name": "dev",
-        "alias": 84,
+        "alias": 88,
         "body": "Where changes land first.",
         "cell": {
           "r": 0,
@@ -2590,7 +2855,7 @@
         "id": "src.yaml.System.3-deployment.14",
         "parent": "src.yaml.System.3-deployment.12",
         "name": "staging",
-        "alias": 85,
+        "alias": 89,
         "body": "A copy of production.",
         "cell": {
           "r": 0,
@@ -2602,7 +2867,7 @@
         "id": "src.yaml.System.3-deployment.15",
         "parent": "src.yaml.System.3-deployment.12",
         "name": "prod",
-        "alias": 86,
+        "alias": 90,
         "body": "What customers reach.",
         "cell": {
           "r": 0,
@@ -2614,7 +2879,7 @@
         "id": "src.yaml.System.3-deployment.16",
         "parent": "src.yaml.System.3-deployment.12",
         "name": "eu-west",
-        "alias": 87,
+        "alias": 91,
         "body": "The first region.",
         "cell": {
           "r": 1,
@@ -2626,7 +2891,7 @@
         "id": "src.yaml.System.3-deployment.17",
         "parent": "src.yaml.System.3-deployment.12",
         "name": "us-east",
-        "alias": 88,
+        "alias": 92,
         "body": "The second region.",
         "cell": {
           "r": 2,
@@ -2638,7 +2903,7 @@
         "id": "src.yaml.System.3-deployment.18",
         "parent": "src.yaml.System.3-deployment.12",
         "name": "shared cluster",
-        "alias": 89,
+        "alias": 93,
         "body": "Dev and staging share one cluster.",
         "cell": {
           "r": 1,
@@ -2650,7 +2915,7 @@
         "id": "src.yaml.System.3-deployment.19",
         "parent": "src.yaml.System.3-deployment.12",
         "name": "eu-west prod",
-        "alias": 90,
+        "alias": 94,
         "cell": {
           "r": 1,
           "c": 3
@@ -2669,7 +2934,7 @@
         "id": "src.yaml.System.3-deployment.20",
         "parent": "src.yaml.System.3-deployment.12",
         "name": "us-east prod",
-        "alias": 91,
+        "alias": 95,
         "cell": {
           "r": 2,
           "c": 3
@@ -2682,7 +2947,7 @@
         "name": "Billing v1",
         "type": "reference",
         "of": "Retired::Billing v1",
-        "alias": 20,
+        "alias": 25,
         "order": 5
       },
       "src.yaml.System.3-deployment.22": {
@@ -2690,7 +2955,7 @@
         "parent": "src.yaml.System.3-deployment",
         "name": "Retired; what it referred to is gone.",
         "type": "note",
-        "alias": 17,
+        "alias": 19,
         "order": 6
       },
       "src.yaml.System.3-deployment.3": {
@@ -2698,7 +2963,7 @@
         "parent": "src.yaml.System.3-deployment",
         "name": "One Kubernetes cluster per region.",
         "type": "note",
-        "alias": 15,
+        "alias": 17,
         "order": 3
       },
       "src.yaml.System.3-deployment.4": {
@@ -2714,28 +2979,28 @@
         "parent": "src.yaml.System.3-deployment.2",
         "name": "The services customers reach.",
         "type": "note",
-        "alias": 16,
+        "alias": 18,
         "order": 2
       },
       "src.yaml.System.3-deployment.6": {
         "id": "src.yaml.System.3-deployment.6",
         "parent": "src.yaml.System.3-deployment.4",
         "name": "storefront pod",
-        "alias": 79,
+        "alias": 83,
         "order": 1
       },
       "src.yaml.System.3-deployment.7": {
         "id": "src.yaml.System.3-deployment.7",
         "parent": "src.yaml.System.3-deployment.4",
         "name": "gateway pod",
-        "alias": 80,
+        "alias": 84,
         "order": 2
       },
       "src.yaml.System.3-deployment.8": {
         "id": "src.yaml.System.3-deployment.8",
         "parent": "src.yaml.System.3-deployment.4",
         "name": "orders pod",
-        "alias": 81,
+        "alias": 85,
         "order": 3
       },
       "src.yaml.System.3-deployment.9": {
@@ -2745,6 +3010,74 @@
         "type": "group",
         "alias": 3,
         "order": 3
+      },
+      "src.yaml.System.4-bands": {
+        "id": "src.yaml.System.4-bands",
+        "parent": "src.dir.System",
+        "name": "Bands",
+        "alias": 96,
+        "order": 4,
+        "source": "System/4-bands.yaml"
+      },
+      "src.yaml.System.4-bands.1": {
+        "id": "src.yaml.System.4-bands.1",
+        "parent": "src.yaml.System.4-bands",
+        "name": "Regions cut a layer into bands, each under its heading; a region's name tags what lies in it, and a label tags what it is tied to.",
+        "type": "note",
+        "alias": 20,
+        "order": 1
+      },
+      "src.yaml.System.4-bands.2": {
+        "id": "src.yaml.System.4-bands.2",
+        "parent": "src.yaml.System.4-bands",
+        "name": "Customer facing",
+        "type": "region",
+        "alias": 1,
+        "order": 2
+      },
+      "src.yaml.System.4-bands.3": {
+        "id": "src.yaml.System.4-bands.3",
+        "parent": "src.yaml.System.4-bands.2",
+        "name": "Storefront",
+        "alias": 97,
+        "order": 1
+      },
+      "src.yaml.System.4-bands.4": {
+        "id": "src.yaml.System.4-bands.4",
+        "parent": "src.yaml.System.4-bands.2",
+        "name": "Gateway",
+        "alias": 98,
+        "order": 2
+      },
+      "src.yaml.System.4-bands.5": {
+        "id": "src.yaml.System.4-bands.5",
+        "parent": "src.yaml.System.4-bands",
+        "name": "Back office",
+        "type": "region",
+        "alias": 2,
+        "order": 3
+      },
+      "src.yaml.System.4-bands.6": {
+        "id": "src.yaml.System.4-bands.6",
+        "parent": "src.yaml.System.4-bands.5",
+        "name": "Order service",
+        "alias": 99,
+        "order": 1
+      },
+      "src.yaml.System.4-bands.7": {
+        "id": "src.yaml.System.4-bands.7",
+        "parent": "src.yaml.System.4-bands.5",
+        "name": "Payments",
+        "alias": 100,
+        "order": 2
+      },
+      "src.yaml.System.4-bands.8": {
+        "id": "src.yaml.System.4-bands.8",
+        "parent": "src.yaml.System.4-bands",
+        "name": "hot path",
+        "type": "label",
+        "alias": 1,
+        "order": 4
       },
       "src.yaml.about": {
         "id": "src.yaml.about",
@@ -2765,7 +3098,7 @@
         "order": 1,
         "source": "about.md",
         "tags": [
-          "src.yaml.tags.critical"
+          "src.tag.critical"
         ],
         "values": [
           {
@@ -2797,15 +3130,6 @@
         "of": "src.yaml.Catalogue.2-docs",
         "alias": 3,
         "order": 4
-      },
-      "src.yaml.tags.critical": {
-        "id": "src.yaml.tags.critical",
-        "parent": "src.dir.tags",
-        "name": "critical",
-        "type": "tag",
-        "def": {},
-        "order": 1,
-        "source": "tags/critical.yaml"
       }
     },
     "edges": {
@@ -3147,10 +3471,46 @@
         },
         "to": "src.yaml.Data.2-orders.5"
       },
+      "src.yaml.Data.2-orders.r2": {
+        "id": "src.yaml.Data.2-orders.r2",
+        "name": "customer",
+        "alias": 3,
+        "from": "src.yaml.Data.2-orders.4",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "src.yaml.Data.2-orders.2"
+      },
+      "src.yaml.Data.2-orders.r3": {
+        "id": "src.yaml.Data.2-orders.r3",
+        "name": "product",
+        "alias": 4,
+        "from": "src.yaml.Data.2-orders.5",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "src.yaml.Data.2-orders.3"
+      },
+      "src.yaml.Data.2-orders.r4": {
+        "id": "src.yaml.Data.2-orders.r4",
+        "name": "order",
+        "alias": 5,
+        "from": "src.yaml.Data.2-orders.6",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "src.yaml.Data.2-orders.4"
+      },
       "src.yaml.Flows.1-order-states.r1": {
         "id": "src.yaml.Flows.1-order-states.r1",
         "name": "charged",
-        "alias": 3,
+        "alias": 6,
         "from": "src.yaml.Flows.1-order-states.2",
         "settings": {
           "line": {
@@ -3162,7 +3522,7 @@
       "src.yaml.Flows.1-order-states.r2": {
         "id": "src.yaml.Flows.1-order-states.r2",
         "name": "declined",
-        "alias": 4,
+        "alias": 7,
         "from": "src.yaml.Flows.1-order-states.2",
         "settings": {
           "line": {
@@ -3174,7 +3534,7 @@
       "src.yaml.Flows.1-order-states.r3": {
         "id": "src.yaml.Flows.1-order-states.r3",
         "name": "retry",
-        "alias": 5,
+        "alias": 8,
         "from": "src.yaml.Flows.1-order-states.6",
         "settings": {
           "line": {
@@ -3186,7 +3546,7 @@
       "src.yaml.Flows.1-order-states.r4": {
         "id": "src.yaml.Flows.1-order-states.r4",
         "name": "gave up",
-        "alias": 6,
+        "alias": 9,
         "from": "src.yaml.Flows.1-order-states.6",
         "settings": {
           "line": {
@@ -3198,7 +3558,7 @@
       "src.yaml.Flows.1-order-states.r5": {
         "id": "src.yaml.Flows.1-order-states.r5",
         "name": "handed over",
-        "alias": 7,
+        "alias": 10,
         "from": "src.yaml.Flows.1-order-states.3",
         "settings": {
           "line": {
@@ -3210,7 +3570,7 @@
       "src.yaml.Flows.1-order-states.r6": {
         "id": "src.yaml.Flows.1-order-states.r6",
         "name": "signed for",
-        "alias": 8,
+        "alias": 11,
         "from": "src.yaml.Flows.1-order-states.4",
         "settings": {
           "line": {
@@ -3223,7 +3583,7 @@
         "id": "src.yaml.Flows.2-place-order.r1",
         "name": "checkout",
         "type": "diagrams.message",
-        "alias": 9,
+        "alias": 12,
         "from": "src.yaml.Flows.2-place-order.13",
         "to": "src.yaml.Flows.2-place-order.14"
       },
@@ -3231,7 +3591,7 @@
         "id": "src.yaml.Flows.2-place-order.r2",
         "name": "start",
         "type": "diagrams.message",
-        "alias": 10,
+        "alias": 13,
         "from": "src.yaml.Flows.2-place-order.14",
         "to": "src.yaml.Flows.2-place-order.15"
       },
@@ -3239,7 +3599,7 @@
         "id": "src.yaml.Flows.2-place-order.r3",
         "name": "charge",
         "type": "diagrams.message",
-        "alias": 11,
+        "alias": 14,
         "from": "src.yaml.Flows.2-place-order.15",
         "to": "src.yaml.Flows.2-place-order.16"
       },
@@ -3247,7 +3607,7 @@
         "id": "src.yaml.Flows.2-place-order.r4",
         "name": "reserve",
         "type": "diagrams.message",
-        "alias": 12,
+        "alias": 15,
         "from": "src.yaml.Flows.2-place-order.16",
         "to": "src.yaml.Flows.2-place-order.17"
       },
@@ -3255,7 +3615,7 @@
         "id": "src.yaml.Flows.2-place-order.r5",
         "name": "log step",
         "type": "diagrams.message",
-        "alias": 13,
+        "alias": 16,
         "from": "src.yaml.Flows.2-place-order.18",
         "to": "src.yaml.Flows.2-place-order.18"
       },
@@ -3263,14 +3623,14 @@
         "id": "src.yaml.Flows.2-place-order.r6",
         "name": "reserved",
         "type": "diagrams.reply",
-        "alias": 14,
+        "alias": 17,
         "from": "src.yaml.Flows.2-place-order.17",
         "to": "src.yaml.Flows.2-place-order.18"
       },
       "src.yaml.Flows.3-fulfil-order.r1": {
         "id": "src.yaml.Flows.3-fulfil-order.r1",
         "name": "order placed",
-        "alias": 15,
+        "alias": 18,
         "from": "src.yaml.Flows.3-fulfil-order.9",
         "settings": {
           "line": {
@@ -3282,7 +3642,7 @@
       "src.yaml.Flows.3-fulfil-order.r2": {
         "id": "src.yaml.Flows.3-fulfil-order.r2",
         "name": "picked",
-        "alias": 16,
+        "alias": 19,
         "from": "src.yaml.Flows.3-fulfil-order.10",
         "settings": {
           "line": {
@@ -3294,7 +3654,7 @@
       "src.yaml.Flows.3-fulfil-order.r3": {
         "id": "src.yaml.Flows.3-fulfil-order.r3",
         "name": "tracking number",
-        "alias": 17,
+        "alias": 20,
         "from": "src.yaml.Flows.3-fulfil-order.11",
         "settings": {
           "line": {
@@ -3305,7 +3665,7 @@
       },
       "src.yaml.Flows.4-payment-retry.r1": {
         "id": "src.yaml.Flows.4-payment-retry.r1",
-        "alias": 18,
+        "alias": 21,
         "from": "src.yaml.Flows.4-payment-retry.2",
         "settings": {
           "line": {
@@ -3317,7 +3677,7 @@
       "src.yaml.Flows.4-payment-retry.r2": {
         "id": "src.yaml.Flows.4-payment-retry.r2",
         "name": "yes",
-        "alias": 19,
+        "alias": 22,
         "from": "src.yaml.Flows.4-payment-retry.3",
         "settings": {
           "line": {
@@ -3329,7 +3689,7 @@
       "src.yaml.Flows.4-payment-retry.r3": {
         "id": "src.yaml.Flows.4-payment-retry.r3",
         "name": "no",
-        "alias": 20,
+        "alias": 23,
         "from": "src.yaml.Flows.4-payment-retry.3",
         "settings": {
           "line": {
@@ -3341,7 +3701,7 @@
       "src.yaml.Flows.4-payment-retry.r4": {
         "id": "src.yaml.Flows.4-payment-retry.r4",
         "name": "yes",
-        "alias": 21,
+        "alias": 24,
         "from": "src.yaml.Flows.4-payment-retry.4",
         "settings": {
           "line": {
@@ -3352,7 +3712,7 @@
       },
       "src.yaml.Flows.4-payment-retry.r5": {
         "id": "src.yaml.Flows.4-payment-retry.r5",
-        "alias": 22,
+        "alias": 25,
         "from": "src.yaml.Flows.4-payment-retry.5",
         "settings": {
           "line": {
@@ -3364,7 +3724,7 @@
       "src.yaml.Flows.4-payment-retry.r6": {
         "id": "src.yaml.Flows.4-payment-retry.r6",
         "name": "no",
-        "alias": 23,
+        "alias": 26,
         "from": "src.yaml.Flows.4-payment-retry.4",
         "settings": {
           "line": {
@@ -3373,10 +3733,72 @@
         },
         "to": "src.yaml.Flows.4-payment-retry.7"
       },
+      "src.yaml.Records.line.r1": {
+        "id": "src.yaml.Records.line.r1",
+        "type": "diagrams.association",
+        "alias": 27,
+        "ends": {
+          "from": {
+            "multiplicity": "*"
+          },
+          "to": {
+            "multiplicity": "1",
+            "role": "product"
+          }
+        },
+        "from": "src.yaml.Records.line",
+        "to": "src.yaml.Records.product"
+      },
+      "src.yaml.Records.order.r1": {
+        "id": "src.yaml.Records.order.r1",
+        "type": "diagrams.association",
+        "alias": 28,
+        "ends": {
+          "from": {
+            "multiplicity": "*"
+          },
+          "to": {
+            "multiplicity": "1",
+            "role": "customer"
+          }
+        },
+        "from": "src.yaml.Records.order",
+        "to": "src.yaml.Records.customer"
+      },
+      "src.yaml.Records.order.r2": {
+        "id": "src.yaml.Records.order.r2",
+        "type": "diagrams.composition",
+        "alias": 29,
+        "ends": {
+          "to": {
+            "multiplicity": "1..*",
+            "role": "lines"
+          }
+        },
+        "from": "src.yaml.Records.order",
+        "to": "src.yaml.Records.line"
+      },
+      "src.yaml.Records.payment.r1": {
+        "id": "src.yaml.Records.payment.r1",
+        "type": "diagrams.association",
+        "alias": 30,
+        "ends": {
+          "from": {
+            "multiplicity": "0..*",
+            "role": "payments"
+          },
+          "to": {
+            "multiplicity": "1",
+            "role": "order"
+          }
+        },
+        "from": "src.yaml.Records.payment",
+        "to": "src.yaml.Records.order"
+      },
       "src.yaml.System.1-context.r1": {
         "id": "src.yaml.System.1-context.r1",
         "name": "places orders",
-        "alias": 24,
+        "alias": 31,
         "from": "src.yaml.System.1-context.2",
         "settings": {
           "line": {
@@ -3388,14 +3810,14 @@
       "src.yaml.System.1-context.r2": {
         "id": "src.yaml.System.1-context.r2",
         "name": "looks up orders",
-        "alias": 25,
+        "alias": 32,
         "from": "src.yaml.System.1-context.3",
         "to": "src.yaml.System.1-context.4"
       },
       "src.yaml.System.1-context.r3": {
         "id": "src.yaml.System.1-context.r3",
         "name": "authorize / result",
-        "alias": 26,
+        "alias": 33,
         "from": "src.yaml.System.1-context.4",
         "settings": {
           "line": {
@@ -3407,7 +3829,7 @@
       "src.yaml.System.1-context.r4": {
         "id": "src.yaml.System.1-context.r4",
         "name": "hands over parcels",
-        "alias": 27,
+        "alias": 34,
         "from": "src.yaml.System.1-context.6",
         "settings": {
           "line": {
@@ -3419,13 +3841,13 @@
       "src.yaml.System.1-context.r5": {
         "id": "src.yaml.System.1-context.r5",
         "type": "architecture.integrates",
-        "alias": 28,
+        "alias": 35,
         "from": "src.yaml.System.1-context.4",
         "to": "src.yaml.System.1-context.7"
       },
       "src.yaml.System.2-containers.r1": {
         "id": "src.yaml.System.2-containers.r1",
-        "alias": 29,
+        "alias": 36,
         "from": "src.yaml.System.2-containers.17",
         "settings": {
           "line": {
@@ -3437,7 +3859,7 @@
       "src.yaml.System.2-containers.r10": {
         "id": "src.yaml.System.2-containers.r10",
         "name": "charge",
-        "alias": 38,
+        "alias": 45,
         "from": "src.yaml.System.2-containers.10",
         "settings": {
           "line": {
@@ -3450,7 +3872,7 @@
       "src.yaml.System.2-containers.r11": {
         "id": "src.yaml.System.2-containers.r11",
         "name": "reserve",
-        "alias": 39,
+        "alias": 46,
         "from": "src.yaml.System.2-containers.10",
         "settings": {
           "line": {
@@ -3463,14 +3885,14 @@
       "src.yaml.System.2-containers.r12": {
         "id": "src.yaml.System.2-containers.r12",
         "type": "architecture.integrates",
-        "alias": 40,
+        "alias": 47,
         "from": "src.yaml.System.2-containers.6",
         "to": "src.yaml.System.2-containers.15"
       },
       "src.yaml.System.2-containers.r13": {
         "id": "src.yaml.System.2-containers.r13",
         "type": "architecture.integrates",
-        "alias": 41,
+        "alias": 48,
         "from": "src.yaml.System.2-containers.9",
         "fromPart": "architecture.yaml.patterns.anti-corruption-layer.9",
         "to": "src.yaml.System.2-containers.16"
@@ -3478,14 +3900,14 @@
       "src.yaml.System.2-containers.r14": {
         "id": "src.yaml.System.2-containers.r14",
         "name": "reconciles nightly",
-        "alias": 42,
+        "alias": 49,
         "from": "src.yaml.System.2-containers.13",
         "to": "src.yaml.System.2-containers.5"
       },
       "src.yaml.System.2-containers.r2": {
         "id": "src.yaml.System.2-containers.r2",
         "type": "architecture.calls",
-        "alias": 30,
+        "alias": 37,
         "from": "src.yaml.System.2-containers.2",
         "to": "src.yaml.System.2-containers.3",
         "toPart": "architecture.yaml.patterns.api-gateway.8"
@@ -3493,7 +3915,7 @@
       "src.yaml.System.2-containers.r3": {
         "id": "src.yaml.System.2-containers.r3",
         "type": "architecture.calls",
-        "alias": 31,
+        "alias": 38,
         "from": "src.yaml.System.2-containers.3",
         "fromPart": "architecture.yaml.patterns.api-gateway.9",
         "to": "src.yaml.System.2-containers.4",
@@ -3502,7 +3924,7 @@
       "src.yaml.System.2-containers.r4": {
         "id": "src.yaml.System.2-containers.r4",
         "type": "architecture.calls",
-        "alias": 32,
+        "alias": 39,
         "from": "src.yaml.System.2-containers.3",
         "fromPart": "architecture.yaml.patterns.api-gateway.9",
         "to": "src.yaml.System.2-containers.5",
@@ -3511,7 +3933,7 @@
       "src.yaml.System.2-containers.r5": {
         "id": "src.yaml.System.2-containers.r5",
         "type": "architecture.calls",
-        "alias": 33,
+        "alias": 40,
         "from": "src.yaml.System.2-containers.3",
         "fromPart": "architecture.yaml.patterns.api-gateway.9",
         "to": "src.yaml.System.2-containers.8",
@@ -3520,7 +3942,7 @@
       "src.yaml.System.2-containers.r6": {
         "id": "src.yaml.System.2-containers.r6",
         "type": "architecture.calls",
-        "alias": 34,
+        "alias": 41,
         "from": "src.yaml.System.2-containers.8",
         "to": "src.yaml.System.2-containers.9",
         "toPart": "architecture.yaml.patterns.anti-corruption-layer.8"
@@ -3528,14 +3950,14 @@
       "src.yaml.System.2-containers.r7": {
         "id": "src.yaml.System.2-containers.r7",
         "type": "architecture.calls",
-        "alias": 35,
+        "alias": 42,
         "from": "src.yaml.System.2-containers.2",
         "to": "src.yaml.System.2-containers.11"
       },
       "src.yaml.System.2-containers.r8": {
         "id": "src.yaml.System.2-containers.r8",
         "name": "commands / replies",
-        "alias": 36,
+        "alias": 43,
         "from": "src.yaml.System.2-containers.4",
         "fromPart": "architecture.yaml.patterns.saga-orchestrator.8",
         "settings": {
@@ -3548,7 +3970,7 @@
       "src.yaml.System.2-containers.r9": {
         "id": "src.yaml.System.2-containers.r9",
         "type": "architecture.publishes",
-        "alias": 37,
+        "alias": 44,
         "from": "src.yaml.System.2-containers.5",
         "fromPart": "architecture.yaml.patterns.transactional-outbox.11",
         "to": "src.yaml.System.2-containers.10"
@@ -3556,28 +3978,28 @@
       "src.yaml.System.2-containers.t12": {
         "id": "src.yaml.System.2-containers.t12",
         "type": "tie",
-        "alias": 43,
+        "alias": 50,
         "from": "src.yaml.System.2-containers.12",
         "to": "src.yaml.System.2-containers.11"
       },
       "src.yaml.System.2-containers.t14": {
         "id": "src.yaml.System.2-containers.t14",
         "type": "tie",
-        "alias": 44,
+        "alias": 51,
         "from": "src.yaml.System.2-containers.14",
         "to": "src.yaml.System.2-containers.13"
       },
       "src.yaml.System.2-containers.t18": {
         "id": "src.yaml.System.2-containers.t18",
         "type": "tie",
-        "alias": 45,
+        "alias": 52,
         "from": "src.yaml.System.2-containers.18",
         "to": "src.yaml.System.2-containers.17"
       },
       "src.yaml.System.3-deployment.r1": {
         "id": "src.yaml.System.3-deployment.r1",
         "type": "src.yaml.Kinds.replicates",
-        "alias": 46,
+        "alias": 53,
         "from": "src.yaml.System.3-deployment.10",
         "to": "src.yaml.System.3-deployment.11",
         "values": [
@@ -3590,23 +4012,52 @@
       "src.yaml.System.3-deployment.t22": {
         "id": "src.yaml.System.3-deployment.t22",
         "type": "tie",
-        "alias": 49,
+        "alias": 56,
         "from": "src.yaml.System.3-deployment.22",
         "to": "src.yaml.System.3-deployment.21"
       },
       "src.yaml.System.3-deployment.t3": {
         "id": "src.yaml.System.3-deployment.t3",
         "type": "tie",
-        "alias": 47,
+        "alias": 54,
         "from": "src.yaml.System.3-deployment.3",
         "to": "src.yaml.System.3-deployment.2"
       },
       "src.yaml.System.3-deployment.t5": {
         "id": "src.yaml.System.3-deployment.t5",
         "type": "tie",
-        "alias": 48,
+        "alias": 55,
         "from": "src.yaml.System.3-deployment.5",
         "to": "src.yaml.System.3-deployment.4"
+      },
+      "src.yaml.System.4-bands.r1": {
+        "id": "src.yaml.System.4-bands.r1",
+        "alias": 57,
+        "from": "src.yaml.System.4-bands.3",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "src.yaml.System.4-bands.4"
+      },
+      "src.yaml.System.4-bands.r2": {
+        "id": "src.yaml.System.4-bands.r2",
+        "alias": 58,
+        "from": "src.yaml.System.4-bands.6",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "src.yaml.System.4-bands.7"
+      },
+      "src.yaml.System.4-bands.r3": {
+        "id": "src.yaml.System.4-bands.r3",
+        "type": "tie",
+        "alias": 59,
+        "from": "src.yaml.System.4-bands.8",
+        "to": "src.yaml.System.4-bands.4"
       }
     }
   }

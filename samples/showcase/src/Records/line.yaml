@@ -1,3 +1,4 @@
+packages: [diagrams]
 name: Line
 def:
   attributes:
@@ -9,3 +10,8 @@ description: One product on an order, and how many.
 settings:
   card:
     face: table
+relations:
+  - diagrams.association:
+      - from: Line
+        to: Records::Product
+        ends: { from: { multiplicity: "*" }, to: { multiplicity: "1", role: product } }

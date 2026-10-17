@@ -4,9 +4,9 @@
  *  tabs of its own for blocks through `extras`. */
 
 import { useEffect, useState, type ReactNode } from "react";
-import { about_of, alias_of, children, def_at, def_of, domain_of, frame_of, frozen,
-         is_interface, is_tag, is_value_type, of_ref, owner_of, shown_name,
-         stands_for, type Act, type Graph, type Id } from "@mnd/core";
+import { about_of, alias_name, alias_of, children, def_at, def_of, domain_of, frame_of, frozen,
+         is_interface, of_ref, owner_of, stored_of, shown_name, stands_for, tag_at, type_at,
+         type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { resolved } from "@mnd/views";
 import { rows_of, type Row, type Sort } from "./rows";
@@ -61,10 +61,12 @@ export type TrayProps = {
 export type Extra = { name: string; draw: (about: Id) => ReactNode };
 
 export type Tab = "card" | "line" | "settings" | "attributes" | "contents" | "definitions"
-                | "packages" | "usages" | "workspace";
+                | "packages" | "usages" | "workspace" | "interface" | "tag" | "type";
 
-/** What the tray is about. The root is not a block anybody draws, so it is its own context. */
-type Context = "root" | "block" | "line" | "definition" | "relation" | "library" | "packages";
+/** What the tray is about. The root is not a block anybody draws, so it is its own context; a
+ *  component — an interface, a tag, a type — is asked its own questions. */
+type Context = "root" | "block" | "line" | "definition" | "relation" | "library" | "packages"
+  | "interface" | "tag" | "type";
 
 /** A slot per context: an element lists its types, a library section every definition, and the
  *  packages section what the workspace draws on — a package's definitions read in the explorer,
@@ -82,6 +84,9 @@ const SLOTS: Record<Context, readonly Tab[]> = {
   relation: ["line", "settings", "attributes", "usages"],
   library: ["definitions"],
   packages: ["packages"],
+  interface: ["interface"],
+  tag: ["tag"],
+  type: ["type"],
 };
 
 /** The contexts about one element, which carry a json chip. */
@@ -97,6 +102,7 @@ const FAMILY: Record<Context, string> = {
   root: "root", block: "instance", line: "instance",
   definition: "definition", relation: "definition",
   library: "library", packages: "packages",
+  interface: "interface", tag: "tag", type: "type",
 };
 
 const HEAD: readonly Column[] = [
@@ -120,12 +126,12 @@ const FILTERS: { sort: Sort | "all"; label: string }[] = [
   { sort: "note", label: "notes" },
 ];
 
-/** The layer a thing is drawn in: a block's parent, an interface's owner's, a line's first end's. */
+/** The layer a thing is drawn in: a block's parent, a line's first end's. */
 function home_of(graph: Graph, id: Id): Id | null {
   const e = graph.edges[id];
   const b = graph.blocks[e ? owner_of(graph, e.from) : id];
   if (!b) return null;
-  const home = is_interface(graph, b.id) ? graph.blocks[b.parent ?? ""]?.parent : b.parent;
+  const home = b.parent;
   /** The root layer is `null`, as the open layer names it. */
   return !home || home === graph.root ? null : home;
 }
@@ -140,13 +146,13 @@ function own_looks(graph: Graph, id: Id): boolean {
 function what_of(graph: Graph, id: Id): string {
   const b = graph.blocks[id];
   if (graph.edges[id]) return "relation";
+  if (is_interface(graph, stored_of(graph, id))) return "interface";
+  if (tag_at(graph, id)) return "tag";
+  if (type_at(graph, id)) return "type";
   if (!b) return "";
   if (id === graph.root) return "workspace";
   if (b.parent === null) return "package";
-  if (b.def) {
-    return is_tag(graph, id) ? "tag"
-      : is_value_type(graph, id) ? "type" : "definition";
-  }
+  if (b.def) return "definition";
   return resolved(graph, id).stands_in ? "stand-in" : of_ref(graph, id) ? "reference" : "usage";
 }
 
@@ -173,9 +179,12 @@ export function Tray(props: TrayProps) {
   /** What the tray is about: a hold, else the one thing picked, else the open layer. */
   /** Which library section the explorer pointed at, which is about no one element. */
   const library = hold?.of === "defs" ? hold : null;
-  const held_id = hold?.of === "id" && (def_at(graph, hold.id) || graph.blocks[hold.id])
-    ? hold.id : null;
-  const about: Id = held_id ?? about_of(graph, layer, picked);
+  const held_id = hold?.of === "id" && (def_at(graph, hold.id) || graph.blocks[hold.id]
+    || tag_at(graph, hold.id) || type_at(graph, hold.id)) ? hold.id : null;
+  /** An interface picked on the canvas is about itself, though it is no block. */
+  const port = picked.length === 1 && is_interface(graph, stored_of(graph, picked[0]!))
+    ? picked[0]! : null;
+  const about: Id = held_id ?? port ?? about_of(graph, layer, picked);
 
   /** A new selection takes the light back, so no table lights what the tray is not about. */
   const on_canvas = picked.join();
@@ -184,6 +193,9 @@ export function Tray(props: TrayProps) {
   const context: Context = library
     ? (library.only === "packages" ? "packages" : "library")
     : about === graph.root ? "root"
+    : is_interface(graph, stored_of(graph, about)) ? "interface"
+    : tag_at(graph, about) ? "tag"
+    : type_at(graph, about) ? "type"
     : graph.edges[about] ? "line"
     : def_at(graph, about) && domain_of(graph, about) === "relation" ? "relation"
     : def_at(graph, about) ? "definition" : "block";
@@ -284,7 +296,9 @@ export function Tray(props: TrayProps) {
   const word = library ? "definitions" : what_of(graph, about);
   const name = library ? [library.from ?? (library.only === "all" ? "" : library.only),
                  library.group ? `${library.group}s` : ""].filter(Boolean).join(" · ")
-    : def_at(graph, about) ? def_at(graph, about)!.name : shown_name(graph, about);
+    : def_at(graph, about) ? def_at(graph, about)!.name
+    : tag_at(graph, about)?.name ?? type_at(graph, about)?.name ?? port_name(graph, about)
+    ?? shown_name(graph, about);
 
   /** The definition an element follows, or itself, which the json chip reads as filed. */
   const filed = ELEMENTS.includes(context) ? held_def : null;
@@ -337,7 +351,8 @@ export function Tray(props: TrayProps) {
                        onDisplay={props.onDisplay ?? act}
                        {...(props.display ? { display: props.display } : {})} />
           ) : null}
-          {shows === "card" || shows === "line" ? (
+          {shows === "card" || shows === "line" || shows === "interface" || shows === "tag"
+            || shows === "type" ? (
             <Element graph={graph} id={about} {...(edits ? { onAct: act } : {})}
                      onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
@@ -442,4 +457,11 @@ export function Tray(props: TrayProps) {
           ) : null}
     </TrayFrame>
   );
+}
+
+/** What an interface is called: its name, else its handle. */
+function port_name(graph: Graph, id: Id): string | undefined {
+  const port = graph.blocks[stored_of(graph, id)];
+  if (!port || !is_interface(graph, port.id)) return undefined;
+  return port.name ?? (port.alias ? alias_name("interface", port.alias) : "interface");
 }
