@@ -1,7 +1,7 @@
 /** What every module derives the same way. */
 
 import { attributes_of, def_of, dir_of, domain_of, frozen, head_of, lens_of, is_box, is_container,
-         is_flat, is_interface, is_named,
+         inline, is_flat, is_interface, is_named,
          base_of, path, role_of, shape_of, shown_name, stamps_of, subtypes, tree_of, used_by,
          type Graph, type Id } from "@mnd/core";
 import { face_table, face_text, handle_of } from "./face";
@@ -101,10 +101,12 @@ export function empty_of(graph: Graph, id: Id): string {
 }
 
 /** The trail down to the layer, for a breadcrumb: layers only, from the tree it is in — never
- *  the package and folders above the tree. A layer in no tree is its own trail. */
+ *  the package and folders above the tree, nor a folder, group or region on the way. A layer in
+ *  no tree is its own trail. */
 export function trail_of(graph: Graph, layer: Id | null): Scene["trail"] {
   const way = path(graph, layer ?? graph.root);
   const tree = tree_of(graph, layer ?? graph.root);
   const from = Math.max(0, tree ? way.findIndex((b) => b.id === tree) : way.length - 1);
-  return way.slice(from).map((b) => ({ id: b.id, label: shown_name(graph, b.id) }));
+  return way.slice(from).filter((b) => b.id === layer || !inline(graph, b.id))
+    .map((b) => ({ id: b.id, label: shown_name(graph, b.id) }));
 }

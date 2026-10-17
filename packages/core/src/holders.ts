@@ -84,16 +84,16 @@ export function organizes(graph: Graph, id: Id | undefined): boolean {
 /** Whether a block draws what it holds on the layer it sits on, rather than behind its card: a
  *  folder, a group and a region always — **none of them makes a layer** — and a grid only where a
  *  view flattens it. */
-export function inline(graph: Graph, id: Id | undefined, _flat = false): boolean {
+export function inline(graph: Graph, id: Id | undefined): boolean {
   if (is_group(graph, id) || is_region(graph, id) || is_folder(graph, id)) return true;
   return is_grid(graph, id) && setting_of(graph, id, "holder")["flat"] === true;
 }
 
 /** The layer a block draws on: its nearest ancestor that hides what it holds. */
-export function layer_of(graph: Graph, id: Id, flat = false): Id | null {
+export function layer_of(graph: Graph, id: Id): Id | null {
   let at = graph.blocks[id]?.parent ?? null;
   const seen = new Set<Id>();
-  while (at && !seen.has(at) && inline(graph, at, flat)) {
+  while (at && !seen.has(at) && inline(graph, at)) {
     seen.add(at);
     at = graph.blocks[at]?.parent ?? null;
   }
@@ -101,8 +101,8 @@ export function layer_of(graph: Graph, id: Id, flat = false): Id | null {
 }
 
 /** Every block a layer draws, in reading order: what it holds, and what its inline holders hold,
- *  however deep. Flattened, folders draw what they hold too. */
-export function drawn_in(graph: Graph, layer: Id | null, flat = false): Block[] {
+ *  however deep. */
+export function drawn_in(graph: Graph, layer: Id | null): Block[] {
   const out: Block[] = [];
   const seen = new Set<Id>();
   const walk = (parent: Id | null) => {
@@ -110,7 +110,7 @@ export function drawn_in(graph: Graph, layer: Id | null, flat = false): Block[] 
       if (seen.has(b.id)) continue;
       seen.add(b.id);
       out.push(b);
-      if (inline(graph, b.id, flat)) walk(b.id);
+      if (inline(graph, b.id)) walk(b.id);
     }
   };
   walk(layer);
@@ -124,8 +124,8 @@ export function lattice_of(graph: Graph, id: Id | undefined): Grid | null {
 }
 
 /** Every holder drawn inline in one layer, in a stable order. */
-export function holders_in(graph: Graph, layer: Id | null, flat = false): Block[] {
-  return drawn_in(graph, layer, flat).filter((b) => inline(graph, b.id, flat));
+export function holders_in(graph: Graph, layer: Id | null): Block[] {
+  return drawn_in(graph, layer).filter((b) => inline(graph, b.id));
 }
 
 /** The group or grid a block sits in, or null. */

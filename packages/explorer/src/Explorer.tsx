@@ -6,8 +6,8 @@
  *  draws and each section's pick subtly. */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { about_of, at_cut, children, domain_of, drop_of, frozen, is_domain, is_inside,
-         is_layer_view, may_hold, name_taken, new_id, owner_def, path, shown_name,
+import { about_of, at_cut, children, domain_of, drop_of, frozen, is_folder, is_inside,
+         is_layer_view, may_hold, name_taken, new_id, on_side, owner_def, path, shown_name,
          type Act, type Graph, type Id, type View } from "@mnd/core";
 import { Icon, Name, NamingContext, MARK_ICON, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
@@ -150,6 +150,8 @@ export function Explorer(props: ExplorerProps) {
   const [dragging, set_dragging] = useState<readonly Id[]>([]);
   /** Where a shift-click range runs from. */
   const [anchor, set_anchor] = useState<Id | null>(null);
+  /** The row last chosen, so a part lights under the usage it was chosen through. */
+  const [chosen, set_chosen] = useState<Id | null>(null);
   const [over, set_over] = useState<{ id: Id; ref: Id; where: "in" | "above" | "below" } | null>(null);
   /** Whether the drop would land on the panel itself, which is the workspace. */
   const [out, set_out] = useState(false);
@@ -208,9 +210,8 @@ export function Explorer(props: ExplorerProps) {
   const layer = is_layer_view(view.kind) ? view.layer : null;
   const lists = chain.slices[view.at]?.lists;
   /** A pick the canvas shows: under its layer, on the side its section lists. */
-  const shows = (id: Id) => !!graph.blocks[id] && (!layer || id === layer
-      || path(graph, id).some((b) => b.id === layer))
-    && (lists === "structure" ? !is_domain(graph, id) : lists !== "domain" || is_domain(graph, id));
+  const shows = (id: Id) => (!layer || id === layer || path(graph, id).some((b) => b.id === layer))
+    && on_side(graph, id, lists);
   const revealed = picked.filter(shows);
   const seen = [...revealed, layer].join("|");
   const done = useRef({ seen, rows: new Set<Id>() });
@@ -254,14 +255,15 @@ export function Explorer(props: ExplorerProps) {
   /** The row each block lights: its own, or a group's nearest listed holder's. */
   const as_row = (id: Id | null | undefined) => (id ? listed_of(graph, id) : id);
   const held = chain.held.map(as_row);
-  /** The picks the section in focus lists. */
+  /** The picks the section in focus lists: in the tree read whole, or a part shown open. */
   const mine = picked.map((id) => as_row(id)!)
-    .filter((id) => sections.all.some((r) => r.at === focus && r.ref === id));
+    .filter((id) => [sections.all, rows].some((all) =>
+      all.some((r) => r.at === focus && r.ref === id)));
   /** The focus is lit strongly: the picks it lists — a part only where its usage is the layer
-   *  seen from inside — else what it holds. */
+   *  seen from inside, or under the usage it was chosen through — else what it holds. */
   const lights = (r: Row) => {
     if (r.at !== focus || r.pick === undefined || r.of !== "block") return false;
-    if (mine.length) return mine.includes(r.ref) && (!r.via || r.via === open);
+    if (mine.length) return mine.includes(r.ref) && (!r.via || r.via === open || r.id === chosen);
     return held[focus] === r.pick && !r.via;
   };
   /** **The one row wearing the accent's edge: what the canvas shows**, in the section it looks
@@ -304,9 +306,12 @@ export function Explorer(props: ExplorerProps) {
   const held_row = chain.held[focus];
   const under_at = held_row && graph.blocks[held_row] ? held_row : graph.root;
   const under = may_hold(graph, under_at) && !frozen(graph, under_at) ? under_at : graph.root;
-  /** Where a new folder goes: on the library, beside the workspace definition in focus. */
+  /** Where a new folder goes: on the library, in the workspace's package or folder in focus, else
+   *  beside the workspace definition in focus. */
+  const filed = (id: Id) => graph.blocks[id]?.parent === null || is_folder(graph, id);
   const shelf = !library ? target
-    : def && graph.blocks[def] && !frozen(graph, def) ? graph.blocks[def]!.parent : null;
+    : !def || !graph.blocks[def] || frozen(graph, def) ? null
+    : filed(def) ? def : graph.blocks[def]!.def ? graph.blocks[def]!.parent : null;
 
   /** Which name is open, and where what was typed lands: a block or a definition. */
   const typing = useMemo(() => ({
@@ -344,6 +349,7 @@ export function Explorer(props: ExplorerProps) {
   const choose = (r: Row) => {
     if (r.at === undefined || r.pick === undefined) return;
     if (r.of === "block") set_anchor(r.ref);
+    set_chosen(r.id);
     chain.onChoose(r.at, r.pick);
   };
 
@@ -504,7 +510,7 @@ export function Explorer(props: ExplorerProps) {
             ) : null}
             {show.folder ? (
               <button title={shelf ? `add a folder in ${shown_name(graph, shelf)}`
-                               : "pick a workspace definition to file a folder beside it"}
+                               : "pick a workspace package, folder or definition to file a folder there"}
                       disabled={!shelf}
                       onClick={() => add("folder")}><Icon name="add_folder" /></button>
             ) : null}

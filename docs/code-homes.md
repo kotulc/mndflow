@@ -26,8 +26,8 @@
 | which holder a block is (group, grid) | core `holders.ts` `shape_of`, read off the *is group* and *is grid* traits' `holder` settings; everything else asks `is_holder`, `is_group`, `is_grid` |
 | what a block may do | traits in core `types.ts` `TRAITS` (read by `defs.ts` `trait_at`), a table since 2026-10-14; core `capabilities.ts` (`allows_of`, `may_hold`, `holds_any`), absent is a no |
 | whether a card opens | core `names.ts` `opens` (the stamp and the open button) and `navigate.ts` `open_at` (where it goes) |
-| navigation | core `navigate.ts` (`open_at`, `leave_at`, `reveal_at`, `held_at`) |
-| what a section lists | core `sections.ts` `on_side` (the library: the definition side and every part of a definition; the model: usages outside every definition); explorer `chain.ts` (`editor_slices`, `useChain`) and `rows.ts` (`tree_of`; a package's types and tags as groups, `named_rows`) (2026-10-16) |
+| navigation | core `navigate.ts` (`open_at`, `leave_at`, `reveal_at`, `held_at`). `reveal_at` picks in place wherever the canvas already draws the block; following a stand-in to its target is the caller's (stage `Stage.tsx`, tray `onView`) (2026-10-16) |
+| what a section lists | core `sections.ts` `on_side` (the library: the definition side and every part of a definition; the model: usages outside every definition), which the explorer's reveal asks too; a usage's parts read through list wherever it does (`branch_of`); explorer `chain.ts` (`editor_slices`, `useChain`) and `rows.ts` (`tree_of`; a package's types and tags as groups, `named_rows`) (2026-10-16) |
 | whether a block roots a structure | core `defs.ts` (`roots_structure`, over `holds_usages`); the structure mark in `names.ts` `stamps_of`. The workspace always, a definition that holds structure, never a folder; the explorer's row marks, the cards and the tree-root button ask it, so a row and its card agree (2026-10-12) |
 | what a block reads as (its role, and so its icon) | core `names.ts` (`role_of`); theme `role_icon`. The explorer's rows and the stage's cards both ask it |
 | rows, marks and highlights | explorer `rows.ts` (holder members at their holder's level, `end_of`, `parent_of`, the ties joining them), `Explorer.tsx` |
@@ -53,7 +53,7 @@
 | a block's behaviours and their signatures | core `ends.ts` `is_behaviour` (*is behaviour*, `block.behaviour`), `behaviours_of`, `signature_of` (from its interfaces); drawn by views `face.ts` `class_table` (2026-10-16) |
 | whether a run may join two ends | core actions `relations.ts` `mixed`: a definition and a usage never, but by a tie (2026-10-16) |
 | how a card reads its role and category on the canvas | views `derive.ts` `marks_of` (`definition`, `relation`, `directed`); stage `flow.css` outlines a definition; theme `face.css` draws the `text` face and the relation swatch (2026-10-16) |
-| named components: types and tags | core `library.ts` (`tag_at`, `type_at`, `typed_as`, `put_tag`, `put_type`, `drop_named`), on a package root's `library`; actions `named.ts`. The `tags.ts` tags folder and the `value` base are gone (2026-10-16) |
+| named components: types and tags | core `library.ts` (`tag_at`, `type_at`, `typed_as`, `put_tag`, `put_type`, `drop_named`; `users_of`, blocks and lines alike, 2026-10-16), on a package root's `library`; actions `named.ts`. The `tags.ts` tags folder and the `value` base are gone (2026-10-16) |
 | the tags an annotation gives | core `library.ts` `given_of`; taken away by actions `groups.ts` `unmember`; the tray groups them by source in `pairs.ts` `tags` (2026-10-16) |
 | what draws as a box on its parent's layer | core `holders.ts` `is_box` (group, folder, region), `is_region`; `inline` holds every one, so none makes a layer (2026-10-16) |
 | whether a block is an annotation | core `defs.ts` `is_annotation`: the explorer lists none (2026-10-16) |

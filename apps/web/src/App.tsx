@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { collect, drop_of, held_at, is_inside, is_layer_view, layout_of,
+import { collect, drop_of, held_at, in_section, is_inside, is_layer_view, layout_of,
          session, trace, writes, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
@@ -171,9 +171,11 @@ export function App({ storage, boot, opening }: {
     if (name === "open" || name === "reveal") {
       t.release();
       follow();
-      /** Cleared first, so revealing the same block again pans again; leaving aims at nothing. */
+      /** Cleared first, so revealing the same block again pans again; leaving aims at nothing. A
+       *  whole section follows its own pick, so a canvas pick there flushes nothing mid-render. */
+      if (!is_inside(s.view().kind)) { set_aim(null); return; }
       flushSync(() => set_aim(null));
-      if (args?.["id"] && is_inside(s.view().kind)) set_aim(s.picked()[0] ?? null);
+      if (args?.["id"]) set_aim(s.picked()[0] ?? null);
     }
   };
 
@@ -267,20 +269,23 @@ export function App({ storage, boot, opening }: {
   /** **The explorer browses**: a row chosen is held in its section and shown in the tray. Inside
    *  the structure the canvas draws, the canvas follows: it goes to where the block is drawn and
    *  picks it there — the open layer's own row stays where it is. Anywhere else it stays. A
-   *  package points the tray at its definitions. */
+   *  package points the tray at its definitions, and is picked as any row is. */
   const choose = (at: number, id: Id | null) => {
     chain.onChoose(at, id);
-    if (id && graph.blocks[id]?.parent === null) {
-      t.onSection({ of: "defs", only: "packages", from: graph.blocks[id]!.name ?? id });
-      return;
+    const b = id ? s.graph().blocks[id] : undefined;
+    if (b && b.id === view.layer) s.pick([]);
+    else if (b) {
+      /** A part read through a usage is its definition's, never the structure's: picked as is. */
+      const slice = SLICES[at]!;
+      const inside = slice.cut === null && view.at === at
+        && in_section(s.graph(), b.id, chain.roots[at] ?? null, slice.cut, slice.lists)
+        && trace(s.graph(), EDITOR, b.id).roots[at] === chain.roots[at];
+      if (inside) act("reveal", { id: b.id });
+      else s.pick([b.id]);
     }
-    t.release();
-    if (!id || !s.graph().blocks[id]) return;
-    if (id === view.layer) { s.pick([]); return; }
-    const inside = SLICES[at]!.cut === null && view.at === at
-      && trace(s.graph(), EDITOR, id).roots[at] === chain.roots[at];
-    if (inside) { act("reveal", { id }); return; }
-    s.pick([id]);
+    // The tray last, as revealing lets go of what it held.
+    if (b?.parent === null) t.onSection({ of: "defs", only: "packages", from: b.name ?? b.id });
+    else t.release();
   };
 
   const load = async () => {

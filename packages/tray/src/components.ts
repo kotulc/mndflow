@@ -67,8 +67,7 @@ export function tag_pairs(graph: Graph, id: Id, onAct: Act): Pair[] {
   const tag = tag_at(graph, id)!;
   const fixed = tag.pkg !== graph.root;
   const write = (args: Record<string, unknown>) => onAct("define_tag", { id, name: tag.name, ...args });
-  const carriers = users_of(graph, id).length
-    + Object.values(graph.edges).filter((e) => e.tags?.includes(id)).length;
+  const carriers = users_of(graph, id).length;
   return [
     named(tag.name, fixed, (to) => write({ name: to })),
     described(tag.description, fixed, (to) => write({ description: to })),

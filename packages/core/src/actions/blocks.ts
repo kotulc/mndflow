@@ -7,7 +7,7 @@ import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, holds
          setting_of, stored_type, self_use } from "../defs";
 import { GRID, inline, inside, is_folder, is_grid, lattice_of, layer_of } from "../holders";
 import { children, edges_in, is_interface, layout_of, next_order, ports_of, reorder,
-         sibling_named, stands_for, subtree } from "../tree";
+         sibling_named, subtree } from "../tree";
 import { unnamed_refusal } from "./named";
 import { drop_named, library_home } from "../library";
 import { leave_at, open_at, reveal_at, view_on, EDITOR, type Tiers, type View,
@@ -475,9 +475,7 @@ register(
     args: [{ name: "id", form: "block", required: true }],
     run: (ctx, args) => {
       const { tiers, views, view } = seen(ctx);
-      const id = id_of(args, "id");
-      /** Followed to the end, so a reference to a reference reveals what both stand for. */
-      return moved(reveal_at(ctx.graph, tiers, views, view, stands_for(ctx.graph, id)?.id ?? id));
+      return moved(reveal_at(ctx.graph, tiers, views, view, id_of(args, "id")));
     },
   },
 );

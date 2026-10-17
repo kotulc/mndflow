@@ -252,12 +252,13 @@ export function leave_at(graph: Graph, tiers: Tiers, views: Views, view: View): 
   return back ? sight(graph, tiers, views, at - 1, back) : null;
 }
 
-/** Where a block is seen: where the canvas already draws it, else the section listing it as a
- *  member — a section's root is a member of the one above — picked there. */
+/** Where a block is seen: where the canvas already draws it — the open layer or the whole section
+ *  — else the section listing it as a member — a section's root is a member of the one above —
+ *  picked there. */
 export function reveal_at(graph: Graph, tiers: Tiers, views: Views, view: View | null,
                           id: Id): View | null {
   if (!graph.blocks[id]) return null;
-  if (view && !is_layer_view(view.kind) && draws(graph, tiers, view, id)) return { ...view, pick: id };
+  if (view && draws(graph, tiers, view, id)) return { ...view, pick: id };
   const { roots, held } = trace(graph, tiers, id);
   const members = held.flatMap((h, n) => (h === id && roots[n] !== id ? [n] : []));
   const at = members.length ? members[members.length - 1]! : held.lastIndexOf(id);

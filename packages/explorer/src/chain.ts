@@ -9,7 +9,7 @@
  *  holds; its root is the tree of its own pick, or the canvas's. */
 
 import { useState } from "react";
-import { first_in, in_section, is_inside, is_layer_view, root_below, trace,
+import { first_in, in_section, is_layer_view, root_below, trace,
          EDITOR, type Graph, type Id, type Section, type Top,
          type View } from "@mnd/core";
 import type { Mark } from "./rows";
@@ -29,8 +29,6 @@ export type Chain = {
   roots: readonly (Id | null | undefined)[];
   held: readonly (Id | null)[];
   at: number;
-  /** The tree the canvas draws from inside, never its definition view, listed in its section even while it holds nothing. */
-  drawn: Id | null;
   onChoose: (at: number, id: Id | null) => void;
   /** Hold a whole path at once, outermost first; the last is in focus unless `at` says which. */
   onTrace: (path: readonly (Id | null)[], at?: number) => void;
@@ -57,8 +55,6 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
   const below = (n: number, above: Id | null) => (!graph ? undefined
     : n === 0 ? (top === "workspace" ? graph.root : null)
     : root_below(graph, slices[n - 1]!.cut, above));
-  /** The tree the canvas draws from inside, never its definition view. */
-  const drawn = pin && view && is_inside(view.kind) ? pin.root ?? null : null;
   slices.forEach((slice, n) => {
     /** Structure lists every package, whatever the section above holds. */
     if (slice.lists === "structure") {
@@ -114,7 +110,7 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
     set_at(focus);
   };
   const chain: Chain = { slices, roots, held, at: Math.min(at, slices.length - 1),
-                         drawn, onChoose, onTrace, onClear };
+                         onChoose, onTrace, onClear };
   return chain;
 }
 

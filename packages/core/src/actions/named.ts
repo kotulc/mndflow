@@ -119,7 +119,6 @@ export function unnamed_refusal(graph: Graph, id: Id): string | null {
   const pkg = library_home(graph, id);
   if (!pkg) return "that is not here any more";
   if (pkg !== graph.root) return "it comes from a package: the workspace's own are removed";
-  const users = users_of(graph, id).length
-    + Object.values(graph.edges).filter((e) => e.tags?.includes(id)).length;
+  const users = users_of(graph, id).length;
   return users ? `it is used by ${users === 1 ? "one element" : `${users} elements`}` : null;
 }

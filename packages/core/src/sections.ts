@@ -100,7 +100,8 @@ function below_structure(graph: Graph, id: Id): boolean {
 /** What a section lists under a block: nothing at its cut, its root apart; else, for a usage,
  *  its definition's blocks read through one step, then its own. Interfaces are part of what they
  *  sit on. `seen` holds the definitions read through on the way down, so one reached through
- *  itself lists once. A side drops what it does not list. */
+ *  itself lists once. A side drops what it does not list of the block's own; parts read through
+ *  are the usage's, so they list wherever it does. */
 export function branch_of(graph: Graph, id: Id, cut: Cut, root: Id | null,
                           seen: ReadonlySet<Id> = new Set(), lists?: Lists):
     { parts: Block[]; own: Block[]; used?: Id } {
@@ -108,7 +109,7 @@ export function branch_of(graph: Graph, id: Id, cut: Cut, root: Id | null,
   if (!b || (id !== root && at_cut(graph, cut, id))) return { parts: [], own: [] };
   const used = !b.def ? def_at(graph, b.type) : undefined;
   const keep = (c: Block) => on_side(graph, c.id, lists);
-  const parts = (used && !seen.has(used.id) ? shown(graph, used.id) : []).filter(keep);
+  const parts = used && !seen.has(used.id) ? shown(graph, used.id) : [];
   return { parts, own: shown(graph, id).filter(keep), ...(used ? { used: used.id } : {}) };
 }
 

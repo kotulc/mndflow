@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
-import { dir_of, is_interface } from "@mnd/core";
+import { dir_of, is_interface, stands_for } from "@mnd/core";
 
 /** One named menu entry; the shape the explorer's menu agrees on. */
 export type Entry = { name: string; label?: string; args?: Args };
@@ -302,7 +302,9 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
           const node = scene.nodes.find((n) => n.id === g.on);
           const stands = node?.data.marks.includes("reference")
             || node?.data.stamps?.includes("definition");
-          onAct(stands ? "reveal" : "open", { id: g.on });
+          /** Followed to the end, so a reference to a reference reveals what both stand for. */
+          if (stands) onAct("reveal", { id: stands_for(graph, g.on)?.id ?? g.on });
+          else onAct("open", { id: g.on });
         }
         else if (g.on && g.kind === "note") set_naming(g.on);
         else if (g.kind === "frame") onAct("open");

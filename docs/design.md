@@ -278,7 +278,7 @@ Most rules below are one of these applied.
 - `card.name: hide` leaves the large face its parts alone, and a group or box unnamed; the small face always names
 - **each category draws as itself**: a block a card; an interface a seat on its block's wall; a note the `document` face; a label the `text` face; a group a dashed neutral box; a folder a solid neutral box; a region a band under its heading; a reference a dashed card; **a relation definition a wire swatch** — its name over a short line in its own stroke, a head where its lines point
 - **colour is the nearest `family` or `hue` in the chain**: any definition may set its own or change its subtypes'. A subtype saying neither strays from **its parent's shade** by up to half of the `vary` in force, halving at each step, so kin read alike
-- **role is drawn apart from colour, on the canvas**: a definition — or a stand-in for one — is an **outline**, no ground, its border in its colour, a pill while small; a usage is filled. Off the canvas — the tray, the explorer, a host — every card draws filled, in its colour
+- **role is drawn apart from colour, on the canvas**: a definition — or a stand-in for one — is an **outline**, no ground, its border in its colour, at the card's own corners; a usage is filled. Off the canvas — the tray, the explorer, a host — every card draws filled, in its colour
 - **a card's markdown is its source**: frontmatter for its identity and values, then its body. The JSON graph is the truth; the markdown is rendered from it, and read back into ordinary changes
 
 ### Card sources

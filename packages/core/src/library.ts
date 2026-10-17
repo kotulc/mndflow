@@ -3,7 +3,7 @@
 
 import { base_of, def_at, def_named, is_tie, packages, tags_stated } from "./defs";
 import { holders_over, is_group, is_region } from "./holders";
-import { FORMS, type Block, type Form, type Graph, type Id, type Library, type Mutation, type Tag,
+import { FORMS, type Form, type Graph, type Id, type Library, type Mutation, type Tag,
          type Type } from "./types";
 
 /** A named component and the package holding it. */
@@ -122,10 +122,13 @@ function put<T extends { id: Id }>(list: T[] | undefined, one: T): T[] {
   return had ? list!.map((c) => (c.id === one.id ? one : c)) : [...list ?? [], one];
 }
 
-/** What uses a named component: elements carrying a tag, and attributes typed by a type. */
-export function users_of(graph: Graph, id: Id): Block[] {
-  return Object.values(graph.blocks).filter((b) => b.tags?.includes(id)
+/** What uses a named component: blocks and lines carrying a tag, and blocks with an attribute
+ *  typed by a type. */
+export function users_of(graph: Graph, id: Id): Id[] {
+  const blocks = Object.values(graph.blocks).filter((b) => b.tags?.includes(id)
     || b.def?.attributes?.some((a) => a.type === id));
+  const lines = Object.values(graph.edges).filter((e) => e.tags?.includes(id));
+  return [...blocks, ...lines].map((x) => x.id);
 }
 
 /** Whether a package holds anything named, so the explorer lists its library. */

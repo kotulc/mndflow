@@ -160,7 +160,8 @@ export function block_usage_rows(graph: Graph, layer: Id | null, deep: boolean):
   const blocks = deep
     ? subtree(graph, graph.root).filter((id) => id !== graph.root).map((id) => graph.blocks[id]!)
     : children(graph, layer);
-  return blocks.map((b) => ({
+  /** A definition is what usages follow, never one of them. */
+  return blocks.filter((b) => !b.def).map((b) => ({
     id: b.id,
     name: called(b.id),
     what: base_of(graph, b.id),

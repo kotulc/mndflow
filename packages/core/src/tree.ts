@@ -182,8 +182,8 @@ export function owner_of(graph: Graph, id: Id): Id {
 }
 
 /** Relations with both ends drawn in this layer. */
-export function edges_in(graph: Graph, layer: Id | null, flat = false): Relation[] {
-  const here = new Set(drawn_in(graph, layer, flat).map((b) => b.id));
+export function edges_in(graph: Graph, layer: Id | null): Relation[] {
+  const here = new Set(drawn_in(graph, layer).map((b) => b.id));
   const drawn = (id: Id) => here.has(owner_of(graph, id)) || (!!layer && owner_of(graph, id) === layer);
   return Object.values(graph.edges)
     .filter((e) => drawn(e.from) && drawn(e.to))
