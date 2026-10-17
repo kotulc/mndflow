@@ -60,7 +60,7 @@
 
 | Base | Category | Is |
 |---|---|---|
-| **block** | block | the unit of structure: a thing, a part, a step, a system. Holds blocks, which it opens onto as a layer |
+| **block** | block | the unit of structure: a thing, a part, a step, a system. Holds blocks, which it opens onto as a layer once it holds any |
 | **reference** | block | a stand-in for a block, a definition or a package elsewhere |
 | **interface** | component | a block's boundary, a block under it seated on its wall: where relations and flows enter and leave. *Is interface*. Its definition — one extending `interface` — says what it carries; any block that *has ports* may hold one. Never a card, a layer or a row |
 | **line** | relation | the plain relationship. Which way it points is a setting, `line.dir` (`none`, `forward`, `back`, `both`), said by its definition and overridable on the line |
@@ -70,7 +70,7 @@
 | **label** | annotation | one line of text, the `text` face: no border, ground, icon or marks. Free or tied, always floating aside. Tags what it is tied to |
 | **group** | annotation | a box drawn round its members, on the layer it sits on. Groups nest. Tags its members; no explorer row |
 | **region** | annotation | a band across the layer, between separators, under a heading. Tags its members; regions stack and reorder. May show another block's diagram, dropped in |
-| **tie** | relation | a relation with no model meaning: a dashed run with no heads, drawn straight, from a note or label to what it describes. It lists *is tie*, which grants `line.module: tie` |
+| **tie** | relation | a relation with no model meaning: a dotted run with no heads, drawn straight, from a note or label to what it describes. It lists *is tie*, which grants `line.module: tie` |
 
 **Block modules are engine code, kinds are data.** Three modules: `block`, `reference` (*is reference*) and `interface` (*is interface*), which the engine draws on its owner's wall. Every other kind is the `block` module configured.
 
@@ -142,11 +142,12 @@
 | **mndflow** | the **library**, then the **model**, both folded until opened. The library — what you build with — lists every package, `base` first: its definitions in their folders, each definition's parts under it, then *types* and *tags* groups. The model — what you are building — lists usages only, under the packages and folders on the way to them. A new workspace holds one plain block, so the workspace lists |
 | **mndmap** | source folder → document: mndflow's chain with the package fixed to the workspace and hidden |
 | **browse** | choosing a row: selects it and the tray shows it. Inside the structure the canvas draws it reveals the block; anywhere else the canvas stays |
-| **open** | Enter, double-click or →: goes in, whatever view the section was shown in. A block opens on its own view: a package on the package view scoped to it, drawing what the section it was opened from lists, a definition as its usages do, a grid on its allocation view; a folder is never opened, selecting it zooms to its box; an annotation has no row; picked on the canvas, it is revealed where it is and the explorer lights the nearest row listing what it sits on. ← and Backspace leave, a tree's top for the package view |
+| **open** | Enter, double-click or →: goes in, whatever view the section was shown in. A block opens on its own view where it has something to draw — else it is picked where it is drawn: a package on the package view scoped to it, drawing what the section it was opened from lists, a definition as its usages do, a grid on its allocation view; a folder is never opened, selecting it zooms to its box; an annotation has no row; picked on the canvas, it is revealed where it is and the explorer lights the nearest row listing what it sits on. ← and Backspace leave, a tree's top for the package view |
 | **context** | what the canvas has open. Highlighting and breadcrumbs show it, never what is browsed |
-| **reveal** | a row picked within the structure the canvas draws moves the canvas to the layer it sits on and picks it; browsing outside it never does |
+| **reveal** | a row picked within the structure the canvas draws picks it in place where the canvas already draws it, else moves the canvas to the layer it sits on and picks it there; browsing outside it never does. A reference is revealed as itself; following it to what it stands for is a gesture of its own |
+| **stacked edge** | the second card's edge behind a card that opens: what has a drawing of its own reads at a glance |
 | **branch** | the row of the block the canvas draws from inside and the rows under it, lit subtly in the explorer |
-| **crumbs** | the layers from the tree the open layer is in down to it — never the package and folders above the tree — then the view drawn |
+| **crumbs** | the explorer's path to the open layer: the section, the package, every folder and block on the way — never an annotation — folded to `…` from the outside in where it would overrun the canvas |
 | **navigation** | `open_at`, `leave_at`, `reveal_at` and `held_at` in core: where the canvas goes, and what the sections hold for it. The one rule both apps use |
 | **accent edge** | the explorer row of what the canvas shows: the open layer in its section; on the package view, what is picked (else the held package) in the sections above |
 

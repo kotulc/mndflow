@@ -54,9 +54,9 @@
 | | Does | Scope | Arguments | Effect |
 |---|---|---|---|---|
 | `open` | draws a block on the view its kind calls for — a definition as its usages are — or leaves this layer. `at`, the section it was opened from | block | id?, at? | `open` |
-| `reveal` | opens the layer a block sits on and picks it there, followed through references | block | id | `open` + `focus` |
+| `reveal` | picks a block where the canvas already draws it, else opens the layer it sits on and picks it there. A reference is revealed as itself | block | id | `open` + `focus` |
 
-- **Where the canvas goes is navigation's** (core `navigate.ts`): **the card's kind says the view** (`lens_of`) — a package or folder its package view, a grid its allocation view, a block that holds or may hold from inside, a stand-in what it stands for; **a definition opens as its usages do**, on the view its chain names. A group, a note and a leaf are revealed in place. Leaving a package returns to the package view. Both apps use the same functions.
+- **Where the canvas goes is navigation's** (core `navigate.ts`): **the card's kind says the view** (`lens_of`) — a package or folder its package view, a grid its allocation view, a block with something to draw from inside, a stand-in what it stands for; **a definition opens as its usages do**, on the view its chain names. **An empty block opens on nothing**, nor do a group, a region, a label or a note: each is picked where the canvas draws it. Leaving a package returns to the package view. Both apps use the same functions.
 - **Opening a part opens its definition**, the part picked there.
 - **An interface opens nothing**: it is a component of its block, drawn on its wall, with no layer of its own.
 
@@ -164,7 +164,7 @@
 | click | frame, empty | clears |
 | click | a cell | picks the cell, beside the selection |
 | double-click | a cell | `label` |
-| double-click | card, its border, a seat | `open`; on a reference, `reveal`; on a part, its definition |
+| double-click | card, its border, a seat | `open`; on a reference, `reveal` of what it stands for, followed to the end; on a part, its definition |
 | double-click | name, note | rename, in place |
 | double-click | empty outside the frame | `open` with nothing: leaves |
 | drag | card → card or holder | `move` |

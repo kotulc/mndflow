@@ -106,7 +106,7 @@ import "@mnd/kit/shell.css";
 <Viewer graph={graph} chrome={{ crumbs: true }} />   // the trail down to the open layer, over the drawing
 ```
 
-**Chrome is asked for, and dressed by the shell** — bar the lattice, which draws unless `chrome.lattice` is `false`. Bare, the viewer is the canvas and the lattice behind it. `chrome.crumbs` draws the trail over its top-left corner — a crumb opens that layer, the arrow goes up one — and the crumbs are shell, not stage, so they read `shell.css` rather than anything `react.css` carries.
+**Chrome is asked for, and dressed by the shell** — bar the lattice, which draws unless `chrome.lattice` is `false`. Bare, the viewer is the canvas and the lattice behind it. `chrome.crumbs` draws the trail across its top — the package, then every folder and block down to the open layer, folded to `…` where it would overrun; a crumb opens that step, the arrow ahead of them goes up one — and the crumbs are shell, not stage, so they read `shell.css` rather than anything `react.css` carries.
 
 The rest of what a drawing looks like is the host's to hand down, and `useDisplay` below keeps it:
 

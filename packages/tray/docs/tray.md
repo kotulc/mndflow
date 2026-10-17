@@ -143,7 +143,7 @@
 
 | part | behaviour |
 |---|---|
-| **scope** | *layer* or *workspace*, one choice shared by contents and usages and kept across tabs. The layer by default |
+| **scope** | *layer* or *workspace*, one choice shared by contents and usages and kept across tabs. The layer by default; with no layer open — a whole section — usages list the workspace and offer no *layer*. A definition is never listed as a usage, of itself or another |
 | **chips** | narrow what is listed; each group is one question and narrows on its own |
 | **columns** | the data columns share the width evenly |
 | **a cell** | a value, or a control: a box committed when left (Enter leaves, Escape gives it back, a clash is said beside it) or a pick. Every control fills its cell |

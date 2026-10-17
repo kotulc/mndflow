@@ -91,8 +91,9 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
       const { page, w, zoom } = paged(scene, seen, reach, widest, most);
       const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
       // **A focus is scrolled into view, never centred**: where it is already in view the page
-      // holds still, else it moves just far enough to bring it in. With none, the page is read
-      // from its top. Either way the page stays inside its limits.
+      // holds still, else it moves just far enough to bring it in — one taller than the view by
+      // its top, so it reads from its heading. With none, the page is read from its top. Either
+      // way the page stays inside its limits.
       const vp = flow.getViewport();
       const same = Math.abs(vp.zoom - zoom) < 1e-3;
       let y = BAND - page.y * zoom;
@@ -101,7 +102,8 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
         const at = same ? vp.y : y;
         const top = box.y * zoom + at;
         const foot = (box.y + box.h) * zoom + at;
-        y = top < BAND ? BAND - box.y * zoom
+        const tall = box.h * zoom > seen.h - BAND * 2;
+        y = top < BAND || (tall && foot > seen.h - BAND) ? BAND - box.y * zoom
           : foot > seen.h - BAND ? seen.h - BAND - (box.y + box.h) * zoom : at;
       }
       y = bounded(y, page, zoom, seen);

@@ -245,7 +245,7 @@
    line in its own stroke, a head where its lines point. No ground, and a faint outline. */
 .mnd-card.card-face.relation.small {
   background: none;
-  border-color: color-mix(in oklch, var(--card-edge) 22%, transparent);
+  border-color: color-mix(in oklch, var(--card-edge) 45%, transparent);
   border-style: solid;
 }
 .mnd-card.relation.small::after {

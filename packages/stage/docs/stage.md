@@ -1,6 +1,6 @@
 # Stage
 
-**The working area, and the one thing that never yields.** Chrome gives way under pressure — the crumbs truncate, the option groups scroll, the explorer bounds itself — and the stage keeps its room.
+**The working area, and the one thing that never yields.** Chrome gives way under pressure — the crumbs fold to `…`, the option groups scroll, the explorer bounds itself — and the stage keeps its room.
 
 **The stage hosts the diagram, and there is one way to draw it.**
 

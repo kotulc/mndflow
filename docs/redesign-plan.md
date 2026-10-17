@@ -1,18 +1,18 @@
 # Redesign plan
 
-**What the model's elements are, and the steps that built them: agreed 2026-10-15, built in two passes on 2026-10-16.** Blocks carry meaning; everything simpler is a component a block carries, an annotation on a layer, or organization. design.md and definitions.md now state the result; this plan holds what is left, what is open, the decisions behind it, and how to pick up. **Once it is finished, next-plan.md is revised from it.**
+**What the model's elements are, and the steps that built them: agreed 2026-10-15, built in two passes on 2026-10-16, then a review pass the same day.** Blocks carry meaning; everything simpler is a component a block carries, an annotation on a layer, or organization. design.md and definitions.md now state the result; this plan holds what is left, what is open, the decisions behind it, and how to pick up. **Once it is finished, next-plan.md is revised from it.**
 
 
 ## Where things stand
 
 | | |
 |---|---|
-| **built, uncommitted** | the first pass (storage, tags, types, folders, annotations, regions, collections) and the second (interfaces as blocks, tie, faces, colour by role, library and model, no definition view, class and entity diagrams, relation ends, behaviours). See *Built* |
-| **suggested commit** | *Redesign: interfaces as blocks, relation ends, behaviours, class and entity diagrams, library and model sections, faces by category* |
-| **verified** | `npm run typecheck` clean; `npm test` 286/287, the one failure pre-existing (*Known issues*); `npm run lint:css` clean; showcase `check` clean. Driven in Edge on the showcase: both sections, a definition's parts and a package's types and tags, a definition opened on its own view, the class diagram (fields, a behaviour's signature, associations with roles and multiplicities, a composition diamond), the entity diagram (PK/FK, crow's feet), Containers' `https` room port, a label clear of region headings, definitions outlined and relation definitions as wire swatches, a relation definition's ends in the tray, an empty region from the room's menu, a reload reading the log back |
+| **built, uncommitted** | the first pass (storage, tags, types, folders, annotations, regions, collections) and the second (interfaces as blocks, tie, faces, colour by role, library and model, no definition view, class and entity diagrams, relation ends, behaviours). See *Built*. Then a review pass: navigation, crumbs, opening and looks. See *Review pass* |
+| **suggested commit** | *Redesign: interfaces as blocks, relation ends, behaviours, class and entity diagrams, library and model sections, faces by category*; the review pass, if apart: *Fix explorer–canvas selection and crumbs; open only what has something to draw, with a stacked edge* |
+| **verified** | `npm run typecheck` clean; `npm test` 286/287, the one failure pre-existing (*Known issues*); `npm run lint:css` clean; showcase `check` clean. Driven in Edge on the showcase: both sections, a definition's parts and a package's types and tags, a definition opened on its own view, the class diagram (fields, a behaviour's signature, associations with roles and multiplicities, a composition diamond), the entity diagram (PK/FK, crow's feet), Containers' `https` room port, a label clear of region headings, definitions outlined and relation definitions as wire swatches, a relation definition's ends in the tray, an empty region from the room's menu, a reload reading the log back. The review pass driven in Edge: every row kind picked in both sections and on the canvas, parts both ways, package and reference rows, arrows and Backspace, crumbs at three widths, opening an empty block and a group, *add a part* then open, the base folder's spacing, swatches and a dotted tie run; no console errors |
 | **reviewed** | first pass: 10 issues, 8 fixed. Second pass: 10 issues, 6 fixed; the rest are in *Known issues* |
 | **changed after review** | definitions' pill corners dropped (they fought the corner icons): an outlined definition keeps the card's own corners |
-| **next** | the user reviews the second pass and answers *Open questions*; then *Remaining work*; then next-plan.md is revised |
+| **next** | the user answers *Open questions*; then *Remaining work*; then next-plan.md is revised |
 
 
 ## Remaining work
@@ -30,13 +30,14 @@
 | # | Question | Today | Options |
 |---|---|---|---|
 | 1 | **base colour**: should plain definitions differ by default? | base `block` says `family: primary`, no `hue`, so definitions extending it with no colour of their own all read alike; the parent-relative shade shows only under a definition that sets `hue` and `vary` | give `block` a `hue` and `vary` (every subtype its own shade, the default look changes everywhere); or leave colour to each package |
-| 2 | **grid definitions' view** | a definition extending `grid` (`swimlane`, `sequence diagram`) opens on `internal`: navigate `feeds` asks `is_grid`, and a definition is never a holder | let a grid definition open on its allocation or sequence view, a lattice of its own; or keep it internal |
+| 2 | **grid definitions' view** | a definition extending `grid` (`swimlane`, `sequence diagram`) opens on `internal` once it has parts, and on nothing before: navigate `feeds` asks `is_grid`, and a definition is never a holder | let a grid definition open on its allocation or sequence view, a lattice of its own; or keep it internal |
 | 3 | **where the notation relations live** | `association`, `composition`, `aggregation`, `dependency`, `flow` and `behaviour` ship in the `diagrams` package; the plan had said `base`. Base holds only what the engine treats differently, and these are data | keep in `diagrams`; or move to `base` so every workspace has them |
 | 4 | **region stage B** | not built | how a dropped diagram sizes, whether it is edited in place, how lines route through band edges |
 | 5 | **type structure** | `many`, `optional` only | maps, unions, generics, added as a translator needs them |
 | 6 | **values on organization** | *has values* is off `folder` and `group`, so a translator's folder cannot carry a value | keep off (origin is `source`); or give it back |
 | 7 | **colour role off the canvas** | the tray, explorer and hosts draw a definition filled | keep canvas only; or outline in the tray too |
 | 8 | **region from the rail** | from a selection's menu, or empty from the room's | also a tool in the rail's group |
+| 9 | **base as a palette** | base is the floor every kind extends, listed whole in the library. Traits with no base kind: *has records* (architecture's `database`, `queue`), *is behaviour* (`diagrams`), *has head* | keep base the floor and add a curated palette apart from the library; or add `collection` and `behaviour` to base; or hide base's annotation and organization kinds, which gestures make |
 
 
 ## Known issues
@@ -47,8 +48,9 @@
 | **end words** | on a class diagram a role and multiplicity can sit on the line's name or another end's words: placed from the run alone (stage `Wire.tsx` `words_at`), never against what is drawn |
 | **empty region, layered** | a region made empty on a `layered` layer lands over a card: `layered` places a band as a node and never spans it (views `layered.ts`) |
 | **picked region** | draws a full outline rather than its band |
+| **empty-layer words** | centred on the canvas rather than the room, so on a small room they run past its frame (stage `stage.css` `.empty`) |
 | **speed** | every library lookup (`tag_at`, `type_at`, `is_tag`, `library_home`) rescans every package; `uses_of`, `project` and `form_of` ask per element, so large workspaces go quadratic. A per-graph index fits, built where nothing mutates (`sources.ts` writes libraries while reading them) |
-| **kit** | not re-released; `packages/kit/.types` is stale. mndmap's re-pin meets: the library; interfaces as blocks (`fromPart`/`toPart`); `ends`; views `class` and `er` (was `table`); sections `library` and `model` (was `definitions`, `structure`); no definition view; attribute `key` a word — besides the renames in next-plan.md *Rough edges* |
+| **kit** | not re-released; `packages/kit/.types` is stale. mndmap's re-pin meets: the library; interfaces as blocks (`fromPart`/`toPart`); `ends`; views `class` and `er` (was `table`); sections `library` and `model` (was `definitions`, `structure`); no definition view; attribute `key` a word; the trail from the package down (`trail_of`), and `Crumbs` taking `head`, Stage's `view` prop gone; `Chain.drawn` gone; `layer_of`, `drawn_in`, `holders_in`, `edges_in` and `inline` without `flat`; `users_of` ids, lines included — besides the renames in next-plan.md *Rough edges* |
 
 
 ## Decisions
@@ -70,6 +72,10 @@
 | **lines** | a line's name decides nothing. Two definitions may relate, two usages may; a definition and a usage never, but by a tie. **No derived lines**; the class view's *extends* the one exception, for now |
 | **behaviours** | a method is a block with *is behaviour* — a flow or state machine (`internal`), a swimlane or a sequence; its interfaces are its signature; it lists in the explorer. A state machine is an internal flow: no `state` view |
 | **annotations** | a label always floats aside, never on a line or a region's heading; a block never becomes an annotation, or back; taking a block out of an outer box stays refused |
+| **opening** | only what has something to draw opens: an empty block, a group, a region, a label, a note and their definitions open on nothing, and are picked where drawn. The first part comes from the card's *add a part* or the explorer. What opens wears a stacked edge, and only it offers *open* (2026-10-16) |
+| **crumbs** | the explorer's path: section, package, folders, blocks, never an annotation. The view word left them for the rail; the way up leads; they fold to `…` from the outside in, never wrap or squeeze (2026-10-16) |
+| **definition cards** | a definition's card settings describe its usages; the definition is one plain card in its folder (2026-10-16) |
+| **looks** | a reference is solid, so only a group reads dashed; a relation swatch sits in a faint outline; a tie is dotted, swatch and run alike (2026-10-16) |
 
 
 ## Built
@@ -92,6 +98,26 @@
 | relation ends | `Relation.ends`, `def.ends`; `ends_of`; action `end`, op `set_ends`; `mixed` refusal; heads, cross, end words; tray *from end* and *to end* | core `ends.ts`, actions `relations.ts`; views `scene.ts`; stage `Wire.tsx`; tray `pairs.ts` `ended` |
 | behaviours | *is behaviour* (`block.behaviour`); `behaviours_of`, `signature_of` | core `ends.ts`; `diagrams` package |
 | base and data | base filed `blocks`, `relations`, `components`, `organization`, `annotations`; `diagrams` adds `behaviour`, `er_diagram` and the five notation relations; the showcase gains stored associations, a composition, Order's `place` behaviour, `Data/4-schema.yaml`; patterns' interfaces are entries again | `packages/defs/src`, `samples/showcase/src`, `public/packages` |
+
+
+## Review pass
+
+**Fixed after the user drove the build, 2026-10-16.** code-homes.md has the homes.
+
+| Area | Fixed | Home |
+|---|---|---|
+| reveal | picks in place wherever the canvas draws the block; never follows a reference, which the canvas's double-click does itself | core `navigate.ts` `reveal_at`; stage `Stage.tsx` |
+| choosing a row | a package row picks as any row; a row inside an opened package picks in place; a part row stays off the canvas and lights under its usage | web `App.tsx` `choose`; explorer `Explorer.tsx` |
+| parts in the model | a usage's read-through parts list again | core `sections.ts` `branch_of` |
+| the library's reveal | asks core `on_side`, so a part opened unfolds the library to it | explorer `Explorer.tsx` |
+| crumbs | the section, then the explorer's path, folded to fit | views `derive.ts` `trail_of`; stage `Crumbs.tsx`; theme `shell.css` |
+| opening | on contents only; the stacked edge; *open* and *add a part* on the card menu; opening nothing picks in place | core `names.ts` `opens`, `navigate.ts`; views `derive.ts`; stage `flow.css`, `Stage.tsx` |
+| definition cards | `arrange` and `card.height` not read for a definition itself, so base's annotations sit evenly | core `defs.ts` `arrange_of`; views `size.ts` `free_height` |
+| camera | a pick taller than a scrolled page's view is brought in by its top, so a package or folder reads from its heading | stage `room.ts` `settle` |
+| tray | usages list the workspace on a whole section, and never a definition | tray `Usages.tsx`, `Table.tsx`, `rows.ts` |
+| explorer bar | *add folder* files in the workspace's package or folder in focus | explorer `Explorer.tsx` |
+| looks | reference solid; swatch outline; tie dotted | `packages/defs/src/base`; theme `face.css` |
+| debt | dead `flat` parameter and `Chain.drawn` gone; `users_of` counts lines; a `flushSync` warning on package-view picks | core `holders.ts`, `tree.ts`, `library.ts`; web `App.tsx` |
 
 
 ## Handoff

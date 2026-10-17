@@ -64,7 +64,6 @@
 |---|---|
 | **a self message's name** | stands upright on the loop's short leg: the column keeps too little air beside the card |
 | **two lines between one pair** | on the table view, *extends* and an attribute link share an anchor and run together |
-| **a document opens empty** | a document card has room to hold, so it opens onto an empty internal layer |
 | **swimlane lanes** | the allocation view draws a swimlane's steps and the lines between them, but not the old view's lanes (a header card at each lane's top, the lane unnamed); whether allocation should |
 
 

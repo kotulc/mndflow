@@ -7,7 +7,7 @@ The explorer files the graph as a **section chain**: a host declares its section
 | **mndflow** (editor) | `library` then `model`, listing by kind: what you build with — every package's definitions, their parts, types and tags — then what you are building, usages only |
 | **mndmap** (reader) | `source folder` → `document`: the editor's chain with the package fixed to the workspace and hidden |
 
-**The bar is tools only**: filter, add, add folder, add a part, delete, and a fold that shuts a layer a click. It follows the section in focus: **add makes what that section lists** — in the model a plain block under the picked row where it may hold one, else the workspace, in definitions a definition. The tree-root button keeps its place. It is disabled unless definitions is in focus and the pick is a definition that may hold and is not frozen; then it reads **add structure to** that definition, or **open structure** once it already roots one. The same words sit on the row's menu. Nothing is added to a frozen package. The filter keys off tags and is not built yet.
+**The bar is tools only**: filter, add, add folder, add a part, delete, and a fold that shuts a layer a click. It follows the section in focus: **add makes what that section lists** — in the model a plain block under the picked row where it may hold one, else the workspace; in the library a definition beside the one in focus, else in the workspace. **Add folder** files a folder in the workspace's package or folder in focus, else beside its definition in focus. Nothing is added to a frozen package. The filter keys off tags and is not built yet.
 
 **In the library, the tree-root button adds a part** to the definition — or the part of one — in focus, its branch unfolded to show the draft.
 
@@ -40,9 +40,9 @@ The explorer files the graph as a **section chain**: a host declares its section
 | Gesture | Does |
 |---|---|
 | choose (click, ↑ ↓) | selects the row; the tray shows it. The canvas stays |
-| open (Enter, double-click, →) | the canvas draws the block on the view its kind calls for: a package or folder its package view — drawing what the section it was opened from lists — **a definition as its usages are**, on the view its chain names; a stand-in what it stands for |
+| open (Enter, double-click, →) | the canvas draws the block on the view its kind calls for: a package its package view — drawing what the section it was opened from lists — **a definition as its usages are**, on the view its chain names; a stand-in what it stands for. **Only what has something to draw opens**: anything else is picked where the canvas draws it |
 | leave (←, Backspace) | the canvas draws the layer above, in the same section; a package leaves for the package view |
-| pick within the open tree | moves the canvas to the layer the block sits on (reveal) |
+| pick within the open tree | picks it in place where the canvas draws it, else moves the canvas to the layer it sits on (reveal). A package row is picked as any row is, and points the tray at its definitions. A part row stays off the canvas unless its usage is the open layer, and lights under the usage it was chosen through |
 
 - **Context highlighting and breadcrumbs show what the canvas has open**, never what is browsed.
 - **Dragging a definition from any section onto the canvas** makes a usage of it in the open structure, or retypes what it lands on where the kinds agree. A tag is refused: it is carried.
@@ -51,7 +51,7 @@ The explorer files the graph as a **section chain**: a host declares its section
 
 ## Usages and their parts
 
-**A usage's row lists its definition's blocks, then its own children.** Listed when unfolded; folded by default.
+**A usage's row lists its definition's blocks, then its own children**, in the model as in the library. Listed when unfolded; folded by default.
 
 ```
 pump1

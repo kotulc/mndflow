@@ -32,7 +32,7 @@ project(graph, layer, config) → Scene
 
 | | Means |
 |---|---|
-| `container` | it holds blocks |
+| `container` | it opens onto a drawing of its own: it holds blocks, its definition does, or what a reference previews does (core `opens`). Drawn as a stacked edge, its icon lit |
 | `reference` | it stands for something living elsewhere |
 | `missing` | what it stood for is gone. **Kept, never tidied away**, so undoing a deletion elsewhere brings it back |
 | `group` | a boundary — a dashed rim round what it holds |
