@@ -34,8 +34,8 @@ export type StageProps = {
           spot: { x: number; y: number }, only: readonly (string | Entry)[] | undefined,
           /** What the gesture already knew, for actions that need more than an id. */
           given?: Record<string, unknown>) => React.ReactNode;
-  /** The view the canvas draws in, named in the crumbs. */
-  view?: string;
+  /** What the crumbs start from: a host's section, drawn whole on a click. */
+  head?: { label: string; onOpen: () => void } | null;
   /** What to say where the drawing has nothing in it: why, and what is there instead. */
   empty?: string | null;
   /** What the app is saying. One strip, over the drawing. */
@@ -65,9 +65,11 @@ export type StageProps = {
 };
 
 
-/** What a card's menu lists besides the shared box actions: a label is made tied to it. */
-function box_offers(id: string): readonly (string | Entry)[] {
-  return [{ name: "rename", label: "rename block" }, "open", "interface", "note",
+/** What a card's menu lists besides the shared box actions: open only where it has a drawing of
+ *  its own, a part made in it — the way into an empty block — and a label tied to it. */
+function box_offers(id: string, opens: boolean): readonly (string | Entry)[] {
+  return [{ name: "rename", label: "rename block" }, ...(opens ? ["open"] : []),
+          { name: "create", label: "add a part", args: { parent: id } }, "interface", "note",
           { name: "create", label: "label", args: { type: "label", from: id } },
           { name: "delete", label: "delete block" }];
 }
@@ -148,13 +150,16 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
   if (g.kind === "brim" && g.on) {
     const n = scene.nodes.find((x) => x.id === g.on);
     /** Fill and lines are a grid's: a boundary has no cells. */
+    /** A grid opens onto its lattice; a group or a region is drawn in place, so never opens. */
     if (holds(n)) {
       return n?.type === "grid" ? [...(offers.band ?? []), ...LINES]
-        : offers.band?.filter((e) => (typeof e === "string" ? e : e.name) !== "fill");
+        : offers.band?.filter((e) => !["fill", "open"].includes(typeof e === "string" ? e : e.name));
     }
-    return box_offers(g.on);
+    return box_offers(g.on, !!n?.data.opens);
   }
-  if (g.kind === "box" && g.on) return box_offers(g.on);
+  if (g.kind === "box" && g.on) {
+    return box_offers(g.on, !!scene.nodes.find((x) => x.id === g.on)?.data.opens);
+  }
   /** A cell offers what can be done to the lattice there. */
   if (g.kind === "cell" && g.on) return offers.cell;
   if (g.kind === "line" && g.given) return line_offers(g.given);
@@ -172,7 +177,7 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 }
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
-                       menu, said, onSaid, view, empty, lattice, frame, legend, corner, module,
+                       menu, said, onSaid, head, empty, lattice, frame, legend, corner, module,
                        dir, type, lit = [], scroll = false, focus = null, most = null,
                        keys = true }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
@@ -243,7 +248,6 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     /** A note is a remark, not a block. */
     note: [{ name: "rename", label: "rename note" },
            { name: "delete", label: "delete note" }],
-    box: ["rename", "open", "interface", "note", "delete"],
     /** An interface opens nothing and holds no interfaces; a placed one may place itself again. */
     seat: ["rename", { name: "port", label: "place itself", args: { free: "true" } }, "note",
            "delete"],
@@ -342,7 +346,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
 
   return (
     <section className="stage">
-      <Crumbs trail={scene.trail} {...(view ? { view } : {})} onAct={onAct} />
+      <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
       {empty ? <p className="empty">{empty}</p> : null}
       {lit.length ? <style>{lit_rules(lit)}</style> : null}
       <FlowView

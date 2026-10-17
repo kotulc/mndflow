@@ -239,8 +239,7 @@
             "fill": "hatch",
             "border_contrast": "strong",
             "name_contrast": "strong",
-            "opacity": 0.55,
-            "border_style": "dashed"
+            "opacity": 0.55
           }
         },
         "traits": [
@@ -274,8 +273,13 @@
         "name": "tie",
         "type": "line",
         "def": {},
-        "description": "A relation with no model meaning: a dashed run with no heads, from a note or label to what it describes.",
+        "description": "A relation with no model meaning: a dotted run with no heads, from a note or label to what it describes.",
         "order": 2,
+        "settings": {
+          "style": {
+            "border_style": "dotted"
+          }
+        },
         "traits": [
           "has_values",
           "is_tie"

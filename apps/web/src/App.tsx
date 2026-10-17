@@ -347,7 +347,8 @@ export function App({ storage, boot, opening }: {
         <Stage
           scene={scene}
           graph={graph}
-          view={view.kind}
+          /** The path starts from the section the canvas looks at; a click draws it whole. */
+          head={{ label: SLICES[view.at]!.label, onOpen: () => section(view.at) }}
           empty={!whole && layer && !scene.nodes.length
             ? empty_of(graph, layer) : null}
           /** The shared menu; a right-click inside the selection is about the selection. */

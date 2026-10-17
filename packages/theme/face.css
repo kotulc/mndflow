@@ -242,8 +242,12 @@
 .card-face[data-face="text"] > :is(.mnd-role, .mnd-marks) { display: none; }
 
 /* A relation definition reads as a wire swatch wherever it is not a run: its name over a short
-   line in its own stroke, a head where its lines point. No ground, no border. */
-.mnd-card.card-face.relation.small { background: none; border-color: transparent; }
+   line in its own stroke, a head where its lines point. No ground, and a faint outline. */
+.mnd-card.card-face.relation.small {
+  background: none;
+  border-color: color-mix(in oklch, var(--card-edge) 22%, transparent);
+  border-style: solid;
+}
 .mnd-card.relation.small::after {
   content: "";
   position: absolute;

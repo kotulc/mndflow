@@ -2,10 +2,15 @@
   "id": "tie",
   "name": "tie",
   "type": "line",
-  "description": "A relation with no model meaning: a dashed run with no heads, from a note or label to what it describes.",
+  "description": "A relation with no model meaning: a dotted run with no heads, from a note or label to what it describes.",
   "def": {},
   "traits": [
     "has_values",
     "is_tie"
-  ]
+  ],
+  "settings": {
+    "style": {
+      "border_style": "dotted"
+    }
+  }
 }

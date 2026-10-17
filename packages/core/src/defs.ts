@@ -258,8 +258,10 @@ export function is_note(graph: Graph, id: Id): boolean {
   return !!graph.blocks[id] && base_of(graph, id) === "note";
 }
 
-/** How a block sits in its parent's `auto` layer: its `card.arrange`, a column unsaid. */
+/** How a block sits in its parent's `auto` layer: its `card.arrange`, a column unsaid. A
+ *  definition's says how its usages sit; it is a card in its folder, so a column. */
 export function arrange_of(graph: Graph, id: Id | undefined): Arrange {
+  if (id && graph.blocks[id]?.def) return "column";
   const said = setting_of(graph, id, "card")["arrange"];
   return ARRANGES.includes(said as Arrange) ? said as Arrange : "column";
 }

@@ -6,7 +6,6 @@
  *  `package`, the only view chosen, draws the whole section — every root the
  *  section above lists — down to its cut, the pick brought into sight. */
 
-import { holds_any } from "./capabilities";
 import { NAMED_VIEWS } from "./components";
 import { setting_of } from "./defs";
 import { inline, is_grid, layer_of } from "./holders";
@@ -53,13 +52,13 @@ function own_view(graph: Graph, id: Id): string | undefined {
 }
 
 /** Whether a block can feed a view it names. Allocation and a sequence need a grid; a class or
- *  entity diagram needs room to hold, `allows.holds`, which *has parts* grants; the inside, a
- *  block that opens rather than drawing what it holds in place. */
+ *  entity diagram, and the inside, something to draw: a block that holds, or reads through, what
+ *  it does not draw in place. */
 function feeds(graph: Graph, id: Id, view: string): boolean {
   if (view === "allocation" || view === "sequence") return is_grid(graph, id);
-  if (view === "class" || view === "er") return holds_any(graph, id);
+  if (view === "class" || view === "er") return opens(graph, id);
   if (view === "internal") {
-    return !is_grid(graph, id) && !inline(graph, id) && (opens(graph, id) || holds_any(graph, id));
+    return !is_grid(graph, id) && opens(graph, id);
   }
   return false;
 }
@@ -95,8 +94,8 @@ function own_diagram(graph: Graph, id: Id): ViewKind | null {
 
 /** The layer view a block opens on, by its card's kind, or null where it opens on nothing: a
  *  package, its folder view; a folder, a group or a region nothing — each is a box on its
- *  parent's layer; a view it names and can feed; a grid, its allocation; a block with structure
- *  or room to hold, from inside. **A definition opens as its usages do**, on the view its chain
+ *  parent's layer; a view it names and can feed; a grid, its allocation; a block with something
+ *  to draw, from inside — **an empty block opens on nothing**. **A definition opens as its usages do**, on the view its chain
  *  names. A stand-in opens as what it stands for, unless it states its own diagram view and the
  *  target can feed that. */
 export function lens_of(graph: Graph, id: Id): ViewKind | null {
@@ -109,7 +108,7 @@ export function lens_of(graph: Graph, id: Id): ViewKind | null {
   if (diagram) return diagram;
   if (is_grid(graph, id)) return "allocation";
   if (inline(graph, id)) return null;
-  return opens(graph, id) || holds_any(graph, id) ? "internal" : null;
+  return opens(graph, id) ? "internal" : null;
 }
 
 /** The view a block is drawn in: its own, else from inside. */
@@ -203,8 +202,8 @@ export function sight(graph: Graph, tiers: Tiers, views: Views, at: number, id: 
 /** What opening a block does: **opening goes in**, on the view its card's kind calls for, in the
  *  section it was opened from — `from`, else the section the canvas is already on, where that
  *  section lists it. A definition opens as its usages do. A folder draws what that section
- *  lists. A stand-in opens what it stands for. Anything that opens on nothing is brought into
- *  sight. */
+ *  lists. A stand-in opens what it stands for. Anything that opens on nothing is picked where the
+ *  canvas draws it, else brought into sight. */
 export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?: number,
                         now?: View | null): View | null {
   const b = graph.blocks[id];
@@ -223,7 +222,7 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
   if (kind || roots[listed] === id) {
     return { at: listed, kind: kind ?? "internal", layer: id, pick: null };
   }
-  return sight(graph, tiers, views, listed, id);
+  return reveal_at(graph, tiers, views, now ?? null, id) ?? sight(graph, tiers, views, listed, id);
 }
 
 /** What leaving does: from inside, the layer above, in the same section. From the section's

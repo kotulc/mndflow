@@ -119,10 +119,11 @@ describe("what the projection shows", () => {
     expect(ref().data.marks).toContain("missing");
   });
 
-  it("carries a trail from the tree down to the layer, never the package", () => {
+  it("carries a trail from the package down to the layer", () => {
     const graph = fold(nested(), FLOOR);
     const trail = project(graph, "block_rate").trail.map((t) => t.id);
-    expect(trail[0]).toBe("block_ledger");
+    expect(trail[0]).toBe(graph.root);
+    expect(trail).toContain("block_ledger");
     expect(trail.at(-1)).toBe("block_rate");
   });
 

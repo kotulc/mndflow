@@ -183,6 +183,8 @@ describe("the way out of a layer", () => {
     s.look(loop);
     s.go("create", { name: "Pump" });
     const pump = children(s.graph(), loop)[0]!.id;
+    /** An empty block opens on nothing, so the pump holds a part. */
+    s.go("create", { name: "Valve", parent: pump });
     s.go("open", { id: pump });
     s.go("open");
     expect(s.layer()).toBe(loop);

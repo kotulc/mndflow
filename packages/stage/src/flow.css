@@ -127,6 +127,16 @@
   box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 35%, transparent);
 }
 
+/* **A card with a drawing of its own wears a stacked edge**: a second card's edge behind it, so
+   what opens reads at a glance, in every theme. A shadow draws only outside the border, so an
+   outlined definition stays clear inside. */
+.mnd-flow .mnd-card.card-face.container {
+  box-shadow: 3px 3px 0 -1px var(--bg), 3px 3px 0 0 var(--card-edge, var(--card-line));
+}
+.mnd-flow .mnd-card.card-face.container.picked {
+  box-shadow: 0 0 0 1px var(--accent), 3px 3px 0 -1px var(--bg), 3px 3px 0 0 var(--accent);
+}
+
 /* An interface, seated on a wall. */
 .mnd-seat {
   width: 100%;

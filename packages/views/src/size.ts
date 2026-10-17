@@ -227,9 +227,10 @@ function held_large(units: Size): Size {
            h: ranged(units.h, UNITS.block.h, LARGE.max.h) * UNIT };
 }
 
-/** Whether this card keeps whatever size it was given, rather than the one card height. */
+/** Whether this card keeps whatever size it was given, rather than the one card height. A
+ *  definition's `card.height` says how its usages size; it is one card in its folder. */
 export function free_height(graph: Graph, id: Id): boolean {
-  return look_of(graph, id).height === "free";
+  return !graph.blocks[id]?.def && look_of(graph, id).height === "free";
 }
 
 /** How many seats an edge of this length offers. */

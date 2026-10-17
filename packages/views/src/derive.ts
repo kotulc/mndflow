@@ -1,8 +1,8 @@
 /** What every module derives the same way. */
 
-import { attributes_of, def_of, dir_of, domain_of, frozen, head_of, lens_of, is_box, is_container,
-         inline, is_flat, is_interface, is_named,
-         base_of, path, role_of, shape_of, shown_name, stamps_of, subtypes, tree_of, used_by,
+import { attributes_of, def_of, dir_of, domain_of, frozen, head_of, lens_of, is_box, opens,
+         is_annotation, is_flat, is_interface, is_named,
+         base_of, path, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
          type Graph, type Id } from "@mnd/core";
 import { face_table, face_text, handle_of } from "./face";
 import { look_of } from "./look";
@@ -43,8 +43,9 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
     if (b.flow === "in" || b.flow === "both") out.push("in");
     if (b.flow === "out" || b.flow === "both") out.push("out");
   }
-  /** A reference to a block holds what it previews, and whatever it holds itself. */
-  if (is_container(graph, id) || is_container(graph, ref.card)) out.push("container");
+  /** Whether it opens onto a drawing of its own: what it holds, what its definition holds, or
+   *  what a reference previews. The card wears a stacked edge, and its icon lights. */
+  if (opens(graph, id)) out.push("container");
   /** Wearing its type rather than a name somebody chose. */
   if (!is_named(graph, id)) out.push("unnamed");
   /** A header, and one heading a row reads upright in its one-unit column. */
@@ -100,13 +101,10 @@ export function empty_of(graph: Graph, id: Id): string {
   return [holds + add, ...facts.filter(Boolean)].join(" · ");
 }
 
-/** The trail down to the layer, for a breadcrumb: layers only, from the tree it is in — never
- *  the package and folders above the tree, nor a folder, group or region on the way. A layer in
- *  no tree is its own trail. */
+/** The trail down to the layer, for a breadcrumb: the way the explorer lists it — its package,
+ *  then every folder and block on the way, never an annotation. */
 export function trail_of(graph: Graph, layer: Id | null): Scene["trail"] {
-  const way = path(graph, layer ?? graph.root);
-  const tree = tree_of(graph, layer ?? graph.root);
-  const from = Math.max(0, tree ? way.findIndex((b) => b.id === tree) : way.length - 1);
-  return way.slice(from).filter((b) => b.id === layer || !inline(graph, b.id))
+  return path(graph, layer ?? graph.root)
+    .filter((b) => b.id === layer || !is_annotation(graph, b.id))
     .map((b) => ({ id: b.id, label: shown_name(graph, b.id) }));
 }
