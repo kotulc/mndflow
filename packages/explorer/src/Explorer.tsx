@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { about_of, at_cut, children, domain_of, drop_of, frozen, is_folder, is_inside,
          is_layer_view, may_hold, name_taken, new_id, on_side, owner_def, path, shown_name,
-         type Act, type Graph, type Id, type View } from "@mnd/core";
+         type Act, type Graph, type Id, type Registry, type View } from "@mnd/core";
 import { Icon, Name, NamingContext, MARK_ICON, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
@@ -36,6 +36,10 @@ export type ExplorerProps = {
   onNamed?: (id: Id) => void;
   /** The library row the tray shows, lit as a pick is. */
   holding?: Id | null;
+  /** A package's group of types or tags chosen: its registry opens. */
+  onRegistry?: (registry: Registry) => void;
+  /** The registry open, lit as a pick is. */
+  registry?: Registry | null;
   onFold: (id: Id, shut: boolean) => void;
   onPick: (ids: Id[]) => void;
   /** Whether right-click opens this engine's offered list. */
@@ -554,7 +558,9 @@ export function Explorer(props: ExplorerProps) {
                   r.depth ? "" : "top",
                   r.named ? "" : "unnamed",
                   r.of === "block" ? "" : r.of,
-                  lights(r) || (r.of === "named" && r.ref === props.holding) ? "picked" : "",
+                  lights(r) || (r.of === "named" && r.ref === props.holding)
+                    || (r.registry && r.registry.pkg === props.registry?.pkg
+                        && r.registry.kind === props.registry.kind) ? "picked" : "",
                   holds(r) ? "context" : "",
                   !r.depth && r.at === focus ? "holds" : "",
                   r.via ? "part" : "",
@@ -619,7 +625,8 @@ export function Explorer(props: ExplorerProps) {
                 onClick={(e) => {
                   if (r.of === "block") { clicked(e, r); return; }
                   if (r.of === "named") { props.onNamed?.(r.ref); return; }
-                  /** A package's group of types or tags only folds. */
+                  /** A package's group of types or tags opens its registry; its mark folds. */
+                  if (r.registry) { props.onRegistry?.(r.registry); return; }
                   if (r.of === "group" || r.at === undefined) { fold(r, !is_shut(r)); return; }
                   if (!r.depth) { props.onSection?.(r.at); return; }
                   choose(r);

@@ -48,8 +48,8 @@ export type Pair = {
   about: string;
   /** Nothing about it is this element's to change. */
   fixed?: boolean;
-  /** Typed on the key's own line. */
-  text?: Typed;
+  /** Typed on the key's own line; `wrap`, in the choices column, where words run long. */
+  text?: Typed & { wrap?: boolean };
   asks: Ask[];
   /** A part of how it draws, answered by the look questions of that part. */
   look?: Group;
@@ -171,7 +171,7 @@ function described(graph: Graph, id: Id, onAct: Act): Pair {
     verbs: [],
     about: `What it is for, in a line. The canvas shows it on hover.${fixed ? FROZEN : ""}`,
     ...(fixed ? {} : { text: {
-      value: said, placeholder: "what it is for",
+      value: said, placeholder: "what it is for", wrap: true,
       commit: (to: string) => onAct("describe", { id, description: to }),
     } }),
   };

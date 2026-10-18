@@ -10,6 +10,7 @@ export { def_rows, rows_of, usage_rows, type DefRow, type Row, type Sort,
 export { ChipBar, Choice, Table, lit_row, type Adding, type Chips, type Column, type Line as TableLine,
          type TableProps } from "./Table";
 export { Usages, type UsagesProps } from "./Usages";
+export { Registry, type RegistryProps } from "./Registry";
 export { Element, type ElementProps } from "./Element";
 export { Workspace, type Display, type WorkspaceProps } from "./Workspace";
 export { Drawing, type DrawingProps } from "./Drawing";

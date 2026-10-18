@@ -23,4 +23,6 @@ export { BARE, PLAIN, face_attrs, look_key, look_of, wire_of, type Align,
 export { survey_graph, FOREST } from "./survey";
 export { page_graph } from "./page";
 export { sheet_graph, GRID_LAYER } from "./sheet";
+export { entries_of, matrix_of, MOST, type Entry, type Line as MatrixLine, type Matrix,
+         type User } from "./registry";
 export { read_through, resolved, type Resolved } from "./through";

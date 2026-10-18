@@ -219,7 +219,9 @@
 /* The key, then a colon. */
 .yaml .pair > .key { flex: none; color: var(--muted); }
 .yaml .pair > .key::after { content: ":"; }
-.yaml .pair > .value { min-width: 0; color: var(--text); overflow-wrap: anywhere; }
+/* One line a key: a value too long for the column ends in an ellipsis. */
+.yaml .pair > .value { min-width: 0; color: var(--text); white-space: nowrap; overflow: hidden;
+                       text-overflow: ellipsis; }
 /* What is carried rather than said here reads faint. */
 .yaml .pair:not(.said) > .value { color: var(--faint); }
 /* A value that takes typing is underlined, so it reads as one before it is touched. */
@@ -234,6 +236,7 @@
   font: inherit;
   cursor: text;
 }
+.yaml .pair > input { text-overflow: ellipsis; }
 .yaml .pair.lit > input { border-bottom-color: var(--accent); }
 .yaml .pair > input:focus { outline: none; border-bottom-style: solid; }
 .yaml input::placeholder { color: var(--faint); }
@@ -249,6 +252,23 @@
   font-size: 11px;
   line-height: 1.5;
 }
+/* The whole value, where the key's line cut it: read, or typed where words run long. */
+.col.choices > .whole { margin: 0; padding: 0 8px 6px; font-size: 12px; line-height: 1.6;
+                        overflow-wrap: anywhere; }
+.col.choices > .whole > textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+  field-sizing: content;
+  min-height: 3lh;
+}
+.col.choices > .whole > textarea:focus { outline: none; border-color: var(--accent); }
 fieldset.asks { margin: 0; padding: 0; border: 0; min-width: 0; }
 .asks > .ask { display: flex; flex-direction: column; gap: 6px; padding: 6px 8px 8px; }
 .asks > .ask + .ask { border-top: 1px solid var(--divider); }

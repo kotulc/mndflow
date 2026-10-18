@@ -131,6 +131,18 @@ export function users_of(graph: Graph, id: Id): Id[] {
   return [...blocks, ...lines].map((x) => x.id);
 }
 
+/** A registry: one package's entries of one kind of named component, and where each is used.
+ *  Worked out from the library, never stored. */
+export type Registry = { pkg: Id; kind: keyof Library };
+
+/** How many times a block or a line uses an entry: once for a tag it carries, once for each
+ *  attribute typed by it. */
+export function uses_by(graph: Graph, entry: Id, user: Id): number {
+  const b = graph.blocks[user];
+  const tagged = (b ?? graph.edges[user])?.tags?.includes(entry) ? 1 : 0;
+  return tagged + (b?.def?.attributes?.filter((a) => a.type === entry).length ?? 0);
+}
+
 /** Whether a package holds anything named, so the explorer lists its library. */
 export function has_library(graph: Graph, pkg: Id): boolean {
   const lib = library_of(graph, pkg);

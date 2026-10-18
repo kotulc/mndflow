@@ -6,7 +6,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { about_of, alias_name, alias_of, children, def_at, def_of, domain_of, frame_of, frozen,
          is_interface, of_ref, owner_of, stored_of, shown_name, stands_for, tag_at, type_at,
-         type Act, type Graph, type Id } from "@mnd/core";
+         type Act, type Graph, type Id, type Registry as Of } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { resolved } from "@mnd/views";
 import { rows_of, type Row, type Sort } from "./rows";
@@ -19,6 +19,7 @@ import { Entry } from "./Entry";
 import { lit_row, scope_chips, Table, type Column, type Scope } from "./Table";
 import { Usages } from "./Usages";
 import { Packages, type Offered } from "./Packages";
+import { Registry } from "./Registry";
 import { Workspace, type Display } from "./Workspace";
 import { NOOP } from "./Body";
 
@@ -26,7 +27,9 @@ import { NOOP } from "./Body";
 export type Hold =
   | { of: "id"; id: Id }
   /** A library section in the explorer: every definition, or one narrowing of them. */
-  | ({ of: "defs" } & Shelf);
+  | ({ of: "defs" } & Shelf)
+  /** A package's registry of types or tags: its entries and where each is used. */
+  | { of: "registry"; registry: Of };
 
 export type TrayProps = {
   graph: Graph;
@@ -61,12 +64,12 @@ export type TrayProps = {
 export type Extra = { name: string; draw: (about: Id) => ReactNode };
 
 export type Tab = "card" | "line" | "settings" | "attributes" | "contents" | "definitions"
-                | "packages" | "usages" | "workspace" | "interface" | "tag" | "type";
+                | "packages" | "usages" | "workspace" | "interface" | "tag" | "type" | "entries";
 
 /** What the tray is about. The root is not a block anybody draws, so it is its own context; a
  *  component — an interface, a tag, a type — is asked its own questions. */
 type Context = "root" | "block" | "line" | "definition" | "relation" | "library" | "packages"
-  | "interface" | "tag" | "type";
+  | "interface" | "tag" | "type" | "registry";
 
 /** A slot per context: an element lists its types, a library section every definition, and the
  *  packages section what the workspace draws on — a package's definitions read in the explorer,
@@ -87,6 +90,7 @@ const SLOTS: Record<Context, readonly Tab[]> = {
   interface: ["interface"],
   tag: ["tag"],
   type: ["type"],
+  registry: ["entries"],
 };
 
 /** The contexts about one element, which carry a json chip. */
@@ -102,7 +106,7 @@ const FAMILY: Record<Context, string> = {
   root: "root", block: "instance", line: "instance",
   definition: "definition", relation: "definition",
   library: "library", packages: "packages",
-  interface: "interface", tag: "tag", type: "type",
+  interface: "interface", tag: "tag", type: "type", registry: "registry",
 };
 
 const HEAD: readonly Column[] = [
@@ -179,6 +183,7 @@ export function Tray(props: TrayProps) {
   /** What the tray is about: a hold, else the one thing picked, else the open layer. */
   /** Which library section the explorer pointed at, which is about no one element. */
   const library = hold?.of === "defs" ? hold : null;
+  const registry = hold?.of === "registry" ? hold.registry : null;
   const held_id = hold?.of === "id" && (def_at(graph, hold.id) || graph.blocks[hold.id]
     || tag_at(graph, hold.id) || type_at(graph, hold.id)) ? hold.id : null;
   /** An interface picked on the canvas is about itself, though it is no block. */
@@ -190,7 +195,7 @@ export function Tray(props: TrayProps) {
   const on_canvas = picked.join();
   useEffect(() => set_lit(null), [on_canvas]);
 
-  const context: Context = library
+  const context: Context = registry ? "registry" : library
     ? (library.only === "packages" ? "packages" : "library")
     : about === graph.root ? "root"
     : is_interface(graph, stored_of(graph, about)) ? "interface"
@@ -293,8 +298,9 @@ export function Tray(props: TrayProps) {
 
   /** The head names the context, then says what sort it is: a definition — a tag or type
    *  among them — a package, a stand-in for a definition, a reference, a relation, or a usage. */
-  const word = library ? "definitions" : what_of(graph, about);
-  const name = library ? [library.from ?? (library.only === "all" ? "" : library.only),
+  const word = registry ? "registry" : library ? "definitions" : what_of(graph, about);
+  const name = registry ? `${shown_name(graph, registry.pkg)} · ${registry.kind}`
+    : library ? [library.from ?? (library.only === "all" ? "" : library.only),
                  library.group ? `${library.group}s` : ""].filter(Boolean).join(" · ")
     : def_at(graph, about) ? def_at(graph, about)!.name
     : tag_at(graph, about)?.name ?? type_at(graph, about)?.name ?? port_name(graph, about)
@@ -373,6 +379,13 @@ export function Tray(props: TrayProps) {
             <Definitions key={JSON.stringify(narrowed)} seed={narrowed} graph={graph}
                          follows={null} lines={[]} onAct={reads}
                          onOpen={(id) => onHold({ of: "id", id })} />
+          ) : null}
+          {/* A registry's entries, and where each is used. */}
+          {shows === "entries" && registry ? (
+            <Registry key={`${registry.pkg}/${registry.kind}`} graph={graph} registry={registry}
+                      lit={lit} onLit={set_lit}
+                      onHover={onHover} onOpen={(id) => onHold({ of: "id", id })}
+                      {...(onView ? { onView: (id: Id) => onView(home_of(graph, id), id) } : {})} />
           ) : null}
           {/* What the workspace draws on, and how one more gets in. */}
           {shows === "packages" ? (

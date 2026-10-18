@@ -3,7 +3,8 @@
 
 import { alias_of, branch_of, children, domain_of, library_of, on_side,
          is_annotation, is_box, is_named, relation_base, role_of, setting_of, shown_name, stamps_of, tops_of,
-         type Block, type Cut, type Graph, type Id, type Lists, type Role } from "@mnd/core";
+         type Block, type Cut, type Graph, type Id, type Lists, type Registry,
+         type Role } from "@mnd/core";
 import { known, MARK_ICON, role_icon, type IconName } from "@mnd/theme";
 import type { Chain } from "./chain";
 
@@ -27,6 +28,8 @@ export type Row = { id: Id; depth: number; label: string; kids: number; mark: Ma
                     at?: number;
                     /** What choosing it holds as its section's pick; absent, it can't be chosen. */
                     pick?: Id;
+                    /** The registry a package's group of named components opens. */
+                    registry?: Registry;
                     /** The usage a part is seen through: a block of its definition's structure. */
                     via?: Id;
                     /** Whether it roots a structure, as its card's structure mark says. */
@@ -99,17 +102,19 @@ export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain, every
 }
 
 /** A package's named components in the library, after its definitions: a *types* group, then a
- *  *tags* group, each folded until opened, every component a row of its own, never a block. */
+ *  *tags* group, each folded until opened, every component a row of its own, never a block. A
+ *  group is its registry's row: chosen, it opens the registry. */
 function named_rows(graph: Graph, pkg: Id, route: string, folded: readonly Id[], out: Row[],
                     key: (route: string) => string, depth: number): void {
   const lib = library_of(graph, pkg);
-  const kinds = [{ key: "types", mark: "type" as const, all: lib.types ?? [] },
-                 { key: "tags", mark: "tag" as const, all: lib.tags ?? [] }];
+  const kinds = [{ key: "types" as const, mark: "type" as const, all: lib.types ?? [] },
+                 { key: "tags" as const, mark: "tag" as const, all: lib.tags ?? [] }];
   for (const kind of kinds) {
     if (!kind.all.length) continue;
     const id = key(`${route}/@${kind.key}`);
     out.push({ id, ref: id, depth, label: kind.key, kids: kind.all.length, mark: kind.mark,
-               of: "group", named: true, alias: "", guides: [] });
+               of: "group", registry: { pkg, kind: kind.key }, named: true, alias: "",
+               guides: [] });
     if (!opened(folded, id)) continue;
     for (const c of kind.all) {
       out.push({ id: `${id}/${c.id}`, ref: c.id, depth: depth + 1, label: c.name, kids: 0,

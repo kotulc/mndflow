@@ -1,5 +1,6 @@
 /** The card tab's left column: every key the card or line says, one line each — its own word
- *  where it says one, what it carries faint. **One key is lit**, and the choices column answers
+ *  where it says one, what it carries faint. A line too long for the column ends in an ellipsis;
+ *  the choices column reads it whole. **One key is lit**, and the choices column answers
  *  it; ↑ and ↓ move the light, Enter types into a lit line that takes text. */
 
 import { useRef, type KeyboardEvent } from "react";
@@ -46,12 +47,15 @@ export function Source({ id, pairs, lit, onLit }: SourceProps) {
                            p.said ? "said" : ""].filter(Boolean).join(" ")}
                onClick={() => onLit(p.key)} onFocus={() => onLit(p.key)}>
             <span className="key">{p.word}</span>
-            {p.text ? (
+            {/* Long words are typed in the choices column, where they read whole. */}
+            {p.text && !p.text.wrap ? (
               <Entry key={`${id}-${p.key}`} value={p.text.value} label={p.word} blank
                      placeholder={p.text.placeholder}
                      {...(p.text.clash ? { clash: p.text.clash } : {})}
                      onCommit={p.text.commit} />
-            ) : p.shown || !p.look ? <span className="value">{p.shown || "—"}</span> : null}
+            ) : p.shown || !p.look ? (
+              <span className="value" title={p.shown}>{p.shown || "—"}</span>
+            ) : null}
           </div>
         </div>
       ))}

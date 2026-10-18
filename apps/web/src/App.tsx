@@ -339,6 +339,8 @@ export function App({ storage, boot, opening }: {
         onSection={section}
         onNamed={(id) => t.onHold({ of: "id", id })}
         holding={hold?.of === "id" ? hold.id : null}
+        onRegistry={(registry) => t.onHold({ of: "registry", registry })}
+        registry={hold?.of === "registry" ? hold.registry : null}
         chain={{ ...chain, onChoose: choose }}
         keys={zones.zone === "explorer"}
       />

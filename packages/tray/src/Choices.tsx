@@ -3,7 +3,8 @@
  *  Chips light as a look's do: lit where they hold, accented where said here. A part of how it
  *  draws asks the look questions of that part. */
 
-import { type Act, type Graph, type Id } from "@mnd/core";
+import { def_at, type Act, type Graph, type Id } from "@mnd/core";
+import { face_attrs, look_of } from "@mnd/views";
 import { Band } from "./Body";
 import { Entry } from "./Entry";
 import { Part } from "./Looks";
@@ -19,15 +20,26 @@ export function Choices({ graph, id, pair, onAct }: ChoicesProps) {
       {/* A key under a section is named with it: *label weight*, not *weight*. */}
       <Band label={pair.under ? `${pair.under} ${pair.word}` : pair.word} />
       <p className="about">{pair.about}</p>
+      {/* The whole value: typed here where words run long, else read where the line cut it and
+          no chip already says it. */}
+      {pair.text?.wrap ? (
+        <div className="whole">
+          <Entry key={`${id}-${pair.key}`} value={pair.text.value} label={pair.word} blank wrap
+                 placeholder={pair.text.placeholder} onCommit={pair.text.commit} />
+        </div>
+      ) : !pair.text && pair.shown && !pair.asks.length && !pair.look ? (
+        <p className="whole">{pair.shown}</p>
+      ) : null}
       <fieldset className="asks rows" disabled={pair.fixed}>
         {pair.look ? (
           <Part graph={graph} id={id} group={pair.look} onAct={onAct} />
         ) : null}
         {pair.asks.map((ask) => (
-          <Question key={ask.word} ask={ask} titled={ask.word !== pair.word} />
+          <Question key={ask.word} graph={graph} ask={ask} titled={ask.word !== pair.word} />
         ))}
         {empty ? (
-          <p className="empty">{pair.text ? "typed on its line, on the left" : "nothing to choose"}</p>
+          <p className="empty">{pair.text?.wrap ? "typed above"
+            : pair.text ? "typed on its line, on the left" : "nothing to choose"}</p>
         ) : null}
       </fieldset>
       {/* What acts on it stays live where the key reads only: viewing changes nothing here. */}
@@ -45,8 +57,9 @@ export function Choices({ graph, id, pair, onAct }: ChoicesProps) {
 }
 
 /** One question: its title where the key's band does not already say it, then its chips gathered
- *  by where they live, then the box that makes a new one. */
-function Question({ ask, titled }: { ask: Ask; titled: boolean }) {
+ *  by where they live, then the box that makes a new one. A chip standing for a definition wears
+ *  that definition's colour. */
+function Question({ graph, ask, titled }: { graph: Graph; ask: Ask; titled: boolean }) {
   return (
     <div className="ask" title={ask.tip}>
       {titled ? <h6>{ask.word}</h6> : null}
@@ -55,7 +68,7 @@ function Question({ ask, titled }: { ask: Ask; titled: boolean }) {
           {group ? <span className="where">{group}</span> : null}
           <div className="chips">
             {chips.map((c) => (
-              <button key={c.value} title={c.tip ?? c.word}
+              <button key={c.value} title={c.tip ?? c.word} {...paint(graph, c.value)}
                       className={["opt", c.on ? "on" : "", c.on && c.set ? "set" : ""]
                         .filter(Boolean).join(" ")}
                       onClick={() => ask.pick(c)}>
@@ -74,6 +87,14 @@ function Question({ ask, titled }: { ask: Ask; titled: boolean }) {
       ) : null}
     </div>
   );
+}
+
+/** A definition's colour, as the attributes its card wears; nothing for any other answer. */
+function paint(graph: Graph, value: string) {
+  if (!def_at(graph, value)) return {};
+  const dress = face_attrs(look_of(graph, value));
+  return { "data-family": dress["data-family"] as string,
+           ...(dress["style"] ? { style: dress["style"] as object } : {}) };
 }
 
 /** Chips gathered by where they live, in the order each place first appears; each place's chips

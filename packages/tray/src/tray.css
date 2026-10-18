@@ -149,6 +149,16 @@ fieldset.fields { padding: 0; }
 .panel.element { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); grid-template-areas: "source choices"; }
 .panel.element > .col.source { grid-area: source; gap: 6px; }
 .panel.element > .col.choices { grid-area: choices; }
+/* The tray lays its tabs out by its own width, not the window's. */
+.tray-body { container-type: inline-size; }
+/* Half and half where a third would cramp the keys: a portrait screen, or a tray beside wide rails. */
+@container (max-width: 720px) {
+  .panel.element { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+/* Narrower still, the choices follow the keys, under them. */
+@container (max-width: 460px) {
+  .panel.element { grid-template-columns: minmax(0, 1fr); grid-template-areas: "source" "choices"; }
+}
 
 /* The json tab: a definition's record, read only. */
 .json { padding: 8px 10px 10px; }
@@ -319,3 +329,132 @@ fieldset.fields { padding: 0; }
   background: var(--hover);
 }
 
+/* ── A registry's matrix: a grid of gapped squares, blocks down beside their folder, entries
+   across under a head naming what they are ── */
+.heat-scroll { overflow-x: auto; flex: none; padding: 6px 8px 8px; }
+.heat-table { border-collapse: separate; border-spacing: 0; font-size: 12px; }
+.heat-table th, .heat-table td { padding: 0; font-weight: normal; }
+/* The axes: the rows' kinds, and the entries' kind pointing across, quiet and upper case as
+   every tray head, along the bottom of the one head row. */
+.heat-table th.axis {
+  padding: 0 8px 4px 0;
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  vertical-align: bottom;
+}
+.heat-table th.name.axis > .across { float: right; color: var(--muted); }
+.heat-table th.total.axis { padding: 0 0 4px 8px; text-align: right; }
+/* An entry's name reads flat in the one head line, every column one width — the longest name's,
+   up to a cap — and a name past it cut short; the readout says it whole. A click makes it the context. */
+.heat-table th.entry { padding: 0 3px 4px; vertical-align: bottom; cursor: pointer; }
+.heat-table th.entry > span {
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.heat-table th.entry:hover > span, .heat-table th.entry.cross > span { color: var(--accent); }
+/* The row heads stay put while the squares scroll under them. */
+.heat-table .folder, .heat-table .name { position: sticky; z-index: 1; background: var(--bg); }
+.heat-table .folder { left: 0; width: 7rem; max-width: 7rem; }
+.heat-table .name { left: 0; width: 13rem; max-width: 13rem; }
+.heat-table.foldered .name { left: 7rem; }
+.heat-table tbody th.folder {
+  padding: 4px 8px 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: left;
+  text-overflow: ellipsis;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.heat-table tbody th.name {
+  padding: 0 10px 0 0;
+  overflow: hidden;
+  color: var(--text);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A folder's blocks sit together; a rule and a little air part one folder from the next. */
+.heat-table tbody + tbody > tr:first-child > * { border-top: 1px solid var(--divider); padding-top: 4px; }
+.heat-table tbody + tbody > tr:first-child > th.folder { padding-top: 8px; }
+.heat-table tbody tr { cursor: pointer; }
+.heat-table tbody tr:hover > th.name, .heat-table tbody tr.picked > th.name { color: var(--accent); }
+/* The block's colour, as its card wears it. */
+.heat-table .swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border: 1px solid var(--card-edge, var(--border));
+  border-radius: 2px;
+  background: var(--card-fill, transparent);
+  vertical-align: -0.05em;
+}
+/* One square a cell, a 2px gap of ground round it, one hue from the ground to the accent by count;
+   a count past one is written, and every cell says its count on hover. */
+.heat-table td.cell { min-width: 24px; padding: 1px; }
+.heat-table .heat, .heat-key > i {
+  background: color-mix(in oklch, var(--accent) calc(var(--heat, 0) * 75%), var(--band));
+}
+.heat-table .heat {
+  display: block;
+  width: 22px;
+  margin: 0 auto;
+  height: 22px;
+  border-radius: 3px;
+  color: var(--text);
+  font-size: 10px;
+  line-height: 22px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* The crosshair: the row and the column the pointer is on, their empty squares raised. */
+.heat-table tbody tr.cross .heat.none, .heat-table tbody tr.picked .heat.none,
+.heat-table td.cell.cross .heat.none { background: var(--hover); }
+.heat-table tr.cross td.cell.cross .heat:not(.none) { outline: 1px solid var(--accent); outline-offset: -1px; }
+/* The readout: one line over the grid, always there so nothing moves as the pointer does. */
+.heat-readout {
+  margin: 0;
+  padding: 6px 8px 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.heat-readout.idle { color: var(--faint); font-style: italic; }
+.heat-table td.total, .heat-table td.count {
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.heat-table td.total { padding: 0 0 0 8px; text-align: right; }
+.heat-table td.count { padding-top: 4px; text-align: center; }
+.heat-table td.acts { padding-left: 8px; }
+.heat-table tfoot > tr > * { border-top: 1px solid var(--divider); padding-top: 4px; }
+.heat-table tfoot th.foot {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg);
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+/* The key: what the warmth means, on the chip bar's far end. */
+.heat-key { display: inline-flex; align-items: center; gap: 2px; color: var(--faint); font-size: 10px; }
+.heat-key > i { display: inline-block; width: 11px; height: 11px; border-radius: 2px; }
+.heat-key > i:first-of-type { margin-left: 4px; }
+.heat-key > i:last-of-type { margin-right: 4px; }
