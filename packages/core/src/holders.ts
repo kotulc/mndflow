@@ -32,7 +32,12 @@ export function covers(s: Span, r: number, c: number): boolean {
 export function shape_of(graph: Graph, id: Id | undefined): Shape | null {
   const b = id ? graph.blocks[id] : undefined;
   if (!b || b.def || is_reference(graph, b.id) || is_interface(graph, b.id)) return null;
-  const said = setting_of(graph, b.id, "holder");
+  return shape_named(graph, b.id);
+}
+
+/** The shape a definition's traits give its usages, or null. */
+export function shape_named(graph: Graph, type: Id | undefined): Shape | null {
+  const said = setting_of(graph, type, "holder");
   return said["matrix"] === true ? "grid" : said["band"] === true ? "region"
     : said["inline"] === true ? "group" : null;
 }

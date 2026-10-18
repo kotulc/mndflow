@@ -27,7 +27,8 @@
 | `refer` | places a stand-in for a block, a definition or a package | layer | target, type?, spot?, parent?, at? | `add_block{of}` (+ `seat_cell`) |
 | `source` | says where a block's content lives outside the workspace, or gives it back | block | id, uri? | `set_source` |
 | `tag` | sets an element's tags, the whole list; a new word makes a tag in the workspace's library; none gives the list back to its definition. Refuses a trait | block, edge, selection | ids, tags? | `set_tags` (+ `set_library`) |
-| `define_tag` · `define_type` | make or change a tag, or a type — an enum or an alias — in the workspace's library | layer | name, id?, description?; form?, choices?, unit? | `set_library` |
+| `constrain` | sets the constraints an element is held to, the whole list, each a library constraint by name or id; none gives the list back to its definition | block, edge, selection | ids, constraints? | `set_constraints` |
+| `define_tag` · `define_type` · `define_interface` · `define_constraint` | make or change a library entry in the workspace's library: a tag, a type (an enum or an alias), an interface definition, a constraint. Each may extend another of its kind | layer | name, id?, description?, extends?; form?, choices?, unit?, format?; required?, match? | `set_library` |
 | `unmember` | takes away a tag an annotation gives: out of the group or region, or the label's tie deleted | block | id, from | `move_block` or `delete_edge` |
 | `trait` | sets the traits a definition carries, the whole list, or gives it back to its chain. Refuses a usage, and a word naming no trait | block, selection | ids, traits? | `set_traits` |
 | `look` | sets one property of how this draws or what it asks | block, edge, selection | ids, key, name, value? | `set_setting` |
@@ -64,8 +65,8 @@
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `relate` | draws a relationship from one block, or a part a usage reads through (`usage/part`), to another. A definition and a usage never relate, but by a tie | layer | from, to, type?, dir?, module? | `link_blocks` |
-| `relink` | takes one end of a relationship to another block or part | edge | id, end, to, part? | `set_end` + `set_side` |
+| `relate` | draws a relationship from one block, or a port on one — its own or its definition's (`block/port`) — to another. A definition and a usage never relate, but by a tie | layer | from, to, type?, dir?, module? | `link_blocks` |
+| `relink` | takes one end of a relationship to another block or port | edge | id, end, to | `set_end` |
 | `unlink` | removes a relationship, leaving the interfaces it met | edge | id | `delete_edge` |
 | `flip` | turns a relationship around | edge | id | `flip_edge` |
 | `direct` | sets which way a relationship's arrows point | edge | id, dir | `set_setting` (`line.dir`) |
@@ -78,11 +79,11 @@
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `interface` | puts an interface — a block of `interface` or an interface definition — on any block that *has ports*, and takes a relationship's end to one | block, edge | owner?, side?, at?, name?, type?, flow?, edge?, end? | `add_block` (+ `set_end`) |
-| `port` | changes an interface where it is held — its definition's, for one a usage reads through: its flow or seat; `free` lets it place itself. Its name and type are `rename` and `retype`, as any block's | interface | id, flow?, side?, at?, free? | `mark_port`, `set_port` |
+| `interface` | puts a port on any block that *has ports* — its type an interface definition in a library — and takes a relationship's end to one | block, edge | owner?, side?, at?, name?, type?, flow?, edge?, end? | `set_ports` (+ `set_end`) |
+| `port` | changes a port where it is held — its definition's, for one a usage reads through: its name, interface definition, flow or seat; `free` lets it place itself. `rename` and `delete` take a port too; a port deleted takes its lines | interface | id, name?, type?, flow?, side?, at?, free? | `set_ports` |
 | `end` | says what one end of a relationship means: multiplicity and role on a line; also ownership and navigable on a relation definition. An empty word takes one back | edge, block | id, end, multiplicity?, role?, ownership?, navigable? | `set_ends` |
 
-**`interface` absorbs promotion**: naming the seat a relationship meets makes an interface there. An end already an interface is never promoted.
+**`interface` absorbs promotion**: naming the end of a relationship makes a port on that end's block and takes the end to it. An end already at a port is never promoted.
 
 ### Holders and cells
 
@@ -116,7 +117,7 @@
 - **One act, and the holder says which**: a value on a usage and an attribute on a definition are the same thing said of two holders.
 - **A type is named, never typed out**: `type` names a form, a type or a block definition by id or name; a name nothing holds makes a type of the workspace's, an alias of `text`.
 - **`define` lands where the user is**: in the open domain, in the holder picked. Its domain (block or relation) is read off what it extends; absent, `block`. Its id is minted, or passed in by a caller that must know it.
-- **A name is unique in its package**, across definitions, types and tags.
+- **A name is unique in its package**, across definitions and library entries.
 - **A name is unique among its siblings**: an act giving two siblings one name is refused, so a name ref finds one block.
 
 ### Card sources
@@ -128,7 +129,7 @@
 
 - **A card source is the actions a person would have run**, each checked against the graph the ones before it made. Nothing is decided here.
 - **Permissive**: a type or tag nothing loaded holds, or more than one package holds, is made in the workspace and said. A trait gives settings, so a trait word naming none is refused.
-- **A card source states a block whole**, a definition included: its frontmatter is a diagram file's (`name`, `type`, `def`, `description`, `tags`, `traits`, `settings`, values, `blocks`, `relations`) and its body is `body`.
+- **A card source states a block whole**, a definition included: its frontmatter is a diagram file's (`name`, `type`, `def`, `description`, `tags`, `constraints`, `traits`, `settings`, `ports`, values, `blocks`, `relations`) and its body is `body`.
 
 ### The layer
 
@@ -147,7 +148,7 @@
 |---|---|---|---|---|
 | `place` | where something came to rest | block | moved[] | `place_block`… |
 | `size` | how big a card was asked to be | block | id, w, h | `size_block` |
-| `seat` | where an interface sits on its edge, written where it is held | interface | id, side, at | `set_port` |
+| `seat` | where a port sits on its edge, written where it is held | interface | id, side, at | `set_ports` |
 
 **One gesture, one step.** A drag that comes to several writes (a place and a move, a layout and a place) runs inside `session.batch`. **A drop resolves to an action**: a card on a card or into a holder is `move`; into a cell, `move` seating it; a grid's corner dragged is `set_grid`; a relationship's end on another block is `relink`.
 

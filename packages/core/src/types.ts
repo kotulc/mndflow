@@ -284,6 +284,12 @@ export const BASE_BLOCKS: readonly Id[] = [
   "block", "reference", "folder", "grid", "note", "label", "group", "region",
 ];
 
+/** The shipped diagram kinds: blocks extending `block`, each fixing its view, layout and icon. A
+ *  block of one is fixed to it, retyped only within its branch; a plain block is none of them. */
+export const DIAGRAMS: readonly Id[] = [
+  "internal", "flow", "state", "sequence", "swimlane", "class", "entity", "treemap",
+];
+
 /** The shipped relation bases. `tie` is a definition — a dashed run with no heads — chosen like
  *  any other type. */
 export const BASE_RELATIONS: readonly Id[] = ["line", "tie"];

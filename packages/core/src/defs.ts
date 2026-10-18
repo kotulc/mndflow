@@ -4,7 +4,9 @@
 import { ARRANGES, type Settings } from "./components";
 import { is_folder, organizes } from "./holders";
 import { entry_at, is_form, library_home, library_names, type_at } from "./library";
-import { BASE_BLOCKS, BASE_COMPONENTS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIRS, KIND_BASE,
+import { is_container } from "./tree";
+import { BASE_BLOCKS, BASE_COMPONENTS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIAGRAMS, DIRS,
+         KIND_BASE,
          TRAITS, type Block,
          type BlockModule, type Attribute, type Components, type Definition, type Dir, type Form,
          type Graph, type Id, type Trait } from "./types";
@@ -572,5 +574,33 @@ export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean 
   if (type && domain_of(graph, type) === "relation") return false;
   const from = base_of(graph, id);
   const to = block_base(graph, type);
-  return from === to || OPEN.some((set) => set.includes(from) && set.includes(to));
+  return (from === to || OPEN.some((set) => set.includes(from) && set.includes(to)))
+    && kind_fits(graph, id, type);
+}
+
+
+/** Which diagram kind a block is: the nearest its chain names; else `internal` where a plain
+ *  block holds parts, its own or its definition's; else null — a plain block, free to become
+ *  any kind. */
+export function diagram_kind(graph: Graph, id: Id): Id | null {
+  const b = graph.blocks[id];
+  return b ? kind_typed(graph, id, b.def ? b.id : b.type) : null;
+}
+
+/** The diagram kind a block is, or would be, typed by `type`. */
+function kind_typed(graph: Graph, id: Id, type: Id | undefined): Id | null {
+  const named = isa(graph, type).find((d) => DIAGRAMS.includes(d.id))?.id
+    ?? (type && DIAGRAMS.includes(type) ? type : undefined);
+  if (named) return named;
+  if (block_base(graph, type) !== "block" || module_named(graph, type) !== "block") return null;
+  const held = is_container(graph, id) || (!!def_at(graph, type) && type !== id
+    && is_container(graph, type!));
+  return held ? "internal" : null;
+}
+
+/** Whether a block keeps its diagram kind typed by `type`: **a diagram is fixed to its branch**,
+ *  retyped only to what extends the same kind; a plain block may become any. */
+export function kind_fits(graph: Graph, id: Id, type: Id | undefined): boolean {
+  const kind = diagram_kind(graph, id);
+  return !kind || kind === kind_typed(graph, id, type);
 }

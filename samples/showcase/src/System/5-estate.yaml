@@ -1,9 +1,7 @@
 name: Estate
+type: treemap
 description: The shop's diagrams as a treemap, each as large as what it holds.
 note: A treemap layer. Each tile is as large as the diagram it stands for holds; the groups gather them as the shop's folders do.
-settings:
-  layout:
-    kind: treemap
 blocks:
   - name: Flows
     type: group

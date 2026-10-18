@@ -7,9 +7,7 @@
 
 | | |
 |---|---|
-| **last committed** | arrangement by kind (`card.arrange`), diagram files (one block and its layer as YAML, frontmatter the same schema), names unique among siblings, the views renamed (package, allocation, table; swimlane merged), `layered`, the showcase as YAML. `db776f9` (2026-10-13) |
-| **built, uncommitted** | (2026-10-14) the tray's card and settings tabs as keys and choices (tray `pairs.ts`, `Source`, `Choices`); `description` on every block (`describe`), the body written by `write` and read at the top of the contents tab; definitions' old body text moved to `description` in every source; keys follow the focused region (theme `useZone`). Suggested message: *Tray tabs as keys and choices; add description; text moves to contents; keys follow focus* |
-| **built, uncommitted** | (2026-10-16) redesign-plan.md steps 2–9: types and tags as a package root's `library` (core `library.ts`); interfaces as `def.ports`, drawn as `block/port` by views `read_through`, met by `fromPort`/`toPort`; `base` refiled by category with `label` and `region`, the forms, `tag`, `value` and `interface` gone; folders boxes on their parent's layer; annotation tags by source in the tray (`given_of`, `unmember`); regions as bands; collections (`has_records`, `records.of`); `collection.ts` renamed `sources.ts`; the explorer's library section. Suggested message: *Redesign: components as data, interfaces on definitions, folders as boxes, labels, regions, collections* |
+| **redesign first** | **redesign-plan.md runs first** and holds everything built since 2026-10-14 (committed through f597e3f; the component model uncommitted, 2026-10-18). This plan is revised from it once it is finished; until then, rows below that the redesign settled say so |
 | **first, ask** | step 0's open rows, then the three older rows of *Decide*: the folder view and the package view, `note:` in a file, dagre for `layered` |
 | **then** | step 0, then step 1 |
 | **the kit** | not re-released since; mndmap's re-pin meets the renames listed under *Rough edges* · **kit** |
@@ -40,7 +38,7 @@
 | **the workspace tab** | still the old label-and-answer rows (name, tags, display, file, export): convert it to keys and choices |
 | **attribute values in files** | a card source writes values as top-level keys, so a value named like a schema key vanishes (*Rough edges* · **diagram files**). Keep them flat, or nest them under `values:` — unambiguous, one more level to write, the core reader and writer and the showcase changed. Recommended: nested |
 | **usage settings in the schema** | the tray offers a usage no settings, but `Block.settings` still allows a usage's override. Drop it from the schema, or keep it for files and arrangement (`card.arrange` on a usage) |
-| **the attributes tab** | a usage's values are now answered on its card tab, so its attributes tab repeats them; a definition still declares attributes there. Drop the tab for usages, or keep it |
+| **the attributes tab** | settled 2026-10-18: the components tab replaced it (redesign-plan.md *Component model*) |
 | **traits** | on the card tab; they sat on the old settings tab. Keep them with what it is, or move them to settings |
 | **long chip lists** | a usage's *type* and *extends* list every definition, gathered by package and folder; a filter box, or folding a place, may be wanted |
 | **unset quantities** | a slider's key with nothing said reads `—` where its slider shows a fallback; read the fallback instead |
@@ -158,7 +156,7 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **kit** | mndmap's re-pin meets: views `overhead` → `package`, `grid` → `allocation`, `class` → `table`, `swimlane` gone; `class_graph` → `table_graph`, `swimlane_graph` gone; `card.place` → `card.arrange`, the *is aside* trait gone; card sources say `type`/`def`, not `extends`; `describe` now writes `description` and `write` the body; `Block.description` and the `set_description` op are new; tray exports `Identity`, `Settings`, `Looks` are gone (`Part` replaces `Looks`); theme and kit shell export `useZone`, and `Stage` takes `keys` |
 | **follow-ups** | lineage and links as a package structure rather than a view; boxes for a definition's usages and the groups they belong to |
 | **annotations** | a label floats aside, so on a layer cut into regions it lands across a band's heading; a free label and one seated on a line are open (redesign *Decide*); a picked region draws a full outline; a region is made only from a selection's menu |
-| **interfaces** | a plain block takes none: *interface* refuses until it is defined, where the old block-interfaces let any block have one; the showcase lost the room port on `Containers`; ports carry no settings or tags yet, though design.md gives them both |
+| **interfaces** | settled 2026-10-18: ports are data on any block that *has ports*, the room port on `Containers` is back, and interface definitions are library entries with settings (redesign-plan.md *Component model*). Ports themselves carry no tags yet |
 | **mndmap** | its content rows are not yet regions (redesign step 8); it meets the renames in *kit* and the new schema on its re-pin |
 | **base looks** | the base blocks draw alike but for their icons (and notes): give each more visual distinction through its faces and traits |
 

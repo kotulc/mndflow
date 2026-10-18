@@ -2,9 +2,9 @@
 
 import { may_hold } from "../capabilities";
 import { shown_name } from "../names";
-import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, holds_defs,
-         in_definitions, is_domain, kind_free, may_retype, name_taken, package_of, plain_type,
-         setting_of, stored_type, self_use } from "../defs";
+import { block_base, base_of, closes_cycle, def_at, dependents, diagram_kind, domain_of,
+         holds_defs, in_definitions, is_domain, kind_fits, kind_free, may_retype, name_taken,
+         package_of, plain_type, setting_of, stored_type, self_use } from "../defs";
 import { GRID, inline, inside, is_folder, is_grid, lattice_of, layer_of } from "../holders";
 import { children, edges_in, is_interface, layout_of, next_order, port_at, ports_of, reorder,
          sibling_named, subtree } from "../tree";
@@ -28,6 +28,12 @@ function drawn_on(graph: Graph, parent: Id): Id | null {
 const APART = "a definitions folder holds definitions and folders, not structure";
 /** A component kind is carried by blocks as data, never made a block of its own. */
 const CARRIED = "a component is carried by blocks as data, never a block of its own";
+
+/** Why a diagram keeps its kind: retyped only within its branch. */
+function fixed_kind(graph: Graph, id: Id): string {
+  const kind = diagram_kind(graph, id);
+  return `its kind is fixed: it may become only what extends ${kind}`;
+}
 
 /** Why putting these blocks under `parent` would break the model, or null. */
 function placing(graph: Graph, ids: readonly Id[], parent: Id): string | null {
@@ -286,6 +292,7 @@ register(
         if (type && domain_of(ctx.graph, type) === "component" && !b.def) return CARRIED;
         if (b.def) {
           if (closes_cycle(ctx.graph, id, type)) return "a definition cannot extend itself";
+          if (!kind_fits(ctx.graph, id, type)) return fixed_kind(ctx.graph, id);
           /** What it extends says its kind; it changes kind only while nothing it shaped. */
           if (type && domain_of(ctx.graph, type) !== domain_of(ctx.graph, id)
               && !kind_free(ctx.graph, id)) {
@@ -294,6 +301,7 @@ register(
           continue;
         }
         if (self_use(ctx.graph, b.parent, type)) return "a definition cannot use itself";
+        if (type && !kind_fits(ctx.graph, id, type)) return fixed_kind(ctx.graph, id);
         if (type && !may_retype(ctx.graph, id, type)) {
           return `a ${base_of(ctx.graph, id)} cannot become a ${block_base(ctx.graph, type)}`;
         }
@@ -528,7 +536,13 @@ register(
       if (!LAYOUTS.includes(String(args["kind"]) as Layout)) {
         return `there is no layout called "${args["kind"]}"`;
       }
-      return borrowed(ctx.graph, (args["layer"] as Id) ?? here(ctx));
+      /** A diagram kind that names its layout keeps it. */
+      const layer = (args["layer"] as Id) ?? here(ctx);
+      const kind = diagram_kind(ctx.graph, layer);
+      if (kind && setting_of(ctx.graph, kind, "layout")["kind"] !== undefined) {
+        return `a ${kind} keeps its layout`;
+      }
+      return borrowed(ctx.graph, layer);
     },
     run: (ctx, args) => {
       const said = args["at"];

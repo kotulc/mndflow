@@ -1,8 +1,8 @@
 {
-  "id": "behaviour",
-  "name": "behaviour",
+  "id": "flow",
+  "name": "flow",
   "type": "block",
-  "description": "A method of what holds it: its layer is the flow or state machine that does it, its in-interfaces its parameters and its out-interfaces its return.",
+  "description": "A flow: what moves through a process — its steps and decisions, and the lines each passes on along, laid out by where they point. A block's behaviour.",
   "def": {},
   "traits": [
     "has_parts",

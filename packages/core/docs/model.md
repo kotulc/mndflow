@@ -76,7 +76,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 
 ## Capabilities
 
-**`allows` is refused at the gesture; `expects` is only ever advice.** Both merge along the chain per key, nearest first. **Absent is a no**: a block may hold, seat or take only what a trait or a setting grants. A capability naming a definition means it or anything below it. A chain ends at a base: a definition extending nothing reads through `block`.
+**`allows` is refused at the gesture; a constraint is only ever advice.** `allows` merges along the chain per key, nearest first; constraints are a list carried as tags are, each read down what it extends. **Absent is a no**: a block may hold, seat or take only what a trait or a setting grants. A capability naming a definition means it or anything below it. A chain ends at a base: a definition extending nothing reads through `block`.
 
 
 ## Marks

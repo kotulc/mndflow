@@ -1,5 +1,5 @@
 name: Schema
-type: diagrams.er_diagram
+type: entity
 packages: [diagrams]
 note: The records as an entity relationship diagram — columns and keys — the same associations drawn as crow's feet.
 blocks:

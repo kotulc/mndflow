@@ -1,8 +1,8 @@
 /** Groups and grids as made, and notes. */
 
 import { may_hold } from "../capabilities";
-import { block_base, def_at, domain_of, self_use } from "../defs";
-import { can_hold, GRID, inside, is_grid, lattice_of, layer_of, members_of,
+import { def_at, domain_of, self_use } from "../defs";
+import { can_hold, GRID, inside, is_grid, lattice_of, layer_of, members_of, shape_named,
          shape_of } from "../holders";
 import { shown_name } from "../names";
 import { children, next_order, part_end, reorder } from "../tree";
@@ -17,11 +17,10 @@ import { borrowed, handles, here, id_of, make_block, num, seats, spot, text, tie
 const asks_extent = (args: Args): boolean => num(args, "rows") !== null || num(args, "cols") !== null;
 
 /** What a new holder is made as: the definition named, else the base an extent asks for — and
- *  the shape its base gives it. */
+ *  the shape its traits give it. */
 function made_as(graph: Graph, args: Args): { type: Id; shape: Shape | null } {
   const type = text(args, "type") || (asks_extent(args) ? "grid" : "group");
-  const base = block_base(graph, type);
-  return { type, shape: base === "group" || base === "grid" || base === "region" ? base : null };
+  return { type, shape: shape_named(graph, type) };
 }
 
 /** The members an action names, or the selection, that are blocks. */

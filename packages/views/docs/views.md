@@ -74,7 +74,7 @@ project(graph, layer, config) → Scene
 
 | Transform | Does |
 |---|---|
-| **read-through** | an opened usage draws its definition's structure beside its own children, one step; a usage on the layer wears its definition's interfaces as `usage/part`. Parts wear the link mark |
+| **read-through** | an opened usage draws its definition's structure beside its own children, one step; every card on the layer, and the room, wears its ports — its own and its definition's chain's — laid in as seats under `block/port`. Parts wear the link mark |
 | **flatten** | folders draw as groups, so a whole domain reads on one page |
 | **package view** | a whole section (`look.kind: "package"`, and nothing open, `open: null`): every package a full-width box of its domain, flattened, laid out as a `page` and scrolled rather than zoomed. Which packages, and how many cards across, are the host's to say. Cards keep their real ids, so a pick is the block itself |
 | **folder** | a package or folder's own layer, editable; laid as a `page` where nobody placed what it holds, else as placed. Its room hugs what it holds, and the page is read down the view |

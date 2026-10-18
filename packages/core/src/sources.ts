@@ -17,6 +17,7 @@ import { read_card } from "./card";
 import { all_defs, block_base, def_at, dir_of, package_of } from "./defs";
 import { long_form, type Edge, type Entry, type LongForm, type LibrarySaid } from "./diagram";
 import { renamed, write } from "./file";
+import { is_grid } from "./holders";
 import { all_constraints, all_interfaces, all_tags, all_types, is_form } from "./library";
 import { def_ref, fits_domain, is_path, path_to, STEP } from "./refs";
 import { children, ports_on } from "./tree";
@@ -393,7 +394,7 @@ function seat(ctx: Ctx, id: Id, e: Entry): void {
 /** A grid's lattice: as far as its cells reach, header lines included, and the merges it says. */
 function extent(graph: Graph, id: Id, e: Entry): void {
   const b = graph.blocks[id]!;
-  if (block_base(graph, b.type) !== "grid" && !e.grid) return;
+  if (!is_grid(graph, id) && !e.grid) return;
   const cells = children(graph, id).flatMap((m) => (m.cell ? [m.cell] : []));
   b.grid = { rows: Math.max(2, ...cells.map((c) => c.r + 1)),
              cols: Math.max(2, ...cells.map((c) => c.c + 1)),

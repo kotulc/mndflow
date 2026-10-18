@@ -1,0 +1,19 @@
+{
+  "id": "swimlane",
+  "name": "swimlane",
+  "type": "block",
+  "description": "A swimlane: who does what, in which phase — a grid read as lanes, the header row naming the participants and the header column the phases, the steps in their cells. A block's behaviour.",
+  "def": {},
+  "traits": [
+    "has_parts",
+    "has_ports",
+    "has_values",
+    "is_grid",
+    "is_behaviour"
+  ],
+  "settings": {
+    "layout": {
+      "view": "allocation"
+    }
+  }
+}

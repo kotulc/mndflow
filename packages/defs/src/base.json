@@ -91,6 +91,21 @@
           "has_values"
         ]
       },
+      "class": {
+        "id": "class",
+        "parent": "base.dir.blocks",
+        "name": "class",
+        "type": "block",
+        "def": {},
+        "description": "A class diagram: what its types are — the definitions its references stand for, each a class card, fields then behaviours, joined by what they extend and the relations stored between them.",
+        "order": 2,
+        "settings": {
+          "layout": {
+            "view": "class",
+            "cards": "large"
+          }
+        }
+      },
       "constraint": {
         "id": "constraint",
         "parent": "base.dir.components",
@@ -105,6 +120,42 @@
           }
         },
         "traits": []
+      },
+      "entity": {
+        "id": "entity",
+        "parent": "base.dir.blocks",
+        "name": "entity",
+        "type": "block",
+        "def": {},
+        "description": "An entity relationship diagram: how its data is stored — the definitions its references stand for, each a schema card, columns and keys, joined by the relations stored between them, their ends drawn as multiplicities.",
+        "order": 3,
+        "settings": {
+          "layout": {
+            "view": "er",
+            "cards": "large"
+          }
+        }
+      },
+      "flow": {
+        "id": "flow",
+        "parent": "base.dir.blocks",
+        "name": "flow",
+        "type": "block",
+        "def": {},
+        "description": "A flow: what moves through a process — its steps and decisions, and the lines each passes on along, laid out by where they point. A block's behaviour.",
+        "order": 4,
+        "settings": {
+          "layout": {
+            "view": "internal",
+            "kind": "layered"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_behaviour"
+        ]
       },
       "folder": {
         "id": "folder",
@@ -192,6 +243,20 @@
           "is_interface"
         ]
       },
+      "internal": {
+        "id": "internal",
+        "parent": "base.dir.blocks",
+        "name": "internal",
+        "type": "block",
+        "def": {},
+        "description": "A block diagram: what a block is made of — its parts and the relations between them.",
+        "order": 5,
+        "settings": {
+          "layout": {
+            "view": "internal"
+          }
+        }
+      },
       "label": {
         "id": "label",
         "parent": "base.dir.annotations",
@@ -261,7 +326,7 @@
         "type": "block",
         "def": {},
         "description": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
-        "order": 2,
+        "order": 6,
         "settings": {
           "style": {
             "family": "away",
@@ -296,6 +361,69 @@
           "is_region"
         ]
       },
+      "sequence": {
+        "id": "sequence",
+        "parent": "base.dir.blocks",
+        "name": "sequence",
+        "type": "block",
+        "def": {},
+        "description": "A sequence: who talks to whom, in what order — a grid read as time, the header row naming the participants and each row a moment, its lines the messages. A block's behaviour.",
+        "order": 7,
+        "settings": {
+          "layout": {
+            "view": "sequence"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_grid",
+          "is_behaviour"
+        ]
+      },
+      "state": {
+        "id": "state",
+        "parent": "base.dir.blocks",
+        "name": "state",
+        "type": "block",
+        "def": {},
+        "description": "A state machine: how one thing changes — the states it is in, and the transitions between them, laid out by where they point. A block's behaviour.",
+        "order": 8,
+        "settings": {
+          "layout": {
+            "view": "internal",
+            "kind": "layered"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_behaviour"
+        ]
+      },
+      "swimlane": {
+        "id": "swimlane",
+        "parent": "base.dir.blocks",
+        "name": "swimlane",
+        "type": "block",
+        "def": {},
+        "description": "A swimlane: who does what, in which phase — a grid read as lanes, the header row naming the participants and the header column the phases, the steps in their cells. A block's behaviour.",
+        "order": 9,
+        "settings": {
+          "layout": {
+            "view": "allocation"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_grid",
+          "is_behaviour"
+        ]
+      },
       "tag": {
         "id": "tag",
         "parent": "base.dir.components",
@@ -328,6 +456,21 @@
           "has_values",
           "is_tie"
         ]
+      },
+      "treemap": {
+        "id": "treemap",
+        "parent": "base.dir.blocks",
+        "name": "treemap",
+        "type": "block",
+        "def": {},
+        "description": "A treemap: where the weight is — what it holds, each as large as what it holds in turn, in the boxes of its folders, groups and regions.",
+        "order": 10,
+        "settings": {
+          "layout": {
+            "view": "internal",
+            "kind": "treemap"
+          }
+        }
       }
     },
     "edges": {}

@@ -8,12 +8,14 @@
 | | |
 |---|---|
 | **committed** | the first pass, the second and the review pass (47ac49a … f6cfde4); the tray keys, chip colour and the registry's tray tab (4c16213); canvas treemaps (f597e3f). See *Built*, *Review pass* and *Components and registries* |
-| **built, uncommitted (2026-10-18)** | treemap polish; base component roots; *Remaining work* 12, 13, 14, 15 and 17 — ports as data, the one resolver, types as attribute definitions, the components tab, constraints; the docs. See *Component model* |
+| **built, uncommitted (2026-10-18)** | treemap polish; base component roots; *Remaining work* 12, 13, 14, 15, 17 and 18 — ports as data, the one resolver, types as attribute definitions, the components tab, constraints; the docs. See *Component model* and *Diagram kinds* |
 | **suggested commit** | *Make ports data and library entries definitions: one resolver over both, interface definitions and constraints as entries, a components tab, entry colours on registry tiles* |
+| **suggested commit, diagram kinds** | *Add diagram kinds to base: internal, flow, state, sequence, swimlane, class, entity and treemap, each its own icon, fixed once given; worked-out layouts refuse a drag* |
+| **verified, diagram kinds (2026-10-18)** | `npm run typecheck` clean; `npm test` 286/287, the one failure pre-existing; `npm run lint:css` clean; showcase `check` clean. Driven in Edge: the library's base lists the eight kinds, each with its icon; the model's rows wear their kinds (*Model* class, *Schema* entity, *Order states* state, *Checkout saga* sequence, *Fulfilment* swimlane, *Payment retry* flow, *Estate* treemap, the rest internal, leaves a plain square); each opened on its view; a drag on *Order states* refused, the card kept its place; no console errors. Headless: retyping *Order states* to `flow` refused, *Containers* to `block` allowed (it still holds parts); `layout free` refused on *Order states* and *Estate*, allowed on *Containers*. No new tests: the design is still moving |
 | **verified (2026-10-18)** | `npm run typecheck` clean; `npm test` 286/287, the one failure pre-existing; `npm run lint:css` clean; showcase `check` clean. Driven in Edge: *Containers* with its ports seated and a port picked (its keys, interface definition chips); the tags registry with tiles edged by their tag's colour, parent tags extended; architecture's interfaces registry and HTTP's uses; *API gateway* opened, its room's ports and lines; the components tab on *Gateway* and *Payment* (ports read through, typed attributes in their type's colour, USD read from *Money*, tags and constraints as coloured chips); the constraints registry. No console errors |
 | **verified (2026-10-17)** | `npm run typecheck` clean; `npm test` 286/287, the one failure pre-existing (*Known issues*); `npm run lint:css` clean; showcase `check` clean. Driven in Edge on the showcase: the card tab at tray widths 1198, 758 and 398 with a long description and a definition's coloured chips; the tags registry in the tray, matrix and list, with fourteen tags seeded, the readout and crosshair; the tags and types registries opened from the library on the canvas, a tile picked (the tray shows the tag), double-clicked into its uses (the camera flies from the tile), a card there picked, back up the crumbs; *Estate* as a treemap with its groups and its note beside; no console errors. No new tests: the design is still moving |
-| **reviewed** | 10-16 passes as below; the review pass and this session's work not yet code-reviewed |
-| **next** | the user reacts to item 16's mockup; a code review of the review pass, *Components and registries* and *Component model*; the user answers *Open questions*; then next-plan.md is revised |
+| **reviewed** | 10-16 passes as below; the review pass, *Components and registries* and *Component model* not yet code-reviewed |
+| **next** | build 16, the overview tab, then 19; a code review of everything since f6cfde4; the user answers *Open questions*; then next-plan.md is revised |
 
 
 ## Remaining work
@@ -22,7 +24,8 @@
 |---|---|---|
 | 8 | **mndmap rows on regions** | mndmap's content rows are regions, on its next re-pin of the kit (see *Known issues*, kit). In mndmap, not this repo |
 | 11 | **regions, stage B** | a diagram dropped into a region draws open; relations join its interfaces across bands. **Deferred** by the user 2026-10-18 for a design session (open question 4) |
-| 16 | **purpose first** | a block's first tab says, visually, why it matters and how it is used — its content or its diagram — rather than its keys. **Mockup first** (user, 2026-10-18): the artifact *Purpose First Tab*; built once the user reacts |
+| 16 | **overview tab** | every block's first tab, *overview*: its large face on the left — its layer's thumbnail where it opens, else its face, else its card — and on the right why it matters, how it is used, where it lives. Mockup: the artifact *Purpose First Tab* (https://claude.ai/artifact/XF1XtgkbsWycKrUhHStG61), reworked around the diagram kinds; built after 18 |
+| 19 | **diagrams drawn as the mockup** | the app's views read as the mockup's thumbnails do (user, 2026-10-18: "currently a ways off"); what differs to be listed view by view |
 
 
 ## Open questions
@@ -32,16 +35,15 @@
 | # | Question | Today | Options |
 |---|---|---|---|
 | 1 | **base colour**: should plain definitions differ by default? | base `block` says `family: primary`, no `hue`, so definitions extending it with no colour of their own all read alike; the parent-relative shade shows only under a definition that sets `hue` and `vary` | give `block` a `hue` and `vary` (every subtype its own shade, the default look changes everywhere); or leave colour to each package |
-| 2 | **grid definitions' view** | a definition extending `grid` (`swimlane`, `sequence diagram`) opens on `internal` once it has parts, and on nothing before: navigate `feeds` asks `is_grid`, and a definition is never a holder | let a grid definition open on its allocation or sequence view, a lattice of its own; or keep it internal |
-| 3 | **where the notation relations live** | `association`, `composition`, `aggregation`, `dependency`, `flow` and `behaviour` ship in the `diagrams` package; the plan had said `base`. Base holds only what the engine treats differently, and these are data | keep in `diagrams`; or move to `base` so every workspace has them |
+| 2 | **grid definitions' view** | a definition extending `grid` (`swimlane`, `sequence diagram`) opens on `internal` once it has parts, and on nothing before: navigate `feeds` asks `is_grid`, and a definition is never a holder | with 18, a `sequence` or `swimlane` definition should open on its own view; how a definition's lattice is drawn |
+| 3 | **where the notation relations live** | `association`, `composition`, `aggregation`, `dependency` and `flow` ship in the `diagrams` package; the diagram kinds move to base (18) | keep the relations in `diagrams`; or move them to `base` too |
 | 4 | **region stage B** | not built | how a dropped diagram sizes, whether it is edited in place, how lines route through band edges |
 | 5 | **type structure** | `many`, `optional` only | maps, unions, generics, added as a translator needs them |
 | 6 | **values on organization** | *has values* is off `folder` and `group`, so a translator's folder cannot carry a value | keep off (origin is `source`); or give it back |
 | 7 | **colour role off the canvas** | the tray, explorer and hosts draw a definition filled | keep canvas only; or outline in the tray too |
 | 8 | **region from the rail** | from a selection's menu, or empty from the room's | also a tool in the rail's group |
-| 9 | **base as a palette** | base is the floor every kind extends, listed whole in the library. Traits with no base kind: *has records* (architecture's `database`, `queue`), *is behaviour* (`diagrams`), *has head* | keep base the floor and add a curated palette apart from the library; or add `collection` and `behaviour` to base; or hide base's annotation and organization kinds, which gestures make. Leaning: keep base the floor, a palette apart. Answer with 3 |
-| 10 | **treemap from the rail** | `treemap` is a definition's layout, set in its settings; the rail offers only `free` and `auto` | also offer it on the rail; or keep it a definition's, as `page` is |
-| 11 | **dragging in a treemap** | moving a card by hand hands the layer to `free`, as any layout does, which drops the treemap | keep the rule; or refuse a drag on a treemap layer, as on a page |
+| 9 | **base as a palette** | base is the floor every kind extends, listed whole in the library; the diagram kinds join it (18). Traits still with no base kind: *has records* (architecture's `database`, `queue`), *has head* | keep base the floor and add a curated palette apart from the library; or add `collection` to base; or hide base's annotation and organization kinds, which gestures make. Leaning: keep base the floor, a palette apart |
+| 15 | **entry styling** | hue chips on an entry's keys | serve entries from the definition settings tab (families, borders, faces); or keep hue only |
 
 
 ## Known issues
@@ -57,20 +59,23 @@
 | **treemap room** | *Estate*'s room is wider than its map: the room takes the layer's least size and the canvas's page |
 | **registry scale** | registries are worked out on every draw and rescan every block per entry (`users_of`); a per-graph index (see *speed*) would serve them |
 | **speed** | every library lookup (`tag_at`, `type_at`, `is_tag`, `library_home`) rescans every package; `uses_of`, `project` and `form_of` ask per element, so large workspaces go quadratic. A per-graph index fits, built where nothing mutates (`sources.ts` writes libraries while reading them) |
-| **entry styling** | an entry's look is set by hue chips on its tray keys only; the definition settings tab (parts, families, borders) does not yet serve entries |
+| **two kinds of interface id** | core `is_interface` answers for a port as drawn (`block/port`, via `port_at`) and for a seat block views lays in for one (by its module); stored graphs hold no interface blocks. One reading would be simpler once views seats ports directly |
+| **ports carry no tags or values** | design.md gives a port its definition's settings, values and tags; ports hold name, type, flow, seat and description only |
 | **port colour** | a typed port's seat is filled with its interface definition's colour on a card; ports on the room's wall (drawn by the frame) are not yet |
-| **kit** | not re-released; `packages/kit/.types` is stale. mndmap's re-pin meets: the library; interfaces as blocks (`fromPart`/`toPart`); `ends`; views `class` and `er` (was `table`); sections `library` and `model` (was `definitions`, `structure`); no definition view; attribute `key` a word; the trail from the package down (`trail_of`), and `Crumbs` taking `head`, Stage's `view` prop gone; `Chain.drawn` gone; `layer_of`, `drawn_in`, `holders_in`, `edges_in` and `inline` without `flat`; `users_of` ids, lines included — besides the renames in next-plan.md *Rough edges* |
+| **kit** | not re-released; `packages/kit/.types` is stale. mndmap's re-pin meets: the library, its entries extending and styled, `interfaces` and `constraints` kinds; ports as data (`Block.ports`, `fromPort`/`toPort`, `set_ports`; `set_port`, `mark_port` gone; `ports_on` returns ports with `holder`; `port_at`, `flow_of`); `constraints` on blocks and lines, the `expects` setting gone; base `attribute`, `constraint`, `tag` and domain `component`; the tray's components tab (`Carried`) for attributes; `ends`; the diagram kinds in base (`diagrams`' `behaviour`, `class_diagram`, `er_diagram`, `sequence_diagram`, `swimlane` gone), roles and `role_<kind>` icons, `diagram_kind`, `kind_fits`, `is_worked`, `shape_named`; views `class` and `er` (was `table`); sections `library` and `model` (was `definitions`, `structure`); no definition view; attribute `key` a word; the trail from the package down (`trail_of`), and `Crumbs` taking `head`, Stage's `view` prop gone; `Chain.drawn` gone; `layer_of`, `drawn_in`, `holders_in`, `edges_in` and `inline` without `flat`; `users_of` ids, lines included — besides the renames in next-plan.md *Rough edges* |
+| **rail on a fixed layout** | *free* and *auto* still show on the rail for a kind that names its layout (*Order states*, *Estate*); choosing one is refused by the `layout` action rather than hidden |
+| **state's look** | `state` draws as `flow` does; its own visual language (rounded states, start and end marks, event / guard / action on its lines) is item 19's |
 
 
 ## Decisions
 
-**Taken with the user, 2026-10-15 and 2026-10-16.** Each is stated in design.md; this is the record of why.
+**Taken with the user, 2026-10-15 to 2026-10-18.** Each is stated in design.md; this is the record of why.
 
 | Area | Decision |
 |---|---|
 | **categories** | five: block, relation, component, annotation, organization. Storage is not category |
 | **types and tags** | data on the package root's `library`, by id; never blocks |
-| **interfaces** | blocks of an interface kind (base `interface`, *is interface*), on any block that *has ports*; definable, extendable and customizable as blocks are. A usage wears its definition's, read through. Chosen over a port list on the definition (the first pass), which only a definition could hold |
+| **interfaces** | blocks of an interface kind (base `interface`, *is interface*), on any block that *has ports*; definable, extendable and customizable as blocks are. A usage wears its definition's, read through. Chosen over a port list on the definition (the first pass), which only a definition could hold. **Superseded 2026-10-17 by *ports*** |
 | **tie** | a relation kind with no model meaning, filed with `line` |
 | **faces** | one per category: `table` (an entity's schema), `class`, `document`, `picture`, `text` (a label); a relation definition a wire swatch; groups, folders and regions keep their box and band |
 | **colour** | the nearest `family` or `hue`; any definition sets its own or its subtypes'; a subtype strays from its parent's shade. On the canvas a definition is outlined, a usage filled; corners stay the card's own |
@@ -96,6 +101,10 @@
 | **constraints** | `expects` only: `required` and `match`, applied by id and inherited as tags; `allows`, `degree` and `ends` stay settings (2026-10-18) |
 | **components tab** | replaces the attributes tab on blocks, lines and both definitions: attributes, ports, tags, constraints (2026-10-18) |
 | **treemap accents** | a registry tile's left edge wears its entry's colour; a block in an entry's uses is drawn as anywhere; a `treemap` layout's cards keep the plain ground and edge (2026-10-18) |
+| **diagram kinds** | one kind per diagram, each fixing its view, layout and icon and answering one question: `internal` what it is made of, `flow` what moves through it, `state` how one thing changes, `sequence` who talks to whom and in what order, `swimlane` who does what in which phase, `class` what its types are, `entity` how its data is stored, `treemap` where the weight is. Plain `block` is no diagram: the leaf every kind is promoted from, its icon a plain square. **Each pair stays two kinds**: class an object's fields and methods, entity data; sequence messaging, swimlane allocation; flow a process, state one thing's life — each its own visual language and function. All in base; `sequence` and `swimlane` extend `block` with *is grid*, and `grid` stays organization. A plain block with no parts may become any kind; once assigned, its kind is fixed. A kind's layout is fixed: a drag on a `layered` or `treemap` layer is refused, and a treemap is made by its kind, never from the rail. Answers open questions 10, 11 and 16 (2026-10-18) |
+| **behaviours, by kind** | a block of a behavioural kind — `flow`, `state`, `sequence`, `swimlane` — is itself a behaviour; its parts may be plain blocks, placeholders a diagram makes as it is edited and links once fleshed out. The `behaviour` kind goes. Supersedes *behaviours*' kind list (2026-10-18) |
+| **fixing a kind** | a diagram kind is treated as a base type: a block is fixed when its kind is given — a diagram made under it — and may then be retyped only within its branch, to anything extending the same diagram kind, never across. Answers open question 17 (2026-10-18) |
+| **overview tab** | every block's first tab is *overview*, one layout for all: the large face left, why, how and where right. Keys stay on *card*; a definition's usages sit under *where*, as a usage's references do. Answers open questions 12–14 (2026-10-18) |
 
 
 ## Built
@@ -110,7 +119,7 @@
 | annotations | `label`; groups, regions and labels tag their members (`given_of`, `unmember`); none lists in the explorer; labels float clear of region headings | core `library.ts`, `defs.ts` `is_annotation`; views `float.ts` |
 | regions | `region` (*is region*, `holder.band`), a band spanning the room, reordered by drag; made from a selection's menu, or empty from the room's | views `arrange.ts`, `bands.ts`; stage `moves.ts`, `Stage.tsx` |
 | collections | *has records*, `records.of`, `Block.records`, drawn as a table on the card | views `face.ts` `records_text` |
-| interfaces | blocks of an interface kind; `ports_of`, `ports_on`; read through as `usage/port`; `part_end`, `stored_of` take an edit home; actions `interface`, `port`; ops `set_port`, `mark_port` | core `tree.ts`, actions `relations.ts`; views `through.ts`; tray `components.ts` |
+| interfaces | blocks of an interface kind (superseded 2026-10-18 by ports as data, *Component model*) | core `tree.ts`, actions `relations.ts`; views `through.ts`; tray `components.ts` |
 | faces and colour | `card.face` adds `class`, `text`; marks `definition`, `relation`, `directed`; definitions outlined on the canvas; relation swatch; parent-relative shade | views `look.ts`, `derive.ts`; theme `face.css`; stage `flow.css` |
 | sections | core `EDITOR`: `library`, `model`; `on_side`; per-package types and tags rows; the library's bar adds a part | core `sections.ts`, `navigate.ts`; explorer `rows.ts`, `chain.ts`, `Explorer.tsx` |
 | no definition view | a definition opens on its chain's view; `views/definition.ts`, core `aspects.ts` gone | core `navigate.ts` `lens_of` |
@@ -152,6 +161,21 @@
 | data | base `attribute`, `constraint`, `tag` beside `interface`; architecture's `HTTP` and `Events`; the showcase's types, a tag hierarchy with colours, the `owned` constraint; `doc`, `requirements`, `sysml` package files converted by hand (no source folders) | `packages/defs/src`, `samples/showcase/src`, `public/packages` |
 
 
+## Diagram kinds
+
+**Built 2026-10-18, uncommitted (18).** code-homes.md has the homes.
+
+| Part | Built | Home |
+|---|---|---|
+| kinds | `internal`, `flow`, `state`, `sequence`, `swimlane`, `class`, `entity`, `treemap` in base `blocks`, each extending `block`; `sequence` and `swimlane` grids by *is grid*; the behavioural four *is behaviour*; core `DIAGRAMS`. `diagrams` keeps only its relations | `packages/defs/src/base/blocks`; core `types.ts` |
+| reading a kind | `diagram_kind`: the nearest kind in the chain, else `internal` for a plain block holding parts | core `defs.ts` |
+| fixed once given | `kind_fits`, asked by `may_retype` and by `retype` for usages and definitions alike: *its kind is fixed* | core `defs.ts`, actions `blocks.ts` |
+| fixed layout | `is_worked` (`layered`, `treemap`) refuses a drag; `layout` refuses a kind that names its layout | core `tree.ts`, actions `blocks.ts`; stage `moves.ts` |
+| icons | `role_of` answers a diagram's kind first; one `role_<kind>` icon each | core `names.ts`; theme `icons.tsx` |
+| grids by trait | `shape_named` reads a definition's shape from its traits, so a kind extending `block` with *is grid* seats and sizes as a grid | core `holders.ts`, actions `groups.ts`, `sources.ts` |
+| data | the showcase's diagrams typed by their kinds: *Model* `class`, *Schema* `entity`, *Checkout saga* `sequence`, *Fulfilment* `swimlane`, *Order states* `state`, *Payment retry* and Order's `place` `flow`, *Estate* `treemap` | `samples/showcase/src` |
+
+
 ## Review pass
 
 **Fixed after the user drove the build, 2026-10-16.** code-homes.md has the homes.
@@ -176,13 +200,14 @@
 
 | Need | Where |
 |---|---|
-| **the goal** | design.md and definitions.md, updated with this work 2026-10-16 |
+| **the goal** | design.md and definitions.md, updated with this work through 2026-10-18 |
+| **pick up here** | 1. build 16, the overview tab (mockup: artifact *Purpose First Tab*); 2. 19, diagrams drawn as the mockup; 3. a code review of everything since f6cfde4; 4. the remaining open questions; 5. revise next-plan.md from this plan |
 | **what follows this plan** | next-plan.md, to be revised once this plan is finished |
 | **where each rule lives** | code-homes.md |
 | **standing rules** | never commit, suggest a message; update docs only when directed (this plan directs its own, design.md's, definitions.md's and the package docs'); no tests for unsettled design, but fix the ones a change breaks; no legacy migrations — on a schema change run `npm run base` and `npm run samples`; consolidate duplicated rules and record them in code-homes.md; files are LF — write them with the Edit tool, or `newline=""` from Python, never a text-mode write on Windows, which turns every line CRLF |
 | **verify** | `npm run typecheck`; `npm test`; `npm run lint:css`; `npm run start -s -w @mnd/cli -- check ../../samples/showcase/workspace.json` → `clean` |
 | **regenerate data** | `npm run base` (base package), `npm run samples` (catalogue packages and the showcase) |
 | **drive** | the `vitest` skill: `npm run dev`, read the port from the log, Playwright on installed Edge from the scratchpad. A fresh browser opens the showcase (`mndflow.yaml`). A folder row unfolds by its mark; a section header draws its section from above; the room's menu is a right-click on its wall; the tray's keys lie below the fold until it is enlarged. A double-click on a card's name renames it, so open by its border or its OPEN button; an empty block does not open, so give it a part first (its menu's *add a part*). Rows are positional: find them by `.explorer li` with the label, and unfold by the mark. Stop the Vite servers you start |
-| **schema facts** | Graph is `{ root, blocks, edges }`. Library on a package root. Interfaces: blocks under their owner with `side`, `at`, `flow`; read through as `usage/port`, met by `fromPart`/`toPart`. Ends: `Relation.ends`, `def.ends`. Behaviours: kinds with `block.behaviour`. Records: `Block.records`, `records.of`. Regions: `holder.band`. Attribute `key`: `primary`, `unique` |
-| **registries** | a registry's id is `<package>/@tags` or `<package>/@types` (core `registry_id`); an entry opens by its own id. Both open on the `registry` view. The tray holds one as `{ of: "registry", registry }`. A tile's node id is its entry's, which is what makes the camera fly into it |
-| **samples** | showcase: `Records/*` (entities, associations, Order's behaviour), `Data/1-model.yaml` (class), `Data/4-schema.yaml` (entity), `System/2-containers.yaml` (interfaces), `System/4-bands.yaml` (regions, a label), `System/5-estate.yaml` (a treemap layer); tags with descriptions in `Specs/public-api-spec.yaml`, used across `System/1-context.yaml`, `System/2-containers.yaml`, `Data/3-store.yaml` and the flows. Catalogue: `packages/defs/src/packages/` (`architecture` patterns with interfaces, `diagrams`) |
+| **schema facts** | Graph is `{ root, blocks, edges }`. Library on a package root: `types`, `tags`, `interfaces`, `constraints`, each entry `{ id, name, description?, type?, settings? }`. Ports: `Block.ports` (ordered, ids), drawn as `block/port`, met by `fromPort`/`toPort`, written whole by `set_ports`. Constraints: `constraints` ids on blocks and lines. Ends: `Relation.ends`, `def.ends`. Behaviours: kinds with `block.behaviour`. Records: `Block.records`, `records.of`. Regions: `holder.band`. Attribute `key`: `primary`, `unique` |
+| **registries** | a registry's id is `<package>/@<kind>` — `types`, `tags`, `interfaces`, `constraints` (core `registry_id`); an entry opens by its own id. Both open on the `registry` view. The tray holds one as `{ of: "registry", registry }`. A tile's node id is its entry's, which is what makes the camera fly into it |
+| **samples** | showcase: `Records/*` (entities, associations, Order's behaviour), `Data/1-model.yaml` (class), `Data/4-schema.yaml` (entity), `System/2-containers.yaml` (ports, the room's `https` with a note, the `owned` constraint), `System/4-bands.yaml` (regions, a label), `System/5-estate.yaml` (a treemap layer); types `Money` (unit, format, hue), `Payment result`, `Sku`, `Email` in `Records/*`; tags with descriptions and parents (`risk`, `domain`, `lifecycle`, each a hue) in `Specs/public-api-spec.yaml`, used across `System/1-context.yaml`, `System/2-containers.yaml`, `Data/3-store.yaml` and the flows. Catalogue: `packages/defs/src/packages/` (`architecture` patterns with typed ports, its `HTTP` and `Events` interface definitions in `patterns/api-gateway.yaml`; `diagrams`). `public/packages/doc.json`, `requirements.json`, `sysml.json` have no source folders: edit them by hand |

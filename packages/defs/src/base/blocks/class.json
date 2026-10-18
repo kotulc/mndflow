@@ -1,0 +1,13 @@
+{
+  "id": "class",
+  "name": "class",
+  "type": "block",
+  "description": "A class diagram: what its types are — the definitions its references stand for, each a class card, fields then behaviours, joined by what they extend and the relations stored between them.",
+  "def": {},
+  "settings": {
+    "layout": {
+      "view": "class",
+      "cards": "large"
+    }
+  }
+}

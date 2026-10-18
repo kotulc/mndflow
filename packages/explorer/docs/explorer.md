@@ -4,7 +4,7 @@ The explorer files the graph as a **section chain**: a host declares its section
 
 | Host | Sections |
 |---|---|
-| **mndflow** (editor) | `library` then `model`, listing by kind: what you build with — every package's definitions, their parts, types and tags — then what you are building, usages only. A package's *types* or *tags* row is its registry: chosen, it opens on the canvas as a treemap and the tray holds its entries; its mark folds it |
+| **mndflow** (editor) | `library` then `model`, listing by kind: what you build with — every package's definitions, their parts, and its library entries — then what you are building, usages only. A package's *types*, *tags*, *interfaces* or *constraints* row is its registry: chosen, it opens on the canvas as a treemap and the tray holds its entries; its mark folds it |
 | **mndmap** (reader) | `source folder` → `document`: the editor's chain with the package fixed to the workspace and hidden |
 
 **The bar is tools only**: filter, add, add folder, add a part, delete, and a fold that shuts a layer a click. It follows the section in focus: **add makes what that section lists** — in the model a plain block under the picked row where it may hold one, else the workspace; in the library a definition beside the one in focus, else in the workspace. **Add folder** files a folder in the workspace's package or folder in focus, else beside its definition in focus. Nothing is added to a frozen package. The filter keys off tags and is not built yet.
@@ -27,7 +27,7 @@ The explorer files the graph as a **section chain**: a host declares its section
 
 | Section | Lists |
 |---|---|
-| **library** | every package a top row, `base` first, folded; under each its folders and definitions, **each definition's parts under it**, then a *types* and a *tags* group, each folded, every type or tag a row of its own that shows in the tray |
+| **library** | every package a top row, `base` first, folded; under each its folders and definitions, **each definition's parts under it**, then a *types*, *tags*, *interfaces* and *constraints* group, each where it has entries, folded, every entry a row of its own that shows in the tray |
 | **source folder** | every package a top row, folded; under each its domain: its trees, nested under the folders that organize them |
 | **model** | a package a top row only when it holds usages outside its definitions, folded; under each the folders on the way to them, and the usages. No definition lists here |
 | **document** | the held tree's own row, its structure under it |

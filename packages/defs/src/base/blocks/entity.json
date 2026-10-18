@@ -1,0 +1,13 @@
+{
+  "id": "entity",
+  "name": "entity",
+  "type": "block",
+  "description": "An entity relationship diagram: how its data is stored — the definitions its references stand for, each a schema card, columns and keys, joined by the relations stored between them, their ends drawn as multiplicities.",
+  "def": {},
+  "settings": {
+    "layout": {
+      "view": "er",
+      "cards": "large"
+    }
+  }
+}

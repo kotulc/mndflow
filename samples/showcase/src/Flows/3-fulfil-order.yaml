@@ -3,7 +3,7 @@ packages: [diagrams]
 note: "A swimlane: columns are lanes, rows are phases."
 blocks:
   - name: Fulfilment
-    type: diagrams.swimlane
+    type: swimlane
     cols:
       - name: Order service
         body: Owns the order.

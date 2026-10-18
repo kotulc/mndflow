@@ -3,7 +3,7 @@ packages: [diagrams, architecture]
 note: "Checkout runs the saga: each lifeline refers to a block in Context or Containers. Place order, as lanes, is the same grid drawn as an allocation."
 blocks:
   - name: Checkout saga
-    type: diagrams.sequence_diagram
+    type: sequence
     cols:
       - name: Customer
         type: reference

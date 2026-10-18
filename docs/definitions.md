@@ -60,13 +60,14 @@
 
 | Base | Category | Is |
 |---|---|---|
-| **block** | block | the unit of structure: a thing, a part, a step, a system. Holds blocks, which it opens onto as a layer once it holds any |
+| **block** | block | the unit of structure: a thing, a part, a step, a system. Plain, a leaf free to become any diagram kind; holding blocks, it reads as `internal` and opens onto them as a layer |
 | **reference** | block | a stand-in for a block, a definition or a package elsewhere |
+| **internal**, **flow**, **state**, **sequence**, **swimlane**, **class**, **entity**, **treemap** | block | the **diagram kinds**: each extends `block` and fixes its view, layout and icon. A block of one is fixed to it, retyped only within its branch; `sequence` and `swimlane` are grids by *is grid*; `flow`, `state`, `sequence` and `swimlane` are behaviours |
 | **interface** | component | the base a port's interface definition extends: a block's boundary, seated on its wall, where relations and flows enter and leave. *Is interface*: the engine draws a port by it. Never a card, a layer or a row |
 | **attribute**, **tag**, **constraint** | component | the bases their library entries extend: a type, a tag, a constraint. Each its own hue; never made a block |
 | **line** | relation | the plain relationship. Which way it points is a setting, `line.dir` (`none`, `forward`, `back`, `both`), said by its definition and overridable on the line |
 | **folder** | organization | a box on its parent's layer, what it holds drawn inside. Holds anything; never a layer. Selected in the explorer, the canvas zooms to it |
-| **grid** | organization | seats blocks and labels **in cells**. A card outside; opened, its **allocation view**: sequence diagrams and swimlanes. Lists as a row |
+| **grid** | organization | seats blocks and labels **in cells**. A card outside; opened, its **allocation view**. Lists as a row. The `sequence` and `swimlane` kinds are grids too, by *is grid* |
 | **note** | annotation | a remark: a markdown body drawn as a document, resizable, tied to the block it is made from |
 | **label** | annotation | one line of text, the `text` face: no border, ground, icon or marks. Free or tied, always floating aside. Tags what it is tied to |
 | **group** | annotation | a box drawn round its members, on the layer it sits on. Groups nest. Tags its members; no explorer row |
@@ -94,7 +95,7 @@
 | **constraint** | a component: a rule in a library — the values a block must answer (`required`), and on a line those its ends must agree on (`match`) — applied by id (`constraints`), inherited down the chain as tags are. Advice in `review`, never a refusal. A capability limited to definitions (`allows` lists, `degree`, `ends`) stays settings |
 | **tag** | a component: a word with a meaning (`description`), stored as data in its package, **for finding things**: search, filters, lookup. Carried in `tags` by a usage, a line or a definition, or given by an annotation's name to its members. The tray groups an element's tags by source |
 | **collection** | a block with *has records*: many records of one type (`records.of`), drawn as a table on its card. Records are values, never blocks |
-| **behaviour** | a block's method: a block under it whose kind carries *is behaviour* — a flow or state machine (`behaviour`), a swimlane or a sequence. Its layer does it; its interfaces are its signature, in-interfaces its parameters, out-interfaces its return. A class card lists it after its fields |
+| **behaviour** | a block's method: a block of a behavioural kind — `flow`, `state`, `sequence` or `swimlane` — which carries *is behaviour*. Its layer does it; its interfaces are its signature, in-interfaces its parameters, out-interfaces its return. A class card lists it after its fields |
 | **end** | what one end of a relation means: multiplicity, role, ownership (`none`, `shared`, `composite`), navigable. Said by a relation definition (`def.ends`); a line narrows multiplicity and role (`ends`). Data, never drawing |
 | **key** | an attribute's `key`: `primary` or `unique`. A foreign key is an attribute typed by a block definition |
 | **trait** | **an engine function**, named *has X* (a capability) or *is X* (what sort of thing it is, which engine module runs it). One function a trait, its description saying which. **A fixed engine table, not a definition** (core `types.ts` `TRAITS`): carried by name in `traits`, **a definition's alone**, offered as chips and never drawn. It confers the settings the table grants it |

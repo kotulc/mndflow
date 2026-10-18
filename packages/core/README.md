@@ -37,7 +37,7 @@ npm run typecheck -w @mnd/core
 | `names.ts` | names, handles, labels and roles; the system marks a card is stamped with — **what it stands in for** (`definition`, `reference`, `package`), alone, **or what describes it** (`structure` on a definition holding it, `data`), which stack; and `schema_def`, the workspace definition a block's data answers |
 | `components.ts` | what a definition configures, each component validating its own key |
 | `door.ts` | the one way a log comes in. Checks and repairs what it can, drops what it cannot, and writes the repair as a step. **Never migrates** |
-| `capabilities.ts` | `allows` (refused at the gesture) and `expects` (advice), merged along the chain; `review` reports what loaded data breaks, and never repairs |
+| `capabilities.ts` | `allows` (refused at the gesture), merged along the chain, and the rules of the constraints an element is held to (`expects_of`, advice); `review` reports what loaded data breaks, and never repairs |
 | `actions/` | the registry — name, sentence, scope, arguments, `check`, `run` — one file per subject, plus the three adjustments |
 | `session.ts` | hold the log, fold it, run an action, append what it wrote; `batch` makes one step of several, `bring` adds a package file beside the workspace, frozen; `save` and `save_package` export |
 | `card.ts` | a card as markdown: `card_text` writes a block or definition as its card source, `read_card` splits one into frontmatter and body; `BLOCK_KEYS`, the keys a block says itself with |

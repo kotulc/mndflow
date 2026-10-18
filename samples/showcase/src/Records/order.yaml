@@ -24,7 +24,7 @@ library:
       description: Where an order is.
 blocks:
   - name: place
-    type: diagrams.behaviour
+    type: flow
     description: Takes a customer's lines and gives back the order they make.
     ports:
       - name: lines

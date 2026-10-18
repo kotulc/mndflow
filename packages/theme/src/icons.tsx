@@ -65,6 +65,17 @@ const PATHS = {
   role_group: "M9 4v16M15 4v16M4 9h16M4 15h16",
   // A group with an extent — cells you seat things in, bounded like a table.
   role_table: "M4.5 6h15v12H4.5zM4.5 10.5h15M11 6v12",
+  // The diagram kinds, one each: what the block's own layer draws.
+  role_internal: "M3.5 3.5h17v17h-17zM8.5 8.5h7v7h-7z",
+  role_flow: "M2.5 12h5M16.5 12h5M7.5 12L12 7.5 16.5 12 12 16.5zM19 9.5l2.5 2.5-2.5 2.5",
+  // A state: a start dot, an arrow, and the rounded state it enters.
+  role_state: "M1.75 12a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0-5 0M3.25 12a1 1 0 1 0 2 0 1 1 0 1 0-2 0M6.5 12h4.5M8.5 9l3 3-3 3M15 7h3.5a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H15a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3z",
+  role_sequence: "M6 3.5v17M18 3.5v17M6 9h12M15.5 6.5L18 9l-2.5 2.5M18 15H6M8.5 12.5L6 15l2.5 2.5",
+  role_swimlane: "M3.5 4h17v16h-17zM9.2 4v16M14.8 4v16M5 7h2.5v2.5H5zM10.7 11.5h2.5V14h-2.5zM16.3 16h2.5v2.5h-2.5z",
+  role_class: "M5 3.5h14v17H5zM5 8h14M5 14h14M8 11h8M8 17h6",
+  // An entity: two tables, one end a bar, the other a crow's foot.
+  role_entity: "M2.5 7.5h5v9h-5zM16.5 7.5h5v9h-5zM7.5 12h9M10 9.5v5M12.5 12l4-3.5M12.5 12l4 3.5",
+  role_treemap: "M3.5 3.5h17v17h-17zM12 3.5v17M12 11h8.5M12 15.75h8.5",
   // Where every usage hangs from: one node, and the branches it puts out.
   role_root: "M12 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M12 8.5v3.5M5 12h14M5 12v5M12 12v5M19 12v5M3.5 17h3M10.5 17h3M17.5 17h3",
 
@@ -248,6 +259,8 @@ export const ROLE_ICON: Record<string, IconName> = {
   block: "role_leaf", folder: "role_folder", reference: "role_reference",
   interface: "role_interface", group: "role_group", grid: "role_table", note: "role_note",
   label: "role_label", region: "role_region",
+  internal: "role_internal", flow: "role_flow", state: "role_state", sequence: "role_sequence",
+  swimlane: "role_swimlane", class: "role_class", entity: "role_entity", treemap: "role_treemap",
 };
 
 /** The icon for a role, falling back to the plain block's. */

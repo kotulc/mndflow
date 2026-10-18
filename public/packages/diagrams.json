@@ -33,42 +33,6 @@
         "description": "Two definitions that know of each other: each end says how many, in what role, and whether it can be reached.",
         "order": 2
       },
-      "diagrams.behaviour": {
-        "id": "diagrams.behaviour",
-        "parent": "diagrams",
-        "name": "behaviour",
-        "type": "block",
-        "def": {},
-        "description": "A method of what holds it: its layer is the flow or state machine that does it, its in-interfaces its parameters and its out-interfaces its return.",
-        "order": 1,
-        "settings": {
-          "layout": {
-            "view": "internal",
-            "kind": "layered"
-          }
-        },
-        "traits": [
-          "has_parts",
-          "has_ports",
-          "has_values",
-          "is_behaviour"
-        ]
-      },
-      "diagrams.class_diagram": {
-        "id": "diagrams.class_diagram",
-        "parent": "diagrams",
-        "name": "class diagram",
-        "type": "block",
-        "def": {},
-        "description": "A class diagram: the definitions its references stand for, each a class card — fields, then behaviours — joined by what they extend and the relations stored between them.",
-        "order": 2,
-        "settings": {
-          "layout": {
-            "view": "class",
-            "cards": "large"
-          }
-        }
-      },
       "diagrams.composition": {
         "id": "diagrams.composition",
         "parent": "diagrams.dir.relations",
@@ -108,23 +72,8 @@
         "parent": "diagrams",
         "name": "relations",
         "type": "folder",
-        "order": 4,
+        "order": 1,
         "tree": "definitions"
-      },
-      "diagrams.er_diagram": {
-        "id": "diagrams.er_diagram",
-        "parent": "diagrams",
-        "name": "entity relationship diagram",
-        "type": "block",
-        "def": {},
-        "description": "An entity relationship diagram: the definitions its references stand for, each a schema card — columns and keys — joined by the relations stored between them, their ends drawn as multiplicities.",
-        "order": 3,
-        "settings": {
-          "layout": {
-            "view": "er",
-            "cards": "large"
-          }
-        }
       },
       "diagrams.flow": {
         "id": "diagrams.flow",
@@ -170,48 +119,6 @@
             "border_style": "dashed"
           }
         }
-      },
-      "diagrams.sequence_diagram": {
-        "id": "diagrams.sequence_diagram",
-        "parent": "diagrams",
-        "name": "sequence diagram",
-        "type": "grid",
-        "def": {},
-        "description": "A grid read as time: the header row names the participants, and each row is a moment. As a block's behaviour, it is one of its methods.",
-        "order": 5,
-        "settings": {
-          "layout": {
-            "view": "sequence"
-          }
-        },
-        "traits": [
-          "has_parts",
-          "has_ports",
-          "has_values",
-          "is_grid",
-          "is_behaviour"
-        ]
-      },
-      "diagrams.swimlane": {
-        "id": "diagrams.swimlane",
-        "parent": "diagrams",
-        "name": "swimlane",
-        "type": "grid",
-        "def": {},
-        "description": "A grid read as lanes: the header row names the participants, the header column the phases, and the lines between steps are drawn. As a block's behaviour, it is one of its methods.",
-        "order": 6,
-        "settings": {
-          "layout": {
-            "view": "allocation"
-          }
-        },
-        "traits": [
-          "has_parts",
-          "has_ports",
-          "has_values",
-          "is_grid",
-          "is_behaviour"
-        ]
       }
     },
     "edges": {}

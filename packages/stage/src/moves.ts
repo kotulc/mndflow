@@ -1,6 +1,7 @@
 /** What a canvas adjustment writes: the actions and positional changes it comes to. */
 
-import { adjustments, can_hold, grid_of, is_holder, is_region, lattice_of, layout_of, part_end,
+import { adjustments, can_hold, grid_of, is_holder, is_region, is_worked, lattice_of, layout_of,
+         part_end,
          type Args,
          type Graph, type Id, type Mutation } from "@mnd/core";
 import { box_of, extent_in, nearest_seat, snap, taken_on, tidy, BLOCK, PORT,
@@ -26,8 +27,10 @@ export function moves_of(graph: Graph, scene: Scene, a: Adjust): Move[] {
     return restacked(graph, scene, a.on, a.to.y);
   }
   const out: Move[] = [];
-  /** Moving anything by hand on an `auto` layer hands it to `free`, keeping what it draws. */
   const layer = scene.layer;
+  /** A worked-out layout keeps its places: a card moved by hand there goes back. */
+  if (is_worked(graph, layer) && ["place", "move"].includes(a.kind)) return [];
+  /** Moving anything by hand on an `auto` layer hands it to `free`, keeping what it draws. */
   if (layout_of(graph, layer) !== "free" && ["place", "move", "wall-seat"].includes(a.kind)) {
     out.push(act("layout", { layer, kind: "free", at: tidy(graph, scene) }));
   }

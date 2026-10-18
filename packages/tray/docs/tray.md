@@ -13,8 +13,8 @@
 | a definition row in the explorer | that definition |
 | a definitions folder in the explorer — *blocks*, *relations*, a folder somebody made | every definition, narrowed to that folder |
 | the *packages* section, or one package | what the workspace draws on, on the **packages** tab |
-| a package's *types* or *tags* row, or a registry opened on the canvas with nothing picked | that registry, on the **entries** tab |
-| a registry's tile picked on the canvas | its entry: a tag or a type |
+| a package's *types*, *tags*, *interfaces* or *constraints* row, or a registry opened on the canvas with nothing picked | that registry, on the **entries** tab |
+| a registry's tile picked on the canvas | its entry: a tag, a type, an interface definition or a constraint — its name, description, what it extends, its colour, and its kind's own keys |
 | a row in any of the tray's tables | nothing changes — the row lights and offers what acts on it |
 | *view* on a lit row | that thing, selected where it lives |
 
@@ -73,7 +73,7 @@
 - **Styling edits the definition.** How it draws is a definition's keys, so every usage follows. A frozen definition's keys read only.
 - **A new type is filed over what the element follows.** A name one already holds applies that one; a name nothing holds files a definition extending what it followed and moves the element onto it. A base is one of the types offered, so going back to one is a pick like any other. **View definition** makes what an element follows the context, which is where it is styled and given capabilities. A line keeps the label it was drawing.
 - **Removing a used definition is refused**, and says what uses it. An unused one is deleted with its structure.
-- **A name is unique within its package**, across definitions and tags. A name already taken is said, never looked up.
+- **A name is unique within its package**, across definitions and library entries. A name already taken is said, never looked up.
 - **Renaming keeps the id**, so every usage reads the new name and nothing is retyped.
 - **Ids are minted**, never a slug of the name, so renaming touches nothing but the name.
 
@@ -230,4 +230,4 @@
 
 ## Still open
 
-- **What a definition extends is set here only**, and everything else that describes it: its tags, interfaces, settings and usages. There is no definition view.
+- **What a definition extends is set here only**, and everything else that describes it: its tags, constraints, ports, settings and usages. There is no definition view.

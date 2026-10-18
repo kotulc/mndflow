@@ -216,3 +216,12 @@ export function layout_of(graph: Graph, layer: Id | null): Layout {
   if (kind === undefined) return "auto";
   return LAYOUTS.includes(kind as Layout) ? kind as Layout : "auto";
 }
+
+/** Layouts worked out from what a layer holds, never by hand: a drag on one is refused, so the
+ *  layout a diagram kind fixes is kept. */
+const WORKED: readonly Layout[] = ["layered", "treemap"];
+
+/** Whether a layer's layout refuses a card moved by hand. */
+export function is_worked(graph: Graph, layer: Id | null): boolean {
+  return WORKED.includes(layout_of(graph, layer));
+}

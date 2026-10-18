@@ -1,5 +1,5 @@
 name: Model
-type: diagrams.class_diagram
+type: class
 packages: [diagrams]
 note: The records as classes — fields, then behaviours — joined by the associations stored between them, each end saying how many and in what role. Order status is a type, so it draws no card of its own.
 blocks:

@@ -36,7 +36,8 @@ npm run typecheck -w @mnd/tray
 | `Element.tsx` · `Source.tsx` · `Choices.tsx` · `pairs.ts` | the card tab and a definition's settings tab, one layout: one face over every key in the left third, the lit key's choices in the rest. `pairs_of` and `settings_of` are every key as data — what its line reads, whether it is said here, what it is for, its chips and what acts on it |
 | `Drawing.tsx` · `Faces.tsx` · `Looks.tsx` | the face drawn by theme's `CardFace` from views' `carried`, or a run; `Part` asks one part of how a definition draws |
 | `Content.tsx` | what a block holds as text, at the top of its contents tab: markdown, read as drawn, a click to write it |
-| `Attributes.tsx` | the one attributes table, for a definition and a usage alike |
+| `Attributes.tsx` | the one attributes table, for a definition and a usage alike; a type in its colour |
+| `Carried.tsx` | the components tab: attributes, ports, tags, constraints |
 | `tray.css` · `fields.css` · `preview.css` | the look: the tables and the first tab; the label-and-answer rows; the faces, the run preview and chips. Loaded in that order. The frame round them — bar, tabs, open and shut — is dressed in `@mnd/theme/shell.css` |
 
 ## The rules it lives by
