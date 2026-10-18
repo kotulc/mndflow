@@ -1,0 +1,12 @@
+name: Place order
+note: "Checkout runs the saga. Place order, as lanes, is the same grid drawn as an allocation: one dataset, two diagrams."
+blocks:
+  - name: Checkout saga
+    type: reference
+    of: Diagrams::Checkout saga
+  - name: Place order, as lanes
+    type: reference
+    of: Diagrams::Checkout saga
+    settings:
+      layout:
+        view: allocation

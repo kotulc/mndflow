@@ -191,13 +191,13 @@ Every layer is a diagram file under `samples/showcase/src`; `npm run showcase` c
 | regions with headings, a label tied to a card | `System/4-bands.yaml` |
 | room ports on a definition's walls | the `architecture` patterns, opened from structure |
 | nested groups, a matrix with headers and a merge, a missing reference, a line definition with a value | `System/3-deployment.yaml` |
-| table view (class diagram) and attribute links | `Data/1-model.yaml` |
-| table faces answering attributes, value links, a diamond-ended line | `Data/2-orders.yaml` |
-| a collection's records as a table on its card | `Data/3-store.yaml` |
+| table view (class diagram) and attribute links | `Diagrams/6-model.yaml` |
+| table faces answering attributes, value links, a diamond-ended line | `Data/1-orders.yaml` |
+| a collection's records as a table on its card | `Data/2-store.yaml` |
 | the library: a type and a tag declared in files | `Records/order.yaml`, `Specs/public-api-spec.yaml` |
-| `layered`: a state machine and a flowchart | `Flows/1-order-states.yaml`, `Flows/4-payment-retry.yaml` |
-| sequence: reference lifelines, a missing header, a self message, a reply; the same grid as lanes | `Flows/2-place-order.yaml` |
-| swimlane (allocation) | `Flows/3-fulfil-order.yaml` |
+| `layered`: a state machine and a flowchart | `Diagrams/3-order-states.yaml`, `Diagrams/2-payment-retry.yaml` |
+| sequence: reference lifelines, a missing header, a self message, a reply; the same grid as lanes | `Diagrams/4-checkout-saga.yaml`, `Flows/1-place-order.yaml` |
+| swimlane (allocation) | `Diagrams/5-fulfilment.yaml` |
 | a definition chain on large faces, usages answering it | `Catalogue/1-specs.yaml`, `Specs/` |
 | document, picture, headless and sized faces; markdown and decision cards; a tie; a hand-sized note; rows arrangement | `Catalogue/2-docs.yaml`, `Kinds/` |
 

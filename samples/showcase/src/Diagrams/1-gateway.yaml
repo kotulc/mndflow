@@ -1,0 +1,5 @@
+name: Gateway
+type: reference
+of: API gateway
+packages: [architecture]
+description: An internal diagram, what a block is made of. A stand-in for the API gateway pattern every shop's gateway is a usage of; it opens on the pattern's layer, its ports on the room's wall.
