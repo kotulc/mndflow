@@ -135,6 +135,28 @@ export function users_of(graph: Graph, id: Id): Id[] {
  *  Worked out from the library, never stored. */
 export type Registry = { pkg: Id; kind: keyof Library };
 
+/** A registry's id, worked out from its package and kind — never a block's — so the canvas can
+ *  open it as it opens a block. */
+export function registry_id(registry: Registry): Id {
+  return `${registry.pkg}/@${registry.kind}`;
+}
+
+/** The registry an id names, or null. */
+export function registry_at(graph: Graph, id: Id | null | undefined): Registry | null {
+  const m = id ? /^(.+)\/@(tags|types)$/.exec(id) : null;
+  return m && graph.blocks[m[1]!]?.parent === null
+    ? { pkg: m[1]!, kind: m[2] as keyof Library } : null;
+}
+
+/** The registry an entry belongs to: its tag's or type's package and kind; null for anything
+ *  else. */
+export function registry_of(graph: Graph, id: Id | null | undefined): Registry | null {
+  const tag = tag_at(graph, id ?? undefined);
+  if (tag) return { pkg: tag.pkg, kind: "tags" };
+  const type = type_at(graph, id ?? undefined);
+  return type ? { pkg: type.pkg, kind: "types" } : null;
+}
+
 /** How many times a block or a line uses an entry: once for a tag it carries, once for each
  *  attribute typed by it. */
 export function uses_by(graph: Graph, entry: Id, user: Id): number {

@@ -6,6 +6,7 @@ note: The shop seen from outside. Open Containers to go inside.
 blocks:
   - name: Customer
     type: person
+    tags: [ pii ]
     settings:
       card:
         label: above
@@ -19,10 +20,13 @@ blocks:
     of: System::Containers
   - name: Card processor
     type: external
+    tags: [ payments, external api ]
   - name: Carrier
     type: external
+    tags: [ fulfilment, external api ]
   - name: Email provider
     type: external
+    tags: [ external api, customer facing ]
 relations:
   - Customer -> Shop: places orders
   - Support agent -- Shop: looks up orders

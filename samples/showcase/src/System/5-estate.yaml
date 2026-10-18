@@ -1,0 +1,33 @@
+name: Estate
+description: The shop's diagrams as a treemap, each as large as what it holds.
+note: A treemap layer. Each tile is as large as the diagram it stands for holds; the groups gather them as the shop's folders do.
+settings:
+  layout:
+    kind: treemap
+blocks:
+  - name: Flows
+    type: group
+    blocks:
+      - { type: reference, of: Flows::Order states }
+      - { type: reference, of: Flows::Place order }
+      - { type: reference, of: Flows::Fulfil order }
+      - { type: reference, of: Flows::Payment retry }
+  - name: Data
+    type: group
+    blocks:
+      - { type: reference, of: Data::Model }
+      - { type: reference, of: Data::Orders }
+      - { type: reference, of: Data::Store }
+      - { type: reference, of: Data::Schema }
+  - name: System
+    type: group
+    blocks:
+      - { type: reference, of: System::Context }
+      - { type: reference, of: System::Containers }
+      - { type: reference, of: System::Deployment }
+      - { type: reference, of: System::Bands }
+  - name: Catalogue
+    type: group
+    blocks:
+      - { type: reference, of: Catalogue::Specs }
+      - { type: reference, of: Catalogue::Docs }

@@ -59,6 +59,9 @@ export type BoxData = {
   side?: Side;
   /** Seats a line meets on this box's border, where the end has no interface of its own here. */
   seats?: readonly { id: string; side: Side; at: number }[];
+  /** A registry's tile: how many times its entry is used, and that against the most used. */
+  count?: number;
+  heat?: number;
 };
 
 /** What a card wears as classes: everything true of it at once, as against the one system

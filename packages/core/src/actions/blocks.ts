@@ -9,7 +9,7 @@ import { GRID, inline, inside, is_folder, is_grid, lattice_of, layer_of } from "
 import { children, edges_in, is_interface, layout_of, next_order, ports_of, reorder,
          sibling_named, subtree } from "../tree";
 import { unnamed_refusal } from "./named";
-import { drop_named, library_home } from "../library";
+import { drop_named, library_home, registry_at, registry_of } from "../library";
 import { leave_at, open_at, reveal_at, view_on, EDITOR, type Tiers, type View,
          type Views } from "../navigate";
 import { new_id } from "../ids";
@@ -451,13 +451,15 @@ register(
   {
     name: "open",
     about: "opens a block on the canvas on the view its kind calls for — a definition opened "
-      + "again draws its structure — or leaves this layer",
+      + "again draws its structure, a registry or an entry of one its treemap — or leaves this "
+      + "layer",
     on: ["block"],
     /** `at`: the section it was opened from, where a definition's structure is listed. */
     args: [{ name: "id", form: "block" }, { name: "at", form: "number" }],
     check: (ctx, args) => {
       const want = id_of(args, "id");
-      return !want || ctx.graph.blocks[want] ? null : "that is not here any more";
+      return !want || ctx.graph.blocks[want] || registry_at(ctx.graph, want)
+        || registry_of(ctx.graph, want) ? null : "that is not here any more";
     },
     /** Opening and leaving are navigation's (`open_at`, `leave_at`). */
     run: (ctx, args) => {

@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Entry** | `src/index.ts` |
-| **Depends on** | `core`, React Flow's types for the node and edge shape, `libavoid-js` for routing and `@dagrejs/dagre` for the `layered` layout |
+| **Depends on** | `core`, React Flow's types for the node and edge shape, `libavoid-js` for routing, `@dagrejs/dagre` for the `layered` layout and `d3-hierarchy` for the `treemap` layout and registries |
 | **Proven by** | every Scene it emits is well-formed, over every layer of every fixture, and the invariants catch what they are for |
 
 ## Where it sits
@@ -38,6 +38,8 @@ npm run start -w @mnd/cli -- project related  # a Scene as text, which is the se
 | `arrange.ts` · `bands.ts` · `pack.ts` | where everything sits: hand placement or a computed layout, bands and cells, clusters and satellites |
 | `float.ts` | `auto`: runs of one `card.arrange` in explorer order (`runs`), aside cards floating beside what they are tied to (`floated`); one rule for a layer and a group (`noted`) |
 | `layered.ts` | `layered`: a layer ranked by its relations, on dagre; asides float as in `auto` |
+| `treemap.ts` | `treemap`: each block as large as what it holds (`weight_of`), nested in its boxes, on d3-hierarchy (`tiled`); notes stand beside it |
+| `registry.ts` | a registry read out: `entries_of` (the list), `matrix_of` (the tray's matrix), `registry_scene` (the canvas's treemap of entries by home folder, and of an entry's uses) |
 | `seat.ts` · `ends.ts` · `route.ts` | where a line meets a border, which way it sets off, and where it runs |
 | `look.ts` · `derive.ts` | what a card wears (`face_attrs`, the attributes the card table reads), its marks and trail, and `carried` — **the one place a card's data is worked out**, for the canvas and the tray alike |
 | `face.ts` | the large face: `face_text`, its markdown — the parts its `card.face` maps onto, attributes as a ruled table — `handle_of`, and `fit_of`, the room that markdown needs, estimated from the text so layout stays headless |

@@ -9,6 +9,7 @@
 import { NAMED_VIEWS } from "./components";
 import { setting_of } from "./defs";
 import { inline, is_grid, layer_of } from "./holders";
+import { registry_at, registry_id, registry_of } from "./library";
 import { opens } from "./names";
 import { at_cut, in_section, is_layer_view, on_side, type Section, type ViewKind }
   from "./sections";
@@ -99,6 +100,8 @@ function own_diagram(graph: Graph, id: Id): ViewKind | null {
  *  names. A stand-in opens as what it stands for, unless it states its own diagram view and the
  *  target can feed that. */
 export function lens_of(graph: Graph, id: Id): ViewKind | null {
+  /** A registry, and an entry of one, open on the registry view. */
+  if (registry_at(graph, id) || registry_of(graph, id)) return "registry";
   const b = graph.blocks[id];
   if (!b) return null;
   if (b.parent === null) return "folder";
@@ -206,6 +209,11 @@ export function sight(graph: Graph, tiers: Tiers, views: Views, at: number, id: 
  *  canvas draws it, else brought into sight. */
 export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?: number,
                         now?: View | null): View | null {
+  /** A registry opens on its entries, an entry on where it is used, in the library. */
+  if (lens_of(graph, id) === "registry") {
+    const at = tiers.sections.findIndex((s) => s.lists === "domain");
+    return { at: Math.max(0, at), kind: "registry", layer: id, pick: null };
+  }
   const b = graph.blocks[id];
   if (!b) return null;
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
@@ -231,6 +239,14 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
  *  for the first section whole. Nothing above the first. */
 export function leave_at(graph: Graph, tiers: Tiers, views: Views, view: View): View | null {
   const { at, kind, layer, pick } = view;
+  /** An entry leaves for its registry, the entry picked; a registry for the package view, its
+   *  package picked. */
+  if (kind === "registry" && layer) {
+    const of = registry_of(graph, layer);
+    if (of) return { at, kind, layer: registry_id(of), pick: layer };
+    const registry = registry_at(graph, layer);
+    if (registry) return { ...view_on(graph, tiers, views, null), pick: registry.pkg };
+  }
   if (is_layer_view(kind) && layer && graph.blocks[layer]?.parent === null) {
     return { ...view_on(graph, tiers, views, null), pick: layer };
   }
@@ -276,7 +292,11 @@ export function home_at(graph: Graph, tiers: Tiers, views: Views): View | null {
  *  whole section; null with nothing to follow. The section in focus is the deepest listing it, no
  *  deeper than the view's. */
 export function held_at(graph: Graph, tiers: Tiers, view: View): Held | null {
-  const target = is_layer_view(view.kind) ? view.layer ?? view.pick : view.pick;
+  /** A registry, or an entry of one, is held through its package. */
+  const registry = view.kind === "registry"
+    ? registry_at(graph, view.layer) ?? registry_of(graph, view.layer) : null;
+  const target = registry ? registry.pkg
+    : is_layer_view(view.kind) ? view.layer ?? view.pick : view.pick;
   if (!target || !graph.blocks[target]) return null;
   const { held } = trace(graph, tiers, target);
   const deepest = held.lastIndexOf(target);

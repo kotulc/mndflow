@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { collect, drop_of, held_at, in_section, is_inside, is_layer_view, layout_of,
+         registry_at, registry_id, registry_of,
          session, trace, writes, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
@@ -339,8 +340,13 @@ export function App({ storage, boot, opening }: {
         onSection={section}
         onNamed={(id) => t.onHold({ of: "id", id })}
         holding={hold?.of === "id" ? hold.id : null}
-        onRegistry={(registry) => t.onHold({ of: "registry", registry })}
-        registry={hold?.of === "registry" ? hold.registry : null}
+        /** A registry opens on the canvas as its treemap, and the tray holds its entries. */
+        onRegistry={(registry) => {
+          act("open", { id: registry_id(registry) });
+          t.onHold({ of: "registry", registry });
+        }}
+        registry={hold?.of === "registry" ? hold.registry
+          : registry_at(graph, view.layer) ?? registry_of(graph, view.layer)}
         chain={{ ...chain, onChoose: choose }}
         keys={zones.zone === "explorer"}
       />

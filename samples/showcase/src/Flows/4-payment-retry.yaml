@@ -3,12 +3,14 @@ settings:
   layout: { kind: layered }
 note: A flowchart. A decision is a block; its lines say where each answer goes.
 blocks:
-  - Charge card
+  - name: Charge card
+    tags: [ payments, critical ]
   - Approved?
   - Retries left?
   - Wait and back off
   - Confirm order
-  - Cancel order
+  - name: Cancel order
+    tags: [ orders ]
 relations:
   - Charge card -> Approved?
   - Approved? -> Confirm order: yes

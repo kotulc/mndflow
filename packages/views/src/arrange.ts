@@ -6,6 +6,7 @@ import { band_members, band_size, celled, loose_unit, type Sized } from "./bands
 import { beside, centred, noted } from "./float";
 import { belongs_to, is_satellite, tie_targets } from "./pack";
 import { layered } from "./layered";
+import { treemapped } from "./treemap";
 import { across_of } from "./page";
 import { gridded, size_of, snap, GAP, PAD, UNIT, type Size } from "./size";
 
@@ -20,6 +21,8 @@ type Rect = { x: number; y: number; w: number; h: number };
 export function laid(graph: Graph, layer: Id | null): Placed[] {
   const units = drawn_in(graph, layer).filter((b) => !is_interface(graph, b.id));
   if (units.length === 0) return [];
+  /** A treemap places every block and box itself, each as large as what it holds. */
+  if (layout_of(graph, layer) === "treemap") return unique(treemapped(graph, layer));
   const loose = loose_units(graph, layer);
   const how = layout_of(graph, layer);
   const unit = (id: Id) => loose_unit(graph, id);

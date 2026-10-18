@@ -5,6 +5,7 @@ blocks:
   - name: Orders
     type: database
     engine: Postgres
+    tags: [ orders, pii, critical ]
     settings:
       records: { of: Order }
     records:

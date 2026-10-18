@@ -21,12 +21,15 @@ blocks:
         cell: [ Ordered, Order service ]
       - name: Pick items
         body: Stock is taken off the shelf.
+        tags: [ fulfilment ]
         cell: [ Pick, Inventory service ]
       - name: Book carrier
         body: The adapter books a pickup in the carrier's terms.
+        tags: [ fulfilment, external api ]
         cell: [ Ship, Shipping adapter ]
       - name: Mark shipped
         cell: [ Ship, Order service ]
+        tags: [ orders, fulfilment ]
 relations:
   - Publish placed -> Pick items: order placed
   - Pick items -> Book carrier: picked

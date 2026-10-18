@@ -1,7 +1,7 @@
 /** What a box looks like, as React Flow node types. */
 
 import { createContext, memo, useContext, useEffect,
-         useRef, useState } from "react";
+         useRef, useState, type CSSProperties } from "react";
 import { Handle, NodeResizer, Position, useUpdateNodeInternals,
          type NodeProps } from "@xyflow/react";
 import type { Side } from "@mnd/core";
@@ -374,12 +374,30 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
   );
 }
 
+/** A registry's tile: an entry's name, how many times it is used and what it means, its ground as
+ *  warm as its uses. What a small tile has no room for, its title says. */
+function TileNode({ data, selected }: NodeProps<BoxNode>) {
+  const n = data.count ?? 0;
+  const uses = `${n} ${n === 1 ? "use" : "uses"}`;
+  return (
+    <div className={["mnd-tile", n ? "" : "unused", (data.heat ?? 0) > 0.55 ? "hot" : "",
+                     selected ? "picked" : ""].filter(Boolean).join(" ")}
+         style={{ "--heat": data.heat ?? 0 } as CSSProperties}
+         title={[data.label, uses, data.description].filter(Boolean).join(" · ")}>
+      <span className="mnd-tile-name">{data.label}</span>
+      <span className="mnd-tile-count">{uses}</span>
+      {data.description ? <span className="mnd-tile-about">{data.description}</span> : null}
+    </div>
+  );
+}
+
 /** Memoised on what each draws; see `seen`. */
 export const Card = memo(CardNode, same);
 export const Note = memo(NoteNode, same);
 export const Group = memo(GroupNode, same);
 export const Grid = memo(GroupNode, same);
 export const Seat = memo(SeatNode, same);
+export const Tile = memo(TileNode);
 
 export const NODE_TYPES = {
   card: Card,
@@ -388,4 +406,5 @@ export const NODE_TYPES = {
   grid: Grid,
   seat: Seat,
   frame: Frame,
+  tile: Tile,
 } as const;

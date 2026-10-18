@@ -5,8 +5,8 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { about_of, alias_name, alias_of, children, def_at, def_of, domain_of, frame_of, frozen,
-         is_interface, of_ref, owner_of, stored_of, shown_name, stands_for, tag_at, type_at,
-         type Act, type Graph, type Id, type Registry as Of } from "@mnd/core";
+         is_interface, of_ref, owner_of, registry_at, stored_of, shown_name, stands_for, tag_at,
+         type_at, type Act, type Graph, type Id, type Registry as Of } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { resolved } from "@mnd/views";
 import { rows_of, type Row, type Sort } from "./rows";
@@ -183,13 +183,18 @@ export function Tray(props: TrayProps) {
   /** What the tray is about: a hold, else the one thing picked, else the open layer. */
   /** Which library section the explorer pointed at, which is about no one element. */
   const library = hold?.of === "defs" ? hold : null;
-  const registry = hold?.of === "registry" ? hold.registry : null;
+  /** A registry held from the explorer, or opened on the canvas with nothing picked. */
+  const registry = hold?.of === "registry" ? hold.registry
+    : !hold && !picked.length ? registry_at(graph, layer) : null;
   const held_id = hold?.of === "id" && (def_at(graph, hold.id) || graph.blocks[hold.id]
     || tag_at(graph, hold.id) || type_at(graph, hold.id)) ? hold.id : null;
   /** An interface picked on the canvas is about itself, though it is no block. */
   const port = picked.length === 1 && is_interface(graph, stored_of(graph, picked[0]!))
     ? picked[0]! : null;
-  const about: Id = held_id ?? port ?? about_of(graph, layer, picked);
+  /** A registry's tile picked on the canvas is about its entry, a tag or a type. */
+  const entry = picked.length === 1 && (tag_at(graph, picked[0]) || type_at(graph, picked[0]))
+    ? picked[0]! : null;
+  const about: Id = held_id ?? port ?? entry ?? about_of(graph, layer, picked);
 
   /** A new selection takes the light back, so no table lights what the tray is not about. */
   const on_canvas = picked.join();

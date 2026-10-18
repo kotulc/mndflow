@@ -53,7 +53,7 @@
 
 | | Does | Scope | Arguments | Effect |
 |---|---|---|---|---|
-| `open` | draws a block on the view its kind calls for — a definition as its usages are — or leaves this layer. `at`, the section it was opened from | block | id?, at? | `open` |
+| `open` | draws a block on the view its kind calls for — a definition as its usages are, a registry or an entry of one as its treemap — or leaves this layer. `at`, the section it was opened from | block | id?, at? | `open` |
 | `reveal` | picks a block where the canvas already draws it, else opens the layer it sits on and picks it there. A reference is revealed as itself | block | id | `open` + `focus` |
 
 - **Where the canvas goes is navigation's** (core `navigate.ts`): **the card's kind says the view** (`lens_of`) — a package or folder its package view, a grid its allocation view, a block with something to draw from inside, a stand-in what it stands for; **a definition opens as its usages do**, on the view its chain names. **An empty block opens on nothing**, nor do a group, a region, a label or a note: each is picked where the canvas draws it. Leaving a package returns to the package view. Both apps use the same functions.

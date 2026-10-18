@@ -13,10 +13,11 @@ import { page_graph } from "./page";
 import { survey_graph, FOREST } from "./survey";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
+import { registry_scene } from "./registry";
 import { class_graph, DRAWN_BY } from "./classes";
 import { sequence_scene } from "./sequence";
 import { tie_targets } from "./pack";
-import { box_of, cell as node, extent, FRAME, type BoxData, type BoxNode, type Frame,
+import { box_of, cell as node, extent, EMPTY, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
          type Slot } from "./scene";
 
@@ -92,6 +93,8 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
   /** A whole section is drawn from its scope, down to its cut, and read only: it offers what the
    *  drawing shows, and nothing to lay out. */
   const look: Config["look"] = config.look ?? (layer === null ? WHOLE : undefined);
+  /** A registry, or an entry of one, draws as a treemap. */
+  if (layer && look?.kind === "registry") return registry_scene(given, layer) ?? EMPTY;
   /** A package or folder nobody arranged reads as a page, as wide as the canvas; its places are
    *  the page's, so nothing is dragged. One somebody arranged draws as it was left. Either way
    *  its room hugs what it holds. */

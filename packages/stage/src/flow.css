@@ -274,3 +274,35 @@
 /* What a right drag is making: a line from a card, a grid across the ground. */
 .mnd-drawn { stroke: var(--accent); stroke-width: 1.5px; stroke-dasharray: 4 3; fill: none; }
 .mnd-drawn-area { fill: var(--tint); }
+
+/* ── A registry's tile: an entry, its ground as warm as its uses, one hue from the card's ground
+   to the accent. What a small tile has no room for, its title says. ── */
+.mnd-tile {
+  container-type: size;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 6px 8px;
+  overflow: hidden;
+  border: 1px solid var(--s-neutral-line, var(--border));
+  border-radius: 3px;
+  background: color-mix(in oklch, var(--accent) calc(var(--heat, 0) * 62%), var(--surface));
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+  cursor: pointer;
+}
+.mnd-tile:hover { border-color: var(--accent); }
+.mnd-tile.picked { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.mnd-tile-name { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.mnd-tile-count { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.mnd-tile-about { overflow: hidden; color: var(--muted); font-size: 11px; }
+/* Warm enough that the accent is the ground: the words take the page's own dark. */
+.mnd-tile.hot .mnd-tile-name, .mnd-tile.hot .mnd-tile-count, .mnd-tile.hot .mnd-tile-about {
+  color: var(--bg);
+}
+@container (max-height: 46px) { .mnd-tile-count, .mnd-tile-about { display: none; } }
+@container (max-height: 80px) or (max-width: 150px) { .mnd-tile-about { display: none; } }

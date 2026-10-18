@@ -989,6 +989,56 @@
               "id": "src.tag.critical",
               "name": "critical",
               "description": "The shop stops taking orders when this fails."
+            },
+            {
+              "id": "src.tag.customer-facing",
+              "name": "customer facing",
+              "description": "A customer sees it or what it says."
+            },
+            {
+              "id": "src.tag.orders",
+              "name": "orders",
+              "description": "Takes part in placing, changing or cancelling an order."
+            },
+            {
+              "id": "src.tag.payments",
+              "name": "payments",
+              "description": "Moves money or records that it moved."
+            },
+            {
+              "id": "src.tag.pii",
+              "name": "pii",
+              "description": "Holds or passes personal data; reviewed for every change."
+            },
+            {
+              "id": "src.tag.fulfilment",
+              "name": "fulfilment",
+              "description": "Gets what was ordered to the customer."
+            },
+            {
+              "id": "src.tag.external-api",
+              "name": "external api",
+              "description": "Speaks to a system the shop does not run."
+            },
+            {
+              "id": "src.tag.async",
+              "name": "async",
+              "description": "Works through events rather than waiting on a reply."
+            },
+            {
+              "id": "src.tag.experimental",
+              "name": "experimental",
+              "description": "Planned or trial; may go."
+            },
+            {
+              "id": "src.tag.deprecated",
+              "name": "deprecated",
+              "description": "Being retired; nothing new should lean on it."
+            },
+            {
+              "id": "src.tag.audit",
+              "name": "audit",
+              "description": "Kept for the auditors; nothing reads it yet."
             }
           ]
         }
@@ -1505,6 +1555,11 @@
             "of": "src.yaml.Records.order"
           }
         },
+        "tags": [
+          "src.tag.orders",
+          "src.tag.pii",
+          "src.tag.critical"
+        ],
         "values": [
           {
             "name": "engine",
@@ -1889,7 +1944,10 @@
           "r": 2,
           "c": 2
         },
-        "order": 8
+        "order": 8,
+        "tags": [
+          "src.tag.fulfilment"
+        ]
       },
       "src.yaml.Flows.3-fulfil-order.11": {
         "id": "src.yaml.Flows.3-fulfil-order.11",
@@ -1901,7 +1959,11 @@
           "r": 3,
           "c": 3
         },
-        "order": 9
+        "order": 9,
+        "tags": [
+          "src.tag.fulfilment",
+          "src.tag.external-api"
+        ]
       },
       "src.yaml.Flows.3-fulfil-order.12": {
         "id": "src.yaml.Flows.3-fulfil-order.12",
@@ -1912,7 +1974,11 @@
           "r": 3,
           "c": 1
         },
-        "order": 10
+        "order": 10,
+        "tags": [
+          "src.tag.orders",
+          "src.tag.fulfilment"
+        ]
       },
       "src.yaml.Flows.3-fulfil-order.2": {
         "id": "src.yaml.Flows.3-fulfil-order.2",
@@ -2033,7 +2099,11 @@
         "parent": "src.yaml.Flows.4-payment-retry",
         "name": "Charge card",
         "alias": 55,
-        "order": 2
+        "order": 2,
+        "tags": [
+          "src.tag.payments",
+          "src.tag.critical"
+        ]
       },
       "src.yaml.Flows.4-payment-retry.3": {
         "id": "src.yaml.Flows.4-payment-retry.3",
@@ -2068,7 +2138,10 @@
         "parent": "src.yaml.Flows.4-payment-retry",
         "name": "Cancel order",
         "alias": 60,
-        "order": 7
+        "order": 7,
+        "tags": [
+          "src.tag.orders"
+        ]
       },
       "src.yaml.Kinds.headless": {
         "id": "src.yaml.Kinds.headless",
@@ -2473,7 +2546,10 @@
           "card": {
             "label": "above"
           }
-        }
+        },
+        "tags": [
+          "src.tag.pii"
+        ]
       },
       "src.yaml.System.1-context.3": {
         "id": "src.yaml.System.1-context.3",
@@ -2503,7 +2579,11 @@
         "name": "Card processor",
         "type": "architecture.external",
         "alias": 65,
-        "order": 5
+        "order": 5,
+        "tags": [
+          "src.tag.payments",
+          "src.tag.external-api"
+        ]
       },
       "src.yaml.System.1-context.6": {
         "id": "src.yaml.System.1-context.6",
@@ -2511,7 +2591,11 @@
         "name": "Carrier",
         "type": "architecture.external",
         "alias": 66,
-        "order": 6
+        "order": 6,
+        "tags": [
+          "src.tag.fulfilment",
+          "src.tag.external-api"
+        ]
       },
       "src.yaml.System.1-context.7": {
         "id": "src.yaml.System.1-context.7",
@@ -2519,7 +2603,11 @@
         "name": "Email provider",
         "type": "architecture.external",
         "alias": 67,
-        "order": 7
+        "order": 7,
+        "tags": [
+          "src.tag.external-api",
+          "src.tag.customer-facing"
+        ]
       },
       "src.yaml.System.2-containers": {
         "id": "src.yaml.System.2-containers",
@@ -2549,6 +2637,10 @@
         "type": "architecture.queue",
         "alias": 77,
         "order": 9,
+        "tags": [
+          "src.tag.async",
+          "src.tag.orders"
+        ],
         "values": [
           {
             "name": "technology",
@@ -2567,7 +2659,11 @@
           "style": {
             "fill": "hatch"
           }
-        }
+        },
+        "tags": [
+          "src.tag.experimental",
+          "src.tag.customer-facing"
+        ]
       },
       "src.yaml.System.2-containers.12": {
         "id": "src.yaml.System.2-containers.12",
@@ -2589,7 +2685,11 @@
             "opacity": 0.45,
             "border_style": "dashed"
           }
-        }
+        },
+        "tags": [
+          "src.tag.deprecated",
+          "src.tag.payments"
+        ]
       },
       "src.yaml.System.2-containers.14": {
         "id": "src.yaml.System.2-containers.14",
@@ -2639,6 +2739,9 @@
         "type": "architecture.service",
         "alias": 69,
         "order": 2,
+        "tags": [
+          "src.tag.customer-facing"
+        ],
         "values": [
           {
             "name": "owner",
@@ -2662,6 +2765,10 @@
             "hue": 200
           }
         },
+        "tags": [
+          "src.tag.customer-facing",
+          "src.tag.critical"
+        ],
         "values": [
           {
             "name": "owner",
@@ -2680,6 +2787,11 @@
         "type": "architecture.yaml.patterns.saga-orchestrator",
         "alias": 71,
         "order": 4,
+        "tags": [
+          "src.tag.orders",
+          "src.tag.payments",
+          "src.tag.critical"
+        ],
         "values": [
           {
             "name": "owner",
@@ -2698,6 +2810,10 @@
         "type": "architecture.yaml.patterns.transactional-outbox",
         "alias": 72,
         "order": 5,
+        "tags": [
+          "src.tag.orders",
+          "src.tag.pii"
+        ],
         "values": [
           {
             "name": "owner",
@@ -2722,7 +2838,9 @@
           }
         },
         "tags": [
-          "src.tag.critical"
+          "src.tag.critical",
+          "src.tag.payments",
+          "src.tag.pii"
         ],
         "values": [
           {
@@ -2750,6 +2868,9 @@
         "type": "architecture.yaml.patterns.layered-architecture",
         "alias": 75,
         "order": 7,
+        "tags": [
+          "src.tag.fulfilment"
+        ],
         "values": [
           {
             "name": "owner",
@@ -2768,6 +2889,10 @@
         "type": "architecture.yaml.patterns.anti-corruption-layer",
         "alias": 76,
         "order": 8,
+        "tags": [
+          "src.tag.fulfilment",
+          "src.tag.external-api"
+        ],
         "values": [
           {
             "name": "owner",
@@ -3078,6 +3203,172 @@
         "type": "label",
         "alias": 1,
         "order": 4
+      },
+      "src.yaml.System.5-estate": {
+        "id": "src.yaml.System.5-estate",
+        "parent": "src.dir.System",
+        "name": "Estate",
+        "alias": 101,
+        "description": "The shop's diagrams as a treemap, each as large as what it holds.",
+        "order": 5,
+        "settings": {
+          "layout": {
+            "kind": "treemap"
+          }
+        },
+        "source": "System/5-estate.yaml"
+      },
+      "src.yaml.System.5-estate.1": {
+        "id": "src.yaml.System.5-estate.1",
+        "parent": "src.yaml.System.5-estate",
+        "name": "A treemap layer. Each tile is as large as the diagram it stands for holds; the groups gather them as the shop's folders do.",
+        "type": "note",
+        "alias": 21,
+        "order": 1
+      },
+      "src.yaml.System.5-estate.10": {
+        "id": "src.yaml.System.5-estate.10",
+        "parent": "src.yaml.System.5-estate.7",
+        "type": "reference",
+        "of": "src.yaml.Data.3-store",
+        "alias": 32,
+        "order": 3
+      },
+      "src.yaml.System.5-estate.11": {
+        "id": "src.yaml.System.5-estate.11",
+        "parent": "src.yaml.System.5-estate.7",
+        "type": "reference",
+        "of": "src.yaml.Data.4-schema",
+        "alias": 33,
+        "order": 4
+      },
+      "src.yaml.System.5-estate.12": {
+        "id": "src.yaml.System.5-estate.12",
+        "parent": "src.yaml.System.5-estate",
+        "name": "System",
+        "type": "group",
+        "alias": 6,
+        "order": 4
+      },
+      "src.yaml.System.5-estate.13": {
+        "id": "src.yaml.System.5-estate.13",
+        "parent": "src.yaml.System.5-estate.12",
+        "type": "reference",
+        "of": "src.yaml.System.1-context",
+        "alias": 34,
+        "order": 1
+      },
+      "src.yaml.System.5-estate.14": {
+        "id": "src.yaml.System.5-estate.14",
+        "parent": "src.yaml.System.5-estate.12",
+        "type": "reference",
+        "of": "src.yaml.System.2-containers",
+        "alias": 35,
+        "order": 2
+      },
+      "src.yaml.System.5-estate.15": {
+        "id": "src.yaml.System.5-estate.15",
+        "parent": "src.yaml.System.5-estate.12",
+        "type": "reference",
+        "of": "src.yaml.System.3-deployment",
+        "alias": 36,
+        "order": 3
+      },
+      "src.yaml.System.5-estate.16": {
+        "id": "src.yaml.System.5-estate.16",
+        "parent": "src.yaml.System.5-estate.12",
+        "type": "reference",
+        "of": "src.yaml.System.4-bands",
+        "alias": 37,
+        "order": 4
+      },
+      "src.yaml.System.5-estate.17": {
+        "id": "src.yaml.System.5-estate.17",
+        "parent": "src.yaml.System.5-estate",
+        "name": "Catalogue",
+        "type": "group",
+        "alias": 7,
+        "order": 5
+      },
+      "src.yaml.System.5-estate.18": {
+        "id": "src.yaml.System.5-estate.18",
+        "parent": "src.yaml.System.5-estate.17",
+        "type": "reference",
+        "of": "src.yaml.Catalogue.1-specs",
+        "alias": 38,
+        "order": 1
+      },
+      "src.yaml.System.5-estate.19": {
+        "id": "src.yaml.System.5-estate.19",
+        "parent": "src.yaml.System.5-estate.17",
+        "type": "reference",
+        "of": "src.yaml.Catalogue.2-docs",
+        "alias": 39,
+        "order": 2
+      },
+      "src.yaml.System.5-estate.2": {
+        "id": "src.yaml.System.5-estate.2",
+        "parent": "src.yaml.System.5-estate",
+        "name": "Flows",
+        "type": "group",
+        "alias": 4,
+        "order": 2
+      },
+      "src.yaml.System.5-estate.3": {
+        "id": "src.yaml.System.5-estate.3",
+        "parent": "src.yaml.System.5-estate.2",
+        "type": "reference",
+        "of": "src.yaml.Flows.1-order-states",
+        "alias": 26,
+        "order": 1
+      },
+      "src.yaml.System.5-estate.4": {
+        "id": "src.yaml.System.5-estate.4",
+        "parent": "src.yaml.System.5-estate.2",
+        "type": "reference",
+        "of": "src.yaml.Flows.2-place-order",
+        "alias": 27,
+        "order": 2
+      },
+      "src.yaml.System.5-estate.5": {
+        "id": "src.yaml.System.5-estate.5",
+        "parent": "src.yaml.System.5-estate.2",
+        "type": "reference",
+        "of": "src.yaml.Flows.3-fulfil-order",
+        "alias": 28,
+        "order": 3
+      },
+      "src.yaml.System.5-estate.6": {
+        "id": "src.yaml.System.5-estate.6",
+        "parent": "src.yaml.System.5-estate.2",
+        "type": "reference",
+        "of": "src.yaml.Flows.4-payment-retry",
+        "alias": 29,
+        "order": 4
+      },
+      "src.yaml.System.5-estate.7": {
+        "id": "src.yaml.System.5-estate.7",
+        "parent": "src.yaml.System.5-estate",
+        "name": "Data",
+        "type": "group",
+        "alias": 5,
+        "order": 3
+      },
+      "src.yaml.System.5-estate.8": {
+        "id": "src.yaml.System.5-estate.8",
+        "parent": "src.yaml.System.5-estate.7",
+        "type": "reference",
+        "of": "src.yaml.Data.1-model",
+        "alias": 30,
+        "order": 1
+      },
+      "src.yaml.System.5-estate.9": {
+        "id": "src.yaml.System.5-estate.9",
+        "parent": "src.yaml.System.5-estate.7",
+        "type": "reference",
+        "of": "src.yaml.Data.2-orders",
+        "alias": 31,
+        "order": 2
       },
       "src.yaml.about": {
         "id": "src.yaml.about",

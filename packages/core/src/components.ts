@@ -118,7 +118,7 @@ export const ARRANGES = ["column", "rows", "aside"] as const;
 export const NAMED_VIEWS = ["internal", "allocation", "sequence", "class", "er"] as const;
 
 /** The views that are projections: they draw what a block holds and write nothing back. */
-export const DIAGRAM_VIEWS = ["sequence", "class", "er"] as const;
+export const DIAGRAM_VIEWS = ["sequence", "class", "er", "registry"] as const;
 
 /** The named families a definition may pick from. */
 export const FAMILIES = ["primary", "secondary", "neutral", "muted",

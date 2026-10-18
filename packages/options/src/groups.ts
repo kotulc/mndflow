@@ -68,6 +68,8 @@ const VIEWS: Record<ViewKind, { icon: IconName; word: string; tip: string }> = {
         tip: "Entity relationship: the definitions this layer's references stand for, as schemas" },
   sequence: { icon: "view_sequence", word: "sequence",
               tip: "Sequence: participants as lifelines, relations as messages in time" },
+  registry: { icon: "tag", word: "registry",
+              tip: "Registry: a package's types or tags as a treemap, each as large as its uses" },
 };
 
 /** What a right drag may draw: a line, straight or directed, or a tie. */

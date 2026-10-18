@@ -31,7 +31,7 @@ npx vitest run packages/stage        # its suite, from the repo root
 | `Crumbs.tsx` | the way up, then the host's section (`head`) and the trail down to the open layer, as `open` acts; folded to `…` from the outside in where it would overrun the canvas. Shared with the kit's `Viewer`, and dressed by the theme's `shell.css` |
 | `Flow.tsx` | the canvas, composed from `room`, `sync`, `draw` and `drag` hooks and `Grips` |
 | `moves.ts` | what a canvas adjustment writes, handed to the host as one batch |
-| `nodes.tsx` | the node types. **A card is theme's `CardFace`**, with what the canvas lays over it: its border's targets, its grips, its seats, and its name renamed in place. A group or box saying `card.name: hide` draws no name |
+| `nodes.tsx` | the node types. **A card is theme's `CardFace`**, with what the canvas lays over it: its border's targets, its grips, its seats, and its name renamed in place. A group or box saying `card.name: hide` draws no name. **A tile** is a registry's entry: its name, uses and meaning, its ground as warm as its uses |
 | `Wire.tsx` | one run, routed round cards; a run the Scene already drew (`data.points`) is drawn as given |
 | `flow.css` · `routes.css` · `groups.css` | what the canvas adds to a card — picked, part, header, in and out — and the frame; runs and their ends; bands and grids. How a face is laid out is theme's `face.css` |
 | `stage.css` | the stage box, the legend, and the diagram's way out. Bundled into the kit's sheet, since `Viewer` draws the legend too |

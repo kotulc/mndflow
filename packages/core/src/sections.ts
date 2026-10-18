@@ -18,12 +18,12 @@ export type Cut = "package" | "tree" | null;
  *  do. The **system view** draws a whole section from above as nested boxes (`package`), and is
  *  the only one chosen. */
 export type ViewKind = "internal" | "allocation" | "folder" | "class" | "er" | "sequence"
-  | "package";
+  | "registry" | "package";
 
 /** The views that draw one block. A section offers them as one choice, `internal`, and the block
  *  opened says which it shows. */
 export const LAYER_VIEWS: readonly ViewKind[] = [
-  "internal", "allocation", "folder", "class", "er", "sequence"];
+  "internal", "allocation", "folder", "class", "er", "sequence", "registry"];
 
 /** The layer views drawn from inside, where what the layer holds is built. A diagram is read from
  *  inside too: it draws what the block holds, and nothing is laid out there. */

@@ -8,10 +8,12 @@ blocks:
     type: service
     owner: Web
     technology: React
+    tags: [ customer facing ]
   - name: Gateway
     type: API gateway
     owner: Platform
     technology: Envoy
+    tags: [ customer facing, critical ]
     settings:
       style:
         hue: 200
@@ -19,15 +21,17 @@ blocks:
     type: Saga orchestrator
     owner: Commerce
     technology: Go
+    tags: [ orders, payments, critical ]
   - name: Order service
     type: Transactional outbox
     owner: Commerce
     technology: Java
+    tags: [ orders, pii ]
   - name: Payment service
     type: Layered architecture
     owner: Payments
     technology: Java
-    tags: [ critical ]
+    tags: [ critical, payments, pii ]
     settings:
       style:
         border_width: thick
@@ -38,21 +42,26 @@ blocks:
     type: Layered architecture
     owner: Fulfilment
     technology: Kotlin
+    tags: [ fulfilment ]
   - name: Shipping adapter
     type: Anti-corruption layer
     owner: Fulfilment
+    tags: [ fulfilment, external api ]
   - name: Order events
     type: queue
     technology: Kafka
+    tags: [ async, orders ]
   - name: Recommendations
     type: service
     note: Planned, not built yet.
+    tags: [ experimental, customer facing ]
     settings:
       style:
         fill: hatch
   - name: Legacy billing
     type: service
     note: Being retired.
+    tags: [ deprecated, payments ]
     settings:
       style:
         opacity: 0.45

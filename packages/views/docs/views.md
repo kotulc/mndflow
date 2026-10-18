@@ -15,7 +15,8 @@ project(graph, layer, config) → Scene
 | | Is |
 |---|---|
 | `size.ts` | **the one measure.** `UNIT` is a square of the guides; `CELL` is a block plus a gap on every side. Everything else is derived from those |
-| `arrange.ts` | where everything in a layer sits — hand placement under `free`, auto-layout under `auto` |
+| `arrange.ts` | where everything in a layer sits — hand placement under `free`, auto-layout under `auto`, a treemap under `treemap` (`treemap.ts`) |
+| `registry.ts` | a registry as a list, a matrix, and a treemap Scene built directly: entries as tiles by home folder, or an entry's uses |
 | `bands.ts` | members packed inside a band, and seated blocks placed by their cell |
 | `pack.ts` · `float.ts` | auto-layout: runs of one arrangement in explorer order — a column, rows `across` to a row — and aside cards floating beside what they are tied to |
 | `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off |

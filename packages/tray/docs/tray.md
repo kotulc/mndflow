@@ -13,6 +13,8 @@
 | a definition row in the explorer | that definition |
 | a definitions folder in the explorer — *blocks*, *relations*, a folder somebody made | every definition, narrowed to that folder |
 | the *packages* section, or one package | what the workspace draws on, on the **packages** tab |
+| a package's *types* or *tags* row, or a registry opened on the canvas with nothing picked | that registry, on the **entries** tab |
+| a registry's tile picked on the canvas | its entry: a tag or a type |
 | a row in any of the tray's tables | nothing changes — the row lights and offers what acts on it |
 | *view* on a lit row | that thing, selected where it lives |
 
@@ -44,6 +46,7 @@
 | the workspace | workspace · contents |
 | a definitions folder | definitions |
 | the packages section | packages |
+| a registry | entries |
 
 **Every element asks in one order**: what it is, how it draws, what it carries, what it lists. **The first tab is named for what is drawn** — *card* or *line* — and holds every key saying what the element is. **A definition's settings tab is laid out as its card tab**, its keys how it draws.
 
@@ -81,8 +84,8 @@
 | column | holds |
 |---|---|
 | **drawing** | left, at the top: **one face** — the large where its look draws one, else the small — at its own size, scaled into the column only where it is narrower; or a line's run |
-| **keys** | left, under the drawing: one line a key, `key: value`. What it says itself reads in ink, what it carries faint. A section's keys sit indented under its head |
-| **choices** | right: the lit key's name, a line saying what it is for, then each question it asks — titled over its chips where the key asks more than one — and last what acts on it |
+| **keys** | left, under the drawing: one line a key, `key: value`, **cut short with an ellipsis** where the column is too narrow. What it says itself reads in ink, what it carries faint. A section's keys sit indented under its head |
+| **choices** | right: the lit key's name, a line saying what it is for, **its whole value** — typed here where words run long, as a description's do, else read where no chip already says it — then each question it asks — titled over its chips where the key asks more than one — and last what acts on it |
 
 | key | an element's | a definition's |
 |---|---|---|
@@ -97,7 +100,7 @@
 
 
 - **The lit key is kept by name**, so moving to the next element asks the same question. ↑ and ↓ move the light; Enter types into a line that takes text.
-- **Chips are gathered by where they live**: a definition under its package and folders, a parent under what holds it. **Lit is what holds; accented is what is said here.** A list — tags, traits — toggles; a single answer is picked.
+- **Chips are gathered by where they live**: a definition under its package and folders, a parent under what holds it. **Lit is what holds; accented is what is said here.** A list — tags, traits — toggles; a single answer is picked. **A chip standing for a definition wears that definition's colour**: its outline, and lit, its ground.
 - **Free text is typed on its key's line**, committed when the line is left. A key whose answer is one of a set is answered by chips; a new word, where one may be made, is typed under them.
 - **The settings tab lists one key per part of the drawing** — name, label, face, head, colour, border, icon, those its kind honours — and no values: a part's settings and what each is set to are its choices. A part reads in ink where the definition says any of its settings, faint where it carries them all. Lit, the choices are each of its settings in a row — chips for a set, a slider for a quantity, the marks for an icon, a size in units for a face. *Inherit* gives the part's settings back; *reset style* on the tab strip gives every part back.
 - **A frozen definition's choices read only**; what navigates — *view definition* — stays live.
@@ -131,7 +134,7 @@
 
 ## Layout
 
-**The tray lays its tabs out by its own width**, not the window's, since the explorer and the rail take from it. **Under the tabs a gutter each side** holds the content off the explorer and the options rail; **the tab strip itself spans the tray**, edge to edge, since it is the tray's own ground. **Its bar is the same height as theirs** and drops its top rule at full height, so the three read as one line across the page.
+**The tray lays its tabs out by its own width**, not the window's, since the explorer and the rail take from it. The card and settings tabs give the keys a third and the choices the rest where there is room; half and half where a third would cramp the keys, as on a portrait screen; and narrower still, the choices under the keys. **Under the tabs a gutter each side** holds the content off the explorer and the options rail; **the tab strip itself spans the tray**, edge to edge, since it is the tray's own ground. **Its bar is the same height as theirs** and drops its top rule at full height, so the three read as one line across the page.
 
 ## Drafts
 
@@ -186,6 +189,18 @@
 - **A package comes in once**: what is held is filtered out of what is offered.
 - **The catalogue is read once at startup** and may be empty — an unbound `net` leaves it so, and then only the add line is there.
 - **Dragging a definition out of the explorer points what it lands on at it.** Picking alone never changes a drawing.
+
+### Entries
+
+**A registry's tab, read two ways**, chosen on its chip bar. Below three entries it opens on the list.
+
+| reading | shows |
+|---|---|
+| **matrix** | a grid of gapped squares: the blocks using any entry down the side — the folder holding them in the first column, spanning them, each block wearing its definition's colour — the entries across, named flat under a head saying what they are, every column one width. A square is as warm as its count, a count past one written. **A readout** over the grid says in full what the pointer is on, and a crosshair marks its row and column. Past a reasonable count the rows roll up into folders |
+| **list** | one row an entry: its name, what it means, its uses, and where it is used, busiest first |
+
+- **The lit row offers *view***; an entry's head makes that entry the context.
+- **Hovering a block's row lights it on the canvas.**
 
 ### Usages
 
