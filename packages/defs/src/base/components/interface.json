@@ -2,10 +2,9 @@
   "id": "interface",
   "name": "interface",
   "type": "block",
-  "description": "A block's boundary, seated on its wall: where relations and flows enter and leave. A component: never a card, a layer or an explorer row. Its type says what it carries.",
+  "description": "A block's boundary, where relations and flows enter and leave: a port, data on any block that has ports, seated on its wall. A component: its definition is an interface definition in its package's library; never a card, a layer or an explorer row.",
   "def": {},
   "traits": [
-    "has_values",
     "is_interface"
   ],
   "settings": {

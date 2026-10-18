@@ -123,20 +123,25 @@ export function renamed<T extends Block | Relation>(it: T, ids: ReadonlyMap<Id, 
   const at = (id: Id | undefined) => (id === undefined ? id : ids.get(id) ?? id);
   const all = (list: Id[] | undefined) => list?.map((id) => at(id)!);
   const out: Block & Relation = { ...it } as Block & Relation;
-  for (const key of ["parent", "type", "of", "from", "to", "fromPart", "toPart"] as const) {
+  for (const key of ["parent", "type", "of", "from", "to"] as const) {
     if (out[key]) out[key] = at(out[key] as Id)!;
   }
   if (out.tags) out.tags = all(out.tags);
+  if (out.constraints) out.constraints = all(out.constraints);
+  if (out.ports) out.ports = out.ports.map((p) => (p.type ? { ...p, type: at(p.type) } : p));
   if (out.def) {
     out.def = { ...out.def,
       ...(out.def.attributes ? { attributes: out.def.attributes
         .map((a) => (a.type ? { ...a, type: at(a.type) } : a)) } : {}) };
   }
   if (out.library) {
-    out.library = { ...(out.library.types ? { types: out.library.types
-                      .map((t) => ({ ...t, id: at(t.id)! })) } : {}),
-                    ...(out.library.tags ? { tags: out.library.tags
-                      .map((t) => ({ ...t, id: at(t.id)! })) } : {}) };
+    const each = <T extends { id: Id; type?: Id }>(list: T[]) =>
+      list.map((t) => ({ ...t, id: at(t.id)!, ...(t.type ? { type: at(t.type) } : {}) }));
+    out.library = { ...(out.library.types ? { types: each(out.library.types) } : {}),
+                    ...(out.library.tags ? { tags: each(out.library.tags) } : {}),
+                    ...(out.library.interfaces ? { interfaces: each(out.library.interfaces) } : {}),
+                    ...(out.library.constraints
+                      ? { constraints: each(out.library.constraints) } : {}) };
   }
   return out as T;
 }

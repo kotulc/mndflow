@@ -4,13 +4,14 @@
  *  tabs of its own for blocks through `extras`. */
 
 import { useEffect, useState, type ReactNode } from "react";
-import { about_of, alias_name, alias_of, children, def_at, def_of, domain_of, frame_of, frozen,
+import { about_of, alias_name, alias_of, children, def_at, def_of, domain_of, entry_at, frame_of,
+         constraint_at, frozen, interface_at,
          is_interface, of_ref, owner_of, registry_at, stored_of, shown_name, stands_for, tag_at,
          type_at, type Act, type Graph, type Id, type Registry as Of } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { resolved } from "@mnd/views";
 import { rows_of, type Row, type Sort } from "./rows";
-import { Attributes } from "./Attributes";
+import { Carried } from "./Carried";
 import { Element } from "./Element";
 import { Json } from "./Json";
 import { Content } from "./Content";
@@ -63,7 +64,7 @@ export type TrayProps = {
 /** A host's tab: what it is called, and what it shows for the block the tray is about. */
 export type Extra = { name: string; draw: (about: Id) => ReactNode };
 
-export type Tab = "card" | "line" | "settings" | "attributes" | "contents" | "definitions"
+export type Tab = "card" | "line" | "settings" | "components" | "contents" | "definitions"
                 | "packages" | "usages" | "workspace" | "interface" | "tag" | "type" | "entries";
 
 /** What the tray is about. The root is not a block anybody draws, so it is its own context; a
@@ -81,10 +82,10 @@ const SLOTS: Record<Context, readonly Tab[]> = {
    *  named for what is drawn, a card or a line — on a definition how it draws, what it carries,
    *  and what it lists: a usage its contents, a definition its usages. A usage lists no settings,
    *  since it cannot change them. */
-  block: ["card", "attributes", "contents"],
-  line: ["line", "attributes"],
-  definition: ["card", "settings", "attributes", "usages"],
-  relation: ["line", "settings", "attributes", "usages"],
+  block: ["card", "components", "contents"],
+  line: ["line", "components"],
+  definition: ["card", "settings", "components", "usages"],
+  relation: ["line", "settings", "components", "usages"],
   library: ["definitions"],
   packages: ["packages"],
   interface: ["interface"],
@@ -151,6 +152,8 @@ function what_of(graph: Graph, id: Id): string {
   const b = graph.blocks[id];
   if (graph.edges[id]) return "relation";
   if (is_interface(graph, stored_of(graph, id))) return "interface";
+  if (interface_at(graph, id)) return "interface definition";
+  if (constraint_at(graph, id)) return "constraint";
   if (tag_at(graph, id)) return "tag";
   if (type_at(graph, id)) return "type";
   if (!b) return "";
@@ -187,13 +190,12 @@ export function Tray(props: TrayProps) {
   const registry = hold?.of === "registry" ? hold.registry
     : !hold && !picked.length ? registry_at(graph, layer) : null;
   const held_id = hold?.of === "id" && (def_at(graph, hold.id) || graph.blocks[hold.id]
-    || tag_at(graph, hold.id) || type_at(graph, hold.id)) ? hold.id : null;
+    || entry_at(graph, hold.id)) ? hold.id : null;
   /** An interface picked on the canvas is about itself, though it is no block. */
   const port = picked.length === 1 && is_interface(graph, stored_of(graph, picked[0]!))
     ? picked[0]! : null;
-  /** A registry's tile picked on the canvas is about its entry, a tag or a type. */
-  const entry = picked.length === 1 && (tag_at(graph, picked[0]) || type_at(graph, picked[0]))
-    ? picked[0]! : null;
+  /** A registry's tile picked on the canvas is about its entry. */
+  const entry = picked.length === 1 && entry_at(graph, picked[0]) ? picked[0]! : null;
   const about: Id = held_id ?? port ?? entry ?? about_of(graph, layer, picked);
 
   /** A new selection takes the light back, so no table lights what the tray is not about. */
@@ -203,8 +205,8 @@ export function Tray(props: TrayProps) {
   const context: Context = registry ? "registry" : library
     ? (library.only === "packages" ? "packages" : "library")
     : about === graph.root ? "root"
-    : is_interface(graph, stored_of(graph, about)) ? "interface"
-    : tag_at(graph, about) ? "tag"
+    : is_interface(graph, stored_of(graph, about)) || interface_at(graph, about) ? "interface"
+    : tag_at(graph, about) || constraint_at(graph, about) ? "tag"
     : type_at(graph, about) ? "type"
     : graph.edges[about] ? "line"
     : def_at(graph, about) && domain_of(graph, about) === "relation" ? "relation"
@@ -373,9 +375,10 @@ export function Tray(props: TrayProps) {
             <Element graph={graph} id={about} keys="settings" {...(edits ? { onAct: act } : {})}
                      onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
-          {/* A definition declares attributes and a usage answers them. */}
-          {shows === "attributes" ? (
-            <Attributes key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})} />
+          {/* Everything it carries: attributes a definition declares and a usage answers, its ports,
+              its tags. */}
+          {shows === "components" ? (
+            <Carried key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})} />
           ) : null}
           {/* A host's own tab, for the block the tray is about. */}
           {extras.find((x) => x.name === shows)?.draw(about) ?? null}

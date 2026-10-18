@@ -98,6 +98,9 @@
 .mnd-card.header.upright > .mnd-head { writing-mode: vertical-rl; transform: rotate(180deg); }
 
 /* Which way a flow enters and leaves, on the interface that carries it. */
+/* A port of an interface definition is filled with that definition's colour; its border still
+   says which way it carries. */
+.mnd-seat.typed { background: var(--card-edge); }
 .mnd-card.in, .mnd-seat.in { border-color: var(--accent); }
 .mnd-card.out, .mnd-seat.out { border-color: var(--away); }
 
@@ -125,6 +128,14 @@
   background: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 35%, transparent);
+}
+
+/* **A card laid in a treemap** reads on a plain ground, its definition's colour on its edge, so a
+   map of many reads calm and its kinds still tell apart. */
+.mnd-flow .mnd-card.card-face.tiled:not(.picked) {
+  background: var(--surface);
+  border-color: var(--s-neutral-line, var(--border));
+  border-left: 4px solid var(--card-edge, var(--card-line));
 }
 
 /* **A card with a drawing of its own wears a stacked edge**: a second card's edge behind it, so
@@ -288,6 +299,8 @@
   padding: 6px 8px;
   overflow: hidden;
   border: 1px solid var(--s-neutral-line, var(--border));
+  /* The entry's own colour, read down its chain: what tells one entry from another at a glance. */
+  border-left: 4px solid var(--card-edge, var(--s-neutral-line, var(--border)));
   border-radius: 3px;
   background: color-mix(in oklch, var(--accent) calc(var(--heat, 0) * 62%), var(--surface));
   color: var(--text);
@@ -295,7 +308,7 @@
   line-height: 1.35;
   cursor: pointer;
 }
-.mnd-tile:hover { border-color: var(--accent); }
+.mnd-tile:hover { border-color: var(--accent); border-left-color: var(--card-edge, var(--accent)); }
 .mnd-tile.picked { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .mnd-tile-name { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .mnd-tile-count { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }

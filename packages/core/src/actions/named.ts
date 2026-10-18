@@ -1,11 +1,14 @@
-/** Named components: the tags elements carry and the types attributes and interfaces name, held
- *  as data in their package's library. */
+/** Named components: the tags elements carry, the types attributes name and the interface
+ *  definitions ports name, held as data in their package's library. Each extends another of its
+ *  kind, and is styled as a block definition is. */
 
 import { is_trait, name_taken } from "../defs";
 import { new_id } from "../ids";
-import { is_form, library_home, library_of, put_tag, put_type, tag_at, tag_named, type_at,
+import { constraint_at, constraint_named, entry_at, interface_at, is_form, library_home,
+         library_of, put_constraint, put_interface, put_tag, put_type, tag_at, tag_named, type_at,
          users_of } from "../library";
-import { FORMS, type Form, type Graph, type Id, type Mutation, type Tag, type Type } from "../types";
+import { FORMS, type Constraint, type Form, type Graph, type Id, type Interface, type Library,
+         type Mutation, type Tag, type Type } from "../types";
 import { register } from "./registry";
 import { borrowed, id_of, ids_of, list, text } from "./helpers";
 
@@ -56,12 +59,15 @@ register(
     args: [{ name: "name", form: "text", required: true },
            /** The tag changed; absent makes one. */
            { name: "id", form: "text" },
-           { name: "description", form: "text" }],
-    check: (ctx, args) => named_refusal(ctx.graph, id_of(args, "id"), text(args, "name"), tag_at),
+           { name: "description", form: "text" },
+           /** Another tag it extends; an empty word gives it back to the base. */
+           { name: "extends", form: "text" }],
+    check: (ctx, args) => named_refusal(ctx.graph, id_of(args, "id"), text(args, "name"), tag_at)
+      ?? extends_refusal(ctx.graph, id_of(args, "id"), args, "tags"),
     run: (ctx, args) => {
       const was = tag_at(ctx.graph, id_of(args, "id"));
-      const tag: Tag = { id: was?.id ?? new_id("tag"), name: text(args, "name"),
-                         ...described(args, was?.description) };
+      const tag: Tag = { ...kept(was), id: was?.id ?? new_id("tag"), name: text(args, "name"),
+                         ...described(args, was?.description), ...extending(args, was?.type) };
       return { mutations: [put_tag(ctx.graph, was?.pkg ?? ctx.graph.root, tag)],
                effect: { focus: tag.id } };
     },
@@ -77,25 +83,133 @@ register(
            { name: "form", form: "choice", choices: FORMS },
            { name: "choices", form: "text" },
            { name: "unit", form: "text" },
-           { name: "description", form: "text" }],
+           /** How its values are written: a pattern its form reads. */
+           { name: "format", form: "text" },
+           { name: "description", form: "text" },
+           /** Another type it extends; an empty word gives it back to the base. */
+           { name: "extends", form: "text" }],
     check: (ctx, args) => {
       const form = text(args, "form");
       if (form && !is_form(form)) return `there is no form called "${form}"`;
-      return named_refusal(ctx.graph, id_of(args, "id"), text(args, "name"), type_at);
+      return named_refusal(ctx.graph, id_of(args, "id"), text(args, "name"), type_at)
+        ?? extends_refusal(ctx.graph, id_of(args, "id"), args, "types");
     },
     run: (ctx, args) => {
       const was = type_at(ctx.graph, id_of(args, "id"));
       const form = (text(args, "form") || was?.form || (args["choices"] ? "choice" : "text")) as Form;
       const choices = args["choices"] !== undefined ? list(args["choices"]) : was?.choices;
       const unit = args["unit"] !== undefined ? text(args, "unit") : was?.unit;
-      const type: Type = { id: was?.id ?? new_id("type"), name: text(args, "name"), form,
+      const format = args["format"] !== undefined ? text(args, "format") : was?.format;
+      const { choices: _c, unit: _u, format: _f, ...rest } = kept(was);
+      const type: Type = { ...rest, id: was?.id ?? new_id("type"), name: text(args, "name"), form,
                            ...(form === "choice" && choices?.length ? { choices } : {}),
-                           ...(unit ? { unit } : {}), ...described(args, was?.description) };
+                           ...(unit ? { unit } : {}), ...(format ? { format } : {}),
+                           ...described(args, was?.description), ...extending(args, was?.type) };
       return { mutations: [put_type(ctx.graph, was?.pkg ?? ctx.graph.root, type)],
                effect: { focus: type.id } };
     },
   },
+  {
+    name: "constrain",
+    about: "sets the constraints an element or a definition is held to, replacing what it was "
+      + "held to — each a constraint in a library, by name or id; none gives the list back",
+    on: ["block", "edge", "selection"],
+    args: [{ name: "ids", form: "block", required: true }, { name: "constraints", form: "text" }],
+    check: (ctx, args) => {
+      const ids = ids_of(ctx, args);
+      if (!ids.length) return "nothing is selected";
+      const why = ids.map((id) => borrowed(ctx.graph, id)).find(Boolean);
+      if (why) return why;
+      const unknown = list(args["constraints"]).find((w) => !constraint_named(ctx.graph, w));
+      return unknown ? `there is no constraint called "${unknown}"` : null;
+    },
+    run: (ctx, args) => {
+      const said = args["constraints"];
+      const constraints = said === undefined || said === null ? null
+        : list(said).map((w) => constraint_named(ctx.graph, w)!.id);
+      return { mutations: ids_of(ctx, args)
+        .map((id): Mutation => ({ op: "set_constraints", id, constraints })) };
+    },
+  },
+  {
+    name: "define_constraint",
+    about: "makes a constraint in the workspace's library — the values an element must answer, and "
+      + "on a line those its ends must agree on — or changes one there",
+    on: ["layer"],
+    args: [{ name: "name", form: "text", required: true },
+           /** The constraint changed; absent makes one. */
+           { name: "id", form: "text" },
+           { name: "description", form: "text" },
+           /** Values it must answer, split on commas. */
+           { name: "required", form: "text" },
+           /** On a line: values both ends must answer alike, split on commas. */
+           { name: "match", form: "text" },
+           /** Another constraint it extends; an empty word gives it back to the base. */
+           { name: "extends", form: "text" }],
+    check: (ctx, args) => named_refusal(ctx.graph, id_of(args, "id"), text(args, "name"),
+                                        constraint_at)
+      ?? extends_refusal(ctx.graph, id_of(args, "id"), args, "constraints"),
+    run: (ctx, args) => {
+      const was = constraint_at(ctx.graph, id_of(args, "id"));
+      const said = (key: "required" | "match") => (args[key] !== undefined ? list(args[key])
+        : was?.[key] ?? []);
+      const { required: _r, match: _m, ...rest } = kept(was);
+      const one: Constraint = { ...rest, id: was?.id ?? new_id("constraint"),
+                                name: text(args, "name"), ...described(args, was?.description),
+                                ...extending(args, was?.type),
+                                ...(said("required").length ? { required: said("required") } : {}),
+                                ...(said("match").length ? { match: said("match") } : {}) };
+      return { mutations: [put_constraint(ctx.graph, was?.pkg ?? ctx.graph.root, one)],
+               effect: { focus: one.id } };
+    },
+  },
+  {
+    name: "define_interface",
+    about: "makes an interface definition in the workspace's library — what a port carries — or "
+      + "renames, describes or extends one there",
+    on: ["layer"],
+    args: [{ name: "name", form: "text", required: true },
+           /** The interface definition changed; absent makes one. */
+           { name: "id", form: "text" },
+           { name: "description", form: "text" },
+           /** Another interface definition it extends; an empty word gives it back to the base. */
+           { name: "extends", form: "text" }],
+    check: (ctx, args) => named_refusal(ctx.graph, id_of(args, "id"), text(args, "name"),
+                                        interface_at)
+      ?? extends_refusal(ctx.graph, id_of(args, "id"), args, "interfaces"),
+    run: (ctx, args) => {
+      const was = interface_at(ctx.graph, id_of(args, "id"));
+      const one: Interface = { ...kept(was), id: was?.id ?? new_id("interface"),
+                               name: text(args, "name"), ...described(args, was?.description),
+                               ...extending(args, was?.type) };
+      return { mutations: [put_interface(ctx.graph, was?.pkg ?? ctx.graph.root, one)],
+               effect: { focus: one.id } };
+    },
+  },
 );
+
+/** What an entry keeps through a change it does not name: everything but its package. */
+function kept<T extends { pkg: Id }>(was: T | undefined): Omit<T, "pkg"> | Record<string, never> {
+  if (!was) return {};
+  const { pkg: _, ...rest } = was;
+  return rest;
+}
+
+/** What an entry extends: the one said, by id, else what it extended; an empty word, the base. */
+function extending(args: Record<string, unknown>, was: Id | undefined): { type?: Id } {
+  if (args["extends"] === undefined) return was ? { type: was } : {};
+  const said = String(args["extends"]).trim();
+  return said ? { type: said } : {};
+}
+
+/** Why an entry may not extend what is said: nothing of its kind by that id, or itself. */
+function extends_refusal(graph: Graph, id: Id, args: Record<string, unknown>,
+                         kind: keyof Library): string | null {
+  const said = args["extends"] === undefined ? "" : String(args["extends"]).trim();
+  if (!said) return null;
+  if (said === id) return "it cannot extend itself";
+  return entry_at(graph, said)?.kind === kind ? null : `there is no such ${kind.slice(0, -1)}`;
+}
 
 /** Why a named component may not take this name, or be changed: one in a frozen package, or a
  *  name its package already holds. */

@@ -81,9 +81,8 @@ describe("the structure mark", () => {
   it("ignores a definition whose only children are ports", () => {
     const log: Log = [{
       id: "s1", action: "build", at: 1, status: "applied", mutations: [
-        { op: "add_block", block: { id: "porty", parent: ROOT, name: "Porty", def: {} } },
-        { op: "add_block", block: { id: "pin", parent: "porty", name: "in", type: "interface",
-                                    flow: "in" } },
+        { op: "add_block", block: { id: "porty", parent: ROOT, name: "Porty", def: {},
+                                    ports: [{ id: "pin", name: "in", flow: "in" }] } },
       ],
     }];
     const g = fold(log, FLOOR);

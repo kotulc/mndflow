@@ -1,6 +1,6 @@
 /** Where line ends and interfaces meet a border: one anchor per face, interfaces beside it. */
 
-import { children, is_aside, is_box, is_interface, is_tie, type Flow, type Graph, type Id,
+import { children, flow_of, is_aside, is_box, is_interface, is_tie, type Flow, type Graph, type Id,
          type Relation, type Side } from "@mnd/core";
 import { STUB } from "./route";
 import { PORT, SEAT, seat_frac, seat_marks } from "./size";
@@ -374,7 +374,7 @@ function stated(graph: Graph, id: Id): Seat | null {
 
 /** Where an interface with no lines rests. */
 function rest(graph: Graph, id: Id): Side {
-  return RESTS[graph.blocks[id]?.flow ?? "both"];
+  return RESTS[flow_of(graph, id)];
 }
 
 /** The side said most often, the first said winning a tie. */

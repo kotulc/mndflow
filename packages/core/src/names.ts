@@ -3,7 +3,9 @@
 import { attributes_of, base_named, base_of, def_at, def_of, edge_base, frozen,
          roots_structure } from "./defs";
 import { inline, is_flat, shape_of } from "./holders";
-import { children, is_container, is_interface, of_ref, stands_for, stood_def } from "./tree";
+import { entry_at } from "./library";
+import { children, is_container, is_interface, of_ref, port_at, stands_for,
+         stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
 
@@ -71,7 +73,10 @@ export function is_named(graph: Graph, id: Id): boolean {
 /** What a thing is called, and only that. */
 export function shown_name(graph: Graph, id: Id): string {
   const b = graph.blocks[id];
-  if (!b) return graph.edges[id] ? label_of(graph, id) || edge_base(graph, id) : "missing";
+  const port = b ? undefined : port_at(graph, id);
+  if (port) return port.name ?? (port.alias ? alias_name("interface", port.alias) : "interface");
+  if (!b && !graph.edges[id]) return entry_at(graph, id)?.name ?? "missing";
+  if (!b) return label_of(graph, id) || edge_base(graph, id);
   const of = of_ref(graph, id);
   if (of) {
     /** A stand-in for a definition or a package reads as what it points at, unless it was named

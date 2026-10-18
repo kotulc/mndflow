@@ -12,11 +12,12 @@ blocks:
   - name: Fallback
     type: component
     note: Answers while the breaker is open.
+ports:
   - name: in
-    type: interface
+    type: HTTP
     flow: in
   - name: remote
-    type: interface
+    type: HTTP
     flow: out
 relations:
   - calls: [ in -> Caller, Caller -> Breaker ]

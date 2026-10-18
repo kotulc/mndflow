@@ -4,16 +4,30 @@
  *  inherits reads first and faint; it is edited where it is declared. */
 
 import { useState } from "react";
-import { all_defs, all_types, attributes_of, def_at, def_of, domain_of, form_of, frozen,
-         links_to, type_at, type_name, FORMS, type Act, type Attribute, type Graph,
-         type Id } from "@mnd/core";
+import { all_defs, all_types, attributes_of, def_at, def_of, domain_of, form_of, format_of,
+         frozen, links_to, type_at, type_name, unit_of, FORMS, type Act, type Attribute,
+         type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
-import { resolved } from "@mnd/views";
+import { entry_look, face_attrs, resolved } from "@mnd/views";
 import { NOOP } from "./Body";
 import { Entry } from "./Entry";
 import { Table, type Column, type Line } from "./Table";
 
 export type AttributesProps = { graph: Graph; id: Id; onAct?: Act };
+
+/** An attribute's type as the table names it: in its type's colour, its format said on hover. */
+function Typed({ graph, attribute, link, children }: { graph: Graph; attribute: Attribute;
+                                                       link: boolean; children: string }) {
+  const typed = !!type_at(graph, attribute.type);
+  const { style, ...dress } = (typed ? face_attrs(entry_look(graph, attribute.type!)) : {}) as
+    { style?: Record<string, string>; [k: string]: unknown };
+  const format = format_of(graph, attribute);
+  return (
+    <span className={link ? "type link" : typed ? "type typed" : "type"}
+          data-family={dress["data-family"] as string | undefined} style={style}
+          title={format ? `written ${format}` : undefined}>{children}</span>
+  );
+}
 
 /** The list of every type an attribute may name, offered by its type box. */
 const TYPES = "mnd-attribute-types";
@@ -64,7 +78,7 @@ export function Attributes({ graph, id, onAct = NOOP }: AttributesProps) {
           : a.name,
         type: on ? <Entry value={typed(a)} label={`type of ${a.name}`} list={TYPES} blank
                           onCommit={(to) => field({ name: a.name, type: to })} />
-          : <span className={link ? "type link" : "type"}>{typed(a)}</span>,
+          : <Typed graph={graph} attribute={a} link={!!link}>{typed(a)}</Typed>,
         key: on ? (
           <select title="whether its value names what carries it: the primary key, or unique"
                   value={a.key ?? "none"}
@@ -75,7 +89,7 @@ export function Attributes({ graph, id, onAct = NOOP }: AttributesProps) {
           </select>
         ) : a.key === "primary" ? "PK" : a.key === "unique" ? "UK" : link ? "FK" : "",
         default: on ? box(a, "default") : a.default ?? "",
-        unit: on ? box(a, "unit") : a.unit ?? "",
+        unit: on ? box(a, "unit") : a.unit ?? <span className="faint">{unit_of(graph, a) ?? ""}</span>,
         ...Object.fromEntries(said.map((k) => [`@${k}`, a.extra?.[k] ?? ""])),
       },
       ...(on ? { actions: <Order at={at} last={own.length - 1} onMove={(by) => {
@@ -95,11 +109,11 @@ export function Attributes({ graph, id, onAct = NOOP }: AttributesProps) {
     return {
       id: a.name,
       cells: {
-        name: a.name, type: <span className="type">{typed(a)}</span>,
+        name: a.name, type: <Typed graph={graph} attribute={a} link={false}>{typed(a)}</Typed>,
         value: on ? <Answer graph={graph} attribute={a} value={value ?? ""}
                             onSet={(to) => field({ name: a.name, value: to })} />
           : value ?? <span className="faint">{a.default ?? ""}</span>,
-        unit: a.unit ?? "",
+        unit: unit_of(graph, a) ?? "",
       },
       ...(value !== undefined && !fixed ? {
         onDrop: () => onAct("unfield", { holder: id, name: a.name }), drop: `clear ${a.name}`,

@@ -1,0 +1,13 @@
+{
+  "id": "constraint",
+  "name": "constraint",
+  "type": "block",
+  "description": "A rule a block or a line is held to: the values it must answer, and on a line those its ends must agree on. A component: defined in its package's library and applied by id; advice, never a refusal.",
+  "def": {},
+  "traits": [],
+  "settings": {
+    "style": {
+      "hue": 350
+    }
+  }
+}

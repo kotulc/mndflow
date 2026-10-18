@@ -5,14 +5,26 @@ def:
     - name: order
       type: Order
     - name: amount
-      type: number
-      unit: USD
+      type: Money
     - name: result
+      type: Payment result
       optional: true
 description: A charge taken against an order.
 settings:
   card:
     face: table
+library:
+  types:
+    - name: Money
+      form: number
+      unit: USD
+      format: "0.00"
+      description: An amount in the shop's currency.
+      settings: { style: { hue: 145 } }
+    - name: Payment result
+      form: choice
+      choices: [ charged, declined, refunded ]
+      description: What the provider said of a charge.
 relations:
   - diagrams.association:
       - from: Payment

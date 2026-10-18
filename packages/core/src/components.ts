@@ -186,9 +186,9 @@ export const DEFAULTS = {
 export const DRAWN: readonly string[] = ["card", "style", "line"];
 
 /** What each module honours, and the keys it owns of its own. */
-const CARD: readonly string[] = ["card", "style", "allows", "expects", "holder", "layout", "tie",
+const CARD: readonly string[] = ["card", "style", "allows", "holder", "layout", "tie",
                                  "records"];
-const WIRE: readonly string[] = ["line", "style", "allows", "expects"];
+const WIRE: readonly string[] = ["line", "style", "allows"];
 
 const MODULES: Record<string, { honours: readonly string[]; keys: readonly string[] }> = {
   ...Object.fromEntries(BLOCK_MODULES.map((m) => [m, { honours: CARD, keys: [] }])),
@@ -320,15 +320,6 @@ const allows: Component = {
   },
 };
 
-/** What a usage's values are asked for. Noted while modelling, refused only at translation. */
-const expects: Component = {
-  name: "expects",
-  check: (config) =>
-    words("expects.required", config["required"])
-    ?? words("expects.match", config["match"])
-    ?? stray("expects", config, ["required", "match"]),
-};
-
 
 /** How a layer places what it draws. An unknown kind is drawn as `auto`, never refused: a newer
  *  package names layouts an older build has not got. */
@@ -377,4 +368,4 @@ const records: Component = {
 };
 
 /** What this build publishes. */
-publish(allows, block, card, expects, holder, layout, line, records, style, tie);
+publish(allows, block, card, holder, layout, line, records, style, tie);

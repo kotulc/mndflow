@@ -7,7 +7,20 @@
       "sysml": {
         "id": "sysml",
         "parent": null,
-        "name": "sysml"
+        "name": "sysml",
+        "library": {
+          "constraints": [
+            {
+              "id": "sysml.constraint.requirement",
+              "name": "requirement values",
+              "description": "What a requirement must answer.",
+              "required": [
+                "id",
+                "text"
+              ]
+            }
+          ]
+        }
       },
       "sysml.blocks": {
         "id": "sysml.blocks",
@@ -85,16 +98,13 @@
         "body": "A requirement: an id and a shall statement.",
         "settings": {
           "card": {},
-          "expects": {
-            "required": [
-              "id",
-              "text"
-            ]
-          },
           "names": {
             "sysml": "«requirement»"
           }
-        }
+        },
+        "constraints": [
+          "sysml.constraint.requirement"
+        ]
       },
       "sysml.satisfy": {
         "id": "sysml.satisfy",

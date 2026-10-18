@@ -21,6 +21,19 @@ function element(graph: Graph, id: Id) {
   return graph.blocks[id] ?? graph.edges[id];
 }
 
+/** A library entry, in place in its package's library, so its settings write where it is held. */
+function entry_in(graph: Graph, id: Id) {
+  for (const b of Object.values(graph.blocks)) {
+    if (b.parent !== null || !b.library) continue;
+    for (const list of [b.library.types, b.library.tags, b.library.interfaces,
+                        b.library.constraints]) {
+      const hit = list?.find((e) => e.id === id);
+      if (hit) return hit;
+    }
+  }
+  return undefined;
+}
+
 /** Replay one mutation onto a graph, in place. */
 function apply(graph: Graph, m: Mutation): void {
   switch (m.op) {
@@ -158,10 +171,10 @@ function apply(graph: Graph, m: Mutation): void {
     case "flip_edge": {
       const e = graph.edges[m.id];
       if (!e) return;
-      const { fromPart, toPart, ends } = e;
+      const { fromPort, toPort, ends } = e;
       [e.from, e.to] = [e.to, e.from];
-      if (toPart) e.fromPart = toPart; else delete e.fromPart;
-      if (fromPart) e.toPart = fromPart; else delete e.toPart;
+      if (toPort) e.fromPort = toPort; else delete e.fromPort;
+      if (fromPort) e.toPort = fromPort; else delete e.toPort;
       /** What each end means turns with it. */
       if (ends) {
         e.ends = { ...(ends.to ? { from: ends.to } : {}), ...(ends.from ? { to: ends.from } : {}) };
@@ -171,30 +184,26 @@ function apply(graph: Graph, m: Mutation): void {
     case "set_end": {
       const e = graph.edges[m.id];
       if (!e) return;
-      e[m.end] = m.port;
-      const key = m.end === "from" ? "fromPart" : "toPart";
-      if (m.part) e[key] = m.part; else delete e[key];
+      e[m.end] = m.block;
+      const key = m.end === "from" ? "fromPort" : "toPort";
+      if (m.port) e[key] = m.port; else delete e[key];
       return;
     }
-    case "set_port": {
+    case "set_ports": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      if (m.seat) { b.side = m.seat.side; b.at = m.seat.at; }
-      else { delete b.side; delete b.at; }
-      return;
-    }
-    case "mark_port": {
-      const b = graph.blocks[m.id];
-      if (!b) return;
-      if (m.flow === null) delete b.flow;
-      else b.flow = m.flow;
+      if (m.ports?.length) b.ports = structuredClone(m.ports); else delete b.ports;
       return;
     }
     case "set_library": {
       const b = graph.blocks[m.id];
       if (!b) return;
       const lib = { ...(m.library?.types?.length ? { types: structuredClone(m.library.types) } : {}),
-                    ...(m.library?.tags?.length ? { tags: structuredClone(m.library.tags) } : {}) };
+                    ...(m.library?.tags?.length ? { tags: structuredClone(m.library.tags) } : {}),
+                    ...(m.library?.interfaces?.length
+                      ? { interfaces: structuredClone(m.library.interfaces) } : {}),
+                    ...(m.library?.constraints?.length
+                      ? { constraints: structuredClone(m.library.constraints) } : {}) };
       if (Object.keys(lib).length) b.library = lib; else delete b.library;
       return;
     }
@@ -232,6 +241,13 @@ function apply(graph: Graph, m: Mutation): void {
       else b.tags = [...new Set(m.tags.map((t) => t.trim()).filter(Boolean))];
       return;
     }
+    case "set_constraints": {
+      const b = element(graph, m.id);
+      if (!b) return;
+      if (m.constraints === null) delete b.constraints;
+      else b.constraints = [...new Set(m.constraints.map((t) => t.trim()).filter(Boolean))];
+      return;
+    }
     case "set_traits": {
       /** A definition's alone: a usage or a line carries its definition's. */
       const b = graph.blocks[m.id];
@@ -250,7 +266,8 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     }
     case "set_setting": {
-      const it = element(graph, m.id);
+      /** A library entry is styled where it is held, as a definition is. */
+      const it = element(graph, m.id) ?? entry_in(graph, m.id);
       if (!it) return;
       const held = { ...(it.settings?.[m.key] ?? {}) };
       if (m.value === null || m.value === undefined) delete held[m.name];

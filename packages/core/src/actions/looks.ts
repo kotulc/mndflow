@@ -33,12 +33,10 @@ register(
 );
 
 /** The component keys a look may set. */
-const LOOKS: readonly string[] = ["card", "style", "line", "layout", "tie", "allows", "expects",
-                                  "records"];
+const LOOKS: readonly string[] = ["card", "style", "line", "layout", "tie", "allows", "records"];
 
 /** Properties whose value is a list, split on commas. */
-const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.heads",
-                                  "expects.required", "expects.match"];
+const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.heads"];
 
 /** Capabilities that are nested records, stated only on a definition. */
 const NESTED: readonly string[] = ["ends", "degree"];

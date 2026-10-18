@@ -10,7 +10,7 @@ function token(): string {
 }
 
 export function new_id(kind: "block" | "edge" | "holder" | "def" | "rel" | "pkg" | "step"
-                         | "type" | "tag"): string {
+                         | "type" | "tag" | "port" | "interface" | "constraint"): string {
   return `${kind}_${token()}`;
 }
 

@@ -22,6 +22,17 @@
               ],
               "description": "How a requirement is shown to hold."
             }
+          ],
+          "constraints": [
+            {
+              "id": "requirements.constraint.requirement",
+              "name": "requirement values",
+              "description": "What a requirement must answer.",
+              "required": [
+                "id",
+                "shall"
+              ]
+            }
           ]
         }
       },
@@ -84,14 +95,11 @@
             "fill": "hatch",
             "border_contrast": "faint",
             "name_contrast": "faint"
-          },
-          "expects": {
-            "required": [
-              "id",
-              "shall"
-            ]
           }
-        }
+        },
+        "constraints": [
+          "requirements.constraint.requirement"
+        ]
       },
       "requirements.satisfy": {
         "id": "requirements.satisfy",

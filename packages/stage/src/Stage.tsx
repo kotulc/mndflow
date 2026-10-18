@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
-import { dir_of, is_interface, stands_for } from "@mnd/core";
+import { dir_of, stands_for } from "@mnd/core";
 
 /** One named menu entry; the shape the explorer's menu agrees on. */
 export type Entry = { name: string; label?: string; args?: Args };
@@ -116,8 +116,7 @@ function route_offers(id: string, graph: Graph): Entry[] {
 function bare_ends(id: string, graph: Graph): ("from" | "to")[] {
   const e = graph.edges[id];
   if (!e) return [];
-  return (["from", "to"] as const).filter((end) => !(end === "from" ? e.fromPart : e.toPart)
-    && !is_interface(graph, e[end]));
+  return (["from", "to"] as const).filter((end) => !(end === "from" ? e.fromPort : e.toPort));
 }
 
 /** Promoting what is bare: both ends, one, or nothing when both are interfaces already. */

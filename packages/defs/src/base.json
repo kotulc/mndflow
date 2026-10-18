@@ -4,6 +4,21 @@
   "graph": {
     "root": "base",
     "blocks": {
+      "attribute": {
+        "id": "attribute",
+        "parent": "base.dir.components",
+        "name": "attribute",
+        "type": "block",
+        "def": {},
+        "description": "A field a definition asks of its usages, and the value each answers. A component: its definition is a type, an enum or an alias, in its package's library; never a card, a layer or an explorer row.",
+        "order": 1,
+        "settings": {
+          "style": {
+            "hue": 75
+          }
+        },
+        "traits": []
+      },
       "base": {
         "id": "base",
         "parent": null,
@@ -75,6 +90,21 @@
           "has_ports",
           "has_values"
         ]
+      },
+      "constraint": {
+        "id": "constraint",
+        "parent": "base.dir.components",
+        "name": "constraint",
+        "type": "block",
+        "def": {},
+        "description": "A rule a block or a line is held to: the values it must answer, and on a line those its ends must agree on. A component: defined in its package's library and applied by id; advice, never a refusal.",
+        "order": 2,
+        "settings": {
+          "style": {
+            "hue": 350
+          }
+        },
+        "traits": []
       },
       "folder": {
         "id": "folder",
@@ -150,8 +180,8 @@
         "name": "interface",
         "type": "block",
         "def": {},
-        "description": "A block's boundary, seated on its wall: where relations and flows enter and leave. A component: never a card, a layer or an explorer row. Its type says what it carries.",
-        "order": 1,
+        "description": "A block's boundary, where relations and flows enter and leave: a port, data on any block that has ports, seated on its wall. A component: its definition is an interface definition in its package's library; never a card, a layer or an explorer row.",
+        "order": 3,
         "settings": {
           "style": {
             "family": "secondary",
@@ -159,7 +189,6 @@
           }
         },
         "traits": [
-          "has_values",
           "is_interface"
         ]
       },
@@ -266,6 +295,21 @@
           "has_parts",
           "is_region"
         ]
+      },
+      "tag": {
+        "id": "tag",
+        "parent": "base.dir.components",
+        "name": "tag",
+        "type": "block",
+        "def": {},
+        "description": "A word to find things by, and what it means. A component: defined in its package's library, carried by usages, lines and definitions; never a card, a layer or an explorer row.",
+        "order": 4,
+        "settings": {
+          "style": {
+            "hue": 300
+          }
+        },
+        "traits": []
       },
       "tie": {
         "id": "tie",

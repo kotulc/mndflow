@@ -7,7 +7,31 @@
       "architecture": {
         "id": "architecture",
         "parent": null,
-        "name": "architecture"
+        "name": "architecture",
+        "library": {
+          "interfaces": [
+            {
+              "id": "architecture.interface.http",
+              "name": "HTTP",
+              "description": "Requests and their responses over HTTP.",
+              "settings": {
+                "style": {
+                  "hue": 245
+                }
+              }
+            },
+            {
+              "id": "architecture.interface.events",
+              "name": "Events",
+              "description": "Messages published for whoever listens.",
+              "settings": {
+                "style": {
+                  "hue": 145
+                }
+              }
+            }
+          ]
+        }
       },
       "architecture.calls": {
         "id": "architecture.calls",
@@ -247,6 +271,20 @@
         "def": {},
         "body": "Use when an outside system must be reached without its model leaking into ours.",
         "order": 1,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.anti-corruption-layer.port.in",
+            "name": "in",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.anti-corruption-layer.port.out",
+            "name": "out",
+            "flow": "out",
+            "type": "architecture.interface.http"
+          }
+        ],
         "source": "patterns/anti-corruption-layer.yaml"
       },
       "architecture.yaml.patterns.anti-corruption-layer.1": {
@@ -305,24 +343,6 @@
         "alias": 4,
         "order": 7
       },
-      "architecture.yaml.patterns.anti-corruption-layer.8": {
-        "id": "architecture.yaml.patterns.anti-corruption-layer.8",
-        "parent": "architecture.yaml.patterns.anti-corruption-layer",
-        "name": "in",
-        "type": "interface",
-        "alias": 1,
-        "flow": "in",
-        "order": 8
-      },
-      "architecture.yaml.patterns.anti-corruption-layer.9": {
-        "id": "architecture.yaml.patterns.anti-corruption-layer.9",
-        "parent": "architecture.yaml.patterns.anti-corruption-layer",
-        "name": "out",
-        "type": "interface",
-        "alias": 2,
-        "flow": "out",
-        "order": 9
-      },
       "architecture.yaml.patterns.api-gateway": {
         "id": "architecture.yaml.patterns.api-gateway",
         "parent": "architecture.dir.patterns",
@@ -331,6 +351,31 @@
         "def": {},
         "body": "Use when many clients reach many services and each request should be checked once, at one way in.",
         "order": 2,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.api-gateway.port.requests",
+            "name": "requests",
+            "flow": "in",
+            "side": "left",
+            "at": 0.5,
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.api-gateway.port.routes",
+            "name": "routes",
+            "flow": "out",
+            "side": "right",
+            "at": 0.5,
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.api-gateway.port.admin",
+            "name": "admin",
+            "side": "bottom",
+            "at": 0.5,
+            "type": "architecture.interface.http"
+          }
+        ],
         "source": "patterns/api-gateway.yaml"
       },
       "architecture.yaml.patterns.api-gateway.1": {
@@ -340,16 +385,6 @@
         "type": "note",
         "alias": 5,
         "order": 1
-      },
-      "architecture.yaml.patterns.api-gateway.10": {
-        "id": "architecture.yaml.patterns.api-gateway.10",
-        "parent": "architecture.yaml.patterns.api-gateway",
-        "name": "admin",
-        "type": "interface",
-        "side": "bottom",
-        "alias": 5,
-        "at": 0.5,
-        "order": 10
       },
       "architecture.yaml.patterns.api-gateway.2": {
         "id": "architecture.yaml.patterns.api-gateway.2",
@@ -399,28 +434,6 @@
         "alias": 8,
         "order": 7
       },
-      "architecture.yaml.patterns.api-gateway.8": {
-        "id": "architecture.yaml.patterns.api-gateway.8",
-        "parent": "architecture.yaml.patterns.api-gateway",
-        "name": "requests",
-        "type": "interface",
-        "side": "left",
-        "alias": 3,
-        "at": 0.5,
-        "flow": "in",
-        "order": 8
-      },
-      "architecture.yaml.patterns.api-gateway.9": {
-        "id": "architecture.yaml.patterns.api-gateway.9",
-        "parent": "architecture.yaml.patterns.api-gateway",
-        "name": "routes",
-        "type": "interface",
-        "side": "right",
-        "alias": 4,
-        "at": 0.5,
-        "flow": "out",
-        "order": 9
-      },
       "architecture.yaml.patterns.circuit-breaker": {
         "id": "architecture.yaml.patterns.circuit-breaker",
         "parent": "architecture.dir.patterns",
@@ -429,6 +442,20 @@
         "def": {},
         "body": "Use when a remote call can hang or fail, and a failing dependency must not take its callers down with it.",
         "order": 3,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.circuit-breaker.port.in",
+            "name": "in",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.circuit-breaker.port.remote",
+            "name": "remote",
+            "flow": "out",
+            "type": "architecture.interface.http"
+          }
+        ],
         "source": "patterns/circuit-breaker.yaml"
       },
       "architecture.yaml.patterns.circuit-breaker.1": {
@@ -479,24 +506,6 @@
         "alias": 11,
         "order": 6
       },
-      "architecture.yaml.patterns.circuit-breaker.7": {
-        "id": "architecture.yaml.patterns.circuit-breaker.7",
-        "parent": "architecture.yaml.patterns.circuit-breaker",
-        "name": "in",
-        "type": "interface",
-        "alias": 6,
-        "flow": "in",
-        "order": 7
-      },
-      "architecture.yaml.patterns.circuit-breaker.8": {
-        "id": "architecture.yaml.patterns.circuit-breaker.8",
-        "parent": "architecture.yaml.patterns.circuit-breaker",
-        "name": "remote",
-        "type": "interface",
-        "alias": 7,
-        "flow": "out",
-        "order": 8
-      },
       "architecture.yaml.patterns.layered-architecture": {
         "id": "architecture.yaml.patterns.layered-architecture",
         "parent": "architecture.dir.patterns",
@@ -505,6 +514,14 @@
         "def": {},
         "body": "Use when one service owns its rules and its store, and every request should meet them in the same order.",
         "order": 4,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.layered-architecture.port.requests",
+            "name": "requests",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          }
+        ],
         "source": "patterns/layered-architecture.yaml"
       },
       "architecture.yaml.patterns.layered-architecture.1": {
@@ -571,15 +588,6 @@
         "alias": 13,
         "order": 8
       },
-      "architecture.yaml.patterns.layered-architecture.9": {
-        "id": "architecture.yaml.patterns.layered-architecture.9",
-        "parent": "architecture.yaml.patterns.layered-architecture",
-        "name": "requests",
-        "type": "interface",
-        "alias": 8,
-        "flow": "in",
-        "order": 9
-      },
       "architecture.yaml.patterns.saga-orchestrator": {
         "id": "architecture.yaml.patterns.saga-orchestrator",
         "parent": "architecture.dir.patterns",
@@ -588,6 +596,20 @@
         "def": {},
         "body": "Use when one business action spans several services, each with its own store, and a failed step must undo the ones before it.",
         "order": 5,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.saga-orchestrator.port.start",
+            "name": "start",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.saga-orchestrator.port.bus",
+            "name": "bus",
+            "flow": "both",
+            "type": "architecture.interface.events"
+          }
+        ],
         "source": "patterns/saga-orchestrator.yaml"
       },
       "architecture.yaml.patterns.saga-orchestrator.1": {
@@ -638,24 +660,6 @@
         "alias": 18,
         "order": 6
       },
-      "architecture.yaml.patterns.saga-orchestrator.7": {
-        "id": "architecture.yaml.patterns.saga-orchestrator.7",
-        "parent": "architecture.yaml.patterns.saga-orchestrator",
-        "name": "start",
-        "type": "interface",
-        "alias": 9,
-        "flow": "in",
-        "order": 7
-      },
-      "architecture.yaml.patterns.saga-orchestrator.8": {
-        "id": "architecture.yaml.patterns.saga-orchestrator.8",
-        "parent": "architecture.yaml.patterns.saga-orchestrator",
-        "name": "bus",
-        "type": "interface",
-        "alias": 10,
-        "flow": "both",
-        "order": 8
-      },
       "architecture.yaml.patterns.transactional-outbox": {
         "id": "architecture.yaml.patterns.transactional-outbox",
         "parent": "architecture.dir.patterns",
@@ -664,6 +668,20 @@
         "def": {},
         "body": "Use when a state change must announce itself, and neither the change nor the announcement may be lost.",
         "order": 6,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.transactional-outbox.port.requests",
+            "name": "requests",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.transactional-outbox.port.events",
+            "name": "events",
+            "flow": "out",
+            "type": "architecture.interface.events"
+          }
+        ],
         "source": "patterns/transactional-outbox.yaml"
       },
       "architecture.yaml.patterns.transactional-outbox.1": {
@@ -673,24 +691,6 @@
         "type": "note",
         "alias": 19,
         "order": 1
-      },
-      "architecture.yaml.patterns.transactional-outbox.10": {
-        "id": "architecture.yaml.patterns.transactional-outbox.10",
-        "parent": "architecture.yaml.patterns.transactional-outbox",
-        "name": "requests",
-        "type": "interface",
-        "alias": 11,
-        "flow": "in",
-        "order": 10
-      },
-      "architecture.yaml.patterns.transactional-outbox.11": {
-        "id": "architecture.yaml.patterns.transactional-outbox.11",
-        "parent": "architecture.yaml.patterns.transactional-outbox",
-        "name": "events",
-        "type": "interface",
-        "alias": 12,
-        "flow": "out",
-        "order": 11
       },
       "architecture.yaml.patterns.transactional-outbox.2": {
         "id": "architecture.yaml.patterns.transactional-outbox.2",
@@ -762,7 +762,8 @@
         "id": "architecture.yaml.patterns.anti-corruption-layer.r1",
         "type": "architecture.calls",
         "alias": 1,
-        "from": "architecture.yaml.patterns.anti-corruption-layer.8",
+        "from": "architecture.yaml.patterns.anti-corruption-layer",
+        "fromPort": "architecture.yaml.patterns.anti-corruption-layer.port.in",
         "to": "architecture.yaml.patterns.anti-corruption-layer.2"
       },
       "architecture.yaml.patterns.anti-corruption-layer.r2": {
@@ -784,7 +785,8 @@
         "type": "architecture.integrates",
         "alias": 4,
         "from": "architecture.yaml.patterns.anti-corruption-layer.6",
-        "to": "architecture.yaml.patterns.anti-corruption-layer.9"
+        "to": "architecture.yaml.patterns.anti-corruption-layer",
+        "toPort": "architecture.yaml.patterns.anti-corruption-layer.port.out"
       },
       "architecture.yaml.patterns.anti-corruption-layer.t3": {
         "id": "architecture.yaml.patterns.anti-corruption-layer.t3",
@@ -811,7 +813,8 @@
         "id": "architecture.yaml.patterns.api-gateway.r1",
         "type": "architecture.calls",
         "alias": 8,
-        "from": "architecture.yaml.patterns.api-gateway.8",
+        "from": "architecture.yaml.patterns.api-gateway",
+        "fromPort": "architecture.yaml.patterns.api-gateway.port.requests",
         "to": "architecture.yaml.patterns.api-gateway.2"
       },
       "architecture.yaml.patterns.api-gateway.r2": {
@@ -833,7 +836,8 @@
         "type": "architecture.calls",
         "alias": 11,
         "from": "architecture.yaml.patterns.api-gateway.6",
-        "to": "architecture.yaml.patterns.api-gateway.9"
+        "to": "architecture.yaml.patterns.api-gateway",
+        "toPort": "architecture.yaml.patterns.api-gateway.port.routes"
       },
       "architecture.yaml.patterns.api-gateway.t3": {
         "id": "architecture.yaml.patterns.api-gateway.t3",
@@ -860,7 +864,8 @@
         "id": "architecture.yaml.patterns.circuit-breaker.r1",
         "type": "architecture.calls",
         "alias": 15,
-        "from": "architecture.yaml.patterns.circuit-breaker.7",
+        "from": "architecture.yaml.patterns.circuit-breaker",
+        "fromPort": "architecture.yaml.patterns.circuit-breaker.port.in",
         "to": "architecture.yaml.patterns.circuit-breaker.2"
       },
       "architecture.yaml.patterns.circuit-breaker.r2": {
@@ -880,7 +885,8 @@
             "dir": "forward"
           }
         },
-        "to": "architecture.yaml.patterns.circuit-breaker.8"
+        "to": "architecture.yaml.patterns.circuit-breaker",
+        "toPort": "architecture.yaml.patterns.circuit-breaker.port.remote"
       },
       "architecture.yaml.patterns.circuit-breaker.r4": {
         "id": "architecture.yaml.patterns.circuit-breaker.r4",
@@ -912,7 +918,8 @@
         "id": "architecture.yaml.patterns.layered-architecture.r1",
         "type": "architecture.calls",
         "alias": 21,
-        "from": "architecture.yaml.patterns.layered-architecture.9",
+        "from": "architecture.yaml.patterns.layered-architecture",
+        "fromPort": "architecture.yaml.patterns.layered-architecture.port.requests",
         "to": "architecture.yaml.patterns.layered-architecture.2"
       },
       "architecture.yaml.patterns.layered-architecture.r2": {
@@ -961,7 +968,8 @@
         "id": "architecture.yaml.patterns.saga-orchestrator.r1",
         "type": "architecture.calls",
         "alias": 28,
-        "from": "architecture.yaml.patterns.saga-orchestrator.7",
+        "from": "architecture.yaml.patterns.saga-orchestrator",
+        "fromPort": "architecture.yaml.patterns.saga-orchestrator.port.start",
         "to": "architecture.yaml.patterns.saga-orchestrator.2"
       },
       "architecture.yaml.patterns.saga-orchestrator.r2": {
@@ -981,7 +989,8 @@
             "dir": "both"
           }
         },
-        "to": "architecture.yaml.patterns.saga-orchestrator.8"
+        "to": "architecture.yaml.patterns.saga-orchestrator",
+        "toPort": "architecture.yaml.patterns.saga-orchestrator.port.bus"
       },
       "architecture.yaml.patterns.saga-orchestrator.r4": {
         "id": "architecture.yaml.patterns.saga-orchestrator.r4",
@@ -1013,7 +1022,8 @@
         "id": "architecture.yaml.patterns.transactional-outbox.r1",
         "type": "architecture.calls",
         "alias": 34,
-        "from": "architecture.yaml.patterns.transactional-outbox.10",
+        "from": "architecture.yaml.patterns.transactional-outbox",
+        "fromPort": "architecture.yaml.patterns.transactional-outbox.port.requests",
         "to": "architecture.yaml.patterns.transactional-outbox.2"
       },
       "architecture.yaml.patterns.transactional-outbox.r2": {
@@ -1054,7 +1064,8 @@
         "type": "architecture.publishes",
         "alias": 39,
         "from": "architecture.yaml.patterns.transactional-outbox.8",
-        "to": "architecture.yaml.patterns.transactional-outbox.11"
+        "to": "architecture.yaml.patterns.transactional-outbox",
+        "toPort": "architecture.yaml.patterns.transactional-outbox.port.events"
       },
       "architecture.yaml.patterns.transactional-outbox.t4": {
         "id": "architecture.yaml.patterns.transactional-outbox.t4",

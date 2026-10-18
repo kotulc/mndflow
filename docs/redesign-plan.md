@@ -1,32 +1,28 @@
 # Redesign plan
 
-**What the model's elements are, and the steps that built them: agreed 2026-10-15, built in two passes on 2026-10-16, then a review pass the same day; the component model and registries agreed and the first of it built 2026-10-17.** Blocks carry meaning; everything simpler is a component a block carries, an annotation on a layer, or organization. design.md and definitions.md now state the result; this plan holds what is left, what is open, the decisions behind it, and how to pick up. **Once it is finished, next-plan.md is revised from it.**
+**What the model's elements are, and the steps that built them: agreed 2026-10-15, built in two passes on 2026-10-16, then a review pass the same day; the component model and registries agreed and the first of it built 2026-10-17; the rest of the component model built 2026-10-18.** Blocks carry meaning; everything simpler is a component a block carries, an annotation on a layer, or organization. design.md and definitions.md now state the result; this plan holds what is left, what is open, the decisions behind it, and how to pick up. **Once it is finished, next-plan.md is revised from it.**
 
 
 ## Where things stand
 
 | | |
 |---|---|
-| **committed** | the first pass, the second and the review pass (47ac49a … f6cfde4); the tray keys, chip colour and the registry's tray tab (4c16213, *Draft registry tab*). See *Built*, *Review pass* and *Components and registries* |
-| **built, uncommitted (2026-10-17)** | registries on the canvas — the `registry` view, a treemap by home folder, zooming into an entry's uses; the `treemap` layout for container blocks (new `views/src/treemap.ts`); the showcase tagged, with *System › Estate* as a treemap layer (new `System/5-estate.yaml`); the docs. See *Components and registries* |
-| **suggested commit** | *Open registries on the canvas as treemaps that zoom into an entry's uses; add a treemap layout for container blocks; tag the showcase* |
+| **committed** | the first pass, the second and the review pass (47ac49a … f6cfde4); the tray keys, chip colour and the registry's tray tab (4c16213); canvas treemaps (f597e3f). See *Built*, *Review pass* and *Components and registries* |
+| **built, uncommitted (2026-10-18)** | treemap polish; base component roots; *Remaining work* 12, 13, 14, 15 and 17 — ports as data, the one resolver, types as attribute definitions, the components tab, constraints; the docs. See *Component model* |
+| **suggested commit** | *Make ports data and library entries definitions: one resolver over both, interface definitions and constraints as entries, a components tab, entry colours on registry tiles* |
+| **verified (2026-10-18)** | `npm run typecheck` clean; `npm test` 286/287, the one failure pre-existing; `npm run lint:css` clean; showcase `check` clean. Driven in Edge: *Containers* with its ports seated and a port picked (its keys, interface definition chips); the tags registry with tiles edged by their tag's colour, parent tags extended; architecture's interfaces registry and HTTP's uses; *API gateway* opened, its room's ports and lines; the components tab on *Gateway* and *Payment* (ports read through, typed attributes in their type's colour, USD read from *Money*, tags and constraints as coloured chips); the constraints registry. No console errors |
 | **verified (2026-10-17)** | `npm run typecheck` clean; `npm test` 286/287, the one failure pre-existing (*Known issues*); `npm run lint:css` clean; showcase `check` clean. Driven in Edge on the showcase: the card tab at tray widths 1198, 758 and 398 with a long description and a definition's coloured chips; the tags registry in the tray, matrix and list, with fourteen tags seeded, the readout and crosshair; the tags and types registries opened from the library on the canvas, a tile picked (the tray shows the tag), double-clicked into its uses (the camera flies from the tile), a card there picked, back up the crumbs; *Estate* as a treemap with its groups and its note beside; no console errors. No new tests: the design is still moving |
 | **reviewed** | 10-16 passes as below; the review pass and this session's work not yet code-reviewed |
-| **next** | a code review of the review pass and of *Components and registries*; then the component model's remaining steps (*Remaining work* 12–16); the user answers *Open questions*; then next-plan.md is revised |
+| **next** | the user reacts to item 16's mockup; a code review of the review pass, *Components and registries* and *Component model*; the user answers *Open questions*; then next-plan.md is revised |
 
 
 ## Remaining work
 
 | # | Work | Done when |
 |---|---|---|
-| 8 | **mndmap rows on regions** | mndmap's content rows are regions, on its next re-pin of the kit (see *Known issues*, kit) |
-| 11 | **regions, stage B** | a diagram dropped into a region draws open; relations join its interfaces across bands (needs open question 4) |
-| 12 | **ports as data** | interfaces leave `blocks`: `Block.ports`, keyed by id, on any block that *has ports*; interface definitions are library entries; lines name a port by id; `ports_of`, `ports_on`, `through.ts`, the tray's interface keys and the CLI follow; base, catalogue and showcase regenerated. Gives the interfaces registry |
-| 13 | **one resolver** | `setting_of` (core `defs.ts`) reads a link by id from block definitions and library entries alike, whole chain, nearest first; library entries gain `type` (what they extend) and `settings`; a component definition styled as a block definition is |
-| 14 | **types as attribute definitions** | a type carries its format, unit and look, read by the one resolver; the attribute table and the class and entity faces read them |
-| 15 | **the components tab** | the tray lists everything a block carries — ports, attributes, tags — in one tab (decided after 12–14) |
-| 16 | **purpose first** | a block's first tab says, visually, why it matters and how it is used — its content or its diagram — rather than its keys |
-| 17 | **constraints** | `expects` becomes a component: a rule in the library, applied to blocks, with its own registry |
+| 8 | **mndmap rows on regions** | mndmap's content rows are regions, on its next re-pin of the kit (see *Known issues*, kit). In mndmap, not this repo |
+| 11 | **regions, stage B** | a diagram dropped into a region draws open; relations join its interfaces across bands. **Deferred** by the user 2026-10-18 for a design session (open question 4) |
+| 16 | **purpose first** | a block's first tab says, visually, why it matters and how it is used — its content or its diagram — rather than its keys. **Mockup first** (user, 2026-10-18): the artifact *Purpose First Tab*; built once the user reacts |
 
 
 ## Open questions
@@ -57,10 +53,12 @@
 | **empty region, layered** | a region made empty on a `layered` layer lands over a card: `layered` places a band as a node and never spans it (views `layered.ts`) |
 | **picked region** | draws a full outline rather than its band |
 | **empty-layer words** | centred on the canvas rather than the room, so on a small room they run past its frame (stage `stage.css` `.empty`) |
-| **narrow tiles** | a treemap with few, uneven weights gives a lone light tile a thin slice (an entry's single use in a second folder), its name cut short; the title says it whole |
+| **narrow tiles** | eased by binary tiling and a registry's weight floor (2026-10-18); a box's walls still take a share of a small map |
 | **treemap room** | *Estate*'s room is wider than its map: the room takes the layer's least size and the canvas's page |
 | **registry scale** | registries are worked out on every draw and rescan every block per entry (`users_of`); a per-graph index (see *speed*) would serve them |
 | **speed** | every library lookup (`tag_at`, `type_at`, `is_tag`, `library_home`) rescans every package; `uses_of`, `project` and `form_of` ask per element, so large workspaces go quadratic. A per-graph index fits, built where nothing mutates (`sources.ts` writes libraries while reading them) |
+| **entry styling** | an entry's look is set by hue chips on its tray keys only; the definition settings tab (parts, families, borders) does not yet serve entries |
+| **port colour** | a typed port's seat is filled with its interface definition's colour on a card; ports on the room's wall (drawn by the frame) are not yet |
 | **kit** | not re-released; `packages/kit/.types` is stale. mndmap's re-pin meets: the library; interfaces as blocks (`fromPart`/`toPart`); `ends`; views `class` and `er` (was `table`); sections `library` and `model` (was `definitions`, `structure`); no definition view; attribute `key` a word; the trail from the package down (`trail_of`), and `Crumbs` taking `head`, Stage's `view` prop gone; `Chain.drawn` gone; `layer_of`, `drawn_in`, `holders_in`, `edges_in` and `inline` without `flat`; `users_of` ids, lines included — besides the renames in next-plan.md *Rough edges* |
 
 
@@ -90,9 +88,14 @@
 | **components** | a component is defined once in a package's library and carried by blocks as data: interfaces (ports), attributes (types their definitions), tags; constraints later. A block is a part, abstract or concrete, and may have layers and children. A behaviour stays a block; traits stay the engine's; records stay values (2026-10-17) |
 | **ports** | data on any block that *has ports*, keyed by id; reverses *interfaces as blocks* (2026-10-17) |
 | **resolver** | one resolver over block definitions and library entries, whole chain — never a second rule for components (2026-10-17) |
-| **registries** | one per package per component kind, worked out, never stored, listed in the library as a block is; its *entries* and their *uses*. Opened, a treemap by home folder (*across folders*, *no uses*), an entry zoomed into its uses; the tray reads it as a matrix and a list. Tried and dropped: a matrix in the canvas's place (out of place), folder header rows in the matrix (list-like), upright and slanted column names (2026-10-17) |
+| **registries** | one per package per component kind, worked out, never stored, listed in the library as a block is; its *entries* and their *uses*. Opened, a treemap by home folder (*[multiple]*, *[no uses]*), an entry zoomed into its uses; the tray reads it as a matrix and a list. Tried and dropped: a matrix in the canvas's place (out of place), folder header rows in the matrix (list-like), upright and slanted column names (2026-10-17) |
 | **treemaps** | a layout kind, `treemap`, a definition asks for: each block as large as what it holds; registries use it. Uniform cards stay every other layout's (2026-10-17) |
 | **tray keys** | one line each, cut short; the whole value in the choices; a definition's chip in its colour (2026-10-17) |
+| **ports** | an ordered list on the block, each with an id a line's end names with its block (`fromPort`); one `set_ports` writes them whole. Drawn as `block/port` (2026-10-18) |
+| **entries** | every library entry has `type` (another of its kind) and `settings`; extending nothing, its kind's base: `attribute`, `tag`, `interface`, `constraint`, each a base definition with its own hue, never made a block (domain `component`) (2026-10-18) |
+| **constraints** | `expects` only: `required` and `match`, applied by id and inherited as tags; `allows`, `degree` and `ends` stay settings (2026-10-18) |
+| **components tab** | replaces the attributes tab on blocks, lines and both definitions: attributes, ports, tags, constraints (2026-10-18) |
+| **treemap accents** | a registry tile's left edge wears its entry's colour; a block in an entry's uses is drawn as anywhere; a `treemap` layout's cards keep the plain ground and edge (2026-10-18) |
 
 
 ## Built
@@ -130,6 +133,23 @@
 | registry view | a `registry` view kind; opened from the library's *types* and *tags* rows; entries by home folder; an entry's uses; leaving and holding | core `navigate.ts`, `sections.ts`, `components.ts`, actions `blocks.ts`; views `registry.ts`, `block.ts`; stage `nodes.tsx` `Tile`, `flow.css`; options `groups.ts`; web `App.tsx` |
 | treemap layout | `layout.kind: treemap`, on d3-hierarchy | views `treemap.ts`, `arrange.ts`; core `types.ts` `LAYOUTS` |
 | showcase | eleven tags across Containers, Context, Store and the flows; *System › Estate*, the showcase's diagrams as a treemap | `samples/showcase/src` |
+| base components (2026-10-18) | base `attribute` and `tag` beside `interface` in *components*; core `BASE_COMPONENTS`, domain `component`; making or retyping a block to one is refused; the tray's definitions add a *components* chip. Library entries do not yet extend them (13) | `packages/defs/src/base/components`; core `types.ts`, `defs.ts` `domain_of`, actions `blocks.ts`; tray `Definitions.tsx` |
+| treemap polish (2026-10-18) | binary tiling; a registry's lightest tile half its heaviest; a lone box left out; *[multiple]*, *[no uses]*; a tiled card on a plain ground, its definition's colour on its left edge (mark `tiled`); the showcase's types `Money`, `Payment result`, `Sku`, `Email` | views `treemap.ts`, `registry.ts`, `block.ts`; stage `flow.css`, `nodes.tsx`; `samples/showcase/src/Records` |
+
+
+## Component model
+
+**Built 2026-10-18, uncommitted.** code-homes.md has the homes.
+
+| Part | Built | Home |
+|---|---|---|
+| treemap polish | binary tiling; a registry's lightest tile half its heaviest; a lone box left out; *[multiple]*, *[no uses]*; tiles edged in their entry's colour | views `treemap.ts`, `registry.ts`, `look.ts` `entry_look`; stage `nodes.tsx`, `flow.css` |
+| ports as data (12) | `Block.ports`, `Relation.fromPort`/`toPort`, op `set_ports`; `set_port`, `mark_port` and interface blocks gone; YAML `ports:` (with `note`); interfaces registry | core `types.ts`, `tree.ts`, `fold.ts`, `sources.ts`, `diagram.ts`, actions; views `through.ts`; tray `components.ts`; CLI `sysml.ts` |
+| one resolver (13) | library entries gain `type` and `settings`; `chain_by` reads them as definitions; `look` and `define_*` write them; tray *extends* and *colour* keys on entries | core `defs.ts`, `library.ts`, `fold.ts`, actions `named.ts`; tray `components.ts` |
+| types (14) | `Type.format`; `unit_of`, `format_of` down the type's chain; faces and the attribute table read them; a type in its colour | core `defs.ts`; views `face.ts`; tray `Attributes.tsx` |
+| components tab (15) | attributes, ports (with *add port*), tags, constraints | tray `Carried.tsx`, `Tray.tsx` |
+| constraints (17) | `Library.constraints`, `constraints` on blocks and lines, `expects_of` from them; the `expects` setting gone; actions `constrain`, `define_constraint`; registry; card key | core `capabilities.ts`, `library.ts`, actions `named.ts`; tray `pairs.ts`, `components.ts` |
+| data | base `attribute`, `constraint`, `tag` beside `interface`; architecture's `HTTP` and `Events`; the showcase's types, a tag hierarchy with colours, the `owned` constraint; `doc`, `requirements`, `sysml` package files converted by hand (no source folders) | `packages/defs/src`, `samples/showcase/src`, `public/packages` |
 
 
 ## Review pass

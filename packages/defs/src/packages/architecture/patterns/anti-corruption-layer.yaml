@@ -13,11 +13,12 @@ blocks:
   - name: Client
     type: component
     note: The only part that speaks the outside protocol.
+ports:
   - name: in
-    type: interface
+    type: HTTP
     flow: in
   - name: out
-    type: interface
+    type: HTTP
     flow: out
 relations:
   - calls: [ in -> Facade, Facade -> Translator, Translator -> Client ]

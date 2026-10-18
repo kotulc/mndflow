@@ -13,6 +13,7 @@ export type Entry = {
   type?: string;
   def?: { attributes?: Record<string, unknown>[]; ends?: Ends };
   tags?: string[];
+  constraints?: string[];
   traits?: string[];
   settings?: Record<string, unknown>;
   description?: string;
@@ -23,8 +24,11 @@ export type Entry = {
   parent?: string;
   /** Where it was written inside another entry: that entry's place in `blocks`. */
   under?: number;
-  /** A note written on another entry is tied to it: that entry's place in `blocks`. */
+  /** A note written on another entry is tied to it: that entry's place in `blocks`, or -1 for the
+   *  file's block. */
   tied?: number;
+  /** A note written on a port: the port's name, on the entry it is tied to. */
+  port?: string;
   /** Its cell: row and column, each a header's name or a number. */
   cell?: [string | number, string | number];
   grid?: { merges?: unknown[] };
@@ -33,10 +37,13 @@ export type Entry = {
   records?: Record<string, string>[];
   w?: number;
   h?: number;
-  side?: string;
-  at?: number;
-  flow?: string;
+  /** Its ports, in order. */
+  ports?: PortEntry[];
 };
+
+/** A port as a file states it: its name, and its interface definition by name. */
+export type PortEntry = { name: string; type?: string; description?: string; flow?: string;
+                          side?: string; at?: number; note?: string };
 
 /** A relation as a file states it: its ends by name or path. */
 export type Edge = {
@@ -47,6 +54,7 @@ export type Edge = {
   /** The way an arrow said it points; the source folder stores it where the type says otherwise. */
   dir?: Dir;
   tags?: string[];
+  constraints?: string[];
   settings?: Record<string, unknown>;
   values: Value[];
   /** What its ends mean: multiplicity and role, as a line may say them. */
@@ -56,10 +64,15 @@ export type Edge = {
 /** A file, spelled out: its block, the blocks it holds in file order, its relations, the packages
  *  it uses, and the named components it adds to its package's library. */
 export type LongForm = { top: Entry; blocks: Entry[]; relations: Edge[]; packages: string[];
-                         library: { types: Record<string, unknown>[]; tags: Record<string, unknown>[] } };
+                         library: LibrarySaid };
+
+/** The named components a file adds to its package's library, by kind. */
+export type LibrarySaid = { types: Record<string, unknown>[]; tags: Record<string, unknown>[];
+                            interfaces: Record<string, unknown>[];
+                            constraints: Record<string, unknown>[] };
 
 /** The keys a relation says itself with. Any other key is a value. */
-const EDGE_KEYS = ["from", "to", "type", "name", "dir", "tags", "settings", "values",
+const EDGE_KEYS = ["from", "to", "type", "name", "dir", "tags", "constraints", "settings", "values",
                    "ends"] as const;
 
 /** The arrows an edge is written with, and the way each points. */
@@ -78,6 +91,7 @@ export function long_form(front: Map, body?: string): LongForm {
   const said = typeof front["note"] === "string" ? front["note"].trim() : "";
   /** A note on the file is about its whole layer: untied, it floats beside all of it. */
   if (said) blocks.push({ name: said, type: "note", values: [] });
+  noted(top, -1, undefined, blocks);
   held(front, undefined, blocks);
   const relations = listed(front["relations"], "relations").flatMap(edges);
   const packages = listed(front["packages"], "packages").map((p) => said_as(p).trim())
@@ -85,7 +99,9 @@ export function long_form(front: Map, body?: string): LongForm {
   const lib = (front["library"] ?? {}) as Map;
   const named = (key: string) => listed(lib[key], `library.${key}`)
     .map((item) => (typeof item === "string" ? { name: item } : item as Map));
-  return { top, blocks, relations, packages, library: { types: named("types"), tags: named("tags") } };
+  return { top, blocks, relations, packages,
+           library: { types: named("types"), tags: named("tags"), interfaces: named("interfaces"),
+                      constraints: named("constraints") } };
 }
 
 /** Whether a word is an edge: two names either side of an arrow. */
@@ -111,8 +127,16 @@ function held(map: Map, under: number | undefined, out: Entry[]): void {
       const said = typeof inner?.["note"] === "string" ? inner["note"].trim() : "";
       if (said) out.push({ ...note_on(said, e.parent ? undefined : under, at),
                            ...(e.parent ? { parent: e.parent } : {}) });
+      noted(e, at, e.parent ? undefined : under, out);
       if (inner) held(inner, at, out);
     }
+  }
+}
+
+/** The notes written on an entry's ports, each tied to its port. */
+function noted(e: Entry, at: number, under: number | undefined, out: Entry[]): void {
+  for (const p of e.ports ?? []) {
+    if (p.note) out.push({ ...note_on(p.note, under, at), port: p.name });
   }
 }
 
@@ -152,15 +176,14 @@ function entry(map: Map): Entry {
   set("source", word("source"));
   set("of", word("of"));
   set("parent", word("parent"));
-  set("side", word("side"));
-  set("flow", word("flow"));
   set("w", num("w"));
   set("h", num("h"));
-  set("at", num("at"));
+  if ("ports" in map) e.ports = listed(map["ports"], "ports").map(port_of);
   if ("def" in map) {
     e.def = (map["def"] && typeof map["def"] === "object" ? map["def"] : {}) as Entry["def"];
   }
   if ("tags" in map) e.tags = names_in(map["tags"]);
+  if ("constraints" in map) e.constraints = names_in(map["constraints"]);
   if ("traits" in map) e.traits = names_in(map["traits"]);
   if (map["settings"] && typeof map["settings"] === "object") e.settings = map["settings"] as Map;
   if (map["grid"] && typeof map["grid"] === "object") e.grid = map["grid"] as Entry["grid"];
@@ -170,6 +193,23 @@ function entry(map: Map): Entry {
   }
   set("cell", cell_of(map["cell"]));
   return e;
+}
+
+/** One item of `ports`: a name, or a map of what it says. */
+function port_of(item: unknown): PortEntry {
+  if (typeof item === "string") return { name: item.trim() };
+  if (!item || typeof item !== "object" || Array.isArray(item)) {
+    throw new Error(`a port is a name or a map: ${said_as(item)}`);
+  }
+  const map = item as Map;
+  const word = (key: string) => (map[key] === undefined ? undefined : said_as(map[key]).trim());
+  const out: PortEntry = { name: word("name") ?? "" };
+  for (const key of ["type", "description", "flow", "side", "note"] as const) {
+    const said = word(key);
+    if (said) out[key] = said;
+  }
+  if (typeof map["at"] === "number") out.at = map["at"];
+  return out;
 }
 
 /** A cell: `[row, col]`, or `{ r, c }` as the schema stores it. */

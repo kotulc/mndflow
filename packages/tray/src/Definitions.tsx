@@ -54,7 +54,7 @@ export function Definitions({ graph, about, follows, lines, target = "the select
    *  the context moves on a chip, and what is followed says so on its own row. */
   const [lit, set_lit] = useState<Id | null>(null);
   const [only, set_only] = useState<Only>(seed.only);
-  const [group, set_group] = useState<"all" | "block" | "relation">(seed.group ?? "all");
+  const [group, set_group] = useState<"all" | Domain>(seed.group ?? "all");
   /** Which package, where the explorer pointed at one. No chip picks it. */
   const from = seed.from ?? "all";
   const [name, set_name] = useState("");

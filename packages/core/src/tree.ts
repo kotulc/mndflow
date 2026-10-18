@@ -2,8 +2,8 @@
 
 import { isa, module_of, setting_of } from "./defs";
 import { drawn_in } from "./holders";
-import { LAYOUTS, type Block, type Definition, type Graph, type Id, type Layout,
-         type Relation } from "./types";
+import { LAYOUTS, type Block, type Definition, type Flow, type Graph, type Id, type Layout,
+         type Port, type Relation } from "./types";
 
 
 /** Every block under this one, itself included. */
@@ -63,31 +63,49 @@ export function path(graph: Graph, id: Id): Block[] {
   return out;
 }
 
-/** Whether a block is an interface: a usage whose kind runs the `interface` module. An interface
- *  definition is a definition, and lists as one. */
+/** A port as a block wears it, and the block holding it: its own, or a definition's down its
+ *  chain, where an edit to it goes home. */
+export type Worn = Port & { holder: Id };
+
+/** Whether an id names an interface: a port as drawn, `block/port`, or a block laid in for one,
+ *  whose kind runs the `interface` module. */
 export function is_interface(graph: Graph, id: Id): boolean {
+  if (port_at(graph, id)) return true;
   const b = graph.blocks[id];
   return !!b && !b.def && module_of(graph, id) === "interface";
 }
 
-/** A definition's interfaces: its own, then those its chain declares, nearest first.
- *  **Interfaces inherit**, as attributes do; parts never. Each keeps its id, so an edit to one goes
- *  home to the block holding it. */
-export function ports_of(graph: Graph, def: Id | undefined): Block[] {
+/** A definition's ports: its own, then those its chain declares, nearest first. **Ports
+ *  inherit**, as attributes do; parts never. Each keeps its id and holder. */
+export function ports_of(graph: Graph, def: Id | undefined): Worn[] {
   return isa(graph, def).flatMap((d) => own_ports(graph, d.id));
 }
 
-/** The interfaces a block wears: a definition its chain's; a usage its own, then its
- *  definition's, read through. **Any block may have its own.** */
-export function ports_on(graph: Graph, id: Id): Block[] {
+/** The ports a block wears: a definition its chain's; a usage its own, then its definition's,
+ *  read through. **Any block may have its own.** */
+export function ports_on(graph: Graph, id: Id): Worn[] {
   const b = graph.blocks[id];
   if (!b) return [];
   return b.def ? ports_of(graph, b.id) : [...own_ports(graph, id), ...ports_of(graph, b.type)];
 }
 
-/** The interfaces a block holds itself. */
-function own_ports(graph: Graph, id: Id): Block[] {
-  return children(graph, id).filter((b) => is_interface(graph, b.id));
+/** The ports a block holds itself. */
+function own_ports(graph: Graph, id: Id): Worn[] {
+  return (graph.blocks[id]?.ports ?? []).map((p) => ({ ...p, holder: id }));
+}
+
+/** The port an id as drawn names — `block/port` — and the block it is drawn on. */
+export function port_at(graph: Graph, id: Id | undefined): (Worn & { on: Id }) | undefined {
+  const at = id ? id.lastIndexOf(PART) : -1;
+  if (!id || at < 0) return undefined;
+  const on = id.slice(0, at);
+  const port = ports_on(graph, on).find((p) => p.id === id.slice(at + PART.length));
+  return port ? { ...port, on } : undefined;
+}
+
+/** Which way an interface carries: in, out, or both, which is what unsaid reads. */
+export function flow_of(graph: Graph, id: Id): Flow {
+  return port_at(graph, id)?.flow ?? "both";
 }
 
 /** Whether a block is a reference: a usage whose chain carries *is reference*, which runs the
@@ -154,7 +172,8 @@ export function part_id(usage: Id, part: Id): Id {
   return `${usage}${PART}${part}`;
 }
 
-/** An end as drawn, read back: the block, and the part of its definition it names, if any. */
+/** An end as drawn, read back: the block, and the part of its definition or port it names, if
+ *  any. */
 export function part_end(graph: Graph, id: Id): { block: Id; part?: Id } {
   const at = id.indexOf(PART);
   if (graph.blocks[id] || at < 0) return { block: id };

@@ -3,13 +3,20 @@ packages: [architecture]
 settings:
   layout: { kind: layered }
 note: Every service is a usage of a catalogue pattern. Open one to see the pattern inside it.
+library:
+  constraints:
+    - name: owned
+      description: Every service names the team that runs it.
+      required: [ owner ]
 blocks:
   - name: Storefront
+    constraints: [ owned ]
     type: service
     owner: Web
     technology: React
     tags: [ customer facing ]
   - name: Gateway
+    constraints: [ owned ]
     type: API gateway
     owner: Platform
     technology: Envoy
@@ -18,16 +25,19 @@ blocks:
       style:
         hue: 200
   - name: Checkout
+    constraints: [ owned ]
     type: Saga orchestrator
     owner: Commerce
     technology: Go
     tags: [ orders, payments, critical ]
   - name: Order service
+    constraints: [ owned ]
     type: Transactional outbox
     owner: Commerce
     technology: Java
     tags: [ orders, pii ]
   - name: Payment service
+    constraints: [ owned ]
     type: Layered architecture
     owner: Payments
     technology: Java
@@ -39,11 +49,13 @@ blocks:
       - name: Card guard
         type: Circuit breaker
   - name: Inventory service
+    constraints: [ owned ]
     type: Layered architecture
     owner: Fulfilment
     technology: Kotlin
     tags: [ fulfilment ]
   - name: Shipping adapter
+    constraints: [ owned ]
     type: Anti-corruption layer
     owner: Fulfilment
     tags: [ fulfilment, external api ]
@@ -52,6 +64,8 @@ blocks:
     technology: Kafka
     tags: [ async, orders ]
   - name: Recommendations
+    constraints: [ owned ]
+    owner: Web
     type: service
     note: Planned, not built yet.
     tags: [ experimental, customer facing ]
@@ -59,6 +73,8 @@ blocks:
       style:
         fill: hatch
   - name: Legacy billing
+    constraints: [ owned ]
+    owner: Payments
     type: service
     note: Being retired.
     tags: [ deprecated, payments ]
@@ -70,8 +86,8 @@ blocks:
     type: external
   - name: Carrier
     type: external
+ports:
   - name: https
-    type: interface
     flow: in
     note: Public traffic enters here.
 relations:

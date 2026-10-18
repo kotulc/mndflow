@@ -7,7 +7,31 @@
       "architecture": {
         "id": "architecture",
         "parent": null,
-        "name": "architecture"
+        "name": "architecture",
+        "library": {
+          "interfaces": [
+            {
+              "id": "architecture.interface.http",
+              "name": "HTTP",
+              "description": "Requests and their responses over HTTP.",
+              "settings": {
+                "style": {
+                  "hue": 245
+                }
+              }
+            },
+            {
+              "id": "architecture.interface.events",
+              "name": "Events",
+              "description": "Messages published for whoever listens.",
+              "settings": {
+                "style": {
+                  "hue": 145
+                }
+              }
+            }
+          ]
+        }
       },
       "architecture.calls": {
         "id": "architecture.calls",
@@ -247,6 +271,20 @@
         "def": {},
         "body": "Use when an outside system must be reached without its model leaking into ours.",
         "order": 1,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.anti-corruption-layer.port.in",
+            "name": "in",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.anti-corruption-layer.port.out",
+            "name": "out",
+            "flow": "out",
+            "type": "architecture.interface.http"
+          }
+        ],
         "source": "patterns/anti-corruption-layer.yaml"
       },
       "architecture.yaml.patterns.anti-corruption-layer.1": {
@@ -305,24 +343,6 @@
         "alias": 4,
         "order": 7
       },
-      "architecture.yaml.patterns.anti-corruption-layer.8": {
-        "id": "architecture.yaml.patterns.anti-corruption-layer.8",
-        "parent": "architecture.yaml.patterns.anti-corruption-layer",
-        "name": "in",
-        "type": "interface",
-        "alias": 1,
-        "flow": "in",
-        "order": 8
-      },
-      "architecture.yaml.patterns.anti-corruption-layer.9": {
-        "id": "architecture.yaml.patterns.anti-corruption-layer.9",
-        "parent": "architecture.yaml.patterns.anti-corruption-layer",
-        "name": "out",
-        "type": "interface",
-        "alias": 2,
-        "flow": "out",
-        "order": 9
-      },
       "architecture.yaml.patterns.api-gateway": {
         "id": "architecture.yaml.patterns.api-gateway",
         "parent": "architecture.dir.patterns",
@@ -331,6 +351,31 @@
         "def": {},
         "body": "Use when many clients reach many services and each request should be checked once, at one way in.",
         "order": 2,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.api-gateway.port.requests",
+            "name": "requests",
+            "flow": "in",
+            "side": "left",
+            "at": 0.5,
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.api-gateway.port.routes",
+            "name": "routes",
+            "flow": "out",
+            "side": "right",
+            "at": 0.5,
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.api-gateway.port.admin",
+            "name": "admin",
+            "side": "bottom",
+            "at": 0.5,
+            "type": "architecture.interface.http"
+          }
+        ],
         "source": "patterns/api-gateway.yaml"
       },
       "architecture.yaml.patterns.api-gateway.1": {
@@ -340,16 +385,6 @@
         "type": "note",
         "alias": 5,
         "order": 1
-      },
-      "architecture.yaml.patterns.api-gateway.10": {
-        "id": "architecture.yaml.patterns.api-gateway.10",
-        "parent": "architecture.yaml.patterns.api-gateway",
-        "name": "admin",
-        "type": "interface",
-        "side": "bottom",
-        "alias": 5,
-        "at": 0.5,
-        "order": 10
       },
       "architecture.yaml.patterns.api-gateway.2": {
         "id": "architecture.yaml.patterns.api-gateway.2",
@@ -399,28 +434,6 @@
         "alias": 8,
         "order": 7
       },
-      "architecture.yaml.patterns.api-gateway.8": {
-        "id": "architecture.yaml.patterns.api-gateway.8",
-        "parent": "architecture.yaml.patterns.api-gateway",
-        "name": "requests",
-        "type": "interface",
-        "side": "left",
-        "alias": 3,
-        "at": 0.5,
-        "flow": "in",
-        "order": 8
-      },
-      "architecture.yaml.patterns.api-gateway.9": {
-        "id": "architecture.yaml.patterns.api-gateway.9",
-        "parent": "architecture.yaml.patterns.api-gateway",
-        "name": "routes",
-        "type": "interface",
-        "side": "right",
-        "alias": 4,
-        "at": 0.5,
-        "flow": "out",
-        "order": 9
-      },
       "architecture.yaml.patterns.circuit-breaker": {
         "id": "architecture.yaml.patterns.circuit-breaker",
         "parent": "architecture.dir.patterns",
@@ -429,6 +442,20 @@
         "def": {},
         "body": "Use when a remote call can hang or fail, and a failing dependency must not take its callers down with it.",
         "order": 3,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.circuit-breaker.port.in",
+            "name": "in",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.circuit-breaker.port.remote",
+            "name": "remote",
+            "flow": "out",
+            "type": "architecture.interface.http"
+          }
+        ],
         "source": "patterns/circuit-breaker.yaml"
       },
       "architecture.yaml.patterns.circuit-breaker.1": {
@@ -479,24 +506,6 @@
         "alias": 11,
         "order": 6
       },
-      "architecture.yaml.patterns.circuit-breaker.7": {
-        "id": "architecture.yaml.patterns.circuit-breaker.7",
-        "parent": "architecture.yaml.patterns.circuit-breaker",
-        "name": "in",
-        "type": "interface",
-        "alias": 6,
-        "flow": "in",
-        "order": 7
-      },
-      "architecture.yaml.patterns.circuit-breaker.8": {
-        "id": "architecture.yaml.patterns.circuit-breaker.8",
-        "parent": "architecture.yaml.patterns.circuit-breaker",
-        "name": "remote",
-        "type": "interface",
-        "alias": 7,
-        "flow": "out",
-        "order": 8
-      },
       "architecture.yaml.patterns.layered-architecture": {
         "id": "architecture.yaml.patterns.layered-architecture",
         "parent": "architecture.dir.patterns",
@@ -505,6 +514,14 @@
         "def": {},
         "body": "Use when one service owns its rules and its store, and every request should meet them in the same order.",
         "order": 4,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.layered-architecture.port.requests",
+            "name": "requests",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          }
+        ],
         "source": "patterns/layered-architecture.yaml"
       },
       "architecture.yaml.patterns.layered-architecture.1": {
@@ -571,15 +588,6 @@
         "alias": 13,
         "order": 8
       },
-      "architecture.yaml.patterns.layered-architecture.9": {
-        "id": "architecture.yaml.patterns.layered-architecture.9",
-        "parent": "architecture.yaml.patterns.layered-architecture",
-        "name": "requests",
-        "type": "interface",
-        "alias": 8,
-        "flow": "in",
-        "order": 9
-      },
       "architecture.yaml.patterns.saga-orchestrator": {
         "id": "architecture.yaml.patterns.saga-orchestrator",
         "parent": "architecture.dir.patterns",
@@ -588,6 +596,20 @@
         "def": {},
         "body": "Use when one business action spans several services, each with its own store, and a failed step must undo the ones before it.",
         "order": 5,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.saga-orchestrator.port.start",
+            "name": "start",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.saga-orchestrator.port.bus",
+            "name": "bus",
+            "flow": "both",
+            "type": "architecture.interface.events"
+          }
+        ],
         "source": "patterns/saga-orchestrator.yaml"
       },
       "architecture.yaml.patterns.saga-orchestrator.1": {
@@ -638,24 +660,6 @@
         "alias": 18,
         "order": 6
       },
-      "architecture.yaml.patterns.saga-orchestrator.7": {
-        "id": "architecture.yaml.patterns.saga-orchestrator.7",
-        "parent": "architecture.yaml.patterns.saga-orchestrator",
-        "name": "start",
-        "type": "interface",
-        "alias": 9,
-        "flow": "in",
-        "order": 7
-      },
-      "architecture.yaml.patterns.saga-orchestrator.8": {
-        "id": "architecture.yaml.patterns.saga-orchestrator.8",
-        "parent": "architecture.yaml.patterns.saga-orchestrator",
-        "name": "bus",
-        "type": "interface",
-        "alias": 10,
-        "flow": "both",
-        "order": 8
-      },
       "architecture.yaml.patterns.transactional-outbox": {
         "id": "architecture.yaml.patterns.transactional-outbox",
         "parent": "architecture.dir.patterns",
@@ -664,6 +668,20 @@
         "def": {},
         "body": "Use when a state change must announce itself, and neither the change nor the announcement may be lost.",
         "order": 6,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.transactional-outbox.port.requests",
+            "name": "requests",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.transactional-outbox.port.events",
+            "name": "events",
+            "flow": "out",
+            "type": "architecture.interface.events"
+          }
+        ],
         "source": "patterns/transactional-outbox.yaml"
       },
       "architecture.yaml.patterns.transactional-outbox.1": {
@@ -673,24 +691,6 @@
         "type": "note",
         "alias": 19,
         "order": 1
-      },
-      "architecture.yaml.patterns.transactional-outbox.10": {
-        "id": "architecture.yaml.patterns.transactional-outbox.10",
-        "parent": "architecture.yaml.patterns.transactional-outbox",
-        "name": "requests",
-        "type": "interface",
-        "alias": 11,
-        "flow": "in",
-        "order": 10
-      },
-      "architecture.yaml.patterns.transactional-outbox.11": {
-        "id": "architecture.yaml.patterns.transactional-outbox.11",
-        "parent": "architecture.yaml.patterns.transactional-outbox",
-        "name": "events",
-        "type": "interface",
-        "alias": 12,
-        "flow": "out",
-        "order": 11
       },
       "architecture.yaml.patterns.transactional-outbox.2": {
         "id": "architecture.yaml.patterns.transactional-outbox.2",
@@ -1027,13 +1027,18 @@
           "note": 21,
           "relation": 59,
           "grid": 3,
-          "interface": 3,
           "group": 7,
           "region": 2,
           "label": 1
         },
         "library": {
           "types": [
+            {
+              "id": "datatype.email",
+              "name": "Email",
+              "form": "text",
+              "description": "Where the shop writes to someone."
+            },
             {
               "id": "datatype.order-status",
               "name": "Order status",
@@ -1045,13 +1050,74 @@
                 "cancelled"
               ],
               "description": "Where an order is."
+            },
+            {
+              "id": "datatype.money",
+              "name": "Money",
+              "form": "number",
+              "unit": "USD",
+              "format": "0.00",
+              "description": "An amount in the shop's currency.",
+              "settings": {
+                "style": {
+                  "hue": 145
+                }
+              }
+            },
+            {
+              "id": "datatype.payment-result",
+              "name": "Payment result",
+              "form": "choice",
+              "choices": [
+                "charged",
+                "declined",
+                "refunded"
+              ],
+              "description": "What the provider said of a charge."
+            },
+            {
+              "id": "datatype.sku",
+              "name": "Sku",
+              "form": "text",
+              "description": "A product's stock code."
             }
           ],
           "tags": [
             {
+              "id": "tag.risk",
+              "name": "risk",
+              "description": "Needs care whenever it changes.",
+              "settings": {
+                "style": {
+                  "hue": 25
+                }
+              }
+            },
+            {
+              "id": "tag.domain",
+              "name": "domain",
+              "description": "Which part of the business it serves.",
+              "settings": {
+                "style": {
+                  "hue": 190
+                }
+              }
+            },
+            {
+              "id": "tag.lifecycle",
+              "name": "lifecycle",
+              "description": "Where it is in its life.",
+              "settings": {
+                "style": {
+                  "hue": 75
+                }
+              }
+            },
+            {
               "id": "tag.critical",
               "name": "critical",
-              "description": "The shop stops taking orders when this fails."
+              "description": "The shop stops taking orders when this fails.",
+              "type": "tag.risk"
             },
             {
               "id": "tag.customer-facing",
@@ -1061,22 +1127,26 @@
             {
               "id": "tag.orders",
               "name": "orders",
-              "description": "Takes part in placing, changing or cancelling an order."
+              "description": "Takes part in placing, changing or cancelling an order.",
+              "type": "tag.domain"
             },
             {
               "id": "tag.payments",
               "name": "payments",
-              "description": "Moves money or records that it moved."
+              "description": "Moves money or records that it moved.",
+              "type": "tag.domain"
             },
             {
               "id": "tag.pii",
               "name": "pii",
-              "description": "Holds or passes personal data; reviewed for every change."
+              "description": "Holds or passes personal data; reviewed for every change.",
+              "type": "tag.risk"
             },
             {
               "id": "tag.fulfilment",
               "name": "fulfilment",
-              "description": "Gets what was ordered to the customer."
+              "description": "Gets what was ordered to the customer.",
+              "type": "tag.domain"
             },
             {
               "id": "tag.external-api",
@@ -1091,17 +1161,29 @@
             {
               "id": "tag.experimental",
               "name": "experimental",
-              "description": "Planned or trial; may go."
+              "description": "Planned or trial; may go.",
+              "type": "tag.lifecycle"
             },
             {
               "id": "tag.deprecated",
               "name": "deprecated",
-              "description": "Being retired; nothing new should lean on it."
+              "description": "Being retired; nothing new should lean on it.",
+              "type": "tag.lifecycle"
             },
             {
               "id": "tag.audit",
               "name": "audit",
               "description": "Kept for the auditors; nothing reads it yet."
+            }
+          ],
+          "constraints": [
+            {
+              "id": "constraint.owned",
+              "name": "owned",
+              "required": [
+                "owner"
+              ],
+              "description": "Every service names the team that runs it."
             }
           ]
         }
@@ -1857,7 +1939,7 @@
         "parent": "yaml.Flows.2-place-order.2",
         "name": "Gateway",
         "type": "reference",
-        "of": "yaml.System.2-containers.3",
+        "of": "yaml.System.2-containers.4",
         "alias": 18,
         "cell": {
           "r": 0,
@@ -1870,7 +1952,7 @@
         "parent": "yaml.Flows.2-place-order.2",
         "name": "Checkout",
         "type": "reference",
-        "of": "yaml.System.2-containers.4",
+        "of": "yaml.System.2-containers.5",
         "alias": 19,
         "cell": {
           "r": 0,
@@ -1883,7 +1965,7 @@
         "parent": "yaml.Flows.2-place-order.2",
         "name": "Payment service",
         "type": "reference",
-        "of": "yaml.System.2-containers.6",
+        "of": "yaml.System.2-containers.7",
         "alias": 20,
         "cell": {
           "r": 0,
@@ -1896,7 +1978,7 @@
         "parent": "yaml.Flows.2-place-order.2",
         "name": "Inventory service",
         "type": "reference",
-        "of": "yaml.System.2-containers.8",
+        "of": "yaml.System.2-containers.9",
         "alias": 21,
         "cell": {
           "r": 0,
@@ -2285,7 +2367,8 @@
               "name": "name"
             },
             {
-              "name": "email"
+              "name": "email",
+              "type": "datatype.email"
             }
           ]
         },
@@ -2365,25 +2448,19 @@
         "type": "diagrams.behaviour",
         "alias": 61,
         "description": "Takes a customer's lines and gives back the order they make.",
-        "order": 1
-      },
-      "yaml.Records.order.2": {
-        "id": "yaml.Records.order.2",
-        "parent": "yaml.Records.order.1",
-        "name": "lines",
-        "type": "interface",
-        "alias": 1,
-        "flow": "in",
-        "order": 1
-      },
-      "yaml.Records.order.3": {
-        "id": "yaml.Records.order.3",
-        "parent": "yaml.Records.order.1",
-        "name": "placed",
-        "type": "interface",
-        "alias": 2,
-        "flow": "out",
-        "order": 2
+        "order": 1,
+        "ports": [
+          {
+            "id": "yaml.Records.order.1.port.lines",
+            "name": "lines",
+            "flow": "in"
+          },
+          {
+            "id": "yaml.Records.order.1.port.placed",
+            "name": "placed",
+            "flow": "out"
+          }
+        ]
       },
       "yaml.Records.payment": {
         "id": "yaml.Records.payment",
@@ -2397,11 +2474,11 @@
             },
             {
               "name": "amount",
-              "type": "number",
-              "unit": "USD"
+              "type": "datatype.money"
             },
             {
               "name": "result",
+              "type": "datatype.payment-result",
               "optional": true
             }
           ]
@@ -2423,6 +2500,7 @@
           "attributes": [
             {
               "name": "sku",
+              "type": "datatype.sku",
               "key": "primary"
             },
             {
@@ -2430,8 +2508,7 @@
             },
             {
               "name": "price",
-              "type": "number",
-              "unit": "USD"
+              "type": "datatype.money"
             }
           ]
         },
@@ -2626,6 +2703,13 @@
         "name": "Containers",
         "alias": 68,
         "order": 2,
+        "ports": [
+          {
+            "id": "yaml.System.2-containers.port.https",
+            "name": "https",
+            "flow": "in"
+          }
+        ],
         "settings": {
           "layout": {
             "kind": "layered"
@@ -2644,10 +2728,31 @@
       "yaml.System.2-containers.10": {
         "id": "yaml.System.2-containers.10",
         "parent": "yaml.System.2-containers",
+        "name": "Shipping adapter",
+        "type": "architecture.yaml.patterns.anti-corruption-layer",
+        "alias": 76,
+        "constraints": [
+          "constraint.owned"
+        ],
+        "order": 9,
+        "tags": [
+          "tag.fulfilment",
+          "tag.external-api"
+        ],
+        "values": [
+          {
+            "name": "owner",
+            "value": "Fulfilment"
+          }
+        ]
+      },
+      "yaml.System.2-containers.11": {
+        "id": "yaml.System.2-containers.11",
+        "parent": "yaml.System.2-containers",
         "name": "Order events",
         "type": "architecture.queue",
         "alias": 77,
-        "order": 9,
+        "order": 10,
         "tags": [
           "tag.async",
           "tag.orders"
@@ -2659,13 +2764,16 @@
           }
         ]
       },
-      "yaml.System.2-containers.11": {
-        "id": "yaml.System.2-containers.11",
+      "yaml.System.2-containers.12": {
+        "id": "yaml.System.2-containers.12",
         "parent": "yaml.System.2-containers",
         "name": "Recommendations",
         "type": "architecture.service",
         "alias": 78,
-        "order": 10,
+        "constraints": [
+          "constraint.owned"
+        ],
+        "order": 11,
         "settings": {
           "style": {
             "fill": "hatch"
@@ -2674,23 +2782,32 @@
         "tags": [
           "tag.experimental",
           "tag.customer-facing"
+        ],
+        "values": [
+          {
+            "name": "owner",
+            "value": "Web"
+          }
         ]
-      },
-      "yaml.System.2-containers.12": {
-        "id": "yaml.System.2-containers.12",
-        "parent": "yaml.System.2-containers",
-        "name": "Planned, not built yet.",
-        "type": "note",
-        "alias": 13,
-        "order": 11
       },
       "yaml.System.2-containers.13": {
         "id": "yaml.System.2-containers.13",
         "parent": "yaml.System.2-containers",
+        "name": "Planned, not built yet.",
+        "type": "note",
+        "alias": 14,
+        "order": 12
+      },
+      "yaml.System.2-containers.14": {
+        "id": "yaml.System.2-containers.14",
+        "parent": "yaml.System.2-containers",
         "name": "Legacy billing",
         "type": "architecture.service",
         "alias": 79,
-        "order": 12,
+        "constraints": [
+          "constraint.owned"
+        ],
+        "order": 13,
         "settings": {
           "style": {
             "opacity": 0.45,
@@ -2700,56 +2817,56 @@
         "tags": [
           "tag.deprecated",
           "tag.payments"
+        ],
+        "values": [
+          {
+            "name": "owner",
+            "value": "Payments"
+          }
         ]
-      },
-      "yaml.System.2-containers.14": {
-        "id": "yaml.System.2-containers.14",
-        "parent": "yaml.System.2-containers",
-        "name": "Being retired.",
-        "type": "note",
-        "alias": 14,
-        "order": 13
       },
       "yaml.System.2-containers.15": {
         "id": "yaml.System.2-containers.15",
         "parent": "yaml.System.2-containers",
-        "name": "Card processor",
-        "type": "architecture.external",
-        "alias": 80,
+        "name": "Being retired.",
+        "type": "note",
+        "alias": 15,
         "order": 14
       },
       "yaml.System.2-containers.16": {
         "id": "yaml.System.2-containers.16",
         "parent": "yaml.System.2-containers",
-        "name": "Carrier",
+        "name": "Card processor",
         "type": "architecture.external",
-        "alias": 81,
+        "alias": 80,
         "order": 15
       },
       "yaml.System.2-containers.17": {
         "id": "yaml.System.2-containers.17",
         "parent": "yaml.System.2-containers",
-        "name": "https",
-        "type": "interface",
-        "alias": 3,
-        "flow": "in",
+        "name": "Carrier",
+        "type": "architecture.external",
+        "alias": 81,
         "order": 16
-      },
-      "yaml.System.2-containers.18": {
-        "id": "yaml.System.2-containers.18",
-        "parent": "yaml.System.2-containers",
-        "name": "Public traffic enters here.",
-        "type": "note",
-        "alias": 15,
-        "order": 17
       },
       "yaml.System.2-containers.2": {
         "id": "yaml.System.2-containers.2",
         "parent": "yaml.System.2-containers",
+        "name": "Public traffic enters here.",
+        "type": "note",
+        "alias": 13,
+        "order": 2
+      },
+      "yaml.System.2-containers.3": {
+        "id": "yaml.System.2-containers.3",
+        "parent": "yaml.System.2-containers",
         "name": "Storefront",
         "type": "architecture.service",
         "alias": 69,
-        "order": 2,
+        "constraints": [
+          "constraint.owned"
+        ],
+        "order": 3,
         "tags": [
           "tag.customer-facing"
         ],
@@ -2764,13 +2881,16 @@
           }
         ]
       },
-      "yaml.System.2-containers.3": {
-        "id": "yaml.System.2-containers.3",
+      "yaml.System.2-containers.4": {
+        "id": "yaml.System.2-containers.4",
         "parent": "yaml.System.2-containers",
         "name": "Gateway",
         "type": "architecture.yaml.patterns.api-gateway",
         "alias": 70,
-        "order": 3,
+        "constraints": [
+          "constraint.owned"
+        ],
+        "order": 4,
         "settings": {
           "style": {
             "hue": 200
@@ -2791,13 +2911,16 @@
           }
         ]
       },
-      "yaml.System.2-containers.4": {
-        "id": "yaml.System.2-containers.4",
+      "yaml.System.2-containers.5": {
+        "id": "yaml.System.2-containers.5",
         "parent": "yaml.System.2-containers",
         "name": "Checkout",
         "type": "architecture.yaml.patterns.saga-orchestrator",
         "alias": 71,
-        "order": 4,
+        "constraints": [
+          "constraint.owned"
+        ],
+        "order": 5,
         "tags": [
           "tag.orders",
           "tag.payments",
@@ -2814,13 +2937,16 @@
           }
         ]
       },
-      "yaml.System.2-containers.5": {
-        "id": "yaml.System.2-containers.5",
+      "yaml.System.2-containers.6": {
+        "id": "yaml.System.2-containers.6",
         "parent": "yaml.System.2-containers",
         "name": "Order service",
         "type": "architecture.yaml.patterns.transactional-outbox",
         "alias": 72,
-        "order": 5,
+        "constraints": [
+          "constraint.owned"
+        ],
+        "order": 6,
         "tags": [
           "tag.orders",
           "tag.pii"
@@ -2836,13 +2962,16 @@
           }
         ]
       },
-      "yaml.System.2-containers.6": {
-        "id": "yaml.System.2-containers.6",
+      "yaml.System.2-containers.7": {
+        "id": "yaml.System.2-containers.7",
         "parent": "yaml.System.2-containers",
         "name": "Payment service",
         "type": "architecture.yaml.patterns.layered-architecture",
         "alias": 73,
-        "order": 6,
+        "constraints": [
+          "constraint.owned"
+        ],
+        "order": 7,
         "settings": {
           "style": {
             "border_width": "thick"
@@ -2864,21 +2993,24 @@
           }
         ]
       },
-      "yaml.System.2-containers.7": {
-        "id": "yaml.System.2-containers.7",
-        "parent": "yaml.System.2-containers.6",
+      "yaml.System.2-containers.8": {
+        "id": "yaml.System.2-containers.8",
+        "parent": "yaml.System.2-containers.7",
         "name": "Card guard",
         "type": "architecture.yaml.patterns.circuit-breaker",
         "alias": 74,
         "order": 1
       },
-      "yaml.System.2-containers.8": {
-        "id": "yaml.System.2-containers.8",
+      "yaml.System.2-containers.9": {
+        "id": "yaml.System.2-containers.9",
         "parent": "yaml.System.2-containers",
         "name": "Inventory service",
         "type": "architecture.yaml.patterns.layered-architecture",
         "alias": 75,
-        "order": 7,
+        "constraints": [
+          "constraint.owned"
+        ],
+        "order": 8,
         "tags": [
           "tag.fulfilment"
         ],
@@ -2890,24 +3022,6 @@
           {
             "name": "technology",
             "value": "Kotlin"
-          }
-        ]
-      },
-      "yaml.System.2-containers.9": {
-        "id": "yaml.System.2-containers.9",
-        "parent": "yaml.System.2-containers",
-        "name": "Shipping adapter",
-        "type": "architecture.yaml.patterns.anti-corruption-layer",
-        "alias": 76,
-        "order": 8,
-        "tags": [
-          "tag.fulfilment",
-          "tag.external-api"
-        ],
-        "values": [
-          {
-            "name": "owner",
-            "value": "Fulfilment"
           }
         ]
       },
@@ -3439,7 +3553,8 @@
         "id": "architecture.yaml.patterns.anti-corruption-layer.r1",
         "type": "architecture.calls",
         "alias": 1,
-        "from": "architecture.yaml.patterns.anti-corruption-layer.8",
+        "from": "architecture.yaml.patterns.anti-corruption-layer",
+        "fromPort": "architecture.yaml.patterns.anti-corruption-layer.port.in",
         "to": "architecture.yaml.patterns.anti-corruption-layer.2"
       },
       "architecture.yaml.patterns.anti-corruption-layer.r2": {
@@ -3461,7 +3576,8 @@
         "type": "architecture.integrates",
         "alias": 4,
         "from": "architecture.yaml.patterns.anti-corruption-layer.6",
-        "to": "architecture.yaml.patterns.anti-corruption-layer.9"
+        "to": "architecture.yaml.patterns.anti-corruption-layer",
+        "toPort": "architecture.yaml.patterns.anti-corruption-layer.port.out"
       },
       "architecture.yaml.patterns.anti-corruption-layer.t3": {
         "id": "architecture.yaml.patterns.anti-corruption-layer.t3",
@@ -3488,7 +3604,8 @@
         "id": "architecture.yaml.patterns.api-gateway.r1",
         "type": "architecture.calls",
         "alias": 8,
-        "from": "architecture.yaml.patterns.api-gateway.8",
+        "from": "architecture.yaml.patterns.api-gateway",
+        "fromPort": "architecture.yaml.patterns.api-gateway.port.requests",
         "to": "architecture.yaml.patterns.api-gateway.2"
       },
       "architecture.yaml.patterns.api-gateway.r2": {
@@ -3510,7 +3627,8 @@
         "type": "architecture.calls",
         "alias": 11,
         "from": "architecture.yaml.patterns.api-gateway.6",
-        "to": "architecture.yaml.patterns.api-gateway.9"
+        "to": "architecture.yaml.patterns.api-gateway",
+        "toPort": "architecture.yaml.patterns.api-gateway.port.routes"
       },
       "architecture.yaml.patterns.api-gateway.t3": {
         "id": "architecture.yaml.patterns.api-gateway.t3",
@@ -3537,7 +3655,8 @@
         "id": "architecture.yaml.patterns.circuit-breaker.r1",
         "type": "architecture.calls",
         "alias": 15,
-        "from": "architecture.yaml.patterns.circuit-breaker.7",
+        "from": "architecture.yaml.patterns.circuit-breaker",
+        "fromPort": "architecture.yaml.patterns.circuit-breaker.port.in",
         "to": "architecture.yaml.patterns.circuit-breaker.2"
       },
       "architecture.yaml.patterns.circuit-breaker.r2": {
@@ -3557,7 +3676,8 @@
             "dir": "forward"
           }
         },
-        "to": "architecture.yaml.patterns.circuit-breaker.8"
+        "to": "architecture.yaml.patterns.circuit-breaker",
+        "toPort": "architecture.yaml.patterns.circuit-breaker.port.remote"
       },
       "architecture.yaml.patterns.circuit-breaker.r4": {
         "id": "architecture.yaml.patterns.circuit-breaker.r4",
@@ -3589,7 +3709,8 @@
         "id": "architecture.yaml.patterns.layered-architecture.r1",
         "type": "architecture.calls",
         "alias": 21,
-        "from": "architecture.yaml.patterns.layered-architecture.9",
+        "from": "architecture.yaml.patterns.layered-architecture",
+        "fromPort": "architecture.yaml.patterns.layered-architecture.port.requests",
         "to": "architecture.yaml.patterns.layered-architecture.2"
       },
       "architecture.yaml.patterns.layered-architecture.r2": {
@@ -3638,7 +3759,8 @@
         "id": "architecture.yaml.patterns.saga-orchestrator.r1",
         "type": "architecture.calls",
         "alias": 28,
-        "from": "architecture.yaml.patterns.saga-orchestrator.7",
+        "from": "architecture.yaml.patterns.saga-orchestrator",
+        "fromPort": "architecture.yaml.patterns.saga-orchestrator.port.start",
         "to": "architecture.yaml.patterns.saga-orchestrator.2"
       },
       "architecture.yaml.patterns.saga-orchestrator.r2": {
@@ -3658,7 +3780,8 @@
             "dir": "both"
           }
         },
-        "to": "architecture.yaml.patterns.saga-orchestrator.8"
+        "to": "architecture.yaml.patterns.saga-orchestrator",
+        "toPort": "architecture.yaml.patterns.saga-orchestrator.port.bus"
       },
       "architecture.yaml.patterns.saga-orchestrator.r4": {
         "id": "architecture.yaml.patterns.saga-orchestrator.r4",
@@ -3690,7 +3813,8 @@
         "id": "architecture.yaml.patterns.transactional-outbox.r1",
         "type": "architecture.calls",
         "alias": 34,
-        "from": "architecture.yaml.patterns.transactional-outbox.10",
+        "from": "architecture.yaml.patterns.transactional-outbox",
+        "fromPort": "architecture.yaml.patterns.transactional-outbox.port.requests",
         "to": "architecture.yaml.patterns.transactional-outbox.2"
       },
       "architecture.yaml.patterns.transactional-outbox.r2": {
@@ -3731,7 +3855,8 @@
         "type": "architecture.publishes",
         "alias": 39,
         "from": "architecture.yaml.patterns.transactional-outbox.8",
-        "to": "architecture.yaml.patterns.transactional-outbox.11"
+        "to": "architecture.yaml.patterns.transactional-outbox",
+        "toPort": "architecture.yaml.patterns.transactional-outbox.port.events"
       },
       "architecture.yaml.patterns.transactional-outbox.t4": {
         "id": "architecture.yaml.patterns.transactional-outbox.t4",
@@ -4150,153 +4275,155 @@
       "yaml.System.2-containers.r1": {
         "id": "yaml.System.2-containers.r1",
         "alias": 36,
-        "from": "yaml.System.2-containers.17",
+        "from": "yaml.System.2-containers",
+        "fromPort": "yaml.System.2-containers.port.https",
         "settings": {
           "line": {
             "dir": "forward"
           }
         },
-        "to": "yaml.System.2-containers.2"
+        "to": "yaml.System.2-containers.3"
       },
       "yaml.System.2-containers.r10": {
         "id": "yaml.System.2-containers.r10",
         "name": "charge",
         "alias": 45,
-        "from": "yaml.System.2-containers.10",
+        "from": "yaml.System.2-containers.11",
         "settings": {
           "line": {
             "dir": "forward"
           }
         },
-        "to": "yaml.System.2-containers.6",
-        "toPart": "architecture.yaml.patterns.layered-architecture.9"
+        "to": "yaml.System.2-containers.7",
+        "toPort": "architecture.yaml.patterns.layered-architecture.port.requests"
       },
       "yaml.System.2-containers.r11": {
         "id": "yaml.System.2-containers.r11",
         "name": "reserve",
         "alias": 46,
-        "from": "yaml.System.2-containers.10",
+        "from": "yaml.System.2-containers.11",
         "settings": {
           "line": {
             "dir": "forward"
           }
         },
-        "to": "yaml.System.2-containers.8",
-        "toPart": "architecture.yaml.patterns.layered-architecture.9"
+        "to": "yaml.System.2-containers.9",
+        "toPort": "architecture.yaml.patterns.layered-architecture.port.requests"
       },
       "yaml.System.2-containers.r12": {
         "id": "yaml.System.2-containers.r12",
         "type": "architecture.integrates",
         "alias": 47,
-        "from": "yaml.System.2-containers.6",
-        "to": "yaml.System.2-containers.15"
+        "from": "yaml.System.2-containers.7",
+        "to": "yaml.System.2-containers.16"
       },
       "yaml.System.2-containers.r13": {
         "id": "yaml.System.2-containers.r13",
         "type": "architecture.integrates",
         "alias": 48,
-        "from": "yaml.System.2-containers.9",
-        "fromPart": "architecture.yaml.patterns.anti-corruption-layer.9",
-        "to": "yaml.System.2-containers.16"
+        "from": "yaml.System.2-containers.10",
+        "fromPort": "architecture.yaml.patterns.anti-corruption-layer.port.out",
+        "to": "yaml.System.2-containers.17"
       },
       "yaml.System.2-containers.r14": {
         "id": "yaml.System.2-containers.r14",
         "name": "reconciles nightly",
         "alias": 49,
-        "from": "yaml.System.2-containers.13",
-        "to": "yaml.System.2-containers.5"
+        "from": "yaml.System.2-containers.14",
+        "to": "yaml.System.2-containers.6"
       },
       "yaml.System.2-containers.r2": {
         "id": "yaml.System.2-containers.r2",
         "type": "architecture.calls",
         "alias": 37,
-        "from": "yaml.System.2-containers.2",
-        "to": "yaml.System.2-containers.3",
-        "toPart": "architecture.yaml.patterns.api-gateway.8"
+        "from": "yaml.System.2-containers.3",
+        "to": "yaml.System.2-containers.4",
+        "toPort": "architecture.yaml.patterns.api-gateway.port.requests"
       },
       "yaml.System.2-containers.r3": {
         "id": "yaml.System.2-containers.r3",
         "type": "architecture.calls",
         "alias": 38,
-        "from": "yaml.System.2-containers.3",
-        "fromPart": "architecture.yaml.patterns.api-gateway.9",
-        "to": "yaml.System.2-containers.4",
-        "toPart": "architecture.yaml.patterns.saga-orchestrator.7"
+        "from": "yaml.System.2-containers.4",
+        "fromPort": "architecture.yaml.patterns.api-gateway.port.routes",
+        "to": "yaml.System.2-containers.5",
+        "toPort": "architecture.yaml.patterns.saga-orchestrator.port.start"
       },
       "yaml.System.2-containers.r4": {
         "id": "yaml.System.2-containers.r4",
         "type": "architecture.calls",
         "alias": 39,
-        "from": "yaml.System.2-containers.3",
-        "fromPart": "architecture.yaml.patterns.api-gateway.9",
-        "to": "yaml.System.2-containers.5",
-        "toPart": "architecture.yaml.patterns.transactional-outbox.10"
+        "from": "yaml.System.2-containers.4",
+        "fromPort": "architecture.yaml.patterns.api-gateway.port.routes",
+        "to": "yaml.System.2-containers.6",
+        "toPort": "architecture.yaml.patterns.transactional-outbox.port.requests"
       },
       "yaml.System.2-containers.r5": {
         "id": "yaml.System.2-containers.r5",
         "type": "architecture.calls",
         "alias": 40,
-        "from": "yaml.System.2-containers.3",
-        "fromPart": "architecture.yaml.patterns.api-gateway.9",
-        "to": "yaml.System.2-containers.8",
-        "toPart": "architecture.yaml.patterns.layered-architecture.9"
+        "from": "yaml.System.2-containers.4",
+        "fromPort": "architecture.yaml.patterns.api-gateway.port.routes",
+        "to": "yaml.System.2-containers.9",
+        "toPort": "architecture.yaml.patterns.layered-architecture.port.requests"
       },
       "yaml.System.2-containers.r6": {
         "id": "yaml.System.2-containers.r6",
         "type": "architecture.calls",
         "alias": 41,
-        "from": "yaml.System.2-containers.8",
-        "to": "yaml.System.2-containers.9",
-        "toPart": "architecture.yaml.patterns.anti-corruption-layer.8"
+        "from": "yaml.System.2-containers.9",
+        "to": "yaml.System.2-containers.10",
+        "toPort": "architecture.yaml.patterns.anti-corruption-layer.port.in"
       },
       "yaml.System.2-containers.r7": {
         "id": "yaml.System.2-containers.r7",
         "type": "architecture.calls",
         "alias": 42,
-        "from": "yaml.System.2-containers.2",
-        "to": "yaml.System.2-containers.11"
+        "from": "yaml.System.2-containers.3",
+        "to": "yaml.System.2-containers.12"
       },
       "yaml.System.2-containers.r8": {
         "id": "yaml.System.2-containers.r8",
         "name": "commands / replies",
         "alias": 43,
-        "from": "yaml.System.2-containers.4",
-        "fromPart": "architecture.yaml.patterns.saga-orchestrator.8",
+        "from": "yaml.System.2-containers.5",
+        "fromPort": "architecture.yaml.patterns.saga-orchestrator.port.bus",
         "settings": {
           "line": {
             "dir": "both"
           }
         },
-        "to": "yaml.System.2-containers.10"
+        "to": "yaml.System.2-containers.11"
       },
       "yaml.System.2-containers.r9": {
         "id": "yaml.System.2-containers.r9",
         "type": "architecture.publishes",
         "alias": 44,
-        "from": "yaml.System.2-containers.5",
-        "fromPart": "architecture.yaml.patterns.transactional-outbox.11",
-        "to": "yaml.System.2-containers.10"
-      },
-      "yaml.System.2-containers.t12": {
-        "id": "yaml.System.2-containers.t12",
-        "type": "tie",
-        "alias": 50,
-        "from": "yaml.System.2-containers.12",
+        "from": "yaml.System.2-containers.6",
+        "fromPort": "architecture.yaml.patterns.transactional-outbox.port.events",
         "to": "yaml.System.2-containers.11"
       },
-      "yaml.System.2-containers.t14": {
-        "id": "yaml.System.2-containers.t14",
+      "yaml.System.2-containers.t13": {
+        "id": "yaml.System.2-containers.t13",
         "type": "tie",
         "alias": 51,
-        "from": "yaml.System.2-containers.14",
-        "to": "yaml.System.2-containers.13"
+        "from": "yaml.System.2-containers.13",
+        "to": "yaml.System.2-containers.12"
       },
-      "yaml.System.2-containers.t18": {
-        "id": "yaml.System.2-containers.t18",
+      "yaml.System.2-containers.t15": {
+        "id": "yaml.System.2-containers.t15",
         "type": "tie",
         "alias": 52,
-        "from": "yaml.System.2-containers.18",
-        "to": "yaml.System.2-containers.17"
+        "from": "yaml.System.2-containers.15",
+        "to": "yaml.System.2-containers.14"
+      },
+      "yaml.System.2-containers.t2": {
+        "id": "yaml.System.2-containers.t2",
+        "type": "tie",
+        "alias": 50,
+        "from": "yaml.System.2-containers.2",
+        "to": "yaml.System.2-containers",
+        "toPort": "yaml.System.2-containers.port.https"
       },
       "yaml.System.3-deployment.r1": {
         "id": "yaml.System.3-deployment.r1",

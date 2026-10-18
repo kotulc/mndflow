@@ -14,7 +14,7 @@ export type Mark = Role | Own;
 /** The tree's own marks: package roots, section headers, relation definitions, and the library's
  *  named components. */
 type Own = "locked" | "vocabulary" | "usages" | "root" | "package" | "line" | "tie" | "library"
-  | "type" | "tag";
+  | "type" | "tag" | "constraint";
 
 export type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
                     /** The icon its definition names with `card.icon`, worn over its mark's. */
@@ -57,6 +57,7 @@ const OWN: Record<Own, IconName> = {
   library: "data",
   type: "data",
   tag: "tag",
+  constraint: "content_rule",
 };
 
 /** The icon a mark wears. */
@@ -101,14 +102,18 @@ export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain, every
   return guided(out);
 }
 
-/** A package's named components in the library, after its definitions: a *types* group, then a
- *  *tags* group, each folded until opened, every component a row of its own, never a block. A
- *  group is its registry's row: chosen, it opens the registry. */
+/** A package's named components in the library, after its definitions: a *types* group, a *tags*
+ *  group, then an *interfaces* group, each folded until opened, every component a row of its own,
+ *  never a block. A group is its registry's row: chosen, it opens the registry. */
 function named_rows(graph: Graph, pkg: Id, route: string, folded: readonly Id[], out: Row[],
                     key: (route: string) => string, depth: number): void {
   const lib = library_of(graph, pkg);
   const kinds = [{ key: "types" as const, mark: "type" as const, all: lib.types ?? [] },
-                 { key: "tags" as const, mark: "tag" as const, all: lib.tags ?? [] }];
+                 { key: "tags" as const, mark: "tag" as const, all: lib.tags ?? [] },
+                 { key: "interfaces" as const, mark: "interface" as const,
+                   all: lib.interfaces ?? [] },
+                 { key: "constraints" as const, mark: "constraint" as const,
+                   all: lib.constraints ?? [] }];
   for (const kind of kinds) {
     if (!kind.all.length) continue;
     const id = key(`${route}/@${kind.key}`);
@@ -169,7 +174,8 @@ function branch_rows(graph: Graph,
   const row_key = key(route);
   /** A package root in the library lists its named components after its definitions. */
   const lib = at.lists === "domain" && graph.blocks[id]!.parent === null ? library_of(graph, id) : {};
-  const groups = [lib.types, lib.tags].filter((l) => l?.length).length;
+  const groups = [lib.types, lib.tags, lib.interfaces, lib.constraints]
+    .filter((l) => l?.length).length;
   out.push({ ...block_row(graph, id, depth, parts.length + own.length + groups, row_key),
              ...(via ? { via } : {}),
              ...(at.lists !== "structure" && stamps_of(graph, id).includes("structure")

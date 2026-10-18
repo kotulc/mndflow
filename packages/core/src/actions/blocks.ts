@@ -6,7 +6,7 @@ import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, holds
          in_definitions, is_domain, kind_free, may_retype, name_taken, package_of, plain_type,
          setting_of, stored_type, self_use } from "../defs";
 import { GRID, inline, inside, is_folder, is_grid, lattice_of, layer_of } from "../holders";
-import { children, edges_in, is_interface, layout_of, next_order, ports_of, reorder,
+import { children, edges_in, is_interface, layout_of, next_order, port_at, ports_of, reorder,
          sibling_named, subtree } from "../tree";
 import { unnamed_refusal } from "./named";
 import { drop_named, library_home, registry_at, registry_of } from "../library";
@@ -16,8 +16,8 @@ import { new_id } from "../ids";
 import { BASE_PACKAGE, LAYOUTS, type Graph, type Id, type Layout, type Mutation } from "../types";
 import { register, type Context, type Result } from "./registry";
 import { seat_all, seat_in, taken_in } from "./grid";
-import { borrowed, cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS, spot,
-         text, tied, typed } from "./helpers";
+import { borrowed, cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS,
+         port_edit, spot, text, tied, typed } from "./helpers";
 
 /** The layer a block made under `parent` draws on: the parent, or what it is drawn inline in. */
 function drawn_on(graph: Graph, parent: Id): Id | null {
@@ -26,6 +26,8 @@ function drawn_on(graph: Graph, parent: Id): Id | null {
 
 /** What a definitions folder says to structure put in it: the two trees stay apart. */
 const APART = "a definitions folder holds definitions and folders, not structure";
+/** A component kind is carried by blocks as data, never made a block of its own. */
+const CARRIED = "a component is carried by blocks as data, never a block of its own";
 
 /** Why putting these blocks under `parent` would break the model, or null. */
 function placing(graph: Graph, ids: readonly Id[], parent: Id): string | null {
@@ -127,6 +129,7 @@ register(
       if (type && domain_of(ctx.graph, type) === "relation") {
         return "lines must connect existing blocks — draw one from a block to another";
       }
+      if (type && domain_of(ctx.graph, type) === "component") return CARRIED;
       const why = borrowed(ctx.graph, parent);
       if (why) return why;
       if (self_use(ctx.graph, parent, type)) return "a definition cannot use itself";
@@ -178,6 +181,13 @@ register(
       if (!ids.length) return "nothing is selected";
       const gone = new Set(ids.flatMap((id) => subtree(ctx.graph, id)));
       for (const id of ids) {
+        /** A port goes from where it is held. */
+        const port = port_at(ctx.graph, id);
+        if (port) {
+          const why = borrowed(ctx.graph, port.holder);
+          if (why) return why;
+          continue;
+        }
         if (library_home(ctx.graph, id)) {
           const why = unnamed_refusal(ctx.graph, id);
           if (why) return why;
@@ -191,11 +201,22 @@ register(
     },
     run: (ctx, args) => {
       const ids = ids_of(ctx, args);
-      /** A named component goes from its library. */
+      /** A named component goes from its library, a port from where it is held. */
       const named = ids.filter((id) => library_home(ctx.graph, id));
-      const rest = ids.filter((id) => !named.includes(id));
+      const ports = ids.filter((id) => port_at(ctx.graph, id));
+      const rest = ids.filter((id) => !named.includes(id) && !ports.includes(id));
+      /** One by one, so two ports of one holder each see the other gone. */
+      let graph = ctx.graph;
+      const dropped: Mutation[] = [];
+      for (const id of ports) {
+        const out = port_edit(graph, id, () => null);
+        dropped.push(...out);
+        const set = out[0] as Extract<Mutation, { op: "set_ports" }>;
+        graph = { ...graph, blocks: { ...graph.blocks,
+          [set.id]: { ...graph.blocks[set.id]!, ports: set.ports ?? [] } } };
+      }
       return {
-        mutations: [...drop_named(ctx.graph, named),
+        mutations: [...drop_named(ctx.graph, named), ...dropped,
                     ...rest.map((id): Mutation => (ctx.graph.edges[id]
                       ? { op: "delete_edge", id } : { op: "delete_block", id }))],
         effect: { focus: null },
@@ -211,6 +232,8 @@ register(
     /** A definition is found by its name, so it takes one nothing else in its package has. */
     check: (ctx, args) => {
       const id = id_of(args, "id");
+      const port = port_at(ctx.graph, id);
+      if (port) return borrowed(ctx.graph, port.holder);
       if (!ctx.graph.blocks[id] && !ctx.graph.edges[id]) return "that is not here any more";
       const why = borrowed(ctx.graph, id);
       if (why) return why;
@@ -225,6 +248,10 @@ register(
     run: (ctx, args) => {
       const id = id_of(args, "id");
       const name = text(args, "name");
+      if (port_at(ctx.graph, id)) {
+        return { mutations: port_edit(ctx.graph, id, ({ name: _, ...rest }) =>
+          (name ? { ...rest, name } : rest)) };
+      }
       return { mutations: [ctx.graph.edges[id] ? { op: "update_edge", id, name }
                                                : { op: "update_block", id, name }] };
     },
@@ -256,17 +283,13 @@ register(
         if (type && domain_of(ctx.graph, type) === "relation" && !b.def) {
           return `"${d!.name}" defines a relationship, not a block`;
         }
+        if (type && domain_of(ctx.graph, type) === "component" && !b.def) return CARRIED;
         if (b.def) {
           if (closes_cycle(ctx.graph, id, type)) return "a definition cannot extend itself";
           /** What it extends says its kind; it changes kind only while nothing it shaped. */
           if (type && domain_of(ctx.graph, type) !== domain_of(ctx.graph, id)
               && !kind_free(ctx.graph, id)) {
             return `"${d!.name}" is not a ${domain_of(ctx.graph, id)} definition, and this one is in use`;
-          }
-          /** Its usages are interfaces by its chain, so that too is fixed while it is used. */
-          const port = (t: Id | undefined) => block_base(ctx.graph, t) === "interface";
-          if (type && port(type) !== port(id) && !kind_free(ctx.graph, id)) {
-            return `"${d!.name}" ${port(id) ? "defines" : "does not define"} an interface, and this one is in use`;
           }
           continue;
         }
@@ -286,18 +309,17 @@ register(
         if (ctx.graph.blocks[id]?.def) return { op: "update_block", id, type: said || null };
         return { op: "update_block", id, type: type ?? plain_type(base_of(ctx.graph, id)) };
       });
-      /** A run meeting a part — an interface or a block — the new definition does not hold lets
-       *  it go. */
+      /** A run meeting a port the block no longer wears — its own stay — lets it go. */
       for (const id of ids_of(ctx, args)) {
         const b = ctx.graph.blocks[id];
         if (!b || b.def) continue;
-        const kept = new Set([...ports_of(ctx.graph, type ?? undefined),
-                              ...children(ctx.graph, type ?? null)].map((p) => p.id));
+        const kept = new Set([...b.ports ?? [], ...ports_of(ctx.graph, type ?? undefined)]
+          .map((p) => p.id));
         for (const e of Object.values(ctx.graph.edges)) {
           for (const end of ["from", "to"] as const) {
-            const part = end === "from" ? e.fromPart : e.toPart;
-            if (e[end] === id && part && !kept.has(part)) {
-              out.push({ op: "set_end", id: e.id, end, port: id, part: null });
+            const port = end === "from" ? e.fromPort : e.toPort;
+            if (e[end] === id && port && !kept.has(port)) {
+              out.push({ op: "set_end", id: e.id, end, block: id, port: null });
             }
           }
         }

@@ -193,7 +193,7 @@ describe("the text renderer", () => {
 
 describe("interfaces are seated, not placed", () => {
   const scene = project(fold(fixture("interfaced"), FLOOR), "block_loop");
-  const port = () => scene.nodes.find((b) => b.id === "port_out")!;
+  const port = () => scene.nodes.find((b) => b.id === "block_pump/port_out")!;
 
   it("draws one, on the card it belongs to", () => {
     expect(port().data.on).toBe("block_pump");
@@ -202,7 +202,7 @@ describe("interfaces are seated, not placed", () => {
 
   it("marks which way it flows, and the mark constrains nothing", () => {
     expect(port().data.marks).toContain("out");
-    expect(scene.nodes.find((b) => b.id === "port_in")!.data.marks).toContain("in");
+    expect(scene.nodes.find((b) => b.id === "block_hx/port_in")!.data.marks).toContain("in");
   });
 
   it("draws as a seat rather than as a card", () => {
@@ -211,7 +211,7 @@ describe("interfaces are seated, not placed", () => {
 
   it("lands a relationship on the seat it names", () => {
     const line = scene.edges.find((r) => r.id === "edge_flow")!;
-    expect([line.source, line.target]).toEqual(["port_out", "port_in"]);
+    expect([line.source, line.target]).toEqual(["block_pump/port_out", "block_hx/port_in"]);
   });
 
   /** A line meets the border in the same place whether or not the square is drawn. */

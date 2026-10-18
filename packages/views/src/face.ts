@@ -6,7 +6,8 @@
  *  widths, and **a table card is exactly its table**: its title row, its rows and its border. */
 
 import { alias_of, attributes_of, behaviours_of, holds_records, links_to, schema_def,
-         setting_of, shown_name, signature_of, stamps_of, type_name, type Graph, type Id } from "@mnd/core";
+         setting_of, shown_name, signature_of, stamps_of, type_name, unit_of, type Attribute,
+         type Graph, type Id } from "@mnd/core";
 import { look_of, type Look } from "./look";
 import type { Listed, Ruled } from "./scene";
 import { resolved } from "./through";
@@ -166,9 +167,13 @@ export function table(rows: readonly Listed[], marks = 0): Ruled | null {
 export function listed(graph: Graph, id: Id): Listed[] {
   const b = graph.blocks[id];
   if (!b) return [];
-  const typed = (type: Id | undefined) => type_name(graph, type);
+  /** A type reads with the unit its values count in, its own or its type's. */
+  const typed = (a: Attribute) => {
+    const unit = unit_of(graph, a);
+    return `${type_name(graph, a.type)}${unit ? ` (${unit})` : ""}`;
+  };
   const declared = (def: Id) => attributes_of(graph, def).map((a): Listed => ({
-    name: a.name, type: typed(a.type), ...(a.key ? { key: a.key } : {}),
+    name: a.name, type: typed(a), ...(a.key ? { key: a.key } : {}),
     ...(links_to(graph, a) ? { link: true } : {}), ...(a.default ? { value: a.default } : {}),
     ...(a.note ? { note: a.note } : {}),
   }));

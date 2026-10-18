@@ -1,22 +1,23 @@
 /** Relationships and the interfaces they meet. */
 
 import { may_seat } from "../capabilities";
-import { def_at, dir_of, domain_of, setting_of, stored_type } from "../defs";
+import { def_at, dir_of, domain_of, setting_of } from "../defs";
 import { end_refusal, LINE_SAYS } from "../ends";
 import { shown_name } from "../names";
-import { stored_of, is_interface, next_order, part_end } from "../tree";
+import { interface_named } from "../library";
+import { part_end, part_id, port_at } from "../tree";
 import { new_id } from "../ids";
 import { OWNERSHIPS, type Dir, type End, type Flow, type Graph, type Id, type Mutation,
-         type Relation, type Side } from "../types";
+         type Port, type Relation, type Side } from "../types";
 import { register, type Args, type Context } from "./registry";
-import { borrowed, handles, id_of, may_wear, run_type, side_of, SIDES, text } from "./helpers";
+import { borrowed, handles, id_of, port_edit, run_type, side_of, SIDES, text } from "./helpers";
 
 
 register(
   {
     name: "relate",
-    about: "draws a relationship from one block to another — or to a part a usage reads through, "
-      + "named `usage/part`",
+    about: "draws a relationship from one block to another — or to a port on one, its own or one "
+      + "it reads through, named `block/port`",
     on: ["layer"],
     args: [{ name: "from", form: "block", required: true },
            { name: "to", form: "block", required: true },
@@ -30,8 +31,9 @@ register(
       if (!ctx.graph.blocks[from.block] || !ctx.graph.blocks[to.block]) {
         return "both ends have to be there";
       }
-      if ([from.part, to.part].some((part) => part && !ctx.graph.blocks[part])) {
-        return "that part is not there";
+      for (const end of ["from", "to"]) {
+        const id = id_of(args, end);
+        if (part_end(ctx.graph, id).part && !port_at(ctx.graph, id)) return "that interface is not there";
       }
       if (from.block === to.block && from.part === to.part) return "a block cannot relate to itself";
       if (mixed(ctx.graph, from.block, to.block)) return MIXED;
@@ -59,7 +61,7 @@ register(
       const said = dir === inherited(ctx.graph, type) ? {} : { settings: { line: { dir } } };
       const out: Mutation[] = [...line.bump(), { op: "link_blocks", edge: {
         id: new_id("edge"), from: from.block, to: to.block,
-        ...(from.part ? { fromPart: from.part } : {}), ...(to.part ? { toPart: to.part } : {}),
+        ...(from.part ? { fromPort: from.part } : {}), ...(to.part ? { toPort: to.part } : {}),
         ...(type ? { type } : {}), alias, ...said,
       } }];
       return { mutations: out };
@@ -78,7 +80,7 @@ register(
       const to = part_end(ctx.graph, id_of(args, "to"));
       const other = args["end"] === "from" ? edge.to : edge.from;
       if (to.block === other && !to.part) return "a relationship cannot meet itself";
-      if (to.part && !ctx.graph.blocks[to.part]) return "that part is not there";
+      if (to.part && !port_at(ctx.graph, id_of(args, "to"))) return "that interface is not there";
       if (!ctx.graph.blocks[to.block]) return "needs a block to land on";
       return mixed(ctx.graph, other, to.block) ? MIXED : null;
     },
@@ -86,7 +88,7 @@ register(
       const id = id_of(args, "id");
       const end = args["end"] as "from" | "to";
       const to = part_end(ctx.graph, id_of(args, "to"));
-      return { mutations: [{ op: "set_end", id, end, port: to.block, part: to.part ?? null }] };
+      return { mutations: [{ op: "set_end", id, end, block: to.block, port: to.part ?? null }] };
     },
   },
   {
@@ -186,7 +188,7 @@ function inherited(graph: Graph, type: Id | undefined): Dir {
 function twin_of(graph: Graph, from: Run, to: Run,
                  type: Id | undefined): { edge: Relation; turned: boolean } | null {
   const meets = (e: Relation, a: typeof from, b: typeof to) => e.from === a.block
-    && e.to === b.block && e.fromPart === a.part && e.toPart === b.part;
+    && e.to === b.block && e.fromPort === a.part && e.toPort === b.part;
   for (const e of Object.values(graph.edges)) {
     if (e.type !== type) continue;
     if (meets(e, from, to)) return { edge: e, turned: false };
@@ -243,7 +245,7 @@ function said_end(args: Args): Record<string, unknown> {
   return out;
 }
 
-/** One end of a run: a block, and the part of its definition it reads through. */
+/** One end of a run: a block, and the port on it. */
 type Run = { block: Id; part?: Id };
 
 /** What a run between a definition and a usage is told. */
@@ -266,8 +268,8 @@ function no_wall(graph: Graph, id: Id): string {
 register(
   {
     name: "interface",
-    about: "puts an interface on the border of any block that has ports, and takes a relationship "
-      + "to it; one given no seat places itself. Its type is an interface definition",
+    about: "puts a port on the border of any block that has ports, and takes a relationship to "
+      + "it; one given no seat places itself. Its type is an interface definition in a library",
     on: ["block", "edge"],
     when: (ctx) => {
       const one = ctx.picked.length === 1 ? ctx.picked[0] : undefined;
@@ -288,18 +290,19 @@ register(
     check: (ctx, args) => {
       const edge = text(args, "edge");
       if (edge && !ctx.graph.edges[edge]) return "needs a relationship";
-      const wrong = may_wear(ctx, args, "interface");
-      if (wrong) return wrong;
+      const type = text(args, "type");
+      if (type && !interface_named(ctx.graph, type)) return `there is no interface called "${type}"`;
       const on = promoted(ctx, args);
       if (!on.length) return "needs a border to sit on";
       if ((args["side"] !== undefined) !== (args["at"] !== undefined)) {
         return "a seat needs both a side and a place along it, or neither";
       }
-      for (const { owner } of on) {
+      for (const { owner, end } of on) {
         const met = ctx.graph.blocks[owner];
         if (!met) return "needs a border to sit on";
-        /** An end that is already an interface has nothing to promote. */
-        if (edge && is_interface(ctx.graph, met.id)) return "that end is already an interface";
+        /** An end that is already at a port has nothing to promote. */
+        const at = end && ctx.graph.edges[edge]![end === "from" ? "fromPort" : "toPort"];
+        if (at) return "that end is already an interface";
         if (!may_seat(ctx.graph, owner)) return no_wall(ctx.graph, owner);
         const why = borrowed(ctx.graph, owner);
         if (why) return why;
@@ -311,54 +314,73 @@ register(
       const edge = text(args, "edge");
       const out: Mutation[] = [];
       let last = "";
-      const port = handles(ctx, "interface");
-      const type = stored_type(ctx.graph, text(args, "type") || "interface");
+      const handle = handles(ctx, "interface");
+      const type = interface_named(ctx.graph, text(args, "type"))?.id;
       const name = text(args, "name");
       const flow = String(args["flow"] ?? "");
+      /** Two ends on one block take both ports in one write. */
+      const added = new Map<Id, Port[]>();
       for (const { owner, end } of promoted(ctx, args)) {
-        const id = new_id("block");
-        last = id;
+        const id = new_id("port");
+        last = part_id(owner, id);
         const seat = end === undefined ? seat_of(args) : null;
-        out.push({ op: "add_block", block: {
-          id, parent: owner, ...(seat ?? {}), ...(type ? { type } : {}), ...(name ? { name } : {}),
+        added.set(owner, [...added.get(owner) ?? [], {
+          id, ...(name ? { name } : {}), ...(type ? { type } : {}), ...(seat ?? {}),
           ...(["in", "out", "both"].includes(flow) ? { flow: flow as Flow } : {}),
-          order: next_order(ctx.graph, owner), alias: port.take(),
-        } });
-        if (edge && end) out.push({ op: "set_end", id: edge, end, port: id, part: null });
+          alias: handle.take(),
+        }]);
+        if (edge && end) out.push({ op: "set_end", id: edge, end, block: owner, port: id });
       }
-      out.push(...port.bump());
+      for (const [owner, ports] of added) {
+        out.unshift({ op: "set_ports", id: owner,
+                      ports: [...ctx.graph.blocks[owner]?.ports ?? [], ...ports] });
+      }
+      out.push(...handle.bump());
       return { mutations: out, effect: { focus: last } };
     },
   },
   {
     name: "port",
-    about: "changes an interface where it is held — its definition's, for one a usage reads "
-      + "through: which way it carries, or where it sits; `free` lets it place itself again",
+    about: "changes a port where it is held — its definition's, for one a usage reads through: "
+      + "its name, its interface definition, which way it carries, or where it sits; `free` lets "
+      + "it place itself again",
     on: ["interface"],
     args: [{ name: "id", form: "block", required: true },
+           { name: "name", form: "text" },
+           /** Its interface definition; an empty word gives it back to the base. */
+           { name: "type", form: "text" },
            { name: "flow", form: "choice", choices: ["in", "out", "both", "none"] },
            { name: "side", form: "choice", choices: SIDES },
            { name: "at", form: "number" },
            { name: "free", form: "choice", choices: ["true"] }],
     check: (ctx, args) => {
-      const id = stored_of(ctx.graph, id_of(args, "id"));
-      if (!is_interface(ctx.graph, id)) return "that interface is not here any more";
-      const why = borrowed(ctx.graph, id);
+      const port = port_at(ctx.graph, id_of(args, "id"));
+      if (!port) return "that interface is not here any more";
+      const why = borrowed(ctx.graph, port.holder);
       if (why) return why;
+      const type = text(args, "type");
+      if (type && !interface_named(ctx.graph, type)) return `there is no interface called "${type}"`;
       return (args["side"] !== undefined) !== (args["at"] !== undefined)
         ? "a seat needs both a side and a place along it" : null;
     },
-    run: (ctx, args) => {
-      const id = stored_of(ctx.graph, id_of(args, "id"));
-      const out: Mutation[] = [];
+    run: (ctx, args) => ({ mutations: port_edit(ctx.graph, id_of(args, "id"), (was) => {
+      const now: Port = { ...was };
+      if (args["name"] !== undefined) {
+        const name = text(args, "name");
+        if (name) now.name = name; else delete now.name;
+      }
+      if (args["type"] !== undefined) {
+        const type = interface_named(ctx.graph, text(args, "type"))?.id;
+        if (type) now.type = type; else delete now.type;
+      }
       if (args["flow"] !== undefined) {
         const flow = String(args["flow"]);
-        out.push({ op: "mark_port", id, flow: flow === "none" ? null : flow as Flow });
+        if (flow === "none") delete now.flow; else now.flow = flow as Flow;
       }
       const seat = seat_of(args);
-      if (seat) out.push({ op: "set_port", id, seat });
-      if (args["free"] !== undefined) out.push({ op: "set_port", id, seat: null });
-      return { mutations: out };
-    },
+      if (seat) Object.assign(now, seat);
+      if (args["free"] !== undefined) { delete now.side; delete now.at; }
+      return now;
+    }) }),
   },
 );

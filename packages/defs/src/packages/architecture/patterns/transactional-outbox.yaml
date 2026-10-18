@@ -17,11 +17,12 @@ blocks:
   - name: Relay
     type: component
     note: Reads the outbox and publishes each event at least once.
+ports:
   - name: requests
-    type: interface
+    type: HTTP
     flow: in
   - name: events
-    type: interface
+    type: Events
     flow: out
 relations:
   - calls: [ requests -> API, API -> Domain logic ]

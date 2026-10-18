@@ -1,9 +1,10 @@
 /** What a relation's ends mean, read down its chain, and the behaviours a block holds. */
 
-import { def_at, isa, setting_of } from "./defs";
+import { isa, setting_of } from "./defs";
 import { shown_name } from "./names";
 import { children, ports_on } from "./tree";
-import { OWNERSHIPS, type Block, type End, type Ends, type Graph, type Id } from "./types";
+import { interface_at } from "./library";
+import { OWNERSHIPS, type Block, type End, type Ends, type Graph, type Id, type Port } from "./types";
 
 /** What a line may say of an end over its definition: what varies per use. Ownership and
  *  navigability say what the relation is, so only a definition says them. */
@@ -61,10 +62,7 @@ export function behaviours_of(graph: Graph, id: Id): Block[] {
  *  are its parameters, its out-interfaces its return; each is typed by its interface definition. */
 export function signature_of(graph: Graph, id: Id): string {
   const ports = ports_on(graph, id);
-  const typed = (p: Block) => {
-    const d = def_at(graph, p.type);
-    return d && d.id !== "interface" ? d.name : "";
-  };
+  const typed = (p: Port) => interface_at(graph, p.type)?.name ?? "";
   const params = ports.filter((p) => p.flow !== "out")
     .map((p) => [p.name ?? "", typed(p)].filter(Boolean).join(": "));
   const returns = ports.filter((p) => p.flow === "out").map((p) => typed(p) || p.name || "")

@@ -4,7 +4,7 @@ import { component } from "./components";
 import { all_defs, def_at, holds_defs, is_base, package_of, packages } from "./defs";
 import { fold, type Floor } from "./fold";
 import { covers, inside, lattice_of, one_side, overlaps } from "./holders";
-import { subtree } from "./tree";
+import { ports_on, subtree } from "./tree";
 import { new_id } from "./ids";
 import { type Graph, type Grid, type Id, type Log, type Mutation, type Span,
          type Step } from "./types";
@@ -119,17 +119,17 @@ export function inspect(graph: Graph): Inspection {
     }
   }
 
-  /** Every relation has a block at both ends, and any part it names is there. */
+  /** Every relation has a block at both ends, and any port it names is there. */
   for (const e of Object.values(graph.edges)) {
     if (!graph.blocks[e.from] || !graph.blocks[e.to]) {
       say("dropped", "a relation with an end that is not there", { op: "delete_edge", id: e.id });
       continue;
     }
     for (const end of ["from", "to"] as const) {
-      const part = end === "from" ? e.fromPart : e.toPart;
-      if (part && !graph.blocks[part]) {
-        say("repaired", "a relation named a part that is not there",
-            { op: "set_end", id: e.id, end, port: e[end], part: null });
+      const port = end === "from" ? e.fromPort : e.toPort;
+      if (port && !ports_on(graph, e[end]).some((p) => p.id === port)) {
+        say("repaired", "a relation named a port that is not there",
+            { op: "set_end", id: e.id, end, block: e[end], port: null });
       }
     }
   }

@@ -111,6 +111,16 @@ export function look_of(graph: Graph, id: Id): Look {
                  source.type ?? source.id);
 }
 
+/** How a library entry paints its tiles and chips: the family or hue its chain says — its own,
+ *  what it extends, its kind's base — read by the one resolver. */
+export function entry_look(graph: Graph, id: Id): Look {
+  const style = setting_of(graph, id, "style");
+  const hue = typeof style["hue"] === "number" ? style["hue"] : undefined;
+  return { ...PLAIN, ...(typeof style["family"] === "string" ? { family: style["family"] as Family } : {}),
+           ...(hue !== undefined ? { hue } : {}),
+           ...(typeof style["intensity"] === "number" ? { intensity: style["intensity"] } : {}) };
+}
+
 /** How a stand-in for a definition draws: as its usages, named, showing only what it has — a
  *  body handed to it, as a chart hands a tag what it means, and attributes where it has some —
  *  and a relation wearing its line. */

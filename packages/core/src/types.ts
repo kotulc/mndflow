@@ -109,24 +109,53 @@ export const FORMS = ["text", "number", "flag", "choice", "link"] as const;
 
 export type Form = (typeof FORMS)[number];
 
-/** A named, reusable data shape: an enum (`choice` and its options) or an alias (one form). A
- *  component, stored as data in its package and never drawn on a layer. */
-export type Type = {
+/** A component definition: an entry in its package's library, defined, extended and styled as a
+ *  block definition is, and read by the same resolver. */
+export type LibraryEntry = {
   id: Id;
   name: string;
   description?: string;
+  /** What it extends: another entry of its kind; unsaid, its kind's base. */
+  type?: Id;
+  /** How it draws, as a definition's settings: nearest first down its chain. */
+  settings?: Components;
+};
+
+/** A named, reusable data shape: an enum (`choice` and its options) or an alias (one form). A
+ *  component, stored as data in its package and never drawn on a layer. */
+export type Type = LibraryEntry & {
   form: Form;
   /** An enum's options. */
   choices?: string[];
   /** What a number counts in. */
   unit?: string;
+  /** How its values are written: a pattern its form reads, such as `0.00` or `YYYY-MM-DD`. */
+  format?: string;
 };
 
 /** A word to find things by: a component, stored as data in its package. */
-export type Tag = { id: Id; name: string; description?: string };
+export type Tag = LibraryEntry;
+
+/** What a port carries, defined once: an interface definition, a port's type. */
+export type Interface = LibraryEntry;
+
+/** A rule a block or a line is held to, defined once and applied by id: the values it must answer,
+ *  and, on a line, the values both ends must agree on. Advice: it never refuses an edit. */
+export type Constraint = LibraryEntry & {
+  /** Values it must answer, by name. */
+  required?: string[];
+  /** On a line: values both its ends must answer alike, by name. */
+  match?: string[];
+};
 
 /** A package's named components, held on its root. */
-export type Library = { types?: Type[]; tags?: Tag[] };
+export type Library = { types?: Type[]; tags?: Tag[]; interfaces?: Interface[];
+                        constraints?: Constraint[] };
+
+/** Each library kind's base: what an entry extending nothing extends. */
+export const KIND_BASE: Record<keyof Library, Id> = {
+  types: "attribute", tags: "tag", interfaces: "interface", constraints: "constraint",
+};
 
 /** What makes a block a definition: explicit, and holding what only a definition says. */
 export type DefBody = {
@@ -134,6 +163,23 @@ export type DefBody = {
   attributes?: Attribute[];
   /** A relation definition's ends: what each means, for every line it types. */
   ends?: Ends;
+};
+
+/** A port: a block's boundary, data on any block that *has ports*, keyed by id so a line's end
+ *  can name it. A usage wears its definition's, read through. */
+export type Port = {
+  id: Id;
+  name?: string;
+  /** Its interface definition, in a library: what it carries. Unsaid, the base `interface`. */
+  type?: Id;
+  description?: string;
+  /** Which way it carries: in, out, or both, which is what absent says. */
+  flow?: Flow;
+  /** Where it sits on its block's wall; unsaid, it places itself. */
+  side?: Side;
+  at?: number;
+  /** A handle serial, as a block carries. */
+  alias?: number;
 };
 
 /** The one element. **A definition is a block too**: one carrying `def`, sitting in a package's
@@ -189,8 +235,11 @@ export type Block = {
   /** The tag definitions it carries, by id, in order: an index for finding it. **Stated, the list
    *  replaces its definition's**; unsaid, it carries its definition's. An empty list says none. */
   tags?: Id[];
-  /** An interface's flow: in, out, or both, which is what absent says. */
-  flow?: Flow;
+  /** The constraints it is held to, by id, in order: stated, the list replaces its definition's,
+   *  as tags do. */
+  constraints?: Id[];
+  /** Its ports, in order: its boundary, where relations and flows enter and leave. */
+  ports?: Port[];
   /** A usage's answers, in order. */
   values?: Value[];
 };
@@ -203,15 +252,17 @@ export type Relation = {
    *  way an unnamed card draws its kind word. */
   name?: string;
   type?: Id;
-  /** A part of the `from` block's definition the run leaves from — an interface its chain
-   *  declares: a usage reads it through. */
-  fromPart?: Id;
-  /** A part of the `to` block's definition the run arrives at. */
-  toPart?: Id;
+  /** The port on the `from` block the run leaves from: its own, or one its definition's chain
+   *  declares, which a usage reads through. */
+  fromPort?: Id;
+  /** The port on the `to` block the run arrives at. */
+  toPort?: Id;
   /** A handle serial, as a block carries. */
   alias?: number;
   /** Its tags, as a block's: stated, they replace its definition's. */
   tags?: Id[];
+  /** Its constraints, as a block's. */
+  constraints?: Id[];
   /** What this one line says about how it draws, over whatever its definition said. */
   settings?: Components;
   /** Its answers to its definition's attributes, as a usage's. */
@@ -230,12 +281,16 @@ export const BLOCK_MODULES: readonly BlockModule[] = ["block", "reference", "int
  *  not a module. **There is no `resource`**: every block may point at external content through
  *  `source`, so a kind for it said nothing the slot does not. */
 export const BASE_BLOCKS: readonly Id[] = [
-  "block", "reference", "interface", "folder", "grid", "note", "label", "group", "region",
+  "block", "reference", "folder", "grid", "note", "label", "group", "region",
 ];
 
 /** The shipped relation bases. `tie` is a definition — a dashed run with no heads — chosen like
  *  any other type. */
 export const BASE_RELATIONS: readonly Id[] = ["line", "tie"];
+
+/** The shipped component bases a library entry extends: carried by blocks as data, never a block
+ *  of their own. A port's seat is drawn by the `interface` module. */
+export const BASE_COMPONENTS: readonly Id[] = ["attribute", "constraint", "interface", "tag"];
 
 
 export type Components = Record<string, Record<string, unknown>>;
@@ -333,11 +388,10 @@ export type Mutation =
   | { op: "update_edge"; id: Id; name?: string; type?: Id | null }
   | { op: "delete_edge"; id: Id }
   | { op: "flip_edge"; id: Id }
-  /** An end moved onto a block, and optionally onto a part its definition holds. */
-  | { op: "set_end"; id: Id; end: "from" | "to"; port: Id; part?: Id | null }
-  /** A seat places an interface; none lets it place itself again. */
-  | { op: "set_port"; id: Id; seat: { side: Side; at: number } | null }
-  | { op: "mark_port"; id: Id; flow: Flow | null }
+  /** An end moved onto a block, and optionally onto one of its ports. */
+  | { op: "set_end"; id: Id; end: "from" | "to"; block: Id; port?: Id | null }
+  /** A block's ports, written whole; null gives them back. */
+  | { op: "set_ports"; id: Id; ports: Port[] | null }
   /** An answer on a block or a line. */
   | { op: "set_value"; id: Id; name: string; value: string }
   | { op: "drop_value"; id: Id; name: string }
@@ -345,6 +399,8 @@ export type Mutation =
   | { op: "order_values"; id: Id; names: string[] }
   /** An element's tags, in order; null gives the list back to its definition. */
   | { op: "set_tags"; id: Id; tags: Id[] | null }
+  /** An element's constraints, in order; null gives the list back to its definition. */
+  | { op: "set_constraints"; id: Id; constraints: Id[] | null }
   /** A definition's traits, in order; null gives the list back to its chain. */
   | { op: "set_traits"; id: Id; traits: Id[] | null }
   /** Everything this element says about how it draws, given back at once. */

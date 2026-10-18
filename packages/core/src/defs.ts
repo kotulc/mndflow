@@ -3,13 +3,14 @@
 
 import { ARRANGES, type Settings } from "./components";
 import { is_folder, organizes } from "./holders";
-import { is_form, library_home, library_names, type_at } from "./library";
-import { BASE_BLOCKS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIRS, TRAITS, type Block,
+import { entry_at, is_form, library_home, library_names, type_at } from "./library";
+import { BASE_BLOCKS, BASE_COMPONENTS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIRS, KIND_BASE,
+         TRAITS, type Block,
          type BlockModule, type Attribute, type Components, type Definition, type Dir, type Form,
          type Graph, type Id, type Trait } from "./types";
 
 /** A definition's domain: what its usages are. Read off its base, never stored. */
-export type Domain = "block" | "relation";
+export type Domain = "block" | "relation" | "component";
 
 /** How a card sits in its parent's `auto` layer. */
 export type Arrange = (typeof ARRANGES)[number];
@@ -47,24 +48,48 @@ export function chain_of(graph: Graph, def: Id | undefined): Definition[] {
 }
 
 /** What one link of a chain says: the element itself, or a definition along it. */
-type Link = { id: Id; settings?: Components; tags?: Id[]; traits?: Id[] };
+type Link = { id: Id; settings?: Components; tags?: Id[]; constraints?: Id[]; traits?: Id[] };
 
 /** A list in force over an element, and the link of its chain that states it. */
 export type Stated = { ids: Id[]; from: Id | null };
 
-/** The links an element reads through, nearest first: a definition's chain starts at itself; a
- *  usage's and a line's at themselves, then their definition's. */
+/** **The one resolver's chain**: what a definition — a block definition or a library entry —
+ *  reads through, nearest first. An entry extends another of its kind, then its kind's base, which
+ *  is a block definition and reads on as one. */
+function chain_by(graph: Graph, type: Id | undefined): Link[] {
+  const out: Link[] = [];
+  const seen = new Set<Id>();
+  for (let id = type; id && !seen.has(id);) {
+    seen.add(id);
+    if (def_at(graph, id)) return [...out, ...chain_of(graph, id)];
+    const e = entry_at(graph, id);
+    if (!e) break;
+    out.push(e);
+    id = e.type ?? KIND_BASE[e.kind];
+  }
+  return out;
+}
+
+/** The links an element reads through, nearest first: a definition's chain — a block's or an
+ *  entry's — starts at itself; a usage's and a line's at themselves, then their definition's. */
 function links_of(graph: Graph, id: Id | undefined): Link[] {
   const it = id ? graph.blocks[id] ?? graph.edges[id] : undefined;
-  if (!it) return [];
+  if (!it) return entry_at(graph, id) ? chain_by(graph, id) : [];
   if ("def" in it && it.def) return chain_of(graph, it.id);
-  return [it, ...chain_of(graph, def_of(graph, it.id))];
+  const up = it.type && entry_at(graph, it.type) ? it.type : def_of(graph, it.id);
+  return [it, ...chain_by(graph, up)];
 }
 
 /** The tags in force over an element: **the nearest list stated** down its chain, whole. */
 export function tags_stated(graph: Graph, id: Id | undefined): Stated {
   const link = links_of(graph, id).find((l) => l.tags);
   return { ids: link?.tags ?? [], from: link?.id ?? null };
+}
+
+/** The constraints in force over an element: the nearest list stated down its chain, whole. */
+export function constraints_stated(graph: Graph, id: Id | undefined): Stated {
+  const link = links_of(graph, id).find((l) => l.constraints);
+  return { ids: link?.constraints ?? [], from: link?.id ?? null };
 }
 
 /** The traits in force over an element: **the nearest list a definition states** down its chain,
@@ -145,7 +170,7 @@ export function setting_of(graph: Graph, id: Id | undefined, key: string): Setti
 
 /** What one component reads for a usage of this definition: its chain and traits, base first. */
 export function config_of(graph: Graph, type: Id | undefined, key: string): Settings {
-  return def_at(graph, type) ? setting_of(graph, type, key) : {};
+  return def_at(graph, type) || entry_at(graph, type) ? setting_of(graph, type, key) : {};
 }
 
 /** A field list put in the order these names give. */
@@ -177,6 +202,27 @@ export function form_of(graph: Graph, type: Id | undefined): Form {
   return def_at(graph, type) ? "link" : "text";
 }
 
+/** What a type's chain says of its unit or format: its own, else what it extends, nearest first. */
+function type_says(graph: Graph, type: Id | undefined, key: "unit" | "format"): string | undefined {
+  const seen = new Set<Id>();
+  for (let t = type_at(graph, type); t && !seen.has(t.id); t = type_at(graph, t.type)) {
+    seen.add(t.id);
+    if (t[key]) return t[key];
+  }
+  return undefined;
+}
+
+/** What an attribute's values count in: its own unit, else its type's, read down the type's chain.
+ *  **A type is the attribute's definition**: it carries the unit, format and look its fields wear. */
+export function unit_of(graph: Graph, attribute: Attribute): string | undefined {
+  return attribute.unit || type_says(graph, attribute.type, "unit");
+}
+
+/** How an attribute's values are written: its type's format, read down the type's chain. */
+export function format_of(graph: Graph, attribute: Attribute): string | undefined {
+  return type_says(graph, attribute.type, "format");
+}
+
 /** Whether an attribute links to a block definition: a foreign key. */
 export function links_to(graph: Graph, attribute: Attribute): Id | null {
   return def_at(graph, attribute.type) && domain_of(graph, attribute.type) === "block"
@@ -185,7 +231,8 @@ export function links_to(graph: Graph, attribute: Attribute): Id | null {
 
 /** Whether an id names a base: a definition the kit ships with nothing above it. */
 export function is_base(id: Id | undefined): boolean {
-  return !!id && (BASE_BLOCKS.includes(id) || BASE_RELATIONS.includes(id));
+  return !!id && (BASE_BLOCKS.includes(id) || BASE_RELATIONS.includes(id)
+    || BASE_COMPONENTS.includes(id));
 }
 
 /** The base a definition descends from, which is what its kind is. A type naming a base directly
@@ -195,9 +242,12 @@ export function base_named(graph: Graph, type: Id | undefined): Id | undefined {
   return hit ?? (is_base(type) ? type : undefined);
 }
 
-/** A definition's domain: a relation where it descends from `line` or `tie`. */
+/** A definition's domain: a relation where it descends from `line` or `tie`, a component where
+ *  from `attribute` or `tag`. */
 export function domain_of(graph: Graph, type: Id | undefined): Domain {
-  return BASE_RELATIONS.includes(base_named(graph, type) ?? "") ? "relation" : "block";
+  const base = base_named(graph, type) ?? "";
+  return BASE_RELATIONS.includes(base) ? "relation"
+    : BASE_COMPONENTS.includes(base) ? "component" : "block";
 }
 
 /** Whether a definition may change kind — block to relation, or back — by what it extends:
@@ -332,7 +382,8 @@ export function package_of(graph: Graph, id: Id): Id {
 
 /** Whether a block is read only: under any package but the workspace's. */
 export function frozen(graph: Graph, id: Id): boolean {
-  return !!graph.blocks[id] && package_of(graph, id) !== graph.root;
+  if (!graph.blocks[id]) return (library_home(graph, id) ?? graph.root) !== graph.root;
+  return package_of(graph, id) !== graph.root;
 }
 
 /** Whether a line is a tie: its `line.module` is tie, which *is tie* grants. */

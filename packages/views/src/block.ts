@@ -161,7 +161,9 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
   const carried_as = (id: Id): BoxData => {
     const said = carried(graph, id);
-    return parts.has(id) ? { ...said, marks: [...said.marks, "part"] } : said;
+    const marks = [...said.marks, ...(parts.has(id) ? ["part" as const] : []),
+                   ...(how === "treemap" ? ["tiled" as const] : [])];
+    return { ...said, marks };
   };
   const spots = laid(graph, layer);
   /** Interfaces are seated after the cards; hidden ones still hold their seat. */

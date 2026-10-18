@@ -15,14 +15,16 @@
 import { parse } from "yaml";
 import { read_card } from "./card";
 import { all_defs, block_base, def_at, dir_of, package_of } from "./defs";
-import { long_form, type Edge, type Entry, type LongForm } from "./diagram";
+import { long_form, type Edge, type Entry, type LongForm, type LibrarySaid } from "./diagram";
 import { renamed, write } from "./file";
-import { all_tags, all_types, is_form } from "./library";
+import { all_constraints, all_interfaces, all_tags, all_types, is_form } from "./library";
 import { def_ref, fits_domain, is_path, path_to, STEP } from "./refs";
 import { children, ports_on } from "./tree";
 import type { Leaf } from "./ports";
-import { FORMS, type Attribute, type Block, type Form, type Graph, type Id,
-         type Relation, type Tag, type Type, type Value } from "./types";
+import { FORMS, type Attribute, type Block, type Components, type Constraint, type Flow,
+         type Form, type Graph,
+         type Id, type Interface, type Relation, type Side, type Tag, type Type,
+         type Value } from "./types";
 
 /** What collecting came to: the package file, what it had to make, the files saying a definition
  *  already said, which it refused, and what it could not read or find. */
@@ -131,12 +133,14 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
       const edge = relation(ctx, `${r.id}.r${i + 1}`, e);
       if (edge) graph.edges[edge.id] = { ...edge, alias: alias("relation") };
     }
-    /** A note written on a block is tied to it. */
+    /** A note written on a block is tied to it, or to the port it was written on. */
     for (const [i, e] of r.form.blocks.entries()) {
       if (e.tied === undefined) continue;
       const id = `${r.id}.t${i + 1}`;
-      graph.edges[id] = { id, from: `${r.id}.${i + 1}`, to: `${r.id}.${e.tied + 1}`, type: "tie",
-                          alias: alias("relation") };
+      const to = e.tied < 0 ? r.id : `${r.id}.${e.tied + 1}`;
+      const port = e.port ? graph.blocks[to]?.ports?.find((p) => p.name === e.port) : undefined;
+      graph.edges[id] = { id, from: `${r.id}.${i + 1}`, to, ...(port ? { toPort: port.id } : {}),
+                          type: "tie", alias: alias("relation") };
     }
   }
   if (root) graph.blocks[slug]!.counters = counters;
@@ -262,21 +266,31 @@ function lay(graph: Graph, r: Read, parent: Id, order: number): void {
       ...(e.values.length ? { values: e.values } : {}),
       ...(e.records?.length ? { records: e.records } : {}),
       ...(e.w !== undefined ? { w: e.w } : {}), ...(e.h !== undefined ? { h: e.h } : {}),
-      ...(e.side ? { side: e.side as Block["side"] } : {}),
-      ...(e.at !== undefined ? { at: e.at } : {}),
-      ...(e.flow ? { flow: e.flow as Block["flow"] } : {}),
+      ...(e.ports?.length ? { ports: e.ports.map((p) => ({
+        id: `${id}.port.${slug_of(p.name || "port")}`, ...(p.name ? { name: p.name } : {}),
+        ...(p.description ? { description: p.description } : {}),
+        ...(p.flow ? { flow: p.flow as Flow } : {}), ...(p.side ? { side: p.side as Side } : {}),
+        ...(p.at !== undefined ? { at: p.at } : {}) })) } : {}),
     };
   }
 }
 
 /** A file's named components put in its package's library, each by its name; one already there
  *  is said again over it. */
-function library(graph: Graph, slug: Id, pre: string, said: LongForm["library"]): void {
+function library(graph: Graph, slug: Id, pre: string, said: Partial<LibrarySaid>): void {
   const root = graph.blocks[slug]!;
-  const lib = { types: [...root.library?.types ?? []], tags: [...root.library?.tags ?? []] };
+  const lib = { types: [...root.library?.types ?? []], tags: [...root.library?.tags ?? []],
+                interfaces: [...root.library?.interfaces ?? []],
+                constraints: [...root.library?.constraints ?? []] };
   const text = (m: Record<string, unknown>, key: string) =>
     (typeof m[key] === "string" ? (m[key] as string).trim() : "");
-  for (const t of said.types) {
+  /** What every entry says: its description, what it extends in its own kind, and its settings. */
+  const common = (m: Record<string, unknown>, id_of: (name: string) => Id) => ({
+    ...(text(m, "description") ? { description: text(m, "description") } : {}),
+    ...(text(m, "type") ? { type: id_of(text(m, "type")) } : {}),
+    ...(m["settings"] && typeof m["settings"] === "object"
+      ? { settings: m["settings"] as Components } : {}) });
+  for (const t of said.types ?? []) {
     const name = text(t, "name");
     if (!name) continue;
     const form = (is_form(text(t, "form")) ? text(t, "form")
@@ -284,19 +298,38 @@ function library(graph: Graph, slug: Id, pre: string, said: LongForm["library"])
     const type: Type = { id: type_id(pre, name), name, form,
       ...(Array.isArray(t["choices"]) ? { choices: (t["choices"] as unknown[]).map(String) } : {}),
       ...(text(t, "unit") ? { unit: text(t, "unit") } : {}),
-      ...(text(t, "description") ? { description: text(t, "description") } : {}) };
+      ...(text(t, "format") ? { format: text(t, "format") } : {}),
+      ...common(t, (n) => type_id(pre, n)) };
     lib.types = [...lib.types.filter((x) => x.id !== type.id), type];
   }
-  for (const t of said.tags) {
+  for (const t of said.tags ?? []) {
     const name = text(t, "name");
     if (!name) continue;
-    const tag: Tag = { id: `${pre}tag.${slug_of(name)}`, name,
-                       ...(text(t, "description") ? { description: text(t, "description") } : {}) };
+    const tag: Tag = { id: tag_id(pre, name), name, ...common(t, (n) => tag_id(pre, n)) };
     lib.tags = [...lib.tags.filter((x) => x.id !== tag.id), tag];
   }
-  if (lib.types.length || lib.tags.length) {
+  for (const t of said.constraints ?? []) {
+    const name = text(t, "name");
+    if (!name) continue;
+    const words = (key: string) => (Array.isArray(t[key]) ? (t[key] as unknown[]).map(String) : []);
+    const one: Constraint = { id: constraint_id(pre, name), name,
+                              ...(words("required").length ? { required: words("required") } : {}),
+                              ...(words("match").length ? { match: words("match") } : {}),
+                              ...common(t, (n) => constraint_id(pre, n)) };
+    lib.constraints = [...lib.constraints.filter((x) => x.id !== one.id), one];
+  }
+  for (const t of said.interfaces ?? []) {
+    const name = text(t, "name");
+    if (!name) continue;
+    const one: Interface = { id: interface_id(pre, name), name,
+                             ...common(t, (n) => interface_id(pre, n)) };
+    lib.interfaces = [...lib.interfaces.filter((x) => x.id !== one.id), one];
+  }
+  if (lib.types.length || lib.tags.length || lib.interfaces.length || lib.constraints.length) {
     root.library = { ...(lib.types.length ? { types: lib.types } : {}),
-                     ...(lib.tags.length ? { tags: lib.tags } : {}) };
+                     ...(lib.tags.length ? { tags: lib.tags } : {}),
+                     ...(lib.interfaces.length ? { interfaces: lib.interfaces } : {}),
+                     ...(lib.constraints.length ? { constraints: lib.constraints } : {}) };
   }
 }
 
@@ -313,15 +346,12 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
   }
   const type = e.def ? b.type : e.type ? named(ctx, e.type, "block") : undefined;
   if (type) b.type = type;
-  /** Only an interface has a wall and a flow; said of anything else, they are answers. */
-  if (block_base(graph, b.type) !== "interface") {
-    const said = (["side", "at", "flow"] as const).filter((k) => b[k] !== undefined);
-    if (said.length) {
-      b.values = [...(b.values ?? []), ...said.map((k) => ({ name: k, value: String(b[k]) }))];
-      for (const k of said) delete b[k];
-    }
+  /** A port's interface definition, by name. */
+  for (const [i, p] of (e.ports ?? []).entries()) {
+    if (p.type && b.ports?.[i]) b.ports[i]!.type = interface_of(ctx, p.type);
   }
   if (e.tags) b.tags = e.tags.map((t) => tag_of(ctx, t));
+  if (e.constraints) b.constraints = e.constraints.map((c) => constraint_of(ctx, c));
   if (e.traits) b.traits = [...e.traits];
   if (e.of) b.of = ref(ctx, e.of, true, id) ?? e.of;
   if (e.def) {
@@ -384,27 +414,26 @@ function relation(ctx: Ctx, id: Id, e: Edge): Relation | undefined {
   const dir = e.dir && e.dir !== dir_of(ctx.graph, type ?? "line") ? e.dir : undefined;
   const line = { ...(settings?.["line"] as object | undefined), ...(dir ? { dir } : {}) };
   const all = { ...settings, ...(Object.keys(line).length ? { line } : {}) };
-  return { id, from: from.at, to: to.at, ...(from.part ? { fromPart: from.part } : {}),
-           ...(to.part ? { toPart: to.part } : {}), ...(type && type !== "line" ? { type } : {}),
+  return { id, from: from.at, to: to.at, ...(from.part ? { fromPort: from.part } : {}),
+           ...(to.part ? { toPort: to.part } : {}), ...(type && type !== "line" ? { type } : {}),
            ...(e.name ? { name: e.name } : {}),
            ...(e.tags ? { tags: e.tags.map((t) => tag_of(ctx, t)) } : {}),
+           ...(e.constraints ? { constraints: e.constraints.map((c) => constraint_of(ctx, c)) } : {}),
            ...(Object.keys(all).length ? { settings: all as Relation["settings"] } : {}),
            ...(e.values.length ? { values: e.values } : {}),
            ...(e.ends ? { ends: e.ends } : {}) };
 }
 
-/** A relation's end a word names: a block — an interface of this file's block included — else
- *  `usage::port`: a usage and an interface it wears, its own or read through its definition. */
+/** A relation's end a word names: a block, else `block::port` — a block and a port it wears,
+ *  its own or read through its definition — else a port of this file's block. */
 function end_of(ctx: Ctx, word: string): { at: Id; part?: Id } | undefined {
   const at = ref(ctx, word, false);
   if (at) return { at };
   const steps = word.split(STEP).map((s) => s.trim());
   const port = steps.pop();
-  const usage = steps.length ? ref(ctx, steps.join(STEP), false) : undefined;
-  const hit = usage ? ports_on(ctx.graph, usage).find((p) => p.name === port) : undefined;
-  if (!usage || !hit) return undefined;
-  /** Its own is met as itself; its definition's is read through. */
-  return hit.parent === usage ? { at: hit.id } : { at: usage, part: hit.id };
+  const on = steps.length ? ref(ctx, steps.join(STEP), false) : ctx.file.id;
+  const hit = on ? ports_on(ctx.graph, on).find((p) => p.name === port) : undefined;
+  return on && hit ? { at: on, part: hit.id } : undefined;
 }
 
 /** A block a word names, other than the one asking: one in this file, by name or path; else a
@@ -527,8 +556,8 @@ function tag_of(ctx: Ctx, word: string): Id {
   const said = word.trim();
   const hit = in_scope(ctx, all_tags(ctx.graph), said);
   if (hit) return hit;
-  const id = `${ctx.pre}tag.${slug_of(said)}`;
-  library(ctx.graph, ctx.slug, ctx.pre, { types: [], tags: [{ name: said }] });
+  const id = tag_id(ctx.pre, said);
+  library(ctx.graph, ctx.slug, ctx.pre, { tags: [{ name: said }] });
   ctx.made.set(said, id);
   return id;
 }
@@ -542,7 +571,7 @@ function type_of(ctx: Ctx, word: string): Id {
   const hit = in_scope(ctx, all_types(ctx.graph), said)
     ?? def_ref(ctx.graph, said, { within: ctx.within, fits: fits_domain(ctx.graph, "block") });
   if (hit) return hit;
-  library(ctx.graph, ctx.slug, ctx.pre, { types: [{ name: said, form: "text" }], tags: [] });
+  library(ctx.graph, ctx.slug, ctx.pre, { types: [{ name: said, form: "text" }] });
   ctx.made.set(said, type_id(ctx.pre, said));
   return type_id(ctx.pre, said);
 }
@@ -551,6 +580,41 @@ function type_of(ctx: Ctx, word: string): Id {
  *  made type stay apart. */
 function type_id(pre: string, name: string): Id {
   return `${pre}datatype.${slug_of(name)}`;
+}
+
+/** A library tag's id. */
+function tag_id(pre: string, name: string): Id {
+  return `${pre}tag.${slug_of(name)}`;
+}
+
+/** A library constraint's id. */
+function constraint_id(pre: string, name: string): Id {
+  return `${pre}constraint.${slug_of(name)}`;
+}
+
+/** A constraint, by name: one of this package or the file's packages. Nothing, and an empty one
+ *  is made in this package's library. */
+function constraint_of(ctx: Ctx, word: string): Id {
+  const said = word.trim();
+  const hit = in_scope(ctx, all_constraints(ctx.graph), said);
+  if (hit) return hit;
+  library(ctx.graph, ctx.slug, ctx.pre, { constraints: [{ name: said }] });
+  return constraint_id(ctx.pre, said);
+}
+
+/** A library interface definition's id. */
+function interface_id(pre: string, name: string): Id {
+  return `${pre}interface.${slug_of(name)}`;
+}
+
+/** What a port carries, by name: an interface definition of this package or the file's
+ *  packages. Nothing, and one is made in this package's library. */
+function interface_of(ctx: Ctx, word: string): Id {
+  const said = word.trim();
+  const hit = in_scope(ctx, all_interfaces(ctx.graph), said);
+  if (hit) return hit;
+  library(ctx.graph, ctx.slug, ctx.pre, { interfaces: [{ name: said }] });
+  return interface_id(ctx.pre, said);
 }
 
 /** The one named component of this name the file may see: its own package's, else its packages'

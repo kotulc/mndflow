@@ -39,10 +39,10 @@
 
 | context | tabs |
 |---|---|
-| block | card · attributes · contents |
-| block definition | card · settings · attributes · usages |
-| a line | line · attributes |
-| relation definition | line · settings · attributes · usages |
+| block | card · components · contents |
+| block definition | card · settings · components · usages |
+| a line | line · components |
+| relation definition | line · settings · components · usages |
 | the workspace | workspace · contents |
 | a definitions folder | definitions |
 | the packages section | packages |
@@ -208,6 +208,10 @@
 - **Each row offers the definitions it may follow** — for a block, only its own kind's — and a line's row shows the name it draws.
 - ***Retype all* points every listed usage at one definition**, in one step and one undo.
 - **The lit row offers *view***.
+
+## Components
+
+**Everything an element carries, one band per kind**: its attributes (the table below), its ports — its own and its definition's, each with its interface definition in that definition's colour; *add port* on a block that *has ports* — its tags and its constraints, each a chip in its entry's colour. Ports, tags and constraints are set on the card tab's keys; this tab reads them together.
 
 ## Attributes
 

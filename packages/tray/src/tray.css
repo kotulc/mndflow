@@ -180,6 +180,8 @@ fieldset.fields { padding: 0; }
 .contents-table tr.inherited td { color: var(--faint); }
 .contents-table td .type { color: var(--muted); }
 .contents-table td .type.link { color: var(--accent); }
+/* A library type wears its own colour, read down its chain, as a chip for it does. */
+.contents-table td .type.typed { color: var(--card-edge, var(--muted)); }
 .contents-table td .faint { color: var(--faint); font-style: italic; }
 
 /* The workspace draws nowhere, so there is no card column: what it is and what it is made of
@@ -458,3 +460,15 @@ fieldset.fields { padding: 0; }
 .heat-key > i { display: inline-block; width: 11px; height: 11px; border-radius: 2px; }
 .heat-key > i:first-of-type { margin-left: 4px; }
 .heat-key > i:last-of-type { margin-right: 4px; }
+
+/* ── The components tab: a band per kind; a port's interface and a tag in their own colour. ── */
+.components { display: flex; flex-direction: column; }
+.components .painted { color: var(--card-edge, var(--muted)); }
+.components .carried { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 10px 10px; }
+.components .chip-like {
+  padding: 0 6px;
+  border: 1px solid var(--card-edge, var(--border));
+  border-radius: 2px;
+  font-size: 11px;
+}
+.components .faint { color: var(--muted); font-size: 11px; }

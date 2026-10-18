@@ -4,9 +4,9 @@ import { block_base, def_at, def_named, frozen, package_of, relation_base, setti
          stored_type, type Domain } from "../defs";
 import { is_grid } from "../holders";
 import { next_alias } from "../names";
-import { children, next_order, part_end, reorder } from "../tree";
+import { children, next_order, part_end, port_at, reorder } from "../tree";
 import { new_id } from "../ids";
-import type { Cell, Graph, Id, Mutation, Side, Span } from "../types";
+import type { Cell, Graph, Id, Mutation, Port, Side, Span } from "../types";
 import type { Args, Context } from "./registry";
 
 /** The layer an action lands in: the open one, else the workspace's domain. */
@@ -94,6 +94,20 @@ export function handles(ctx: Context, kind: string) {
 }
 
 /** A refusal where the named definition is not of this kind. */
+/** A port edited where it is held: its holder's ports written whole with it changed — or gone,
+ *  where `change` gives null, taking every line meeting it along. */
+export function port_edit(graph: Graph, id: Id, change: (port: Port) => Port | null): Mutation[] {
+  const port = port_at(graph, id);
+  if (!port) return [];
+  const own = graph.blocks[port.holder]?.ports ?? [];
+  const now = change(own.find((p) => p.id === port.id)!);
+  const ports = now ? own.map((p) => (p.id === port.id ? now : p)) : own.filter((p) => p.id !== port.id);
+  const lines = now ? [] : Object.values(graph.edges)
+    .filter((e) => e.fromPort === port.id || e.toPort === port.id)
+    .map((e): Mutation => ({ op: "delete_edge", id: e.id }));
+  return [{ op: "set_ports", id: port.holder, ports }, ...lines];
+}
+
 export function may_wear(ctx: Context, args: Args, kind: Id): string | null {
   const type = text(args, "type");
   if (!type) return null;
@@ -170,7 +184,7 @@ export function tied(ctx: Context, id: Id, parent: Id | null, type: Id | undefin
   const kind = def_at(ctx.graph, said) ? stored_type(ctx.graph, said) : undefined;
   const line = handles(ctx, "relation");
   return [{ op: "link_blocks", edge: { id: new_id("edge"), from: id, to: end.block,
-                                       ...(end.part ? { toPart: end.part } : {}),
+                                       ...(end.part ? { toPort: end.part } : {}),
                                        alias: line.take(), ...(kind ? { type: kind } : {}) } },
           ...line.bump(), ...after(ctx, id, parent, end.block)];
 }

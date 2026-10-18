@@ -12,11 +12,12 @@ blocks:
   - name: Compensations
     type: component
     note: The undo of each step.
+ports:
   - name: start
-    type: interface
+    type: HTTP
     flow: in
   - name: bus
-    type: interface
+    type: Events
     flow: both
 relations:
   - calls: [ start -> Orchestrator ]

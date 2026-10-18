@@ -1,9 +1,9 @@
 /** The `treemap` layout: a layer's blocks as tiles, each as large as what it holds, nested in the
  *  folders, groups and regions holding them — each a box under its heading. Uniform cards stay
  *  every other layout's; a definition asks for this one with `layout.kind: treemap`. Worked out on
- *  every draw, never stored. The squarified layout is d3-hierarchy's. */
+ *  every draw, never stored. The binary layout is d3-hierarchy's: it keeps a light tile from a thin slice. */
 
-import { hierarchy, treemap, treemapSquarify } from "d3-hierarchy";
+import { hierarchy, treemap, treemapBinary } from "d3-hierarchy";
 import { children, def_of, is_aside, is_box, is_interface, of_ref, stands_for, subtree,
          type Graph, type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
@@ -61,7 +61,7 @@ export function tiled(tiles: Tile[]): Placed[] {
    *  them; tiles in a box keep a little air. */
   const headed = (n: { children?: { children?: unknown }[] }) =>
     !!n.children?.some((c) => c.children);
-  const laid = treemap<Tile>().tile(treemapSquarify.ratio(1.4)).size([w, h]).round(true)
+  const laid = treemap<Tile>().tile(treemapBinary).size([w, h]).round(true)
     .paddingInner((n) => (headed(n) ? PAD : INNER))
     .paddingOuter((n) => (boxed(n) ? INNER : 0))
     .paddingTop((n) => (boxed(n) ? INNER : 0))(root);

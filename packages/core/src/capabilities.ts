@@ -1,11 +1,12 @@
 /** What a block may do, and what its values are asked for. `allows` is refused at the gesture;
  *  `expects` is only ever advice. */
 
-import { closes_cycle, frozen, isa, owner_def, stated, tree_of } from "./defs";
+import { closes_cycle, constraints_stated, frozen, isa, owner_def, stated, tree_of } from "./defs";
+import { constraint_at } from "./library";
 import { is_grid } from "./holders";
 import { label_of } from "./names";
 import { children, is_interface, ports_on, subtree } from "./tree";
-import type { Components, Flow, Graph, Id } from "./types";
+import type { Components, Constraint, Flow, Graph, Id } from "./types";
 
 export type NoteKind = "required" | "ends" | "holds" | "ports" | "values" | "degree" | "match"
   | "nested" | "self" | "cycle" | "cell";
@@ -70,9 +71,23 @@ export function allows_of(graph: Graph, id: Id | undefined): Allows {
   return merged(layers_of(graph, id, "allows", read_allows));
 }
 
-/** What this usage's values are asked for, merged the same way. */
+/** What an element's values are asked for: every rule of the constraints it is held to, each read
+ *  down its chain — a constraint extending another is held to that one's rules too. */
 export function expects_of(graph: Graph, id: Id | undefined): Expects {
-  return merged(layers_of(graph, id, "expects", read_expects));
+  const rules = constraints_stated(graph, id).ids.flatMap((c) => rules_of(graph, c));
+  const all = (key: "required" | "match") => [...new Set(rules.flatMap((r) => r[key] ?? []))];
+  const required = all("required");
+  const match = all("match");
+  return { ...(required.length ? { required } : {}), ...(match.length ? { match } : {}) };
+}
+
+/** A constraint and those it extends, nearest first. */
+function rules_of(graph: Graph, id: Id): Constraint[] {
+  const out: Constraint[] = [];
+  for (let c = constraint_at(graph, id); c && !out.includes(c); c = constraint_at(graph, c.type)) {
+    out.push(c);
+  }
+  return out;
 }
 
 /** Nearest first, so the first declaration of each key is the one in force. */
@@ -121,18 +136,6 @@ function read_allows(components: Components | undefined): Allows {
   return out;
 }
 
-function read_expects(components: Components | undefined): Expects {
-  const e = components?.["expects"] ?? {};
-  const out: Expects = {};
-
-  const required = strings(e["required"]);
-  if (required) out.required = required;
-
-  const match = strings(e["match"]);
-  if (match) out.match = match;
-
-  return out;
-}
 
 // ------------------------------------------------------------ what is permitted
 
@@ -264,8 +267,8 @@ export function review(graph: Graph, scope?: Id): Note[] {
 
     notes.push(...unanswered(graph, e.id, label_of(graph, e.id) || e.id, expects));
     if (allows.ends) {
-      end(notes, graph, e.id, "from", e.from, e.fromPart, allows.ends.from, allows.ends.fromFlow);
-      end(notes, graph, e.id, "to", e.to, e.toPart, allows.ends.to, allows.ends.toFlow);
+      end(notes, graph, e.id, "from", e.from, e.fromPort, allows.ends.from, allows.ends.fromFlow);
+      end(notes, graph, e.id, "to", e.to, e.toPort, allows.ends.to, allows.ends.toFlow);
     }
 
     /** `match` is one fixed comparison: the same field name, read off both ends, agreeing. */
@@ -292,14 +295,11 @@ function count(notes: Note[], id: Id, name: string, way: "in" | "out",
   }
 }
 
-/** A capability about an end: the block it meets — an interface's owner, where it meets one — and
- *  the interface's flow. */
+/** A capability about an end: the block it meets, and the flow of the port it meets there. */
 function end(notes: Note[], graph: Graph, id: Id, way: "from" | "to", at: Id, part: Id | undefined,
              allowed: Id[] | undefined, flow: Flow | undefined): void {
-  const met = graph.blocks[at];
-  const port = part ? ports_on(graph, at).find((p) => p.id === part)
-    : met && is_interface(graph, met.id) ? met : undefined;
-  const owner = port && !part && met?.parent ? graph.blocks[met.parent] : met;
+  const owner = graph.blocks[at];
+  const port = part ? ports_on(graph, at).find((p) => p.id === part) : undefined;
   if (allowed && !is_one_of(graph, owner?.type, allowed)) {
     notes.push({ kind: "ends", id, what: `"${label(graph, owner?.id ?? at)}" may not sit at the ${way} end` });
   }

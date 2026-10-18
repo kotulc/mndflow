@@ -1,11 +1,11 @@
-/** The keys a component is asked, as the card tab asks a card's: an interface — what it is
- *  called, which way it carries, which interface definition it is, where it sits — and a tag or a
- *  type from a package's library. Each edit goes home: an interface to the block holding it — its
- *  definition's, where a usage reads it through — a named component to its library. */
+/** The keys a component is asked, as the card tab asks a card's: a port — what it is called,
+ *  which way it carries, which interface definition it is, where it sits — and a tag, a type or an
+ *  interface definition from a package's library. Each edit goes home: a port to the block holding
+ *  it — its definition's, where a usage reads it through — a named component to its library. */
 
-import { all_defs, all_types, block_base, def_at, domain_of, frozen, stored_of, is_interface,
-         shown_name, tag_at, type_at, users_of, FORMS, type Act, type Graph,
-         type Id } from "@mnd/core";
+import { all_constraints, all_defs, all_interfaces, all_tags, all_types, constraint_at,
+         domain_of, entry_at, frozen, interface_at, port_at, setting_of, shown_name, tag_at,
+         type_at, users_of, FORMS, type Act, type Graph, type Id } from "@mnd/core";
 import { FROZEN, where, type Chip, type Pair } from "./pairs";
 
 /** The walls an interface may be seated on. */
@@ -15,35 +15,33 @@ const SIDES = ["top", "right", "bottom", "left"] as const;
 const LENT = " It came with its package, so it reads only.";
 
 
-/** What an interface is asked, on whichever block wears it. */
+/** What a port is asked, on whichever block wears it. */
 export function port_pairs(graph: Graph, id: Id, onAct: Act, onOpen?: (id: Id) => void): Pair[] {
-  const at = stored_of(graph, id);
-  const port = graph.blocks[at];
-  if (!port || !is_interface(graph, at)) return [];
-  const fixed = frozen(graph, at);
-  const change = (args: Record<string, unknown>) => onAct("port", { id: at, ...args });
-  const owner = port.parent ?? at;
+  const port = port_at(graph, id);
+  if (!port) return [];
+  const fixed = frozen(graph, port.holder);
+  const change = (args: Record<string, unknown>) => onAct("port", { id, ...args });
+  const owner = port.holder;
   const home = shown_name(graph, owner);
-  const lent = at !== id;
+  const lent = owner !== port.on;
   return [
     { key: "name", word: "name", shown: port.name ?? "", said: !!port.name, fixed, asks: [],
       verbs: [], about: `What this interface is called.${fixed ? FROZEN : ""}`,
       ...(fixed ? {} : { text: { value: port.name ?? "", placeholder: "interface",
-                                 commit: (to: string) => onAct("rename", { id: at, name: to }) } }) },
+                                 commit: (to: string) => change({ name: to }) } }) },
     { key: "flow", word: "flow", shown: port.flow ?? "both", said: !!port.flow, fixed, verbs: [],
       about: "Which way it carries: in, out, or both, which is what it reads unsaid.",
       asks: [{ word: "flow", tip: "Press the one lit to give it back.",
                chips: ["in", "out", "both"].map((f) => ({ value: f, word: f,
                  on: (port.flow ?? "both") === f, set: port.flow === f })),
                pick: (c) => change({ flow: c.set ? "none" : c.value }) }] },
-    { key: "type", word: "type", shown: def_at(graph, port.type)?.name ?? "interface",
-      said: !!port.type && port.type !== "interface", fixed, verbs: [],
-      about: "Which interface definition it is: what it carries is said there, as attributes.",
+    { key: "type", word: "type", shown: interface_at(graph, port.type)?.name ?? "interface",
+      said: !!port.type, fixed, verbs: [],
+      about: "Which interface definition it is, from a library: what it carries is said there.",
       asks: [{ word: "type", tip: "Press the one lit to give it back.",
-               chips: all_defs(graph).filter((d) => block_base(graph, d.id) === "interface")
-                 .map((d) => ({ value: d.id, word: d.name, on: (port.type ?? "interface") === d.id,
-                                set: port.type === d.id })),
-               pick: (c) => onAct("retype", { ids: [at], type: c.set ? "interface" : c.value }) }] },
+               chips: all_interfaces(graph).map((d) => ({ value: d.id, word: d.name,
+                 on: port.type === d.id, set: port.type === d.id })),
+               pick: (c) => change({ type: c.set ? "" : c.value }) }] },
     { key: "seat", word: "seat", shown: port.side ? `${port.side} ${port.at ?? 0.5}` : "auto",
       said: !!port.side, fixed,
       about: "Where it sits. Unseated, it takes the face most of its lines look out of on every "
@@ -62,7 +60,8 @@ export function port_pairs(graph: Graph, id: Id, onAct: Act, onOpen?: (id: Id) =
   ];
 }
 
-/** What a tag is asked: its name, what it means, and what carries it. */
+/** What a tag is asked: its name, what it means, what it extends, its colour, and what carries
+ *  it. */
 export function tag_pairs(graph: Graph, id: Id, onAct: Act): Pair[] {
   const tag = tag_at(graph, id)!;
   const fixed = tag.pkg !== graph.root;
@@ -71,7 +70,49 @@ export function tag_pairs(graph: Graph, id: Id, onAct: Act): Pair[] {
   return [
     named(tag.name, fixed, (to) => write({ name: to })),
     described(tag.description, fixed, (to) => write({ description: to })),
+    extended(graph, id, all_tags(graph), fixed, write),
+    coloured(graph, id, fixed, onAct),
     used(carriers, fixed, () => onAct("delete", { ids: [id] }), "carried by"),
+  ];
+}
+
+/** What a constraint is asked: its name, what it is for, the values it requires, those a line's
+ *  ends must match, what it extends, its colour, and what is held to it. */
+export function constraint_pairs(graph: Graph, id: Id, onAct: Act): Pair[] {
+  const one = constraint_at(graph, id)!;
+  const fixed = one.pkg !== graph.root;
+  const write = (args: Record<string, unknown>) =>
+    onAct("define_constraint", { id, name: one.name, ...args });
+  const words = (key: "required" | "match", about: string): Pair => ({
+    key, word: key, shown: (one[key] ?? []).join(", "), said: !!one[key]?.length, fixed,
+    asks: [], verbs: [], about,
+    ...(fixed ? {} : { text: { value: (one[key] ?? []).join(", "), placeholder: "a, b",
+                               commit: (to: string) => write({ [key]: to }) } }),
+  });
+  return [
+    named(one.name, fixed, (to) => write({ name: to })),
+    described(one.description, fixed, (to) => write({ description: to })),
+    words("required", "The values whatever is held to it must answer, by name, split on commas."),
+    words("match", "On a line: the values both its ends must answer alike."),
+    extended(graph, id, all_constraints(graph), fixed, write),
+    coloured(graph, id, fixed, onAct),
+    used(users_of(graph, id).length, fixed, () => onAct("delete", { ids: [id] }), "held by"),
+  ];
+}
+
+/** What an interface definition is asked: its name, what it carries, what it extends, its colour,
+ *  and the ports of it. */
+export function interface_pairs(graph: Graph, id: Id, onAct: Act): Pair[] {
+  const one = interface_at(graph, id)!;
+  const fixed = one.pkg !== graph.root;
+  const write = (args: Record<string, unknown>) =>
+    onAct("define_interface", { id, name: one.name, ...args });
+  return [
+    named(one.name, fixed, (to) => write({ name: to })),
+    described(one.description, fixed, (to) => write({ description: to })),
+    extended(graph, id, all_interfaces(graph), fixed, write),
+    coloured(graph, id, fixed, onAct),
+    used(users_of(graph, id).length, fixed, () => onAct("delete", { ids: [id] }), "used by"),
   ];
 }
 
@@ -102,8 +143,47 @@ export function type_pairs(graph: Graph, id: Id, onAct: Act): Pair[] {
       ...(fixed ? {} : { text: { value: type.unit ?? "", placeholder: "unit",
                                  commit: (to: string) => write({ unit: to }) } }),
     }] : []),
+    { key: "format", word: "format", shown: type.format ?? "", said: !!type.format, fixed,
+      asks: [], verbs: [], about: "How its values are written: a pattern such as 0.00 or YYYY-MM-DD.",
+      ...(fixed ? {} : { text: { value: type.format ?? "", placeholder: "format",
+                                 commit: (to: string) => write({ format: to }) } }) },
+    extended(graph, id, all_types(graph), fixed, write),
+    coloured(graph, id, fixed, onAct),
     used(users_of(graph, id).length, fixed, () => onAct("delete", { ids: [id] }), "used by"),
   ];
+}
+
+/** Hues an entry may wear, by their common names. */
+const HUES: readonly [string, number][] = [["red", 25], ["amber", 75], ["green", 145],
+                                           ["teal", 190], ["blue", 245], ["violet", 300]];
+
+/** What an entry extends: another of its kind, or its kind's base where it says none. */
+function extended(graph: Graph, id: Id, kin: readonly { id: Id; name: string }[], fixed: boolean,
+                  write: (args: Record<string, unknown>) => void): Pair {
+  const now = entry_at(graph, id)?.type;
+  return { key: "extends", word: "extends", shown: kin.find((k) => k.id === now)?.name ?? "",
+           said: !!now, fixed, verbs: [],
+           about: "Another of its kind it extends: it reads that one's colour and settings, as a "
+             + "subtype does. Unsaid, its kind's base.",
+           asks: fixed ? [] : [{ word: "extends", tip: "Press the one lit to give it back.",
+             chips: kin.filter((k) => k.id !== id).map((k) => ({ value: k.id, word: k.name,
+               on: now === k.id, set: now === k.id })),
+             pick: (c) => write({ extends: c.set ? "" : c.value }) }] };
+}
+
+/** An entry's colour: a hue of its own, else what it extends paints it. */
+function coloured(graph: Graph, id: Id, fixed: boolean, onAct: Act): Pair {
+  const own = entry_at(graph, id)?.settings?.["style"]?.["hue"];
+  const hue = setting_of(graph, id, "style")["hue"];
+  const named_hue = HUES.find(([, h]) => h === hue)?.[0];
+  return { key: "colour", word: "colour", shown: named_hue ?? (hue !== undefined ? String(hue) : ""),
+           said: own !== undefined, fixed, verbs: [],
+           about: "The hue its tiles, chips and ports wear: its own, else what it extends.",
+           asks: fixed ? [] : [{ word: "hue", tip: "Press the one lit to give it back.",
+             chips: HUES.map(([word, h]) => ({ value: String(h), word, on: hue === h,
+                                                set: own === h })),
+             pick: (c) => onAct("look", { ids: [id], key: "style", name: "hue",
+                                          value: c.set ? "" : c.value }) }] };
 }
 
 /** Every type a value or an interface may carry, gathered by where each lives: the forms, then

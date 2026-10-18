@@ -4,9 +4,10 @@
  *  into the folder or package holding them — and on the canvas, as a treemap (`registry_scene`).
  *  Worked out on every read, never stored. */
 
-import { is_folder, label_of, library_of, registry_at, registry_id, registry_of, shown_name,
-         tag_at, type_at, users_of, uses_by, type Graph, type Id, type Registry } from "@mnd/core";
+import { entry_at, is_folder, label_of, library_of, registry_at, registry_id, registry_of,
+         shown_name, users_of, uses_by, type Graph, type Id, type Registry } from "@mnd/core";
 import { carried, trail_of } from "./derive";
+import { entry_look } from "./look";
 import { cell, type BoxNode, type Scene } from "./scene";
 import { PAD } from "./size";
 import { tiled, type Tile } from "./treemap";
@@ -90,9 +91,10 @@ function folder_of(graph: Graph, id: Id): Id {
 
 /** A registry on the canvas, as a treemap; null for anything that is not a registry or an entry.
  *  **Opened on the registry**, each entry is a tile as large as its uses, in the box of its home
- *  folder — the one holding most of its uses — or *across folders* where none holds half, or *no
- *  uses*. **Opened on an entry**, the blocks using it, each as large as its uses there, in the
- *  boxes of their folders. A projection: nothing is dragged or written back. */
+ *  folder — the one holding most of its uses — or *[multiple]* where none holds half, or *[no
+ *  uses]*. **Opened on an entry**, the blocks using it, each as large as its uses there, in the
+ *  boxes of their folders. A lone box is left out: the frame says as much. A projection: nothing
+ *  is dragged or written back. */
 export function registry_scene(graph: Graph, id: Id): Scene | null {
   const registry = registry_at(graph, id);
   if (registry) return entries_scene(graph, id, registry);
@@ -117,14 +119,17 @@ function entries_scene(graph: Graph, id: Id, registry: Registry): Scene {
   };
   const homes = new Map<Id, Entry[]>();
   for (const e of entries) homes.set(home(e), [...homes.get(home(e)) ?? [], e]);
-  const named = (g: Id) => (g === across ? "across folders" : g === none ? "no uses"
+  const named = (g: Id) => (g === across ? "[multiple]" : g === none ? "[no uses]"
     : shown_name(graph, g));
+  /** The lightest tile weighs half the heaviest, so its name still reads beside its box's walls;
+   *  its warmth still says how little it is used. */
   const tiles: Tile[] = [...homes].map(([g, list]) => ({ id: g, weight: 0,
-    kids: list.map((e) => ({ id: e.id, weight: Math.max(e.uses, 1) })) }));
+    kids: list.map((e) => ({ id: e.id, weight: Math.max(e.uses, max / 2) })) }));
   const at = new Map(entries.map((e) => [e.id, e]));
-  const nodes = tiled(tiles).map((p) => {
+  const nodes = tiled(alone(tiles)).map((p) => {
     const e = at.get(p.id);
     return e ? cell(e.id, p, { label: e.name, marks: [], count: e.uses, heat: e.uses / max,
+                               look: entry_look(graph, e.id),
                                ...(e.description ? { description: e.description } : {}) }, "tile")
       : cell(p.id, p, { label: named(p.id), marks: ["group"],
                         holds: (homes.get(p.id) ?? []).map((x) => x.id) }, "group");
@@ -144,9 +149,9 @@ function users_scene(graph: Graph, id: Id, registry: Registry): Scene {
   }
   const tiles: Tile[] = [...folders].map(([f, ids]) => ({ id: `${id}/${f}`, weight: 0,
     kids: ids.map((u) => ({ id: u, weight: uses_by(graph, id, u) })) }));
-  const name = tag_at(graph, id)?.name ?? type_at(graph, id)?.name ?? id;
+  const name = entry_at(graph, id)?.name ?? id;
   const max = Math.max(1, ...users.map((u) => uses_by(graph, id, u)));
-  const nodes = tiled(tiles).map((p) => {
+  const nodes = tiled(alone(tiles)).map((p) => {
     /** A block is its card's small face: its tile's size is its uses, never its content. */
     if (graph.blocks[p.id]) return cell(p.id, p, carried(graph, p.id, "small"));
     if (graph.edges[p.id]) {
@@ -161,6 +166,11 @@ function users_scene(graph: Graph, id: Id, registry: Registry): Scene {
   const reg = registry_id(registry);
   return drawn(id, name, nodes, [...trail_of(graph, registry.pkg),
                                  { id: reg, label: registry.kind }, { id, label: name }]);
+}
+
+/** Boxes as given, or a lone box's tiles alone. */
+function alone(tiles: Tile[]): Tile[] {
+  return tiles.length === 1 && tiles[0]!.kids ? tiles[0]!.kids : tiles;
 }
 
 /** A treemap as a scene: its room round the tiles, under the registry's or the entry's name. */

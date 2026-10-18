@@ -26,12 +26,10 @@ blocks:
   - name: place
     type: diagrams.behaviour
     description: Takes a customer's lines and gives back the order they make.
-    blocks:
+    ports:
       - name: lines
-        type: interface
         flow: in
       - name: placed
-        type: interface
         flow: out
 relations:
   - diagrams.association:

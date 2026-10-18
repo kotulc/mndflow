@@ -15,8 +15,9 @@ blocks:
     note: Reads and writes the store; nothing else touches it.
   - name: Store
     type: database
+ports:
   - name: requests
-    type: interface
+    type: HTTP
     flow: in
 relations:
   - calls: [ requests -> API, API -> Domain logic, Domain logic -> Repository ]

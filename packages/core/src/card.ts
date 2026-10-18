@@ -12,8 +12,9 @@ import type { Block, Graph, Id } from "./types";
 /** The keys a block says itself with, in a diagram file and a card source alike. Any other key is
  *  a value — on a definition, an attribute's default. */
 export const BLOCK_KEYS = [
-  "name", "type", "def", "description", "tags", "traits", "settings", "body", "source", "of", "parent", "cell",
-  "grid", "values", "w", "h", "side", "at", "flow", "rows", "cols", "blocks", "relations",
+  "name", "type", "def", "description", "tags", "constraints", "traits", "settings", "body",
+  "source", "of", "parent", "cell",
+  "grid", "values", "w", "h", "ports", "rows", "cols", "blocks", "relations",
   "packages", "note", "library", "records",
 ] as const;
 

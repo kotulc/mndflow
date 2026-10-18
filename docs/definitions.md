@@ -11,7 +11,7 @@
 |---|---|
 | **block** | a visual stand-in for a part, a system, or the template of one: something with parts, data or deeper significance, never decorative. Drawn as a card; opening one gives its layer |
 | **relationship** | a meaningful join between **exactly two** blocks, never a block and a relationship: a data flow, a dependency. Drawn as a line, placed by its ends. Held in `graph.edges`. Also **relation** |
-| **component** | what a block carries, never drawn alone: attributes and values, types, tags, traits, settings, interfaces. Read and edited in the tray, and inside a card |
+| **component** | what a block carries, never drawn alone: attributes and values, types, tags, constraints, interfaces. Read and edited in the tray's components tab, and inside a card |
 | **annotation** | what explains or organizes one layer: a **note**, **label**, **group** or **region**, joined to what it describes by a **tie**. No model meaning, but the tags its name gives its members. Never listed in the explorer |
 | **organization** | what arranges blocks for browsing: a package, a **folder**, a **grid**. Listed in the explorer; no model meaning |
 | **parent** | the block a block sits under. **The only containment**: definitions, packages, folders, grids, annotations and structure all hold by `parent` |
@@ -62,7 +62,8 @@
 |---|---|---|
 | **block** | block | the unit of structure: a thing, a part, a step, a system. Holds blocks, which it opens onto as a layer once it holds any |
 | **reference** | block | a stand-in for a block, a definition or a package elsewhere |
-| **interface** | component | a block's boundary, a block under it seated on its wall: where relations and flows enter and leave. *Is interface*. Its definition — one extending `interface` — says what it carries; any block that *has ports* may hold one. Never a card, a layer or a row |
+| **interface** | component | the base a port's interface definition extends: a block's boundary, seated on its wall, where relations and flows enter and leave. *Is interface*: the engine draws a port by it. Never a card, a layer or a row |
+| **attribute**, **tag**, **constraint** | component | the bases their library entries extend: a type, a tag, a constraint. Each its own hue; never made a block |
 | **line** | relation | the plain relationship. Which way it points is a setting, `line.dir` (`none`, `forward`, `back`, `both`), said by its definition and overridable on the line |
 | **folder** | organization | a box on its parent's layer, what it holds drawn inside. Holds anything; never a layer. Selected in the explorer, the canvas zooms to it |
 | **grid** | organization | seats blocks and labels **in cells**. A card outside; opened, its **allocation view**: sequence diagrams and swimlanes. Lists as a row |
@@ -82,15 +83,15 @@
 | **setting** | what an element says about how it draws or what it may do, by component (`settings`) |
 | **vary** | a style setting: how far, in degrees, each definition under one that sets it strays from **its parent's shade**, keyed by its id, halving at each step down. Kin read alike, each still itself |
 | **form** | how a value is edited: `text`, `number`, `flag`, `link`, `choice`. The engine's, closed |
-| **component** | what a block carries as data: defined once in a package's library, used by blocks, no layer, never an explorer row of its own. Interfaces, attributes (defined by types), tags; constraints later. Not a behaviour (a block), a trait (the engine's), a record (a value) |
+| **component** | what a block carries as data: defined once in a package's library, used by blocks, no layer, never an explorer row of its own. Interfaces, attributes (defined by types), tags, constraints. Each entry extends another of its kind, else its kind's base, and is styled as a definition is. Not a behaviour (a block), a trait (the engine's), a record (a value) |
 | **type** | the definition of an attribute: a named, reusable data shape stored as data in its package — an **enum** (a `choice` and its options) or an **alias** (one form, named: `uuid`) — with its format, unit and look. Never drawn on a layer. An enum with methods or fields is a class: a block definition. An attribute's `type` names a form, a type, or a block definition |
 | **interface** | a component: a block's boundary, a **port** — data on the block, keyed by id — drawn on its wall, where relationships and flows enter and leave. A name, a flow, and its interface definition in the library, which says what it carries. Any block that *has ports* may hold its own; a usage also wears its definition's, read through. No layer of its own; never an explorer row |
 | **registry** | one package's components of one kind — its entries and their uses — gathered in one place: worked out from the library, never stored, listed under its package as a block is. Opened, a treemap; in the tray, a matrix and a list |
-| **entry** | one component definition in a registry: a tag, a type, an interface definition |
-| **use** | one block or line carrying an entry: a tag it carries, an attribute typed by it, a port of it |
-| **home folder** | the folder holding most of an entry's uses, where its tile sits in its registry's treemap; *across folders* where none holds half |
+| **entry** | one component definition in a registry: a tag, a type, an interface definition, a constraint |
+| **use** | one block or line carrying an entry: a tag it carries, an attribute typed by it, a port of it, a constraint it is held to |
+| **home folder** | the folder holding most of an entry's uses, where its tile sits in its registry's treemap; *[multiple]* where none holds half |
 | **capability** | what a block may do, granted by a trait: hold (*has parts*), hold values of its own (*has values*), hold records (*has records*), have ports (*has ports*), draw what it holds in place (*is group*), seat it in cells (*is grid*), be headed (*has head*), be tied to what it is made from (*has tie*). **Absent is a no**: what nothing grants is refused at the gesture |
-| **constraint** | a capability limited to definitions (`allows` lists, `degree`, `ends`), or what values must say (`expects`). Settings, not traits; to be reworked |
+| **constraint** | a component: a rule in a library — the values a block must answer (`required`), and on a line those its ends must agree on (`match`) — applied by id (`constraints`), inherited down the chain as tags are. Advice in `review`, never a refusal. A capability limited to definitions (`allows` lists, `degree`, `ends`) stays settings |
 | **tag** | a component: a word with a meaning (`description`), stored as data in its package, **for finding things**: search, filters, lookup. Carried in `tags` by a usage, a line or a definition, or given by an annotation's name to its members. The tray groups an element's tags by source |
 | **collection** | a block with *has records*: many records of one type (`records.of`), drawn as a table on its card. Records are values, never blocks |
 | **behaviour** | a block's method: a block under it whose kind carries *is behaviour* — a flow or state machine (`behaviour`), a swimlane or a sequence. Its layer does it; its interfaces are its signature, in-interfaces its parameters, out-interfaces its return. A class card lists it after its fields |

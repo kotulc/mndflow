@@ -3,13 +3,14 @@
  *  key is listed, said or not**, so anything a card carries can be changed from one place. The
  *  source column draws the lines; the choices column draws the lit pair's questions as chips. */
 
-import { all_defs, all_tags, attributes_of, base_of, def_at, def_of, domain_of, ends_of, form_of,
+import { all_constraints, all_defs, all_tags, constraint_at, constraints_stated, expects_of,
+         interface_at, attributes_of, base_of, def_at, def_of, domain_of, ends_of, form_of,
          frozen, OWNERSHIPS, type End,
          given_of, holds_defs, honours, is_base, is_domain, is_holder, is_interface, isa, kind_free,
          may_hold, package_of, shown_name, subtree, tag_at, tags_stated, traits_stated, type_at,
          type_name, TRAITS, type Act, type Attribute, type Block,
          type Definition, type Graph, type Id } from "@mnd/core";
-import { port_pairs, tag_pairs, type_pairs } from "./components";
+import { constraint_pairs, interface_pairs, port_pairs, tag_pairs, type_pairs } from "./components";
 import { taken } from "./Definitions";
 import { defined, held, kind_of, reading, types_for } from "./holder";
 import { AS_RUN, ASKS, parts_in_order, ROWS, type Group } from "./questions";
@@ -60,6 +61,8 @@ export type Pair = {
 export function pairs_of(graph: Graph, id: Id, onAct: Act, onOpen?: (id: Id) => void): Pair[] {
   /** A component is asked its own questions: an interface, a tag, a type. */
   if (is_interface(graph, id)) return port_pairs(graph, id, onAct, onOpen);
+  if (interface_at(graph, id)) return interface_pairs(graph, id, onAct);
+  if (constraint_at(graph, id)) return constraint_pairs(graph, id, onAct);
   if (tag_at(graph, id)) return tag_pairs(graph, id, onAct);
   if (type_at(graph, id)) return type_pairs(graph, id, onAct);
   const it = held(graph, id);
@@ -67,17 +70,19 @@ export function pairs_of(graph: Graph, id: Id, onAct: Act, onOpen?: (id: Id) => 
   const d = it.def;
   if (it.edge) {
     return [named(graph, id, onAct), typed(graph, id, onAct, onOpen), ...ended(graph, id, onAct),
-            tags(graph, id, onAct)];
+            tags(graph, id, onAct), constraints(graph, id, onAct)];
   }
   const relation = d && domain_of(graph, d.id) === "relation";
   return d ? [
     named_def(graph, d, onAct), described(graph, id, onAct), extends_of(graph, d, onAct, onOpen),
     ...(relation ? ended(graph, id, onAct) : []),
-    placed(graph, id, onAct), tags(graph, id, onAct), traits(graph, d, onAct),
+    placed(graph, id, onAct), tags(graph, id, onAct), constraints(graph, id, onAct),
+    traits(graph, d, onAct),
     ...values(graph, id, onAct),
   ] : [
     named(graph, id, onAct), described(graph, id, onAct), typed(graph, id, onAct, onOpen),
-    placed(graph, id, onAct), tags(graph, id, onAct), sourced(graph, id, onAct),
+    placed(graph, id, onAct), tags(graph, id, onAct), constraints(graph, id, onAct),
+    sourced(graph, id, onAct),
     ...values(graph, id, onAct),
   ];
 }
@@ -319,6 +324,38 @@ function tags(graph: Graph, id: Id, onAct: Act): Pair {
     }],
     verbs: said && from && !fixed ? [{ word: "inherit", tip: "carry its definition's tags again",
                                        run: () => onAct("tag", { ids: [id] }) }] : [],
+  };
+}
+
+/** The constraints an element is held to, from the libraries, as tags are carried. */
+function constraints(graph: Graph, id: Id, onAct: Act): Pair {
+  const { ids, from } = constraints_stated(graph, id);
+  const said = from === id;
+  const fixed = !!graph.blocks[id] && frozen(graph, id);
+  const set = (to: string[]) => onAct("constrain", { ids: [id], constraints: to });
+  const source = said ? "stated" : `carried from ${name_of(graph, from ?? "")}`;
+  const word = (c: Id) => constraint_at(graph, c)?.name ?? c;
+  const rules = expects_of(graph, id);
+  const chips: Chip[] = [
+    ...ids.map((c) => ({ value: c, word: word(c), on: true, set: said, group: source,
+                         tip: constraint_at(graph, c)?.description ?? `release ${word(c)}` })),
+    ...all_constraints(graph).filter((c) => !ids.includes(c.id))
+      .map((c) => ({ value: c.id, word: c.name, on: false, set: said, group: "library",
+                     tip: c.description ?? c.name })),
+  ];
+  return {
+    key: "constraints", word: "constraints", shown: listed(ids.map(word)), said, fixed,
+    about: "Rules it is held to: the values it must answer"
+      + (rules.required?.length ? ` (${rules.required.join(", ")})` : "")
+      + ". Advice only: nothing is refused. It carries its definition's until it says its own."
+      + (fixed ? FROZEN : ""),
+    asks: chips.length ? [{
+      word: "constraints", tip: "Press one to hold it to that rule, or release it.", chips,
+      pick: (c) => set(c.on ? ids.filter((x) => x !== c.value) : [...ids, c.value]),
+    }] : [],
+    verbs: said && from && !fixed ? [{ word: "inherit",
+                                       tip: "carry its definition's constraints again",
+                                       run: () => onAct("constrain", { ids: [id] }) }] : [],
   };
 }
 

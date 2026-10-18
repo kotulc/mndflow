@@ -131,35 +131,34 @@ describe("a note tied to an interface", () => {
                                   order: 1 } },
       { op: "add_block", block: { id: "a", parent: "layer", name: "A", type: "block",
                                   order: 1 } },
-      { op: "add_block", block: { id: "p", parent: "layer", name: "", type: "interface",
-                                  order: 2, flow: "out" } },
+      { op: "set_ports", id: "layer", ports: [{ id: "p", flow: "out" }] },
       { op: "add_block", block: { id: "na", parent: "layer", name: "by the port", type: "note",
                                   order: 3 } },
-      { op: "link_blocks", edge: { id: "spill", from: "a", to: "p", type: "line" } },
-      { op: "link_blocks", edge: { id: "ta", from: "na", to: "p", type: "tie" } },
-      { op: "add_block", block: { id: "q", parent: "a", name: "", type: "interface",
-                                  order: 1, flow: "in" } },
+      { op: "link_blocks", edge: { id: "spill", from: "a", to: "layer", toPort: "p",
+                                   type: "line" } },
+      { op: "link_blocks", edge: { id: "ta", from: "na", to: "layer", toPort: "p", type: "tie" } },
+      { op: "set_ports", id: "a", ports: [{ id: "q", flow: "in" }] },
       { op: "add_block", block: { id: "nb", parent: "layer", name: "by the card port",
                                   type: "note", order: 4 } },
-      { op: "link_blocks", edge: { id: "tb", from: "nb", to: "q", type: "tie" } },
+      { op: "link_blocks", edge: { id: "tb", from: "nb", to: "a", toPort: "q", type: "tie" } },
     ],
   }];
 
   it("floats beside a port on the room's wall", () => {
     const scene = project(fold(log, FLOOR), "layer");
     const note = scene.nodes.find((n) => n.id === "na")!;
-    const port = scene.frame!.ports.find((p) => p.id === "p")!;
+    const port = scene.frame!.ports.find((p) => p.id === "layer/p")!;
     const gap = nearest_pair(box_of(note), at_seat(scene.frame!, port));
     expect(gap.d).toBeGreaterThan(8);
     expect(gap.d).toBeLessThan(24 * 4);
-    const perch = scene.perches.find((p) => p.edge === "ta" && p.on === "p");
+    const perch = scene.perches.find((p) => p.edge === "ta" && p.on === "layer/p");
     expect(perch && (perch.at === 0 || perch.at === 1)).toBe(true);
   });
 
   it("floats beside a port on a card", () => {
     const scene = project(fold(log, FLOOR), "layer");
     const note = scene.nodes.find((n) => n.id === "nb")!;
-    const port = scene.nodes.find((n) => n.id === "q")!;
+    const port = scene.nodes.find((n) => n.id === "a/q")!;
     const gap = nearest_pair(box_of(note), box_of(port));
     expect(gap.d).toBeLessThan(24 * 4);
   });
@@ -167,9 +166,12 @@ describe("a note tied to an interface", () => {
   it("floats the showcase note beside the room port on Containers", () => {
     const text = readFileSync("samples/showcase/workspace.json", "utf8");
     const { graph } = open(text, FLOOR);
-    const scene = project(graph, named(graph, "System::Containers"));
-    const drain = named(graph, "System::Containers::https");
-    const note = scene.nodes.find((n) => n.id === note_on(graph, drain))!;
+    const containers = named(graph, "System::Containers");
+    const scene = project(graph, containers);
+    const https = graph.blocks[containers]!.ports!.find((p) => p.name === "https")!;
+    const drain = `${containers}/${https.id}`;
+    const tie = Object.values(graph.edges).find((e) => e.type === "tie" && e.toPort === https.id)!;
+    const note = scene.nodes.find((n) => n.id === tie.from)!;
     const port = scene.frame!.ports.find((p) => p.id === drain)!;
     const gap = nearest_pair(box_of(note), at_seat(scene.frame!, port));
     expect(gap.d).toBeLessThan(24 * 4);

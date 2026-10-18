@@ -1,0 +1,13 @@
+{
+  "id": "attribute",
+  "name": "attribute",
+  "type": "block",
+  "description": "A field a definition asks of its usages, and the value each answers. A component: its definition is a type, an enum or an alias, in its package's library; never a card, a layer or an explorer row.",
+  "def": {},
+  "traits": [],
+  "settings": {
+    "style": {
+      "hue": 75
+    }
+  }
+}

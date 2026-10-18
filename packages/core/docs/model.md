@@ -29,7 +29,7 @@ The object graph: **two element kinds**, blocks and relationships, and every oth
 | `reference` | *is reference*: `of` names what it stands for |
 | `interface` | *is port*: seated on its owner's wall |
 
-The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, and the relation kinds `line` and `tie`. **The set is minimal and enumerates what is functionally distinct**; anything else is a subtype. **There is no untyped block**: a block naming nothing is a `block`.
+The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `reference`, `note`, `label`, `region`, the relation kinds `line` and `tie`, and the component bases `attribute`, `constraint`, `interface` and `tag`. **The set is minimal and enumerates what is functionally distinct**; anything else is a subtype. **There is no untyped block**: a block naming nothing is a `block`.
 
 
 ## Holders
@@ -54,7 +54,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 - **Settings and traits walk the chain**: per link, its own settings, then its traits in order. Nearest wins.
 - **Traits are inherited until stated.** A definition stating its own set replaces its chain's; resetting gives it back.
 - **Structure does not walk.** A usage reads its type's own structure, one step; a subtype inherits no structure.
-- **Parts keep their ids.** An edit to one goes home to the definition that owns it. A usage wears its definition's interfaces on its walls as `usage/port`, and a run meets one there by `fromPart` or `toPart`; a block's own interface, a block under it, is met as itself.
+- **Parts keep their ids.** An edit to one goes home to the definition that owns it. Ports are data on a block: a usage wears its own and its definition's on its walls as `block/port`, and a run meets one there by `fromPort` or `toPort`.
 
 
 ## Tags and traits

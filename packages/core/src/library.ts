@@ -1,10 +1,11 @@
-/** Named components: the types and tags a package holds as data on its root, beside its blocks.
- *  Never blocks, never drawn on a layer; elements carry them by id. */
+/** Named components: the types, tags and interface definitions a package holds as data on its
+ *  root, beside its blocks. Never blocks, never drawn on a layer; elements carry them by id. */
 
-import { base_of, def_at, def_named, is_tie, packages, tags_stated } from "./defs";
+import { base_of, constraints_stated, def_at, def_named, is_tie, packages,
+         tags_stated } from "./defs";
 import { holders_over, is_group, is_region } from "./holders";
-import { FORMS, type Form, type Graph, type Id, type Library, type Mutation, type Tag,
-         type Type } from "./types";
+import { FORMS, type Constraint, type LibraryEntry, type Form, type Graph, type Id,
+         type Interface, type Library, type Mutation, type Tag, type Type } from "./types";
 
 /** A named component and the package holding it. */
 export type Named<T> = T & { pkg: Id };
@@ -25,8 +26,56 @@ export function all_types(graph: Graph): Named<Type>[] {
   return held(graph, "types");
 }
 
+/** Every interface definition of every package, the workspace's first. */
+export function all_interfaces(graph: Graph): Named<Interface>[] {
+  return held(graph, "interfaces");
+}
+
+/** The kinds a library holds, in the order they list. */
+export const KINDS: readonly (keyof Library)[] = ["types", "tags", "interfaces", "constraints"];
+
+/** Every constraint of every package, the workspace's first. */
+export function all_constraints(graph: Graph): Named<Constraint>[] {
+  return held(graph, "constraints");
+}
+
+/** The constraint with this id. */
+export function constraint_at(graph: Graph, id: Id | undefined): Named<Constraint> | undefined {
+  return id ? all_constraints(graph).find((t) => t.id === id) : undefined;
+}
+
+/** The constraint a word names: by id, or by name, the workspace's own first. */
+export function constraint_named(graph: Graph, word: string): Named<Constraint> | undefined {
+  const want = word.trim();
+  return constraint_at(graph, want) ?? all_constraints(graph).find((t) => t.name === want);
+}
+
+/** A library entry of any kind, with its kind and package. */
+export type Filed = Named<LibraryEntry> & { kind: keyof Library };
+
+/** The library entry with this id, of any kind. */
+export function entry_at(graph: Graph, id: Id | undefined): Filed | undefined {
+  if (!id) return undefined;
+  for (const kind of KINDS) {
+    const hit = held(graph, kind).find((e) => e.id === id);
+    if (hit) return { ...hit, kind };
+  }
+  return undefined;
+}
+
+/** The interface definition with this id. */
+export function interface_at(graph: Graph, id: Id | undefined): Named<Interface> | undefined {
+  return id ? all_interfaces(graph).find((t) => t.id === id) : undefined;
+}
+
+/** The interface definition a word names: by id, or by name, the workspace's own first. */
+export function interface_named(graph: Graph, word: string): Named<Interface> | undefined {
+  const want = word.trim();
+  return interface_at(graph, want) ?? all_interfaces(graph).find((t) => t.name === want);
+}
+
 /** One kind of named component across every package, the workspace's first. */
-function held<K extends "tags" | "types">(graph: Graph, kind: K): Named<NonNullable<Library[K]>[number]>[] {
+function held<K extends keyof Library>(graph: Graph, kind: K): Named<NonNullable<Library[K]>[number]>[] {
   const roots = packages(graph).sort((a, z) => Number(z.id === graph.root) - Number(a.id === graph.root));
   return roots.flatMap((p) => (p.library?.[kind] ?? []).map((c) => ({ ...c, pkg: p.id })));
 }
@@ -80,7 +129,7 @@ export function type_name(graph: Graph, id: Id | undefined): string {
 
 /** The package a named component is held in. */
 export function library_home(graph: Graph, id: Id): Id | undefined {
-  return (tag_at(graph, id) ?? type_at(graph, id))?.pkg;
+  return entry_at(graph, id)?.pkg;
 }
 
 /** The tags an element carries, in order: the nearest list its chain states. */
@@ -88,10 +137,15 @@ export function tags_of(graph: Graph, id: Id): Id[] {
   return tags_stated(graph, id).ids;
 }
 
+/** The constraints an element is held to, in order: the nearest list its chain states. */
+export function constraints_of(graph: Graph, id: Id): Id[] {
+  return constraints_stated(graph, id).ids;
+}
+
 /** Whether a name is held in a package's library, by anything but `except`. */
 export function library_names(graph: Graph, pkg: Id, name: string, except?: Id): boolean {
   const lib = library_of(graph, pkg);
-  return [...lib.types ?? [], ...lib.tags ?? []].some((c) => c.id !== except && c.name === name);
+  return KINDS.flatMap((k) => lib[k] ?? []).some((c) => c.id !== except && c.name === name);
 }
 
 /** A package's library with one tag put in, or replaced by id. */
@@ -106,13 +160,27 @@ export function put_type(graph: Graph, pkg: Id, type: Type): Mutation {
   return { op: "set_library", id: pkg, library: { ...lib, types: put(lib.types, type) } };
 }
 
+/** A package's library with one interface definition put in, or replaced by id. */
+export function put_interface(graph: Graph, pkg: Id, one: Interface): Mutation {
+  const lib = library_of(graph, pkg);
+  return { op: "set_library", id: pkg, library: { ...lib, interfaces: put(lib.interfaces, one) } };
+}
+
+/** A package's library with one constraint put in, or replaced by id. */
+export function put_constraint(graph: Graph, pkg: Id, one: Constraint): Mutation {
+  const lib = library_of(graph, pkg);
+  return { op: "set_library", id: pkg, library: { ...lib, constraints: put(lib.constraints, one) } };
+}
+
 /** Each library holding one of these components, with them taken out. */
 export function drop_named(graph: Graph, ids: readonly Id[]): Mutation[] {
   const pkgs = new Set(ids.map((id) => library_home(graph, id)).filter((p): p is Id => !!p));
   const keep = <T extends { id: Id }>(list: T[] | undefined) => list?.filter((c) => !ids.includes(c.id));
   return [...pkgs].map((pkg) => {
     const lib = library_of(graph, pkg);
-    return { op: "set_library", id: pkg, library: { types: keep(lib.types), tags: keep(lib.tags) } };
+    return { op: "set_library", id: pkg, library: { types: keep(lib.types), tags: keep(lib.tags),
+                                                    interfaces: keep(lib.interfaces),
+                                                    constraints: keep(lib.constraints) } };
   });
 }
 
@@ -122,12 +190,14 @@ function put<T extends { id: Id }>(list: T[] | undefined, one: T): T[] {
   return had ? list!.map((c) => (c.id === one.id ? one : c)) : [...list ?? [], one];
 }
 
-/** What uses a named component: blocks and lines carrying a tag, and blocks with an attribute
- *  typed by a type. */
+/** What uses a named component: blocks and lines carrying a tag or held to a constraint, blocks
+ *  with an attribute typed by a type, and blocks with a port of an interface definition. */
 export function users_of(graph: Graph, id: Id): Id[] {
   const blocks = Object.values(graph.blocks).filter((b) => b.tags?.includes(id)
-    || b.def?.attributes?.some((a) => a.type === id));
-  const lines = Object.values(graph.edges).filter((e) => e.tags?.includes(id));
+    || b.constraints?.includes(id) || b.def?.attributes?.some((a) => a.type === id)
+    || b.ports?.some((p) => p.type === id));
+  const lines = Object.values(graph.edges).filter((e) => e.tags?.includes(id)
+    || e.constraints?.includes(id));
   return [...blocks, ...lines].map((x) => x.id);
 }
 
@@ -143,32 +213,31 @@ export function registry_id(registry: Registry): Id {
 
 /** The registry an id names, or null. */
 export function registry_at(graph: Graph, id: Id | null | undefined): Registry | null {
-  const m = id ? /^(.+)\/@(tags|types)$/.exec(id) : null;
+  const m = id ? /^(.+)\/@(tags|types|interfaces|constraints)$/.exec(id) : null;
   return m && graph.blocks[m[1]!]?.parent === null
     ? { pkg: m[1]!, kind: m[2] as keyof Library } : null;
 }
 
-/** The registry an entry belongs to: its tag's or type's package and kind; null for anything
- *  else. */
+/** The registry an entry belongs to: its package and kind; null for anything else. */
 export function registry_of(graph: Graph, id: Id | null | undefined): Registry | null {
-  const tag = tag_at(graph, id ?? undefined);
-  if (tag) return { pkg: tag.pkg, kind: "tags" };
-  const type = type_at(graph, id ?? undefined);
-  return type ? { pkg: type.pkg, kind: "types" } : null;
+  const e = entry_at(graph, id ?? undefined);
+  return e ? { pkg: e.pkg, kind: e.kind } : null;
 }
 
 /** How many times a block or a line uses an entry: once for a tag it carries, once for each
- *  attribute typed by it. */
+ *  attribute typed by it, once for each port of it. */
 export function uses_by(graph: Graph, entry: Id, user: Id): number {
   const b = graph.blocks[user];
   const tagged = (b ?? graph.edges[user])?.tags?.includes(entry) ? 1 : 0;
-  return tagged + (b?.def?.attributes?.filter((a) => a.type === entry).length ?? 0);
+  const held = (b ?? graph.edges[user])?.constraints?.includes(entry) ? 1 : 0;
+  return tagged + held + (b?.def?.attributes?.filter((a) => a.type === entry).length ?? 0)
+    + (b?.ports?.filter((p) => p.type === entry).length ?? 0);
 }
 
 /** Whether a package holds anything named, so the explorer lists its library. */
 export function has_library(graph: Graph, pkg: Id): boolean {
   const lib = library_of(graph, pkg);
-  return !!(lib.types?.length || lib.tags?.length);
+  return KINDS.some((k) => !!lib[k]?.length);
 }
 
 /** A tag an annotation gives a block by its name: a group's or a region's, to what it encloses; a

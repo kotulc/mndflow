@@ -1,7 +1,7 @@
 /** What every module derives the same way. */
 
 import { attributes_of, def_of, dir_of, domain_of, frozen, head_of, lens_of, is_box, opens,
-         is_annotation, is_flat, is_interface, is_named,
+         flow_of, is_annotation, is_flat, is_interface, is_named,
          base_of, path, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
          type Graph, type Id } from "@mnd/core";
 import { face_table, face_text, handle_of } from "./face";
@@ -40,8 +40,9 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
   if (is_flat(graph, id)) out.push("flat");
   if (is_interface(graph, b.id)) {
     out.push("interface");
-    if (b.flow === "in" || b.flow === "both") out.push("in");
-    if (b.flow === "out" || b.flow === "both") out.push("out");
+    const flow = flow_of(graph, b.id);
+    if (flow === "in" || flow === "both") out.push("in");
+    if (flow === "out" || flow === "both") out.push("out");
   }
   /** Whether it opens onto a drawing of its own: what it holds, what its definition holds, or
    *  what a reference previews. The card wears a stacked edge, and its icon lights. */

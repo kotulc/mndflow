@@ -2,12 +2,17 @@ name: Product
 def:
   attributes:
     - name: sku
+      type: Sku
       key: primary
     - name: name
     - name: price
-      type: number
-      unit: USD
+      type: Money
 description: Something that can be ordered.
 settings:
   card:
     face: table
+library:
+  types:
+    - name: Sku
+      form: text
+      description: A product's stock code.

@@ -7,7 +7,19 @@
       "doc": {
         "id": "doc",
         "parent": null,
-        "name": "doc"
+        "name": "doc",
+        "library": {
+          "constraints": [
+            {
+              "id": "doc.constraint.section",
+              "name": "section values",
+              "description": "What a section must answer.",
+              "required": [
+                "level"
+              ]
+            }
+          ]
+        }
       },
       "doc.blocks": {
         "id": "doc.blocks",
@@ -90,13 +102,11 @@
               "doc.item",
               "doc.code"
             ]
-          },
-          "expects": {
-            "required": [
-              "level"
-            ]
           }
-        }
+        },
+        "constraints": [
+          "doc.constraint.section"
+        ]
       },
       "doc.item": {
         "id": "doc.item",

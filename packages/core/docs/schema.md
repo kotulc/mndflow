@@ -73,10 +73,10 @@ Block {
   body?         string            // what a block holds as text
   description?  string            // what it is for, in a line: shown on hover
 
-  def?          { attributes?: Attribute[]; ports?: Port[] }   // on a definition, and only there
+  def?          { attributes?: Attribute[]; ends?: Ends }   // on a definition, and only there
 
   of?           Id                // what a reference stands for: read only where its kind is one
-  library?      Library           // a package root: its named components, types and tags
+  library?      Library           // a package root: its named components
   records?      {[name]: string}[] // a collection's records: values, never blocks
   source?       string            // provenance: one uri
 
@@ -85,7 +85,7 @@ Block {
 
   x?, y?        number            // placement, when hand-laid
   w?, h?        number            // least size
-  side?, at?, flow?               // an interface as a view draws it: never stored on a block
+  ports?        Port[]            // its boundary, in order: data, keyed by id
   order?        number            // among siblings
   alias?        number            // handle serial, minted once
 
@@ -94,7 +94,18 @@ Block {
   settings?     Components        // its own word, by component
   traits?       Id[]              // what the engine lets it do, in order; definitions only
   tags?         Id[]              // tags it carries, by id, to be found by
+  constraints?  Id[]              // constraints it is held to, by id
   values?       Value[]           // a usage's answers, in order
+}
+
+Port {
+  id            Id                // what a line's end names, with its block
+  name?         string
+  type?         Id                // its interface definition; absent: base `interface`
+  description?  string
+  flow?         "in" | "out" | "both"   // absent: both
+  side?, at?                      // placed on its wall; absent: it places itself
+  alias?        number
 }
 ```
 
@@ -104,7 +115,7 @@ Block {
 | **`def` is explicit** | a definition is a block carrying it. Holders, packages and usages never do |
 | **one `type`** | extends on a definition, is-a on a usage. Absent: a plain block |
 | **own values only** | `settings`, `traits`, `tags`, `values` store what this block says; the rest resolves on read |
-| **lists replace, settings merge** | stating `traits` or `tags` replaces its chain's list whole; unsaid, it carries the nearest list stated. An empty list says none. `settings` merge per property, nearest first |
+| **lists replace, settings merge** | stating `traits`, `tags` or `constraints` replaces its chain's list whole; unsaid, it carries the nearest list stated. An empty list says none. `settings` merge per property, nearest first |
 
 
 ### Grid
@@ -123,13 +134,14 @@ Grid {
 Relation {
   id          Id
   from, to    Id                 // blocks, never a relationship
-  fromPart?   Id                 // a part of from's definition the run leaves: an interface it reads through
-  toPart?     Id                 // a part of to's definition the run reaches
+  fromPort?   Id                 // the port on from the run leaves: its own, or its definition's
+  toPort?     Id                 // the port on to the run reaches
   ends?       Ends               // what its ends say over its definition's: multiplicity and role
   name?       string             // what it is called; absent draws its definition's name
   type?       Id                 // a relation definition; absent: line
   alias?      number
   tags?       Id[]               // as a block's: stated, they replace its definition's
+  constraints? Id[]              // as a block's
   settings?   Components         // `line.dir` says which way it points
   values?     Value[]
 }
@@ -159,15 +171,18 @@ Value     { name, value }
 **How a value is edited is closed**: the forms `text`, `number`, `flag`, `choice`, `link`, named by their own word. **What a value is, is open**: a package's types.
 
 
-### Components: library, interfaces and behaviours
+### Components: library, ports and behaviours
 
 ```
-Library { types?: Type[]; tags?: Tag[] }               // on a package root
-Type    { id, name, description?, form, choices?, unit? } // an enum or an alias
-Tag     { id, name, description? }
+Library    { types?, tags?, interfaces?, constraints? }      // on a package root
+Entry      { id, name, description?, type?, settings? }      // every entry: extends, styled
+Type       Entry & { form, choices?, unit?, format? }        // an enum or an alias
+Tag        Entry
+Interface  Entry                                             // what a port carries
+Constraint Entry & { required?, match? }                     // what values must say
 ```
 
-**Named components are data, never blocks**: a package's types and tags live on its root, carried by id, one name space with its definitions. **Interfaces and behaviours are blocks** under what holds them: an interface's kind runs the `interface` module (*is interface*) and carries `flow`, `side` and `at`; a behaviour's kind carries *is behaviour*. A definition's interfaces are inherited down its chain as attributes are; a view draws each on the wall of every usage wearing it, as `usage/port`, and a relationship meets one there by `fromPart` or `toPart`. A block's own interface is met as itself.
+**Named components are data, never blocks**: a package's entries live on its root, carried by id, one name space with its definitions. An entry's `type` names another of its kind; extending nothing, it extends its kind's base definition (`attribute`, `tag`, `interface`, `constraint`), and **one resolver** reads settings down that chain as down a block definition's. **Ports are data on a block** (`ports`); a definition's are inherited down its chain as attributes are, and a view draws each on the wall of every block wearing it, as `block/port`, where a relationship meets it by `fromPort` or `toPort`. **Behaviours are blocks** under what holds them, their kind carrying *is behaviour*.
 
 
 ### Components
@@ -184,7 +199,6 @@ Tag     { id, name, description? }
 | `tie` | the relation type a block made from or dropped on another is linked to it by |
 | `allows` | `ports`, `holds`, `heads`, `degree`, `ends`. Refused at the gesture; absent is a no. Usually granted whole by a trait |
 | `holder` | `inline`, `matrix`, `band`: how a block draws what it holds — in place, in cells, as a band across its layer. Granted by *is group*, *is grid* and *is region*; which holder a block is comes from here |
-| `expects` | `required`, `match`. Advice, never a refusal |
 | `records` | `of`: the block definition a collection's records answer |
 
 - **A component owns its key and validates it at the door.** One absent from the build is left unvalidated, not wrong.
@@ -211,14 +225,13 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | `move_block` · `place_block` · `size_block` · `order_block` | re-parent, position, least size, sibling order |
 | `set_alias` · `set_counter` | handles |
 | `set_body` · `set_description` · `set_attributes` · `set_source` | text, what it is for, a definition's attributes, provenance |
-| `set_ends` · `set_library` · `set_records` | a relation's or relation definition's ends, a package's named components, a collection's records; each written whole |
+| `set_ends` · `set_library` · `set_records` · `set_ports` | a relation's or relation definition's ends, a package's named components, a collection's records, a block's ports; each written whole |
 | `seat_cell` · `set_grid` | an address in the parent grid; a lattice, written whole |
 | `link_blocks` · `update_edge` · `delete_edge` | make, rename or retype, remove a relationship |
-| `flip_edge` · `set_end` | ends, and the part an end reads through |
-| `set_port` · `mark_port` | an interface's seat, or none to place itself; its flow |
+| `flip_edge` · `set_end` | ends, and the port an end meets |
 | `set_value` · `drop_value` · `order_values` | a usage's answers, by name |
-| `set_tags` · `set_traits` | an element's tags; a definition's traits. A list, or null to give it back to the chain |
-| `set_setting` · `drop_settings` | one property of one component; everything at once given back |
+| `set_tags` · `set_constraints` · `set_traits` | an element's tags or constraints; a definition's traits. A list, or null to give it back to the chain |
+| `set_setting` · `drop_settings` | one property of one component — on a block, a line or a library entry; everything at once given back |
 
 
 ## The door
@@ -229,7 +242,7 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 |---|---|
 | **tree** | `parent: null` only on package roots; no cycles |
 | **frozen** | a mutation writing under a frozen package is dropped |
-| **ends** | both ends name blocks, or the relationship is dropped; an interface an end names that its block does not wear is let go |
+| **ends** | both ends name blocks, or the relationship is dropped; a port an end names that its block does not wear is let go |
 | **references** | `of` names nothing: the reference reads missing and is kept |
 | **cells** | a seated block sits inside its grid's extent, one to a cell; no merge crosses another or a header line; a lattice carries nothing but its extent and merges. A repair unseats, never deletes |
 | **components** | each key validated by its own component; an unknown component is left alone |

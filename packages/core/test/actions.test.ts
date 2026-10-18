@@ -18,8 +18,7 @@ const gridded = (): Context => {
   const b = c.graph.blocks;
   b["block_loop"] = { ...b["block_loop"]!, settings: { layout: { kind: "auto" } } };
   b["block_hot"] = { ...b["block_hot"]!, type: "grid", grid: { rows: 2, cols: 4 } };
-  b["def_tank"] = { id: "def_tank", parent: ROOT, name: "tank", def: {} };
-  b["port_t"] = { id: "port_t", parent: "def_tank", type: "interface" };
+  b["def_tank"] = { id: "def_tank", parent: ROOT, name: "tank", def: {}, ports: [{ id: "port_t" }] };
   b["block_tank"] = { ...b["block_tank"]!, parent: "block_hot", cell: { r: 1, c: 1 },
                       type: "def_tank" };
   b["label_hot"] = { id: "label_hot", parent: "block_loop", name: "hot", type: "label" };

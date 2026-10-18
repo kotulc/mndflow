@@ -341,9 +341,14 @@ function SeatNode({ id, data, selected }: NodeProps<BoxNode>) {
   /** A seat that changes wall faces anew, so its handle is measured again. */
   const remeasure = useUpdateNodeInternals();
   useEffect(() => remeasure(id), [id, data.side, remeasure]);
+  /** A port of an interface definition wears that definition's colour; a plain one stays plain. */
+  const typed = !!data.look && !!data.def && data.def !== "interface";
+  const { style, ...dress } = (typed ? face_attrs(data.look!) : {}) as
+    { style?: Record<string, string>; [k: string]: unknown };
   return (
-    <div className={["mnd-seat", ...data.marks, selected ? "picked" : ""]
+    <div className={["mnd-seat", typed ? "typed" : "", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
+         data-family={dress["data-family"] as string | undefined} style={style as CSSProperties}
          title={data.label}>
       <Middle side={data.side} inward={data.on === FRAME} />
       {data.seats?.length ? <Seats seats={data.seats} inward={data.on === FRAME} /> : null}
@@ -375,14 +380,18 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
 }
 
 /** A registry's tile: an entry's name, how many times it is used and what it means, its ground as
- *  warm as its uses. What a small tile has no room for, its title says. */
+ *  warm as its uses, its edge in the entry's own colour. What a small tile has no room for, its
+ *  title says. */
 function TileNode({ data, selected }: NodeProps<BoxNode>) {
   const n = data.count ?? 0;
-  const uses = `${n} ${n === 1 ? "use" : "uses"}`;
+  const uses = n ? `${n} ${n === 1 ? "use" : "uses"}` : "no uses";
+  const { style, ...dress } = (data.look ? face_attrs(data.look) : {}) as
+    { style?: Record<string, string>; [k: string]: unknown };
   return (
     <div className={["mnd-tile", n ? "" : "unused", (data.heat ?? 0) > 0.55 ? "hot" : "",
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
-         style={{ "--heat": data.heat ?? 0 } as CSSProperties}
+         data-family={dress["data-family"] as string | undefined}
+         style={{ ...style, "--heat": data.heat ?? 0 } as CSSProperties}
          title={[data.label, uses, data.description].filter(Boolean).join(" · ")}>
       <span className="mnd-tile-name">{data.label}</span>
       <span className="mnd-tile-count">{uses}</span>
