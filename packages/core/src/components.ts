@@ -105,6 +105,10 @@ export const FACE_PARTS: Record<(typeof LARGE_FACES)[number], readonly (typeof P
   picture: ["preview"], text: [],
 };
 
+/** What a card is drawn as: the plain box, slightly rounder, or a notation's mark — a decision's
+ *  diamond, a start's dot, an end's ringed dot. */
+export const SHAPES = ["box", "round", "diamond", "dot", "ring"] as const;
+
 /** Which size a layer draws its cards at: the name and marks alone, or what they say. */
 export const CARDS = ["small", "large"] as const;
 
@@ -238,8 +242,10 @@ const card: Component = {
     ?? sized("card.size", config["size"])
     /** `arrange` is how it sits in its parent's `auto` layer. */
     ?? one_of("card.arrange", config["arrange"], ARRANGES)
+    /** `shape` is what it is drawn as. */
+    ?? one_of("card.shape", config["shape"], SHAPES)
     ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "name",
-                              "face", "size", "arrange"]),
+                              "face", "size", "arrange", "shape"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings. */
@@ -335,7 +341,9 @@ const layout: Component = {
     ?? (config["view"] === undefined || typeof config["view"] === "string"
       ? null : "`layout.view` has to be a name")
     ?? one_of("layout.cards", config["cards"], CARDS)
-    ?? stray("layout", config, ["kind", "across", "line", "cards", "view"]),
+    /** `shape` is what the layer's cards are drawn as, where theirs says none. */
+    ?? one_of("layout.shape", config["shape"], SHAPES)
+    ?? stray("layout", config, ["kind", "across", "line", "cards", "view", "shape"]),
 };
 
 /** What a block made from, or dropped on, another is linked to it by: a relation definition. */

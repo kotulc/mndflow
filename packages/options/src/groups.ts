@@ -32,6 +32,8 @@ export type Chrome = {
   views?: readonly ViewKind[];
   view?: ViewKind;
   layout?: Layout;
+  /** Whether the layer's kind names its layout, so the rail offers none to choose. */
+  fixed?: boolean;
   /** Whether the backdrop draws the lattice everything lands on. */
   lattice?: boolean;
   interfaces?: boolean;
@@ -103,8 +105,8 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     });
   }
 
-  /** How the layer places what it holds. */
-  if (has("layer")) {
+  /** How the layer places what it holds, where its kind leaves that open. */
+  if (has("layer") && !chrome.fixed) {
     out.push({
       key: "layer", label: "layer",
       controls: [

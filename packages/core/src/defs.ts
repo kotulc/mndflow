@@ -587,6 +587,13 @@ export function diagram_kind(graph: Graph, id: Id): Id | null {
   return b ? kind_typed(graph, id, b.def ? b.id : b.type) : null;
 }
 
+/** Whether a block's diagram kind names its layout, which it then keeps: a flow's `layered`, a
+ *  treemap's `treemap`. The rail offers no other, and the `layout` action refuses one. */
+export function fixed_layout(graph: Graph, id: Id): boolean {
+  const kind = diagram_kind(graph, id);
+  return !!kind && setting_of(graph, kind, "layout")["kind"] !== undefined;
+}
+
 /** The diagram kind a block is, or would be, typed by `type`. */
 function kind_typed(graph: Graph, id: Id, type: Id | undefined): Id | null {
   const named = isa(graph, type).find((d) => DIAGRAMS.includes(d.id))?.id

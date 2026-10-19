@@ -1,6 +1,6 @@
 name: Order states
 type: state
-note: A state machine, ranked by where its transitions point. Each transition is named by the event that fires it.
+description: "A state machine, ranked by where its transitions point. Each transition is named by the event that fires it."
 blocks:
   - { name: Placed, type: start }
   - Pending

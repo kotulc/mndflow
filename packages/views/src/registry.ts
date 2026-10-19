@@ -4,7 +4,7 @@
  *  into the folder or package holding them — and on the canvas, as a treemap (`registry_scene`).
  *  Worked out on every read, never stored. */
 
-import { entry_at, is_folder, label_of, library_of, registry_at, registry_id, registry_of,
+import { entry_at, is_folder, library_of, registry_at, registry_id, registry_of,
          shown_name, users_of, uses_by, type Graph, type Id, type Registry } from "@mnd/core";
 import { carried, trail_of } from "./derive";
 import { entry_look } from "./look";
@@ -30,7 +30,7 @@ export function entries_of(graph: Graph, registry: Registry, most = MOST): Entry
     const held: (readonly [Id, readonly Id[]])[] = rolled ? folders(graph, users)
       : users.map((u) => [u, [u]]);
     const by = held.map(([id, ids]) => ({
-      id, name: graph.blocks[id] ? shown_name(graph, id) : label_of(graph, id),
+      id, name: shown_name(graph, id),
       uses: ids.reduce((n, u) => n + uses_by(graph, e.id, u), 0) }))
       .sort((a, z) => z.uses - a.uses || a.name.localeCompare(z.name));
     return { id: e.id, name: e.name, description: e.description ?? "", rolled, by,
@@ -57,7 +57,7 @@ export function matrix_of(graph: Graph, registry: Registry, most = MOST): Matrix
   const rolled = users.length > most;
   const line = (id: Id, ids: readonly Id[]): Line => {
     const counts = entries.map((e) => ids.reduce((n, u) => n + uses_by(graph, e.id, u), 0));
-    return { id, name: graph.blocks[id] ? shown_name(graph, id) : label_of(graph, id), counts,
+    return { id, name: shown_name(graph, id), counts,
              uses: counts.reduce((n, c) => n + c, 0) };
   };
   const by_name = (a: { name: string }, z: { name: string }) => a.name.localeCompare(z.name);
@@ -156,7 +156,7 @@ function users_scene(graph: Graph, id: Id, registry: Registry): Scene {
     if (graph.blocks[p.id]) return cell(p.id, p, carried(graph, p.id, "small"));
     if (graph.edges[p.id]) {
       const n = uses_by(graph, id, p.id);
-      return cell(p.id, p, { label: label_of(graph, p.id), marks: [], count: n, heat: n / max },
+      return cell(p.id, p, { label: shown_name(graph, p.id), marks: [], count: n, heat: n / max },
                   "tile");
     }
     const f = p.id.slice(id.length + 1);

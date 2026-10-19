@@ -139,6 +139,31 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
     return is_room || on ? { side, along } : null;
   };
 
+  /** A second line between the same two cards runs round them rather than over the first. Only
+   *  between cards: an end on a port, the room or a box keeps its own face. */
+  const card_end = (id: Id) => !owned.has(id) && id !== frame?.id && !is_box(graph, id);
+  const seen = new Set<string>();
+  const again = new Set<Id>();
+  for (const e of lines.filter((l) => card_end(l.from) && card_end(l.to))) {
+    const pair = [e.from, e.to].sort().join("|");
+    if (seen.has(pair)) again.add(e.id);
+    seen.add(pair);
+  }
+  /** Its ends take the faces a quarter turn from the pair's, on the side the pair leans to — the
+   *  left, or the top, where it leans neither way — so both ends agree. */
+  const round_side = (id: Id, far: Id): Side => {
+    const [a, b] = [boxes.get(id)!, box_of(far)!];
+    const mid = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+    const [m, n] = [mid(a), mid(b)];
+    const across = facing(a, b);
+    if (across === "top" || across === "bottom") {
+      const upper = m.y <= n.y ? m : n;
+      return (m.x + n.x) / 2 <= upper.x ? "left" : "right";
+    }
+    const lefter = m.x <= n.x ? m : n;
+    return (m.y + n.y) / 2 <= lefter.y ? "top" : "bottom";
+  };
+
   /** A card end: the face looking at the other end, at its anchor. An end on a box meets it
    *  straight across from the other end, where it can. */
   const anchor = (e: Relation, end: "from" | "to") => {
@@ -154,7 +179,7 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
       return;
     }
     if (id === frame?.id) return;
-    const side = face_of(id, far);
+    const side = again.has(e.id) ? round_side(id, far) : face_of(id, far);
     const at = anchor_at(id, side);
     perches.push({ edge: e.id, end, on: id, side, at });
     take(id, side, origin(boxes.get(id)!, side) + at * extent(boxes.get(id)!, side));
@@ -184,9 +209,12 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
       .map((e) => (e.from === id ? e.to : e.from)).filter((f) => owner(f) !== on);
     /** On the room, straight across from the first card it links. */
     const toward = on === frame?.id && fars[0] ? box_of(fars[0]) : undefined;
+    /** A port on the room's wall is looked at where it sits, never the room as a whole. */
+    const far_box = (f: Id): Rect => (owner(f) === frame?.id && ports.has(f)
+      ? at_seat(room!, ports.get(f)!) : box_of(f)!);
     const side = on === frame?.id
       ? (toward ? nearest(box, toward) : rest(graph, id))
-      : most(fars.map((f) => facing(box, box_of(f)!))) ?? rest(graph, id);
+      : most(fars.map((f) => facing(box, far_box(f)))) ?? rest(graph, id);
     const want = toward
       ? (side === "left" || side === "right" ? toward.y + toward.h / 2 : toward.x + toward.w / 2)
       : origin(box, side) + extent(box, side) / 2;

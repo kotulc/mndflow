@@ -4,7 +4,7 @@
 import { closes_cycle, constraints_stated, frozen, isa, owner_def, stated, tree_of } from "./defs";
 import { constraint_at } from "./library";
 import { is_grid } from "./holders";
-import { label_of } from "./names";
+import { shown_name } from "./names";
 import { children, is_interface, ports_on, subtree } from "./tree";
 import type { Components, Constraint, Flow, Graph, Id } from "./types";
 
@@ -263,7 +263,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
     const allows = allows_of(graph, e.id);
     const expects = expects_of(graph, e.id);
 
-    notes.push(...unanswered(graph, e.id, label_of(graph, e.id) || e.id, expects));
+    notes.push(...unanswered(graph, e.id, shown_name(graph, e.id), expects));
     if (allows.ends) {
       end(notes, graph, e.id, "from", e.from, e.fromPort, allows.ends.from, allows.ends.fromFlow);
       end(notes, graph, e.id, "to", e.to, e.toPort, allows.ends.to, allows.ends.toFlow);

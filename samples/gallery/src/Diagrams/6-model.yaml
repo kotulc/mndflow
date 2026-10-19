@@ -1,6 +1,6 @@
 name: Model
 type: class
-note: The records as classes — fields, then behaviours — joined by the associations stored between them, each end saying how many and in what role. Order status is a type, so it draws no card of its own.
+description: "The records as classes — fields, then behaviours — joined by the associations stored between them, each end saying how many and in what role. Order status is a type, so it draws no card of its own."
 blocks:
   - type: reference
     of: Customer

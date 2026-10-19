@@ -6,5 +6,11 @@
   "def": {},
   "traits": [
     "has_values"
-  ]
+  ],
+  "settings": {
+    "card": {
+      "shape": "diamond",
+      "align": "center"
+    }
+  }
 }

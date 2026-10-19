@@ -84,6 +84,14 @@
 | names unique among siblings | core `tree.ts` `sibling_named`, asked by `create`, `rename` and `move` (2026-10-13) |
 | a source folder with the packages its files list | cli `main.ts` `gathered`, over core `wanted` and `collect` (2026-10-13) |
 | `layered`: a layer ranked by its relations | views `layered.ts`, on `@dagrejs/dagre` (2026-10-13) |
+| a line's word | core `names.ts` `label_of`: its own name only, read by views `block.ts` `line_edges` and tray `Drawing.tsx`; `shown_name` still names a nameless line by its definition where it must be named (a registry, a review note). Views `sequence.ts` alone falls back to the step a message reaches (2026-10-18) |
+| what a card is drawn as | core `components.ts` `SHAPES` (`card.shape`, `layout.shape`); views `look.ts` `shaped` (its own, else the layer's cast, through boxes) and `card_shape` for sizing (`size.ts`: a dot or ring one unit); theme `face.css` draws each; stage `flow.css` lights a picked or outlined diamond (2026-10-18) |
+| a second line between two cards | views `seat.ts` `seat_all` (`again`, `round_side`): card to card only, the faces a quarter turn from the pair's (2026-10-18) |
+| whether a kind fixes its layout | core `defs.ts` `fixed_layout`, asked by the `layout` action (actions `blocks.ts`) and the web app, which hands the rail `fixed` (options `groups.ts` leaves the layer group out) (2026-10-18) |
+| the question a diagram kind answers | core `types.ts` `DIAGRAM_QUESTIONS` beside `DIAGRAMS`; base's notation ids `NOTATION` (2026-10-18) |
+| the overview tab | tray `Overview.tsx` (why, how, where; counts by kind; promotion by `may_retype`); the thumbnail is the host's (`TrayProps.thumb`), drawn by stage `Thumb.tsx` over `arrays.ts` `nodes_of`/`edges_of` — the canvas's renderer, read only; the web app memoises its scenes (`glance`) (2026-10-18) |
+| a sequence drawn | views `sequence.ts`: heads, activation bars (`activation` mark, stage `flow.css`), phases as `text` faces, messages across at their row (2026-10-18) |
+| a crow's foot's size | theme `heads.tsx` `HEAD_SHAPES` (`crow`), `card.css` `.mnd-head.crow` (2026-10-18) |
 
 
 ## How to look

@@ -3,6 +3,7 @@
 import { may_hold } from "../capabilities";
 import { shown_name } from "../names";
 import { block_base, base_of, closes_cycle, def_at, dependents, diagram_kind, domain_of,
+         fixed_layout,
          holds_defs, in_definitions, is_domain, kind_fits, kind_free, may_retype, name_taken,
          package_of, plain_type, setting_of, stored_type, self_use } from "../defs";
 import { GRID, inline, inside, is_folder, is_grid, lattice_of, layer_of } from "../holders";
@@ -542,9 +543,8 @@ register(
       }
       /** A diagram kind that names its layout keeps it. */
       const layer = (args["layer"] as Id) ?? here(ctx);
-      const kind = diagram_kind(ctx.graph, layer);
-      if (kind && setting_of(ctx.graph, kind, "layout")["kind"] !== undefined) {
-        return `a ${kind} keeps its layout`;
+      if (fixed_layout(ctx.graph, layer)) {
+        return `a ${diagram_kind(ctx.graph, layer)} keeps its layout`;
       }
       return borrowed(ctx.graph, layer);
     },

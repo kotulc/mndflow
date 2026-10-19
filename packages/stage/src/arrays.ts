@@ -109,7 +109,7 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
       height: at.h,
       data: { label: p.label, marks: p.marks, on: FRAME, side: p.side,
               ...(seats.length ? { seats } : {}),
-              ...(p.look ? { look: p.look } : {}) },
+              ...(p.look ? { look: p.look } : {}), ...(p.def ? { def: p.def } : {}) },
       selected: picked.includes(p.id),
       zIndex: DEPTH["seat"],
       measured: { width: at.w, height: at.h },
@@ -161,7 +161,7 @@ export function signature(scene: Scene, frame: Frame | null): string {
     scene.layer,
     frame && `${frame.x},${frame.y},${frame.w},${frame.h},${frame.label},${frame.role ?? ""}`,
     frame?.seats?.map((t) => `${t.id}${t.side}${t.at}`).join("|"),
-    frame?.ports.map((p) => `${p.id}${p.side}${p.at}${p.marks.join("")}`).join("|"),
+    frame?.ports.map((p) => `${p.id}${p.side}${p.at}${p.marks.join("")}${p.def ?? ""}`).join("|"),
     scene.nodes.map((n) => {
       const b = box_of(n);
       /** Everything a card draws from. */

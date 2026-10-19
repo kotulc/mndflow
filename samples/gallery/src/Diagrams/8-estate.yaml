@@ -1,7 +1,6 @@
 name: Estate
 type: treemap
-description: The gallery as a treemap, each tile as large as what it holds.
-note: A treemap layer. Each tile is as large as the block it stands for holds; the groups gather them as the gallery's folders do.
+description: "A treemap layer. Each tile is as large as the block it stands for holds; the groups gather them as the gallery's folders do."
 blocks:
   - name: Diagrams
     type: group

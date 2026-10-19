@@ -39,8 +39,8 @@
 
 | context | tabs |
 |---|---|
-| block | card · components · contents |
-| block definition | card · settings · components · usages |
+| block | overview · card · components · contents |
+| block definition | overview · card · settings · components · usages |
 | a line | line · components |
 | relation definition | line · settings · components · usages |
 | the workspace | workspace · contents |
@@ -48,7 +48,7 @@
 | the packages section | packages |
 | a registry | entries |
 
-**Every element asks in one order**: what it is, how it draws, what it carries, what it lists. **The first tab is named for what is drawn** — *card* or *line* — and holds every key saying what the element is. **A definition's settings tab is laid out as its card tab**, its keys how it draws.
+**Every element asks in one order**: what it is for, what it is, how it draws, what it carries, what it lists. **A block opens on its overview**, one layout for every block: its large face on the left — its layer at a glance where it opens (the host's `thumb`, drawn by the canvas's renderer), else its face, else its card — and on the right *why it matters*, *how it is used* and *where it lives*, with its counts in its kind's words. An empty plain block lists the kinds it may become there. A host's own tabs lead. **The card tab is named for what is drawn** — *card* or *line* — and holds every key saying what the element is. **A definition's settings tab is laid out as its card tab**, its keys how it draws.
 
 **A relation says what its ends mean on its line tab**: a *from end* and a *to end* key, each read `1..*, lines, composite`. On a line it answers multiplicity (chips, or `m..n` typed) and its role (typed); on a relation definition also ownership (`none`, `shared`, `composite`) and navigable (yes, no). **An attribute's key** is a choice: PK, UK or none; a foreign key reads FK from its type. **An interface's keys** — name, flow, its interface definition, seat, and where it is held — edit it where it is held: its definition's, for one a usage reads through.
 

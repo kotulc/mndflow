@@ -1,9 +1,10 @@
 /** How a usage of a definition draws. */
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, DISPLAYS,
-         domain_of, FACE_PARTS, FAMILIES, FILLS, FONTS, HEIGHTS, is_container, isa,
-         is_interface, is_tie, kind_word, LARGE_FACES, PARTS, attributes_of, setting_of, SHOWN,
-         WEIGHTS, WIDTHS, type Definition, type Graph, type Id, type Settings } from "@mnd/core";
+         domain_of, FACE_PARTS, FAMILIES, FILLS, FONTS, HEIGHTS, is_annotation, is_box,
+         is_container, is_grid, isa, is_interface, is_tie, kind_word, LARGE_FACES, PARTS,
+         attributes_of, setting_of, SHAPES, SHOWN, WEIGHTS, WIDTHS, type Definition, type Graph,
+         type Id, type Settings } from "@mnd/core";
 import { resolved } from "./through";
 
 export type Family = (typeof FAMILIES)[number];
@@ -18,6 +19,7 @@ export type Fill = (typeof FILLS)[number];
 export type Contrast = (typeof CONTRASTS)[number];
 export type Arrow = (typeof ARROWS)[number];
 export type Part = (typeof PARTS)[number];
+export type CardShape = (typeof SHAPES)[number];
 
 /** What one usage looks like, as names from closed sets. */
 export type Look = {
@@ -51,6 +53,8 @@ export type Look = {
   shows: readonly Part[];
   /** Which face it draws with, where its definition names one: `text` is its name alone. */
   face?: (typeof LARGE_FACES)[number];
+  /** What it is drawn as, where it is not the plain box: its own word, else its layer's. */
+  shape?: CardShape;
   /** The large face's size in units, where its definition said one. */
   size?: { w: number; h: number };
   /** False where the large face does not draw the name, so what it shows is the whole card. */
@@ -165,6 +169,7 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
     ...((LARGE_FACES as readonly unknown[]).includes(card["face"])
       ? { face: card["face"] as Look["face"] } : {}),
     ...(sized(card["size"]) ? { size: card["size"] as { w: number; h: number } } : {}),
+    ...shaped(graph, id, card),
     ...(card["name"] === "hide" ? { head: false } : {}),
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
@@ -177,6 +182,27 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
     /** A number the door already bounded. */
     ...number("intensity", style["intensity"]),
   };
+}
+
+/** What a card is drawn as: its own `card.shape`, else the `layout.shape` the layer it sits on
+ *  casts its parts as — so a state machine's states read rounder. A group or folder on that
+ *  layer passes it through; a diagram nested deeper casts its own. Annotations and organization
+ *  keep their own. Absent for the plain box. */
+function shaped(graph: Graph, id: Id, card: Settings): { shape?: CardShape } {
+  let said = card["shape"];
+  const part = !is_annotation(graph, id) && !is_box(graph, id) && !is_grid(graph, id);
+  if (said === undefined && part) {
+    let at = graph.blocks[id]?.parent;
+    while (at && is_box(graph, at)) at = graph.blocks[at]?.parent;
+    said = at ? setting_of(graph, at, "layout")["shape"] : undefined;
+  }
+  return said !== "box" && (SHAPES as readonly unknown[]).includes(said)
+    ? { shape: said as CardShape } : {};
+}
+
+/** What a card is drawn as, read alone: what sizing asks, without a whole look. */
+export function card_shape(graph: Graph, id: Id): CardShape | undefined {
+  return shaped(graph, id, setting_of(graph, resolved(graph, id).card, "card")).shape;
 }
 
 /** The hue a card paints at, absent where nobody gave one. Its own word wins; else its
@@ -317,6 +343,7 @@ export function face_attrs(look: Look): Record<string, unknown> {
     "data-align": look.align,
     "data-label-align": look.label_align,
     ...(look.face ? { "data-face": look.face } : {}),
+    ...(look.shape ? { "data-shape": look.shape } : {}),
     ...(look.border_contrast ? { "data-border-contrast": look.border_contrast } : {}),
     ...(look.name_contrast ? { "data-name-contrast": look.name_contrast } : {}),
     ...(look.label_contrast ? { "data-label-contrast": look.label_contrast } : {}),

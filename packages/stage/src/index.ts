@@ -4,3 +4,4 @@ export { Legend, type Corner, type LegendProps } from "./Legend";
 export { FlowView, type Adjust, type FlowViewProps, type Gesture } from "./Flow";
 export { NODE_TYPES } from "./nodes";
 export { EDGE_TYPES, Wire } from "./Wire";
+export { Thumb, type ThumbProps } from "./Thumb";

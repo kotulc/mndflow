@@ -76,7 +76,7 @@ export function shown_name(graph: Graph, id: Id): string {
   const port = b ? undefined : port_at(graph, id);
   if (port) return port.name ?? (port.alias ? alias_name("interface", port.alias) : "interface");
   if (!b && !graph.edges[id]) return entry_at(graph, id)?.name ?? "missing";
-  if (!b) return label_of(graph, id) || edge_base(graph, id);
+  if (!b) return label_of(graph, id) || line_kind(graph, id);
   const of = of_ref(graph, id);
   if (of) {
     /** A stand-in for a definition or a package reads as what it points at, unless it was named
@@ -97,19 +97,16 @@ function named(graph: Graph, b: Block): string {
   return b.name?.trim() || kind_word(graph, b);
 }
 
-/** What a line draws beside itself: its own name, else the name of the definition it follows, and
- *  nothing where it follows none. **The same rule a card reads** — `kind_word` answers it for a
- *  block, off the same key. */
+/** What a line draws beside itself: its own name, and nothing where it has none. A line never
+ *  writes its definition's name: its look already says what it is. */
 export function label_of(graph: Graph, id: Id): string {
-  const e = graph.edges[id];
-  if (e?.name?.trim()) return e.name.trim();
-  const d = def_at(graph, id) ?? def_at(graph, def_of(graph, id));
-  return d && !shipped_name(d.name) ? d.name : "";
+  return graph.edges[id]?.name?.trim() ?? "";
 }
 
-/** A base relation definition names its module, which is a word no run draws. */
-function shipped_name(name: string): boolean {
-  return BASE_RELATIONS.includes(name);
+/** What a nameless line is called where it must be named: its definition's name, else its base's. */
+function line_kind(graph: Graph, id: Id): string {
+  const d = def_at(graph, id) ?? def_at(graph, def_of(graph, id));
+  return d && !BASE_RELATIONS.includes(d.name) ? d.name : edge_base(graph, id);
 }
 
 /** What sort of thing a card is, as the icon it wears in its top corner. A person may set their

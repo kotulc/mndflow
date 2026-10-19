@@ -1,16 +1,16 @@
 /** The sequence view: a grid read down the page as time.
  *
- *  The header row names the participants, each a lifeline. Body rows run top to bottom. A step
- *  is a card centred on its lifeline at its row. A relation between steps is a message at the
- *  target's row, from one lifeline to the edge of the card it reaches. The header column names
- *  the phases, drawn to the left.
+ *  The header row names the participants, each a lifeline under its head. Body rows run top to
+ *  bottom. A step is an activation: a narrow bar on its lifeline at its row, its name said on
+ *  hover. A relation between steps is a message straight across at the target's row, to the
+ *  edge of the bar it reaches. The header column names the phases, as words down the left.
  *  Nothing is written back. */
 
 import { at_cell, dir_of, edges_in, heading, lattice_of, members_of, role_of, shown_name,
          stamps_of, is_container, type Block, type Graph, type Id, type Relation,
          type Side } from "@mnd/core";
 import { carried, trail_of } from "./derive";
-import { wire_of } from "./look";
+import { PLAIN, wire_of } from "./look";
 import { cell, type BoxNode, type LineEdge, type Scene } from "./scene";
 import { GAP, PAD, roomed, size_of, UNIT } from "./size";
 
@@ -21,6 +21,10 @@ const FROM = "s-m";
 const TO = "t-m";
 const LOOP = UNIT * 2;
 const APART = 12;
+/** A step's bar: half a unit across, one row tall. */
+const BAR = UNIT / 2;
+/** A row's height: one message, with air for its name. */
+const ROW = UNIT * 2;
 
 
 /** The sequence of a grid, or null where it has no step. A scene, because time is the geometry. */
@@ -32,8 +36,8 @@ export function sequence_scene(graph: Graph, grid: Id): Scene | null {
 
   const { rows, cols } = lattice;
   const header_h = tallest(graph, grid, 0, 1, cols, UNIT * 2);
-  const row_h = tallest_body(graph, grid, rows, cols);
-  const pitch = Math.max(row_h, UNIT * 2) + GAP;
+  const row_h = ROW;
+  const pitch = ROW + GAP;
   const top = header_h + GAP;
   const row_y = (r: number) => top + (r - 1) * pitch;
 
@@ -42,7 +46,7 @@ export function sequence_scene(graph: Graph, grid: Id): Scene | null {
     const phase = at_cell(graph, grid, r, 0);
     if (phase) phase_w = Math.max(phase_w, size_of(graph, phase.id).w);
   }
-  const col_w = column_width(graph, grid, rows, cols);
+  const col_w = column_width(graph, grid, cols);
   const line_x = (c: number) => phase_w + GAP + col_w / 2 + (c - 1) * col_w;
 
   const nodes: BoxNode[] = [];
@@ -72,15 +76,13 @@ export function sequence_scene(graph: Graph, grid: Id): Scene | null {
   for (const step of steps) {
     const c = step.cell?.c ?? 1;
     const r = step.cell?.r ?? 1;
-    const size = size_of(graph, step.id);
-    nodes.push(card(graph, step, line_x(c) - size.w / 2, row_y(r), size.w, size.h));
+    nodes.push(bar(graph, step, line_x(c) - BAR / 2, row_y(r)));
   }
 
   for (let r = 1; r < rows; r++) {
     const phase = at_cell(graph, grid, r, 0);
     if (!phase) continue;
-    const size = size_of(graph, phase.id);
-    nodes.push(card(graph, phase, 0, row_y(r), size.w, size.h, true));
+    nodes.push(words(graph, phase, 0, row_y(r), phase_w, row_h));
   }
 
   const step_ids = new Set(steps.map((s) => s.id));
@@ -100,13 +102,14 @@ export function sequence_scene(graph: Graph, grid: Id): Scene | null {
       const y = row_y(row) + row_h / 2 + (i - (list.length - 1) / 2) * APART;
       const x0 = line_x(from.cell.c);
       const x1 = line_x(to.cell.c);
-      const half = (id: Id) => size_of(graph, id).w / 2;
-      const points = x0 === x1 ? looped(x0 + half(from.id), y, col_w - half(from.id) * 2)
-        : heading_to(x0, x1, y, half(to.id), from.cell.r === row ? half(from.id) : 0);
+      const half = BAR / 2;
+      const points = x0 === x1 ? looped(x0 + half, y, col_w - half * 2)
+        : heading_to(x0, x1, y, half, from.cell.r === row ? half : 0);
       const wire = wire_of(graph, e.id);
       edges.push({
         id: e.id, source: e.from, target: e.to, sourceHandle: FROM, targetHandle: TO,
-        label: e.name || shown_name(graph, e.to),
+        /** A step draws as its bar, so an unnamed message reads as the step it reaches. */
+        label: e.name?.trim() || shown_name(graph, e.to),
         data: { module: "line", dir: dir_of(graph, e.id), wire, points },
       });
     });
@@ -134,13 +137,26 @@ function looped(edge: number, y: number, air: number): { x: number; y: number }[
           { x: edge, y: y + drop }];
 }
 
-/** A real block, as the small card the grid would have given it. A phase reads across, not
- *  upright as it does in the grid's one-unit header column. */
-function card(graph: Graph, b: Block, x: number, y: number, w: number, h: number,
-              across = false): BoxNode {
+/** A real block, as the small card the grid would have given it: a participant's head. */
+function card(graph: Graph, b: Block, x: number, y: number, w: number, h: number): BoxNode {
+  const data = { ...carried(graph, b.id), face: "small" as const, seats: [SEAT] };
+  return { ...cell(b.id, { x, y, w, h }, data), draggable: false };
+}
+
+/** A step, as its activation: a bar on its lifeline, still the block it is when picked. */
+function bar(graph: Graph, b: Block, x: number, y: number): BoxNode {
   const got = carried(graph, b.id);
-  const marks = across ? got.marks.filter((m) => m !== "upright") : got.marks;
-  const data = { ...got, marks, face: "small" as const, seats: [SEAT] };
+  const data = { ...got, marks: [...got.marks, "activation" as const], face: "small" as const,
+                 seats: [SEAT] };
+  return { ...cell(b.id, { x, y, w: BAR, h: ROW }, data), draggable: false };
+}
+
+/** A phase, as words down the left: its name alone, read across. */
+function words(graph: Graph, b: Block, x: number, y: number, w: number, h: number): BoxNode {
+  const got = carried(graph, b.id);
+  const marks = got.marks.filter((m) => m !== "upright" && m !== "header");
+  const data = { ...got, marks, face: "small" as const,
+                 look: { ...(got.look ?? PLAIN), face: "text" as const } };
   return { ...cell(b.id, { x, y, w, h }, data), draggable: false };
 }
 
@@ -162,27 +178,13 @@ function tallest(graph: Graph, grid: Id, r: number, from: number, to: number, le
   return h;
 }
 
-/** The tallest step, so every row is one pitch. */
-function tallest_body(graph: Graph, grid: Id, rows: number, cols: number): number {
-  let h = UNIT * 2;
-  for (let r = 1; r < rows; r++) {
-    for (let c = 1; c < cols; c++) {
-      const b = at_cell(graph, grid, r, c);
-      if (b) h = Math.max(h, size_of(graph, b.id).h);
-    }
-  }
-  return h;
-}
-
-/** How far apart lifelines sit: the widest card on them, plus two gaps of air, so a message's
- *  name reads across the room between neighbouring cards. */
-function column_width(graph: Graph, grid: Id, rows: number, cols: number): number {
+/** How far apart lifelines sit: the widest head, plus two gaps of air, so a message's name reads
+ *  across the room between neighbouring lifelines. */
+function column_width(graph: Graph, grid: Id, cols: number): number {
   let w = UNIT * 6;
   for (let c = 1; c < cols; c++) {
-    for (let r = 0; r < rows; r++) {
-      const b = at_cell(graph, grid, r, c);
-      if (b) w = Math.max(w, size_of(graph, b.id).w + GAP * 2);
-    }
+    const b = at_cell(graph, grid, 0, c);
+    if (b) w = Math.max(w, size_of(graph, b.id).w + GAP * 2);
   }
   return w;
 }

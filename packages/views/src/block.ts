@@ -459,13 +459,18 @@ function wall_of(graph: Graph, layer: Id, hidden: boolean,
                  seats: ReadonlyMap<Id, Seat>): Port[] {
   return children(graph, layer)
     .filter((b) => seats.has(b.id))
-    .map((b) => ({
-      id: b.id,
-      label: shown_name(graph, b.id),
-      ...seats.get(b.id)!,
-      marks: hidden ? [...marks_of(graph, b.id), "berth" as CardClass] : marks_of(graph, b.id),
-      look: look_of(graph, b.id),
-    }))
+    .map((b) => {
+      /** Typed, it wears its interface definition's colour, as a port on a card does. */
+      const def = b.type;
+      return {
+        id: b.id,
+        label: shown_name(graph, b.id),
+        ...seats.get(b.id)!,
+        marks: hidden ? [...marks_of(graph, b.id), "berth" as CardClass] : marks_of(graph, b.id),
+        look: look_of(graph, b.id),
+        ...(def ? { def } : {}),
+      };
+    })
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 

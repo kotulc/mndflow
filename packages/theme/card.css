@@ -166,3 +166,4 @@
 .mnd-heads { position: absolute; width: 0; height: 0; overflow: hidden; }
 .mnd-head { fill: context-stroke; stroke: none; }
 .mnd-head.open { fill: none; stroke: context-stroke; stroke-width: 1.4; }
+.mnd-head.crow { stroke-width: 0.8; }

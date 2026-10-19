@@ -1,17 +1,19 @@
 # Next plan
 
-**What is left to do, in one place.** Merged 2026-10-12 from the next, sample, cards, CLI, structure and simplification plans. Everything built is gone from here: the code and the goal docs (design.md, definitions.md) record it, and git history keeps the old plans.
+**What is left to do, in one place.** Merged 2026-10-12 from the next, sample, cards, CLI, structure and simplification plans; revised 2026-10-18 when the redesign plan finished and folded in here. Everything built is gone from here: the code and the goal docs (design.md, definitions.md) record it, and git history keeps the old plans, the redesign's included.
 
 
 ## Where things stand
 
 | | |
 |---|---|
-| **redesign first** | **redesign-plan.md runs first** and holds everything built since 2026-10-14 (committed through 2008d0f; notation in base, the gallery and diagram families uncommitted, 2026-10-18). This plan is revised from it once it is finished; until then, rows below that the redesign settled say so |
-| **first, ask** | step 0's open rows, then the three older rows of *Decide*: the folder view and the package view, `note:` in a file, dagre for `layered` |
+| **the redesign** | finished 2026-10-18: categories, components and registries, ports as data, the diagram kinds and their notation, the gallery, diagrams drawn as the mockup, the overview tab, the rail on a fixed layout. Committed through 9898e64; the last pass (diagrams as the mockup, overview, rail, its review fixes) uncommitted |
+| **suggested commit** | *Draw diagrams as the mockup, add the overview tab: notation shapes (`card.shape`, `layout.shape`), a line writes only its own name, sequence activations, layered class and entity diagrams, room ports coloured, the overview tab with promotion, no layout choice on a fixed kind* |
+| **first, ask** | *Decide*: the redesign's open questions, step 0's open rows, then the older rows |
 | **then** | step 0, then step 1 |
-| **the kit** | not re-released since; mndmap's re-pin meets the renames listed under *Rough edges* · **kit** |
-| **verify** | *Commands*: everything green, the gallery `check` clean and drawn in the app |
+| **the kit** | not re-released; mndmap's re-pin meets everything under *Rough edges* · **kit** |
+| **verify** | *Commands*: everything green, the gallery `check` and `review` clean and drawn in the app |
+| **verified (2026-10-18)** | `npm run typecheck` clean; `npm test` 284/285, the one failure the old seat test (*Rough edges* · **tests**); `npm run lint:css` clean; gallery `check` and `review` clean. Driven in Edge: each of the eight *Diagrams* opened (flow's diamond, dot and ring; state's rounder states and its back transition clear of the first; sequence's heads, bars, phases and messages; class and entity layered, crow's feet readable; *Checkout*'s wall port coloured, its line off the wall straight); the overview on *Checkout*, *Order states*, *Schema*, a reference lifeline (drawn as *Checkout*) and the *Order* definition; an empty block made and promoted to `flow` from its overview; a state made on *Order states* and a drag there refused; the rail without *free* and *auto* on *Order states* and *Estate*, with them on *Checkout* and *Fulfilment*. No console errors. No new tests: the design is still moving |
 
 
 ## Order
@@ -38,10 +40,10 @@
 | **the workspace tab** | still the old label-and-answer rows (name, tags, display, file, export): convert it to keys and choices |
 | **attribute values in files** | a card source writes values as top-level keys, so a value named like a schema key vanishes (*Rough edges* · **diagram files**). Keep them flat, or nest them under `values:` — unambiguous, one more level to write, the core reader and writer and the gallery changed. Recommended: nested |
 | **usage settings in the schema** | the tray offers a usage no settings, but `Block.settings` still allows a usage's override. Drop it from the schema, or keep it for files and arrangement (`card.arrange` on a usage) |
-| **the attributes tab** | settled 2026-10-18: the components tab replaced it (redesign-plan.md *Component model*) |
 | **traits** | on the card tab; they sat on the old settings tab. Keep them with what it is, or move them to settings |
 | **long chip lists** | a usage's *type* and *extends* list every definition, gathered by package and folder; a filter box, or folding a place, may be wanted |
 | **unset quantities** | a slider's key with nothing said reads `—` where its slider shows a fallback; read the fallback instead |
+| **entry styling** | hue chips on an entry's keys. Serve entries from the definition settings tab (families, borders, faces), or keep hue only |
 
 
 ## 1 — CLI fixes
@@ -60,9 +62,13 @@
 
 | Issue | |
 |---|---|
-| **a self message's name** | stands upright on the loop's short leg: the column keeps too little air beside the card |
-| **two lines between one pair** | on the table view, *extends* and an attribute link share an anchor and run together |
+| **end words** | on a class diagram a role and multiplicity are placed from the run alone (stage `Wire.tsx` `words_at`), never against what is drawn, so two ends sharing a card's anchor (*Order*'s composition and association) overlap |
+| **a sequence's self message** | its loop runs over a reply arriving on the same row (*Checkout saga*'s *log step* and *reserved*) |
+| **state line words** | event, guard and action on a transition: deferred 2026-10-18 |
+| **grid definitions' view** | a `sequence` or `swimlane` definition opens on `internal` once it has parts, and on nothing before: navigate `feeds` asks `is_grid`, and a definition is never a holder. Deferred 2026-10-18 |
 | **swimlane lanes** | the allocation view draws a swimlane's steps and the lines between them, but not the old view's lanes (a header card at each lane's top, the lane unnamed); whether allocation should |
+| **empty region, layered** | a region made empty on a `layered` layer lands over a card: `layered` places a band as a node and never spans it (views `layered.ts`) |
+| **treemap room** | *Estate*'s room is wider than its map: the room takes the layer's least size and the canvas's page; a box's walls still take a share of a small map |
 
 
 ## 3 — Canvas gestures
@@ -72,25 +78,35 @@
 | **drag from a port to empty canvas** | makes a connected card |
 | **tab** | adds a sibling to the selected card |
 | **drop a definition** | from the explorer onto the canvas, as a usage (check what `drop_of` already covers) |
+| **region from the rail** | a region is made from a selection's menu, or empty from the room's; also a tool in the rail's group? (*Decide*) |
 
 Start in stage `Flow.tsx` · `gestures.ts` (gestures), `draw.ts` · `drag.ts` · `moves.ts` (drawing and drops), `Stage.tsx` (menus per gesture), ending in core `actions/` (`create`, `relate`, `interface`, `note`).
 
 
 ## 4 — Decide
 
-| Question | |
-|---|---|
-| **`resolved` in core?** | it lives in views `through.ts`; `is_named`, `shown_name`, `stamps_of` and `opens` still resolve a stand-in on their own |
-| **the door and unknown fields** | refuse or report `of` on a non-reference, `traits` on a usage or line, a relation's `dir`. Today a file storing `dir` reads in silently and its arrows vanish |
-| **keep libavoid?** | design.md and spec.md describe routing round cards. If kept: LGPL-2.1, a beta (`0.5.0-beta.5`), a ~490KB wasm, also in the kit mndmap vendors |
-| **arrange, generally** | crossing reduction by reordering within reading order is the candidate |
-| **double-click a grid** | lands on its name and renames it; Enter opens it |
-| **`define` and ids** | actions.md gives `define` an `id?`; the code takes none and the CLI says ids are never chosen. If no caller needs one, it leaves actions.md |
-| **editing table and sequence** | design.md keeps them projections the canvas never drags or creates on; whether either should be edited from the canvas after all |
-| **the package view** | design.md says a package opens on the package view scoped to it; the code still draws the folder layer view (core `ViewKind` `folder`). A folder no longer opens (redesign step 6), so the view now serves packages alone |
-| **tied notes in a file** | `note:` on a block or the file is built provisionally (core `diagram.ts`); confirm the syntax, or pick another |
-| **layered on dagre** | the plan named elkjs; its layout is async and `project` is not, so `layered` runs on `@dagrejs/dagre` (MIT, synchronous). Keep it, or make projection async for ELK |
-| **source fetch** | `bring` takes a package from a URL; an arbitrary fetched file still needs a translator to become blocks (ST.5) |
+**The user's to answer.** The first block came from the redesign; none blocks the build that is in.
+
+| Question | Today | Options |
+|---|---|---|
+| **base colour**: should plain definitions differ by default? | base `block` has `family: primary` and no `hue`, so plain definitions all look alike | give `block` a `hue` and `vary`; or leave colour to each package |
+| **region stage B** | not built: a diagram dropped into a region would draw open, relations joining its interfaces across bands | how a dropped diagram sizes, whether it is edited in place, how lines route through band edges |
+| **type structure** | `many` and `optional` only | maps, unions and generics, added as a translator needs them |
+| **values on organization** | *has values* is off `folder` and `group` | keep it off (`source` carries origin); or give it back |
+| **colour role off the canvas** | the tray, explorer and hosts draw a definition filled | canvas only; or outlined in the tray too |
+| **region from the rail** | from a selection's menu, or empty from the room's | also a tool in the rail's group |
+| **the palette** | dropped 2026-10-18 ("forget it for now"): kinds are chosen in the tray, an empty block promoted from its overview | revisit if dragging kinds onto a model is wanted |
+| **`resolved` in core?** | it lives in views `through.ts`; `is_named`, `shown_name`, `stamps_of` and `opens` still resolve a stand-in on their own | |
+| **the door and unknown fields** | refuse or report `of` on a non-reference, `traits` on a usage or line, a relation's `dir`. Today a file storing `dir` reads in silently and its arrows vanish | |
+| **keep libavoid?** | design.md and spec.md describe routing round cards. If kept: LGPL-2.1, a beta (`0.5.0-beta.5`), a ~490KB wasm, also in the kit mndmap vendors | |
+| **arrange, generally** | crossing reduction by reordering within reading order is the candidate | |
+| **double-click a grid** | lands on its name and renames it; Enter opens it | |
+| **`define` and ids** | actions.md gives `define` an `id?`; the code takes none and the CLI says ids are never chosen. If no caller needs one, it leaves actions.md | |
+| **editing table and sequence** | design.md keeps them projections the canvas never drags or creates on; whether either should be edited from the canvas after all | |
+| **the package view** | design.md says a package opens on the package view scoped to it; the code still draws the folder layer view (core `ViewKind` `folder`), which now serves packages alone | |
+| **tied notes in a file** | `note:` on a block or the file is built provisionally (core `diagram.ts`); confirm the syntax, or pick another | |
+| **layered on dagre** | `layered` runs on `@dagrejs/dagre` (MIT, synchronous), since `project` is synchronous and ELK is not; class and entity diagrams now use it too | keep it, or make projection async for ELK |
+| **source fetch** | `bring` takes a package from a URL; an arbitrary fetched file still needs a translator to become blocks (ST.5) | |
 
 
 ## 5 — Simplification leads
@@ -106,6 +122,9 @@ Take each as code-homes.md's *How to take one* says, then record its home there.
 | **tray listings** | the tray's definition grouping may re-list what the chain lists | the chain's listings |
 | **stage menus** | `Stage.tsx` offers per kind by base strings | the registry's scopes and `when` |
 | **highlight rules** | `lights`, `holds` and the edge in `Explorer.tsx` each read the chain and picks differently | one function from the canvas view and the chain |
+| **two kinds of interface id** | core `is_interface` answers for a port as drawn (`block/port`, via `port_at`) and for a seat block views lays in for one | one reading, once views seats ports directly |
+| **overview counts** | tray `Overview.tsx` names each kind's counts and reads notation by base id (`NOTATION`, `decision`) | the kind's own definition, if counts become data |
+| **speed** | every library lookup (`tag_at`, `type_at`, `is_tag`, `library_home`) rescans every package; `uses_of`, `project`, `form_of`, registries' `users_of` and the overview's usages and *same records as* ask per element | a per-graph index, built where nothing mutates (`sources.ts` writes libraries while reading them) |
 
 
 ## 6 — CLI surface
@@ -144,26 +163,25 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 |---|---|
 | **layout** | `auto` reads in explorer order, so a line between cards far apart in a column runs its length until *arrange*; a tall card makes a tall row in a `rows` run; a card related to a member inside a group lines up with the group, not the member |
 | **routing** | two upright names in one 2-unit gap meet; libavoid ignores a second pin on the same spot of a shape (pins are keyed by spot and shared); a line to an inherited port inside a subtype is not met at the subtype room's copy (`part_id`) |
-| **definition view** | the middle card's menu offers *delete block* and the note's *delete note*, which do nothing; React Flow logs *Couldn't create edge for handle* (#008) as boxes mount; tags and ports draw as plain cards until step 10 of redesign-plan.md redesigns it; inherited attributes are listed but not dimmed; inherited ends are dimmed only where the relation states no `allows.ends` itself |
-| **cards** | marks on a dark table card are faint (half opacity); a reference previewing a table ignores its own look's border; block and relation definitions have no hue of their own; check that notes draw through `CardFace`, not only `NoteNode` |
+| **cards** | marks on a dark table card are faint (half opacity); a reference previewing a table ignores its own look's border; check that notes draw through `CardFace`, not only `NoteNode` |
 | **tray** | a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else |
-| **tests** | `packages/views/test/seat.test.ts` › *crosses straight where a group note sits square beside the group* fails on the gallery's `Visuals::Groups` (formerly the showcase's `System::Deployment`). It was mid-edit before 2026-10-14, and still fails with `description` moved back to `body`, so it is not the description change |
+| **overview** | the thumbnail mounts a second React Flow, so node description ids (`react-flow__node-desc-1`) repeat in the page; on the open layer with nothing picked it draws what the canvas already draws; a tag with no hue paints its share of the bar plain |
+| **tests** | `packages/views/test/seat.test.ts` › *crosses straight where a group note sits square beside the group* fails on the gallery's `Visuals::Groups`. It failed before the redesign began |
 | **camera and page** | picking on the profile re-draws it lower than it first opens; the package view scrolls its top under the crumbs; a short port drag lands short (React Flow's drag threshold) |
 | **React** | `flushSync was called from inside a lifecycle method`, seen opening the profile and the package view from a layer; not traced |
-| **packages** | `base` collects alphabetically (`annotations` before `blocks`); a definition file holds no parts, so a pattern's parts live in its package's `package.json` |
+| **packages** | `base` collects alphabetically (`annotations` before `blocks`); a definition file holds no parts, so a pattern's parts live in its package's `package.json`; base's `decision` and `architecture`'s share a name, so `type: decision` resolves to whichever the lookup finds first |
 | **names** | unique siblings are refused only by `create`, `rename` and `move`; `label` (grid cells) and `group` write names unchecked, so a path can still find none. One home: where a name is written |
 | **diagram files** | a value named like a schema key (`side`, `note`, `w`…) never shows in a card source; a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
-| **kit** | mndmap's re-pin meets: views `overhead` → `package`, `grid` → `allocation`, `class` → `table`, `swimlane` gone; `class_graph` → `table_graph`, `swimlane_graph` gone; `card.place` → `card.arrange`, the *is aside* trait gone; card sources say `type`/`def`, not `extends`; `describe` now writes `description` and `write` the body; `Block.description` and the `set_description` op are new; tray exports `Identity`, `Settings`, `Looks` are gone (`Part` replaces `Looks`); theme and kit shell export `useZone`, and `Stage` takes `keys` |
+| **annotations** | a label floats aside, so on a layer cut into regions it lands across a band's heading; a picked region draws a full outline rather than its band; an empty layer's words centre on the canvas rather than the room (stage `stage.css` `.empty`); an aside stays inside the room, so beside a wall's port on a narrow room it floats wherever there is space |
+| **ports** | design.md gives a port its definition's settings, values and tags; ports hold name, type, flow, seat and description only |
+| **kit** | not re-released; `packages/kit/.types` is stale. mndmap's re-pin meets: views `overhead` → `package`, `grid` → `allocation`; `card.place` → `card.arrange`, the *is aside* trait gone; card sources say `type`/`def`, not `extends`; `describe` writes `description` and `write` the body; `Block.description` and `set_description`; tray `Identity`, `Settings`, `Looks` gone (`Part` replaces `Looks`); theme and kit shell export `useZone`, and `Stage` takes `keys`. Since 2026-10-14: the library, its entries extending and styled, `interfaces` and `constraints` kinds; ports as data (`Block.ports`, `fromPort`/`toPort`, `set_ports`; `set_port`, `mark_port` gone; `ports_on` returns ports with `holder`; `port_at`, `flow_of`); `constraints` on blocks and lines, `expects` gone; base `attribute`, `constraint`, `tag`, domain `component`; the tray's components tab (`Carried`); `ends`; the diagram kinds in base, `role_<kind>` icons, `diagram_kind`, `kind_fits` (`KIND_FAMILIES`), `is_worked`, `shape_named`, `fixed_layout`, `DIAGRAM_QUESTIONS`, `NOTATION`; the notation in base, the `diagrams` package gone; `card.shape`, `layout.shape` (`SHAPES`); `label_of` a line's own name only; `KINDS` in types, `library_map`; views `tint_attrs`, `card_shape`; the seed block's id `first`; views `class` and `er`; sections `library` and `model`; no definition view; attribute `key` a word; `trail_of`, `Crumbs` taking `head`, Stage's `view` prop gone; `Chain.drawn` gone; `layer_of`, `drawn_in`, `holders_in`, `edges_in`, `inline` without `flat`; `users_of` ids, lines included; the tray's `overview` tab and `thumb` prop, stage `Thumb`; options `Chrome.fixed` |
+| **mndmap** | its content rows are not yet regions; it meets the renames in *kit* and the new schema on its re-pin |
 | **follow-ups** | lineage and links as a package structure rather than a view; boxes for a definition's usages and the groups they belong to |
-| **annotations** | a label floats aside, so on a layer cut into regions it lands across a band's heading; a free label and one seated on a line are open (redesign *Decide*); a picked region draws a full outline; a region is made only from a selection's menu |
-| **interfaces** | settled 2026-10-18: ports are data on any block that *has ports*, the room port on `Containers` is back, and interface definitions are library entries with settings (redesign-plan.md *Component model*). Ports themselves carry no tags yet |
-| **mndmap** | its content rows are not yet regions (redesign step 8); it meets the renames in *kit* and the new schema on its re-pin |
-| **base looks** | the base blocks draw alike but for their icons (and notes): give each more visual distinction through its faces and traits |
 
 
 ## Tests, once settled
 
-**None until the user says a design is settled.** Candidates then: `diagram_of` / `diagram_subject` / `lens_of` on a stand-in; `table_graph`, `sequence_scene`; `long_form`, `path_to`, `def_ref`, `wanted`; `runs`, `layered`; `sibling_named`; `boot_of`; `tags_stated` / `traits_stated`; `statements` / `said_of`; `ports_of`; `holds_values` and the `field` refusal; `aspect_acts`; `collect`; `given_of`, `ported`, `typed_as`; `seat_all`, `routes_of`; `flow` / `on_grid`; `definition_graph`; `dir_of`; `relate` joining a twin; `is_reference` / `resolved`; `is_tie`; `beside`. The CLI's tests pin refs, all-or-nothing scripts and write-in-place, never wording or coordinates.
+**None until the user says a design is settled.** Candidates then: `diagram_of` / `diagram_subject` / `lens_of` on a stand-in; `class_graph`, `sequence_scene`; `long_form`, `path_to`, `def_ref`, `wanted`; `runs`, `layered`; `sibling_named`; `boot_of`; `tags_stated` / `traits_stated`; `statements` / `said_of`; `ports_of`; `holds_values` and the `field` refusal; `collect`; `given_of`, `typed_as`; `seat_all` (a second line between a pair), `routes_of`; `dir_of`; `relate` joining a twin; `is_reference` / `resolved`; `is_tie`; `beside`; `kind_fits`, `fixed_layout`; `label_of`; `card_shape`. The CLI's tests pin refs, all-or-nothing scripts and write-in-place, never wording or coordinates.
 
 `packages/views/test/far.test.ts` is a temporary debug print with no assertions: delete it.
 
@@ -175,18 +193,19 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **one task at a time** | do it, verify it, stop; report a failed check with its output |
 | **no commits** | suggest a message |
 | **no legacy** | on a schema change re-run `npm run base` and `npm run samples`; the door repairs no old shapes |
-| **docs are the goal** | code catches up; report where code and a doc disagree |
+| **docs are the goal** | code catches up; report where code and a doc disagree. Update docs only when directed |
 | **one rule, one home** | fragmentation found is consolidated in the same task and recorded in code-homes.md |
 | **the gallery is the visual check** | a simple display, on base alone, of each diagram kind, the registries, the faces and the visuals; a visual feature added or changed shows up in the folder it belongs to, and in the coverage table. Non-visual capabilities need not appear |
+| **files are LF** | write them with the Edit tool, or `newline=""` from Python; a text-mode write on Windows turns every line CRLF |
 
 ### Gallery coverage
 
-Every block is a diagram file under `samples/gallery/src`, on base alone; `npm run gallery` collects them into the workspace and `public/packages/gallery.json`.
+Every block is a diagram file under `samples/gallery/src`, on base alone; `npm run gallery` collects them into the workspace and `public/packages/gallery.json`. A diagram says what it is in its `description`, which its overview reads.
 
 | Visual | Where |
 |---|---|
 | a markdown card from `source` | `about.yaml` (Overview), `about.md` |
-| one diagram per kind, in kind order: internal (typed ports, a room port with a note), flow (start, decisions, end), state (transitions), sequence (a reference lifeline, a self message, a reply), swimlane, class, entity, treemap | `Diagrams/1-checkout.yaml` … `Diagrams/8-estate.yaml` |
+| one diagram per kind, in kind order: internal (typed ports, a room port on the left wall with a note), flow (start dot, decision diamonds, end ring), state (rounder states, transitions, a back transition), sequence (heads, activation bars, a reference lifeline, a self message, a reply), swimlane, class and entity (layered, crow's feet), treemap | `Diagrams/1-checkout.yaml` … `Diagrams/8-estate.yaml` |
 | the records: table faces, types with unit, format and hue, stored associations and a composition, a behaviour with ports, a collection definition | `Records/` |
 | tags with parents and colours; a constraint applied by name; interface definitions and ports typed by them | `Registries/1-tagged.yaml`, `2-owned.yaml`, `3-wired.yaml` |
 | every small face and icon, a label above, notation blocks, a reference | `Faces/1-small.yaml` |
@@ -202,7 +221,16 @@ Every block is a diagram file under `samples/gallery/src`, on base alone; `npm r
 |---|---|
 | check everything | `npm run typecheck`, `npm test`, `npm run lint:css` |
 | re-write the gallery | `npm run samples` (packages, then the gallery collected from `samples/gallery/src`); the gallery alone `npm run gallery` |
-| re-collect packages | edit under `packages/defs/src/packages/<name>/`, then `npm run packages`; `base` under `packages/defs/src/base/`, then `npm run base` |
-| check a file or a source folder | `npm run start -s -w @mnd/cli -- check ../../samples/gallery/workspace.json` → `clean`; a folder the same: `check ../../samples/gallery/src` |
+| re-collect packages | edit under `packages/defs/src/packages/<name>/`, then `npm run packages`; `base` under `packages/defs/src/base/`, then `npm run base`. `public/packages/doc.json`, `requirements.json`, `sysml.json` have no source folders: edit them by hand |
+| check a file or a source folder | `npm run start -s -w @mnd/cli -- check ../../samples/gallery/workspace.json` → `clean`, and `review` the same → `clean`; a folder the same: `check ../../samples/gallery/src` |
 | list a layer | `npm run start -s -w @mnd/cli -- outline ../../samples/gallery/workspace.json <layer name or id>`; gallery ids are minted from file paths (`yaml.Diagrams.1-checkout`) |
-| drive the app | `npm run dev`; a fresh browser opens the gallery (`mndflow.yaml`); another file through the header's *import a workspace*. Open a card with select + Enter (double-click renames); in the explorer, select a row and → unfolds it. The `vitest` skill says how to drive it, though it is stale (step 6) |
+| drive the app | the `vitest` skill (stale in places): `npm run dev`, read the port from the log, Playwright on installed Edge from the scratchpad. A fresh browser opens the gallery (`mndflow.yaml`). Right-click on empty ground asks a name by `window.prompt` (answer it with `page.on("dialog")`); a folder row unfolds by its `.mark`; find rows by `.explorer li` with the label. Open a card by a double-click on its border (a click on its name renames; a port on its left wall takes a click there) or select + Enter. Scope canvas selectors to `.stage`: the tray's overview draws its own React Flow. The tray's *take the full height* button shows the whole overview. Stop the Vite servers you start |
+
+### Schema facts
+
+| | |
+|---|---|
+| **graph** | `{ root, blocks, edges }`. Library on a package root: `types`, `tags`, `interfaces`, `constraints` (core `KINDS`), each entry `{ id, name, description?, type?, settings? }` |
+| **ports** | `Block.ports`, drawn as `block/port`, met by `fromPort`/`toPort`, written by `set_ports` |
+| **the rest** | constraints: ids on blocks and lines. Ends: `Relation.ends`, `def.ends`. Behaviours: kinds with `block.behaviour`. Records: `Block.records`. Regions: `holder.band`. Diagram families: `KIND_FAMILIES`. Shapes: `card.shape`, `layout.shape` (`SHAPES`). Base ids include `start`, `end`, `decision`, `transition`: never reuse them as block ids |
+| **registries** | id `<package>/@<kind>` (core `registry_id`); an entry opens by its own id; both open on the `registry` view; the tray holds one as `{ of: "registry", registry }`; a tile's node id is its entry's |

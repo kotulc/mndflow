@@ -169,6 +169,12 @@
         "def": {},
         "description": "A flow's question: one way in, a line out for each answer, each line named by its answer.",
         "order": 3,
+        "settings": {
+          "card": {
+            "shape": "diamond",
+            "align": "center"
+          }
+        },
         "traits": [
           "has_values"
         ]
@@ -199,6 +205,11 @@
         "def": {},
         "description": "Where a flow or a state machine finishes: lines in, none out.",
         "order": 4,
+        "settings": {
+          "card": {
+            "shape": "ring"
+          }
+        },
         "traits": []
       },
       "entity": {
@@ -501,6 +512,11 @@
         "def": {},
         "description": "Where a flow or a state machine begins: one line out to its first step or state.",
         "order": 10,
+        "settings": {
+          "card": {
+            "shape": "dot"
+          }
+        },
         "traits": []
       },
       "state": {
@@ -514,7 +530,8 @@
         "settings": {
           "layout": {
             "view": "internal",
-            "kind": "layered"
+            "kind": "layered",
+            "shape": "round"
           }
         },
         "traits": [

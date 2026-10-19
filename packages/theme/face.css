@@ -266,3 +266,48 @@
   border-left: 7px solid var(--card-edge);
   border-right-width: 0;
 }
+
+/* ── What a card is drawn as: `card.shape` ─────────────────────────────────── */
+
+/* Rounder: a state. A rounded box, never a pill. */
+.mnd-card.card-face[data-shape="round"] { border-radius: 10px; }
+
+/* A start's dot and an end's ringed dot: a mark one unit across, its name said on hover. */
+.mnd-card.card-face:is([data-shape="dot"], [data-shape="ring"]) {
+  padding: 0;
+  border-radius: 50%;
+  border-color: var(--card-ink);
+  background: var(--card-ink);
+}
+.mnd-card.card-face[data-shape="ring"] {
+  padding: 3px;
+  background-clip: content-box;
+}
+.mnd-card.card-face:is([data-shape="dot"], [data-shape="ring"], [data-shape="diamond"])
+  > :is(.mnd-role, .mnd-marks, .mnd-alias, .mnd-kind) { display: none; }
+.mnd-card.card-face:is([data-shape="dot"], [data-shape="ring"]) > .mnd-head { display: none; }
+
+/* A decision's diamond: drawn behind the card by two layers, its edge and its ground, so the
+   family's colours still paint it. The name sits in its middle. */
+.mnd-card.card-face[data-shape="diamond"] {
+  isolation: isolate;
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  padding: 0 18%;
+}
+.mnd-card.card-face[data-shape="diamond"]::before,
+.mnd-card.card-face[data-shape="diamond"]::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  background: var(--card-line);
+}
+.mnd-card.card-face[data-shape="diamond"]::after {
+  inset: 0.5px 1px;
+  background: var(--card-ground-src, var(--card-fill));
+}
+.mnd-card.card-face[data-shape="diamond"] > .mnd-head { padding-right: 0; justify-content: center; }
+.mnd-card.card-face[data-shape="diamond"] > .mnd-head > .mnd-named { justify-content: center; text-align: center; }

@@ -5,6 +5,7 @@
  *  but one: on a class diagram, a member joins the nearest member it extends — the chain itself.
  *  Every other line is stored: one between two members, or one between the definitions two
  *  members stand for. Each carries what its ends mean. Anything else the layer holds is left out.
+ *  Laid out layered: cards ranked the way their lines point, so owners sit above what they own.
  *  Nothing is written back. */
 
 import { children, edges_in, ends_of, isa, is_reference, stood_def, type Block, type Graph,
@@ -40,7 +41,7 @@ export function class_graph(graph: Graph, layer: Id, kind: "class" | "er"): Grap
   const host = blocks[layer];
   if (host) {
     blocks[layer] = { ...host, type: "block",
-      settings: { ...host.settings, layout: { kind: "auto", cards: "large" } } };
+      settings: { ...host.settings, layout: { kind: "layered", cards: "large" } } };
   }
   const face = kind === "class" ? "class" : "table";
   for (const id of kept) {

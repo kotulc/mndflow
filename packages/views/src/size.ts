@@ -3,7 +3,7 @@
 import { covers, inline, is_grid, is_interface, lattice_of, setting_of, shown_name,
          stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
 import { edge_of, fit_of, face_table, face_text, handle_of, note_h } from "./face";
-import { look_of } from "./look";
+import { card_shape, look_of } from "./look";
 import type { Ruled } from "./scene";
 import { resolved } from "./through";
 
@@ -182,6 +182,9 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
     const text = [shown_name(graph, id), b.body ?? ""].filter(Boolean).join("\n");
     return { w, h: b.h ?? Math.max(BLOCK.h, Math.ceil(note_h(text, w) / UNIT) * UNIT) };
   }
+  /** A start's dot and an end's ring are one unit across, whatever face they sit on. */
+  const shape = card_shape(graph, id);
+  if (shape === "dot" || shape === "ring") return { w: UNIT, h: UNIT };
   return face === "large" ? large_of(graph, id, card) : { ...BLOCK };
 }
 

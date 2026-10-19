@@ -293,6 +293,16 @@ export const DIAGRAMS: readonly Id[] = [
   "internal", "flow", "state", "sequence", "swimlane", "class", "entity", "treemap",
 ];
 
+/** The one question each diagram kind answers, as every surface words it. */
+export const DIAGRAM_QUESTIONS: Readonly<Record<string, string>> = {
+  internal: "what it is made of", flow: "what moves through it", state: "how one thing changes",
+  sequence: "who talks to whom, in what order", swimlane: "who does what, in which phase",
+  class: "what its types are", entity: "how its data is stored", treemap: "where the weight is",
+};
+
+/** The base notation a flow or state machine draws with, beside its steps and states. */
+export const NOTATION: readonly Id[] = ["start", "end", "decision"];
+
 /** The diagram kinds that hold alike, so a block holding parts moves freely among them: parts
  *  and lines; references to definitions. Each grid kind is its own: its cells carry over to the
  *  other, but not their meaning. */

@@ -18,6 +18,7 @@ import { Content } from "./Content";
 import { Definitions, type Shelf } from "./Definitions";
 import { Entry } from "./Entry";
 import { lit_row, scope_chips, Table, type Column, type Scope } from "./Table";
+import { Overview } from "./Overview";
 import { Usages } from "./Usages";
 import { Packages, type Offered } from "./Packages";
 import { Registry } from "./Registry";
@@ -59,12 +60,14 @@ export type TrayProps = {
   onDisplay?: Act;
   /** The host's own tabs for a block, after the tray's: a name, and what it draws. */
   extras?: readonly Extra[];
+  /** The host's drawing of a block's layer at a glance, for the overview's left side. */
+  thumb?: (id: Id) => ReactNode;
 };
 
 /** A host's tab: what it is called, and what it shows for the block the tray is about. */
 export type Extra = { name: string; draw: (about: Id) => ReactNode };
 
-export type Tab = "card" | "line" | "settings" | "components" | "contents" | "definitions"
+export type Tab = "overview" | "card" | "line" | "settings" | "components" | "contents" | "definitions"
                 | "packages" | "usages" | "workspace" | "interface" | "tag" | "type" | "entries";
 
 /** What the tray is about. The root is not a block anybody draws, so it is its own context; a
@@ -78,13 +81,13 @@ type Context = "root" | "block" | "line" | "definition" | "relation" | "library"
 const SLOTS: Record<Context, readonly Tab[]> = {
   /** The root draws nowhere, so it is asked about itself and about what it holds, and no more. */
   root: ["workspace", "contents"],
-  /** **Every element asks the same questions, in the same order**: what it is — its first tab
-   *  named for what is drawn, a card or a line — on a definition how it draws, what it carries,
-   *  and what it lists: a usage its contents, a definition its usages. A usage lists no settings,
-   *  since it cannot change them. */
-  block: ["card", "components", "contents"],
+  /** **Every element asks the same questions, in the same order**: a block first what it is for
+   *  at a glance; then what it is — named for what is drawn, a card or a line — on a definition
+   *  how it draws, what it carries, and what it lists: a usage its contents, a definition its
+   *  usages. A usage lists no settings, since it cannot change them. */
+  block: ["overview", "card", "components", "contents"],
   line: ["line", "components"],
-  definition: ["card", "settings", "components", "usages"],
+  definition: ["overview", "card", "settings", "components", "usages"],
   relation: ["line", "settings", "components", "usages"],
   library: ["definitions"],
   packages: ["packages"],
@@ -97,9 +100,10 @@ const SLOTS: Record<Context, readonly Tab[]> = {
 /** The contexts about one element, which carry a json chip. */
 const ELEMENTS: readonly Context[] = ["block", "line", "definition", "relation"];
 
-/** Where a context opens when nothing was asked: the root on what the workspace is, anything
- *  else on its last tab. */
-const OPENS: Partial<Record<Context, Tab>> = { root: "workspace" };
+/** Where a context opens when nothing was asked: the root on what the workspace is, a block on
+ *  its overview, anything else on its last tab. */
+const OPENS: Partial<Record<Context, Tab>> = { root: "workspace", block: "overview",
+                                               definition: "overview" };
 
 /** Which contexts share a tab between them: every instance is read the same way, and so is
  *  every definition, so moving from one to the next keeps the question being asked. */
@@ -224,7 +228,7 @@ export function Tray(props: TrayProps) {
   const alike = (t?: string) => (t === "card" || t === "line"
     ? tabs.find((x) => x === "card" || x === "line") : t);
   const tab: string = [props.tab, seen[family]].map(alike).find((t) => t && tabs.includes(t))
-    ?? OPENS[context] ?? hosted[0] ?? tabs[tabs.length - 1]!;
+    ?? hosted[0] ?? OPENS[context] ?? tabs[tabs.length - 1]!;
   /** Picking a tab, even the one shown, turns the json off. */
   const set_tab = (t: string) => {
     set_raw(false);
@@ -359,6 +363,11 @@ export function Tray(props: TrayProps) {
         </>
       )}
     >
+          {shows === "overview" ? (
+            <Overview key={about} graph={graph} id={about}
+                      {...(props.thumb ? { thumb: props.thumb } : {})}
+                      {...(edits ? { onAct: act } : {})} />
+          ) : null}
           {shows === "workspace" ? (
             <Workspace graph={graph} {...(edits ? { onAct: act } : {})}
                        onDisplay={props.onDisplay ?? act}

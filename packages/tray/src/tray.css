@@ -463,12 +463,61 @@ fieldset.fields { padding: 0; }
 
 /* ── The components tab: a band per kind; a port's interface and a tag in their own colour. ── */
 .components { display: flex; flex-direction: column; }
-.components .painted { color: var(--card-edge, var(--muted)); }
+:is(.components, .overview) .painted { color: var(--card-edge, var(--muted)); }
 .components .carried { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 10px 10px; }
-.components .chip-like {
+:is(.components, .overview) .chip-like {
   padding: 0 6px;
   border: 1px solid var(--card-edge, var(--border));
   border-radius: 2px;
   font-size: 11px;
 }
-.components .faint { color: var(--muted); font-size: 11px; }
+:is(.components, .overview) .faint { color: var(--muted); font-size: 11px; }
+
+/* ── The overview: the large face left, why / how / where right. ── */
+.overview { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 14px;
+            padding: 10px; }
+@container (max-width: 640px) { .overview { grid-template-columns: 1fr; } }
+.overview .glance { position: relative; display: flex; flex-direction: column; gap: 6px;
+                    min-height: 220px; border: 1px solid var(--divider); border-radius: 2px;
+                    background: var(--bg); overflow: hidden; }
+.overview .glance .cap { display: flex; align-items: center; gap: 6px; padding: 5px 8px 0;
+                         color: var(--muted); font-size: 10px; }
+.overview .glance .cap b { color: var(--text); font-weight: 600; }
+.overview .glance .thumb { flex: 1; min-height: 240px; }
+/* At a glance the room is the whole picture: nothing outside it to dim. */
+.overview .mnd-thumb .mnd-frame { box-shadow: none; }
+.overview .glance .faces { flex: 1; display: flex; align-items: center; justify-content: center;
+                           padding: 8px; }
+/* The face laid out at its own size, centred in the room it takes. */
+.overview .glance .face { left: 50%; translate: -50% 0; }
+.overview .glance .open { position: absolute; right: 8px; bottom: 6px; }
+.overview .make { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px;
+                  padding: 0 10px 10px; }
+.overview .make .faint { width: 100%; text-align: center; }
+.overview .make .chip { display: inline-flex; align-items: center; gap: 4px; }
+.overview .answers { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.overview section { display: flex; flex-direction: column; gap: 5px; }
+.overview h5 { margin: 0; color: var(--muted); font-size: 10px; font-weight: 400;
+               text-transform: uppercase; letter-spacing: 0.08em; }
+.overview .why { margin: 0; line-height: 1.45; }
+.overview .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.overview .chip-like { display: inline-flex; align-items: center; gap: 4px; }
+.overview .chip-like.def { background: color-mix(in oklch, var(--card-edge, var(--accent)) 14%, transparent); }
+.overview .chip-like.dim { color: var(--muted); border-style: dashed; }
+.overview .chip-like small, .overview .peer small { color: var(--muted); }
+.overview .flowrow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; }
+.overview .side { display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+                  min-width: 0; }
+.overview .side.right { align-items: flex-end; }
+.overview .peer { padding: 1px 6px; border: 1px solid var(--border); border-radius: 2px;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.overview .hub { padding: 4px 8px; border: 1px solid var(--accent); border-radius: 2px;
+                 color: var(--accent); font-weight: 600; text-align: center; }
+.overview .bar { display: flex; height: 6px; border-radius: 1px; overflow: hidden;
+                 background: var(--divider); }
+.overview .bar > i { display: block; height: 100%; background: var(--card-edge, var(--accent)); }
+.overview .bar > i[data-none] { background: var(--divider); }
+.overview .trail { color: var(--muted); }
+.overview .stat { display: flex; flex-wrap: wrap; gap: 14px; color: var(--muted);
+                  font-variant-numeric: tabular-nums; }
+.overview .stat b { color: var(--text); font-weight: 600; }

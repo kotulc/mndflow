@@ -2,16 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { collect, drop_of, held_at, in_section, is_inside, is_layer_view, layout_of,
-         registry_at, registry_id, registry_of,
+import { collect, drop_of, fixed_layout, held_at, in_section, is_inside, is_layer_view,
+         layout_of, lens_of, registry_at, registry_id, registry_of,
          session, trace, writes, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { box_of, clear_of, empty_of, holds, project, set_card as apply_card, tidy, BLOCK,
-         CARD, UNITS } from "@mnd/views";
+         CARD, UNITS, type Scene } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
 import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
-import { Stage, type Move } from "@mnd/stage";
+import { Stage, Thumb, type Move } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
 import { Tray, useDisplay, useTray, type Offered } from "@mnd/tray";
 import { browser_files, browser_net } from "./ports";
@@ -142,6 +142,17 @@ export function App({ storage, boot, opening }: {
                                                ...(SLICES[view.at]!.lists
                                                  ? { lists: SLICES[view.at]!.lists } : {}) } }),
     [graph, view.layer, view.kind, view.at, shown.interfaces, card, across]);
+
+  /** A block's layer at a glance, projected once per graph and kept while the tray re-renders. */
+  const glanced = useMemo(() => new Map<Id, Scene | null>(), [graph, shown.interfaces, card]);
+  const glance = (id: Id): Scene | null => {
+    if (!glanced.has(id)) {
+      const kind = lens_of(graph, id);
+      glanced.set(id, kind ? project(graph, id, { look: { kind, cut: null },
+                                                  interfaces: shown.interfaces }) : null);
+    }
+    return glanced.get(id)!;
+  };
 
   /** A diagram names no layer slot: the canvas may open a card, and it writes nothing. */
   const editing = scene.slots.includes("layer");
@@ -434,10 +445,16 @@ export function App({ storage, boot, opening }: {
           offered={offered}
           display={display}
           onAct={chrome}
+          /** A block's layer at a glance, drawn by the canvas's own nodes and lines. */
+          thumb={(id) => {
+            const scene = glance(id);
+            return scene ? <Thumb scene={scene} /> : null;
+          }}
         />
       </main>
 
       <Options groups={groups_of({ slots: scene.slots, layout: laid_out,
+                                   fixed: !!layer && fixed_layout(graph, layer),
                                    views: seeing, view: view.kind,
                                    interfaces: shown.interfaces,
                                    lattice: lattice ?? true, frame: shown.frame,

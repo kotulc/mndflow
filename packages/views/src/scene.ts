@@ -78,6 +78,8 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "label"
                  | "cell" | "header" | "upright" | "merged"
                  /** An opened grid, standing in for the room. */
                  | "room"
+                 /** A step on a sequence's lifeline, drawn as its bar. */
+                 | "activation"
                  /** A cell a block sits in. */
                  | "seated"
                  /** A block of a definition's structure, seen through a usage of it. */
@@ -192,6 +194,8 @@ export type Port = {
   at: number;
   marks: readonly CardClass[];
   look?: Look;
+  /** The interface definition it is typed by, if any. */
+  def?: Id;
 };
 
 /** The frame's own id, as an edge end and as a perch's host. */

@@ -1,6 +1,6 @@
 name: Checkout
 type: internal
-note: An internal diagram, what a block is made of. Its parts meet through typed ports; the room's own port sits on its wall.
+description: "An internal diagram, what a block is made of. Its parts meet through typed ports; the room's own port sits on its wall."
 blocks:
   - name: Cart
     ports:
@@ -21,7 +21,7 @@ ports:
   - name: https
     type: HTTP
     flow: in
-    side: top
+    side: left
     at: 0.5
     note: Public traffic enters here.
 relations:

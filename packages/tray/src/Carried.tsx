@@ -83,7 +83,7 @@ export function Carried({ graph, id, onAct }: CarriedProps) {
 }
 
 /** A component's name in its definition's colour: a library entry's look, read down its chain. */
-function Painted({ graph, entry, word, chip = false }: { graph: Graph; entry: Id | undefined;
+export function Painted({ graph, entry, word, chip = false }: { graph: Graph; entry: Id | undefined;
                                                          word: string; chip?: boolean }) {
   const tint = tint_attrs(entry ? entry_look(graph, entry) : undefined);
   return <span className={chip ? "painted chip-like" : "painted"} {...tint}>{word}</span>;

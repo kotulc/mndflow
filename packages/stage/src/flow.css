@@ -97,6 +97,10 @@
 .mnd-card.header.upright { padding: 4px 0; }
 .mnd-card.header.upright > .mnd-head { writing-mode: vertical-rl; transform: rotate(180deg); }
 
+/* A sequence's step is its activation: a bar on its lifeline, its name said on hover. */
+.mnd-card.activation { padding: 0; border-radius: 1px; }
+.mnd-card.activation > :is(.mnd-head, .mnd-role, .mnd-marks, .mnd-alias, .mnd-kind) { display: none; }
+
 /* Which way a flow enters and leaves, on the interface that carries it. */
 /* A port of an interface definition is filled with that definition's colour; its border still
    says which way it carries. */
@@ -129,6 +133,16 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 35%, transparent);
 }
+
+/* A diamond draws its own edge, so picked or outlined it lights that edge and never its box. */
+.mnd-flow .mnd-card.card-face[data-shape="diamond"]:is(.picked, .definition) {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+.mnd-flow .mnd-card.card-face[data-shape="diamond"].definition::before { background: var(--card-edge); }
+.mnd-flow .mnd-card.card-face[data-shape="diamond"].definition::after { background: var(--bg); }
+.mnd-flow .mnd-card.card-face[data-shape="diamond"].picked::before { inset: -2px; background: var(--accent); }
 
 /* **A card laid in a treemap** reads on a plain ground, its definition's colour on its edge, so a
    map of many reads calm and its kinds still tell apart. */

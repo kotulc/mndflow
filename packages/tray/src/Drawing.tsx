@@ -17,8 +17,8 @@ export function Drawing({ graph, id, one = false }: DrawingProps) {
   const { kind, runs } = kind_of(graph, id, it);
   const { own } = defined(graph, id, it, runs);
 
-  /** What the canvas would draw: an element's own name else its type's, and a definition's own
-   *  name else its kind's word — the same fallback a nameless card reads. */
+  /** What the canvas would draw: a line's own name only, and a definition's own name else its
+   *  kind's word — the same fallback a nameless card reads. */
   const label = runs && edge ? label_of(graph, id)
     : d ? d.name || titled(kind) : runs ? own?.name ?? "" : shown_name(graph, id);
 

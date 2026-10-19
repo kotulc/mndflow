@@ -19,11 +19,11 @@ project(graph, layer, config) → Scene
 | `registry.ts` | a registry as a list, a matrix, and a treemap Scene built directly: entries as tiles by home folder, or an entry's uses |
 | `bands.ts` | members packed inside a band, and seated blocks placed by their cell |
 | `pack.ts` · `float.ts` | auto-layout: runs of one arrangement in explorer order — a column, rows `across` to a row — and aside cards floating beside what they are tied to |
-| `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off |
+| `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off; a second line between the same two cards takes the faces a quarter turn round |
 | `route.ts` | where a run goes between two borders, round the cards it passes |
 | `block.ts` | the projection: graph and layer in, Scene out |
 | `classes.ts` · `sequence.ts` | the diagram views: a graph drawn as internal — class and entity diagrams (`class_graph`), stored lines carrying their ends — or a Scene built directly where time is the geometry (sequence, its runs given as `points`) |
-| `look.ts` · `derive.ts` | what a card wears — its hue strayed by `vary` from its parent's shade, so kin read alike — and the marks it reads by, `definition` (outlined on the canvas) and `relation` (a wire swatch) among them; both derived every draw |
+| `look.ts` · `derive.ts` | what a card wears — its hue strayed by `vary` from its parent's shade, so kin read alike — and the marks it reads by, `definition` (outlined on the canvas) and `relation` (a wire swatch) among them; its `card.shape`, else its layer's `layout.shape`; both derived every draw |
 | `legend.ts` | the key to one layer: the kinds it draws and the system marks they wear, folded and counted off the Scene alone |
 | `svg.ts` · `text.ts` | a Scene drawn without a browser |
 

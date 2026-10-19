@@ -9,6 +9,7 @@ export { def_rows, rows_of, usage_rows, type DefRow, type Row, type Sort,
          type UsageRow } from "./rows";
 export { ChipBar, Choice, Table, lit_row, type Adding, type Chips, type Column, type Line as TableLine,
          type TableProps } from "./Table";
+export { Overview, type OverviewProps } from "./Overview";
 export { Usages, type UsagesProps } from "./Usages";
 export { Registry, type RegistryProps } from "./Registry";
 export { Element, type ElementProps } from "./Element";
