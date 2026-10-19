@@ -100,10 +100,9 @@ function own_diagram(graph: Graph, id: Id): ViewKind | null {
  *  names. A stand-in opens as what it stands for, unless it states its own diagram view and the
  *  target can feed that. */
 export function lens_of(graph: Graph, id: Id): ViewKind | null {
-  /** A registry, and an entry of one, open on the registry view. */
-  if (registry_at(graph, id) || registry_of(graph, id)) return "registry";
   const b = graph.blocks[id];
-  if (!b) return null;
+  /** A registry, and an entry of one, open on the registry view: neither is ever a block. */
+  if (!b) return registry_at(graph, id) || registry_of(graph, id) ? "registry" : null;
   if (b.parent === null) return "folder";
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
   if (target && target.id !== id) return own_diagram(graph, id) ?? lens_of(graph, target.id);

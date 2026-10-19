@@ -6,7 +6,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { library_of, type Graph, type Id, type Registry as Of } from "@mnd/core";
-import { entries_of, face_attrs, look_of, matrix_of, type Matrix } from "@mnd/views";
+import { entries_of, look_of, matrix_of, tint_attrs, type Matrix } from "@mnd/views";
 import { ChipBar, lit_row, Table, type Column } from "./Table";
 
 const COLUMNS: readonly Column[] = [
@@ -198,8 +198,5 @@ function List({ graph, registry, lit, onLit, onOpen, bar }: RegistryProps & { ba
 
 /** A block's colour, as its card wears it, for its swatch. */
 function paint(graph: Graph, id: Id) {
-  if (!graph.blocks[id]) return {};
-  const dress = face_attrs(look_of(graph, id));
-  return { "data-family": dress["data-family"] as string,
-           ...(dress["style"] ? { style: dress["style"] as CSSProperties } : {}) };
+  return tint_attrs(graph.blocks[id] ? look_of(graph, id) : undefined);
 }

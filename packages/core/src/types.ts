@@ -152,6 +152,9 @@ export type Constraint = LibraryEntry & {
 export type Library = { types?: Type[]; tags?: Tag[]; interfaces?: Interface[];
                         constraints?: Constraint[] };
 
+/** The kinds a library holds, in the order they list. */
+export const KINDS: readonly (keyof Library)[] = ["types", "tags", "interfaces", "constraints"];
+
 /** Each library kind's base: what an entry extending nothing extends. */
 export const KIND_BASE: Record<keyof Library, Id> = {
   types: "attribute", tags: "tag", interfaces: "interface", constraints: "constraint",
@@ -285,9 +288,16 @@ export const BASE_BLOCKS: readonly Id[] = [
 ];
 
 /** The shipped diagram kinds: blocks extending `block`, each fixing its view, layout and icon. A
- *  block of one is fixed to it, retyped only within its branch; a plain block is none of them. */
+ *  block of one holding parts is retyped only within its family; a plain block is none of them. */
 export const DIAGRAMS: readonly Id[] = [
   "internal", "flow", "state", "sequence", "swimlane", "class", "entity", "treemap",
+];
+
+/** The diagram kinds that hold alike, so a block holding parts moves freely among them: parts
+ *  and lines; references to definitions. Each grid kind is its own: its cells carry over to the
+ *  other, but not their meaning. */
+export const KIND_FAMILIES: readonly (readonly Id[])[] = [
+  ["internal", "flow", "state", "treemap"], ["class", "entity"], ["sequence"], ["swimlane"],
 ];
 
 /** The shipped relation bases. `tie` is a definition — a dashed run with no heads — chosen like

@@ -4,7 +4,7 @@ import { inspect, type Fault } from "./door";
 import { package_of, packages, uses_of } from "./defs";
 import { fold, type Floor } from "./fold";
 import { new_id } from "./ids";
-import { is_tag } from "./library";
+import { is_tag, library_map } from "./library";
 import { empty_graph, BASE_PACKAGE, SCHEMA, type Block, type File, type Graph, type Id, type Log,
          type Relation, type Step } from "./types";
 
@@ -137,11 +137,8 @@ export function renamed<T extends Block | Relation>(it: T, ids: ReadonlyMap<Id, 
   if (out.library) {
     const each = <T extends { id: Id; type?: Id }>(list: T[]) =>
       list.map((t) => ({ ...t, id: at(t.id)!, ...(t.type ? { type: at(t.type) } : {}) }));
-    out.library = { ...(out.library.types ? { types: each(out.library.types) } : {}),
-                    ...(out.library.tags ? { tags: each(out.library.tags) } : {}),
-                    ...(out.library.interfaces ? { interfaces: each(out.library.interfaces) } : {}),
-                    ...(out.library.constraints
-                      ? { constraints: each(out.library.constraints) } : {}) };
+    const lib = library_map(out.library, each);
+    if (lib) out.library = lib; else delete out.library;
   }
   return out as T;
 }

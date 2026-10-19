@@ -109,7 +109,7 @@ describe("what an action absorbs", () => {
   /** Where it sits is where you put it. */
   it("orders siblings as they are added, and as they are dropped", () => {
     const s = session({ floor: FLOOR });
-    s.go("delete", { ids: ["start"] });
+    s.go("delete", { ids: ["first"] });
     for (const name of ["A", "B", "C"]) s.go("create", { name });
     const named = () => children(s.graph(), ROOT).map((b) => b.name);
     expect(named()).toEqual(["A", "B", "C"]);
@@ -133,7 +133,7 @@ describe("what an action absorbs", () => {
   /** A reorder is not a move out of anywhere, so it shifts no card. */
   it("keeps where a block sits when it stays under the same parent", () => {
     const s = session({ floor: FLOOR });
-    s.go("delete", { ids: ["start"] });
+    s.go("delete", { ids: ["first"] });
     for (const name of ["A", "B"]) s.go("create", { name });
     const [a, b] = children(s.graph(), ROOT).map((x) => x.id);
     s.adjust("place", adjustments.place([{ id: a!, x: 96, y: 48 }]));

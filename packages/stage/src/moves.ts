@@ -28,8 +28,13 @@ export function moves_of(graph: Graph, scene: Scene, a: Adjust): Move[] {
   }
   const out: Move[] = [];
   const layer = scene.layer;
-  /** A worked-out layout keeps its places: a card moved by hand there goes back. */
-  if (is_worked(graph, layer) && ["place", "move"].includes(a.kind)) return [];
+  /** A worked-out layout keeps its places: a card moved by hand there goes back, while a port
+   *  still slides along its wall, the layout untouched. */
+  if (is_worked(graph, layer)) {
+    const seated = "on" in a && !!scene.nodes.find((n) => n.id === a.on)?.data.on;
+    if (a.kind === "place" || (a.kind === "move" && !seated)) return [];
+    if (a.kind === "move" || a.kind === "wall-seat") return written(graph, scene, a);
+  }
   /** Moving anything by hand on an `auto` layer hands it to `free`, keeping what it draws. */
   if (layout_of(graph, layer) !== "free" && ["place", "move", "wall-seat"].includes(a.kind)) {
     out.push(act("layout", { layer, kind: "free", at: tidy(graph, scene) }));

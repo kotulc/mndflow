@@ -84,7 +84,8 @@ export function expects_of(graph: Graph, id: Id | undefined): Expects {
 /** A constraint and those it extends, nearest first. */
 function rules_of(graph: Graph, id: Id): Constraint[] {
   const out: Constraint[] = [];
-  for (let c = constraint_at(graph, id); c && !out.includes(c); c = constraint_at(graph, c.type)) {
+  for (let c = constraint_at(graph, id); c && !out.some((o) => o.id === c!.id);
+       c = constraint_at(graph, c.type)) {
     out.push(c);
   }
   return out;
@@ -238,12 +239,9 @@ export function review(graph: Graph, scope?: Id): Note[] {
                    what: `"${label(graph, b.id)}" may not hold "${label(graph, child.id)}"` });
     }
 
-    /** A wall that takes no interfaces, said about the ones already on it. */
-    if (!may_seat(graph, b.id)) {
-      for (const child of children(graph, b.id)) {
-        if (!is_interface(graph, child.id)) continue;
-        notes.push({ kind: "ports", id: child.id, what: `"${label(graph, b.id)}" takes no interfaces` });
-      }
+    /** A wall that takes no ports, said about the ones already on it. */
+    if (b.ports?.length && !may_seat(graph, b.id)) {
+      notes.push({ kind: "ports", id: b.id, what: `"${label(graph, b.id)}" takes no ports` });
     }
     if (b.records?.length && !holds_records(graph, b.id)) {
       notes.push({ kind: "values", id: b.id, what: `"${label(graph, b.id)}" holds no records` });

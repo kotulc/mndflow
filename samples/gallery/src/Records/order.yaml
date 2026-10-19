@@ -1,0 +1,41 @@
+name: Order
+def:
+  attributes:
+    - name: number
+      type: number
+      key: primary
+    - name: customer
+      type: Customer
+    - name: status
+      type: Order status
+    - name: lines
+      type: Line
+      many: true
+description: A customer's request, and the lines on it.
+settings:
+  card:
+    face: table
+library:
+  types:
+    - name: Order status
+      form: choice
+      choices: [ pending, paid, shipped, cancelled ]
+      description: Where an order is.
+blocks:
+  - name: place
+    type: flow
+    description: Takes a customer's lines and gives back the order they make.
+    ports:
+      - name: lines
+        flow: in
+      - name: placed
+        flow: out
+relations:
+  - association:
+      - from: Order
+        to: Records::Customer
+        ends: { from: { multiplicity: "*" }, to: { multiplicity: "1", role: customer } }
+  - composition:
+      - from: Order
+        to: Records::Line
+        ends: { to: { multiplicity: "1..*", role: lines } }

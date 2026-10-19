@@ -111,7 +111,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
   /** A fresh log holds one plain block, so the workspace lists in structure. */
   const seeded = (): Log => [step("start", "create", 1, [
-    { op: "add_block", block: { id: "start", parent: ROOT, name: "block", order: 1, alias: 1 } },
+    { op: "add_block", block: { id: "first", parent: ROOT, name: "block", order: 1, alias: 1 } },
     { op: "set_counter", kind: "block", n: 1 },
   ])];
 

@@ -5,7 +5,7 @@
 import { constraint_at, constraints_stated, expects_of, frozen, interface_at, may_seat, part_id,
          ports_on, shown_name, tag_at, tags_stated, type Act, type Graph,
          type Id } from "@mnd/core";
-import { entry_look, face_attrs } from "@mnd/views";
+import { entry_look, tint_attrs } from "@mnd/views";
 import { Attributes } from "./Attributes";
 import { Band } from "./Body";
 import { Table, type Column } from "./Table";
@@ -85,10 +85,6 @@ export function Carried({ graph, id, onAct }: CarriedProps) {
 /** A component's name in its definition's colour: a library entry's look, read down its chain. */
 function Painted({ graph, entry, word, chip = false }: { graph: Graph; entry: Id | undefined;
                                                          word: string; chip?: boolean }) {
-  const { style, ...dress } = (entry ? face_attrs(entry_look(graph, entry)) : {}) as
-    { style?: Record<string, string>; [k: string]: unknown };
-  return (
-    <span className={chip ? "painted chip-like" : "painted"}
-          data-family={dress["data-family"] as string | undefined} style={style}>{word}</span>
-  );
+  const tint = tint_attrs(entry ? entry_look(graph, entry) : undefined);
+  return <span className={chip ? "painted chip-like" : "painted"} {...tint}>{word}</span>;
 }

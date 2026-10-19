@@ -9,8 +9,8 @@
     "lint:css": "node scripts/lint-css.mjs",
     "release:kit": "node scripts/release-kit.mjs",
     "base": "npm run start -s -w @mnd/cli -- collect ../../packages/defs/src/base ../../packages/defs/src/base.json --bare",
-    "showcase": "npm run start -s -w @mnd/cli -- collect ../../samples/showcase/src ../../samples/showcase/workspace.json --workspace && npm run start -s -w @mnd/cli -- collect ../../samples/showcase/src ../../public/packages/showcase.json",
-    "samples": "npm run packages && npm run showcase",
+    "gallery": "npm run start -s -w @mnd/cli -- collect ../../samples/gallery/src ../../samples/gallery/workspace.json --workspace && npm run start -s -w @mnd/cli -- collect ../../samples/gallery/src ../../public/packages/gallery.json",
+    "samples": "npm run packages && npm run gallery",
     "packages": "node scripts/packages.mjs"
   },
   "dependencies": {

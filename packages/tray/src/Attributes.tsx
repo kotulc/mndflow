@@ -8,7 +8,7 @@ import { all_defs, all_types, attributes_of, def_at, def_of, domain_of, form_of,
          frozen, links_to, type_at, type_name, unit_of, FORMS, type Act, type Attribute,
          type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
-import { entry_look, face_attrs, resolved } from "@mnd/views";
+import { entry_look, resolved, tint_attrs } from "@mnd/views";
 import { NOOP } from "./Body";
 import { Entry } from "./Entry";
 import { Table, type Column, type Line } from "./Table";
@@ -19,13 +19,11 @@ export type AttributesProps = { graph: Graph; id: Id; onAct?: Act };
 function Typed({ graph, attribute, link, children }: { graph: Graph; attribute: Attribute;
                                                        link: boolean; children: string }) {
   const typed = !!type_at(graph, attribute.type);
-  const { style, ...dress } = (typed ? face_attrs(entry_look(graph, attribute.type!)) : {}) as
-    { style?: Record<string, string>; [k: string]: unknown };
+  const tint = tint_attrs(typed ? entry_look(graph, attribute.type!) : undefined);
   const format = format_of(graph, attribute);
   return (
     <span className={link ? "type link" : typed ? "type typed" : "type"}
-          data-family={dress["data-family"] as string | undefined} style={style}
-          title={format ? `written ${format}` : undefined}>{children}</span>
+          {...tint} title={format ? `written ${format}` : undefined}>{children}</span>
   );
 }
 

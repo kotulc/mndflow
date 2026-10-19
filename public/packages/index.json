@@ -16,19 +16,14 @@
       "at": "sysml.json"
     },
     {
-      "name": "diagrams",
-      "about": "diagrams a card's kind opens on — class, entity relationship, swimlane, sequence — behaviours, and the relation notations: association, composition, aggregation, dependency, flow",
-      "at": "diagrams.json"
-    },
-    {
       "name": "architecture",
       "about": "architecture vocabulary and patterns: components, people, documents, the relations between them, and reusable service patterns",
       "at": "architecture.json"
     },
     {
-      "name": "showcase",
-      "about": "one layer per thing mndflow draws, every layer a diagram file",
-      "at": "showcase.json"
+      "name": "gallery",
+      "about": "a simple display of what mndflow draws: each diagram kind, the registries, the faces and the visuals, on base alone",
+      "at": "gallery.json"
     }
   ]
 }

@@ -4,7 +4,7 @@
  *  draws asks the look questions of that part. */
 
 import { def_at, type Act, type Graph, type Id } from "@mnd/core";
-import { face_attrs, look_of } from "@mnd/views";
+import { look_of, tint_attrs } from "@mnd/views";
 import { Band } from "./Body";
 import { Entry } from "./Entry";
 import { Part } from "./Looks";
@@ -91,10 +91,7 @@ function Question({ graph, ask, titled }: { graph: Graph; ask: Ask; titled: bool
 
 /** A definition's colour, as the attributes its card wears; nothing for any other answer. */
 function paint(graph: Graph, value: string) {
-  if (!def_at(graph, value)) return {};
-  const dress = face_attrs(look_of(graph, value));
-  return { "data-family": dress["data-family"] as string,
-           ...(dress["style"] ? { style: dress["style"] as object } : {}) };
+  return tint_attrs(def_at(graph, value) ? look_of(graph, value) : undefined);
 }
 
 /** Chips gathered by where they live, in the order each place first appears; each place's chips

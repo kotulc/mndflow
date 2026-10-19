@@ -1,7 +1,7 @@
 /** The explorer's rows: each section's header, then what it lists, laid out with depth, guides
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
-import { alias_of, branch_of, children, domain_of, library_of, on_side,
+import { alias_of, branch_of, children, domain_of, KINDS, library_of, on_side,
          is_annotation, is_box, is_named, relation_base, role_of, setting_of, shown_name, stamps_of, tops_of,
          type Block, type Cut, type Graph, type Id, type Lists, type Registry,
          type Role } from "@mnd/core";
@@ -174,8 +174,7 @@ function branch_rows(graph: Graph,
   const row_key = key(route);
   /** A package root in the library lists its named components after its definitions. */
   const lib = at.lists === "domain" && graph.blocks[id]!.parent === null ? library_of(graph, id) : {};
-  const groups = [lib.types, lib.tags, lib.interfaces, lib.constraints]
-    .filter((l) => l?.length).length;
+  const groups = KINDS.filter((k) => lib[k]?.length).length;
   out.push({ ...block_row(graph, id, depth, parts.length + own.length + groups, row_key),
              ...(via ? { via } : {}),
              ...(at.lists !== "structure" && stamps_of(graph, id).includes("structure")

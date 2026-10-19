@@ -2,9 +2,10 @@
 
 import { DRAWN } from "./components";
 import { ordered_by } from "./defs";
+import { library_map } from "./library";
 import { subtree } from "./tree";
-import { empty_graph, type Block, type Graph, type Id, type Log, type Mutation,
-         type Step } from "./types";
+import { empty_graph, KINDS, type Block, type Graph, type Id, type LibraryEntry, type Log,
+         type Mutation, type Step } from "./types";
 
 /** The shipped packages every fold starts from: their blocks, laid under whatever a log says. */
 export type Floor = readonly Block[];
@@ -25,9 +26,8 @@ function element(graph: Graph, id: Id) {
 function entry_in(graph: Graph, id: Id) {
   for (const b of Object.values(graph.blocks)) {
     if (b.parent !== null || !b.library) continue;
-    for (const list of [b.library.types, b.library.tags, b.library.interfaces,
-                        b.library.constraints]) {
-      const hit = list?.find((e) => e.id === id);
+    for (const kind of KINDS) {
+      const hit = (b.library[kind] as LibraryEntry[] | undefined)?.find((e) => e.id === id);
       if (hit) return hit;
     }
   }
@@ -198,13 +198,8 @@ function apply(graph: Graph, m: Mutation): void {
     case "set_library": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      const lib = { ...(m.library?.types?.length ? { types: structuredClone(m.library.types) } : {}),
-                    ...(m.library?.tags?.length ? { tags: structuredClone(m.library.tags) } : {}),
-                    ...(m.library?.interfaces?.length
-                      ? { interfaces: structuredClone(m.library.interfaces) } : {}),
-                    ...(m.library?.constraints?.length
-                      ? { constraints: structuredClone(m.library.constraints) } : {}) };
-      if (Object.keys(lib).length) b.library = lib; else delete b.library;
+      const lib = library_map(m.library ?? {}, (list) => structuredClone(list));
+      if (lib) b.library = lib; else delete b.library;
       return;
     }
     case "set_records": {

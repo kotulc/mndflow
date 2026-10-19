@@ -1,0 +1,31 @@
+name: Payment
+def:
+  attributes:
+    - name: order
+      type: Order
+    - name: amount
+      type: Money
+    - name: result
+      type: Payment result
+      optional: true
+description: A charge taken against an order.
+settings:
+  card:
+    face: table
+library:
+  types:
+    - name: Money
+      form: number
+      unit: USD
+      format: "0.00"
+      description: An amount in the shop's currency.
+      settings: { style: { hue: 145 } }
+    - name: Payment result
+      form: choice
+      choices: [ charged, declined, refunded ]
+      description: What the provider said of a charge.
+relations:
+  - association:
+      - from: Payment
+        to: Records::Order
+        ends: { from: { multiplicity: "0..*", role: payments }, to: { multiplicity: "1", role: order } }

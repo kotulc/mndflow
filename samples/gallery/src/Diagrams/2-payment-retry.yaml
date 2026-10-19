@@ -1,0 +1,24 @@
+name: Payment retry
+type: flow
+note: A flowchart. It starts and ends at its marks; a decision's lines say where each answer goes.
+blocks:
+  - { name: Begin, type: start }
+  - name: Charge card
+    tags: [ payments, critical ]
+  - { name: Approved?, type: decision }
+  - { name: Retries left?, type: decision }
+  - Wait and back off
+  - Confirm order
+  - name: Cancel order
+    tags: [ orders ]
+  - { name: Done, type: end }
+relations:
+  - Begin -> Charge card
+  - Charge card -> Approved?
+  - Approved? -> Confirm order: yes
+  - Approved? -> Retries left?: no
+  - Retries left? -> Wait and back off: yes
+  - Wait and back off -> Charge card
+  - Retries left? -> Cancel order: no
+  - Confirm order -> Done
+  - Cancel order -> Done

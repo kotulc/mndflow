@@ -4,7 +4,7 @@
 import { base_of, constraints_stated, def_at, def_named, is_tie, packages,
          tags_stated } from "./defs";
 import { holders_over, is_group, is_region } from "./holders";
-import { FORMS, type Constraint, type LibraryEntry, type Form, type Graph, type Id,
+import { FORMS, KINDS, type Constraint, type LibraryEntry, type Form, type Graph, type Id,
          type Interface, type Library, type Mutation, type Tag, type Type } from "./types";
 
 /** A named component and the package holding it. */
@@ -31,8 +31,6 @@ export function all_interfaces(graph: Graph): Named<Interface>[] {
   return held(graph, "interfaces");
 }
 
-/** The kinds a library holds, in the order they list. */
-export const KINDS: readonly (keyof Library)[] = ["types", "tags", "interfaces", "constraints"];
 
 /** Every constraint of every package, the workspace's first. */
 export function all_constraints(graph: Graph): Named<Constraint>[] {
@@ -175,13 +173,9 @@ export function put_constraint(graph: Graph, pkg: Id, one: Constraint): Mutation
 /** Each library holding one of these components, with them taken out. */
 export function drop_named(graph: Graph, ids: readonly Id[]): Mutation[] {
   const pkgs = new Set(ids.map((id) => library_home(graph, id)).filter((p): p is Id => !!p));
-  const keep = <T extends { id: Id }>(list: T[] | undefined) => list?.filter((c) => !ids.includes(c.id));
-  return [...pkgs].map((pkg) => {
-    const lib = library_of(graph, pkg);
-    return { op: "set_library", id: pkg, library: { types: keep(lib.types), tags: keep(lib.tags),
-                                                    interfaces: keep(lib.interfaces),
-                                                    constraints: keep(lib.constraints) } };
-  });
+  return [...pkgs].map((pkg): Mutation => ({ op: "set_library", id: pkg,
+    library: library_map(library_of(graph, pkg), (list) => list.filter((c) => !ids.includes(c.id)))
+      ?? {} }));
 }
 
 /** A list with one entry put in, or replaced where its id is there. */
@@ -211,11 +205,24 @@ export function registry_id(registry: Registry): Id {
   return `${registry.pkg}/@${registry.kind}`;
 }
 
+/** A registry's id: its package, then its kind. */
+const REGISTRY = new RegExp(`^(.+)/@(${KINDS.join("|")})$`);
+
 /** The registry an id names, or null. */
 export function registry_at(graph: Graph, id: Id | null | undefined): Registry | null {
-  const m = id ? /^(.+)\/@(tags|types|interfaces|constraints)$/.exec(id) : null;
+  const m = id ? REGISTRY.exec(id) : null;
   return m && graph.blocks[m[1]!]?.parent === null
     ? { pkg: m[1]!, kind: m[2] as keyof Library } : null;
+}
+
+/** A library with each kind that holds entries passed through `f`, or undefined where none
+ *  does: the one place a library is built kind by kind. */
+export function library_map(lib: Library,
+                            f: (list: LibraryEntry[]) => LibraryEntry[]): Library | undefined {
+  const kinds = KINDS.filter((k) => lib[k]?.length);
+  return kinds.length
+    ? Object.fromEntries(kinds.map((k) => [k, f(lib[k] as LibraryEntry[])])) as Library
+    : undefined;
 }
 
 /** The registry an entry belongs to: its package and kind; null for anything else. */

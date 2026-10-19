@@ -93,7 +93,6 @@ export function handles(ctx: Context, kind: string) {
   };
 }
 
-/** A refusal where the named definition is not of this kind. */
 /** A port edited where it is held: its holder's ports written whole with it changed — or gone,
  *  where `change` gives null, taking every line meeting it along. */
 export function port_edit(graph: Graph, id: Id, change: (port: Port) => Port | null): Mutation[] {
@@ -108,6 +107,7 @@ export function port_edit(graph: Graph, id: Id, change: (port: Port) => Port | n
   return [{ op: "set_ports", id: port.holder, ports }, ...lines];
 }
 
+/** A refusal where the named definition is not of this kind. */
 export function may_wear(ctx: Context, args: Args, kind: Id): string | null {
   const type = text(args, "type");
   if (!type) return null;

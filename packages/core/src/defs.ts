@@ -6,7 +6,7 @@ import { is_folder, organizes } from "./holders";
 import { entry_at, is_form, library_home, library_names, type_at } from "./library";
 import { is_container } from "./tree";
 import { BASE_BLOCKS, BASE_COMPONENTS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIAGRAMS, DIRS,
-         KIND_BASE,
+         KIND_BASE, KIND_FAMILIES,
          TRAITS, type Block,
          type BlockModule, type Attribute, type Components, type Definition, type Dir, type Form,
          type Graph, type Id, type Trait } from "./types";
@@ -593,14 +593,21 @@ function kind_typed(graph: Graph, id: Id, type: Id | undefined): Id | null {
     ?? (type && DIAGRAMS.includes(type) ? type : undefined);
   if (named) return named;
   if (block_base(graph, type) !== "block" || module_named(graph, type) !== "block") return null;
-  const held = is_container(graph, id) || (!!def_at(graph, type) && type !== id
-    && is_container(graph, type!));
-  return held ? "internal" : null;
+  return holds_parts(graph, id, type) ? "internal" : null;
 }
 
-/** Whether a block keeps its diagram kind typed by `type`: **a diagram is fixed to its branch**,
- *  retyped only to what extends the same kind; a plain block may become any. */
+/** Whether a block typed by `type` holds parts: its own, or its definition's. */
+function holds_parts(graph: Graph, id: Id, type: Id | undefined): boolean {
+  return is_container(graph, id) || (!!def_at(graph, type) && type !== id
+    && is_container(graph, type!));
+}
+
+/** Whether a block keeps its diagram family typed by `type`: **a diagram holding parts is
+ *  retyped only within its family**; an empty one, or a plain block, may become any. */
 export function kind_fits(graph: Graph, id: Id, type: Id | undefined): boolean {
   const kind = diagram_kind(graph, id);
-  return !kind || kind === kind_typed(graph, id, type);
+  const b = graph.blocks[id];
+  if (!kind || !b || !holds_parts(graph, id, b.def ? b.id : b.type)) return true;
+  const to = kind_typed(graph, id, type);
+  return KIND_FAMILIES.some((set) => set.includes(kind) && !!to && set.includes(to));
 }

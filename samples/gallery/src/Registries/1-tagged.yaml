@@ -1,0 +1,52 @@
+name: Tagged
+note: Tags with parents and colours. A parent's colour reaches the tags under it; pick a block and its components tab lists its tags, each in its colour.
+library:
+  tags:
+    - name: risk
+      description: Needs care whenever it changes.
+      settings: { style: { hue: 25 } }
+    - name: domain
+      description: Which part of the business it serves.
+      settings: { style: { hue: 190 } }
+    - name: lifecycle
+      description: Where it is in its life.
+      settings: { style: { hue: 75 } }
+    - name: critical
+      type: risk
+      description: Orders stop when this fails.
+    - name: pii
+      type: risk
+      description: Holds or passes personal data.
+    - name: orders
+      type: domain
+      description: Takes part in placing, changing or cancelling an order.
+    - name: payments
+      type: domain
+      description: Moves money or records that it moved.
+    - name: fulfilment
+      type: domain
+      description: Gets what was ordered to the customer.
+    - name: experimental
+      type: lifecycle
+      description: Planned or trial; may go.
+    - name: deprecated
+      type: lifecycle
+      description: Being retired; nothing new should lean on it.
+    - name: external api
+      description: Speaks to a system nobody here runs.
+blocks:
+  - name: Storefront
+    settings: { card: { arrange: rows } }
+    tags: [ critical, orders ]
+  - name: Ledger service
+    settings: { card: { arrange: rows } }
+    tags: [ payments, pii ]
+  - name: Courier link
+    settings: { card: { arrange: rows } }
+    tags: [ fulfilment, external api ]
+  - name: Recommendations
+    settings: { card: { arrange: rows } }
+    tags: [ experimental ]
+  - name: Legacy billing
+    settings: { card: { arrange: rows } }
+    tags: [ deprecated, payments ]

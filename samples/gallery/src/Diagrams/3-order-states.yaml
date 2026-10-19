@@ -1,0 +1,23 @@
+name: Order states
+type: state
+note: A state machine, ranked by where its transitions point. Each transition is named by the event that fires it.
+blocks:
+  - { name: Placed, type: start }
+  - Pending
+  - Paid
+  - Shipped
+  - Delivered
+  - Payment failed
+  - Cancelled
+  - { name: Closed, type: end }
+relations:
+  - transition:
+      - Placed -> Pending
+      - Pending -> Paid: charged
+      - Pending -> Payment failed: declined
+      - Payment failed -> Pending: retry
+      - Payment failed -> Cancelled: gave up
+      - Paid -> Shipped: handed over
+      - Shipped -> Delivered: signed for
+      - Delivered -> Closed
+      - Cancelled -> Closed

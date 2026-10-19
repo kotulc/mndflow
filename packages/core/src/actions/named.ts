@@ -189,9 +189,11 @@ register(
 );
 
 /** What an entry keeps through a change it does not name: everything but its package. */
-function kept<T extends { pkg: Id }>(was: T | undefined): Omit<T, "pkg"> | Record<string, never> {
+function kept<T extends { pkg: Id; type?: Id; description?: string }>(
+  was: T | undefined): Omit<T, "pkg" | "type" | "description"> | Record<string, never> {
   if (!was) return {};
-  const { pkg: _, ...rest } = was;
+  /** What it extends and says are written afresh by `extending` and `described`. */
+  const { pkg: _, type: _t, description: _d, ...rest } = was;
   return rest;
 }
 
@@ -202,13 +204,19 @@ function extending(args: Record<string, unknown>, was: Id | undefined): { type?:
   return said ? { type: said } : {};
 }
 
-/** Why an entry may not extend what is said: nothing of its kind by that id, or itself. */
+/** Why an entry may not extend what is said: nothing of its kind by that id, itself, or one
+ *  that already extends it. */
 function extends_refusal(graph: Graph, id: Id, args: Record<string, unknown>,
                          kind: keyof Library): string | null {
   const said = args["extends"] === undefined ? "" : String(args["extends"]).trim();
   if (!said) return null;
-  if (said === id) return "it cannot extend itself";
-  return entry_at(graph, said)?.kind === kind ? null : `there is no such ${kind.slice(0, -1)}`;
+  if (entry_at(graph, said)?.kind !== kind) return `there is no such ${kind.slice(0, -1)}`;
+  const seen = new Set<Id>();
+  for (let at: Id | undefined = said; at && !seen.has(at); at = entry_at(graph, at)?.type) {
+    if (at === id) return "it cannot extend itself";
+    seen.add(at);
+  }
+  return null;
 }
 
 /** Why a named component may not take this name, or be changed: one in a frozen package, or a

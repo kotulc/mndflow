@@ -32,7 +32,7 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-A fresh browser opens the showcase, as `mndflow.yaml` says; an existing workspace in the browser always wins.
+A fresh browser opens the gallery, as `mndflow.yaml` says; an existing workspace in the browser always wins.
 
 ### Using it
 
@@ -65,8 +65,8 @@ npm run build -w @mnd/web            # a production bundle
 npm run release:kit                  # build, pack and stamp @mnd/kit
 npm run dev -w @mnd/stage            # one surface alone — also explorer, options, tray
 npm run start -w @mnd/cli -- fold related
-npm run samples                      # collect the packages, then the showcase
-npm run showcase                     # collect samples/showcase/src, one diagram file per layer, into the workspace and its package
+npm run samples                      # collect the packages, then the gallery
+npm run gallery                      # collect samples/gallery/src, one diagram file per block, into the workspace and its package
 npm run packages                     # re-collect catalogue packages from packages/defs/src/packages/
 npm run base                         # re-collect base from packages/defs/src/base/
 ```

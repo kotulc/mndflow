@@ -1,7 +1,0 @@
-name: Headless
-def: {}
-description: A document card with no name over it.
-settings:
-  card:
-    face: document
-    name: hide

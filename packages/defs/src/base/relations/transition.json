@@ -1,0 +1,12 @@
+{
+  "id": "transition",
+  "name": "transition",
+  "type": "line",
+  "description": "A state machine's move from one state to the next: its name the event that fires it, with any guard and action.",
+  "def": {},
+  "settings": {
+    "line": {
+      "dir": "forward"
+    }
+  }
+}

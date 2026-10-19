@@ -1,0 +1,20 @@
+name: Owned
+note: A constraint applied by name. Each block here must name its owner; check reports any that does not.
+library:
+  constraints:
+    - name: owned
+      description: Every service names the team that runs it.
+      required: [ owner ]
+blocks:
+  - name: Orders
+    settings: { card: { arrange: rows } }
+    constraints: [ owned ]
+    owner: Commerce
+  - name: Payments
+    settings: { card: { arrange: rows } }
+    constraints: [ owned ]
+    owner: Payments
+  - name: Search
+    settings: { card: { arrange: rows } }
+    constraints: [ owned ]
+    owner: Web

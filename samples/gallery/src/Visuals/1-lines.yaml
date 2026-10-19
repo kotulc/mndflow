@@ -1,0 +1,20 @@
+name: Lines
+settings:
+  layout: { kind: layered }
+note: Every relation the base ships, and the ways a line points. A line's ends say how many, in what role, and who owns whom.
+blocks: [ A, B, C, D, E, F, G, H, Whole, Part, Gathered, Client, Supplier, Caller, Callee, State one, State two ]
+relations:
+  - A -> B: forward
+  - C <- D: back
+  - E <-> F: both
+  - G -- H: none
+  - composition: [ Whole -> Part ]
+  - aggregation: [ Whole -> Gathered ]
+  - association:
+      - from: Part
+        to: Gathered
+        ends: { from: { multiplicity: "*", role: parts }, to: { multiplicity: "1", navigable: false } }
+  - dependency: [ Client -> Supplier ]
+  - message: [ Caller -> Callee: ask ]
+  - reply: [ Callee -> Caller: answer ]
+  - transition: [ State one -> State two: event ]

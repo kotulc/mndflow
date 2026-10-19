@@ -329,3 +329,15 @@ export function face_attrs(look: Look): Record<string, unknown> {
       : sheer ? { style: { "--card-opacity": String(look.opacity) } } : {}),
   };
 }
+
+/** A look's colour alone — its family and tint — for a mark that wears a colour but not a card's
+ *  dress: a chip, a swatch, a seat, a tile. */
+export function tint_attrs(look: Look | undefined): Tint {
+  if (!look) return {};
+  const dress = face_attrs(look);
+  return { "data-family": dress["data-family"] as string | undefined,
+           ...(dress["style"] ? { style: dress["style"] as Record<string, string> } : {}) };
+}
+
+/** The attributes a colour alone comes to. */
+export type Tint = { "data-family"?: string; style?: Record<string, string> };

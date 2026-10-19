@@ -62,10 +62,12 @@
 |---|---|---|
 | **block** | block | the unit of structure: a thing, a part, a step, a system. Plain, a leaf free to become any diagram kind; holding blocks, it reads as `internal` and opens onto them as a layer |
 | **reference** | block | a stand-in for a block, a definition or a package elsewhere |
-| **internal**, **flow**, **state**, **sequence**, **swimlane**, **class**, **entity**, **treemap** | block | the **diagram kinds**: each extends `block` and fixes its view, layout and icon. A block of one is fixed to it, retyped only within its branch; `sequence` and `swimlane` are grids by *is grid*; `flow`, `state`, `sequence` and `swimlane` are behaviours |
+| **internal**, **flow**, **state**, **sequence**, **swimlane**, **class**, **entity**, **treemap** | block | the **diagram kinds**: each extends `block` and fixes its view, layout and icon. A block of one holding parts is retyped only within its family — internal, flow, state and treemap; class and entity; sequence and swimlane each alone; `sequence` and `swimlane` are grids by *is grid*; `flow`, `state`, `sequence` and `swimlane` are behaviours |
+| **decision**, **start**, **end** | block | notation: a flow's question, its lines named by their answers; where a flow or a state machine begins and finishes |
 | **interface** | component | the base a port's interface definition extends: a block's boundary, seated on its wall, where relations and flows enter and leave. *Is interface*: the engine draws a port by it. Never a card, a layer or a row |
 | **attribute**, **tag**, **constraint** | component | the bases their library entries extend: a type, a tag, a constraint. Each its own hue; never made a block |
 | **line** | relation | the plain relationship. Which way it points is a setting, `line.dir` (`none`, `forward`, `back`, `both`), said by its definition and overridable on the line |
+| **association**, **composition**, **aggregation**, **dependency**, **message**, **reply**, **transition** | relation | notation, each extending `line`: the class and entity relations, saying their ends; a sequence's messages and their replies; a state machine's moves |
 | **folder** | organization | a box on its parent's layer, what it holds drawn inside. Holds anything; never a layer. Selected in the explorer, the canvas zooms to it |
 | **grid** | organization | seats blocks and labels **in cells**. A card outside; opened, its **allocation view**. Lists as a row. The `sequence` and `swimlane` kinds are grids too, by *is grid* |
 | **note** | annotation | a remark: a markdown body drawn as a document, resizable, tied to the block it is made from |

@@ -9,7 +9,7 @@ import type { Side } from "@mnd/core";
 /** What a row or a chip being dragged onto the drawing carries. */
 export const DRAGGED = "text/mnd-block";
 
-import { FRAME, PLAIN, face_attrs, look_key,
+import { FRAME, PLAIN, face_attrs, look_key, tint_attrs,
          type BoxData, type BoxNode, type GridCell } from "@mnd/views";
 import { CardFace, Name, Stamps, Wears, useNaming } from "@mnd/theme";
 
@@ -343,12 +343,11 @@ function SeatNode({ id, data, selected }: NodeProps<BoxNode>) {
   useEffect(() => remeasure(id), [id, data.side, remeasure]);
   /** A port of an interface definition wears that definition's colour; a plain one stays plain. */
   const typed = !!data.look && !!data.def && data.def !== "interface";
-  const { style, ...dress } = (typed ? face_attrs(data.look!) : {}) as
-    { style?: Record<string, string>; [k: string]: unknown };
+  const tint = tint_attrs(typed ? data.look : undefined);
   return (
     <div className={["mnd-seat", typed ? "typed" : "", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
-         data-family={dress["data-family"] as string | undefined} style={style as CSSProperties}
+         data-family={tint["data-family"]} style={tint.style as CSSProperties}
          title={data.label}>
       <Middle side={data.side} inward={data.on === FRAME} />
       {data.seats?.length ? <Seats seats={data.seats} inward={data.on === FRAME} /> : null}
@@ -385,13 +384,12 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
 function TileNode({ data, selected }: NodeProps<BoxNode>) {
   const n = data.count ?? 0;
   const uses = n ? `${n} ${n === 1 ? "use" : "uses"}` : "no uses";
-  const { style, ...dress } = (data.look ? face_attrs(data.look) : {}) as
-    { style?: Record<string, string>; [k: string]: unknown };
+  const tint = tint_attrs(data.look);
   return (
     <div className={["mnd-tile", n ? "" : "unused", (data.heat ?? 0) > 0.55 ? "hot" : "",
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
-         data-family={dress["data-family"] as string | undefined}
-         style={{ ...style, "--heat": data.heat ?? 0 } as CSSProperties}
+         data-family={tint["data-family"]}
+         style={{ ...tint.style, "--heat": data.heat ?? 0 } as CSSProperties}
          title={[data.label, uses, data.description].filter(Boolean).join(" · ")}>
       <span className="mnd-tile-name">{data.label}</span>
       <span className="mnd-tile-count">{uses}</span>

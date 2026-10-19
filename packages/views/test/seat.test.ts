@@ -10,7 +10,7 @@ import { project } from "../src/block";
 import { at_seat, seat_all, type Rect } from "../src/seat";
 import { box_of } from "../src/scene";
 
-/** A showcase block by its path of names, and the note tied to it. */
+/** A gallery block by its path of names, and the note tied to it. */
 const named = (graph: Graph, path: string): Id => path_to(graph, path, graph.root)!;
 const tie_on = (graph: Graph, id: Id) => Object.values(graph.edges).find((e) => e.type === "tie"
   && (e.from === id || e.to === id))!;
@@ -72,14 +72,14 @@ describe("a tie", () => {
   });
 
   it("crosses straight where a group note sits square beside the group", () => {
-    const text = readFileSync("samples/showcase/workspace.json", "utf8");
+    const text = readFileSync("samples/gallery/workspace.json", "utf8");
     const { graph } = open(text, FLOOR);
-    const scene = project(graph, named(graph, "System::Deployment"));
+    const scene = project(graph, named(graph, "Visuals::Groups"));
     const opposite: Record<string, string> = {
       top: "bottom", bottom: "top", left: "right", right: "left",
     };
     for (const path of ["eu-west cluster", "eu-west cluster::shop namespace"]) {
-      const id = named(graph, `System::Deployment::${path}`);
+      const id = named(graph, `Visuals::Groups::${path}`);
       const tie = tie_on(graph, id).id;
       const on_group = scene.perches.find((p) => p.edge === tie && p.on === id)!;
       const on_note = scene.perches.find((p) => p.edge === tie && p.on === note_on(graph, id))!;
@@ -163,10 +163,10 @@ describe("a note tied to an interface", () => {
     expect(gap.d).toBeLessThan(24 * 4);
   });
 
-  it("floats the showcase note beside the room port on Containers", () => {
-    const text = readFileSync("samples/showcase/workspace.json", "utf8");
+  it("floats the gallery note beside the room port on Checkout", () => {
+    const text = readFileSync("samples/gallery/workspace.json", "utf8");
     const { graph } = open(text, FLOOR);
-    const containers = named(graph, "System::Containers");
+    const containers = named(graph, "Diagrams::Checkout");
     const scene = project(graph, containers);
     const https = graph.blocks[containers]!.ports!.find((p) => p.name === "https")!;
     const drain = `${containers}/${https.id}`;

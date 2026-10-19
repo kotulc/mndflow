@@ -7,11 +7,11 @@
 
 | | |
 |---|---|
-| **redesign first** | **redesign-plan.md runs first** and holds everything built since 2026-10-14 (committed through f597e3f; the component model uncommitted, 2026-10-18). This plan is revised from it once it is finished; until then, rows below that the redesign settled say so |
+| **redesign first** | **redesign-plan.md runs first** and holds everything built since 2026-10-14 (committed through 2008d0f; notation in base, the gallery and diagram families uncommitted, 2026-10-18). This plan is revised from it once it is finished; until then, rows below that the redesign settled say so |
 | **first, ask** | step 0's open rows, then the three older rows of *Decide*: the folder view and the package view, `note:` in a file, dagre for `layered` |
 | **then** | step 0, then step 1 |
 | **the kit** | not re-released since; mndmap's re-pin meets the renames listed under *Rough edges* · **kit** |
-| **verify** | *Commands*: everything green, the showcase `check` clean and drawn in the app |
+| **verify** | *Commands*: everything green, the gallery `check` clean and drawn in the app |
 
 
 ## Order
@@ -36,7 +36,7 @@
 | Task or question | |
 |---|---|
 | **the workspace tab** | still the old label-and-answer rows (name, tags, display, file, export): convert it to keys and choices |
-| **attribute values in files** | a card source writes values as top-level keys, so a value named like a schema key vanishes (*Rough edges* · **diagram files**). Keep them flat, or nest them under `values:` — unambiguous, one more level to write, the core reader and writer and the showcase changed. Recommended: nested |
+| **attribute values in files** | a card source writes values as top-level keys, so a value named like a schema key vanishes (*Rough edges* · **diagram files**). Keep them flat, or nest them under `values:` — unambiguous, one more level to write, the core reader and writer and the gallery changed. Recommended: nested |
 | **usage settings in the schema** | the tray offers a usage no settings, but `Block.settings` still allows a usage's override. Drop it from the schema, or keep it for files and arrangement (`card.arrange` on a usage) |
 | **the attributes tab** | settled 2026-10-18: the components tab replaced it (redesign-plan.md *Component model*) |
 | **traits** | on the card tab; they sat on the old settings tab. Keep them with what it is, or move them to settings |
@@ -147,7 +147,7 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **definition view** | the middle card's menu offers *delete block* and the note's *delete note*, which do nothing; React Flow logs *Couldn't create edge for handle* (#008) as boxes mount; tags and ports draw as plain cards until step 10 of redesign-plan.md redesigns it; inherited attributes are listed but not dimmed; inherited ends are dimmed only where the relation states no `allows.ends` itself |
 | **cards** | marks on a dark table card are faint (half opacity); a reference previewing a table ignores its own look's border; block and relation definitions have no hue of their own; check that notes draw through `CardFace`, not only `NoteNode` |
 | **tray** | a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else |
-| **tests** | `packages/views/test/seat.test.ts` › *crosses straight where a group note sits square beside the group* fails on the showcase's `System::Deployment`. It was mid-edit before 2026-10-14, and still fails with `description` moved back to `body`, so it is not the description change |
+| **tests** | `packages/views/test/seat.test.ts` › *crosses straight where a group note sits square beside the group* fails on the gallery's `Visuals::Groups` (formerly the showcase's `System::Deployment`). It was mid-edit before 2026-10-14, and still fails with `description` moved back to `body`, so it is not the description change |
 | **camera and page** | picking on the profile re-draws it lower than it first opens; the package view scrolls its top under the crumbs; a short port drag lands short (React Flow's drag threshold) |
 | **React** | `flushSync was called from inside a lifecycle method`, seen opening the profile and the package view from a layer; not traced |
 | **packages** | `base` collects alphabetically (`annotations` before `blocks`); a definition file holds no parts, so a pattern's parts live in its package's `package.json` |
@@ -177,37 +177,32 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **no legacy** | on a schema change re-run `npm run base` and `npm run samples`; the door repairs no old shapes |
 | **docs are the goal** | code catches up; report where code and a doc disagree |
 | **one rule, one home** | fragmentation found is consolidated in the same task and recorded in code-homes.md |
-| **the showcase is the visual check** | one online shop built from the `architecture` catalogue's patterns; a visual feature added or changed shows up somewhere natural in it, and in the coverage table. Non-visual capabilities need not appear |
+| **the gallery is the visual check** | a simple display, on base alone, of each diagram kind, the registries, the faces and the visuals; a visual feature added or changed shows up in the folder it belongs to, and in the coverage table. Non-visual capabilities need not appear |
 
-### Showcase coverage
+### Gallery coverage
 
-Every layer is a diagram file under `samples/showcase/src`; `npm run showcase` collects them into the workspace and `public/packages/showcase.json`. The services are usages of the `architecture` catalogue's patterns.
+Every block is a diagram file under `samples/gallery/src`, on base alone; `npm run gallery` collects them into the workspace and `public/packages/gallery.json`.
 
 | Visual | Where |
 |---|---|
-| markdown card from `source`, references to layers | `about.yaml` (Overview), `about.md` |
-| persons, externals, every `line.dir`, names, a label above | `System/1-context.yaml` |
-| pattern usages read through, ports placed / self-placing / flowless, fan-out, hatch / faded / dashed / thick / hue | `System/2-containers.yaml` |
-| regions with headings, a label tied to a card | `System/4-bands.yaml` |
-| room ports on a definition's walls | the `architecture` patterns, opened from structure |
-| nested groups, a matrix with headers and a merge, a missing reference, a line definition with a value | `System/3-deployment.yaml` |
-| table view (class diagram) and attribute links | `Diagrams/6-model.yaml` |
-| table faces answering attributes, value links, a diamond-ended line | `Data/1-orders.yaml` |
-| a collection's records as a table on its card | `Data/2-store.yaml` |
-| the library: a type and a tag declared in files | `Records/order.yaml`, `Specs/public-api-spec.yaml` |
-| `layered`: a state machine and a flowchart | `Diagrams/3-order-states.yaml`, `Diagrams/2-payment-retry.yaml` |
-| sequence: reference lifelines, a missing header, a self message, a reply; the same grid as lanes | `Diagrams/4-checkout-saga.yaml`, `Flows/1-place-order.yaml` |
-| swimlane (allocation) | `Diagrams/5-fulfilment.yaml` |
-| a definition chain on large faces, usages answering it | `Catalogue/1-specs.yaml`, `Specs/` |
-| document, picture, headless and sized faces; markdown and decision cards; a tie; a hand-sized note; rows arrangement | `Catalogue/2-docs.yaml`, `Kinds/` |
+| a markdown card from `source` | `about.yaml` (Overview), `about.md` |
+| one diagram per kind, in kind order: internal (typed ports, a room port with a note), flow (start, decisions, end), state (transitions), sequence (a reference lifeline, a self message, a reply), swimlane, class, entity, treemap | `Diagrams/1-checkout.yaml` … `Diagrams/8-estate.yaml` |
+| the records: table faces, types with unit, format and hue, stored associations and a composition, a behaviour with ports, a collection definition | `Records/` |
+| tags with parents and colours; a constraint applied by name; interface definitions and ports typed by them | `Registries/1-tagged.yaml`, `2-owned.yaml`, `3-wired.yaml` |
+| every small face and icon, a label above, notation blocks, a reference | `Faces/1-small.yaml` |
+| every large face: table, class, document, picture, headless, sized, a collection's records, a hand-sized note, a label | `Faces/2-large.yaml` |
+| every `line.dir` and every base relation, with ends | `Visuals/1-lines.yaml` |
+| nested groups with tied notes, a grid with headers | `Visuals/2-groups.yaml` |
+| regions with headings, a label tied to a card | `Visuals/3-bands.yaml` |
+| families, hues, hatch, faded, dashed, thick | `Visuals/4-colour.yaml` |
 
 ### Commands
 
 | Do | Command |
 |---|---|
 | check everything | `npm run typecheck`, `npm test`, `npm run lint:css` |
-| re-write the showcase | `npm run samples` (packages, then the showcase collected from `samples/showcase/src`); the showcase alone `npm run showcase` |
+| re-write the gallery | `npm run samples` (packages, then the gallery collected from `samples/gallery/src`); the gallery alone `npm run gallery` |
 | re-collect packages | edit under `packages/defs/src/packages/<name>/`, then `npm run packages`; `base` under `packages/defs/src/base/`, then `npm run base` |
-| check a file or a source folder | `npm run start -s -w @mnd/cli -- check ../../samples/showcase/workspace.json` → `clean`; a folder the same: `check ../../samples/showcase/src` |
-| list a layer | `npm run start -s -w @mnd/cli -- outline ../../samples/showcase/workspace.json <layer name or id>`; showcase ids are minted from file paths (`yaml.System.2-containers`) |
-| drive the app | `npm run dev`; a fresh browser opens the showcase (`mndflow.yaml`); another file through the header's *import a workspace*. Open a card with select + Enter (double-click renames); in the explorer, select a row and → unfolds it. The `vitest` skill says how to drive it, though it is stale (step 6) |
+| check a file or a source folder | `npm run start -s -w @mnd/cli -- check ../../samples/gallery/workspace.json` → `clean`; a folder the same: `check ../../samples/gallery/src` |
+| list a layer | `npm run start -s -w @mnd/cli -- outline ../../samples/gallery/workspace.json <layer name or id>`; gallery ids are minted from file paths (`yaml.Diagrams.1-checkout`) |
+| drive the app | `npm run dev`; a fresh browser opens the gallery (`mndflow.yaml`); another file through the header's *import a workspace*. Open a card with select + Enter (double-click renames); in the explorer, select a row and → unfolds it. The `vitest` skill says how to drive it, though it is stale (step 6) |

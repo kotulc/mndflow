@@ -1,6 +1,0 @@
-name: Screenshot
-def: {}
-description: A card that draws an image.
-settings:
-  card:
-    face: picture

@@ -127,16 +127,19 @@ function held(map: Map, under: number | undefined, out: Entry[]): void {
       const said = typeof inner?.["note"] === "string" ? inner["note"].trim() : "";
       if (said) out.push({ ...note_on(said, e.parent ? undefined : under, at),
                            ...(e.parent ? { parent: e.parent } : {}) });
-      noted(e, at, e.parent ? undefined : under, out);
+      noted(e, at, e.parent ? undefined : under, out, e.parent);
       if (inner) held(inner, at, out);
     }
   }
 }
 
-/** The notes written on an entry's ports, each tied to its port. */
-function noted(e: Entry, at: number, under: number | undefined, out: Entry[]): void {
+/** The notes written on an entry's ports, each tied to its port, beside the entry: under the
+ *  same entry, or the same `parent` where one is said. */
+function noted(e: Entry, at: number, under: number | undefined, out: Entry[],
+               parent?: string): void {
   for (const p of e.ports ?? []) {
-    if (p.note) out.push({ ...note_on(p.note, under, at), port: p.name });
+    if (!p.note) continue;
+    out.push({ ...note_on(p.note, under, at), port: p.name, ...(parent ? { parent } : {}) });
   }
 }
 

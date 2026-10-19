@@ -1,0 +1,8 @@
+{
+  "id": "end",
+  "name": "end",
+  "type": "block",
+  "description": "Where a flow or a state machine finishes: lines in, none out.",
+  "def": {},
+  "traits": []
+}

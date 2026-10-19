@@ -1,0 +1,10 @@
+{
+  "id": "decision",
+  "name": "decision",
+  "type": "block",
+  "description": "A flow's question: one way in, a line out for each answer, each line named by its answer.",
+  "def": {},
+  "traits": [
+    "has_values"
+  ]
+}

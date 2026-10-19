@@ -1,0 +1,39 @@
+name: Checkout saga
+type: sequence
+description: "A sequence: each column a participant, each row a moment, each line a message."
+cols:
+  - name: Customer
+  - name: Gateway
+  - name: Checkout
+    type: reference
+    of: Diagrams::Checkout
+    body: A participant may refer to the block it stands for.
+  - name: Payment
+  - name: Inventory
+rows:
+  - name: Submit
+  - name: Charge
+  - name: Reserve
+  - name: Confirm
+blocks:
+  - name: Submit cart
+    cell: [ Submit, Customer ]
+  - name: Route checkout
+    cell: [ Submit, Gateway ]
+  - name: Start saga
+    cell: [ Charge, Checkout ]
+  - name: Authorize
+    cell: [ Charge, Payment ]
+  - name: Reserve stock
+    cell: [ Reserve, Inventory ]
+  - name: Confirm order
+    cell: [ Confirm, Checkout ]
+relations:
+  - message:
+      - Submit cart -> Route checkout: checkout
+      - Route checkout -> Start saga: start
+      - Start saga -> Authorize: charge
+      - Authorize -> Reserve stock: reserve
+      - Confirm order -> Confirm order: log step
+  - reply:
+      - Reserve stock -> Confirm order: reserved

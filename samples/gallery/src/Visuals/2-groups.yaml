@@ -1,0 +1,36 @@
+name: Groups
+note: Groups nest, each a dashed box round its members, a note tied beside it. A grid lays cells under its headers.
+blocks:
+  - name: eu-west cluster
+    type: group
+    note: One cluster per region.
+    blocks:
+      - name: shop namespace
+        type: group
+        note: The services customers reach.
+        blocks: [ storefront pod, gateway pod, orders pod ]
+      - name: data namespace
+        type: group
+        blocks: [ orders primary, orders replica ]
+  - name: Environments
+    type: grid
+    cols:
+      - name: dev
+        body: Where changes land first.
+      - name: staging
+        body: A copy of production.
+      - name: prod
+        body: What customers reach.
+    rows:
+      - name: eu-west
+      - name: us-east
+    blocks:
+      - name: shared cluster
+        cell: [ eu-west, dev ]
+      - name: eu-west prod
+        cell: [ eu-west, prod ]
+      - name: us-east prod
+        cell: [ us-east, prod ]
+relations:
+  - orders pod -> orders primary
+  - orders primary -> orders replica: replicates

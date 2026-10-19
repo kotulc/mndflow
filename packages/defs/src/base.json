@@ -4,6 +4,30 @@
   "graph": {
     "root": "base",
     "blocks": {
+      "aggregation": {
+        "id": "aggregation",
+        "parent": "base.dir.relations",
+        "name": "aggregation",
+        "type": "line",
+        "def": {
+          "ends": {
+            "from": {
+              "ownership": "shared"
+            }
+          }
+        },
+        "description": "A whole and the parts it gathers, which live on without it. The hollow diamond is at the whole, the from end.",
+        "order": 1
+      },
+      "association": {
+        "id": "association",
+        "parent": "base.dir.relations",
+        "name": "association",
+        "type": "line",
+        "def": {},
+        "description": "Two definitions that know of each other: each end says how many, in what role, and whether it can be reached.",
+        "order": 2
+      },
       "attribute": {
         "id": "attribute",
         "parent": "base.dir.components",
@@ -106,6 +130,22 @@
           }
         }
       },
+      "composition": {
+        "id": "composition",
+        "parent": "base.dir.relations",
+        "name": "composition",
+        "type": "line",
+        "def": {
+          "ends": {
+            "from": {
+              "ownership": "composite",
+              "multiplicity": "1"
+            }
+          }
+        },
+        "description": "A whole and the parts it owns: the parts go when the whole does. The filled diamond is at the whole, the from end.",
+        "order": 3
+      },
       "constraint": {
         "id": "constraint",
         "parent": "base.dir.components",
@@ -121,6 +161,46 @@
         },
         "traits": []
       },
+      "decision": {
+        "id": "decision",
+        "parent": "base.dir.blocks",
+        "name": "decision",
+        "type": "block",
+        "def": {},
+        "description": "A flow's question: one way in, a line out for each answer, each line named by its answer.",
+        "order": 3,
+        "traits": [
+          "has_values"
+        ]
+      },
+      "dependency": {
+        "id": "dependency",
+        "parent": "base.dir.relations",
+        "name": "dependency",
+        "type": "line",
+        "def": {},
+        "description": "One relies on another: a change to the supplier may change the client. Dashed, its head at the supplier.",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward",
+            "to_arrow": "open"
+          },
+          "style": {
+            "border_style": "dashed"
+          }
+        }
+      },
+      "end": {
+        "id": "end",
+        "parent": "base.dir.blocks",
+        "name": "end",
+        "type": "block",
+        "def": {},
+        "description": "Where a flow or a state machine finishes: lines in, none out.",
+        "order": 4,
+        "traits": []
+      },
       "entity": {
         "id": "entity",
         "parent": "base.dir.blocks",
@@ -128,7 +208,7 @@
         "type": "block",
         "def": {},
         "description": "An entity relationship diagram: how its data is stored — the definitions its references stand for, each a schema card, columns and keys, joined by the relations stored between them, their ends drawn as multiplicities.",
-        "order": 3,
+        "order": 5,
         "settings": {
           "layout": {
             "view": "er",
@@ -143,7 +223,7 @@
         "type": "block",
         "def": {},
         "description": "A flow: what moves through a process — its steps and decisions, and the lines each passes on along, laid out by where they point. A block's behaviour.",
-        "order": 4,
+        "order": 6,
         "settings": {
           "layout": {
             "view": "internal",
@@ -250,7 +330,7 @@
         "type": "block",
         "def": {},
         "description": "A block diagram: what a block is made of — its parts and the relations between them.",
-        "order": 5,
+        "order": 7,
         "settings": {
           "layout": {
             "view": "internal"
@@ -287,10 +367,24 @@
         "name": "line",
         "def": {},
         "description": "A relation between two blocks: what flows, connects or depends.",
-        "order": 1,
+        "order": 5,
         "traits": [
           "has_values"
         ]
+      },
+      "message": {
+        "id": "message",
+        "parent": "base.dir.relations",
+        "name": "message",
+        "type": "line",
+        "def": {},
+        "description": "One participant asks another to act: a message between two steps.",
+        "order": 6,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
       },
       "note": {
         "id": "note",
@@ -326,7 +420,7 @@
         "type": "block",
         "def": {},
         "description": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
-        "order": 6,
+        "order": 8,
         "settings": {
           "style": {
             "family": "away",
@@ -361,6 +455,23 @@
           "is_region"
         ]
       },
+      "reply": {
+        "id": "reply",
+        "parent": "base.dir.relations",
+        "name": "reply",
+        "type": "line",
+        "def": {},
+        "description": "An answer to a message, drawn dashed.",
+        "order": 7,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          },
+          "style": {
+            "border_style": "dashed"
+          }
+        }
+      },
       "sequence": {
         "id": "sequence",
         "parent": "base.dir.blocks",
@@ -368,7 +479,7 @@
         "type": "block",
         "def": {},
         "description": "A sequence: who talks to whom, in what order — a grid read as time, the header row naming the participants and each row a moment, its lines the messages. A block's behaviour.",
-        "order": 7,
+        "order": 9,
         "settings": {
           "layout": {
             "view": "sequence"
@@ -382,6 +493,16 @@
           "is_behaviour"
         ]
       },
+      "start": {
+        "id": "start",
+        "parent": "base.dir.blocks",
+        "name": "start",
+        "type": "block",
+        "def": {},
+        "description": "Where a flow or a state machine begins: one line out to its first step or state.",
+        "order": 10,
+        "traits": []
+      },
       "state": {
         "id": "state",
         "parent": "base.dir.blocks",
@@ -389,7 +510,7 @@
         "type": "block",
         "def": {},
         "description": "A state machine: how one thing changes — the states it is in, and the transitions between them, laid out by where they point. A block's behaviour.",
-        "order": 8,
+        "order": 11,
         "settings": {
           "layout": {
             "view": "internal",
@@ -410,7 +531,7 @@
         "type": "block",
         "def": {},
         "description": "A swimlane: who does what, in which phase — a grid read as lanes, the header row naming the participants and the header column the phases, the steps in their cells. A block's behaviour.",
-        "order": 9,
+        "order": 12,
         "settings": {
           "layout": {
             "view": "allocation"
@@ -446,7 +567,7 @@
         "type": "line",
         "def": {},
         "description": "A relation with no model meaning: a dotted run with no heads, from a note or label to what it describes.",
-        "order": 2,
+        "order": 8,
         "settings": {
           "style": {
             "border_style": "dotted"
@@ -457,6 +578,20 @@
           "is_tie"
         ]
       },
+      "transition": {
+        "id": "transition",
+        "parent": "base.dir.relations",
+        "name": "transition",
+        "type": "line",
+        "def": {},
+        "description": "A state machine's move from one state to the next: its name the event that fires it, with any guard and action.",
+        "order": 9,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
       "treemap": {
         "id": "treemap",
         "parent": "base.dir.blocks",
@@ -464,7 +599,7 @@
         "type": "block",
         "def": {},
         "description": "A treemap: where the weight is — what it holds, each as large as what it holds in turn, in the boxes of its folders, groups and regions.",
-        "order": 10,
+        "order": 13,
         "settings": {
           "layout": {
             "view": "internal",

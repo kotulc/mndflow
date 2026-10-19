@@ -1,5 +1,0 @@
-name: Matrix
-type: grid
-def: {}
-description: A grid whose first row and column are headers.
-traits: [ has_parts, has_ports, has_values, is_grid, has_head ]

@@ -13,7 +13,7 @@ import { drop_named, library_home, registry_at, registry_of } from "../library";
 import { leave_at, open_at, reveal_at, view_on, EDITOR, type Tiers, type View,
          type Views } from "../navigate";
 import { new_id } from "../ids";
-import { BASE_PACKAGE, LAYOUTS, type Graph, type Id, type Layout, type Mutation } from "../types";
+import { BASE_PACKAGE, KIND_FAMILIES, LAYOUTS, type Graph, type Id, type Layout, type Mutation } from "../types";
 import { register, type Context, type Result } from "./registry";
 import { seat_all, seat_in, taken_in } from "./grid";
 import { borrowed, cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS,
@@ -29,10 +29,12 @@ const APART = "a definitions folder holds definitions and folders, not structure
 /** A component kind is carried by blocks as data, never made a block of its own. */
 const CARRIED = "a component is carried by blocks as data, never a block of its own";
 
-/** Why a diagram keeps its kind: retyped only within its branch. */
+/** Why a diagram holding parts keeps its family. */
 function fixed_kind(graph: Graph, id: Id): string {
   const kind = diagram_kind(graph, id);
-  return `its kind is fixed: it may become only what extends ${kind}`;
+  const kin = KIND_FAMILIES.find((set) => set.includes(kind ?? ""))?.filter((k) => k !== kind) ?? [];
+  return kin.length ? `a ${kind} holding parts may become only ${kin.join(", ")}`
+    : `a ${kind} holding parts keeps its kind`;
 }
 
 /** Why putting these blocks under `parent` would break the model, or null. */
@@ -216,6 +218,8 @@ register(
       const dropped: Mutation[] = [];
       for (const id of ports) {
         const out = port_edit(graph, id, () => null);
+        /** Gone already: the same port read through elsewhere, its holder's dropped first. */
+        if (!out.length) continue;
         dropped.push(...out);
         const set = out[0] as Extract<Mutation, { op: "set_ports" }>;
         graph = { ...graph, blocks: { ...graph.blocks,

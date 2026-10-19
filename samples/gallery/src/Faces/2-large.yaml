@@ -1,0 +1,47 @@
+name: Large
+settings:
+  layout: { cards: large }
+note: Every large face. A layer whose cards are large draws what each says under its name.
+blocks:
+  - name: Ada
+    type: Customer
+    id: "7"
+    email: ada@example.com
+  - name: "1001"
+    type: Order
+    settings: { card: { face: class } }
+    number: "1001"
+    customer: Ada
+    status: paid
+  - name: Runbook
+    settings: { card: { face: document } }
+    body: |-
+      # When orders stop flowing
+
+      Check the **relay** first. See the [outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).
+
+      | signal | threshold | page |
+      |---|---|---|
+      | outbox rows | 10 000 | yes |
+      | relay lag | 60 s | no |
+  - source: charge-once.md
+  - name: Dashboard
+    settings: { card: { face: picture } }
+    source: /gallery/picture.svg
+  - name: Release notes
+    settings: { card: { face: document, name: hide } }
+    body: "v2 of the orders API: the checkout key is required."
+  - name: Incident summary
+    settings: { card: { face: document, size: { w: 8, h: 3 } } }
+    body: "Checkout was slow for twenty minutes while the card processor timed out. The breaker opened, the fallback queued charges, and every queued charge was taken once the processor came back."
+  - name: Order book
+    type: Ledger
+    records:
+      - { number: 1001, customer: Ada, status: paid }
+      - { number: 1002, customer: Ada, status: pending }
+      - { number: 1003, customer: Grace, status: shipped }
+  - name: "A note sized by hand"
+    type: note
+    w: 192
+    h: 48
+  - { name: free text, type: label }

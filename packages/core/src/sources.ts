@@ -18,7 +18,8 @@ import { all_defs, block_base, def_at, dir_of, package_of } from "./defs";
 import { long_form, type Edge, type Entry, type LongForm, type LibrarySaid } from "./diagram";
 import { renamed, write } from "./file";
 import { is_grid } from "./holders";
-import { all_constraints, all_interfaces, all_tags, all_types, is_form } from "./library";
+import { all_constraints, all_interfaces, all_tags, all_types, is_form,
+         library_map } from "./library";
 import { def_ref, fits_domain, is_path, path_to, STEP } from "./refs";
 import { children, ports_on } from "./tree";
 import type { Leaf } from "./ports";
@@ -267,13 +268,21 @@ function lay(graph: Graph, r: Read, parent: Id, order: number): void {
       ...(e.values.length ? { values: e.values } : {}),
       ...(e.records?.length ? { records: e.records } : {}),
       ...(e.w !== undefined ? { w: e.w } : {}), ...(e.h !== undefined ? { h: e.h } : {}),
-      ...(e.ports?.length ? { ports: e.ports.map((p) => ({
-        id: `${id}.port.${slug_of(p.name || "port")}`, ...(p.name ? { name: p.name } : {}),
+      ...(e.ports?.length ? { ports: e.ports.map((p, at, all) => ({
+        id: port_id(id, all, at), ...(p.name ? { name: p.name } : {}),
         ...(p.description ? { description: p.description } : {}),
         ...(p.flow ? { flow: p.flow as Flow } : {}), ...(p.side ? { side: p.side as Side } : {}),
         ...(p.at !== undefined ? { at: p.at } : {}) })) } : {}),
     };
   }
+}
+
+/** A port's id on its block, by its name; one whose name slugs as an earlier one's also says
+ *  where it sits, so no two share an id. */
+function port_id(block: Id, ports: readonly { name?: string }[], at: number): Id {
+  const slug = (p: { name?: string }) => slug_of(p.name || "port");
+  const id = `${block}.port.${slug(ports[at]!)}`;
+  return ports.slice(0, at).some((p) => slug(p) === slug(ports[at]!)) ? `${id}.${at + 1}` : id;
 }
 
 /** A file's named components put in its package's library, each by its name; one already there
@@ -326,12 +335,8 @@ function library(graph: Graph, slug: Id, pre: string, said: Partial<LibrarySaid>
                              ...common(t, (n) => interface_id(pre, n)) };
     lib.interfaces = [...lib.interfaces.filter((x) => x.id !== one.id), one];
   }
-  if (lib.types.length || lib.tags.length || lib.interfaces.length || lib.constraints.length) {
-    root.library = { ...(lib.types.length ? { types: lib.types } : {}),
-                     ...(lib.tags.length ? { tags: lib.tags } : {}),
-                     ...(lib.interfaces.length ? { interfaces: lib.interfaces } : {}),
-                     ...(lib.constraints.length ? { constraints: lib.constraints } : {}) };
-  }
+  const kept = library_map(lib, (list) => list);
+  if (kept) root.library = kept;
 }
 
 /** A block's names read: a `parent` it names, what it is, what it carries, what it stands for,

@@ -1,0 +1,10 @@
+{
+  "schema": "1.0",
+  "id": "gallery",
+  "graph": {
+    "root": "gallery",
+    "blocks": {
+      "gallery": { "id": "gallery", "parent": null, "name": "gallery" }
+    }
+  }
+}

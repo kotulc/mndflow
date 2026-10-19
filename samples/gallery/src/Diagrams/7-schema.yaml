@@ -1,0 +1,14 @@
+name: Schema
+type: entity
+note: The records as an entity relationship diagram — columns and keys — the same associations drawn as crow's feet.
+blocks:
+  - type: reference
+    of: Customer
+  - type: reference
+    of: Order
+  - type: reference
+    of: Line
+  - type: reference
+    of: Product
+  - type: reference
+    of: Payment
