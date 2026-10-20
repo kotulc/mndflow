@@ -33,8 +33,8 @@ const IMAGE = { w: 192, h: 96 };
  *  table card, which has no padding of its own — then a table's title row and the room beside its
  *  name for the icon, what a cell spends beside its text, and the room each mark takes at the end
  *  of the last row, inset from the corner. All as `face.css` draws them. */
-const PAD = { x: 16, gutter: 13, y: 6, head: 24, handle: 8, over: 11, gap: 4, title: 21, side: 32,
-              cell: 10, mark: 15, corner: 4 };
+const PAD = { x: 16, gutter: 13, y: 6, head: 24, handle: 11, over: 14, gap: 4, title: 21, side: 32,
+              cell: 10, mark: 15, corner: 8 };
 
 /** A card's border, in pixels, at each width `ramp.css` weighs it. */
 const EDGE: Record<string, number> = { thin: 1, medium: 2, thick: 4 };
@@ -99,8 +99,9 @@ export function edge_of(look: Look): number {
 export function handle_of(graph: Graph, id: Id, look: Look = look_of(graph, id)): string {
   const alias = look.alias === undefined ? alias_of(graph, id)
     : look.alias ? alias_of(graph, id, true) : "";
-  /** A plain block's type says nothing its card does not. */
-  const kind = look.label === "inside" && look.kind !== "block" ? look.kind : "";
+  /** A plain block's type, or one its name repeats, says nothing its card does not. */
+  const said = look.label === "inside" && look.kind !== "block";
+  const kind = said && look.kind !== shown_name(graph, id) ? look.kind : "";
   return [kind, alias].filter(Boolean).join(" · ");
 }
 

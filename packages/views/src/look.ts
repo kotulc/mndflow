@@ -169,13 +169,15 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
     align: one(card["align"], ALIGNS, PLAIN.align),
     label_align: one(card["label_align"], ALIGNS, PLAIN.label_align),
     height: one(card["height"], HEIGHTS, PLAIN.height),
-    alias: one(card["alias"], SHOWN, DEFAULTS["card.alias"]) === "show",
     shows,
     ...((LARGE_FACES as readonly unknown[]).includes(card["face"])
       ? { face: card["face"] as Look["face"] } : {}),
     ...(sized(card["size"]) ? { size: card["size"] as { w: number; h: number } } : {}),
     ...shaped(graph, id, card),
     ...(card["name"] === "hide" ? { head: false } : {}),
+    /** Unsaid, the handle shows only while the card is unnamed. */
+    ...((SHOWN as readonly unknown[]).includes(card["alias"])
+      ? { alias: card["alias"] === "show" } : {}),
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
     ...contrast("label_contrast", style["label_contrast"]),

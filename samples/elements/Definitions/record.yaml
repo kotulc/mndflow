@@ -1,0 +1,12 @@
+name: Record
+def:
+  attributes:
+    - name: id
+      type: number
+      key: primary
+    - name: name
+    - name: email
+description: A row of values, so a usage has something to draw on its large face.
+settings:
+  card:
+    face: table

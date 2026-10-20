@@ -1,6 +1,6 @@
 name: Shop
 type: internal
-description: "The shop itself, one region a side: what customers reach, what runs behind it, and how it runs."
+description: "The shop itself, one region a side: what customers reach, what runs behind it, the records it keeps, and how it runs."
 ports:
   - { name: https, type: HTTP, flow: in, side: left }
   - { name: charges, type: HTTP, flow: out, side: right }
@@ -32,6 +32,8 @@ blocks:
         ports:
           - { name: events, type: Events, flow: in }
           - { name: carrier, type: HTTP, flow: out }
+  - name: Data
+    type: region
   - name: How it runs
     type: region
   - name: hot path

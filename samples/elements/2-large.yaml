@@ -1,0 +1,14 @@
+name: Large
+settings:
+  layout: { cards: large }
+note: The faces that show content. A record's values draw as a table, or as a class's fields; the model shows documents, pictures and records in place.
+blocks:
+  - name: Ada
+    type: Record
+    id: "7"
+    email: ada@example.com
+  - name: Grace
+    type: Record
+    settings: { card: { face: class } }
+    id: "8"
+    email: grace@example.com

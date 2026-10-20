@@ -1,0 +1,16 @@
+name: Blocks
+note: Every block and diagram kind on its small face, its name alone; the icon says what sort of thing it is.
+blocks:
+  - { name: A block, settings: { card: { arrange: rows } } }
+  - { name: A folder, type: folder, settings: { card: { arrange: rows } } }
+  - { name: A grid, type: grid, settings: { card: { arrange: rows } } }
+  - { name: A reference, type: reference, of: "Blocks::A block", settings: { card: { arrange: rows } } }
+  - { name: A class diagram, type: class, settings: { card: { arrange: rows } } }
+  - { name: An entity diagram, type: entity, settings: { card: { arrange: rows } } }
+  - { name: A flow, type: flow, blocks: [ step ], settings: { card: { arrange: rows } } }
+  - { name: An internal diagram, type: internal, settings: { card: { arrange: rows } } }
+  - { name: A sequence, type: sequence, settings: { card: { arrange: rows } } }
+  - { name: A state machine, type: state, settings: { card: { arrange: rows } } }
+  - { name: A swimlane, type: swimlane, settings: { card: { arrange: rows } } }
+  - { name: A treemap, type: treemap, settings: { card: { arrange: rows } } }
+  - { name: A name long enough to need cutting short, settings: { card: { arrange: rows } } }

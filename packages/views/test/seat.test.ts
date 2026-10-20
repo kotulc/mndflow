@@ -10,7 +10,7 @@ import { project } from "../src/block";
 import { at_seat, seat_all, type Rect } from "../src/seat";
 import { box_of } from "../src/scene";
 
-/** A gallery block by its path of names, and the note tied to it. */
+/** A model block by its path of names, and the note tied to it. */
 const named = (graph: Graph, path: string): Id => path_to(graph, path, graph.root)!;
 const tie_on = (graph: Graph, id: Id) => Object.values(graph.edges).find((e) => e.type === "tie"
   && (e.from === id || e.to === id))!;
@@ -72,7 +72,7 @@ describe("a tie", () => {
   });
 
   it("crosses straight where a group note sits square beside the group", () => {
-    const text = readFileSync("samples/gallery/workspace.json", "utf8");
+    const text = readFileSync("samples/model.json", "utf8");
     const { graph } = open(text, FLOOR);
     const scene = project(graph, named(graph, "Overview::Shop::How it runs::Deployment"));
     const opposite: Record<string, string> = {
@@ -163,8 +163,8 @@ describe("a note tied to an interface", () => {
     expect(gap.d).toBeLessThan(24 * 4);
   });
 
-  it("floats the gallery note beside the room port on Storefront", () => {
-    const text = readFileSync("samples/gallery/workspace.json", "utf8");
+  it("floats the model note beside the room port on Storefront", () => {
+    const text = readFileSync("samples/model.json", "utf8");
     const { graph } = open(text, FLOOR);
     const containers = named(graph, "Overview::Shop::Customer facing::Storefront");
     const scene = project(graph, containers);

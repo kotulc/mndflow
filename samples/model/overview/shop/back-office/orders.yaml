@@ -15,5 +15,19 @@ blocks:
       - { number: 1001, customer: Ada, status: paid }
       - { number: 1002, customer: Ada, status: pending }
       - { number: 1003, customer: Grace, status: shipped }
+  - name: Runbook
+    settings: { card: { face: document } }
+    body: |-
+      # When orders stop flowing
+
+      Check the **relay** first. See the [outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).
+
+      | signal | threshold | page |
+      |---|---|---|
+      | outbox rows | 10 000 | yes |
+      | relay lag | 60 s | no |
+  - name: Release notes
+    settings: { card: { face: document, name: hide } }
+    body: "v2 of the orders API: the checkout key is required."
 relations:
   - in -> Order book::events: placed

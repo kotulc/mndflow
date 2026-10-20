@@ -172,7 +172,6 @@ export const DEFAULTS = {
   "card.label": "inside",
   "card.align": "left",
   "card.label_align": "left",
-  "card.alias": "show",
   "card.height": "uniform",
   "line.name": "show",
   "line.alias": "hide",
@@ -232,7 +231,7 @@ const card: Component = {
     one_of("card.label", config["label"], DISPLAYS)
     ?? one_of("card.align", config["align"], ALIGNS)
     ?? one_of("card.label_align", config["label_align"], ALIGNS)
-    /** `alias` shows the handle beside a name that was set. */
+    /** `alias` shows or hides the handle; unsaid, it shows only while unnamed. */
     ?? one_of("card.alias", config["alias"], SHOWN)
     ?? one_of("card.height", config["height"], HEIGHTS)
     /** `name` hides the large face's head, so what it shows is the whole card. */

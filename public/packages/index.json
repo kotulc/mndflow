@@ -21,9 +21,9 @@
       "at": "architecture.json"
     },
     {
-      "name": "gallery",
-      "about": "a simple display of what mndflow draws: each diagram kind, the registries, the faces and the visuals, on base alone",
-      "at": "gallery.json"
+      "name": "model",
+      "about": "the example shop: its parts and records, and every diagram of it",
+      "at": "model.json"
     }
   ]
 }

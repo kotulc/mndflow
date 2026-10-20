@@ -6,4 +6,8 @@ description: Takes money for an order, once, and says whether it was taken. Open
 ports:
   - { name: charge, type: HTTP, flow: in, side: left }
   - { name: provider, type: HTTP, flow: out, side: right }
+blocks:
+  - name: Incident summary
+    settings: { card: { face: document, size: { w: 8, h: 3 } } }
+    body: "Checkout was slow for twenty minutes while the card processor timed out. The breaker opened, the fallback queued charges, and every queued charge was taken once the processor came back."
 note: A retried checkout repeats the same key, so a retry never charges twice.

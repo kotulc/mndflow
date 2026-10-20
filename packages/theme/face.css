@@ -12,6 +12,14 @@
   --step-ink: var(--s-neutral-ink);
 }
 
+/* The corners' one inset and one line: the handle, the icon and the marks share them, on a card
+   and on a frame alike. */
+:root {
+  --corner-x: 8px;
+  --corner-y: 3px;
+  --corner-h: 11px;
+}
+
 /* ── The card ───────────────────────────────────────────────────────────── */
 
 .mnd-card {
@@ -74,6 +82,17 @@
   overflow: hidden;
 }
 
+/* Two lines only where the card's height holds them: under a corner a card needs 56px, a diamond
+   80px, since only its middle band is inside it. Every face is sized by views, never by its
+   contents, so a small card can be its own container. */
+.mnd-card.small { container: card / size; }
+@container card (max-height: 55.9px) {
+  .mnd-card.small:has(> .mnd-alias) > .mnd-head > .mnd-named > .mnd-label { display: block; white-space: nowrap; }
+}
+@container card (max-height: 79.9px) {
+  [data-shape="diamond"] > .mnd-head > .mnd-named > .mnd-label { display: block; white-space: nowrap; }
+}
+
 /* Nobody has named it, so what it reads is its type and the handle it was handed. */
 .mnd-card.unnamed > .mnd-head > .mnd-named > .mnd-label { opacity: 0.55; font-style: italic; }
 
@@ -84,23 +103,25 @@
 /* The handle, small over the name, in the corner the icon leaves free. */
 .mnd-alias {
   position: absolute;
-  top: 2px;
-  left: 8px;
+  top: var(--corner-y);
+  left: var(--corner-x);
   font-size: 9px;
-  line-height: 1;
+  line-height: var(--corner-h);
   letter-spacing: 0.04em;
   opacity: 0.45;
   pointer-events: none;
 }
 [data-align="center"] > .mnd-alias { left: 0; right: 0; text-align: center; }
-[data-align="right"] > .mnd-alias { left: auto; right: 21px; }
+[data-align="right"] > .mnd-alias { left: auto; right: calc(var(--corner-x) * 2 + var(--corner-h)); }
 
 /* The icon in the top corner: what this card is, said without being read. */
 .mnd-role {
   position: absolute;
-  top: 3px;
-  right: 4px;
+  top: var(--corner-y);
+  right: var(--corner-x);
+  height: var(--corner-h);
   display: inline-flex;
+  align-items: center;
   color: var(--text);
   pointer-events: none;
 }
@@ -110,8 +131,8 @@
 /* The system marks, in the bottom corner: quiet, so the icon above is the one that speaks. */
 .mnd-marks {
   position: absolute;
-  bottom: 3px;
-  right: 4px;
+  bottom: var(--corner-y);
+  right: var(--corner-x);
   display: inline-flex;
   gap: 2px;
   color: var(--muted);
@@ -153,9 +174,9 @@
 
 .mnd-card.large > .mnd-head { flex: none; height: 20px; }
 /* A handle over a large face's name takes a line of its own, so the two never overlap. */
-.mnd-card.large:has(> .mnd-alias) { padding-top: 11px; }
+.mnd-card.large:has(> .mnd-alias) { padding-top: calc(var(--corner-y) + var(--corner-h)); }
 /* A small face keeps the corner's line clear too: the name centres in what is left. */
-.mnd-card.small:has(> .mnd-alias) { padding-top: 11px; }
+.mnd-card.small:has(> .mnd-alias) { padding-top: calc(var(--corner-y) + var(--corner-h)); }
 .mnd-card.large > .mnd-head > .mnd-named > .mnd-label { display: block; white-space: nowrap; }
 
 /* The divider, drawn only under a head: a card that is its markdown alone has nothing over it. */
@@ -191,7 +212,7 @@
 /* ── A table card: the name its title row, the card's border the table's ── */
 
 .mnd-card.large.tabled { padding: 0; }
-.mnd-card.large.tabled:has(> .mnd-alias) { padding-top: 11px; }
+.mnd-card.large.tabled:has(> .mnd-alias) { padding-top: calc(var(--corner-y) + var(--corner-h)); }
 
 /* The title row: the name, and the icon at its right end. The marks end the last row, in the
    room views left them there. */

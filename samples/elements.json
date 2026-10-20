@@ -1,0 +1,865 @@
+{
+  "schema": "1.0",
+  "id": "workspace",
+  "graph": {
+    "root": "workspace",
+    "blocks": {
+      "dir.Definitions": {
+        "id": "dir.Definitions",
+        "parent": "workspace",
+        "name": "Definitions",
+        "type": "folder",
+        "order": 6,
+        "tree": "definitions"
+      },
+      "workspace": {
+        "id": "workspace",
+        "parent": null,
+        "name": "elements",
+        "counters": {
+          "block": 51,
+          "note": 6,
+          "folder": 1,
+          "grid": 1,
+          "reference": 1,
+          "label": 1,
+          "group": 1,
+          "region": 1,
+          "relation": 11
+        }
+      },
+      "yaml.1-blocks": {
+        "id": "yaml.1-blocks",
+        "parent": "workspace",
+        "name": "Blocks",
+        "alias": 1,
+        "order": 1,
+        "source": "1-blocks.yaml"
+      },
+      "yaml.1-blocks.1": {
+        "id": "yaml.1-blocks.1",
+        "parent": "yaml.1-blocks",
+        "name": "Every block and diagram kind on its small face, its name alone; the icon says what sort of thing it is.",
+        "type": "note",
+        "alias": 1,
+        "order": 1
+      },
+      "yaml.1-blocks.10": {
+        "id": "yaml.1-blocks.10",
+        "parent": "yaml.1-blocks",
+        "name": "An internal diagram",
+        "type": "internal",
+        "alias": 7,
+        "order": 9,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.11": {
+        "id": "yaml.1-blocks.11",
+        "parent": "yaml.1-blocks",
+        "name": "A sequence",
+        "type": "sequence",
+        "alias": 8,
+        "grid": {
+          "rows": 2,
+          "cols": 2
+        },
+        "order": 10,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.12": {
+        "id": "yaml.1-blocks.12",
+        "parent": "yaml.1-blocks",
+        "name": "A state machine",
+        "type": "state",
+        "alias": 9,
+        "order": 11,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.13": {
+        "id": "yaml.1-blocks.13",
+        "parent": "yaml.1-blocks",
+        "name": "A swimlane",
+        "type": "swimlane",
+        "alias": 10,
+        "grid": {
+          "rows": 2,
+          "cols": 2
+        },
+        "order": 12,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.14": {
+        "id": "yaml.1-blocks.14",
+        "parent": "yaml.1-blocks",
+        "name": "A treemap",
+        "type": "treemap",
+        "alias": 11,
+        "order": 13,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.15": {
+        "id": "yaml.1-blocks.15",
+        "parent": "yaml.1-blocks",
+        "name": "A name long enough to need cutting short",
+        "alias": 12,
+        "order": 14,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.2": {
+        "id": "yaml.1-blocks.2",
+        "parent": "yaml.1-blocks",
+        "name": "A block",
+        "alias": 2,
+        "order": 2,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.3": {
+        "id": "yaml.1-blocks.3",
+        "parent": "yaml.1-blocks",
+        "name": "A folder",
+        "type": "folder",
+        "alias": 1,
+        "order": 3,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.4": {
+        "id": "yaml.1-blocks.4",
+        "parent": "yaml.1-blocks",
+        "name": "A grid",
+        "type": "grid",
+        "alias": 1,
+        "grid": {
+          "rows": 2,
+          "cols": 2
+        },
+        "order": 4,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.5": {
+        "id": "yaml.1-blocks.5",
+        "parent": "yaml.1-blocks",
+        "name": "A reference",
+        "type": "reference",
+        "of": "yaml.1-blocks.2",
+        "alias": 1,
+        "order": 5,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.6": {
+        "id": "yaml.1-blocks.6",
+        "parent": "yaml.1-blocks",
+        "name": "A class diagram",
+        "type": "class",
+        "alias": 3,
+        "order": 6,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.7": {
+        "id": "yaml.1-blocks.7",
+        "parent": "yaml.1-blocks",
+        "name": "An entity diagram",
+        "type": "entity",
+        "alias": 4,
+        "order": 7,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.8": {
+        "id": "yaml.1-blocks.8",
+        "parent": "yaml.1-blocks",
+        "name": "A flow",
+        "type": "flow",
+        "alias": 5,
+        "order": 8,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.1-blocks.9": {
+        "id": "yaml.1-blocks.9",
+        "parent": "yaml.1-blocks.8",
+        "name": "step",
+        "alias": 6,
+        "order": 1
+      },
+      "yaml.2-large": {
+        "id": "yaml.2-large",
+        "parent": "workspace",
+        "name": "Large",
+        "alias": 13,
+        "order": 2,
+        "settings": {
+          "layout": {
+            "cards": "large"
+          }
+        },
+        "source": "2-large.yaml"
+      },
+      "yaml.2-large.1": {
+        "id": "yaml.2-large.1",
+        "parent": "yaml.2-large",
+        "name": "The faces that show content. A record's values draw as a table, or as a class's fields; the model shows documents, pictures and records in place.",
+        "type": "note",
+        "alias": 2,
+        "order": 1
+      },
+      "yaml.2-large.2": {
+        "id": "yaml.2-large.2",
+        "parent": "yaml.2-large",
+        "name": "Ada",
+        "type": "yaml.Definitions.record",
+        "alias": 14,
+        "order": 2,
+        "values": [
+          {
+            "name": "id",
+            "value": "7"
+          },
+          {
+            "name": "email",
+            "value": "ada@example.com"
+          }
+        ]
+      },
+      "yaml.2-large.3": {
+        "id": "yaml.2-large.3",
+        "parent": "yaml.2-large",
+        "name": "Grace",
+        "type": "yaml.Definitions.record",
+        "alias": 15,
+        "order": 3,
+        "settings": {
+          "card": {
+            "face": "class"
+          }
+        },
+        "values": [
+          {
+            "name": "id",
+            "value": "8"
+          },
+          {
+            "name": "email",
+            "value": "grace@example.com"
+          }
+        ]
+      },
+      "yaml.3-notation": {
+        "id": "yaml.3-notation",
+        "parent": "workspace",
+        "name": "Notation",
+        "alias": 16,
+        "order": 3,
+        "source": "3-notation.yaml"
+      },
+      "yaml.3-notation.1": {
+        "id": "yaml.3-notation.1",
+        "parent": "yaml.3-notation",
+        "name": "What a diagram draws with besides its parts. Marks, annotations and holders never list in the explorer.",
+        "type": "note",
+        "alias": 3,
+        "order": 1
+      },
+      "yaml.3-notation.10": {
+        "id": "yaml.3-notation.10",
+        "parent": "yaml.3-notation",
+        "name": "A region",
+        "type": "region",
+        "alias": 1,
+        "order": 9
+      },
+      "yaml.3-notation.11": {
+        "id": "yaml.3-notation.11",
+        "parent": "yaml.3-notation.10",
+        "name": "held",
+        "alias": 22,
+        "order": 1
+      },
+      "yaml.3-notation.2": {
+        "id": "yaml.3-notation.2",
+        "parent": "yaml.3-notation",
+        "name": "Begin",
+        "type": "start",
+        "alias": 17,
+        "order": 2,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.3-notation.3": {
+        "id": "yaml.3-notation.3",
+        "parent": "yaml.3-notation",
+        "name": "Choice",
+        "type": "decision",
+        "alias": 18,
+        "order": 3,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.3-notation.4": {
+        "id": "yaml.3-notation.4",
+        "parent": "yaml.3-notation",
+        "name": "A decision long enough to cut",
+        "type": "decision",
+        "alias": 19,
+        "order": 4,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.3-notation.5": {
+        "id": "yaml.3-notation.5",
+        "parent": "yaml.3-notation",
+        "name": "Finish",
+        "type": "end",
+        "alias": 20,
+        "order": 5,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          }
+        }
+      },
+      "yaml.3-notation.6": {
+        "id": "yaml.3-notation.6",
+        "parent": "yaml.3-notation",
+        "name": "A note sized by hand",
+        "type": "note",
+        "alias": 4,
+        "h": 48,
+        "order": 6,
+        "w": 192
+      },
+      "yaml.3-notation.7": {
+        "id": "yaml.3-notation.7",
+        "parent": "yaml.3-notation",
+        "name": "free text",
+        "type": "label",
+        "alias": 1,
+        "order": 7
+      },
+      "yaml.3-notation.8": {
+        "id": "yaml.3-notation.8",
+        "parent": "yaml.3-notation",
+        "name": "A group",
+        "type": "group",
+        "alias": 1,
+        "order": 8
+      },
+      "yaml.3-notation.9": {
+        "id": "yaml.3-notation.9",
+        "parent": "yaml.3-notation.8",
+        "name": "inside",
+        "alias": 21,
+        "order": 1
+      },
+      "yaml.4-lines": {
+        "id": "yaml.4-lines",
+        "parent": "workspace",
+        "name": "Lines",
+        "alias": 23,
+        "order": 4,
+        "settings": {
+          "layout": {
+            "kind": "layered"
+          }
+        },
+        "source": "4-lines.yaml"
+      },
+      "yaml.4-lines.1": {
+        "id": "yaml.4-lines.1",
+        "parent": "yaml.4-lines",
+        "name": "Every relation the base ships, and the ways a line points. A line's ends say how many, in what role, and who owns whom.",
+        "type": "note",
+        "alias": 5,
+        "order": 1
+      },
+      "yaml.4-lines.10": {
+        "id": "yaml.4-lines.10",
+        "parent": "yaml.4-lines",
+        "name": "Whole",
+        "alias": 32,
+        "order": 10
+      },
+      "yaml.4-lines.11": {
+        "id": "yaml.4-lines.11",
+        "parent": "yaml.4-lines",
+        "name": "Part",
+        "alias": 33,
+        "order": 11
+      },
+      "yaml.4-lines.12": {
+        "id": "yaml.4-lines.12",
+        "parent": "yaml.4-lines",
+        "name": "Gathered",
+        "alias": 34,
+        "order": 12
+      },
+      "yaml.4-lines.13": {
+        "id": "yaml.4-lines.13",
+        "parent": "yaml.4-lines",
+        "name": "Client",
+        "alias": 35,
+        "order": 13
+      },
+      "yaml.4-lines.14": {
+        "id": "yaml.4-lines.14",
+        "parent": "yaml.4-lines",
+        "name": "Supplier",
+        "alias": 36,
+        "order": 14
+      },
+      "yaml.4-lines.15": {
+        "id": "yaml.4-lines.15",
+        "parent": "yaml.4-lines",
+        "name": "Caller",
+        "alias": 37,
+        "order": 15
+      },
+      "yaml.4-lines.16": {
+        "id": "yaml.4-lines.16",
+        "parent": "yaml.4-lines",
+        "name": "Callee",
+        "alias": 38,
+        "order": 16
+      },
+      "yaml.4-lines.17": {
+        "id": "yaml.4-lines.17",
+        "parent": "yaml.4-lines",
+        "name": "State one",
+        "alias": 39,
+        "order": 17
+      },
+      "yaml.4-lines.18": {
+        "id": "yaml.4-lines.18",
+        "parent": "yaml.4-lines",
+        "name": "State two",
+        "alias": 40,
+        "order": 18
+      },
+      "yaml.4-lines.2": {
+        "id": "yaml.4-lines.2",
+        "parent": "yaml.4-lines",
+        "name": "A",
+        "alias": 24,
+        "order": 2
+      },
+      "yaml.4-lines.3": {
+        "id": "yaml.4-lines.3",
+        "parent": "yaml.4-lines",
+        "name": "B",
+        "alias": 25,
+        "order": 3
+      },
+      "yaml.4-lines.4": {
+        "id": "yaml.4-lines.4",
+        "parent": "yaml.4-lines",
+        "name": "C",
+        "alias": 26,
+        "order": 4
+      },
+      "yaml.4-lines.5": {
+        "id": "yaml.4-lines.5",
+        "parent": "yaml.4-lines",
+        "name": "D",
+        "alias": 27,
+        "order": 5
+      },
+      "yaml.4-lines.6": {
+        "id": "yaml.4-lines.6",
+        "parent": "yaml.4-lines",
+        "name": "E",
+        "alias": 28,
+        "order": 6
+      },
+      "yaml.4-lines.7": {
+        "id": "yaml.4-lines.7",
+        "parent": "yaml.4-lines",
+        "name": "F",
+        "alias": 29,
+        "order": 7
+      },
+      "yaml.4-lines.8": {
+        "id": "yaml.4-lines.8",
+        "parent": "yaml.4-lines",
+        "name": "G",
+        "alias": 30,
+        "order": 8
+      },
+      "yaml.4-lines.9": {
+        "id": "yaml.4-lines.9",
+        "parent": "yaml.4-lines",
+        "name": "H",
+        "alias": 31,
+        "order": 9
+      },
+      "yaml.5-colour": {
+        "id": "yaml.5-colour",
+        "parent": "workspace",
+        "name": "Colour",
+        "alias": 41,
+        "order": 5,
+        "source": "5-colour.yaml"
+      },
+      "yaml.5-colour.1": {
+        "id": "yaml.5-colour.1",
+        "parent": "yaml.5-colour",
+        "name": "Colour and line, set on a card. A family or a hue picks its colour; fill, border and opacity say how it is drawn.",
+        "type": "note",
+        "alias": 6,
+        "order": 1
+      },
+      "yaml.5-colour.10": {
+        "id": "yaml.5-colour.10",
+        "parent": "yaml.5-colour",
+        "name": "dashed",
+        "alias": 50,
+        "order": 10,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          },
+          "style": {
+            "border_style": "dashed"
+          }
+        }
+      },
+      "yaml.5-colour.11": {
+        "id": "yaml.5-colour.11",
+        "parent": "yaml.5-colour",
+        "name": "thick",
+        "alias": 51,
+        "order": 11,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          },
+          "style": {
+            "border_width": "thick"
+          }
+        }
+      },
+      "yaml.5-colour.2": {
+        "id": "yaml.5-colour.2",
+        "parent": "yaml.5-colour",
+        "name": "primary",
+        "alias": 42,
+        "order": 2,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          },
+          "style": {
+            "family": "primary"
+          }
+        }
+      },
+      "yaml.5-colour.3": {
+        "id": "yaml.5-colour.3",
+        "parent": "yaml.5-colour",
+        "name": "secondary",
+        "alias": 43,
+        "order": 3,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          },
+          "style": {
+            "family": "secondary"
+          }
+        }
+      },
+      "yaml.5-colour.4": {
+        "id": "yaml.5-colour.4",
+        "parent": "yaml.5-colour",
+        "name": "neutral",
+        "alias": 44,
+        "order": 4,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          },
+          "style": {
+            "family": "neutral"
+          }
+        }
+      },
+      "yaml.5-colour.5": {
+        "id": "yaml.5-colour.5",
+        "parent": "yaml.5-colour",
+        "name": "muted",
+        "alias": 45,
+        "order": 5,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          },
+          "style": {
+            "family": "muted"
+          }
+        }
+      },
+      "yaml.5-colour.6": {
+        "id": "yaml.5-colour.6",
+        "parent": "yaml.5-colour",
+        "name": "hue 200",
+        "alias": 46,
+        "order": 6,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          },
+          "style": {
+            "hue": 200
+          }
+        }
+      },
+      "yaml.5-colour.7": {
+        "id": "yaml.5-colour.7",
+        "parent": "yaml.5-colour",
+        "name": "hue 25",
+        "alias": 47,
+        "order": 7,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          },
+          "style": {
+            "hue": 25
+          }
+        }
+      },
+      "yaml.5-colour.8": {
+        "id": "yaml.5-colour.8",
+        "parent": "yaml.5-colour",
+        "name": "hatched",
+        "alias": 48,
+        "order": 8,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          },
+          "style": {
+            "fill": "hatch"
+          }
+        }
+      },
+      "yaml.5-colour.9": {
+        "id": "yaml.5-colour.9",
+        "parent": "yaml.5-colour",
+        "name": "faded",
+        "alias": 49,
+        "order": 9,
+        "settings": {
+          "card": {
+            "arrange": "rows"
+          },
+          "style": {
+            "opacity": 0.45
+          }
+        }
+      },
+      "yaml.Definitions.record": {
+        "id": "yaml.Definitions.record",
+        "parent": "dir.Definitions",
+        "name": "Record",
+        "def": {
+          "attributes": [
+            {
+              "name": "id",
+              "type": "number",
+              "key": "primary"
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "email"
+            }
+          ]
+        },
+        "description": "A row of values, so a usage has something to draw on its large face.",
+        "order": 1,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        },
+        "source": "Definitions/record.yaml"
+      }
+    },
+    "edges": {
+      "yaml.4-lines.r1": {
+        "id": "yaml.4-lines.r1",
+        "name": "forward",
+        "alias": 1,
+        "from": "yaml.4-lines.2",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.4-lines.3"
+      },
+      "yaml.4-lines.r10": {
+        "id": "yaml.4-lines.r10",
+        "name": "answer",
+        "type": "reply",
+        "alias": 10,
+        "from": "yaml.4-lines.16",
+        "to": "yaml.4-lines.15"
+      },
+      "yaml.4-lines.r11": {
+        "id": "yaml.4-lines.r11",
+        "name": "event",
+        "type": "transition",
+        "alias": 11,
+        "from": "yaml.4-lines.17",
+        "to": "yaml.4-lines.18"
+      },
+      "yaml.4-lines.r2": {
+        "id": "yaml.4-lines.r2",
+        "name": "back",
+        "alias": 2,
+        "from": "yaml.4-lines.4",
+        "settings": {
+          "line": {
+            "dir": "back"
+          }
+        },
+        "to": "yaml.4-lines.5"
+      },
+      "yaml.4-lines.r3": {
+        "id": "yaml.4-lines.r3",
+        "name": "both",
+        "alias": 3,
+        "from": "yaml.4-lines.6",
+        "settings": {
+          "line": {
+            "dir": "both"
+          }
+        },
+        "to": "yaml.4-lines.7"
+      },
+      "yaml.4-lines.r4": {
+        "id": "yaml.4-lines.r4",
+        "name": "none",
+        "alias": 4,
+        "from": "yaml.4-lines.8",
+        "to": "yaml.4-lines.9"
+      },
+      "yaml.4-lines.r5": {
+        "id": "yaml.4-lines.r5",
+        "type": "composition",
+        "alias": 5,
+        "from": "yaml.4-lines.10",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.4-lines.11"
+      },
+      "yaml.4-lines.r6": {
+        "id": "yaml.4-lines.r6",
+        "type": "aggregation",
+        "alias": 6,
+        "from": "yaml.4-lines.10",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.4-lines.12"
+      },
+      "yaml.4-lines.r7": {
+        "id": "yaml.4-lines.r7",
+        "type": "association",
+        "alias": 7,
+        "ends": {
+          "from": {
+            "multiplicity": "*",
+            "role": "parts"
+          },
+          "to": {
+            "multiplicity": "1",
+            "navigable": false
+          }
+        },
+        "from": "yaml.4-lines.11",
+        "to": "yaml.4-lines.12"
+      },
+      "yaml.4-lines.r8": {
+        "id": "yaml.4-lines.r8",
+        "type": "dependency",
+        "alias": 8,
+        "from": "yaml.4-lines.13",
+        "to": "yaml.4-lines.14"
+      },
+      "yaml.4-lines.r9": {
+        "id": "yaml.4-lines.r9",
+        "name": "ask",
+        "type": "message",
+        "alias": 9,
+        "from": "yaml.4-lines.15",
+        "to": "yaml.4-lines.16"
+      }
+    }
+  }
+}

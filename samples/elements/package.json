@@ -1,0 +1,10 @@
+{
+  "schema": "1.0",
+  "id": "elements",
+  "graph": {
+    "root": "elements",
+    "blocks": {
+      "elements": { "id": "elements", "parent": null, "name": "elements" }
+    }
+  }
+}
