@@ -1,0 +1,5 @@
+name: actor
+def: {}
+description: Someone outside the system who uses it. Drawn wherever they meet it.
+settings:
+  style: { hue: 300 }

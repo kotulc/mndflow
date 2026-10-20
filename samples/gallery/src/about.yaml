@@ -1,5 +1,0 @@
-name: Overview
-settings:
-  layout: { cards: large }
-blocks:
-  - source: about.md

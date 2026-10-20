@@ -13,6 +13,11 @@
       "family": "muted",
       "border_contrast": "faint",
       "name_contrast": "soft"
+    },
+    "card": {
+      "label": "none",
+      "alias": "hide",
+      "align": "center"
     }
   }
 }

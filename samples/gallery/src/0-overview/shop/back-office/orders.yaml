@@ -1,0 +1,19 @@
+name: Orders
+type: service
+owner: Commerce
+tags: [ orders ]
+description: Keeps every order and tells the rest of the shop when one is placed.
+ports:
+  - { name: in, type: Events, flow: in, side: left }
+  - { name: events, type: Events, flow: out, side: right }
+blocks:
+  - name: Order book
+    type: Ledger
+    ports:
+      - { name: events, type: Events, flow: in }
+    records:
+      - { number: 1001, customer: Ada, status: paid }
+      - { number: 1002, customer: Ada, status: pending }
+      - { number: 1003, customer: Grace, status: shipped }
+relations:
+  - in -> Order book::events: placed

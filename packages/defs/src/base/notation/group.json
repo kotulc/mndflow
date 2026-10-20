@@ -14,6 +14,11 @@
       "border_contrast": "faint",
       "name_contrast": "faint",
       "border_style": "dashed"
+    },
+    "card": {
+      "label": "none",
+      "alias": "hide",
+      "align": "center"
     }
   }
 }

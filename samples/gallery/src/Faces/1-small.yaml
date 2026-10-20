@@ -8,5 +8,5 @@ blocks:
   - { name: Begin, type: start, settings: { card: { arrange: rows } } }
   - { name: Finish, type: end, settings: { card: { arrange: rows } } }
   - { name: A flow, type: flow, blocks: [ step ], settings: { card: { arrange: rows } } }
-  - { name: A reference, type: reference, of: Diagrams::Checkout, settings: { card: { arrange: rows } } }
+  - { name: A reference, type: reference, of: "Overview::Shop::Customer facing::Storefront", settings: { card: { arrange: rows } } }
   - { name: Orders, type: Ledger, settings: { card: { arrange: rows } } }

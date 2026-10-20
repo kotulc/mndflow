@@ -446,9 +446,9 @@ export function App({ storage, boot, opening }: {
           display={display}
           onAct={chrome}
           /** A block's layer at a glance, drawn by the canvas's own nodes and lines. */
-          thumb={(id) => {
+          thumb={(id, focus) => {
             const scene = glance(id);
-            return scene ? <Thumb scene={scene} /> : null;
+            return scene ? <Thumb scene={scene} {...(focus ? { focus } : {})} /> : null;
           }}
         />
       </main>

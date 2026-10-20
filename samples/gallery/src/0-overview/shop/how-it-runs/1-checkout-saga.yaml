@@ -1,0 +1,37 @@
+name: Checkout saga
+type: sequence
+settings: { card: { arrange: rows } }
+description: "A sequence: who talks to whom, in what order. Each lifeline is a reference to the part it stands for, so it is the same Gateway, Storefront and Payments the shop is made of."
+cols:
+  - { name: Customer, type: reference, of: "Overview::Customer" }
+  - { name: Gateway, type: reference, of: "Overview::Shop::Customer facing::Gateway" }
+  - { name: Storefront, type: reference, of: "Overview::Shop::Customer facing::Storefront" }
+  - { name: Payments, type: reference, of: "Overview::Shop::Back office::Payments" }
+  - { name: Inventory, type: reference, of: "Overview::Shop::Back office::Inventory" }
+rows:
+  - name: Submit
+  - name: Charge
+  - name: Reserve
+  - name: Confirm
+blocks:
+  - name: Submit cart
+    cell: [ Submit, Customer ]
+  - name: Route checkout
+    cell: [ Submit, Gateway ]
+  - name: Start saga
+    cell: [ Charge, Storefront ]
+  - name: Authorize
+    cell: [ Charge, Payments ]
+  - name: Reserve stock
+    cell: [ Reserve, Inventory ]
+  - name: Confirm order
+    cell: [ Confirm, Storefront ]
+relations:
+  - message:
+      - Submit cart -> Route checkout: checkout
+      - Route checkout -> Start saga: start
+      - Start saga -> Authorize: charge
+      - Authorize -> Reserve stock: reserve
+      - Confirm order -> Confirm order: log step
+  - reply:
+      - Reserve stock -> Confirm order: reserved

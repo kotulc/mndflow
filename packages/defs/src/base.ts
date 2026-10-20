@@ -1,5 +1,5 @@
 /** The `base` package: one definition per kind the engine treats differently, in a folder per
- *  category — blocks, relations, components, organization and annotations — shipped and frozen. **Each
+ *  folder — blocks, diagrams, notation, components and relations — shipped and frozen. **Each
  *  definition is a file of its own** under `base/`, collected into one package file, `base.json`
  *  (`npm run base`), as any source folder is; this reads it. */
 

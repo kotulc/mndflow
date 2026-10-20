@@ -6,10 +6,10 @@
 
 import { useMemo, type ReactNode } from "react";
 import { attributes_of, behaviours_of, children, def_at, def_of, diagram_kind, edges_in, heading,
-         interface_at, is_annotation, is_behaviour, is_group, is_reference, isa, lattice_of,
+         interface_at, is_notation, is_behaviour, layer_of, is_group, is_reference, isa, lattice_of,
          may_retype, members_of, of_ref, opens, owner_of, package_of, path, role_of, shown_name,
          stands_for, stood_def, tag_at, tags_of, BASE_PACKAGE, DIAGRAM_QUESTIONS, DIAGRAMS,
-         NOTATION, type Act, type Block, type Graph, type Id } from "@mnd/core";
+         type Act, type Block, type Graph, type Id } from "@mnd/core";
 import { Icon, role_icon } from "@mnd/theme";
 import { class_graph, entry_look, look_of, tint_attrs } from "@mnd/views";
 import { Painted } from "./Carried";
@@ -19,7 +19,8 @@ export type OverviewProps = {
   graph: Graph;
   id: Id;
   /** The host's drawing of a layer at a glance; without one, the face stands in. */
-  thumb?: (id: Id) => ReactNode;
+  /** A layer at a glance; `focus`, a block and the cards its lines join, fitted and picked. */
+  thumb?: (id: Id, focus?: readonly Id[]) => ReactNode;
   onAct?: Act;
 };
 
@@ -36,10 +37,17 @@ export function Overview({ graph, id, thumb, onAct }: OverviewProps) {
   const seen = of_ref(graph, id) ? stands_for(graph, id)?.id ?? id : id;
   const kind = diagram_kind(graph, seen);
   const role = role_of(graph, seen);
-  const drawn = opens(graph, seen) && thumb;
+  /** **The glance is always a drawing**: its own inside where it opens, else the layer it sits
+   *  on, fitted to it and the cards its lines join. */
+  const inside = opens(graph, seen);
+  const home = inside ? seen : layer_of(graph, id);
+  const near = useMemo(() => [id, ...Object.values(graph.edges)
+    .flatMap((e) => (e.from === id ? [e.to] : e.to === id ? [e.from] : []))], [graph, id]);
+  const drawing = home && thumb ? thumb(home, inside ? undefined : near) : null;
+  const drawn = inside && !!drawing;
   /** An empty plain block may become any kind it fits. */
   const promotes = !b.def && !kind && !parts(graph, id).length && !of_ref(graph, id)
-    && !is_annotation(graph, id) && !!onAct;
+    && !is_notation(graph, id) && !!onAct;
   const becomes = promotes ? DIAGRAMS.filter((k) => may_retype(graph, id, k)) : [];
   return (
     <div className="overview">
@@ -49,7 +57,7 @@ export function Overview({ graph, id, thumb, onAct }: OverviewProps) {
           <b>{kind ?? (b.def ? "definition" : role)}</b>
           {kind ? <span> · {DIAGRAM_QUESTIONS[kind]}</span> : null}
         </span>
-        {drawn ? <div className="thumb">{thumb(seen)}</div> : <Faces graph={graph} id={id} one />}
+        {drawing ? <div className="thumb">{drawing}</div> : <Faces graph={graph} id={id} one />}
         {drawn && onAct ? (
           <button className="chip open" onClick={() => onAct("open", { id })}>open</button>
         ) : null}
@@ -183,9 +191,9 @@ function Where({ graph, b, seen, kind, users }: { graph: Graph; b: Block; seen: 
   );
 }
 
-/** What it holds that is a part: no annotation, no organization. */
+/** What it holds that is a part: no notation, no organization. */
 function parts(graph: Graph, id: Id): Block[] {
-  return children(graph, id).filter((c) => !is_annotation(graph, c.id) && !is_group(graph, c.id));
+  return children(graph, id).filter((c) => !is_notation(graph, c.id) && !is_group(graph, c.id));
 }
 
 /** Whether a block is of a kind, by its chain. */
@@ -223,9 +231,7 @@ function alike(graph: Graph, id: Id): Id[] {
 function counts(graph: Graph, b: Block, kind: Id | null, usages: number): Count[] {
   const held = parts(graph, b.id);
   const lines = edges_in(graph, b.id).length;
-  /** A flow's steps and a state machine's states are its parts that are not notation. */
-  const plain = held.filter((p) => !NOTATION.some((n) => is_a(graph, p, n))).length;
-  const decisions = held.filter((p) => is_a(graph, p, "decision")).length;
+  const decisions = children(graph, b.id).filter((c) => is_a(graph, c, "decision")).length;
   const grid = lattice_of(graph, b.id);
   const steps = members_of(graph, b.id).filter((m) => m.cell && !heading(m.cell.r, m.cell.c));
   const drawn = (k: "class" | "er") => Object.keys(class_graph(graph, b.id, k)?.edges ?? {}).length;
@@ -235,9 +241,9 @@ function counts(graph: Graph, b: Block, kind: Id | null, usages: number): Count[
             [usages, "usages"]];
   }
   switch (kind) {
-    case "flow": return [[plain, "steps"], [decisions, "decisions"],
+    case "flow": return [[held.length, "steps"], [decisions, "decisions"],
                          [lines, "lines"]];
-    case "state": return [[plain, "states"], [lines, "transitions"]];
+    case "state": return [[held.length, "states"], [lines, "transitions"]];
     case "sequence": return [[(grid?.cols ?? 1) - 1, "lifelines"], [steps.length, "steps"],
                              [lines, "messages"]];
     case "swimlane": return [[(grid?.cols ?? 1) - 1, "lanes"], [(grid?.rows ?? 1) - 1, "phases"],

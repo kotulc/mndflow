@@ -64,7 +64,6 @@ export function CardFace({ label, alias, kind, kinded, role, icon, holds, stamps
           <span className="mnd-named">
             {name ?? <span className="mnd-label card-name">{label}</span>}
           </span>
-          {kinded === "inside" ? word("") : null}
         </div>
       ) : null}
       {ruled ? <Ruled {...table!} /> : null}

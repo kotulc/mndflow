@@ -300,8 +300,10 @@ export const DIAGRAM_QUESTIONS: Readonly<Record<string, string>> = {
   class: "what its types are", entity: "how its data is stored", treemap: "where the weight is",
 };
 
-/** The base notation a flow or state machine draws with, beside its steps and states. */
-export const NOTATION: readonly Id[] = ["start", "end", "decision"];
+/** The base notation: what a diagram draws with beside its parts — the annotations on every kind,
+ *  and the marks a flow or state machine adds. It lives on its layer, never in the explorer. */
+export const NOTATION: readonly Id[] = ["note", "label", "group", "region", "start", "end",
+                                        "decision"];
 
 /** The diagram kinds that hold alike, so a block holding parts moves freely among them: parts
  *  and lines; references to definitions. Each grid kind is its own: its cells carry over to the

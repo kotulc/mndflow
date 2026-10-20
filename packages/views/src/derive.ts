@@ -1,7 +1,7 @@
 /** What every module derives the same way. */
 
 import { attributes_of, def_of, dir_of, domain_of, frozen, head_of, lens_of, is_box, opens,
-         flow_of, is_annotation, is_flat, is_interface, is_named,
+         flow_of, is_notation, is_flat, notation_of, is_interface, is_named,
          base_of, path, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
          type Graph, type Id } from "@mnd/core";
 import { face_table, face_text, handle_of } from "./face";
@@ -31,8 +31,10 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
     out.push("relation");
     if (dir_of(graph, def) !== "none") out.push("directed");
   }
-  if (module === "note") out.push("note");
-  if (module === "label") out.push("label");
+  /** A notation definition is outlined as faintly as a relation's. */
+  if (def && notation_of(graph, def)) out.push("notation");
+  if (module === "note" && !b.def) out.push("note");
+  if (module === "label" && !b.def) out.push("label");
   /** A block that holds wears its shape, whatever kind it descends from; a folder is a box. */
   const shape = shape_of(graph, id);
   if (shape) out.push(shape);
@@ -106,6 +108,6 @@ export function empty_of(graph: Graph, id: Id): string {
  *  then every folder and block on the way, never an annotation. */
 export function trail_of(graph: Graph, layer: Id | null): Scene["trail"] {
   return path(graph, layer ?? graph.root)
-    .filter((b) => b.id === layer || !is_annotation(graph, b.id))
+    .filter((b) => b.id === layer || !is_notation(graph, b.id))
     .map((b) => ({ id: b.id, label: shown_name(graph, b.id) }));
 }

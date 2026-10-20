@@ -41,7 +41,7 @@
 | `draw.ts` | the right button: a relationship from a card, a grid across the ground |
 | `drag.ts` | what travels with a dragged node, what is lit, and the adjustment a drop makes |
 | `Grips.tsx` | the ends of what is picked, and the berths of hidden interfaces |
-| `Thumb.tsx` | a scene at a glance: the canvas's own nodes and lines, fitted, taking no input. A host hands it to the tray's overview |
+| `Thumb.tsx` | a scene at a glance: the canvas's own nodes and lines, fitted whole — or to `focus`, the first of it picked — and fitted again as its box resizes, taking no input. A host hands it to the tray's overview |
 | `Legend.tsx` | the key, in a right-hand corner. **The icon is dressed as the card is**, so its colour is the card's own paint rather than a second answer about it |
 | `moves.ts` | what an adjustment writes, as actions and positional changes |
 | `Wire.tsx` | one run: the route libavoid found while it meets its handles, else `route`; **a run the Scene already drew (`data.points`) is drawn as given** |

@@ -2,7 +2,7 @@
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
 import { alias_of, branch_of, children, domain_of, KINDS, library_of, on_side,
-         is_annotation, is_box, is_named, relation_base, role_of, setting_of, shown_name, stamps_of, tops_of,
+         is_notation, is_box, is_named, relation_base, role_of, setting_of, shown_name, stamps_of, tops_of,
          type Block, type Cut, type Graph, type Id, type Lists, type Registry,
          type Role } from "@mnd/core";
 import { known, MARK_ICON, role_icon, type IconName } from "@mnd/theme";
@@ -149,11 +149,11 @@ export function parent_of(rows: readonly Row[], i: number): number {
   return -1;
 }
 
-/** The block whose row stands for this one: itself, or for an annotation, which has no row, the
- *  nearest block holding it that is not one. */
+/** The block whose row stands for this one: itself, or for notation, which has no row, the
+ *  nearest block holding it that is not notation. */
 export function listed_of(graph: Graph, id: Id): Id {
   let at = id;
-  while (is_annotation(graph, at) && graph.blocks[at]?.parent) at = graph.blocks[at]!.parent!;
+  while (is_notation(graph, at) && graph.blocks[at]?.parent) at = graph.blocks[at]!.parent!;
   return at;
 }
 
@@ -192,10 +192,10 @@ function branch_rows(graph: Graph,
   if (groups) named_rows(graph, id, route, folded, out, key, depth + 1);
 }
 
-/** What a row lists of these blocks: each, but an annotation never — a group or region by what
- *  it holds, at its level. */
+/** What a row lists of these blocks: each, but notation never — a group or region by what it
+ *  holds, at its level. */
 function unheld(graph: Graph, blocks: readonly Block[]): Block[] {
-  return blocks.flatMap((b) => (!is_annotation(graph, b.id) ? [b]
+  return blocks.flatMap((b) => (!is_notation(graph, b.id) ? [b]
     : is_box(graph, b.id) ? unheld(graph, under(graph, b.id)) : []));
 }
 

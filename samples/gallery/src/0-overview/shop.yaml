@@ -1,0 +1,48 @@
+name: Shop
+type: internal
+description: "The shop itself, one region a side: what customers reach, what runs behind it, and how it runs."
+ports:
+  - { name: https, type: HTTP, flow: in, side: left }
+  - { name: charges, type: HTTP, flow: out, side: right }
+  - { name: shipments, type: HTTP, flow: out, side: right }
+blocks:
+  - name: Customer facing
+    type: region
+    blocks:
+      - name: Gateway
+        type: service
+        owner: Web
+        tags: [ critical ]
+        ports:
+          - { name: in, type: HTTP, flow: in }
+          - { name: out, type: HTTP, flow: out }
+  - name: Back office
+    type: region
+    blocks:
+      - name: Inventory
+        type: service
+        owner: Commerce
+        tags: [ fulfilment ]
+        ports:
+          - { name: events, type: Events, flow: in }
+      - name: Shipping
+        type: service
+        owner: Logistics
+        tags: [ fulfilment ]
+        ports:
+          - { name: events, type: Events, flow: in }
+          - { name: carrier, type: HTTP, flow: out }
+  - name: How it runs
+    type: region
+  - name: hot path
+    type: label
+relations:
+  - tie: [ hot path -- Gateway ]
+  - https -> Gateway::in
+  - Gateway::out -> Storefront::https: routes
+  - Storefront::pay -> Payments::charge: pay
+  - Storefront::orders -> Orders::in: placed
+  - Payments::provider -> charges
+  - Orders::events -> Inventory::events: reserve
+  - Orders::events -> Shipping::events: ship
+  - Shipping::carrier -> shipments

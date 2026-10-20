@@ -1,0 +1,6 @@
+name: external
+def: {}
+description: A system nobody here runs. The shop meets it only at its edge.
+tags: [ external api ]
+settings:
+  style: { family: muted }

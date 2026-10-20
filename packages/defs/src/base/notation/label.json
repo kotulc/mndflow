@@ -10,7 +10,10 @@
   "settings": {
     "card": {
       "arrange": "aside",
-      "face": "text"
+      "face": "text",
+      "label": "none",
+      "alias": "hide",
+      "align": "center"
     },
     "style": {
       "family": "note",

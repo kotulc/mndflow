@@ -123,7 +123,7 @@
 /* **A definition is an outline on the canvas**: no ground, its border in its colour, the card's
    own corners. A usage is filled. The role says which; the family or hue says what it is. Picked, it
    keeps no ground to wash, so its border and a glow say so. */
-.mnd-flow .mnd-card.card-face.definition:not([data-face="text"], .relation) {
+.mnd-flow .mnd-card.card-face.definition:not([data-face="text"], .relation, .notation) {
   background: none;
   border-color: var(--card-edge);
   border-width: var(--weight-medium);
@@ -150,6 +150,25 @@
   background: var(--surface);
   border-color: var(--s-neutral-line, var(--border));
   border-left: 4px solid var(--card-edge, var(--card-line));
+}
+
+/* **A tile's name is never cut short**: no icon gutter, as many lines as the tile holds, read
+   upright where the tile is tall and narrow, and the corner dropped where it would crowd it. */
+.mnd-flow .mnd-card.card-face.tiled { container: tile / size; }
+.mnd-flow .mnd-card.card-face.tiled > .mnd-head { padding-right: 0; align-items: flex-start; }
+.mnd-flow .mnd-card.card-face.tiled > .mnd-head > .mnd-named > .mnd-label {
+  display: block;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+@container tile (max-width: 96px) {
+  .mnd-alias { display: none; }
+  .mnd-head { padding-top: 0; }
+  /* Smaller before broken: a word splits only where it cannot fit at all. */
+  .mnd-head > .mnd-named > .mnd-label { font-size: 10px; }
+}
+@container tile (orientation: portrait) and (max-width: 96px) {
+  .mnd-head > .mnd-named > .mnd-label { writing-mode: vertical-rl; transform: rotate(180deg); }
 }
 
 /* **A card with a drawing of its own wears a stacked edge**: a second card's edge behind it, so

@@ -7,14 +7,15 @@
  *  directory names. Every `.yaml` file is a **diagram file** and every `.md` file a **card
  *  source** — one schema, a card source a diagram file with a body — each one block and its layer,
  *  named rather than identified: its ids are minted in file order and its names read here. Every
- *  directory is a folder; a top one holding only definitions files them. A definition said twice
+ *  directory is a folder, but one named as a file beside it, which holds that file's parts; a top
+ *  folder holding only definitions files them. A definition said twice
  *  is a clash, and refused. A definition, type or tag a file names and nothing loaded holds is
  *  made here — a definition's attributes the union of what its usages answer, each type read off
  *  the values. */
 
 import { parse } from "yaml";
 import { read_card } from "./card";
-import { all_defs, block_base, def_at, dir_of, package_of } from "./defs";
+import { all_defs, block_base, def_at, dir_of, is_notation, package_of } from "./defs";
 import { long_form, type Edge, type Entry, type LongForm, type LibrarySaid } from "./diagram";
 import { renamed, write } from "./file";
 import { is_grid } from "./holders";
@@ -75,12 +76,38 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   const orders = new Map<Id, number>();
   const next = (parent: Id) => { orders.set(parent, (orders.get(parent) ?? 0) + 1);
                                  return orders.get(parent)!; };
-  /** The folder a directory names, made the first time it is met. */
+  /** Every diagram file and card source, spelled out; a card a diagram file draws in by its
+   *  `source` is read there, not on its own. */
+  const reads = read_all(sorted, pre, notes);
+  const drawn = sourced(reads);
+  const own = reads.filter((r) => !drawn.has(r.path));
+  /** A directory named as a file beside it is that file's block: what it holds are its parts.
+   *  Under it, a directory may name a block the file writes at its top, by its name's slug. */
+  const owners = new Map(own.map((r) => [[...r.dir, stem_of(r.path)].join("/"), r]));
+  const owned = (r: Read, part: string): Id | undefined => {
+    const i = r.form.blocks.findIndex((e) => e.under === undefined && !e.parent
+      && slug_of(e.name) === slug_of(part));
+    return i < 0 ? undefined : `${r.id}.${i + 1}`;
+  };
+
+  /** What lands in a block a file wrote, in path order: it is ordered after that file's parts. */
+  const placed: Id[] = [];
+  const in_block = (parent: Id) => parent !== slug && !parent.startsWith(`${pre}dir.`);
+
+  /** The folder a directory names, made the first time it is met — or, for a usage, the block it
+   *  is. A definition is never a part, so its directories are always folders. */
   const tops = new Set<Id>();
-  const folder = (parts: readonly string[]): Id => {
+  const folder = (parts: readonly string[], blocks = true): Id => {
     let parent = slug;
+    /** The file whose block the directory above is, if it is one. */
+    let above: Read | undefined;
     for (const [n, part] of parts.entries()) {
+      const file = blocks ? owners.get(parts.slice(0, n + 1).join("/")) : undefined;
+      const block = file?.id ?? (above ? owned(above, part) : undefined);
+      above = file;
+      if (block) { parent = block; continue; }
       const id = `${pre}dir.${parts.slice(0, n + 1).join(".")}`;
+      if (!graph.blocks[id] && in_block(parent)) placed.push(id);
       graph.blocks[id] ??= { id, parent, name: part, type: "folder", order: next(parent) };
       if (n === 0) tops.add(id);
       parent = id;
@@ -89,15 +116,10 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   };
   /** A definition file sits in its directory's folder, after what is there. */
   for (const [path, id] of filed) {
-    const parent = folder(path.split("/").filter(Boolean).slice(0, -1));
+    const parent = folder(path.split("/").filter(Boolean).slice(0, -1), false);
     graph.blocks[id] = { ...graph.blocks[id]!, parent, order: next(parent) };
   }
 
-  /** Every diagram file and card source, spelled out; a card a diagram file draws in by its
-   *  `source` is read there, not on its own. */
-  const reads = read_all(sorted, pre, notes);
-  const drawn = sourced(reads);
-  const own = reads.filter((r) => !drawn.has(r.path));
   const made = new Map<string, Id>();
   const answers = new Map<Id, Value[][]>();
   const counters: Record<string, number> = { ...over.blocks[slug]?.counters };
@@ -107,8 +129,20 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
    *  another says. */
   for (const r of own) {
     const parent = folder(r.dir);
+    if (in_block(parent)) placed.push(r.id);
     lay(graph, r, parent, next(parent));
     library(graph, slug, pre, r.form.library);
+  }
+  const after = new Map<Id, number>();
+  for (const id of placed) {
+    const b = graph.blocks[id]!;
+    const up = b.parent!;
+    if (!after.has(up)) {
+      after.set(up, Math.max(0, ...Object.values(graph.blocks)
+        .filter((o) => o.parent === up && !placed.includes(o.id)).map((o) => o.order ?? 0)));
+    }
+    after.set(up, after.get(up)! + 1);
+    b.order = after.get(up)!;
   }
   /** A file names its own package's definitions as well as those of the packages it lists. */
   const ctx_of = (r: Read): Ctx => ({ graph, slug, pre, made, notes, file: r,
@@ -179,7 +213,8 @@ function read_all(leaves: readonly Leaf[], pre: string, notes: string[]): Read[]
     const yaml = YAML_FILE.test(leaf.path);
     if (!yaml && !MARKDOWN.test(leaf.path)) continue;
     const parts = leaf.path.split("/").filter(Boolean);
-    const stem = parts.pop()!.replace(yaml ? YAML_FILE : MARKDOWN, "");
+    parts.pop();
+    const stem = stem_of(leaf.path);
     let form: LongForm;
     try {
       const { front, body } = yaml ? { front: yaml_map(leaf.text), body: undefined }
@@ -196,6 +231,11 @@ function read_all(leaves: readonly Leaf[], pre: string, notes: string[]): Read[]
                id: `${pre}${yaml ? "yaml" : "md"}.${[...parts, stem].join(".")}` });
   }
   return out;
+}
+
+/** A file's name without its directory or its `.yaml` or `.md`. */
+function stem_of(path: string): string {
+  return (path.split("/").pop() ?? "").replace(YAML_FILE, "").replace(MARKDOWN, "");
 }
 
 /** A YAML file's map. */
@@ -445,8 +485,25 @@ function end_of(ctx: Ctx, word: string): { at: Id; part?: Id } | undefined {
 /** A block a word names, other than the one asking: one in this file, by name or path; else a
  *  path from the package's root; else, where `defs`, a definition. */
 function ref(ctx: Ctx, word: string, defs: boolean, asking?: Id): Id | undefined {
-  return local(ctx, word, asking) ?? path_to(ctx.graph, word, ctx.slug)
+  return local(ctx, word, asking) ?? on_layer(ctx, word, asking)
+    ?? path_to(ctx.graph, word, ctx.slug)
     ?? (defs ? def_ref(ctx.graph, word, { within: ctx.within }) : undefined);
+}
+
+/** A block another file placed on this file's layer — a directory under it holds that file — by
+ *  its one name there, looked for through the notation that holds it; or a path down from it. */
+function on_layer(ctx: Ctx, word: string, asking?: Id): Id | undefined {
+  const [first, ...rest] = word.split(STEP).map((s) => s.trim());
+  const hits: Id[] = [];
+  const look = (at: Id) => {
+    for (const c of children(ctx.graph, at)) {
+      if (c.id !== asking && (c.name ?? "").trim() === first) hits.push(c.id);
+      if (is_notation(ctx.graph, c.id)) look(c.id);
+    }
+  };
+  look(ctx.file.id);
+  if (hits.length !== 1) return undefined;
+  return rest.length ? path_to(ctx.graph, rest.join(STEP), hits[0]) : hits[0];
 }
 
 /** A block of this file a word names: its one block of that name, or a path down from it. */

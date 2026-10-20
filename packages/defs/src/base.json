@@ -48,20 +48,12 @@
         "parent": null,
         "name": "base"
       },
-      "base.dir.annotations": {
-        "id": "base.dir.annotations",
-        "parent": "base",
-        "name": "annotations",
-        "type": "folder",
-        "order": 1,
-        "tree": "definitions"
-      },
       "base.dir.blocks": {
         "id": "base.dir.blocks",
         "parent": "base",
         "name": "blocks",
         "type": "folder",
-        "order": 2,
+        "order": 1,
         "tree": "definitions"
       },
       "base.dir.components": {
@@ -69,13 +61,21 @@
         "parent": "base",
         "name": "components",
         "type": "folder",
+        "order": 2,
+        "tree": "definitions"
+      },
+      "base.dir.diagrams": {
+        "id": "base.dir.diagrams",
+        "parent": "base",
+        "name": "diagrams",
+        "type": "folder",
         "order": 3,
         "tree": "definitions"
       },
-      "base.dir.organization": {
-        "id": "base.dir.organization",
+      "base.dir.notation": {
+        "id": "base.dir.notation",
         "parent": "base",
-        "name": "organization",
+        "name": "notation",
         "type": "folder",
         "order": 4,
         "tree": "definitions"
@@ -117,12 +117,12 @@
       },
       "class": {
         "id": "class",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.diagrams",
         "name": "class",
         "type": "block",
         "def": {},
         "description": "A class diagram: what its types are — the definitions its references stand for, each a class card, fields then behaviours, joined by what they extend and the relations stored between them.",
-        "order": 2,
+        "order": 1,
         "settings": {
           "layout": {
             "view": "class",
@@ -163,15 +163,17 @@
       },
       "decision": {
         "id": "decision",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.notation",
         "name": "decision",
         "type": "block",
         "def": {},
         "description": "A flow's question: one way in, a line out for each answer, each line named by its answer.",
-        "order": 3,
+        "order": 1,
         "settings": {
           "card": {
             "shape": "diamond",
+            "label": "none",
+            "alias": "hide",
             "align": "center"
           }
         },
@@ -199,27 +201,30 @@
       },
       "end": {
         "id": "end",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.notation",
         "name": "end",
         "type": "block",
         "def": {},
         "description": "Where a flow or a state machine finishes: lines in, none out.",
-        "order": 4,
+        "order": 2,
         "settings": {
           "card": {
-            "shape": "ring"
+            "shape": "ring",
+            "label": "none",
+            "alias": "hide",
+            "align": "center"
           }
         },
         "traits": []
       },
       "entity": {
         "id": "entity",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.diagrams",
         "name": "entity",
         "type": "block",
         "def": {},
         "description": "An entity relationship diagram: how its data is stored — the definitions its references stand for, each a schema card, columns and keys, joined by the relations stored between them, their ends drawn as multiplicities.",
-        "order": 5,
+        "order": 2,
         "settings": {
           "layout": {
             "view": "er",
@@ -229,12 +234,12 @@
       },
       "flow": {
         "id": "flow",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.diagrams",
         "name": "flow",
         "type": "block",
         "def": {},
         "description": "A flow: what moves through a process — its steps and decisions, and the lines each passes on along, laid out by where they point. A block's behaviour.",
-        "order": 6,
+        "order": 3,
         "settings": {
           "layout": {
             "view": "internal",
@@ -250,12 +255,12 @@
       },
       "folder": {
         "id": "folder",
-        "parent": "base.dir.organization",
+        "parent": "base.dir.blocks",
         "name": "folder",
         "type": "block",
         "def": {},
         "description": "Organization: a box on its parent's layer, what it holds drawn inside. It never makes a layer; selected in the explorer, the canvas zooms to it.",
-        "order": 1,
+        "order": 2,
         "settings": {
           "style": {
             "family": "neutral",
@@ -263,7 +268,8 @@
             "name_contrast": "faint"
           },
           "card": {
-            "arrange": "rows"
+            "arrange": "rows",
+            "label": "none"
           }
         },
         "traits": [
@@ -272,12 +278,12 @@
       },
       "grid": {
         "id": "grid",
-        "parent": "base.dir.organization",
+        "parent": "base.dir.blocks",
         "name": "grid",
         "type": "block",
         "def": {},
         "description": "A spreadsheet of cells holding text or blocks, opened on the allocation view: a header allocates what its row or column holds.",
-        "order": 2,
+        "order": 3,
         "settings": {
           "style": {
             "family": "muted",
@@ -286,6 +292,9 @@
           },
           "layout": {
             "view": "allocation"
+          },
+          "card": {
+            "label": "none"
           }
         },
         "traits": [
@@ -297,18 +306,23 @@
       },
       "group": {
         "id": "group",
-        "parent": "base.dir.annotations",
+        "parent": "base.dir.notation",
         "name": "group",
         "type": "block",
         "def": {},
         "description": "A box drawn round its members, on the layer it sits on: its name tags them.",
-        "order": 1,
+        "order": 3,
         "settings": {
           "style": {
             "family": "muted",
             "border_contrast": "faint",
             "name_contrast": "faint",
             "border_style": "dashed"
+          },
+          "card": {
+            "label": "none",
+            "alias": "hide",
+            "align": "center"
           }
         },
         "traits": [
@@ -336,12 +350,12 @@
       },
       "internal": {
         "id": "internal",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.diagrams",
         "name": "internal",
         "type": "block",
         "def": {},
         "description": "A block diagram: what a block is made of — its parts and the relations between them.",
-        "order": 7,
+        "order": 4,
         "settings": {
           "layout": {
             "view": "internal"
@@ -350,16 +364,19 @@
       },
       "label": {
         "id": "label",
-        "parent": "base.dir.annotations",
+        "parent": "base.dir.notation",
         "name": "label",
         "type": "block",
         "def": {},
         "description": "One line of text and no card: free, or tied to what it names. Its name tags what it is tied to.",
-        "order": 2,
+        "order": 4,
         "settings": {
           "card": {
             "arrange": "aside",
-            "face": "text"
+            "face": "text",
+            "label": "none",
+            "alias": "hide",
+            "align": "center"
           },
           "style": {
             "family": "note",
@@ -399,17 +416,20 @@
       },
       "note": {
         "id": "note",
-        "parent": "base.dir.annotations",
+        "parent": "base.dir.notation",
         "name": "note",
         "type": "block",
         "def": {},
         "description": "A remark about what it is tied to: a markdown body. It holds nothing, and tags nothing.",
-        "order": 3,
+        "order": 5,
         "settings": {
           "card": {
             "face": "document",
             "height": "free",
-            "arrange": "aside"
+            "arrange": "aside",
+            "align": "left",
+            "label": "none",
+            "alias": "hide"
           },
           "style": {
             "family": "note",
@@ -431,7 +451,7 @@
         "type": "block",
         "def": {},
         "description": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
-        "order": 8,
+        "order": 4,
         "settings": {
           "style": {
             "family": "away",
@@ -448,17 +468,22 @@
       },
       "region": {
         "id": "region",
-        "parent": "base.dir.annotations",
+        "parent": "base.dir.notation",
         "name": "region",
         "type": "block",
         "def": {},
         "description": "A band across the layer, under its heading: what lies in it are its members, and its name tags them. Regions stack, and reorder by drag.",
-        "order": 4,
+        "order": 6,
         "settings": {
           "style": {
             "family": "muted",
             "border_contrast": "faint",
             "name_contrast": "soft"
+          },
+          "card": {
+            "label": "none",
+            "alias": "hide",
+            "align": "center"
           }
         },
         "traits": [
@@ -485,12 +510,12 @@
       },
       "sequence": {
         "id": "sequence",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.diagrams",
         "name": "sequence",
         "type": "block",
         "def": {},
         "description": "A sequence: who talks to whom, in what order — a grid read as time, the header row naming the participants and each row a moment, its lines the messages. A block's behaviour.",
-        "order": 9,
+        "order": 5,
         "settings": {
           "layout": {
             "view": "sequence"
@@ -506,27 +531,30 @@
       },
       "start": {
         "id": "start",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.notation",
         "name": "start",
         "type": "block",
         "def": {},
         "description": "Where a flow or a state machine begins: one line out to its first step or state.",
-        "order": 10,
+        "order": 7,
         "settings": {
           "card": {
-            "shape": "dot"
+            "shape": "dot",
+            "label": "none",
+            "alias": "hide",
+            "align": "center"
           }
         },
         "traits": []
       },
       "state": {
         "id": "state",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.diagrams",
         "name": "state",
         "type": "block",
         "def": {},
         "description": "A state machine: how one thing changes — the states it is in, and the transitions between them, laid out by where they point. A block's behaviour.",
-        "order": 11,
+        "order": 6,
         "settings": {
           "layout": {
             "view": "internal",
@@ -543,12 +571,12 @@
       },
       "swimlane": {
         "id": "swimlane",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.diagrams",
         "name": "swimlane",
         "type": "block",
         "def": {},
         "description": "A swimlane: who does what, in which phase — a grid read as lanes, the header row naming the participants and the header column the phases, the steps in their cells. A block's behaviour.",
-        "order": 12,
+        "order": 7,
         "settings": {
           "layout": {
             "view": "allocation"
@@ -611,12 +639,12 @@
       },
       "treemap": {
         "id": "treemap",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.diagrams",
         "name": "treemap",
         "type": "block",
         "def": {},
         "description": "A treemap: where the weight is — what it holds, each as large as what it holds in turn, in the boxes of its folders, groups and regions.",
-        "order": 13,
+        "order": 8,
         "settings": {
           "layout": {
             "view": "internal",

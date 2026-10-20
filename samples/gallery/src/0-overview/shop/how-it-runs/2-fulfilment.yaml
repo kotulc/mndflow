@@ -1,0 +1,31 @@
+name: Fulfilment
+type: swimlane
+settings: { card: { arrange: rows } }
+description: "A swimlane: who does what, in which phase. Each lane is a reference to the service that does the work."
+cols:
+  - { name: Orders, type: reference, of: "Overview::Shop::Back office::Orders" }
+  - { name: Inventory, type: reference, of: "Overview::Shop::Back office::Inventory" }
+  - { name: Shipping, type: reference, of: "Overview::Shop::Back office::Shipping" }
+rows:
+  - name: Ordered
+  - name: Pick
+  - name: Ship
+blocks:
+  - name: Publish placed
+    body: Orders publishes order placed.
+    cell: [ Ordered, Orders ]
+  - name: Pick items
+    body: Stock is taken off the shelf.
+    tags: [ fulfilment ]
+    cell: [ Pick, Inventory ]
+  - name: Book carrier
+    body: Shipping books a pickup in the carrier's terms.
+    tags: [ fulfilment, external api ]
+    cell: [ Ship, Shipping ]
+  - name: Mark shipped
+    cell: [ Ship, Orders ]
+    tags: [ orders, fulfilment ]
+relations:
+  - Publish placed -> Pick items: order placed
+  - Pick items -> Book carrier: picked
+  - Book carrier -> Mark shipped: tracking number

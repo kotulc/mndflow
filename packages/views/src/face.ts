@@ -94,10 +94,14 @@ export function edge_of(look: Look): number {
   return EDGE[look.border_width] ?? 1;
 }
 
-/** The handle a card wears over its name: while it is unnamed, or always or never where its
- *  look says. */
+/** What a card wears in its top corner, over its name: what it is, where `card.label` says
+ *  `inside` and it is more than a plain block, then its handle — while it is unnamed, or always or never where its look says. */
 export function handle_of(graph: Graph, id: Id, look: Look = look_of(graph, id)): string {
-  return look.alias === undefined ? alias_of(graph, id) : look.alias ? alias_of(graph, id, true) : "";
+  const alias = look.alias === undefined ? alias_of(graph, id)
+    : look.alias ? alias_of(graph, id, true) : "";
+  /** A plain block's type says nothing its card does not. */
+  const kind = look.label === "inside" && look.kind !== "block" ? look.kind : "";
+  return [kind, alias].filter(Boolean).join(" · ");
 }
 
 /** The room a large face needs, in pixels: its name and handle — over its table of attributes,
@@ -121,6 +125,11 @@ export function fit_of(name: string, text: string, handle: boolean, most_w: numb
    *  a padded body follows it. */
   const rows = PAD.title + ruled.cells.length * ROW + (blocks.length ? PAD.y + body : -1);
   return { w: wide + edge * 2, h: rows + edge * 2 + (handle ? PAD.over : 0) };
+}
+
+/** How wide one line of a name writes, in pixels, with the card's padding either side. */
+export function name_w(name: string): number {
+  return PAD.x + name.length * GLYPH.name;
 }
 
 /** How tall a note writing `text` is, `w` pixels wide: its words wrapped whole, a line

@@ -71,6 +71,8 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "label"
                  | "definition"
                  /** A relation definition, drawn as a wire swatch, and whether its lines point. */
                  | "relation" | "directed"
+                 /** A notation definition: outlined faintly, as a relation's is. */
+                 | "notation"
                  | "grid" | "region"
                  /** A card laid in a treemap: a plain ground, its definition's colour on its edge. */
                  | "tiled"

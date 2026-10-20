@@ -63,6 +63,7 @@
 }
 
 /* Two lines, where there is room for two. */
+[data-label="inside"] > .mnd-head > .mnd-named > .mnd-label,
 [data-label="above"] > .mnd-head > .mnd-named > .mnd-label,
 [data-label="below"] > .mnd-head > .mnd-named > .mnd-label,
 [data-label="none"] > .mnd-head > .mnd-named > .mnd-label {
@@ -153,6 +154,8 @@
 .mnd-card.large > .mnd-head { flex: none; height: 20px; }
 /* A handle over a large face's name takes a line of its own, so the two never overlap. */
 .mnd-card.large:has(> .mnd-alias) { padding-top: 11px; }
+/* A small face keeps the corner's line clear too: the name centres in what is left. */
+.mnd-card.small:has(> .mnd-alias) { padding-top: 11px; }
 .mnd-card.large > .mnd-head > .mnd-named > .mnd-label { display: block; white-space: nowrap; }
 
 /* The divider, drawn only under a head: a card that is its markdown alone has nothing over it. */
@@ -240,10 +243,14 @@
 /* The `text` face: its name alone — no border, ground, icon or marks. A label draws so. */
 .card-face[data-face="text"] { border-color: transparent; background: none; }
 .card-face[data-face="text"] > :is(.mnd-role, .mnd-marks) { display: none; }
+/* Its one line, sized to fit it: no icon's gutter, never wrapped. */
+.card-face[data-face="text"] > .mnd-head { padding-right: 0; }
+.card-face[data-face="text"] .card-name { white-space: nowrap; }
 
 /* A relation definition reads as a wire swatch wherever it is not a run: its name over a short
-   line in its own stroke, a head where its lines point. No ground, and a faint outline. */
-.mnd-card.card-face.relation.small {
+   line in its own stroke, a head where its lines point. No ground, and a faint outline. A
+   notation definition is outlined alike. */
+.mnd-card.card-face:is(.relation, .notation).small {
   background: none;
   border-color: color-mix(in oklch, var(--card-edge) 45%, transparent);
   border-style: solid;

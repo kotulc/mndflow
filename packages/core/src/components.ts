@@ -169,10 +169,10 @@ export const CONTRASTS = ["faint", "soft", "strong", "full"] as const;
 /** What a card draws where nobody has said — the app's own answer, as against a definition's or an
  *  element's. */
 export const DEFAULTS = {
-  "card.label": "none",
+  "card.label": "inside",
   "card.align": "left",
   "card.label_align": "left",
-  "card.alias": "hide",
+  "card.alias": "show",
   "card.height": "uniform",
   "line.name": "show",
   "line.alias": "hide",

@@ -1,6 +1,23 @@
-name: Tagged
-note: Tags with parents and colours. A parent's colour reaches the tags under it; pick a block and its components tab lists its tags, each in its colour.
+name: service
+def:
+  attributes:
+    - name: owner
+description: "Runs on its own, owns its data and speaks to others only through its ports. Every service names the team that runs it: check reports one that does not."
+constraints: [ owned ]
+settings:
+  card: { arrange: rows }
 library:
+  interfaces:
+    - name: HTTP
+      description: Requests and their responses over HTTP.
+      settings: { style: { hue: 245 } }
+    - name: Events
+      description: Messages published for whoever listens.
+      settings: { style: { hue: 145 } }
+  constraints:
+    - name: owned
+      description: Every service names the team that runs it.
+      required: [ owner ]
   tags:
     - name: risk
       description: Needs care whenever it changes.
@@ -29,24 +46,5 @@ library:
     - name: experimental
       type: lifecycle
       description: Planned or trial; may go.
-    - name: deprecated
-      type: lifecycle
-      description: Being retired; nothing new should lean on it.
     - name: external api
       description: Speaks to a system nobody here runs.
-blocks:
-  - name: Storefront
-    settings: { card: { arrange: rows } }
-    tags: [ critical, orders ]
-  - name: Ledger service
-    settings: { card: { arrange: rows } }
-    tags: [ payments, pii ]
-  - name: Courier link
-    settings: { card: { arrange: rows } }
-    tags: [ fulfilment, external api ]
-  - name: Recommendations
-    settings: { card: { arrange: rows } }
-    tags: [ experimental ]
-  - name: Legacy billing
-    settings: { card: { arrange: rows } }
-    tags: [ deprecated, payments ]

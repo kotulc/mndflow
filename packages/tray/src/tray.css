@@ -475,15 +475,20 @@ fieldset.fields { padding: 0; }
 
 /* ── The overview: the large face left, why / how / where right. ── */
 .overview { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 14px;
-            padding: 10px; }
-@container (max-width: 640px) { .overview { grid-template-columns: 1fr; } }
+            padding: 10px; flex: 1; min-height: 0; box-sizing: border-box; }
+/* The glance is the tray's whole height, so its drawing fits what shows; the answers scroll. */
+.overview .answers { overflow-y: auto; }
+@container (max-width: 640px) {
+  .overview { grid-template-columns: 1fr; flex: none; }
+  .overview .glance { min-height: 200px; }
+}
 .overview .glance { position: relative; display: flex; flex-direction: column; gap: 6px;
-                    min-height: 220px; border: 1px solid var(--divider); border-radius: 2px;
+                    min-height: 0; border: 1px solid var(--divider); border-radius: 2px;
                     background: var(--bg); overflow: hidden; }
 .overview .glance .cap { display: flex; align-items: center; gap: 6px; padding: 5px 8px 0;
                          color: var(--muted); font-size: 10px; }
 .overview .glance .cap b { color: var(--text); font-weight: 600; }
-.overview .glance .thumb { flex: 1; min-height: 240px; }
+.overview .glance .thumb { flex: 1; min-height: 0; }
 /* At a glance the room is the whole picture: nothing outside it to dim. */
 .overview .mnd-thumb .mnd-frame { box-shadow: none; }
 .overview .glance .faces { flex: 1; display: flex; align-items: center; justify-content: center;

@@ -2,7 +2,7 @@
 
 import { covers, inline, is_grid, is_interface, lattice_of, setting_of, shown_name,
          stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
-import { edge_of, fit_of, face_table, face_text, handle_of, note_h } from "./face";
+import { edge_of, fit_of, face_table, face_text, handle_of, name_w, note_h } from "./face";
 import { card_shape, look_of } from "./look";
 import type { Ruled } from "./scene";
 import { resolved } from "./through";
@@ -185,12 +185,18 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
   /** A start's dot and an end's ring are one unit across, whatever face they sit on. */
   const shape = card_shape(graph, id);
   if (shape === "dot" || shape === "ring") return { w: UNIT, h: UNIT };
+  /** A label is its one line: a unit tall and exactly as wide as its name, so a tie meets its
+   *  words rather than the air beside them. */
+  if (!b.def && setting_of(graph, id, "card")["face"] === "text" && !gridded(graph, id)) {
+    return { w: Math.ceil(name_w(shown_name(graph, id))), h: UNIT };
+  }
   return face === "large" ? large_of(graph, id, card) : { ...BLOCK };
 }
 
 /** Which face a block draws with: what the nearest ancestor saying `layout.cards` asks for, else
- *  the small one — always the small one in a grid's cell, which is a card's size. Never the
- *  zoom's. */
+ *  what it has — **a card shows what it has**: large where its face has a table, a body or records
+ *  to show, small where it is a name alone. Always small in a grid's cell, which is a card's size.
+ *  Never the zoom's. */
 export function face_of(graph: Graph, id: Id): Face {
   if (gridded(graph, id)) return "small";
   const seen = new Set<Id>();
@@ -199,8 +205,16 @@ export function face_of(graph: Graph, id: Id): Face {
     const said = setting_of(graph, at, "layout")["cards"];
     if ((CARDS as readonly unknown[]).includes(said)) return said as Face;
   }
-  /** A collection draws its records as a table on its card, where nothing above says small. */
-  return graph.blocks[id]?.records?.length ? "large" : "small";
+  return shows_any(graph, id) ? "large" : "small";
+}
+
+/** Whether a card's large face has anything beyond its name to show: records, a table, a body or
+ *  a picture — read off the card it draws, a reference's target where it previews one. */
+function shows_any(graph: Graph, id: Id): boolean {
+  const card = resolved(graph, id).card;
+  if (graph.blocks[card]?.records?.length) return true;
+  const look = look_of(graph, id);
+  return !!face_table(graph, card, look, 0)?.cells.length || !!face_text(graph, card, look);
 }
 
 /** The large face: its definition's `card.size`, else what its content fits — so one that shows

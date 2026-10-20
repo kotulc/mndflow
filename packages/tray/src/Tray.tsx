@@ -61,7 +61,7 @@ export type TrayProps = {
   /** The host's own tabs for a block, after the tray's: a name, and what it draws. */
   extras?: readonly Extra[];
   /** The host's drawing of a block's layer at a glance, for the overview's left side. */
-  thumb?: (id: Id) => ReactNode;
+  thumb?: (id: Id, focus?: readonly Id[]) => ReactNode;
 };
 
 /** A host's tab: what it is called, and what it shows for the block the tray is about. */

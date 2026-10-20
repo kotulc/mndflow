@@ -6,7 +6,7 @@ import { is_folder, organizes } from "./holders";
 import { entry_at, is_form, library_home, library_names, type_at } from "./library";
 import { is_container } from "./tree";
 import { BASE_BLOCKS, BASE_COMPONENTS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIAGRAMS, DIRS,
-         KIND_BASE, KIND_FAMILIES,
+         KIND_BASE, KIND_FAMILIES, NOTATION,
          TRAITS, type Block,
          type BlockModule, type Attribute, type Components, type Definition, type Dir, type Form,
          type Graph, type Id, type Trait } from "./types";
@@ -296,18 +296,23 @@ export function module_named(graph: Graph, type: Id | undefined): BlockModule {
   return "block";
 }
 
-/** The bases that annotate a layer: they explain or organize it, and never list in the explorer. */
-const ANNOTATIONS: readonly Id[] = ["note", "label", "group", "region"];
-
-/** Whether a block is an annotation: a note, a label, a group or a region, by its base. */
-export function is_annotation(graph: Graph, id: Id): boolean {
+/** Which notation a block or definition is: the nearest its chain names, or null. */
+export function notation_of(graph: Graph, id: Id): Id | null {
   const b = graph.blocks[id];
-  return !!b && !b.def && ANNOTATIONS.includes(base_of(graph, id));
+  const type = b?.def ? b.id : b?.type;
+  return [type, ...isa(graph, type).map((d) => d.id)]
+    .find((t): t is Id => !!t && NOTATION.includes(t)) ?? null;
 }
 
-/** Whether a block is a note. */
+/** Whether a block is notation: it lives on its layer and never lists. A definition never is:
+ *  it lists and draws as any definition does; `notation_of` still names what it defines. */
+export function is_notation(graph: Graph, id: Id): boolean {
+  return !graph.blocks[id]?.def && notation_of(graph, id) !== null;
+}
+
+/** Whether a block is a note: a usage, never the definition, which is a card like any other. */
 export function is_note(graph: Graph, id: Id): boolean {
-  return !!graph.blocks[id] && base_of(graph, id) === "note";
+  return !!graph.blocks[id] && !graph.blocks[id]!.def && base_of(graph, id) === "note";
 }
 
 /** How a block sits in its parent's `auto` layer: its `card.arrange`, a column unsaid. A

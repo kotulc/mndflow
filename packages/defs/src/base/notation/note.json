@@ -12,7 +12,10 @@
     "card": {
       "face": "document",
       "height": "free",
-      "arrange": "aside"
+      "arrange": "aside",
+      "align": "left",
+      "label": "none",
+      "alias": "hide"
     },
     "style": {
       "family": "note",

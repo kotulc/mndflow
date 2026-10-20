@@ -1,7 +1,7 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
 import { attributes_of, base_named, base_of, def_at, def_of, diagram_kind, edge_base, frozen,
-         roots_structure } from "./defs";
+         notation_of, roots_structure } from "./defs";
 import { inline, is_flat, shape_of } from "./holders";
 import { entry_at } from "./library";
 import { children, is_container, is_interface, of_ref, port_at, stands_for,
@@ -112,7 +112,7 @@ function line_kind(graph: Graph, id: Id): string {
 /** What sort of thing a card is, as the icon it wears in its top corner. A person may set their
  *  own over it with `card.icon`; this is what it draws when nobody has. */
 export type Role = "block" | "folder" | "reference" | "interface" | "group" | "grid" | "note"
-  | "label" | "region" | Diagram;
+  | "label" | "region" | "start" | "end" | "decision" | Diagram;
 
 /** A diagram kind, as the role its card reads as. */
 export type Diagram = "internal" | "flow" | "state" | "sequence" | "swimlane" | "class" | "entity"
@@ -120,7 +120,7 @@ export type Diagram = "internal" | "flow" | "state" | "sequence" | "swimlane" | 
 
 /** Every base that draws as itself. */
 const ROLES: readonly string[] = ["block", "folder", "reference", "note", "label", "group",
-                                  "region", "grid"];
+                                  "region", "grid", "start", "end", "decision"];
 
 /** A diagram wears its kind, a block that holds the mark of its shape, whatever kind it descends
  *  from; a stand-in for a definition wears its usages' role. */
@@ -132,6 +132,9 @@ export function role_of(graph: Graph, id: Id): Role {
   /** A block a view flattens still reads as what it is. */
   const shape = shape_of(graph, id);
   if (shape && !is_flat(graph, id)) return shape;
+  /** A flow's mark wears its own: a start, an end, a decision. */
+  const mark = notation_of(graph, stood?.id ?? id);
+  if (mark && ROLES.includes(mark)) return mark as Role;
   const base = stood ? base_named(graph, stood.id) ?? "block" : base_of(graph, id);
   return ROLES.includes(base) ? base as Role : "block";
 }

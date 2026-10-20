@@ -58,6 +58,10 @@ const PATHS = {
   role_label: "M5 12h14M5 12v-3M19 12v-3",
   // A region: bands stacked, the top one headed.
   role_region: "M3.5 5.5h17M3.5 12h17M3.5 18.5h17M6 8.5h6M6 15h6",
+  // A flow's marks, as they draw: a start's dot, an end's ringed dot, a decision's diamond.
+  role_start: "M8.5 12a3.5 3.5 0 1 0 7 0 3.5 3.5 0 1 0-7 0",
+  role_end: "M6 12a6 6 0 1 0 12 0 6 6 0 1 0-12 0M10 12a2 2 0 1 0 4 0 2 2 0 1 0-4 0",
+  role_decision: "M12 4.5l7.5 7.5-7.5 7.5-7.5-7.5z",
   // A tag: a ticket with a hole.
   tag: "M4.5 4.5h7l8 8-7 7-8-8zM8.5 8.5h.01",
   // A boundary drawn round what it holds — rules that run off the edge, the
@@ -259,6 +263,7 @@ export const ROLE_ICON: Record<string, IconName> = {
   block: "role_leaf", folder: "role_folder", reference: "role_reference",
   interface: "role_interface", group: "role_group", grid: "role_table", note: "role_note",
   label: "role_label", region: "role_region",
+  start: "role_start", end: "role_end", decision: "role_decision",
   internal: "role_internal", flow: "role_flow", state: "role_state", sequence: "role_sequence",
   swimlane: "role_swimlane", class: "role_class", entity: "role_entity", treemap: "role_treemap",
 };

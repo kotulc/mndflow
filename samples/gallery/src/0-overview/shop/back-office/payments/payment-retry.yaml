@@ -1,6 +1,6 @@
 name: Payment retry
 type: flow
-description: "A flowchart. It starts and ends at its marks; a decision's lines say where each answer goes."
+description: "A flowchart, one of Payments' behaviours. It starts and ends at its marks; a decision's lines say where each answer goes."
 blocks:
   - { name: Begin, type: start }
   - name: Charge card

@@ -1,5 +1,7 @@
-name: Groups
-note: Groups nest, each a dashed box round its members, a note tied beside it. A grid lays cells under its headers.
+name: Deployment
+type: internal
+settings: { card: { arrange: rows } }
+description: "Where the shop runs. Groups nest, each a dashed box round its members with a note tied beside it; a grid lays environments under their headers."
 blocks:
   - name: eu-west cluster
     type: group
@@ -8,7 +10,7 @@ blocks:
       - name: shop namespace
         type: group
         note: The services customers reach.
-        blocks: [ storefront pod, gateway pod, orders pod ]
+        blocks: [ gateway pod, storefront pod, orders pod ]
       - name: data namespace
         type: group
         blocks: [ orders primary, orders replica ]
@@ -32,5 +34,7 @@ blocks:
       - name: us-east prod
         cell: [ us-east, prod ]
 relations:
+  - gateway pod -> storefront pod
+  - storefront pod -> orders pod
   - orders pod -> orders primary
   - orders primary -> orders replica: replicates

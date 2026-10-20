@@ -1,8 +1,9 @@
 /** How a usage of a definition draws. */
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, DISPLAYS,
-         domain_of, FACE_PARTS, FAMILIES, FILLS, FONTS, HEIGHTS, is_annotation, is_box,
-         is_container, is_grid, isa, is_interface, is_tie, kind_word, LARGE_FACES, PARTS,
+         domain_of, FACE_PARTS, FAMILIES, FILLS, FONTS, HEIGHTS, is_notation, is_box,
+         is_container, is_grid, isa, is_interface, is_tie, kind_word, LARGE_FACES, notation_of,
+         PARTS,
          attributes_of, setting_of, SHAPES, SHOWN, WEIGHTS, WIDTHS, type Definition, type Graph,
          type Id, type Settings } from "@mnd/core";
 import { resolved } from "./through";
@@ -130,7 +131,9 @@ export function entry_look(graph: Graph, id: Id): Look {
  *  and a relation wearing its line. */
 function stand_in(graph: Graph, id: Id, def: Definition): Look {
   const own = (graph.blocks[id]!.def ? {} : graph.blocks[id]!.settings) ?? {};
-  const card = { ...config_of(graph, def.id, "card"), ...(own["card"] ?? {}) };
+  /** Notation's definition is a card like any other: its face is its usages'. */
+  const plain = notation_of(graph, def.id) ? { face: undefined } : {};
+  const card = { ...config_of(graph, def.id, "card"), ...plain, ...(own["card"] ?? {}) };
   const has = (part: unknown) => part === "body"
     ? !!graph.blocks[id]!.body
     : part === "attributes" && attributes_of(graph, def.id).length > 0;
@@ -138,7 +141,9 @@ function stand_in(graph: Graph, id: Id, def: Definition): Look {
   const style = { ...config_of(graph, def.id, "style"), ...(own["style"] ?? {}) };
   const relation = domain_of(graph, def.id) === "relation";
   const tie = relation && is_tie(graph, def.id);
-  const look = dressed(graph, id, { ...card, name: "show" }, style, def.name, def.id, shows);
+  /** A definition says what it extends; a stand-in, as its usages, the definition it stands for. */
+  const kind = graph.blocks[id]!.def ? def_at(graph, def.type)?.name ?? "" : def.name;
+  const look = dressed(graph, id, { ...card, name: "show" }, style, kind, def.id, shows);
   return relation && !look.icon ? { ...look, icon: tie ? "relation_tie" : "relation_plain" } : look;
 }
 
@@ -164,7 +169,7 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
     align: one(card["align"], ALIGNS, PLAIN.align),
     label_align: one(card["label_align"], ALIGNS, PLAIN.label_align),
     height: one(card["height"], HEIGHTS, PLAIN.height),
-    ...(SHOWN.includes(card["alias"] as never) ? { alias: card["alias"] === "show" } : {}),
+    alias: one(card["alias"], SHOWN, DEFAULTS["card.alias"]) === "show",
     shows,
     ...((LARGE_FACES as readonly unknown[]).includes(card["face"])
       ? { face: card["face"] as Look["face"] } : {}),
@@ -186,11 +191,15 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
 
 /** What a card is drawn as: its own `card.shape`, else the `layout.shape` the layer it sits on
  *  casts its parts as — so a state machine's states read rounder. A group or folder on that
- *  layer passes it through; a diagram nested deeper casts its own. Annotations and organization
+ *  layer passes it through; a diagram nested deeper casts its own. Notation and organization
  *  keep their own. Absent for the plain box. */
 function shaped(graph: Graph, id: Id, card: Settings): { shape?: CardShape } {
+  /** Notation's definition, or a stand-in for it, is a card like any other: its mark is its
+   *  usages'. */
+  const def = graph.blocks[id]?.def ? id : resolved(graph, id).stands_in?.id;
+  if (def && notation_of(graph, def)) return {};
   let said = card["shape"];
-  const part = !is_annotation(graph, id) && !is_box(graph, id) && !is_grid(graph, id);
+  const part = !is_notation(graph, id) && !is_box(graph, id) && !is_grid(graph, id);
   if (said === undefined && part) {
     let at = graph.blocks[id]?.parent;
     while (at && is_box(graph, at)) at = graph.blocks[at]?.parent;

@@ -27,7 +27,7 @@
 | what a block may do | traits in core `types.ts` `TRAITS` (read by `defs.ts` `trait_at`), a table since 2026-10-14; core `capabilities.ts` (`allows_of`, `may_hold`, `holds_any`), absent is a no |
 | whether a card opens | core `names.ts` `opens`: only with something to draw. `lens_of` and `feeds` ask it, views `derive.ts` `marks_of` gives the `container` mark from it (the stacked edge, stage `flow.css`), and the card menu offers *open* by it (stage `Stage.tsx` `box_offers`); `navigate.ts` `open_at` says where it goes, a card that opens on nothing picked where it is drawn (2026-10-16) |
 | a definition's card settings | they describe its usages: a definition is one plain card in its folder, so its `card.arrange` (core `defs.ts` `arrange_of`) and `card.height` (views `size.ts` `free_height`) are not read for itself (2026-10-16) |
-| the crumbs' path | views `derive.ts` `trail_of` (the explorer's path: package, folders, blocks, never an annotation); stage `Crumbs.tsx` draws it after the host's section (`head`) and folds it to fit (2026-10-16) |
+| the crumbs' path | views `derive.ts` `trail_of` (the explorer's path: package, folders, blocks, never notation); stage `Crumbs.tsx` draws it after the host's section (`head`) and folds it to fit (2026-10-16) |
 | navigation | core `navigate.ts` (`open_at`, `leave_at`, `reveal_at`, `held_at`). `reveal_at` picks in place wherever the canvas already draws the block; following a stand-in to its target is the caller's (stage `Stage.tsx`, tray `onView`) (2026-10-16) |
 | what a section lists | core `sections.ts` `on_side` (the library: the definition side and every part of a definition; the model: usages outside every definition), which the explorer's reveal asks too; a usage's parts read through list wherever it does (`branch_of`); explorer `chain.ts` (`editor_slices`, `useChain`) and `rows.ts` (`tree_of`; a package's types and tags as groups, `named_rows`) (2026-10-16) |
 | whether a block roots a structure | core `defs.ts` (`roots_structure`, over `holds_usages`); the structure mark in `names.ts` `stamps_of`. The workspace always, a definition that holds structure, never a folder; the explorer's row marks, the cards and the tree-root button ask it, so a row and its card agree (2026-10-12) |
@@ -72,7 +72,7 @@
 | a registry in the tray | tray `Registry.tsx` (matrix and list), held as `{ of: "registry" }` in `Tray.tsx`, or the open layer where it is a registry; explorer `rows.ts` gives a package's types and tags group its `registry`, and `Explorer.tsx` opens it (2026-10-17) |
 | a key's line and its whole value | tray `Source.tsx` (one line a key, cut short), `Choices.tsx` (the whole value; long words typed there, `text.wrap`); `tray.css` lays the card tab out by the tray's width (container queries) (2026-10-17) |
 | a chip's colour | tray `Choices.tsx` `paint`: a chip whose value is a definition wears its look's family or hue (2026-10-17) |
-| whether a block is an annotation | core `defs.ts` `is_annotation`: the explorer lists none (2026-10-16) |
+| whether a block is notation | core `defs.ts` `notation_of` (what a block or definition is, by the chain against `NOTATION`: annotations and marks) and `is_notation` (a usage only): the explorer lists no notation, the crumbs pass it; a notation definition, or a stand-in for one, draws as a plain faint card (views `look.ts` `shaped`, `stand_in`, `derive.ts` `marks_of`, all asking `notation_of`). `is_annotation` and the overview's own mark check became one (2026-10-19) |
 | ids read through a map, on export and on collecting | core `file.ts` `renamed`, asked by `write_package` and `sources.ts` `defined`; the two copies became one (2026-10-16) |
 | how a table in a card looks | theme `face.css` `.mnd-face-table`: an attributes table and a markdown table alike. Two table styles became one (2026-10-10) |
 | what a card carries, its face and its size | views `derive.ts` (`carried`), `face.ts` (`face_text`, a collection's `records_text`) and `size.ts` (`face_of`, `size_of`); drawn by theme `CardFace` on the canvas, in the tray and in mndmap alike. Three card renderers became one (2026-10-08) |
@@ -80,6 +80,9 @@
 | a card as markdown, and a source folder of them | core `card.ts` (`card_text`, `read_card`), the `markdown` and `attach` actions, `sources.ts` (`collect`; was `collection.ts`, renamed 2026-10-16) |
 | a diagram file or frontmatter spelled out: short forms into the long form | core `diagram.ts` (`long_form`); syntax only, no name read (2026-10-13) |
 | what a name stands for: a path, `pkg.name`, a bare definition name | core `refs.ts` (`path_to`, `def_ref`); `sources.ts` reads every file's names through them (2026-10-13) |
+| what a card wears in its top corner (its type, its handle) | views `face.ts` `handle_of`, drawn by theme `CardFace` as `.mnd-alias`; the group defaults on base definitions (2026-10-19) |
+| which face a card draws: what it has, or what the layer forces | views `size.ts` `face_of` (`shows_any`) (2026-10-19) |
+| where a file's block lands: a folder, or the block a directory is named for | core `sources.ts` `collect` (`owners`, `owned`, `folder`); a name another file placed on this layer, `sources.ts` `on_layer` (2026-10-19) |
 | where a definition may sit | core `defs.ts` `holds_defs`: a package root or a definitions-tree folder, never a structure or another definition; asked by `move`, `new_def` and the door, which moves a stray definition to its package root (2026-10-13) |
 | names unique among siblings | core `tree.ts` `sibling_named`, asked by `create`, `rename` and `move` (2026-10-13) |
 | a source folder with the packages its files list | cli `main.ts` `gathered`, over core `wanted` and `collect` (2026-10-13) |
@@ -88,7 +91,7 @@
 | what a card is drawn as | core `components.ts` `SHAPES` (`card.shape`, `layout.shape`); views `look.ts` `shaped` (its own, else the layer's cast, through boxes) and `card_shape` for sizing (`size.ts`: a dot or ring one unit); theme `face.css` draws each; stage `flow.css` lights a picked or outlined diamond (2026-10-18) |
 | a second line between two cards | views `seat.ts` `seat_all` (`again`, `round_side`): card to card only, the faces a quarter turn from the pair's (2026-10-18) |
 | whether a kind fixes its layout | core `defs.ts` `fixed_layout`, asked by the `layout` action (actions `blocks.ts`) and the web app, which hands the rail `fixed` (options `groups.ts` leaves the layer group out) (2026-10-18) |
-| the question a diagram kind answers | core `types.ts` `DIAGRAM_QUESTIONS` beside `DIAGRAMS`; base's notation ids `NOTATION` (2026-10-18) |
+| the question a diagram kind answers | core `types.ts` `DIAGRAM_QUESTIONS` beside `DIAGRAMS`; base's notation ids `NOTATION`, annotations and marks (2026-10-19) |
 | the overview tab | tray `Overview.tsx` (why, how, where; counts by kind; promotion by `may_retype`); the thumbnail is the host's (`TrayProps.thumb`), drawn by stage `Thumb.tsx` over `arrays.ts` `nodes_of`/`edges_of` — the canvas's renderer, read only; the web app memoises its scenes (`glance`) (2026-10-18) |
 | a sequence drawn | views `sequence.ts`: heads, activation bars (`activation` mark, stage `flow.css`), phases as `text` faces, messages across at their row (2026-10-18) |
 | a crow's foot's size | theme `heads.tsx` `HEAD_SHAPES` (`crow`), `card.css` `.mnd-head.crow` (2026-10-18) |
