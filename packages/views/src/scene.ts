@@ -36,6 +36,10 @@ export type BoxData = {
   stamps?: readonly Mark[];
   /** What sort of thing it is: the icon it wears unless somebody set their own. */
   role?: Role;
+  /** A small face's name, sized to fit its card: its size in pixels and how many lines. */
+  fit?: { size: number; lines: number };
+  /** The whole lines a large face's body holds, where its card was sized by hand. */
+  clamp?: number;
   /** Whether it opens onto a view of its own. */
   opens?: boolean;
   /** How its definition says it draws. */

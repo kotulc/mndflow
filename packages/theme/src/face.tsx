@@ -5,7 +5,7 @@
  *  then its markdown, rendered. What it says, how wide each column is and how it is painted are
  *  worked out before it is drawn; a face only draws them, naming no graph. */
 
-import { type ReactNode } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 import { Icon, known, mark_icon, role_icon } from "./icons";
 import { Markdown } from "./markdown";
 
@@ -36,6 +36,10 @@ export type FaceProps = {
   table?: { cells: readonly (readonly string[])[]; widths: readonly number[]; split?: number };
   /** False where a large face is its markdown alone. */
   head?: boolean;
+  /** A small face's name sized to its card: its size in pixels and how many lines it takes. */
+  fit?: { size: number; lines: number };
+  /** The whole lines the large face's body holds, where it is cut short. */
+  clamp?: number;
   /** The name as drawn, where a host draws it itself — the canvas's, which renames in place. */
   name?: ReactNode;
   title?: string;
@@ -44,7 +48,7 @@ export type FaceProps = {
 };
 
 export function CardFace({ label, alias, kind, kinded, role, icon, holds, stamps, classes = [],
-                           dress = {}, text, table, head = true, name, title,
+                           dress = {}, text, table, head = true, fit, clamp, name, title,
                            children }: FaceProps) {
   const large = text !== undefined;
   const named = !large || head;
@@ -53,11 +57,14 @@ export function CardFace({ label, alias, kind, kinded, role, icon, holds, stamps
   return (
     <div className={["mnd-card", "card-face", large ? "large" : "small", named ? "" : "headless",
                      ruled ? "tabled" : "", ...classes].filter(Boolean).join(" ")}
-         {...dress} title={title ?? label}>
+         {...dress} title={title ?? label}
+         {...(fit ? { "data-fit": fit.lines, style: { "--name-size": `${fit.size}px`,
+                                                      "--name-lines": fit.lines } as CSSProperties }
+                 : {})}>
       {children}
       <Wears role={role} icon={icon} holds={holds} />
       <Stamps stamps={stamps} />
-      {kinded === "above" ? word("mnd-over") : null}
+      {kinded === "above" && kind ? word("mnd-over") : null}
       {alias && named ? <span className="mnd-alias">{alias}</span> : null}
       {named ? (
         <div className="mnd-head">
@@ -67,8 +74,10 @@ export function CardFace({ label, alias, kind, kinded, role, icon, holds, stamps
         </div>
       ) : null}
       {ruled ? <Ruled {...table!} /> : null}
-      {large && text ? <Markdown className="mnd-face-body" text={text} /> : null}
-      {kinded === "below" ? word("mnd-under") : null}
+      {large && text ? <Markdown className={`mnd-face-body${clamp ? " clamped" : ""}`} text={text}
+                                 {...(clamp ? { style: { "--body-lines": clamp } as CSSProperties }
+                                   : {})} /> : null}
+      {kinded === "below" && kind ? word("mnd-under") : null}
     </div>
   );
 }

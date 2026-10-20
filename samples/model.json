@@ -40,7 +40,7 @@
       "workspace": {
         "id": "workspace",
         "parent": null,
-        "name": "shop",
+        "name": "example",
         "counters": {
           "block": 76,
           "note": 5,

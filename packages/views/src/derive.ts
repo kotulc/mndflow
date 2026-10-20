@@ -4,10 +4,10 @@ import { attributes_of, def_of, dir_of, domain_of, frozen, head_of, lens_of, is_
          flow_of, is_notation, is_flat, notation_of, is_interface, is_named,
          base_of, path, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
          type Graph, type Id } from "@mnd/core";
-import { face_table, face_text, handle_of } from "./face";
-import { look_of } from "./look";
+import { body_lines, face_table, face_text, handle_of, name_fit } from "./face";
+import { card_shape, look_of } from "./look";
 import { face_of, type Face } from "./size";
-import type { BoxData, CardClass, Scene } from "./scene";
+import { box_of, type BoxData, type CardClass, type Scene } from "./scene";
 import { resolved } from "./through";
 
 /** How a block reads, derived from what it holds or where it sits. */
@@ -64,8 +64,10 @@ export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): 
   /** A reference to a block carries what its target carries. */
   const b = graph.blocks[resolved(graph, id).card]!;
   const look = look_of(graph, id);
-  /** The handle, over the name. */
-  const alias = handle_of(graph, id, look);
+  /** The handle, over the name — never on a header or a mark, which have no corner to wear it. */
+  const shape = card_shape(graph, id);
+  const cornered = !head_of(graph, id) && shape !== "dot" && shape !== "ring" && shape !== "diamond";
+  const alias = cornered ? handle_of(graph, id, look) : "";
   /** Room at the end of its table for the marks this card wears, previewing or not. */
   const ruled = face === "large" ? face_table(graph, b.id, look, stamps_of(graph, id).length) : null;
   const description = b.description ?? graph.blocks[def_of(graph, b.id) ?? ""]?.description;
@@ -84,6 +86,25 @@ export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): 
     ...(face === "large" ? { text: face_text(graph, b.id, look) } : {}),
     ...(face === "large" && ruled ? { table: ruled } : {}),
   };
+}
+
+/** A scene with every small card's name sized to the box it was laid out at, and a large face
+ *  sized by hand cut to the whole lines its body holds. A note and a label lay their words out
+ *  themselves, and a header and a step have stylesheets of their own. */
+export function fit_names(scene: Scene): Scene {
+  const nodes = scene.nodes.map((n) => {
+    const d = n.data;
+    if (n.type === "card" && d.face === "large" && d.look?.size && d.text && !d.table) {
+      return { ...n, data: { ...d, clamp: body_lines(box_of(n).h, !!d.alias) } };
+    }
+    const own = d.marks.some((m) => m === "header" || m === "activation");
+    if (n.type !== "card" || d.face !== "small" || own || d.look?.height === "free"
+        || d.look?.face === "text") return n;
+    const fit = name_fit(d.label, box_of(n), !!d.alias, d.look?.shape === "diamond");
+    const { fit: _, ...rest } = d;
+    return { ...n, data: fit ? { ...rest, fit } : rest };
+  });
+  return { ...scene, nodes };
 }
 
 /** Where a box points, if it says: its source. */

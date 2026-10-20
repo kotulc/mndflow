@@ -85,7 +85,7 @@
 /* A header line is one unit across, so its card is its name alone, small. */
 .mnd-card.header { padding: 0 4px; font-size: 11px; }
 .mnd-card.header > .mnd-head { padding-right: 0; gap: 0; }
-.mnd-card.header > .mnd-role, .mnd-card.header > .mnd-marks, .mnd-card.header .mnd-alias {
+.mnd-card.header > .mnd-role, .mnd-card.header > .mnd-marks {
   display: none;
 }
 .mnd-card.header .mnd-label {

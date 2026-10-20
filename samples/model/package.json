@@ -4,7 +4,7 @@
   "graph": {
     "root": "model",
     "blocks": {
-      "model": { "id": "model", "parent": null, "name": "shop" }
+      "model": { "id": "model", "parent": null, "name": "example" }
     }
   }
 }

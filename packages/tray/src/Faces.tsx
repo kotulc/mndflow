@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { alias_name, alias_of, base_of, def_at, next_alias, type Graph, type Id } from "@mnd/core";
 import { CardFace } from "@mnd/theme";
-import { carried, edge_of, face_attrs, face_table, face_text, fitted, size_of, PLAIN,
+import { carried, edge_of, face_attrs, face_table, face_text, fitted, name_fit, size_of, type_word, PLAIN,
          type Face, type Look } from "@mnd/views";
 
 export type FacesProps = { graph: Graph; id: Id;
@@ -52,20 +52,23 @@ function One({ graph, id, face }: { graph: Graph; id: Id; face: Face }) {
    *  sizes, and the small face, take the canvas's size. */
   const { w, h } = face === "large" && !look.size
     ? fitted(data.label, text ?? "", !!alias, table, edge_of(look)) : size_of(graph, id, face);
+  /** The small face's name sized to its card, under the handle the tray always draws. */
+  const fit = face === "small" && look.face !== "text"
+    ? name_fit(data.label, { w, h }, !!alias, look.shape === "diamond") : null;
   const [held, scale] = useFit(w);
   return (
     <div className="face-room" ref={held} style={{ height: h * scale }}>
       <div className={`face ${face}${bare ? " sample" : ""}`}
            style={{ width: w, height: h, transform: scale < 1 ? `scale(${scale})` : undefined }}>
         <CardFace label={data.label} {...(alias ? { alias } : {})}
-                  kind={look.kind} kinded={look.label} {...(data.role ? { role: data.role } : {})}
+                  kind={type_word(look.kind, data.label)} kinded={look.label} {...(data.role ? { role: data.role } : {})}
                   {...(look.icon ? { icon: look.icon } : {})}
                   holds={data.marks.includes("container")}
                   {...(data.stamps ? { stamps: data.stamps } : {})}
                   classes={data.marks} dress={face_attrs(look)}
                   {...(text !== undefined ? { text } : {})}
                   {...(table ? { table } : {})}
-                  head={look.head !== false} />
+                  head={look.head !== false} {...(fit ? { fit } : {})} />
       </div>
     </div>
   );

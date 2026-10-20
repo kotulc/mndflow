@@ -9,7 +9,7 @@ import type { Side } from "@mnd/core";
 /** What a row or a chip being dragged onto the drawing carries. */
 export const DRAGGED = "text/mnd-block";
 
-import { FRAME, PLAIN, face_attrs, look_key, tint_attrs,
+import { FRAME, PLAIN, face_attrs, look_key, tint_attrs, type_word,
          type BoxData, type BoxNode, type GridCell } from "@mnd/views";
 import { CardFace, Name, Stamps, Wears, useNaming } from "@mnd/theme";
 
@@ -112,7 +112,7 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
   const look = data.look ?? PLAIN;
   return (
     <CardFace label={data.label} {...(data.alias ? { alias: data.alias } : {})}
-              kind={look.kind} kinded={look.label} {...(data.role ? { role: data.role } : {})}
+              kind={type_word(look.kind, data.label)} kinded={look.label} {...(data.role ? { role: data.role } : {})}
               {...(look.icon ? { icon: look.icon } : {})}
               holds={data.marks.includes("container")}
               {...(data.stamps ? { stamps: data.stamps } : {})}
@@ -121,6 +121,8 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
               {...(data.text !== undefined ? { text: data.text } : {})}
               {...(data.table ? { table: data.table } : {})}
               head={look.head !== false}
+              {...(data.fit ? { fit: data.fit } : {})}
+              {...(data.clamp ? { clamp: data.clamp } : {})}
               title={data.description ? `${data.label} — ${data.description}` : data.label}
               name={<Name id={id} className="mnd-label card-name" text={data.label} />}>
       {/* A card keeps the size its face says unless its definition asked for its own. */}
@@ -306,6 +308,7 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   const has_cells = !!data.grid?.length;
   const room = data.marks.includes("room") ? "room" : "";
   const shell = ["mnd-group-shell", has_cells ? "gridded" : "", room].filter(Boolean).join(" ");
+  const word = type_word(look.kind, data.label);
   const group = ["mnd-group", has_cells ? "gridded" : "", data.marks.includes("flat") ? "flat" : "",
                  data.marks.includes("region") ? "region" : "",
                  room, selected ? "picked" : ""].filter(Boolean).join(" ");
@@ -313,13 +316,13 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
     <div className={shell} {...face_attrs(look)}>
       {/* The name and label float above the frame together; `card.name: hide` leaves no name. */}
       <span className="mnd-group-title">
-        {look.label === "above" ? <span className="mnd-kind card-label">{look.kind}</span> : null}
+        {look.label === "above" && word ? <span className="mnd-kind card-label">{word}</span> : null}
         {look.head === false
           ? null : <Name id={id} className="mnd-group-name card-name" text={data.label} />}
-        {look.label === "inside" ? <span className="mnd-kind card-label">{look.kind}</span> : null}
+        {look.label === "inside" && word ? <span className="mnd-kind card-label">{word}</span> : null}
       </span>
-      {look.label === "below"
-        ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
+      {look.label === "below" && word
+        ? <span className="mnd-under mnd-kind card-label">{word}</span> : null}
       <div className={group} title={data.label}>
         {has_cells ? null : <BandRim />}
         {has_cells ? <Lattice id={id} cells={data.grid!} open={!!room} /> : null}

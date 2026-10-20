@@ -12,7 +12,7 @@ import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 import { EDGE_TYPES, Heads, RunsContext } from "./Wire";
 import type { Adjust, FlowViewProps, Gesture, Landing } from "./gestures";
-import { BAND, MIN_ZOOM, read_zoom } from "./arrays";
+import { BAND, MIN_ZOOM } from "./arrays";
 import { useDrag } from "./drag";
 import { useDraw } from "./draw";
 import { Grips } from "./Grips";
@@ -152,11 +152,12 @@ function Canvas(props: FlowViewProps) {
       onNodesChange={changed}
       onEdgesChange={rewired}
       onSelectionChange={chose}
-      /** A scrolled drawing is fitted by its camera, as a page; React Flow's own first fit would
-          fit its height instead. */
-      fitView={!scroll}
-      fitViewOptions={fit}
-      minZoom={scroll && widest ? read_zoom(widest, seen) : MIN_ZOOM}
+      /** **The camera fits every view**, a room or a page. React Flow's own first fit is left
+          off: switched on by the first room after a page, it would land late and fit the cards
+          rather than the room. */
+      /** One floor for every view: a scrolled page holds its own zoom, and a floor that changed
+          with the view would clamp the next view's first fit. */
+      minZoom={MIN_ZOOM}
       maxZoom={4}
       onPointerDown={(e) => { second.current = e.button === 0 && repeats(e); pressed(e); }}
       onPointerMove={moved_to}

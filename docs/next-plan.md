@@ -8,7 +8,7 @@
 | | |
 |---|---|
 | **committed** | through 395b81a (2026-10-19): base filed by blocks, diagrams and notation; the gallery as one shop; `collect` nesting; one design language by group; a card shows what it has; label and treemap names; the overview glance. Verified then: typecheck, 285/285 tests, lint, gallery `check` and `review` clean; driven in Edge, no console errors |
-| **uncommitted** | the plan consolidated; handles only while unnamed; one corner row; names cut to the room they have; the gallery split into `samples/model` (the shop) and `samples/elements` (enumerations, a second workspace). Verified: typecheck, 285/285 tests, CSS lint, `check`/`review` clean on both; driven in Edge. Suggested commit: *Split the gallery into model and elements; tidy card corners* |
+| **uncommitted** | the plan consolidated; handles only while unnamed; one corner row; names cut to the room they have; the gallery split into `samples/model` (root `example`) and `samples/elements` (enumerations, a second workspace); small names sized to fit; sized bodies cut at whole lines; corners never on headers or marks. Verified: typecheck, 285/285 tests, CSS lint, `check`/`review` clean on both; driven in Edge. Suggested commit: *Split the gallery into model and elements; tidy card corners* |
 | **next session** | step 1, lines |
 
 

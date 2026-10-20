@@ -80,7 +80,8 @@
 | a card as markdown, and a source folder of them | core `card.ts` (`card_text`, `read_card`), the `markdown` and `attach` actions, `sources.ts` (`collect`; was `collection.ts`, renamed 2026-10-16) |
 | a diagram file or frontmatter spelled out: short forms into the long form | core `diagram.ts` (`long_form`); syntax only, no name read (2026-10-13) |
 | what a name stands for: a path, `pkg.name`, a bare definition name | core `refs.ts` (`path_to`, `def_ref`); `sources.ts` reads every file's names through them (2026-10-13) |
-| what a card wears in its top corner (its type, its handle) | views `face.ts` `handle_of`, drawn by theme `CardFace` as `.mnd-alias`; the group defaults on base definitions (2026-10-19) |
+| what a card wears in its top corner (its type, its handle) | views `face.ts` `handle_of`, its type word by `type_word` (also a group heading's and an above or below word), drawn by theme `CardFace` as `.mnd-alias`; the group defaults on base definitions (2026-10-19); never emitted on a header, dot, ring or diamond (`derive.ts` `carried`) |
+| how a name or a sized body fits its card (name size and lines, body lines) | views `face.ts` `name_fit`, `body_lines`, applied once per scene by `derive.ts` `fit_names` from `project`; drawn by theme `CardFace` (`data-fit`, `.clamped`) |
 | which face a card draws: what it has, or what the layer forces | views `size.ts` `face_of` (`shows_any`) (2026-10-19) |
 | where a file's block lands: a folder, or the block a directory is named for | core `sources.ts` `collect` (`owners`, `owned`, `folder`); a name another file placed on this layer, `sources.ts` `on_layer` (2026-10-19) |
 | where a definition may sit | core `defs.ts` `holds_defs`: a package root or a definitions-tree folder, never a structure or another definition; asked by `move`, `new_def` and the door, which moves a stray definition to its package root (2026-10-13) |

@@ -1,13 +1,13 @@
 /** The block view: any planar projection. */
 
-import { alias_of, dir_of, layout_of, children, setting_of, covers, diagram_subject, on_side,
+import { alias_of, dir_of, layout_of, children, setting_of, covers, diagram_subject,
          edges_in, group_depth, heading, holders_in, inline, is_box, is_container, is_grid,
          is_aside, is_note, is_tie, label_of, lattice_of, members_of, shape_of, stamps_of, role_of,
          shown_name, type Cut, type Ends, type ViewKind, type Graph, type Id, type Relation,
          type Side, type Span } from "@mnd/core";
 import { at_seat, beside, cell_box, laid, perch_id, roomed, seat_all, PAD, UNIT,
          type Perch, type Rect, type Seat, type Seating } from "@mnd/views";
-import { carried, marks_of, trail_of } from "./derive";
+import { carried, fit_names, marks_of, trail_of } from "./derive";
 import { look_of, wire_of } from "./look";
 import { page_graph } from "./page";
 import { survey_graph, FOREST } from "./survey";
@@ -17,7 +17,7 @@ import { registry_scene } from "./registry";
 import { class_graph, DRAWN_BY } from "./classes";
 import { sequence_scene } from "./sequence";
 import { tie_targets } from "./pack";
-import { box_of, cell as node, extent, EMPTY, FRAME, type BoxData, type BoxNode, type Frame,
+import { box_of, cell as node, EMPTY, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
          type Slot } from "./scene";
 
@@ -48,22 +48,6 @@ const SLOTS: readonly Slot[] = ["layer", "display", "relations"];
 /** What a projection with no layer draws: every package's domain, as boxes down the page. */
 const WHOLE = { kind: "package", cut: "tree" } as const;
 
-/** The layer with only what this section lists still parented to it, waypoints included. The
- *  rest move aside, so a folder opened from one section draws that section's kind. */
-function kept_side(graph: Graph, layer: Id, lists: "domain" | "structure"): Graph {
-  const blocks = { ...graph.blocks };
-  const sink = "\0aside";
-  let moved = false;
-  for (const c of children(graph, layer)) {
-    if (on_side(graph, c.id, lists)) continue;
-    moved = true;
-    blocks[c.id] = { ...c, parent: sink };
-  }
-  if (!moved) return graph;
-  blocks[sink] = { id: sink, parent: null, name: "" };
-  return { ...graph, blocks };
-}
-
 /** A graph whose layer says how many cards its page holds across: the host's count, unless the
  *  layer says its own. */
 function with_across(graph: Graph, layer: Id, across: number): Graph {
@@ -87,35 +71,25 @@ function group_carries(graph: Graph, group: Id): Id[] {
   return out;
 }
 
-/** Project a layer through the block view, with what its usages read through laid in. A part of
- *  a definition seen through a usage wears the `part` mark. */
+/** Project a layer through the block view, with what its usages read through laid in, and every
+ *  card's name sized to the box it was laid out at. */
 export function project(given: Graph, layer: Id | null, config: Config = {}): Scene {
+  return fit_names(unfitted(given, layer, config));
+}
+
+/** The layer's scene, before its names are fitted. A part of a definition seen through a usage
+ *  wears the `part` mark. */
+function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   /** A whole section is drawn from its scope, down to its cut, and read only: it offers what the
    *  drawing shows, and nothing to lay out. */
   const look: Config["look"] = config.look ?? (layer === null ? WHOLE : undefined);
   /** A registry, or an entry of one, draws as a treemap. */
   if (layer && look?.kind === "registry") return registry_scene(given, layer) ?? EMPTY;
-  /** A package or folder nobody arranged reads as a page, as wide as the canvas; its places are
-   *  the page's, so nothing is dragged. One somebody arranged draws as it was left. Either way
-   *  its room hugs what it holds. */
+  /** A package or folder reads as the package view does, top down: the section under it, never a
+   *  room. Only its trail is its own. */
   if (look?.kind === "folder" && layer && given.blocks[layer]) {
-    const given_side = look.lists ? kept_side(given, layer, look.lists) : given;
-    const b = given_side.blocks[layer]!;
-    const said = setting_of(given, layer, "layout")["kind"];
-    const arranged = (said !== undefined && said !== "free")
-      || children(given_side, layer).some((c) => c.x !== undefined);
-    const layout = { ...(config.across ? { across: config.across } : {}),
-                     ...setting_of(given_side, layer, "layout"), kind: "page" };
-    const paged = arranged ? given_side : { ...given_side, blocks: { ...given_side.blocks,
-      [layer]: { ...b, settings: { ...b.settings, layout } } } };
-    const scene = project(paged, layer, { ...config, look: undefined, room: true });
-    const nodes = arranged ? scene.nodes : scene.nodes.map((n) => ({ ...n, draggable: false }));
-    const held = extent({ ...scene, frame: undefined });
-    const frame = scene.frame && nodes.length
-      ? { ...scene.frame, ...roomed({ x: held.x - PAD, y: held.y - PAD, w: held.w + PAD * 2,
-                                      h: held.h + PAD * 2 }) } : scene.frame;
-    return { ...scene, nodes, ...(frame ? { frame } : {}),
-             slots: arranged ? scene.slots : scene.slots.filter((x) => x !== "layer") };
+    const scene = unfitted(given, layer, { ...config, look: { ...look, kind: "package" } });
+    return { ...scene, trail: trail_of(given, layer) };
   }
   if (look?.kind === "package") {
     const drawn = survey_graph(given, layer, look.cut,

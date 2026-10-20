@@ -82,16 +82,11 @@
   overflow: hidden;
 }
 
-/* Two lines only where the card's height holds them: under a corner a card needs 56px, a diamond
-   80px, since only its middle band is inside it. Every face is sized by views, never by its
-   contents, so a small card can be its own container. */
-.mnd-card.small { container: card / size; }
-@container card (max-height: 55.9px) {
-  .mnd-card.small:has(> .mnd-alias) > .mnd-head > .mnd-named > .mnd-label { display: block; white-space: nowrap; }
-}
-@container card (max-height: 79.9px) {
-  [data-shape="diamond"] > .mnd-head > .mnd-named > .mnd-label { display: block; white-space: nowrap; }
-}
+/* A name sized to its card by views: its size, and the lines it may take; on one line it is cut
+   short with an ellipsis rather than at a word. */
+.mnd-card[data-fit] > .mnd-head { font-size: var(--name-size, 13px); line-height: 1.5; }
+.mnd-card[data-fit] > .mnd-head > .mnd-named > .mnd-label { -webkit-line-clamp: var(--name-lines, 2); }
+.mnd-card[data-fit="1"] > .mnd-head > .mnd-named > .mnd-label { display: block; white-space: nowrap; }
 
 /* Nobody has named it, so what it reads is its type and the handle it was handed. */
 .mnd-card.unnamed > .mnd-head > .mnd-named > .mnd-label { opacity: 0.55; font-style: italic; }
@@ -196,6 +191,13 @@
   line-height: 16px;
 }
 .mnd-card.headless > .mnd-face-body { padding-top: 3px; }
+/* A body cut short at the whole lines its card holds, the last ending in an ellipsis. */
+.mnd-face-body.clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--body-lines, 1);
+  flex: none;
+}
 .mnd-face-body :where(p, pre, ul, ol, blockquote, hr, table, h1, h2, h3, h4, h5, h6) {
   margin: 0 0 4px;
 }

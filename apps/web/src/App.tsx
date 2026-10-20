@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { collect, drop_of, fixed_layout, held_at, in_section, is_inside, is_layer_view,
          layout_of, lens_of, registry_at, registry_id, registry_of,
-         session, trace, writes, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
+         session, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { box_of, clear_of, empty_of, holds, project, set_card as apply_card, tidy, BLOCK,
@@ -154,12 +154,9 @@ export function App({ storage, boot, opening }: {
     return glanced.get(id)!;
   };
 
-  /** A diagram names no layer slot: the canvas may open a card, and it writes nothing. */
-  const editing = scene.slots.includes("layer");
-  const on_canvas = (name: string, args?: Record<string, unknown>) => {
-    if (!editing && writes(name)) return;
-    act(name, args);
-  };
+  /** **The canvas edits in every view**: what a view cannot hold, core refuses and says why.
+   *  Only a view naming a layer slot keeps where its cards are put, so only there are they moved. */
+  const arranging = scene.slots.includes("layer");
 
   /** **The sections follow the canvas** — one rule (`held_at`), whatever moved it: the layer opened,
    *  or a pick on the overhead view. Browsing outside the open structure moves neither. */
@@ -376,24 +373,24 @@ export function App({ storage, boot, opening }: {
                          picked: !on ? [...s.picked()]
                                : s.picked().includes(on) ? [...s.picked()] : [on] }}
                   at={at} spot={spot} only={only} given={given}
-                  onAct={on_canvas} onShut={shut} />
+                  onAct={act} onShut={shut} />
           )}
           /** What a drop comes to is core's: a block arrives as a reference, a definition retypes
-           *  what it lands on or makes one. Onto a cell is seated there. A diagram takes no drop. */
-          onDrop={editing ? (id, spot, land) => {
+           *  what it lands on or makes one. Onto a cell is seated there; a whole section's ground
+           *  is the workspace's. */
+          onDrop={(id, spot, land) => {
             /** Where the pointer was, clear of what is already there. */
             const at = clear_of(
               scene.nodes.filter((n) => n.id !== id && !holds(n) && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
-            if (whole) return;
             const cell = land.cell && land.into ? land.into : null;
             const made = drop_of(graph, {
               ids: [id], onto: "drawing", parent: cell ?? layer ?? graph.root,
               on: land.line ?? land.over, spot: at,
               ...(cell ? { cell: `${land.cell!.r},${land.cell!.c}` } : {}) });
             if (made) s.go(made.act, made.args);
-          } : undefined}
+          }}
           picked={s.picked()}
           cells={s.cells()}
           onPickCells={(cells) => {
@@ -417,12 +414,12 @@ export function App({ storage, boot, opening }: {
               && ids.every((id) => shown.includes(id));
             if (!echo) pick(ids);
           }}
-          onAct={on_canvas}
+          onAct={act}
           /** A whole section, a definition drawn with what describes it, or a diagram, is not
            *  moved about. Those, a folder and a layer laid out `auto` are read down the page,
            *  fitted to their width: a section from its anchor. A class diagram laid out `auto`
            *  scrolls the same way. */
-          onAdjust={editing && !whole ? adjust : () => undefined}
+          onAdjust={arranging && !whole ? adjust : () => undefined}
           scroll={whole || view.kind === "folder" || diagram
                   || (view.kind === "internal" && laid_out === "auto")}
           focus={system ? view.pick : whole ? null : aim}
