@@ -1,6 +1,6 @@
 # Options Rail
 
-**Every control the thing on the stage has, in one column fixed to the right.** A real column and not an overlay: the stage ends where the rail begins, so chrome never sits on the drawing.
+**The palette and the quick editor, in one column fixed to the right.** It never chooses a view: the canvas is one world, read in world or reading view (design.md *Perspectives*). A real column and not an overlay: the stage ends where the rail begins, so chrome never sits on the drawing.
 
 **Its bar says its name** — *options*, centred, the same height as the explorer's bar and the tray's, so the three read as one line across the page. It wore a hamburger until that mark went to the explorer, where it opens the filter (ST.21).
 
@@ -11,15 +11,17 @@
 The groups arrive as `slots` on the Scene. The rail draws them in a fixed order whatever order it was handed:
 
 ```
-view · layer · display · relations
+palette · workspace · make · relations
 ```
 
 | | Is |
 |---|---|
-| **`view`** | the section's **system views** — *package* and *profile* — the only views chosen; choosing one leaves the open layer for the whole section. Last, the layer view — internal, allocation, sequence, class, entity or registry — never chosen, only shown: lit while the canvas draws it, and on a system view the way back to where the block in hand is drawn |
-| **`layer`** | the layer's layout — `free` or `auto`. A setting, and the one group here that writes to the log. `page` is a definition's or a host's to set, never offered here; a system view, a definition view and a paged folder offer no `layer` group at all, and nor does a layer whose kind names its layout (`fixed`: a flow, a state machine, a treemap) |
-| **`display`** | what the drawing shows rather than what it holds: the frame, the guides, whether interfaces draw, whether folders are flattened, and whether this layer draws the key to itself. Nothing here enters the log |
-| **`relations`** | what a right drag and a `chain` draw: *straight*, *directed* or *tie*. The shipped runs only; a relation definition is applied in the tray |
+| **`palette`** | the notation the focus's family draws with, dragged or clicked in: a flow `start`, `decision`, `end`; a state machine `start`, `end`; every room `note`, `label`, `group`, `region` |
+| **`workspace`** | the workspace's name and the open package's name and description, edited in place; the tray's workspace tab holds the rest |
+| **`make`** | *new usage* and *new definition*: a `create` in the focus, typed by the definition picked where there is one |
+| **`relations`** | which relation types a right drag and a `chain` draw: *straight*, *directed*, *tie*, and the relation definitions the open packages hold. A relation definition's own settings are applied in the tray |
+
+**Not here**: views (there are none to choose), a room's layout (the tray's card tab, a setting of that room) and display — frame, guides, ports, the key, the context mode — which is one workspace-wide setting on the tray's workspace tab.
 
 ## What a control is
 
@@ -31,8 +33,6 @@ view · layer · display · relations
 | **`on`** | lights it. **A verb leaves it undefined**, since there is no state a verb puts anything in |
 
 **One glyph per control, lit or not.** A setting draws the same mark whichever way it is set, and `on` is the only thing that says which. Toggles wore a struck-through second glyph until that made two marks to learn for one control, and left the lighting saying nothing the picture had not already said.
-
-**A layer's own answer overrides the workspace's, never yields to it.** The *legend* control sets this layer; the workspace tab sets what a layer does when it has said nothing. A workspace default that could not be overridden here would make the tab a lock rather than a default, so the control lights for the effective state and always writes this layer's.
 
 **A verb never lights**, and that is the plainer signal of the two: the rule that toolbars divide states from verbs is carried by the group's own label and by the fact that nothing in a verb group is ever on.
 

@@ -54,10 +54,11 @@
 
 | | Does | Scope | Arguments | Effect |
 |---|---|---|---|---|
-| `open` | draws a block on the view its kind calls for — a definition as its usages are, a registry or an entry of one as its treemap — or leaves this layer. `at`, the section it was opened from | block | id?, at? | `open` |
-| `reveal` | picks a block where the canvas already draws it, else opens the layer it sits on and picks it there. A reference is revealed as itself | block | id | `open` + `focus` |
+| `open` | focuses a room in world view — a definition as its usages are, a registry or an entry of one as its treemap — or leaves for the room holding the focus. `at`, the section it was opened from | block | id?, at? | `open` |
+| `read` | focuses a room in reading view: 100%, scrolling inside its walls | block | id | `open` |
+| `reveal` | picks a block, focusing the room it sits in. A stand-in is one object with its block: revealing it lights every appearance | block | id | `open` + `focus` |
 
-- **Where the canvas goes is navigation's** (core `navigate.ts`): **the card's kind says the view** (`lens_of`) — a package or folder its package view, a grid its allocation view, a block with something to draw from inside, a stand-in what it stands for; **a definition opens as its usages do**, on the view its chain names. **An empty block opens on nothing**, nor do a group, a region, a label or a note: each is picked where the canvas draws it. Leaving a package returns to the package view. Both apps use the same functions.
+- **Where the canvas goes is navigation's** (core `navigate.ts`): **opening focuses a room** — any block holding blocks — and the camera flies to it; **the card's kind says how that room draws** (`lens_of`); a stand-in focuses what it stands for; **a definition opens as its usages do**. A block holding nothing is picked where it is drawn, its room focused; a region may be focused from the canvas; a group, a label or a note never is. Leaving focuses the room holding the focus. Both apps use the same functions.
 - **Opening a part opens its definition**, the part picked there.
 - **An interface opens nothing**: it is a component of its block, drawn on its wall, with no layer of its own.
 
@@ -209,9 +210,12 @@
 
 | Slot | Is |
 |---|---|
-| `layer` | the layer's layout kind. A setting, in the log |
-| `display` | what the drawing shows: frame, guides, interfaces, flatten. Writes nothing |
-| `relations` | what a right drag and a `chain` draw: a plain or directed line, or a tie |
+| `palette` | the notation the focus's family draws with |
+| `workspace` | the workspace's and open package's name and description |
+| `make` | *new usage* and *new definition* in the focus |
+| `relations` | which relation types a right drag and a `chain` draw |
+
+Display — frame, guides, ports, the key, the context mode — is the workspace tab's, one workspace-wide setting; a room's layout is the tray's card tab.
 
 
 ## Not on the surface
@@ -221,7 +225,7 @@
 | **shell actions** | new workspace, import, export, export as a package, undo, redo: they reach a host port, not the graph. Export sits in the header and on the workspace tab, export as a package on the workspace tab alone. A package is authored as a workspace and written as one: its root and ids prefixed with its name |
 | **queries** | readable state, off the registry |
 | **finding** | filtering writes nothing and goes nowhere |
-| **display preferences** | outside the log: interfaces shown, guides, frame, folds, theme |
+| **display preferences** | outside the log, workspace-wide: card size, frame, guides, ports, the key, the context mode (dim or rings), folds, theme |
 
 
 ## The registry

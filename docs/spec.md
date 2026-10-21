@@ -24,11 +24,12 @@ project(graph: Graph, layer: Id | null, config?: Config): Scene
 ```
 Scene {
   layer:   Id | null
-  frame:   { x, y, w, h, label, role, side, ports, seats }   <- absent at the root, which has no outside
+  frame:   { x, y, w, h, label, role, side, ports, seats }   <- one room projected alone (previews); absent in the world
+  rooms:   [{ id, parent, x, y, w, h, label, kind, depth, ports, bands }]   <- the world: every room composed
   nodes:   [{ id, type, position, width, height, data }]     <- card, note, group, grid, seat
   edges:   [{ id, source, target, handles, label, data: { module, dir, wire, points? } }]
   perches: [{ edge, end, on, side, at }]                     <- where an end meets a border
-  slots:   ["layer" | "display" | "relations"]
+  slots:   ["palette" | "workspace" | "make" | "relations"]
   trail:   [{ id, label }]
 }
 ```

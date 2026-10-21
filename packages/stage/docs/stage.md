@@ -51,12 +51,15 @@
 
 **Another surface points; only a gesture picks.** A hovered table row arrives as `lit` and draws an accent outline round a card or an accent stroke on a run. A pick draws an accent border and a raised fill on a card, and the grips on a run — so the two differ in what is shown, never only in strength.
 
-## Scrolled drawings
+## The camera
 
-**A scrolled drawing is a page held still across**: fitted to its width (or `reach`), centred where it is narrower than the view and read from its left where wider, and never magnified past `most`. The system views, the folder and definition views, and mndmap's pages are scrolled. **A scrolled drawing's room hugs what it draws** rather than growing to the panel, so a short folder reads without empty space.
+**One camera over one world** (design.md *Perspectives*). The stage draws the world the views compose and owns every viewport change; React Flow's own fit stays off.
 
 | Rule | |
 |---|---|
-| **read from top to bottom, no further** | the page stops a band past its content's top and foot; a page shorter than the view sits in its middle |
-| **scrolled into view, never centred** | a focus already in view leaves the page still; one out of view moves it just far enough |
-| **one reckoning** | the camera and the scroll limit read the same page and zoom (`paged`, `bounded` in `room.ts`), so neither undoes the other |
+| **world view** | the focus fitted inside the band, never above 100%, centred |
+| **reading view** | 100% on the focus; a focus wider or taller than the view starts at its top left plus the band, and wheel and drag pan it, held to its walls plus the band. Chips at the edges say how much is left |
+| **one flight** | every change of focus or mode flies: zoom eased in scale, the centre in a line. Reduced motion jumps |
+| **context** | outside the focus dimmed, or only the focus's ancestors' outlines (rings) — the workspace's display setting. Lines are bright to the focus's wall and dimmed beyond; a seat where a line leaves names its far end |
+| **far out** | below 60%, cards hide their words and room titles grow so the world still reads |
+| **rooms hug what they hold** | a room is never grown to the panel |

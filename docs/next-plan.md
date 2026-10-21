@@ -8,14 +8,15 @@
 | | |
 |---|---|
 | **committed** | through 395b81a (2026-10-19): base filed by blocks, diagrams and notation; the gallery as one shop; `collect` nesting; one design language by group; a card shows what it has; label and treemap names; the overview glance. Verified then: typecheck, 285/285 tests, lint, gallery `check` and `review` clean; driven in Edge, no console errors |
-| **uncommitted** | the plan consolidated; handles only while unnamed; one corner row; names cut to the room they have; the gallery split into `samples/model` (root `example`) and `samples/elements` (enumerations, a second workspace); small names sized to fit; sized bodies cut at whole lines; corners never on headers or marks. Verified: typecheck, 285/285 tests, CSS lint, `check`/`review` clean on both; driven in Edge. Suggested commit: *Split the gallery into model and elements; tidy card corners* |
-| **next session** | step 1, lines |
+| **uncommitted** | the plan consolidated; handles only while unnamed; one corner row; names sized to fit; sized bodies cut at whole lines; corners never on headers or marks; the gallery split into `samples/model` (root `example`) and `samples/elements` (a second workspace); packages and folders open as the package view; the canvas edits in every view; rooms fit on entry (React Flow's own fit off, one zoom floor). **Docs**: rooms-plan.md written, and the goal docs moved to the rooms world — design.md, definitions.md, explorer.md, tray.md, options.md, stage.md, views.md, block.md, actions.md, schema.md, spec.md. Verified: typecheck, 285/285 tests, CSS lint, `check`/`review` clean on both samples; driven in Edge. Suggested commit: *Plan the rooms world; edit in every view; fit card names and rooms* |
+| **next session** | rooms-plan.md phase 1 (*nested layout*), after its prerequisite: the *seats* fix in step 1 below. Read rooms-plan.md *Hand-off* first |
 
 
 ## Order
 
 | # | Work | Done when |
 |---|---|---|
+| 0 | **rooms** | the refactor in rooms-plan.md lands, phase by phase (all its questions settled 2026-10-20). It needs step 1's *seats* fix first; it owns the rail and the workspace tab; steps 2, 3 and 7 are read against it |
 | 1 | **lines** | crossings and line words read cleanly on every model diagram |
 | 2 | **block design, the rest** | the rail is the palette; the tray's choices scoped by family; faces' open items closed |
 | 3 | **model joins** | from any block, every side it appears on is one click away |
@@ -46,7 +47,7 @@
 
 | Task | |
 |---|---|
-| **the rail is the palette** | a *notation* group offering what the open diagram's family draws with (flow: `start`, `decision`, `end`; state: `start`, `end`; every kind: `note`, `label`, `group`, `region`), drawn by drag or click; the diagram kind set from the rail by its major families, never all eight. The main way to set a kind |
+| **the rail is the palette** (moved: rooms-plan.md phase 4) | a *notation* group offering what the open diagram's family draws with (flow: `start`, `decision`, `end`; state: `start`, `end`; every kind: `note`, `label`, `group`, `region`), drawn by drag or click; the diagram kind set from the rail by its major families, never all eight. The main way to set a kind |
 | **type chips by family** | the tray's *type* offers a diagram only its family's kinds, a part only what its parent's kind allows; never a mark for a diagram |
 | **faces, open** | a named note shows only its name on the small face; holders (group, region headings) wear no handle yet; a rail toggle for the compact view (`layout.cards: small`) |
 
@@ -68,7 +69,7 @@ The card and settings tabs are built (tray.md). Left:
 
 | Task or question | |
 |---|---|
-| **the workspace tab** | still label-and-answer rows (name, tags, display, file, export): convert to keys and choices |
+| **the workspace tab** | moved: rooms-plan.md phase 4 lays it out as an overview with the workspace-wide display band |
 | **attribute values in files** | a card source writes values as top-level keys, so a value named like a schema key vanishes. Keep them flat, or nest under `values:`. Recommended: nested |
 | **usage settings in the schema** | the tray offers a usage no settings, but `Block.settings` still allows one. Drop it, or keep it for files and arrangement |
 | **traits** | on the card tab; keep them there or move them to settings |
@@ -166,7 +167,7 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | Question | Today | Options |
 |---|---|---|
 | **arrange, generally** | *arrange* reorders a layer once, on request | crossing reduction by reordering within reading order (step 1) |
-| **the palette's kinds** | the rail is to set a diagram's kind (step 2) | which families it offers as buttons; whether marks are dragged or clicked in |
+| **the palette's kinds** | the rail is the palette (rooms-plan.md phase 4); it no longer sets a diagram's kind | which families it offers as buttons; whether marks are dragged or clicked in |
 | **region from the rail** | a region is made from a selection's menu, or empty from the room's | also a tool in the rail |
 | **base colour** | base `block` has `family: primary` and no `hue`, so plain definitions all look alike | give `block` a `hue` and `vary`; or leave colour to each package |
 | **colour role off the canvas** | the tray, explorer and hosts draw a definition filled | canvas only; or outlined in the tray too |

@@ -2,10 +2,11 @@
 
 **One way to draw.** A layer is what is looked at; this package is the looking. It reads the graph and hands back a **Scene** — plain data, importing nothing drawable.
 
-**There is one way to draw.** A grid is how a layer states order and allocation; there is no choice of view module. The canvas draws the whole system in a system view — **package** (`survey.ts`) or **profile** (`profile.ts`), both trees, a definition's structure to its top level only, every card on its small face, a grid as one card, and the package view without notes — or one block in the layer view its kind calls for: **internal**, **definition** or **allocation**, or the diagram its `layout.view` names: **table** (`table.ts`) or **sequence** (`sequence.ts`). A diagram is read only and stores nothing it draws. `layered` lays an internal layer out by its relations.
+**There is one way to draw: the world.** Every room of a package is projected by its own kind — internal, allocation, sequence, class, entity, registry — and composed inside its parent at the size of what it holds (`world_of`, rooms-plan.md phase 1). The canvas draws the world and moves a camera through it; there are no system views. A projection stores nothing it draws. `layered` lays a room out by its relations.
 
 ```
-project(graph, layer, config) → Scene
+world_of(graph, root, config) → World     // the canvas: every room composed
+project(graph, layer, config) → Scene     // one room alone: the tray's previews, and each room before composing
 ```
 
 ## What is in here
@@ -75,9 +76,8 @@ project(graph, layer, config) → Scene
 | Transform | Does |
 |---|---|
 | **read-through** | an opened usage draws its definition's structure beside its own children, one step; every card on the layer, and the room, wears its ports — its own and its definition's chain's — laid in as seats under `block/port`. Parts wear the link mark |
-| **flatten** | folders draw as groups, so a whole domain reads on one page |
-| **package view** | a whole section (`look.kind: "package"`, and nothing open, `open: null`): every package a full-width box of its domain, flattened, laid out as a `page` and scrolled rather than zoomed. Which packages, and how many cards across, are the host's to say. Cards keep their real ids, so a pick is the block itself |
-| **folder** | a package or folder's own layer, editable; laid as a `page` where nobody placed what it holds, else as placed. Its room hugs what it holds, and the page is read down the view |
+| **world** | every room under a package root, each projected alone then composed into its parent's coordinates: its card replaced by its room node (`room:<id>`), its runs routed inside its walls, its seats shared with the parent. Cards keep their real ids, so a pick is the block itself |
+| **folder** | a room laid out in rows, as any room hugging what it holds |
 | **no derived line** | a view draws stored relations only; the class diagram's *extends*, from `type`, is the one exception |
 | **layout** | the layer's layout kind places what is drawn |
 

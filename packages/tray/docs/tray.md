@@ -43,12 +43,12 @@
 | block definition | overview · card · settings · components · usages |
 | a line | line · components |
 | relation definition | line · settings · components · usages |
-| the workspace | workspace · contents |
+| the workspace | workspace (an overview) · contents |
 | a definitions folder | definitions |
 | the packages section | packages |
 | a registry | entries |
 
-**Every element asks in one order**: what it is for, what it is, how it draws, what it carries, what it lists. **A block opens on its overview**, one layout for every block: on the left always a drawing (the host's `thumb`, by the canvas's renderer) — its layer where it opens, else the layer it sits on fitted to it and its neighbours (`thumb(layer, focus)`), the face alone only where there is no layer — fitted to the tray's height, and on the right *why it matters*, *how it is used* and *where it lives*, with its counts in its kind's words. An empty plain block lists the kinds it may become there. A host's own tabs lead. **The card tab is named for what is drawn** — *card* or *line* — and holds every key saying what the element is. **A definition's settings tab is laid out as its card tab**, its keys how it draws.
+**Every element asks in one order**: what it is for, what it is, how it draws, what it carries, what it lists. **A block opens on its overview**, one layout for every block: on the left always a drawing (the host's `thumb`, by the canvas's renderer) — its room where it is one, with *open* (the canvas focuses it, world view) and *read* (reading view), else the layer it sits on fitted to it and its neighbours (`thumb(layer, focus)`), the face alone only where there is no layer — fitted to the tray's height, and on the right *why it matters*, *how it is used* and *where it lives*, with its counts in its kind's words. An empty plain block lists the kinds it may become there. A host's own tabs lead. **The card tab is named for what is drawn** — *card* or *line* — and holds every key saying what the element is. **A definition's settings tab is laid out as its card tab**, its keys how it draws.
 
 **A relation says what its ends mean on its line tab**: a *from end* and a *to end* key, each read `1..*, lines, composite`. On a line it answers multiplicity (chips, or `m..n` typed) and its role (typed); on a relation definition also ownership (`none`, `shared`, `composite`) and navigable (yes, no). **An attribute's key** is a choice: PK, UK or none; a foreign key reads FK from its type. **An interface's keys** — name, flow, its interface definition, seat, and where it is held — edit it where it is held: its definition's, for one a usage reads through.
 
@@ -108,7 +108,7 @@
 - **A large face that shows nothing yet previews** its attributes, else sample content, at the size that fits, drawn faint, so a definition's look can be judged before it says anything. **The face wears the handle top left**: a usage its own, a definition the one its next usage takes, unless `card.alias` hides it.
 - **Attach** sits at the far right of the tab strip on a usage's card tab: the host asks for a markdown file and copies it on, recording where it came from. Attached again, it refreshes.
 - **Permissive**: a type or tag name nothing holds is made, and said.
-- **The workspace carries a *display* band** on its own tab: the small card's size, and whether a layer draws the key to itself. **Display, not model** — the log never sees it and no file carries it.
+- **The workspace tab is an overview**, laid out as every block's: the world fitted on the left; *why it matters* (name, description, tags), *how it is used* (counts, packages) and *where it lives* (file, export) on the right. **Under it, the display band**: the small card's size, the frame, the guides, ports, the key and the context mode (dim or rings) — **one workspace-wide setting**, the same in every room and view; no room says its own. **Display, not model** — the log never sees it and no file carries it.
 
 ### Parts of a drawing
 
@@ -163,8 +163,9 @@
 
 ### Contents
 
+- **A room lists its blocks**: in reading order, grouped under its regions' headings, each row picking its card — the blocks the explorer does not list, since it lists rooms only (design.md *Navigation*)
 - **Layer scope lists one level**: **whatever is in context lists its own contents**, whether or not it holds anything yet, and the open layer answers where the context is a line, a definition or the root. One rule — `frame_of` in the engine — so the same gesture never gives two answers. **Workspace scope lists everything**, each row saying where it sits.
-- **A reference lists the one it stands for.** It holds nothing of its own, so its contents is that one block, under a *stands for* column head and offering *view*. Nothing is read through a reference: what it points at is listed as what it is, where it really lives.
+- **A stand-in is its block** (one object, design.md *Cards*): picked, the tray shows the block it stands for, and its overview's *where it lives* lists every appearance, each a jump. Editing in the tray edits the block.
 - **Chips narrow by what a row is.**
 - **A column is a field in scope**, asked for by name, and its values are edited in the row.
 - **A block or a line is renamed in its row**.

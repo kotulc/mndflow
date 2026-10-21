@@ -40,7 +40,8 @@ File {
 
 ```
 Session {
-  open      Id | null          // the layer the canvas draws; null is the package view
+  focus     Id                 // the room or region the camera is on
+  mode      "world" | "read"   // fitted to the focus, or 100% inside its walls
   selected  Route[]            // a block, or usage/part
   folded    Id[]
   theme     string
