@@ -11,7 +11,9 @@ import { Legend, type Corner } from "./Legend";
 import { moves_of, type Move } from "./moves";
 import { cell_key } from "./nodes";
 import { Icon } from "@mnd/theme";
-import { box_of, clear_of, holds, swept_cells, BLOCK, CELL, type Scene } from "@mnd/views";
+import { box_of, clear_of, holds, home_of, local_at, local_scene, room_under, swept_cells,
+         BLOCK, CELL,
+         type Scene } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
 
 export type { Adjust, Landing, Move };
@@ -60,6 +62,11 @@ export type StageProps = {
   focus?: string | null;
   /** The most a scrolled drawing magnifies. */
   most?: number | null;
+  /** In the world: how the focus is looked at, the region stopped at, and how what lies outside
+   *  the focus is drawn. */
+  mode?: "world" | "read";
+  stop?: { x: number; y: number; w: number; h: number } | null;
+  context?: "dim" | "rings" | null;
   /** Whether the canvas has the keys. Undo and redo answer wherever the keys are. */
   keys?: boolean;
 };
@@ -178,6 +185,7 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
                        menu, said, onSaid, head, empty, lattice, frame, legend, corner, module,
                        dir, type, lit = [], scroll = false, focus = null, most = null,
+                       mode = "world", stop = null, context = null,
                        keys = true }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
@@ -214,21 +222,26 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       /** Escape closes the nearest thing. */
       else if (e.key === "Escape") {
         if (at) { set_at(null); return; }
+        /** With nothing picked, reading widens back to the world view. */
+        if (!picked.length && mode === "read") { onAct("widen"); return; }
         onPick([]);
         onSaid?.();
       }
-      /** Enter opens the one picked card; navigation says where that goes. */
+      /** Enter opens the one picked card; navigation says where that goes. With nothing picked,
+       *  the focus is read. */
       else if (e.key === "Enter" && one && !scene.edges.some((r) => r.id === one)) {
         onAct("open", { id: one });
       }
+      else if (e.key === "Enter" && !picked.length && scene.rooms) onAct("read");
       else if (e.key === "F2" && one) set_naming(one);
       /** Everything picked, in one step. */
       else if ((e.key === "Delete" || e.key === "Backspace") && picked.length) {
         onAct("delete", { ids: [...picked] });
       }
+      /** Ctrl+G groups what is picked; with Shift, it makes a room of it. */
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g" && picked.length) {
         e.preventDefault();
-        onAct("group", { members: [...picked] });
+        onAct(e.shiftKey ? "room" : "group", { members: [...picked] });
       }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
         e.preventDefault();
@@ -238,7 +251,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     };
     window.addEventListener("keydown", on_key);
     return () => window.removeEventListener("keydown", on_key);
-  }, [scene, picked, at, onAct, onPick, onSaid]);
+  }, [scene, picked, at, onAct, onPick, onSaid, mode]);
 
   /** What the right button offers, per thing. */
   const OFFERS: Partial<Record<Gesture["kind"], readonly (string | Entry)[]>> = {
@@ -252,7 +265,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
            "delete"],
     /** A group and a grid write their name on the frame when told to. */
     band: [{ name: "rename", label: "rename group" }, "open", "note", "fill",
-           { name: "chain", args: drawing },
+           { name: "chain", args: drawing }, { name: "room", label: "turn into room" },
            { name: "delete", label: "delete group" }],
     /** A cell offers what can be done to the lattice there. */
     cell: [
@@ -278,7 +291,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
 
   /** What a selection of several offers. */
   const MANY: readonly (string | Entry)[] = ["group",
-    { name: "group", label: "region", args: { type: "region" } }, "delete"];
+    { name: "group", label: "region", args: { type: "region" } },
+    { name: "room", label: "make room" }, "delete"];
 
   const gesture = (g: Gesture) => {
     /** A tab picks its line itself; two clicks on a header write its text, as on any cell. */
@@ -310,8 +324,15 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
           else onAct("open", { id: g.on });
         }
         else if (g.on && g.kind === "note") set_naming(g.on);
+        /** Two clicks on a region focus it: a stop for the camera inside its room. */
+        else if (g.on && g.kind === "band" && scene.rooms) onAct("open", { id: g.on });
         else if (g.kind === "frame") onAct("open");
-        else if (!g.on) onAct("open");
+        /** Two clicks on the ground of another room open it; anywhere else, leave. */
+        else if (!g.on) {
+          const room = room_in(scene, g.at)?.id;
+          if (room && room !== scene.layer && !above(scene, room)) onAct("open", { id: room });
+          else onAct("open");
+        }
       }
       /** A single left click is a selection, reported by the canvas. */
       return;
@@ -319,7 +340,12 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     /** Right-click on empty ground makes a block; elsewhere it opens the menu. */
     if (!g.on || g.kind === "empty") {
       const name = prompt("name it");
-      if (name !== null) onAct("create", { name, spot: made_at(scene, g.at) });
+      if (name === null) return;
+      /** In the world, it is made in the room under the pointer, where it was pointed. */
+      const room = scene.rooms ? room_in(scene, g.at) : null;
+      const spot = made_at(scene, g.at);
+      onAct("create", { name, ...(room ? { parent: room.id, spot: local_at(room, spot) }
+                                       : { spot }) });
       return;
     }
     /** A right-click on a cell makes a block in it; inside the picked cells, it is about them. */
@@ -358,6 +384,9 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         scroll={scroll}
         focus={focus}
         most={most}
+        mode={mode}
+        stop={stop}
+        context={context}
         naming={naming}
         onNamed={(label) => {
           const was = typing;
@@ -373,7 +402,10 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onRelate={(from, to) => onAct("relate", { from, to, ...drawing })}
         /** A right drag across empty ground draws a grid, seating what it covered. */
         onSweep={(box) => onAct("group", swept(scene, box))}
-        onAdjust={(adjust) => onAdjust?.(moves_of(graph, scene, adjust))}
+        onAdjust={(adjust) => {
+          const here = in_room(graph, scene, adjust);
+          onAdjust?.(moves_of(graph, here.scene, here.adjust));
+        }}
         said={said ? (
           <>
             <span>{said}</span>
@@ -427,6 +459,36 @@ function free_cell(taken: ReadonlySet<string>, rows: number, cols: number,
     }
   }
   return best;
+}
+
+/** An adjustment in the world, read in the room it happens in: that room's own drawing, and
+ *  every position in its coordinates. A seat is moved in the room of the card it sits on. */
+function in_room(graph: Graph, scene: Scene, a: Adjust): { scene: Scene; adjust: Adjust } {
+  const rooms = scene.rooms;
+  if (!rooms) return { scene, adjust: a };
+  const id = a.kind === "place" ? a.at[0]?.id : a.on;
+  const node = scene.nodes.find((n) => n.id === id);
+  const room = a.kind === "wall-seat" ? rooms.find((r) => r.id === scene.layer)
+    : id ? home_of(graph, rooms, node?.data.on ?? id) : null;
+  if (!room) return { scene, adjust: a };
+  const at = (p: { x: number; y: number }) => local_at(room, p);
+  const adjust: Adjust = a.kind === "move" || a.kind === "size" ? { ...a, to: at(a.to) }
+    : a.kind === "place" ? { ...a, at: a.at.map((p) => ({ ...p, to: at(p.to) })) } : a;
+  return { scene: local_scene(graph, scene, room), adjust };
+}
+
+/** The innermost room under a point, in the world. */
+function room_in(scene: Scene, at: { x: number; y: number }) {
+  return room_under(scene.rooms ?? [], at);
+}
+
+/** Whether a room holds the focus: one of its ancestors. */
+function above(scene: Scene, room: string): boolean {
+  const rooms = new Map((scene.rooms ?? []).map((r) => [r.id, r]));
+  for (let at = rooms.get(scene.layer ?? "")?.parent; at; at = rooms.get(at)?.parent ?? null) {
+    if (at === room) return true;
+  }
+  return false;
 }
 
 /** Where a card made here goes. */

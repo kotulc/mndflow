@@ -184,15 +184,11 @@ fieldset.fields { padding: 0; }
 .contents-table td .type.typed { color: var(--card-edge, var(--muted)); }
 .contents-table td .faint { color: var(--faint); font-style: italic; }
 
-/* The workspace draws nowhere, so there is no card column: what it is and what it is made of
-   take a column each. */
-.panel.workspace {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-areas: "identity file";
-}
-
-.panel.workspace > .col.identity { grid-area: identity; }
-.panel.workspace > .col.file { grid-area: file; }
+/* The workspace tab: an overview of the world, then the display every room draws by. */
+.workspace-tab { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+.workspace-tab > .overview { flex: none; min-height: 220px; }
+.workspace-tab .stat { display: flex; gap: 12px; }
+.workspace-tab > .display { padding: 0 10px 10px; }
 
 /* ── A rail over a table ── */
 /* The rail heads its table the way the contents table heads its own. */
@@ -495,7 +491,7 @@ fieldset.fields { padding: 0; }
                            padding: 8px; }
 /* The face laid out at its own size, centred in the room it takes. */
 .overview .glance .face { left: 50%; translate: -50% 0; }
-.overview .glance .open { position: absolute; right: 8px; bottom: 6px; }
+.overview .glance .opens { position: absolute; right: 8px; bottom: 6px; display: flex; gap: 6px; }
 .overview .make { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px;
                   padding: 0 10px 10px; }
 .overview .make .faint { width: 100%; text-align: center; }

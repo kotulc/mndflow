@@ -6,6 +6,7 @@ import { library_map } from "./library";
 import { subtree } from "./tree";
 import { empty_graph, KINDS, type Block, type Graph, type Id, type LibraryEntry, type Log,
          type Mutation, type Step } from "./types";
+import { forget } from "./memo";
 
 /** The shipped packages every fold starts from: their blocks, laid under whatever a log says. */
 export type Floor = readonly Block[];
@@ -36,6 +37,8 @@ function entry_in(graph: Graph, id: Id) {
 
 /** Replay one mutation onto a graph, in place. */
 function apply(graph: Graph, m: Mutation): void {
+  /** Written in place, so nothing worked out from it before still holds. */
+  forget(graph);
   switch (m.op) {
     case "checkpoint":
       graph.root = m.graph.root;
@@ -292,6 +295,7 @@ export function fold(log: Log, floor: Floor = []): Graph {
 
 /** The shipped packages, over whatever is there. Copied, so no fold can write into them. */
 function lay(graph: Graph, floor: Floor): void {
+  forget(graph);
   for (const b of floor) graph.blocks[b.id] = structuredClone(b);
 }
 

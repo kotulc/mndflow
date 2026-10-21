@@ -88,7 +88,11 @@ export function Wire(props: EdgeProps<LineEdge>) {
    *  where its lines fan. A tie runs straight. */
   const routed = avoided_run(runs.get(id), { x: sourceX, y: sourceY }, { x: targetX, y: targetY });
   /** A sequence message already knows its run. Everything else is routed, or one Z. */
-  const given = data?.points;
+  /** A run the world routed holds while both its ends stay where it was routed to. */
+  const kept = data?.routed
+    ? avoided_run(data.points, { x: sourceX, y: sourceY }, { x: targetX, y: targetY })
+    : null;
+  const given = data?.routed ? kept : data?.points;
   const run = given && given.length > 1 ? given
     : routed ?? route({ x: sourceX, y: sourceY }, sourcePosition,
                       { x: targetX, y: targetY }, targetPosition,

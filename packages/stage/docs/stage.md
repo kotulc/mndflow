@@ -36,7 +36,7 @@
 
 | | Is |
 |---|---|
-| `room.ts` | the room a layer is drawn in, and the camera that flies to it. **A room that changed size is framed again** — the tray opening or shutting, the explorer dragged — unless there is no room left to fit into |
+| `room.ts` | the camera: `useFocus` fits the focus or reads it, flies to a new one and pans to a block revealed inside; **a focus that changed size, or a view resized, is framed again** unless there is no room left to fit into. `usePage` is the kit's scrolled page |
 | `sync.ts` | React Flow's copy of the arrays, kept in step with the Scene and the selection |
 | `draw.ts` | the right button: a relationship from a card, a grid across the ground |
 | `drag.ts` | what travels with a dragged node, what is lit, and the adjustment a drop makes |
@@ -61,5 +61,5 @@
 | **reading view** | 100% on the focus; a focus wider or taller than the view starts at its top left plus the band, and wheel and drag pan it, held to its walls plus the band. Chips at the edges say how much is left |
 | **one flight** | every change of focus or mode flies: zoom eased in scale, the centre in a line. Reduced motion jumps |
 | **context** | outside the focus dimmed, or only the focus's ancestors' outlines (rings) — the workspace's display setting. Lines are bright to the focus's wall and dimmed beyond; a seat where a line leaves names its far end |
-| **far out** | below 60%, cards hide their words and room titles grow so the world still reads |
+| **far out** | below 40%, cards hide their words and room titles grow so the world still reads. A fitted room is often below 60%, and its cards must still read |
 | **rooms hug what they hold** | a room is never grown to the panel |

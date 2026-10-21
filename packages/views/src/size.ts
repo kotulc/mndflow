@@ -149,9 +149,28 @@ export function set_card(w: number, h: number): Size {
   return { ...UNITS.block };
 }
 
+/** The shape an `auto` room fills toward: the canvas's width over its height. */
+export const SHAPE = { aspect: 1.6 };
+
+/** Sets the shape rooms fill toward, held to a sane range, and says what it took. */
+export function set_aspect(aspect: number): number {
+  SHAPE.aspect = Number.isFinite(aspect) ? Math.min(3, Math.max(0.5, aspect)) : 1.6;
+  return SHAPE.aspect;
+}
+
 /** A whole number, held between two others. */
 function ranged(n: number, low: number, high: number): number {
   return Math.min(high, Math.max(low, Math.round(n)));
+}
+
+/** The sizes of the rooms a world is composing, while it lays out their parent. */
+let rooms_sized: ReadonlyMap<Id, Size> | null = null;
+
+/** `run` with these rooms sized as given: each a card as large as its own drawing. */
+export function sized_as<T>(sizes: ReadonlyMap<Id, Size>, run: () => T): T {
+  const was = rooms_sized;
+  rooms_sized = sizes;
+  try { return run(); } finally { rooms_sized = was; }
 }
 
 /** Whether a block is seated in a grid rather than placed beside one. */
@@ -166,6 +185,9 @@ export function gridded(graph: Graph, id: Id): boolean {
  *  or the reference previewing it. */
 export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
                         card: Id = id): Size {
+  /** A room composed into the world is as large as what it holds. */
+  const room = rooms_sized?.get(id);
+  if (room) return room;
   /** An open grid is its extent, a closed one a card; a boundary is sized from what it holds, by
    *  the caller. */
   if (is_grid(graph, id) && inline(graph, id)) return grid_size(lattice_of(graph, id)!);

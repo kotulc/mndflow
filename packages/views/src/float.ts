@@ -105,16 +105,16 @@ function pair(a: Rect, b: Rect): { d: number; tilt: number } {
  *  arrangement in explorer order, then every aside card in the nearest free space beside what it
  *  is tied to — or, untied, beside the arrangement. Ties are read on `layer`; `holder` is the box
  *  being laid out, where it is not the layer, so a note tied to it floats beside its content. */
-export function noted(graph: Graph, layer: Id | null, units: readonly Sized[], across?: number,
+export function noted(graph: Graph, layer: Id | null, units: readonly Sized[], wide?: number,
                       holder?: Id): Placed[] {
   const aside = units.filter((it) => is_aside(graph, it.b.id));
-  const placed = centred(runs(graph, units.filter((it) => !is_aside(graph, it.b.id)), across));
+  const placed = centred(runs(graph, units.filter((it) => !is_aside(graph, it.b.id)), wide));
   return [...placed, ...floated(graph, layer, aside, placed, holder)];
 }
 
 /** Units in explorer order, split into runs of one arrangement: a column stacks its cards, left
- *  edges aligned; rows flow `across` to a row. Runs stack top to bottom, a gap apart. */
-export function runs(graph: Graph, units: readonly Sized[], across?: number): Placed[] {
+ *  edges aligned; rows fill `wide` pixels. Runs stack top to bottom, a gap apart. */
+export function runs(graph: Graph, units: readonly Sized[], wide?: number): Placed[] {
   const read = [...units].sort((a, b) =>
     (a.b.order ?? 0) - (b.b.order ?? 0) || a.b.id.localeCompare(b.b.id));
   const out: Placed[] = [];
@@ -127,7 +127,7 @@ export function runs(graph: Graph, units: readonly Sized[], across?: number): Pl
 
     /** A column takes a unit per row; rows flow from the run's top. */
     const laid = how === "rows"
-      ? pack_units(run, across).map((p) => ({ ...p, y: p.y + y }))
+      ? pack_units(run, wide).map((p) => ({ ...p, y: p.y + y }))
       : stacked(run, y);
     out.push(...laid);
     y = Math.max(...laid.map((p) => p.y + p.h)) + GAP;

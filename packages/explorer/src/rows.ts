@@ -1,8 +1,8 @@
 /** The explorer's rows: each section's header, then what it lists, laid out with depth, guides
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
-import { alias_of, branch_of, children, domain_of, KINDS, library_of, on_side,
-         is_notation, is_box, is_named, relation_base, role_of, setting_of, shown_name, stamps_of, tops_of,
+import { alias_of, branch_of, children, domain_of, KINDS, library_of, of_ref, on_side, opens,
+         is_folder, is_grid, is_notation, is_box, is_named, relation_base, role_of, setting_of, shown_name, stamps_of, tops_of,
          type Block, type Cut, type Graph, type Id, type Lists, type Registry,
          type Role } from "@mnd/core";
 import { known, MARK_ICON, role_icon, type IconName } from "@mnd/theme";
@@ -169,8 +169,11 @@ function branch_rows(graph: Graph,
                      seen: ReadonlySet<Id>): void {
   if (!graph.blocks[id]) return;
   const branch = branch_of(graph, id, at.cut, at.root, seen, at.lists);
-  const parts = unheld(graph, branch.parts);
-  const own = unheld(graph, branch.own);
+  /** **The model lists rooms only**: what holds blocks; its other blocks list in the tray. */
+  const listed = (bs: Block[]) => (at.lists === "structure"
+    ? bs.filter((b) => is_room_row(graph, b.id)) : bs);
+  const parts = listed(unheld(graph, branch.parts));
+  const own = listed(unheld(graph, branch.own));
   const row_key = key(route);
   /** A package root in the library lists its named components after its definitions. */
   const lib = at.lists === "domain" && graph.blocks[id]!.parent === null ? library_of(graph, id) : {};
@@ -190,6 +193,14 @@ function branch_rows(graph: Graph,
     branch_rows(graph, at, c.id, `${route}/${c.id}`, via, folded, out, key, depth + 1, deeper);
   }
   if (groups) named_rows(graph, id, route, folded, out, key, depth + 1);
+}
+
+/** Whether a block is a room, as the model lists it: a package, a folder, a grid, or a block
+ *  holding blocks — never a stand-in, which is drawn where it stands. */
+function is_room_row(graph: Graph, id: Id): boolean {
+  if (of_ref(graph, id)) return false;
+  return graph.blocks[id]?.parent === null || is_folder(graph, id) || is_grid(graph, id)
+    || opens(graph, id);
 }
 
 /** What a row lists of these blocks: each, but notation never — a group or region by what it

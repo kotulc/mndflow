@@ -371,6 +371,7 @@ export function Tray(props: TrayProps) {
           {shows === "workspace" ? (
             <Workspace graph={graph} {...(edits ? { onAct: act } : {})}
                        onDisplay={props.onDisplay ?? act}
+                       {...(props.thumb ? { thumb: props.thumb } : {})}
                        {...(props.display ? { display: props.display } : {})} />
           ) : null}
           {shows === "card" || shows === "line" || shows === "interface" || shows === "tag"

@@ -352,3 +352,86 @@
 }
 @container (max-height: 46px) { .mnd-tile-count, .mnd-tile-about { display: none; } }
 @container (max-height: 80px) or (max-width: 150px) { .mnd-tile-about { display: none; } }
+
+/* ── The world: every room drawn in place, the focus bright ── */
+
+/* A room's ground lets the pointer through to what is under it; its title and seats do not. */
+.mnd-flow .react-flow__node-room { pointer-events: none !important; }
+.mnd-room {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--wall);
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--bg) 92%, var(--text));
+  pointer-events: none;
+}
+.mnd-room.picked { border-color: var(--accent); }
+.mnd-room-title {
+  position: absolute;
+  top: -0.75em;
+  left: 12px;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 0 6px;
+  background: var(--bg);
+  color: var(--muted);
+  pointer-events: auto;
+  white-space: nowrap;
+}
+.mnd-room-name { cursor: pointer; }
+.mnd-room .react-flow__handle { pointer-events: none; }
+
+/* In the world the focus is lit by what lies outside it, not by a shadow. */
+.mnd-flow[class*="context-"] .mnd-frame { box-shadow: none; }
+.mnd-flow .mnd-out { transition: opacity 0.25s; }
+.mnd-flow.context-dim .mnd-out { opacity: 0.2; }
+.mnd-flow.context-dim .mnd-anc { opacity: 0.55; }
+.mnd-flow.context-rings .mnd-out { opacity: 0; pointer-events: none !important; }
+.mnd-flow.context-rings .mnd-anc { opacity: 0.55; }
+.mnd-flow.context-rings .mnd-anc .mnd-room { background: none; }
+@media (prefers-reduced-motion: reduce) { .mnd-flow .mnd-out { transition: none; } }
+
+/* Far out, cards are chips and room titles grow so the map still reads. */
+.mnd-flow.far .react-flow__node-card .card-name,
+.mnd-flow.far .react-flow__node-card .card-label,
+.mnd-flow.far .react-flow__node-note .card-name,
+.mnd-flow.far .mnd-wire-name,
+.mnd-flow.far .mnd-wire-end { visibility: hidden; }
+.mnd-flow.far .mnd-room-title,
+.mnd-flow.far .mnd-frame-name { font-size: calc(1em * var(--far, 1)); }
+/* A folder or region grows less, so nested ones stay clear of the rooms they sit in. */
+.mnd-flow.far .mnd-group-title { font-size: calc(1em * min(var(--far, 1), 2.5)); }
+
+/* Reading: how much of the focus is left each way. */
+.mnd-more {
+  position: absolute;
+  z-index: 5;
+  padding: 3px 8px;
+  border: 1px solid var(--wall);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--accent);
+  font-size: 11px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.mnd-more.top { top: 8px; left: 50%; transform: translateX(-50%); }
+.mnd-more.bottom { bottom: 8px; left: 50%; transform: translateX(-50%); }
+.mnd-more.left { left: 8px; top: 50%; transform: translateY(-50%); }
+.mnd-more.right { right: 8px; top: 50%; transform: translateY(-50%); }
+
+/* A line leaving the focus: its seat on the wall, naming the far end. */
+.mnd-exit {
+  padding: 0 4px;
+  background: var(--bg);
+  color: var(--accent);
+  font-size: 10px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.mnd-exit.right { transform: translate(-100%, -130%); margin-left: -6px; }
+.mnd-exit.left { transform: translate(0, -130%); margin-left: 6px; }
+.mnd-exit.top { transform: translate(6px, 4px); }
+.mnd-exit.bottom { transform: translate(6px, -130%); }

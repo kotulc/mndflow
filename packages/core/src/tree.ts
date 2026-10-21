@@ -4,6 +4,7 @@ import { isa, module_of, setting_of } from "./defs";
 import { drawn_in } from "./holders";
 import { LAYOUTS, type Block, type Definition, type Flow, type Graph, type Id, type Layout,
          type Port, type Relation } from "./types";
+import { kept } from "./memo";
 
 
 /** Every block under this one, itself included. */
@@ -34,9 +35,26 @@ export function frame_of(graph: Graph, layer: Id | null, about: Id): Id | null {
 
 /** What a block holds, in a stable order. Null holds the package roots. */
 export function children(graph: Graph, layer: Id | null): Block[] {
-  return Object.values(graph.blocks)
-    .filter((b) => b.parent === layer)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+  return [...(held_by(graph).get(layer) ?? [])];
+}
+
+/** Every block under its parent, in a stable order: indexed once per set of blocks, since a
+ *  drawing asks what each block holds many times over. */
+function held_by(graph: Graph): ReadonlyMap<Id | null, readonly Block[]> {
+  return kept(graph, "children", () => index(graph));
+}
+
+function index(graph: Graph): Map<Id | null, Block[]> {
+  const by = new Map<Id | null, Block[]>();
+  for (const b of Object.values(graph.blocks)) {
+    const at = by.get(b.parent) ?? [];
+    at.push(b);
+    by.set(b.parent, at);
+  }
+  for (const list of by.values()) {
+    list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+  }
+  return by;
 }
 
 /** Whether a block under `parent`, other than those `except` names, already goes by `name`.
@@ -123,7 +141,7 @@ export function of_ref(graph: Graph, id: Id): Id | undefined {
 
 /** A block holding blocks draws as a container. */
 export function is_container(graph: Graph, id: Id): boolean {
-  return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(graph, b.id));
+  return (held_by(graph).get(id) ?? []).some((b) => !is_interface(graph, b.id));
 }
 
 /** What a reference stands for, followed to the end. */
@@ -136,6 +154,21 @@ export function stands_for(graph: Graph, id: Id): Block | null {
     b = graph.blocks[of];
   }
   return b ?? null;
+}
+
+/** **One object**: the block an appearance is — a stand-in's target, followed to the end, else
+ *  the block itself. Naming, describing and retyping act on it. */
+export function object_of(graph: Graph, id: Id): Id {
+  return of_ref(graph, id) ? stands_for(graph, id)?.id ?? id : id;
+}
+
+/** Every appearance of a block: the block itself and every stand-in for it, however deep. */
+export function appearances_of(graph: Graph, id: Id): Id[] {
+  const home = object_of(graph, id);
+  if (!graph.blocks[home]) return [id];
+  return [home, ...Object.values(graph.blocks)
+    .filter((b) => b.id !== home && of_ref(graph, b.id) && object_of(graph, b.id) === home)
+    .map((b) => b.id)];
 }
 
 /** The definition a stand-in stands for, where it stands for one: it draws as that definition's

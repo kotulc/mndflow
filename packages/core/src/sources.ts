@@ -28,6 +28,7 @@ import { FORMS, type Attribute, type Block, type Components, type Constraint, ty
          type Form, type Graph,
          type Id, type Interface, type Relation, type Side, type Tag, type Type,
          type Value } from "./types";
+import { forget } from "./memo";
 
 /** What collecting came to: the package file, what it had to make, the files saying a definition
  *  already said, which it refused, and what it could not read or find. */
@@ -64,6 +65,7 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
     blocks: Object.fromEntries(Object.entries(over.blocks).filter(([id]) => !mine(id))),
     edges: Object.fromEntries(Object.entries(over.edges)
       .filter(([, e]) => !mine(e.from) && !mine(e.to))) };
+  forget(graph);
   graph.blocks[slug] = { id: slug, parent: null, name: over.blocks[slug]?.name ?? name };
   const sorted = [...leaves].sort((a, z) => a.path.localeCompare(z.path));
   const files = sorted.filter((l) => l.path !== DEFINITIONS && JSON_FILE.test(l.path));
@@ -117,6 +119,7 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   /** A definition file sits in its directory's folder, after what is there. */
   for (const [path, id] of filed) {
     const parent = folder(path.split("/").filter(Boolean).slice(0, -1), false);
+    forget(graph);
     graph.blocks[id] = { ...graph.blocks[id]!, parent, order: next(parent) };
   }
 
@@ -298,6 +301,7 @@ function lay(graph: Graph, r: Read, parent: Id, order: number): void {
   for (const [id, e] of entries_of(r)) {
     const up = id === r.id ? parent : e.under !== undefined ? `${r.id}.${e.under + 1}` : r.id;
     orders.set(up, (orders.get(up) ?? 0) + 1);
+    forget(graph);
     graph.blocks[id] = {
       id, parent: up, order: id === r.id ? order : orders.get(up)!,
       ...(e.name ? { name: e.name } : {}), ...(e.body !== undefined ? { body: e.body } : {}),
@@ -578,6 +582,7 @@ function defined(graph: Graph, slug: Id, text: string | undefined, files: readon
       if (kept.library) graph.blocks[slug]!.library = kept.library;
       continue;
     }
+    forget(graph);
     graph.blocks[id] = { ...kept, id, parent: kept.parent ?? slug };
   }
   for (const e of Object.values(from.edges)) {
@@ -606,6 +611,7 @@ function named(ctx: Ctx, word: string, kind: "block" | "relation"): Id {
   /** Each kind its own id, so a made block type and a made relation of one name stay apart. */
   const id = `${ctx.pre}${kind === "block" ? "type" : kind}.${slug_of(said)}`;
   if (!def_at(graph, id)) {
+    forget(graph);
     graph.blocks[id] = { id, parent: slug, name: said, def: {},
                          ...(kind === "relation" ? { type: "line" } : {}) } as Block;
     made.set(said, id);

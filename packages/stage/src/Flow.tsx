@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef } from "react";
 import {
   Background, BackgroundVariant, Controls, NodeToolbar, Panel, Position,
   PanOnScrollMode, ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useReactFlow,
+  useStore,
 } from "@xyflow/react";
 import type { Point, Spot } from "@mnd/core";
 import { box_of, nearest_seat, routes_of, taken_on, DRAWN_BY, FRAME, UNIT,
@@ -17,7 +18,7 @@ import { useDrag } from "./drag";
 import { useDraw } from "./draw";
 import { Grips } from "./Grips";
 import { kind_of, spread, LINES } from "./pointer";
-import { paged, useCamera, useRoom } from "./room";
+import { paged, reach_of, useFit, useFocus, usePage, useRoom } from "./room";
 import { Sweeping } from "./Sweeping";
 import { useSync } from "./sync";
 
@@ -28,7 +29,7 @@ function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
           said, chrome = true, lattice = false, frame: framed = true,
           scroll = false, focus = null, reach: wide = null, widest = null,
-          most = null } = props;
+          most = null, mode = "world", stop = null, context = null } = props;
   const flow = useReactFlow();
   /** What a double-click's first click was on. The camera may fly off under the pointer between
    *  the two, so the second is about the first's target, not whatever has moved beneath it. */
@@ -43,19 +44,28 @@ function Canvas(props: FlowViewProps) {
   };
   /** Whether the press under way is one, so the pane's own reset leaves the pick alone. */
   const second = useRef(false);
-  const { frame, fit, seen } = useRoom(scene, scroll);
-  const { nodes, edges, moved, rewired, chose, key, again } =
+  const { frame, seen } = useRoom(scene);
+  const fit = useFit(frame, seen);
+  const { nodes, edges, moved, rewired, chose, again } =
     useSync(scene, picked, frame, onPick, second);
-  useCamera(scene, frame, fit, seen, key, nodes, scroll, focus, wide, widest, most);
+  usePage(scene, seen, nodes, focus, wide, widest, most, scroll);
+  /** Reading is at 100%, scrolling inside the focus; the world view fits it. */
+  const reading = !scroll && mode === "read";
+  const box = useFocus(scene, frame, stop, scroll ? "world" : mode, seen, scroll ? null : focus);
+  /** Far out, cards read as chips and room titles grow. */
+  const zoom = useStore(useCallback((st) => st.transform[2], []));
+  const far = !scroll && zoom < FAR;
 
   /** Scrolled, the drawing reads from the top of its content to the bottom and no further — the
-   *  same limits the camera keeps, at the same zoom, so a scroll and a followed focus agree. */
+   *  same limits the camera keeps, at the same zoom, so a scroll and a followed focus agree.
+   *  Reading, the focus and its band. */
   const reach = useMemo((): [[number, number], [number, number]] | undefined => {
+    if (reading) return reach_of(box);
     if (!scroll) return undefined;
     const { page, zoom } = paged(scene, seen, wide, widest, most);
     const air = Math.max(BAND / zoom, (seen.h / zoom - page.h) / 2);
     return [[-Infinity, page.y - air], [Infinity, page.y + page.h + air]];
-  }, [scroll, scene, seen, wide, widest, most]);
+  }, [reading, box, scroll, scene, seen, wide, widest, most]);
 
   /** Where the pointer is on the drawing, unsnapped. */
   const at = useCallback((e: { clientX: number; clientY: number }): Point =>
@@ -144,7 +154,11 @@ function Canvas(props: FlowViewProps) {
   return (
     <RunsContext.Provider value={runs}>
     <ReactFlow
-      className={framed ? "mnd-flow" : "mnd-flow frameless"}
+      className={["mnd-flow", framed ? "" : "frameless", far ? "far" : "",
+                  context ? `context-${context}` : ""]
+        .filter(Boolean).join(" ")}
+      style={{ "--far": far ? String(Math.min(FAR_MOST, FAR_TITLE / zoom)) : "1" } as
+        React.CSSProperties}
       nodes={nodes}
       edges={edges}
       nodeTypes={NODE_TYPES}
@@ -157,8 +171,8 @@ function Canvas(props: FlowViewProps) {
           rather than the room. */
       /** One floor for every view: a scrolled page holds its own zoom, and a floor that changed
           with the view would clamp the next view's first fit. */
-      minZoom={MIN_ZOOM}
-      maxZoom={4}
+      minZoom={reading ? 1 : MIN_ZOOM}
+      maxZoom={reading ? 1 : 4}
       onPointerDown={(e) => { second.current = e.button === 0 && repeats(e); pressed(e); }}
       onPointerMove={moved_to}
       onPointerUp={released}
@@ -175,6 +189,8 @@ function Canvas(props: FlowViewProps) {
                              ...(land.cell ? { cell: land.cell } : {}) });
       }}
       proOptions={{ hideAttribution: true }}
+      /** In the world, only what is in view draws. */
+      onlyRenderVisibleElements={!!scene.rooms}
       /** Depth is the notation's, not the selection's. */
       elevateNodesOnSelect={false}
       elevateEdgesOnSelect={false}
@@ -194,10 +210,10 @@ function Canvas(props: FlowViewProps) {
       deleteKeyCode={null}
       zoomOnDoubleClick={false}
       /** Scrolled, the wheel and the pinch move down the page; the zoom is the fit's. */
-      zoomOnScroll={!scroll}
-      zoomOnPinch={!scroll}
-      panOnScroll={scroll}
-      panOnScrollMode={PanOnScrollMode.Vertical}
+      zoomOnScroll={!scroll && !reading}
+      zoomOnPinch={!scroll && !reading}
+      panOnScroll={scroll || reading}
+      panOnScrollMode={reading ? PanOnScrollMode.Free : PanOnScrollMode.Vertical}
       {...(reach ? { translateExtent: reach } : {})}
       /** Relationships are drawn with the right button, not the library's connections. */
       nodesConnectable={false}
@@ -262,6 +278,15 @@ function Canvas(props: FlowViewProps) {
             width: landing.w, height: landing.h, pointerEvents: "none" }} />
         </ViewportPortal>
       ) : null}
+      {/* Where a line leaves the focus, its seat names what it reaches outside. */}
+      {scene.exits?.length && !far ? (
+        <ViewportPortal>
+          {scene.exits.map((x) => (
+            <span key={x.id} className={`mnd-exit ${x.side}`}
+                  style={{ position: "absolute", left: x.x, top: x.y }}>{x.text}</span>
+          ))}
+        </ViewportPortal>
+      ) : null}
       {/* What the right button is drawing, while it is being drawn. */}
       {drawing ? (
         <ViewportPortal>
@@ -287,7 +312,8 @@ function Canvas(props: FlowViewProps) {
                     gap={UNIT} offset={UNIT / 2}
                     lineWidth={1} className="mnd-lattice" />
       ) : null}
-      {chrome && !scroll ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
+      {chrome && !scroll && !reading ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
+      {reading ? <More box={box} seen={seen} label={frame?.label ?? ""} /> : null}
     </ReactFlow>
     </RunsContext.Provider>
   );
@@ -316,6 +342,39 @@ export function FlowView({ naming = null, onNamed, ...props }: FlowViewProps) {
     </ReactFlowProvider>
   );
 }
+
+/** Below this zoom the drawing is seen from far out. */
+const FAR = 0.4;
+
+/** How large a room's title reads far out, against the zoom. */
+const FAR_TITLE = 0.9;
+
+/** The most a room's title grows far out. */
+const FAR_MOST = 12;
+
+/** The chips at a reading view's edges: how much of the focus is left each way. */
+function More({ box, seen, label }: { box: { x: number; y: number; w: number; h: number };
+                                     seen: { w: number; h: number }; label: string }) {
+  const [x, y, z] = useStore((st) => st.transform);
+  const shown = { x: -x / z, y: -y / z, w: seen.w / z, h: seen.h / z };
+  const left = {
+    top: shown.y - box.y, bottom: box.y + box.h - (shown.y + shown.h),
+    left: shown.x - box.x, right: box.x + box.w - (shown.x + shown.w),
+  };
+  const arrow = { top: "↑", bottom: "↓", left: "←", right: "→" } as const;
+  return (
+    <>
+      {(Object.keys(left) as (keyof typeof left)[]).filter((k) => left[k] > MORE).map((k) => (
+        <span key={k} className={`mnd-more ${k}`}>
+          {arrow[k]} {Math.round(left[k])}px more of {label}
+        </span>
+      ))}
+    </>
+  );
+}
+
+/** Less than this left over is not worth a chip. */
+const MORE = 8;
 
 /** How soon and how near a second click must land to be a double-click's. */
 const DOUBLE = 500;

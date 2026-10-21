@@ -13,8 +13,11 @@ import type { Only, Shelf } from "./Definitions";
 /** A library row, as the explorer names one: a narrowing of the definitions, or one of them. */
 export type Pointed = ({ of: "defs" } & Shelf) | { of: "def"; id: Id; only?: Only };
 
-/** How the drawing starts where the host says nothing: the lattice on, the key off. */
-const DISPLAY: Omit<Display, "card" | "range"> = { legend: false, corner: "top", lattice: true };
+/** How the drawing starts where the host says nothing: the lattice, frame and ports on, the key
+ *  off, the context dimmed. */
+const DISPLAY: Omit<Display, "card" | "range"> = {
+  legend: false, corner: "top", lattice: true, frame: true, ports: true, context: "dim",
+};
 
 
 /** The tray: whether it is open, which tab, and what it holds that the canvas did not give it. */
@@ -56,6 +59,11 @@ export function useDisplay(start: Pick<Display, "card" | "range"> & Partial<Disp
       set_display((was) => ({ ...was, corner: args?.["at"] === "bottom" ? "bottom" : "top" }));
     }
     if (name === "lattice") set_display((was) => ({ ...was, lattice: !!args?.["show"] }));
+    if (name === "frame") set_display((was) => ({ ...was, frame: !!args?.["show"] }));
+    if (name === "ports") set_display((was) => ({ ...was, ports: !!args?.["show"] }));
+    if (name === "context") {
+      set_display((was) => ({ ...was, context: args?.["at"] === "rings" ? "rings" : "dim" }));
+    }
   };
 
   return { display, onDisplay };

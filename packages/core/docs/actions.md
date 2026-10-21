@@ -91,6 +91,7 @@
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
 | `group` | makes a group round what is selected, or a grid over a region, and moves the selection into it; a region may start empty (`members: []`) | layer, selection | ids?, rows?, cols?, type?, spot? | `add_block` + `move_block`… (+ `set_grid`, `seat_cell`) |
+| `room` | turns a group or a region into a room — retyped a plain block, its members already holding by `parent` — or wraps the selection in a new room where it is drawn, keeping its relations | block, selection | group?, members?, name? | `update_block`, or `add_block` + `move_block`… |
 | `heads` | adds a header row or column to a grid, or takes it away | block, cell | grid?, way, on? | `set_grid` + `seat_cell`… |
 | `label` | names the block in a cell, or makes a plain block of that name in an empty one | cell | grid?, at?, text? | `update_block` / `add_block` + `seat_cell` |
 | `fill` | puts a new block in every empty body cell | block, cell | grid? | `add_block` + `seat_cell`… |

@@ -79,4 +79,10 @@ export type FlowViewProps = {
   widest?: number | null;
   /** The most a scrolled view ever magnifies: the reading zoom unless said. */
   most?: number | null;
+  /** How the world camera looks at the focus: fitted, or read at 100% inside its walls. */
+  mode?: "world" | "read";
+  /** A region the camera stops at, inside the focus: its box. */
+  stop?: { x: number; y: number; w: number; h: number } | null;
+  /** How what lies outside the focus is drawn: dimmed, or its rooms as rings. */
+  context?: "dim" | "rings" | null;
 };

@@ -39,19 +39,21 @@ export function read_through(graph: Graph, layer: Id | null): Graph {
       if (!part.def) blocks[part.id] = { ...part, parent: layer };
     }
   }
-  /** Each card on the layer, and the room, wears its ports. */
+  /** Each card on the layer, and the room, wears its ports: laid into a set of their own, since
+   *  the set the cards were read from is not written once read. */
   const drawn: Graph = { ...graph, blocks };
+  const worn: Record<Id, Block> = { ...blocks };
   for (const b of [...drawn_in(drawn, layer), ...(opened ? [opened] : [])]) {
     ports_on(graph, b.id).forEach((port, i) => {
       const id = part_id(b.id, port.id);
-      blocks[id] = seated(port, id, b.id, i);
+      worn[id] = seated(port, id, b.id, i);
     });
   }
   const edges: Record<Id, Relation> = {};
   for (const [id, e] of Object.entries(graph.edges)) {
-    edges[id] = met(blocks, e, layer, def?.id);
+    edges[id] = met(worn, e, layer, def?.id);
   }
-  return { ...graph, blocks, edges };
+  return { ...graph, blocks: worn, edges };
 }
 
 /** A port as a block to seat: its kind its interface definition, else the base `interface`. */

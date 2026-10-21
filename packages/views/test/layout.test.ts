@@ -358,7 +358,7 @@ describe("boundaries", () => {
 describe("seats", () => {
   const card: Placed = { id: "block_pump", x: 0, y: 0, w: 168, h: 36 };
 
-  it("stacks blocks in a column in explorer order, whatever stale places say", () => {
+  it("places blocks in explorer order, whatever stale places say", () => {
     const graph = fold(related(), FLOOR);
     graph.blocks["block_pump"]!.x = 0;
     graph.blocks["block_pump"]!.y = 0;
@@ -369,9 +369,10 @@ describe("seats", () => {
     const spots = under(graph, "block_loop", "auto");
     const at = new Map(spots.map((p) => [p.id, p]));
     const [pump, valve, hot] = ["block_pump", "block_valve", "block_hot"].map((id) => at.get(id)!);
-    expect(new Set([pump!.x, valve!.x, hot!.x]).size).toBe(1);
-    expect(pump!.y).toBeLessThan(valve!.y);
-    expect(valve!.y).toBeLessThan(hot!.y);
+    /** Read across, then down. */
+    const before = (a: Placed, b: Placed) => a.y < b.y || (a.y === b.y && a.x < b.x);
+    expect(before(pump!, valve!)).toBe(true);
+    expect(before(valve!, hot!)).toBe(true);
   });
 
   it("stacks band members in a column, a gap apart", () => {

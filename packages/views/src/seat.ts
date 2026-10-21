@@ -212,9 +212,10 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
     /** A port on the room's wall is looked at where it sits, never the room as a whole. */
     const far_box = (f: Id): Rect => (owner(f) === frame?.id && ports.has(f)
       ? at_seat(room!, ports.get(f)!) : box_of(f)!);
-    const side = on === frame?.id
+    /** A wall it names is kept; only where along it is worked out. */
+    const side = said_side(graph, id) ?? (on === frame?.id
       ? (toward ? nearest(box, toward) : rest(graph, id))
-      : most(fars.map((f) => facing(box, far_box(f)))) ?? rest(graph, id);
+      : most(fars.map((f) => facing(box, far_box(f)))) ?? rest(graph, id));
     const want = toward
       ? (side === "left" || side === "right" ? toward.y + toward.h / 2 : toward.x + toward.w / 2)
       : origin(box, side) + extent(box, side) / 2;
@@ -398,6 +399,12 @@ function clear_of(box: Rect, side: Side, other: Rect): number {
 function stated(graph: Graph, id: Id): Seat | null {
   const b = graph.blocks[id];
   return b?.side && typeof b.at === "number" ? { side: b.side, at: b.at } : null;
+}
+
+/** The wall an interface names without saying where along it. */
+function said_side(graph: Graph, id: Id): Side | null {
+  const b = graph.blocks[id];
+  return b?.side && typeof b.at !== "number" ? b.side : null;
 }
 
 /** Where an interface with no lines rests. */

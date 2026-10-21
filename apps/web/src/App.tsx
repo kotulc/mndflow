@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { collect, drop_of, fixed_layout, held_at, in_section, is_inside, is_layer_view,
-         layout_of, lens_of, registry_at, registry_id, registry_of,
+import { all_defs, appearances_of, collect, diagram_kind, domain_of, drop_of, fixed_layout,
+         held_at, in_section, is_base, is_inside, is_layer_view, layout_of, lens_of, object_of,
+         path, registry_at, registry_id, registry_of,
          session, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
-import { box_of, clear_of, empty_of, holds, project, set_card as apply_card, tidy, BLOCK,
-         CARD, UNITS, type Scene } from "@mnd/views";
+import { box_of, clear_of, empty_of, focused, holds, local_at, project, room_under,
+         set_aspect, set_card as apply_card, tidy, world_of, BLOCK, CARD, UNITS, type Scene } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
 import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
 import { Stage, Thumb, type Move } from "@mnd/stage";
@@ -62,13 +63,12 @@ export function App({ storage, boot, opening }: {
     ...(boot?.display?.legend !== undefined ? { legend: boot.display.legend } : {}),
     ...(boot?.display?.corner ? { corner: boot.display.corner } : {}),
   });
-  const [shown, set_shown] = useState({ interfaces: true, frame: true });
-  /** The layers that have said otherwise about drawing their key. **A layer holding no answer
-   *  follows the workspace**, so changing the default moves every layer that never disagreed. */
-  const [keyed, set_keyed] = useState<Record<Id, boolean>>({});
-  const { card, legend: legends, corner, lattice } = display;
+  /** **One display for every room and view**, set on the workspace tab. */
+  const { card, legend, corner, lattice } = display;
+  const shown = { interfaces: display.ports !== false, frame: display.frame !== false };
   /** What a right drag draws, as the rail left it. */
-  const [drawing, set_drawing] = useState<{ module: Id; dir?: Dir }>({ module: "line" });
+  const [drawing, set_drawing] = useState<{ module: Id; dir?: Dir; type?: Id }>(
+    { module: "line" });
   /** The tray row under the pointer, lit on the canvas where it is drawn. */
   const [hovered, set_hovered] = useState<Id | null>(null);
   const { hold } = t;
@@ -109,21 +109,12 @@ export function App({ storage, boot, opening }: {
   const layer = whole ? null : view.layer;
   const said = s.said();
   const laid_out = layout_of(graph, layer);
-  /** What the canvas has open: a layer, or a whole section in one view. */
-  const here = whole ? `@${SLICES[view.at]!.id}:${view.kind}` : layer ?? "";
-  const legend = keyed[here] ?? legends;
-
-  /** The views the rail offers: the section's whole views, then the layer view — never chosen,
-   *  only shown, or on a whole section the way back to where the block in hand is drawn: the one
-   *  brought into sight, else what the section holds. */
-  const in_hand = system ? view.pick ?? chain.held[view.at] ?? null : view.layer;
-  const back: ViewKind | null = !system ? view.kind : in_hand ? "internal" : null;
-  const seeing: ViewKind[] = [...SLICES[view.at]!.views.filter((k) => !is_layer_view(k)),
-                              ...(back ? [back] : [])];
 
   /** The drawing's proportions are the views module's, so the session's card is applied before
    *  anything is placed. */
   apply_card(card.w, card.h);
+  /** Rooms fill toward the window's shape: steady while the tray opens and shuts. */
+  const aspect = set_aspect(Math.round((window.innerWidth / Math.max(1, window.innerHeight)) * 10) / 10);
 
   /** How many cards a row holds: a page (package, folder) as many as the canvas is wide;
    *  any other layer four on a landscape canvas, two on a taller one. */
@@ -134,18 +125,42 @@ export function App({ storage, boot, opening }: {
     ? Math.max(2, Math.floor(room.w / ((card.w + UNITS.gap) * UNITS.unit)))
     : room.h > room.w ? 2 : 4;
 
+  /** **One world, drawn once**: the model's package, or the library's packages, composed whole
+   *  once per graph or proportion change, never per view — opening a room only moves the focus.
+   *  A registry still draws its own treemap. */
+  const lists = SLICES[view.at]!.lists;
+  const worlded = view.kind !== "registry" && !!lists;
+  const pkg = view.layer && graph.blocks[view.layer]
+    ? path(graph, view.layer)[0]?.id ?? null : null;
+  /** With nothing focused, the model draws the workspace's own world, never the old page. */
+  const root = lists === "structure" ? pkg ?? graph.root : null;
+  const world = useMemo(
+    () => (worlded && (root || lists === "domain")
+      ? world_of(graph, root, { lists: lists!, interfaces: shown.interfaces })
+      : null),
+    [graph, worlded, root, lists, shown.interfaces, card, aspect]);
+  /** How the focus is looked at: fitted, or read at 100%. Opening another room keeps it. */
+  const [mode, set_mode] = useState<"world" | "read">("world");
+  /** The focus a region is: its room in focus, the camera stopped at its band. */
+  const band = world?.rooms.flatMap((r) => r.bands).find((b) => b.id === view.layer) ?? null;
+  const in_world = !!world
+    && (world.rooms.some((r) => r.id === (view.layer ?? world.root)) || !!band);
+
   /** Projected once per graph, view, layer or proportion change. */
-  const scene = useMemo(
-    () => project(graph, view.layer, { interfaces: shown.interfaces, across,
-                                       look: { kind: view.kind, cut: SLICES[view.at]!.cut,
-                                               tops: true,
-                                               ...(SLICES[view.at]!.lists
-                                                 ? { lists: SLICES[view.at]!.lists } : {}) } }),
-    [graph, view.layer, view.kind, view.at, shown.interfaces, card, across]);
+  const scene = useMemo(() => {
+    if (!in_world) {
+      return project(graph, view.layer, { interfaces: shown.interfaces, across,
+                                          look: { kind: view.kind, cut: SLICES[view.at]!.cut,
+                                                  tops: true, ...(lists ? { lists } : {}) } });
+    }
+    return focused(graph, world!, view.layer);
+  }, [graph, world, in_world, view.layer, view.kind, view.at, shown.interfaces, card, across]);
 
   /** A block's layer at a glance, projected once per graph and kept while the tray re-renders. */
   const glanced = useMemo(() => new Map<Id, Scene | null>(), [graph, shown.interfaces, card]);
   const glance = (id: Id): Scene | null => {
+    /** The workspace at a glance is its world, fitted. */
+    if (id === graph.root && world && lists === "structure") return focused(graph, world, id);
     if (!glanced.has(id)) {
       const kind = lens_of(graph, id);
       glanced.set(id, kind ? project(graph, id, { look: { kind, cut: null },
@@ -170,10 +185,25 @@ export function App({ storage, boot, opening }: {
   const drawn = useMemo(() => new Set([...scene.nodes.map((n) => n.id),
                                        ...scene.edges.map((e) => e.id)]), [scene]);
 
+  /** What is lit: the tray row under the pointer, and **every other appearance** of what is
+   *  picked — one object, wherever it is drawn. */
+  const lit = useMemo(() => [...new Set([
+    ...(hovered ? appearances_of(graph, hovered) : []),
+    ...s.picked().flatMap((id) => appearances_of(graph, id).filter((a) => a !== id)),
+  ])].filter((id) => drawn.has(id)), [graph, hovered, drawn, s.picked()]);
+
   const act = (name: string, args?: Record<string, unknown>) => {
     /** Undo and redo arrive through the same channel as actions. */
     if (name === "undo") { s.undo(); return; }
     if (name === "redo") { s.redo(); return; }
+    /** Reading narrows the camera to 100% on the focus, a room opened first where one is named;
+     *  widening fits it again. Neither is a step. */
+    if (name === "read" || name === "widen") {
+      const id = args?.["id"];
+      if (name === "read" && id && id !== s.view().layer) act("open", { id });
+      set_mode(name === "read" ? "read" : "world");
+      return;
+    }
     s.go(name, args ?? {});
     /** Opening, leaving and revealing are navigation's: the sections follow where it went, and
      *  the canvas pans to what it revealed inside a layer. */
@@ -198,37 +228,59 @@ export function App({ storage, boot, opening }: {
 
   /** The rail's controls: display state here, everything else an action. */
   const chrome = (name: string, args?: Record<string, unknown>) => {
-    /** The canvas's section shown another way, keeping in sight what it holds. */
-    if (name === "view") {
-      s.see(args!["kind"] as ViewKind, in_hand);
-      follow();
-      return;
-    }
-    if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
-    if (name === "frame") { set_shown((c) => ({ ...c, frame: !!args!["show"] })); return; }
-    /** An answer that agrees with the workspace is dropped rather than stored, so the layer goes
-     *  back to following the default instead of pinning today's value. */
-    if (name === "legend") {
-      const show = !!args!["show"];
-      set_keyed(({ [here]: _was, ...rest }) =>
-        show === legends ? rest : { ...rest, [here]: show });
-      return;
-    }
     /** The workspace's display answers, kept where every host keeps them. */
-    if (["lattice", "legends", "legend_corner", "card"].includes(name)) {
+    if (["lattice", "legends", "legend_corner", "card", "frame", "ports", "context"]
+          .includes(name)) {
       onDisplay(name, args);
       return;
     }
     if (name === "relate_with") {
       const dir = args!["dir"] ? String(args!["dir"]) as Dir : undefined;
       set_drawing({ module: args!["module"] as Id,
-                    ...(dir && dir !== "none" ? { dir } : {}) });
+                    ...(dir && dir !== "none" ? { dir } : {}),
+                    ...(args!["type"] ? { type: String(args!["type"]) } : {}) });
       return;
     }
     /** Leaving a computed layout writes its positions so `free` keeps them. */
     if (name === "layout") {
       const leaving = laid_out !== "free" && args!["kind"] === "free";
       act("layout", { layer, ...args, ...(leaving ? { at: tidy(graph, scene) } : {}) });
+      return;
+    }
+    /** The rail's palette: notation for the focus, made in it. A group gathers what is picked;
+     *  a region starts empty across the room. */
+    if (name === "@notation") {
+      const type = String(args!["type"]);
+      const here = room_id();
+      if (type === "group") { act("group", { members: [...s.picked()] }); return; }
+      if (type === "region") { act("group", { type, members: [], layer: here }); return; }
+      const named = type === "note" || type === "label" ? prompt(`the ${type} says`) : "";
+      if (named !== null) act("create", { name: named, type, parent: here });
+      return;
+    }
+    /** The rail's quick editor: the workspace and the open package, in the tray. */
+    if (name === "@workspace") {
+      t.onHold({ of: "id", id: graph.root });
+      t.onTab("workspace");
+      return;
+    }
+    if (name === "@package_info" && pkg) {
+      t.onHold({ of: "id", id: pkg });
+      t.onTab("overview");
+      return;
+    }
+    /** A new usage is typed by the definition picked, where one is. */
+    if (name === "@new_usage") {
+      const named = prompt("name the new block");
+      const def = s.picked().find((id) => graph.blocks[id]?.def);
+      if (named !== null) {
+        act("create", { name: named, parent: room_id(), ...(def ? { type: def } : {}) });
+      }
+      return;
+    }
+    if (name === "@new_definition") {
+      const named = prompt("name the new definition")?.trim();
+      if (named) act("define", { name: named });
       return;
     }
     /** A package by name, fetched from the catalogue and brought in beside the workspace, frozen. */
@@ -296,6 +348,15 @@ export function App({ storage, boot, opening }: {
     if (b?.parent === null) t.onSection({ of: "defs", only: "packages", from: b.name ?? b.id });
     else t.release();
   };
+
+  /** The room in focus, where the rail makes what it makes. */
+  const room_id = (): Id => scene.rooms?.find((r) => r.id === scene.layer)?.id
+    ?? layer ?? graph.root;
+
+  /** The relation definitions the open packages hold, each a type a right drag may draw. */
+  const types = useMemo(() => all_defs(graph)
+    .filter((d) => domain_of(graph, d.id) === "relation" && !is_base(d.id))
+    .map((d) => ({ id: d.id, name: d.name ?? d.id })), [graph]);
 
   const load = async () => {
     const text = await browser_files().open();
@@ -385,9 +446,12 @@ export function App({ storage, boot, opening }: {
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
             const cell = land.cell && land.into ? land.into : null;
+            /** In the world, a drop lands in the room under the pointer, where it was let go. */
+            const room = scene.rooms ? room_under(scene.rooms, spot) : null;
             const made = drop_of(graph, {
-              ids: [id], onto: "drawing", parent: cell ?? layer ?? graph.root,
-              on: land.line ?? land.over, spot: at,
+              ids: [id], onto: "drawing", parent: cell ?? room?.id ?? layer ?? graph.root,
+              on: land.line ?? (room && land.over === room.id ? null : land.over),
+              spot: room ? local_at(room, at) : at,
               ...(cell ? { cell: `${land.cell!.r},${land.cell!.c}` } : {}) });
             if (made) s.go(made.act, made.args);
           }}
@@ -404,9 +468,10 @@ export function App({ storage, boot, opening }: {
           corner={corner}
           module={drawing.module}
           {...(drawing.dir ? { dir: drawing.dir } : {})}
+          {...(drawing.type ? { type: drawing.type } : {})}
           said={said?.text ?? null}
           onSaid={() => s.say("")}
-          lit={hovered && drawn.has(hovered) ? [hovered] : []}
+          lit={lit}
           /** An echo of a pick the canvas cannot draw is not a gesture. */
           onPick={(ids) => {
             const shown = s.picked().filter((id) => drawn.has(id));
@@ -420,8 +485,11 @@ export function App({ storage, boot, opening }: {
            *  fitted to their width: a section from its anchor. A class diagram laid out `auto`
            *  scrolls the same way. */
           onAdjust={arranging && !whole ? adjust : () => undefined}
-          scroll={whole || view.kind === "folder" || diagram
-                  || (view.kind === "internal" && laid_out === "auto")}
+          scroll={!in_world && (whole || view.kind === "folder" || diagram
+                  || (view.kind === "internal" && laid_out === "auto"))}
+          mode={in_world ? mode : "world"}
+          stop={band}
+          {...(in_world ? { context: display.context ?? "dim" } : {})}
           focus={system ? view.pick : whole ? null : aim}
           most={1}
           keys={zones.zone === "canvas"}
@@ -434,7 +502,8 @@ export function App({ storage, boot, opening }: {
           onOpen={t.onOpen}
           {...(t.tab ? { tab: t.tab } : {})}
           onTab={t.onTab}
-          picked={s.picked()}
+          /** **One object**: a plain stand-in picked is its block, described and edited as one. */
+          picked={s.picked().map((id) => (graph.blocks[id]?.settings ? id : object_of(graph, id)))}
           onHover={set_hovered}
           hold={hold}
           onHold={t.onHold}
@@ -452,12 +521,11 @@ export function App({ storage, boot, opening }: {
 
       <Options groups={groups_of({ slots: scene.slots, layout: laid_out,
                                    fixed: !!layer && fixed_layout(graph, layer),
-                                   views: seeing, view: view.kind,
-                                   interfaces: shown.interfaces,
-                                   lattice: lattice ?? true, frame: shown.frame,
-                                   legend,
+                                   family: layer ? diagram_kind(graph, layer) : null,
+                                   pkg, picked: s.picked().length > 0, types,
                                    module: drawing.module,
-                                   ...(drawing.dir ? { dir: drawing.dir } : {}) },
+                                   ...(drawing.dir ? { dir: drawing.dir } : {}),
+                                   ...(drawing.type ? { type: drawing.type } : {}) },
                                  chrome)} />
     </div>
   );

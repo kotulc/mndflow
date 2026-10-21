@@ -8,17 +8,18 @@
 | | |
 |---|---|
 | **committed** | through 395b81a (2026-10-19): base filed by blocks, diagrams and notation; the gallery as one shop; `collect` nesting; one design language by group; a card shows what it has; label and treemap names; the overview glance. Verified then: typecheck, 285/285 tests, lint, gallery `check` and `review` clean; driven in Edge, no console errors |
-| **uncommitted** | the plan consolidated; handles only while unnamed; one corner row; names sized to fit; sized bodies cut at whole lines; corners never on headers or marks; the gallery split into `samples/model` (root `example`) and `samples/elements` (a second workspace); packages and folders open as the package view; the canvas edits in every view; rooms fit on entry (React Flow's own fit off, one zoom floor). **Docs**: rooms-plan.md written, and the goal docs moved to the rooms world — design.md, definitions.md, explorer.md, tray.md, options.md, stage.md, views.md, block.md, actions.md, schema.md, spec.md. Verified: typecheck, 285/285 tests, CSS lint, `check`/`review` clean on both samples; driven in Edge. Suggested commit: *Plan the rooms world; edit in every view; fit card names and rooms* |
-| **next session** | rooms-plan.md phase 1 (*nested layout*), after its prerequisite: the *seats* fix in step 1 below. Read rooms-plan.md *Hand-off* first |
+| **committed** since | 536f83b *Edit in every view, fit rooms* and 0f1528a *Plan the room refactor* (2026-10-19, 2026-10-20) |
+| **uncommitted** | the rooms refactor, phases 0–9 in one pass (2026-10-20), and its layout pass after review (2026-10-21): one world from the model header too; rows unsaid; `auto` fills toward the canvas's shape; region bands share a room's width; `layered` keeps the direction that fits; packages fill side by side. Done another way, and left: rooms-plan.md *Status*. Verified: typecheck, 285/285 tests, CSS lint, `check`/`review` clean on both samples; driven in Edge. Suggested commit: *Build the rooms world: one camera, reading view, rooms-only explorer, one object, editing across walls; fill rooms toward the canvas shape* |
+| **next session** | read rooms-plan.md *Status*, *Left* and *Hand-off*; the user reviews the world; then the *Left* item the user picks (Shop still taller than wide is first), else step 1 below |
 
 
 ## Order
 
 | # | Work | Done when |
 |---|---|---|
-| 0 | **rooms** | the refactor in rooms-plan.md lands, phase by phase (all its questions settled 2026-10-20). It needs step 1's *seats* fix first; it owns the rail and the workspace tab; steps 2, 3 and 7 are read against it |
+| 0 | **rooms** | built (rooms-plan.md); what is left is its *Status* › *Left*. It owns the rail and the workspace tab; steps 2, 3 and 7 are read against it |
 | 1 | **lines** | crossings and line words read cleanly on every model diagram |
-| 2 | **block design, the rest** | the rail is the palette; the tray's choices scoped by family; faces' open items closed |
+| 2 | **block design, the rest** | the tray's choices scoped by family; faces' open items closed (the palette is built: rooms-plan.md) |
 | 3 | **model joins** | from any block, every side it appears on is one click away |
 | 4 | **tray keys** | every tray input is a key and its choices |
 | 5 | **CLI fixes** | `check` on a broken file exits 1; `export --sysml --round` on the repo map brings back all 490 relations |
@@ -38,7 +39,6 @@
 | **words in tight spaces** | a line's name lands over another's (*Shop*'s *pay* over *reserve*); two upright names in one 2-unit gap meet | stage `Wire.tsx` `words_at`, views `routes_of` |
 | **end words** | a class diagram's role and multiplicity are placed from the run alone, so two ends sharing a card's anchor overlap (*Order*'s composition and association) | stage `Wire.tsx` `words_at` |
 | **a sequence's self message** | its loop runs over a reply on the same row (*Checkout saga*'s *log step* and *reserved*) | views `sequence.ts` |
-| **seats** | a port's `side` without `at` is dropped, so a room port saying only `side: right` lands wherever its lines lead (*Shop*'s `https` on the top wall); libavoid ignores a second pin on the same spot | views `seat.ts` `stated` |
 
 
 ## 2 — Block design, the rest
@@ -47,7 +47,6 @@
 
 | Task | |
 |---|---|
-| **the rail is the palette** (moved: rooms-plan.md phase 4) | a *notation* group offering what the open diagram's family draws with (flow: `start`, `decision`, `end`; state: `start`, `end`; every kind: `note`, `label`, `group`, `region`), drawn by drag or click; the diagram kind set from the rail by its major families, never all eight. The main way to set a kind |
 | **type chips by family** | the tray's *type* offers a diagram only its family's kinds, a part only what its parent's kind allows; never a mark for a diagram |
 | **faces, open** | a named note shows only its name on the small face; holders (group, region headings) wear no handle yet; a rail toggle for the compact view (`layout.cards: small`) |
 

@@ -15,6 +15,10 @@ export * from "./svg";
 export * from "./text";
 
 export { project, type Config } from "./block";
+export { focused, home_of, is_room, local_at, local_scene, room_at, room_under, world_of,
+         FOREST_ROOM, ROOM,
+         type World,
+         type WorldConfig } from "./world";
 
 export { BARE, PLAIN, entry_look, face_attrs, look_key, look_of, tint_attrs, type Tint, wire_of, type Align,
          type Arrow, type Border, type Contrast, type Display, type Height,

@@ -4,10 +4,9 @@ import { children, drawn_in, is_aside, is_box, is_interface, is_region, layout_o
          type Block, type Graph, type Id, type Point } from "@mnd/core";
 import { band_members, band_size, celled, loose_unit, type Sized } from "./bands";
 import { beside, centred, noted } from "./float";
-import { belongs_to, is_satellite, tie_targets } from "./pack";
+import { belongs_to, is_satellite, room_wide, tie_targets } from "./pack";
 import { layered } from "./layered";
 import { treemapped } from "./treemap";
-import { across_of } from "./page";
 import { gridded, size_of, snap, GAP, PAD, UNIT, type Size } from "./size";
 
 export { beside, centred };
@@ -36,7 +35,7 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
   /** `auto` arranges each kind its own way, notes floating beside what they are tied to. A
    *  computed page has written its places, and `free` draws what was put where it was put. */
   const spots = spanned(graph, layer, how === "auto"
-    ? noted(graph, layer, [...structural, ...satellites], across_of(graph, layer))
+    ? noted(graph, layer, [...structural, ...satellites], room_wide(graph, layer))
     : how === "layered" ? layered(graph, layer, [...structural, ...satellites])
     : free(structural, satellites, (b) => belongs_to(graph, layer, b).map(unit)));
 

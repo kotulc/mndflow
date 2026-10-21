@@ -1,7 +1,7 @@
 /** A graph out as SysML, and the same text back as a graph. */
 
-import { block_base, children, config_of, edge_base, edges_in, empty_graph, of_ref, on_side,
-         base_of, owner_of, part_id, path, ports_on, shown_name, SCHEMA, type Block, type Graph,
+import { block_base, children, config_of, edge_base, edges_in, empty_graph, forget, of_ref,
+         on_side, base_of, owner_of, part_id, path, ports_on, shown_name, SCHEMA, type Block, type Graph,
          type Id, type Relation } from "@mnd/core";
 
 /** What each block module is called, absent a definition that says otherwise. */
@@ -146,6 +146,7 @@ export function from_sysml(text: string, known: readonly Block[] = []): Graph {
     trail.push(label);
     const id = at(trail);
     const parent = here();
+    forget(graph);
     graph.blocks[id] = { id, parent, name, type, order: ++n };
     if (points) {
       stands.push({ id, at: [...points.matchAll(STEPS)].map((m) => unquote(m[1]!)) });
@@ -161,6 +162,7 @@ export function from_sysml(text: string, known: readonly Block[] = []): Graph {
     if (target) {
       /** A reference is one by its kind: a type that is not a reference kind gives way to it. */
       const type = block_base(graph, b.type) === "reference" ? b.type : "reference";
+      forget(graph);
       graph.blocks[r.id] = { ...b, type, of: target.id, name: undefined };
     }
   }

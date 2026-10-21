@@ -8,7 +8,7 @@
 
 import { NAMED_VIEWS } from "./components";
 import { setting_of } from "./defs";
-import { inline, is_grid, layer_of } from "./holders";
+import { inline, is_folder, is_grid, is_region, layer_of } from "./holders";
 import { registry_at, registry_id, registry_of } from "./library";
 import { opens } from "./names";
 import { at_cut, in_section, is_layer_view, on_side, type Section, type ViewKind }
@@ -215,6 +215,13 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
   }
   const b = graph.blocks[id];
   if (!b) return null;
+  /** **A region is a camera stop**, and so is a folder drawn in place: the room holding it is
+   *  opened, and the focus narrows to it. */
+  if (b.parent !== null && (is_region(graph, id) || is_folder(graph, id))) {
+    const room = layer_of(graph, id);
+    const opened = room ? open_at(graph, tiers, views, room, from, now) : null;
+    return opened ? { ...opened, layer: id, pick: null } : null;
+  }
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
   /** A stand-in that names its own diagram stays the layer: the drawing is the target's, and the
    *  trail names the reference. Anything else opens what it stands for, in the same section. */

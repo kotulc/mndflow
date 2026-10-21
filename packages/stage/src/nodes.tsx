@@ -381,6 +381,26 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
   );
 }
 
+/** A room in the world, seen from outside the focus: its walls, its title tab and the seats set
+ *  into them. Its ground lets the pointer through, so a press there is on the room's inside. */
+function RoomNode({ id, data, selected }: NodeProps<BoxNode>) {
+  useSeats(id, data.seats);
+  const look = data.look ?? PLAIN;
+  const word = type_word(look.kind, data.label);
+  return (
+    <div className={["mnd-room", selected ? "picked" : ""].filter(Boolean).join(" ")}
+         title={data.description ? `${data.label} — ${data.description}` : data.label}>
+      {data.seats?.length ? <Seats seats={data.seats} /> : null}
+      <span className="mnd-room-title">
+        <Name id={id} className="mnd-room-name card-name" text={data.label} />
+        {word ? <span className="mnd-kind card-label">{word}</span> : null}
+      </span>
+      <Wears role={data.role} holds={data.marks.includes("container")} />
+      <Stamps stamps={data.stamps} />
+    </div>
+  );
+}
+
 /** A registry's tile: an entry's name, how many times it is used and what it means, its ground as
  *  warm as its uses, its edge in the entry's own colour. What a small tile has no room for, its
  *  title says. */
@@ -408,6 +428,7 @@ export const Group = memo(GroupNode, same);
 export const Grid = memo(GroupNode, same);
 export const Seat = memo(SeatNode, same);
 export const Tile = memo(TileNode);
+export const Room = memo(RoomNode, same);
 
 export const NODE_TYPES = {
   card: Card,
@@ -417,4 +438,5 @@ export const NODE_TYPES = {
   seat: Seat,
   frame: Frame,
   tile: Tile,
+  room: Room,
 } as const;

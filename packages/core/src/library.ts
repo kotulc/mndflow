@@ -6,6 +6,7 @@ import { base_of, constraints_stated, def_at, def_named, is_tie, packages,
 import { holders_over, is_group, is_region } from "./holders";
 import { FORMS, KINDS, type Constraint, type LibraryEntry, type Form, type Graph, type Id,
          type Interface, type Library, type Mutation, type Tag, type Type } from "./types";
+import { kept } from "./memo";
 
 /** A named component and the package holding it. */
 export type Named<T> = T & { pkg: Id };
@@ -74,8 +75,12 @@ export function interface_named(graph: Graph, word: string): Named<Interface> | 
 
 /** One kind of named component across every package, the workspace's first. */
 function held<K extends keyof Library>(graph: Graph, kind: K): Named<NonNullable<Library[K]>[number]>[] {
-  const roots = packages(graph).sort((a, z) => Number(z.id === graph.root) - Number(a.id === graph.root));
-  return roots.flatMap((p) => (p.library?.[kind] ?? []).map((c) => ({ ...c, pkg: p.id })));
+  /** Read once per set of blocks: a resolver asks on every link of every chain. */
+  return kept(graph, `held|${graph.root}|${kind}`, () => {
+    const roots = packages(graph)
+      .sort((a, z) => Number(z.id === graph.root) - Number(a.id === graph.root));
+    return roots.flatMap((p) => (p.library?.[kind] ?? []).map((c) => ({ ...c, pkg: p.id })));
+  });
 }
 
 /** The tag with this id. */

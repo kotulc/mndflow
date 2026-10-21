@@ -2,7 +2,7 @@
  *  through. */
 
 import { ARRANGES, type Settings } from "./components";
-import { is_folder, organizes } from "./holders";
+import { is_folder, is_region, organizes } from "./holders";
 import { entry_at, is_form, library_home, library_names, type_at } from "./library";
 import { is_container } from "./tree";
 import { BASE_BLOCKS, BASE_COMPONENTS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIAGRAMS, DIRS,
@@ -10,6 +10,7 @@ import { BASE_BLOCKS, BASE_COMPONENTS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODUL
          TRAITS, type Block,
          type BlockModule, type Attribute, type Components, type Definition, type Dir, type Form,
          type Graph, type Id, type Trait } from "./types";
+import { kept } from "./memo";
 
 /** A definition's domain: what its usages are. Read off its base, never stored. */
 export type Domain = "block" | "relation" | "component";
@@ -315,12 +316,14 @@ export function is_note(graph: Graph, id: Id): boolean {
   return !!graph.blocks[id] && !graph.blocks[id]!.def && base_of(graph, id) === "note";
 }
 
-/** How a block sits in its parent's `auto` layer: its `card.arrange`, a column unsaid. A
- *  definition's says how its usages sit; it is a card in its folder, so a column. */
+/** How a block sits in its parent's `auto` layer: its `card.arrange`, rows unsaid. A
+ *  definition's says how its usages sit; it is a card in its folder, so rows. A region is a band
+ *  across its room, so regions stack. */
 export function arrange_of(graph: Graph, id: Id | undefined): Arrange {
-  if (id && graph.blocks[id]?.def) return "column";
+  if (id && graph.blocks[id]?.def) return "rows";
+  if (is_region(graph, id)) return "column";
   const said = setting_of(graph, id, "card")["arrange"];
-  return ARRANGES.includes(said as Arrange) ? said as Arrange : "column";
+  return ARRANGES.includes(said as Arrange) ? said as Arrange : "rows";
 }
 
 /** Whether a block floats beside what it is tied to: it arranges aside. */
@@ -429,9 +432,11 @@ export function name_taken(graph: Graph, pkg: Id, name: string, except?: Id): bo
 
 /** Every package root: `base` first, the workspace's last, the rest by name between. */
 export function packages(graph: Graph): Block[] {
+  /** Read once per set of blocks: every lookup of a named component asks for them. */
   const rank = (b: Block) => (b.id === BASE_PACKAGE ? 0 : b.id === graph.root ? 2 : 1);
-  return Object.values(graph.blocks).filter((b) => b.parent === null)
-    .sort((a, z) => rank(a) - rank(z) || (a.name ?? a.id).localeCompare(z.name ?? z.id));
+  return [...kept(graph, `packages|${graph.root}`, () => Object.values(graph.blocks)
+    .filter((b) => b.parent === null)
+    .sort((a, z) => rank(a) - rank(z) || (a.name ?? a.id).localeCompare(z.name ?? z.id)))];
 }
 
 /** A package root by id, or by the name somebody calls it. */

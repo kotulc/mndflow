@@ -30,9 +30,9 @@ function workspace() {
 const here = (at: number) => ({ at, kind: "folder" as const, layer: ROOT, pick: null });
 
 describe("definitions and structure open apart", () => {
-  it("never opens a folder: it is picked on the layer its box is drawn on", () => {
+  it("opens a folder as a stop in the room its box is drawn in", () => {
     const g = workspace();
-    expect(open_at(g, EDITOR, {}, "cards", 0, here(0))).toMatchObject({ at: 0, pick: "cards" });
+    expect(open_at(g, EDITOR, {}, "cards", 0, here(0))).toMatchObject({ at: 0, layer: "cards" });
   });
 
   it("opens a definition from the library on the view its chain names", () => {

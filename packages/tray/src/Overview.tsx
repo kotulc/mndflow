@@ -5,7 +5,7 @@
  *  it may become. */
 
 import { useMemo, type ReactNode } from "react";
-import { attributes_of, behaviours_of, children, def_at, def_of, diagram_kind, edges_in, heading,
+import { appearances_of, attributes_of, behaviours_of, children, def_at, def_of, diagram_kind, edges_in, heading,
          interface_at, is_notation, is_behaviour, layer_of, is_group, is_reference, isa, lattice_of,
          may_retype, members_of, of_ref, opens, owner_of, package_of, path, role_of, shown_name,
          stands_for, stood_def, tag_at, tags_of, BASE_PACKAGE, DIAGRAM_QUESTIONS, DIAGRAMS,
@@ -30,8 +30,11 @@ type Count = [number, string];
 export function Overview({ graph, id, thumb, onAct }: OverviewProps) {
   const b = graph.blocks[id];
   /** What uses it, worked out once: a definition's usages, else what refers to it. */
-  const users = useMemo(() => Object.values(graph.blocks)
-    .filter((u) => (b?.def ? !u.def && u.type === id : of_ref(graph, u.id) === id)), [graph, id, b]);
+  /** **One object**: a block's users are every other appearance of it, a stand-in's too. */
+  const users = useMemo(() => (b?.def
+    ? Object.values(graph.blocks).filter((u) => !u.def && u.type === id)
+    : appearances_of(graph, id).filter((u) => u !== id).map((u) => graph.blocks[u]!)),
+  [graph, id, b]);
   if (!b) return null;
   /** A reference is drawn as what it stands for, which is what opening it shows. */
   const seen = of_ref(graph, id) ? stands_for(graph, id)?.id ?? id : id;
@@ -59,7 +62,11 @@ export function Overview({ graph, id, thumb, onAct }: OverviewProps) {
         </span>
         {drawing ? <div className="thumb">{drawing}</div> : <Faces graph={graph} id={id} one />}
         {drawn && onAct ? (
-          <button className="chip open" onClick={() => onAct("open", { id })}>open</button>
+          <span className="opens">
+            <button className="chip open" onClick={() => onAct("open", { id })}>open</button>
+            <button className="chip open" title="read it at 100%, scrolling inside its walls"
+                    onClick={() => onAct("read", { id: seen })}>read</button>
+          </span>
         ) : null}
         {becomes.length ? (
           <div className="make">
@@ -76,7 +83,8 @@ export function Overview({ graph, id, thumb, onAct }: OverviewProps) {
       <div className="answers">
         <Why graph={graph} b={b} kind={kind} />
         <How graph={graph} b={b} />
-        <Where graph={graph} b={b} seen={graph.blocks[seen] ?? b} kind={kind} users={users} />
+        <Where graph={graph} b={b} seen={graph.blocks[seen] ?? b} kind={kind} users={users}
+               {...(onAct ? { onAct } : {})} />
       </div>
     </div>
   );
@@ -157,8 +165,9 @@ function How({ graph, b }: { graph: Graph; b: Block }) {
 
 /** Where it lives: its path; what refers to it, or uses it; what draws the same records; and
  *  its counts, in its kind's own words. */
-function Where({ graph, b, seen, kind, users }: { graph: Graph; b: Block; seen: Block;
-                                                   kind: Id | null; users: readonly Block[] }) {
+function Where({ graph, b, seen, kind, users, onAct }: {
+  graph: Graph; b: Block; seen: Block; kind: Id | null; users: readonly Block[]; onAct?: Act;
+}) {
   const trail = path(graph, b.id).slice(0, -1).map((p) => shown_name(graph, p.id));
   const same = useMemo(() => (kind === "class" || kind === "entity" ? alike(graph, seen.id) : []),
                        [graph, seen.id, kind]);
@@ -168,12 +177,13 @@ function Where({ graph, b, seen, kind, users }: { graph: Graph; b: Block; seen: 
       <div className="trail">{trail.join(" / ") || "the workspace"}</div>
       {users.length ? (
         <div className="chips">
-          <span className="faint">{b.def ? "used by" : "referred to by"}</span>
+          <span className="faint">{b.def ? "used by" : "also drawn"}</span>
           {users.map((u) => (
-            <span key={u.id} className="chip-like">
+            <button key={u.id} className="chip" title="go to where it is drawn"
+                    onClick={() => onAct?.("reveal", { id: u.id })}>
               {shown_name(graph, u.id)}
               {u.parent ? <small> in {shown_name(graph, u.parent)}</small> : null}
-            </span>
+            </button>
           ))}
         </div>
       ) : null}

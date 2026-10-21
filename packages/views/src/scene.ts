@@ -128,6 +128,8 @@ export type LineData = {
   fan?: Fan;
   /** A run already drawn, in the scene's own coordinates. Routing is skipped. */
   points?: readonly { x: number; y: number }[];
+  /** Whether `points` is a routed run, given up for one drawn afresh once an end moves. */
+  routed?: boolean;
 };
 
 /** One drawn thing. React Flow's node, with our data on it. */
@@ -190,7 +192,7 @@ export function end_words(data: LineData | undefined, way: "from" | "to"): strin
 }
 
 /** Which control group this projection offers. */
-export type Slot = "layer" | "display" | "relations";
+export type Slot = "palette" | "layer" | "make" | "display" | "relations";
 
 /** One of the layer's own interfaces, seen from inside. */
 export type Port = {
@@ -225,9 +227,26 @@ export type Frame = {
   seats?: readonly { id: string; side: Side; at: number }[];
 };
 
+/** A block that holds blocks, drawn in the world as a box: its title, walls and the seats set
+ *  into them. */
+export type Room = {
+  id: Id; parent: Id | null; x: number; y: number; w: number; h: number;
+  label: string; depth: number;
+  /** How far its own drawing was moved to sit in the world: world = its own + `d`. */
+  dx: number; dy: number;
+  ports: readonly Port[];
+  frame: Frame;
+  /** Its regions, each a stop the camera may focus. */
+  bands: readonly { id: Id; x: number; y: number; w: number; h: number; label: string }[];
+};
+
 export type Scene = {
   /** The layer this is a projection of. */
   layer: Id | null;
+  /** In the world, every room drawn, outermost first; the layer is the one in focus. */
+  rooms?: readonly Room[];
+  /** Where lines leave the focus through its walls, each naming what it reaches outside. */
+  exits?: readonly { id: string; x: number; y: number; side: Side; text: string }[];
   /** Absent only at the root, which has no outside to be seen from. */
   frame?: Frame;
   nodes: readonly BoxNode[];

@@ -8,14 +8,14 @@ import { block_base, base_of, closes_cycle, def_at, dependents, diagram_kind, do
          package_of, plain_type, setting_of, stored_type, self_use } from "../defs";
 import { GRID, inline, inside, is_folder, is_grid, lattice_of, layer_of } from "../holders";
 import { children, edges_in, is_interface, layout_of, next_order, port_at, ports_of, reorder,
-         sibling_named, subtree } from "../tree";
+         object_of, sibling_named, subtree } from "../tree";
 import { unnamed_refusal } from "./named";
 import { drop_named, library_home, registry_at, registry_of } from "../library";
 import { leave_at, open_at, reveal_at, view_on, EDITOR, type Tiers, type View,
          type Views } from "../navigate";
 import { new_id } from "../ids";
 import { BASE_PACKAGE, KIND_FAMILIES, LAYOUTS, type Graph, type Id, type Layout, type Mutation } from "../types";
-import { register, type Context, type Result } from "./registry";
+import { register, type Args, type Context, type Result } from "./registry";
 import { seat_all, seat_in, taken_in } from "./grid";
 import { borrowed, cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS,
          port_edit, spot, text, tied, typed } from "./helpers";
@@ -112,6 +112,10 @@ function in_use(graph: Graph, id: Id, gone: ReadonlySet<Id>): string | null {
   return `${shown_name(graph, defs.find((d) => users.some((u) => names(u).includes(d)))!)} `
     + `is used by ${users.length === 1 ? "one element" : `${users.length} elements`}`;
 }
+
+/** What an edit names, each appearance read as the block it is: **one object**. */
+const objects = (ctx: Context, args: Args): Id[] =>
+  ids_of(ctx, args).map((id) => object_of(ctx.graph, id));
 
 register(
   {
@@ -242,7 +246,7 @@ register(
            { name: "name", form: "text", asks: true }],
     /** A definition is found by its name, so it takes one nothing else in its package has. */
     check: (ctx, args) => {
-      const id = id_of(args, "id");
+      const id = object_of(ctx.graph, id_of(args, "id"));
       const port = port_at(ctx.graph, id);
       if (port) return borrowed(ctx.graph, port.holder);
       if (!ctx.graph.blocks[id] && !ctx.graph.edges[id]) return "that is not here any more";
@@ -257,7 +261,7 @@ register(
         ? `"${name}" already exists` : null;
     },
     run: (ctx, args) => {
-      const id = id_of(args, "id");
+      const id = object_of(ctx.graph, id_of(args, "id"));
       const name = text(args, "name");
       if (port_at(ctx.graph, id)) {
         return { mutations: port_edit(ctx.graph, id, ({ name: _, ...rest }) =>
@@ -274,7 +278,7 @@ register(
     args: [{ name: "ids", form: "block", required: true },
            { name: "type", form: "text", required: true }],
     check: (ctx, args) => {
-      const ids = ids_of(ctx, args);
+      const ids = objects(ctx, args);
       if (!ids.length) return "nothing is selected";
       const type = text(args, "type") || undefined;
       const d = def_at(ctx.graph, type);
@@ -317,13 +321,13 @@ register(
     run: (ctx, args) => {
       const said = text(args, "type");
       const type = stored_type(ctx.graph, said);
-      const out = ids_of(ctx, args).map((id): Mutation => {
+      const out = objects(ctx, args).map((id): Mutation => {
         if (ctx.graph.edges[id]) return { op: "update_edge", id, type: type ?? null };
         if (ctx.graph.blocks[id]?.def) return { op: "update_block", id, type: said || null };
         return { op: "update_block", id, type: type ?? plain_type(base_of(ctx.graph, id)) };
       });
       /** A run meeting a port the block no longer wears — its own stay — lets it go. */
-      for (const id of ids_of(ctx, args)) {
+      for (const id of objects(ctx, args)) {
         const b = ctx.graph.blocks[id];
         if (!b || b.def) continue;
         const kept = new Set([...b.ports ?? [], ...ports_of(ctx.graph, type ?? undefined)]
@@ -338,7 +342,7 @@ register(
         }
       }
       /** A block becoming a grid seats what it holds: a member always sits in a cell. */
-      for (const id of ids_of(ctx, args)) {
+      for (const id of objects(ctx, args)) {
         const b = ctx.graph.blocks[id];
         if (b && !b.def && said && setting_of(ctx.graph, said, "holder")["matrix"] === true) {
           out.push(...seat_all(ctx.graph, id, { ...GRID, ...b.grid }));
@@ -353,9 +357,10 @@ register(
     on: ["block", "layer"],
     args: [{ name: "id", form: "block", required: true },
            { name: "body", form: "text", required: true }],
-    check: (ctx, args) => borrowed(ctx.graph, id_of(args, "id")),
-    run: (_ctx, args) => ({ mutations: [
-      { op: "set_body", id: id_of(args, "id"), body: String(args["body"] ?? "") },
+    check: (ctx, args) => borrowed(ctx.graph, object_of(ctx.graph, id_of(args, "id"))),
+    run: (ctx, args) => ({ mutations: [
+      { op: "set_body", id: object_of(ctx.graph, id_of(args, "id")),
+        body: String(args["body"] ?? "") },
     ] }),
   },
   {
@@ -364,9 +369,9 @@ register(
     on: ["block", "layer"],
     args: [{ name: "id", form: "block", required: true },
            { name: "description", form: "text", required: true }],
-    check: (ctx, args) => borrowed(ctx.graph, id_of(args, "id")),
-    run: (_ctx, args) => ({ mutations: [
-      { op: "set_description", id: id_of(args, "id"),
+    check: (ctx, args) => borrowed(ctx.graph, object_of(ctx.graph, id_of(args, "id"))),
+    run: (ctx, args) => ({ mutations: [
+      { op: "set_description", id: object_of(ctx.graph, id_of(args, "id")),
         description: String(args["description"] ?? "").trim() },
     ] }),
   },

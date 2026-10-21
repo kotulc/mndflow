@@ -19,10 +19,11 @@ project(graph, layer, config) → Scene     // one room alone: the tray's previe
 | `arrange.ts` | where everything in a layer sits — hand placement under `free`, auto-layout under `auto`, a treemap under `treemap` (`treemap.ts`) |
 | `registry.ts` | a registry as a list, a matrix, and a treemap Scene built directly: entries as tiles by home folder, or an entry's uses |
 | `bands.ts` | members packed inside a band, and seated blocks placed by their cell |
-| `pack.ts` · `float.ts` | auto-layout: runs of one arrangement in explorer order — a column, rows `across` to a row — and aside cards floating beside what they are tied to |
+| `pack.ts` · `float.ts` · `grid.ts` | auto-layout: runs of one arrangement in explorer order — a column, or rows filling toward the canvas's shape (`filled`, `room_wide`) — and aside cards floating beside what they are tied to |
 | `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off; a second line between the same two cards takes the faces a quarter turn round |
 | `route.ts` | where a run goes between two borders, round the cards it passes |
 | `block.ts` | the projection: graph and layer in, Scene out |
+| `world.ts` | the world: `world_of` composes every room, `focused` hands the canvas one room as the frame with the context marked, and `room_under`, `home_of`, `local_scene` read an edit in the room it happens in |
 | `classes.ts` · `sequence.ts` | the diagram views: a graph drawn as internal — class and entity diagrams (`class_graph`), stored lines carrying their ends — or a Scene built directly where time is the geometry (sequence, its runs given as `points`) |
 | `look.ts` · `derive.ts` | what a card wears — its hue strayed by `vary` from its parent's shade, so kin read alike — and the marks it reads by, `definition` (outlined on the canvas) and `relation` (a wire swatch) among them; its `card.shape`, else its layer's `layout.shape`; both derived every draw |
 | `legend.ts` | the key to one layer: the kinds it draws and the system marks they wear, folded and counted off the Scene alone |
@@ -41,10 +42,10 @@ project(graph, layer, config) → Scene     // one room alone: the tray's previe
 | | Is |
 |---|---|
 | `free` | hand placement, rounded to the lattice |
-| `auto` | auto-layout: stored positions are ignored; blocks flow in reading order and notes stand in a column on their right. What a layer says nothing about |
+| `auto` | auto-layout: stored positions are ignored; blocks fill toward the canvas's shape in reading order and notes float beside what they are tied to. What a layer says nothing about |
 | `page` | holders as full-width boxes down the page: each box's cards in rows wrapping at its width (`layout.across` cards), its own holders below them. What the package view and a folder nobody arranged draw |
 
-**Each kind arranges its own way, in explorer order** (`runs`, `float.ts`): consecutive cards sharing a `card.arrange` form a run; a `column` stacks its cards, left edges aligned; `rows` flows them `layout.across` to a row (`across_of`: unsaid, the host's default for its page shape — the web app 4 landscape, 2 portrait; the CLI and exports 4). Runs stack top to bottom, a gap apart. **A card arranged aside** (a note) floats in the nearest free space beside what it is tied to; untied, beside the whole arrangement. **One rule places cards on a layer and in a group** (`noted`, `float.ts`). A tie is never routed: it runs straight and draws above the cards it crosses. Inside a group the shelf is square-ish. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
+**Each kind arranges its own way, in explorer order** (`runs`, `float.ts`): consecutive cards sharing a `card.arrange` form a run; `rows`, unsaid, fills them toward the canvas's shape (`size.ts` `SHAPE`, set by the host): each in reading order takes the highest free spot, so small cards fill in beside a tall room; the width is the room's area at that aspect (`room_wide`), or `layout.across` cards where said, and every region band in a room shares it. A `column`, where said, stacks its cards, left edges aligned. Runs stack top to bottom, a gap apart. `layered` ranks both ways and keeps the one nearer the canvas's shape. **A card arranged aside** (a note) floats in the nearest free space beside what it is tied to; untied, beside the whole arrangement. **One rule places cards on a layer and in a group** (`noted`, `float.ts`). A tie is never routed: it runs straight and draws above the cards it crosses. Inside a group the fill is the canvas's shape too. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
 
 **The picture is written down on the way out of `auto`**, as ordinary placements, so `free` carries on from where `auto` left off.
 
@@ -76,7 +77,7 @@ project(graph, layer, config) → Scene     // one room alone: the tray's previe
 | Transform | Does |
 |---|---|
 | **read-through** | an opened usage draws its definition's structure beside its own children, one step; every card on the layer, and the room, wears its ports — its own and its definition's chain's — laid in as seats under `block/port`. Parts wear the link mark |
-| **world** | every room under a package root, each projected alone then composed into its parent's coordinates: its card replaced by its room node (`room:<id>`), its runs routed inside its walls, its seats shared with the parent. Cards keep their real ids, so a pick is the block itself |
+| **world** | every room under a package root, each projected alone then composed into its parent's coordinates: its card replaced by its room node, which keeps the block's id, its runs routed inside its walls, its seats placed once from inside and stated for the parent. A line between two rooms is routed across the whole, through the walls between. An id a room would draw twice is kept apart under the room's (`room::id`). Cards keep their real ids, so a pick is the block itself |
 | **folder** | a room laid out in rows, as any room hugging what it holds |
 | **no derived line** | a view draws stored relations only; the class diagram's *extends*, from `type`, is the one exception |
 | **layout** | the layer's layout kind places what is drawn |

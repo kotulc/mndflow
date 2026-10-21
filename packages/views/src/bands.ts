@@ -1,11 +1,11 @@
 /** Bands and grids inside a layer: members packed in a band, seated blocks placed by cell. */
 
-import { group_depth, inline, is_aside, is_box, is_flat, is_header, is_interface,
+import { group_depth, inline, is_aside, is_box, is_flat, is_header, is_interface, is_region,
          lattice_of, layout_of, members_of, type Block, type Graph, type Id, type Layout }
   from "@mnd/core";
 import type { Placed } from "./arrange";
 import { floated, noted } from "./float";
-import { tie_targets } from "./pack";
+import { room_wide, tie_targets } from "./pack";
 import { cell_box, centred_in, fills_cell, gridded, size_of, BLOCK, GAP, PAD,
          type Size } from "./size";
 
@@ -51,7 +51,11 @@ export function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: La
   const sized = members.map((b): Sized => ({
     b, s: is_box(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   }));
-  if (how === "auto") return from_corner(noted(graph, layer, sized, undefined, band_id));
+  /** **Every region band on a room shares the room's width**, so bands are wide and short; a
+   *  group fills toward the canvas's shape on its own. */
+  const region = is_region(graph, band_id) && graph.blocks[band_id]?.parent === layer;
+  const wide = region ? room_wide(graph, layer) - PAD * 2 : undefined;
+  if (how === "auto") return from_corner(noted(graph, layer, sized, wide, band_id));
   const floats = (it: Sized) => is_aside(graph, it.b.id)
     && tie_targets(graph, layer, it.b.id).length > 0;
   const laid_out = packed(

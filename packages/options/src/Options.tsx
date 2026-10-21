@@ -8,7 +8,7 @@ export type OptionsProps = {
 };
 
 /** Drawn in this order whatever order a module lists them. */
-const ORDER = ["view", "layer", "views", "flow", "display", "relations", "grid"];
+const ORDER = ["palette", "layer", "make", "relations", "workspace", "grid"];
 
 const at = (key: string) => {
   const n = ORDER.indexOf(key);
@@ -40,7 +40,14 @@ export function Options({ groups }: OptionsProps) {
                                     ruled(n) ? "ruled" : ""].filter(Boolean).join(" ")}
                         {...(control.on === undefined ? {} : { "aria-pressed": control.on })}
                         title={control.tip}
-                        onClick={control.run}>
+                        onClick={control.run}
+                        {...(control.drags ? {
+                          draggable: true,
+                          onDragStart: (e: React.DragEvent) => {
+                            e.dataTransfer.setData("text/mnd-block", control.drags!);
+                            e.dataTransfer.effectAllowed = "copy";
+                          },
+                        } : {})}>
                   <Icon name={control.icon} />
                   <span className="word">{control.word}</span>
                 </button>

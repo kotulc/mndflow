@@ -1,7 +1,7 @@
 /** A Scene as React Flow's node and edge arrays, and the canvas's constants. */
 
 import type { Id } from "@mnd/core";
-import { at_seat, box_of, look_key, perch_id, roomed, FRAME, type BoxNode, type Frame,
+import { at_seat, box_of, look_key, perch_id, FRAME, type BoxNode, type Frame,
          type LineEdge, type Scene } from "@mnd/views";
 
 /** Fitting frames what is there; it never magnifies. */
@@ -45,35 +45,8 @@ export const MIN_ZOOM = 0.1;
 
 /** Draw order: room, holders, cards, then seats; selection never lifts a node. */
 export const DEPTH: Record<string, number> = {
-  frame: 0, group: 1, grid: 1, card: 3, control: 3, seat: 4, tie: 1000,
+  frame: 0, room: 0, group: 1, grid: 1, card: 3, control: 3, seat: 4, tie: 1000,
 };
-
-/** The layer's room, grown to the panel's shape and size in whole cells. */
-export function panelled(frame: Frame, seen: { w: number; h: number }): Frame {
-  const room = { w: seen.w - BAND * 2, h: seen.h - BAND * 2 };
-  if (room.w <= 0 || room.h <= 0) return frame;
-  const shape = room.w / room.h;
-  let { w, h } = frame;
-  w / h > shape ? (h = w / shape) : (w = h * shape);
-  const floor = Math.max(1, room.w / w, room.h / h);
-  return { ...frame, ...roomed({
-    x: frame.x + frame.w / 2 - (w * floor) / 2,
-    y: frame.y + frame.h / 2 - (h * floor) / 2,
-    w: w * floor, h: h * floor,
-  }) };
-}
-
-/** Seats on the room's wall keep their fraction when the room grows. */
-export function met_on(room: Frame, scene: Scene): Frame {
-  if (!room.seats?.length) return room;
-  const at = new Map(scene.perches
-    .filter((p) => p.on === FRAME)
-    .map((p) => [perch_id(p.edge, p.end), p.at]));
-  return { ...room, seats: room.seats.map((t) => {
-    const spot = at.get(t.id);
-    return spot === undefined ? t : { ...t, at: spot };
-  }) };
-}
 
 /** The projection's nodes, plus selection and depth. */
 export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): BoxNode[] {
@@ -120,11 +93,12 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
     const nest = (n.data.nest ?? 0) * 2;
     const base = DEPTH[n.type ?? "card"] ?? 1;
     const band = n.type === "group";
+    const className = [band ? "mnd-band-node" : "", n.className ?? ""].filter(Boolean).join(" ");
     out.push({
       ...n,
       selected: picked.includes(n.id),
       zIndex: base + nest,
-      ...(band ? { className: "mnd-band-node" } : {}),
+      ...(className ? { className } : {}),
       /** Size is told, not measured, so edges route on the first frame. */
       measured: { width: n.width, height: n.height },
     });
@@ -146,7 +120,7 @@ export function edges_of(scene: Scene, picked: readonly Id[]): LineEdge[] {
       type: "wire",
       data: d ?? { module: "line" as const, dir: "none" as const },
       selected: picked.includes(e.id),
-      className: READS[d?.module ?? "line"] ?? "line",
+      className: [READS[d?.module ?? "line"] ?? "line", e.className ?? ""].filter(Boolean).join(" "),
       /** A tie draws above every card; other lines stay under them. */
       ...(d?.module === "tie" ? { zIndex: DEPTH["tie"] } : {}),
       /** An end is dragged by its own grip, not the library's anchor. */
@@ -167,6 +141,7 @@ export function signature(scene: Scene, frame: Frame | null): string {
       /** Everything a card draws from. */
       return [
         n.id, n.type, `${b.x},${b.y},${b.w},${b.h}`, n.data.label, n.data.alias ?? "",
+        n.className ?? "",
         n.data.description ?? "",
         n.data.marks.join(""), n.data.side ?? "",
         look_key(n.data.look), n.data.face ?? "", n.data.text ?? "",
@@ -179,7 +154,8 @@ export function signature(scene: Scene, frame: Frame | null): string {
     /** Everything a run draws from. */
     scene.edges.map((e) => [
       e.id, `${e.source}>${e.target}`, e.data?.dir, e.data?.module,
-      e.label ?? "", e.data?.alias ?? "", look_key(e.data?.wire),
+      e.label ?? "", e.data?.alias ?? "", look_key(e.data?.wire), e.className ?? "",
+      e.data?.points?.map((p) => `${Math.round(p.x)},${Math.round(p.y)}`).join(" "),
     ].join(":")).join("|"),
   ].join("~");
 }

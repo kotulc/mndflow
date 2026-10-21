@@ -2,8 +2,8 @@
 
 import { may_hold } from "../capabilities";
 import { def_at, domain_of, self_use } from "../defs";
-import { can_hold, GRID, inside, is_grid, lattice_of, layer_of, members_of, shape_named,
-         shape_of } from "../holders";
+import { can_hold, GRID, inside, is_grid, is_group, is_region, lattice_of, layer_of, members_of,
+         shape_named, shape_of } from "../holders";
 import { shown_name } from "../names";
 import { children, next_order, part_end, reorder } from "../tree";
 import { new_id } from "../ids";
@@ -43,6 +43,12 @@ function home_of(ctx: Context, members: readonly Id[]): Id {
   const parents = new Set(members.map((id) => ctx.graph.blocks[id]!.parent));
   const [one] = [...parents];
   return parents.size === 1 && one && !is_grid(ctx.graph, one) ? one : here(ctx);
+}
+
+/** The group or region a `room` action turns into a room, or null where it wraps members. */
+function turning(graph: Graph, args: Args): Id | null {
+  const id = args["group"] ? String(args["group"]) : null;
+  return id && (is_group(graph, id) || is_region(graph, id)) ? id : null;
 }
 
 /** A lattice resized: what falls outside it is freed, and so are merges that no longer fit. */
@@ -226,5 +232,37 @@ register(
       return { mutations: out };
     },
   },
+  {
+    name: "room",
+    about: "turns a group or a region into a room, or wraps what is selected in a new room where "
+      + "it is drawn, keeping its relations",
+    on: ["block", "selection"],
+    /** The group or region turned, or the members wrapped. */
+    args: [{ name: "group", form: "block" }, { name: "members", form: "block" },
+           { name: "name", form: "text" }],
+    check: (ctx, args) => {
+      const turned = turning(ctx.graph, args);
+      if (turned) return borrowed(ctx.graph, turned);
+      const members = picked_members(ctx, args, null);
+      if (!members.length) return "nothing is selected";
+      const home = home_of(ctx, members);
+      if (members.some((id) => layer_of(ctx.graph, id) !== layer_of(ctx.graph, members[0]!))) {
+        return "a room gathers blocks drawn in one room";
+      }
+      if (!may_hold(ctx.graph, home, undefined)) {
+        return `"${shown_name(ctx.graph, home)}" holds nothing of that sort`;
+      }
+      return borrowed(ctx.graph, home);
+    },
+    run: (ctx, args) => {
+      /** A group or region is retyped a plain block: its members already hold by `parent`. */
+      const turned = turning(ctx.graph, args);
+      if (turned) return { mutations: [{ op: "update_block", id: turned, type: null }] };
+      const members = picked_members(ctx, args, null);
+      const made = make_block(ctx, text(args, "name"), home_of(ctx, members));
+      const room = (made[0] as { block: { id: Id } }).block.id;
+      return { mutations: [...made, ...members.map((id): Mutation =>
+        ({ op: "move_block", id, parent: room }))] };
+    },
+  },
 );
-

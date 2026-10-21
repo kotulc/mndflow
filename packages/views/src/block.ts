@@ -284,7 +284,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
     layer,
     ...(framed ? { frame: framed } : {}),
     nodes: placed,
-    edges: line_edges(graph, linked, seating, config.ends),
+    edges: lines_of(graph, linked, seating, config.ends),
     perches: seating.perches,
     /** A slot says what this projection can offer, never what it is doing. */
     slots: SLOTS,
@@ -456,7 +456,7 @@ function landed(e: Relation, layer: Id | null): Relation {
 
 /** Every line as the canvas draws it: ends, seats, label, and where it turns. A tie between
  *  cards that overlap draws nothing. Where `ends`, a line draws what its ends mean. */
-function line_edges(graph: Graph, linked: readonly Relation[], seating: Seating,
+export function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
                     ends?: "class" | "er"): LineEdge[] {
   const met = new Map(seating.perches.map((p) => [`${p.edge}|${p.end}`, p]));
   return linked.map((e): LineEdge => {

@@ -24,6 +24,51 @@
 | **workspace tab** | laid out as every overview is: a drawing on the left (the world fitted), why, how and where on the right, then the display settings |
 
 
+## Status
+
+Built 2026-10-20 in one pass, then a layout pass 2026-10-21 after the user's review; all uncommitted. Verified: typecheck, 285/285 tests, CSS lint, `check` and `review` clean on both samples; driven in Edge on both, no console errors.
+
+| # | State | Left, or done another way |
+|---|---|---|
+| 0 | the *seats* fix | built: a port's `side` without `at` keeps its wall |
+| 1 | built | a room node keeps its block's id, not `room:<id>`; a drawn id met twice is kept apart as `room::id` |
+| 2 | built | `View` keeps `{ at, kind, layer, pick }`: the layer is the focus and the mode is the web app's state, not a field |
+| 3 | built | lines leaving the focus are bright whole, not clipped at the wall; far out starts below 40%, not 60% |
+| 4 | built | the rail keeps the *layer* group (free, auto, arrange) until the tray's card tab offers a room's layout; *workspace* and *package* open the tray rather than editing in the rail |
+| 5 | built | a stand-in with its own settings (one naming its own diagram) is still edited as itself |
+| 6 | built | a dragged room does not carry what it holds; rooms are not draggable |
+| 7 | built | folders are camera stops drawn in place, not rooms; registries still draw their own treemap |
+| 8 | partly | only what is in view draws; core's lookups are read once per set of blocks (2 000 blocks compose in 0.8 s). Rooms are not cached by subtree |
+| 9 | partly | gone: the grown room (`panelled`), the rail's view and display groups, per-layer keys. Kept for the kit's viewer: `survey_graph` (`project(null)`), the scrolled page camera and the stage's `routes_of` for scenes not composed. The `folder` and `package` view kinds still name navigation's state |
+
+**The layout pass (2026-10-21).** The review found the world tall and sparse, and two views of the model. Causes and fixes, all decided by the user:
+
+| Cause | Fix |
+|---|---|
+| the model's header, focusing nothing, fell back to the old package view (workspace-only rail) | the model always draws the workspace's world |
+| base `block` said `card.arrange: column`, and a definition was always a column | **rows unsaid**, a definition always rows; `column` only where said; base rebuilt |
+| wide units snapped to whole standard columns | `auto` fills toward the canvas's shape: reading order, each unit in the highest free spot (views `grid.ts` `filled`) |
+| a row's width was a card count (4, or √n) | its width is the room's area at the window's aspect (`wide_for`, `room_wide`; `size.ts` `set_aspect`) |
+| regions sized themselves, then stacked | every region band in a room shares the room's width |
+| `layered` always ran top to bottom | it lays out both ways and keeps the one nearer the canvas's shape |
+| the library's packages stacked | they fill side by side (`world.ts` `forest_of`) |
+
+Measured: library 936 × 3 528 → 1 992 × 1 584; Shop 1 368 × 6 288 → 2 544 × 3 432; Overview 1 416 × 6 840 → 3 024 × 3 696.
+
+### Left
+
+| Item | Where |
+|---|---|
+| **Shop still taller than wide**: each band is as tall as its tallest room (Payments, 1 224). Candidate: choose the room's width so the stacked bands come out near the canvas's shape, a few widths tried | views `pack.ts` `room_wide`, `bands.ts` |
+| **region headings** read small far out: group titles grow at most 2.5×, so nested ones stay clear of room titles | stage `flow.css` `.far` |
+| **the shape is the window's**, read once a render; resizing the window lays the world out again | web `App.tsx` `set_aspect` |
+| lines leaving the focus bright whole, not clipped at the wall | stage `Flow.tsx`, `flow.css` |
+| rooms not cached by subtree (phase 8) | views `world.ts` |
+| a room dragged without what it holds; rooms not draggable (phase 6) | stage `drag.ts` |
+| the rail's *layer* group, until the tray's card tab offers a room's layout; *workspace* and *package* edited in the tray, not the rail (phase 4) | options `groups.ts`, tray `pairs.ts` |
+| `View` fields renamed to `{ at, focus, mode, pick }`, and the `folder` and `package` kinds gone — only with mndmap checked, since the kit's viewer still uses `survey_graph` and the page camera (phases 2, 9) | core `navigate.ts`, kit `viewer.tsx` |
+
+
 ## Terms
 
 | Term | Meaning |
@@ -184,9 +229,11 @@ type World = Scene & { rooms: readonly Room[]; root: Id };
 
 | | |
 |---|---|
-| **state** | uncommitted on `expand-diagram-types` (see next-plan *Status*); this plan and the goal docs (design.md, definitions.md, tray.md, explorer.md, options.md, views.md, block.md, actions.md, schema.md, spec.md) updated 2026-10-20 |
-| **start** | read design.md *Perspectives* and *Navigation*, then this plan; open the mockup to see the target; begin phase 1 with the *seats* fix from next-plan step 1 |
-| **samples** | `samples/model` (the shop: Overview › Shop › Payments › Payment retry is the deep path; Checkout saga the wide room) and `samples/elements` (every kind, notation, a long name). `npm run samples` re-collects both |
-| **drive** | the `vitest` skill: `npm run dev`, Playwright on installed Edge from the scratchpad; the explorer's rows are `.explorer .tree li .label`, crumbs `.crumbs button`, the viewport `.stage .react-flow__viewport` |
-| **verify** | `npm run typecheck`, `npx vitest run` (285 today), `npm run lint:css`, and `check` and `review` clean on `samples/model.json` and `samples/elements.json` |
-| **rules** | user's: never commit (suggest a message), docs are the goal and are updated as work lands, no tests until settled, one rule one home, search for a package before writing one |
+| **state** | uncommitted on `expand-diagram-types`: the refactor (2026-10-20) and its layout pass (2026-10-21). Suggested commit: *Build the rooms world: one camera, reading view, rooms-only explorer, one object, editing across walls; fill rooms toward the canvas shape* |
+| **start** | read *Status* and its *Left* above; the user reviews the world first. Then the next item of *Left* the user picks, else next-plan step 1 |
+| **code** | views `world.ts` (`world_of`, `focused`, the room helpers), `grid.ts` `filled`, `pack.ts` `room_wide`; stage `room.ts` `useFocus`; core `memo.ts`, `tree.ts` `object_of`, actions `groups.ts` `room`; web `App.tsx` wires the world. code-homes.md has every home |
+| **samples** | `samples/model` (the shop: Overview › Shop › Payments › Payment retry is the deep path; Checkout saga the wide room) and `samples/elements` (every kind, notation, a long name; open it with the header's import button). `npm run samples` re-collects both; `npm run base` rebuilds base |
+| **drive** | the `vitest` skill: `npm run dev`, Playwright on installed Edge from the scratchpad; the explorer's rows are `.explorer .tree li .label`, crumbs `.crumbs button`, the viewport `.stage .react-flow__viewport`, rooms `.react-flow__node-room`, context `.mnd-out`. A card shown twice (home and stand-in) is told apart by `:not(.mnd-out)` or its `data-id` |
+| **verify** | `npm run typecheck`, `npx vitest run` (285), `npm run lint:css`, and `check` and `review` clean on `samples/model.json` and `samples/elements.json`. Run vitest from `C:\…`: a shell in a lowercase `c:\…` path breaks the happy-dom globs and fails ~30 DOM tests |
+| **measure** | a world's shape in node: `npx vite-node` on a script importing `packages/views/src/index.ts` by absolute path, `world_of(graph, root, { lists: "structure" })` over `open(samples/model.json, FLOOR)` |
+| **rules** | user's: never commit (suggest a message), docs are the goal and are updated as work lands, no new tests until settled, one rule one home, search for a package before writing one, ask before changing a design rule |

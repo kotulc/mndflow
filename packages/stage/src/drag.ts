@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import type { Node, NodeChange } from "@xyflow/react";
 import type { Point } from "@mnd/core";
-import { box_of, holds, nearest_seat, taken_on, FRAME, PORT, type BoxNode, type Frame,
-         type Scene } from "@mnd/views";
+import { box_of, holds, nearest_seat, room_under, taken_on, FRAME, PORT, type BoxNode,
+         type Frame, type Scene } from "@mnd/views";
 import type { Adjust } from "./gestures";
 
 type Box = { x: number; y: number; w: number; h: number };
@@ -24,6 +24,21 @@ export function useDrag(scene: Scene, frame: Frame | null,
       for (const n of scene.nodes) if (n.data.on && held.has(n.data.on)) held.add(n.id);
     }
     return scene.nodes.filter((n) => n.data.on === host.id || held.has(n.id));
+  }, [scene]);
+
+  /** In the world, the room a card was dropped in when that is not the room it came from:
+   *  **dragging across a wall moves the block there**. */
+  const crossed = useCallback((id: string, dragged: BoxNode | undefined, at: Point)
+      : BoxNode | null => {
+    const rooms = scene.rooms;
+    if (!rooms || !dragged) return null;
+    const was = box_of(dragged);
+    const from = room_under(rooms, { x: was.x + was.w / 2, y: was.y + was.h / 2 });
+    const to = room_under(rooms, at);
+    if (!to || to.id === from?.id || to.id === id) return null;
+    return scene.nodes.find((n) => n.id === to.id)
+      ?? { id: to.id, position: { x: to.x, y: to.y }, width: to.w, height: to.h,
+           data: { label: to.label, marks: [] } };
   }, [scene]);
 
   /** What a drop at `at` lands on. **A header cell is its own target**, read from the pointer:
@@ -54,8 +69,8 @@ export function useDrag(scene: Scene, frame: Frame | null,
       const o = box_of(n);
       return at.x >= o.x && at.x <= o.x + o.w && at.y >= o.y && at.y <= o.y + o.h;
     };
-    const lands = scene.nodes.filter((n) =>
-      n.id !== id && !n.data.on && n.selectable !== false && n.type !== "note" && under(n));
+    const lands = scene.nodes.filter((n) => n.id !== id && !n.data.on && n.selectable !== false
+      && n.type !== "note" && n.type !== "room" && under(n));
     /** A cell is offered to a block only. */
     const cell_at = (grid: BoxNode, p: Point) => {
       const o = box_of(grid);
@@ -78,9 +93,9 @@ export function useDrag(scene: Scene, frame: Frame | null,
     const groupLand = lands.find((n) => n.type === "group" && nest_ok(n.id)) ?? null;
     const cell = gridLand ? cell_at(gridLand, at) : undefined;
     const into = cell ? gridLand : groupLand;
-    return { over: lands.find((n) => !holds(n)) ?? null, into,
+    return { over: lands.find((n) => !holds(n)) ?? crossed(id, dragged, at), into,
              ...(cell ? { cell: { r: cell.r, c: cell.c } } : {}) };
-  }, [scene]);
+  }, [scene, crossed]);
 
   /** The landing a node's middle comes to rest on, or the header cell the pointer is over. */
   const centred = useCallback((node: Node, b: Box, pointer?: Point) =>

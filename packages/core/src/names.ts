@@ -79,11 +79,9 @@ export function shown_name(graph: Graph, id: Id): string {
   if (!b) return label_of(graph, id) || line_kind(graph, id);
   const of = of_ref(graph, id);
   if (of) {
-    /** A stand-in for a definition or a package reads as what it points at, unless it was named
-     *  itself. */
+    /** **A stand-in wears no name of its own**: it reads as what it stands for. */
     const at = graph.blocks[of];
     const said = at && (at.def || at.parent === null) ? at.name : undefined;
-    if (said && b.name?.trim()) return b.name.trim();
     if (said) return said;
     const target = stands_for(graph, id);
     if (!target || target.id === b.id) return "missing";
