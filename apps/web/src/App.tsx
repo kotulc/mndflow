@@ -8,7 +8,7 @@ import { all_defs, appearances_of, collect, diagram_kind, domain_of, drop_of, to
          session, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
-import { area_block, box_of, clear_of, empty_of, entry_area, holds, layer_scene, library_map,
+import { area_of, box_of, clear_of, empty_of, holds, layer_scene, library_map,
          map_focus, model_map, project, set_aspect, set_card as apply_card, stop_area, BLOCK,
          CARD, EMPTY, laid_ahead, UNITS, type Area, type Scene } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
@@ -77,8 +77,7 @@ export function App({ storage, boot, opening }: {
   const chain = useChain(s.graph(), SLICES, EDITOR.top, s.view());
   /** A pick on the canvas gives the context back to the canvas, and the sections follow it. */
   const pick = (given: Id[]) => {
-    /** A room's own tile on the map picks the room. */
-    const ids = given.map(area_block);
+    const ids = given;
     set_aim(null);
     /** One card picked on a whole section is brought into sight there: the canvas's own anchor. */
     if (ids.length === 1 && !is_layer_view(s.view().kind)) {
@@ -216,7 +215,7 @@ export function App({ storage, boot, opening }: {
   const enter = (id: Id, at?: unknown) => {
     if (!id || !lens_of(s.graph(), id)) return;
     if (id !== s.view().layer) act("open", { id, ...(at === undefined ? {} : { at }) });
-    const area = map && !entered ? filling(entry_area(s.graph(), map, id)) : null;
+    const area = map && !entered ? filling(area_of(s.graph(), map, id)) : null;
     if (!area || still()) { set_entry(id); return; }
     set_through(area);
     window.setTimeout(() => set_entry(id), FLIGHT);
@@ -225,7 +224,7 @@ export function App({ storage, boot, opening }: {
   /** **Leaving**: the map takes over with the chip filling the view, and the camera flies out to
    *  it. */
   const leave = () => {
-    const area = map ? filling(entry_area(s.graph(), map, s.view().layer)) : null;
+    const area = map ? filling(area_of(s.graph(), map, s.view().layer)) : null;
     set_entry(null);
     if (!area || still()) return;
     set_through(area);
@@ -233,9 +232,7 @@ export function App({ storage, boot, opening }: {
   };
 
   const act = (name: string, given?: Record<string, unknown>) => {
-    /** A room's own tile on the map stands for the room. */
-    const args = typeof given?.["id"] === "string"
-      ? { ...given, id: area_block(given["id"] as string) } : given;
+    const args = given;
     /** Undo and redo arrive through the same channel as actions. */
     if (name === "undo") { s.undo(); return; }
     if (name === "redo") { s.redo(); return; }

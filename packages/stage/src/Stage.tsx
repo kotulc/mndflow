@@ -12,7 +12,7 @@ import { moves_of, type Move } from "./moves";
 import { cell_key } from "./nodes";
 import { Icon } from "@mnd/theme";
 import { area_under, box_of, clear_of, holds, swept_cells, towards, BLOCK, CELL,
-         type Scene } from "@mnd/views";
+         entry_of, type Scene } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
 
 export type { Adjust, Landing, Move };
@@ -327,12 +327,23 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       return;
     }
     if (g.button === "left" && g.count === 1) onPickCells?.([]);
-    /** **A map is read, never built on**: a click on a chip or a box goes to it, two enter it;
-     *  a click on a tile in a chip picks its block, to be read in the tray. */
+    /** **A map is read, never built on**: a click on a chip or a box goes to it; a click on a
+     *  tile in a chip picks its block, to be read in the tray. Two enter the nearest diagram,
+     *  what was clicked picked there (`entry_of`). */
     if (scene.areas) {
-      const tile = g.given?.["tile"];
-      if (g.button === "left" && g.count === 1 && typeof tile === "string") {
+      const tile = typeof g.given?.["tile"] === "string" ? g.given["tile"] as string : null;
+      if (g.button === "left" && g.count === 1 && tile) {
         onPick([tile]);
+        return;
+      }
+      const on = tile ?? (g.on && scene.areas.some((a) => a.id === g.on) ? g.on
+        : area_under(scene.areas, g.at)?.id ?? null);
+      if (g.button === "left" && g.count === 2 && on && graph) {
+        const to = entry_of(graph, on, !!tile);
+        if (to) {
+          onAct("read", { id: to.enter });
+          if (to.pick) onPick([to.pick]);
+        }
         return;
       }
       const area = g.on && scene.areas.some((a) => a.id === g.on) ? g.on

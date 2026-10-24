@@ -401,27 +401,25 @@ function MapBox({ data, selected }: NodeProps<BoxNode>) {
  *  diagram's tiles laid by its structure. Each tile a flat tile, as the library's: its kind's
  *  icon and its name; a mark its glyph; a group a tinted
  *  panel round its members, a region a tinted band; a grid's plain header strips, its lifelines
- *  or its rules; the diagram's interfaces notched on its edge. A diagram's own chip is bare
- *  canvas, its box's title its name. A library definition wears its own colour. */
+ *  or its rules; the diagram's interfaces notched on its edge. A library definition wears its
+ *  own colour. */
 function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
   const tint = data.look ? tint_attrs(data.look) : null;
-  const pad = data.diagram ? 8 : 4;
+  const pad = data.diagram ? 10 : 4;
   const body = { w: (width ?? 0) - 2 * pad,
-                 h: (height ?? 0) - (data.own ? pad : CHIP_HEAD) - pad };
+                 h: (height ?? 0) - CHIP_HEAD - pad };
   return (
-    <div className={["mnd-chip", data.diagram ? "diagram" : "", data.own ? "own" : "",
+    <div className={["mnd-chip", data.diagram ? "diagram" : "",
                      data.stacked ? "holds" : "",
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
          {...(tint ? { "data-family": tint["data-family"], style: tint.style as CSSProperties }
            : {})}
          title={[data.label, data.counts, data.description].filter(Boolean).join("\n")}>
-      {data.own ? null : (
-        <span className="mnd-chip-head">
-          <Icon name={role_icon(data.role)} size={12} />
-          <span className="mnd-chip-name">{data.label}</span>
-        </span>
-      )}
-      {data.counts && !data.own ? <span className="mnd-chip-counts">{data.counts}</span> : null}
+      <span className="mnd-chip-head">
+        <Icon name={role_icon(data.role)} size={12} />
+        <span className="mnd-chip-name">{data.label}</span>
+      </span>
+      {data.counts ? <span className="mnd-chip-counts">{data.counts}</span> : null}
       {data.tiles?.length ? (
         <span className="mnd-chip-body">
           {data.tiles.map((t) => {
@@ -434,7 +432,8 @@ function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
             return (
               <span key={t.id} {...(block ? { "data-tile": t.id } : {})}
                     className={["mnd-chip-tile", t.as ?? "",
-                                t.odd ? "odd" : "", t.mark ? `mark ${t.mark}` : "",
+                                t.odd ? "odd" : "", t.down ? "down" : "",
+                                t.mark ? `mark ${t.mark}` : "",
                                 t.texture ?? ""].filter(Boolean).join(" ")}
                     title={t.label || undefined}
                     style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`,

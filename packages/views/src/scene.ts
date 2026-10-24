@@ -69,8 +69,6 @@ export type BoxData = {
   tiles?: readonly InnerTile[];
   /** A diagram's chip: its inner tiles laid by its structure. */
   diagram?: boolean;
-  /** A diagram's own chip, beside the diagrams its box holds: bare, the box's title its name. */
-  own?: boolean;
   /** A library chip whose definition holds blocks: it wears a card's stacked edge. */
   stacked?: boolean;
   /** What a map chip counts, said in words: its blocks, lines and components, or its uses. */
@@ -252,12 +250,14 @@ export type Area = {
 
 /** One tile of a chip's inner treemap, as a share of the chip's body: a block, unless `as` says
  *  it is a group's panel, a region's band (`odd` every other), a grid's header strip, a lifeline,
- *  a rule between a grid's rows, or an interface's notch on the chip's edge. A block may be a
+ *  a rule between a grid's rows, an interface's notch on the chip's edge, or a flow's line or
+ *  one of its arrows (`down` where it runs down). A block may be a
  *  flow's mark, or a class's or an entity's card (`texture`). */
 export type InnerTile = { id: Id; label: string; x: number; y: number; w: number; h: number;
                           role?: Role;
-                          as?: "group" | "band" | "head" | "life" | "rule" | "port";
-                          odd?: boolean; mark?: "start" | "end" | "decision";
+                          as?: "group" | "band" | "head" | "life" | "rule" | "port" | "flow"
+                            | "arrow";
+                          odd?: boolean; down?: boolean; mark?: "start" | "end" | "decision";
                           texture?: "class" | "entity" };
 
 export type Scene = {

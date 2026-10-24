@@ -16,7 +16,7 @@ export * from "./text";
 export { project, type Config } from "./block";
 export { place, set_elk, type Placement } from "./flow";
 export { filed_map, registry_map, uses_of, type Tile as MapTile } from "./library";
-export { area_block, area_of, area_under, entry_area, library_map, map_focus, model_map,
+export { area_of, area_under, entry_of, library_map, map_focus, model_map,
          stop_area, towards } from "./map";
 export { laid_ahead, layer_scene } from "./layer";
 

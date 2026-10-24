@@ -427,14 +427,15 @@
 .mnd-chip.diagram {
   --chip-line: color-mix(in oklch, var(--muted) 60%, transparent);
   --chip-fill: color-mix(in oklch, var(--muted) 30%, transparent);
+  --flow: color-mix(in oklch, var(--accent) 30%, transparent);
 }
 /* Its tiles the library's colour over a solid ground, so a lifeline runs behind them. */
-.mnd-chip.diagram .mnd-chip-tile { background: color-mix(in oklch, var(--card-line) 8%, var(--surface)); }
+.mnd-chip.diagram .mnd-chip-tile {
+  background: color-mix(in oklch, var(--card-line) 8%, var(--surface));
+}
 /* **A diagram's chip stands apart**: its box clears the same space round, between and below its
-   title (`AIR.clear`), and its blocks have a little more air inside (`PAD`, views `map.ts`). Its own chip, beside the diagrams its
-   box holds, is bare: no head. */
-.mnd-chip.diagram .mnd-chip-body { right: 8px; bottom: 8px; left: 8px; }
-.mnd-chip.own .mnd-chip-body { top: 8px; }
+   title (`AIR.clear`), and its blocks have a little more air inside (`PAD`, views `map.ts`). */
+.mnd-chip.diagram .mnd-chip-body { right: 10px; bottom: 10px; left: 10px; }
 
 /* **A library chip whose definition holds blocks** wears a card's stacked edge
    (`.mnd-card.container`); a group in a diagram's chip is a tinted panel. */
@@ -449,7 +450,7 @@
 /* **What only shapes a diagram's chip** is never a card: a region's tinted band, every other one
    lighter; a grid's plain header strips; a lifeline down a column behind its blocks; a rule
    between a grid's rows; an interface's notch on the chip's edge. Lines are sized by the zoom. */
-.mnd-chip.diagram .mnd-chip-tile:is(.band, .head, .life, .rule, .port) {
+.mnd-chip.diagram .mnd-chip-tile:is(.band, .head, .life, .rule, .port, .flow, .arrow) {
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -461,10 +462,11 @@
 .mnd-chip.diagram .mnd-chip-tile.band.odd {
   background: color-mix(in oklch, var(--muted) 4%, transparent);
 }
-/* A grid's strips and lines are highlighted as a flow's marks are, in the accent. */
+/* A grid's lines are highlighted as a flow's marks are, in the accent. */
+/* A grid's headers: one quiet, darker strip per column, and per row on a swimlane. */
 .mnd-chip.diagram .mnd-chip-tile.head {
-  border-radius: 1px;
-  background: color-mix(in oklch, var(--accent) 35%, transparent);
+  border-radius: 2px;
+  background: color-mix(in oklch, var(--muted) 24%, var(--surface));
 }
 .mnd-chip.diagram .mnd-chip-tile.life {
   overflow: visible;
@@ -473,9 +475,25 @@
 }
 .mnd-chip.diagram .mnd-chip-tile.rule {
   overflow: visible;
-  border-top: calc(1.5px / var(--zoom, 1)) solid color-mix(in oklch, var(--accent) 45%,
-                                                            transparent);
+  border-top: calc(1px / var(--zoom, 1)) solid var(--chip-fill);
 }
+/* **A flow's line**: faint, behind its blocks, across or down its middle to the last gap between
+   its layers; there an arrow, a triangle the gap's size, points the way it runs. */
+.mnd-chip.diagram .mnd-chip-tile.flow {
+  overflow: visible;
+  border-top: calc(2px / var(--zoom, 1)) solid var(--flow);
+  transform: translateY(-50%);
+}
+.mnd-chip.diagram .mnd-chip-tile.flow.down {
+  border-top: 0;
+  border-left: calc(2px / var(--zoom, 1)) solid var(--flow);
+  transform: translateX(-50%);
+}
+.mnd-chip.diagram .mnd-chip-tile.arrow {
+  background: color-mix(in oklch, var(--accent) 55%, transparent);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.mnd-chip.diagram .mnd-chip-tile.arrow.down { clip-path: polygon(0 0, 100% 0, 50% 100%); }
 .mnd-chip.diagram .mnd-chip-tile.port {
   border-radius: 1px;
   background: color-mix(in oklch, var(--accent) 70%, transparent);
@@ -505,6 +523,8 @@
 /* **A class's or an entity's card shows its structure**: its name over a clear rule, then its
    body in thirds by two subtle rules — across for a class, down for an entity. */
 .mnd-chip.diagram .mnd-chip-tile:is(.class, .entity)::after {
+  /** A hairline a pixel on screen at any zoom, so a rule never falls between pixels. */
+  --hair: calc(1px / var(--zoom, 1));
   position: absolute;
   inset: 12px 0 0;
   content: "";
@@ -512,13 +532,13 @@
 }
 .mnd-chip.diagram .mnd-chip-tile.class::after {
   background:
-    linear-gradient(var(--chip-fill), var(--chip-fill)) 0 33.3% / 100% 1px no-repeat,
-    linear-gradient(var(--chip-fill), var(--chip-fill)) 0 66.7% / 100% 1px no-repeat;
+    linear-gradient(var(--chip-fill), var(--chip-fill)) 0 33.3% / 100% var(--hair) no-repeat,
+    linear-gradient(var(--chip-fill), var(--chip-fill)) 0 66.7% / 100% var(--hair) no-repeat;
 }
 .mnd-chip.diagram .mnd-chip-tile.entity::after {
   background:
-    linear-gradient(var(--chip-fill), var(--chip-fill)) 33.3% 0 / 1px 100% no-repeat,
-    linear-gradient(var(--chip-fill), var(--chip-fill)) 66.7% 0 / 1px 100% no-repeat;
+    linear-gradient(var(--chip-fill), var(--chip-fill)) 33.3% 0 / var(--hair) 100% no-repeat,
+    linear-gradient(var(--chip-fill), var(--chip-fill)) 66.7% 0 / var(--hair) 100% no-repeat;
 }
 .mnd-chip-tile { display: flex; gap: 3px; align-items: flex-start; }
 .mnd-chip-tile > svg { flex: none; margin-top: 1px; }
