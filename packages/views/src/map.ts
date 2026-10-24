@@ -11,11 +11,11 @@ import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
          type HierarchyRectangularNode } from "d3-hierarchy";
 import { children, diagram_kind, has_lifelines, is_aside, is_grid, is_header, is_holder,
          is_interface, is_notation, is_reference, is_region, is_tie, lattice_of, lens_of,
-         notation_of, on_side, owner_of, packages, path, ports_on, region_of, shown_name, subtree,
+         notation_of, on_side, owner_of, packages, path, region_of, shown_name, subtree,
          type Graph, type Id } from "@mnd/core";
 import { carried, trail_of } from "./derive";
 import { filed, name_of, uses_of } from "./library";
-import { look_of } from "./look";
+import { entry_look, look_of, tint_attrs } from "./look";
 import { cell, type Area, type BoxNode, type InnerTile, type Scene } from "./scene";
 import { SHAPE } from "./size";
 
@@ -36,6 +36,9 @@ const PAD = { chip: 4, diagram: 10 };
 
 /** How wide a card reads, width over height: the shape a diagram chip's tiles aim at. */
 const CELL = 1.5;
+
+/** The least a model chip weighs, so a block holding little still shows its head. */
+const LEAST = 2.5;
 
 /** One entry of a map: a box of what it holds, or a chip entering `block`, counting `held`. */
 type Leaf = { id: Id; kids?: Leaf[]; value?: number;
@@ -61,7 +64,7 @@ export function model_map(graph: Graph, root: Id): Scene {
    *  plain treemap of what it holds. */
   const chip = (id: Id, block: Id, list: readonly Id[]): Leaf => {
     const n = counted(graph, list);
-    return { id, value: 1 + total(n),
+    return { id, value: Math.max(LEAST, 1 + total(n)),
              chip: { block, held: list, counts: words(n),
                      diagram: diagram(block) || is_holder(graph, block) } };
   };
@@ -189,7 +192,7 @@ function mapped(graph: Graph, tree: Leaf, title: string): Scene {
                                       ? { stacked: true } : {}),
                                     ...inner(graph, chip.block, chip.held, box, !!chip.diagram,
                                              HEAD),
-                                    ...(chip.diagram ? {} : { look: look_of(graph, chip.block) }) },
+                                    look: chip_look(graph, chip.block) },
                          "chip"), draggable: false });
   }
   return { layer: null, areas, nodes, edges: [], perches: [], slots: ["display"], trail: [] };
@@ -203,6 +206,12 @@ function air(n: HierarchyRectangularNode<Leaf>): number {
   return Math.round(Math.min(AIR.clear, Math.max(AIR.inner, AIR.share * least)));
 }
 
+/** **A chip's colour**: a diagram's its kind's, whatever it is typed by; else its block's own. */
+function chip_look(graph: Graph, id: Id) {
+  const kind = diagram_kind(graph, id);
+  return kind ? entry_look(graph, kind) : look_of(graph, id);
+}
+
 /** What a block holds on the map: its blocks, holders and a flow's marks, never a note, a label
  *  or an interface. */
 function members(graph: Graph, id: Id): Id[] {
@@ -213,8 +222,8 @@ function members(graph: Graph, id: Id): Id[] {
 
 /** A chip's inner treemap: what it holds, each as large as it counts, in the chip's body under
  *  its head, `head` tall, padded round, as shares of the body. A
- *  diagram's is laid by its structure instead (`laid`), its flow turned to fit the chip, its
- *  interfaces notched on the edges its flow enters and leaves by. */
+ *  diagram's is laid by its structure instead (`laid`), its flow turned to fit the chip. A
+ *  block's tile wears its own colour. */
 function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h: number },
                diagram: boolean, head: number): { tiles: InnerTile[]; diagram?: true } {
   const pad = diagram ? PAD.diagram : PAD.chip;
@@ -227,14 +236,15 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
   const share = (t: Placed): InnerTile => {
     const at = { id: t.id, x: t.x0 / w, y: t.y0 / h, w: Math.max(0, t.x1 - t.x0) / w,
                  h: Math.max(0, t.y1 - t.y0) / h };
-    if (t.as === "head" || t.as === "life" || t.as === "rule" || t.as === "port"
-        || t.as === "flow" || t.as === "arrow") {
+    if (t.as === "head" || t.as === "life" || t.as === "rule" || t.as === "flow"
+        || t.as === "arrow") {
       return { ...at, label: "", as: t.as, ...(t.down ? { down: true } : {}) };
     }
     const face = carried(graph, t.id, "small");
     const is = t.as === "block" ? mark_of(graph, t.id) : undefined;
     return { ...at, label: shown_name(graph, t.id), ...(face.role ? { role: face.role } : {}),
-             ...(t.as === "block" ? (is ? { mark: is } : texture) : { as: t.as }),
+             ...(t.as === "block" ? (is ? { mark: is }
+               : { ...texture, tint: tint_attrs(look_of(graph, t.id)) }) : { as: t.as }),
              ...(t.odd ? { odd: true } : {}) };
   };
   const whole = { x0: 0, y0: 0, x1: w, y1: h };
@@ -246,8 +256,7 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
   }
   const first = laid(graph, held, whole);
   if (!first.gaps.length) {
-    return { tiles: [...first.placed, ...notches(graph, block, w, h, first.across, pad)]
-      .map(share), ...mark };
+    return { tiles: first.placed.map(share), ...mark };
   }
   /** **What its lines rank runs one way, between a start and an end**: a strip across each end
    *  of its flow, its blocks a gap within them; a faint line down its middle, behind its blocks,
@@ -268,15 +277,14 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
     { ...span(along - STRIP - tip, along - STRIP, (wide - broad) / 2, (wide + broad) / 2),
       id: `${block}@arrow`, as: "arrow", ...down },
   ];
-  return { tiles: [...ends, ...placed, ...notches(graph, block, w, h, across, pad)].map(share),
-           ...mark };
+  return { tiles: [...ends, ...placed].map(share), ...mark };
 }
 
 /** One tile a diagram's structure lays: a block, a group's panel, a region's band (`odd` every
- *  other), a grid's header strip, a lifeline, a rule between rows, an interface's notch, a flow's
- *  line or one of its arrows (`down` where it runs down). */
-type Placed = Rect & { id: Id; as: "block" | "group" | "band" | "head" | "life" | "rule" | "port"
-                         | "flow" | "arrow";
+ *  other), a grid's header strip, a lifeline, a rule between rows, a flow's line or its arrow
+ *  (`down` where it runs down). */
+type Placed = Rect & { id: Id; as: "block" | "group" | "band" | "head" | "life" | "rule" | "flow"
+                         | "arrow";
                        odd?: boolean; down?: boolean };
 
 /** **The one gap in a diagram's chip**: between any two of its tiles — layers, what sits in one,
@@ -445,26 +453,6 @@ function gridded(graph: Graph, id: Id, rect: Rect): Placed[] {
   return out;
 }
 
-/** A diagram's interfaces as notches on its chip's edge, `pad` out from its body: those carrying
- *  in where the flow enters, those carrying out where it leaves, spaced evenly; one carrying both
- *  ways has no side to sit on, so none. A port the usage restates is notched once. */
-function notches(graph: Graph, block: Id, w: number, h: number, across: boolean, pad: number)
-    : Placed[] {
-  const ports = ports_on(graph, block).filter((p, i, all) => all.findIndex((q) => q.id === p.id)
-    === i);
-  return (["in", "out"] as const).flatMap((way) => {
-    const mine = ports.filter((p) => p.flow === way);
-    return mine.map((p, i): Placed => {
-      const at = (i + 1) / (mine.length + 1);
-      const edge = way === "in" ? -pad : (across ? w : h) + pad - NOTCH;
-      const id = `${block}@${p.id}`;
-      return across ? { x0: edge, x1: edge + NOTCH, y0: h * at - NOTCH, y1: h * at + NOTCH, id,
-                        as: "port" }
-        : { x0: w * at - NOTCH, x1: w * at + NOTCH, y0: edge, y1: edge + NOTCH, id, as: "port" };
-    });
-  });
-}
-
 /** Some blocks ranked by dagre, across, each the same size: a layer is where their centres share
  *  a line along the flow, read on that one axis only; what sits in it in order down it. */
 function ranks(ids: readonly Id[], pairs: readonly { from: Id; to: Id }[]): Id[][] {
@@ -549,12 +537,11 @@ function inset(r: Rect, d: number): Rect {
 type Rect = { x0: number; y0: number; x1: number; y1: number };
 
 /** Above a group's members, room for its name; above a band's, a little air. A grid's header
- *  strips and how thin an empty row or column is. How far an interface's notch stands. */
+ *  strips and how thin an empty row or column is. */
 const GROUP_HEAD = 14;
 const BAND_HEAD = 6;
 const STRIP = 6;
 const THIN = 0.35;
-const NOTCH = 3;
 
 /** Which of a diagram's tiles a line joins: each relation's ends lifted to the tiles holding
  *  them, one link a pair; a tie is none. */

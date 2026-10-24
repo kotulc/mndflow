@@ -12,6 +12,9 @@
     "is_behaviour"
   ],
   "settings": {
+    "style": {
+      "hue": 290
+    },
     "layout": {
       "view": "allocation"
     }

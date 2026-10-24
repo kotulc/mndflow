@@ -396,52 +396,63 @@ function MapBox({ data, selected }: NodeProps<BoxNode>) {
   );
 }
 
-/** A map's chip: what is entered, as large as what it holds — its kind's icon and its name, what
- *  it counts, and a small treemap of what it holds, each tile named where it has room; a
- *  diagram's tiles laid by its structure. Each tile a flat tile, as the library's: its kind's
- *  icon and its name; a mark its glyph; a group a tinted
- *  panel round its members, a region a tinted band; a grid's plain header strips, its lifelines
- *  or its rules; the diagram's interfaces notched on its edge. A library definition wears its
- *  own colour. */
+/** A map's chip, **faced as a card is**: its name over what it counts, its kind's icon in the
+ *  top-right corner, and a small treemap of what it holds; a diagram's tiles laid by its
+ *  structure. A block's tile is a small card the same way: its name, its icon in the corner,
+ *  edged as a chip in its own colour. Icons keep a least size on screen, never past what their
+ *  tile has room for (`--cap`). A mark its glyph; a group a tinted panel round its members, a
+ *  region a tinted band; a grid's plain header strips, its lifelines or its rules. Every chip
+ *  wears its colour: a diagram's its kind's. A tall empty chip's name runs upright. */
 function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
   const tint = data.look ? tint_attrs(data.look) : null;
   const pad = data.diagram ? 10 : 4;
   const body = { w: (width ?? 0) - 2 * pad,
                  h: (height ?? 0) - CHIP_HEAD - pad };
+  /** A chip holding nothing drawn, far taller than wide, sets its name upright under its icon. */
+  const upright = !data.tiles?.length && (height ?? 0) > UPRIGHT * (width ?? 0);
   return (
     <div className={["mnd-chip", data.diagram ? "diagram" : "",
-                     data.stacked ? "holds" : "",
+                     data.stacked ? "holds" : "", upright ? "upright" : "",
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
          {...(tint ? { "data-family": tint["data-family"], style: tint.style as CSSProperties }
            : {})}
          title={[data.label, data.counts, data.description].filter(Boolean).join("\n")}>
       <span className="mnd-chip-head">
-        <Icon name={role_icon(data.role)} size={12} />
         <span className="mnd-chip-name">{data.label}</span>
+        {data.counts ? <span className="mnd-chip-counts">{data.counts}</span> : null}
       </span>
-      {data.counts ? <span className="mnd-chip-counts">{data.counts}</span> : null}
+      <Icon name={role_icon(data.role)} size={14} className="mnd-chip-icon" />
       {data.tiles?.length ? (
         <span className="mnd-chip-body">
           {data.tiles.map((t) => {
             /** A plain block wears its kind's icon; a mark its glyph instead; what only shapes
-             *  the chip — a strip, a lifeline, a rule, a notch — no name. */
+             *  the chip — a strip, a lifeline, a rule — no name. */
             const plain = !t.as && !t.mark;
             const named = (!t.as || t.as === "group") && t.mark !== "start" && t.mark !== "end";
             /** What stands for a block is picked as it: a click on it picks its block. */
             const block = !t.as || t.as === "group" || t.as === "band";
+            const [w, h] = [t.w * body.w, t.h * body.h];
+            /** As large as an icon may grow in this tile: its height less a margin, a third of
+             *  its width. */
+            const cap = Math.min(h - 4, w / 3);
+            const icon = plain && cap >= 7;
             return (
               <span key={t.id} {...(block ? { "data-tile": t.id } : {})}
-                    className={["mnd-chip-tile", t.as ?? "",
+                    {...(t.tint?.["data-family"] ? { "data-family": t.tint["data-family"] } : {})}
+                    className={["mnd-chip-tile", t.as ?? "", plain ? "card" : "",
+                                icon ? "iconed" : "",
                                 t.odd ? "odd" : "", t.down ? "down" : "",
                                 t.mark ? `mark ${t.mark}` : "",
                                 t.texture ?? ""].filter(Boolean).join(" ")}
                     title={t.label || undefined}
                     style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`,
-                             width: `${t.w * 100}%`, height: `${t.h * 100}%` }}>
-                {plain && t.w * body.w > 22 && t.h * body.h > 12
-                  ? <Icon name={role_icon(t.role)} size={8} /> : null}
-                {named && t.w * body.w > 30 && t.h * body.h > 10
+                             width: `${t.w * 100}%`, height: `${t.h * 100}%`,
+                             ...(t.tint?.style ?? {}),
+                             ...(icon ? { "--cap": `${cap}px` } : {}) } as CSSProperties}>
+                {named && w > 30 && h > 10
                   ? <span className="mnd-chip-tile-name">{t.label}</span> : null}
+                {icon ? <Icon name={role_icon(t.role)} size={9} className="mnd-chip-tile-icon" />
+                  : null}
               </span>
             );
           })}
@@ -453,6 +464,9 @@ function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
 
 /** How tall a chip's head is, its name and counts above its inner treemap (views `map.ts`). */
 const CHIP_HEAD = 34;
+
+/** How much taller than wide an empty chip is before its name runs upright. */
+const UPRIGHT = 1.6;
 
 /** A registry's tile: an entry's name, how many times it is used and what it means, its ground as
  *  warm as its uses, its edge in the entry's own colour. What a small tile has no room for, its

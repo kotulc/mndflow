@@ -9,8 +9,8 @@
   ],
   "settings": {
     "style": {
-      "family": "secondary",
-      "border_width": "thin"
+      "border_width": "thin",
+      "hue": 100
     }
   }
 }

@@ -2,7 +2,7 @@
 
 import type { Edge, Node } from "@xyflow/react";
 import type { Dir, End, Ends, Id, Key, Mark, Role, Side } from "@mnd/core";
-import type { Arrow, Look, Wire } from "./look";
+import type { Arrow, Look, Tint, Wire } from "./look";
 import type { Fan, Perch, Seat } from "./seat";
 
 /** One row of a card's attributes: its name, its type's name, whether it keys, and the value a
@@ -250,15 +250,14 @@ export type Area = {
 
 /** One tile of a chip's inner treemap, as a share of the chip's body: a block, unless `as` says
  *  it is a group's panel, a region's band (`odd` every other), a grid's header strip, a lifeline,
- *  a rule between a grid's rows, an interface's notch on the chip's edge, or a flow's line or
- *  one of its arrows (`down` where it runs down). A block may be a
- *  flow's mark, or a class's or an entity's card (`texture`). */
+ *  a rule between a grid's rows, or a flow's line or its arrow (`down` where it runs down). A
+ *  block wears its own colour (`tint`) and may be a flow's mark, or a class's or an entity's card
+ *  (`texture`). */
 export type InnerTile = { id: Id; label: string; x: number; y: number; w: number; h: number;
                           role?: Role;
-                          as?: "group" | "band" | "head" | "life" | "rule" | "port" | "flow"
-                            | "arrow";
+                          as?: "group" | "band" | "head" | "life" | "rule" | "flow" | "arrow";
                           odd?: boolean; down?: boolean; mark?: "start" | "end" | "decision";
-                          texture?: "class" | "entity" };
+                          texture?: "class" | "entity"; tint?: Tint };
 
 export type Scene = {
   /** The layer this is a projection of. */

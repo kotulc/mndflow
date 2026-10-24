@@ -392,42 +392,59 @@
   box-shadow: inset 0 0 0 calc(var(--edge-w, 1px) / var(--zoom, 1)) var(--edge, var(--card-line));
   cursor: pointer;
 }
-/* A plain block's chip and a library definition's wear their own colour on their edge; a
-   diagram's chip does not. */
+/* **Every chip wears its colour** on its edge and its icon: a block's or a definition's own, a
+   diagram's its kind's. */
 .mnd-chip[data-family] { border-left: 3px solid var(--card-edge, var(--card-line)); }
+/* **A chip's head is a card's**: its name over what it counts, its kind's icon in the top-right
+   corner, never smaller on screen than a card's, nor larger than the head (`CHIP_HEAD`,
+   nodes.tsx). */
 .mnd-chip-head {
   position: absolute;
-  top: 4px;
+  top: 5px;
   left: 6px;
-  right: 6px;
+  right: 30px;
   display: flex;
-  gap: 5px;
-  align-items: center;
+  flex-direction: column;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.mnd-chip-icon {
+  --icon: clamp(14px, calc(11px / var(--zoom, 1)), 22px);
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: var(--icon);
+  height: var(--icon);
+  color: var(--text);
+  pointer-events: none;
+}
+.mnd-chip-name {
   overflow: hidden;
   color: var(--text);
   font-size: 12px;
   font-weight: 600;
-  white-space: nowrap;
+  line-height: 15px;
+  text-overflow: ellipsis;
 }
-.mnd-chip-name { overflow: hidden; text-overflow: ellipsis; }
 .mnd-chip-counts {
-  position: absolute;
-  top: 19px;
-  left: 6px;
-  right: 6px;
   overflow: hidden;
   color: var(--muted);
   font-size: 10px;
+  line-height: 12px;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
+/* **A tall chip holding nothing drawn** sets its name upright, reading down under its icon. */
+.mnd-chip.upright .mnd-chip-head { top: 32px; right: 6px; bottom: 6px; align-items: center; }
+.mnd-chip.upright .mnd-chip-icon { right: 50%; transform: translateX(50%); }
+.mnd-chip.upright .mnd-chip-name { writing-mode: vertical-rl; }
+.mnd-chip.upright .mnd-chip-counts { display: none; }
 /* **A diagram's chip looks as a library chip does**: flat tiles on the chip's own ground, its edge
    in its colour; what kind it is shows in how its inside is drawn — its layers, wide gaps between
    them and narrow ones within, its marks, a grid's strips and lines, a card's rules. */
 .mnd-chip.diagram {
   --chip-line: color-mix(in oklch, var(--muted) 60%, transparent);
   --chip-fill: color-mix(in oklch, var(--muted) 30%, transparent);
-  --flow: color-mix(in oklch, var(--accent) 30%, transparent);
+  --flow: color-mix(in oklch, var(--muted) 30%, transparent);
 }
 /* Its tiles the library's colour over a solid ground, so a lifeline runs behind them. */
 .mnd-chip.diagram .mnd-chip-tile {
@@ -447,10 +464,10 @@
   border-color: transparent;
   background: color-mix(in oklch, var(--muted) 10%, transparent);
 }
-/* **What only shapes a diagram's chip** is never a card: a region's tinted band, every other one
-   lighter; a grid's plain header strips; a lifeline down a column behind its blocks; a rule
-   between a grid's rows; an interface's notch on the chip's edge. Lines are sized by the zoom. */
-.mnd-chip.diagram .mnd-chip-tile:is(.band, .head, .life, .rule, .port, .flow, .arrow) {
+/* **What only shapes a diagram's chip** is never a card, and quiet beside them: a region's
+   tinted band, every other one lighter; a grid's plain header strips; a lifeline down a column
+   behind its blocks; a rule between a grid's rows. Lines are sized by the zoom. */
+.mnd-chip.diagram .mnd-chip-tile:is(.band, .head, .life, .rule, .flow, .arrow) {
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -462,23 +479,21 @@
 .mnd-chip.diagram .mnd-chip-tile.band.odd {
   background: color-mix(in oklch, var(--muted) 4%, transparent);
 }
-/* A grid's lines are highlighted as a flow's marks are, in the accent. */
-/* A grid's headers: one quiet, darker strip per column, and per row on a swimlane. */
+/* A grid's headers: one quiet strip per column, and per row on a swimlane. */
 .mnd-chip.diagram .mnd-chip-tile.head {
   border-radius: 2px;
-  background: color-mix(in oklch, var(--muted) 24%, var(--surface));
+  background: color-mix(in oklch, var(--muted) 16%, var(--surface));
 }
 .mnd-chip.diagram .mnd-chip-tile.life {
   overflow: visible;
-  border-left: calc(1.5px / var(--zoom, 1)) dashed color-mix(in oklch, var(--accent) 60%,
-                                                              transparent);
+  border-left: calc(1px / var(--zoom, 1)) dashed var(--chip-fill);
 }
 .mnd-chip.diagram .mnd-chip-tile.rule {
   overflow: visible;
   border-top: calc(1px / var(--zoom, 1)) solid var(--chip-fill);
 }
-/* **A flow's line**: faint, behind its blocks, across or down its middle to the last gap between
-   its layers; there an arrow, a triangle the gap's size, points the way it runs. */
+/* **A flow's line**: faint, behind its blocks, from its start strip to an arrow, a triangle the
+   gap's size, at its end strip, pointing the way it runs. */
 .mnd-chip.diagram .mnd-chip-tile.flow {
   overflow: visible;
   border-top: calc(2px / var(--zoom, 1)) solid var(--flow);
@@ -490,20 +505,17 @@
   transform: translateX(-50%);
 }
 .mnd-chip.diagram .mnd-chip-tile.arrow {
-  background: color-mix(in oklch, var(--accent) 55%, transparent);
+  background: var(--flow);
   clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 .mnd-chip.diagram .mnd-chip-tile.arrow.down { clip-path: polygon(0 0, 100% 0, 50% 100%); }
-.mnd-chip.diagram .mnd-chip-tile.port {
-  border-radius: 1px;
-  background: color-mix(in oklch, var(--accent) 70%, transparent);
-}
 
-/* **A flow's mark keeps a card's shape**: a faint tint, its glyph — a start a dot, an end a ring,
-   a decision a small diamond by its name. */
+/* **A flow's mark keeps a card's shape**, quietly: a faint ground, its glyph — a start a dot, an
+   end a ring, a decision a small diamond by its name. */
 .mnd-chip.diagram .mnd-chip-tile.mark {
   align-items: center;
-  background: color-mix(in oklch, var(--accent) 10%, var(--surface));
+  border-color: transparent;
+  background: color-mix(in oklch, var(--muted) 8%, var(--surface));
 }
 .mnd-chip.diagram .mnd-chip-tile.mark::before {
   flex: none;
@@ -511,12 +523,12 @@
   width: 6px;
   height: 6px;
   content: "";
-  border: 1.2px solid color-mix(in oklch, var(--accent) 60%, transparent);
+  border: 1.2px solid var(--chip-line);
 }
 .mnd-chip.diagram .mnd-chip-tile:is(.start, .end) { justify-content: center; }
 .mnd-chip.diagram .mnd-chip-tile:is(.start, .end)::before { border-radius: 50%; }
 .mnd-chip.diagram .mnd-chip-tile.start::before {
-  background: color-mix(in oklch, var(--accent) 60%, transparent);
+  background: var(--chip-line);
 }
 .mnd-chip.diagram .mnd-chip-tile.decision::before { margin: 0 2px 0 1px; transform: rotate(45deg); }
 
@@ -559,6 +571,32 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* **A block's tile is a small card**, edged as a chip is: a hairline round it, its own colour
+   down its left side, its name at its top and its kind's icon in the top-right corner — never
+   smaller on screen than a card's, nor past the room its tile has (`--cap`, nodes.tsx). Under
+   the pointer its edge lights, as a chip's does: it picks and enters on its own. */
+.mnd-chip .mnd-chip-tile.card {
+  border: 0;
+  border-left: 2px solid var(--card-edge, var(--card-line));
+  border-radius: 2px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 calc(1px / var(--zoom, 1)) var(--tile-edge, var(--card-line));
+  color: var(--text);
+}
+.mnd-chip .mnd-chip-tile.card:hover { --tile-edge: var(--accent); }
+.mnd-chip-tile.iconed {
+  --icon: clamp(min(9px, var(--cap, 9px)), calc(9px / var(--zoom, 1)), var(--cap, 9px));
+  padding-right: calc(var(--icon) + 5px);
+}
+.mnd-chip-tile.iconed > .mnd-chip-tile-icon {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: var(--icon);
+  height: var(--icon);
+  margin: 0;
+}
+
 /* Under the pointer: a brighter edge and ground. Picked: a wider accent edge, the accent in the
    ground. Nothing else lights on a map. */
 .mnd-chip:hover, .mnd-box:has(.mnd-box-title:hover) { --edge: var(--accent); }

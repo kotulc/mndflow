@@ -38,7 +38,7 @@
         "order": 1,
         "settings": {
           "style": {
-            "hue": 75
+            "hue": 70
           }
         },
         "traits": []
@@ -121,6 +121,9 @@
         "description": "A class diagram: what its types are — the definitions its references stand for, each a class card, fields then behaviours, joined by what they extend and the relations stored between them.",
         "order": 1,
         "settings": {
+          "style": {
+            "hue": 260
+          },
           "layout": {
             "view": "class",
             "cards": "large"
@@ -153,7 +156,7 @@
         "order": 2,
         "settings": {
           "style": {
-            "hue": 350
+            "hue": 55
           }
         },
         "traits": []
@@ -223,6 +226,9 @@
         "description": "An entity relationship diagram: how its data is stored — the definitions its references stand for, each a schema card, columns and keys, joined by the relations stored between them, their ends drawn as multiplicities.",
         "order": 2,
         "settings": {
+          "style": {
+            "hue": 230
+          },
           "layout": {
             "view": "er",
             "cards": "large"
@@ -238,6 +244,9 @@
         "description": "A flow: what moves through a process — its steps and decisions, and the lines each passes on along, laid out by where they point. A block's behaviour.",
         "order": 3,
         "settings": {
+          "style": {
+            "hue": 25
+          },
           "layout": {
             "view": "internal",
             "kind": "layered"
@@ -336,8 +345,8 @@
         "order": 3,
         "settings": {
           "style": {
-            "family": "secondary",
-            "border_width": "thin"
+            "border_width": "thin",
+            "hue": 100
           }
         },
         "traits": [
@@ -353,6 +362,9 @@
         "description": "A block diagram: what a block is made of — its parts and the relations between them.",
         "order": 4,
         "settings": {
+          "style": {
+            "hue": 200
+          },
           "layout": {
             "view": "internal"
           }
@@ -511,6 +523,9 @@
         "description": "A sequence: who talks to whom, in what order — a grid read as time, the header row naming the participants and each row a moment, its lines the messages. A block's behaviour.",
         "order": 5,
         "settings": {
+          "style": {
+            "hue": 320
+          },
           "layout": {
             "view": "allocation"
           },
@@ -553,6 +568,9 @@
         "description": "A state machine: how one thing changes — the states it is in, and the transitions between them, laid out by where they point. A block's behaviour.",
         "order": 6,
         "settings": {
+          "style": {
+            "hue": 350
+          },
           "layout": {
             "view": "internal",
             "kind": "layered",
@@ -575,6 +593,9 @@
         "description": "A swimlane: who does what, in which phase — a grid read as lanes, the header row naming the participants and the header column the phases, the steps in their cells. A block's behaviour.",
         "order": 7,
         "settings": {
+          "style": {
+            "hue": 290
+          },
           "layout": {
             "view": "allocation"
           }
@@ -597,7 +618,7 @@
         "order": 4,
         "settings": {
           "style": {
-            "hue": 300
+            "hue": 85
           }
         },
         "traits": []
@@ -643,6 +664,9 @@
         "description": "A treemap: where the weight is — what it holds, each as large as what it holds in turn, in the boxes of its folders, groups and regions.",
         "order": 8,
         "settings": {
+          "style": {
+            "hue": 175
+          },
           "layout": {
             "view": "internal",
             "kind": "treemap"

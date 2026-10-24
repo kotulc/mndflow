@@ -11,6 +11,9 @@
     "is_behaviour"
   ],
   "settings": {
+    "style": {
+      "hue": 25
+    },
     "layout": {
       "view": "internal",
       "kind": "layered"
