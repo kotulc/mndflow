@@ -171,6 +171,27 @@ export function appearances_of(graph: Graph, id: Id): Id[] {
     .map((b) => b.id)];
 }
 
+/** What a block touches outside itself: the far end of every line with one end in it, and every
+ *  stand-in for it or for what it holds. A selection lights these wherever they are drawn. */
+export function touches_of(graph: Graph, id: Id): Id[] {
+  const within = (x: Id) => {
+    for (let b = graph.blocks[x]; b; b = b.parent ? graph.blocks[b.parent] : undefined) {
+      if (b.id === id) return true;
+    }
+    return false;
+  };
+  const out = new Set<Id>();
+  for (const e of Object.values(graph.edges)) {
+    const a = within(e.from), b = within(e.to);
+    if (a !== b) out.add(a ? e.to : e.from);
+  }
+  for (const b of Object.values(graph.blocks)) {
+    const of = of_ref(graph, b.id);
+    if (of && within(of) && !within(b.id)) out.add(b.id);
+  }
+  return [...out];
+}
+
 /** The definition a stand-in stands for, where it stands for one: it draws as that definition's
  *  usages do. */
 export function stood_def(graph: Graph, id: Id): Definition | undefined {
@@ -247,14 +268,5 @@ export function edges_in(graph: Graph, layer: Id | null): Relation[] {
 export function layout_of(graph: Graph, layer: Id | null): Layout {
   const kind = layer ? setting_of(graph, layer, "layout")["kind"] : undefined;
   if (kind === undefined) return "auto";
-  return LAYOUTS.includes(kind as Layout) ? kind as Layout : "auto";
-}
-
-/** Layouts worked out from what a layer holds, never by hand: a drag on one is refused, so the
- *  layout a diagram kind fixes is kept. */
-const WORKED: readonly Layout[] = ["layered", "treemap"];
-
-/** Whether a layer's layout refuses a card moved by hand. */
-export function is_worked(graph: Graph, layer: Id | null): boolean {
-  return WORKED.includes(layout_of(graph, layer));
+  return LAYOUTS.includes(kind as Layout) || kind === "page" ? kind as Layout : "auto";
 }

@@ -1,6 +1,5 @@
 name: Deployment
 type: internal
-settings: { card: { arrange: rows } }
 description: "Where the shop runs. Groups nest, each a dashed box round its members with a note tied beside it; a grid lays environments under their headers."
 blocks:
   - name: eu-west cluster

@@ -24,8 +24,8 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 /** The tree rows of this name. */
-function rows(view: { getAllByText: (text: string) => HTMLElement[] }, name: string) {
-  return view.getAllByText(name).filter((el) => el.classList.contains("label"))
+function rows(view: { queryAllByText: (text: string) => HTMLElement[] }, name: string) {
+  return view.queryAllByText(name).filter((el) => el.classList.contains("label"))
     .map((el) => el.closest("li")!);
 }
 

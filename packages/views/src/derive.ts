@@ -38,7 +38,7 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
   /** A block that holds wears its shape, whatever kind it descends from; a folder is a box. */
   const shape = shape_of(graph, id);
   if (shape) out.push(shape);
-  else if (is_box(graph, id)) out.push("group");
+  if (shape !== "region" && is_box(graph, id)) out.push("group");
   if (is_flat(graph, id)) out.push("flat");
   if (is_interface(graph, b.id)) {
     out.push("interface");
@@ -97,7 +97,7 @@ export function fit_names(scene: Scene): Scene {
     if (n.type === "card" && d.face === "large" && d.look?.size && d.text && !d.table) {
       return { ...n, data: { ...d, clamp: body_lines(box_of(n).h, !!d.alias) } };
     }
-    const own = d.marks.some((m) => m === "header" || m === "activation");
+    const own = d.marks.includes("header");
     if (n.type !== "card" || d.face !== "small" || own || d.look?.height === "free"
         || d.look?.face === "text") return n;
     const fit = name_fit(d.label, box_of(n), !!d.alias, d.look?.shape === "diamond");

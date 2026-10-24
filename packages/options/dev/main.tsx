@@ -11,7 +11,7 @@ import "./dev.css";
 
 /** What a projection offers, as it would arrive from a Scene. */
 const SLOTS: Record<string, string[]> = {
-  room: ["palette", "layer", "make", "relations"],
+  room: ["palette", "make", "relations"],
   "a diagram": ["relations"],
 };
 
@@ -19,12 +19,11 @@ function Harness() {
   const [module, set_module] = useState("room");
   const [log, set_log] = useState<string[]>([]);
   const [chrome, set_chrome] = useState<Chrome>({
-    slots: SLOTS["room"]!, layout: "free", family: "flow", module: "line",
+    slots: SLOTS["room"]!, family: "flow", module: "line",
   });
 
   const act = (name: string, args?: Record<string, unknown>) => {
     set_log((l) => [`${name} ${JSON.stringify(args ?? {})}`, ...l].slice(0, 14));
-    if (name === "layout") set_chrome((c) => ({ ...c, layout: args!["kind"] as never }));
     if (name === "relate_with") {
       set_chrome((c) => ({ ...c, module: args!["module"] as never }));
     }

@@ -63,6 +63,18 @@ export type BoxData = {
   side?: Side;
   /** Seats a line meets on this box's border, where the end has no interface of its own here. */
   seats?: readonly { id: string; side: Side; at: number }[];
+  /** The scale it is drawn at: a library registry's tile scaled into its box. Unsaid, one. */
+  scale?: number;
+  /** A map chip's inner treemap: what it holds, each a share of its body from 0 to 1. */
+  tiles?: readonly InnerTile[];
+  /** A diagram's chip: its inner tiles laid by its structure, drawn on canvas ground. */
+  diagram?: boolean;
+  /** A diagram's own chip, beside the diagrams its box holds: bare, the box's title its name. */
+  own?: boolean;
+  /** A map chip whose block holds blocks: it wears a card's stacked edge. */
+  stacked?: boolean;
+  /** What a map chip counts, said in words: its blocks, lines and components, or its uses. */
+  counts?: string;
   /** A registry's tile: how many times its entry is used, and that against the most used. */
   count?: number;
   heat?: number;
@@ -84,8 +96,6 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "label"
                  | "cell" | "header" | "upright" | "merged"
                  /** An opened grid, standing in for the room. */
                  | "room"
-                 /** A step on a sequence's lifeline, drawn as its bar. */
-                 | "activation"
                  /** A cell a block sits in. */
                  | "seated"
                  /** A block of a definition's structure, seen through a usage of it. */
@@ -130,6 +140,12 @@ export type LineData = {
   points?: readonly { x: number; y: number }[];
   /** Whether `points` is a routed run, given up for one drawn afresh once an end moves. */
   routed?: boolean;
+  /** Whether its name always reads level, above its run, however short the run. */
+  level?: boolean;
+  /** The scale it is drawn at in the world, as its room's cards are. Unsaid, one. */
+  scale?: number;
+  /** Whether it lies outside the focus, so its words fade with it. */
+  away?: boolean;
 };
 
 /** One drawn thing. React Flow's node, with our data on it. */
@@ -227,26 +243,23 @@ export type Frame = {
   seats?: readonly { id: string; side: Side; at: number }[];
 };
 
-/** A block that holds blocks, drawn in the world as a box: its title, walls and the seats set
- *  into them. */
-export type Room = {
+/** One area of a map, the library's or the model's: a box of what it holds, or a chip, which is
+ *  entered. */
+export type Area = {
   id: Id; parent: Id | null; x: number; y: number; w: number; h: number;
-  label: string; depth: number;
-  /** How far its own drawing was moved to sit in the world: world = its own + `d`. */
-  dx: number; dy: number;
-  ports: readonly Port[];
-  frame: Frame;
-  /** Its regions, each a stop the camera may focus. */
-  bands: readonly { id: Id; x: number; y: number; w: number; h: number; label: string }[];
+  label: string; depth: number; chip: boolean;
 };
+
+/** One tile of a chip's inner treemap, as a share of the chip's body. */
+export type InnerTile = { id: Id; label: string; x: number; y: number; w: number; h: number;
+                          role?: Role; holds?: boolean; as?: "group" | "cell" };
 
 export type Scene = {
   /** The layer this is a projection of. */
   layer: Id | null;
-  /** In the world, every room drawn, outermost first; the layer is the one in focus. */
-  rooms?: readonly Room[];
-  /** Where lines leave the focus through its walls, each naming what it reaches outside. */
-  exits?: readonly { id: string; x: number; y: number; side: Side; text: string }[];
+  /** A map, the library's or the model's: every area, outermost first; the layer is the one in
+   *  focus. */
+  areas?: readonly Area[];
   /** Absent only at the root, which has no outside to be seen from. */
   frame?: Frame;
   nodes: readonly BoxNode[];

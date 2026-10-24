@@ -4,8 +4,6 @@ def:
     - name: owner
 description: "Runs on its own, owns its data and speaks to others only through its ports. Every service names the team that runs it: check reports one that does not."
 constraints: [ owned ]
-settings:
-  card: { arrange: rows }
 library:
   interfaces:
     - name: HTTP

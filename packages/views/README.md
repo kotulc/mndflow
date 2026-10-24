@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Entry** | `src/index.ts` |
-| **Depends on** | `core`, React Flow's types for the node and edge shape, `libavoid-js` for routing, `@dagrejs/dagre` for the `layered` layout and `d3-hierarchy` for the `treemap` layout and registries |
+| **Depends on** | `core`, React Flow's types for the node and edge shape, `elkjs` for placement, `libavoid-js` for routing, `@dagrejs/dagre` for the synchronous fallback's `layered` layout and `d3-hierarchy` for the `treemap` layout, the library and registries |
 | **Proven by** | every Scene it emits is well-formed, over every layer of every fixture, and the invariants catch what they are for |
 
 ## Where it sits
@@ -35,9 +35,12 @@ npm run start -w @mnd/cli -- project related  # a Scene as text, which is the se
 | `through.ts` | read-through: an opened usage's definition structure laid on its layer, its interfaces on its walls |
 | `page.ts` | the computed page layout: full-width boxes down a page |
 | `size.ts` | the one measure: `UNIT`, a `CELL` as a block plus its air, and **faces** — `face_of` (small, or large where an ancestor's `layout.cards` asks) and the size each draws at: the workspace card small; large, the definition's `card.size` or what its content fits (`fitted`), under `LARGE` |
-| `arrange.ts` · `bands.ts` · `pack.ts` | where everything sits: hand placement or a computed layout, bands and cells, clusters and satellites |
-| `float.ts` | `auto`: runs of one `card.arrange` in explorer order (`runs`), aside cards floating beside what they are tied to (`floated`); one rule for a layer and a group (`noted`) |
-| `layered.ts` | `layered`: a layer ranked by its relations, on dagre; asides float as in `auto` |
+| `flow.ts` | **placement**: a layer's blocks by ELK, each container on its own, inside out — `layered` where lines join its children, packed where none do (`place`); ELK in the host's worker (`set_elk`) |
+| `map.ts` · `layer.ts` | the map, the model's and the library's: boxes and chips by what they hold (`model_map`, `library_map`); a layer entered from it, placed by ELK (`layer_scene`) |
+| `library.ts` | a definition's uses and where they live (`uses_of`); the tray's small maps (`registry_map`, `filed_map`) |
+| `arrange.ts` · `bands.ts` · `pack.ts` | where everything sits: placed ahead where ELK gave places (`placed_as`), else the synchronous fallback — bands and cells, clusters and satellites |
+| `float.ts` | the fallback's `auto`: runs in explorer order (`runs`), aside cards floating beside what they are tied to (`floated`); one rule for a layer and a group (`noted`) |
+| `layered.ts` | the fallback's `layered`: a layer ranked by its relations, on dagre; asides float as in `auto`. For the kit's viewer and the CLI until they draw the world |
 | `treemap.ts` | `treemap`: each block as large as what it holds (`weight_of`), nested in its boxes, on d3-hierarchy (`tiled`); notes stand beside it |
 | `registry.ts` | a registry read out: `entries_of` (the list), `matrix_of` (the tray's matrix), `registry_scene` (the canvas's treemap of entries by home folder, and of an entry's uses) |
 | `seat.ts` · `ends.ts` · `route.ts` | where a line meets a border, which way it sets off, and where it runs |

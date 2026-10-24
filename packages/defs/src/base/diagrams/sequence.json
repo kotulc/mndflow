@@ -13,7 +13,10 @@
   ],
   "settings": {
     "layout": {
-      "view": "sequence"
+      "view": "allocation"
+    },
+    "holder": {
+      "lifelines": true
     }
   }
 }

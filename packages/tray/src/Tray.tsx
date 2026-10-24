@@ -60,8 +60,6 @@ export type TrayProps = {
   onDisplay?: Act;
   /** The host's own tabs for a block, after the tray's: a name, and what it draws. */
   extras?: readonly Extra[];
-  /** The host's drawing of a block's layer at a glance, for the overview's left side. */
-  thumb?: (id: Id, focus?: readonly Id[]) => ReactNode;
 };
 
 /** A host's tab: what it is called, and what it shows for the block the tray is about. */
@@ -365,13 +363,11 @@ export function Tray(props: TrayProps) {
     >
           {shows === "overview" ? (
             <Overview key={about} graph={graph} id={about}
-                      {...(props.thumb ? { thumb: props.thumb } : {})}
                       {...(edits ? { onAct: act } : {})} />
           ) : null}
           {shows === "workspace" ? (
             <Workspace graph={graph} {...(edits ? { onAct: act } : {})}
                        onDisplay={props.onDisplay ?? act}
-                       {...(props.thumb ? { thumb: props.thumb } : {})}
                        {...(props.display ? { display: props.display } : {})} />
           ) : null}
           {shows === "card" || shows === "line" || shows === "interface" || shows === "tag"

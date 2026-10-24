@@ -29,7 +29,7 @@
 | `tag` | sets an element's tags, the whole list; a new word makes a tag in the workspace's library; none gives the list back to its definition. Refuses a trait | block, edge, selection | ids, tags? | `set_tags` (+ `set_library`) |
 | `constrain` | sets the constraints an element is held to, the whole list, each a library constraint by name or id; none gives the list back to its definition | block, edge, selection | ids, constraints? | `set_constraints` |
 | `define_tag` · `define_type` · `define_interface` · `define_constraint` | make or change a library entry in the workspace's library: a tag, a type (an enum or an alias), an interface definition, a constraint. Each may extend another of its kind | layer | name, id?, description?, extends?; form?, choices?, unit?, format?; required?, match? | `set_library` |
-| `unmember` | takes away a tag an annotation gives: out of the group or region, or the label's tie deleted | block | id, from | `move_block` or `delete_edge` |
+| `unmember` | takes away a tag an annotation gives: the group's tag dropped, out of the region, or the label's tie deleted | block | id, from | `set_tags`, `move_block` or `delete_edge` |
 | `trait` | sets the traits a definition carries, the whole list, or gives it back to its chain. Refuses a usage, and a word naming no trait | block, selection | ids, traits? | `set_traits` |
 | `look` | sets one property of how this draws or what it asks | block, edge, selection | ids, key, name, value? | `set_setting` |
 | `none` | gives back everything this says for itself | block, edge, selection | ids | `drop_settings` |
@@ -37,7 +37,7 @@
 
 | Rule | |
 |---|---|
-| **`move` is nesting, filing, grouping and ordering** | they differ only in where the parent comes from. A selection moves in one step. Into a grid, it seats; out of one, it unseats |
+| **`move` is nesting, filing and ordering** | they differ only in where the parent comes from. A selection moves in one step. Into a grid, it seats; out of one, it unseats |
 | **`delete` takes the subtree** | holders included. It never reaches through a reference |
 | **`delete` refuses** | a definition or a package something uses; `base`; the workspace root |
 | **`retype` keeps a kind a kind** | `block`, `folder`, `note`, `group` and `grid` are one family; `reference` and `interface` are made, never retyped into. A run takes only relation definitions |
@@ -54,8 +54,8 @@
 
 | | Does | Scope | Arguments | Effect |
 |---|---|---|---|---|
-| `open` | focuses a room in world view — a definition as its usages are, a registry or an entry of one as its treemap — or leaves for the room holding the focus. `at`, the section it was opened from | block | id?, at? | `open` |
-| `read` | focuses a room in reading view: 100%, scrolling inside its walls | block | id | `open` |
+| `open` | focuses a room, the camera flying to it — a definition as its usages are, a registry or an entry of one as its treemap — or leaves for the room holding the focus. `at`, the section it was opened from | block | id?, at? | `open` |
+| `read` | enters a block from the map: the camera flies into its chip, then its own view fades in, alone, fitted, never above 100%; Escape returns to the map | block | id | `open` |
 | `reveal` | picks a block, focusing the room it sits in. A stand-in is one object with its block: revealing it lights every appearance | block | id | `open` + `focus` |
 
 - **Where the canvas goes is navigation's** (core `navigate.ts`): **opening focuses a room** — any block holding blocks — and the camera flies to it; **the card's kind says how that room draws** (`lens_of`); a stand-in focuses what it stands for; **a definition opens as its usages do**. A block holding nothing is picked where it is drawn, its room focused; a region may be focused from the canvas; a group, a label or a note never is. Leaving focuses the room holding the focus. Both apps use the same functions.
@@ -90,8 +90,8 @@
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `group` | makes a group round what is selected, or a grid over a region, and moves the selection into it; a region may start empty (`members: []`) | layer, selection | ids?, rows?, cols?, type?, spot? | `add_block` + `move_block`… (+ `set_grid`, `seat_cell`) |
-| `room` | turns a group or a region into a room — retyped a plain block, its members already holding by `parent` — or wraps the selection in a new room where it is drawn, keeping its relations | block, selection | group?, members?, name? | `update_block`, or `add_block` + `move_block`… |
+| `group` | makes a group on the layer and tags what is selected with its name — the selection stays where it is filed; or a grid or region over the selection, moving it in; a region may start empty (`members: []`) | layer, selection | ids?, rows?, cols?, type?, spot? | `add_block` + `set_tags`…, or `add_block` + `move_block`… (+ `set_grid`, `seat_cell`) |
+| `room` | turns a group or a region into a room — retyped a plain block; a region's members already hold by `parent`, a group's are moved in and lose its tag — or wraps the selection in a new room where it is drawn, keeping its relations | block, selection | group?, members?, name? | `update_block`, or `add_block` + `move_block`… |
 | `heads` | adds a header row or column to a grid, or takes it away | block, cell | grid?, way, on? | `set_grid` + `seat_cell`… |
 | `label` | names the block in a cell, or makes a plain block of that name in an empty one | cell | grid?, at?, text? | `update_block` / `add_block` + `seat_cell` |
 | `fill` | puts a new block in every empty body cell | block, cell | grid? | `add_block` + `seat_cell`… |
@@ -100,7 +100,7 @@
 | `transpose` | turns a grid on its side | block, cell | grid? | `set_grid` + `seat_cell`… |
 | `chain` | links every filled cell in reading order | block, cell | grid?, dir?, type? | `link_blocks`… |
 
-- **A holder is made like any block** and filled by `move`. `group` is the shortcut: a holder and a move in one step.
+- **A holder is made like any block** and filled by `move`. `group` is the shortcut: a grid or region and a move in one step — or, for a group, a block and its tag on each member, since a group holds nothing.
 - **Any block may sit in a cell**, a holder or a grid included; it draws compact there. A header cell holds any block.
 - **A grid's member always has a cell.** Whatever `remove`, `merge`, `heads` or a smaller extent leaves without one moves to the nearest spare cell on its side, else leaves the grid. **The block always survives.**
 - **`heads` adds or removes a line**, never converts one, so nothing seated moves.
@@ -135,11 +135,7 @@
 
 ### The layer
 
-| | Does | Scope | Arguments | Writes |
-|---|---|---|---|---|
-| `layout` | sets how the layer lays out, and tidies it into that shape | layer | kind, at? | `set_setting{layout}` + `place_block`… |
-
-**Layout is a setting**, said by a definition and overridable by the layer: `free`, `auto` or `page`, and `auto` where nothing says. The tidy is written on the way out of a computed layout, so `free` keeps where it put everything. **Moving anything by hand on a computed layout sets it `free`**, positions written first, in the same step.
+**Every card is placed automatically, and no action places one.** A layer's layout is a setting (`layout.kind`: `layered` or `treemap`, packed where nothing says), said by a definition and overridable by the layer in its settings; there is no `layout` or `arrange` action. Reading order is the blocks' `order`, which `move` (`before`) changes.
 
 
 ## Adjustments
@@ -148,11 +144,10 @@
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `place` | where something came to rest | block | moved[] | `place_block`… |
 | `size` | how big a card was asked to be | block | id, w, h | `size_block` |
 | `seat` | where a port sits on its edge, written where it is held | interface | id, side, at | `set_ports` |
 
-**One gesture, one step.** A drag that comes to several writes (a place and a move, a layout and a place) runs inside `session.batch`. **A drop resolves to an action**: a card on a card or into a holder is `move`; into a cell, `move` seating it; a grid's corner dragged is `set_grid`; a relationship's end on another block is `relink`.
+**One gesture, one step.** A drag that comes to several writes runs inside `session.batch`. **A drop resolves to an action, never a place**: a card on a card, into another room or into a holder is `move`; dropped where it was it writes nothing; into a cell, `move` seating it; a grid's corner dragged is `set_grid`; a relationship's end on another block is `relink`.
 
 
 ## Gestures
@@ -216,7 +211,7 @@
 | `make` | *new usage* and *new definition* in the focus |
 | `relations` | which relation types a right drag and a `chain` draw |
 
-Display — frame, guides, ports, the key, the context mode — is the workspace tab's, one workspace-wide setting; a room's layout is the tray's card tab.
+Display — frame, guides, ports, the key — is the workspace tab's, one workspace-wide setting.
 
 
 ## Not on the surface
@@ -226,7 +221,7 @@ Display — frame, guides, ports, the key, the context mode — is the workspace
 | **shell actions** | new workspace, import, export, export as a package, undo, redo: they reach a host port, not the graph. Export sits in the header and on the workspace tab, export as a package on the workspace tab alone. A package is authored as a workspace and written as one: its root and ids prefixed with its name |
 | **queries** | readable state, off the registry |
 | **finding** | filtering writes nothing and goes nowhere |
-| **display preferences** | outside the log, workspace-wide: card size, frame, guides, ports, the key, the context mode (dim or rings), folds, theme |
+| **display preferences** | outside the log, workspace-wide: card size, frame, guides, ports, the key, folds, theme |
 
 
 ## The registry

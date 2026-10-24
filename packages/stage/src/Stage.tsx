@@ -11,8 +11,7 @@ import { Legend, type Corner } from "./Legend";
 import { moves_of, type Move } from "./moves";
 import { cell_key } from "./nodes";
 import { Icon } from "@mnd/theme";
-import { box_of, clear_of, holds, home_of, local_at, local_scene, room_under, swept_cells,
-         BLOCK, CELL,
+import { area_under, box_of, clear_of, holds, swept_cells, towards, BLOCK, CELL,
          type Scene } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
 
@@ -56,17 +55,20 @@ export type StageProps = {
   type?: string;
   /** What another surface is pointing at, drawn in the hover look. */
   lit?: readonly string[];
+  /** What the selection touches elsewhere: lit in the relation colour. */
+  touched?: readonly string[];
   /** The drawing read down the page: fitted to its width, scrolled rather than zoomed, the camera
    *  following `focus`. */
   scroll?: boolean;
   focus?: string | null;
   /** The most a scrolled drawing magnifies. */
   most?: number | null;
-  /** In the world: how the focus is looked at, the region stopped at, and how what lies outside
-   *  the focus is drawn. */
-  mode?: "world" | "read";
-  stop?: { x: number; y: number; w: number; h: number } | null;
-  context?: "dim" | "rings" | null;
+  /** Whether the drawing is a layer entered from a map: Escape leaves it for the map. */
+  entered?: boolean;
+  /** Counted up by every open: a new count flies to the focus, the same one or not. */
+  opened?: number;
+  stop?: { x: number; y: number; w: number; h: number; scale?: number } | null;
+
   /** Whether the canvas has the keys. Undo and redo answer wherever the keys are. */
   keys?: boolean;
 };
@@ -81,7 +83,13 @@ function box_offers(id: string, opens: boolean): readonly (string | Entry)[] {
           { name: "delete", label: "delete block" }];
 }
 
+/** The arrow keys, as the way each walks between rooms. */
+const WAYS: Record<string, "left" | "right" | "up" | "down"> = {
+  ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down",
+};
+
 /** Adding a line to a grid: at the picked cell's line, else at its end. */
+
 const LINES: readonly Entry[] = [
   { name: "insert", label: "insert row", args: { way: "row" } },
   { name: "insert", label: "insert column", args: { way: "col" } },
@@ -184,8 +192,8 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
                        menu, said, onSaid, head, empty, lattice, frame, legend, corner, module,
-                       dir, type, lit = [], scroll = false, focus = null, most = null,
-                       mode = "world", stop = null, context = null,
+                       dir, type, lit = [], touched = [], scroll = false, focus = null, most = null,
+                       entered = false, stop = null, opened = 0,
                        keys = true }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
@@ -222,18 +230,27 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       /** Escape closes the nearest thing. */
       else if (e.key === "Escape") {
         if (at) { set_at(null); return; }
-        /** With nothing picked, reading widens back to the world view. */
-        if (!picked.length && mode === "read") { onAct("widen"); return; }
+        /** Entered, Esc leaves for the map, whatever is picked. */
+        if (entered) { onAct("widen"); return; }
         onPick([]);
         onSaid?.();
       }
-      /** Enter opens the one picked card; navigation says where that goes. With nothing picked,
-       *  the focus is read. */
+      /** On a map, Enter enters what is in focus. Elsewhere it opens the one picked card;
+       *  navigation says where that goes. */
+      else if (e.key === "Enter" && scene.areas) onAct("read");
       else if (e.key === "Enter" && one && !scene.edges.some((r) => r.id === one)) {
         onAct("open", { id: one });
       }
-      else if (e.key === "Enter" && !picked.length && scene.rooms) onAct("read");
       else if (e.key === "F2" && one) set_naming(one);
+      /** On a map the arrows walk to the nearest area that way, as a click goes to it. */
+      else if (e.key in WAYS && scene.areas && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const from = scene.nodes.find((n) => n.className === "mnd-focus")?.id ?? scene.layer ?? "";
+        const next = towards(scene.areas, from, WAYS[e.key]!);
+        if (!next) return;
+        e.preventDefault();
+        onAct("open", { id: next.id });
+        onPick([next.id]);
+      }
       /** Everything picked, in one step. */
       else if ((e.key === "Delete" || e.key === "Backspace") && picked.length) {
         onAct("delete", { ids: [...picked] });
@@ -251,7 +268,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     };
     window.addEventListener("keydown", on_key);
     return () => window.removeEventListener("keydown", on_key);
-  }, [scene, picked, at, onAct, onPick, onSaid, mode]);
+  }, [scene, picked, at, onAct, onPick, onSaid, entered]);
 
   /** What the right button offers, per thing. */
   const OFFERS: Partial<Record<Gesture["kind"], readonly (string | Entry)[]>> = {
@@ -309,6 +326,15 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       return;
     }
     if (g.button === "left" && g.count === 1) onPickCells?.([]);
+    /** **A map is read, never built on**: a click on a chip or a box goes to it, two enter it. */
+    if (scene.areas) {
+      const area = g.on && scene.areas.some((a) => a.id === g.on) ? g.on
+        : area_under(scene.areas, g.at)?.id ?? null;
+      if (g.button !== "left" || !area) return;
+      if (g.count === 1) { onAct("open", { id: area }); onPick([area]); }
+      else onAct("read", { id: area });
+      return;
+    }
     if (g.button === "left") {
       if (g.count === 2) {
         /** Two clicks rename a name or a note, open a card, reveal a reference, or leave. */
@@ -324,15 +350,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
           else onAct("open", { id: g.on });
         }
         else if (g.on && g.kind === "note") set_naming(g.on);
-        /** Two clicks on a region focus it: a stop for the camera inside its room. */
-        else if (g.on && g.kind === "band" && scene.rooms) onAct("open", { id: g.on });
-        else if (g.kind === "frame") onAct("open");
-        /** Two clicks on the ground of another room open it; anywhere else, leave. */
-        else if (!g.on) {
-          const room = room_in(scene, g.at)?.id;
-          if (room && room !== scene.layer && !above(scene, room)) onAct("open", { id: room });
-          else onAct("open");
-        }
+        /** Two clicks on the frame or outside it leave for the layer above. */
+        else if (g.kind === "frame" || !g.on) onAct("open");
       }
       /** A single left click is a selection, reported by the canvas. */
       return;
@@ -341,11 +360,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     if (!g.on || g.kind === "empty") {
       const name = prompt("name it");
       if (name === null) return;
-      /** In the world, it is made in the room under the pointer, where it was pointed. */
-      const room = scene.rooms ? room_in(scene, g.at) : null;
-      const spot = made_at(scene, g.at);
-      onAct("create", { name, ...(room ? { parent: room.id, spot: local_at(room, spot) }
-                                       : { spot }) });
+      onAct("create", { name, spot: made_at(scene, g.at) });
       return;
     }
     /** A right-click on a cell makes a block in it; inside the picked cells, it is about them. */
@@ -374,6 +389,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
       {empty ? <p className="empty">{empty}</p> : null}
       {lit.length ? <style>{lit_rules(lit)}</style> : null}
+      {touched.length ? <style>{lit_rules(touched, "var(--s-secondary-edge)")}</style> : null}
       <FlowView
         scene={scene}
         picked={picked}
@@ -384,9 +400,9 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         scroll={scroll}
         focus={focus}
         most={most}
-        mode={mode}
+
+        opened={opened}
         stop={stop}
-        context={context}
         naming={naming}
         onNamed={(label) => {
           const was = typing;
@@ -402,10 +418,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onRelate={(from, to) => onAct("relate", { from, to, ...drawing })}
         /** A right drag across empty ground draws a grid, seating what it covered. */
         onSweep={(box) => onAct("group", swept(scene, box))}
-        onAdjust={(adjust) => {
-          const here = in_room(graph, scene, adjust);
-          onAdjust?.(moves_of(graph, here.scene, here.adjust));
-        }}
+        onAdjust={(adjust) => onAdjust?.(moves_of(graph, scene, adjust))}
         said={said ? (
           <>
             <span>{said}</span>
@@ -461,36 +474,6 @@ function free_cell(taken: ReadonlySet<string>, rows: number, cols: number,
   return best;
 }
 
-/** An adjustment in the world, read in the room it happens in: that room's own drawing, and
- *  every position in its coordinates. A seat is moved in the room of the card it sits on. */
-function in_room(graph: Graph, scene: Scene, a: Adjust): { scene: Scene; adjust: Adjust } {
-  const rooms = scene.rooms;
-  if (!rooms) return { scene, adjust: a };
-  const id = a.kind === "place" ? a.at[0]?.id : a.on;
-  const node = scene.nodes.find((n) => n.id === id);
-  const room = a.kind === "wall-seat" ? rooms.find((r) => r.id === scene.layer)
-    : id ? home_of(graph, rooms, node?.data.on ?? id) : null;
-  if (!room) return { scene, adjust: a };
-  const at = (p: { x: number; y: number }) => local_at(room, p);
-  const adjust: Adjust = a.kind === "move" || a.kind === "size" ? { ...a, to: at(a.to) }
-    : a.kind === "place" ? { ...a, at: a.at.map((p) => ({ ...p, to: at(p.to) })) } : a;
-  return { scene: local_scene(graph, scene, room), adjust };
-}
-
-/** The innermost room under a point, in the world. */
-function room_in(scene: Scene, at: { x: number; y: number }) {
-  return room_under(scene.rooms ?? [], at);
-}
-
-/** Whether a room holds the focus: one of its ancestors. */
-function above(scene: Scene, room: string): boolean {
-  const rooms = new Map((scene.rooms ?? []).map((r) => [r.id, r]));
-  for (let at = rooms.get(scene.layer ?? "")?.parent; at; at = rooms.get(at)?.parent ?? null) {
-    if (at === room) return true;
-  }
-  return false;
-}
-
 /** Where a card made here goes. */
 function made_at(scene: Scene, at: { x: number; y: number }) {
   const taken = scene.nodes.filter((n) => !holds(n) && !n.data.on).map(box_of);
@@ -498,9 +481,11 @@ function made_at(scene: Scene, at: { x: number; y: number }) {
 }
 
 /** The hover look, as a style rule so lighting never rebuilds the arrays. */
-export function lit_rules(ids: readonly string[]): string {
+export function lit_rules(ids: readonly string[], colour = "var(--accent)"): string {
   const at = (kind: string, inner: string) =>
     ids.map((id) => `.react-flow [data-testid="rf__${kind}-${CSS.escape(id)}"]${inner}`).join(",");
-  return [`${at("node", "")} { outline: 2px solid var(--accent); outline-offset: 2px; }`,
-          `${at("edge", " path")} { stroke: var(--accent) !important; opacity: 1; }`].join("\n");
+  /** Two pixels on screen at any zoom: a shadow, since a border or outline under a pixel is
+   *  drawn at one before the zoom magnifies it. */
+  return [`${at("node", "")} { box-shadow: 0 0 0 calc(2px / var(--zoom, 1)) ${colour}; }`,
+          `${at("edge", " path")} { stroke: ${colour} !important; opacity: 1; }`].join("\n");
 }

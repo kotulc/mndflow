@@ -15,9 +15,6 @@
     "style": {
       "family": "primary"
     },
-    "card": {
-      "arrange": "rows"
-    },
     "layout": {
       "view": "internal"
     }

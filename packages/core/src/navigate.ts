@@ -52,11 +52,11 @@ function own_view(graph: Graph, id: Id): string | undefined {
   return typeof view === "string" ? view : undefined;
 }
 
-/** Whether a block can feed a view it names. Allocation and a sequence need a grid; a class or
+/** Whether a block can feed a view it names. Allocation needs a grid; a class or
  *  entity diagram, and the inside, something to draw: a block that holds, or reads through, what
  *  it does not draw in place. */
 function feeds(graph: Graph, id: Id, view: string): boolean {
-  if (view === "allocation" || view === "sequence") return is_grid(graph, id);
+  if (view === "allocation") return is_grid(graph, id);
   if (view === "class" || view === "er") return opens(graph, id);
   if (view === "internal") {
     return !is_grid(graph, id) && opens(graph, id);

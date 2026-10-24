@@ -97,9 +97,6 @@
 .mnd-card.header.upright { padding: 4px 0; }
 .mnd-card.header.upright > .mnd-head { writing-mode: vertical-rl; transform: rotate(180deg); }
 
-/* A sequence's step is its activation: a bar on its lifeline, its name said on hover. */
-.mnd-card.activation { padding: 0; border-radius: 1px; }
-.mnd-card.activation > :is(.mnd-head, .mnd-role, .mnd-marks, .mnd-alias, .mnd-kind) { display: none; }
 
 /* Which way a flow enters and leaves, on the interface that carries it. */
 /* A port of an interface definition is filled with that definition's colour; its border still
@@ -353,85 +350,159 @@
 @container (max-height: 46px) { .mnd-tile-count, .mnd-tile-about { display: none; } }
 @container (max-height: 80px) or (max-width: 150px) { .mnd-tile-about { display: none; } }
 
-/* ── The world: every room drawn in place, the focus bright ── */
+/* ── The map, the library's and the model's: boxes of chips ── */
 
-/* A room's ground lets the pointer through to what is under it; its title and seats do not. */
-.mnd-flow .react-flow__node-room { pointer-events: none !important; }
-.mnd-room {
+/* A box's ground lets the pointer through, so a press there is on the box; its title is its own.
+   Walls and edges are hairline shadows: a border under 1px is drawn at 1px before the zoom. */
+.mnd-flow .react-flow__node-box { pointer-events: none !important; }
+.mnd-box {
   position: relative;
   width: 100%;
   height: 100%;
-  border: 1px solid var(--wall);
+  box-sizing: border-box;
   border-radius: 3px;
-  background: color-mix(in oklab, var(--bg) 92%, var(--text));
-  pointer-events: none;
+  box-shadow: inset 0 0 0 calc(var(--edge-w, 1px) / var(--zoom, 1)) var(--edge, var(--wall));
 }
-.mnd-room.picked { border-color: var(--accent); }
-.mnd-room-title {
+.mnd-box-title {
   position: absolute;
-  top: -0.75em;
-  left: 12px;
+  top: 5px;
+  left: 8px;
+  right: 6px;
   display: flex;
-  gap: 6px;
-  align-items: baseline;
-  padding: 0 6px;
-  background: var(--bg);
+  gap: 5px;
+  align-items: center;
+  overflow: hidden;
   color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
   pointer-events: auto;
-  white-space: nowrap;
+  cursor: pointer;
 }
-.mnd-room-name { cursor: pointer; }
-.mnd-room .react-flow__handle { pointer-events: none; }
+.mnd-box-name { overflow: hidden; text-overflow: ellipsis; }
 
-/* In the world the focus is lit by what lies outside it, not by a shadow. */
-.mnd-flow[class*="context-"] .mnd-frame { box-shadow: none; }
-.mnd-flow .mnd-out { transition: opacity 0.25s; }
-.mnd-flow.context-dim .mnd-out { opacity: 0.2; }
-.mnd-flow.context-dim .mnd-anc { opacity: 0.55; }
-.mnd-flow.context-rings .mnd-out { opacity: 0; pointer-events: none !important; }
-.mnd-flow.context-rings .mnd-anc { opacity: 0.55; }
-.mnd-flow.context-rings .mnd-anc .mnd-room { background: none; }
-@media (prefers-reduced-motion: reduce) { .mnd-flow .mnd-out { transition: none; } }
-
-/* Far out, cards are chips and room titles grow so the map still reads. */
-.mnd-flow.far .react-flow__node-card .card-name,
-.mnd-flow.far .react-flow__node-card .card-label,
-.mnd-flow.far .react-flow__node-note .card-name,
-.mnd-flow.far .mnd-wire-name,
-.mnd-flow.far .mnd-wire-end { visibility: hidden; }
-.mnd-flow.far .mnd-room-title,
-.mnd-flow.far .mnd-frame-name { font-size: calc(1em * var(--far, 1)); }
-/* A folder or region grows less, so nested ones stay clear of the rooms they sit in. */
-.mnd-flow.far .mnd-group-title { font-size: calc(1em * min(var(--far, 1), 2.5)); }
-
-/* Reading: how much of the focus is left each way. */
-.mnd-more {
+/* A chip: what is entered — its icon, name and counts over a small treemap of what it holds. */
+.mnd-chip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 calc(var(--edge-w, 1px) / var(--zoom, 1)) var(--edge, var(--card-line));
+  cursor: pointer;
+}
+/* A library definition wears its own colour on its edge. */
+.mnd-chip[data-family] { border-left: 3px solid var(--card-edge, var(--card-line)); }
+.mnd-chip-head {
   position: absolute;
-  z-index: 5;
-  padding: 3px 8px;
-  border: 1px solid var(--wall);
-  border-radius: 10px;
-  background: var(--bg);
-  color: var(--accent);
-  font-size: 11px;
-  pointer-events: none;
+  top: 4px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
   white-space: nowrap;
 }
-.mnd-more.top { top: 8px; left: 50%; transform: translateX(-50%); }
-.mnd-more.bottom { bottom: 8px; left: 50%; transform: translateX(-50%); }
-.mnd-more.left { left: 8px; top: 50%; transform: translateY(-50%); }
-.mnd-more.right { right: 8px; top: 50%; transform: translateY(-50%); }
-
-/* A line leaving the focus: its seat on the wall, naming the far end. */
-.mnd-exit {
-  padding: 0 4px;
-  background: var(--bg);
-  color: var(--accent);
+.mnd-chip-name { overflow: hidden; text-overflow: ellipsis; }
+.mnd-chip-counts {
+  position: absolute;
+  top: 19px;
+  left: 6px;
+  right: 6px;
+  overflow: hidden;
+  color: var(--muted);
   font-size: 10px;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  pointer-events: none;
 }
-.mnd-exit.right { transform: translate(-100%, -130%); margin-left: -6px; }
-.mnd-exit.left { transform: translate(0, -130%); margin-left: 6px; }
-.mnd-exit.top { transform: translate(6px, 4px); }
-.mnd-exit.bottom { transform: translate(6px, -130%); }
+/* **A diagram is a small canvas**: the canvas's ground and its dots under its name, its blocks
+   raised cards on it, its connectors in the gaps between them. Its own chip, beside the diagrams it holds, says
+   only what it counts, beside its icon. */
+.mnd-chip.diagram {
+  background-color: var(--bg);
+  background-image: radial-gradient(color-mix(in oklch, var(--card-line) 70%, transparent) 0.7px,
+                                    transparent 1px);
+  background-size: 10px 10px;
+  --edge: var(--card-line);
+}
+.mnd-chip.diagram .mnd-chip-tile {
+  border: 1px solid var(--card-line);
+  border-radius: 3px;
+  background: var(--raised);
+  color: var(--text);
+  box-shadow: 0 1px 0 color-mix(in oklch, black 40%, transparent);
+}
+/* A diagram's own chip is bare canvas beside the diagrams its box holds: no head. */
+.mnd-chip.own .mnd-chip-body { top: 4px; }
+
+/* **What stands in for a block reads as a card**: its kind's icon by its name, the card's
+   stacked edge where it holds blocks (`.mnd-card.container`), a group a tinted panel. */
+.mnd-chip.holds, .mnd-chip.diagram .mnd-chip-tile.holds {
+  box-shadow: inset 0 0 0 calc(var(--edge-w, 1px) / var(--zoom, 1)) var(--edge, var(--card-line)),
+              2px 2px 0 -1px var(--bg), 2px 2px 0 0 var(--card-line);
+}
+.mnd-chip.diagram .mnd-chip-tile.group {
+  border-color: transparent;
+  background: color-mix(in oklch, var(--muted) 10%, transparent);
+  box-shadow: none;
+}
+/* A grid's cells: faint hairlines only. */
+.mnd-chip.diagram .mnd-chip-tile.cell {
+  border: 1px solid color-mix(in oklch, var(--card-line) 20%, transparent);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.mnd-chip-tile { display: flex; gap: 3px; align-items: flex-start; }
+.mnd-chip-tile > svg { flex: none; margin-top: 1px; }
+.mnd-chip-tile-name { overflow: hidden; text-overflow: ellipsis; }
+
+/* The inner treemap, under the head (`CHIP_HEAD`, nodes.tsx). */
+.mnd-chip-body { position: absolute; top: 34px; left: 4px; right: 4px; bottom: 4px; }
+.mnd-chip-tile {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 1px 3px;
+  border: 1px solid color-mix(in oklch, var(--card-line) 55%, transparent);
+  background: color-mix(in oklch, var(--card-line) 8%, transparent);
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Under the pointer: a brighter edge and ground. Picked, or in focus: a wider accent edge, the
+   accent in the ground. */
+.mnd-chip:hover, .mnd-box:has(.mnd-box-title:hover) { --edge: var(--accent); }
+.mnd-chip:hover { background: color-mix(in oklch, var(--accent) 8%, var(--surface)); }
+.mnd-box.picked, .mnd-chip.picked,
+.mnd-focus .mnd-box, .mnd-focus .mnd-chip { --edge: var(--accent); --edge-w: 2px; }
+.mnd-chip.picked, .mnd-focus .mnd-chip {
+  background: color-mix(in oklch, var(--accent) 12%, var(--surface));
+}
+.mnd-box.picked .mnd-box-title, .mnd-focus .mnd-box-title,
+.mnd-chip.picked .mnd-chip-head, .mnd-focus .mnd-chip-head { color: var(--accent); }
+
+/* ── Scale: only a library registry is drawn scaled into its tile ── */
+.mnd-scaled { position: relative; transform-origin: 0 0; }
+.mnd-scaled > * { width: 100%; height: 100%; }
+
+/* Where the camera cut from the map to a layer, or back, the new drawing fades in. */
+.mnd-flow.fresh .react-flow__viewport { animation: mnd-fade-in 0.2s ease-out; }
+@keyframes mnd-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .mnd-flow.fresh .react-flow__viewport { animation: none; } }
+
+/* An edit re-lays the layer it touches: what stays slides to its new place, never while dragged.
+   The focus's frame jumps, and nothing slides across a change of drawing (`cut`, `fresh`). */
+.mnd-flow:not(.map):not(.cut):not(.fresh) .react-flow__node:not(.dragging):not(.react-flow__node-frame) {
+  transition: transform 0.46s cubic-bezier(0.4, 0, 0.2, 1), width 0.46s, height 0.46s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mnd-flow .react-flow__node:not(.dragging) { transition: none; }
+}

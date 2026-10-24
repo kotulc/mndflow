@@ -1,13 +1,13 @@
 name: Colour
 note: Colour and line, set on a card. A family or a hue picks its colour; fill, border and opacity say how it is drawn.
 blocks:
-  - { name: primary, settings: { card: { arrange: rows }, style: { family: primary } } }
-  - { name: secondary, settings: { card: { arrange: rows }, style: { family: secondary } } }
-  - { name: neutral, settings: { card: { arrange: rows }, style: { family: neutral } } }
-  - { name: muted, settings: { card: { arrange: rows }, style: { family: muted } } }
-  - { name: hue 200, settings: { card: { arrange: rows }, style: { hue: 200 } } }
-  - { name: hue 25, settings: { card: { arrange: rows }, style: { hue: 25 } } }
-  - { name: hatched, settings: { card: { arrange: rows }, style: { fill: hatch } } }
-  - { name: faded, settings: { card: { arrange: rows }, style: { opacity: 0.45 } } }
-  - { name: dashed, settings: { card: { arrange: rows }, style: { border_style: dashed } } }
-  - { name: thick, settings: { card: { arrange: rows }, style: { border_width: thick } } }
+  - { name: primary, settings: { style: { family: primary } } }
+  - { name: secondary, settings: { style: { family: secondary } } }
+  - { name: neutral, settings: { style: { family: neutral } } }
+  - { name: muted, settings: { style: { family: muted } } }
+  - { name: hue 200, settings: { style: { hue: 200 } } }
+  - { name: hue 25, settings: { style: { hue: 25 } } }
+  - { name: hatched, settings: { style: { fill: hatch } } }
+  - { name: faded, settings: { style: { opacity: 0.45 } } }
+  - { name: dashed, settings: { style: { border_style: dashed } } }
+  - { name: thick, settings: { style: { border_width: thick } } }

@@ -50,12 +50,7 @@
         "name": "An internal diagram",
         "type": "internal",
         "alias": 7,
-        "order": 9,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 9
       },
       "yaml.1-blocks.11": {
         "id": "yaml.1-blocks.11",
@@ -67,12 +62,7 @@
           "rows": 2,
           "cols": 2
         },
-        "order": 10,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 10
       },
       "yaml.1-blocks.12": {
         "id": "yaml.1-blocks.12",
@@ -80,12 +70,7 @@
         "name": "A state machine",
         "type": "state",
         "alias": 9,
-        "order": 11,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 11
       },
       "yaml.1-blocks.13": {
         "id": "yaml.1-blocks.13",
@@ -97,12 +82,7 @@
           "rows": 2,
           "cols": 2
         },
-        "order": 12,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 12
       },
       "yaml.1-blocks.14": {
         "id": "yaml.1-blocks.14",
@@ -110,36 +90,21 @@
         "name": "A treemap",
         "type": "treemap",
         "alias": 11,
-        "order": 13,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 13
       },
       "yaml.1-blocks.15": {
         "id": "yaml.1-blocks.15",
         "parent": "yaml.1-blocks",
         "name": "A name long enough to need cutting short",
         "alias": 12,
-        "order": 14,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 14
       },
       "yaml.1-blocks.2": {
         "id": "yaml.1-blocks.2",
         "parent": "yaml.1-blocks",
         "name": "A block",
         "alias": 2,
-        "order": 2,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 2
       },
       "yaml.1-blocks.3": {
         "id": "yaml.1-blocks.3",
@@ -147,12 +112,7 @@
         "name": "A folder",
         "type": "folder",
         "alias": 1,
-        "order": 3,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 3
       },
       "yaml.1-blocks.4": {
         "id": "yaml.1-blocks.4",
@@ -164,12 +124,7 @@
           "rows": 2,
           "cols": 2
         },
-        "order": 4,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 4
       },
       "yaml.1-blocks.5": {
         "id": "yaml.1-blocks.5",
@@ -178,12 +133,7 @@
         "type": "reference",
         "of": "yaml.1-blocks.2",
         "alias": 1,
-        "order": 5,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 5
       },
       "yaml.1-blocks.6": {
         "id": "yaml.1-blocks.6",
@@ -191,12 +141,7 @@
         "name": "A class diagram",
         "type": "class",
         "alias": 3,
-        "order": 6,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 6
       },
       "yaml.1-blocks.7": {
         "id": "yaml.1-blocks.7",
@@ -204,12 +149,7 @@
         "name": "An entity diagram",
         "type": "entity",
         "alias": 4,
-        "order": 7,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 7
       },
       "yaml.1-blocks.8": {
         "id": "yaml.1-blocks.8",
@@ -217,12 +157,7 @@
         "name": "A flow",
         "type": "flow",
         "alias": 5,
-        "order": 8,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 8
       },
       "yaml.1-blocks.9": {
         "id": "yaml.1-blocks.9",
@@ -330,12 +265,7 @@
         "name": "Begin",
         "type": "start",
         "alias": 17,
-        "order": 2,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 2
       },
       "yaml.3-notation.3": {
         "id": "yaml.3-notation.3",
@@ -343,12 +273,7 @@
         "name": "Choice",
         "type": "decision",
         "alias": 18,
-        "order": 3,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 3
       },
       "yaml.3-notation.4": {
         "id": "yaml.3-notation.4",
@@ -356,12 +281,7 @@
         "name": "A decision long enough to cut",
         "type": "decision",
         "alias": 19,
-        "order": 4,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 4
       },
       "yaml.3-notation.5": {
         "id": "yaml.3-notation.5",
@@ -369,12 +289,7 @@
         "name": "Finish",
         "type": "end",
         "alias": 20,
-        "order": 5,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        }
+        "order": 5
       },
       "yaml.3-notation.6": {
         "id": "yaml.3-notation.6",
@@ -572,9 +487,6 @@
         "alias": 50,
         "order": 10,
         "settings": {
-          "card": {
-            "arrange": "rows"
-          },
           "style": {
             "border_style": "dashed"
           }
@@ -587,9 +499,6 @@
         "alias": 51,
         "order": 11,
         "settings": {
-          "card": {
-            "arrange": "rows"
-          },
           "style": {
             "border_width": "thick"
           }
@@ -602,9 +511,6 @@
         "alias": 42,
         "order": 2,
         "settings": {
-          "card": {
-            "arrange": "rows"
-          },
           "style": {
             "family": "primary"
           }
@@ -617,9 +523,6 @@
         "alias": 43,
         "order": 3,
         "settings": {
-          "card": {
-            "arrange": "rows"
-          },
           "style": {
             "family": "secondary"
           }
@@ -632,9 +535,6 @@
         "alias": 44,
         "order": 4,
         "settings": {
-          "card": {
-            "arrange": "rows"
-          },
           "style": {
             "family": "neutral"
           }
@@ -647,9 +547,6 @@
         "alias": 45,
         "order": 5,
         "settings": {
-          "card": {
-            "arrange": "rows"
-          },
           "style": {
             "family": "muted"
           }
@@ -662,9 +559,6 @@
         "alias": 46,
         "order": 6,
         "settings": {
-          "card": {
-            "arrange": "rows"
-          },
           "style": {
             "hue": 200
           }
@@ -677,9 +571,6 @@
         "alias": 47,
         "order": 7,
         "settings": {
-          "card": {
-            "arrange": "rows"
-          },
           "style": {
             "hue": 25
           }
@@ -692,9 +583,6 @@
         "alias": 48,
         "order": 8,
         "settings": {
-          "card": {
-            "arrange": "rows"
-          },
           "style": {
             "fill": "hatch"
           }
@@ -707,9 +595,6 @@
         "alias": 49,
         "order": 9,
         "settings": {
-          "card": {
-            "arrange": "rows"
-          },
           "style": {
             "opacity": 0.45
           }

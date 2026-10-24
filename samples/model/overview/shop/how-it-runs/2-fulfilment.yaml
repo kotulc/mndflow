@@ -1,6 +1,5 @@
 name: Fulfilment
 type: swimlane
-settings: { card: { arrange: rows } }
 description: "A swimlane: who does what, in which phase. Each lane is a reference to the service that does the work."
 cols:
   - { name: Orders, type: reference, of: "Overview::Shop::Back office::Orders" }

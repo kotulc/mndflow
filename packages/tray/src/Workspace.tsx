@@ -1,13 +1,13 @@
-/** The workspace tab, laid out as every overview is: the world fitted on the left; why, how and
+/** The workspace tab, laid out as every overview is: what it files on the left; why, how and
  *  where on the right; then the display — how every room and view draws, workspace-wide. Given no
  *  `onAct` the workspace itself is read only; its display still answers `onDisplay`, since how a
  *  drawing looks is the session's and changes nothing. */
 
-import type { ReactNode } from "react";
 import { all_defs, def_at, file_name, packages, SCHEMA, shown_name,
-         type Act, type Graph, type Id } from "@mnd/core";
+         type Act, type Graph } from "@mnd/core";
 import { Band, Body, Check, Line, NOOP, Pick } from "./Body";
 import { Entry } from "./Entry";
+import { Picture } from "./Picture";
 import { Tags } from "./Tags";
 
 /** What the workspace draws with rather than holds: the default card in units and the range it
@@ -25,36 +25,28 @@ export type Display = {
   frame?: boolean;
   /** Whether interfaces draw. */
   ports?: boolean;
-  /** How what lies outside the focus draws: dimmed, or only its rooms' outlines. */
-  context?: "dim" | "rings";
 };
 
 /** The two corners a legend may sit in. Right either way — the left is the crumbs' and the zoom
  *  controls'. */
 const CORNERS = [{ value: "top", word: "top" }, { value: "bottom", word: "bottom" }] as const;
 
-/** How what lies outside the focus draws. */
-const CONTEXTS = [{ value: "dim", word: "dim" }, { value: "rings", word: "rings" }] as const;
-
 export type WorkspaceProps = {
   graph: Graph; display?: Display; onAct?: Act; onDisplay?: Act;
-  /** The world at a glance, drawn by the host. */
-  thumb?: (id: Id) => ReactNode;
 };
 
-export function Workspace({ graph, display, onAct = NOOP, onDisplay = onAct, thumb }: WorkspaceProps) {
+export function Workspace({ graph, display, onAct = NOOP, onDisplay = onAct }: WorkspaceProps) {
   const root = graph.blocks[graph.root];
   if (!root) return <p className="empty">that is not here any more</p>;
 
   const readonly = onAct === NOOP;
   const blocks = Object.values(graph.blocks).filter((b) => !b.def && b.parent).length;
-  const drawing = thumb ? thumb(graph.root) : null;
   return (
     <div className="workspace-tab">
       <div className="overview">
         <div className="glance">
-          <span className="cap"><b>workspace</b><span> · the world at a glance</span></span>
-          {drawing ? <div className="thumb">{drawing}</div> : <p className="faint">nothing drawn yet</p>}
+          <span className="cap"><b>workspace</b><span> · what it files, by use</span></span>
+          <div className="thumb"><Picture graph={graph} id={graph.root} /></div>
         </div>
         <div className="answers">
           <section>
@@ -146,10 +138,6 @@ function Drawing({ display, onAct }: { display: Display; onAct: Act }) {
                  onPick={(yes) => onAct("legends", { show: yes })} />
           <Pick name="legend-corner" on={display.corner} of={CORNERS}
                 onPick={(at) => onAct("legend_corner", { at })} />
-        </Line>
-        <Line label="context" tip="How what lies outside the focus draws: dimmed in place, or only the outlines of the rooms holding it.">
-          <Pick name="context" on={display.context ?? "dim"} of={CONTEXTS}
-                onPick={(at) => onAct("context", { at })} />
         </Line>
       </Body>
     </div>

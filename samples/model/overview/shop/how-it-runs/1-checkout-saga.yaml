@@ -1,6 +1,5 @@
 name: Checkout saga
 type: sequence
-settings: { card: { arrange: rows } }
 description: "A sequence: who talks to whom, in what order. Each lifeline is a reference to the part it stands for, so it is the same Gateway, Storefront and Payments the shop is made of."
 cols:
   - { name: Customer, type: reference, of: "Overview::Customer" }

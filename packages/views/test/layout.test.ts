@@ -9,7 +9,7 @@ import { cell_box } from "../src/size";
 import { bounds, boundary, laid, nearest_seat, size_of, snap, GAP, CELL, PAD, UNIT,
          type Placed } from "../src/index";
 
-const ARRANGEMENTS: Layout[] = ["free", "auto"];
+const ARRANGEMENTS: Layout[] = ["auto"];
 
 function layer_of(name: string): { graph: Graph; layer: Id } {
   const graph = fold(fixture(name), FLOOR);
@@ -82,34 +82,11 @@ describe("placement", () => {
     }
   });
 
-  /** Only under `free`; a gridded block is centred in its cell. */
-  it("lands on the grid under free", () => {
-    const { graph, layer } = layer_of("related");
-    for (const p of under(graph, layer, "free")) {
-      expect(p.x % UNIT === 0, `${p.id} x`).toBe(true);
-      expect(p.y % UNIT === 0, `${p.id} y`).toBe(true);
-    }
-  });
-
   it.each(ARRANGEMENTS)("is stable when the input is reordered under %s", (how) => {
     const { graph, layer } = layer_of("related");
     const shuffled: Graph = structuredClone(graph);
     shuffled.blocks = Object.fromEntries(Object.entries(shuffled.blocks).reverse());
     expect(under(shuffled, layer, how)).toEqual(under(graph, layer, how));
-  });
-
-  it("keeps hand placement under free and gives it back after arranging", () => {
-    const { graph, layer } = layer_of("related");
-    const placed: Graph = structuredClone(graph);
-    placed.blocks["block_pump"]!.x = 240;
-    placed.blocks["block_pump"]!.y = 120;
-    const how = (kind: string) => { placed.blocks[layer]!.settings = { layout: { kind } }; };
-    how("free");
-    const free = laid(placed, layer);
-    how("auto");
-    laid(placed, layer);
-    how("free");
-    expect(laid(placed, layer)).toEqual(free);
   });
 
   it("stays centred on the layer as it grows", () => {
@@ -186,22 +163,6 @@ describe("the grid arrangement", () => {
     }
   });
 
-  it("moves a band's members when its corner moves in free mode", () => {
-    const graph = fold(related(), FLOOR);
-    graph.blocks["block_loop"]!.settings = { layout: { kind: "free" } };
-    graph.blocks["block_hot"]!.x = 0;
-    graph.blocks["block_hot"]!.y = 0;
-    const before = laid(graph, "block_loop");
-    const band_before = before.find((p) => p.id === "block_hot")!;
-    const hx = before.find((p) => p.id === "block_hx")!;
-    graph.blocks["block_hot"]!.x = 200;
-    graph.blocks["block_hot"]!.y = 100;
-    const after = laid(graph, "block_loop");
-    const band_after = after.find((p) => p.id === "block_hot")!;
-    const hx2 = after.find((p) => p.id === "block_hx")!;
-    expect(hx2.x - hx.x).toBe(band_after.x - band_before.x);
-    expect(hx2.y - hx.y).toBe(band_after.y - band_before.y);
-  });
 
 });
 

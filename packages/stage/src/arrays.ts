@@ -43,13 +43,16 @@ export const still = () => typeof matchMedia === "function"
 /** The smallest zoom, so a flight from a small card starts somewhere reachable. */
 export const MIN_ZOOM = 0.1;
 
-/** Draw order: room, holders, cards, then seats; selection never lifts a node. */
+/** Draw order: holders — a map's boxes, groups, grids — then lines, cards, a map's chips and
+ *  seats, each two steps higher for every holder it sits in. Selection never lifts a node. */
 export const DEPTH: Record<string, number> = {
-  frame: 0, room: 0, group: 1, grid: 1, card: 3, control: 3, seat: 4, tie: 1000,
+  box: 1, group: 1, grid: 1, line: 2, card: 3, chip: 3, control: 3, seat: 4, tie: 1000,
 };
 
 /** The projection's nodes, plus selection and depth. */
 export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): BoxNode[] {
+  /** The depth a node draws at. */
+  const depth = (n: BoxNode) => (DEPTH[n.type ?? "card"] ?? 1) + (n.data.nest ?? 0) * 2;
   const out: BoxNode[] = frame ? [{
     id: FRAME,
     type: "frame",
@@ -65,7 +68,7 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
     draggable: false,
     selectable: false,
     focusable: false,
-    zIndex: DEPTH["frame"],
+    zIndex: DEPTH["line"],
   }] : [];
 
   /** The layer's own interfaces, set into the room's walls. */
@@ -90,14 +93,13 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
   }
 
   for (const n of scene.nodes) {
-    const nest = (n.data.nest ?? 0) * 2;
-    const base = DEPTH[n.type ?? "card"] ?? 1;
     const band = n.type === "group";
     const className = [band ? "mnd-band-node" : "", n.className ?? ""].filter(Boolean).join(" ");
     out.push({
       ...n,
       selected: picked.includes(n.id),
-      zIndex: base + nest,
+      zIndex: depth(n),
+
       ...(className ? { className } : {}),
       /** Size is told, not measured, so edges route on the first frame. */
       measured: { width: n.width, height: n.height },
@@ -121,8 +123,8 @@ export function edges_of(scene: Scene, picked: readonly Id[]): LineEdge[] {
       data: d ?? { module: "line" as const, dir: "none" as const },
       selected: picked.includes(e.id),
       className: [READS[d?.module ?? "line"] ?? "line", e.className ?? ""].filter(Boolean).join(" "),
-      /** A tie draws above every card; other lines stay under them. */
-      ...(d?.module === "tie" ? { zIndex: DEPTH["tie"] } : {}),
+      /** A tie draws above every card; other lines over the rooms they cross, under the cards. */
+      ...(d?.module === "tie" ? { zIndex: DEPTH["tie"] } : { zIndex: DEPTH["line"] }),
       /** An end is dragged by its own grip, not the library's anchor. */
       reconnectable: false,
     };

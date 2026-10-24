@@ -1,7 +1,7 @@
 /** Definitions: blocks carrying `def`. Chains, bases, packages, and what an element resolves
  *  through. */
 
-import { ARRANGES, type Settings } from "./components";
+import type { Settings } from "./components";
 import { is_folder, is_region, organizes } from "./holders";
 import { entry_at, is_form, library_home, library_names, type_at } from "./library";
 import { is_container } from "./tree";
@@ -15,8 +15,8 @@ import { kept } from "./memo";
 /** A definition's domain: what its usages are. Read off its base, never stored. */
 export type Domain = "block" | "relation" | "component";
 
-/** How a card sits in its parent's `auto` layer. */
-export type Arrange = (typeof ARRANGES)[number];
+/** How a card sits among its neighbours, worked out: in a column, in rows, or aside. */
+export type Arrange = "column" | "rows" | "aside";
 
 
 /** The definition with this id, where a block is one. */
@@ -316,17 +316,16 @@ export function is_note(graph: Graph, id: Id): boolean {
   return !!graph.blocks[id] && !graph.blocks[id]!.def && base_of(graph, id) === "note";
 }
 
-/** How a block sits in its parent's `auto` layer: its `card.arrange`, rows unsaid. A
- *  definition's says how its usages sit; it is a card in its folder, so rows. A region is a band
- *  across its room, so regions stack. */
+/** How a block sits among its neighbours, worked out and never said: a region in a column, a
+ *  block that is tied to another — a note, a label — aside it, anything else in rows. A
+ *  definition is a card in its folder, so rows. */
 export function arrange_of(graph: Graph, id: Id | undefined): Arrange {
   if (id && graph.blocks[id]?.def) return "rows";
   if (is_region(graph, id)) return "column";
-  const said = setting_of(graph, id, "card")["arrange"];
-  return ARRANGES.includes(said as Arrange) ? said as Arrange : "rows";
+  return has_trait(graph, id, "has_tie") ? "aside" : "rows";
 }
 
-/** Whether a block floats beside what it is tied to: it arranges aside. */
+/** Whether a block floats beside what it is tied to: a note or a label. */
 export function is_aside(graph: Graph, id: Id | undefined): boolean {
   return arrange_of(graph, id) === "aside";
 }
@@ -595,13 +594,6 @@ export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean 
 export function diagram_kind(graph: Graph, id: Id): Id | null {
   const b = graph.blocks[id];
   return b ? kind_typed(graph, id, b.def ? b.id : b.type) : null;
-}
-
-/** Whether a block's diagram kind names its layout, which it then keeps: a flow's `layered`, a
- *  treemap's `treemap`. The rail offers no other, and the `layout` action refuses one. */
-export function fixed_layout(graph: Graph, id: Id): boolean {
-  const kind = diagram_kind(graph, id);
-  return !!kind && setting_of(graph, kind, "layout")["kind"] !== undefined;
 }
 
 /** The diagram kind a block is, or would be, typed by `type`. */

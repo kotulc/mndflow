@@ -1,33 +1,32 @@
-/** The overview tab: every block's first, one layout for all. Its large face on the left — its
- *  layer's thumbnail where it opens, else its face, else its card — and on the right three
+/** The overview tab: every block's first, one layout for all. On the left the picture that helps
+ *  most — what it connects to, a definition's registry, what a folder files, a note's words —
+ *  and on the right three
  *  answers: why it matters, how it is used, where it lives. A block's kind decides only what
  *  the left side draws, and what its counts are called. An empty plain block offers the kinds
  *  it may become. */
 
-import { useMemo, type ReactNode } from "react";
-import { appearances_of, attributes_of, behaviours_of, children, def_at, def_of, diagram_kind, edges_in, heading,
-         interface_at, is_notation, is_behaviour, layer_of, is_group, is_reference, isa, lattice_of,
+import { useMemo } from "react";
+import { appearances_of, attributes_of, behaviours_of, children, def_at, def_of, diagram_kind,
+         edges_in, heading,
+         interface_at, is_notation, is_behaviour, is_group, is_reference, isa, lattice_of,
          may_retype, members_of, of_ref, opens, owner_of, package_of, path, role_of, shown_name,
          stands_for, stood_def, tag_at, tags_of, BASE_PACKAGE, DIAGRAM_QUESTIONS, DIAGRAMS,
          type Act, type Block, type Graph, type Id } from "@mnd/core";
 import { Icon, role_icon } from "@mnd/theme";
 import { class_graph, entry_look, look_of, tint_attrs } from "@mnd/views";
 import { Painted } from "./Carried";
-import { Faces } from "./Faces";
+import { Picture } from "./Picture";
 
 export type OverviewProps = {
   graph: Graph;
   id: Id;
-  /** The host's drawing of a layer at a glance; without one, the face stands in. */
-  /** A layer at a glance; `focus`, a block and the cards its lines join, fitted and picked. */
-  thumb?: (id: Id, focus?: readonly Id[]) => ReactNode;
   onAct?: Act;
 };
 
 /** One count: how many, and what of. */
 type Count = [number, string];
 
-export function Overview({ graph, id, thumb, onAct }: OverviewProps) {
+export function Overview({ graph, id, onAct }: OverviewProps) {
   const b = graph.blocks[id];
   /** What uses it, worked out once: a definition's usages, else what refers to it. */
   /** **One object**: a block's users are every other appearance of it, a stand-in's too. */
@@ -40,14 +39,8 @@ export function Overview({ graph, id, thumb, onAct }: OverviewProps) {
   const seen = of_ref(graph, id) ? stands_for(graph, id)?.id ?? id : id;
   const kind = diagram_kind(graph, seen);
   const role = role_of(graph, seen);
-  /** **The glance is always a drawing**: its own inside where it opens, else the layer it sits
-   *  on, fitted to it and the cards its lines join. */
-  const inside = opens(graph, seen);
-  const home = inside ? seen : layer_of(graph, id);
-  const near = useMemo(() => [id, ...Object.values(graph.edges)
-    .flatMap((e) => (e.from === id ? [e.to] : e.to === id ? [e.from] : []))], [graph, id]);
-  const drawing = home && thumb ? thumb(home, inside ? undefined : near) : null;
-  const drawn = inside && !!drawing;
+  /** A room offers to be opened and read alone. */
+  const drawn = opens(graph, seen) && !b.def;
   /** An empty plain block may become any kind it fits. */
   const promotes = !b.def && !kind && !parts(graph, id).length && !of_ref(graph, id)
     && !is_notation(graph, id) && !!onAct;
@@ -60,12 +53,13 @@ export function Overview({ graph, id, thumb, onAct }: OverviewProps) {
           <b>{kind ?? (b.def ? "definition" : role)}</b>
           {kind ? <span> · {DIAGRAM_QUESTIONS[kind]}</span> : null}
         </span>
-        {drawing ? <div className="thumb">{drawing}</div> : <Faces graph={graph} id={id} one />}
+        <div className="thumb"><Picture graph={graph} id={id} /></div>
         {drawn && onAct ? (
           <span className="opens">
             <button className="chip open" onClick={() => onAct("open", { id })}>open</button>
-            <button className="chip open" title="read it at 100%, scrolling inside its walls"
+            <button className="chip open" title="enter it: its own view, alone"
                     onClick={() => onAct("read", { id: seen })}>read</button>
+
           </span>
         ) : null}
         {becomes.length ? (
@@ -85,6 +79,7 @@ export function Overview({ graph, id, thumb, onAct }: OverviewProps) {
         <How graph={graph} b={b} />
         <Where graph={graph} b={b} seen={graph.blocks[seen] ?? b} kind={kind} users={users}
                {...(onAct ? { onAct } : {})} />
+        {onAct && b.parent && !b.def ? <Place graph={graph} b={b} onAct={onAct} /> : null}
       </div>
     </div>
   );
@@ -196,6 +191,28 @@ function Where({ graph, b, seen, kind, users, onAct }: {
       <div className="stat">
         {counts(graph, seen, kind, users.length)
           .map(([n, word]) => <span key={word}><b>{n}</b> {word}</span>)}
+      </div>
+    </section>
+  );
+}
+
+/** Where it sits in its room: its place among its siblings — **file order made editable**; a
+ *  region's place is its band's. */
+function Place({ graph, b, onAct }: { graph: Graph; b: Block; onAct: Act }) {
+  const sibs = children(graph, b.parent!);
+  const at = sibs.findIndex((s) => s.id === b.id);
+  /** Earlier goes before the one ahead; later before the one two behind, or last. */
+  const move = (by: -1 | 1) => {
+    const before = by < 0 ? sibs[at - 1] : sibs[at + 2];
+    onAct("move", { ids: [b.id], parent: b.parent, ...(before ? { before: before.id } : {}) });
+  };
+  return (
+    <section className="place">
+      <h5>where it sits</h5>
+      <div className="chips">
+        <span className="faint">order {at + 1} of {sibs.length} in {shown_name(graph, b.parent!)}</span>
+        <button className="chip" disabled={at <= 0} onClick={() => move(-1)}>earlier</button>
+        <button className="chip" disabled={at >= sibs.length - 1} onClick={() => move(1)}>later</button>
       </div>
     </section>
   );

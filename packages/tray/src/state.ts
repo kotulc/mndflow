@@ -14,9 +14,9 @@ import type { Only, Shelf } from "./Definitions";
 export type Pointed = ({ of: "defs" } & Shelf) | { of: "def"; id: Id; only?: Only };
 
 /** How the drawing starts where the host says nothing: the lattice, frame and ports on, the key
- *  off, the context dimmed. */
+ *  off. */
 const DISPLAY: Omit<Display, "card" | "range"> = {
-  legend: false, corner: "top", lattice: true, frame: true, ports: true, context: "dim",
+  legend: false, corner: "top", lattice: true, frame: true, ports: true,
 };
 
 
@@ -61,9 +61,6 @@ export function useDisplay(start: Pick<Display, "card" | "range"> & Partial<Disp
     if (name === "lattice") set_display((was) => ({ ...was, lattice: !!args?.["show"] }));
     if (name === "frame") set_display((was) => ({ ...was, frame: !!args?.["show"] }));
     if (name === "ports") set_display((was) => ({ ...was, ports: !!args?.["show"] }));
-    if (name === "context") {
-      set_display((was) => ({ ...was, context: args?.["at"] === "rings" ? "rings" : "dim" }));
-    }
   };
 
   return { display, onDisplay };

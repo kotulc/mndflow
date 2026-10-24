@@ -8,18 +8,18 @@
 | | |
 |---|---|
 | **committed** | through 395b81a (2026-10-19): base filed by blocks, diagrams and notation; the gallery as one shop; `collect` nesting; one design language by group; a card shows what it has; label and treemap names; the overview glance. Verified then: typecheck, 285/285 tests, lint, gallery `check` and `review` clean; driven in Edge, no console errors |
-| **committed** since | 536f83b *Edit in every view, fit rooms* and 0f1528a *Plan the room refactor* (2026-10-19, 2026-10-20) |
-| **uncommitted** | the rooms refactor, phases 0–9 in one pass (2026-10-20), and its layout pass after review (2026-10-21): one world from the model header too; rows unsaid; `auto` fills toward the canvas's shape; region bands share a room's width; `layered` keeps the direction that fits; packages fill side by side. Done another way, and left: rooms-plan.md *Status*. Verified: typecheck, 285/285 tests, CSS lint, `check`/`review` clean on both samples; driven in Edge. Suggested commit: *Build the rooms world: one camera, reading view, rooms-only explorer, one object, editing across walls; fill rooms toward the canvas shape* |
-| **next session** | read rooms-plan.md *Status*, *Left* and *Hand-off*; the user reviews the world; then the *Left* item the user picks (Shop still taller than wide is first), else step 1 below |
+| **committed** since | 536f83b *Edit in every view, fit rooms*, 0f1528a *Plan the room refactor*, 3dfb1b5 *Initial room world refactor* (2026-10-19 to 2026-10-21): the rooms world, its camera and reading view, the rooms-only explorer, one object, editing across walls. The user found it tall, dimmed and hard to navigate |
+| **uncommitted** | (2026-10-21 to 2026-10-23) the map, through four designs (map-plan.md *How we got here*), ending in **the map of chips**: the model and the library as one treemap, boxes and chips sized by what they hold, a block entered to its own view, alone; rooms and the nested world retired. Then chips divided by structure (grids read from dagre, no lines), and **banded regions**: a layer's regions as ordered bands, columns or rows by canvas shape; docks removed. Suggested commit: *Banded regions and grid chips: regions as ordered bands by canvas shape, docks removed; map chips as grids read from dagre, no lines* |
+| **next session** | map-plan.md *Next* 1 (groups are tags), then 2 (an explicit `order`), then 3 (drag to reorder) — each broken into steps in map-plan.md *Steps* |
 
 
 ## Order
 
 | # | Work | Done when |
 |---|---|---|
-| 0 | **rooms** | built (rooms-plan.md); what is left is its *Status* › *Left*. It owns the rail and the workspace tab; steps 2, 3 and 7 are read against it |
+| 0 | **map** | map-plan.md: the model and the library as one treemap map of chips, a block entered to its own view; its *Next* list. It owns the map, entering, the camera, and placement in an entered view (bands, groups, order); steps 1, 2, 6 and 7 are read against it |
 | 1 | **lines** | crossings and line words read cleanly on every model diagram |
-| 2 | **block design, the rest** | the tray's choices scoped by family; faces' open items closed (the palette is built: rooms-plan.md) |
+| 2 | **block design, the rest** | the tray's choices scoped by family; faces' open items closed (the palette is built) |
 | 3 | **model joins** | from any block, every side it appears on is one click away |
 | 4 | **tray keys** | every tray input is a key and its choices |
 | 5 | **CLI fixes** | `check` on a broken file exits 1; `export --sysml --round` on the repo map brings back all 490 relations |
@@ -35,7 +35,7 @@
 
 | Issue | | Where |
 |---|---|---|
-| **crossings** | lines cross where reordering would avoid it (*Shop*'s back office). Candidate: crossing reduction by reordering within reading order, as *arrange* does (*Decide* · arrange) | views `arrange.ts`, `layered.ts` |
+| **crossings** | lines cross where reordering would avoid it (*Shop*'s back office). Placement moves to ELK (map-plan.md), which reduces crossings within reading order; check again after its phase 1 | views `flow.ts` |
 | **words in tight spaces** | a line's name lands over another's (*Shop*'s *pay* over *reserve*); two upright names in one 2-unit gap meet | stage `Wire.tsx` `words_at`, views `routes_of` |
 | **end words** | a class diagram's role and multiplicity are placed from the run alone, so two ends sharing a card's anchor overlap (*Order*'s composition and association) | stage `Wire.tsx` `words_at` |
 | **a sequence's self message** | its loop runs over a reply on the same row (*Checkout saga*'s *log step* and *reserved*) | views `sequence.ts` |
@@ -68,7 +68,7 @@ The card and settings tabs are built (tray.md). Left:
 
 | Task or question | |
 |---|---|
-| **the workspace tab** | moved: rooms-plan.md phase 4 lays it out as an overview with the workspace-wide display band |
+| **the workspace tab** | built as an overview with the workspace-wide display band; map-plan.md phase 6 drops its context mode |
 | **attribute values in files** | a card source writes values as top-level keys, so a value named like a schema key vanishes. Keep them flat, or nest under `values:`. Recommended: nested |
 | **usage settings in the schema** | the tray offers a usage no settings, but `Block.settings` still allows one. Drop it, or keep it for files and arrangement |
 | **traits** | on the card tab; keep them there or move them to settings |
@@ -96,7 +96,7 @@ The card and settings tabs are built (tray.md). Left:
 | **state line words** | event, guard and action on a transition (deferred) |
 | **grid definitions' view** | a `sequence` or `swimlane` definition opens on `internal` once it has parts: navigate `feeds` asks `is_grid`, and a definition is never a holder |
 | **swimlane lanes** | the allocation view draws no lane headers; whether it should |
-| **empty region, layered** | an empty region on a `layered` layer lands over a card (views `layered.ts`) |
+| **empty region, layered** | an empty region on a `layered` layer lands over a card (views `layered.ts`); recheck once ELK places (map-plan.md) |
 | **treemap room** | *Estate*'s room is wider than its map |
 
 
@@ -107,6 +107,7 @@ The card and settings tabs are built (tray.md). Left:
 | **drag from a port to empty canvas** | makes a connected card |
 | **tab** | adds a sibling to the selected card |
 | **drop a definition** | from the explorer onto the canvas, as a usage (check `drop_of`) |
+| **no placement drag** | every card is placed automatically (map-plan.md): a drag moves a block to another room, never to a spot; reordering is map-plan.md *Decide* 3 |
 
 Start in stage `Flow.tsx` · `gestures.ts`, `draw.ts` · `drag.ts` · `moves.ts`, `Stage.tsx`, ending in core `actions/`.
 
@@ -165,8 +166,8 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 
 | Question | Today | Options |
 |---|---|---|
-| **arrange, generally** | *arrange* reorders a layer once, on request | crossing reduction by reordering within reading order (step 1) |
-| **the palette's kinds** | the rail is the palette (rooms-plan.md phase 4); it no longer sets a diagram's kind | which families it offers as buttons; whether marks are dragged or clicked in |
+| **order in a layer** | file order sets reading order; *arrange* goes with automatic placement | map-plan.md *Decide* 2 and 3 |
+| **the palette's kinds** | the rail is the palette; it no longer sets a diagram's kind | which families it offers as buttons; whether marks are dragged or clicked in |
 | **region from the rail** | a region is made from a selection's menu, or empty from the room's | also a tool in the rail |
 | **base colour** | base `block` has `family: primary` and no `hue`, so plain definitions all look alike | give `block` a `hue` and `vary`; or leave colour to each package |
 | **colour role off the canvas** | the tray, explorer and hosts draw a definition filled | canvas only; or outlined in the tray too |
@@ -176,11 +177,11 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **`resolved` in core?** | it lives in views `through.ts`; `is_named`, `shown_name`, `stamps_of`, `opens` resolve a stand-in on their own | move it to core |
 | **the door and unknown fields** | a file storing `dir` on a relation reads in silently and its arrows vanish | refuse or report `of` on a non-reference, `traits` on a usage or line, a relation's `dir` |
 | **keep libavoid?** | LGPL-2.1, a beta (`0.5.0-beta.5`), a ~490KB wasm, also in the kit mndmap vendors | keep; or route without it |
-| **layered on dagre** | `layered` runs on `@dagrejs/dagre` (synchronous); ELK is async | keep it; or make projection async for ELK |
+| **layered on dagre** | decided 2026-10-21: placement moves to ELK, asynchronous, in a worker (map-plan.md phase 1) | |
 | **double-click a grid** | lands on its name and renames it; Enter opens it | |
 | **`define` and ids** | actions.md gives `define` an `id?`; the code takes none | drop it from actions.md if no caller needs one |
 | **editing table and sequence** | projections the canvas never drags or creates on | whether either should be edited from the canvas |
-| **the package view** | the code still draws the folder layer view (`ViewKind` `folder`) for packages | scope the package view to the package, as design.md says |
+| **the package view** | a package with one top room draws as that room (map-plan.md *Decide* 7) | the package frame round its top rooms; or the camera skips it |
 | **tied notes in a file** | `note:` on a block or the file is provisional (core `diagram.ts`) | confirm the syntax, or pick another |
 | **source fetch** | `bring` takes a package from a URL; an arbitrary file still needs a translator (ST.5) | |
 
@@ -189,7 +190,7 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 
 | Area | Edge |
 |---|---|
-| **layout** | `auto` reads in explorer order, so a line between cards far apart in a column runs its length until *arrange*; a tall card makes a tall row in a `rows` run; a card related to a member inside a group lines up with the group, not the member |
+| **layout** | `auto`, `rows` and `column` go with automatic placement (map-plan.md); their edges go with them |
 | **routing** | a line to an inherited port inside a subtype is not met at the subtype room's copy (`part_id`) |
 | **cards** | marks on a dark table card are faint; a reference previewing a table ignores its own look's border; notes still draw through `NoteNode`, not only `CardFace` |
 | **tray** | a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else |

@@ -70,6 +70,11 @@ export function is_box(graph: Graph, id: Id | undefined): boolean {
   return is_group(graph, id) || is_folder(graph, id) || is_region(graph, id);
 }
 
+/** Whether a grid reads as time: a lifeline down each column, under its head. */
+export function has_lifelines(graph: Graph, id: Id | undefined): boolean {
+  return is_grid(graph, id) && setting_of(graph, id, "holder")["lifelines"] === true;
+}
+
 /** Whether this is a group, a region or a grid. */
 export function is_holder(graph: Graph, id: Id | undefined): boolean {
   return shape_of(graph, id) !== null;

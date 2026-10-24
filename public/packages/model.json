@@ -260,11 +260,6 @@
         ],
         "description": "Runs on its own, owns its data and speaks to others only through its ports. Every service names the team that runs it: check reports one that does not.",
         "order": 4,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        },
         "source": "Parts/service.yaml"
       },
       "model.yaml.Parts.store": {
@@ -1253,11 +1248,6 @@
           "cols": 6
         },
         "order": 1,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        },
         "source": "overview/shop/how-it-runs/1-checkout-saga.yaml"
       },
       "model.yaml.overview.shop.how-it-runs.1-checkout-saga.1": {
@@ -1447,11 +1437,6 @@
           "cols": 4
         },
         "order": 2,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        },
         "source": "overview/shop/how-it-runs/2-fulfilment.yaml"
       },
       "model.yaml.overview.shop.how-it-runs.2-fulfilment.1": {
@@ -1592,11 +1577,6 @@
         "alias": 51,
         "description": "Where the shop runs. Groups nest, each a dashed box round its members with a note tied beside it; a grid lays environments under their headers.",
         "order": 3,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        },
         "source": "overview/shop/how-it-runs/3-deployment.yaml"
       },
       "model.yaml.overview.shop.how-it-runs.3-deployment.1": {
@@ -1785,11 +1765,6 @@
         "alias": 65,
         "description": "A treemap: where the weight is. Each tile is as large as the service it stands for holds, gathered by the shop's regions.",
         "order": 4,
-        "settings": {
-          "card": {
-            "arrange": "rows"
-          }
-        },
         "source": "overview/shop/how-it-runs/4-estate.yaml"
       },
       "model.yaml.overview.shop.how-it-runs.4-estate.1": {

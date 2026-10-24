@@ -1,7 +1,7 @@
 /** Where everything in a layer sits. */
 
 import { children, drawn_in, is_aside, is_box, is_interface, is_region, layout_of,
-         type Block, type Graph, type Id, type Point } from "@mnd/core";
+         type Block, type Graph, type Id } from "@mnd/core";
 import { band_members, band_size, celled, loose_unit, type Sized } from "./bands";
 import { beside, centred, noted } from "./float";
 import { belongs_to, is_satellite, room_wide, tie_targets } from "./pack";
@@ -15,11 +15,28 @@ export type Placed = { id: Id; x: number; y: number; w: number; h: number };
 
 type Rect = { x: number; y: number; w: number; h: number };
 
+/** Placements worked out ahead — by ELK, which answers later — for the layers being drawn. */
+let given: ReadonlyMap<Id, readonly Placed[]> | null = null;
+
+/** `run` with these layers placed as given, each by its id. */
+export function placed_as<T>(spots: ReadonlyMap<Id, readonly Placed[]>, run: () => T): T {
+  const was = given;
+  given = spots;
+  try { return run(); } finally { given = was; }
+}
+
+/** Whether a layer is placed ahead, so nothing is moved after: notes and regions included. */
+export function is_placed(layer: Id | null): boolean {
+  return !!layer && !!given?.has(layer);
+}
+
 
 /** Every block drawn in this layer, placed. */
 export function laid(graph: Graph, layer: Id | null): Placed[] {
   const units = drawn_in(graph, layer).filter((b) => !is_interface(graph, b.id));
   if (units.length === 0) return [];
+  const ahead = layer ? given?.get(layer) : undefined;
+  if (ahead) return unique([...ahead]);
   /** A treemap places every block and box itself, each as large as what it holds. */
   if (layout_of(graph, layer) === "treemap") return unique(treemapped(graph, layer));
   const loose = loose_units(graph, layer);
@@ -91,15 +108,6 @@ function free(all: Sized[], satellites: Sized[], owners: (b: Block) => Id[]): Pl
     x += snap(it.s.w + GAP);
   }
   return out;
-}
-
-/** The tidy: what a computed layout draws, written as ordinary placements so `free` keeps it. */
-export function tidy(graph: Graph, scene: { layer: Id | null;
-                                            nodes: readonly { id: Id; position: Point }[] })
-    : { id: Id; x: number; y: number }[] {
-  const loose = new Set(loose_units(graph, scene.layer).map((b) => b.id));
-  return scene.nodes.filter((n) => loose.has(n.id))
-    .map((n) => ({ id: n.id, x: n.position.x, y: n.position.y }));
 }
 
 /** An aside card whose ties meet no placed card. It waits for the interface it is tied to, which

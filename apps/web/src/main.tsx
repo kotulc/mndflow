@@ -1,7 +1,9 @@
 import { createRoot } from "react-dom/client";
 import { boot_of, type Boot } from "@mnd/core";
 import { App } from "./App";
-import { load_avoid } from "@mnd/views";
+import ELK from "elkjs/lib/elk-api.js";
+import elk_worker from "elkjs/lib/elk-worker.min.js?url";
+import { load_avoid, set_elk } from "@mnd/views";
 import wasm from "libavoid-wasm?url";
 import { browser_storage } from "./ports";
 import "@mnd/theme/ramp.css";
@@ -18,6 +20,9 @@ import "@mnd/options/src/options.css";
 import "@mnd/tray/src/tray.css";
 import "@mnd/tray/src/fields.css";
 import "@mnd/tray/src/preview.css";
+
+/** Placement runs in its own worker, so a large model never stalls the page. */
+set_elk(new ELK({ workerUrl: elk_worker }));
 
 /** The workspace and the router are loaded before the app mounts, so the session reads it at once
  *  and lines route round cards from the first draw. Storage empty opens the bootstrap's workspace. */

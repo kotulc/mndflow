@@ -8,6 +8,8 @@ import { head_url, Heads, Name, useNaming } from "@mnd/theme";
 
 /** How square a right-angled corner is. */
 const BEND = 6;
+/** How far above its run a name that reads level sits. */
+const LIFT = 8;
 
 /** How far in from its end the cross saying an end cannot be reached sits: half a unit, clear of
  *  the head and of the middle. */
@@ -98,7 +100,10 @@ export function Wire(props: EdgeProps<LineEdge>) {
                       { x: targetX, y: targetY }, targetPosition,
                       data?.fan, data?.module === "tie");
   const fan = given || routed ? undefined : data?.fan;
-  const path = drawn(run, BEND);
+  /** Drawn at its world scale: the run in its own units, the stroke and its heads scaled with it. */
+  const k = data?.scale ?? 1;
+  const path = drawn(k === 1 ? run : run.map((p) => ({ x: p.x / k, y: p.y / k })), BEND);
+  const zoom = k === 1 ? "" : ` scale(${k})`;
   const look = data?.wire ?? BARE;
   const end = heads(data);
   const { attrs, style: tint } = paint(look);
@@ -106,19 +111,22 @@ export function Wire(props: EdgeProps<LineEdge>) {
   /** The name and the handle, composed rather than folded together. */
   const middle = [label ? String(label) : "", data?.alias ?? ""]
     .filter(Boolean).join(" ");
-  /** Too wide for its leg, a name reads upright across it. */
-  const { x, y, upright } = middle_of(run, fan, middle.length);
+  /** Too wide for its leg, a name reads upright across it — unless it reads level, above. */
+  const at = middle_of(run, fan, middle.length);
+  const { x, y, upright } = data?.level ? { ...at, y: at.y - LIFT, upright: false } : at;
 
   return (
     <>
-      <g className="mnd-wire" {...attrs} style={tint}>
+      <g className="mnd-wire" {...attrs} style={tint}
+         {...(k === 1 ? {} : { transform: `scale(${k})` })}>
         <BaseEdge id={id} path={path} style={style}
                   markerStart={head_url(end.from)} markerEnd={head_url(end.to)} />
         {/* A double line is two strokes, not a thicker one. */}
         {look.border_style === "double"
           ? <path className="mnd-wire-core" d={path} /> : null}
         {(["from", "to"] as const).filter((way) => crossed(data, way)).map((way) => (
-          <path key={way} className="mnd-wire-cross" d={cross_at(run, way)} />
+          <path key={way} className="mnd-wire-cross"
+                d={cross_at(run.map((p) => ({ x: p.x / k, y: p.y / k })), way)} />
         ))}
       </g>
       {(["from", "to"] as const).map((way) => {
@@ -127,8 +135,8 @@ export function Wire(props: EdgeProps<LineEdge>) {
         const at = words_at(run, way);
         return (
           <EdgeLabelRenderer key={way}>
-            <div className="mnd-wire-end nodrag nopan" {...attrs}
-                 style={{ ...tint, transform: `translate(-50%, -50%) translate(${at.x}px, ${at.y}px)` }}>
+            <div className={`mnd-wire-end nodrag nopan${data?.away ? " mnd-out" : ""}`} {...attrs}
+                 style={{ ...tint, transform: `translate(${at.x}px, ${at.y}px)${zoom} translate(-50%, -50%)` }}>
               {words}
             </div>
           </EdgeLabelRenderer>
@@ -137,9 +145,9 @@ export function Wire(props: EdgeProps<LineEdge>) {
       {middle || naming.id === id ? (
         <EdgeLabelRenderer>
           {/* `nodrag` and `nopan`, so a press on a name does not pan. */}
-          <div className="mnd-wire-name nodrag nopan" data-edge={id} {...attrs}
+          <div className={`mnd-wire-name nodrag nopan${data?.away ? " mnd-out" : ""}`} data-edge={id} {...attrs}
                style={{ ...tint,
-                        transform: `translate(-50%, -50%) translate(${x}px, ${y}px)${upright ? " rotate(-90deg)" : ""}` }}
+                        transform: `translate(${x}px, ${y}px)${zoom}${upright ? " rotate(-90deg)" : ""} translate(-50%, -50%)` }}
                title={middle}>
             <Name id={id} className="mnd-wire-text card-name" text={middle} />
           </div>

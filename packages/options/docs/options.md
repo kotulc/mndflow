@@ -1,6 +1,6 @@
 # Options Rail
 
-**The palette and the quick editor, in one column fixed to the right.** It never chooses a view: the canvas is one world, read in world or reading view (design.md *Perspectives*). A real column and not an overlay: the stage ends where the rail begins, so chrome never sits on the drawing.
+**The palette and the quick editor, in one column fixed to the right.** It never chooses a view: the canvas is one nested world, a room isolated or not (design.md *Perspectives*). A real column and not an overlay: the stage ends where the rail begins, so chrome never sits on the drawing.
 
 **Its bar says its name** — *options*, centred, the same height as the explorer's bar and the tray's, so the three read as one line across the page. It wore a hamburger until that mark went to the explorer, where it opens the filter (ST.21).
 
@@ -21,7 +21,7 @@ palette · workspace · make · relations
 | **`make`** | *new usage* and *new definition*: a `create` in the focus, typed by the definition picked where there is one |
 | **`relations`** | which relation types a right drag and a `chain` draw: *straight*, *directed*, *tie*, and the relation definitions the open packages hold. A relation definition's own settings are applied in the tray |
 
-**Not here**: views (there are none to choose), a room's layout (the tray's card tab, a setting of that room) and display — frame, guides, ports, the key, the context mode — which is one workspace-wide setting on the tray's workspace tab.
+**Not here**: views (there are none to choose), a room's layout (none either: every card is placed automatically, and the layer group went with hand placement) and display — frame, guides, ports, the key — which is one workspace-wide setting on the tray's workspace tab.
 
 ## What a control is
 

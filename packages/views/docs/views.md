@@ -2,11 +2,13 @@
 
 **One way to draw.** A layer is what is looked at; this package is the looking. It reads the graph and hands back a **Scene** — plain data, importing nothing drawable.
 
-**There is one way to draw: the world.** Every room of a package is projected by its own kind — internal, allocation, sequence, class, entity, registry — and composed inside its parent at the size of what it holds (`world_of`, rooms-plan.md phase 1). The canvas draws the world and moves a camera through it; there are no system views. A projection stores nothing it draws. `layered` lays a room out by its relations.
+**Two ways to draw: the map, and a layer entered from it.** The map is one treemap of the model or the library (`map.ts`): what holds things as boxes, what is entered as chips, each as large as what it holds with a small treemap of it inside. A layer entered is placed by ELK (`flow.ts`) and projected by its own kind — internal, allocation, sequence, class, entity (`layer.ts`). There are no system views. A projection stores nothing it draws.
 
 ```
-world_of(graph, root, config) → World     // the canvas: every room composed
-project(graph, layer, config) → Scene     // one room alone: the tray's previews, and each room before composing
+model_map(graph, root) → Scene                   // the model: the package as boxes and chips, stopping at diagrams
+library_map(graph) → Scene                       // the library: packages, folders, each definition a chip by use
+layer_scene(graph, layer, kind, config) → Promise<Scene>   // one layer entered, placed by ELK
+project(graph, layer, config) → Scene            // one layer placed alone: other views, the kit's viewer, the CLI
 ```
 
 ## What is in here
@@ -16,14 +18,17 @@ project(graph, layer, config) → Scene     // one room alone: the tray's previe
 | | Is |
 |---|---|
 | `size.ts` | **the one measure.** `UNIT` is a square of the guides; `CELL` is a block plus a gap on every side. Everything else is derived from those |
-| `arrange.ts` | where everything in a layer sits — hand placement under `free`, auto-layout under `auto`, a treemap under `treemap` (`treemap.ts`) |
+| `flow.ts` | **placement**: a layer's blocks by ELK, each container on its own, inside out — `layered` where lines join its children, packed where none do — the result nearest the canvas's shape kept |
+| `arrange.ts` | where everything in a layer sits — placed ahead by `flow.ts` where ELK gave places (`placed_as`), else the synchronous fallback (`auto`, `layered`, `page`), a treemap under `treemap` (`treemap.ts`) |
+| `map.ts` | the map, the model's and the library's: one treemap builder (`mapped`), the model stopping at diagrams (`model_map`), the library at definitions (`library_map`); a chip's counts and inner treemap; the focus, the area under a point, the nearest area one way (`map_focus`, `area_of`, `area_under`, `towards`) |
+| `layer.ts` | a layer entered: placed by ELK, projected by its kind, only the side drawn (`layer_scene`, `laid_ahead`) |
+| `library.ts` | the library's treemap by use, the map layout both share (`laid_map`), a definition's uses (`uses_of`), and the small maps the tray draws (`registry_map`, `filed_map`) |
 | `registry.ts` | a registry as a list, a matrix, and a treemap Scene built directly: entries as tiles by home folder, or an entry's uses |
 | `bands.ts` | members packed inside a band, and seated blocks placed by their cell |
-| `pack.ts` · `float.ts` · `grid.ts` | auto-layout: runs of one arrangement in explorer order — a column, or rows filling toward the canvas's shape (`filled`, `room_wide`) — and aside cards floating beside what they are tied to |
+| `pack.ts` · `float.ts` · `grid.ts` · `layered.ts` | the synchronous fallback, for the kit's viewer and the CLI until they place by ELK: runs in explorer order filling toward the canvas's shape, asides beside what they are tied to, `layered` on dagre |
 | `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off; a second line between the same two cards takes the faces a quarter turn round |
 | `route.ts` | where a run goes between two borders, round the cards it passes |
 | `block.ts` | the projection: graph and layer in, Scene out |
-| `world.ts` | the world: `world_of` composes every room, `focused` hands the canvas one room as the frame with the context marked, and `room_under`, `home_of`, `local_scene` read an edit in the room it happens in |
 | `classes.ts` · `sequence.ts` | the diagram views: a graph drawn as internal — class and entity diagrams (`class_graph`), stored lines carrying their ends — or a Scene built directly where time is the geometry (sequence, its runs given as `points`) |
 | `look.ts` · `derive.ts` | what a card wears — its hue strayed by `vary` from its parent's shade, so kin read alike — and the marks it reads by, `definition` (outlined on the canvas) and `relation` (a wire swatch) among them; its `card.shape`, else its layer's `layout.shape`; both derived every draw |
 | `legend.ts` | the key to one layer: the kinds it draws and the system marks they wear, folded and counted off the Scene alone |
@@ -37,17 +42,20 @@ project(graph, layer, config) → Scene     // one room alone: the tray's previe
 
 ## Layouts
 
-**A layer's layout is a setting** (`layout.kind`), said by its definition and overridable by the layer. The kit ships a small fixed set; an unknown kind draws as `auto`.
+**Every card is placed automatically; nothing is placed by hand.** A layer's layout is a setting (`layout.kind`), said by its definition and overridable by the layer; an unknown kind draws packed.
 
 | | Is |
 |---|---|
-| `free` | hand placement, rounded to the lattice |
-| `auto` | auto-layout: stored positions are ignored; blocks fill toward the canvas's shape in reading order and notes float beside what they are tied to. What a layer says nothing about |
-| `page` | holders as full-width boxes down the page: each box's cards in rows wrapping at its width (`layout.across` cards), its own holders below them. What the package view and a folder nobody arranged draw |
+| unsaid | **packed**: where lines join a container's children it is ranked (`layered`), where none do its blocks are packed toward the canvas's shape. Reading order is file order |
+| `layered` | a flow, a state machine: ranked by its relations, down the page or across it, whichever is nearer the canvas's shape |
+| `treemap` | each block as large as what it holds, in the boxes of its folders, groups and regions |
 
-**Each kind arranges its own way, in explorer order** (`runs`, `float.ts`): consecutive cards sharing a `card.arrange` form a run; `rows`, unsaid, fills them toward the canvas's shape (`size.ts` `SHAPE`, set by the host): each in reading order takes the highest free spot, so small cards fill in beside a tall room; the width is the room's area at that aspect (`room_wide`), or `layout.across` cards where said, and every region band in a room shares it. A `column`, where said, stacks its cards, left edges aligned. Runs stack top to bottom, a gap apart. `layered` ranks both ways and keeps the one nearer the canvas's shape. **A card arranged aside** (a note) floats in the nearest free space beside what it is tied to; untied, beside the whole arrangement. **One rule places cards on a layer and in a group** (`noted`, `float.ts`). A tie is never routed: it runs straight and draws above the cards it crosses. Inside a group the fill is the canvas's shape too. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
+**Each container is laid out on its own, inside out** (`flow.ts`): the room, then each region, group and folder in it, a parent seeing a child container at its laid-out size. Several tries run — both directions for `layered`, two goals at four aims for packing — and the one nearest the canvas's shape (`size.ts` `SHAPE`, set by the host) is kept. A note is placed by ELK beside what its tie meets; a tie is never routed and draws above the cards it crosses. Results are kept by what they were worked out from, so an edit lays out again only the rooms it touched.
 
-**The picture is written down on the way out of `auto`**, as ordinary placements, so `free` carries on from where `auto` left off.
+**A layer with regions is banded** (`flow.ts` `banded`): its loose blocks and every region's members are one ELK layered run, each region a partition in order, so lines run from band to band the way they point. Across (regions as columns) and down (as rows) are both tried, and the one nearer the canvas's shape kept. A region no line meets goes after those lines meet and is packed whole toward its band; a loose block sits in the band of what its lines reach. Each band spans the layer across the flow, a unit from the next. The world is laid out once per graph and canvas shape; focusing, reading and zooming never lay out again.
+
+**The synchronous fallback** — what `project` places alone, for the kit's viewer and the CLI — keeps the older rules: `auto` fills toward the canvas's shape in reading order (`runs`, `float.ts`), a region stacks in a column, an aside (a note, a label) floats beside what it is tied to, `layered` ranks on dagre, and `page` lays holders down the page for the package view.
+
 
 ## Holders
 
@@ -56,14 +64,14 @@ project(graph, layer, config) → Scene     // one room alone: the tray's previe
 | | Draws its contents |
 |---|---|
 | **folder** | hidden behind its card; you descend. Drawn as a group when the layer is flattened |
-| **group** | inline, inside its rim |
+| **group** | nothing: it holds nothing. Its members, the blocks tagged with its name, are drawn where they sit, and its panel round them |
 | **grid** | in cells, each compact |
 
-**The blocks a layer draws are those whose nearest hiding ancestor is it**: a definition, a folder or any block holding blocks hides; a group or a grid shows through. **A group and a grid are both inline holders**, and most callers mean both — what a run may pass through, what a sweep picks, what a drop must stay clear of. `holds(node)` asks that once; asking it as two literal comparisons is how a grid ended up walling in every line between its own cells.
+**The blocks a layer draws are those whose nearest hiding ancestor is it**: a definition, a folder or any block holding blocks hides; a grid shows through. **A grid is the one inline holder** — what a run may pass through, what a sweep picks, what a drop must stay clear of; `holds(node)` asks it. A group gathers by tag, never by holding, so it hides nothing.
 
 | | Sized from | Members placed by |
 |---|---|---|
-| **group** | its members' bounds, plus a gap | the same packer the layer uses |
+| **group** | its members' bounds, plus a gap | kept together by the layout: its members, by tag |
 | **grid** | its own extent, in cells — a header line one unit across | their address |
 
 **Nesting is ordinary and ordered by depth**, and depth decides both what is placed first and what draws on top, so a band inside a band is placed after the outer one has a corner of its own.
@@ -77,7 +85,6 @@ project(graph, layer, config) → Scene     // one room alone: the tray's previe
 | Transform | Does |
 |---|---|
 | **read-through** | an opened usage draws its definition's structure beside its own children, one step; every card on the layer, and the room, wears its ports — its own and its definition's chain's — laid in as seats under `block/port`. Parts wear the link mark |
-| **world** | every room under a package root, each projected alone then composed into its parent's coordinates: its card replaced by its room node, which keeps the block's id, its runs routed inside its walls, its seats placed once from inside and stated for the parent. A line between two rooms is routed across the whole, through the walls between. An id a room would draw twice is kept apart under the room's (`room::id`). Cards keep their real ids, so a pick is the block itself |
 | **folder** | a room laid out in rows, as any room hugging what it holds |
 | **no derived line** | a view draws stored relations only; the class diagram's *extends*, from `type`, is the one exception |
 | **layout** | the layer's layout kind places what is drawn |

@@ -1,13 +1,14 @@
 /** The block view: any planar projection. */
 
-import { alias_of, dir_of, layout_of, children, setting_of, covers, diagram_subject,
+import { alias_of, dir_of, layout_of, children, covers, diagram_subject,
          edges_in, group_depth, heading, holders_in, inline, is_box, is_container, is_grid,
          is_aside, is_note, is_tie, label_of, lattice_of, members_of, shape_of, stamps_of, role_of,
          shown_name, type Cut, type Ends, type ViewKind, type Graph, type Id, type Relation,
          type Side, type Span } from "@mnd/core";
-import { at_seat, beside, cell_box, laid, perch_id, roomed, seat_all, PAD, UNIT,
+import { at_seat, beside, cell_box, is_placed, laid, perch_id, roomed, seat_all, PAD, UNIT,
          type Perch, type Rect, type Seat, type Seating } from "@mnd/views";
 import { carried, fit_names, marks_of, trail_of } from "./derive";
+import { lifelined } from "./lifelines";
 import { look_of, wire_of } from "./look";
 import { page_graph } from "./page";
 import { survey_graph, FOREST } from "./survey";
@@ -15,7 +16,6 @@ import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { registry_scene } from "./registry";
 import { class_graph, DRAWN_BY } from "./classes";
-import { sequence_scene } from "./sequence";
 import { tie_targets } from "./pack";
 import { box_of, cell as node, EMPTY, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
@@ -23,7 +23,7 @@ import { box_of, cell as node, EMPTY, FRAME, type BoxData, type BoxNode, type Fr
 
 export type Config = {
   /** How the layer is looked at: from inside (`internal`, `allocation`); a package or folder read
-   *  down the page (`folder`); a diagram the block names (`class`, `er`, `sequence`); the whole
+   *  down the page (`folder`); a diagram the block names (`class`, `er`); the whole
    *  section it scopes, down to `cut`,
    *  each block there boxing its top level where `tops` says (`package`). Unsaid, inside — and
    *  with no layer, every package's domain as the package view. */
@@ -47,16 +47,6 @@ const SLOTS: readonly Slot[] = ["layer", "display", "relations"];
 
 /** What a projection with no layer draws: every package's domain, as boxes down the page. */
 const WHOLE = { kind: "package", cut: "tree" } as const;
-
-/** A graph whose layer says how many cards its page holds across: the host's count, unless the
- *  layer says its own. */
-function with_across(graph: Graph, layer: Id, across: number): Graph {
-  const b = graph.blocks[layer]!;
-  const said = setting_of(graph, layer, "layout");
-  if (typeof said["across"] === "number") return graph;
-  const layout = { ...said, across };
-  return { ...graph, blocks: { ...graph.blocks, [layer]: { ...b, settings: { ...b.settings, layout } } } };
-}
 
 /** Every block a group carries when it moves, including nested groups. */
 function group_carries(graph: Graph, group: Id): Id[] {
@@ -108,7 +98,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   if (layer === null) return project(given, null, { ...config, look: WHOLE });
   /** A diagram is a projection: it draws what the block holds, and the canvas does not edit it.
    *  A grid would otherwise open as its lattice, so this comes first. */
-  if (layer && (look?.kind === "class" || look?.kind === "er" || look?.kind === "sequence")) {
+  if (layer && (look?.kind === "class" || look?.kind === "er")) {
     return quiet(given, layer, diagram_scene(given, layer, look.kind));
   }
   /** A stand-in naming the allocation view draws its grid's cells, read only. */
@@ -116,21 +106,19 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
     return quiet(given, layer, diagram_scene(given, layer, look.kind));
   }
   /** An opened grid draws its grid view: its frame of cells is the room, which the hand sizes
-   *  but never moves, under the grid's own crumbs. */
+   *  but never moves, under the grid's own crumbs. A grid read as time runs its messages straight
+   *  across, its lifelines behind its cards (`lifelined`). */
   if (layer !== GRID_LAYER && is_grid(given, layer)) {
     const { frame: _room, ...scene } = project(sheet_graph(given, layer), GRID_LAYER, config);
     const nodes = scene.nodes.map((n) => (n.id !== layer ? n : {
       ...n, draggable: false, data: { ...n.data, marks: [...n.data.marks, "room" as const] } }));
-    return { ...scene, layer, nodes, trail: trail_of(given, layer) };
+    return lifelined(given, layer, { ...scene, layer, nodes, trail: trail_of(given, layer) });
   }
   /** What its usages read through. **No line is derived**: only stored relations draw. */
   const through = read_through(given, layer);
-  /** A page places its layer as it reads; anything else places itself — `auto` shelving down a
-   *  page as wide as the canvas, as a page does. */
+  /** A page places its layer as it reads; anything else places itself. */
   const how = layout_of(through, layer);
-  const across = config.across && how !== "free" && through.blocks[layer]
-    ? with_across(through, layer, config.across) : through;
-  const graph = how === "page" ? page_graph(across, layer) : across;
+  const graph = how === "page" ? page_graph(through, layer) : through;
   const parts = new Set(Object.keys(graph.blocks).filter((id) =>
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
   const carried_as = (id: Id): BoxData => {
@@ -170,7 +158,8 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
 
   /** Layer-level aside cards are placed once interfaces are seated. A tie to an interface goes
    *  first, so the port keeps the nearest spot and a card's note takes the next. */
-  const floating = new Set(spots.filter((p) => graph.blocks[p.id]?.parent === layer
+  const ahead = is_placed(layer);
+  const floating = new Set(spots.filter((p) => !ahead && graph.blocks[p.id]?.parent === layer
     && is_aside(graph, p.id) && tie_targets(graph, layer, p.id).length > 0).map((p) => p.id));
   const drawn = (nodes: readonly BoxNode[]) =>
     [...holders, ...nodes].filter((n) => !floating.has(n.id));
@@ -263,7 +252,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   }
 
   /** A region on the layer is a band across the whole room. */
-  const spanning = (n: BoxNode): BoxNode => (room && n.data.marks.includes("region")
+  const spanning = (n: BoxNode): BoxNode => (room && !ahead && n.data.marks.includes("region")
     && graph.blocks[n.id]?.parent === layer
     ? { ...n, position: { ...n.position, x: room.x + PAD }, width: room.w - PAD * 2 } : n);
 
@@ -456,7 +445,7 @@ function landed(e: Relation, layer: Id | null): Relation {
 
 /** Every line as the canvas draws it: ends, seats, label, and where it turns. A tie between
  *  cards that overlap draws nothing. Where `ends`, a line draws what its ends mean. */
-export function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
+function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
                     ends?: "class" | "er"): LineEdge[] {
   const met = new Map(seating.perches.map((p) => [`${p.edge}|${p.end}`, p]));
   return linked.map((e): LineEdge => {
@@ -496,10 +485,9 @@ function handle(met: ReadonlyMap<string, Perch>, edge: Id,
  *  when the stand-in names the view. A kind the block cannot fill falls back to the capability
  *  view, still read only. */
 function diagram_scene(graph: Graph, layer: Id,
-                       kind: "class" | "er" | "allocation" | "sequence"): Scene {
+                       kind: "class" | "er" | "allocation"): Scene {
   const subject = diagram_subject(graph, layer);
-  const scene = kind === "sequence" ? sequence_of(graph, subject)
-    : kind === "allocation" ? project(graph, subject) : classes_of(graph, subject, kind);
+  const scene = kind === "allocation" ? project(graph, subject) : classes_of(graph, subject, kind);
   if (layer === subject || !scene.frame) return scene;
   return { ...scene, frame: { ...scene.frame, label: shown_name(graph, layer) } };
 }
@@ -510,11 +498,6 @@ function diagram_scene(graph: Graph, layer: Id,
 function classes_of(graph: Graph, subject: Id, kind: "class" | "er"): Scene {
   const drawn = class_graph(graph, subject, kind);
   return drawn ? project(drawn, subject, { ends: kind }) : project(graph, subject);
-}
-
-/** A sequence, or the grid itself where it has no step. */
-function sequence_of(graph: Graph, subject: Id): Scene {
-  return sequence_scene(graph, subject) ?? project(graph, subject);
 }
 
 /** A diagram offers nothing to drag or to build. Marks a view drew (`@`, `class:`) are not

@@ -41,7 +41,7 @@ File {
 ```
 Session {
   focus     Id                 // the room or region the camera is on
-  mode      "world" | "read"   // fitted to the focus, or 100% inside its walls
+  entered   boolean            // a block entered from the map: its own view, alone
   selected  Route[]            // a block, or usage/part
   folded    Id[]
   theme     string
@@ -193,13 +193,13 @@ Constraint Entry & { required?, match? }                     // what values must
 | Key | Configures |
 |---|---|
 | `block` | which block module; `behaviour`, granted by *is behaviour* |
-| `card` | `label` (unsaid `inside`: the type word in the top corner), `align` (unsaid `left`), `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `face` (`table`, `class`, `document`, `picture`, `text`), `size` (`{w, h}` in units): which large face it draws with and how big it is. Unsaid, a card has no large face. `arrange` (`column`, `rows`, `aside`): how it sits in its parent's `auto` layer; aside floats it beside what it is tied to. `shape` (`box`, `round`, `diamond`, `dot`, `ring`): what it is drawn as — base's `decision` a diamond, `start` a dot, `end` a ring |
+| `card` | `label` (unsaid `inside`: the type word in the top corner), `align` (unsaid `left`), `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `face` (`table`, `class`, `document`, `picture`, `text`), `size` (`{w, h}` in units): which large face it draws with and how big it is. Unsaid, a card has no large face. `shape` (`box`, `round`, `diamond`, `dot`, `ring`): what it is drawn as — base's `decision` a diamond, `start` a dot, `end` a ring |
 | `style` | a family, or a `hue` with its `intensity` and `vary`; `fill` and `opacity`; border and writing weight, face and contrast. Never a hex or a pixel count |
 | `line` | how a run draws: `dir`, `from_arrow`, `to_arrow`, `name`, `alias`; `module` (`line`, `tie`): a tie runs straight and is never routed, granted by *is tie* |
-| `layout` | `kind`: `free`, `auto`, `page`, `layered` or `treemap`; `across` and `line` for the computed ones; `cards`: `small` or `large`, the size what it holds draws at; `shape`: the `card.shape` what it holds draws as where its own says none (base's `state`: `round`); `view`: `package`, `internal`, `allocation`, `sequence`, `class` or `er`, the layer view the block opens on (a definition opens as its usages do). Unsaid kind, or a kind this build does not know, draws as `auto`. A `view` this build does not know, or that the block cannot feed, opens on the one its kind's `base` definition names |
+| `layout` | `kind`: `layered` or `treemap`, packed where unsaid — every card is placed automatically; `line`; `cards`: `small` or `large`, the size what it holds draws at; `shape`: the `card.shape` what it holds draws as where its own says none (base's `state`: `round`); `view`: `package`, `internal`, `allocation`, `sequence`, `class` or `er`, the layer view the block opens on (a definition opens as its usages do). Unsaid kind, or a kind this build does not know, draws packed. A `view` this build does not know, or that the block cannot feed, opens on the one its kind's `base` definition names |
 | `tie` | the relation type a block made from or dropped on another is linked to it by |
 | `allows` | `ports`, `holds`, `heads`, `degree`, `ends`. Refused at the gesture; absent is a no. Usually granted whole by a trait |
-| `holder` | `inline`, `matrix`, `band`: how a block draws what it holds — in place, in cells, as a band across its layer. Granted by *is group*, *is grid* and *is region*; which holder a block is comes from here |
+| `holder` | `matrix`, `band`: how a block draws what it holds — in cells, as a band of its layer. Granted by *is grid* and *is region*; which holder a block is comes from here. A group holds nothing: its members carry its name as a tag |
 | `records` | `of`: the block definition a collection's records answer |
 
 - **A component owns its key and validates it at the door.** One absent from the build is left unvalidated, not wrong.
@@ -293,7 +293,8 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | `name` | its name | its name |
 | `type` | the definition it is, by name | what it extends, by name |
 | `def` | — | present: it is a definition; its `attributes` |
-| `tags` | its tags, by name | its tags, by name |
+| `tags` | its tags, by name; a name a group on its layer goes by makes it a member of that group | its tags, by name |
+| `order` | its place among its siblings, stated: it wins over file order and any default (a region no line meets goes last) | — |
 | `traits` | — | the traits it states, by name |
 | `source` | where its content lives outside | — |
 | `blocks`, `relations`, `packages` | the layer it holds, as a diagram file | the layer it holds, as a diagram file |

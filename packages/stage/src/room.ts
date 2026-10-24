@@ -1,6 +1,6 @@
-/** The camera: one owner of the viewport. In the world it fits the focus (world view) or reads
- *  it at 100%, scrolling inside its walls (reading view), and flies between foci. A page read
- *  down the view — the kit's reader — keeps its own scrolled camera. */
+/** The camera: one owner of the viewport. In the world it fits the focus, isolated or not, and
+ *  flies between foci. A page read down the view — the kit's reader — keeps its own scrolled
+ *  camera. */
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useReactFlow, useStore } from "@xyflow/react";
@@ -8,11 +8,7 @@ import type { Id } from "@mnd/core";
 import { box_of, extent, FRAME, type BoxNode, type Frame, type Scene } from "@mnd/views";
 import { BAND, FIT, FLIGHT, MIN_ZOOM, scroll_zoom, still } from "./arrays";
 
-type Rect = { x: number; y: number; w: number; h: number };
-
-/** How a focus is looked at: fitted, or read at 100%. */
-export type Mode = "world" | "read";
-
+type Rect = { x: number; y: number; w: number; h: number; scale?: number };
 
 /** How much room there is to draw in, and the frame the focus draws as. */
 export function useRoom(scene: Scene) {
@@ -30,40 +26,42 @@ export function aimed(scene: Scene, frame: Frame | null, stop: Rect | null): Rec
   return own ? box_of(own) : extent(scene);
 }
 
-/** The viewport that looks at `box`: fitted inside the band, never above 100%; or at 100%, centred
- *  where it fits and from its top left where it does not. */
-export function view_on(box: Rect, seen: { w: number; h: number }, mode: Mode) {
-  const zoom = mode === "read" ? 1
-    : Math.max(MIN_ZOOM, Math.min((seen.w - BAND * 2) / Math.max(1, box.w),
-                                  (seen.h - BAND * 2) / Math.max(1, box.h), 1));
-  const across = (lo: number, len: number, view: number) => (len * zoom + BAND * 2 <= view
-    ? view / 2 - (lo + len / 2) * zoom : BAND - lo * zoom);
+/** The viewport that looks at `box`: fitted inside the band, never above 100%, and centred. 100%
+ *  is the box at its own size: `k` is the scale the world drew it at. */
+export function view_on(box: Rect, seen: { w: number; h: number }, k = 1) {
+  const zoom = Math.max(MIN_ZOOM, Math.min((seen.w - BAND * 2) / Math.max(1, box.w),
+                                           (seen.h - BAND * 2) / Math.max(1, box.h), 1 / k));
+  const across = (lo: number, len: number, view: number) => view / 2 - (lo + len / 2) * zoom;
   return { zoom, x: across(box.x, box.w, seen.w), y: across(box.y, box.h, seen.h) };
 }
 
-/** Where reading may pan: the focus and the band round it. */
-export function reach_of(box: Rect): [[number, number], [number, number]] {
-  return [[box.x - BAND, box.y - BAND], [box.x + box.w + BAND, box.y + box.h + BAND]];
+/** Which drawing a scene is: a map, which one, or which layer. */
+export function realm_of(scene: Scene): string {
+  return scene.areas ? `map:${scene.areas[0]?.label ?? ""}` : `layer:${scene.layer ?? ""}`;
 }
 
-/** **The camera fits every focus**: a new focus, a new mode or a resized view is flown to; a
- *  focus that grew is fitted again. A block revealed inside is panned into sight. */
-export function useFocus(scene: Scene, frame: Frame | null, stop: Rect | null, mode: Mode,
-                         seen: { w: number; h: number }, aim: Id | null) {
+/** **The camera fits every focus**: a new focus or a resized view is flown to; a
+ *  focus that grew is fitted again. A block revealed inside is panned into sight. Where the
+ *  drawing itself changes — the map for a layer entered, a layer for another, or back — the camera
+ *  cuts and the new drawing fades in. */
+export function useFocus(scene: Scene, frame: Frame | null, stop: Rect | null,
+                         seen: { w: number; h: number }, aim: Id | null, opened = 0) {
   const flow = useReactFlow();
   const box = aimed(scene, frame, stop);
-  const key = `${scene.layer}|${stop ? `${stop.x},${stop.y}` : ""}|${mode}`;
+  const realm = realm_of(scene);
+  const key = `${realm}|${scene.layer}|${stop ? `${stop.x},${stop.y},${stop.scale ?? 1}` : ""}|${opened}`;
   const size = `${Math.round(box.w)}x${Math.round(box.h)}|${seen.w}x${seen.h}`;
-  const was = useRef<{ key: string; size: string } | null>(null);
+  const was = useRef<{ key: string; size: string; realm: string } | null>(null);
 
   useEffect(() => {
     if (seen.w < BAND * 2 || seen.h < BAND * 2) return;
     const before = was.current;
-    was.current = { key, size };
+    was.current = { key, size, realm };
     if (before && before.key === key && before.size === size) return;
     /** The first look, and a view resized, land at once; a new focus is flown to. */
-    const fly = before && before.key !== key && !still() ? FLIGHT : 0;
-    void flow.setViewport(view_on(box, seen, mode), { duration: fly });
+    const fly = before && before.key !== key && before.realm === realm && !still() ? FLIGHT : 0;
+    void flow.setViewport(view_on(box, seen, stop?.scale ?? 1), { duration: fly });
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, size]);
 

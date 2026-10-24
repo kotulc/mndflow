@@ -102,9 +102,6 @@
           "style": {
             "family": "primary"
           },
-          "card": {
-            "arrange": "rows"
-          },
           "layout": {
             "view": "internal"
           }
@@ -268,7 +265,6 @@
             "name_contrast": "faint"
           },
           "card": {
-            "arrange": "rows",
             "label": "none"
           }
         },
@@ -372,7 +368,6 @@
         "order": 4,
         "settings": {
           "card": {
-            "arrange": "aside",
             "face": "text",
             "label": "none",
             "alias": "hide",
@@ -426,7 +421,6 @@
           "card": {
             "face": "document",
             "height": "free",
-            "arrange": "aside",
             "align": "left",
             "label": "none",
             "alias": "hide"
@@ -518,7 +512,10 @@
         "order": 5,
         "settings": {
           "layout": {
-            "view": "sequence"
+            "view": "allocation"
+          },
+          "holder": {
+            "lifelines": true
           }
         },
         "traits": [

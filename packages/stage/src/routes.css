@@ -163,9 +163,15 @@
 .mnd-anchor:hover::after { transform: scale(1.25); }
 .mnd-anchor.held { cursor: grabbing; }
 
-/* Where a line already meets a border. */
+/* Where a line already meets a border: a point, no box, so the library reads its corner as the
+   seat at any scale (it measures a handle's size unscaled). */
 .mnd-flow .react-flow__handle.mnd-perch,
 .mnd-flow .react-flow__node:hover .react-flow__handle.mnd-perch {
+  width: 0;
+  height: 0;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
   opacity: 0;
   pointer-events: none;
 }
@@ -196,3 +202,4 @@
   opacity: 1;
 }
 .mnd-flow .react-flow__edge:hover .mnd-wire-name { color: var(--accent); }
+

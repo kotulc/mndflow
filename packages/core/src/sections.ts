@@ -14,16 +14,16 @@ export type Cut = "package" | "tree" | null;
 /** How the canvas draws. **Layer views** draw one block, and its card's kind says which: from
  *  inside (`internal`), an opened grid's cells and the relations between them (`allocation`), a
  *  package's or folder's contents read down the page (`folder`), or a diagram the block names
- *  (`class`, `er`, `sequence`). A definition opens on the view its chain names, as its usages
+ *  (`class`, `er`). A definition opens on the view its chain names, as its usages
  *  do. The **system view** draws a whole section from above as nested boxes (`package`), and is
  *  the only one chosen. */
-export type ViewKind = "internal" | "allocation" | "folder" | "class" | "er" | "sequence"
-  | "registry" | "package";
+export type ViewKind = "internal" | "allocation" | "folder" | "class" | "er" | "registry"
+  | "package";
 
 /** The views that draw one block. A section offers them as one choice, `internal`, and the block
  *  opened says which it shows. */
 export const LAYER_VIEWS: readonly ViewKind[] = [
-  "internal", "allocation", "folder", "class", "er", "sequence", "registry"];
+  "internal", "allocation", "folder", "class", "er", "registry"];
 
 /** The layer views drawn from inside, where what the layer holds is built. A diagram is read from
  *  inside too: it draws what the block holds, and nothing is laid out there. */

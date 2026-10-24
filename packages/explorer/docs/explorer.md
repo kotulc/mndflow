@@ -35,12 +35,12 @@ The explorer files the graph as a **section chain**: a host declares its section
 
 ## Browse and open
 
-**The explorer browses rooms; the canvas focuses them.** One world drawn once: opening moves the camera, never redraws.
+**The explorer browses; the map focuses and enters.** The map is worked out once per edit: choosing moves the camera, never redraws.
 
 | Gesture | Does |
 |---|---|
 | choose (click, ↑ ↓) | selects the row; the tray shows it. The canvas stays |
-| open (Enter, double-click, →) | the canvas focuses the room in world view, the camera flying to it — a package, a folder, a definition, a grid alike; a stand-in focuses what it stands for. Anything that is not a room is picked where the canvas draws it, its room focused. Enter again, or *read* in the tray, narrows to reading view |
+| open (Enter, double-click, →) | enters the block from the map: the camera flies into its chip and its own view takes over — a diagram, a folder, a definition alike; a stand-in enters what it stands for. Anything with nothing to draw is picked where the map shows it |
 | leave (←, Backspace) | the focus moves to the room holding it, in the same section |
 | pick within the open tree | picks it in place where the canvas draws it, else focuses the room it sits in and picks it there (reveal). A package row is picked as any row is, and points the tray at its definitions. A part row stays off the canvas unless its usage is the open layer, and lights under the usage it was chosen through |
 
@@ -74,7 +74,7 @@ pump1
 - **A structure root wears its card's structure mark** after its name, in both sections: the workspace, always, and a definition that holds structure. A folder does not, nor a definition with none, nor a block inside a structure. The row says so before it is picked.
 - **A section's mark is a word or the structure tree**: `Def` for the library; the model wears the tree-root mark. Package sections wear `Pkg`. Words are never filled.
 - **A row is keyed by its section and route**, as a block may list in two sections and a part under two usages.
-- **A group or grid heads what it holds, as a table's head does its rows**, in every section alike: its row keeps its branch and its name is underlined, and its members list at its level beneath it with no tick of their own, joined to it by a line down their marks' column. A member's own children branch as usual. A folder nests like any block. Enter, → or a double click on a group's row reveals it on the canvas, which pans to it.
+- **A grid heads what it holds, as a table's head does its rows**, in every section alike: its row keeps its branch and its name is underlined, and its members list at its level beneath it with no tick of their own, joined to it by a line down their marks' column. A member's own children branch as usual. A folder nests like any block. Enter, → or a double click on a grid's row reveals it on the canvas, which pans to it. A group holds nothing, so it heads nothing: its members list where they are filed, wearing its tag.
 
 
 ## Selection

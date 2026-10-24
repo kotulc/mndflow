@@ -79,10 +79,11 @@ export type FlowViewProps = {
   widest?: number | null;
   /** The most a scrolled view ever magnifies: the reading zoom unless said. */
   most?: number | null;
-  /** How the world camera looks at the focus: fitted, or read at 100% inside its walls. */
-  mode?: "world" | "read";
-  /** A region the camera stops at, inside the focus: its box. */
-  stop?: { x: number; y: number; w: number; h: number } | null;
-  /** How what lies outside the focus is drawn: dimmed, or its rooms as rings. */
-  context?: "dim" | "rings" | null;
+
+  /** Counted up by every open: a new count flies to the focus, the same one or not. */
+  opened?: number;
+  /** A box the camera stops at instead of the focus — a region inside it, or a map tile's
+   *  drawing — and the scale it is drawn at, so 100% is its own size. */
+  stop?: { x: number; y: number; w: number; h: number; scale?: number } | null;
+
 };

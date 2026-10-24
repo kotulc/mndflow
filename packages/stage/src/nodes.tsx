@@ -11,7 +11,7 @@ export const DRAGGED = "text/mnd-block";
 
 import { FRAME, PLAIN, face_attrs, look_key, tint_attrs, type_word,
          type BoxData, type BoxNode, type GridCell } from "@mnd/views";
-import { CardFace, Name, Stamps, Wears, useNaming } from "@mnd/theme";
+import { CardFace, Icon, Name, Stamps, Wears, role_icon, useNaming } from "@mnd/theme";
 
 
 
@@ -21,6 +21,7 @@ function seen(p: NodeProps<BoxNode>): string {
   return [
     p.selected, p.dragging, p.width, p.height,
     d.label, d.alias ?? "", d.description ?? "", d.def, d.on, d.side, d.role,
+    d.scale, d.counts ?? "", (d.tiles ?? []).length,
     (d.stamps ?? []).join(","),
     d.face ?? "", d.text ?? "", d.marks.join(","),
     /** Read off the look, so no property is forgotten. */
@@ -381,25 +382,65 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
   );
 }
 
-/** A room in the world, seen from outside the focus: its walls, its title tab and the seats set
- *  into them. Its ground lets the pointer through, so a press there is on the room's inside. */
-function RoomNode({ id, data, selected }: NodeProps<BoxNode>) {
-  useSeats(id, data.seats);
-  const look = data.look ?? PLAIN;
-  const word = type_word(look.kind, data.label);
+/** A map's box: what holds chips, its walls and its title with its kind's icon. Its ground lets
+ *  the pointer through, so a press there is on the box itself. */
+function MapBox({ data, selected }: NodeProps<BoxNode>) {
   return (
-    <div className={["mnd-room", selected ? "picked" : ""].filter(Boolean).join(" ")}
-         title={data.description ? `${data.label} — ${data.description}` : data.label}>
-      {data.seats?.length ? <Seats seats={data.seats} /> : null}
-      <span className="mnd-room-title">
-        <Name id={id} className="mnd-room-name card-name" text={data.label} />
-        {word ? <span className="mnd-kind card-label">{word}</span> : null}
+    <div className={["mnd-box", selected ? "picked" : ""].filter(Boolean).join(" ")}
+         title={[data.label, data.description].filter(Boolean).join("\n")}>
+      <span className="mnd-box-title">
+        {data.role ? <Icon name={role_icon(data.role)} size={11} /> : null}
+        <span className="mnd-box-name">{data.label}</span>
       </span>
-      <Wears role={data.role} holds={data.marks.includes("container")} />
-      <Stamps stamps={data.stamps} />
     </div>
   );
 }
+
+/** A map's chip: what is entered, as large as what it holds — its kind's icon and its name, what
+ *  it counts, and a small treemap of what it holds, each tile named where it has room; a
+ *  diagram's tiles laid by its structure, on canvas ground. Each tile a small card: its kind's
+ *  icon, its name, a stacked edge where it holds blocks; a group a tinted panel round its
+ *  members, a grid's cells faintly outlined. A diagram's own chip is bare
+ *  canvas, its box's title its name. A library definition wears its own colour. */
+function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
+  const tint = data.look ? tint_attrs(data.look) : null;
+  const body = { w: (width ?? 0) - 8, h: (height ?? 0) - (data.own ? 0 : CHIP_HEAD) - 4 };
+  return (
+    <div className={["mnd-chip", data.diagram ? "diagram" : "", data.own ? "own" : "",
+                     data.stacked ? "holds" : "",
+                     selected ? "picked" : ""].filter(Boolean).join(" ")}
+         {...(tint ? { "data-family": tint["data-family"], style: tint.style as CSSProperties }
+           : {})}
+         title={[data.label, data.counts, data.description].filter(Boolean).join("\n")}>
+      {data.own ? null : (
+        <span className="mnd-chip-head">
+          <Icon name={role_icon(data.role)} size={12} />
+          <span className="mnd-chip-name">{data.label}</span>
+        </span>
+      )}
+      {data.counts && !data.own ? <span className="mnd-chip-counts">{data.counts}</span> : null}
+      {data.tiles?.length ? (
+        <span className="mnd-chip-body">
+          {data.tiles.map((t) => (
+            <span key={t.id}
+                  className={["mnd-chip-tile", t.holds ? "holds" : "", t.as ?? ""].join(" ")}
+                  title={t.label}
+                  style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`,
+                           width: `${t.w * 100}%`, height: `${t.h * 100}%` }}>
+              {!t.as && t.w * body.w > 22 && t.h * body.h > 12
+                ? <Icon name={role_icon(t.role)} size={8} /> : null}
+              {t.as !== "cell" && t.w * body.w > 30 && t.h * body.h > 10
+                ? <span className="mnd-chip-tile-name">{t.label}</span> : null}
+            </span>
+          ))}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** How tall a chip's head is, its name and counts above its inner treemap (views `map.ts`). */
+const CHIP_HEAD = 34;
 
 /** A registry's tile: an entry's name, how many times it is used and what it means, its ground as
  *  warm as its uses, its edge in the entry's own colour. What a small tile has no room for, its
@@ -421,14 +462,31 @@ function TileNode({ data, selected }: NodeProps<BoxNode>) {
   );
 }
 
+/** A node drawn at its scale: its face laid out at its own size and scaled into the box it was
+ *  given. Only a library registry is scaled; **zoom never changes what a node draws**. */
+function scaled(Inner: React.ComponentType<NodeProps<BoxNode>>) {
+  return function Scaled(p: NodeProps<BoxNode>) {
+    const k = p.data.scale ?? 1;
+    return (
+      <div className="mnd-scaled"
+           style={{ width: `${100 / k}%`, height: `${100 / k}%`,
+                    transform: k === 1 ? undefined : `scale(${k})`,
+                    "--k": String(k) } as CSSProperties}>
+        <Inner {...p} />
+      </div>
+    );
+  };
+}
+
 /** Memoised on what each draws; see `seen`. */
-export const Card = memo(CardNode, same);
-export const Note = memo(NoteNode, same);
-export const Group = memo(GroupNode, same);
-export const Grid = memo(GroupNode, same);
-export const Seat = memo(SeatNode, same);
-export const Tile = memo(TileNode);
-export const Room = memo(RoomNode, same);
+export const Card = memo(scaled(CardNode), same);
+export const Note = memo(scaled(NoteNode), same);
+export const Group = memo(scaled(GroupNode), same);
+export const Grid = memo(scaled(GroupNode), same);
+export const Seat = memo(scaled(SeatNode), same);
+export const Tile = memo(scaled(TileNode));
+export const Box = memo(MapBox, same);
+export const Chip = memo(ChipNode, same);
 
 export const NODE_TYPES = {
   card: Card,
@@ -436,7 +494,8 @@ export const NODE_TYPES = {
   group: Group,
   grid: Grid,
   seat: Seat,
-  frame: Frame,
+  frame: memo(scaled(Frame), same),
   tile: Tile,
-  room: Room,
+  box: Box,
+  chip: Chip,
 } as const;

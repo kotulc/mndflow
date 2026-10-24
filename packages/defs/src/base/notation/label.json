@@ -9,7 +9,6 @@
   ],
   "settings": {
     "card": {
-      "arrange": "aside",
       "face": "text",
       "label": "none",
       "alias": "hide",

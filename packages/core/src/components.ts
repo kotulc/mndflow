@@ -112,17 +112,13 @@ export const SHAPES = ["box", "round", "diamond", "dot", "ring"] as const;
 /** Which size a layer draws its cards at: the name and marks alone, or what they say. */
 export const CARDS = ["small", "large"] as const;
 
-/** How a card sits in its parent's `auto` layer: in a column, in rows, or aside, beside what it
- *  is tied to. */
-export const ARRANGES = ["column", "rows", "aside"] as const;
-
 /** The layer views a block may name with `layout.view`, where it can feed them. Closed, like
  *  `card.face`: a name outside this set opens the block on the view its kind gives, never
  *  refused. */
-export const NAMED_VIEWS = ["internal", "allocation", "sequence", "class", "er"] as const;
+export const NAMED_VIEWS = ["internal", "allocation", "class", "er"] as const;
 
 /** The views that are projections: they draw what a block holds and write nothing back. */
-export const DIAGRAM_VIEWS = ["sequence", "class", "er", "registry"] as const;
+export const DIAGRAM_VIEWS = ["class", "er", "registry"] as const;
 
 /** The named families a definition may pick from. */
 export const FAMILIES = ["primary", "secondary", "neutral", "muted",
@@ -239,12 +235,10 @@ const card: Component = {
     /** `face` is which large face it draws with; `size` its size. */
     ?? one_of("card.face", config["face"], LARGE_FACES)
     ?? sized("card.size", config["size"])
-    /** `arrange` is how it sits in its parent's `auto` layer. */
-    ?? one_of("card.arrange", config["arrange"], ARRANGES)
     /** `shape` is what it is drawn as. */
     ?? one_of("card.shape", config["shape"], SHAPES)
     ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "name",
-                              "face", "size", "arrange", "shape"]),
+                              "face", "size", "shape"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings. */
@@ -333,8 +327,6 @@ const layout: Component = {
   check: (config) =>
     (config["kind"] === undefined || typeof config["kind"] === "string"
       ? null : "`layout.kind` has to be a name")
-    ?? (config["across"] === undefined || typeof config["across"] === "number"
-      ? null : "`layout.across` has to be a number")
     ?? (config["line"] === undefined || typeof config["line"] === "string"
       ? null : "`layout.line` has to be a relation definition")
     ?? (config["view"] === undefined || typeof config["view"] === "string"
@@ -342,7 +334,7 @@ const layout: Component = {
     ?? one_of("layout.cards", config["cards"], CARDS)
     /** `shape` is what the layer's cards are drawn as, where theirs says none. */
     ?? one_of("layout.shape", config["shape"], SHAPES)
-    ?? stray("layout", config, ["kind", "across", "line", "cards", "view", "shape"]),
+    ?? stray("layout", config, ["kind", "line", "cards", "view", "shape"]),
 };
 
 /** What a block made from, or dropped on, another is linked to it by: a relation definition. */
@@ -355,14 +347,15 @@ const tie: Component = {
 };
 
 /** How a block draws what it holds: `inline` on the layer it sits on, rather than behind its card,
- *  `matrix` seated in cells, and `band` across the layer. Granted by *is group*, *is grid* and
- *  *is region*. */
+ *  `matrix` seated in cells, `band` across the layer, and a grid's `lifelines` down each column
+ *  from its head. Granted by *is group*, *is grid* and *is region*. */
+const HOLDER = ["inline", "matrix", "band", "lifelines"];
 const holder: Component = {
   name: "holder",
   check: (config) =>
-    ["inline", "matrix", "band"].map((k) => config[k] === undefined || typeof config[k] === "boolean"
+    HOLDER.map((k) => config[k] === undefined || typeof config[k] === "boolean"
       ? null : `\`holder.${k}\` has to be true or false`).find(Boolean)
-    ?? stray("holder", config, ["inline", "matrix", "band"]),
+    ?? stray("holder", config, HOLDER),
 };
 
 /** What a collection's records are: rows answering the attributes of `of`, a block definition. */

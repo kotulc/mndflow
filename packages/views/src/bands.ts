@@ -1,7 +1,7 @@
 /** Bands and grids inside a layer: members packed in a band, seated blocks placed by cell. */
 
 import { group_depth, inline, is_aside, is_box, is_flat, is_header, is_interface, is_region,
-         lattice_of, layout_of, members_of, type Block, type Graph, type Id, type Layout }
+         lattice_of, members_of, type Block, type Graph, type Id, type Layout }
   from "@mnd/core";
 import type { Placed } from "./arrange";
 import { floated, noted } from "./float";
@@ -40,12 +40,6 @@ export function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: La
   const members = members_of(graph, band_id)
     .filter((b) => !is_interface(graph, b.id) && !gridded(graph, b.id));
   if (!members.length) return [];
-
-  /** A band set free keeps each member where it was put, from the band's own corner. */
-  if (layout_of(graph, band_id) === "free" && graph.blocks[band_id]?.settings?.["layout"]) {
-    return from_corner(members.map((b) => ({ id: b.id, x: b.x ?? 0, y: b.y ?? 0,
-      ...(is_box(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id)) })));
-  }
 
   /** Members sit as on a layer: each kind arranged its own way, an aside beside its tie. */
   const sized = members.map((b): Sized => ({

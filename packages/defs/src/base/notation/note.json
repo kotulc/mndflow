@@ -12,7 +12,6 @@
     "card": {
       "face": "document",
       "height": "free",
-      "arrange": "aside",
       "align": "left",
       "label": "none",
       "alias": "hide"

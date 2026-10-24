@@ -1,4 +1,4 @@
-import { LAYOUTS, type Act, type Dir, type Layout } from "@mnd/core";
+import type { Act, Dir } from "@mnd/core";
 import { role_icon, type IconName } from "@mnd/theme";
 
 /** One control. **One icon, lit or not** — a setting draws the same mark whichever way it is
@@ -30,9 +30,6 @@ export type Group = {
 export type Chrome = {
   /** Which groups the projection offers. */
   slots: readonly string[];
-  layout?: Layout;
-  /** Whether the layer's kind names its layout, so the rail offers none to choose. */
-  fixed?: boolean;
   /** The diagram family of the room in focus, whose notation the palette offers. */
   family?: string | null;
   /** The package the focus is in, for its quick edit. */
@@ -45,13 +42,6 @@ export type Chrome = {
   type?: string;
   /** The relation definitions the open packages hold. */
   types?: readonly { id: string; name: string }[];
-};
-
-/** How a person lays a layer out from the rail. `page` is a definition's or a host's to set — a
- *  folder reads as a page — so it is not offered here. */
-const LAYOUT: Partial<Record<Layout, { icon: IconName; tip: string }>> = {
-  free: { icon: "layout_free", tip: "Hand placement is what draws" },
-  auto: { icon: "layout_grid", tip: "Auto-layout: everything in reading order on a grid; lines never move it" },
 };
 
 /** The notation each family draws with, then what every room may hold. */
@@ -98,26 +88,6 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
         ...(kind === "group" ? {} : { drags: kind }),
         run: () => act("@notation", { type: kind }),
       })),
-    });
-  }
-
-  /** How the layer places what it holds, where its kind leaves that open. */
-  if (has("layer") && !chrome.fixed) {
-    out.push({
-      key: "layer", label: "layer",
-      controls: [
-        ...LAYOUTS.filter((how) => LAYOUT[how]).map((how): Control => ({
-          key: how, icon: LAYOUT[how]!.icon, word: how, tip: LAYOUT[how]!.tip,
-          on: (chrome.layout ?? "free") === how,
-          run: () => act("layout", { kind: how }),
-        })),
-        /** Auto reads in order; this reorders once, so related blocks read side by side. */
-        ...(chrome.layout === "auto" ? [{
-          key: "arrange", icon: "align" as const, word: "arrange", verb: true, ruled: true,
-          tip: "Order what the layer holds so related blocks read side by side",
-          run: () => act("arrange", {}),
-        }] : []),
-      ],
     });
   }
 
