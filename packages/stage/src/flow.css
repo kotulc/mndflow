@@ -361,7 +361,8 @@
   height: 100%;
   box-sizing: border-box;
   border-radius: 3px;
-  box-shadow: inset 0 0 0 calc(var(--edge-w, 1px) / var(--zoom, 1)) var(--edge, var(--wall));
+  box-shadow: inset 0 0 0 calc(var(--edge-w, 1px) / var(--zoom, 1))
+              var(--edge, color-mix(in oklch, var(--wall) 50%, transparent));
 }
 .mnd-box-title {
   position: absolute;
@@ -395,8 +396,8 @@
 /* **Every chip wears its colour** on its edge and its icon: a block's or a definition's own, a
    diagram's its kind's. */
 .mnd-chip[data-family] { border-left: 3px solid var(--card-edge, var(--card-line)); }
-/* **A chip's head is a card's**: its name over what it counts, its kind's icon in the top-right
-   corner, never smaller on screen than a card's, nor larger than the head (`CHIP_HEAD`,
+/* **A chip's head is a card's**: one line, its name and what it is and counts; its kind's icon in
+   the top-right corner, never smaller on screen than a card's, nor larger than the head (`CHIP_HEAD`,
    nodes.tsx). */
 .mnd-chip-head {
   position: absolute;
@@ -404,7 +405,8 @@
   left: 6px;
   right: 30px;
   display: flex;
-  flex-direction: column;
+  gap: 6px;
+  align-items: baseline;
   overflow: hidden;
   white-space: nowrap;
 }
@@ -418,7 +420,10 @@
   color: var(--text);
   pointer-events: none;
 }
+/* One line: the name, then quieter what it is and counts, which gives way first. */
 .mnd-chip-name {
+  flex: none;
+  max-width: 100%;
   overflow: hidden;
   color: var(--text);
   font-size: 12px;
@@ -427,17 +432,20 @@
   text-overflow: ellipsis;
 }
 .mnd-chip-counts {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   color: var(--muted);
   font-size: 10px;
   line-height: 12px;
   text-overflow: ellipsis;
 }
-/* **A tall chip holding nothing drawn** sets its name upright, reading down under its icon. */
-.mnd-chip.upright .mnd-chip-head { top: 32px; right: 6px; bottom: 6px; align-items: center; }
-.mnd-chip.upright .mnd-chip-icon { right: 50%; transform: translateX(50%); }
-.mnd-chip.upright .mnd-chip-name { writing-mode: vertical-rl; }
-.mnd-chip.upright .mnd-chip-counts { display: none; }
+/* **A chip too narrow for its name** (`NARROW`, nodes.tsx) shows its icon alone, where it ever
+   sits, never wider than the chip (`--cap`). */
+.mnd-chip.narrow .mnd-chip-head { display: none; }
+.mnd-chip.narrow .mnd-chip-icon {
+  --icon: min(clamp(14px, calc(11px / var(--zoom, 1)), 22px), var(--cap, 22px));
+}
 /* **A diagram's chip looks as a library chip does**: flat tiles on the chip's own ground, its edge
    in its colour; what kind it is shows in how its inside is drawn — its layers, wide gaps between
    them and narrow ones within, its marks, a grid's strips and lines, a card's rules. */
@@ -479,10 +487,15 @@
 .mnd-chip.diagram .mnd-chip-tile.band.odd {
   background: color-mix(in oklch, var(--muted) 4%, transparent);
 }
-/* A grid's headers: one quiet strip per column, and per row on a swimlane. */
+/* A grid's headers and a flow's start and end strips weigh as the flow line does: one quiet line
+   down the middle of the strip, along its length. */
 .mnd-chip.diagram .mnd-chip-tile.head {
-  border-radius: 2px;
-  background: color-mix(in oklch, var(--muted) 16%, var(--surface));
+  background: linear-gradient(var(--flow), var(--flow)) center / 100% calc(2px / var(--zoom, 1))
+              no-repeat;
+}
+.mnd-chip.diagram .mnd-chip-tile.head.tall {
+  background: linear-gradient(var(--flow), var(--flow)) center / calc(2px / var(--zoom, 1)) 100%
+              no-repeat;
 }
 .mnd-chip.diagram .mnd-chip-tile.life {
   overflow: visible;
@@ -538,7 +551,8 @@
   /** A hairline a pixel on screen at any zoom, so a rule never falls between pixels. */
   --hair: calc(1px / var(--zoom, 1));
   position: absolute;
-  inset: 12px 0 0;
+  /* Under its name and its icon, however large the zoom makes the icon (`--icon`). */
+  inset: max(12px, calc(var(--icon, 9px) + 5px)) 0 0;
   content: "";
   border-top: calc(1px / var(--zoom, 1)) solid var(--chip-line);
 }
@@ -557,7 +571,7 @@
 .mnd-chip-tile-name { overflow: hidden; text-overflow: ellipsis; }
 
 /* The inner treemap, under the head (`CHIP_HEAD`, nodes.tsx). */
-.mnd-chip-body { position: absolute; top: 34px; left: 4px; right: 4px; bottom: 4px; }
+.mnd-chip-body { position: absolute; top: 40px; left: 4px; right: 4px; bottom: 4px; }
 .mnd-chip-tile {
   position: absolute;
   box-sizing: border-box;
@@ -586,8 +600,10 @@
 .mnd-chip .mnd-chip-tile.card:hover { --tile-edge: var(--accent); }
 .mnd-chip-tile.iconed {
   --icon: clamp(min(9px, var(--cap, 9px)), calc(9px / var(--zoom, 1)), var(--cap, 9px));
-  padding-right: calc(var(--icon) + 5px);
+  padding: 2px calc(var(--icon) + 5px) 0 3px;
 }
+/* Its name centred on its icon's line. */
+.mnd-chip-tile.iconed > .mnd-chip-tile-name { line-height: var(--icon); }
 .mnd-chip-tile.iconed > .mnd-chip-tile-icon {
   position: absolute;
   top: 2px;
@@ -596,6 +612,9 @@
   height: var(--icon);
   margin: 0;
 }
+/* A tile too small for its name shows its icon alone, where it ever sits, as wide as the tile
+   allows. */
+.mnd-chip-tile.iconed.bare { --icon: var(--cap, 9px); padding: 0; }
 
 /* Under the pointer: a brighter edge and ground. Picked: a wider accent edge, the accent in the
    ground. Nothing else lights on a map. */

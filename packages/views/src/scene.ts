@@ -73,6 +73,8 @@ export type BoxData = {
   stacked?: boolean;
   /** What a map chip counts, said in words: its blocks, lines and components, or its uses. */
   counts?: string;
+  /** A diagram chip's kind, said beside its name. */
+  kind?: string;
   /** A registry's tile: how many times its entry is used, and that against the most used. */
   count?: number;
   heat?: number;

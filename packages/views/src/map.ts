@@ -9,7 +9,7 @@
 import { Graph as Ranks, layout } from "@dagrejs/dagre";
 import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
          type HierarchyRectangularNode } from "d3-hierarchy";
-import { children, diagram_kind, has_lifelines, is_aside, is_grid, is_header, is_holder,
+import { children, def_at, diagram_kind, has_lifelines, is_aside, is_grid, is_header, is_holder,
          is_interface, is_notation, is_reference, is_region, is_tie, lattice_of, lens_of,
          notation_of, on_side, owner_of, packages, path, region_of, shown_name, subtree,
          type Graph, type Id } from "@mnd/core";
@@ -31,18 +31,19 @@ const WIDE = 1200;
  *  as much between as round and below the title; above a box's title; and a chip's head. Round a
  *  chip's body, more round a diagram's. */
 const AIR = { inner: 6, outer: 6, clear: 16, share: 0.06, title: 26 };
-const HEAD = 34;
+const HEAD = 40;
 const PAD = { chip: 4, diagram: 10 };
 
 /** How wide a card reads, width over height: the shape a diagram chip's tiles aim at. */
 const CELL = 1.5;
 
-/** The least a model chip weighs, so a block holding little still shows its head. */
+/** The least a chip weighs, so one holding or used little still shows its icon. */
 const LEAST = 2.5;
 
 /** One entry of a map: a box of what it holds, or a chip entering `block`, counting `held`. */
 type Leaf = { id: Id; kids?: Leaf[]; value?: number;
-              chip?: { block: Id; held: readonly Id[]; counts: string; uses?: boolean;
+              chip?: { block: Id; held: readonly Id[]; counts: string; kind?: string;
+                       uses?: boolean;
                        diagram?: boolean } };
 
 
@@ -61,11 +62,13 @@ export function model_map(graph: Graph, root: Id): Scene {
     return deep.get(id)!;
   };
   /** A chip: a diagram's, or a group's or a region's, laid by its structure; any other block's a
-   *  plain treemap of what it holds. */
+   *  plain treemap of what it holds. A diagram's says its kind beside its name. */
   const chip = (id: Id, block: Id, list: readonly Id[]): Leaf => {
     const n = counted(graph, list);
+    const kind = diagram_kind(graph, block);
     return { id, value: Math.max(LEAST, 1 + total(n)),
              chip: { block, held: list, counts: words(n),
+                     ...(kind ? { kind: def_at(graph, kind)?.name ?? kind } : {}),
                      diagram: diagram(block) || is_holder(graph, block) } };
   };
   /** A box where diagrams lie below, one cell for each block it holds; else a chip. */
@@ -82,7 +85,7 @@ export function library_map(graph: Graph): Scene {
     if (!graph.blocks[id]?.def) return { id, kids: filed(graph, id).map(entry) };
     const uses = uses_of(graph, id).length;
     const parts = children(graph, id).filter((b) => !is_interface(graph, b.id)).map((b) => b.id);
-    return { id, value: uses + 1,
+    return { id, value: Math.max(LEAST, uses + 1),
              chip: { block: id, held: parts, uses: true,
                      counts: `${uses} ${uses === 1 ? "use" : "uses"}` } };
   };
@@ -188,6 +191,7 @@ function mapped(graph: Graph, tree: Leaf, title: string): Scene {
       continue;
     }
     nodes.push({ ...cell(id, box, { ...data, counts: chip.counts,
+                                    ...(chip.kind ? { kind: chip.kind } : {}),
                                     ...(chip.uses && holds_blocks(graph, chip.block)
                                       ? { stacked: true } : {}),
                                     ...inner(graph, chip.block, chip.held, box, !!chip.diagram,

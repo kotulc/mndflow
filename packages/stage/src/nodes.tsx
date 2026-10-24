@@ -21,7 +21,7 @@ function seen(p: NodeProps<BoxNode>): string {
   return [
     p.selected, p.dragging, p.width, p.height,
     d.label, d.alias ?? "", d.description ?? "", d.def, d.on, d.side, d.role,
-    d.scale, d.counts ?? "", (d.tiles ?? []).length,
+    d.scale, d.counts ?? "", d.kind ?? "", (d.tiles ?? []).length,
     (d.stamps ?? []).join(","),
     d.face ?? "", d.text ?? "", d.marks.join(","),
     /** Read off the look, so no property is forgotten. */
@@ -396,30 +396,36 @@ function MapBox({ data, selected }: NodeProps<BoxNode>) {
   );
 }
 
-/** A map's chip, **faced as a card is**: its name over what it counts, its kind's icon in the
+/** A map's chip, **faced as a card is**: one line, its name and beside it, quieter, a
+ *  diagram's kind and what it counts, giving way first where room runs short; its kind's icon in the
  *  top-right corner, and a small treemap of what it holds; a diagram's tiles laid by its
  *  structure. A block's tile is a small card the same way: its name, its icon in the corner,
  *  edged as a chip in its own colour. Icons keep a least size on screen, never past what their
  *  tile has room for (`--cap`). A mark its glyph; a group a tinted panel round its members, a
  *  region a tinted band; a grid's plain header strips, its lifelines or its rules. Every chip
- *  wears its colour: a diagram's its kind's. A tall empty chip's name runs upright. */
+ *  wears its colour: a diagram's its kind's. A chip too narrow for its name shows its icon
+ *  alone, at the top right as ever, never wider than the chip. */
 function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
   const tint = data.look ? tint_attrs(data.look) : null;
   const pad = data.diagram ? 10 : 4;
   const body = { w: (width ?? 0) - 2 * pad,
                  h: (height ?? 0) - CHIP_HEAD - pad };
-  /** A chip holding nothing drawn, far taller than wide, sets its name upright under its icon. */
-  const upright = !data.tiles?.length && (height ?? 0) > UPRIGHT * (width ?? 0);
+  /** A chip too narrow for its name shows its icon alone. */
+  const narrow = (width ?? 0) < NARROW;
   return (
     <div className={["mnd-chip", data.diagram ? "diagram" : "",
-                     data.stacked ? "holds" : "", upright ? "upright" : "",
+                     data.stacked ? "holds" : "", narrow ? "narrow" : "",
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
-         {...(tint ? { "data-family": tint["data-family"], style: tint.style as CSSProperties }
-           : {})}
-         title={[data.label, data.counts, data.description].filter(Boolean).join("\n")}>
+         {...(tint ? { "data-family": tint["data-family"] } : {})}
+         style={{ ...(tint?.style ?? {}), "--cap": `${Math.max(0, (width ?? 0) - 8)}px` } as
+           CSSProperties}
+         title={[data.label, data.kind, data.counts, data.description].filter(Boolean)
+           .join("\n")}>
       <span className="mnd-chip-head">
         <span className="mnd-chip-name">{data.label}</span>
-        {data.counts ? <span className="mnd-chip-counts">{data.counts}</span> : null}
+        <span className="mnd-chip-counts">
+          {[data.kind, data.counts].filter(Boolean).join(" · ")}
+        </span>
       </span>
       <Icon name={role_icon(data.role)} size={14} className="mnd-chip-icon" />
       {data.tiles?.length ? (
@@ -432,16 +438,18 @@ function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
             /** What stands for a block is picked as it: a click on it picks its block. */
             const block = !t.as || t.as === "group" || t.as === "band";
             const [w, h] = [t.w * body.w, t.h * body.h];
-            /** As large as an icon may grow in this tile: its height less a margin, a third of
-             *  its width. */
-            const cap = Math.min(h - 4, w / 3);
-            const icon = plain && cap >= 7;
+            const shown = named && w > NAMED && h > 10;
+            /** As large as an icon may grow in this tile: beside its name, its height less a
+             *  margin and a third of its width; alone, all the room the tile has. */
+            const cap = shown ? Math.min(h - 4, w / 3) : Math.min(w, h) - 4;
+            const icon = plain && cap >= 5;
             return (
               <span key={t.id} {...(block ? { "data-tile": t.id } : {})}
                     {...(t.tint?.["data-family"] ? { "data-family": t.tint["data-family"] } : {})}
                     className={["mnd-chip-tile", t.as ?? "", plain ? "card" : "",
-                                icon ? "iconed" : "",
+                                icon ? "iconed" : "", icon && !shown ? "bare" : "",
                                 t.odd ? "odd" : "", t.down ? "down" : "",
+                                t.as === "head" && h > w ? "tall" : "",
                                 t.mark ? `mark ${t.mark}` : "",
                                 t.texture ?? ""].filter(Boolean).join(" ")}
                     title={t.label || undefined}
@@ -449,7 +457,7 @@ function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
                              width: `${t.w * 100}%`, height: `${t.h * 100}%`,
                              ...(t.tint?.style ?? {}),
                              ...(icon ? { "--cap": `${cap}px` } : {}) } as CSSProperties}>
-                {named && w > 30 && h > 10
+                {shown
                   ? <span className="mnd-chip-tile-name">{t.label}</span> : null}
                 {icon ? <Icon name={role_icon(t.role)} size={9} className="mnd-chip-tile-icon" />
                   : null}
@@ -463,10 +471,14 @@ function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
 }
 
 /** How tall a chip's head is, its name and counts above its inner treemap (views `map.ts`). */
-const CHIP_HEAD = 34;
+const CHIP_HEAD = 40;
 
-/** How much taller than wide an empty chip is before its name runs upright. */
-const UPRIGHT = 1.6;
+/** How wide a tile is before its name shows: a few letters beside its icon; narrower, its icon
+ *  alone. */
+const NAMED = 50;
+
+/** How narrow a chip is before its name gives way to its icon alone. */
+const NARROW = 64;
 
 /** A registry's tile: an entry's name, how many times it is used and what it means, its ground as
  *  warm as its uses, its edge in the entry's own colour. What a small tile has no room for, its
