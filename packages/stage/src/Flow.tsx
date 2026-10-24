@@ -141,11 +141,12 @@ function Canvas(props: FlowViewProps) {
     const line = tab ? { group: on, way: tab.getAttribute("data-way"),
                          i: Number(tab.getAttribute("data-i")),
                          ...(cell_at ? { r: cell_at[0], c: cell_at[1] } : {}) } : null;
-    const given = spot ?? line ?? (seat
+    /** A chip's name belongs to the block it stands for; a tile in a chip carries its block. */
+    const el = target instanceof Element ? target : null;
+    const tile = el?.closest("[data-tile]")?.getAttribute("data-tile");
+    const given = spot ?? line ?? (tile ? { tile } : null) ?? (seat
       ? { side: seat.side, at: seat.at, ...(kind === "brim" ? { owner: on } : {}) }
       : null);
-    /** A chip's name belongs to the block it stands for. */
-    const el = target instanceof Element ? target : null;
     const chip = kind === "name" ? el?.closest("[data-cell]")?.getAttribute("data-cell") : null;
     onGesture?.({
       on: kind === "title" || kind === "frame" ? scene.layer : chip ?? on,
@@ -190,6 +191,8 @@ function Canvas(props: FlowViewProps) {
       onNodesChange={changed}
       onEdgesChange={rewired}
       onSelectionChange={chose}
+      /** A map picks by its own clicks (a chip, a box, a tile in a chip), never React Flow's. */
+      elementsSelectable={!scene.areas}
       /** **The camera fits every view**, a room or a page. React Flow's own first fit is left
           off: switched on by the first room after a page, it would land late and fit the cards
           rather than the room. */

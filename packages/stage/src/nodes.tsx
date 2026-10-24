@@ -398,13 +398,16 @@ function MapBox({ data, selected }: NodeProps<BoxNode>) {
 
 /** A map's chip: what is entered, as large as what it holds — its kind's icon and its name, what
  *  it counts, and a small treemap of what it holds, each tile named where it has room; a
- *  diagram's tiles laid by its structure, on canvas ground. Each tile a small card: its kind's
- *  icon, its name, a stacked edge where it holds blocks; a group a tinted panel round its
- *  members, a grid's cells faintly outlined. A diagram's own chip is bare
+ *  diagram's tiles laid by its structure. Each tile a flat tile, as the library's: its kind's
+ *  icon and its name; a mark its glyph; a group a tinted
+ *  panel round its members, a region a tinted band; a grid's plain header strips, its lifelines
+ *  or its rules; the diagram's interfaces notched on its edge. A diagram's own chip is bare
  *  canvas, its box's title its name. A library definition wears its own colour. */
 function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
   const tint = data.look ? tint_attrs(data.look) : null;
-  const body = { w: (width ?? 0) - 8, h: (height ?? 0) - (data.own ? 0 : CHIP_HEAD) - 4 };
+  const pad = data.diagram ? 8 : 4;
+  const body = { w: (width ?? 0) - 2 * pad,
+                 h: (height ?? 0) - (data.own ? pad : CHIP_HEAD) - pad };
   return (
     <div className={["mnd-chip", data.diagram ? "diagram" : "", data.own ? "own" : "",
                      data.stacked ? "holds" : "",
@@ -421,18 +424,28 @@ function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
       {data.counts && !data.own ? <span className="mnd-chip-counts">{data.counts}</span> : null}
       {data.tiles?.length ? (
         <span className="mnd-chip-body">
-          {data.tiles.map((t) => (
-            <span key={t.id}
-                  className={["mnd-chip-tile", t.holds ? "holds" : "", t.as ?? ""].join(" ")}
-                  title={t.label}
-                  style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`,
-                           width: `${t.w * 100}%`, height: `${t.h * 100}%` }}>
-              {!t.as && t.w * body.w > 22 && t.h * body.h > 12
-                ? <Icon name={role_icon(t.role)} size={8} /> : null}
-              {t.as !== "cell" && t.w * body.w > 30 && t.h * body.h > 10
-                ? <span className="mnd-chip-tile-name">{t.label}</span> : null}
-            </span>
-          ))}
+          {data.tiles.map((t) => {
+            /** A plain block wears its kind's icon; a mark its glyph instead; what only shapes
+             *  the chip — a strip, a lifeline, a rule, a notch — no name. */
+            const plain = !t.as && !t.mark;
+            const named = (!t.as || t.as === "group") && t.mark !== "start" && t.mark !== "end";
+            /** What stands for a block is picked as it: a click on it picks its block. */
+            const block = !t.as || t.as === "group" || t.as === "band";
+            return (
+              <span key={t.id} {...(block ? { "data-tile": t.id } : {})}
+                    className={["mnd-chip-tile", t.as ?? "",
+                                t.odd ? "odd" : "", t.mark ? `mark ${t.mark}` : "",
+                                t.texture ?? ""].filter(Boolean).join(" ")}
+                    title={t.label || undefined}
+                    style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`,
+                             width: `${t.w * 100}%`, height: `${t.h * 100}%` }}>
+                {plain && t.w * body.w > 22 && t.h * body.h > 12
+                  ? <Icon name={role_icon(t.role)} size={8} /> : null}
+                {named && t.w * body.w > 30 && t.h * body.h > 10
+                  ? <span className="mnd-chip-tile-name">{t.label}</span> : null}
+              </span>
+            );
+          })}
         </span>
       ) : null}
     </div>

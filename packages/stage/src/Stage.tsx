@@ -244,7 +244,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       else if (e.key === "F2" && one) set_naming(one);
       /** On a map the arrows walk to the nearest area that way, as a click goes to it. */
       else if (e.key in WAYS && scene.areas && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        const from = scene.nodes.find((n) => n.className === "mnd-focus")?.id ?? scene.layer ?? "";
+        const from = picked.find((id) => scene.areas!.some((a) => a.id === id))
+          ?? scene.layer ?? "";
         const next = towards(scene.areas, from, WAYS[e.key]!);
         if (!next) return;
         e.preventDefault();
@@ -326,8 +327,14 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       return;
     }
     if (g.button === "left" && g.count === 1) onPickCells?.([]);
-    /** **A map is read, never built on**: a click on a chip or a box goes to it, two enter it. */
+    /** **A map is read, never built on**: a click on a chip or a box goes to it, two enter it;
+     *  a click on a tile in a chip picks its block, to be read in the tray. */
     if (scene.areas) {
+      const tile = g.given?.["tile"];
+      if (g.button === "left" && g.count === 1 && typeof tile === "string") {
+        onPick([tile]);
+        return;
+      }
       const area = g.on && scene.areas.some((a) => a.id === g.on) ? g.on
         : area_under(scene.areas, g.at)?.id ?? null;
       if (g.button !== "left" || !area) return;
@@ -388,8 +395,12 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     <section className="stage">
       <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
       {empty ? <p className="empty">{empty}</p> : null}
-      {lit.length ? <style>{lit_rules(lit)}</style> : null}
-      {touched.length ? <style>{lit_rules(touched, "var(--s-secondary-edge)")}</style> : null}
+      {/* **A map lights only what is picked**: a chip, a box or a tile. A layer also lights what
+          is hovered, other appearances and what the selection touches. */}
+      {scene.areas ? <style>{tile_rules(picked)}</style> : null}
+      {!scene.areas && lit.length ? <style>{lit_rules(lit)}</style> : null}
+      {!scene.areas && touched.length
+        ? <style>{lit_rules(touched, "var(--s-secondary-edge)")}</style> : null}
       <FlowView
         scene={scene}
         picked={picked}
@@ -478,6 +489,14 @@ function free_cell(taken: ReadonlySet<string>, rows: number, cols: number,
 function made_at(scene: Scene, at: { x: number; y: number }) {
   const taken = scene.nodes.filter((n) => !holds(n) && !n.data.on).map(box_of);
   return clear_of(taken, { x: at.x - BLOCK.w / 2, y: at.y - BLOCK.h / 2 }, BLOCK);
+}
+
+/** A picked tile's look on a map, as a style rule, as `lit_rules`. */
+function tile_rules(ids: readonly string[]): string {
+  if (!ids.length) return "";
+  const at = ids.map((id) => `.mnd-chip-tile[data-tile="${CSS.escape(id)}"]`).join(",");
+  return `${at} { box-shadow: inset 0 0 0 calc(2px / var(--zoom, 1)) var(--accent);
+                  background: color-mix(in oklch, var(--accent) 14%, var(--surface)); }`;
 }
 
 /** The hover look, as a style rule so lighting never rebuilds the arrays. */
