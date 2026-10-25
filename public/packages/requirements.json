@@ -7,14 +7,42 @@
       "requirements": {
         "id": "requirements",
         "parent": null,
-        "name": "requirements"
+        "name": "requirements",
+        "library": {
+          "types": [
+            {
+              "id": "requirements.method",
+              "name": "verification method",
+              "form": "choice",
+              "choices": [
+                "inspection",
+                "analysis",
+                "demonstration",
+                "test"
+              ],
+              "description": "How a requirement is shown to hold."
+            }
+          ],
+          "constraints": [
+            {
+              "id": "requirements.constraint.requirement",
+              "name": "requirement values",
+              "description": "What a requirement must answer.",
+              "required": [
+                "id",
+                "shall"
+              ]
+            }
+          ]
+        }
       },
       "requirements.blocks": {
         "id": "requirements.blocks",
         "parent": "requirements",
         "name": "blocks",
         "type": "folder",
-        "order": 1
+        "order": 1,
+        "tree": "definitions"
       },
       "requirements.group": {
         "id": "requirements.group",
@@ -32,31 +60,13 @@
           }
         }
       },
-      "requirements.method": {
-        "id": "requirements.method",
-        "parent": "requirements.blocks",
-        "name": "verification method",
-        "type": "choice",
-        "body": "How a requirement is shown to hold.",
-        "def": {},
-        "settings": {
-          "value": {
-            "choices": [
-              "inspection",
-              "analysis",
-              "demonstration",
-              "test"
-            ]
-          }
-        },
-        "order": 3
-      },
       "requirements.relations": {
         "id": "requirements.relations",
         "parent": "requirements",
         "name": "relations",
         "type": "folder",
-        "order": 2
+        "order": 2,
+        "tree": "definitions"
       },
       "requirements.requirement": {
         "id": "requirements.requirement",
@@ -85,14 +95,11 @@
             "fill": "hatch",
             "border_contrast": "faint",
             "name_contrast": "faint"
-          },
-          "expects": {
-            "required": [
-              "id",
-              "shall"
-            ]
           }
-        }
+        },
+        "constraints": [
+          "requirements.constraint.requirement"
+        ]
       },
       "requirements.satisfy": {
         "id": "requirements.satisfy",

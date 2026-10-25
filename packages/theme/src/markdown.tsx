@@ -3,7 +3,7 @@
  *  `react-markdown` with GitHub's tables and task lists: never an HTML string, so nothing a
  *  document says runs. A link answers ctrl+click alone: a plain click is whatever holds it. */
 
-import { type MouseEvent, type ReactNode } from "react";
+import { type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -31,9 +31,10 @@ const LINE: Components = { ...PARTS, p: ({ children }) => <>{children}</> };
 
 
 /** Blocks of markdown. */
-export function Markdown({ text, className }: { text: string; className?: string }) {
+export function Markdown({ text, className, style }: { text: string; className?: string;
+                                                       style?: CSSProperties }) {
   return (
-    <div className={className}>
+    <div className={className} style={style}>
       <ReactMarkdown remarkPlugins={PLUGINS} components={PARTS}>{text}</ReactMarkdown>
     </div>
   );

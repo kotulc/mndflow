@@ -1,7 +1,7 @@
 /** The action registry: the closed surface every input method works against. */
 
 import type { Tiers, View, Views } from "../navigate";
-import { is_interface } from "../tree";
+import { stored_of, is_interface } from "../tree";
 import type { Graph, Id, Mutation } from "../types";
 
 /** What an input method can fill. */
@@ -88,7 +88,8 @@ function in_scope(a: Action, ctx: Context): boolean {
     s === "layer" ? true
     : s === "block" ? !!one
     : s === "edge" ? !!edge
-    : s === "interface" ? !!one && is_interface(ctx.graph, one.id)
+    : s === "interface" ? ctx.picked.length === 1
+      && is_interface(ctx.graph, stored_of(ctx.graph, ctx.picked[0]!))
     : s === "cell" ? !!ctx.cells?.length
     : ctx.picked.length > 0);
 }

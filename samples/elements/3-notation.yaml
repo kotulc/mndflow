@@ -1,0 +1,18 @@
+name: Notation
+note: What a diagram draws with besides its parts. Marks, annotations and holders never list in the explorer.
+blocks:
+  - { name: Begin, type: start }
+  - { name: Choice, type: decision }
+  - { name: A decision long enough to cut, type: decision }
+  - { name: Finish, type: end }
+  - name: A note sized by hand
+    type: note
+    w: 192
+    h: 48
+  - { name: free text, type: label }
+  - name: A group
+    type: group
+    blocks: [ inside ]
+  - name: A region
+    type: region
+    blocks: [ held ]

@@ -5,7 +5,7 @@
  *  and folders nested inside it. Drawn, never stored: a place and a width live only in the graph
  *  handed back. */
 
-import { children, is_group, is_interface, setting_of, type Graph, type Id } from "@mnd/core";
+import { children, is_box, is_interface, setting_of, type Graph, type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { flow, whole } from "./grid";
 import { size_of, GAP, PAD } from "./size";
@@ -14,10 +14,11 @@ import { size_of, GAP, PAD } from "./size";
 const ACROSS = 4;
 
 
-/** How many cards a layer's rows hold: as many as its `layout` setting's `across` says, else four. */
-export function across_of(graph: Graph, layer: Id | null): number {
+/** How many cards a layer's rows hold: as many as its `layout` setting's `across` says, else the
+ *  host's fallback (four, where the host says nothing). */
+export function across_of(graph: Graph, layer: Id | null, fallback = ACROSS): number {
   const said = layer ? setting_of(graph, layer, "layout") : {};
-  return typeof said["across"] === "number" ? Math.max(1, said["across"]) : ACROSS;
+  return typeof said["across"] === "number" ? Math.max(1, said["across"]) : fallback;
 }
 
 /** A layer placed as a page, its blocks already sized. Its `layout` setting may say how many cards
@@ -27,8 +28,8 @@ export function page_graph(graph: Graph, layer: Id): Graph {
   const blocks = { ...graph.blocks };
   const put = (id: Id, x: number, y: number) => { blocks[id] = { ...blocks[id]!, x, y }; };
   const held = (at: Id | null) => children(graph, at).filter((b) => !is_interface(graph, b.id));
-  const cards = (at: Id | null) => held(at).filter((b) => !is_group(graph, b.id));
-  const boxes = (at: Id | null) => held(at).filter((b) => is_group(graph, b.id));
+  const cards = (at: Id | null) => held(at).filter((b) => !is_box(graph, b.id));
+  const boxes = (at: Id | null) => held(at).filter((b) => is_box(graph, b.id));
   const grid = (at: Id | null): Placed[] =>
     flow(cards(at).map((b) => ({ id: b.id, ...size_of(graph, b.id) })), across);
 
@@ -51,7 +52,8 @@ export function page_graph(graph: Graph, layer: Id): Graph {
       const tall = lay(box.id);
       const b = blocks[box.id]!;
       blocks[box.id] = { ...b, w: at === layer ? Math.max(even, need(box.id)) : need(box.id),
-                         settings: { ...b.settings, layout: { kind: "free" } } };
+                         settings: { ...b.settings,
+                         layout: { ...b.settings?.["layout"], kind: "free" } } };
       put(box.id, 0, y);
       y += Math.max(tall, size_of(graph, box.id).h) + PAD * 2;
     }

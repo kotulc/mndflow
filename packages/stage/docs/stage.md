@@ -1,6 +1,6 @@
 # Stage
 
-**The working area, and the one thing that never yields.** Chrome gives way under pressure — the crumbs truncate, the option groups scroll, the explorer bounds itself — and the stage keeps its room.
+**The working area, and the one thing that never yields.** Chrome gives way under pressure — the crumbs fold to `…`, the option groups scroll, the explorer bounds itself — and the stage keeps its room.
 
 **The stage hosts the diagram, and there is one way to draw it.**
 
@@ -21,8 +21,8 @@
 - **The left button works what is already there; the right button makes something new.** Within the right button, a click makes the thing that sits at a point and a drag makes the thing that has extent.
 - **A click on the stage selects and never navigates**; opening (a double-click, Enter) moves the canvas, as in the explorer.
 - **A left drag is decided at the press and never revised** — a gesture that changes its mind halfway is the aim-and-hope this design is written against.
-- **Dropping a card on another card is a `move`, which is sayable; dropping it anywhere else is a `place`, which is not.**
-- **The stage works out what an adjustment writes** (`moves.ts`) — a place and a `group`, a `leave`, a `seat`, a `refer` into a header cell, a `relink`, a `layout` to `free` on an `auto` layer — and hands the list to the host, which runs it as one batch. **One gesture, one step.**
+- **A drag never places a card.** Dropped on another card, in another room, holder or cell, it is a `move` there; dropped where it was, it writes nothing and the drawing puts it back. A region dragged up or down is reordered among its neighbours.
+- **The stage works out what an adjustment writes** (`moves.ts`) — a `move`, a `group`, a `seat`, a `refer` into a header cell, a `relink`, a size — and hands the list to the host, which runs it as one batch. **One gesture, one step.**
 - **A header cell is its own drop target, read from the pointer.** A header line is one unit across, narrower than any card, so where the card's middle lands cannot find one; the cell lights alone while it is the target.
 - **A relationship may end on a group or a grid**, at its rim, as on any block.
 - **A drop lands on a box and never on the frame** — the frame spans the whole layer, so counting it would make every drop a re-parent.
@@ -36,25 +36,29 @@
 
 | | Is |
 |---|---|
-| `room.ts` | the room a layer is drawn in, and the camera that flies to it. **A room that changed size is framed again** — the tray opening or shutting, the explorer dragged — unless there is no room left to fit into |
+| `room.ts` | the camera: `useFocus` fits the focus or a stop, flies to a new one and pans to a block revealed inside; across a change of drawing — the map, a view entered from it (`realm_of`) — it cuts; **a focus that changed size, or a view resized, is framed again** unless there is no room left to fit into. `usePage` is the kit's scrolled page |
 | `sync.ts` | React Flow's copy of the arrays, kept in step with the Scene and the selection |
 | `draw.ts` | the right button: a relationship from a card, a grid across the ground |
 | `drag.ts` | what travels with a dragged node, what is lit, and the adjustment a drop makes |
 | `Grips.tsx` | the ends of what is picked, and the berths of hidden interfaces |
 | `Legend.tsx` | the key, in a right-hand corner. **The icon is dressed as the card is**, so its colour is the card's own paint rather than a second answer about it |
-| `moves.ts` | what an adjustment writes, as actions and positional changes |
+| `moves.ts` | what an adjustment writes, as actions — never a position |
+| `nodes.tsx` | the node types, each drawn whole at every zoom; `scaled` lays a registry's tile out at its own size and scales it. A map's box is its walls and title (`MapBox`); a chip its icon, name, counts and inner treemap (`ChipNode`) |
+| `arrays.ts` | the Scene as React Flow's arrays, and **draw order** (`DEPTH`): holders, lines, cards and chips, seats, each two steps higher per holder it sits in |
+| `Wire.tsx` | one run: the route libavoid found while it meets its handles, else `route`; **a run the Scene already drew (`data.points`) is drawn as given**, at its scale, its stroke and heads scaled with it |
 | `flow.css` · `routes.css` · `groups.css` | cards and the frame; runs and their ends; bands and grids — loaded in that order |
 
 ## Hover and pick
 
 **Another surface points; only a gesture picks.** A hovered table row arrives as `lit` and draws an accent outline round a card or an accent stroke on a run. A pick draws an accent border and a raised fill on a card, and the grips on a run — so the two differ in what is shown, never only in strength.
 
-## Scrolled drawings
+## The camera
 
-**A scrolled drawing is a page held still across**: fitted to its width (or `reach`), centred where it is narrower than the view and read from its left where wider, and never magnified past `most`. The system views, the folder and definition views, and mndmap's pages are scrolled. **A scrolled drawing's room hugs what it draws** rather than growing to the panel, so a short folder reads without empty space.
+**One camera, a map and the views entered from it** (design.md *Perspectives*). The stage draws what the views hand it and owns every viewport change; React Flow's own fit stays off. **Only the camera moves** while browsing the map: focusing and zooming never move a chip, and entering one cuts to its view where the chip filled the screen.
 
 | Rule | |
 |---|---|
-| **read from top to bottom, no further** | the page stops a band past its content's top and foot; a page shorter than the view sits in its middle |
-| **scrolled into view, never centred** | a focus already in view leaves the page still; one out of view moves it just far enough |
-| **one reckoning** | the camera and the scroll limit read the same page and zoom (`paged`, `bounded` in `room.ts`), so neither undoes the other |
+| **the map** | the model's and the library's: boxes and chips, read only. Walls and edges are hairline shadows, since a border under a pixel is drawn at one before the zoom. The camera is held to the map and its band. **Entering** a chip flies into it until it fills the view, then the entered view takes over there and fades in; nothing slides across the change (`cut`, `fresh`). Escape plays it back |
+| **navigation focuses** | on the map a click on a chip or a box goes to it and picks it, flying there; two enter it. Choosing a block in the explorer goes to its area; its open enters; the arrow keys go to the nearest area that way. **The wheel only zooms** |
+| **one flight** | every other change of focus or mode flies: zoom eased in scale, the centre in a line. Reduced motion jumps |
+| **edits slide** | in an entered view an edit lays the layer out again, and what stays slides to its new place |

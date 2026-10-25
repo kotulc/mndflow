@@ -1,57 +1,39 @@
-/** How one thing is painted: the style rows of the style tab. */
+/** How a definition is painted, one part at a time: the questions of one part of its drawing —
+ *  name, label, face, head, colour, border or icon — each answered by its form. The card tab's
+ *  choices column draws the part whose key is lit. */
 
-import { useState } from "react";
 import { DEFAULTS, honours, is_named, type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, names } from "@mnd/theme";
-import { Body, Line, Rail } from "./Body";
+import { Body, Line } from "./Body";
 import { held, kind_of, reading } from "./holder";
-import { AS_RUN, ASKS, parts_in_order, ROWS, type Group, type Key,
-         type Question } from "./questions";
+import { ROWS, type Group, type Key, type Question } from "./questions";
 
-export type LooksProps = {
-  graph: Graph; id: Id; onAct: Act;
-  /** The element in context, where the look written is its definition's. */
-  about?: Id;
-};
+export type PartProps = { graph: Graph; id: Id; group: Group; onAct: Act };
 
 type Reading = ReturnType<typeof reading>;
 
-export function Looks({ graph, id, about = id, onAct }: LooksProps) {
-  const [group, set_group] = useState<Group>("name");
-
+export function Part({ graph, id, group, onAct }: PartProps) {
   const it = held(graph, id);
   if (!it) return null;
   const { said, chain, now } = reading(graph, id, it);
   const { kind, runs } = kind_of(graph, id, it);
-
-  /** A part with nothing left to ask is not a part. */
-  const honoured = honours(kind);
-  const asked = (g: Group) => ROWS[g].filter((q) => honoured.includes(q.key));
-  const parts = parts_in_order().filter((g) => honoured.includes(ASKS[g]) && asked(g).length > 0);
-  const part = parts.includes(group) ? group : parts[0] ?? "colour";
-  const touched = (g: Group) => asked(g).some((q) => said(q.key, q.name) !== undefined);
+  const asked = ROWS[group].filter((q) => honours(kind).includes(q.key));
 
   const set = (key: Key, name: string, value: string) =>
     onAct("look", { ids: [id], key, name, value });
   /** While a hue is set, the families are unreachable. */
   const tinted = said("style", "hue") !== undefined;
   /** An unset handle shows while a card is unnamed, so that answer is lit. */
-  const unnamed = !!graph.blocks[about] && !is_named(graph, about);
+  const unnamed = !!graph.blocks[id] && !is_named(graph, id);
 
   return (
-    <div className="col draws">
-      <Rail label="style" on={part} onPick={(g) => set_group(g as Group)}
-            of={parts.map((g) => ({ key: g, word: (runs && AS_RUN[g]) || g,
-                                    said: touched(g) }))} />
-
-      <Body>
-        {asked(part).map((q) => (
-          <Answer key={`${q.key}.${q.name}`} q={q} read={{ said, chain, now }} set={set}
-                  runs={runs} off={q.name === "family" && tinted}
-                  app={unnamed && q.key === "card" && q.name === "alias" ? "show" : undefined} />
-        ))}
-      </Body>
-    </div>
+    <Body>
+      {asked.map((q) => (
+        <Answer key={`${q.key}.${q.name}`} q={q} read={{ said, chain, now }} set={set}
+                runs={runs} off={q.name === "family" && tinted}
+                app={unnamed && q.key === "card" && q.name === "alias" ? "show" : undefined} />
+      ))}
+    </Body>
   );
 }
 

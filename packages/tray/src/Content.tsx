@@ -1,33 +1,42 @@
-/** The prose of whatever the panel has hold of: a block's body, which is the content itself, or
- *  a definition's, which describes it. */
+/** What a block holds as text: one note of markdown, over what it holds as blocks. Read as the
+ *  card draws it; a click opens it as markdown, leaving commits it and Escape gives it back. A
+ *  refused edit stays to be put right. */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Act, Graph, Id } from "@mnd/core";
+import { Markdown } from "@mnd/theme";
 import { Band } from "./Body";
 
-/** Given no `onAct`, the body is read only. */
+/** Given no `onAct`, the text is read only. */
 export type ContentProps = { graph: Graph; id: Id; onAct?: Act };
 
 export function Content({ graph, id, onAct }: ContentProps) {
-  const def = !!graph.blocks[id]?.def;
-  const stored = graph.blocks[id]?.body ?? "";
+  const body = graph.blocks[id]?.body ?? "";
   const [draft, set_draft] = useState<string | null>(null);
+  /** What landed replaces what was typed. */
+  useEffect(() => set_draft(null), [body]);
 
+  const open = () => { if (onAct) set_draft(body); };
   const commit = () => {
-    if (draft !== null && draft !== stored) onAct?.("describe", { id, body: draft });
+    if (draft !== null && draft !== body) onAct?.("write", { id, body: draft });
     set_draft(null);
   };
 
   return (
-    <div className="content">
-      <Band label={def ? "about" : "content"} />
-      <textarea value={draft ?? stored} aria-label={def ? "about" : "body"} spellCheck
-                readOnly={!onAct}
-                placeholder={def
-                  ? "what this definition is for — a sentence anybody reading the vocabulary would want"
-                  : "what this says — a description, a requirement, a script"}
-                onChange={(e) => set_draft(e.target.value)}
-                onBlur={commit} />
+    <div className="content text">
+      <Band label="text" />
+      {draft !== null ? (
+        <textarea value={draft} aria-label="text" spellCheck autoFocus
+                  onChange={(e) => set_draft(e.target.value)} onBlur={commit}
+                  onKeyDown={(e) => { if (e.key === "Escape") set_draft(null); }} />
+      ) : (
+        <div className="read" tabIndex={onAct ? 0 : -1} onClick={open}
+             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); open(); } }}>
+          {body ? <Markdown text={body} />
+            : <p className="empty">{onAct ? "no text yet — click to write it in markdown"
+                                           : "no text"}</p>}
+        </div>
+      )}
     </div>
   );
 }

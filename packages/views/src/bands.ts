@@ -1,10 +1,11 @@
 /** Bands and grids inside a layer: members packed in a band, seated blocks placed by cell. */
 
-import { group_depth, inline, is_group, is_header, is_interface,
-         lattice_of, layout_of, members_of, type Block, type Graph, type Id, type Layout }
+import { group_depth, inline, is_aside, is_box, is_flat, is_header, is_interface, is_region,
+         lattice_of, members_of, type Block, type Graph, type Id, type Layout }
   from "@mnd/core";
 import type { Placed } from "./arrange";
-import { pack_units } from "./pack";
+import { floated, noted } from "./float";
+import { room_wide, tie_targets } from "./pack";
 import { cell_box, centred_in, fills_cell, gridded, size_of, BLOCK, GAP, PAD,
          type Size } from "./size";
 
@@ -18,7 +19,7 @@ const APART = BLOCK.h;
 /** Whether a block sits in a dashed band drawn on the layer, rather than on the layer itself. */
 export function in_band(graph: Graph, id: Id, layer: Id | null = null): boolean {
   const at = graph.blocks[id]?.parent ?? undefined;
-  return at !== layer && is_group(graph, at);
+  return at !== layer && is_box(graph, at);
 }
 
 /** What a band takes up for spacing: its members packed, at least as wide as it says it is, plus
@@ -28,7 +29,9 @@ export function band_size(graph: Graph, layer: Id | null, band: Block, how: Layo
   /** An empty band keeps room for a card. */
   if (!layout.length) return { w: BLOCK.w + PAD * 2, h: BLOCK.h + PAD * 2 };
   const right = Math.max(band.w ?? 0, ...layout.map((p) => p.x + p.w));
-  const bottom = Math.max(...layout.map((p) => p.y + p.h));
+  /** A view-drawn band may say how tall it is, so every lane of one diagram shares its rows. */
+  const bottom = Math.max(is_flat(graph, band.id) ? band.h ?? 0 : 0,
+                           ...layout.map((p) => p.y + p.h));
   return { w: right + PAD * 2, h: bottom + PAD * 2 };
 }
 
@@ -38,21 +41,23 @@ export function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: La
     .filter((b) => !is_interface(graph, b.id) && !gridded(graph, b.id));
   if (!members.length) return [];
 
-  /** A band set free keeps each member where it was put, from the band's own corner. */
-  if (layout_of(graph, band_id) === "free" && graph.blocks[band_id]?.settings?.["layout"]) {
-    return from_corner(members.map((b) => ({ id: b.id, x: b.x ?? 0, y: b.y ?? 0,
-      ...(is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id)) })));
-  }
-
+  /** Members sit as on a layer: each kind arranged its own way, an aside beside its tie. */
   const sized = members.map((b): Sized => ({
-    b, s: is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
+    b, s: is_box(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   }));
-  /** The grid starts at the band's corner, its cells on the guides. */
-  if (how === "auto") return pack_units(sized);
-  const ordered_mem = [...sized].sort((a, b) =>
-    (a.b.order ?? 0) - (b.b.order ?? 0) || a.b.id.localeCompare(b.b.id));
-  return from_corner(packed(ordered_mem, graph.blocks[band_id]?.w,
-                            (id) => is_group(graph, id)).layout);
+  /** **Every region band on a room shares the room's width**, so bands are wide and short; a
+   *  group fills toward the canvas's shape on its own. */
+  const region = is_region(graph, band_id) && graph.blocks[band_id]?.parent === layer;
+  const wide = region ? room_wide(graph, layer) - PAD * 2 : undefined;
+  if (how === "auto") return from_corner(noted(graph, layer, sized, wide, band_id));
+  const floats = (it: Sized) => is_aside(graph, it.b.id)
+    && tie_targets(graph, layer, it.b.id).length > 0;
+  const laid_out = packed(
+    sized.filter((it) => !floats(it))
+      .sort((a, b) => (a.b.order ?? 0) - (b.b.order ?? 0) || a.b.id.localeCompare(b.b.id)),
+    graph.blocks[band_id]?.w, (id) => is_box(graph, id)).layout;
+  return from_corner([...laid_out,
+    ...floated(graph, layer, sized.filter(floats), laid_out, band_id)]);
 }
 
 /** A band's layout shifted so its own corner is the top-left of everything in it. */
@@ -70,7 +75,7 @@ function lay_band(graph: Graph, layer: Id | null, band_id: Id, origin: Placed,
   for (const p of band_layout(graph, layer, band_id, how)) {
     const spot = { id: p.id, x: origin.x + PAD + p.x, y: origin.y + PAD + p.y, w: p.w, h: p.h };
     out.push(spot);
-    if (is_group(graph, p.id)) lay_band(graph, layer, p.id, spot, how, out);
+    if (is_box(graph, p.id)) lay_band(graph, layer, p.id, spot, how, out);
   }
 }
 
@@ -80,7 +85,7 @@ export function band_members(graph: Graph, layer: Id | null, how: Layout,
   const at = new Map(spots.map((p) => [p.id, p]));
   const out: Placed[] = [];
   for (const b of units) {
-    if (!is_group(graph, b.id) || in_band(graph, b.id, layer)) continue;
+    if (!is_box(graph, b.id) || in_band(graph, b.id, layer)) continue;
     const band = at.get(b.id);
     if (!band) continue;
     lay_band(graph, layer, b.id, band, how, out);

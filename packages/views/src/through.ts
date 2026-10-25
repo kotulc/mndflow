@@ -3,14 +3,15 @@
  *
  *  - The layer a usage opens onto holds its definition's structure beside its own blocks. The
  *    parts keep their ids, so an edit to one goes home to the definition.
- *  - A usage's card wears its definition's interfaces, its chain's included, each under
- *    `usage/part`, and a run naming a part (`fromPart`, `toPart`) meets it there. A definition's
- *    card and room wear the interfaces its chain declares the same way.
+ *  - **Ports are data**, laid in here as blocks to seat: every card on the layer, and the room,
+ *    wears its ports — its own and those its definition's chain declares — each under
+ *    `block/port`, and a run naming a port (`fromPort`, `toPort`) meets it there.
  *  - **A reference is resolved here, once** (`resolved`): what its card previews, the definition
  *    it stands in for, or that it names nothing. Every reader in views asks this, never `of`. */
 
-import { children, def_at, is_interface, is_reference, of_ref, part_id, ports_of, stands_for, type Block,
-         type Definition, type Graph, type Id, type Relation } from "@mnd/core";
+import { children, def_at, drawn_in, is_reference, of_ref, part_id, ports_on, stands_for,
+         type Block, type Definition, type Graph, type Id, type Relation,
+         type Worn } from "@mnd/core";
 
 /** What a card draws as: the block it previews — what a reference stands for, else itself — the
  *  definition a reference stands in for, and whether a reference names nothing there. */
@@ -35,32 +36,46 @@ export function read_through(graph: Graph, layer: Id | null): Graph {
   const def = opened && !opened.def ? def_at(graph, opened.type) : undefined;
   if (def && layer) {
     for (const part of children(graph, def.id)) {
-      if (!part.def && !is_interface(graph, part.id)) blocks[part.id] = { ...part, parent: layer };
+      if (!part.def) blocks[part.id] = { ...part, parent: layer };
     }
   }
-  /** Each card on the layer, and the room, wears the interfaces it reads through. */
+  /** Each card on the layer, and the room, wears its ports: laid into a set of their own, since
+   *  the set the cards were read from is not written once read. */
   const drawn: Graph = { ...graph, blocks };
-  for (const b of [...children(drawn, layer), ...(opened ? [opened] : [])]) {
-    for (const port of worn(graph, b)) {
+  const worn: Record<Id, Block> = { ...blocks };
+  for (const b of [...drawn_in(drawn, layer), ...(opened ? [opened] : [])]) {
+    ports_on(graph, b.id).forEach((port, i) => {
       const id = part_id(b.id, port.id);
-      blocks[id] = { ...port, id, parent: b.id };
-    }
+      worn[id] = seated(port, id, b.id, i);
+    });
   }
   const edges: Record<Id, Relation> = {};
-  for (const [id, e] of Object.entries(graph.edges)) edges[id] = met(blocks, e);
-  return { ...graph, blocks, edges };
+  for (const [id, e] of Object.entries(graph.edges)) {
+    edges[id] = met(worn, e, layer, def?.id);
+  }
+  return { ...graph, blocks: worn, edges };
 }
 
-/** The interfaces a block reads through: a usage its definition's, a definition its chain's. */
-function worn(graph: Graph, b: Block): Block[] {
-  if (b.def) return ports_of(graph, b.id).filter((p) => p.parent !== b.id);
-  return def_at(graph, b.type) ? ports_of(graph, b.type) : [];
+/** A port as a block to seat: its kind its interface definition, else the base `interface`. */
+function seated(port: Worn, id: Id, on: Id, order: number): Block {
+  return { id, parent: on, type: port.type ?? "interface", order,
+           ...(port.name ? { name: port.name } : {}),
+           ...(port.description ? { description: port.description } : {}),
+           ...(port.side ? { side: port.side } : {}),
+           ...(port.at !== undefined ? { at: port.at } : {}),
+           ...(port.alias ? { alias: port.alias } : {}) };
 }
 
-/** A run as drawn: an end naming a part meets the usage's copy of it, where there is one. */
-function met(blocks: Record<Id, Block>, e: Relation): Relation {
-  const from = e.fromPart ? part_id(e.from, e.fromPart) : e.from;
-  const to = e.toPart ? part_id(e.to, e.toPart) : e.to;
-  if (from === e.from && to === e.to) return e;
-  return { ...e, from: blocks[from] ? from : e.from, to: blocks[to] ? to : e.to };
+/** A run as drawn: an end naming a port meets its seat. On a usage's opened layer, an end at its
+ *  definition's own wall meets the usage's room. */
+function met(blocks: Record<Id, Block>, e: Relation, layer: Id | null,
+             def: Id | undefined): Relation {
+  const at = (end: Id, port: Id | undefined) => {
+    if (!port) return end;
+    const on = layer && end === def ? layer : end;
+    return blocks[part_id(on, port)] ? part_id(on, port) : end;
+  };
+  const from = at(e.from, e.fromPort);
+  const to = at(e.to, e.toPort);
+  return from === e.from && to === e.to ? e : { ...e, from, to };
 }

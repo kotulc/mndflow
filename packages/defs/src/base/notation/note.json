@@ -1,0 +1,27 @@
+{
+  "id": "note",
+  "name": "note",
+  "type": "block",
+  "description": "A remark about what it is tied to: a markdown body. It holds nothing, and tags nothing.",
+  "def": {},
+  "traits": [
+    "has_values",
+    "has_tie"
+  ],
+  "settings": {
+    "card": {
+      "face": "document",
+      "height": "free",
+      "align": "left",
+      "label": "none",
+      "alias": "hide"
+    },
+    "style": {
+      "family": "note",
+      "fill": "wash",
+      "border_contrast": "strong",
+      "name_contrast": "faint",
+      "opacity": 0.06
+    }
+  }
+}

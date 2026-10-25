@@ -1,0 +1,23 @@
+name: Overview
+type: internal
+settings:
+  layout: { kind: layered }
+note: "One shop, seen from every side: open Shop for its parts, and a part for its own diagram. Every part is a usage of a definition in Parts or Records."
+description: "The shop in its world: who uses it and what it leans on. Open Shop to go inside; every diagram here is one side of it."
+blocks:
+  - name: Customer
+    type: actor
+    ports:
+      - { name: browser, type: HTTP, flow: out }
+  - name: Card processor
+    type: external
+    ports:
+      - { name: api, type: HTTP, flow: in }
+  - name: Carrier
+    type: external
+    ports:
+      - { name: api, type: HTTP, flow: in }
+relations:
+  - Customer::browser -> Shop::https: shops
+  - Shop::charges -> Card processor::api: charges
+  - Shop::shipments -> Carrier::api: books

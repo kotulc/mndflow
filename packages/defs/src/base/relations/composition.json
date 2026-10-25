@@ -1,0 +1,14 @@
+{
+  "id": "composition",
+  "name": "composition",
+  "type": "line",
+  "description": "A whole and the parts it owns: the parts go when the whole does. The filled diamond is at the whole, the from end.",
+  "def": {
+    "ends": {
+      "from": {
+        "ownership": "composite",
+        "multiplicity": "1"
+      }
+    }
+  }
+}

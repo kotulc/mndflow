@@ -1,0 +1,10 @@
+{
+  "id": "document",
+  "name": "document",
+  "type": "block",
+  "description": "A page read as a document.",
+  "def": {},
+  "settings": {
+    "card": { "face": "document" }
+  }
+}

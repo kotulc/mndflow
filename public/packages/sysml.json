@@ -7,21 +7,36 @@
       "sysml": {
         "id": "sysml",
         "parent": null,
-        "name": "sysml"
+        "name": "sysml",
+        "library": {
+          "constraints": [
+            {
+              "id": "sysml.constraint.requirement",
+              "name": "requirement values",
+              "description": "What a requirement must answer.",
+              "required": [
+                "id",
+                "text"
+              ]
+            }
+          ]
+        }
       },
       "sysml.blocks": {
         "id": "sysml.blocks",
         "parent": "sysml",
         "name": "blocks",
         "type": "folder",
-        "order": 1
+        "order": 1,
+        "tree": "definitions"
       },
       "sysml.relations": {
         "id": "sysml.relations",
         "parent": "sysml",
         "name": "relations",
         "type": "folder",
-        "order": 2
+        "order": 2,
+        "tree": "definitions"
       },
       "sysml.part": {
         "id": "sysml.part",
@@ -48,20 +63,6 @@
           "card": {},
           "names": {
             "sysml": "«block»"
-          }
-        }
-      },
-      "sysml.port": {
-        "id": "sysml.port",
-        "parent": "sysml.blocks",
-        "name": "port",
-        "def": {},
-        "type": "interface",
-        "body": "A proxy or full port, seated on the edge of a block.",
-        "settings": {
-          "card": {},
-          "names": {
-            "sysml": "«port»"
           }
         }
       },
@@ -97,16 +98,13 @@
         "body": "A requirement: an id and a shall statement.",
         "settings": {
           "card": {},
-          "expects": {
-            "required": [
-              "id",
-              "text"
-            ]
-          },
           "names": {
             "sysml": "«requirement»"
           }
-        }
+        },
+        "constraints": [
+          "sysml.constraint.requirement"
+        ]
       },
       "sysml.satisfy": {
         "id": "sysml.satisfy",

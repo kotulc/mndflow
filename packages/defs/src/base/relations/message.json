@@ -1,0 +1,8 @@
+{
+  "id": "message",
+  "name": "message",
+  "type": "line",
+  "description": "One participant asks another to act: a message between two steps.",
+  "def": {},
+  "settings": { "line": { "dir": "forward" } }
+}

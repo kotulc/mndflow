@@ -10,10 +10,11 @@ The object graph: **two element kinds**, blocks and relationships, and every oth
 | **package** | a root block (`parent: null`) | its domain: holders and trees |
 | **definition** | a block carrying `def`, in a domain | its structure |
 | **usage** | a block without `def` | its own children; shows its type's structure through |
-| **holder** | a folder, group or grid | whatever its place allows: definitions in a domain, usages in a structure |
+| **holder** | a folder, group or grid | whatever its place allows: a folder in a domain holds definitions and structure alike; in a structure, usages |
 
 - **A definition is a named tree.** It is used and extended by `type`, whether or not anything does, and is never itself placed or linked as an instance.
-- **A usage may be a tree too**, placed straight in a domain. The structure section opens on any tree.
+- **A usage may be a tree too**, placed straight in a domain, under a package root or a domain folder.
+- **Definition side and structure**: a package root, a definition, or a folder reached from its package root through folders alone is on the definition side (`is_domain`); everything else is structure. The explorer's sections list by side. The structure mark (`roots_structure`) is the workspace, always, and a definition that holds structure. A folder never wears it.
 - **Frozen**: any package but the workspace's is read only. A definition from one is subtyped, never edited.
 - **Removing a definition or a package that something uses is refused.** Nothing is rewritten to make way.
 
@@ -28,7 +29,7 @@ The object graph: **two element kinds**, blocks and relationships, and every oth
 | `reference` | *is reference*: `of` names what it stands for |
 | `interface` | *is port*: seated on its owner's wall |
 
-The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `reference`, `interface`, `note`, `tag`, and the relation kinds `line` and `tie`. **The set is minimal and enumerates what is functionally distinct**; anything else is a subtype. **There is no untyped block**: a block naming nothing is a `block`.
+The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `reference`, `note`, `label`, `region`, the relation kinds `line` and `tie`, and the component bases `attribute`, `constraint`, `interface` and `tag`. **The set is minimal and enumerates what is functionally distinct**; anything else is a subtype. **There is no untyped block**: a block naming nothing is a `block`.
 
 
 ## Holders
@@ -53,15 +54,15 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 - **Settings and traits walk the chain**: per link, its own settings, then its traits in order. Nearest wins.
 - **Traits are inherited until stated.** A definition stating its own set replaces its chain's; resetting gives it back.
 - **Structure does not walk.** A usage reads its type's own structure, one step; a subtype inherits no structure.
-- **Parts keep their ids.** An edit to one goes home to the definition that owns it. A run may name a part at either end (`fromPart`, `toPart`), and a usage wears its definition's interfaces on its walls.
+- **Parts keep their ids.** An edit to one goes home to the definition that owns it. Ports are data on a block: a usage wears its own and its definition's on its walls as `block/port`, and a run meets one there by `fromPort` or `toPort`.
 
 
 ## Tags and traits
 
 | | Carried in | Says |
 |---|---|---|
-| **tag** | `tags` | a word to find it by, with its meaning in `body`. Any element; a new one is filed in the workspace's `tags` folder |
-| **trait** | `traits` | an engine function: a capability, or what sort of thing it is. It confers its own settings and those of the traits it extends, never its base's. Definitions only |
+| **tag** | `tags` | a word to find it by, with its meaning in `description`. Any element; a new one is filed in the workspace's library |
+| **trait** | `traits` | an engine function: a capability, or what sort of thing it is. One of the engine's fixed table (`TRAITS`), named, never a definition; it confers the settings the table grants it. Definitions only |
 
 **Both lists replace**: stated, a list holds every entry kept; unsaid, the nearest list down the chain is carried whole; empty says none. There are no drops. **A look is settings, never a tag.**
 
@@ -70,12 +71,12 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 
 ## Relationships
 
-**A join between exactly two blocks**, on any layers. Its type is a relation definition: `line` when it names none, `tie` or any subtype when it does. `line.dir`, a setting inherited down its chain, says which way a line points. **Its name is its own `name`**, as a block's; unnamed, it draws its definition's. A tie is one by its *is tie* trait. **Definitions are never linked**, except by a tie trait.
+**A join between exactly two blocks**, on any layers. Its type is a relation definition: `line` when it names none, `tie` or any subtype when it does. `line.dir`, a setting inherited down its chain, says which way a line points. **Its name is its own `name`**, as a block's; unnamed, it draws its definition's. A tie is one by `line.module: tie`, which its *is tie* trait grants. **A definition and a usage never relate**, except by a tie; two definitions may — an association — and two usages may. **Its ends are data** (`ends`, and its definition's `def.ends`): multiplicity, role, ownership, navigable; a line says multiplicity and role only (core `ends.ts`).
 
 
 ## Capabilities
 
-**`allows` is refused at the gesture; `expects` is only ever advice.** Both merge along the chain per key, nearest first. **Absent is a no**: a block may hold, seat or take only what a trait or a setting grants. A capability naming a definition means it or anything below it. A chain ends at a base: a definition extending nothing reads through `block`.
+**`allows` is refused at the gesture; a constraint is only ever advice.** `allows` merges along the chain per key, nearest first; constraints are a list carried as tags are, each read down what it extends. **Absent is a no**: a block may hold, seat or take only what a trait or a setting grants. A capability naming a definition means it or anything below it. A chain ends at a base: a definition extending nothing reads through `block`.
 
 
 ## Marks
@@ -83,7 +84,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 | Corner | Says |
 |---|---|
 | **card icon**, top right | what sort of thing this is, or `card.icon`. Filled when the block holds parts |
-| **system mark**, bottom right | what the card stands for, at most three stacked: a stand-in's word (`Ref`, `Def`, `Pkg`), `structure` on a definition holding structure — never a block inside one, a package or a folder — `data` where it carries attributes or values. A stand-in wears its target's. Derived |
+| **system mark**, bottom right | what the card stands for, at most three stacked: a stand-in's word (`Ref`, `Def`, `Pkg`), `structure` on the workspace and on a definition that holds structure — never a folder, another package, or a block inside a structure — `data` where it carries attributes or values. A stand-in wears its target's. Derived |
 | **link mark** | a part seen through a usage: dimmed, with the link glyph, "from `D`" |
 
 

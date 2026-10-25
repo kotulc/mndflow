@@ -59,6 +59,15 @@ input:focus { outline: none; border-color: var(--accent); }
   height: 100%;
 }
 
+/* The region with the keys wears a quiet outline, drawn inside it so nothing shifts. */
+.app[data-zone="explorer"] .explorer,
+.app[data-zone="canvas"] .stage,
+.app[data-zone="tray"] .tray,
+.app[data-zone="options"] .opts {
+  outline: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: -1px;
+}
+
 .app > header {
   grid-row: 1;
   grid-column: 1 / -1;
@@ -212,34 +221,28 @@ input:focus { outline: none; border-color: var(--accent); }
   position: absolute;
   top: 8px;
   left: 10px;
+  right: 10px;
   z-index: 4;
   display: flex;
   align-items: center;
   gap: 2px;
-  max-width: 60%;
   overflow: hidden;
   color: var(--muted);
+  /* The bar spans the canvas; only its steps take the pointer. */
+  pointer-events: none;
 }
 
-/* Every step stays: an outer one shrinks to an ellipsis before the last gives up any room. */
-.crumbs > span { display: flex; align-items: center; min-width: 3ch; flex-shrink: 1; }
-.crumbs > span:last-of-type { flex-shrink: 0; max-width: 100%; }
+/* Steps keep their width; the trail folds into `…` instead (Crumbs.tsx). Folded as far as it goes,
+   the layer's own step gives up room last, to an ellipsis. */
+.crumbs > * { pointer-events: auto; }
+.crumbs > span { display: flex; align-items: center; flex-shrink: 0; min-width: 0; }
+.crumbs.tight > span:last-of-type { flex-shrink: 1; }
 .crumbs button { padding: 1px 4px; white-space: nowrap; min-width: 0; overflow: hidden;
                  text-overflow: ellipsis; }
 .crumbs button:hover { color: var(--accent); }
+.crumbs > span:last-of-type button { color: var(--text); }
 .crumbs b { color: var(--muted); font-weight: 400; white-space: pre; flex-shrink: 0; }
-.crumbs .up { margin-left: 6px; flex-shrink: 0; }
-/* The view the canvas draws in, after the trail: a word, never a step. */
-.crumbs .as {
-  margin-left: 8px;
-  padding: 0 5px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  font-style: normal;
-  font-size: 11px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
+.crumbs .up { margin-right: 4px; flex-shrink: 0; }
 
 /* One strip, and everything the app says goes to it. */
 .strip {
@@ -420,4 +423,5 @@ input:focus { outline: none; border-color: var(--accent); }
   cursor: pointer;
 }
 .tab-tools > .reset:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.tab-tools > .reset.on { color: var(--accent); border-color: var(--accent); }
 .tab-tools > .reset:disabled { opacity: 0.35; cursor: default; }

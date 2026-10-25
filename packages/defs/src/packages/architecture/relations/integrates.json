@@ -1,0 +1,8 @@
+{
+  "id": "integrates",
+  "name": "integrates",
+  "type": "line",
+  "description": "A component reaches a system outside its own.",
+  "def": {},
+  "settings": { "line": { "dir": "forward" } }
+}

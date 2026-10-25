@@ -4,8 +4,9 @@ import { inspect, type Fault } from "./door";
 import { package_of, packages, uses_of } from "./defs";
 import { fold, type Floor } from "./fold";
 import { new_id } from "./ids";
-import { empty_graph, BASE_PACKAGE, SCHEMA, type File, type Graph, type Id, type Log,
-         type Step } from "./types";
+import { is_tag, library_map } from "./library";
+import { empty_graph, BASE_PACKAGE, SCHEMA, type Block, type File, type Graph, type Id, type Log,
+         type Relation, type Step } from "./types";
 
 /** Nothing still at its default is written — a file the size of the choices in it. An empty
  *  `tags` or `traits` is a choice: it says none over what its chain carries. */
@@ -70,18 +71,21 @@ export function write(graph: Graph, id = "workspace", pkg: Id = graph.root): str
   return JSON.stringify(file, null, 2) + "\n";
 }
 
-/** What a graph names that it does not carry: types and tags. A reference to something
+/** What a graph names that it does not carry: definitions and tags. A reference to something
  *  gone is kept and reads missing, so `of` is not asked. */
 export function unmet(graph: Graph): Id[] {
   const out = new Set<Id>();
   const need = (id: Id | undefined) => { if (id && !graph.blocks[id]) out.add(id); };
+  const tagged = (ids: Id[] | undefined) => {
+    for (const t of ids ?? []) if (!is_tag(graph, t)) out.add(t);
+  };
   for (const b of Object.values(graph.blocks)) {
     need(b.type);
-    for (const t of [...(b.tags ?? []), ...(b.traits ?? [])]) need(t);
+    tagged(b.tags);
   }
   for (const e of Object.values(graph.edges)) {
     need(e.type);
-    for (const t of e.tags ?? []) need(t);
+    tagged(e.tags);
   }
   return [...out].sort();
 }
@@ -95,28 +99,48 @@ export function write_package(graph: Graph, name: string): string {
     if (package_of(graph, b.id) !== graph.root) continue;
     ids.set(b.id, b.id === graph.root ? slug : `${slug}.${b.id}`);
   }
-  const at = (id: Id | undefined) => (id === undefined ? id : ids.get(id) ?? id);
-  const all = (list: Id[] | undefined) => list?.map((id) => at(id)!);
+  /** The workspace's named components are prefixed as its blocks are. */
+  const lib = graph.blocks[graph.root]?.library;
+  for (const c of [...lib?.types ?? [], ...lib?.tags ?? []]) ids.set(c.id, `${slug}.${c.id}`);
   const blocks: Graph["blocks"] = { ...graph.blocks };
   for (const [was, now] of ids) {
-    const b = graph.blocks[was]!;
+    const b = graph.blocks[was];
+    if (!b) continue;
     delete blocks[was];
-    blocks[now] = { ...b, id: now, parent: at(b.parent ?? undefined) ?? null,
-                    ...(b.type ? { type: at(b.type) } : {}), ...(b.of ? { of: at(b.of) } : {}),
-                    ...(b.tags ? { tags: all(b.tags) } : {}),
-                    ...(b.traits ? { traits: all(b.traits) } : {}),
-                    ...(b.id === graph.root ? { name } : {}) };
+    blocks[now] = { ...renamed(b, ids), id: now, ...(b.id === graph.root ? { name } : {}) };
     delete blocks[now]!.counters;
   }
   const edges: Graph["edges"] = {};
   for (const e of Object.values(graph.edges)) {
     const id = ids.has(e.from) || ids.has(e.to) ? `${slug}.${e.id}` : e.id;
-    edges[id] = { ...e, id, from: at(e.from)!, to: at(e.to)!,
-                  ...(e.type ? { type: at(e.type) } : {}), ...(e.tags ? { tags: all(e.tags) } : {}),
-                  ...(e.fromPart ? { fromPart: at(e.fromPart) } : {}),
-                  ...(e.toPart ? { toPart: at(e.toPart) } : {}) };
+    edges[id] = { ...renamed(e, ids), id };
   }
   return write({ root: slug, blocks, edges }, slug, slug);
+}
+
+/** A block or a relation with every id it names read through `ids`, its own apart. */
+export function renamed<T extends Block | Relation>(it: T, ids: ReadonlyMap<Id, Id>): T {
+  const at = (id: Id | undefined) => (id === undefined ? id : ids.get(id) ?? id);
+  const all = (list: Id[] | undefined) => list?.map((id) => at(id)!);
+  const out: Block & Relation = { ...it } as Block & Relation;
+  for (const key of ["parent", "type", "of", "from", "to"] as const) {
+    if (out[key]) out[key] = at(out[key] as Id)!;
+  }
+  if (out.tags) out.tags = all(out.tags);
+  if (out.constraints) out.constraints = all(out.constraints);
+  if (out.ports) out.ports = out.ports.map((p) => (p.type ? { ...p, type: at(p.type) } : p));
+  if (out.def) {
+    out.def = { ...out.def,
+      ...(out.def.attributes ? { attributes: out.def.attributes
+        .map((a) => (a.type ? { ...a, type: at(a.type) } : a)) } : {}) };
+  }
+  if (out.library) {
+    const each = <T extends { id: Id; type?: Id }>(list: T[]) =>
+      list.map((t) => ({ ...t, id: at(t.id)!, ...(t.type ? { type: at(t.type) } : {}) }));
+    const lib = library_map(out.library, each);
+    if (lib) out.library = lib; else delete out.library;
+  }
+  return out as T;
 }
 
 export type Parsed = { graph: Graph | null; faults: Fault[] };

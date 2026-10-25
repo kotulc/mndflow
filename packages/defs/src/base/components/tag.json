@@ -1,0 +1,13 @@
+{
+  "id": "tag",
+  "name": "tag",
+  "type": "block",
+  "description": "A word to find things by, and what it means. A component: defined in its package's library, carried by usages, lines and definitions; never a card, a layer or an explorer row.",
+  "def": {},
+  "traits": [],
+  "settings": {
+    "style": {
+      "hue": 85
+    }
+  }
+}

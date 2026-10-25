@@ -2,9 +2,11 @@
 
 import { DRAWN } from "./components";
 import { ordered_by } from "./defs";
+import { library_map } from "./library";
 import { subtree } from "./tree";
-import { empty_graph, type Block, type Graph, type Id, type Log, type Mutation,
-         type Step } from "./types";
+import { empty_graph, KINDS, type Block, type Graph, type Id, type LibraryEntry, type Log,
+         type Mutation, type Step } from "./types";
+import { forget } from "./memo";
 
 /** The shipped packages every fold starts from: their blocks, laid under whatever a log says. */
 export type Floor = readonly Block[];
@@ -21,8 +23,22 @@ function element(graph: Graph, id: Id) {
   return graph.blocks[id] ?? graph.edges[id];
 }
 
+/** A library entry, in place in its package's library, so its settings write where it is held. */
+function entry_in(graph: Graph, id: Id) {
+  for (const b of Object.values(graph.blocks)) {
+    if (b.parent !== null || !b.library) continue;
+    for (const kind of KINDS) {
+      const hit = (b.library[kind] as LibraryEntry[] | undefined)?.find((e) => e.id === id);
+      if (hit) return hit;
+    }
+  }
+  return undefined;
+}
+
 /** Replay one mutation onto a graph, in place. */
 function apply(graph: Graph, m: Mutation): void {
+  /** Written in place, so nothing worked out from it before still holds. */
+  forget(graph);
   switch (m.op) {
     case "checkpoint":
       graph.root = m.graph.root;
@@ -38,6 +54,8 @@ function apply(graph: Graph, m: Mutation): void {
       if (m.name !== undefined) b.name = m.name;
       if (m.type === null) delete b.type;
       else if (m.type !== undefined) b.type = m.type;
+      if (m.tree === null) delete b.tree;
+      else if (m.tree !== undefined) b.tree = m.tree;
       return;
     }
     case "delete_block": {
@@ -84,9 +102,27 @@ function apply(graph: Graph, m: Mutation): void {
       if (b) { b.w = m.w; b.h = m.h; }
       return;
     }
+    case "set_description": {
+      const b = graph.blocks[m.id];
+      if (b && m.description) b.description = m.description;
+      else if (b) delete b.description;
+      return;
+    }
     case "set_body": {
       const b = graph.blocks[m.id];
       if (b) b.body = m.body;
+      return;
+    }
+    case "set_ends": {
+      const e = graph.edges[m.id];
+      const d = graph.blocks[m.id];
+      const said = m.ends && (m.ends.from || m.ends.to) ? structuredClone(m.ends) : null;
+      if (e) {
+        if (said) e.ends = said; else delete e.ends;
+      } else if (d?.def) {
+        if (said) d.def = { ...d.def, ends: said };
+        else { const { ends: _gone, ...rest } = d.def; d.def = rest; }
+      }
       return;
     }
     case "set_attributes": {
@@ -138,29 +174,41 @@ function apply(graph: Graph, m: Mutation): void {
     case "flip_edge": {
       const e = graph.edges[m.id];
       if (!e) return;
+      const { fromPort, toPort, ends } = e;
       [e.from, e.to] = [e.to, e.from];
+      if (toPort) e.fromPort = toPort; else delete e.fromPort;
+      if (fromPort) e.toPort = fromPort; else delete e.toPort;
+      /** What each end means turns with it. */
+      if (ends) {
+        e.ends = { ...(ends.to ? { from: ends.to } : {}), ...(ends.from ? { to: ends.from } : {}) };
+      }
       return;
     }
     case "set_end": {
       const e = graph.edges[m.id];
       if (!e) return;
-      e[m.end] = m.port;
-      const key = m.end === "from" ? "fromPart" : "toPart";
-      if (m.part) e[key] = m.part; else delete e[key];
+      e[m.end] = m.block;
+      const key = m.end === "from" ? "fromPort" : "toPort";
+      if (m.port) e[key] = m.port; else delete e[key];
       return;
     }
-    case "set_port": {
+    case "set_ports": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      if (m.seat) { b.side = m.seat.side; b.at = m.seat.at; }
-      else { delete b.side; delete b.at; }
+      if (m.ports?.length) b.ports = structuredClone(m.ports); else delete b.ports;
       return;
     }
-    case "mark_port": {
+    case "set_library": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      if (m.flow === null) delete b.flow;
-      else b.flow = m.flow;
+      const lib = library_map(m.library ?? {}, (list) => structuredClone(list));
+      if (lib) b.library = lib; else delete b.library;
+      return;
+    }
+    case "set_records": {
+      const b = graph.blocks[m.id];
+      if (!b) return;
+      if (m.records?.length) b.records = structuredClone(m.records); else delete b.records;
       return;
     }
     /** Set in place where the answer exists, else appended. */
@@ -191,6 +239,13 @@ function apply(graph: Graph, m: Mutation): void {
       else b.tags = [...new Set(m.tags.map((t) => t.trim()).filter(Boolean))];
       return;
     }
+    case "set_constraints": {
+      const b = element(graph, m.id);
+      if (!b) return;
+      if (m.constraints === null) delete b.constraints;
+      else b.constraints = [...new Set(m.constraints.map((t) => t.trim()).filter(Boolean))];
+      return;
+    }
     case "set_traits": {
       /** A definition's alone: a usage or a line carries its definition's. */
       const b = graph.blocks[m.id];
@@ -209,7 +264,8 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     }
     case "set_setting": {
-      const it = element(graph, m.id);
+      /** A library entry is styled where it is held, as a definition is. */
+      const it = element(graph, m.id) ?? entry_in(graph, m.id);
       if (!it) return;
       const held = { ...(it.settings?.[m.key] ?? {}) };
       if (m.value === null || m.value === undefined) delete held[m.name];
@@ -239,6 +295,7 @@ export function fold(log: Log, floor: Floor = []): Graph {
 
 /** The shipped packages, over whatever is there. Copied, so no fold can write into them. */
 function lay(graph: Graph, floor: Floor): void {
+  forget(graph);
   for (const b of floor) graph.blocks[b.id] = structuredClone(b);
 }
 

@@ -1,0 +1,1093 @@
+{
+  "schema": "1.0",
+  "id": "architecture",
+  "graph": {
+    "root": "architecture",
+    "blocks": {
+      "architecture": {
+        "id": "architecture",
+        "parent": null,
+        "name": "architecture",
+        "library": {
+          "interfaces": [
+            {
+              "id": "architecture.interface.http",
+              "name": "HTTP",
+              "description": "Requests and their responses over HTTP.",
+              "settings": {
+                "style": {
+                  "hue": 245
+                }
+              }
+            },
+            {
+              "id": "architecture.interface.events",
+              "name": "Events",
+              "description": "Messages published for whoever listens.",
+              "settings": {
+                "style": {
+                  "hue": 145
+                }
+              }
+            }
+          ]
+        }
+      },
+      "architecture.calls": {
+        "id": "architecture.calls",
+        "parent": "architecture.dir.relations",
+        "name": "calls",
+        "type": "line",
+        "def": {},
+        "description": "One component asks another to do something.",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "architecture.component": {
+        "id": "architecture.component",
+        "parent": "architecture.dir.blocks",
+        "name": "component",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "owner",
+              "type": "text"
+            },
+            {
+              "name": "technology",
+              "type": "text"
+            }
+          ]
+        },
+        "description": "A piece of a system somebody owns and a technology implements.",
+        "order": 1,
+        "settings": {
+          "card": {
+            "face": "table"
+          },
+          "style": {
+            "family": "primary"
+          }
+        }
+      },
+      "architecture.database": {
+        "id": "architecture.database",
+        "parent": "architecture.dir.blocks",
+        "name": "database",
+        "type": "architecture.component",
+        "def": {
+          "attributes": [
+            {
+              "name": "engine",
+              "type": "text"
+            }
+          ]
+        },
+        "description": "A component that stores state other components read: a collection, holding records of one type (`records.of`).",
+        "order": 2,
+        "settings": {
+          "style": {
+            "family": "muted"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "has_records"
+        ]
+      },
+      "architecture.decision": {
+        "id": "architecture.decision",
+        "parent": "architecture.dir.blocks",
+        "name": "decision",
+        "type": "architecture.document",
+        "def": {},
+        "description": "A recorded choice, drawn like a note.",
+        "order": 3,
+        "settings": {
+          "style": {
+            "family": "note",
+            "fill": "wash"
+          }
+        }
+      },
+      "architecture.dir.blocks": {
+        "id": "architecture.dir.blocks",
+        "parent": "architecture",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1,
+        "tree": "definitions"
+      },
+      "architecture.dir.patterns": {
+        "id": "architecture.dir.patterns",
+        "parent": "architecture",
+        "name": "patterns",
+        "type": "folder",
+        "order": 3,
+        "tree": "definitions"
+      },
+      "architecture.dir.relations": {
+        "id": "architecture.dir.relations",
+        "parent": "architecture",
+        "name": "relations",
+        "type": "folder",
+        "order": 2,
+        "tree": "definitions"
+      },
+      "architecture.document": {
+        "id": "architecture.document",
+        "parent": "architecture.dir.blocks",
+        "name": "document",
+        "type": "block",
+        "def": {},
+        "description": "A page read as a document.",
+        "order": 4,
+        "settings": {
+          "card": {
+            "face": "document"
+          }
+        }
+      },
+      "architecture.external": {
+        "id": "architecture.external",
+        "parent": "architecture.dir.blocks",
+        "name": "external",
+        "type": "architecture.component",
+        "def": {},
+        "description": "A component outside this system, drawn with a dashed border.",
+        "order": 5,
+        "settings": {
+          "style": {
+            "family": "away",
+            "border_style": "dashed"
+          }
+        }
+      },
+      "architecture.integrates": {
+        "id": "architecture.integrates",
+        "parent": "architecture.dir.relations",
+        "name": "integrates",
+        "type": "line",
+        "def": {},
+        "description": "A component reaches a system outside its own.",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "architecture.person": {
+        "id": "architecture.person",
+        "parent": "architecture.dir.blocks",
+        "name": "person",
+        "type": "block",
+        "def": {},
+        "description": "Someone outside the system who uses it.",
+        "order": 6,
+        "settings": {
+          "style": {
+            "family": "neutral"
+          }
+        }
+      },
+      "architecture.publishes": {
+        "id": "architecture.publishes",
+        "parent": "architecture.dir.relations",
+        "name": "publishes",
+        "type": "line",
+        "def": {},
+        "description": "A component puts a message on a queue.",
+        "order": 3,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          },
+          "style": {
+            "border_style": "dashed"
+          }
+        }
+      },
+      "architecture.queue": {
+        "id": "architecture.queue",
+        "parent": "architecture.dir.blocks",
+        "name": "queue",
+        "type": "architecture.component",
+        "def": {},
+        "description": "A component that carries messages from one component to another: a collection, holding the messages waiting as records (`records.of`).",
+        "order": 7,
+        "settings": {
+          "style": {
+            "family": "away"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "has_records"
+        ]
+      },
+      "architecture.reads": {
+        "id": "architecture.reads",
+        "parent": "architecture.dir.relations",
+        "name": "reads",
+        "type": "line",
+        "def": {},
+        "description": "A component reads what a store holds.",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "architecture.service": {
+        "id": "architecture.service",
+        "parent": "architecture.dir.blocks",
+        "name": "service",
+        "type": "architecture.component",
+        "def": {},
+        "description": "A component that answers requests.",
+        "order": 8,
+        "settings": {
+          "style": {
+            "family": "secondary"
+          }
+        }
+      },
+      "architecture.yaml.patterns.anti-corruption-layer": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer",
+        "parent": "architecture.dir.patterns",
+        "name": "Anti-corruption layer",
+        "type": "architecture.service",
+        "def": {},
+        "body": "Use when an outside system must be reached without its model leaking into ours.",
+        "order": 1,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.anti-corruption-layer.port.in",
+            "name": "in",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.anti-corruption-layer.port.out",
+            "name": "out",
+            "flow": "out",
+            "type": "architecture.interface.http"
+          }
+        ],
+        "source": "patterns/anti-corruption-layer.yaml"
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.1": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.1",
+        "parent": "architecture.yaml.patterns.anti-corruption-layer",
+        "name": "Keeps an outside model out of ours. Everything crossing is translated in one place.",
+        "type": "note",
+        "alias": 1,
+        "order": 1
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.2": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.2",
+        "parent": "architecture.yaml.patterns.anti-corruption-layer",
+        "name": "Facade",
+        "type": "architecture.component",
+        "alias": 1,
+        "order": 2
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.3": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.3",
+        "parent": "architecture.yaml.patterns.anti-corruption-layer",
+        "name": "Accepts a request already in our model.",
+        "type": "note",
+        "alias": 2,
+        "order": 3
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.4": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.4",
+        "parent": "architecture.yaml.patterns.anti-corruption-layer",
+        "name": "Translator",
+        "type": "architecture.component",
+        "alias": 2,
+        "order": 4
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.5": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.5",
+        "parent": "architecture.yaml.patterns.anti-corruption-layer",
+        "name": "Maps the outside model to ours and back.",
+        "type": "note",
+        "alias": 3,
+        "order": 5
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.6": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.6",
+        "parent": "architecture.yaml.patterns.anti-corruption-layer",
+        "name": "Client",
+        "type": "architecture.component",
+        "alias": 3,
+        "order": 6
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.7": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.7",
+        "parent": "architecture.yaml.patterns.anti-corruption-layer",
+        "name": "The only part that speaks the outside protocol.",
+        "type": "note",
+        "alias": 4,
+        "order": 7
+      },
+      "architecture.yaml.patterns.api-gateway": {
+        "id": "architecture.yaml.patterns.api-gateway",
+        "parent": "architecture.dir.patterns",
+        "name": "API gateway",
+        "type": "architecture.service",
+        "def": {},
+        "body": "Use when many clients reach many services and each request should be checked once, at one way in.",
+        "order": 2,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.api-gateway.port.requests",
+            "name": "requests",
+            "flow": "in",
+            "side": "left",
+            "at": 0.5,
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.api-gateway.port.routes",
+            "name": "routes",
+            "flow": "out",
+            "side": "right",
+            "at": 0.5,
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.api-gateway.port.admin",
+            "name": "admin",
+            "side": "bottom",
+            "at": 0.5,
+            "type": "architecture.interface.http"
+          }
+        ],
+        "source": "patterns/api-gateway.yaml"
+      },
+      "architecture.yaml.patterns.api-gateway.1": {
+        "id": "architecture.yaml.patterns.api-gateway.1",
+        "parent": "architecture.yaml.patterns.api-gateway",
+        "name": "One way in: every request is authenticated, held to its quota, then routed to the service that owns it.",
+        "type": "note",
+        "alias": 5,
+        "order": 1
+      },
+      "architecture.yaml.patterns.api-gateway.2": {
+        "id": "architecture.yaml.patterns.api-gateway.2",
+        "parent": "architecture.yaml.patterns.api-gateway",
+        "name": "Auth",
+        "type": "architecture.component",
+        "alias": 4,
+        "order": 2
+      },
+      "architecture.yaml.patterns.api-gateway.3": {
+        "id": "architecture.yaml.patterns.api-gateway.3",
+        "parent": "architecture.yaml.patterns.api-gateway",
+        "name": "Checks who is calling before anything else runs.",
+        "type": "note",
+        "alias": 6,
+        "order": 3
+      },
+      "architecture.yaml.patterns.api-gateway.4": {
+        "id": "architecture.yaml.patterns.api-gateway.4",
+        "parent": "architecture.yaml.patterns.api-gateway",
+        "name": "Rate limit",
+        "type": "architecture.component",
+        "alias": 5,
+        "order": 4
+      },
+      "architecture.yaml.patterns.api-gateway.5": {
+        "id": "architecture.yaml.patterns.api-gateway.5",
+        "parent": "architecture.yaml.patterns.api-gateway",
+        "name": "Turns away a caller over its quota.",
+        "type": "note",
+        "alias": 7,
+        "order": 5
+      },
+      "architecture.yaml.patterns.api-gateway.6": {
+        "id": "architecture.yaml.patterns.api-gateway.6",
+        "parent": "architecture.yaml.patterns.api-gateway",
+        "name": "Router",
+        "type": "architecture.component",
+        "alias": 6,
+        "order": 6
+      },
+      "architecture.yaml.patterns.api-gateway.7": {
+        "id": "architecture.yaml.patterns.api-gateway.7",
+        "parent": "architecture.yaml.patterns.api-gateway",
+        "name": "Sends each request to the service that owns its path.",
+        "type": "note",
+        "alias": 8,
+        "order": 7
+      },
+      "architecture.yaml.patterns.circuit-breaker": {
+        "id": "architecture.yaml.patterns.circuit-breaker",
+        "parent": "architecture.dir.patterns",
+        "name": "Circuit breaker",
+        "type": "architecture.component",
+        "def": {},
+        "body": "Use when a remote call can hang or fail, and a failing dependency must not take its callers down with it.",
+        "order": 3,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.circuit-breaker.port.in",
+            "name": "in",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.circuit-breaker.port.remote",
+            "name": "remote",
+            "flow": "out",
+            "type": "architecture.interface.http"
+          }
+        ],
+        "source": "patterns/circuit-breaker.yaml"
+      },
+      "architecture.yaml.patterns.circuit-breaker.1": {
+        "id": "architecture.yaml.patterns.circuit-breaker.1",
+        "parent": "architecture.yaml.patterns.circuit-breaker",
+        "name": "Calls pass while the remote answers. After repeated failures the breaker opens and the fallback answers until a trial call succeeds.",
+        "type": "note",
+        "alias": 9,
+        "order": 1
+      },
+      "architecture.yaml.patterns.circuit-breaker.2": {
+        "id": "architecture.yaml.patterns.circuit-breaker.2",
+        "parent": "architecture.yaml.patterns.circuit-breaker",
+        "name": "Caller",
+        "type": "architecture.component",
+        "alias": 7,
+        "order": 2
+      },
+      "architecture.yaml.patterns.circuit-breaker.3": {
+        "id": "architecture.yaml.patterns.circuit-breaker.3",
+        "parent": "architecture.yaml.patterns.circuit-breaker",
+        "name": "Breaker",
+        "type": "architecture.component",
+        "alias": 8,
+        "order": 3
+      },
+      "architecture.yaml.patterns.circuit-breaker.4": {
+        "id": "architecture.yaml.patterns.circuit-breaker.4",
+        "parent": "architecture.yaml.patterns.circuit-breaker",
+        "name": "Counts failures. Closed, it passes calls; open, it fails fast.",
+        "type": "note",
+        "alias": 10,
+        "order": 4
+      },
+      "architecture.yaml.patterns.circuit-breaker.5": {
+        "id": "architecture.yaml.patterns.circuit-breaker.5",
+        "parent": "architecture.yaml.patterns.circuit-breaker",
+        "name": "Fallback",
+        "type": "architecture.component",
+        "alias": 9,
+        "order": 5
+      },
+      "architecture.yaml.patterns.circuit-breaker.6": {
+        "id": "architecture.yaml.patterns.circuit-breaker.6",
+        "parent": "architecture.yaml.patterns.circuit-breaker",
+        "name": "Answers while the breaker is open.",
+        "type": "note",
+        "alias": 11,
+        "order": 6
+      },
+      "architecture.yaml.patterns.layered-architecture": {
+        "id": "architecture.yaml.patterns.layered-architecture",
+        "parent": "architecture.dir.patterns",
+        "name": "Layered architecture",
+        "type": "architecture.service",
+        "def": {},
+        "body": "Use when one service owns its rules and its store, and every request should meet them in the same order.",
+        "order": 4,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.layered-architecture.port.requests",
+            "name": "requests",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          }
+        ],
+        "source": "patterns/layered-architecture.yaml"
+      },
+      "architecture.yaml.patterns.layered-architecture.1": {
+        "id": "architecture.yaml.patterns.layered-architecture.1",
+        "parent": "architecture.yaml.patterns.layered-architecture",
+        "name": "Requests enter at the API, rules live in one layer, storage is reached only through the repository.",
+        "type": "note",
+        "alias": 12,
+        "order": 1
+      },
+      "architecture.yaml.patterns.layered-architecture.2": {
+        "id": "architecture.yaml.patterns.layered-architecture.2",
+        "parent": "architecture.yaml.patterns.layered-architecture",
+        "name": "API",
+        "type": "architecture.component",
+        "alias": 10,
+        "order": 2
+      },
+      "architecture.yaml.patterns.layered-architecture.3": {
+        "id": "architecture.yaml.patterns.layered-architecture.3",
+        "parent": "architecture.yaml.patterns.layered-architecture",
+        "name": "The only way in. It accepts the request and does no work of its own.",
+        "type": "note",
+        "alias": 13,
+        "order": 3
+      },
+      "architecture.yaml.patterns.layered-architecture.4": {
+        "id": "architecture.yaml.patterns.layered-architecture.4",
+        "parent": "architecture.yaml.patterns.layered-architecture",
+        "name": "Domain logic",
+        "type": "architecture.component",
+        "alias": 11,
+        "order": 4
+      },
+      "architecture.yaml.patterns.layered-architecture.5": {
+        "id": "architecture.yaml.patterns.layered-architecture.5",
+        "parent": "architecture.yaml.patterns.layered-architecture",
+        "name": "The rules live here, and nowhere else in the service.",
+        "type": "note",
+        "alias": 14,
+        "order": 5
+      },
+      "architecture.yaml.patterns.layered-architecture.6": {
+        "id": "architecture.yaml.patterns.layered-architecture.6",
+        "parent": "architecture.yaml.patterns.layered-architecture",
+        "name": "Repository",
+        "type": "architecture.component",
+        "alias": 12,
+        "order": 6
+      },
+      "architecture.yaml.patterns.layered-architecture.7": {
+        "id": "architecture.yaml.patterns.layered-architecture.7",
+        "parent": "architecture.yaml.patterns.layered-architecture",
+        "name": "Reads and writes the store; nothing else touches it.",
+        "type": "note",
+        "alias": 15,
+        "order": 7
+      },
+      "architecture.yaml.patterns.layered-architecture.8": {
+        "id": "architecture.yaml.patterns.layered-architecture.8",
+        "parent": "architecture.yaml.patterns.layered-architecture",
+        "name": "Store",
+        "type": "architecture.database",
+        "alias": 13,
+        "order": 8
+      },
+      "architecture.yaml.patterns.saga-orchestrator": {
+        "id": "architecture.yaml.patterns.saga-orchestrator",
+        "parent": "architecture.dir.patterns",
+        "name": "Saga orchestrator",
+        "type": "architecture.service",
+        "def": {},
+        "body": "Use when one business action spans several services, each with its own store, and a failed step must undo the ones before it.",
+        "order": 5,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.saga-orchestrator.port.start",
+            "name": "start",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.saga-orchestrator.port.bus",
+            "name": "bus",
+            "flow": "both",
+            "type": "architecture.interface.events"
+          }
+        ],
+        "source": "patterns/saga-orchestrator.yaml"
+      },
+      "architecture.yaml.patterns.saga-orchestrator.1": {
+        "id": "architecture.yaml.patterns.saga-orchestrator.1",
+        "parent": "architecture.yaml.patterns.saga-orchestrator",
+        "name": "The orchestrator sends each step's command in turn and records where it is. A failed step runs the compensations of the steps before it, newest first.",
+        "type": "note",
+        "alias": 16,
+        "order": 1
+      },
+      "architecture.yaml.patterns.saga-orchestrator.2": {
+        "id": "architecture.yaml.patterns.saga-orchestrator.2",
+        "parent": "architecture.yaml.patterns.saga-orchestrator",
+        "name": "Orchestrator",
+        "type": "architecture.component",
+        "alias": 14,
+        "order": 2
+      },
+      "architecture.yaml.patterns.saga-orchestrator.3": {
+        "id": "architecture.yaml.patterns.saga-orchestrator.3",
+        "parent": "architecture.yaml.patterns.saga-orchestrator",
+        "name": "Saga log",
+        "type": "architecture.database",
+        "alias": 15,
+        "order": 3
+      },
+      "architecture.yaml.patterns.saga-orchestrator.4": {
+        "id": "architecture.yaml.patterns.saga-orchestrator.4",
+        "parent": "architecture.yaml.patterns.saga-orchestrator",
+        "name": "Where each running saga is, so a restart resumes it.",
+        "type": "note",
+        "alias": 17,
+        "order": 4
+      },
+      "architecture.yaml.patterns.saga-orchestrator.5": {
+        "id": "architecture.yaml.patterns.saga-orchestrator.5",
+        "parent": "architecture.yaml.patterns.saga-orchestrator",
+        "name": "Compensations",
+        "type": "architecture.component",
+        "alias": 16,
+        "order": 5
+      },
+      "architecture.yaml.patterns.saga-orchestrator.6": {
+        "id": "architecture.yaml.patterns.saga-orchestrator.6",
+        "parent": "architecture.yaml.patterns.saga-orchestrator",
+        "name": "The undo of each step.",
+        "type": "note",
+        "alias": 18,
+        "order": 6
+      },
+      "architecture.yaml.patterns.transactional-outbox": {
+        "id": "architecture.yaml.patterns.transactional-outbox",
+        "parent": "architecture.dir.patterns",
+        "name": "Transactional outbox",
+        "type": "architecture.service",
+        "def": {},
+        "body": "Use when a state change must announce itself, and neither the change nor the announcement may be lost.",
+        "order": 6,
+        "ports": [
+          {
+            "id": "architecture.yaml.patterns.transactional-outbox.port.requests",
+            "name": "requests",
+            "flow": "in",
+            "type": "architecture.interface.http"
+          },
+          {
+            "id": "architecture.yaml.patterns.transactional-outbox.port.events",
+            "name": "events",
+            "flow": "out",
+            "type": "architecture.interface.events"
+          }
+        ],
+        "source": "patterns/transactional-outbox.yaml"
+      },
+      "architecture.yaml.patterns.transactional-outbox.1": {
+        "id": "architecture.yaml.patterns.transactional-outbox.1",
+        "parent": "architecture.yaml.patterns.transactional-outbox",
+        "name": "A state change and the event announcing it are written in one transaction, so neither is lost.",
+        "type": "note",
+        "alias": 19,
+        "order": 1
+      },
+      "architecture.yaml.patterns.transactional-outbox.2": {
+        "id": "architecture.yaml.patterns.transactional-outbox.2",
+        "parent": "architecture.yaml.patterns.transactional-outbox",
+        "name": "API",
+        "type": "architecture.component",
+        "alias": 17,
+        "order": 2
+      },
+      "architecture.yaml.patterns.transactional-outbox.3": {
+        "id": "architecture.yaml.patterns.transactional-outbox.3",
+        "parent": "architecture.yaml.patterns.transactional-outbox",
+        "name": "Domain logic",
+        "type": "architecture.component",
+        "alias": 18,
+        "order": 3
+      },
+      "architecture.yaml.patterns.transactional-outbox.4": {
+        "id": "architecture.yaml.patterns.transactional-outbox.4",
+        "parent": "architecture.yaml.patterns.transactional-outbox",
+        "name": "Writes the state change and the event together.",
+        "type": "note",
+        "alias": 20,
+        "order": 4
+      },
+      "architecture.yaml.patterns.transactional-outbox.5": {
+        "id": "architecture.yaml.patterns.transactional-outbox.5",
+        "parent": "architecture.yaml.patterns.transactional-outbox",
+        "name": "Store",
+        "type": "architecture.database",
+        "alias": 19,
+        "order": 5
+      },
+      "architecture.yaml.patterns.transactional-outbox.6": {
+        "id": "architecture.yaml.patterns.transactional-outbox.6",
+        "parent": "architecture.yaml.patterns.transactional-outbox",
+        "name": "Outbox",
+        "type": "architecture.database",
+        "alias": 20,
+        "order": 6
+      },
+      "architecture.yaml.patterns.transactional-outbox.7": {
+        "id": "architecture.yaml.patterns.transactional-outbox.7",
+        "parent": "architecture.yaml.patterns.transactional-outbox",
+        "name": "The events, written beside the state they announce.",
+        "type": "note",
+        "alias": 21,
+        "order": 7
+      },
+      "architecture.yaml.patterns.transactional-outbox.8": {
+        "id": "architecture.yaml.patterns.transactional-outbox.8",
+        "parent": "architecture.yaml.patterns.transactional-outbox",
+        "name": "Relay",
+        "type": "architecture.component",
+        "alias": 21,
+        "order": 8
+      },
+      "architecture.yaml.patterns.transactional-outbox.9": {
+        "id": "architecture.yaml.patterns.transactional-outbox.9",
+        "parent": "architecture.yaml.patterns.transactional-outbox",
+        "name": "Reads the outbox and publishes each event at least once.",
+        "type": "note",
+        "alias": 22,
+        "order": 9
+      }
+    },
+    "edges": {
+      "architecture.yaml.patterns.anti-corruption-layer.r1": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.r1",
+        "type": "architecture.calls",
+        "alias": 1,
+        "from": "architecture.yaml.patterns.anti-corruption-layer",
+        "fromPort": "architecture.yaml.patterns.anti-corruption-layer.port.in",
+        "to": "architecture.yaml.patterns.anti-corruption-layer.2"
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.r2": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.r2",
+        "type": "architecture.calls",
+        "alias": 2,
+        "from": "architecture.yaml.patterns.anti-corruption-layer.2",
+        "to": "architecture.yaml.patterns.anti-corruption-layer.4"
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.r3": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.r3",
+        "type": "architecture.calls",
+        "alias": 3,
+        "from": "architecture.yaml.patterns.anti-corruption-layer.4",
+        "to": "architecture.yaml.patterns.anti-corruption-layer.6"
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.r4": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.r4",
+        "type": "architecture.integrates",
+        "alias": 4,
+        "from": "architecture.yaml.patterns.anti-corruption-layer.6",
+        "to": "architecture.yaml.patterns.anti-corruption-layer",
+        "toPort": "architecture.yaml.patterns.anti-corruption-layer.port.out"
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.t3": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.t3",
+        "type": "tie",
+        "alias": 5,
+        "from": "architecture.yaml.patterns.anti-corruption-layer.3",
+        "to": "architecture.yaml.patterns.anti-corruption-layer.2"
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.t5": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.t5",
+        "type": "tie",
+        "alias": 6,
+        "from": "architecture.yaml.patterns.anti-corruption-layer.5",
+        "to": "architecture.yaml.patterns.anti-corruption-layer.4"
+      },
+      "architecture.yaml.patterns.anti-corruption-layer.t7": {
+        "id": "architecture.yaml.patterns.anti-corruption-layer.t7",
+        "type": "tie",
+        "alias": 7,
+        "from": "architecture.yaml.patterns.anti-corruption-layer.7",
+        "to": "architecture.yaml.patterns.anti-corruption-layer.6"
+      },
+      "architecture.yaml.patterns.api-gateway.r1": {
+        "id": "architecture.yaml.patterns.api-gateway.r1",
+        "type": "architecture.calls",
+        "alias": 8,
+        "from": "architecture.yaml.patterns.api-gateway",
+        "fromPort": "architecture.yaml.patterns.api-gateway.port.requests",
+        "to": "architecture.yaml.patterns.api-gateway.2"
+      },
+      "architecture.yaml.patterns.api-gateway.r2": {
+        "id": "architecture.yaml.patterns.api-gateway.r2",
+        "type": "architecture.calls",
+        "alias": 9,
+        "from": "architecture.yaml.patterns.api-gateway.2",
+        "to": "architecture.yaml.patterns.api-gateway.4"
+      },
+      "architecture.yaml.patterns.api-gateway.r3": {
+        "id": "architecture.yaml.patterns.api-gateway.r3",
+        "type": "architecture.calls",
+        "alias": 10,
+        "from": "architecture.yaml.patterns.api-gateway.4",
+        "to": "architecture.yaml.patterns.api-gateway.6"
+      },
+      "architecture.yaml.patterns.api-gateway.r4": {
+        "id": "architecture.yaml.patterns.api-gateway.r4",
+        "type": "architecture.calls",
+        "alias": 11,
+        "from": "architecture.yaml.patterns.api-gateway.6",
+        "to": "architecture.yaml.patterns.api-gateway",
+        "toPort": "architecture.yaml.patterns.api-gateway.port.routes"
+      },
+      "architecture.yaml.patterns.api-gateway.t3": {
+        "id": "architecture.yaml.patterns.api-gateway.t3",
+        "type": "tie",
+        "alias": 12,
+        "from": "architecture.yaml.patterns.api-gateway.3",
+        "to": "architecture.yaml.patterns.api-gateway.2"
+      },
+      "architecture.yaml.patterns.api-gateway.t5": {
+        "id": "architecture.yaml.patterns.api-gateway.t5",
+        "type": "tie",
+        "alias": 13,
+        "from": "architecture.yaml.patterns.api-gateway.5",
+        "to": "architecture.yaml.patterns.api-gateway.4"
+      },
+      "architecture.yaml.patterns.api-gateway.t7": {
+        "id": "architecture.yaml.patterns.api-gateway.t7",
+        "type": "tie",
+        "alias": 14,
+        "from": "architecture.yaml.patterns.api-gateway.7",
+        "to": "architecture.yaml.patterns.api-gateway.6"
+      },
+      "architecture.yaml.patterns.circuit-breaker.r1": {
+        "id": "architecture.yaml.patterns.circuit-breaker.r1",
+        "type": "architecture.calls",
+        "alias": 15,
+        "from": "architecture.yaml.patterns.circuit-breaker",
+        "fromPort": "architecture.yaml.patterns.circuit-breaker.port.in",
+        "to": "architecture.yaml.patterns.circuit-breaker.2"
+      },
+      "architecture.yaml.patterns.circuit-breaker.r2": {
+        "id": "architecture.yaml.patterns.circuit-breaker.r2",
+        "type": "architecture.calls",
+        "alias": 16,
+        "from": "architecture.yaml.patterns.circuit-breaker.2",
+        "to": "architecture.yaml.patterns.circuit-breaker.3"
+      },
+      "architecture.yaml.patterns.circuit-breaker.r3": {
+        "id": "architecture.yaml.patterns.circuit-breaker.r3",
+        "name": "closed",
+        "alias": 17,
+        "from": "architecture.yaml.patterns.circuit-breaker.3",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "architecture.yaml.patterns.circuit-breaker",
+        "toPort": "architecture.yaml.patterns.circuit-breaker.port.remote"
+      },
+      "architecture.yaml.patterns.circuit-breaker.r4": {
+        "id": "architecture.yaml.patterns.circuit-breaker.r4",
+        "name": "open",
+        "alias": 18,
+        "from": "architecture.yaml.patterns.circuit-breaker.3",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "architecture.yaml.patterns.circuit-breaker.5"
+      },
+      "architecture.yaml.patterns.circuit-breaker.t4": {
+        "id": "architecture.yaml.patterns.circuit-breaker.t4",
+        "type": "tie",
+        "alias": 19,
+        "from": "architecture.yaml.patterns.circuit-breaker.4",
+        "to": "architecture.yaml.patterns.circuit-breaker.3"
+      },
+      "architecture.yaml.patterns.circuit-breaker.t6": {
+        "id": "architecture.yaml.patterns.circuit-breaker.t6",
+        "type": "tie",
+        "alias": 20,
+        "from": "architecture.yaml.patterns.circuit-breaker.6",
+        "to": "architecture.yaml.patterns.circuit-breaker.5"
+      },
+      "architecture.yaml.patterns.layered-architecture.r1": {
+        "id": "architecture.yaml.patterns.layered-architecture.r1",
+        "type": "architecture.calls",
+        "alias": 21,
+        "from": "architecture.yaml.patterns.layered-architecture",
+        "fromPort": "architecture.yaml.patterns.layered-architecture.port.requests",
+        "to": "architecture.yaml.patterns.layered-architecture.2"
+      },
+      "architecture.yaml.patterns.layered-architecture.r2": {
+        "id": "architecture.yaml.patterns.layered-architecture.r2",
+        "type": "architecture.calls",
+        "alias": 22,
+        "from": "architecture.yaml.patterns.layered-architecture.2",
+        "to": "architecture.yaml.patterns.layered-architecture.4"
+      },
+      "architecture.yaml.patterns.layered-architecture.r3": {
+        "id": "architecture.yaml.patterns.layered-architecture.r3",
+        "type": "architecture.calls",
+        "alias": 23,
+        "from": "architecture.yaml.patterns.layered-architecture.4",
+        "to": "architecture.yaml.patterns.layered-architecture.6"
+      },
+      "architecture.yaml.patterns.layered-architecture.r4": {
+        "id": "architecture.yaml.patterns.layered-architecture.r4",
+        "type": "architecture.reads",
+        "alias": 24,
+        "from": "architecture.yaml.patterns.layered-architecture.6",
+        "to": "architecture.yaml.patterns.layered-architecture.8"
+      },
+      "architecture.yaml.patterns.layered-architecture.t3": {
+        "id": "architecture.yaml.patterns.layered-architecture.t3",
+        "type": "tie",
+        "alias": 25,
+        "from": "architecture.yaml.patterns.layered-architecture.3",
+        "to": "architecture.yaml.patterns.layered-architecture.2"
+      },
+      "architecture.yaml.patterns.layered-architecture.t5": {
+        "id": "architecture.yaml.patterns.layered-architecture.t5",
+        "type": "tie",
+        "alias": 26,
+        "from": "architecture.yaml.patterns.layered-architecture.5",
+        "to": "architecture.yaml.patterns.layered-architecture.4"
+      },
+      "architecture.yaml.patterns.layered-architecture.t7": {
+        "id": "architecture.yaml.patterns.layered-architecture.t7",
+        "type": "tie",
+        "alias": 27,
+        "from": "architecture.yaml.patterns.layered-architecture.7",
+        "to": "architecture.yaml.patterns.layered-architecture.6"
+      },
+      "architecture.yaml.patterns.saga-orchestrator.r1": {
+        "id": "architecture.yaml.patterns.saga-orchestrator.r1",
+        "type": "architecture.calls",
+        "alias": 28,
+        "from": "architecture.yaml.patterns.saga-orchestrator",
+        "fromPort": "architecture.yaml.patterns.saga-orchestrator.port.start",
+        "to": "architecture.yaml.patterns.saga-orchestrator.2"
+      },
+      "architecture.yaml.patterns.saga-orchestrator.r2": {
+        "id": "architecture.yaml.patterns.saga-orchestrator.r2",
+        "type": "architecture.reads",
+        "alias": 29,
+        "from": "architecture.yaml.patterns.saga-orchestrator.2",
+        "to": "architecture.yaml.patterns.saga-orchestrator.3"
+      },
+      "architecture.yaml.patterns.saga-orchestrator.r3": {
+        "id": "architecture.yaml.patterns.saga-orchestrator.r3",
+        "name": "commands / replies",
+        "alias": 30,
+        "from": "architecture.yaml.patterns.saga-orchestrator.2",
+        "settings": {
+          "line": {
+            "dir": "both"
+          }
+        },
+        "to": "architecture.yaml.patterns.saga-orchestrator",
+        "toPort": "architecture.yaml.patterns.saga-orchestrator.port.bus"
+      },
+      "architecture.yaml.patterns.saga-orchestrator.r4": {
+        "id": "architecture.yaml.patterns.saga-orchestrator.r4",
+        "name": "on failure",
+        "alias": 31,
+        "from": "architecture.yaml.patterns.saga-orchestrator.2",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "architecture.yaml.patterns.saga-orchestrator.5"
+      },
+      "architecture.yaml.patterns.saga-orchestrator.t4": {
+        "id": "architecture.yaml.patterns.saga-orchestrator.t4",
+        "type": "tie",
+        "alias": 32,
+        "from": "architecture.yaml.patterns.saga-orchestrator.4",
+        "to": "architecture.yaml.patterns.saga-orchestrator.3"
+      },
+      "architecture.yaml.patterns.saga-orchestrator.t6": {
+        "id": "architecture.yaml.patterns.saga-orchestrator.t6",
+        "type": "tie",
+        "alias": 33,
+        "from": "architecture.yaml.patterns.saga-orchestrator.6",
+        "to": "architecture.yaml.patterns.saga-orchestrator.5"
+      },
+      "architecture.yaml.patterns.transactional-outbox.r1": {
+        "id": "architecture.yaml.patterns.transactional-outbox.r1",
+        "type": "architecture.calls",
+        "alias": 34,
+        "from": "architecture.yaml.patterns.transactional-outbox",
+        "fromPort": "architecture.yaml.patterns.transactional-outbox.port.requests",
+        "to": "architecture.yaml.patterns.transactional-outbox.2"
+      },
+      "architecture.yaml.patterns.transactional-outbox.r2": {
+        "id": "architecture.yaml.patterns.transactional-outbox.r2",
+        "type": "architecture.calls",
+        "alias": 35,
+        "from": "architecture.yaml.patterns.transactional-outbox.2",
+        "to": "architecture.yaml.patterns.transactional-outbox.3"
+      },
+      "architecture.yaml.patterns.transactional-outbox.r3": {
+        "id": "architecture.yaml.patterns.transactional-outbox.r3",
+        "type": "architecture.reads",
+        "alias": 36,
+        "from": "architecture.yaml.patterns.transactional-outbox.3",
+        "to": "architecture.yaml.patterns.transactional-outbox.5"
+      },
+      "architecture.yaml.patterns.transactional-outbox.r4": {
+        "id": "architecture.yaml.patterns.transactional-outbox.r4",
+        "type": "architecture.reads",
+        "alias": 37,
+        "from": "architecture.yaml.patterns.transactional-outbox.8",
+        "to": "architecture.yaml.patterns.transactional-outbox.6"
+      },
+      "architecture.yaml.patterns.transactional-outbox.r5": {
+        "id": "architecture.yaml.patterns.transactional-outbox.r5",
+        "name": "same transaction",
+        "alias": 38,
+        "from": "architecture.yaml.patterns.transactional-outbox.3",
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "architecture.yaml.patterns.transactional-outbox.6"
+      },
+      "architecture.yaml.patterns.transactional-outbox.r6": {
+        "id": "architecture.yaml.patterns.transactional-outbox.r6",
+        "type": "architecture.publishes",
+        "alias": 39,
+        "from": "architecture.yaml.patterns.transactional-outbox.8",
+        "to": "architecture.yaml.patterns.transactional-outbox",
+        "toPort": "architecture.yaml.patterns.transactional-outbox.port.events"
+      },
+      "architecture.yaml.patterns.transactional-outbox.t4": {
+        "id": "architecture.yaml.patterns.transactional-outbox.t4",
+        "type": "tie",
+        "alias": 40,
+        "from": "architecture.yaml.patterns.transactional-outbox.4",
+        "to": "architecture.yaml.patterns.transactional-outbox.3"
+      },
+      "architecture.yaml.patterns.transactional-outbox.t7": {
+        "id": "architecture.yaml.patterns.transactional-outbox.t7",
+        "type": "tie",
+        "alias": 41,
+        "from": "architecture.yaml.patterns.transactional-outbox.7",
+        "to": "architecture.yaml.patterns.transactional-outbox.6"
+      },
+      "architecture.yaml.patterns.transactional-outbox.t9": {
+        "id": "architecture.yaml.patterns.transactional-outbox.t9",
+        "type": "tie",
+        "alias": 42,
+        "from": "architecture.yaml.patterns.transactional-outbox.9",
+        "to": "architecture.yaml.patterns.transactional-outbox.8"
+      }
+    }
+  }
+}

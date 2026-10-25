@@ -9,13 +9,13 @@ export { def_rows, rows_of, usage_rows, type DefRow, type Row, type Sort,
          type UsageRow } from "./rows";
 export { ChipBar, Choice, Table, lit_row, type Adding, type Chips, type Column, type Line as TableLine,
          type TableProps } from "./Table";
+export { Overview, type OverviewProps } from "./Overview";
 export { Usages, type UsagesProps } from "./Usages";
+export { Registry, type RegistryProps } from "./Registry";
 export { Element, type ElementProps } from "./Element";
 export { Workspace, type Display, type WorkspaceProps } from "./Workspace";
-export { Settings, type SettingsProps } from "./Settings";
 export { Drawing, type DrawingProps } from "./Drawing";
-export { Identity, type IdentityProps } from "./Identity";
-export { Looks, type LooksProps } from "./Looks";
+export { Part, type PartProps } from "./Looks";
 export { Packages, type Offered, type PackagesProps } from "./Packages";
 export { Band, Body, Line, Rail, type BandProps, type BodyProps, type LineProps,
          type RailProps } from "./Body";

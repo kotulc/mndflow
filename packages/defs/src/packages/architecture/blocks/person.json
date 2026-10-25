@@ -1,0 +1,10 @@
+{
+  "id": "person",
+  "name": "person",
+  "type": "block",
+  "description": "Someone outside the system who uses it.",
+  "def": {},
+  "settings": {
+    "style": { "family": "neutral" }
+  }
+}

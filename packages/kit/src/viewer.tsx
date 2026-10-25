@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { is_container, type Graph, type Id } from "@mnd/core";
-import { class_def, fields_graph, project, set_card, type Config } from "@mnd/views";
+import { project, set_card, type Config } from "@mnd/views";
 import { Crumbs, FlowView, Legend, lit_rules, type Corner, type Gesture } from "@mnd/stage";
 
 /** Nothing picked, as one constant so it never reads as a change. */
@@ -39,12 +39,6 @@ export type ViewerProps = {
   onOpen?: (id: Id) => void;
   /** Told where a box points, when one that holds nothing is opened. */
   onFollow?: (link: string, id: Id) => void;
-  /** The layer drawn as its attributes' class diagram rather than its contents. */
-  fields?: Id | null;
-  /** Told what the view toggle asks for: the open layer drawn as a diagram, or null for its
-   *  contents. Given it, a layer whose blocks carry fields offers the toggle in the canvas's bottom
-   *  right-hand corner. A pick on the diagram's class card is told as its definition. */
-  onFields?: (id: Id | null) => void;
   /** The layer read down the page: fitted to its width, scrolled rather than zoomed. */
   scroll?: boolean;
   /** Where a scrolled layer is read: the card brought to the middle of the view; with none, the
@@ -64,7 +58,7 @@ export type ViewerProps = {
 };
 
 export function Viewer({ graph, layer: said, picked = NONE, lit: pointed = NONE, config, card, chrome,
-                        onLook, onPick, onOpen, onFollow, fields = null, onFields, scroll = false,
+                        onLook, onPick, onOpen, onFollow, scroll = false,
                         focus = null, reach = null, widest = null, most = null, trail = null,
                         onTrail }: ViewerProps) {
   /** Unsaid, the workspace's own domain; null is the forest above every package. */
@@ -74,22 +68,16 @@ export function Viewer({ graph, layer: said, picked = NONE, lit: pointed = NONE,
 
   /** The card size is the layout's, held in one place, so it is set before anything measures. */
   if (card) set_card(card.w, card.h);
-  /** A fields diagram is the open layer drawn another way, in its own frame. It is only ever the
-   *  open layer's: one asked for elsewhere draws nothing until that layer is open. */
-  const diagram = at ? fields_graph(graph, at) : null;
-  const drawn = fields === at ? diagram : null;
-  const scene = project(drawn ?? graph, at, config);
+  const scene = project(graph, at, config);
 
   const pick = (ids: Id[]) => {
     set_lit(ids);
-    onPick?.(ids.map((id) => class_def(id) ?? id));
+    onPick?.(ids);
   };
 
-  /** Moving layer leaves a diagram behind. */
   const look = (next: Id | null) => {
     set_at(next);
     onLook?.(next);
-    if (fields) onFields?.(null);
     pick([]);
   };
 
@@ -121,16 +109,13 @@ export function Viewer({ graph, layer: said, picked = NONE, lit: pointed = NONE,
       {pointed.length ? <style>{lit_rules(pointed)}</style> : null}
       {/* A view of its own, so the camera frames each afresh: a room is kept per layer, and the
           diagram's is not the contents'. */}
-      <FlowView key={drawn ? "diagram" : "contents"} scene={scene} picked={lit}
+      <FlowView key={at ?? "forest"} scene={scene} picked={lit}
         lattice={chrome?.lattice ?? true} frame={chrome?.frame ?? true} scroll={scroll}
         focus={focus} reach={reach} widest={widest} most={most}
         onGesture={gesture} onPick={pick} />
     </>
   );
-  if (!chrome?.crumbs && !chrome?.legend && !onFields) return flow;
-
-  /** The toggle is offered only inside a layer whose blocks carry fields. */
-  const fielded = !!onFields && !!diagram;
+  if (!chrome?.crumbs && !chrome?.legend) return flow;
 
   return (
     <section className="stage" style={{ position: "relative", width: "100%", height: "100%",
@@ -145,14 +130,6 @@ export function Viewer({ graph, layer: said, picked = NONE, lit: pointed = NONE,
         }} />
       ) : null}
       {flow}
-      {fielded ? (
-        <span className="mnd-views" role="group" aria-label="view">
-          <button type="button" aria-pressed={!drawn} title="the layer's contents"
-                  onClick={() => onFields!(null)}>contents</button>
-          <button type="button" aria-pressed={!!drawn} title="the layer's fields as a class diagram"
-                  onClick={() => onFields!(at)}>diagram</button>
-        </span>
-      ) : null}
       {chrome?.legend ? <Legend scene={scene} at={chrome.corner ?? "top"} /> : null}
     </section>
   );

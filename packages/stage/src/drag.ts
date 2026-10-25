@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import type { Node, NodeChange } from "@xyflow/react";
 import type { Point } from "@mnd/core";
-import { box_of, holds, nearest_seat, taken_on, FRAME, PORT, type BoxNode, type Frame,
-         type Scene } from "@mnd/views";
+import { box_of, holds, nearest_seat, taken_on, FRAME, PORT, type BoxNode,
+         type Frame, type Scene } from "@mnd/views";
 import type { Adjust } from "./gestures";
 
 type Box = { x: number; y: number; w: number; h: number };
@@ -54,8 +54,8 @@ export function useDrag(scene: Scene, frame: Frame | null,
       const o = box_of(n);
       return at.x >= o.x && at.x <= o.x + o.w && at.y >= o.y && at.y <= o.y + o.h;
     };
-    const lands = scene.nodes.filter((n) =>
-      n.id !== id && !n.data.on && n.selectable !== false && n.type !== "note" && under(n));
+    const lands = scene.nodes.filter((n) => n.id !== id && !n.data.on && n.selectable !== false
+      && n.type !== "note" && under(n));
     /** A cell is offered to a block only. */
     const cell_at = (grid: BoxNode, p: Point) => {
       const o = box_of(grid);

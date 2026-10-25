@@ -37,6 +37,10 @@ export async function load_avoid(wasm: string): Promise<void> {
  *  room as the stage hangs it. None until libavoid is loaded. */
 export function routes_of(scene: Scene): ReadonlyMap<Id, Point[]> {
   if (!avoid) return new Map();
+  /** A drawing whose every line is already run asks nothing of the router. */
+  if (scene.edges.every((e) => e.hidden || e.data?.module === "tie" || e.data?.points?.length)) {
+    return new Map();
+  }
   const A = avoid;
   const router = new A.Router(A.RouterFlag.OrthogonalRouting.value);
   router.setRoutingParameter(A.RoutingParameter.shapeBufferDistance, SEAT);
@@ -72,7 +76,7 @@ export function routes_of(scene: Scene): ReadonlyMap<Id, Point[]> {
 
   const conns = new Map<string, any>();
   for (const e of scene.edges) {
-    if (e.hidden || e.data?.module === "tie") continue;
+    if (e.hidden || e.data?.module === "tie" || e.data?.points?.length) continue;
     const a = end_of(e, "from", scene.nodes, scene.perches, scene.frame);
     const b = end_of(e, "to", scene.nodes, scene.perches, scene.frame);
     if (!a || !b) continue;

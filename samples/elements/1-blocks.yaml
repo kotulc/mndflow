@@ -1,0 +1,16 @@
+name: Blocks
+note: Every block and diagram kind on its small face, its name alone; the icon says what sort of thing it is.
+blocks:
+  - { name: A block }
+  - { name: A folder, type: folder }
+  - { name: A grid, type: grid }
+  - { name: A reference, type: reference, of: "Blocks::A block" }
+  - { name: A class diagram, type: class }
+  - { name: An entity diagram, type: entity }
+  - { name: A flow, type: flow, blocks: [ step ] }
+  - { name: An internal diagram, type: internal }
+  - { name: A sequence, type: sequence }
+  - { name: A state machine, type: state }
+  - { name: A swimlane, type: swimlane }
+  - { name: A treemap, type: treemap }
+  - { name: A name long enough to need cutting short }

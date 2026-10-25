@@ -1,0 +1,26 @@
+name: Saga orchestrator
+type: service
+def: {}
+body: Use when one business action spans several services, each with its own store, and a failed step must undo the ones before it.
+note: The orchestrator sends each step's command in turn and records where it is. A failed step runs the compensations of the steps before it, newest first.
+blocks:
+  - name: Orchestrator
+    type: component
+  - name: Saga log
+    type: database
+    note: Where each running saga is, so a restart resumes it.
+  - name: Compensations
+    type: component
+    note: The undo of each step.
+ports:
+  - name: start
+    type: HTTP
+    flow: in
+  - name: bus
+    type: Events
+    flow: both
+relations:
+  - calls: [ start -> Orchestrator ]
+  - reads: [ Orchestrator -> Saga log ]
+  - Orchestrator <-> bus: commands / replies
+  - Orchestrator -> Compensations: on failure

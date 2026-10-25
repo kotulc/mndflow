@@ -1,41 +1,74 @@
 /** Where everything in a layer sits. */
 
-import { children, drawn_in, is_group, is_interface, layout_of,
-         type Block, type Graph, type Id, type Point } from "@mnd/core";
+import { children, drawn_in, is_aside, is_box, is_interface, is_region, layout_of,
+         type Block, type Graph, type Id } from "@mnd/core";
 import { band_members, band_size, celled, loose_unit, type Sized } from "./bands";
-import { belongs_to, is_satellite, pack_units } from "./pack";
-import { across_of } from "./page";
+import { beside, centred, noted } from "./float";
+import { belongs_to, is_satellite, room_wide, tie_targets } from "./pack";
+import { layered } from "./layered";
+import { treemapped } from "./treemap";
 import { gridded, size_of, snap, GAP, PAD, UNIT, type Size } from "./size";
+
+export { beside, centred };
 
 export type Placed = { id: Id; x: number; y: number; w: number; h: number };
 
 type Rect = { x: number; y: number; w: number; h: number };
+
+/** Placements worked out ahead — by ELK, which answers later — for the layers being drawn. */
+let given: ReadonlyMap<Id, readonly Placed[]> | null = null;
+
+/** `run` with these layers placed as given, each by its id. */
+export function placed_as<T>(spots: ReadonlyMap<Id, readonly Placed[]>, run: () => T): T {
+  const was = given;
+  given = spots;
+  try { return run(); } finally { given = was; }
+}
+
+/** Whether a layer is placed ahead, so nothing is moved after: notes and regions included. */
+export function is_placed(layer: Id | null): boolean {
+  return !!layer && !!given?.has(layer);
+}
 
 
 /** Every block drawn in this layer, placed. */
 export function laid(graph: Graph, layer: Id | null): Placed[] {
   const units = drawn_in(graph, layer).filter((b) => !is_interface(graph, b.id));
   if (units.length === 0) return [];
+  const ahead = layer ? given?.get(layer) : undefined;
+  if (ahead) return unique([...ahead]);
+  /** A treemap places every block and box itself, each as large as what it holds. */
+  if (layout_of(graph, layer) === "treemap") return unique(treemapped(graph, layer));
   const loose = loose_units(graph, layer);
   const how = layout_of(graph, layer);
   const unit = (id: Id) => loose_unit(graph, id);
   const sized_of = (b: Block): Sized => ({
-    b, s: is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
+    b, s: is_box(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   });
   const structural = loose.filter((b) => !is_satellite(graph, layer, b)).map(sized_of);
   const satellites = loose.filter((b) => is_satellite(graph, layer, b))
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id)).map(sized_of);
 
-  /** `auto` flows every unit in reading order, wrapping at the page's width; a
+  /** `auto` arranges each kind its own way, notes floating beside what they are tied to. A
    *  computed page has written its places, and `free` draws what was put where it was put. */
-  const spots = how === "auto"
-    ? centred(pack_units([...structural, ...satellites], across_of(graph, layer)))
-    : free(structural, satellites, (b) => belongs_to(graph, layer, b).map(unit));
+  const spots = spanned(graph, layer, how === "auto"
+    ? noted(graph, layer, [...structural, ...satellites], room_wide(graph, layer))
+    : how === "layered" ? layered(graph, layer, [...structural, ...satellites])
+    : free(structural, satellites, (b) => belongs_to(graph, layer, b).map(unit)));
 
   /** Bands first, then cells: a grid in a band takes its spot from the band. */
   const band_spots = band_members(graph, layer, how, units, spots);
   const cell_spots = celled(graph, units, [...spots, ...band_spots]);
   return unique([...spots, ...band_spots, ...cell_spots]);
+}
+
+/** Regions span their layer: each band on it as wide as the whole arrangement, from its left. */
+function spanned(graph: Graph, layer: Id | null, spots: Placed[]): Placed[] {
+  const band = (p: Placed) => graph.blocks[p.id]?.parent === layer && is_region(graph, p.id);
+  if (!spots.some(band)) return spots;
+  const left = Math.min(...spots.map((p) => p.x));
+  const right = Math.max(...spots.map((p) => p.x + p.w));
+  return spots.map((p) => (band(p) ? { ...p, x: left, w: right - left } : p));
 }
 
 function unique(spots: Placed[]): Placed[] {
@@ -77,32 +110,25 @@ function free(all: Sized[], satellites: Sized[], owners: (b: Block) => Id[]): Pl
   return out;
 }
 
-/** The tidy: what a computed layout draws, written as ordinary placements so `free` keeps it. */
-export function tidy(graph: Graph, scene: { layer: Id | null;
-                                            nodes: readonly { id: Id; position: Point }[] })
-    : { id: Id; x: number; y: number }[] {
-  const loose = new Set(loose_units(graph, scene.layer).map((b) => b.id));
-  return scene.nodes.filter((n) => loose.has(n.id))
-    .map((n) => ({ id: n.id, x: n.position.x, y: n.position.y }));
+/** An aside card whose ties meet no placed card. It waits for the interface it is tied to, which
+ *  is seated on a wall after the cards are placed. */
+export function awaits_seat(graph: Graph, layer: Id | null, id: Id,
+                            placed: readonly { id: Id }[]): boolean {
+  if (!is_aside(graph, id)) return false;
+  const targets = tie_targets(graph, layer, id);
+  return targets.length > 0 && targets.every((t) => !placed.some((p) => p.id === t));
 }
 
-/** Positions relative to the layer's centre. */
-export function centred(spots: Placed[]): Placed[] {
-  if (spots.length === 0) return spots;
-  const left = Math.min(...spots.map((p) => p.x));
-  const top = Math.min(...spots.map((p) => p.y));
-  const right = Math.max(...spots.map((p) => p.x + p.w));
-  const bottom = Math.max(...spots.map((p) => p.y + p.h));
-  const dx = snap(-(left + right) / 2);
-  const dy = snap(-(top + bottom) / 2);
-  return ordered(spots.map((p) => ({ ...p, x: p.x + dx || 0, y: p.y + dy || 0 })));
+/** Whether two boxes meet, counting `air` of space between them as taken. */
+function hits(a: Rect, b: Rect, air = 0): boolean {
+  return a.x < b.x + b.w + air && b.x < a.x + a.w + air
+      && a.y < b.y + b.h + air && b.y < a.y + a.h + air;
 }
 
 /** A spot near `at` where a new box lands on nothing drawn. */
 export function clear_of(taken: readonly Rect[], at: { x: number; y: number },
-                         size: Size): { x: number; y: number } {
-  const free_at = (x: number, y: number) => !taken.some((t) =>
-    x < t.x + t.w && t.x < x + size.w && y < t.y + t.h && t.y < y + size.h);
+                         size: Size, air = 0): { x: number; y: number } {
+  const free_at = (x: number, y: number) => !taken.some((t) => hits({ x, y, ...size }, t, air));
   const x0 = snap(at.x);
   const y0 = snap(at.y);
   for (let ring = 0; ring <= RINGS; ring++) {

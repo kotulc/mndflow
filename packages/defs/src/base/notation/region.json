@@ -1,0 +1,23 @@
+{
+  "id": "region",
+  "name": "region",
+  "type": "block",
+  "description": "A band across the layer, under its heading: what lies in it are its members, and its name tags them. Regions stack, and reorder by drag.",
+  "def": {},
+  "traits": [
+    "has_parts",
+    "is_region"
+  ],
+  "settings": {
+    "style": {
+      "family": "muted",
+      "border_contrast": "faint",
+      "name_contrast": "soft"
+    },
+    "card": {
+      "label": "none",
+      "alias": "hide",
+      "align": "center"
+    }
+  }
+}

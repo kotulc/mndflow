@@ -135,3 +135,9 @@
 /* Inherited, and let go of here. */
 .rows .opt.set.dropped { color: var(--accent); border-color: var(--accent); text-decoration: line-through; }
 .rows .opt:disabled { opacity: 0.3; }
+/* A chip standing for a definition is outlined in its colour, as the canvas draws one; lit, it
+   takes that colour's ground, and said here, the accent's ink. */
+.rows .opt[data-family],
+.rows .opt[data-family]:hover { border-color: var(--card-edge); }
+.rows .opt.on[data-family] { color: var(--card-ink); background: var(--card-fill); }
+.rows .opt.on.set[data-family] { color: var(--accent); }

@@ -1,0 +1,16 @@
+{
+  "id": "treemap",
+  "name": "treemap",
+  "type": "block",
+  "description": "A treemap: where the weight is — what it holds, each as large as what it holds in turn, in the boxes of its folders, groups and regions.",
+  "def": {},
+  "settings": {
+    "style": {
+      "hue": 175
+    },
+    "layout": {
+      "view": "internal",
+      "kind": "treemap"
+    }
+  }
+}

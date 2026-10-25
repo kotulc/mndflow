@@ -1,0 +1,48 @@
+name: service
+def:
+  attributes:
+    - name: owner
+description: "Runs on its own, owns its data and speaks to others only through its ports. Every service names the team that runs it: check reports one that does not."
+constraints: [ owned ]
+library:
+  interfaces:
+    - name: HTTP
+      description: Requests and their responses over HTTP.
+      settings: { style: { hue: 245 } }
+    - name: Events
+      description: Messages published for whoever listens.
+      settings: { style: { hue: 145 } }
+  constraints:
+    - name: owned
+      description: Every service names the team that runs it.
+      required: [ owner ]
+  tags:
+    - name: risk
+      description: Needs care whenever it changes.
+      settings: { style: { hue: 25 } }
+    - name: domain
+      description: Which part of the business it serves.
+      settings: { style: { hue: 190 } }
+    - name: lifecycle
+      description: Where it is in its life.
+      settings: { style: { hue: 75 } }
+    - name: critical
+      type: risk
+      description: Orders stop when this fails.
+    - name: pii
+      type: risk
+      description: Holds or passes personal data.
+    - name: orders
+      type: domain
+      description: Takes part in placing, changing or cancelling an order.
+    - name: payments
+      type: domain
+      description: Moves money or records that it moved.
+    - name: fulfilment
+      type: domain
+      description: Gets what was ordered to the customer.
+    - name: experimental
+      type: lifecycle
+      description: Planned or trial; may go.
+    - name: external api
+      description: Speaks to a system nobody here runs.

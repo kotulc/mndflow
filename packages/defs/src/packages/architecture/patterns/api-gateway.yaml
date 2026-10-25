@@ -1,0 +1,40 @@
+name: API gateway
+type: service
+def: {}
+body: Use when many clients reach many services and each request should be checked once, at one way in.
+note: "One way in: every request is authenticated, held to its quota, then routed to the service that owns it."
+blocks:
+  - name: Auth
+    type: component
+    note: Checks who is calling before anything else runs.
+  - name: Rate limit
+    type: component
+    note: Turns away a caller over its quota.
+  - name: Router
+    type: component
+    note: Sends each request to the service that owns its path.
+ports:
+  - name: requests
+    type: HTTP
+    flow: in
+    side: left
+    at: 0.5
+  - name: routes
+    type: HTTP
+    flow: out
+    side: right
+    at: 0.5
+  - name: admin
+    type: HTTP
+    side: bottom
+    at: 0.5
+relations:
+  - calls: [ requests -> Auth, Auth -> Rate limit, Rate limit -> Router, Router -> routes ]
+library:
+  interfaces:
+    - name: HTTP
+      description: Requests and their responses over HTTP.
+      settings: { style: { hue: 245 } }
+    - name: Events
+      description: Messages published for whoever listens.
+      settings: { style: { hue: 145 } }

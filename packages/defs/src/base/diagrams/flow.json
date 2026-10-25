@@ -1,0 +1,22 @@
+{
+  "id": "flow",
+  "name": "flow",
+  "type": "block",
+  "description": "A flow: what moves through a process — its steps and decisions, and the lines each passes on along, laid out by where they point. A block's behaviour.",
+  "def": {},
+  "traits": [
+    "has_parts",
+    "has_ports",
+    "has_values",
+    "is_behaviour"
+  ],
+  "settings": {
+    "style": {
+      "hue": 25
+    },
+    "layout": {
+      "view": "internal",
+      "kind": "layered"
+    }
+  }
+}

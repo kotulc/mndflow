@@ -1,0 +1,6 @@
+name: store
+def: {}
+description: "Keeps many records of one type, drawn as a table on its card. Records are values, never blocks."
+traits: [ has_values, has_records, has_ports ]
+settings:
+  style: { hue: 75 }

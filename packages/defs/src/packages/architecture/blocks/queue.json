@@ -1,0 +1,18 @@
+{
+  "id": "queue",
+  "name": "queue",
+  "type": "component",
+  "description": "A component that carries messages from one component to another: a collection, holding the messages waiting as records (`records.of`).",
+  "def": {},
+  "settings": {
+    "style": {
+      "family": "away"
+    }
+  },
+  "traits": [
+    "has_parts",
+    "has_ports",
+    "has_values",
+    "has_records"
+  ]
+}

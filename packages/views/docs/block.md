@@ -20,11 +20,11 @@ project(graph, layer, config) → Scene
 | **holders** | groups and grids on the layer, and folders when flattened | a boundary sized to what it holds, or a grid drawn at its extent — either way behind what it holds, shallowest first |
 | **cells** | a grid's extent and merges | derived every draw, never blocks. An empty cell is an address nobody claimed |
 | **seats** | `seated(graph, spots)` | interfaces, drawn over the card they sit on |
-| **routes** | `edges_in(graph, layer)` | one line per relationship with both ends drawn here, a part's end meeting `usage/part` |
+| **routes** | `edges_in(graph, layer)` | one line per relationship with both ends drawn here, an end at a port meeting its seat, `block/port` |
 
-**A system view draws both trees**: the package view, with `look.tops`, boxes each definition holding structure round its top-level blocks as cards; the profile's rows are boxes standing for a level, never picked or dragged, and the path to its target wears the held mark.
+**Each room is projected alone, then composed into the world** (views.md): its frame becomes its room node, its walls' seats shared with its parent, its runs routed inside its walls.
 
-**A system view has no frame, nor a package root unless its folder view asks for one** (`config.room`). A frame is a block seen from inside. A folder view's frame hugs what it holds. Everywhere else it is what the layer holds plus a margin, and never smaller than the room a first block needs — so descending into an empty block shows somewhere to put something rather than a blank page.
+**A frame is a room's border**, hugging what it holds plus a margin, and never smaller than the room a first block needs — so descending into an empty block shows somewhere to put something rather than a blank page.
 
 ## Marks
 
@@ -32,7 +32,7 @@ project(graph, layer, config) → Scene
 
 | | Means |
 |---|---|
-| `container` | it holds blocks |
+| `container` | it opens onto a drawing of its own: it holds blocks, its definition does, or what a reference previews does (core `opens`). Drawn as a stacked edge, its icon lit |
 | `reference` | it stands for something living elsewhere |
 | `missing` | what it stood for is gone. **Kept, never tidied away**, so undoing a deletion elsewhere brings it back |
 | `group` | a boundary — a dashed rim round what it holds |

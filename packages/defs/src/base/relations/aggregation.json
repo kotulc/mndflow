@@ -1,0 +1,13 @@
+{
+  "id": "aggregation",
+  "name": "aggregation",
+  "type": "line",
+  "description": "A whole and the parts it gathers, which live on without it. The hollow diamond is at the whole, the from end.",
+  "def": {
+    "ends": {
+      "from": {
+        "ownership": "shared"
+      }
+    }
+  }
+}

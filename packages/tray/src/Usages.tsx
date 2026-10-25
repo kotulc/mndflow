@@ -39,7 +39,8 @@ export function Usages({ graph, group, scope, onScope, layer, about, lit, onLit,
    *  it means rather than as one definition's id, so it survives a move to the next one. */
   const [by, set_by] = useState("own");
 
-  const deep = scope === "workspace";
+  /** A whole section has no layer to reach, so it lists the workspace. */
+  const deep = scope === "workspace" || !layer;
   const all = lines ? usage_rows(graph, layer, deep) : block_usage_rows(graph, layer, deep);
   /** The default is blank: an element naming nothing follows its kind's. */
   const offered = [{ value: "", word: "default" },
@@ -93,7 +94,7 @@ export function Usages({ graph, group, scope, onScope, layer, about, lit, onLit,
       empty={all.length ? "nothing of that sort"
         : `no ${lines ? "lines" : "blocks"} in this ${deep ? "workspace" : "layer"} yet`}
       chips={[
-        scope_chips(scope, onScope),
+        scope_chips(deep ? "workspace" : "layer", onScope, !!layer),
         ...(lines ? [{ key: "module", on: module, onPick: set_module,
           of: modules.map((m) => ({ key: m, word: m,
             count: m === "all" ? all.length : all.filter((r) => r.module === m).length })) }] : []),

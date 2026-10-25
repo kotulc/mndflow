@@ -43,7 +43,7 @@ Open a block and **find the thing it stands for in its body**: a requirement's t
 | **format is the definition's** | `Requirement` says markdown, `Script` says code. Not a new value form — `body` is a slot beside `fields` |
 | **storage stays reversible** | the browser log stores each body once by hash; the graph and the file carry text, never a content id |
 
-**Settled (cards-plan.md):** a body is markdown, rendered by one renderer; a definition's data is never typed in place — it changes by traits, pickers and its card source.
+**Settled:** a body is markdown, rendered by one renderer; a definition's data is never typed in place — it changes by traits, pickers and its card source.
 
 
 ## Agents and data
@@ -72,7 +72,7 @@ Translate a project out — **the site first**, then simulator, parametrics and 
 | **SysML round trip** | a `tie` goes out as `comment` and comes back as a `line`. Part of ST.6 |
 | **A named package is checked** | reconciling what each package brought and what is in use against the catalogue |
 | **Status columns** | a kanban grid whose column headers are options of a type (`Status`): a card's column sets its attribute, and its attribute seats it. Waits on types and attributes |
-| **Constraints** | what a kind may hold, seat, take or connect to *by definition* (`allows` lists, `degree`, `ends`) and what its values must say (`expects`). Traits grant a capability whole and never limit it; these stay raw settings with no editor until reworked: stating a constraint, and seeing where a model breaks it |
+| **Constraints** | what its values must say: a constraint, a library entry applied by id, with its registry. What a kind may hold, seat, take or connect to *by definition* (`allows` lists, `degree`, `ends`) stays raw settings with no editor until reworked. Traits grant a capability whole and never limit it |
 
 
 ## Loose ends

@@ -1,11 +1,12 @@
 /** What a block may do, and what its values are asked for. `allows` is refused at the gesture;
  *  `expects` is only ever advice. */
 
-import { closes_cycle, frozen, isa, owner_def, stated, tree_of } from "./defs";
+import { closes_cycle, constraints_stated, frozen, isa, owner_def, stated, tree_of } from "./defs";
+import { constraint_at } from "./library";
 import { is_grid } from "./holders";
-import { label_of } from "./names";
-import { children, is_interface, subtree } from "./tree";
-import type { Components, Flow, Graph, Id } from "./types";
+import { shown_name } from "./names";
+import { children, is_interface, ports_on, subtree } from "./tree";
+import type { Components, Constraint, Flow, Graph, Id } from "./types";
 
 export type NoteKind = "required" | "ends" | "holds" | "ports" | "values" | "degree" | "match"
   | "nested" | "self" | "cycle" | "cell";
@@ -35,6 +36,8 @@ export type Allows = {
   heads?: Allowed;
   /** Whether it may hold values of its own. */
   values?: boolean;
+  /** Whether it may hold records of one type. */
+  records?: boolean;
   /** How many relationships may meet a usage, counted separately. */
   degree?: { in?: Range; out?: Range };
   /** Which definitions may sit at each end of a relation, and optionally which flow. */
@@ -68,9 +71,24 @@ export function allows_of(graph: Graph, id: Id | undefined): Allows {
   return merged(layers_of(graph, id, "allows", read_allows));
 }
 
-/** What this usage's values are asked for, merged the same way. */
+/** What an element's values are asked for: every rule of the constraints it is held to, each read
+ *  down its chain — a constraint extending another is held to that one's rules too. */
 export function expects_of(graph: Graph, id: Id | undefined): Expects {
-  return merged(layers_of(graph, id, "expects", read_expects));
+  const rules = constraints_stated(graph, id).ids.flatMap((c) => rules_of(graph, c));
+  const all = (key: "required" | "match") => [...new Set(rules.flatMap((r) => r[key] ?? []))];
+  const required = all("required");
+  const match = all("match");
+  return { ...(required.length ? { required } : {}), ...(match.length ? { match } : {}) };
+}
+
+/** A constraint and those it extends, nearest first. */
+function rules_of(graph: Graph, id: Id): Constraint[] {
+  const out: Constraint[] = [];
+  for (let c = constraint_at(graph, id); c && !out.some((o) => o.id === c!.id);
+       c = constraint_at(graph, c.type)) {
+    out.push(c);
+  }
+  return out;
 }
 
 /** Nearest first, so the first declaration of each key is the one in force. */
@@ -101,6 +119,7 @@ function read_allows(components: Components | undefined): Allows {
   }
 
   if (typeof a["values"] === "boolean") out.values = a["values"];
+  if (typeof a["records"] === "boolean") out.records = a["records"];
 
   const degree = a["degree"];
   if (degree && typeof degree === "object") {
@@ -118,18 +137,6 @@ function read_allows(components: Components | undefined): Allows {
   return out;
 }
 
-function read_expects(components: Components | undefined): Expects {
-  const e = components?.["expects"] ?? {};
-  const out: Expects = {};
-
-  const required = strings(e["required"]);
-  if (required) out.required = required;
-
-  const match = strings(e["match"]);
-  if (match) out.match = match;
-
-  return out;
-}
 
 // ------------------------------------------------------------ what is permitted
 
@@ -163,9 +170,15 @@ export function may_hold(graph: Graph, parent: Id, type?: Id): boolean {
   return permits(graph, allows_of(graph, parent).holds, type);
 }
 
-/** Whether this block may have an interface of that definition seated on its wall. */
-export function may_seat(graph: Graph, id: Id, type: Id = "interface"): boolean {
-  return permits(graph, allows_of(graph, id).ports, type);
+/** Whether interfaces may sit on this block's wall: granted by *has ports*. */
+export function may_seat(graph: Graph, id: Id): boolean {
+  const said = allows_of(graph, id).ports;
+  return said === true || (Array.isArray(said) && said.length > 0);
+}
+
+/** Whether a block holds records of its own: granted by *has records*. */
+export function holds_records(graph: Graph, id: Id): boolean {
+  return allows_of(graph, id).records === true;
 }
 
 // ------------------------------------------------------------------- the review
@@ -226,13 +239,12 @@ export function review(graph: Graph, scope?: Id): Note[] {
                    what: `"${label(graph, b.id)}" may not hold "${label(graph, child.id)}"` });
     }
 
-    /** A wall that takes no interfaces, said about the ones already on it. */
-    if (!permits(graph, allows.ports, "interface")) {
-      for (const child of children(graph, b.id)) {
-        if (!is_interface(graph, child.id)) continue;
-        notes.push({ kind: "ports", id: child.id,
-                     what: `"${label(graph, b.id)}" takes no interfaces` });
-      }
+    /** A wall that takes no ports, said about the ones already on it. */
+    if (b.ports?.length && !may_seat(graph, b.id)) {
+      notes.push({ kind: "ports", id: b.id, what: `"${label(graph, b.id)}" takes no ports` });
+    }
+    if (b.records?.length && !holds_records(graph, b.id)) {
+      notes.push({ kind: "values", id: b.id, what: `"${label(graph, b.id)}" holds no records` });
     }
 
     /** Degree counts every relation meeting the block, in any layer — a usage's, never a
@@ -251,10 +263,10 @@ export function review(graph: Graph, scope?: Id): Note[] {
     const allows = allows_of(graph, e.id);
     const expects = expects_of(graph, e.id);
 
-    notes.push(...unanswered(graph, e.id, label_of(graph, e.id) || e.id, expects));
+    notes.push(...unanswered(graph, e.id, shown_name(graph, e.id), expects));
     if (allows.ends) {
-      end(notes, graph, e.id, "from", e.from, allows.ends.from, allows.ends.fromFlow);
-      end(notes, graph, e.id, "to", e.to, allows.ends.to, allows.ends.toFlow);
+      end(notes, graph, e.id, "from", e.from, e.fromPort, allows.ends.from, allows.ends.fromFlow);
+      end(notes, graph, e.id, "to", e.to, e.toPort, allows.ends.to, allows.ends.toFlow);
     }
 
     /** `match` is one fixed comparison: the same field name, read off both ends, agreeing. */
@@ -281,18 +293,16 @@ function count(notes: Note[], id: Id, name: string, way: "in" | "out",
   }
 }
 
-/** A capability about an end walks through a port. */
-function end(notes: Note[], graph: Graph, id: Id, way: "from" | "to", at: Id,
+/** A capability about an end: the block it meets, and the flow of the port it meets there. */
+function end(notes: Note[], graph: Graph, id: Id, way: "from" | "to", at: Id, part: Id | undefined,
              allowed: Id[] | undefined, flow: Flow | undefined): void {
-  const met = graph.blocks[at];
-  const owner = met && is_interface(graph, met.id) && met.parent
-    ? graph.blocks[met.parent] : undefined;
-  if (allowed && !is_one_of(graph, met?.type, allowed)
-      && !is_one_of(graph, owner?.type, allowed)) {
-    notes.push({ kind: "ends", id,
-                 what: `"${label(graph, owner?.id ?? at)}" may not sit at the ${way} end` });
+  const owner = graph.blocks[at];
+  const port = part ? ports_on(graph, at).find((p) => p.id === part) : undefined;
+  if (allowed && !is_one_of(graph, owner?.type, allowed)) {
+    notes.push({ kind: "ends", id, what: `"${label(graph, owner?.id ?? at)}" may not sit at the ${way} end` });
   }
-  if (flow && met?.flow !== flow) {
+  /** An interface saying no flow carries both ways. */
+  if (flow && (port ? port.flow ?? "both" : undefined) !== flow) {
     notes.push({ kind: "ends", id,
                  what: `the ${way} end wants a ${flow} interface` });
   }

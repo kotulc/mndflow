@@ -1,11 +1,6 @@
 {
   "packages": [
     {
-      "name": "entity-relation",
-      "about": "entities with keyed attributes, some naming another entity: an entity-relationship model",
-      "at": "entity-relation.json"
-    },
-    {
       "name": "doc",
       "about": "markdown as blocks: pages, sections, items, code and links",
       "at": "doc.json"
@@ -19,6 +14,16 @@
       "name": "sysml",
       "about": "SysML names and stereotypes over the base definitions",
       "at": "sysml.json"
+    },
+    {
+      "name": "architecture",
+      "about": "architecture vocabulary and patterns: components, people, documents, the relations between them, and reusable service patterns",
+      "at": "architecture.json"
+    },
+    {
+      "name": "model",
+      "about": "the example shop: its parts and records, and every diagram of it",
+      "at": "model.json"
     }
   ]
 }

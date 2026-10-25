@@ -1,7 +1,7 @@
 /** What a box looks like, as React Flow node types. */
 
 import { createContext, memo, useContext, useEffect,
-         useRef, useState } from "react";
+         useRef, useState, type CSSProperties } from "react";
 import { Handle, NodeResizer, Position, useUpdateNodeInternals,
          type NodeProps } from "@xyflow/react";
 import type { Side } from "@mnd/core";
@@ -9,9 +9,9 @@ import type { Side } from "@mnd/core";
 /** What a row or a chip being dragged onto the drawing carries. */
 export const DRAGGED = "text/mnd-block";
 
-import { FRAME, PLAIN, face_attrs, look_key,
+import { FRAME, PLAIN, face_attrs, look_key, tint_attrs, type_word,
          type BoxData, type BoxNode, type GridCell } from "@mnd/views";
-import { CardFace, Name, Stamps, Wears, useNaming } from "@mnd/theme";
+import { CardFace, Icon, Name, Stamps, Wears, role_icon, useNaming } from "@mnd/theme";
 
 
 
@@ -20,7 +20,9 @@ function seen(p: NodeProps<BoxNode>): string {
   const d = p.data;
   return [
     p.selected, p.dragging, p.width, p.height,
-    d.label, d.alias ?? "", d.def, d.on, d.side, d.role, (d.stamps ?? []).join(","),
+    d.label, d.alias ?? "", d.description ?? "", d.def, d.on, d.side, d.role,
+    d.scale, d.counts ?? "", d.kind ?? "", (d.tiles ?? []).length,
+    (d.stamps ?? []).join(","),
     d.face ?? "", d.text ?? "", d.marks.join(","),
     /** Read off the look, so no property is forgotten. */
     look_key(d.look),
@@ -111,7 +113,7 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
   const look = data.look ?? PLAIN;
   return (
     <CardFace label={data.label} {...(data.alias ? { alias: data.alias } : {})}
-              kind={look.kind} kinded={look.label} {...(data.role ? { role: data.role } : {})}
+              kind={type_word(look.kind, data.label)} kinded={look.label} {...(data.role ? { role: data.role } : {})}
               {...(look.icon ? { icon: look.icon } : {})}
               holds={data.marks.includes("container")}
               {...(data.stamps ? { stamps: data.stamps } : {})}
@@ -120,6 +122,9 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
               {...(data.text !== undefined ? { text: data.text } : {})}
               {...(data.table ? { table: data.table } : {})}
               head={look.head !== false}
+              {...(data.fit ? { fit: data.fit } : {})}
+              {...(data.clamp ? { clamp: data.clamp } : {})}
+              title={data.description ? `${data.label} — ${data.description}` : data.label}
               name={<Name id={id} className="mnd-label card-name" text={data.label} />}>
       {/* A card keeps the size its face says unless its definition asked for its own. */}
       {look.height === "free"
@@ -304,18 +309,21 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   const has_cells = !!data.grid?.length;
   const room = data.marks.includes("room") ? "room" : "";
   const shell = ["mnd-group-shell", has_cells ? "gridded" : "", room].filter(Boolean).join(" ");
+  const word = type_word(look.kind, data.label);
   const group = ["mnd-group", has_cells ? "gridded" : "", data.marks.includes("flat") ? "flat" : "",
+                 data.marks.includes("region") ? "region" : "",
                  room, selected ? "picked" : ""].filter(Boolean).join(" ");
   return (
     <div className={shell} {...face_attrs(look)}>
-      {/* The name and label float above the frame together. */}
+      {/* The name and label float above the frame together; `card.name: hide` leaves no name. */}
       <span className="mnd-group-title">
-        {look.label === "above" ? <span className="mnd-kind card-label">{look.kind}</span> : null}
-        <Name id={id} className="mnd-group-name card-name" text={data.label} />
-        {look.label === "inside" ? <span className="mnd-kind card-label">{look.kind}</span> : null}
+        {look.label === "above" && word ? <span className="mnd-kind card-label">{word}</span> : null}
+        {look.head === false
+          ? null : <Name id={id} className="mnd-group-name card-name" text={data.label} />}
+        {look.label === "inside" && word ? <span className="mnd-kind card-label">{word}</span> : null}
       </span>
-      {look.label === "below"
-        ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
+      {look.label === "below" && word
+        ? <span className="mnd-under mnd-kind card-label">{word}</span> : null}
       <div className={group} title={data.label}>
         {has_cells ? null : <BandRim />}
         {has_cells ? <Lattice id={id} cells={data.grid!} open={!!room} /> : null}
@@ -337,11 +345,16 @@ function SeatNode({ id, data, selected }: NodeProps<BoxNode>) {
   /** A seat that changes wall faces anew, so its handle is measured again. */
   const remeasure = useUpdateNodeInternals();
   useEffect(() => remeasure(id), [id, data.side, remeasure]);
+  /** A port of an interface definition wears that definition's colour; a plain one stays plain. */
+  const typed = !!data.look && !!data.def && data.def !== "interface";
+  const tint = tint_attrs(typed ? data.look : undefined);
   return (
-    <div className={["mnd-seat", ...data.marks, selected ? "picked" : ""]
+    <div className={["mnd-seat", typed ? "typed" : "", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
+         data-family={tint["data-family"]} style={tint.style as CSSProperties}
          title={data.label}>
       <Middle side={data.side} inward={data.on === FRAME} />
+      {data.seats?.length ? <Seats seats={data.seats} inward={data.on === FRAME} /> : null}
     </div>
   );
 }
@@ -369,12 +382,149 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
   );
 }
 
+/** A map's box: what holds chips, its walls and its title with its kind's icon. Its ground lets
+ *  the pointer through, so a press there is on the box itself. */
+function MapBox({ data, selected }: NodeProps<BoxNode>) {
+  return (
+    <div className={["mnd-box", selected ? "picked" : ""].filter(Boolean).join(" ")}
+         title={[data.label, data.description].filter(Boolean).join("\n")}>
+      <span className="mnd-box-title">
+        {data.role ? <Icon name={role_icon(data.role)} size={11} /> : null}
+        <span className="mnd-box-name">{data.label}</span>
+      </span>
+    </div>
+  );
+}
+
+/** A map's chip, **faced as a card is**: one line, its name and beside it, quieter, a
+ *  diagram's kind and what it counts, giving way first where room runs short; its kind's icon in the
+ *  top-right corner, and a small treemap of what it holds; a diagram's tiles laid by its
+ *  structure. A block's tile is a small card the same way: its name, its icon in the corner,
+ *  edged as a chip in its own colour. Icons keep a least size on screen, never past what their
+ *  tile has room for (`--cap`). A mark its glyph; a group a tinted panel round its members, a
+ *  region a tinted band; a grid's plain header strips, its lifelines or its rules. Every chip
+ *  wears its colour: a diagram's its kind's. A chip too narrow for its name shows its icon
+ *  alone, at the top right as ever, never wider than the chip. */
+function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
+  const tint = data.look ? tint_attrs(data.look) : null;
+  const pad = data.diagram ? 10 : 4;
+  const body = { w: (width ?? 0) - 2 * pad,
+                 h: (height ?? 0) - CHIP_HEAD - pad };
+  /** A chip too narrow for its name shows its icon alone. */
+  const narrow = (width ?? 0) < NARROW;
+  return (
+    <div className={["mnd-chip", data.diagram ? "diagram" : "",
+                     data.stacked ? "holds" : "", narrow ? "narrow" : "",
+                     selected ? "picked" : ""].filter(Boolean).join(" ")}
+         {...(tint ? { "data-family": tint["data-family"] } : {})}
+         style={{ ...(tint?.style ?? {}), "--cap": `${Math.max(0, (width ?? 0) - 8)}px` } as
+           CSSProperties}
+         title={[data.label, data.kind, data.counts, data.description].filter(Boolean)
+           .join("\n")}>
+      <span className="mnd-chip-head">
+        <span className="mnd-chip-name">{data.label}</span>
+        <span className="mnd-chip-counts">
+          {[data.kind, data.counts].filter(Boolean).join(" · ")}
+        </span>
+      </span>
+      <Icon name={role_icon(data.role)} size={14} className="mnd-chip-icon" />
+      {data.tiles?.length ? (
+        <span className="mnd-chip-body">
+          {data.tiles.map((t) => {
+            /** A plain block wears its kind's icon; a mark its glyph instead; what only shapes
+             *  the chip — a strip, a lifeline, a rule — no name. */
+            const plain = !t.as && !t.mark;
+            const named = (!t.as || t.as === "group") && t.mark !== "start" && t.mark !== "end";
+            /** What stands for a block is picked as it: a click on it picks its block. */
+            const block = !t.as || t.as === "group" || t.as === "band";
+            const [w, h] = [t.w * body.w, t.h * body.h];
+            const shown = named && w > NAMED && h > 10;
+            /** As large as an icon may grow in this tile: beside its name, its height less a
+             *  margin and a third of its width; alone, all the room the tile has. */
+            const cap = shown ? Math.min(h - 4, w / 3) : Math.min(w, h) - 4;
+            const icon = plain && cap >= 5;
+            return (
+              <span key={t.id} {...(block ? { "data-tile": t.id } : {})}
+                    {...(t.tint?.["data-family"] ? { "data-family": t.tint["data-family"] } : {})}
+                    className={["mnd-chip-tile", t.as ?? "", plain ? "card" : "",
+                                icon ? "iconed" : "", icon && !shown ? "bare" : "",
+                                t.odd ? "odd" : "", t.down ? "down" : "",
+                                t.as === "head" && h > w ? "tall" : "",
+                                t.mark ? `mark ${t.mark}` : "",
+                                t.texture ?? ""].filter(Boolean).join(" ")}
+                    title={t.label || undefined}
+                    style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`,
+                             width: `${t.w * 100}%`, height: `${t.h * 100}%`,
+                             ...(t.tint?.style ?? {}),
+                             ...(icon ? { "--cap": `${cap}px` } : {}) } as CSSProperties}>
+                {shown
+                  ? <span className="mnd-chip-tile-name">{t.label}</span> : null}
+                {icon ? <Icon name={role_icon(t.role)} size={9} className="mnd-chip-tile-icon" />
+                  : null}
+              </span>
+            );
+          })}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** How tall a chip's head is, its name and counts above its inner treemap (views `map.ts`). */
+const CHIP_HEAD = 40;
+
+/** How wide a tile is before its name shows: a few letters beside its icon; narrower, its icon
+ *  alone. */
+const NAMED = 50;
+
+/** How narrow a chip is before its name gives way to its icon alone. */
+const NARROW = 64;
+
+/** A registry's tile: an entry's name, how many times it is used and what it means, its ground as
+ *  warm as its uses, its edge in the entry's own colour. What a small tile has no room for, its
+ *  title says. */
+function TileNode({ data, selected }: NodeProps<BoxNode>) {
+  const n = data.count ?? 0;
+  const uses = n ? `${n} ${n === 1 ? "use" : "uses"}` : "no uses";
+  const tint = tint_attrs(data.look);
+  return (
+    <div className={["mnd-tile", n ? "" : "unused", (data.heat ?? 0) > 0.55 ? "hot" : "",
+                     selected ? "picked" : ""].filter(Boolean).join(" ")}
+         data-family={tint["data-family"]}
+         style={{ ...tint.style, "--heat": data.heat ?? 0 } as CSSProperties}
+         title={[data.label, uses, data.description].filter(Boolean).join(" · ")}>
+      <span className="mnd-tile-name">{data.label}</span>
+      <span className="mnd-tile-count">{uses}</span>
+      {data.description ? <span className="mnd-tile-about">{data.description}</span> : null}
+    </div>
+  );
+}
+
+/** A node drawn at its scale: its face laid out at its own size and scaled into the box it was
+ *  given. Only a library registry is scaled; **zoom never changes what a node draws**. */
+function scaled(Inner: React.ComponentType<NodeProps<BoxNode>>) {
+  return function Scaled(p: NodeProps<BoxNode>) {
+    const k = p.data.scale ?? 1;
+    return (
+      <div className="mnd-scaled"
+           style={{ width: `${100 / k}%`, height: `${100 / k}%`,
+                    transform: k === 1 ? undefined : `scale(${k})`,
+                    "--k": String(k) } as CSSProperties}>
+        <Inner {...p} />
+      </div>
+    );
+  };
+}
+
 /** Memoised on what each draws; see `seen`. */
-export const Card = memo(CardNode, same);
-export const Note = memo(NoteNode, same);
-export const Group = memo(GroupNode, same);
-export const Grid = memo(GroupNode, same);
-export const Seat = memo(SeatNode, same);
+export const Card = memo(scaled(CardNode), same);
+export const Note = memo(scaled(NoteNode), same);
+export const Group = memo(scaled(GroupNode), same);
+export const Grid = memo(scaled(GroupNode), same);
+export const Seat = memo(scaled(SeatNode), same);
+export const Tile = memo(scaled(TileNode));
+export const Box = memo(MapBox, same);
+export const Chip = memo(ChipNode, same);
 
 export const NODE_TYPES = {
   card: Card,
@@ -382,5 +532,8 @@ export const NODE_TYPES = {
   group: Group,
   grid: Grid,
   seat: Seat,
-  frame: Frame,
+  frame: memo(scaled(Frame), same),
+  tile: Tile,
+  box: Box,
+  chip: Chip,
 } as const;

@@ -1,7 +1,7 @@
 /** Sample data, as logs rather than graphs. */
 
 import { FLOOR as BASE_FLOOR } from "@mnd/defs";
-import { MAIN, type Dir, type Log, type Mutation, type Step } from "@mnd/core";
+import { ROOT, type Dir, type Log, type Mutation, type Step } from "@mnd/core";
 
 let n = 0;
 const step = (action: string, mutations: Mutation[]): Step =>
@@ -34,7 +34,7 @@ export function blank(): Log {
 export function flat(): Log {
   start();
   return [
-    step("create", [block("block_ledger", MAIN, "Ledger", "block")]),
+    step("create", [block("block_ledger", ROOT, "Ledger", "block")]),
     step("create", [block("block_edge", "block_ledger", "Edge", "block")]),
     step("create", [block("block_auth", "block_ledger", "Auth", "block")]),
     step("create", [block("block_billing", "block_ledger", "Billing", "block")]),
@@ -45,13 +45,13 @@ export function flat(): Log {
 export function nested(): Log {
   start();
   return [
-    step("create", [block("block_shelf", MAIN, "Shelf", "folder")]),
+    step("create", [block("block_shelf", ROOT, "Shelf", "folder")]),
     step("create", [block("block_ledger", "block_shelf", "Ledger", "block")]),
     step("create", [block("block_edge", "block_ledger", "Edge", "block")]),
     step("create", [block("block_rate", "block_edge", "Rate Limit", "block")]),
     step("create", [block("block_auth", "block_edge", "Auth", "block")]),
     step("create", [block("block_billing", "block_ledger", "Billing", "block")]),
-    step("create", [block("block_site", MAIN, "Site", "block")]),
+    step("create", [block("block_site", ROOT, "Site", "block")]),
     step("create", [block("block_pages", "block_site", "Pages", "block")]),
   ];
 }
@@ -60,7 +60,7 @@ export function nested(): Log {
 export function related(): Log {
   start();
   return [
-    step("create", [block("block_loop", MAIN, "Coolant Loop", "block")]),
+    step("create", [block("block_loop", ROOT, "Coolant Loop", "block")]),
     step("create", [block("block_pump", "block_loop", "Pump", "block")]),
     step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
     step("create", [block("block_tank", "block_loop", "Reservoir", "block")]),
@@ -87,16 +87,19 @@ export function related(): Log {
 export function interfaced(): Log {
   start();
   return [
-    step("create", [block("block_loop", MAIN, "Coolant Loop", "block")]),
+    step("create", [block("block_loop", ROOT, "Coolant Loop", "block")]),
     step("create", [block("block_pump", "block_loop", "Pump", "block")]),
     step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
     step("interface", [
-      { op: "add_block", block: { id: "port_out", parent: "block_pump", type: "interface",
-                                  side: "right", at: 0.5, flow: "out", order: 1 } },
-      { op: "add_block", block: { id: "port_in", parent: "block_hx", type: "interface",
-                                  side: "left", at: 0.5, flow: "in", order: 1 } },
+      { op: "set_ports", id: "block_pump",
+        ports: [{ id: "port_out", side: "right", at: 0.5, flow: "out" }] },
+      { op: "set_ports", id: "block_hx",
+        ports: [{ id: "port_in", side: "left", at: 0.5, flow: "in" }] },
     ]),
-    step("relate", [link("edge_flow", "port_out", "port_in", "forward")]),
+    step("relate", [{ op: "link_blocks", edge: { id: "edge_flow", from: "block_pump",
+                                                 fromPort: "port_out", to: "block_hx",
+                                                 toPort: "port_in",
+                                                 settings: { line: { dir: "forward" } } } }]),
     step("relate", [link("edge_plain", "block_pump", "block_hx")]),
     step("layout", [auto("block_loop")]),
   ];
@@ -114,9 +117,9 @@ export function gridded(): Log {
     ["block_plan", "Plan"], ["block_build", "Build"],
   ];
   return [
-    step("create", [block("block_board", MAIN, "Board", "block")]),
+    step("create", [block("block_board", ROOT, "Board", "block")]),
     /** The lanes' owners live elsewhere; the board's headers refer to them. */
-    step("create", [block("block_team", MAIN, "Team", "folder"),
+    step("create", [block("block_team", ROOT, "Team", "folder"),
                     block("block_alice", "block_team", "Alice", "block"),
                     block("block_bob", "block_team", "Bob", "block")]),
     step("layout", [auto("block_board")]),

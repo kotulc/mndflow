@@ -4,6 +4,45 @@
   "graph": {
     "root": "base",
     "blocks": {
+      "aggregation": {
+        "id": "aggregation",
+        "parent": "base.dir.relations",
+        "name": "aggregation",
+        "type": "line",
+        "def": {
+          "ends": {
+            "from": {
+              "ownership": "shared"
+            }
+          }
+        },
+        "description": "A whole and the parts it gathers, which live on without it. The hollow diamond is at the whole, the from end.",
+        "order": 1
+      },
+      "association": {
+        "id": "association",
+        "parent": "base.dir.relations",
+        "name": "association",
+        "type": "line",
+        "def": {},
+        "description": "Two definitions that know of each other: each end says how many, in what role, and whether it can be reached.",
+        "order": 2
+      },
+      "attribute": {
+        "id": "attribute",
+        "parent": "base.dir.components",
+        "name": "attribute",
+        "type": "block",
+        "def": {},
+        "description": "A field a definition asks of its usages, and the value each answers. A component: its definition is a type, an enum or an alias, in its package's library; never a card, a layer or an explorer row.",
+        "order": 1,
+        "settings": {
+          "style": {
+            "hue": 70
+          }
+        },
+        "traits": []
+      },
       "base": {
         "id": "base",
         "parent": null,
@@ -14,42 +53,47 @@
         "parent": "base",
         "name": "blocks",
         "type": "folder",
-        "order": 1
+        "order": 1,
+        "tree": "definitions"
+      },
+      "base.dir.components": {
+        "id": "base.dir.components",
+        "parent": "base",
+        "name": "components",
+        "type": "folder",
+        "order": 2,
+        "tree": "definitions"
+      },
+      "base.dir.diagrams": {
+        "id": "base.dir.diagrams",
+        "parent": "base",
+        "name": "diagrams",
+        "type": "folder",
+        "order": 3,
+        "tree": "definitions"
+      },
+      "base.dir.notation": {
+        "id": "base.dir.notation",
+        "parent": "base",
+        "name": "notation",
+        "type": "folder",
+        "order": 4,
+        "tree": "definitions"
       },
       "base.dir.relations": {
         "id": "base.dir.relations",
         "parent": "base",
         "name": "relations",
         "type": "folder",
-        "order": 2
-      },
-      "base.dir.tags": {
-        "id": "base.dir.tags",
-        "parent": "base",
-        "name": "tags",
-        "type": "folder",
-        "order": 3
-      },
-      "base.dir.tags.traits": {
-        "id": "base.dir.tags.traits",
-        "parent": "base.dir.tags",
-        "name": "traits",
-        "type": "folder",
-        "order": 3
-      },
-      "base.dir.types": {
-        "id": "base.dir.types",
-        "parent": "base",
-        "name": "types",
-        "type": "folder",
-        "order": 4
+        "order": 5,
+        "tree": "definitions"
       },
       "block": {
         "id": "block",
         "parent": "base.dir.blocks",
         "name": "block",
         "def": {},
-        "body": "The unit of structure: a thing, a part or a step. It may hold blocks of its own, which it opens onto as a layer.",
+        "description": "A part, a system, or the template of one: something with parts, data or deeper significance. What it holds is its layer.",
         "order": 1,
         "settings": {
           "block": {
@@ -57,6 +101,9 @@
           },
           "style": {
             "family": "primary"
+          },
+          "layout": {
+            "view": "internal"
           }
         },
         "traits": [
@@ -65,33 +112,152 @@
           "has_values"
         ]
       },
-      "choice": {
-        "id": "choice",
-        "parent": "base.dir.types",
-        "name": "choice",
-        "type": "value",
+      "class": {
+        "id": "class",
+        "parent": "base.dir.diagrams",
+        "name": "class",
+        "type": "block",
         "def": {},
-        "body": "One of a set: a subtype lists its options in `value.choices`.",
+        "description": "A class diagram: what its types are — the definitions its references stand for, each a class card, fields then behaviours, joined by what they extend and the relations stored between them.",
         "order": 1,
         "settings": {
-          "value": {
-            "form": "choice"
+          "style": {
+            "hue": 260
+          },
+          "layout": {
+            "view": "class",
+            "cards": "large"
           }
         }
       },
-      "flag": {
-        "id": "flag",
-        "parent": "base.dir.types",
-        "name": "flag",
-        "type": "value",
+      "composition": {
+        "id": "composition",
+        "parent": "base.dir.relations",
+        "name": "composition",
+        "type": "line",
+        "def": {
+          "ends": {
+            "from": {
+              "ownership": "composite",
+              "multiplicity": "1"
+            }
+          }
+        },
+        "description": "A whole and the parts it owns: the parts go when the whole does. The filled diamond is at the whole, the from end.",
+        "order": 3
+      },
+      "constraint": {
+        "id": "constraint",
+        "parent": "base.dir.components",
+        "name": "constraint",
+        "type": "block",
         "def": {},
-        "body": "A yes or a no.",
+        "description": "A rule a block or a line is held to: the values it must answer, and on a line those its ends must agree on. A component: defined in its package's library and applied by id; advice, never a refusal.",
         "order": 2,
         "settings": {
-          "value": {
-            "form": "flag"
+          "style": {
+            "hue": 55
+          }
+        },
+        "traits": []
+      },
+      "decision": {
+        "id": "decision",
+        "parent": "base.dir.notation",
+        "name": "decision",
+        "type": "block",
+        "def": {},
+        "description": "A flow's question: one way in, a line out for each answer, each line named by its answer.",
+        "order": 1,
+        "settings": {
+          "card": {
+            "shape": "diamond",
+            "label": "none",
+            "alias": "hide",
+            "align": "center"
+          }
+        },
+        "traits": [
+          "has_values"
+        ]
+      },
+      "dependency": {
+        "id": "dependency",
+        "parent": "base.dir.relations",
+        "name": "dependency",
+        "type": "line",
+        "def": {},
+        "description": "One relies on another: a change to the supplier may change the client. Dashed, its head at the supplier.",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward",
+            "to_arrow": "open"
+          },
+          "style": {
+            "border_style": "dashed"
           }
         }
+      },
+      "end": {
+        "id": "end",
+        "parent": "base.dir.notation",
+        "name": "end",
+        "type": "block",
+        "def": {},
+        "description": "Where a flow or a state machine finishes: lines in, none out.",
+        "order": 2,
+        "settings": {
+          "card": {
+            "shape": "ring",
+            "label": "none",
+            "alias": "hide",
+            "align": "center"
+          }
+        },
+        "traits": []
+      },
+      "entity": {
+        "id": "entity",
+        "parent": "base.dir.diagrams",
+        "name": "entity",
+        "type": "block",
+        "def": {},
+        "description": "An entity relationship diagram: how its data is stored — the definitions its references stand for, each a schema card, columns and keys, joined by the relations stored between them, their ends drawn as multiplicities.",
+        "order": 2,
+        "settings": {
+          "style": {
+            "hue": 230
+          },
+          "layout": {
+            "view": "er",
+            "cards": "large"
+          }
+        }
+      },
+      "flow": {
+        "id": "flow",
+        "parent": "base.dir.diagrams",
+        "name": "flow",
+        "type": "block",
+        "def": {},
+        "description": "A flow: what moves through a process — its steps and decisions, and the lines each passes on along, laid out by where they point. A block's behaviour.",
+        "order": 3,
+        "settings": {
+          "style": {
+            "hue": 25
+          },
+          "layout": {
+            "view": "internal",
+            "kind": "layered"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_behaviour"
+        ]
       },
       "folder": {
         "id": "folder",
@@ -99,15 +265,21 @@
         "name": "folder",
         "type": "block",
         "def": {},
-        "body": "Files blocks away: a quiet container whose contents are reached by opening it.",
+        "description": "Organization: a box on its parent's layer, what it holds drawn inside. It never makes a layer; selected in the explorer, the canvas zooms to it.",
         "order": 2,
         "settings": {
           "style": {
             "family": "neutral",
             "border_contrast": "faint",
             "name_contrast": "faint"
+          },
+          "card": {
+            "label": "none"
           }
-        }
+        },
+        "traits": [
+          "has_parts"
+        ]
       },
       "grid": {
         "id": "grid",
@@ -115,13 +287,19 @@
         "name": "grid",
         "type": "block",
         "def": {},
-        "body": "A spreadsheet of cells holding text or blocks, opened as a grid view: a header allocates what its row or column holds.",
+        "description": "A spreadsheet of cells holding text or blocks, opened on the allocation view: a header allocates what its row or column holds.",
         "order": 3,
         "settings": {
           "style": {
             "family": "muted",
             "border_contrast": "faint",
             "name_contrast": "faint"
+          },
+          "layout": {
+            "view": "allocation"
+          },
+          "card": {
+            "label": "none"
           }
         },
         "traits": [
@@ -133,215 +311,131 @@
       },
       "group": {
         "id": "group",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.notation",
         "name": "group",
         "type": "block",
         "def": {},
-        "body": "A boundary drawing what it holds inline, inside its rim.",
-        "order": 4,
+        "description": "A box drawn round its members, on the layer it sits on: its name tags them.",
+        "order": 3,
         "settings": {
           "style": {
             "family": "muted",
             "border_contrast": "faint",
-            "name_contrast": "faint"
+            "name_contrast": "faint",
+            "border_style": "dashed"
+          },
+          "card": {
+            "label": "none",
+            "alias": "hide",
+            "align": "center"
           }
         },
         "traits": [
           "has_parts",
-          "has_values",
           "is_group"
         ]
       },
-      "has_head": {
-        "id": "has_head",
-        "parent": "base.dir.tags.traits",
-        "name": "has_head",
-        "type": "trait",
-        "def": {},
-        "body": "Its first member heads it.",
-        "order": 1,
-        "settings": {
-          "allows": {
-            "heads": true
-          }
-        }
-      },
-      "has_parts": {
-        "id": "has_parts",
-        "parent": "base.dir.tags.traits",
-        "name": "has_parts",
-        "type": "trait",
-        "def": {},
-        "body": "Holds blocks of its own, which it opens onto as a layer.",
-        "order": 2,
-        "settings": {
-          "allows": {
-            "holds": true
-          }
-        }
-      },
-      "has_ports": {
-        "id": "has_ports",
-        "parent": "base.dir.tags.traits",
-        "name": "has_ports",
-        "type": "trait",
-        "def": {},
-        "body": "Has ports: interfaces may sit on its walls.",
-        "order": 3,
-        "settings": {
-          "allows": {
-            "ports": true
-          }
-        }
-      },
-      "has_tie": {
-        "id": "has_tie",
-        "parent": "base.dir.tags.traits",
-        "name": "has_tie",
-        "type": "trait",
-        "def": {},
-        "body": "Made from, or dropped on, a block, it is tied to it.",
-        "order": 4,
-        "settings": {
-          "tie": {
-            "type": "tie"
-          }
-        }
-      },
-      "has_values": {
-        "id": "has_values",
-        "parent": "base.dir.tags.traits",
-        "name": "has_values",
-        "type": "trait",
-        "def": {},
-        "body": "Holds values of its own: answers to its definition's attributes.",
-        "order": 5,
-        "settings": {
-          "allows": {
-            "values": true
-          }
-        }
-      },
       "interface": {
         "id": "interface",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.components",
         "name": "interface",
         "type": "block",
         "def": {},
-        "body": "A port seated on a block's wall: where relations enter and leave it.",
-        "order": 5,
+        "description": "A block's boundary, where relations and flows enter and leave: a port, data on any block that has ports, seated on its wall. A component: its definition is an interface definition in its package's library; never a card, a layer or an explorer row.",
+        "order": 3,
         "settings": {
           "style": {
-            "family": "secondary",
-            "border_width": "thin"
+            "border_width": "thin",
+            "hue": 100
           }
         },
         "traits": [
-          "is_port"
+          "is_interface"
         ]
       },
-      "is_grid": {
-        "id": "is_grid",
-        "parent": "base.dir.tags.traits",
-        "name": "is_grid",
-        "type": "trait",
+      "internal": {
+        "id": "internal",
+        "parent": "base.dir.diagrams",
+        "name": "internal",
+        "type": "block",
         "def": {},
-        "body": "Seats text and blocks in the cells of a grid, drawn when it is opened.",
-        "order": 6,
+        "description": "A block diagram: what a block is made of — its parts and the relations between them.",
+        "order": 4,
         "settings": {
-          "holder": {
-            "matrix": true
+          "style": {
+            "hue": 200
+          },
+          "layout": {
+            "view": "internal"
           }
         }
       },
-      "is_group": {
-        "id": "is_group",
-        "parent": "base.dir.tags.traits",
-        "name": "is_group",
-        "type": "trait",
+      "label": {
+        "id": "label",
+        "parent": "base.dir.notation",
+        "name": "label",
+        "type": "block",
         "def": {},
-        "body": "Draws what it holds in place, on the layer it sits on, rather than behind its card.",
-        "order": 7,
+        "description": "One line of text and no card: free, or tied to what it names. Its name tags what it is tied to.",
+        "order": 4,
         "settings": {
-          "holder": {
-            "inline": true
+          "card": {
+            "face": "text",
+            "label": "none",
+            "alias": "hide",
+            "align": "center"
+          },
+          "style": {
+            "family": "note",
+            "fill": "none",
+            "border_style": "none",
+            "name_contrast": "strong"
           }
-        }
-      },
-      "is_port": {
-        "id": "is_port",
-        "parent": "base.dir.tags.traits",
-        "name": "is_port",
-        "type": "trait",
-        "def": {},
-        "body": "Is a port: an interface seated on its owner's wall, where relationships enter and leave.",
-        "order": 8,
-        "settings": {
-          "block": {
-            "module": "interface"
-          }
-        }
-      },
-      "is_reference": {
-        "id": "is_reference",
-        "parent": "base.dir.tags.traits",
-        "name": "is_reference",
-        "type": "trait",
-        "def": {},
-        "body": "Stands for another block, definition or package (`of`): draws as it, opens onto it, owns nothing.",
-        "order": 9,
-        "settings": {
-          "block": {
-            "module": "reference"
-          }
-        }
-      },
-      "is_tie": {
-        "id": "is_tie",
-        "parent": "base.dir.tags.traits",
-        "name": "is_tie",
-        "type": "trait",
-        "def": {},
-        "body": "Is a tie: a line drawn straight from card to card, dashed, never routed round what lies between.",
-        "order": 10
+        },
+        "traits": [
+          "has_tie"
+        ]
       },
       "line": {
         "id": "line",
         "parent": "base.dir.relations",
         "name": "line",
         "def": {},
-        "body": "A relation between two blocks: what flows, connects or depends.",
-        "order": 1,
+        "description": "A relation between two blocks: what flows, connects or depends.",
+        "order": 5,
         "traits": [
           "has_values"
         ]
       },
-      "link": {
-        "id": "link",
-        "parent": "base.dir.types",
-        "name": "link",
-        "type": "value",
+      "message": {
+        "id": "message",
+        "parent": "base.dir.relations",
+        "name": "message",
+        "type": "line",
         "def": {},
-        "body": "Where something lives: a uri.",
-        "order": 3,
+        "description": "One participant asks another to act: a message between two steps.",
+        "order": 6,
         "settings": {
-          "value": {
-            "form": "link"
+          "line": {
+            "dir": "forward"
           }
         }
       },
       "note": {
         "id": "note",
-        "parent": "base.dir.blocks",
+        "parent": "base.dir.notation",
         "name": "note",
         "type": "block",
         "def": {},
-        "body": "A remark about what it is tied to. It holds nothing.",
-        "order": 6,
+        "description": "A remark about what it is tied to: a markdown body. It holds nothing, and tags nothing.",
+        "order": 5,
         "settings": {
           "card": {
             "face": "document",
-            "height": "free"
+            "height": "free",
+            "align": "left",
+            "label": "none",
+            "alias": "hide"
           },
           "style": {
             "family": "note",
@@ -356,28 +450,14 @@
           "has_tie"
         ]
       },
-      "number": {
-        "id": "number",
-        "parent": "base.dir.types",
-        "name": "number",
-        "type": "value",
-        "def": {},
-        "body": "A count or a measure, in the unit an attribute says.",
-        "order": 4,
-        "settings": {
-          "value": {
-            "form": "number"
-          }
-        }
-      },
       "reference": {
         "id": "reference",
         "parent": "base.dir.blocks",
         "name": "reference",
         "type": "block",
         "def": {},
-        "body": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
-        "order": 7,
+        "description": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
+        "order": 4,
         "settings": {
           "style": {
             "family": "away",
@@ -392,36 +472,156 @@
           "is_reference"
         ]
       },
-      "tag": {
-        "id": "tag",
-        "parent": "base.dir.tags",
-        "name": "tag",
+      "region": {
+        "id": "region",
+        "parent": "base.dir.notation",
+        "name": "region",
         "type": "block",
         "def": {},
-        "body": "A word carried by blocks, lines and definitions, to find them by. Its body says what it means; its usages are what carries it.",
-        "order": 1,
+        "description": "A band across the layer, under its heading: what lies in it are its members, and its name tags them. Regions stack, and reorder by drag.",
+        "order": 6,
         "settings": {
           "style": {
-            "hue": 300,
-            "intensity": 0.5,
-            "vary": 48
+            "family": "muted",
+            "border_contrast": "faint",
+            "name_contrast": "soft"
+          },
+          "card": {
+            "label": "none",
+            "alias": "hide",
+            "align": "center"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "is_region"
+        ]
+      },
+      "reply": {
+        "id": "reply",
+        "parent": "base.dir.relations",
+        "name": "reply",
+        "type": "line",
+        "def": {},
+        "description": "An answer to a message, drawn dashed.",
+        "order": 7,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          },
+          "style": {
+            "border_style": "dashed"
+          }
+        }
+      },
+      "sequence": {
+        "id": "sequence",
+        "parent": "base.dir.diagrams",
+        "name": "sequence",
+        "type": "block",
+        "def": {},
+        "description": "A sequence: who talks to whom, in what order — a grid read as time, the header row naming the participants and each row a moment, its lines the messages. A block's behaviour.",
+        "order": 5,
+        "settings": {
+          "style": {
+            "hue": 320
+          },
+          "layout": {
+            "view": "allocation"
+          },
+          "holder": {
+            "lifelines": true
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_grid",
+          "is_behaviour"
+        ]
+      },
+      "start": {
+        "id": "start",
+        "parent": "base.dir.notation",
+        "name": "start",
+        "type": "block",
+        "def": {},
+        "description": "Where a flow or a state machine begins: one line out to its first step or state.",
+        "order": 7,
+        "settings": {
+          "card": {
+            "shape": "dot",
+            "label": "none",
+            "alias": "hide",
+            "align": "center"
           }
         },
         "traits": []
       },
-      "text": {
-        "id": "text",
-        "parent": "base.dir.types",
-        "name": "text",
-        "type": "value",
+      "state": {
+        "id": "state",
+        "parent": "base.dir.diagrams",
+        "name": "state",
+        "type": "block",
         "def": {},
-        "body": "Words: anything said in a line.",
-        "order": 5,
+        "description": "A state machine: how one thing changes — the states it is in, and the transitions between them, laid out by where they point. A block's behaviour.",
+        "order": 6,
         "settings": {
-          "value": {
-            "form": "text"
+          "style": {
+            "hue": 350
+          },
+          "layout": {
+            "view": "internal",
+            "kind": "layered",
+            "shape": "round"
           }
-        }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_behaviour"
+        ]
+      },
+      "swimlane": {
+        "id": "swimlane",
+        "parent": "base.dir.diagrams",
+        "name": "swimlane",
+        "type": "block",
+        "def": {},
+        "description": "A swimlane: who does what, in which phase — a grid read as lanes, the header row naming the participants and the header column the phases, the steps in their cells. A block's behaviour.",
+        "order": 7,
+        "settings": {
+          "style": {
+            "hue": 290
+          },
+          "layout": {
+            "view": "allocation"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_grid",
+          "is_behaviour"
+        ]
+      },
+      "tag": {
+        "id": "tag",
+        "parent": "base.dir.components",
+        "name": "tag",
+        "type": "block",
+        "def": {},
+        "description": "A word to find things by, and what it means. A component: defined in its package's library, carried by usages, lines and definitions; never a card, a layer or an explorer row.",
+        "order": 4,
+        "settings": {
+          "style": {
+            "hue": 85
+          }
+        },
+        "traits": []
       },
       "tie": {
         "id": "tie",
@@ -429,48 +629,49 @@
         "name": "tie",
         "type": "line",
         "def": {},
-        "body": "A dashed run with no heads: what ties a remark to what it is about.",
-        "order": 2,
+        "description": "A relation with no model meaning: a dotted run with no heads, from a note or label to what it describes.",
+        "order": 8,
+        "settings": {
+          "style": {
+            "border_style": "dotted"
+          }
+        },
         "traits": [
           "has_values",
           "is_tie"
         ]
       },
-      "trait": {
-        "id": "trait",
-        "parent": "base.dir.tags",
-        "name": "trait",
-        "type": "tag",
+      "transition": {
+        "id": "transition",
+        "parent": "base.dir.relations",
+        "name": "transition",
+        "type": "line",
         "def": {},
-        "body": "A tag naming something the engine does: what a definition carrying it may do. A definition lists every trait it keeps; one listing none carries what it extends.",
-        "order": 2,
+        "description": "A state machine's move from one state to the next: its name the event that fires it, with any guard and action.",
+        "order": 9,
         "settings": {
-          "style": {
-            "hue": 230,
-            "intensity": 0.5,
-            "vary": 48
+          "line": {
+            "dir": "forward"
           }
         }
       },
-      "value": {
-        "id": "value",
-        "parent": "base.dir.types",
-        "name": "value",
+      "treemap": {
+        "id": "treemap",
+        "parent": "base.dir.diagrams",
+        "name": "treemap",
         "type": "block",
         "def": {},
-        "body": "What an attribute holds: a value type. Never placed; a definition's attributes name one, and how a value is edited is its `value.form`.",
-        "order": 6,
+        "description": "A treemap: where the weight is — what it holds, each as large as what it holds in turn, in the boxes of its folders, groups and regions.",
+        "order": 8,
         "settings": {
           "style": {
-            "hue": 150,
-            "intensity": 0.5,
-            "vary": 48
+            "hue": 175
           },
-          "value": {
-            "form": "text"
+          "layout": {
+            "view": "internal",
+            "kind": "treemap"
           }
-        },
-        "traits": []
+        }
       }
     },
     "edges": {}

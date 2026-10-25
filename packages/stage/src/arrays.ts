@@ -1,7 +1,7 @@
 /** A Scene as React Flow's node and edge arrays, and the canvas's constants. */
 
 import type { Id } from "@mnd/core";
-import { at_seat, box_of, look_key, perch_id, roomed, FRAME, type BoxNode, type Frame,
+import { at_seat, box_of, look_key, perch_id, FRAME, type BoxNode, type Frame,
          type LineEdge, type Scene } from "@mnd/views";
 
 /** Fitting frames what is there; it never magnifies. */
@@ -43,40 +43,16 @@ export const still = () => typeof matchMedia === "function"
 /** The smallest zoom, so a flight from a small card starts somewhere reachable. */
 export const MIN_ZOOM = 0.1;
 
-/** Draw order: room, holders, cards, then seats; selection never lifts a node. */
+/** Draw order: holders — a map's boxes, groups, grids — then lines, cards, a map's chips and
+ *  seats, each two steps higher for every holder it sits in. Selection never lifts a node. */
 export const DEPTH: Record<string, number> = {
-  frame: 0, group: 1, grid: 1, card: 3, control: 3, seat: 4,
+  box: 1, group: 1, grid: 1, line: 2, card: 3, chip: 3, control: 3, seat: 4, tie: 1000,
 };
-
-/** The layer's room, grown to the panel's shape and size in whole cells. */
-export function panelled(frame: Frame, seen: { w: number; h: number }): Frame {
-  const room = { w: seen.w - BAND * 2, h: seen.h - BAND * 2 };
-  if (room.w <= 0 || room.h <= 0) return frame;
-  const shape = room.w / room.h;
-  let { w, h } = frame;
-  w / h > shape ? (h = w / shape) : (w = h * shape);
-  const floor = Math.max(1, room.w / w, room.h / h);
-  return { ...frame, ...roomed({
-    x: frame.x + frame.w / 2 - (w * floor) / 2,
-    y: frame.y + frame.h / 2 - (h * floor) / 2,
-    w: w * floor, h: h * floor,
-  }) };
-}
-
-/** Seats on the room's wall keep their fraction when the room grows. */
-export function met_on(room: Frame, scene: Scene): Frame {
-  if (!room.seats?.length) return room;
-  const at = new Map(scene.perches
-    .filter((p) => p.on === FRAME)
-    .map((p) => [perch_id(p.edge, p.end), p.at]));
-  return { ...room, seats: room.seats.map((t) => {
-    const spot = at.get(t.id);
-    return spot === undefined ? t : { ...t, at: spot };
-  }) };
-}
 
 /** The projection's nodes, plus selection and depth. */
 export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): BoxNode[] {
+  /** The depth a node draws at. */
+  const depth = (n: BoxNode) => (DEPTH[n.type ?? "card"] ?? 1) + (n.data.nest ?? 0) * 2;
   const out: BoxNode[] = frame ? [{
     id: FRAME,
     type: "frame",
@@ -88,17 +64,19 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
             marks: frame.holds_parts ? ["container" as const] : [],
             ...(frame.role ? { role: frame.role } : {}),
             ...(frame.stamps?.length ? { stamps: frame.stamps } : {}),
-            ...(frame.side ? { side: frame.side } : {}),
             ...(frame.seats ? { seats: frame.seats } : {}) },
     draggable: false,
     selectable: false,
     focusable: false,
-    zIndex: DEPTH["frame"],
+    zIndex: DEPTH["line"],
   }] : [];
 
   /** The layer's own interfaces, set into the room's walls. */
   for (const p of frame?.ports ?? []) {
     const at = at_seat(frame!, { side: p.side, at: p.at });
+    const seats = scene.perches.filter((perch) => perch.on === p.id).map((perch) => ({
+      id: perch_id(perch.edge, perch.end), side: perch.side, at: perch.at,
+    }));
     out.push({
       id: p.id,
       type: "seat",
@@ -106,7 +84,8 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
       width: at.w,
       height: at.h,
       data: { label: p.label, marks: p.marks, on: FRAME, side: p.side,
-              ...(p.look ? { look: p.look } : {}) },
+              ...(seats.length ? { seats } : {}),
+              ...(p.look ? { look: p.look } : {}), ...(p.def ? { def: p.def } : {}) },
       selected: picked.includes(p.id),
       zIndex: DEPTH["seat"],
       measured: { width: at.w, height: at.h },
@@ -114,14 +93,14 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
   }
 
   for (const n of scene.nodes) {
-    const nest = (n.data.nest ?? 0) * 2;
-    const base = DEPTH[n.type ?? "card"] ?? 1;
     const band = n.type === "group";
+    const className = [band ? "mnd-band-node" : "", n.className ?? ""].filter(Boolean).join(" ");
     out.push({
       ...n,
       selected: picked.includes(n.id),
-      zIndex: base + nest,
-      ...(band ? { className: "mnd-band-node" } : {}),
+      zIndex: depth(n),
+
+      ...(className ? { className } : {}),
       /** Size is told, not measured, so edges route on the first frame. */
       measured: { width: n.width, height: n.height },
     });
@@ -143,7 +122,9 @@ export function edges_of(scene: Scene, picked: readonly Id[]): LineEdge[] {
       type: "wire",
       data: d ?? { module: "line" as const, dir: "none" as const },
       selected: picked.includes(e.id),
-      className: READS[d?.module ?? "line"] ?? "line",
+      className: [READS[d?.module ?? "line"] ?? "line", e.className ?? ""].filter(Boolean).join(" "),
+      /** A tie draws above every card; other lines over the rooms they cross, under the cards. */
+      ...(d?.module === "tie" ? { zIndex: DEPTH["tie"] } : { zIndex: DEPTH["line"] }),
       /** An end is dragged by its own grip, not the library's anchor. */
       reconnectable: false,
     };
@@ -154,15 +135,16 @@ export function edges_of(scene: Scene, picked: readonly Id[]): LineEdge[] {
 export function signature(scene: Scene, frame: Frame | null): string {
   return [
     scene.layer,
-    frame && `${frame.x},${frame.y},${frame.w},${frame.h},${frame.label},${frame.role ?? ""}`
-      + `,${frame.side ?? ""}`,
+    frame && `${frame.x},${frame.y},${frame.w},${frame.h},${frame.label},${frame.role ?? ""}`,
     frame?.seats?.map((t) => `${t.id}${t.side}${t.at}`).join("|"),
-    frame?.ports.map((p) => `${p.id}${p.side}${p.at}${p.marks.join("")}`).join("|"),
+    frame?.ports.map((p) => `${p.id}${p.side}${p.at}${p.marks.join("")}${p.def ?? ""}`).join("|"),
     scene.nodes.map((n) => {
       const b = box_of(n);
       /** Everything a card draws from. */
       return [
         n.id, n.type, `${b.x},${b.y},${b.w},${b.h}`, n.data.label, n.data.alias ?? "",
+        n.className ?? "",
+        n.data.description ?? "",
         n.data.marks.join(""), n.data.side ?? "",
         look_key(n.data.look), n.data.face ?? "", n.data.text ?? "",
         /** The lattice is what a grid draws. */
@@ -174,7 +156,8 @@ export function signature(scene: Scene, frame: Frame | null): string {
     /** Everything a run draws from. */
     scene.edges.map((e) => [
       e.id, `${e.source}>${e.target}`, e.data?.dir, e.data?.module,
-      e.label ?? "", e.data?.alias ?? "", look_key(e.data?.wire),
+      e.label ?? "", e.data?.alias ?? "", look_key(e.data?.wire), e.className ?? "",
+      e.data?.points?.map((p) => `${Math.round(p.x)},${Math.round(p.y)}`).join(" "),
     ].join(":")).join("|"),
   ].join("~");
 }

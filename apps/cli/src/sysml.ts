@@ -1,13 +1,14 @@
 /** A graph out as SysML, and the same text back as a graph. */
 
-import { block_base, children, config_of, edge_base, edges_in, empty_graph, is_interface,
-         of_ref, base_of, owner_of, path, shown_name, MAIN, SCHEMA,
-         type Block, type Graph, type Id, type Relation } from "@mnd/core";
+import { block_base, children, config_of, edge_base, edges_in, empty_graph, forget, of_ref,
+         on_side, base_of, owner_of, part_id, path, ports_on, shown_name, SCHEMA, type Block, type Graph,
+         type Id, type Relation } from "@mnd/core";
 
 /** What each block module is called, absent a definition that says otherwise. */
 const KEYWORD: Record<string, string> = {
   folder: "package", structure: "part", reference: "ref",
-  interface: "port", group: "package", note: "comment", view: "view",
+  interface: "port", group: "package", region: "package", note: "comment", label: "comment",
+  view: "view",
 };
 
 /** A relation module, as a keyword and back. */
@@ -23,19 +24,17 @@ function keyword(graph: Graph, id: Id): string {
   return KEYWORD[base_of(graph, id)] ?? "part";
 }
 
-/** How an end is written: a port by its owner and its own name, anything else by its name alone. */
-function end_of(graph: Graph, id: Id): string {
-  const b = graph.blocks[id];
-  if (b && is_interface(graph, b.id) && b.parent) {
-    return `${quoted(shown_name(graph, b.parent))}.${quoted(shown_name(graph, id))}`;
-  }
+/** How an end is written: a port by its block and its own name — one a usage reads through its
+ *  definition by the usage — anything else by its name alone. */
+function end_of(graph: Graph, id: Id, port?: Id): string {
+  if (port) return `${quoted(shown_name(graph, id))}.${quoted(shown_name(graph, part_id(id, port)))}`;
   return quoted(shown_name(graph, id));
 }
 
 function relation(graph: Graph, e: Relation): string {
   const word = LINK[edge_base(graph, e.id)] ?? "connect";
   const type = e.type ? ` : ${e.type}` : "";
-  return `${word} ${end_of(graph, e.from)} to ${end_of(graph, e.to)}${type};`;
+  return `${word} ${end_of(graph, e.from, e.fromPort)} to ${end_of(graph, e.to, e.toPort)}${type};`;
 }
 
 /** A block's address, for anything the notation points at. */
@@ -51,17 +50,24 @@ function block(graph: Graph, b: Block, depth: number): string[] {
   const stands = of ? ` -> ${address(graph, of)}` : "";
   const head = `${pad}${keyword(graph, b.id)} ${quoted(shown_name(graph, b.id))}${type}${stands}`;
   const inside = [
-    ...children(graph, b.id).flatMap((k) => block(graph, k, depth + 1)),
+    ...(b.ports ?? []).map((p) => `${pad}  port ${quoted(shown_name(graph, part_id(b.id, p.id)))}`
+      + `${p.type ? ` : ${p.type}` : ""};`),
+    ...structure(graph, b.id).flatMap((k) => block(graph, k, depth + 1)),
     ...edges_in(graph, b.id).map((e) => `${pad}  ${relation(graph, e)}`),
   ];
   return inside.length ? [`${head} {`, ...inside, `${pad}}`] : [`${head};`];
 }
 
-/** The workspace's structure, built in `main`, as one package. */
+/** What a block holds that is structure: definitions, and folders of nothing else, stay out. */
+function structure(graph: Graph, id: Id): Block[] {
+  return children(graph, id).filter((k) => !k.def && on_side(graph, k.id, "structure"));
+}
+
+/** The workspace root's structure, as one package. */
 export function to_sysml(graph: Graph): string {
   const inside = [
-    ...children(graph, MAIN).flatMap((b) => block(graph, b, 1)),
-    ...edges_in(graph, MAIN).map((e) => `  ${relation(graph, e)}`),
+    ...structure(graph, graph.root).flatMap((b) => block(graph, b, 1)),
+    ...edges_in(graph, graph.root).map((e) => `  ${relation(graph, e)}`),
   ];
   return [`package ${quoted(shown_name(graph, graph.root))} {`, ...inside, "}", ""].join("\n");
 }
@@ -95,7 +101,7 @@ export function from_sysml(text: string, known: readonly Block[] = []): Graph {
   const graph = empty_graph();
   for (const b of known) graph.blocks[b.id] ??= b;
   const trail: string[] = [];
-  const held: Id[] = [MAIN];
+  const held: Id[] = [graph.root];
   const links: { word: string; from: string[]; to: string[]; type?: string }[] = [];
   const stands: { id: Id; at: string[] }[] = [];
   let n = 0;
@@ -126,18 +132,22 @@ export function from_sysml(text: string, known: readonly Block[] = []): Graph {
     /** The outermost package is the workspace itself, not a block in it. */
     if (held.length === 1 && word === "package" && !graph.blocks[at([label])]) {
       graph.blocks[graph.root]!.name = name;
-      if (line.opens) held.push(MAIN);
+      if (line.opens) held.push(graph.root);
       continue;
     }
 
+    /** A port is data on the block it is written in, and places itself. */
+    if (word === "port") {
+      const owner = graph.blocks[here()]!;
+      owner.ports = [...owner.ports ?? [], { id: at([...trail, label]), name: label,
+                                             ...(type ? { type } : {}) }];
+      continue;
+    }
     trail.push(label);
     const id = at(trail);
     const parent = here();
-    const port = word === "port";
-    /** A port places itself, typed by what it names where that is an interface definition, else
-     *  a plain interface. */
-    const typed = port && block_base(graph, type) !== "interface" ? "interface" : type;
-    graph.blocks[id] = { id, parent, name, type: typed, order: ++n };
+    forget(graph);
+    graph.blocks[id] = { id, parent, name, type, order: ++n };
     if (points) {
       stands.push({ id, at: [...points.matchAll(STEPS)].map((m) => unquote(m[1]!)) });
     }
@@ -152,6 +162,7 @@ export function from_sysml(text: string, known: readonly Block[] = []): Graph {
     if (target) {
       /** A reference is one by its kind: a type that is not a reference kind gives way to it. */
       const type = block_base(graph, b.type) === "reference" ? b.type : "reference";
+      forget(graph);
       graph.blocks[r.id] = { ...b, type, of: target.id, name: undefined };
     }
   }
@@ -161,22 +172,23 @@ export function from_sysml(text: string, known: readonly Block[] = []): Graph {
     const from = find(graph, l.from);
     const to = find(graph, l.to);
     if (!from || !to) continue;
-    const id = `sysml:edge:${from}>${to}`;
-    graph.edges[id] = { id, from, to, type: l.type,
+    const id = `sysml:edge:${from.block}>${to.block}`;
+    graph.edges[id] = { id, from: from.block, to: to.block, type: l.type,
+                        ...(from.port ? { fromPort: from.port } : {}),
+                        ...(to.port ? { toPort: to.port } : {}),
                         ...(l.word === "flow" ? { settings: { line: { dir: "forward" } } } : {}) };
   }
   return graph;
 }
 
-/** A name, or an owner and its port, resolved to what it addresses. */
-function find(graph: Graph, named: readonly string[]): Id | null {
+/** A name, or a block and its port, resolved to what it addresses. */
+function find(graph: Graph, named: readonly string[]): { block: Id; port?: Id } | null {
   const hit = Object.values(graph.blocks)
     .filter((b) => !b.def && b.name === named[0])
     .sort((a, b) => a.id.localeCompare(b.id))[0];
   if (!hit) return null;
-  if (named.length === 1) return hit.id;
-  const port = children(graph, hit.id).find((k) => k.name === named[1]);
-  return port?.id ?? hit.id;
+  const port = named.length > 1 ? ports_on(graph, hit.id).find((p) => p.name === named[1]) : undefined;
+  return { block: hit.id, ...(port ? { port: port.id } : {}) };
 }
 
 /** A file, so what comes back goes in through the door like anything else. */

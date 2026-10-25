@@ -1,0 +1,25 @@
+{
+  "id": "sequence",
+  "name": "sequence",
+  "type": "block",
+  "description": "A sequence: who talks to whom, in what order — a grid read as time, the header row naming the participants and each row a moment, its lines the messages. A block's behaviour.",
+  "def": {},
+  "traits": [
+    "has_parts",
+    "has_ports",
+    "has_values",
+    "is_grid",
+    "is_behaviour"
+  ],
+  "settings": {
+    "style": {
+      "hue": 320
+    },
+    "layout": {
+      "view": "allocation"
+    },
+    "holder": {
+      "lifelines": true
+    }
+  }
+}

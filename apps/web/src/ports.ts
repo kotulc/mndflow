@@ -149,7 +149,7 @@ export function browser_files(): Files {
     async folder() {
       const got = await picked([], true);
       if (!got.length) return null;
-      const name = got[0]!.webkitRelativePath.split("/")[0] || "collection";
+      const name = got[0]!.webkitRelativePath.split("/")[0] || "source";
       const files = await Promise.all(got.map(async (f) => ({
         path: f.webkitRelativePath.split("/").slice(1).join("/") || f.name, text: await f.text(),
       })));

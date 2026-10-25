@@ -1,26 +1,28 @@
 /** Fields, definitions, and giving settings back. */
 
-import { closes_cycle, def_at, def_named, def_of, domain_of, in_domain, name_taken, ordered_by,
+import { closes_cycle, def_at, def_named, def_of, domain_of, holds_defs, name_taken, ordered_by,
          package_of, type Domain } from "../defs";
 import { holds_values } from "../capabilities";
 import { shown_name } from "../names";
 import { next_order } from "../tree";
-import { type Attribute, type Components, type Definition, type Graph, type Id,
+import { KEYS, type Attribute, type Components, type Definition, type Graph, type Id, type Key,
          type Mutation } from "../types";
+import { new_id } from "../ids";
+import { put_type, typed_as } from "../library";
 import { register } from "./registry";
 import { borrowed, id_of, ids_of, mint_def, rooted, text } from "./helpers";
 
-/** A new definition of the workspace's, where the user is: in the domain or holder named, else
- *  the workspace's domain. */
+/** A new definition of the workspace's, where the user is: in the definitions folder named, else
+ *  at the workspace's root. */
 export function new_def(graph: Graph, said: Omit<Definition, "parent">, parent?: Id | null): Mutation {
-  const at = parent && graph.blocks[parent] && in_domain(graph, parent) && !graph.blocks[parent]!.def
-    && package_of(graph, parent) === graph.root ? parent : graph.root;
+  const at = parent && holds_defs(graph, parent) && package_of(graph, parent) === graph.root
+    ? parent : graph.root;
   return { op: "add_block", block: { ...said, parent: at, order: next_order(graph, at) } };
 }
 
 /** What an attribute may say beside its name: words, and yeses. */
 const SAID = ["unit", "default", "note"] as const;
-const FLAGS = ["key", "many", "optional"] as const;
+const FLAGS = ["many", "optional"] as const;
 
 register(
   {
@@ -30,11 +32,12 @@ register(
     args: [{ name: "holder", form: "block", required: true },
            { name: "name", form: "text", required: true },
            { name: "value", form: "text" },
-           /** A value type or a block definition, by name or id; a new name makes a value type. */
+           /** A form, a type or a block definition, by name or id; a new name makes a type. */
            { name: "type", form: "text" },
            { name: "unit", form: "text" }, { name: "default", form: "text" },
            { name: "note", form: "text" },
-           { name: "key", form: "choice", choices: ["true", "false"] },
+           /** `primary` or `unique`; `none` takes it off. */
+           { name: "key", form: "choice", choices: [...KEYS, "none"] },
            { name: "many", form: "choice", choices: ["true", "false"] },
            { name: "optional", form: "choice", choices: ["true", "false"] },
            /** A new name for it, keeping its place and everything else it says. */
@@ -46,6 +49,11 @@ register(
       if (why) return why;
       if (!holds_values(ctx.graph, holder)) {
         return `"${shown_name(ctx.graph, holder)}" holds no values of its own`;
+      }
+      /** A new type name shares the workspace's one name space. */
+      const type = text(args, "type");
+      if (type && !typed_as(ctx.graph, type) && name_taken(ctx.graph, ctx.graph.root, type)) {
+        return `"${type}" already names something else in the workspace`;
       }
       const to = text(args, "to");
       const had = held_fields(ctx.graph, id_of(args, "holder"));
@@ -71,6 +79,11 @@ register(
         if (args[key] === undefined) continue;
         if (text(args, key)) attribute[key] = text(args, key);
         else delete attribute[key];
+      }
+      if (args["key"] !== undefined) {
+        const key = text(args, "key");
+        if ((KEYS as readonly string[]).includes(key)) attribute.key = key as Key;
+        else delete attribute.key;
       }
       for (const key of FLAGS) {
         if (args[key] === undefined) continue;
@@ -272,13 +285,13 @@ function answered(graph: Graph, holder: Id, name: string, to: string,
           { op: "order_values", id: holder, names: had ? names : [...names, to] }];
 }
 
-/** The type an attribute names: a definition by id or name. A name nothing holds makes a value
- *  type of the workspace's, extending text; empty is no type. */
+/** The type an attribute names: a form, a type or a block definition, by id or name. A name
+ *  nothing holds makes a type of the workspace's, an alias of text; empty is no type. */
 function type_named(ctx: Parameters<typeof rooted>[0], said: string, out: Mutation[]): Id | null {
   if (!said) return null;
-  const hit = rooted(ctx, said, "block");
+  const hit = typed_as(ctx.graph, said);
   if (hit) return hit;
-  const id = mint_def("block");
-  out.push(new_def(ctx.graph, { id, name: said, type: "text", def: {} }));
+  const id = new_id("type");
+  out.push(put_type(ctx.graph, ctx.graph.root, { id, name: said, form: "text" }));
   return id;
 }

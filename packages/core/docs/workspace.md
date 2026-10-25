@@ -5,8 +5,8 @@
 | | Is |
 |---|---|
 | **workspace root** | a package root with a reserved id. Holds the handle counters |
-| **new workspace** | its root and one plain definition, `main`, opened by default. Groupings are the user's; samples show them |
-| **what a package uses** | worked out from the types, traits and tags it names (`uses_of`), never stored |
+| **new workspace** | its root and one plain block named `block`, so the workspace lists in structure. The `tags` folder is made with the first tag (`tag_folder`). Groupings are the user's; samples show them |
+| **what a package uses** | worked out from the types and tags it names (`uses_of`), never stored |
 
 - **Every block carries an `id`**, minted once and kept for life, so a rename breaks nothing.
 - **Names are unique among siblings.**
@@ -23,7 +23,7 @@
 ## Resolution
 
 - **By id, across the graph.** A usage names a definition id; nothing shadows.
-- **By name, within a package.** One name space per package: tags, traits and definitions share it. The workspace's own answers first.
+- **By name, within a package.** One name space per package: tags and definitions share it. The workspace's own answers first.
 - **A plain block names nothing** and resolves to its base.
 
 

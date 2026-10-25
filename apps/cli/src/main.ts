@@ -3,9 +3,9 @@
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { all_defs, alias_of, check, children, collect, domain_of, fold, read, review, say,
-         session, shown_name, write, type Fault, type Id, type Leaf, type Log,
-         type Storage } from "@mnd/core";
+import { lens_of, NAMED_VIEWS, all_defs, alias_of, check, children, collect, domain_of, fold,
+         read, review, say, session, shown_name, wanted, write, type Collected, type Fault,
+         type Graph, type Id, type Leaf, type Log, type Storage } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
 import { draw, draw_svg, faults, outline, project } from "@mnd/views";
@@ -18,7 +18,7 @@ const USAGE = `mnd — the headless harness
   mnd project <source> [layer] [--how] project a layer and print it
   mnd project <source> [layer] --svg  project a layer and draw it as SVG
   mnd outline <source> [layer]         list what a projection holds
-  mnd check <source>                   run the door, print faults
+  mnd check <source | folder>          run the door, print faults; a folder is collected first
   mnd review <source> [layer]          ask what the definitions wanted
   mnd run <source> <action> [k=v ...]  apply an action, print what it wrote
   mnd search <source> <name>           fetch a definition package, through the door
@@ -26,12 +26,13 @@ const USAGE = `mnd — the headless harness
                         [--with <pkg>] bring a vocabulary in first, so its names are used
   mnd export <source> [out.json]       fold and write the file
   mnd collect <folder> [out.json]      a folder as a package: package.json, a .json file per
-                                       definition and markdown cards
+                                       definition, diagram files and markdown cards
                         [--bare]       keep the ids it says, as base's are kept
+                        [--workspace]  collect it as the workspace, not a package
 
   <source> is a log fixture (${NAMES.join(", ")}),
            a file fixture (${GRAPH_NAMES.join(", ")}),
-           an exported file, or a raw log.
+           an exported file, a raw log, or a source folder, collected as the workspace.
   A log is harness input only: a file is a graph, and that is what export writes.
   --how sets the arrangement: free auto
   --svg writes the drawing instead of the text projection
@@ -39,9 +40,15 @@ const USAGE = `mnd — the headless harness
   --from sets the package catalogue search reads (default public/packages/index.json)
 `;
 
-/** A fixture of either kind, an exported file, or a raw log. */
+/** A fixture of either kind, an exported file, a raw log, or a source folder collected as the
+ *  workspace — what it could not read or find said on the way. */
 function load(source: string): { log: Log; faults: Fault[] } {
   if (NAMES.includes(source as never)) return { log: fixture(source), faults: [] };
+  if (existsSync(source) && statSync(source).isDirectory()) {
+    const got = gathered(source, true);
+    for (const n of got.notes) console.error(`  ${n}`);
+    return read(got.text, FLOOR);
+  }
   const text = GRAPH_NAMES.includes(source as never)
     ? graph_file(source)
     : readFileSync(source, "utf8");
@@ -83,6 +90,15 @@ function find_layer(log: Log, want: string | undefined): Id | null {
     process.exit(1);
   }
   return hit.id;
+}
+
+/** A view a block names is asked for by name. Every other layer is projected as the command
+ *  always did. */
+function look_of(graph: Graph, layer: Id | null) {
+  if (!layer) return undefined;
+  const kind = lens_of(graph, layer);
+  if (!kind || !(NAMED_VIEWS as readonly string[]).includes(kind)) return undefined;
+  return { look: { kind, cut: null } };
 }
 
 function flag(args: string[], name: string): string | undefined {
@@ -129,6 +145,37 @@ function leaves(folder: string, at = folder): Leaf[] {
   });
 }
 
+/** A source folder collected, with every package its files list loaded first: a catalogue name
+ *  from beside the catalogue, a path from the folder — itself a package file or a folder. */
+function gathered(folder: string, workspace: boolean, bare = false,
+                  seen = new Set<string>()): Collected {
+  /** A folder listing itself, or two listing each other, is read once. */
+  seen.add(resolve(folder));
+  const files = leaves(folder);
+  let over = fold([], FLOOR);
+  const notes: string[] = [];
+  for (const want of wanted(files)) {
+    const at = want.startsWith("./") ? resolve(folder, want)
+      : join(dirname(CATALOGUE), `${want}.json`);
+    if (seen.has(resolve(at))) continue;
+    const text = !existsSync(at) ? undefined
+      : statSync(at).isDirectory() ? gathered(at, false, false, seen).text
+      : readFileSync(at, "utf8");
+    if (text) over = joined(over, text);
+    else notes.push(`${want}: no such package; its names become plain definitions`);
+  }
+  const got = collect(basename(resolve(folder)), files, over,
+                      { bare, ...(workspace ? { root: over.root } : {}) });
+  return { ...got, notes: [...notes, ...got.notes] };
+}
+
+/** A package file's blocks and relations beside what a graph holds; an id already there stays. */
+function joined(graph: Graph, text: string): Graph {
+  const file = JSON.parse(text) as { graph?: Partial<Graph> };
+  return { ...graph, blocks: { ...file.graph?.blocks, ...graph.blocks },
+           edges: { ...file.graph?.edges, ...graph.edges } };
+}
+
 /** Where the packages catalogue lives, at the repo root. */
 const CATALOGUE = resolve(dirname(fileURLToPath(import.meta.url)),
                           "../../../public/packages/index.json");
@@ -140,15 +187,16 @@ async function main(argv: string[]): Promise<void> {
     process.exit(verb ? 1 : 0);
   }
 
-  /** A collection is a folder, not a log: read whole, and written as a package file. */
+  /** A source folder is a folder, not a log: read whole, and written as a package file. */
   if (verb === "collect") {
-    const { text, made, clashes } = collect(basename(resolve(source)), leaves(source),
-                                            fold([], FLOOR), { bare: rest.includes("--bare") });
+    const { text, made, clashes, notes } = gathered(source, rest.includes("--workspace"),
+                                                    rest.includes("--bare"));
     const out = loose(rest)[0];
     if (out) writeFileSync(out, text);
     else process.stdout.write(text);
     if (made.length) console.error(`  made ${made.join(", ")}`);
     if (clashes.length) console.error(`  refused, said twice: ${clashes.join(", ")}`);
+    for (const n of notes) console.error(`  ${n}`);
     return;
   }
 
@@ -187,7 +235,7 @@ async function main(argv: string[]): Promise<void> {
       if (how && layer !== null) graph = { ...graph,
         blocks: { ...graph.blocks, [layer]: { ...graph.blocks[layer]!,
           settings: { ...graph.blocks[layer]!.settings, layout: { kind: how } } } } };
-      const scene = project(graph, layer);
+      const scene = project(graph, layer, look_of(graph, layer));
       const wrong = faults(scene);
       if (wrong.length) {
         console.error("the scene is not well-formed:");

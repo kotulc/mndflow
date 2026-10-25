@@ -1,8 +1,8 @@
 /** What the open layer holds, as rows. */
 
-import { all_defs, alias_of, children, def_at, def_of, domain_of, edge_base, edges_in, frozen,
-         is_base, is_holder, is_interface, isa, base_of, package_of, path, shown_name, subtree,
-         type Block, type Domain, type Graph, type Id } from "@mnd/core";
+import { alias_name, all_defs, alias_of, children, def_at, def_of, domain_of, edge_base, edges_in,
+         frozen, is_base, is_box, is_holder, isa, base_of, package_of, part_id, path, ports_on, shown_name,
+         subtree, type_name, type Block, type Domain, type Graph, type Id } from "@mnd/core";
 
 /** What a row is, which is also how it is filtered. */
 export type Sort = "block" | "interface" | "relationship" | "group" | "note";
@@ -28,39 +28,38 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
   const called = (id: Id) => [shown_name(graph, id), alias_of(graph, id)]
     .filter(Boolean).join(" ");
 
-  /** Every layer below, or just this one. */
+  /** Every layer below, or just this one in reading order — a region or a group heading what
+   *  it holds, since a room's blocks list here rather than in the explorer. */
   const walk = (at: Id | null): Block[] => children(graph, at)
-    .flatMap((b) => (deep && !is_interface(graph, b.id) ? [b, ...walk(b.id)] : [b]));
+    .flatMap((b) => (deep || is_box(graph, b.id) ? [b, ...walk(b.id)] : [b]));
 
   for (const b of walk(layer)) {
     const kind = base_of(graph, b.id);
-    const held = children(graph, b.id).filter((k) => !is_interface(graph, k.id)).length;
-    const ports = children(graph, b.id).filter((k) => is_interface(graph, k.id)).length;
-    /** Where it sits, once the listing crosses layers. */
-    const within = deep && b.parent && b.parent !== layer
-      ? `in ${called(b.parent)}` : "";
+    const held = children(graph, b.id).length;
+    const worn = ports_on(graph, b.id);
+    const ports = worn.length;
+    /** Where it sits, once it sits in a region or below the room listed. */
+    const within = b.parent && b.parent !== layer ? `in ${called(b.parent)}` : "";
     out.push({
       id: b.id,
-      sort: is_interface(graph, b.id) ? "interface"
-          : is_holder(graph, b.id) ? "group" : kind === "note" ? kind : "block",
-      kind: is_interface(graph, b.id) ? "interface" : kind,
+      sort: is_holder(graph, b.id) ? "group" : kind === "note" ? kind : "block",
+      kind,
       fields: Object.fromEntries((b.values ?? []).map((f) => [f.name, f.value ?? ""])),
       name: called(b.id),
-      what: is_interface(graph, b.id)
-        ? `${wall(b.side)}${b.flow ? `, ${b.flow}` : ""}`
-        : [within, held ? `holds ${held}` : "",
-           ports ? `${ports} interface${ports > 1 ? "s" : ""}` : ""]
-            .filter(Boolean).join(" · "),
+      what: [within, held ? `holds ${held}` : "",
+             ports ? `${ports} interface${ports > 1 ? "s" : ""}` : ""]
+              .filter(Boolean).join(" · "),
       type: plain(graph, b.type) ? "" : graph.blocks[b.type!]?.name ?? b.type!,
     });
 
-    for (const port of children(graph, b.id)) {
-      if (!is_interface(graph, port.id)) continue;
+    /** The interfaces it wears, each under its drawn id. */
+    for (const port of worn) {
       out.push({
-        id: port.id, sort: "interface", kind: "interface", name: called(port.id),
-        fields: Object.fromEntries((port.values ?? []).map((f) => [f.name, f.value ?? ""])),
-        what: `on ${called(b.id)}, ${wall(port.side)}`,
-        type: plain(graph, port.type) ? "" : graph.blocks[port.type!]?.name ?? port.type!,
+        id: part_id(b.id, port.id), sort: "interface", kind: "interface",
+        name: port.name ?? (port.alias ? alias_name("interface", port.alias) : "interface"),
+        fields: {},
+        what: `on ${called(b.id)}, ${wall(port.side)}${port.flow ? `, ${port.flow}` : ""}`,
+        type: port.type ? type_name(graph, port.type) : "",
       });
     }
   }
@@ -161,7 +160,8 @@ export function block_usage_rows(graph: Graph, layer: Id | null, deep: boolean):
   const blocks = deep
     ? subtree(graph, graph.root).filter((id) => id !== graph.root).map((id) => graph.blocks[id]!)
     : children(graph, layer);
-  return blocks.map((b) => ({
+  /** A definition is what usages follow, never one of them. */
+  return blocks.filter((b) => !b.def).map((b) => ({
     id: b.id,
     name: called(b.id),
     what: base_of(graph, b.id),

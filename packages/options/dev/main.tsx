@@ -11,26 +11,22 @@ import "./dev.css";
 
 /** What a projection offers, as it would arrive from a Scene. */
 const SLOTS: Record<string, string[]> = {
-  block: ["layer", "display", "relations"],
-  "block, a grid picked": ["layer", "display", "relations"],
+  room: ["palette", "make", "relations"],
+  "a diagram": ["relations"],
 };
 
 function Harness() {
-  const [module, set_module] = useState("block");
+  const [module, set_module] = useState("room");
   const [log, set_log] = useState<string[]>([]);
   const [chrome, set_chrome] = useState<Chrome>({
-    slots: SLOTS["block"]!, layout: "free", interfaces: true,
-    lattice: true, module: "line",
+    slots: SLOTS["room"]!, family: "flow", module: "line",
   });
 
   const act = (name: string, args?: Record<string, unknown>) => {
     set_log((l) => [`${name} ${JSON.stringify(args ?? {})}`, ...l].slice(0, 14));
-    if (name === "layout") set_chrome((c) => ({ ...c, layout: args!["kind"] as never }));
-    if (name === "interfaces") set_chrome((c) => ({ ...c, interfaces: args!["show"] as boolean }));
     if (name === "relate_with") {
       set_chrome((c) => ({ ...c, module: args!["module"] as never }));
     }
-    if (name === "lattice") set_chrome((c) => ({ ...c, lattice: args!["show"] as boolean }));
   };
 
   const groups = groups_of(chrome, act);
@@ -51,7 +47,7 @@ function Harness() {
       </header>
       <div className="split">
         <div className="stand">
-          <p>A module declares its slots and the rail draws them in a fixed order. Switch the module above: <b>a matrix has no interfaces toggle because it declares none</b>, never because one was greyed out.</p>
+          <p>A module declares its slots and the rail draws them in a fixed order. Switch the module above: <b>a diagram has no palette because it declares no layer</b>, never because one was greyed out.</p>
         </div>
         <Options groups={groups} />
         <pre className="log">{log.join("\n") || "every control it emits shows here"}</pre>

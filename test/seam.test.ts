@@ -25,9 +25,12 @@ describe("a translator's graph", () => {
     expect(back.graph.defs).toMatchObject(graph.defs);
   });
 
+  /** Its set is a folder: a box on that layer, the pages it holds drawn inside. */
   it("projects the layer it filed its vocabulary on", () => {
     const tier = project(graph, TIER, {});
-    expect(tier.nodes.map((n) => n.id)).toEqual(["set_guides"]);
+    const set = tier.nodes.find((n) => n.id === "set_guides")!;
+    expect(set.type).toBe("group");
+    expect(set.data.holds).toContain("page_start");
   });
 });
 

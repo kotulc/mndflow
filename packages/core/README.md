@@ -1,6 +1,6 @@
 # @mnd/core
 
-**The engine.** The graph, the log, the door, the file, the closed action set and the ports. No React, no DOM, no `window`, and no dependency on any other package — one library, `yaml`, reads a card's frontmatter.
+**The engine.** The graph, the log, the door, the file, the closed action set and the ports. No React, no DOM, no `window`, and no dependency on any other package — one library, `yaml`, reads diagram files and a card's frontmatter.
 
 | | |
 |---|---|
@@ -37,11 +37,13 @@ npm run typecheck -w @mnd/core
 | `names.ts` | names, handles, labels and roles; the system marks a card is stamped with — **what it stands in for** (`definition`, `reference`, `package`), alone, **or what describes it** (`structure` on a definition holding it, `data`), which stack; and `schema_def`, the workspace definition a block's data answers |
 | `components.ts` | what a definition configures, each component validating its own key |
 | `door.ts` | the one way a log comes in. Checks and repairs what it can, drops what it cannot, and writes the repair as a step. **Never migrates** |
-| `capabilities.ts` | `allows` (refused at the gesture) and `expects` (advice), merged along the chain; `review` reports what loaded data breaks, and never repairs |
+| `capabilities.ts` | `allows` (refused at the gesture), merged along the chain, and the rules of the constraints an element is held to (`expects_of`, advice); `review` reports what loaded data breaks, and never repairs |
 | `actions/` | the registry — name, sentence, scope, arguments, `check`, `run` — one file per subject, plus the three adjustments |
 | `session.ts` | hold the log, fold it, run an action, append what it wrote; `batch` makes one step of several, `bring` adds a package file beside the workspace, frozen; `save` and `save_package` export |
-| `card.ts` | a card as markdown: `card_text` writes a block or definition as its card source, `read_card` splits one into frontmatter and body |
-| `collection.ts` | `collect`: a folder of markdown usages and the `package.json` definitions they name, as one package file |
+| `card.ts` | a card as markdown: `card_text` writes a block or definition as its card source, `read_card` splits one into frontmatter and body; `BLOCK_KEYS`, the keys a block says itself with |
+| `diagram.ts` | a diagram file or frontmatter spelled out: `long_form` turns every short form into the long form. Syntax only |
+| `refs.ts` | names in place of ids: `path_to` (`a::b`), `def_ref` (`pkg.name`, a bare name in the packages listed) |
+| `sources.ts` | `collect`: a folder of definition files, diagram files and card sources as one package file, or as the workspace; `wanted`, the packages its files list |
 | `file.ts` | the envelope, its canonical layout, and compaction. `write` carries the packages a workspace uses; `write_package` exports the workspace as a package; `unmet` is what a file names and does not carry. **Two readers**: `read` gives the log a session works in, `open` gives the graph and is the one offered outward |
 | `ports.ts` | the host contract, declared and never implemented |
 | `ids.ts` | id minting |

@@ -4,20 +4,24 @@
  *  tabs of its own for blocks through `extras`. */
 
 import { useEffect, useState, type ReactNode } from "react";
-import { about_of, alias_of, children, def_at, def_of, domain_of, frame_of, frozen,
-         is_interface, is_tag, is_trait, is_value_type, of_ref, owner_of, shown_name,
-         stands_for, type Act, type Graph, type Id } from "@mnd/core";
+import { about_of, alias_name, alias_of, children, def_at, def_of, domain_of, entry_at, frame_of,
+         constraint_at, frozen, interface_at,
+         is_interface, of_ref, owner_of, registry_at, stored_of, shown_name, stands_for, tag_at,
+         type_at, type Act, type Graph, type Id, type Registry as Of } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
 import { resolved } from "@mnd/views";
 import { rows_of, type Row, type Sort } from "./rows";
-import { Attributes } from "./Attributes";
+import { Carried } from "./Carried";
 import { Element } from "./Element";
-import { Settings } from "./Settings";
+import { Json } from "./Json";
+import { Content } from "./Content";
 import { Definitions, type Shelf } from "./Definitions";
 import { Entry } from "./Entry";
 import { lit_row, scope_chips, Table, type Column, type Scope } from "./Table";
+import { Overview } from "./Overview";
 import { Usages } from "./Usages";
 import { Packages, type Offered } from "./Packages";
+import { Registry } from "./Registry";
 import { Workspace, type Display } from "./Workspace";
 import { NOOP } from "./Body";
 
@@ -25,7 +29,9 @@ import { NOOP } from "./Body";
 export type Hold =
   | { of: "id"; id: Id }
   /** A library section in the explorer: every definition, or one narrowing of them. */
-  | ({ of: "defs" } & Shelf);
+  | ({ of: "defs" } & Shelf)
+  /** A package's registry of types or tags: its entries and where each is used. */
+  | { of: "registry"; registry: Of };
 
 export type TrayProps = {
   graph: Graph;
@@ -59,11 +65,13 @@ export type TrayProps = {
 /** A host's tab: what it is called, and what it shows for the block the tray is about. */
 export type Extra = { name: string; draw: (about: Id) => ReactNode };
 
-export type Tab = "card" | "line" | "settings" | "attributes" | "contents" | "definitions"
-                | "packages" | "usages" | "workspace";
+export type Tab = "overview" | "card" | "line" | "settings" | "components" | "contents" | "definitions"
+                | "packages" | "usages" | "workspace" | "interface" | "tag" | "type" | "entries";
 
-/** What the tray is about. The root is not a block anybody draws, so it is its own context. */
-type Context = "root" | "block" | "line" | "definition" | "relation" | "library" | "packages";
+/** What the tray is about. The root is not a block anybody draws, so it is its own context; a
+ *  component — an interface, a tag, a type — is asked its own questions. */
+type Context = "root" | "block" | "line" | "definition" | "relation" | "library" | "packages"
+  | "interface" | "tag" | "type" | "registry";
 
 /** A slot per context: an element lists its types, a library section every definition, and the
  *  packages section what the workspace draws on — a package's definitions read in the explorer,
@@ -71,21 +79,29 @@ type Context = "root" | "block" | "line" | "definition" | "relation" | "library"
 const SLOTS: Record<Context, readonly Tab[]> = {
   /** The root draws nowhere, so it is asked about itself and about what it holds, and no more. */
   root: ["workspace", "contents"],
-  /** **Every element asks the same questions, in the same order**: what it is and says — its
-   *  first tab named for what is drawn, a card or a line — how it draws, what it carries, and
-   *  what it lists: a usage its contents, a definition its usages. A usage's settings are its
-   *  definition's, read here and edited there. A line holds no values and nothing else. */
-  block: ["card", "settings", "attributes", "contents"],
-  line: ["line", "settings", "attributes"],
-  definition: ["card", "settings", "attributes", "usages"],
-  relation: ["line", "settings", "attributes", "usages"],
+  /** **Every element asks the same questions, in the same order**: a block first what it is for
+   *  at a glance; then what it is — named for what is drawn, a card or a line — on a definition
+   *  how it draws, what it carries, and what it lists: a usage its contents, a definition its
+   *  usages. A usage lists no settings, since it cannot change them. */
+  block: ["overview", "card", "components", "contents"],
+  line: ["line", "components"],
+  definition: ["overview", "card", "settings", "components", "usages"],
+  relation: ["line", "settings", "components", "usages"],
   library: ["definitions"],
   packages: ["packages"],
+  interface: ["interface"],
+  tag: ["tag"],
+  type: ["type"],
+  registry: ["entries"],
 };
 
-/** Where a context opens when nothing was asked: the root on what the workspace is, anything
- *  else on its last tab. */
-const OPENS: Partial<Record<Context, Tab>> = { root: "workspace" };
+/** The contexts about one element, which carry a json chip. */
+const ELEMENTS: readonly Context[] = ["block", "line", "definition", "relation"];
+
+/** Where a context opens when nothing was asked: the root on what the workspace is, a block on
+ *  its overview, anything else on its last tab. */
+const OPENS: Partial<Record<Context, Tab>> = { root: "workspace", block: "overview",
+                                               definition: "overview" };
 
 /** Which contexts share a tab between them: every instance is read the same way, and so is
  *  every definition, so moving from one to the next keeps the question being asked. */
@@ -93,6 +109,7 @@ const FAMILY: Record<Context, string> = {
   root: "root", block: "instance", line: "instance",
   definition: "definition", relation: "definition",
   library: "library", packages: "packages",
+  interface: "interface", tag: "tag", type: "type", registry: "registry",
 };
 
 const HEAD: readonly Column[] = [
@@ -116,27 +133,35 @@ const FILTERS: { sort: Sort | "all"; label: string }[] = [
   { sort: "note", label: "notes" },
 ];
 
-/** The layer a thing is drawn in: a block's parent, an interface's owner's, a line's first end's. */
+/** The layer a thing is drawn in: a block's parent, a line's first end's. */
 function home_of(graph: Graph, id: Id): Id | null {
   const e = graph.edges[id];
   const b = graph.blocks[e ? owner_of(graph, e.from) : id];
   if (!b) return null;
-  const home = is_interface(graph, b.id) ? graph.blocks[b.parent ?? ""]?.parent : b.parent;
+  const home = b.parent;
   /** The root layer is `null`, as the open layer names it. */
   return !home || home === graph.root ? null : home;
+}
+
+/** Whether a definition says anything of its own about how it draws. */
+function own_looks(graph: Graph, id: Id): boolean {
+  const bag = def_at(graph, id)?.settings;
+  return ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
 }
 
 /** What sort of thing the tray is about, in a word. */
 function what_of(graph: Graph, id: Id): string {
   const b = graph.blocks[id];
   if (graph.edges[id]) return "relation";
+  if (is_interface(graph, stored_of(graph, id))) return "interface";
+  if (interface_at(graph, id)) return "interface definition";
+  if (constraint_at(graph, id)) return "constraint";
+  if (tag_at(graph, id)) return "tag";
+  if (type_at(graph, id)) return "type";
   if (!b) return "";
   if (id === graph.root) return "workspace";
   if (b.parent === null) return "package";
-  if (b.def) {
-    return is_trait(graph, id) ? "trait" : is_tag(graph, id) ? "tag"
-      : is_value_type(graph, id) ? "type" : "definition";
-  }
+  if (b.def) return "definition";
   return resolved(graph, id).stands_in ? "stand-in" : of_ref(graph, id) ? "reference" : "usage";
 }
 
@@ -149,6 +174,8 @@ export function Tray(props: TrayProps) {
   const [seen, set_seen] = useState<Record<string, string>>({});
   /** Full height, as a control of its own. */
   const [big, set_big] = useState(false);
+  /** Whether the body reads as the JSON it follows, kept as the context moves. */
+  const [raw, set_raw] = useState(false);
   const [only, set_only] = useState<Sort | "all">("all");
   /** Field columns the reader asked for, in the order they asked. */
   const [columns, set_columns] = useState<string[]>([]);
@@ -161,17 +188,28 @@ export function Tray(props: TrayProps) {
   /** What the tray is about: a hold, else the one thing picked, else the open layer. */
   /** Which library section the explorer pointed at, which is about no one element. */
   const library = hold?.of === "defs" ? hold : null;
-  const held_id = hold?.of === "id" && (def_at(graph, hold.id) || graph.blocks[hold.id])
-    ? hold.id : null;
-  const about: Id = held_id ?? about_of(graph, layer, picked);
+  /** A registry held from the explorer, or opened on the canvas with nothing picked. */
+  const registry = hold?.of === "registry" ? hold.registry
+    : !hold && !picked.length ? registry_at(graph, layer) : null;
+  const held_id = hold?.of === "id" && (def_at(graph, hold.id) || graph.blocks[hold.id]
+    || entry_at(graph, hold.id)) ? hold.id : null;
+  /** An interface picked on the canvas is about itself, though it is no block. */
+  const port = picked.length === 1 && is_interface(graph, stored_of(graph, picked[0]!))
+    ? picked[0]! : null;
+  /** A registry's tile picked on the canvas is about its entry. */
+  const entry = picked.length === 1 && entry_at(graph, picked[0]) ? picked[0]! : null;
+  const about: Id = held_id ?? port ?? entry ?? about_of(graph, layer, picked);
 
   /** A new selection takes the light back, so no table lights what the tray is not about. */
   const on_canvas = picked.join();
   useEffect(() => set_lit(null), [on_canvas]);
 
-  const context: Context = library
+  const context: Context = registry ? "registry" : library
     ? (library.only === "packages" ? "packages" : "library")
     : about === graph.root ? "root"
+    : is_interface(graph, stored_of(graph, about)) || interface_at(graph, about) ? "interface"
+    : tag_at(graph, about) || constraint_at(graph, about) ? "tag"
+    : type_at(graph, about) ? "type"
     : graph.edges[about] ? "line"
     : def_at(graph, about) && domain_of(graph, about) === "relation" ? "relation"
     : def_at(graph, about) ? "definition" : "block";
@@ -188,20 +226,18 @@ export function Tray(props: TrayProps) {
   const alike = (t?: string) => (t === "card" || t === "line"
     ? tabs.find((x) => x === "card" || x === "line") : t);
   const tab: string = [props.tab, seen[family]].map(alike).find((t) => t && tabs.includes(t))
-    ?? OPENS[context] ?? hosted[0] ?? tabs[tabs.length - 1]!;
-  const set_tab = (t: string) => { set_seen((s) => ({ ...s, [family]: t })); props.onTab?.(t); };
+    ?? hosted[0] ?? OPENS[context] ?? tabs[tabs.length - 1]!;
+  /** Picking a tab, even the one shown, turns the json off. */
+  const set_tab = (t: string) => {
+    set_raw(false);
+    set_seen((s) => ({ ...s, [family]: t }));
+    props.onTab?.(t);
+  };
 
   /** Everything the panels do goes out. */
   const act: Act = (name, args) => onAct?.(name, args);
   /** What a read-only listing acts with: nothing. */
   const reads = edits ? act : NOOP;
-
-  /** Whether the definition in context has looks to reset, and whether it is a package's. */
-  const bag = def_at(graph, about)?.settings;
-  const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
-  const borrowed = !!def_at(graph, about) && frozen(graph, about);
-  /** Whether it states its own traits, and so has a list to give back. */
-  const own_traits = !!def_at(graph, about)?.traits;
 
   /** A reference holds nothing of its own — `of` is the whole of it — so its contents is the one
    *  it stands for, listed as a row like any other and offering the way there. */
@@ -269,12 +305,20 @@ export function Tray(props: TrayProps) {
   const on_row = lit_row(shown, asked_row);
   const on_stood = lit_row(stood ? [stood] : [], asked_row);
 
-  /** The head names the context, then says what sort it is: a definition — a trait, tag or type
+  /** The head names the context, then says what sort it is: a definition — a tag or type
    *  among them — a package, a stand-in for a definition, a reference, a relation, or a usage. */
-  const word = library ? "definitions" : what_of(graph, about);
-  const name = library ? [library.from ?? (library.only === "all" ? "" : library.only),
+  const word = registry ? "registry" : library ? "definitions" : what_of(graph, about);
+  const name = registry ? `${shown_name(graph, registry.pkg)} · ${registry.kind}`
+    : library ? [library.from ?? (library.only === "all" ? "" : library.only),
                  library.group ? `${library.group}s` : ""].filter(Boolean).join(" · ")
-    : def_at(graph, about) ? def_at(graph, about)!.name : shown_name(graph, about);
+    : def_at(graph, about) ? def_at(graph, about)!.name
+    : tag_at(graph, about)?.name ?? type_at(graph, about)?.name ?? port_name(graph, about)
+    ?? shown_name(graph, about);
+
+  /** The definition an element follows, or itself, which the json chip reads as filed. */
+  const filed = ELEMENTS.includes(context) ? held_def : null;
+  /** What the body draws: the json, while the chip is on, else the tab. */
+  const shows = raw && filed ? "json" : tab;
 
   return (
     <TrayFrame
@@ -291,68 +335,77 @@ export function Tray(props: TrayProps) {
       {...(open && tab === "contents" && !points_at ? {
         tools: <span className="holds">{shown.length} {shown.length === 1 ? "element" : "elements"}</span>,
       } : {})}
-      {...(edits && tab === "card" && graph.blocks[about] && !def_at(graph, about) ? {
-        /** A usage may take a markdown file's card source; again, to refresh it. */
-        tabTools: (
-          <button className="reset" title="copy a markdown file onto this card; again, to refresh"
-                  onClick={() => act("@attach", { id: about })}>
-            attach
-          </button>
-        ),
-      } : {})}
-      {...(onAct && tab === "settings" && def_at(graph, about) ? {
-        tabTools: (
-          <>
-            <button className="reset" disabled={borrowed || !its_own}
-                    title={its_own ? "give every look back to what it inherits"
-                                      : "it says nothing of its own to give back"}
+      tabTools={(
+        <>
+          {/* A usage may take a markdown file's card source; again, to refresh it. */}
+          {edits && tab === "card" && graph.blocks[about] && !def_at(graph, about) ? (
+            <button className="reset" title="copy a markdown file onto this card; again, to refresh"
+                    onClick={() => act("@attach", { id: about })}>
+              attach
+            </button>
+          ) : null}
+          {onAct && tab === "settings" && def_at(graph, about) && !frozen(graph, about) ? (
+            <button className="reset" disabled={!own_looks(graph, about)}
+                    title="give every part of how it draws back to what it inherits"
                     onClick={() => act("none", { ids: [about] })}>
               reset style
             </button>
-            <button className="reset" disabled={borrowed || !own_traits}
-                    title={own_traits ? "carry the traits of what it extends"
-                                      : "it lists no traits of its own"}
-                    onClick={() => act("trait", { ids: [about] })}>
-              reset traits
+          ) : null}
+          {filed ? (
+            <button className={raw ? "reset on" : "reset"} aria-pressed={raw}
+                    title="read the definition it follows as filed"
+                    onClick={() => set_raw(!raw)}>
+              json
             </button>
-          </>
-        ),
-      } : {})}
+          ) : null}
+        </>
+      )}
     >
-          {tab === "workspace" ? (
+          {shows === "overview" ? (
+            <Overview key={about} graph={graph} id={about}
+                      {...(edits ? { onAct: act } : {})} />
+          ) : null}
+          {shows === "workspace" ? (
             <Workspace graph={graph} {...(edits ? { onAct: act } : {})}
                        onDisplay={props.onDisplay ?? act}
                        {...(props.display ? { display: props.display } : {})} />
           ) : null}
-          {tab === "card" || tab === "line" ? (
+          {shows === "card" || shows === "line" || shows === "interface" || shows === "tag"
+            || shows === "type" ? (
             <Element graph={graph} id={about} {...(edits ? { onAct: act } : {})}
                      onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
-          {/* How it draws: a definition's own, set here; a usage's, its definition's, read. */}
-          {tab === "settings" ? (
-            <fieldset className="panel-set" disabled={!edits || !held_def
-                                                      || frozen(graph, held_def)
-                                                      || held_def !== about}>
-              {held_def ? <Settings graph={graph} id={held_def} shown={about} onAct={reads} /> : null}
-            </fieldset>
+          {shows === "json" ? <Json graph={graph} id={about} /> : null}
+          {/* How a definition draws, laid out as its card tab. */}
+          {shows === "settings" ? (
+            <Element graph={graph} id={about} keys="settings" {...(edits ? { onAct: act } : {})}
+                     onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
-          {/* A definition declares attributes and a usage answers them. */}
-          {tab === "attributes" ? (
-            <Attributes key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})} />
+          {/* Everything it carries: attributes a definition declares and a usage answers, its ports,
+              its tags. */}
+          {shows === "components" ? (
+            <Carried key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})} />
           ) : null}
           {/* A host's own tab, for the block the tray is about. */}
-          {extras.find((x) => x.name === tab)?.draw(about) ?? null}
+          {extras.find((x) => x.name === shows)?.draw(about) ?? null}
           {/* The workspace's definitions for a library section; what one element may follow. */}
-          {tab === "definitions" ? (
+          {shows === "definitions" ? (
             <Definitions key={JSON.stringify(narrowed)} seed={narrowed} graph={graph}
                          follows={null} lines={[]} onAct={reads}
                          onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
+          {/* A registry's entries, and where each is used. */}
+          {shows === "entries" && registry ? (
+            <Registry key={`${registry.pkg}/${registry.kind}`} graph={graph} registry={registry}
+                      lit={lit} onLit={set_lit}
+                      onHover={onHover} onOpen={(id) => onHold({ of: "id", id })}
+                      {...(onView ? { onView: (id: Id) => onView(home_of(graph, id), id) } : {})} />
+          ) : null}
           {/* What the workspace draws on, and how one more gets in. */}
-          {tab === "packages" ? (
+          {shows === "packages" ? (
             <Packages graph={graph} offered={props.offered} onAct={reads} />
           ) : null}
-          {tab === "usages" ? (
+          {shows === "usages" ? (
             <Usages graph={graph} group={lined ? "relation" : "block"}
                     scope={scope} onScope={set_scope}
                     layer={layer} about={held_def}
@@ -361,7 +414,7 @@ export function Tray(props: TrayProps) {
                     home={(id) => home_of(graph, id)} />
           ) : null}
 
-          {tab === "contents" && points_at ? (
+          {shows === "contents" && points_at ? (
             /** A reference holds nothing, so its contents is the one it stands for. */
             <Table
               columns={STANDS} acts="6rem" rows={[]}
@@ -380,7 +433,10 @@ export function Tray(props: TrayProps) {
                   </button>
                 ) : null,
               } } : {})} />
-          ) : tab === "contents" ? (
+          ) : shows === "contents" ? (
+            <>
+            {/* What it holds as text, over what it holds as blocks. */}
+            <Content key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})} />
             <Table
               columns={[...HEAD, ...columns.map((n) => ({ key: `@${n}`, label: n }))]}
               chips={[scope_chips(scope, set_scope), chips]} tools={tools} acts="6rem"
@@ -424,7 +480,15 @@ export function Tray(props: TrayProps) {
                                 drop: `delete ${row.name}` } : {}),
                 };
               })} />
+            </>
           ) : null}
     </TrayFrame>
   );
+}
+
+/** What an interface is called: its name, else its handle. */
+function port_name(graph: Graph, id: Id): string | undefined {
+  const port = graph.blocks[stored_of(graph, id)];
+  if (!port || !is_interface(graph, port.id)) return undefined;
+  return port.name ?? (port.alias ? alias_name("interface", port.alias) : "interface");
 }

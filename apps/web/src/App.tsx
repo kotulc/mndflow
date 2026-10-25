@@ -2,14 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { aspect_acts, attach_of, collect, drop_of, held_at, is_inside, is_layer_view, layout_of,
-         session, trace, EDITOR, type ViewKind, type Storage, type Dir, type Id } from "@mnd/core";
+import { all_defs, appearances_of, collect, diagram_kind, domain_of, drop_of, touches_of,
+         held_at, in_section, is_base, is_inside, is_layer_view, lens_of, object_of,
+         path, registry_at, registry_id, registry_of,
+         session, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
+         type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
-import { box_of, clear_of, empty_of, holds, project, set_card as apply_card, tidy, BLOCK,
-         CARD, UNITS } from "@mnd/views";
+import { area_of, box_of, clear_of, empty_of, holds, layer_scene, library_map,
+         map_focus, model_map, project, set_aspect, set_card as apply_card, stop_area, BLOCK,
+         CARD, EMPTY, laid_ahead, UNITS, type Area, type Scene } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
-import { Icon, WorkspaceHeader } from "@mnd/theme";
-import { Stage, type Move } from "@mnd/stage";
+import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
+import { Stage, FLIGHT, still, type Move } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
 import { Tray, useDisplay, useTray, type Offered } from "@mnd/tray";
 import { browser_files, browser_net } from "./ports";
@@ -24,41 +28,56 @@ const THEMES = [
 /** Where this host keeps its definition packages. */
 const CATALOGUE = "/packages/index.json";
 
-export function App({ storage }: { storage: Storage }) {
+export function App({ storage, boot, opening }: {
+  storage: Storage; boot?: Boot; opening?: string;
+}) {
   /** The session, made once. */
   const held = useRef<ReturnType<typeof session> | null>(null);
+  const catalogue = boot?.catalogue ?? CATALOGUE;
   held.current ??= session({ storage, files: browser_files(),
-                             net: browser_net(), catalogue: CATALOGUE, floor: FLOOR });
+                             net: browser_net(), catalogue, floor: FLOOR, opening,
+                             ...(boot?.view ? { start: boot.view as ViewKind } : {}) });
   const s = held.current;
+  /** A bootstrap saying what this build does not read is told once, and still opens. */
+  useEffect(() => {
+    if (boot?.stray?.length) s.say(`mndflow.yaml: not read — ${boot.stray.join(", ")}`, "note");
+  }, [s, boot]);
   const [, bump] = useState(0);
   const [folded, set_folded] = useState<Id[]>([]);
+  /** Which region has the keys: the one last pressed or focused in. */
+  const zones = useZone();
   /** What a reveal inside a layer asked the canvas to pan to, until the next pick. */
   const [aim, set_aim] = useState<Id | null>(null);
   /** What the catalogue offers, read once. An unbound `net` leaves it empty. */
   const [offered, set_offered] = useState<readonly Offered[]>([]);
   useEffect(() => { void s.listing().then(set_offered); }, [s]);
   const [theme, set_theme] = useState<string>(
-    () => localStorage.getItem("mnd.theme") ?? "retro");
+    () => localStorage.getItem("mnd.theme") ?? boot?.theme ?? "retro");
   const look = THEMES.find((t) => t.name === theme) ?? THEMES[0];
   const next_look = THEMES[(THEMES.indexOf(look) + 1) % THEMES.length]!;
   /** The tray — open, its tab, what it holds — and how the drawing looks: chrome the shell
    *  holds and the log never sees, kept where every host keeps it. */
-  const t = useTray();
-  const { display, onDisplay } = useDisplay({ card: { ...UNITS.block }, range: CARD });
-  const [shown, set_shown] = useState({ interfaces: true, frame: true });
-  /** The layers that have said otherwise about drawing their key. **A layer holding no answer
-   *  follows the workspace**, so changing the default moves every layer that never disagreed. */
-  const [keyed, set_keyed] = useState<Record<Id, boolean>>({});
-  const { card, legend: legends, corner, lattice } = display;
+  const t = useTray(boot?.tray ?? true);
+  const { display, onDisplay } = useDisplay({
+    card: { ...UNITS.block }, range: CARD,
+    ...(boot?.display?.lattice !== undefined ? { lattice: boot.display.lattice } : {}),
+    ...(boot?.display?.legend !== undefined ? { legend: boot.display.legend } : {}),
+    ...(boot?.display?.corner ? { corner: boot.display.corner } : {}),
+  });
+  /** **One display for every room and view**, set on the workspace tab. */
+  const { card, legend, corner, lattice } = display;
+  const shown = { interfaces: display.ports !== false, frame: display.frame !== false };
   /** What a right drag draws, as the rail left it. */
-  const [drawing, set_drawing] = useState<{ module: Id; dir?: Dir }>({ module: "line" });
+  const [drawing, set_drawing] = useState<{ module: Id; dir?: Dir; type?: Id }>(
+    { module: "line" });
   /** The tray row under the pointer, lit on the canvas where it is drawn. */
   const [hovered, set_hovered] = useState<Id | null>(null);
   const { hold } = t;
   /** The explorer's sections — a package, a definition, its structure — and what each holds. */
   const chain = useChain(s.graph(), SLICES, EDITOR.top, s.view());
   /** A pick on the canvas gives the context back to the canvas, and the sections follow it. */
-  const pick = (ids: Id[]) => {
+  const pick = (given: Id[]) => {
+    const ids = given;
     set_aim(null);
     /** One card picked on a whole section is brought into sight there: the canvas's own anchor. */
     if (ids.length === 1 && !is_layer_view(s.view().kind)) {
@@ -83,45 +102,85 @@ export function App({ storage }: { storage: Storage }) {
 
   const graph = s.graph();
   const view = s.view();
-  /** The layer seen from inside, where the canvas looks into one. Anything else — a whole
-   *  section, or a definition drawn with what describes it — has none, and is not built on. */
+  /** The layer seen from inside, where the canvas looks into one. A whole section has none, and
+   *  is not built on. */
   const whole = !is_inside(view.kind);
   const system = !is_layer_view(view.kind);
-  /** A definition drawn with what describes it: edits there edit it (core `aspect_acts`). */
-  const described = view.kind === "definition" ? view.layer : null;
+  /** A diagram is read, never built in: its room hugs what it draws, as a page's does. */
+  const diagram = (DIAGRAM_VIEWS as readonly string[]).includes(view.kind);
   const layer = whole ? null : view.layer;
   const said = s.said();
-  const laid_out = layout_of(graph, layer);
-  /** What the canvas has open: a layer, or a whole section in one view. */
-  const here = whole ? `@${SLICES[view.at]!.id}:${view.kind}` : layer ?? "";
-  const legend = keyed[here] ?? legends;
-
-  /** The views the rail offers: the section's whole views, then the layer view — never chosen,
-   *  only shown, or on a whole section the way back to where the block in hand is drawn: the one
-   *  brought into sight, else what the section holds. */
-  const in_hand = system ? view.pick ?? chain.held[view.at] ?? null : view.layer;
-  const back: ViewKind | null = !system ? view.kind : in_hand ? "internal" : null;
-  const seeing: ViewKind[] = [...SLICES[view.at]!.views.filter((k) => !is_layer_view(k)),
-                              ...(back ? [back] : [])];
 
   /** The drawing's proportions are the views module's, so the session's card is applied before
    *  anything is placed. */
   apply_card(card.w, card.h);
+  /** Rooms fill toward the window's shape: steady while the tray opens and shuts. */
+  const aspect = set_aspect(Math.round((window.innerWidth / Math.max(1, window.innerHeight)) * 10) / 10);
 
-  /** How many cards the overhead view's rows hold: as many as the canvas is wide. */
+  /** How many cards a row holds: a page (package, folder) as many as the canvas is wide;
+   *  any other layer four on a landscape canvas, two on a taller one. */
   const [canvas, set_canvas] = useState<HTMLElement | null>(null);
-  const room = useWidth(canvas);
-  const across = Math.max(2, Math.floor(room / ((card.w + UNITS.gap) * UNITS.unit * READ)) );
+  const room = useBox(canvas);
+  const paged = !is_layer_view(view.kind) || view.kind === "folder";
+  const across = paged
+    ? Math.max(2, Math.floor(room.w / ((card.w + UNITS.gap) * UNITS.unit)))
+    : room.h > room.w ? 2 : 4;
 
-  /** What a profile cuts through: what the canvas brought into sight — browsing never moves it. */
-  const target = view.kind !== "profile" ? null : view.pick ?? view.layer;
+  /** **The map, the model's and the library's**: one treemap of the side the explorer lists,
+   *  worked out on every graph change. A registry draws its own view. */
+  const lists = SLICES[view.at]!.lists;
+  const pkg = view.layer && graph.blocks[view.layer]
+    ? path(graph, view.layer)[0]?.id ?? null : null;
+  const root = lists === "structure" ? pkg ?? graph.root : null;
+  const map = useMemo(() => (!lists || view.kind === "registry" ? null
+    : lists === "domain" ? library_map(graph) : model_map(graph, root!)),
+  [graph, lists, root, view.kind === "registry", card, aspect]);
+  /** Counted up by every open, so opening the focus again flies back to it. */
+  const [opened, set_opened] = useState(0);
+  /** Where the map's camera stops instead of the focus's area: a chip filling the view, while it
+   *  is entered or left. */
+  const [through, set_through] = useState<(Area & { scale: number }) | null>(null);
+  const focus_area = map ? stop_area(graph, map, view.layer) : null;
+  /** **The block entered from the map**: its own view, drawn alone, held while the open layer is
+   *  it or inside it. Opening anything above it returns to the map, as Escape does. */
+  const [entry, set_entry] = useState<Id | null>(null);
+  const entered = !!entry && !!view.layer && path(graph, view.layer).some((b) => b.id === entry);
+  useEffect(() => { if (entry && !entered) set_entry(null); }, [entry, entered]);
+  const mapped = !!map && !entered;
 
-  /** Projected once per graph, view, layer or proportion change — and, for a profile, per pick. */
-  const scene = useMemo(
-    () => project(graph, view.layer, { interfaces: shown.interfaces, across,
-                                       look: { kind: view.kind, cut: SLICES[0]!.cut,
-                                               tops: true, target } }),
-    [graph, view.layer, view.kind, view.at, target, shown.interfaces, card, across]);
+  /** **A layer laid out ahead answers later** (ELK, in its worker): whatever was drawn last — the
+   *  map, another layer, this one before an edit — stays, read only, until it answers. */
+  const ahead = !mapped && !!view.layer && laid_ahead(view.kind);
+  const shape = [view.layer, view.kind, lists, shown.interfaces].join("|");
+  const [laid, set_laid] = useState<{ shape: string; scene: Scene } | null>(null);
+  useEffect(() => {
+    if (!ahead) return;
+    let live = true;
+    void layer_scene(graph, view.layer!, view.kind, { interfaces: shown.interfaces,
+                                                      ...(lists ? { lists } : {}) })
+      .then((next) => { if (live) set_laid({ shape, scene: next }); });
+    return () => { live = false; };
+  }, [graph, ahead, shape, card, aspect]);
+
+  const waiting = ahead && laid?.shape !== shape;
+  const last = useRef<Scene | null>(null);
+
+  /** Projected once per graph, view, layer or proportion change. */
+  const scene = useMemo((): Scene => {
+    if (mapped) return map_focus(graph, map!, view.layer);
+    if (ahead) return waiting ? last.current ?? { ...EMPTY, layer: view.layer } : laid!.scene;
+    return project(graph, view.layer, { interfaces: shown.interfaces, across,
+                                        look: { kind: view.kind, cut: SLICES[view.at]!.cut,
+                                                tops: true, ...(lists ? { lists } : {}) } });
+  }, [graph, map, mapped, ahead, waiting, laid, view.layer, view.kind, view.at, shown.interfaces,
+      card, across]);
+  last.current = scene;
+  /** The camera holds the chip filling the view until the entered layer answers and cuts to it. */
+  useEffect(() => { if (!scene.areas) set_through(null); }, [scene.areas]);
+
+  /** **The canvas edits in every view but the map**: what a view cannot hold, core refuses and
+   *  says why. */
+  const arranging = !mapped && !waiting && scene.slots.includes("layer");
 
   /** **The sections follow the canvas** — one rule (`held_at`), whatever moved it: the layer opened,
    *  or a pick on the overhead view. Browsing outside the open structure moves neither. */
@@ -135,23 +194,64 @@ export function App({ storage }: { storage: Storage }) {
   const drawn = useMemo(() => new Set([...scene.nodes.map((n) => n.id),
                                        ...scene.edges.map((e) => e.id)]), [scene]);
 
-  const act = (name: string, args?: Record<string, unknown>) => {
+  /** What is lit: the tray row under the pointer, and **every other appearance** of what is
+   *  picked — one object, wherever it is drawn. */
+  const lit = useMemo(() => [...new Set([
+    ...(hovered ? appearances_of(graph, hovered) : []),
+    ...s.picked().flatMap((id) => appearances_of(graph, id).filter((a) => a !== id)),
+  ])].filter((id) => drawn.has(id)), [graph, hovered, drawn, s.picked()]);
+
+  /** **What the selection touches** elsewhere — its lines' far ends, its stand-ins — lit wherever
+   *  drawn; nothing dims. */
+  const touched = useMemo(() => [...new Set(s.picked().flatMap((id) => touches_of(graph, id)))]
+    .filter((id) => drawn.has(id) && !s.picked().includes(id)), [graph, drawn, s.picked()]);
+
+  /** A map area the camera fills the view with: no ceiling, so a chip is flown right into. */
+  const filling = (a: Area | null) => (a ? { ...a, scale: FILL } : null);
+
+  /** **Entering from the map**: the camera flies into the chip until it fills the view, then the
+   *  block's own view takes over there, fading in. Only what opens on a view is entered. Without
+   *  a map, or with reduced motion, it is entered at once. */
+  const enter = (id: Id, at?: unknown) => {
+    if (!id || !lens_of(s.graph(), id)) return;
+    if (id !== s.view().layer) act("open", { id, ...(at === undefined ? {} : { at }) });
+    const area = map && !entered ? filling(area_of(s.graph(), map, id)) : null;
+    if (!area || still()) { set_entry(id); return; }
+    set_through(area);
+    window.setTimeout(() => set_entry(id), FLIGHT);
+  };
+
+  /** **Leaving**: the map takes over with the chip filling the view, and the camera flies out to
+   *  it. */
+  const leave = () => {
+    const area = map ? filling(area_of(s.graph(), map, s.view().layer)) : null;
+    set_entry(null);
+    if (!area || still()) return;
+    set_through(area);
+    window.setTimeout(() => set_through(null), 30);
+  };
+
+  const act = (name: string, given?: Record<string, unknown>) => {
+    const args = given;
     /** Undo and redo arrive through the same channel as actions. */
     if (name === "undo") { s.undo(); return; }
     if (name === "redo") { s.redo(); return; }
-    if (described) {
-      s.batch(() => aspect_acts(s.graph(), described, name, args ?? {})
-        .forEach((a) => s.go(a.act, a.args)));
-    }
-    else s.go(name, args ?? {});
+    /** Entering and leaving a room are not steps. */
+    if (name === "read") { enter(String(args?.["id"] ?? s.view().layer ?? ""), args?.["at"]); return; }
+    if (name === "widen") { leave(); return; }
+    s.go(name, args ?? {});
+    if (name === "open") set_opened((n) => n + 1);
     /** Opening, leaving and revealing are navigation's: the sections follow where it went, and
      *  the canvas pans to what it revealed inside a layer. */
     if (name === "open" || name === "reveal") {
       t.release();
       follow();
-      /** Cleared first, so revealing the same block again pans again; leaving aims at nothing. */
+      /** Cleared first, so revealing the same block again pans again; opening aims at nothing,
+       *  the camera fits the room. A whole section follows its own pick, so a canvas pick there
+       *  flushes nothing mid-render. */
+      if (!is_inside(s.view().kind)) { set_aim(null); return; }
       flushSync(() => set_aim(null));
-      if (args?.["id"] && is_inside(s.view().kind)) set_aim(s.picked()[0] ?? null);
+      if (name === "reveal" && args?.["id"]) set_aim(s.picked()[0] ?? null);
     }
   };
 
@@ -165,37 +265,53 @@ export function App({ storage }: { storage: Storage }) {
 
   /** The rail's controls: display state here, everything else an action. */
   const chrome = (name: string, args?: Record<string, unknown>) => {
-    /** The canvas's section shown another way, keeping in sight what it holds. */
-    if (name === "view") {
-      s.see(args!["kind"] as ViewKind, in_hand);
-      follow();
-      return;
-    }
-    if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
-    if (name === "frame") { set_shown((c) => ({ ...c, frame: !!args!["show"] })); return; }
-    /** An answer that agrees with the workspace is dropped rather than stored, so the layer goes
-     *  back to following the default instead of pinning today's value. */
-    if (name === "legend") {
-      const show = !!args!["show"];
-      set_keyed(({ [here]: _was, ...rest }) =>
-        show === legends ? rest : { ...rest, [here]: show });
-      return;
-    }
     /** The workspace's display answers, kept where every host keeps them. */
-    if (["lattice", "legends", "legend_corner", "card"].includes(name)) {
+    if (["lattice", "legends", "legend_corner", "card", "frame", "ports"]
+          .includes(name)) {
       onDisplay(name, args);
       return;
     }
     if (name === "relate_with") {
       const dir = args!["dir"] ? String(args!["dir"]) as Dir : undefined;
       set_drawing({ module: args!["module"] as Id,
-                    ...(dir && dir !== "none" ? { dir } : {}) });
+                    ...(dir && dir !== "none" ? { dir } : {}),
+                    ...(args!["type"] ? { type: String(args!["type"]) } : {}) });
       return;
     }
-    /** Leaving a computed layout writes its positions so `free` keeps them. */
-    if (name === "layout") {
-      const leaving = laid_out !== "free" && args!["kind"] === "free";
-      act("layout", { layer, ...args, ...(leaving ? { at: tidy(graph, scene) } : {}) });
+    /** The rail's palette: notation for the focus, made in it. A group gathers what is picked;
+     *  a region starts empty across the room. */
+    if (name === "@notation") {
+      const type = String(args!["type"]);
+      const here = room_id();
+      if (type === "group") { act("group", { members: [...s.picked()] }); return; }
+      if (type === "region") { act("group", { type, members: [], layer: here }); return; }
+      const named = type === "note" || type === "label" ? prompt(`the ${type} says`) : "";
+      if (named !== null) act("create", { name: named, type, parent: here });
+      return;
+    }
+    /** The rail's quick editor: the workspace and the open package, in the tray. */
+    if (name === "@workspace") {
+      t.onHold({ of: "id", id: graph.root });
+      t.onTab("workspace");
+      return;
+    }
+    if (name === "@package_info" && pkg) {
+      t.onHold({ of: "id", id: pkg });
+      t.onTab("overview");
+      return;
+    }
+    /** A new usage is typed by the definition picked, where one is. */
+    if (name === "@new_usage") {
+      const named = prompt("name the new block");
+      const def = s.picked().find((id) => graph.blocks[id]?.def);
+      if (named !== null) {
+        act("create", { name: named, parent: room_id(), ...(def ? { type: def } : {}) });
+      }
+      return;
+    }
+    if (name === "@new_definition") {
+      const named = prompt("name the new definition")?.trim();
+      if (named) act("define", { name: named });
       return;
     }
     /** A package by name, fetched from the catalogue and brought in beside the workspace, frozen. */
@@ -230,24 +346,49 @@ export function App({ storage }: { storage: Storage }) {
     if (said.length) s.say(`brought in ${got.name} — ${said.join("; ")}`, "note");
   };
 
+  /** A section's header: the canvas draws it whole from its top, nothing held or picked; the tray
+   *  shows the section — every definition, or the workspace. */
+  const section = (at: number) => {
+    s.see("package", null, at);
+    chain.onClear?.(at);
+    if (SLICES[at]!.lists === "domain") {
+      t.onHold({ of: "defs", only: "all" });
+      t.onTab("definitions");
+    }
+    else t.release();
+  };
+
   /** **The explorer browses**: a row chosen is held in its section and shown in the tray. Inside
-   *  the structure the canvas draws, the canvas follows: it goes to where the block is drawn and
-   *  picks it there — the open layer's own row stays where it is. Anywhere else it stays. A
-   *  package points the tray at its definitions. */
+   *  the structure the canvas draws, the canvas follows: on the map a block is gone to, its area
+   *  flown to, as a click on it is; in an entered layer it is gone to where it is drawn and
+   *  picked there — the open layer's own row stays where it is. Anywhere else it stays. A package points the
+   *  tray at its definitions, and is picked as any row is. */
   const choose = (at: number, id: Id | null) => {
     chain.onChoose(at, id);
-    if (id && graph.blocks[id]?.parent === null) {
-      t.onSection({ of: "defs", only: "packages", from: graph.blocks[id]!.name ?? id });
-      return;
+    const b = id ? s.graph().blocks[id] : undefined;
+    if (b && b.id === view.layer) s.pick([]);
+    else if (b) {
+      /** A part read through a usage is its definition's, never the structure's: picked as is. */
+      const slice = SLICES[at]!;
+      const inside = slice.cut === null && view.at === at
+        && in_section(s.graph(), b.id, chain.roots[at] ?? null, slice.cut, slice.lists)
+        && trace(s.graph(), EDITOR, b.id).roots[at] === chain.roots[at];
+      if (inside && mapped) { act("open", { id: b.id }); s.pick([b.id]); }
+      else if (inside) act("reveal", { id: b.id });
+      else s.pick([b.id]);
     }
-    t.release();
-    if (!id || !s.graph().blocks[id]) return;
-    if (id === view.layer) { s.pick([]); return; }
-    const inside = SLICES[at]!.cut === null && view.at === at
-      && trace(s.graph(), EDITOR, id).roots[at] === chain.roots[at];
-    if (inside) { act("reveal", { id }); return; }
-    s.pick([id]);
+    // The tray last, as revealing lets go of what it held.
+    if (b?.parent === null) t.onSection({ of: "defs", only: "packages", from: b.name ?? b.id });
+    else t.release();
   };
+
+  /** The layer in focus, where the rail makes what it makes. */
+  const room_id = (): Id => layer ?? graph.root;
+
+  /** The relation definitions the open packages hold, each a type a right drag may draw. */
+  const types = useMemo(() => all_defs(graph)
+    .filter((d) => domain_of(graph, d.id) === "relation" && !is_base(d.id))
+    .map((d) => ({ id: d.id, name: d.name ?? d.id })), [graph]);
 
   const load = async () => {
     const text = await browser_files().open();
@@ -255,12 +396,13 @@ export function App({ storage }: { storage: Storage }) {
   };
 
   return (
-    <div className="app">
+    <div className="app" {...zones.bind}>
       <WorkspaceHeader brand="mndflow"
         where={
           <button className="where" title="This session is kept in the browser. Export a snapshot to keep a copy elsewhere."
                   onClick={() => void s.save()}>
-            {Object.values(graph.blocks).filter((b) => !b.def && b.parent).length} blocks · {s.log().length} steps
+            {graph.blocks[graph.root]?.name ?? graph.root} · {Object.values(graph.blocks)
+              .filter((b) => !b.def && b.parent).length} blocks · {s.log().length} steps
           </button>
         }>
           <button title="undo" onClick={() => s.undo()}><Icon name="undo" /></button>
@@ -271,7 +413,7 @@ export function App({ storage }: { storage: Storage }) {
           <button title="import a workspace" onClick={() => void load()}>
             <Icon name="import_file" />
           </button>
-          <button title="import a collection: a folder of markdown cards and the definitions they name"
+          <button title="import a source folder: a folder of markdown cards and the definitions they name"
                   onClick={() => void gather()}>
             <Icon name="add_folder" />
           </button>
@@ -294,17 +436,30 @@ export function App({ storage }: { storage: Storage }) {
         onFold={(id, shut) =>
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
         onPick={pick}
-        onOpen={({ at, id, via }) => act(via ? "reveal" : "open", { id, at })}
+        /** A room drawn on the map is entered, as a double-click enters it. */
+        onOpen={({ at, id, via }) => act(via ? "reveal"
+          : mapped ? "read" : "open", { id, at })}
         onLeave={() => act("open")}
+        onSection={section}
+        onNamed={(id) => t.onHold({ of: "id", id })}
+        holding={hold?.of === "id" ? hold.id : null}
+        /** A registry opens on the canvas as its treemap, and the tray holds its entries. */
+        onRegistry={(registry) => {
+          act("open", { id: registry_id(registry) });
+          t.onHold({ of: "registry", registry });
+        }}
+        registry={hold?.of === "registry" ? hold.registry
+          : registry_at(graph, view.layer) ?? registry_of(graph, view.layer)}
         chain={{ ...chain, onChoose: choose }}
-        keys
+        keys={zones.zone === "explorer"}
       />
 
       <main ref={set_canvas}>
         <Stage
           scene={scene}
           graph={graph}
-          view={view.kind}
+          /** The path starts from the section the canvas looks at; a click draws it whole. */
+          head={{ label: SLICES[view.at]!.label, onOpen: () => section(view.at) }}
           empty={!whole && layer && !scene.nodes.length
             ? empty_of(graph, layer) : null}
           /** The shared menu; a right-click inside the selection is about the selection. */
@@ -316,21 +471,14 @@ export function App({ storage }: { storage: Storage }) {
                   onAct={act} onShut={shut} />
           )}
           /** What a drop comes to is core's: a block arrives as a reference, a definition retypes
-           *  what it lands on or makes one. Onto a cell is seated there. */
+           *  what it lands on or makes one. Onto a cell is seated there; a whole section's ground
+           *  is the workspace's. */
           onDrop={(id, spot, land) => {
             /** Where the pointer was, clear of what is already there. */
             const at = clear_of(
               scene.nodes.filter((n) => n.id !== id && !holds(n) && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
-            /** On a definition, a tag or trait dropped is attached. */
-            if (described) {
-              const made = attach_of(graph, described, id);
-              if (made) s.go(made.act, made.args);
-              else s.say("drop a tag or a trait here to attach it", "note");
-              return;
-            }
-            if (whole) return;
             const cell = land.cell && land.into ? land.into : null;
             const made = drop_of(graph, {
               ids: [id], onto: "drawing", parent: cell ?? layer ?? graph.root,
@@ -351,9 +499,11 @@ export function App({ storage }: { storage: Storage }) {
           corner={corner}
           module={drawing.module}
           {...(drawing.dir ? { dir: drawing.dir } : {})}
+          {...(drawing.type ? { type: drawing.type } : {})}
           said={said?.text ?? null}
           onSaid={() => s.say("")}
-          lit={hovered && drawn.has(hovered) ? [hovered] : []}
+          lit={lit}
+          touched={touched}
           /** An echo of a pick the canvas cannot draw is not a gesture. */
           onPick={(ids) => {
             const shown = s.picked().filter((id) => drawn.has(id));
@@ -362,14 +512,19 @@ export function App({ storage }: { storage: Storage }) {
             if (!echo) pick(ids);
           }}
           onAct={act}
-          /** A whole section, or a definition drawn with what describes it, is not moved about.
-           *  Those, a folder and a layer laid out `auto` are read down the page, fitted to their
-           *  width: a section from its anchor. */
-          onAdjust={whole ? () => undefined : adjust}
-          scroll={whole || view.kind === "folder"
-                  || (view.kind === "internal" && laid_out === "auto")}
+          /** A whole section, a definition drawn with what describes it, or a diagram, is not
+           *  moved about. Outside the world, those and a folder are read down the page, fitted to
+           *  their width: a section from its anchor. */
+          onAdjust={arranging && !whole ? adjust : () => undefined}
+          scroll={!mapped && (whole || view.kind === "folder" || diagram)}
+          entered={entered && !!map}
+          opened={opened}
+          stop={scene.areas
+            ? through ?? (focus_area ? { ...focus_area, scale: 1 / 2 } : null) : null}
+
           focus={system ? view.pick : whole ? null : aim}
           most={1}
+          keys={zones.zone === "canvas"}
         />
         <Tray
           graph={graph}
@@ -379,7 +534,8 @@ export function App({ storage }: { storage: Storage }) {
           onOpen={t.onOpen}
           {...(t.tab ? { tab: t.tab } : {})}
           onTab={t.onTab}
-          picked={s.picked()}
+          /** **One object**: a plain stand-in picked is its block, described and edited as one. */
+          picked={s.picked().map((id) => (graph.blocks[id]?.settings ? id : object_of(graph, id)))}
           onHover={set_hovered}
           hold={hold}
           onHold={t.onHold}
@@ -390,13 +546,12 @@ export function App({ storage }: { storage: Storage }) {
         />
       </main>
 
-      <Options groups={groups_of({ slots: scene.slots, layout: laid_out,
-                                   views: seeing, view: view.kind,
-                                   interfaces: shown.interfaces,
-                                   lattice: lattice ?? true, frame: shown.frame,
-                                   legend,
+      <Options groups={groups_of({ slots: scene.slots,
+                                   family: layer ? diagram_kind(graph, layer) : null,
+                                   pkg, picked: s.picked().length > 0, types,
                                    module: drawing.module,
-                                   ...(drawing.dir ? { dir: drawing.dir } : {}) },
+                                   ...(drawing.dir ? { dir: drawing.dir } : {}),
+                                   ...(drawing.type ? { type: drawing.type } : {}) },
                                  chrome)} />
     </div>
   );
@@ -405,17 +560,19 @@ export function App({ storage }: { storage: Storage }) {
 /** The editor's sections, made once. */
 const SLICES = editor_slices();
 
-/** How large the overhead view draws a card: its own size. */
-const READ = 1;
-
-/** How wide an element is, in pixels, as it is resized; nothing until there is one. */
-function useWidth(element: HTMLElement | null): number {
-  const [width, set_width] = useState(0);
+/** How big an element is, in pixels, as it is resized; nothing until there is one. */
+function useBox(element: HTMLElement | null): { w: number; h: number } {
+  const [box, set_box] = useState({ w: 0, h: 0 });
   useEffect(() => {
     if (!element) return;
-    const watch = new ResizeObserver(([entry]) => set_width(entry?.contentRect.width ?? 0));
+    const watch = new ResizeObserver(([entry]) => set_box({
+      w: entry?.contentRect.width ?? 0, h: entry?.contentRect.height ?? 0,
+    }));
     watch.observe(element);
     return () => watch.disconnect();
   }, [element]);
-  return width;
+  return box;
 }
+
+/** How far a chip is flown into as it is entered: no ceiling, the view filled. */
+const FILL = 0.01;

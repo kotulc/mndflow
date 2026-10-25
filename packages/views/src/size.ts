@@ -1,9 +1,9 @@
 /** How big a thing is, before anything is placed. */
 
 import { covers, inline, is_grid, is_interface, lattice_of, setting_of, shown_name,
-         stamps_of, FACES, type Graph, type Grid, type Id, type Point } from "@mnd/core";
-import { edge_of, fit_of, face_table, face_text, handle_of } from "./face";
-import { look_of } from "./look";
+         stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
+import { edge_of, fit_of, face_table, face_text, handle_of, name_w, note_h } from "./face";
+import { card_shape, look_of } from "./look";
 import type { Ruled } from "./scene";
 import { resolved } from "./through";
 
@@ -36,6 +36,12 @@ export type Size = { w: number; h: number };
 
 export const BLOCK: Size = { w: UNITS.block.w * UNIT, h: UNITS.block.h * UNIT };
 
+/** A note's width where nothing sized it: a card and its air either side, at the card size in
+ *  force. */
+export function note_w(): number {
+  return BLOCK.w + UNITS.pad * UNIT * 2;
+}
+
 /** A group's cell, and the one thing a cell is: a block with a gap of air on every side of it. */
 export const CELL: Size = { w: BLOCK.w + PAD * 2, h: BLOCK.h + PAD * 2 };
 
@@ -50,7 +56,7 @@ export const CARD = { min: { w: 4, h: 2 }, max: { w: 12, h: 6 } };
 export const LARGE = { max: { w: 20, h: 16 } };
 
 /** Which face a card draws with. */
-export type Face = (typeof FACES)[number];
+export type Face = (typeof CARDS)[number];
 
 export type Box = { x: number; y: number; w: number; h: number };
 
@@ -143,9 +149,28 @@ export function set_card(w: number, h: number): Size {
   return { ...UNITS.block };
 }
 
+/** The shape an `auto` room fills toward: the canvas's width over its height. */
+export const SHAPE = { aspect: 1.6 };
+
+/** Sets the shape rooms fill toward, held to a sane range, and says what it took. */
+export function set_aspect(aspect: number): number {
+  SHAPE.aspect = Number.isFinite(aspect) ? Math.min(3, Math.max(0.5, aspect)) : 1.6;
+  return SHAPE.aspect;
+}
+
 /** A whole number, held between two others. */
 function ranged(n: number, low: number, high: number): number {
   return Math.min(high, Math.max(low, Math.round(n)));
+}
+
+/** The sizes of the rooms a world is composing, while it lays out their parent. */
+let rooms_sized: ReadonlyMap<Id, Size> | null = null;
+
+/** `run` with these rooms sized as given: each a card as large as its own drawing. */
+export function sized_as<T>(sizes: ReadonlyMap<Id, Size>, run: () => T): T {
+  const was = rooms_sized;
+  rooms_sized = sizes;
+  try { return run(); } finally { rooms_sized = was; }
 }
 
 /** Whether a block is seated in a grid rather than placed beside one. */
@@ -160,6 +185,9 @@ export function gridded(graph: Graph, id: Id): boolean {
  *  or the reference previewing it. */
 export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
                         card: Id = id): Size {
+  /** A room composed into the world is as large as what it holds. */
+  const room = rooms_sized?.get(id);
+  if (room) return room;
   /** An open grid is its extent, a closed one a card; a boundary is sized from what it holds, by
    *  the caller. */
   if (is_grid(graph, id) && inline(graph, id)) return grid_size(lattice_of(graph, id)!);
@@ -170,27 +198,52 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
   /** A reference to a block previews it, at its size, with the face where it sits. */
   const source = resolved(graph, id).card;
   if (source !== id && !is_grid(graph, source)) return size_of(graph, source, face, card);
+  /** Never sized, a card of its own height is as tall as its words run at a note's width. */
+  if (free_height(graph, id)) {
+    const w = b.w ?? note_w();
+    const text = [shown_name(graph, id), b.body ?? ""].filter(Boolean).join("\n");
+    return { w, h: b.h ?? Math.max(BLOCK.h, Math.ceil(note_h(text, w) / UNIT) * UNIT) };
+  }
+  /** A start's dot and an end's ring are one unit across, whatever face they sit on. */
+  const shape = card_shape(graph, id);
+  if (shape === "dot" || shape === "ring") return { w: UNIT, h: UNIT };
+  /** A label is its one line: a unit tall and exactly as wide as its name, so a tie meets its
+   *  words rather than the air beside them. */
+  if (!b.def && setting_of(graph, id, "card")["face"] === "text" && !gridded(graph, id)) {
+    return { w: Math.ceil(name_w(shown_name(graph, id))), h: UNIT };
+  }
   return face === "large" ? large_of(graph, id, card) : { ...BLOCK };
 }
 
-/** Which face a block draws with: what the nearest ancestor saying `layout.face` asks for, else
- *  the small one — always the small one in a grid's cell, which is a card's size. Never the
- *  zoom's. */
+/** Which face a block draws with: what the nearest ancestor saying `layout.cards` asks for, else
+ *  what it has — **a card shows what it has**: large where its face has a table, a body or records
+ *  to show, small where it is a name alone. Always small in a grid's cell, which is a card's size.
+ *  Never the zoom's. */
 export function face_of(graph: Graph, id: Id): Face {
   if (gridded(graph, id)) return "small";
   const seen = new Set<Id>();
   for (let at = graph.blocks[id]?.parent; at && !seen.has(at); at = graph.blocks[at]?.parent) {
     seen.add(at);
-    const said = setting_of(graph, at, "layout")["face"];
-    if ((FACES as readonly unknown[]).includes(said)) return said as Face;
+    const said = setting_of(graph, at, "layout")["cards"];
+    if ((CARDS as readonly unknown[]).includes(said)) return said as Face;
   }
-  return "small";
+  return shows_any(graph, id) ? "large" : "small";
+}
+
+/** Whether a card's large face has anything beyond its name to show: records, a table, a body or
+ *  a picture — read off the card it draws, a reference's target where it previews one. */
+function shows_any(graph: Graph, id: Id): boolean {
+  const card = resolved(graph, id).card;
+  if (graph.blocks[card]?.records?.length) return true;
+  const look = look_of(graph, id);
+  return !!face_table(graph, card, look, 0)?.cells.length || !!face_text(graph, card, look);
 }
 
 /** The large face: its definition's `card.size`, else what its content fits — so one that shows
  *  nothing is the small face — with room for the marks `card` wears. */
 function large_of(graph: Graph, id: Id, card: Id): Size {
-  const look = look_of(graph, id);
+  /** The card's own look, as it draws: a reference may say another face than its target. */
+  const look = look_of(graph, card);
   if (look.size) return held_large(look.size);
   return fitted(shown_name(graph, id), face_text(graph, id, look), !!handle_of(graph, id, look),
                 face_table(graph, id, look, stamps_of(graph, card).length), edge_of(look));
@@ -213,9 +266,10 @@ function held_large(units: Size): Size {
            h: ranged(units.h, UNITS.block.h, LARGE.max.h) * UNIT };
 }
 
-/** Whether this card keeps whatever size it was given, rather than the one card height. */
+/** Whether this card keeps whatever size it was given, rather than the one card height. A
+ *  definition's `card.height` says how its usages size; it is one card in its folder. */
 export function free_height(graph: Graph, id: Id): boolean {
-  return look_of(graph, id).height === "free";
+  return !graph.blocks[id]?.def && look_of(graph, id).height === "free";
 }
 
 /** How many seats an edge of this length offers. */

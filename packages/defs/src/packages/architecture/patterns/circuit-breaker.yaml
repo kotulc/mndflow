@@ -1,0 +1,25 @@
+name: Circuit breaker
+type: component
+def: {}
+body: Use when a remote call can hang or fail, and a failing dependency must not take its callers down with it.
+note: Calls pass while the remote answers. After repeated failures the breaker opens and the fallback answers until a trial call succeeds.
+blocks:
+  - name: Caller
+    type: component
+  - name: Breaker
+    type: component
+    note: Counts failures. Closed, it passes calls; open, it fails fast.
+  - name: Fallback
+    type: component
+    note: Answers while the breaker is open.
+ports:
+  - name: in
+    type: HTTP
+    flow: in
+  - name: remote
+    type: HTTP
+    flow: out
+relations:
+  - calls: [ in -> Caller, Caller -> Breaker ]
+  - Breaker -> remote: closed
+  - Breaker -> Fallback: open

@@ -1,0 +1,6 @@
+name: Ledger
+type: store
+def: {}
+description: "A store of orders: many records of one type, drawn as a table on its card."
+settings:
+  records: { of: Order }

@@ -1,0 +1,11 @@
+{
+  "id": "reply",
+  "name": "reply",
+  "type": "line",
+  "description": "An answer to a message, drawn dashed.",
+  "def": {},
+  "settings": {
+    "line": { "dir": "forward" },
+    "style": { "border_style": "dashed" }
+  }
+}

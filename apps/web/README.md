@@ -16,6 +16,19 @@ web   ◀
       └─ core · defs · theme
 ```
 
+## Opening
+
+**A fresh browser opens a sample.** Before mounting, `main.tsx` reads `mndflow.yaml` at the repo root (served by `vite.config.ts`'s `repo_files`, with anything under `samples/`) through core's `boot_of`.
+
+| Key | Says |
+|---|---|
+| `workspace` | the file opened while storage is empty. An existing log always wins; reset still starts empty |
+| `catalogue` | where the packages catalogue is listed |
+| `theme` · `tray` · `display` | the chrome's defaults; a theme chosen in the browser wins |
+| `view` | a system view to land on; a layer view is the home's |
+
+The app reads the file and never writes it; it is not a graph. A key or value it does not read is said once on the stage, and the app still opens.
+
 ## Running it
 
 ```sh

@@ -2,7 +2,7 @@
   "id": "reference",
   "name": "reference",
   "type": "block",
-  "body": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
+  "description": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
   "def": {},
   "traits": [
     "has_ports",

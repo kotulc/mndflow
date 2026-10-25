@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, flat, nested, related } from "@mnd/fixtures";
 import { children, config_of, edges_in, fold, is_container, is_reference, layer_of, layout_of,
          block_base, base_of, next_order, path, session,
-         shown_name, stands_for, subtree, MAIN, ROOT, type Block } from "../src/index";
+         shown_name, stands_for, subtree, ROOT, type Block } from "../src/index";
 
 describe("fold", () => {
   it.each(["flat", "nested", "related"])("is deterministic over %s", (name) => {
@@ -53,7 +53,8 @@ describe("derived readings", () => {
   it("walks a path from root to the block, itself last", () => {
     const graph = fold(nested(), FLOOR);
     const trail = path(graph, "block_rate").map((b) => b.id);
-    expect(trail.slice(0, 2)).toEqual([ROOT, MAIN]);
+    expect(trail[0]).toBe(ROOT);
+    expect(trail[1]).toBe("block_shelf");
     expect(trail.at(-1)).toBe("block_rate");
   });
 
@@ -88,7 +89,7 @@ describe("references", () => {
   it("reads its target's name, and missing when the target is gone", () => {
     const s = session({ floor: FLOOR });
     s.go("create", { name: "Ledger" });
-    const ledger = children(s.graph(), MAIN)[0]!.id;
+    const ledger = children(s.graph(), ROOT).find((b) => b.name === "Ledger")!.id;
     s.go("create", { name: "Auth", parent: ledger });
     const auth = children(s.graph(), ledger)[0]!.id;
 
@@ -140,27 +141,28 @@ describe("what a block may become", () => {
   it("takes a definition of its own kind", () => {
     const s = kinds();
     s.go("create", { name: "A" });
-    const id = children(s.graph(), MAIN)[0]!.id;
+    const id = children(s.graph(), ROOT).find((b) => b.name === "A")!.id;
     expect(s.go("retype", { id, type: "block" })).toBeNull();
     expect(base_of(s.graph(), id)).toBe("block");
   });
 
-  /** Block, folder, note, group and grid are one open family: none carries a field a retype
-   *  cannot invent, so each is the plain block with different configuration. */
-  it.each(["folder", "note", "group", "grid"])("makes a block a %s", (type) => {
+  /** Block, folder and grid are one open family: each is the plain block arranging what it holds
+   *  another way. */
+  it.each(["folder", "grid"])("makes a block a %s", (type) => {
     const s = kinds();
     s.go("create", { name: "A" });
-    const id = children(s.graph(), MAIN)[0]!.id;
+    const id = children(s.graph(), ROOT).find((b) => b.name === "A")!.id;
     expect(s.go("retype", { id, type })).toBeNull();
     expect(base_of(s.graph(), id)).toBe(type);
   });
 
-  /** The derived kinds each carry something a change of type cannot invent. */
-  it.each(["interface", "reference"])(
+  /** The derived kinds each carry something a change of type cannot invent, and a block never
+   *  becomes an annotation. */
+  it.each(["interface", "reference", "note", "group"])(
     "refuses to make a block a %s", (type) => {
       const s = kinds();
       s.go("create", { name: "A" });
-      const id = children(s.graph(), MAIN)[0]!.id;
+      const id = children(s.graph(), ROOT).find((b) => b.name === "A")!.id;
       expect(s.go("retype", { id, type })).toEqual(expect.any(String));
       expect(base_of(s.graph(), id)).toBe("block");
     });

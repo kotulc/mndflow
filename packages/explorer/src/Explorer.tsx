@@ -6,9 +6,9 @@
  *  draws and each section's pick subtly. */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { about_of, at_cut, children, domain_of, drop_of, frozen, is_inside, is_layer_view, may_hold,
-         name_taken, new_id, shown_name, tree_of as tree_holding, type Act, type Graph, type Id,
-         type View } from "@mnd/core";
+import { about_of, at_cut, children, domain_of, drop_of, frozen, is_folder, is_inside,
+         is_layer_view, may_hold, name_taken, new_id, on_side, owner_def, path, shown_name,
+         type Act, type Graph, type Id, type Registry, type View } from "@mnd/core";
 import { Icon, Name, NamingContext, MARK_ICON, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
@@ -30,6 +30,16 @@ export type ExplorerProps = {
   onOpen?: (row: { at: number; id: Id; via?: Id }) => void;
   /** ← and Backspace: the canvas leaves for the layer above. */
   onLeave?: () => void;
+  /** A section's header clicked: the canvas draws that section whole, from above. */
+  onSection?: (at: number) => void;
+  /** A library row chosen: a type or a tag, for the tray to show. */
+  onNamed?: (id: Id) => void;
+  /** The library row the tray shows, lit as a pick is. */
+  holding?: Id | null;
+  /** A package's group of types or tags chosen: its registry opens. */
+  onRegistry?: (registry: Registry) => void;
+  /** The registry open, lit as a pick is. */
+  registry?: Registry | null;
   onFold: (id: Id, shut: boolean) => void;
   onPick: (ids: Id[]) => void;
   /** Whether right-click opens this engine's offered list. */
@@ -144,18 +154,21 @@ export function Explorer(props: ExplorerProps) {
   const [dragging, set_dragging] = useState<readonly Id[]>([]);
   /** Where a shift-click range runs from. */
   const [anchor, set_anchor] = useState<Id | null>(null);
+  /** The row last chosen, so a part lights under the usage it was chosen through. */
+  const [chosen, set_chosen] = useState<Id | null>(null);
   const [over, set_over] = useState<{ id: Id; ref: Id; where: "in" | "above" | "below" } | null>(null);
   /** Whether the drop would land on the panel itself, which is the workspace. */
   const [out, set_out] = useState(false);
-  const [menu, set_menu] = useState<{ x: number; y: number } | null>(null);
+  const [menu, set_menu] = useState<{ x: number; y: number; id?: Id } | null>(null);
   /** How wide the panel is, and where a drag of its edge started. */
   const [width, set_width] = useState(WIDTH.first);
   const grip = useRef<{ x: number; w: number } | null>(null);
   /** The row being renamed in place. */
   const [naming, set_naming] = useState<Id | null>(null);
   /** A block or folder being named in place, before it is made. */
+  /** What is being drafted: a block, a folder, a definition, or a part of one. */
   const [draft, set_draft] = useState<{ parent: Id; type?: string; def?: boolean;
-                                        extends?: Id } | null>(null);
+                                        extends?: Id; part?: boolean } | null>(null);
 
   /** Each section's own branches, so unfolding its header opens what it heads and nothing else,
    *  and every row as the arrows walk them. Read off the tree fully open, so a shut branch's own
@@ -171,8 +184,9 @@ export function Explorer(props: ExplorerProps) {
       }
       out.set(all[i]!.id, kin);
     }
-    /** Whether the section in focus lists definitions or packages rather than a structure. */
-    const library = chain.slices[chain.at]!.cut !== null;
+    /** Whether the section in focus lists the definition side. */
+    const slice = chain.slices[chain.at]!;
+    const library = slice.lists === "domain" || (slice.lists === undefined && slice.cut !== null);
     return { folds: out, all, library };
   }, [graph, chain?.at, chain?.held.join("|")]);
 
@@ -193,15 +207,21 @@ export function Explorer(props: ExplorerProps) {
     }
   };
 
-  /** A new pick inside a shut branch opens the way to it once, and a new layer opens the way to it
-   *  and its own branch — in the section the canvas looks at, so the others stay short. Folding
-   *  them again is the user's: each row opens once for what it leads to now, as it appears. */
-  const seen = [...picked, view.layer].join("|");
+  /** The canvas reveals its own rows, never another section's: a new layer opens the way to it,
+   *  and a new pick inside it opens the way to that pick — in the section the canvas looks at,
+   *  once each. A row chosen in another section is never a reason to unfold this one, and folding
+   *  a row again is the user's until the layer or the pick changes. */
+  const layer = is_layer_view(view.kind) ? view.layer : null;
+  const lists = chain.slices[view.at]?.lists;
+  /** A pick the canvas shows: under its layer, on the side its section lists. */
+  const shows = (id: Id) => (!layer || id === layer || path(graph, id).some((b) => b.id === layer))
+    && on_side(graph, id, lists);
+  const revealed = picked.filter(shows);
+  const seen = [...revealed, layer].join("|");
   const done = useRef({ seen, rows: new Set<Id>() });
   useEffect(() => {
     if (done.current.seen !== seen) done.current = { seen, rows: new Set() };
-    const layer = is_layer_view(view.kind) ? view.layer : null;
-    const way = [...picked, ...(layer ? [layer] : [])].flatMap((id) => [...holders(graph, id)]);
+    const way = [...revealed, ...(layer ? [layer] : [])].flatMap((id) => [...holders(graph, id)]);
     const up = new Set([...way, ...(layer ? [layer] : [])]);
     for (const r of sections.all) {
       if (!r.kids || r.at !== view.at || !up.has(r.ref) || done.current.rows.has(r.id)) continue;
@@ -209,19 +229,6 @@ export function Explorer(props: ExplorerProps) {
       if (is_shut(r)) fold(r, false);
     }
   }, [seen, sections]);
-  /** In a section listing every tree, the definition held above opens as it is held, and so do
-   *  the canvas's tree and the one its own pick sits inside: choosing a definition shows its
-   *  structure. Once per change, so folding it again stays folded. */
-  const trees = [...chain.roots, ...chain.held].join("|");
-  useEffect(() => {
-    for (const r of sections.all) {
-      if (r.at === undefined || r.depth !== 1 || !r.kids || !chain.slices[r.at]?.trees) continue;
-      const own = chain.held[r.at];
-      const opens = r.ref === chain.held[r.at - 1] || r.ref === chain.roots[r.at]
-        || (!!own && own !== r.ref && r.ref === tree_holding(graph, own));
-      if (opens && is_shut(r)) fold(r, false);
-    }
-  }, [trees]);
   const rows = tree_of(graph, folded, chain);
   /** The lowest open layer, under every branch alike: each open branch with no open branch
    *  inside it. The bar's fold shuts them, a layer a click, until only the top rows show; with
@@ -252,14 +259,15 @@ export function Explorer(props: ExplorerProps) {
   /** The row each block lights: its own, or a group's nearest listed holder's. */
   const as_row = (id: Id | null | undefined) => (id ? listed_of(graph, id) : id);
   const held = chain.held.map(as_row);
-  /** The picks the section in focus lists. */
+  /** The picks the section in focus lists: in the tree read whole, or a part shown open. */
   const mine = picked.map((id) => as_row(id)!)
-    .filter((id) => sections.all.some((r) => r.at === focus && r.ref === id));
+    .filter((id) => [sections.all, rows].some((all) =>
+      all.some((r) => r.at === focus && r.ref === id)));
   /** The focus is lit strongly: the picks it lists — a part only where its usage is the layer
-   *  seen from inside — else what it holds. */
+   *  seen from inside, or under the usage it was chosen through — else what it holds. */
   const lights = (r: Row) => {
     if (r.at !== focus || r.pick === undefined || r.of !== "block") return false;
-    if (mine.length) return mine.includes(r.ref) && (!r.via || r.via === open);
+    if (mine.length) return mine.includes(r.ref) && (!r.via || r.via === open || r.id === chosen);
     return held[focus] === r.pick && !r.via;
   };
   /** **The one row wearing the accent's edge: what the canvas shows**, in the section it looks
@@ -287,9 +295,27 @@ export function Explorer(props: ExplorerProps) {
   const zone = landing(graph, over);
   /** The definition held in focus, which the bar's delete takes on the library. */
   const def = library && chain ? chain.held[chain.at] ?? null : null;
-  /** Where a new folder goes: on the library, beside the workspace definition in focus. */
+  /** A definition, or a part of one, that may be given a part: it can hold, and its package is
+   *  the workspace's. Its parts list under it in the library. */
+  const holds_parts = (id: Id | null | undefined): id is Id => {
+    const b = id ? graph.blocks[id] : undefined;
+    return !!b && (!!b.def || !!owner_def(graph, b.id)) && may_hold(graph, b.id)
+      && !frozen(graph, b.id);
+  };
+  const library_at = chain.slices.findIndex((s) => s.lists === "domain");
+  const part_home = library && holds_parts(def) ? def : null;
+  const menu_def = library_at >= 0 && menu?.id && graph.blocks[menu.id]?.def ? menu.id : null;
+  /** Where the bar's add puts a block: under the row held in focus where it may hold one, else
+   *  under the workspace: every other package is frozen. */
+  const held_row = chain.held[focus];
+  const under_at = held_row && graph.blocks[held_row] ? held_row : graph.root;
+  const under = may_hold(graph, under_at) && !frozen(graph, under_at) ? under_at : graph.root;
+  /** Where a new folder goes: on the library, in the workspace's package or folder in focus, else
+   *  beside the workspace definition in focus. */
+  const filed = (id: Id) => graph.blocks[id]?.parent === null || is_folder(graph, id);
   const shelf = !library ? target
-    : def && graph.blocks[def] && !frozen(graph, def) ? graph.blocks[def]!.parent : null;
+    : !def || !graph.blocks[def] || frozen(graph, def) ? null
+    : filed(def) ? def : graph.blocks[def]!.def ? graph.blocks[def]!.parent : null;
 
   /** Which name is open, and where what was typed lands: a block or a definition. */
   const typing = useMemo(() => ({
@@ -327,6 +353,7 @@ export function Explorer(props: ExplorerProps) {
   const choose = (r: Row) => {
     if (r.at === undefined || r.pick === undefined) return;
     if (r.of === "block") set_anchor(r.ref);
+    set_chosen(r.id);
     chain.onChoose(r.at, r.pick);
   };
 
@@ -425,12 +452,19 @@ export function Explorer(props: ExplorerProps) {
    *  elsewhere a block or folder where you are. */
   const add = (type?: string) => {
     const def = library && !type;
-    const parent = type === "folder" ? shelf : def ? shelf ?? graph.root : target;
+    const parent = type === "folder" ? shelf : def ? shelf ?? graph.root : under;
     if (!parent) return;
     // A draft row opens where it goes, its branch unfolded to show it.
     const row = rows.find((r) => r.of === "block" && r.ref === parent && r.at === focus);
     if (row && is_shut(row)) fold(row, false);
     set_draft({ parent, ...(type ? { type } : {}), ...(def ? { def } : {}) });
+  };
+
+  /** A part drafted in a definition, or in a part of one, its branch unfolded to show it. */
+  const add_part = (parent: Id) => {
+    const row = rows.find((r) => r.of === "block" && r.ref === parent && r.at === focus);
+    if (row && is_shut(row)) fold(row, false);
+    set_draft({ parent, part: true });
   };
 
   /** A new definition, chosen in the section in focus as a click chooses it, so the tray shows
@@ -462,6 +496,7 @@ export function Explorer(props: ExplorerProps) {
     <NamingContext.Provider value={typing}>
     <nav className="explorer" aria-label="workspace"
          style={{ width }}>
+      <div className="scroller">
       <div className="bar">
         {/* The bar is tools only; the workspace names itself in the tree. */}
         {(props.extra || show.filter || show.block || show.folder || show.remove) ? (
@@ -474,14 +509,23 @@ export function Explorer(props: ExplorerProps) {
             {props.extra}
             {show.block ? (
               <button title={library ? "add a definition — what it extends says its kind"
-                               : `add a block in ${shown_name(graph, target)}`}
+                               : `add a block in ${shown_name(graph, under)}`}
                       onClick={() => add()}><Icon name="add_block" /></button>
             ) : null}
             {show.folder ? (
               <button title={shelf ? `add a folder in ${shown_name(graph, shelf)}`
-                               : "pick a workspace definition to file a folder beside it"}
+                               : "pick a workspace package, folder or definition to file a folder there"}
                       disabled={!shelf}
                       onClick={() => add("folder")}><Icon name="add_folder" /></button>
+            ) : null}
+            {/* In the library, a part goes in the definition in focus. */}
+            {library ? (
+              <button title={part_home ? `add a part in ${shown_name(graph, part_home)}`
+                               : "pick a definition to add a part to it"}
+                      disabled={!part_home}
+                      onClick={() => { if (part_home) add_part(part_home); }}>
+                <Icon name="role_root" />
+              </button>
             ) : null}
             {show.remove ? (
               <button title={library ? "remove the definition in focus" : "delete what is picked"}
@@ -505,7 +549,8 @@ export function Explorer(props: ExplorerProps) {
                      set_draft(null);
                      if (label === null || !draft) return;
                      if (draft.def) define(label, draft.parent, draft.extends);
-                     else onAct("create", { name: label, parent: draft.parent, type: draft.type });
+                     else onAct("create", { name: label, parent: draft.parent, type: draft.type,
+                                            ...(library && !draft.part ? { tree: "definitions" } : {}) });
                    }} />
           ) : (
             <li key={r.id}
@@ -513,7 +558,9 @@ export function Explorer(props: ExplorerProps) {
                   r.depth ? "" : "top",
                   r.named ? "" : "unnamed",
                   r.of === "block" ? "" : r.of,
-                  lights(r) ? "picked" : "",
+                  lights(r) || (r.of === "named" && r.ref === props.holding)
+                    || (r.registry && r.registry.pkg === props.registry?.pkg
+                        && r.registry.kind === props.registry.kind) ? "picked" : "",
                   holds(r) ? "context" : "",
                   !r.depth && r.at === focus ? "holds" : "",
                   r.via ? "part" : "",
@@ -573,18 +620,22 @@ export function Explorer(props: ExplorerProps) {
                   const next = kin[kin.findIndex((b) => b.id === r.ref) + 1];
                   land(ids, parent, into ? undefined : where === "above" ? r.ref : next?.id);
                 }}
-                /** A block is clicked as a pick; a header shows or hides its section as it was
-                    left, branches folded; any other row is chosen, or only folds. */
+                /** A block is clicked as a pick; a header draws its section from above, its mark
+                    showing or hiding it; any other row is chosen, or only folds. */
                 onClick={(e) => {
                   if (r.of === "block") { clicked(e, r); return; }
-                  if (!r.depth) { onFold(r.id, !folded.includes(r.id)); return; }
+                  if (r.of === "named") { props.onNamed?.(r.ref); return; }
+                  /** A package's group of types or tags opens its registry; its mark folds. */
+                  if (r.registry) { props.onRegistry?.(r.registry); return; }
+                  if (r.of === "group" || r.at === undefined) { fold(r, !is_shut(r)); return; }
+                  if (!r.depth) { props.onSection?.(r.at); return; }
                   choose(r);
                 }}
                 onContextMenu={(e) => {
                   if (r.of !== "block") return;
                   e.preventDefault();
                   if (!picked.includes(r.ref)) choose(r);
-                  set_menu({ x: e.clientX, y: e.clientY });
+                  set_menu({ x: e.clientX, y: e.clientY, id: r.ref });
                 }}
                 onDoubleClick={() => { if (r.of === "block") opening(r); }}>
               {/* One line per indent column, hung under the mark of the row it belongs to. */}
@@ -616,10 +667,11 @@ export function Explorer(props: ExplorerProps) {
                 ? <span className="label">{r.label}</span>
                 : <Name id={r.id} className="label" text={r.label} />}
               {r.alias ? <span className="alias">{r.alias}</span> : null}
-              {/* Structure of its own wears the card's structure mark, so a row says it before
-                  it is picked. A package holds its definitions, not structure. */}
-              {r.held && graph.blocks[r.ref]?.parent !== null ? (
-                <span className="stamp" title="holds structure">
+              {/* A structure root wears the card's structure mark before it is picked, outside the
+                  structure section. The workspace always does; a definition does once it holds
+                  structure. */}
+              {r.held ? (
+                <span className="stamp" title="roots structure">
                   <Icon name={MARK_ICON["structure"]!} size={MARK_SIZE - 2} />
                 </span>
               ) : null}
@@ -657,6 +709,7 @@ export function Explorer(props: ExplorerProps) {
                 land(ids, open ?? graph.root);
               }} />
         </ul>
+      </div>
 
       {/* Drag the edge to resize the panel. */}
       <div className="grip" role="separator" aria-orientation="vertical"
@@ -674,6 +727,8 @@ export function Explorer(props: ExplorerProps) {
 
       {menu && offered ? (
         <Menu ctx={{ graph, layer: open, picked: [...picked] }} at={menu}
+              lead={menu_def ? { label: "open",
+                                 go: () => onOpen?.({ at: library_at, id: menu_def }) } : null}
               onAct={onAct} onShut={() => set_menu(null)} />
       ) : null}
     </nav>

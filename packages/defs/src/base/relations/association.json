@@ -1,0 +1,7 @@
+{
+  "id": "association",
+  "name": "association",
+  "type": "line",
+  "description": "Two definitions that know of each other: each end says how many, in what role, and whether it can be reached.",
+  "def": {}
+}

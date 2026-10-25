@@ -1,52 +1,86 @@
-/** The room a layer is drawn in, and the camera that frames it. */
+/** The camera: one owner of the viewport. In the world it fits the focus, isolated or not, and
+ *  flies between foci. A page read down the view — the kit's reader — keeps its own scrolled
+ *  camera. */
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useReactFlow, useStore } from "@xyflow/react";
 import type { Id } from "@mnd/core";
 import { box_of, extent, FRAME, type BoxNode, type Frame, type Scene } from "@mnd/views";
-import { BAND, FIT, FLIGHT, met_on, MIN_ZOOM, panelled, READ_ZOOM, scroll_zoom,
-         still } from "./arrays";
+import { BAND, FIT, FLIGHT, MIN_ZOOM, scroll_zoom, still } from "./arrays";
 
-/** How much of the view an opened grid leaves round it, as a share of its own size, so there is
- *  room to drag into it and to grow it. */
-const GRID_AIR = 0.5;
+type Rect = { x: number; y: number; w: number; h: number; scale?: number };
 
-/** The open layer where it draws as its own node — an opened grid — or null. */
-function own_node(scene: Scene): BoxNode | null {
-  return scene.nodes.find((n) => n.id === scene.layer) ?? null;
-}
-
-
-/** The room, kept until the layer or panel changes or the work outgrows it, and its fit. A page
- *  read down the view hugs what it draws rather than growing to the panel. */
-export function useRoom(scene: Scene, scroll = false) {
-  /** How much room there is to draw in. */
+/** How much room there is to draw in, and the frame the focus draws as. */
+export function useRoom(scene: Scene) {
   const seen = useStore(useCallback((st) => ({ w: st.width, h: st.height }), []),
                         (a, b) => a.w === b.w && a.h === b.h);
-  const kept = useRef<{ of: Id | null; seen: string; room: Frame } | null>(null);
-  const frame = useMemo(() => {
-    const f = scene.frame;
-    if (!f) { kept.current = null; return null; }
-    const held = kept.current;
-    const seen_key = `${seen.w}x${seen.h}`;
-    const holds = held !== null && held.of === scene.layer && held.seen === seen_key
-      && f.x >= held.room.x && f.y >= held.room.y
-      && f.x + f.w <= held.room.x + held.room.w
-      && f.y + f.h <= held.room.y + held.room.h;
-    const room = holds
-      ? { ...held!.room, label: f.label, ports: f.ports,
-          ...(f.side ? { side: f.side } : {}), ...(f.seats ? { seats: f.seats } : {}) }
-      : scroll ? f : panelled(f, seen);
-    kept.current = { of: scene.layer, seen: seen_key, room };
-    return met_on(room, scene);
-  }, [scene, seen, scroll]);
+  return { frame: scene.frame ?? null, seen };
+}
 
-  /** The same band on every side. */
-  const fit = useMemo(() => (frame && seen.w > BAND * 2
-    ? { padding: (BAND * 2) / (seen.w - BAND * 2), maxZoom: 1 }
-    : FIT), [frame, seen.w]);
+/** What the camera looks at: the focus's own box — a region stopped at, else the frame, else an
+ *  opened grid's own node, else all that is drawn. */
+export function aimed(scene: Scene, frame: Frame | null, stop: Rect | null): Rect {
+  if (stop) return stop;
+  if (frame) return frame;
+  const own = scene.nodes.find((n) => n.id === scene.layer);
+  return own ? box_of(own) : extent(scene);
+}
 
-  return { frame, fit, seen };
+/** The viewport that looks at `box`: fitted inside the band, never above 100%, and centred. 100%
+ *  is the box at its own size: `k` is the scale the world drew it at. */
+export function view_on(box: Rect, seen: { w: number; h: number }, k = 1) {
+  const zoom = Math.max(MIN_ZOOM, Math.min((seen.w - BAND * 2) / Math.max(1, box.w),
+                                           (seen.h - BAND * 2) / Math.max(1, box.h), 1 / k));
+  const across = (lo: number, len: number, view: number) => view / 2 - (lo + len / 2) * zoom;
+  return { zoom, x: across(box.x, box.w, seen.w), y: across(box.y, box.h, seen.h) };
+}
+
+/** Which drawing a scene is: a map, which one, or which layer. */
+export function realm_of(scene: Scene): string {
+  return scene.areas ? `map:${scene.areas[0]?.label ?? ""}` : `layer:${scene.layer ?? ""}`;
+}
+
+/** **The camera fits every focus**: a new focus or a resized view is flown to; a
+ *  focus that grew is fitted again. A block revealed inside is panned into sight. Where the
+ *  drawing itself changes — the map for a layer entered, a layer for another, or back — the camera
+ *  cuts and the new drawing fades in. */
+export function useFocus(scene: Scene, frame: Frame | null, stop: Rect | null,
+                         seen: { w: number; h: number }, aim: Id | null, opened = 0) {
+  const flow = useReactFlow();
+  const box = aimed(scene, frame, stop);
+  const realm = realm_of(scene);
+  const key = `${realm}|${scene.layer}|${stop ? `${stop.x},${stop.y},${stop.scale ?? 1}` : ""}|${opened}`;
+  const size = `${Math.round(box.w)}x${Math.round(box.h)}|${seen.w}x${seen.h}`;
+  const was = useRef<{ key: string; size: string; realm: string } | null>(null);
+
+  useEffect(() => {
+    if (seen.w < BAND * 2 || seen.h < BAND * 2) return;
+    const before = was.current;
+    was.current = { key, size, realm };
+    if (before && before.key === key && before.size === size) return;
+    /** The first look, and a view resized, land at once; a new focus is flown to. */
+    const fly = before && before.key !== key && before.realm === realm && !still() ? FLIGHT : 0;
+    void flow.setViewport(view_on(box, seen, stop?.scale ?? 1), { duration: fly });
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, size]);
+
+  /** A block revealed inside the focus is brought into sight, at the zoom it is seen at. */
+  useEffect(() => {
+    const on = aim ? scene.nodes.find((n) => n.id === aim) : undefined;
+    if (!on) return;
+    const b = box_of(on);
+    const vp = flow.getViewport();
+    const shown = { x: -vp.x / vp.zoom, y: -vp.y / vp.zoom, w: seen.w / vp.zoom, h: seen.h / vp.zoom };
+    const fits = b.x >= shown.x && b.y >= shown.y && b.x + b.w <= shown.x + shown.w
+      && b.y + b.h <= shown.y + shown.h;
+    if (fits) return;
+    void flow.setCenter(b.x + b.w / 2, b.y + b.h / 2,
+                        { zoom: vp.zoom, duration: still() ? 0 : FLIGHT });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aim]);
+
+  return box;
 }
 
 /** A scrolled drawing as the camera and the scroll limit both read it: the page (what is drawn,
@@ -69,159 +103,50 @@ export function bounded(y: number, page: { y: number; h: number }, zoom: number,
   return Math.min(top, Math.max(foot, y));
 }
 
-/** The camera flight on descending or leaving, the only animation, and opening out at the root.
- *  Scrolled, the camera fits the drawing's width, or `reach` of it, as a page held still across,
- *  and follows the focus down it. It never takes in more than `widest`, nor magnifies past
- *  `most`. */
-export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: number },
-                          seen: { w: number; h: number }, key: string, nodes: readonly BoxNode[],
-                          scroll = false, focus: Id | null = null, reach: number | null = null,
-                          widest: number | null = null, most: number | null = null) {
+/** The page camera: the drawing's width, or `reach` of it, held still across and scrolled down,
+ *  following the focus. It never takes in more than `widest`, nor magnifies past `most`. */
+export function usePage(scene: Scene, seen: { w: number; h: number }, nodes: readonly BoxNode[],
+                        focus: Id | null, reach: number | null, widest: number | null,
+                        most: number | null, on: boolean) {
   const flow = useReactFlow();
-  const was = useRef<Id | null | undefined>(undefined);
-  /** How big the room was; a room that grew is fitted again. */
-  const room = useRef<string>("");
-  /** What was drawn a moment ago, where a descent's flight starts. */
-  const drawn = useRef<readonly BoxNode[]>([]);
-
-  /** Fit the room, leaving the band. Scrolled: the focus at the page's width, or the whole room
-   *  with nothing in focus. */
   const settle = useCallback((duration: number) => {
-    if (scroll) {
-      const { page, w, zoom } = paged(scene, seen, reach, widest, most);
-      const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
-      // **A focus is scrolled into view, never centred**: where it is already in view the page
-      // holds still, else it moves just far enough to bring it in. With none, the page is read
-      // from its top. Either way the page stays inside its limits.
-      const vp = flow.getViewport();
-      const same = Math.abs(vp.zoom - zoom) < 1e-3;
-      let y = BAND - page.y * zoom;
-      if (on) {
-        const box = box_of(on);
-        const at = same ? vp.y : y;
-        const top = box.y * zoom + at;
-        const foot = (box.y + box.h) * zoom + at;
-        y = top < BAND ? BAND - box.y * zoom
-          : foot > seen.h - BAND ? seen.h - BAND - (box.y + box.h) * zoom : at;
-      }
-      y = bounded(y, page, zoom, seen);
-      // Across, the page holds still whatever is in focus: centred where it is narrower than the
-      // window, read from its left where wider.
-      const left = page.w < w ? page.x + page.w / 2 - w / 2 : page.x;
-      void flow.setViewport({ zoom, x: seen.w / 2 - (left + w / 2) * zoom, y }, { duration });
-      return;
+    const { page, w, zoom } = paged(scene, seen, reach, widest, most);
+    const at_focus = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
+    // **A focus is scrolled into view, never centred**: where it is already in view the page
+    // holds still, else it moves just far enough to bring it in — one taller than the view by
+    // its top, so it reads from its heading. With none, the page is read from its top.
+    const vp = flow.getViewport();
+    const same = Math.abs(vp.zoom - zoom) < 1e-3;
+    let y = BAND - page.y * zoom;
+    if (at_focus) {
+      const box = box_of(at_focus);
+      const at = same ? vp.y : y;
+      const top = box.y * zoom + at;
+      const foot = (box.y + box.h) * zoom + at;
+      const tall = box.h * zoom > seen.h - BAND * 2;
+      y = top < BAND || (tall && foot > seen.h - BAND) ? BAND - box.y * zoom
+        : foot > seen.h - BAND ? seen.h - BAND - (box.y + box.h) * zoom : at;
     }
-    /** An opened grid is the room: fitted as large as a room is drawn, with air round it. */
-    const own = frame ? null : own_node(scene);
-    if (own) {
-      const b = box_of(own);
-      const zoom = Math.min(READ_ZOOM, seen.w / (b.w * (1 + GRID_AIR)),
-                            seen.h / (b.h * (1 + GRID_AIR)));
-      void flow.setViewport({ zoom, x: seen.w / 2 - (b.x + b.w / 2) * zoom,
-                              y: seen.h / 2 - (b.y + b.h / 2) * zoom }, { duration });
-      return;
-    }
-    if (!frame) { void flow.fitView({ ...FIT, duration }); return; }
-    void flow.fitBounds({ x: frame.x, y: frame.y, width: frame.w, height: frame.h },
-                        { padding: fit.padding, duration });
-  }, [flow, frame, fit, scroll, focus, reach, widest, most, scene, seen]);
+    y = bounded(y, page, zoom, seen);
+    // Across, the page holds still whatever is in focus: centred where it is narrower than the
+    // window, read from its left where wider.
+    const left = page.w < w ? page.x + page.w / 2 - w / 2 : page.x;
+    void flow.setViewport({ zoom, x: seen.w / 2 - (left + w / 2) * zoom, y }, { duration });
+  }, [flow, focus, reach, widest, most, scene, seen]);
 
-  /** In a room, the focus panned to at the zoom it is seen at; false where it is not drawn. */
-  const pan = useCallback((duration: number): boolean => {
-    const on = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
-    if (!on) return false;
-    const b = box_of(on);
-    void flow.setCenter(b.x + b.w / 2, b.y + b.h / 2, { zoom: flow.getViewport().zoom, duration });
-    return true;
-  }, [flow, focus, scene]);
-
-  /** A new focus is flown to, and a cleared one opens out to the whole drawing. In a room, a
-   *  focus is panned to, and a cleared one leaves the camera be. */
   useEffect(() => {
-    if (scroll) { settle(still() ? 0 : FLIGHT); return; }
-    pan(still() ? 0 : FLIGHT);
+    if (on) settle(still() ? 0 : FLIGHT);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus]);
-
-  /** A page that changes width, or a view that does, is fitted again at once. */
-  const span = scroll ? Math.round(extent({ ...scene,
-    nodes: scene.nodes.filter((n) => n.id !== FRAME) }).w) : 0;
+  const span = Math.round(extent(scene).w);
   useEffect(() => {
-    if (scroll) settle(0);
+    if (on && nodes.length) settle(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [span, seen.w]);
+  }, [span, seen.w, seen.h, scene.layer]);
+}
 
-  useEffect(() => {
-    const quiet = still();
-    const last = was.current;
-    const moved_layer = last !== undefined && last !== scene.layer;
-    const own = frame ?? (own_node(scene) ? box_of(own_node(scene)!) : null);
-    const rect = own ? `${own.x},${own.y},${own.w},${own.h}` : "";
-    const grew = !moved_layer && room.current !== rect;
-    was.current = scene.layer;
-    room.current = rect;
-    const before = drawn.current;
-    drawn.current = scene.nodes;
-
-    if (grew) { settle(quiet ? 0 : FLIGHT); return; }
-    if (!moved_layer) return;
-    /** A focus in the room just entered is panned to once the room has settled. */
-    const then = () => { if (!scroll) pan(quiet ? 0 : FLIGHT); };
-    if (quiet) { settle(0); then(); return; }
-    /** Both ways start on the card and end on the room. */
-    const back = last ? scene.nodes.find((n) => n.id === last) : undefined;
-    const into = before.find((n) => n.id === scene.layer);
-    if (back) {
-      const b = box_of(back);
-      void flow.fitBounds({ x: b.x, y: b.y, width: b.w, height: b.h }, { duration: 0 });
-    } else if (into && frame) {
-      const b = box_of(into);
-      const vp = flow.getViewport();
-      const on = { x: b.x * vp.zoom + vp.x, y: b.y * vp.zoom + vp.y,
-                   w: b.w * vp.zoom, h: b.h * vp.zoom };
-      const zoom = Math.max(MIN_ZOOM, on.w / frame.w);
-      void flow.setViewport({
-        zoom,
-        x: on.x - frame.x * zoom,
-        y: (on.y + on.h / 2) - (frame.y + frame.h / 2) * zoom,
-      }, { duration: 0 });
-    }
-    settle(FLIGHT);
-    setTimeout(then, FLIGHT);
-    /** The signature says when the drawing changed. */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-
-  /** The room changed size — the tray opened or shut, the explorer was dragged — so frame the
-   *  drawing again. **A stage with no room left is left alone**: a tray taken to the full height
-   *  leaves nothing to fit into, and fitting into it would only throw the camera away. */
-  const sized = useRef<string>("");
-  useEffect(() => {
-    const now = `${seen.w}x${seen.h}`;
-    const before = sized.current;
-    sized.current = now;
-    if (!before || before === now || seen.w < BAND * 2 || seen.h < BAND * 2) return;
-    settle(still() ? 0 : FLIGHT);
-  }, [seen, settle]);
-
-  /** At the root, the camera opens out when the drawing outgrows it. */
-  const took = useRef<{ of: Id | null; box: string } | null>(null);
-  useEffect(() => {
-    if (scroll || frame || own_node(scene) || !nodes.length || nodes.some((n) => n.dragging)) {
-      return;
-    }
-    const box = extent(scene);
-    const size = `${box.x},${box.y},${box.w},${box.h}`;
-    const before = took.current;
-    took.current = { of: scene.layer, box: size };
-    if (!before || before.of !== scene.layer || before.box === size) return;
-    const vp = flow.getViewport();
-    const shown = { x: -vp.x / vp.zoom, y: -vp.y / vp.zoom,
-                    w: seen.w / vp.zoom, h: seen.h / vp.zoom };
-    const fits = box.x >= shown.x && box.y >= shown.y
-      && box.x + box.w <= shown.x + shown.w && box.y + box.h <= shown.y + shown.h;
-    if (fits) return;
-    void flow.fitView({ ...FIT, duration: still() ? 0 : FLIGHT });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, frame]);
+/** One fit for the controls, the band on every side. */
+export function useFit(frame: Frame | null, seen: { w: number }) {
+  return useMemo(() => (frame && seen.w > BAND * 2
+    ? { padding: (BAND * 2) / (seen.w - BAND * 2), maxZoom: 1 } : FIT), [frame, seen.w]);
 }

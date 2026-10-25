@@ -1,0 +1,23 @@
+{
+  "id": "state",
+  "name": "state",
+  "type": "block",
+  "description": "A state machine: how one thing changes — the states it is in, and the transitions between them, laid out by where they point. A block's behaviour.",
+  "def": {},
+  "traits": [
+    "has_parts",
+    "has_ports",
+    "has_values",
+    "is_behaviour"
+  ],
+  "settings": {
+    "style": {
+      "hue": 350
+    },
+    "layout": {
+      "view": "internal",
+      "kind": "layered",
+      "shape": "round"
+    }
+  }
+}

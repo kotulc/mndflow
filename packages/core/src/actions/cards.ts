@@ -5,12 +5,12 @@
  *  against the graph the ones before it made. Permissive: a type or tag nothing holds, or that
  *  more than one package holds, is made in the workspace, and said. */
 
-import { DEFINITION_KEYS, names_in, read_card, said_as, USAGE_KEYS, type Card } from "../card";
+import { is_own_key, names_in, read_card, said_as, type Card } from "../card";
 import { all_defs, def_at, domain_of, frozen } from "../defs";
 import { replay } from "../fold";
 import { new_id } from "../ids";
-import { is_tag } from "../tags";
-import type { Graph, Id, Mutation } from "../types";
+import { tag_at } from "../library";
+import type { Block, Graph, Id, Mutation } from "../types";
 import { action, register, type Args, type Context, type Result } from "./registry";
 import { borrowed, id_of, text } from "./helpers";
 import { new_def } from "./definitions";
@@ -108,7 +108,7 @@ function usage_calls(graph: Graph, id: Id, { front, body }: Card, whole: boolean
   const type = said_as(front["type"]).trim();
   const was = def_at(graph, b.type)?.name ?? "";
   if (type && type !== was) {
-    const hit = one_named(graph, type, (d) => domain_of(graph, d) === "block" && !is_tag(graph, d));
+    const hit = one_named(graph, type, (d) => domain_of(graph, d) === "block");
     const to = hit ?? new_id("def");
     if (!hit) {
       calls.push(new_def(graph, { id: to, name: type, def: {} }));
@@ -125,7 +125,7 @@ function usage_calls(graph: Graph, id: Id, { front, body }: Card, whole: boolean
   if (says("source") && source !== (b.source ?? "")) calls.push(["source", { id, uri: source }]);
 
   /** Every other key answers the attribute of its name; an answer it no longer gives goes. */
-  const said = Object.entries(front).filter(([k]) => !(USAGE_KEYS as readonly string[]).includes(k));
+  const said = Object.entries(front).filter(([k]) => !is_own_key(k));
   const names = said.map(([k]) => k);
   for (const [n, v] of said) {
     const value = said_as(v);
@@ -135,11 +135,12 @@ function usage_calls(graph: Graph, id: Id, { front, body }: Card, whole: boolean
   }
   /** An answer named as a key the card says itself with is never written, so never taken. */
   for (const v of b.values ?? []) {
-    if (whole && !names.includes(v.name) && !(USAGE_KEYS as readonly string[]).includes(v.name)) {
+    if (whole && !names.includes(v.name) && !is_own_key(v.name)) {
       calls.push(["unfield", { holder: id, name: v.name }]);
     }
   }
-  if (body !== (b.body ?? "")) calls.push(["describe", { id, body }]);
+  calls.push(...described(b, front));
+  if (body !== (b.body ?? "")) calls.push(["write", { id, body }]);
   const after: Mutation[] = whole && names.length > 1 ? [{ op: "order_values", id, names }] : [];
   return { calls, made, after };
 }
@@ -153,7 +154,7 @@ function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
   const name = said_as(front["name"]).trim();
   if (name !== d.name) calls.push(["rename", { id, name }]);
 
-  const up = said_as(front["extends"]).trim();
+  const up = said_as(front["type"]).trim();
   const was = def_at(graph, d.type)?.name ?? "";
   if (up !== was) {
     const hit = up ? one_named(graph, up, (x) => x !== id) : "";
@@ -171,7 +172,7 @@ function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
   /** Any other key is an attribute's default, declared where nothing declares it; a default the
    *  card no longer says is cleared. */
   for (const [n, v] of Object.entries(front)) {
-    if ((DEFINITION_KEYS as readonly string[]).includes(n)) continue;
+    if (is_own_key(n)) continue;
     const value = said_as(v);
     if (d.def.attributes?.find((a) => a.name === n)?.default !== value) {
       calls.push(["field", { holder: id, name: n, default: value }]);
@@ -179,12 +180,19 @@ function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
   }
   for (const a of d.def.attributes ?? []) {
     if (a.default !== undefined && !(a.name in front)
-        && !(DEFINITION_KEYS as readonly string[]).includes(a.name)) {
+        && !is_own_key(a.name)) {
       calls.push(["field", { holder: id, name: a.name, default: "" }]);
     }
   }
-  if (body !== (d.body ?? "")) calls.push(["describe", { id, body }]);
+  calls.push(...described(d, front));
+  if (body !== (d.body ?? "")) calls.push(["write", { id, body }]);
   return { calls, made, after: [] };
+}
+
+/** The `describe` call a frontmatter `description` comes to, where it differs. */
+function described(b: Block, front: Card["front"]): Call[] {
+  const said = said_as(front["description"]).trim();
+  return said !== (b.description ?? "") ? [["describe", { id: b.id, description: said }]] : [];
 }
 
 /** The `tag` or `trait` call a frontmatter list comes to, where it differs from what the block
@@ -194,7 +202,7 @@ function listed(graph: Graph, id: Id, key: "tags" | "traits", front: Card["front
   const own = graph.blocks[id]?.[key];
   if (!(key in front)) return own ? [[act, { ids: [id] }]] : [];
   const want = names_in(front[key]);
-  const had = own?.map((x) => graph.blocks[x]?.name ?? x);
+  const had = own?.map((x) => (key === "tags" ? tag_at(graph, x)?.name : undefined) ?? x);
   return JSON.stringify(want) === JSON.stringify(had) ? [] : [[act, { ids: [id], [key]: want }]];
 }
 

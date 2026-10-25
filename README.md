@@ -32,14 +32,17 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
+A fresh browser opens the model (the example shop), as `mndflow.yaml` says; an existing workspace in the browser always wins.
+
 ### Using it
 
 | Where | What you can do |
 |---|---|
 | **Header** | undo, redo, import, export, a new workspace, the theme — each reaches a **port**, never the graph |
-| **Explorer** | a section chain — `definitions` (every package, its definitions in the folders and groups that organize them) and `structure` (every definition holding structure, always, standing apart from what definitions holds; the definition chosen there opens) — and the menu that hangs off the tree. **The explorer browses; the canvas is the target**: choosing a row selects it, opening one (Enter, double-click, →) moves the canvas. The canvas draws a whole section in a **system view** — **package** or **profile**, the rail's only views — or one block in the **layer view** its kind calls for: a folder, a definition, a grid, or a block from inside |
+| **Explorer** | a section chain — `definitions` (every package, its definitions in the folders and groups that organize them) and `structure` (each package that holds structure, through the definition-side blocks on the way to it, standing apart from what definitions holds; the definition chosen there opens) — and the menu that hangs off the tree. **The explorer browses; the canvas is the target**: choosing a row selects it, opening one (Enter, double-click, →) moves the canvas. The canvas draws a whole section in a **system view** — **package** or **profile**, the rail's only views — or one block in the **layer view** its kind calls for: the internal, definition or allocation view, or the diagram it names — table or sequence |
+
 | **Stage** | **the left button works what is there; the right button makes something new.** Within the right button a click makes what sits at a point and a drag makes what has extent. A click here selects and never navigates |
-| **Options** | settings for the workspace or a new definition, then the groups the projection asks for — a layer's layout (`free`, `auto`, `page`), the system views, what the drawing shows, and what a right drag draws |
+| **Options** | the palette the focus's family draws with, the quick editor (the workspace, the open package, something new in the focus) and what a right drag draws. No layout to choose: every card is placed automatically |
 | **Tray** | open from the start, on whatever is picked — and on the root, with its `workspace` tab, when nothing is: where the workspace is exported, whole or as a package. What the open layer holds, as rows; a block's element, fields and contents; the card size, key and lattice. A block with a schema offers its fields as a diagram |
 
 Work is kept in IndexedDB as you go; **export** writes the whole graph to a file that **import** reads back.
@@ -62,6 +65,11 @@ npm run build -w @mnd/web            # a production bundle
 npm run release:kit                  # build, pack and stamp @mnd/kit
 npm run dev -w @mnd/stage            # one surface alone — also explorer, options, tray
 npm run start -w @mnd/cli -- fold related
+npm run samples                      # collect the packages, then the model and elements
+npm run model                        # collect samples/model, one diagram file per block, into samples/model.json and its package
+npm run elements                     # collect samples/elements, the enumerations, into samples/elements.json
+npm run packages                     # re-collect catalogue packages from packages/defs/src/packages/
+npm run base                         # re-collect base from packages/defs/src/base/
 ```
 
 **`@mnd/kit` is the one thing that ships.** The headless stack as a single built package, plus `kit/react` and `kit/react.css` — the viewer, the explorer and a read-only tray, with the tray and display state the app itself runs on — packed, never published. `release/` carries the tarball and a manifest naming its version, commit and integrity, so a consumer can check what it is holding.
@@ -90,6 +98,7 @@ Under `docs/`, and they describe the **goal state** rather than what is built. T
 | `definitions.md` | the vocabulary the others are written in |
 | `spec.md` | what crosses packages: the seams, ports, kit, apps and tests |
 | `stories.md` | what somebody is trying to do |
-| `simplification-plan.md` | one rule, one home: where code lives and the leads to consolidate |
+| `code-homes.md` | one rule, one home: where each rule's code lives |
+| `next-plan.md` | the one plan: what is left to do, in order |
 
 **What one package alone decides lives in that package's `docs/`**, never here.

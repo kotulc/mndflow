@@ -54,11 +54,32 @@ const PATHS = {
   // stands for something that lives elsewhere, and the mark says which way.
   role_reference: "M7 5h12v12z",
   role_note: "M5 8h14M5 12h14M5 16h9",
+  // A label: one line of text, no card.
+  role_label: "M5 12h14M5 12v-3M19 12v-3",
+  // A region: bands stacked, the top one headed.
+  role_region: "M3.5 5.5h17M3.5 12h17M3.5 18.5h17M6 8.5h6M6 15h6",
+  // A flow's marks, as they draw: a start's dot, an end's ringed dot, a decision's diamond.
+  role_start: "M8.5 12a3.5 3.5 0 1 0 7 0 3.5 3.5 0 1 0-7 0",
+  role_end: "M6 12a6 6 0 1 0 12 0 6 6 0 1 0-12 0M10 12a2 2 0 1 0 4 0 2 2 0 1 0-4 0",
+  role_decision: "M12 4.5l7.5 7.5-7.5 7.5-7.5-7.5z",
+  // A tag: a ticket with a hole.
+  tag: "M4.5 4.5h7l8 8-7 7-8-8zM8.5 8.5h.01",
   // A boundary drawn round what it holds — rules that run off the edge, the
   // same hash the guides wear, because both are an unbounded frame.
   role_group: "M9 4v16M15 4v16M4 9h16M4 15h16",
   // A group with an extent — cells you seat things in, bounded like a table.
   role_table: "M4.5 6h15v12H4.5zM4.5 10.5h15M11 6v12",
+  // The diagram kinds, one each: what the block's own layer draws.
+  role_internal: "M3.5 3.5h17v17h-17zM8.5 8.5h7v7h-7z",
+  role_flow: "M2.5 12h5M16.5 12h5M7.5 12L12 7.5 16.5 12 12 16.5zM19 9.5l2.5 2.5-2.5 2.5",
+  // A state: a start dot, an arrow, and the rounded state it enters.
+  role_state: "M1.75 12a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0-5 0M3.25 12a1 1 0 1 0 2 0 1 1 0 1 0-2 0M6.5 12h4.5M8.5 9l3 3-3 3M15 7h3.5a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H15a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3z",
+  role_sequence: "M6 3.5v17M18 3.5v17M6 9h12M15.5 6.5L18 9l-2.5 2.5M18 15H6M8.5 12.5L6 15l2.5 2.5",
+  role_swimlane: "M3.5 4h17v16h-17zM9.2 4v16M14.8 4v16M5 7h2.5v2.5H5zM10.7 11.5h2.5V14h-2.5zM16.3 16h2.5v2.5h-2.5z",
+  role_class: "M5 3.5h14v17H5zM5 8h14M5 14h14M8 11h8M8 17h6",
+  // An entity: two tables, one end a bar, the other a crow's foot.
+  role_entity: "M2.5 7.5h5v9h-5zM16.5 7.5h5v9h-5zM7.5 12h9M10 9.5v5M12.5 12l4-3.5M12.5 12l4 3.5",
+  role_treemap: "M3.5 3.5h17v17h-17zM12 3.5v17M12 11h8.5M12 15.75h8.5",
   // Where every usage hangs from: one node, and the branches it puts out.
   role_root: "M12 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M12 8.5v3.5M5 12h14M5 12v5M12 12v5M19 12v5M3.5 17h3M10.5 17h3M17.5 17h3",
 
@@ -125,15 +146,15 @@ const PATHS = {
   layout_free: "M5 5h4.5v4.5H5zM14.5 8h4.5v4.5h-4.5zM8 14.5h5.5V19H8z",
   layout_grid: "M4.5 4.5h15v15h-15zM9.5 4.5v15M14.5 4.5v15M4.5 9.5h15M4.5 14.5h15",
 
-  // The views. A section's: package, the boxes a whole section nests, from above; profile, the
-  // same section stepped down the page. A block's: **internal, a card seen from inside its rim**;
+  // The views. A section's: package, the boxes a whole section nests, from above. A block's: **internal, a card seen from inside its rim**;
   // entity, a card ruled into its attributes; lineage, a card extending the one above it;
   // definitions, a package's cards joined.
   view_internal: "M4.5 4.5h15v15h-15zM8.5 9.5h7v5h-7z",
-  view_overhead: "M4.5 4.5h15v15h-15zM7.5 7.5h4v4h-4zM12.5 7.5h4v4h-4zM7.5 13.5h9v3h-9z",
-  view_profile: "M6.5 4.5h11v4h-11zM6.5 10h11v4h-11zM6.5 15.5h11v4h-11z",
+  view_package: "M4.5 4.5h15v15h-15zM7.5 7.5h4v4h-4zM12.5 7.5h4v4h-4zM7.5 13.5h9v3h-9z",
   view_grid: "M4.5 4.5h15v15h-15zM4.5 9.5h15M4.5 14.5h15M9.5 4.5v15M14.5 4.5v15",
   view_folder: "M3.5 6.5h6l2 2h9v11h-17zM7 12h10M7 15.5h10",
+  view_table: "M5 14h6v5H5zM13 5h6v5h-6zM8 14V9.5h5V10M13 7.5l-1.6 1.4M13 7.5l1.6 1.4",
+  view_sequence: "M7 4.5v15M12 4.5v15M17 4.5v15M7 11h8.5M15.2 9.3L17 11l-1.8 1.7",
 
   // The guides the drawing is measured against. **A hash: rules that run off
   // the edge**, which is what a guide is and what keeps it off `layout_grid`,
@@ -241,6 +262,10 @@ export function Icon({ name, size = 16, solid = false, className }: {
 export const ROLE_ICON: Record<string, IconName> = {
   block: "role_leaf", folder: "role_folder", reference: "role_reference",
   interface: "role_interface", group: "role_group", grid: "role_table", note: "role_note",
+  label: "role_label", region: "role_region",
+  start: "role_start", end: "role_end", decision: "role_decision",
+  internal: "role_internal", flow: "role_flow", state: "role_state", sequence: "role_sequence",
+  swimlane: "role_swimlane", class: "role_class", entity: "role_entity", treemap: "role_treemap",
 };
 
 /** The icon for a role, falling back to the plain block's. */

@@ -73,7 +73,7 @@ const svg = draw_svg(project(back, layer, {}));
 
 ## Cards as markdown
 
-**A card's content is markdown; its identity is data.** `card_text(graph, id)` writes a block or a definition as its card source — frontmatter, then its body — and `read_card(text)` splits one back. `collect(name, files, graph)` reads a folder of markdown usages and the `package.json` definitions they name as one package file, for `open` or a session to bring in.
+**A card's content is markdown; its identity is data.** `card_text(graph, id)` writes a block or a definition as its card source — frontmatter, then its body — and `read_card(text)` splits one back. `collect(name, files, graph)` reads a folder of definition files, diagram files and markdown cards — one schema, names in place of ids — as one package file, for `open` or a session to bring in.
 
 `@mnd/kit/react` draws them the one way every surface does: `CardFace`, a card's small or large face, and `Markdown` / `Inline`, the renderer it reads through. `carried`, `face_text` and `size_of` say what a face carries and how big it is.
 
@@ -106,15 +106,14 @@ import "@mnd/kit/shell.css";
 <Viewer graph={graph} chrome={{ crumbs: true }} />   // the trail down to the open layer, over the drawing
 ```
 
-**Chrome is asked for, and dressed by the shell** — bar the lattice, which draws unless `chrome.lattice` is `false`. Bare, the viewer is the canvas and the lattice behind it. `chrome.crumbs` draws the trail over its top-left corner — a crumb opens that layer, the arrow goes up one — and the crumbs are shell, not stage, so they read `shell.css` rather than anything `react.css` carries.
+**Chrome is asked for, and dressed by the shell** — bar the lattice, which draws unless `chrome.lattice` is `false`. Bare, the viewer is the canvas and the lattice behind it. `chrome.crumbs` draws the trail across its top — the package, then every folder and block down to the open layer, folded to `…` where it would overrun; a crumb opens that step, the arrow ahead of them goes up one — and the crumbs are shell, not stage, so they read `shell.css` rather than anything `react.css` carries.
 
 The rest of what a drawing looks like is the host's to hand down, and `useDisplay` below keeps it:
 
 | Prop | Is |
 |---|---|
-| `card` | the small face's card, in lattice units — applied before anything is measured. A large face fits its content, or takes its definition's `card.size`, drawn where a layer's `layout.face` asks |
+| `card` | the small face's card, in lattice units — applied before anything is measured. A large face fits its content, or takes its definition's `card.size`, drawn where a layer's `layout.cards` asks |
 | `chrome.legend` · `chrome.corner` | the key to what the layer draws, in the top or bottom right-hand corner |
-| `fields` · `onFields` | a block or definition whose attributes are drawn **instead of the layer**, as a class diagram: one card standing for its definition, one per usage listing its values. A pick on the class card is told as its definition; `close diagram` and the crumbs tell `onFields(null)` |
 
 ## The tray
 
@@ -129,16 +128,15 @@ const { display, onDisplay } = useDisplay({ card: { w: 6, h: 2 }, range: CARD })
 <Tray graph={graph} layer={layer} picked={picked}
       open={tray.open} onOpen={tray.onOpen} onTab={tray.onTab}
       hold={tray.hold} onHold={tray.onHold}
-      display={display} onDisplay={onDisplay} onFields={set_fields}
+      display={display} onDisplay={onDisplay}
       extras={[{ name: "preview", draw: (id) => <Preview id={id} /> }]} />
 ```
 
 **mndflow's own tray, and the state every shell keeps for it** — the same `useTray` and `useDisplay` the mndflow app runs on, so a host inherits the defaults rather than restating them:
 
 - **Open from the start**, and pointed at the workspace: nothing picked on the root layer is the root picked, which opens on its `workspace` tab and lights the root row in the explorer.
-- **Read only without `onAct`.** Only the tabs that read are offered — workspace, element, fields, contents, and the library's — and nothing in them takes input. **The workspace tab's display still answers `onDisplay`**, because how a drawing looks is the session's and changes nothing.
+- **Read only without `onAct`.** Only the tabs that read are offered — workspace, card or line, settings, attributes, contents, usages, and the library's — and nothing in them takes input. **The workspace tab's display still answers `onDisplay`**, because how a drawing looks is the session's and changes nothing.
 - **A host's own tabs come after the tray's**, for blocks, through `extras`.
-- **The fields tab offers `view diagram`** wherever the block answers a workspace schema, and hands the id to `onFields`.
 
 ## The tree
 

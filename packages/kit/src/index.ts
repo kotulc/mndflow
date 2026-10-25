@@ -6,7 +6,7 @@ export {
   type Attribute, type Definition, type Dir, type Domain, type File, type Floor,
   type Flow, type Form, type Graph, type Id, type Point, type Relation, type Side,
   type Cell, type Grid, type HeaderRole, type Shape, type Span, type Value,
-  LAYOUTS, BASE_PACKAGE, BLOCK_MODULES, MAIN, ROOT, SCHEMA,
+  LAYOUTS, BASE_PACKAGE, BLOCK_MODULES, ROOT, SCHEMA,
   empty_graph, new_id,
 } from "@mnd/core";
 
@@ -27,19 +27,23 @@ export { type Allowed, type Allows, type Expects, type Note, type NoteKind, type
 
 /** Reading a graph. Every derived answer the engine gives about one. */
 export {
-  all_defs, allocated_to, allocations_of, attributes_of, form_of, is_value_type, links_to,
+  all_defs, allocated_to, allocations_of, attributes_of, form_of, links_to, ports_of, ports_on,
+  stored_of, is_box, is_region, ends_of, behaviours_of, is_behaviour, signature_of,
   layout_of, at_cell, cell_of, children, def_at,
   def_of, domain_of, edge_base, edges_in, frozen, grid_of, group_head, head_of, headed_group,
   heading, holders_in, isa, is_container, is_grid, is_group, is_header, is_holder,
   is_interface, lattice_of, is_reference, layer_of, drawn_in, inline, is_folder, organizes,
-  tree_of, in_domain, setting_of, uses_of, members_of, merge_at, base_of, opens,
+  tree_of, in_definitions, setting_of, uses_of, members_of, merge_at, base_of, opens,
   owner_of, package_of, packages, path, region_of, shape_of, shown_name, stands_for, subtree,
   subtypes, used_by,
 } from "@mnd/core";
 
-/** Tags: definitions blocks and definitions carry. */
-export { has_trait, is_tag, is_tie, is_trait, tag_home, tag_named, tags_of, tags_stated, traits_of,
-         traits_stated, type Stated } from "@mnd/core";
+/** Named components: the types and tags a package holds as data; traits: the engine's
+ *  capabilities. */
+export { all_tags, all_types, has_trait, is_form, is_tag, is_tie, is_trait, library_of, tag_at,
+         tag_named, tags_of, tags_stated, trait_at, traits_of, traits_stated, type_at, type_named,
+         typed_as, FORMS, TRAITS, type Library, type End, type Ends, type Stated, type Tag,
+         type Trait, type Type } from "@mnd/core";
 
 /** The floor. `FLOOR` is the base package's blocks; `base_graph()` a fresh workspace on it. */
 export { ALL, BASE, FLOOR, RELATIONS, base_graph, by_id } from "@mnd/defs";
@@ -68,5 +72,5 @@ export { held_at, leave_at, open_at, reveal_at, sight, view_of, view_on, EDITOR,
          type Views } from "@mnd/core";
 
 /** A whole section drawn — every root it lists, down to its cut — and a cross-section along a pick. */
-export { profile_graph, survey_graph } from "@mnd/views";
+export { survey_graph } from "@mnd/views";
 

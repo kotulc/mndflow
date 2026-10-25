@@ -1,0 +1,18 @@
+name: Customer
+def:
+  attributes:
+    - name: id
+      type: number
+      key: primary
+    - name: name
+    - name: email
+      type: Email
+description: Someone who places an order.
+settings:
+  card:
+    face: table
+library:
+  types:
+    - name: Email
+      form: text
+      description: Where the shop writes to someone.

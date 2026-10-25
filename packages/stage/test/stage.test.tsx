@@ -29,6 +29,13 @@ const card = (view: { container: HTMLElement }, id: string) =>
 const ground = (view: { container: HTMLElement }) =>
   view.container.querySelector(".react-flow__pane")!;
 
+/** Where the camera looks: the viewport's offset and zoom, as drawn. */
+const viewport = (view: { container: HTMLElement }) => {
+  const style = view.container.querySelector<HTMLElement>(".react-flow__viewport")!.style.transform;
+  const [x = 0, y = 0, zoom = 1] = (style.match(/-?[\d.]+/g) ?? []).map(Number);
+  return { x, y, zoom };
+};
+
 /** The frame's own name — the one name drawn on the stage. */
 const frame_name = (view: { container: HTMLElement }) =>
   view.container.querySelector(".mnd-frame-name")!;
@@ -157,8 +164,9 @@ describe("the left button works what is already there", () => {
   it("stays put on a double click inside the frame", () => {
     const view = mount();
     const f = view.scene.frame!;
+    const { x, y, zoom } = viewport(view);
     fireEvent.doubleClick(ground(view),
-      { clientX: f.x + f.w / 2, clientY: f.y + f.h / 2 });
+      { clientX: (f.x + f.w / 2) * zoom + x, clientY: (f.y + f.h / 2) * zoom + y });
     expect(view.onAct).not.toHaveBeenCalledWith("open");
   });
 });

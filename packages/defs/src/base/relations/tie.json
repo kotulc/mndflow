@@ -2,10 +2,15 @@
   "id": "tie",
   "name": "tie",
   "type": "line",
-  "body": "A dashed run with no heads: what ties a remark to what it is about.",
+  "description": "A relation with no model meaning: a dotted run with no heads, from a note or label to what it describes.",
   "def": {},
   "traits": [
     "has_values",
     "is_tie"
-  ]
+  ],
+  "settings": {
+    "style": {
+      "border_style": "dotted"
+    }
+  }
 }

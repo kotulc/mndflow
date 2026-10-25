@@ -63,7 +63,7 @@
 .contents-table tr.empty td { color: var(--faint); font-style: italic; cursor: default; }
 .contents-table tr.empty:hover td { background: none; }
 
-/* ── The body under both columns ─────────────────────────────────────────── */
+/* ── What a block holds as text, over its contents table ───────────────────── */
 .content { display: flex; flex-direction: column; gap: 6px; padding: 0 10px 10px; }
 .content > textarea {
   min-height: 6em;
@@ -78,21 +78,6 @@
   font-size: 12px;
 }
 .content > textarea:focus { outline: none; border-color: var(--accent); }
-/* The record is read, never written. **It grows with what it holds**, so the tray body's scroll
-   is the only one — and it wraps rather than running off the side. Code face, and quieter. */
-.content > pre.data {
-  margin: 0;
-  padding: 6px 8px;
-  border: 1px solid var(--divider);
-  border-radius: 2px;
-  background: var(--band);
-  color: var(--muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 11px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
 
 /* A value read rather than set. */
 .rows > .row > .line > .read { color: var(--muted); }
@@ -159,69 +144,51 @@ fieldset.fields { padding: 0; }
 /* The drawing fills its column; the run scales with it. */
 .drawing .preview-wire { width: 100%; }
 .drawing .preview-run { width: 100%; height: auto; }
+/* The card and settings tabs: the drawing and its keys in a third, the lit key's choices in the rest. */
+/* The first tab, a card's or a line's: its source on the left, the lit key's choices right. */
+.panel.element { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); grid-template-areas: "source choices"; }
+.panel.element > .col.source { grid-area: source; gap: 6px; }
+.panel.element > .col.choices { grid-area: choices; }
+/* The tray lays its tabs out by its own width, not the window's. */
+.tray-body { container-type: inline-size; }
+/* Half and half where a third would cramp the keys: a portrait screen, or a tray beside wide rails. */
+@container (max-width: 720px) {
+  .panel.element { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+/* Narrower still, the choices follow the keys, under them. */
+@container (max-width: 460px) {
+  .panel.element { grid-template-columns: minmax(0, 1fr); grid-template-areas: "source" "choices"; }
+}
 
-/* The first tab, a card's or a line's, the settings tab's layout: how it appears beside what it
-   is, its source under both, and the definition it follows under all. A line has no source. */
-.panel.element { grid-template-areas: "drawing rows" "source source" "data data"; }
-.panel.element.lined { grid-template-areas: "drawing rows" "data data"; }
-.panel > .col.source { grid-area: source; }
-.col.source > .content { padding: 6px 0 0; }
-.col.source > .content > textarea { min-height: 12em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-
-/* A definition's record, read only. */
+/* The json tab: a definition's record, read only. */
+.json { padding: 8px 10px 10px; }
 .card-record pre {
   margin: 0;
   padding: 6px 8px;
   border: 1px solid var(--divider);
   border-radius: 2px;
   background: var(--band);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.card-record pre { color: var(--muted); font-size: 11px; line-height: 1.5; }
-
-/* A usage's settings are its definition's, read here: a box drawn as nothing. */
-fieldset.panel-set { border: 0; margin: 0; padding: 0; min-width: 0; }
 
 /* The attributes table: what a definition inherits reads faint, and a link names its target. */
 .attributes { padding: 4px 10px 10px; }
 .contents-table tr.inherited td { color: var(--faint); }
 .contents-table td .type { color: var(--muted); }
 .contents-table td .type.link { color: var(--accent); }
+/* A library type wears its own colour, read down its chain, as a chip for it does. */
+.contents-table td .type.typed { color: var(--card-edge, var(--muted)); }
 .contents-table td .faint { color: var(--faint); font-style: italic; }
 
-/* The settings tab: the drawing and its looks side by side, and under both, across the whole
-   tab, what it may do. */
-.panel.style { grid-template-areas: "drawing rows" "traits traits"; }
-.panel > .col.traits { grid-area: traits; }
-
-.panel > .content.data { grid-area: data; }
-
-/* The workspace draws nowhere, so there is no card column: what it is and what it is made of
-   take a column each, and the description runs under both. */
-.panel.workspace {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-areas: "identity file" "body body";
-}
-
-.panel.workspace > .col.identity { grid-area: identity; }
-.panel.workspace > .col.file { grid-area: file; }
-
-/* Wide: one row across — the body takes a third column, the style groups a column of their own. */
-@container tray (min-width: 960px) {
-  .panel.workspace {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "identity file body";
-  }
-
-  .panel.style > .draws {
-    display: grid;
-    grid-template-columns: 7.5em minmax(0, 1fr);
-    align-items: start;
-  }
-  .panel.style > .draws > .rail { flex-direction: column; align-items: stretch; height: 100%; }
-  .panel.style > .draws > .rail > .filters { flex-direction: column; align-items: stretch; }
-}
+/* The workspace tab: an overview of the world, then the display every room draws by. */
+.workspace-tab { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; }
+.workspace-tab > .overview { flex: none; min-height: 220px; }
+.workspace-tab .stat { display: flex; gap: 12px; }
+.workspace-tab > .display { padding: 0 10px 10px; }
 
 /* ── A rail over a table ── */
 /* The rail heads its table the way the contents table heads its own. */
@@ -360,3 +327,219 @@ fieldset.panel-set { border: 0; margin: 0; padding: 0; min-width: 0; }
   background: var(--hover);
 }
 
+/* ── A registry's matrix: a grid of gapped squares, blocks down beside their folder, entries
+   across under a head naming what they are ── */
+.heat-scroll { overflow-x: auto; flex: none; padding: 6px 8px 8px; }
+.heat-table { border-collapse: separate; border-spacing: 0; font-size: 12px; }
+.heat-table th, .heat-table td { padding: 0; font-weight: normal; }
+/* The axes: the rows' kinds, and the entries' kind pointing across, quiet and upper case as
+   every tray head, along the bottom of the one head row. */
+.heat-table th.axis {
+  padding: 0 8px 4px 0;
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  vertical-align: bottom;
+}
+.heat-table th.name.axis > .across { float: right; color: var(--muted); }
+.heat-table th.total.axis { padding: 0 0 4px 8px; text-align: right; }
+/* An entry's name reads flat in the one head line, every column one width — the longest name's,
+   up to a cap — and a name past it cut short; the readout says it whole. A click makes it the context. */
+.heat-table th.entry { padding: 0 3px 4px; vertical-align: bottom; cursor: pointer; }
+.heat-table th.entry > span {
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.heat-table th.entry:hover > span, .heat-table th.entry.cross > span { color: var(--accent); }
+/* The row heads stay put while the squares scroll under them. */
+.heat-table .folder, .heat-table .name { position: sticky; z-index: 1; background: var(--bg); }
+.heat-table .folder { left: 0; width: 7rem; max-width: 7rem; }
+.heat-table .name { left: 0; width: 13rem; max-width: 13rem; }
+.heat-table.foldered .name { left: 7rem; }
+.heat-table tbody th.folder {
+  padding: 4px 8px 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: left;
+  text-overflow: ellipsis;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.heat-table tbody th.name {
+  padding: 0 10px 0 0;
+  overflow: hidden;
+  color: var(--text);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A folder's blocks sit together; a rule and a little air part one folder from the next. */
+.heat-table tbody + tbody > tr:first-child > * { border-top: 1px solid var(--divider); padding-top: 4px; }
+.heat-table tbody + tbody > tr:first-child > th.folder { padding-top: 8px; }
+.heat-table tbody tr { cursor: pointer; }
+.heat-table tbody tr:hover > th.name, .heat-table tbody tr.picked > th.name { color: var(--accent); }
+/* The block's colour, as its card wears it. */
+.heat-table .swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border: 1px solid var(--card-edge, var(--border));
+  border-radius: 2px;
+  background: var(--card-fill, transparent);
+  vertical-align: -0.05em;
+}
+/* One square a cell, a 2px gap of ground round it, one hue from the ground to the accent by count;
+   a count past one is written, and every cell says its count on hover. */
+.heat-table td.cell { min-width: 24px; padding: 1px; }
+.heat-table .heat, .heat-key > i {
+  background: color-mix(in oklch, var(--accent) calc(var(--heat, 0) * 75%), var(--band));
+}
+.heat-table .heat {
+  display: block;
+  width: 22px;
+  margin: 0 auto;
+  height: 22px;
+  border-radius: 3px;
+  color: var(--text);
+  font-size: 10px;
+  line-height: 22px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+/* The crosshair: the row and the column the pointer is on, their empty squares raised. */
+.heat-table tbody tr.cross .heat.none, .heat-table tbody tr.picked .heat.none,
+.heat-table td.cell.cross .heat.none { background: var(--hover); }
+.heat-table tr.cross td.cell.cross .heat:not(.none) { outline: 1px solid var(--accent); outline-offset: -1px; }
+/* The readout: one line over the grid, always there so nothing moves as the pointer does. */
+.heat-readout {
+  margin: 0;
+  padding: 6px 8px 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.heat-readout.idle { color: var(--faint); font-style: italic; }
+.heat-table td.total, .heat-table td.count {
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.heat-table td.total { padding: 0 0 0 8px; text-align: right; }
+.heat-table td.count { padding-top: 4px; text-align: center; }
+.heat-table td.acts { padding-left: 8px; }
+.heat-table tfoot > tr > * { border-top: 1px solid var(--divider); padding-top: 4px; }
+.heat-table tfoot th.foot {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg);
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+/* The key: what the warmth means, on the chip bar's far end. */
+.heat-key { display: inline-flex; align-items: center; gap: 2px; color: var(--faint); font-size: 10px; }
+.heat-key > i { display: inline-block; width: 11px; height: 11px; border-radius: 2px; }
+.heat-key > i:first-of-type { margin-left: 4px; }
+.heat-key > i:last-of-type { margin-right: 4px; }
+
+/* ── The components tab: a band per kind; a port's interface and a tag in their own colour. ── */
+.components { display: flex; flex-direction: column; }
+:is(.components, .overview) .painted { color: var(--card-edge, var(--muted)); }
+.components .carried { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 10px 10px; }
+:is(.components, .overview) .chip-like {
+  padding: 0 6px;
+  border: 1px solid var(--card-edge, var(--border));
+  border-radius: 2px;
+  font-size: 11px;
+}
+:is(.components, .overview) .faint { color: var(--muted); font-size: 11px; }
+
+/* ── The overview: the large face left, why / how / where right. ── */
+.overview { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 14px;
+            padding: 10px; flex: 1; min-height: 0; box-sizing: border-box; }
+/* The glance is the tray's whole height, so its drawing fits what shows; the answers scroll. */
+.overview .answers { overflow-y: auto; }
+@container (max-width: 640px) {
+  .overview { grid-template-columns: 1fr; flex: none; }
+  .overview .glance { min-height: 200px; }
+}
+.overview .glance { position: relative; display: flex; flex-direction: column; gap: 6px;
+                    min-height: 0; border: 1px solid var(--divider); border-radius: 2px;
+                    background: var(--bg); overflow: hidden; }
+.overview .glance .cap { display: flex; align-items: center; gap: 6px; padding: 5px 8px 0;
+                         color: var(--muted); font-size: 10px; }
+.overview .glance .cap b { color: var(--text); font-weight: 600; }
+.overview .glance .thumb { flex: 1; min-height: 0; }
+/* The picture, fitted whole to the glance: what it connects to, a registry, what a folder files. */
+.overview .glance .thumb { display: flex; padding: 4px 8px 8px; }
+.pic { width: 100%; height: 100%; min-height: 0; }
+.pic text { font-family: var(--mono, monospace); }
+.pic-peer { fill: var(--surface); stroke: var(--wall); }
+.pic-peer-name { fill: var(--text); font-size: 11px; }
+.pic-me { fill: var(--surface); stroke: var(--accent); stroke-width: 1.6; }
+.pic-me-name { fill: var(--text); font-size: 12px; font-weight: 600; }
+.pic-wire { fill: none; stroke: var(--route); stroke-width: 1.3; }
+.pic-tag { fill: var(--muted); font-size: 9.5px; paint-order: stroke; stroke: var(--bg);
+           stroke-width: 3px; }
+.pic-more { fill: var(--muted); font-size: 11px; }
+.pic-box rect { fill: color-mix(in oklch, var(--muted) 6%, transparent); stroke: var(--wall); }
+.pic-box text { fill: var(--muted); font-size: 9px; }
+.pic-use rect, .pic-def rect { fill: var(--surface); stroke: var(--accent); stroke-opacity: 0.5; }
+.pic-line rect { fill: var(--surface); stroke: var(--route); stroke-dasharray: 3 2; }
+.pic-use text, .pic-def text, .pic-line text { fill: var(--text); font-size: 9px; }
+.pic-words { margin: 0; padding: 4px 4px 0; color: var(--text); font-size: 13px; line-height: 1.5;
+             white-space: pre-wrap; overflow: auto; }
+.pic-none { margin: auto; }
+.overview .glance .faces { flex: 1; display: flex; align-items: center; justify-content: center;
+                           padding: 8px; }
+/* The face laid out at its own size, centred in the room it takes. */
+.overview .glance .face { left: 50%; translate: -50% 0; }
+.overview .glance .opens { position: absolute; right: 8px; bottom: 6px; display: flex; gap: 6px; }
+.overview .make { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px;
+                  padding: 0 10px 10px; }
+.overview .make .faint { width: 100%; text-align: center; }
+.overview .make .chip { display: inline-flex; align-items: center; gap: 4px; }
+.overview .answers { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.overview section { display: flex; flex-direction: column; gap: 5px; }
+.overview h5 { margin: 0; color: var(--muted); font-size: 10px; font-weight: 400;
+               text-transform: uppercase; letter-spacing: 0.08em; }
+.overview .why { margin: 0; line-height: 1.45; }
+.overview .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.overview .chip-like { display: inline-flex; align-items: center; gap: 4px; }
+.overview .chip-like.def { background: color-mix(in oklch, var(--card-edge, var(--accent)) 14%, transparent); }
+.overview .chip-like.dim { color: var(--muted); border-style: dashed; }
+.overview .chip-like small, .overview .peer small { color: var(--muted); }
+.overview .flowrow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; }
+.overview .side { display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+                  min-width: 0; }
+.overview .side.right { align-items: flex-end; }
+.overview .peer { padding: 1px 6px; border: 1px solid var(--border); border-radius: 2px;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.overview .hub { padding: 4px 8px; border: 1px solid var(--accent); border-radius: 2px;
+                 color: var(--accent); font-weight: 600; text-align: center; }
+.overview .bar { display: flex; height: 6px; border-radius: 1px; overflow: hidden;
+                 background: var(--divider); }
+.overview .bar > i { display: block; height: 100%; background: var(--card-edge, var(--accent)); }
+.overview .bar > i[data-none] { background: var(--divider); }
+.overview .trail { color: var(--muted); }
+.overview .stat { display: flex; flex-wrap: wrap; gap: 14px; color: var(--muted);
+                  font-variant-numeric: tabular-nums; }
+.overview .stat b { color: var(--text); font-weight: 600; }
+
+/* Where it sits: order buttons that cannot go further greyed. */
+.overview .place .chip:disabled { opacity: 0.35; cursor: default; }

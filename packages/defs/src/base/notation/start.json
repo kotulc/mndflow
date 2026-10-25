@@ -1,0 +1,16 @@
+{
+  "id": "start",
+  "name": "start",
+  "type": "block",
+  "description": "Where a flow or a state machine begins: one line out to its first step or state.",
+  "def": {},
+  "traits": [],
+  "settings": {
+    "card": {
+      "shape": "dot",
+      "label": "none",
+      "alias": "hide",
+      "align": "center"
+    }
+  }
+}

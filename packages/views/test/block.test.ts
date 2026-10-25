@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, flat, nested, related, NAMES as FIXTURES } from "@mnd/fixtures";
-import { children, fold, session, MAIN, type Graph, type Id } from "@mnd/core";
+import { children, fold, session, ROOT, type Graph, type Id } from "@mnd/core";
 import { box_of, draw, faults, look_of, outline, project, EMPTY, type Scene } from "../src/index";
 
 const NAMES = FIXTURES;
@@ -38,7 +38,7 @@ describe("the invariants catch what they are for", () => {
   });
 
   it("a node with no size", () => {
-    const bad: Scene = { ...good, nodes: [{ ...good.nodes[0]!, width: 0 }] };
+    const bad: Scene = { ...good, nodes: [{ ...good.nodes[0]!, width: -1 }] };
     expect(faults(bad)).toContainEqual(expect.stringContaining("no size"));
   });
 
@@ -106,12 +106,12 @@ describe("what the projection shows", () => {
   it("reads a reference's target, and says missing when it is gone", () => {
     const s = session({ floor: FLOOR });
     s.go("create", { name: "Ledger" });
-    const ledger = children(s.graph(), MAIN)[0]!.id;
+    const ledger = children(s.graph(), ROOT).find((b) => b.name === "Ledger")!.id;
     s.go("create", { name: "Auth", parent: ledger });
     const auth = children(s.graph(), ledger)[0]!.id;
     s.go("refer", { target: auth });
 
-    const ref = () => project(s.graph(), MAIN).nodes.find((b) =>
+    const ref = () => project(s.graph(), ROOT).nodes.find((b) =>
       b.data.marks.includes("reference"))!;
     expect(ref().data.label).toBe("Auth");
 
@@ -119,10 +119,11 @@ describe("what the projection shows", () => {
     expect(ref().data.marks).toContain("missing");
   });
 
-  it("carries a trail from the tree down to the layer, never the package", () => {
+  it("carries a trail from the package down to the layer", () => {
     const graph = fold(nested(), FLOOR);
     const trail = project(graph, "block_rate").trail.map((t) => t.id);
-    expect(trail[0]).toBe(MAIN);
+    expect(trail[0]).toBe(graph.root);
+    expect(trail).toContain("block_ledger");
     expect(trail.at(-1)).toBe("block_rate");
   });
 
@@ -192,7 +193,7 @@ describe("the text renderer", () => {
 
 describe("interfaces are seated, not placed", () => {
   const scene = project(fold(fixture("interfaced"), FLOOR), "block_loop");
-  const port = () => scene.nodes.find((b) => b.id === "port_out")!;
+  const port = () => scene.nodes.find((b) => b.id === "block_pump/port_out")!;
 
   it("draws one, on the card it belongs to", () => {
     expect(port().data.on).toBe("block_pump");
@@ -201,7 +202,7 @@ describe("interfaces are seated, not placed", () => {
 
   it("marks which way it flows, and the mark constrains nothing", () => {
     expect(port().data.marks).toContain("out");
-    expect(scene.nodes.find((b) => b.id === "port_in")!.data.marks).toContain("in");
+    expect(scene.nodes.find((b) => b.id === "block_hx/port_in")!.data.marks).toContain("in");
   });
 
   it("draws as a seat rather than as a card", () => {
@@ -210,7 +211,7 @@ describe("interfaces are seated, not placed", () => {
 
   it("lands a relationship on the seat it names", () => {
     const line = scene.edges.find((r) => r.id === "edge_flow")!;
-    expect([line.source, line.target]).toEqual(["port_out", "port_in"]);
+    expect([line.source, line.target]).toEqual(["block_pump/port_out", "block_hx/port_in"]);
   });
 
   /** A line meets the border in the same place whether or not the square is drawn. */

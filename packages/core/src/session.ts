@@ -12,7 +12,7 @@ import { compact, file_name, parse, read, unmet, write, write_package } from "./
 import { new_id } from "./ids";
 import { no_files, no_storage, type Ports } from "./ports";
 import type { Fault } from "./door";
-import type { Graph, Id, Log, Mutation, Step } from "./types";
+import { ROOT, type Graph, type Id, type Log, type Mutation, type Step } from "./types";
 
 /** What the app says: a mirror of what was done, or a note of its own. */
 export type Said = { text: string; at: number; kind: "mirror" | "note" };
@@ -46,8 +46,9 @@ export type Session = {
 
   look: (layer: Id | null) => void;
   /** The canvas's section shown whole another way, keeping `id` in sight; a layer view, which is
-   *  never chosen, goes back to where what is kept in sight is drawn. */
-  see: (kind: ViewKind, id?: Id | null) => void;
+   *  never chosen, goes back to where what is kept in sight is drawn. A section named by `at` is
+   *  shown whole from its top instead, nothing kept in sight or picked. */
+  see: (kind: ViewKind, id?: Id | null, at?: number) => void;
   pick: (ids: Id[]) => void;
   pick_cells: (cells: readonly Spot[]) => void;
   say: (text: string, kind?: Said["kind"]) => void;
@@ -80,6 +81,11 @@ export type Seed = {
   floor?: Floor;
   /** The host's sections; the editor's unless said. */
   tiers?: Tiers;
+  /** A workspace file to open when storage is empty. An existing log always wins, and reset still
+   *  starts empty. */
+  opening?: string;
+  /** A system view to land on when `opening` is used. A layer view is ignored. */
+  start?: ViewKind;
 };
 
 export function session(ports: Partial<Ports> & Seed = {}): Session {
@@ -103,8 +109,11 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   /** The shipped packages, as the floor every fold starts from. */
   const floor: Floor = ports.floor ?? [];
 
-  /** A fresh log is empty. The floor is already under it. */
-  const seeded = (): Log => [];
+  /** A fresh log holds one plain block, so the workspace lists in structure. */
+  const seeded = (): Log => [step("start", "create", 1, [
+    { op: "add_block", block: { id: "first", parent: ROOT, name: "block", order: 1, alias: 1 } },
+    { op: "set_counter", kind: "block", n: 1 },
+  ])];
 
   const opened = storage.read();
   if (opened) {
@@ -113,11 +122,22 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     /** Repairs are kept, so the next open is clean. */
     if (checked.faults.length) storage.write(log);
     opened_faults = checked.faults;
+  } else if (ports.opening) {
+    const got = read(ports.opening, floor);
+    if (got.log.length && !got.faults.length) log = got.log;
+    else {
+      log = seeded();
+      opened_faults = got.faults;
+    }
   } else {
     log = seeded();
   }
   graph = fold(log, floor);
   view = home(graph);
+  /** The bootstrap may name a system view. Home still opens the sample's own layer. */
+  if (!opened && ports.opening && log.length && ports.start && !is_layer_view(ports.start)) {
+    view = { at: 0, kind: ports.start, layer: null, pick: view.layer ?? view.pick ?? graph.root };
+  }
   if (opened_faults.length) said = { text: say(opened_faults), at: Date.now(), kind: "note" };
 
   const settle = () => {
@@ -236,8 +256,19 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       listener?.();
     },
 
-    see(kind, id) {
-      const section = tiers.sections[view.at];
+    see(kind, id, named) {
+      /** A section named starts clean: from its top, nothing picked. */
+      if (named !== undefined) {
+        const section = tiers.sections[named];
+        if (!section || is_layer_view(kind)) return;
+        views = { ...views, [section.id]: kind };
+        move({ at: named, kind, layer: null, pick: null });
+        picked = [];
+        listener?.();
+        return;
+      }
+      const at = view.at;
+      const section = tiers.sections[at];
       if (!section) return;
       /** What stays in sight: the pick, where it lies within what the canvas has open — the same
        *  root in its section — else the canvas's anchor, its layer, or what the host says; the
@@ -245,8 +276,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
        *  whole section is shown as it is; inside, there is no layer to look into, so nothing
        *  changes. */
       const listed = (x: Id | null | undefined): x is Id =>
-        !!x && trace(graph, tiers, x).held[view.at] === x;
-      const root = (x: Id | null) => (x ? trace(graph, tiers, x).roots[view.at] : undefined);
+        !!x && trace(graph, tiers, x).held[at] === x;
+      const root = (x: Id | null) => (x ? trace(graph, tiers, x).roots[at] : undefined);
       const anchor = view.pick ?? view.layer;
       const within = picked[0] && root(picked[0]) === root(anchor) ? picked[0] : null;
       const keep = [within, view.pick, view.layer, id].find(listed);
@@ -254,8 +285,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       if (is_layer_view(kind) && is_layer_view(view.kind)) return;
       if (!keep && is_layer_view(kind)) return;
       views = { ...views, [section.id]: is_layer_view(kind) ? "internal" : kind };
-      const to = keep ? sight(graph, tiers, views, view.at, keep)
-        : { ...view, kind: view_of(tiers, views, view.at) };
+      const to = keep ? sight(graph, tiers, views, at, keep)
+        : { ...view, kind: view_of(tiers, views, at) };
       move(to);
       if (to.pick) picked = [to.pick];
       listener?.();

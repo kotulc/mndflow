@@ -1,0 +1,25 @@
+{
+  "id": "database",
+  "name": "database",
+  "type": "component",
+  "description": "A component that stores state other components read: a collection, holding records of one type (`records.of`).",
+  "def": {
+    "attributes": [
+      {
+        "name": "engine",
+        "type": "text"
+      }
+    ]
+  },
+  "settings": {
+    "style": {
+      "family": "muted"
+    }
+  },
+  "traits": [
+    "has_parts",
+    "has_ports",
+    "has_values",
+    "has_records"
+  ]
+}

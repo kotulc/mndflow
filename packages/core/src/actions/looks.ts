@@ -1,56 +1,18 @@
-/** Tags and looks on an element or a definition. */
+/** Traits and looks on an element or a definition. */
 
 import { component, NUMBERS } from "../components";
-import { new_id } from "../ids";
 import { is_trait } from "../defs";
-import { tag_home, tag_named } from "../tags";
-import type { Id, Mutation } from "../types";
+import type { Mutation } from "../types";
 import { register, type Args } from "./registry";
 import { borrowed, ids_of, list, text } from "./helpers";
-import { new_def } from "./definitions";
 
 register(
-  {
-    name: "tag",
-    about: "sets the tags an element or a definition carries, replacing what it carried — a new "
-      + "word makes a tag in the workspace's tags folder; none gives the list back",
-    on: ["block", "edge", "layer", "selection"],
-    /** The whole list, replaced in one step: tag ids or names, or new words. Absent gives the
-     *  element its definition's again. */
-    args: [{ name: "ids", form: "block", required: true }, { name: "tags", form: "text" }],
-    check: (ctx, args) => {
-      const ids = ids_of(ctx, args);
-      if (!ids.length) return "nothing is selected";
-      const why = ids.map((id) => borrowed(ctx.graph, id)).find(Boolean);
-      if (why) return why;
-      const trait = list(args["tags"]).find((w) => is_trait(ctx.graph, tag_named(ctx.graph, w)?.id));
-      return trait ? `"${trait}" is a trait: a definition lists it in its traits` : null;
-    },
-    run: (ctx, args) => {
-      if (args["tags"] === undefined || args["tags"] === null) {
-        return { mutations: ids_of(ctx, args).map((id): Mutation => ({ op: "set_tags", id, tags: null })) };
-      }
-      const out: Mutation[] = [];
-      const made = new Map<string, Id>();
-      /** Each word as the tag it names, or a new one filed with the workspace's tags. */
-      const tags = list(args["tags"]).map((word) => {
-        const hit = tag_named(ctx.graph, word)?.id ?? made.get(word);
-        if (hit) return hit;
-        const id = new_id("def");
-        made.set(word, id);
-        out.push(new_def(ctx.graph, { id, name: word, type: "tag", def: {} }, tag_home(ctx.graph)));
-        return id;
-      });
-      out.push(...ids_of(ctx, args).map((id): Mutation => ({ op: "set_tags", id, tags })));
-      return { mutations: out };
-    },
-  },
   {
     name: "trait",
     about: "sets the traits a definition carries — what the engine lets it do — replacing its "
       + "chain's; none gives the set back to what it extends",
     on: ["block", "layer", "selection"],
-    /** The whole list, by id or name; absent gives the set back to the chain. */
+    /** The whole list, by name; absent gives the set back to the chain. */
     args: [{ name: "ids", form: "block", required: true }, { name: "traits", form: "text" }],
     check: (ctx, args) => {
       const ids = ids_of(ctx, args);
@@ -58,13 +20,12 @@ register(
       if (ids.some((id) => !ctx.graph.blocks[id]?.def)) return "traits are a definition's";
       const why = ids.map((id) => borrowed(ctx.graph, id)).find(Boolean);
       if (why) return why;
-      const missing = list(args["traits"])
-        .find((word) => !is_trait(ctx.graph, tag_named(ctx.graph, word)?.id));
+      const missing = list(args["traits"]).find((word) => !is_trait(word));
       return missing ? `there is no trait called "${missing}"` : null;
     },
     run: (ctx, args) => {
       const said = args["traits"] === undefined || args["traits"] === null ? null
-        : list(args["traits"]).map((word) => tag_named(ctx.graph, word)!.id);
+        : list(args["traits"]).map((word) => word.trim());
       return { mutations: ids_of(ctx, args)
         .map((id): Mutation => ({ op: "set_traits", id, traits: said })) };
     },
@@ -72,12 +33,10 @@ register(
 );
 
 /** The component keys a look may set. */
-const LOOKS: readonly string[] = ["card", "style", "line", "layout", "tie", "allows", "expects",
-                                  "value"];
+const LOOKS: readonly string[] = ["card", "style", "line", "layout", "tie", "allows", "records"];
 
 /** Properties whose value is a list, split on commas. */
-const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.heads",
-                                  "expects.required", "expects.match", "value.choices"];
+const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.heads"];
 
 /** Capabilities that are nested records, stated only on a definition. */
 const NESTED: readonly string[] = ["ends", "degree"];

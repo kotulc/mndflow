@@ -1,12 +1,12 @@
 /** The one door a log comes in through. */
 
 import { component } from "./components";
-import { all_defs, def_at, is_base, package_of, packages } from "./defs";
+import { all_defs, def_at, holds_defs, is_base, package_of, packages } from "./defs";
 import { fold, type Floor } from "./fold";
 import { covers, inside, lattice_of, one_side, overlaps } from "./holders";
-import { subtree } from "./tree";
+import { ports_on, subtree } from "./tree";
 import { new_id } from "./ids";
-import { MAIN, type Graph, type Grid, type Id, type Log, type Mutation, type Span,
+import { type Graph, type Grid, type Id, type Log, type Mutation, type Span,
          type Step } from "./types";
 
 export type Fault = {
@@ -24,9 +24,9 @@ export type Inspection = { faults: Fault[]; repairs: Mutation[] };
 const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
   "place_block", "order_block", "set_alias", "set_counter", "size_block",
-  "set_body", "set_attributes", "seat_cell", "set_grid", "link_blocks",
-  "update_edge", "delete_edge", "flip_edge", "set_end", "set_port",
-  "mark_port", "set_value", "drop_value", "order_values", "set_source",
+  "set_body", "set_description", "set_attributes", "set_ends", "set_library", "set_records",
+  "seat_cell", "set_grid", "link_blocks", "update_edge", "delete_edge", "flip_edge", "set_end",
+  "set_port", "mark_port", "set_value", "drop_value", "order_values", "set_source",
   "set_tags", "set_traits", "set_setting", "drop_settings",
 ]);
 
@@ -106,32 +106,30 @@ export function inspect(graph: Graph): Inspection {
         { op: "add_block", block: { id: graph.root, parent: null, name: "workspace" } });
   }
 
-  /** Every block sits under something that is there, and never under itself: a definition goes
-   *  home to the workspace's domain, a usage to `main` where there is one. A package root sits
-   *  under nothing. */
-  const home = (id: Id) => (graph.blocks[id]?.def || !graph.blocks[MAIN] ? graph.root : MAIN);
+  /** Every block sits under something that is there, and never under itself. A block with no
+   *  parent goes to the workspace root. A package root sits under nothing. */
   for (const b of Object.values(graph.blocks)) {
     if (b.parent === null) continue;
     if (!graph.blocks[b.parent]) {
       say("repaired", `"${name(b.id)}" had no parent`,
-          { op: "move_block", id: b.id, parent: home(b.id) });
+          { op: "move_block", id: b.id, parent: graph.root });
     } else if (subtree(graph, b.id).includes(b.parent)) {
       say("repaired", `"${name(b.id)}" contained itself`,
-          { op: "move_block", id: b.id, parent: home(b.id) });
+          { op: "move_block", id: b.id, parent: graph.root });
     }
   }
 
-  /** Every relation has a block at both ends, and any part it names is there. */
+  /** Every relation has a block at both ends, and any port it names is there. */
   for (const e of Object.values(graph.edges)) {
     if (!graph.blocks[e.from] || !graph.blocks[e.to]) {
       say("dropped", "a relation with an end that is not there", { op: "delete_edge", id: e.id });
       continue;
     }
     for (const end of ["from", "to"] as const) {
-      const part = end === "from" ? e.fromPart : e.toPart;
-      if (part && !graph.blocks[part]) {
-        say("repaired", "a relation named a part that is not there",
-            { op: "set_end", id: e.id, end, port: e[end], part: null });
+      const port = end === "from" ? e.fromPort : e.toPort;
+      if (port && !ports_on(graph, e[end]).some((p) => p.id === port)) {
+        say("repaired", "a relation named a port that is not there",
+            { op: "set_end", id: e.id, end, block: e[end], port: null });
       }
     }
   }
@@ -195,12 +193,17 @@ function settings(graph: Graph, name: (id: Id) => string, say: Say): void {
   }
 }
 
-/** Every definition is named, and extends something that is there — or a base, which every
- *  build ships whether or not it is laid. */
+/** Every definition is named, sits in its package's definitions tree, and extends something
+ *  that is there — or a base, which every build ships whether or not it is laid. */
 function definitions(graph: Graph, say: Say): void {
   for (const d of all_defs(graph)) {
     if (!d.name?.trim()) {
       say("repaired", "a definition had no name", { op: "update_block", id: d.id, name: d.id });
+    }
+    /** A definition sits in its package's definitions tree; one elsewhere goes to its root. */
+    if (d.parent && graph.blocks[d.parent] && !holds_defs(graph, d.parent)) {
+      say("repaired", `"${d.name}" sat outside the definitions tree`,
+          { op: "move_block", id: d.id, parent: package_of(graph, d.id) });
     }
     if (d.type && !def_at(graph, d.type) && !is_base(d.type)) {
       say("repaired", `"${d.name}" extended something that is not there`,
@@ -209,8 +212,8 @@ function definitions(graph: Graph, say: Say): void {
   }
 }
 
-/** A definition is found by its name, so no two in one package may share one: definitions, tags
- *  and traits share the name space. */
+/** A definition is found by its name, so no two in one package may share one: definitions and
+ *  tags share the name space. */
 function named_defs(graph: Graph, say: Say): void {
   const taken = new Set<string>();
   for (const d of all_defs(graph).sort((a, z) => a.id.localeCompare(z.id))) {

@@ -1,6 +1,6 @@
 /** A name box, committed when it is left — never per keystroke. */
 
-import { useState } from "react";
+import { useState, type ChangeEvent, type KeyboardEvent, type MouseEvent } from "react";
 
 export type EntryProps = {
   value: string;
@@ -14,30 +14,36 @@ export type EntryProps = {
   disabled?: boolean;
   /** The suggestions it offers, by the id of a list on the page. */
   list?: string;
+  /** Words wrap onto as many lines as they take; Enter still commits. */
+  wrap?: boolean;
   onCommit: (to: string) => void;
 };
 
-export function Entry({ value, label, placeholder, clash, blank, disabled, list,
+export function Entry({ value, label, placeholder, clash, blank, disabled, list, wrap,
                         onCommit }: EntryProps) {
   /** Null while nothing is being typed, so a value changed elsewhere shows. */
   const [draft, set_draft] = useState<string | null>(null);
   const said = (draft ?? value).trim();
   const warn = draft !== null && said !== value ? clash?.(said) ?? null : null;
 
+  const shared = {
+    value: draft ?? value, "aria-label": label, placeholder, disabled,
+    onClick: (e: MouseEvent) => e.stopPropagation(),
+    onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      set_draft(e.target.value),
+    onBlur: () => {
+      if ((said || blank) && said !== value && !warn) onCommit(said);
+      set_draft(null);
+    },
+    onKeyDown: (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
+      if (e.key === "Escape") set_draft(null);
+    },
+  };
+
   return (
     <>
-      <input value={draft ?? value} aria-label={label} placeholder={placeholder}
-             disabled={disabled} list={list}
-             onClick={(e) => e.stopPropagation()}
-             onChange={(e) => set_draft(e.target.value)}
-             onBlur={() => {
-               if ((said || blank) && said !== value && !warn) onCommit(said);
-               set_draft(null);
-             }}
-             onKeyDown={(e) => {
-               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-               if (e.key === "Escape") set_draft(null);
-             }} />
+      {wrap ? <textarea rows={1} {...shared} /> : <input list={list} {...shared} />}
       {warn ? <span className="from warn">{warn}</span> : null}
     </>
   );

@@ -1,0 +1,24 @@
+{
+  "id": "group",
+  "name": "group",
+  "type": "block",
+  "description": "A box drawn round its members, on the layer it sits on: its name tags them.",
+  "def": {},
+  "traits": [
+    "has_parts",
+    "is_group"
+  ],
+  "settings": {
+    "style": {
+      "family": "muted",
+      "border_contrast": "faint",
+      "name_contrast": "faint",
+      "border_style": "dashed"
+    },
+    "card": {
+      "label": "none",
+      "alias": "hide",
+      "align": "center"
+    }
+  }
+}

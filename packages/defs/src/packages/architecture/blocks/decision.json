@@ -1,0 +1,10 @@
+{
+  "id": "decision",
+  "name": "decision",
+  "type": "document",
+  "description": "A recorded choice, drawn like a note.",
+  "def": {},
+  "settings": {
+    "style": { "family": "note", "fill": "wash" }
+  }
+}

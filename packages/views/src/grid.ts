@@ -62,6 +62,34 @@ export function flow(units: readonly ({ id: Id } & Size)[], across: number): Pla
   return out;
 }
 
+/** Units placed in reading order across `wide` pixels, each in the highest free spot, leftmost
+ *  first — so small cards fill in beside a tall one rather than waiting for the next row. */
+export function filled(units: readonly ({ id: Id } & Size)[], wide: number): Placed[] {
+  const cols = Math.max(1, Math.ceil(wide / UNIT));
+  const tops = new Array<number>(cols).fill(0);
+  const out: Placed[] = [];
+  for (const u of units) {
+    const span = Math.min(cols, Math.max(1, Math.ceil((u.w + GAP) / UNIT)));
+    let best = { c: 0, y: Infinity };
+    for (let c = 0; c + span <= cols; c++) {
+      const y = Math.max(...tops.slice(c, c + span));
+      if (y < best.y) best = { c, y };
+    }
+    out.push({ id: u.id, w: u.w, h: u.h, x: best.c * UNIT, y: best.y });
+    const foot = whole(best.y + u.h) + GAP;
+    for (let c = best.c; c < best.c + span; c++) tops[c] = foot;
+  }
+  return out;
+}
+
+/** How wide units fill to keep the room the canvas's shape: their area at that aspect, never
+ *  narrower than the widest of them. */
+export function wide_for(units: readonly Size[], aspect: number): number {
+  if (!units.length) return BLOCK.w;
+  const area = units.reduce((n, u) => n + (u.w + GAP) * (u.h + GAP), 0);
+  return whole(Math.max(...units.map((u) => u.w + GAP), Math.sqrt(area * aspect)));
+}
+
 /** Where each column or row starts, `GAP` apart. */
 function starts(sizes: readonly number[]): number[] {
   const out: number[] = [];

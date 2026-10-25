@@ -1,12 +1,12 @@
-/** Graph-agnostic workspace chrome: header and tray frame. */
+/** Graph-agnostic workspace chrome: header, tray frame, and which region the keys go to. */
 
-import { type MouseEvent, type ReactNode } from "react";
+import { useState, type MouseEvent, type ReactNode, type SyntheticEvent } from "react";
 import { Icon } from "./icons";
 
 export type WorkspaceHeaderProps = {
   /** Product name — rendered as the header title when a string. */
   brand: ReactNode;
-  /** Session / collection label beside the brand. */
+  /** Session / source folder label beside the brand. */
   where?: ReactNode;
   /** Header tools (undo, export, theme, …). */
   children?: ReactNode;
@@ -94,4 +94,24 @@ export function TrayFrame<T extends string>({
       ) : null}
     </section>
   );
+}
+
+/** A region of the page the keys may go to. */
+export type Zone = "explorer" | "canvas" | "tray" | "options";
+
+/** Each region by the element that draws it. */
+const ZONES: readonly [string, Zone][] = [
+  [".explorer", "explorer"], [".stage", "canvas"], [".tray", "tray"], [".opts", "options"],
+];
+
+/** **The keys go to one region at a time**: the one last pressed or focused in, which the page
+ *  outlines. Spread `bind` on the element holding every region. */
+export function useZone(first: Zone = "canvas") {
+  const [zone, set_zone] = useState<Zone>(first);
+  const enter = (e: SyntheticEvent) => {
+    const el = e.target instanceof Element ? e.target : null;
+    const hit = ZONES.find(([at]) => el?.closest(at));
+    if (hit) set_zone(hit[1]);
+  };
+  return { zone, bind: { "data-zone": zone, onPointerDownCapture: enter, onFocusCapture: enter } };
 }

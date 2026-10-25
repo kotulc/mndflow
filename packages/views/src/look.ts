@@ -1,10 +1,11 @@
 /** How a usage of a definition draws. */
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, DISPLAYS,
-         domain_of, FACE_PARTS, FAMILIES, FILLS, FONTS, HEIGHTS, is_container,
-         is_interface, is_tie, is_trait, kind_word, PARTS, attributes_of, setting_of, SHOWN, WEIGHTS,
-         WIDTHS,
-         type Definition, type Graph, type Id, type Settings } from "@mnd/core";
+         domain_of, FACE_PARTS, FAMILIES, FILLS, FONTS, HEIGHTS, is_notation, is_box,
+         is_container, is_grid, isa, is_interface, is_tie, kind_word, LARGE_FACES, notation_of,
+         PARTS,
+         attributes_of, setting_of, SHAPES, SHOWN, WEIGHTS, WIDTHS, type Definition, type Graph,
+         type Id, type Settings } from "@mnd/core";
 import { resolved } from "./through";
 
 export type Family = (typeof FAMILIES)[number];
@@ -19,6 +20,7 @@ export type Fill = (typeof FILLS)[number];
 export type Contrast = (typeof CONTRASTS)[number];
 export type Arrow = (typeof ARROWS)[number];
 export type Part = (typeof PARTS)[number];
+export type CardShape = (typeof SHAPES)[number];
 
 /** What one usage looks like, as names from closed sets. */
 export type Look = {
@@ -50,6 +52,10 @@ export type Look = {
   alias?: boolean;
   /** What the large face shows under the name, in order. */
   shows: readonly Part[];
+  /** Which face it draws with, where its definition names one: `text` is its name alone. */
+  face?: (typeof LARGE_FACES)[number];
+  /** What it is drawn as, where it is not the plain box: its own word, else its layer's. */
+  shape?: CardShape;
   /** The large face's size in units, where its definition said one. */
   size?: { w: number; h: number };
   /** False where the large face does not draw the name, so what it shows is the whole card. */
@@ -110,21 +116,34 @@ export function look_of(graph: Graph, id: Id): Look {
                  source.type ?? source.id);
 }
 
+/** How a library entry paints its tiles and chips: the family or hue its chain says — its own,
+ *  what it extends, its kind's base — read by the one resolver. */
+export function entry_look(graph: Graph, id: Id): Look {
+  const style = setting_of(graph, id, "style");
+  const hue = typeof style["hue"] === "number" ? style["hue"] : undefined;
+  return { ...PLAIN, ...(typeof style["family"] === "string" ? { family: style["family"] as Family } : {}),
+           ...(hue !== undefined ? { hue } : {}),
+           ...(typeof style["intensity"] === "number" ? { intensity: style["intensity"] } : {}) };
+}
+
 /** How a stand-in for a definition draws: as its usages, named, showing only what it has — a
  *  body handed to it, as a chart hands a tag what it means, and attributes where it has some —
  *  and a relation wearing its line. */
 function stand_in(graph: Graph, id: Id, def: Definition): Look {
   const own = (graph.blocks[id]!.def ? {} : graph.blocks[id]!.settings) ?? {};
-  const card = { ...config_of(graph, def.id, "card"), ...(own["card"] ?? {}) };
-  /** A trait's settings grant capabilities to carriers; they are not how it draws in vocabulary. */
+  /** Notation's definition is a card like any other: its face is its usages'. */
+  const plain = notation_of(graph, def.id) ? { face: undefined } : {};
+  const card = { ...config_of(graph, def.id, "card"), ...plain, ...(own["card"] ?? {}) };
   const has = (part: unknown) => part === "body"
-    ? !is_trait(graph, def.id) && !!graph.blocks[id]!.body
+    ? !!graph.blocks[id]!.body
     : part === "attributes" && attributes_of(graph, def.id).length > 0;
-  const shows = parts_of(card).filter(has);
+  const shows = parts_of(card).filter((part) => part === "behaviours" || has(part));
   const style = { ...config_of(graph, def.id, "style"), ...(own["style"] ?? {}) };
   const relation = domain_of(graph, def.id) === "relation";
   const tie = relation && is_tie(graph, def.id);
-  const look = dressed(graph, id, { ...card, name: "show" }, style, def.name, def.id, shows);
+  /** A definition says what it extends; a stand-in, as its usages, the definition it stands for. */
+  const kind = graph.blocks[id]!.def ? def_at(graph, def.type)?.name ?? "" : def.name;
+  const look = dressed(graph, id, { ...card, name: "show" }, style, kind, def.id, shows);
   return relation && !look.icon ? { ...look, icon: tie ? "relation_tie" : "relation_plain" } : look;
 }
 
@@ -150,10 +169,15 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
     align: one(card["align"], ALIGNS, PLAIN.align),
     label_align: one(card["label_align"], ALIGNS, PLAIN.label_align),
     height: one(card["height"], HEIGHTS, PLAIN.height),
-    ...(SHOWN.includes(card["alias"] as never) ? { alias: card["alias"] === "show" } : {}),
     shows,
+    ...((LARGE_FACES as readonly unknown[]).includes(card["face"])
+      ? { face: card["face"] as Look["face"] } : {}),
     ...(sized(card["size"]) ? { size: card["size"] as { w: number; h: number } } : {}),
+    ...shaped(graph, id, card),
     ...(card["name"] === "hide" ? { head: false } : {}),
+    /** Unsaid, the handle shows only while the card is unnamed. */
+    ...((SHOWN as readonly unknown[]).includes(card["alias"])
+      ? { alias: card["alias"] === "show" } : {}),
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
     ...contrast("label_contrast", style["label_contrast"]),
@@ -161,24 +185,66 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
     kind,
     /** A mark of its own, where somebody picked one. */
     ...(typeof card["icon"] === "string" && card["icon"] ? { icon: card["icon"] } : {}),
-    ...hue_of(style, of),
+    ...hue_of(graph, id, style, of),
     /** A number the door already bounded. */
     ...number("intensity", style["intensity"]),
   };
 }
 
-/** The hue a card paints at, absent where nobody gave one: strayed by up to half of `vary` either
- *  way, keyed by its definition, so each definition under one that varies takes its own shade. */
-function hue_of(style: Settings, of: Id): Record<string, number> {
-  const hue = style["hue"];
-  const vary = style["vary"];
-  if (typeof hue !== "number" || !Number.isFinite(hue)) return {};
-  if (typeof vary !== "number" || !vary) return { hue };
-  // A small stable hash of the id, taken to a fraction from -1/2 to 1/2.
+/** What a card is drawn as: its own `card.shape`, else the `layout.shape` the layer it sits on
+ *  casts its parts as — so a state machine's states read rounder. A group or folder on that
+ *  layer passes it through; a diagram nested deeper casts its own. Notation and organization
+ *  keep their own. Absent for the plain box. */
+function shaped(graph: Graph, id: Id, card: Settings): { shape?: CardShape } {
+  /** Notation's definition, or a stand-in for it, is a card like any other: its mark is its
+   *  usages'. */
+  const def = graph.blocks[id]?.def ? id : resolved(graph, id).stands_in?.id;
+  if (def && notation_of(graph, def)) return {};
+  let said = card["shape"];
+  const part = !is_notation(graph, id) && !is_box(graph, id) && !is_grid(graph, id);
+  if (said === undefined && part) {
+    let at = graph.blocks[id]?.parent;
+    while (at && is_box(graph, at)) at = graph.blocks[at]?.parent;
+    said = at ? setting_of(graph, at, "layout")["shape"] : undefined;
+  }
+  return said !== "box" && (SHAPES as readonly unknown[]).includes(said)
+    ? { shape: said as CardShape } : {};
+}
+
+/** What a card is drawn as, read alone: what sizing asks, without a whole look. */
+export function card_shape(graph: Graph, id: Id): CardShape | undefined {
+  return shaped(graph, id, setting_of(graph, resolved(graph, id).card, "card")).shape;
+}
+
+/** The hue a card paints at, absent where nobody gave one. Its own word wins; else its
+ *  definition's shade: down the chain from the base, each definition that says a hue takes it, and
+ *  each that says none strays from **its parent's shade** by up to half of `vary` either way,
+ *  keyed by its id — halving `vary` at each step, so kin read alike and each still reads as
+ *  itself. */
+function hue_of(graph: Graph, id: Id, style: Settings, of: Id): Record<string, number> {
+  const own = graph.blocks[id]?.def ? undefined : graph.blocks[id]?.settings?.["style"]?.["hue"];
+  if (typeof own === "number" && Number.isFinite(own)) return { hue: own };
+  if (typeof style["hue"] !== "number") return {};
+  let hue: number | undefined;
+  let vary = 0;
+  for (const d of [...isa(graph, of)].reverse()) {
+    const said = d.settings?.["style"] ?? {};
+    if (typeof said["vary"] === "number") vary = said["vary"];
+    if (typeof said["hue"] === "number") hue = said["hue"];
+    else if (hue !== undefined && vary) {
+      hue += stray(d.id) * vary;
+      vary /= 2;
+    }
+  }
+  hue ??= style["hue"] as number;
+  return { hue: Math.round((hue + 360) % 360) };
+}
+
+/** A small stable hash of an id, taken to a fraction from -1/2 to 1/2. */
+function stray(id: Id): number {
   let h = 0;
-  for (const c of of) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  const stray = ((h % 1000) / 999 - 0.5) * vary;
-  return { hue: Math.round((hue + stray + 360) % 360) };
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return (h % 1000) / 999 - 0.5;
 }
 
 /** Whether a setting is a size in units the door let through. */
@@ -287,6 +353,8 @@ export function face_attrs(look: Look): Record<string, unknown> {
     "data-label": look.label,
     "data-align": look.align,
     "data-label-align": look.label_align,
+    ...(look.face ? { "data-face": look.face } : {}),
+    ...(look.shape ? { "data-shape": look.shape } : {}),
     ...(look.border_contrast ? { "data-border-contrast": look.border_contrast } : {}),
     ...(look.name_contrast ? { "data-name-contrast": look.name_contrast } : {}),
     ...(look.label_contrast ? { "data-label-contrast": look.label_contrast } : {}),
@@ -299,3 +367,15 @@ export function face_attrs(look: Look): Record<string, unknown> {
       : sheer ? { style: { "--card-opacity": String(look.opacity) } } : {}),
   };
 }
+
+/** A look's colour alone — its family and tint — for a mark that wears a colour but not a card's
+ *  dress: a chip, a swatch, a seat, a tile. */
+export function tint_attrs(look: Look | undefined): Tint {
+  if (!look) return {};
+  const dress = face_attrs(look);
+  return { "data-family": dress["data-family"] as string | undefined,
+           ...(dress["style"] ? { style: dress["style"] as Record<string, string> } : {}) };
+}
+
+/** The attributes a colour alone comes to. */
+export type Tint = { "data-family"?: string; style?: Record<string, string> };

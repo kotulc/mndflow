@@ -1,25 +1,29 @@
 /** What a view module hands back. */
 
 import type { Edge, Node } from "@xyflow/react";
-import type { Dir, Id, Mark, Role, Side } from "@mnd/core";
-import type { Arrow, Look, Wire } from "./look";
+import type { Dir, End, Ends, Id, Key, Mark, Role, Side } from "@mnd/core";
+import type { Arrow, Look, Tint, Wire } from "./look";
 import type { Fan, Perch, Seat } from "./seat";
 
 /** One row of a card's attributes: its name, its type's name, whether it keys, and the value a
  *  usage answers or the default a definition declares. */
 export type Listed = {
-  name: string; type: string; key?: boolean; link?: boolean; value?: string; note?: string;
+  name: string; type: string; key?: Key; link?: boolean; value?: string; note?: string;
 };
 
 /** A large face's attributes as a ruled table: each row's cells, and each column's width in
  *  pixels — worked out once, so the card is sized and drawn alike. */
-export type Ruled = { cells: readonly (readonly string[])[]; widths: readonly number[] };
+export type Ruled = { cells: readonly (readonly string[])[]; widths: readonly number[];
+                      /** The row a second compartment starts at: a class card's behaviours. */
+                      split?: number };
 
 /** What one drawn thing carries beyond where it sits and how big it is. */
 export type BoxData = {
   /** The mark a thing wears beside its name while nobody has named it. */
   alias?: string;
   label: string;
+  /** What it is for, in a line: its own, else its definition's. Shown on hover. */
+  description?: string;
   /** The definition this usage names, if any. */
   def?: Id;
   /** What this is drawn on, where it is seated rather than placed. */
@@ -32,6 +36,10 @@ export type BoxData = {
   stamps?: readonly Mark[];
   /** What sort of thing it is: the icon it wears unless somebody set their own. */
   role?: Role;
+  /** A small face's name, sized to fit its card: its size in pixels and how many lines. */
+  fit?: { size: number; lines: number };
+  /** The whole lines a large face's body holds, where its card was sized by hand. */
+  clamp?: number;
   /** Whether it opens onto a view of its own. */
   opens?: boolean;
   /** How its definition says it draws. */
@@ -55,11 +63,35 @@ export type BoxData = {
   side?: Side;
   /** Seats a line meets on this box's border, where the end has no interface of its own here. */
   seats?: readonly { id: string; side: Side; at: number }[];
+  /** The scale it is drawn at: a library registry's tile scaled into its box. Unsaid, one. */
+  scale?: number;
+  /** A map chip's inner treemap: what it holds, each a share of its body from 0 to 1. */
+  tiles?: readonly InnerTile[];
+  /** A diagram's chip: its inner tiles laid by its structure. */
+  diagram?: boolean;
+  /** A library chip whose definition holds blocks: it wears a card's stacked edge. */
+  stacked?: boolean;
+  /** What a map chip counts, said in words: its blocks, lines and components, or its uses. */
+  counts?: string;
+  /** A diagram chip's kind, said beside its name. */
+  kind?: string;
+  /** A registry's tile: how many times its entry is used, and that against the most used. */
+  count?: number;
+  heat?: number;
 };
 
 /** What a card wears as classes: everything true of it at once, as against the one system
  *  mark it carries. */
-export type CardClass = "container" | "reference" | "missing" | "note" | "group" | "grid"
+export type CardClass = "container" | "reference" | "missing" | "note" | "label" | "group"
+                 /** A definition, or a stand-in for one: outlined on the canvas. */
+                 | "definition"
+                 /** A relation definition, drawn as a wire swatch, and whether its lines point. */
+                 | "relation" | "directed"
+                 /** A notation definition: outlined faintly, as a relation's is. */
+                 | "notation"
+                 | "grid" | "region"
+                 /** A card laid in a treemap: a plain ground, its definition's colour on its edge. */
+                 | "tiled"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "upright" | "merged"
                  /** An opened grid, standing in for the room. */
@@ -68,7 +100,7 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "group"
                  | "seated"
                  /** A block of a definition's structure, seen through a usage of it. */
                  | "part"
-                 /** A block a section holds on the way to the pick: where a profile cuts. */
+                 /** A block on a definition's path, the definition included. */
                  | "held"
                  /** A folder or block a view flattens into a box: not a group anybody made. */
                  | "flat";
@@ -92,15 +124,28 @@ export type GridCell = {
 export type LineData = {
   /** The shipped base this run draws as: `line`, or `tie` where a note sits at an end. */
   module: Id;
-  /** A link an attribute draws: derived, and nothing to pick. */
-  link?: boolean;
   dir: Dir;
+  /** What its ends mean, where the view draws them — a class or entity diagram — rather than
+   *  its direction. */
+  ends?: Ends;
+  /** Whether an entity diagram draws it: multiplicities as crow's feet. */
+  crows?: boolean;
   /** How it is painted and what draws at its ends. */
   wire?: Wire;
   /** The handle, beside the name rather than inside it. */
   alias?: string;
   /** Where its cross leg sits, out from the end its lines fan from. */
   fan?: Fan;
+  /** A run already drawn, in the scene's own coordinates. Routing is skipped. */
+  points?: readonly { x: number; y: number }[];
+  /** Whether `points` is a routed run, given up for one drawn afresh once an end moves. */
+  routed?: boolean;
+  /** Whether its name always reads level, above its run, however short the run. */
+  level?: boolean;
+  /** The scale it is drawn at in the world, as its room's cards are. Unsaid, one. */
+  scale?: number;
+  /** Whether it lies outside the focus, so its words fade with it. */
+  away?: boolean;
 };
 
 /** One drawn thing. React Flow's node, with our data on it. */
@@ -114,19 +159,56 @@ export function holds(n: { type?: string } | null | undefined): boolean {
 /** One line. React Flow's edge, with our data on it. */
 export type LineEdge = Edge<LineData>;
 
-/** What draws at each end of a run. */
-export function heads(data: LineData | undefined): { from: Arrow; to: Arrow } {
+/** What draws at each end of a run: what the line says, else what its end means — a diamond at
+ *  the owner, an open head where it can be reached, a crow's foot on an entity diagram — else its
+ *  direction. */
+export function heads(data: LineData | undefined): { from: Head; to: Head } {
   const dir = data?.dir ?? "none";
   const to = dir === "forward" || dir === "both";
   const from = dir === "back" || dir === "both";
   return {
-    from: data?.wire?.from_arrow ?? (from ? "arrow" : "none"),
-    to: data?.wire?.to_arrow ?? (to ? "arrow" : "none"),
+    from: data?.wire?.from_arrow ?? meant(data, "from") ?? (from ? "arrow" : "none"),
+    to: data?.wire?.to_arrow ?? meant(data, "to") ?? (to ? "arrow" : "none"),
   };
 }
 
+/** A head: one a line may name, or one only what an end means draws. */
+export type Head = Arrow | "filled" | "one" | "many" | "zero_one" | "zero_many";
+
+/** The head an end's meaning draws, or none said. */
+function meant(data: LineData | undefined, way: "from" | "to"): Head | undefined {
+  const end: End | undefined = data?.ends?.[way];
+  if (!end) return undefined;
+  if (end.ownership === "composite") return "filled";
+  if (end.ownership === "shared") return "diamond";
+  if (data?.crows && end.multiplicity) return crow(end.multiplicity);
+  return end.navigable ? "open" : undefined;
+}
+
+/** A crow's-foot head for a multiplicity: its lower bound zero or not, its upper one or many. A
+ *  bare `*` is zero or many. */
+function crow(multiplicity: string): Head {
+  const [low, high = low] = multiplicity.split("..");
+  const many = high === "*" || Number(high) > 1;
+  const none = low === "0" || low === "*";
+  return none ? (many ? "zero_many" : "zero_one") : many ? "many" : "one";
+}
+
+/** Whether an end draws the cross that says it cannot be reached. */
+export function crossed(data: LineData | undefined, way: "from" | "to"): boolean {
+  return data?.ends?.[way]?.navigable === false;
+}
+
+/** The words an end draws beside it: its role and its multiplicity — on an entity diagram the
+ *  crow's foot says the multiplicity. */
+export function end_words(data: LineData | undefined, way: "from" | "to"): string {
+  const end = data?.ends?.[way];
+  if (!end) return "";
+  return [end.role, data?.crows ? "" : end.multiplicity].filter(Boolean).join(" ");
+}
+
 /** Which control group this projection offers. */
-export type Slot = "layer" | "display" | "relations";
+export type Slot = "palette" | "layer" | "make" | "display" | "relations";
 
 /** One of the layer's own interfaces, seen from inside. */
 export type Port = {
@@ -136,6 +218,8 @@ export type Port = {
   at: number;
   marks: readonly CardClass[];
   look?: Look;
+  /** The interface definition it is typed by, if any. */
+  def?: Id;
 };
 
 /** The frame's own id, as an edge end and as a perch's host. */
@@ -153,17 +237,36 @@ export type Frame = {
   stamps?: readonly Mark[];
   /** Whether it holds anything, which is what fills its icon. */
   holds_parts?: boolean;
-  /** Which wall of its own parent this layer is set into, when the layer is itself an interface. */
-  side?: Side;
   /** The interfaces set into this layer's own walls. */
   ports: readonly Port[];
   /** Seats a relationship meets on these walls with no interface of its own. */
   seats?: readonly { id: string; side: Side; at: number }[];
 };
 
+/** One area of a map, the library's or the model's: a box of what it holds, or a chip, which is
+ *  entered. */
+export type Area = {
+  id: Id; parent: Id | null; x: number; y: number; w: number; h: number;
+  label: string; depth: number; chip: boolean;
+};
+
+/** One tile of a chip's inner treemap, as a share of the chip's body: a block, unless `as` says
+ *  it is a group's panel, a region's band (`odd` every other), a grid's header strip, a lifeline,
+ *  a rule between a grid's rows, or a flow's line or its arrow (`down` where it runs down). A
+ *  block wears its own colour (`tint`) and may be a flow's mark, or a class's or an entity's card
+ *  (`texture`). */
+export type InnerTile = { id: Id; label: string; x: number; y: number; w: number; h: number;
+                          role?: Role;
+                          as?: "group" | "band" | "head" | "life" | "rule" | "flow" | "arrow";
+                          odd?: boolean; down?: boolean; mark?: "start" | "end" | "decision";
+                          texture?: "class" | "entity"; tint?: Tint };
+
 export type Scene = {
   /** The layer this is a projection of. */
   layer: Id | null;
+  /** A map, the library's or the model's: every area, outermost first; the layer is the one in
+   *  focus. */
+  areas?: readonly Area[];
   /** Absent only at the root, which has no outside to be seen from. */
   frame?: Frame;
   nodes: readonly BoxNode[];
@@ -251,6 +354,11 @@ export function faults(scene: Scene): string[] {
   for (const e of scene.edges) {
     if (!met(e.source)) out.push(`edge ${e.id} leaves a node that is not drawn`);
     if (!met(e.target)) out.push(`edge ${e.id} reaches a node that is not drawn`);
+    for (const p of e.data?.points ?? []) {
+      if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) {
+        out.push(`edge ${e.id} has a point off the page`);
+      }
+    }
   }
 
   if (scene.frame && (scene.frame.w <= 0 || scene.frame.h <= 0)) {

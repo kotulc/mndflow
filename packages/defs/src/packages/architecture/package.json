@@ -1,0 +1,11 @@
+{
+  "schema": "1.0",
+  "id": "architecture",
+  "graph": {
+    "root": "architecture",
+    "blocks": {
+      "architecture": { "id": "architecture", "parent": null, "name": "architecture" }
+    },
+    "edges": {}
+  }
+}

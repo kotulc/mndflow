@@ -92,23 +92,33 @@ export const ALIGNS = ["left", "center", "right"] as const;
 export const HEIGHTS = ["uniform", "free"] as const;
 
 /** What a card's large face shows under its name, in the order said. */
-export const PARTS = ["attributes", "body", "preview"] as const;
+export const PARTS = ["attributes", "behaviours", "body", "preview"] as const;
 
 /** The large faces: each an engine renderer mapping what a card has onto how it reads — a
  *  `table` of its attributes with its body under it, a `document` of its body, a `picture` of
  *  what its source points at. Unsaid, a card has no large face: its name is the whole of it. */
-export const LARGE_FACES = ["table", "document", "picture"] as const;
+export const LARGE_FACES = ["table", "class", "document", "picture", "text"] as const;
 
 /** What each large face shows, in order. */
 export const FACE_PARTS: Record<(typeof LARGE_FACES)[number], readonly (typeof PARTS)[number][]> = {
-  table: ["attributes", "body"], document: ["body"], picture: ["preview"],
+  table: ["attributes", "body"], class: ["attributes", "behaviours"], document: ["body"],
+  picture: ["preview"], text: [],
 };
 
-/** Which face a layer draws its cards with: the name and marks alone, or what they say. */
-export const FACES = ["small", "large"] as const;
+/** What a card is drawn as: the plain box, slightly rounder, or a notation's mark — a decision's
+ *  diamond, a start's dot, an end's ringed dot. */
+export const SHAPES = ["box", "round", "diamond", "dot", "ring"] as const;
 
-/** How a value is edited: what a value type says, as a module is what a kind says. */
-export const FORMS = ["text", "number", "flag", "choice", "link"] as const;
+/** Which size a layer draws its cards at: the name and marks alone, or what they say. */
+export const CARDS = ["small", "large"] as const;
+
+/** The layer views a block may name with `layout.view`, where it can feed them. Closed, like
+ *  `card.face`: a name outside this set opens the block on the view its kind gives, never
+ *  refused. */
+export const NAMED_VIEWS = ["internal", "allocation", "class", "er"] as const;
+
+/** The views that are projections: they draw what a block holds and write nothing back. */
+export const DIAGRAM_VIEWS = ["class", "er", "registry"] as const;
 
 /** The named families a definition may pick from. */
 export const FAMILIES = ["primary", "secondary", "neutral", "muted",
@@ -155,10 +165,9 @@ export const CONTRASTS = ["faint", "soft", "strong", "full"] as const;
 /** What a card draws where nobody has said — the app's own answer, as against a definition's or an
  *  element's. */
 export const DEFAULTS = {
-  "card.label": "none",
+  "card.label": "inside",
   "card.align": "left",
   "card.label_align": "left",
-  "card.alias": "hide",
   "card.height": "uniform",
   "line.name": "show",
   "line.alias": "hide",
@@ -176,16 +185,13 @@ export const DEFAULTS = {
 export const DRAWN: readonly string[] = ["card", "style", "line"];
 
 /** What each module honours, and the keys it owns of its own. */
-const CARD: readonly string[] = ["card", "style", "allows", "expects", "holder", "layout", "tie",
-                                 "value"];
-const WALL: readonly string[] = ["style", "allows", "expects"];
-const WIRE: readonly string[] = ["line", "style", "allows", "expects"];
+const CARD: readonly string[] = ["card", "style", "allows", "holder", "layout", "tie",
+                                 "records"];
+const WIRE: readonly string[] = ["line", "style", "allows"];
 
 const MODULES: Record<string, { honours: readonly string[]; keys: readonly string[] }> = {
   ...Object.fromEntries(BLOCK_MODULES.map((m) => [m, { honours: CARD, keys: [] }])),
   ...Object.fromEntries(BASE_RELATIONS.map((m) => [m, { honours: WIRE, keys: [] }])),
-  /** An interface is eight pixels of wall. */
-  interface: { honours: WALL, keys: [] },
 };
 
 /** One namespace for both groups, so a name may mean one thing. */
@@ -200,12 +206,17 @@ export function honours(module: string): readonly string[] {
 const block: Component = {
   name: "block",
   check: (config) => {
-    if (config["module"] === undefined) return stray("block", config, ["module"]);
-    const named = BLOCK_MODULES.includes(String(config["module"]) as never)
-      ? MODULES[String(config["module"])] : undefined;
+    /** `behaviour` says a kind is a method of what holds it, whatever module it runs. */
+    const { behaviour, ...said } = config;
+    if (behaviour !== undefined && typeof behaviour !== "boolean") {
+      return "`block.behaviour` has to be true or false";
+    }
+    if (said["module"] === undefined) return stray("block", said, ["module"]);
+    const named = BLOCK_MODULES.includes(String(said["module"]) as never)
+      ? MODULES[String(said["module"])] : undefined;
     if (!named) return `\`block.module\` has to be one of ${BLOCK_MODULES.join(", ")}`;
-    const { module: _named, ...rest } = config;
-    return stray(String(config["module"]), rest, named.keys);
+    const { module: _named, ...rest } = said;
+    return stray(String(said["module"]), rest, named.keys);
   },
 };
 
@@ -216,7 +227,7 @@ const card: Component = {
     one_of("card.label", config["label"], DISPLAYS)
     ?? one_of("card.align", config["align"], ALIGNS)
     ?? one_of("card.label_align", config["label_align"], ALIGNS)
-    /** `alias` shows the handle beside a name that was set. */
+    /** `alias` shows or hides the handle; unsaid, it shows only while unnamed. */
     ?? one_of("card.alias", config["alias"], SHOWN)
     ?? one_of("card.height", config["height"], HEIGHTS)
     /** `name` hides the large face's head, so what it shows is the whole card. */
@@ -224,8 +235,10 @@ const card: Component = {
     /** `face` is which large face it draws with; `size` its size. */
     ?? one_of("card.face", config["face"], LARGE_FACES)
     ?? sized("card.size", config["size"])
+    /** `shape` is what it is drawn as. */
+    ?? one_of("card.shape", config["shape"], SHAPES)
     ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "name",
-                              "face", "size"]),
+                              "face", "size", "shape"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings. */
@@ -266,7 +279,9 @@ const line: Component = {
     /** The identity line, exactly as a card asks it. */
     ?? one_of("line.name", config["name"], SHOWN)
     ?? one_of("line.alias", config["alias"], SHOWN)
-    ?? stray("line", config, ["dir", "from_arrow", "to_arrow", "name", "alias"]),
+    /** `module` tie runs it straight, never routed. Granted by *is tie*. */
+    ?? one_of("line.module", config["module"], BASE_RELATIONS)
+    ?? stray("line", config, ["dir", "from_arrow", "to_arrow", "name", "alias", "module"]),
 };
 
 
@@ -294,20 +309,14 @@ const allows: Component = {
       const wrong = stray("allows.degree", degree as Settings, ["in", "out"]);
       if (wrong) return wrong;
     }
-    if (config["values"] !== undefined && typeof config["values"] !== "boolean") {
-      return "`allows.values` is a yes or a no";
+    for (const key of ["values", "records"]) {
+      if (config[key] !== undefined && typeof config[key] !== "boolean") {
+        return `\`allows.${key}\` is a yes or a no`;
+      }
     }
-    return stray("allows", config, ["ports", "holds", "heads", "values", "degree", "ends"]);
+    return stray("allows", config, ["ports", "holds", "heads", "values", "records", "degree",
+                                    "ends"]);
   },
-};
-
-/** What a usage's values are asked for. Noted while modelling, refused only at translation. */
-const expects: Component = {
-  name: "expects",
-  check: (config) =>
-    words("expects.required", config["required"])
-    ?? words("expects.match", config["match"])
-    ?? stray("expects", config, ["required", "match"]),
 };
 
 
@@ -318,12 +327,14 @@ const layout: Component = {
   check: (config) =>
     (config["kind"] === undefined || typeof config["kind"] === "string"
       ? null : "`layout.kind` has to be a name")
-    ?? (config["across"] === undefined || typeof config["across"] === "number"
-      ? null : "`layout.across` has to be a number")
     ?? (config["line"] === undefined || typeof config["line"] === "string"
       ? null : "`layout.line` has to be a relation definition")
-    ?? one_of("layout.face", config["face"], FACES)
-    ?? stray("layout", config, ["kind", "across", "line", "face"]),
+    ?? (config["view"] === undefined || typeof config["view"] === "string"
+      ? null : "`layout.view` has to be a name")
+    ?? one_of("layout.cards", config["cards"], CARDS)
+    /** `shape` is what the layer's cards are drawn as, where theirs says none. */
+    ?? one_of("layout.shape", config["shape"], SHAPES)
+    ?? stray("layout", config, ["kind", "line", "cards", "view", "shape"]),
 };
 
 /** What a block made from, or dropped on, another is linked to it by: a relation definition. */
@@ -336,25 +347,25 @@ const tie: Component = {
 };
 
 /** How a block draws what it holds: `inline` on the layer it sits on, rather than behind its card,
- *  and `matrix` seated in cells. Granted by the traits of the same names. */
+ *  `matrix` seated in cells, `band` across the layer, and a grid's `lifelines` down each column
+ *  from its head. Granted by *is group*, *is grid* and *is region*. */
+const HOLDER = ["inline", "matrix", "band", "lifelines"];
 const holder: Component = {
   name: "holder",
   check: (config) =>
-    ["inline", "matrix"].map((k) => config[k] === undefined || typeof config[k] === "boolean"
+    HOLDER.map((k) => config[k] === undefined || typeof config[k] === "boolean"
       ? null : `\`holder.${k}\` has to be true or false`).find(Boolean)
-    ?? stray("holder", config, ["inline", "matrix"]),
+    ?? stray("holder", config, HOLDER),
 };
 
-/** How a value of a value type is edited, what a choice may be, and the unit a number is in. */
-const value: Component = {
-  name: "value",
+/** What a collection's records are: rows answering the attributes of `of`, a block definition. */
+const records: Component = {
+  name: "records",
   check: (config) =>
-    one_of("value.form", config["form"], FORMS)
-    ?? words("value.choices", config["choices"])
-    ?? (config["unit"] === undefined || typeof config["unit"] === "string"
-      ? null : "`value.unit` has to be a word")
-    ?? stray("value", config, ["form", "choices", "unit"]),
+    (config["of"] === undefined || typeof config["of"] === "string"
+      ? null : "`records.of` has to be a definition")
+    ?? stray("records", config, ["of"]),
 };
 
 /** What this build publishes. */
-publish(allows, block, card, expects, holder, layout, line, style, tie, value);
+publish(allows, block, card, holder, layout, line, records, style, tie);

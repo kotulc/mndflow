@@ -1,25 +1,40 @@
-/** Making, naming, typing, moving and removing blocks; navigating layers; laying one out. */
+/** Making, naming, typing, moving and removing blocks; navigating layers. */
 
 import { may_hold } from "../capabilities";
 import { shown_name } from "../names";
-import { block_base, base_of, closes_cycle, def_at, dependents, domain_of, in_domain,
-         kind_free, may_retype, name_taken, package_of, plain_type, setting_of, stored_type,
-         self_use } from "../defs";
-import { GRID, inline, inside, is_grid, lattice_of, layer_of } from "../holders";
-import { children, edges_in, is_interface, layout_of, next_order, reorder, stands_for,
-         subtree } from "../tree";
+import { block_base, base_of, closes_cycle, def_at, dependents, diagram_kind, domain_of,
+         holds_defs, in_definitions, is_domain, kind_fits, kind_free, may_retype, name_taken,
+         package_of, plain_type, setting_of, stored_type, self_use } from "../defs";
+import { GRID, inline, inside, is_folder, is_grid, lattice_of, layer_of } from "../holders";
+import { next_order, port_at, ports_of, reorder,
+         object_of, sibling_named, subtree } from "../tree";
+import { unnamed_refusal } from "./named";
+import { drop_named, library_home, registry_at, registry_of } from "../library";
 import { leave_at, open_at, reveal_at, view_on, EDITOR, type Tiers, type View,
          type Views } from "../navigate";
 import { new_id } from "../ids";
-import { BASE_PACKAGE, LAYOUTS, type Graph, type Id, type Layout, type Mutation } from "../types";
-import { register, type Context, type Result } from "./registry";
+import { BASE_PACKAGE, KIND_FAMILIES, type Graph, type Id, type Mutation } from "../types";
+import { register, type Args, type Context, type Result } from "./registry";
 import { seat_all, seat_in, taken_in } from "./grid";
-import { borrowed, cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS, spot,
-         text, tied, typed } from "./helpers";
+import { borrowed, cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS,
+         port_edit, spot, text, tied, typed } from "./helpers";
 
 /** The layer a block made under `parent` draws on: the parent, or what it is drawn inline in. */
 function drawn_on(graph: Graph, parent: Id): Id | null {
   return inline(graph, parent) ? layer_of(graph, parent) : parent;
+}
+
+/** What a definitions folder says to structure put in it: the two trees stay apart. */
+const APART = "a definitions folder holds definitions and folders, not structure";
+/** A component kind is carried by blocks as data, never made a block of its own. */
+const CARRIED = "a component is carried by blocks as data, never a block of its own";
+
+/** Why a diagram holding parts keeps its family. */
+function fixed_kind(graph: Graph, id: Id): string {
+  const kind = diagram_kind(graph, id);
+  const kin = KIND_FAMILIES.find((set) => set.includes(kind ?? ""))?.filter((k) => k !== kind) ?? [];
+  return kin.length ? `a ${kind} holding parts may become only ${kin.join(", ")}`
+    : `a ${kind} holding parts keeps its kind`;
 }
 
 /** Why putting these blocks under `parent` would break the model, or null. */
@@ -33,9 +48,16 @@ function placing(graph: Graph, ids: readonly Id[], parent: Id): string | null {
     if (id === parent || subtree(graph, id).includes(parent)) {
       return "a block cannot be moved inside itself";
     }
-    /** A definition sits in a domain, never in a structure. */
-    if (b.def && !(to.parent === null || in_domain(graph, parent) && !to.def)) {
+    /** A definition sits in the definitions tree, never in a structure. */
+    if (b.def && !holds_defs(graph, parent)) {
       return "a definition sits in a package, not in a structure";
+    }
+    /** Structure never sits in a definitions folder. */
+    if (!b.def && !is_folder(graph, id) && in_definitions(graph, parent)) return APART;
+    /** A folder holding anything keeps to its tree. */
+    if (is_folder(graph, id) && subtree(graph, id).length > 1
+        && is_domain(graph, id) !== lands_in_definitions(graph, id, parent)) {
+      return "a folder keeps to its tree: definitions and structure stay apart";
     }
     /** A definition never uses itself, however deep the usage arrives. */
     for (const under of subtree(graph, id)) {
@@ -51,6 +73,23 @@ function placing(graph: Graph, ids: readonly Id[], parent: Id): string | null {
   return null;
 }
 
+/** Whether a folder moved under `parent` is in the definitions tree: as its parent folder is, or
+ *  as it was where it lands at its package's root. */
+function lands_in_definitions(graph: Graph, id: Id, parent: Id): boolean {
+  if (graph.blocks[parent]?.parent === null) return is_domain(graph, id);
+  return in_definitions(graph, parent);
+}
+
+/** The folders moved under `parent` saying their tree where they land at a package's root, and
+ *  saying none elsewhere. */
+function trees_of(graph: Graph, ids: readonly Id[], parent: Id): Mutation[] {
+  const at_root = graph.blocks[parent]?.parent === null;
+  return ids.filter((id) => is_folder(graph, id)).flatMap((id): Mutation[] => {
+    const tree = at_root && lands_in_definitions(graph, id, parent) ? "definitions" : undefined;
+    return graph.blocks[id]!.tree === tree ? [] : [{ op: "update_block", id, tree: tree ?? null }];
+  });
+}
+
 /** Why removing this would leave something naming nothing: a definition used outside what goes
  *  with it — everything `gone` takes — or a package something depends on. */
 function in_use(graph: Graph, id: Id, gone: ReadonlySet<Id>): string | null {
@@ -64,8 +103,7 @@ function in_use(graph: Graph, id: Id, gone: ReadonlySet<Id>): string | null {
   }
   const defs = subtree(graph, id).filter((g) => graph.blocks[g]?.def);
   if (!defs.length) return null;
-  const names = (x: { type?: Id; tags?: Id[]; traits?: Id[]; of?: Id }) =>
-    [x.type, x.of, ...(x.tags ?? []), ...(x.traits ?? [])];
+  const names = (x: { type?: Id; tags?: Id[]; of?: Id }) => [x.type, x.of, ...(x.tags ?? [])];
   const users = [...Object.values(graph.blocks).filter((u) => !gone.has(u.id)),
                  ...Object.values(graph.edges).filter((e) => !gone.has(e.from) && !gone.has(e.to))]
     .filter((u) => names(u).some((n) => n && defs.includes(n)));
@@ -73,6 +111,10 @@ function in_use(graph: Graph, id: Id, gone: ReadonlySet<Id>): string | null {
   return `${shown_name(graph, defs.find((d) => users.some((u) => names(u).includes(d)))!)} `
     + `is used by ${users.length === 1 ? "one element" : `${users.length} elements`}`;
 }
+
+/** What an edit names, each appearance read as the block it is: **one object**. */
+const objects = (ctx: Context, args: Args): Id[] =>
+  ids_of(ctx, args).map((id) => object_of(ctx.graph, id));
 
 register(
   {
@@ -85,18 +127,27 @@ register(
            { name: "type", form: "text" }, { name: "spot", form: "spot" },
            { name: "from", form: "block" }, { name: "before", form: "block" },
            /** The cell it is made in, where the parent is a grid. */
-           { name: "at", form: "text" }],
+           { name: "at", form: "text" },
+           /** The tree a folder made at a package's root belongs to; unsaid, structure. */
+           { name: "tree", form: "choice", choices: ["definitions", "structure"] }],
     check: (ctx, args) => {
       const type = args["type"] ? String(args["type"]) : "";
       const parent = (args["parent"] as Id) ?? here(ctx);
+      if (block_base(ctx.graph, type) !== "folder" && in_definitions(ctx.graph, parent)) {
+        return APART;
+      }
       if (type && !def_at(ctx.graph, type)) return `there is no definition called "${type}"`;
       if (type && NEEDS[block_base(ctx.graph, type)]) return NEEDS[block_base(ctx.graph, type)]!;
       if (type && domain_of(ctx.graph, type) === "relation") {
         return "lines must connect existing blocks — draw one from a block to another";
       }
+      if (type && domain_of(ctx.graph, type) === "component") return CARRIED;
       const why = borrowed(ctx.graph, parent);
       if (why) return why;
       if (self_use(ctx.graph, parent, type)) return "a definition cannot use itself";
+      if (sibling_named(ctx.graph, parent, text(args, "name"))) {
+        return `"${text(args, "name")}" is already here`;
+      }
       const from = args["from"] ? id_of(args, "from") : null;
       if (from && layer_of(ctx.graph, from) !== drawn_on(ctx.graph, parent)) {
         return "a tie joins blocks on one layer";
@@ -110,6 +161,11 @@ register(
       const made = make_block(ctx, text(args, "name"), parent, type);
       const at = spot(args);
       const id = (made[0] as { block: { id: Id } }).block.id;
+      /** A folder made at a package's root belongs to the tree it was made in. */
+      if (args["tree"] === "definitions" && block_base(ctx.graph, type) === "folder"
+          && ctx.graph.blocks[parent]?.parent === null) {
+        made.push({ op: "update_block", id, tree: "definitions" });
+      }
       /** In a grid, it takes the cell pointed at, else the nearest free one. */
       const g = lattice_of(ctx.graph, parent);
       if (g) {
@@ -137,6 +193,18 @@ register(
       if (!ids.length) return "nothing is selected";
       const gone = new Set(ids.flatMap((id) => subtree(ctx.graph, id)));
       for (const id of ids) {
+        /** A port goes from where it is held. */
+        const port = port_at(ctx.graph, id);
+        if (port) {
+          const why = borrowed(ctx.graph, port.holder);
+          if (why) return why;
+          continue;
+        }
+        if (library_home(ctx.graph, id)) {
+          const why = unnamed_refusal(ctx.graph, id);
+          if (why) return why;
+          continue;
+        }
         const why = (ctx.graph.blocks[id]?.parent === null ? null : borrowed(ctx.graph, id))
           ?? in_use(ctx.graph, id, gone);
         if (why) return why;
@@ -145,34 +213,59 @@ register(
     },
     run: (ctx, args) => {
       const ids = ids_of(ctx, args);
+      /** A named component goes from its library, a port from where it is held. */
+      const named = ids.filter((id) => library_home(ctx.graph, id));
+      const ports = ids.filter((id) => port_at(ctx.graph, id));
+      const rest = ids.filter((id) => !named.includes(id) && !ports.includes(id));
+      /** One by one, so two ports of one holder each see the other gone. */
+      let graph = ctx.graph;
+      const dropped: Mutation[] = [];
+      for (const id of ports) {
+        const out = port_edit(graph, id, () => null);
+        /** Gone already: the same port read through elsewhere, its holder's dropped first. */
+        if (!out.length) continue;
+        dropped.push(...out);
+        const set = out[0] as Extract<Mutation, { op: "set_ports" }>;
+        graph = { ...graph, blocks: { ...graph.blocks,
+          [set.id]: { ...graph.blocks[set.id]!, ports: set.ports ?? [] } } };
+      }
       return {
-        mutations: ids.map((id): Mutation => (ctx.graph.edges[id]
-          ? { op: "delete_edge", id } : { op: "delete_block", id })),
+        mutations: [...drop_named(ctx.graph, named), ...dropped,
+                    ...rest.map((id): Mutation => (ctx.graph.edges[id]
+                      ? { op: "delete_edge", id } : { op: "delete_block", id }))],
         effect: { focus: null },
       };
     },
   },
   {
     name: "rename",
-    about: "changes what a block or a relationship is called",
-    on: ["block", "edge"],
+    about: "changes what a block, a relationship or an interface is called",
+    on: ["block", "edge", "interface"],
     args: [{ name: "id", form: "block", required: true },
            { name: "name", form: "text", asks: true }],
     /** A definition is found by its name, so it takes one nothing else in its package has. */
     check: (ctx, args) => {
-      const id = id_of(args, "id");
+      const id = object_of(ctx.graph, id_of(args, "id"));
+      const port = port_at(ctx.graph, id);
+      if (port) return borrowed(ctx.graph, port.holder);
       if (!ctx.graph.blocks[id] && !ctx.graph.edges[id]) return "that is not here any more";
       const why = borrowed(ctx.graph, id);
       if (why) return why;
-      if (!def_at(ctx.graph, id)) return null;
       const name = text(args, "name");
+      const b = ctx.graph.blocks[id];
+      if (b && sibling_named(ctx.graph, b.parent, name, [id])) return `"${name}" is already here`;
+      if (!def_at(ctx.graph, id)) return null;
       if (!name) return "a definition needs a name";
       return name_taken(ctx.graph, package_of(ctx.graph, id), name, id)
         ? `"${name}" already exists` : null;
     },
     run: (ctx, args) => {
-      const id = id_of(args, "id");
+      const id = object_of(ctx.graph, id_of(args, "id"));
       const name = text(args, "name");
+      if (port_at(ctx.graph, id)) {
+        return { mutations: port_edit(ctx.graph, id, ({ name: _, ...rest }) =>
+          (name ? { ...rest, name } : rest)) };
+      }
       return { mutations: [ctx.graph.edges[id] ? { op: "update_edge", id, name }
                                                : { op: "update_block", id, name }] };
     },
@@ -184,7 +277,7 @@ register(
     args: [{ name: "ids", form: "block", required: true },
            { name: "type", form: "text", required: true }],
     check: (ctx, args) => {
-      const ids = ids_of(ctx, args);
+      const ids = objects(ctx, args);
       if (!ids.length) return "nothing is selected";
       const type = text(args, "type") || undefined;
       const d = def_at(ctx.graph, type);
@@ -204,21 +297,19 @@ register(
         if (type && domain_of(ctx.graph, type) === "relation" && !b.def) {
           return `"${d!.name}" defines a relationship, not a block`;
         }
+        if (type && domain_of(ctx.graph, type) === "component" && !b.def) return CARRIED;
         if (b.def) {
           if (closes_cycle(ctx.graph, id, type)) return "a definition cannot extend itself";
+          if (!kind_fits(ctx.graph, id, type)) return fixed_kind(ctx.graph, id);
           /** What it extends says its kind; it changes kind only while nothing it shaped. */
           if (type && domain_of(ctx.graph, type) !== domain_of(ctx.graph, id)
               && !kind_free(ctx.graph, id)) {
             return `"${d!.name}" is not a ${domain_of(ctx.graph, id)} definition, and this one is in use`;
           }
-          /** Its usages are interfaces by its chain, so that too is fixed while it is used. */
-          const port = (t: Id | undefined) => block_base(ctx.graph, t) === "interface";
-          if (type && port(type) !== port(id) && !kind_free(ctx.graph, id)) {
-            return `"${d!.name}" ${port(id) ? "defines" : "does not define"} an interface, and this one is in use`;
-          }
           continue;
         }
         if (self_use(ctx.graph, b.parent, type)) return "a definition cannot use itself";
+        if (type && !kind_fits(ctx.graph, id, type)) return fixed_kind(ctx.graph, id);
         if (type && !may_retype(ctx.graph, id, type)) {
           return `a ${base_of(ctx.graph, id)} cannot become a ${block_base(ctx.graph, type)}`;
         }
@@ -229,13 +320,28 @@ register(
     run: (ctx, args) => {
       const said = text(args, "type");
       const type = stored_type(ctx.graph, said);
-      const out = ids_of(ctx, args).map((id): Mutation => {
+      const out = objects(ctx, args).map((id): Mutation => {
         if (ctx.graph.edges[id]) return { op: "update_edge", id, type: type ?? null };
         if (ctx.graph.blocks[id]?.def) return { op: "update_block", id, type: said || null };
         return { op: "update_block", id, type: type ?? plain_type(base_of(ctx.graph, id)) };
       });
+      /** A run meeting a port the block no longer wears — its own stay — lets it go. */
+      for (const id of objects(ctx, args)) {
+        const b = ctx.graph.blocks[id];
+        if (!b || b.def) continue;
+        const kept = new Set([...b.ports ?? [], ...ports_of(ctx.graph, type ?? undefined)]
+          .map((p) => p.id));
+        for (const e of Object.values(ctx.graph.edges)) {
+          for (const end of ["from", "to"] as const) {
+            const port = end === "from" ? e.fromPort : e.toPort;
+            if (e[end] === id && port && !kept.has(port)) {
+              out.push({ op: "set_end", id: e.id, end, block: id, port: null });
+            }
+          }
+        }
+      }
       /** A block becoming a grid seats what it holds: a member always sits in a cell. */
-      for (const id of ids_of(ctx, args)) {
+      for (const id of objects(ctx, args)) {
         const b = ctx.graph.blocks[id];
         if (b && !b.def && said && setting_of(ctx.graph, said, "holder")["matrix"] === true) {
           out.push(...seat_all(ctx.graph, id, { ...GRID, ...b.grid }));
@@ -245,14 +351,27 @@ register(
     },
   },
   {
-    name: "describe",
-    about: "writes what a block holds, or what a definition is for",
+    name: "write",
+    about: "writes what a block holds as text",
     on: ["block", "layer"],
     args: [{ name: "id", form: "block", required: true },
            { name: "body", form: "text", required: true }],
-    check: (ctx, args) => borrowed(ctx.graph, id_of(args, "id")),
-    run: (_ctx, args) => ({ mutations: [
-      { op: "set_body", id: id_of(args, "id"), body: String(args["body"] ?? "") },
+    check: (ctx, args) => borrowed(ctx.graph, object_of(ctx.graph, id_of(args, "id"))),
+    run: (ctx, args) => ({ mutations: [
+      { op: "set_body", id: object_of(ctx.graph, id_of(args, "id")),
+        body: String(args["body"] ?? "") },
+    ] }),
+  },
+  {
+    name: "describe",
+    about: "says in a line what a block or a definition is for",
+    on: ["block", "layer"],
+    args: [{ name: "id", form: "block", required: true },
+           { name: "description", form: "text", required: true }],
+    check: (ctx, args) => borrowed(ctx.graph, object_of(ctx.graph, id_of(args, "id"))),
+    run: (ctx, args) => ({ mutations: [
+      { op: "set_description", id: object_of(ctx.graph, id_of(args, "id")),
+        description: String(args["description"] ?? "").trim() },
     ] }),
   },
   {
@@ -272,6 +391,11 @@ register(
       const why = borrowed(ctx.graph, parent) ?? ids.map((id) => borrowed(ctx.graph, id))
         .find(Boolean) ?? placing(ctx.graph, ids, parent);
       if (why) return why;
+      /** Landing beside a block of the same name, or with one, would leave a name finding two. */
+      const names = ids.map((id) => ctx.graph.blocks[id]?.name?.trim() ?? "").filter(Boolean);
+      const twice = names.find((n, i) => names.indexOf(n) !== i
+        || sibling_named(ctx.graph, parent, n, ids));
+      if (twice) return `"${twice}" is already here`;
       const g = lattice_of(ctx.graph, parent);
       if (g) {
         const cell = cell_of_arg(args, "at");
@@ -286,6 +410,7 @@ register(
       const out: Mutation[] = ids
         .filter((id) => ctx.graph.blocks[id]!.parent !== parent)
         .map((id): Mutation => ({ op: "move_block", id, parent }));
+      out.push(...trees_of(ctx.graph, ids, parent));
       for (const at of reorder(ctx.graph, parent, ids, before)) {
         out.push({ op: "order_block", id: at.id, order: at.order });
       }
@@ -318,6 +443,7 @@ register(
       const why = borrowed(ctx.graph, parent);
       if (why) return why;
       if (target === parent) return "a block cannot hold a stand-in for itself";
+      if (in_definitions(ctx.graph, parent)) return APART;
       const type = text(args, "type") || undefined;
       return !is_grid(ctx.graph, parent) || may_hold(ctx.graph, parent, type)
         ? null : `"${shown_name(ctx.graph, parent)}" takes nothing of that sort`;
@@ -364,27 +490,22 @@ register(
   {
     name: "open",
     about: "opens a block on the canvas on the view its kind calls for — a definition opened "
-      + "again draws its structure — or leaves this layer",
+      + "again draws its structure, a registry or an entry of one its treemap — or leaves this "
+      + "layer",
     on: ["block"],
     /** `at`: the section it was opened from, where a definition's structure is listed. */
     args: [{ name: "id", form: "block" }, { name: "at", form: "number" }],
     check: (ctx, args) => {
       const want = id_of(args, "id");
-      return !want || ctx.graph.blocks[want] ? null : "that is not here any more";
+      return !want || ctx.graph.blocks[want] || registry_at(ctx.graph, want)
+        || registry_of(ctx.graph, want) ? null : "that is not here any more";
     },
-    /** Opening and leaving are navigation's (`open_at`, `leave_at`). An interface left returns to
-     *  the layer it was entered from. */
+    /** Opening and leaving are navigation's (`open_at`, `leave_at`). */
     run: (ctx, args) => {
       const { tiers, views, view } = seen(ctx);
       const want = id_of(args, "id");
       const from = typeof args["at"] === "number" ? args["at"] : undefined;
       if (want) return moved(open_at(ctx.graph, tiers, views, want, from, view));
-      const here = ctx.layer ? ctx.graph.blocks[ctx.layer] : undefined;
-      const owner = here?.parent ? ctx.graph.blocks[here.parent] : undefined;
-      const outside = owner?.parent ?? null;
-      if (here && is_interface(ctx.graph, here.id) && ctx.from !== undefined && ctx.from === outside) {
-        return moved({ ...view, layer: outside, pick: ctx.layer });
-      }
       return moved(leave_at(ctx.graph, tiers, views, view));
     },
   },
@@ -395,9 +516,7 @@ register(
     args: [{ name: "id", form: "block", required: true }],
     run: (ctx, args) => {
       const { tiers, views, view } = seen(ctx);
-      const id = id_of(args, "id");
-      /** Followed to the end, so a reference to a reference reveals what both stand for. */
-      return moved(reveal_at(ctx.graph, tiers, views, view, stands_for(ctx.graph, id)?.id ?? id));
+      return moved(reveal_at(ctx.graph, tiers, views, view, id_of(args, "id")));
     },
   },
 );
@@ -412,84 +531,4 @@ function seen(ctx: Context): { tiers: Tiers; views: Views; view: View } {
 /** Where navigation went, as an effect: nowhere where it went nowhere. */
 function moved(to: View | null): Result {
   return { mutations: [], ...(to ? { effect: { view: to, focus: to.pick } } : {}) };
-}
-
-register(
-  {
-    name: "layout",
-    about: "sets how the layer lays out, and tidies it into that shape",
-    on: ["layer"],
-    /** Sets the layout and writes the caller's positions, in one step. */
-    args: [{ name: "kind", form: "choice", required: true, choices: LAYOUTS },
-           { name: "at", form: "text" }],
-    check: (ctx, args) => {
-      if (!LAYOUTS.includes(String(args["kind"]) as Layout)) {
-        return `there is no layout called "${args["kind"]}"`;
-      }
-      return borrowed(ctx.graph, (args["layer"] as Id) ?? here(ctx));
-    },
-    run: (ctx, args) => {
-      const said = args["at"];
-      const at = (Array.isArray(said) ? said : []) as { id: Id; x: number; y: number }[];
-      return { mutations: [
-        { op: "set_setting", id: (args["layer"] as Id) ?? here(ctx), key: "layout", name: "kind",
-          value: String(args["kind"]) },
-        ...at.filter((p) => ctx.graph.blocks[p.id])
-             .map((p): Mutation => ({ op: "place_block", id: p.id, x: p.x, y: p.y })),
-      ] };
-    },
-  },
-  {
-    name: "arrange",
-    about: "orders what the layer holds so related blocks read next to each other",
-    on: ["layer"],
-    args: [{ name: "layer", form: "block" }],
-    check: (ctx, args) => {
-      const layer = (args["layer"] as Id) ?? here(ctx);
-      if (layout_of(ctx.graph, layer) === "free") return "a free layer draws where things were put";
-      return borrowed(ctx.graph, layer);
-    },
-    run: (ctx, args) => {
-      const layer = (args["layer"] as Id) ?? here(ctx);
-      return { mutations: related_order(ctx.graph, layer)
-        .map(({ id, order }): Mutation => ({ op: "order_block", id, order })) };
-    },
-  },
-);
-
-/** The layer's blocks in an order that keeps related ones together: reading order, each followed
- *  by what it relates to — a tied note by its block — breadth first. */
-function related_order(graph: Graph, layer: Id): { id: Id; order: number }[] {
-  const units = children(graph, layer).filter((b) => !is_interface(graph, b.id));
-  const ids = new Set(units.map((b) => b.id));
-  /** The block on this layer an end sits in. */
-  const top = (id: Id): Id | null => {
-    for (let at: Id | null | undefined = id; at; at = graph.blocks[at]?.parent) {
-      if (ids.has(at)) return at;
-    }
-    return null;
-  };
-  const mates = new Map<Id, Set<Id>>();
-  for (const e of edges_in(graph, layer)) {
-    const [a, b] = [top(e.from), top(e.to)];
-    if (!a || !b || a === b) continue;
-    mates.set(a, new Set([...(mates.get(a) ?? []), b]));
-    mates.set(b, new Set([...(mates.get(b) ?? []), a]));
-  }
-  const rank = new Map(units.map((b, i) => [b.id, i]));
-  const read = (x: Id, y: Id) => rank.get(x)! - rank.get(y)!;
-  const out: Id[] = [];
-  const seen = new Set<Id>();
-  for (const start of units) {
-    const queue = [start.id];
-    while (queue.length) {
-      const id = queue.shift()!;
-      if (seen.has(id)) continue;
-      seen.add(id);
-      out.push(id);
-      queue.push(...[...(mates.get(id) ?? [])].sort(read).filter((m) => !seen.has(m)));
-    }
-  }
-  return out.map((id, i) => ({ id, order: i + 1 }))
-    .filter(({ id, order }) => graph.blocks[id]?.order !== order);
 }

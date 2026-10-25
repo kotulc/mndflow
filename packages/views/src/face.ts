@@ -5,7 +5,8 @@
  *  that what is shown fits. A table's columns are measured exactly once, here, and drawn at those
  *  widths, and **a table card is exactly its table**: its title row, its rows and its border. */
 
-import { alias_of, attributes_of, def_at, links_to, schema_def, shown_name, stamps_of,
+import { alias_of, attributes_of, behaviours_of, holds_records, links_to, schema_def,
+         setting_of, shown_name, signature_of, stamps_of, type_name, unit_of, type Attribute,
          type Graph, type Id } from "@mnd/core";
 import { look_of, type Look } from "./look";
 import type { Listed, Ruled } from "./scene";
@@ -13,6 +14,10 @@ import { resolved } from "./through";
 
 /** One glyph's width, in pixels, at each size the face writes in. */
 const GLYPH = { name: 7.8, body: 7.2, table: 6.6 };
+
+/** The sizes a small face's name may take, largest first, in pixels: a glyph is 0.6 of one and
+ *  a line 1.5. */
+const NAME_SIZES = [13, 12, 11, 10];
 
 /** A line of prose, and a table's row with its rule, in pixels. */
 const LINE = 16;
@@ -32,8 +37,8 @@ const IMAGE = { w: 192, h: 96 };
  *  table card, which has no padding of its own — then a table's title row and the room beside its
  *  name for the icon, what a cell spends beside its text, and the room each mark takes at the end
  *  of the last row, inset from the corner. All as `face.css` draws them. */
-const PAD = { x: 16, gutter: 13, y: 6, head: 24, handle: 8, over: 11, gap: 4, title: 21, side: 32,
-              cell: 10, mark: 15, corner: 4 };
+const PAD = { x: 16, gutter: 13, y: 6, head: 24, handle: 11, over: 14, gap: 4, title: 21, side: 32,
+              cell: 10, mark: 15, corner: 8 };
 
 /** A card's border, in pixels, at each width `ramp.css` weighs it. */
 const EDGE: Record<string, number> = { thin: 1, medium: 2, thick: 4 };
@@ -49,14 +54,43 @@ export function face_text(graph: Graph, id: Id, look: Look = look_of(graph, id))
     if (part === "preview") return b.source ? `![${shown_name(graph, id)}](<${b.source}>)` : "";
     return "";
   });
-  return parts.filter(Boolean).join("\n\n");
+  return [...parts, records_text(graph, id)].filter(Boolean).join("\n\n");
+}
+
+/** A collection's records as a markdown table: a column per attribute of what they are
+ *  (`records.of`), else per answer said, a row per record. Drawn in the one table look. */
+export function records_text(graph: Graph, id: Id): string {
+  const rows = graph.blocks[id]?.records ?? [];
+  if (!rows.length || !holds_records(graph, id)) return "";
+  const of = setting_of(graph, id, "records")["of"];
+  const declared = typeof of === "string" ? attributes_of(graph, of).map((a) => a.name) : [];
+  const names = declared.length ? declared : [...new Set(rows.flatMap((r) => Object.keys(r)))];
+  const cell = (v: string | undefined) => (v ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
+  return [`| ${names.join(" | ")} |`, `|${names.map(() => "---").join("|")}|`,
+          ...rows.map((r) => `| ${names.map((n) => cell(r[n])).join(" | ")} |`)].join("\n");
 }
 
 /** The large face's attributes, where its look shows them and it has any, with room at the end
- *  of the last row for the card's marks. */
+ *  of the last row for the card's marks. A class face lists its fields, then its behaviours. */
 export function face_table(graph: Graph, id: Id, look: Look = look_of(graph, id),
                            marks = stamps_of(graph, id).length): Ruled | null {
+  if (look.shows.includes("behaviours")) return class_table(graph, id, marks);
   return look.shows.includes("attributes") ? table(listed(graph, id), marks) : null;
+}
+
+/** A class card's compartments as one ruled column: each field `name: type`, then — split from
+ *  them by a rule — each behaviour's signature. */
+export function class_table(graph: Graph, id: Id, marks = 0): Ruled | null {
+  const fields = listed(graph, id).map((r) => (r.type === "text" ? r.name : `${r.name}: ${r.type}`));
+  const of = resolved(graph, id).stands_in?.id ?? id;
+  const methods = behaviours_of(graph, of).map((b) => signature_of(graph, b.id));
+  const rows = [...fields, ...methods];
+  if (!rows.length) return null;
+  const room = marks ? PAD.corner + marks * PAD.mark : 0;
+  const w = Math.ceil(PAD.cell + room + Math.min(CELL * 2, Math.max(...rows.map((r) => r.length)))
+    * GLYPH.table);
+  return { cells: rows.map((r) => [r]), widths: [w],
+           ...(fields.length && methods.length ? { split: fields.length } : {}) };
 }
 
 /** How wide a card's border is, in pixels. */
@@ -64,10 +98,19 @@ export function edge_of(look: Look): number {
   return EDGE[look.border_width] ?? 1;
 }
 
-/** The handle a card wears over its name: while it is unnamed, or always or never where its
- *  look says. */
+/** What a card wears in its top corner, over its name: what it is, where `card.label` says
+ *  `inside` and it is more than a plain block, then its handle — while it is unnamed, or always or never where its look says. */
 export function handle_of(graph: Graph, id: Id, look: Look = look_of(graph, id)): string {
-  return look.alias === undefined ? alias_of(graph, id) : look.alias ? alias_of(graph, id, true) : "";
+  const alias = look.alias === undefined ? alias_of(graph, id)
+    : look.alias ? alias_of(graph, id, true) : "";
+  const kind = look.label === "inside" ? type_word(look.kind, shown_name(graph, id)) : "";
+  return [kind, alias].filter(Boolean).join(" · ");
+}
+
+/** The type word a card or a heading wears: none for a plain block, or for one its name repeats,
+ *  which says nothing the card does not. */
+export function type_word(kind: string, name: string): string {
+  return kind === "block" || kind === name ? "" : kind;
 }
 
 /** The room a large face needs, in pixels: its name and handle — over its table of attributes,
@@ -93,21 +136,56 @@ export function fit_of(name: string, text: string, handle: boolean, most_w: numb
   return { w: wide + edge * 2, h: rows + edge * 2 + (handle ? PAD.over : 0) };
 }
 
+/** How many whole lines of prose a large face `h` pixels tall holds under its name. */
+export function body_lines(h: number, handle: boolean): number {
+  return Math.max(1, Math.floor((h - PAD.y - PAD.head - PAD.gap - (handle ? PAD.handle : 0)) / LINE));
+}
+
+/** How wide one line of a name writes, in pixels, with the card's padding either side. */
+export function name_w(name: string): number {
+  return PAD.x + name.length * GLYPH.name;
+}
+
 /** How tall a note writing `text` is, `w` pixels wide: its words wrapped whole, a line
  *  `NOTE_LINE` tall, and the card's padding. */
 export function note_h(text: string, w: number): number {
   const per = Math.max(1, Math.floor((w - PAD.x - PAD.gutter) / GLYPH.body));
+  return PAD.y * 2 + wrapped(text, per) * NOTE_LINE;
+}
+
+/** How a small face's name fits a card `box` big: the largest size whose words, wrapped whole,
+ *  fit the lines its height holds, two at most — a diamond writes in its middle band only — and
+ *  that many lines. Null where the name fits as the stylesheet draws it; at the smallest size a
+ *  name still too long is cut short. */
+export function name_fit(name: string, box: { w: number; h: number }, corner: boolean,
+                         diamond = false): { size: number; lines: number } | null {
+  const w = diamond ? box.w * 0.64 : box.w - PAD.x - PAD.gutter;
+  const h = diamond ? box.h / 2 : box.h - PAD.y - (corner ? PAD.handle : 0);
+  const fit = (size: number) => {
+    const lines = Math.max(1, Math.min(2, Math.floor(h / (size * 1.5))));
+    return { size, lines, fits: wrapped(name, Math.floor(w / (size * 0.6))) <= lines };
+  };
+  const { size, lines } = NAME_SIZES.map(fit).find((f) => f.fits) ?? fit(NAME_SIZES.at(-1)!);
+  return size === NAME_SIZES[0] && lines === 2 ? null : { size, lines };
+}
+
+/** How many lines `text` takes at `per` characters a line, its words wrapped whole. */
+function wrapped(text: string, per: number): number {
+  const most = Math.max(1, per);
   let lines = 0;
   for (const para of text.split("\n")) {
     let at = 0;
     lines += 1;
     for (const word of para.split(/\s+/).filter(Boolean)) {
       const need = at ? at + 1 + word.length : word.length;
-      if (at && need > per) { lines += Math.ceil(word.length / per); at = word.length % per; }
-      else at = need;
+      /** A word longer than a line breaks over as many as it needs. */
+      if (need > most) {
+        lines += Math.ceil(word.length / most) - (at ? 0 : 1);
+        at = word.length % most;
+      } else at = need;
     }
   }
-  return PAD.y * 2 + lines * NOTE_LINE;
+  return lines;
 }
 
 /** Attributes as a ruled table, a row each: type, name, then key, value and note where any row
@@ -116,10 +194,12 @@ export function note_h(text: string, w: number): number {
 export function table(rows: readonly Listed[], marks = 0): Ruled | null {
   if (!rows.length) return null;
   const keyed = rows.some((r) => r.key || r.link);
+  const key = (r: Listed) => (r.key === "primary" ? "PK" : r.key === "unique" ? "UK"
+    : r.link ? "FK" : "");
   const valued = rows.some((r) => r.value);
   const noted = rows.some((r) => r.note);
   const cells = rows.map((r) => [r.type, r.name,
-                                 ...(keyed ? [r.key ? "PK" : r.link ? "FK" : ""] : []),
+                                 ...(keyed ? [key(r)] : []),
                                  ...(valued ? [r.value ?? ""] : []), ...(noted ? [r.note ?? ""] : [])]
     .map((c) => c.replace(/\n/g, " ")));
   const last = cells[0]!.length - 1;
@@ -135,9 +215,13 @@ export function table(rows: readonly Listed[], marks = 0): Ruled | null {
 export function listed(graph: Graph, id: Id): Listed[] {
   const b = graph.blocks[id];
   if (!b) return [];
-  const typed = (type: Id | undefined) => def_at(graph, type)?.name ?? "text";
+  /** A type reads with the unit its values count in, its own or its type's. */
+  const typed = (a: Attribute) => {
+    const unit = unit_of(graph, a);
+    return `${type_name(graph, a.type)}${unit ? ` (${unit})` : ""}`;
+  };
   const declared = (def: Id) => attributes_of(graph, def).map((a): Listed => ({
-    name: a.name, type: typed(a.type), ...(a.key ? { key: true } : {}),
+    name: a.name, type: typed(a), ...(a.key ? { key: a.key } : {}),
     ...(links_to(graph, a) ? { link: true } : {}), ...(a.default ? { value: a.default } : {}),
     ...(a.note ? { note: a.note } : {}),
   }));

@@ -1,0 +1,11 @@
+{
+  "id": "publishes",
+  "name": "publishes",
+  "type": "line",
+  "description": "A component puts a message on a queue.",
+  "def": {},
+  "settings": {
+    "line": { "dir": "forward" },
+    "style": { "border_style": "dashed" }
+  }
+}

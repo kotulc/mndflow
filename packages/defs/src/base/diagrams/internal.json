@@ -1,0 +1,15 @@
+{
+  "id": "internal",
+  "name": "internal",
+  "type": "block",
+  "description": "A block diagram: what a block is made of — its parts and the relations between them.",
+  "def": {},
+  "settings": {
+    "style": {
+      "hue": 200
+    },
+    "layout": {
+      "view": "internal"
+    }
+  }
+}
