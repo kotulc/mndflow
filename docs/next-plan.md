@@ -9,8 +9,9 @@
 |---|---|
 | **committed** | through 395b81a (2026-10-19): base filed by blocks, diagrams and notation; the gallery as one shop; `collect` nesting; one design language by group; a card shows what it has; label and treemap names; the overview glance. Verified then: typecheck, 285/285 tests, lint, gallery `check` and `review` clean; driven in Edge, no console errors |
 | **committed** since | 536f83b *Edit in every view, fit rooms*, 0f1528a *Plan the room refactor*, 3dfb1b5 *Initial room world refactor* (2026-10-19 to 2026-10-21): the rooms world, its camera and reading view, the rooms-only explorer, one object, editing across walls. The user found it tall, dimmed and hard to navigate |
-| **uncommitted** | (2026-10-21 to 2026-10-23) the map, through four designs (map-plan.md *How we got here*), ending in **the map of chips**: the model and the library as one treemap, boxes and chips sized by what they hold, a block entered to its own view, alone; rooms and the nested world retired. Then chips divided by structure (grids read from dagre, no lines), and **banded regions**: a layer's regions as ordered bands, columns or rows by canvas shape; docks removed. Suggested commit: *Banded regions and grid chips: regions as ordered bands by canvas shape, docks removed; map chips as grids read from dagre, no lines* |
-| **next session** | map-plan.md *Next* 1 (groups are tags), then 2 (an explicit `order`), then 3 (drag to reorder) — each broken into steps in map-plan.md *Steps* |
+| **committed** since | 60c85ff *Initial treemap layout refactor*, 315dc15 *Refine model treemap margins*, a55f6ca *Map chips to diagrams*, 270d60b *Align chips and tiles with cards*, 7f61b0f *Refine treemap elements, final pass* (2026-10-21 to 2026-10-24): the map of chips, banded regions, chip laydowns, the map's look — chips faced as cards, block tiles as small cards, a hue per diagram kind (map-plan.md *How we got here*) |
+| **uncommitted** | the 2026-10-24 doc hand-off only |
+| **next session** | map-plan.md *Hand-off* **start**: the user's view of the look, *Next* 21, then *Next* 1 (groups are tags), 2 (an explicit `order`), 3 (drag to reorder) — each broken into steps in map-plan.md *Steps* |
 
 
 ## Order
