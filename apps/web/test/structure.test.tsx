@@ -41,7 +41,9 @@ function made(name: string): Block | undefined {
 describe("the two sections", () => {
   it("lists a model in both, and its parts only in the models", () => {
     const view = render(<App storage={storage} />);
-    for (const row of rows(view, "workspace")) fireEvent.click(row.querySelector(".mark")!);
+    for (const row of rows(view, "workspace")) {
+      if (row.querySelector(".mark.shut")) fireEvent.click(row.querySelector(".mark")!);
+    }
     expect(rows(view, "Plant")).toHaveLength(2);
     for (const row of rows(view, "Plant")) {
       if (row.querySelector(".mark.shut")) fireEvent.click(row.querySelector(".mark")!);
@@ -52,7 +54,9 @@ describe("the two sections", () => {
 
   it("adds a model in the models, and a part in a definition in the library", () => {
     const view = render(<App storage={storage} />);
-    for (const row of rows(view, "workspace")) fireEvent.click(row.querySelector(".mark")!);
+    for (const row of rows(view, "workspace")) {
+      if (row.querySelector(".mark.shut")) fireEvent.click(row.querySelector(".mark")!);
+    }
     fireEvent.click(rows(view, "workspace")[1]!);
     fireEvent.click(view.getByTitle("add a model in workspace"));
     const named = view.getByLabelText("name the model");

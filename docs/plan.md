@@ -7,11 +7,11 @@ Nothing here is waiting on a choice. *Deferred* is out of this plan. *Edges* is 
 
 ## Order
 
-**The library and the models are built** (2026-10-26): two maps under one navigation, a model a definition of kind `model`. What is left of it leads, then the placement plans, then the rest. A drag does not place a card. Routing is left as it is.
+**The library and the models are built** (2026-10-26): two maps under one navigation, a model a definition of kind `model`, one highlight rule, lines revealed from their registry. mndmap's move to the map leads, then the placement plans, then the rest. A drag does not place a card. Routing is left as it is.
 
 | # | Work | Done when |
 |---|---|---|
-| 0 | **library and models, the rest** | each step in plans/unification.md done |
+| 0 | **mndmap on the map**: release the kit (it no longer exports `survey_graph`), update mndmap's vendored kit from 0.11, draw its source folder as the map. Work in the mndmap repo | mndmap draws its source folder as the map |
 | 1 | **order** | plans/order.md *Done when* |
 | 2 | **groups are tags** | plans/groups.md *Done when* |
 | 3 | **drag to reorder** | plans/drag.md *Done when* |
@@ -118,7 +118,7 @@ The card and settings tabs are built (tray.md). Left:
 
 ## Simplification leads
 
-Take each as code-homes.md *How to take one* says, then record its home there. **Highlight rules** is plans/unification.md step 1. **Tray listings** is half taken: the tray's definitions table counts by `definition_uses`.
+Take each as code-homes.md *How to take one* says, then record its home there. **Tray listings** is half taken: the tray's definitions table counts by `definition_uses`.
 
 | Lead | Suspicion | Likely home |
 |---|---|---|
@@ -195,8 +195,9 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | Area | Edge |
 |---|---|
 | **cards** | marks on a dark table card are faint; a reference previewing a table ignores its own look's border; notes still draw through `NoteNode`, not only `CardFace` |
-| **tray** | a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else; the definitions table's *extends* shows a sibling definition (`example/Ledger`) for one that extends nothing |
+| **tray** | its tables light picks by id, not through core `lit`, so a part picked through one usage lights its row wherever it is listed; a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else; the definitions table's *extends* shows a sibling definition (`example/Ledger`) for one that extends nothing |
 | **overview** | the glance mounts a second React Flow, so node description ids repeat in the page; on the open layer with nothing picked it draws what the canvas already draws; a tag with no hue paints its share of the bar plain |
+| **samples** | no definition with room parts is used twice, so *one highlight*'s case — a part picked under one usage lights nothing under another — has not been driven in the explorer |
 | **tests** | `seat.test.ts` › *crosses straight where a group note sits square beside the group* failed on *Groups* and passes on *Deployment*. Nothing was fixed: watch it. |
 | **camera** | a short port drag lands short |
 | **React** | `flushSync was called from inside a lifecycle method`, once seen opening the profile and the package view from a layer; the package view is gone, recheck the profile |
@@ -208,5 +209,5 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **ports** | design.md gives a port its definition's settings, values and tags; ports hold name, type, flow, seat and description only |
 | **map** | a count on a tight chip fragments (*service 6.*); the room sits under a one-line head |
 | **double-click a grid** | lands on its name and renames it; Enter opens it |
-| **mndmap** | its content rows are not yet regions; the kit is not re-released and `packages/kit/.types` is stale, so its pin is behind. The kit's next release drops `survey_graph` (plans/unification.md step 3): mndmap moves to the map then |
+| **mndmap** | its content rows are not yet regions; `packages/kit/.types` is stale until the kit is released (*Order* row 0) |
 | **follow-ups** | lineage and links as a package structure rather than a view; boxes for a definition's usages and the groups they belong to |

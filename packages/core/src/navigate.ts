@@ -13,7 +13,7 @@ import { registry_at, registry_id, registry_of } from "./library";
 import { opens } from "./names";
 import { at_cut, in_section, is_layer_view, on_side, type Lists, type Section, type ViewKind }
   from "./sections";
-import { of_ref, path, stands_for } from "./tree";
+import { line_layer, of_ref, path, stands_for } from "./tree";
 import { type Graph, type Id } from "./types";
 import { definition_uses } from "./uses";
 
@@ -269,6 +269,7 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
  *  does: what was read stays picked on its map. */
 export function read_at(graph: Graph, tiers: Tiers, views: Views, now: View | null, subject: Id,
                         options: { inner?: boolean; from?: number } = {}): View | null {
+  if (graph.edges[subject]) return reveal_at(graph, tiers, views, now, subject);
   const from = options.from ?? now?.at;
   const lists = lists_at(tiers, from);
   /** **A use read from a registry hands over to the models**, where it is drawn. */
@@ -313,9 +314,16 @@ export function leave_at(graph: Graph, tiers: Tiers, views: Views, view: View): 
 
 /** Where a block is seen: where the canvas already draws it — the open layer or the whole section
  *  — else the section listing it as a member — a section's root is a member of the one above —
- *  picked there. */
+ *  picked there. **A line is seen on the layer drawing it**, opened in the models, picked. */
 export function reveal_at(graph: Graph, tiers: Tiers, views: Views, view: View | null,
                           id: Id): View | null {
+  if (graph.edges[id]) {
+    const layer = line_layer(graph, id);
+    if (view && is_layer_view(view.kind) && view.layer === layer) return { ...view, pick: id };
+    const models = tiers.sections.findIndex((s) => s.lists === "structure");
+    const to = layer ? open_at(graph, tiers, views, layer, models >= 0 ? models : view?.at) : null;
+    return to && is_layer_view(to.kind) && to.layer === layer ? { ...to, pick: id } : null;
+  }
   if (!graph.blocks[id]) return null;
   if (view && draws(graph, tiers, view, id)) return { ...view, pick: id };
   const { roots, held } = trace(graph, tiers, id);

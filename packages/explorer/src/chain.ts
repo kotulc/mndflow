@@ -29,7 +29,8 @@ export type Chain = {
   roots: readonly (Id | null | undefined)[];
   held: readonly (Id | null)[];
   at: number;
-  onChoose: (at: number, id: Id | null) => void;
+  /** Choose a row: `via` is the usage a part is seen through. */
+  onChoose: (at: number, id: Id | null, via?: Id) => void;
   /** Hold a whole path at once, outermost first; the last is in focus unless `at` says which. */
   onTrace: (path: readonly (Id | null)[], at?: number) => void;
   /** Hold nothing in any section, `at` in focus. */

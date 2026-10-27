@@ -33,6 +33,9 @@ export type Session = {
   /** The view each section was set to, by its id. */
   views: () => Views;
   picked: () => Id[];
+  /** The usage the picks are seen through: the one they were made through, else the layer seen
+   *  from inside. A part read through a usage lights only under it (`lit`). */
+  route: () => Id | null;
   /** Which cells are picked, beside the ids. */
   cells: () => Spot[];
   said: () => Said | null;
@@ -53,7 +56,8 @@ export type Session = {
    *  never chosen, goes back to where what is kept in sight is drawn. A section named by `at` is
    *  shown whole from its top instead, nothing kept in sight or picked. */
   see: (kind: ViewKind, id?: Id | null, at?: number) => void;
-  pick: (ids: Id[]) => void;
+  /** Pick blocks, made through the usage `via` where they were read through one. */
+  pick: (ids: Id[], via?: Id) => void;
   pick_cells: (cells: readonly Spot[]) => void;
   say: (text: string, kind?: Said["kind"]) => void;
 
@@ -105,6 +109,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   /** The layer the open one was reached from, for leaving an interface. */
   let from: Id | null = null;
   let picked: Id[] = [];
+  /** The usage `picked` was made through: kept only while those very picks stand. */
+  let through: { picks: Id[]; via: Id } | null = null;
   let cells: Spot[] = [];
   let said: Said | null = null;
   let listener: (() => void) | null = null;
@@ -229,6 +235,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     view: () => view,
     views: () => views,
     picked: () => picked,
+    route: () => (through?.picks === picked ? through.via
+      : is_layer_view(view.kind) ? view.layer : null),
     cells: () => cells,
     said: () => said,
 
@@ -306,8 +314,9 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     },
 
     /** Picking elsewhere lets go of the cells. */
-    pick(ids) {
+    pick(ids, via) {
       picked = ids;
+      through = via ? { picks: ids, via } : null;
       if (!cells.every((c) => ids.includes(c.group))) cells = [];
       listener?.();
     },

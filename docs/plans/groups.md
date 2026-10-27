@@ -15,7 +15,7 @@ Each step ends verified: typecheck, tests, both samples `check` clean. Shop and 
 | 3 | **sync**: create, rename, delete, last member, and leaving the layer. One function, called by the actions | core `actions/groups.ts`, `blocks.ts` `delete` and `rename` |
 | 4 | **the door**: `groups:` resolves to the layer's group tag; a group's `blocks:` is a fault. Writer emits `groups:` and leaves finding-tags in `tags:` | core `diagram.ts`, `sources.ts`, `card.ts` |
 | 5 | **placement**: compounds for a tree inside one container; bounds pass for overlap and for a group across regions. The workaround marked in the code, not papered over | views `flow.ts` |
-| 6 | **drawing**: the panel from member bounds, on the canvas and as a panel inside a map chip of the unified `model_map`. No group box | views `layer.ts`, `scene.ts`, `map.ts`, stage `groups.css` |
+| 6 | **drawing**: the panel from member bounds, on the canvas and as a panel inside a map chip of `model_map`. No group box | views `layer.ts`, `scene.ts`, `map.ts`, stage `groups.css` |
 | 7 | **tray, explorer, drag**: the tag shows as the group's, removable; the explorer has no group row and no group on a model path; a drop on the panel tags, a drop off untags, in editable views only | tray `Overview.tsx`, explorer `rows.ts`, core `drop.ts` |
 | 8 | **samples** | below |
 | 9 | **docs**: design.md and definitions.md already say it; the package docs still say a group holds by `parent` or deletes what it holds | core `schema.md`, `actions.md`, `model.md` |

@@ -42,7 +42,7 @@ The explorer files the graph as a **section chain**: a host declares its section
 | choose (click, ↑ ↓) | selects the row; the tray shows it. The canvas stays |
 | open (Enter, double-click, →) | enters the block from the map: the camera flies into its chip and its own view takes over — a diagram, a folder, a definition alike; a stand-in enters what it stands for. Anything with nothing to draw is picked where the map shows it |
 | leave (←, Backspace) | the focus moves to the room holding it, in the same section |
-| pick within the open tree | picks it in place where the canvas draws it, else focuses the room it sits in and picks it there (reveal). A package row is picked as any row is, and points the tray at its definitions. A part row stays off the canvas unless its usage is the open layer, and lights under the usage it was chosen through |
+| pick within the open tree | picks it in place where the canvas draws it, else focuses the room it sits in and picks it there (reveal). A package row is picked as any row is, and points the tray at its definitions. A part row stays off the canvas unless its usage is the open layer, and lights only under the usage it was picked through (core `lit`, the host's `route`) |
 
 - **Context highlighting and breadcrumbs show the focus**, never what is browsed.
 - **Dragging a definition from any section onto the canvas** makes a usage of it in the room it is dropped in, or retypes what it lands on where the kinds agree. A tag is refused: it is carried.
@@ -81,7 +81,7 @@ pump1
 
 ## Selection
 
-**Selection matches the canvas.** A plain click chooses; the toggle key adds or drops one; shift takes the run in the section in focus. A drag off a picked row carries the selection. **A pick inside a shut branch opens the way to it.** ↑ ↓ walk the section in focus; ← → move between sections, landing on what each holds. The way to a row walked to opens; walking never shuts a branch.
+**Selection matches the canvas.** A plain click chooses; the toggle key adds or drops one; shift takes the run in the section in focus. A drag off a picked row carries the selection. **A pick inside a shut branch opens the way to it.** A pick on a map opens its own row too, so the home's first model shows what it holds. ↑ ↓ walk the section in focus; ← → move between sections, landing on what each holds. The way to a row walked to opens; walking never shuts a branch.
 
 
 ## Editing in the tree

@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { all_defs, appearances_of, collect, diagram_kind, domain_of, drop_of, touches_of,
-         held_at, in_section, is_base, is_inside, is_layer_view, object_of,
+         held_at, in_section, is_base, is_inside, is_layer_view, lit as lit_by, object_of,
          path, registry_at, registry_id, registry_of,
-         session, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
+         seen_through, session, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { area_of, box_of, clear_of, empty_of, holds, layer_scene, map_focus, project,
@@ -192,8 +192,9 @@ export function App({ storage, boot, opening }: {
    *  picked — one object, wherever it is drawn. */
   const lit = useMemo(() => [...new Set([
     ...(hovered ? appearances_of(graph, hovered) : []),
-    ...s.picked().flatMap((id) => appearances_of(graph, id).filter((a) => a !== id)),
-  ])].filter((id) => drawn.has(id)), [graph, hovered, drawn, s.picked()]);
+    ...[...drawn].filter((id) => !s.picked().includes(id)
+      && lit_by(graph, s.picked(), s.route(), id, seen_through(graph, view.layer, id))),
+  ])].filter((id) => drawn.has(id)), [graph, hovered, drawn, s.picked(), s.route()]);
 
   /** **What the selection touches** elsewhere — its lines' far ends, its stand-ins — lit wherever
    *  drawn; nothing dims. */
@@ -382,8 +383,8 @@ export function App({ storage, boot, opening }: {
    *  flown to, as a click on it is; in an entered layer it is gone to where it is drawn and
    *  picked there — the open layer's own row stays where it is. Anywhere else it stays. A package points the
    *  tray at its definitions, and is picked as any row is. */
-  const choose = (at: number, id: Id | null) => {
-    chain.onChoose(at, id);
+  const choose = (at: number, id: Id | null, via?: Id) => {
+    chain.onChoose(at, id, via);
     const b = id ? s.graph().blocks[id] : undefined;
     if (b && b.id === view.layer) s.pick([]);
     else if (b) {
@@ -394,7 +395,7 @@ export function App({ storage, boot, opening }: {
         && trace(s.graph(), EDITOR, b.id).roots[at] === chain.roots[at];
       if (inside && mapped) { act("open", { id: b.id }); s.pick([b.id]); }
       else if (inside) act("reveal", { id: b.id });
-      else s.pick([b.id]);
+      else s.pick([b.id], via);
     }
     // The tray last, as revealing lets go of what it held.
     if (b?.parent === null) t.onSection({ of: "defs", only: "packages", from: b.name ?? b.id });
@@ -450,6 +451,7 @@ export function App({ storage, boot, opening }: {
         graph={graph}
         view={view}
         picked={s.picked()}
+        route={s.route()}
         folded={folded}
         onAct={act}
         onFold={(id, shut) =>
@@ -460,7 +462,7 @@ export function App({ storage, boot, opening }: {
         onOpen={({ at, id, via }) => {
           if (!via) { act("read", { id, at }); return; }
           act("read", { id: via, at });
-          s.pick([id]);
+          s.pick([id], via);
         }}
         onLeave={() => act("open")}
         onSection={section}
@@ -509,7 +511,8 @@ export function App({ storage, boot, opening }: {
               ...(cell ? { cell: `${land.cell!.r},${land.cell!.c}` } : {}) });
             if (made) s.go(made.act, made.args);
           }}
-          picked={s.picked()}
+          picked={s.picked().filter((id) => lit_by(graph, s.picked(), s.route(), id,
+                                                   seen_through(graph, view.layer, id)))}
           cells={s.cells()}
           onPickCells={(cells) => {
             /** A click lets go of what the canvas cannot show. */

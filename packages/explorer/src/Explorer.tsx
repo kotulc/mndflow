@@ -7,8 +7,8 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { about_of, at_cut, children, domain_of, drop_of, frozen, is_folder, is_inside,
-         is_layer_view, holds_defs, may_hold, model_of, name_taken, new_id, on_side, owner_def,
-         path,
+         is_layer_view, holds_defs, lit, may_hold, model_of, name_taken, new_id, on_side,
+         owner_def, path,
          shown_name,
          type Act, type Graph, type Id, type Registry, type View } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
@@ -44,6 +44,9 @@ export type ExplorerProps = {
   registry?: Registry | null;
   onFold: (id: Id, shut: boolean) => void;
   onPick: (ids: Id[]) => void;
+  /** The usage the picks are seen through (the session's `route`); unsaid, the layer seen from
+   *  inside. */
+  route?: Id | null;
   /** Whether right-click opens this engine's offered list. */
   menu?: boolean;
   /** Which bar tools to show, each on its own. Defaults preserve mndflow; set false to hide. */
@@ -156,8 +159,6 @@ export function Explorer(props: ExplorerProps) {
   const [dragging, set_dragging] = useState<readonly Id[]>([]);
   /** Where a shift-click range runs from. */
   const [anchor, set_anchor] = useState<Id | null>(null);
-  /** The row last chosen, so a part lights under the usage it was chosen through. */
-  const [chosen, set_chosen] = useState<Id | null>(null);
   const [over, set_over] = useState<{ id: Id; ref: Id; where: "in" | "above" | "below" } | null>(null);
   /** Whether the drop would land on the panel itself, which is the workspace. */
   const [out, set_out] = useState(false);
@@ -212,21 +213,23 @@ export function Explorer(props: ExplorerProps) {
   };
 
   /** The canvas reveals its own rows, never another section's: a new layer opens the way to it,
-   *  and a new pick inside it opens the way to that pick — in the section the canvas looks at,
-   *  once each. A row chosen in another section is never a reason to unfold this one, and folding
+   *  and a new pick inside it opens the way to that pick — on a map, the pick's own row too, so
+   *  the home's model shows what it holds — in the section the canvas looks at, once each. A row chosen in another section is never a reason to unfold this one, and folding
    *  a row again is the user's until the layer or the pick changes. */
   const layer = is_layer_view(view.kind) ? view.layer : null;
   const lists = chain.slices[view.at]?.lists;
   /** A pick the canvas shows: under its layer, on the side its section lists. */
   const shows = (id: Id) => (!layer || id === layer || path(graph, id).some((b) => b.id === layer))
     && on_side(graph, id, lists);
-  const revealed = picked.filter(shows);
+  /** On a map, what the view brought into sight counts as picked: the home's first model. */
+  const sighted = !layer && view.pick && !picked.includes(view.pick) ? [view.pick] : [];
+  const revealed = [...picked, ...sighted].filter(shows);
   const seen = [...revealed, layer].join("|");
   const done = useRef({ seen, rows: new Set<Id>() });
   useEffect(() => {
     if (done.current.seen !== seen) done.current = { seen, rows: new Set() };
     const way = [...revealed, ...(layer ? [layer] : [])].flatMap((id) => [...holders(graph, id)]);
-    const up = new Set([...way, ...(layer ? [layer] : [])]);
+    const up = new Set([...way, ...(layer ? [layer] : revealed)]);
     for (const r of sections.all) {
       if (!r.kids || r.at !== view.at || !up.has(r.ref) || done.current.rows.has(r.id)) continue;
       done.current.rows.add(r.id);
@@ -267,11 +270,12 @@ export function Explorer(props: ExplorerProps) {
   const mine = picked.map((id) => as_row(id)!)
     .filter((id) => [sections.all, rows].some((all) =>
       all.some((r) => r.at === focus && r.ref === id)));
-  /** The focus is lit strongly: the picks it lists — a part only where its usage is the layer
-   *  seen from inside, or under the usage it was chosen through — else what it holds. */
+  /** The focus is lit strongly: the picks it lists, by core's one rule (`lit`) — a part only
+   *  under the usage the picks were made through — else what it holds. */
+  const route = props.route === undefined ? open : props.route;
   const lights = (r: Row) => {
     if (r.at !== focus || r.pick === undefined || r.of !== "block") return false;
-    if (mine.length) return mine.includes(r.ref) && (!r.via || r.via === open || r.id === chosen);
+    if (mine.length) return lit(graph, mine, route, r.ref, r.via);
     return held[focus] === r.pick && !r.via;
   };
   /** **The one row wearing the accent's edge: what the canvas shows**, in the section it looks
@@ -358,8 +362,7 @@ export function Explorer(props: ExplorerProps) {
   const choose = (r: Row) => {
     if (r.at === undefined || r.pick === undefined) return;
     if (r.of === "block") set_anchor(r.ref);
-    set_chosen(r.id);
-    chain.onChoose(r.at, r.pick);
+    chain.onChoose(r.at, r.pick, r.via);
   };
 
   /** A row opened: chosen, and handed to the host for the canvas to draw. */

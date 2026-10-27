@@ -1,7 +1,7 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
 import { isa, module_of, setting_of } from "./defs";
-import { drawn_in } from "./holders";
+import { drawn_in, layer_of } from "./holders";
 import { LAYOUTS, type Block, type Definition, type Flow, type Graph, type Id, type Layout,
          type Port, type Relation } from "./types";
 import { kept } from "./memo";
@@ -171,6 +171,23 @@ export function appearances_of(graph: Graph, id: Id): Id[] {
     .map((b) => b.id)];
 }
 
+/** **One highlight**: whether an appearance lights for the picks, made through the usage `route`.
+ *  Every appearance of a picked block lights alike — itself, every stand-in — each by its route:
+ *  one seen through a usage (`via`) lights only where the picks were made through that usage. */
+export function lit(graph: Graph, picks: readonly Id[], route: Id | null, id: Id,
+                    via?: Id): boolean {
+  if (via && via !== route) return false;
+  const home = object_of(graph, id);
+  return picks.some((p) => object_of(graph, p) === home);
+}
+
+/** The usage a block drawn on `layer` is seen through: the layer, where the block is its
+ *  definition's rather than held under it. */
+export function seen_through(graph: Graph, layer: Id | null, id: Id): Id | undefined {
+  if (!layer || !graph.blocks[id]) return undefined;
+  return path(graph, id).some((b) => b.id === layer) ? undefined : layer;
+}
+
 /** What a block touches outside itself: the far end of every line with one end in it, and every
  *  stand-in for it or for what it holds. A selection lights these wherever they are drawn. */
 export function touches_of(graph: Graph, id: Id): Id[] {
@@ -261,6 +278,18 @@ export function edges_in(graph: Graph, layer: Id | null): Relation[] {
   return Object.values(graph.edges)
     .filter((e) => drawn(e.from) && drawn(e.to))
     .sort((a, b) => a.id.localeCompare(b.id));
+}
+
+/** The layer drawing a line: from its `from` end up, the nearest that draws both its ends. */
+export function line_layer(graph: Graph, id: Id): Id | null {
+  const e = graph.edges[id];
+  if (!e) return null;
+  const ends = [owner_of(graph, e.from), owner_of(graph, e.to)];
+  for (let at: Id | null = ends[0]!; at; at = layer_of(graph, at)) {
+    const here = new Set(drawn_in(graph, at).map((b) => b.id));
+    if (ends.every((x) => x === at || here.has(x))) return at;
+  }
+  return null;
 }
 
 /** How a layer lays out: its own word, else its definition's. `auto` is what nobody said, and a

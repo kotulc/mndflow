@@ -12,7 +12,7 @@ import { Graph as Ranks, layout } from "@dagrejs/dagre";
 import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
          type HierarchyRectangularNode } from "d3-hierarchy";
 import { children, def_at, definition_uses, diagram_kind, has_lifelines, is_aside, is_grid,
-         is_header, is_holder, is_interface, is_notation, is_reference, is_region, is_tie,
+         is_header, is_holder, is_interface, is_model, is_notation, is_reference, is_region, is_tie,
          lattice_of, lens_of, notation_of, on_side, owner_of, packages, path, region_of,
          shown_name, subtree, subtypes, type Graph, type Id } from "@mnd/core";
 import { carried, trail_of } from "./derive";
@@ -45,9 +45,13 @@ const CELL = 1.5;
 /** The least a chip weighs, so one holding or used little still shows its icon. */
 const LEAST = 2.5;
 
+/** The least share of its heaviest sibling an empty model's chip weighs, so beside a large one it
+ *  still has room for its name and icon. */
+const EMPTY = 0.04;
+
 /** One entry of a map: a box of what it holds, or a chip entering `block`, counting `held` — or,
  *  a definition's, previewing its `uses`. */
-type Leaf = { id: Id; kids?: Leaf[]; value?: number;
+type Leaf = { id: Id; kids?: Leaf[]; value?: number; empty?: boolean;
               chip?: { block: Id; held: readonly Id[]; counts: string; kind?: string;
                        uses?: boolean;
                        diagram?: boolean } };
@@ -77,7 +81,7 @@ export function model_map(graph: Graph): Scene {
   const chip = (id: Id, block: Id, list: readonly Id[]): Leaf => {
     const n = counted(graph, list);
     const kind = diagram_kind(graph, block);
-    return { id, value: Math.max(LEAST, 1 + total(n)),
+    return { id, value: Math.max(LEAST, 1 + total(n)), ...(!list.length && is_model(graph, block) ? { empty: true } : {}),
              chip: { block, held: list, counts: words(n),
                      ...(kind ? { kind: def_at(graph, kind)?.name ?? kind } : {}),
                      diagram: diagram(block) || is_holder(graph, block) } };
@@ -172,6 +176,10 @@ export function towards(areas: readonly Area[], from: Id,
 function mapped(graph: Graph, tree: Leaf, title: string): Scene {
   const root = hierarchy<Leaf>(tree, (n) => (n.kids?.length ? n.kids : undefined))
     .sum((n) => n.value ?? 0);
+  /** An empty model is weighed against its heaviest sibling. */
+  const least = new Map(root.leaves().filter((n) => n.data.empty).map((n) => [n.data,
+    EMPTY * Math.max(...(n.parent?.children ?? [n]).map((c) => c.value ?? 0))]));
+  root.sum((n) => (n.value ? Math.max(n.value, least.get(n) ?? 0) : 0));
   const laid = treemap<Leaf>().tile(treemapSquarify.ratio(1.2))
     .size([WIDE, Math.round(WIDE / SHAPE.aspect)]).round(true)
     .paddingInner((n) => air(n as HierarchyRectangularNode<Leaf>))
