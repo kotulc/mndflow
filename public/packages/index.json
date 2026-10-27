@@ -21,9 +21,9 @@
       "at": "architecture.json"
     },
     {
-      "name": "model",
+      "name": "example",
       "about": "the example shop: its parts and records, and every diagram of it",
-      "at": "model.json"
+      "at": "example.json"
     }
   ]
 }

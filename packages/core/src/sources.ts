@@ -56,7 +56,8 @@ type Ctx = { graph: Graph; slug: Id; pre: string; made: Map<string, Id>; notes: 
 /** A source folder's files as a package file, read against what `over` already holds. */
 export function collect(name: string, leaves: readonly Leaf[], over: Graph,
                         { bare = false, root }: Collecting = {}): Collected {
-  const slug = root ?? slug_of(name);
+  /** A package is called what its `package.json` says, else what its folder is called. */
+  const slug = root ?? slug_of(declared(leaves) ?? name);
   /** Ids under the workspace go unprefixed, as a workspace's own do. */
   const pre = root ? "" : `${slug}.`;
   /** Collected again, a package replaces what was loaded of it, relationships and all. */
@@ -710,6 +711,15 @@ function inferred(sets: readonly Value[][]): Attribute[] {
       : said.every((v) => /^https?:\/\/\S+$/.test(v)) ? "link" : "text";
     return type === "text" ? { name } : { name, type };
   });
+}
+
+/** The id a source folder's `package.json` gives its package, where it says one. */
+function declared(leaves: readonly Leaf[]): string | undefined {
+  const text = leaves.find((l) => l.path === "package.json")?.text;
+  try {
+    const id = text ? (JSON.parse(text) as { id?: unknown }).id : undefined;
+    return typeof id === "string" && id.trim() ? id : undefined;
+  } catch { return undefined; }
 }
 
 /** A name as an id part: lower case, words joined by dashes. */

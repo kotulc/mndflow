@@ -4,7 +4,7 @@
  *  A section lists its root's subtree down to its cut: a block at the cut lists as a leaf, and
  *  what it holds is the next section's. A null root is the forest above every package. */
 
-import { def_at, is_domain, owner_def, packages, tree_of } from "./defs";
+import { def_at, is_domain, is_model, model_of, owner_def, packages, tree_of } from "./defs";
 import { children, is_interface } from "./tree";
 import type { Block, Graph, Id } from "./types";
 
@@ -13,17 +13,15 @@ export type Cut = "package" | "tree" | null;
 
 /** How the canvas draws. **Layer views** draw one block, and its card's kind says which: from
  *  inside (`internal`), an opened grid's cells and the relations between them (`allocation`), a
- *  package's or folder's contents read down the page (`folder`), or a diagram the block names
- *  (`class`, `er`). A definition opens on the view its chain names, as its usages
- *  do. The **system view** draws a whole section from above as nested boxes (`package`), and is
- *  the only one chosen. */
-export type ViewKind = "internal" | "allocation" | "folder" | "class" | "er" | "registry"
-  | "package";
+ *  diagram the block names (`class`, `er`), or where a definition or a component is used
+ *  (`registry`). **The map** draws a whole section as a treemap of chips (`map`): nothing is
+ *  entered, and what is picked is its focus. */
+export type ViewKind = "internal" | "allocation" | "class" | "er" | "registry" | "map";
 
 /** The views that draw one block. A section offers them as one choice, `internal`, and the block
  *  opened says which it shows. */
 export const LAYER_VIEWS: readonly ViewKind[] = [
-  "internal", "allocation", "folder", "class", "er", "registry"];
+  "internal", "allocation", "class", "er", "registry"];
 
 /** The layer views drawn from inside, where what the layer holds is built. A diagram is read from
  *  inside too: it draws what the block holds, and nothing is laid out there. */
@@ -69,26 +67,33 @@ function in_template(graph: Graph, id: Id): boolean {
 }
 
 /** Whether a block is one this side lists. Unset lists every block. **The library** lists the
- *  definition side — packages, their definition folders, definitions — and each definition's parts
- *  under it. **The model** lists usages only: structure outside every definition, and the
- *  package roots and folders on the way to it. A package with none does not list. */
+ *  definition side — packages, their definition folders, definitions, models among them — and
+ *  each definition's parts under it, but a model's: those are drawn, so they list in the models.
+ *  **The models** list every model and what it holds, and the package roots and folders on the
+ *  way to one; a host's structure outside every definition lists there too. A package with none
+ *  does not list. */
 export function on_side(graph: Graph, id: Id, lists?: Lists): boolean {
   if (!lists) return !!graph.blocks[id];
   if (!graph.blocks[id]) return false;
-  if (lists === "domain") return is_domain(graph, id) || in_template(graph, id);
-  if (in_template(graph, id)) return false;
+  if (lists === "domain") return is_domain(graph, id) || (in_template(graph, id)
+    && !model_of(graph, id));
+  if (in_template(graph, id)) return model_of(graph, id) !== null;
   if (!is_domain(graph, id)) return true;
   return below_structure(graph, id);
 }
 
-/** Whether structure sits anywhere under a definition-side block, definitions apart. */
+/** Whether a model, or structure outside every definition, sits anywhere under a
+ *  definition-side block. */
 function below_structure(graph: Graph, id: Id): boolean {
   const seen = new Set<Id>();
   const walk = (at: Id): boolean => {
     if (seen.has(at)) return false;
     seen.add(at);
     for (const c of shown(graph, at)) {
-      if (c.def) continue;
+      if (c.def) {
+        if (is_model(graph, c.id)) return true;
+        continue;
+      }
       if (!is_domain(graph, c.id)) return true;
       if (walk(c.id)) return true;
     }

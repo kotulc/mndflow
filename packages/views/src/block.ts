@@ -11,7 +11,7 @@ import { carried, fit_names, marks_of, trail_of } from "./derive";
 import { lifelined } from "./lifelines";
 import { look_of, wire_of } from "./look";
 import { page_graph } from "./page";
-import { survey_graph, FOREST } from "./survey";
+import { section_map } from "./map";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { registry_scene } from "./registry";
@@ -22,16 +22,10 @@ import { box_of, cell as node, EMPTY, FRAME, type BoxData, type BoxNode, type Fr
          type Slot } from "./scene";
 
 export type Config = {
-  /** How the layer is looked at: from inside (`internal`, `allocation`); a package or folder read
-   *  down the page (`folder`); a diagram the block names (`class`, `er`); the whole
-   *  section it scopes, down to `cut`,
-   *  each block there boxing its top level where `tops` says (`package`). Unsaid, inside — and
-   *  with no layer, every package's domain as the package view. */
-  look?: { kind: ViewKind; cut: Cut; tops?: boolean; lists?: "domain" | "structure" };
-  /** The packages a forest draws, in order; every package where unsaid. */
-  packages?: readonly Id[];
-  /** How many cards a section's widest row holds, drawn whole. */
-  across?: number;
+  /** How the layer is looked at: from inside (`internal`, `allocation`); a diagram the block
+   *  names (`class`, `er`); where it is used (`registry`); or the whole section `lists` as its
+   *  map (`map`). Unsaid, inside — and with no layer, the models' map. */
+  look?: { kind: ViewKind; cut: Cut; lists?: "domain" | "structure" };
   /** What to show, when it is not the layer's own contents. */
   holds?: readonly Id[];
   /** Whether interfaces draw. A display preference the shell hands down. */
@@ -44,9 +38,6 @@ export type Config = {
 };
 
 const SLOTS: readonly Slot[] = ["layer", "display", "relations"];
-
-/** What a projection with no layer draws: every package's domain, as boxes down the page. */
-const WHOLE = { kind: "package", cut: "tree" } as const;
 
 /** Every block a group carries when it moves, including nested groups. */
 function group_carries(graph: Graph, group: Id): Id[] {
@@ -70,32 +61,11 @@ export function project(given: Graph, layer: Id | null, config: Config = {}): Sc
 /** The layer's scene, before its names are fitted. A part of a definition seen through a usage
  *  wears the `part` mark. */
 function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
-  /** A whole section is drawn from its scope, down to its cut, and read only: it offers what the
-   *  drawing shows, and nothing to lay out. */
-  const look: Config["look"] = config.look ?? (layer === null ? WHOLE : undefined);
-  /** A registry, or an entry of one, draws as a treemap. */
-  if (layer && look?.kind === "registry") return registry_scene(given, layer) ?? EMPTY;
-  /** A package or folder reads as the package view does, top down: the section under it, never a
-   *  room. Only its trail is its own. */
-  if (look?.kind === "folder" && layer && given.blocks[layer]) {
-    const scene = unfitted(given, layer, { ...config, look: { ...look, kind: "package" } });
-    return { ...scene, trail: trail_of(given, layer) };
-  }
-  if (look?.kind === "package") {
-    const drawn = survey_graph(given, layer, look.cut,
-                               { ...(config.packages ? { only: config.packages } : {}),
-                                 ...(look.tops ? { tops: true } : {}),
-                                 ...(look.lists ? { lists: look.lists } : {}),
-                                 ...(config.across ? { across: config.across } : {}) });
-    const scene = project(drawn, FOREST, { ...config, look: { kind: "internal", cut: null } });
-    /** A part's copy wears the part mark, as it does inside its usage, and is only looked at:
-     *  it is picked and edited where it is a block — its definition, or inside its usage. */
-    const nodes = scene.nodes.map((n) => (given.blocks[n.id] ? n : { ...n, selectable: false,
-      draggable: false, data: { ...n.data, marks: [...n.data.marks, "part" as const] } }));
-    /** A whole section has no layer of its own to trail to. */
-    return { ...scene, nodes, slots: ["display"], trail: [] };
-  }
-  if (layer === null) return project(given, null, { ...config, look: WHOLE });
+  const look = config.look;
+  /** A whole section is its map: read only, nothing laid out by hand. */
+  if (layer === null || look?.kind === "map") return section_map(given, look?.lists);
+  /** A registry, a definition or an entry of one, draws as a treemap. */
+  if (look?.kind === "registry") return registry_scene(given, layer) ?? EMPTY;
   /** A diagram is a projection: it draws what the block holds, and the canvas does not edit it.
    *  A grid would otherwise open as its lattice, so this comes first. */
   if (layer && (look?.kind === "class" || look?.kind === "er")) {

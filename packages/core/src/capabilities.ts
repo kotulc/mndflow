@@ -1,7 +1,8 @@
 /** What a block may do, and what its values are asked for. `allows` is refused at the gesture;
  *  `expects` is only ever advice. */
 
-import { closes_cycle, constraints_stated, frozen, isa, owner_def, stated, tree_of } from "./defs";
+import { closes_cycle, constraints_stated, frozen, holds_defs, is_domain, isa, models, owner_def,
+         stated, tree_of } from "./defs";
 import { constraint_at } from "./library";
 import { is_grid } from "./holders";
 import { shown_name } from "./names";
@@ -9,7 +10,7 @@ import { children, is_interface, ports_on, subtree } from "./tree";
 import type { Components, Constraint, Flow, Graph, Id } from "./types";
 
 export type NoteKind = "required" | "ends" | "holds" | "ports" | "values" | "degree" | "match"
-  | "nested" | "self" | "cycle" | "cell";
+  | "nested" | "self" | "cycle" | "cell" | "outside";
 
 /** What a usage asked for and did not get. */
 export type Note = {
@@ -204,6 +205,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
   const notes: Note[] = [];
   const within = scope ? new Set(subtree(graph, scope)) : null;
   const holds_block = (id: Id) => !within || within.has(id);
+  const modeled = models(graph, graph.root).length > 0;
 
   for (const b of Object.values(graph.blocks)) {
     if (!holds_block(b.id) || frozen(graph, b.id)) continue;
@@ -216,6 +218,14 @@ export function review(graph: Graph, scope?: Id): Note[] {
     const home = b.def ? null : owner_def(graph, b.id);
     if (home && home === b.type) {
       notes.push({ kind: "self", id: b.id, what: `"${label(graph, home)}" uses itself` });
+    }
+    /** **Everything drawn sits in a model**, where a workspace has any: structure filed straight
+     *  under a package or a definitions folder is said once, at its top. A host's own structure,
+     *  in a graph with no models, is the host's. */
+    if (modeled && !is_domain(graph, b.id) && b.parent && holds_defs(graph, b.parent)
+        && !is_interface(graph, b.id)) {
+      notes.push({ kind: "outside", id: b.id,
+                   what: `"${label(graph, b.id)}" sits outside every model, so it is never drawn` });
     }
     if (b.def && closes_cycle(graph, b.id, b.type)) {
       notes.push({ kind: "cycle", id: b.id, what: `"${label(graph, b.id)}" extends itself` });

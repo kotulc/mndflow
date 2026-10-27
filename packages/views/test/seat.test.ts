@@ -72,7 +72,7 @@ describe("a tie", () => {
   });
 
   it("crosses straight where a group note sits square beside the group", () => {
-    const text = readFileSync("samples/model.json", "utf8");
+    const text = readFileSync("samples/example.json", "utf8");
     const { graph } = open(text, FLOOR);
     const scene = project(graph, named(graph, "Overview::Shop::How it runs::Deployment"));
     const opposite: Record<string, string> = {
@@ -164,7 +164,7 @@ describe("a note tied to an interface", () => {
   });
 
   it("floats the model note beside the room port on Storefront", () => {
-    const text = readFileSync("samples/model.json", "utf8");
+    const text = readFileSync("samples/example.json", "utf8");
     const { graph } = open(text, FLOOR);
     const containers = named(graph, "Overview::Shop::Customer facing::Storefront");
     const scene = project(graph, containers);

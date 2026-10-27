@@ -414,7 +414,7 @@ function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
   const narrow = (width ?? 0) < NARROW;
   return (
     <div className={["mnd-chip", data.diagram ? "diagram" : "",
-                     data.stacked ? "holds" : "", narrow ? "narrow" : "",
+                     narrow ? "narrow" : "",
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
          {...(tint ? { "data-family": tint["data-family"] } : {})}
          style={{ ...(tint?.style ?? {}), "--cap": `${Math.max(0, (width ?? 0) - 8)}px` } as

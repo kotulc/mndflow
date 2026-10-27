@@ -3,7 +3,7 @@
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
 import { fold, replay, step, type Floor } from "./fold";
-import { home_at, sight, trace, view_of, view_on, EDITOR, type Tiers,
+import { home_at, read_at, sight, trace, view_of, view_on, EDITOR, type Tiers,
          type View, type Views } from "./navigate";
 import { is_layer_view, type ViewKind } from "./sections";
 import { package_of } from "./defs";
@@ -45,6 +45,10 @@ export type Session = {
   batch: (fn: () => void) => void;
 
   look: (layer: Id | null) => void;
+  /** **Read a subject** — what a double-click, Enter, the explorer's open and the tray's *read*
+   *  ask — from the section `from`, else the canvas's: the view it enters, with what it picks
+   *  there, or null where it enters nothing. Navigation: no step is logged. */
+  read: (subject: Id, options?: { inner?: boolean; from?: number }) => View | null;
   /** The canvas's section shown whole another way, keeping `id` in sight; a layer view, which is
    *  never chosen, goes back to where what is kept in sight is drawn. A section named by `at` is
    *  shown whole from its top instead, nothing kept in sight or picked. */
@@ -109,10 +113,10 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   /** The shipped packages, as the floor every fold starts from. */
   const floor: Floor = ports.floor ?? [];
 
-  /** A fresh log holds one plain block, so the workspace lists in structure. */
+  /** A fresh log holds one empty model, so the models are never empty. */
   const seeded = (): Log => [step("start", "create", 1, [
-    { op: "add_block", block: { id: "first", parent: ROOT, name: "block", order: 1, alias: 1 } },
-    { op: "set_counter", kind: "block", n: 1 },
+    { op: "add_block", block: { id: "first", parent: ROOT, name: "Model", type: "model", def: {},
+                                order: 1 } },
   ])];
 
   const opened = storage.read();
@@ -254,6 +258,15 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     look(next) {
       move(view_on(graph, tiers, views, next));
       listener?.();
+    },
+
+    read(subject, options = {}) {
+      const to = read_at(graph, tiers, views, view, subject, options);
+      if (!to) return null;
+      move(to);
+      if (to.pick) picked = [to.pick];
+      listener?.();
+      return to;
     },
 
     see(kind, id, named) {

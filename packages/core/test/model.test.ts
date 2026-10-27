@@ -99,7 +99,7 @@ describe("a batch", () => {
     });
     expect(s.log().length).toBe(was + 1);
     s.undo();
-    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["block"]);
+    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["Model"]);
   });
 });
 

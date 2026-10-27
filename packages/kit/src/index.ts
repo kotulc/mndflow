@@ -67,10 +67,9 @@ export { page_graph } from "@mnd/views";
 
 /** Sections and navigation: how a host cuts the workspace into layers, the views each offers,
  *  what opening, leaving and revealing do to the canvas, and what the sections hold. */
-export { held_at, leave_at, open_at, reveal_at, sight, view_of, view_on, EDITOR, type Cut,
+export { held_at, leave_at, open_at, read_at, reveal_at, sight, view_of, view_on, EDITOR, type Cut,
          type Held, type Section, type Tiers, type Top, type View, type ViewKind,
          type Views } from "@mnd/core";
 
-/** A whole section drawn — every root it lists, down to its cut — and a cross-section along a pick. */
-export { survey_graph } from "@mnd/views";
+
 

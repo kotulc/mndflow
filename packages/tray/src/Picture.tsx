@@ -1,11 +1,13 @@
 /** The overview's picture: what helps most at a glance, by what is picked. A block or a room of
- *  the model, what it connects to — the lines coming in on the left, those going out on the
- *  right, each named. A definition, its registry; a library folder or a package, what it files;
- *  a note, its words. Fitted whole to the tray, never cropped. */
+ *  a model, what it connects to — the lines coming in on the left, those going out on the
+ *  right, each named. A definition, its registry; **one not used yet, its structure, drawn read
+ *  only** — how a pattern is seen before anything uses it. A library folder or a package, what
+ *  it files; a note, its words. Fitted whole to the tray, never cropped. */
 
-import { is_folder, is_note, is_tie, on_side, owner_of, path, shown_name,
-         type Graph, type Id } from "@mnd/core";
-import { filed_map, registry_map, type MapTile } from "@mnd/views";
+import { useMemo } from "react";
+import { definition_uses, is_container, is_folder, is_note, is_tie, on_side, owner_of, path,
+         shown_name, type Graph, type Id } from "@mnd/core";
+import { box_of, filed_map, project, registry_map, type MapTile } from "@mnd/views";
 
 /** The picture's own units: fitted to the tray by its view box. */
 const W = 400;
@@ -18,7 +20,10 @@ export function Picture({ graph, id }: { graph: Graph; id: Id }) {
   const b = graph.blocks[id];
   if (!b) return null;
   if (is_note(graph, id)) return <p className="pic-words">{b.body?.trim() || shown_name(graph, id)}</p>;
-  if (b.def) return <Registry graph={graph} id={id} />;
+  if (b.def) {
+    return definition_uses(graph, id).length || !is_container(graph, id)
+      ? <Registry graph={graph} id={id} /> : <Structure graph={graph} id={id} />;
+  }
   if (b.parent === null || (is_folder(graph, id) && on_side(graph, id, "domain"))) {
     return <Map tiles={filed_map(graph, id, W, H)} w={W} h={H} empty="nothing filed yet" />;
   }
@@ -28,6 +33,41 @@ export function Picture({ graph, id }: { graph: Graph; id: Id }) {
 /** A definition's registry: its uses in the rooms they live in. */
 function Registry({ graph, id }: { graph: Graph; id: Id }) {
   return <Map tiles={registry_map(graph, id, W, H)} w={W} h={H} empty="no uses yet" />;
+}
+
+/** **A definition's structure, read only**: its layer as any usage reads it through, each card a
+ *  named box and each line straight between them, fitted whole. Nothing here is picked or edited:
+ *  it is drawn where a usage of it is. */
+function Structure({ graph, id }: { graph: Graph; id: Id }) {
+  const scene = useMemo(() => project(graph, id), [graph, id]);
+  const boxes = scene.nodes.filter((n) => graph.blocks[n.id])
+    .map((n) => ({ id: n.id, ...box_of(n) }));
+  if (!boxes.length) return <p className="faint pic-none">nothing drawn yet</p>;
+  const at = new globalThis.Map(boxes.map((x) => [x.id, x]));
+  const [x0, y0] = [Math.min(...boxes.map((x) => x.x)), Math.min(...boxes.map((x) => x.y))];
+  const [x1, y1] = [Math.max(...boxes.map((x) => x.x + x.w)),
+                    Math.max(...boxes.map((x) => x.y + x.h))];
+  const pad = 8;
+  const mid = (x: { x: number; y: number; w: number; h: number }) =>
+    [x.x + x.w / 2, x.y + x.h / 2] as const;
+  return (
+    <svg className="pic" preserveAspectRatio="xMidYMid meet"
+         viewBox={[x0 - pad, y0 - pad, x1 - x0 + 2 * pad, y1 - y0 + 2 * pad].join(" ")}>
+      {scene.edges.map((e) => {
+        const [a, z] = [at.get(e.source), at.get(e.target)];
+        if (!a || !z) return null;
+        const [[ax, ay], [zx, zy]] = [mid(a), mid(z)];
+        return <line key={e.id} className="pic-wire" x1={ax} y1={ay} x2={zx} y2={zy} />;
+      })}
+      {boxes.map((x) => (
+        <g key={x.id} className="pic-use">
+          <title>{shown_name(graph, x.id)}</title>
+          <rect x={x.x} y={x.y} width={x.w} height={x.h} rx={3} />
+          <text x={x.x + 6} y={x.y + 16}>{cut(shown_name(graph, x.id), Math.max(3, x.w / 8))}</text>
+        </g>
+      ))}
+    </svg>
+  );
 }
 
 /** Tiles fitted whole: boxes under their names, tiles named where the name fits. */

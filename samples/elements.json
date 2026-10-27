@@ -17,8 +17,8 @@
         "parent": null,
         "name": "elements",
         "counters": {
-          "block": 51,
           "note": 6,
+          "block": 46,
           "folder": 1,
           "grid": 1,
           "reference": 1,
@@ -32,7 +32,8 @@
         "id": "yaml.1-blocks",
         "parent": "workspace",
         "name": "Blocks",
-        "alias": 1,
+        "type": "model",
+        "def": {},
         "order": 1,
         "source": "1-blocks.yaml"
       },
@@ -49,7 +50,7 @@
         "parent": "yaml.1-blocks",
         "name": "An internal diagram",
         "type": "internal",
-        "alias": 7,
+        "alias": 6,
         "order": 9
       },
       "yaml.1-blocks.11": {
@@ -57,7 +58,7 @@
         "parent": "yaml.1-blocks",
         "name": "A sequence",
         "type": "sequence",
-        "alias": 8,
+        "alias": 7,
         "grid": {
           "rows": 2,
           "cols": 2
@@ -69,7 +70,7 @@
         "parent": "yaml.1-blocks",
         "name": "A state machine",
         "type": "state",
-        "alias": 9,
+        "alias": 8,
         "order": 11
       },
       "yaml.1-blocks.13": {
@@ -77,7 +78,7 @@
         "parent": "yaml.1-blocks",
         "name": "A swimlane",
         "type": "swimlane",
-        "alias": 10,
+        "alias": 9,
         "grid": {
           "rows": 2,
           "cols": 2
@@ -89,21 +90,21 @@
         "parent": "yaml.1-blocks",
         "name": "A treemap",
         "type": "treemap",
-        "alias": 11,
+        "alias": 10,
         "order": 13
       },
       "yaml.1-blocks.15": {
         "id": "yaml.1-blocks.15",
         "parent": "yaml.1-blocks",
         "name": "A name long enough to need cutting short",
-        "alias": 12,
+        "alias": 11,
         "order": 14
       },
       "yaml.1-blocks.2": {
         "id": "yaml.1-blocks.2",
         "parent": "yaml.1-blocks",
         "name": "A block",
-        "alias": 2,
+        "alias": 1,
         "order": 2
       },
       "yaml.1-blocks.3": {
@@ -140,7 +141,7 @@
         "parent": "yaml.1-blocks",
         "name": "A class diagram",
         "type": "class",
-        "alias": 3,
+        "alias": 2,
         "order": 6
       },
       "yaml.1-blocks.7": {
@@ -148,7 +149,7 @@
         "parent": "yaml.1-blocks",
         "name": "An entity diagram",
         "type": "entity",
-        "alias": 4,
+        "alias": 3,
         "order": 7
       },
       "yaml.1-blocks.8": {
@@ -156,21 +157,22 @@
         "parent": "yaml.1-blocks",
         "name": "A flow",
         "type": "flow",
-        "alias": 5,
+        "alias": 4,
         "order": 8
       },
       "yaml.1-blocks.9": {
         "id": "yaml.1-blocks.9",
         "parent": "yaml.1-blocks.8",
         "name": "step",
-        "alias": 6,
+        "alias": 5,
         "order": 1
       },
       "yaml.2-large": {
         "id": "yaml.2-large",
         "parent": "workspace",
         "name": "Large",
-        "alias": 13,
+        "type": "model",
+        "def": {},
         "order": 2,
         "settings": {
           "layout": {
@@ -192,7 +194,7 @@
         "parent": "yaml.2-large",
         "name": "Ada",
         "type": "yaml.Definitions.record",
-        "alias": 14,
+        "alias": 12,
         "order": 2,
         "values": [
           {
@@ -210,7 +212,7 @@
         "parent": "yaml.2-large",
         "name": "Grace",
         "type": "yaml.Definitions.record",
-        "alias": 15,
+        "alias": 13,
         "order": 3,
         "settings": {
           "card": {
@@ -232,7 +234,8 @@
         "id": "yaml.3-notation",
         "parent": "workspace",
         "name": "Notation",
-        "alias": 16,
+        "type": "model",
+        "def": {},
         "order": 3,
         "source": "3-notation.yaml"
       },
@@ -256,7 +259,7 @@
         "id": "yaml.3-notation.11",
         "parent": "yaml.3-notation.10",
         "name": "held",
-        "alias": 22,
+        "alias": 19,
         "order": 1
       },
       "yaml.3-notation.2": {
@@ -264,7 +267,7 @@
         "parent": "yaml.3-notation",
         "name": "Begin",
         "type": "start",
-        "alias": 17,
+        "alias": 14,
         "order": 2
       },
       "yaml.3-notation.3": {
@@ -272,7 +275,7 @@
         "parent": "yaml.3-notation",
         "name": "Choice",
         "type": "decision",
-        "alias": 18,
+        "alias": 15,
         "order": 3
       },
       "yaml.3-notation.4": {
@@ -280,7 +283,7 @@
         "parent": "yaml.3-notation",
         "name": "A decision long enough to cut",
         "type": "decision",
-        "alias": 19,
+        "alias": 16,
         "order": 4
       },
       "yaml.3-notation.5": {
@@ -288,7 +291,7 @@
         "parent": "yaml.3-notation",
         "name": "Finish",
         "type": "end",
-        "alias": 20,
+        "alias": 17,
         "order": 5
       },
       "yaml.3-notation.6": {
@@ -321,14 +324,15 @@
         "id": "yaml.3-notation.9",
         "parent": "yaml.3-notation.8",
         "name": "inside",
-        "alias": 21,
+        "alias": 18,
         "order": 1
       },
       "yaml.4-lines": {
         "id": "yaml.4-lines",
         "parent": "workspace",
         "name": "Lines",
-        "alias": 23,
+        "type": "model",
+        "def": {},
         "order": 4,
         "settings": {
           "layout": {
@@ -349,126 +353,127 @@
         "id": "yaml.4-lines.10",
         "parent": "yaml.4-lines",
         "name": "Whole",
-        "alias": 32,
+        "alias": 28,
         "order": 10
       },
       "yaml.4-lines.11": {
         "id": "yaml.4-lines.11",
         "parent": "yaml.4-lines",
         "name": "Part",
-        "alias": 33,
+        "alias": 29,
         "order": 11
       },
       "yaml.4-lines.12": {
         "id": "yaml.4-lines.12",
         "parent": "yaml.4-lines",
         "name": "Gathered",
-        "alias": 34,
+        "alias": 30,
         "order": 12
       },
       "yaml.4-lines.13": {
         "id": "yaml.4-lines.13",
         "parent": "yaml.4-lines",
         "name": "Client",
-        "alias": 35,
+        "alias": 31,
         "order": 13
       },
       "yaml.4-lines.14": {
         "id": "yaml.4-lines.14",
         "parent": "yaml.4-lines",
         "name": "Supplier",
-        "alias": 36,
+        "alias": 32,
         "order": 14
       },
       "yaml.4-lines.15": {
         "id": "yaml.4-lines.15",
         "parent": "yaml.4-lines",
         "name": "Caller",
-        "alias": 37,
+        "alias": 33,
         "order": 15
       },
       "yaml.4-lines.16": {
         "id": "yaml.4-lines.16",
         "parent": "yaml.4-lines",
         "name": "Callee",
-        "alias": 38,
+        "alias": 34,
         "order": 16
       },
       "yaml.4-lines.17": {
         "id": "yaml.4-lines.17",
         "parent": "yaml.4-lines",
         "name": "State one",
-        "alias": 39,
+        "alias": 35,
         "order": 17
       },
       "yaml.4-lines.18": {
         "id": "yaml.4-lines.18",
         "parent": "yaml.4-lines",
         "name": "State two",
-        "alias": 40,
+        "alias": 36,
         "order": 18
       },
       "yaml.4-lines.2": {
         "id": "yaml.4-lines.2",
         "parent": "yaml.4-lines",
         "name": "A",
-        "alias": 24,
+        "alias": 20,
         "order": 2
       },
       "yaml.4-lines.3": {
         "id": "yaml.4-lines.3",
         "parent": "yaml.4-lines",
         "name": "B",
-        "alias": 25,
+        "alias": 21,
         "order": 3
       },
       "yaml.4-lines.4": {
         "id": "yaml.4-lines.4",
         "parent": "yaml.4-lines",
         "name": "C",
-        "alias": 26,
+        "alias": 22,
         "order": 4
       },
       "yaml.4-lines.5": {
         "id": "yaml.4-lines.5",
         "parent": "yaml.4-lines",
         "name": "D",
-        "alias": 27,
+        "alias": 23,
         "order": 5
       },
       "yaml.4-lines.6": {
         "id": "yaml.4-lines.6",
         "parent": "yaml.4-lines",
         "name": "E",
-        "alias": 28,
+        "alias": 24,
         "order": 6
       },
       "yaml.4-lines.7": {
         "id": "yaml.4-lines.7",
         "parent": "yaml.4-lines",
         "name": "F",
-        "alias": 29,
+        "alias": 25,
         "order": 7
       },
       "yaml.4-lines.8": {
         "id": "yaml.4-lines.8",
         "parent": "yaml.4-lines",
         "name": "G",
-        "alias": 30,
+        "alias": 26,
         "order": 8
       },
       "yaml.4-lines.9": {
         "id": "yaml.4-lines.9",
         "parent": "yaml.4-lines",
         "name": "H",
-        "alias": 31,
+        "alias": 27,
         "order": 9
       },
       "yaml.5-colour": {
         "id": "yaml.5-colour",
         "parent": "workspace",
         "name": "Colour",
-        "alias": 41,
+        "type": "model",
+        "def": {},
         "order": 5,
         "source": "5-colour.yaml"
       },
@@ -484,7 +489,7 @@
         "id": "yaml.5-colour.10",
         "parent": "yaml.5-colour",
         "name": "dashed",
-        "alias": 50,
+        "alias": 45,
         "order": 10,
         "settings": {
           "style": {
@@ -496,7 +501,7 @@
         "id": "yaml.5-colour.11",
         "parent": "yaml.5-colour",
         "name": "thick",
-        "alias": 51,
+        "alias": 46,
         "order": 11,
         "settings": {
           "style": {
@@ -508,7 +513,7 @@
         "id": "yaml.5-colour.2",
         "parent": "yaml.5-colour",
         "name": "primary",
-        "alias": 42,
+        "alias": 37,
         "order": 2,
         "settings": {
           "style": {
@@ -520,7 +525,7 @@
         "id": "yaml.5-colour.3",
         "parent": "yaml.5-colour",
         "name": "secondary",
-        "alias": 43,
+        "alias": 38,
         "order": 3,
         "settings": {
           "style": {
@@ -532,7 +537,7 @@
         "id": "yaml.5-colour.4",
         "parent": "yaml.5-colour",
         "name": "neutral",
-        "alias": 44,
+        "alias": 39,
         "order": 4,
         "settings": {
           "style": {
@@ -544,7 +549,7 @@
         "id": "yaml.5-colour.5",
         "parent": "yaml.5-colour",
         "name": "muted",
-        "alias": 45,
+        "alias": 40,
         "order": 5,
         "settings": {
           "style": {
@@ -556,7 +561,7 @@
         "id": "yaml.5-colour.6",
         "parent": "yaml.5-colour",
         "name": "hue 200",
-        "alias": 46,
+        "alias": 41,
         "order": 6,
         "settings": {
           "style": {
@@ -568,7 +573,7 @@
         "id": "yaml.5-colour.7",
         "parent": "yaml.5-colour",
         "name": "hue 25",
-        "alias": 47,
+        "alias": 42,
         "order": 7,
         "settings": {
           "style": {
@@ -580,7 +585,7 @@
         "id": "yaml.5-colour.8",
         "parent": "yaml.5-colour",
         "name": "hatched",
-        "alias": 48,
+        "alias": 43,
         "order": 8,
         "settings": {
           "style": {
@@ -592,7 +597,7 @@
         "id": "yaml.5-colour.9",
         "parent": "yaml.5-colour",
         "name": "faded",
-        "alias": 49,
+        "alias": 44,
         "order": 9,
         "settings": {
           "style": {

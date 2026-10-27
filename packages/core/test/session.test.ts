@@ -29,9 +29,9 @@ describe("undo is a refold", () => {
     s.go("create", { name: "B" });
     s.go("create", { name: "C" });
     s.undo();
-    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["block", "A", "B"]);
+    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["Model", "A", "B"]);
     s.undo();
-    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["block", "A"]);
+    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["Model", "A"]);
   });
 
   it("reports itself spent when there is nothing left", () => {
@@ -150,7 +150,7 @@ describe("storage", () => {
     const one = session({ storage: store, floor: FLOOR });
     one.go("create", { name: "Ledger" });
     const two = session({ storage: store, floor: FLOOR });
-    expect(children(two.graph(), ROOT).map((b) => b.name)).toEqual(["block", "Ledger"]);
+    expect(children(two.graph(), ROOT).map((b) => b.name)).toEqual(["Model", "Ledger"]);
   });
 
   it("keeps a repair, so a mended log is not re-read as damaged", () => {
@@ -179,7 +179,7 @@ describe("storage", () => {
   it("survives storage that forgets", () => {
     const s = session({ floor: FLOOR });
     s.go("create", { name: "Ledger" });
-    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["block", "Ledger"]);
+    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["Model", "Ledger"]);
   });
 });
 
@@ -208,7 +208,7 @@ describe("a new workspace", () => {
 
     s.reset();
     expect(Object.keys(s.graph().blocks).sort()).toEqual(fresh);
-    expect(s.layer()).toBe(ROOT);
+    expect(s.view()).toMatchObject({ kind: "map", pick: "first" });
   });
 
   it("drops a definition this build no longer ships", () => {

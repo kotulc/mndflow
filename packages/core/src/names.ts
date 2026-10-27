@@ -1,7 +1,7 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
 import { attributes_of, base_named, base_of, def_at, def_of, diagram_kind, edge_base, frozen,
-         notation_of, roots_structure } from "./defs";
+         is_model, notation_of } from "./defs";
 import { inline, is_flat, shape_of } from "./holders";
 import { entry_at } from "./library";
 import { children, is_container, is_interface, of_ref, port_at, stands_for,
@@ -11,7 +11,7 @@ import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./
 
 /** The word each base reads as when nothing is named. */
 const WORD: Record<string, string> = {
-  block: "Block", folder: "Folder", reference: "Reference", group: "Group", grid: "Grid",
+  block: "Block", model: "Model", folder: "Folder", reference: "Reference", group: "Group", grid: "Grid",
   note: "Note", label: "Label", region: "Region",
 };
 
@@ -109,7 +109,7 @@ function line_kind(graph: Graph, id: Id): string {
 
 /** What sort of thing a card is, as the icon it wears in its top corner. A person may set their
  *  own over it with `card.icon`; this is what it draws when nobody has. */
-export type Role = "block" | "folder" | "reference" | "interface" | "group" | "grid" | "note"
+export type Role = "block" | "model" | "folder" | "reference" | "interface" | "group" | "grid" | "note"
   | "label" | "region" | "start" | "end" | "decision" | Diagram;
 
 /** A diagram kind, as the role its card reads as. */
@@ -117,7 +117,7 @@ export type Diagram = "internal" | "flow" | "state" | "sequence" | "swimlane" | 
   | "treemap";
 
 /** Every base that draws as itself. */
-const ROLES: readonly string[] = ["block", "folder", "reference", "note", "label", "group",
+const ROLES: readonly string[] = ["block", "model", "folder", "reference", "note", "label", "group",
                                   "region", "grid", "start", "end", "decision"];
 
 /** A diagram wears its kind, a block that holds the mark of its shape, whatever kind it descends
@@ -138,16 +138,15 @@ export function role_of(graph: Graph, id: Id): Role {
 }
 
 /** The system marks a card wears in its bottom corner: **what it stands for**, never how it
- *  opens — its icon says that. Derived, never set. At most three, in this order: what a stand-in
- *  stands in for, then whether it roots a structure, then whether it carries data. */
-export type Mark = "reference" | "definition" | "package" | "structure" | "data";
+ *  opens — its icon says that. Derived, never set. At most two, in this order: what a stand-in
+ *  stands in for, then whether it carries data. A model says it is one by its icon, the tree. */
+export type Mark = "reference" | "definition" | "package" | "data";
 
 /** What each mark means, in a phrase — the legend's wording, kept beside the type it reads. */
 export const MARK_MEANING: Record<Mark, string> = {
   reference: "stands for a block elsewhere",
   definition: "stands for a definition",
   package: "stands for a package",
-  structure: "roots a structure",
   data: "carries data: values, or attributes",
 };
 
@@ -166,9 +165,7 @@ export function schema_def(graph: Graph, id: Id): Id | null {
 }
 
 /** What a card is stamped with: what a stand-in stands in for, then — of the block it stands for,
- *  where it is one — whether that block roots a structure, and whether it carries data. The
- *  structure mark is a structure root: the workspace, or a definition that holds structure.
- *  Never a folder, and never a block inside a structure. */
+ *  where it is one — whether it carries data. */
 export function stamps_of(graph: Graph, id: Id): Mark[] {
   const b = graph.blocks[id];
   if (!b) return [];
@@ -177,7 +174,6 @@ export function stamps_of(graph: Graph, id: Id): Mark[] {
   const at = of ? graph.blocks[of] : undefined;
   if (of) out.push(at?.def ? "definition" : at?.parent === null ? "package" : "reference");
   const self = at && at.id !== id ? at : b;
-  if (roots_structure(graph, self.id)) out.push("structure");
   if (self.values?.some((v) => v.value) || attributes_of(graph, self.def ? self.id : self.type).length) {
     out.push("data");
   }
@@ -196,17 +192,17 @@ export function subtypes(graph: Graph, def: Id): Block[] {
   return Object.values(graph.blocks).filter((b) => b.def && b.type === def);
 }
 
-/** Whether a card opens onto a drawing of its own: a block holding blocks, a usage whose
- *  definition does, a reference to one that does, or a stand-in for a definition. A folder, a
- *  group and a region never do: what they hold is drawn in place. A grid opens onto its grid
- *  view. */
+/** Whether a card opens onto a drawing of its own: **a model, empty or not** — it is what is drawn
+ *  on — a block holding blocks, a usage whose definition does, a reference to one that does, or
+ *  a stand-in for a model. A folder, a group and a region never do: what they hold is drawn in
+ *  place. A grid opens onto its grid view. */
 export function opens(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
   if (!b || inline(graph, id)) return false;
-  if (is_container(graph, id)) return true;
+  if (is_model(graph, id) || is_container(graph, id)) return true;
   if (!b.def && def_at(graph, b.type) && is_container(graph, b.type!)) return true;
   const of = of_ref(graph, id);
-  if (of && def_at(graph, of)) return is_container(graph, of);
+  if (of && def_at(graph, of)) return is_model(graph, of);
   const target = of ? stands_for(graph, id) : null;
   return !!target && target.id !== id && is_container(graph, target.id);
 }

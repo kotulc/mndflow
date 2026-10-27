@@ -15,6 +15,7 @@ export * from "./holders";
 export * from "./drop";
 export * from "./names";
 export * from "./library";
+export * from "./uses";
 export * from "./ends";
 export * from "./door";
 export * from "./capabilities";

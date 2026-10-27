@@ -286,7 +286,7 @@ export const BLOCK_MODULES: readonly BlockModule[] = ["block", "reference", "int
  *  not a module. **There is no `resource`**: every block may point at external content through
  *  `source`, so a kind for it said nothing the slot does not. */
 export const BASE_BLOCKS: readonly Id[] = [
-  "block", "reference", "folder", "grid", "note", "label", "group", "region",
+  "block", "model", "reference", "folder", "grid", "note", "label", "group", "region",
 ];
 
 /** The shipped diagram kinds: blocks extending `block`, each fixing its view, layout and icon. A

@@ -7,9 +7,11 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { about_of, at_cut, children, domain_of, drop_of, frozen, is_folder, is_inside,
-         is_layer_view, may_hold, name_taken, new_id, on_side, owner_def, path, shown_name,
+         is_layer_view, holds_defs, may_hold, model_of, name_taken, new_id, on_side, owner_def,
+         path,
+         shown_name,
          type Act, type Graph, type Id, type Registry, type View } from "@mnd/core";
-import { Icon, Name, NamingContext, MARK_ICON, type IconName } from "@mnd/theme";
+import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
 import { end_of, listed_of, mark_icon, OPENED, opened, parent_of, tree_of,
@@ -169,6 +171,8 @@ export function Explorer(props: ExplorerProps) {
   /** What is being drafted: a block, a folder, a definition, or a part of one. */
   const [draft, set_draft] = useState<{ parent: Id; type?: string; def?: boolean;
                                         extends?: Id; part?: boolean } | null>(null);
+  /** A draft extending base `model` is a new model. */
+  const modeled = draft?.def && draft.extends === "model";
 
   /** Each section's own branches, so unfolding its header opens what it heads and nothing else,
    *  and every row as the arrows walk them. Read off the tree fully open, so a shut branch's own
@@ -303,7 +307,8 @@ export function Explorer(props: ExplorerProps) {
       && !frozen(graph, b.id);
   };
   const library_at = chain.slices.findIndex((s) => s.lists === "domain");
-  const part_home = library && holds_parts(def) ? def : null;
+  /** A model's parts are drawn, so they are added in the models. */
+  const part_home = library && holds_parts(def) && !model_of(graph, def) ? def : null;
   const menu_def = library_at >= 0 && menu?.id && graph.blocks[menu.id]?.def ? menu.id : null;
   /** Where the bar's add puts a block: under the row held in focus where it may hold one, else
    *  under the workspace: every other package is frozen. */
@@ -452,12 +457,17 @@ export function Explorer(props: ExplorerProps) {
    *  elsewhere a block or folder where you are. */
   const add = (type?: string) => {
     const def = library && !type;
-    const parent = type === "folder" ? shelf : def ? shelf ?? graph.root : under;
+    /** **In the models, add makes a part** of the model in focus, or **a new model** anywhere
+     *  else: a package or a definitions folder holds models, never loose blocks. */
+    const model = !library && !type && !model_of(graph, under);
+    const parent = type === "folder" ? shelf : def ? shelf ?? graph.root
+      : model ? (holds_defs(graph, under) ? under : graph.root) : under;
     if (!parent) return;
     // A draft row opens where it goes, its branch unfolded to show it.
     const row = rows.find((r) => r.of === "block" && r.ref === parent && r.at === focus);
     if (row && is_shut(row)) fold(row, false);
-    set_draft({ parent, ...(type ? { type } : {}), ...(def ? { def } : {}) });
+    set_draft({ parent, ...(type ? { type } : {}), ...(def ? { def } : {}),
+                ...(model ? { def: true, extends: "model" } : {}) });
   };
 
   /** A part drafted in a definition, or in a part of one, its branch unfolded to show it. */
@@ -509,7 +519,9 @@ export function Explorer(props: ExplorerProps) {
             {props.extra}
             {show.block ? (
               <button title={library ? "add a definition — what it extends says its kind"
-                               : `add a block in ${shown_name(graph, under)}`}
+                               : model_of(graph, under) ? `add a block in ${shown_name(graph, under)}`
+                               : `add a model in ${shown_name(graph, holds_defs(graph, under)
+                                   ? under : graph.root)}`}
                       onClick={() => add()}><Icon name="add_block" /></button>
             ) : null}
             {show.folder ? (
@@ -524,7 +536,7 @@ export function Explorer(props: ExplorerProps) {
                                : "pick a definition to add a part to it"}
                       disabled={!part_home}
                       onClick={() => { if (part_home) add_part(part_home); }}>
-                <Icon name="role_root" />
+                <Icon name="add_block" />
               </button>
             ) : null}
             {show.remove ? (
@@ -543,8 +555,10 @@ export function Explorer(props: ExplorerProps) {
 
         <ul className="tree">
           {lines.map((r) => (!r ? (
-            <Draft key="draft" icon={draft?.type === "folder" ? "role_folder" : "role_leaf"}
-                   word={draft?.def ? DEFINITION : draft?.type ?? "block"} depth={slot!.depth}
+            <Draft key="draft" icon={draft?.type === "folder" ? "role_folder"
+                                       : modeled ? "role_root" : "role_leaf"}
+                   word={modeled ? "model" : draft?.def ? DEFINITION : draft?.type ?? "block"}
+                   depth={slot!.depth}
                    onDone={(label) => {
                      set_draft(null);
                      if (label === null || !draft) return;
@@ -653,7 +667,7 @@ export function Explorer(props: ExplorerProps) {
               ) : null}
 
               <span className={["mark", r.mark,
-                                r.kids ? (is_shut(r) ? "shut" : "on") : r.held ? "held" : ""]
+                                r.kids ? (is_shut(r) ? "shut" : "on") : ""]
                        .filter(Boolean).join(" ")}
                     title={r.kids ? (is_shut(r) ? `open · ${r.kids} inside` : "fold")
                       : undefined}
@@ -667,14 +681,6 @@ export function Explorer(props: ExplorerProps) {
                 ? <span className="label">{r.label}</span>
                 : <Name id={r.id} className="label" text={r.label} />}
               {r.alias ? <span className="alias">{r.alias}</span> : null}
-              {/* A structure root wears the card's structure mark before it is picked, outside the
-                  structure section. The workspace always does; a definition does once it holds
-                  structure. */}
-              {r.held ? (
-                <span className="stamp" title="roots structure">
-                  <Icon name={MARK_ICON["structure"]!} size={MARK_SIZE - 2} />
-                </span>
-              ) : null}
               {r.via ? (
                 <span className="from"
                       title={`from ${shown_name(graph, graph.blocks[r.via]?.type ?? r.via)}`}>

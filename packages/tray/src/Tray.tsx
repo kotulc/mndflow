@@ -36,6 +36,8 @@ export type Hold =
 export type TrayProps = {
   graph: Graph;
   layer: Id | null;
+  /** The side the canvas looks at: what reading offers there, and the way across. */
+  lists?: "domain" | "structure";
   open: boolean;
   onOpen: (open: boolean) => void;
   /** What the canvas has, which is what the tray is about. The tray never sets it: a table
@@ -363,7 +365,8 @@ export function Tray(props: TrayProps) {
     >
           {shows === "overview" ? (
             <Overview key={about} graph={graph} id={about}
-                      {...(edits ? { onAct: act } : {})} />
+                      {...(edits ? { onAct: act } : {})}
+                      {...(props.lists ? { lists: props.lists } : {})} />
           ) : null}
           {shows === "workspace" ? (
             <Workspace graph={graph} {...(edits ? { onAct: act } : {})}

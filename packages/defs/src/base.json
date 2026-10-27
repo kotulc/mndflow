@@ -421,6 +421,20 @@
           }
         }
       },
+      "model": {
+        "id": "model",
+        "parent": "base.dir.blocks",
+        "name": "model",
+        "type": "block",
+        "def": {},
+        "description": "What is built: a definition of it is a model, the one thing drawn on directly. Its parts are the usages it holds; another model uses it as a part.",
+        "order": 4,
+        "settings": {
+          "layout": {
+            "view": "internal"
+          }
+        }
+      },
       "note": {
         "id": "note",
         "parent": "base.dir.notation",
@@ -457,7 +471,7 @@
         "type": "block",
         "def": {},
         "description": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
-        "order": 4,
+        "order": 5,
         "settings": {
           "style": {
             "family": "away",

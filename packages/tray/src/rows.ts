@@ -1,6 +1,7 @@
 /** What the open layer holds, as rows. */
 
-import { alias_name, all_defs, alias_of, children, def_at, def_of, domain_of, edge_base, edges_in,
+import { alias_name, all_defs, alias_of, children, def_at, def_of, definition_uses, domain_of,
+         edge_base, edges_in,
          frozen, is_base, is_box, is_holder, isa, base_of, package_of, part_id, path, ports_on, shown_name,
          subtree, type_name, type Block, type Domain, type Graph, type Id } from "@mnd/core";
 
@@ -104,19 +105,12 @@ export type DefRow = {
  *  workspace's own first, then by name. Hiding the floor only made `all` a smaller word for
  *  `workspace`, and left the kinds every block descends from unreadable. */
 export function def_rows(graph: Graph): DefRow[] {
-  const used = new Map<string, number>();
-  const usages = [...Object.keys(graph.edges),
-                  ...Object.values(graph.blocks).filter((b) => !b.def && b.parent).map((b) => b.id)];
-  for (const id of usages) {
-    const d = def_of(graph, id);
-    if (d) used.set(d, (used.get(d) ?? 0) + 1);
-  }
   const from = (id: Id) => (frozen(graph, id) ? graph.blocks[package_of(graph, id)]?.name ?? "" : "");
   return all_defs(graph)
     .map((d): DefRow => ({
       id: d.id, group: domain_of(graph, d.id), name: d.name,
       extends: d.type ?? "", base: is_base(d.id),
-      from: from(d.id), used: used.get(d.id) ?? 0,
+      from: from(d.id), used: definition_uses(graph, d.id).length,
     }))
     .sort((a, z) => Number(!!a.from) - Number(!!z.from) || a.name.localeCompare(z.name));
 }

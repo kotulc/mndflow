@@ -1,20 +1,22 @@
-/** The map, the library's and the model's: one treemap of a workspace, what holds things as boxes
+/** The map, the library's and the models': one treemap of a section, what holds things as boxes
  *  and what is entered as chips. **A chip is as large as what it holds**, wears its kind's icon,
  *  says what it counts and draws a small treemap of what it holds — a diagram's laid by its
- *  structure. The model's map stops at diagrams: a diagram is a chip, unless it holds
- *  diagrams, when it is a box of one cell for each block it holds. The library's: packages and
- *  folders as boxes, each definition a chip as large as its uses. A click selects; two enter the
- *  nearest diagram (`entry_of`). Worked out on every graph change, never stored. */
+ *  structure. **The models' map is a forest** of every package holding a model, and stops at
+ *  diagrams: a model or a diagram is a chip, unless it holds diagrams, when it is a box of one
+ *  cell for each block it holds. **The library's**: packages and folders as boxes, each
+ *  definition a chip as large as its uses, previewing them as its registry lays them. A click
+ *  selects; two read what was clicked (core's `read_at`). Worked out on every graph change, never
+ *  stored. */
 
 import { Graph as Ranks, layout } from "@dagrejs/dagre";
 import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
          type HierarchyRectangularNode } from "d3-hierarchy";
-import { children, def_at, diagram_kind, has_lifelines, is_aside, is_grid, is_header, is_holder,
-         is_interface, is_notation, is_reference, is_region, is_tie, lattice_of, lens_of,
-         notation_of, on_side, owner_of, packages, path, region_of, shown_name, subtree,
-         type Graph, type Id } from "@mnd/core";
+import { children, def_at, definition_uses, diagram_kind, has_lifelines, is_aside, is_grid,
+         is_header, is_holder, is_interface, is_notation, is_reference, is_region, is_tie,
+         lattice_of, lens_of, notation_of, on_side, owner_of, packages, path, region_of,
+         shown_name, subtree, subtypes, type Graph, type Id } from "@mnd/core";
 import { carried, trail_of } from "./derive";
-import { filed, name_of, uses_of } from "./library";
+import { filed, name_of, registry_map } from "./library";
 import { entry_look, look_of, tint_attrs } from "./look";
 import { cell, type Area, type BoxNode, type InnerTile, type Scene } from "./scene";
 import { SHAPE } from "./size";
@@ -40,18 +42,24 @@ const CELL = 1.5;
 /** The least a chip weighs, so one holding or used little still shows its icon. */
 const LEAST = 2.5;
 
-/** One entry of a map: a box of what it holds, or a chip entering `block`, counting `held`. */
+/** One entry of a map: a box of what it holds, or a chip entering `block`, counting `held` — or,
+ *  a definition's, previewing its `uses`. */
 type Leaf = { id: Id; kids?: Leaf[]; value?: number;
               chip?: { block: Id; held: readonly Id[]; counts: string; kind?: string;
                        uses?: boolean;
                        diagram?: boolean } };
 
 
+/** A section's map: the library's for its definitions, else the models'. */
+export function section_map(graph: Graph, lists?: "domain" | "structure"): Scene {
+  return lists === "domain" ? library_map(graph) : model_map(graph);
+}
 
-/** The model's map: the package under `root`, stopping at diagrams. */
-export function model_map(graph: Graph, root: Id): Scene {
+/** **The models' map**: every package holding a model, each a box of the folders on the way and
+ *  its models, stopping at diagrams. */
+export function model_map(graph: Graph): Scene {
   const held = (id: Id) => members(graph, id);
-  const diagram = (id: Id) => !!lens_of(graph, id) && lens_of(graph, id) !== "folder";
+  const diagram = (id: Id) => !!lens_of(graph, id, "structure");
   /** **A reference never boxes**: it stands for a block drawn elsewhere, so it is a tile. */
   const deep = new Map<Id, boolean>();
   const holds_diagrams = (id: Id): boolean => {
@@ -74,20 +82,24 @@ export function model_map(graph: Graph, root: Id): Scene {
   /** A box where diagrams lie below, one cell for each block it holds; else a chip. */
   const entry = (id: Id): Leaf => (holds_diagrams(id) ? { id, kids: held(id).map(entry) }
     : chip(id, id, held(id)));
-  return mapped(graph, { id: MAP_ROOT, kids: [{ id: root, kids: held(root).map(entry) }] },
-                "model");
+  const tops = packages(graph).filter((p) => on_side(graph, p.id, "structure"));
+  return mapped(graph, { id: MAP_ROOT, kids: tops.map((p) => ({ id: p.id,
+                                                                kids: held(p.id).map(entry) })) },
+                "models");
 }
 
 /** The library's map: every package's folders as boxes, each definition a chip as large as its
- *  uses, with what it holds inside. */
+ *  uses, previewing them. */
 export function library_map(graph: Graph): Scene {
   const entry = (id: Id): Leaf => {
     if (!graph.blocks[id]?.def) return { id, kids: filed(graph, id).map(entry) };
-    const uses = uses_of(graph, id).length;
-    const parts = children(graph, id).filter((b) => !is_interface(graph, b.id)).map((b) => b.id);
+    const uses = definition_uses(graph, id).length;
+    /** Its subtypes are said beside its uses, never counted as them. */
+    const subs = subtypes(graph, id).length;
+    const counts = [`${uses} ${uses === 1 ? "use" : "uses"}`,
+                    subs ? `${subs} ${subs === 1 ? "subtype" : "subtypes"}` : ""];
     return { id, value: Math.max(LEAST, uses + 1),
-             chip: { block: id, held: parts, uses: true,
-                     counts: `${uses} ${uses === 1 ? "use" : "uses"}` } };
+             chip: { block: id, held: [], uses: true, counts: counts.filter(Boolean).join(" · ") } };
   };
   const tops = packages(graph).filter((p) => filed(graph, p.id).length);
   return mapped(graph, { id: MAP_ROOT, kids: tops.map((p) => entry(p.id)) }, "library");
@@ -108,16 +120,6 @@ export function area_of(graph: Graph, map: Scene, id: Id | null): Area | null {
     if (at) return at;
   }
   return null;
-}
-
-/** **Where a double-click on a map goes**: a block that opens on a view is entered; anything
- *  else — a region, a plain block, a tile in a chip (`tile`) — enters the nearest diagram holding
- *  it, picked there. Null where nothing holds it. */
-export function entry_of(graph: Graph, id: Id, tile = false): { enter: Id; pick: Id | null } | null {
-  const opens = (b: Id) => !!lens_of(graph, b) && lens_of(graph, b) !== "folder";
-  if (!tile && opens(id)) return { enter: id, pick: null };
-  const up = path(graph, id).map((b) => b.id).reverse().slice(1).find(opens);
-  return up ? { enter: up, pick: id } : null;
 }
 
 /** Where a map's camera stops for a block: its area, or the whole map for a package or none. */
@@ -192,10 +194,9 @@ function mapped(graph: Graph, tree: Leaf, title: string): Scene {
     }
     nodes.push({ ...cell(id, box, { ...data, counts: chip.counts,
                                     ...(chip.kind ? { kind: chip.kind } : {}),
-                                    ...(chip.uses && holds_blocks(graph, chip.block)
-                                      ? { stacked: true } : {}),
-                                    ...inner(graph, chip.block, chip.held, box, !!chip.diagram,
-                                             HEAD),
+                                    ...(chip.uses ? previewed(graph, chip.block, box, HEAD)
+                                      : inner(graph, chip.block, chip.held, box, !!chip.diagram,
+                                              HEAD)),
                                     look: chip_look(graph, chip.block) },
                          "chip"), draggable: false });
   }
@@ -222,6 +223,22 @@ function members(graph: Graph, id: Id): Id[] {
   return children(graph, id).filter((b) => on_side(graph, b.id, "structure")
     && !is_interface(graph, b.id) && (!is_notation(graph, b.id) || !is_aside(graph, b.id)))
     .map((b) => b.id);
+}
+
+/** **A definition's chip previews its uses** as its registry lays them — the tray's small map of
+ *  them, as shares of the chip's body under its head: a box per model, each use a small card.
+ *  Empty where it is not used. */
+function previewed(graph: Graph, def: Id, box: { w: number; h: number },
+                   head: number): { tiles: InnerTile[] } {
+  const w = Math.max(1, box.w - 2 * PAD.chip), h = Math.max(1, box.h - head - PAD.chip);
+  if (h < 12) return { tiles: [] };
+  return { tiles: registry_map(graph, def, w, h).map((t): InnerTile => {
+    const at = { id: t.id, label: t.label, x: t.x / w, y: t.y / h, w: t.w / w, h: t.h / h };
+    if (t.kind !== "use") return t.kind === "box" ? { ...at, as: "group" } : at;
+    const face = carried(graph, t.id, "small");
+    return { ...at, ...(face.role ? { role: face.role } : {}),
+             tint: tint_attrs(look_of(graph, t.id)) };
+  }) };
 }
 
 /** A chip's inner treemap: what it holds, each as large as it counts, in the chip's body under
@@ -560,12 +577,6 @@ function joined(graph: Graph, held: readonly Id[]): { from: Id; to: Id }[] {
     pairs.set(`${from}|${to}`, { from, to });
   }
   return [...pairs.values()];
-}
-
-/** Whether a block holds blocks, however deep — what a library chip wears a stacked edge for. */
-function holds_blocks(graph: Graph, id: Id): boolean {
-  return subtree(graph, id).some((x) => x !== id && !is_notation(graph, x)
-    && !is_interface(graph, x));
 }
 
 /** What some blocks hold between them: blocks — not notes, labels, holders or a grid's headers,

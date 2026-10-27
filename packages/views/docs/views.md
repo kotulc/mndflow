@@ -2,11 +2,12 @@
 
 **One way to draw.** A layer is what is looked at; this package is the looking. It reads the graph and hands back a **Scene** — plain data, importing nothing drawable.
 
-**Two ways to draw: the map, and a layer entered from it.** The map is one treemap of the model or the library (`map.ts`): what holds things as boxes, what is entered as chips, each as large as what it holds with a small treemap of it inside. A layer entered is placed by ELK (`flow.ts`) and projected by its own kind — internal, allocation, sequence, class, entity (`layer.ts`). There are no system views. A projection stores nothing it draws.
+**Two ways to draw: the map, and a layer entered from it.** The map is one treemap of the models or the library (`map.ts`): what holds things as boxes, what is entered as chips, each as large as what it holds with a small treemap of it inside. A layer entered is placed by ELK (`flow.ts`) and projected by its own kind — internal, allocation, sequence, class, entity, registry (`layer.ts`). There is no package view: the map is the overhead. A projection stores nothing it draws.
 
 ```
-model_map(graph, root) → Scene                   // the model: the package as boxes and chips, stopping at diagrams
+model_map(graph) → Scene                         // the models: every package holding a model, stopping at diagrams
 library_map(graph) → Scene                       // the library: packages, folders, each definition a chip by use
+section_map(graph, lists) → Scene                // the one a section lists; project(graph, null) draws the models'
 layer_scene(graph, layer, kind, config) → Promise<Scene>   // one layer entered, placed by ELK
 project(graph, layer, config) → Scene            // one layer placed alone: other views, the kit's viewer, the CLI
 ```
@@ -20,10 +21,10 @@ project(graph, layer, config) → Scene            // one layer placed alone: ot
 | `size.ts` | **the one measure.** `UNIT` is a square of the guides; `CELL` is a block plus a gap on every side. Everything else is derived from those |
 | `flow.ts` | **placement**: a layer's blocks by ELK, each container on its own, inside out — `layered` where lines join its children, packed where none do — the result nearest the canvas's shape kept |
 | `arrange.ts` | where everything in a layer sits — placed ahead by `flow.ts` where ELK gave places (`placed_as`), else the synchronous fallback (`auto`, `layered`, `page`), a treemap under `treemap` (`treemap.ts`) |
-| `map.ts` | the map, the model's and the library's: one treemap builder (`mapped`), the model stopping at diagrams (`model_map`), the library at definitions (`library_map`); a chip's counts, kind and inner treemap — a diagram's laid by its structure: its lines' layers, a grid's rows, its bands, groups and marks, one gap between any two tiles; a chip's colour, a diagram's its kind's (`chip_look`), each block tile its own (`tint`); a least weight (`LEAST`); the focus, the area under a point, the nearest area one way, where a double-click goes (`map_focus`, `area_of`, `area_under`, `towards`, `entry_of`) |
+| `map.ts` | the map, the models' and the library's: one treemap builder (`mapped`), the models a forest stopping at diagrams (`model_map`), the library at definitions (`library_map`), a section's (`section_map`); a chip's counts, kind and inner treemap — a diagram's laid by its structure: its lines' layers, a grid's rows, its bands, groups and marks, one gap between any two tiles; a definition's its uses, as its registry lays them (`previewed`); a chip's colour, a diagram's its kind's (`chip_look`), each block tile its own (`tint`); a least weight (`LEAST`); the focus, the area under a point, the nearest area one way (`map_focus`, `area_of`, `area_under`, `towards`). Where a double-click goes is core's `read_at` |
 | `layer.ts` | a layer entered: placed by ELK, projected by its kind, only the side drawn (`layer_scene`, `laid_ahead`) |
-| `library.ts` | the library's treemap by use, the map layout both share (`laid_map`), a definition's uses (`uses_of`), and the small maps the tray draws (`registry_map`, `filed_map`) |
-| `registry.ts` | a registry as a list, a matrix, and a treemap Scene built directly: entries as tiles by home folder, or an entry's uses |
+| `library.ts` | a definition's uses grouped by the model each sits in (`usage_groups`), laid out **once** (`usage_layout`) for the registry, the library's chip and the tray's small map (`registry_map`); what a package or folder files (`filed`, `filed_map`) |
+| `registry.ts` | a registry as a list, a matrix, and a treemap Scene built directly: entries as tiles by home folder, an entry's uses, or a definition's uses in boxes of their models |
 | `bands.ts` | members packed inside a band, and seated blocks placed by their cell |
 | `pack.ts` · `float.ts` · `grid.ts` · `layered.ts` | the synchronous fallback, for the kit's viewer and the CLI until they place by ELK: runs in explorer order filling toward the canvas's shape, asides beside what they are tied to, `layered` on dagre |
 | `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off; a second line between the same two cards takes the faces a quarter turn round |

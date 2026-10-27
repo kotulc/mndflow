@@ -260,7 +260,7 @@ export function Icon({ name, size = 16, solid = false, className }: {
 
 /** Which icon each sort of card wears in its top corner. */
 export const ROLE_ICON: Record<string, IconName> = {
-  block: "role_leaf", folder: "role_folder", reference: "role_reference",
+  block: "role_leaf", model: "role_root", folder: "role_folder", reference: "role_reference",
   interface: "role_interface", group: "role_group", grid: "role_table", note: "role_note",
   label: "role_label", region: "role_region",
   start: "role_start", end: "role_end", decision: "role_decision",
@@ -278,7 +278,7 @@ export function role_icon(role: string | undefined): IconName {
  *  drawn, since there is no icon above it to repeat. */
 export const MARK_ICON: Record<string, IconName> = {
   reference: "word_ref", definition: "word_def",
-  package: "word_pkg", structure: "role_root", data: "data",
+  package: "word_pkg", data: "data",
 };
 
 /** The icon for a system mark, or null where a card carries none. */

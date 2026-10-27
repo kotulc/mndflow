@@ -71,8 +71,10 @@ pump1
 
 - **Guide lines are drawn per indent column**; the last row in a branch turns an elbow.
 - **A row wears its card's icon**: the role core's `role_of` reads — block, folder, group, grid, interface, reference, note — so a tag reads as the block it is. A row that holds blocks lights its icon.
-- **A structure root wears its card's structure mark** after its name, in both sections: the workspace, always, and a definition that holds structure. A folder does not, nor a definition with none, nor a block inside a structure. The row says so before it is picked.
-- **A section's mark is a word or the structure tree**: `Def` for the library; the model wears the tree-root mark. Package sections wear `Pkg`. Words are never filled.
+- **A model wears the tree**, its kind's icon, in both sections; nothing else does.
+- **A section's mark is a word or the tree**: `Def` for the library; the models wear the tree. Package sections wear `Pkg`. Words are never filled.
+- **What add makes is the section's**: in the library a definition, or a part in the definition in focus — never in a model, whose parts are drawn; in the models a part of the model in focus, else a new model.
+- **Opening a row reads it** (core `read_at`), as a double-click on its card does: in the library a used definition enters its registry, anything else is picked; in the models a model enters its drawing. A part seen through a usage is revealed on the usage's layer.
 - **A row is keyed by its section and route**, as a block may list in two sections and a part under two usages.
 - **A grid heads what it holds, as a table's head does its rows**, in every section alike: its row keeps its branch and its name is underlined, and its members list at its level beneath it with no tick of their own, joined to it by a line down their marks' column. A member's own children branch as usual. A folder nests like any block. Enter, → or a double click on a grid's row reveals it on the canvas, which pans to it. A group holds nothing, so it heads nothing: its members list where they are filed, wearing its tag.
 

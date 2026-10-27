@@ -29,15 +29,15 @@ npm run start -w @mnd/cli -- project related  # a Scene as text, which is the se
 | | Is |
 |---|---|
 | `scene.ts` | the seam: `BoxNode`, `LineEdge`, `Perch`, `Frame`, `Scene` |
-| `block.ts` | the projection: a frame, cards, holders, seated interfaces, routed lines, in the view `config.look` says — the folder view paged where nobody placed what it holds. `project(graph, null)` is the package view |
-| `survey.ts` · `profile.ts` | the system views' graphs, both trees: boxes down the page, a tree to its top level (package), or one page-wide row per level along the pick, a line into each (profile) |
+| `block.ts` | the projection: a frame, cards, holders, seated interfaces, routed lines, in the view `config.look` says. `project(graph, null)`, or the `map` look, is a section's map |
+| `profile.ts` | one page-wide row per level along the pick, a line into each (profile) |
 | `sheet.ts` | an opened grid's lattice, the allocation view |
 | `through.ts` | read-through: an opened usage's definition structure laid on its layer, its interfaces on its walls |
 | `page.ts` | the computed page layout: full-width boxes down a page |
 | `size.ts` | the one measure: `UNIT`, a `CELL` as a block plus its air, and **faces** — `face_of` (small, or large where an ancestor's `layout.cards` asks) and the size each draws at: the workspace card small; large, the definition's `card.size` or what its content fits (`fitted`), under `LARGE` |
 | `flow.ts` | **placement**: a layer's blocks by ELK, each container on its own, inside out — `layered` where lines join its children, packed where none do (`place`); ELK in the host's worker (`set_elk`) |
-| `map.ts` · `layer.ts` | the map, the model's and the library's: boxes and chips by what they hold (`model_map`, `library_map`); a layer entered from it, placed by ELK (`layer_scene`) |
-| `library.ts` | a definition's uses and where they live (`uses_of`); the tray's small maps (`registry_map`, `filed_map`) |
+| `map.ts` · `layer.ts` | the map, the models' and the library's: boxes and chips by what they hold (`model_map`, `library_map`, `section_map`); a layer entered from it, placed by ELK (`layer_scene`) |
+| `library.ts` | a definition's uses by model, laid out once (`usage_groups`, `usage_layout`); the tray's small maps (`registry_map`, `filed_map`) |
 | `arrange.ts` · `bands.ts` · `pack.ts` | where everything sits: placed ahead where ELK gave places (`placed_as`), else the synchronous fallback — bands and cells, clusters and satellites |
 | `float.ts` | the fallback's `auto`: runs in explorer order (`runs`), aside cards floating beside what they are tied to (`floated`); one rule for a layer and a group (`noted`) |
 | `layered.ts` | the fallback's `layered`: a layer ranked by its relations, on dagre; asides float as in `auto`. For the kit's viewer and the CLI until they draw the world |

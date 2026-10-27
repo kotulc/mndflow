@@ -6,12 +6,13 @@
  *  it may become. */
 
 import { useMemo } from "react";
-import { appearances_of, attributes_of, behaviours_of, children, def_at, def_of, diagram_kind,
-         edges_in, heading,
-         interface_at, is_notation, is_behaviour, is_group, is_reference, isa, lattice_of,
-         may_retype, members_of, of_ref, opens, owner_of, package_of, path, role_of, shown_name,
-         stands_for, stood_def, tag_at, tags_of, BASE_PACKAGE, DIAGRAM_QUESTIONS, DIAGRAMS,
-         type Act, type Block, type Graph, type Id } from "@mnd/core";
+import { appearances_of, attributes_of, behaviours_of, children, def_at, def_of,
+         definition_uses, diagram_kind, edges_in, heading, interface_at, is_model, is_notation,
+         is_behaviour, is_group, is_reference, isa, lattice_of, may_retype, members_of, of_ref,
+         opens, owner_of, package_of, path, role_of, shown_name, stands_for, stood_def, subtypes,
+         tag_at,
+         tags_of, BASE_PACKAGE, DIAGRAM_QUESTIONS, DIAGRAMS, type Act, type Block, type Graph,
+         type Id } from "@mnd/core";
 import { Icon, role_icon } from "@mnd/theme";
 import { class_graph, entry_look, look_of, tint_attrs } from "@mnd/views";
 import { Painted } from "./Carried";
@@ -21,17 +22,20 @@ export type OverviewProps = {
   graph: Graph;
   id: Id;
   onAct?: Act;
+  /** The side the canvas looks at, so the overview offers what reading there does, and the way
+   *  across to the other side. */
+  lists?: "domain" | "structure";
 };
 
 /** One count: how many, and what of. */
 type Count = [number, string];
 
-export function Overview({ graph, id, onAct }: OverviewProps) {
+export function Overview({ graph, id, onAct, lists }: OverviewProps) {
   const b = graph.blocks[id];
-  /** What uses it, worked out once: a definition's usages, else what refers to it. */
-  /** **One object**: a block's users are every other appearance of it, a stand-in's too. */
+  /** What uses it, worked out once: a definition's uses, else what refers to it. **One object**:
+   *  a block's users are every other appearance of it, a stand-in's too. */
   const users = useMemo(() => (b?.def
-    ? Object.values(graph.blocks).filter((u) => !u.def && u.type === id)
+    ? definition_uses(graph, id).flatMap((u) => graph.blocks[u.id] ?? [])
     : appearances_of(graph, id).filter((u) => u !== id).map((u) => graph.blocks[u]!)),
   [graph, id, b]);
   if (!b) return null;
@@ -39,8 +43,15 @@ export function Overview({ graph, id, onAct }: OverviewProps) {
   const seen = of_ref(graph, id) ? stands_for(graph, id)?.id ?? id : id;
   const kind = diagram_kind(graph, seen);
   const role = role_of(graph, seen);
-  /** A room offers to be opened and read alone. */
-  const drawn = opens(graph, seen) && !b.def;
+  /** A room offers to be opened and read alone; a definition, in the library, where it is used;
+   *  a model, in the models, its drawing. */
+  const used = !!b.def && definition_uses(graph, id).length > 0;
+  const model = is_model(graph, id);
+  const drawn = b.def ? (lists === "domain" ? used : model) : opens(graph, seen);
+  /** **The way across is asked for**: a model read in the library is drawn in the models; a
+   *  definition picked in the models is read where it is used, in the library. */
+  const across = !onAct ? null : model && lists === "domain" ? "view model"
+    : used && lists !== "domain" ? "uses" : null;
   /** An empty plain block may become any kind it fits. */
   const promotes = !b.def && !kind && !parts(graph, id).length && !of_ref(graph, id)
     && !is_notation(graph, id) && !!onAct;
@@ -54,12 +65,23 @@ export function Overview({ graph, id, onAct }: OverviewProps) {
           {kind ? <span> · {DIAGRAM_QUESTIONS[kind]}</span> : null}
         </span>
         <div className="thumb"><Picture graph={graph} id={id} /></div>
-        {drawn && onAct ? (
+        {(drawn || across) && onAct ? (
           <span className="opens">
-            <button className="chip open" onClick={() => onAct("open", { id })}>open</button>
-            <button className="chip open" title="enter it: its own view, alone"
-                    onClick={() => onAct("read", { id: seen })}>read</button>
-
+            {drawn ? (
+              <>
+                <button className="chip open" onClick={() => onAct("open", { id })}>open</button>
+                <button className="chip open" title="enter it: its own view, alone"
+                        onClick={() => onAct("read", { id: seen })}>read</button>
+              </>
+            ) : null}
+            {across ? (
+              <button className="chip open"
+                      title={across === "uses" ? "read where it is used, in the library"
+                        : "draw it, in the models"}
+                      onClick={() => onAct(across === "uses" ? "@uses" : "@view_model", { id })}>
+                {across}
+              </button>
+            ) : null}
           </span>
         ) : null}
         {becomes.length ? (
@@ -265,7 +287,7 @@ function counts(graph: Graph, b: Block, kind: Id | null, usages: number): Count[
   if (b.def) {
     return [[attributes_of(graph, b.id).length, "fields"],
             [behaviours_of(graph, b.id).length, "behaviours"],
-            [usages, "usages"]];
+            [usages, "usages"], [subtypes(graph, b.id).length, "subtypes"]];
   }
   switch (kind) {
     case "flow": return [[held.length, "steps"], [decisions, "decisions"],

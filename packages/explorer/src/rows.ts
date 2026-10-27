@@ -2,10 +2,10 @@
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
 import { alias_of, branch_of, children, domain_of, KINDS, library_of, of_ref, on_side, opens,
-         is_folder, is_grid, is_notation, is_box, is_named, relation_base, role_of, setting_of, shown_name, stamps_of, tops_of,
+         is_folder, is_grid, is_notation, is_box, is_named, relation_base, role_of, setting_of, shown_name, tops_of,
          type Block, type Cut, type Graph, type Id, type Lists, type Registry,
          type Role } from "@mnd/core";
-import { known, MARK_ICON, role_icon, type IconName } from "@mnd/theme";
+import { known, role_icon, type IconName } from "@mnd/theme";
 import type { Chain } from "./chain";
 
 /** What a row reads as: a block's role, as its card reads, or one of the tree's own marks. */
@@ -32,8 +32,6 @@ export type Row = { id: Id; depth: number; label: string; kids: number; mark: Ma
                     registry?: Registry;
                     /** The usage a part is seen through: a block of its definition's structure. */
                     via?: Id;
-                    /** Whether it roots a structure, as its card's structure mark says. */
-                    held?: boolean;
                     /** Whether the label is a chosen name or the type word. */
                     named: boolean;
                     /** The handle an unnamed row wears. */
@@ -49,7 +47,7 @@ export const OPENED = "+";
 const OWN: Record<Own, IconName> = {
   locked: "locked",
   vocabulary: "word_def",
-  usages: MARK_ICON.structure!,
+  usages: "role_root",
   root: "role_folder",
   package: "word_pkg",
   line: "relation_plain",
@@ -179,9 +177,7 @@ function branch_rows(graph: Graph,
   const lib = at.lists === "domain" && graph.blocks[id]!.parent === null ? library_of(graph, id) : {};
   const groups = KINDS.filter((k) => lib[k]?.length).length;
   out.push({ ...block_row(graph, id, depth, parts.length + own.length + groups, row_key),
-             ...(via ? { via } : {}),
-             ...(at.lists !== "structure" && stamps_of(graph, id).includes("structure")
-               ? { held: true } : {}) });
+             ...(via ? { via } : {}) });
   /** Parts are never listed whole: a definition may be reached through itself. */
   const every = at.every && !via && !parts.length;
   if (!every && !opened(folded, row_key)) return;

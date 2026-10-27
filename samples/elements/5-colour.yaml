@@ -1,4 +1,5 @@
 name: Colour
+type: model
 note: Colour and line, set on a card. A family or a hue picks its colour; fill, border and opacity say how it is drawn.
 blocks:
   - { name: primary, settings: { style: { family: primary } } }

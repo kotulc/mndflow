@@ -4,7 +4,7 @@
 import type { Settings } from "./components";
 import { is_folder, is_region, organizes } from "./holders";
 import { entry_at, is_form, library_home, library_names, type_at } from "./library";
-import { is_container } from "./tree";
+import { children, is_container } from "./tree";
 import { BASE_BLOCKS, BASE_COMPONENTS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIAGRAMS, DIRS,
          KIND_BASE, KIND_FAMILIES, NOTATION,
          TRAITS, type Block,
@@ -527,20 +527,36 @@ export function in_definitions(graph: Graph, id: Id): boolean {
   return is_folder(graph, id) && is_domain(graph, id);
 }
 
-/** Whether a definition-side block holds structure directly: a child, interfaces apart, that is
- *  not on the definition side. */
-export function holds_usages(graph: Graph, id: Id): boolean {
-  if (!is_domain(graph, id)) return false;
-  return Object.values(graph.blocks).some((c) => c.parent === id
-    && module_of(graph, c.id) !== "interface" && !is_domain(graph, c.id));
+/** Whether a block is a model: a definition extending base `model`, never the base itself. **A
+ *  model is what is built**, the one thing drawn on directly; it is never instanced, only used as
+ *  a part. */
+export function is_model(graph: Graph, id: Id | null | undefined): boolean {
+  return !!id && !is_base(id) && !!graph.blocks[id]?.def && base_named(graph, id) === "model";
 }
 
-/** Whether a block roots a structure. The workspace does, empty or not. A definition does when it
- *  holds structure directly. A folder never does, nor any other package root, nor a block already
- *  inside a structure. */
-export function roots_structure(graph: Graph, id: Id): boolean {
-  if (id === graph.root) return true;
-  return !!graph.blocks[id]?.def && holds_usages(graph, id);
+/** Every model, in package order then reading order; only `pkg`'s where it is said. Models sit
+ *  where definitions do: under a package and its definitions folders. Read once per set of
+ *  blocks. */
+export function models(graph: Graph, pkg?: Id): Block[] {
+  return kept(graph, `models|${pkg ?? "*"}`, () => {
+    const out: Block[] = [];
+    const walk = (at: Id) => {
+      for (const b of children(graph, at)) {
+        if (is_model(graph, b.id)) out.push(b);
+        else if (holds_defs(graph, b.id)) walk(b.id);
+      }
+    };
+    for (const p of packages(graph)) if (!pkg || p.id === pkg) walk(p.id);
+    return out;
+  });
+}
+
+/** The model a block sits in, itself where it is one; null outside every model. Definitions
+ *  never nest, so the definition above a block is the only one it can be. */
+export function model_of(graph: Graph, id: Id): Id | null {
+  if (is_model(graph, id)) return id;
+  const owner = owner_def(graph, id);
+  return owner && is_model(graph, owner) ? owner : null;
 }
 
 /** The definition a block sits in the structure of, where one is above it. */

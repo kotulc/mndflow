@@ -14,7 +14,9 @@ The object graph: **two element kinds**, blocks and relationships, and every oth
 
 - **A definition is a named tree.** It is used and extended by `type`, whether or not anything does, and is never itself placed or linked as an instance.
 - **A usage may be a tree too**, placed straight in a domain, under a package root or a domain folder.
-- **Definition side and structure**: a package root, a definition, or a folder reached from its package root through folders alone is on the definition side (`is_domain`); everything else is structure. The explorer's sections list by side. The structure mark (`roots_structure`) is the workspace, always, and a definition that holds structure. A folder never wears it.
+- **Definition side and structure**: a package root, a definition, or a folder reached from its package root through folders alone is on the definition side (`is_domain`); everything else is structure. The explorer's sections list by side.
+- **A model is a definition extending base `model`** (`is_model`): what is built, drawn on directly in the models section, its parts the usages it holds. One model is never instanced; another model uses it as a part. `models` lists them, `model_of` names the one a block sits in. Its icon, the tree, is worn by nothing else.
+- **A definition's uses** (`uses.ts` `definition_uses`) are the usages typed by it, references to it and lines typed by it, inside any model at any depth. Parts of a definition that is not a model are not counted on their own.
 - **Frozen**: any package but the workspace's is read only. A definition from one is subtyped, never edited.
 - **Removing a definition or a package that something uses is refused.** Nothing is rewritten to make way.
 

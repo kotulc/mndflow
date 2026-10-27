@@ -1,4 +1,5 @@
 name: Notation
+type: model
 note: What a diagram draws with besides its parts. Marks, annotations and holders never list in the explorer.
 blocks:
   - { name: Begin, type: start }

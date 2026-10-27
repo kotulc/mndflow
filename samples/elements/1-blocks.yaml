@@ -1,4 +1,5 @@
 name: Blocks
+type: model
 note: Every block and diagram kind on its small face, its name alone; the icon says what sort of thing it is.
 blocks:
   - { name: A block }

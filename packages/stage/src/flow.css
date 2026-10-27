@@ -462,13 +462,9 @@
    title (`AIR.clear`), and its blocks have a little more air inside (`PAD`, views `map.ts`). */
 .mnd-chip.diagram .mnd-chip-body { right: 10px; bottom: 10px; left: 10px; }
 
-/* **A library chip whose definition holds blocks** wears a card's stacked edge
-   (`.mnd-card.container`); a group in a diagram's chip is a tinted panel. */
-.mnd-chip.holds {
-  box-shadow: inset 0 0 0 calc(var(--edge-w, 1px) / var(--zoom, 1)) var(--edge, var(--card-line)),
-              3px 3px 0 -1px var(--bg), 3px 3px 0 0 var(--chip-line, var(--muted));
-}
-.mnd-chip.diagram .mnd-chip-tile.group {
+/* A group in a diagram's chip, and a model's box in a library chip's preview of its uses, is a
+   tinted panel. */
+.mnd-chip .mnd-chip-tile.group {
   border-color: transparent;
   background: color-mix(in oklch, var(--muted) 10%, transparent);
 }

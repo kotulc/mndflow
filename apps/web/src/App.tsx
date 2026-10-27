@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { all_defs, appearances_of, collect, diagram_kind, domain_of, drop_of, touches_of,
-         held_at, in_section, is_base, is_inside, is_layer_view, lens_of, object_of,
+         held_at, in_section, is_base, is_inside, is_layer_view, object_of,
          path, registry_at, registry_id, registry_of,
          session, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
-import { area_of, box_of, clear_of, empty_of, holds, layer_scene, library_map,
-         map_focus, model_map, project, set_aspect, set_card as apply_card, stop_area, BLOCK,
-         CARD, EMPTY, laid_ahead, UNITS, type Area, type Scene } from "@mnd/views";
+import { area_of, box_of, clear_of, empty_of, holds, layer_scene, map_focus, project,
+         section_map, set_aspect, set_card as apply_card, stop_area, BLOCK, CARD, EMPTY,
+         laid_ahead, UNITS, type Area, type Scene } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
 import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
 import { Stage, FLIGHT, still, type Move } from "@mnd/stage";
@@ -117,30 +117,23 @@ export function App({ storage, boot, opening }: {
   /** Rooms fill toward the window's shape: steady while the tray opens and shuts. */
   const aspect = set_aspect(Math.round((window.innerWidth / Math.max(1, window.innerHeight)) * 10) / 10);
 
-  /** How many cards a row holds: a page (package, folder) as many as the canvas is wide;
-   *  any other layer four on a landscape canvas, two on a taller one. */
-  const [canvas, set_canvas] = useState<HTMLElement | null>(null);
-  const room = useBox(canvas);
-  const paged = !is_layer_view(view.kind) || view.kind === "folder";
-  const across = paged
-    ? Math.max(2, Math.floor(room.w / ((card.w + UNITS.gap) * UNITS.unit)))
-    : room.h > room.w ? 2 : 4;
-
-  /** **The map, the model's and the library's**: one treemap of the side the explorer lists,
-   *  worked out on every graph change. A registry draws its own view. */
+  /** **The map, the models' and the library's**: one treemap of the side the explorer lists,
+   *  worked out on every graph change. A component registry draws its own view; a definition's
+   *  is entered from the library's map, which stays behind it. */
   const lists = SLICES[view.at]!.lists;
   const pkg = view.layer && graph.blocks[view.layer]
     ? path(graph, view.layer)[0]?.id ?? null : null;
-  const root = lists === "structure" ? pkg ?? graph.root : null;
-  const map = useMemo(() => (!lists || view.kind === "registry" ? null
-    : lists === "domain" ? library_map(graph) : model_map(graph, root!)),
-  [graph, lists, root, view.kind === "registry", card, aspect]);
+  const component = view.kind === "registry" && !graph.blocks[view.layer ?? ""];
+  const map = useMemo(() => (!lists || component ? null : section_map(graph, lists)),
+    [graph, lists, component, card, aspect]);
+  /** What the map is gone to: the layer looked into, else the pick on the whole map. */
+  const focus_id = is_layer_view(view.kind) ? view.layer : view.pick;
   /** Counted up by every open, so opening the focus again flies back to it. */
   const [opened, set_opened] = useState(0);
   /** Where the map's camera stops instead of the focus's area: a chip filling the view, while it
    *  is entered or left. */
   const [through, set_through] = useState<(Area & { scale: number }) | null>(null);
-  const focus_area = map ? stop_area(graph, map, view.layer) : null;
+  const focus_area = map ? stop_area(graph, map, focus_id) : null;
   /** **The block entered from the map**: its own view, drawn alone, held while the open layer is
    *  it or inside it. Opening anything above it returns to the map, as Escape does. */
   const [entry, set_entry] = useState<Id | null>(null);
@@ -167,20 +160,21 @@ export function App({ storage, boot, opening }: {
 
   /** Projected once per graph, view, layer or proportion change. */
   const scene = useMemo((): Scene => {
-    if (mapped) return map_focus(graph, map!, view.layer);
+    if (mapped) return map_focus(graph, map!, focus_id);
     if (ahead) return waiting ? last.current ?? { ...EMPTY, layer: view.layer } : laid!.scene;
-    return project(graph, view.layer, { interfaces: shown.interfaces, across,
+    return project(graph, view.layer, { interfaces: shown.interfaces,
                                         look: { kind: view.kind, cut: SLICES[view.at]!.cut,
-                                                tops: true, ...(lists ? { lists } : {}) } });
-  }, [graph, map, mapped, ahead, waiting, laid, view.layer, view.kind, view.at, shown.interfaces,
-      card, across]);
+                                                ...(lists ? { lists } : {}) } });
+  }, [graph, map, mapped, ahead, waiting, laid, focus_id, view.layer, view.kind, view.at,
+      shown.interfaces, card]);
   last.current = scene;
   /** The camera holds the chip filling the view until the entered layer answers and cuts to it. */
   useEffect(() => { if (!scene.areas) set_through(null); }, [scene.areas]);
 
-  /** **The canvas edits in every view but the map**: what a view cannot hold, core refuses and
-   *  says why. */
-  const arranging = !mapped && !waiting && scene.slots.includes("layer");
+  /** **The canvas edits in every entered view but a registry**: what a view cannot hold, core
+   *  refuses and says why. A map and a registry are read, never built on. */
+  const editable = !mapped && view.kind !== "registry";
+  const arranging = editable && !waiting && scene.slots.includes("layer");
 
   /** **The sections follow the canvas** — one rule (`held_at`), whatever moved it: the layer opened,
    *  or a pick on the overhead view. Browsing outside the open structure moves neither. */
@@ -209,16 +203,30 @@ export function App({ storage, boot, opening }: {
   /** A map area the camera fills the view with: no ceiling, so a chip is flown right into. */
   const filling = (a: Area | null) => (a ? { ...a, scale: FILL } : null);
 
-  /** **Entering from the map**: the camera flies into the chip until it fills the view, then the
-   *  block's own view takes over there, fading in. Only what opens on a view is entered. Without
-   *  a map, or with reduced motion, it is entered at once. */
-  const enter = (id: Id, at?: unknown) => {
-    if (!id || !lens_of(s.graph(), id)) return;
-    if (id !== s.view().layer) act("open", { id, ...(at === undefined ? {} : { at }) });
-    const area = map && !entered ? filling(area_of(s.graph(), map, id)) : null;
-    if (!area || still()) { set_entry(id); return; }
+  /** **Reading**: core says what a subject enters (`Session.read`). From the map the camera flies
+   *  into the chip until it fills the view, then the entered view takes over there, fading in;
+   *  without a map, or with reduced motion, at once. Inside an entered view the entry stays,
+   *  unless reading went somewhere outside it — a use read from a definition's registry — whose
+   *  layer becomes the entry before it draws, so the map never shows between. What enters
+   *  nothing is opened instead: focused on its map, or picked where it is. */
+  const enter = (id: Id, at?: unknown, inner = false) => {
+    if (!id) return;
+    const from = typeof at === "number" ? { from: at } : {};
+    const to = s.read(id, { ...from, ...(inner ? { inner } : {}) });
+    /** A box only a drawing has — a model's box in a registry — is a place, not a block. */
+    if (!to) {
+      if (s.graph().blocks[id]) act("open", { id, ...(at === undefined ? {} : { at }) });
+      return;
+    }
+    set_opened((n) => n + 1);
+    t.release();
+    follow();
+    const layer = to.layer!;
+    if (entered && path(s.graph(), layer).some((b) => b.id === entry)) return;
+    const area = map && !entered ? filling(area_of(s.graph(), map, inner ? layer : id)) : null;
+    if (!area || still()) { flushSync(() => set_entry(layer)); return; }
     set_through(area);
-    window.setTimeout(() => set_entry(id), FLIGHT);
+    window.setTimeout(() => set_entry(layer), FLIGHT);
   };
 
   /** **Leaving**: the map takes over with the chip filling the view, and the camera flies out to
@@ -237,7 +245,11 @@ export function App({ storage, boot, opening }: {
     if (name === "undo") { s.undo(); return; }
     if (name === "redo") { s.redo(); return; }
     /** Entering and leaving a room are not steps. */
-    if (name === "read") { enter(String(args?.["id"] ?? s.view().layer ?? ""), args?.["at"]); return; }
+    if (name === "read") {
+      enter(String(args?.["id"] ?? s.view().pick ?? s.view().layer ?? ""), args?.["at"],
+            args?.["inner"] === true);
+      return;
+    }
     if (name === "widen") { leave(); return; }
     s.go(name, args ?? {});
     if (name === "open") set_opened((n) => n + 1);
@@ -287,6 +299,13 @@ export function App({ storage, boot, opening }: {
       if (type === "region") { act("group", { type, members: [], layer: here }); return; }
       const named = type === "note" || type === "label" ? prompt(`the ${type} says`) : "";
       if (named !== null) act("create", { name: named, type, parent: here });
+      return;
+    }
+    /** **Crossing sections is asked for**: the tray's *view model* enters a model in the models,
+     *  its *uses* a definition's registry in the library. */
+    if (name === "@view_model" || name === "@uses") {
+      const side = name === "@view_model" ? "structure" : "domain";
+      enter(String(args!["id"]), SLICES.findIndex((x) => x.lists === side));
       return;
     }
     /** The rail's quick editor: the workspace and the open package, in the tray. */
@@ -349,7 +368,7 @@ export function App({ storage, boot, opening }: {
   /** A section's header: the canvas draws it whole from its top, nothing held or picked; the tray
    *  shows the section — every definition, or the workspace. */
   const section = (at: number) => {
-    s.see("package", null, at);
+    s.see("map", null, at);
     chain.onClear?.(at);
     if (SLICES[at]!.lists === "domain") {
       t.onHold({ of: "defs", only: "all" });
@@ -436,9 +455,13 @@ export function App({ storage, boot, opening }: {
         onFold={(id, shut) =>
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
         onPick={pick}
-        /** A room drawn on the map is entered, as a double-click enters it. */
-        onOpen={({ at, id, via }) => act(via ? "reveal"
-          : mapped ? "read" : "open", { id, at })}
+        /** **Opening a row reads it**, as a double-click on its card does. A part seen through a
+         *  usage is revealed on the usage's layer, where it is drawn: never in its definition. */
+        onOpen={({ at, id, via }) => {
+          if (!via) { act("read", { id, at }); return; }
+          act("read", { id: via, at });
+          s.pick([id]);
+        }}
         onLeave={() => act("open")}
         onSection={section}
         onNamed={(id) => t.onHold({ of: "id", id })}
@@ -454,7 +477,7 @@ export function App({ storage, boot, opening }: {
         keys={zones.zone === "explorer"}
       />
 
-      <main ref={set_canvas}>
+      <main>
         <Stage
           scene={scene}
           graph={graph}
@@ -516,7 +539,8 @@ export function App({ storage, boot, opening }: {
            *  moved about. Outside the world, those and a folder are read down the page, fitted to
            *  their width: a section from its anchor. */
           onAdjust={arranging && !whole ? adjust : () => undefined}
-          scroll={!mapped && (whole || view.kind === "folder" || diagram)}
+          editable={editable}
+          scroll={!mapped && (whole || diagram)}
           entered={entered && !!map}
           opened={opened}
           stop={scene.areas
@@ -530,6 +554,7 @@ export function App({ storage, boot, opening }: {
           graph={graph}
           /** A block drawn as what it means is what the tray is about. */
           layer={system ? null : view.layer}
+          {...(lists ? { lists } : {})}
           open={t.open}
           onOpen={t.onOpen}
           {...(t.tab ? { tab: t.tab } : {})}
@@ -559,20 +584,6 @@ export function App({ storage, boot, opening }: {
 
 /** The editor's sections, made once. */
 const SLICES = editor_slices();
-
-/** How big an element is, in pixels, as it is resized; nothing until there is one. */
-function useBox(element: HTMLElement | null): { w: number; h: number } {
-  const [box, set_box] = useState({ w: 0, h: 0 });
-  useEffect(() => {
-    if (!element) return;
-    const watch = new ResizeObserver(([entry]) => set_box({
-      w: entry?.contentRect.width ?? 0, h: entry?.contentRect.height ?? 0,
-    }));
-    watch.observe(element);
-    return () => watch.disconnect();
-  }, [element]);
-  return box;
-}
 
 /** How far a chip is flown into as it is entered: no ceiling, the view filled. */
 const FILL = 0.01;

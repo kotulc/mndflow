@@ -1,4 +1,5 @@
 name: Lines
+type: model
 settings:
   layout: { kind: layered }
 note: Every relation the base ships, and the ways a line points. A line's ends say how many, in what role, and who owns whom.

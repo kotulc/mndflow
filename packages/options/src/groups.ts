@@ -95,7 +95,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
   out.push({
     key: "workspace", label: "workspace",
     controls: [
-      { key: "workspace", icon: "role_root", word: "workspace", verb: true,
+      { key: "workspace", icon: "word_wks", word: "workspace", verb: true,
         tip: "The workspace's name, description, file and display", run: () => act("@workspace") },
       ...(chrome.pkg ? [{ key: "package", icon: "word_pkg" as const, word: "package", verb: true,
         tip: "The open package's name and description", run: () => act("@package_info") }] : []),

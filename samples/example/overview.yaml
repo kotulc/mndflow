@@ -1,5 +1,5 @@
 name: Overview
-type: internal
+type: model
 settings:
   layout: { kind: layered }
 note: "One shop, seen from every side: open Shop for its parts, and a part for its own diagram. Every part is a usage of a definition in Parts or Records."

@@ -119,6 +119,7 @@
 - **One act, and the holder says which**: a value on a usage and an attribute on a definition are the same thing said of two holders.
 - **A type is named, never typed out**: `type` names a form, a type or a block definition by id or name; a name nothing holds makes a type of the workspace's, an alias of `text`.
 - **`define` lands where the user is**: in the open domain, in the holder picked. Its domain (block or relation) is read off what it extends; absent, `block`. Its id is minted, or passed in by a caller that must know it.
+- **A new model is `define` extending `model`**: no action of its own. `read` is navigation, not an action: the session's `read` (core `read_at`) says what a subject enters, and logs nothing.
 - **A name is unique in its package**, across definitions and library entries.
 - **A name is unique among its siblings**: an act giving two siblings one name is refused, so a name ref finds one block.
 

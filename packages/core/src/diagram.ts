@@ -87,6 +87,8 @@ type Map = Record<string, unknown>;
 export function long_form(front: Map, body?: string): LongForm {
   const top = entry(front);
   if (body) top.body = body;
+  /** **A file's block typed `model` is a model**: a definition holding the layer it states. */
+  if (top.type === "model") top.def ??= {};
   const blocks: Entry[] = [];
   const said = typeof front["note"] === "string" ? front["note"].trim() : "";
   /** A note on the file is about its whole layer: untied, it floats beside all of it. */

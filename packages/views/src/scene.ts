@@ -69,8 +69,6 @@ export type BoxData = {
   tiles?: readonly InnerTile[];
   /** A diagram's chip: its inner tiles laid by its structure. */
   diagram?: boolean;
-  /** A library chip whose definition holds blocks: it wears a card's stacked edge. */
-  stacked?: boolean;
   /** What a map chip counts, said in words: its blocks, lines and components, or its uses. */
   counts?: string;
   /** A diagram chip's kind, said beside its name. */

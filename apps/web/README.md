@@ -25,7 +25,7 @@ web   ◀
 | `workspace` | the file opened while storage is empty. An existing log always wins; reset still starts empty |
 | `catalogue` | where the packages catalogue is listed |
 | `theme` · `tray` · `display` | the chrome's defaults; a theme chosen in the browser wins |
-| `view` | a system view to land on; a layer view is the home's |
+| `view` | the map to land on; a layer view is ignored, as home is the models' map |
 
 The app reads the file and never writes it; it is not a graph. A key or value it does not read is said once on the stage, and the app still opens.
 
