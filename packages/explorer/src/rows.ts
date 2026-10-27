@@ -47,7 +47,7 @@ export const OPENED = "+";
 const OWN: Record<Own, IconName> = {
   locked: "locked",
   vocabulary: "word_def",
-  usages: "role_root",
+  usages: "forest",
   root: "role_folder",
   package: "word_pkg",
   line: "relation_plain",

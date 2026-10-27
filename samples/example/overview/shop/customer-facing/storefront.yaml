@@ -1,5 +1,6 @@
 name: Storefront
 type: service
+packages: [ services ]
 owner: Web
 tags: [ critical, orders ]
 description: "An internal diagram: what the storefront is made of. Its pages meet through typed ports; its own ports sit on its walls."

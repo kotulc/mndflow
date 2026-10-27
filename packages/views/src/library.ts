@@ -43,12 +43,12 @@ export function box_model(def: Id, id: Id): Id | null {
 }
 
 /** **A definition's uses laid out, once**: a box per model, each use as large as it weighs; a lone
- *  box left out, as the frame says it. Placed at card scale; smaller maps scale it down. */
-export function usage_layout(graph: Graph, def: Id): Placed[] {
+ *  box left out, as the frame says it. Placed at card scale, or filling `size`. */
+export function usage_layout(graph: Graph, def: Id, size?: { w: number; h: number }): Placed[] {
   const boxes: Weighed[] = usage_groups(graph, def).map((g) => ({
     id: usage_box(def, g.model), weight: 0,
     kids: g.uses.map((u) => ({ id: u.id, weight: u.weight })) }));
-  return tiled(boxes.length === 1 ? boxes[0]!.kids! : boxes);
+  return tiled(boxes.length === 1 ? boxes[0]!.kids! : boxes, size);
 }
 
 /** What a usage box is called: its model, and the model's package where it is not the
@@ -75,19 +75,13 @@ export function filed(graph: Graph, id: Id): Id[] {
 export type Tile = { id: Id; label: string; kind: "box" | "use" | "line" | "def";
                      x: number; y: number; w: number; h: number };
 
-/** A definition's registry as a small map `w` by `h`: **the registry's own layout**, scaled to
- *  fit and centred. */
+/** A definition's registry as a small map `w` by `h`: **the registry's own layout**, laid to fill
+ *  the map rather than scaled into it. */
 export function registry_map(graph: Graph, def: Id, w: number, h: number): Tile[] {
-  const laid = usage_layout(graph, def);
-  if (!laid.length) return [];
-  const right = Math.max(...laid.map((p) => p.x + p.w));
-  const bottom = Math.max(...laid.map((p) => p.y + p.h));
-  const k = Math.min(w / right, h / bottom);
-  const [dx, dy] = [(w - right * k) / 2, (h - bottom * k) / 2];
-  return laid.map((p): Tile => {
+  return usage_layout(graph, def, { w, h }).map((p): Tile => {
     const model = box_model(def, p.id);
     const e = graph.edges[p.id];
-    return { id: p.id, x: dx + p.x * k, y: dy + p.y * k, w: p.w * k, h: p.h * k,
+    return { id: p.id, x: p.x, y: p.y, w: p.w, h: p.h,
              kind: model ? "box" : e ? "line" : "use",
              label: model ? box_label(graph, model)
                : e ? `${shown_name(graph, e.from)} → ${shown_name(graph, e.to)}`

@@ -36,6 +36,9 @@ const AIR = { inner: 6, outer: 6, clear: 16, share: 0.06, title: 26 };
 const HEAD = 40;
 const PAD = { chip: 4, diagram: 10 };
 
+/** How narrow a tall chip is before its head turns upright, as if the chip were turned -90°. */
+const UPRIGHT = 64;
+
 /** How wide a card reads, width over height: the shape a diagram chip's tiles aim at. */
 const CELL = 1.5;
 
@@ -192,11 +195,15 @@ function mapped(graph: Graph, tree: Leaf, title: string): Scene {
       nodes.push({ ...cell(id, box, data, "box"), draggable: false });
       continue;
     }
+    /** Narrow and tall, its head runs up its left side and its body sits beside it. */
+    const upright = box.w < UPRIGHT && box.h > box.w;
+    const head = upright ? { w: HEAD, h: 0 } : { w: 0, h: HEAD };
     nodes.push({ ...cell(id, box, { ...data, counts: chip.counts,
                                     ...(chip.kind ? { kind: chip.kind } : {}),
-                                    ...(chip.uses ? previewed(graph, chip.block, box, HEAD)
+                                    ...(upright ? { upright } : {}),
+                                    ...(chip.uses ? previewed(graph, chip.block, box, head)
                                       : inner(graph, chip.block, chip.held, box, !!chip.diagram,
-                                              HEAD)),
+                                              head)),
                                     look: chip_look(graph, chip.block) },
                          "chip"), draggable: false });
   }
@@ -225,13 +232,22 @@ function members(graph: Graph, id: Id): Id[] {
     .map((b) => b.id);
 }
 
+/** A chip's body: the chip less its head, above or beside it, and the padding round the rest. */
+function body_of(box: { w: number; h: number }, head: Head, pad: number) {
+  return { w: Math.max(1, box.w - (head.w || pad) - pad),
+           h: Math.max(1, box.h - (head.h || pad) - pad) };
+}
+
+/** A chip's head: `h` tall above its body, or `w` wide beside it, upright. */
+type Head = { w: number; h: number };
+
 /** **A definition's chip previews its uses** as its registry lays them — the tray's small map of
- *  them, as shares of the chip's body under its head: a box per model, each use a small card.
+ *  them, as shares of the chip's body beside its head: a box per model, each use a small card.
  *  Empty where it is not used. */
 function previewed(graph: Graph, def: Id, box: { w: number; h: number },
-                   head: number): { tiles: InnerTile[] } {
-  const w = Math.max(1, box.w - 2 * PAD.chip), h = Math.max(1, box.h - head - PAD.chip);
-  if (h < 12) return { tiles: [] };
+                   head: Head): { tiles: InnerTile[] } {
+  const { w, h } = body_of(box, head, PAD.chip);
+  if (h < 12 || w < 12) return { tiles: [] };
   return { tiles: registry_map(graph, def, w, h).map((t): InnerTile => {
     const at = { id: t.id, label: t.label, x: t.x / w, y: t.y / h, w: t.w / w, h: t.h / h };
     if (t.kind !== "use") return t.kind === "box" ? { ...at, as: "group" } : at;
@@ -241,16 +257,15 @@ function previewed(graph: Graph, def: Id, box: { w: number; h: number },
   }) };
 }
 
-/** A chip's inner treemap: what it holds, each as large as it counts, in the chip's body under
- *  its head, `head` tall, padded round, as shares of the body. A
+/** A chip's inner treemap: what it holds, each as large as it counts, in the chip's body beside
+ *  its head, padded round, as shares of the body. A
  *  diagram's is laid by its structure instead (`laid`), its flow turned to fit the chip. A
  *  block's tile wears its own colour. */
 function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h: number },
-               diagram: boolean, head: number): { tiles: InnerTile[]; diagram?: true } {
-  const pad = diagram ? PAD.diagram : PAD.chip;
-  const w = Math.max(1, box.w - 2 * pad), h = Math.max(1, box.h - head - pad);
+               diagram: boolean, head: Head): { tiles: InnerTile[]; diagram?: true } {
+  const { w, h } = body_of(box, head, diagram ? PAD.diagram : PAD.chip);
   const mark = diagram ? { diagram: true as const } : {};
-  if (!held.length || h < 12) return { tiles: [], ...mark };
+  if (!held.length || h < 12 || w < 12) return { tiles: [], ...mark };
   const kind = diagram_kind(graph, block);
   const texture = kind === "class" ? { texture: "class" as const }
     : kind === "entity" ? { texture: "entity" as const } : {};

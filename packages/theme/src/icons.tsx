@@ -82,6 +82,8 @@ const PATHS = {
   role_treemap: "M3.5 3.5h17v17h-17zM12 3.5v17M12 11h8.5M12 15.75h8.5",
   // Where every usage hangs from: one node, and the branches it puts out.
   role_root: "M12 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M12 8.5v3.5M5 12h14M5 12v5M12 12v5M19 12v5M3.5 17h3M10.5 17h3M17.5 17h3",
+  // Every model at once: two roots side by side.
+  forest: "M7 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4M7 9v3M3.5 12h7M3.5 12v5M10.5 12v5M2.5 17h2M9.5 17h2M17 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4M17 9v3M13.5 12h7M13.5 12v5M20.5 12v5M12.5 17h2M19.5 17h2",
 
   // What a block of content is, for a package that names one per kind with `card.icon`. Drawn
   // as the mark each already spends in an editor: `#`, ¶, bullets, `</>`, quotes.

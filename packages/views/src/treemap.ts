@@ -44,8 +44,9 @@ export function treemapped(graph: Graph, layer: Id | null): Placed[] {
 }
 
 /** Tiles laid out on a landscape page, large enough that the lightest is about a card, within
- *  bounds so a heavy tile never blows the page up. Boxes keep a heading's room at their top. */
-export function tiled(tiles: Tile[]): Placed[] {
+ *  bounds so a heavy tile never blows the page up — or filling `size` where one is given. Boxes
+ *  keep a heading's room at their top. */
+export function tiled(tiles: Tile[], size?: { w: number; h: number }): Placed[] {
   if (!tiles.length) return [];
   const root = hierarchy<Tile>({ id: "", weight: 0, kids: tiles }, (t) => t.kids)
     .sum((t) => t.weight).sort((a, z) => (z.value ?? 0) - (a.value ?? 0));
@@ -61,7 +62,8 @@ export function tiled(tiles: Tile[]): Placed[] {
    *  them; tiles in a box keep a little air. */
   const headed = (n: { children?: { children?: unknown }[] }) =>
     !!n.children?.some((c) => c.children);
-  const laid = treemap<Tile>().tile(treemapBinary).size([w, h]).round(true)
+  const laid = treemap<Tile>().tile(treemapBinary).size(size ? [size.w, size.h] : [w, h])
+    .round(true)
     .paddingInner((n) => (headed(n) ? PAD : INNER))
     .paddingOuter((n) => (boxed(n) ? INNER : 0))
     .paddingTop((n) => (boxed(n) ? INNER : 0))(root);

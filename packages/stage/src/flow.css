@@ -446,6 +446,24 @@
 .mnd-chip.narrow .mnd-chip-icon {
   --icon: min(clamp(14px, calc(11px / var(--zoom, 1)), 22px), var(--cap, 22px));
 }
+/* **A narrow, tall chip reads upright**, as if the whole chip were turned -90°: its colour edge
+   along the bottom, its name from the bottom left reading up, its icon top left, turned with it,
+   and its body beside the head (`UPRIGHT`, views `map.ts`). */
+.mnd-chip.upright[data-family] {
+  border-left: none;
+  border-bottom: 3px solid var(--card-edge, var(--card-line));
+}
+.mnd-chip.upright .mnd-chip-head {
+  top: 30px;
+  right: auto;
+  bottom: 6px;
+  left: 5px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.mnd-chip.upright .mnd-chip-icon { right: auto; left: 6px; transform: rotate(-90deg); }
+.mnd-chip.upright .mnd-chip-body { top: 4px; left: 40px; }
+.mnd-chip.upright.diagram .mnd-chip-body { top: 10px; right: 10px; bottom: 10px; left: 40px; }
 /* **A diagram's chip looks as a library chip does**: flat tiles on the chip's own ground, its edge
    in its colour; what kind it is shows in how its inside is drawn — its layers, wide gaps between
    them and narrow ones within, its marks, a grid's strips and lines, a card's rules. */
@@ -608,9 +626,9 @@
   height: var(--icon);
   margin: 0;
 }
-/* A tile too small for its name shows its icon alone, where it ever sits, as wide as the tile
-   allows. */
-.mnd-chip-tile.iconed.bare { --icon: var(--cap, 9px); padding: 0; }
+/* A tile too small for its name shows its icon alone, where it ever sits, the size every tile's
+   icon is: never grown to fill the tile. */
+.mnd-chip-tile.iconed.bare { padding: 0; }
 
 /* Under the pointer: a brighter edge and ground. Picked: a wider accent edge, the accent in the
    ground. Nothing else lights on a map. */

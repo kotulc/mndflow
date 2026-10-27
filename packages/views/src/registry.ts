@@ -9,7 +9,7 @@ import { entry_at, is_folder, library_of, registry_at, registry_id, registry_of,
 import { carried, trail_of } from "./derive";
 import { box_label, box_model, usage_groups, usage_layout } from "./library";
 import { entry_look } from "./look";
-import { cell, type BoxNode, type Scene } from "./scene";
+import { cell, type BoxData, type BoxNode, type Scene } from "./scene";
 import { PAD } from "./size";
 import { tiled, type Tile } from "./treemap";
 
@@ -105,6 +105,13 @@ export function registry_scene(graph: Graph, id: Id): Scene | null {
   return graph.blocks[id]?.def ? uses_scene(graph, id) : null;
 }
 
+/** A block's small face out of its grid: a header heads nothing here, so it reads level and
+ *  wears its icon as any card does. */
+function loose(graph: Graph, id: Id): BoxData {
+  const data = carried(graph, id, "small");
+  return { ...data, marks: data.marks.filter((m) => m !== "header" && m !== "upright") };
+}
+
 /** A definition: its uses as they are laid out for every map of them — each block or reference
  *  its card's small face, each line a tile — in boxes of the models they sit in. */
 function uses_scene(graph: Graph, def: Id): Scene | null {
@@ -118,7 +125,7 @@ function uses_scene(graph: Graph, def: Id): Scene | null {
                              holds: held.get(model) ?? [] }, "group");
     }
     if (graph.edges[p.id]) return cell(p.id, p, { label: shown_name(graph, p.id), marks: [] }, "tile");
-    return cell(p.id, p, carried(graph, p.id, "small"));
+    return cell(p.id, p, loose(graph, p.id));
   });
   return drawn(def, shown_name(graph, def), nodes, trail_of(graph, def));
 }
@@ -174,7 +181,7 @@ function users_scene(graph: Graph, id: Id, registry: Registry): Scene {
   const max = Math.max(1, ...users.map((u) => uses_by(graph, id, u)));
   const nodes = tiled(alone(tiles)).map((p) => {
     /** A block is its card's small face: its tile's size is its uses, never its content. */
-    if (graph.blocks[p.id]) return cell(p.id, p, carried(graph, p.id, "small"));
+    if (graph.blocks[p.id]) return cell(p.id, p, loose(graph, p.id));
     if (graph.edges[p.id]) {
       const n = uses_by(graph, id, p.id);
       return cell(p.id, p, { label: shown_name(graph, p.id), marks: [], count: n, heat: n / max },

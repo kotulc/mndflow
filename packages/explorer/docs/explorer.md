@@ -20,7 +20,7 @@ The explorer files the graph as a **section chain**: a host declares its section
 | **host defined** | each `Slice` says its label, mark, first pick (`first`) and which side it lists |
 | **apart** | the model stands apart from the chain: what the library holds never changes what it lists |
 | **remembered** | a section remembers its pick per pick above — one standing apart, one pick; session state (`useChain`), never logged |
-| **headers are labels** | never chosen; clicking one hides or shows its whole section |
+| **headers are labels** | never chosen; clicking one hides or shows its whole section. Each wears its section's mark: the library `Def`, the models a forest — two roots, apart from the tree each model wears |
 | **section folds** | a section's chevron folds its branches and never its top rows: with any open it shuts them all, else it opens every one. A usage's parts stay listed only once it is opened |
 | **a layer a click** | the bar's fold, drawn like a section's, shuts the lowest open layer under every branch alike — each open branch with no open branch inside it — until only the top rows show. With nothing left to shut, it opens every section whole |
 | **three cues** | the accent's edge on the focus's row — the room the canvas is on, or the room holding a focused region; the pick a strong wash; each section's own pick a faint one |

@@ -1,11 +1,11 @@
 name: Orders
-type: service
+type: Transactional outbox
+packages: [ services ]
 owner: Commerce
 tags: [ orders ]
 description: Keeps every order and tells the rest of the shop when one is placed.
 ports:
   - { name: in, type: Events, flow: in, side: left }
-  - { name: events, type: Events, flow: out, side: right }
 blocks:
   - name: Order book
     type: Ledger

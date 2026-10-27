@@ -1,11 +1,9 @@
 name: Payments
-type: service
+type: Circuit breaker
+packages: [ services ]
 owner: Payments
 tags: [ payments, pii ]
 description: Takes money for an order, once, and says whether it was taken. Open it for how a charge is retried.
-ports:
-  - { name: charge, type: HTTP, flow: in, side: left }
-  - { name: provider, type: HTTP, flow: out, side: right }
 blocks:
   - name: Incident summary
     settings: { card: { face: document, size: { w: 8, h: 3 } } }

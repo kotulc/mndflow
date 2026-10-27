@@ -169,6 +169,11 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
     }
     for (const [id, e] of entries) seat(ctx, id, e);
     for (const [id, e] of entries) extent(graph, id, e);
+  }
+  /** Lines come once every block is typed, so an end names a port another file's block wears
+   *  through its definition. */
+  for (const r of own) {
+    const ctx = ctx_of(r);
     for (const [i, e] of r.form.relations.entries()) {
       const edge = relation(ctx, `${r.id}.r${i + 1}`, e);
       if (edge) graph.edges[edge.id] = { ...edge, alias: alias("relation") };

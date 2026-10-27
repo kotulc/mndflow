@@ -408,13 +408,14 @@ function MapBox({ data, selected }: NodeProps<BoxNode>) {
 function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
   const tint = data.look ? tint_attrs(data.look) : null;
   const pad = data.diagram ? 10 : 4;
-  const body = { w: (width ?? 0) - 2 * pad,
-                 h: (height ?? 0) - CHIP_HEAD - pad };
-  /** A chip too narrow for its name shows its icon alone. */
-  const narrow = (width ?? 0) < NARROW;
+  /** Its body less its head: above it, or beside it where the chip is upright. */
+  const body = { w: (width ?? 0) - (data.upright ? CHIP_HEAD : pad) - pad,
+                 h: (height ?? 0) - (data.upright ? pad : CHIP_HEAD) - pad };
+  /** A chip too narrow for its name shows its icon alone, but one turned upright. */
+  const narrow = !data.upright && (width ?? 0) < NARROW;
   return (
     <div className={["mnd-chip", data.diagram ? "diagram" : "",
-                     narrow ? "narrow" : "",
+                     narrow ? "narrow" : "", data.upright ? "upright" : "",
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
          {...(tint ? { "data-family": tint["data-family"] } : {})}
          style={{ ...(tint?.style ?? {}), "--cap": `${Math.max(0, (width ?? 0) - 8)}px` } as
@@ -440,7 +441,7 @@ function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
             const [w, h] = [t.w * body.w, t.h * body.h];
             const shown = named && w > NAMED && h > 10;
             /** As large as an icon may grow in this tile: beside its name, its height less a
-             *  margin and a third of its width; alone, all the room the tile has. */
+             *  margin and a third of its width; alone, never past the tile. */
             const cap = shown ? Math.min(h - 4, w / 3) : Math.min(w, h) - 4;
             const icon = plain && cap >= 5;
             return (

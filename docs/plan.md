@@ -195,12 +195,12 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | Area | Edge |
 |---|---|
 | **cards** | marks on a dark table card are faint; a reference previewing a table ignores its own look's border; notes still draw through `NoteNode`, not only `CardFace` |
-| **tray** | a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else |
+| **tray** | a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else; the definitions table's *extends* shows a sibling definition (`example/Ledger`) for one that extends nothing |
 | **overview** | the glance mounts a second React Flow, so node description ids repeat in the page; on the open layer with nothing picked it draws what the canvas already draws; a tag with no hue paints its share of the bar plain |
 | **tests** | `seat.test.ts` › *crosses straight where a group note sits square beside the group* failed on *Groups* and passes on *Deployment*. Nothing was fixed: watch it. |
 | **camera** | a short port drag lands short |
 | **React** | `flushSync was called from inside a lifecycle method`, once seen opening the profile and the package view from a layer; the package view is gone, recheck the profile |
-| **packages** | a definition file holds no parts, so a pattern's parts live in its package's `package.json`; base's `decision` and `architecture`'s share a name, so `type: decision` resolves to whichever the lookup finds first |
+| **packages** | a definition file holds no parts, so a pattern's parts live in its package's `package.json`; base's `decision` and `services`'s share a name, so `type: decision` resolves to whichever the lookup finds first |
 | **names** | unique siblings are refused only by `create`, `rename` and `move`; `label` and `group` write names unchecked. One home: where a name is written |
 | **paths** | a path names every region on the way (`Overview::Shop::Back office::Payments`), though layers look through them. Groups leave paths with plans/groups.md |
 | **diagram files** | a value named like a schema key never shows in a card source (*Tray keys*); a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |

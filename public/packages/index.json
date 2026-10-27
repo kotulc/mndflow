@@ -16,9 +16,9 @@
       "at": "sysml.json"
     },
     {
-      "name": "architecture",
-      "about": "architecture vocabulary and patterns: components, people, documents, the relations between them, and reusable service patterns",
-      "at": "architecture.json"
+      "name": "services",
+      "about": "service vocabulary and patterns: components, people, documents, the relations between them, and reusable service patterns",
+      "at": "services.json"
     },
     {
       "name": "example",
