@@ -12,21 +12,21 @@ blocks:
     blocks:
       - name: Gateway
         type: API gateway
-        owner: Web
+        values: { owner: Web }
         tags: [ critical ]
   - name: Back office
     type: region
     blocks:
       - name: Inventory
         type: service
-        owner: Commerce
+        values: { owner: Commerce }
         tags: [ fulfilment ]
         groups: [ fulfilment ]
         ports:
           - { name: events, type: Events, flow: in }
       - name: Shipping
         type: service
-        owner: Logistics
+        values: { owner: Logistics }
         tags: [ fulfilment ]
         groups: [ fulfilment ]
         ports:

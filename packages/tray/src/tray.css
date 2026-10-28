@@ -520,6 +520,7 @@ fieldset.fields { padding: 0; }
                text-transform: uppercase; letter-spacing: 0.08em; }
 .overview .why { margin: 0; line-height: 1.45; }
 .overview .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.overview .chips .chip { display: inline-flex; align-items: center; gap: 4px; }
 .overview .chip-like { display: inline-flex; align-items: center; gap: 4px; }
 .overview .chip-like.def { background: color-mix(in oklch, var(--card-edge, var(--accent)) 14%, transparent); }
 .overview .chip-like.dim { color: var(--muted); border-style: dashed; }

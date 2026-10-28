@@ -21,7 +21,7 @@ function seen(p: NodeProps<BoxNode>): string {
   return [
     p.selected, p.dragging, p.width, p.height,
     d.label, d.alias ?? "", d.description ?? "", d.def, d.on, d.side, d.role,
-    d.scale, d.counts ?? "", d.kind ?? "", (d.tiles ?? []).length,
+    d.counts ?? "", d.kind ?? "", (d.tiles ?? []).length,
     (d.stamps ?? []).join(","),
     d.face ?? "", d.text ?? "", d.marks.join(","),
     /** Read off the look, so no property is forgotten. */
@@ -320,6 +320,8 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
         {look.label === "above" && word ? <span className="mnd-kind card-label">{word}</span> : null}
         {look.head === false
           ? null : <Name id={id} className="mnd-group-name card-name" text={data.label} />}
+        {look.head !== false && data.alias
+          ? <span className="mnd-group-alias">{data.alias}</span> : null}
         {look.label === "inside" && word ? <span className="mnd-kind card-label">{word}</span> : null}
       </span>
       {look.label === "below" && word
@@ -503,29 +505,13 @@ function TileNode({ data, selected }: NodeProps<BoxNode>) {
   );
 }
 
-/** A node drawn at its scale: its face laid out at its own size and scaled into the box it was
- *  given. Only a library registry is scaled; **zoom never changes what a node draws**. */
-function scaled(Inner: React.ComponentType<NodeProps<BoxNode>>) {
-  return function Scaled(p: NodeProps<BoxNode>) {
-    const k = p.data.scale ?? 1;
-    return (
-      <div className="mnd-scaled"
-           style={{ width: `${100 / k}%`, height: `${100 / k}%`,
-                    transform: k === 1 ? undefined : `scale(${k})`,
-                    "--k": String(k) } as CSSProperties}>
-        <Inner {...p} />
-      </div>
-    );
-  };
-}
-
 /** Memoised on what each draws; see `seen`. */
-export const Card = memo(scaled(CardNode), same);
-export const Note = memo(scaled(NoteNode), same);
-export const Group = memo(scaled(GroupNode), same);
-export const Grid = memo(scaled(GroupNode), same);
-export const Seat = memo(scaled(SeatNode), same);
-export const Tile = memo(scaled(TileNode));
+export const Card = memo(CardNode, same);
+export const Note = memo(NoteNode, same);
+export const Group = memo(GroupNode, same);
+export const Grid = memo(GroupNode, same);
+export const Seat = memo(SeatNode, same);
+export const Tile = memo(TileNode);
 export const Box = memo(MapBox, same);
 export const Chip = memo(ChipNode, same);
 
@@ -535,7 +521,7 @@ export const NODE_TYPES = {
   group: Group,
   grid: Grid,
   seat: Seat,
-  frame: memo(scaled(Frame), same),
+  frame: memo(Frame, same),
   tile: Tile,
   box: Box,
   chip: Chip,

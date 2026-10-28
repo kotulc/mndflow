@@ -1,7 +1,8 @@
 /** What every module derives the same way. */
 
-import { attributes_of, def_of, dir_of, domain_of, frozen, head_of, lens_of, is_box, opens,
-         flow_of, is_notation, is_flat, notation_of, is_interface, is_named,
+import { alias_of, attributes_of, def_of, dir_of, domain_of, frozen, head_of, inline, is_group,
+         lens_of, is_box, opens, flow_of, is_notation, is_flat, notation_of, is_interface, is_named,
+         is_participant,
          base_of, path, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
          type Graph, type Id } from "@mnd/core";
 import { body_lines, face_table, face_text, handle_of, name_fit } from "./face";
@@ -51,8 +52,9 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
   if (opens(graph, id)) out.push("container");
   /** Wearing its type rather than a name somebody chose. */
   if (!is_named(graph, id)) out.push("unnamed");
-  /** A header, and one heading a row reads upright in its one-unit column. */
-  const role = head_of(graph, id);
+  /** A header, and one heading a row reads upright in its one-unit column. A participant is a
+   *  card. */
+  const role = is_participant(graph, id) ? null : head_of(graph, id);
   if (role) out.push("header");
   if (role === "row") out.push("upright");
   return out;
@@ -66,8 +68,14 @@ export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): 
   const look = look_of(graph, id);
   /** The handle, over the name — never on a header or a mark, which have no corner to wear it. */
   const shape = card_shape(graph, id);
-  const cornered = !head_of(graph, id) && shape !== "dot" && shape !== "ring" && shape !== "diamond";
-  const alias = cornered ? handle_of(graph, id, look) : "";
+  const cornered = (!head_of(graph, id) || is_participant(graph, id))
+    && shape !== "dot" && shape !== "ring" && shape !== "diamond";
+  /** A holder drawn as one — a group, or what draws inline — heads with its handle alone, never
+   *  a type word; closed, it is a card like any other. */
+  const holder = is_group(graph, id) || inline(graph, id);
+  const shown = look.alias !== false;
+  const alias = holder ? (shown ? alias_of(graph, id, look.alias === true) : "")
+    : cornered ? handle_of(graph, id, look) : "";
   /** Room at the end of its table for the marks this card wears, previewing or not. */
   const ruled = face === "large" ? face_table(graph, b.id, look, stamps_of(graph, id).length) : null;
   const description = b.description ?? graph.blocks[def_of(graph, b.id) ?? ""]?.description;

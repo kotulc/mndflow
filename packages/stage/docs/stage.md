@@ -43,9 +43,9 @@
 | `Grips.tsx` | the ends of what is picked, and the berths of hidden interfaces |
 | `Legend.tsx` | the key, in a right-hand corner. **The icon is dressed as the card is**, so its colour is the card's own paint rather than a second answer about it |
 | `moves.ts` | what an adjustment writes, as actions — never a position |
-| `nodes.tsx` | the node types, each drawn whole at every zoom; `scaled` lays a registry's tile out at its own size and scales it. A map's box is its walls and title (`MapBox`); a chip its icon, name, counts and inner treemap (`ChipNode`) |
+| `nodes.tsx` | the node types, each drawn whole at every zoom. A map's box is its walls and title (`MapBox`); a chip its icon, name, counts and inner treemap (`ChipNode`) |
 | `arrays.ts` | the Scene as React Flow's arrays, and **draw order** (`DEPTH`): holders, lines, cards and chips, seats, each two steps higher per holder it sits in |
-| `Wire.tsx` | one run: the route libavoid found while it meets its handles, else `route`; **a run the Scene already drew (`data.points`) is drawn as given**, at its scale, its stroke and heads scaled with it |
+| `Wire.tsx` | one run: the route libavoid found while it meets its handles, else `route`; **a run the Scene already drew (`data.points`) is drawn as given** |
 | `flow.css` · `routes.css` · `groups.css` | cards and the frame; runs and their ends; bands and grids — loaded in that order |
 
 ## Hover and pick

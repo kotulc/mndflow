@@ -134,7 +134,7 @@
 
 - **A card source is the actions a person would have run**, each checked against the graph the ones before it made. Nothing is decided here.
 - **Permissive**: a type or tag nothing loaded holds, or more than one package holds, is made in the workspace and said. A trait gives settings, so a trait word naming none is refused.
-- **A card source states a block whole**, a definition included: its frontmatter is a diagram file's (`name`, `type`, `def`, `description`, `tags`, `constraints`, `traits`, `settings`, `ports`, values, `blocks`, `relations`) and its body is `body`.
+- **A card source states a block whole**, a definition included: its frontmatter is a diagram file's (`name`, `type`, `def`, `description`, `tags`, `constraints`, `traits`, `settings`, `ports`, `values`, `blocks`, `relations`) and its body is `body`.
 
 ### The layer
 

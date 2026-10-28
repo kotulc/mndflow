@@ -1,7 +1,7 @@
 /** Named components: the types, tags and interface definitions a package holds as data on its
  *  root, beside its blocks. Never blocks, never drawn on a layer; elements carry them by id. */
 
-import { base_of, constraints_stated, def_at, def_named, is_tie, packages,
+import { base_of, def_at, def_named, is_tie, packages,
          tags_stated } from "./defs";
 import { groups_of, holders_over, is_region } from "./holders";
 import { shown_name } from "./names";
@@ -141,11 +141,6 @@ export function tags_of(graph: Graph, id: Id): Id[] {
   return tags_stated(graph, id).ids;
 }
 
-/** The constraints an element is held to, in order: the nearest list its chain states. */
-export function constraints_of(graph: Graph, id: Id): Id[] {
-  return constraints_stated(graph, id).ids;
-}
-
 /** Whether a name is held in a package's library, by anything but `except`. */
 export function library_names(graph: Graph, pkg: Id, name: string, except?: Id): boolean {
   const lib = library_of(graph, pkg);
@@ -245,12 +240,6 @@ export function uses_by(graph: Graph, entry: Id, user: Id): number {
   const held = (b ?? graph.edges[user])?.constraints?.includes(entry) ? 1 : 0;
   return tagged + held + (b?.def?.attributes?.filter((a) => a.type === entry).length ?? 0)
     + (b?.ports?.filter((p) => p.type === entry).length ?? 0);
-}
-
-/** Whether a package holds anything named, so the explorer lists its library. */
-export function has_library(graph: Graph, pkg: Id): boolean {
-  const lib = library_of(graph, pkg);
-  return KINDS.some((k) => !!lib[k]?.length);
 }
 
 /** A tag an annotation gives a block by its name: a group's or a region's, to what it encloses; a

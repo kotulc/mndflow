@@ -251,11 +251,6 @@ export function part_end(graph: Graph, id: Id): { block: Id; part?: Id } {
   return { block: id.slice(0, at), part: id.slice(at + PART.length) };
 }
 
-/** An end as drawn: the block, or the part of its definition it reads through. */
-export function end_id(block: Id, part: Id | undefined): Id {
-  return part ? part_id(block, part) : block;
-}
-
 /** The block an id as drawn stands for: a part a usage reads through goes home to its
  *  definition's block, so an edit to it lands where it is held. */
 export function stored_of(graph: Graph, id: Id): Id {

@@ -17,6 +17,5 @@ export { Workspace, type Display, type WorkspaceProps } from "./Workspace";
 export { Drawing, type DrawingProps } from "./Drawing";
 export { Part, type PartProps } from "./Looks";
 export { Packages, type Offered, type PackagesProps } from "./Packages";
-export { Band, Body, Line, Rail, type BandProps, type BodyProps, type LineProps,
-         type RailProps } from "./Body";
+export { Band, Body, Line, type BandProps, type BodyProps, type LineProps } from "./Body";
 export { def_path, defined, held, reading, types_for, type Held } from "./holder";

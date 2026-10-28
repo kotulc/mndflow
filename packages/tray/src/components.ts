@@ -3,10 +3,10 @@
  *  interface definition from a package's library. Each edit goes home: a port to the block holding
  *  it — its definition's, where a usage reads it through — a named component to its library. */
 
-import { all_constraints, all_defs, all_interfaces, all_tags, all_types, constraint_at,
-         domain_of, entry_at, frozen, interface_at, port_at, setting_of, shown_name, tag_at,
+import { all_constraints, all_interfaces, all_tags, all_types, constraint_at,
+         entry_at, frozen, interface_at, port_at, setting_of, shown_name, tag_at,
          type_at, users_of, FORMS, type Act, type Graph, type Id } from "@mnd/core";
-import { FROZEN, where, type Chip, type Pair } from "./pairs";
+import { FROZEN, type Pair } from "./pairs";
 
 /** The walls an interface may be seated on. */
 const SIDES = ["top", "right", "bottom", "left"] as const;
@@ -184,19 +184,6 @@ function coloured(graph: Graph, id: Id, fixed: boolean, onAct: Act): Pair {
                                                 set: own === h })),
              pick: (c) => onAct("look", { ids: [id], key: "style", name: "hue",
                                           value: c.set ? "" : c.value }) }] };
-}
-
-/** Every type a value or an interface may carry, gathered by where each lives: the forms, then
- *  the libraries' types, then block definitions — links. */
-export function type_chips(graph: Graph, now: Id | undefined): Chip[] {
-  return [
-    ...FORMS.map((f) => ({ value: f, word: f, on: now === f, set: true, group: "forms" })),
-    ...all_types(graph).map((t) => ({ value: t.id, word: t.name, on: now === t.id, set: true,
-                                      group: "types", tip: t.description ?? t.name })),
-    ...all_defs(graph).filter((d) => domain_of(graph, d.id) === "block")
-      .map((d) => ({ value: d.id, word: d.name, on: now === d.id, set: true,
-                     group: where(graph, d.id), tip: d.description ?? d.name })),
-  ];
 }
 
 /** A named component's name. */

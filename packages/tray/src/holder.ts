@@ -1,7 +1,7 @@
 /** What the tray has hold of, and how to read it. */
 
 import { all_defs, config_of, def_at, def_of, domain_of, edge_base, frozen, honours, is_base,
-         may_retype, block_base, base_of, package_of, relation_base,
+         may_retype, type_offers, block_base, base_of, package_of, relation_base,
          type Block, type Definition,
          type Graph, type Id, type Relation } from "@mnd/core";
 
@@ -56,10 +56,12 @@ export function def_path(graph: Graph, d: Definition): string {
 export function types_for(graph: Graph, id: Id): Definition[] {
   const edge = graph.edges[id];
   const rank = (d: Definition) => (is_base(d.id) ? 0 : 1);
+  const offered = edge ? null : type_offers(graph, id);
   return all_defs(graph)
     .filter((d) => d.id !== id && (edge
       ? domain_of(graph, d.id) === "relation" && relation_base(graph, d.id) === edge_base(graph, id)
-      : domain_of(graph, d.id) === "block" && may_retype(graph, id, d.id)))
+      : domain_of(graph, d.id) === "block" && may_retype(graph, id, d.id)
+        && offered!(d.id)))
     .sort((a, z) => rank(a) - rank(z) || a.name.localeCompare(z.name));
 }
 

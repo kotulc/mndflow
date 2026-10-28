@@ -75,12 +75,13 @@ export function App({ storage, boot, opening }: {
   const { hold } = t;
   /** The explorer's sections — a package, a definition, its structure — and what each holds. */
   const chain = useChain(s.graph(), SLICES, EDITOR.top, s.view());
-  /** A pick on the canvas gives the context back to the canvas, and the sections follow it. */
-  const pick = (given: Id[]) => {
+  /** A pick on the canvas gives the context back to the canvas, and the sections follow it. A
+   *  pick made on a map (`stay`) is already in sight: **picking never jumps**. */
+  const pick = (given: Id[], stay = false) => {
     const ids = given;
     set_aim(null);
     /** One card picked on a whole section is brought into sight there: the canvas's own anchor. */
-    if (ids.length === 1 && !is_layer_view(s.view().kind)) {
+    if (ids.length === 1 && !stay && !is_layer_view(s.view().kind)) {
       act("reveal", { id: ids[0] });
       return;
     }
@@ -535,7 +536,7 @@ export function App({ storage, boot, opening }: {
             const shown = s.picked().filter((id) => drawn.has(id));
             const echo = shown.length < s.picked().length && ids.length === shown.length
               && ids.every((id) => shown.includes(id));
-            if (!echo) pick(ids);
+            if (!echo) pick(ids, !!scene.areas);
           }}
           onAct={act}
           /** A whole section, a definition drawn with what describes it, or a diagram, is not

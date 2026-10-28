@@ -1,6 +1,6 @@
 /** How big a thing is, before anything is placed. */
 
-import { covers, inline, is_grid, is_interface, lattice_of, setting_of, shown_name,
+import { covers, has_lifelines, inline, is_grid, is_interface, lattice_of, setting_of, shown_name,
          stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
 import { edge_of, fit_of, face_table, face_text, handle_of, name_w, note_h } from "./face";
 import { card_shape, look_of } from "./look";
@@ -85,26 +85,33 @@ export function cell_size(_g: Grid): Size {
   return CELL;
 }
 
-/** Where line `i` starts along one axis: **the header line is one unit across**, every other a
+/** Where line `i` starts along one axis: **the header line is `head` across**, every other a
  *  cell. */
-function line_at(i: number, cell: number): number {
-  return i === 0 ? 0 : UNIT + (i - 1) * cell;
+function line_at(i: number, cell: number, head = UNIT): number {
+  return i === 0 ? 0 : head + (i - 1) * cell;
+}
+
+/** How tall a grid's header row is: one unit, or a cell where it has lifelines, so each
+ *  participant is a card over its strip. */
+export function head_height(graph: Graph, id: Id): number {
+  return has_lifelines(graph, id) ? CELL.h : UNIT;
 }
 
 /** What a grid takes up: its extent in cells, and nothing besides. */
-export function grid_size(g: Grid): Size {
+export function grid_size(g: Grid, head = UNIT): Size {
   const cell = cell_size(g);
-  return { w: line_at(g.cols, cell.w), h: line_at(g.rows, cell.h) };
+  return { w: line_at(g.cols, cell.w), h: line_at(g.rows, cell.h, head) };
 }
 
 /** Where one cell sits inside its grid, relative to the grid's own corner. */
-export function cell_box(g: Grid, r: number, c: number): Box {
+export function cell_box(g: Grid, r: number, c: number, head = UNIT): Box {
   const span = g.merges?.find((s) => covers(s, r, c));
   const at = span ?? { r, c, rows: 1, cols: 1 };
   const cell = cell_size(g);
   const x = line_at(at.c, cell.w);
-  const y = line_at(at.r, cell.h);
-  return { x, y, w: line_at(at.c + at.cols, cell.w) - x, h: line_at(at.r + at.rows, cell.h) - y };
+  const y = line_at(at.r, cell.h, head);
+  return { x, y, w: line_at(at.c + at.cols, cell.w) - x,
+           h: line_at(at.r + at.rows, cell.h, head) - y };
 }
 
 /** How many rows and columns a region of this size is, in whole cells. */
@@ -163,16 +170,6 @@ function ranged(n: number, low: number, high: number): number {
   return Math.min(high, Math.max(low, Math.round(n)));
 }
 
-/** The sizes of the rooms a world is composing, while it lays out their parent. */
-let rooms_sized: ReadonlyMap<Id, Size> | null = null;
-
-/** `run` with these rooms sized as given: each a card as large as its own drawing. */
-export function sized_as<T>(sizes: ReadonlyMap<Id, Size>, run: () => T): T {
-  const was = rooms_sized;
-  rooms_sized = sizes;
-  try { return run(); } finally { rooms_sized = was; }
-}
-
 /** Whether a block is seated in a grid rather than placed beside one. */
 export function gridded(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
@@ -185,12 +182,11 @@ export function gridded(graph: Graph, id: Id): boolean {
  *  or the reference previewing it. */
 export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
                         card: Id = id): Size {
-  /** A room composed into the world is as large as what it holds. */
-  const room = rooms_sized?.get(id);
-  if (room) return room;
   /** An open grid is its extent, a closed one a card; a boundary is sized from what it holds, by
    *  the caller. */
-  if (is_grid(graph, id) && inline(graph, id)) return grid_size(lattice_of(graph, id)!);
+  if (is_grid(graph, id) && inline(graph, id)) {
+    return grid_size(lattice_of(graph, id)!, head_height(graph, id));
+  }
   const b = graph.blocks[id];
   if (!b) return BLOCK;
   if (is_interface(graph, b.id)) return PORT;
@@ -275,11 +271,6 @@ export function free_height(graph: Graph, id: Id): boolean {
 /** How many seats an edge of this length offers. */
 export function seats(length: number): number {
   return Math.max(1, Math.floor(length / SEAT) - 1);
-}
-
-/** Where seat `n` of `count` falls along an edge, as a fraction. */
-export function seat_at(n: number, count: number): number {
-  return (n + 1) / (count + 1);
 }
 
 /** Absolute positions along an edge, every half unit inset from the corners. */

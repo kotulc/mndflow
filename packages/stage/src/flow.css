@@ -643,10 +643,6 @@
 .mnd-chip.picked { background: color-mix(in oklch, var(--accent) 12%, var(--surface)); }
 .mnd-box.picked .mnd-box-title, .mnd-chip.picked .mnd-chip-head { color: var(--accent); }
 
-/* ── Scale: only a library registry is drawn scaled into its tile ── */
-.mnd-scaled { position: relative; transform-origin: 0 0; }
-.mnd-scaled > * { width: 100%; height: 100%; }
-
 /* Where the camera cut from the map to a layer, or back, the new drawing fades in. */
 .mnd-flow.fresh .react-flow__viewport { animation: mnd-fade-in 0.2s ease-out; }
 @keyframes mnd-fade-in { from { opacity: 0; } to { opacity: 1; } }

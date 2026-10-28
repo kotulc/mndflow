@@ -312,6 +312,16 @@ export const DIAGRAM_QUESTIONS: Readonly<Record<string, string>> = {
 export const NOTATION: readonly Id[] = ["note", "label", "group", "region", "start", "end",
                                         "decision"];
 
+/** The annotations every diagram kind draws with: notation that is no mark. */
+export const ANNOTATIONS: readonly Id[] = ["note", "label", "group", "region"];
+
+/** The marks a diagram kind draws with beside its parts. Every kind draws the `ANNOTATIONS`; a
+ *  kind not named here draws no marks. */
+export const KIND_MARKS: Readonly<Record<Id, readonly Id[]>> = {
+  flow: ["start", "decision", "end"],
+  state: ["start", "end"],
+};
+
 /** The diagram kinds that hold alike, so a block holding parts moves freely among them: parts
  *  and lines; references to definitions. Each grid kind is its own: its cells carry over to the
  *  other, but not their meaning. */
@@ -443,8 +453,6 @@ export type Mutation =
   | { op: "drop_settings"; id: Id }
   /** One property of one component on one element. */
   | { op: "set_setting"; id: Id; key: string; name: string; value: unknown };
-
-export type MutationOp = Mutation["op"];
 
 export type Step = {
   id: Id;

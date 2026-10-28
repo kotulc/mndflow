@@ -8,10 +8,9 @@
 import { useMemo } from "react";
 import { appearances_of, attributes_of, behaviours_of, children, def_at, def_of,
          definition_uses, diagram_kind, edges_in, heading, interface_at, is_model, is_notation,
-         is_behaviour, is_group, is_reference, isa, lattice_of, may_retype, members_of, of_ref,
-         opens, owner_of, package_of, path, role_of, shown_name, stands_for, stood_def, subtypes,
-         tag_at,
-         tags_of, BASE_PACKAGE, DIAGRAM_QUESTIONS, DIAGRAMS, type Act, type Block, type Graph,
+         is_behaviour, is_group, is_reference, isa, lattice_of, layer_of, may_retype, members_of,
+         object_of, of_ref, opens, owner_of, package_of, path, role_of, shown_name, stands_for,
+         stood_def, subtypes, tag_at, tags_of, BASE_PACKAGE, DIAGRAM_QUESTIONS, DIAGRAMS, type Act, type Block, type Graph,
          type Id } from "@mnd/core";
 import { Icon, role_icon } from "@mnd/theme";
 import { class_graph, entry_look, look_of, tint_attrs } from "@mnd/views";
@@ -32,12 +31,9 @@ type Count = [number, string];
 
 export function Overview({ graph, id, onAct, lists }: OverviewProps) {
   const b = graph.blocks[id];
-  /** What uses it, worked out once: a definition's uses, else what refers to it. **One object**:
-   *  a block's users are every other appearance of it, a stand-in's too. */
+  /** What uses a definition, worked out once; a block's sides are `Sides`'. */
   const users = useMemo(() => (b?.def
-    ? definition_uses(graph, id).flatMap((u) => graph.blocks[u.id] ?? [])
-    : appearances_of(graph, id).filter((u) => u !== id).map((u) => graph.blocks[u]!)),
-  [graph, id, b]);
+    ? definition_uses(graph, id).flatMap((u) => graph.blocks[u.id] ?? []) : []), [graph, id, b]);
   if (!b) return null;
   /** A reference is drawn as what it stands for, which is what opening it shows. */
   const seen = of_ref(graph, id) ? stands_for(graph, id)?.id ?? id : id;
@@ -180,8 +176,8 @@ function How({ graph, b }: { graph: Graph; b: Block }) {
   );
 }
 
-/** Where it lives: its path; what refers to it, or uses it; what draws the same records; and
- *  its counts, in its kind's own words. */
+/** Where it lives: its path; **every side it is seen from**, or what uses it; what draws the
+ *  same records; and its counts, in its kind's own words. */
 function Where({ graph, b, seen, kind, users, onAct }: {
   graph: Graph; b: Block; seen: Block; kind: Id | null; users: readonly Block[]; onAct?: Act;
 }) {
@@ -192,9 +188,10 @@ function Where({ graph, b, seen, kind, users, onAct }: {
     <section>
       <h5>where it lives</h5>
       <div className="trail">{trail.join(" / ") || "the workspace"}</div>
-      {users.length ? (
+      {!b.def && onAct ? <Sides graph={graph} id={b.id} onAct={onAct} /> : null}
+      {b.def && users.length ? (
         <div className="chips">
-          <span className="faint">{b.def ? "used by" : "also drawn"}</span>
+          <span className="faint">used by</span>
           {users.map((u) => (
             <button key={u.id} className="chip" title="go to where it is drawn"
                     onClick={() => onAct?.("reveal", { id: u.id })}>
@@ -215,6 +212,32 @@ function Where({ graph, b, seen, kind, users, onAct }: {
           .map(([n, word]) => <span key={word}><b>{n}</b> {word}</span>)}
       </div>
     </section>
+  );
+}
+
+/** **The model's joins**: every layer drawing the block — its own first, then each diagram a
+ *  stand-in puts it on — revealed there, picked; then its behaviours, each read as its own
+ *  diagram. */
+function Sides({ graph, id, onAct }: { graph: Graph; id: Id; onAct: Act }) {
+  const drawn = appearances_of(graph, id).filter((a) => layer_of(graph, a));
+  const acts = behaviours_of(graph, object_of(graph, id));
+  if (drawn.length + acts.length < 2) return null;
+  return (
+    <div className="chips">
+      <span className="faint">seen on</span>
+      {drawn.map((a) => (
+        <button key={a} className="chip" title="go to where it is drawn"
+                onClick={() => onAct("reveal", { id: a })}>
+          {shown_name(graph, layer_of(graph, a)!)}
+        </button>
+      ))}
+      {acts.map((x) => (
+        <button key={x.id} className="chip" title="read this behaviour, its own diagram"
+                onClick={() => onAct("read", { id: x.id })}>
+          <Icon name={role_icon(role_of(graph, x.id))} size={11} />{shown_name(graph, x.id)}
+        </button>
+      ))}
+    </div>
   );
 }
 

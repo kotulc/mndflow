@@ -2,11 +2,11 @@
  *  through. */
 
 import type { Settings } from "./components";
-import { is_folder, is_region, organizes } from "./holders";
+import { is_folder, is_region, layer_of, organizes } from "./holders";
 import { entry_at, is_form, library_home, library_names, type_at } from "./library";
 import { children, is_container } from "./tree";
-import { BASE_BLOCKS, BASE_COMPONENTS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES, DIAGRAMS, DIRS,
-         KIND_BASE, KIND_FAMILIES, NOTATION,
+import { ANNOTATIONS, BASE_BLOCKS, BASE_COMPONENTS, BASE_PACKAGE, BASE_RELATIONS, BLOCK_MODULES,
+         DIAGRAMS, DIRS, KIND_BASE, KIND_FAMILIES, KIND_MARKS, NOTATION,
          TRAITS, type Block,
          type BlockModule, type Attribute, type Components, type Definition, type Dir, type Form,
          type Graph, type Id, type Trait } from "./types";
@@ -147,20 +147,6 @@ export function statements(graph: Graph, id: Id | undefined): Statement[] {
 /** What states settings over an element, nearest first. */
 export function stated(graph: Graph, id: Id | undefined): Components[] {
   return statements(graph, id).map((s) => s.settings);
-}
-
-/** Every property in force over an element, once each, with who says it: nearest wins. */
-export function said_of(graph: Graph, id: Id | undefined):
-    { key: string; name: string; value: unknown; from: Id }[] {
-  const out: { key: string; name: string; value: unknown; from: Id }[] = [];
-  for (const { from, settings } of statements(graph, id)) {
-    for (const [key, props] of Object.entries(settings)) {
-      for (const [name, value] of Object.entries(props ?? {})) {
-        if (!out.some((p) => p.key === key && p.name === name)) out.push({ key, name, value, from });
-      }
-    }
-  }
-  return out;
 }
 
 /** What one component reads for an element or a definition: every statement over it merged per
@@ -438,14 +424,6 @@ export function packages(graph: Graph): Block[] {
     .sort((a, z) => rank(a) - rank(z) || (a.name ?? a.id).localeCompare(z.name ?? z.id)))];
 }
 
-/** A package root by id, or by the name somebody calls it. */
-export function package_named(graph: Graph, said: string | undefined): Block | undefined {
-  const want = said?.trim();
-  if (!want) return undefined;
-  const roots = packages(graph);
-  return roots.find((p) => p.id === want) ?? roots.find((p) => p.name === want);
-}
-
 /** The packages a package uses: worked out from every definition, type and tag its blocks and
  *  relations name, and what those extend. Never stored. */
 export function uses_of(graph: Graph, pkg: Id): Id[] {
@@ -590,8 +568,7 @@ export function closes_cycle(graph: Graph, def: Id, type: Id | undefined): boole
  *  folder or grid is the plain block arranging what it holds another way, so it is retyped as
  *  freely; annotations move among themselves. **Never across**: a block never becomes an
  *  annotation, or back. */
-const OPEN: readonly (readonly Id[])[] = [["block", "folder", "grid"],
-                                          ["note", "label", "group", "region"]];
+const OPEN: readonly (readonly Id[])[] = [["block", "folder", "grid"], ANNOTATIONS];
 
 /** Whether this block may be told to name that definition. */
 export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean {
@@ -636,3 +613,21 @@ export function kind_fits(graph: Graph, id: Id, type: Id | undefined): boolean {
   const to = kind_typed(graph, id, type);
   return KIND_FAMILIES.some((set) => set.includes(kind) && !!to && set.includes(to));
 }
+
+/** **What the tray offers a block as its type**, beside what may retype it: a diagram never a
+ *  mark (holding parts, only its family's kinds: `kind_fits`); anything else a mark only where
+ *  its layer's kind draws with it. Worked out once per block; the test asks only the type. */
+export function type_offers(graph: Graph, id: Id): (type: Id) => boolean {
+  const diagram = !!diagram_kind(graph, id);
+  const layer = layer_of(graph, id);
+  const drawn = KIND_MARKS[(layer && diagram_kind(graph, layer)) ?? ""] ?? [];
+  return (type) => {
+    const mark = notation_of(graph, type);
+    if (!mark) return true;
+    return !diagram && (!MARKS.includes(mark) || drawn.includes(mark));
+  };
+}
+
+/** Every mark some kind draws with. */
+const MARKS: readonly Id[] = Object.values(KIND_MARKS).flat();
+

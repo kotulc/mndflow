@@ -100,10 +100,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
                       { x: targetX, y: targetY }, targetPosition,
                       data?.fan, data?.module === "tie");
   const fan = given || routed ? undefined : data?.fan;
-  /** Drawn at its world scale: the run in its own units, the stroke and its heads scaled with it. */
-  const k = data?.scale ?? 1;
-  const path = drawn(k === 1 ? run : run.map((p) => ({ x: p.x / k, y: p.y / k })), BEND);
-  const zoom = k === 1 ? "" : ` scale(${k})`;
+  const path = drawn(run, BEND);
   const look = data?.wire ?? BARE;
   const end = heads(data);
   const { attrs, style: tint } = paint(look);
@@ -117,8 +114,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
 
   return (
     <>
-      <g className="mnd-wire" {...attrs} style={tint}
-         {...(k === 1 ? {} : { transform: `scale(${k})` })}>
+      <g className="mnd-wire" {...attrs} style={tint}>
         <BaseEdge id={id} path={path} style={style}
                   markerStart={head_url(end.from)} markerEnd={head_url(end.to)} />
         {/* A double line is two strokes, not a thicker one. */}
@@ -126,7 +122,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
           ? <path className="mnd-wire-core" d={path} /> : null}
         {(["from", "to"] as const).filter((way) => crossed(data, way)).map((way) => (
           <path key={way} className="mnd-wire-cross"
-                d={cross_at(run.map((p) => ({ x: p.x / k, y: p.y / k })), way)} />
+                d={cross_at(run, way)} />
         ))}
       </g>
       {(["from", "to"] as const).map((way) => {
@@ -136,7 +132,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
         return (
           <EdgeLabelRenderer key={way}>
             <div className={`mnd-wire-end nodrag nopan${data?.away ? " mnd-out" : ""}`} {...attrs}
-                 style={{ ...tint, transform: `translate(${at.x}px, ${at.y}px)${zoom} translate(-50%, -50%)` }}>
+                 style={{ ...tint, transform: `translate(${at.x}px, ${at.y}px) translate(-50%, -50%)` }}>
               {words}
             </div>
           </EdgeLabelRenderer>
@@ -147,7 +143,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
           {/* `nodrag` and `nopan`, so a press on a name does not pan. */}
           <div className={`mnd-wire-name nodrag nopan${data?.away ? " mnd-out" : ""}`} data-edge={id} {...attrs}
                style={{ ...tint,
-                        transform: `translate(${x}px, ${y}px)${zoom}${upright ? " rotate(-90deg)" : ""} translate(-50%, -50%)` }}
+                        transform: `translate(${x}px, ${y}px)${upright ? " rotate(-90deg)" : ""} translate(-50%, -50%)` }}
                title={middle}>
             <Name id={id} className="mnd-wire-text card-name" text={middle} />
           </div>

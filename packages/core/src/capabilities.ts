@@ -160,12 +160,6 @@ export function holds_values(graph: Graph, id: Id): boolean {
   return !!graph.blocks[id]?.def || allows_of(graph, id).values === true;
 }
 
-/** Whether this block may own anything at all: granted outright, or limited to some definitions. */
-export function holds_any(graph: Graph, id: Id): boolean {
-  const said = allows_of(graph, id).holds;
-  return said === true || (Array.isArray(said) && said.length > 0);
-}
-
 /** Whether this block may own a child of that definition: its settings say, and nothing else. */
 export function may_hold(graph: Graph, parent: Id, type?: Id): boolean {
   return permits(graph, allows_of(graph, parent).holds, type);

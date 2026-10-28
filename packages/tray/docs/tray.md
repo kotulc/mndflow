@@ -165,7 +165,7 @@
 
 - **A room lists its blocks**: in reading order, grouped under its regions' headings, each row picking its card — the blocks the explorer does not list, since it lists rooms only (design.md *Navigation*)
 - **Layer scope lists one level**: **whatever is in context lists its own contents**, whether or not it holds anything yet, and the open layer answers where the context is a line, a definition or the root. One rule — `frame_of` in the engine — so the same gesture never gives two answers. **Workspace scope lists everything**, each row saying where it sits.
-- **A stand-in is its block** (one object, design.md *Cards*): picked, the tray shows the block it stands for, and its overview's *where it lives* lists every appearance, each a jump. Editing in the tray edits the block.
+- **A stand-in is its block** (one object, design.md *Cards*): picked, the tray shows the block it stands for, and its overview's *where it lives* lists every side it is **seen on** — the layer drawing it, each diagram a stand-in puts it on, and its behaviours — each one click away: an appearance revealed there, picked; a behaviour read as its own diagram. Editing in the tray edits the block.
 - **Chips narrow by what a row is.**
 - **A column is a field in scope**, asked for by name, and its values are edited in the row.
 - **A block or a line is renamed in its row**.

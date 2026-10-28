@@ -1,10 +1,10 @@
 /** Where everything in a layer sits. */
 
-import { children, drawn_in, is_aside, is_box, is_group, is_interface, is_region, layout_of,
+import { children, drawn_in, is_box, is_group, is_interface, is_region, layout_of,
          type Block, type Graph, type Id } from "@mnd/core";
 import { band_members, band_size, celled, loose_unit, type Sized } from "./bands";
 import { beside, centred, noted } from "./float";
-import { belongs_to, is_satellite, room_wide, tie_targets } from "./pack";
+import { belongs_to, is_satellite, room_wide } from "./pack";
 import { layered } from "./layered";
 import { treemapped } from "./treemap";
 import { gridded, size_of, snap, GAP, PAD, UNIT, type Size } from "./size";
@@ -108,15 +108,6 @@ function free(all: Sized[], satellites: Sized[], owners: (b: Block) => Id[]): Pl
     x += snap(it.s.w + GAP);
   }
   return out;
-}
-
-/** An aside card whose ties meet no placed card. It waits for the interface it is tied to, which
- *  is seated on a wall after the cards are placed. */
-export function awaits_seat(graph: Graph, layer: Id | null, id: Id,
-                            placed: readonly { id: Id }[]): boolean {
-  if (!is_aside(graph, id)) return false;
-  const targets = tie_targets(graph, layer, id);
-  return targets.length > 0 && targets.every((t) => !placed.some((p) => p.id === t));
 }
 
 /** Whether two boxes meet, counting `air` of space between them as taken. */

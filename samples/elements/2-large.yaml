@@ -6,10 +6,8 @@ note: The faces that show content. A record's values draw as a table, or as a cl
 blocks:
   - name: Ada
     type: Record
-    id: "7"
-    email: ada@example.com
+    values: { id: "7", email: ada@example.com }
   - name: Grace
     type: Record
     settings: { card: { face: class } }
-    id: "8"
-    email: grace@example.com
+    values: { id: "8", email: grace@example.com }

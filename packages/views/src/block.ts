@@ -5,8 +5,9 @@ import { alias_of, dir_of, layout_of, children, covers, diagram_subject,
          is_grid, is_group, is_aside, is_note, is_tie, label_of, lattice_of, members_of, shape_of,
          stamps_of, role_of, shown_name, type Cut, type Ends, type ViewKind, type Graph, type Id,
          type Relation, type Side, type Span } from "@mnd/core";
-import { at_seat, beside, boundary, cell_box, is_placed, laid, perch_id, roomed, seat_all, PAD,
-         UNIT, type Perch, type Rect, type Seat, type Seating } from "@mnd/views";
+import { at_seat, beside, boundary, cell_box, face_of, head_height, is_placed, laid, perch_id,
+         roomed, seat_all, size_of, PAD,
+         UNIT, type Perch, type Rect, type Seat, type Seating, type Size } from "@mnd/views";
 import { carried, fit_names, marks_of, trail_of } from "./derive";
 import { lifelined } from "./lifelines";
 import { look_of, wire_of } from "./look";
@@ -91,8 +92,12 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   const graph = how === "page" ? page_graph(through, layer) : through;
   const parts = new Set(Object.keys(graph.blocks).filter((id) =>
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
-  const carried_as = (id: Id): BoxData => {
-    const said = carried(graph, id);
+  /** A tile too short for its large face draws its small one: a treemap sizes by weight. */
+  const carried_as = (id: Id, box: Size): BoxData => {
+    const large = how === "treemap" && face_of(graph, id) === "large";
+    const big = large ? size_of(graph, id, "large") : null;
+    const said = big && big.h > box.h ? carried(graph, id, "small")
+      : carried(graph, id);
     const marks = [...said.marks, ...(parts.has(id) ? ["part" as const] : []),
                    ...(how === "treemap" ? ["tiled" as const] : [])];
     return { ...said, marks };
@@ -105,7 +110,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   /** Which component draws each box. Every card is the one card height, so nothing minifies. */
   const boxes: BoxNode[] = spots
     .filter((p) => !inline(graph, p.id) && !is_group(graph, p.id))
-    .map((p) => node(p.id, p, { ...carried_as(p.id), nest: group_depth(graph, p.id) },
+    .map((p) => node(p.id, p, { ...carried_as(p.id, p), nest: group_depth(graph, p.id) },
                      is_note(graph, p.id) ? "note" : "card"));
 
   /** A grid draws its extent; a boundary its members' bounds. */
@@ -262,6 +267,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
  *  the left column's read upright; what sits in a cell is a block, drawn as one. */
 function lattice(graph: Graph, id: Id): GridCell[] {
   const g = lattice_of(graph, id)!;
+  const head = head_height(graph, id);
   const seated = new Set<string>();
   for (const b of members_of(graph, id)) if (b.cell) seated.add(`${b.cell.r},${b.cell.c}`);
   const out: GridCell[] = [];
@@ -279,7 +285,7 @@ function lattice(graph: Graph, id: Id): GridCell[] {
       const line = role === "row" ? { way: "row" as const, i: r }
         : role === "col" ? { way: "col" as const, i: c } : null;
       const index = line ? line_name(line.way, line.i) : "";
-      out.push({ r, c, ...cell_box(g, r, c), marks,
+      out.push({ r, c, ...cell_box(g, r, c, head), marks,
                  ...(line ? { line } : {}), ...(index ? { index } : {}) });
     }
   }

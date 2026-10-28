@@ -36,30 +36,6 @@ export function Band({ label, children }: BandProps) {
   );
 }
 
-export type RailProps = {
-  /** What the rail is a rail of. Absent draws no word. */
-  label?: ReactNode;
-  /** The chips, in the order they read. */
-  of: readonly { key: string; word: string; said?: boolean }[];
-  on: string;
-  onPick: (key: string) => void;
-};
-
-/** A rail narrows what is listed; it does not navigate. */
-export function Rail({ label, of, on, onPick }: RailProps) {
-  return (
-    <Band label={label}>
-      <div className="filters">
-        {of.map((c) => (
-          <button key={c.key} className={[on === c.key ? "on" : "", c.said ? "said" : ""]
-                    .filter(Boolean).join(" ")}
-                  onClick={() => onPick(c.key)}>{c.word}</button>
-        ))}
-      </div>
-    </Band>
-  );
-}
-
 export type CheckProps = {
   on: boolean;
   /** Drawn as unreachable, not merely unset. */

@@ -1,4 +1,4 @@
-import type { Act, Dir } from "@mnd/core";
+import { ANNOTATIONS, KIND_MARKS, type Act, type Dir } from "@mnd/core";
 import { role_icon, type IconName } from "@mnd/theme";
 
 /** One control. **One icon, lit or not** — a setting draws the same mark whichever way it is
@@ -44,12 +44,6 @@ export type Chrome = {
   types?: readonly { id: string; name: string }[];
 };
 
-/** The notation each family draws with, then what every room may hold. */
-const FAMILY: Record<string, readonly string[]> = {
-  flow: ["start", "decision", "end"],
-  state: ["start", "end"],
-};
-const EVERY = ["note", "label", "group", "region"] as const;
 
 /** What a palette entry is, in a few words. */
 const NOTATION: Record<string, string> = {
@@ -77,14 +71,14 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
   /** The notation for the focus's family, then what every room may hold: clicked in, or dragged
    *  where it goes. */
   if (has("palette")) {
-    const kinds = [...(FAMILY[chrome.family ?? ""] ?? []), ...EVERY];
+    const kinds = [...(KIND_MARKS[chrome.family ?? ""] ?? []), ...ANNOTATIONS];
     out.push({
       key: "palette", label: "palette",
       controls: kinds.map((kind, n): Control => ({
         key: kind, icon: role_icon(kind), word: kind, verb: true,
         tip: kind === "group" && !chrome.picked ? `${NOTATION[kind]}: pick what it holds first`
           : `${NOTATION[kind]}. Click to add it, or drag it where it goes`,
-        ...(n === kinds.length - EVERY.length && n > 0 ? { ruled: true } : {}),
+        ...(n === kinds.length - ANNOTATIONS.length && n > 0 ? { ruled: true } : {}),
         ...(kind === "group" ? {} : { drags: kind }),
         run: () => act("@notation", { type: kind }),
       })),

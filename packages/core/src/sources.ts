@@ -414,6 +414,8 @@ function library(graph: Graph, slug: Id, pre: string, said: Partial<LibrarySaid>
 function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
   const { graph } = ctx;
   const b = graph.blocks[id]!;
+  if (e.dropped) ctx.notes.push(`${ctx.file.path}: ${e.name || id} says ${e.dropped.join(", ")}, `
+    + "which nothing reads; an answer goes under values");
   if (e.parent) {
     const up = local(ctx, e.parent);
     if (up) b.parent = up;
@@ -478,6 +480,8 @@ function extent(graph: Graph, id: Id, e: Entry): void {
 /** A relation's names read: its ends, its type, and the way it points, kept where its arrow says
  *  otherwise than its type. */
 function relation(ctx: Ctx, id: Id, e: Edge): Relation | undefined {
+  if (e.dropped) ctx.notes.push(`${ctx.file.path}: ${e.from} to ${e.to} says `
+    + `${e.dropped.join(", ")}, which nothing reads; an answer goes under values`);
   const from = end_of(ctx, e.from);
   const to = end_of(ctx, e.to);
   if (!from || !to) {

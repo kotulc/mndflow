@@ -326,7 +326,6 @@
           },
           "card": {
             "label": "none",
-            "alias": "hide",
             "align": "center"
           }
         },
@@ -501,7 +500,6 @@
           },
           "card": {
             "label": "none",
-            "alias": "hide",
             "align": "center"
           }
         },

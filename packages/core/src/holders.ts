@@ -277,6 +277,13 @@ export function is_header(graph: Graph, id: Id): boolean {
   return head_of(graph, id) !== null;
 }
 
+/** Whether a block heads a column of a grid read as time: **a participant is a card**, over its
+ *  header strip and its lifeline. */
+export function is_participant(graph: Graph, id: Id): boolean {
+  return head_of(graph, id) === "col"
+    && has_lifelines(graph, graph.blocks[id]!.parent ?? undefined);
+}
+
 /** The region a seated block occupies: the merge covering its address, or its one cell. */
 export function region_of(graph: Graph, id: Id): Span | null {
   const b = graph.blocks[id];

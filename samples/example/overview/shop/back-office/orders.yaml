@@ -1,7 +1,7 @@
 name: Orders
 type: Transactional outbox
 packages: [ services ]
-owner: Commerce
+values: { owner: Commerce }
 tags: [ orders ]
 description: Keeps every order and tells the rest of the shop when one is placed.
 ports:

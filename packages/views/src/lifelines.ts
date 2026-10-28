@@ -2,12 +2,13 @@
  *  column's lifeline, and a relation between steps is a message straight across at the row it
  *  reaches — from the card it leaves, or that card's lifeline where it sits in another row, to the
  *  edge of the card it reaches. Its name reads level. **A lifeline is a line like any other**:
- *  dashed, straight down each column from its head to the grid's foot, behind the cards, hung
- *  from two points that draw nothing. Worked out every draw. */
+ *  dashed, straight down each column from its participant's card — else its header strip — to the
+ *  grid's foot, behind the cards, hung from two points that draw nothing. Worked out every draw. */
 
-import { has_lifelines, is_header, lattice_of, type Graph, type Id, type Side } from "@mnd/core";
+import { has_lifelines, is_header, is_participant, lattice_of, type Graph, type Id,
+         type Side } from "@mnd/core";
 import { box_of, cell, type BoxNode, type LineEdge, type Scene } from "./scene";
-import { cell_box, UNIT, type Box } from "./size";
+import { cell_box, head_height, UNIT, type Box } from "./size";
 
 /** The seat a lifeline hangs from, so the canvas has a handle; its run is its points. */
 const SEAT = { id: "m", side: "bottom" as Side, at: 0.5 };
@@ -58,7 +59,18 @@ export function lifelined(graph: Graph, grid: Id, scene: Scene): Scene {
     const to = ahead ? z.x : z.x + z.w;
     return { ...e, data: { ...e.data!, level: true, points: [{ x: from, y }, { x: to, y }] } };
   });
-  const lives = lifelines(g.cols, (c) => cell_box(g, 0, c), box_of(room));
+  /** Each column's head: its participant's card where it has one, else its header strip. */
+  const heads = new Map<number, Box>();
+  for (const n of scene.nodes) {
+    const b = graph.blocks[n.id];
+    if (b?.cell && b.parent === grid && is_participant(graph, n.id)) heads.set(b.cell.c, box_of(n));
+  }
+  const whole = box_of(room);
+  const strip = (c: number) => {
+    const at = cell_box(g, 0, c, head_height(graph, grid));
+    return { ...at, x: whole.x + at.x, y: whole.y + at.y };
+  };
+  const lives = lifelines(g.cols, (c) => heads.get(c) ?? strip(c), whole);
   return { ...scene, nodes: [...scene.nodes, ...lives.nodes], edges: [...lives.edges, ...edges],
            lifelines: grid };
 }
@@ -69,8 +81,8 @@ function lifelines(cols: number, head: (c: number) => Box, room: Box) {
   const edges: LineEdge[] = [];
   for (let c = 1; c < cols; c++) {
     const at = head(c);
-    const x = room.x + at.x + at.w / 2;
-    const [top, foot] = [room.y + at.y + at.h, room.y + room.h];
+    const x = at.x + at.w / 2;
+    const [top, foot] = [at.y + at.h, room.y + room.h];
     const id = `@life:${c}`;
     nodes.push(dot(`${id}:top`, x, top), dot(`${id}:foot`, x, foot));
     edges.push({

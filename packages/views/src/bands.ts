@@ -1,12 +1,12 @@
 /** Bands and grids inside a layer: members packed in a band, seated blocks placed by cell. */
 
-import { group_depth, inline, is_aside, is_box, is_flat, is_header, is_interface, is_region,
-         lattice_of, members_of, type Block, type Graph, type Id, type Layout }
-  from "@mnd/core";
+import { group_depth, inline, is_aside, is_box, is_flat, is_header, is_interface,
+         is_participant, is_region, lattice_of, members_of, type Block, type Graph, type Id,
+         type Layout } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { floated, noted } from "./float";
 import { room_wide, tie_targets } from "./pack";
-import { cell_box, centred_in, fills_cell, gridded, size_of, BLOCK, GAP, PAD,
+import { cell_box, centred_in, fills_cell, gridded, head_height, size_of, BLOCK, GAP, PAD,
          type Size } from "./size";
 
 export type Sized = { b: Block; s: Size };
@@ -124,10 +124,12 @@ function packed(all: Sized[], wide?: number, banded: (id: Id) => boolean = () =>
 }
 
 /** Where a seated block draws, given where its grid came to rest: a header fills its cell, and
- *  anything else is centred in its own. */
+ *  anything else — a participant too — is centred in its own. */
 export function cell_spot(graph: Graph, b: Block, grid: Placed): Placed {
-  const box = cell_box(lattice_of(graph, b.parent ?? undefined)!, b.cell!.r, b.cell!.c);
-  const in_cell = is_header(graph, b.id) ? fills_cell(box) : centred_in(box, size_of(graph, b.id));
+  const at = b.parent!;
+  const box = cell_box(lattice_of(graph, at)!, b.cell!.r, b.cell!.c, head_height(graph, at));
+  const in_cell = is_header(graph, b.id) && !is_participant(graph, b.id) ? fills_cell(box)
+    : centred_in(box, size_of(graph, b.id));
   return { id: b.id, x: grid.x + in_cell.x, y: grid.y + in_cell.y,
            w: in_cell.w, h: in_cell.h };
 }

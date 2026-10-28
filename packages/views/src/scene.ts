@@ -63,8 +63,6 @@ export type BoxData = {
   side?: Side;
   /** Seats a line meets on this box's border, where the end has no interface of its own here. */
   seats?: readonly { id: string; side: Side; at: number }[];
-  /** The scale it is drawn at: a library registry's tile scaled into its box. Unsaid, one. */
-  scale?: number;
   /** A map chip's inner treemap: what it holds, each a share of its body from 0 to 1. */
   tiles?: readonly InnerTile[];
   /** A diagram's chip: its inner tiles laid by its structure. */
@@ -142,8 +140,6 @@ export type LineData = {
   routed?: boolean;
   /** Whether its name always reads level, above its run, however short the run. */
   level?: boolean;
-  /** The scale it is drawn at in the world, as its room's cards are. Unsaid, one. */
-  scale?: number;
   /** Whether it lies outside the focus, so its words fade with it. */
   away?: boolean;
 };

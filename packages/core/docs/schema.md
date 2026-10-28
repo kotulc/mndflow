@@ -299,7 +299,8 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | `traits` | — | the traits it states, by name |
 | `source` | where its content lives outside | — |
 | `blocks`, `relations`, `packages` | the layer it holds, as a diagram file | the layer it holds, as a diagram file |
-| anything else | a value | an attribute's default |
+| `values` | its answers: a map of name to value, or a list of `{ name, value }` | its attributes' defaults, the same way |
+| anything else | dropped | dropped |
 
 - the body after the frontmatter is `body`, as written. Tables in it are content
 - a type or tag name nothing loaded holds, or more than one package holds, makes a plain definition in the workspace, and is said

@@ -16,7 +16,6 @@
     },
     "card": {
       "label": "none",
-      "alias": "hide",
       "align": "center"
     }
   }

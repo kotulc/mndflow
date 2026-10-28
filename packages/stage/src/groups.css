@@ -91,6 +91,8 @@
   cursor: text;
   pointer-events: auto;
 }
+/* A holder's handle, quiet beside its name. */
+.mnd-group-alias { color: var(--muted); }
 
 /* ---------------------------------------------------------------- the grid */
 
