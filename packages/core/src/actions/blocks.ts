@@ -5,7 +5,8 @@ import { shown_name } from "../names";
 import { block_base, base_of, closes_cycle, def_at, dependents, diagram_kind, domain_of,
          holds_defs, in_definitions, is_domain, kind_fits, kind_free, may_retype, name_taken,
          package_of, plain_type, setting_of, stored_type, self_use } from "../defs";
-import { GRID, inline, inside, is_folder, is_grid, lattice_of, layer_of } from "../holders";
+import { drawn_on, GRID, inside, is_folder, is_grid, is_group, lattice_of,
+         layer_of } from "../holders";
 import { next_order, port_at, ports_of, reorder,
          object_of, sibling_named, subtree } from "../tree";
 import { unnamed_refusal } from "./named";
@@ -16,13 +17,9 @@ import { new_id } from "../ids";
 import { BASE_PACKAGE, KIND_FAMILIES, type Graph, type Id, type Mutation } from "../types";
 import { register, type Args, type Context, type Result } from "./registry";
 import { seat_all, seat_in, taken_in } from "./grid";
-import { borrowed, cell_of_arg, here, handles, id_of, ids_of, make_block, may_wear, NEEDS,
+import { disbanded, leaving, left } from "./groups";
+import { borrowed, cell_of_arg, clash, here, handles, id_of, ids_of, make_block, may_wear, NEEDS,
          port_edit, spot, text, tied, typed } from "./helpers";
-
-/** The layer a block made under `parent` draws on: the parent, or what it is drawn inline in. */
-function drawn_on(graph: Graph, parent: Id): Id | null {
-  return inline(graph, parent) ? layer_of(graph, parent) : parent;
-}
 
 /** What a definitions folder says to structure put in it: the two trees stay apart. */
 const APART = "a definitions folder holds definitions and folders, not structure";
@@ -145,9 +142,8 @@ register(
       const why = borrowed(ctx.graph, parent);
       if (why) return why;
       if (self_use(ctx.graph, parent, type)) return "a definition cannot use itself";
-      if (sibling_named(ctx.graph, parent, text(args, "name"))) {
-        return `"${text(args, "name")}" is already here`;
-      }
+      const taken = clash(ctx.graph, parent, text(args, "name"));
+      if (taken) return taken;
       const from = args["from"] ? id_of(args, "from") : null;
       if (from && layer_of(ctx.graph, from) !== drawn_on(ctx.graph, parent)) {
         return "a tie joins blocks on one layer";
@@ -229,8 +225,17 @@ register(
         graph = { ...graph, blocks: { ...graph.blocks,
           [set.id]: { ...graph.blocks[set.id]!, ports: set.ports ?? [] } } };
       }
+      /** A group goes from its members, who stay; what goes leaves its groups, and a group left
+       *  empty goes with it. */
+      const blocks = rest.filter((id) => ctx.graph.blocks[id]);
+      const groups = blocks.filter((id) => is_group(ctx.graph, id));
+      const leaving = blocks.flatMap((id) => subtree(ctx.graph, id))
+        .filter((id) => !groups.includes(id));
+      const membership = [...groups.flatMap((g) => disbanded(ctx.graph, g)),
+                          ...left(ctx.graph, leaving)
+                            .filter((m) => m.op !== "delete_block" || !rest.includes(m.id))];
       return {
-        mutations: [...drop_named(ctx.graph, named), ...dropped,
+        mutations: [...drop_named(ctx.graph, named), ...dropped, ...membership,
                     ...rest.map((id): Mutation => (ctx.graph.edges[id]
                       ? { op: "delete_edge", id } : { op: "delete_block", id }))],
         effect: { focus: null },
@@ -253,7 +258,8 @@ register(
       if (why) return why;
       const name = text(args, "name");
       const b = ctx.graph.blocks[id];
-      if (b && sibling_named(ctx.graph, b.parent, name, [id])) return `"${name}" is already here`;
+      const taken = b ? clash(ctx.graph, b.parent, name, [id]) : null;
+      if (taken) return taken;
       if (!def_at(ctx.graph, id)) return null;
       if (!name) return "a definition needs a name";
       return name_taken(ctx.graph, package_of(ctx.graph, id), name, id)
@@ -410,6 +416,7 @@ register(
       const out: Mutation[] = ids
         .filter((id) => ctx.graph.blocks[id]!.parent !== parent)
         .map((id): Mutation => ({ op: "move_block", id, parent }));
+      out.push(...leaving(ctx.graph, ids, parent));
       out.push(...trees_of(ctx.graph, ids, parent));
       for (const at of reorder(ctx.graph, parent, ids, before)) {
         out.push({ op: "order_block", id: at.id, order: at.order });

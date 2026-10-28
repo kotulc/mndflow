@@ -13,6 +13,8 @@ export type Entry = {
   type?: string;
   def?: { attributes?: Record<string, unknown>[]; ends?: Ends };
   tags?: string[];
+  /** The groups on its layer it is in, by name: membership, apart from its tags. */
+  groups?: string[];
   constraints?: string[];
   traits?: string[];
   settings?: Record<string, unknown>;
@@ -188,6 +190,11 @@ function entry(map: Map): Entry {
     e.def = (map["def"] && typeof map["def"] === "object" ? map["def"] : {}) as Entry["def"];
   }
   if ("tags" in map) e.tags = names_in(map["tags"]);
+  if ("groups" in map) e.groups = names_in(map["groups"]);
+  /** A group holds nothing: its members say `groups:`. */
+  if (e.type === "group" && "blocks" in map) {
+    throw new Error(`group "${e.name}" lists blocks: its members say \`groups:\` instead`);
+  }
   if ("constraints" in map) e.constraints = names_in(map["constraints"]);
   if ("traits" in map) e.traits = names_in(map["traits"]);
   if (map["settings"] && typeof map["settings"] === "object") e.settings = map["settings"] as Map;

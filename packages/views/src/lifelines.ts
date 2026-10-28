@@ -59,7 +59,8 @@ export function lifelined(graph: Graph, grid: Id, scene: Scene): Scene {
     return { ...e, data: { ...e.data!, level: true, points: [{ x: from, y }, { x: to, y }] } };
   });
   const lives = lifelines(g.cols, (c) => cell_box(g, 0, c), box_of(room));
-  return { ...scene, nodes: [...scene.nodes, ...lives.nodes], edges: [...lives.edges, ...edges] };
+  return { ...scene, nodes: [...scene.nodes, ...lives.nodes], edges: [...lives.edges, ...edges],
+           lifelines: grid };
 }
 
 /** A dashed line down the middle of each column, from under its head to the grid's foot. */

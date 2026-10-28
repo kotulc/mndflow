@@ -2,8 +2,8 @@
 
 import { may_hold } from "../capabilities";
 import { def_at, domain_of, self_use } from "../defs";
-import { can_hold, GRID, inside, is_grid, is_group, is_region, lattice_of, layer_of, members_of,
-         shape_named, shape_of } from "../holders";
+import { can_hold, drawn_on, GRID, inside, is_grid, is_group, is_region, lattice_of, layer_of,
+         members_of, shape_named, shape_of } from "../holders";
 import { shown_name } from "../names";
 import { children, next_order, part_end, reorder } from "../tree";
 import { new_id } from "../ids";
@@ -12,6 +12,44 @@ import { put, seat_in, taken_in, with_merges } from "./grid";
 import { register, type Args, type Context } from "./registry";
 import { given_of } from "../library";
 import { borrowed, handles, here, id_of, make_block, num, seats, spot, text, tied } from "./helpers";
+
+/** **Leaving groups**: `ids` out of the groups `from` names, else out of every group they carry.
+ *  A group left with no members goes too: a group is never empty. */
+export function left(graph: Graph, ids: readonly Id[], from?: readonly Id[]): Mutation[] {
+  const out: Mutation[] = [];
+  const left_from = new Set<Id>();
+  for (const id of ids) {
+    const was = graph.blocks[id]?.groups ?? [];
+    const keep = was.filter((g) => from && !from.includes(g));
+    if (keep.length === was.length) continue;
+    was.filter((g) => !keep.includes(g)).forEach((g) => left_from.add(g));
+    out.push({ op: "set_groups", id, groups: keep.length ? keep : null });
+  }
+  for (const g of left_from) {
+    const empty = members_of(graph, g).every((b) => ids.includes(b.id));
+    if (empty) out.push({ op: "delete_block", id: g });
+  }
+  return out;
+}
+
+/** **What leaving a layer does**: blocks put under `parent` that draw on another layer than they
+ *  did leave every group they carry but `kept`. The one rule `move`, `room` and `group` share. */
+export function leaving(graph: Graph, ids: readonly Id[], parent: Id,
+                        kept: readonly Id[] = []): Mutation[] {
+  const to = drawn_on(graph, parent);
+  const off = ids.filter((id) => layer_of(graph, id) !== to);
+  const from = [...new Set(off.flatMap((id) => graph.blocks[id]?.groups ?? []))]
+    .filter((g) => !kept.includes(g));
+  return from.length ? left(graph, off, from) : [];
+}
+
+/** A group deleted: its members stay, each losing it. */
+export function disbanded(graph: Graph, group: Id): Mutation[] {
+  return members_of(graph, group).map((b): Mutation => {
+    const keep = (b.groups ?? []).filter((g) => g !== group);
+    return { op: "set_groups", id: b.id, groups: keep.length ? keep : null };
+  });
+}
 
 /** Whether an action says an extent, which only a grid has. */
 const asks_extent = (args: Args): boolean => num(args, "rows") !== null || num(args, "cols") !== null;
@@ -38,11 +76,20 @@ function refused(graph: Graph, holder: Id | null, id: Id): string | null {
     ? null : `"${shown_name(graph, holder)}" takes nothing of that sort`;
 }
 
-/** Where a new holder is made: under the parent its members share, else the open layer. */
-function home_of(ctx: Context, members: readonly Id[]): Id {
+/** Where a new holder is made: under the parent its members share, else the open layer. A group
+ *  always sits on the layer, a sibling of its regions. */
+function home_of(ctx: Context, members: readonly Id[], shape?: Shape | null): Id {
+  if (shape === "group") return here(ctx);
   const parents = new Set(members.map((id) => ctx.graph.blocks[id]!.parent));
   const [one] = [...parents];
   return parents.size === 1 && one && !is_grid(ctx.graph, one) ? one : here(ctx);
+}
+
+/** Why these blocks may not share one parent: two go by one name. */
+function twice(graph: Graph, ids: readonly Id[]): string | null {
+  const names = ids.map((id) => graph.blocks[id]?.name?.trim() ?? "").filter(Boolean);
+  const name = names.find((n, i) => names.indexOf(n) !== i);
+  return name ? `"${name}" is already here` : null;
 }
 
 /** The group or region a `room` action turns into a room, or null where it wraps members. */
@@ -91,7 +138,7 @@ register(
         const d = def_at(ctx.graph, type);
         if (!d || domain_of(ctx.graph, type) !== "block") return `there is no definition called "${type}"`;
         if (!shape) return `"${d.name}" is neither a group nor a grid`;
-        const home = home_of(ctx, members);
+        const home = home_of(ctx, members, shape);
         if (!may_hold(ctx.graph, home, type)) {
           return `"${shown_name(ctx.graph, home)}" holds nothing of that sort`;
         }
@@ -101,6 +148,11 @@ register(
         }
       }
       if (extent && (held ?? shape) !== "grid") return "rows and columns are a grid's";
+      if (into && held === "group" && members.some((id) => layer_of(ctx.graph, id)
+        !== layer_of(ctx.graph, into))) {
+        return "a group gathers blocks drawn on its layer";
+      }
+      if (into && held === "group") return null;
       for (const id of members) {
         const why = refused(ctx.graph, into, id);
         if (why) return why;
@@ -113,11 +165,20 @@ register(
       const rows = num(args, "rows") === null ? null : Math.max(1, num(args, "rows")!);
       const cols = num(args, "cols") === null ? null : Math.max(1, num(args, "cols")!);
       const out: Mutation[] = [];
+      /** **A group is a tag its members carry**: made on the layer, they stay where they are. */
+      const { type, shape } = made_as(ctx.graph, args);
+      if ((into && is_group(ctx.graph, into)) || (!into && shape === "group")) {
+        const made = into ? [] : make_block(ctx, "", here(ctx), type);
+        const group = into ?? (made[0] as { block: { id: Id } }).block.id;
+        const joined = members.filter((id) => !ctx.graph.blocks[id]!.groups?.includes(group))
+          .map((id): Mutation => ({ op: "set_groups", id,
+                                    groups: [...ctx.graph.blocks[id]!.groups ?? [], group] }));
+        return { mutations: [...made, ...joined], ...(into ? {} : { effect: { focus: group } }) };
+      }
       let group = into;
       /** The lattice members are seated in, as it will stand; null for a boundary. */
       let lattice: Grid | null = into ? lattice_of(ctx.graph, into) : null;
       if (!group) {
-        const { type, shape } = made_as(ctx.graph, args);
         const made = make_block(ctx, "", home_of(ctx, members), type);
         group = (made[0] as { block: { id: Id } }).block.id;
         out.push(...made);
@@ -155,6 +216,10 @@ register(
         else if (lattice && !was) loose.push(id);
       }
       if (lattice && loose.length) out.push(...seat_in(group, lattice, taken, loose, null));
+      /** Into a grid, a layer of its own, members leave their groups; a new grid is not in the
+       *  graph yet, so it is said outright. */
+      out.push(...(into ? leaving(ctx.graph, moved, group)
+        : shape === "grid" ? left(ctx.graph, moved) : []));
       /** Arriving members keep the order they had among themselves. */
       const orders = into ? reorder(ctx.graph, group, moved)
         : moved.map((id, n) => ({ id, order: n + 1 }));
@@ -212,7 +277,8 @@ register(
       const given = given_of(ctx.graph, id).find((g) => g.from === id_of(args, "from"));
       if (!given) return "that annotation gives it no tag";
       /** Leaving an outer holder would leave the inner ones too: one membership at a time. */
-      if (!given.tie && ctx.graph.blocks[id]?.parent !== given.from) {
+      if (!given.tie && is_region(ctx.graph, given.from)
+        && ctx.graph.blocks[id]?.parent !== given.from) {
         return "it sits in that box through another: take it out of that one first";
       }
       return borrowed(ctx.graph, given.tie ? given.from : id);
@@ -221,6 +287,9 @@ register(
       const id = id_of(args, "id");
       const given = given_of(ctx.graph, id).find((g) => g.from === id_of(args, "from"))!;
       if (given.tie) return { mutations: [{ op: "delete_edge", id: given.tie }] };
+      if (is_group(ctx.graph, given.from)) {
+        return { mutations: left(ctx.graph, [id], [given.from]) };
+      }
       /** Out of the holder giving the tag, onto what holds it, read right after it. */
       const up = ctx.graph.blocks[given.from]!.parent!;
       const out: Mutation[] = [{ op: "move_block", id, parent: up }];
@@ -242,9 +311,15 @@ register(
            { name: "name", form: "text" }],
     check: (ctx, args) => {
       const turned = turning(ctx.graph, args);
+      if (turned && is_group(ctx.graph, turned)) {
+        return borrowed(ctx.graph, turned)
+          ?? twice(ctx.graph, members_of(ctx.graph, turned).map((b) => b.id));
+      }
       if (turned) return borrowed(ctx.graph, turned);
       const members = picked_members(ctx, args, null);
       if (!members.length) return "nothing is selected";
+      const taken = twice(ctx.graph, members);
+      if (taken) return taken;
       const home = home_of(ctx, members);
       if (members.some((id) => layer_of(ctx.graph, id) !== layer_of(ctx.graph, members[0]!))) {
         return "a room gathers blocks drawn in one room";
@@ -257,12 +332,24 @@ register(
     run: (ctx, args) => {
       /** A group or region is retyped a plain block: its members already hold by `parent`. */
       const turned = turning(ctx.graph, args);
+      /** A group's members move under it as it becomes a room, and lose it. */
+      if (turned && is_group(ctx.graph, turned)) {
+        const held = members_of(ctx.graph, turned).map((b) => b.id);
+        return { mutations: [{ op: "update_block", id: turned, type: null },
+                             ...disbanded(ctx.graph, turned),
+                             ...leaving(ctx.graph, held, turned, [turned]),
+                             ...held.map((id): Mutation => ({ op: "move_block", id,
+                                                              parent: turned }))] };
+      }
       if (turned) return { mutations: [{ op: "update_block", id: turned, type: null }] };
       const members = picked_members(ctx, args, null);
       const made = make_block(ctx, text(args, "name"), home_of(ctx, members));
       const room = (made[0] as { block: { id: Id } }).block.id;
-      return { mutations: [...made, ...members.map((id): Mutation =>
-        ({ op: "move_block", id, parent: room }))] };
+      /** The new room is a layer of its own: what moves in leaves this one's groups. */
+      return { mutations: [...made, ...left(ctx.graph, members, [...new Set(members
+        .flatMap((id) => ctx.graph.blocks[id]?.groups ?? []))]),
+                           ...members.map((id): Mutation => ({ op: "move_block", id,
+                                                               parent: room }))] };
     },
   },
 );

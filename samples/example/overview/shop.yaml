@@ -21,12 +21,14 @@ blocks:
         type: service
         owner: Commerce
         tags: [ fulfilment ]
+        groups: [ fulfilment ]
         ports:
           - { name: events, type: Events, flow: in }
       - name: Shipping
         type: service
         owner: Logistics
         tags: [ fulfilment ]
+        groups: [ fulfilment ]
         ports:
           - { name: events, type: Events, flow: in }
           - { name: carrier, type: HTTP, flow: out }
@@ -34,6 +36,7 @@ blocks:
     type: region
   - name: How it runs
     type: region
+  - { name: fulfilment, type: group }
   - name: hot path
     type: label
 relations:

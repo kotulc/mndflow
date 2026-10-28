@@ -380,6 +380,11 @@
   cursor: pointer;
 }
 .mnd-box-name { overflow: hidden; text-overflow: ellipsis; }
+/* A group on the map is a panel over its members' cells, never a box: no rim, a faint ground. */
+.mnd-box.panel {
+  box-shadow: none;
+  background: color-mix(in oklch, var(--muted) 8%, transparent);
+}
 
 /* A chip: what is entered — its icon, name and counts over a small treemap of what it holds. */
 .mnd-chip {

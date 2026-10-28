@@ -243,6 +243,9 @@ export type Block = {
   /** The constraints it is held to, by id, in order: stated, the list replaces its definition's,
    *  as tags do. */
   constraints?: Id[];
+  /** **The groups it is in**, by the group block's id, each on its own layer: membership, never
+   *  enclosure. Each gives it the group's name as a tag (`given_of`). */
+  groups?: Id[];
   /** Its ports, in order: its boundary, where relations and flows enter and leave. */
   ports?: Port[];
   /** A usage's answers, in order. */
@@ -264,6 +267,8 @@ export type Relation = {
   toPort?: Id;
   /** A handle serial, as a block carries. */
   alias?: number;
+  /** Its place in the list it was read from, as a block's `order`. */
+  order?: number;
   /** Its tags, as a block's: stated, they replace its definition's. */
   tags?: Id[];
   /** Its constraints, as a block's. */
@@ -351,9 +356,9 @@ export const TRAITS: readonly Trait[] = [
     settings: { block: { behaviour: true } } },
   { id: "is_grid", description: "Seats text and blocks in the cells of a grid, drawn when it is opened.",
     settings: { holder: { matrix: true } } },
-  { id: "is_group", description: "Draws what it holds in place, on the layer it sits on, rather "
-      + "than behind its card.",
-    settings: { holder: { inline: true } } },
+  { id: "is_group", description: "Draws as a panel round its members, on the layer it sits on; "
+      + "it holds nothing, its members carry it.",
+    settings: { holder: { panel: true } } },
   { id: "is_region", description: "Draws as a band across the layer it sits on, under its "
       + "heading, holding what lies in it.",
     settings: { holder: { inline: true, band: true } } },
@@ -429,6 +434,7 @@ export type Mutation =
   | { op: "order_values"; id: Id; names: string[] }
   /** An element's tags, in order; null gives the list back to its definition. */
   | { op: "set_tags"; id: Id; tags: Id[] | null }
+  | { op: "set_groups"; id: Id; groups: Id[] | null }
   /** An element's constraints, in order; null gives the list back to its definition. */
   | { op: "set_constraints"; id: Id; constraints: Id[] | null }
   /** A definition's traits, in order; null gives the list back to its chain. */

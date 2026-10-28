@@ -239,6 +239,13 @@ function apply(graph: Graph, m: Mutation): void {
       else b.tags = [...new Set(m.tags.map((t) => t.trim()).filter(Boolean))];
       return;
     }
+    case "set_groups": {
+      const b = graph.blocks[m.id];
+      if (!b) return;
+      if (!m.groups?.length) delete b.groups;
+      else b.groups = [...new Set(m.groups)];
+      return;
+    }
     case "set_constraints": {
       const b = element(graph, m.id);
       if (!b) return;

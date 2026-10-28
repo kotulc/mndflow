@@ -1,6 +1,6 @@
 /** Where everything in a layer sits. */
 
-import { children, drawn_in, is_aside, is_box, is_interface, is_region, layout_of,
+import { children, drawn_in, is_aside, is_box, is_group, is_interface, is_region, layout_of,
          type Block, type Graph, type Id } from "@mnd/core";
 import { band_members, band_size, celled, loose_unit, type Sized } from "./bands";
 import { beside, centred, noted } from "./float";
@@ -156,18 +156,20 @@ export function bounds(spots: readonly Placed[]): { w: number; h: number } {
   return { w: w + GAP * 2, h: h + GAP * 2 };
 }
 
-/** A boundary: its members' bounds plus its air. */
-export function boundary(spots: readonly Placed[], members: readonly Id[]): Placed | null {
+/** A boundary: its members' bounds plus its air, `top` above them and `side` elsewhere. */
+export function boundary(spots: readonly Placed[], members: readonly Id[],
+                         { side = PAD, top = PAD } = {}): Placed | null {
   const inside = spots.filter((p) => members.includes(p.id));
   if (inside.length === 0) return null;
-  const x = Math.min(...inside.map((p) => p.x)) - PAD;
-  const y = Math.min(...inside.map((p) => p.y)) - PAD;
-  const w = Math.max(...inside.map((p) => p.x + p.w)) + PAD - x;
-  const h = Math.max(...inside.map((p) => p.y + p.h)) + PAD - y;
+  const x = Math.min(...inside.map((p) => p.x)) - side;
+  const y = Math.min(...inside.map((p) => p.y)) - top;
+  const w = Math.max(...inside.map((p) => p.x + p.w)) + side - x;
+  const h = Math.max(...inside.map((p) => p.y + p.h)) + side - y;
   return { id: "", x, y, w, h };
 }
 
+/** What a layer places itself: its blocks, less interfaces, groups and what sits in cells. */
 function loose_units(graph: Graph, layer: Id | null): Block[] {
-  return children(graph, layer)
-    .filter((b) => !is_interface(graph, b.id) && (b.parent === layer || !gridded(graph, b.id)));
+  return children(graph, layer).filter((b) => !is_interface(graph, b.id) && !is_group(graph, b.id)
+    && (b.parent === layer || !gridded(graph, b.id)));
 }

@@ -764,6 +764,7 @@
         "alias": 1,
         "from": "services.yaml.patterns.anti-corruption-layer",
         "fromPort": "services.yaml.patterns.anti-corruption-layer.port.in",
+        "order": 0,
         "to": "services.yaml.patterns.anti-corruption-layer.2"
       },
       "services.yaml.patterns.anti-corruption-layer.r2": {
@@ -771,6 +772,7 @@
         "type": "services.calls",
         "alias": 2,
         "from": "services.yaml.patterns.anti-corruption-layer.2",
+        "order": 1,
         "to": "services.yaml.patterns.anti-corruption-layer.4"
       },
       "services.yaml.patterns.anti-corruption-layer.r3": {
@@ -778,6 +780,7 @@
         "type": "services.calls",
         "alias": 3,
         "from": "services.yaml.patterns.anti-corruption-layer.4",
+        "order": 2,
         "to": "services.yaml.patterns.anti-corruption-layer.6"
       },
       "services.yaml.patterns.anti-corruption-layer.r4": {
@@ -785,6 +788,7 @@
         "type": "services.integrates",
         "alias": 4,
         "from": "services.yaml.patterns.anti-corruption-layer.6",
+        "order": 3,
         "to": "services.yaml.patterns.anti-corruption-layer",
         "toPort": "services.yaml.patterns.anti-corruption-layer.port.out"
       },
@@ -815,6 +819,7 @@
         "alias": 8,
         "from": "services.yaml.patterns.api-gateway",
         "fromPort": "services.yaml.patterns.api-gateway.port.requests",
+        "order": 0,
         "to": "services.yaml.patterns.api-gateway.2"
       },
       "services.yaml.patterns.api-gateway.r2": {
@@ -822,6 +827,7 @@
         "type": "services.calls",
         "alias": 9,
         "from": "services.yaml.patterns.api-gateway.2",
+        "order": 1,
         "to": "services.yaml.patterns.api-gateway.4"
       },
       "services.yaml.patterns.api-gateway.r3": {
@@ -829,6 +835,7 @@
         "type": "services.calls",
         "alias": 10,
         "from": "services.yaml.patterns.api-gateway.4",
+        "order": 2,
         "to": "services.yaml.patterns.api-gateway.6"
       },
       "services.yaml.patterns.api-gateway.r4": {
@@ -836,6 +843,7 @@
         "type": "services.calls",
         "alias": 11,
         "from": "services.yaml.patterns.api-gateway.6",
+        "order": 3,
         "to": "services.yaml.patterns.api-gateway",
         "toPort": "services.yaml.patterns.api-gateway.port.routes"
       },
@@ -866,6 +874,7 @@
         "alias": 15,
         "from": "services.yaml.patterns.circuit-breaker",
         "fromPort": "services.yaml.patterns.circuit-breaker.port.in",
+        "order": 0,
         "to": "services.yaml.patterns.circuit-breaker.2"
       },
       "services.yaml.patterns.circuit-breaker.r2": {
@@ -873,6 +882,7 @@
         "type": "services.calls",
         "alias": 16,
         "from": "services.yaml.patterns.circuit-breaker.2",
+        "order": 1,
         "to": "services.yaml.patterns.circuit-breaker.3"
       },
       "services.yaml.patterns.circuit-breaker.r3": {
@@ -880,6 +890,7 @@
         "name": "closed",
         "alias": 17,
         "from": "services.yaml.patterns.circuit-breaker.3",
+        "order": 2,
         "settings": {
           "line": {
             "dir": "forward"
@@ -893,6 +904,7 @@
         "name": "open",
         "alias": 18,
         "from": "services.yaml.patterns.circuit-breaker.3",
+        "order": 3,
         "settings": {
           "line": {
             "dir": "forward"
@@ -920,6 +932,7 @@
         "alias": 21,
         "from": "services.yaml.patterns.layered-architecture",
         "fromPort": "services.yaml.patterns.layered-architecture.port.requests",
+        "order": 0,
         "to": "services.yaml.patterns.layered-architecture.2"
       },
       "services.yaml.patterns.layered-architecture.r2": {
@@ -927,6 +940,7 @@
         "type": "services.calls",
         "alias": 22,
         "from": "services.yaml.patterns.layered-architecture.2",
+        "order": 1,
         "to": "services.yaml.patterns.layered-architecture.4"
       },
       "services.yaml.patterns.layered-architecture.r3": {
@@ -934,6 +948,7 @@
         "type": "services.calls",
         "alias": 23,
         "from": "services.yaml.patterns.layered-architecture.4",
+        "order": 2,
         "to": "services.yaml.patterns.layered-architecture.6"
       },
       "services.yaml.patterns.layered-architecture.r4": {
@@ -941,6 +956,7 @@
         "type": "services.reads",
         "alias": 24,
         "from": "services.yaml.patterns.layered-architecture.6",
+        "order": 3,
         "to": "services.yaml.patterns.layered-architecture.8"
       },
       "services.yaml.patterns.layered-architecture.t3": {
@@ -970,6 +986,7 @@
         "alias": 28,
         "from": "services.yaml.patterns.saga-orchestrator",
         "fromPort": "services.yaml.patterns.saga-orchestrator.port.start",
+        "order": 0,
         "to": "services.yaml.patterns.saga-orchestrator.2"
       },
       "services.yaml.patterns.saga-orchestrator.r2": {
@@ -977,6 +994,7 @@
         "type": "services.reads",
         "alias": 29,
         "from": "services.yaml.patterns.saga-orchestrator.2",
+        "order": 1,
         "to": "services.yaml.patterns.saga-orchestrator.3"
       },
       "services.yaml.patterns.saga-orchestrator.r3": {
@@ -984,6 +1002,7 @@
         "name": "commands / replies",
         "alias": 30,
         "from": "services.yaml.patterns.saga-orchestrator.2",
+        "order": 2,
         "settings": {
           "line": {
             "dir": "both"
@@ -997,6 +1016,7 @@
         "name": "on failure",
         "alias": 31,
         "from": "services.yaml.patterns.saga-orchestrator.2",
+        "order": 3,
         "settings": {
           "line": {
             "dir": "forward"
@@ -1024,6 +1044,7 @@
         "alias": 34,
         "from": "services.yaml.patterns.transactional-outbox",
         "fromPort": "services.yaml.patterns.transactional-outbox.port.requests",
+        "order": 0,
         "to": "services.yaml.patterns.transactional-outbox.2"
       },
       "services.yaml.patterns.transactional-outbox.r2": {
@@ -1031,6 +1052,7 @@
         "type": "services.calls",
         "alias": 35,
         "from": "services.yaml.patterns.transactional-outbox.2",
+        "order": 1,
         "to": "services.yaml.patterns.transactional-outbox.3"
       },
       "services.yaml.patterns.transactional-outbox.r3": {
@@ -1038,6 +1060,7 @@
         "type": "services.reads",
         "alias": 36,
         "from": "services.yaml.patterns.transactional-outbox.3",
+        "order": 2,
         "to": "services.yaml.patterns.transactional-outbox.5"
       },
       "services.yaml.patterns.transactional-outbox.r4": {
@@ -1045,6 +1068,7 @@
         "type": "services.reads",
         "alias": 37,
         "from": "services.yaml.patterns.transactional-outbox.8",
+        "order": 3,
         "to": "services.yaml.patterns.transactional-outbox.6"
       },
       "services.yaml.patterns.transactional-outbox.r5": {
@@ -1052,6 +1076,7 @@
         "name": "same transaction",
         "alias": 38,
         "from": "services.yaml.patterns.transactional-outbox.3",
+        "order": 4,
         "settings": {
           "line": {
             "dir": "forward"
@@ -1064,6 +1089,7 @@
         "type": "services.publishes",
         "alias": 39,
         "from": "services.yaml.patterns.transactional-outbox.8",
+        "order": 5,
         "to": "services.yaml.patterns.transactional-outbox",
         "toPort": "services.yaml.patterns.transactional-outbox.port.events"
       },

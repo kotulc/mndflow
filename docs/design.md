@@ -89,7 +89,7 @@ Most rules below are one of these applied.
 | **group** | a name | a panel round its members, no rim | gathers them, holding nothing | the blocks tagged with its name |
 | **region** | a heading | a band of its layer, in order: its heading over a rule | encloses its members | its members |
 
-- **an annotation's name tags its members**: a region's members are those it encloses, by `parent`; a label's, what it is tied to. **A group's members carry its name as a tag**: grouping is tagging, never enclosure, so a block keeps its place in the tree while it joins any number of groups
+- **an annotation's name tags its members**: a region's members are those it encloses, by `parent`; a label's, what it is tied to. **A group's members carry its name as a tag** — said in each member's `groups`, apart from its finding-tags, so a domain tag of the same spelling stays a domain tag: grouping is tagging, never enclosure, so a block keeps its place in the tree while it joins any number of groups
 - a region holds blocks of the layer it sits on; a group gathers them, wherever they are filed. A block dragged into either joins, dragged out leaves: out of a region for the layer, out of a group by losing its tag
 - **groups may nest and overlap, and may cross regions**: nesting is derived from members, never stored; the panel is drawn round its members wherever they landed
 - **a region takes its place in reading order**, as any block does; its members are laid out inside it

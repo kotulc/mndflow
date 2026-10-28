@@ -1,18 +1,25 @@
 name: Deployment
 type: internal
-description: "Where the shop runs. Groups nest, each a dashed box round its members with a note tied beside it; a grid lays environments under their headers."
+description: "Where the shop runs. Groups nest: each a panel round its members, who carry it, with a note tied beside it; a grid lays environments under their headers."
 blocks:
   - name: eu-west cluster
     type: group
     note: One cluster per region.
-    blocks:
-      - name: shop namespace
-        type: group
-        note: The services customers reach.
-        blocks: [ gateway pod, storefront pod, orders pod ]
-      - name: data namespace
-        type: group
-        blocks: [ orders primary, orders replica ]
+  - name: shop namespace
+    type: group
+    note: The services customers reach.
+  - name: data namespace
+    type: group
+  - name: gateway pod
+    groups: [ eu-west cluster, shop namespace ]
+  - name: storefront pod
+    groups: [ eu-west cluster, shop namespace ]
+  - name: orders pod
+    groups: [ eu-west cluster, shop namespace ]
+  - name: orders primary
+    groups: [ eu-west cluster, data namespace ]
+  - name: orders replica
+    groups: [ eu-west cluster, data namespace ]
   - name: Environments
     type: grid
     cols:

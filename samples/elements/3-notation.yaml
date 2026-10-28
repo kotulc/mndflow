@@ -11,9 +11,22 @@ blocks:
     w: 192
     h: 48
   - { name: free text, type: label }
-  - name: A group
-    type: group
-    blocks: [ inside ]
+  - { name: A group, type: group }
+  - { name: inside, groups: [ A group ] }
   - name: A region
     type: region
     blocks: [ held ]
+  - { name: Left, type: group, note: "Two groups sharing one member: neither holds the other." }
+  - { name: Right, type: group }
+  - { name: only left, groups: [ Left ] }
+  - { name: both, groups: [ Left, Right ] }
+  - { name: only right, groups: [ Right ] }
+  - { name: Across, type: group, note: "Its members sit in two regions; its panel crosses them." }
+  - name: Region one
+    type: region
+    blocks:
+      - { name: first, groups: [ Across ] }
+  - name: Region two
+    type: region
+    blocks:
+      - { name: second, groups: [ Across ] }

@@ -18,7 +18,7 @@ import { read_card } from "./card";
 import { all_defs, block_base, def_at, dir_of, is_notation, package_of } from "./defs";
 import { long_form, type Edge, type Entry, type LongForm, type LibrarySaid } from "./diagram";
 import { renamed, write } from "./file";
-import { is_grid } from "./holders";
+import { holders_in, is_grid, is_group, layer_of } from "./holders";
 import { all_constraints, all_interfaces, all_tags, all_types, is_form,
          library_map } from "./library";
 import { def_ref, fits_domain, is_path, path_to, STEP } from "./refs";
@@ -176,7 +176,19 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
     const ctx = ctx_of(r);
     for (const [i, e] of r.form.relations.entries()) {
       const edge = relation(ctx, `${r.id}.r${i + 1}`, e);
-      if (edge) graph.edges[edge.id] = { ...edge, alias: alias("relation") };
+      if (edge) graph.edges[edge.id] = { ...edge, alias: alias("relation"), order: i };
+    }
+    /** A block is in the groups it names, each a group on its own layer. */
+    for (const [id, e] of entries_of(r)) {
+      const groups = (e.groups ?? []).flatMap((name) => {
+        const hit = holders_in(graph, layer_of(graph, id))
+          .find((g) => is_group(graph, g.id) && g.name === name);
+        if (!hit) {
+          ctx.notes.push(`${r.path}: ${e.name || id} is in "${name}", no group on its layer`);
+        }
+        return hit ? [hit.id] : [];
+      });
+      if (groups.length) graph.blocks[id]!.groups = groups;
     }
     /** A note written on a block is tied to it, or to the port it was written on. */
     for (const [i, e] of r.form.blocks.entries()) {
@@ -269,6 +281,7 @@ function sourced(reads: readonly Read[]): Set<string> {
       e.body ??= card.body;
       e.description ??= card.description;
       e.tags ??= card.tags;
+      e.groups ??= card.groups;
       e.settings ??= card.settings;
       e.name ||= card.name;
       e.values = [...card.values.filter((v) => !e.values.some((x) => x.name === v.name)),
@@ -335,8 +348,14 @@ function port_id(block: Id, ports: readonly { name?: string }[], at: number): Id
   return ports.slice(0, at).some((p) => slug(p) === slug(ports[at]!)) ? `${id}.${at + 1}` : id;
 }
 
+/** A list with `one` put in: over the entry of its id, where it sits, else last. */
+function said_again<T extends { id: Id }>(list: readonly T[], one: T): T[] {
+  const at = list.findIndex((x) => x.id === one.id);
+  return at < 0 ? [...list, one] : list.map((x, i) => (i === at ? one : x));
+}
+
 /** A file's named components put in its package's library, each by its name; one already there
- *  is said again over it. */
+ *  is said again over it, in its place. */
 function library(graph: Graph, slug: Id, pre: string, said: Partial<LibrarySaid>): void {
   const root = graph.blocks[slug]!;
   const lib = { types: [...root.library?.types ?? []], tags: [...root.library?.tags ?? []],
@@ -360,13 +379,13 @@ function library(graph: Graph, slug: Id, pre: string, said: Partial<LibrarySaid>
       ...(text(t, "unit") ? { unit: text(t, "unit") } : {}),
       ...(text(t, "format") ? { format: text(t, "format") } : {}),
       ...common(t, (n) => type_id(pre, n)) };
-    lib.types = [...lib.types.filter((x) => x.id !== type.id), type];
+    lib.types = said_again(lib.types, type);
   }
   for (const t of said.tags ?? []) {
     const name = text(t, "name");
     if (!name) continue;
     const tag: Tag = { id: tag_id(pre, name), name, ...common(t, (n) => tag_id(pre, n)) };
-    lib.tags = [...lib.tags.filter((x) => x.id !== tag.id), tag];
+    lib.tags = said_again(lib.tags, tag);
   }
   for (const t of said.constraints ?? []) {
     const name = text(t, "name");
@@ -376,14 +395,14 @@ function library(graph: Graph, slug: Id, pre: string, said: Partial<LibrarySaid>
                               ...(words("required").length ? { required: words("required") } : {}),
                               ...(words("match").length ? { match: words("match") } : {}),
                               ...common(t, (n) => constraint_id(pre, n)) };
-    lib.constraints = [...lib.constraints.filter((x) => x.id !== one.id), one];
+    lib.constraints = said_again(lib.constraints, one);
   }
   for (const t of said.interfaces ?? []) {
     const name = text(t, "name");
     if (!name) continue;
     const one: Interface = { id: interface_id(pre, name), name,
                              ...common(t, (n) => interface_id(pre, n)) };
-    lib.interfaces = [...lib.interfaces.filter((x) => x.id !== one.id), one];
+    lib.interfaces = said_again(lib.interfaces, one);
   }
   const kept = library_map(lib, (list) => list);
   if (kept) root.library = kept;

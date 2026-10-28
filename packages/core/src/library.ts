@@ -3,7 +3,8 @@
 
 import { base_of, constraints_stated, def_at, def_named, is_tie, packages,
          tags_stated } from "./defs";
-import { holders_over, is_group, is_region } from "./holders";
+import { groups_of, holders_over, is_region } from "./holders";
+import { shown_name } from "./names";
 import { FORMS, KINDS, type Constraint, type LibraryEntry, type Form, type Graph, type Id,
          type Interface, type Library, type Mutation, type Tag, type Type } from "./types";
 import { kept } from "./memo";
@@ -256,13 +257,16 @@ export function has_library(graph: Graph, pkg: Id): boolean {
  *  label's, to what it is tied to. Derived, never stored on the member. */
 export type Given = { name: string; from: Id; tie?: Id };
 
-/** The tags annotations give a block, nearest enclosure first, then its labels. */
+/** The tags annotations give a block: the regions enclosing it, nearest first, the groups it
+ *  carries, then its labels. */
 export function given_of(graph: Graph, id: Id): Given[] {
   const out: Given[] = [];
   for (const h of holders_over(graph, id)) {
     const name = h.name?.trim();
-    if (name && (is_group(graph, h.id) || is_region(graph, h.id))) out.push({ name, from: h.id });
+    if (name && is_region(graph, h.id)) out.push({ name, from: h.id });
   }
+  /** A group gives its tag named or not: unnamed, it reads as its handle. */
+  for (const g of groups_of(graph, id)) out.push({ name: shown_name(graph, g), from: g });
   for (const e of Object.values(graph.edges)) {
     const other = e.from === id ? e.to : e.to === id ? e.from : null;
     const name = other ? graph.blocks[other]?.name?.trim() : "";

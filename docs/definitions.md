@@ -76,7 +76,7 @@
 | **grid** | block | seats blocks and labels **in cells**. A card outside; opened, its **allocation view**. Lists as a row. The `sequence` and `swimlane` kinds are grids too, by *is grid* |
 | **note** | notation | a remark: a markdown body drawn as a document, resizable, tied to the block it is made from |
 | **label** | notation | one line of text, the `text` face: no border, ground, icon or marks; one unit tall, as wide as its words. Free or tied, always floating aside. Tags what it is tied to |
-| **group** | notation | a named panel on the layer it sits on, round the blocks that carry its name as a tag; it holds nothing. A block in several groups carries each one's tag, so groups nest: a group whose members all carry another's tag sits inside it. No explorer row |
+| **group** | notation | a named panel on the layer it sits on, round the blocks that carry its name as a tag (`groups`); it holds nothing. A block in several groups carries each one's tag, so groups nest: a group whose members all carry another's tag sits inside it. No explorer row |
 | **region** | notation | a band across the layer, between separators, under a heading. Tags its members; regions stack and reorder. May show another block's diagram, dropped in |
 | **tie** | relation | a relation with no model meaning: a dotted run with no heads, drawn straight, from a note or label to what it describes. It lists *is tie*, which grants `line.module: tie` |
 
@@ -185,7 +185,7 @@
 | **merge** | a cell's extent, stated on the grid as a `Span`. Stays on one side of a header line |
 | **header line** | the top row and the left column. Every grid has both, heading the rest; opened, each header is its line's tab. One unit across |
 | **header** | the block a header cell holds, drawn compact: a role from position. What it stands for is what its line is allocated to. Typing into an empty one makes a label of that name |
-| **allocation** | a body block is allocated to what its row and column headers stand for, and to every folder, grid, group and region it sits in. Derived, never stored |
+| **allocation** | a body block is allocated to what its row and column headers stand for, and to every folder, grid and region it sits in. Derived, never stored |
 
 
 ## The workspace and files

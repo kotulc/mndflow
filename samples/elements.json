@@ -17,15 +17,15 @@
         "parent": null,
         "name": "elements",
         "counters": {
-          "note": 6,
-          "block": 46,
+          "note": 8,
+          "block": 51,
           "folder": 1,
           "grid": 1,
           "reference": 1,
           "label": 1,
-          "group": 1,
-          "region": 1,
-          "relation": 11
+          "group": 4,
+          "region": 3,
+          "relation": 13
         }
       },
       "yaml.1-blocks": {
@@ -253,7 +253,7 @@
         "name": "A region",
         "type": "region",
         "alias": 1,
-        "order": 9
+        "order": 10
       },
       "yaml.3-notation.11": {
         "id": "yaml.3-notation.11",
@@ -262,6 +262,77 @@
         "alias": 19,
         "order": 1
       },
+      "yaml.3-notation.12": {
+        "id": "yaml.3-notation.12",
+        "parent": "yaml.3-notation",
+        "name": "Left",
+        "type": "group",
+        "alias": 2,
+        "order": 11
+      },
+      "yaml.3-notation.13": {
+        "id": "yaml.3-notation.13",
+        "parent": "yaml.3-notation",
+        "name": "Two groups sharing one member: neither holds the other.",
+        "type": "note",
+        "alias": 5,
+        "order": 12
+      },
+      "yaml.3-notation.14": {
+        "id": "yaml.3-notation.14",
+        "parent": "yaml.3-notation",
+        "name": "Right",
+        "type": "group",
+        "alias": 3,
+        "order": 13
+      },
+      "yaml.3-notation.15": {
+        "id": "yaml.3-notation.15",
+        "parent": "yaml.3-notation",
+        "name": "only left",
+        "alias": 20,
+        "groups": [
+          "yaml.3-notation.12"
+        ],
+        "order": 14
+      },
+      "yaml.3-notation.16": {
+        "id": "yaml.3-notation.16",
+        "parent": "yaml.3-notation",
+        "name": "both",
+        "alias": 21,
+        "groups": [
+          "yaml.3-notation.12",
+          "yaml.3-notation.14"
+        ],
+        "order": 15
+      },
+      "yaml.3-notation.17": {
+        "id": "yaml.3-notation.17",
+        "parent": "yaml.3-notation",
+        "name": "only right",
+        "alias": 22,
+        "groups": [
+          "yaml.3-notation.14"
+        ],
+        "order": 16
+      },
+      "yaml.3-notation.18": {
+        "id": "yaml.3-notation.18",
+        "parent": "yaml.3-notation",
+        "name": "Across",
+        "type": "group",
+        "alias": 4,
+        "order": 17
+      },
+      "yaml.3-notation.19": {
+        "id": "yaml.3-notation.19",
+        "parent": "yaml.3-notation",
+        "name": "Its members sit in two regions; its panel crosses them.",
+        "type": "note",
+        "alias": 6,
+        "order": 18
+      },
       "yaml.3-notation.2": {
         "id": "yaml.3-notation.2",
         "parent": "yaml.3-notation",
@@ -269,6 +340,42 @@
         "type": "start",
         "alias": 14,
         "order": 2
+      },
+      "yaml.3-notation.20": {
+        "id": "yaml.3-notation.20",
+        "parent": "yaml.3-notation",
+        "name": "Region one",
+        "type": "region",
+        "alias": 2,
+        "order": 19
+      },
+      "yaml.3-notation.21": {
+        "id": "yaml.3-notation.21",
+        "parent": "yaml.3-notation.20",
+        "name": "first",
+        "alias": 23,
+        "groups": [
+          "yaml.3-notation.18"
+        ],
+        "order": 1
+      },
+      "yaml.3-notation.22": {
+        "id": "yaml.3-notation.22",
+        "parent": "yaml.3-notation",
+        "name": "Region two",
+        "type": "region",
+        "alias": 3,
+        "order": 20
+      },
+      "yaml.3-notation.23": {
+        "id": "yaml.3-notation.23",
+        "parent": "yaml.3-notation.22",
+        "name": "second",
+        "alias": 24,
+        "groups": [
+          "yaml.3-notation.18"
+        ],
+        "order": 1
       },
       "yaml.3-notation.3": {
         "id": "yaml.3-notation.3",
@@ -322,10 +429,13 @@
       },
       "yaml.3-notation.9": {
         "id": "yaml.3-notation.9",
-        "parent": "yaml.3-notation.8",
+        "parent": "yaml.3-notation",
         "name": "inside",
         "alias": 18,
-        "order": 1
+        "groups": [
+          "yaml.3-notation.8"
+        ],
+        "order": 9
       },
       "yaml.4-lines": {
         "id": "yaml.4-lines",
@@ -346,126 +456,126 @@
         "parent": "yaml.4-lines",
         "name": "Every relation the base ships, and the ways a line points. A line's ends say how many, in what role, and who owns whom.",
         "type": "note",
-        "alias": 5,
+        "alias": 7,
         "order": 1
       },
       "yaml.4-lines.10": {
         "id": "yaml.4-lines.10",
         "parent": "yaml.4-lines",
         "name": "Whole",
-        "alias": 28,
+        "alias": 33,
         "order": 10
       },
       "yaml.4-lines.11": {
         "id": "yaml.4-lines.11",
         "parent": "yaml.4-lines",
         "name": "Part",
-        "alias": 29,
+        "alias": 34,
         "order": 11
       },
       "yaml.4-lines.12": {
         "id": "yaml.4-lines.12",
         "parent": "yaml.4-lines",
         "name": "Gathered",
-        "alias": 30,
+        "alias": 35,
         "order": 12
       },
       "yaml.4-lines.13": {
         "id": "yaml.4-lines.13",
         "parent": "yaml.4-lines",
         "name": "Client",
-        "alias": 31,
+        "alias": 36,
         "order": 13
       },
       "yaml.4-lines.14": {
         "id": "yaml.4-lines.14",
         "parent": "yaml.4-lines",
         "name": "Supplier",
-        "alias": 32,
+        "alias": 37,
         "order": 14
       },
       "yaml.4-lines.15": {
         "id": "yaml.4-lines.15",
         "parent": "yaml.4-lines",
         "name": "Caller",
-        "alias": 33,
+        "alias": 38,
         "order": 15
       },
       "yaml.4-lines.16": {
         "id": "yaml.4-lines.16",
         "parent": "yaml.4-lines",
         "name": "Callee",
-        "alias": 34,
+        "alias": 39,
         "order": 16
       },
       "yaml.4-lines.17": {
         "id": "yaml.4-lines.17",
         "parent": "yaml.4-lines",
         "name": "State one",
-        "alias": 35,
+        "alias": 40,
         "order": 17
       },
       "yaml.4-lines.18": {
         "id": "yaml.4-lines.18",
         "parent": "yaml.4-lines",
         "name": "State two",
-        "alias": 36,
+        "alias": 41,
         "order": 18
       },
       "yaml.4-lines.2": {
         "id": "yaml.4-lines.2",
         "parent": "yaml.4-lines",
         "name": "A",
-        "alias": 20,
+        "alias": 25,
         "order": 2
       },
       "yaml.4-lines.3": {
         "id": "yaml.4-lines.3",
         "parent": "yaml.4-lines",
         "name": "B",
-        "alias": 21,
+        "alias": 26,
         "order": 3
       },
       "yaml.4-lines.4": {
         "id": "yaml.4-lines.4",
         "parent": "yaml.4-lines",
         "name": "C",
-        "alias": 22,
+        "alias": 27,
         "order": 4
       },
       "yaml.4-lines.5": {
         "id": "yaml.4-lines.5",
         "parent": "yaml.4-lines",
         "name": "D",
-        "alias": 23,
+        "alias": 28,
         "order": 5
       },
       "yaml.4-lines.6": {
         "id": "yaml.4-lines.6",
         "parent": "yaml.4-lines",
         "name": "E",
-        "alias": 24,
+        "alias": 29,
         "order": 6
       },
       "yaml.4-lines.7": {
         "id": "yaml.4-lines.7",
         "parent": "yaml.4-lines",
         "name": "F",
-        "alias": 25,
+        "alias": 30,
         "order": 7
       },
       "yaml.4-lines.8": {
         "id": "yaml.4-lines.8",
         "parent": "yaml.4-lines",
         "name": "G",
-        "alias": 26,
+        "alias": 31,
         "order": 8
       },
       "yaml.4-lines.9": {
         "id": "yaml.4-lines.9",
         "parent": "yaml.4-lines",
         "name": "H",
-        "alias": 27,
+        "alias": 32,
         "order": 9
       },
       "yaml.5-colour": {
@@ -482,14 +592,14 @@
         "parent": "yaml.5-colour",
         "name": "Colour and line, set on a card. A family or a hue picks its colour; fill, border and opacity say how it is drawn.",
         "type": "note",
-        "alias": 6,
+        "alias": 8,
         "order": 1
       },
       "yaml.5-colour.10": {
         "id": "yaml.5-colour.10",
         "parent": "yaml.5-colour",
         "name": "dashed",
-        "alias": 45,
+        "alias": 50,
         "order": 10,
         "settings": {
           "style": {
@@ -501,7 +611,7 @@
         "id": "yaml.5-colour.11",
         "parent": "yaml.5-colour",
         "name": "thick",
-        "alias": 46,
+        "alias": 51,
         "order": 11,
         "settings": {
           "style": {
@@ -513,7 +623,7 @@
         "id": "yaml.5-colour.2",
         "parent": "yaml.5-colour",
         "name": "primary",
-        "alias": 37,
+        "alias": 42,
         "order": 2,
         "settings": {
           "style": {
@@ -525,7 +635,7 @@
         "id": "yaml.5-colour.3",
         "parent": "yaml.5-colour",
         "name": "secondary",
-        "alias": 38,
+        "alias": 43,
         "order": 3,
         "settings": {
           "style": {
@@ -537,7 +647,7 @@
         "id": "yaml.5-colour.4",
         "parent": "yaml.5-colour",
         "name": "neutral",
-        "alias": 39,
+        "alias": 44,
         "order": 4,
         "settings": {
           "style": {
@@ -549,7 +659,7 @@
         "id": "yaml.5-colour.5",
         "parent": "yaml.5-colour",
         "name": "muted",
-        "alias": 40,
+        "alias": 45,
         "order": 5,
         "settings": {
           "style": {
@@ -561,7 +671,7 @@
         "id": "yaml.5-colour.6",
         "parent": "yaml.5-colour",
         "name": "hue 200",
-        "alias": 41,
+        "alias": 46,
         "order": 6,
         "settings": {
           "style": {
@@ -573,7 +683,7 @@
         "id": "yaml.5-colour.7",
         "parent": "yaml.5-colour",
         "name": "hue 25",
-        "alias": 42,
+        "alias": 47,
         "order": 7,
         "settings": {
           "style": {
@@ -585,7 +695,7 @@
         "id": "yaml.5-colour.8",
         "parent": "yaml.5-colour",
         "name": "hatched",
-        "alias": 43,
+        "alias": 48,
         "order": 8,
         "settings": {
           "style": {
@@ -597,7 +707,7 @@
         "id": "yaml.5-colour.9",
         "parent": "yaml.5-colour",
         "name": "faded",
-        "alias": 44,
+        "alias": 49,
         "order": 9,
         "settings": {
           "style": {
@@ -635,11 +745,26 @@
       }
     },
     "edges": {
+      "yaml.3-notation.t13": {
+        "id": "yaml.3-notation.t13",
+        "type": "tie",
+        "alias": 1,
+        "from": "yaml.3-notation.13",
+        "to": "yaml.3-notation.12"
+      },
+      "yaml.3-notation.t19": {
+        "id": "yaml.3-notation.t19",
+        "type": "tie",
+        "alias": 2,
+        "from": "yaml.3-notation.19",
+        "to": "yaml.3-notation.18"
+      },
       "yaml.4-lines.r1": {
         "id": "yaml.4-lines.r1",
         "name": "forward",
-        "alias": 1,
+        "alias": 3,
         "from": "yaml.4-lines.2",
+        "order": 0,
         "settings": {
           "line": {
             "dir": "forward"
@@ -651,23 +776,26 @@
         "id": "yaml.4-lines.r10",
         "name": "answer",
         "type": "reply",
-        "alias": 10,
+        "alias": 12,
         "from": "yaml.4-lines.16",
+        "order": 9,
         "to": "yaml.4-lines.15"
       },
       "yaml.4-lines.r11": {
         "id": "yaml.4-lines.r11",
         "name": "event",
         "type": "transition",
-        "alias": 11,
+        "alias": 13,
         "from": "yaml.4-lines.17",
+        "order": 10,
         "to": "yaml.4-lines.18"
       },
       "yaml.4-lines.r2": {
         "id": "yaml.4-lines.r2",
         "name": "back",
-        "alias": 2,
+        "alias": 4,
         "from": "yaml.4-lines.4",
+        "order": 1,
         "settings": {
           "line": {
             "dir": "back"
@@ -678,8 +806,9 @@
       "yaml.4-lines.r3": {
         "id": "yaml.4-lines.r3",
         "name": "both",
-        "alias": 3,
+        "alias": 5,
         "from": "yaml.4-lines.6",
+        "order": 2,
         "settings": {
           "line": {
             "dir": "both"
@@ -690,15 +819,17 @@
       "yaml.4-lines.r4": {
         "id": "yaml.4-lines.r4",
         "name": "none",
-        "alias": 4,
+        "alias": 6,
         "from": "yaml.4-lines.8",
+        "order": 3,
         "to": "yaml.4-lines.9"
       },
       "yaml.4-lines.r5": {
         "id": "yaml.4-lines.r5",
         "type": "composition",
-        "alias": 5,
+        "alias": 7,
         "from": "yaml.4-lines.10",
+        "order": 4,
         "settings": {
           "line": {
             "dir": "forward"
@@ -709,8 +840,9 @@
       "yaml.4-lines.r6": {
         "id": "yaml.4-lines.r6",
         "type": "aggregation",
-        "alias": 6,
+        "alias": 8,
         "from": "yaml.4-lines.10",
+        "order": 5,
         "settings": {
           "line": {
             "dir": "forward"
@@ -721,7 +853,7 @@
       "yaml.4-lines.r7": {
         "id": "yaml.4-lines.r7",
         "type": "association",
-        "alias": 7,
+        "alias": 9,
         "ends": {
           "from": {
             "multiplicity": "*",
@@ -733,21 +865,24 @@
           }
         },
         "from": "yaml.4-lines.11",
+        "order": 6,
         "to": "yaml.4-lines.12"
       },
       "yaml.4-lines.r8": {
         "id": "yaml.4-lines.r8",
         "type": "dependency",
-        "alias": 8,
+        "alias": 10,
         "from": "yaml.4-lines.13",
+        "order": 7,
         "to": "yaml.4-lines.14"
       },
       "yaml.4-lines.r9": {
         "id": "yaml.4-lines.r9",
         "name": "ask",
         "type": "message",
-        "alias": 9,
+        "alias": 11,
         "from": "yaml.4-lines.15",
+        "order": 8,
         "to": "yaml.4-lines.16"
       }
     }

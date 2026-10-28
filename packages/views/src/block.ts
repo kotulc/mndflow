@@ -1,12 +1,12 @@
 /** The block view: any planar projection. */
 
 import { alias_of, dir_of, layout_of, children, covers, diagram_subject,
-         edges_in, group_depth, heading, holders_in, inline, is_box, is_container, is_grid,
-         is_aside, is_note, is_tie, label_of, lattice_of, members_of, shape_of, stamps_of, role_of,
-         shown_name, type Cut, type Ends, type ViewKind, type Graph, type Id, type Relation,
-         type Side, type Span } from "@mnd/core";
-import { at_seat, beside, cell_box, is_placed, laid, perch_id, roomed, seat_all, PAD, UNIT,
-         type Perch, type Rect, type Seat, type Seating } from "@mnd/views";
+         edges_in, group_depth, group_nest, heading, holders_in, inline, is_box, is_container,
+         is_grid, is_group, is_aside, is_note, is_tie, label_of, lattice_of, members_of, shape_of,
+         stamps_of, role_of, shown_name, type Cut, type Ends, type ViewKind, type Graph, type Id,
+         type Relation, type Side, type Span } from "@mnd/core";
+import { at_seat, beside, boundary, cell_box, is_placed, laid, perch_id, roomed, seat_all, PAD,
+         UNIT, type Perch, type Rect, type Seat, type Seating } from "@mnd/views";
 import { carried, fit_names, marks_of, trail_of } from "./derive";
 import { lifelined } from "./lifelines";
 import { look_of, wire_of } from "./look";
@@ -104,24 +104,31 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
 
   /** Which component draws each box. Every card is the one card height, so nothing minifies. */
   const boxes: BoxNode[] = spots
-    .filter((p) => !inline(graph, p.id))
+    .filter((p) => !inline(graph, p.id) && !is_group(graph, p.id))
     .map((p) => node(p.id, p, { ...carried_as(p.id), nest: group_depth(graph, p.id) },
                      is_note(graph, p.id) ? "note" : "card"));
 
   /** A grid draws its extent; a boundary its members' bounds. */
   const holders: BoxNode[] = [];
   for (const g of holders_in(graph, layer)) {
-    const box = spots.find((p) => p.id === g.id);
+    const group = is_group(graph, g.id);
+    /** A group placed as a compound is its compound's box, nested and padded by the layout;
+     *  any other is drawn round wherever its members landed. */
+    const box = spots.find((p) => p.id === g.id) ?? (group
+      ? boundary(spots, members_of(graph, g.id).map((b) => b.id), { side: UNIT, top: UNIT * 1.5 })
+      : null);
     if (!box) continue;
     const said = carried(graph, g.id);
     /** A folder and a region are boxes as a group is, told apart by their marks. */
     const mark: CardClass = shape_of(graph, g.id) === "grid" ? "grid" : "group";
-    holders.push(node(g.id, box,
-                      { ...said, nest: group_depth(graph, g.id),
-                        holds: members_of(graph, g.id).map((b) => b.id),
-                        ...(mark === "grid" ? { grid: lattice(graph, g.id) }
-                                            : { carries: group_carries(graph, g.id) }) },
-                      mark));
+    const drawn = node(g.id, box,
+                       { ...said, nest: group ? group_nest(graph, g.id) : group_depth(graph, g.id),
+                         holds: members_of(graph, g.id).map((b) => b.id),
+                         ...(mark === "grid" ? { grid: lattice(graph, g.id) }
+                                             : { carries: group_carries(graph, g.id) }) },
+                       mark);
+    /** A group's panel is where its members are: it is never dragged. */
+    holders.push(group ? { ...drawn, draggable: false } : drawn);
   }
   /** Shallowest first, so a holder inside another draws over it. */
   holders.sort((a, b) => (a.data.nest ?? 0) - (b.data.nest ?? 0));

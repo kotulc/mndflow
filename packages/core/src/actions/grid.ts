@@ -8,7 +8,8 @@ import { children, edges_in, is_interface, next_order } from "../tree";
 import { new_id } from "../ids";
 import type { Cell, Dir, Graph, Grid, Id, Mutation, Span } from "../types";
 import { register, type Args, type Context } from "./registry";
-import { cell_of_arg, handles, id_of, make_block, num, region, run_type, text } from "./helpers";
+import { borrowed, cell_of_arg, clash, handles, id_of, make_block, num, region, run_type,
+         text } from "./helpers";
 
 /** Whether a cell is a header's or the body's; a block moved within a grid stays on its side. */
 const heads_at = (at: Cell): boolean => heading(at.r, at.c) !== null;
@@ -68,6 +69,31 @@ export function seat_in(group: Id, g: Grid, taken: Set<string>, ids: readonly Id
     out.push({ op: "seat_cell", id, cell });
   }
   return grid === g ? out : [set(group, grid), ...out];
+}
+
+/** **A step moved within its column**: out of its row, the steps below it moving up; in at
+ *  `row`, the steps there and below moving down. Only its column moves; the grid grows a row
+ *  only where the column would run past its last. */
+function restepped(graph: Graph, id: Id, row: number): Mutation[] {
+  const b = graph.blocks[id];
+  const group = b?.parent;
+  const g = lattice_of(graph, group ?? undefined);
+  if (!b?.cell || !group || !g) return [];
+  const { r: from, c } = b.cell;
+  /** Where it lands once its own row has closed up. */
+  const to = Math.max(1, row > from ? row - 1 : row);
+  const out: Mutation[] = [];
+  let last = to;
+  for (const m of members_of(graph, group)) {
+    if (m.id === id || m.cell?.c !== c || heading(m.cell.r, c)) continue;
+    const up = m.cell.r > from ? m.cell.r - 1 : m.cell.r;
+    const r = up >= to ? up + 1 : up;
+    last = Math.max(last, r);
+    if (r !== m.cell.r) out.push({ op: "seat_cell", id: m.id, cell: { r, c } });
+  }
+  const grown = last >= g.rows ? [set(group, { ...g, rows: last + 1 })] : [];
+  if (to === from && !out.length) return [];
+  return [...grown, ...out, { op: "seat_cell", id, cell: { r: to, c } }];
 }
 
 /** A row or column added or removed; blocks and merges after it shift. */
@@ -218,8 +244,9 @@ register(
       const at = address(ctx, args, group);
       if (!at) return "no cell is pointed at";
       if (!inside(g, at)) return "that cell is outside the grid";
-      return at_cell(ctx.graph, group, at.r, at.c) || text(args, "text")
-        ? null : "an empty cell is named by typing a name into it";
+      const held = at_cell(ctx.graph, group, at.r, at.c);
+      if (!held && !text(args, "text")) return "an empty cell is named by typing a name into it";
+      return clash(ctx.graph, group, text(args, "text"), held ? [held.id] : []);
     },
     /** A cell holds a block, so typing into one names it — or, empty, makes a label of that name. */
     run: (ctx, args) => {
@@ -250,6 +277,24 @@ register(
       const at = Math.min(last, Math.max(1, num(args, "at") ?? pointed(ctx, group, way) ?? last));
       return { mutations: shifted(ctx.graph, group, way, at, 1) };
     },
+  },
+  {
+    name: "move_step",
+    about: "moves a step of a grid along its own column to a row: the steps there and below move "
+      + "down, its old row closes up, and no other column moves",
+    on: ["block"],
+    args: [{ name: "id", form: "block", required: true },
+           { name: "row", form: "number", required: true }],
+    check: (ctx, args) => {
+      const b = ctx.graph.blocks[id_of(args, "id")];
+      const g = lattice_of(ctx.graph, b?.parent ?? undefined);
+      if (!b?.cell || !g) return "that is no step of a grid";
+      if (heading(b.cell.r, b.cell.c)) return "a header is not a step";
+      const row = num(args, "row") ?? 0;
+      if (row < 1 || row > g.rows) return "a step lands in a row of the body, or just past it";
+      return borrowed(ctx.graph, b.id);
+    },
+    run: (ctx, args) => ({ mutations: restepped(ctx.graph, id_of(args, "id"), num(args, "row")!) }),
   },
   {
     name: "remove",

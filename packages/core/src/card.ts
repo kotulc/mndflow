@@ -12,7 +12,8 @@ import type { Block, Graph, Id } from "./types";
 /** The keys a block says itself with, in a diagram file and a card source alike. Any other key is
  *  a value — on a definition, an attribute's default. */
 export const BLOCK_KEYS = [
-  "name", "type", "def", "description", "tags", "constraints", "traits", "settings", "body",
+  "name", "type", "def", "description", "tags", "groups", "constraints", "traits", "settings",
+  "body",
   "source", "of", "parent", "cell",
   "grid", "values", "w", "h", "ports", "rows", "cols", "blocks", "relations",
   "packages", "note", "library", "records",
@@ -70,7 +71,8 @@ export function names_in(value: unknown): string[] {
 }
 
 
-/** A usage's frontmatter: its name, what it is, its tags, its source, then its answers. */
+/** A usage's frontmatter: its name, what it is, its tags and groups, its source, then its
+ *  answers. */
 function used(graph: Graph, b: Block): Record<string, unknown> {
   const front: Record<string, unknown> = {};
   if (b.name) front["name"] = b.name;
@@ -78,6 +80,10 @@ function used(graph: Graph, b: Block): Record<string, unknown> {
   if (type) front["type"] = type.name;
   if (b.description) front["description"] = b.description;
   if (b.tags) front["tags"] = named(graph, b.tags);
+  /** Membership beside finding-tags, so a domain tag is never read again as a group. A file
+   *  names a group, so an unnamed one is not said. */
+  const groups = (b.groups ?? []).flatMap((g) => graph.blocks[g]?.name?.trim() || []);
+  if (groups.length) front["groups"] = groups;
   if (b.source) front["source"] = b.source;
   for (const v of b.values ?? []) {
     if (!is_own_key(v.name)) front[v.name] = scalar(v.value);

@@ -76,8 +76,8 @@ export function related(): Log {
     step("group", [
       { op: "add_block", block: { id: "block_hot", parent: "block_loop", name: "Hot side",
                                   type: "group", order: 7 } },
-      { op: "move_block", id: "block_hx", parent: "block_hot" },
-      { op: "move_block", id: "block_tank", parent: "block_hot" },
+      { op: "set_groups", id: "block_hx", groups: ["block_hot"] },
+      { op: "set_groups", id: "block_tank", groups: ["block_hot"] },
     ]),
     step("layout", [auto("block_loop")]),
   ];

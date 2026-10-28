@@ -277,6 +277,12 @@ export type Scene = {
   slots: readonly Slot[];
   /** The trail from the root down to the layer, for a breadcrumb. */
   trail: readonly { id: Id; label: string }[];
+  /** A banded layer: whether its bands run across, as columns, or down, as rows — the one line a
+   *  region is dragged along. */
+  across?: boolean;
+  /** The grid whose body holds steps, where its columns are lifelines: a step is dragged along
+   *  its column. */
+  lifelines?: Id;
 };
 
 export const EMPTY: Scene = {

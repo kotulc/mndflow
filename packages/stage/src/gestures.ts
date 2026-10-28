@@ -23,7 +23,9 @@ export type Adjust =
   /** A drop: `over` a card files inside it; `into` a holder joins it. */
   | { kind: "move"; on: string; to: Point; over: string | null; into: string | null;
       /** Which cell of `into` it came to rest in, where that is a grid. */
-      cell?: { r: number; c: number } }
+      cell?: { r: number; c: number };
+      /** Where the pointer let go: a region is placed by it along the band line. */
+      pointer?: Point }
   /** Several cards put down at once. */
   | { kind: "place"; at: readonly { id: string; to: Point }[] }
   | { kind: "wall"; on: string; end: "from" | "to"; to: string }

@@ -2,8 +2,8 @@
  *  move a card: a tied note is ordered after its block when it is made, and arranging by relations
  *  is an act of its own. */
 
-import { drawn_in, edges_in, is_box, is_interface, is_note, is_reference, is_tie, setting_of,
-         type Block, type Graph, type Id } from "@mnd/core";
+import { drawn_in, edges_in, is_box, is_group, is_interface, is_note, is_reference, is_tie,
+         setting_of, type Block, type Graph, type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
 import type { Sized } from "./bands";
 import { filled, wide_for } from "./grid";
@@ -26,7 +26,7 @@ export function room_wide(graph: Graph, layer: Id | null): number {
   const said = layer ? setting_of(graph, layer, "layout")["across"] : undefined;
   if (typeof said === "number") return Math.max(1, said) * (BLOCK.w + GAP) - GAP;
   const leaves = drawn_in(graph, layer)
-    .filter((b) => !is_box(graph, b.id) && !is_interface(graph, b.id))
+    .filter((b) => !is_box(graph, b.id) && !is_group(graph, b.id) && !is_interface(graph, b.id))
     .map((b) => size_of(graph, b.id));
   return wide_for(leaves, SHAPE.aspect);
 }

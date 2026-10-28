@@ -27,7 +27,7 @@ export function covers(s: Span, r: number, c: number): boolean {
 }
 
 /** Which holder with a shape a block is, or null: what its traits say — `matrix` for a grid,
- *  `band` for a region, `inline` for a group. **A definition always draws as a card**, so it is
+ *  `band` for a region, `panel` for a group. **A definition always draws as a card**, so it is
  *  never one, whatever it extends. */
 export function shape_of(graph: Graph, id: Id | undefined): Shape | null {
   const b = id ? graph.blocks[id] : undefined;
@@ -39,7 +39,7 @@ export function shape_of(graph: Graph, id: Id | undefined): Shape | null {
 export function shape_named(graph: Graph, type: Id | undefined): Shape | null {
   const said = setting_of(graph, type, "holder");
   return said["matrix"] === true ? "grid" : said["band"] === true ? "region"
-    : said["inline"] === true ? "group" : null;
+    : said["panel"] === true ? "group" : null;
 }
 
 /** Whether this is a region: a band across its layer, under its heading. */
@@ -52,22 +52,21 @@ export function is_grid(graph: Graph, id: Id | undefined): boolean {
   return shape_of(graph, id) === "grid";
 }
 
-/** Whether this is a boundary — a rim round what it holds. */
+/** Whether this is a group: a panel round its members, holding nothing. */
 export function is_group(graph: Graph, id: Id | undefined): boolean {
   return shape_of(graph, id) === "group";
 }
 
-/** Whether a box is organization rather than a group somebody made: a folder, or a block a view
- *  flattens into a box of what it holds. Drawn with a solid rim, and still what it is. */
+/** Whether a box is organization rather than a group somebody made: a folder. Drawn with a
+ *  solid rim, and still what it is. */
 export function is_flat(graph: Graph, id: Id | undefined): boolean {
-  return is_folder(graph, id)
-    || (is_group(graph, id) && setting_of(graph, id, "holder")["flat"] === true);
+  return is_folder(graph, id);
 }
 
 /** Whether a block draws as a box round what it holds, on the layer it sits on: a group, a folder,
  *  or a region — a box as wide as its layer. */
 export function is_box(graph: Graph, id: Id | undefined): boolean {
-  return is_group(graph, id) || is_folder(graph, id) || is_region(graph, id);
+  return is_folder(graph, id) || is_region(graph, id);
 }
 
 /** Whether a grid reads as time: a lifeline down each column, under its head. */
@@ -95,7 +94,7 @@ export function organizes(graph: Graph, id: Id | undefined): boolean {
  *  folder, a group and a region always — **none of them makes a layer** — and a grid only where a
  *  view flattens it. */
 export function inline(graph: Graph, id: Id | undefined): boolean {
-  if (is_group(graph, id) || is_region(graph, id) || is_folder(graph, id)) return true;
+  if (is_region(graph, id) || is_folder(graph, id)) return true;
   return is_grid(graph, id) && setting_of(graph, id, "holder")["flat"] === true;
 }
 
@@ -108,6 +107,11 @@ export function layer_of(graph: Graph, id: Id): Id | null {
     at = graph.blocks[at]?.parent ?? null;
   }
   return at;
+}
+
+/** The layer a block put under `parent` draws on: the parent, or what it is drawn inline in. */
+export function drawn_on(graph: Graph, parent: Id): Id | null {
+  return inline(graph, parent) ? layer_of(graph, parent) : parent;
 }
 
 /** Every block a layer draws, in reading order: what it holds, and what its inline holders hold,
@@ -133,9 +137,27 @@ export function lattice_of(graph: Graph, id: Id | undefined): Grid | null {
   return { ...GRID, ...graph.blocks[id]!.grid };
 }
 
-/** Every holder drawn inline in one layer, in a stable order. */
+/** Every holder drawn on one layer, in a stable order: what draws inline, and its groups. */
 export function holders_in(graph: Graph, layer: Id | null): Block[] {
-  return drawn_in(graph, layer).filter((b) => inline(graph, b.id));
+  return drawn_in(graph, layer).filter((b) => inline(graph, b.id) || is_group(graph, b.id));
+}
+
+/** The groups a block is in: each a group block still on its layer. */
+export function groups_of(graph: Graph, id: Id): Id[] {
+  const layer = layer_of(graph, id);
+  return (graph.blocks[id]?.groups ?? []).filter((g) => is_group(graph, g)
+    && layer_of(graph, g) === layer);
+}
+
+/** How many groups enclose a group: those whose members are a proper superset of its own.
+ *  **Nesting is derived, never stored.** */
+export function group_nest(graph: Graph, group: Id): number {
+  const mine = members_of(graph, group).map((b) => b.id);
+  return holders_in(graph, layer_of(graph, group)).filter((g) => {
+    if (g.id === group || !is_group(graph, g.id)) return false;
+    const theirs = new Set(members_of(graph, g.id).map((b) => b.id));
+    return theirs.size > mine.length && mine.every((id) => theirs.has(id));
+  }).length;
 }
 
 /** The group or grid a block sits in, or null. */
@@ -189,8 +211,12 @@ export function headed_group(graph: Graph, id: Id): Id | null {
   return group && group_head(graph, group) === id ? group : null;
 }
 
-/** Everything a group, region, grid or folder holds, in order. */
+/** Everything a region, grid or folder holds, in order; **a group's members**: the blocks on its
+ *  layer that carry it. */
 export function members_of(graph: Graph, group: Id): Block[] {
+  if (is_group(graph, group)) {
+    return drawn_in(graph, layer_of(graph, group)).filter((b) => b.groups?.includes(group));
+  }
   if (!organizes(graph, group)) return [];
   return children(graph, group).filter((b) => !is_interface(graph, b.id));
 }
@@ -200,7 +226,9 @@ export function members_of(graph: Graph, group: Id): Block[] {
 export function can_hold(graph: Graph, holder: Id, id: Id): boolean {
   const h = graph.blocks[holder];
   const b = graph.blocks[id];
-  if (!h || !b || holder === id || !is_holder(graph, holder)) return false;
+  if (!h || !b || holder === id || !is_holder(graph, holder) || is_group(graph, holder)) {
+    return false;
+  }
   for (let at: Id | null | undefined = holder; at; at = graph.blocks[at]?.parent) {
     if (at === id) return false;
   }

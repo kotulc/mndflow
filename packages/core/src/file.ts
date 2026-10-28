@@ -127,6 +127,7 @@ export function renamed<T extends Block | Relation>(it: T, ids: ReadonlyMap<Id, 
     if (out[key]) out[key] = at(out[key] as Id)!;
   }
   if (out.tags) out.tags = all(out.tags);
+  if (out.groups) out.groups = all(out.groups);
   if (out.constraints) out.constraints = all(out.constraints);
   if (out.ports) out.ports = out.ports.map((p) => (p.type ? { ...p, type: at(p.type) } : p));
   if (out.def) {

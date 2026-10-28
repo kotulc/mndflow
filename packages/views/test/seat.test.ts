@@ -78,7 +78,7 @@ describe("a tie", () => {
     const opposite: Record<string, string> = {
       top: "bottom", bottom: "top", left: "right", right: "left",
     };
-    for (const path of ["eu-west cluster", "eu-west cluster::shop namespace"]) {
+    for (const path of ["eu-west cluster", "shop namespace"]) {
       const id = named(graph, `Overview::Shop::How it runs::Deployment::${path}`);
       const tie = tie_on(graph, id).id;
       const on_group = scene.perches.find((p) => p.edge === tie && p.on === id)!;

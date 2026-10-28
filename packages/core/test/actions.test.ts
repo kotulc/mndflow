@@ -45,7 +45,8 @@ describe("the registry", () => {
     const c = gridded();
     /** What only a component or a membership answers to. */
     const own: Record<string, object> = { port: { id: "block_tank/port_t" },
-                                           unmember: { from: "label_hot" } };
+                                           unmember: { from: "label_hot" },
+                                           move_step: { row: 3 } };
     for (const a of all()) {
       const out = a.run(c, { ...{ id: "block_tank", to: "block_hx", from: "block_tank",
                              body: "x", text: "x", name: "f", owner: "block_tank",
@@ -154,7 +155,7 @@ describe("what an action absorbs", () => {
     expect(children(s.graph(), shelf).map((b) => b.name)).toEqual(["A", "B", "Loose"]);
   });
 
-  it("group makes a boundary without an into, and joins one with it", () => {
+  it("group tags its members without an into, and joins one with it; they stay put", () => {
     const s = session({ floor: FLOOR });
     s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT).find((b) => b.name === "Loop")!.id;
@@ -165,11 +166,12 @@ describe("what an action absorbs", () => {
 
     s.go("group", { members: [a] });
     const group = holders_in(s.graph(), loop)[0]!;
-    expect(s.graph().blocks[a!]!.parent).toBe(group.id);
+    expect(s.graph().blocks[a!]!.parent).toBe(loop);
+    expect(s.graph().blocks[a!]!.groups).toEqual([group.id]);
 
     expect(s.go("group", { members: [b], into: group.id })).toBeNull();
     expect(holders_in(s.graph(), loop)).toHaveLength(1);
-    expect(s.graph().blocks[b!]!.parent).toBe(group.id);
+    expect(s.graph().blocks[b!]!.groups).toEqual([group.id]);
   });
 
 });

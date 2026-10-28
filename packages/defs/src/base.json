@@ -315,14 +315,14 @@
         "name": "group",
         "type": "block",
         "def": {},
-        "description": "A box drawn round its members, on the layer it sits on: its name tags them.",
+        "description": "A panel drawn round its members, on the layer it sits on: they carry it, and its name tags them.",
         "order": 3,
         "settings": {
           "style": {
             "family": "muted",
             "border_contrast": "faint",
             "name_contrast": "faint",
-            "border_style": "dashed"
+            "border_style": "none"
           },
           "card": {
             "label": "none",
@@ -331,7 +331,6 @@
           }
         },
         "traits": [
-          "has_parts",
           "is_group"
         ]
       },

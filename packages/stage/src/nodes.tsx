@@ -382,11 +382,13 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
   );
 }
 
-/** A map's box: what holds chips, its walls and its title with its kind's icon. Its ground lets
- *  the pointer through, so a press there is on the box itself. */
+/** A map's box: what holds chips, its walls and its title with its kind's icon — a group's, a
+ *  panel with no walls. Its ground lets the pointer through, so a press there is on the box
+ *  itself. */
 function MapBox({ data, selected }: NodeProps<BoxNode>) {
   return (
-    <div className={["mnd-box", selected ? "picked" : ""].filter(Boolean).join(" ")}
+    <div className={["mnd-box", data.marks.includes("group") ? "panel" : "",
+                     selected ? "picked" : ""].filter(Boolean).join(" ")}
          title={[data.label, data.description].filter(Boolean).join("\n")}>
       <span className="mnd-box-title">
         {data.role ? <Icon name={role_icon(data.role)} size={11} /> : null}

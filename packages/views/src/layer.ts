@@ -32,7 +32,9 @@ export async function layer_scene(given: Graph, id: Id, kind: ViewKind,
   const opts = { room: true, look: { kind, cut: null },
                  ...(config.interfaces === false ? { interfaces: false } : {}) };
   const ahead = await placed_ahead(graph, id, kind);
-  return ahead ? placed_as(ahead, () => project(graph, id, opts)) : project(graph, id, opts);
+  if (!ahead) return project(graph, id, opts);
+  const scene = placed_as(ahead.spots, () => project(graph, id, opts));
+  return ahead.across === undefined ? scene : { ...scene, across: ahead.across };
 }
 
 /** The graph with what its side does not list put out of sight: each topmost such block, so a
@@ -50,18 +52,20 @@ function sided(graph: Graph, lists?: Lists): Graph {
 }
 
 /** What ELK places ahead for a layer, by its kind: its blocks seen from inside, or the classes a
- *  class or entity diagram draws. A treemap and a grid place themselves. */
+ *  class or entity diagram draws, and which way its bands run. A treemap and a grid place
+ *  themselves. */
 async function placed_ahead(graph: Graph, id: Id, kind: ViewKind)
-    : Promise<Map<Id, readonly Placed[]> | null> {
+    : Promise<{ spots: Map<Id, readonly Placed[]>; across?: boolean } | null> {
   if (kind === "internal") {
     const through = read_through(graph, id);
     if (layout_of(through, id) === "treemap") return null;
-    return new Map([[id, (await place(through, id)).spots]]);
+    const { spots, across } = await place(through, id);
+    return { spots: new Map([[id, spots]]), ...(across === undefined ? {} : { across }) };
   }
   if (kind === "class" || kind === "er") {
     const subject = diagram_subject(graph, id);
     const drawn = class_graph(graph, subject, kind);
-    return drawn ? new Map([[subject, (await place(drawn, subject)).spots]]) : null;
+    return drawn ? { spots: new Map([[subject, (await place(drawn, subject)).spots]]) } : null;
   }
   return null;
 }

@@ -5,7 +5,8 @@
  *  and folders nested inside it. Drawn, never stored: a place and a width live only in the graph
  *  handed back. */
 
-import { children, is_box, is_interface, setting_of, type Graph, type Id } from "@mnd/core";
+import { children, is_box, is_group, is_interface, setting_of, type Graph,
+         type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { flow, whole } from "./grid";
 import { size_of, GAP, PAD } from "./size";
@@ -27,7 +28,8 @@ export function page_graph(graph: Graph, layer: Id): Graph {
   const across = across_of(graph, layer);
   const blocks = { ...graph.blocks };
   const put = (id: Id, x: number, y: number) => { blocks[id] = { ...blocks[id]!, x, y }; };
-  const held = (at: Id | null) => children(graph, at).filter((b) => !is_interface(graph, b.id));
+  const held = (at: Id | null) => children(graph, at)
+    .filter((b) => !is_interface(graph, b.id) && !is_group(graph, b.id));
   const cards = (at: Id | null) => held(at).filter((b) => !is_box(graph, b.id));
   const boxes = (at: Id | null) => held(at).filter((b) => is_box(graph, b.id));
   const grid = (at: Id | null): Placed[] =>

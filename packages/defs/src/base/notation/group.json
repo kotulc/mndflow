@@ -2,10 +2,9 @@
   "id": "group",
   "name": "group",
   "type": "block",
-  "description": "A box drawn round its members, on the layer it sits on: its name tags them.",
+  "description": "A panel drawn round its members, on the layer it sits on: they carry it, and its name tags them.",
   "def": {},
   "traits": [
-    "has_parts",
     "is_group"
   ],
   "settings": {
@@ -13,7 +12,7 @@
       "family": "muted",
       "border_contrast": "faint",
       "name_contrast": "faint",
-      "border_style": "dashed"
+      "border_style": "none"
     },
     "card": {
       "label": "none",

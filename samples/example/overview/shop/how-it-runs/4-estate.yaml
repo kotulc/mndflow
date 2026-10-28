@@ -2,15 +2,11 @@ name: Estate
 type: treemap
 description: "A treemap: where the weight is. Each tile is as large as the service it stands for holds, gathered by the shop's regions."
 blocks:
-  - name: Customer facing
-    type: group
-    blocks:
-      - { type: reference, of: "Overview::Shop::Customer facing::Gateway" }
-      - { type: reference, of: "Overview::Shop::Customer facing::Storefront" }
-  - name: Back office
-    type: group
-    blocks:
-      - { type: reference, of: "Overview::Shop::Back office::Orders" }
-      - { type: reference, of: "Overview::Shop::Back office::Payments" }
-      - { type: reference, of: "Overview::Shop::Back office::Inventory" }
-      - { type: reference, of: "Overview::Shop::Back office::Shipping" }
+  - { name: Customer facing, type: group }
+  - { name: Back office, type: group }
+  - { type: reference, of: "Overview::Shop::Customer facing::Gateway", groups: [ Customer facing ] }
+  - { type: reference, of: "Overview::Shop::Customer facing::Storefront", groups: [ Customer facing ] }
+  - { type: reference, of: "Overview::Shop::Back office::Orders", groups: [ Back office ] }
+  - { type: reference, of: "Overview::Shop::Back office::Payments", groups: [ Back office ] }
+  - { type: reference, of: "Overview::Shop::Back office::Inventory", groups: [ Back office ] }
+  - { type: reference, of: "Overview::Shop::Back office::Shipping", groups: [ Back office ] }

@@ -271,13 +271,13 @@ export function owner_of(graph: Graph, id: Id): Id {
   return b && is_interface(graph, b.id) && b.parent ? b.parent : id;
 }
 
-/** Relations with both ends drawn in this layer. */
+/** Relations with both ends drawn in this layer, in list order, then by id. */
 export function edges_in(graph: Graph, layer: Id | null): Relation[] {
   const here = new Set(drawn_in(graph, layer).map((b) => b.id));
   const drawn = (id: Id) => here.has(owner_of(graph, id)) || (!!layer && owner_of(graph, id) === layer);
   return Object.values(graph.edges)
     .filter((e) => drawn(e.from) && drawn(e.to))
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity) || a.id.localeCompare(b.id));
 }
 
 /** The layer drawing a line: from its `from` end up, the nearest that draws both its ends. */

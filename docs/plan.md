@@ -7,47 +7,30 @@ Nothing here is waiting on a choice. *Deferred* is out of this plan. *Edges* is 
 
 ## Order
 
-**The library and the models are built** (2026-10-26): two maps under one navigation, a model a definition of kind `model`, one highlight rule, lines revealed from their registry. mndmap's move to the map leads, then the placement plans, then the rest. A drag does not place a card. Routing is left as it is.
+**The library and the models are built** (2026-10-26): two maps under one navigation, a model a definition of kind `model`, one highlight rule, lines revealed from their registry. **Order is built**: bands, relations and library lists follow the list; `order:` in a source is an answer like any other key, never a place. **Groups are tags**: a group holds nothing, its members say `groups:`; its panel is an ELK compound where membership is a tree in one container, else its members' bounds. **Drag reorders or files, never places**: a region by its name along the band line, a step along its column (`move_step`), a card onto or off a group's panel, into another region, or into a gap of its band. mndmap's move to the map leads, then what is left of placement, then the rest. Routing is left as it is.
 
 | # | Work | Done when |
 |---|---|---|
 | 0 | **mndmap on the map**: release the kit (it no longer exports `survey_graph`), update mndmap's vendored kit from 0.11, draw its source folder as the map. Work in the mndmap repo | mndmap draws its source folder as the map |
-| 1 | **order** | plans/order.md *Done when* |
-| 2 | **groups are tags** | plans/groups.md *Done when* |
-| 3 | **drag to reorder** | plans/drag.md *Done when* |
-| 4 | **placement, the rest** | *Placement*: each item closed or done |
-| 5 | **block design, the rest** | the tray's type list scoped by family; a named note shows only its name; a holder wears a handle |
-| 6 | **model joins** | from any block, every side it appears on is one click away |
-| 7 | **tray keys** | every tray input is a key and its choices |
-| 8 | **CLI fixes** | `check` on a broken file exits 1; `export --sysml --round` on the repo map brings back all 490 relations |
-| 9 | **diagram views** | their known issues fixed |
-| 10 | **simplification leads** | each lead in one home, recorded in code-homes.md |
-| 11 | **CLI surface** | the acceptance run in *CLI surface* passes |
+| 1 | **placement, the rest** | *Placement*: each item closed or done |
+| 2 | **block design, the rest** | the tray's type list scoped by family; a named note shows only its name; a holder wears a handle |
+| 3 | **model joins** | from any block, every side it appears on is one click away |
+| 4 | **tray keys** | every tray input is a key and its choices |
+| 5 | **CLI fixes** | `check` on a broken file exits 1; `export --sysml --round` on the repo map brings back all 490 relations |
+| 6 | **diagram views** | their known issues fixed |
+| 7 | **simplification leads** | each lead in one home, recorded in code-homes.md |
+| 8 | **CLI surface** | the acceptance run in *CLI surface* passes |
 
 
 ## Placement
 
-The maps and how a block is entered are built (design.md *Perspectives*). Left here is placement in an entered view: order, groups, drag, and the items after them.
+The maps and how a block is entered are built (design.md *Perspectives*). Left here is placement in an entered view, below.
 
-An entered layer is placed by ELK, one layer at a time. A folder is laid out on its own, inside out: `layered` where lines join what it holds (both directions tried), packed toward the canvas's shape where none do. A group is a panel, plans/groups.md. A layer with regions is banded in list order, plans/order.md: each region a band, and a run of blocks in no region a band between them. Across (regions as columns) and down (as rows) are both tried; the one nearer the canvas's shape is kept. A region no line meets is packed as one unit, in its list place. Each band spans the layer across the flow, a unit from the next. Lines inside a container are ELK's; lines across the layer are routed live by libavoid. A line with points of its own (a sequence message, a lifeline) is drawn as given.
+An entered layer is placed by ELK, one layer at a time. A folder is laid out on its own, inside out: `layered` where lines join what it holds (both directions tried), packed toward the canvas's shape where none do. A group is a panel: an ELK compound of its members where membership is a tree inside one container, else drawn round wherever they land. A layer with regions is banded in list order: each region a band, and a run of blocks in no region a band between them. Across (regions as columns) and down (as rows) are both tried; the one nearer the canvas's shape is kept. A region no line meets is packed as one unit, in its list place. Each band spans the layer across the flow, a unit from the next. Lines inside a container are ELK's; lines across the layer are routed live by libavoid. A line with points of its own (a sequence message, a lifeline) is drawn as given.
 
 ELK is asynchronous: the last drawing stays, read only, until the next layer answers. It writes into its input, so tries that run side by side each keep their own copy of children and edges. Bands use `GREEDY` cycle breaking: `MODEL_ORDER` turns back every line pointing against file order, not only loops.
 
-Each of order, groups and drag is done when typecheck, tests and both samples `check` clean, and Shop and Deployment have been driven landscape and portrait.
-
-### Groups are tags
-
-plans/groups.md. A group holds nothing; membership is its own tag, synced with the canvas block, and distinct from a finding-tag of the same name. Nested groups and partial overlap are allowed. A group may cross regions; the panel is drawn around its members either way.
-
-### Order
-
-plans/order.md. The list in the file or the package is the only order. Bands follow it. There is no `order` key.
-
-### Drag to reorder
-
-plans/drag.md. Dragging a region's name inserts it before or after another region, along the band. Dragging a sequence step inserts it in its column, and the steps below move down.
-
-### After those
+### Left
 
 | # | Work | Done when |
 |---|---|---|
@@ -198,12 +181,10 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **tray** | its tables light picks by id, not through core `lit`, so a part picked through one usage lights its row wherever it is listed; a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else; the definitions table's *extends* shows a sibling definition (`example/Ledger`) for one that extends nothing |
 | **overview** | the glance mounts a second React Flow, so node description ids repeat in the page; on the open layer with nothing picked it draws what the canvas already draws; a tag with no hue paints its share of the bar plain |
 | **samples** | no definition with room parts is used twice, so *one highlight*'s case — a part picked under one usage lights nothing under another — has not been driven in the explorer |
-| **tests** | `seat.test.ts` › *crosses straight where a group note sits square beside the group* failed on *Groups* and passes on *Deployment*. Nothing was fixed: watch it. |
 | **camera** | a short port drag lands short |
 | **React** | `flushSync was called from inside a lifecycle method`, once seen opening the profile and the package view from a layer; the package view is gone, recheck the profile |
 | **packages** | a definition file holds no parts, so a pattern's parts live in its package's `package.json`; base's `decision` and `services`'s share a name, so `type: decision` resolves to whichever the lookup finds first |
-| **names** | unique siblings are refused only by `create`, `rename` and `move`; `label` and `group` write names unchecked. One home: where a name is written |
-| **paths** | a path names every region on the way (`Overview::Shop::Back office::Payments`), though layers look through them. Groups leave paths with plans/groups.md |
+| **paths** | a path names every region on the way (`Overview::Shop::Back office::Payments`), though layers look through them. |
 | **diagram files** | a value named like a schema key never shows in a card source (*Tray keys*); a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
 | **annotations** | a label floats aside, so on a layer cut into regions it can land across a band's heading; a picked region draws a full outline rather than its band; an empty layer's words centre on the canvas rather than the room |
 | **ports** | design.md gives a port its definition's settings, values and tags; ports hold name, type, flow, seat and description only |

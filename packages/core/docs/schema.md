@@ -87,7 +87,8 @@ Block {
   x?, y?        number            // placement, when hand-laid
   w?, h?        number            // least size
   ports?        Port[]            // its boundary, in order: data, keyed by id
-  order?        number            // among siblings
+  order?        number            // among siblings, minted from the list it was read from
+  groups?       Id[]              // the groups on its layer it is in: membership, apart from tags
   alias?        number            // handle serial, minted once
 
   counters?     Record<string, number>   // workspace root: handle counters per kind
@@ -293,8 +294,8 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | `name` | its name | its name |
 | `type` | the definition it is, by name | what it extends, by name |
 | `def` | — | present: it is a definition; its `attributes` |
-| `tags` | its tags, by name; a name a group on its layer goes by makes it a member of that group | its tags, by name |
-| `order` | its place among its siblings, stated: it wins over file order and any default (a region no line meets goes last) | — |
+| `tags` | its tags, by name | its tags, by name |
+| `groups` | the groups on its layer it is in, by name. A group's own entry lists no `blocks` | — |
 | `traits` | — | the traits it states, by name |
 | `source` | where its content lives outside | — |
 | `blocks`, `relations`, `packages` | the layer it holds, as a diagram file | the layer it holds, as a diagram file |

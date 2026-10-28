@@ -1,12 +1,15 @@
 /** The `treemap` layout: a layer's blocks as tiles, each as large as what it holds, nested in the
- *  folders, groups and regions holding them — each a box under its heading. Uniform cards stay
- *  every other layout's; a definition asks for this one with `layout.kind: treemap`. Worked out on
- *  every draw, never stored. The binary layout is d3-hierarchy's: it keeps a light tile from a thin slice. */
+ *  folders and regions holding them — each a box under its heading — and a group's members
+ *  gathered in a box of their own where its membership is a tree (`flow.ts` `compounded`).
+ *  Uniform cards stay every other layout's; a definition asks for this one with
+ *  `layout.kind: treemap`. Worked out on every draw, never stored. The binary layout is
+ *  d3-hierarchy's: it keeps a light tile from a thin slice. */
 
 import { hierarchy, treemap, treemapBinary } from "d3-hierarchy";
-import { children, def_of, is_aside, is_box, is_interface, of_ref, stands_for, subtree,
+import { children, def_of, is_aside, is_box, is_group, is_interface, of_ref, stands_for, subtree,
          type Graph, type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
+import { compounded, tree_groups } from "./flow";
 import { size_of, BLOCK, GAP, PAD, UNIT } from "./size";
 
 /** One tile or box, and how much it weighs: a box nothing, so it is what it holds. */
@@ -26,13 +29,16 @@ const INNER = UNIT / 3;
 /** Every block drawn in a treemap layer, placed. A card arranged aside — a note — is no tile: the
  *  notes stand in a column beside the map. */
 export function treemapped(graph: Graph, layer: Id | null): Placed[] {
-  const held = (at: Id | null) => children(graph, at)
-    .filter((b) => !is_interface(graph, b.id) && !is_aside(graph, b.id));
+  const groups = tree_groups(graph, layer);
+  const box = (id: Id, kids: Tile[]): Tile => ({ id, weight: 0, kids });
+  const held = (at: Id | null) => compounded(groups, children(graph, at)
+    .filter((b) => !is_interface(graph, b.id) && !is_aside(graph, b.id) && !is_group(graph, b.id))
+    .map((b) => tile(b.id)), box);
   const tile = (id: Id): Tile => {
-    const kids = is_box(graph, id) ? held(id).map((b) => tile(b.id)) : [];
-    return kids.length ? { id, weight: 0, kids } : { id, weight: weight_of(graph, id) };
+    const kids = is_box(graph, id) ? held(id) : [];
+    return kids.length ? box(id, kids) : { id, weight: weight_of(graph, id) };
   };
-  const map = tiled(held(layer).map((b) => tile(b.id)));
+  const map = tiled(held(layer));
   const right = Math.max(0, ...map.map((p) => p.x + p.w)) + GAP;
   let y = 0;
   const notes = children(graph, layer).filter((b) => is_aside(graph, b.id)).map((b) => {

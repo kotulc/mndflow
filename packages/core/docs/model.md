@@ -10,7 +10,7 @@ The object graph: **two element kinds**, blocks and relationships, and every oth
 | **package** | a root block (`parent: null`) | its domain: holders and trees |
 | **definition** | a block carrying `def`, in a domain | its structure |
 | **usage** | a block without `def` | its own children; shows its type's structure through |
-| **holder** | a folder, group or grid | whatever its place allows: a folder in a domain holds definitions and structure alike; in a structure, usages |
+| **holder** | a folder, region or grid | whatever its place allows: a folder in a domain holds definitions and structure alike; in a structure, usages |
 
 - **A definition is a named tree.** It is used and extended by `type`, whether or not anything does, and is never itself placed or linked as an instance.
 - **A usage may be a tree too**, placed straight in a domain, under a package root or a domain folder.
@@ -36,15 +36,15 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 
 ## Holders
 
-**A holder holds by `parent`, as everything does.** What separates the three is how they draw what they hold.
+**A holder holds by `parent`, as everything does.** What separates them is how they draw what they hold. **A group holds nothing**: its members carry it in `groups` and stay where they are filed, so it is no holder.
 
 | Holder | Draws its contents | Nests |
 |---|---|---|
 | **folder** | hidden: you descend to see them | yes |
-| **group** | inline, inside its rim | yes |
+| **region** | inline, as a band across its layer | no |
 | **grid** | in cells, each compact | any block may sit in a cell, a grid included |
 
-- **Deleting a holder deletes its subtree.**
+- **Deleting a holder deletes its subtree.** Deleting a group takes it off its members, who stay; a group whose last member goes, or leaves its layer, goes too.
 - **A grid's member always has a cell.** One that loses its cell (a line removed, a merge, a smaller extent) moves to the nearest spare cell on its side, else leaves the grid.
 - **Headers are lines.** The top row heads the columns, the left column the rows. A header cell holds any block, drawn compact; typing into an empty one makes a plain block of that name.
 - **A grid is allocation only**: no text labels and no records. Records are usages, or a table in a card's body.

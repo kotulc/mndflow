@@ -12,10 +12,12 @@ import { Graph as Ranks, layout } from "@dagrejs/dagre";
 import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
          type HierarchyRectangularNode } from "d3-hierarchy";
 import { children, def_at, definition_uses, diagram_kind, has_lifelines, is_aside, is_grid,
-         is_header, is_holder, is_interface, is_model, is_notation, is_reference, is_region, is_tie,
-         lattice_of, lens_of, notation_of, on_side, owner_of, packages, path, region_of,
-         shown_name, subtree, subtypes, type Graph, type Id } from "@mnd/core";
+         is_group, is_header, is_holder, is_interface, is_model, is_notation, is_reference,
+         is_region, is_tie, inline, lattice_of, layer_of, members_of, lens_of, notation_of,
+         on_side, owner_of, packages, path, region_of, shown_name, subtree, subtypes, type Graph,
+         type Id } from "@mnd/core";
 import { carried, trail_of } from "./derive";
+import { compounded, tree_groups } from "./flow";
 import { filed, name_of, registry_map } from "./library";
 import { entry_look, look_of, tint_attrs } from "./look";
 import { cell, type Area, type BoxNode, type InnerTile, type Scene } from "./scene";
@@ -51,7 +53,7 @@ const EMPTY = 0.04;
 
 /** One entry of a map: a box of what it holds, or a chip entering `block`, counting `held` — or,
  *  a definition's, previewing its `uses`. */
-type Leaf = { id: Id; kids?: Leaf[]; value?: number; empty?: boolean;
+type Leaf = { id: Id; kids?: Leaf[]; value?: number; empty?: boolean; panel?: boolean;
               chip?: { block: Id; held: readonly Id[]; counts: string; kind?: string;
                        uses?: boolean;
                        diagram?: boolean } };
@@ -86,8 +88,12 @@ export function model_map(graph: Graph): Scene {
                      ...(kind ? { kind: def_at(graph, kind)?.name ?? kind } : {}),
                      diagram: diagram(block) || is_holder(graph, block) } };
   };
-  /** A box where diagrams lie below, one cell for each block it holds; else a chip. */
-  const entry = (id: Id): Leaf => (holds_diagrams(id) ? { id, kids: held(id).map(entry) }
+  /** A box where diagrams lie below, one cell for each block it holds, a group whose membership
+   *  is a tree gathering its members' cells as a panel; else a chip. */
+  const panel = (id: Id, kids: Leaf[]): Leaf => ({ id, kids, panel: true });
+  const entry = (id: Id): Leaf => (holds_diagrams(id)
+    ? { id, kids: compounded(tree_groups(graph, inline(graph, id) ? layer_of(graph, id) : id),
+                             held(id).map(entry), panel) }
     : chip(id, id, held(id)));
   const tops = packages(graph).filter((p) => on_side(graph, p.id, "structure"));
   return mapped(graph, { id: MAP_ROOT, kids: tops.map((p) => ({ id: p.id,
@@ -200,7 +206,8 @@ function mapped(graph: Graph, tree: Leaf, title: string): Scene {
     const data = { label, marks: [], ...(own.role ? { role: own.role } : {}),
                    ...(own.description ? { description: own.description } : {}) };
     if (!chip) {
-      nodes.push({ ...cell(id, box, data, "box"), draggable: false });
+      const marks = n.data.panel ? { marks: ["group" as const] } : {};
+      nodes.push({ ...cell(id, box, { ...data, ...marks }, "box"), draggable: false });
       continue;
     }
     /** Narrow and tall, its head runs up its left side and its body sits beside it. */
@@ -232,12 +239,28 @@ function chip_look(graph: Graph, id: Id) {
   return kind ? entry_look(graph, kind) : look_of(graph, id);
 }
 
-/** What a block holds on the map: its blocks, holders and a flow's marks, never a note, a label
- *  or an interface. */
+/** What a block holds on the map: its blocks, holders and a flow's marks, never a note, a label,
+ *  an interface or a group — a group is a panel over its members (`paneled`). */
 function members(graph: Graph, id: Id): Id[] {
   return children(graph, id).filter((b) => on_side(graph, b.id, "structure")
-    && !is_interface(graph, b.id) && (!is_notation(graph, b.id) || !is_aside(graph, b.id)))
+    && !is_interface(graph, b.id) && !is_group(graph, b.id)
+    && (!is_notation(graph, b.id) || !is_aside(graph, b.id)))
     .map((b) => b.id);
+}
+
+/** **A diagram's groups as panels** over its members' tiles, wherever they landed, a quarter gap
+ *  round them, laid first so its blocks draw over them. A group with no tile placed draws none. */
+function paneled(graph: Graph, block: Id, placed: readonly Placed[]): Placed[] {
+  const panels = children(graph, block).filter((g) => is_group(graph, g.id)).flatMap((g) => {
+    const ids = new Set(members_of(graph, g.id).map((b) => b.id));
+    const mine = placed.filter((t) => ids.has(t.id));
+    if (!mine.length) return [];
+    return [{ id: g.id, as: "group" as const, x0: Math.min(...mine.map((t) => t.x0)) - GAP / 4,
+              y0: Math.min(...mine.map((t) => t.y0)) - GAP / 4,
+              x1: Math.max(...mine.map((t) => t.x1)) + GAP / 4,
+              y1: Math.max(...mine.map((t) => t.y1)) + GAP / 4 }];
+  });
+  return [...panels, ...placed];
 }
 
 /** A chip's body: the chip less its head, above or beside it, and the padding round the rest. */
@@ -286,7 +309,9 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
     }
     const face = carried(graph, t.id, "small");
     const is = t.as === "block" ? mark_of(graph, t.id) : undefined;
-    return { ...at, label: shown_name(graph, t.id), ...(face.role ? { role: face.role } : {}),
+    /** A group's panel in a chip shows where its members are, not its name: it has no room. */
+    const label = is_group(graph, t.id) ? "" : shown_name(graph, t.id);
+    return { ...at, label, ...(face.role ? { role: face.role } : {}),
              ...(t.as === "block" ? (is ? { mark: is }
                : { ...texture, tint: tint_attrs(look_of(graph, t.id)) }) : { as: t.as }),
              ...(t.odd ? { odd: true } : {}) };
@@ -300,7 +325,7 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
   }
   const first = laid(graph, held, whole);
   if (!first.gaps.length) {
-    return { tiles: first.placed.map(share), ...mark };
+    return { tiles: paneled(graph, block, first.placed).map(share), ...mark };
   }
   /** **What its lines rank runs one way, between a start and an end**: a strip across each end
    *  of its flow, its blocks a gap within them; a faint line down its middle, behind its blocks,
@@ -321,7 +346,7 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
     { ...span(along - STRIP - tip, along - STRIP, (wide - broad) / 2, (wide + broad) / 2),
       id: `${block}@arrow`, as: "arrow", ...down },
   ];
-  return { tiles: [...ends, ...placed].map(share), ...mark };
+  return { tiles: [...ends, ...paneled(graph, block, placed)].map(share), ...mark };
 }
 
 /** One tile a diagram's structure lays: a block, a group's panel, a region's band (`odd` every
@@ -339,25 +364,18 @@ const GAP = 16;
 const HUG = 4;
 
 /** **A diagram's tiles laid by its structure**, filling `rect`: a layer with regions in bands, in
- *  the entered view's order — those a line meets, then those none does — each loose block in the
- *  band its lines reach, else in a band before them all; anything else in the layers its lines
- *  rank it into (`layered`), run across or down as `way` says where it says. Whether the flow
- *  runs across, and the gaps between ranked layers. */
+ *  list order as the entered view bands it — each region, and each run of loose blocks between
+ *  them; anything else in the layers its lines rank it into (`layered`), run across or down as
+ *  `way` says where it says. Whether the flow runs across, and the gaps between ranked layers. */
 function laid(graph: Graph, ids: readonly Id[], rect: Rect, way?: boolean): Laid {
-  const regions = ids.filter((id) => is_region(graph, id));
-  if (!regions.length) return layered(graph, ids, rect, way);
-  const ends = line_ends(graph);
-  const met = (r: Id) => subtree(graph, r).some((x) => ends.has(x));
-  const order = [...regions.filter(met), ...regions.filter((r) => !met(r))];
-  const pairs = joined(graph, ids);
-  const home = (id: Id) => order.find((r) => pairs.some((p) => (p.from === id && p.to === r)
-    || (p.to === id && p.from === r))) ?? null;
-  const loose = ids.filter((id) => !is_region(graph, id));
-  const lead = loose.filter((id) => !home(id));
-  const bands = [...(lead.length ? [{ region: null, ids: lead }] : []),
-                 ...order.map((region) => ({ region, ids: [...members(graph, region),
-                                                           ...loose.filter((id) => home(id)
-                                                             === region)] }))];
+  const order = ids.filter((id) => is_region(graph, id));
+  if (!order.length) return layered(graph, ids, rect, way);
+  const bands: { region: Id | null; ids: Id[] }[] = [];
+  for (const id of ids) {
+    if (is_region(graph, id)) bands.push({ region: id, ids: members(graph, id) });
+    else if (bands.at(-1)?.region === null) bands.at(-1)!.ids.push(id);
+    else bands.push({ region: null, ids: [id] });
+  }
   const across = rect.x1 - rect.x0 >= rect.y1 - rect.y0;
   const parts = tracks(across ? rect.x0 : rect.y0, across ? rect.x1 : rect.y1,
                        bands.map((b) => b.ids.reduce((n, id) => n + weight(graph, id), 0) || THIN),
@@ -520,12 +538,6 @@ function chunks(ids: readonly Id[], size: number): Id[][] {
   if (!ids.length) return [];
   return Array.from({ length: Math.ceil(ids.length / size) },
                     (_, i) => ids.slice(i * size, (i + 1) * size));
-}
-
-/** The blocks every line ends on, but a tie's. */
-function line_ends(graph: Graph): Set<Id> {
-  return new Set(Object.values(graph.edges).filter((e) => !is_tie(graph, e.id))
-    .flatMap((e) => [owner_of(graph, e.from), owner_of(graph, e.to)]));
 }
 
 /** A rect with its top brought down by `d`, never past its bottom. */

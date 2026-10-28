@@ -2,8 +2,8 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, related } from "@mnd/fixtures";
-import { ROOT, children, drawn_in, fold, is_grid, is_header, is_holder, is_interface, is_note,
-         lattice_of,
+import { ROOT, children, drawn_in, fold, is_grid, is_group, is_header, is_holder, is_interface,
+         is_note, lattice_of,
          type Layout, type Graph, type Id } from "@mnd/core";
 import { cell_box } from "../src/size";
 import { bounds, boundary, laid, nearest_seat, size_of, snap, GAP, CELL, PAD, UNIT,
@@ -25,6 +25,17 @@ function under(graph: Graph, layer: Id, how: Layout): Placed[] {
     if (is_grid(g, b.id)) b.settings = { ...b.settings, holder: { flat: true } };
   }
   return laid(g, layer);
+}
+
+/** `related` with its Hot side a folder holding its members: a box the layout places. */
+function boxed(): Graph {
+  const graph = fold(related(), FLOOR);
+  graph.blocks["block_hot"]!.type = "folder";
+  for (const id of ["block_hx", "block_tank"]) {
+    graph.blocks[id]!.parent = "block_hot";
+    delete graph.blocks[id]!.groups;
+  }
+  return graph;
 }
 
 function overlaps(a: Placed, b: Placed): boolean {
@@ -68,7 +79,9 @@ describe("placement", () => {
   it.each(ARRANGEMENTS)("places every unit exactly once under %s", (how) => {
     const { graph, layer } = layer_of("related");
     const spots = under(graph, layer, how);
-    const want = drawn_in(graph, layer).filter((b) => !is_interface(graph, b.id)).map((b) => b.id);
+    /** A group is no unit: its panel is drawn round its members. */
+    const want = drawn_in(graph, layer)
+      .filter((b) => !is_interface(graph, b.id) && !is_group(graph, b.id)).map((b) => b.id);
     expect(spots.map((p) => p.id).sort()).toEqual([...want].sort());
   });
 
@@ -223,12 +236,13 @@ describe("a grid's cells sit on the unit lattice", () => {
 describe("the layout leaves room between things", () => {
 
   it("keeps a unit between a band and its neighbours, the way a grid is kept", () => {
-    const graph = fold(related(), FLOOR);
+    const graph = boxed();
     const spots = under(graph, "block_loop", "auto")
       .filter((p) => !is_holder(graph, p.id))
       .map((p) => ({ ...p }));
     const band = laid(graph, "block_loop").find((p) => p.id === "block_hot")!;
-    const others = spots.filter((p) => graph.blocks[p.id]?.parent === "block_loop");
+    const others = spots.filter((p) => p.id !== "block_hot"
+      && graph.blocks[p.id]?.parent === "block_loop");
     expect(others.length).toBeGreaterThan(0);
     for (const other of others) {
       const gap = Math.max(other.x - (band.x + band.w), band.x - (other.x + other.w),
@@ -263,10 +277,10 @@ describe("the layout leaves room between things", () => {
     }
   });
 
-  it("places each id once, even when a group sits inside another", () => {
-    const graph = fold(related(), FLOOR);
+  it("places each id once, even when a box sits inside another", () => {
+    const graph = boxed();
     graph.blocks["block_inner"] = {
-      id: "block_inner", parent: "block_hot", type: "group", order: 20,
+      id: "block_inner", parent: "block_hot", type: "folder", order: 20,
     };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_inner", type: "block", order: 21 };
     const spots = under(graph, "block_loop", "auto");
@@ -277,7 +291,7 @@ describe("the layout leaves room between things", () => {
   });
 
   it("keeps a unit between a band and a sibling card, never overlapping the rim", () => {
-    const graph = fold(related(), FLOOR);
+    const graph = boxed();
     graph.blocks["block_hello"] = { id: "block_hello", parent: "block_loop", type: "block", order: 30 };
     graph.edges["edge_hello"] = {
       id: "edge_hello", from: "block_hello", to: "block_hx",
@@ -297,7 +311,7 @@ describe("the layout leaves room between things", () => {
 
 describe("boundaries", () => {
   it("is its members' bounds plus a margin, and holds them", () => {
-    const graph = fold(related(), FLOOR);
+    const graph = boxed();
     const spots = laid(graph, "block_loop");
     const members = Object.values(graph.blocks)
       .filter((b) => b.parent === "block_hot").map((b) => b.id);
@@ -320,7 +334,7 @@ describe("seats", () => {
   const card: Placed = { id: "block_pump", x: 0, y: 0, w: 168, h: 36 };
 
   it("places blocks in explorer order, whatever stale places say", () => {
-    const graph = fold(related(), FLOOR);
+    const graph = boxed();
     graph.blocks["block_pump"]!.x = 0;
     graph.blocks["block_pump"]!.y = 0;
     graph.blocks["block_valve"]!.x = 3000;
@@ -337,7 +351,7 @@ describe("seats", () => {
   });
 
   it("stacks band members in a column, a gap apart", () => {
-    const graph = fold(related(), FLOOR);
+    const graph = boxed();
     const spots = under(graph, "block_loop", "auto");
     const at = new Map(spots.map((p) => [p.id, p]));
     const hx = at.get("block_hx")!;
@@ -350,7 +364,7 @@ describe("seats", () => {
   });
 
   it("ignores stale hand placement when arranging band members under grid", () => {
-    const graph = fold(related(), FLOOR);
+    const graph = boxed();
     graph.blocks["block_hx"]!.x = 0;
     graph.blocks["block_hx"]!.y = 400;
     graph.blocks["block_tank"]!.x = 800;

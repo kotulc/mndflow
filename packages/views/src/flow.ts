@@ -6,15 +6,16 @@
  *  a band in order — columns where the flow runs across, rows where it runs down, whichever fits
  *  the canvas — so lines run from band to band. */
 
-import { children, drawn_in, edges_in, inline, is_grid, is_interface, is_region, owner_of,
-         type Graph, type Id } from "@mnd/core";
+import { children, drawn_in, edges_in, holders_in, inline, is_grid, is_group, is_interface,
+         is_region, members_of, owner_of, type Graph, type Id } from "@mnd/core";
 import type { ELK, ElkNode } from "elkjs/lib/elk-api";
 import { celled } from "./bands";
 import { gridded, size_of, SHAPE, UNIT } from "./size";
 import type { Placed } from "./arrange";
 
-/** A room placed: every block it draws, from its own corner, and the extent they take. */
-export type Placement = { w: number; h: number; spots: readonly Placed[] };
+/** A room placed: every block it draws, from its own corner, and the extent they take; banded,
+ *  whether its bands run across, as columns, or down, as rows. */
+export type Placement = { w: number; h: number; spots: readonly Placed[]; across?: boolean };
 
 /** The layout engine, set by the host (a worker in the browser), else ELK on this thread. */
 let engine: ELK | null = null;
@@ -64,6 +65,9 @@ type Box = { id: Id; w?: number; h?: number; kids?: Box[]; region?: true };
 /** What ELK is given: the boxes, and the lines between them by their ends. */
 type Spec = { root: Box; lines: [Id, Id][] };
 
+/** A group's compound: a box of its members. */
+const compound = (id: Id, kids: Box[]): Box => ({ id, kids });
+
 /** The boxes a layer draws and the lines among them, every end lifted to a drawn box. */
 function spec_of(graph: Graph, layer: Id): Spec {
   const drawn = new Set<Id>();
@@ -71,15 +75,16 @@ function spec_of(graph: Graph, layer: Id): Spec {
     drawn.add(id);
     /** A grid drawn in place is a leaf: what it holds sits in its cells. */
     if (inline(graph, id) && !is_grid(graph, id)) {
-      return { id, kids: units(graph, id).map(box) };
+      return { id, kids: compounded(groups, units(graph, id).map(box), compound) };
     }
     const s = size_of(graph, id);
     return { id, w: Math.round(s.w), h: Math.round(s.h) };
   };
-  const root: Box = { id: layer, kids: units(graph, layer).map((id) => {
+  const groups = tree_groups(graph, layer);
+  const root: Box = { id: layer, kids: compounded(groups, units(graph, layer).map((id) => {
     const b = box(id);
     return is_region(graph, id) && b.kids ? { ...b, region: true as const } : b;
-  }) };
+  }), compound) };
   const lift = (id: Id): Id | null => {
     for (let at: Id | null = owner_of(graph, id); at; at = graph.blocks[at]?.parent ?? null) {
       if (drawn.has(at)) return at;
@@ -95,10 +100,49 @@ function spec_of(graph: Graph, layer: Id): Spec {
   return { root, lines };
 }
 
-/** What a container places: its blocks, less interfaces and what sits in a grid's cells. */
+/** What a container places: its blocks, less interfaces, groups and what sits in a grid's cells. */
 function units(graph: Graph, id: Id): Id[] {
-  return children(graph, id)
-    .filter((b) => !is_interface(graph, b.id) && !gridded(graph, b.id)).map((b) => b.id);
+  return children(graph, id).filter((b) => !is_interface(graph, b.id) && !is_group(graph, b.id)
+    && !gridded(graph, b.id)).map((b) => b.id);
+}
+
+/** A group and its members. */
+export type Members = { id: Id; of: ReadonlySet<Id> };
+
+/** Whether `a`'s members are a proper superset of `b`'s. */
+const holds = (a: Members, b: Members) =>
+  a.of.size > b.of.size && [...b.of].every((x) => a.of.has(x));
+
+/** **The groups that can be compounds**: those whose membership nests or stays apart from every
+ *  other group's — a tree. One that partly overlaps another, or shares another's exact members,
+ *  is no compound: its panel is drawn round wherever its members land (`block.ts` `panel`). */
+export function tree_groups(graph: Graph, layer: Id | null): Members[] {
+  const all = holders_in(graph, layer).filter((g) => is_group(graph, g.id))
+    .map((g) => ({ id: g.id, of: new Set(members_of(graph, g.id).map((b) => b.id)) }))
+    .filter((g) => g.of.size);
+  const meets = (a: Members, b: Members) => [...a.of].some((x) => b.of.has(x));
+  return all.filter((g) => all.every((o) => o === g || !meets(g, o) || holds(g, o) || holds(o, g)));
+}
+
+/** A container's boxes with each tree group whose members all sit here wrapped as a compound,
+ *  nested as their groups nest, in the place of its first member. **A workaround**: ELK puts a
+ *  node in one compound and a compound in one partition, so a group across containers is no
+ *  compound and only its panel gathers it. */
+export function compounded<T extends { id: Id }>(groups: readonly Members[], boxes: T[],
+                                                 made: (id: Id, kids: T[]) => T): T[] {
+  const here = new Set(boxes.map((b) => b.id));
+  const mine = groups.filter((g) => [...g.of].every((id) => here.has(id)));
+  const wrap = (items: T[], gs: readonly Members[]): T[] => {
+    let out = items;
+    for (const g of gs.filter((g) => !gs.some((o) => holds(o, g)))) {
+      const at = out.findIndex((b) => g.of.has(b.id));
+      const kids = wrap(out.filter((b) => g.of.has(b.id)), gs.filter((o) => holds(g, o)));
+      out = [...out.slice(0, at), made(g.id, kids),
+             ...out.slice(at).filter((b) => !g.of.has(b.id))];
+    }
+    return out;
+  };
+  return wrap(boxes, mine);
 }
 
 /** Room for a region's name, across the top of its band. */
@@ -106,7 +150,7 @@ const RULE = UNIT * 1.25;
 
 /** A laid-out container: its size, where each child sits, and how each container child was laid. */
 type Done = { w: number; h: number; at: Map<Id, { x: number; y: number; w: number; h: number }>;
-              inner: Map<Id, Done> };
+              inner: Map<Id, Done>; across?: boolean };
 
 /** How one container is laid: its padding, the shape it aims for, a width to pack toward. */
 type How = { pad: string; aim: number; width?: number };
@@ -184,31 +228,36 @@ async function laid_out(spec: Spec): Promise<Placement> {
     }
   };
   put(top, 0, 0);
-  return { w: top.w, h: top.h, spots };
+  return { w: top.w, h: top.h, spots, ...(top.across === undefined ? {} : { across: top.across }) };
 }
 
 /** **A room banded by its regions**: one layered run over its loose blocks and its regions'
- *  members, each region an ELK partition in order, so the flow runs from band to band; across
- *  (regions as columns) and down (as rows) both tried, the one nearer `aim` kept. A region no line
- *  meets comes after those lines meet, packed whole as one unit toward its band: as tall as the
- *  room as a column, as wide as a row. A loose block sits in the band of what its lines reach.
- *  Each band then spans the room across the flow, its name above what it holds. */
+ *  members, **each band an ELK partition in list order** — a region, or a run of loose blocks
+ *  between regions, unnamed — so the flow runs from band to band; across (bands as columns) and
+ *  down (as rows) both tried, the one nearer `aim` kept. A region no line meets is packed whole as
+ *  one unit toward its band, in its list place: as tall as the room as a column, as wide as a
+ *  row. Each band then spans the room across the flow, a region's name above what it holds. */
 async function banded(E: ELK, spec: Spec, chain: (id: Id) => Id[],
                       lay: (b: Box, how: How) => Promise<Done>, aim: number): Promise<Done> {
   const kids = spec.root.kids!;
   const ends = new Set(spec.lines.flat());
   const met = (b: Box): boolean => ends.has(b.id) || (b.kids ?? []).some(met);
-  /** The bands in order: those lines meet first, then those none do, each in file order. */
-  const regions = [...kids.filter((k) => k.region && met(k)),
-                   ...kids.filter((k) => k.region && !met(k))];
-  /** The units of the run, each with the band it sits in (0 before every region). */
+  const regions = kids.filter((k) => k.region);
+  /** The units of the run, each with its band: the list walked, a new band at each region and at
+   *  each run of loose blocks. */
   type Unit = { box: Box; part: number; region?: Id };
-  const units: Unit[] = kids.flatMap((k): Unit[] => {
-    const part = regions.indexOf(k) + 1;
-    if (!k.region) return [{ box: k, part: 0 }];
-    return met(k) ? (k.kids ?? []).map((box) => ({ box, part, region: k.id }))
+  let part = -1;
+  const units: Unit[] = kids.flatMap((k, i): Unit[] => {
+    if (!k.region) {
+      if (i === 0 || kids[i - 1]!.region) part++;
+      return [{ box: k, part }];
+    }
+    part++;
+    return met(k) && k.kids?.length ? k.kids.map((box) => ({ box, part, region: k.id }))
       : [{ box: k, part, region: k.id }];
   });
+  /** The bands that wear a name: a region's. */
+  const named = new Set(units.filter((u) => u.region).map((u) => u.part));
   const wholes = units.filter((u) => u.box.id === u.region);
   const groups = new Map(await Promise.all(units.filter((u) => u.box.kids && u.box.id !== u.region)
     .map(async (u) => [u.box.id, await lay(u.box, { pad: PADDING, aim })] as const)));
@@ -219,11 +268,6 @@ async function banded(E: ELK, spec: Spec, chain: (id: Id) => Id[],
   for (const [a, b] of spec.lines) {
     const [ua, ub] = [unit_of(a), unit_of(b)];
     if (ua && ub && ua !== ub) pairs.set(`${ua}|${ub}`, [ua, ub]);
-  }
-  for (const u of units.filter((x) => !x.region)) {
-    const near = [...pairs.values()].flatMap(([a, b]) => (a === u.box.id ? [b]
-      : b === u.box.id ? [a] : []));
-    u.part = near.map((id) => by.get(id)!.part).find((p) => p > 0) ?? 0;
   }
   const run = async (dir: "RIGHT" | "DOWN", done: ReadonlyMap<Id, Done>): Promise<Done> => {
     const size = (u: Unit) => done.get(u.box.id) ?? { w: u.box.w!, h: u.box.h! };
@@ -247,7 +291,7 @@ async function banded(E: ELK, spec: Spec, chain: (id: Id) => Id[],
      *  band's name pushes it and those after it, with room for a unit between bands. */
     const parts = [...new Set(units.map((u) => u.part))].sort((a, b) => a - b);
     const shift = (p: number) => (across ? RULE
-      : (RULE + UNIT / 4) * parts.filter((q) => q > 0 && q <= p).length);
+      : (RULE + UNIT / 4) * parts.filter((q) => named.has(q) && q <= p).length);
     const placed = (u: Unit) => {
       const p = pos.get(u.box.id)!;
       return { x: p.x, y: p.y + shift(u.part), ...size(u) };
@@ -268,8 +312,8 @@ async function banded(E: ELK, spec: Spec, chain: (id: Id) => Id[],
       at.set(u.box.id, placed(u));
       if (done.has(u.box.id)) inner.set(u.box.id, done.get(u.box.id)!);
     }
-    regions.forEach((r, n) => {
-      const i = runs.findIndex((x) => x.p === n + 1);
+    regions.forEach((r) => {
+      const i = runs.findIndex((x) => x.p === units.find((u) => u.region === r.id)!.part);
       const lo = i <= 0 ? 0 : edge(i) + UNIT / 2;
       const hi = i + 1 >= runs.length ? (across ? W : H) : edge(i + 1) - UNIT / 2;
       const band = across ? { x: lo, y: 0, w: hi - lo, h: H } : { x: 0, y: lo, w: W, h: hi - lo };
@@ -292,7 +336,7 @@ async function banded(E: ELK, spec: Spec, chain: (id: Id) => Id[],
       }
       inner.set(r.id, { w: band.w, h: band.h, at: mine, inner: sub });
     });
-    return { w: W, h: H, at, inner };
+    return { w: W, h: H, at, inner, across };
   };
   /** One way: the whole regions packed toward a band's shape, then again toward the room the
    *  first run made — a column's height, a row's width. */
@@ -316,7 +360,7 @@ async function banded(E: ELK, spec: Spec, chain: (id: Id) => Id[],
   const best = tries.sort((a, b) => off(a) - off(b))[0]!;
   /** Below the room's title. */
   const at = new Map([...best.at].map(([id, a]) => [id, { ...a, y: a.y + UNIT }]));
-  return { w: best.w, h: best.h + UNIT, at, inner: best.inner };
+  return { w: best.w, h: best.h + UNIT, at, inner: best.inner, across: !!best.across };
 }
 
 /** ELK's layered options: square lines, file order kept for loops, ranks and pieces. */

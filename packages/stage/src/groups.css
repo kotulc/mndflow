@@ -24,7 +24,8 @@
   height: 100%;
   box-sizing: border-box;
   overflow: visible;
-  border: 1px dashed color-mix(in oklch, var(--muted) 48%, transparent);
+  /* **A group is a panel, no rim**: its ground and its name gather its members. */
+  border: 1px solid transparent;
   border-radius: 4px;
   background: color-mix(in oklch, var(--muted) 6%, transparent);
   background-clip: padding-box;
@@ -32,7 +33,7 @@
 }
 /* A folder or block a view flattens: a solid rim, so it never reads as a group somebody made. */
 .mnd-group.flat {
-  border-style: solid;
+  border-color: color-mix(in oklch, var(--muted) 48%, transparent);
 }
 /* The inside is for what the band holds. */
 .mnd-group:not(.gridded) {
