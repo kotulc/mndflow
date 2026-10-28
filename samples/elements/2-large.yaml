@@ -8,6 +8,5 @@ blocks:
     type: Record
     values: { id: "7", email: ada@example.com }
   - name: Grace
-    type: Record
-    settings: { card: { face: class } }
+    type: Class record
     values: { id: "8", email: grace@example.com }

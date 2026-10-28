@@ -57,6 +57,9 @@ register(
       if (!ids.length) return "nothing is selected";
       const why = ids.map((id) => borrowed(ctx.graph, id)).find(Boolean);
       if (why) return why;
+      /** A usage draws as its definition says. */
+      const usage = ids.find((id) => ctx.graph.blocks[id] && !ctx.graph.blocks[id]!.def);
+      if (usage) return `"${ctx.graph.blocks[usage]!.name ?? usage}" is a usage — set its definition's look`;
       if (!LOOKS.includes(String(args["key"]))) {
         return `there is nothing called "${args["key"]}" to set`;
       }

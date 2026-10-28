@@ -4,9 +4,8 @@ import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, DISPLA
          domain_of, FACE_PARTS, FAMILIES, FILLS, FONTS, HEIGHTS, is_notation, is_box,
          is_container, is_grid, isa, is_interface, is_tie, kind_word, LARGE_FACES, notation_of,
          PARTS,
-         attributes_of, setting_of, SHAPES, SHOWN, WEIGHTS, WIDTHS, type Definition, type Graph,
+         attributes_of, resolved, setting_of, SHAPES, SHOWN, WEIGHTS, WIDTHS, type Definition, type Graph,
          type Id, type Settings } from "@mnd/core";
-import { resolved } from "./through";
 
 export type Family = (typeof FAMILIES)[number];
 export type Width = (typeof WIDTHS)[number];

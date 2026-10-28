@@ -1,0 +1,4 @@
+name: faded
+def: {}
+settings:
+  style: { opacity: 0.45 }

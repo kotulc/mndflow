@@ -1,0 +1,6 @@
+name: picture
+def: {}
+description: An image drawn from its source.
+settings:
+  card:
+    face: picture

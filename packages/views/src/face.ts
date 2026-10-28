@@ -5,12 +5,11 @@
  *  that what is shown fits. A table's columns are measured exactly once, here, and drawn at those
  *  widths, and **a table card is exactly its table**: its title row, its rows and its border. */
 
-import { alias_of, attributes_of, behaviours_of, holds_records, links_to, schema_def,
+import { alias_of, attributes_of, behaviours_of, holds_records, links_to, resolved, schema_def,
          setting_of, shown_name, signature_of, stamps_of, type_name, unit_of, type Attribute,
          type Graph, type Id } from "@mnd/core";
 import { look_of, type Look } from "./look";
 import type { Listed, Ruled } from "./scene";
-import { resolved } from "./through";
 
 /** One glyph's width, in pixels, at each size the face writes in. */
 const GLYPH = { name: 7.8, body: 7.2, table: 6.6 };

@@ -1,0 +1,4 @@
+name: hatched
+def: {}
+settings:
+  style: { fill: hatch }

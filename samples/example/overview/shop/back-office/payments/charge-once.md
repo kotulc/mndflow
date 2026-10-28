@@ -1,8 +1,7 @@
 ---
 name: Charge once
-settings:
-  card:
-    face: document
+type: document
+packages: [ services ]
 tags: critical
 ---
 

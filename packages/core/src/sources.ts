@@ -444,6 +444,14 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
     b.def = { ...(attributes.length ? { attributes } : {}),
               ...(e.def.ends ? { ends: e.def.ends } : {}) };
   }
+  /** A usage draws as its definition says: it keeps only the layout of what it opens to. */
+  const looks = !e.def && b.settings ? Object.keys(b.settings).filter((k) => k !== "layout") : [];
+  if (looks.length) {
+    ctx.notes.push(`${ctx.file.path}: ${e.name || id} sets ${looks.join(", ")}, `
+      + "which a usage cannot; set it on its definition");
+    const { layout } = b.settings!;
+    if (layout) b.settings = { layout }; else delete b.settings;
+  }
   if (b.settings) b.settings = ided(ctx, b.settings);
   return type;
 }

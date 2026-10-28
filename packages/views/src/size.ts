@@ -1,11 +1,10 @@
 /** How big a thing is, before anything is placed. */
 
-import { covers, has_lifelines, inline, is_grid, is_interface, lattice_of, setting_of, shown_name,
-         stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
+import { covers, has_lifelines, inline, is_grid, is_interface, lattice_of, resolved, setting_of,
+         shown_name, stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
 import { edge_of, fit_of, face_table, face_text, handle_of, name_w, note_h } from "./face";
 import { card_shape, look_of } from "./look";
 import type { Ruled } from "./scene";
-import { resolved } from "./through";
 
 /** The one place the drawing's proportions are set, and the unit is the only measure there is. */
 export const UNITS = {

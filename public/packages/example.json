@@ -154,14 +154,10 @@
         "id": "example.md.overview.shop.back-office.payments.charge-once",
         "parent": "example.yaml.overview.shop.back-office.payments",
         "name": "Charge once",
+        "type": "services.document",
         "alias": 14,
-        "body": "\nCheckout retries the same request. The order service treats a repeated checkout key as the order it already created, so a retry never charges twice.\n",
+        "body": "\r\nCheckout retries the same request. The order service treats a repeated checkout key as the order it already created, so a retry never charges twice.\r\n",
         "order": 3,
-        "settings": {
-          "card": {
-            "face": "document"
-          }
-        },
         "source": "overview/shop/back-office/payments/charge-once.md",
         "tags": [
           "example.tag.critical"
@@ -180,6 +176,20 @@
           }
         },
         "source": "Parts/page.yaml"
+      },
+      "example.yaml.Parts.picture": {
+        "id": "example.yaml.Parts.picture",
+        "parent": "example.dir.Parts",
+        "name": "picture",
+        "def": {},
+        "description": "An image drawn from its source.",
+        "order": 2,
+        "settings": {
+          "card": {
+            "face": "picture"
+          }
+        },
+        "source": "Parts/picture.yaml"
       },
       "example.yaml.Records.customer": {
         "id": "example.yaml.Records.customer",
@@ -735,28 +745,19 @@
         "id": "example.yaml.overview.shop.back-office.orders.2",
         "parent": "example.yaml.overview.shop.back-office.orders",
         "name": "Runbook",
+        "type": "services.document",
         "alias": 10,
         "body": "# When orders stop flowing\n\nCheck the **relay** first. See the [outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).\n\n| signal | threshold | page |\n|---|---|---|\n| outbox rows | 10 000 | yes |\n| relay lag | 60 s | no |",
-        "order": 2,
-        "settings": {
-          "card": {
-            "face": "document"
-          }
-        }
+        "order": 2
       },
       "example.yaml.overview.shop.back-office.orders.3": {
         "id": "example.yaml.overview.shop.back-office.orders.3",
         "parent": "example.yaml.overview.shop.back-office.orders",
         "name": "Release notes",
+        "type": "services.document",
         "alias": 11,
         "body": "v2 of the orders API: the checkout key is required.",
-        "order": 3,
-        "settings": {
-          "card": {
-            "face": "document",
-            "name": "hide"
-          }
-        }
+        "order": 3
       },
       "example.yaml.overview.shop.back-office.payments": {
         "id": "example.yaml.overview.shop.back-office.payments",
@@ -790,18 +791,10 @@
         "id": "example.yaml.overview.shop.back-office.payments.2",
         "parent": "example.yaml.overview.shop.back-office.payments",
         "name": "Incident summary",
+        "type": "services.document",
         "alias": 13,
         "body": "Checkout was slow for twenty minutes while the card processor timed out. The breaker opened, the fallback queued charges, and every queued charge was taken once the processor came back.",
-        "order": 2,
-        "settings": {
-          "card": {
-            "face": "document",
-            "size": {
-              "w": 8,
-              "h": 3
-            }
-          }
-        }
+        "order": 2
       },
       "example.yaml.overview.shop.back-office.payments.payment-retry": {
         "id": "example.yaml.overview.shop.back-office.payments.payment-retry",
@@ -1756,14 +1749,10 @@
         "id": "example.yaml.overview.shop.how-it-runs.5-dashboard",
         "parent": "example.yaml.overview.shop.7",
         "name": "Dashboard",
+        "type": "example.yaml.Parts.picture",
         "alias": 65,
         "description": "What the shop looks like from the operations floor: a picture card, drawn from its source.",
         "order": 5,
-        "settings": {
-          "card": {
-            "face": "picture"
-          }
-        },
         "source": "/model/picture.svg"
       },
       "services": {

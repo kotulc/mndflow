@@ -1,6 +1,6 @@
 # Backlog
 
-**Deferred and future work, out of the plan.** An item moves into plan.md when it is taken up.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built.
 
 ## CLI (next, as time allows)
 
@@ -52,6 +52,28 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 | **speed and docs** | bundle `mnd` with tsup; rewrite the CLI README; design.md's agent-surface question closes on this section; refresh the `vitest` skill | a call returns in well under a second |
 
 **Acceptance:** this repo mapped through the CLI alone: `new`, one generated script, `check` clean, `draw` and revise, `draw --open` hands the view over. No ids in hand, no browser editing, no hand-placed geometry.
+
+
+## Edges
+
+Known rough spots, taken when a step passes near one.
+
+| Area | Edge |
+|---|---|
+| **cards** | marks on a dark table card are faint; a reference previewing a table ignores its own look's border; notes still draw through `NoteNode`, not only `CardFace` |
+| **tray** | its tables light picks by id, not through core `lit`, so a part picked through one usage lights its row wherever it is listed; a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else; the definitions table's *extends* shows a sibling definition (`example/Ledger`) for one that extends nothing |
+| **overview** | the glance mounts a second React Flow, so node description ids repeat in the page; on the open layer with nothing picked it draws what the canvas already draws; a tag with no hue paints its share of the bar plain |
+| **samples** | no definition with room parts is used twice, so *one highlight*'s case — a part picked under one usage lights nothing under another — has not been driven in the explorer |
+| **camera** | a short port drag lands short |
+| **React** | `flushSync was called from inside a lifecycle method`, once seen opening the profile from a layer; recheck |
+| **packages** | a definition file holds no parts, so a pattern's parts live in its package's `package.json`; base's `decision` and `services`'s share a name, so `type: decision` resolves to whichever the lookup finds first |
+| **paths** | a path names every region on the way (`Overview::Shop::Back office::Payments`), though layers look through them |
+| **diagram files** | a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
+| **annotations** | a label floats aside, so on a layer cut into regions it can land across a band's heading; a picked region draws a full outline rather than its band; an empty layer's words centre on the canvas rather than the room |
+| **ports** | design.md gives a port its definition's settings, values and tags; ports hold name, type, flow, seat and description only |
+| **map** | a count on a tight chip fragments (*service 6.*); the room sits under a one-line head |
+| **double-click a grid** | lands on its name and renames it; Enter opens it |
+| **follow-ups** | lineage and links as a package structure rather than a view; boxes for a definition's usages and the groups they belong to |
 
 
 ## Later

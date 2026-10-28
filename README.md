@@ -99,6 +99,6 @@ Under `docs/`, and they describe the **goal state** rather than what is built. T
 | `spec.md` | what crosses packages: the seams, ports, kit, apps and tests |
 | `stories.md` | what somebody is trying to do |
 | `code-homes.md` | one rule, one home: where each rule's code lives |
-| `plan.md` | the one plan: what is left to do, in order |
+| `backlog.md` | deferred and future work, and known edges |
 
 **What one package alone decides lives in that package's `docs/`**, never here.

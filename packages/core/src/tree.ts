@@ -1,6 +1,6 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import { isa, module_of, setting_of } from "./defs";
+import { def_at, isa, module_of, setting_of } from "./defs";
 import { drawn_in, layer_of } from "./holders";
 import { LAYOUTS, type Block, type Definition, type Flow, type Graph, type Id, type Layout,
          type Port, type Relation } from "./types";
@@ -154,6 +154,19 @@ export function stands_for(graph: Graph, id: Id): Block | null {
     b = graph.blocks[of];
   }
   return b ?? null;
+}
+
+/** What a card draws as: the block it previews — what a reference stands for, else itself — the
+ *  definition a reference stands in for, and whether a reference names nothing there. */
+export type Resolved = { card: Id; stands_in?: Definition; missing: boolean };
+
+/** What a card draws as, a reference resolved: decided by *is reference*, never by `of`. */
+export function resolved(graph: Graph, id: Id): Resolved {
+  if (!is_reference(graph, id)) return { card: id, missing: false };
+  const target = stands_for(graph, id);
+  if (!target || target.id === id) return { card: id, missing: true };
+  const def = def_at(graph, of_ref(graph, id));
+  return { card: target.id, ...(def ? { stands_in: def } : {}), missing: false };
 }
 
 /** **One object**: the block an appearance is — a stand-in's target, followed to the end, else

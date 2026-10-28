@@ -1,14 +1,14 @@
 name: Colour
 type: model
-note: Colour and line, set on a card. A family or a hue picks its colour; fill, border and opacity say how it is drawn.
+note: Colour and line, set on a definition. A family or a hue picks its colour; fill, border and opacity say how it is drawn.
 blocks:
-  - { name: primary, settings: { style: { family: primary } } }
-  - { name: secondary, settings: { style: { family: secondary } } }
-  - { name: neutral, settings: { style: { family: neutral } } }
-  - { name: muted, settings: { style: { family: muted } } }
-  - { name: hue 200, settings: { style: { hue: 200 } } }
-  - { name: hue 25, settings: { style: { hue: 25 } } }
-  - { name: hatched, settings: { style: { fill: hatch } } }
-  - { name: faded, settings: { style: { opacity: 0.45 } } }
-  - { name: dashed, settings: { style: { border_style: dashed } } }
-  - { name: thick, settings: { style: { border_width: thick } } }
+  - { name: primary, type: primary }
+  - { name: secondary, type: secondary }
+  - { name: neutral, type: neutral }
+  - { name: muted, type: muted }
+  - { name: hue 200, type: hue 200 }
+  - { name: hue 25, type: hue 25 }
+  - { name: hatched, type: hatched }
+  - { name: faded, type: faded }
+  - { name: dashed, type: dashed }
+  - { name: thick, type: thick }

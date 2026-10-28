@@ -1,0 +1,4 @@
+name: muted
+def: {}
+settings:
+  style: { family: muted }

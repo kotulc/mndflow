@@ -12,6 +12,13 @@
         "order": 6,
         "tree": "definitions"
       },
+      "dir.Definitions.Colour": {
+        "id": "dir.Definitions.Colour",
+        "parent": "dir.Definitions",
+        "name": "Colour",
+        "type": "folder",
+        "order": 2
+      },
       "workspace": {
         "id": "workspace",
         "parent": null,
@@ -211,14 +218,9 @@
         "id": "yaml.2-large.3",
         "parent": "yaml.2-large",
         "name": "Grace",
-        "type": "yaml.Definitions.record",
+        "type": "yaml.Definitions.class-record",
         "alias": 13,
         "order": 3,
-        "settings": {
-          "card": {
-            "face": "class"
-          }
-        },
         "values": [
           {
             "name": "id",
@@ -590,7 +592,7 @@
       "yaml.5-colour.1": {
         "id": "yaml.5-colour.1",
         "parent": "yaml.5-colour",
-        "name": "Colour and line, set on a card. A family or a hue picks its colour; fill, border and opacity say how it is drawn.",
+        "name": "Colour and line, set on a definition. A family or a hue picks its colour; fill, border and opacity say how it is drawn.",
         "type": "note",
         "alias": 8,
         "order": 1
@@ -599,121 +601,226 @@
         "id": "yaml.5-colour.10",
         "parent": "yaml.5-colour",
         "name": "dashed",
+        "type": "yaml.Definitions.Colour.dashed",
         "alias": 50,
-        "order": 10,
-        "settings": {
-          "style": {
-            "border_style": "dashed"
-          }
-        }
+        "order": 10
       },
       "yaml.5-colour.11": {
         "id": "yaml.5-colour.11",
         "parent": "yaml.5-colour",
         "name": "thick",
+        "type": "yaml.Definitions.Colour.thick",
         "alias": 51,
-        "order": 11,
-        "settings": {
-          "style": {
-            "border_width": "thick"
-          }
-        }
+        "order": 11
       },
       "yaml.5-colour.2": {
         "id": "yaml.5-colour.2",
         "parent": "yaml.5-colour",
         "name": "primary",
+        "type": "yaml.Definitions.Colour.primary",
         "alias": 42,
-        "order": 2,
-        "settings": {
-          "style": {
-            "family": "primary"
-          }
-        }
+        "order": 2
       },
       "yaml.5-colour.3": {
         "id": "yaml.5-colour.3",
         "parent": "yaml.5-colour",
         "name": "secondary",
+        "type": "yaml.Definitions.Colour.secondary",
         "alias": 43,
-        "order": 3,
-        "settings": {
-          "style": {
-            "family": "secondary"
-          }
-        }
+        "order": 3
       },
       "yaml.5-colour.4": {
         "id": "yaml.5-colour.4",
         "parent": "yaml.5-colour",
         "name": "neutral",
+        "type": "yaml.Definitions.Colour.neutral",
         "alias": 44,
-        "order": 4,
-        "settings": {
-          "style": {
-            "family": "neutral"
-          }
-        }
+        "order": 4
       },
       "yaml.5-colour.5": {
         "id": "yaml.5-colour.5",
         "parent": "yaml.5-colour",
         "name": "muted",
+        "type": "yaml.Definitions.Colour.muted",
         "alias": 45,
-        "order": 5,
-        "settings": {
-          "style": {
-            "family": "muted"
-          }
-        }
+        "order": 5
       },
       "yaml.5-colour.6": {
         "id": "yaml.5-colour.6",
         "parent": "yaml.5-colour",
         "name": "hue 200",
+        "type": "yaml.Definitions.Colour.hue-200",
         "alias": 46,
-        "order": 6,
-        "settings": {
-          "style": {
-            "hue": 200
-          }
-        }
+        "order": 6
       },
       "yaml.5-colour.7": {
         "id": "yaml.5-colour.7",
         "parent": "yaml.5-colour",
         "name": "hue 25",
+        "type": "yaml.Definitions.Colour.hue-25",
         "alias": 47,
-        "order": 7,
-        "settings": {
-          "style": {
-            "hue": 25
-          }
-        }
+        "order": 7
       },
       "yaml.5-colour.8": {
         "id": "yaml.5-colour.8",
         "parent": "yaml.5-colour",
         "name": "hatched",
+        "type": "yaml.Definitions.Colour.hatched",
         "alias": 48,
-        "order": 8,
-        "settings": {
-          "style": {
-            "fill": "hatch"
-          }
-        }
+        "order": 8
       },
       "yaml.5-colour.9": {
         "id": "yaml.5-colour.9",
         "parent": "yaml.5-colour",
         "name": "faded",
+        "type": "yaml.Definitions.Colour.faded",
         "alias": 49,
-        "order": 9,
+        "order": 9
+      },
+      "yaml.Definitions.Colour.dashed": {
+        "id": "yaml.Definitions.Colour.dashed",
+        "parent": "dir.Definitions.Colour",
+        "name": "dashed",
+        "def": {},
+        "order": 1,
+        "settings": {
+          "style": {
+            "border_style": "dashed"
+          }
+        },
+        "source": "Definitions/Colour/dashed.yaml"
+      },
+      "yaml.Definitions.Colour.faded": {
+        "id": "yaml.Definitions.Colour.faded",
+        "parent": "dir.Definitions.Colour",
+        "name": "faded",
+        "def": {},
+        "order": 2,
         "settings": {
           "style": {
             "opacity": 0.45
           }
-        }
+        },
+        "source": "Definitions/Colour/faded.yaml"
+      },
+      "yaml.Definitions.Colour.hatched": {
+        "id": "yaml.Definitions.Colour.hatched",
+        "parent": "dir.Definitions.Colour",
+        "name": "hatched",
+        "def": {},
+        "order": 3,
+        "settings": {
+          "style": {
+            "fill": "hatch"
+          }
+        },
+        "source": "Definitions/Colour/hatched.yaml"
+      },
+      "yaml.Definitions.Colour.hue-200": {
+        "id": "yaml.Definitions.Colour.hue-200",
+        "parent": "dir.Definitions.Colour",
+        "name": "hue 200",
+        "def": {},
+        "order": 4,
+        "settings": {
+          "style": {
+            "hue": 200
+          }
+        },
+        "source": "Definitions/Colour/hue-200.yaml"
+      },
+      "yaml.Definitions.Colour.hue-25": {
+        "id": "yaml.Definitions.Colour.hue-25",
+        "parent": "dir.Definitions.Colour",
+        "name": "hue 25",
+        "def": {},
+        "order": 5,
+        "settings": {
+          "style": {
+            "hue": 25
+          }
+        },
+        "source": "Definitions/Colour/hue-25.yaml"
+      },
+      "yaml.Definitions.Colour.muted": {
+        "id": "yaml.Definitions.Colour.muted",
+        "parent": "dir.Definitions.Colour",
+        "name": "muted",
+        "def": {},
+        "order": 6,
+        "settings": {
+          "style": {
+            "family": "muted"
+          }
+        },
+        "source": "Definitions/Colour/muted.yaml"
+      },
+      "yaml.Definitions.Colour.neutral": {
+        "id": "yaml.Definitions.Colour.neutral",
+        "parent": "dir.Definitions.Colour",
+        "name": "neutral",
+        "def": {},
+        "order": 7,
+        "settings": {
+          "style": {
+            "family": "neutral"
+          }
+        },
+        "source": "Definitions/Colour/neutral.yaml"
+      },
+      "yaml.Definitions.Colour.primary": {
+        "id": "yaml.Definitions.Colour.primary",
+        "parent": "dir.Definitions.Colour",
+        "name": "primary",
+        "def": {},
+        "order": 8,
+        "settings": {
+          "style": {
+            "family": "primary"
+          }
+        },
+        "source": "Definitions/Colour/primary.yaml"
+      },
+      "yaml.Definitions.Colour.secondary": {
+        "id": "yaml.Definitions.Colour.secondary",
+        "parent": "dir.Definitions.Colour",
+        "name": "secondary",
+        "def": {},
+        "order": 9,
+        "settings": {
+          "style": {
+            "family": "secondary"
+          }
+        },
+        "source": "Definitions/Colour/secondary.yaml"
+      },
+      "yaml.Definitions.Colour.thick": {
+        "id": "yaml.Definitions.Colour.thick",
+        "parent": "dir.Definitions.Colour",
+        "name": "thick",
+        "def": {},
+        "order": 10,
+        "settings": {
+          "style": {
+            "border_width": "thick"
+          }
+        },
+        "source": "Definitions/Colour/thick.yaml"
+      },
+      "yaml.Definitions.class-record": {
+        "id": "yaml.Definitions.class-record",
+        "parent": "dir.Definitions",
+        "name": "Class record",
+        "type": "yaml.Definitions.record",
+        "def": {},
+        "description": "A record drawn as a class, its values as fields.",
+        "order": 1,
+        "settings": {
+          "card": {
+            "face": "class"
+          }
+        },
+        "source": "Definitions/class-record.yaml"
       },
       "yaml.Definitions.record": {
         "id": "yaml.Definitions.record",
@@ -735,7 +842,7 @@
           ]
         },
         "description": "A row of values, so a usage has something to draw on its large face.",
-        "order": 1,
+        "order": 3,
         "settings": {
           "card": {
             "face": "table"

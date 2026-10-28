@@ -6,10 +6,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { about_of, alias_name, alias_of, children, def_at, def_of, domain_of, entry_at, frame_of,
          constraint_at, frozen, interface_at,
-         is_interface, of_ref, owner_of, registry_at, stored_of, shown_name, stands_for, tag_at,
+         is_interface, of_ref, owner_of, registry_at, resolved, stored_of, shown_name, stands_for, tag_at,
          type_at, type Act, type Graph, type Id, type Registry as Of } from "@mnd/core";
 import { Icon, TrayFrame } from "@mnd/theme";
-import { resolved } from "@mnd/views";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Carried } from "./Carried";
 import { Element } from "./Element";
