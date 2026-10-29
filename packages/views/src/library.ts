@@ -1,61 +1,65 @@
-/** What the library knows of its definitions: where each is used, grouped by the model each use
- *  sits in, laid out **once** for the registry, the library's chip and the tray's small map alike;
+/** What the library knows of its definitions: where each is used, grouped by the place each use
+ *  is drawn, laid out **once** for the registry, the library's chip and the tray's small map alike;
  *  what a package or folder files. The library's own map is `map.ts`'s. Worked out on every graph
  *  change, never stored. */
 
 import { hierarchy, treemap } from "d3-hierarchy";
-import { children, definition_uses, is_folder, model_of, models, on_side, owner_of, package_of,
-         shown_name, type Graph, type Id } from "@mnd/core";
+import { children, definition_uses, is_folder, layer_of, line_layer, model_of, models, on_side,
+         package_of, shown_name, type Graph, type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { tiled, weight_of, type Tile as Weighed } from "./treemap";
 
-/** One use of a definition, placed: what it is, the model it sits in, and how much it weighs — a
+/** One use of a definition, placed: what it is, the place it is drawn, and how much it weighs — a
  *  block or a reference what it holds, a line one. */
-export type LocatedUse = { id: Id; model: Id; weight: number;
+export type LocatedUse = { id: Id; place: Id; weight: number;
                            kind: "block" | "reference" | "relation" };
 
-/** A definition's uses, **grouped by the model each sits in**, models in the order they load. */
-export function usage_groups(graph: Graph, def: Id): { model: Id; uses: LocatedUse[] }[] {
+/** A definition's uses in the models, **grouped by the place each is drawn**: the diagram whose
+ *  layer draws it, a line the one it crosses on. Places by their models' load order, then by
+ *  name, so they keep their order whatever is added or renamed elsewhere. */
+export function usage_groups(graph: Graph, def: Id): { place: Id; uses: LocatedUse[] }[] {
   const by = new Map<Id, LocatedUse[]>();
   for (const u of definition_uses(graph, def)) {
-    const e = graph.edges[u.id];
-    const model = model_of(graph, e ? owner_of(graph, e.from) : u.id);
-    if (!model) continue;
+    const place = graph.edges[u.id] ? line_layer(graph, u.id) : layer_of(graph, u.id);
+    if (!place || !model_of(graph, place)) continue;
     const weight = u.kind === "relation" ? 1 : weight_of(graph, u.id);
-    const use = { id: u.id, model, weight, kind: u.kind };
-    const list = by.get(model);
+    const use = { id: u.id, place, weight, kind: u.kind };
+    const list = by.get(place);
     if (list) list.push(use);
-    else by.set(model, [use]);
+    else by.set(place, [use]);
   }
   const order = new Map(models(graph).map((m, n) => [m.id, n]));
-  return [...by].sort(([a], [z]) => (order.get(a) ?? 0) - (order.get(z) ?? 0))
-    .map(([model, uses]) => ({ model, uses }));
+  const rank = (place: Id) => order.get(model_of(graph, place) ?? "") ?? 0;
+  return [...by].sort(([a], [z]) => rank(a) - rank(z)
+      || shown_name(graph, a).localeCompare(shown_name(graph, z)))
+    .map(([place, uses]) => ({ place, uses }));
 }
 
-/** The box a model's uses of `def` sit in: an id of its own, never a block's. */
-export function usage_box(def: Id, model: Id): Id {
-  return `${def}@${model}`;
+/** The box a place's uses of `def` sit in: an id of its own, never a block's. */
+export function usage_box(def: Id, place: Id): Id {
+  return `${def}@${place}`;
 }
 
-/** The model a usage box stands for, where an id is one. */
-export function box_model(def: Id, id: Id): Id | null {
+/** The place a usage box stands for, where an id is one. */
+export function box_place(def: Id, id: Id): Id | null {
   return id.startsWith(`${def}@`) ? id.slice(def.length + 1) : null;
 }
 
-/** **A definition's uses laid out, once**: a box per model, each use as large as it weighs; a lone
+/** **A definition's uses laid out, once**: a box per place, each use as large as it weighs; a lone
  *  box left out, as the frame says it. Placed at card scale, or filling `size`. */
-export function usage_layout(graph: Graph, def: Id, size?: { w: number; h: number }): Placed[] {
-  const boxes: Weighed[] = usage_groups(graph, def).map((g) => ({
-    id: usage_box(def, g.model), weight: 0,
+export function usage_layout(graph: Graph, def: Id, size?: { w: number; h: number },
+                             groups = usage_groups(graph, def)): Placed[] {
+  const boxes: Weighed[] = groups.map((g) => ({
+    id: usage_box(def, g.place), weight: 0,
     kids: g.uses.map((u) => ({ id: u.id, weight: u.weight })) }));
   return tiled(boxes.length === 1 ? boxes[0]!.kids! : boxes, size);
 }
 
-/** What a usage box is called: its model, and the model's package where it is not the
+/** What a usage box is called: its place, and the place's package where it is not the
  *  workspace's. */
-export function box_label(graph: Graph, model: Id): string {
-  const pkg = package_of(graph, model);
-  const name = shown_name(graph, model);
+export function box_label(graph: Graph, place: Id): string {
+  const pkg = package_of(graph, place);
+  const name = shown_name(graph, place);
   return pkg === graph.root ? name : `${name} · ${graph.blocks[pkg]?.name ?? pkg}`;
 }
 
@@ -77,13 +81,14 @@ export type Tile = { id: Id; label: string; kind: "box" | "use" | "line" | "def"
 
 /** A definition's registry as a small map `w` by `h`: **the registry's own layout**, laid to fill
  *  the map rather than scaled into it. */
-export function registry_map(graph: Graph, def: Id, w: number, h: number): Tile[] {
-  return usage_layout(graph, def, { w, h }).map((p): Tile => {
-    const model = box_model(def, p.id);
+export function registry_map(graph: Graph, def: Id, w: number, h: number,
+                             groups = usage_groups(graph, def)): Tile[] {
+  return usage_layout(graph, def, { w, h }, groups).map((p): Tile => {
+    const place = box_place(def, p.id);
     const e = graph.edges[p.id];
     return { id: p.id, x: p.x, y: p.y, w: p.w, h: p.h,
-             kind: model ? "box" : e ? "line" : "use",
-             label: model ? box_label(graph, model)
+             kind: place ? "box" : e ? "line" : "use",
+             label: place ? box_label(graph, place)
                : e ? `${shown_name(graph, e.from)} → ${shown_name(graph, e.to)}`
                : shown_name(graph, p.id) };
   });

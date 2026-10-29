@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { FLOOR, modeled } from "@mnd/fixtures";
 import { definition_uses, fold, ROOT } from "@mnd/core";
-import { library_map, model_map, registry_map, type BoxNode } from "../src/index";
+import { facts_of, library_map, model_map, registry_map, type BoxNode } from "../src/index";
 
 const g = fold(modeled(), FLOOR);
 const node = (nodes: readonly BoxNode[], id: string) => nodes.find((n) => n.id === id);
@@ -28,16 +28,16 @@ describe("the models' map", () => {
 describe("the library's map", () => {
   const scene = library_map(g);
 
-  it("counts a definition's uses, and leaves an unused one empty", () => {
-    expect(node(scene.nodes, "service")?.data.counts).toContain(
-      `${definition_uses(g, "service").length} uses`);
-    expect(node(scene.nodes, "unused")?.data.counts).toBe("0 uses");
-    expect(node(scene.nodes, "unused")?.data.tiles).toEqual([]);
+  it("counts a definition's uses in its facts, and draws an unused one no uses", () => {
+    expect(facts_of(g, "service", true).counts[0]).toEqual(
+      { n: definition_uses(g, "service").length, word: definition_uses(g, "service").length === 1 ? "use" : "uses" });
+    expect(node(scene.nodes, "unused")?.data.tiles).toBeUndefined();
   });
 
-  it("previews a definition's uses, the same ones its registry lays out", () => {
-    const previewed = (node(scene.nodes, "service")?.data.tiles ?? []).map((t) => t.id).sort();
+  it("previews a definition's uses as its registry lays them, or its profile", () => {
+    const data = node(scene.nodes, "service")!.data;
     const laid = registry_map(g, "service", 400, 200).map((t) => t.id).sort();
-    expect(previewed).toEqual(laid);
+    if (data.tiles) expect(data.tiles.map((t) => t.id).sort()).toEqual(laid);
+    else expect(data.bar?.length).toBeGreaterThan(0);
   });
 });

@@ -1,4 +1,4 @@
-/** A definition's registry: its uses, in boxes of the models they sit in, read only. */
+/** A definition's registry: its uses, in boxes of the places they are drawn, read only. */
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, modeled } from "@mnd/fixtures";
@@ -9,15 +9,15 @@ const g = fold(modeled(), FLOOR);
 const scene = registry_scene(g, "service")!;
 
 describe("a definition's registry", () => {
-  it("groups its uses by the model each sits in, across packages", () => {
-    expect(usage_groups(g, "service").map((x) => x.model)).toEqual(["far", "shop"]);
+  it("groups its uses by the place each is drawn, across packages", () => {
+    expect(usage_groups(g, "service").map((x) => x.place).sort()).toEqual(["far", "shop", "stage"]);
   });
 
   it("weighs a use by what it holds, and a line as one", () => {
-    const [shop] = usage_groups(g, "service").filter((x) => x.model === "shop");
+    const [shop] = usage_groups(g, "service").filter((x) => x.place === "shop");
     expect(shop!.uses.every((u) => u.weight >= 1)).toBe(true);
     expect(usage_groups(g, "calls")[0]!.uses).toEqual([
-      { id: "call", model: "shop", weight: 1, kind: "relation" }]);
+      { id: "call", place: "shop", weight: 1, kind: "relation" }]);
   });
 
   it("draws real uses as cards, in boxes of their own ids", () => {

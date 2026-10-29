@@ -36,8 +36,9 @@ npm run start -w @mnd/cli -- project related  # a Scene as text, which is the se
 | `page.ts` | the computed page layout: full-width boxes down a page |
 | `size.ts` | the one measure: `UNIT`, a `CELL` as a block plus its air, and **faces** — `face_of` (small, or large where an ancestor's `layout.cards` asks) and the size each draws at: the workspace card small; large, the definition's `card.size` or what its content fits (`fitted`), under `LARGE` |
 | `flow.ts` | **placement**: a layer's blocks by ELK, each container on its own, inside out — `layered` where lines join its children, packed where none do (`place`); ELK in the host's worker (`set_elk`) |
-| `map.ts` · `layer.ts` | the map, the models' and the library's: boxes and chips by what they hold (`model_map`, `library_map`, `section_map`); a layer entered from it, placed by ELK (`layer_scene`) |
-| `library.ts` | a definition's uses by model, laid out once (`usage_groups`, `usage_layout`); the tray's small maps (`registry_map`, `filed_map`) |
+| `map.ts` · `layer.ts` | the map, the models' and the library's: boxes and chips by what they hold or show (`model_map`, `library_map`, `section_map`); a layer entered from it, placed by ELK (`layer_scene`) |
+| `about.ts` | what a block says off its layer: its facts (`facts_of`), a chip's preview (`preview_of`), its hover card (`hover_of`), its colour on a map (`colour_of`), its card's face for the tray and the hover card (`face_props`) |
+| `library.ts` | a definition's uses by place, laid out once (`usage_groups`, `usage_layout`); the tray's small maps (`registry_map`, `filed_map`) |
 | `arrange.ts` · `bands.ts` · `pack.ts` | where everything sits: placed ahead where ELK gave places (`placed_as`), else the synchronous fallback — bands and cells, clusters and satellites |
 | `float.ts` | the fallback's `auto`: runs in explorer order (`runs`), aside cards floating beside what they are tied to (`floated`); one rule for a layer and a group (`noted`) |
 | `layered.ts` | the fallback's `layered`: a layer ranked by its relations, on dagre; asides float as in `auto`. For the kit's viewer and the CLI until they draw the world |

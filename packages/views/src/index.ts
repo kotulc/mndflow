@@ -1,5 +1,6 @@
 /** The projection: a layer as a plane of placed blocks. */
 
+export * from "./about";
 export * from "./derive";
 export * from "./face";
 export { class_graph, DRAWN_BY } from "./classes";
@@ -15,7 +16,7 @@ export * from "./text";
 
 export { project, type Config } from "./block";
 export { place, set_elk, type Placement } from "./flow";
-export { box_label, box_model, filed_map, registry_map, usage_box, usage_groups, usage_layout,
+export { box_label, box_place, filed_map, registry_map, usage_box, usage_groups, usage_layout,
          type LocatedUse, type Tile as MapTile } from "./library";
 export { area_of, area_under, library_map, map_focus, model_map, section_map, stop_area,
          towards } from "./map";

@@ -401,9 +401,9 @@
 /* **Every chip wears its colour** on its edge and its icon: a block's or a definition's own, a
    diagram's its kind's. */
 .mnd-chip[data-family] { border-left: 3px solid var(--card-edge, var(--card-line)); }
-/* **A chip's head is a card's**: one line, its name and what it is and counts; its kind's icon in
-   the top-right corner, never smaller on screen than a card's, nor larger than the head (`CHIP_HEAD`,
-   nodes.tsx). */
+/* **A chip's head is a card's**: one line, its name and quieter what it is; its kind's icon in the
+   top-right corner, never smaller on screen than a card's. Its facts under it, where it has room
+   (`ROW`, views `map.ts`). */
 .mnd-chip-head {
   position: absolute;
   top: 5px;
@@ -425,7 +425,7 @@
   color: var(--text);
   pointer-events: none;
 }
-/* One line: the name, then quieter what it is and counts, which gives way first. */
+/* One line: the name, then quieter what it is, which gives way first. */
 .mnd-chip-name {
   flex: none;
   max-width: 100%;
@@ -436,7 +436,7 @@
   line-height: 15px;
   text-overflow: ellipsis;
 }
-.mnd-chip-counts {
+.mnd-chip-kind {
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
@@ -448,6 +448,15 @@
 /* **A chip too narrow for its name** (`NARROW`, nodes.tsx) shows its icon alone, where it ever
    sits, never wider than the chip (`--cap`). */
 .mnd-chip.narrow .mnd-chip-head { display: none; }
+/* Its facts strip: one line under its name, cut where it runs out of room. */
+.mnd-chip-facts {
+  position: absolute;
+  top: 23px;
+  left: 6px;
+  right: 6px;
+  overflow: hidden;
+}
+.mnd-chip-facts .mnd-facts { flex-wrap: nowrap; }
 .mnd-chip.narrow .mnd-chip-icon {
   --icon: min(clamp(14px, calc(11px / var(--zoom, 1)), 22px), var(--cap, 22px));
 }
@@ -467,8 +476,9 @@
   transform: rotate(180deg);
 }
 .mnd-chip.upright .mnd-chip-icon { right: auto; left: 6px; transform: rotate(-90deg); }
-.mnd-chip.upright .mnd-chip-body { top: 4px; left: 40px; }
-.mnd-chip.upright.diagram .mnd-chip-body { top: 10px; right: 10px; bottom: 10px; left: 40px; }
+.mnd-chip.upright .mnd-chip-body { top: 4px; left: var(--head, 40px); }
+.mnd-chip.upright.diagram .mnd-chip-body { top: 10px; right: 10px; bottom: 10px;
+                                           left: var(--head, 40px); }
 /* **A diagram's chip looks as a library chip does**: flat tiles on the chip's own ground, its edge
    in its colour; what kind it is shows in how its inside is drawn — its layers, wide gaps between
    them and narrow ones within, its marks, a grid's strips and lines, a card's rules. */
@@ -589,8 +599,8 @@
 .mnd-chip-tile > svg { flex: none; margin-top: 1px; }
 .mnd-chip-tile-name { overflow: hidden; text-overflow: ellipsis; }
 
-/* The inner treemap, under the head (`CHIP_HEAD`, nodes.tsx). */
-.mnd-chip-body { position: absolute; top: 40px; left: 4px; right: 4px; bottom: 4px; }
+/* The body, under the head (`--head`, from views `map.ts`). */
+.mnd-chip-body { position: absolute; top: var(--head, 22px); left: 4px; right: 4px; bottom: 4px; }
 .mnd-chip-tile {
   position: absolute;
   box-sizing: border-box;
@@ -655,4 +665,180 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .mnd-flow .react-flow__node:not(.dragging) { transition: none; }
+}
+
+/* ── A chip's profile: a preview of what a block has, over its uses by place ── */
+
+/* Its rows, lines and places fill the body from the top, as many whole ones as it holds
+   (`Profile`, nodes.tsx), each a line (`LINE`); the bar keeps the chip's bottom edge, under them. */
+.mnd-chip-profile {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0 2px;
+}
+.mnd-chip-profile > * { flex: none; }
+/* **Attributes or records as a ruled table**: the first column ink, the rest quieter. */
+.mnd-chip-rows {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, auto));
+  justify-content: start;
+  column-gap: 8px;
+  overflow: hidden;
+  border-top: calc(1px / var(--zoom, 1)) solid var(--card-line);
+  color: var(--muted);
+  font-size: 10px;
+  /** A row and its rule make one line (`LINE`, nodes.tsx). */
+  line-height: 14px;
+}
+.mnd-chip-rows > span {
+  overflow: hidden;
+  border-bottom: calc(1px / var(--zoom, 1)) solid color-mix(in oklch, var(--card-line) 45%,
+                                                           transparent);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mnd-chip-rows > .key { color: var(--text); }
+/* **A body or a description as lines**, prose-sized, each wrapping to fill what room it has. */
+.mnd-chip-lines {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 10px;
+  line-height: 15px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+}
+/* **A definition's places**, a row each: its name in its place's colour, how many uses it holds. */
+.mnd-chip-places {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 15px;
+}
+.mnd-chip-places > span {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  justify-content: space-between;
+  padding-left: 5px;
+  border-left: 2px solid var(--card-edge, var(--card-line));
+  color: var(--muted);
+}
+.mnd-chip-places > span > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mnd-chip-places > span > b { color: var(--text); font-weight: 500; }
+/* **Its uses split by place**, each in its place's colour, along the body's bottom. */
+.mnd-chip-bar {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  left: 6px;
+  display: flex;
+  gap: 1px;
+  height: 5px;
+}
+.mnd-chip-bar > i { flex-basis: 0; background: var(--card-edge, var(--card-line)); }
+/* A place's box among a definition's uses wears its place's colour, quietly. */
+.mnd-chip .mnd-chip-tile.group[data-family] {
+  border-left: 2px solid color-mix(in oklch, var(--card-edge) 70%, transparent);
+  background: color-mix(in oklch, var(--card-line) 12%, transparent);
+}
+
+/* ── The facts strip, on a chip and its hover card (`Facts.tsx`) ── */
+
+.mnd-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  font-size: 10px;
+  line-height: 12px;
+  white-space: nowrap;
+}
+.mnd-fact {
+  padding: 1px 4px;
+  border: calc(1px / var(--zoom, 1)) solid var(--card-line, var(--line));
+  border-radius: 2px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.mnd-fact > b { color: var(--text); font-weight: 500; }
+/* A seat it wears: a square going out, a ring coming in, both where it runs both ways. */
+.mnd-fact-port { display: inline-flex; gap: 3px; align-items: center; color: var(--muted); }
+.mnd-fact-port::before {
+  width: 5px;
+  height: 5px;
+  content: "";
+  border: 1.2px solid var(--muted);
+}
+.mnd-fact-port.in::before { border-radius: 50%; }
+.mnd-fact-port.both::before { border-radius: 50% 0; }
+/* A tag: a dot in its colour. */
+.mnd-fact-tag {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--card-edge, var(--muted));
+}
+
+/* ── A map's hover card (`Hover.tsx`): what is under the pointer, in full ── */
+
+.mnd-hover {
+  position: fixed;
+  z-index: 20;
+  display: grid;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--surface);
+  box-shadow: 0 8px 28px color-mix(in oklch, black 45%, transparent);
+  color: var(--text);
+  font-size: 11px;
+  pointer-events: none;
+}
+.mnd-hover-head {
+  display: grid;
+  gap: 2px;
+  padding: 7px 10px 6px;
+  border-bottom: 1px solid var(--line);
+}
+.mnd-hover-path {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mnd-hover-title { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.mnd-hover-title > b { font-size: 13px; font-weight: 600; }
+.mnd-hover-title > span { color: var(--muted); }
+.mnd-hover-body { display: grid; gap: 8px; padding: 8px 10px 10px; }
+.mnd-hover-about { margin: 0; color: var(--text); line-height: 1.45; }
+.mnd-hover-face { overflow: hidden; }
+.mnd-hover-face > div { transform-origin: 0 0; }
+.mnd-hover section { display: grid; gap: 4px; }
+.mnd-hover h4 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.mnd-hover-place {
+  display: grid;
+  gap: 3px;
+  padding: 3px 0 3px 7px;
+  border-left: 2px solid var(--card-edge, var(--line));
+}
+.mnd-hover-place > span:first-child { color: var(--muted); font-size: 10px; }
+.mnd-hover-names { display: flex; flex-wrap: wrap; gap: 3px; }
+.mnd-hover-names > span {
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  font-size: 10px;
 }

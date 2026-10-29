@@ -12,6 +12,7 @@ export const DRAGGED = "text/mnd-block";
 import { FRAME, PLAIN, face_attrs, look_key, tint_attrs, type_word,
          type BoxData, type BoxNode, type GridCell } from "@mnd/views";
 import { CardFace, Icon, Name, Stamps, Wears, role_icon, useNaming } from "@mnd/theme";
+import { Facts } from "./Facts";
 
 
 
@@ -21,7 +22,8 @@ function seen(p: NodeProps<BoxNode>): string {
   return [
     p.selected, p.dragging, p.width, p.height,
     d.label, d.alias ?? "", d.description ?? "", d.def, d.on, d.side, d.role,
-    d.counts ?? "", d.kind ?? "", (d.tiles ?? []).length,
+    d.kind ?? "", (d.tiles ?? []).length, d.head ?? "", JSON.stringify(d.facts ?? null),
+    JSON.stringify(d.preview ?? null), JSON.stringify(d.bar ?? null),
     (d.stamps ?? []).join(","),
     d.face ?? "", d.text ?? "", d.marks.join(","),
     /** Read off the look, so no property is forgotten. */
@@ -390,8 +392,7 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
 function MapBox({ data, selected }: NodeProps<BoxNode>) {
   return (
     <div className={["mnd-box", data.marks.includes("group") ? "panel" : "",
-                     selected ? "picked" : ""].filter(Boolean).join(" ")}
-         title={[data.label, data.description].filter(Boolean).join("\n")}>
+                     selected ? "picked" : ""].filter(Boolean).join(" ")}>
       <span className="mnd-box-title">
         {data.role ? <Icon name={role_icon(data.role)} size={11} /> : null}
         <span className="mnd-box-name">{data.label}</span>
@@ -400,21 +401,22 @@ function MapBox({ data, selected }: NodeProps<BoxNode>) {
   );
 }
 
-/** A map's chip, **faced as a card is**: one line, its name and beside it, quieter, a
- *  diagram's kind and what it counts, giving way first where room runs short; its kind's icon in the
- *  top-right corner, and a small treemap of what it holds; a diagram's tiles laid by its
- *  structure. A block's tile is a small card the same way: its name, its icon in the corner,
- *  edged as a chip in its own colour. Icons keep a least size on screen, never past what their
- *  tile has room for (`--cap`). A mark its glyph; a group a tinted panel round its members, a
- *  region a tinted band; a grid's plain header strips, its lifelines or its rules. Every chip
- *  wears its colour: a diagram's its kind's. A chip too narrow for its name shows its icon
- *  alone, at the top right as ever, never wider than the chip. */
+/** A map's chip, **its card at map scale** (views `map.ts`): its name's line — the name, then
+ *  quieter its kind — and its kind's icon in the top-right corner; its facts under it where it
+ *  has room; then its body, the first thing it has — a diagram's tiles laid by its structure, a
+ *  definition's uses in boxes of their places, else a preview of its attributes, records, body or
+ *  description, a definition's places each with its uses, over a bar of its uses by place. A
+ *  tile is a small card the same way: its name, its icon in the corner, edged in its own colour.
+ *  Icons keep a least size on screen, never past what their tile has room for (`--cap`). A chip
+ *  too narrow for its name shows its icon alone; a narrow, tall one reads upright. What it is in
+ *  full is its hover card. */
 function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
   const tint = data.look ? tint_attrs(data.look) : null;
   const pad = data.diagram ? 10 : 4;
-  /** Its body less its head: above it, or beside it where the chip is upright. */
-  const body = { w: (width ?? 0) - (data.upright ? CHIP_HEAD : pad) - pad,
-                 h: (height ?? 0) - (data.upright ? pad : CHIP_HEAD) - pad };
+  const head = data.head ?? 0;
+  /** Its body less its head: under it, or beside it where the chip is upright. */
+  const body = { w: (width ?? 0) - (data.upright ? head : pad) - pad,
+                 h: (height ?? 0) - (data.upright ? pad : head) - pad };
   /** A chip too narrow for its name shows its icon alone, but one turned upright. */
   const narrow = !data.upright && (width ?? 0) < NARROW;
   return (
@@ -422,17 +424,15 @@ function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
                      narrow ? "narrow" : "", data.upright ? "upright" : "",
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
          {...(tint ? { "data-family": tint["data-family"] } : {})}
-         style={{ ...(tint?.style ?? {}), "--cap": `${Math.max(0, (width ?? 0) - 8)}px` } as
-           CSSProperties}
-         title={[data.label, data.kind, data.counts, data.description].filter(Boolean)
-           .join("\n")}>
+         style={{ ...(tint?.style ?? {}), "--cap": `${Math.max(0, (width ?? 0) - 8)}px`,
+                  "--head": `${head}px` } as CSSProperties}>
       <span className="mnd-chip-head">
         <span className="mnd-chip-name">{data.label}</span>
-        <span className="mnd-chip-counts">
-          {[data.kind, data.counts].filter(Boolean).join(" · ")}
-        </span>
+        {data.kind ? <span className="mnd-chip-kind">{data.kind}</span> : null}
       </span>
       <Icon name={role_icon(data.role)} size={14} className="mnd-chip-icon" />
+      {data.facts && !narrow ? <span className="mnd-chip-facts"><Facts facts={data.facts} /></span>
+        : null}
       {data.tiles?.length ? (
         <span className="mnd-chip-body">
           {data.tiles.map((t) => {
@@ -457,7 +457,6 @@ function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
                                 t.as === "head" && h > w ? "tall" : "",
                                 t.mark ? `mark ${t.mark}` : "",
                                 t.texture ?? ""].filter(Boolean).join(" ")}
-                    title={t.label || undefined}
                     style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`,
                              width: `${t.w * 100}%`, height: `${t.h * 100}%`,
                              ...(t.tint?.style ?? {}),
@@ -471,12 +470,67 @@ function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
           })}
         </span>
       ) : null}
+      {!data.tiles?.length && (data.preview || data.bar) && !narrow ? (
+        <Profile preview={data.preview} bar={data.bar} room={body.h} />
+      ) : null}
     </div>
   );
 }
 
-/** How tall a chip's head is, its name and counts above its inner treemap (views `map.ts`). */
-const CHIP_HEAD = 40;
+/** **A chip's profile**: as many whole rows as its body holds — its attributes or records, else
+ *  its lines, a few where its places follow — then a definition's places, a row each, and under
+ *  them, never over them, the bar of its uses by place. */
+function Profile({ preview, bar, room }: { preview: BoxNode["data"]["preview"];
+                                          bar: BoxNode["data"]["bar"]; room: number }) {
+  const fits = Math.max(0, Math.floor((room - (bar ? BAR : 0)) / LINE));
+  const rows = (preview?.rows ?? []).slice(0, fits);
+  const placed = preview?.places ?? [];
+  const lines = preview?.lines?.length
+    ? Math.max(0, placed.length ? Math.min(LINES, fits - rows.length) : fits - rows.length) : 0;
+  const places = placed.slice(0, Math.max(0, fits - rows.length - lines));
+  return (
+    <>
+      <span className="mnd-chip-body mnd-chip-profile" style={{ bottom: bar ? 4 + BAR : 4 }}>
+        {rows.length ? (
+          <span className="mnd-chip-rows"
+                style={{ "--cols": rows[0]?.length ?? 1 } as CSSProperties}>
+            {rows.flatMap((row, r) => row.map((c, i) => (
+              <span key={`${r}.${i}`} className={i ? "" : "key"}>{c}</span>)))}
+          </span>
+        ) : null}
+        {lines ? (
+          <span className="mnd-chip-lines" style={{ WebkitLineClamp: lines }}>
+            {preview!.lines!.join("\n")}
+          </span>
+        ) : null}
+        {places.length ? (
+          <span className="mnd-chip-places">
+            {places.map((p) => (
+              <span key={p.id} data-family={p.tint["data-family"]}
+                    style={(p.tint.style ?? {}) as CSSProperties}>
+                <span>{p.label}</span><b>{p.n}</b>
+              </span>
+            ))}
+          </span>
+        ) : null}
+      </span>
+      {bar ? (
+        <span className="mnd-chip-bar">
+          {bar.map((b, i) => (
+            <i key={i} data-family={b.tint["data-family"]}
+               style={{ ...(b.tint.style ?? {}), flexGrow: b.n } as CSSProperties} />
+          ))}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
+/** A profile's line, as `flow.css` draws a row, a line or a place; the bar and the air over it;
+ *  and how many lines of prose a definition shows above its places. */
+const LINE = 15;
+const BAR = 9;
+const LINES = 3;
 
 /** How wide a tile is before its name shows: a few letters beside its icon; narrower, its icon
  *  alone. */

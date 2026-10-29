@@ -1,8 +1,9 @@
 /** The map, the library's and the models': one treemap of a section, what holds things as boxes
- *  and what is entered as chips. **A chip is as large as what it holds**, wears its kind's icon,
- *  says what it counts and draws a small treemap of what it holds — a diagram's laid by its
- *  structure. **The models' map is a forest** of every package holding a model, and stops at
- *  diagrams: a model or a diagram is a chip, unless it holds diagrams, when it is a box of one
+ *  and what is entered as chips. **A chip is its card at map scale**: as large as what it holds
+ *  or what it shows, its name and kind's icon over its facts, then a preview of the first thing
+ *  it has — a diagram's structure, a definition's uses by place, else its attributes, records,
+ *  body or description — each row shown only where it has room. **The models' map is a forest**
+ *  of every package holding a model, and stops at diagrams: a model or a diagram is a chip, unless it holds diagrams, when it is a box of one
  *  cell for each block it holds. **The library's**: packages and folders as boxes, each
  *  definition a chip as large as its uses, previewing them as its registry lays them. A click
  *  selects; two read what was clicked (core's `read_at`). Worked out on every graph change, never
@@ -14,12 +15,14 @@ import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
 import { children, def_at, definition_uses, diagram_kind, has_lifelines, is_aside, is_grid,
          is_group, is_header, is_holder, is_interface, is_model, is_notation, is_reference,
          is_region, is_tie, inline, lattice_of, layer_of, members_of, lens_of, notation_of,
-         on_side, owner_of, packages, path, region_of, shown_name, subtree, subtypes, type Graph,
+         on_side, owner_of, packages, path, region_of, shown_name, type Graph,
          type Id } from "@mnd/core";
+import { colour_of, counted, facts_of, preview_of, total, type Counted, type Groups,
+         type Preview } from "./about";
 import { carried, trail_of } from "./derive";
 import { compounded, tree_groups } from "./flow";
-import { filed, name_of, registry_map } from "./library";
-import { entry_look, look_of, tint_attrs } from "./look";
+import { box_label, box_place, filed, name_of, registry_map, usage_groups } from "./library";
+import { look_of, tint_attrs } from "./look";
 import { cell, type Area, type BoxNode, type InnerTile, type Scene } from "./scene";
 import { SHAPE } from "./size";
 
@@ -35,8 +38,32 @@ const WIDE = 1200;
  *  as much between as round and below the title; above a box's title; and a chip's head. Round a
  *  chip's body, more round a diagram's. */
 const AIR = { inner: 6, outer: 6, clear: 16, share: 0.06, title: 26 };
-const HEAD = 40;
 const PAD = { chip: 4, diagram: 10 };
+
+/** **A chip's rows**, as `flow.css` draws them: its name's line, its facts strip with the air
+ *  under it, and each row of a preview; an upright head's width. A level shows only where the
+ *  chip has room for it. */
+const ROW = { name: 22, facts: 22, line: 15 };
+
+/** The least body a chip keeps under its facts: a diagram's or a holder's structure, else a line
+ *  of preview. Where it would not, the facts give way, and its hover card says them. */
+const KEEP = { structure: 36, preview: ROW.line };
+const UPRIGHT_HEAD = 40;
+
+/** **A chip is as large as what it shows**: never less than its rows need, at least `ROWS` of them,
+ *  laid at about a card's width. */
+const ROWS = 4;
+const CARD_W = 168;
+
+/** How narrow a tall chip may be laid before it is widened, and the most it is widened by; how
+ *  many rounds the room chips need is weighed in. */
+const SLIVER = 120;
+const WIDEST = 4;
+const SETTLE = 3;
+
+/** How wide and tall a use's tile is before its name reads, and the share of them that must, for
+ *  a definition's chip to show its uses by place rather than its profile. */
+const NAMED = { w: 50, h: 16, share: 0.8 };
 
 /** How narrow a tall chip is before its head turns upright, as if the chip were turned -90°. */
 const UPRIGHT = 64;
@@ -44,7 +71,7 @@ const UPRIGHT = 64;
 /** How wide a card reads, width over height: the shape a diagram chip's tiles aim at. */
 const CELL = 1.5;
 
-/** The least a chip weighs, so one holding or used little still shows its icon. */
+/** The least a chip weighs, so one holding, used or showing little still shows its icon. */
 const LEAST = 2.5;
 
 /** The least share of its heaviest sibling an empty model's chip weighs, so beside a large one it
@@ -52,11 +79,13 @@ const LEAST = 2.5;
 const EMPTY = 0.04;
 
 /** One entry of a map: a box of what it holds, or a chip entering `block`, counting `held` — or,
- *  a definition's, previewing its `uses`. */
-type Leaf = { id: Id; kids?: Leaf[]; value?: number; empty?: boolean; panel?: boolean;
-              chip?: { block: Id; held: readonly Id[]; counts: string; kind?: string;
-                       uses?: boolean;
-                       diagram?: boolean } };
+ *  a definition's, previewing its `uses` — with what it previews, how many rows that takes, and
+ *  what it holds or where it is used, each read once. */
+type Leaf = { id: Id; kids?: Leaf[]; value?: number; rows?: number; empty?: boolean;
+              panel?: boolean;
+              chip?: { block: Id; held: readonly Id[]; kind?: string; uses?: boolean;
+                       diagram?: boolean; preview: Preview | null; counts?: Counted;
+                       groups?: Groups } };
 
 
 /** A section's map: the library's for its definitions, else the models'. */
@@ -81,10 +110,13 @@ export function model_map(graph: Graph): Scene {
   /** A chip: a diagram's, or a group's or a region's, laid by its structure; any other block's a
    *  plain treemap of what it holds. A diagram's says its kind beside its name. */
   const chip = (id: Id, block: Id, list: readonly Id[]): Leaf => {
-    const n = counted(graph, list);
     const kind = diagram_kind(graph, block);
-    return { id, value: Math.max(LEAST, 1 + total(n)), ...(!list.length && is_model(graph, block) ? { empty: true } : {}),
-             chip: { block, held: list, counts: words(n),
+    const counts = counted(graph, list);
+    const preview = list.length ? null : preview_of(graph, block);
+    return { id, value: Math.max(LEAST, list.length ? 1 + total(counts) : 1),
+             rows: rows_of(preview),
+             ...(!list.length && is_model(graph, block) ? { empty: true } : {}),
+             chip: { block, held: list, preview, counts,
                      ...(kind ? { kind: def_at(graph, kind)?.name ?? kind } : {}),
                      diagram: diagram(block) || is_holder(graph, block) } };
   };
@@ -102,17 +134,15 @@ export function model_map(graph: Graph): Scene {
 }
 
 /** The library's map: every package's folders as boxes, each definition a chip as large as its
- *  uses, previewing them. */
+ *  uses or what it shows, previewing them. */
 export function library_map(graph: Graph): Scene {
   const entry = (id: Id): Leaf => {
     if (!graph.blocks[id]?.def) return { id, kids: filed(graph, id).map(entry) };
     const uses = definition_uses(graph, id).length;
-    /** Its subtypes are said beside its uses, never counted as them. */
-    const subs = subtypes(graph, id).length;
-    const counts = [`${uses} ${uses === 1 ? "use" : "uses"}`,
-                    subs ? `${subs} ${subs === 1 ? "subtype" : "subtypes"}` : ""];
-    return { id, value: Math.max(LEAST, uses + 1),
-             chip: { block: id, held: [], uses: true, counts: counts.filter(Boolean).join(" · ") } };
+    const groups = usage_groups(graph, id);
+    const preview = preview_of(graph, id);
+    return { id, value: Math.max(LEAST, uses + 1), rows: rows_of(preview) + groups.length,
+             chip: { block: id, held: [], uses: true, preview, groups } };
   };
   const tops = packages(graph).filter((p) => filed(graph, p.id).length);
   return mapped(graph, { id: MAP_ROOT, kids: tops.map((p) => entry(p.id)) }, "library");
@@ -179,19 +209,44 @@ export function towards(areas: readonly Area[], from: Id,
 /** A map laid out: the tree as a treemap about a canvas wide, squarified a little wide, each
  *  box's title above what it holds; each chip a node with its inner treemap. d3 lets an outer
  *  padding overwrite a top one, so the top is said last. */
-function mapped(graph: Graph, tree: Leaf, title: string): Scene {
+function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
   const root = hierarchy<Leaf>(tree, (n) => (n.kids?.length ? n.kids : undefined))
     .sum((n) => n.value ?? 0);
-  /** An empty model is weighed against its heaviest sibling. */
+  const size: [number, number] = [WIDE, Math.round(WIDE / SHAPE.aspect)];
+  /** An empty model is weighed against its heaviest sibling; a chip showing rows weighs at least
+   *  the room they need, as a share of the whole. */
   const least = new Map(root.leaves().filter((n) => n.data.empty).map((n) => [n.data,
     EMPTY * Math.max(...(n.parent?.children ?? [n]).map((c) => c.value ?? 0))]));
-  root.sum((n) => (n.value ? Math.max(n.value, least.get(n) ?? 0) : 0));
-  const laid = treemap<Leaf>().tile(treemapSquarify.ratio(1.2))
-    .size([WIDE, Math.round(WIDE / SHAPE.aspect)]).round(true)
+  const area = size[0] * size[1];
+  const need = (n: Leaf) => (n.rows
+    ? (ROW.name + ROW.facts + Math.min(ROWS, n.rows) * ROW.line + 2 * PAD.chip) * CARD_W : 0);
+  const wider = new Map<Leaf, number>();
+  /** Each value weighs as much area as the whole map shares out to it, so the room a chip needs
+   *  is weighed against the total it makes: worked to a fixed point, a few rounds. */
+  const weigh = () => {
+    let unit = area / Math.max(1, root.sum((n) => n.value ?? 0).value ?? 0);
+    for (let i = 0; i < SETTLE; i++) {
+      root.sum((n) => (n.value
+        ? Math.max(n.value, least.get(n) ?? 0, need(n) / unit) * (wider.get(n) ?? 1) : 0));
+      unit = area / Math.max(1, root.value ?? 0);
+    }
+    return root;
+  };
+  const tile = () => treemap<Leaf>().tile(treemapSquarify.ratio(1.2)).size(size).round(true)
     .paddingInner((n) => air(n as HierarchyRectangularNode<Leaf>))
     .paddingOuter((n) => air(n as HierarchyRectangularNode<Leaf>))
     .paddingTop((n) => (n.depth === 0 ? AIR.outer
-      : AIR.title + air(n as HierarchyRectangularNode<Leaf>) - AIR.outer))(root);
+      : AIR.title + air(n as HierarchyRectangularNode<Leaf>) - AIR.outer))(weigh());
+  /** **A chip is never a sliver**: one laid narrower than a card and taller than wide is widened
+   *  in proportion, within bounds, and the map laid again, once. */
+  let laid = tile();
+  for (const n of laid.leaves()) {
+    const [w, h] = [n.x1 - n.x0, n.y1 - n.y0];
+    if (n.data.chip && w < SLIVER && h > w) {
+      wider.set(n.data, Math.min(WIDEST, SLIVER / Math.max(1, w)));
+    }
+  }
+  if (wider.size) laid = tile();
   const areas: Area[] = [];
   const nodes: BoxNode[] = [];
   for (const n of laid.descendants()) {
@@ -210,19 +265,30 @@ function mapped(graph: Graph, tree: Leaf, title: string): Scene {
       nodes.push({ ...cell(id, box, { ...data, ...marks }, "box"), draggable: false });
       continue;
     }
-    /** Narrow and tall, its head runs up its left side and its body sits beside it. */
+    /** Narrow and tall, its head runs up its left side and its body sits beside it; else its
+     *  name's line, and its facts under it where its body keeps room for what it shows. */
     const upright = box.w < UPRIGHT && box.h > box.w;
-    const head = upright ? { w: HEAD, h: 0 } : { w: 0, h: HEAD };
-    nodes.push({ ...cell(id, box, { ...data, counts: chip.counts,
+    const facts = facts_of(graph, chip.block, !!chip.uses,
+                           { ...(chip.groups ? { groups: chip.groups } : {}),
+                             ...(chip.counts ? { counts: chip.counts } : {}) });
+    const any = facts.counts.length + facts.ports.length + facts.tags.length > 0;
+    const keep = (chip.held.length ? KEEP.structure : KEEP.preview)
+      + (chip.diagram ? PAD.diagram : PAD.chip);
+    const strip = !upright && any && box.h >= ROW.name + ROW.facts + keep;
+    const head = upright ? { w: UPRIGHT_HEAD, h: 0 }
+      : { w: 0, h: ROW.name + (strip ? ROW.facts : 0) };
+    const body = chip.uses ? previewed(graph, chip, box, head)
+      : chip.held.length ? inner(graph, chip.block, chip.held, box, !!chip.diagram, head)
+      : profiled(chip.preview, box, head);
+    nodes.push({ ...cell(id, box, { ...data, ...(strip ? { facts } : {}),
+                                    ...(upright ? { upright } : {}), head: head.w || head.h,
                                     ...(chip.kind ? { kind: chip.kind } : {}),
-                                    ...(upright ? { upright } : {}),
-                                    ...(chip.uses ? previewed(graph, chip.block, box, head)
-                                      : inner(graph, chip.block, chip.held, box, !!chip.diagram,
-                                              head)),
-                                    look: chip_look(graph, chip.block) },
+                                    ...(chip.diagram ? { diagram: true } : {}),
+                                    ...body, look: colour_of(graph, chip.block) },
                          "chip"), draggable: false });
   }
-  return { layer: null, areas, nodes, edges: [], perches: [], slots: ["display"], trail: [] };
+  return { layer: null, areas, map: title, nodes, edges: [], perches: [], slots: ["display"],
+           trail: [] };
 }
 
 /** The air in a box, the same round and between what it holds: where it holds a diagram's chip a
@@ -231,12 +297,6 @@ function air(n: HierarchyRectangularNode<Leaf>): number {
   if (!n.children?.some((k) => k.data.chip?.diagram)) return AIR.inner;
   const least = Math.min(n.x1 - n.x0, n.y1 - n.y0);
   return Math.round(Math.min(AIR.clear, Math.max(AIR.inner, AIR.share * least)));
-}
-
-/** **A chip's colour**: a diagram's its kind's, whatever it is typed by; else its block's own. */
-function chip_look(graph: Graph, id: Id) {
-  const kind = diagram_kind(graph, id);
-  return kind ? entry_look(graph, kind) : look_of(graph, id);
 }
 
 /** What a block holds on the map: its blocks, holders and a flow's marks, never a note, a label,
@@ -272,20 +332,52 @@ function body_of(box: { w: number; h: number }, head: Head, pad: number) {
 /** A chip's head: `h` tall above its body, or `w` wide beside it, upright. */
 type Head = { w: number; h: number };
 
-/** **A definition's chip previews its uses** as its registry lays them — the tray's small map of
- *  them, as shares of the chip's body beside its head: a box per model, each use a small card.
- *  Empty where it is not used. */
-function previewed(graph: Graph, def: Id, box: { w: number; h: number },
-                   head: Head): { tiles: InnerTile[] } {
+/** **A definition's chip previews its uses by place** as its registry lays them — the tray's
+ *  small map of them, as shares of the chip's body beside its head: a box per place, in its
+ *  colour, each use a small card. Where too few of its uses would read by name, **its profile**
+ *  instead: what it declares, over a bar of its uses split by place. */
+function previewed(graph: Graph, chip: NonNullable<Leaf["chip"]>, box: { w: number; h: number },
+                   head: Head): Pick<BoxNode["data"], "tiles" | "preview" | "bar"> {
   const { w, h } = body_of(box, head, PAD.chip);
-  if (h < 12 || w < 12) return { tiles: [] };
-  return { tiles: registry_map(graph, def, w, h).map((t): InnerTile => {
+  if (h < 12 || w < 12) return {};
+  const def = chip.block;
+  const groups = chip.groups ?? [];
+  const laid = registry_map(graph, def, w, h, groups);
+  const uses = laid.filter((t) => t.kind !== "box");
+  const named = uses.filter((t) => t.w >= NAMED.w && t.h >= NAMED.h).length;
+  if (!uses.length || named < uses.length * NAMED.share) {
+    const placed = groups.map((g) => ({ id: g.place, label: box_label(graph, g.place),
+                                        n: g.uses.length,
+                                        tint: tint_attrs(colour_of(graph, g.place)) }));
+    const bar = placed.map(({ n, tint }) => ({ n, tint }));
+    return { ...profiled(chip.preview, box, head, placed), ...(bar.length ? { bar } : {}) };
+  }
+  return { tiles: laid.map((t): InnerTile => {
     const at = { id: t.id, label: t.label, x: t.x / w, y: t.y / h, w: t.w / w, h: t.h / h };
-    if (t.kind !== "use") return t.kind === "box" ? { ...at, as: "group" } : at;
+    const place = t.kind === "box" ? box_place(def, t.id) : null;
+    if (place) return { ...at, as: "group", tint: tint_attrs(colour_of(graph, place)) };
+    if (t.kind !== "use") return at;
     const face = carried(graph, t.id, "small");
-    return { ...at, ...(face.role ? { role: face.role } : {}),
+    /** A stand-in for the definition says its name again: its place's box says enough. */
+    const again = t.label === shown_name(graph, def) ? { label: "" } : {};
+    return { ...at, ...again, ...(face.role ? { role: face.role } : {}),
              tint: tint_attrs(look_of(graph, t.id)) };
   }) };
+}
+
+/** **What a chip shows of a block with no structure to draw**: its preview, and a definition's
+ *  places with how many uses each holds, where its body has a row's room. */
+function profiled(preview: Preview | null, box: { w: number; h: number }, head: Head,
+                  places: Preview["places"] = []): Pick<BoxNode["data"], "preview"> {
+  const { h } = body_of(box, head, PAD.chip);
+  if (h < ROW.line) return {};
+  const shown = { ...preview, ...(places.length ? { places } : {}) };
+  return Object.keys(shown).length ? { preview: shown } : {};
+}
+
+/** How many rows a preview shows. */
+function rows_of(preview: Preview | null): number {
+  return preview?.rows?.length ?? preview?.lines?.length ?? 0;
 }
 
 /** A chip's inner treemap: what it holds, each as large as it counts, in the chip's body beside
@@ -293,10 +385,9 @@ function previewed(graph: Graph, def: Id, box: { w: number; h: number },
  *  diagram's is laid by its structure instead (`laid`), its flow turned to fit the chip. A
  *  block's tile wears its own colour. */
 function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h: number },
-               diagram: boolean, head: Head): { tiles: InnerTile[]; diagram?: true } {
+               diagram: boolean, head: Head): { tiles: InnerTile[] } {
   const { w, h } = body_of(box, head, diagram ? PAD.diagram : PAD.chip);
-  const mark = diagram ? { diagram: true as const } : {};
-  if (!held.length || h < 12 || w < 12) return { tiles: [], ...mark };
+  if (!held.length || h < 12 || w < 12) return { tiles: [] };
   const kind = diagram_kind(graph, block);
   const texture = kind === "class" ? { texture: "class" as const }
     : kind === "entity" ? { texture: "entity" as const } : {};
@@ -321,11 +412,11 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
     return { tiles: squarified(graph, held, whole, 2).map((t) => share({ ...t, as: "block" })) };
   }
   if (is_grid(graph, block)) {
-    return { tiles: gridded(graph, block, whole).map(share), ...mark };
+    return { tiles: gridded(graph, block, whole).map(share) };
   }
   const first = laid(graph, held, whole);
   if (!first.gaps.length) {
-    return { tiles: paneled(graph, block, first.placed).map(share), ...mark };
+    return { tiles: paneled(graph, block, first.placed).map(share) };
   }
   /** **What its lines rank runs one way, between a start and an end**: a strip across each end
    *  of its flow, its blocks a gap within them; a faint line down its middle, behind its blocks,
@@ -346,7 +437,7 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
     { ...span(along - STRIP - tip, along - STRIP, (wide - broad) / 2, (wide + broad) / 2),
       id: `${block}@arrow`, as: "arrow", ...down },
   ];
-  return { tiles: [...ends, ...paneled(graph, block, placed)].map(share), ...mark };
+  return { tiles: [...ends, ...paneled(graph, block, placed)].map(share) };
 }
 
 /** One tile a diagram's structure lays: a block, a group's panel, a region's band (`odd` every
@@ -612,29 +703,4 @@ function joined(graph: Graph, held: readonly Id[]): { from: Id; to: Id }[] {
     pairs.set(`${from}|${to}`, { from, to });
   }
   return [...pairs.values()];
-}
-
-/** What some blocks hold between them: blocks — not notes, labels, holders or a grid's headers,
- *  which the map never draws — the lines among them, and their interfaces. */
-function counted(graph: Graph, ids: readonly Id[]) {
-  const all = new Set(ids.flatMap((id) => subtree(graph, id)));
-  let blocks = 0, ports = 0;
-  for (const id of all) {
-    if (is_interface(graph, id)) ports++;
-    else if (!is_notation(graph, id) && !is_holder(graph, id) && !is_header(graph, id)) blocks++;
-  }
-  const lines = Object.values(graph.edges).filter((e) => all.has(e.from) && all.has(e.to)).length;
-  return { blocks, lines, ports };
-}
-
-/** A count's whole. */
-function total(n: { blocks: number; lines: number; ports: number }): number {
-  return n.blocks + n.lines + n.ports;
-}
-
-/** A count in words, what is nought left out. */
-function words(n: { blocks: number; lines: number; ports: number }): string {
-  const say = (k: number, one: string) => (k ? `${k} ${one}${k === 1 ? "" : "s"}` : "");
-  return [say(n.blocks, "block"), say(n.lines, "line"), say(n.ports, "port")]
-    .filter(Boolean).join(" · ");
 }

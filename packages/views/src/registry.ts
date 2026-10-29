@@ -7,7 +7,7 @@
 import { entry_at, is_folder, library_of, registry_at, registry_id, registry_of,
          shown_name, users_of, uses_by, type Graph, type Id, type Registry } from "@mnd/core";
 import { carried, trail_of } from "./derive";
-import { box_label, box_model, usage_groups, usage_layout } from "./library";
+import { box_label, box_place, usage_groups, usage_layout } from "./library";
 import { entry_look } from "./look";
 import { cell, type BoxData, type BoxNode, type Scene } from "./scene";
 import { PAD } from "./size";
@@ -95,7 +95,7 @@ function folder_of(graph: Graph, id: Id): Id {
  *  the box of its home folder — the one holding most of its uses — or *[multiple]* where none
  *  holds half, or *[no uses]*. **Opened on an entry**, the blocks using it, each as large as its
  *  uses there, in the boxes of their folders. **Opened on a definition**, its uses, in the boxes
- *  of the models they sit in. A lone box is left out: the frame says as much. A projection, read
+ *  of the places they are drawn. A lone box is left out: the frame says as much. A projection, read
  *  only: nothing is dragged or written back. */
 export function registry_scene(graph: Graph, id: Id): Scene | null {
   const registry = registry_at(graph, id);
@@ -113,16 +113,16 @@ function loose(graph: Graph, id: Id): BoxData {
 }
 
 /** A definition: its uses as they are laid out for every map of them — each block or reference
- *  its card's small face, each line a tile — in boxes of the models they sit in. */
+ *  its card's small face, each line a tile — in boxes of the places they are drawn. */
 function uses_scene(graph: Graph, def: Id): Scene | null {
   const laid = usage_layout(graph, def);
   if (!laid.length) return null;
-  const held = new Map(usage_groups(graph, def).map((g) => [g.model, g.uses.map((u) => u.id)]));
+  const held = new Map(usage_groups(graph, def).map((g) => [g.place, g.uses.map((u) => u.id)]));
   const nodes = laid.map((p) => {
-    const model = box_model(def, p.id);
-    if (model) {
-      return cell(p.id, p, { label: box_label(graph, model), marks: ["group"],
-                             holds: held.get(model) ?? [] }, "group");
+    const place = box_place(def, p.id);
+    if (place) {
+      return cell(p.id, p, { label: box_label(graph, place), marks: ["group"],
+                             holds: held.get(place) ?? [] }, "group");
     }
     if (graph.edges[p.id]) return cell(p.id, p, { label: shown_name(graph, p.id), marks: [] }, "tile");
     return cell(p.id, p, loose(graph, p.id));

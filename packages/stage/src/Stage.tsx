@@ -1,6 +1,6 @@
 /** The working area: turns canvas gestures into action names. */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
 import { dir_of } from "@mnd/core";
 
@@ -14,6 +14,7 @@ import { Icon } from "@mnd/theme";
 import { area_under, box_of, clear_of, holds, swept_cells, towards, BLOCK, CELL,
          type Scene } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
+import { Hover } from "./Hover";
 
 export type { Adjust, Landing, Move };
 
@@ -208,6 +209,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   const set_naming = (id: string) => set_typing({ id });
   /** Nothing typed survives a layer change. */
   useEffect(() => set_typing(null), [scene.layer]);
+  /** The stage itself, which a map's hover card watches. */
+  const host = useRef<HTMLElement>(null);
   const [at, set_at] = useState<
     { x: number; y: number; on: string | null; spot: { x: number; y: number };
       only?: readonly (string | Entry)[]; given?: Record<string, unknown> } | null>(null);
@@ -395,7 +398,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   };
 
   return (
-    <section className="stage">
+    <section className="stage" ref={host}>
       <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
       {empty ? <p className="empty">{empty}</p> : null}
       {/* **A map lights only what is picked**: a chip, a box or a tile. A layer also lights what
@@ -441,6 +444,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         ) : null}
       />
       {legend ? <Legend scene={scene} {...(corner ? { at: corner } : {})} /> : null}
+      {scene.areas ? <Hover graph={graph} library={scene.map === "library"} host={host} /> : null}
       {at && menu ? menu(at, at.on, () => set_at(null), at.spot, at.only, at.given) : null}
     </section>
   );

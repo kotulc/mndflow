@@ -2,6 +2,7 @@
 
 import type { Edge, Node } from "@xyflow/react";
 import type { Dir, End, Ends, Id, Key, Mark, Role, Side } from "@mnd/core";
+import type { Facts, Preview } from "./about";
 import type { Arrow, Look, Tint, Wire } from "./look";
 import type { Fan, Perch, Seat } from "./seat";
 
@@ -69,8 +70,15 @@ export type BoxData = {
   diagram?: boolean;
   /** A narrow, tall map chip: its head turned upright down its left side, its body beside it. */
   upright?: boolean;
-  /** What a map chip counts, said in words: its blocks, lines and components, or its uses. */
-  counts?: string;
+  /** A map chip's facts strip, where it has room for one (views `about.ts`). */
+  facts?: Facts;
+  /** How much room a map chip's head takes — its name's line and its facts where shown, its body
+   *  under it; upright, the head's width, its body beside it. */
+  head?: number;
+  /** What a map chip previews where it draws no structure and no uses. */
+  preview?: Preview;
+  /** A definition's chip showing its profile: its uses split by place, each in its colour. */
+  bar?: readonly { n: number; tint: Tint }[];
   /** A diagram chip's kind, said beside its name. */
   kind?: string;
   /** A registry's tile: how many times its entry is used, and that against the most used. */
@@ -263,6 +271,8 @@ export type Scene = {
   /** A map, the library's or the model's: every area, outermost first; the layer is the one in
    *  focus. */
   areas?: readonly Area[];
+  /** Which section a map is of: the library reads a definition by its uses. */
+  map?: "library" | "models";
   /** Absent only at the root, which has no outside to be seen from. */
   frame?: Frame;
   nodes: readonly BoxNode[];
