@@ -5,16 +5,21 @@
 
 ## Vision
 
-**Rapid visual modeling tools for understanding complex systems.** A document set, a codebase, a piece of hardware — any existing system — translated into blocks a person explores from several perspectives: the block diagram of each layer, and the section slices the explorer cuts through the same tree.
+**Rapid visual modeling tools for understanding complex systems.** A codebase, a document set, a piece of hardware — or a system not built yet — translated into blocks a person explores from several perspectives: the block diagram of each layer, and the section slices the explorer cuts through the same tree.
+
+**Models are translated, not drawn.** A translator reads existing source; an agent, guided by a person through the CLI, mocks up a system and its flows before any of it is code. The apps exist to show what was translated: **displaying comes first**; rearranging, restyling and basic edits come second, on the canvas and in the tray.
 
 | Tool | Is |
 |---|---|
-| **mndflow** | the editor: compose, define and rearrange a model. Also the kit every host is built on |
+| **mndflow** | the explorer and light editor: read a model, then rearrange, restyle and adjust it on the canvas. Also the kit every host is built on |
 | **mndmap** | the viewer: a markdown source folder read into blocks and explored. Built on the kit as shipped |
 
 | Principle | Means |
 |---|---|
-| **understanding is the purpose** | the end user is a person exploring a visual translation of a system that already exists. Building a model is the means, not the end |
+| **understanding is the purpose** | the end user is a person exploring a visual translation of a system, existing or planned. Building a model is the means, not the end |
+| **translated, then shown** | models arrive from translators and agents; the apps' first job is to communicate them. Every surface is designed for reading first |
+| **every view informs** | each form — map, diagram, card, tray — says the most it usefully can at its size: what an element is, its purpose, its parts and its attributes |
+| **the tray informs first** | the tray presents all the focused, relevant information about what is selected, and says plainly whether it is a definition or a use. Basic edits come second: a name, a description, a style or a setting. Building is canvas gestures, and agents work through the CLI; the options rail stays minimal |
 | **agent and data first** | every element, package, workspace and setting is JSON; a card's content is markdown. The CLI does headless what the app does, in formats an agent reads and writes. The apps call no model: agents and translators work through files and the CLI |
 | **motion communicates** | data and logic flows animate along their relations, and moving between related components animates, so a person sees what moves and never loses their place |
 | **no notation to learn** | the parts, what they are made of, what flows between them and what must be true is the whole base model. A standard is a translation layer on top, never a shape the model bends to |

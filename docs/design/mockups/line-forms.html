@@ -1,0 +1,427 @@
+<title>Line Forms</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* mndflow's dark ramp, one look on purpose: the mockup shows the app's canvas. */
+:root {
+  color-scheme: dark;
+  --ground: oklch(0.145 0.015 160);
+  --outside: oklch(0.11 0.01 160);
+  --fill: oklch(0.195 0.018 160);
+  --raised: oklch(0.255 0.02 160);
+  --divide: oklch(0.245 0.02 160);
+  --line: oklch(0.335 0.028 160);
+  --stroke: oklch(0.42 0.03 160);
+  --dim: oklch(0.6 0.035 160);
+  --soft: oklch(0.8 0.03 160);
+  --ink: oklch(0.88 0.05 160);
+  --accent: oklch(0.8 0.19 150);
+  --warn: oklch(0.8 0.14 50);
+  /* identity marks: one lightness and chroma, hue alone tells them apart */
+  --id-l: 0.75; --id-c: 0.11;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --sans: "IBM Plex Sans", system-ui, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { background: var(--outside); color: var(--ink); font: 14px/1.55 var(--sans); padding-inline: 16px; padding-block: 0 64px; margin: 0; }
+main { max-width: 1160px; margin: 0 auto; display: grid; gap: 40px; }
+header { padding-block: 40px 0; display: grid; gap: 10px; }
+h1 { font: 600 26px/1.2 var(--mono); margin: 0; letter-spacing: -0.01em; }
+h1 span { color: var(--accent); }
+h2 { font: 600 17px/1.3 var(--mono); margin: 0; text-wrap: balance; }
+h3 { font: 500 12px/1.3 var(--mono); margin: 0; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+p { margin: 0; max-width: 72ch; color: var(--soft); }
+section { display: grid; gap: 14px; }
+ul.rules { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 86ch; color: var(--soft); }
+ul.rules b { color: var(--ink); font-weight: 600; }
+code { font: 12.5px var(--mono); color: var(--ink); background: var(--fill); padding: 1px 4px; border-radius: 2px; }
+.tag { font: 500 11px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+.tag.now { color: var(--warn); }
+.tag.new { color: var(--accent); }
+.col { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in oklch, var(--outside) 92%, transparent);
+  backdrop-filter: blur(6px); border-bottom: 1px solid var(--divide); padding: 10px 0; display: flex; gap: 22px; align-items: center; flex-wrap: wrap;
+  font: 12px var(--mono); color: var(--dim); }
+.bar label { display: flex; gap: 10px; align-items: center; }
+.bar input[type=range] { width: min(320px, 60vw); accent-color: var(--accent); }
+.bar output { color: var(--ink); min-width: 4ch; font-variant-numeric: tabular-nums; }
+.presets { display: flex; gap: 6px; }
+.presets button { font: 11px var(--mono); background: none; color: var(--dim); border: 1px solid var(--line); padding: 2px 6px; cursor: pointer; }
+.presets button:hover, .presets button:focus-visible { color: var(--ink); border-color: var(--stroke); outline: none; }
+
+.stage { background: var(--ground); border: 1px solid var(--divide); padding: 16px; overflow: auto;
+  background-image: linear-gradient(var(--divide) 1px, transparent 1px), linear-gradient(90deg, var(--divide) 1px, transparent 1px);
+  background-size: 24px 24px; background-position: -1px -1px; }
+
+/* 1 · swatches */
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.sw { display: grid; grid-template-columns: 34px 1fr; gap: 2px 10px; align-items: center; padding: 8px 10px; background: var(--fill); border: 1px solid var(--divide); }
+.sw svg { grid-row: span 2; }
+.sw b { font: 600 12px var(--mono); }
+.sw span { font: 10.5px var(--mono); color: var(--dim); }
+
+/* 2 · a diagram, sized by --z, its text by --s */
+.dia { --z: 1; --s: 1; position: relative; width: calc(var(--z) * 760px); height: calc(var(--z) * 300px); }
+.dia svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.dia svg .hit { pointer-events: stroke; cursor: default; }
+.dia svg .wire { transition: stroke-width 0.12s; }
+.dia svg g.lit .wire { stroke-width: 3px; }
+.dia svg .anchor { transition: opacity 0.14s; }
+.card { position: absolute; left: calc(var(--z) * var(--x) * 1px); top: calc(var(--z) * var(--y) * 1px); width: calc(var(--z) * 150px); height: calc(var(--z) * 56px);
+  background: var(--fill); border: 1px solid color-mix(in oklch, var(--hue) 70%, var(--line)); border-radius: 3px;
+  padding: calc(5px * var(--s)) calc(7px * var(--s)); font-family: var(--mono); overflow: hidden; }
+.card .head { display: flex; gap: 6px; align-items: baseline; padding-right: 16px; }
+.card .name { font: 600 calc(12px * var(--s)) / 1.4 var(--mono); white-space: nowrap; transition: opacity 0.14s; }
+.card .kind { font: calc(11px * var(--s)) / 1.4 var(--mono); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity 0.14s; }
+.card .icon { position: absolute; top: calc(6px * var(--s)); right: calc(6px * var(--s)); width: calc(11px * var(--s)); height: calc(11px * var(--s)); border: 1.5px solid var(--dim); border-radius: 50% / 25%; }
+.card.small .kind { opacity: 0; }
+.card.tiny .name { opacity: 0; }
+.at { position: absolute; left: calc(var(--z) * var(--x) * 1px); top: calc(var(--z) * var(--y) * 1px); white-space: nowrap; font-family: var(--mono);
+  transition: opacity 0.14s; pointer-events: none; }
+.nm { font: calc(10.5px * var(--s)) / 1 var(--mono); color: var(--soft); }
+.nm.h { transform: translate(-50%, calc(-100% - 5px * var(--s))); }
+.nm.v { transform: translate(calc(7px * var(--s)), -50%); }
+.endw { font: 500 calc(10.5px * var(--s)) / 1 var(--mono); color: var(--rel); opacity: 0; }
+.lit .endw, .lit-ends .endw { opacity: 1; }
+.hid { opacity: 0 !important; }
+.dia.today .nm { background: var(--ground); padding: 0 3px; }
+
+/* 3 · map chips */
+.box { border: 1px solid var(--line); position: relative; display: grid; gap: 8px; padding: 24px 8px 8px; }
+.box > .title { position: absolute; top: 5px; left: 8px; right: 8px; font: 11px/1.2 var(--mono); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.box > .title b { color: var(--soft); font-weight: 500; }
+.chip { position: relative; background: var(--fill); border: 1px solid var(--line); border-left: 3px solid var(--hue);
+  font-family: var(--mono); display: grid; gap: 5px; padding: 5px 6px 6px 7px; min-width: 0; }
+.chip .head { display: flex; align-items: baseline; gap: 6px; padding-right: 22px; min-width: 0; }
+.chip .name { font: 600 12px/1.25 var(--mono); }
+.chip .kind { font: 11px/1.25 var(--mono); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip .ic { position: absolute; top: 6px; right: 5px; line-height: 0; }
+.chip .ic.sq { width: 11px; height: 11px; border: 1.5px solid var(--dim); border-radius: 1px; }
+.facts { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.fact { font: 10.5px/1 var(--mono); color: var(--dim); border: 1px solid var(--line); padding: 2px 4px; font-variant-numeric: tabular-nums; }
+.fact b { color: var(--ink); font-weight: 500; }
+.places { display: grid; gap: 4px; }
+.place { border: 1px dashed var(--line); padding: 15px 3px 3px; position: relative; display: flex; flex-wrap: wrap; gap: 3px; min-width: 0; }
+.place > span { position: absolute; top: 2px; left: 4px; right: 4px; font: 9.5px var(--mono); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.place > span::before { content: ""; display: inline-block; width: 6px; height: 6px; background: var(--hue); margin-right: 4px; }
+.tile { --hue: var(--line); font: 10px/15px var(--mono); height: 19px; padding: 0 5px; display: inline-flex; align-items: center; gap: 4px; max-width: 100%;
+  background: var(--raised); border: 1px solid var(--line); border-left: 2px solid var(--hue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.tile .mi { width: 7px; height: 7px; border: 1.2px solid var(--dim); border-radius: 1px; flex: none; }
+.tile svg { flex: none; }
+.tile.old { border-left: 1px solid var(--line); }
+
+/* 4 · colour roles: before and after */
+.scene { display: grid; grid-template-columns: 200px 1fr; gap: 14px; align-items: start; }
+@media (max-width: 640px) { .scene { grid-template-columns: 1fr; } }
+.explorer { background: var(--fill); border: 1px solid var(--divide); padding: 6px 0; font: 12px/1 var(--mono); }
+.row { display: flex; align-items: center; gap: 6px; height: 25px; padding: 0 10px 0 calc(10px + var(--d, 0) * 12px); }
+.row.pick { background: color-mix(in oklch, var(--accent) 18%, var(--fill)); box-shadow: inset 2px 0 var(--accent); }
+.row .edge { width: 3px; height: 13px; background: var(--hue); border-radius: 1px; flex: none; }
+.row .ri { width: 10px; height: 10px; border: 1.5px solid var(--dim); border-radius: 1px; flex: none; }
+.row .ri.db { border-radius: 50% / 25%; }
+.row .nmr { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .n { color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+.mini { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+.mini .chip { width: 250px; }
+.mcards { position: relative; width: 300px; height: 92px; }
+.mcards .card { --z: 1; --s: 1; }
+.tagc { display: inline-flex; align-items: center; gap: 4px; font: 10px/1 var(--mono); color: var(--soft); border: 1px solid var(--line); padding: 2px 5px 2px 4px; border-radius: 9px; }
+.ring { width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--t); flex: none; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--t); flex: none; }
+.before .card { background: color-mix(in oklch, var(--hue) 14%, var(--fill)); }
+.before .tile { background: color-mix(in oklch, var(--hue) 14%, var(--raised)); border-left-width: 1px; border-color: color-mix(in oklch, var(--hue) 50%, var(--line)); }
+.before .tagc { border: 0; padding: 0; }
+.picked { outline: 1.5px solid var(--accent); outline-offset: 1px; }
+table.roles { border-collapse: collapse; width: 100%; font-size: 13px; }
+.roles-wrap { overflow-x: auto; }
+table.roles th, table.roles td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--divide); vertical-align: top; color: var(--soft); }
+table.roles th { font: 500 11px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; }
+table.roles td:first-child { color: var(--ink); font-weight: 600; white-space: nowrap; }
+.mk { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.mk.edge { width: 3px; height: 14px; background: oklch(var(--id-l) var(--id-c) 250); }
+.mk.ring { width: 9px; height: 9px; border: 2px solid oklch(var(--id-l) var(--id-c) 25); border-radius: 50%; }
+.mk.out { width: 14px; height: 10px; outline: 1.5px solid var(--accent); }
+
+/* hover card */
+.hover { position: fixed; z-index: 10; width: 280px; background: var(--fill); border: 1px solid var(--stroke); border-left: 3px solid var(--hue, var(--accent));
+  box-shadow: 0 8px 28px oklch(0 0 0 / 0.5); font-family: var(--mono); pointer-events: none; display: grid; }
+.hover .hd { padding: 8px 10px 6px; display: grid; gap: 2px; border-bottom: 1px solid var(--divide); }
+.hover .path { font: 10px var(--mono); color: var(--dim); }
+.hover .ttl { font: 600 13px var(--mono); display: flex; gap: 6px; align-items: center; }
+.hover .ttl small { font: 400 11px var(--mono); color: var(--dim); }
+.hover .bd { padding: 8px 10px; display: grid; gap: 6px; font: 11px/1.5 var(--mono); color: var(--soft); }
+.hover .bd .ends { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
+.hover .bd .ends span:nth-child(odd) { color: var(--dim); }
+.hover .ft { padding: 5px 10px; border-top: 1px solid var(--divide); font: 10px var(--mono); color: var(--dim); display: flex; gap: 10px; }
+.hover .ft b { color: var(--ink); font-weight: 500; }
+
+.decide { display: grid; border: 1px solid var(--divide); background: var(--ground); margin: 0; }
+.decide > div { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 14px; padding: 10px 14px; border-bottom: 1px solid var(--divide); }
+.decide > div:last-child { border-bottom: 0; }
+.decide dt { font: 600 12px var(--mono); }
+.decide dd { margin: 0; color: var(--soft); }
+.decide dd em { color: var(--accent); font-style: normal; }
+@media (max-width: 560px) { .decide > div { grid-template-columns: 1fr; gap: 4px; } }
+@media (prefers-reduced-motion: reduce) { .at, .card .name, .card .kind, .dia svg .wire, .dia svg .anchor { transition: none; } }
+</style>
+
+<main>
+<header>
+  <h3>mndflow · design language mockup · 2026-10-29 · v2</h3>
+  <h1>Line <span>forms</span></h1>
+  <p>Round two. The swatch stays as a line's icon. Labels no longer sit on the stroke: a line keeps its <b>ends visible as anchors</b> on the card walls, its name sits beside it, and multiplicity, role and the rest come on <b>hover</b>. The last section proposes one colour grammar for rows, chips, cards, tiles, tags and lines.</p>
+</header>
+
+<div class="bar" role="group" aria-label="Diagram zoom">
+  <label for="zoom">zoom <input id="zoom" type="range" min="25" max="180" value="100" step="1"><output id="zout">100%</output></label>
+  <span class="presets"><button data-z="35">35%</button><button data-z="65">65%</button><button data-z="100">100%</button><button data-z="140">140%</button></span>
+  <label><input type="checkbox" id="showends"> show ends as if hovered</label>
+</div>
+
+<section>
+  <h2>1 · A line's icon is its swatch</h2>
+  <p>Decided. The relation type's swatch is a short stroke in the type's colour and dash, with its end marks. It is the line's icon everywhere: diagram, map tile, chip, explorer row, tray and hover card.</p>
+  <div class="swatches" id="swatches"></div>
+</section>
+
+<section>
+  <h2>2 · In a diagram: anchors visible, details on hover</h2>
+  <p>Hover a line (anywhere along it) to light it, show its end words at the anchors, and open its hover card. Nothing ever sits on top of the stroke.</p>
+  <div class="col"><span class="tag now">today · name over the stroke, end words always</span><div class="stage"><div class="dia today" id="dia-a"></div></div></div>
+  <div class="col"><span class="tag new">B · anchors + name beside the line</span><div class="stage"><div class="dia" id="dia-b"></div></div></div>
+  <div class="col"><span class="tag new">C · anchors only; the name comes with room</span><div class="stage"><div class="dia" id="dia-c"></div></div></div>
+  <ul class="rules">
+    <li><b>Anchors</b> are where a line meets a card, drawn on the wall in the type's colour: the diamond of an owner, the head of a direction, a short bar for a plain end. They are the line's seats. They hide when too small to read, as seats do.</li>
+    <li><b>The name</b> sits beside the stroke, above a level leg and to the right of an upright one, without a background box, so the line runs unbroken under nothing.</li>
+    <li><b>Ends</b> (multiplicity, role) appear at the anchors only while the line is hovered or picked, and in its hover card.</li>
+    <li><b>Levels</b>, from the line's length on screen. B: stroke → anchors → name. C: stroke → anchors, with the name only at the largest level.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>3 · On the map: a relation type's chip</h2>
+  <p>A relation chip gathers its lines by place. Each tile is the swatch plus the line's name, and an unnamed line names its pair. Tiles wrap inside their place and never run past the chip.</p>
+  <div class="cols">
+    <div class="col"><span class="tag now">today</span><div class="stage" id="map-now"></div></div>
+    <div class="col"><span class="tag new">wire tiles</span><div class="stage" id="map-a"></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>4 · One colour grammar</h2>
+  <p>Today colour arrives as fills, edges, dots and strokes all at once, at different strengths, so a tag can look like a kind and a model looks selected. The proposal: <b>grounds stay neutral, and colour is only ever a thin mark</b>, as on the explorer rows you liked. Each role owns one shape of mark, so the same hue in two roles never reads alike.</p>
+  <div class="roles-wrap"><table class="roles">
+    <thead><tr><th>Role</th><th>Mark</th><th>On</th><th>Never</th></tr></thead>
+    <tbody>
+      <tr><td><span class="mk edge"></span>what it is</td><td>an <b>edge</b>: a bar or a border in its colour</td><td>chip's left edge, card's border, tile's left edge, row's edge, box's nothing</td><td>a fill</td></tr>
+      <tr><td><svg class="mk" width="16" height="8" aria-hidden="true"><line x1="1" y1="4" x2="15" y2="4" stroke="oklch(0.75 0.11 290)" stroke-width="1.8"/></svg>relation type</td><td>a <b>stroke</b>, in its dash</td><td>lines, anchors, swatches</td><td>an edge or a fill</td></tr>
+      <tr><td><span class="mk ring"></span>tag</td><td>a <b>ring</b>: a hollow circle, named where there is room</td><td>facts strips, hover cards, the key</td><td>an edge or a solid dot</td></tr>
+      <tr><td><span class="mk out"></span>selection, focus, lit</td><td>the <b>accent</b>: an outline and a wash</td><td>whatever is picked or hovered</td><td>anyone's identity (a model no longer wears the accent)</td></tr>
+      <tr><td>fault</td><td><b>warn</b>, in words or an outline</td><td>refusals, check results</td><td>identity</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="rules">
+    <li><b>Every identity mark has one lightness and chroma</b> (here L 0.75, C 0.11). Only hue differs, so no kind, relation or tag shouts over another.</li>
+    <li><b>The accent and warn hues are kept out of the identity wheel</b>, so green always means picked and amber always means a fault.</li>
+  </ul>
+  <div class="col"><span class="tag now">today</span><div class="stage before" id="scene-now"></div></div>
+  <div class="col"><span class="tag new">proposed</span><div class="stage" id="scene-new"></div></div>
+</section>
+
+<section>
+  <h2>Decide</h2>
+  <dl class="decide">
+    <div><dt>diagram line</dt><dd><em>B</em> anchors and name beside, or <em>C</em> anchors with the name only when zoomed in</dd></div>
+    <div><dt>colour grammar</dt><dd>neutral grounds, colour as marks by role (edge, stroke, ring, accent), or keep tinted fills on cards and tiles</dd></div>
+    <div><dt>tags as rings</dt><dd>hollow rings, so a tag never reads as a kind; or solid dots (today)</dd></div>
+    <div><dt>model's colour</dt><dd>leave the accent to selection and give the model kind its own hue</dd></div>
+  </dl>
+</section>
+</main>
+
+<div class="hover" id="hover" hidden></div>
+
+<script>
+const ID = (h) => `oklch(0.75 0.11 ${h})`;
+/* Relation types in base: colour, dash, start mark, end mark. */
+const REL = {
+  line:        { c: "oklch(0.72 0.03 160)", dash: "",    s: "",        e: "arrow", d: "A plain line: one part leads to another." },
+  association: { c: ID(235), dash: "",    s: "",        e: "",      d: "Two definitions related, each end saying how many and in what role." },
+  composition: { c: ID(290), dash: "",    s: "dfill",   e: "",      d: "The owner holds the part; the part goes when it goes." },
+  aggregation: { c: ID(200), dash: "",    s: "dhollow", e: "",      d: "The owner gathers parts that live on their own." },
+  dependency:  { c: ID(95),  dash: "4 3", s: "",        e: "open",  d: "One uses another and changes when it does." },
+  message:     { c: ID(325), dash: "",    s: "",        e: "arrow", d: "A call from one participant to another." },
+  reply:       { c: ID(325), dash: "4 3", s: "",        e: "open",  d: "The answer to a message." },
+  transition:  { c: ID(20),  dash: "",    s: "",        e: "arrow", d: "A move from one state to the next, named by its event." },
+  tie:         { c: "oklch(0.6 0.03 160)", dash: "1 3", s: "", e: "", d: "Ties a note or a label to what it is about." },
+};
+
+/** The wire swatch: a short stroke in the type's dash, with its end marks. */
+function swatch(type, w = 22, h = 10) {
+  const r = REL[type], y = h / 2, x0 = r.s ? 7 : 1, x1 = r.e ? w - 4 : w - 1;
+  let m = "";
+  if (r.s === "dfill") m += `<path d="M1 ${y} L4 ${y - 2.6} L7 ${y} L4 ${y + 2.6} Z" fill="${r.c}"/>`;
+  if (r.s === "dhollow") m += `<path d="M1 ${y} L4 ${y - 2.6} L7 ${y} L4 ${y + 2.6} Z" fill="none" stroke="${r.c}" stroke-width="1.2"/>`;
+  if (r.e === "arrow") m += `<path d="M${w - 5} ${y - 3} L${w - 1} ${y} L${w - 5} ${y + 3} Z" fill="${r.c}"/>`;
+  if (r.e === "open") m += `<path d="M${w - 5} ${y - 3} L${w - 1} ${y} L${w - 5} ${y + 3}" fill="none" stroke="${r.c}" stroke-width="1.2"/>`;
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${r.c}" stroke-width="1.6" stroke-dasharray="${r.dash}"/>${m}</svg>`;
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const el = (html) => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+
+/* 1 · swatches */
+const SW = document.getElementById("swatches");
+for (const [t, r] of Object.entries(REL)) SW.append(el(`<div class="sw">${swatch(t, 30, 12)}<b>${t}</b><span>${r.dash ? "dashed" : "solid"}${r.s ? ", diamond at owner" : ""}${r.e ? `, ${r.e} head` : ""}</span></div>`));
+
+/* 2 · the class diagram, in layout px at 100% */
+const REC = ID(215);
+const CARDS = [["Customer", 40, 40], ["Order", 300, 40], ["Line", 560, 40], ["Payment", 300, 200], ["Product", 560, 200]];
+const LINES = [
+  { id: "places", type: "association", from: "Customer", to: "Order", a: [190, 68], b: [300, 68], ends: ["1", "*"], roles: ["buyer", "orders"] },
+  { id: "has", type: "composition", from: "Order", to: "Line", a: [450, 68], b: [560, 68], ends: ["1", "1..*"], roles: ["", "lines"] },
+  { id: "of", type: "association", from: "Line", to: "Product", a: [635, 96], b: [635, 200], ends: ["*", "1"], roles: ["", "product"] },
+  { id: "paid by", type: "aggregation", from: "Order", to: "Payment", a: [375, 96], b: [375, 200], ends: ["1", "0..*"], roles: ["", "payments"] },
+];
+/** The mark a line wears where it meets a card: its owner's diamond, a head, else a short bar across it. */
+function anchor(l, end) {
+  const r = REL[l.type], h = l.a[1] === l.b[1], [x, y] = end ? l.b : l.a, dir = end ? -1 : 1;
+  const mark = end === 0 ? r.s : r.e;
+  const pt = (along, across) => h ? `${x + dir * along} ${y + across}` : `${x + across} ${y + dir * along}`;
+  if (mark === "dfill" || mark === "dhollow")
+    return `<path class="anchor" d="M${pt(0, 0)} L${pt(7, -4)} L${pt(14, 0)} L${pt(7, 4)} Z" fill="${mark === "dfill" ? r.c : "var(--ground)"}" stroke="${r.c}" stroke-width="1.4" vector-effect="non-scaling-stroke"/>`;
+  return `<path class="anchor" d="M${pt(2, -5)} L${pt(2, 5)}" stroke="${r.c}" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`;
+}
+function diagram(host, variant) {
+  let svg = `<svg class="wires" viewBox="0 0 760 300">`;
+  for (const l of LINES) {
+    const r = REL[l.type];
+    const a = variant === "a" ? "" : anchor(l, 0) + anchor(l, 1);
+    const own = variant === "a" && r.s ? anchor(l, 0) : "";
+    svg += `<g data-line="${l.id}"><line class="wire" x1="${l.a[0]}" y1="${l.a[1]}" x2="${l.b[0]}" y2="${l.b[1]}" stroke="${r.c}" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-dasharray="${r.dash}"/>${a}${own}
+      <line class="hit" data-line="${l.id}" x1="${l.a[0]}" y1="${l.a[1]}" x2="${l.b[0]}" y2="${l.b[1]}" stroke="transparent" stroke-width="14" vector-effect="non-scaling-stroke"/></g>`;
+  }
+  host.innerHTML = svg + "</svg>";
+  for (const [n, x, y] of CARDS) host.append(el(`<div class="card" style="--x:${x};--y:${y};--hue:${REC}"><div class="head"><span class="name">${n}</span><span class="kind">record</span></div><span class="icon"></span></div>`));
+  for (const l of LINES) {
+    const h = l.a[1] === l.b[1], mx = (l.a[0] + l.b[0]) / 2, my = (l.a[1] + l.b[1]) / 2, rel = `--rel:${REL[l.type].c}`;
+    const g = el(`<div class="labels" data-for="${l.id}" data-len="${Math.hypot(l.b[0] - l.a[0], l.b[1] - l.a[1])}" data-v="${variant}"></div>`);
+    let html = variant === "a"
+      ? `<div class="at nm ${h ? "" : "v"} name" style="--x:${mx};--y:${my};${h ? "transform:translate(-50%,-50%)" : "transform:translate(-50%,-50%)"}">${esc(l.id)}</div>`
+      : `<div class="at nm ${h ? "h" : "v"} name" style="--x:${mx};--y:${my}">${esc(l.id)}</div>`;
+    for (const e of [0, 1]) {
+      const [x, y] = e ? l.b : l.a, d = e ? -1 : 1, words = [l.ends[e], l.roles[e]].filter(Boolean).join(" ");
+      const px = h ? x + d * 20 : x + 9, py = h ? y - 9 : y + d * 22;
+      const tf = h ? (e ? "translate(-100%,-100%)" : "translate(0,-100%)") : "translate(0,-50%)";
+      html += `<div class="at endw" style="--x:${px};--y:${py};${rel};transform:${tf}">${esc(words)}</div>`;
+    }
+    g.innerHTML = html;
+    if (variant === "a") g.classList.add("lit-ends");
+    host.append(g);
+  }
+}
+const dias = ["a", "b", "c"].map((v) => { const h = document.getElementById("dia-" + v); diagram(h, v); return h; });
+
+/** A line's level from its length on screen: 0 stroke, 1 anchors, 2 name (B), 3 name (C). Drops 15% below where it came. */
+const line_level = (L, s) => L < 40 * s ? 0 : L < 75 * s ? 1 : L < 118 * s ? 2 : 3;
+function relevel(host, z, s) {
+  host.style.setProperty("--z", z); host.style.setProperty("--s", s);
+  for (const c of host.querySelectorAll(".card")) { c.classList.toggle("small", 150 * z < 110 * s); c.classList.toggle("tiny", 150 * z < 58 * s); }
+  for (const g of host.querySelectorAll(".labels")) {
+    const L = g.dataset.len * z;
+    let lv = line_level(L, s);
+    const was = +(g.dataset.lv ?? lv);
+    if (lv < was && line_level(L / 0.85, s) >= was) lv = was;
+    g.dataset.lv = lv;
+    const v = g.dataset.v, nameAt = v === "c" ? 3 : v === "b" ? 2 : 1;
+    g.querySelector(".name").classList.toggle("hid", lv < nameAt);
+    for (const a of host.querySelectorAll(`g[data-line="${g.dataset.for}"] .anchor`)) a.classList.toggle("hid", v !== "a" && lv < 1);
+  }
+}
+const zoom = document.getElementById("zoom"), zout = document.getElementById("zout"), showends = document.getElementById("showends");
+function apply() {
+  const z = zoom.value / 100, s = Math.min(1.15, Math.max(0.85, z));
+  zout.value = zoom.value + "%";
+  for (const h of dias) relevel(h, z, s);
+}
+zoom.addEventListener("input", apply);
+for (const b of document.querySelectorAll(".presets button")) b.addEventListener("click", () => { zoom.value = b.dataset.z; apply(); });
+showends.addEventListener("change", () => { for (const h of dias.slice(1)) for (const g of h.querySelectorAll(".labels")) g.classList.toggle("lit-ends", showends.checked); });
+apply();
+
+/* 3 · map chips for relation types */
+const USES = {
+  association: [["Model", ID(250), [["places", "Customer", "Order"], ["of", "Line", "Product"]]], ["Schema", ID(215), [["places", "Customer", "Order"], ["of", "Line", "Product"]]]],
+  line: [["Storefront", ID(190), [["price", "Cart", "Pricing"], ["pay", "Cart", "Payment"], ["", "Payment", "Order log"]]],
+         ["Shop", ID(190), [["routes", "Gateway", "Storefront"], ["placed", "Storefront", "Orders"], ["", "Orders", "Inventory"]]]],
+};
+const count = (t) => USES[t].reduce((n, [, , ls]) => n + ls.length, 0);
+function relchip(type, wire) {
+  const tile = ([n, f, t]) => wire
+    ? `<span class="tile" style="--hue:${REL[type].c}" title="${esc(f)} → ${esc(t)}">${swatch(type, 14, 8)}${esc(n || `${f} → ${t}`)}</span>`
+    : `<span class="tile old"><span class="mi"></span>${esc(n || "·")}</span>`;
+  return `<div class="chip" style="--hue:${REL[type].c}"><div class="head"><span class="name">${type}</span><span class="kind">relation</span></div>
+    <span class="ic ${wire ? "" : "sq"}">${wire ? swatch(type, 18, 8) : ""}</span>
+    <div class="facts"><span class="fact"><b>${count(type)}</b> lines</span><span class="fact"><b>${USES[type].length}</b> places</span></div>
+    <div class="places">${USES[type].map(([p, h, ls]) => `<div class="place" style="--hue:${h}"><span>${p}</span>${ls.map(tile).join("")}</div>`).join("")}</div></div>`;
+}
+for (const [id, wire] of [["map-now", false], ["map-a", true]])
+  document.getElementById(id).append(el(`<div class="box"><span class="title"><b>relations</b> · base · 9 types</span>${relchip("association", wire)}${relchip("line", wire)}</div>`));
+
+/* 4 · colour scenes: the same few things, today and proposed */
+function scene(id, after) {
+  const MODEL = after ? ID(160) : "oklch(0.8 0.19 150)";
+  const DIAG = ID(190), RECH = ID(215);
+  const tag = (n, h) => after
+    ? `<span class="tagc"><span class="ring" style="--t:${ID(h)}"></span>${n}</span>`
+    : `<span class="tagc"><span class="dot" style="--t:oklch(0.72 0.15 ${h})"></span></span>`;
+  const rows = [[0, MODEL, "Overview", 4, "sq"], [1, DIAG, "Storefront", 4, "sq", true], [1, RECH, "Order book", 3, "db"], [0, REL.association.c, "association", 4, "wire"], [0, REL.composition.c, "composition", 2, "wire2"]];
+  const rowh = rows.map(([d, h, n, c, ic, pick]) => `<div class="row${pick ? " pick" : ""}" style="--d:${d};--hue:${h}"><span class="edge"></span>${
+    ic === "wire" ? swatch("association", 16, 8) : ic === "wire2" ? swatch("composition", 16, 8) : `<span class="ri ${ic}"></span>`}<span class="nmr">${n}</span><span class="n">${c}</span></div>`).join("");
+  const chip = `<div class="chip picked" style="--hue:${DIAG}"><div class="head"><span class="name">Storefront</span><span class="kind">service</span></div><span class="ic sq"></span>
+    <div class="facts"><span class="fact"><b>4</b> blocks</span><span class="fact"><b>4</b> lines</span>${tag("critical", 25)}${tag("orders", 300)}</div>
+    <div class="facts"><span class="tile" style="--hue:${ID(160)}"><span class="mi"></span>Cart</span><span class="tile" style="--hue:${ID(160)}"><span class="mi"></span>Pricing</span><span class="tile" style="--hue:${RECH}"><span class="mi"></span>Order log</span></div></div>`;
+  const lc = REL.composition.c;
+  const cards = `<div class="mcards"><svg style="position:absolute;inset:0" width="300" height="92" aria-hidden="true">
+      <line x1="126" y1="46" x2="170" y2="46" stroke="${lc}" stroke-width="1.6"/>
+      <path d="M126 46 L133 42 L140 46 L133 50 Z" fill="${lc}"/>${after ? `<path d="M168 41 L168 51" stroke="${lc}" stroke-width="2.5"/>` : ""}</svg>
+    <div class="card" style="--x:0;--y:18;--hue:${RECH};width:126px"><div class="head"><span class="name">Order</span><span class="kind">record</span></div></div>
+    <div class="card" style="--x:170;--y:18;--hue:${RECH};width:126px"><div class="head"><span class="name">Line</span><span class="kind">record</span></div></div>
+    <div class="at nm h" style="--x:148;--y:46;--z:1;--s:1">has</div></div>`;
+  document.getElementById(id).append(el(`<div class="scene"><div class="explorer">${rowh}</div><div class="mini">${chip}${cards}</div></div>`));
+}
+scene("scene-now", false);
+scene("scene-new", true);
+
+/* hover: light the line, show its ends, open its card */
+const hover = document.getElementById("hover");
+let timer = null;
+function lit(id, host, on) {
+  host.querySelector(`g[data-line="${CSS.escape(id)}"]`)?.classList.toggle("lit", on);
+  host.querySelector(`.labels[data-for="${CSS.escape(id)}"]`)?.classList.toggle("lit", on);
+}
+function show(id, x, y) {
+  const l = LINES.find((l) => l.id === id), r = REL[l.type];
+  hover.style.setProperty("--hue", r.c);
+  hover.innerHTML = `<div class="hd"><span class="path">example › Overview › Shop › Data › Model</span><span class="ttl">${swatch(l.type, 18, 8)}${esc(l.id)}<small>${l.type}</small></span></div>
+    <div class="bd"><span>${esc(l.from)} → ${esc(l.to)}</span><span>${esc(r.d)}</span>
+    <div class="ends"><span>${esc(l.from)}</span><span>${esc([l.ends[0], l.roles[0]].filter(Boolean).join(" · "))}</span><span>${esc(l.to)}</span><span>${esc([l.ends[1], l.roles[1]].filter(Boolean).join(" · "))}</span></div>
+    <span>also drawn in Schema</span></div>
+    <div class="ft"><span><b>click</b> pick</span><span><b>double-click</b> its type's lines</span></div>`;
+  hover.hidden = false;
+  const b = hover.getBoundingClientRect();
+  hover.style.left = Math.max(8, Math.min(x + 16, innerWidth - b.width - 8)) + "px";
+  hover.style.top = Math.max(8, Math.min(y + 16, innerHeight - b.height - 8)) + "px";
+}
+document.addEventListener("pointerover", (e) => {
+  const t = e.target.closest?.(".hit"); if (!t) return;
+  const host = t.closest(".dia"); lit(t.dataset.line, host, true);
+  clearTimeout(timer); timer = setTimeout(() => show(t.dataset.line, e.clientX, e.clientY), 350);
+});
+document.addEventListener("pointerout", (e) => {
+  const t = e.target.closest?.(".hit"); if (!t) return;
+  lit(t.dataset.line, t.closest(".dia"), false); clearTimeout(timer); hover.hidden = true;
+});
+addEventListener("scroll", () => { hover.hidden = true; }, { passive: true });
+</script>

@@ -1,0 +1,346 @@
+<title>Tray Lists</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* mndflow's dark ramp, one look on purpose: the mockup shows the app's tray. */
+:root {
+  color-scheme: dark;
+  --gap: 6px;
+  --ground: oklch(0.145 0.015 160);
+  --outside: oklch(0.11 0.01 160);
+  --fill: oklch(0.195 0.018 160);
+  --raised: oklch(0.255 0.02 160);
+  --divide: oklch(0.245 0.02 160);
+  --line: oklch(0.335 0.028 160);
+  --stroke: oklch(0.42 0.03 160);
+  --dim: oklch(0.6 0.035 160);
+  --soft: oklch(0.8 0.03 160);
+  --ink: oklch(0.88 0.05 160);
+  --accent: oklch(0.8 0.19 150);
+  --warn: oklch(0.8 0.14 50);
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --sans: "IBM Plex Sans", system-ui, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { background: var(--outside); color: var(--ink); font: 14px/1.55 var(--sans); padding-inline: 16px; padding-block: 0 64px; margin: 0; }
+main { max-width: 1240px; margin: 0 auto; display: grid; gap: 34px; }
+header { padding-block: 40px 0; display: grid; gap: 10px; }
+h1 { font: 600 26px/1.2 var(--mono); margin: 0; letter-spacing: -0.01em; }
+h1 span { color: var(--accent); }
+h2 { font: 600 16px/1.3 var(--mono); margin: 0; text-wrap: balance; }
+h3 { font: 500 12px/1.3 var(--mono); margin: 0; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+p { margin: 0; max-width: 78ch; color: var(--soft); }
+code { font: 12.5px var(--mono); color: var(--ink); background: var(--fill); padding: 1px 4px; border-radius: 2px; }
+section.case { display: grid; gap: 10px; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; }
+.toc a { font: 11.5px var(--mono); color: var(--soft); text-decoration: none; border: 1px solid var(--line); padding: 3px 8px; }
+.toc a:hover, .toc a:focus-visible { color: var(--ink); border-color: var(--stroke); outline: none; }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in oklch, var(--outside) 92%, transparent);
+  backdrop-filter: blur(6px); border-bottom: 1px solid var(--divide); padding: 10px 0; display: flex; gap: 22px; align-items: center; flex-wrap: wrap;
+  font: 12px var(--mono); color: var(--dim); }
+.width { display: flex; gap: 10px; align-items: center; }
+.width input { width: min(260px, 50vw); accent-color: var(--accent); }
+.width output { color: var(--ink); min-width: 6ch; font-variant-numeric: tabular-nums; }
+.rule3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; }
+.rule3 > div { background: var(--fill); border: 1px solid var(--divide); padding: 9px 11px; display: grid; gap: 3px; }
+.rule3 b { font: 600 12px var(--mono); }
+.rule3 span { font-size: 12.5px; color: var(--soft); }
+
+/* marks */
+.fact { font: 10.5px/1 var(--mono); color: var(--dim); border: 1px solid var(--line); padding: 2px 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fact b { color: var(--ink); font-weight: 500; }
+.port { font: 10.5px/1 var(--mono); color: var(--dim); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.port.out { flex-direction: row-reverse; }
+.port i, .seat { width: 11px; height: 11px; border: 1.2px solid var(--dim); border-radius: 1px; display: inline-grid; place-items: center; font: 600 9px/1 var(--sans); font-style: normal; color: var(--soft); flex: none; }
+.port i::after, .seat::after { content: "›"; margin-top: -1px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--t); flex: none; display: inline-block; }
+.edge { width: 3px; height: 14px; background: var(--hue); border-radius: 1px; display: inline-block; }
+.ico { display: inline-block; width: 11px; height: 11px; border: 1.5px solid var(--dim); border-radius: 1px; flex: none; }
+.ico.db { border-radius: 50% / 25%; } .ico.flow { transform: rotate(45deg) scale(0.8); }
+.amk { width: 8px; height: 2px; background: var(--dim); display: inline-block; }
+.bmk { font: 600 11px/1 var(--mono); color: var(--dim); }
+.btn { font: 10.5px/1 var(--mono); border: 1px solid var(--line); padding: 3px 7px; color: var(--soft); background: transparent; white-space: nowrap; }
+
+/* the tray */
+.tray2 { container-type: inline-size; width: min(100%, calc(var(--trayw, 900) * 1px)); background: var(--fill); border: 1px solid var(--divide); }
+.thead { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--divide); flex-wrap: wrap; font-family: var(--mono); }
+.thead .chev { color: var(--dim); font-size: 10px; width: 10px; }
+.thead .nm { font: 600 14px var(--mono); }
+.thead .kd { font: 12px var(--mono); color: var(--dim); }
+.thead .role { font: 10px var(--mono); padding: 1px 6px; border: 1px solid var(--stroke); color: var(--soft); border-radius: 2px; }
+.thead .role.def { border-color: var(--hue); color: var(--ink); background: transparent; border-style: dashed; }
+.thead .facts { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; margin-left: 6px; }
+.thead .exp { margin-left: auto; color: var(--dim); font-size: 12px; }
+@container (max-width: 520px) { .thead .facts { margin-left: 21px; flex-basis: 100%; } }
+.tabs { display: flex; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--divide); font: 11px var(--mono); color: var(--dim); }
+.tabs span { padding: 5px 7px; }
+.tabs span.on { color: var(--accent); box-shadow: inset 0 -2px var(--accent); }
+.body { display: grid; gap: 14px 18px; padding: 12px 12px 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@container (min-width: 600px) { .body { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr); } .body > .secs { border-left: 1px solid var(--divide); padding-left: 16px; } }
+@container (min-width: 1040px) { .body { grid-template-columns: minmax(0, 0.8fr) minmax(0, 2fr); } .secs { grid-template-columns: repeat(2, minmax(0, 1fr)); } .secs > .wide { grid-column: 1 / -1; } }
+.secs { display: grid; gap: 16px 22px; align-content: start; min-width: 0; }
+.sec { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.sh { display: flex; align-items: center; gap: 6px; font: 400 10px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+.sh .n { color: var(--soft); }
+.sh .sp { flex: 1; }
+.info { position: relative; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--stroke); color: var(--dim); font: italic 600 9px/12px var(--sans); text-align: center; cursor: help; text-transform: none; letter-spacing: 0; }
+.info:hover, .info:focus-visible { color: var(--ink); border-color: var(--soft); outline: none; }
+.info .tip { position: absolute; left: 0; top: 19px; z-index: 4; width: max-content; max-width: 280px; font: 400 12px/1.45 var(--sans); color: var(--ink); background: var(--raised);
+  border: 1px solid var(--stroke); padding: 7px 9px; box-shadow: 0 6px 20px oklch(0 0 0 / 0.45); opacity: 0; pointer-events: none; transition: opacity 0.12s; }
+.info:hover .tip, .info:focus-visible .tip { opacity: 1; }
+
+/* rows on shared columns: mark · name · kind · what it says */
+.rows { display: grid; grid-template-columns: 14px max-content minmax(0, 1fr) auto; column-gap: 12px; row-gap: 1px; align-items: center; }
+.r { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; padding: 3px 8px; border-radius: 2px; font: 12px/1.35 var(--mono); min-height: 26px; cursor: default; }
+.r:hover, .r.hl { background: var(--raised); }
+.r .mk { display: flex; justify-content: center; align-items: center; }
+.r .nm { white-space: nowrap; }
+.r .kd { color: var(--dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.r .sv { display: flex; gap: 6px; align-items: center; justify-content: flex-end; font-size: 11.5px; color: var(--soft); white-space: nowrap; }
+.r .sv .q { color: var(--dim); font-size: 10.5px; }
+.r .sv .no { color: var(--dim); font-style: italic; }
+.rows > .band { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; padding: 0 8px 3px; border-bottom: 1px solid var(--line); margin-top: 10px; font: 9.5px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.rows > .band:first-child { margin-top: 0; }
+.band .bc { text-align: right; }
+.rec { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, auto)) minmax(0, 1fr); column-gap: 14px; font: 11.5px/1.9 var(--mono); }
+.rec > span { border-bottom: 1px solid var(--divide); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--soft); padding: 0 2px; }
+.rec > .h { color: var(--dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; border-color: var(--line); }
+.rec > .pl { grid-column: 1 / -1; color: var(--dim); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; border-color: var(--line); padding-top: 6px; }
+.quiet { font: 11px var(--mono); color: var(--dim); }
+
+/* the card, its members drawn on it */
+.card { position: relative; border: 1px solid color-mix(in oklch, var(--hue) 70%, var(--line)); background: var(--raised); border-radius: 3px; font-family: var(--mono); min-height: 120px; display: grid; align-content: start; }
+.card.def { background: transparent; border-style: dashed; }
+.ch { display: flex; gap: 8px; align-items: baseline; padding: 9px 30px 9px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.ch b { font: 600 14px var(--mono); }
+.ch .kd { font: 12px var(--mono); color: var(--dim); }
+.ch .dot { align-self: center; }
+.ch .ic { position: absolute; top: 10px; right: 10px; }
+.tbl { display: grid; grid-template-columns: auto auto 1fr; font: 11.5px/1.9 var(--mono); }
+.tbl > span { padding: 0 12px; border-bottom: 1px solid var(--divide); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tbl .t { color: var(--dim); }
+.tbl .no { color: var(--dim); font-style: italic; }
+.beh { border-top: 1px solid var(--line); padding: 4px 0; font: 11.5px/1.9 var(--mono); }
+.beh > div { padding: 0 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.beh .p { color: var(--dim); }
+.beh .flow { color: var(--dim); font-size: 10px; margin-left: 6px; }
+.card .seat { position: absolute; top: var(--y); width: 12px; height: 12px; margin-top: -6px; background: var(--ground); border-color: var(--stroke); z-index: 1; }
+.card .seat.in { left: -7px; } .card .seat.out { right: -7px; }
+.card .seat .sl { position: absolute; top: -2px; font: 10px var(--mono); color: var(--soft); white-space: nowrap; }
+.card .seat.in .sl { left: 17px; } .card .seat.out .sl { right: 17px; }
+.card .row-hl, .card .hl { background: color-mix(in oklch, var(--accent) 14%, transparent); }
+.card .seat.hl { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 25%, transparent); }
+.cap { font: 10.5px var(--mono); color: var(--dim); }
+
+/* the chip at tray size */
+.pchip { --hue: var(--line); background: var(--ground); border: 1px solid var(--line); border-left: 3px solid var(--hue); padding: var(--gap) 8px 8px; position: relative; display: grid; gap: var(--gap); font-family: var(--mono); }
+.pchip .chh { display: flex; gap: 6px; align-items: baseline; padding-right: 18px; }
+.pchip .chh b { font: 600 12px var(--mono); }
+.pchip .chh span { font: 11px var(--mono); color: var(--dim); }
+.grp.place { border: 1px solid var(--divide); background: var(--fill); padding: var(--gap); display: grid; gap: var(--gap); }
+.grp.place > .gl { font: 9.5px var(--mono); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grp.place > .gl::before { content: ""; display: inline-block; width: 6px; height: 6px; background: var(--gh); margin-right: 4px; }
+.groups { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.fold { display: flex; flex-wrap: wrap; gap: var(--gap); }
+.tile { --th: var(--line); font: 10.5px/1 var(--mono); height: 21px; padding: 0 6px; display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+  background: var(--raised); border: 1px solid var(--line); border-left: 2px solid var(--th); white-space: nowrap; overflow: hidden; color: var(--ink); }
+.tile.hl { outline: 1.5px solid var(--accent); outline-offset: 1px; }
+
+.verdict { display: grid; border: 1px solid var(--divide); background: var(--ground); margin: 0; }
+.verdict > div { display: grid; grid-template-columns: minmax(150px, 230px) 1fr; gap: 14px; padding: 9px 14px; border-bottom: 1px solid var(--divide); }
+.verdict > div:last-child { border-bottom: 0; }
+.verdict dt { font: 600 12px var(--mono); }
+.verdict dd { margin: 0; color: var(--soft); font-size: 13px; }
+@media (max-width: 560px) { .verdict > div { grid-template-columns: 1fr; gap: 4px; } }
+/* v8 */
+.card.def { background: transparent; border-style: solid; border-width: 1.5px; }
+.thead .role { font: 600 10px var(--mono); padding: 2px 7px; border-radius: 2px; border: 0; color: var(--dim); background: var(--raised); }
+.thead .role.def { color: var(--ground); background: var(--hue); border-style: solid; }
+.ch .role { font: 600 9.5px var(--mono); padding: 1px 5px; border-radius: 2px; color: var(--ground); background: var(--hue); align-self: center; }
+.visual { display: grid; gap: 14px; min-width: 0; align-content: start; }
+.vs { display: grid; gap: 6px; }
+.vt { font: 400 10px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; display: flex; justify-content: space-between; }
+.sh { font: 600 13px var(--mono); color: var(--ink); text-transform: none; letter-spacing: 0; gap: 8px; padding-bottom: 2px; }
+.sh .n { color: var(--dim); font-weight: 400; font-size: 12px; }
+.rows > .band { display: flex; justify-content: space-between; padding: 0 8px 3px 0; margin-left: 0; }
+.rows > .band .bc { padding-right: 0; }
+.grp.band2 { display: grid; gap: var(--gap); }
+.grp.band2 > .gl { font: 9.5px var(--mono); color: var(--dim); border-bottom: 1px solid var(--line); padding-bottom: 1px; }
+.groups.rows1 { grid-template-columns: 1fr; }
+.tile.lit { outline: 1.5px solid var(--accent); outline-offset: 1px; background: color-mix(in oklch, var(--accent) 16%, var(--raised)); }
+/* v9: one table look: a ruled band opens every list, a rule under every row */
+.r { border-radius: 0; border-bottom: 1px solid var(--divide); }
+.rows > .band { margin-top: 12px; }
+.rows > .band:first-child { margin-top: 0; }
+.empty { display: grid; gap: 6px; }
+.empty p { font: 12px/1.5 var(--sans); color: var(--soft); max-width: 52ch; }
+.empty .hint { font: 11px var(--mono); color: var(--dim); }
+.card .none { padding: 14px 12px; font: 11px var(--mono); color: var(--dim); }
+</style>
+
+<main>
+<header>
+  <h3>mndflow · design language mockup · 2026-10-30 · v9</h3>
+  <h1>Tray <span>lists</span></h1>
+  <p><b>v9.</b> Components shows the <b>card</b> left and the lists right; a chip appears only where it is the list drawn (a definition's uses or records). Every list opens on a ruled band and every row has a rule under it, one table look; sections carry no count, their bands do. A definition is told apart without dashes: its card is an outline with no ground, and a filled <b>definition</b> badge in its colour sits in the tray head and on the card; a use is filled, with a quiet <b>use</b> badge. Section names are stronger; band labels sit flush left. Components and usages rebuilt from Overview Forms for a tray whose first job is to say what an element is. The left is the visual; the right is <b>every section it has</b>, titled, each with an <b>i</b> saying what it is, its rows on shared columns. Nothing to add, no groups to pick, no gaps for what it lacks. Hover a row to light it on the card. The head says plainly whether it is a <b>definition</b> or a <b>use</b>. Drag <b>tray width</b> to watch it reflow.</p>
+  <nav class="toc" id="toc" aria-label="Cases"></nav>
+</header>
+
+<div class="bar" role="group" aria-label="Mockup controls">
+  <label class="width" for="tw">tray width <input id="tw" type="range" min="320" max="1240" value="900" step="10"><output id="two">900 px</output></label>
+</div>
+
+<section class="case">
+  <h2>Three card classes, one role</h2>
+  <div class="rule3">
+    <div><b>part</b><span>the default: any card that holds no layer. Its face lists its members: attributes, then behaviours as signatures, its ports on its walls. A class, a record, a registry are all parts</span></div>
+    <div><b>diagram</b><span>a card that holds a layer: its face is its chip. Its tab is contents</span></div>
+    <div><b>document</b><span>text and no members: its face is its text</span></div>
+    <div><b>definition, a role</b><span>any of them can be a definition: an outline with no ground, a filled badge in its colour, and a uses tab</span></div>
+  </div>
+</section>
+
+<div id="cases" style="display:grid;gap:40px"></div>
+
+<section class="case">
+  <h2>What changes</h2>
+  <dl class="verdict">
+    <div><dt>read first</dt><dd>components shows every section the element has, at once, as the overview does. No picker, no add lists, no rows for what it lacks: an empty section is simply absent, and the facts strip says what is there</dd></div>
+    <div><dt>class face</dt><dd>a part with behaviours draws as a class card: attributes, then its behaviours by signature in the last section. A behaviour with steps says so and opens its flow</dd></div>
+    <div><dt>role</dt><dd>a definition wears a filled badge in its colour, in the tray head and on its card, and its card is an outline with no ground; a use is filled and its badge is quiet</dd></div>
+    <div><dt>usages</dt><dd>the definition's chip of uses on the left; uses by place on the right. A record definition's uses are its records, so they read as a table under each place</dd></div>
+    <div><dt>edits</dt><dd>basic edits (a name, a description, a style or setting) belong to the card and settings tabs, still to be rethought; components and usages only read</dd></div>
+  </dl>
+</section>
+</main>
+
+<script>
+const ID = (h) => `oklch(0.75 0.11 ${h})`;
+const HUE = { gateway: ID(210), pattern: ID(235), component: ID(140), database: ID(200), record: ID(215), service: ID(180), iface: ID(110) };
+const TAG = { critical: ID(25), fulfilment: ID(190), pii: ID(330), payments: ID(140) };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const ico = (i) => `<span class="ico ${i || ""}"></span>`;
+const fact = (n, w) => `<span class="fact"><b>${n}</b> ${w}</span>`;
+const port = (n, f) => `<span class="port ${f}"><i></i>${esc(n)}</span>`;
+const dot = (t) => `<span class="dot" style="--t:${TAG[t]}"></span>`;
+const info = (t) => `<span class="info" tabindex="0" role="note" aria-label="${esc(t)}">i<span class="tip">${esc(t)}</span></span>`;
+const band = (label, n = "") => `<div class="band"><span>${label}</span><span class="bc">${n}</span></div>`;
+const r = (o) => `<div class="r" data-k="${esc(o.k || o.n)}" style="${o.hue ? `--hue:${o.hue}` : ""}"><span class="mk">${o.mk || ""}</span><span class="nm">${esc(o.n)}</span><span class="kd">${o.kd || ""}</span><span class="sv">${o.sv || ""}</span></div>`;
+const sec = (title, n, tip, body, wide = false) => `<section class="sec${wide ? " wide" : ""}"><div class="sh"><span>${title}</span>${info(tip)}<span class="sp"></span></div>${body}</section>`;
+
+/** The card with its members on it: attributes, then behaviours by signature; ports as seats; tags in its head. */
+function card(c) {
+  const seats = (f) => (c.ports || []).filter((p) => p.f === f).map((p, i, all) =>
+    `<span class="seat ${f}" data-k="${p.n}" style="--y:${(100 * (i + 1)) / (all.length + 1)}%"><span class="sl">${esc(p.n)}</span></span>`).join("");
+  const attrs = (c.attrs || []).map((a) => `<span class="t" data-k="${a.n}">${a.t}</span><span data-k="${a.n}">${a.n}</span><span data-k="${a.n}" class="${a.v === null ? "no" : ""}">${a.v === null ? "—" : esc(a.v)}</span>`).join("");
+  const behs = (c.behs || []).map((b) => `<div data-k="${b.n}">${esc(b.n)}<span class="p">(${esc(b.args)})</span>${b.ret ? `<span class="p">: ${esc(b.ret)}</span>` : ""}${b.flow ? `<span class="flow">◇ flow</span>` : ""}</div>`).join("");
+  return `<div class="card${c.def ? " def" : ""}" style="--hue:${c.hue}">${seats("in")}${seats("out")}
+    <div class="ch"><b>${esc(c.name)}</b><span class="kd">${esc(c.kind)}</span>${c.def ? `<span class="role">definition</span>` : ""}${(c.tags || []).map((t) => `<span data-k="${t}">${dot(t)}</span>`).join("")}<span class="ic">${ico(c.icon)}</span></div>
+    ${attrs ? `<div class="tbl">${attrs}</div>` : ""}${behs ? `<div class="beh">${behs}</div>` : ""}</div>`;
+}
+const head = (o) => `<div class="thead"><span class="chev">▾</span><span class="edge" style="--hue:${o.hue}"></span><span class="nm">${esc(o.name)}</span><span class="kd">${esc(o.kind)}</span>
+  <span class="role${o.def ? " def" : ""}" style="--hue:${o.hue}">${o.def ? "definition" : "use"}</span><span class="facts">${o.facts || ""}</span><span class="exp">⤢</span></div>`;
+const vis = (cardHtml, chipTitle, chipHtml) => `<div class="vs"><span class="vt">card</span>${cardHtml}</div>${chipHtml ? `<div class="vs"><span class="vt">${chipTitle}</span>${chipHtml}</div>` : ""}`;
+const tray = (o, tab, visual, secs) => `<div class="tray2">${head(o)}<div class="tabs">${o.tabs.map((t) => `<span class="${t === tab ? "on" : ""}">${t}</span>`).join("")}</div>
+  <div class="body"><div class="visual">${visual}</div><div class="secs">${secs}</div></div></div>`;
+const T_USE = ["overview", "card", "components"], T_DEF = ["overview", "card", "settings", "components", "usages"];
+const ATTR = `<span class="amk"></span>`;
+const TIP = {
+  attrs: "The values it answers. Its definitions declare them; it fills them in.",
+  declares: "What its uses answer: each attribute's name and type.",
+  ports: "Where lines meet its walls. Each has a flow, in or out, and an interface saying what crosses it.",
+  behs: "What it does: its methods, by signature. Its in ports are their parameters, its out ports their return. One with steps opens as its own flow.",
+  tags: "Labels from the workspace's tag families.",
+  uses: "Every usage, reference and line typed by it, grouped by the diagram that draws it.",
+  records: "Its uses answer its attributes: each a record, grouped by the store that holds it.",
+  subtypes: "Definitions that extend it, and so read through it.",
+};
+
+const BLOCK = ID(160), INTERNAL = ID(195);
+function pchip(c) {
+  return `<div class="pchip" style="--hue:${c.hue}"><div class="chh"><b>${esc(c.name)}</b><span>${esc(c.kind)}</span></div><div class="groups${c.one ? " rows1" : ""}">${c.groups.map((g) =>
+    `<div class="grp ${g.style}" style="--gh:${g.hue || "var(--line)"}"><span class="gl">${esc(g.label)}</span><div class="fold">${g.tiles.map((t) =>
+      `<span class="tile${t.n === c.lit ? " lit" : ""}" data-k="${esc(t.k || t.n)}" style="--th:${t.hue || BLOCK}">${esc(t.n)}</span>`).join("")}</div></div>`).join("")}</div></div>`;
+}
+const SHOP = (lit) => pchip({ name: "Shop", kind: "internal", hue: INTERNAL, one: true, lit, groups: [
+  { style: "band2", label: "Customer facing", tiles: [{ n: "Gateway", hue: HUE.gateway }, { n: "Storefront", hue: INTERNAL }] },
+  { style: "band2", label: "Back office", tiles: [{ n: "Inventory", hue: HUE.service }, { n: "Shipping", hue: HUE.service }, { n: "Orders", hue: HUE.pattern }, { n: "Payments", hue: HUE.pattern }, { n: "Audit log", hue: HUE.database }] },
+  { style: "band2", label: "Data", tiles: [{ n: "Model", hue: ID(245) }, { n: "Schema", hue: ID(215) }] }] });
+const STOREFRONT = (lit) => pchip({ name: "Storefront", kind: "service", hue: INTERNAL, one: true, lit, groups: [
+  { style: "band2", label: "", tiles: [{ n: "Cart", hue: HUE.component }, { n: "Pricing" }, { n: "Payment" }, { n: "Order log", hue: HUE.record }] }] });
+const USES_P = [["Anti-corruption layer", ["Facade", "Translator", "Client"]], ["API gateway", ["Auth", "Rate limit", "Router"]], ["Circuit breaker", ["Caller", "Breaker", "Fallback"]],
+  ["Layered architecture", ["API", "Domain logic", "Repository"]], ["Saga orchestrator", ["Orchestrator", "Compensations"]], ["Transactional outbox", ["API", "Domain logic", "Relay"]]];
+const USES_CHIP = pchip({ name: "component", kind: "17 uses in 6 places", hue: HUE.component, groups: USES_P.map(([p, us]) => ({ style: "place", label: p, hue: HUE.pattern, tiles: us.map((n) => ({ n, k: `${p}/${n}`, hue: HUE.component })) })) });
+const ORDER_CHIP = pchip({ name: "Order", kind: "4 records in 2 places", hue: HUE.record, groups: [
+  { style: "place", label: "Order book", hue: HUE.pattern, tiles: ["1001", "1002", "1003"].map((n) => ({ n, hue: HUE.record })) },
+  { style: "place", label: "Order log", hue: INTERNAL, tiles: [{ n: "1004", hue: HUE.record }] }] });
+
+const CASES = [
+{ id: "part", title: "A part", lede: "Gateway, a use of API gateway: two attributes, two ports, a tag. Every section it has is shown; it has no behaviours, so there is no behaviours section.",
+  html: () => tray({ name: "Gateway", kind: "API gateway", of: "API gateway", hue: HUE.gateway, tabs: T_USE, facts: fact(2, "attributes") + port("requests", "in") + port("routes", "out") + dot("critical") }, "components",
+    vis(card({ name: "Gateway", kind: "API gateway", hue: HUE.gateway, tags: ["critical"], attrs: [{ t: "text", n: "owner", v: "Web" }, { t: "text", n: "technology", v: null }], ports: [{ n: "requests", f: "in" }, { n: "routes", f: "out" }] })),
+    sec("attributes", 2, TIP.attrs, `<div class="rows">${band("from component", 2)}${r({ n: "owner", mk: ATTR, kd: "text", sv: "Web" })}${r({ n: "technology", mk: ATTR, kd: "text", sv: `<span class="no">not answered</span>` })}</div>`)
+    + sec("ports", 2, TIP.ports, `<div class="rows">${band("in", 1)}${r({ n: "requests", mk: `<span class="port in"><i></i></span>`, kd: "HTTP", sv: `<span class="q">from Shop · auto seat</span>` })}${band("out", 1)}${r({ n: "routes", mk: `<span class="port out"><i></i></span>`, kd: "HTTP", sv: `<span class="q">to Storefront · auto seat</span>` })}</div>`)
+    + sec("tags", 1, TIP.tags, `<div class="rows">${band("risk", 1)}${r({ n: "critical", mk: dot("critical"), kd: "risk", sv: `<span class="q">orders stop when this fails</span>` })}</div>`)) },
+
+{ id: "class", title: "A part with behaviours: a class card", lede: "Cart, a part of Storefront, with two behaviours (made up for the example). It draws as a class card: attributes, then behaviours by signature in the last section. checkout has steps, so it opens as its own flow.",
+  html: () => tray({ name: "Cart", kind: "component", hue: HUE.component, tabs: T_USE, facts: fact(2, "attributes") + fact(2, "behaviours") + port("out", "out") }, "components",
+    vis(card({ name: "Cart", kind: "component", hue: HUE.component, attrs: [{ t: "text", n: "owner", v: "Web" }, { t: "text", n: "technology", v: "TypeScript" }],
+      behs: [{ n: "add", args: "product: Product, qty: number", ret: "" }, { n: "checkout", args: "", ret: "Order", flow: true }], ports: [{ n: "out", f: "out" }] })),
+    sec("attributes", 2, TIP.attrs, `<div class="rows">${band("from component", 2)}${r({ n: "owner", mk: ATTR, kd: "text", sv: "Web" })}${r({ n: "technology", mk: ATTR, kd: "text", sv: "TypeScript" })}</div>`)
+    + sec("behaviours", 2, TIP.behs, `<div class="rows">${band("own", 2)}${r({ n: "add", mk: `<span class="bmk">ƒ</span>`, kd: "(product: Product, qty: number)", sv: `<span class="q">signature only</span>` })}${r({ n: "checkout", mk: `<span class="bmk">ƒ</span>`, kd: "(): Order", sv: `<span class="q">flow</span><span class="btn">read</span>` })}</div>`)
+    + sec("ports", 1, TIP.ports, `<div class="rows">${band("out", 1)}${r({ n: "out", mk: `<span class="port out"><i></i></span>`, kd: "", sv: `<span class="q">to Pricing, Payment</span>` })}</div>`)) },
+
+{ id: "sparse", title: "A sparse part", lede: "Audit log, a use of database: three attributes, none answered, and nothing else. One section; the facts strip says the rest is absent.",
+  html: () => tray({ name: "Audit log", kind: "database", of: "database", hue: HUE.database, tabs: T_USE, facts: fact(3, "attributes") }, "components",
+    vis(card({ name: "Audit log", kind: "database", icon: "db", hue: HUE.database, attrs: [{ t: "text", n: "owner", v: null }, { t: "text", n: "technology", v: null }, { t: "text", n: "engine", v: null }] })),
+    sec("attributes", 3, TIP.attrs, `<div class="rows">${band("from component", 2)}${r({ n: "owner", mk: ATTR, kd: "text", sv: `<span class="no">not answered</span>` })}${r({ n: "technology", mk: ATTR, kd: "text", sv: `<span class="no">not answered</span>` })}${band("from database", 1)}${r({ n: "engine", mk: ATTR, kd: "text", sv: `<span class="no">not answered</span>` })}</div>`)) },
+
+{ id: "empty", title: "A part with no components", lede: "Block 7: a plain block, nothing declared or carried. The card is its name alone at its least height; the right says so in one sentence, and where these come from.",
+  html: () => tray({ name: "Block 7", kind: "block", hue: ID(160), tabs: T_USE }, "components",
+    vis(`<div class="card" style="--hue:${ID(160)}"><div class="ch"><b>Block 7</b><span class="kd">block</span><span class="ic">${ico()}</span></div><div class="none">no attributes, ports, behaviours or tags</div></div>`),
+    `<section class="sec empty"><div class="sh"><span>components</span>${info("What it carries: attributes, ports, behaviours, tags and constraints.")}<span class="sp"></span></div>
+      <div class="rows">${band("none")}</div>
+      <p>Block 7 carries nothing yet. Attributes come from its definition, which it does not have: it is a plain block.</p>
+      <span class="hint">typing it gives it its definition's attributes and ports</span></section>`) },
+
+{ id: "def", title: "A definition's components", lede: "component, a definition: its card is dashed, its head says definition, and its attributes are declarations (name, type, how many uses answer it), not values.",
+  html: () => tray({ name: "component", kind: "block", def: true, hue: HUE.component, tabs: T_DEF, facts: fact(17, "uses") + fact(2, "attributes") + fact(2, "subtypes") }, "components",
+    vis(card({ name: "component", kind: "block", def: true, hue: HUE.component, attrs: [{ t: "text", n: "owner", v: "" }, { t: "text", n: "technology", v: "" }] })),
+    sec("declares", 2, TIP.declares, `<div class="rows">${band("declared here", 2)}${r({ n: "owner", mk: ATTR, kd: "text", sv: `<span class="q">answered by 12 of 17</span>` })}${r({ n: "technology", mk: ATTR, kd: "text", sv: `<span class="q">answered by 9 of 17</span>` })}</div>`)) },
+
+{ id: "uses", title: "A definition's usages", lede: "component's usages: its card and its chip of uses on the left, its uses by place on the right, then its subtypes. Hover a use to light its tile.",
+  html: () => tray({ name: "component", kind: "block", def: true, hue: HUE.component, tabs: T_DEF, facts: fact(17, "uses") + fact(6, "places") + fact(2, "subtypes") }, "usages",
+    vis(card({ name: "component", kind: "block", def: true, hue: HUE.component, attrs: [{ t: "text", n: "owner", v: "" }, { t: "text", n: "technology", v: "" }] }), "its uses", USES_CHIP),
+    sec("uses", 17, TIP.uses, `<div class="rows">${USES_P.map(([p, us]) => band(p, us.length) + us.map((n) => r({ k: `${p}/${n}`, n, mk: `<span class="edge"></span>`, hue: HUE.component, kd: "component" })).join("")).join("")}</div>`, true)
+    + sec("subtypes", 2, TIP.subtypes, `<div class="rows">${band("extend component", 2)}${r({ n: "database", mk: `<span class="edge"></span>`, hue: HUE.database, kd: "extends component", sv: `<span class="q">4 uses</span>` })}${r({ n: "service", mk: `<span class="edge"></span>`, hue: HUE.service, kd: "extends component", sv: `<span class="q">6 uses</span>` })}</div>`)) },
+
+{ id: "records", title: "A record definition's usages: its records", lede: "Order is a part too, a record: its uses answer its attributes, so its usages read as a table under each store that holds them. A record, a class and a registry need no class of their own.",
+  html: () => {
+    const rec = (place, rows) => `<span class="pl">${place} · ${rows.length}</span>` + rows.map((row) => row.map((c) => `<span>${esc(c)}</span>`).join("")).join("");
+    return tray({ name: "Order", kind: "record", def: true, hue: HUE.record, tabs: T_DEF, facts: fact(4, "records") + fact(4, "attributes") + fact(2, "places") }, "usages",
+      vis(card({ name: "Order", kind: "record", def: true, icon: "db", hue: HUE.record, attrs: [{ t: "id", n: "id", v: "" }, { t: "Customer", n: "customer", v: "" }, { t: "Status", n: "status", v: "" }, { t: "number", n: "total", v: "" }] }), "its uses", ORDER_CHIP),
+      sec("records", 4, TIP.records, `<div class="rec" style="--cols:3"><span class="h">id</span><span class="h">customer</span><span class="h">status</span><span class="h">total</span>
+        ${rec("Order book", [["1001", "Ada", "paid", "42.00"], ["1002", "Ada", "pending", "18.50"], ["1003", "Grace", "shipped", "77.10"]])}${rec("Order log", [["1004", "Linus", "paid", "12.00"]])}</div>`, true));
+  } },
+];
+
+const host = document.getElementById("cases"), toc = document.getElementById("toc");
+for (const c of CASES) {
+  toc.insertAdjacentHTML("beforeend", `<a href="#${c.id}">${esc(c.title)}</a>`);
+  host.insertAdjacentHTML("beforeend", `<section class="case" id="${c.id}"><h2>${esc(c.title)}</h2><p>${esc(c.lede)}</p>${c.html()}</section>`);
+}
+
+/* hovering a row lights what it names on the visual: a face row, a seat, a behaviour, a tile */
+document.addEventListener("pointerover", (e) => {
+  const row = e.target.closest?.(".r[data-k]"); if (!row) return;
+  const t = row.closest(".tray2");
+  for (const x of t.querySelectorAll(".visual [data-k]")) x.classList.toggle("hl", x.dataset.k === row.dataset.k);
+});
+document.addEventListener("pointerout", (e) => {
+  const row = e.target.closest?.(".r[data-k]"); if (!row || row.contains(e.relatedTarget)) return;
+  for (const x of row.closest(".tray2").querySelectorAll(".visual .hl")) x.classList.remove("hl");
+});
+const tw = document.getElementById("tw"), two = document.getElementById("two");
+tw.addEventListener("input", () => { document.documentElement.style.setProperty("--trayw", tw.value); two.value = tw.value + " px"; });
+</script>

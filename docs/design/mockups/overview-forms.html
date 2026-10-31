@@ -1,0 +1,599 @@
+<title>Overview Forms</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* mndflow's dark ramp, one look on purpose: the mockup shows the app's tray. */
+:root {
+  color-scheme: dark;
+  --gap: 6px;
+  --ground: oklch(0.145 0.015 160);
+  --outside: oklch(0.11 0.01 160);
+  --fill: oklch(0.195 0.018 160);
+  --raised: oklch(0.255 0.02 160);
+  --divide: oklch(0.245 0.02 160);
+  --line: oklch(0.335 0.028 160);
+  --stroke: oklch(0.42 0.03 160);
+  --dim: oklch(0.6 0.035 160);
+  --soft: oklch(0.8 0.03 160);
+  --ink: oklch(0.88 0.05 160);
+  --accent: oklch(0.8 0.19 150);
+  --warn: oklch(0.8 0.14 50);
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --sans: "IBM Plex Sans", system-ui, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { background: var(--outside); color: var(--ink); font: 14px/1.55 var(--sans); padding-inline: 16px; padding-block: 0 64px; margin: 0; }
+main { max-width: 1240px; margin: 0 auto; display: grid; gap: 34px; }
+header { padding-block: 40px 0; display: grid; gap: 10px; }
+h1 { font: 600 26px/1.2 var(--mono); margin: 0; letter-spacing: -0.01em; }
+h1 span { color: var(--accent); }
+h2 { font: 600 16px/1.3 var(--mono); margin: 0; text-wrap: balance; }
+h3 { font: 500 12px/1.3 var(--mono); margin: 0; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+p { margin: 0; max-width: 76ch; color: var(--soft); }
+section.case { display: grid; gap: 10px; }
+.case .lede { font-size: 13.5px; }
+ul.rules { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 90ch; color: var(--soft); }
+ul.rules b { color: var(--ink); font-weight: 600; }
+code { font: 12.5px var(--mono); color: var(--ink); background: var(--fill); padding: 1px 4px; border-radius: 2px; }
+.tag { font: 500 11px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+.tag.now { color: var(--warn); }
+.tag.new { color: var(--accent); }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr)); gap: 16px; align-items: start; }
+.col { display: grid; gap: 6px; min-width: 0; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; }
+.toc a { font: 11.5px var(--mono); color: var(--soft); text-decoration: none; border: 1px solid var(--line); padding: 3px 8px; }
+.toc a:hover, .toc a:focus-visible { color: var(--ink); border-color: var(--stroke); outline: none; }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in oklch, var(--outside) 92%, transparent);
+  backdrop-filter: blur(6px); border-bottom: 1px solid var(--divide); padding: 10px 0; display: flex; gap: 22px; align-items: center; flex-wrap: wrap;
+  font: 12px var(--mono); color: var(--dim); }
+.seg { display: inline-flex; border: 1px solid var(--line); }
+.seg button { font: 12px var(--mono); background: none; color: var(--dim); border: 0; padding: 4px 9px; cursor: pointer; }
+.seg button[aria-pressed=true] { background: var(--raised); color: var(--ink); }
+.seg button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+
+/* a tray panel */
+.tray { background: var(--fill); border: 1px solid var(--divide); display: grid; min-width: 0; }
+.tray .th { display: flex; align-items: baseline; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--divide); font: 12.5px var(--mono); }
+.tray .th b { font-weight: 600; }
+.tray .th .what { font: 10.5px var(--mono); color: var(--dim); background: var(--raised); padding: 1px 6px; }
+.tray .tabs { display: flex; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--divide); font: 11px var(--mono); color: var(--dim); }
+.tray .tabs span { padding: 5px 7px; }
+.tray .tabs span.on { color: var(--accent); box-shadow: inset 0 -2px var(--accent); }
+.ov { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 14px; padding: 10px; min-height: 250px; }
+@media (max-width: 560px) { .ov { grid-template-columns: 1fr; } }
+.glance { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.answers { display: flex; flex-direction: column; gap: 11px; min-width: 0; font-size: 12.5px; }
+.answers h5 { margin: 0 0 3px; font: 400 10px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+.answers p { font-size: 12.5px; line-height: 1.45; color: var(--ink); }
+.faint { color: var(--dim); font-size: 11px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.cl { font: 11px/1 var(--mono); border: 1px solid var(--line); padding: 3px 6px; color: var(--soft); display: inline-flex; gap: 4px; align-items: center; white-space: nowrap; }
+.cl small { color: var(--dim); }
+.btn { font: 11px/1 var(--mono); border: 1px solid var(--stroke); padding: 3px 7px; color: var(--ink); background: var(--raised); }
+.trail { font: 11px var(--mono); color: var(--soft); }
+.stat { display: flex; gap: 10px; font: 11px var(--mono); color: var(--dim); flex-wrap: wrap; }
+.stat b { color: var(--ink); font-weight: 500; }
+
+/* today's glance */
+.cap { font: 11px var(--mono); color: var(--dim); display: flex; gap: 6px; align-items: center; }
+.cap b { color: var(--ink); font-weight: 600; }
+.thumb { background: var(--ground); border: 1px solid var(--divide); min-height: 170px; display: flex; align-items: center; justify-content: center; position: relative; }
+.thumb svg { width: 100%; height: auto; display: block; }
+.thumb .opens { position: absolute; right: 6px; bottom: 5px; display: flex; gap: 4px; }
+.pic-wire { stroke: var(--stroke); fill: none; stroke-width: 1.2; }
+.pic-peer, .pic-use { fill: var(--raised); stroke: var(--line); }
+.pic-me { fill: color-mix(in oklch, var(--accent) 12%, var(--raised)); stroke: var(--accent); }
+.svgt { fill: var(--ink); font: 11px var(--mono); }
+.svgt.dim { fill: var(--dim); font-size: 10px; }
+.flowrow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center; font: 11px var(--mono); }
+.flowrow .side { display: grid; gap: 3px; }
+.flowrow .side.r { text-align: right; }
+.flowrow .hub { border: 1px solid var(--stroke); padding: 2px 6px; }
+.flowrow small { color: var(--dim); }
+.make { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.make .faint { width: 100%; text-align: center; }
+.words { font: 13px/1.5 var(--sans); color: var(--ink); padding: 14px; margin: 0; }
+.bar6 { display: flex; height: 6px; gap: 1px; }
+.bar6 i { flex: var(--n); background: var(--h); }
+
+/* proposed: the language's own pieces */
+.idrow { display: flex; align-items: baseline; gap: 8px; padding: 9px 10px 0; font-family: var(--mono); flex-wrap: wrap; }
+.idrow .nm { font: 600 13px var(--mono); }
+.idrow .kd { font: 11.5px var(--mono); color: var(--dim); }
+.idrow .edge { width: 3px; height: 13px; background: var(--hue); align-self: center; border-radius: 1px; }
+.facts { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; padding: 6px 10px 0; }
+.fact { font: 10.5px/1 var(--mono); color: var(--dim); border: 1px solid var(--line); padding: 2px 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fact b { color: var(--ink); font-weight: 500; }
+.port { font: 10px/1 var(--mono); color: var(--dim); display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.port i { width: 6px; height: 6px; border: 1.2px solid var(--dim); display: inline-block; }
+.port.in i { border-radius: 50%; }
+.tg { display: inline-flex; gap: 4px; align-items: center; font: 10.5px/1 var(--mono); color: var(--soft); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--t); flex: none; display: inline-block; }
+.gap { background: color-mix(in oklch, var(--ink) 5%, var(--fill)); border-radius: 2px; color: var(--dim); font: 11px/1.3 var(--mono); padding: 5px 8px; }
+.gap b { color: var(--soft); font-weight: 500; }
+body.viewer .gap, body.viewer .make { display: none; }
+
+/* the large face, as a diagram card draws it */
+.face { border: 1px solid color-mix(in oklch, var(--hue) 70%, var(--line)); background: var(--raised); border-radius: 3px; font-family: var(--mono); position: relative; min-height: 76px; }
+.face.def { background: transparent; }
+.face .fh { display: flex; gap: 6px; align-items: baseline; padding: 5px 24px 5px 8px; }
+.face .fh b { font: 600 12px var(--mono); }
+.face .fh span { font: 11px var(--mono); color: var(--dim); }
+.face .ic { position: absolute; top: 7px; right: 7px; }
+.face .tbl { display: grid; grid-template-columns: auto auto 1fr; font: 10.5px/1.6 var(--mono); border-top: 1px solid var(--line); }
+.face .tbl > span { padding: 0 8px; border-bottom: 1px solid var(--divide); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.face .tbl .t { color: var(--dim); }
+.face .tbl .gp { color: var(--dim); background: color-mix(in oklch, var(--ink) 5%, var(--raised)); font-style: italic; }
+body.viewer .face .tbl .gp { font-style: normal; }
+.face .body { font: 11px/1.45 var(--sans); color: var(--soft); padding: 4px 8px 7px; border-top: 1px solid var(--line); }
+
+/* icons */
+.ico { display: inline-block; width: 11px; height: 11px; border: 1.5px solid var(--dim); border-radius: 1px; flex: none; }
+.ico.round { border-radius: 50%; } .ico.db { border-radius: 50% / 25%; } .ico.doc { border-radius: 1px 5px 1px 1px; }
+.ico.flow { transform: rotate(45deg) scale(0.8); } .ico.folder { border-color: var(--stroke); border-radius: 1px 4px 1px 1px; }
+.ico.mark { border-radius: 50%; width: 9px; height: 9px; background: var(--dim); border: 0; }
+
+/* the chip, at tray size: structure, never drawing */
+.pchip { --hue: var(--line); background: var(--ground); border: 1px solid var(--line); border-left: 3px solid var(--hue); padding: var(--gap) 8px 8px; position: relative; display: grid; gap: var(--gap); font-family: var(--mono); }
+.pchip .ch { display: flex; gap: 6px; align-items: baseline; padding-right: 18px; }
+.pchip .ch b { font: 600 12px var(--mono); }
+.pchip .ch span { font: 11px var(--mono); color: var(--dim); }
+.pchip > .ico { position: absolute; top: 7px; right: 6px; }
+.grp { display: grid; gap: var(--gap); min-width: 0; }
+.grp.band > .gl { font: 9.5px var(--mono); color: var(--dim); border-bottom: 1px solid var(--line); padding-bottom: 1px; }
+.grp.place { border: 1px solid var(--divide); background: var(--fill); padding: var(--gap); }
+.grp.place > .gl { font: 9.5px var(--mono); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grp.place > .gl::before { content: ""; display: inline-block; width: 6px; height: 6px; background: var(--gh); margin-right: 4px; }
+.grp.rank > .gl { display: none; }
+.groups { display: grid; gap: var(--gap); }
+.groups.cols { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.fold { display: flex; flex-wrap: wrap; gap: var(--gap); }
+.tile { --th: var(--line); font: 10.5px/1 var(--mono); height: 21px; padding: 0 6px; display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+  background: var(--raised); border: 1px solid var(--line); border-left: 2px solid var(--th); white-space: nowrap; overflow: hidden; color: var(--ink); }
+.tile .ico { width: 8px; height: 8px; border-width: 1.2px; }
+.tile.quiet { background: transparent; border-color: var(--divide); color: var(--dim); }
+.tile.more { background: transparent; border-color: var(--divide); border-left-width: 1px; color: var(--dim); }
+.tile.lit { outline: 1.5px solid var(--accent); outline-offset: 1px; background: color-mix(in oklch, var(--accent) 16%, var(--raised)); }
+.tile[hidden] { display: none; }
+.pcap { font: 10px var(--mono); color: var(--dim); display: flex; justify-content: space-between; gap: 8px; }
+.pcap b { color: var(--soft); font-weight: 500; }
+
+/* the connections picture, proposed: peers as tiles, lines named beside */
+.conn { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; background: var(--ground); border: 1px solid var(--divide); padding: 14px 10px; min-height: 140px; }
+.conn .side { display: grid; gap: 8px; min-width: 0; }
+.conn .peer { display: grid; gap: 2px; min-width: 0; }
+.conn .side.l .peer { justify-items: end; }
+.conn .via { display: flex; gap: 4px; align-items: center; font: 10px var(--mono); color: var(--dim); white-space: nowrap; }
+.conn .me { border: 1px solid color-mix(in oklch, var(--hue) 70%, var(--line)); background: color-mix(in oklch, var(--accent) 14%, var(--raised)); outline: 1.5px solid var(--accent); outline-offset: 1px;
+  padding: 6px 9px; font: 600 12px var(--mono); border-radius: 3px; white-space: nowrap; }
+.conn .none { font: 10.5px var(--mono); color: var(--dim); }
+
+/* the box at tray size: a folder's chips */
+.pbox { border: 1px solid var(--line); padding: 24px 8px 8px; position: relative; display: flex; flex-wrap: wrap; gap: var(--gap); background: var(--ground); }
+.pbox > .bt { position: absolute; top: 4px; left: 7px; font: 11px var(--mono); color: var(--dim); }
+.pbox > .bt b { color: var(--soft); font-weight: 500; }
+.pbox .pchip { background: var(--fill); flex: 1 1 140px; }
+
+.verdict { display: grid; border: 1px solid var(--divide); background: var(--ground); margin: 0; }
+.verdict > div { display: grid; grid-template-columns: minmax(150px, 230px) 1fr; gap: 14px; padding: 9px 14px; border-bottom: 1px solid var(--divide); }
+.verdict > div:last-child { border-bottom: 0; }
+.verdict dt { font: 600 12px var(--mono); }
+.verdict dd { margin: 0; color: var(--soft); font-size: 13px; }
+@media (max-width: 560px) { .verdict > div { grid-template-columns: 1fr; gap: 4px; } }
+
+/* v2: one tray, its head the identity row, its overview in titled sections that reflow with the tray's width */
+.trays { display: grid; gap: 10px; }
+.tray2 { container-type: inline-size; width: min(100%, calc(var(--trayw, 760) * 1px)); background: var(--fill); border: 1px solid var(--divide); }
+.thead { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--divide); flex-wrap: wrap; font-family: var(--mono); }
+.thead .chev { color: var(--dim); font-size: 10px; width: 10px; }
+.thead .edge { width: 3px; height: 15px; background: var(--hue); border-radius: 1px; }
+.thead .nm { font: 600 14px var(--mono); }
+.thead .kd { font: 12px var(--mono); color: var(--dim); }
+.thead .mk { font: 9.5px var(--mono); color: var(--dim); border: 1px solid var(--line); padding: 1px 4px; }
+.thead .facts { padding: 0; margin-left: 6px; }
+.thead .exp { margin-left: auto; color: var(--dim); font-size: 12px; }
+@container (max-width: 520px) { .thead .facts { margin-left: 21px; flex-basis: 100%; } }
+.ovw { display: grid; gap: 14px 16px; padding: 10px 12px 14px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "card" "pic" "ans"; align-items: start; }
+@container (min-width: 560px) { .ovw { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); grid-template-areas: "card ans" "pic ans"; } }
+@container (min-width: 960px) { .ovw { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr) minmax(0, 1fr); grid-template-areas: "card pic ans"; } }
+.ovw > .s-card { grid-area: card; } .ovw > .s-pic { grid-area: pic; } .ovw > .s-ans { grid-area: ans; }
+.ovw section { display: grid; gap: 5px; min-width: 0; align-content: start; }
+.ovw h5 { margin: 0; font: 400 10px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.ovw h5 .act { display: flex; gap: 4px; text-transform: none; letter-spacing: 0; }
+.s-ans { display: grid; gap: 13px; font-size: 12.5px; min-width: 0; }
+.s-ans p { font-size: 12.5px; line-height: 1.45; color: var(--ink); }
+@container (min-width: 560px) { .s-ans { border-left: 1px solid var(--divide); padding-left: 14px; } }
+.width { display: flex; gap: 10px; align-items: center; }
+.width input { width: min(260px, 50vw); accent-color: var(--accent); }
+.width output { color: var(--ink); min-width: 6ch; font-variant-numeric: tabular-nums; }
+details.today > summary { font: 500 11px var(--mono); color: var(--warn); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; padding: 4px 0; }
+details.today > summary:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+details.today > .tray { margin-top: 6px; max-width: 760px; }
+.rule3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.rule3 > div { background: var(--fill); border: 1px solid var(--divide); padding: 9px 11px; display: grid; gap: 3px; }
+.rule3 b { font: 600 12px var(--mono); }
+.rule3 span { font-size: 12.5px; color: var(--soft); }
+.rule3 i { font: 10.5px var(--mono); color: var(--dim); font-style: normal; }
+/* a line's card: its two ends joined by its stroke, then its ends as a table */
+.wireface { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0; padding: 12px 10px 8px; }
+.wireface .run { position: relative; height: 22px; }
+.wireface .run svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.wireface .w { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); font: 10.5px var(--mono); color: var(--soft); white-space: nowrap; }
+.wireface .e { position: absolute; bottom: -8px; font: 500 10px var(--mono); color: var(--rel); }
+.wireface .e.a { left: 18px; } .wireface .e.b { right: 6px; }
+</style>
+
+<main>
+<header>
+  <h3>mndflow · design language mockup · 2026-10-30 · v3</h3>
+  <h1>Overview <span>forms</span></h1>
+  <p><b>v2.</b> The tray's head is the identity row: colour edge, name, kind, marks and the facts strip, replacing both today's tray header and the overview's caption. The overview is one layout for every element, in titled sections: <b>card</b> (its large face), the <b>picture</b>, then the answers, reflowing with the tray's width from one column to two to three (drag <b>tray width</b> in the bar). Today's version of each case is folded under it. Switch to <b>mndmap</b> to hide the gaps.</p>
+  <p hidden>Every kind of overview the tray draws today, next to the proposal: the identity row and facts strip on top, the large face, a picture that is always a chip or a connections list (never a scaled drawing), only the element's own answers, and what is not said yet as dashed gaps. Switch to <b>mndmap</b> in the bar to see the viewer, where gaps are hidden. Names are from the shop example; the unused pattern is made up.</p>
+  <nav class="toc" id="toc" aria-label="Cases"></nav>
+</header>
+
+<div class="bar" role="group" aria-label="Mockup controls">
+  <label class="width" for="tw">tray width <input id="tw" type="range" min="300" max="1200" value="760" step="10"><output id="two">760 px</output></label>
+  <span>shown in <span class="seg"><button id="m-ed" aria-pressed="true">mndflow (editor)</button><button id="m-vw" aria-pressed="false">mndmap (viewer)</button></span></span>
+</div>
+
+<section class="case">
+  <h2>One layout, two picture sources</h2>
+  <p>Every element gets the same sections in the same order, and nothing depends on its kind. Only the picture chooses, taking the first source that has something:</p>
+  <div class="rule3">
+    <div><b>1 · what it gathers</b><span>its own chip: a diagram's members, a definition's uses (its structure while unused), a folder's definitions</span><i>Payment retry, component, Bulkhead, blocks</i></div>
+    <div><b>2 · its place</b><span>the chip of the room it sits in, its own tile lit (a line lights both its ends). Everything sits somewhere, so this never runs out</span><i>Gateway, Block 7, Audit log, the note, a line</i></div>
+    <div><b>lines</b><span>what joins it is never a picture: it is listed under <i>how it is used</i>, by port, each with its swatch</span><i>every element</i></div>
+  </div>
+</section>
+
+<div id="cases" style="display:grid;gap:40px"></div>
+
+<section class="case">
+  <h2>What changes, across every case</h2>
+  <dl class="verdict">
+    <div><dt>tray head</dt><dd>the identity row (colour edge, name, kind, marks) and the facts strip, replacing today's tray header, the overview's caption and the counts at the bottom. A definition wears the <code>Def</code> mark instead of a <i>definition</i> tag; a line wears its swatch</dd></div>
+    <div><dt>sections</dt><dd>card → picture → why it matters → how it is used → where it lives → where it sits, each titled, for every element, lines included</dd></div>
+    <div><dt>width</dt><dd>one column under 560 px, two (card and picture | answers) to 960 px, three (card | picture | answers) above</dd></div>
+    <div><dt>face</dt><dd>the large face, as a diagram draws it, above the picture. A blank block shows its card; attributes it does not answer show as dashed rows</dd></div>
+    <div><dt>picture</dt><dd>what it gathers (its chip), else its place (the room's chip, its tile lit). Eight special pictures become two sources; connections move to <i>how it is used</i>. Never an empty canvas, never a scaled drawing</dd></div>
+    <div><dt>answers</dt><dd>its own only: a description borrowed from its definition is gone, and its absence is a gap. Counts move to the facts strip</dd></div>
+    <div><dt>legibility</dt><dd>tiles never drop below their name; what does not fit folds into <i>+n more</i>. The picture is the map's chip, so it scales as the map does</dd></div>
+    <div><dt>unchanged</dt><dd>the kinds an empty block may become, order in its room with earlier and later, open and read</dd></div>
+  </dl>
+</section>
+</main>
+
+<script>
+const ID = (h) => `oklch(0.75 0.11 ${h})`;
+const HUE = { block: ID(160), service: ID(180), gateway: ID(210), record: ID(215), document: ID(75), internal: ID(195), flow: ID(25),
+              pattern: ID(235), def: ID(140), component: ID(140), database: ID(200), person: ID(285), external: ID(305), cache: ID(55), queue: ID(260) };
+const TAG = { critical: ID(25), fulfilment: ID(190), pii: ID(330) };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const ico = (i) => `<span class="ico ${i || ""}"></span>`;
+const SW = `<svg width="16" height="8" viewBox="0 0 16 8" aria-hidden="true"><line x1="1" y1="4" x2="12" y2="4" stroke="oklch(0.72 0.03 160)" stroke-width="1.5"/><path d="M11 1 L15 4 L11 7 Z" fill="oklch(0.72 0.03 160)"/></svg>`;
+
+/* ── shared pieces ── */
+const tile = (t) => `<span class="tile${t.lit ? " lit" : ""}${t.quiet ? " quiet" : ""}" style="--th:${t.hue || HUE.block}">${ico(t.icon)}${esc(t.n)}</span>`;
+/** A chip at tray size: head, facts, then its members by group; each group folds to whole rows, the rest as +n more. */
+function pchip(c) {
+  const groups = c.groups.map((g) => `<div class="grp ${g.style}" style="--gh:${g.hue || "var(--line)"}"><span class="gl">${esc(g.label || "")}</span>
+    <div class="fold" data-rows="${g.rows || 2}">${g.tiles.map(tile).join("")}</div></div>`).join("");
+  return `<div class="pchip" style="--hue:${c.hue}"><div class="ch"><b>${esc(c.name)}</b><span>${esc(c.kind)}</span></div>${ico(c.icon)}
+    ${c.facts ? `<div class="facts" style="padding:0">${c.facts}</div>` : ""}<div class="groups${c.cols ? " cols" : ""}">${groups}</div></div>`;
+}
+const fact = (n, w) => `<span class="fact"><b>${n}</b> ${w}</span>`;
+const port = (n, f) => `<span class="port ${f}"><i></i>${esc(n)}</span>`;
+const tg = (n) => `<span class="tg"><span class="dot" style="--t:${TAG[n]}"></span>${esc(n)}</span>`;
+const gap = (what, why) => `<div class="gap"><b>${what}</b> · ${why}</div>`;
+function face(f) {
+  if (f.html) return f.html;
+  const rows = (f.rows || []).map(([t, k, v]) => v === null
+    ? `<span class="t">${t}</span><span>${esc(k)}</span><span class="gp">not answered</span>`
+    : `<span class="t">${t}</span><span>${esc(k)}</span><span>${esc(v)}</span>`).join("");
+  return `<div class="face${f.def ? " def" : ""}" style="--hue:${f.hue}"><div class="fh"><b>${esc(f.name)}</b><span>${esc(f.kind)}</span></div><span class="ic">${ico(f.icon)}</span>
+    ${rows ? `<div class="tbl">${rows}</div>` : ""}${f.body ? `<div class="body">${esc(f.body)}</div>` : ""}</div>`;
+}
+/** Proposed connections: peers as tiles each side, the line's swatch and name beside, the block itself lit in the middle. */
+function conn(c) {
+  const side = (list, l) => list.length ? list.map((p) => `<div class="peer">${tile(p)}<span class="via">${l ? "" : SW}${esc(p.via)}${l ? SW : ""}</span></div>`).join("")
+    : `<span class="none">nothing ${l ? "in" : "out"}</span>`;
+  return `<div class="conn" style="--hue:${c.hue}"><div class="side l">${side(c.ins, true)}</div><div class="me">${esc(c.name)}</div><div class="side">${side(c.outs, false)}</div></div>`;
+}
+const tray = (name, what, tabs, body) => `<div class="tray"><div class="th"><b>${esc(name)}</b><span class="what">${what}</span></div>
+  <div class="tabs">${tabs.map((t, i) => `<span class="${i ? "" : "on"}">${t}</span>`).join("")}</div>${body}</div>`;
+
+/* ── today's pictures ── */
+/** Today's ego: the block in the middle, its neighbours each side on curves. */
+function ego(name, ins, outs) {
+  const W = 400, H = 210, me = { w: 124, h: 44 }, ax = W / 2 - me.w / 2, ay = H / 2 - me.h / 2;
+  const col = (list, x, left) => list.map((p, i) => {
+    const gapY = Math.min(40, (H - 10) / Math.max(list.length, 1)), y = H / 2 + (i - (list.length - 1) / 2) * gapY;
+    const [x1, x2] = left ? [x + 100, ax] : [ax + me.w, x], mid = (x1 + x2) / 2;
+    return `<path class="pic-wire" d="M${x1},${y} C${mid},${y} ${mid},${H / 2} ${x2},${H / 2}"/>
+      <rect class="pic-peer" x="${x}" y="${y - 14}" width="100" height="28" rx="3"/><text class="svgt" x="${x + 8}" y="${y + 4}">${esc(p.n.slice(0, 13))}</text>
+      ${p.via ? `<text class="svgt dim" x="${mid}" y="${(y + H / 2) / 2 - 3}" text-anchor="middle">${esc(p.via.slice(0, 14))}</text>` : ""}`;
+  }).join("");
+  const none = !ins.length && !outs.length ? `<text class="svgt dim" x="${W / 2}" y="${ay + me.h + 24}" text-anchor="middle">no lines in or out</text>` : "";
+  return `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${col(ins, 6, true)}${col(outs, W - 106, false)}
+    <rect class="pic-me" x="${ax}" y="${ay}" width="${me.w}" height="${me.h}" rx="4"/><text class="svgt" x="${W / 2}" y="${H / 2 + 4}" text-anchor="middle">${esc(name.slice(0, 15))}</text>${none}</svg>`;
+}
+/** Today's map: tiles laid by halving, named only where the name fits. */
+function split(items, x, y, w, h, out) {
+  if (!items.length) return;
+  if (items.length === 1) { out.push({ ...items[0], x, y, w, h }); return; }
+  const total = items.reduce((s, i) => s + i.v, 0);
+  let acc = 0, k = 0;
+  while (k < items.length - 1 && acc + items[k].v <= total / 2) acc += items[k++].v;
+  if (k === 0) acc = items[k++].v;
+  const f = acc / total;
+  if (w >= h) { split(items.slice(0, k), x, y, w * f, h, out); split(items.slice(k), x + w * f, y, w * (1 - f), h, out); }
+  else { split(items.slice(0, k), x, y, w, h * f, out); split(items.slice(k), x, y + h * f, w, h * (1 - f), out); }
+}
+function oldmap(boxes) {
+  const W = 400, H = 210, out = [];
+  split(boxes.map((b) => ({ ...b, v: b.kids.length })), 2, 2, W - 4, H - 4, out);
+  let svg = "";
+  for (const b of out) {
+    svg += `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="none" stroke="var(--line)"/>`;
+    if (b.label.length * 5.6 + 6 <= b.w) svg += `<text class="svgt dim" x="${b.x + 4}" y="${b.y + 11}">${esc(b.label)}</text>`;
+    const kids = [];
+    split(b.kids.map((k) => ({ label: k, v: 1 })), b.x + 3, b.y + 15, b.w - 6, b.h - 18, kids);
+    for (const t of kids) {
+      svg += `<rect class="pic-use" x="${t.x + 1}" y="${t.y + 1}" width="${Math.max(0, t.w - 2)}" height="${Math.max(0, t.h - 2)}" rx="2"/>`;
+      if (t.label.length * 5.6 + 6 <= t.w && t.h >= 13) svg += `<text class="svgt" x="${t.x + 4}" y="${t.y + 12}">${esc(t.label)}</text>`;
+    }
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${svg}</svg>`;
+}
+/** Today's structure of an unused definition: its laid-out drawing, straight lines, fitted whole. */
+function oldstructure(nodes, edges) {
+  const at = Object.fromEntries(nodes.map((n) => [n.n, n]));
+  const mid = (n) => [n.x + n.w / 2, n.y + n.h / 2];
+  let svg = edges.map(([a, b]) => { const [p, q] = [mid(at[a]), mid(at[b])]; return `<line class="pic-wire" x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}"/>`; }).join("");
+  svg += nodes.map((n) => `<rect class="pic-use" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="3"/><text class="svgt" x="${n.x + 6}" y="${n.y + 16}">${esc(n.n.length > n.w / 8 ? n.n.slice(0, Math.floor(n.w / 8) - 1) + "…" : n.n)}</text>`).join("");
+  return `<svg viewBox="-10 -10 1320 380" aria-hidden="true">${svg}</svg>`;
+}
+const oldglance = (cap, pic, opens = "", extra = "") => `<div class="glance"><span class="cap">${cap}</span><div class="thumb">${pic}${opens ? `<span class="opens">${opens}</span>` : ""}</div>${extra}</div>`;
+const flowrow = (name, ins, outs) => ins.length || outs.length
+  ? `<div class="flowrow"><div class="side r">${ins.map((p) => `<span>${esc(p.n)} <small>${esc(p.port)}</small></span>`).join("") || `<span class="faint">nothing in</span>`}</div>
+     <div class="hub">${esc(name)}</div><div class="side">${outs.map((p) => `<span>${esc(p.n)} <small>${esc(p.port)}</small></span>`).join("") || `<span class="faint">nothing out</span>`}</div></div>`
+  : `<span class="faint">no lines join it where it sits</span>`;
+const sits = (n, m, room) => `<section><h5>where it sits</h5><div class="chips"><span class="faint">order ${n} of ${m} in ${room}</span><span class="btn">earlier</span><span class="btn">later</span></div></section>`;
+const KINDS = ["internal", "flow", "state", "sequence", "swimlane", "class", "entity", "treemap"];
+const make = `<div class="make"><span class="faint">no parts yet: make it one of these</span>${KINDS.map((k) => `<span class="cl">${ico()}${k}</span>`).join("")}</div>`;
+
+/* ── the shop's rooms, as chips ── */
+const SHOP_GROUPS = (lit) => [
+  { style: "band", label: "Customer facing", tiles: [{ n: "Gateway", hue: HUE.gateway }, { n: "Storefront", hue: HUE.internal }] },
+  { style: "band", label: "Back office", tiles: [{ n: "Inventory", hue: HUE.service }, { n: "Shipping", hue: HUE.service }, { n: "Orders", hue: HUE.pattern },
+    { n: "Payments", hue: HUE.pattern }, { n: "Audit log", hue: HUE.database, icon: "db" }] },
+  { style: "band", label: "Data", tiles: [{ n: "Model", hue: ID(245), icon: "" }, { n: "Schema", hue: ID(215) }] },
+  { style: "band", label: "How it runs", tiles: [{ n: "Block 7", hue: HUE.block }] },
+].map((g) => ({ ...g, tiles: g.tiles.map((t) => ({ ...t, lit: t.n === lit })) }));
+const shopchip = (lit) => pchip({ name: "Shop", kind: "internal", icon: "", hue: HUE.internal,
+  facts: fact(11, "blocks") + fact(9, "lines") + fact(3, "ports"), groups: SHOP_GROUPS(lit) });
+const place = (lit) => `<div class="pcap"><span>its place: <b>Shop</b></span><span>${esc(lit)} lit</span></div>${shopchip(lit)}`;
+
+/* ── the cases ── */
+const CASES = [
+{ id: "rich", title: "A block with lines", lede: "Gateway: a usage with a value, a tag and lines in and out. Today's picture works; the proposal keeps it and makes it speak the language.",
+  now: () => tray("Gateway", "usage", ["overview", "card", "components"], `<div class="ov">
+    ${oldglance(`${ico()}<b>block</b>`, ego("Gateway", [{ n: "Shop", via: "" }], [{ n: "Storefront", via: "routes" }]), `<span class="btn">open</span>`)}
+    <div class="answers"><section><h5>why it matters</h5><p>One entry point that authenticates, limits and routes requests.</p>
+      <div class="chips"><span class="cl" style="border-color:${HUE.gateway}">API gateway</span><span class="cl"><span class="dot" style="--t:${TAG.critical}"></span>critical</span></div></section>
+      <section><h5>how it is used</h5>${flowrow("Gateway", [{ n: "Shop", port: "requests · HTTP" }], [{ n: "Storefront", port: "routes · routes · HTTP" }])}</section>
+      <section><h5>where it lives</h5><div class="trail">example / Overview / Shop / Customer facing</div><div class="stat"><span><b>0</b> parts</span><span><b>2</b> ports</span><span><b>0</b> lines</span></div></section>
+      ${sits(1, 11, "Shop")}</div></div>`) },
+
+{ id: "blank", title: "A blank block", lede: "Block 7: just made, untyped, nothing said. Today the picture is a lone box saying \"no lines in or out\". Proposed, it shows where the block sits, and the gaps say what to do next.",
+  now: () => tray("Block 7", "usage", ["overview", "card", "components"], `<div class="ov">
+    ${oldglance(`${ico()}<b>block</b>`, ego("Block 7", [], []), "", make)}
+    <div class="answers"><section><h5>why it matters</h5><span class="faint">no description yet</span></section>
+      <section><h5>how it is used</h5>${flowrow("Block 7", [], [])}</section>
+      <section><h5>where it lives</h5><div class="trail">example / Overview / Shop / How it runs</div><div class="stat"><span><b>0</b> parts</span><span><b>0</b> ports</span><span><b>0</b> lines</span></div></section>
+      ${sits(11, 11, "Shop")}</div></div>`) },
+
+{ id: "typed", title: "A typed block, nothing answered", lede: "Audit log: a database usage with no values and no lines. Today it borrows its definition's description and draws an empty picture. Proposed, its face lists what its definition asks it to answer, and the place shows where it sits.",
+  now: () => tray("Audit log", "usage", ["overview", "card", "components"], `<div class="ov">
+    ${oldglance(`${ico("db")}<b>block</b>`, ego("Audit log", [], []))}
+    <div class="answers"><section><h5>why it matters</h5><p>A component that stores state other components read: a collection, holding records of one type.</p>
+      <div class="chips"><span class="cl" style="border-color:${HUE.database}">database</span></div></section>
+      <section><h5>how it is used</h5>${flowrow("Audit log", [], [])}</section>
+      <section><h5>where it lives</h5><div class="trail">example / Overview / Shop / Back office</div><div class="stat"><span><b>0</b> parts</span><span><b>0</b> ports</span><span><b>0</b> lines</span></div></section>
+      ${sits(7, 11, "Shop")}</div></div>`) },
+
+{ id: "diagram", title: "A diagram with no lines out", lede: "Payment retry: a flow, one of Payments' behaviours. It has eight steps but no lines cross its walls, so today's picture says \"no lines in or out\". Proposed, the picture falls to its contents: its chip, steps in rank rows, marks quiet.",
+  now: () => tray("Payment retry", "usage", ["overview", "card", "components", "contents"], `<div class="ov">
+    ${oldglance(`${ico("flow")}<b>flow</b><span>· what happens, step by step?</span>`, ego("Payment retry", [], []), `<span class="btn">open</span><span class="btn">read</span>`)}
+    <div class="answers"><section><h5>why it matters</h5><p>A flowchart, one of Payments' behaviours. It starts and ends at its marks; a decision's lines say where each answer goes.</p>
+      <div class="chips"><span class="cl">${ico("flow")}flow</span><span class="cl" style="border-style:dashed;color:var(--dim)">behaviour</span></div></section>
+      <section><h5>how it is used</h5>${flowrow("Payment retry", [], [])}</section>
+      <section><h5>where it lives</h5><div class="trail">example / Overview / Shop / Back office / Payments</div><div class="stat"><span><b>8</b> steps</span><span><b>2</b> decisions</span><span><b>9</b> lines</span></div></section>
+      ${sits(2, 2, "Payments")}</div></div>`) },
+
+{ id: "def", title: "A definition in use", lede: "component: used 17 times across six patterns. Today's registry is a treemap fitted to the thumbnail, so many uses lose their names. Proposed, it is the definition's own chip: uses by place, named, folding to +n more.",
+  now: () => tray("component", "definition", ["overview", "card", "settings", "components", "usages"], `<div class="ov">
+    ${oldglance(`${ico()}<b>definition</b>`, oldmap([
+      { label: "Anti-corruption layer", kids: ["Facade", "Translator", "Client"] }, { label: "API gateway", kids: ["Auth", "Rate limit", "Router"] },
+      { label: "Circuit breaker", kids: ["Caller", "Breaker", "Fallback"] }, { label: "Layered architecture", kids: ["API", "Domain logic", "Repository"] },
+      { label: "Saga orchestrator", kids: ["Orchestrator", "Compensations"] }, { label: "Transactional outbox", kids: ["API", "Domain logic", "Relay"] }]), `<span class="btn">open</span><span class="btn">read</span>`)}
+    <div class="answers"><section><h5>why it matters</h5><p>A piece of a system somebody owns and a technology implements.</p><div class="chips"><span class="cl">block</span></div></section>
+      <section><h5>how it is used</h5><span class="faint">no lines join it where it sits</span></section>
+      <section><h5>where it lives</h5><div class="trail">services / blocks</div>
+        <div class="chips"><span class="faint">used by</span>${["Facade", "Translator", "Client", "Auth", "Rate limit", "Router", "Caller", "Breaker"].map((n) => `<span class="cl">${n}</span>`).join("")}<span class="faint">…</span></div>
+        <div class="stat"><span><b>2</b> fields</span><span><b>0</b> behaviours</span><span><b>17</b> usages</span><span><b>2</b> subtypes</span></div></section></div></div>`) },
+
+{ id: "unused", title: "A definition not used yet", lede: "Bulkhead (made up): a pattern with four parts, used nowhere. Today its picture is its drawing scaled into the thumbnail: straight lines, names cut, text too small to read. Proposed, it is its chip: its parts by structure, never its drawing.",
+  now: () => tray("Bulkhead", "definition", ["overview", "card", "settings", "components", "usages"], `<div class="ov">
+    ${oldglance(`${ico()}<b>definition</b>`, oldstructure([
+      { n: "Caller", x: 0, y: 140, w: 180, h: 70 }, { n: "Isolation router", x: 330, y: 140, w: 220, h: 70 },
+      { n: "Payments worker pool", x: 720, y: 20, w: 260, h: 70 }, { n: "Inventory worker pool", x: 720, y: 260, w: 270, h: 70 },
+      { n: "Overflow queue", x: 1110, y: 140, w: 190, h: 70 }],
+      [["Caller", "Isolation router"], ["Isolation router", "Payments worker pool"], ["Isolation router", "Inventory worker pool"], ["Payments worker pool", "Overflow queue"], ["Inventory worker pool", "Overflow queue"]]))}
+    <div class="answers"><section><h5>why it matters</h5><p>Keeps one failing dependency from taking every caller down with it.</p><div class="chips"><span class="cl">pattern</span></div></section>
+      <section><h5>how it is used</h5><span class="faint">no lines join it where it sits</span></section>
+      <section><h5>where it lives</h5><div class="trail">services / patterns</div><div class="stat"><span><b>0</b> fields</span><span><b>0</b> behaviours</span><span><b>0</b> usages</span><span><b>0</b> subtypes</span></div></section></div></div>`) },
+
+{ id: "folder", title: "A library folder", lede: "services › blocks: today a fitted treemap of definitions, named where they fit. Proposed, the folder's box exactly as the map draws it: its definitions as chips, each with its facts.",
+  now: () => tray("blocks", "definitions", ["definitions"], `<div class="ov">
+    ${oldglance(`${ico("folder")}<b>folder</b>`, oldmap([{ label: "blocks", kids: ["component", "service", "database", "document", "external", "queue", "person", "cache", "API"] }]))}
+    <div class="answers"><section><h5>why it matters</h5><span class="faint">no description yet</span></section>
+      <section><h5>where it lives</h5><div class="trail">services</div><div class="stat"><span><b>9</b> parts</span></div></section></div></div>`) },
+
+{ id: "note", title: "A note", lede: "A note is its words, today and proposed. The proposal only adds the identity row; a note has no facts and no picture beyond its text.",
+  now: () => tray("note", "usage", ["overview", "card"], `<div class="ov">
+    ${oldglance(`${ico("doc")}<b>note</b>`, `<p class="words">One shop, seen from every side: open Shop for its parts, and a part for its own diagram.</p>`)}
+    <div class="answers"><section><h5>where it lives</h5><div class="trail">example / Overview</div></section>${sits(5, 5, "Overview")}</div></div>`) },
+{ id: "line", title: "A line", lede: "",
+  now: () => tray("has", "line", ["line", "components"], `<div class="ov" style="grid-template-columns:1fr">
+    <div class="answers"><section><h5>line</h5><div class="chips"><span class="cl">${SW}has</span><span class="cl">composition</span></div></section>
+      <section><h5>keys</h5><div class="stat" style="display:grid;gap:3px"><span>from <b>Order</b></span><span>to <b>Line</b></span><span>ends <b>1 → 1..* lines</b></span><span>dir <b>none</b></span></div></section>
+      <span class="faint">a line has no overview tab today: its first tab is its face and every key it says</span></div></div>`) },
+];
+
+/* ── v2: one overview for every element ── */
+const sec = (h, html, act = "") => `<section><h5><span>${h}</span>${act ? `<span class="act">${act}</span>` : ""}</h5>${html}</section>`;
+const defchip = (n, h) => `<span class="cl" style="border-left:3px solid ${h}">${esc(n)}</span>`;
+/** The tray: its head the identity row and facts, then tabs, then the overview's sections. */
+function overview(o) {
+  const why = (o.why ? `<p>${esc(o.why)}</p>` : gap("no description", o.whyGap || "say what it does here")) + (o.chips ? `<div class="chips">${o.chips}</div>` : "");
+  const ans = [sec("why it matters", why), sec("how it is used", o.how), sec("where it lives", `<div class="trail">${esc(o.path)}</div>${o.where || ""}`),
+    o.sits ? sec("where it sits", o.sits) : ""].join("");
+  const edge = o.swatch ? `<span style="line-height:0">${o.swatch}</span>` : `<span class="edge"></span>`;
+  return `<div class="tray2"><div class="thead" style="--hue:${o.hue}"><span class="chev">▾</span>${edge}<span class="nm">${esc(o.name)}</span><span class="kd">${esc(o.kind)}</span>
+      ${(o.marks || []).map((m) => `<span class="mk">${m}</span>`).join("")}${o.facts ? `<span class="facts">${o.facts}</span>` : ""}<span class="exp">⤢</span></div>
+    <div class="tabs">${o.tabs.map((t, i) => `<span class="${i ? "" : "on"}">${t}</span>`).join("")}</div>
+    <div class="ovw"><div class="s-card">${sec("card", face(o.face))}</div>
+      <div class="s-pic">${sec(o.pic.title, o.pic.html + (o.pic.after || ""), o.pic.act || "")}</div>
+      <div class="s-ans">${ans}</div></div></div>`;
+}
+const OPEN = `<span class="btn">open</span><span class="btn">read</span>`;
+const sitsx = (n, m, room) => `<div class="chips"><span class="faint">order ${n} of ${m} in ${room}</span><span class="btn">earlier</span><span class="btn">later</span></div>`;
+const T_USE = ["overview", "card", "components"], T_DEF = ["overview", "card", "settings", "components", "usages"];
+const COMP = "oklch(0.75 0.11 290)";
+/** A composition's swatch: the owner's diamond, then the stroke. */
+const SWC = (w = 22) => `<svg width="${w}" height="10" viewBox="0 0 ${w} 10" aria-hidden="true"><line x1="7" y1="5" x2="${w - 1}" y2="5" stroke="${COMP}" stroke-width="1.6"/><path d="M1 5 L4 2.4 L7 5 L4 7.6 Z" fill="${COMP}"/></svg>`;
+/** The Model diagram's chip, for a line's place: both its ends lit. */
+const modelchip = pchip({ name: "Model", kind: "class", hue: ID(245), groups: [{ style: "rank", tiles: ["Customer", "Order", "Line", "Payment", "Product"]
+  .map((n) => ({ n, icon: "db", hue: HUE.record, lit: n === "Order" || n === "Line" })) }] });
+const SPEC = {
+  rich: { name: "Gateway", kind: "API gateway", hue: HUE.gateway, tabs: T_USE,
+    facts: fact(1, "attribute") + port("requests", "in") + port("routes", "out") + tg("critical"),
+    face: { name: "Gateway", kind: "API gateway", hue: HUE.gateway, rows: [["text", "owner", "Web"], ["text", "technology", null]] },
+    pic: { title: "its place · Shop", html: shopchip("Gateway") },
+    chips: defchip("API gateway", HUE.gateway) + tg("critical"),
+    how: `<div class="chips"><span class="cl">${port("requests", "in")}<small>from Shop · HTTP</small></span><span class="cl">${port("routes", "out")}<small>routes to Storefront</small></span></div>`,
+    path: "example › Overview › Shop › Customer facing", sits: sitsx(1, 11, "Shop") },
+  blank: { name: "Block 7", kind: "block", hue: HUE.block, tabs: T_USE, whyGap: "say what it stands for",
+    face: { name: "Block 7", kind: "block", hue: HUE.block },
+    pic: { title: "its place · Shop", html: shopchip("Block 7"), after: make },
+    how: gap("no lines", "nothing joins it in Shop"), path: "example › Overview › Shop › How it runs", sits: sitsx(11, 11, "Shop") },
+  typed: { name: "Audit log", kind: "database", hue: HUE.database, tabs: T_USE, facts: fact(3, "attributes"),
+    face: { name: "Audit log", kind: "database", icon: "db", hue: HUE.database, rows: [["text", "owner", null], ["text", "technology", null], ["text", "engine", null]] },
+    pic: { title: "its place · Shop", html: shopchip("Audit log") }, chips: defchip("database", HUE.database),
+    how: gap("no lines", "nothing joins it in Shop") + gap("3 attributes", "owner, technology, engine not answered"),
+    path: "example › Overview › Shop › Back office", sits: sitsx(7, 11, "Shop") },
+  diagram: { name: "Payment retry", kind: "flow", hue: HUE.flow, tabs: [...T_USE, "contents"], facts: fact(6, "steps") + fact(2, "decisions") + fact(9, "lines"),
+    face: { name: "Payment retry", kind: "flow", icon: "flow", hue: HUE.flow, body: "A flowchart, one of Payments' behaviours. It starts and ends at its marks; a decision's lines say where each answer goes." },
+    pic: { title: "its contents", act: OPEN, html: pchip({ name: "Payment retry", kind: "flow", icon: "flow", hue: HUE.flow, groups: [
+      { style: "rank", tiles: [{ n: "Begin", icon: "mark", quiet: true }, { n: "Charge card" }] }, { style: "rank", tiles: [{ n: "Approved?", icon: "flow" }] },
+      { style: "rank", tiles: [{ n: "Confirm order" }, { n: "Retries left?", icon: "flow" }] },
+      { style: "rank", tiles: [{ n: "Wait and back off" }, { n: "Cancel order" }, { n: "Done", icon: "mark", quiet: true }] }] }) },
+    why: "A flowchart, one of Payments' behaviours.", chips: defchip("flow", HUE.flow) + `<span class="cl">behaviour of Payments</span>`,
+    how: `<span class="faint">no lines cross its walls: it is read on its own</span>`, path: "example › Overview › Shop › Back office › Payments", sits: sitsx(2, 2, "Payments") },
+  def: { name: "component", kind: "block", marks: ["Def"], hue: HUE.component, tabs: T_DEF, facts: fact(17, "uses") + fact(6, "places") + fact(2, "subtypes") + fact(2, "attributes"),
+    face: { name: "component", kind: "block", def: true, hue: HUE.component, rows: [["text", "owner", "—"], ["text", "technology", "—"]] },
+    pic: { title: "its uses, by place", act: `<span class="btn">read</span>`, html: pchip({ name: "component", kind: "block", hue: HUE.component, cols: true, groups: [
+      ["Anti-corruption layer", ["Facade", "Translator", "Client"]], ["API gateway", ["Auth", "Rate limit", "Router"]], ["Circuit breaker", ["Caller", "Breaker", "Fallback"]],
+      ["Layered architecture", ["API", "Domain logic", "Repository"]], ["Saga orchestrator", ["Orchestrator", "Compensations"]], ["Transactional outbox", ["API", "Domain logic", "Relay"]]]
+      .map(([p, us]) => ({ style: "place", label: p, hue: HUE.pattern, rows: 1, tiles: us.map((n) => ({ n, hue: HUE.component })) })) }) },
+    why: "A piece of a system somebody owns and a technology implements.", chips: `<span class="cl">extends block</span><span class="cl">subtypes: database, service</span>`,
+    how: `<span class="faint">17 uses in 6 patterns, all in services</span>`, path: "services › blocks", sits: sitsx(1, 9, "blocks") },
+  unused: { name: "Bulkhead", kind: "pattern", marks: ["Def"], hue: HUE.pattern, tabs: T_DEF, facts: fact(0, "uses") + fact(5, "blocks") + fact(5, "lines"),
+    face: { name: "Bulkhead", kind: "pattern", def: true, hue: HUE.pattern },
+    pic: { title: "its structure", html: pchip({ name: "Bulkhead", kind: "pattern", hue: HUE.pattern, groups: [
+      { style: "rank", tiles: [{ n: "Caller", hue: HUE.component }] }, { style: "rank", tiles: [{ n: "Isolation router", hue: HUE.component }] },
+      { style: "rank", tiles: [{ n: "Payments worker pool", hue: HUE.service }, { n: "Inventory worker pool", hue: HUE.service }] },
+      { style: "rank", tiles: [{ n: "Overflow queue", hue: HUE.queue }] }] }) },
+    why: "Keeps one failing dependency from taking every caller down with it.", chips: `<span class="cl">extends pattern</span>`,
+    how: gap("no uses", "drag it into a model to use it"), path: "services › patterns", sits: sitsx(4, 7, "patterns") },
+  folder: { name: "blocks", kind: "folder", hue: "var(--stroke)", tabs: ["overview", "definitions"], facts: fact(9, "definitions") + fact(41, "uses"),
+    face: { name: "blocks", kind: "folder", icon: "folder", hue: "var(--stroke)" }, whyGap: "say what this folder files",
+    pic: { title: "its definitions", html: `<div class="pbox"><span class="bt"><b>blocks</b> · 9 definitions</span>
+      ${[["component", 17, HUE.component, ""], ["service", 6, HUE.service, ""], ["database", 4, HUE.database, "db"], ["document", 4, HUE.document, "doc"],
+         ["external", 3, HUE.external, ""], ["queue", 3, HUE.queue, ""], ["person", 2, HUE.person, "round"], ["cache", 2, HUE.cache, "db"]]
+        .map(([n, u, h, i]) => pchip({ name: n, kind: "block", icon: i, hue: h, facts: fact(u, "uses"), groups: [] })).join("")}
+      <div class="pchip" style="--hue:var(--line);flex:0 1 auto"><div class="ch"><span>+1 more</span></div></div></div>` },
+    how: `<span class="faint">files 9 definitions, used 41 times</span>`, path: "services", sits: sitsx(1, 2, "services") },
+  note: { name: "note", kind: "note", hue: HUE.document, tabs: ["overview", "card"],
+    face: { name: "note", kind: "note", icon: "doc", hue: HUE.document, body: "One shop, seen from every side: open Shop for its parts, and a part for its own diagram." },
+    pic: { title: "its place · Overview", html: pchip({ name: "Overview", kind: "model", hue: ID(160), groups: [
+      { style: "rank", tiles: [{ n: "Customer", hue: HUE.person, icon: "round" }, { n: "Shop", hue: HUE.internal }, { n: "Card processor", hue: HUE.external }, { n: "Carrier", hue: HUE.external }, { n: "note", icon: "doc", quiet: true, lit: true }] }] }) },
+    whyGap: "a note is its words: its card says them",
+    how: `<span class="faint">tied to nothing</span>`, path: "example › Overview", sits: sitsx(5, 5, "Overview") },
+  line: { name: "has", kind: "composition", hue: COMP, swatch: SWC(22), tabs: ["overview", "line", "components"],
+    facts: `<span class="fact">Order <b>1</b> → Line <b>1..*</b></span>` + fact(2, "views"),
+    face: { html: `<div class="face" style="--hue:${COMP};--rel:${COMP}"><div class="fh"><b>has</b><span>composition</span></div><span class="ic">${SWC(18)}</span>
+      <div class="wireface">${tile({ n: "Order", icon: "db", hue: HUE.record })}<div class="run"><svg viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true">
+        <line x1="2" y1="11" x2="98" y2="11" stroke="${COMP}" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>
+        <svg viewBox="0 0 14 22" style="width:14px;left:1px" aria-hidden="true"><path d="M0 11 L7 7 L14 11 L7 15 Z" fill="${COMP}"/></svg>
+        <span class="w">has</span><span class="e a">1</span><span class="e b">1..* lines</span></div>${tile({ n: "Line", icon: "db", hue: HUE.record })}</div>
+      <div class="tbl"><span class="t">end</span><span>Order</span><span>1 · owner, composite</span><span class="t">end</span><span>Line</span><span>1..* · role lines</span>
+        <span class="t">dir</span><span>none</span><span class="gp" style="font-style:normal">ends say it: a class diagram draws no heads</span></div></div>` },
+    pic: { title: "its place · Model", html: modelchip },
+    why: "", whyGap: "say what owning a line means here", chips: `<span class="cl" style="border-left:3px solid ${COMP}">${SWC(16)} composition</span>`,
+    how: `<div class="chips"><span class="cl">Order <small>owns</small> Line</span><span class="cl"><small>also drawn in</small> Schema</span></div>`,
+    path: "example › Overview › Shop › Data › Model" },
+};
+const LEDE = {
+  rich: "Gateway: a usage with a value, a tag and lines in and out. No longer a case of its own: it gathers nothing, so its picture is its place like any block, and its lines are listed under how it is used.",
+  blank: "Block 7: just made, untyped, nothing said. Today a lone box says \"no lines in or out\". Now the picture is its place, and the gaps say what to do next.",
+  typed: "Audit log: a database usage with no values and no lines. Its card lists what its definition asks it to answer; its picture is its place.",
+  diagram: "Payment retry: a flow with eight steps and no lines across its walls. Today: \"no lines in or out\". Now: what it gathers, its own chip.",
+  def: "component: used 17 times across six patterns. Its picture is its chip: uses by place, named, folding to +n more.",
+  unused: "Bulkhead (made up): a pattern used nowhere. Today its drawing is scaled into the thumbnail until nothing reads. Now: its chip, parts by structure.",
+  folder: "services › blocks: its picture is its box, exactly as the map draws it.",
+  note: "A note's card is its words. It gathers nothing and joins nothing, so its picture is its place, the note lit in its room.",
+  line: "has: the composition from Order to Line in the Model class diagram. The same layout as a block: its swatch in the head, its ends in the facts, its card the line drawn whole with its ends as a table, and its place the diagram's chip with both ends lit. Today a line has no overview, only its line tab.",
+};
+const host = document.getElementById("cases"), toc = document.getElementById("toc");
+for (const c of CASES) {
+  toc.insertAdjacentHTML("beforeend", `<a href="#${c.id}">${esc(c.title)}</a>`);
+  host.insertAdjacentHTML("beforeend", `<section class="case" id="${c.id}"><h2>${esc(c.title)}</h2><p class="lede">${esc(LEDE[c.id])}</p>
+    <div class="trays">${overview(SPEC[c.id])}<details class="today"><summary>today</summary>${c.now()}</details></div></section>`);
+}
+
+
+/** Fold each group to its whole rows: tiles past the last row hide, and one +n more tile says how many. */
+function fold() {
+  for (const f of document.querySelectorAll(".fold")) {
+    f.querySelector(".more")?.remove();
+    const tiles = [...f.querySelectorAll(".tile")];
+    tiles.forEach((t) => (t.hidden = false));
+    if (!tiles.length) continue;
+    const rows = +f.dataset.rows, top0 = tiles[0].offsetTop, rowH = tiles[0].offsetHeight + parseFloat(getComputedStyle(f).rowGap);
+    const past = (t) => t.offsetTop - top0 >= rows * rowH - 1;
+    if (!tiles.some(past)) continue;
+    const more = document.createElement("span"); more.className = "tile more";
+    f.append(more);
+    let hidden = tiles.filter(past);
+    hidden.forEach((t) => (t.hidden = true));
+    more.textContent = `+${hidden.length} more`;
+    for (let i = tiles.length - hidden.length - 1; past(more) && i >= 0; i--) { tiles[i].hidden = true; hidden = tiles.filter((t) => t.hidden); more.textContent = `+${hidden.length} more`; }
+  }
+}
+fold();
+document.fonts?.ready.then(fold);
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(fold, 80); });
+
+const tw = document.getElementById("tw"), two = document.getElementById("two");
+tw.addEventListener("input", () => { document.documentElement.style.setProperty("--trayw", tw.value); two.value = tw.value + " px"; clearTimeout(rt); rt = setTimeout(fold, 60); });
+for (const d of document.querySelectorAll("details.today")) d.addEventListener("toggle", fold);
+
+const ed = document.getElementById("m-ed"), vw = document.getElementById("m-vw");
+for (const [b, viewer] of [[ed, false], [vw, true]]) b.addEventListener("click", () => {
+  document.body.classList.toggle("viewer", viewer); ed.setAttribute("aria-pressed", !viewer); vw.setAttribute("aria-pressed", viewer); fold();
+});
+</script>
