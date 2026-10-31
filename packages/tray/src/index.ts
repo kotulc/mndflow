@@ -5,8 +5,7 @@ export { Entry, type EntryProps } from "./Entry";
 export { Content, type ContentProps } from "./Content";
 export { Attributes, type AttributesProps } from "./Attributes";
 export { Faces, type FacesProps } from "./Faces";
-export { def_rows, rows_of, usage_rows, type DefRow, type Row, type Sort,
-         type UsageRow } from "./rows";
+export { def_rows, rows_of, type DefRow, type Row, type Sort } from "./rows";
 export { ChipBar, Choice, Table, lit_row, type Adding, type Chips, type Column, type Line as TableLine,
          type TableProps } from "./Table";
 export { Overview, type OverviewProps } from "./Overview";

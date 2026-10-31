@@ -63,7 +63,7 @@ describe("notes and ends", () => {
 describe("definitions", () => {
   it("defines from a block, which then follows the definition", () => {
     const { s, at } = made("Pump");
-    s.go("look", { ids: [at("Pump")], key: "style", name: "fill", value: "solid" });
+    s.go("look", { ids: [at("Pump")], key: "style", name: "family", value: "primary" });
     expect(s.go("define_from", { id: at("Pump"), name: "Machine" })).toBeNull();
     const type = s.graph().blocks[at("Pump")]!.type!;
     expect(s.graph().blocks[type]!.name).toBe("Machine");

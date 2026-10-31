@@ -4,8 +4,8 @@
  *  change, never stored. */
 
 import { hierarchy, treemap } from "d3-hierarchy";
-import { children, definition_uses, is_folder, layer_of, line_layer, model_of, models, on_side,
-         package_of, shown_name, type Graph, type Id } from "@mnd/core";
+import { children, definition_uses, is_folder, model_of, models, on_side,
+         package_of, shown_name, use_place, type Graph, type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { tiled, weight_of, type Tile as Weighed } from "./treemap";
 
@@ -20,8 +20,8 @@ export type LocatedUse = { id: Id; place: Id; weight: number;
 export function usage_groups(graph: Graph, def: Id): { place: Id; uses: LocatedUse[] }[] {
   const by = new Map<Id, LocatedUse[]>();
   for (const u of definition_uses(graph, def)) {
-    const place = graph.edges[u.id] ? line_layer(graph, u.id) : layer_of(graph, u.id);
-    if (!place || !model_of(graph, place)) continue;
+    const place = use_place(graph, u.id);
+    if (!place) continue;
     const weight = u.kind === "relation" ? 1 : weight_of(graph, u.id);
     const use = { id: u.id, place, weight, kind: u.kind };
     const list = by.get(place);

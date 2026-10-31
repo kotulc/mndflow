@@ -1,15 +1,19 @@
 /** What a relationship looks like. */
 
-import { createContext, useContext, type CSSProperties } from "react";
-import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
-import { avoided_run, crossed, drawn, end_words, heads, middle_of, route, BARE, UNIT,
-         type LineEdge, type Wire as Look } from "@mnd/views";
+import { createContext, useCallback, useContext, useState, type CSSProperties } from "react";
+import { BaseEdge, EdgeLabelRenderer, useStore, type EdgeProps } from "@xyflow/react";
+import { avoided_run, crossed, drawn, end_words, heads, line_level, middle_of, route, BARE,
+         TEXT_BAND, UNIT, type LineEdge, type Wire as Look } from "@mnd/views";
 import { head_url, Heads, Name, useNaming } from "@mnd/theme";
 
 /** How square a right-angled corner is. */
 const BEND = 6;
-/** How far above its run a name that reads level sits. */
+/** How far beside its run a name sits: above a level leg, right of an upright one. */
 const LIFT = 8;
+const ASIDE = 6;
+
+/** A name's glyph on screen at the layout's size, in pixels. */
+const GLYPH = 6.2;
 
 /** How far in from its end the cross saying an end cannot be reached sits: half a unit, clear of
  *  the head and of the middle. */
@@ -69,19 +73,22 @@ function paint(look: Look): { attrs: Record<string, string>; style: CSSPropertie
       ...stated("name-weight", look.name_weight),
       ...stated("name-contrast", look.name_contrast),
     },
-    style: {
-      ...(tinted ? {
-        "--card-h": String(look.hue),
-        "--card-c": `calc(var(--tint-ceiling) * ${look.intensity ?? 0.65})`,
-      } : {}),
-      ...(look.opacity !== undefined ? { opacity: look.opacity } : {}),
-    } as CSSProperties,
+    style: (tinted ? { "--card-h": String(look.hue) } : {}) as CSSProperties,
   };
 }
 
+/** A run's length, in layout units. */
+function length_of(run: readonly Pt[]): number {
+  return run.slice(1).reduce((n, q, i) => n + Math.hypot(q.x - run[i]!.x, q.y - run[i]!.y), 0);
+}
+
+/** **A line climbs the ladder by its length on screen** (views `line_level`): its stroke, its
+ *  anchors, its name beside the stroke, its ends' words. Nothing sits on the stroke. Hovered or
+ *  picked, it thickens and says its ends at any level. */
 export function Wire(props: EdgeProps<LineEdge>) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
-          label, data, style } = props;
+          label, data, style, selected } = props;
+  const [hot, set_hot] = useState(false);
 
   /** A line with no name still has somewhere to type one. */
   const naming = useNaming();
@@ -108,15 +115,28 @@ export function Wire(props: EdgeProps<LineEdge>) {
   /** The name and the handle, composed rather than folded together. */
   const middle = [label ? String(label) : "", data?.alias ?? ""]
     .filter(Boolean).join(" ");
-  /** Too wide for its leg, a name reads upright across it — unless it reads level, above. */
-  const at = middle_of(run, fan, middle.length);
-  const { x, y, upright } = data?.level ? { ...at, y: at.y - LIFT, upright: false } : at;
+  /** Beside its longest leg: above it where it is level, right of it where it is upright. */
+  const at = middle_of(run, fan);
+  const beside = at.level || data?.level
+    ? `translate(${at.x}px, ${at.y - LIFT}px) translate(-50%, -50%)`
+    : `translate(${at.x + ASIDE}px, ${at.y}px) translate(0, -50%)`;
+  const length = length_of(run);
+  const level = useStore(useCallback((st) => {
+    const k = st.transform[2];
+    return line_level(length, k, middle.length * GLYPH
+      * Math.min(TEXT_BAND.high, Math.max(TEXT_BAND.low, k)));
+  }, [length, middle.length]));
+  const loud = hot || !!selected;
+  const named = level >= 2 || loud || naming.id === id;
+  const ends = level >= 3 || loud;
 
   return (
     <>
-      <g className="mnd-wire" {...attrs} style={tint}>
+      <g className={loud ? "mnd-wire hot" : "mnd-wire"} {...attrs} style={tint}
+         onMouseEnter={() => set_hot(true)} onMouseLeave={() => set_hot(false)}>
         <BaseEdge id={id} path={path} style={style}
-                  markerStart={head_url(end.from)} markerEnd={head_url(end.to)} />
+                  {...(level >= 1 || loud
+                    ? { markerStart: head_url(end.from), markerEnd: head_url(end.to) } : {})} />
         {/* A double line is two strokes, not a thicker one. */}
         {look.border_style === "double"
           ? <path className="mnd-wire-core" d={path} /> : null}
@@ -127,7 +147,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
       </g>
       {(["from", "to"] as const).map((way) => {
         const words = end_words(data, way);
-        if (!words) return null;
+        if (!words || !ends) return null;
         const at = words_at(run, way);
         return (
           <EdgeLabelRenderer key={way}>
@@ -138,12 +158,11 @@ export function Wire(props: EdgeProps<LineEdge>) {
           </EdgeLabelRenderer>
         );
       })}
-      {middle || naming.id === id ? (
+      {(middle && named) || naming.id === id ? (
         <EdgeLabelRenderer>
           {/* `nodrag` and `nopan`, so a press on a name does not pan. */}
           <div className={`mnd-wire-name nodrag nopan${data?.away ? " mnd-out" : ""}`} data-edge={id} {...attrs}
-               style={{ ...tint,
-                        transform: `translate(${x}px, ${y}px)${upright ? " rotate(-90deg)" : ""} translate(-50%, -50%)` }}
+               style={{ ...tint, transform: beside }}
                title={middle}>
             <Name id={id} className="mnd-wire-text card-name" text={middle} />
           </div>

@@ -18,6 +18,7 @@
 | **how it is used** | *what does it do here?* | its lines in and out, by port, each with its swatch. A definition's uses in words |
 | **where it lives** | *where is it, and who refers to it?* | path, what refers to it, or a definition's uses |
 | **where it sits** | *in what order?* | its order in its room, with earlier and later |
+| **text** | *what does it say?* | a diagram's or document's own text, last in the answers column |
 
 | Picture source | Shows |
 |---|---|

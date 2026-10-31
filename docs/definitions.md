@@ -152,7 +152,7 @@
 | **layout** | how a layer places what it draws, and which diagram it opens on: a setting (`layout.kind`, `layout.cards`, `layout.shape`, `layout.view`), said by a definition, and the one setting a usage may say for itself. `kind` is `layered` (ranked by its relations: flows, states) or `treemap` (each block as large as what it holds, nested in its boxes); unsaid, **packed**: placed by its lines where they join its blocks, packed toward the canvas's shape where none do, in reading order. `view` is one of the room kinds; a name this build does not know draws as its kind's `base` definition names |
 | **frame** / **wall** / **band** | a room's border, one of its four sides, and the margin the camera keeps round the focus |
 | **mark** | how a card or row reads, derived every draw: reference, missing, note, folder, interface, container, part (from a definition) |
-| **system mark** | what a card stands for, bottom right, at most two stacked: a stand-in's word (`Def`, `Ref`, `Pkg`), **data** where it carries attributes or values |
+| **system mark** | what a card stands for, bottom right, at most two stacked: a stand-in's word (`Ref`, `Pkg`), **data** where it carries attributes or values |
 | **seat** / **anchor** | a place on a border a line may meet; a seat a relationship arrives at with no block behind it |
 
 

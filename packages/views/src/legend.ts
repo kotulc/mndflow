@@ -1,7 +1,7 @@
 /** What the open layer draws, as the key to reading it. */
 
 import { MARK_MEANING, type Mark, type Role } from "@mnd/core";
-import type { Look } from "./look";
+import type { Look, Tint } from "./look";
 import type { Scene } from "./scene";
 
 /** One row: a swatch and what it means. A kind row paints itself from the look it folds, so the
@@ -17,16 +17,19 @@ export type Row = {
   role?: Role;
   /** Marks only: what standing in for that thing means. */
   about?: string;
+  /** Tags only: the colour its dot wears. */
+  tint?: Tint;
 };
 
-/** The key to one layer: what its cards are, and what they stand in for. */
-export type Legend = { kinds: Row[]; marks: Row[] };
+/** The key to one layer: what its cards are, **what each tag's colour means** — a section of its
+ *  own after the blocks — and what they stand in for. */
+export type Legend = { kinds: Row[]; tags: Row[]; marks: Row[] };
 
 /** Cards drawn the same way fold together, so one kind restyled by hand counts its variants
  *  separately until `one_per_word` decides which of them the kind looks like. */
 function kind_key(look: Look | undefined, word: string, role: Role | undefined): string {
   const paint = !look ? "" : look.hue === undefined ? look.family
-                                                    : `${look.hue}/${look.intensity ?? ""}`;
+                                                    : String(look.hue);
   return `${word}|${paint}|${look?.icon ?? ""}|${role ?? ""}`;
 }
 
@@ -49,6 +52,7 @@ function one_per_word(rows: Iterable<Row>): Row[] {
  *  wears is already on it, so nothing here asks the graph a second time. */
 export function legend_of(scene: Scene): Legend {
   const kinds = new Map<string, Row>();
+  const tags = new Map<string, Row>();
   const marks = new Map<string, Row>();
 
   for (const n of scene.nodes) {
@@ -63,6 +67,13 @@ export function legend_of(scene: Scene): Legend {
                           ...(n.data.look ? { look: n.data.look } : {}),
                           ...(n.data.role ? { role: n.data.role } : {}) });
 
+    /** The tags its facts strip wears, as solid dots. */
+    for (const t of n.data.facts?.tags ?? []) {
+      const tag = tags.get(t.id);
+      if (tag) tag.count++;
+      else tags.set(t.id, { key: t.id, word: t.label, count: 1, tint: t.tint });
+    }
+
     for (const stamp of n.data.stamps ?? []) {
       const mark = marks.get(stamp);
       if (mark) mark.count++;
@@ -73,5 +84,5 @@ export function legend_of(scene: Scene): Legend {
 
   const by_word = (a: Row, z: Row) => a.word.localeCompare(z.word);
   return { kinds: one_per_word(kinds.values()).sort(by_word),
-           marks: [...marks.values()].sort(by_word) };
+           tags: [...tags.values()].sort(by_word), marks: [...marks.values()].sort(by_word) };
 }

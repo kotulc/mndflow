@@ -279,7 +279,7 @@ export function role_icon(role: string | undefined): IconName {
  *  a picture of what it stands for would only repeat the icon above. What describes a card is
  *  drawn, since there is no icon above it to repeat. */
 export const MARK_ICON: Record<string, IconName> = {
-  reference: "word_ref", definition: "word_def",
+  reference: "word_ref",
   package: "word_pkg", data: "data",
 };
 

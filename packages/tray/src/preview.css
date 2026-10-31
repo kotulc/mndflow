@@ -101,13 +101,6 @@
     oklch(var(--l-edge) 0.13 360));
 }
 
-/* Intensity runs from the theme's grey to its ceiling, at whatever hue is set. */
-.rows > .row.sliders > .line .intensity {
-  background: linear-gradient(to right,
-    oklch(var(--l-edge) 0 var(--card-h, 200)),
-    oklch(var(--l-edge) var(--tint-ceiling) var(--card-h, 200)));
-}
-
 .rows > .row.sliders > .line input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   width: 3px;

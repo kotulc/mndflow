@@ -18,9 +18,6 @@
     },
     "layout": {
       "view": "allocation"
-    },
-    "card": {
-      "label": "none"
     }
   }
 }

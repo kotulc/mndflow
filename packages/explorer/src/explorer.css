@@ -163,6 +163,26 @@
   /* Only a branch's mark is a button. */
   cursor: default;
 }
+/* **A row wears its card's colour edge**: a short bar before its mark, the same hue its card's
+   border and its chip's edge wear. Packages and folders are filed, so they wear none. */
+.explorer .tree li[data-family] > .mark { position: relative; }
+.explorer .tree li[data-family] > .mark::before {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: -5px;
+  width: 2px;
+  content: "";
+  background: var(--card-edge);
+}
+/* A quiet count at the right: a definition's uses, a diagram's blocks. */
+.explorer .tree .count {
+  flex: none;
+  margin-left: auto;
+  color: var(--faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
 /* A row holding blocks lights its mark, open or shut: the colour, and only that, says so. */
 .explorer .tree .mark.on, .explorer .tree .mark.shut { color: var(--accent); cursor: pointer; }
 /* A definition with structure of its own lights its icon, as a block that holds does. */

@@ -25,7 +25,7 @@
         "name": "elements",
         "counters": {
           "note": 8,
-          "block": 51,
+          "block": 49,
           "folder": 1,
           "grid": 1,
           "reference": 1,
@@ -592,26 +592,10 @@
       "yaml.5-colour.1": {
         "id": "yaml.5-colour.1",
         "parent": "yaml.5-colour",
-        "name": "Colour and line, set on a definition. A family or a hue picks its colour; fill, border and opacity say how it is drawn.",
+        "name": "Colour and line, set on a definition. A family or a hue picks its colour, worn as an edge on a neutral ground; the border says how it is drawn.",
         "type": "note",
         "alias": 8,
         "order": 1
-      },
-      "yaml.5-colour.10": {
-        "id": "yaml.5-colour.10",
-        "parent": "yaml.5-colour",
-        "name": "dashed",
-        "type": "yaml.Definitions.Colour.dashed",
-        "alias": 50,
-        "order": 10
-      },
-      "yaml.5-colour.11": {
-        "id": "yaml.5-colour.11",
-        "parent": "yaml.5-colour",
-        "name": "thick",
-        "type": "yaml.Definitions.Colour.thick",
-        "alias": 51,
-        "order": 11
       },
       "yaml.5-colour.2": {
         "id": "yaml.5-colour.2",
@@ -664,16 +648,16 @@
       "yaml.5-colour.8": {
         "id": "yaml.5-colour.8",
         "parent": "yaml.5-colour",
-        "name": "hatched",
-        "type": "yaml.Definitions.Colour.hatched",
+        "name": "dashed",
+        "type": "yaml.Definitions.Colour.dashed",
         "alias": 48,
         "order": 8
       },
       "yaml.5-colour.9": {
         "id": "yaml.5-colour.9",
         "parent": "yaml.5-colour",
-        "name": "faded",
-        "type": "yaml.Definitions.Colour.faded",
+        "name": "thick",
+        "type": "yaml.Definitions.Colour.thick",
         "alias": 49,
         "order": 9
       },
@@ -690,38 +674,12 @@
         },
         "source": "Definitions/Colour/dashed.yaml"
       },
-      "yaml.Definitions.Colour.faded": {
-        "id": "yaml.Definitions.Colour.faded",
-        "parent": "dir.Definitions.Colour",
-        "name": "faded",
-        "def": {},
-        "order": 2,
-        "settings": {
-          "style": {
-            "opacity": 0.45
-          }
-        },
-        "source": "Definitions/Colour/faded.yaml"
-      },
-      "yaml.Definitions.Colour.hatched": {
-        "id": "yaml.Definitions.Colour.hatched",
-        "parent": "dir.Definitions.Colour",
-        "name": "hatched",
-        "def": {},
-        "order": 3,
-        "settings": {
-          "style": {
-            "fill": "hatch"
-          }
-        },
-        "source": "Definitions/Colour/hatched.yaml"
-      },
       "yaml.Definitions.Colour.hue-200": {
         "id": "yaml.Definitions.Colour.hue-200",
         "parent": "dir.Definitions.Colour",
         "name": "hue 200",
         "def": {},
-        "order": 4,
+        "order": 2,
         "settings": {
           "style": {
             "hue": 200
@@ -734,7 +692,7 @@
         "parent": "dir.Definitions.Colour",
         "name": "hue 25",
         "def": {},
-        "order": 5,
+        "order": 3,
         "settings": {
           "style": {
             "hue": 25
@@ -747,7 +705,7 @@
         "parent": "dir.Definitions.Colour",
         "name": "muted",
         "def": {},
-        "order": 6,
+        "order": 4,
         "settings": {
           "style": {
             "family": "muted"
@@ -760,7 +718,7 @@
         "parent": "dir.Definitions.Colour",
         "name": "neutral",
         "def": {},
-        "order": 7,
+        "order": 5,
         "settings": {
           "style": {
             "family": "neutral"
@@ -773,7 +731,7 @@
         "parent": "dir.Definitions.Colour",
         "name": "primary",
         "def": {},
-        "order": 8,
+        "order": 6,
         "settings": {
           "style": {
             "family": "primary"
@@ -786,7 +744,7 @@
         "parent": "dir.Definitions.Colour",
         "name": "secondary",
         "def": {},
-        "order": 9,
+        "order": 7,
         "settings": {
           "style": {
             "family": "secondary"
@@ -799,7 +757,7 @@
         "parent": "dir.Definitions.Colour",
         "name": "thick",
         "def": {},
-        "order": 10,
+        "order": 8,
         "settings": {
           "style": {
             "border_width": "thick"

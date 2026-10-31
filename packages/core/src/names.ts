@@ -1,10 +1,11 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
 import { attributes_of, base_named, base_of, def_at, def_of, diagram_kind, edge_base, frozen,
-         is_model, notation_of } from "./defs";
+         is_model, notation_of, tags_stated } from "./defs";
+import { behaviours_of } from "./ends";
 import { inline, is_flat, shape_of } from "./holders";
 import { entry_at } from "./library";
-import { children, is_container, is_interface, of_ref, port_at, stands_for,
+import { children, is_container, is_interface, of_ref, port_at, ports_on, resolved, stands_for,
          stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
@@ -137,15 +138,36 @@ export function role_of(graph: Graph, id: Id): Role {
   return ROLES.includes(base) ? base as Role : "block";
 }
 
+/** What a card is, worked out from what it holds and never stored: a **diagram** holds a layer,
+ *  a **document** has text and no members, and anything else is a **part**. */
+export type CardClass = "part" | "diagram" | "document";
+
+export function class_of(graph: Graph, id: Id): CardClass {
+  if (opens(graph, id)) return "diagram";
+  /** A reference reads as what it stands for. */
+  const b = graph.blocks[resolved(graph, id).card];
+  if (!b?.body?.trim()) return "part";
+  const typed = b.def ? b.id : b.type;
+  const members = attributes_of(graph, typed).length + ports_on(graph, b.id).length
+    + behaviours_of(graph, b.id).length + tags_stated(graph, b.id).ids.length;
+  return members ? "part" : "document";
+}
+
+/** Whether a card is a **definition**, or a stand-in for one, as against a **use**. A role, not a
+ *  class: any class may be either. The canvas outlines a definition and badges it, as the tray's
+ *  head does. */
+export function is_definition(graph: Graph, id: Id): boolean {
+  return !!graph.blocks[id]?.def || !!stood_def(graph, id);
+}
+
 /** The system marks a card wears in its bottom corner: **what it stands for**, never how it
  *  opens — its icon says that. Derived, never set. At most two, in this order: what a stand-in
  *  stands in for, then whether it carries data. A model says it is one by its icon, the tree. */
-export type Mark = "reference" | "definition" | "package" | "data";
+export type Mark = "reference" | "package" | "data";
 
 /** What each mark means, in a phrase — the legend's wording, kept beside the type it reads. */
 export const MARK_MEANING: Record<Mark, string> = {
   reference: "stands for a block elsewhere",
-  definition: "stands for a definition",
   package: "stands for a package",
   data: "carries data: values, or attributes",
 };
@@ -164,7 +186,7 @@ export function schema_def(graph: Graph, id: Id): Id | null {
   return own(b.type) ?? children(graph, id).map((k) => own(k.type)).find(Boolean) ?? null;
 }
 
-/** What a card is stamped with: what a stand-in stands in for, then — of the block it stands for,
+/** What a card is stamped with: what a stand-in stands in for (a block or a package), then — of the block it stands for,
  *  where it is one — whether it carries data. */
 export function stamps_of(graph: Graph, id: Id): Mark[] {
   const b = graph.blocks[id];
@@ -172,7 +194,8 @@ export function stamps_of(graph: Graph, id: Id): Mark[] {
   const out: Mark[] = [];
   const of = of_ref(graph, id);
   const at = of ? graph.blocks[of] : undefined;
-  if (of) out.push(at?.def ? "definition" : at?.parent === null ? "package" : "reference");
+  /** A stand-in for a definition says so by its badge, never a mark. */
+  if (of && !at?.def) out.push(at?.parent === null ? "package" : "reference");
   const self = at && at.id !== id ? at : b;
   if (self.values?.some((v) => v.value) || attributes_of(graph, self.def ? self.id : self.type).length) {
     out.push("data");

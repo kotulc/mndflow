@@ -118,7 +118,7 @@
 | label | display, font, weight, contrast, align |
 | face | which large face it draws with — table, document, picture; its size in units; whether it names itself |
 | head | from head, to head — a run only |
-| colour | family, pattern, hue, intensity, vary, opacity |
+| colour | family, hue, vary |
 | border | width, contrast, style — *stroke* on a run |
 | icon | the mark in the top corner |
 

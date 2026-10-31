@@ -17,9 +17,9 @@ function def(name: string, extend: string, card: Record<string, unknown>,
 const VOCAB: Definition[] = [
   /** A folder is organization: it holds no values, and says where it came from in `source`. */
   def("set", "folder", {  }),
-  def("page", "block", { label: "inside" },
+  def("page", "block", {  },
       [{ name: "source", type: "link" }, { name: "title" }]),
-  def("section", "block", { label: "inside" },
+  def("section", "block", {  },
       [{ name: "source", type: "link" }, { name: "heading" },
        { name: "depth", type: "number" }]),
   def("table", "block", {  },

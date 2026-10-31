@@ -10,15 +10,15 @@
  *  stored. */
 
 import { Graph as Ranks, layout } from "@dagrejs/dagre";
-import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
-         type HierarchyRectangularNode } from "d3-hierarchy";
-import { children, def_at, definition_uses, diagram_kind, has_lifelines, is_aside, is_grid,
-         is_group, is_header, is_holder, is_interface, is_model, is_notation, is_reference,
+import { hierarchy, treemap, treemapSquarify, type HierarchyNode } from "d3-hierarchy";
+import { children, definition_uses, diagram_kind, has_lifelines, is_aside, is_grid,
+         is_folder, is_group, is_header, is_holder, is_interface, is_model, is_notation,
+         is_reference,
          is_region, is_tie, inline, lattice_of, layer_of, members_of, lens_of, notation_of,
          on_side, owner_of, packages, path, region_of, shown_name, type Graph,
          type Id } from "@mnd/core";
-import { colour_of, counted, facts_of, preview_of, total, type Counted, type Groups,
-         type Preview } from "./about";
+import { colour_of, kind_of, preview_of, type Preview } from "./about";
+import { counted, fact, facts_of, total, type Counted, type Facts, type Groups } from "./facts";
 import { carried, trail_of } from "./derive";
 import { compounded, tree_groups } from "./flow";
 import { box_label, box_place, filed, name_of, registry_map, usage_groups } from "./library";
@@ -33,12 +33,10 @@ export const MAP_ROOT = "@map";
 /** How wide a map is: about a canvas, so a chip's name reads at 100%. */
 const WIDE = 1200;
 
-/** Air between areas and round what a box holds, the same everywhere — more in a box holding a
- *  diagram's chip, so the chip stands apart: `share` of the box's smaller side, `inner` to `clear`,
- *  as much between as round and below the title; above a box's title; and a chip's head. Round a
- *  chip's body, more round a diagram's. */
-const AIR = { inner: 6, outer: 6, clear: 16, share: 0.06, title: 26 };
-const PAD = { chip: 4, diagram: 10 };
+/** **One gap**, the same everywhere and never scaled per chip: between areas, round what a box
+ *  holds and below its title, and round a chip's body; and the room above a box's title. */
+const AIR = { inner: 6, outer: 6, title: 26 };
+const PAD = { chip: 6, diagram: 6 };
 
 /** **A chip's rows**, as `flow.css` draws them: its name's line, its facts strip with the air
  *  under it, and each row of a preview; an upright head's width. A level shows only where the
@@ -110,14 +108,15 @@ export function model_map(graph: Graph): Scene {
   /** A chip: a diagram's, or a group's or a region's, laid by its structure; any other block's a
    *  plain treemap of what it holds. A diagram's says its kind beside its name. */
   const chip = (id: Id, block: Id, list: readonly Id[]): Leaf => {
-    const kind = diagram_kind(graph, block);
+    /** Its kind as its card says it: one identity everywhere. */
+    const kind = kind_of(graph, block);
     const counts = counted(graph, list);
     const preview = list.length ? null : preview_of(graph, block);
     return { id, value: Math.max(LEAST, list.length ? 1 + total(counts) : 1),
              rows: rows_of(preview),
              ...(!list.length && is_model(graph, block) ? { empty: true } : {}),
              chip: { block, held: list, preview, counts,
-                     ...(kind ? { kind: def_at(graph, kind)?.name ?? kind } : {}),
+                     ...(kind && kind !== "block" ? { kind } : {}),
                      diagram: diagram(block) || is_holder(graph, block) } };
   };
   /** A box where diagrams lie below, one cell for each block it holds, a group whose membership
@@ -233,10 +232,9 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
     return root;
   };
   const tile = () => treemap<Leaf>().tile(treemapSquarify.ratio(1.2)).size(size).round(true)
-    .paddingInner((n) => air(n as HierarchyRectangularNode<Leaf>))
-    .paddingOuter((n) => air(n as HierarchyRectangularNode<Leaf>))
-    .paddingTop((n) => (n.depth === 0 ? AIR.outer
-      : AIR.title + air(n as HierarchyRectangularNode<Leaf>) - AIR.outer))(weigh());
+    .paddingInner(AIR.inner)
+    .paddingOuter(AIR.outer)
+    .paddingTop((n) => (n.depth === 0 ? AIR.outer : AIR.title))(weigh());
   /** **A chip is never a sliver**: one laid narrower than a card and taller than wide is widened
    *  in proportion, within bounds, and the map laid again, once. */
   let laid = tile();
@@ -262,7 +260,9 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
                    ...(own.description ? { description: own.description } : {}) };
     if (!chip) {
       const marks = n.data.panel ? { marks: ["group" as const] } : {};
-      nodes.push({ ...cell(id, box, { ...data, ...marks }, "box"), draggable: false });
+      const facts = n.data.panel ? null : box_facts(graph, n, title);
+      nodes.push({ ...cell(id, box, { ...data, ...marks, ...(facts ? { facts } : {}) }, "box"),
+                   draggable: false });
       continue;
     }
     /** Narrow and tall, its head runs up its left side and its body sits beside it; else its
@@ -291,12 +291,21 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
            trail: [] };
 }
 
-/** The air in a box, the same round and between what it holds: where it holds a diagram's chip a
- *  share of its smaller side, within bounds; else the map's own. d3 has placed the box by now. */
-function air(n: HierarchyRectangularNode<Leaf>): number {
-  if (!n.children?.some((k) => k.data.chip?.diagram)) return AIR.inner;
-  const least = Math.min(n.x1 - n.x0, n.y1 - n.y0);
-  return Math.round(Math.min(AIR.clear, Math.max(AIR.inner, AIR.share * least)));
+/** **A box's counts**, in its title after its name, in the facts strip's words: a block what it
+ *  holds, as its chip would count it; a package or a folder what it gathers — its models and
+ *  diagrams on the models' map, its definitions on the library's. */
+function box_facts(graph: Graph, n: HierarchyNode<Leaf>, title: "library" | "models"): Facts | null {
+  const id = n.data.id;
+  const b = graph.blocks[id];
+  if (!b) return null;
+  const filed = b.parent === null || is_folder(graph, id);
+  if (!filed) return { ...facts_of(graph, id, false), ports: [], tags: [] };
+  const chips = n.leaves().flatMap((l) => (l.data.chip ? [l.data.chip] : []));
+  const counts = title === "library" ? fact(chips.length, "definition")
+    : [...fact(n.descendants().filter((d) => is_model(graph, d.data.id)).length, "model"),
+       ...fact(chips.filter((c) => !is_model(graph, c.block)
+         && !!lens_of(graph, c.block, "structure")).length, "diagram")];
+  return counts.length ? { counts, ports: [], tags: [] } : null;
 }
 
 /** What a block holds on the map: its blocks, holders and a flow's marks, never a note, a label,
@@ -703,4 +712,24 @@ function joined(graph: Graph, held: readonly Id[]): { from: Id; to: Id }[] {
     pairs.set(`${from}|${to}`, { from, to });
   }
   return [...pairs.values()];
+}
+
+/** The map an element's picture comes from: the library's for a definition, else the models'. */
+export function chip_map(graph: Graph, id: Id): "library" | "models" {
+  return !graph.edges[id] && graph.blocks[id]?.def ? "library" : "models";
+}
+
+/** **An element's picture is a chip off the map**, never a scaled drawing: its own chip where it
+ *  gathers anything — a diagram's members, a definition's uses — else the chip of the room it sits
+ *  in, its own tile lit; a line lights both its ends. Null where the map draws neither. */
+export function chip_for(graph: Graph, id: Id, scene: Scene): { chip: BoxNode; lit: Id[] } | null {
+  const e = graph.edges[id];
+  const chips = scene.nodes.filter((n) => n.type === "chip");
+  const own = chips.find((n) => n.id === id && (n.data.tiles?.length || n.data.preview
+    || n.data.bar));
+  if (own) return { chip: own, lit: [] };
+  const ends = e ? [e.from, e.to].map((x) => owner_of(graph, x) ?? x) : [id];
+  const room = chips.find((n) => ends.every((x) => n.data.tiles?.some((t) => t.id === x)))
+    ?? chips.find((n) => n.data.tiles?.some((t) => ends.includes(t.id)));
+  return room ? { chip: room, lit: ends } : null;
 }

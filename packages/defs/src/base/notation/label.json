@@ -10,13 +10,11 @@
   "settings": {
     "card": {
       "face": "text",
-      "label": "none",
       "alias": "hide",
       "align": "center"
     },
     "style": {
       "family": "note",
-      "fill": "none",
       "border_style": "none",
       "name_contrast": "strong"
     }

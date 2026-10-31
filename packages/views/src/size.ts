@@ -2,7 +2,8 @@
 
 import { covers, has_lifelines, inline, is_grid, is_interface, lattice_of, resolved, setting_of,
          shown_name, stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
-import { edge_of, fit_of, face_table, face_text, handle_of, name_w, note_h } from "./face";
+import { card_facts } from "./facts";
+import { edge_of, fit_of, face_table, face_text, head_words, name_w, note_h } from "./face";
 import { card_shape, look_of } from "./look";
 import type { Ruled } from "./scene";
 
@@ -235,20 +236,21 @@ function shows_any(graph: Graph, id: Id): boolean {
 }
 
 /** The large face: its definition's `card.size`, else what its content fits — so one that shows
- *  nothing is the small face — with room for the marks `card` wears. */
+ *  nothing is the small face — with room for the marks `card` wears and its facts strip. */
 function large_of(graph: Graph, id: Id, card: Id): Size {
   /** The card's own look, as it draws: a reference may say another face than its target. */
   const look = look_of(graph, card);
   if (look.size) return held_large(look.size);
-  return fitted(shown_name(graph, id), face_text(graph, id, look), !!handle_of(graph, id, look),
-                face_table(graph, id, look, stamps_of(graph, card).length), edge_of(look));
+  return fitted(shown_name(graph, id), face_text(graph, id, look), head_words(graph, id, look),
+                face_table(graph, id, look, stamps_of(graph, card).length), edge_of(look),
+                !!card_facts(graph, card));
 }
 
-/** The size a large face's name, handle, table and markdown fit: in whole units, or a table
+/** The size a large face's name, kind, table and markdown fit: in whole units, or a table
  *  card's exactly — no larger than `LARGE.max` either way. */
-export function fitted(name: string, text: string, handle: boolean,
-                       ruled: Ruled | null = null, edge = 1): Size {
-  const { w, h } = fit_of(name, text, handle, LARGE.max.w * UNIT, ruled, edge);
+export function fitted(name: string, text: string, kind: string,
+                       ruled: Ruled | null = null, edge = 1, facts = false): Size {
+  const { w, h } = fit_of(name, text, kind, LARGE.max.w * UNIT, ruled, edge, facts);
   if (ruled) {
     return { w: Math.min(Math.ceil(w), LARGE.max.w * UNIT), h: Math.min(h, LARGE.max.h * UNIT) };
   }

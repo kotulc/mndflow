@@ -544,3 +544,187 @@ fieldset.fields { padding: 0; }
 
 /* Where it sits: order buttons that cannot go further greyed. */
 .overview .place .chip:disabled { opacity: 0.35; cursor: default; }
+
+
+/* ── **Read first**: the card left, sections right (`Lists.tsx`). The left column stays put as
+   tabs change; every tab reflows by the tray's width, breaking at 560 and 960 px. ── */
+
+.reads {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px 18px;
+  align-items: start;
+  padding: 12px 12px 16px;
+}
+@container (min-width: 560px) {
+  .reads { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr); }
+  .reads > .lists { padding-left: 16px; border-left: 1px solid var(--divider); }
+}
+@container (min-width: 960px) {
+  .reads { grid-template-columns: minmax(0, 0.8fr) minmax(0, 2fr); }
+  .reads > .lists { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.lead { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.lead-cap { color: var(--faint); font-size: 10.5px; }
+.lead-chip { display: grid; gap: 4px; min-width: 0; }
+.chip-room { overflow: hidden; }
+.lead-chip .mnd-chip-tile.lit {
+  outline: 1px solid var(--accent);
+  background: color-mix(in oklch, var(--accent) 14%, var(--surface));
+}
+
+.lists { display: grid; gap: 16px 22px; align-content: start; min-width: 0; }
+
+/* **A section names itself**: semibold, the body's ink, an *i* for what it is; no count. */
+.sec { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.sec-name {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.sec-about {
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 9px;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 12px;
+  text-align: center;
+  cursor: help;
+}
+.sec-body {
+  display: grid;
+  grid-template-columns: 14px max-content minmax(0, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 1px;
+  align-items: center;
+}
+.sec-body > :not(.list) { grid-column: 1 / -1; }
+.sec-empty { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+/* **Every list opens on a band**: its label flush left, its count right, over a rule; then its rows
+   on the section's shared columns, a rule under each. */
+.list { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; row-gap: 1px; }
+.list + .list { margin-top: 10px; }
+.list > .band {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 8px 3px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.list > .item {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px 2px 0;
+  border-bottom: 1px solid var(--divider);
+  font-size: 12px;
+  cursor: default;
+}
+.list > .item:hover { background: var(--raised); }
+.list > .item.quiet .says { color: var(--faint); font-style: italic; }
+.item > .mark { display: flex; justify-content: center; align-items: center; color: var(--muted); }
+.item > .name { white-space: nowrap; }
+.item > .kind { min-width: 0; overflow: hidden; color: var(--muted); font-size: 11px;
+                text-overflow: ellipsis; white-space: nowrap; }
+.item > .says { color: var(--muted); font-size: 11.5px; text-align: right; white-space: nowrap; }
+.item .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--card-edge, var(--muted)); }
+.item .seat-mark { width: 9px; height: 9px; background: currentColor;
+                   mask: var(--seat-mark) center / 100% 100% no-repeat; }
+.item .seat-mark.out { transform: rotate(180deg) scaleX(-1); }
+.item .seat-mark.both { mask-image: var(--seat-box); }
+
+/* A row lit from beside the card lights on the card. */
+.faces .mnd-face-table tr.lit td { background: color-mix(in oklch, var(--accent) 14%, transparent); }
+
+/* The card tab's edits: second, under its keys. */
+.card-edits { display: grid; gap: 6px; padding: 8px 12px 16px; }
+.card-edits > .chip { justify-self: start; }
+
+/* ── **The overview**, one layout for every element: card, picture, answers. One column under
+   560 px; card and picture over each other beside the answers to 960; three columns past it. ── */
+.ov {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "card" "pic" "answers";
+  gap: 14px 18px;
+  align-items: start;
+  padding: 12px 12px 16px;
+}
+@container (min-width: 560px) {
+  .ov { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr);
+        grid-template-areas: "card answers" "pic answers"; }
+  .ov > .ov-answers { padding-left: 16px; border-left: 1px solid var(--divider); }
+}
+@container (min-width: 960px) {
+  .ov { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1.4fr);
+        grid-template-areas: "card pic answers"; }
+}
+.ov-card { grid-area: card; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.ov-pic { grid-area: pic; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.ov-answers { grid-area: answers; }
+.ov .opens { display: flex; gap: 6px; justify-content: flex-end; }
+.ov .make { display: flex; flex-wrap: wrap; gap: 4px; }
+.ov .make .faint { width: 100%; }
+.ov .make .chip { display: inline-flex; align-items: center; gap: 4px; }
+.ov .why { margin: 0; line-height: 1.45; }
+/* A gap is a quiet filled row, never an outline: the editor's alone. */
+.ov .gap { margin: 0; padding: 3px 8px; border-radius: 2px; background: var(--band);
+           color: var(--faint); font-size: 12px; }
+.ov .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.ov .chips .chip { display: inline-flex; align-items: center; gap: 4px; }
+.ov .chip-like { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px;
+                 border: 1px solid var(--card-edge, var(--border)); border-radius: 2px;
+                 font-size: 11px; }
+.ov .chip-like.dim { color: var(--muted); border-style: dashed; }
+.ov .painted { color: var(--card-edge, var(--muted)); }
+.ov .faint { color: var(--muted); font-size: 11px; }
+.ov .trail { color: var(--muted); }
+.ov .stat { display: flex; flex-wrap: wrap; gap: 14px; color: var(--muted);
+            font-variant-numeric: tabular-nums; }
+.ov .stat b { color: var(--text); font-weight: 600; }
+.ov .place .chip:disabled { opacity: 0.35; cursor: default; }
+.ov-text { font-size: 12px; line-height: 1.5; }
+/* A line's card: its ends joined by its swatch, its type quieter under it. */
+.line-card { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 10px 8px;
+             border: 1px solid var(--divider); border-radius: 3px; }
+.line-card > .line-kind { flex-basis: 100%; color: var(--muted); font-size: 11px; }
+
+/* **A relation's swatch**: a short stroke in its type's colour and dash. */
+.swatch { display: inline-block; width: 14px; height: 0;
+          border-top: 2px var(--card-border-style, solid) var(--card-edge, var(--muted)); }
+.swatch.long { flex: 1; }
+
+/* **A record definition's records**: a table under each place's band. */
+.records { grid-column: 1 / -1; display: grid; gap: 2px; }
+.records + .records { margin-top: 10px; }
+.records > .band {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 8px 3px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.records table { border-collapse: collapse; font-size: 11.5px; }
+.records th { padding: 2px 12px 2px 0; color: var(--muted); font-size: 10px; font-weight: 400;
+              text-align: left; }
+.records td { padding: 3px 12px 3px 0; border-bottom: 1px solid var(--divider); }
+.records tr:hover td { background: var(--raised); }

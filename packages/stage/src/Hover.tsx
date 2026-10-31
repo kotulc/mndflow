@@ -1,13 +1,13 @@
-/** **A map's hover card**: held over a chip, a box or a tile in a chip, what it is in full —
+/** **The hover card**, one for every form: held over a chip, a box or a tile in a chip on a map,
+ *  or a card or a line in a diagram, what it is in full —
  *  where it sits, its name and kind, its description and facts, its card's face, and where it is
  *  used or what it holds (views `hover_of`). It waits a moment before it first shows, then follows
  *  the pointer from one thing to the next at once, until the pointer has been away a while. */
 
 import { useEffect, useMemo, useState, type CSSProperties, type RefObject } from "react";
 import type { Graph, Id } from "@mnd/core";
-import { CardFace } from "@mnd/theme";
+import { CardFace, Facts } from "@mnd/theme";
 import { hover_of, type FaceProps } from "@mnd/views";
-import { Facts } from "./Facts";
 
 /** How long the pointer rests before the first card shows, and how long it may be away before the
  *  next one waits again, in milliseconds. */
@@ -53,7 +53,7 @@ export function Hover({ graph, library, host }: { graph: Graph; library: boolean
       </div>
       <div className="mnd-hover-body">
         {read.description ? <p className="mnd-hover-about">{read.description}</p> : null}
-        <Facts facts={read.facts} />
+        <Facts facts={read.facts} named />
         {face ? (
           <div className="mnd-hover-face" style={{ height: face.h * scale }}>
             <div style={{ width: face.w, height: face.h, transform: `scale(${scale})` }}>
@@ -111,7 +111,10 @@ function useResting(host: RefObject<HTMLElement>): At | null {
       const e = t instanceof Element ? t : null;
       const tile = e?.closest<HTMLElement>("[data-tile]")?.dataset["tile"];
       const node = e?.closest<HTMLElement>(".react-flow__node")?.dataset["id"];
-      return [tile, node].filter((x): x is Id => !!x);
+      /** A line, by its stroke or by its name beside it. */
+      const line = e?.closest<HTMLElement>("[data-edge]")?.dataset["edge"]
+        ?? e?.closest(".react-flow__edge")?.getAttribute("data-id") ?? undefined;
+      return [tile, node, line].filter((x): x is Id => !!x);
     };
     const id_of = (t: EventTarget | null) => ids_of(t).join("|") || null;
     const over = (ev: PointerEvent) => {

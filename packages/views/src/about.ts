@@ -2,14 +2,11 @@
  *  its facts, the preview a map chip shows of it, and its hover card. One reading for the library
  *  and the models alike. Worked out when asked, never stored. */
 
-import { alias_name, alias_of, attributes_of, base_of, children, def_at, definition_uses,
-         diagram_kind,
-         is_folder, is_header, is_holder, is_interface, is_notation, line_layer, next_alias, path,
-         ports_on,
-         shown_name, subtree, subtypes, tag_at, tags_stated, type Flow, type Graph,
-         type Id } from "@mnd/core";
+import { base_of, children, def_at, diagram_kind, is_base, is_folder, is_header, is_holder, is_interface,
+         is_notation, line_layer, path, shown_name, type Graph, type Id } from "@mnd/core";
 import { carried } from "./derive";
-import { edge_of, face_table, face_text, listed, name_fit, type_word } from "./face";
+import { card_facts, facts_of, type Facts } from "./facts";
+import { edge_of, face_table, face_text, head_words, listed, name_fit } from "./face";
 import { box_label, box_place, usage_groups } from "./library";
 import { entry_look, face_attrs, look_of, PLAIN, tint_attrs, type Look, type Tint } from "./look";
 import type { Ruled } from "./scene";
@@ -17,20 +14,13 @@ import { fitted, size_of, type Face } from "./size";
 
 /** A card's face as a surface off the layer draws it, and the size it is drawn at. */
 export type FaceProps = {
-  label: string; alias?: string; kind: string; kinded: Look["label"]; role?: string;
+  label: string; kind?: string; defines?: boolean; role?: string;
   icon?: string; holds: boolean; stamps?: readonly string[]; classes: readonly string[];
   dress: Record<string, unknown>; text?: string; table?: Ruled; head: boolean;
   fit?: { size: number; lines: number }; w: number; h: number;
   /** A large face that shows nothing yet, previewing what it could. */
   sample: boolean;
 };
-
-/** How many of something a block has, said in a word. */
-export type Fact = { n: number; word: string };
-
-/** **The facts strip**, in its one order: what it counts, the seats it wears, its tags. */
-export type Facts = { counts: Fact[]; ports: { name: string; flow: Flow }[];
-                      tags: { id: Id; label: string; tint: Tint }[] };
 
 /** What a chip previews where it draws no structure and no uses: a table's rows, or lines; a
  *  definition's profile also its places, each with how many uses it holds. */
@@ -43,11 +33,6 @@ export type Hovered = { path: string; label: string; kind?: string; extends?: st
                         description?: string; facts: Facts; face?: FaceProps;
                         used?: { id: Id; label: string; tint: Tint; names: string[] }[];
                         holds?: string[] };
-
-/** A definition's uses grouped by place, and what some blocks hold: worked out by a caller that
- *  has them already, so they are read once. */
-export type Groups = ReturnType<typeof usage_groups>;
-export type Counted = ReturnType<typeof counted>;
 
 
 /** What a large face previews where it shows nothing yet: its attributes, then its body. */
@@ -64,7 +49,7 @@ const PER_PLACE = 6;
 
 /** **A card's face, as every surface off the layer draws it**: the large where asked, else the
  *  small; a large face showing nothing previews its attributes and body, else sample content, at
- *  the size that fits. The handle is always drawn. */
+ *  the size that fits. It says its kind as the canvas does. */
 export function face_props(graph: Graph, id: Id, face: Face): FaceProps {
   const data = carried(graph, id, face);
   const look = data.look ?? PLAIN;
@@ -72,15 +57,16 @@ export function face_props(graph: Graph, id: Id, face: Face): FaceProps {
   const previewed = { ...look, shows: PARTS };
   const table = sample ? face_table(graph, id, previewed) : data.table ?? null;
   const text = sample ? face_text(graph, id, previewed) || (table ? "" : SAMPLE) : data.text;
-  const alias = look.alias === false ? "" : handle(graph, id);
+  const kind = data.kind ?? "";
   /** A large face is fitted to what it says; one its definition sizes, and the small face, take
    *  the canvas's size. */
   const { w, h } = face === "large" && !look.size
-    ? fitted(data.label, text ?? "", !!alias, table, edge_of(look)) : size_of(graph, id, face);
+    ? fitted(data.label, text ?? "", head_words(graph, id, look), table, edge_of(look),
+             !!card_facts(graph, id)) : size_of(graph, id, face);
   const fit = face === "small" && look.face !== "text"
-    ? name_fit(data.label, { w, h }, !!alias, look.shape === "diamond") : null;
-  return { label: data.label, ...(alias ? { alias } : {}), kind: type_word(look.kind, data.label),
-           kinded: look.label, ...(data.role ? { role: data.role } : {}),
+    ? name_fit(data.label, { w, h }, !!kind, look.shape === "diamond") : null;
+  return { label: data.label, ...(kind ? { kind } : {}),
+           ...(data.defines ? { defines: true } : {}), ...(data.role ? { role: data.role } : {}),
            ...(look.icon ? { icon: look.icon } : {}), holds: data.marks.includes("container"),
            ...(data.stamps ? { stamps: data.stamps } : {}), classes: data.marks,
            dress: face_attrs(look), ...(text !== undefined ? { text } : {}),
@@ -94,44 +80,6 @@ export function known_face(graph: Graph, id: Id): Face {
   return look.size || look.shows.length ? "large" : "small";
 }
 
-/** The handle a card wears top left: a usage's own, or the one a definition's next usage takes. */
-function handle(graph: Graph, id: Id): string {
-  if (!def_at(graph, id)) return alias_of(graph, id, true);
-  const kind = base_of(graph, id);
-  return alias_name(kind, next_alias(graph, kind));
-}
-
-/** **A block's facts**, the same slots in the same order wherever it is shown. A definition in the
- *  library counts its uses, the places they are drawn and its subtypes; anything else what it
- *  holds — blocks, lines, interfaces — as the map counts it where it says so. Both then their
- *  attributes, the seats they wear and their tags. */
-export function facts_of(graph: Graph, id: Id, library: boolean,
-                         known: { groups?: Groups; counts?: Counted } = {}): Facts {
-  const b = graph.blocks[id];
-  const counts: Fact[] = [];
-  const say = (n: number, one: string) => {
-    if (n) counts.push({ n, word: n === 1 ? one : `${one}s` });
-  };
-  if (library && b?.def) {
-    const groups = known.groups ?? usage_groups(graph, id);
-    say(definition_uses(graph, id).length, "use");
-    if (groups.length > 1) say(groups.length, "place");
-    say(subtypes(graph, id).length, "subtype");
-  } else {
-    const n = known.counts ?? counted(graph, children(graph, id).map((c) => c.id));
-    say(n.blocks, "block");
-    say(n.lines, "line");
-    say(n.ports, "port");
-  }
-  say(b?.def ? attributes_of(graph, id).length : listed(graph, id).length, "attribute");
-  const ports = (b ? ports_on(graph, id) : [])
-    .map((p) => ({ name: p.name ?? "", flow: p.flow ?? "both" }));
-  const tags = tags_stated(graph, id).ids.flatMap((t) => {
-    const tag = tag_at(graph, t);
-    return tag ? [{ id: t, label: tag.name, tint: tint_attrs(entry_look(graph, t)) }] : [];
-  });
-  return { counts, ports, tags };
-}
 
 /** **What a chip previews of a block**, the first it has: its attributes as rows — what it
  *  answers, or what it declares — its records, its body as lines, its description. */
@@ -183,9 +131,8 @@ export function hover_of(graph: Graph, id: Id, library: boolean): Hovered | null
   const b = graph.blocks[id];
   if (!b) return null;
   const up = path(graph, id).slice(0, -1).map((p) => p.name ?? shown_name(graph, p.id));
-  const named = (at: Id) => def_at(graph, at)?.name ?? at;
-  const kind = named(diagram_kind(graph, id) ?? (!b.def && b.type ? b.type : base_of(graph, id)));
-  const parent = b.def && b.type ? named(b.type) : undefined;
+  const kind = kind_of(graph, id);
+  const parent = b.def && b.type ? def_at(graph, b.type)?.name ?? b.type : undefined;
   const description = told(graph, id);
   /** A package or a folder draws no card; anything else its known face. */
   const card = b.parent !== null && !is_folder(graph, id);
@@ -202,6 +149,19 @@ export function hover_of(graph: Graph, id: Id, library: boolean): Hovered | null
            ...(description ? { description } : {}), facts: facts_of(graph, id, library),
            ...(card ? { face: face_props(graph, id, known_face(graph, id)) } : {}),
            ...(used.length ? { used } : {}), ...(!used.length && holds.length ? { holds } : {}) };
+}
+
+/** **What an element is, in a word**, as its card, its hover card and the tray's head all name
+ *  it: a usage its definition, else a diagram its diagram kind, a line its relation type, else its
+ *  base kind. */
+export function kind_of(graph: Graph, id: Id): string {
+  const e = graph.edges[id];
+  if (e) return (e.type ? def_at(graph, e.type)?.name : undefined) ?? "line";
+  const b = graph.blocks[id];
+  if (!b) return "";
+  const at = (!b.def && b.type && !is_base(b.type) ? b.type : null) ?? diagram_kind(graph, id)
+    ?? (!b.def && b.type ? b.type : base_of(graph, id));
+  return def_at(graph, at)?.name ?? at;
 }
 
 /** **A line's hover card**: its ends, its kind, where it crosses and what its kind is for. */
@@ -229,20 +189,4 @@ export function colour_of(graph: Graph, id: Id): Look {
   return kind ? entry_look(graph, kind) : look_of(graph, id);
 }
 
-/** What some blocks hold between them: blocks — not notes, labels, holders or a grid's headers,
- *  which a map never draws — the lines among them, and their interfaces. */
-export function counted(graph: Graph, ids: readonly Id[]) {
-  const all = new Set(ids.flatMap((id) => subtree(graph, id)));
-  let blocks = 0, ports = 0;
-  for (const id of all) {
-    if (is_interface(graph, id)) ports++;
-    else if (!is_notation(graph, id) && !is_holder(graph, id) && !is_header(graph, id)) blocks++;
-  }
-  const lines = Object.values(graph.edges).filter((e) => all.has(e.from) && all.has(e.to)).length;
-  return { blocks, lines, ports };
-}
 
-/** A count's whole. */
-export function total(n: { blocks: number; lines: number; ports: number }): number {
-  return n.blocks + n.lines + n.ports;
-}

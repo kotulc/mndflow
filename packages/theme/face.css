@@ -12,6 +12,15 @@
   --step-ink: var(--s-neutral-ink);
 }
 
+/* **The seat glyph**: a chevron, pointing right, drawn as a mask in whatever colour wears it. A
+   seat is a square around it, turned to point in or out. */
+:root {
+  --seat-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M3 1.8 5.2 4 3 6.2' fill='none' stroke='%23000' stroke-width='1.3'/%3E%3C/svg%3E");
+  /* The same seat off the card: its square round the chevron, and the square alone both ways. */
+  --seat-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'%3E%3Crect x='.5' y='.5' width='8' height='8' fill='none' stroke='%23000'/%3E%3Cpath d='M3.6 2.6 5.5 4.5 3.6 6.4' fill='none' stroke='%23000' stroke-width='1.2'/%3E%3C/svg%3E");
+  --seat-box: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'%3E%3Crect x='.5' y='.5' width='8' height='8' fill='none' stroke='%23000'/%3E%3C/svg%3E");
+}
+
 /* The corners' one inset and one line: the handle, the icon and the marks share them, on a card
    and on a frame alike. */
 :root {
@@ -32,6 +41,8 @@
   padding: 3px 8px;
   border-radius: 3px;
   font: inherit;
+  /* Held to the text band on the canvas (`flow.css` `--text-k`); 1 everywhere else. */
+  font-size: calc(13px * var(--text-k, 1));
   /* The card clips its contents, not itself. */
   overflow: visible;
 }
@@ -49,12 +60,18 @@
   overflow: hidden;
 }
 
-/* The name and its kind sit together at the head's left end. */
+/* **The identity row**: the name, then its kind, then a definition's badge. Where name and kind do
+   not fit one line, the kind wraps to its own line under the name. */
 .mnd-named {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: baseline;
+  /* Anchored to the top, so a wrapped kind adds below and nothing rises past the card. */
+  align-content: flex-start;
+  column-gap: 6px;
   flex: 1 1 auto;
   min-width: 0;
+  max-height: 100%;
   overflow: hidden;
 }
 
@@ -71,10 +88,7 @@
 }
 
 /* Two lines, where there is room for two. */
-[data-label="inside"] > .mnd-head > .mnd-named > .mnd-label,
-[data-label="above"] > .mnd-head > .mnd-named > .mnd-label,
-[data-label="below"] > .mnd-head > .mnd-named > .mnd-label,
-[data-label="none"] > .mnd-head > .mnd-named > .mnd-label {
+.mnd-head > .mnd-named > .mnd-label {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -84,7 +98,10 @@
 
 /* A name sized to its card by views: its size, and the lines it may take; on one line it is cut
    short with an ellipsis rather than at a word. */
-.mnd-card[data-fit] > .mnd-head { font-size: var(--name-size, 13px); line-height: 1.5; }
+.mnd-card[data-fit] > .mnd-head {
+  font-size: calc(var(--name-size, 13px) * var(--text-k, 1));
+  line-height: 1.5;
+}
 .mnd-card[data-fit] > .mnd-head > .mnd-named > .mnd-label { -webkit-line-clamp: var(--name-lines, 2); }
 .mnd-card[data-fit="1"] > .mnd-head > .mnd-named > .mnd-label { display: block; white-space: nowrap; }
 
@@ -94,20 +111,6 @@
 /* Which end the name reads from. */
 [data-align="center"] > .mnd-head > .mnd-named { justify-content: center; }
 [data-align="right"] > .mnd-head > .mnd-named { justify-content: flex-end; }
-
-/* The handle, small over the name, in the corner the icon leaves free. */
-.mnd-alias {
-  position: absolute;
-  top: var(--corner-y);
-  left: var(--corner-x);
-  font-size: 9px;
-  line-height: var(--corner-h);
-  letter-spacing: 0.04em;
-  opacity: 0.45;
-  pointer-events: none;
-}
-[data-align="center"] > .mnd-alias { left: 0; right: 0; text-align: center; }
-[data-align="right"] > .mnd-alias { left: auto; right: calc(var(--corner-x) * 2 + var(--corner-h)); }
 
 /* The icon in the top corner: what this card is, said without being read. */
 .mnd-role {
@@ -136,30 +139,49 @@
 }
 .mnd-mark { display: inline-flex; }
 
-/* The subtype, where somebody set one. */
+/* The kind after the name: quieter, never cut short of a whole word. */
 .mnd-kind {
   flex: none;
-  font-size: 10px;
-  letter-spacing: 0.08em;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(10px * var(--text-k, 1));
+  line-height: calc(14px * var(--text-k, 1));
+  letter-spacing: 0.04em;
   color: var(--muted);
   pointer-events: none;
 }
 
-/* Over the card and under it, hanging into the gutter between cards. */
-.mnd-over, .mnd-under {
-  position: absolute;
-  left: 0;
-  right: 0;
-  font-size: 10px;
-  line-height: 1.2;
-  color: var(--card-dim);
-  text-align: left;
+/* **A definition's badge**: filled in its colour, by its name, on its card and in the tray. */
+.mnd-badge {
+  flex: none;
+  align-self: center;
+  padding: 0 4px;
+  border-radius: 2px;
+  font-size: calc(9px * var(--text-k, 1));
+  line-height: calc(13px * var(--text-k, 1));
+  letter-spacing: 0.04em;
+  background: var(--card-mark, var(--card-edge));
+  color: var(--on-loud);
   pointer-events: none;
 }
-.mnd-over { bottom: 100%; margin-bottom: 2px; }
-.mnd-under { top: 100%; margin-top: 2px; }
-[data-label-align="center"] > :is(.mnd-over, .mnd-under) { text-align: center; }
-[data-label-align="right"] > :is(.mnd-over, .mnd-under) { text-align: right; }
+
+/* **A definition is an outline**: no ground, its border in its colour. A use is filled. Never
+   dashed. */
+.mnd-card.card-face.definition:not([data-face="text"], .relation, .notation) {
+  background: none;
+  border-color: var(--card-edge);
+}
+
+/* The facts strip under the head: counts, seats, tags, in one order. */
+.mnd-face-facts {
+  flex: none;
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  padding-right: 13px;
+}
 
 /* The app speaking, not the model. */
 .mnd-card.missing { border-color: var(--error); color: var(--error); }
@@ -167,11 +189,7 @@
 
 /* ── The large face: its name on one line, then its table, then its markdown ── */
 
-.mnd-card.large > .mnd-head { flex: none; height: 20px; }
-/* A handle over a large face's name takes a line of its own, so the two never overlap. */
-.mnd-card.large:has(> .mnd-alias) { padding-top: calc(var(--corner-y) + var(--corner-h)); }
-/* A small face keeps the corner's line clear too: the name centres in what is left. */
-.mnd-card.small:has(> .mnd-alias) { padding-top: calc(var(--corner-y) + var(--corner-h)); }
+.mnd-card.large > .mnd-head { flex: none; height: calc(20px * var(--text-k, 1)); }
 .mnd-card.large > .mnd-head > .mnd-named > .mnd-label { display: block; white-space: nowrap; }
 
 /* The divider, drawn only under a head: a card that is its markdown alone has nothing over it. */
@@ -187,8 +205,8 @@
   min-height: 0;
   overflow: hidden;
   padding-right: 13px;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: calc(12px * var(--text-k, 1));
+  line-height: calc(16px * var(--text-k, 1));
 }
 .mnd-card.headless > .mnd-face-body { padding-top: 3px; }
 /* A body cut short at the whole lines its card holds, the last ending in an ellipsis. */
@@ -214,7 +232,6 @@
 /* ── A table card: the name its title row, the card's border the table's ── */
 
 .mnd-card.large.tabled { padding: 0; }
-.mnd-card.large.tabled:has(> .mnd-alias) { padding-top: calc(var(--corner-y) + var(--corner-h)); }
 
 /* The title row: the name, and the icon at its right end. The marks end the last row, in the
    room views left them there. */
@@ -233,8 +250,8 @@
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: 11px;
-  line-height: 16px;
+  font-size: calc(11px * var(--text-k, 1));
+  line-height: calc(16px * var(--text-k, 1));
 }
 .mnd-face-table:not(:has(> colgroup)) { table-layout: auto; }
 .mnd-face-table :is(th, td) {
@@ -314,7 +331,7 @@
   background-clip: content-box;
 }
 .mnd-card.card-face:is([data-shape="dot"], [data-shape="ring"], [data-shape="diamond"])
-  > :is(.mnd-role, .mnd-marks, .mnd-alias, .mnd-kind) { display: none; }
+  :is(.mnd-role, .mnd-marks, .mnd-kind, .mnd-badge) { display: none; }
 .mnd-card.card-face:is([data-shape="dot"], [data-shape="ring"]) > .mnd-head { display: none; }
 
 /* A decision's diamond: drawn behind the card by two layers, its edge and its ground, so the
@@ -337,7 +354,66 @@
 }
 .mnd-card.card-face[data-shape="diamond"]::after {
   inset: 0.5px 1px;
-  background: var(--card-ground-src, var(--card-fill));
+  background: var(--card-fill);
 }
 .mnd-card.card-face[data-shape="diamond"] > .mnd-head { padding-right: 0; justify-content: center; }
 .mnd-card.card-face[data-shape="diamond"] > .mnd-head > .mnd-named { justify-content: center; text-align: center; }
+
+
+/* ── The facts strip, on every form (`facts.tsx`) ── */
+
+.mnd-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  font-size: 10px;
+  line-height: 12px;
+  white-space: nowrap;
+}
+.mnd-fact {
+  padding: 1px 4px;
+  border: calc(1px / var(--zoom, 1)) solid var(--card-line, var(--line));
+  border-radius: 2px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.mnd-fact > b { color: var(--text); font-weight: 500; }
+/* A seat it wears, off the card: the seat's square, an in mark leading its name and an out mark
+   following it, each chevron pointing the way it carries. */
+.mnd-fact-port { display: inline-flex; gap: 3px; align-items: center; color: var(--muted); }
+.mnd-fact-port:is(.in, .both)::before, .mnd-fact-port.out::after {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  content: "";
+  background: currentColor;
+  mask: var(--seat-mark) center / 100% 100% no-repeat;
+}
+.mnd-fact-port.both::before { mask-image: var(--seat-box); }
+/* A tag: a dot in its colour. */
+.mnd-fact-tag {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--card-edge, var(--muted));
+}
+/* Named where the form has room: the dot, then its tag's name. */
+.mnd-fact-tag.named {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+}
+.mnd-fact-tag.named::before {
+  width: 7px;
+  height: 7px;
+  content: "";
+  border-radius: 50%;
+  background: var(--card-edge, var(--muted));
+}

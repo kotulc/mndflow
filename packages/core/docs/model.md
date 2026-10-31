@@ -86,7 +86,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 | Corner | Says |
 |---|---|
 | **card icon**, top right | what sort of thing this is, or `card.icon`. Filled when the block holds parts |
-| **system mark**, bottom right | what the card stands for, at most three stacked: a stand-in's word (`Ref`, `Def`, `Pkg`), `structure` on the workspace and on a definition that holds structure — never a folder, another package, or a block inside a structure — `data` where it carries attributes or values. A stand-in wears its target's. Derived |
+| **system mark**, bottom right | what the card stands for, at most three stacked: a stand-in's word (`Ref`, `Pkg`; a definition says so with its badge), `structure` on the workspace and on a definition that holds structure — never a folder, another package, or a block inside a structure — `data` where it carries attributes or values. A stand-in wears its target's. Derived |
 | **link mark** | a part seen through a usage: dimmed, with the link glyph, "from `D`" |
 
 

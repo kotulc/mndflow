@@ -1,6 +1,6 @@
 name: Colour
 type: model
-note: Colour and line, set on a definition. A family or a hue picks its colour; fill, border and opacity say how it is drawn.
+note: Colour and line, set on a definition. A family or a hue picks its colour, worn as an edge on a neutral ground; the border says how it is drawn.
 blocks:
   - { name: primary, type: primary }
   - { name: secondary, type: secondary }
@@ -8,7 +8,5 @@ blocks:
   - { name: muted, type: muted }
   - { name: hue 200, type: hue 200 }
   - { name: hue 25, type: hue 25 }
-  - { name: hatched, type: hatched }
-  - { name: faded, type: faded }
   - { name: dashed, type: dashed }
   - { name: thick, type: thick }

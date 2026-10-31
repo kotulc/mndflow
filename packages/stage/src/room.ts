@@ -2,7 +2,7 @@
  *  flies between foci. A page read down the view — the kit's reader — keeps its own scrolled
  *  camera. */
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useReactFlow, useStore } from "@xyflow/react";
 import type { Id } from "@mnd/core";
 import { box_of, extent, FRAME, type BoxNode, type Frame, type Scene } from "@mnd/views";
@@ -43,7 +43,7 @@ export function realm_of(scene: Scene): string {
 /** **The camera fits every focus**: a new focus or a resized view is flown to; a
  *  focus that grew is fitted again. A block revealed inside is panned into sight. Where the
  *  drawing itself changes — the map for a layer entered, a layer for another, or back — the camera
- *  cuts and the new drawing fades in. */
+ *  cuts and the new drawing fades in. Says whether it is in flight, so levels hold until it lands. */
 export function useFocus(scene: Scene, frame: Frame | null, stop: Rect | null,
                          seen: { w: number; h: number }, aim: Id | null, opened = 0) {
   const flow = useReactFlow();
@@ -52,6 +52,7 @@ export function useFocus(scene: Scene, frame: Frame | null, stop: Rect | null,
   const key = `${realm}|${scene.layer}|${stop ? `${stop.x},${stop.y},${stop.scale ?? 1}` : ""}|${opened}`;
   const size = `${Math.round(box.w)}x${Math.round(box.h)}|${seen.w}x${seen.h}`;
   const was = useRef<{ key: string; size: string; realm: string } | null>(null);
+  const [flying, set_flying] = useState(false);
 
   useEffect(() => {
     if (seen.w < BAND * 2 || seen.h < BAND * 2) return;
@@ -60,7 +61,9 @@ export function useFocus(scene: Scene, frame: Frame | null, stop: Rect | null,
     if (before && before.key === key && before.size === size) return;
     /** The first look, and a view resized, land at once; a new focus is flown to. */
     const fly = before && before.key !== key && before.realm === realm && !still() ? FLIGHT : 0;
-    void flow.setViewport(view_on(box, seen, stop?.scale ?? 1), { duration: fly });
+    if (fly) set_flying(true);
+    void flow.setViewport(view_on(box, seen, stop?.scale ?? 1), { duration: fly })
+      .then(() => set_flying(false));
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, size]);
@@ -80,7 +83,7 @@ export function useFocus(scene: Scene, frame: Frame | null, stop: Rect | null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aim]);
 
-  return box;
+  return flying;
 }
 
 /** A scrolled drawing as the camera and the scroll limit both read it: the page (what is drawn,

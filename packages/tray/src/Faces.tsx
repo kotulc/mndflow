@@ -9,26 +9,28 @@ import { face_props, known_face, type Face } from "@mnd/views";
 
 export type FacesProps = { graph: Graph; id: Id;
                             /** One face: the large where its look draws one, else the small. */
-                            one?: boolean };
+                            one?: boolean;
+                            /** A member lit from a list beside it. */
+                            lit?: string };
 
-export function Faces({ graph, id, one = false }: FacesProps) {
+export function Faces({ graph, id, one = false, lit }: FacesProps) {
   return (
     <div className="faces">
-      {one ? <One graph={graph} id={id} face={known_face(graph, id)} />
+      {one ? <One graph={graph} id={id} face={known_face(graph, id)} {...(lit ? { lit } : {})} />
         : <><One graph={graph} id={id} face="large" /><One graph={graph} id={id} face="small" /></>}
     </div>
   );
 }
 
 /** One face, scaled to the room it is given. */
-function One({ graph, id, face }: { graph: Graph; id: Id; face: Face }) {
+function One({ graph, id, face, lit }: { graph: Graph; id: Id; face: Face; lit?: string }) {
   const { w, h, sample, ...drawn } = face_props(graph, id, face);
   const [held, scale] = useFit(w);
   return (
     <div className="face-room" ref={held} style={{ height: h * scale }}>
       <div className={`face ${face}${sample ? " sample" : ""}`}
            style={{ width: w, height: h, transform: scale < 1 ? `scale(${scale})` : undefined }}>
-        <CardFace {...drawn} />
+        <CardFace {...drawn} {...(lit ? { lit } : {})} />
       </div>
     </div>
   );

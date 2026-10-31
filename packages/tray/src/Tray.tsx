@@ -6,9 +6,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { about_of, alias_name, alias_of, children, def_at, def_of, domain_of, entry_at, frame_of,
          constraint_at, frozen, interface_at,
-         is_interface, of_ref, owner_of, registry_at, resolved, stored_of, shown_name, stands_for, tag_at,
+         is_definition, is_interface, may_seat, of_ref, owner_of, registry_at, resolved, stored_of, shown_name, stands_for, tag_at,
          type_at, type Act, type Graph, type Id, type Registry as Of } from "@mnd/core";
-import { Icon, TrayFrame } from "@mnd/theme";
+import { Facts, Icon, TrayFrame } from "@mnd/theme";
+import { colour_of, facts_of, kind_of, tint_attrs, wire_of, wire_tint } from "@mnd/views";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Carried } from "./Carried";
 import { Element } from "./Element";
@@ -22,7 +23,8 @@ import { Usages } from "./Usages";
 import { Packages, type Offered } from "./Packages";
 import { Registry } from "./Registry";
 import { Workspace, type Display } from "./Workspace";
-import { NOOP } from "./Body";
+import { Band, NOOP } from "./Body";
+import { Attributes } from "./Attributes";
 
 /** What the tray holds that the canvas did not give it. */
 export type Hold =
@@ -83,11 +85,12 @@ const SLOTS: Record<Context, readonly Tab[]> = {
   /** **Every element asks the same questions, in the same order**: a block first what it is for
    *  at a glance; then what it is — named for what is drawn, a card or a line — on a definition
    *  how it draws, what it carries, and what it lists: a usage its contents, a definition its
-   *  usages. A usage lists no settings, since it cannot change them. */
+   *  usages. A usage lists no settings, since it cannot change them; a line's settings are its own
+   *  keys and ends. */
   block: ["overview", "card", "components", "contents"],
-  line: ["line", "components"],
+  line: ["overview", "settings", "components"],
   definition: ["overview", "card", "settings", "components", "usages"],
-  relation: ["line", "settings", "components", "usages"],
+  relation: ["overview", "line", "settings", "components", "usages"],
   library: ["definitions"],
   packages: ["packages"],
   interface: ["interface"],
@@ -102,7 +105,8 @@ const ELEMENTS: readonly Context[] = ["block", "line", "definition", "relation"]
 /** Where a context opens when nothing was asked: the root on what the workspace is, a block on
  *  its overview, anything else on its last tab. */
 const OPENS: Partial<Record<Context, Tab>> = { root: "workspace", block: "overview",
-                                               definition: "overview" };
+                                               definition: "overview", line: "overview",
+                                               relation: "overview" };
 
 /** Which contexts share a tab between them: every instance is read the same way, and so is
  *  every definition, so moving from one to the next keeps the question being asked. */
@@ -223,9 +227,13 @@ export function Tray(props: TrayProps) {
   /** What the app asks for, else what this family was last read on, else where it opens. */
   const tabs: string[] = [...hosted, ...SLOTS[context]];
   const family = FAMILY[context];
-  /** A card's first tab and a line's are the same tab, named for what is drawn. */
-  const alike = (t?: string) => (t === "card" || t === "line"
-    ? tabs.find((x) => x === "card" || x === "line") : t);
+  /** What it is: a card's tab, a line's settings, a relation definition's line. An instance's
+   *  first such tab is the same tab, whichever it is called. */
+  const what = (t?: string) => t === "card" || t === "line"
+    || (t === "settings" && family === "instance");
+  const alike = (t?: string) => (what(t)
+    ? tabs.find((x) => (context === "line" ? x === "settings" : x === "card" || x === "line"))
+    : t);
   const tab: string = [props.tab, seen[family]].map(alike).find((t) => t && tabs.includes(t))
     ?? hosted[0] ?? OPENS[context] ?? tabs[tabs.length - 1]!;
   /** Picking a tab, even the one shown, turns the json off. */
@@ -316,6 +324,18 @@ export function Tray(props: TrayProps) {
     : tag_at(graph, about)?.name ?? type_at(graph, about)?.name ?? port_name(graph, about)
     ?? shown_name(graph, about);
 
+  /** **An element's head is its identity row**: name, kind, role, colour edge, facts. */
+  const element = ["block", "line", "definition", "relation"].includes(context);
+  const identity = element ? {
+    kind: kind_of(graph, about),
+    role: (is_definition(graph, about) ? "definition" : "use") as "definition" | "use",
+    tint: lined && graph.edges[about] ? wire_tint(wire_of(graph, about))
+      : tint_attrs(colour_of(graph, about)),
+    ...(graph.blocks[about] ? {
+      facts: <Facts facts={facts_of(graph, about, !!graph.blocks[about]!.def)} named />,
+    } : {}),
+  } : {};
+
   /** The definition an element follows, or itself, which the json chip reads as filed. */
   const filed = ELEMENTS.includes(context) ? held_def : null;
   /** What the body draws: the json, while the chip is on, else the tab. */
@@ -329,6 +349,7 @@ export function Tray(props: TrayProps) {
       onBig={set_big}
       word={word}
       {...(name ? { name } : {})}
+      {...identity}
       {...(picked.length > 1 && !hold ? { note: `${picked.length} items` } : {})}
       tabs={tabs}
       tab={tab}
@@ -377,16 +398,33 @@ export function Tray(props: TrayProps) {
             <Element graph={graph} id={about} {...(edits ? { onAct: act } : {})}
                      onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
+          {/* Edits come second, on the card tab: declaring and answering attributes, and a port
+              put on its wall. The components tab only reads. */}
+          {shows === "card" && edits && graph.blocks[about] ? (
+            <div className="card-edits">
+              <Band label="attributes" />
+              <Attributes key={about} graph={graph} id={about} onAct={act} />
+              {may_seat(graph, about) && !frozen(graph, about) ? (
+                <button className="chip" title="put a port on its wall"
+                        onClick={() => act("interface", { owner: about })}>add port</button>
+              ) : null}
+            </div>
+          ) : null}
           {shows === "json" ? <Json graph={graph} id={about} /> : null}
+          {/* A line's settings are its own keys and ends. */}
+          {shows === "settings" && context === "line" ? (
+            <Element graph={graph} id={about} {...(edits ? { onAct: act } : {})}
+                     onOpen={(id) => onHold({ of: "id", id })} />
+          ) : null}
           {/* How a definition draws, laid out as its card tab. */}
-          {shows === "settings" ? (
+          {shows === "settings" && context !== "line" ? (
             <Element graph={graph} id={about} keys="settings" {...(edits ? { onAct: act } : {})}
                      onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
           {/* Everything it carries: attributes a definition declares and a usage answers, its ports,
               its tags. */}
           {shows === "components" ? (
-            <Carried key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})} />
+            <Carried key={about} graph={graph} id={about} />
           ) : null}
           {/* A host's own tab, for the block the tray is about. */}
           {extras.find((x) => x.name === shows)?.draw(about) ?? null}
@@ -407,13 +445,10 @@ export function Tray(props: TrayProps) {
           {shows === "packages" ? (
             <Packages graph={graph} offered={props.offered} onAct={reads} />
           ) : null}
-          {shows === "usages" ? (
-            <Usages graph={graph} group={lined ? "relation" : "block"}
-                    scope={scope} onScope={set_scope}
-                    layer={layer} about={held_def}
-                    lit={asked_row} onLit={set_lit} onHover={onHover} onAct={reads}
-                    {...(onView ? { onView: (id: Id) => onView(home_of(graph, id), id) } : {})}
-                    home={(id) => home_of(graph, id)} />
+          {shows === "usages" && held_def ? (
+            <Usages key={held_def} graph={graph} id={held_def}
+                    {...(onHover ? { onHover } : {})}
+                    {...(onView ? { onView: (id: Id) => onView(home_of(graph, id), id) } : {})} />
           ) : null}
 
           {shows === "contents" && points_at ? (

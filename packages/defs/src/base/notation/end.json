@@ -8,7 +8,6 @@
   "settings": {
     "card": {
       "shape": "ring",
-      "label": "none",
       "alias": "hide",
       "align": "center"
     }

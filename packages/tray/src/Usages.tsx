@@ -1,128 +1,92 @@
-/** The usages tab: the lines or the blocks, and what each is. */
+/** **The usages tab, read first**: a definition's card and its chip of uses on the left; on the
+ *  right its uses by place, a list each, then its subtypes. A record definition's uses are its
+ *  records, read as a table under each place that holds them. Hovering a row lights it on the
+ *  canvas; *view* goes to where it is drawn. */
 
-import { useState } from "react";
-import { all_defs, BASE_RELATIONS, def_at, domain_of, edge_base, is_base, may_retype,
-         relation_base, relations, type Act, type Graph, type Id } from "@mnd/core";
-import { Choice, lit_row, scope_chips, Table, type Column, type Scope } from "./Table";
-import { block_usage_rows, usage_rows } from "./rows";
-
-/** The base's option in *retype all*, whose own value is blank. */
-const BLANK = "@base";
+import { attributes_of, holds_records, kind_word, shown_name, subtypes, type Graph,
+         type Id } from "@mnd/core";
+import { box_label, kind_of, usage_groups } from "@mnd/views";
+import { Empty, Lead, List, Section, type Item } from "./Lists";
 
 export type UsagesProps = {
   graph: Graph;
-  /** Which usages: blocks or lines. */
-  group: "block" | "relation";
-  /** Where the listing reaches, held by the tray for every table. */
-  scope: Scope;
-  onScope: (to: Scope) => void;
-  layer: Id | null;
-  /** The definition the tray is about, which the third chip group narrows by. */
-  about: Id | null;
-  /** What the tray asks to light, which this table settles against its own listing. */
-  lit: readonly Id[];
-  onLit: (id: Id) => void;
+  /** The definition the tray is about. */
+  id: Id;
+  /** Light a use on the canvas while its row is hovered. */
   onHover?: (id: Id | null) => void;
-  onAct: Act;
-  /** Go to where a line lives: open its layer and pick it there. */
+  /** Go to where a use is drawn: open its layer and pick it there. */
   onView?: (id: Id) => void;
-  /** The layer a line is drawn in. */
-  home: (id: Id) => Id | null;
 };
 
-export function Usages({ graph, group, scope, onScope, layer, about, lit, onLit, onHover, onAct,
-                         onView, home }: UsagesProps) {
-  const lines = group === "relation";
-  /** The root layer reads the whole project until somebody says otherwise. */
-  const [module, set_module] = useState("all");
-  /** Narrowed to the definition in context until somebody widens it. The choice is kept as what
-   *  it means rather than as one definition's id, so it survives a move to the next one. */
-  const [by, set_by] = useState("own");
-
-  /** A whole section has no layer to reach, so it lists the workspace. */
-  const deep = scope === "workspace" || !layer;
-  const all = lines ? usage_rows(graph, layer, deep) : block_usage_rows(graph, layer, deep);
-  /** The default is blank: an element naming nothing follows its kind's. */
-  const offered = [{ value: "", word: "default" },
-    ...(lines ? relations(graph) : all_defs(graph).filter((d) => domain_of(graph, d.id) === "block"))
-      .filter((d) => !is_base(d.id))
-      .map((d) => ({ value: d.id, word: d.name }))];
-  /** What one usage may be retyped to: its own kind's or module's definitions only. */
-  const fits = (id: Id) => offered.filter((o) => !o.value
-    || (lines ? relation_base(graph, o.value) === edge_base(graph, id)
-              : may_retype(graph, id, o.value)));
-
-  const held = about ? def_at(graph, about) : undefined;
-  const narrow = [
-    { key: "any", word: "any", keep: (_r: (typeof all)[number]) => true },
-    ...(held ? [{ key: "own", word: held.name,
-                  keep: (r: (typeof all)[number]) => r.chain.includes(held.id) }] : []),
-  ];
-  /** With no definition in context there is nothing to narrow by, so `any` answers. */
-  const keep = narrow.find((n) => n.key === by) ?? narrow[0]!;
-  const modules = ["all", ...BASE_RELATIONS];
-  const rows = all.filter((r) => (!lines || module === "all" || r.module === module)
-                                 && keep.keep(r));
-
-  const columns: readonly Column[] = [
-    { key: "name", label: lines ? "line" : "block" },
-    { key: "what", label: lines ? "joins" : "kind" },
-    ...(deep ? [{ key: "layer", label: "in" }] : []),
-    { key: "def", label: "definition" },
-  ];
-
-  /** Blank is the default: each usage goes back to its own kind's. */
-  const blank_to = (value: string) => (value === BLANK ? "" : value);
-  /** What is asked for and listed, else the first row. */
-  const on = lit_row(rows, lit);
-
+export function Usages({ graph, id, onHover, onView }: UsagesProps) {
+  const groups = usage_groups(graph, id);
+  const kinds = subtypes(graph, id);
+  const fields = attributes_of(graph, id).map((a) => a.name);
+  /** **A record definition**: every use held where records are kept, answering its attributes. */
+  const records = fields.length > 0 && groups.length > 0 && groups.every((g) => g.uses.every((u) =>
+    holds_records(graph, graph.blocks[u.id]?.parent ?? "")));
+  const view = (use: Id) => (onView ? (
+    <button className="chip" onClick={() => onView(use)}>view</button>
+  ) : null);
   return (
-    <Table
-      columns={columns}
-      acts="6rem"
-      picked={on}
-      onPick={onLit}
-      onHover={onHover}
-      tools={rows.length ? (
-        <select value="" aria-label="retype every line listed"
-                onChange={(e) => onAct("retype", { ids: rows.map((r) => r.id),
-                                                  type: blank_to(e.target.value) })}>
-          <option value="">retype all {rows.length} →</option>
-          {offered.map((o) => <option key={o.value || BLANK} value={o.value || BLANK}>{o.word}</option>)}
-        </select>
-      ) : null}
-      empty={all.length ? "nothing of that sort"
-        : `no ${lines ? "lines" : "blocks"} in this ${deep ? "workspace" : "layer"} yet`}
-      chips={[
-        scope_chips(deep ? "workspace" : "layer", onScope, !!layer),
-        ...(lines ? [{ key: "module", on: module, onPick: set_module,
-          of: modules.map((m) => ({ key: m, word: m,
-            count: m === "all" ? all.length : all.filter((r) => r.module === m).length })) }] : []),
-        { key: "by", on: keep.key, onPick: set_by,
-          of: narrow.map((n) => ({ key: n.key, word: n.word, count: all.filter(n.keep).length })) },
-      ]}
-      rows={rows.map((r) => ({
-        id: r.id,
-        titles: { name: r.name, what: r.what, layer: r.layer },
-        cells: {
-          name: r.name,
-          what: r.what,
-          layer: r.layer,
-          def: (
-            <Choice value={r.def} label={`what ${r.name} follows`} of={fits(r.id)}
-                    onPick={(id) => onAct("retype", { ids: [r.id], type: blank_to(id) })} />
-          ),
-        },
-        /** The lit row's view chip, which is the only way a row moves the context. */
-        actions: onView && on.includes(r.id) ? (
-          <button className="chip"
-                  title={home(r.id) === layer ? "make this the context"
-                                              : "open the layer this is in"}
-                  onClick={(e) => { e.stopPropagation(); onView(r.id); }}>
-            view
-          </button>
-        ) : null,
-      }))}
-    />
+    <div className="reads">
+      <Lead graph={graph} id={id} chip />
+      <div className="lists">
+        {records ? (
+          <Section name="records" about="Its uses are its records: what each answers, by place">
+            {groups.map((g) => (
+              <Records key={g.place} graph={graph} label={box_label(graph, g.place)}
+                       fields={fields} uses={g.uses.map((u) => u.id)} onHover={onHover} />
+            ))}
+          </Section>
+        ) : (
+          <Section name="uses" about="Where it is used, by the place that draws each use">
+            {groups.length ? groups.map((g) => (
+              <List key={g.place} label={box_label(graph, g.place)}
+                    onLight={(at) => onHover?.(at)}
+                    items={g.uses.map((u): Item => ({
+                      id: u.id, mark: <span className="dash">▪</span>,
+                      name: shown_name(graph, u.id), kind: kind_of(graph, u.id),
+                      says: view(u.id) }))} />
+            )) : <Empty>Nothing uses it yet. Drop it onto a diagram to use it there.</Empty>}
+          </Section>
+        )}
+        {kinds.length ? (
+          <Section name="subtypes" about="The definitions that extend it">
+            <List label={`extend ${shown_name(graph, id)}`}
+                  items={kinds.map((k) => ({ id: k.id, mark: <span className="dash">▪</span>,
+                                             name: k.name ?? shown_name(graph, k.id),
+                                             kind: kind_word(graph, k).toLowerCase(),
+                                             says: `${usage_groups(graph, k.id)
+                                               .reduce((n, g) => n + g.uses.length, 0)} uses` }))} />
+          </Section>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** **One place's records**, a table: a row per record, a column per attribute, opening on the
+ *  place's band. */
+function Records({ graph, label, fields, uses, onHover }: {
+  graph: Graph; label: string; fields: readonly string[]; uses: readonly Id[];
+  onHover?: (id: Id | null) => void;
+}) {
+  const value = (use: Id, name: string) =>
+    graph.blocks[use]?.values?.find((v) => v.name === name)?.value ?? "";
+  return (
+    <div className="records">
+      <div className="band"><span>{label}</span><span className="n">{uses.length}</span></div>
+      <table>
+        <thead><tr>{fields.map((f) => <th key={f}>{f}</th>)}</tr></thead>
+        <tbody>
+          {uses.map((u) => (
+            <tr key={u} onMouseEnter={() => onHover?.(u)} onMouseLeave={() => onHover?.(null)}>
+              {fields.map((f) => <td key={f}>{value(u, f)}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

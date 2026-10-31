@@ -9,6 +9,7 @@ import { at_seat, beside, boundary, cell_box, face_of, head_height, is_placed, l
          roomed, seat_all, size_of, PAD,
          UNIT, type Perch, type Rect, type Seat, type Seating, type Size } from "@mnd/views";
 import { carried, fit_names, marks_of, trail_of } from "./derive";
+import { card_facts } from "./facts";
 import { lifelined } from "./lifelines";
 import { look_of, wire_of } from "./look";
 import { page_graph } from "./page";
@@ -100,7 +101,8 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
       : carried(graph, id);
     const marks = [...said.marks, ...(parts.has(id) ? ["part" as const] : []),
                    ...(how === "treemap" ? ["tiled" as const] : [])];
-    return { ...said, marks };
+    const facts = card_facts(graph, id);
+    return { ...said, marks, ...(facts ? { facts } : {}) };
   };
   const spots = laid(graph, layer);
   /** Interfaces are seated after the cards; hidden ones still hold their seat. */

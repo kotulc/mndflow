@@ -470,10 +470,9 @@ export function settings_of(graph: Graph, id: Id, onAct: Act): Pair[] {
 const PARTS: Record<Group, string> = {
   name: "How the name is set: its font, weight and contrast, which end it reads from, and "
     + "whether the handle joins it.",
-  label: "The kind word: where it sits, and how it is set.",
   face: "Which large face it draws, how big, and whether that face names itself.",
   head: "What draws where the run leaves and where it arrives.",
-  colour: "How it is painted: the family, the pattern, and the hue, intensity and opacity.",
+  colour: "How it is painted: the family, or a hue and how its kin vary.",
   border: "The line round it: its weight, contrast and style.",
   icon: "The mark in its top corner.",
 };

@@ -13,6 +13,9 @@
   --note-h: 78; --note-c: 0.09;
   --error-h: 25; --error-c: 0.18;
   --warn-h: 50; --warn-c: 0.14;
+
+  /* Every identity hue (a kind, a definition, a relation, a tag) at one chroma, so none shouts. */
+  --id-c: 0.13;
 }
 
 /* A theme is its ladder plus twelve numbers. */
@@ -131,9 +134,6 @@
   --s-note-edge: oklch(var(--l-edge) calc(var(--note-c) * 0.72) var(--note-h));
   --s-note-dim: oklch(var(--l-dim) calc(var(--note-c) * 0.32) var(--note-h));
   --s-note-ink: oklch(var(--l-ink) calc(var(--note-c) * 0.30) var(--note-h));
-
-  /* What a usage's own two numbers are measured against. */
-  --tint-ceiling: 0.19;
 
   --s-error-edge: oklch(var(--l-edge) var(--error-c) var(--error-h));
   --s-error-ink: oklch(var(--l-ink) calc(var(--error-c) * 0.45) var(--error-h));

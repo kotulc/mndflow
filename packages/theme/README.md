@@ -39,7 +39,7 @@ import "@mnd/theme/base.css";
 | `src/shell.tsx` | `WorkspaceHeader` and `TrayFrame` — the chrome as components, naming no graph — and `useZone`, which region has the keys, outlined by `shell.css` |
 | `src/markdown.tsx` | `Markdown` and `Inline` — **the one renderer**: `react-markdown` with GitHub's tables and task lists, never an HTML string. A link answers ctrl+click |
 | `src/face.tsx` · `face.css` | `CardFace` — **the one drawing of a card**, wherever one is drawn: small, the handle over the name, the icon and the marks; large, the name and its markdown. It names no graph: what it says and how it is painted are handed to it |
-| `src/icons.tsx` | the icon set: roles (the root among them), the explorer's section words, and the system marks — **a stand-in's written as a word** (`Def`, `Ref`, `Pkg`), **what describes a card drawn** (`data`, a database) |
+| `src/icons.tsx` | the icon set: roles (the root among them), the explorer's section words, and the system marks — **a stand-in's written as a word** (`Ref`, `Pkg`), **what describes a card drawn** (`data`, a database) |
 
 ## How the ramp works
 

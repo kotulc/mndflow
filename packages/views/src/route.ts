@@ -104,14 +104,10 @@ function toward(from: Point, to: Point, by: number): Point {
            y: from.y + ((to.y - from.y) / d) * by };
 }
 
-/** How wide a name reads, per character and round it, in pixels. */
-const NAME = { glyph: 6.2, pad: 12 };
-
 /** Where a name sits: the middle of the longest leg past the fan point, so it lands on the line's
- *  own stretch rather than on a trunk it shares. A name of `chars` too wide for a level leg reads
- *  upright, across it. */
-export function middle_of(run: readonly Point[], fan?: Fan,
-                          chars = 0): Point & { upright: boolean } {
+ *  own stretch rather than on a trunk it shares, and whether that leg is `level`, so the name sits
+ *  beside the stroke: above a level leg, right of an upright one. */
+export function middle_of(run: readonly Point[], fan?: Fan): Point & { level: boolean } {
   const own = fan ? past(fan.end === "to" ? [...run].reverse() : run, fan.by) : run;
   let best = { at: { x: own[0]!.x, y: own[0]!.y }, span: -1, level: false };
   for (let i = 1; i < own.length; i++) {
@@ -122,8 +118,7 @@ export function middle_of(run: readonly Point[], fan?: Fan,
       best = { at: { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 }, span, level: p.y === q.y };
     }
   }
-  const wide = chars * NAME.glyph + NAME.pad;
-  return { ...best.at, upright: chars > 0 && best.level && best.span < wide };
+  return { ...best.at, level: best.level };
 }
 
 /** What is left of a run after its first `by` of length. */

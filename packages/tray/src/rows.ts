@@ -1,9 +1,8 @@
 /** What the open layer holds, as rows. */
 
-import { alias_name, all_defs, alias_of, children, def_at, def_of, definition_uses, domain_of,
-         edge_base, edges_in,
-         frozen, is_base, is_box, is_holder, isa, base_of, package_of, part_id, path, ports_on, shown_name,
-         subtree, type_name, type Block, type Domain, type Graph, type Id } from "@mnd/core";
+import { alias_name, all_defs, alias_of, children, def_at, definition_uses, domain_of, edge_base,
+         edges_in, frozen, is_base, is_box, is_holder, base_of, package_of, part_id, ports_on,
+         shown_name, type_name, type Block, type Domain, type Graph, type Id } from "@mnd/core";
 
 /** What a row is, which is also how it is filtered. */
 export type Sort = "block" | "interface" | "relationship" | "group" | "note";
@@ -115,67 +114,9 @@ export function def_rows(graph: Graph): DefRow[] {
     .sort((a, z) => Number(!!a.from) - Number(!!z.from) || a.name.localeCompare(z.name));
 }
 
-/** One line, as the usages tab lists it. */
-export type UsageRow = {
-  id: Id;
-  name: string;
-  /** Which two things it joins. */
-  what: string;
-  /** Where in the project it is, as a path. */
-  layer: string;
-  /** The module it is drawn by. */
-  module: string;
-  /** Every definition it resolves through, nearest first. */
-  chain: Id[];
-  /** The definition it names — blank where it follows its default. */
-  def: Id;
-};
-
-/** The lines in a layer, or every line for the workspace. */
-export function usage_rows(graph: Graph, layer: Id | null, deep: boolean): UsageRow[] {
-  const called = (id: Id) => [shown_name(graph, id), alias_of(graph, id)]
-    .filter(Boolean).join(" ");
-  const lines = deep ? Object.values(graph.edges) : edges_in(graph, layer);
-  return lines.map((e) => ({
-    id: e.id,
-    name: called(e.id),
-    what: `${called(e.from)} → ${called(e.to)}`,
-    layer: layer_path(graph, e.from),
-    module: edge_base(graph, e.id),
-    chain: isa(graph, def_of(graph, e.id)).map((d) => d.id),
-    def: plain(graph, e.type) ? "" : e.type!,
-  })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
-}
-
-/** The blocks in a layer, or every block there is for the workspace, as the usages tab lists them. */
-export function block_usage_rows(graph: Graph, layer: Id | null, deep: boolean): UsageRow[] {
-  const called = (id: Id) => [shown_name(graph, id), alias_of(graph, id)]
-    .filter(Boolean).join(" ");
-  const blocks = deep
-    ? subtree(graph, graph.root).filter((id) => id !== graph.root).map((id) => graph.blocks[id]!)
-    : children(graph, layer);
-  /** A definition is what usages follow, never one of them. */
-  return blocks.filter((b) => !b.def).map((b) => ({
-    id: b.id,
-    name: called(b.id),
-    what: base_of(graph, b.id),
-    layer: layer_path(graph, b.id),
-    module: base_of(graph, b.id),
-    chain: isa(graph, def_of(graph, b.id)).map((d) => d.id),
-    def: plain(graph, b.type) ? "" : b.type!,
-  })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
-}
-
 /** Whether a stored type is plain: nothing, or a base. */
 function plain(graph: Graph, type: Id | undefined): boolean {
   return !type || (!!def_at(graph, type) && is_base(type));
-}
-
-/** Where a run sits, named by the layer holding the block at its end. */
-function layer_path(graph: Graph, end: Id): string {
-  const holder = graph.blocks[end]?.parent;
-  if (!holder) return shown_name(graph, graph.root);
-  return path(graph, holder).map((b) => shown_name(graph, b.id)).join(" / ");
 }
 
 /** Where an interface sits: the wall it was placed on, or wherever it places itself. */

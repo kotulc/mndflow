@@ -14,12 +14,24 @@
 |---|---|---|---|
 | **overview** | every element | card, then picture | why it matters, how it is used, where it lives |
 | **components** | a part, or any element carrying members | its card | its members, a section each |
-| **contents** | a diagram | its card, then its chip | its text, blocks by region, lines by type, notation |
+| **contents** | a diagram | as today | blocks by region, lines by type, notation. Its text moves to the overview |
 | **usages** | a definition | its card, then its chip of uses | its uses by place, its subtypes. A record's uses are its records, as a table |
-| **card**, **settings** | basic edits | to be rethought | |
+| **card**, **settings** | how it draws; a line's settings hold its keys and ends | as today, to be rethought | |
 
 - **the left column stays put** as tabs change; only the right changes
 - **a chip shows only where it is the list drawn**: a definition's uses, a diagram's contents. Never for context alone
+
+
+| Context | Tabs |
+|---|---|
+| block | overview · card · components · contents |
+| definition | overview · card · settings · components · usages |
+| line | overview · settings · components |
+| relation definition | overview · line · settings · components · usages |
+| workspace, definitions folder, packages, registry, entry | its own tab, as a head and banded lists |
+
+- **the tray informs; editing is not its purpose.** Basic edits stay on the card and settings tabs until those are rethought
+- **the json chip stays** on every element, for now
 
 
 ## Sections
@@ -37,6 +49,6 @@
 
 | Tray width | Columns |
 |---|---|
-| under 600 px | one: the left column, then the right |
-| 600 to 1040 px | two: left and right |
-| over 1040 px | two, the right's sections in two columns, a wide list across both |
+| under 560 px | one: the left column, then the right |
+| 560 to 960 px | two: left and right |
+| over 960 px | two, the right's sections in two columns, a wide list across both |

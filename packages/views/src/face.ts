@@ -5,14 +5,16 @@
  *  that what is shown fits. A table's columns are measured exactly once, here, and drawn at those
  *  widths, and **a table card is exactly its table**: its title row, its rows and its border. */
 
-import { alias_of, attributes_of, behaviours_of, holds_records, links_to, resolved, schema_def,
+import { alias_of, attributes_of, behaviours_of, holds_records, is_definition, links_to,
+         notation_of, resolved,
+         schema_def,
          setting_of, shown_name, signature_of, stamps_of, type_name, unit_of, type Attribute,
          type Graph, type Id } from "@mnd/core";
 import { look_of, type Look } from "./look";
 import type { Listed, Ruled } from "./scene";
 
 /** One glyph's width, in pixels, at each size the face writes in. */
-const GLYPH = { name: 7.8, body: 7.2, table: 6.6 };
+const GLYPH = { name: 7.8, body: 7.2, table: 6.6, kind: 6.4 };
 
 /** The sizes a small face's name may take, largest first, in pixels: a glyph is 0.6 of one and
  *  a line 1.5. */
@@ -32,12 +34,16 @@ const CELL = 16;
 const IMAGE = { w: 192, h: 96 };
 
 /** What a large face spends round its body, in pixels: the card's padding, the corner's gutter,
- *  the head line and its divider, the room a handle over the name takes, and the same over a
- *  table card, which has no padding of its own — then a table's title row and the room beside its
+ *  the head line and its divider, the line a small face's kind takes where it wraps under the name,
+ *  the gap before the kind beside the name, the facts strip's line under the head — then a table's title row and the room beside its
  *  name for the icon, what a cell spends beside its text, and the room each mark takes at the end
  *  of the last row, inset from the corner. All as `face.css` draws them. */
-const PAD = { x: 16, gutter: 13, y: 6, head: 24, handle: 11, over: 14, gap: 4, title: 21, side: 32,
+const PAD = { x: 16, gutter: 13, y: 6, head: 24, handle: 11, kind: 6, facts: 18, gap: 4, title: 21,
+              side: 32,
               cell: 10, mark: 15, corner: 8 };
+
+/** The facts strip's line under a face's head, in pixels. */
+export const FACTS_LINE = PAD.facts;
 
 /** A card's border, in pixels, at each width `ramp.css` weighs it. */
 const EDGE: Record<string, number> = { thin: 1, medium: 2, thick: 4 };
@@ -97,12 +103,19 @@ export function edge_of(look: Look): number {
   return EDGE[look.border_width] ?? 1;
 }
 
-/** What a card wears in its top corner, over its name: what it is, where `card.label` says
- *  `inside` and it is more than a plain block, then its handle — while it is unnamed, or always or never where its look says. */
+/** The head's words after the name, as a large face is sized for them: its kind, then a
+ *  definition's badge, which reads about as wide as its word in the kind's type. */
+export function head_words(graph: Graph, id: Id, look: Look = look_of(graph, id)): string {
+  return [handle_of(graph, id, look), is_definition(graph, id) ? "definition" : ""]
+    .filter(Boolean).join(" ");
+}
+
+/** **The kind a card says after its name**: what it is, where it is more than a plain block and
+ *  not notation, then its handle — while it is unnamed, or always or never where its look says. */
 export function handle_of(graph: Graph, id: Id, look: Look = look_of(graph, id)): string {
   const alias = look.alias === undefined ? alias_of(graph, id)
     : look.alias ? alias_of(graph, id, true) : "";
-  const kind = look.label === "inside" ? type_word(look.kind, shown_name(graph, id)) : "";
+  const kind = notation_of(graph, id) ? "" : type_word(look.kind, shown_name(graph, id));
   return [kind, alias].filter(Boolean).join(" · ");
 }
 
@@ -112,13 +125,16 @@ export function type_word(kind: string, name: string): string {
   return kind === "block" || kind === name ? "" : kind;
 }
 
-/** The room a large face needs, in pixels: its name and handle — over its table of attributes,
- *  as that table's title row, inside a border `edge` wide — then its markdown, every table whole
- *  and its prose wrapped at the width that leaves. Unbounded; the caller holds it. */
-export function fit_of(name: string, text: string, handle: boolean, most_w: number,
-                       ruled: Ruled | null = null, edge = 1): Size {
+/** The room a large face needs, in pixels: its name and kind on one line — over its table of
+ *  attributes, as that table's title row, inside a border `edge` wide — then its facts strip where
+ *  it has one, then its markdown, every table whole and its prose wrapped at the width that leaves.
+ *  Unbounded; the caller holds it. */
+export function fit_of(name: string, text: string, kind: string, most_w: number,
+                       ruled: Ruled | null = null, edge = 1, facts = false): Size {
+  const strip = facts ? PAD.facts : 0;
   const blocks = blocks_of(text);
-  const head = (ruled ? PAD.side : PAD.x + PAD.gutter) + name.length * GLYPH.name;
+  const head = (ruled ? PAD.side : PAD.x + PAD.gutter) + name.length * GLYPH.name
+    + (kind ? PAD.kind + kind.length * GLYPH.kind : 0);
   const across = ruled ? ruled.widths.reduce((sum, w) => sum + w, 0) : 0;
   const wide = Math.max(head, across, ...blocks.map((b) => PAD.x + (b.kind === "table"
     ? table_width(b.rows) : b.kind === "image" ? IMAGE.w : PAD.gutter + longest(b.lines) * GLYPH.body)));
@@ -128,16 +144,17 @@ export function fit_of(name: string, text: string, handle: boolean, most_w: numb
     : b.kind === "image" ? IMAGE.h
     : b.kind === "fence" ? b.lines.length * LINE
     : b.lines.reduce((n, l) => n + Math.max(1, Math.ceil(l.length / per)), 0) * LINE), 0);
-  if (!ruled) return { w: wide, h: PAD.y + PAD.head + (handle ? PAD.handle : 0) + body };
+  /** **Never shorter than a head and two rows**, so a blank face lines up with a full one. */
+  if (!ruled) return { w: wide, h: PAD.y + PAD.head + strip + Math.max(body, PAD.gap + 2 * LINE) };
   /** A table is ruled edge to edge, its title its top row and its last rule the border's — unless
    *  a padded body follows it. */
-  const rows = PAD.title + ruled.cells.length * ROW + (blocks.length ? PAD.y + body : -1);
-  return { w: wide + edge * 2, h: rows + edge * 2 + (handle ? PAD.over : 0) };
+  const rows = PAD.title + Math.max(2, ruled.cells.length) * ROW + (blocks.length ? PAD.y + body : -1);
+  return { w: wide + edge * 2, h: rows + strip + edge * 2 };
 }
 
-/** How many whole lines of prose a large face `h` pixels tall holds under its name. */
-export function body_lines(h: number, handle: boolean): number {
-  return Math.max(1, Math.floor((h - PAD.y - PAD.head - PAD.gap - (handle ? PAD.handle : 0)) / LINE));
+/** How many whole lines of prose a large face `h` pixels tall holds under its head. */
+export function body_lines(h: number, facts = false): number {
+  return Math.max(1, Math.floor((h - PAD.y - PAD.head - (facts ? PAD.facts : 0) - PAD.gap) / LINE));
 }
 
 /** How wide one line of a name writes, in pixels, with the card's padding either side. */
@@ -153,8 +170,8 @@ export function note_h(text: string, w: number): number {
 }
 
 /** How a small face's name fits a card `box` big: the largest size whose words, wrapped whole,
- *  fit the lines its height holds, two at most — a diamond writes in its middle band only — and
- *  that many lines. Null where the name fits as the stylesheet draws it; at the smallest size a
+ *  fit the lines its height holds, two at most, less a line for its kind where it says one — a
+ *  diamond writes in its middle band only — and that many lines. Null where the name fits as the stylesheet draws it; at the smallest size a
  *  name still too long is cut short. */
 export function name_fit(name: string, box: { w: number; h: number }, corner: boolean,
                          diamond = false): { size: number; lines: number } | null {

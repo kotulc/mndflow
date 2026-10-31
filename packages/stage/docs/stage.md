@@ -41,11 +41,12 @@
 | `draw.ts` | the right button: a relationship from a card, a grid across the ground |
 | `drag.ts` | what travels with a dragged node, what is lit, and the adjustment a drop makes |
 | `Grips.tsx` | the ends of what is picked, and the berths of hidden interfaces |
-| `Legend.tsx` | the key, in a right-hand corner. **The icon is dressed as the card is**, so its colour is the card's own paint rather than a second answer about it |
+| `Legend.tsx` | the key, in a right-hand corner: kinds, then tags as solid dots in a section of their own, then marks. **The icon is dressed as the card is**, so its colour is the card's own paint rather than a second answer about it |
 | `moves.ts` | what an adjustment writes, as actions — never a position |
-| `nodes.tsx` | the node types, each drawn whole at every zoom. A map's box is its walls and title (`MapBox`); a chip its icon, name, counts and inner treemap (`ChipNode`) |
+| `nodes.tsx` | the node types. A map's box is its walls, title and counts (`MapBox`); a chip is theme's `ChipFace` at its level (`ChipNode`); a card climbs the ladder by its size on screen (`level.ts`) |
+| `level.ts` | **levels by zoom**: `useLevel` (views `level_at`, held through a flight by `FlightContext`), `useTiny` for seats too small to read |
 | `arrays.ts` | the Scene as React Flow's arrays, and **draw order** (`DEPTH`): holders, lines, cards and chips, seats, each two steps higher per holder it sits in |
-| `Wire.tsx` | one run: the route libavoid found while it meets its handles, else `route`; **a run the Scene already drew (`data.points`) is drawn as given** |
+| `Wire.tsx` | one run: the route libavoid found while it meets its handles, else `route`; **a run the Scene already drew (`data.points`) is drawn as given**. It climbs the ladder by its length on screen (views `line_level`): stroke, anchors, its name beside the stroke, its ends' words; hovered or picked it thickens and says its ends |
 | `flow.css` · `routes.css` · `groups.css` | cards and the frame; runs and their ends; bands and grids — loaded in that order |
 
 ## Hover and pick

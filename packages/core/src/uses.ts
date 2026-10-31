@@ -3,7 +3,8 @@
 
 import { is_tie, model_of } from "./defs";
 import { kept } from "./memo";
-import { of_ref, owner_of, stands_for } from "./tree";
+import { layer_of } from "./holders";
+import { line_layer, of_ref, owner_of, stands_for } from "./tree";
 import type { Graph, Id } from "./types";
 
 /** One use of a definition: a usage typed by it, a reference standing for it, or a line typed by
@@ -52,4 +53,17 @@ function index(graph: Graph): Map<Id, DefinitionUse[]> {
     }
   }
   return by;
+}
+
+/** **Where a use is drawn**: the layer holding it, a line's the layer it crosses; null outside
+ *  every model. */
+export function use_place(graph: Graph, id: Id): Id | null {
+  const place = graph.edges[id] ? line_layer(graph, id) : layer_of(graph, id);
+  return place && model_of(graph, place) ? place : null;
+}
+
+/** The places a definition's uses are drawn in, each once. */
+export function use_places(graph: Graph, def: Id): Id[] {
+  return [...new Set(definition_uses(graph, def).map((u) => use_place(graph, u.id))
+    .filter((p): p is Id => !!p))];
 }

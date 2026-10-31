@@ -444,7 +444,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         ) : null}
       />
       {legend ? <Legend scene={scene} {...(corner ? { at: corner } : {})} /> : null}
-      {scene.areas ? <Hover graph={graph} library={scene.map === "library"} host={host} /> : null}
+      <Hover graph={graph} library={scene.map === "library"} host={host} />
       {at && menu ? menu(at, at.on, () => set_at(null), at.spot, at.only, at.given) : null}
     </section>
   );

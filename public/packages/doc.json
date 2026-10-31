@@ -142,8 +142,7 @@
         "settings": {
           "card": {},
           "style": {
-            "family": "neutral",
-            "fill": "hatch"
+            "family": "neutral"
           },
           "allows": {
             "holds": false,

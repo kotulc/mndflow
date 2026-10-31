@@ -122,7 +122,7 @@
         "order": 1,
         "settings": {
           "style": {
-            "hue": 260
+            "hue": 240
           },
           "layout": {
             "view": "class",
@@ -156,7 +156,7 @@
         "order": 2,
         "settings": {
           "style": {
-            "hue": 55
+            "hue": 130
           }
         },
         "traits": []
@@ -172,7 +172,6 @@
         "settings": {
           "card": {
             "shape": "diamond",
-            "label": "none",
             "alias": "hide",
             "align": "center"
           }
@@ -210,7 +209,6 @@
         "settings": {
           "card": {
             "shape": "ring",
-            "label": "none",
             "alias": "hide",
             "align": "center"
           }
@@ -227,7 +225,7 @@
         "order": 2,
         "settings": {
           "style": {
-            "hue": 230
+            "hue": 215
           },
           "layout": {
             "view": "er",
@@ -245,7 +243,7 @@
         "order": 3,
         "settings": {
           "style": {
-            "hue": 25
+            "hue": 355
           },
           "layout": {
             "view": "internal",
@@ -272,9 +270,6 @@
             "family": "neutral",
             "border_contrast": "faint",
             "name_contrast": "faint"
-          },
-          "card": {
-            "label": "none"
           }
         },
         "traits": [
@@ -297,9 +292,6 @@
           },
           "layout": {
             "view": "allocation"
-          },
-          "card": {
-            "label": "none"
           }
         },
         "traits": [
@@ -325,7 +317,6 @@
             "border_style": "none"
           },
           "card": {
-            "label": "none",
             "align": "center"
           }
         },
@@ -344,7 +335,7 @@
         "settings": {
           "style": {
             "border_width": "thin",
-            "hue": 100
+            "hue": 110
           }
         },
         "traits": [
@@ -361,7 +352,7 @@
         "order": 4,
         "settings": {
           "style": {
-            "hue": 200
+            "hue": 195
           },
           "layout": {
             "view": "internal"
@@ -379,13 +370,11 @@
         "settings": {
           "card": {
             "face": "text",
-            "label": "none",
             "alias": "hide",
             "align": "center"
           },
           "style": {
             "family": "note",
-            "fill": "none",
             "border_style": "none",
             "name_contrast": "strong"
           }
@@ -430,6 +419,9 @@
         "settings": {
           "layout": {
             "view": "internal"
+          },
+          "style": {
+            "hue": 265
           }
         }
       },
@@ -446,15 +438,12 @@
             "face": "document",
             "height": "free",
             "align": "left",
-            "label": "none",
             "alias": "hide"
           },
           "style": {
             "family": "note",
-            "fill": "wash",
             "border_contrast": "strong",
-            "name_contrast": "faint",
-            "opacity": 0.06
+            "name_contrast": "faint"
           }
         },
         "traits": [
@@ -473,10 +462,8 @@
         "settings": {
           "style": {
             "family": "away",
-            "fill": "hatch",
             "border_contrast": "strong",
-            "name_contrast": "strong",
-            "opacity": 0.55
+            "name_contrast": "strong"
           }
         },
         "traits": [
@@ -499,7 +486,6 @@
             "name_contrast": "soft"
           },
           "card": {
-            "label": "none",
             "align": "center"
           }
         },
@@ -535,7 +521,7 @@
         "order": 5,
         "settings": {
           "style": {
-            "hue": 320
+            "hue": 310
           },
           "layout": {
             "view": "allocation"
@@ -563,7 +549,6 @@
         "settings": {
           "card": {
             "shape": "dot",
-            "label": "none",
             "alias": "hide",
             "align": "center"
           }
@@ -580,7 +565,7 @@
         "order": 6,
         "settings": {
           "style": {
-            "hue": 350
+            "hue": 330
           },
           "layout": {
             "view": "internal",
@@ -629,7 +614,7 @@
         "order": 4,
         "settings": {
           "style": {
-            "hue": 85
+            "hue": 90
           }
         },
         "traits": []

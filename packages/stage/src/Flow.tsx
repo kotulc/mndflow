@@ -18,6 +18,7 @@ import { useDrag } from "./drag";
 import { useDraw } from "./draw";
 import { Grips } from "./Grips";
 import { kind_of, spread, LINES } from "./pointer";
+import { FlightContext } from "./level";
 import { paged, realm_of, useFit, useFocus, usePage, useRoom } from "./room";
 import { Sweeping } from "./Sweeping";
 import { useSync } from "./sync";
@@ -49,7 +50,7 @@ function Canvas(props: FlowViewProps) {
   const { nodes, edges, moved, rewired, chose, again } =
     useSync(scene, picked, frame, onPick, second);
   usePage(scene, seen, nodes, focus, wide, widest, most, scroll);
-  useFocus(scene, frame, stop, seen, scroll ? null : focus, opened);
+  const flying = useFocus(scene, frame, stop, seen, scroll ? null : focus, opened);
   /** Which drawing this is, a map or a layer entered from it: across a change nothing slides,
    *  and the new drawing fades in where the camera cut to it. */
   const realm = realm_of(scene);
@@ -179,6 +180,7 @@ function Canvas(props: FlowViewProps) {
                        [scene, nodes, frame]);
 
   return (
+    <FlightContext.Provider value={flying}>
     <RunsContext.Provider value={runs}>
     <ReactFlow
       className={["mnd-flow", framed ? "" : "frameless", scene.areas ? "map" : "",
@@ -331,6 +333,7 @@ function Canvas(props: FlowViewProps) {
       {chrome && !scroll ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
     </ReactFlow>
     </RunsContext.Provider>
+    </FlightContext.Provider>
   );
 }
 

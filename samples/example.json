@@ -141,8 +141,7 @@
         "order": 3,
         "settings": {
           "style": {
-            "family": "note",
-            "fill": "wash"
+            "family": "note"
           }
         }
       },

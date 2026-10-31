@@ -15,7 +15,8 @@ const ALLOWED: Record<string, readonly string[]> = {
   theme: [],
   /** Sizing, placement and the notation, in one package. */
   views: ["core"],
-  explorer: ["core", "theme"],
+  /** Rows wear their card's colour edge and count, which views reads (2026-10-30). */
+  explorer: ["core", "views", "theme"],
   /** The drawing, and the components it draws with. */
   stage: ["core", "views", "theme"],
   /** The seam: may reach everything, since it only re-exports. The tray's tabs go out read only. */

@@ -79,9 +79,6 @@ const stray = (name: string, config: Settings, known: readonly string[]): string
 
 
 
-/** Where the label sits — the subtype where one is named, the base kind otherwise. */
-export const DISPLAYS = ["above", "inside", "below", "none"] as const;
-
 /** Whether a writing is drawn at all. */
 export const SHOWN = ["show", "hide"] as const;
 
@@ -128,15 +125,12 @@ export const FAMILIES = ["primary", "secondary", "neutral", "muted",
  *  wanted. */
 export const HUE = { min: 0, max: 360 } as const;
 
-/** How much chroma that hue is taken at, as a fraction of the theme's own ceiling. */
-export const INTENSITY = { min: 0, max: 1 } as const;
-
 /** How far, in degrees, each definition under one that varies strays from the hue it inherits:
  *  half either way, keyed by its id, so kin read alike and each still reads as itself. */
 export const VARY = { min: 0, max: 180 } as const;
 
 /** The answers that are ranges rather than sets. */
-export const NUMBERS: readonly string[] = ["hue", "intensity", "vary", "opacity"];
+export const NUMBERS: readonly string[] = ["hue", "vary"];
 
 /** How heavy a border is. Three steps, and the first is the ordinary one. */
 export const WIDTHS = ["thin", "medium", "thick"] as const;
@@ -144,7 +138,7 @@ export const WIDTHS = ["thin", "medium", "thick"] as const;
 /** How a border is drawn: styles that read at one pixel. */
 export const BORDERS = ["solid", "dashed", "dotted", "double", "none"] as const;
 
-/** How heavily a writing is set, asked of name and label separately. */
+/** How heavily the name is set. */
 export const WEIGHTS = ["light", "normal", "bold"] as const;
 
 /** How a writing is faced. One value, not three flags. */
@@ -153,32 +147,21 @@ export const FONTS = ["none", "italic", "underline", "strike"] as const;
 /** What draws at one end of a run. */
 export const ARROWS = ["none", "arrow", "open", "hollow", "diamond"] as const;
 
-/** What fills a card behind its writing. */
-export const FILLS = ["solid", "hatch", "wash", "none"] as const;
-
-/** How opaque the fill is, from nothing to solid. */
-export const OPACITY = { min: 0, max: 1 } as const;
-
 /** How far a border or a writing stands out from the card behind it. */
 export const CONTRASTS = ["faint", "soft", "strong", "full"] as const;
 
 /** What a card draws where nobody has said — the app's own answer, as against a definition's or an
  *  element's. */
 export const DEFAULTS = {
-  "card.label": "inside",
   "card.align": "left",
-  "card.label_align": "left",
   "card.height": "uniform",
   "line.name": "show",
   "line.alias": "hide",
   "style.family": "neutral",
-  "style.fill": "solid",
   "style.border_width": "thin",
   "style.border_style": "solid",
   "style.name_font": "none",
   "style.name_weight": "normal",
-  "style.label_font": "none",
-  "style.label_weight": "normal",
 } as const;
 
 /** The drawing keys, as against what a thing is held to. */
@@ -224,9 +207,7 @@ const block: Component = {
 const card: Component = {
   name: "card",
   check: (config) =>
-    one_of("card.label", config["label"], DISPLAYS)
-    ?? one_of("card.align", config["align"], ALIGNS)
-    ?? one_of("card.label_align", config["label_align"], ALIGNS)
+    one_of("card.align", config["align"], ALIGNS)
     /** `alias` shows or hides the handle; unsaid, it shows only while unnamed. */
     ?? one_of("card.alias", config["alias"], SHOWN)
     ?? one_of("card.height", config["height"], HEIGHTS)
@@ -237,35 +218,28 @@ const card: Component = {
     ?? sized("card.size", config["size"])
     /** `shape` is what it is drawn as. */
     ?? one_of("card.shape", config["shape"], SHAPES)
-    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height", "name",
+    ?? stray("card", config, ["align", "icon", "alias", "height", "name",
                               "face", "size", "shape"]),
 };
 
-/** How a card is painted: its border, its fill, and each of its two writings. */
+/** How a card is painted: its colour, its border, and its name. */
 const style: Component = {
   name: "style",
   check: (config) =>
     one_of("style.family", config["family"], FAMILIES)
-    ?? one_of("style.fill", config["fill"], FILLS)
     ?? one_of("style.border_width", config["border_width"], WIDTHS)
     ?? one_of("style.border_style", config["border_style"], BORDERS)
     ?? one_of("style.border_contrast", config["border_contrast"], CONTRASTS)
     ?? one_of("style.name_font", config["name_font"], FONTS)
     ?? one_of("style.name_weight", config["name_weight"], WEIGHTS)
     ?? one_of("style.name_contrast", config["name_contrast"], CONTRASTS)
-    ?? one_of("style.label_font", config["label_font"], FONTS)
-    ?? one_of("style.label_weight", config["label_weight"], WEIGHTS)
-    ?? one_of("style.label_contrast", config["label_contrast"], CONTRASTS)
     /** `hue` wins over `family` where both are said, so a preset can be nudged without first being
      *  cleared. */
     ?? within("style.hue", config["hue"], HUE)
-    ?? within("style.intensity", config["intensity"], INTENSITY)
     ?? within("style.vary", config["vary"], VARY)
-    ?? within("style.opacity", config["opacity"], OPACITY)
-    ?? stray("style", config, ["family", "fill", "hue", "intensity", "vary", "opacity",
+    ?? stray("style", config, ["family", "hue", "vary",
                                "border_width", "border_style", "border_contrast",
-                               "name_font", "name_weight", "name_contrast",
-                               "label_font", "label_weight", "label_contrast"]),
+                               "name_font", "name_weight", "name_contrast"]),
 };
 
 /** What a run is and draws: which way it points, a head at each end, and whether it says its own

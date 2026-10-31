@@ -1,10 +1,10 @@
 /** How a usage of a definition draws. */
 
-import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, DISPLAYS,
-         domain_of, FACE_PARTS, FAMILIES, FILLS, FONTS, HEIGHTS, is_notation, is_box,
+import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at,
+         domain_of, FACE_PARTS, FAMILIES, FONTS, HEIGHTS, is_notation, is_box,
          is_container, is_grid, isa, is_interface, is_tie, kind_word, LARGE_FACES, notation_of,
          PARTS,
-         attributes_of, resolved, setting_of, SHAPES, SHOWN, WEIGHTS, WIDTHS, type Definition, type Graph,
+         attributes_of, behaviours_of, resolved, setting_of, SHAPES, SHOWN, WEIGHTS, WIDTHS, type Definition, type Graph,
          type Id, type Settings } from "@mnd/core";
 
 export type Family = (typeof FAMILIES)[number];
@@ -12,10 +12,8 @@ export type Width = (typeof WIDTHS)[number];
 export type Border = (typeof BORDERS)[number];
 export type Weight = (typeof WEIGHTS)[number];
 export type Font = (typeof FONTS)[number];
-export type Display = (typeof DISPLAYS)[number];
 export type Height = (typeof HEIGHTS)[number];
 export type Align = (typeof ALIGNS)[number];
-export type Fill = (typeof FILLS)[number];
 export type Contrast = (typeof CONTRASTS)[number];
 export type Arrow = (typeof ARROWS)[number];
 export type Part = (typeof PARTS)[number];
@@ -25,9 +23,6 @@ export type CardShape = (typeof SHAPES)[number];
 export type Look = {
   /** Which family the theme paints this with. */
   family: Family;
-  fill: Fill;
-  /** How opaque the fill is, 0 to 1. */
-  opacity?: number;
   border_width: Width;
   border_style: Border;
   /** How far the border stands out from the card. */
@@ -36,15 +31,8 @@ export type Look = {
   name_weight: Weight;
   /** How far the name stands out. Absent is the ordinary one. */
   name_contrast?: Contrast;
-  label_font: Font;
-  label_weight: Weight;
-  label_contrast?: Contrast;
-  /** Where the label sits — the subtype where there is one, the base kind otherwise. */
-  label: Display;
   /** Which end of the card its name reads from. */
   align: Align;
-  /** Which end of the card its label reads from. */
-  label_align: Align;
   /** Whether this card is the size its face says, or keeps whatever size it was given. */
   height: Height;
   /** Whether the handle is drawn, where somebody said. */
@@ -66,23 +54,16 @@ export type Look = {
   icon?: string;
   /** The hue angle this paints itself with, where somebody gave one instead of naming a family. */
   hue?: number;
-  /** How much of the theme's chroma ceiling that hue is taken at. */
-  intensity?: number;
 };
 
 /** What a card is when its definition says nothing. */
 export const PLAIN: Look = {
   family: DEFAULTS["style.family"],
-  fill: DEFAULTS["style.fill"],
   border_width: DEFAULTS["style.border_width"],
   border_style: DEFAULTS["style.border_style"],
   name_font: DEFAULTS["style.name_font"],
   name_weight: DEFAULTS["style.name_weight"],
-  label_font: DEFAULTS["style.label_font"],
-  label_weight: DEFAULTS["style.label_weight"],
-  label: DEFAULTS["card.label"],
   align: DEFAULTS["card.align"],
-  label_align: DEFAULTS["card.label_align"],
   height: DEFAULTS["card.height"],
   shows: [],
   kind: "block",
@@ -107,7 +88,7 @@ export function look_of(graph: Graph, id: Id): Look {
   /** A definition drawn on its package's layer reads as its usages do. */
   if (block.def) return stand_in(graph, id, block as Definition);
   const source = graph.blocks[ref.card]!;
-  const card = setting_of(graph, source.id, "card");
+  const card = faced(graph, source.id, setting_of(graph, source.id, "card"));
   const style = source === block ? setting_of(graph, id, "style")
     : { ...setting_of(graph, source.id, "style"), ...(block.settings?.["style"] ?? {}) };
   const named = def_at(graph, source.type)?.name;
@@ -121,8 +102,7 @@ export function entry_look(graph: Graph, id: Id): Look {
   const style = setting_of(graph, id, "style");
   const hue = typeof style["hue"] === "number" ? style["hue"] : undefined;
   return { ...PLAIN, ...(typeof style["family"] === "string" ? { family: style["family"] as Family } : {}),
-           ...(hue !== undefined ? { hue } : {}),
-           ...(typeof style["intensity"] === "number" ? { intensity: style["intensity"] } : {}) };
+           ...(hue !== undefined ? { hue } : {}) };
 }
 
 /** How a stand-in for a definition draws: as its usages, named, showing only what it has — a
@@ -132,7 +112,8 @@ function stand_in(graph: Graph, id: Id, def: Definition): Look {
   const own = (graph.blocks[id]!.def ? {} : graph.blocks[id]!.settings) ?? {};
   /** Notation's definition is a card like any other: its face is its usages'. */
   const plain = notation_of(graph, def.id) ? { face: undefined } : {};
-  const card = { ...config_of(graph, def.id, "card"), ...plain, ...(own["card"] ?? {}) };
+  const card = faced(graph, def.id,
+                     { ...config_of(graph, def.id, "card"), ...plain, ...(own["card"] ?? {}) });
   const has = (part: unknown) => part === "body"
     ? !!graph.blocks[id]!.body
     : part === "attributes" && attributes_of(graph, def.id).length > 0;
@@ -146,6 +127,12 @@ function stand_in(graph: Graph, id: Id, def: Definition): Look {
   return relation && !look.icon ? { ...look, icon: tie ? "relation_tie" : "relation_plain" } : look;
 }
 
+/** **A part with behaviours draws as a class card** where nobody named its face. */
+function faced(graph: Graph, id: Id, card: Settings): Settings {
+  return card["face"] === undefined && behaviours_of(graph, id).length
+    ? { ...card, face: "class" } : card;
+}
+
 /** What a card's large face shows, in order: what its `card.face` maps onto, nothing unsaid. */
 function parts_of(card: Settings): readonly Part[] {
   return FACE_PARTS[card["face"] as keyof typeof FACE_PARTS] ?? [];
@@ -157,16 +144,11 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
                  of: Id, shows: readonly Part[] = parts_of(card)): Look {
   return {
     family: one(style["family"], FAMILIES, PLAIN.family),
-    fill: one(style["fill"], FILLS, PLAIN.fill),
     border_width: one(style["border_width"], WIDTHS, width_of(graph, id)),
     border_style: one(style["border_style"], BORDERS, PLAIN.border_style),
     name_font: one(style["name_font"], FONTS, PLAIN.name_font),
     name_weight: one(style["name_weight"], WEIGHTS, PLAIN.name_weight),
-    label_font: one(style["label_font"], FONTS, PLAIN.label_font),
-    label_weight: one(style["label_weight"], WEIGHTS, PLAIN.label_weight),
-    label: one(card["label"], DISPLAYS, PLAIN.label),
     align: one(card["align"], ALIGNS, PLAIN.align),
-    label_align: one(card["label_align"], ALIGNS, PLAIN.label_align),
     height: one(card["height"], HEIGHTS, PLAIN.height),
     shows,
     ...((LARGE_FACES as readonly unknown[]).includes(card["face"])
@@ -179,14 +161,10 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
       ? { alias: card["alias"] === "show" } : {}),
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
-    ...contrast("label_contrast", style["label_contrast"]),
-    ...number("opacity", style["opacity"]),
     kind,
     /** A mark of its own, where somebody picked one. */
     ...(typeof card["icon"] === "string" && card["icon"] ? { icon: card["icon"] } : {}),
     ...hue_of(graph, id, style, of),
-    /** A number the door already bounded. */
-    ...number("intensity", style["intensity"]),
   };
 }
 
@@ -261,9 +239,7 @@ function contrast(key: string, value: unknown): Record<string, Contrast> {
 /** How one run draws. */
 export type Wire = {
   family?: Family;
-  opacity?: number;
   hue?: number;
-  intensity?: number;
   /** How heavy the run is drawn, and how. */
   border_width?: Width;
   border_style?: Border;
@@ -298,9 +274,7 @@ export function wire_of(graph: Graph, id: Id): Wire {
     ...word("name_font", style["name_font"], FONTS),
     ...word("name_weight", style["name_weight"], WEIGHTS),
     ...word("name_contrast", style["name_contrast"], CONTRASTS),
-    ...number("opacity", style["opacity"]),
     ...number("hue", style["hue"]),
-    ...number("intensity", style["intensity"]),
     ...word("from_arrow", line["from_arrow"], ARROWS),
     ...word("to_arrow", line["to_arrow"], ARROWS),
   };
@@ -338,32 +312,19 @@ function width_of(graph: Graph, id: Id): Width {
 /** What a look says, as the attributes the card table reads: the face's paint. */
 export function face_attrs(look: Look): Record<string, unknown> {
   const tinted = look.hue !== undefined;
-  /** Opacity rides as a number, not a percentage. */
-  const sheer = look.opacity !== undefined && look.opacity < 1;
   return {
     "data-family": tinted ? "tint" : look.family,
-    "data-fill": look.fill,
     "data-border-width": look.border_width,
     "data-border-style": look.border_style,
     "data-name-font": look.name_font,
     "data-name-weight": look.name_weight,
-    "data-label-font": look.label_font,
-    "data-label-weight": look.label_weight,
-    "data-label": look.label,
     "data-align": look.align,
-    "data-label-align": look.label_align,
     ...(look.face ? { "data-face": look.face } : {}),
     ...(look.shape ? { "data-shape": look.shape } : {}),
     ...(look.border_contrast ? { "data-border-contrast": look.border_contrast } : {}),
     ...(look.name_contrast ? { "data-name-contrast": look.name_contrast } : {}),
-    ...(look.label_contrast ? { "data-label-contrast": look.label_contrast } : {}),
-    ...(sheer ? { "data-sheer": "" } : {}),
-    ...(tinted
-      /** The ceiling stays in the ramp. */
-      ? { style: { "--card-h": String(look.hue),
-                   "--card-c": `calc(var(--tint-ceiling) * ${look.intensity ?? 0.65})`,
-                   ...(sheer ? { "--card-opacity": String(look.opacity) } : {}) } }
-      : sheer ? { style: { "--card-opacity": String(look.opacity) } } : {}),
+    /** Every identity hue at one lightness and chroma: the ramp holds both. */
+    ...(tinted ? { style: { "--card-h": String(look.hue) } } : {}),
   };
 }
 
@@ -374,6 +335,12 @@ export function tint_attrs(look: Look | undefined): Tint {
   const dress = face_attrs(look);
   return { "data-family": dress["data-family"] as string | undefined,
            ...(dress["style"] ? { style: dress["style"] as Record<string, string> } : {}) };
+}
+
+/** A run's colour alone: its relation type's family or hue, as a mark wears it. */
+export function wire_tint(wire: Wire): Tint {
+  return tint_attrs({ ...PLAIN, ...(wire.family ? { family: wire.family } : {}),
+                      ...(wire.hue !== undefined ? { hue: wire.hue } : {}) });
 }
 
 /** The attributes a colour alone comes to. */

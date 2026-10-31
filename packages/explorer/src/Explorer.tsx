@@ -589,7 +589,8 @@ export function Explorer(props: ExplorerProps) {
                   over?.id === r.id && over.where !== "in" ? `to-${over.where}` : "",
                 ].filter(Boolean).join(" ")}
                 data-mark={r.mark}
-                style={{ paddingLeft: 8 + r.depth * STEP }}
+                {...(r.tint?.["data-family"] ? { "data-family": r.tint["data-family"] } : {})}
+                style={{ paddingLeft: 8 + r.depth * STEP, ...(r.tint?.style ?? {}) }}
                 draggable={naming !== r.id && r.of === "block"
                            && graph.blocks[r.ref]?.parent !== null}
                 onDragStart={(e) => {
@@ -684,6 +685,7 @@ export function Explorer(props: ExplorerProps) {
                 ? <span className="label">{r.label}</span>
                 : <Name id={r.id} className="label" text={r.label} />}
               {r.alias ? <span className="alias">{r.alias}</span> : null}
+              {r.count ? <span className="count">{r.count}</span> : null}
               {r.via ? (
                 <span className="from"
                       title={`from ${shown_name(graph, graph.blocks[r.via]?.type ?? r.via)}`}>

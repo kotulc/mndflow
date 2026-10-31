@@ -55,6 +55,6 @@
 | chip | counted in its facts, never drawn |
 | relation definition's chip | its lines as tiles, grouped by place |
 | hover card | the full line, level 4 |
-| tray | the line tab: its swatch, then every key, as a card's |
+| tray | overview, settings (its swatch, then its keys and ends), components |
 | row | not listed. A relation definition lists, wearing its wire swatch |
 

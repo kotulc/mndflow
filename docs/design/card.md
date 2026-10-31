@@ -58,7 +58,7 @@
 
 | Level | Small face | Large face |
 |---|---|---|
-| 0 mark | icon, colour | icon, colour, name kept larger as a label |
+| 0 mark | icon, colour | icon, colour |
 | 1 head | name, kind, icon | head row only |
 | 2 facts | the kind on its own line where it did not fit beside the name, then the facts strip | head, then the facts strip |
 | 3 preview | n/a | the full face |

@@ -1,6 +1,7 @@
 /** Graph-agnostic workspace chrome: header, tray frame, and which region the keys go to. */
 
-import { useState, type MouseEvent, type ReactNode, type SyntheticEvent } from "react";
+import { useState, type CSSProperties, type MouseEvent, type ReactNode,
+         type SyntheticEvent } from "react";
 import { Icon } from "./icons";
 
 export type WorkspaceHeaderProps = {
@@ -37,6 +38,13 @@ export type TrayFrameProps<T extends string = string> = {
   word: string;
   name?: string;
   note?: string;
+  /** **An element's identity row**, which replaces the word: its kind after the name, its role —
+   *  a filled *definition* badge in its colour, or a quiet *use* — its colour edge, and its facts
+   *  strip. */
+  kind?: string;
+  role?: "definition" | "use";
+  tint?: { "data-family"?: string; style?: Record<string, string> };
+  facts?: ReactNode;
   tabs: readonly T[];
   tab: T;
   onTab: (tab: T) => void;
@@ -49,7 +57,8 @@ export type TrayFrameProps<T extends string = string> = {
 
 /** Collapsible tray shell: bar, tabs, and a body slot — no graph types. */
 export function TrayFrame<T extends string>({
-  open, onOpen, big = false, onBig, word, name, note, tabs, tab, onTab, tools, tabTools, children,
+  open, onOpen, big = false, onBig, word, name, note, kind, role, tint, facts, tabs, tab, onTab,
+  tools, tabTools, children,
 }: TrayFrameProps<T>) {
   const on_bar = (e: MouseEvent) => {
     if ((e.target as HTMLElement).closest("button")) return;
@@ -62,10 +71,19 @@ export function TrayFrame<T extends string>({
       <div className="tray-bar" onClick={on_bar}
            title={open ? "shut the tray" : "open the tray"}>
         <span className="tray-chevron"><Icon name={open ? "less" : "more"} /></span>
-        <span className="tray-context">
+        <span className="tray-context" {...(tint?.["data-family"]
+                ? { "data-family": tint["data-family"] } : {})}
+              style={(tint?.style ?? {}) as CSSProperties}>
+          {tint ? <span className="tray-edge" aria-hidden /> : null}
           {name ? <span className="name">{name}</span> : null}
-          <span className="word" data-word={word}>{word}</span>
+          {role ? (
+            <>
+              {kind ? <span className="kind">{kind}</span> : null}
+              <span className={`role ${role}`}>{role}</span>
+            </>
+          ) : <span className="word" data-word={word}>{word}</span>}
           {note ? <span className="note">{note}</span> : null}
+          {facts ? <span className="tray-facts">{facts}</span> : null}
         </span>
         <span className="tray-tools">
           {tools}

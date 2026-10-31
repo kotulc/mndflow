@@ -13,15 +13,12 @@
       "face": "document",
       "height": "free",
       "align": "left",
-      "label": "none",
       "alias": "hide"
     },
     "style": {
       "family": "note",
-      "fill": "wash",
       "border_contrast": "strong",
-      "name_contrast": "faint",
-      "opacity": 0.06
+      "name_contrast": "faint"
     }
   }
 }

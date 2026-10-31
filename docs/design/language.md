@@ -48,8 +48,8 @@
 | **name** | first, from the left, at full width. Never hidden for an icon where it fits |
 | **kind** | after the name, quieter, on chips and cards alike. Where name and kind do not fit one line, the kind moves to its own line under the name, before any facts. Never a word the name repeats. A handle stands in while the element is unnamed |
 | **icon** | top-right, the kind's. The one thing every form keeps at its smallest |
-| **colour** | a mark, by the colour rules below. A diagram wears its kind's hue, a block or a definition its own, a line its relation type's |
-| **marks** | what it stands for (`Def`, `Ref`, `Pkg`), then data. Two at most, beside the icon |
+| **colour** | a mark, by the colour rules below. A diagram wears its kind's hue, a block or a definition its own family's, a line its relation type's |
+| **marks** | what it stands for (`Ref`, `Pkg`), then data. Two at most, beside the icon. A definition says so with its badge, never a mark |
 
 
 ## Colour
@@ -65,7 +65,7 @@
 | **fault** | **warn**, in words or an outline | refusals, check results | identity |
 
 - **a fill means one thing: role.** A use is filled with the neutral ground; a definition is an outline with none, and wears a filled **definition** badge in its colour, on its card and in the tray head. Never a dashed border. Colour never fills, but the accent's wash on what is picked and the definition badge
-- **every identity hue has one lightness and chroma**: only the hue differs, so no kind, relation or tag shouts over another
+- **every identity hue has one lightness and chroma**: only the hue differs, so no kind, relation or tag shouts over another. A style says a family or a hue, never a fill, an intensity or an opacity
 - **the accent and warn hues are kept out of the identity wheel**: green always means picked, amber always a fault. The model kind gets a hue of its own
 
 
@@ -81,7 +81,7 @@
 
 - **a level shows whole or not at all.** A form that cannot fit the next level stays at the one below
 - **the facts strip has one order**: what it counts (uses, places, subtypes, or blocks, lines, interfaces), attributes, seats in then out, tags
-- **tags are solid dots** in their tag's colour, named beside the dot where there is room (`● critical`). The workspace's key says what each colour means
+- **tags are solid dots** in their tag's colour, named beside the dot where there is room (`● critical`). The legend says what each colour means, in a tags section of its own after the blocks
 - each form says what its level 3 holds: a chip what it gathers, a card its face, a line its ends
 
 

@@ -2,7 +2,8 @@
 
 import type { Edge, Node } from "@xyflow/react";
 import type { Dir, End, Ends, Id, Key, Mark, Role, Side } from "@mnd/core";
-import type { Facts, Preview } from "./about";
+import type { Preview } from "./about";
+import type { Facts } from "./facts";
 import type { Arrow, Look, Tint, Wire } from "./look";
 import type { Fan, Perch, Seat } from "./seat";
 
@@ -20,9 +21,13 @@ export type Ruled = { cells: readonly (readonly string[])[]; widths: readonly nu
 
 /** What one drawn thing carries beyond where it sits and how big it is. */
 export type BoxData = {
-  /** The mark a thing wears beside its name while nobody has named it. */
+  /** The handle a holder wears beside its heading while nobody has named it. */
   alias?: string;
   label: string;
+  /** What a card or a chip says after its name: its kind, and a card's handle while unnamed. */
+  kind?: string;
+  /** Whether it is a definition, or a stand-in for one: outlined and badged. */
+  defines?: boolean;
   /** What it is for, in a line: its own, else its definition's. Shown on hover. */
   description?: string;
   /** The definition this usage names, if any. */
@@ -79,8 +84,6 @@ export type BoxData = {
   preview?: Preview;
   /** A definition's chip showing its profile: its uses split by place, each in its colour. */
   bar?: readonly { n: number; tint: Tint }[];
-  /** A diagram chip's kind, said beside its name. */
-  kind?: string;
   /** A registry's tile: how many times its entry is used, and that against the most used. */
   count?: number;
   heat?: number;
