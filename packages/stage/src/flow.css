@@ -8,15 +8,22 @@
   /* **The text band**: text scales with zoom only between 85% and 115% (views `TEXT_BAND`);
      outside it, its size on screen holds and rows come and go instead. */
   --text-k: calc(clamp(0.85, var(--zoom, 1), 1.15) / var(--zoom, 1));
-  /* A chip's head and facts sit in rows laid above its tiles, so they grow only so far before
-     they would cover them; beyond, the level drops rather than the text growing. */
+  /* A chip's head and facts grow only so far when held, and their rows are laid at that size
+     (views `map.ts` `HELD`); beyond, the level drops rather than the text growing. What a chip's
+     body's rows scale with the drawing (`--laid-k`), never held; its tiles' text is held to read
+     (`--text-k`), each tile showing it only where it fits whole. */
   --chip-k: min(var(--text-k), 1.35);
+  --laid-k: min(var(--text-k), 1);
 }
+/* **A card's preview sits under rows laid at layout size**, so a card showing one never holds its
+   text larger than it was laid, even while hysteresis keeps it a little below the text band. */
+.mnd-flow .mnd-card[data-level="3"] { --text-k: var(--laid-k); }
 
 /* ── **Levels by zoom**: mark → head → facts → preview, picked from the size on screen (views
    `level_at`). Rows add below, anchored to the top, and fade; nothing drawn moves. ── */
 .mnd-flow .mnd-card > :is(.mnd-head, .mnd-face-facts, .mnd-face-table, .mnd-face-body, .mnd-marks),
-.mnd-flow .mnd-chip > :is(.mnd-chip-head, .mnd-chip-facts, .mnd-chip-body, .mnd-chip-profile) {
+.mnd-flow .mnd-chip > :is(.mnd-chip-head, .mnd-chip-text, .mnd-chip-body, .mnd-chip-profile),
+.mnd-flow .mnd-chip-text .mnd-facts > * {
   transition: opacity 120ms ease, visibility 120ms;
 }
 /* A seat too small to read hides; its line still meets the wall where it sits. */
@@ -27,8 +34,8 @@
 .mnd-flow .mnd-card[data-level="0"] > :is(.mnd-head, .mnd-marks),
 .mnd-flow .mnd-card:is([data-level="0"], [data-level="1"]) > .mnd-face-facts,
 .mnd-flow .mnd-card:not([data-level="3"]) > :is(.mnd-face-table, .mnd-face-body),
-.mnd-flow .mnd-chip[data-level="0"] > .mnd-chip-head,
-.mnd-flow .mnd-chip:is([data-level="0"], [data-level="1"]) > .mnd-chip-facts,
+.mnd-flow .mnd-chip[data-level="0"] > :is(.mnd-chip-head, .mnd-chip-text),
+.mnd-flow .mnd-chip:is([data-level="0"], [data-level="1"]) .mnd-chip-text .mnd-facts > *,
 .mnd-flow .mnd-chip:not([data-level="3"]) > :is(.mnd-chip-body, .mnd-chip-profile) {
   opacity: 0;
   visibility: hidden;
@@ -70,10 +77,13 @@
 .mnd-card.part { opacity: 0.6; }
 .mnd-card.part .mnd-label::after { content: " \2197"; color: var(--faint); }
 
-/* A note is its text, so the text is the whole body of the card. */
+/* A note is its text, so the text is the whole body of the card: as many whole lines as it holds,
+   never one cut through, clear of the icon in its corner. */
 .mnd-note-text {
-  flex: 1;
-  min-height: 0;
+  flex: none;
+  height: round(down, 100%, 1.5em);
+  padding-right: 13px;
+  line-height: 1.5;
   overflow: hidden;
   white-space: pre-wrap;
   pointer-events: none;
@@ -451,14 +461,35 @@
 /* **Every chip wears its colour** on its edge and its icon: a block's or a definition's own, a
    diagram's its kind's. */
 .mnd-chip[data-family] { border-left: 3px solid var(--card-edge, var(--card-line)); }
-/* **A chip's head is a card's**: one line, its name and quieter what it is; its kind's icon in the
-   top-right corner, never smaller on screen than a card's. Its facts under it, where it has room
-   (`ROW`, views `map.ts`). */
+/* **A chip's text is a card's head**: its name, quieter what it is, its kind's icon in the
+   top-right corner, never smaller on screen than a card's; then its facts. **Whole rows or none**:
+   every row is one line (`--l`), the text holds as many as its room (`--band`, chip.tsx) rounds
+   down to, and what does not fit beside the rest wraps to the next row, out of sight where there
+   is none. Nothing is cut mid-word or drawn over the body (`ROW`, views `map.ts`). */
+.mnd-chip {
+  --l: calc(17px * var(--chip-k, 1));
+  --icon: clamp(14px, calc(11px / var(--zoom, 1)), 22px);
+}
+.mnd-chip-text {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  right: 6px;
+  height: round(down, calc(var(--band, 0) * 1px), var(--l));
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: center;
+  column-gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.mnd-chip-text > *, .mnd-chip-text .mnd-facts > * { line-height: var(--l); }
+.mnd-chip-text .mnd-facts { display: contents; }
+/* The facts start a row of their own. */
+.mnd-chip-break { flex-basis: 100%; height: 0; }
 .mnd-chip-head {
   position: absolute;
-  top: 5px;
-  left: 6px;
-  right: 30px;
   display: flex;
   gap: 6px;
   align-items: baseline;
@@ -466,7 +497,6 @@
   white-space: nowrap;
 }
 .mnd-chip-icon {
-  --icon: clamp(14px, calc(11px / var(--zoom, 1)), 22px);
   position: absolute;
   top: 6px;
   right: 6px;
@@ -475,46 +505,53 @@
   color: var(--text);
   pointer-events: none;
 }
-/* One line: the name, then quieter what it is, which gives way first. */
+/* The name keeps clear of the icon; the kind beside it only where it fits whole and clear of the
+   icon, else on a row of its own. */
 .mnd-chip-name {
-  flex: none;
-  max-width: 100%;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: calc(100% - var(--icon) - 4px);
   overflow: hidden;
   color: var(--text);
   font-size: calc(12px * var(--chip-k, 1));
   font-weight: 600;
-  line-height: calc(15px * var(--chip-k, 1));
   text-overflow: ellipsis;
 }
 .mnd-chip-kind {
-  flex: 0 1 auto;
-  min-width: 0;
+  flex: none;
+  max-width: calc(100% - var(--icon) - 4px);
+  margin-right: calc(var(--icon) + 4px - 6px);
   overflow: hidden;
   color: var(--muted);
   font-size: calc(10px * var(--chip-k, 1));
-  line-height: calc(12px * var(--chip-k, 1));
   text-overflow: ellipsis;
 }
+/* Each fact a whole row tall, so rows stay whole: a count's box, a seat, a tag's dot. */
+.mnd-chip-text .mnd-facts {
+  font-size: calc(10px * var(--chip-k, 1));
+}
+.mnd-chip-text .mnd-fact {
+  box-sizing: border-box;
+  height: calc(var(--l) - 2px);
+  margin-block: 1px;
+  line-height: calc(var(--l) - 4px);
+  font-size: calc(10px * var(--chip-k, 1));
+}
+.mnd-chip-text .mnd-fact-tag:not(.named) { margin-block: calc((var(--l) - 7px) / 2); }
 /* **A chip too narrow for its name** (`NARROW`, nodes.tsx) shows its icon alone, where it ever
    sits, never wider than the chip (`--cap`). */
-.mnd-chip.narrow .mnd-chip-head { display: none; }
-/* Its facts strip: one line under its name, cut where it runs out of room. */
-.mnd-chip-facts {
-  position: absolute;
-  top: calc(5px + 18px * var(--chip-k, 1));
-  left: 6px;
-  right: 6px;
-  overflow: hidden;
-}
-.mnd-chip-facts .mnd-facts {
-  flex-wrap: nowrap;
-  font-size: calc(10px * var(--chip-k, 1));
-  line-height: calc(12px * var(--chip-k, 1));
-}
+.mnd-chip.narrow .mnd-chip-text { display: none; }
+/* A card's facts strip: one line under its head, whole facts only — what does not fit wraps out of
+   sight. */
 .mnd-face-facts .mnd-facts {
-  flex-wrap: nowrap;
+  height: calc(18px * var(--text-k, 1));
+  overflow: hidden;
+  align-content: flex-start;
+  row-gap: 18px;
+  padding-top: calc(2px * var(--text-k, 1));
+  box-sizing: border-box;
   font-size: calc(10px * var(--text-k, 1));
-  line-height: calc(16px * var(--text-k, 1));
+  line-height: calc(10px * var(--text-k, 1));
 }
 .mnd-chip.narrow .mnd-chip-icon {
   --icon: min(clamp(14px, calc(11px / var(--zoom, 1)), 22px), var(--cap, 22px));
@@ -558,7 +595,7 @@
 /* **What only shapes a diagram's chip** is never a card, and quiet beside them: a region's
    tinted band, every other one lighter; a grid's plain header strips; a lifeline down a column
    behind its blocks; a rule between a grid's rows. Lines are sized by the zoom. */
-.mnd-chip.diagram .mnd-chip-tile:is(.band, .head, .life, .rule, .flow, .arrow) {
+.mnd-chip.diagram .mnd-chip-tile:is(.band, .head, .track, .life, .rule, .flow, .arrow) {
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -569,6 +606,30 @@
 }
 .mnd-chip.diagram .mnd-chip-tile.band.odd {
   background: color-mix(in oklch, var(--muted) 4%, transparent);
+}
+/* **A grid's header track**: the quiet strip behind its header cards, across the top and down
+   the side, so the headers read as one line of the grid. */
+.mnd-chip.diagram .mnd-chip-tile.track {
+  border-radius: 2px;
+  background: color-mix(in oklch, var(--muted) 14%, transparent);
+}
+/* **A header strip carrying its name is a small card**: its header block's colour down its
+   leading edge, its name along it — upright down a row's strip, reading up. */
+.mnd-chip.diagram .mnd-chip-tile.head.labeled {
+  align-items: center;
+  border-left: 2px solid var(--card-edge, var(--card-line));
+  border-radius: 2px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 calc(1px / var(--zoom, 1)) var(--card-line);
+  color: var(--text);
+}
+.mnd-chip.diagram .mnd-chip-tile.head.labeled.tall {
+  border-left: 0;
+  border-bottom: 2px solid var(--card-edge, var(--card-line));
+  padding: 3px 0;
+  background: var(--surface);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
 }
 /* A grid's headers and a flow's start and end strips weigh as the flow line does: one quiet line
    down the middle of the strip, along its length. */
@@ -630,28 +691,61 @@
 
 /* **A class's or an entity's card shows its structure**: its name over a clear rule, then its
    body in thirds by two subtle rules — across for a class, down for an entity. */
-.mnd-chip.diagram .mnd-chip-tile:is(.class, .entity)::after {
+/* **A class's or an entity's texture** stands in for its rows where the tile has no room to say
+   them (the container query below), and steps aside where it does. */
+.mnd-chip-tile-texture {
   /** A hairline a pixel on screen at any zoom, so a rule never falls between pixels. */
   --hair: calc(1px / var(--zoom, 1));
   position: absolute;
   /* Under its name and its icon, however large the zoom makes the icon (`--icon`). */
   inset: max(12px, calc(var(--icon, 9px) + 5px)) 0 0;
-  content: "";
+  display: none;
   border-top: calc(1px / var(--zoom, 1)) solid var(--chip-line);
 }
-.mnd-chip.diagram .mnd-chip-tile.class::after {
+.mnd-chip.diagram .mnd-chip-tile.class > .mnd-chip-tile-texture {
   background:
     linear-gradient(var(--chip-fill), var(--chip-fill)) 0 33.3% / 100% var(--hair) no-repeat,
     linear-gradient(var(--chip-fill), var(--chip-fill)) 0 66.7% / 100% var(--hair) no-repeat;
 }
-.mnd-chip.diagram .mnd-chip-tile.entity::after {
+.mnd-chip.diagram .mnd-chip-tile.entity > .mnd-chip-tile-texture {
   background:
     linear-gradient(var(--chip-fill), var(--chip-fill)) 33.3% 0 / var(--hair) 100% no-repeat,
     linear-gradient(var(--chip-fill), var(--chip-fill)) 66.7% 0 / var(--hair) 100% no-repeat;
 }
 .mnd-chip-tile { display: flex; gap: 3px; align-items: flex-start; }
 .mnd-chip-tile > svg { flex: none; margin-top: 1px; }
-.mnd-chip-tile-name { overflow: hidden; text-overflow: ellipsis; }
+/* **A nested tile** shows as zoom brings its mark into reading size, fading in over the tile
+   holding it (`chip_steps`, theme `chip.tsx`). */
+.mnd-chip-tile.nested { animation: mnd-tile-in 120ms ease; }
+@keyframes mnd-tile-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .mnd-chip-tile.nested { animation: none; } }
+/* **What a tile says under its name**, as it grows: its facts line, then its rows, each one line
+   of the name's height, as many whole ones as the tile holds under its name. */
+.mnd-chip-tile-more {
+  position: absolute;
+  top: calc(1.2em + 2px);
+  left: 5px;
+  right: 3px;
+  height: max(0px, round(down, calc(100% - 1.2em - 4px), 1.2em));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--muted);
+}
+.mnd-chip-tile-more > span {
+  flex: none;
+  overflow: hidden;
+  line-height: 1.2em;
+  text-overflow: ellipsis;
+}
+.mnd-chip-tile-more > .facts { color: var(--faint); }
+/* A tile's name: its line whole, or none where the tile is shorter. */
+.mnd-chip-tile-name {
+  min-inline-size: 0;
+  block-size: round(down, 100%, 1.2em);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* The body, under the head (`--head`, from views `map.ts`). */
 .mnd-chip-body { position: absolute; top: var(--head, 22px); left: 6px; right: 6px; bottom: 6px; }
@@ -659,14 +753,47 @@
   position: absolute;
   box-sizing: border-box;
   overflow: hidden;
-  padding: 1px 3px;
+  padding: 0 3px;
   border: 1px solid color-mix(in oklch, var(--card-line) 55%, transparent);
   background: color-mix(in oklch, var(--card-line) 8%, transparent);
   color: var(--muted);
-  font-size: calc(9px * var(--chip-k, 1));
-  line-height: 1.25;
+  font-size: calc(9px * var(--laid-k, 1));
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
+  container-type: size;
+}
+/* **A tile's text reads, or is absent**: held at a readable size on screen, but never larger than
+   its tile holds a line and five letters of; never smaller than laid, and absent where even that
+   does not fit — four letters and an ellipsis, one line. */
+.mnd-chip-tile > :is(.mnd-chip-tile-name, .mnd-chip-tile-more) {
+  font-size: max(1em, min(calc(9px * var(--text-k, 1)), calc(100cqb / 1.2), calc(100cqi / 3)));
+}
+/* A title over members — a tile holding tiles, a place's box, a group's panel — keeps to the line
+   laid for it, so it never reaches what it holds. */
+.mnd-chip-tile:is(.holds, .group) > .mnd-chip-tile-name { block-size: 1.2em; font-size: 1em; }
+@container (inline-size < 3em) or (block-size < 1.2em) {
+  .mnd-chip-tile-name, .mnd-chip-tile-more { display: none; }
+}
+@container (inline-size < 3em) or (block-size < 2.6em) {
+  .mnd-chip-tile-more { display: none; }
+  .mnd-chip-tile-texture { display: block; }
+}
+/* A class's or an entity's rows, said, are ruled as its card's table is. */
+.mnd-chip-tile:is(.class, .entity) > .mnd-chip-tile-more {
+  left: 0;
+  right: 0;
+  box-shadow: 0 calc(-1px / var(--zoom, 1)) 0 var(--chip-line);
+}
+/* Its rows say how many; its facts line would only count them again. */
+.mnd-chip-tile:is(.class, .entity) > .mnd-chip-tile-more > .facts { display: none; }
+/* Each row keeps its one line's height, its rule inside it, so rows still round whole. */
+.mnd-chip-tile:is(.class, .entity) > .mnd-chip-tile-more > span {
+  box-sizing: border-box;
+  height: 1.2em;
+  padding-inline: 5px 3px;
+  border-bottom: calc(1px / var(--zoom, 1)) solid var(--chip-fill);
+  line-height: calc(1.2em - 1px);
 }
 /* **A block's tile is a small card**, edged as a chip is: a hairline round it, its own colour
    down its left side, its name at its top and its kind's icon in the top-right corner — never
@@ -683,13 +810,12 @@
 .mnd-chip .mnd-chip-tile.card:hover { --tile-edge: var(--accent); }
 .mnd-chip-tile.iconed {
   --icon: clamp(min(9px, var(--cap, 9px)), calc(9px / var(--zoom, 1)), var(--cap, 9px));
-  padding: 2px calc(var(--icon) + 5px) 0 3px;
+  padding: 1px calc(var(--icon) + 5px) 0 3px;
 }
-/* Its name centred on its icon's line. */
-.mnd-chip-tile.iconed > .mnd-chip-tile-name { line-height: var(--icon); }
+/* Its icon centred on its name's line, so the name keeps the one line height its rows round to. */
 .mnd-chip-tile.iconed > .mnd-chip-tile-icon {
   position: absolute;
-  top: 2px;
+  top: max(1px, calc(1px + (1.2em - var(--icon)) / 2));
   right: 2px;
   width: var(--icon);
   height: var(--icon);
@@ -741,9 +867,9 @@
   overflow: hidden;
   border-top: calc(1px / var(--zoom, 1)) solid var(--card-line);
   color: var(--muted);
-  font-size: calc(10px * var(--chip-k, 1));
+  font-size: calc(10px * var(--laid-k, 1));
   /** A row and its rule make one line (`LINE`, nodes.tsx). */
-  line-height: calc(14px * var(--chip-k, 1));
+  line-height: calc(14px * var(--laid-k, 1));
 }
 .mnd-chip-rows > span {
   overflow: hidden;
@@ -758,8 +884,8 @@
   display: -webkit-box;
   overflow: hidden;
   color: var(--text);
-  font-size: calc(10px * var(--chip-k, 1));
-  line-height: calc(15px * var(--chip-k, 1));
+  font-size: calc(10px * var(--laid-k, 1));
+  line-height: calc(15px * var(--laid-k, 1));
   white-space: pre-line;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
@@ -769,8 +895,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  font-size: calc(10px * var(--chip-k, 1));
-  line-height: calc(15px * var(--chip-k, 1));
+  font-size: calc(10px * var(--laid-k, 1));
+  line-height: calc(15px * var(--laid-k, 1));
 }
 .mnd-chip-places > span {
   display: flex;

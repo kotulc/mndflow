@@ -94,6 +94,7 @@
 | Rule | Prevents |
 |---|---|
 | **never empty**: the head draws wherever it fits, so a shape always says its name first | a blank card waiting for content |
+| **whole or none**: text sits in whole rows, and a row, a fact or a word that does not fit is hidden whole, never cut through or drawn over the next part | overlap, and text sliced at an edge |
 | **rows add below, anchored to the top**: nothing already drawn moves when a level comes or goes | text jumping |
 | **rows fade** in and out over 120 ms | pop-in |
 | **hysteresis**: a level drops only about 15% below the size that added it | flicker while zoom rests near a threshold |

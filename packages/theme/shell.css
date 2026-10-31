@@ -225,7 +225,6 @@ input:focus { outline: none; border-color: var(--accent); }
   z-index: 4;
   display: flex;
   align-items: center;
-  gap: 2px;
   overflow: hidden;
   color: var(--muted);
   /* The bar spans the canvas; only its steps take the pointer. */
@@ -234,7 +233,9 @@ input:focus { outline: none; border-color: var(--accent); }
 
 /* Steps keep their width; the trail folds into `…` instead (Crumbs.tsx). Folded as far as it goes,
    the layer's own step gives up room last, to an ellipsis. */
-.crumbs > * { pointer-events: auto; }
+/* Each step on the canvas's ground, the steps touching, so the trail never reads over the
+   drawing under it. */
+.crumbs > * { pointer-events: auto; padding-inline: 1px; background: var(--bg); }
 .crumbs > span { display: flex; align-items: center; flex-shrink: 0; min-width: 0; }
 .crumbs.tight > span:last-of-type { flex-shrink: 1; }
 .crumbs button { padding: 1px 4px; white-space: nowrap; min-width: 0; overflow: hidden;

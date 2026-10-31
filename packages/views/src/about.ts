@@ -2,10 +2,11 @@
  *  its facts, the preview a map chip shows of it, and its hover card. One reading for the library
  *  and the models alike. Worked out when asked, never stored. */
 
-import { base_of, children, def_at, diagram_kind, is_base, is_folder, is_header, is_holder, is_interface,
-         is_notation, line_layer, path, shown_name, type Graph, type Id } from "@mnd/core";
+import { base_of, children, class_of, def_at, definition_uses, diagram_kind, is_base, is_folder,
+         is_header, is_holder, is_interface, is_notation, line_layer, path, shown_name,
+         type Graph, type Id } from "@mnd/core";
 import { carried } from "./derive";
-import { card_facts, facts_of, type Facts } from "./facts";
+import { card_facts, counted, facts_of, type Facts } from "./facts";
 import { edge_of, face_table, face_text, head_words, listed, name_fit } from "./face";
 import { box_label, box_place, usage_groups } from "./library";
 import { entry_look, face_attrs, look_of, PLAIN, tint_attrs, type Look, type Tint } from "./look";
@@ -187,6 +188,15 @@ function boxed_place(graph: Graph, id: Id): Id | null {
 export function colour_of(graph: Graph, id: Id): Look {
   const kind = diagram_kind(graph, id);
   return kind ? entry_look(graph, kind) : look_of(graph, id);
+}
+
+/** **A tree row's colour edge and count**, for a host to hand its explorer: the block's map colour,
+ *  and a definition's uses or a diagram's blocks. */
+export function row_look(graph: Graph, id: Id): { tint: Tint; count?: number } {
+  const count = graph.blocks[id]?.def ? definition_uses(graph, id).length
+    : class_of(graph, id) === "diagram" ? counted(graph, children(graph, id).map((c) => c.id)).blocks
+    : 0;
+  return { tint: tint_attrs(colour_of(graph, id)), ...(count ? { count } : {}) };
 }
 
 

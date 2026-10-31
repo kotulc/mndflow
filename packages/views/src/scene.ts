@@ -264,9 +264,14 @@ export type Area = {
  *  (`texture`). */
 export type InnerTile = { id: Id; label: string; x: number; y: number; w: number; h: number;
                           role?: Role;
-                          as?: "group" | "band" | "head" | "life" | "rule" | "flow" | "arrow";
+                          as?: "group" | "band" | "head" | "track" | "life" | "rule" | "flow"
+                            | "arrow";
                           odd?: boolean; down?: boolean; mark?: "start" | "end" | "decision";
-                          texture?: "class" | "entity"; tint?: Tint };
+                          texture?: "class" | "entity"; tint?: Tint;
+                          /** The tile it is nested in, and whether it holds tiles of its own. */
+                          in?: Id; holds?: boolean;
+                          /** What it says under its name as it grows: a facts line, then rows. */
+                          facts?: string; rows?: readonly string[] };
 
 export type Scene = {
   /** The layer this is a projection of. */

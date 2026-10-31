@@ -17,6 +17,10 @@ import type { Chain } from "./chain";
 import { end_of, listed_of, mark_icon, OPENED, opened, parent_of, tree_of,
          type Row } from "./rows";
 
+/** What a host may hand a row: its colour, as the attributes the card table reads, and a count. */
+export type RowLook = { tint?: { "data-family"?: string; style?: Record<string, string> };
+                        count?: number };
+
 export type ExplorerProps = {
   graph: Graph;
   /** What the canvas draws: the section it looks at, how, and the layer. */
@@ -62,6 +66,9 @@ export type ExplorerProps = {
   extra?: ReactNode;
   /** The host's sections and what each holds. */
   chain: Chain;
+  /** A block row's colour edge and quiet count, where the host has them; never asked of a package
+   *  or a folder. */
+  rowLook?: (id: Id) => RowLook;
   /** Whether the arrows walk the tree: up and down through the rows of the section in focus, left
    *  and right to the section above or below, landing on what it holds. The way to the row walked
    *  to opens, and nothing shuts. A row walked to is chosen as a plain click chooses it. */
@@ -498,6 +505,9 @@ export function Explorer(props: ExplorerProps) {
   const slot = draft ? after(rows, draft.parent, focus) : null;
   const lines: (Row | null)[] = slot ? [...rows.slice(0, slot.index), null,
     ...rows.slice(slot.index)] : rows;
+  /** Each block row's colour and count, asked of the host once per row. */
+  const looks = useMemo(() => new Map(rows.flatMap((r) => (r.of === "block" && !r.filed
+    && props.rowLook ? [[r.id, props.rowLook(r.ref)] as const] : []))), [rows, props.rowLook]);
 
   /** What the bar's delete would take: a picked block, or the workspace's row in focus. */
   const gone = library ? def : one;
@@ -589,8 +599,9 @@ export function Explorer(props: ExplorerProps) {
                   over?.id === r.id && over.where !== "in" ? `to-${over.where}` : "",
                 ].filter(Boolean).join(" ")}
                 data-mark={r.mark}
-                {...(r.tint?.["data-family"] ? { "data-family": r.tint["data-family"] } : {})}
-                style={{ paddingLeft: 8 + r.depth * STEP, ...(r.tint?.style ?? {}) }}
+                {...(looks.get(r.id)?.tint?.["data-family"]
+                  ? { "data-family": looks.get(r.id)!.tint!["data-family"] } : {})}
+                style={{ paddingLeft: 8 + r.depth * STEP, ...(looks.get(r.id)?.tint?.style ?? {}) }}
                 draggable={naming !== r.id && r.of === "block"
                            && graph.blocks[r.ref]?.parent !== null}
                 onDragStart={(e) => {
@@ -685,7 +696,8 @@ export function Explorer(props: ExplorerProps) {
                 ? <span className="label">{r.label}</span>
                 : <Name id={r.id} className="label" text={r.label} />}
               {r.alias ? <span className="alias">{r.alias}</span> : null}
-              {r.count ? <span className="count">{r.count}</span> : null}
+              {looks.get(r.id)?.count
+                ? <span className="count">{looks.get(r.id)!.count}</span> : null}
               {r.via ? (
                 <span className="from"
                       title={`from ${shown_name(graph, graph.blocks[r.via]?.type ?? r.via)}`}>

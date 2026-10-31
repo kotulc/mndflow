@@ -16,7 +16,11 @@ type Tint = { "data-family"?: string; style?: Record<string, string> };
 /** One tile in a chip's body: a share of the body from 0 to 1, and what it stands for. */
 export type ChipTile = { id: string; label: string; x: number; y: number; w: number; h: number;
                          role?: string; as?: string; odd?: boolean; down?: boolean; mark?: string;
-                         texture?: string; tint?: Tint };
+                         texture?: string; tint?: Tint;
+                         /** The tile it is nested in, and whether it holds tiles of its own. */
+                         in?: string; holds?: boolean;
+                         /** What it says under its name as it grows: a facts line, then rows. */
+                         facts?: string; rows?: readonly string[] };
 
 /** What a chip draws. */
 export type ChipData = {
@@ -31,20 +35,34 @@ export type ChipData = {
 
 export type ChipFaceProps = { data: ChipData; w: number; h: number; level: number;
                               picked?: boolean;
+                              /** Screen pixels per layout unit, as a step of `chip_steps`; unsaid,
+                               *  the chip is drawn at its laid size. */
+                              scale?: number;
                               /** Tiles lit, as the tray's picture lights the element in its room. */
                               lit?: readonly string[] };
 
 /** **A chip, drawn anywhere**: on the map as a node, and in the tray as its picture. */
 export function ChipFace({ data, w: width, h: height, level, picked: selected = false,
-                           lit = [] }: ChipFaceProps) {
+                           scale = 1, lit = [] }: ChipFaceProps) {
   const tint = data.tint ?? null;
   const pad = 6;
   const head = data.head ?? 0;
-  /** Its body less its head: under it, or beside it where the chip is upright. */
-  const body = { w: (width ?? 0) - (data.upright ? head : pad) - pad,
-                 h: (height ?? 0) - (data.upright ? pad : head) - pad };
+  const body = body_of(data, width, height);
+  /** **Each tile shows from its own size on screen**: a nested one where its mark reads and the
+   *  tile holding it shows; a name where it fits whole and reads. */
+  const seen = new Set<string>();
+  const tiles = (data.tiles ?? []).filter((t) => {
+    const ok = !t.in || (seen.has(t.in) && scale >= mark_at(t, body));
+    if (ok) seen.add(t.id);
+    return ok;
+  });
   /** A chip too narrow for its name shows its icon alone, but one turned upright. */
   const narrow = !data.upright && (width ?? 0) < NARROW;
+  /** Its text's room: above its body where the body shows, else the whole chip. */
+  const bodied = level >= 3 && (!!data.tiles?.length || !!data.preview || !!data.bar);
+  const band = Math.max(0, (bodied ? head - TEXT.gap : (height ?? 0) - pad) - TEXT.top);
+  const name = <span className="mnd-chip-name">{data.label}</span>;
+  const kind = data.kind ? <span className="mnd-chip-kind">{data.kind}</span> : null;
   return (
     <div className={["mnd-chip", data.diagram ? "diagram" : "",
                      narrow ? "narrow" : "", data.upright ? "upright" : "",
@@ -52,25 +70,28 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
          data-level={level}
          {...(tint ? { "data-family": tint["data-family"] } : {})}
          style={{ ...(tint?.style ?? {}), "--cap": `${Math.max(0, (width ?? 0) - 8)}px`,
-                  "--head": `${head}px` } as CSSProperties}>
-      <span className="mnd-chip-head">
-        <span className="mnd-chip-name">{data.label}</span>
-        {data.kind ? <span className="mnd-chip-kind">{data.kind}</span> : null}
-      </span>
+                  "--head": `${head}px`, "--band": band } as CSSProperties}>
+      {data.upright ? <span className="mnd-chip-head">{name}{kind}</span> : (
+        <span className="mnd-chip-text">
+          {name}{kind}
+          {data.facts ? <><i className="mnd-chip-break" /><Facts facts={data.facts} /></> : null}
+        </span>
+      )}
       <Icon name={role_icon(data.role)} size={14} className="mnd-chip-icon" />
-      {data.facts && !narrow ? <span className="mnd-chip-facts"><Facts facts={data.facts} /></span>
-        : null}
-      {data.tiles?.length ? (
+      {tiles.length ? (
         <span className="mnd-chip-body">
-          {data.tiles.map((t) => {
-            /** A plain block wears its kind's icon; a mark its glyph instead; what only shapes
-             *  the chip — a strip, a lifeline, a rule — no name. */
+          {tiles.map((t) => {
+            /** A plain block wears its kind's icon; a mark its glyph instead; a header strip
+             *  its header block's name; what only shapes the chip — a lifeline, a rule — none. */
             const plain = !t.as && !t.mark;
-            const named = (!t.as || t.as === "group") && t.mark !== "start" && t.mark !== "end";
+            const heads = t.as === "head" && !!t.label;
+            const named = ((!t.as || t.as === "group") && t.mark !== "start" && t.mark !== "end")
+              || heads;
             /** What stands for a block is picked as it: a click on it picks its block. */
-            const block = !t.as || t.as === "group" || t.as === "band";
+            const block = !t.as || t.as === "group" || t.as === "band" || heads;
             const [w, h] = [t.w * body.w, t.h * body.h];
-            const shown = named && w > NAMED && h > 10;
+            /** Whether it may carry a name; whether the name fits is the tile's own to say. */
+            const shown = named && Math.min(w, h) >= NAMED;
             /** As large as an icon may grow in this tile: beside its name, its height less a
              *  margin and a third of its width; alone, never past the tile. */
             const cap = shown ? Math.min(h - 4, w / 3) : Math.min(w, h) - 4;
@@ -82,8 +103,10 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
                                 icon ? "iconed" : "", icon && !shown ? "bare" : "",
                                 t.odd ? "odd" : "", t.down ? "down" : "",
                                 t.as === "head" && h > w ? "tall" : "",
+                                heads ? "labeled" : "",
                                 t.mark ? `mark ${t.mark}` : "",
                                 lit.includes(t.id) ? "lit" : "",
+                                t.holds ? "holds" : "", t.in ? "nested" : "",
                                 t.texture ?? ""].filter(Boolean).join(" ")}
                     style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`,
                              width: `${t.w * 100}%`, height: `${t.h * 100}%`,
@@ -91,6 +114,13 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
                              ...(icon ? { "--cap": `${cap}px` } : {}) } as CSSProperties}>
                 {shown
                   ? <span className="mnd-chip-tile-name">{t.label}</span> : null}
+                {t.texture ? <span className="mnd-chip-tile-texture" /> : null}
+                {shown && (t.facts || t.rows?.length) ? (
+                  <span className="mnd-chip-tile-more">
+                    {t.facts ? <span className="facts">{t.facts}</span> : null}
+                    {t.rows?.map((r, i) => <span key={i}>{r}</span>)}
+                  </span>
+                ) : null}
                 {icon ? <Icon name={role_icon(t.role)} size={9} className="mnd-chip-tile-icon" />
                   : null}
               </span>
@@ -160,9 +190,38 @@ const LINE = 15;
 const BAR = 9;
 const LINES = 3;
 
-/** How wide a tile is before its name shows: a few letters beside its icon; narrower, its icon
- *  alone. */
-const NAMED = 50;
+/** How deep a tile is laid before it may carry a name: a line; shallower, its icon alone. Its
+ *  name is held at a readable size on screen, so whether it fits there — four letters at least,
+ *  cut short after — is the tile's own to say (`flow.css`, a container query). */
+const NAMED = 12;
+
+/** How many screen pixels a nested tile's shorter side needs before it shows: its colour edge
+ *  and a glimpse of its ground. */
+const MARK = 8;
+
+/** A chip's body less its head: under it, or beside it where the chip is upright. */
+function body_of(data: ChipData, width: number, height: number): { w: number; h: number } {
+  const [pad, head] = [6, data.head ?? 0];
+  return { w: (width ?? 0) - (data.upright ? head : pad) - pad,
+           h: (height ?? 0) - (data.upright ? pad : head) - pad };
+}
+
+/** The scale at which a nested tile's mark reads. */
+function mark_at(t: ChipTile, body: { w: number; h: number }): number {
+  return MARK / Math.max(1e-6, Math.min(t.w * body.w, t.h * body.h));
+}
+
+/** **The scales at which a chip's drawing changes**, smallest first: where each nested tile's
+ *  mark reads. A host redraws the chip only as zoom crosses one. */
+export function chip_steps(data: ChipData, width: number, height: number): number[] {
+  const body = body_of(data, width, height);
+  const marks = (data.tiles ?? []).filter((t) => t.in).map((t) => mark_at(t, body));
+  return [...new Set(marks)].sort((a, b) => a - b);
+}
 
 /** How narrow a chip is before its name gives way to its icon alone. */
 const NARROW = 64;
+
+/** **A chip's text**, as `flow.css` lays it (views `ROW`): the air over it, and the gap between
+ *  it and the body under it. */
+const TEXT = { top: 4, gap: 6 };

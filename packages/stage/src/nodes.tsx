@@ -1,8 +1,8 @@
 /** What a box looks like, as React Flow node types. */
 
-import { createContext, memo, useContext, useEffect,
+import { createContext, memo, useCallback, useContext, useEffect, useMemo,
          useRef, useState, type CSSProperties } from "react";
-import { Handle, NodeResizer, Position, useUpdateNodeInternals,
+import { Handle, NodeResizer, Position, useStore, useUpdateNodeInternals,
          type NodeProps } from "@xyflow/react";
 import type { Side } from "@mnd/core";
 
@@ -11,7 +11,7 @@ export const DRAGGED = "text/mnd-block";
 
 import { FRAME, PLAIN, face_attrs, look_key, tint_attrs,
          type BoxData, type BoxNode, type GridCell } from "@mnd/views";
-import { CardFace, ChipFace, Facts, Icon, Name, Stamps, Wears, role_icon, useNaming } from "@mnd/theme";
+import { CardFace, ChipFace, chip_steps, Facts, Icon, Name, Stamps, Wears, role_icon, useNaming } from "@mnd/theme";
 import { useLevel, useTiny } from "./level";
 
 
@@ -412,8 +412,14 @@ function MapBox({ data, selected }: NodeProps<BoxNode>) {
 function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
   const level = useLevel(width ?? 0, height ?? 0, false);
   const tint = data.look ? tint_attrs(data.look) : undefined;
-  return <ChipFace data={{ ...data, ...(tint ? { tint } : {}) }} w={width ?? 0} h={height ?? 0}
-                   level={level} picked={!!selected} />;
+  const chip = { ...data, ...(tint ? { tint } : {}) };
+  /** The zoom as the last step its drawing changes at, so it redraws only as one is crossed. */
+  const steps = useMemo(() => chip_steps(chip, width ?? 0, height ?? 0),
+                        [data.tiles, data.head, data.upright, width, height]);
+  const scale = useStore(useCallback((st) => steps.filter((k) => k <= st.transform[2]).at(-1) ?? 0,
+                                     [steps]));
+  return <ChipFace data={chip} w={width ?? 0} h={height ?? 0} level={level} picked={!!selected}
+                   scale={scale} />;
 }
 
 

@@ -1,7 +1,7 @@
 /** The React half of the seam, behind its own entry. */
 
 export { type ViewerProps, Viewer } from "./viewer";
-export { type ExplorerProps, Explorer, tree_of } from "@mnd/explorer";
+export { type ExplorerProps, type RowLook, Explorer, tree_of } from "@mnd/explorer";
 /** The section chain: what each section lists and holds. A host declares its sections as data. */
 export { editor_slices, useChain,
          type Chain, type Mark, type Row, type Slice } from "@mnd/explorer";

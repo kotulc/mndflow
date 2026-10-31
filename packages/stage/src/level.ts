@@ -15,8 +15,9 @@ export function useTiny(size: number, least = 6): boolean {
 }
 
 /** The level a form `w` by `h` in layout units shows at the current zoom. `laid` where its preview
- *  is rows laid at layout size (a large face's table and body), which read whole only inside the
- *  text band; a chip's tiles scale with the drawing instead. */
+ *  sits under rows laid at layout size — a large face's table and body — so it shows only inside
+ *  the text band, where the text above it is never held larger. A chip's head is laid at its held
+ *  size instead, so its tiles show wherever they have room. */
 export function useLevel(w: number, h: number, laid = true): Level {
   const flying = useContext(FlightContext);
   const was = useRef<Level | null>(null);

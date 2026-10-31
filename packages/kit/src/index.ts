@@ -65,6 +65,9 @@ export { carried, face_table, face_text, listed, table, type Listed, type Ruled 
 /** The computed layout: a layer as a page of boxes. */
 export { page_graph } from "@mnd/views";
 
+/** A tree row's colour edge and count, for the explorer's `rowLook`. */
+export { row_look } from "@mnd/views";
+
 /** Sections and navigation: how a host cuts the workspace into layers, the views each offers,
  *  what opening, leaving and revealing do to the canvas, and what the sections hold. */
 export { held_at, leave_at, open_at, read_at, reveal_at, sight, view_of, view_on, EDITOR, type Cut,

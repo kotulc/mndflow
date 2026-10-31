@@ -12,7 +12,7 @@
 import { Graph as Ranks, layout } from "@dagrejs/dagre";
 import { hierarchy, treemap, treemapSquarify, type HierarchyNode } from "d3-hierarchy";
 import { children, definition_uses, diagram_kind, has_lifelines, is_aside, is_grid,
-         is_folder, is_group, is_header, is_holder, is_interface, is_model, is_notation,
+         head_of, is_folder, is_group, is_header, is_holder, is_interface, is_model, is_notation,
          is_reference,
          is_region, is_tie, inline, lattice_of, layer_of, members_of, lens_of, notation_of,
          on_side, owner_of, packages, path, region_of, shown_name, type Graph,
@@ -38,10 +38,14 @@ const WIDE = 1200;
 const AIR = { inner: 6, outer: 6, title: 26 };
 const PAD = { chip: 6, diagram: 6 };
 
-/** **A chip's rows**, as `flow.css` draws them: its name's line, its facts strip with the air
- *  under it, and each row of a preview; an upright head's width. A level shows only where the
- *  chip has room for it. */
-const ROW = { name: 22, facts: 22, line: 15 };
+/** **How much larger a chip's head and facts may be held** than laid, zoomed out (`flow.css`
+ *  `--chip-k`): their rows are laid at that size, so held text never covers the body. */
+const HELD = 1.35;
+
+/** **A chip's rows**, as `flow.css` draws them: its name's line with the air over it and the gap
+ *  under its text, each line of its facts, both at their held size; and each row of a preview; an
+ *  upright head's width. A level shows only where the chip has room for it. */
+const ROW = { name: 4 + Math.ceil(17 * HELD) + 6, facts: Math.ceil(17 * HELD), line: 15 };
 
 /** The least body a chip keeps under its facts: a diagram's or a holder's structure, else a line
  *  of preview. Where it would not, the facts give way, and its hover card says them. */
@@ -58,10 +62,6 @@ const CARD_W = 168;
 const SLIVER = 120;
 const WIDEST = 4;
 const SETTLE = 3;
-
-/** How wide and tall a use's tile is before its name reads, and the share of them that must, for
- *  a definition's chip to show its uses by place rather than its profile. */
-const NAMED = { w: 50, h: 16, share: 0.8 };
 
 /** How narrow a tall chip is before its head turns upright, as if the chip were turned -90°. */
 const UPRIGHT = 64;
@@ -352,9 +352,10 @@ function previewed(graph: Graph, chip: NonNullable<Leaf["chip"]>, box: { w: numb
   const def = chip.block;
   const groups = chip.groups ?? [];
   const laid = registry_map(graph, def, w, h, groups);
-  const uses = laid.filter((t) => t.kind !== "box");
-  const named = uses.filter((t) => t.w >= NAMED.w && t.h >= NAMED.h).length;
-  if (!uses.length || named < uses.length * NAMED.share) {
+  /** **Its uses, wherever it has any**: each tile shows what its own size on screen holds — its
+   *  mark, then its name — so no share of them need read for the rest to draw. Only a definition
+   *  used nowhere shows its profile. */
+  if (!laid.some((t) => t.kind !== "box")) {
     const placed = groups.map((g) => ({ id: g.place, label: box_label(graph, g.place),
                                         n: g.uses.length,
                                         tint: tint_attrs(colour_of(graph, g.place)) }));
@@ -402,9 +403,15 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
     : kind === "entity" ? { texture: "entity" as const } : {};
   const share = (t: Placed): InnerTile => {
     const at = { id: t.id, x: t.x0 / w, y: t.y0 / h, w: Math.max(0, t.x1 - t.x0) / w,
-                 h: Math.max(0, t.y1 - t.y0) / h };
-    if (t.as === "head" || t.as === "life" || t.as === "rule" || t.as === "flow"
-        || t.as === "arrow") {
+                 h: Math.max(0, t.y1 - t.y0) / h, ...(t.in ? { in: t.in } : {}),
+                 ...(t.holds ? { holds: true } : {}) };
+    /** A header strip standing for its header block is named and coloured as the block is. */
+    if (t.as === "head" && graph.blocks[t.id]) {
+      return { ...at, label: shown_name(graph, t.id), as: t.as,
+               tint: tint_attrs(look_of(graph, t.id)) };
+    }
+    if (t.as === "head" || t.as === "track" || t.as === "life" || t.as === "rule"
+        || t.as === "flow" || t.as === "arrow") {
       return { ...at, label: "", as: t.as, ...(t.down ? { down: true } : {}) };
     }
     const face = carried(graph, t.id, "small");
@@ -413,19 +420,21 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
     const label = is_group(graph, t.id) ? "" : shown_name(graph, t.id);
     return { ...at, label, ...(face.role ? { role: face.role } : {}),
              ...(t.as === "block" ? (is ? { mark: is }
-               : { ...texture, tint: tint_attrs(look_of(graph, t.id)) }) : { as: t.as }),
+               : { ...texture, tint: tint_attrs(look_of(graph, t.id)),
+                   ...(t.holds ? {} : said(graph, t.id)) }) : { as: t.as }),
              ...(t.odd ? { odd: true } : {}) };
   };
   const whole = { x0: 0, y0: 0, x1: w, y1: h };
   if (!diagram) {
-    return { tiles: squarified(graph, held, whole, 2).map((t) => share({ ...t, as: "block" })) };
+    return { tiles: nested(graph, squarified(graph, held, whole, 2)
+      .map((t) => ({ ...t, as: "block" as const }))).map(share) };
   }
   if (is_grid(graph, block)) {
-    return { tiles: gridded(graph, block, whole).map(share) };
+    return { tiles: nested(graph, gridded(graph, block, whole)).map(share) };
   }
   const first = laid(graph, held, whole);
   if (!first.gaps.length) {
-    return { tiles: paneled(graph, block, first.placed).map(share) };
+    return { tiles: nested(graph, paneled(graph, block, first.placed)).map(share) };
   }
   /** **What its lines rank runs one way, between a start and an end**: a strip across each end
    *  of its flow, its blocks a gap within them; a faint line down its middle, behind its blocks,
@@ -446,15 +455,49 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
     { ...span(along - STRIP - tip, along - STRIP, (wide - broad) / 2, (wide + broad) / 2),
       id: `${block}@arrow`, as: "arrow", ...down },
   ];
-  return { tiles: [...ends, ...paneled(graph, block, placed)].map(share) };
+  return { tiles: [...ends, ...nested(graph, paneled(graph, block, placed))].map(share) };
+}
+
+/** **What a tile says under its name**, as it grows on screen: its counts and seats in one quiet
+ *  line, then its preview — its attributes or records a row each, else its body or description. */
+function said(graph: Graph, id: Id): Pick<InnerTile, "facts" | "rows"> {
+  const f = facts_of(graph, id, false);
+  const facts = [...f.counts.map((c) => `${c.n} ${c.word}`), ...f.ports.map((p) => p.name)]
+    .join(" · ");
+  const p = preview_of(graph, id);
+  const rows = p?.rows?.map((r) => r.join("  ")) ?? p?.lines ?? [];
+  return { ...(facts ? { facts } : {}), ...(rows.length ? { rows } : {}) };
 }
 
 /** One tile a diagram's structure lays: a block, a group's panel, a region's band (`odd` every
  *  other), a grid's header strip, a lifeline, a rule between rows, a flow's line or its arrow
  *  (`down` where it runs down). */
-type Placed = Rect & { id: Id; as: "block" | "group" | "band" | "head" | "life" | "rule" | "flow"
-                         | "arrow";
-                       odd?: boolean; down?: boolean };
+type Placed = Rect & { id: Id; as: "block" | "group" | "band" | "head" | "track" | "life" | "rule"
+                         | "flow" | "arrow";
+                       odd?: boolean; down?: boolean;
+                       /** The tile it is nested in, and whether it holds tiles of its own. */
+                       in?: Id; holds?: boolean };
+
+/** **What a tile holds, nested inside it, at any depth**: under a line for its name, its members
+ *  squarified by weight, a narrow gap between them, each in turn holding its own. Nesting stops
+ *  where a member would be smaller than `FLOOR`: too small to show even its mark at the map's
+ *  closest zoom. The drawing shows each from its own size on screen (theme `chip.tsx`). */
+function nested(graph: Graph, placed: readonly Placed[]): Placed[] {
+  return placed.flatMap((t): Placed[] => {
+    const held = t.as === "block" && !mark_of(graph, t.id) ? members(graph, t.id) : [];
+    if (!held.length) return [t];
+    const body = below(inset(t, NEST.pad), NEST.head);
+    const kids = squarified(graph, held, body, NEST.gap);
+    if (kids.length < held.length
+        || kids.some((k) => Math.min(k.x1 - k.x0, k.y1 - k.y0) < NEST.floor)) return [t];
+    return [{ ...t, holds: true },
+            ...nested(graph, kids.map((k) => ({ ...k, as: "block" as const, in: t.id })))];
+  });
+}
+
+/** A nested tile's room: its name's line over its members, the air round them and between them,
+ *  and the least a member may be laid at, in layout units. */
+const NEST = { head: 14, pad: 2, gap: 2, floor: 4 };
 
 /** **The one gap in a diagram's chip**: between any two of its tiles — layers, what sits in one,
  *  a grid's rows and columns — and, halved, round what a group,
@@ -571,6 +614,15 @@ function gridded(graph: Graph, id: Id, rect: Rect): Placed[] {
                      cols: Math.max(s.cols, at.cols) });
   }
   const all = [...seats.values()];
+  /** Its header blocks, each by the body lines it heads: a column's from the top row, a row's from
+   *  the left column. */
+  const heads = members(graph, id).flatMap((b) => {
+    const at = region_of(graph, b);
+    const role = head_of(graph, b);
+    return at && (role === "col" || role === "row")
+      ? [{ id: b, role, lo: (role === "col" ? at.c : at.r) - 1,
+           hi: (role === "col" ? at.c + at.cols : at.r + at.rows) - 2 }] : [];
+  });
   /** The lines past the headers, each as large as what sits in it, shared across a merge. */
   const [rows, cols] = [Array<number>(g.rows - 1).fill(0), Array<number>(g.cols - 1).fill(0)];
   for (const s of all) {
@@ -578,24 +630,48 @@ function gridded(graph: Graph, id: Id, rect: Rect): Placed[] {
     for (let r = s.r; r < s.r + s.rows; r++) rows[r] = (rows[r] ?? 0) + w / s.rows;
     for (let c = s.c; c < s.c + s.cols; c++) cols[c] = (cols[c] ?? 0) + w / s.cols;
   }
+  /** **Header strips widen to carry their names** where the grid has room for them, a whole
+   *  label's line deep, laid once: the top where every row still keeps its own line after it, the
+   *  side where every column keeps a few letters' width. */
+  const keeps = (span: number, lines: number, least: number) =>
+    (span - LABEL.strip) / Math.max(1, lines) - GAP / 2 >= least;
+  const top = heads.some((h) => h.role === "col")
+    && keeps(rect.y1 - rect.y0, rows.length, LABEL.row) ? LABEL.strip : STRIP;
+  const side = heads.some((h) => h.role === "row")
+    && keeps(rect.x1 - rect.x0, cols.length, LABEL.col) ? LABEL.strip : STRIP;
   /** The body under the header strips, beside the side ones where it has no lifelines: its
    *  first row's and column's air taken back, so the strips sit close by the blocks. */
-  const body = { ...rect, y0: Math.min(rect.y1, rect.y0 + STRIP + HUG - GAP / 2) };
-  if (!life) body.x0 = Math.min(body.x1, body.x0 + STRIP + HUG - GAP / 2);
-  const xs = tracks(body.x0, body.x1, cols.map((v) => v || THIN), 0);
-  const ys = tracks(body.y0, body.y1, rows.map((v) => v || THIN), 0);
-  /** A quiet strip over each column, and beside each row where it has no lifelines. */
-  const out: Placed[] = xs.map(([a, b], c) => ({ x0: a + GAP / 2, x1: b - GAP / 2,
-                                                  y0: rect.y0, y1: rect.y0 + STRIP,
-                                                  id: `${id}@head${c}`, as: "head" }));
-  if (!life) {
-    ys.forEach(([a, b], r) => out.push({ x0: rect.x0, x1: rect.x0 + STRIP, y0: a + GAP / 2,
-                                         y1: b - GAP / 2, id: `${id}@side${r}`,
-                                         as: "head" }));
-  }
+  const body = { ...rect, y0: Math.min(rect.y1, rect.y0 + top + HUG - GAP / 4) };
+  if (!life) body.x0 = Math.min(body.x1, body.x0 + side + HUG - GAP / 4);
+  /** A labelled header's line is laid at least as wide, or as deep, as its label reads. */
+  const xs = tracks(body.x0, body.x1, cols.map((v) => v || THIN), 0,
+                    top === LABEL.strip ? LABEL.col + GAP / 2 : 0);
+  const ys = tracks(body.y0, body.y1, rows.map((v) => v || THIN), 0,
+                    side === LABEL.strip ? LABEL.row + GAP / 2 : 0);
+  /** A strip over each column, and beside each row where it has no lifelines: its header
+   *  block's, across every line it heads, else a quiet one of its own. */
+  const strips = (role: "col" | "row", lines: readonly [number, number][]): Placed[] => {
+    const named = heads.filter((h) => h.role === role && lines[h.lo] && lines[h.hi]);
+    const free = lines.flatMap((_, i) => (named.some((h) => i >= h.lo && i <= h.hi) ? [] : [i]));
+    const spans = [...named.map((h) => ({ id: h.id, lo: h.lo, hi: h.hi })),
+                   ...free.map((i) => ({ id: `${id}@${role === "col" ? "head" : "side"}${i}`,
+                                         lo: i, hi: i }))];
+    return spans.map(({ id: at, lo, hi }) => {
+      const [a, b] = [lines[lo]![0] + GAP / 4, lines[hi]![1] - GAP / 4];
+      return role === "col"
+        ? { x0: a, x1: b, y0: rect.y0, y1: rect.y0 + top, id: at, as: "head" as const }
+        : { x0: rect.x0, x1: rect.x0 + side, y0: a, y1: b, id: at, as: "head" as const };
+    });
+  };
+  /** A track behind each run of header strips, the grid's whole width or height. */
+  const out: Placed[] = [{ ...rect, y1: rect.y0 + top, id: `${id}@heads`, as: "track" },
+                         ...(life ? [] : [{ ...rect, y0: body.y0, x1: rect.x0 + side,
+                                            id: `${id}@sides`, as: "track" as const }]),
+                         ...strips("col", xs)];
+  if (!life) out.push(...strips("row", ys));
   if (life) {
     xs.forEach(([a, b], c) => out.push({ ...body, x0: (a + b) / 2, x1: (a + b) / 2,
-                                         y0: rect.y0 + STRIP, id: `${id}@life${c}`,
+                                         y0: rect.y0 + top, id: `${id}@life${c}`,
                                          as: "life" }));
   } else {
     ys.slice(1).forEach(([a], r) => out.push({ ...body, x0: body.x0 + GAP / 2, y0: a, y1: a,
@@ -610,7 +686,8 @@ function gridded(graph: Graph, id: Id, rect: Rect): Placed[] {
     const x0 = left < 0 ? body.x0 : xs[Math.round((left + s.c) / 2)]![0];
     const x1 = right >= cols.length ? body.x1 : xs[Math.round((s.c + s.cols + right) / 2)]![0];
     const [y0, y1] = [ys[s.r]![0], ys[Math.min(ys.length, s.r + s.rows) - 1]![1]];
-    out.push(...layered(graph, s.ids, inset({ x0, x1, y0, y1 }, GAP / 2)).placed);
+    /** A cell's rules part it from its neighbours, so what sits in it needs half the air. */
+    out.push(...layered(graph, s.ids, inset({ x0, x1, y0, y1 }, GAP / 4)).placed);
   }
   return out;
 }
@@ -645,16 +722,31 @@ function below(r: Rect, d: number): Rect {
   return { ...r, y0: Math.min(r.y1, r.y0 + d) };
 }
 
-/** From `lo` to `hi` split by weight, `gap` between: where each part lies. */
-function tracks(lo: number, hi: number, ws: readonly number[], gap: number): [number, number][] {
-  const all = ws.reduce((n, v) => n + v, 0) || 1;
+/** From `lo` to `hi` split by weight, `gap` between, each part at least `least` where the room
+ *  holds every one at that: where each part lies. */
+function tracks(lo: number, hi: number, ws: readonly number[], gap: number,
+                least = 0): [number, number][] {
   const room = Math.max(0, hi - lo - gap * (ws.length - 1));
+  const sizes = floored(room, ws, least * ws.length <= room ? least : 0);
   let at = lo;
-  return ws.map((v) => {
-    const part: [number, number] = [at, at + (room * v) / all];
+  return sizes.map((v) => {
+    const part: [number, number] = [at, at + v];
     at = part[1] + gap;
     return part;
   });
+}
+
+/** `room` shared by weight, each share at least `least`: those that would fall short are held at
+ *  it, and the rest shared again by weight, until none falls short. */
+function floored(room: number, ws: readonly number[], least: number): number[] {
+  const held = new Set<number>();
+  for (;;) {
+    const free = ws.reduce((n, v, i) => (held.has(i) ? n : n + v), 0) || 1;
+    const left = room - held.size * least;
+    const short = ws.findIndex((v, i) => !held.has(i) && (left * v) / free < least);
+    if (short < 0) return ws.map((v, i) => (held.has(i) ? least : (left * v) / free));
+    held.add(short);
+  }
 }
 
 /** Which mark a block is — a flow's start, end or decision — or none. */
@@ -697,6 +789,10 @@ type Rect = { x0: number; y0: number; x1: number; y1: number };
 const GROUP_HEAD = 14;
 const BAND_HEAD = 6;
 const STRIP = 6;
+
+/** A header strip carrying its name: how deep it is, and the least each row and column must keep
+ *  beside it — a tile's line, a few letters' width. */
+const LABEL = { strip: 16, row: 16, col: 32 };
 const THIN = 0.35;
 
 /** Which of a diagram's tiles a line joins: each relation's ends lifted to the tiles holding

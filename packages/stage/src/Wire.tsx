@@ -22,8 +22,8 @@ const CROSS_IN = UNIT / 2;
 /** Half the cross's arms. */
 const CROSS = 4;
 
-/** How far the words of an end sit along the line from it, and out to its side. */
-const WORDS = { along: 14, out: 9 };
+/** How far the words of an end start along the line from it, and how far out to its side. */
+const WORDS = { along: 6, out: 3 };
 
 type Pt = { x: number; y: number };
 
@@ -47,10 +47,15 @@ function cross_at(run: readonly Pt[], way: "from" | "to"): string {
     + `M ${at.x - v.x} ${at.y - v.y} L ${at.x + v.x} ${at.y + v.y}`;
 }
 
-/** Where an end's words sit: a little along the line, out to one side. */
-function words_at(run: readonly Pt[], way: "from" | "to"): Pt {
+/** **Where an end's words sit**: they start a little along the line and grow away from the card,
+ *  beside the stroke — above a level leg, right of an upright one — so they never cover the card
+ *  or the line. A CSS transform from the point. */
+function words_at(run: readonly Pt[], way: "from" | "to"): string {
   const { at, dir } = along(run, way, WORDS.along);
-  return { x: at.x - dir.y * WORDS.out, y: at.y + dir.x * WORDS.out };
+  const level = Math.abs(dir.x) >= Math.abs(dir.y);
+  const [x, y] = level ? [at.x, at.y - WORDS.out] : [at.x + WORDS.out, at.y];
+  const shift = level ? `${dir.x < 0 ? "-100%" : "0"}, -100%` : `0, ${dir.y < 0 ? "-100%" : "0"}`;
+  return `translate(${x}px, ${y}px) translate(${shift})`;
 }
 
 /** The runs routed round cards for the drawing as it stands, by line. */
@@ -148,11 +153,10 @@ export function Wire(props: EdgeProps<LineEdge>) {
       {(["from", "to"] as const).map((way) => {
         const words = end_words(data, way);
         if (!words || !ends) return null;
-        const at = words_at(run, way);
         return (
           <EdgeLabelRenderer key={way}>
             <div className={`mnd-wire-end nodrag nopan${data?.away ? " mnd-out" : ""}`} {...attrs}
-                 style={{ ...tint, transform: `translate(${at.x}px, ${at.y}px) translate(-50%, -50%)` }}>
+                 style={{ ...tint, transform: words_at(run, way) }}>
               {words}
             </div>
           </EdgeLabelRenderer>

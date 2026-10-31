@@ -46,13 +46,14 @@ export function box_place(def: Id, id: Id): Id | null {
 }
 
 /** **A definition's uses laid out, once**: a box per place, each use as large as it weighs; a lone
- *  box left out, as the frame says it. Placed at card scale, or filling `size`. */
+ *  box left out, as the frame says it. Placed at card scale, or filling `size`, `head` deep inside
+ *  each box where it draws its own heading. */
 export function usage_layout(graph: Graph, def: Id, size?: { w: number; h: number },
-                             groups = usage_groups(graph, def)): Placed[] {
+                             groups = usage_groups(graph, def), head?: number): Placed[] {
   const boxes: Weighed[] = groups.map((g) => ({
     id: usage_box(def, g.place), weight: 0,
     kids: g.uses.map((u) => ({ id: u.id, weight: u.weight })) }));
-  return tiled(boxes.length === 1 ? boxes[0]!.kids! : boxes, size);
+  return tiled(boxes.length === 1 ? boxes[0]!.kids! : boxes, size, head);
 }
 
 /** What a usage box is called: its place, and the place's package where it is not the
@@ -75,15 +76,18 @@ export function filed(graph: Graph, id: Id): Id[] {
     && (is_folder(graph, b.id) || !!b.def)).map((b) => b.id);
 }
 
+/** A small map's box heading, inside its top: a laid name line and a little air. */
+const BOX_HEAD = 14;
+
 /** One tile of a small map: what it is, its name, and where it lies in a map `w` by `h`. */
 export type Tile = { id: Id; label: string; kind: "box" | "use" | "line" | "def";
                      x: number; y: number; w: number; h: number };
 
 /** A definition's registry as a small map `w` by `h`: **the registry's own layout**, laid to fill
- *  the map rather than scaled into it. */
+ *  the map rather than scaled into it, each box with a line inside its top for its name. */
 export function registry_map(graph: Graph, def: Id, w: number, h: number,
                              groups = usage_groups(graph, def)): Tile[] {
-  return usage_layout(graph, def, { w, h }, groups).map((p): Tile => {
+  return usage_layout(graph, def, { w, h }, groups, BOX_HEAD).map((p): Tile => {
     const place = box_place(def, p.id);
     const e = graph.edges[p.id];
     return { id: p.id, x: p.x, y: p.y, w: p.w, h: p.h,

@@ -149,7 +149,8 @@ const chain = useChain(graph, SLICES);       // the host's sections, and what ea
           onAct={(name, args) => { /* mean whatever you like by it */ }}
           onOpen={({ id, via }) => ...}      // Enter, double-click, →
           onLeave={() => ...}                // ←, Backspace
-          onFold={...} onPick={...} keys />
+          onFold={...} onPick={...} keys
+          rowLook={(id) => row_look(graph, id)} />  // optional: each row's colour edge and count
 ```
 
 **Sections are required**: a host declares its slices (mndflow's are `editor_slices()`). **The explorer browses; the canvas is the host's**: choosing a row holds it in its section, and only `onOpen` asks the canvas to move. Where it moves is the kit's navigation — `open_at`, `leave_at`, `reveal_at`, and `held_at` for what the sections then hold — so every host moves the same way.

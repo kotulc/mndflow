@@ -1,8 +1,8 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **In progress**: the design language, its plan in design-plan.md (*Next session* first).
 
-## CLI (next, as time allows)
+## CLI (next, after the design language)
 
 **The CLI is the first backlog item taken up.** Its scope includes a full pass over the file-based package and diagram definition surface: the schema, and how blocks, cards and diagrams are defined and linked together when defining a package.
 

@@ -1,13 +1,12 @@
 /** The explorer's rows: each section's header, then what it lists, laid out with depth, guides
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
-import { alias_of, branch_of, children, class_of, definition_uses, domain_of, KINDS, library_of,
+import { alias_of, branch_of, children, domain_of, KINDS, library_of,
          of_ref, on_side, opens, is_folder, is_grid, is_notation, is_box, is_named, relation_base,
          role_of, setting_of, shown_name, tops_of,
          type Block, type Cut, type Graph, type Id, type Lists, type Registry,
          type Role } from "@mnd/core";
 import { known, role_icon, type IconName } from "@mnd/theme";
-import { colour_of, counted, tint_attrs, type Tint } from "@mnd/views";
 import type { Chain } from "./chain";
 
 /** What a row reads as: a block's role, as its card reads, or one of the tree's own marks. */
@@ -38,10 +37,9 @@ export type Row = { id: Id; depth: number; label: string; kids: number; mark: Ma
                     named: boolean;
                     /** The handle an unnamed row wears. */
                     alias: string;
-                    /** Its colour edge, the card's own; absent on packages and folders. */
-                    tint?: Tint;
-                    /** A quiet count: a definition's uses, a diagram's blocks. */
-                    count?: number;
+                    /** Whether it is where things are filed — a package or a folder — which
+                     *  wears no colour edge and no count. */
+                    filed?: boolean;
                     /** Per indent column, whether its guide line carries on past this row. */
                     guides: boolean[] };
 
@@ -212,25 +210,15 @@ function unheld(graph: Graph, blocks: readonly Block[]): Block[] {
     : is_box(graph, b.id) ? unheld(graph, under(graph, b.id)) : []));
 }
 
-/** A block's row: its name, its mark, how many rows it holds, and — but on a package or a folder,
- *  which are where things are filed — the card's colour edge and its count. */
+/** A block's row: its name, its mark, how many rows it holds, and whether it is where things are
+ *  filed. */
 function block_row(graph: Graph, id: Id, depth: number, kids: number, key: Id): Row {
   const icon = card_icon(graph, id);
   const filed = graph.blocks[id]?.parent === null || is_folder(graph, id);
-  const count = filed ? 0 : count_of(graph, id);
   return { ...(icon ? { icon } : {}), id: key, ref: id, pick: id, depth,
            label: shown_name(graph, id), kids, named: is_named(graph, id),
            alias: graph.blocks[id]?.parent === null ? "" : alias_of(graph, id), of: "block",
-           mark: mark_of(graph, id), guides: [],
-           ...(filed ? {} : { tint: tint_attrs(colour_of(graph, id)) }),
-           ...(count ? { count } : {}) };
-}
-
-/** **A row's count**: a definition's uses, a diagram's blocks; nothing else. */
-function count_of(graph: Graph, id: Id): number {
-  if (graph.blocks[id]?.def) return definition_uses(graph, id).length;
-  return class_of(graph, id) === "diagram"
-    ? counted(graph, children(graph, id).map((c) => c.id)).blocks : 0;
+           mark: mark_of(graph, id), guides: [], ...(filed ? { filed } : {}) };
 }
 
 /** The mark a row wears: a package's root or lock, a relation definition its base's, else the

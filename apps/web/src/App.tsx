@@ -10,7 +10,7 @@ import { all_defs, appearances_of, collect, diagram_kind, domain_of, drop_of, to
 import { FLOOR } from "@mnd/defs";
 import { area_of, box_of, clear_of, empty_of, holds, layer_scene, map_focus, project,
          section_map, set_aspect, set_card as apply_card, stop_area, BLOCK, CARD, EMPTY,
-         laid_ahead, UNITS, type Area, type Scene } from "@mnd/views";
+         laid_ahead, row_look, UNITS, type Area, type Scene } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
 import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
 import { Stage, FLIGHT, still, type Move } from "@mnd/stage";
@@ -477,6 +477,7 @@ export function App({ storage, boot, opening }: {
         registry={hold?.of === "registry" ? hold.registry
           : registry_at(graph, view.layer) ?? registry_of(graph, view.layer)}
         chain={{ ...chain, onChoose: choose }}
+        rowLook={(id) => row_look(graph, id)}
         keys={zones.zone === "explorer"}
       />
 
