@@ -1,7 +1,8 @@
 /** The block view: any planar projection. */
 
 import { alias_of, dir_of, layout_of, children, covers, diagram_subject,
-         edges_in, group_depth, group_nest, heading, holders_in, inline, is_box, is_container,
+         edges_in, group_depth, group_nest, has_lifelines, heading, holders_in, inline, is_box,
+         is_container, owner_of,
          is_grid, is_group, is_aside, is_note, is_tie, label_of, lattice_of, members_of, shape_of,
          stamps_of, role_of, shown_name, type Cut, type Ends, type ViewKind, type Graph, type Id,
          type Relation, type Side, type Span } from "@mnd/core";
@@ -107,7 +108,8 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   const spots = laid(graph, layer);
   /** Interfaces are seated after the cards; hidden ones still hold their seat. */
   const hidden = config.interfaces === false;
-  const linked = edges_in(graph, layer).map((e) => landed(e, layer));
+  const { lines: linked, times } = once(graph,
+                                         edges_in(graph, layer).map((e) => landed(e, layer)));
 
   /** Which component draws each box. Every card is the one card height, so nothing minifies. */
   const boxes: BoxNode[] = spots
@@ -257,7 +259,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
     layer,
     ...(framed ? { frame: framed } : {}),
     nodes: placed,
-    edges: lines_of(graph, linked, seating, config.ends),
+    edges: lines_of(graph, linked, seating, config.ends, times),
     perches: seating.perches,
     /** A slot says what this projection can offer, never what it is doing. */
     slots: SLOTS,
@@ -428,10 +430,28 @@ function landed(e: Relation, layer: Id | null): Relation {
   return { ...e, from: here(e.from), to: here(e.to) };
 }
 
-/** Every line as the canvas draws it: ends, seats, label, and where it turns. A tie between
- *  cards that overlap draws nothing. Where `ends`, a line draws what its ends mean. */
+/** **Several lines between one pair draw as one**, counted: the same ends, type and name — the
+ *  first kept, and how many it stands for. Never a message on a lifeline: each is its own turn. */
+function once(graph: Graph, lines: readonly Relation[])
+    : { lines: Relation[]; times: Map<Id, number> } {
+  const first = new Map<string, Id>();
+  const times = new Map<Id, number>();
+  const kept = lines.filter((e) => {
+    const timed = has_lifelines(graph, graph.blocks[owner_of(graph, e.from)]?.parent ?? undefined);
+    const key = `${e.from}|${e.to}|${e.type ?? ""}|${label_of(graph, e.id)}`;
+    const at = timed ? undefined : first.get(key);
+    if (at) times.set(at, (times.get(at) ?? 1) + 1);
+    else first.set(key, e.id);
+    return !at;
+  });
+  return { lines: kept, times };
+}
+
+/** Every line as the canvas draws it: ends, seats, label, and where it turns, and how many it
+ *  stands for. A tie between cards that overlap draws nothing. Where `ends`, a line draws what its
+ *  ends mean. */
 function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
-                    ends?: "class" | "er"): LineEdge[] {
+                  ends?: "class" | "er", times = new Map<Id, number>()): LineEdge[] {
   const met = new Map(seating.perches.map((p) => [`${p.edge}|${p.end}`, p]));
   return linked.map((e): LineEdge => {
     const wire = wire_of(graph, e.id);
@@ -443,6 +463,7 @@ function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
     /** A tie by its trait: drawn straight and never routed. */
     const module = is_tie(graph, e.id) ? "tie" : "line";
     const fan = seating.fans.get(e.id);
+    const n = times.get(e.id);
     return {
       id: e.id,
       ...(link ? { selectable: false, focusable: false } : {}),
@@ -454,7 +475,7 @@ function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
       ...(label ? { label } : {}),
       data: { module, dir: meant ? "none" : dir_of(graph, e.id), wire,
               ...(meant ? { ends: meant } : {}), ...(ends === "er" ? { crows: true } : {}),
-              ...(alias ? { alias } : {}),
+              ...(alias ? { alias } : {}), ...(n ? { times: n } : {}),
               ...(fan ? { fan } : {}) },
     };
   });

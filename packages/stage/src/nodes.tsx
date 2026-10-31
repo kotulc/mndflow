@@ -11,8 +11,9 @@ export const DRAGGED = "text/mnd-block";
 
 import { FRAME, PLAIN, face_attrs, look_key, tint_attrs,
          type BoxData, type BoxNode, type GridCell } from "@mnd/views";
-import { CardFace, ChipFace, chip_steps, Facts, Icon, Name, Stamps, Wears, role_icon, useNaming } from "@mnd/theme";
+import { BoxFace, CardFace, ChipFace, chip_steps, Facts, Name, Stamps, Wears, useNaming } from "@mnd/theme";
 import { useLevel, useTiny } from "./level";
+import { usePicked, usePicks } from "./picked";
 
 
 
@@ -20,7 +21,7 @@ import { useLevel, useTiny } from "./level";
 function seen(p: NodeProps<BoxNode>): string {
   const d = p.data;
   return [
-    p.selected, p.dragging, p.width, p.height,
+    p.dragging, p.width, p.height,
     d.label, d.alias ?? "", d.description ?? "", d.def, d.on, d.side, d.role,
     d.kind ?? "", (d.tiles ?? []).length, d.head ?? "", JSON.stringify(d.facts ?? null),
     JSON.stringify(d.preview ?? null), JSON.stringify(d.bar ?? null),
@@ -110,8 +111,9 @@ function Middle({ side, inward }: { side?: Side; inward?: boolean }) {
 /** The ordinary card: the face every card draws with, and what the canvas lays over it — its
  *  border's targets, its grips where it keeps its own size, and the seats lines meet. Its name
  *  renames in place. */
-function CardNode({ id, data, selected, width, height }: NodeProps<BoxNode>) {
+function CardNode({ id, data, width, height }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
+  const selected = usePicked(id);
   const look = data.look ?? PLAIN;
   const level = useLevel(width ?? 0, height ?? 0);
   return (
@@ -141,8 +143,9 @@ function CardNode({ id, data, selected, width, height }: NodeProps<BoxNode>) {
 }
 
 /** A note: text, resized by hand. */
-function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
+function NoteNode({ id, data }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
+  const selected = usePicked(id);
   const look = data.look ?? PLAIN;
   return (
     <div className={["mnd-card", "card-face", "note", ...data.marks, selected ? "picked" : ""]
@@ -301,8 +304,9 @@ function BandRim() {
   );
 }
 
-function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
+function GroupNode({ id, data }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
+  const selected = usePicked(id);
   const look = data.look ?? PLAIN;
   const has_cells = !!data.grid?.length;
   const room = data.marks.includes("room") ? "room" : "";
@@ -335,8 +339,9 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
 }
 
 /** An interface, seated on its owner's wall. */
-function SeatNode({ id, data, selected, width }: NodeProps<BoxNode>) {
+function SeatNode({ id, data, width }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
+  const selected = usePicked(id);
   const tiny = useTiny(width ?? 0);
   /** A seat that changes wall faces anew, so its handle is measured again. */
   const remeasure = useUpdateNodeInternals();
@@ -383,21 +388,11 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
 /** A map's box: what holds chips, its walls and its title with its kind's icon — a group's, a
  *  panel with no walls. Its ground lets the pointer through, so a press there is on the box
  *  itself. */
-function MapBox({ data, selected }: NodeProps<BoxNode>) {
-  return (
-    <div className={["mnd-box", data.marks.includes("group") ? "panel" : "",
-                     selected ? "picked" : ""].filter(Boolean).join(" ")}>
-      <span className="mnd-box-title">
-        {data.role ? <Icon name={role_icon(data.role)} size={11} /> : null}
-        <span className="mnd-box-name">{data.label}</span>
-        {data.facts?.counts.length ? (
-          <span className="mnd-box-counts">
-            {data.facts.counts.map((f) => `${f.n} ${f.word}`).join(" · ")}
-          </span>
-        ) : null}
-      </span>
-    </div>
-  );
+function MapBox({ id, data }: NodeProps<BoxNode>) {
+  const selected = usePicked(id);
+  return <BoxFace label={data.label} {...(data.role ? { role: data.role } : {})}
+                  {...(data.facts ? { counts: data.facts.counts } : {})}
+                  panel={data.marks.includes("group")} picked={!!selected} />;
 }
 
 /** A map's chip, **its card at map scale** (views `map.ts`): its name's line — the name, then
@@ -409,7 +404,10 @@ function MapBox({ data, selected }: NodeProps<BoxNode>) {
  *  Icons keep a least size on screen, never past what their tile has room for (`--cap`). A chip
  *  too narrow for its name shows its icon alone; a narrow, tall one reads upright. What it is in
  *  full is its hover card. */
-function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
+function ChipNode({ id, data, width, height }: NodeProps<BoxNode>) {
+  const selected = usePicked(id);
+  /** Its tiles picked, lit the one way everything picked is. */
+  const lit = usePicks((data.tiles ?? []).map((t) => t.id));
   const level = useLevel(width ?? 0, height ?? 0, false);
   const tint = data.look ? tint_attrs(data.look) : undefined;
   const chip = { ...data, ...(tint ? { tint } : {}) };
@@ -419,14 +417,15 @@ function ChipNode({ data, selected, width, height }: NodeProps<BoxNode>) {
   const scale = useStore(useCallback((st) => steps.filter((k) => k <= st.transform[2]).at(-1) ?? 0,
                                      [steps]));
   return <ChipFace data={chip} w={width ?? 0} h={height ?? 0} level={level} picked={!!selected}
-                   scale={scale} />;
+                   scale={scale} lit={lit} />;
 }
 
 
 /** A registry's tile: an entry's name, how many times it is used and what it means, its ground as
  *  warm as its uses, its edge in the entry's own colour. What a small tile has no room for, its
  *  title says. */
-function TileNode({ data, selected }: NodeProps<BoxNode>) {
+function TileNode({ id, data }: NodeProps<BoxNode>) {
+  const selected = usePicked(id);
   const n = data.count ?? 0;
   const uses = n ? `${n} ${n === 1 ? "use" : "uses"}` : "no uses";
   const tint = tint_attrs(data.look);

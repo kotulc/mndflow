@@ -1,6 +1,6 @@
 /** The definitions and type tabs: definitions in one table, the workspace's or an element's. */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { def_at, def_of, isa, name_taken, type Act, type Domain, type Graph,
          type Id } from "@mnd/core";
 import { Entry } from "./Entry";
@@ -38,6 +38,8 @@ export type DefinitionsProps = {
   seed?: Shelf;
   /** Make the lit definition the context, offered on its row as *view*. Absent offers none. */
   onOpen?: (id: Id) => void;
+  /** Told the lit row, so the canvas lights it too. */
+  onLit?: (id: Id | null) => void;
   onAct: Act;
 };
 
@@ -49,7 +51,7 @@ export function taken(graph: Graph, name: string, _group: Domain,
 }
 
 export function Definitions({ graph, about, follows, lines, target = "the selection", onOpen,
-                              onAct, seed = { only: "all" } }: DefinitionsProps) {
+                              onLit, onAct, seed = { only: "all" } }: DefinitionsProps) {
   /** Which row is lit, which is the one clicked and nothing else: a pick lights and no more,
    *  the context moves on a chip, and what is followed says so on its own row. */
   const [lit, set_lit] = useState<Id | null>(null);
@@ -117,6 +119,7 @@ export function Definitions({ graph, about, follows, lines, target = "the select
   /** What is lit: the row clicked and listed, else the first — the one it follows, where it has
    *  one, since that heads the listing. */
   const on = lit_row(current ? [current, ...listed] : listed, lit ? [lit] : []);
+  useEffect(() => onLit?.(on[0] ?? null), [on[0]]);
 
   /** One definition's row, wherever it sits. */
   const line = (r: DefRow): Line => {

@@ -5,7 +5,7 @@
  *  open structure moves it too is the host's. The pick is lit strongly, the branch the canvas
  *  draws and each section's pick subtly. */
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { about_of, at_cut, children, domain_of, drop_of, frozen, is_folder, is_inside,
          is_layer_view, holds_defs, lit, may_hold, model_of, name_taken, new_id, on_side,
          owner_def, path,
@@ -17,9 +17,11 @@ import type { Chain } from "./chain";
 import { end_of, listed_of, mark_icon, OPENED, opened, parent_of, tree_of,
          type Row } from "./rows";
 
-/** What a host may hand a row: its colour, as the attributes the card table reads, and a count. */
-export type RowLook = { tint?: { "data-family"?: string; style?: Record<string, string> };
-                        count?: number };
+/** What a host may hand a row: its colour, as the attributes the card table reads, and a count;
+ *  and a swatch to wear for its icon, as the same attributes. */
+type Attrs = { "data-family"?: string; "data-border-style"?: string;
+               style?: Record<string, string> };
+export type RowLook = { tint?: Attrs; count?: number; swatch?: Attrs };
 
 export type ExplorerProps = {
   graph: Graph;
@@ -150,6 +152,11 @@ function Fold({ icon, tip, onToggle }: { icon: IconName; tip: string; onToggle: 
       <Icon name={icon} size={MARK_SIZE} />
     </button>
   );
+}
+
+/** A short stroke in a line's colour and dash, standing where a row's icon would. */
+function Swatch({ style, ...attrs }: Attrs) {
+  return <i className="swatch" {...attrs} style={style as CSSProperties} />;
 }
 
 export function Explorer(props: ExplorerProps) {
@@ -690,7 +697,8 @@ export function Explorer(props: ExplorerProps) {
                                       if (r.kids) fold(r, !is_shut(r)); }}>
                 {/* A row that holds blocks lights its icon, as a card does; a fill would blot a
                     drawn mark like a pilcrow. */}
-                <Icon name={r.icon ?? mark_icon(r.mark)} size={MARK_SIZE} />
+                {looks.get(r.id)?.swatch ? <Swatch {...looks.get(r.id)!.swatch!} />
+                  : <Icon name={r.icon ?? mark_icon(r.mark)} size={MARK_SIZE} />}
               </span>
               {r.of === "pack"
                 ? <span className="label">{r.label}</span>

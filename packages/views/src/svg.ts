@@ -162,9 +162,10 @@ function line(edge: LineEdge, scene: Scene, runs: ReadonlyMap<string, { x: numbe
     : routed ?? route(a, a.face, b, b.face, edge.data?.fan, edge.data?.module === "tie");
   const data = edge.data;
   const end = heads(data);
-  /** The name, and the handle where the line asked for one: beside the stroke, never on it —
-   *  above a level leg, right of an upright one, as the canvas sets it. */
-  const middle = [String(edge.label ?? ""), data?.alias ?? ""].filter(Boolean).join(" ");
+  /** The name, the handle where the line asked for one, and how many it stands for: beside the
+   *  stroke, never on it — above a level leg, right of an upright one, as the canvas sets it. */
+  const middle = [String(edge.label ?? ""), data?.alias ?? "", data?.times ? `×${data.times}` : ""]
+    .filter(Boolean).join(" ");
   const mid = middle_of(run, routed ? undefined : data?.fan);
   const at = mid.level ? { x: mid.x, y: mid.y - 4, anchor: "middle" }
     : { x: mid.x + 6, y: mid.y + 3, anchor: "start" };

@@ -75,12 +75,12 @@
 |---|---|---|---|
 | 0 | **mark** | icon and colour edge | 16 px square |
 | 1 | **head** | name, kind | one 22 px line, 50 px wide |
-| 2 | **facts** | the facts strip: counts, then seats, then tags as dots | one more 22 px line |
+| 2 | **facts** | the facts strip: counts, then tags as dots | one more 22 px line |
 | 3 | **preview** | the first thing it has, in whole rows | rows × 15 px |
 | 4 | **full** | path, what it extends, description, every fact, its face, where it is used or what it holds | hover card, tray |
 
 - **a level shows whole or not at all.** A form that cannot fit the next level stays at the one below
-- **the facts strip has one order**: what it counts (uses, places, subtypes, or blocks, lines, interfaces), attributes, seats in then out, tags
+- **the facts strip has one order**: what it counts (uses, places, subtypes, or blocks and lines), attributes, tags. **Never ports** (2026-10-31): a card draws them as seats, the components tab lists them; anywhere else they were clutter
 - **tags are solid dots** in their tag's colour, named beside the dot where there is room (`● critical`). The legend says what each colour means, in a tags section of its own after the blocks
 - each form says what its level 3 holds: a chip what it gathers, a card its face, a line its ends
 

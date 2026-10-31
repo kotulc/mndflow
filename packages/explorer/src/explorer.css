@@ -175,6 +175,13 @@
   content: "";
   background: var(--card-edge);
 }
+/* **A relation definition's row wears its wire swatch** for its icon: a short stroke in its
+   colour and dash, as wide as an icon. */
+.explorer .tree .mark > .swatch {
+  width: 14px;
+  height: 0;
+  border-top: 2px var(--card-border-style, solid) var(--card-edge, var(--muted));
+}
 /* A quiet count at the right: a definition's uses, a diagram's blocks. */
 .explorer .tree .count {
   flex: none;

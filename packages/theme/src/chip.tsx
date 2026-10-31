@@ -20,7 +20,9 @@ export type ChipTile = { id: string; label: string; x: number; y: number; w: num
                          /** The tile it is nested in, and whether it holds tiles of its own. */
                          in?: string; holds?: boolean;
                          /** What it says under its name as it grows: a facts line, then rows. */
-                         facts?: string; rows?: readonly string[] };
+                         facts?: string; rows?: readonly string[];
+                         /** A *+n more* tile's uses, which its hover card lists. */
+                         folded?: readonly string[] };
 
 /** What a chip draws. */
 export type ChipData = {
@@ -38,7 +40,7 @@ export type ChipFaceProps = { data: ChipData; w: number; h: number; level: numbe
                               /** Screen pixels per layout unit, as a step of `chip_steps`; unsaid,
                                *  the chip is drawn at its laid size. */
                               scale?: number;
-                              /** Tiles lit, as the tray's picture lights the element in its room. */
+                              /** Tiles picked, or lit as the element in its room: one look. */
                               lit?: readonly string[] };
 
 /** **A chip, drawn anywhere**: on the map as a node, and in the tray as its picture. */
@@ -86,7 +88,7 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
             const plain = !t.as && !t.mark;
             const heads = t.as === "head" && !!t.label;
             const named = ((!t.as || t.as === "group") && t.mark !== "start" && t.mark !== "end")
-              || heads;
+              || heads || t.as === "more";
             /** What stands for a block is picked as it: a click on it picks its block. */
             const block = !t.as || t.as === "group" || t.as === "band" || heads;
             const [w, h] = [t.w * body.w, t.h * body.h];
@@ -98,6 +100,7 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
             const icon = plain && cap >= 5;
             return (
               <span key={t.id} {...(block ? { "data-tile": t.id } : {})}
+                    {...(t.folded ? { "data-folded": JSON.stringify(t.folded) } : {})}
                     {...(t.tint?.["data-family"] ? { "data-family": t.tint["data-family"] } : {})}
                     className={["mnd-chip-tile", t.as ?? "", plain ? "card" : "",
                                 icon ? "iconed" : "", icon && !shown ? "bare" : "",
@@ -105,7 +108,7 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
                                 t.as === "head" && h > w ? "tall" : "",
                                 heads ? "labeled" : "",
                                 t.mark ? `mark ${t.mark}` : "",
-                                lit.includes(t.id) ? "lit" : "",
+                                lit.includes(t.id) ? "picked" : "",
                                 t.holds ? "holds" : "", t.in ? "nested" : "",
                                 t.texture ?? ""].filter(Boolean).join(" ")}
                     style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`,
@@ -131,6 +134,26 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
       {!data.tiles?.length && (data.preview || data.bar) && !narrow ? (
         <Profile preview={data.preview} bar={data.bar} room={body.h} />
       ) : null}
+    </div>
+  );
+}
+
+/** **A map's box**, drawn anywhere: on the map as a node and in the tray as a box's picture — a
+ *  hairline rim, its title over what it holds: its kind's icon, its name, then quieter its counts.
+ *  A group's is a panel over its members, rimless. */
+export function BoxFace({ label, role, counts, panel = false, picked = false }: {
+  label: string; role?: string; counts?: readonly { n: number; word: string }[];
+  panel?: boolean; picked?: boolean }) {
+  return (
+    <div className={["mnd-box", panel ? "panel" : "", picked ? "picked" : ""]
+      .filter(Boolean).join(" ")}>
+      <span className="mnd-box-title">
+        {role ? <Icon name={role_icon(role)} size={11} /> : null}
+        <span className="mnd-box-name">{label}</span>
+        {counts?.length ? (
+          <span className="mnd-box-counts">{counts.map((f) => `${f.n} ${f.word}`).join(" · ")}</span>
+        ) : null}
+      </span>
     </div>
   );
 }

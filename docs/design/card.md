@@ -49,7 +49,7 @@
 - **a large face is never shorter than a head and two rows**, so blank and full faces line up
 - **every face carries the facts strip** at level 2, as a chip does: one order, everywhere
 - **seats hide when too small to read**; a line still meets the wall where its seat sits
-- **a seat is one shape**: a square whose chevron points into the card for in and out of it for out. Off the card, an in mark leads its name and an out mark follows it
+- **a seat is one shape**: a square whose chevron points into the card for in and out of it for out. Off the card, in a list, an in mark leads its name and an out mark follows it; never in a facts strip
 
 
 ## Information by level

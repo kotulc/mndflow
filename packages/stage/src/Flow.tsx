@@ -11,6 +11,7 @@ import { box_of, extent, nearest_seat, routes_of, taken_on, DRAWN_BY, FRAME, UNI
          type BoxNode } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
+import { PickedContext, picked_by } from "./picked";
 import { EDGE_TYPES, Heads, RunsContext } from "./Wire";
 import type { Adjust, FlowViewProps, Gesture, Landing } from "./gestures";
 import { BAND, MIN_ZOOM } from "./arrays";
@@ -179,7 +180,11 @@ function Canvas(props: FlowViewProps) {
   const runs = useMemo(() => routes_of({ ...scene, nodes, ...(frame ? { frame } : {}) }),
                        [scene, nodes, frame]);
 
+  /** What lights as picked: the host's pick, read by every node and line. */
+  const lit = useMemo(() => picked_by(picked, props.stands_for), [picked, props.stands_for]);
+
   return (
+    <PickedContext.Provider value={lit}>
     <FlightContext.Provider value={flying}>
     <RunsContext.Provider value={runs}>
     <ReactFlow
@@ -334,6 +339,7 @@ function Canvas(props: FlowViewProps) {
     </ReactFlow>
     </RunsContext.Provider>
     </FlightContext.Provider>
+    </PickedContext.Provider>
   );
 }
 

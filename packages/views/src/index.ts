@@ -20,7 +20,7 @@ export { place, set_elk, type Placement } from "./flow";
 export { box_label, box_place, filed_map, registry_map, usage_box, usage_groups, usage_layout,
          type LocatedUse, type Tile as MapTile } from "./library";
 export { area_of, area_under, library_map, map_focus, model_map, section_map, stop_area,
-         towards, chip_for, chip_map } from "./map";
+         towards, box_for, chip_for, chip_map } from "./map";
 export { laid_ahead, layer_scene } from "./layer";
 
 export { BARE, PLAIN, entry_look, face_attrs, look_key, look_of, tint_attrs, type Tint, wire_of, wire_tint, type Align,

@@ -1,7 +1,7 @@
-/** **The usages tab, read first**: a definition's card and its chip of uses on the left; on the
- *  right its uses by place, a list each, then its subtypes. A record definition's uses are its
- *  records, read as a table under each place that holds them. Hovering a row lights it on the
- *  canvas; *view* goes to where it is drawn. */
+/** **The usages tab, read first**: a definition's card on the left; on the right its uses by
+ *  place, a list each, then its subtypes. A record definition's uses are its records, read as a
+ *  table under each place that holds them. Hovering a row lights it on the canvas; *view* goes to
+ *  where it is drawn. */
 
 import { attributes_of, holds_records, kind_word, shown_name, subtypes, type Graph,
          type Id } from "@mnd/core";
@@ -30,7 +30,7 @@ export function Usages({ graph, id, onHover, onView }: UsagesProps) {
   ) : null);
   return (
     <div className="reads">
-      <Lead graph={graph} id={id} chip />
+      <Lead graph={graph} id={id} />
       <div className="lists">
         {records ? (
           <Section name="records" about="Its uses are its records: what each answers, by place">

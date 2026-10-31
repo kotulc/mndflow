@@ -2,7 +2,7 @@
 
 /* ── The card, drawn by the face every surface draws with: large over small ── */
 
-.faces { display: flex; flex-direction: column; gap: 18px; padding: 14px 8px; }
+.faces { display: flex; flex-direction: column; gap: var(--stack, 8px); }
 
 /* The room a face takes in the column; the face is laid out at its own size and scaled into it. */
 .face-room { position: relative; width: 100%; }

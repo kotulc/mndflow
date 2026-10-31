@@ -4,8 +4,8 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { owner_of, shown_name, type Graph, type Id } from "@mnd/core";
-import { ChipFace } from "@mnd/theme";
-import { box_of, chip_for, chip_map, entry_look, kind_of, library_map, model_map, tint_attrs,
+import { BoxFace, ChipFace } from "@mnd/theme";
+import { box_for, box_of, chip_for, chip_map, entry_look, kind_of, library_map, model_map, tint_attrs,
          wire_of, wire_tint } from "@mnd/views";
 import { Faces } from "./Faces";
 
@@ -51,28 +51,27 @@ export function Empty({ children }: { children: ReactNode }) {
   return <p className="sec-empty">{children}</p>;
 }
 
-/** **The left column**, which stays put as tabs change: the card, then the chip where it is the
- *  list drawn. */
-export function Lead({ graph, id, chip = false, lit }: { graph: Graph; id: Id; chip?: boolean;
-                                                         lit?: string | null }) {
+/** **The left column**, which stays put as tabs change: the card, what a list beside it names
+ *  lit on it. */
+export function Lead({ graph, id, lit }: { graph: Graph; id: Id; lit?: string | null }) {
   return (
     <div className="lead">
-      <span className="lead-cap">card</span>
       {graph.edges[id] ? <LineCard graph={graph} id={id} />
         : <Faces graph={graph} id={id} one {...(lit ? { lit } : {})} />}
-      {chip ? <Chip graph={graph} id={id} /> : null}
     </div>
   );
 }
 
-/** **A chip off the map** (views `chip_for`): the element's own where it gathers anything, else
- *  its room's with it lit; fitted to the column, never past its own size. */
+/** **A chip off the map** (views `chip_for`), the overview's picture: the element's own where it
+ *  gathers anything, else its room's with it lit; a block the map draws as a box, its box's chips
+ *  (`box_for`). Scaled to fill its column, as the card does. */
 export function Chip({ graph, id }: { graph: Graph; id: Id }) {
   /** Only the map it comes from is laid out. */
   const which = chip_map(graph, id);
   const scene = useMemo(() => (which === "library" ? library_map : model_map)(graph),
                         [graph, which]);
   const found = chip_for(graph, id, scene);
+  const boxed = found ? null : box_for(id, scene);
   const held = useRef<HTMLDivElement>(null);
   const [room, set_room] = useState(0);
   /** Measured again whenever a chip comes to be drawn, since none may have been at first. */
@@ -82,10 +81,11 @@ export function Chip({ graph, id }: { graph: Graph; id: Id }) {
     const seen = new ResizeObserver(() => set_room(at.clientWidth));
     seen.observe(at);
     return () => seen.disconnect();
-  }, [!!found]);
+  }, [!!found || !!boxed]);
+  if (boxed) return <BoxPicture {...boxed} room={room} held={held} />;
   if (!found) return <p className="faint pic-none">the map draws no chip for it</p>;
   const { w, h } = box_of(found.chip);
-  const scale = room ? Math.min(1, room / w) : 1;
+  const scale = room ? room / w : 1;
   const own = found.chip.id === id;
   return (
     <div className="lead-chip" ref={held}>
@@ -96,6 +96,41 @@ export function Chip({ graph, id }: { graph: Graph; id: Id }) {
           <ChipFace data={{ ...found.chip.data,
                             ...(found.chip.data.look ? { tint: tint_attrs(found.chip.data.look) } : {}) }}
                     w={w} h={h} level={3} lit={found.lit} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** **A box's picture**: the box and what the map draws inside it, each where the map lays it,
+ *  scaled as one to the column. */
+function BoxPicture({ box, nodes, room, held }: NonNullable<ReturnType<typeof box_for>> & {
+  room: number; held: React.RefObject<HTMLDivElement> }) {
+  const at = box_of(box);
+  const scale = room ? room / at.w : 1;
+  return (
+    <div className="lead-chip" ref={held}>
+      <span className="lead-cap">its box</span>
+      <div className="chip-room" style={{ height: at.h * scale }}>
+        <div className="box-pic" style={{ width: at.w, height: at.h, transform: `scale(${scale})`,
+                                          transformOrigin: "top left" }}>
+          {[box, ...nodes].map((n) => {
+            const { x, y, w, h } = box_of(n);
+            const place = { left: x - at.x, top: y - at.y, width: w, height: h };
+            return (
+              <div key={n.id} style={{ position: "absolute", ...place }}>
+                {n.type === "chip" ? (
+                  <ChipFace data={{ ...n.data,
+                                    ...(n.data.look ? { tint: tint_attrs(n.data.look) } : {}) }}
+                            w={w} h={h} level={3} />
+                ) : (
+                  <BoxFace label={n.data.label} {...(n.data.role ? { role: n.data.role } : {})}
+                           {...(n.data.facts ? { counts: n.data.facts.counts } : {})}
+                           panel={n.data.marks.includes("group")} />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -21,7 +21,8 @@ import { colour_of, kind_of, preview_of, type Preview } from "./about";
 import { counted, fact, facts_of, total, type Counted, type Facts, type Groups } from "./facts";
 import { carried, trail_of } from "./derive";
 import { compounded, tree_groups } from "./flow";
-import { box_label, box_place, filed, name_of, registry_map, usage_groups } from "./library";
+import { box_label, box_place, filed, name_of, registry_map, usage_groups,
+         type LocatedUse, type Tile } from "./library";
 import { look_of, tint_attrs } from "./look";
 import { cell, type Area, type BoxNode, type InnerTile, type Scene } from "./scene";
 import { SHAPE } from "./size";
@@ -271,7 +272,7 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
     const facts = facts_of(graph, chip.block, !!chip.uses,
                            { ...(chip.groups ? { groups: chip.groups } : {}),
                              ...(chip.counts ? { counts: chip.counts } : {}) });
-    const any = facts.counts.length + facts.ports.length + facts.tags.length > 0;
+    const any = facts.counts.length + facts.tags.length > 0;
     const keep = (chip.held.length ? KEEP.structure : KEEP.preview)
       + (chip.diagram ? PAD.diagram : PAD.chip);
     const strip = !upright && any && box.h >= ROW.name + ROW.facts + keep;
@@ -299,13 +300,13 @@ function box_facts(graph: Graph, n: HierarchyNode<Leaf>, title: "library" | "mod
   const b = graph.blocks[id];
   if (!b) return null;
   const filed = b.parent === null || is_folder(graph, id);
-  if (!filed) return { ...facts_of(graph, id, false), ports: [], tags: [] };
+  if (!filed) return { ...facts_of(graph, id, false), tags: [] };
   const chips = n.leaves().flatMap((l) => (l.data.chip ? [l.data.chip] : []));
   const counts = title === "library" ? fact(chips.length, "definition")
     : [...fact(n.descendants().filter((d) => is_model(graph, d.data.id)).length, "model"),
        ...fact(chips.filter((c) => !is_model(graph, c.block)
          && !!lens_of(graph, c.block, "structure")).length, "diagram")];
-  return counts.length ? { counts, ports: [], tags: [] } : null;
+  return counts.length ? { counts, tags: [] } : null;
 }
 
 /** What a block holds on the map: its blocks, holders and a flow's marks, never a note, a label,
@@ -343,26 +344,24 @@ type Head = { w: number; h: number };
 
 /** **A definition's chip previews its uses by place** as its registry lays them — the tray's
  *  small map of them, as shares of the chip's body beside its head: a box per place, in its
- *  colour, each use a small card. Where too few of its uses would read by name, **its profile**
- *  instead: what it declares, over a bar of its uses split by place. */
+ *  colour, each use a small card; those that would not show folded into one last tile along its
+ *  foot, *+12 more* (`fitted`). Where none shows, **its profile** instead: what it declares, over
+ *  a bar of its uses split by place. */
 function previewed(graph: Graph, chip: NonNullable<Leaf["chip"]>, box: { w: number; h: number },
                    head: Head): Pick<BoxNode["data"], "tiles" | "preview" | "bar"> {
   const { w, h } = body_of(box, head, PAD.chip);
   if (h < 12 || w < 12) return {};
   const def = chip.block;
   const groups = chip.groups ?? [];
-  const laid = registry_map(graph, def, w, h, groups);
-  /** **Its uses, wherever it has any**: each tile shows what its own size on screen holds — its
-   *  mark, then its name — so no share of them need read for the rest to draw. Only a definition
-   *  used nowhere shows its profile. */
-  if (!laid.some((t) => t.kind !== "box")) {
+  const { laid, folded } = fitted(graph, def, w, h, groups);
+  if (!laid.length) {
     const placed = groups.map((g) => ({ id: g.place, label: box_label(graph, g.place),
                                         n: g.uses.length,
                                         tint: tint_attrs(colour_of(graph, g.place)) }));
     const bar = placed.map(({ n, tint }) => ({ n, tint }));
     return { ...profiled(chip.preview, box, head, placed), ...(bar.length ? { bar } : {}) };
   }
-  return { tiles: laid.map((t): InnerTile => {
+  const tiles = laid.map((t): InnerTile => {
     const at = { id: t.id, label: t.label, x: t.x / w, y: t.y / h, w: t.w / w, h: t.h / h };
     const place = t.kind === "box" ? box_place(def, t.id) : null;
     if (place) return { ...at, as: "group", tint: tint_attrs(colour_of(graph, place)) };
@@ -372,8 +371,43 @@ function previewed(graph: Graph, chip: NonNullable<Leaf["chip"]>, box: { w: numb
     const again = t.label === shown_name(graph, def) ? { label: "" } : {};
     return { ...at, ...again, ...(face.role ? { role: face.role } : {}),
              tint: tint_attrs(look_of(graph, t.id)) };
-  }) };
+  });
+  if (!folded.length) return { tiles };
+  const foot = { x: 0, y: (h - MORE) / h, w: 1, h: MORE / h };
+  return { tiles: [...tiles, { id: `${def}@+more`, label: `+${folded.length} more`, as: "more",
+                               ...foot, folded: folded.map((u) => u.id) }] };
 }
+
+/** **Legible or summarised**: a definition's uses laid in `w` by `h`, the smallest tile laid too
+ *  small for its mark folded away — a place's box with every use in it, a use alone — and the
+ *  rest laid again above a foot of one tile's line, until every tile left shows. One use alone is
+ *  never folded: it would take as much room as it frees. Nothing laid where none shows. */
+function fitted(graph: Graph, def: Id, w: number, h: number,
+                groups: ReturnType<typeof usage_groups>): { laid: Tile[]; folded: LocatedUse[] } {
+  let kept = groups;
+  const folded: LocatedUse[] = [];
+  const side = (t: Tile) => Math.min(t.w, t.h);
+  for (;;) {
+    const room = folded.length ? h - MORE - AIR.inner : h;
+    const laid = room >= MARKED && kept.length
+      ? registry_map(graph, def, w, room, kept, folded.length > 0) : [];
+    const small = laid.filter((t) => side(t) < MARKED).sort((a, b) => side(a) - side(b))[0];
+    if (!laid.length || (!small && folded.length !== 1)) return { laid, folded };
+    const id = small?.id ?? kept.flatMap((g) => g.uses)
+      .reduce((a, b) => (b.weight < a.weight ? b : a)).id;
+    const place = small?.kind === "box" ? box_place(def, id) : null;
+    const goes = (g: { place: Id }, u: LocatedUse) => u.id === id || g.place === place;
+    folded.push(...kept.flatMap((g) => g.uses.filter((u) => goes(g, u))));
+    kept = kept.map((g) => ({ ...g, uses: g.uses.filter((u) => !goes(g, u)) }))
+      .filter((g) => g.uses.length);
+  }
+}
+
+/** How small a use is laid before it is too small for even its mark (theme `chip.tsx`: its icon
+ *  wants five units and the air round it): smaller, it folds into *+n more*, a tile's line deep
+ *  along the body's foot (theme `chip.tsx` `NAMED`). */
+const MARKED = 9;
+const MORE = 12;
 
 /** **What a chip shows of a block with no structure to draw**: its preview, and a definition's
  *  places with how many uses each holds, where its body has a row's room. */
@@ -458,12 +492,10 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
   return { tiles: [...ends, ...nested(graph, paneled(graph, block, placed))].map(share) };
 }
 
-/** **What a tile says under its name**, as it grows on screen: its counts and seats in one quiet
- *  line, then its preview — its attributes or records a row each, else its body or description. */
+/** **What a tile says under its name**, as it grows on screen: its counts in one quiet line, then
+ *  its preview — its attributes or records a row each, else its body or description. */
 function said(graph: Graph, id: Id): Pick<InnerTile, "facts" | "rows"> {
-  const f = facts_of(graph, id, false);
-  const facts = [...f.counts.map((c) => `${c.n} ${c.word}`), ...f.ports.map((p) => p.name)]
-    .join(" · ");
+  const facts = facts_of(graph, id, false).counts.map((c) => `${c.n} ${c.word}`).join(" · ");
   const p = preview_of(graph, id);
   const rows = p?.rows?.map((r) => r.join("  ")) ?? p?.lines ?? [];
   return { ...(facts ? { facts } : {}), ...(rows.length ? { rows } : {}) };
@@ -808,6 +840,19 @@ function joined(graph: Graph, held: readonly Id[]): { from: Id; to: Id }[] {
     pairs.set(`${from}|${to}`, { from, to });
   }
   return [...pairs.values()];
+}
+
+/** **A box's picture is its box off the map**: the box and every box and chip inside it, each
+ *  where the map lays it. Null where the map draws no box for it. */
+export function box_for(id: Id, scene: Scene): { box: BoxNode; nodes: BoxNode[] } | null {
+  const box = scene.nodes.find((n) => n.id === id && n.type === "box");
+  if (!box) return null;
+  const up = new Map((scene.areas ?? []).map((a) => [a.id, a.parent]));
+  const inside = (at: Id) => {
+    for (let p = up.get(at); p; p = up.get(p)) if (p === id) return true;
+    return false;
+  };
+  return { box, nodes: scene.nodes.filter((n) => inside(n.id)) };
 }
 
 /** The map an element's picture comes from: the library's for a definition, else the models'. */

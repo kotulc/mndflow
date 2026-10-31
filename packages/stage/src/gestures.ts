@@ -43,6 +43,9 @@ export type Landing = { over: string | null; into: string | null;
 export type FlowViewProps = {
   scene: Scene;
   picked?: readonly Id[];
+  /** What an id drawn stands for, where it is not a block's own — a place's box — so it lights
+   *  with it. */
+  stands_for?: (id: Id) => Id | null;
   onGesture?: (g: Gesture) => void;
   /** A right drag from one card to another. */
   onRelate?: (from: string, to: string) => void;

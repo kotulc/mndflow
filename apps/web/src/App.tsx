@@ -8,7 +8,7 @@ import { all_defs, appearances_of, collect, diagram_kind, domain_of, drop_of, to
          seen_through, session, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
-import { area_of, box_of, clear_of, empty_of, holds, layer_scene, map_focus, project,
+import { area_of, boxed_place, box_of, clear_of, empty_of, holds, layer_scene, map_focus, project,
          section_map, set_aspect, set_card as apply_card, stop_area, BLOCK, CARD, EMPTY,
          laid_ahead, row_look, UNITS, type Area, type Scene } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
@@ -78,7 +78,8 @@ export function App({ storage, boot, opening }: {
   /** A pick on the canvas gives the context back to the canvas, and the sections follow it. A
    *  pick made on a map (`stay`) is already in sight: **picking never jumps**. */
   const pick = (given: Id[], stay = false) => {
-    const ids = given;
+    /** A place's box picks its place: what it stands for is what the tray is about. */
+    const ids = given.map((id) => boxed_place(s.graph(), id) ?? id);
     set_aim(null);
     /** One card picked on a whole section is brought into sight there: the canvas's own anchor. */
     if (ids.length === 1 && !stay && !is_layer_view(s.view().kind)) {
@@ -197,6 +198,22 @@ export function App({ storage, boot, opening }: {
       && lit_by(graph, s.picked(), s.route(), id, seen_through(graph, view.layer, id))),
   ])].filter((id) => drawn.has(id)), [graph, hovered, drawn, s.picked(), s.route()]);
 
+  /** The row a table in the tray lights, told by the tray. */
+  const [listed, set_listed] = useState<Id | null>(null);
+
+  /** **What lights as picked is what the tray is about**: the pick where it is drawn, else, on a
+   *  map, the block the tray falls back to — the area gone to — where the map draws it. One
+   *  subject, so the canvas never disagrees with the tray and the explorer. */
+  const subject = useMemo(() => {
+    const shown = s.picked().filter((id) => lit_by(graph, s.picked(), s.route(), id,
+                                                   seen_through(graph, view.layer, id)));
+    if (s.picked().length) return shown;
+    /** A list in the tray is about its lit row. */
+    if (listed && drawn.has(listed)) return [listed];
+    if (!mapped || system) return shown;
+    return view.layer && drawn.has(view.layer) ? [view.layer] : [];
+  }, [graph, drawn, s.picked(), s.route(), mapped, system, view.layer, listed]);
+
   /** **What the selection touches** elsewhere — its lines' far ends, its stand-ins — lit wherever
    *  drawn; nothing dims. */
   const touched = useMemo(() => [...new Set(s.picked().flatMap((id) => touches_of(graph, id)))]
@@ -232,10 +249,12 @@ export function App({ storage, boot, opening }: {
   };
 
   /** **Leaving**: the map takes over with the chip filling the view, and the camera flies out to
-   *  it. */
+   *  it. The chip left is picked, as a click on it would: what was picked inside it the map does
+   *  not draw, and the tray follows the pick. */
   const leave = () => {
     const area = map ? filling(area_of(s.graph(), map, s.view().layer)) : null;
     set_entry(null);
+    if (area && area.depth > 0) s.pick([area.id]);
     if (!area || still()) return;
     set_through(area);
     window.setTimeout(() => set_through(null), 30);
@@ -513,8 +532,7 @@ export function App({ storage, boot, opening }: {
               ...(cell ? { cell: `${land.cell!.r},${land.cell!.c}` } : {}) });
             if (made) s.go(made.act, made.args);
           }}
-          picked={s.picked().filter((id) => lit_by(graph, s.picked(), s.route(), id,
-                                                   seen_through(graph, view.layer, id)))}
+          picked={subject}
           cells={s.cells()}
           onPickCells={(cells) => {
             /** A click lets go of what the canvas cannot show. */
@@ -567,6 +585,7 @@ export function App({ storage, boot, opening }: {
           /** **One object**: a plain stand-in picked is its block, described and edited as one. */
           picked={s.picked().map((id) => (graph.blocks[id]?.settings ? id : object_of(graph, id)))}
           onHover={set_hovered}
+          onLit={set_listed}
           hold={hold}
           onHold={t.onHold}
           onView={(_home, id) => { s.go("reveal", { id }); t.release(); }}

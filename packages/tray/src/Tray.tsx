@@ -46,6 +46,9 @@ export type TrayProps = {
   picked: readonly Id[];
   /** Hovering a row lights that thing on the stage. */
   onHover?: (id: Id | null) => void;
+  /** **What a table lights**, told so the canvas lights it too: what the tray is about, when it
+   *  shows a list rather than one element. */
+  onLit?: (id: Id | null) => void;
   /** Edits leave as action names. */
   onAct?: Act;
   /** Which tab to show — one of the tray's, or a host's own; left alone, the last that applies. */
@@ -171,7 +174,7 @@ function what_of(graph: Graph, id: Id): string {
 }
 
 export function Tray(props: TrayProps) {
-  const { graph, layer, open, onOpen, picked, onHover, onAct, onView,
+  const { graph, layer, open, onOpen, picked, onHover, onLit, onAct, onView,
           hold = null, onHold = () => {}, extras = [] } = props;
   /** Whether anything here takes input. */
   const edits = !!onAct;
@@ -190,6 +193,8 @@ export function Tray(props: TrayProps) {
   /** The row lit in a table, which is the tray's own and moves nothing. Lit nowhere, a table
    *  lights what the canvas holds, since that is what the tray is about. */
   const [lit, set_lit] = useState<Id | null>(null);
+  /** The definitions table's lit row, its own. */
+  const [def_lit, set_def_lit] = useState<Id | null>(null);
   /** What the tray is about: a hold, else the one thing picked, else the open layer. */
   /** Which library section the explorer pointed at, which is about no one element. */
   const library = hold?.of === "defs" ? hold : null;
@@ -340,6 +345,10 @@ export function Tray(props: TrayProps) {
   const filed = ELEMENTS.includes(context) ? held_def : null;
   /** What the body draws: the json, while the chip is on, else the tab. */
   const shows = raw && filed ? "json" : tab;
+  /** The lit row of the table shown, told to the host: a pick in a list, the tray's own. */
+  const told = shows === "definitions" ? def_lit
+    : shows === "contents" || shows === "entries" ? lit : null;
+  useEffect(() => onLit?.(told), [told]);
 
   return (
     <TrayFrame
@@ -431,7 +440,7 @@ export function Tray(props: TrayProps) {
           {/* The workspace's definitions for a library section; what one element may follow. */}
           {shows === "definitions" ? (
             <Definitions key={JSON.stringify(narrowed)} seed={narrowed} graph={graph}
-                         follows={null} lines={[]} onAct={reads}
+                         follows={null} lines={[]} onAct={reads} onLit={set_def_lit}
                          onOpen={(id) => onHold({ of: "id", id })} />
           ) : null}
           {/* A registry's entries, and where each is used. */}

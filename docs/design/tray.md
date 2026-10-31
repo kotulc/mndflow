@@ -41,7 +41,9 @@
 - **a section's name** is set in the body's ink, semibold, with an **i** beside it whose tip says what the section is. It carries no count
 - **every list opens on a band**: a label flush left, its count at the right, over a rule. Attributes band by where they are declared, ports by in and out, tags by family, behaviours as *own* or by where they come from, uses by place
 - **one row, on shared columns**: mark, name, quiet kind, what it says at the right. A rule under every row. Columns line up across a section
-- **hovering a row lights what it names on the card**: a face row, a seat, a behaviour, a tile in a chip
+- **hovering a row lights what it names on the card**: a face row, a seat, a behaviour
+- **the chip is the overview's alone**, filling its column as the card does; other tabs show the card only (what goes under it is open)
+- **one spacing for every tab** (2026-10-31): the same air round a tab, between its columns and between what stacks in one; **the card column is one width on every tab**, the card filling it, no caption over it
 - **an element carrying nothing** shows its card at its least height, saying so, and one section on the right that says so in a sentence and where its members would come from
 
 

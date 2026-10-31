@@ -1,6 +1,6 @@
 /** The working area: turns canvas gestures into action names. */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
 import { dir_of } from "@mnd/core";
 
@@ -11,7 +11,7 @@ import { Legend, type Corner } from "./Legend";
 import { moves_of, type Move } from "./moves";
 import { cell_key } from "./nodes";
 import { Icon } from "@mnd/theme";
-import { area_under, box_of, clear_of, holds, swept_cells, towards, BLOCK, CELL,
+import { area_under, boxed_place, box_of, clear_of, holds, swept_cells, towards, BLOCK, CELL,
          type Scene } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
 import { Hover } from "./Hover";
@@ -211,6 +211,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   useEffect(() => set_typing(null), [scene.layer]);
   /** The stage itself, which a map's hover card watches. */
   const host = useRef<HTMLElement>(null);
+  /** A place's box among a definition's uses lights with its place. */
+  const stands_for = useCallback((id: string) => boxed_place(graph, id), [graph]);
   const [at, set_at] = useState<
     { x: number; y: number; on: string | null; spot: { x: number; y: number };
       only?: readonly (string | Entry)[]; given?: Record<string, unknown> } | null>(null);
@@ -403,13 +405,13 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       {empty ? <p className="empty">{empty}</p> : null}
       {/* **A map lights only what is picked**: a chip, a box or a tile. A layer also lights what
           is hovered, other appearances and what the selection touches. */}
-      {scene.areas ? <style>{tile_rules(picked)}</style> : null}
       {!scene.areas && lit.length ? <style>{lit_rules(lit)}</style> : null}
       {!scene.areas && touched.length
         ? <style>{lit_rules(touched, "var(--s-secondary-edge)")}</style> : null}
       <FlowView
         scene={scene}
         picked={picked}
+        stands_for={stands_for}
         cells={cells}
         onPickCells={onPickCells}
         lattice={lattice}
@@ -496,14 +498,6 @@ function free_cell(taken: ReadonlySet<string>, rows: number, cols: number,
 function made_at(scene: Scene, at: { x: number; y: number }) {
   const taken = scene.nodes.filter((n) => !holds(n) && !n.data.on).map(box_of);
   return clear_of(taken, { x: at.x - BLOCK.w / 2, y: at.y - BLOCK.h / 2 }, BLOCK);
-}
-
-/** A picked tile's look on a map, as a style rule, as `lit_rules`. */
-function tile_rules(ids: readonly string[]): string {
-  if (!ids.length) return "";
-  const at = ids.map((id) => `.mnd-chip-tile[data-tile="${CSS.escape(id)}"]`).join(",");
-  return `${at} { box-shadow: inset 0 0 0 calc(2px / var(--zoom, 1)) var(--accent);
-                  background: color-mix(in oklch, var(--accent) 14%, var(--surface)); }`;
 }
 
 /** The hover look, as a style rule so lighting never rebuilds the arrays. */

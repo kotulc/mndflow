@@ -55,7 +55,6 @@ export function Overview({ graph, id, onAct, lists }: OverviewProps) {
   return (
     <div className="ov">
       <div className="ov-card">
-        <span className="lead-cap">card</span>
         <Faces graph={graph} id={id} one />
       </div>
       <div className="ov-pic">

@@ -37,6 +37,9 @@
 }
 
 .contents-table td.kind, .contents-table td.type { color: var(--muted); }
+/* A table runs the tray's width, its first and last columns on the tab's air. */
+.contents-table :is(th, td):first-child { padding-left: var(--pad); }
+.contents-table :is(th, td):last-child { padding-right: var(--pad); }
 .contents-table td.what { color: var(--muted); }
 
 /* The row that answers a different question than the rest: set above them and ruled off.
@@ -112,7 +115,7 @@
   cursor: pointer;
 }
 
-.tray-body > .empty { color: var(--muted); padding: 12px; margin: 0; }
+.tray-body > .empty { color: var(--muted); padding: var(--pad); margin: 0; }
 
 /* ── The element and style tabs: the drawing left, its rows right ── */
 
@@ -124,10 +127,10 @@ fieldset.fields { padding: 0; }
 
 .panel {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: var(--lead) minmax(0, 1fr);
   grid-template-areas: "drawing rows" "body body";
-  gap: 10px 14px;
-  padding: 8px 10px 10px;
+  gap: var(--gap);
+  padding: var(--pad);
   align-items: start;
 }
 
@@ -144,24 +147,29 @@ fieldset.fields { padding: 0; }
 /* The drawing fills its column; the run scales with it. */
 .drawing .preview-wire { width: 100%; }
 .drawing .preview-run { width: 100%; height: auto; }
-/* The card and settings tabs: the drawing and its keys in a third, the lit key's choices in the rest. */
-/* The first tab, a card's or a line's: its source on the left, the lit key's choices right. */
-.panel.element { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); grid-template-areas: "source choices"; }
-.panel.element > .col.source { grid-area: source; gap: 6px; }
+/* The card and settings tabs: the drawing and its keys in the card column, the lit key's choices
+   in the rest. */
+.panel.element { grid-template-areas: "source choices"; }
+.panel.element > .col.source { grid-area: source; gap: var(--stack); }
 .panel.element > .col.choices { grid-area: choices; }
-/* The tray lays its tabs out by its own width, not the window's. */
-.tray-body { container-type: inline-size; }
-/* Half and half where a third would cramp the keys: a portrait screen, or a tray beside wide rails. */
-@container (max-width: 720px) {
-  .panel.element { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+
+/* **One spacing for every tab**: the tray lays its tabs out by its own width, not the window's,
+   and every tab takes its room from here — the air round it (`--pad`), between its columns
+   (`--gap`), between what stacks in a column (`--stack`), and **the card column** (`--lead`), the
+   same width on every tab that has one. One column under 560 px. */
+.tray-body {
+  container-type: inline-size;
+  --pad: 12px;
+  --gap: 16px;
+  --stack: 8px;
 }
-/* Narrower still, the choices follow the keys, under them. */
-@container (max-width: 460px) {
+.panel, .reads, .ov { --lead: clamp(220px, 26cqi, 320px); }
+@container (max-width: 559px) {
   .panel.element { grid-template-columns: minmax(0, 1fr); grid-template-areas: "source" "choices"; }
 }
 
 /* The json tab: a definition's record, read only. */
-.json { padding: 8px 10px 10px; }
+.json { padding: var(--pad); }
 .card-record pre {
   margin: 0;
   padding: 6px 8px;
@@ -267,7 +275,7 @@ fieldset.fields { padding: 0; }
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 4px 8px;
+  padding: var(--stack) var(--pad);
   border-bottom: 1px solid var(--divider);
   flex-wrap: wrap;
 }
@@ -552,29 +560,25 @@ fieldset.fields { padding: 0; }
 .reads {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 14px 18px;
+  gap: var(--gap);
   align-items: start;
-  padding: 12px 12px 16px;
+  padding: var(--pad);
 }
 @container (min-width: 560px) {
-  .reads { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr); }
-  .reads > .lists { padding-left: 16px; border-left: 1px solid var(--divider); }
+  .reads { grid-template-columns: var(--lead) minmax(0, 1fr); }
+  .reads > .lists { padding-left: var(--gap); border-left: 1px solid var(--divider); }
 }
 @container (min-width: 960px) {
-  .reads { grid-template-columns: minmax(0, 0.8fr) minmax(0, 2fr); }
   .reads > .lists { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-.lead { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.lead { display: grid; gap: var(--stack); align-content: start; min-width: 0; }
 .lead-cap { color: var(--faint); font-size: 10.5px; }
-.lead-chip { display: grid; gap: 4px; min-width: 0; }
+.lead-chip { display: grid; gap: calc(var(--stack) / 2); min-width: 0; }
 .chip-room { overflow: hidden; }
-.lead-chip .mnd-chip-tile.lit {
-  outline: 1px solid var(--accent);
-  background: color-mix(in oklch, var(--accent) 14%, var(--surface));
-}
+.box-pic { position: relative; }
 
-.lists { display: grid; gap: 16px 22px; align-content: start; min-width: 0; }
+.lists { display: grid; gap: var(--gap); align-content: start; min-width: 0; }
 
 /* **A section names itself**: semibold, the body's ink, an *i* for what it is; no count. */
 .sec { display: grid; gap: 6px; align-content: start; min-width: 0; }
@@ -651,32 +655,60 @@ fieldset.fields { padding: 0; }
 
 /* A row lit from beside the card lights on the card. */
 .faces .mnd-face-table tr.lit td { background: color-mix(in oklch, var(--accent) 14%, transparent); }
+/* **A card's seats**, half over its sides: the seat's square, its chevron pointing into the card
+   for in and out of it for out; both ways a plain square. Lit, the accent and a soft ring. */
+.faces .seat {
+  position: absolute;
+  top: var(--y, 50%);
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.faces .seat::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: currentColor;
+  mask: var(--seat-mark) center / 100% 100% no-repeat;
+}
+.faces .seat.both::after { mask-image: var(--seat-box); }
+.faces .seat.in { left: -5px; }
+.faces .seat.out { right: -5px; }
+.faces .seat.lit {
+  color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 25%, transparent);
+}
 
 /* The card tab's edits: second, under its keys. */
-.card-edits { display: grid; gap: 6px; padding: 8px 12px 16px; }
+.card-edits { display: grid; gap: var(--stack); padding: 0 var(--pad) var(--pad); }
 .card-edits > .chip { justify-self: start; }
 
 /* ── **The overview**, one layout for every element: card, picture, answers. One column under
-   560 px; card and picture over each other beside the answers to 960; three columns past it. ── */
+   560 px; card and picture over each other in the card column to 960, the picture taking the
+   rows the answers leave, so nothing opens between them; three columns past it. ── */
 .ov {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas: "card" "pic" "answers";
-  gap: 14px 18px;
+  gap: var(--gap);
   align-items: start;
-  padding: 12px 12px 16px;
+  padding: var(--pad);
 }
 @container (min-width: 560px) {
-  .ov { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.3fr);
-        grid-template-areas: "card answers" "pic answers"; }
-  .ov > .ov-answers { padding-left: 16px; border-left: 1px solid var(--divider); }
+  .ov { grid-template-columns: var(--lead) minmax(0, 1fr);
+        grid-template-rows: auto 1fr;
+        grid-template-areas: "card answers" "pic answers"; row-gap: var(--stack); }
+  .ov > .ov-answers { padding-left: var(--gap); border-left: 1px solid var(--divider); }
 }
 @container (min-width: 960px) {
-  .ov { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1.4fr);
-        grid-template-areas: "card pic answers"; }
+  .ov { grid-template-columns: var(--lead) minmax(0, 1fr) minmax(0, 1.4fr);
+        grid-template-rows: auto; grid-template-areas: "card pic answers"; }
 }
-.ov-card { grid-area: card; display: grid; gap: 8px; align-content: start; min-width: 0; }
-.ov-pic { grid-area: pic; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.ov-card { grid-area: card; display: grid; gap: var(--stack); align-content: start; min-width: 0; }
+.ov-pic { grid-area: pic; display: grid; gap: var(--stack); align-content: start; min-width: 0; }
 .ov-answers { grid-area: answers; }
 .ov .opens { display: flex; gap: 6px; justify-content: flex-end; }
 .ov .make { display: flex; flex-wrap: wrap; gap: 4px; }

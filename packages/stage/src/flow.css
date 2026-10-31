@@ -159,31 +159,14 @@
 .mnd-seat.in[data-side="bottom"], .mnd-seat.out[data-side="top"] { --seat-turn: -90deg; }
 .mnd-seat[data-inward]:is(.in, .out)::after { transform: rotate(calc(var(--seat-turn, 0deg) + 180deg)); }
 
-/* Selection is the app speaking about your model, so it takes the accent and no definition may
-   claim it. */
-.mnd-card.picked, .mnd-seat.picked {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-}
 /* Held on the way to the pick, where a profile cuts: the accent's edge, never its fill. */
 .mnd-card.held { border-color: var(--accent); }
-.mnd-card.card-face.picked[data-family] {
-  background: color-mix(in oklch, var(--card-fill) 70%, var(--accent));
-}
-
-/* A definition is an outline (theme `face.css`). Picked, it keeps no ground to wash, so its
-   border and a glow say so. */
-.mnd-flow .mnd-card.card-face.definition.picked {
-  background: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 35%, transparent);
-}
 
 /* A diamond draws its own edge, so picked or outlined it lights that edge and never its box. */
 .mnd-flow .mnd-card.card-face[data-shape="diamond"]:is(.picked, .definition) {
-  background: none;
-  border-color: transparent;
-  box-shadow: none;
+  background: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 .mnd-flow .mnd-card.card-face[data-shape="diamond"].definition::before { background: var(--card-edge); }
 .mnd-flow .mnd-card.card-face[data-shape="diamond"].definition::after { background: var(--bg); }
@@ -222,7 +205,7 @@
   box-shadow: 3px 3px 0 -1px var(--bg), 3px 3px 0 0 var(--card-edge, var(--card-line));
 }
 .mnd-flow .mnd-card.card-face.container.picked {
-  box-shadow: 0 0 0 1px var(--accent), 3px 3px 0 -1px var(--bg), 3px 3px 0 0 var(--accent);
+  box-shadow: var(--pick-ring), 3px 3px 0 -1px var(--bg), 3px 3px 0 0 var(--accent) !important;
 }
 
 /* An interface, seated on a wall. */
@@ -388,7 +371,6 @@
   cursor: pointer;
 }
 .mnd-tile:hover { border-color: var(--accent); border-left-color: var(--card-edge, var(--accent)); }
-.mnd-tile.picked { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .mnd-tile-name { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .mnd-tile-count { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .mnd-tile-about { overflow: hidden; color: var(--muted); font-size: 11px; }
@@ -829,8 +811,6 @@
    ground. Nothing else lights on a map. */
 .mnd-chip:hover, .mnd-box:has(.mnd-box-title:hover) { --edge: var(--accent); }
 .mnd-chip:hover { background: color-mix(in oklch, var(--accent) 8%, var(--surface)); }
-.mnd-box.picked, .mnd-chip.picked { --edge: var(--accent); --edge-w: 2px; }
-.mnd-chip.picked { background: color-mix(in oklch, var(--accent) 12%, var(--surface)); }
 .mnd-box.picked .mnd-box-title, .mnd-chip.picked .mnd-chip-head { color: var(--accent); }
 
 /* Where the camera cut from the map to a layer, or back, the new drawing fades in. */
@@ -920,6 +900,13 @@
   height: 5px;
 }
 .mnd-chip-bar > i { flex-basis: 0; background: var(--card-edge, var(--card-line)); }
+/* **A *+n more* tile** holds what had no room: a quiet ground and its count in muted ink, never a
+   card. Its hover card lists what it holds. */
+.mnd-chip .mnd-chip-tile.more {
+  border-color: transparent;
+  background: color-mix(in oklch, var(--muted) 14%, transparent);
+  color: var(--muted);
+}
 /* A place's box among a definition's uses wears its place's colour, quietly. */
 .mnd-chip .mnd-chip-tile.group[data-family] {
   border-left: 2px solid color-mix(in oklch, var(--card-edge) 70%, transparent);
@@ -983,4 +970,29 @@
   border: 1px solid var(--line);
   border-radius: 2px;
   font-size: 10px;
+}
+
+
+/* ── **Picked: one look, everywhere** ── What the tray is about (stage `picked.ts`) wears it, on
+   whatever stands for it: a card, a chip, a tile in a chip, a registry's tile, a seat — an accent
+   ring two pixels on screen and an accent wash; a frame — a map's box — the ring and a fainter
+   wash. A tile's ring is drawn inside it, as tiles sit packed. **Picked is a state, and a state
+   wins over every look**: so these alone are `!important`, and no surface's own selector can
+   outrank them. Groups and regions wear the same in `groups.css`, a diamond on its own edge. */
+:root {
+  --pick-ring: 0 0 0 calc(2px / var(--zoom, 1)) var(--accent);
+  --pick-ground: color-mix(in oklch, var(--accent) 14%, var(--surface));
+}
+:is(.mnd-card.card-face, .mnd-chip, .mnd-tile, .mnd-seat).picked {
+  border-color: var(--accent) !important;
+  background: var(--pick-ground) !important;
+  box-shadow: var(--pick-ring) !important;
+}
+.mnd-chip-tile.picked {
+  background: var(--pick-ground) !important;
+  box-shadow: inset 0 0 0 calc(2px / var(--zoom, 1)) var(--accent) !important;
+}
+.mnd-box.picked {
+  background: color-mix(in oklch, var(--accent) 6%, transparent) !important;
+  box-shadow: var(--pick-ring) !important;
 }

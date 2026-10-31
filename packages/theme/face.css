@@ -379,18 +379,6 @@
   font-variant-numeric: tabular-nums;
 }
 .mnd-fact > b { color: var(--text); font-weight: 500; }
-/* A seat it wears, off the card: the seat's square, an in mark leading its name and an out mark
-   following it, each chevron pointing the way it carries. */
-.mnd-fact-port { display: inline-flex; gap: 3px; align-items: center; color: var(--muted); }
-.mnd-fact-port:is(.in, .both)::before, .mnd-fact-port.out::after {
-  flex: none;
-  width: 9px;
-  height: 9px;
-  content: "";
-  background: currentColor;
-  mask: var(--seat-mark) center / 100% 100% no-repeat;
-}
-.mnd-fact-port.both::before { mask-image: var(--seat-box); }
 /* A tag: a dot in its colour. */
 .mnd-fact-tag {
   flex: none;

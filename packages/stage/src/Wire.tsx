@@ -5,6 +5,7 @@ import { BaseEdge, EdgeLabelRenderer, useStore, type EdgeProps } from "@xyflow/r
 import { avoided_run, crossed, drawn, end_words, heads, line_level, middle_of, route, BARE,
          TEXT_BAND, UNIT, type LineEdge, type Wire as Look } from "@mnd/views";
 import { head_url, Heads, Name, useNaming } from "@mnd/theme";
+import { usePicked } from "./picked";
 
 /** How square a right-angled corner is. */
 const BEND = 6;
@@ -92,7 +93,8 @@ function length_of(run: readonly Pt[]): number {
  *  picked, it thickens and says its ends at any level. */
 export function Wire(props: EdgeProps<LineEdge>) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
-          label, data, style, selected } = props;
+          label, data, style } = props;
+  const selected = usePicked(id);
   const [hot, set_hot] = useState(false);
 
   /** A line with no name still has somewhere to type one. */
@@ -114,12 +116,17 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const fan = given || routed ? undefined : data?.fan;
   const path = drawn(run, BEND);
   const look = data?.wire ?? BARE;
+  /** **Its anchors**: a head where it has one, else a short bar where it meets the card; a tie
+   *  none. */
+  const anchor = (h: string) => (h === "none" && data?.module !== "tie" ? "bar" : h);
   const end = heads(data);
   const { attrs, style: tint } = paint(look);
 
-  /** The name and the handle, composed rather than folded together. */
+  /** The name and the handle, composed rather than folded together; then how many it stands for,
+   *  never a thicker stroke. */
   const middle = [label ? String(label) : "", data?.alias ?? ""]
     .filter(Boolean).join(" ");
+  const times = data?.times ? `×${data.times}` : "";
   /** Beside its longest leg: above it where it is level, right of it where it is upright. */
   const at = middle_of(run, fan);
   const beside = at.level || data?.level
@@ -128,20 +135,22 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const length = length_of(run);
   const level = useStore(useCallback((st) => {
     const k = st.transform[2];
-    return line_level(length, k, middle.length * GLYPH
+    return line_level(length, k, (middle.length + times.length) * GLYPH
       * Math.min(TEXT_BAND.high, Math.max(TEXT_BAND.low, k)));
-  }, [length, middle.length]));
+  }, [length, middle.length, times.length]));
   const loud = hot || !!selected;
   const named = level >= 2 || loud || naming.id === id;
   const ends = level >= 3 || loud;
 
   return (
     <>
-      <g className={loud ? "mnd-wire hot" : "mnd-wire"} {...attrs} style={tint}
+      <g className={["mnd-wire", loud ? "hot" : "", selected ? "picked" : ""]
+           .filter(Boolean).join(" ")} {...attrs} style={tint}
          onMouseEnter={() => set_hot(true)} onMouseLeave={() => set_hot(false)}>
         <BaseEdge id={id} path={path} style={style}
                   {...(level >= 1 || loud
-                    ? { markerStart: head_url(end.from), markerEnd: head_url(end.to) } : {})} />
+                    ? { markerStart: head_url(anchor(end.from)),
+                        markerEnd: head_url(anchor(end.to)) } : {})} />
         {/* A double line is two strokes, not a thicker one. */}
         {look.border_style === "double"
           ? <path className="mnd-wire-core" d={path} /> : null}
@@ -162,13 +171,15 @@ export function Wire(props: EdgeProps<LineEdge>) {
           </EdgeLabelRenderer>
         );
       })}
-      {(middle && named) || naming.id === id ? (
+      {((middle || times) && named) || naming.id === id ? (
         <EdgeLabelRenderer>
           {/* `nodrag` and `nopan`, so a press on a name does not pan. */}
-          <div className={`mnd-wire-name nodrag nopan${data?.away ? " mnd-out" : ""}`} data-edge={id} {...attrs}
+          <div className={`mnd-wire-name nodrag nopan${data?.away ? " mnd-out" : ""}${selected ? " picked" : ""}`}
+               data-edge={id} {...attrs}
                style={{ ...tint, transform: beside }}
                title={middle}>
             <Name id={id} className="mnd-wire-text card-name" text={middle} />
+            {times ? <span className="mnd-wire-times">{times}</span> : null}
           </div>
         </EdgeLabelRenderer>
       ) : null}

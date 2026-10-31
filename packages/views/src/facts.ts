@@ -1,9 +1,9 @@
-/** **A block's facts strip**: what it counts, the seats it wears and its tags, in one order on
- *  every form — chip, card, hover card and tray head. Worked out when asked, never stored. */
+/** **A block's facts strip**: what it counts and its tags, in one order on every form — chip,
+ *  card, hover card and tray head. Never its ports: a card draws them as seats, and the components
+ *  tab lists them. Worked out when asked, never stored. */
 
 import { attributes_of, children, definition_uses, is_header, is_holder, is_interface,
-         is_notation, ports_on, subtree, subtypes, tag_at, tags_stated, use_places, type Flow,
-         type Graph,
+         is_notation, subtree, subtypes, tag_at, tags_stated, use_places, type Graph,
          type Id } from "@mnd/core";
 import { listed } from "./face";
 import type { usage_groups } from "./library";
@@ -12,9 +12,8 @@ import { entry_look, tint_attrs, type Tint } from "./look";
 /** How many of something a block has, said in a word. */
 export type Fact = { n: number; word: string };
 
-/** **The facts strip**, in its one order: what it counts, the seats it wears, its tags. */
-export type Facts = { counts: Fact[]; ports: { name: string; flow: Flow }[];
-                      tags: { id: Id; label: string; tint: Tint }[] };
+/** **The facts strip**, in its one order: what it counts, then its tags. */
+export type Facts = { counts: Fact[]; tags: { id: Id; label: string; tint: Tint }[] };
 
 /** A definition's uses grouped by place, and what some blocks hold: worked out by a caller that
  *  has them already, so they are read once. */
@@ -24,8 +23,8 @@ export type Counted = ReturnType<typeof counted>;
 
 /** **A block's facts**, the same slots in the same order wherever it is shown. A definition in the
  *  library counts its uses, the places they are drawn and its subtypes; anything else what it
- *  holds — blocks, lines, interfaces — as the map counts it where it says so. Both then their
- *  attributes, the seats they wear and their tags. */
+ *  holds — blocks and lines — as the map counts it where it says so. Both then their attributes
+ *  and their tags. */
 export function facts_of(graph: Graph, id: Id, library: boolean,
                          known: { groups?: Groups; counts?: Counted } = {}): Facts {
   const b = graph.blocks[id];
@@ -40,16 +39,13 @@ export function facts_of(graph: Graph, id: Id, library: boolean,
     const n = known.counts ?? counted(graph, children(graph, id).map((c) => c.id));
     say(n.blocks, "block");
     say(n.lines, "line");
-    say(n.ports, "port");
   }
   say(b?.def ? attributes_of(graph, id).length : listed(graph, id).length, "attribute");
-  const ports = (b ? ports_on(graph, id) : [])
-    .map((p) => ({ name: p.name ?? "", flow: p.flow ?? "both" }));
   const tags = tags_stated(graph, id).ids.flatMap((t) => {
     const tag = tag_at(graph, t);
     return tag ? [{ id: t, label: tag.name, tint: tint_attrs(entry_look(graph, t)) }] : [];
   });
-  return { counts, ports, tags };
+  return { counts, tags };
 }
 
 /** What some blocks hold between them: blocks — not notes, labels, holders or a grid's headers,
@@ -74,7 +70,7 @@ export function fact(n: number, one: string): Fact[] {
 
 /** Whether a facts strip says anything. */
 export function any_fact(f: Facts): boolean {
-  return f.counts.length + f.ports.length + f.tags.length > 0;
+  return f.counts.length + f.tags.length > 0;
 }
 
 /** **The facts strip a card's face carries** at level 2, where it says anything: never on

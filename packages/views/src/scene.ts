@@ -143,6 +143,8 @@ export type LineData = {
   wire?: Wire;
   /** The handle, beside the name rather than inside it. */
   alias?: string;
+  /** How many lines between the same pair it stands for, the same type and name. */
+  times?: number;
   /** Where its cross leg sits, out from the end its lines fan from. */
   fan?: Fan;
   /** A run already drawn, in the scene's own coordinates. Routing is skipped. */
@@ -265,13 +267,15 @@ export type Area = {
 export type InnerTile = { id: Id; label: string; x: number; y: number; w: number; h: number;
                           role?: Role;
                           as?: "group" | "band" | "head" | "track" | "life" | "rule" | "flow"
-                            | "arrow";
+                            | "arrow" | "more";
                           odd?: boolean; down?: boolean; mark?: "start" | "end" | "decision";
                           texture?: "class" | "entity"; tint?: Tint;
                           /** The tile it is nested in, and whether it holds tiles of its own. */
                           in?: Id; holds?: boolean;
                           /** What it says under its name as it grows: a facts line, then rows. */
-                          facts?: string; rows?: readonly string[] };
+                          facts?: string; rows?: readonly string[];
+                          /** A *+n more* tile's uses, folded away for want of room. */
+                          folded?: readonly Id[] };
 
 export type Scene = {
   /** The layer this is a projection of. */

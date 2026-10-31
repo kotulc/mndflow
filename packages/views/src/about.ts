@@ -2,14 +2,16 @@
  *  its facts, the preview a map chip shows of it, and its hover card. One reading for the library
  *  and the models alike. Worked out when asked, never stored. */
 
-import { base_of, children, class_of, def_at, definition_uses, diagram_kind, is_base, is_folder,
+import { base_of, children, class_of, def_at, definition_uses, diagram_kind, domain_of, is_base,
+         is_folder,
          is_header, is_holder, is_interface, is_notation, line_layer, path, shown_name,
-         type Graph, type Id } from "@mnd/core";
+         use_place, type Graph, type Id } from "@mnd/core";
 import { carried } from "./derive";
 import { card_facts, counted, facts_of, type Facts } from "./facts";
 import { edge_of, face_table, face_text, head_words, listed, name_fit } from "./face";
 import { box_label, box_place, usage_groups } from "./library";
-import { entry_look, face_attrs, look_of, PLAIN, tint_attrs, type Look, type Tint } from "./look";
+import { entry_look, face_attrs, look_of, PLAIN, tint_attrs, wire_of, wire_tint, type Look,
+         type Tint } from "./look";
 import type { Ruled } from "./scene";
 import { fitted, size_of, type Face } from "./size";
 
@@ -172,14 +174,36 @@ function line_hover(graph: Graph, id: Id): Hovered {
   const at = line_layer(graph, id);
   const up = at ? path(graph, at).map((p) => p.name ?? shown_name(graph, p.id)) : [];
   const description = kind?.description;
-  return { path: up.join(" › "),
-           label: `${shown_name(graph, e.from)} → ${shown_name(graph, e.to)}`,
+  return { path: up.join(" › "), label: line_name(graph, id),
            kind: kind?.name ?? "line", ...(description ? { description } : {}),
-           facts: { counts: [], ports: [], tags: [] } };
+           facts: { counts: [], tags: [] } };
 }
 
-/** The place a usage box in a definition's chip stands for, where an id is one. */
-function boxed_place(graph: Graph, id: Id): Id | null {
+/** **A *+n more* tile's hover card**: the uses folded into it, by the place each is drawn. */
+export function folded_hover(graph: Graph, ids: readonly Id[]): Hovered {
+  const by = new Map<Id, string[]>();
+  for (const id of ids) {
+    const place = use_place(graph, id) ?? graph.root;
+    const name = graph.edges[id] ? line_name(graph, id) : shown_name(graph, id);
+    by.set(place, [...(by.get(place) ?? []), name]);
+  }
+  const used = [...by].map(([place, names]) => ({
+    id: place, label: box_label(graph, place), tint: tint_attrs(colour_of(graph, place)),
+    names: names.slice(0, PER_PLACE)
+      .concat(names.length > PER_PLACE ? [`+${names.length - PER_PLACE}`] : []) }));
+  return { path: "", label: `${ids.length} more`, kind: ids.length === 1 ? "use" : "uses",
+           facts: { counts: [], tags: [] }, used };
+}
+
+/** A line by its ends. */
+function line_name(graph: Graph, id: Id): string {
+  const e = graph.edges[id]!;
+  return `${shown_name(graph, e.from)} → ${shown_name(graph, e.to)}`;
+}
+
+/** **The place a usage box stands for**, where an id is one: a definition's chip, its registry,
+ *  and a pick of the box are all of the place. */
+export function boxed_place(graph: Graph, id: Id): Id | null {
   const at = id.indexOf("@");
   return at > 0 && graph.blocks[id.slice(0, at)] ? box_place(id.slice(0, at), id) : null;
 }
@@ -191,12 +215,19 @@ export function colour_of(graph: Graph, id: Id): Look {
 }
 
 /** **A tree row's colour edge and count**, for a host to hand its explorer: the block's map colour,
- *  and a definition's uses or a diagram's blocks. */
-export function row_look(graph: Graph, id: Id): { tint: Tint; count?: number } {
-  const count = graph.blocks[id]?.def ? definition_uses(graph, id).length
+ *  and a definition's uses or a diagram's blocks; a relation definition its wire swatch for its
+ *  icon, in its colour and dash. */
+export function row_look(graph: Graph, id: Id): { tint: Tint; count?: number; swatch?: Tint } {
+  const def = !!graph.blocks[id]?.def;
+  const count = def ? definition_uses(graph, id).length
     : class_of(graph, id) === "diagram" ? counted(graph, children(graph, id).map((c) => c.id)).blocks
     : 0;
-  return { tint: tint_attrs(colour_of(graph, id)), ...(count ? { count } : {}) };
+  const wire = def && domain_of(graph, id) === "relation" ? wire_of(graph, id) : null;
+  const swatch = wire ? { ...wire_tint(wire),
+                          ...(wire.border_style ? { "data-border-style": wire.border_style } : {}) }
+    : null;
+  return { tint: tint_attrs(colour_of(graph, id)), ...(count ? { count } : {}),
+           ...(swatch ? { swatch } : {}) };
 }
 
 

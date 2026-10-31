@@ -5,18 +5,14 @@
 
 ## Next session
 
-**Start here.** Built work from 2026-10-30 is committed (cb3cabc); the 2026-10-31 work (overlap pass, map depth, grid headers, explorer data contract, library uses) is **uncommitted**, checked by eye at 1024, 1440 and 1920 px, tests green.
+**Start here.** Committed through 55b8220. The second 2026-10-31 pass (*+n more*, `×n`, anchor bars, row swatches, seats and tile lighting, a box's picture) is **uncommitted**, checked by eye at 1024, 1440 and 1920 px, tests green.
 
 | # | Work | Notes |
 |---|---|---|
-| 1 | **commit** the 2026-10-31 work | suggested: *Fix overlap, nest map tiles, name grid headers, explorer takes row data* |
-| 2 | **+n more** (step 5) | tiles that do not fit whole fold into one last tile, *+12 more*, whose hover card lists them. Where use tiles fall under the mark floor (the line definition's 34 uses), fold rather than draw slivers |
-| 3 | **`has ×2` and the headless anchor bar** (step 6) | a count after a line's name for several lines between one pair; a short bar where an anchor has no head. Swatches in explorer rows (relation definitions) |
-| 4 | **hover lighting** (step 9) | a list row lights its seat on the card and its tile in a chip, not only table rows |
-| 5 | **a box's overview picture** | a block the map draws as a box (Shop) pictures its box's chips |
-| 6 | **the tray** | card and settings tabs (see *Open*), context tabs' banded lists, then retire `packages/tray/docs/tray.md` |
-| 7 | **card faces** pass | see *Open*; agree the look on the shop before building |
-| 8 | **docs** (step 10) | design.md migration; mark docs/design files settled as each step is agreed |
+| 1 | **agree, then commit** the second pass | suggested: *Fold uses into +n more, count paired lines, light seats and tiles* |
+| 2 | **the tray structure** | see *Decided* `tray structure`: one tab set, irrelevant tabs disabled; the left column = card, then the tab's filter rows; contents takes the same layout. Mock first, then card and settings tabs (see *Open*), context tabs, and retire `packages/tray/docs/tray.md` |
+| 3 | **card faces** pass | see *Open*; agree the look on the shop before building |
+| 4 | **docs** (step 10) | design.md migration; mark docs/design files settled as each step is agreed |
 
 - **check every visual change** at fit and two zooms in, on the map and in an entered diagram, at two window widths (*whole or none*)
 - the shop sample has no block below tile depth: add one that holds parts (via `scripts/showcase.mjs`) so map nesting can be seen
@@ -33,7 +29,7 @@
 | contents tab | drafted in tray.md, not mocked in the read-first style |
 | card and settings tabs | **open**, next after the build steps; for now the card tab also carries the attribute editor and *add port*, which left the components tab |
 | design.md rules → docs/design | **decided, not done**: design.md keeps the vision; its *Perspectives*, *Cards* and *Interfaces and lines* rules move into docs/design |
-| implementation | steps 1–9 built (cb3cabc); 2026-10-31 passes uncommitted; remaining work in *Next session* |
+| implementation | steps 1–9 built; the second 2026-10-31 pass uncommitted; remaining work in *Next session* |
 
 
 ## Mockups
@@ -79,6 +75,8 @@ The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p
 | **overview** | sections card → picture → why it matters → how it is used → where it lives → where it sits; picture = its own chip if it gathers anything, else its place, a box's its box's chips; lines listed, never a picture; own answers only; gaps as quiet filled rows, editor only |
 | **lists** | every section it has, at once; a section names itself (semibold, an i for what it is), no count; each list opens on a band, label flush left, count right; rows on shared columns with a rule under each; hovering a row lights it on the card; an empty element says so in one sentence |
 | **settings tab** | shows the card at each level side by side, and the chip (to revisit with the card tab) |
+| **tray structure** | 2026-10-31: **one tab set for every selection**, a tab that does not apply to the element disabled, never hidden (which tabs, and their order, to expand). **Every tab has one layout**: the card column on the left, the tab's list on the right. **Under the card, the tab's filters**: rows like the explorer's (local to the tab), each with its count, narrowing the list beside them — components its sections, usages its places then subtypes, contents its kinds and layer/workspace. They replace the contents table's filter bar; contents keeps its table on the right. An element with nothing to filter (usages with no uses) shows no rows. **Filters are single-select**, an *all* row first. **Contents' scope** (layer / workspace) is its own small group above the kind rows. **A line's card tab is `card`** (its *line* tab folds in), so tab names stay fixed. The chip stays the overview's alone |
+| **lighting** | 2026-10-31: **the canvas lights what the tray is about**: the pick, else a list's lit row (`onLit`), else on a map the area gone to. One truth read by every node, line and tile, never React Flow's `selected`; **one picked look** (accent ring and wash) on every surface; what stands for a block (a place's box) lights and picks as it |
 | **tray tabs** | a line has overview · settings · components (its line tab becomes settings); contents stays as is, its text moves to the overview's answers column, last; the json chip stays for now |
 
 
@@ -92,7 +90,9 @@ The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p
 | **design.md migration** | move *Perspectives*, *Cards*, *Interfaces and lines* and *Relation ends* rules into docs/design, then cut design.md to the vision; retire the old corner rule and the connections picture there |
 | **packages/tray/docs/tray.md** | still describes the editing tray (keys and choices, add rows, tables); fold into docs/design or retire once the card tab settles |
 | **drafts** | every docs/design file says *Draft, for agreement*; mark them settled once each built step is agreed on the samples |
-| **seen, not fixed** | a line routed along a frame's border with its name on it (the Orders diagram's *placed*); a swimlane's lane chips too short for upright names at 1920 px fit; a lone use (internal's *Shop*) loses its name to its box's heading line |
+| **seen, not fixed** | a line routed along a frame's border with its name on it (the Orders diagram's *placed*); a swimlane's lane chips too short for upright names at 1920 px fit; a lone use (internal's *Shop*) loses its name to its box's heading line; narrow upright chips in services' *relations* at 1920 px read two letters |
+| **`×n` unseen** | no sample has two lines with the same ends, type and name, so the count is built but never drawn; add a pair to the shop's class diagram via `scripts/showcase.mjs` to see it |
+| **the tray card's facts** | the hover card and tray card leave out the facts strip the canvas face carries (`face_props` sizes for it, draws none); the hover card says facts above the face, the tray head says them too. Decide with the card faces pass |
 
 
 ## Build
@@ -105,11 +105,11 @@ The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p
 | 2 | **card classes and role**: one derivation of part, diagram or document, and of definition or use | core `class_of`, `is_definition` | built |
 | 3 | **identity row and faces**: kind after the name, the corner gone, class cards, the definition outline and badge, facts strip on every face | views `face.ts`, theme `face.tsx`, stage `nodes.tsx` | built; facts whole or none (2026-10-31) |
 | 4 | **levels by zoom**: the ladder from on-screen size, the text band, hysteresis, fades, levels held in flight | views `level.ts`, stage `level.ts` | built; chips laid at their held size (2026-10-31) |
-| 5 | **map**: tiles as small cards climbing the ladder, *+n more*, box title counts, one gap | views `map.ts`, `library.ts`, theme `chip.tsx`, stage `flow.css` | built: tiles at any depth, tile text and rows, grid headers, definition uses by place (2026-10-31); **+n more not built** |
-| 6 | **lines**: swatch icons, anchors, names beside the stroke, counts, ends on hover, hover card | views, stage `Wire.tsx`, `Hover.tsx` | built but for **`has ×2`, the headless anchor bar, and swatches in explorer rows**; end words grow away from cards (2026-10-31) |
+| 5 | **map**: tiles as small cards climbing the ladder, *+n more*, box title counts, one gap | views `map.ts`, `library.ts`, theme `chip.tsx`, stage `flow.css` | built; *+n more* for a definition's uses (2026-10-31). A diagram chip's structure never folds |
+| 6 | **lines**: swatch icons, anchors, names beside the stroke, counts, ends on hover, hover card | views, stage `Wire.tsx`, `Hover.tsx` | built (2026-10-31) |
 | 7 | **explorer rows**: colour edge, counts | explorer `rowLook`, views `row_look` | built; as host data (2026-10-31) |
-| 8 | **tray head and overview** | tray `Tray.tsx`, `Overview.tsx`, `Picture.tsx` | built; **a box's picture as its box's chips not built** |
-| 9 | **components and usages** | tray `Carried.tsx`, `Usages.tsx`, `Table.tsx` | built; **hover lighting of seats and chip tiles not built** |
+| 8 | **tray head and overview** | tray `Tray.tsx`, `Overview.tsx`, `Picture.tsx` | built; a box's picture (2026-10-31) |
+| 9 | **components and usages** | tray `Carried.tsx`, `Usages.tsx`, `Table.tsx` | built; seats on the tray card, lit with tiles (2026-10-31) |
 | 10 | **docs**: mark built docs settled; migrate design.md; update code-homes.md | docs | code-homes.md current; **migration and settling not done** |
 | 11 | **tray: card and settings tabs, context tabs** | tray | **not started**; agree a mockup first |
 | 12 | **card faces pass** | theme `face.tsx`, views `face.ts` | **not started**; agree the look first |
