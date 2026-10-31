@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "npm run dev -w @mnd/web",
     "test": "vitest run",
+    "test:browser": "vitest run -c vitest.browser.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint:css": "node scripts/lint-css.mjs",
     "release:kit": "node scripts/release-kit.mjs",
@@ -28,6 +29,7 @@
     "@vitejs/plugin-react": "^4.3.3",
     "happy-dom": "^20.11.2",
     "json-schema-to-typescript": "^15.0.3",
+    "playwright": "^1.56.1",
     "rollup-plugin-dts": "^6.5.1",
     "tsup": "^8.5.1",
     "typescript": "^5.6.3",

@@ -65,6 +65,15 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
   const band = Math.max(0, (bodied ? head - TEXT.gap : (height ?? 0) - pad) - TEXT.top);
   const name = <span className="mnd-chip-name">{data.label}</span>;
   const kind = data.kind ? <span className="mnd-chip-kind">{data.kind}</span> : null;
+  /** A profile follows its text as drawn, not as laid at its held size, so its rule stays
+   *  under the facts as zoom shrinks them. */
+  const profiled = !data.tiles?.length && (!!data.preview || !!data.bar) && !narrow;
+  const text = data.upright ? null : (
+    <span className="mnd-chip-text">
+      {name}{kind}
+      {data.facts ? <><i className="mnd-chip-break" /><Facts facts={data.facts} /></> : null}
+    </span>
+  );
   return (
     <div className={["mnd-chip", data.diagram ? "diagram" : "",
                      narrow ? "narrow" : "", data.upright ? "upright" : "",
@@ -73,12 +82,13 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
          {...(tint ? { "data-family": tint["data-family"] } : {})}
          style={{ ...(tint?.style ?? {}), "--cap": `${Math.max(0, (width ?? 0) - 8)}px`,
                   "--head": `${head}px`, "--band": band } as CSSProperties}>
-      {data.upright ? <span className="mnd-chip-head">{name}{kind}</span> : (
-        <span className="mnd-chip-text">
-          {name}{kind}
-          {data.facts ? <><i className="mnd-chip-break" /><Facts facts={data.facts} /></> : null}
+      {data.upright ? <span className="mnd-chip-head">{name}{kind}</span> : null}
+      {profiled ? (
+        <span className="mnd-chip-stack" style={{ bottom: data.bar ? 4 + BAR : 4 }}>
+          {text}
+          <Profile preview={data.preview} room={body.h} bar={!!data.bar} />
         </span>
-      )}
+      ) : text}
       <Icon name={role_icon(data.role)} size={14} className="mnd-chip-icon" />
       {tiles.length ? (
         <span className="mnd-chip-body">
@@ -131,8 +141,13 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
           })}
         </span>
       ) : null}
-      {!data.tiles?.length && (data.preview || data.bar) && !narrow ? (
-        <Profile preview={data.preview} bar={data.bar} room={body.h} />
+      {profiled && data.bar ? (
+        <span className="mnd-chip-bar">
+          {data.bar.map((b, i) => (
+            <i key={i} data-family={b.tint["data-family"]}
+               style={{ ...(b.tint.style ?? {}), flexGrow: b.n } as CSSProperties} />
+          ))}
+        </span>
       ) : null}
     </div>
   );
@@ -159,9 +174,9 @@ export function BoxFace({ label, role, counts, panel = false, picked = false }: 
 }
 
 /** **A chip's profile**: as many whole rows as its body holds — its attributes or records, else
- *  its lines, a few where its places follow — then a definition's places, a row each, and under
- *  them, never over them, the bar of its uses by place. */
-function Profile({ preview, bar, room }: { preview: ChipData["preview"]; bar: ChipData["bar"];
+ *  its lines, a few where its places follow — then a definition's places, a row each; the bar of
+ *  its uses by place keeps room under them. */
+function Profile({ preview, bar, room }: { preview: ChipData["preview"]; bar: boolean;
                                           room: number }) {
   const fits = Math.max(0, Math.floor((room - (bar ? BAR : 0)) / LINE));
   const rows = (preview?.rows ?? []).slice(0, fits);
@@ -170,40 +185,30 @@ function Profile({ preview, bar, room }: { preview: ChipData["preview"]; bar: Ch
     ? Math.max(0, placed.length ? Math.min(LINES, fits - rows.length) : fits - rows.length) : 0;
   const places = placed.slice(0, Math.max(0, fits - rows.length - lines));
   return (
-    <>
-      <span className="mnd-chip-body mnd-chip-profile" style={{ bottom: bar ? 4 + BAR : 4 }}>
-        {rows.length ? (
-          <span className="mnd-chip-rows"
-                style={{ "--cols": rows[0]?.length ?? 1 } as CSSProperties}>
-            {rows.flatMap((row, r) => row.map((c, i) => (
-              <span key={`${r}.${i}`} className={i ? "" : "key"}>{c}</span>)))}
-          </span>
-        ) : null}
-        {lines ? (
-          <span className="mnd-chip-lines" style={{ WebkitLineClamp: lines }}>
-            {preview!.lines!.join("\n")}
-          </span>
-        ) : null}
-        {places.length ? (
-          <span className="mnd-chip-places">
-            {places.map((p) => (
-              <span key={p.id} data-family={p.tint["data-family"]}
-                    style={(p.tint.style ?? {}) as CSSProperties}>
-                <span>{p.label}</span><b>{p.n}</b>
-              </span>
-            ))}
-          </span>
-        ) : null}
-      </span>
-      {bar ? (
-        <span className="mnd-chip-bar">
-          {bar.map((b, i) => (
-            <i key={i} data-family={b.tint["data-family"]}
-               style={{ ...(b.tint.style ?? {}), flexGrow: b.n } as CSSProperties} />
+    <span className="mnd-chip-profile">
+      {rows.length ? (
+        <span className="mnd-chip-rows"
+              style={{ "--cols": rows[0]?.length ?? 1 } as CSSProperties}>
+          {rows.flatMap((row, r) => row.map((c, i) => (
+            <span key={`${r}.${i}`} className={i ? "" : "key"}>{c}</span>)))}
+        </span>
+      ) : null}
+      {lines ? (
+        <span className="mnd-chip-lines" style={{ WebkitLineClamp: lines }}>
+          {preview!.lines!.join("\n")}
+        </span>
+      ) : null}
+      {places.length ? (
+        <span className="mnd-chip-places">
+          {places.map((p) => (
+            <span key={p.id} data-family={p.tint["data-family"]}
+                  style={(p.tint.style ?? {}) as CSSProperties}>
+              <span>{p.label}</span><b>{p.n}</b>
+            </span>
           ))}
         </span>
       ) : null}
-    </>
+    </span>
   );
 }
 

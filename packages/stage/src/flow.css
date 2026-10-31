@@ -22,7 +22,8 @@
 /* ── **Levels by zoom**: mark → head → facts → preview, picked from the size on screen (views
    `level_at`). Rows add below, anchored to the top, and fade; nothing drawn moves. ── */
 .mnd-flow .mnd-card > :is(.mnd-head, .mnd-face-facts, .mnd-face-table, .mnd-face-body, .mnd-marks),
-.mnd-flow .mnd-chip > :is(.mnd-chip-head, .mnd-chip-text, .mnd-chip-body, .mnd-chip-profile),
+.mnd-flow .mnd-chip > :is(.mnd-chip-head, .mnd-chip-text, .mnd-chip-body),
+.mnd-flow .mnd-chip-stack > *,
 .mnd-flow .mnd-chip-text .mnd-facts > * {
   transition: opacity 120ms ease, visibility 120ms;
 }
@@ -34,9 +35,9 @@
 .mnd-flow .mnd-card[data-level="0"] > :is(.mnd-head, .mnd-marks),
 .mnd-flow .mnd-card:is([data-level="0"], [data-level="1"]) > .mnd-face-facts,
 .mnd-flow .mnd-card:not([data-level="3"]) > :is(.mnd-face-table, .mnd-face-body),
-.mnd-flow .mnd-chip[data-level="0"] > :is(.mnd-chip-head, .mnd-chip-text),
+.mnd-flow .mnd-chip[data-level="0"] :is(.mnd-chip-head, .mnd-chip-text),
 .mnd-flow .mnd-chip:is([data-level="0"], [data-level="1"]) .mnd-chip-text .mnd-facts > *,
-.mnd-flow .mnd-chip:not([data-level="3"]) > :is(.mnd-chip-body, .mnd-chip-profile) {
+.mnd-flow .mnd-chip:not([data-level="3"]) :is(.mnd-chip-body, .mnd-chip-profile) {
   opacity: 0;
   visibility: hidden;
 }
@@ -829,11 +830,32 @@
 
 /* ── A chip's profile: a preview of what a block has, over its uses by place ── */
 
-/* Its rows, lines and places fill the body from the top, as many whole ones as it holds
-   (`Profile`, nodes.tsx), each a line (`LINE`); the bar keeps the chip's bottom edge, under them. */
-.mnd-chip-profile {
+/* **Its text and profile share one column**, the profile right under the text as drawn: the head
+   is laid for text held at its largest, so zoomed in, where the text is smaller, the rule stays
+   under the facts rather than where the held text would end. */
+.mnd-chip-stack {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  left: 6px;
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+.mnd-chip-stack > .mnd-chip-text {
+  position: static;
+  flex: none;
+  height: auto;
+  max-height: round(down, calc(var(--band, 0) * 1px), var(--l));
+}
+/* Its rows, lines and places fill the rest from the top, as many whole ones as it holds
+   (`Profile`, chip.tsx), each a line (`LINE`); the bar keeps the chip's bottom edge, under them. */
+.mnd-chip-profile {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   padding: 0 2px;
 }

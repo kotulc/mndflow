@@ -5,17 +5,44 @@
 
 ## Next session
 
-**Start here.** Committed through 55b8220. The second 2026-10-31 pass (*+n more*, `×n`, anchor bars, row swatches, seats and tile lighting, a box's picture) is **uncommitted**, checked by eye at 1024, 1440 and 1920 px, tests green.
+**Start here.** Everything through 2026-10-31 is committed (1a07542): the map, lines, explorer rows, tray head, overview, components and usages are built; *+n more*, `×n`, anchor bars, row swatches, seats on the tray card, a box's picture, one tray spacing, ports out of every facts strip, and **one picked look from one truth** (*Decided*: `lighting`). Next is **the tray structure mockup**, then its build.
 
 | # | Work | Notes |
 |---|---|---|
-| 1 | **agree, then commit** the second pass | suggested: *Fold uses into +n more, count paired lines, light seats and tiles* |
-| 2 | **the tray structure** | see *Decided* `tray structure`: one tab set, irrelevant tabs disabled; the left column = card, then the tab's filter rows; contents takes the same layout. Mock first, then card and settings tabs (see *Open*), context tabs, and retire `packages/tray/docs/tray.md` |
-| 3 | **card faces** pass | see *Open*; agree the look on the shop before building |
+| 1 | **mockup: the tray structure** | below, *The tray structure mockup*. Agree it before building anything |
+| 2 | **build the tray structure** | from the agreed mockup: one tab set, filter rows under the card, contents on the shared layout. Then the card and settings tabs, the context tabs, and retire `packages/tray/docs/tray.md` |
+| 3 | **card faces** pass | see *Open*; agree the look on the shop first |
 | 4 | **docs** (step 10) | design.md migration; mark docs/design files settled as each step is agreed |
 
 - **check every visual change** at fit and two zooms in, on the map and in an entered diagram, at two window widths (*whole or none*)
-- the shop sample has no block below tile depth: add one that holds parts (via `scripts/showcase.mjs`) so map nesting can be seen
+- **check lighting by sweep, not by class**: click every surface kind on the models map, the library map, an entered definition and an entered diagram, and read the computed style for the accent: `npm run test:browser` (`test/browser/lighting.test.ts`, Playwright on installed Edge, about 4 minutes, kept out of `npm test`). A class on an element is not proof it shows
+- the shop sample has no block below tile depth, and no two lines with the same ends, type and name: add both via `scripts/showcase.mjs` so map nesting and `×n` can be seen
+
+
+### The tray structure mockup
+
+**What it settles**: one tray, the same on every selection — every tab laid out alike, card on the left with the tab's filters under it, its list on the right. Rules are in *Decided* (`tray structure`, `tray`); the mockup gives them values and settles the questions below.
+
+| Part | Do |
+|---|---|
+| **file** | `docs/design/mockups/tray-structure.html`, published as a private artifact and added to *Mockups*. Load the `artifact-design` skill first. Plain HTML, opens in a browser |
+| **start from** | `tray-lists.html` (v9): its CSS, bands, rows, shared columns and hover lighting are agreed. Take values from the built tray: `tray.css` `.tray-body` (`--pad` 12, `--gap` 16, `--stack` 8, `--lead` `clamp(220px, 26cqi, 320px)`), breakpoints 560 / 960, the explorer's rows (`explorer.css`: mark, name, count right and quiet, colour edge) |
+| **elements** | from the shop: a use (*Storefront*, service), a definition with uses (*block*), a record definition (*Customer*), a diagram (*Checkout saga*), a line (*Gateway → Storefront*), an element with nothing to list (a definition with no uses) |
+| **tab set** | one bar for all: overview · card · settings · components · usages · contents. Show a matrix of which tab each element enables; a disabled tab is drawn, never hidden. A line's *line* tab is gone into *card* |
+| **layout per tab** | the card column (card at its width, nothing captioned over it), then the filter groups under it; the tab's list on the right. **Overview** stays card → chip → answers. **Card and settings** keep their key list under the card: show whether it is the same component as the filter rows |
+| **filter rows** | explorer rows local to the tab: a mark, a name, a count right; **single-select**, an *all* row first; the chosen row in the accent wash, as a picked explorer row. Groups by tab: **components** its sections (attributes, ports, behaviours, tags, constraints); **usages** its places, then a *subtypes* group; **contents** a *scope* group (layer, workspace) above a *kinds* group (blocks, interfaces, relations, groups, notes), replacing the table's filter bar. **None** where there is nothing to filter |
+| **right column** | the list the filter narrows: components' banded sections, usages' lists by place (records as tables), contents' table kept whole. Show *all* and one row chosen side by side |
+| **widths** | the tray at about 1200 px (two columns, contents' table wide), at 760 (two columns, narrow list), at 520 (one column) |
+
+**Questions the mockup answers** (bring options, recommend one):
+1. **the disabled tab**: faint and inert, or faint with a tip saying why
+2. **filters below 560 px**: the rows over the list, or folded to a row of chips
+3. **a filter kept per tab**, or reset as the element changes
+4. **hovering a filter row**: lights its members on the canvas and on the card, as list rows do, or nothing
+5. **counts** that agree with the tray head's facts strip, and where they would say the same thing twice
+6. **the json chip** and the contents tab's *text* band: where they sit in the shared layout
+
+**Then build**, in order: the tab set and the disabled state (tray `Tray.tsx` `TABS`, contexts); a shared filter-rows component in `Lists.tsx` beside `List`; components, usages, contents onto it (`Carried.tsx`, `Usages.tsx`, the contents `Table`); the line's tabs folded. Each checked by eye on the shop at two widths.
 
 
 ## Status
@@ -26,10 +53,11 @@
 | language, chip, box, card, line, diagram, hover, row | **drafted and agreed**, in docs/design; chip.md updated 2026-10-31 (depth, headers, names cut short, rows vs texture) |
 | overview tab | **agreed**: overview.md, mockup *overview-forms* |
 | components and usages tabs | **agreed**: tray.md, mockup *tray-lists* |
-| contents tab | drafted in tray.md, not mocked in the read-first style |
-| card and settings tabs | **open**, next after the build steps; for now the card tab also carries the attribute editor and *add port*, which left the components tab |
+| contents tab | its filters move under the card (*Decided* `tray structure`); **mockup next** |
+| tray structure | **decided** 2026-10-31 (one tab set, filters under the card, single-select); **mockup next**, then build |
+| card and settings tabs | **open**; for now the card tab also carries the attribute editor and *add port*, which left the components tab |
 | design.md rules → docs/design | **decided, not done**: design.md keeps the vision; its *Perspectives*, *Cards* and *Interfaces and lines* rules move into docs/design |
-| implementation | steps 1–9 built; the second 2026-10-31 pass uncommitted; remaining work in *Next session* |
+| implementation | steps 1–9 built and committed (1a07542); remaining work in *Next session* |
 
 
 ## Mockups
@@ -41,6 +69,7 @@
 | map-forms.html | claude.ai/artifact/V51AuxwtrD58Ud9N9vPsr6 | the map under one zoom: levels by on-screen size, hysteresis, fades; leaf chips vs cards; box title counts; explorer rows with colour edges and counts | levels, text band, counts and row edges are current. Leaves as cards was **rejected** (leaves stay chips); the tinted card fills are superseded by the colour rules |
 | line-forms.html | claude.ai/artifact/1iAiTDpx91cGzPgeBLioND | the wire swatch per relation type; lines with anchors, names beside the stroke, ends on hover; relation chips on the map; colour roles before and after | swatch, anchors, names beside, hover ends and colour roles are current. Option C's end chips and v1's pills were **rejected**. Tags as rings was **rejected** (solid dots) |
 | overview-forms.html | claude.ai/artifact/JutRvRnfzhDoNfGQk42WxR | every overview case today vs proposed, one renderer, nine cases incl. a line; tray head as identity row; width reflow | **current** (v3). Its head shows `Def`; the role is now a badge (tray.md) |
+| tray-structure.html | *to make* | one tab set, card column with filter rows, contents on the shared layout (*Next session*) | **next** |
 | tray-lists.html | claude.ai/artifact/MMngXyW7f9aeLHK9xs6Qsk | components and usages, read first: card left, sections right, bands, shared columns, hover lighting, class card, records, empty part | **current** (v9). Versions 2 to 6 explored group pickers, samples and add lists; all **rejected** for a read-first tray |
 
 The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p7A) is built and committed (e7082d0).
@@ -63,7 +92,7 @@ The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p
 | **colour** | grounds neutral, colour a thin mark by role: edge = what it is, stroke = relation type, solid dot = tag, accent = picked only, warn = fault; one lightness and chroma for identity hues; a definition's hue comes from its own family (or hue, vary); `style.fill`, `intensity` and `opacity` retire; the model kind gets its own hue; a reference loses its hatch and a note its wash. **The accent stays each theme's primary** (forcing one hue broke the themes); identity hues avoid it per theme when the shell's colours are reworked |
 | **role** | a use is filled; a definition is an outline with no ground and a filled *definition* badge in its colour, on its card and in the tray head; never dashed |
 | **card classes** | part (default), diagram (holds a layer), document (text, no members); definition is a role; members (attributes, ports, behaviours, tags, constraints) are never cards; a part with behaviours is a class card, behaviours last |
-| **faces** | a large face is never shorter than a head and two rows; every face carries the facts strip at level 2 (to revisit, *Open*) |
+| **faces** | a large face is never shorter than a head and two rows; every face carries the facts strip at level 2 (to revisit, *Open*). **The facts strip never lists ports** (2026-10-31): a card seats them, the components tab lists them |
 | **seats** | one square; its chevron points into the card for in, out of it for out; off the card, in leads its name and out follows it; hidden when too small to read |
 | **lines** | icon = the relation type's wire swatch; levels stroke → anchors → name beside the stroke → end words; nothing on the stroke; hover thickens and shows ends; several between one pair: a count after the name (`has ×2`), never a thicker stroke |
 | **tags** | solid dots, named beside the dot where there is room; the legend says the colours, in a tags section after the blocks |
@@ -71,13 +100,13 @@ The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p
 | **components share data, not concepts** | 2026-10-31: a package consumes another's output as a data contract, never its concepts. The explorer takes a row's colour and count from its host (`rowLook`; the app asks views `row_look`); the law is explorer → core, theme |
 | **hover** | one hover card for chips, tiles, box titles, cards and lines; it shows the large face |
 | **diagram** | a head band in the kind's colour under the crumbs |
-| **tray** | head = identity row + role + facts; every tab reflows by the tray's width, breaking at 560 / 960 px; the left column (card, and a chip only where it is the list drawn) stays put across tabs |
+| **tray** | head = identity row + role + facts; every tab reflows by the tray's width, breaking at 560 / 960 px; **one spacing** (`--pad`, `--gap`, `--stack`) and **one card column** (`--lead`) on every tab, the card filling it, nothing captioned over it (2026-10-31); the chip is the overview's alone, filling its column |
 | **overview** | sections card → picture → why it matters → how it is used → where it lives → where it sits; picture = its own chip if it gathers anything, else its place, a box's its box's chips; lines listed, never a picture; own answers only; gaps as quiet filled rows, editor only |
 | **lists** | every section it has, at once; a section names itself (semibold, an i for what it is), no count; each list opens on a band, label flush left, count right; rows on shared columns with a rule under each; hovering a row lights it on the card; an empty element says so in one sentence |
-| **settings tab** | shows the card at each level side by side, and the chip (to revisit with the card tab) |
+| **settings tab** | shows the card at each level side by side (to revisit with the card tab) |
 | **tray structure** | 2026-10-31: **one tab set for every selection**, a tab that does not apply to the element disabled, never hidden (which tabs, and their order, to expand). **Every tab has one layout**: the card column on the left, the tab's list on the right. **Under the card, the tab's filters**: rows like the explorer's (local to the tab), each with its count, narrowing the list beside them — components its sections, usages its places then subtypes, contents its kinds and layer/workspace. They replace the contents table's filter bar; contents keeps its table on the right. An element with nothing to filter (usages with no uses) shows no rows. **Filters are single-select**, an *all* row first. **Contents' scope** (layer / workspace) is its own small group above the kind rows. **A line's card tab is `card`** (its *line* tab folds in), so tab names stay fixed. The chip stays the overview's alone |
 | **lighting** | 2026-10-31: **the canvas lights what the tray is about**: the pick, else a list's lit row (`onLit`), else on a map the area gone to. One truth read by every node, line and tile, never React Flow's `selected`; **one picked look** (accent ring and wash) on every surface; what stands for a block (a place's box) lights and picks as it |
-| **tray tabs** | a line has overview · settings · components (its line tab becomes settings); contents stays as is, its text moves to the overview's answers column, last; the json chip stays for now |
+| **tray tabs** | superseded by `tray structure`: one tab set for every element, a line's *line* tab folded into *card*. Still standing: contents' text moves to the overview's answers column, last; the json chip stays for now |
 
 
 ## Open
@@ -86,7 +115,7 @@ The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p
 |---|---|
 | **card and settings tabs** | their style and how edits fit (the tray informs; editing is not its purpose); how they say definition apart; whether the settings ladder stays. Built as today until then |
 | **card faces** | a pass of their own: the facts strip repeating a table's count (*3 attributes* over three rows); a large face at level 2 drawn empty below its head; the head cramped over the table |
-| **context tabs** | workspace, definitions folder, packages, registry and entry tabs have the head only; their tables are not yet banded lists. Mock them properly first |
+| **context tabs** | workspace, definitions folder, packages, registry and entry tabs have the head only; their tables are not yet banded lists. Fold into the tray structure after its mockup: their filters under the card as well |
 | **design.md migration** | move *Perspectives*, *Cards*, *Interfaces and lines* and *Relation ends* rules into docs/design, then cut design.md to the vision; retire the old corner rule and the connections picture there |
 | **packages/tray/docs/tray.md** | still describes the editing tray (keys and choices, add rows, tables); fold into docs/design or retire once the card tab settles |
 | **drafts** | every docs/design file says *Draft, for agreement*; mark them settled once each built step is agreed on the samples |
@@ -111,7 +140,7 @@ The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p
 | 8 | **tray head and overview** | tray `Tray.tsx`, `Overview.tsx`, `Picture.tsx` | built; a box's picture (2026-10-31) |
 | 9 | **components and usages** | tray `Carried.tsx`, `Usages.tsx`, `Table.tsx` | built; seats on the tray card, lit with tiles (2026-10-31) |
 | 10 | **docs**: mark built docs settled; migrate design.md; update code-homes.md | docs | code-homes.md current; **migration and settling not done** |
-| 11 | **tray: card and settings tabs, context tabs** | tray | **not started**; agree a mockup first |
+| 11 | **tray structure**: one tab set, filter rows under the card, contents on the shared layout; then card and settings tabs, context tabs | tray `Tray.tsx`, `Lists.tsx`, `Carried.tsx`, `Usages.tsx`, `Table.tsx` | **not started**; mockup next (*Next session*) |
 | 12 | **card faces pass** | theme `face.tsx`, views `face.ts` | **not started**; agree the look first |
 
 - **reuse what is there**: views `about.ts` holds facts, previews and hover; `map.ts` picks levels by room. Extend them rather than add parallel paths
