@@ -380,29 +380,41 @@
   font-variant-numeric: tabular-nums;
 }
 .mnd-fact > b { color: var(--text); font-weight: 500; }
-/* A tag: a dot in its colour. */
-.mnd-fact-tag {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--card-edge, var(--muted));
-}
-/* Named where the form has room: the dot, then its tag's name. */
-.mnd-fact-tag.named {
+/* **Tags: dots in their colours, named beside the dot where the line has room.** Together they are
+   laid as their dots and grow into what room the line leaves, up to their whole names; the last
+   give up room first (`facts.tsx`). A name that does not fit whole wraps to a second line, out of
+   sight, and its dot stays. A dot is sized by the text, as its name is (`--dot`). */
+.mnd-fact-tags {
+  --dot: 0.7em;
   display: inline-flex;
+  flex: 1 1 calc(var(--n) * (var(--dot) + 4px) - 4px);
   gap: 4px;
+  min-width: calc(var(--n) * (var(--dot) + 4px) - 4px);
+  max-width: max-content;
+}
+.mnd-fact-tag {
+  display: inline-flex;
+  flex-basis: auto;
+  flex-wrap: wrap;
+  align-content: flex-start;
   align-items: center;
-  width: auto;
-  height: auto;
-  border-radius: 0;
-  background: none;
+  column-gap: 4px;
+  min-width: var(--dot);
+  max-width: max-content;
+  height: 1lh;
+  overflow: hidden;
   color: var(--muted);
 }
-.mnd-fact-tag.named::before {
-  width: 7px;
-  height: 7px;
+.mnd-fact-tag::before {
+  flex: none;
+  width: var(--dot);
+  height: var(--dot);
+  /** A whole line tall, so a name wrapped under it falls out of sight. */
+  margin-block: calc((1lh - var(--dot)) / 2);
   content: "";
   border-radius: 50%;
   background: var(--card-edge, var(--muted));
 }
+/* Named always, where the form is made to read (the hover card, the tray head). */
+.mnd-fact-tags.named { flex: none; min-width: auto; max-width: none; }
+.mnd-fact-tags.named > .mnd-fact-tag { flex: none; max-width: none; }

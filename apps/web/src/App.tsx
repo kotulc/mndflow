@@ -1,6 +1,6 @@
 /** The app, assembled. */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { all_defs, appearances_of, collect, diagram_kind, domain_of, drop_of, touches_of,
          held_at, in_section, is_base, is_inside, is_layer_view, lit as lit_by, object_of,
@@ -104,6 +104,8 @@ export function App({ storage, boot, opening }: {
 
   const graph = s.graph();
   const view = s.view();
+  /** A row's colour and count, read again only when the graph changes. */
+  const rowLook = useCallback((id: Id) => row_look(graph, id), [graph]);
   /** The layer seen from inside, where the canvas looks into one. A whole section has none, and
    *  is not built on. */
   const whole = !is_inside(view.kind);
@@ -332,7 +334,7 @@ export function App({ storage, boot, opening }: {
     /** The rail's quick editor: the workspace and the open package, in the tray. */
     if (name === "@workspace") {
       t.onHold({ of: "id", id: graph.root });
-      t.onTab("workspace");
+      t.onTab("overview");
       return;
     }
     if (name === "@package_info" && pkg) {
@@ -393,7 +395,7 @@ export function App({ storage, boot, opening }: {
     chain.onClear?.(at);
     if (SLICES[at]!.lists === "domain") {
       t.onHold({ of: "defs", only: "all" });
-      t.onTab("definitions");
+      t.onTab("contents");
     }
     else t.release();
   };
@@ -418,7 +420,7 @@ export function App({ storage, boot, opening }: {
       else s.pick([b.id], via);
     }
     // The tray last, as revealing lets go of what it held.
-    if (b?.parent === null) t.onSection({ of: "defs", only: "packages", from: b.name ?? b.id });
+    if (b?.parent === null) { t.onHold({ of: "id", id: b.id }); t.onTab("contents"); }
     else t.release();
   };
 
@@ -492,11 +494,12 @@ export function App({ storage, boot, opening }: {
         onRegistry={(registry) => {
           act("open", { id: registry_id(registry) });
           t.onHold({ of: "registry", registry });
+          t.onTab("components");
         }}
         registry={hold?.of === "registry" ? hold.registry
           : registry_at(graph, view.layer) ?? registry_of(graph, view.layer)}
         chain={{ ...chain, onChoose: choose }}
-        rowLook={(id) => row_look(graph, id)}
+        rowLook={rowLook}
         keys={zones.zone === "explorer"}
       />
 

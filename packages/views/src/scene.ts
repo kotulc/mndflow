@@ -145,6 +145,8 @@ export type LineData = {
   alias?: string;
   /** How many lines between the same pair it stands for, the same type and name. */
   times?: number;
+  /** The lines it stands for besides its own, which light it when picked. */
+  also?: string[];
   /** Where its cross leg sits, out from the end its lines fan from. */
   fan?: Fan;
   /** A run already drawn, in the scene's own coordinates. Routing is skipped. */

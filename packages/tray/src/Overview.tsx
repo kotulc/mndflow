@@ -1,21 +1,22 @@
-/** The overview tab: every element's first, lines included, **one layout for all**. The card
- *  and the picture — a chip off the map, its own where it gathers anything, else its room's with
- *  it lit — then titled answers: why it matters, how it is used, where it lives, where it sits,
- *  and a diagram's or a document's text. **Only its own answers**: nothing borrowed from its
- *  definition. Gaps are quiet rows, in the editor only. It reflows by the tray's width. */
+/** The overview tab: every element's first, lines included, **one layout for all**. The card,
+ *  then where it lives — its whole model or package, the element lit — then its path heading
+ *  titled answers: why it matters, how it is used, where it sits, and its text. **Only its own
+ *  answers**: nothing borrowed from its definition. Gaps are quiet rows, in the editor only. It
+ *  reflows by the tray's width. */
 
 import { useMemo } from "react";
-import { appearances_of, attributes_of, behaviours_of, children, class_of, def_at, def_of,
-         definition_uses, diagram_kind, edges_in, ends_of, heading, is_model, is_notation,
-         is_behaviour, is_group, is_reference, isa, lattice_of, layer_of, line_layer, may_retype,
-         members_of, object_of, of_ref, opens, owner_of, package_of, path, role_of, shown_name,
-         stands_for, stood_def, subtypes, tag_at, tags_of, use_places, BASE_PACKAGE,
+import { appearances_of, behaviours_of, children, class_of, def_at, def_of, definition_uses,
+         diagram_kind, edges_in, ends_of, is_model, is_notation, is_behaviour, is_group,
+         is_reference, layer_of, may_retype, object_of, of_ref, opens, owner_of, package_of,
+         role_of, shown_name, stands_for, stood_def, tag_at, tags_of, use_places, BASE_PACKAGE,
          DIAGRAM_QUESTIONS, DIAGRAMS, type Act, type Block, type Graph, type Id,
          type Relation } from "@mnd/core";
-import { Icon, Markdown, role_icon } from "@mnd/theme";
-import { class_graph, kind_of, wire_of, wire_tint } from "@mnd/views";
+import { Icon, role_icon } from "@mnd/theme";
+import { kind_of, wire_of, wire_tint } from "@mnd/views";
+import { Content } from "./Content";
 import { Faces } from "./Faces";
-import { Chip, Empty, LineCard, List, Painted, Section, type Item } from "./Lists";
+import { Empty, LineCard, List, Painted, Section, type Item } from "./Lists";
+import { Trail, Where } from "./Where";
 
 export type OverviewProps = {
   graph: Graph;
@@ -25,9 +26,6 @@ export type OverviewProps = {
    *  across to the other side. */
   lists?: "domain" | "structure";
 };
-
-/** One count: how many, and what of. */
-type Count = [number, string];
 
 export function Overview({ graph, id, onAct, lists }: OverviewProps) {
   const e = graph.edges[id];
@@ -51,14 +49,13 @@ export function Overview({ graph, id, onAct, lists }: OverviewProps) {
     && !is_notation(graph, id) && !!onAct;
   const becomes = promotes ? DIAGRAMS.filter((k) => may_retype(graph, id, k)) : [];
   /** A diagram's or a document's own text, read last. */
-  const text = class_of(graph, seen) !== "part" ? graph.blocks[seen]?.body?.trim() : undefined;
+  const text = class_of(graph, seen) !== "part" ? graph.blocks[seen]?.body?.trim() ?? "" : undefined;
   return (
     <div className="ov">
-      <div className="ov-card">
-        <Faces graph={graph} id={id} one />
-      </div>
+      {/* A package is drawn as no card. */}
+      {b.parent ? <div className="ov-card"><Faces graph={graph} id={id} one /></div> : null}
       <div className="ov-pic">
-        <Chip graph={graph} id={id} />
+        <Where graph={graph} id={id} />
         {(drawn || across) && onAct ? (
           <span className="opens">
             {drawn ? (
@@ -91,14 +88,15 @@ export function Overview({ graph, id, onAct, lists }: OverviewProps) {
         ) : null}
       </div>
       <div className="ov-answers lists">
+        <Trail graph={graph} id={id} />
         <Why graph={graph} b={b} kind={kind} editor={!!onAct} />
-        <How graph={graph} b={b} />
-        <Where graph={graph} b={b} seen={graph.blocks[seen] ?? b} kind={kind}
-               {...(onAct ? { onAct } : {})} />
+        <How graph={graph} b={b} seen={graph.blocks[seen] ?? b} kind={kind}
+             {...(onAct ? { onAct } : {})} />
         {onAct && b.parent && !b.def ? <Place graph={graph} b={b} onAct={onAct} /> : null}
-        {text ? (
+        {/* What it says as text, last: a diagram's or a document's own. */}
+        {text !== undefined && (text || onAct) ? (
           <Section name="text" about="What it says: a diagram's or a document's own text">
-            <Markdown className="ov-text" text={text} />
+            <Content graph={graph} id={seen} band={false} {...(onAct ? { onAct } : {})} />
           </Section>
         ) : null}
       </div>
@@ -106,8 +104,8 @@ export function Overview({ graph, id, onAct, lists }: OverviewProps) {
   );
 }
 
-/** **A line's overview**: the line drawn whole as its card, its ends as a list; its picture its
- *  room's chip, both ends lit; then why, how and where, as a block's. */
+/** **A line's overview**: the line drawn whole as its card, its ends as a list; where it lives,
+ *  both ends lit; then its path, why and how, as a block's. */
 function LineOverview({ graph, e }: { graph: Graph; e: Relation }) {
   const ends = ends_of(graph, e.id);
   const swatch = <span className="swatch" {...wire_tint(wire_of(graph, e.id))} />;
@@ -119,7 +117,6 @@ function LineOverview({ graph, e }: { graph: Graph; e: Relation }) {
              says: [at?.ownership && at.ownership !== "none" ? at.ownership : "",
                     at?.navigable === false ? "not navigable" : ""].filter(Boolean).join(" · ") };
   };
-  const at = line_layer(graph, e.id);
   return (
     <div className="ov">
       <div className="ov-card">
@@ -127,18 +124,14 @@ function LineOverview({ graph, e }: { graph: Graph; e: Relation }) {
         <LineCard graph={graph} id={e.id} />
         <div className="sec-body"><List label="ends" items={[end("from"), end("to")]} /></div>
       </div>
-      <div className="ov-pic"><Chip graph={graph} id={e.id} /></div>
+      <div className="ov-pic"><Where graph={graph} id={e.id} /></div>
       <div className="ov-answers lists">
+        <Trail graph={graph} id={e.id} />
         <Section name="why it matters" about="What it is: its relation type">
           <div className="chips"><span className="chip-like">{kind_of(graph, e.id)}</span></div>
         </Section>
         <Section name="how it is used" about="What it joins, from one end to the other">
           <p className="why">{end_of("from")} → {end_of("to")}</p>
-        </Section>
-        <Section name="where it lives" about="The diagram that draws it">
-          <div className="trail">
-            {at ? path(graph, at).map((p) => shown_name(graph, p.id)).join(" / ") : "nowhere drawn"}
-          </div>
         </Section>
       </div>
     </div>
@@ -170,8 +163,13 @@ function Why({ graph, b, kind, editor }: { graph: Graph; b: Block; kind: Id | nu
 }
 
 /** **How it is used**: its lines in and out where it sits, by port, each with its relation's
- *  swatch; a definition's uses, in words. */
-function How({ graph, b }: { graph: Graph; b: Block }) {
+ *  swatch; every side it is seen from, and what draws the same records; a definition's uses, in
+ *  words. */
+function How({ graph, b, seen, kind, onAct }: {
+  graph: Graph; b: Block; seen: Block; kind: Id | null; onAct?: Act;
+}) {
+  const same = useMemo(() => (kind === "class" || kind === "entity" ? alike(graph, seen.id) : []),
+                       [graph, seen.id, kind]);
   if (b.def) {
     const uses = definition_uses(graph, b.id).length;
     const places = use_places(graph, b.id).length;
@@ -204,46 +202,13 @@ function How({ graph, b }: { graph: Graph; b: Block }) {
           {out.length ? <List label="out" items={out} /> : null}
         </div>
       ) : <Empty>no lines join it where it sits</Empty>}
-    </Section>
-  );
-}
-
-/** **Where it lives**: its path; every side it is seen from, or what uses it; what draws the
- *  same records; and its counts, in its kind's own words. */
-function Where({ graph, b, seen, kind, onAct }: {
-  graph: Graph; b: Block; seen: Block; kind: Id | null; onAct?: Act;
-}) {
-  const trail = path(graph, b.id).slice(0, -1).map((p) => shown_name(graph, p.id));
-  const same = useMemo(() => (kind === "class" || kind === "entity" ? alike(graph, seen.id) : []),
-                       [graph, seen.id, kind]);
-  const users = useMemo(() => (b.def
-    ? definition_uses(graph, b.id).flatMap((u) => graph.blocks[u.id] ?? []) : []), [graph, b]);
-  return (
-    <Section name="where it lives" about="Where it is filed, and where else it is seen">
-      <div className="trail">{trail.join(" / ") || "the workspace"}</div>
-      {!b.def && onAct ? <Sides graph={graph} id={b.id} onAct={onAct} /> : null}
-      {b.def && users.length ? (
-        <div className="chips">
-          <span className="faint">used by</span>
-          {users.map((u) => (
-            <button key={u.id} className="chip" title="go to where it is drawn"
-                    onClick={() => onAct?.("reveal", { id: u.id })}>
-              {shown_name(graph, u.id)}
-              {u.parent ? <small> in {shown_name(graph, u.parent)}</small> : null}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      {onAct ? <Sides graph={graph} id={b.id} onAct={onAct} /> : null}
       {same.length ? (
         <div className="chips">
           <span className="faint">same records as</span>
-          {same.map((s) => <span key={s} className="chip-like">{shown_name(graph, s)}</span>)}
+          {same.map((x) => <span key={x} className="chip-like">{shown_name(graph, x)}</span>)}
         </div>
       ) : null}
-      <div className="stat">
-        {counts(graph, seen, kind, users.length).filter(([n]) => n)
-          .map(([n, word]) => <span key={word}><b>{n}</b> {word}</span>)}
-      </div>
     </Section>
   );
 }
@@ -300,11 +265,6 @@ function parts(graph: Graph, id: Id): Block[] {
   return children(graph, id).filter((c) => !is_notation(graph, c.id) && !is_group(graph, c.id));
 }
 
-/** Whether a block is of a kind, by its chain. */
-function is_a(graph: Graph, b: Block, kind: Id): boolean {
-  return b.type === kind || isa(graph, b.type).some((d) => d.id === kind);
-}
-
 /** The definitions a class or entity diagram refers to. */
 function records(graph: Graph, id: Id): Set<Id> {
   return new Set(children(graph, id).filter((c) => is_reference(graph, c.id))
@@ -318,35 +278,4 @@ function alike(graph: Graph, id: Id): Id[] {
     .filter((o) => o.id !== id && ["class", "entity"].includes(diagram_kind(graph, o.id) ?? ""))
     .filter((o) => [...records(graph, o.id)].some((d) => own.has(d)))
     .map((o) => o.id);
-}
-
-/** Its counts, named in its kind's terms. */
-function counts(graph: Graph, b: Block, kind: Id | null, usages: number): Count[] {
-  const held = parts(graph, b.id);
-  const lines = edges_in(graph, b.id).length;
-  const decisions = children(graph, b.id).filter((c) => is_a(graph, c, "decision")).length;
-  const grid = lattice_of(graph, b.id);
-  const steps = members_of(graph, b.id).filter((m) => m.cell && !heading(m.cell.r, m.cell.c));
-  const drawn = (k: "class" | "er") => Object.keys(class_graph(graph, b.id, k)?.edges ?? {}).length;
-  if (b.def) {
-    return [[attributes_of(graph, b.id).length, "fields"],
-            [behaviours_of(graph, b.id).length, "behaviours"],
-            [usages, "usages"], [subtypes(graph, b.id).length, "subtypes"]];
-  }
-  switch (kind) {
-    case "flow": return [[held.length, "steps"], [decisions, "decisions"],
-                         [lines, "lines"]];
-    case "state": return [[held.length, "states"], [lines, "transitions"]];
-    case "sequence": return [[(grid?.cols ?? 1) - 1, "lifelines"], [steps.length, "steps"],
-                             [lines, "messages"]];
-    case "swimlane": return [[(grid?.cols ?? 1) - 1, "lanes"], [(grid?.rows ?? 1) - 1, "phases"],
-                             [steps.length, "steps"]];
-    case "class": return [[records(graph, b.id).size, "classes"], [drawn("class"), "lines"]];
-    case "entity": return [[records(graph, b.id).size, "tables"], [drawn("er"), "relations"]];
-    case "treemap": return [[children(graph, b.id).filter((c) => is_group(graph, c.id)).length,
-                             "boxes"],
-                            [children(graph, b.id).flatMap((c) => children(graph, c.id))
-                              .filter((c) => is_reference(graph, c.id)).length, "references"]];
-    default: return [[held.length, "parts"], [b.ports?.length ?? 0, "ports"], [lines, "lines"]];
-  }
 }

@@ -18,7 +18,8 @@ import { children, definition_uses, diagram_kind, has_lifelines, is_aside, is_gr
          on_side, owner_of, packages, path, region_of, shown_name, type Graph,
          type Id } from "@mnd/core";
 import { colour_of, kind_of, preview_of, type Preview } from "./about";
-import { counted, fact, facts_of, total, type Counted, type Facts, type Groups } from "./facts";
+import { any_fact, counted, fact, facts_of, total, type Counted, type Facts,
+         type Groups } from "./facts";
 import { carried, trail_of } from "./derive";
 import { compounded, tree_groups } from "./flow";
 import { box_label, box_place, filed, name_of, registry_map, usage_groups,
@@ -272,7 +273,7 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
     const facts = facts_of(graph, chip.block, !!chip.uses,
                            { ...(chip.groups ? { groups: chip.groups } : {}),
                              ...(chip.counts ? { counts: chip.counts } : {}) });
-    const any = facts.counts.length + facts.tags.length > 0;
+    const any = any_fact(facts);
     const keep = (chip.held.length ? KEEP.structure : KEEP.preview)
       + (chip.diagram ? PAD.diagram : PAD.chip);
     const strip = !upright && any && box.h >= ROW.name + ROW.facts + keep;
@@ -873,4 +874,61 @@ export function chip_for(graph: Graph, id: Id, scene: Scene): { chip: BoxNode; l
   const room = chips.find((n) => ends.every((x) => n.data.tiles?.some((t) => t.id === x)))
     ?? chips.find((n) => n.data.tiles?.some((t) => ends.includes(t.id)));
   return room ? { chip: room, lit: ends } : null;
+}
+
+/** One box of an element's where-it-lives map, as a share of the whole map: named at the top
+ *  levels, firmer on the path down to the element, lit where it is the element. */
+export type WhereBox = { id: Id; x: number; y: number; w: number; h: number; depth: number;
+                         label?: string; path?: boolean; lit?: boolean };
+
+/** How deep under its package the where-it-lives map draws everything; below, only the path to
+ *  the element. */
+const WHERE_DEPTH = 3;
+
+/** **Where an element lives**, off its map (`scene`): the package it sits in — the whole map for
+ *  the workspace — every area in it to `WHERE_DEPTH` as a quiet box, its top level named, deeper
+ *  ones only on the path to the element, and the tiles of a chip on that path that lead to it.
+ *  The element is lit; a line has no box, so both its ends are. The workspace lights nothing.
+ *  Its aspect is the package's, as the map lays it. */
+export function where_map(graph: Graph, id: Id, scene: Scene)
+    : { boxes: WhereBox[]; aspect: number } {
+  const all = scene.areas ?? [];
+  const e = graph.edges[id];
+  const targets = new Set(e ? [e.from, e.to].map((x) => owner_of(graph, x) ?? x)
+    : id === graph.root ? [] : [id]);
+  const on = new Set([...targets].flatMap((t) => path(graph, t).map((b) => b.id)));
+  const root = all.find((a) => a.depth === 1 && on.has(a.id))
+    ?? all.find((a) => a.id === MAP_ROOT);
+  if (!root || !root.w || !root.h) return { boxes: [], aspect: 1 };
+  /** What lies inside the root, by walking each area up. */
+  const up = new Map(all.map((a) => [a.id, a.parent]));
+  const inside = (at: Id) => {
+    for (let p = up.get(at); p; p = up.get(p)) if (p === root.id) return true;
+    return false;
+  };
+  const areas = all.filter((a) => inside(a.id));
+  const depth = (a: { depth: number }) => a.depth - root.depth;
+  const share = (x: number, y: number, w: number, h: number) =>
+    ({ x: (x - root.x) / root.w, y: (y - root.y) / root.h, w: w / root.w, h: h / root.h });
+  const boxes: WhereBox[] = areas
+    .filter((a) => depth(a) <= WHERE_DEPTH || on.has(a.id))
+    .map((a) => ({ id: a.id, ...share(a.x, a.y, a.w, a.h), depth: depth(a),
+                   ...(depth(a) === 1 ? { label: a.label } : {}),
+                   ...(on.has(a.id) ? { path: true } : {}),
+                   ...(targets.has(a.id) ? { lit: true } : {}) }));
+  /** Inside a chip on the path, the tiles leading to the element, laid as the chip lays them. */
+  for (const a of areas.filter((x) => x.chip && on.has(x.id) && !targets.has(x.id))) {
+    const data = scene.nodes.find((n) => n.id === a.id)?.data;
+    const pad = data?.diagram ? PAD.diagram : PAD.chip;
+    const head = data?.upright ? { w: data.head ?? 0, h: 0 } : { w: 0, h: data?.head ?? 0 };
+    const body = { x: a.x + (head.w || pad), y: a.y + (head.h || pad), ...body_of(a, head, pad) };
+    for (const t of data?.tiles ?? []) {
+      if (!on.has(t.id) || t.as) continue;
+      boxes.push({ id: t.id, depth: depth(a) + 1,
+                   ...share(body.x + t.x * body.w, body.y + t.y * body.h, t.w * body.w,
+                            t.h * body.h),
+                   path: true, ...(targets.has(t.id) ? { lit: true } : {}) });
+    }
+  }
+  return { boxes, aspect: root.w / root.h };
 }

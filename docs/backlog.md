@@ -61,9 +61,11 @@ Known rough spots, taken when a step passes near one.
 | Area | Edge |
 |---|---|
 | **cards** | marks on a dark table card are faint; a reference previewing a table ignores its own look's border; notes still draw through `NoteNode`, not only `CardFace` |
-| **tray** | its tables light picks by id, not through core `lit`, so a part picked through one usage lights its row wherever it is listed; a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else; the definitions table's *extends* shows a sibling definition (`example/Ledger`) for one that extends nothing |
+| **tray** | its where-it-lives map lays out its own map once per graph (`Where.tsx` `laid_map`), beside the stage's, so every edit lays the map twice; its tables light picks by id, not through core `lit`, so a part picked through one usage lights its row wherever it is listed; a line's preview never shows `line.dir`; a definition's resolved chain chip is gone; in a read-only tray *view definition* is disabled with everything else; the definitions table's *extends* shows a sibling definition (`example/Ledger`) for one that extends nothing |
 | **overview** | the glance mounts a second React Flow, so node description ids repeat in the page; on the open layer with nothing picked it draws what the canvas already draws; a tag with no hue paints its share of the bar plain |
-| **samples** | no definition with room parts is used twice, so *one highlight*'s case — a part picked under one usage lights nothing under another — has not been driven in the explorer |
+| **samples** | moving the shop's documents to `type: document` dropped two looks with no definition to carry them (*Release notes* `name: hide`, *Incident summary*'s 8×3 size); no definition with room parts is used twice, so *one highlight*'s case — a part picked under one usage lights nothing under another — has not been driven in the explorer |
+| **tests** | the browser sweep reloads before every click (about 4 minutes); clicking in turn would be far quicker but less isolated. Playwright is a dev dependency now, which the CLI's `draw` can reuse |
+| **core** | `resolved` (what a card draws as) sits in `tree.ts`, whose scope is placement; it belongs beside `stands_for` |
 | **camera** | a short port drag lands short |
 | **React** | `flushSync was called from inside a lifecycle method`, once seen opening the profile from a layer; recheck |
 | **packages** | a definition file holds no parts, so a pattern's parts live in its package's `package.json`; base's `decision` and `services`'s share a name, so `type: decision` resolves to whichever the lookup finds first |

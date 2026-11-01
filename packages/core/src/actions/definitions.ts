@@ -3,6 +3,7 @@
 import { closes_cycle, def_at, def_named, def_of, domain_of, holds_defs, name_taken, ordered_by,
          package_of, type Domain } from "../defs";
 import { holds_values } from "../capabilities";
+import { USAGE_KEYS } from "../components";
 import { shown_name } from "../names";
 import { next_order } from "../tree";
 import { KEYS, type Attribute, type Components, type Definition, type Graph, type Id, type Key,
@@ -197,8 +198,8 @@ register(
     name: "define_from",
     about: "makes a definition of how this block or line is set, and makes it a usage of it",
     on: ["block", "edge"],
-    /** The element's settings travel, and the names it answers become the attributes declared;
-     *  its values stay. */
+    /** The element's settings travel but those a usage keeps (`USAGE_KEYS`), and the names it
+     *  answers become the attributes declared; its values stay. */
     args: [{ name: "id", form: "block", required: true },
            { name: "name", form: "text", required: true, asks: true }],
     /** A name already taken in the domain is refused. */
@@ -216,7 +217,9 @@ register(
       const it = ctx.graph.blocks[id] ?? edge!;
       const name = text(args, "name");
       const settings: Components = {};
-      for (const [key, config] of Object.entries(it.settings ?? {})) settings[key] = { ...config };
+      for (const [key, config] of Object.entries(it.settings ?? {})) {
+        if (!USAGE_KEYS.includes(key)) settings[key] = { ...config };
+      }
       const attributes = (ctx.graph.blocks[id]?.values ?? [])
         .map((v): Attribute => ({ name: v.name }));
 
@@ -230,8 +233,12 @@ register(
                              def: attributes.length ? { attributes } : {} }),
         edge ? { op: "update_edge", id, type: made } : { op: "update_block", id, type: made },
       ];
-      /** The element gives back the settings that moved. */
-      if (Object.keys(settings).length) out.push({ op: "drop_settings", id });
+      /** The element gives back the settings that moved, and keeps the rest. */
+      for (const [key, config] of Object.entries(settings)) {
+        for (const at of Object.keys(config)) {
+          out.push({ op: "set_setting", id, key, name: at, value: null });
+        }
+      }
       return { mutations: out, effect: { say: `defined ${name}` } };
     },
   },

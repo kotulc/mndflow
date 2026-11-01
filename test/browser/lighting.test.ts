@@ -51,7 +51,8 @@ function surfaces(page: Page): Promise<{ kind: string, sel: string }[]> {
     const nodes = [...document.querySelectorAll<HTMLElement>(".react-flow__node")].map((e) => ({
       kind: e.className.match(/react-flow__node-(\w+)/)?.[1] ?? "node",
       sel: `.react-flow__node[data-id="${CSS.escape(e.dataset.id ?? "")}"]` }));
-    const tiles = [...document.querySelectorAll<HTMLElement>(".react-flow [data-tile]")].map((e) => ({
+    const tiled = document.querySelectorAll<HTMLElement>(".react-flow [data-tile]");
+    const tiles = [...tiled].map((e) => ({
       kind: "tile:" + (e.className.split(" ")[1] || "card"),
       sel: `[data-tile="${CSS.escape(e.dataset.tile ?? "")}"]` }));
     return [...nodes, ...tiles].filter((s) => s.kind !== "frame");
@@ -108,7 +109,10 @@ describe("a picked surface", () => {
         const plain = kind.startsWith("tile") || kind === "group";
         const target = page.locator(kind === "group" ? `${sel} .mnd-group-title` : sel).first();
         if (!(await target.isVisible())) continue;
-        await target.click({ force: true, position: plain ? undefined : { x: 6, y: 6 } });
+        /** A place's box (`def@place`) is clicked on its title: its middle may be a use's tile. */
+        const place = kind === "tile:group" && sel.includes("@");
+        const at = place ? { x: 3, y: 3 } : plain ? undefined : { x: 6, y: 6 };
+        await target.click({ force: true, position: at });
         await page.waitForTimeout(1000);
         await page.mouse.move(2, 450);
         await page.waitForTimeout(200);

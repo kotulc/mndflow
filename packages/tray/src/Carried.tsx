@@ -1,31 +1,54 @@
-/** **The components tab, read first**: the card on the left, and on the right every section the
- *  element has at once — attributes, ports, behaviours, tags, constraints — each list opening on
- *  its band, a row each on shared columns. A section it lacks is absent; nothing is added here.
- *  Hovering a row lights it on the card. */
+/** **The components tab, read first**: the card on the left, its sections as filter rows under
+ *  it; on the right every section the element has — attributes, ports, behaviours, tags,
+ *  constraints — or the one chosen, each list opening on its band, a row each on shared columns.
+ *  A section it lacks is absent; nothing is added here. Hovering a row, or a filter, lights what it
+ *  names on the card. */
 
 import { useState } from "react";
 import { attributes_of, behaviours_of, constraint_at, constraints_stated, def_of, definition_uses,
          interface_at, part_id, ports_on, resolved, shown_name, signature_of, tag_at,
          tags_stated, type_name, type Attribute, type Graph, type Id } from "@mnd/core";
 import { entry_look, tint_attrs } from "@mnd/views";
-import { Empty, Lead, List, Section, type Item } from "./Lists";
+import { ALL, Empty, Filters, Lead, List, Section, type Item } from "./Lists";
 
-export type CarriedProps = { graph: Graph; id: Id };
+/** `on` is the filter chosen, kept by the tray per tab while the element stays. */
+export type CarriedProps = { graph: Graph; id: Id; on: string; onPick: (key: string) => void };
 
-export function Carried({ graph, id }: CarriedProps) {
-  const [lit, set_lit] = useState<string | null>(null);
+/** Each section's mark, as its rows draw it. */
+const MARKS: Record<string, string> = { attributes: "–", declares: "–", behaviours: "ƒ",
+                                        constraints: "§" };
+const mark = (section: string) => section === "ports" ? <span className="seat-mark in" />
+  : section === "tags" ? <span className="dot" />
+  : <span className="dash">{MARKS[section]}</span>;
+
+export function Carried({ graph, id, on, onPick }: CarriedProps) {
+  const [lit, set_lit] = useState<readonly string[] | null>(null);
   /** A stand-in reads as what it stands for, as its card does. */
   const at = graph.blocks[id] ? resolved(graph, id).card : id;
   const sections = [attributes(graph, at), ports(graph, at), behaviours(graph, at),
                     tags(graph, at), constraints(graph, at)].filter((s) => s.lists.length);
+  const ids = (s: Part) => s.lists.flatMap((l) => l.items.map((it) => it.id));
+  const count = (s: Part) => ids(s).length;
+  const shown = sections.filter((s) => on === ALL || s.name === on);
   return (
     <div className="reads">
-      <Lead graph={graph} id={id} lit={lit} />
+      <Lead graph={graph} id={id} lit={lit}>
+        {sections.length ? (
+          <Filters on={on} onPick={onPick} onLight={set_lit}
+                   groups={[{ label: "sections", rows: [
+                     { key: ALL, name: "all", count: sections.reduce((n, s) => n + count(s), 0),
+                       lights: sections.flatMap(ids) },
+                     ...sections.map((s) => ({ key: s.name, name: s.name, count: count(s),
+                                               lights: ids(s),
+                                               mark: mark(s.name) })),
+                   ] }]} />
+        ) : null}
+      </Lead>
       <div className="lists">
-        {sections.length ? sections.map((s) => (
+        {sections.length ? shown.map((s) => (
           <Section key={s.name} name={s.name} about={s.about}>
             {s.lists.map((l) => <List key={l.label} label={l.label} items={l.items}
-                                      onLight={set_lit} />)}
+                                      onLight={(at) => set_lit(at ? [at] : null)} />)}
           </Section>
         )) : (
           <Section name="components" about="What it carries: attributes, ports, behaviours, tags">

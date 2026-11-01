@@ -1,12 +1,10 @@
 /** **The tray's read-first parts**, one home for every tab: a titled section, a list opening on its
- *  band, rows on shared columns, an empty element's one sentence, and the left column — the card,
- *  then the chip where the chip is the list drawn. */
+ *  band, rows on shared columns, an empty element's one sentence, the tab's filter rows, and the
+ *  left column — the card, then what the tab puts under it. */
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { owner_of, shown_name, type Graph, type Id } from "@mnd/core";
-import { BoxFace, ChipFace } from "@mnd/theme";
-import { box_for, box_of, chip_for, chip_map, entry_look, kind_of, library_map, model_map, tint_attrs,
-         wire_of, wire_tint } from "@mnd/views";
+import { entry_look, kind_of, tint_attrs, wire_of, wire_tint } from "@mnd/views";
 import { Faces } from "./Faces";
 
 /** **A section names itself**, semibold in the body's ink, with an *i* whose tip says what it is.
@@ -51,88 +49,58 @@ export function Empty({ children }: { children: ReactNode }) {
   return <p className="sec-empty">{children}</p>;
 }
 
+/** One filter row: its mark, its name, a quiet word after it, and its count at the right; what
+ *  it names, lit while it is hovered. */
+export type Filter = { key: string; name: ReactNode; mark?: ReactNode; sub?: ReactNode;
+                       count?: number; edge?: { "data-family"?: string; style?: object };
+                       lights?: readonly string[] };
+
+/** The filter rows *all* stands for. */
+export const ALL = "all";
+
+/** **A tab's filters, under the card**: rows as the explorer draws them, local to the tab, in
+ *  groups under a quiet label. **Single-select**; hovering a row lights what it names. */
+export function Filters({ groups, on, onPick, onLight }: {
+  groups: readonly { label?: string; rows: readonly Filter[] }[]; on: string;
+  onPick: (key: string) => void; onLight?: (ids: readonly string[] | null) => void;
+}) {
+  return (
+    <div className="filters">
+      {groups.filter((g) => g.rows.length).map((g, i) => (
+        <div key={g.label ?? i} className="fgroup">
+          {g.label ? <span className="fgroup-label">{g.label}</span> : null}
+          {g.rows.map((r) => (
+            <button key={r.key} type="button" aria-pressed={r.key === on}
+                    className={["frow", r.key === on ? "on" : "", r.edge ? "edged" : ""]
+                      .filter(Boolean).join(" ")}
+                    {...(r.edge ?? {})}
+                    onClick={() => onPick(r.key)}
+                    onMouseEnter={() => onLight?.(r.lights ?? null)}
+                    onMouseLeave={() => onLight?.(null)}>
+              <span className="fmark">{r.mark}</span>
+              <span className="fname">{r.name}</span>
+              {r.sub ? <span className="fsub">{r.sub}</span> : null}
+              <span className="fcount">{r.count}</span>
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** **The left column**, which stays put as tabs change: the card, what a list beside it names
- *  lit on it. */
-export function Lead({ graph, id, lit }: { graph: Graph; id: Id; lit?: string | null }) {
+ *  lit on it; then what the tab puts under it — its filters, the overview's map. The workspace
+ *  and a package are drawn as no card, so theirs starts at what is under it. */
+export function Lead({ graph, id, lit, children }: { graph: Graph; id: Id;
+                                                    lit?: readonly string[] | null;
+                                                    children?: ReactNode }) {
   return (
     <div className="lead">
       {graph.edges[id] ? <LineCard graph={graph} id={id} />
-        : <Faces graph={graph} id={id} one {...(lit ? { lit } : {})} />}
-    </div>
-  );
-}
-
-/** **A chip off the map** (views `chip_for`), the overview's picture: the element's own where it
- *  gathers anything, else its room's with it lit; a block the map draws as a box, its box's chips
- *  (`box_for`). Scaled to fill its column, as the card does. */
-export function Chip({ graph, id }: { graph: Graph; id: Id }) {
-  /** Only the map it comes from is laid out. */
-  const which = chip_map(graph, id);
-  const scene = useMemo(() => (which === "library" ? library_map : model_map)(graph),
-                        [graph, which]);
-  const found = chip_for(graph, id, scene);
-  const boxed = found ? null : box_for(id, scene);
-  const held = useRef<HTMLDivElement>(null);
-  const [room, set_room] = useState(0);
-  /** Measured again whenever a chip comes to be drawn, since none may have been at first. */
-  useEffect(() => {
-    const at = held.current;
-    if (!at) return;
-    const seen = new ResizeObserver(() => set_room(at.clientWidth));
-    seen.observe(at);
-    return () => seen.disconnect();
-  }, [!!found || !!boxed]);
-  if (boxed) return <BoxPicture {...boxed} room={room} held={held} />;
-  if (!found) return <p className="faint pic-none">the map draws no chip for it</p>;
-  const { w, h } = box_of(found.chip);
-  const scale = room ? room / w : 1;
-  const own = found.chip.id === id;
-  return (
-    <div className="lead-chip" ref={held}>
-      <span className="lead-cap">{own ? "its chip" : `its place · ${found.chip.data.label}`}</span>
-      <div className="chip-room" style={{ height: h * scale }}>
-        <div style={{ width: w, height: h, transform: `scale(${scale})`,
-                      transformOrigin: "top left" }}>
-          <ChipFace data={{ ...found.chip.data,
-                            ...(found.chip.data.look ? { tint: tint_attrs(found.chip.data.look) } : {}) }}
-                    w={w} h={h} level={3} lit={found.lit} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** **A box's picture**: the box and what the map draws inside it, each where the map lays it,
- *  scaled as one to the column. */
-function BoxPicture({ box, nodes, room, held }: NonNullable<ReturnType<typeof box_for>> & {
-  room: number; held: React.RefObject<HTMLDivElement> }) {
-  const at = box_of(box);
-  const scale = room ? room / at.w : 1;
-  return (
-    <div className="lead-chip" ref={held}>
-      <span className="lead-cap">its box</span>
-      <div className="chip-room" style={{ height: at.h * scale }}>
-        <div className="box-pic" style={{ width: at.w, height: at.h, transform: `scale(${scale})`,
-                                          transformOrigin: "top left" }}>
-          {[box, ...nodes].map((n) => {
-            const { x, y, w, h } = box_of(n);
-            const place = { left: x - at.x, top: y - at.y, width: w, height: h };
-            return (
-              <div key={n.id} style={{ position: "absolute", ...place }}>
-                {n.type === "chip" ? (
-                  <ChipFace data={{ ...n.data,
-                                    ...(n.data.look ? { tint: tint_attrs(n.data.look) } : {}) }}
-                            w={w} h={h} level={3} />
-                ) : (
-                  <BoxFace label={n.data.label} {...(n.data.role ? { role: n.data.role } : {})}
-                           {...(n.data.facts ? { counts: n.data.facts.counts } : {})}
-                           panel={n.data.marks.includes("group")} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+        : graph.blocks[id]?.parent
+          ? <Faces graph={graph} id={id} one {...(lit ? { lit } : {})} /> : null}
+      {children}
     </div>
   );
 }

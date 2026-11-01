@@ -520,7 +520,6 @@
   line-height: calc(var(--l) - 4px);
   font-size: calc(10px * var(--chip-k, 1));
 }
-.mnd-chip-text .mnd-fact-tag:not(.named) { margin-block: calc((var(--l) - 7px) / 2); }
 /* **A chip too narrow for its name** (`NARROW`, nodes.tsx) shows its icon alone, where it ever
    sits, never wider than the chip (`--cap`). */
 .mnd-chip.narrow .mnd-chip-text { display: none; }

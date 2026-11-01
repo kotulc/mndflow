@@ -44,8 +44,8 @@ export type FaceProps = {
   title?: string;
   /** Whatever the host lays over the face: grips, seats, a border's targets. */
   children?: ReactNode;
-  /** A member lit from a list beside the card: the table row naming it lights. */
-  lit?: string;
+  /** Members lit from a list beside the card: each table row naming one lights. */
+  lit?: readonly string[];
 };
 
 export function CardFace({ label, kind, defines, facts, role, icon, holds, stamps, classes = [],
@@ -75,7 +75,7 @@ export function CardFace({ label, kind, defines, facts, role, icon, holds, stamp
         </div>
       ) : null}
       {facts ? <div className="mnd-face-facts">{facts}</div> : null}
-      {ruled ? <Ruled {...table!} {...(lit ? { lit } : {})} /> : null}
+      {ruled ? <Ruled {...table!} {...(lit?.length ? { lit } : {})} /> : null}
       {large && text ? <Markdown className={`mnd-face-body${clamp ? " clamped" : ""}`} text={text}
                                  {...(clamp ? { style: { "--body-lines": clamp } as CSSProperties }
                                    : {})} /> : null}
@@ -85,7 +85,8 @@ export function CardFace({ label, kind, defines, facts, role, icon, holds, stamp
 
 /** A large face's attributes, ruled: every column the width it was measured at, the last taking
  *  whatever room the card has over. A cell cut short says itself whole when pointed at. */
-function Ruled({ cells, widths, split, lit }: NonNullable<FaceProps["table"]> & { lit?: string }) {
+function Ruled({ cells, widths, split, lit = [] }: NonNullable<FaceProps["table"]>
+                                                 & { lit?: readonly string[] }) {
   return (
     <table className="mnd-face-table">
       <colgroup>
@@ -94,7 +95,7 @@ function Ruled({ cells, widths, split, lit }: NonNullable<FaceProps["table"]> & 
       <tbody>
         {cells.map((row, r) => (
           <tr key={r} className={[r === split ? "mnd-split" : "",
-                                  lit && row.some((c) => c === lit || c.startsWith(`${lit}:`))
+                                  row.some((c) => lit.some((l) => c === l || c.startsWith(`${l}:`)))
                                     ? "lit" : ""].filter(Boolean).join(" ") || undefined}>
             {row.map((cell, c) => <td key={c} title={cell}>{cell}</td>)}
           </tr>

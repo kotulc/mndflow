@@ -46,6 +46,8 @@ export type TrayFrameProps<T extends string = string> = {
   tint?: { "data-family"?: string; style?: Record<string, string> };
   facts?: ReactNode;
   tabs: readonly T[];
+  /** Tabs that do not apply here: drawn faint and inert, never hidden. */
+  off?: readonly T[];
   tab: T;
   onTab: (tab: T) => void;
   /** Extra controls in the bar (counts, expand). */
@@ -57,7 +59,7 @@ export type TrayFrameProps<T extends string = string> = {
 
 /** Collapsible tray shell: bar, tabs, and a body slot — no graph types. */
 export function TrayFrame<T extends string>({
-  open, onOpen, big = false, onBig, word, name, note, kind, role, tint, facts, tabs, tab, onTab,
+  open, onOpen, big = false, onBig, word, name, note, kind, role, tint, facts, tabs, off = [], tab, onTab,
   tools, tabTools, children,
 }: TrayFrameProps<T>) {
   const on_bar = (e: MouseEvent) => {
@@ -101,7 +103,8 @@ export function TrayFrame<T extends string>({
         <div className="tray-body">
           <div className="tray-tabs">
             {tabs.map((t) => (
-              <button key={t} className={tab === t ? "on" : ""} onClick={() => onTab(t)}>
+              <button key={t} className={tab === t ? "on" : off.includes(t) ? "off" : ""}
+                      disabled={off.includes(t)} onClick={() => onTab(t)}>
                 {t}
               </button>
             ))}

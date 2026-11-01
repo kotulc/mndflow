@@ -13,13 +13,13 @@ describe("definition_uses", () => {
     ["a reference standing for it", "service", "stand"],
     ["a use in an imported package's model", "service", "far_use"],
     ["a line typed by it", "calls", "call"],
+    ["a part of a definition that is not a model", "service", "pattern_part"],
   ])("counts %s", (_, def, id) => {
     expect(ids(def)).toContain(id);
   });
 
   it.each([
     ["a subtype", "service", "sub"],
-    ["a part of a definition that is not a model", "service", "pattern_part"],
   ])("leaves out %s", (_, def, id) => {
     expect(ids(def)).not.toContain(id);
   });
@@ -27,7 +27,8 @@ describe("definition_uses", () => {
   it("says what each use is, and the same every time", () => {
     expect(definition_uses(g, "service")).toEqual([
       { id: "far_use", kind: "block" }, { id: "gateway", kind: "block" },
-      { id: "inner", kind: "block" }, { id: "stand", kind: "reference" },
+      { id: "inner", kind: "block" }, { id: "pattern_part", kind: "block" },
+      { id: "stand", kind: "reference" },
     ]);
     expect(definition_uses(g, "service")).toEqual(definition_uses(g, "service"));
   });

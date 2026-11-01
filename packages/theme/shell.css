@@ -428,7 +428,9 @@ input:focus { outline: none; border-color: var(--accent); }
   cursor: pointer;
 }
 
-.tray-tabs > button:hover { color: var(--text); }
+.tray-tabs > button:hover:not(:disabled) { color: var(--text); }
+/* A tab that does not apply here: faint, inert, never hidden. */
+.tray-tabs > button.off { color: color-mix(in oklab, var(--muted) 45%, transparent); cursor: default; }
 .tray-tabs > button.on {
   padding-bottom: 3px;
   border-color: var(--divider);

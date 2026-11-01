@@ -11,9 +11,9 @@ import type { Graph, Id } from "./types";
  *  it. */
 export type DefinitionUse = { id: Id; kind: "block" | "reference" | "relation" };
 
-/** Every use of a definition **inside a model**, at any depth, in every loaded package. Parts
- *  stored in a definition that is not a model are not uses of their own: they appear through
- *  that definition's uses. A subtype extends it rather than using it, and a tie means nothing.
+/** Every use of a definition **inside a model or inside another definition**, at any depth, in
+ *  every loaded package: a pattern composed in the library uses its parts as a model does. A
+ *  subtype extends it rather than using it, and a tie means nothing.
  *  The same answer every time: blocks, then lines, each by id. */
 export function definition_uses(graph: Graph, def: Id): readonly DefinitionUse[] {
   return used(graph).get(def) ?? [];
@@ -38,7 +38,7 @@ function index(graph: Graph): Map<Id, DefinitionUse[]> {
   };
   const blocks = Object.values(graph.blocks).sort((a, z) => a.id.localeCompare(z.id));
   for (const b of blocks) {
-    if (b.def || !model_of(graph, b.id)) continue;
+    if (b.def || !placed(graph, b.id)) continue;
     if (of_ref(graph, b.id)) {
       const target = stands_for(graph, b.id);
       if (target && target.id !== b.id) add(target.id, { id: b.id, kind: "reference" });
@@ -48,18 +48,27 @@ function index(graph: Graph): Map<Id, DefinitionUse[]> {
   const edges = Object.values(graph.edges).sort((a, z) => a.id.localeCompare(z.id));
   for (const e of edges) {
     if (is_tie(graph, e.id)) continue;
-    if (model_of(graph, owner_of(graph, e.from)) && model_of(graph, owner_of(graph, e.to))) {
+    if (placed(graph, owner_of(graph, e.from)) && placed(graph, owner_of(graph, e.to))) {
       add(e.type ?? "line", { id: e.id, kind: "relation" });
     }
   }
   return by;
 }
 
+/** Whether a block sits where its uses count: in a model, or inside a definition. */
+function placed(graph: Graph, id: Id): boolean {
+  if (model_of(graph, id)) return true;
+  for (let at = graph.blocks[id]?.parent; at; at = graph.blocks[at]?.parent) {
+    if (graph.blocks[at]?.def) return true;
+  }
+  return false;
+}
+
 /** **Where a use is drawn**: the layer holding it, a line's the layer it crosses; null outside
- *  every model. */
+ *  every model and every definition. A definition holding uses is a place as a model's layer is. */
 export function use_place(graph: Graph, id: Id): Id | null {
   const place = graph.edges[id] ? line_layer(graph, id) : layer_of(graph, id);
-  return place && model_of(graph, place) ? place : null;
+  return place && (graph.blocks[place]?.def || placed(graph, place)) ? place : null;
 }
 
 /** The places a definition's uses are drawn in, each once. */

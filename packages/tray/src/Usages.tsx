@@ -1,12 +1,16 @@
-/** **The usages tab, read first**: a definition's card on the left; on the right its uses by
- *  place, a list each, then its subtypes. A record definition's uses are its records, read as a
- *  table under each place that holds them. Hovering a row lights it on the canvas; *view* goes to
- *  where it is drawn. */
+/** **The usages tab, read first**: a definition's card on the left, its places under it as filter
+ *  rows — in models, then in the library (a definition holding uses is a place), then its
+ *  subtypes; on the right its uses by place, a list each, then its subtypes, or the one chosen.
+ *  A record definition's uses are its records, read as a table under each place that holds
+ *  them. Hovering a row lights it on the canvas; *view* goes to where it is drawn. */
 
-import { attributes_of, holds_records, kind_word, shown_name, subtypes, type Graph,
+import { attributes_of, holds_records, kind_word, model_of, shown_name, subtypes, type Graph,
          type Id } from "@mnd/core";
 import { box_label, kind_of, usage_groups } from "@mnd/views";
-import { Empty, Lead, List, Section, type Item } from "./Lists";
+import { ALL, Empty, Filters, Lead, List, Section, type Filter, type Item } from "./Lists";
+
+/** The filter row standing for its subtypes. */
+const SUBTYPES = "@subtypes";
 
 export type UsagesProps = {
   graph: Graph;
@@ -16,21 +20,40 @@ export type UsagesProps = {
   onHover?: (id: Id | null) => void;
   /** Go to where a use is drawn: open its layer and pick it there. */
   onView?: (id: Id) => void;
+  /** The filter chosen, kept by the tray per tab while the element stays. */
+  on: string;
+  onPick: (key: string) => void;
 };
 
-export function Usages({ graph, id, onHover, onView }: UsagesProps) {
-  const groups = usage_groups(graph, id);
+export function Usages({ graph, id, onHover, onView, on, onPick }: UsagesProps) {
+  const all = usage_groups(graph, id);
   const kinds = subtypes(graph, id);
+  const groups = on === SUBTYPES ? [] : all.filter((g) => on === ALL || g.place === on);
+  const row = (g: (typeof all)[number]): Filter => ({
+    key: g.place, name: shown_name(graph, g.place), count: g.uses.length,
+    sub: box_label(graph, g.place).split(" · ")[1] ?? "", lights: [g.place] });
+  const uses = all.reduce((n, g) => n + g.uses.length, 0);
   const fields = attributes_of(graph, id).map((a) => a.name);
   /** **A record definition**: every use held where records are kept, answering its attributes. */
-  const records = fields.length > 0 && groups.length > 0 && groups.every((g) => g.uses.every((u) =>
+  const records = fields.length > 0 && all.length > 0 && all.every((g) => g.uses.every((u) =>
     holds_records(graph, graph.blocks[u.id]?.parent ?? "")));
   const view = (use: Id) => (onView ? (
     <button className="chip" onClick={() => onView(use)}>view</button>
   ) : null);
   return (
     <div className="reads">
-      <Lead graph={graph} id={id} />
+      <Lead graph={graph} id={id}>
+        {all.length || kinds.length ? (
+          <Filters on={on} onPick={onPick} onLight={(at) => onHover?.(at?.[0] ?? null)}
+                   groups={[{ rows: [{ key: ALL, name: "all", count: uses }] },
+                            { label: "in models",
+                              rows: all.filter((g) => model_of(graph, g.place)).map(row) },
+                            { label: "in the library",
+                              rows: all.filter((g) => !model_of(graph, g.place)).map(row) },
+                            { label: "subtypes", rows: kinds.length ? [
+                              { key: SUBTYPES, name: "subtypes", count: kinds.length }] : [] }]} />
+        ) : null}
+      </Lead>
       <div className="lists">
         {records ? (
           <Section name="records" about="Its uses are its records: what each answers, by place">
@@ -48,10 +71,11 @@ export function Usages({ graph, id, onHover, onView }: UsagesProps) {
                       id: u.id, mark: <span className="dash">▪</span>,
                       name: shown_name(graph, u.id), kind: kind_of(graph, u.id),
                       says: view(u.id) }))} />
-            )) : <Empty>Nothing uses it yet. Drop it onto a diagram to use it there.</Empty>}
+            )) : on === SUBTYPES ? null
+              : <Empty>Nothing uses it yet. Drop it onto a diagram to use it there.</Empty>}
           </Section>
         )}
-        {kinds.length ? (
+        {kinds.length && (on === ALL || on === SUBTYPES) ? (
           <Section name="subtypes" about="The definitions that extend it">
             <List label={`extend ${shown_name(graph, id)}`}
                   items={kinds.map((k) => ({ id: k.id, mark: <span className="dash">▪</span>,

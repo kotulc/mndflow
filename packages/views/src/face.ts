@@ -3,7 +3,8 @@
  *  Measured from the text, never the page, so a layout sizes its cards headless. The estimate
  *  follows the face's stylesheet — monospace, a line of 16px, a table row of 17px — near enough
  *  that what is shown fits. A table's columns are measured exactly once, here, and drawn at those
- *  widths, and **a table card is exactly its table**: its title row, its rows and its border. */
+ *  widths, and **a table card is its table**: its title row, its rows — room for two at least, as
+ *  every large face keeps — and its border. */
 
 import { alias_of, attributes_of, behaviours_of, holds_records, is_definition, links_to,
          notation_of, resolved,

@@ -1,9 +1,8 @@
 /** What the library knows of its definitions: where each is used, grouped by the place each use
- *  is drawn, laid out **once** for the registry, the library's chip and the tray's small map alike;
+ *  is drawn, laid out **once** for the registry and the library's chip alike;
  *  what a package or folder files. The library's own map is `map.ts`'s. Worked out on every graph
  *  change, never stored. */
 
-import { hierarchy, treemap } from "d3-hierarchy";
 import { children, definition_uses, is_folder, model_of, models, on_side,
          package_of, shown_name, use_place, type Graph, type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
@@ -33,6 +32,12 @@ export function usage_groups(graph: Graph, def: Id): { place: Id; uses: LocatedU
   return [...by].sort(([a], [z]) => rank(a) - rank(z)
       || shown_name(graph, a).localeCompare(shown_name(graph, z)))
     .map(([place, uses]) => ({ place, uses }));
+}
+
+/** A line by its ends. */
+export function line_name(graph: Graph, id: Id): string {
+  const e = graph.edges[id]!;
+  return `${shown_name(graph, e.from)} → ${shown_name(graph, e.to)}`;
 }
 
 /** The box a place's uses of `def` sit in: an id of its own, never a block's. */
@@ -95,23 +100,8 @@ export function registry_map(graph: Graph, def: Id, w: number, h: number,
     return { id: p.id, x: p.x, y: p.y, w: p.w, h: p.h,
              kind: place ? "box" : e ? "line" : "use",
              label: place ? box_label(graph, place)
-               : e ? `${shown_name(graph, e.from)} → ${shown_name(graph, e.to)}`
+               : e ? line_name(graph, p.id)
                : shown_name(graph, p.id) };
   });
 }
 
-/** What a package or folder files, as a small map: its folders as boxes, each definition a tile
- *  as large as its uses. */
-export function filed_map(graph: Graph, id: Id, w: number, h: number): Tile[] {
-  type Leaf = { id: Id; kids?: Leaf[]; value?: number };
-  const leaf = (at: Id): Leaf => (graph.blocks[at]?.def
-    ? { id: at, value: definition_uses(graph, at).length + 1 }
-    : { id: at, kids: filed(graph, at).map(leaf) });
-  const root = hierarchy<Leaf>(leaf(id), (n) => n.kids?.length ? n.kids : undefined)
-    .sum((n) => n.value ?? 0);
-  const laid = treemap<Leaf>().size([w, h]).round(true).paddingInner(2).paddingOuter(3)
-    .paddingTop((n) => (n.depth === 0 ? 3 : 14))(root);
-  return laid.descendants().slice(1).map((n) => ({
-    id: n.data.id, label: name_of(graph, n.data.id), kind: n.children ? "box" : "def",
-    x: n.x0, y: n.y0, w: n.x1 - n.x0, h: n.y1 - n.y0 }));
-}

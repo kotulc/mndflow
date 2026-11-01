@@ -22,8 +22,9 @@ function seen(p: NodeProps<BoxNode>): string {
   const d = p.data;
   return [
     p.dragging, p.width, p.height,
-    d.label, d.alias ?? "", d.description ?? "", d.def, d.on, d.side, d.role,
-    d.kind ?? "", (d.tiles ?? []).length, d.head ?? "", JSON.stringify(d.facts ?? null),
+    d.label, d.alias ?? "", d.description ?? "", d.def, d.defines, d.on, d.side, d.role,
+    d.kind ?? "", d.upright, d.diagram, JSON.stringify(d.tiles ?? []), d.head ?? "",
+    JSON.stringify(d.facts ?? null),
     JSON.stringify(d.preview ?? null), JSON.stringify(d.bar ?? null),
     (d.stamps ?? []).join(","),
     d.face ?? "", d.text ?? "", d.marks.join(","),

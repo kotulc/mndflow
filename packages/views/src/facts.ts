@@ -57,10 +57,24 @@ export function counted(graph: Graph, ids: readonly Id[]) {
     if (is_interface(graph, id)) ports++;
     else if (!is_notation(graph, id) && !is_holder(graph, id) && !is_header(graph, id)) blocks++;
   }
-  /** A leaf holds no lines, so it scans none. */
-  const lines = all.size < 2 ? 0
+  /** A leaf holds a line only to itself. */
+  const lines = all.size < 2 ? loops(graph).get(ids[0] ?? "") ?? 0
     : Object.values(graph.edges).filter((e) => all.has(e.from) && all.has(e.to)).length;
   return { blocks, lines, ports };
+}
+
+/** Each block's lines to itself, counted once per set of lines. */
+const LOOPED = new WeakMap<object, Map<Id, number>>();
+function loops(graph: Graph): Map<Id, number> {
+  let by = LOOPED.get(graph.edges);
+  if (!by) {
+    by = new Map();
+    for (const e of Object.values(graph.edges)) {
+      if (e.from === e.to) by.set(e.from, (by.get(e.from) ?? 0) + 1);
+    }
+    LOOPED.set(graph.edges, by);
+  }
+  return by;
 }
 
 /** One count in the strip's words, absent at nought. */

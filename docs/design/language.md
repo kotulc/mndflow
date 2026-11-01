@@ -81,7 +81,8 @@
 
 - **a level shows whole or not at all.** A form that cannot fit the next level stays at the one below
 - **the facts strip has one order**: what it counts (uses, places, subtypes, or blocks and lines), attributes, tags. **Never ports** (2026-10-31): a card draws them as seats, the components tab lists them; anywhere else they were clutter
-- **tags are solid dots** in their tag's colour, named beside the dot where there is room (`● critical`). The legend says what each colour means, in a tags section of its own after the blocks
+- **a count sits in a quiet box**, the same neutral line on every element, never the element's colour, so a fact never reads as a child chip (2026-10-31)
+- **tags are solid dots** in their tag's colour, named beside the dot wherever the line has room (`● critical`), decided as zoom changes the room. Names come first-come: the first tags keep theirs, the last fall back to a dot first; a name shows whole or not at all. The dot is sized by the text. The hover card and the tray head name every tag. The legend says what each colour means, in a tags section of its own after the blocks
 - each form says what its level 3 holds: a chip what it gathers, a card its face, a line its ends
 
 

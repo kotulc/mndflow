@@ -10,8 +10,8 @@ import { face_props, known_face, type Face } from "@mnd/views";
 export type FacesProps = { graph: Graph; id: Id;
                             /** One face: the large where its look draws one, else the small. */
                             one?: boolean;
-                            /** A member lit from a list beside it. */
-                            lit?: string };
+                            /** Members lit from a list beside it. */
+                            lit?: readonly string[] };
 
 export function Faces({ graph, id, one = false, lit }: FacesProps) {
   return (
@@ -24,7 +24,8 @@ export function Faces({ graph, id, one = false, lit }: FacesProps) {
 
 /** **One face, the width of its column**: laid wider where the column has room, its text at its
  *  own size; scaled down only where the column is narrower than the card. */
-function One({ graph, id, face, lit }: { graph: Graph; id: Id; face: Face; lit?: string }) {
+function One({ graph, id, face, lit }: { graph: Graph; id: Id; face: Face;
+                                         lit?: readonly string[] }) {
   const { w, h, sample, ...drawn } = face_props(graph, id, face);
   const [held, scale, room] = useFit(w);
   return (
@@ -43,7 +44,7 @@ function One({ graph, id, face, lit }: { graph: Graph; id: Id; face: Face; lit?:
 /** **Its ports as seats** on its sides, as the canvas seats them: in on the left, out and both
  *  ways on the right, spread evenly down each; one lit from a list beside the card. Their names
  *  are the list's: on the card they would cover its rows. */
-function Seats({ graph, id, lit }: { graph: Graph; id: Id; lit?: string }) {
+function Seats({ graph, id, lit = [] }: { graph: Graph; id: Id; lit?: readonly string[] }) {
   const ports = (graph.blocks[id] ? ports_on(graph, id) : [])
     .map((p) => ({ name: p.name ?? "", flow: p.flow ?? "both" }));
   const side = (left: boolean) => ports.filter((p) => (p.flow === "in") === left);
@@ -51,7 +52,7 @@ function Seats({ graph, id, lit }: { graph: Graph; id: Id; lit?: string }) {
     <>
       {[true, false].flatMap((left) => side(left).map((p, i, all) => (
         <span key={`${p.name}${i}`} title={p.name}
-              className={["seat", left ? "in" : "out", p.flow, p.name === lit ? "lit" : ""]
+              className={["seat", left ? "in" : "out", p.flow, lit.includes(p.name) ? "lit" : ""]
                 .filter(Boolean).join(" ")}
               style={{ "--y": `${(100 * (i + 1)) / (all.length + 1)}%` } as CSSProperties} />
       )))}

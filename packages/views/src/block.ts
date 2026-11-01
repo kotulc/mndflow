@@ -108,7 +108,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   const spots = laid(graph, layer);
   /** Interfaces are seated after the cards; hidden ones still hold their seat. */
   const hidden = config.interfaces === false;
-  const { lines: linked, times } = once(graph,
+  const { lines: linked, merged } = once(graph,
                                          edges_in(graph, layer).map((e) => landed(e, layer)));
 
   /** Which component draws each box. Every card is the one card height, so nothing minifies. */
@@ -259,7 +259,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
     layer,
     ...(framed ? { frame: framed } : {}),
     nodes: placed,
-    edges: lines_of(graph, linked, seating, config.ends, times),
+    edges: lines_of(graph, linked, seating, config.ends, merged),
     perches: seating.perches,
     /** A slot says what this projection can offer, never what it is doing. */
     slots: SLOTS,
@@ -430,28 +430,30 @@ function landed(e: Relation, layer: Id | null): Relation {
   return { ...e, from: here(e.from), to: here(e.to) };
 }
 
-/** **Several lines between one pair draw as one**, counted: the same ends, type and name — the
- *  first kept, and how many it stands for. Never a message on a lifeline: each is its own turn. */
+/** **Several lines between one pair draw as one**, counted: the same ends, type and name, and what
+ *  their ends say (multiplicity, role) — the first kept, and the others it stands for. Never a
+ *  message on a lifeline: each is its own turn. */
 function once(graph: Graph, lines: readonly Relation[])
-    : { lines: Relation[]; times: Map<Id, number> } {
+    : { lines: Relation[]; merged: Map<Id, Id[]> } {
   const first = new Map<string, Id>();
-  const times = new Map<Id, number>();
+  const merged = new Map<Id, Id[]>();
   const kept = lines.filter((e) => {
     const timed = has_lifelines(graph, graph.blocks[owner_of(graph, e.from)]?.parent ?? undefined);
-    const key = `${e.from}|${e.to}|${e.type ?? ""}|${label_of(graph, e.id)}`;
+    const key = `${e.from}|${e.to}|${e.type ?? ""}|${label_of(graph, e.id)}|`
+      + JSON.stringify(e.ends ?? null);
     const at = timed ? undefined : first.get(key);
-    if (at) times.set(at, (times.get(at) ?? 1) + 1);
+    if (at) merged.set(at, [...(merged.get(at) ?? []), e.id]);
     else first.set(key, e.id);
     return !at;
   });
-  return { lines: kept, times };
+  return { lines: kept, merged };
 }
 
 /** Every line as the canvas draws it: ends, seats, label, and where it turns, and how many it
  *  stands for. A tie between cards that overlap draws nothing. Where `ends`, a line draws what its
  *  ends mean. */
 function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
-                  ends?: "class" | "er", times = new Map<Id, number>()): LineEdge[] {
+                  ends?: "class" | "er", merged = new Map<Id, Id[]>()): LineEdge[] {
   const met = new Map(seating.perches.map((p) => [`${p.edge}|${p.end}`, p]));
   return linked.map((e): LineEdge => {
     const wire = wire_of(graph, e.id);
@@ -463,7 +465,7 @@ function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
     /** A tie by its trait: drawn straight and never routed. */
     const module = is_tie(graph, e.id) ? "tie" : "line";
     const fan = seating.fans.get(e.id);
-    const n = times.get(e.id);
+    const also = merged.get(e.id);
     return {
       id: e.id,
       ...(link ? { selectable: false, focusable: false } : {}),
@@ -475,7 +477,7 @@ function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
       ...(label ? { label } : {}),
       data: { module, dir: meant ? "none" : dir_of(graph, e.id), wire,
               ...(meant ? { ends: meant } : {}), ...(ends === "er" ? { crows: true } : {}),
-              ...(alias ? { alias } : {}), ...(n ? { times: n } : {}),
+              ...(alias ? { alias } : {}), ...(also ? { times: also.length + 1, also } : {}),
               ...(fan ? { fan } : {}) },
     };
   });

@@ -15,6 +15,7 @@
 
 import { parse } from "yaml";
 import { read_card } from "./card";
+import { USAGE_KEYS } from "./components";
 import { all_defs, block_base, def_at, dir_of, is_notation, package_of } from "./defs";
 import { long_form, type Edge, type Entry, type LongForm, type LibrarySaid } from "./diagram";
 import { renamed, write } from "./file";
@@ -444,13 +445,16 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
     b.def = { ...(attributes.length ? { attributes } : {}),
               ...(e.def.ends ? { ends: e.def.ends } : {}) };
   }
-  /** A usage draws as its definition says: it keeps only the layout of what it opens to. */
-  const looks = !e.def && b.settings ? Object.keys(b.settings).filter((k) => k !== "layout") : [];
+  /** A usage keeps only what `USAGE_KEYS` lets it. */
+  const looks = !e.def && b.settings
+    ? Object.keys(b.settings).filter((k) => !USAGE_KEYS.includes(k)) : [];
   if (looks.length) {
-    ctx.notes.push(`${ctx.file.path}: ${e.name || id} sets ${looks.join(", ")}, `
+    /** Said by a card it draws in, the card is named as where it was said. */
+    const from = e.source ? ` (from ${e.source})` : "";
+    ctx.notes.push(`${ctx.file.path}: ${e.name || id} sets ${looks.join(", ")}${from}, `
       + "which a usage cannot; set it on its definition");
-    const { layout } = b.settings!;
-    if (layout) b.settings = { layout }; else delete b.settings;
+    const kept = Object.entries(b.settings!).filter(([k]) => USAGE_KEYS.includes(k));
+    if (kept.length) b.settings = Object.fromEntries(kept); else delete b.settings;
   }
   if (b.settings) b.settings = ided(ctx, b.settings);
   return type;

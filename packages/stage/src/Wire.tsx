@@ -5,7 +5,7 @@ import { BaseEdge, EdgeLabelRenderer, useStore, type EdgeProps } from "@xyflow/r
 import { avoided_run, crossed, drawn, end_words, heads, line_level, middle_of, route, BARE,
          TEXT_BAND, UNIT, type LineEdge, type Wire as Look } from "@mnd/views";
 import { head_url, Heads, Name, useNaming } from "@mnd/theme";
-import { usePicked } from "./picked";
+import { usePicks } from "./picked";
 
 /** How square a right-angled corner is. */
 const BEND = 6;
@@ -94,7 +94,8 @@ function length_of(run: readonly Pt[]): number {
 export function Wire(props: EdgeProps<LineEdge>) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
           label, data, style } = props;
-  const selected = usePicked(id);
+  /** A line drawn for several (`×n`) is picked when any of them is. */
+  const selected = usePicks([id, ...(data?.also ?? [])]).length > 0;
   const [hot, set_hot] = useState(false);
 
   /** A line with no name still has somewhere to type one. */

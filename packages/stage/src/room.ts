@@ -53,6 +53,9 @@ export function useFocus(scene: Scene, frame: Frame | null, stop: Rect | null,
   const size = `${Math.round(box.w)}x${Math.round(box.h)}|${seen.w}x${seen.h}`;
   const was = useRef<{ key: string; size: string; realm: string } | null>(null);
   const [flying, set_flying] = useState(false);
+  /** The flight's timer: a new flight, or leaving, cancels the last. */
+  const landing = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(landing.current), []);
 
   useEffect(() => {
     if (seen.w < BAND * 2 || seen.h < BAND * 2) return;
@@ -61,9 +64,14 @@ export function useFocus(scene: Scene, frame: Frame | null, stop: Rect | null,
     if (before && before.key === key && before.size === size) return;
     /** The first look, and a view resized, land at once; a new focus is flown to. */
     const fly = before && before.key !== key && before.realm === realm && !still() ? FLIGHT : 0;
-    if (fly) set_flying(true);
-    void flow.setViewport(view_on(box, seen, stop?.scale ?? 1), { duration: fly })
-      .then(() => set_flying(false));
+    /** Held for the flight's length, not until it resolves: an interrupted flight never does. */
+    clearTimeout(landing.current);
+    if (fly) {
+      set_flying(true);
+      landing.current = setTimeout(() => set_flying(false), fly);
+    }
+    else set_flying(false);
+    void flow.setViewport(view_on(box, seen, stop?.scale ?? 1), { duration: fly });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, size]);

@@ -43,6 +43,7 @@
 - **legible or summarised**: a tile is never drawn below its mark. Tiles too small for it fold, smallest first (a place's box with all its uses), into one last tile along the body's foot, *+12 more*, which its hover card lists by place. One use alone never folds; where none shows, a definition shows its profile
 - **structure, never drawing**: a chip previews a diagram's members in its layers, groups, bands and grid rows, never its lines or its laid-out positions
 - **headers are named**: a grid's header strips — a sequence's participants across the top, a swimlane's lanes down the left — are small cards of their header blocks, named (upright down the left) where every row and column keeps room beside them; a named header's column is laid at least four letters wide. A quiet track runs behind each row of headers, the grid's whole width or height
+- **a profile follows its text as drawn**: its rows and their rule sit right under the facts at every zoom, never where text held at its largest would end (2026-10-31)
 - **a class's or an entity's tiles** say their rows, ruled as the card's table is, where they have room; where they do not, the class or entity texture stands in for them. Never both
 - **names read or cut short**: a tile's name is held readable, shrinks toward its laid size to fit its tile, and shows cut short (*Canc…*) wherever four letters and a line fit; below that, its icon alone
 - **read only**: no seats, no lines, no menu, no drag

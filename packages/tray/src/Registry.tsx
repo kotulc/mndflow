@@ -5,8 +5,10 @@
  *  opens on it. A row lights and offers *view*; an entry's head makes that entry the context. */
 
 import { useState, type CSSProperties } from "react";
-import { library_of, type Graph, type Id, type Registry as Of } from "@mnd/core";
+import { KINDS, library_of, type Graph, type Id, type Library,
+         type Registry as Of } from "@mnd/core";
 import { entries_of, look_of, matrix_of, tint_attrs, type Matrix } from "@mnd/views";
+import { Filters, Lead } from "./Lists";
 import { ChipBar, lit_row, Table, type Column } from "./Table";
 
 const COLUMNS: readonly Column[] = [
@@ -199,4 +201,29 @@ function List({ graph, registry, lit, onLit, onOpen, bar }: RegistryProps & { ba
 /** A block's colour, as its card wears it, for its swatch. */
 function paint(graph: Graph, id: Id) {
   return tint_attrs(graph.blocks[id] ? look_of(graph, id) : undefined);
+}
+
+/** **A package's components**: the kinds its library holds as filter rows — types, tags,
+ *  interfaces, constraints, each with its count — and the chosen kind's registry beside them. */
+export function Registries({ pkg, on, onPick, ...props }: Omit<RegistryProps, "registry"> & {
+  pkg: Id; on: string; onPick: (kind: string) => void;
+}) {
+  const lib = library_of(props.graph, pkg);
+  const held = KINDS.filter((k) => lib[k]?.length);
+  const kind = (held.includes(on as keyof Library) ? on : held[0]) as keyof Library | undefined;
+  return (
+    <div className="reads">
+      <Lead graph={props.graph} id={pkg}>
+        {held.length ? (
+          <Filters on={kind ?? ""} onPick={onPick}
+                   groups={[{ label: "kinds", rows: held.map((k) => ({
+                     key: k, name: k, count: lib[k]!.length })) }]} />
+        ) : null}
+      </Lead>
+      <div className="lists">
+        {kind ? <Registry key={kind} {...props} registry={{ pkg, kind }} />
+          : <p className="sec-empty">it declares no types, tags, interfaces or constraints</p>}
+      </div>
+    </div>
+  );
 }

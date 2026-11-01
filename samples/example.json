@@ -791,12 +791,12 @@
         "counters": {
           "note": 5,
           "block": 75,
-          "region": 4,
+          "region": 5,
           "group": 6,
           "label": 1,
           "reference": 24,
           "grid": 1,
-          "relation": 57
+          "relation": 58
         },
         "library": {
           "types": [
@@ -1505,20 +1505,28 @@
       "yaml.overview.shop.back-office.orders.2": {
         "id": "yaml.overview.shop.back-office.orders.2",
         "parent": "yaml.overview.shop.back-office.orders",
-        "name": "Runbook",
-        "type": "services.document",
-        "alias": 10,
-        "body": "# When orders stop flowing\n\nCheck the **relay** first. See the [outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).\n\n| signal | threshold | page |\n|---|---|---|\n| outbox rows | 10 000 | yes |\n| relay lag | 60 s | no |",
+        "name": "Operations",
+        "type": "region",
+        "alias": 5,
         "order": 2
       },
       "yaml.overview.shop.back-office.orders.3": {
         "id": "yaml.overview.shop.back-office.orders.3",
-        "parent": "yaml.overview.shop.back-office.orders",
+        "parent": "yaml.overview.shop.back-office.orders.2",
+        "name": "Runbook",
+        "type": "services.document",
+        "alias": 10,
+        "body": "# When orders stop flowing\n\nCheck the **relay** first. See the [outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).\n\n| signal | threshold | page |\n|---|---|---|\n| outbox rows | 10 000 | yes |\n| relay lag | 60 s | no |",
+        "order": 1
+      },
+      "yaml.overview.shop.back-office.orders.4": {
+        "id": "yaml.overview.shop.back-office.orders.4",
+        "parent": "yaml.overview.shop.back-office.orders.2",
         "name": "Release notes",
         "type": "services.document",
         "alias": 11,
         "body": "v2 of the orders API: the checkout key is required.",
-        "order": 3
+        "order": 2
       },
       "yaml.overview.shop.back-office.payments": {
         "id": "yaml.overview.shop.back-office.payments",
@@ -2877,7 +2885,7 @@
       "yaml.Records.line.r1": {
         "id": "yaml.Records.line.r1",
         "type": "association",
-        "alias": 45,
+        "alias": 46,
         "ends": {
           "from": {
             "multiplicity": "*"
@@ -2894,7 +2902,7 @@
       "yaml.Records.order.order-states.r1": {
         "id": "yaml.Records.order.order-states.r1",
         "type": "transition",
-        "alias": 48,
+        "alias": 49,
         "from": "yaml.Records.order.order-states.1",
         "order": 0,
         "to": "yaml.Records.order.order-states.2"
@@ -2903,7 +2911,7 @@
         "id": "yaml.Records.order.order-states.r2",
         "name": "charged",
         "type": "transition",
-        "alias": 49,
+        "alias": 50,
         "from": "yaml.Records.order.order-states.2",
         "order": 1,
         "to": "yaml.Records.order.order-states.3"
@@ -2912,7 +2920,7 @@
         "id": "yaml.Records.order.order-states.r3",
         "name": "declined",
         "type": "transition",
-        "alias": 50,
+        "alias": 51,
         "from": "yaml.Records.order.order-states.2",
         "order": 2,
         "to": "yaml.Records.order.order-states.6"
@@ -2921,7 +2929,7 @@
         "id": "yaml.Records.order.order-states.r4",
         "name": "retry",
         "type": "transition",
-        "alias": 51,
+        "alias": 52,
         "from": "yaml.Records.order.order-states.6",
         "order": 3,
         "to": "yaml.Records.order.order-states.2"
@@ -2930,7 +2938,7 @@
         "id": "yaml.Records.order.order-states.r5",
         "name": "gave up",
         "type": "transition",
-        "alias": 52,
+        "alias": 53,
         "from": "yaml.Records.order.order-states.6",
         "order": 4,
         "to": "yaml.Records.order.order-states.7"
@@ -2939,7 +2947,7 @@
         "id": "yaml.Records.order.order-states.r6",
         "name": "handed over",
         "type": "transition",
-        "alias": 53,
+        "alias": 54,
         "from": "yaml.Records.order.order-states.3",
         "order": 5,
         "to": "yaml.Records.order.order-states.4"
@@ -2948,7 +2956,7 @@
         "id": "yaml.Records.order.order-states.r7",
         "name": "signed for",
         "type": "transition",
-        "alias": 54,
+        "alias": 55,
         "from": "yaml.Records.order.order-states.4",
         "order": 6,
         "to": "yaml.Records.order.order-states.5"
@@ -2956,7 +2964,7 @@
       "yaml.Records.order.order-states.r8": {
         "id": "yaml.Records.order.order-states.r8",
         "type": "transition",
-        "alias": 55,
+        "alias": 56,
         "from": "yaml.Records.order.order-states.5",
         "order": 7,
         "to": "yaml.Records.order.order-states.8"
@@ -2964,7 +2972,7 @@
       "yaml.Records.order.order-states.r9": {
         "id": "yaml.Records.order.order-states.r9",
         "type": "transition",
-        "alias": 56,
+        "alias": 57,
         "from": "yaml.Records.order.order-states.7",
         "order": 8,
         "to": "yaml.Records.order.order-states.8"
@@ -2972,7 +2980,7 @@
       "yaml.Records.order.r1": {
         "id": "yaml.Records.order.r1",
         "type": "association",
-        "alias": 46,
+        "alias": 47,
         "ends": {
           "from": {
             "multiplicity": "*"
@@ -2989,7 +2997,7 @@
       "yaml.Records.order.r2": {
         "id": "yaml.Records.order.r2",
         "type": "composition",
-        "alias": 47,
+        "alias": 48,
         "ends": {
           "to": {
             "multiplicity": "1..*",
@@ -3003,7 +3011,7 @@
       "yaml.Records.payment.r1": {
         "id": "yaml.Records.payment.r1",
         "type": "association",
-        "alias": 57,
+        "alias": 58,
         "ends": {
           "from": {
             "multiplicity": "0..*",
@@ -3066,7 +3074,7 @@
       "yaml.overview.shop.back-office.orders.r1": {
         "id": "yaml.overview.shop.back-office.orders.r1",
         "name": "placed",
-        "alias": 13,
+        "alias": 14,
         "from": "yaml.overview.shop.back-office.orders",
         "fromPort": "yaml.overview.shop.back-office.orders.port.in",
         "order": 0,
@@ -3080,7 +3088,7 @@
       },
       "yaml.overview.shop.back-office.payments.payment-retry.r1": {
         "id": "yaml.overview.shop.back-office.payments.payment-retry.r1",
-        "alias": 14,
+        "alias": 15,
         "from": "yaml.overview.shop.back-office.payments.payment-retry.1",
         "order": 0,
         "settings": {
@@ -3092,7 +3100,7 @@
       },
       "yaml.overview.shop.back-office.payments.payment-retry.r2": {
         "id": "yaml.overview.shop.back-office.payments.payment-retry.r2",
-        "alias": 15,
+        "alias": 16,
         "from": "yaml.overview.shop.back-office.payments.payment-retry.2",
         "order": 1,
         "settings": {
@@ -3105,7 +3113,7 @@
       "yaml.overview.shop.back-office.payments.payment-retry.r3": {
         "id": "yaml.overview.shop.back-office.payments.payment-retry.r3",
         "name": "yes",
-        "alias": 16,
+        "alias": 17,
         "from": "yaml.overview.shop.back-office.payments.payment-retry.3",
         "order": 2,
         "settings": {
@@ -3118,7 +3126,7 @@
       "yaml.overview.shop.back-office.payments.payment-retry.r4": {
         "id": "yaml.overview.shop.back-office.payments.payment-retry.r4",
         "name": "no",
-        "alias": 17,
+        "alias": 18,
         "from": "yaml.overview.shop.back-office.payments.payment-retry.3",
         "order": 3,
         "settings": {
@@ -3131,7 +3139,7 @@
       "yaml.overview.shop.back-office.payments.payment-retry.r5": {
         "id": "yaml.overview.shop.back-office.payments.payment-retry.r5",
         "name": "yes",
-        "alias": 18,
+        "alias": 19,
         "from": "yaml.overview.shop.back-office.payments.payment-retry.4",
         "order": 4,
         "settings": {
@@ -3143,7 +3151,7 @@
       },
       "yaml.overview.shop.back-office.payments.payment-retry.r6": {
         "id": "yaml.overview.shop.back-office.payments.payment-retry.r6",
-        "alias": 19,
+        "alias": 20,
         "from": "yaml.overview.shop.back-office.payments.payment-retry.5",
         "order": 5,
         "settings": {
@@ -3156,7 +3164,7 @@
       "yaml.overview.shop.back-office.payments.payment-retry.r7": {
         "id": "yaml.overview.shop.back-office.payments.payment-retry.r7",
         "name": "no",
-        "alias": 20,
+        "alias": 21,
         "from": "yaml.overview.shop.back-office.payments.payment-retry.4",
         "order": 6,
         "settings": {
@@ -3168,7 +3176,7 @@
       },
       "yaml.overview.shop.back-office.payments.payment-retry.r8": {
         "id": "yaml.overview.shop.back-office.payments.payment-retry.r8",
-        "alias": 21,
+        "alias": 22,
         "from": "yaml.overview.shop.back-office.payments.payment-retry.6",
         "order": 7,
         "settings": {
@@ -3180,7 +3188,7 @@
       },
       "yaml.overview.shop.back-office.payments.payment-retry.r9": {
         "id": "yaml.overview.shop.back-office.payments.payment-retry.r9",
-        "alias": 22,
+        "alias": 23,
         "from": "yaml.overview.shop.back-office.payments.payment-retry.7",
         "order": 8,
         "settings": {
@@ -3192,7 +3200,7 @@
       },
       "yaml.overview.shop.customer-facing.storefront.r1": {
         "id": "yaml.overview.shop.customer-facing.storefront.r1",
-        "alias": 23,
+        "alias": 24,
         "from": "yaml.overview.shop.customer-facing.storefront",
         "fromPort": "yaml.overview.shop.customer-facing.storefront.port.https",
         "order": 0,
@@ -3207,7 +3215,7 @@
       "yaml.overview.shop.customer-facing.storefront.r2": {
         "id": "yaml.overview.shop.customer-facing.storefront.r2",
         "name": "price",
-        "alias": 24,
+        "alias": 25,
         "from": "yaml.overview.shop.customer-facing.storefront.2",
         "fromPort": "yaml.overview.shop.customer-facing.storefront.2.port.out",
         "order": 1,
@@ -3222,7 +3230,7 @@
       "yaml.overview.shop.customer-facing.storefront.r3": {
         "id": "yaml.overview.shop.customer-facing.storefront.r3",
         "name": "pay",
-        "alias": 25,
+        "alias": 26,
         "from": "yaml.overview.shop.customer-facing.storefront.2",
         "fromPort": "yaml.overview.shop.customer-facing.storefront.2.port.out",
         "order": 2,
@@ -3236,7 +3244,7 @@
       },
       "yaml.overview.shop.customer-facing.storefront.r4": {
         "id": "yaml.overview.shop.customer-facing.storefront.r4",
-        "alias": 26,
+        "alias": 27,
         "from": "yaml.overview.shop.customer-facing.storefront.4",
         "fromPort": "yaml.overview.shop.customer-facing.storefront.4.port.card",
         "order": 3,
@@ -3251,7 +3259,7 @@
       "yaml.overview.shop.customer-facing.storefront.r5": {
         "id": "yaml.overview.shop.customer-facing.storefront.r5",
         "name": "paid",
-        "alias": 27,
+        "alias": 28,
         "from": "yaml.overview.shop.customer-facing.storefront.4",
         "fromPort": "yaml.overview.shop.customer-facing.storefront.4.port.events",
         "order": 4,
@@ -3265,7 +3273,7 @@
       },
       "yaml.overview.shop.customer-facing.storefront.r6": {
         "id": "yaml.overview.shop.customer-facing.storefront.r6",
-        "alias": 28,
+        "alias": 29,
         "from": "yaml.overview.shop.customer-facing.storefront.4",
         "fromPort": "yaml.overview.shop.customer-facing.storefront.4.port.events",
         "order": 5,
@@ -3280,7 +3288,7 @@
       "yaml.overview.shop.customer-facing.storefront.t1": {
         "id": "yaml.overview.shop.customer-facing.storefront.t1",
         "type": "tie",
-        "alias": 29,
+        "alias": 30,
         "from": "yaml.overview.shop.customer-facing.storefront.1",
         "to": "yaml.overview.shop.customer-facing.storefront",
         "toPort": "yaml.overview.shop.customer-facing.storefront.port.https"
@@ -3289,7 +3297,7 @@
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga.r1",
         "name": "checkout",
         "type": "message",
-        "alias": 30,
+        "alias": 31,
         "from": "yaml.overview.shop.how-it-runs.1-checkout-saga.10",
         "order": 0,
         "to": "yaml.overview.shop.how-it-runs.1-checkout-saga.11"
@@ -3298,7 +3306,7 @@
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga.r2",
         "name": "start",
         "type": "message",
-        "alias": 31,
+        "alias": 32,
         "from": "yaml.overview.shop.how-it-runs.1-checkout-saga.11",
         "order": 1,
         "to": "yaml.overview.shop.how-it-runs.1-checkout-saga.12"
@@ -3307,7 +3315,7 @@
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga.r3",
         "name": "charge",
         "type": "message",
-        "alias": 32,
+        "alias": 33,
         "from": "yaml.overview.shop.how-it-runs.1-checkout-saga.12",
         "order": 2,
         "to": "yaml.overview.shop.how-it-runs.1-checkout-saga.13"
@@ -3316,7 +3324,7 @@
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga.r4",
         "name": "reserve",
         "type": "message",
-        "alias": 33,
+        "alias": 34,
         "from": "yaml.overview.shop.how-it-runs.1-checkout-saga.13",
         "order": 3,
         "to": "yaml.overview.shop.how-it-runs.1-checkout-saga.14"
@@ -3325,7 +3333,7 @@
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga.r5",
         "name": "log step",
         "type": "message",
-        "alias": 34,
+        "alias": 35,
         "from": "yaml.overview.shop.how-it-runs.1-checkout-saga.15",
         "order": 4,
         "to": "yaml.overview.shop.how-it-runs.1-checkout-saga.15"
@@ -3334,7 +3342,7 @@
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga.r6",
         "name": "reserved",
         "type": "reply",
-        "alias": 35,
+        "alias": 36,
         "from": "yaml.overview.shop.how-it-runs.1-checkout-saga.14",
         "order": 5,
         "to": "yaml.overview.shop.how-it-runs.1-checkout-saga.15"
@@ -3342,7 +3350,7 @@
       "yaml.overview.shop.how-it-runs.2-fulfilment.r1": {
         "id": "yaml.overview.shop.how-it-runs.2-fulfilment.r1",
         "name": "order placed",
-        "alias": 36,
+        "alias": 37,
         "from": "yaml.overview.shop.how-it-runs.2-fulfilment.7",
         "order": 0,
         "settings": {
@@ -3355,7 +3363,7 @@
       "yaml.overview.shop.how-it-runs.2-fulfilment.r2": {
         "id": "yaml.overview.shop.how-it-runs.2-fulfilment.r2",
         "name": "picked",
-        "alias": 37,
+        "alias": 38,
         "from": "yaml.overview.shop.how-it-runs.2-fulfilment.8",
         "order": 1,
         "settings": {
@@ -3368,7 +3376,7 @@
       "yaml.overview.shop.how-it-runs.2-fulfilment.r3": {
         "id": "yaml.overview.shop.how-it-runs.2-fulfilment.r3",
         "name": "tracking number",
-        "alias": 38,
+        "alias": 39,
         "from": "yaml.overview.shop.how-it-runs.2-fulfilment.9",
         "order": 2,
         "settings": {
@@ -3380,7 +3388,7 @@
       },
       "yaml.overview.shop.how-it-runs.3-deployment.r1": {
         "id": "yaml.overview.shop.how-it-runs.3-deployment.r1",
-        "alias": 39,
+        "alias": 40,
         "from": "yaml.overview.shop.how-it-runs.3-deployment.6",
         "order": 0,
         "settings": {
@@ -3392,7 +3400,7 @@
       },
       "yaml.overview.shop.how-it-runs.3-deployment.r2": {
         "id": "yaml.overview.shop.how-it-runs.3-deployment.r2",
-        "alias": 40,
+        "alias": 41,
         "from": "yaml.overview.shop.how-it-runs.3-deployment.7",
         "order": 1,
         "settings": {
@@ -3404,7 +3412,7 @@
       },
       "yaml.overview.shop.how-it-runs.3-deployment.r3": {
         "id": "yaml.overview.shop.how-it-runs.3-deployment.r3",
-        "alias": 41,
+        "alias": 42,
         "from": "yaml.overview.shop.how-it-runs.3-deployment.8",
         "order": 2,
         "settings": {
@@ -3417,7 +3425,7 @@
       "yaml.overview.shop.how-it-runs.3-deployment.r4": {
         "id": "yaml.overview.shop.how-it-runs.3-deployment.r4",
         "name": "replicates",
-        "alias": 42,
+        "alias": 43,
         "from": "yaml.overview.shop.how-it-runs.3-deployment.9",
         "order": 3,
         "settings": {
@@ -3430,14 +3438,14 @@
       "yaml.overview.shop.how-it-runs.3-deployment.t2": {
         "id": "yaml.overview.shop.how-it-runs.3-deployment.t2",
         "type": "tie",
-        "alias": 43,
+        "alias": 44,
         "from": "yaml.overview.shop.how-it-runs.3-deployment.2",
         "to": "yaml.overview.shop.how-it-runs.3-deployment.1"
       },
       "yaml.overview.shop.how-it-runs.3-deployment.t4": {
         "id": "yaml.overview.shop.how-it-runs.3-deployment.t4",
         "type": "tie",
-        "alias": 44,
+        "alias": 45,
         "from": "yaml.overview.shop.how-it-runs.3-deployment.4",
         "to": "yaml.overview.shop.how-it-runs.3-deployment.3"
       },
@@ -3448,6 +3456,20 @@
         "from": "yaml.overview.shop.9",
         "order": 0,
         "to": "yaml.overview.shop.2"
+      },
+      "yaml.overview.shop.r10": {
+        "id": "yaml.overview.shop.r10",
+        "alias": 13,
+        "from": "yaml.overview.shop.5",
+        "fromPort": "yaml.overview.shop.5.port.carrier",
+        "order": 9,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.overview.shop",
+        "toPort": "yaml.overview.shop.port.shipments"
       },
       "yaml.overview.shop.r2": {
         "id": "yaml.overview.shop.r2",
@@ -3480,11 +3502,26 @@
       },
       "yaml.overview.shop.r4": {
         "id": "yaml.overview.shop.r4",
-        "name": "pay",
+        "name": "routes",
         "alias": 7,
+        "from": "yaml.overview.shop.2",
+        "fromPort": "services.yaml.patterns.api-gateway.port.routes",
+        "order": 3,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.overview.shop.customer-facing.storefront",
+        "toPort": "yaml.overview.shop.customer-facing.storefront.port.https"
+      },
+      "yaml.overview.shop.r5": {
+        "id": "yaml.overview.shop.r5",
+        "name": "pay",
+        "alias": 8,
         "from": "yaml.overview.shop.customer-facing.storefront",
         "fromPort": "yaml.overview.shop.customer-facing.storefront.port.pay",
-        "order": 3,
+        "order": 4,
         "settings": {
           "line": {
             "dir": "forward"
@@ -3493,13 +3530,13 @@
         "to": "yaml.overview.shop.back-office.payments",
         "toPort": "services.yaml.patterns.circuit-breaker.port.in"
       },
-      "yaml.overview.shop.r5": {
-        "id": "yaml.overview.shop.r5",
+      "yaml.overview.shop.r6": {
+        "id": "yaml.overview.shop.r6",
         "name": "placed",
-        "alias": 8,
+        "alias": 9,
         "from": "yaml.overview.shop.customer-facing.storefront",
         "fromPort": "yaml.overview.shop.customer-facing.storefront.port.orders",
-        "order": 4,
+        "order": 5,
         "settings": {
           "line": {
             "dir": "forward"
@@ -3508,12 +3545,12 @@
         "to": "yaml.overview.shop.back-office.orders",
         "toPort": "yaml.overview.shop.back-office.orders.port.in"
       },
-      "yaml.overview.shop.r6": {
-        "id": "yaml.overview.shop.r6",
-        "alias": 9,
+      "yaml.overview.shop.r7": {
+        "id": "yaml.overview.shop.r7",
+        "alias": 10,
         "from": "yaml.overview.shop.back-office.payments",
         "fromPort": "services.yaml.patterns.circuit-breaker.port.remote",
-        "order": 5,
+        "order": 6,
         "settings": {
           "line": {
             "dir": "forward"
@@ -3522,24 +3559,9 @@
         "to": "yaml.overview.shop",
         "toPort": "yaml.overview.shop.port.charges"
       },
-      "yaml.overview.shop.r7": {
-        "id": "yaml.overview.shop.r7",
-        "name": "reserve",
-        "alias": 10,
-        "from": "yaml.overview.shop.back-office.orders",
-        "fromPort": "services.yaml.patterns.transactional-outbox.port.events",
-        "order": 6,
-        "settings": {
-          "line": {
-            "dir": "forward"
-          }
-        },
-        "to": "yaml.overview.shop.4",
-        "toPort": "yaml.overview.shop.4.port.events"
-      },
       "yaml.overview.shop.r8": {
         "id": "yaml.overview.shop.r8",
-        "name": "ship",
+        "name": "reserve",
         "alias": 11,
         "from": "yaml.overview.shop.back-office.orders",
         "fromPort": "services.yaml.patterns.transactional-outbox.port.events",
@@ -3549,22 +3571,23 @@
             "dir": "forward"
           }
         },
-        "to": "yaml.overview.shop.5",
-        "toPort": "yaml.overview.shop.5.port.events"
+        "to": "yaml.overview.shop.4",
+        "toPort": "yaml.overview.shop.4.port.events"
       },
       "yaml.overview.shop.r9": {
         "id": "yaml.overview.shop.r9",
+        "name": "ship",
         "alias": 12,
-        "from": "yaml.overview.shop.5",
-        "fromPort": "yaml.overview.shop.5.port.carrier",
+        "from": "yaml.overview.shop.back-office.orders",
+        "fromPort": "services.yaml.patterns.transactional-outbox.port.events",
         "order": 8,
         "settings": {
           "line": {
             "dir": "forward"
           }
         },
-        "to": "yaml.overview.shop",
-        "toPort": "yaml.overview.shop.port.shipments"
+        "to": "yaml.overview.shop.5",
+        "toPort": "yaml.overview.shop.5.port.events"
       }
     }
   }

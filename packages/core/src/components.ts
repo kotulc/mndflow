@@ -5,6 +5,10 @@ import { BASE_RELATIONS, BLOCK_MODULES, DIRS, type Components } from "./types";
 /** What a definition holds under one component's key. */
 export type Settings = Record<string, unknown>;
 
+/** **A usage draws as its definition says**: the one setting it keeps is the layout of what it
+ *  opens to. Read by the reader, `look` and `define_from`. */
+export const USAGE_KEYS: readonly string[] = ["layout"];
+
 /** One published component. `check` answers the same question an action's does — why this would not
  *  work, in words, or null. */
 export type Component = {

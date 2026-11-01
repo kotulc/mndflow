@@ -9,7 +9,7 @@ import { base_of, children, class_of, def_at, definition_uses, diagram_kind, dom
 import { carried } from "./derive";
 import { card_facts, counted, facts_of, type Facts } from "./facts";
 import { edge_of, face_table, face_text, head_words, listed, name_fit } from "./face";
-import { box_label, box_place, usage_groups } from "./library";
+import { box_label, box_place, line_name, usage_groups } from "./library";
 import { entry_look, face_attrs, look_of, PLAIN, tint_attrs, wire_of, wire_tint, type Look,
          type Tint } from "./look";
 import type { Ruled } from "./scene";
@@ -193,12 +193,6 @@ export function folded_hover(graph: Graph, ids: readonly Id[]): Hovered {
       .concat(names.length > PER_PLACE ? [`+${names.length - PER_PLACE}`] : []) }));
   return { path: "", label: `${ids.length} more`, kind: ids.length === 1 ? "use" : "uses",
            facts: { counts: [], tags: [] }, used };
-}
-
-/** A line by its ends. */
-function line_name(graph: Graph, id: Id): string {
-  const e = graph.edges[id]!;
-  return `${shown_name(graph, e.from)} → ${shown_name(graph, e.to)}`;
 }
 
 /** **The place a usage box stands for**, where an id is one: a definition's chip, its registry,

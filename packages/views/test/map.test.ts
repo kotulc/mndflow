@@ -36,8 +36,10 @@ describe("the library's map", () => {
 
   it("previews a definition's uses as its registry lays them, or its profile", () => {
     const data = node(scene.nodes, "service")!.data;
-    const laid = registry_map(g, "service", 400, 200).map((t) => t.id).sort();
-    if (data.tiles) expect(data.tiles.map((t) => t.id).sort()).toEqual(laid);
+    const laid = registry_map(g, "service", 400, 200).map((t) => t.id);
+    /** What the chip has no room for folds into *+n more*; the rest is the registry's. */
+    const shown = data.tiles?.filter((t) => t.as !== "more").map((t) => t.id);
+    if (shown) expect(laid).toEqual(expect.arrayContaining(shown));
     else expect(data.bar?.length).toBeGreaterThan(0);
   });
 });

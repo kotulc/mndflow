@@ -10,7 +10,7 @@ const scene = registry_scene(g, "service")!;
 
 describe("a definition's registry", () => {
   it("groups its uses by the place each is drawn, across packages", () => {
-    expect(usage_groups(g, "service").map((x) => x.place).sort()).toEqual(["far", "shop", "stage"]);
+    expect(usage_groups(g, "service").map((x) => x.place).sort()).toEqual(["far", "pattern", "shop", "stage"]);
   });
 
   it("weighs a use by what it holds, and a line as one", () => {
