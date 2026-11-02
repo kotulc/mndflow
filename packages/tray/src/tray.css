@@ -277,18 +277,28 @@ fieldset.fields { padding: 0; }
                   font-variant-numeric: tabular-nums; }
 .frow.on > .fcount { color: var(--accent); }
 
-/* **Where it lives**, under the overview's card (`Where`): the whole model or package as quiet
-   boxes, the path to the element firmer, the element in the accent. */
-.where { position: relative; width: 100%; border: 1px solid var(--divider); border-radius: 2px;
-         background: var(--bg); overflow: hidden; }
-.where-box { position: absolute; box-sizing: border-box; border: 1px solid var(--divider);
-             border-radius: 1px; overflow: hidden; }
-.where-box.path { border-color: var(--border); }
-.where-box.lit { border-color: var(--accent);
-                 background: color-mix(in oklch, var(--accent) 18%, transparent);
-                 box-shadow: 0 0 0 1px var(--accent); }
-.where-name { display: block; padding: 0 3px; color: var(--faint); font-size: 9px;
-              line-height: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* **Where it lives**, under the overview's card (`Where`): a compact tree of the major block
+   holding the element — boxes and chips outlined, the room ringed, the element in the accent —
+   filling the column's room below the card. A scope's card is one compact tree. */
+.where-map { position: relative; flex: 1; min-height: 140px; border: 1px solid var(--divider);
+             border-radius: 2px; background: var(--bg); overflow: hidden; }
+.where-map.card { flex: none; min-height: 0; aspect-ratio: 4 / 3; }
+.where-box { position: absolute; box-sizing: border-box; overflow: hidden; border-radius: 2px;
+             border: 1px solid var(--divider); }
+.where-box.on { border-color: var(--border); }
+.where-box.room { border-color: var(--muted); background: var(--surface); }
+.where-box.lit { border: 1.5px solid var(--accent);
+                 background: color-mix(in oklch, var(--accent) 40%, var(--bg)); }
+.where-name { display: block; padding: 0 2px; color: var(--faint); font-size: 9px;
+              line-height: 11px; white-space: nowrap; }
+.where-box.on > .where-name { color: var(--muted); }
+.where-box.room > .where-name { color: var(--text); font-weight: 600; }
+.where-tag { position: absolute; z-index: 1; box-sizing: border-box; overflow: hidden;
+             white-space: nowrap; font-size: 10.5px; font-weight: 600; line-height: 16px;
+             pointer-events: none; }
+.where-tag.in { padding: 1px 4px; color: var(--text); }
+.where-tag.in.small { font-size: 9px; line-height: 12px; }
+.where-tag.out { padding: 0 5px; border-radius: 2px; background: var(--accent); color: var(--bg); }
 
 /* **Its path**, heading the overview's answers: where it is filed, its own name last. */
 .ov .trail { display: flex; flex-wrap: wrap; gap: 0 6px; color: var(--muted); font-size: 12px; }
@@ -361,7 +371,15 @@ fieldset.fields { padding: 0; }
 .item > .name { white-space: nowrap; }
 .item > .kind { min-width: 0; overflow: hidden; color: var(--muted); font-size: 11px;
                 text-overflow: ellipsis; white-space: nowrap; }
-.item > .says { color: var(--muted); font-size: 11.5px; text-align: right; white-space: nowrap; }
+.item > .says { min-width: 0; color: var(--muted); font-size: 11.5px; text-align: right;
+                white-space: nowrap; }
+/* A row's words and its action: the words give way, the action stays. */
+.item > .says:has(> .drop) { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.item > .says > .txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.item > .says > .drop { flex: none; }
+/* A row taking a name to add: its field, then its button. */
+.add-row { display: flex; gap: 6px; align-items: center; }
+.add-row > input { flex: 1; min-width: 0; }
 .item .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--card-edge, var(--muted)); }
 .item .seat-mark { width: 9px; height: 9px; background: currentColor;
                    mask: var(--seat-mark) center / 100% 100% no-repeat; }
@@ -414,12 +432,14 @@ fieldset.fields { padding: 0; }
 }
 @container (min-width: 560px) {
   .ov { grid-template-columns: var(--lead) minmax(0, 1fr);
-        grid-template-rows: auto 1fr;
+        grid-template-rows: auto 1fr; flex: 1 0 auto; align-items: stretch;
         grid-template-areas: "card answers" "pic answers"; row-gap: var(--stack); }
+  .ov > .ov-card { align-self: start; }
   .ov > .ov-answers { padding-left: var(--gap); border-left: 1px solid var(--divider); }
 }
 .ov-card { grid-area: card; display: grid; gap: var(--stack); align-content: start; min-width: 0; }
-.ov-pic { grid-area: pic; display: grid; gap: var(--stack); align-content: start; min-width: 0; }
+.ov-pic { grid-area: pic; display: flex; flex-direction: column; gap: var(--stack); min-width: 0;
+          min-height: 0; }
 .ov-answers { grid-area: answers; }
 .ov .opens { display: flex; gap: 6px; justify-content: flex-end; }
 .ov .make { display: flex; flex-wrap: wrap; gap: 4px; }

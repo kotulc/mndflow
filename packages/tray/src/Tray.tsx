@@ -20,12 +20,12 @@ import { Contents, DEFINITIONS, holds_any } from "./Contents";
 import { type Shelf } from "./Definitions";
 import { Element } from "./Element";
 import { Json } from "./Json";
-import { ALL } from "./Lists";
+import { ALL, Lead } from "./Lists";
 import { Overview } from "./Overview";
 import { Packages, type Offered } from "./Packages";
 import { Registries } from "./Registry";
 import { Usages } from "./Usages";
-import { DisplaySettings, Workspace, type Display } from "./Workspace";
+import { DisplaySettings, type Display } from "./Workspace";
 
 /** What the tray holds that the canvas did not give it. */
 export type Hold =
@@ -273,9 +273,7 @@ export function Tray(props: TrayProps) {
       )}
     >
       {shows === "json" ? <Json graph={graph} id={about} /> : null}
-      {shows === "overview" && context === "workspace" ? (
-        <Workspace graph={graph} {...(edits ? { onAct: act } : {})} />
-      ) : shows === "overview" ? (
+      {shows === "overview" ? (
         <Overview key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})}
                   {...(props.lists ? { lists: props.lists } : {})} />
       ) : null}
@@ -296,7 +294,12 @@ export function Tray(props: TrayProps) {
       ) : null}
       {/* How it draws: a definition's keys; the workspace's display. */}
       {shows === "settings" && context === "workspace" && props.display ? (
-        <DisplaySettings display={props.display} onAct={props.onDisplay ?? act} />
+        <div className="reads">
+          <Lead graph={graph} id={about} />
+          <div className="lists">
+            <DisplaySettings display={props.display} onAct={props.onDisplay ?? act} />
+          </div>
+        </div>
       ) : shows === "settings" ? (
         <Element graph={graph} id={about} keys="settings" {...(edits ? { onAct: act } : {})}
                  onOpen={open_id} />
@@ -304,7 +307,8 @@ export function Tray(props: TrayProps) {
       {/* What it carries: an element's members; what the workspace draws on; a package's
           library. */}
       {shows === "components" && context === "workspace" ? (
-        <Packages graph={graph} offered={props.offered} onAct={edits ? act : NOOP} />
+        <Packages graph={graph} offered={props.offered} on={filter("components")}
+                  onPick={choose("components")} onAct={edits ? act : NOOP} />
       ) : shows === "components" && context === "package" ? (
         <Registries graph={graph} pkg={about} on={filter("components")}
                     onPick={choose("components")} lit={lit} onLit={set_lit} onOpen={open_id}

@@ -12,7 +12,7 @@ export { Overview, type OverviewProps } from "./Overview";
 export { Usages, type UsagesProps } from "./Usages";
 export { Registry, type RegistryProps } from "./Registry";
 export { Element, type ElementProps } from "./Element";
-export { Workspace, type Display, type WorkspaceProps } from "./Workspace";
+export { type Display } from "./Workspace";
 export { Drawing, type DrawingProps } from "./Drawing";
 export { Part, type PartProps } from "./Looks";
 export { Packages, type Offered, type PackagesProps } from "./Packages";

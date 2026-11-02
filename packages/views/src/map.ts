@@ -856,9 +856,15 @@ export function box_for(id: Id, scene: Scene): { box: BoxNode; nodes: BoxNode[] 
   return { box, nodes: scene.nodes.filter((n) => inside(n.id)) };
 }
 
-/** The map an element's picture comes from: the library's for a definition, else the models'. */
+/** **The map an element is drawn from**: the library's for a definition, and for a package that
+ *  files definitions; the models' for the workspace while any package holds a model; else the
+ *  models'. */
 export function chip_map(graph: Graph, id: Id): "library" | "models" {
-  return !graph.edges[id] && graph.blocks[id]?.def ? "library" : "models";
+  const b = graph.edges[id] ? undefined : graph.blocks[id];
+  if (id === graph.root) {
+    return packages(graph).some((p) => on_side(graph, p.id, "structure")) ? "models" : "library";
+  }
+  return b?.def || (b && b.parent === null && filed(graph, id).length) ? "library" : "models";
 }
 
 /** **An element's picture is a chip off the map**, never a scaled drawing: its own chip where it
@@ -876,59 +882,123 @@ export function chip_for(graph: Graph, id: Id, scene: Scene): { chip: BoxNode; l
   return room ? { chip: room, lit: ends } : null;
 }
 
-/** One box of an element's where-it-lives map, as a share of the whole map: named at the top
- *  levels, firmer on the path down to the element, lit where it is the element. */
-export type WhereBox = { id: Id; x: number; y: number; w: number; h: number; depth: number;
-                         label?: string; path?: boolean; lit?: boolean };
+/** One box of a where-it-lives picture, in its pixels: a box, chip or block of its compact tree.
+ *  `holds` where its name heads what it holds; `on` on the path to the element, `room` where the
+ *  element sits, `lit` the element. */
+export type WhereBox = { id: Id; label: string; x: number; y: number; w: number; h: number;
+                         holds?: boolean; chip?: boolean; on?: boolean; room?: boolean;
+                         lit?: boolean };
+type WhereRect = { x: number; y: number; w: number; h: number };
 
-/** How deep under its package the where-it-lives map draws everything; below, only the path to
- *  the element. */
-const WHERE_DEPTH = 3;
+/** The picture's air: a name's line over what a box holds, the gap round and between blocks. */
+const WHERE = { title: 12, gap: 2 };
 
-/** **Where an element lives**, off its map (`scene`): the package it sits in — the whole map for
- *  the workspace — every area in it to `WHERE_DEPTH` as a quiet box, its top level named, deeper
- *  ones only on the path to the element, and the tiles of a chip on that path that lead to it.
- *  The element is lit; a line has no box, so both its ends are. The workspace lights nothing.
- *  Its aspect is the package's, as the map lays it. */
-export function where_map(graph: Graph, id: Id, scene: Scene)
-    : { boxes: WhereBox[]; aspect: number } {
+/** One entry of the compact tree: an area, or a tile of a room, weighing its room on the map. */
+type Twig = { id: Id; label: string; weight: number; chip: boolean; kids: Twig[] };
+
+/** A map read once for a picture: each area's children, and each chip's blocks as it tiles them
+ *  (its top tiles, no structure). */
+type Read = { by: Map<Id, Area>; kids: (id: Id) => Area[]; tiles: (id: Id) => readonly InnerTile[] };
+function read(scene: Scene): Read {
   const all = scene.areas ?? [];
-  const e = graph.edges[id];
-  const targets = new Set(e ? [e.from, e.to].map((x) => owner_of(graph, x) ?? x)
-    : id === graph.root ? [] : [id]);
-  const on = new Set([...targets].flatMap((t) => path(graph, t).map((b) => b.id)));
-  const root = all.find((a) => a.depth === 1 && on.has(a.id))
-    ?? all.find((a) => a.id === MAP_ROOT);
-  if (!root || !root.w || !root.h) return { boxes: [], aspect: 1 };
-  /** What lies inside the root, by walking each area up. */
-  const up = new Map(all.map((a) => [a.id, a.parent]));
-  const inside = (at: Id) => {
-    for (let p = up.get(at); p; p = up.get(p)) if (p === root.id) return true;
-    return false;
-  };
-  const areas = all.filter((a) => inside(a.id));
-  const depth = (a: { depth: number }) => a.depth - root.depth;
-  const share = (x: number, y: number, w: number, h: number) =>
-    ({ x: (x - root.x) / root.w, y: (y - root.y) / root.h, w: w / root.w, h: h / root.h });
-  const boxes: WhereBox[] = areas
-    .filter((a) => depth(a) <= WHERE_DEPTH || on.has(a.id))
-    .map((a) => ({ id: a.id, ...share(a.x, a.y, a.w, a.h), depth: depth(a),
-                   ...(depth(a) === 1 ? { label: a.label } : {}),
-                   ...(on.has(a.id) ? { path: true } : {}),
-                   ...(targets.has(a.id) ? { lit: true } : {}) }));
-  /** Inside a chip on the path, the tiles leading to the element, laid as the chip lays them. */
-  for (const a of areas.filter((x) => x.chip && on.has(x.id) && !targets.has(x.id))) {
-    const data = scene.nodes.find((n) => n.id === a.id)?.data;
-    const pad = data?.diagram ? PAD.diagram : PAD.chip;
-    const head = data?.upright ? { w: data.head ?? 0, h: 0 } : { w: 0, h: data?.head ?? 0 };
-    const body = { x: a.x + (head.w || pad), y: a.y + (head.h || pad), ...body_of(a, head, pad) };
-    for (const t of data?.tiles ?? []) {
-      if (!on.has(t.id) || t.as) continue;
-      boxes.push({ id: t.id, depth: depth(a) + 1,
-                   ...share(body.x + t.x * body.w, body.y + t.y * body.h, t.w * body.w,
-                            t.h * body.h),
-                   path: true, ...(targets.has(t.id) ? { lit: true } : {}) });
-    }
+  const held = new Map<Id, Area[]>();
+  for (const a of all) if (a.parent) held.set(a.parent, [...(held.get(a.parent) ?? []), a]);
+  const nodes = new Map(scene.nodes.map((n) => [n.id, n]));
+  return { by: new Map(all.map((a) => [a.id, a])), kids: (id) => held.get(id) ?? [],
+           tiles: (id) => (nodes.get(id)?.data.tiles ?? []).filter((t) => !t.as && !t.in) };
+}
+
+/** **Where an element lives**, off its map (`scene`), laid to fill `size`: the major block
+ *  holding the element's room — the box or chip it sits in — or the top box above where the room
+ *  is that block, as a compact tree: every box and chip in it, the room opened to its own blocks,
+ *  the element lit. The top is the map's first level that branches (a level of one box passed
+ *  through); a top block's picture is the whole map. A line lights both its ends, the picture
+ *  opening the deepest box holding both. With no element (`id` null, or the workspace), the whole
+ *  map from `from`. */
+export function where_map(graph: Graph, id: Id | null, scene: Scene,
+                          size: { w: number; h: number }, from: Id = MAP_ROOT): WhereBox[] {
+  const whole = { x: 0, y: 0, ...size };
+  const map = read(scene);
+  let top = map.by.get(from);
+  for (let k = top ? map.kids(top.id) : []; k.length === 1 && !k[0]!.chip; k = map.kids(top!.id)) {
+    top = k[0];
   }
-  return { boxes, aspect: root.w / root.h };
+  if (!top || size.w < 40 || size.h < 40) return [];
+
+  /** What it lights: the element, or a line's two ends, each where the map draws it. */
+  const e = id === null ? undefined : graph.edges[id];
+  const ends = e ? [e.from, e.to].map((x) => owner_of(graph, x) ?? x)
+    : id === null || id === graph.root ? [] : [id];
+  const seen = ends.map((t) => drawn_at(graph, t, map)).filter((x) => x !== null);
+  if (!ends.length) return compact(twig(map, top, []), whole);
+  if (!seen.length) return [];
+
+  /** Each room's path under the top — none where the top was passed below it — and the major
+   *  block: the second box down shared by every path, else the first, else the top. */
+  const rooms = seen.map((x) => x.room);
+  const down = (room: Id): Area[] => {
+    const up: Area[] = [];
+    for (let a = map.by.get(room); a; a = a.parent ? map.by.get(a.parent) : undefined) {
+      if (a.id === top!.id) return up;
+      up.unshift(a);
+    }
+    return [];
+  };
+  const paths = rooms.map(down);
+  const shared = paths[0]!.filter((a, i) => paths.every((p) => p[i]?.id === a.id));
+  const major = shared.length > 1 && !rooms.includes(shared[1]!.id) ? shared[1]!
+    : shared[0] ?? top;
+  const lit = seen.map((x) => x.id);
+  const on = new Set([...paths.flat().map((a) => a.id), ...lit]);
+  return compact(twig(map, major, rooms), whole, rooms, lit, on);
+}
+
+/** An area as a leaf of the compact tree, weighing the square root of its room on the map, so a
+ *  small block keeps some room beside a large one. */
+function leaf(a: Area): Twig {
+  return { id: a.id, label: a.label, weight: Math.sqrt(a.w * a.h), chip: a.chip, kids: [] };
+}
+
+/** An area and all it holds on the map, each room opened: a chip's blocks as it tiles them, each
+ *  weighing its share of the chip. */
+function twig(map: Read, a: Area, rooms: readonly Id[]): Twig {
+  if (a.chip && rooms.includes(a.id)) {
+    return { ...leaf(a), kids: map.tiles(a.id).map((t) => ({
+      id: t.id, label: t.label, chip: false, kids: [], weight: Math.sqrt(t.w * t.h * a.w * a.h) })) };
+  }
+  return { ...leaf(a), kids: a.chip ? [] : map.kids(a.id).map((c) => twig(map, c, rooms)) };
+}
+
+/** **A compact tree** of `tree` filling `r`: a nested treemap, a name's line over what each box
+ *  holds; the path, the rooms and the lit marked. The map's own root draws no box. */
+function compact(tree: Twig, r: WhereRect, rooms: readonly Id[] = [], lit: readonly Id[] = [],
+                 on: ReadonlySet<Id> = new Set()): WhereBox[] {
+  const root = hierarchy<Twig>(tree, (n) => (n.kids.length ? n.kids : undefined))
+    .sum((n) => (n.kids.length ? 0 : n.weight));
+  const laid = treemap<Twig>().tile(treemapSquarify.ratio(1)).size([r.w, r.h]).round(true)
+    .paddingInner(WHERE.gap).paddingOuter(WHERE.gap)
+    .paddingTop((n) => (n.children ? WHERE.title : WHERE.gap))(root);
+  return laid.descendants().filter((n) => n.data.id !== MAP_ROOT)
+    .map((n) => ({
+      id: n.data.id, label: n.data.label, x: r.x + n.x0, y: r.y + n.y0, w: n.x1 - n.x0,
+      h: n.y1 - n.y0, ...(n.children ? { holds: true } : {}), ...(n.data.chip ? { chip: true } : {}),
+      ...(on.has(n.data.id) ? { on: true } : {}), ...(rooms.includes(n.data.id) ? { room: true } : {}),
+      ...(lit.includes(n.data.id) ? { lit: true } : {}) }));
+}
+
+/** **Where the map draws a block**: its own area, its room the area holding it; else the tile
+ *  standing for it — its own, or the nearest block above it — in the deepest chip holding one,
+ *  that chip its room; else the nearest block above it the map draws (a pattern's part, its
+ *  pattern). Null where the map draws none of them. */
+function drawn_at(graph: Graph, id: Id, map: Read): { id: Id; room: Id } | null {
+  const own = map.by.get(id);
+  if (own) return own.parent ? { id, room: own.parent } : null;
+  const ups = path(graph, id).map((b) => b.id).reverse();
+  for (const chip of [...map.by.values()].reverse().filter((a) => a.chip)) {
+    const tiles = map.tiles(chip.id);
+    const t = ups.map((u) => tiles.find((x) => x.id === u)).find((x) => !!x);
+    if (t) return { id: t.id, room: chip.id };
+  }
+  const above = ups.map((u) => map.by.get(u)).find((a) => a?.parent);
+  return above ? { id: above.id, room: above.parent! } : null;
 }

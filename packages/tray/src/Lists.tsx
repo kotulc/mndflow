@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { owner_of, shown_name, type Graph, type Id } from "@mnd/core";
 import { entry_look, kind_of, tint_attrs, wire_of, wire_tint } from "@mnd/views";
 import { Faces } from "./Faces";
+import { Scope } from "./Where";
 
 /** **A section names itself**, semibold in the body's ink, with an *i* whose tip says what it is.
  *  It carries no count: its lists do. */
@@ -90,19 +91,26 @@ export function Filters({ groups, on, onPick, onLight }: {
 }
 
 /** **The left column**, which stays put as tabs change: the card, what a list beside it names
- *  lit on it; then what the tab puts under it — its filters, the overview's map. The workspace
- *  and a package are drawn as no card, so theirs starts at what is under it. */
-export function Lead({ graph, id, lit, children }: { graph: Graph; id: Id;
-                                                    lit?: readonly string[] | null;
-                                                    children?: ReactNode }) {
+ *  lit on it; then what the tab puts under it — its filters, the overview's map. */
+export function Lead({ graph, id, lit, children }: {
+  graph: Graph; id: Id; lit?: readonly string[] | null; children?: ReactNode;
+}) {
   return (
     <div className="lead">
-      {graph.edges[id] ? <LineCard graph={graph} id={id} />
-        : graph.blocks[id]?.parent
-          ? <Faces graph={graph} id={id} one {...(lit ? { lit } : {})} /> : null}
+      <Card graph={graph} id={id} {...(lit ? { lit } : {})} />
       {children}
     </div>
   );
+}
+
+/** **Its card**, one for every element: a line's ends; a block's face; the workspace's or a
+ *  package's, its own map (`Scope`). */
+export function Card({ graph, id, lit }: { graph: Graph; id: Id; lit?: readonly string[] }) {
+  if (graph.edges[id]) return <LineCard graph={graph} id={id} />;
+  const b = graph.blocks[id];
+  if (!b) return null;
+  return b.parent ? <Faces graph={graph} id={id} one {...(lit ? { lit } : {})} />
+    : <Scope graph={graph} id={id} />;
 }
 
 /** **A line's card**: its two ends joined by its relation's swatch, its type under it. */

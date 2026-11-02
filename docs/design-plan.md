@@ -5,12 +5,13 @@
 
 ## Next session
 
-**Start here.** Committed through 00f5439. **Uncommitted, 2026-10-31**: tags named where the line has room; sample nesting and `×2`; the design-language review's fixes (*Review 2026-10-31*); and **the tray structure, built** (*Build 2026-10-31* below) with its own review's fixes. Next is **the card faces pass**.
+**Start here.** Committed through 274be17 (the tray structure). **Uncommitted, 2026-11-01**: the workspace and a package on the shared tray layout, and the where-it-lives map rebuilt as mockup *where-map* K without its strip, with its review's fixes (*Build 2026-11-01*). **The next session takes up code translation** (translate-plan.md); the design-language work below waits behind it.
 
 | # | Work | Notes |
 |---|---|---|
 | 1 | **card faces** pass | see *Open*; agree the look on the shop first |
-| 2 | **tray follow-ups** | *Open* `tray follow-ups`: the definitions table onto filter rows, a library entry's overview and usages, a package's importers, the workspace's and a package's card |
+| 2 | **where it lives** | in a quarter-height tray the card leaves the picture its 140 px floor, so the tray scrolls; whether the picture goes beside the card there. A narrow room's name hides (*Customer facing* beside Storefront); whether the room always keeps its name, cut short. With the strip gone, nothing shows the levels above the major block but the path; L (the whole map as one tree) is the alternative if that is missed |
+| **tray follow-ups** | *Open* `tray follow-ups`: the definitions table onto filter rows, a library entry's overview and usages, a package's importers, the workspace's and a package's card |
 | 3 | **card and settings tabs** | their editing style (*Open*); then retire `packages/tray/docs/tray.md` |
 | 4 | **docs** (step 10) | design.md migration; mark docs/design files settled as each step is agreed |
 
@@ -18,6 +19,21 @@
 - **check lighting by sweep, not by class**: click every surface kind on the models map, the library map, an entered definition and an entered diagram, and read the computed style for the accent: `npm run test:browser` (`test/browser/lighting.test.ts`, Playwright on installed Edge, about 4 minutes, kept out of `npm test`). A class on an element is not proof it shows
 - **samples are YAML**: edit `samples/example/**.yaml`, then `npm run example` to collect (`scripts/showcase.mjs` is gone)
 - **drive the tray** with Playwright on the dev server (`npx vite --port 5191` in `apps/web`): click a chip, then each tab; expand the tray (*take the full height*) only for a screenshot, since it covers the canvas
+
+
+### Build 2026-11-01: where it lives, and scopes as elements
+
+**Built**, from mockup *where-map* K (rounds 1 to 3 in the same file); its strip of major blocks was built, then dropped at the user's call:
+
+| Part | Where |
+|---|---|
+| the major block's compact tree, the room opened, the element lit and named | views `map.ts` `where_map`, `drawn_at`; tray `Where.tsx` `Picture`, `Named`; `tray.css` `.where-*` |
+| the map an element, a package or the workspace is drawn from, the nearest-lighting one winning | views `chip_map`; tray `Where.tsx` `Where` |
+| the workspace's and a package's card: their map as one compact tree | tray `Where.tsx` `Scope`, `Lists.tsx` `Card` |
+| the workspace and a package through the shared overview | tray `Overview.tsx`, `Workspace.tsx` `ScopeAnswers` |
+| the workspace's components (packages as filter rows and lists) and settings on the shared card column | tray `Packages.tsx`, `Tray.tsx` |
+
+**Driven** on the shop (busy) and on samples/elements (sparse): a use, a tile in a diagram chip, a step in a flow, a library definition, a top-level part, a package, the workspace, at full and quarter tray height. **Review** (high) fixed: a line whose ends sit in two major blocks lit one; a tag clamped to the wrong box; a room above a passed-through top; the *offered* filter outliving its row; a row's action clipped by its text; a package's overview losing its tags and text; an empty frame where no map draws the element; the workspace's card changing map by tab; a package's picture on the wrong map; repeated scans per resize. A pattern's part now lights its pattern.
 
 
 ### Build 2026-10-31: the tray structure
@@ -92,10 +108,11 @@
 | overview tab | **agreed**: overview.md, mockup *overview-forms* |
 | components and usages tabs | **agreed**: tray.md, mockup *tray-lists* |
 | contents tab | **built** 2026-10-31: kinds as filter rows, *definitions* on a package or the workspace |
-| tray structure | **built** 2026-10-31, uncommitted (*Build 2026-10-31*) |
+| tray structure | **built** 2026-10-31, committed 274be17 |
+| where it lives, scopes as elements | **built** 2026-11-01, uncommitted (*Build 2026-11-01*) |
 | card and settings tabs | **open**; for now the card tab also carries the attribute editor and *add port*, which left the components tab |
 | design.md rules → docs/design | **decided, not done**: design.md keeps the vision; its *Perspectives*, *Cards* and *Interfaces and lines* rules move into docs/design |
-| implementation | steps 1–9 committed (1a07542); the tray structure built, uncommitted; remaining work in *Next session* |
+| implementation | steps 1–9 and the tray structure committed (274be17); where it lives built, uncommitted; remaining work in *Next session* |
 
 
 ## Mockups
@@ -107,6 +124,7 @@
 | map-forms.html | claude.ai/artifact/V51AuxwtrD58Ud9N9vPsr6 | the map under one zoom: levels by on-screen size, hysteresis, fades; leaf chips vs cards; box title counts; explorer rows with colour edges and counts | levels, text band, counts and row edges are current. Leaves as cards was **rejected** (leaves stay chips); the tinted card fills are superseded by the colour rules |
 | line-forms.html | claude.ai/artifact/1iAiTDpx91cGzPgeBLioND | the wire swatch per relation type; lines with anchors, names beside the stroke, ends on hover; relation chips on the map; colour roles before and after | swatch, anchors, names beside, hover ends and colour roles are current. Option C's end chips and v1's pills were **rejected**. Tags as rings was **rejected** (solid dots) |
 | overview-forms.html | claude.ai/artifact/JutRvRnfzhDoNfGQk42WxR | every overview case today vs proposed, one renderer, nine cases incl. a line; tray head as identity row; width reflow | **current** (v3). Its head shows `Def`; the role is now a badge (tray.md) |
+| where-map.html | claude.ai/artifact/6bJLvaqSnbrDp3qFVQXn3w | the where-it-lives map drawn from the shop's real map for four elements at two tray heights: round 1 (A to F, the element alone), round 2 (G to J, its room's structure), round 3 (K, a strip over a compact tree of the major block; L, the whole map as a compact tree) | **K built** 2026-11-01, strip dropped; L kept as the alternative |
 | tray-structure.html | claude.ai/artifact/AWPk3WLe4tGwkg7oSNjJvV | one tab bar for seven elements (enable matrix, tips on faint tabs), card column with filter rows (chips below 560), contents with scope and kinds, library usage places, keys as the same rows; questions 1–5 drawn both ways; the overview's where-it-lives map; a verdict for each | **v5, built** 2026-10-31; question 1 changed after v4 to faint and inert, no tip |
 | tray-lists.html | claude.ai/artifact/MMngXyW7f9aeLHK9xs6Qsk | components and usages, read first: card left, sections right, bands, shared columns, hover lighting, class card, records, empty part | **current** (v9). Versions 2 to 6 explored group pickers, samples and add lists; all **rejected** for a read-first tray |
 
@@ -142,11 +160,11 @@ The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p
 | **hover** | one hover card for chips, tiles, box titles, cards and lines; it shows the large face |
 | **diagram** | a head band in the kind's colour under the crumbs |
 | **tray** | head = identity row + role + facts; every tab reflows by the tray's width, breaking at 560 / 960 px; **one spacing** (`--pad`, `--gap`, `--stack`) and **one card column** (`--lead`) on every tab, the card filling it, nothing captioned over it (2026-10-31) |
-| **overview** | sections card → picture → path → why it matters → how it is used → where it sits; **picture = where it lives** (2026-10-31): the whole model or package as quiet nested boxes, the element lit, overview only; the path heads the answers column, the *where it lives* answer dropped; lines listed, never a picture; own answers only; gaps as quiet filled rows, editor only |
+| **overview** | sections card → picture → path → why it matters → how it is used → where it sits; **picture = where it lives** (2026-11-01): the library or models map at its top two branching levels, drawn as the map draws them, re-laid to fill the column under the card, the element lit inside its major block (overview.md); the path heads the answers column, the *where it lives* answer dropped; lines listed, never a picture; own answers only; gaps as quiet filled rows, editor only |
 | **lists** | every section it has, at once; a section names itself (semibold, an i for what it is), no count; each list opens on a band, label flush left, count right; rows on shared columns with a rule under each; hovering a row lights it on the card; an empty element says so in one sentence |
 | **settings tab** | shows the card at each level side by side (to revisit with the card tab) |
 | **tray structure** | 2026-10-31: **one tab set for every selection**, a tab that does not apply to the element disabled, never hidden (which tabs, and their order, to expand). **Every tab has one layout**: the card column on the left, the tab's list on the right. **Under the card, the tab's filters**: rows like the explorer's (local to the tab), each with its count, narrowing the list beside them — components its sections, usages its places then subtypes, contents its kinds. They replace the contents table's filter bar; contents keeps its table on the right. An element with nothing to filter (usages with no uses) shows no rows. **Filters are single-select**, an *all* row first. **Contents' scope** retired: the workspace's contents are the workspace element's (`scoped elements`). **A line's card tab is `card`** (its *line* tab folds in), so tab names stay fixed. The overview's picture is its where-it-lives map |
-| **scoped elements** | 2026-10-31: the workspace and a package are elements like any other, each scoped to what it holds, on the same tab set, drawing no card. **The library and the models sections both show the workspace**; a package row shows its package; a registry its package on components. The context tabs (workspace, definitions, packages, entries) and contents' *scope* group retire. The workspace's settings are the display |
+| **scoped elements** | 2026-10-31: the workspace and a package are elements like any other, each scoped to what it holds, on the same tab set. **Their card is their map** (2026-11-01): the workspace's the whole map, a package's its own; every tab of theirs on the shared card column. **The library and the models sections both show the workspace**; a package row shows its package; a registry its package on components. The context tabs (workspace, definitions, packages, entries) and contents' *scope* group retire. The workspace's settings are the display |
 | **lighting** | 2026-10-31: **the canvas lights what the tray is about**: the pick, else a list's lit row (`onLit`), else on a map the area gone to. One truth read by every node, line and tile, never React Flow's `selected`; **one picked look** (accent ring and wash) on every surface; what stands for a block (a place's box) lights and picks as it |
 | **tray filters** | 2026-10-31: a faint tab is inert and carries no tip (changed after the mockup); below 560 px the filter rows sit over the list (no chips form); a filter is kept per tab and resets to *all* when the element changes; hovering a filter lights its members on the card and canvas; bands keep their counts beside the filters; json stays at the tab bar's right end, faint on a use; card and settings keys use the filter rows, a value in place of the count, no *all* row. The tab matrix is in tray.md |
 | **tray tabs** | superseded by `tray structure`: one tab set for every element, a line's *line* tab folded into *card*. Still standing: contents' text moves to the overview's answers column, last; the json chip stays for now |
@@ -158,7 +176,7 @@ The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p
 |---|---|
 | **card and settings tabs** | their style and how edits fit (the tray informs; editing is not its purpose); how they say definition apart; whether the settings ladder stays. Built as today until then |
 | **card faces** | a pass of their own: the facts strip repeating a table's count (*3 attributes* over three rows); a large face at level 2 drawn empty below its head; the head cramped over the table |
-| **tray follow-ups** | from the build: the definitions table keeps its own chip bars (folders, groups), not filter rows; a library entry (interface, tag, type, constraint) enables only *card*, its overview and usages to build; a package's *usages* (who imports it) not built, faint; the workspace's and a package's *card* (their chip face) faint; a read-only tray's definitions and packages tables still show edit controls |
+| **tray follow-ups** | from the build: the definitions table keeps its own chip bars (folders, groups), not filter rows; a library entry (interface, tag, type, constraint) enables only *card*, its overview and usages to build; a package's *usages* (who imports it) not built, faint; the workspace's and a package's *card* tab faint (their map is drawn in the card column, the tab has no keys yet); a read-only tray's definitions and packages tables still show edit controls |
 | **design.md migration** | move *Perspectives*, *Cards*, *Interfaces and lines* and *Relation ends* rules into docs/design, then cut design.md to the vision; retire the old corner rule and the connections picture there |
 | **packages/tray/docs/tray.md** | its context and tab tables follow the built tray; the rest still describes the editing tray (keys and choices, add rows, tables). Fold into docs/design or retire once the card tab settles |
 | **drafts** | every docs/design file says *Draft, for agreement*; mark them settled once each built step is agreed on the samples |

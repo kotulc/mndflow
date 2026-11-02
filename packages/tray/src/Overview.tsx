@@ -14,9 +14,9 @@ import { appearances_of, behaviours_of, children, class_of, def_at, def_of, defi
 import { Icon, role_icon } from "@mnd/theme";
 import { kind_of, wire_of, wire_tint } from "@mnd/views";
 import { Content } from "./Content";
-import { Faces } from "./Faces";
-import { Empty, LineCard, List, Painted, Section, type Item } from "./Lists";
-import { Trail, Where } from "./Where";
+import { Card, Empty, LineCard, List, Painted, Section, type Item } from "./Lists";
+import { Scope, Trail, Where } from "./Where";
+import { ScopeAnswers } from "./Workspace";
 
 export type OverviewProps = {
   graph: Graph;
@@ -50,10 +50,28 @@ export function Overview({ graph, id, onAct, lists }: OverviewProps) {
   const becomes = promotes ? DIAGRAMS.filter((k) => may_retype(graph, id, k)) : [];
   /** A diagram's or a document's own text, read last. */
   const text = class_of(graph, seen) !== "part" ? graph.blocks[seen]?.body?.trim() ?? "" : undefined;
+  /** **The workspace's card is its whole map**, filling the column; a package's is its own, its
+   *  picture the map it sits in. */
+  const whole = id === graph.root;
+  if (!b.parent) {
+    return (
+      <div className="ov">
+        {whole ? null
+          : <div className="ov-card"><Card graph={graph} id={id} /></div>}
+        <div className="ov-pic">
+          {whole ? <Scope graph={graph} id={id} fill />
+            : <Where graph={graph} id={id} />}
+        </div>
+        <div className="ov-answers lists">
+          <Trail graph={graph} id={id} />
+          <ScopeAnswers graph={graph} id={id} {...(onAct ? { onAct } : {})} />
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="ov">
-      {/* A package is drawn as no card. */}
-      {b.parent ? <div className="ov-card"><Faces graph={graph} id={id} one /></div> : null}
+      <div className="ov-card"><Card graph={graph} id={id} /></div>
       <div className="ov-pic">
         <Where graph={graph} id={id} />
         {(drawn || across) && onAct ? (

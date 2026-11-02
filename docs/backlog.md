@@ -1,10 +1,10 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **In progress**: the design language, its plan in design-plan.md (*Next session* first).
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **In progress**: code translation, its plan in translate-plan.md (taken up 2026-11-01, ahead of the CLI); the design language, paused, its plan in design-plan.md.
 
-## CLI (next, after the design language)
+## CLI (next, alongside code translation)
 
-**The CLI is the first backlog item taken up.** Its scope includes a full pass over the file-based package and diagram definition surface: the schema, and how blocks, cards and diagrams are defined and linked together when defining a package.
+**The CLI is taken up with code translation** (translate-plan.md decides how much of it the translator needs first). Its scope includes a full pass over the file-based package and diagram definition surface: the schema, and how blocks, cards and diagrams are defined and linked together when defining a package.
 
 ### Placement
 
