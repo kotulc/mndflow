@@ -908,13 +908,13 @@ function read(scene: Scene): Read {
            tiles: (id) => (nodes.get(id)?.data.tiles ?? []).filter((t) => !t.as && !t.in) };
 }
 
-/** **Where an element lives**, off its map (`scene`), laid to fill `size`: the major block
- *  holding the element's room — the box or chip it sits in — or the top box above where the room
- *  is that block, as a compact tree: every box and chip in it, the room opened to its own blocks,
- *  the element lit. The top is the map's first level that branches (a level of one box passed
- *  through); a top block's picture is the whole map. A line lights both its ends, the picture
- *  opening the deepest box holding both. With no element (`id` null, or the workspace), the whole
- *  map from `from`. */
+/** **Where an element lives**, off its map (`scene`), laid to fill `size`: the whole map as a
+ *  compact tree from its top — its first level that branches, a level of one box passed through —
+ *  every box and chip outlined, the element's room (the box or chip it sits in) opened to its own
+ *  blocks, the element lit. **The path is given room**: the major block holding the element takes
+ *  at least `SWELL.major` of the picture and the room at least `SWELL.room` of that block, so the
+ *  element reads on a busy map while the rest keeps its shape. A line lights both its ends. With
+ *  no element (`id` null, or the workspace), the whole map from `from`, as it weighs. */
 export function where_map(graph: Graph, id: Id | null, scene: Scene,
                           size: { w: number; h: number }, from: Id = MAP_ROOT): WhereBox[] {
   const whole = { x: 0, y: 0, ...size };
@@ -934,7 +934,7 @@ export function where_map(graph: Graph, id: Id | null, scene: Scene,
   if (!seen.length) return [];
 
   /** Each room's path under the top — none where the top was passed below it — and the major
-   *  block: the second box down shared by every path, else the first, else the top. */
+   *  block: the second box down shared by every path, else the first. */
   const rooms = seen.map((x) => x.room);
   const down = (room: Id): Area[] => {
     const up: Area[] = [];
@@ -946,11 +946,48 @@ export function where_map(graph: Graph, id: Id | null, scene: Scene,
   };
   const paths = rooms.map(down);
   const shared = paths[0]!.filter((a, i) => paths.every((p) => p[i]?.id === a.id));
-  const major = shared.length > 1 && !rooms.includes(shared[1]!.id) ? shared[1]!
-    : shared[0] ?? top;
+  const major = shared[1] ?? shared[0];
   const lit = seen.map((x) => x.id);
   const on = new Set([...paths.flat().map((a) => a.id), ...lit]);
-  return compact(twig(map, major, rooms), whole, rooms, lit, on);
+  let tree = twig(map, top, rooms);
+  if (major) {
+    tree = swell(tree, major.id, SWELL.major);
+    for (const room of rooms.filter((r) => r !== major.id)) {
+      tree = within(tree, major.id, (m) => swell(m, room, SWELL.room / rooms.length));
+    }
+  }
+  return compact(tree, whole, rooms, lit, on);
+}
+
+/** The least share of the picture the major block holding the element takes, and of that block
+ *  the room it sits in. */
+const SWELL = { major: 0.45, room: 0.5 };
+
+/** All the weight under a twig. */
+function weighs(t: Twig): number {
+  return t.kids.length ? t.kids.reduce((n, k) => n + weighs(k), 0) : t.weight;
+}
+
+/** The twig `id` under `t`. */
+function find(t: Twig, id: Id): Twig | undefined {
+  return t.id === id ? t : t.kids.map((k) => find(k, id)).find((x) => !!x);
+}
+
+/** The twig `id` under `t`, changed by `to`. */
+function within(t: Twig, id: Id, to: (t: Twig) => Twig): Twig {
+  return t.id === id ? to(t) : { ...t, kids: t.kids.map((k) => within(k, id, to)) };
+}
+
+/** **`id` grown to at least `share` of `t`**: every weight under it scaled alike, so its own
+ *  shape holds; never shrunk. */
+function swell(t: Twig, id: Id, share: number): Twig {
+  const at = find(t, id);
+  const inner = at ? weighs(at) : 0;
+  const rest = weighs(t) - inner;
+  const k = inner && rest ? Math.max(1, (share / (1 - share)) * (rest / inner)) : 1;
+  const scaled = (x: Twig): Twig => (x.kids.length ? { ...x, kids: x.kids.map(scaled) }
+    : { ...x, weight: x.weight * k });
+  return k === 1 ? t : within(t, id, scaled);
 }
 
 /** An area as a leaf of the compact tree, weighing the square root of its room on the map, so a

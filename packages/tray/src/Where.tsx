@@ -1,7 +1,7 @@
-/** **Where it lives**, the overview's picture (views `where_map`): a compact tree of the major
- *  block holding the element — its boxes and chips outlined, the element's room opened to its own
- *  blocks, the element lit and named — filling the room under the card. A scope's card is its map as one compact tree. And
- *  the element's path, in words. */
+/** **Where it lives**, the overview's picture (views `where_map`): the whole map as a compact tree
+ *  — its boxes and chips outlined, the element's room opened to its own blocks, the element lit,
+ *  unnamed since its card is just above — filling the room under the card. A scope's card is its
+ *  map as one compact tree. And the element's path, in words. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { line_layer, owner_of, path, shown_name, type Graph, type Id } from "@mnd/core";
@@ -68,16 +68,15 @@ export function Scope({ graph, id, fill = false }: { graph: Graph; id: Id; fill?
 
 type Size = { w: number; h: number };
 
-/** **A name shows whole or not at all**: where its line and every letter fit the box, at `size`
- *  px of the tray's mono face (about 0.6 em a letter). */
+/** **A name shows whole or not at all**: where its line and every letter fit the box, at the
+ *  picture's 9 px mono face (about 0.6 em a letter). */
 const LINE = 12;
-function fits(label: string, w: number, h: number, size = 9): boolean {
-  return h >= LINE && w >= label.length * size * 0.62 + 6;
+function fits(label: string, w: number, h: number): boolean {
+  return h >= LINE && w >= label.length * 9 * 0.62 + 6;
 }
 
-/** **The picture**: the compact tree, the element lit and named — inside its box where its name
- *  fits, else on a tag beside it, kept in the picture. Nothing where the map draws nothing of it.
- *  Laid again only as the graph, `at` or its size changes. */
+/** **The picture**: the compact tree, the element lit — named nowhere, its card says it. Nothing
+ *  where the map draws nothing of it. Laid again only as the graph, `at` or its size changes. */
 function Picture({ graph, at, lay, card = false }: {
   graph: Graph; at: string; lay: (size: Size) => WhereBox[]; card?: boolean;
 }) {
@@ -95,7 +94,6 @@ function Picture({ graph, at, lay, card = false }: {
           {!b.lit && fits(b.label, b.w, b.h) ? <span className="where-name">{b.label}</span> : null}
         </div>
       ))}
-      {boxes.filter((b) => b.lit).map((b) => <Named key={`n:${b.id}`} b={b} size={size} />)}
     </div>
   );
 }
@@ -106,23 +104,6 @@ const PROBE = { w: 320, h: 320 };
 /** A box's place in the picture. */
 function place(b: WhereBox) {
   return { left: b.x, top: b.y, width: b.w, height: b.h };
-}
-
-/** **The element's name**: inside its box, at its own size or a smaller one, else a tag beside
- *  it — right, else left, else under or over — kept inside the picture. */
-function Named({ b, size }: { b: WhereBox; size: Size }) {
-  const F = { x: 0, y: 0, ...size };
-  if (fits(b.label, b.w, b.h, 10.5)) return <span className="where-tag in" style={place(b)}>{b.label}</span>;
-  if (fits(b.label, b.w, b.h, 9)) return <span className="where-tag in small" style={place(b)}>{b.label}</span>;
-  const tw = b.label.length * 10.5 * 0.62 + 10, th = 16;
-  let x = b.x + b.w + 4, y = b.y + b.h / 2 - th / 2;
-  if (x + tw > F.x + F.w - 2) x = b.x - tw - 4;
-  if (x < F.x + 2) {
-    x = Math.min(Math.max(F.x + 2, b.x + b.w / 2 - tw / 2), F.x + F.w - tw - 2);
-    y = b.y + b.h + 4 + th > F.y + F.h ? b.y - th - 4 : b.y + b.h + 4;
-  }
-  y = Math.min(Math.max(F.y + 2, y), F.y + F.h - th - 2);
-  return <span className="where-tag out" style={{ left: x, top: y, width: tw, height: th }}>{b.label}</span>;
 }
 
 /** **Its path**, heading the answers: where it is filed, its own name last; a line's, the layer

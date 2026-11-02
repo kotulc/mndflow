@@ -7,7 +7,7 @@
 
 **Start here.** Settle the decisions below with the user before any code; several change what the CLI must do first. Then mock up the TypeScript package (what a module, a class, a function *is*) on a slice of this repo, as the shop was for the design language.
 
-- the design language is paused, its plan in design-plan.md; its where-it-lives map and scope work (2026-11-01) is built but uncommitted
+- the design language is paused, its plan in design-plan.md; its where-it-lives map and scope work (2026-11-01) is built, committed through 6ec08d6 bar its last turn
 - this repo is the busy test case: hundreds of files across `apps/` and `packages/`, which the map and the where-it-lives map have not yet been seen at
 - **search before building**: a parser is a package choice, never custom code
 

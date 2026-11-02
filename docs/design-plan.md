@@ -5,13 +5,14 @@
 
 ## Next session
 
-**Start here.** Committed through 274be17 (the tray structure). **Uncommitted, 2026-11-01**: the workspace and a package on the shared tray layout, and the where-it-lives map rebuilt as mockup *where-map* K without its strip, with its review's fixes (*Build 2026-11-01*). **The next session takes up code translation** (translate-plan.md); the design-language work below waits behind it.
+**Start here.** Committed through 6ec08d6 (scopes on the shared tray layout, the where-it-lives map as a compact tree). **Uncommitted, 2026-11-01**: the where-it-lives map widened to the whole map with the path given room, and the element left unnamed (*Build 2026-11-01*). **The next session takes up code translation** (translate-plan.md); the design-language work below waits behind it.
+
+When the design language resumes:
 
 | # | Work | Notes |
 |---|---|---|
 | 1 | **card faces** pass | see *Open*; agree the look on the shop first |
-| 2 | **where it lives** | in a quarter-height tray the card leaves the picture its 140 px floor, so the tray scrolls; whether the picture goes beside the card there. A narrow room's name hides (*Customer facing* beside Storefront); whether the room always keeps its name, cut short. With the strip gone, nothing shows the levels above the major block but the path; L (the whole map as one tree) is the alternative if that is missed |
-| **tray follow-ups** | *Open* `tray follow-ups`: the definitions table onto filter rows, a library entry's overview and usages, a package's importers, the workspace's and a package's card |
+| 2 | **tray follow-ups** | *Open* `tray follow-ups`: the definitions table onto filter rows, a library entry's overview and usages, a package's importers, the workspace's and a package's card |
 | 3 | **card and settings tabs** | their editing style (*Open*); then retire `packages/tray/docs/tray.md` |
 | 4 | **docs** (step 10) | design.md migration; mark docs/design files settled as each step is agreed |
 
@@ -23,11 +24,11 @@
 
 ### Build 2026-11-01: where it lives, and scopes as elements
 
-**Built**, from mockup *where-map* K (rounds 1 to 3 in the same file); its strip of major blocks was built, then dropped at the user's call:
+**Built** from mockup *where-map* (rounds 1 to 3 in the same file), in four turns at the user's call: K (a strip over the major block's compact tree), the strip dropped, the whole map (L) with the path given room, the element's name dropped:
 
 | Part | Where |
 |---|---|
-| the major block's compact tree, the room opened, the element lit and named | views `map.ts` `where_map`, `drawn_at`; tray `Where.tsx` `Picture`, `Named`; `tray.css` `.where-*` |
+| the whole map's compact tree, the major block and room swelled, the room opened, the element lit (unnamed: its card is above) | views `map.ts` `where_map`, `drawn_at`; tray `Where.tsx` `Picture`; `tray.css` `.where-*` |
 | the map an element, a package or the workspace is drawn from, the nearest-lighting one winning | views `chip_map`; tray `Where.tsx` `Where` |
 | the workspace's and a package's card: their map as one compact tree | tray `Where.tsx` `Scope`, `Lists.tsx` `Card` |
 | the workspace and a package through the shared overview | tray `Overview.tsx`, `Workspace.tsx` `ScopeAnswers` |
@@ -109,10 +110,10 @@
 | components and usages tabs | **agreed**: tray.md, mockup *tray-lists* |
 | contents tab | **built** 2026-10-31: kinds as filter rows, *definitions* on a package or the workspace |
 | tray structure | **built** 2026-10-31, committed 274be17 |
-| where it lives, scopes as elements | **built** 2026-11-01, uncommitted (*Build 2026-11-01*) |
+| where it lives, scopes as elements | **built** 2026-11-01: committed 6ec08d6; the whole map with the path given room and the element unnamed uncommitted (*Build 2026-11-01*) |
 | card and settings tabs | **open**; for now the card tab also carries the attribute editor and *add port*, which left the components tab |
 | design.md rules → docs/design | **decided, not done**: design.md keeps the vision; its *Perspectives*, *Cards* and *Interfaces and lines* rules move into docs/design |
-| implementation | steps 1–9 and the tray structure committed (274be17); where it lives built, uncommitted; remaining work in *Next session* |
+| implementation | steps 1–9, the tray structure and scopes committed (6ec08d6); the where-it-lives map's last turn uncommitted; remaining work in *Next session* |
 
 
 ## Mockups
@@ -124,7 +125,7 @@
 | map-forms.html | claude.ai/artifact/V51AuxwtrD58Ud9N9vPsr6 | the map under one zoom: levels by on-screen size, hysteresis, fades; leaf chips vs cards; box title counts; explorer rows with colour edges and counts | levels, text band, counts and row edges are current. Leaves as cards was **rejected** (leaves stay chips); the tinted card fills are superseded by the colour rules |
 | line-forms.html | claude.ai/artifact/1iAiTDpx91cGzPgeBLioND | the wire swatch per relation type; lines with anchors, names beside the stroke, ends on hover; relation chips on the map; colour roles before and after | swatch, anchors, names beside, hover ends and colour roles are current. Option C's end chips and v1's pills were **rejected**. Tags as rings was **rejected** (solid dots) |
 | overview-forms.html | claude.ai/artifact/JutRvRnfzhDoNfGQk42WxR | every overview case today vs proposed, one renderer, nine cases incl. a line; tray head as identity row; width reflow | **current** (v3). Its head shows `Def`; the role is now a badge (tray.md) |
-| where-map.html | claude.ai/artifact/6bJLvaqSnbrDp3qFVQXn3w | the where-it-lives map drawn from the shop's real map for four elements at two tray heights: round 1 (A to F, the element alone), round 2 (G to J, its room's structure), round 3 (K, a strip over a compact tree of the major block; L, the whole map as a compact tree) | **K built** 2026-11-01, strip dropped; L kept as the alternative |
+| where-map.html | claude.ai/artifact/6bJLvaqSnbrDp3qFVQXn3w | the where-it-lives map drawn from the shop's real map for four elements at two tray heights: round 1 (A to F, the element alone), round 2 (G to J, its room's structure), round 3 (K, a strip over a compact tree of the major block; L, the whole map as a compact tree) | **built** 2026-11-01 as L with K's room opened and the path given room |
 | tray-structure.html | claude.ai/artifact/AWPk3WLe4tGwkg7oSNjJvV | one tab bar for seven elements (enable matrix, tips on faint tabs), card column with filter rows (chips below 560), contents with scope and kinds, library usage places, keys as the same rows; questions 1–5 drawn both ways; the overview's where-it-lives map; a verdict for each | **v5, built** 2026-10-31; question 1 changed after v4 to faint and inert, no tip |
 | tray-lists.html | claude.ai/artifact/MMngXyW7f9aeLHK9xs6Qsk | components and usages, read first: card left, sections right, bands, shared columns, hover lighting, class card, records, empty part | **current** (v9). Versions 2 to 6 explored group pickers, samples and add lists; all **rejected** for a read-first tray |
 
@@ -176,6 +177,7 @@ The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p
 |---|---|
 | **card and settings tabs** | their style and how edits fit (the tray informs; editing is not its purpose); how they say definition apart; whether the settings ladder stays. Built as today until then |
 | **card faces** | a pass of their own: the facts strip repeating a table's count (*3 attributes* over three rows); a large face at level 2 drawn empty below its head; the head cramped over the table |
+| **where it lives** | built 2026-11-01. In a quarter-height tray the card leaves the picture its 140 px floor, so the tray scrolls; whether the picture goes beside the card there. A narrow room's name hides (*Customer facing* beside Storefront); whether the room always keeps its name, cut short. On a busy map, blocks beside the swelled path thin out (the shop's *Parts* beside *Records*); the 45% and 50% shares are first guesses |
 | **tray follow-ups** | from the build: the definitions table keeps its own chip bars (folders, groups), not filter rows; a library entry (interface, tag, type, constraint) enables only *card*, its overview and usages to build; a package's *usages* (who imports it) not built, faint; the workspace's and a package's *card* tab faint (their map is drawn in the card column, the tab has no keys yet); a read-only tray's definitions and packages tables still show edit controls |
 | **design.md migration** | move *Perspectives*, *Cards*, *Interfaces and lines* and *Relation ends* rules into docs/design, then cut design.md to the vision; retire the old corner rule and the connections picture there |
 | **packages/tray/docs/tray.md** | its context and tab tables follow the built tray; the rest still describes the editing tray (keys and choices, add rows, tables). Fold into docs/design or retire once the card tab settles |
