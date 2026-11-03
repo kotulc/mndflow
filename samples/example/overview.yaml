@@ -52,6 +52,6 @@ library:
     - name: external api
       description: Speaks to a system nobody here runs.
 relations:
-  - Customer::browser -> Shop::https: shops
-  - Shop::charges -> Card processor::api: charges
-  - Shop::shipments -> Carrier::api: books
+  - Customer.browser -> Shop.https: shops
+  - Shop.charges -> Card processor.api: charges
+  - Shop.shipments -> Carrier.api: books

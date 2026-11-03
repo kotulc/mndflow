@@ -157,12 +157,22 @@ function wiring(root: string, project: Project, scoped: Set<string>): SourceFile
   for (const path of found) {
     if (!package_dir(root, path)) continue;
     const file = path.endsWith(".mdx")
-      ? project.createSourceFile(`${path}.tsx`, readFileSync(path, "utf8").split("\n")
-        .filter((l) => /^import\s/.test(l)).join("\n"), { overwrite: true })
+      ? project.createSourceFile(`${path}.tsx`, mdx_of(readFileSync(path, "utf8")),
+                                 { overwrite: true })
       : project.getSourceFile(path) ?? project.addSourceFileAtPath(path);
     if (specified(file).some((f) => scoped.has(f.getFilePath()))) out.push(file);
   }
   return out;
+}
+
+/** An MDX page as code: its import lines, then each component it uses as an element
+ *  (`<TagList …`), in the order first used, one element apiece — so its uses count as calls. */
+function mdx_of(text: string): string {
+  const imports = text.split("\n").filter((l) => /^import\s/.test(l));
+  const used = [...text.matchAll(/<([A-Z][\w.]*)/g)].map((m) => m[1]!)
+    .filter((n, i, all) => all.indexOf(n) === i);
+  return [...imports, ...used.map((n) => `export const _${n.replace(/\W/g, "_")} = <${n} />;`)]
+    .join("\n");
 }
 
 /** A package's source folder, from the root, with its slash: its `src` where it has one, else

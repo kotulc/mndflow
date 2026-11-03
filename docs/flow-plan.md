@@ -1,24 +1,24 @@
 # Entry paths plan
 
-**An entry point's paths through the system, drawn twice: as its own diagram, and lit on its package's diagram when it is hovered or picked.** Taken up 2026-11-02 from translate-plan.md (*Directions* rows 11–12). The user: "take your time getting it right; if we need to enhance routing to make it work so be it."
+**An entry point's paths through the system, drawn three ways: as its own diagram, lit on its package's diagram when it is hovered or picked, and traced across the map, step by step through its sequence.** Taken up 2026-11-02 from translate-plan.md (*Directions* rows 11–12). The user: "take your time getting it right; if we need to enhance routing to make it work so be it."
 
 ## Next session
 
-**Stages 1–6 are built and seen in the app (*Built*, second table); the user reads them next.** Then delete this plan, keeping what remains open in backlog.md.
+**Start here: the user reads the traced paths on the map** (stage 7, built 2026-11-02, *Built* third table). The user leads by visual inspection; no tests while the design moves.
 
-- **open, for the user**: entry lines are never drawn on a package diagram (translate-plan *Strategy* stage 2), so a lit path lights the entry and its components but no line from the entry; draw them only while lit, or leave it · the class diagram of a package's own types sits loose below its bands · a note's tie still runs straight across the shop diagram (29 crossings in the example are mostly ties)
-- **next measure targets**: the workspace root of the code sample (56 lines among the `types` definitions), tray's package diagram, core's `action` component
-- **uncommitted** (2026-11-02): this plan's *Built* and translate-plan.md's. Suggested message: `Translate TypeScript with entry paths and vocabulary; measure, route and light paths`. `samples/code/` and `samples/mndsite/` are generated
+- **open, for the user**: paths stay inside one package, as the translator records calls only within a package (translate-plan `calls_of`); crossing packages is the next step for a system-wide story · whether several paths show at once · a step-through (next and previous) on top of the numbers · the class diagram of a package's own types sits loose below its bands · a note's tie still runs straight across the shop diagram
+- **map leftovers**: an entry-points band of few, light chips is still a narrow column (tray, views); registries and the where-picture keep their own treemaps (`tiled`, `compact`), not yet the map's layout
+- **uncommitted** (2026-11-02): stage 7 and the map's one layout (translate-plan *Next session*). Suggested message: `Trace entry paths on the map; one map layout for treemap diagrams`. `samples/code*` and `samples/mndsite*` are generated and gitignored
 - **regenerate**: `npm run code` (this repo → `samples/code.json`); mndsite by hand: `cd apps/ts && npx vite-node src/main.ts ../../../mndsite ../../samples/mndsite`, then `npm run start -s -w @mnd/cli -- collect ../../samples/mndsite ../../samples/mndsite.json --workspace`; `check` each. `npm run packages` after any `ts` kind change
-- **measure**: `npm run start -s -w @mnd/cli -- measure ../../samples/<name>.json [layer]`; a layer named prints what each count found
-- **see it**: a Playwright script (Edge, `channel: "msedge"`) starting Vite from `apps/web/vite.config.ts`, routing `**/mndflow.yaml` to `workspace: /samples/<name>.json` (`tray: open`); enter a layer by double-clicking its node by id (`.react-flow__node[data-id="…"]`) near its title, never by text, which matches chips inside. Run from the repo root; in Git Bash set `MSYS_NO_PATHCONV=1`
+- **measure**: `npm run start -s -w @mnd/cli -- measure ../../samples/<name>.json [layer]`; a layer named prints what each count found. It measures entered diagrams only; the map has no lines yet
+- **see it**: a Playwright script (Edge, `channel: "msedge"`) starting Vite from `apps/web/vite.config.ts`, routing `**/mndflow.yaml` to `workspace: /samples/<name>.json` (`tray: open`); enter a layer by double-clicking its node by id (`.react-flow__node[data-id="…"]`) near its title, never by text, which matches chips inside; hover or pick by id too. Run from the repo root; in Git Bash set `MSYS_NO_PATHCONV=1`. A working copy was in the session scratchpad (`see.mjs`); rewrite it if gone
 
 ## Goal
 
 | # | Want | Why |
 |---|---|---|
 | 1 | **each entry point shows its flow**: how data moves from it through the primary parts | the major paths are the first thing a person should read |
-| 2 | **hover or pick lights that entry's paths** on the package diagram, unique per entry | one diagram serves every entry without drawing every path at once |
+| 2 | **hover or pick lights that entry's paths**, traced across the map and lit on the package diagram, unique per entry | one diagram serves every entry without drawing every path at once |
 | 3 | **lines never hide cards or their words** | a lit path is useless if it runs over the cards it explains (*No overlap*: check fit and two zooms, map and diagram) |
 | 4 | **space between major parts** | the gaps carry the lines; more between major parts than inside one |
 
@@ -32,6 +32,8 @@
 | 4 | **hover and pick** | the rest of the diagram dims; the path's lines and the components it includes light, the entry itself too |
 | 5 | **order** | spacing and emphasis first (built), then the measure, the paths, then routing |
 | 6 | **major parts** | a model's parts, looked through folders and bands, are major; never chosen per project. Gaps are fixed values by rank, never scaled per chip |
+| 7 | **where a path is traced** | **on the map** (2026-11-02, the user): "we trace the path from each entry point through its sequence on the map". The entered diagram's lighting (stage 4) stays; the map is where a person first reads the paths |
+| 8 | **how a traced path reads** | numbered legs (2026-11-02, the user): hover shows, a pick holds; each block on it numbered where the path first reaches it; calls on hover of a leg; one path at a time |
 
 ## Stages
 
@@ -114,6 +116,18 @@ relations:
 
 **The map's ranks carried into the entered view.** A card that is a part of the layer and holds parts (a component) is framed 2 px in its colour; a module card (no parts) quieter; the `shared` band's cards quieter still. Theme and stage, as the map's (`flow.css` `.major`/`.minor`); the mark from views `layer.ts` where the scene's cards are made. Salience (translate-plan stage 6) later decides which modules are cards at all.
 
+### 7. Trace an entry's path on the map
+
+**Built 2026-11-02** (*Built*, third table). **Hover or pick an entry's chip on the map: its path is drawn across the map, from the entry through each step of its sequence in order; the rest of the map dims.** Any block owning a behaviour gets it, as stage 4.
+
+- **what is drawn**: one leg a message, in the sequence's order — the entry's own chip to the first component it calls (the line no diagram draws: entry lines are left out of package diagrams), then each step on from where its caller was last. Each leg from chip to chip; the chips on the path light, others dim, colours kept (*Keep colour*)
+- **order**: from the sequence itself — its rows, its messages' ends and their lifelines' referents — never re-derived from the code; a core function beside `travels` (`tree.ts`), say `steps_of(graph, id)` → ordered `{ from, to, name }` of the blocks referred to. `travels` gives the set; this gives the order
+- **where the chips are**: the map's scene has `areas` and chip nodes, no edges (`map.ts` `mapped` returns `edges: []`). A referent lifts to the nearest block the map draws as a chip or box (map.ts `drawn_at` already finds the element or the nearest block drawn above it, for *where it lives*)
+- **how it is drawn**: an overlay in the flow's viewport (stage `Flow.tsx` already uses `ViewportPortal`), square legs in the gaps between chips — the map's gaps are 24 between major parts for this (*Built* ranks) — never through a chip or over its name (*No overlap*); arrows by direction; a step's call names on hover of its leg, not always shown. Routing: libavoid over the chips as obstacles, as `routes_of` does for a diagram, is the first thing to try
+- **stage**: `path.ts` returns null on a map today (`scene.areas`); extend it so a map hover or pick over a chip with behaviours yields the ordered steps; the map's hover card still shows
+- **judge**: on mndsite (every page now has a path; `theme-config` the longest), then this repo (`Tray`, `blocks`, `block`); paths must read at fit and at two zooms; extend `mnd measure` to a map's overlay once it exists
+- **open**: whether several entries' paths can show at once (a pick of several); whether the steps are numbered on the map
+
 ## Built 2026-11-02
 
 **Ranks on the map** (*Decided* row 6): a model's parts, looked through folders and bands, are **major**: a 2 px rim at half their colour and a 4 px colour accent on the left, a wide gap (24) between them and between what holds them; what they hold is **minor**: rims at half, box titles faint, previews at half until the pointer is on them, the colour accent kept whole. Rule in docs/design `chip.md`. Approved by the user ("much better, I like the highlighting effect"). Three fixes the same day: mndsite's entry points and single-module components read loud, being leaf parts of the model, so a major part must hold parts and the rest is minor, a minor chip's words faded too; the first cut gave major chips a neutral rim (colours lost); then a full-colour rim hid the left accent, so the rim is mixed to half and the accent widened.
@@ -148,3 +162,17 @@ relations:
 | example | 236–246 | 64 · 11 · 1 · 0 | 29 · 5 · 0 · 0 |
 
 What moved the numbers: cards in a rank two units apart (crossings 58 → 6 on code alone), names clear of cards (covered 138 → 98), shared paths nudged (46 → 21). Each tried alone against the measure; ELK's edge spacing kept for its crossings though it adds a few shared runs.
+
+## Built 2026-11-02, stage 7 and the map
+
+**Seen in the app** on mndsite (`theme-config`: page → TagList → contents → meta → mobile → link) and this repo (`Tray`, `block`); typecheck and the 304 tests pass.
+
+| Change | Where |
+|---|---|
+| a behaviour's messages as an ordered path of referents, never what heads its own rows | core `tree.ts` `path_of`, `stands` (shared with `travels`) |
+| the trace: ends lifted to what the map draws, or the *+n more* they folded into; one leg a pair, numbered by first reach; a lit box lights what it holds | views `trace.ts` `trace_of` |
+| each leg square, out of the middle of its source's top or bottom edge, then elbows into the target, over the dimmed chips (the user, 2026-11-02: routing round chips was obtrusive, slanted lines clash with the square style); thin, quiet; numbers at each block's lower right corner | views `trace.ts` `squared`; stage `Traced.tsx`, `flow.css` |
+| drawn over the map, the rest dimmed | stage `Traced.tsx`, `path.ts` (a map now traces), `Stage.tsx`, `flow.css` *A path traced* |
+| one layout for every map: a box holding only a box merged (*mndflow › code*); gaps by rank, 12 between boxes in every section; square-root weights; the map grown by chip count; slivers weighed up to 8×, then folded into *+n more* | views `map.ts` `merged`, `laid_out`, `folded` |
+| a `treemap` diagram drawn as the map is, a reference as what it stands for; read only | views `map.ts` `layer_map`, `entries`; `block.ts`; web `App.tsx`; `treemap.ts` `treemapped` and the `tiled` card mark removed |
+

@@ -6,15 +6,15 @@ import { alias_of, dir_of, layout_of, children, covers, diagram_subject,
          is_grid, is_group, is_aside, is_note, is_tie, label_of, lattice_of, members_of, shape_of,
          stamps_of, role_of, shown_name, type Cut, type Ends, type ViewKind, type Graph, type Id,
          type Relation, type Side, type Span } from "@mnd/core";
-import { at_seat, beside, boundary, cell_box, face_of, head_height, is_placed, laid, perch_id,
-         roomed, seat_all, size_of, PAD,
-         UNIT, type Perch, type Rect, type Seat, type Seating, type Size } from "@mnd/views";
+import { at_seat, beside, boundary, cell_box, head_height, is_placed, laid, perch_id,
+         roomed, seat_all, PAD,
+         UNIT, type Perch, type Rect, type Seat, type Seating } from "@mnd/views";
 import { carried, fit_names, marks_of, trail_of } from "./derive";
 import { card_facts } from "./facts";
 import { lifelined } from "./lifelines";
 import { look_of, wire_of } from "./look";
 import { page_graph } from "./page";
-import { section_map } from "./map";
+import { layer_map, section_map } from "./map";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { registry_scene } from "./registry";
@@ -89,19 +89,15 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   }
   /** What its usages read through. **No line is derived**: only stored relations draw. */
   const through = read_through(given, layer);
-  /** A page places its layer as it reads; anything else places itself. */
+  /** A page places its layer as it reads; a treemap is its map; anything else places itself. */
   const how = layout_of(through, layer);
+  if (how === "treemap") return layer_map(given, layer);
   const graph = how === "page" ? page_graph(through, layer) : through;
   const parts = new Set(Object.keys(graph.blocks).filter((id) =>
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
-  /** A tile too short for its large face draws its small one: a treemap sizes by weight. */
-  const carried_as = (id: Id, box: Size): BoxData => {
-    const large = how === "treemap" && face_of(graph, id) === "large";
-    const big = large ? size_of(graph, id, "large") : null;
-    const said = big && big.h > box.h ? carried(graph, id, "small")
-      : carried(graph, id);
-    const marks = [...said.marks, ...(parts.has(id) ? ["part" as const] : []),
-                   ...(how === "treemap" ? ["tiled" as const] : [])];
+  const carried_as = (id: Id): BoxData => {
+    const said = carried(graph, id);
+    const marks = [...said.marks, ...(parts.has(id) ? ["part" as const] : [])];
     const facts = card_facts(graph, id);
     return { ...said, marks, ...(facts ? { facts } : {}) };
   };
@@ -114,7 +110,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   /** Which component draws each box. Every card is the one card height, so nothing minifies. */
   const boxes: BoxNode[] = spots
     .filter((p) => !inline(graph, p.id) && !is_group(graph, p.id))
-    .map((p) => node(p.id, p, { ...carried_as(p.id, p), nest: group_depth(graph, p.id) },
+    .map((p) => node(p.id, p, { ...carried_as(p.id), nest: group_depth(graph, p.id) },
                      is_note(graph, p.id) ? "note" : "card"));
 
   /** A grid draws its extent; a boundary its members' bounds. */

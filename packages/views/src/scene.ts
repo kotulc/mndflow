@@ -84,6 +84,8 @@ export type BoxData = {
   preview?: Preview;
   /** A definition's chip showing its profile: its uses split by place, each in its colour. */
   bar?: readonly { n: number; tint: Tint }[];
+  /** A map's *+n more* chip: the chips folded into it, which its hover card lists. */
+  folded?: readonly Id[];
   /** A registry's tile: how many times its entry is used, and that against the most used. */
   count?: number;
   heat?: number;
@@ -103,8 +105,6 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "label"
                  | "major"
                  /** Inside a major part on the map: drawn quieter. */
                  | "minor"
-                 /** A card laid in a treemap: a plain ground, its definition's colour on its edge. */
-                 | "tiled"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "upright" | "merged"
                  /** An opened grid, standing in for the room. */

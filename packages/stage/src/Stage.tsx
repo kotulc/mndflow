@@ -414,6 +414,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         ? <style>{lit_rules(touched, "var(--s-secondary-edge)")}</style> : null}
       <FlowView
         scene={scene}
+        trace={path && "legs" in path ? path : null}
         picked={picked}
         stands_for={stands_for}
         cells={cells}

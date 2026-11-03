@@ -27,5 +27,5 @@ library:
 relations:
   - association:
       - from: Payment
-        to: Records::Order
+        to: Records.Order
         ends: { from: { multiplicity: "0..*", role: payments }, to: { multiplicity: "1", role: order } }

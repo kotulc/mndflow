@@ -1,22 +1,24 @@
-/** **A behaviour's path, lit** (flow-plan stage 4): the card under the pointer, else the one card
- *  picked, lights what its behaviours travel on the layer (core `travels`); the rest dims
- *  (`flow.css` *A path lit*). Hover shows it while the pointer is on; a pick holds it. */
+/** **A behaviour's path, lit** (flow-plan stages 4, 7): the card or chip under the pointer, else
+ *  the one picked, lights what its behaviours travel — on a layer its cards and lines (core
+ *  `travels`), on a map its path traced chip to chip (views `trace_of`); the rest dims (`flow.css`
+ *  *A path lit*). Hover shows it while the pointer is on; a pick holds it. */
 
 import { useEffect, useMemo, useState, type RefObject } from "react";
 import { travels, type Graph, type Id } from "@mnd/core";
-import type { Scene } from "@mnd/views";
+import { trace_of, type Scene, type Trace } from "@mnd/views";
 
-/** What lights: the path's cards and lines, or null where nothing travels. */
-export type Lit = { blocks: readonly Id[]; lines: readonly Id[] } | null;
+/** What lights: the path's cards and lines, on a map its trace, or null where nothing travels. */
+export type Lit = { blocks: readonly Id[]; lines: readonly Id[] } | Trace | null;
 
 
-/** The path lit on a layer, from the card hovered or the one picked. A map lights none. */
+/** The path lit, from the card or chip hovered or the one picked. */
 export function usePath(host: RefObject<HTMLElement>, graph: Graph, scene: Scene,
                         picked: readonly Id[]): Lit {
   const hovered = useOver(host);
   const on = hovered ?? (picked.length === 1 ? picked[0]! : null);
   return useMemo(() => {
-    if (scene.areas || !on || !graph.blocks[on]) return null;
+    if (!on || !graph.blocks[on]) return null;
+    if (scene.areas) return trace_of(graph, scene, on);
     const t = travels(graph, on, scene.layer);
     return t.blocks.length > 1 || t.lines.length ? t : null;
   }, [graph, scene, on]);

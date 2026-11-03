@@ -35,6 +35,8 @@ export type ChipData = {
   preview?: { rows?: readonly (readonly string[])[]; lines?: readonly string[];
               places?: readonly { id: string; label: string; n: number; tint: Tint }[] };
   bar?: readonly { n: number; tint: Tint }[];
+  /** A *+n more* chip's chips, which its hover card lists. */
+  folded?: readonly string[];
 };
 
 export type ChipFaceProps = { data: ChipData; w: number; h: number; level: number;
@@ -82,6 +84,7 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
                      ...(data.marks ?? []).filter((m) => m === "major" || m === "minor"),
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
          data-level={level}
+         {...(data.folded ? { "data-folded": JSON.stringify(data.folded) } : {})}
          {...(tint ? { "data-family": tint["data-family"] } : {})}
          style={{ ...(tint?.style ?? {}), "--cap": `${Math.max(0, (width ?? 0) - 8)}px`,
                   "--head": `${head}px`, "--band": band } as CSSProperties}>

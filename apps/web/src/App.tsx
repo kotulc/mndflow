@@ -176,8 +176,10 @@ export function App({ storage, boot, opening }: {
   useEffect(() => { if (!scene.areas) set_through(null); }, [scene.areas]);
 
   /** **The canvas edits in every entered view but a registry**: what a view cannot hold, core
-   *  refuses and says why. A map and a registry are read, never built on. */
-  const editable = !mapped && view.kind !== "registry";
+   *  refuses and says why. A map — a treemap diagram is one — and a registry are read, never
+   *  built on. */
+  const treemap = !mapped && !waiting && !!scene.areas;
+  const editable = !mapped && !treemap && view.kind !== "registry";
   const arranging = editable && !waiting && scene.slots.includes("layer");
 
   /** **The sections follow the canvas** — one rule (`held_at`), whatever moved it: the layer opened,
@@ -569,8 +571,8 @@ export function App({ storage, boot, opening }: {
           scroll={!mapped && (whole || diagram)}
           entered={entered && !!map}
           opened={opened}
-          stop={scene.areas
-            ? through ?? (focus_area ? { ...focus_area, scale: 1 / 2 } : null) : null}
+          stop={!scene.areas ? null : treemap ? { ...scene.areas[0]!, scale: 1 }
+            : through ?? (focus_area ? { ...focus_area, scale: 1 / 2 } : null)}
 
           focus={system ? view.pick : whole ? null : aim}
           most={1}

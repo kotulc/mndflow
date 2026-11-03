@@ -33,9 +33,9 @@ blocks:
 relations:
   - association:
       - from: Order
-        to: Records::Customer
+        to: Records.Customer
         ends: { from: { multiplicity: "*" }, to: { multiplicity: "1", role: customer } }
   - composition:
       - from: Order
-        to: Records::Line
+        to: Records.Line
         ends: { to: { multiplicity: "1..*", role: lines } }

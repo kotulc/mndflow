@@ -33,4 +33,4 @@ blocks:
         type: document
         body: "v2 of the orders API: the checkout key is required."
 relations:
-  - in -> Order book::events: placed
+  - in -> Order book.events: placed

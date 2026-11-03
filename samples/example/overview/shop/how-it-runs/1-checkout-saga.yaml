@@ -2,11 +2,11 @@ name: Checkout saga
 type: sequence
 description: "A sequence: who talks to whom, in what order. Each lifeline is a reference to the part it stands for, so it is the same Gateway, Storefront and Payments the shop is made of."
 cols:
-  - { name: Customer, type: reference, of: "Overview::Customer" }
-  - { name: Gateway, type: reference, of: "Overview::Shop::Customer facing::Gateway" }
-  - { name: Storefront, type: reference, of: "Overview::Shop::Customer facing::Storefront" }
-  - { name: Payments, type: reference, of: "Overview::Shop::Back office::Payments" }
-  - { name: Inventory, type: reference, of: "Overview::Shop::Back office::Inventory" }
+  - { name: Customer, type: reference, of: "Overview.Customer" }
+  - { name: Gateway, type: reference, of: "Overview.Shop.Customer facing.Gateway" }
+  - { name: Storefront, type: reference, of: "Overview.Shop.Customer facing.Storefront" }
+  - { name: Payments, type: reference, of: "Overview.Shop.Back office.Payments" }
+  - { name: Inventory, type: reference, of: "Overview.Shop.Back office.Inventory" }
 rows:
   - name: Submit
   - name: Charge

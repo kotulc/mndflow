@@ -12,5 +12,5 @@ settings:
 relations:
   - association:
       - from: Line
-        to: Records::Product
+        to: Records.Product
         ends: { from: { multiplicity: "*" }, to: { multiplicity: "1", role: product } }

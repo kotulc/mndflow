@@ -5,7 +5,7 @@ blocks:
   - { name: A block }
   - { name: A folder, type: folder }
   - { name: A grid, type: grid }
-  - { name: A reference, type: reference, of: "Blocks::A block" }
+  - { name: A reference, type: reference, of: "Blocks.A block" }
   - { name: A class diagram, type: class }
   - { name: An entity diagram, type: entity }
   - { name: A flow, type: flow, blocks: [ step ] }

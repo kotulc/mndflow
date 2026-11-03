@@ -5,19 +5,19 @@
 
 ## Next session
 
-**Start here: the user reads both workspaces, then decides rows d–f below.** flow-plan.md is built (entry paths, measure, routing, lit paths, ranks); steps a–c here are built (*Built 2026-11-02, second pass*). Delete this plan when the second translator ships.
+**Start here: the user reads the paths traced on the map** (flow-plan.md stage 7, built 2026-11-02). Next for the translator: **calls across packages**, so a path tells the system's story, not one package's (`read.ts` `calls_of` records calls within a package only). Steps a–c here are built (*Built 2026-11-02, second pass*); d–f decided below. Delete this plan when the second translator ships.
 
 | # | Step | State |
 |---|---|---|
 | a | **salience** (stage 6) | built: PageRank over imports by symbols, scaled by length; a component's diagram draws its most salient half (`shown` 0.5, at least 1, at most the budget, never folding one alone), the rest one `other` block saying which. Left: unjoined modules folded per band (*Directions* row 4); a component face listing modules as rows |
 | b | **names** (stage 8) | built: tf-idf over the module names of a component against its siblings', a word recurring at least twice; first doc lines too only where the anchor is a stop word (`helpers`, `index`, `utils`). Tried with doc words for all: worse (`session` became `log`, `nodes` `level`), so anchors that name something stay |
 | c | **vocabulary** (stage 7) | built: interfaces, classes and object types another module reads, owned by the block holding their module, at most `most` (9) an owner by fan-in; a definition each in `types/<group>/<pkg>/<owner>/`, fields as attributes, a field typed by a written type an `association`, `extends` the `type`; a `class` diagram per component owning types, and one for the package's own. Left: enums and aliases as library types (they read as `text` with a note); a name said in two packages is never linked bare (text with a note); methods |
-| d | **ports** (stage 5) | **needs a decision**: a component's ports would be its exports used outside it, but core's `helpers` alone has 20+ crossing names; one port per export clutters every diagram. Options: a port per importing component, a port per most-read export (top few), or none until a component face lists them |
-| e | **writing directly** (*Decided* row 3) | **needs a decision**: still a source folder then `collect`, which caught three real faults this pass (names shared by lifelines, rows and blocks; qualified attribute types made as text). Leaning: keep it and change row 3 |
-| f | **a reference breakdown** (*Directions* row 7) | **needs the user**: modules → components for this repo, for MoJoFM |
+| d | **ports** (stage 5) | **decided 2026-11-02: no ports from imports or exports.** A port describes an interface, a data contract; an import is a usage, not a contract. At most one port per interface a component offers, and only once there is a contract to name; none generated until then |
+| e | **writing directly** (*Decided* row 3) | **decided 2026-11-02**: keep the source folder then `collect` for now (row 3 changed); it caught three real faults this pass |
+| f | **a reference breakdown** (*Directions* row 7) | **set aside 2026-11-02**: the user's reading of the models leads instead |
 
 - **the user's direction** (2026-11-02): a deterministic structure found from the graph (imports, interfaces, cycles, centrality), not agentic band-aids; **no hard rules** about what a block is; **thresholds are defaults with floors**; **balance depth against the big picture**; diagrams are visual information, never lists of parts; agents refine and narrate on top
-- **uncommitted**: everything in *Built* and flow-plan.md *Built*; suggested message in flow-plan.md *Next session*. `samples/code/` (194 files) and `samples/mndsite/` (11) are generated
+- **uncommitted**: everything in *Built* and flow-plan.md *Built*; suggested message in flow-plan.md *Next session*. `samples/code*` and `samples/mndsite*` are generated and gitignored
 - **found in review, not this plan's code** (2026-11-01 reference work, uncommitted): an ambiguous bare attribute type is made as text with no note (core `sources.ts` `type_of`); a folder path inside the reader's own package (`Records.Order`) is not found by `def_hits` for `type:` though it is for `of:` (core `refs.ts`); the door allows one name in two folders (`door.ts` `named_defs`) while rename and create refuse it (`name_taken`), pending the user's word; `wanted` loads a catalogue package for any dotted word whose first step names one, ports and relation ends included (core `sources.ts`); the CLI re-reads the catalogue index once a head (cli `main.ts` `listed_names`)
 - **packages**: graphology, `graphology-communities-louvain`, `-components`, `-dag`, `-metrics` (modularity, PageRank) in apps/ts
 
@@ -37,7 +37,7 @@
 |---|---|---|
 | 1 | **where the translator lives** | an app in this repo (`apps/ts`), moved out once the schema settles |
 | 2 | **the parser** | ts-morph |
-| 3 | **how it writes** | **the workspace JSON directly** (2026-11-02), not a source folder of files; ids minted from source paths and names, so translating again keeps them. Whether it writes through core's `write` and checks with the door is *Directions* row 6 |
+| 3 | **how it writes** | **a source folder, then `collect`** (2026-11-02, for now), so the door's check runs on what is written; ids minted from source paths and names, so translating again keeps them. Superseded: the workspace JSON directly |
 | 4 | **scope** | revised 2026-11-02: each package's `src` where it has one, else its whole folder; TypeScript by its tsconfig, else JavaScript (`allowJs`); `require` counts as an import. Tests, configs, setup files, `.d.ts` and installed, built or test folders left out. **Wiring**, configs and MDX pages (by their import lines), is read only where it imports the project's code, as an entry |
 | 5 | **the `ts` package** | kinds only (package, module, function, value, interface, class, type alias); to revisit with the component kinds (*Directions* row 3) |
 | 6 | **vocabulary** | **definitions only for types shared across modules** (2026-11-02); module-local types stay out of the library. Fields are attributes, a field typed by another definition an `association`, `extends` the `type` chain, enums and aliases library types |
@@ -51,7 +51,7 @@
 | 14 | **what tests a translator** | 2026-11-02: the user reading the translated models, across projects, is the final test. Projects: **this repo**, then **mndsite** (Next.js, JS/JSX, one package, folders by role). Scores (*Strategy* stage 9) guide; they never decide. Component ids are minted from an anchor (a folder, or the most central module), never from the member list, so re-translating keeps them |
 | 15 | **one model, named by what was read** | 2026-11-02: under the package root, one model named for what the translator read: the folder every module sits in (`src`), else `code`; never the project's name again. Its packages sit in their groups' folders inside it, with the lines between them; a project of one package is that model (`mndsite › code`) |
 
-**Superseded** from 2026-11-01: a source folder then `collect` (row 3); every top-level declaration as a block and every declared type as a definition (rows 6, 8); each module a diagram on its package's layer (row 7).
+**Superseded** from 2026-11-01: every top-level declaration as a block and every declared type as a definition (rows 6, 8); each module a diagram on its package's layer (row 7).
 
 
 ## Strategy
@@ -168,4 +168,4 @@ Seen in the browser on the translated repo, and (2026-11-02) by Louvain over eac
 | names by words | `structure.ts` `worded`, `words_of`, `STOP` |
 | the vocabulary and its class diagrams | `structure.ts` `vocab_of`; `write.ts` `vocab_files`, `attribute` |
 
-**This repo**: 13 packages, 163 modules, 194 files; core's components now `action`, `session`, `sources`, `holders`, its own types (`Block`, `Graph`, `Relation` …) in `core types`. **mndsite**: one path (`theme-config`), components `link`, `page`, `contents`, `meta`, …; no shared types, being JavaScript.
+**This repo**: 13 packages, 163 modules, 194 files; core's components now `action`, `session`, `sources`, `holders`, its own types (`Block`, `Graph`, `Relation` …) in `core types`. **mndsite**: a path for every entry — an MDX page's components used as elements count as calls (`read.ts` `mdx_of`), so each page reaches what it renders; `theme-config` the longest, components `link`, `page`, `contents`, `meta`, …; no shared types, being JavaScript.

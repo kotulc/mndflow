@@ -2,7 +2,7 @@
 
 import { def_at, isa, module_of, setting_of } from "./defs";
 import { behaviours_of } from "./ends";
-import { allocations_of, drawn_in, is_holder, layer_of } from "./holders";
+import { allocations_of, drawn_in, is_holder, layer_of, region_of } from "./holders";
 import { LAYOUTS, type Block, type Definition, type Flow, type Graph, type Id, type Layout,
          type Port, type Relation } from "./types";
 import { kept } from "./memo";
@@ -208,10 +208,7 @@ export function travels(graph: Graph, id: Id, layer: Id | null): { blocks: Id[];
     return null;
   };
   /** What a step stands for on the layer. */
-  const stood = (step: Id): Id[] => [
-    ...(of_ref(graph, step) ? [object_of(graph, step)] : []),
-    ...allocations_of(graph, step).filter((b) => !is_holder(graph, b.id)).map((b) => b.id),
-  ].map(lift).filter((x): x is Id => !!x);
+  const stood = (step: Id): Id[] => stands(graph, step).map(lift).filter((x): x is Id => !!x);
   const blocks = new Set<Id>([id]);
   const pairs = new Set<string>();
   for (const w of ways) {
@@ -227,6 +224,31 @@ export function travels(graph: Graph, id: Id, layer: Id | null): { blocks: Id[];
     return pairs.has(`${a}\n${b}`) || pairs.has(`${b}\n${a}`);
   }).map((e) => e.id);
   return { blocks: [...blocks].filter((b) => b === id || drawn.has(b)), lines };
+}
+
+/** **A block's behaviours as a path, in order**: each message between two steps, ordered by the
+ *  row its receiving step sits in, from what the sending step stands for to what the receiving one
+ *  does — never what heads its row, inside the behaviour — named as the message is. A step to
+ *  itself is none. Empty with no behaviour. */
+export function path_of(graph: Graph, id: Id): { from: Id; to: Id; name: string }[] {
+  return behaviours_of(graph, id).flatMap((w) => {
+    const steps = new Set(subtree(graph, w.id));
+    const row = (step: Id) => region_of(graph, step)?.r ?? 0;
+    return Object.values(graph.edges)
+      .filter((e) => steps.has(e.from) && steps.has(e.to))
+      .sort((a, b) => row(a.to) - row(b.to))
+      .flatMap((e) => {
+        const outside = (step: Id) => stands(graph, step).filter((b) => !steps.has(b));
+        return outside(e.from).flatMap((from) => outside(e.to)
+          .filter((to) => to !== from).map((to) => ({ from, to, name: e.name ?? "" })));
+      });
+  });
+}
+
+/** What a behaviour's step stands for: a reference's object, or what heads its lifeline. */
+function stands(graph: Graph, step: Id): Id[] {
+  return [...(of_ref(graph, step) ? [object_of(graph, step)] : []),
+          ...allocations_of(graph, step).filter((b) => !is_holder(graph, b.id)).map((b) => b.id)];
 }
 
 /** The usage a block drawn on `layer` is seen through: the layer, where the block is its

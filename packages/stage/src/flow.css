@@ -173,32 +173,6 @@
 .mnd-flow .mnd-card.card-face[data-shape="diamond"].definition::after { background: var(--bg); }
 .mnd-flow .mnd-card.card-face[data-shape="diamond"].picked::before { inset: -2px; background: var(--accent); }
 
-/* **A card laid in a treemap** reads on a plain ground, its definition's colour on its edge, so a
-   map of many reads calm and its kinds still tell apart. */
-.mnd-flow .mnd-card.card-face.tiled:not(.picked) {
-  background: var(--surface);
-  border-color: var(--s-neutral-line, var(--border));
-  border-left: 4px solid var(--card-edge, var(--card-line));
-}
-
-/* **A tile's name is never cut short**: no icon gutter, as many lines as the tile holds, read
-   upright where the tile is tall and narrow, and the corner dropped where it would crowd it. */
-.mnd-flow .mnd-card.card-face.tiled { container: tile / size; }
-.mnd-flow .mnd-card.card-face.tiled > .mnd-head { padding-right: 0; align-items: flex-start; }
-.mnd-flow .mnd-card.card-face.tiled > .mnd-head > .mnd-named > .mnd-label {
-  display: block;
-  white-space: normal;
-  overflow-wrap: break-word;
-}
-@container tile (max-width: 96px) {
-  .mnd-head { padding-top: 0; }
-  /* Smaller before broken: a word splits only where it cannot fit at all. */
-  .mnd-head > .mnd-named > .mnd-label { font-size: 10px; }
-}
-@container tile (orientation: portrait) and (max-width: 96px) {
-  .mnd-head > .mnd-named > .mnd-label { writing-mode: vertical-rl; transform: rotate(180deg); }
-}
-
 /* **A card with a drawing of its own wears a stacked edge**: a second card's edge behind it, so
    what opens reads at a glance, in every theme. A shadow draws only outside the border, so an
    outlined definition stays clear inside. */
@@ -1040,8 +1014,46 @@
 
 /* **A path lit** (stage `path.ts`): a card whose behaviours travel the layer, hovered or picked,
    lights the cards and lines on its path; other cards and lines dim, keeping their colour. */
-.stage.pathing :is(.react-flow__node-card, .react-flow__node-note),
+.stage.pathing :is(.react-flow__node-card, .react-flow__node-note, .react-flow__node-chip,
+                  .react-flow__node-box),
 .stage.pathing .react-flow__edge, .stage.pathing .mnd-wire-name, .stage.pathing .mnd-wire-end {
   opacity: 0.25;
   transition: opacity 120ms;
+}
+
+/* **A path traced across a map** (stage `Traced.tsx`): thin legs in the accent, a little
+   translucent, held at a steady width on screen, so the quiet chips under them still read; each
+   block on it numbered by a small tag in its lower right corner. A leg's calls show on hover of
+   its wider, unseen stroke. */
+.mnd-trace { pointer-events: none; }
+/* Over the chips, so the numbers and legs read on them. */
+.react-flow__viewport-portal:has(> .mnd-trace) { z-index: 1001; }
+.mnd-trace polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.mnd-trace .run {
+  stroke: var(--accent);
+  stroke-width: calc(1.25px / var(--zoom, 1));
+  opacity: 0.7;
+}
+.mnd-trace .hit {
+  stroke: transparent;
+  stroke-width: calc(8px / var(--zoom, 1));
+  pointer-events: stroke;
+}
+.mnd-trace-leg:hover .run { opacity: 1; stroke-width: calc(2px / var(--zoom, 1)); }
+.mnd-trace marker path { fill: var(--accent); opacity: 0.85; }
+.mnd-trace-mark {
+  position: absolute;
+  transform: translate(-100%, -100%) scale(calc(1 / var(--zoom, 1)));
+  transform-origin: bottom right;
+  min-width: 13px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  border-radius: 3px 0 2px 0;
+  background: color-mix(in oklch, var(--accent) 80%, transparent);
+  color: var(--bg);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+  pointer-events: none;
 }

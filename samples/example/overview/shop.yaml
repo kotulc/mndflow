@@ -41,12 +41,12 @@ blocks:
     type: label
 relations:
   - tie: [ hot path -- Gateway ]
-  - https -> Gateway::requests
-  - Gateway::routes -> Storefront::https: routes
-  - Gateway::routes -> Storefront::https: routes
-  - Storefront::pay -> Payments::in: pay
-  - Storefront::orders -> Orders::in: placed
-  - Payments::remote -> charges
-  - Orders::events -> Inventory::events: reserve
-  - Orders::events -> Shipping::events: ship
-  - Shipping::carrier -> shipments
+  - https -> Gateway.requests
+  - Gateway.routes -> Storefront.https: routes
+  - Gateway.routes -> Storefront.https: routes
+  - Storefront.pay -> Payments.in: pay
+  - Storefront.orders -> Orders.in: placed
+  - Payments.remote -> charges
+  - Orders.events -> Inventory.events: reserve
+  - Orders.events -> Shipping.events: ship
+  - Shipping.carrier -> shipments

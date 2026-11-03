@@ -1,7 +1,7 @@
 /** What the canvas says a gesture meant, and the props it takes. */
 
 import type { Id, Point, Side, Spot } from "@mnd/core";
-import type { Scene } from "@mnd/views";
+import type { Scene, Trace } from "@mnd/views";
 
 /** What a gesture on the canvas meant. */
 export type Gesture = {
@@ -43,6 +43,8 @@ export type Landing = { over: string | null; into: string | null;
 export type FlowViewProps = {
   scene: Scene;
   picked?: readonly Id[];
+  /** A path traced across a map: its legs drawn over it, its blocks numbered. */
+  trace?: Trace | null;
   /** What an id drawn stands for, where it is not a block's own — a place's box — so it lights
    *  with it. */
   stands_for?: (id: Id) => Id | null;

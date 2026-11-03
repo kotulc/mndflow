@@ -35,9 +35,9 @@ blocks:
     ports:
       - { name: events, type: Events, flow: in }
 relations:
-  - https -> Cart::in
-  - Cart::out -> Pricing::quote: price
-  - Cart::out -> Payment::charge: pay
-  - Payment::card -> pay
-  - Payment::events -> Order log::events: paid
-  - Payment::events -> orders
+  - https -> Cart.in
+  - Cart.out -> Pricing.quote: price
+  - Cart.out -> Payment.charge: pay
+  - Payment.card -> pay
+  - Payment.events -> Order log.events: paid
+  - Payment.events -> orders
