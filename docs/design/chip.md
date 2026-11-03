@@ -47,7 +47,8 @@
 - **a class's or an entity's tiles** say their rows, ruled as the card's table is, where they have room; where they do not, the class or entity texture stands in for them. Never both
 - **names read or cut short**: a tile's name is held readable, shrinks toward its laid size to fit its tile, and shows cut short (*Canc…*) wherever four letters and a line fit; below that, its icon alone
 - **read only**: no seats, no lines, no menu, no drag
-- **one gap** across the whole map and inside every chip: between chips, groups and tiles alike. Never scaled per chip
+- **two gaps, by rank, never scaled per chip** (2026-11-02): a **major part** — a part of a model, looked through folders and bands, holding parts of its own — is set apart by a wide gap (24) from its siblings, as is what holds major parts; everywhere else, inside every chip included, one narrow gap (6)
+- **major parts read first**: a heavier rim (2 px) at half their colour, their colour accent on the left wider (4 px); what they hold is quieter — rims at half, box titles faint, previews faded until the pointer is on them. **Minor** is everything inside a major part, and everything else in a model holding no major part: a leaf part, a band of leaves (a one-package project's entry points); a minor chip's own words fade too. **Every chip keeps its colour and its left accent whole**
 
 
 ## Differs from a card

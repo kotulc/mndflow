@@ -1,6 +1,6 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **In progress**: code translation, its plan in translate-plan.md (taken up 2026-11-01, ahead of the CLI); the design language, paused, its plan in design-plan.md.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **In progress**: code translation, its plan in translate-plan.md (taken up 2026-11-01, ahead of the CLI), and entry paths through a translated model, its plan in flow-plan.md (taken up 2026-11-02, first); the design language, paused, its plan in design-plan.md.
 
 ## CLI (next, alongside code translation)
 
@@ -26,7 +26,7 @@
 
 ### Surface
 
-**The CLI is the one terminal: an agent writes meaning as data, sees what the person will see, and hands over that view.** The file is the state, written in place; one JSON result per verb; references are an id or a path `a::b::c` (plus `$key` in a script); the CLI adds no rules.
+**The CLI is the one terminal: an agent writes meaning as data, sees what the person will see, and hands over that view.** The file is the state, written in place; one JSON result per verb; references are an id or a path `a.b.c` (plus `$key` in a script); the CLI adds no rules.
 
 | Verb | Writes | Does |
 |---|---|---|
@@ -69,7 +69,7 @@ Known rough spots, taken when a step passes near one.
 | **camera** | a short port drag lands short |
 | **React** | `flushSync was called from inside a lifecycle method`, once seen opening the profile from a layer; recheck |
 | **packages** | a definition file holds no parts, so a pattern's parts live in its package's `package.json`; base's `decision` and `services`'s share a name, so `type: decision` resolves to whichever the lookup finds first |
-| **paths** | a path names every region on the way (`Overview::Shop::Back office::Payments`), though layers look through them |
+| **paths** | a path names every region on the way (`Overview.Shop.Back office.Payments`), though layers look through them |
 | **diagram files** | a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
 | **annotations** | a label floats aside, so on a layer cut into regions it can land across a band's heading; a picked region draws a full outline rather than its band; an empty layer's words centre on the canvas rather than the room |
 | **ports** | design.md gives a port its definition's settings, values and tags; ports hold name, type, flow, seat and description only |

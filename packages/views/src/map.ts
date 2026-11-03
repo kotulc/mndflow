@@ -12,7 +12,8 @@
 import { Graph as Ranks, layout } from "@dagrejs/dagre";
 import { hierarchy, treemap, treemapSquarify, type HierarchyNode } from "d3-hierarchy";
 import { children, definition_uses, diagram_kind, has_lifelines, is_aside, is_grid,
-         head_of, is_folder, is_group, is_header, is_holder, is_interface, is_model, is_notation,
+         head_of, is_behaviour, is_folder, is_group, is_header, is_holder, is_interface, is_model,
+         is_notation,
          is_reference,
          is_region, is_tie, inline, lattice_of, layer_of, members_of, lens_of, notation_of,
          on_side, owner_of, packages, path, region_of, shown_name, type Graph,
@@ -35,9 +36,11 @@ export const MAP_ROOT = "@map";
 /** How wide a map is: about a canvas, so a chip's name reads at 100%. */
 const WIDE = 1200;
 
-/** **One gap**, the same everywhere and never scaled per chip: between areas, round what a box
- *  holds and below its title, and round a chip's body; and the room above a box's title. */
-const AIR = { inner: 6, outer: 6, title: 26 };
+/** **Two gaps**, each the same everywhere and never scaled per chip: `major` between a model's
+ *  parts (`is_major`) and between what holds them; else `inner` between areas, and `outer` round
+ *  what a box holds and below its title, and round a chip's body; and the room above a box's
+ *  title. */
+const AIR = { major: 24, inner: 6, outer: 6, title: 26 };
 const PAD = { chip: 6, diagram: 6 };
 
 /** **How much larger a chip's head and facts may be held** than laid, zoomed out (`flow.css`
@@ -59,9 +62,11 @@ const UPRIGHT_HEAD = 40;
 const ROWS = 4;
 const CARD_W = 168;
 
-/** How narrow a tall chip may be laid before it is widened, and the most it is widened by; how
- *  many rounds the room chips need is weighed in. */
+/** How narrow a tall chip or box may be laid before it is widened, and the most it is widened by;
+ *  how short a box may be below its title before it is heightened; how many rounds the room chips
+ *  need is weighed in. */
 const SLIVER = 120;
+const SHORT = 40;
 const WIDEST = 4;
 const SETTLE = 3;
 
@@ -207,6 +212,26 @@ export function towards(areas: readonly Area[], from: Id,
   return near[0]?.r ?? null;
 }
 
+/** Whether a block draws on a model's layer, looked through folders and bands. */
+function in_model(graph: Graph, id: Id): boolean {
+  return !!graph.blocks[id] && is_model(graph, layer_of(graph, id));
+}
+
+/** **A major part**: a part of a model holding parts of its own; never a folder, band or group.
+ *  Everything else in a model holding no major part reads as what a major part holds does. */
+function is_major(graph: Graph, id: Id): boolean {
+  return in_model(graph, id) && holds_parts(graph, id);
+}
+
+/** Whether a block holds parts of its own — never only its behaviours, interfaces, groups or
+ *  notes; never a folder, band or group itself. What makes a part major, on the map and in an
+ *  entered diagram (`layer.ts` `ranked`). */
+export function holds_parts(graph: Graph, id: Id): boolean {
+  return !is_folder(graph, id) && !is_holder(graph, id)
+    && children(graph, id).some((c) => !is_behaviour(graph, c.id) && !is_interface(graph, c.id)
+      && !is_group(graph, c.id) && !is_aside(graph, c.id));
+}
+
 /** A map laid out: the tree as a treemap about a canvas wide, squarified a little wide, each
  *  box's title above what it holds; each chip a node with its inner treemap. d3 lets an outer
  *  padding overwrite a top one, so the top is said last. */
@@ -219,6 +244,12 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
   const least = new Map(root.leaves().filter((n) => n.data.empty).map((n) => [n.data,
     EMPTY * Math.max(...(n.parent?.children ?? [n]).map((c) => c.value ?? 0))]));
   const area = size[0] * size[1];
+  /** The major parts, worked out once; what holds one, at any depth, has major gaps. */
+  const majors = new Set(root.descendants().filter((d) => is_major(graph, d.data.id))
+    .map((d) => d.data.id));
+  const holding = new Set(root.descendants().filter((d) => majors.has(d.data.id))
+    .flatMap((d) => d.ancestors().slice(1)));
+  const above = (n: HierarchyNode<Leaf>) => holding.has(n);
   const need = (n: Leaf) => (n.rows
     ? (ROW.name + ROW.facts + Math.min(ROWS, n.rows) * ROW.line + 2 * PAD.chip) * CARD_W : 0);
   const wider = new Map<Leaf, number>();
@@ -234,34 +265,50 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
     return root;
   };
   const tile = () => treemap<Leaf>().tile(treemapSquarify.ratio(1.2)).size(size).round(true)
-    .paddingInner(AIR.inner)
+    .paddingInner((n) => (above(n) ? AIR.major : AIR.inner))
     .paddingOuter(AIR.outer)
     .paddingTop((n) => (n.depth === 0 ? AIR.outer : AIR.title))(weigh());
-  /** **A chip is never a sliver**: one laid narrower than a card and taller than wide is widened
-   *  in proportion, within bounds, and the map laid again, once. */
+  /** **A chip or a box is never a sliver**: one laid narrower than a card and taller than wide, or
+   *  a box with less than `SHORT` under its title, has what it holds weighed up in proportion,
+   *  within bounds, and the map laid again, once. */
   let laid = tile();
-  for (const n of laid.leaves()) {
+  for (const n of laid.descendants()) {
+    if (n.depth === 0) continue;
     const [w, h] = [n.x1 - n.x0, n.y1 - n.y0];
-    if (n.data.chip && w < SLIVER && h > w) {
-      wider.set(n.data, Math.min(WIDEST, SLIVER / Math.max(1, w)));
-    }
+    const narrow = w < SLIVER && h > w ? SLIVER / Math.max(1, w) : 1;
+    const short = n.children && h < AIR.title + SHORT ? (AIR.title + SHORT) / Math.max(1, h) : 1;
+    const by = Math.min(WIDEST, Math.max(narrow, short));
+    if (by === 1 || (!n.data.chip && !n.children)) continue;
+    for (const leaf of n.leaves()) wider.set(leaf.data, Math.max(wider.get(leaf.data) ?? 1, by));
   }
   if (wider.size) laid = tile();
   const areas: Area[] = [];
   const nodes: BoxNode[] = [];
+  const gone = new Set<HierarchyNode<Leaf>>();
   for (const n of laid.descendants()) {
     const id = n.data.id;
     const chip = n.data.chip;
     const box = { x: n.x0, y: n.y0, w: n.x1 - n.x0, h: n.y1 - n.y0 };
+    /** Still with no room, or laid outside what holds it, it is not drawn, nor what it holds:
+     *  nothing is cut through. */
+    const up = n.parent;
+    if (up && (gone.has(up) || box.w < 1 || box.h < 1
+        || n.y1 > up.y1 || n.x1 > up.x1 || n.y0 < up.y0 || n.x0 < up.x0)) {
+      gone.add(n);
+      continue;
+    }
     const label = id === MAP_ROOT ? title : name_of(graph, id);
     areas.push({ id, parent: n.parent?.data.id ?? null, ...box, label, depth: n.depth,
                  chip: !!chip });
     if (id === MAP_ROOT) continue;
     const own = carried(graph, id, "small");
-    const data = { label, marks: [], ...(own.role ? { role: own.role } : {}),
+    const rank = majors.has(id) ? ["major" as const]
+      : (in_model(graph, id) && !above(n)) || n.ancestors().some((a) => majors.has(a.data.id))
+        ? ["minor" as const] : [];
+    const data = { label, marks: rank, ...(own.role ? { role: own.role } : {}),
                    ...(own.description ? { description: own.description } : {}) };
     if (!chip) {
-      const marks = n.data.panel ? { marks: ["group" as const] } : {};
+      const marks = n.data.panel ? { marks: [...rank, "group" as const] } : {};
       const facts = n.data.panel ? null : box_facts(graph, n, title);
       nodes.push({ ...cell(id, box, { ...data, ...marks, ...(facts ? { facts } : {}) }, "box"),
                    draggable: false });

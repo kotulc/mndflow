@@ -1,0 +1,12 @@
+{
+  "id": "component",
+  "name": "component",
+  "type": "block",
+  "description": "A group of modules that import mostly each other, found from the import graph: its modules, or its own components, are its parts.",
+  "def": {
+    "attributes": [
+      { "name": "lines", "type": "number" }
+    ]
+  },
+  "settings": { "style": { "hue": 235 } }
+}

@@ -156,7 +156,7 @@ The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p
 | **usage places** | 2026-10-31: **a definition holding uses is a place** where a definition is used, grouped under its package, beside models' layers: a pattern composed in the library lists its parts' uses in the usages tab, overview and hover card, so counts and lists agree (today `use_place` keeps model places only) |
 | **merged lines** | 2026-10-31: picking any line a `×n` stands for lights and picks the one line drawn for it |
 | **count boxes** | 2026-10-31: a count in a facts strip sits in a quiet neutral box, never the element's colour, so it never reads as a child chip |
-| **map** | one gap (6 px) between areas and chips (grid cells excepted, above); overflow folds into *+n more*; boxes and explorer rows carry counts; rows wear a colour edge; no hover card on rows |
+| **map** | two gaps by rank (2026-11-02): 24 between a model's parts and what holds them, else 6 (grid cells excepted, above); a model's parts framed heavier, what they hold quieter; overflow folds into *+n more*; boxes and explorer rows carry counts; rows wear a colour edge; no hover card on rows |
 | **components share data, not concepts** | 2026-10-31: a package consumes another's output as a data contract, never its concepts. The explorer takes a row's colour and count from its host (`rowLook`; the app asks views `row_look`); the law is explorer → core, theme |
 | **hover** | one hover card for chips, tiles, box titles, cards and lines; it shows the large face |
 | **diagram** | a head band in the kind's colour under the crumbs |

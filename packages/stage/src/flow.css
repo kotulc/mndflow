@@ -429,6 +429,26 @@
   background: color-mix(in oklch, var(--muted) 8%, transparent);
 }
 
+/* **A model's parts read first** (views `map.ts` `is_major`): framed heavier in their own colour,
+   a wide gap round each; what they hold is quieter, its rims, titles and previews faded until the
+   pointer is on it, every chip keeping its colour. */
+.mnd-box.major, .mnd-chip.major { --edge-w: 2px; }
+.mnd-box.major { --edge: var(--muted); }
+/* Its rim half its colour, so the accent on its left edge, wider, still reads apart from it. */
+.mnd-chip.major { --edge: color-mix(in oklch, var(--card-line) 55%, transparent); }
+.mnd-chip.major[data-family] { border-left-width: 4px; }
+.mnd-box.minor { --edge: color-mix(in oklch, var(--wall) 30%, transparent); }
+.mnd-box.minor > .mnd-box-title { color: var(--faint); }
+.mnd-chip.minor { --edge: color-mix(in oklch, var(--card-line) 50%, transparent); }
+.mnd-chip:is(.major, .minor) > .mnd-chip-body { opacity: 0.5; }
+/* A minor chip's own words fade as a major chip's preview does; it hides by level as before. */
+.mnd-chip.minor:not(:hover, .picked) .mnd-chip-text { opacity: 0.6; }
+.mnd-chip:is(.major, .minor):is(:hover, .picked) > .mnd-chip-body { opacity: 1; }
+/* The same ranks in an entered diagram of a model (views `layer.ts` `ranked`): a card holding
+   parts framed heavier, the rest's words quieter until the pointer is on it; colours kept. */
+.mnd-flow .mnd-card.major { --card-border-width: 2px; }
+.mnd-flow .mnd-card.minor:not(:hover, .picked) > :not(.mnd-role) { opacity: 0.6; }
+
 /* A chip: what is entered — its icon, name and counts over a small treemap of what it holds. */
 .mnd-chip {
   position: relative;
@@ -1016,4 +1036,12 @@
 .mnd-box.picked {
   background: color-mix(in oklch, var(--accent) 6%, transparent) !important;
   box-shadow: var(--pick-ring) !important;
+}
+
+/* **A path lit** (stage `path.ts`): a card whose behaviours travel the layer, hovered or picked,
+   lights the cards and lines on its path; other cards and lines dim, keeping their colour. */
+.stage.pathing :is(.react-flow__node-card, .react-flow__node-note),
+.stage.pathing .react-flow__edge, .stage.pathing .mnd-wire-name, .stage.pathing .mnd-wire-end {
+  opacity: 0.25;
+  transition: opacity 120ms;
 }

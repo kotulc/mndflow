@@ -1,0 +1,8 @@
+{
+  "id": "interface",
+  "name": "interface",
+  "type": "block",
+  "description": "A shape of data: its fields are its attributes, what it extends is its type.",
+  "def": {},
+  "settings": { "card": { "face": "table" }, "style": { "hue": 190 } }
+}

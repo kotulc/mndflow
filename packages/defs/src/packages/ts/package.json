@@ -1,0 +1,11 @@
+{
+  "schema": "1.0",
+  "id": "ts",
+  "graph": {
+    "root": "ts",
+    "blocks": {
+      "ts": { "id": "ts", "parent": null, "name": "ts", "description": "What a TypeScript codebase is made of: the kinds a translator writes a project in." }
+    },
+    "edges": {}
+  }
+}

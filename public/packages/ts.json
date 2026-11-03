@@ -1,0 +1,194 @@
+{
+  "schema": "1.0",
+  "id": "ts",
+  "graph": {
+    "root": "ts",
+    "blocks": {
+      "ts": {
+        "id": "ts",
+        "parent": null,
+        "name": "ts"
+      },
+      "ts.class": {
+        "id": "ts.class",
+        "parent": "ts.dir.blocks",
+        "name": "class",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "methods",
+              "type": "text"
+            }
+          ]
+        },
+        "description": "A class: its fields are its attributes, its methods said by their signatures, what it extends is its type.",
+        "order": 1,
+        "settings": {
+          "card": {
+            "face": "table"
+          },
+          "style": {
+            "hue": 300
+          }
+        }
+      },
+      "ts.component": {
+        "id": "ts.component",
+        "parent": "ts.dir.blocks",
+        "name": "component",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "lines",
+              "type": "number"
+            }
+          ]
+        },
+        "description": "A group of modules that import mostly each other, found from the import graph: its modules, or its own components, are its parts.",
+        "order": 2,
+        "settings": {
+          "style": {
+            "hue": 235
+          }
+        }
+      },
+      "ts.dir.blocks": {
+        "id": "ts.dir.blocks",
+        "parent": "ts",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1,
+        "tree": "definitions"
+      },
+      "ts.function": {
+        "id": "ts.function",
+        "parent": "ts.dir.blocks",
+        "name": "function",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "signature",
+              "type": "text"
+            },
+            {
+              "name": "exported",
+              "type": "flag"
+            }
+          ]
+        },
+        "description": "A function a module declares: what it takes and gives back, said by its signature.",
+        "order": 3,
+        "settings": {
+          "style": {
+            "hue": 150
+          }
+        }
+      },
+      "ts.interface": {
+        "id": "ts.interface",
+        "parent": "ts.dir.blocks",
+        "name": "interface",
+        "type": "block",
+        "def": {},
+        "description": "A shape of data: its fields are its attributes, what it extends is its type.",
+        "order": 4,
+        "settings": {
+          "card": {
+            "face": "table"
+          },
+          "style": {
+            "hue": 190
+          }
+        }
+      },
+      "ts.module": {
+        "id": "ts.module",
+        "parent": "ts.dir.blocks",
+        "name": "module",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "lines",
+              "type": "number"
+            }
+          ]
+        },
+        "description": "A source file: its functions and values are its parts, the types it declares are definitions in the library, and its imports are its dependencies.",
+        "order": 5,
+        "settings": {
+          "style": {
+            "hue": 260
+          }
+        }
+      },
+      "ts.package": {
+        "id": "ts.package",
+        "parent": "ts.dir.blocks",
+        "name": "package",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "version",
+              "type": "text"
+            }
+          ]
+        },
+        "description": "A package of the project: the modules under its source folder, and what it imports from other packages.",
+        "order": 6,
+        "settings": {
+          "style": {
+            "hue": 210
+          }
+        }
+      },
+      "ts.type-alias": {
+        "id": "ts.type-alias",
+        "parent": "ts.dir.blocks",
+        "name": "type alias",
+        "type": "block",
+        "def": {},
+        "description": "A named object type: its fields are its attributes.",
+        "order": 7,
+        "settings": {
+          "card": {
+            "face": "table"
+          },
+          "style": {
+            "hue": 175
+          }
+        }
+      },
+      "ts.value": {
+        "id": "ts.value",
+        "parent": "ts.dir.blocks",
+        "name": "value",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "signature",
+              "type": "text"
+            },
+            {
+              "name": "exported",
+              "type": "flag"
+            }
+          ]
+        },
+        "description": "A constant or variable a module declares, and its type.",
+        "order": 8,
+        "settings": {
+          "style": {
+            "hue": 45
+          }
+        }
+      }
+    },
+    "edges": {}
+  }
+}

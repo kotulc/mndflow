@@ -393,7 +393,10 @@ function MapBox({ id, data }: NodeProps<BoxNode>) {
   const selected = usePicked(id);
   return <BoxFace label={data.label} {...(data.role ? { role: data.role } : {})}
                   {...(data.facts ? { counts: data.facts.counts } : {})}
-                  panel={data.marks.includes("group")} picked={!!selected} />;
+                  panel={data.marks.includes("group")}
+                  {...(data.marks.includes("major") ? { rank: "major" as const }
+                    : data.marks.includes("minor") ? { rank: "minor" as const } : {})}
+                  picked={!!selected} />;
 }
 
 /** A map's chip, **its card at map scale** (views `map.ts`): its name's line — the name, then

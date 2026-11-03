@@ -2,20 +2,13 @@
 
 import { createContext, useCallback, useContext, useState, type CSSProperties } from "react";
 import { BaseEdge, EdgeLabelRenderer, useStore, type EdgeProps } from "@xyflow/react";
-import { avoided_run, crossed, drawn, end_words, heads, line_level, middle_of, route, BARE,
-         TEXT_BAND, UNIT, type LineEdge, type Wire as Look } from "@mnd/views";
+import { avoided_run, crossed, drawn, end_words, heads, line_level, name_box, route, BARE, NAMED,
+         TEXT_BAND, UNIT, type LineEdge, type NameBox, type Wire as Look } from "@mnd/views";
 import { head_url, Heads, Name, useNaming } from "@mnd/theme";
 import { usePicks } from "./picked";
 
 /** How square a right-angled corner is. */
 const BEND = 6;
-/** How far beside its run a name sits: above a level leg, right of an upright one. */
-const LIFT = 8;
-const ASIDE = 6;
-
-/** A name's glyph on screen at the layout's size, in pixels. */
-const GLYPH = 6.2;
-
 /** How far in from its end the cross saying an end cannot be reached sits: half a unit, clear of
  *  the head and of the middle. */
 const CROSS_IN = UNIT / 2;
@@ -63,6 +56,18 @@ function words_at(run: readonly Pt[], way: "from" | "to"): string {
 export const RunsContext = createContext<ReadonlyMap<string, readonly { x: number; y: number }[]>>(
   new Map());
 
+/** Every card's box as it stands, which a line's name keeps clear of. */
+export const CardsContext = createContext<readonly { x: number; y: number; w: number; h: number }[]>(
+  []);
+
+/** Where a name's box is set from, by the side of its leg it sits on. */
+const BESIDE: Record<NameBox["side"], (b: NameBox) => string> = {
+  above: (b) => `translate(${b.at.x}px, ${b.at.y - NAMED.lift}px) translate(-50%, -50%)`,
+  below: (b) => `translate(${b.at.x}px, ${b.at.y + NAMED.lift}px) translate(-50%, -50%)`,
+  right: (b) => `translate(${b.at.x + NAMED.aside}px, ${b.at.y}px) translate(0, -50%)`,
+  left: (b) => `translate(${b.at.x - NAMED.aside}px, ${b.at.y}px) translate(-100%, -50%)`,
+};
+
 /** How a run paints itself, as the attributes `card.css` already reads. */
 function paint(look: Look): { attrs: Record<string, string>; style: CSSProperties } {
   const tinted = look.hue !== undefined;
@@ -101,6 +106,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
   /** A line with no name still has somewhere to type one. */
   const naming = useNaming();
   const runs = useContext(RunsContext);
+  const cards = useContext(CardsContext);
   /** The run routed round cards, while it still meets both ends; else straight or one Z, turning
    *  where its lines fan. A tie runs straight. */
   const routed = avoided_run(runs.get(id), { x: sourceX, y: sourceY }, { x: targetX, y: targetY });
@@ -128,15 +134,14 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const middle = [label ? String(label) : "", data?.alias ?? ""]
     .filter(Boolean).join(" ");
   const times = data?.times ? `×${data.times}` : "";
-  /** Beside its longest leg: above it where it is level, right of it where it is upright. */
-  const at = middle_of(run, fan);
-  const beside = at.level || data?.level
-    ? `translate(${at.x}px, ${at.y - LIFT}px) translate(-50%, -50%)`
-    : `translate(${at.x + ASIDE}px, ${at.y}px) translate(0, -50%)`;
+  /** Beside its longest leg clear of the cards (views `name_box`): above or below it where it is
+   *  level, right or left of it where it is upright. */
+  const box = name_box(run, middle.length + times.length, fan, data?.level, cards);
+  const beside = BESIDE[box.side](box);
   const length = length_of(run);
   const level = useStore(useCallback((st) => {
     const k = st.transform[2];
-    return line_level(length, k, (middle.length + times.length) * GLYPH
+    return line_level(length, k, (middle.length + times.length) * NAMED.glyph
       * Math.min(TEXT_BAND.high, Math.max(TEXT_BAND.low, k)));
   }, [length, middle.length, times.length]));
   const loud = hot || !!selected;
@@ -166,6 +171,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
         return (
           <EdgeLabelRenderer key={way}>
             <div className={`mnd-wire-end nodrag nopan${data?.away ? " mnd-out" : ""}`} {...attrs}
+                 data-edge={id}
                  style={{ ...tint, transform: words_at(run, way) }}>
               {words}
             </div>

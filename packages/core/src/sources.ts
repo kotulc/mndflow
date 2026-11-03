@@ -6,7 +6,8 @@
  *  other `.json` file under the folder is **one definition**, filed under the folder its
  *  directory names. Every `.yaml` file is a **diagram file** and every `.md` file a **card
  *  source** — one schema, a card source a diagram file with a body — each one block and its layer,
- *  named rather than identified: its ids are minted in file order and its names read here. Every
+ *  named rather than identified: its ids are minted from its names, so adding a block leaves the
+ *  others' alone, and its names read here. Every
  *  directory is a folder, but one named as a file beside it, which holds that file's parts; a top
  *  folder holding only definitions files them. A definition said twice
  *  is a clash, and refused. A definition, type or tag a file names and nothing loaded holds is
@@ -16,13 +17,14 @@
 import { parse } from "yaml";
 import { read_card } from "./card";
 import { USAGE_KEYS } from "./components";
-import { all_defs, block_base, def_at, dir_of, is_notation, package_of } from "./defs";
+import { block_base, def_at, dir_of, is_notation, package_of } from "./defs";
 import { long_form, type Edge, type Entry, type LongForm, type LibrarySaid } from "./diagram";
 import { renamed, write } from "./file";
 import { holders_in, is_grid, is_group, layer_of } from "./holders";
 import { all_constraints, all_interfaces, all_tags, all_types, is_form,
          library_map } from "./library";
-import { def_ref, fits_domain, is_path, path_to, STEP } from "./refs";
+import { component_hits, def_hits, def_ref, fits_domain, is_path, path_to, STEP,
+         steps_of } from "./refs";
 import { children, ports_on } from "./tree";
 import type { Leaf } from "./ports";
 import { FORMS, type Attribute, type Block, type Components, type Constraint, type Flow,
@@ -46,8 +48,9 @@ const MARKDOWN = /\.(md|mdx)$/i;
 const YAML_FILE = /\.ya?ml$/i;
 const JSON_FILE = /\.json$/i;
 
-/** One file read: where it lands, its block's id, and what it says spelled out. */
-type Read = { path: string; dir: string[]; id: Id; form: LongForm };
+/** One file read: where it lands, its block's id, what it says spelled out, and the id each of
+ *  its blocks takes, in file order. */
+type Read = { path: string; dir: string[]; id: Id; form: LongForm; ids: Id[] };
 
 /** What a file's names are read against. */
 type Ctx = { graph: Graph; slug: Id; pre: string; made: Map<string, Id>; notes: string[];
@@ -91,7 +94,7 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   const owned = (r: Read, part: string): Id | undefined => {
     const i = r.form.blocks.findIndex((e) => e.under === undefined && !e.parent
       && slug_of(e.name) === slug_of(part));
-    return i < 0 ? undefined : `${r.id}.${i + 1}`;
+    return i < 0 ? undefined : r.ids[i];
   };
 
   /** What lands in a block a file wrote, in path order: it is ordered after that file's parts. */
@@ -156,7 +159,8 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
    *  it heads. */
   for (const r of own) {
     for (const [id, e] of entries_of(r)) {
-      if (e.def && e.type) graph.blocks[id]!.type = extended(ctx_of(r), e.type);
+      const type = e.def && e.type ? extended(ctx_of(r), e.type) : undefined;
+      if (type) graph.blocks[id]!.type = type;
     }
   }
   for (const r of own) {
@@ -175,8 +179,10 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
    *  through its definition. */
   for (const r of own) {
     const ctx = ctx_of(r);
+    const edge_ids = minted(r.form.relations.map((e) =>
+      `${r.id}.r.${slug_of(`${e.from} ${e.type ?? ""} ${e.to}`)}`));
     for (const [i, e] of r.form.relations.entries()) {
-      const edge = relation(ctx, `${r.id}.r${i + 1}`, e);
+      const edge = relation(ctx, edge_ids[i]!, e);
       if (edge) graph.edges[edge.id] = { ...edge, alias: alias("relation"), order: i };
     }
     /** A block is in the groups it names, each a group on its own layer. */
@@ -194,10 +200,10 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
     /** A note written on a block is tied to it, or to the port it was written on. */
     for (const [i, e] of r.form.blocks.entries()) {
       if (e.tied === undefined) continue;
-      const id = `${r.id}.t${i + 1}`;
-      const to = e.tied < 0 ? r.id : `${r.id}.${e.tied + 1}`;
+      const id = `${r.ids[i]}.tie`;
+      const to = e.tied < 0 ? r.id : r.ids[e.tied]!;
       const port = e.port ? graph.blocks[to]?.ports?.find((p) => p.name === e.port) : undefined;
-      graph.edges[id] = { id, from: `${r.id}.${i + 1}`, to, ...(port ? { toPort: port.id } : {}),
+      graph.edges[id] = { id, from: r.ids[i]!, to, ...(port ? { toPort: port.id } : {}),
                           type: "tie", alias: alias("relation") };
     }
   }
@@ -217,13 +223,30 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
 }
 
 /** What the files want loaded before they are read: every package a diagram file or a card
- *  source lists, a path said from the source folder's root. */
-export function wanted(leaves: readonly Leaf[]): string[] {
-  const out = new Set<string>();
+ *  source lists, a path said from the source folder's root; and the first step of every
+ *  qualified name they write, which loads its package where one of that name exists. */
+export function wanted(leaves: readonly Leaf[]): { listed: string[]; heads: string[] } {
+  const listed = new Set<string>();
+  const heads = new Set<string>();
   for (const r of read_all(leaves, "", [])) {
-    for (const p of r.form.packages) out.add(/^\.\.?\//.test(p) ? `./${joined(r.dir, p)}` : p);
+    for (const p of r.form.packages) listed.add(/^\.\.?\//.test(p) ? `./${joined(r.dir, p)}` : p);
+    for (const word of words_of(r.form)) {
+      if (is_path(word)) heads.add(steps_of(word)[0]!);
+    }
   }
-  return [...out];
+  return { listed: [...listed], heads: [...heads].filter((h) => h && !listed.has(h)) };
+}
+
+/** Every word a file writes that names something elsewhere: types, what a block stands for, the
+ *  interfaces its ports carry, its attributes' types, tags, and its relations' ends and types. */
+function words_of(form: LongForm): string[] {
+  const of_entry = (e: Entry) => [e.type, e.of, ...(e.tags ?? []),
+    ...(e.ports ?? []).map((p) => p.type),
+    ...(e.def?.attributes ?? []).map((a) => a["type"])];
+  const of_lib = Object.values(form.library).flatMap((list) => list.map((m) => m["type"]));
+  return [form.top, ...form.blocks].flatMap(of_entry)
+    .concat(form.relations.flatMap((e) => [e.from, e.to, e.type, ...(e.tags ?? [])]), of_lib)
+    .filter((w): w is string => typeof w === "string");
 }
 
 
@@ -249,10 +272,40 @@ function read_all(leaves: readonly Leaf[], pre: string, notes: string[]): Read[]
     }
     form.top.name ||= stem;
     form.top.source ??= leaf.path;
-    out.push({ path: leaf.path, dir: parts, form,
-               id: `${pre}${yaml ? "yaml" : "md"}.${[...parts, stem].join(".")}` });
+    const id = `${pre}${yaml ? "yaml" : "md"}.${[...parts, stem].join(".")}`;
+    out.push({ path: leaf.path, dir: parts, form, id, ids: block_ids(id, form.blocks) });
   }
   return out;
+}
+
+/** The id each of a file's blocks takes, by the names down to it from the file's block, each step
+ *  after a `:` — which a file's own id, its path joined by dots, never holds; a note, named by
+ *  its words, by its place among the notes. Two that would share one are told apart by their
+ *  place. */
+function block_ids(file: Id, blocks: readonly Entry[]): Id[] {
+  const ids: Id[] = [];
+  let notes = 0;
+  for (const e of blocks) {
+    const up = e.under !== undefined ? ids[e.under]! : file;
+    const step = e.type === "note" ? `note-${++notes}` : slug_of(e.name || "block");
+    ids.push(minted_one(`${up}:${step}`, ids));
+  }
+  return ids;
+}
+
+/** Ids made unique: a repeat takes the first count after it no other has (`a`, `a-2`). */
+function minted(ids: readonly Id[]): Id[] {
+  const out: Id[] = [];
+  for (const id of ids) out.push(minted_one(id, out, ids));
+  return out;
+}
+
+/** An id kept apart from those `taken`, and from any `wanted` as written, by a count after it. */
+function minted_one(id: Id, taken: readonly Id[], wanted: readonly Id[] = []): Id {
+  if (!taken.includes(id)) return id;
+  let n = 2;
+  while (taken.includes(`${id}-${n}`) || wanted.includes(`${id}-${n}`)) n++;
+  return `${id}-${n}`;
 }
 
 /** A file's name without its directory or its `.yaml` or `.md`. */
@@ -311,7 +364,7 @@ function pkg_of(said: string): Id {
 
 /** A file's entries with the ids they take: its block's own, then one per block in file order. */
 function entries_of(r: Read): [Id, Entry][] {
-  return [[r.id, r.form.top], ...r.form.blocks.map((e, i): [Id, Entry] => [`${r.id}.${i + 1}`, e])];
+  return [[r.id, r.form.top], ...r.form.blocks.map((e, i): [Id, Entry] => [r.ids[i]!, e])];
 }
 
 /** A file's blocks laid under its folder, named and nested, before any name is read: a
@@ -319,7 +372,7 @@ function entries_of(r: Read): [Id, Entry][] {
 function lay(graph: Graph, r: Read, parent: Id, order: number): void {
   const orders = new Map<Id, number>();
   for (const [id, e] of entries_of(r)) {
-    const up = id === r.id ? parent : e.under !== undefined ? `${r.id}.${e.under + 1}` : r.id;
+    const up = id === r.id ? parent : e.under !== undefined ? r.ids[e.under]! : r.id;
     orders.set(up, (orders.get(up) ?? 0) + 1);
     forget(graph);
     graph.blocks[id] = {
@@ -424,17 +477,22 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
   }
   const type = e.def ? b.type : e.type ? named(ctx, e.type, "block") : undefined;
   if (type) b.type = type;
+  /** A name is a step of a path, so it never holds the separator; notation is named by its words. */
+  if (e.name.includes(STEP) && !is_notation(graph, id)) {
+    ctx.notes.push(`${ctx.file.path}: "${e.name}" holds a "${STEP}", so no path can name it`);
+  }
   /** A port's interface definition, by name. */
   for (const [i, p] of (e.ports ?? []).entries()) {
-    if (p.type && b.ports?.[i]) b.ports[i]!.type = interface_of(ctx, p.type);
+    const carried = p.type ? interface_of(ctx, p.type) : undefined;
+    if (carried && b.ports?.[i]) b.ports[i]!.type = carried;
   }
-  if (e.tags) b.tags = e.tags.map((t) => tag_of(ctx, t));
-  if (e.constraints) b.constraints = e.constraints.map((c) => constraint_of(ctx, c));
+  if (e.tags) b.tags = e.tags.flatMap((t) => tag_of(ctx, t) ?? []);
+  if (e.constraints) b.constraints = e.constraints.flatMap((c) => constraint_of(ctx, c) ?? []);
   if (e.traits) b.traits = [...e.traits];
   if (e.of) b.of = ref(ctx, e.of, true, id) ?? e.of;
   if (e.def) {
     const attributes = (e.def.attributes ?? []).map((a) => (typeof a["type"] === "string"
-      ? { ...a, type: type_of(ctx, a["type"]) } : a)) as unknown as Attribute[];
+      ? { ...a, type: type_of(ctx, a["type"]) ?? "text" } : a)) as unknown as Attribute[];
     /** On a definition, a value is an attribute's default. */
     for (const v of e.values) {
       const a = attributes.find((x) => x.name === v.name);
@@ -460,9 +518,15 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
   return type;
 }
 
-/** What a definition extends: any definition of that name, of any kind, else a plain one made. */
-function extended(ctx: Ctx, word: string): Id {
-  return def_ref(ctx.graph, word, { within: ctx.within }) ?? named(ctx, word, "block");
+/** What a definition extends: any definition of that name, of any kind, else a plain one made;
+ *  nothing where the name is ambiguous. */
+function extended(ctx: Ctx, word: string): Id | undefined {
+  const hits = def_hits(ctx.graph, word, { within: ctx.within });
+  if (hits.length > 1) {
+    ambiguous(ctx, word.trim(), hits);
+    return undefined;
+  }
+  return hits[0] ?? named(ctx, word, "block");
 }
 
 /** A block's cell: a number, or the name of the header heading that line. */
@@ -508,8 +572,9 @@ function relation(ctx: Ctx, id: Id, e: Edge): Relation | undefined {
   return { id, from: from.at, to: to.at, ...(from.part ? { fromPort: from.part } : {}),
            ...(to.part ? { toPort: to.part } : {}), ...(type && type !== "line" ? { type } : {}),
            ...(e.name ? { name: e.name } : {}),
-           ...(e.tags ? { tags: e.tags.map((t) => tag_of(ctx, t)) } : {}),
-           ...(e.constraints ? { constraints: e.constraints.map((c) => constraint_of(ctx, c)) } : {}),
+           ...(e.tags ? { tags: e.tags.flatMap((t) => tag_of(ctx, t) ?? []) } : {}),
+           ...(e.constraints
+             ? { constraints: e.constraints.flatMap((c) => constraint_of(ctx, c) ?? []) } : {}),
            ...(Object.keys(all).length ? { settings: all as Relation["settings"] } : {}),
            ...(e.values.length ? { values: e.values } : {}),
            ...(e.ends ? { ends: e.ends } : {}) };
@@ -538,26 +603,38 @@ function ref(ctx: Ctx, word: string, defs: boolean, asking?: Id): Id | undefined
 /** A block another file placed on this file's layer — a directory under it holds that file — by
  *  its one name there, looked for through the notation that holds it; or a path down from it. */
 function on_layer(ctx: Ctx, word: string, asking?: Id): Id | undefined {
-  const [first, ...rest] = word.split(STEP).map((s) => s.trim());
-  const hits: Id[] = [];
-  const look = (at: Id) => {
-    for (const c of children(ctx.graph, at)) {
-      if (c.id !== asking && (c.name ?? "").trim() === first) hits.push(c.id);
-      if (is_notation(ctx.graph, c.id)) look(c.id);
-    }
+  const named = (name: string) => {
+    const hits: Id[] = [];
+    const look = (at: Id) => {
+      for (const c of children(ctx.graph, at)) {
+        if (c.id !== asking && (c.name ?? "").trim() === name) hits.push(c.id);
+        if (is_notation(ctx.graph, c.id)) look(c.id);
+      }
+    };
+    look(ctx.file.id);
+    return hits.length === 1 ? hits[0] : undefined;
   };
-  look(ctx.file.id);
-  if (hits.length !== 1) return undefined;
-  return rest.length ? path_to(ctx.graph, rest.join(STEP), hits[0]) : hits[0];
+  return down(ctx, word, named);
 }
 
 /** A block of this file a word names: its one block of that name, or a path down from it. */
 function local(ctx: Ctx, word: string, asking?: Id): Id | undefined {
-  const [first, ...rest] = word.split(STEP).map((s) => s.trim());
-  const hits = entries_of(ctx.file).map(([id]) => id)
-    .filter((id) => id !== asking && ctx.graph.blocks[id]?.name === first);
-  if (hits.length !== 1) return undefined;
-  return is_path(word) ? path_to(ctx.graph, rest.join(STEP), hits[0]) : hits[0];
+  const named = (name: string) => {
+    const hits = entries_of(ctx.file).map(([id]) => id)
+      .filter((id) => id !== asking && ctx.graph.blocks[id]?.name?.trim() === name);
+    return hits.length === 1 ? hits[0] : undefined;
+  };
+  return down(ctx, word, named);
+}
+
+/** A word read as one name first — notation is named by its words, dots and all — else as a
+ *  path: its first step a name `named` finds, the rest walked down from there. */
+function down(ctx: Ctx, word: string, named: (name: string) => Id | undefined): Id | undefined {
+  const whole = named(word.trim());
+  if (whole || !is_path(word)) return whole;
+  const [first, ...rest] = steps_of(word);
+  const at = named(first!);
+  return at ? path_to(ctx.graph, rest.join(STEP), at) : undefined;
 }
 
 /** Settings naming definitions by id — what a usage may hold, what a relation's ends may join,
@@ -634,21 +711,22 @@ function defined(graph: Graph, slug: Id, text: string | undefined, files: readon
            named: from.blocks[from.root]?.name };
 }
 
-/** The definition a word names: an id or `pkg.name`; this package's; or the one the file's
- *  packages — else anything loaded — hold. Nothing, or more than one, and it is made here, at the
- *  package's root — a relation definition as a plain line — and said. */
-function named(ctx: Ctx, word: string, kind: "block" | "relation"): Id {
+/** The definition a word names (`def_hits`): an id or a qualified name; else this package's, then
+ *  the file's packages' in order, then `base`'s. More than one is refused and said. Nothing, and
+ *  it is made here, at the package's root — a relation definition as a plain line — and said. */
+function named(ctx: Ctx, word: string, kind: "block" | "relation"): Id | undefined {
   const { graph, slug, made } = ctx;
   const said = word.trim();
   const of_kind = fits_domain(graph, kind);
   /** A package never leans on the workspace, which it would have to carry. */
   const fits = (id: Id) => of_kind(id)
     && (slug === graph.root || package_of(graph, id) !== graph.root);
-  const here = all_defs(graph).filter((d) => d.name === said && fits(d.id)
-    && package_of(graph, d.id) === slug);
-  if (here.length === 1) return here[0]!.id;
-  const hit = def_ref(graph, said, { within: ctx.within, fits });
-  if (hit) return hit;
+  const hits = def_hits(graph, said, { within: ctx.within, fits });
+  if (hits.length === 1) return hits[0]!;
+  if (hits.length > 1) {
+    ambiguous(ctx, said, hits);
+    return undefined;
+  }
   /** Each kind its own id, so a made block type and a made relation of one name stay apart. */
   const id = `${ctx.pre}${kind === "block" ? "type" : kind}.${slug_of(said)}`;
   if (!def_at(graph, id)) {
@@ -662,10 +740,10 @@ function named(ctx: Ctx, word: string, kind: "block" | "relation"): Id {
 
 /** The tag a word names: this package's, or one the file's packages hold. Nothing, and it is
  *  made in this package's library. */
-function tag_of(ctx: Ctx, word: string): Id {
+function tag_of(ctx: Ctx, word: string): Id | undefined {
   const said = word.trim();
   const hit = in_scope(ctx, all_tags(ctx.graph), said);
-  if (hit) return hit;
+  if (hit !== undefined) return hit ?? undefined;
   const id = tag_id(ctx.pre, said);
   library(ctx.graph, ctx.slug, ctx.pre, { tags: [{ name: said }] });
   ctx.made.set(said, id);
@@ -675,11 +753,12 @@ function tag_of(ctx: Ctx, word: string): Id {
 /** What an attribute or an interface carries, by name: a form, a type of this package or the
  *  file's packages, or a block definition. Nothing, and an alias of text is made in this
  *  package's library. */
-function type_of(ctx: Ctx, word: string): Id {
+function type_of(ctx: Ctx, word: string): Id | undefined {
   const said = word.trim();
   if (is_form(said)) return said;
-  const hit = in_scope(ctx, all_types(ctx.graph), said)
-    ?? def_ref(ctx.graph, said, { within: ctx.within, fits: fits_domain(ctx.graph, "block") });
+  const typed = in_scope(ctx, all_types(ctx.graph), said);
+  if (typed !== undefined) return typed ?? undefined;
+  const hit = def_ref(ctx.graph, said, { within: ctx.within, fits: fits_domain(ctx.graph, "block") });
   if (hit) return hit;
   library(ctx.graph, ctx.slug, ctx.pre, { types: [{ name: said, form: "text" }] });
   ctx.made.set(said, type_id(ctx.pre, said));
@@ -704,10 +783,10 @@ function constraint_id(pre: string, name: string): Id {
 
 /** A constraint, by name: one of this package or the file's packages. Nothing, and an empty one
  *  is made in this package's library. */
-function constraint_of(ctx: Ctx, word: string): Id {
+function constraint_of(ctx: Ctx, word: string): Id | undefined {
   const said = word.trim();
   const hit = in_scope(ctx, all_constraints(ctx.graph), said);
-  if (hit) return hit;
+  if (hit !== undefined) return hit ?? undefined;
   library(ctx.graph, ctx.slug, ctx.pre, { constraints: [{ name: said }] });
   return constraint_id(ctx.pre, said);
 }
@@ -719,24 +798,30 @@ function interface_id(pre: string, name: string): Id {
 
 /** What a port carries, by name: an interface definition of this package or the file's
  *  packages. Nothing, and one is made in this package's library. */
-function interface_of(ctx: Ctx, word: string): Id {
+function interface_of(ctx: Ctx, word: string): Id | undefined {
   const said = word.trim();
   const hit = in_scope(ctx, all_interfaces(ctx.graph), said);
-  if (hit) return hit;
+  if (hit !== undefined) return hit ?? undefined;
   library(ctx.graph, ctx.slug, ctx.pre, { interfaces: [{ name: said }] });
   return interface_id(ctx.pre, said);
 }
 
-/** The one named component of this name the file may see: its own package's, else its packages'
- *  and `base`'s, else any loaded. */
+/** The one named component of this name the file may see (`component_hits`): its own package's,
+ *  then its packages' in order, then `base`'s. More than one is refused, said, and `null`, so
+ *  nothing is made in its place; none is `undefined`. */
 function in_scope(ctx: Ctx, held: readonly { id: Id; name: string; pkg: Id }[],
-                  name: string): Id | undefined {
-  const hits = held.filter((c) => c.id === name || c.name === name);
-  const own = hits.filter((c) => c.pkg === ctx.slug);
-  if (own.length) return own[0]!.id;
-  const seen = hits.filter((c) => ctx.within.includes(c.pkg));
-  const pick = seen.length ? seen : hits;
-  return pick.length === 1 ? pick[0]!.id : undefined;
+                  name: string): Id | null | undefined {
+  const hits = component_hits(ctx.graph, held, name, ctx.within);
+  if (hits.length > 1) {
+    ambiguous(ctx, name, hits);
+    return null;
+  }
+  return hits[0];
+}
+
+/** A name found more than once where it was first found, said with what it could be. */
+function ambiguous(ctx: Ctx, word: string, hits: readonly Id[]): void {
+  ctx.notes.push(`${ctx.file.path}: "${word}" could be ${hits.join(", ")}; qualify it`);
 }
 
 /** Attributes from what usages answered: every name said, in the order first said, each typed

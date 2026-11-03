@@ -1,0 +1,13 @@
+{
+  "id": "function",
+  "name": "function",
+  "type": "block",
+  "description": "A function a module declares: what it takes and gives back, said by its signature.",
+  "def": {
+    "attributes": [
+      { "name": "signature", "type": "text" },
+      { "name": "exported", "type": "flag" }
+    ]
+  },
+  "settings": { "style": { "hue": 150 } }
+}

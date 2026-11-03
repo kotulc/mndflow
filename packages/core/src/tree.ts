@@ -1,20 +1,20 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
 import { def_at, isa, module_of, setting_of } from "./defs";
-import { drawn_in, layer_of } from "./holders";
+import { behaviours_of } from "./ends";
+import { allocations_of, drawn_in, is_holder, layer_of } from "./holders";
 import { LAYOUTS, type Block, type Definition, type Flow, type Graph, type Id, type Layout,
          type Port, type Relation } from "./types";
 import { kept } from "./memo";
 
 
-/** Every block under this one, itself included. */
+/** Every block under this one, itself included: read off the children index, so a deep tree costs
+ *  what it holds, not what the graph holds. */
 export function subtree(graph: Graph, id: Id): Id[] {
+  const by = held_by(graph);
   const out: Id[] = [id];
   for (let i = 0; i < out.length; i++) {
-    const here = out[i]!;
-    for (const b of Object.values(graph.blocks)) {
-      if (b.parent === here) out.push(b.id);
-    }
+    for (const b of by.get(out[i]!) ?? []) out.push(b.id);
   }
   return out;
 }
@@ -192,6 +192,41 @@ export function lit(graph: Graph, picks: readonly Id[], route: Id | null, id: Id
   if (via && via !== route) return false;
   const home = object_of(graph, id);
   return picks.some((p) => object_of(graph, p) === home);
+}
+
+/** **What a block's behaviours travel on a layer**: the blocks drawn there that its behaviours'
+ *  steps stand for — a reference's object, or what heads a step's lifeline — each lifted to the
+ *  block drawn holding it; and the layer's lines between two such blocks wherever a step talks to
+ *  another across them, either way. The block itself lights too. Empty with no behaviour. */
+export function travels(graph: Graph, id: Id, layer: Id | null): { blocks: Id[]; lines: Id[] } {
+  const ways = behaviours_of(graph, id);
+  if (!ways.length) return { blocks: [], lines: [] };
+  const drawn = new Set(drawn_in(graph, layer).map((b) => b.id));
+  /** The block drawn on the layer holding `at`, if any. */
+  const lift = (at: Id | null): Id | null => {
+    for (let x = at; x; x = graph.blocks[x]?.parent ?? null) if (drawn.has(x)) return x;
+    return null;
+  };
+  /** What a step stands for on the layer. */
+  const stood = (step: Id): Id[] => [
+    ...(of_ref(graph, step) ? [object_of(graph, step)] : []),
+    ...allocations_of(graph, step).filter((b) => !is_holder(graph, b.id)).map((b) => b.id),
+  ].map(lift).filter((x): x is Id => !!x);
+  const blocks = new Set<Id>([id]);
+  const pairs = new Set<string>();
+  for (const w of ways) {
+    const steps = new Set(subtree(graph, w.id));
+    for (const s of steps) stood(s).forEach((b) => blocks.add(b));
+    for (const e of Object.values(graph.edges)) {
+      if (!steps.has(e.from) || !steps.has(e.to)) continue;
+      for (const a of stood(e.from)) for (const b of stood(e.to)) pairs.add(`${a}\n${b}`);
+    }
+  }
+  const lines = edges_in(graph, layer).filter((e) => {
+    const [a, b] = [lift(owner_of(graph, e.from)), lift(owner_of(graph, e.to))];
+    return pairs.has(`${a}\n${b}`) || pairs.has(`${b}\n${a}`);
+  }).map((e) => e.id);
+  return { blocks: [...blocks].filter((b) => b === id || drawn.has(b)), lines };
 }
 
 /** The usage a block drawn on `layer` is seen through: the layer, where the block is its

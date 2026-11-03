@@ -29,6 +29,8 @@ export type ChipData = {
   label: string; kind?: string; role?: string; tint?: Tint;
   /** Its head's height under the name, or its width beside it where it is upright. */
   head?: number; upright?: boolean; diagram?: boolean;
+  /** Its marks: `major`, a part of a model, framed heavier; `minor`, inside one, quieter. */
+  marks?: readonly string[];
   facts?: FactsData; tiles?: readonly ChipTile[];
   preview?: { rows?: readonly (readonly string[])[]; lines?: readonly string[];
               places?: readonly { id: string; label: string; n: number; tint: Tint }[] };
@@ -77,6 +79,7 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
   return (
     <div className={["mnd-chip", data.diagram ? "diagram" : "",
                      narrow ? "narrow" : "", data.upright ? "upright" : "",
+                     ...(data.marks ?? []).filter((m) => m === "major" || m === "minor"),
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
          data-level={level}
          {...(tint ? { "data-family": tint["data-family"] } : {})}
@@ -156,11 +159,11 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
 /** **A map's box**, drawn anywhere: on the map as a node and in the tray as a box's picture — a
  *  hairline rim, its title over what it holds: its kind's icon, its name, then quieter its counts.
  *  A group's is a panel over its members, rimless. */
-export function BoxFace({ label, role, counts, panel = false, picked = false }: {
+export function BoxFace({ label, role, counts, panel = false, rank, picked = false }: {
   label: string; role?: string; counts?: readonly { n: number; word: string }[];
-  panel?: boolean; picked?: boolean }) {
+  panel?: boolean; rank?: "major" | "minor"; picked?: boolean }) {
   return (
-    <div className={["mnd-box", panel ? "panel" : "", picked ? "picked" : ""]
+    <div className={["mnd-box", panel ? "panel" : "", rank ?? "", picked ? "picked" : ""]
       .filter(Boolean).join(" ")}>
       <span className="mnd-box-title">
         {role ? <Icon name={role_icon(role)} size={11} /> : null}

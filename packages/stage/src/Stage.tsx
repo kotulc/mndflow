@@ -15,6 +15,7 @@ import { area_under, boxed_place, box_of, clear_of, holds, swept_cells, towards,
          type Scene } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
 import { Hover } from "./Hover";
+import { path_rules, usePath } from "./path";
 
 export type { Adjust, Landing, Move };
 
@@ -211,6 +212,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   useEffect(() => set_typing(null), [scene.layer]);
   /** The stage itself, which a map's hover card watches. */
   const host = useRef<HTMLElement>(null);
+  /** What the card hovered or picked travels, lit over the rest dimmed. */
+  const path = usePath(host, graph, scene, picked);
   /** A place's box among a definition's uses lights with its place. */
   const stands_for = useCallback((id: string) => boxed_place(graph, id), [graph]);
   const [at, set_at] = useState<
@@ -400,12 +403,13 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   };
 
   return (
-    <section className="stage" ref={host}>
+    <section className={path ? "stage pathing" : "stage"} ref={host}>
       <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
       {empty ? <p className="empty">{empty}</p> : null}
       {/* **A map lights only what is picked**: a chip, a box or a tile. A layer also lights what
           is hovered, other appearances and what the selection touches. */}
       {!scene.areas && lit.length ? <style>{lit_rules(lit)}</style> : null}
+      {path ? <style>{path_rules(path)}</style> : null}
       {!scene.areas && touched.length
         ? <style>{lit_rules(touched, "var(--s-secondary-edge)")}</style> : null}
       <FlowView

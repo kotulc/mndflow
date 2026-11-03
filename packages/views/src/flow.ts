@@ -10,7 +10,7 @@ import { children, drawn_in, edges_in, holders_in, inline, is_grid, is_group, is
          is_region, members_of, owner_of, type Graph, type Id } from "@mnd/core";
 import type { ELK, ElkNode } from "elkjs/lib/elk-api";
 import { celled } from "./bands";
-import { gridded, size_of, SHAPE, UNIT } from "./size";
+import { gridded, size_of, SEAT, SHAPE, UNIT } from "./size";
 import type { Placed } from "./arrange";
 
 /** A room placed: every block it draws, from its own corner, and the extent they take; banded,
@@ -363,7 +363,9 @@ async function banded(E: ELK, spec: Spec, chain: (id: Id) => Id[],
   return { w: best.w, h: best.h + UNIT, at, inner: best.inner, across: !!best.across };
 }
 
-/** ELK's layered options: square lines, file order kept for loops, ranks and pieces. */
+/** ELK's layered options: square lines, file order kept for loops, ranks and pieces. **Room for
+ *  lines**: each line a seat apart from the next and from the cards, so a gap between ranks widens
+ *  by the lines it carries; libavoid then routes in the room made. */
 
 function layered(dir: string): Record<string, string> {
   return {
@@ -372,6 +374,10 @@ function layered(dir: string): Record<string, string> {
     "elk.layered.cycleBreaking.strategy": "MODEL_ORDER",
     "elk.layered.considerModelOrder.components": "MODEL_ORDER",
     "elk.layered.spacing.nodeNodeBetweenLayers": String(UNIT * 2),
+    "elk.spacing.nodeNode": String(UNIT * 2),
+    "elk.spacing.edgeEdge": String(SEAT), "elk.spacing.edgeNode": String(SEAT),
+    "elk.layered.spacing.edgeEdgeBetweenLayers": String(SEAT),
+    "elk.layered.spacing.edgeNodeBetweenLayers": String(SEAT),
     "elk.spacing.componentComponent": String(UNIT * 1.5),
     "elk.separateConnectedComponents": "true",
     /** A long chain wraps into rows toward the shape rather than one thin strip. */

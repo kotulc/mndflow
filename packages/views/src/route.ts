@@ -121,6 +121,40 @@ export function middle_of(run: readonly Point[], fan?: Fan): Point & { level: bo
   return { ...best.at, level: best.level };
 }
 
+/** How far beside its run a name sits: above a level leg, right of an upright one; a name's glyph
+ *  and its line's height at the layout's size, in pixels. */
+export const NAMED = { lift: 8, aside: 6, glyph: 6.2, line: 16 };
+
+/** Which side of its leg a name sits on, and the point it is set from: the leg's middle. */
+export type NameBox = { x: number; y: number; w: number; h: number;
+                        side: "above" | "below" | "right" | "left"; at: Point };
+
+/** **The box a line's name takes**, at the layout's size: beside one of its own legs (past the
+ *  fan point), the longest first — above or below a level leg (a `level` name always reads level,
+ *  set on the leg's middle), right or left of an upright one — **the first clear of every card**
+ *  (`cards`); where none is, above or right of the longest. The one geometry the stage draws by
+ *  and the measure counts. */
+export function name_box(run: readonly Point[], chars: number, fan?: Fan, level = false,
+                         cards: readonly { x: number; y: number; w: number; h: number }[] = [])
+    : NameBox {
+  const own = fan ? past(fan.end === "to" ? [...run].reverse() : run, fan.by) : run;
+  const [w, h] = [chars * NAMED.glyph, NAMED.line];
+  const legs = own.slice(1).map((q, i) => [own[i]!, q] as const)
+    .sort((a, z) => len(z[0], z[1]) - len(a[0], a[1]));
+  const boxes = (legs.length ? legs : [[own[0]!, own[0]!] as const]).flatMap(([p, q]): NameBox[] => {
+    const at = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+    const flat = p.y === q.y || level;
+    return flat
+      ? [{ x: at.x - w / 2, y: at.y - NAMED.lift - h / 2, w, h, side: "above" as const, at },
+         { x: at.x - w / 2, y: at.y + NAMED.lift - h / 2, w, h, side: "below" as const, at }]
+      : [{ x: at.x + NAMED.aside, y: at.y - h / 2, w, h, side: "right" as const, at },
+         { x: at.x - NAMED.aside - w, y: at.y - h / 2, w, h, side: "left" as const, at }];
+  });
+  const clear = (b: NameBox) => cards.every((c) => b.x >= c.x + c.w || c.x >= b.x + b.w
+    || b.y >= c.y + c.h || c.y >= b.y + b.h);
+  return boxes.find(clear) ?? boxes[0]!;
+}
+
 /** What is left of a run after its first `by` of length. */
 function past(run: readonly Point[], by: number): Point[] {
   let left = by;

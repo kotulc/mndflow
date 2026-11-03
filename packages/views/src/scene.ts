@@ -99,6 +99,10 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "label"
                  /** A notation definition: outlined faintly, as a relation's is. */
                  | "notation"
                  | "grid" | "region"
+                 /** A part of a model on the map, through folders and bands: framed heavier. */
+                 | "major"
+                 /** Inside a major part on the map: drawn quieter. */
+                 | "minor"
                  /** A card laid in a treemap: a plain ground, its definition's colour on its edge. */
                  | "tiled"
                  | "interface" | "berth" | "in" | "out" | "unnamed"

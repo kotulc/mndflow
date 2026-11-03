@@ -1,0 +1,13 @@
+{
+  "id": "value",
+  "name": "value",
+  "type": "block",
+  "description": "A constant or variable a module declares, and its type.",
+  "def": {
+    "attributes": [
+      { "name": "signature", "type": "text" },
+      { "name": "exported", "type": "flag" }
+    ]
+  },
+  "settings": { "style": { "hue": 45 } }
+}

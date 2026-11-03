@@ -3,12 +3,13 @@
  *  draws a layer of its own a card that is entered in turn. Only what the side drawn lists is in
  *  it. Worked out on every graph change, never stored. */
 
-import { diagram_subject, layout_of, on_side, type Graph, type Id, type Lists,
+import { diagram_subject, is_model, layout_of, on_side, path, type Graph, type Id, type Lists,
          type ViewKind } from "@mnd/core";
 import { placed_as, type Placed } from "./arrange";
 import { project } from "./block";
 import { class_graph } from "./classes";
 import { place } from "./flow";
+import { holds_parts } from "./map";
 import type { Scene } from "./scene";
 import { read_through } from "./through";
 
@@ -32,9 +33,20 @@ export async function layer_scene(given: Graph, id: Id, kind: ViewKind,
   const opts = { room: true, look: { kind, cut: null },
                  ...(config.interfaces === false ? { interfaces: false } : {}) };
   const ahead = await placed_ahead(graph, id, kind);
-  if (!ahead) return project(graph, id, opts);
-  const scene = placed_as(ahead.spots, () => project(graph, id, opts));
+  if (!ahead) return ranked(graph, project(graph, id, opts));
+  const scene = ranked(graph, placed_as(ahead.spots, () => project(graph, id, opts)));
   return ahead.across === undefined ? scene : { ...scene, across: ahead.across };
+}
+
+/** **The map's ranks in an entered diagram** of a model: where some card holds parts, those are
+ *  `major` and every other card `minor` (views `map.ts` `holds_parts`). Elsewhere, unranked. */
+function ranked(graph: Graph, scene: Scene): Scene {
+  if (!scene.layer || !path(graph, scene.layer).some((b) => is_model(graph, b.id))) return scene;
+  const cards = scene.nodes.filter((n) => n.type === "card" && graph.blocks[n.id]);
+  const major = new Set(cards.filter((n) => holds_parts(graph, n.id)).map((n) => n.id));
+  if (!major.size) return scene;
+  return { ...scene, nodes: scene.nodes.map((n) => !cards.includes(n) ? n
+    : { ...n, data: { ...n.data, marks: [...n.data.marks, major.has(n.id) ? "major" : "minor"] } }) };
 }
 
 /** The graph with what its side does not list put out of sight: each topmost such block, so a

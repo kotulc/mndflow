@@ -64,6 +64,8 @@ function apply(graph: Graph, m: Mutation): void {
         delete graph.blocks[id];
         drop_edges(graph, id);
       }
+      /** `subtree` read the children index, which the deletes have just made stale. */
+      forget(graph);
       return;
     }
     case "move_block": {

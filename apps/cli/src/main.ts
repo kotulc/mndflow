@@ -9,6 +9,7 @@ import { lens_of, NAMED_VIEWS, all_defs, alias_of, check, children, collect, dom
 import { FLOOR } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
 import { draw, draw_svg, faults, outline, project } from "@mnd/views";
+import { measured } from "./measure";
 import { node_net } from "./ports";
 import { as_file, from_sysml, shape_of, to_sysml } from "./sysml";
 
@@ -18,6 +19,8 @@ const USAGE = `mnd — the headless harness
   mnd project <source> [layer] [--how] project a layer and print it
   mnd project <source> [layer] --svg  project a layer and draw it as SVG
   mnd outline <source> [layer]         list what a projection holds
+  mnd measure <source> [layer]         lay out and route each diagram as the app does; count
+                                       lines over cards, covered names, shared runs, tight gaps
   mnd check <source | folder>          run the door, print faults; a folder is collected first
   mnd review <source> [layer]          ask what the definitions wanted
   mnd run <source> <action> [k=v ...]  apply an action, print what it wrote
@@ -154,7 +157,10 @@ function gathered(folder: string, workspace: boolean, bare = false,
   const files = leaves(folder);
   let over = fold([], FLOOR);
   const notes: string[] = [];
-  for (const want of wanted(files)) {
+  const { listed, heads } = wanted(files);
+  /** A qualified name's first step loads the catalogue package of that name, where it lists one. */
+  const named = heads.filter((h) => listed_names().includes(h));
+  for (const want of [...listed, ...named]) {
     const at = want.startsWith("./") ? resolve(folder, want)
       : join(dirname(CATALOGUE), `${want}.json`);
     if (seen.has(resolve(at))) continue;
@@ -167,6 +173,14 @@ function gathered(folder: string, workspace: boolean, bare = false,
   const got = collect(basename(resolve(folder)), files, over,
                       { bare, ...(workspace ? { root: over.root } : {}) });
   return { ...got, notes: [...notes, ...got.notes] };
+}
+
+/** The names the catalogue lists, read from its index. */
+function listed_names(): string[] {
+  try {
+    const index = JSON.parse(readFileSync(CATALOGUE, "utf8")) as { packages?: { name?: string }[] };
+    return (index.packages ?? []).flatMap((p) => (p.name ? [p.name] : []));
+  } catch { return []; }
 }
 
 /** A package file's blocks and relations beside what a graph holds; an id already there stays. */
@@ -245,6 +259,12 @@ async function main(argv: string[]): Promise<void> {
       if (verb === "outline") console.log(outline(scene));
       else if (rest.includes("--svg")) process.stdout.write(draw_svg(scene));
       else console.log(draw(scene));
+      return;
+    }
+
+    case "measure": {
+      const graph = fold(log, FLOOR);
+      console.log((await measured(graph, find_layer(log, plain[0]))).join("\n"));
       return;
     }
 

@@ -74,12 +74,12 @@ describe("a tie", () => {
   it("crosses straight where a group note sits square beside the group", () => {
     const text = readFileSync("samples/example.json", "utf8");
     const { graph } = open(text, FLOOR);
-    const scene = project(graph, named(graph, "Overview::Shop::How it runs::Deployment"));
+    const scene = project(graph, named(graph, "Overview.Shop.How it runs.Deployment"));
     const opposite: Record<string, string> = {
       top: "bottom", bottom: "top", left: "right", right: "left",
     };
     for (const path of ["eu-west cluster", "shop namespace"]) {
-      const id = named(graph, `Overview::Shop::How it runs::Deployment::${path}`);
+      const id = named(graph, `Overview.Shop.How it runs.Deployment.${path}`);
       const tie = tie_on(graph, id).id;
       const on_group = scene.perches.find((p) => p.edge === tie && p.on === id)!;
       const on_note = scene.perches.find((p) => p.edge === tie && p.on === note_on(graph, id))!;
@@ -166,7 +166,7 @@ describe("a note tied to an interface", () => {
   it("floats the model note beside the room port on Storefront", () => {
     const text = readFileSync("samples/example.json", "utf8");
     const { graph } = open(text, FLOOR);
-    const containers = named(graph, "Overview::Shop::Customer facing::Storefront");
+    const containers = named(graph, "Overview.Shop.Customer facing.Storefront");
     const scene = project(graph, containers);
     const https = graph.blocks[containers]!.ports!.find((p) => p.name === "https")!;
     const drain = `${containers}/${https.id}`;

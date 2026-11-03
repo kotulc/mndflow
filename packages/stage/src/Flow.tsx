@@ -12,7 +12,7 @@ import { box_of, extent, nearest_seat, routes_of, taken_on, DRAWN_BY, FRAME, UNI
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 import { PickedContext, picked_by } from "./picked";
-import { EDGE_TYPES, Heads, RunsContext } from "./Wire";
+import { CardsContext, EDGE_TYPES, Heads, RunsContext } from "./Wire";
 import type { Adjust, FlowViewProps, Gesture, Landing } from "./gestures";
 import { BAND, MIN_ZOOM } from "./arrays";
 import { useDrag } from "./drag";
@@ -180,6 +180,10 @@ function Canvas(props: FlowViewProps) {
   const runs = useMemo(() => routes_of({ ...scene, nodes, ...(frame ? { frame } : {}) }),
                        [scene, nodes, frame]);
 
+  /** Every card as it stands, which the lines' names keep clear of. */
+  const cards = useMemo(() => nodes.filter((n) => n.type === "card" || n.type === "note")
+    .map(box_of), [nodes]);
+
   /** What lights as picked: the host's pick, read by every node and line. */
   const lit = useMemo(() => picked_by(picked, props.stands_for), [picked, props.stands_for]);
 
@@ -187,6 +191,7 @@ function Canvas(props: FlowViewProps) {
     <PickedContext.Provider value={lit}>
     <FlightContext.Provider value={flying}>
     <RunsContext.Provider value={runs}>
+    <CardsContext.Provider value={cards}>
     <ReactFlow
       className={["mnd-flow", framed ? "" : "frameless", scene.areas ? "map" : "",
                   cut ? "cut" : "", fresh ? "fresh" : ""].filter(Boolean).join(" ")}
@@ -337,6 +342,7 @@ function Canvas(props: FlowViewProps) {
       ) : null}
       {chrome && !scroll ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
     </ReactFlow>
+    </CardsContext.Provider>
     </RunsContext.Provider>
     </FlightContext.Provider>
     </PickedContext.Provider>

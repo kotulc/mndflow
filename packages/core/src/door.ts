@@ -212,13 +212,13 @@ function definitions(graph: Graph, say: Say): void {
   }
 }
 
-/** A definition is found by its name, so no two in one package may share one: definitions and
- *  tags share the name space. */
+/** A definition is found by its path, so no two beside each other may share a name. Two in one
+ *  package apart in their folders may: a bare name finding both is ambiguous, and is qualified. */
 function named_defs(graph: Graph, say: Say): void {
   const taken = new Set<string>();
   for (const d of all_defs(graph).sort((a, z) => a.id.localeCompare(z.id))) {
     if (!d.name?.trim()) continue;
-    const slot = `${package_of(graph, d.id)}|`;
+    const slot = `${d.parent ?? package_of(graph, d.id)}|`;
     if (!taken.has(slot + d.name)) { taken.add(slot + d.name); continue; }
     let name = d.name;
     for (let n = 2; taken.has(slot + name); n++) name = `${d.name} ${n}`;

@@ -1,70 +1,171 @@
 # Code translation plan
 
-**Translate a TypeScript codebase into a mndflow workspace and explore it: this repo first.** The primary use case in design.md's vision: models are translated, then shown. Taken up 2026-11-01; nothing is built yet. Delete this plan when the first translator ships.
+**Translate a TypeScript codebase into a mndflow workspace a person can be led through: this repo first.** The primary use case in design.md's vision: models are translated, then shown, and the end product is a walkthrough. Taken up 2026-11-01; a first, mechanical translator built that day; its shape revised 2026-11-02. Delete this plan when the second translator ships.
 
 
 ## Next session
 
-**Start here.** Settle the decisions below with the user before any code; several change what the CLI must do first. Then mock up the TypeScript package (what a module, a class, a function *is*) on a slice of this repo, as the shop was for the design language.
+**Start here: the user reads both workspaces, then decides rows d–f below.** flow-plan.md is built (entry paths, measure, routing, lit paths, ranks); steps a–c here are built (*Built 2026-11-02, second pass*). Delete this plan when the second translator ships.
 
-- the design language is paused, its plan in design-plan.md; its where-it-lives map and scope work (2026-11-01) is built, committed through 6ec08d6 bar its last turn
-- this repo is the busy test case: hundreds of files across `apps/` and `packages/`, which the map and the where-it-lives map have not yet been seen at
-- **search before building**: a parser is a package choice, never custom code
+| # | Step | State |
+|---|---|---|
+| a | **salience** (stage 6) | built: PageRank over imports by symbols, scaled by length; a component's diagram draws its most salient half (`shown` 0.5, at least 1, at most the budget, never folding one alone), the rest one `other` block saying which. Left: unjoined modules folded per band (*Directions* row 4); a component face listing modules as rows |
+| b | **names** (stage 8) | built: tf-idf over the module names of a component against its siblings', a word recurring at least twice; first doc lines too only where the anchor is a stop word (`helpers`, `index`, `utils`). Tried with doc words for all: worse (`session` became `log`, `nodes` `level`), so anchors that name something stay |
+| c | **vocabulary** (stage 7) | built: interfaces, classes and object types another module reads, owned by the block holding their module, at most `most` (9) an owner by fan-in; a definition each in `types/<group>/<pkg>/<owner>/`, fields as attributes, a field typed by a written type an `association`, `extends` the `type`; a `class` diagram per component owning types, and one for the package's own. Left: enums and aliases as library types (they read as `text` with a note); a name said in two packages is never linked bare (text with a note); methods |
+| d | **ports** (stage 5) | **needs a decision**: a component's ports would be its exports used outside it, but core's `helpers` alone has 20+ crossing names; one port per export clutters every diagram. Options: a port per importing component, a port per most-read export (top few), or none until a component face lists them |
+| e | **writing directly** (*Decided* row 3) | **needs a decision**: still a source folder then `collect`, which caught three real faults this pass (names shared by lifelines, rows and blocks; qualified attribute types made as text). Leaning: keep it and change row 3 |
+| f | **a reference breakdown** (*Directions* row 7) | **needs the user**: modules → components for this repo, for MoJoFM |
 
+- **the user's direction** (2026-11-02): a deterministic structure found from the graph (imports, interfaces, cycles, centrality), not agentic band-aids; **no hard rules** about what a block is; **thresholds are defaults with floors**; **balance depth against the big picture**; diagrams are visual information, never lists of parts; agents refine and narrate on top
+- **uncommitted**: everything in *Built* and flow-plan.md *Built*; suggested message in flow-plan.md *Next session*. `samples/code/` (194 files) and `samples/mndsite/` (11) are generated
+- **found in review, not this plan's code** (2026-11-01 reference work, uncommitted): an ambiguous bare attribute type is made as text with no note (core `sources.ts` `type_of`); a folder path inside the reader's own package (`Records.Order`) is not found by `def_hits` for `type:` though it is for `of:` (core `refs.ts`); the door allows one name in two folders (`door.ts` `named_defs`) while rename and create refuse it (`name_taken`), pending the user's word; `wanted` loads a catalogue package for any dotted word whose first step names one, ports and relation ends included (core `sources.ts`); the CLI re-reads the catalogue index once a head (cli `main.ts` `listed_names`)
+- **packages**: graphology, `graphology-communities-louvain`, `-components`, `-dag`, `-metrics` (modularity, PageRank) in apps/ts
 
 ## Goal
 
 | | |
 |---|---|
-| **in** | a TypeScript project folder |
-| **out** | a workspace: the project's structure as a model, its declarations as definitions, its imports as lines, each block keeping `source` (its file and span) |
-| **acceptance** | this repo translated with no hand edits, `check` clean, explored on the map: packages, folders, modules, and a module's internals reachable in a few clicks, the overview's where-it-lives map reading at that scale |
-| **later** | writing back out (round-tripping is design.md's goal, but reading comes first); other languages; hardware |
+| **in** | a TypeScript project folder, and an abstraction setting (how many components a layer may show), with a default |
+| **out** | a workspace: layers of components down from the system, a standard set of diagrams at each layer, the project's shared vocabulary as definitions, each block keeping `source` |
+| **acceptance** | this repo translated with no hand edits, `check` clean; every diagram readable at fit (names visible, no tangle); the vocabulary is the types a reader of the code would name; an agent can add a walkthrough on top by naming what was translated |
+| **later** | writing back out; other languages; a call graph for flows |
 
 
-## What exists
+## Decided
 
-| Piece | Where | Use to the translator |
+| # | Question | Decision |
 |---|---|---|
-| translation rules | design.md *Translation* | a translator is its own project reading and writing graphs through the kit, shipping a package of definitions, never a module; ids minted once and kept in its map, never derived from source text; `source` says where content lives |
-| the first translator | the mndmap repo | the pattern to follow: a scanner (names and `source` only), a parser read on demand, and a markdown package that carries the meaning |
-| the CLI | apps/cli: `fold`, `check`, `project`, `outline`, `review`, `run`, `search`, `translate` (SysML out and back), `export`, `collect` | `collect` turns a folder of definition and diagram files into one workspace; `translate --round` is the round-trip check to copy |
-| the CLI surface plan | backlog.md *CLI* | `new`, `do` (actions and scripts), `show`, `find`, `check`, `draw`, `bring`, `export`: what an agent or a translator writes and reads with |
-| packages | packages/defs (`base`), public/packages (`services`, `sysml`, `doc`, `requirements`) | `base` holds block, folder, model, interface, relations; a TypeScript package would sit beside `services` |
-| type structure | backlog.md *Edges*, design.md | types know `many` and `optional` only, added to as a translator needs |
+| 1 | **where the translator lives** | an app in this repo (`apps/ts`), moved out once the schema settles |
+| 2 | **the parser** | ts-morph |
+| 3 | **how it writes** | **the workspace JSON directly** (2026-11-02), not a source folder of files; ids minted from source paths and names, so translating again keeps them. Whether it writes through core's `write` and checks with the door is *Directions* row 6 |
+| 4 | **scope** | revised 2026-11-02: each package's `src` where it has one, else its whole folder; TypeScript by its tsconfig, else JavaScript (`allowJs`); `require` counts as an import. Tests, configs, setup files, `.d.ts` and installed, built or test folders left out. **Wiring**, configs and MDX pages (by their import lines), is read only where it imports the project's code, as an entry |
+| 5 | **the `ts` package** | kinds only (package, module, function, value, interface, class, type alias); to revisit with the component kinds (*Directions* row 3) |
+| 6 | **vocabulary** | **definitions only for types shared across modules** (2026-11-02); module-local types stay out of the library. Fields are attributes, a field typed by another definition an `association`, `extends` the `type` chain, enums and aliases library types |
+| 7 | **no file, and no diagram, per module** | 2026-11-02: a module is never a diagram that only enumerates what it declares; where it shows is row 13 |
+| 8 | **imports** | dependency lines, at the level the diagrams draw (between components, between packages), never every module pair on one layer |
+| 9 | **heuristics, then agents** | the translator finds what it can by general heuristics; an agent refines and adds an abstraction and narrative layer (walkthroughs) on top, naming the translated elements by the reference rules (design.md *Diagram files*) |
+| 10 | **a structure found from the graph** | 2026-11-02: deterministic stages over the dependency graph (*Strategy*): what crosses between parts, cycles, centrality, coupling. **No fixed grain**: a block is whatever unit the graph says matters, a group of modules, one module, or later a function; no rule says a block is never a file |
+| 11 | **thresholds are defaults with floors** | 2026-11-02: every cutoff is a relative default (a share, a budget) bounded by a minimum and maximum count, so a project where the default finds nothing, or everything, still gets a sensible result; each is a setting, never a hard rule |
+| 12 | **balanced depth** | 2026-11-02: wide before deep; the fewest layers that keep each within the budget, and a ceiling on depth; salience folds the rest (*Strategy* stage 6) rather than another layer hiding the big picture |
+| 13 | **a module shows in its component, unless it matters** | 2026-11-02: by default a module is a row in its component's card; it is a block of its own where it is salient (a hub, an entry point, much imported) or is its component's only module |
+| 14 | **what tests a translator** | 2026-11-02: the user reading the translated models, across projects, is the final test. Projects: **this repo**, then **mndsite** (Next.js, JS/JSX, one package, folders by role). Scores (*Strategy* stage 9) guide; they never decide. Component ids are minted from an anchor (a folder, or the most central module), never from the member list, so re-translating keeps them |
+| 15 | **one model, named by what was read** | 2026-11-02: under the package root, one model named for what the translator read: the folder every module sits in (`src`), else `code`; never the project's name again. Its packages sit in their groups' folders inside it, with the lines between them; a project of one package is that model (`mndsite › code`) |
+
+**Superseded** from 2026-11-01: a source folder then `collect` (row 3); every top-level declaration as a block and every declared type as a definition (rows 6, 8); each module a diagram on its package's layer (row 7).
 
 
-## Decide first
+## Strategy
 
-| # | Question | Options, recommendation first |
+**Deterministic stages over the dependency graph** (2026-11-02), drawn from published architecture-recovery work (Bunch's omnipresent modules, ACDC, Leiden), each a package where one exists. Every threshold is a default with floors (*Decided* row 11).
+
+| # | Stage | What it does | Default, to test |
+|---|---|---|---|
+| 1 | **graph** | module edges weighted by the symbols imported; a type-reference graph beside it | |
+| 2 | **foundation and entry** | set aside on both sides: the modules most of a package imports are a foundation band at the bottom, those importing most of it (with barrels and wiring) an entry band at the top; their lines implied, never drawn | at least 35% of the package's modules; at least the likeliest 1, at most a budget's worth; the run kept is the one splitting the rest most cleanly, which may be none |
+| 3 | **components** | community detection on what remains; of the resolutions within the ceiling, one needing no further split first (wide before deep), then the cleanest; a component still over the ceiling splits again; modules joined to nothing grouped by folder, the one signal left; npm packages kept as drawn by a person | at most 9 per layer (7 + 2, `--components 7`); depth at most 2; folder bonus 0.5 on an import's weight |
+| 4 | **levels** | where two components import each other the heavier direction ranks them; cycles left condensed and said; ranked entry first | |
+| 5 | **interfaces** | a component's ports are its exports used outside it; a line between components carries what crosses, weighted by coupling | |
+| 6 | **salience** | PageRank and size pick what is drawn; the rest folds into a count; entry points and hubs marked; a salient module is a block of its own (*Decided* row 13) | |
+| 7 | **vocabulary** | each shared type owned by the component declaring it, ranked by fan-in on the type graph, capped per class diagram | |
+| 8 | **names** | a folder's name where the cluster matches one; else the words most particular to its modules' names and docs; else its most central module's; an agent may rename | |
+| 9 | **score** | each run prints modularity, budget fit and cycles; MoJoFM against a hand-made breakdown, where there is one | |
+
+**Standard diagrams**: the system, its packages `layered` over their foundation; a package, its components `layered` with ports over its foundation, and a class diagram of the vocabulary it owns; a component, its modules as rows in its card, and later a flow from a call graph. A layer gets only the diagrams its contents warrant.
+
+
+## Directions
+
+**Still open**, each with a leaning to test.
+
+| # | Question | Options, leaning first |
 |---|---|---|
-| 1 | **where the translator lives** | its own repo beside mndmap, on the kit (design.md's rule) · a verb in apps/cli · a package in mndflow |
-| 2 | **the parser** | the TypeScript compiler API or ts-morph (types resolved, one language) · tree-sitter (many languages, syntax only) |
-| 3 | **how it writes** | the CLI's `new` and `do` scripts (one surface for agents and translators; needs backlog *write* first) · the kit's session in process · a workspace file written directly and `check`ed |
-| 4 | **what each construct is** | a draft: a package or folder as a folder; a module (file) as a block in the model; a class, interface or type as a block definition in the TypeScript package's library and its uses; a function as a block with interfaces; an enum or alias as a type; an import as a `dependency` line between modules. To mock up and agree |
-| 5 | **depth** | modules and their exports first, function bodies never · down to every declaration |
-| 6 | **which views a module opens to** | an internal diagram of its declarations · a class diagram of its types · both, by what it holds |
-| 7 | **the id map** | a file kept beside the workspace, keyed by source path and declaration name · inside the workspace as values |
-| 8 | **re-translating** | a fresh workspace each time, ids kept by the map · updating in place (later) |
+| 1 | **edge weights** | symbols imported (built) plus type references · symbols only. Test whether type references move the clusters |
+| 2 | **the clustering package** | graphology's Louvain without its random walk (built), so a run repeats · Leiden where a package exists |
+| 3 | **component kinds** | a `ts.component` kind beside `ts.package` and `ts.module` · reuse `services.component` |
+| 4 | **modules joined to nothing** | they push a layer over budget (mndsite: two `Since`, two `_app`): fold them by salience (stage 6) · one group of the unjoined |
+| 5 | **vocabulary ranking** | fan-in on the type graph · PageRank on it; what a definition is *used by* is the fields and signatures typed by it (today it reads *nothing uses it*) |
+| 6 | **writing the workspace** | the translator builds the graph with core's types and `write`, then the door checks it (needs `@mnd/core`, against row 1's no-kit rule) · emits JSON by hand to the file schema |
+| 7 | **a reference breakdown** | hand-made for this repo, for MoJoFM; code-homes.md maps concerns to homes, not modules to components, so it is a start, not the breakdown |
+| 8 | **what the agent layer needs** | a walkthrough's steps naming translated views and elements (design.md *Open* `walkthroughs`); a stable name for every translated element across re-translation |
+| 9 | **a one-package project repeats its name** | settled by *Decided* row 15 |
+| 10 | **the system view** | settled by *Decided* row 15: the model holds the packages and their lines |
+| 11 | **what is primary reads first** | primary blocks stand out (a heavier border), their contents quieter; more space between major parts than within one · salience (stage 6) says which are primary; the look is design-plan's |
+| 12 | **flows central** | each entry point shows a flow of data and how it meets the primary parts; the major paths are the first thing read · paths from a call graph, entry to foundation, weighted by what crosses; drawn as a walkthrough's first steps |
 
 
-## Steps
+## Built 2026-11-01
 
-Provisional; reorder once the decisions are made.
+**The first, mechanical translator.** `npm run code` translates this repo into `samples/code` and collects `samples/code.json`: 13 packages, 159 modules, 237 definitions, 80 library types, 565 dependencies, 156 associations; `check` clean. The samples collect unchanged.
 
-| # | Step | Done when |
+| Change | Where | Keep? |
 |---|---|---|
-| 1 | **decisions** above, with the user | each row answered here |
-| 2 | **the TypeScript package**: its definitions and tags, as a mockup on a slice of this repo (core's `actions/` folder) | the slice reads well on the map and in a module's view |
-| 3 | **the write surface** the translator needs (backlog *CLI* step *write*, or the in-process path) | a script of blocks, lines and descriptions lands and `check`s clean |
-| 4 | **scan**: folders and files to blocks with `source`, ids minted into the map | this repo's tree on the map |
-| 5 | **declarations**: exports and types to definitions and uses | a module opens to its declarations |
-| 6 | **imports** to lines | a package's dependencies read on its diagram |
-| 7 | **the busy case**: map, where-it-lives map, explorer and tray at this repo's scale; fix what breaks | the acceptance row above |
+| references: `.` only, ordered bare lookup, qualified names load their package, ambiguity and dotted names said | core `refs.ts`, `sources.ts`; cli `main.ts` `gathered` | yes: general |
+| ids by name (`file:step`), repeats counted | core `sources.ts` `block_ids`, `minted` | yes |
+| definition names unique beside each other, not per package | core `door.ts` `named_defs` | yes, pending the user's word |
+| `subtree` read off the children index (13 s of work on entering a package, now under 2) | core `tree.ts` | yes |
+| libavoid routes at most 64 lines a layer, else `route`'s runs (100 lines took 13 s, 230 never finished) | views `avoid.ts` `MOST` | yes, pending the user's word |
+| a box too narrow or short has what it holds weighed up; what still has no room, or lies outside its parent, is not drawn (2026-11-02: the library map's *apps* box drew its last folders below itself) | views `map.ts` `mapped` (`SHORT`, `gone`) | yes |
+| the `ts` package | packages/defs `packages/ts`; public/packages `ts.json`, index | revisit (*Directions* row 3) |
+| the translator | apps/ts `read.ts` (ts-morph to data), `write.ts` (a source folder), `main.ts`; root `npm run code` | `read.ts` mostly stays; `write.ts` is rewritten for *Decided* rows 3, 6, 7 |
+
+
+## Built 2026-11-02
+
+**Stages 1–4 and 9: a project's structure, reported.** `npm run start -w @mnd/ts -- <project> [folder] [--components n]`: without a folder, prints the structure and writes nothing. About 5 s for either project.
+
+| Change | Where |
+|---|---|
+| imports weighted by symbols, resolved through barrels to the declaring module; `require`; entries (barrels, wiring); scope per *Decided* row 4 | apps/ts `read.ts` (`imports_of`, `wiring`, `src_of`) |
+| foundation and entry set aside, components, levels, score | apps/ts `structure.ts` |
+| the report | apps/ts `report.ts`; `main.ts` |
+| the workspace: one model named by what was read, its packages in their groups' folders (*Decided* row 15); a package diagram of three bands, **entry points**, **components**, **shared**; a component a file of its modules and the lines between them; each line named by the two names most read across it, then a count | apps/ts `write.ts`; `npm run code` (this repo, 34 files, was 411); mndsite by hand to `samples/mndsite` |
+| a `component` kind | packages/defs `packages/ts/blocks/component.json`; `npm run packages` |
+| imports keep the names they read | apps/ts `read.ts` `Import.names` |
+
+**Written through a source folder and `collect`** for now, against *Decided* row 3, so the door's check runs on it; both workspaces `check` clean. **Left out of this pass**: definitions and library types (stage 7), ports (stage 5 is line names only), salience (stage 6).
+
+**This repo**: every package within budget at depth 1; modularity core 0.39, tray 0.50, views 0.51, stage 0.31; no cycles between components once `actions/blocks` is an entry. **mndsite**: 44 modules at 0.56, one over budget (*Directions* row 4).
+
+
+## Findings
+
+Seen in the browser on the translated repo, and (2026-11-02) by Louvain over each package's module imports, seeded, imports only.
+
+| Finding | Notes |
+|---|---|
+| **the folders carry little structure** | views, tray and stage are flat (20–34 modules each), core has one folder: the structure is in the graph, so folders cannot be the prior |
+| **views clusters as its subsystems** | modularity 0.29, 5 components: looks (look, face, facts), layout (size, arrange, bands, pack, layered), routing (seat, route, avoid, ends), diagram views (classes, lifelines, sheet, layer), library maps (library, treemap, registry) |
+| **core is one blob until its hubs are set aside** | 0.19 with all modules; setting aside types, defs, tree, library and holders (the graph model) gives 0.34 and 221 edges become 77: edits (`actions/*`), loading (sources, refs, card, ports), derived state (fold, uses, door, session), kinds and ends (names, capabilities, ends) |
+| **tray and stage are looser** | 0.29 and 0.30; groups plausible (stage: gestures, nodes and picks, chrome) but less crisp; a test of weights (*Directions* row 1) |
+| **entries glue as foundations do** | mndsite's `theme.config` imports 20 components and pulled everything into one group (0.11); set aside as an entry, 0.56. In core, `actions/blocks` set aside ends a 6-way cycle |
+| **aiming at the budget over-splits** | choosing the count nearest 7 cut stage into small groups (0.20); the budget is a ceiling, the cleanest split under it wins |
+| **forced room merges** | taking the folder groups out of the clustering's room merged scripts and components (27 modules); the unjoined are a salience problem, not a clustering one |
+| **names are the weakest part** | anchors name most components (`helpers`, `pairs`, `Json`); folder names only where a component is its whole folder (stage 8) |
+| **reading a model** | the user, 2026-11-02: informative and the right direction. Read wrong: the name repeated (`models › mndflow › mndflow`; mndsite three times), fixed by *Decided* row 15. Hard to tell the primary parts from what is a diagram; the major paths should be obvious and central (*Directions* rows 11–12) |
+| **seen in the app 2026-11-02** | the map shows each package holding its components; a package diagram reads as bands, its components laid by direction, lines named by what crosses; entering a component shows its modules. Line names still crowd lines and cards inside a busy component (core's `session`), a view matter for design-plan |
+| **wiring outside the code** | mndsite's components are used from MDX pages and `theme.config.jsx`; without reading them half its components joined nothing |
+| a module's diagram is a flat enumeration | its functions as cards, each saying *2 attributes*: no structure, no lines (*Decided* row 7) |
+| core's layer unreadable | 39 cards, 230 lines run straight under cards at fit; components and a foundation (*Strategy* stages 2, 3) are the answer, not a better router |
+| chips nameless at fit | on both maps most chips show only their icon; fewer, larger components help; the rest is design-plan's busy-map work |
+| the library map's columns are slivers | every translated definition weighs the same (no uses), so small folders get thin columns; *used by* (*Directions* row 5) gives definitions weight |
+| a project named as a catalogue package | translating apps/ts alone names it `ts`, and the door renames one of the two |
+| every entry takes about 2 s | at 2,100 blocks; profile again at the new, smaller output |
 
 
 ## Watch for
 
-- **scale**: `where_map` lays the map again at each 8 px of resize, and the explorer and map have only been seen on samples of tens of blocks
-- **design.md's open question** *the next translator*: this plan answers it for code; record the answer there once decided
-- the kit's `.types` are stale until the kit is released (backlog *mndmap on the map*), which matters if the translator is its own repo
+- **scale**: `where_map` lays the map again at each 8 px of resize; the explorer and the maps have now been seen at 2,100 blocks (*Findings*)
+- the kit's `.types` are stale until the kit is released, which matters once the translator moves out
+
+## Built 2026-11-02, second pass
+
+**Entry paths, salience, names and vocabulary**, run on this repo and mndsite, both `check` clean, seen in the app.
+
+| Change | Where |
+|---|---|
+| calls into other modules of a package, each entry's path, its `sequence` (flow-plan stages 2–3) | apps/ts `read.ts` `calls_of`, `structure.ts` `paths_of`, `write.ts` `entry_files` |
+| salience; the least salient modules folded into `other` | `structure.ts` `salience`, `folded_of`; `write.ts` `component_files` |
+| names by words | `structure.ts` `worded`, `words_of`, `STOP` |
+| the vocabulary and its class diagrams | `structure.ts` `vocab_of`; `write.ts` `vocab_files`, `attribute` |
+
+**This repo**: 13 packages, 163 modules, 194 files; core's components now `action`, `session`, `sources`, `holders`, its own types (`Block`, `Graph`, `Relation` …) in `core types`. **mndsite**: one path (`theme-config`), components `link`, `page`, `contents`, `meta`, …; no shared types, being JavaScript.
