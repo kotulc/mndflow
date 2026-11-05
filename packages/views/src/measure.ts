@@ -1,4 +1,4 @@
-/** **What a person sees as broken, counted** (flow-plan stage 1): over a scene and its routed
+/** **What a person sees as broken, counted**: over a scene and its routed
  *  runs, the lines through cards they do not end on, the names over cards or each other, the runs
  *  two lines share, and the gaps too narrow for the lines they carry. Pure; drawn as the stage
  *  draws it — libavoid's run where there is one, else `route`'s — names placed by `name_box`. */

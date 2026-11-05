@@ -4,13 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { all_defs, appearances_of, collect, diagram_kind, domain_of, drop_of, touches_of,
          held_at, in_section, is_base, is_inside, is_layer_view, lit as lit_by, object_of,
-         path, registry_at, registry_id, registry_of,
-         seen_through, session, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
-         type Id } from "@mnd/core";
+         path, path_of, path_owner, registry_at, registry_id, registry_of,
+         seen_through, session, shown_name, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
+         type Hop, type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { area_of, boxed_place, box_of, clear_of, empty_of, holds, layer_scene, map_focus, project,
          section_map, set_aspect, set_card as apply_card, stop_area, BLOCK, CARD, EMPTY,
-         laid_ahead, row_look, UNITS, type Area, type Scene } from "@mnd/views";
+         laid_ahead, row_look, UNITS, hop_trace, trace_of, type Area, type Scene,
+         type Trace } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
 import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
 import { Stage, FLIGHT, still, type Move } from "@mnd/stage";
@@ -208,6 +209,40 @@ export function App({ storage, boot, opening }: {
   /** **What lights as picked is what the tray is about**: the pick where it is drawn, else, on a
    *  map, the block the tray falls back to — the area gone to — where the map draws it. One
    *  subject, so the canvas never disagrees with the tray and the explorer. */
+  /** **A path walked** (2026-11-04): picking a block that owns a path offers its walk; walking
+   *  it lights one hop a step, said in words, the camera fitting both its ends. Picking anything
+   *  else lets it go. */
+  const one = s.picked().length === 1 ? s.picked()[0]! : null;
+  const owner = one && graph.blocks[one] ? path_owner(graph, one) : null;
+  const steps = useMemo<Hop[]>(() => (owner ? path_of(graph, owner) : [])
+    .map((x) => ({ from: x.from, to: x.to, names: x.name ? [x.name] : [] })), [graph, owner]);
+  const [walk_at, set_walk_at] = useState<number | null>(null);
+  useEffect(() => set_walk_at(null), [owner]);
+  const walked = walk_at === null ? null : steps[walk_at] ?? null;
+  const walk = steps.length ? {
+    steps, at: walk_at, onStep: set_walk_at,
+    said: (h: Hop) => {
+      const [from, to] = [shown_name(graph, h.from), shown_name(graph, h.to)];
+      const names = h.names.filter((n) => n !== to);
+      return `${from} calls ${to}${names.length ? `: ${names.join(", ")}` : ""}`;
+    },
+  } : null;
+
+  /** **What the map's camera fits on a pick**: the step walked, both its ends; else the block
+   *  picked and everything a hop each way, so no leg runs out of view. */
+  const hop_box = useMemo(() => {
+    if (!map || !mapped) return null;
+    const t: Trace | null = walked ? hop_trace(graph, map, [walked])
+      : one ? trace_of(graph, map, one) : null;
+    if (!t) return null;
+    const ends = new Set([...t.legs.flatMap((l) => [l.from, l.to]), ...(walked ? [] : [one!])]);
+    const boxes = map.nodes.filter((n) => ends.has(n.id)).map(box_of);
+    if (!boxes.length) return null;
+    const [x, y] = [Math.min(...boxes.map((b) => b.x)), Math.min(...boxes.map((b) => b.y))];
+    return { x, y, w: Math.max(...boxes.map((b) => b.x + b.w)) - x,
+             h: Math.max(...boxes.map((b) => b.y + b.h)) - y, scale: 1 / 2 };
+  }, [graph, map, mapped, walked, one]);
+
   const subject = useMemo(() => {
     const shown = s.picked().filter((id) => lit_by(graph, s.picked(), s.route(), id,
                                                    seen_through(graph, view.layer, id)));
@@ -538,6 +573,7 @@ export function App({ storage, boot, opening }: {
             if (made) s.go(made.act, made.args);
           }}
           picked={subject}
+          walk={walk}
           cells={s.cells()}
           onPickCells={(cells) => {
             /** A click lets go of what the canvas cannot show. */
@@ -572,7 +608,7 @@ export function App({ storage, boot, opening }: {
           entered={entered && !!map}
           opened={opened}
           stop={!scene.areas ? null : treemap ? { ...scene.areas[0]!, scale: 1 }
-            : through ?? (focus_area ? { ...focus_area, scale: 1 / 2 } : null)}
+            : through ?? hop_box ?? (focus_area ? { ...focus_area, scale: 1 / 2 } : null)}
 
           focus={system ? view.pick : whole ? null : aim}
           most={1}

@@ -13,7 +13,7 @@ export * from "./seat";
 export { drawn, middle_of, name_box, route, NAMED, STUB, type NameBox } from "./route";
 export { measure, type Measure } from "./measure";
 export { avoided_run, load_avoid, routes_of } from "./avoid";
-export { trace_of, type Leg, type Trace } from "./trace";
+export { hop_trace, trace_of, type Leg, type Trace } from "./trace";
 export * from "./svg";
 export * from "./text";
 
@@ -22,7 +22,8 @@ export { place, set_elk, type Placement } from "./flow";
 export { box_label, box_place, registry_map, usage_box, usage_groups, usage_layout,
          type LocatedUse, type Tile as MapTile } from "./library";
 export { area_of, area_under, layer_map, library_map, map_focus, model_map, section_map, stop_area,
-         towards, box_for, chip_for, chip_map, where_map, type WhereBox } from "./map";
+         towards, box_for, chip_for, chip_map, mini_map, type Mini,
+         type WhereBox } from "./map";
 export { laid_ahead, layer_scene } from "./layer";
 
 export { BARE, PLAIN, entry_look, face_attrs, look_key, look_of, tint_attrs, type Tint, wire_of, wire_tint, type Align,

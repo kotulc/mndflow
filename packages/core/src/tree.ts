@@ -1,7 +1,7 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
 import { def_at, isa, module_of, setting_of } from "./defs";
-import { behaviours_of } from "./ends";
+import { behaviours_of, is_behaviour } from "./ends";
 import { allocations_of, drawn_in, is_holder, layer_of, region_of } from "./holders";
 import { LAYOUTS, type Block, type Definition, type Flow, type Graph, type Id, type Layout,
          type Port, type Relation } from "./types";
@@ -194,36 +194,64 @@ export function lit(graph: Graph, picks: readonly Id[], route: Id | null, id: Id
   return picks.some((p) => object_of(graph, p) === home);
 }
 
-/** **What a block's behaviours travel on a layer**: the blocks drawn there that its behaviours'
- *  steps stand for — a reference's object, or what heads a step's lifeline — each lifted to the
- *  block drawn holding it; and the layer's lines between two such blocks wherever a step talks to
- *  another across them, either way. The block itself lights too. Empty with no behaviour. */
-export function travels(graph: Graph, id: Id, layer: Id | null): { blocks: Id[]; lines: Id[] } {
-  const ways = behaviours_of(graph, id);
-  if (!ways.length) return { blocks: [], lines: [] };
+/** One hop: from a block to another, by the names said across it. */
+export type Hop = { from: Id; to: Id; names: string[] };
+
+/** **A block's one hop each way** (2026-11-04): what reaches it and what it reaches, a hop each
+ *  way — the lines with one end in it (at any depth) and the other outside, ties and a
+ *  behaviour's own messages aside, and every behaviour's steps into or out of it (`path_of`) —
+ *  one hop a pair and way, its names gathered. Empty where nothing joins it. */
+export function hops_of(graph: Graph, id: Id): Hop[] {
+  if (!graph.blocks[id]) return [];
+  const inside = new Set(subtree(graph, id));
+  const out: Hop[] = [];
+  for (const s of joins(graph)) {
+    const [a, b] = [inside.has(s.from), inside.has(s.to)];
+    if (a === b) continue;
+    const [from, to] = [a ? id : s.from, b ? id : s.to];
+    const had = out.find((h) => h.from === from && h.to === to);
+    if (!had) out.push({ from, to, names: s.name ? [s.name] : [] });
+    else if (s.name && !had.names.includes(s.name)) had.names.push(s.name);
+  }
+  return out;
+}
+
+/** **What a block reaches a hop each way on a layer**: the blocks drawn there at the far end of
+ *  its hops, each lifted to the block drawn holding it, and the layer's lines between it and them.
+ *  The block itself lights too. Empty where nothing joins it there. */
+export function reached(graph: Graph, id: Id, layer: Id | null): { blocks: Id[]; lines: Id[] } {
   const drawn = new Set(drawn_in(graph, layer).map((b) => b.id));
-  /** The block drawn on the layer holding `at`, if any. */
   const lift = (at: Id | null): Id | null => {
     for (let x = at; x; x = graph.blocks[x]?.parent ?? null) if (drawn.has(x)) return x;
     return null;
   };
-  /** What a step stands for on the layer. */
-  const stood = (step: Id): Id[] => stands(graph, step).map(lift).filter((x): x is Id => !!x);
-  const blocks = new Set<Id>([id]);
-  const pairs = new Set<string>();
-  for (const w of ways) {
-    const steps = new Set(subtree(graph, w.id));
-    for (const s of steps) stood(s).forEach((b) => blocks.add(b));
-    for (const e of Object.values(graph.edges)) {
-      if (!steps.has(e.from) || !steps.has(e.to)) continue;
-      for (const a of stood(e.from)) for (const b of stood(e.to)) pairs.add(`${a}\n${b}`);
-    }
-  }
+  const far = new Set(hops_of(graph, id).map((h) => lift(h.from === id ? h.to : h.from))
+    .filter((x): x is Id => !!x && x !== id));
+  if (!far.size) return { blocks: [], lines: [] };
   const lines = edges_in(graph, layer).filter((e) => {
     const [a, b] = [lift(owner_of(graph, e.from)), lift(owner_of(graph, e.to))];
-    return pairs.has(`${a}\n${b}`) || pairs.has(`${b}\n${a}`);
+    return (a === id && !!b && far.has(b)) || (b === id && !!a && far.has(a));
   }).map((e) => e.id);
-  return { blocks: [...blocks].filter((b) => b === id || drawn.has(b)), lines };
+  return { blocks: [id, ...far], lines };
+}
+
+/** Every join in the graph, worked out once for its blocks and lines: its lines, owner to owner,
+ *  but ties and those inside a behaviour; and every behaviour's path steps. */
+const JOINS = new WeakMap<object, { blocks: object; all: { from: Id; to: Id; name: string }[] }>();
+function joins(graph: Graph): { from: Id; to: Id; name: string }[] {
+  const had = JOINS.get(graph.edges);
+  if (had && had.blocks === graph.blocks) return had.all;
+  const all = (() => {
+    const ways = Object.values(graph.blocks).filter((b) => is_behaviour(graph, b.id));
+    const in_way = new Set(ways.flatMap((w) => subtree(graph, w.id)));
+    const owners = [...new Set(ways.map((w) => w.parent).filter((x): x is Id => !!x))];
+    const lines = Object.values(graph.edges).filter((e) => e.type !== "tie")
+      .map((e) => ({ from: owner_of(graph, e.from), to: owner_of(graph, e.to), name: e.name ?? "" }))
+      .filter((e) => !in_way.has(e.from) && !in_way.has(e.to));
+    return [...lines, ...owners.flatMap((o) => path_of(graph, o))];
+  })();
+  JOINS.set(graph.edges, { blocks: graph.blocks, all });
+  return all;
 }
 
 /** **A block's behaviours as a path, in order**: each message between two steps, ordered by the
@@ -243,6 +271,13 @@ export function path_of(graph: Graph, id: Id): { from: Id; to: Id; name: string 
           .filter((to) => to !== from).map((to) => ({ from, to, name: e.name ?? "" })));
       });
   });
+}
+
+/** **Whose path a block shows**: its own, where its behaviours make one, or, for a behaviour, its
+ *  owner's. Null where neither travels anywhere. */
+export function path_owner(graph: Graph, id: Id): Id | null {
+  const owner = is_behaviour(graph, id) ? graph.blocks[id]?.parent ?? null : id;
+  return owner && path_of(graph, owner).length ? owner : null;
 }
 
 /** What a behaviour's step stands for: a reference's object, or what heads its lifeline. */

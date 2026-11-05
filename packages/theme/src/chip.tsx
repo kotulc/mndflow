@@ -29,7 +29,8 @@ export type ChipData = {
   label: string; kind?: string; role?: string; tint?: Tint;
   /** Its head's height under the name, or its width beside it where it is upright. */
   head?: number; upright?: boolean; diagram?: boolean;
-  /** Its marks: `major`, a part of a model, framed heavier; `minor`, inside one, quieter. */
+  /** Its marks: `major`, a part of a model, framed heavier; `minor`, inside one, quieter;
+   *  `walks`, it owns a path, marked where a walk starts. */
   marks?: readonly string[];
   facts?: FactsData; tiles?: readonly ChipTile[];
   preview?: { rows?: readonly (readonly string[])[]; lines?: readonly string[];
@@ -81,7 +82,8 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
   return (
     <div className={["mnd-chip", data.diagram ? "diagram" : "",
                      narrow ? "narrow" : "", data.upright ? "upright" : "",
-                     ...(data.marks ?? []).filter((m) => m === "major" || m === "minor"),
+                     ...(data.marks ?? []).filter((m) => m === "major" || m === "minor"
+                       || m === "walks"),
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
          data-level={level}
          {...(data.folded ? { "data-folded": JSON.stringify(data.folded) } : {})}

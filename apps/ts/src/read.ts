@@ -25,7 +25,7 @@ export type Mod = { path: string; steps: string[]; description?: string; lines: 
                     calls: Call[]; entry?: boolean };
 
 /** A module imported: its `path`, the names read from it, and how many (at least 1). */
-export type Import = { path: string; symbols: number; names: string[] };
+export type Import = { path: string; symbols: number; names: string[]; types: string[] };
 
 /** A call into another module of the package, in source order: the function it is made from
  *  (`(top)` outside any), the module called, the name called, and where (`at`, a position). A
@@ -102,7 +102,7 @@ export function read_code(root: string, tsconfig = join(root, "tsconfig.json")):
     const mod: Mod = { path: rel(root, file.getFilePath()), steps: steps_at(root, file),
                        lines: file.getEndLineNumber(), parts: parts_of(root, file), defs: [],
                        types: [], imports: imports_of(root, file, scoped, pkg_of),
-                       calls: calls_of(root, file, scoped, pkg_of),
+                       calls: calls_of(root, file, scoped),
                        ...(barrel(file) || wired.includes(file) ? { entry: true } : {}),
                        ...said(module_doc(file)) };
     for (const decl of file.getInterfaces()) mod.defs.push(def_of(root, decl, "interface", ids));
@@ -187,14 +187,16 @@ function src_of(root: string, dir: string): string {
 function imports_of(root: string, file: SourceFile, scoped: Set<string>,
                     pkg_of: (f: SourceFile) => string | undefined): Import[] {
   const read = new Map<string, string[]>();
-  const add = (to: SourceFile | undefined, name?: string) => {
+  const typed = new Set<string>();
+  const add = (to: SourceFile | undefined, name?: string, type = false) => {
     if (!to || to === file || !scoped.has(to.getFilePath()) || pkg_of(to) !== pkg_of(file)) return;
     const path = rel(root, to.getFilePath());
     read.set(path, [...(read.get(path) ?? []), ...(name ? [name] : [])]);
+    if (name && type) typed.add(`${path}#${name}`);
   };
   const each = (names: Node[], fallback: SourceFile | undefined) => {
     if (!names.length) add(fallback);
-    for (const n of names) add(declared_in(n) ?? fallback, n.getText());
+    for (const n of names) add(declared_in(n) ?? fallback, n.getText(), type_only(n));
   };
   for (const d of file.getImportDeclarations()) {
     const names: Node[] = d.getNamedImports().map((n) => n.getNameNode());
@@ -219,14 +221,24 @@ function imports_of(root: string, file: SourceFile, scoped: Set<string>,
   }
   return [...read].map(([path, names]) => {
     const kept = [...new Set(names)];
-    return { path, symbols: Math.max(kept.length, 1), names: kept };
+    return { path, symbols: Math.max(kept.length, 1), names: kept,
+             types: kept.filter((n) => typed.has(`${path}#${n}`)) };
   });
 }
 
-/** The calls a file makes into other modules of its package, in source order, each by the name
+/** Whether a name reads only a type — an interface or a type alias — so importing it uses the
+ *  vocabulary rather than depending on what the module does. */
+function type_only(name: Node): boolean {
+  let symbol = name.getSymbol();
+  if (symbol?.isAlias()) symbol = symbol.getAliasedSymbol();
+  const decls = symbol?.getDeclarations() ?? [];
+  return decls.length > 0 && decls.every((d) => Node.isInterfaceDeclaration(d)
+    || Node.isTypeAliasDeclaration(d));
+}
+
+/** The calls a file makes into other modules of the project, in source order, each by the name
  *  its callee resolves to: a call, a `new`, a JSX element. */
-function calls_of(root: string, file: SourceFile, scoped: Set<string>,
-                  pkg_of: (f: SourceFile) => string | undefined): Call[] {
+function calls_of(root: string, file: SourceFile, scoped: Set<string>): Call[] {
   const out: Call[] = [];
   file.forEachDescendant((n) => {
     const callee = Node.isCallExpression(n) || Node.isNewExpression(n) ? n.getExpression()
@@ -236,7 +248,7 @@ function calls_of(root: string, file: SourceFile, scoped: Set<string>,
     const name = Node.isPropertyAccessExpression(callee) ? callee.getNameNode() : callee;
     if (!Node.isIdentifier(name)) return;
     const to = declared_in(name);
-    if (!to || to === file || !scoped.has(to.getFilePath()) || pkg_of(to) !== pkg_of(file)) return;
+    if (!to || to === file || !scoped.has(to.getFilePath())) return;
     out.push({ from: caller_of(n), to: rel(root, to.getFilePath()), name: name.getText(),
                at: n.getStart() });
   });

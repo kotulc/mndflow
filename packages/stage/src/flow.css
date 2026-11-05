@@ -482,6 +482,10 @@
   color: var(--text);
   pointer-events: none;
 }
+/* **Where a walk starts** (`walks`): a block owning a path wears a small ▶ in the accent before
+   its name, on a chip and a card alike. */
+.mnd-chip.walks .mnd-chip-name::before,
+.walks .card-name::before { content: "▶\00a0"; color: var(--accent); font-size: 0.8em; }
 /* The name keeps clear of the icon; the kind beside it only where it fits whole and clear of the
    icon, else on a row of its own. */
 .mnd-chip-name {
@@ -548,7 +552,8 @@
   transform: rotate(180deg);
 }
 .mnd-chip.upright .mnd-chip-icon { right: auto; left: 6px; transform: rotate(-90deg); }
-.mnd-chip.upright .mnd-chip-body { top: 6px; left: var(--head, 40px); }
+.mnd-chip.upright .mnd-chip-body,
+.mnd-chip.upright .mnd-chip-stack { top: 6px; left: var(--head, 40px); }
 /* **A diagram's chip looks as a library chip does**: flat tiles on the chip's own ground, its edge
    in its colour; what kind it is shows in how its inside is drawn — its layers, wide gaps between
    them and narrow ones within, its marks, a grid's strips and lines, a card's rules. */
@@ -1012,8 +1017,8 @@
   box-shadow: var(--pick-ring) !important;
 }
 
-/* **A path lit** (stage `path.ts`): a card whose behaviours travel the layer, hovered or picked,
-   lights the cards and lines on its path; other cards and lines dim, keeping their colour. */
+/* **Hops lit** (stage `path.ts`): a card hovered or picked lights what reaches it and what it
+   reaches, a hop each way, or the step walked; other cards and lines dim, keeping their colour. */
 .stage.pathing :is(.react-flow__node-card, .react-flow__node-note, .react-flow__node-chip,
                   .react-flow__node-box),
 .stage.pathing .react-flow__edge, .stage.pathing .mnd-wire-name, .stage.pathing .mnd-wire-end {
@@ -1021,13 +1026,11 @@
   transition: opacity 120ms;
 }
 
-/* **A path traced across a map** (stage `Traced.tsx`): thin legs in the accent, a little
-   translucent, held at a steady width on screen, so the quiet chips under them still read; each
-   block on it numbered by a small tag in its lower right corner. A leg's calls show on hover of
-   its wider, unseen stroke. */
+/* **Hops traced across a map** (stage `Traced.tsx`): thin legs in the accent, a little
+   translucent, held at a steady width on screen, so the quiet chips under them still read; the
+   legs under the chips, never numbered. What crosses a leg shows on hover of its wider, unseen
+   stroke. */
 .mnd-trace { pointer-events: none; }
-/* Over the chips, so the numbers and legs read on them. */
-.react-flow__viewport-portal:has(> .mnd-trace) { z-index: 1001; }
 .mnd-trace polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .mnd-trace .run {
   stroke: var(--accent);
@@ -1041,19 +1044,14 @@
 }
 .mnd-trace-leg:hover .run { opacity: 1; stroke-width: calc(2px / var(--zoom, 1)); }
 .mnd-trace marker path { fill: var(--accent); opacity: 0.85; }
-.mnd-trace-mark {
-  position: absolute;
-  transform: translate(-100%, -100%) scale(calc(1 / var(--zoom, 1)));
-  transform-origin: bottom right;
-  min-width: 13px;
-  padding: 0 3px;
-  box-sizing: border-box;
-  border-radius: 3px 0 2px 0;
-  background: color-mix(in oklch, var(--accent) 80%, transparent);
-  color: var(--bg);
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 13px;
-  text-align: center;
-  pointer-events: none;
-}
+/* **Walking a path** (stage `Walk.tsx`): one quiet strip at the canvas's foot, centred, saying
+   the step in words. */
+.mnd-walk { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 5;
+            display: flex; align-items: center; gap: 4px; max-width: calc(100% - 32px);
+            padding: 2px 4px; border: 1px solid var(--divider); border-radius: 3px;
+            background: var(--surface); color: var(--text); font-size: 12px; }
+.mnd-walk span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mnd-walk button { border: 0; background: none; color: var(--text); cursor: pointer;
+                   padding: 2px 6px; font: inherit; }
+.mnd-walk button:disabled { color: var(--faint); cursor: default; }
+.mnd-walk button:not(:disabled):hover { color: var(--accent); }

@@ -19,8 +19,9 @@ import { children, definition_uses, diagram_kind, has_lifelines, is_aside, is_gr
          is_notation,
          is_reference,
          is_region, is_tie, inline, lattice_of, layer_of, members_of, lens_of, notation_of,
-         on_side, owner_of, packages, path, region_of, shown_name, stands_for, type Graph,
-         type Id } from "@mnd/core";
+         on_side, only_behaviour, owner_of, packages, path, region_of, shown_name, stands_for,
+         type Graph,
+         hops_of, path_of, type Id } from "@mnd/core";
 import { colour_of, kind_of, preview_of, type Preview } from "./about";
 import { any_fact, counted, fact, facts_of, total, type Counted, type Facts,
          type Groups } from "./facts";
@@ -29,7 +30,7 @@ import { compounded, tree_groups } from "./flow";
 import { box_label, box_place, filed, name_of, registry_map, usage_groups,
          type LocatedUse, type Tile } from "./library";
 import { look_of, tint_attrs } from "./look";
-import { cell, type Area, type BoxNode, type InnerTile, type Scene } from "./scene";
+import { box_of, cell, type Area, type BoxNode, type InnerTile, type Scene } from "./scene";
 import { SHAPE } from "./size";
 
 /** The area every map is drawn in. */
@@ -89,6 +90,21 @@ const CELL = 1.5;
 /** The least a chip weighs, so one holding, used or showing little still shows its icon. */
 const LEAST = 2.5;
 
+/** **What a block's joins weigh** (2026-11-04): a chip weighs what it holds and, beside it, the
+ *  root of the names said across its hops, so a block much called or calling much is never laid a
+ *  sliver for holding little. */
+function joins_weight(graph: Graph, id: Id): number {
+  return Math.sqrt(hops_of(graph, id).reduce((n, h) => n + Math.max(1, h.names.length), 0));
+}
+
+/** **What never folds**: every block owning a path a reader may walk (`walks`), and each block a
+ *  hop from one, since a walk steps onto it. */
+function kept_open(graph: Graph): Set<Id> {
+  const walks = Object.keys(graph.blocks).filter((id) => path_of(graph, id).length);
+  return new Set([...walks, ...walks.flatMap((w) => hops_of(graph, w)
+    .map((h) => (h.from === w ? h.to : h.from)))]);
+}
+
 /** The least share of its heaviest sibling an empty model's chip weighs, so beside a large one it
  *  still has room for its name and icon. */
 const EMPTY = 0.04;
@@ -136,11 +152,13 @@ export function layer_map(graph: Graph, layer: Id): Scene {
 function entries(graph: Graph) {
   const held = (id: Id) => members(graph, id);
   const diagram = (id: Id) => !!lens_of(graph, id, "structure");
-  /** **A reference never boxes**: it stands for a block drawn elsewhere, so it is a tile. */
+  /** **A reference never boxes**: it stands for a block drawn elsewhere, so it is a tile. **Nor
+   *  does a behaviour**: it is its block's method, so a block whose only diagrams are its
+   *  behaviours is one chip, previewing its first (`seen_as`). */
   const deep = new Map<Id, boolean>();
   const holds_diagrams = (id: Id): boolean => {
     if (!deep.has(id)) {
-      deep.set(id, held(id).some((c) => !is_reference(graph, c)
+      deep.set(id, held(id).some((c) => !is_reference(graph, c) && !is_behaviour(graph, c)
         && (diagram(c) || holds_diagrams(c))));
     }
     return deep.get(id)!;
@@ -152,7 +170,7 @@ function entries(graph: Graph) {
     const kind = kind_of(graph, block);
     const counts = counted(graph, list);
     const preview = list.length ? null : preview_of(graph, block);
-    return { id, value: Math.max(LEAST, list.length ? 1 + total(counts) : 1),
+    return { id, value: Math.max(LEAST, list.length ? 1 + total(counts) : 1) + joins_weight(graph, block),
              rows: rows_of(preview),
              ...(!list.length && is_model(graph, block) ? { empty: true } : {}),
              chip: { block, held: list, preview, counts,
@@ -166,10 +184,12 @@ function entries(graph: Graph) {
     ? { id, kids: compounded(tree_groups(graph, inline(graph, id) ? layer_of(graph, id) : id),
                              held(id).map(entry), panel) }
     : chip(id, ...seen_as(id)));
-  /** **A reference is a chip of what it stands for**: its face, what it holds and its colour. */
+  /** **A reference is a chip of what it stands for**: its face, what it holds and its colour; a
+   *  block holding only behaviours, of its first, under its own name. */
   const seen_as = (id: Id): [Id, Id[]] => {
     const at = is_reference(graph, id) ? stands_for(graph, id)?.id ?? id : id;
-    return [at, held(at)];
+    const own = only_behaviour(graph, at);
+    return own && diagram(own) ? [own, held(own)] : [at, held(at)];
   };
   return { entry, held, panel };
 }
@@ -274,8 +294,9 @@ export function holds_parts(graph: Graph, id: Id): boolean {
 function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
   let top = merged(tree);
   let laid = laid_out(graph, top);
+  const open = kept_open(graph);
   for (let i = 0; i < FOLDS; i++) {
-    const next = folded(top, laid);
+    const next = folded(top, laid, open);
     if (next === top) break;
     top = next;
     laid = laid_out(graph, top);
@@ -300,9 +321,10 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
       gone.add(n);
       continue;
     }
-    const rank = majors.has(id) ? ["major" as const]
+    const rank = [...(majors.has(id) ? ["major" as const]
       : (in_model(graph, id) && !above(n)) || n.ancestors().some((a) => majors.has(a.data.id))
-        ? ["minor" as const] : [];
+        ? ["minor" as const] : []), ...(graph.blocks[id] && path_of(graph, id).length
+      ? ["walks" as const] : [])];
     /** A *+n more* is no area of its own: its hover card lists what it folds. */
     if (n.data.more) {
       nodes.push({ ...cell(id, box, { label: `+${n.data.more.length} more`, marks: rank,
@@ -425,8 +447,8 @@ function laid_out(graph: Graph, tree: Leaf): Tiled<Leaf> {
 /** **Legible or summarised**: the tree with each box's chips and boxes laid too small to read
  *  (`SLIM`) folded into one last chip, *+n more*, which its hover card lists; the same tree where
  *  none folds. One alone never folds — it would take as much room as it frees — nor the heaviest
- *  in a box, so a box always shows something of its own. */
-function folded(tree: Leaf, laid: Tiled<Leaf>): Leaf {
+ *  in a box, so a box always shows something of its own, nor what a walk steps onto (`open`). */
+function folded(tree: Leaf, laid: Tiled<Leaf>, open: Set<Id>): Leaf {
   const heaviest = new Set(laid.descendants().flatMap((n) => {
     const real = (n.children ?? []).filter((c) => !c.data.more);
     return real.length ? [real.reduce((a, b) => ((b.value ?? 0) > (a.value ?? 0) ? b : a)).data]
@@ -435,7 +457,7 @@ function folded(tree: Leaf, laid: Tiled<Leaf>): Leaf {
   const slim = new Set(laid.descendants().filter((n) => {
     const [w, h] = [n.x1 - n.x0, n.y1 - n.y0];
     return n.depth > 0 && !n.data.more && !n.data.panel && !heaviest.has(n.data)
-      && ((w < SLIM.w && h > w) || h < SLIM.h);
+      && !open.has(n.data.chip?.block ?? n.data.id) && ((w < SLIM.w && h > w) || h < SLIM.h);
   }).map((n) => n.data));
   if (!slim.size) return tree;
   let changed = false;
@@ -1045,20 +1067,6 @@ export function chip_for(graph: Graph, id: Id, scene: Scene): { chip: BoxNode; l
   return room ? { chip: room, lit: ends } : null;
 }
 
-/** One box of a where-it-lives picture, in its pixels: a box, chip or block of its compact tree.
- *  `holds` where its name heads what it holds; `on` on the path to the element, `room` where the
- *  element sits, `lit` the element. */
-export type WhereBox = { id: Id; label: string; x: number; y: number; w: number; h: number;
-                         holds?: boolean; chip?: boolean; on?: boolean; room?: boolean;
-                         lit?: boolean };
-type WhereRect = { x: number; y: number; w: number; h: number };
-
-/** The picture's air: a name's line over what a box holds, the gap round and between blocks. */
-const WHERE = { title: 12, gap: 2 };
-
-/** One entry of the compact tree: an area, or a tile of a room, weighing its room on the map. */
-type Twig = { id: Id; label: string; weight: number; chip: boolean; kids: Twig[] };
-
 /** A map read once for a picture: each area's children, and each chip's blocks as it tiles them
  *  (its top tiles, no structure). */
 type Read = { by: Map<Id, Area>; kids: (id: Id) => Area[]; tiles: (id: Id) => readonly InnerTile[] };
@@ -1071,120 +1079,59 @@ function read(scene: Scene): Read {
            tiles: (id) => (nodes.get(id)?.data.tiles ?? []).filter((t) => !t.as && !t.in) };
 }
 
-/** **Where an element lives**, off its map (`scene`), laid to fill `size`: the whole map as a
- *  compact tree from its top — its first level that branches, a level of one box passed through —
- *  every box and chip outlined, the element's room (the box or chip it sits in) opened to its own
- *  blocks, the element lit. **The path is given room**: the major block holding the element takes
- *  at least `SWELL.major` of the picture and the room at least `SWELL.room` of that block, so the
- *  element reads on a busy map while the rest keeps its shape. A line lights both its ends. With
- *  no element (`id` null, or the workspace), the whole map from `from`, as it weighs. */
-export function where_map(graph: Graph, id: Id | null, scene: Scene,
-                          size: { w: number; h: number }, from: Id = MAP_ROOT): WhereBox[] {
-  const whole = { x: 0, y: 0, ...size };
-  const map = read(scene);
-  let top = map.by.get(from);
-  for (let k = top ? map.kids(top.id) : []; k.length === 1 && !k[0]!.chip; k = map.kids(top!.id)) {
-    top = k[0];
-  }
-  if (!top || size.w < 40 || size.h < 40) return [];
+/** One box of a mini map, in its pixels: a box or a chip as the map lays it. `holds` where its
+ *  name heads what it holds; `on` on the way to what is lit; `lit` the element. */
+export type WhereBox = { id: Id; label: string; x: number; y: number; w: number; h: number;
+                         holds?: boolean; chip?: boolean; on?: boolean; lit?: boolean };
 
-  /** What it lights: the element, or a line's two ends, each where the map draws it. */
+/** **A mini map**: the map itself, every box and chip where it lays them, scaled to `size.w` —
+ *  never laid again, so it reads as the map does — and `h` tall: the map's own height, or
+ *  `size.h` where that is less, the window then centred on what is lit: the element, or the
+ *  nearest block above it the map draws, a line both its ends. From `from`, a package's own region. Empty where the map draws
+ *  none of it. */
+export function mini_map(graph: Graph, id: Id | null, scene: Scene, size: { w: number; h: number },
+                         from: Id = MAP_ROOT): Mini {
+  const map = read(scene);
+  const top = map.by.get(from);
+  const none = { boxes: [], h: 0 };
+  if (!top || size.w < 40 || size.h < 40) return none;
+  const k = size.w / top.w;
+  const h = Math.min(top.h * k, size.h);
+
+  /** What it lights: the element, or a line's two ends, where drawn. */
   const e = id === null ? undefined : graph.edges[id];
   const ends = e ? [e.from, e.to].map((x) => owner_of(graph, x) ?? x)
     : id === null || id === graph.root ? [] : [id];
-  const seen = ends.map((t) => drawn_at(graph, t, map)).filter((x) => x !== null);
-  if (!ends.length) return compact(twig(map, top, []), whole);
-  if (!seen.length) return [];
+  const seen = ends.map((t) => drawn_at(graph, t, map)?.id).filter((x): x is Id => !!x);
+  if (ends.length && !seen.length) return none;
+  const lit = new Set(seen);
+  const on = new Set<Id>();
+  for (const l of lit) for (let a = map.by.get(l); a?.parent; a = map.by.get(a.parent)) on.add(a.parent);
 
-  /** Each room's path under the top — none where the top was passed below it — and the major
-   *  block: the second box down shared by every path, else the first. */
-  const rooms = seen.map((x) => x.room);
-  const down = (room: Id): Area[] => {
-    const up: Area[] = [];
-    for (let a = map.by.get(room); a; a = a.parent ? map.by.get(a.parent) : undefined) {
-      if (a.id === top!.id) return up;
-      up.unshift(a);
-    }
-    return [];
+  const inside = (b: { x: number; y: number; w: number; h: number }) => b.x >= top.x
+    && b.y >= top.y && b.x + b.w <= top.x + top.w && b.y + b.h <= top.y + top.h;
+  /** The window: centred on what is lit, held within the map. */
+  const focus = scene.nodes.filter((n) => lit.has(n.id)).map(box_of);
+  const y0 = focus.length ? Math.min(...focus.map((b) => b.y)) : top.y;
+  const y1 = focus.length ? Math.max(...focus.map((b) => b.y + b.h)) : top.y;
+  const mid = Math.min(Math.max((y0 + y1) / 2 - h / k / 2, top.y), top.y + top.h - h / k);
+  const at = (p: { x: number; y: number }) => ({ x: (p.x - top.x) * k, y: (p.y - mid) * k });
+
+  const boxes = scene.nodes.filter((n) => n.id !== from && inside(box_of(n))).map((n) => {
+    const b = box_of(n);
+    const p = at(b);
+    return { id: n.id, label: n.data.label, ...p, w: b.w * k, h: b.h * k,
+             ...(n.type === "chip" ? { chip: true } : { holds: true }),
+             ...(lit.has(n.id) ? { lit: true } : on.has(n.id) ? { on: true } : {}) };
+  });
+  return {
+    boxes: boxes.filter((b) => b.y < h && b.y + b.h > 0),
+    h,
   };
-  const paths = rooms.map(down);
-  const shared = paths[0]!.filter((a, i) => paths.every((p) => p[i]?.id === a.id));
-  const major = shared[1] ?? shared[0];
-  const lit = seen.map((x) => x.id);
-  const on = new Set([...paths.flat().map((a) => a.id), ...lit]);
-  let tree = twig(map, top, rooms);
-  if (major) {
-    tree = swell(tree, major.id, SWELL.major);
-    for (const room of rooms.filter((r) => r !== major.id)) {
-      tree = within(tree, major.id, (m) => swell(m, room, SWELL.room / rooms.length));
-    }
-  }
-  return compact(tree, whole, rooms, lit, on);
 }
 
-/** The least share of the picture the major block holding the element takes, and of that block
- *  the room it sits in. */
-const SWELL = { major: 0.45, room: 0.5 };
-
-/** All the weight under a twig. */
-function weighs(t: Twig): number {
-  return t.kids.length ? t.kids.reduce((n, k) => n + weighs(k), 0) : t.weight;
-}
-
-/** The twig `id` under `t`. */
-function find(t: Twig, id: Id): Twig | undefined {
-  return t.id === id ? t : t.kids.map((k) => find(k, id)).find((x) => !!x);
-}
-
-/** The twig `id` under `t`, changed by `to`. */
-function within(t: Twig, id: Id, to: (t: Twig) => Twig): Twig {
-  return t.id === id ? to(t) : { ...t, kids: t.kids.map((k) => within(k, id, to)) };
-}
-
-/** **`id` grown to at least `share` of `t`**: every weight under it scaled alike, so its own
- *  shape holds; never shrunk. */
-function swell(t: Twig, id: Id, share: number): Twig {
-  const at = find(t, id);
-  const inner = at ? weighs(at) : 0;
-  const rest = weighs(t) - inner;
-  const k = inner && rest ? Math.max(1, (share / (1 - share)) * (rest / inner)) : 1;
-  const scaled = (x: Twig): Twig => (x.kids.length ? { ...x, kids: x.kids.map(scaled) }
-    : { ...x, weight: x.weight * k });
-  return k === 1 ? t : within(t, id, scaled);
-}
-
-/** An area as a leaf of the compact tree, weighing the square root of its room on the map, so a
- *  small block keeps some room beside a large one. */
-function leaf(a: Area): Twig {
-  return { id: a.id, label: a.label, weight: Math.sqrt(a.w * a.h), chip: a.chip, kids: [] };
-}
-
-/** An area and all it holds on the map, each room opened: a chip's blocks as it tiles them, each
- *  weighing its share of the chip. */
-function twig(map: Read, a: Area, rooms: readonly Id[]): Twig {
-  if (a.chip && rooms.includes(a.id)) {
-    return { ...leaf(a), kids: map.tiles(a.id).map((t) => ({
-      id: t.id, label: t.label, chip: false, kids: [], weight: Math.sqrt(t.w * t.h * a.w * a.h) })) };
-  }
-  return { ...leaf(a), kids: a.chip ? [] : map.kids(a.id).map((c) => twig(map, c, rooms)) };
-}
-
-/** **A compact tree** of `tree` filling `r`: a nested treemap, a name's line over what each box
- *  holds; the path, the rooms and the lit marked. The map's own root draws no box. */
-function compact(tree: Twig, r: WhereRect, rooms: readonly Id[] = [], lit: readonly Id[] = [],
-                 on: ReadonlySet<Id> = new Set()): WhereBox[] {
-  const root = hierarchy<Twig>(tree, (n) => (n.kids.length ? n.kids : undefined))
-    .sum((n) => (n.kids.length ? 0 : n.weight));
-  const laid = treemap<Twig>().tile(treemapSquarify.ratio(1)).size([r.w, r.h]).round(true)
-    .paddingInner(WHERE.gap).paddingOuter(WHERE.gap)
-    .paddingTop((n) => (n.children ? WHERE.title : WHERE.gap))(root);
-  return laid.descendants().filter((n) => n.data.id !== MAP_ROOT)
-    .map((n) => ({
-      id: n.data.id, label: n.data.label, x: r.x + n.x0, y: r.y + n.y0, w: n.x1 - n.x0,
-      h: n.y1 - n.y0, ...(n.children ? { holds: true } : {}), ...(n.data.chip ? { chip: true } : {}),
-      ...(on.has(n.data.id) ? { on: true } : {}), ...(rooms.includes(n.data.id) ? { room: true } : {}),
-      ...(lit.includes(n.data.id) ? { lit: true } : {}) }));
-}
+/** A mini map: its boxes, in its pixels; its height. */
+export type Mini = { boxes: WhereBox[]; h: number };
 
 /** **Where the map draws a block**: its own area, its room the area holding it; else the tile
  *  standing for it — its own, or the nearest block above it — in the deepest chip holding one,

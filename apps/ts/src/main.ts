@@ -6,7 +6,7 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { read_code, type Code } from "./read";
 import { report } from "./report";
-import { SETTINGS, structure_of, type Shape } from "./structure";
+import { SETTINGS, structure_of, type Levels, type Shape } from "./structure";
 import { files_of, write_all } from "./write";
 
 const USAGE = "usage: mnd-ts <project> [folder] [--tsconfig path] [--components n]";
@@ -28,12 +28,12 @@ function main(argv: string[]): void {
   const code = read_code(root, tsconfig ? resolve(tsconfig) : undefined);
   const { shapes, system } = structure_of(code, { ...SETTINGS, budget, most: budget + 2 });
   console.log(report(code, shapes, system).join("\n"));
-  if (folder) write_to(resolve(folder), code, shapes);
+  if (folder) write_to(resolve(folder), code, shapes, system);
 }
 
 /** The source folder written; only a folder this translator wrote for the same project is
  *  cleared. */
-function write_to(out: string, code: Code, shapes: Shape[]): void {
+function write_to(out: string, code: Code, shapes: Shape[], system: Levels): void {
   if (existsSync(out)) {
     const kept = join(out, "package.json");
     const id = existsSync(kept) ? (JSON.parse(readFileSync(kept, "utf8")) as { id?: string }).id
@@ -44,7 +44,7 @@ function write_to(out: string, code: Code, shapes: Shape[]): void {
     }
     rmSync(out, { recursive: true });
   }
-  const files = files_of(code, shapes);
+  const files = files_of(code, shapes, system);
   write_all(out, files);
   const mods = code.packages.flatMap((p) => p.modules);
   console.error(`  ${code.packages.length} packages, ${mods.length} modules, ${files.size} files`);

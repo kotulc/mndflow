@@ -1,4 +1,5 @@
 export { Stage, lit_rules, type Entry, type Move, type StageProps } from "./Stage";
+export { type Walking } from "./Walk";
 export { Crumbs, type CrumbsProps } from "./Crumbs";
 export { Legend, type Corner, type LegendProps } from "./Legend";
 export { FlowView, type Adjust, type FlowViewProps, type Gesture } from "./Flow";

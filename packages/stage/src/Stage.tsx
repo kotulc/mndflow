@@ -16,6 +16,7 @@ import { area_under, boxed_place, box_of, clear_of, holds, swept_cells, towards,
 import { Crumbs } from "./Crumbs";
 import { Hover } from "./Hover";
 import { path_rules, usePath } from "./path";
+import { Walk, type Walking } from "./Walk";
 
 export type { Adjust, Landing, Move };
 
@@ -23,6 +24,8 @@ export type StageProps = {
   scene: Scene;
   graph: Graph;
   picked: readonly string[];
+  /** A path offered or walked from the block picked: one hop lit a step. */
+  walk?: Walking | null;
   onAct: Act;
   /** The writes one canvas adjustment comes to, for the host to run as one step. */
   onAdjust?: (moves: readonly Move[]) => void;
@@ -199,7 +202,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
                        menu, said, onSaid, head, empty, lattice, frame, legend, corner, module,
                        dir, type, lit = [], touched = [], scroll = false, focus = null, most = null,
                        entered = false, stop = null, opened = 0,
-                       keys = true, editable = true }: StageProps) {
+                       keys = true, editable = true, walk = null }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
                     ...(type ? { type } : {}) };
@@ -212,8 +215,10 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   useEffect(() => set_typing(null), [scene.layer]);
   /** The stage itself, which a map's hover card watches. */
   const host = useRef<HTMLElement>(null);
-  /** What the card hovered or picked travels, lit over the rest dimmed. */
-  const path = usePath(host, graph, scene, picked);
+  /** What the card hovered or picked reaches a hop each way, or the step walked, lit over the
+   *  rest dimmed. */
+  const path = usePath(host, graph, scene, picked,
+                       walk && walk.at !== null ? walk.steps[walk.at] ?? null : null);
   /** A place's box among a definition's uses lights with its place. */
   const stands_for = useCallback((id: string) => boxed_place(graph, id), [graph]);
   const [at, set_at] = useState<
@@ -405,6 +410,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   return (
     <section className={path ? "stage pathing" : "stage"} ref={host}>
       <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
+      {walk ? <Walk walk={walk} /> : null}
       {empty ? <p className="empty">{empty}</p> : null}
       {/* **A map lights only what is picked**: a chip, a box or a tile. A layer also lights what
           is hovered, other appearances and what the selection touches. */}

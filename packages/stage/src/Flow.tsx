@@ -330,7 +330,8 @@ function Canvas(props: FlowViewProps) {
         </ViewportPortal>
       ) : null}
       {/* A path traced across a map. */}
-      {trace ? <ViewportPortal><Traced trace={trace} /></ViewportPortal> : null}
+      {trace ? <ViewportPortal><Traced trace={trace} /></ViewportPortal>
+        : null}
       {/* The ends of what is picked, and the berths near it. */}
       <Grips scene={scene} picked={picked} frame={frame} at={at}
              onAdjust={onAdjust} onGesture={onGesture} />

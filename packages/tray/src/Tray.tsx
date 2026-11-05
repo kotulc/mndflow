@@ -274,8 +274,7 @@ export function Tray(props: TrayProps) {
     >
       {shows === "json" ? <Json graph={graph} id={about} /> : null}
       {shows === "overview" ? (
-        <Overview key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})}
-                  {...(props.lists ? { lists: props.lists } : {})} />
+        <Overview key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})}                  {...(props.lists ? { lists: props.lists } : {})} />
       ) : null}
       {/* What it is: a card's keys, a line's keys and ends, an entry's. Edits come second, here:
           declaring and answering attributes, and a port put on its wall. */}

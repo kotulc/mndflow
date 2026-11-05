@@ -105,6 +105,8 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "label"
                  | "major"
                  /** Inside a major part on the map: drawn quieter. */
                  | "minor"
+                 /** It owns a path a reader may walk: marked where a walk starts. */
+                 | "walks"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "upright" | "merged"
                  /** An opened grid, standing in for the room. */

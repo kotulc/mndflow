@@ -5,7 +5,16 @@
 
 ## Next session
 
-**Start here: the user reads the paths traced on the map** (flow-plan.md stage 7, built 2026-11-02). Next for the translator: **calls across packages**, so a path tells the system's story, not one package's (`read.ts` `calls_of` records calls within a package only). Steps a–c here are built (*Built 2026-11-02, second pass*); d–f decided below. Delete this plan when the second translator ships.
+**2026-11-04: telling the story from the entry points.** One tree, one order: the explorer, the map and an entered diagram read the same children in the same order (*Decided* rows 16–18); a system path from each package nothing uses (row 19); every block lights one hop each way, and a path is walked a hop at a time from a block marked ▶ (*Directions* rows 13–14).
+
+| # | Remaining | Notes |
+|---|---|---|
+| 1 | **clusters that rank** | condensing (*Decided* row 21) leaves core as `block` (28 modules, its six parts one cycle inside) beside `boot`, and tray's `Lists` 22 of 32: the clustering finds cohesive groups that call each other round. Leaning: among the resolutions, prefer the split whose components rank (fewest modules in a cycle) before the cleanest, so a cycle is cut where it is weakest rather than wrapped |
+| 2 | **views over budget** | with types out of the edges views comes to 10 components, one over `most` |
+| 3 | **a component face listing its modules as rows** | *Decided* row 13 |
+| 4 | **vocabulary gaps** | enums and aliases as library types; a name said in two packages linked; methods |
+| 5 | **open directions** | rows 1–3, 5, 6, 8: edge weights, clustering package, component kinds, vocabulary ranking by *used by*, writing the workspace, what the agent layer needs |
+| 6 | **acceptance** | every diagram readable at fit, judged by the user and `mnd measure` |
 
 | # | Step | State |
 |---|---|---|
@@ -17,7 +26,10 @@
 | f | **a reference breakdown** (*Directions* row 7) | **set aside 2026-11-02**: the user's reading of the models leads instead |
 
 - **the user's direction** (2026-11-02): a deterministic structure found from the graph (imports, interfaces, cycles, centrality), not agentic band-aids; **no hard rules** about what a block is; **thresholds are defaults with floors**; **balance depth against the big picture**; diagrams are visual information, never lists of parts; agents refine and narrate on top
-- **uncommitted**: everything in *Built* and flow-plan.md *Built*; suggested message in flow-plan.md *Next session*. `samples/code*` and `samples/mndsite*` are generated and gitignored
+- **uncommitted**: everything in *Built*, and the entry paths work (traced paths on the map and mini map, one map layout for treemap diagrams, an entry drawn as one chip, paths fanned out, a compact mini map). `samples/code*` and `samples/mndsite*` are generated and gitignored
+- **regenerate**: `npm run code` (this repo → `samples/code.json`); mndsite by hand: `cd apps/ts && npx vite-node src/main.ts ../../../mndsite ../../samples/mndsite`, then `npm run start -s -w @mnd/cli -- collect ../../samples/mndsite ../../samples/mndsite.json --workspace`; `check` each. `npm run packages` after any `ts` kind change
+- **measure**: `npm run start -s -w @mnd/cli -- measure ../../samples/<name>.json [layer]`; entered diagrams only, not the map
+- **see it**: a Playwright script (Edge, `channel: "msedge"`) starting Vite from `apps/web/vite.config.ts`, routing `**/mndflow.yaml` to `workspace: /samples/<name>.json` (`tray: open`); enter, hover or pick a node by id (`.react-flow__node[data-id="…"]`), never by text, which matches chips inside. Run from the repo root; in Git Bash set `MSYS_NO_PATHCONV=1`
 - **found in review, not this plan's code** (2026-11-01 reference work, uncommitted): an ambiguous bare attribute type is made as text with no note (core `sources.ts` `type_of`); a folder path inside the reader's own package (`Records.Order`) is not found by `def_hits` for `type:` though it is for `of:` (core `refs.ts`); the door allows one name in two folders (`door.ts` `named_defs`) while rename and create refuse it (`name_taken`), pending the user's word; `wanted` loads a catalogue package for any dotted word whose first step names one, ports and relation ends included (core `sources.ts`); the CLI re-reads the catalogue index once a head (cli `main.ts` `listed_names`)
 - **packages**: graphology, `graphology-communities-louvain`, `-components`, `-dag`, `-metrics` (modularity, PageRank) in apps/ts
 
@@ -50,6 +62,12 @@
 | 13 | **a module shows in its component, unless it matters** | 2026-11-02: by default a module is a row in its component's card; it is a block of its own where it is salient (a hub, an entry point, much imported) or is its component's only module |
 | 14 | **what tests a translator** | 2026-11-02: the user reading the translated models, across projects, is the final test. Projects: **this repo**, then **mndsite** (Next.js, JS/JSX, one package, folders by role). Scores (*Strategy* stage 9) guide; they never decide. Component ids are minted from an anchor (a folder, or the most central module), never from the member list, so re-translating keeps them |
 | 15 | **one model, named by what was read** | 2026-11-02: under the package root, one model named for what the translator read: the folder every module sits in (`src`), else `code`; never the project's name again. Its packages sit in their groups' folders inside it, with the lines between them; a project of one package is that model (`mndsite › code`) |
+| 16 | **no bands; order and tags** | 2026-11-04: entry points, components and shared modules are no longer regions (the map drew them as boxes, the explorer never listed them). A package lists them in reading order — entry, components by level, shared — the first tagged `ts.entry`, the last `ts.shared` (the `ts` package's tags) |
+| 17 | **order is written by the parent's list** | 2026-11-04: a part written as its own file is placed where its parent file's list names it (design.md *Diagram files*); the translator lists every component and entry so |
+| 18 | **packages by level, not by disk folder** | 2026-11-04: the model holds its packages directly, entries first, `layered`, with the lines between them; a package's disk folder stays only as `source`. Supersedes row 15's group folders |
+| 19 | **the system starts at what nothing uses** | 2026-11-04: a package no other package uses is where the system starts; its top modules (importing others of it, imported by none) are its entries, and their paths go on across packages, a lifeline per block reached anywhere (`code.views.map`). Paths walk **wide before deep** — what the entry calls, then what those call — and never step into a shared module, whose calls are implied as its lines are |
+| 20 | **a type read is no dependency** | 2026-11-04: an import of interfaces and type aliases only uses the vocabulary (a definition of its own), so it weighs nothing in the module graph and draws no line; dependency lines name only the values read. It broke no cycle in this repo: core's and tray's are value cycles |
+| 21 | **a cycle is one unit** | 2026-11-04: components importing each other round become one component holding them, a level down; entered, it shows the cycle among its parts |
 
 **Superseded** from 2026-11-01: every top-level declaration as a block and every declared type as a definition (rows 6, 8); each module a diagram on its package's layer (row 7).
 
@@ -91,6 +109,8 @@
 | 10 | **the system view** | settled by *Decided* row 15: the model holds the packages and their lines |
 | 11 | **what is primary reads first** | primary blocks stand out (a heavier border), their contents quieter; more space between major parts than within one · salience (stage 6) says which are primary; the look is design-plan's |
 | 12 | **flows central** | each entry point shows a flow of data and how it meets the primary parts; the major paths are the first thing read · paths from a call graph, entry to foundation, weighted by what crosses; drawn as a walkthrough's first steps |
+| 13 | **a path held in frame** | settled 2026-11-04: a pick on the map fits the block and its hops; a walk fits each step's two ends. Open: the same fit in an entered view, which today stays fitted whole |
+| 14 | **every block's path** | settled 2026-11-04: full paths read as a tangle and their numbers meant nothing to a reader; every block shows one hop each way instead, and a path is walked a hop at a time from a block marked ▶ (design.md *Behaviours*) |
 
 
 ## Built 2026-11-01
@@ -152,6 +172,21 @@ Seen in the browser on the translated repo, and (2026-11-02) by Louvain over eac
 | every entry takes about 2 s | at 2,100 blocks; profile again at the new, smaller output |
 
 
+## Built 2026-11-04
+
+**One tree, one order, and paths across packages**; then **one hop each way and walks** (design.md *Behaviours*, code-homes.md *a block's hops lit*). This repo translated, `check` clean, seen in the app.
+
+| Change | Where |
+|---|---|
+| Louvain's runs scored at resolution 1: its own score is scaled by resolution and always chose the coarsest, so views came out one component of 35 (now 6, modularity 0.53) | apps/ts `structure.ts` `clustered` |
+| bands gone; reading order and `ts.entry` / `ts.shared` tags; packages under the model by level | apps/ts `write.ts` `package_files`, `files_of`; packages/defs `ts/package.json` |
+| a part placed by its parent's list | core `sources.ts` `places_of` |
+| calls read across packages; system paths, wide before deep, no steps into shared modules | apps/ts `read.ts` `calls_of`, `structure.ts` `system_paths`, `paths_of`; `write.ts` `Refs` |
+| the overview's mini map draws no path: one subtle outline everywhere | tray `Where.tsx`, `tray.css`; views `map.ts` `mini_map` |
+| a chip weighs its joins too (the root of the names across its hops); a block owning a path, or a hop from one, never folds: web's `App` now shows | views `map.ts` `joins_weight`, `kept_open` |
+| hops light on hover only after the pointer rests 250 ms | stage `path.ts` `useOver` |
+| types out of the module graph; cycles condensed | apps/ts `read.ts` `type_only`, `structure.ts` `values_of`, `condensed` |
+
 ## Watch for
 
 - **scale**: `where_map` lays the map again at each 8 px of resize; the explorer and the maps have now been seen at 2,100 blocks (*Findings*)
@@ -163,7 +198,7 @@ Seen in the browser on the translated repo, and (2026-11-02) by Louvain over eac
 
 | Change | Where |
 |---|---|
-| calls into other modules of a package, each entry's path, its `sequence` (flow-plan stages 2–3) | apps/ts `read.ts` `calls_of`, `structure.ts` `paths_of`, `write.ts` `entry_files` |
+| calls into other modules of a package, each entry's path, its `sequence` (the entry paths work) | apps/ts `read.ts` `calls_of`, `structure.ts` `paths_of`, `write.ts` `entry_files` |
 | salience; the least salient modules folded into `other` | `structure.ts` `salience`, `folded_of`; `write.ts` `component_files` |
 | names by words | `structure.ts` `worded`, `words_of`, `STOP` |
 | the vocabulary and its class diagrams | `structure.ts` `vocab_of`; `write.ts` `vocab_files`, `attribute` |

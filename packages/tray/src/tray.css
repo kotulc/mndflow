@@ -277,22 +277,24 @@ fieldset.fields { padding: 0; }
                   font-variant-numeric: tabular-nums; }
 .frow.on > .fcount { color: var(--accent); }
 
-/* **Where it lives**, under the overview's card (`Where`): a compact tree of the major block
-   holding the element — boxes and chips outlined, the room ringed, the element in the accent, unnamed —
-   filling the column's room below the card. A scope's card is one compact tree. */
-.where-map { position: relative; flex: 1; min-height: 140px; border: 1px solid var(--divider);
-             border-radius: 2px; background: var(--bg); overflow: hidden; }
-.where-map.card { flex: none; min-height: 0; aspect-ratio: 4 / 3; }
+/* **Where it lives**, under the overview's card (`Where`): the map itself at the card's width,
+   in the room under it (`room`, never more, so the tray is never scrolled to it) — quiet: boxes
+   faintly outlined, chips on a faint ground, the element unnamed in one subtle accent outline on
+   every mini map, a box it is lit as a frame only. */
+.where-pic { min-width: 0; }
+.where-pic.room { flex: 1 1 0; min-height: 64px; }
+.where-map { position: relative; overflow: hidden; border: 1px solid var(--divider);
+             border-radius: 2px; background: var(--bg); }
 .where-box { position: absolute; box-sizing: border-box; overflow: hidden; border-radius: 2px;
-             border: 1px solid var(--divider); }
-.where-box.on { border-color: var(--border); }
-.where-box.room { border-color: var(--muted); background: var(--surface); }
-.where-box.lit { border: 1.5px solid var(--accent);
-                 background: color-mix(in oklch, var(--accent) 40%, var(--bg)); }
+             border: 1px solid color-mix(in oklch, var(--divider) 55%, transparent); }
+.where-box.chip { border: 0; background: var(--surface); }
+.where-box.on { border-color: var(--divider); }
+.where-box.lit { border: 1px solid color-mix(in oklch, var(--accent) 60%, transparent);
+                 background: color-mix(in oklch, var(--accent) 16%, var(--bg)); }
+.where-box.lit.holds { background: none; }
 .where-name { display: block; padding: 0 2px; color: var(--faint); font-size: 9px;
               line-height: 11px; white-space: nowrap; }
 .where-box.on > .where-name { color: var(--muted); }
-.where-box.room > .where-name { color: var(--text); font-weight: 600; }
 
 /* **Its path**, heading the overview's answers: where it is filed, its own name last. */
 .ov .trail { display: flex; flex-wrap: wrap; gap: 0 6px; color: var(--muted); font-size: 12px; }
@@ -414,8 +416,9 @@ fieldset.fields { padding: 0; }
 .card-edits > .chip { justify-self: start; }
 
 /* ── **The overview**, one layout for every element: card, picture, answers. One column under
-   560 px; card and picture over each other in the card column to 960, the picture taking the
-   rows the answers leave, so nothing opens between them; three columns past it. ── */
+   560 px; past it, card and picture over each other in the card column, the picture taking the
+   room the card leaves, the tray's own height: the answers scroll on their own, so the picture
+   is always in view. ── */
 .ov {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -426,14 +429,18 @@ fieldset.fields { padding: 0; }
 }
 @container (min-width: 560px) {
   .ov { grid-template-columns: var(--lead) minmax(0, 1fr);
-        grid-template-rows: auto 1fr; flex: 1 0 auto; align-items: stretch;
-        grid-template-areas: "card answers" "pic answers"; row-gap: var(--stack); }
+        grid-template-rows: auto minmax(0, 1fr); flex: 1 1 0; min-height: 0;
+        align-items: stretch; grid-template-areas: "card answers" "pic answers";
+        row-gap: var(--stack); }
   .ov > .ov-card { align-self: start; }
-  .ov > .ov-answers { padding-left: var(--gap); border-left: 1px solid var(--divider); }
+  .ov > .ov-answers { padding-left: var(--gap); border-left: 1px solid var(--divider);
+                      min-height: 0; overflow-y: auto; }
 }
 .ov-card { grid-area: card; display: grid; gap: var(--stack); align-content: start; min-width: 0; }
 .ov-pic { grid-area: pic; display: flex; flex-direction: column; gap: var(--stack); min-width: 0;
-          min-height: 0; }
+          min-height: 0; position: relative; }
+/* Over a picture, its open and read sit in its top corner, so the picture keeps the room. */
+.ov-pic:has(> .where-pic) > .opens { position: absolute; top: 3px; right: 3px; }
 .ov-answers { grid-area: answers; }
 .ov .opens { display: flex; gap: 6px; justify-content: flex-end; }
 .ov .make { display: flex; flex-wrap: wrap; gap: 4px; }

@@ -8,6 +8,7 @@
 
 import { NAMED_VIEWS } from "./components";
 import { is_model, models, setting_of } from "./defs";
+import { only_behaviour } from "./ends";
 import { inline, is_folder, is_grid, is_region, layer_of } from "./holders";
 import { registry_at, registry_id, registry_of } from "./library";
 import { opens } from "./names";
@@ -263,7 +264,7 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
 
 /** **What reading a subject does** — a double-click, Enter, the explorer's open, the tray's
  *  *read* — from the section `from`, else the canvas's. It enters what it is on, where that opens
- *  there. In the library nothing else is entered: a part of a definition, or one not used, is
+ *  there, a block that is only its behaviours entering its first (`only_behaviour`). In the library nothing else is entered: a part of a definition, or one not used, is
  *  read in the tray. In the models anything else — a tile inside a chip (`inner`), a plain block,
  *  a region — enters the nearest block above it that opens, picked there. Null where nothing
  *  does: what was read stays picked on its map. */
@@ -282,6 +283,8 @@ export function read_at(graph: Graph, tiers: Tiers, views: Views, now: View | nu
     const to = open_at(graph, tiers, views, id, from, now);
     return to && is_layer_view(to.kind) ? to : null;
   };
+  const only = options.inner ? null : only_behaviour(graph, subject);
+  if (only && lens_of(graph, only, lists)) return opened(only);
   if (!options.inner && lens_of(graph, subject, lists)) return opened(subject);
   if (lists === "domain" || !graph.blocks[subject]) return null;
   const up = path(graph, subject).map((b) => b.id).reverse().slice(1)

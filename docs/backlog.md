@@ -1,6 +1,6 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **In progress**: code translation, its plan in translate-plan.md (taken up 2026-11-01, ahead of the CLI), and entry paths through a translated model, its plan in flow-plan.md (taken up 2026-11-02, first); the design language, paused, its plan in design-plan.md.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **In progress**: code translation, its plan in translate-plan.md (taken up 2026-11-01, ahead of the CLI); entry paths through a translated model finished 2026-11-02, its leftovers under *Later*; the design language, paused, its plan in design-plan.md.
 
 ## CLI (next, alongside code translation)
 
@@ -83,6 +83,7 @@ Known rough spots, taken when a step passes near one.
 | Item | |
 |---|---|
 | **the rail** | future work, tasked separately |
+| **entry paths** | from the entry paths plan (closed 2026-11-02): on the map, an entry-points band of few, light chips is a narrow column (tray, views; weighing up a few rounds starved other regions, tried and reverted); registries still lay out with their own treemap (views `treemap.ts` `tiled`), not the map's; paths stay inside one package (apps/ts `calls_of` records calls within a package only; crossing packages is what makes a path the system's story); several paths at once; `mnd measure` on the map's traced paths; a package's class diagram of its own types sits loose below its bands, and a note's tie runs straight across the shop |
 | **type structure** | `many` and `optional` only, until a translator needs maps, unions, or generics |
 | **a message's record** | a message typed by the record it carries |
 | **unknown keys** | a key the schema does not use is dropped |

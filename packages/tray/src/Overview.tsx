@@ -28,6 +28,8 @@ export type OverviewProps = {
 };
 
 export function Overview({ graph, id, onAct, lists }: OverviewProps) {
+  /** The picture: the map, the element lit. */
+  const where = <Where graph={graph} id={id} />;
   const e = graph.edges[id];
   if (e) return <LineOverview graph={graph} e={e} />;
   const b = graph.blocks[id];
@@ -59,8 +61,7 @@ export function Overview({ graph, id, onAct, lists }: OverviewProps) {
         {whole ? null
           : <div className="ov-card"><Card graph={graph} id={id} /></div>}
         <div className="ov-pic">
-          {whole ? <Scope graph={graph} id={id} fill />
-            : <Where graph={graph} id={id} />}
+          {whole ? <Scope graph={graph} id={id} room /> : where}
         </div>
         <div className="ov-answers lists">
           <Trail graph={graph} id={id} />
@@ -73,7 +74,7 @@ export function Overview({ graph, id, onAct, lists }: OverviewProps) {
     <div className="ov">
       <div className="ov-card"><Card graph={graph} id={id} /></div>
       <div className="ov-pic">
-        <Where graph={graph} id={id} />
+        {where}
         {(drawn || across) && onAct ? (
           <span className="opens">
             {drawn ? (

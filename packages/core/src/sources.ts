@@ -88,6 +88,7 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   const reads = read_all(sorted, pre, notes);
   const drawn = sourced(reads);
   const own = reads.filter((r) => !drawn.has(r.path));
+  const places = places_of(own);
   /** A directory named as a file beside it is that file's block: what it holds are its parts.
    *  Under it, a directory may name a block the file writes at its top, by its name's slug. */
   const owners = new Map(own.map((r) => [[...r.dir, stem_of(r.path)].join("/"), r]));
@@ -152,6 +153,13 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
     after.set(up, after.get(up)! + 1);
     b.order = after.get(up)!;
   }
+  /** A file's list orders the parts it names first, the rest after as they were. */
+  for (const [file, list] of places) {
+    const rest = Object.values(graph.blocks).filter((b) => b.parent === file
+      && !list.includes(b.id)).sort((a, z) => (a.order ?? 0) - (z.order ?? 0));
+    [...list.map((id) => graph.blocks[id]!), ...rest].forEach((b, i) => (b.order = i + 1));
+  }
+  forget(graph);
   /** A file names its own package's definitions as well as those of the packages it lists. */
   const ctx_of = (r: Read): Ctx => ({ graph, slug, pre, made, notes, file: r,
                                       within: [slug, ...r.form.packages.map(pkg_of)] });
@@ -360,6 +368,36 @@ function joined(dir: readonly string[], path: string): string {
 /** The package a file lists by name or by path — a folder, or a package file — as its root's id. */
 function pkg_of(said: string): Id {
   return slug_of(said.replace(/\/+$/, "").split("/").pop()?.replace(/\.json$/i, "") ?? said);
+}
+
+/** **A part written as its own file is placed where its parent file's list names it**: an entry
+ *  saying only the name of a file in the file's directory (`- action` in `core.yaml`, for
+ *  `core/action.yaml`) is that part's place, not a block, and is taken out of the list. Each such
+ *  file's top blocks in list order, by id, its placed parts among them. */
+function places_of(own: Read[]): Map<Id, Id[]> {
+  const out = new Map<Id, Id[]>();
+  for (const r of own) {
+    const dir = [...r.dir, stem_of(r.path)].join("/");
+    const parts = new Map(own.filter((o) => o.dir.join("/") === dir)
+      .map((o) => [slug_of(o.form.top.name), o.id] as const));
+    const blocks = r.form.blocks;
+    const held = (i: number) => blocks.some((e) => e.under === i || e.tied === i);
+    const only_name = (e: Entry) => Object.entries(e).every(([k, v]) => k === "name"
+      || v === undefined || (Array.isArray(v) && !v.length));
+    const part = blocks.map((e, i) => e.under === undefined && !e.parent && !held(i)
+      && only_name(e) ? parts.get(slug_of(e.name)) : undefined);
+    if (!part.some(Boolean)) continue;
+    /** Where each kept entry moves to, so what is written under or tied to one still is. */
+    const moved = new Map<number, number>();
+    blocks.forEach((_, i) => { if (!part[i]) moved.set(i, moved.size); });
+    const at = (i: number | undefined) => (i === undefined || i < 0 ? i : moved.get(i));
+    out.set(r.id, blocks.flatMap((e, i) => (e.under === undefined && !e.parent
+      ? [part[i] ?? r.ids[i]!] : [])));
+    r.ids = r.ids.filter((_, i) => !part[i]);
+    r.form.blocks = blocks.filter((_, i) => !part[i])
+      .map((e) => ({ ...e, under: at(e.under), tied: at(e.tied) }));
+  }
+  return out;
 }
 
 /** A file's entries with the ids they take: its block's own, then one per block in file order. */

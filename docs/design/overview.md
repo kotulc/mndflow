@@ -13,22 +13,19 @@
 | Section | Answers | Shows |
 |---|---|---|
 | **card** | *what does it say?* | its large face, as a diagram draws it, never shorter than a head and two rows, so a blank face lines up with a full one. A line's is the line drawn whole, its ends as a table |
-| **picture** | *where does it live?* | under the card, filling the column: the whole map as a compact tree, the path to it given room, its room opened, it lit. *open* and *read* where it opens |
+| **picture** | *where does it live?* | under the card, filling the column: the map itself, scaled whole, it lit. *open* and *read* where it opens |
 | **path** | *where is it?* | heads the answers column: its path, its own name last (`base › blocks › block`) |
 | **why it matters** | *what is it for?* | its own description, then its definition, kind, behaviour and tags |
 | **how it is used** | *what does it do here?* | its lines in and out, by port, each with its swatch; what refers to it. A definition's uses in words |
 | **where it sits** | *in what order?* | its order in its room, with earlier and later |
 | **text** | *what does it say?* | a diagram's or document's own text, last in the answers column |
 
-**The picture is where it lives** (2026-11-01, mockup *where-map* L with K's room): where the element sits in the whole, and what is round it.
+**The picture is where it lives**, and **the map itself** (2026-11-02, superseding the compact tree of 2026-11-01): the same structure as the map, so the two read as one.
 
-- **the whole map** from its first level that branches (a level of one box passed through), drawn as a **compact tree**, a nested treemap filling the panel, each box titled over what it holds, every box and chip outlined, never filled
-- **the path is given room**: the major block holding the element takes at least 45% of the picture and the room at least half of that block, every weight inside scaled alike so its shape holds; elsewhere the map keeps its weights. A sparse map, already roomy there, is unchanged
-- **the room** — the box or chip the element sits in — is opened to its own blocks (a diagram chip's tiles) and ringed; **the element is lit**, never named: its card just above says what it is
-- **a top block** (a package, a top-level part) is lit whole; **a line** lights both its ends, both rooms opened and given room; a block the map does not draw lights the nearest one above it that it does (a pattern's part, its pattern)
-- **one shape everywhere**: re-laid to fill the column under the card, each block weighing the square root of its room on the map, so a sparse project and a busy one read alike
-- **plain**: no icons, counts or faces; a name only where it fits whole
-- **a scope's card is its map as one compact tree**: the workspace's the whole map (models while any exist, else the library), filling the column in place of a picture; a package's its own folders and definitions, its picture the whole map with it lit
+- **the map at the card's width, in the room under the card** (2026-11-02), never laid again: never taller than that room, so the tray is never scrolled to it — where the map is taller, the window is centred on what is lit; boxes faintly outlined, chips on a faint ground, a name only where it fits whole and no other box covers it; its *open* and *read* in its top corner
+- **subtle and compact**: a glance, quieter than the map — **one look on every mini map** (2026-11-04): the element a subtle accent outline, a box lit as a frame only; never a path, its legs or its numbers, which belong to the canvas
+- **the element is lit**, never named: its card just above says what it is; a block the map does not draw lights the nearest one above it that it does; a line lights both its ends
+- **a scope's card is its own region of the map**: the workspace's the whole map (models while any exist, else the library), in the room under it in place of a picture; a package's its own region, its picture the whole map with it lit
 - **overview only**: the other tabs keep their filter rows under the card
 - **lines are never drawn in it**: what joins an element is listed under *how it is used*
 - **only its own answers**: nothing is borrowed from its definition
@@ -51,4 +48,4 @@
 
 - the head and the facts strip are the same as a chip's and a card's
 - the card is the card's own renderer, never a copy
-- the picture is the map's own boxes and weights, re-laid as a compact tree to fill its column, drawn plain
+- the picture is the map itself, scaled whole, drawn plain
