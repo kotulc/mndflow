@@ -27,7 +27,7 @@ export type ChipTile = { id: string; label: string; x: number; y: number; w: num
 /** What a chip draws. */
 export type ChipData = {
   label: string; kind?: string; role?: string; tint?: Tint;
-  /** Its head's height under the name, or its width beside it where it is upright. */
+  /** Its head's height under the name; and whether it is turned -90° whole, tall and narrow. */
   head?: number; upright?: boolean; diagram?: boolean;
   /** Its marks: `major`, a part of a model, framed heavier; `minor`, inside one, quieter;
    *  `walks`, it owns a path, marked where a walk starts. */
@@ -42,29 +42,29 @@ export type ChipData = {
 
 export type ChipFaceProps = { data: ChipData; w: number; h: number; level: number;
                               picked?: boolean;
-                              /** Screen pixels per layout unit, as a step of `chip_steps`; unsaid,
-                               *  the chip is drawn at its laid size. */
-                              scale?: number;
                               /** Tiles picked, or lit as the element in its room: one look. */
                               lit?: readonly string[] };
 
 /** **A chip, drawn anywhere**: on the map as a node, and in the tray as its picture. */
-export function ChipFace({ data, w: width, h: height, level, picked: selected = false,
-                           scale = 1, lit = [] }: ChipFaceProps) {
+export function ChipFace({ data, w: across, h: down, level, picked: selected = false,
+                           lit = [] }: ChipFaceProps) {
+  /** **A turned chip** (`upright`) is laid on its box turned on its side and drawn turned -90°
+   *  whole: inside, its width is its height. */
+  const [width, height] = data.upright ? [down, across] : [across, down];
   const tint = data.tint ?? null;
   const pad = 6;
   const head = data.head ?? 0;
   const body = body_of(data, width, height);
-  /** **Each tile shows from its own size on screen**: a nested one where its mark reads and the
-   *  tile holding it shows; a name where it fits whole and reads. */
+  /** **Every tile shows at every zoom** (2026-11-04), a nested one where the tile holding it
+   *  does, so nothing pops in; a name where it fits whole. */
   const seen = new Set<string>();
   const tiles = (data.tiles ?? []).filter((t) => {
-    const ok = !t.in || (seen.has(t.in) && scale >= mark_at(t, body));
+    const ok = !t.in || seen.has(t.in);
     if (ok) seen.add(t.id);
     return ok;
   });
-  /** A chip too narrow for its name shows its icon alone, but one turned upright. */
-  const narrow = !data.upright && (width ?? 0) < NARROW;
+  /** A chip too narrow for its name shows its icon alone. */
+  const narrow = (width ?? 0) < NARROW;
   /** Its text's room: above its body where the body shows, else the whole chip. */
   const bodied = level >= 3 && (!!data.tiles?.length || !!data.preview || !!data.bar);
   const band = Math.max(0, (bodied ? head - TEXT.gap : (height ?? 0) - pad) - TEXT.top);
@@ -73,7 +73,7 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
   /** A profile follows its text as drawn, not as laid at its held size, so its rule stays
    *  under the facts as zoom shrinks them. */
   const profiled = !data.tiles?.length && (!!data.preview || !!data.bar) && !narrow;
-  const text = data.upright ? null : (
+  const text = (
     <span className="mnd-chip-text">
       {name}{kind}
       {data.facts ? <><i className="mnd-chip-break" /><Facts facts={data.facts} /></> : null}
@@ -90,7 +90,7 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
          {...(tint ? { "data-family": tint["data-family"] } : {})}
          style={{ ...(tint?.style ?? {}), "--cap": `${Math.max(0, (width ?? 0) - 8)}px`,
                   "--head": `${head}px`, "--band": band } as CSSProperties}>
-      {data.upright ? <span className="mnd-chip-head">{name}{kind}</span> : null}
+      {turned(data, width, height, <>
       {profiled ? (
         <span className="mnd-chip-stack" style={{ bottom: data.bar ? 4 + BAR : 4 }}>
           {text}
@@ -157,8 +157,17 @@ export function ChipFace({ data, w: width, h: height, level, picked: selected = 
           ))}
         </span>
       ) : null}
+      </>)}
     </div>
   );
+}
+
+/** What a chip draws inside it, as laid; turned -90° whole where it is `upright`, `width` by
+ *  `height` as laid, before it turns. */
+function turned(data: ChipData, width: number, height: number, inside: JSX.Element) {
+  return data.upright ? (
+    <div className="mnd-chip-turn" style={{ width, height }}>{inside}</div>
+  ) : inside;
 }
 
 /** **A map's box**, drawn anywhere: on the map as a node and in the tray as a box's picture — a
@@ -231,28 +240,10 @@ const LINES = 3;
  *  cut short after — is the tile's own to say (`flow.css`, a container query). */
 const NAMED = 12;
 
-/** How many screen pixels a nested tile's shorter side needs before it shows: its colour edge
- *  and a glimpse of its ground. */
-const MARK = 8;
-
-/** A chip's body less its head: under it, or beside it where the chip is upright. */
+/** A chip's body less its head, as laid: under it. */
 function body_of(data: ChipData, width: number, height: number): { w: number; h: number } {
   const [pad, head] = [6, data.head ?? 0];
-  return { w: (width ?? 0) - (data.upright ? head : pad) - pad,
-           h: (height ?? 0) - (data.upright ? pad : head) - pad };
-}
-
-/** The scale at which a nested tile's mark reads. */
-function mark_at(t: ChipTile, body: { w: number; h: number }): number {
-  return MARK / Math.max(1e-6, Math.min(t.w * body.w, t.h * body.h));
-}
-
-/** **The scales at which a chip's drawing changes**, smallest first: where each nested tile's
- *  mark reads. A host redraws the chip only as zoom crosses one. */
-export function chip_steps(data: ChipData, width: number, height: number): number[] {
-  const body = body_of(data, width, height);
-  const marks = (data.tiles ?? []).filter((t) => t.in).map((t) => mark_at(t, body));
-  return [...new Set(marks)].sort((a, b) => a - b);
+  return { w: (width ?? 0) - pad - pad, h: (height ?? 0) - head - pad };
 }
 
 /** How narrow a chip is before its name gives way to its icon alone. */

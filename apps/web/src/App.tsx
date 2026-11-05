@@ -243,6 +243,16 @@ export function App({ storage, boot, opening }: {
              h: Math.max(...boxes.map((b) => b.y + b.h)) - y, scale: 1 / 2 };
   }, [graph, map, mapped, walked, one]);
 
+  /** **Where the map's camera stops**: a chip filling the view while entered or left, the hops
+   *  picked, else the focus's area. **Letting go moves nothing**: with nothing picked or focused,
+   *  it stays where it last stopped. */
+  const last_stop = useRef<{ x: number; y: number; w: number; h: number; scale?: number } | null>(
+    null);
+  const stop = !scene.areas ? null : treemap ? { ...scene.areas[0]!, scale: 1 }
+    : through ?? hop_box ?? (focus_id || s.picked().length
+      ? (focus_area ? { ...focus_area, scale: 1 / 2 } : null) : last_stop.current);
+  last_stop.current = stop;
+
   const subject = useMemo(() => {
     const shown = s.picked().filter((id) => lit_by(graph, s.picked(), s.route(), id,
                                                    seen_through(graph, view.layer, id)));
@@ -607,8 +617,8 @@ export function App({ storage, boot, opening }: {
           scroll={!mapped && (whole || diagram)}
           entered={entered && !!map}
           opened={opened}
-          stop={!scene.areas ? null : treemap ? { ...scene.areas[0]!, scale: 1 }
-            : through ?? hop_box ?? (focus_area ? { ...focus_area, scale: 1 / 2 } : null)}
+          stop={stop}
+          onClear={() => s.clear()}
 
           focus={system ? view.pick : whole ? null : aim}
           most={1}

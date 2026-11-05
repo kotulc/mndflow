@@ -9,9 +9,12 @@ import type { Graph, Id } from "@mnd/core";
 import { CardFace, Facts } from "@mnd/theme";
 import { folded_hover, hover_of, type FaceProps } from "@mnd/views";
 
-/** How long the pointer rests before the first card shows, and how long it may be away before the
- *  next one waits again, in milliseconds. */
-const WAIT = 350;
+/** How long the pointer rests before the first card shows, before the next while one has shown
+ *  lately, and how long it may be away before the next one waits again, in milliseconds. Both
+ *  waits are longer than a block's hops take to light (`path.ts` `REST`), so the hops are read
+ *  before a card covers them (2026-11-04). */
+const WAIT = 1000;
+const NEXT = 400;
 const WARM = 400;
 
 /** How wide the card is, the most it is likely to stand, and its gap from the pointer and the
@@ -96,7 +99,7 @@ function drawn({ w: _w, h: _h, sample: _sample, ...face }: FaceProps) {
 }
 
 /** **What the pointer rests on in `host`**: a tile in a chip, else a chip or a box — after
- *  `WAIT`, or at once while a card has shown within `WARM`. Crossing what a chip draws inside it
+ *  `WAIT`, or after `NEXT` while a card has shown within `WARM`. Crossing what a chip draws inside it
  *  is resting on the chip still; a press or a wheel is work, and the card gives way until the
  *  pointer rests again. */
 function useResting(host: RefObject<HTMLElement>): At | null {
@@ -133,7 +136,7 @@ function useResting(host: RefObject<HTMLElement>): At | null {
         ? ev.target.closest<HTMLElement>("[data-folded]")?.dataset["folded"] : undefined;
       const folded = more ? { folded: JSON.parse(more) as Id[] } : {};
       const show = () => { warm = true; set_at({ ids, x: ev.clientX, y: ev.clientY, ...folded }); };
-      if (warm) show(); else wait = setTimeout(show, WAIT);
+      wait = setTimeout(show, warm ? NEXT : WAIT);
     };
     const out = (ev: PointerEvent) => {
       if (id_of(ev.relatedTarget) === on) return;

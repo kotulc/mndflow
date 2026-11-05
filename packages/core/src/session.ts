@@ -58,6 +58,8 @@ export type Session = {
   see: (kind: ViewKind, id?: Id | null, at?: number) => void;
   /** Pick blocks, made through the usage `via` where they were read through one. */
   pick: (ids: Id[], via?: Id) => void;
+  /** Let go of everything picked, and of a map's focus: the view stays where it is. */
+  clear: () => void;
   pick_cells: (cells: readonly Spot[]) => void;
   say: (text: string, kind?: Said["kind"]) => void;
 
@@ -318,6 +320,14 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       picked = ids;
       through = via ? { picks: ids, via } : null;
       if (!cells.every((c) => ids.includes(c.group))) cells = [];
+      listener?.();
+    },
+
+    clear() {
+      picked = [];
+      through = null;
+      cells = [];
+      if (!is_layer_view(view.kind)) view = { ...view, pick: null };
       listener?.();
     },
 

@@ -1,8 +1,8 @@
 /** What a box looks like, as React Flow node types. */
 
-import { createContext, memo, useCallback, useContext, useEffect, useMemo,
-         useRef, useState, type CSSProperties } from "react";
-import { Handle, NodeResizer, Position, useStore, useUpdateNodeInternals,
+import { createContext, memo, useContext, useEffect, useRef, useState,
+         type CSSProperties } from "react";
+import { Handle, NodeResizer, Position, useUpdateNodeInternals,
          type NodeProps } from "@xyflow/react";
 import type { Side } from "@mnd/core";
 
@@ -11,7 +11,7 @@ export const DRAGGED = "text/mnd-block";
 
 import { FRAME, PLAIN, face_attrs, look_key, tint_attrs,
          type BoxData, type BoxNode, type GridCell } from "@mnd/views";
-import { BoxFace, CardFace, ChipFace, chip_steps, Facts, Name, Stamps, Wears, useNaming } from "@mnd/theme";
+import { BoxFace, CardFace, ChipFace, Facts, Name, Stamps, Wears, useNaming } from "@mnd/theme";
 import { useLevel, useTiny } from "./level";
 import { usePicked, usePicks } from "./picked";
 
@@ -406,22 +406,19 @@ function MapBox({ id, data }: NodeProps<BoxNode>) {
  *  description, a definition's places each with its uses, over a bar of its uses by place. A
  *  tile is a small card the same way: its name, its icon in the corner, edged in its own colour.
  *  Icons keep a least size on screen, never past what their tile has room for (`--cap`). A chip
- *  too narrow for its name shows its icon alone; a narrow, tall one reads upright. What it is in
+ *  too narrow for its name shows its icon alone; a tall, narrow one is turned -90° whole. What it is in
  *  full is its hover card. */
 function ChipNode({ id, data, width, height }: NodeProps<BoxNode>) {
   const selected = usePicked(id);
   /** Its tiles picked, lit the one way everything picked is. */
   const lit = usePicks((data.tiles ?? []).map((t) => t.id));
-  const level = useLevel(width ?? 0, height ?? 0, false);
+  /** A turned chip's levels read off its face as laid, before it turns. */
+  const level = useLevel(data.upright ? height ?? 0 : width ?? 0,
+                         data.upright ? width ?? 0 : height ?? 0, false);
   const tint = data.look ? tint_attrs(data.look) : undefined;
   const chip = { ...data, ...(tint ? { tint } : {}) };
-  /** The zoom as the last step its drawing changes at, so it redraws only as one is crossed. */
-  const steps = useMemo(() => chip_steps(chip, width ?? 0, height ?? 0),
-                        [data.tiles, data.head, data.upright, width, height]);
-  const scale = useStore(useCallback((st) => steps.filter((k) => k <= st.transform[2]).at(-1) ?? 0,
-                                     [steps]));
   return <ChipFace data={chip} w={width ?? 0} h={height ?? 0} level={level} picked={!!selected}
-                   scale={scale} lit={lit} />;
+                   lit={lit} />;
 }
 
 

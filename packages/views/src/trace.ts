@@ -1,6 +1,7 @@
 /** **A block's hops traced across a map** (2026-11-04): what reaches it and what it reaches, a
  *  hop each way (core `hops_of`), each far end lifted to the nearest block the map draws, one leg
- *  a pair, square, fanned out of the side of its source facing where it goes, an arrow at its end.
+ *  a pair, straight where two blocks face each other, else one bend (`routed`), an arrow at its
+ *  end.
  *  No numbers: a walk along a path says its step in words (stage `Walk.tsx`), lighting one hop at
  *  a time (`hop_trace`). Worked out on hover or pick, never stored. */
 
@@ -44,81 +45,109 @@ export function hop_trace(graph: Graph, scene: Scene, hops: readonly Hop[]): Tra
   }
   if (!legs.length) return null;
   const ends = [...new Set(legs.flatMap((l) => [l.from, l.to]))];
-  /** A box at an end lights with everything it holds: what it holds is part of it. */
-  const up = new Map(scene.areas.map((a) => [a.id, a.parent]));
+  return routed({ blocks: with_inside(scene, ends), lines: [], legs }, scene);
+}
+
+/** **What picking lights on a map** (2026-11-04): the chips and boxes picked, each box with
+ *  everything it holds; the rest dims, as round a block's hops. Null with nothing picked or off a
+ *  map. */
+export function picked_trace(scene: Scene, picked: readonly Id[]): Trace | null {
+  const drawn = new Set(scene.nodes.map((n) => n.id));
+  const ids = picked.filter((id) => drawn.has(id));
+  return scene.areas && ids.length ? { blocks: with_inside(scene, ids), lines: [], legs: [] }
+    : null;
+}
+
+/** Blocks on a map, each box with everything it holds: what it holds is part of it. */
+function with_inside(scene: Scene, ids: readonly Id[]): Id[] {
+  const up = new Map((scene.areas ?? []).map((a) => [a.id, a.parent]));
   const within = (a: Id) => {
-    for (let p = up.get(a); p; p = up.get(p)) if (ends.includes(p)) return true;
+    for (let p = up.get(a); p; p = up.get(p)) if (ids.includes(p)) return true;
     return false;
   };
-  const inside = scene.nodes.map((n) => n.id).filter((n) => !ends.includes(n) && within(n));
-  return routed({ blocks: [...ends, ...inside], lines: [], legs }, scene);
+  return [...ids, ...scene.nodes.map((n) => n.id).filter((n) => !ids.includes(n) && within(n))];
 }
 
 type Rect = { x: number; y: number; w: number; h: number };
 type Side = "left" | "right" | "top" | "bottom";
 
-/** **The side of `a` facing `b`**: across the wider gap between them; the bottom where one holds
- *  or overlaps the other. */
-function facing(a: Rect, b: Rect): Side {
-  const gx = Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w));
-  const gy = Math.max(b.y - (a.y + a.h), a.y - (b.y + b.h));
-  if (gx <= 0 && gy <= 0) return "bottom";
-  if (gx > gy) return b.x > a.x ? "right" : "left";
-  return b.y > a.y ? "bottom" : "top";
-}
-
-/** **A trace's legs routed, fanned out**: each leaves its source by the side facing its target
- *  and reaches the target by the side facing back; the ends on one side of a block spread
- *  evenly along it, ordered by where they go, and each leg turns at its own point across the gap,
- *  so no two run as one. Proportional to the blocks, so it holds at every zoom. */
+/** **Hops routed, kept simple** (2026-11-04): two blocks facing each other across a gap — side by
+ *  side, or one above the other — are joined by one straight leg across it, where their sides
+ *  overlap; any other pair by one bend, out of the source's side facing the target and into the
+ *  target's top or bottom. Never a loop, never doubling back. The ends sharing a side of a block
+ *  spread evenly along it, ordered by where they go, so no two run as one. Proportional to the
+ *  blocks, so it holds at every zoom. */
 function routed(trace: Trace, scene: Scene): Trace {
   const nodes = new Map(scene.nodes.map((n) => [n.id, n]));
   const rect = (b: Id) => box_of(nodes.get(b)!);
-  /** Each leg's two ends: the block, its side, and the block at the other end. */
-  const ends = trace.legs.map((l) => {
-    const [a, b] = [rect(l.from), rect(l.to)];
-    return [{ r: a, side: facing(a, b), other: b }, { r: b, side: facing(b, a), other: a }] as const;
-  });
+  const plans = trace.legs.map((l) => plan(rect(l.from), rect(l.to)));
   /** Where an end sits along its side, 0 to 1, among the ends sharing that side. */
-  const slots = new Map<string, { other: Rect }[]>();
-  const key = (e: { r: Rect; side: Side }) => `${e.r.x},${e.r.y},${e.side}`;
-  for (const e of ends.flat()) slots.set(key(e), [...(slots.get(key(e)) ?? []), e]);
-  const t = (e: { r: Rect; side: Side; other: Rect }) => {
-    const flat = e.side === "left" || e.side === "right";
-    const mid = (r: Rect) => (flat ? r.y + r.h / 2 : r.x + r.w / 2);
-    const mine = [...slots.get(key(e))!].sort((p, q) => mid(p.other) - mid(q.other));
-    return (mine.indexOf(e) + 1) / (mine.length + 1);
+  const slots = new Map<string, { key: number; t: number }[]>();
+  const end = (b: Id, side: Side, key: number) => {
+    const e = { key, t: 0.5 };
+    slots.set(`${b}:${side}`, [...(slots.get(`${b}:${side}`) ?? []), e]);
+    return e;
   };
-  return { ...trace, legs: trace.legs.map((l, i) => {
-    const [from, to] = ends[i]!;
-    return { ...l, run: squared(from.r, to.r, from.side, to.side, t(from), t(to)) };
+  const ends = trace.legs.map((l, k) => {
+    const pl = plans[k]!;
+    const toward = (r: Rect) => (pl.out === "left" || pl.out === "right" ? r.y + r.h / 2
+      : r.x + r.w / 2);
+    return [end(l.from, pl.out, toward(rect(l.to))), end(l.to, pl.into, toward(rect(l.from)))];
+  });
+  for (const list of slots.values()) {
+    [...list].sort((a, z) => a.key - z.key).forEach((e, k) => (e.t = (k + 1) / (list.length + 1)));
+  }
+  return { ...trace, legs: trace.legs.map((l, k) => {
+    const [a, b] = [rect(l.from), rect(l.to)];
+    const [from, to] = ends[k]!;
+    return { ...l, run: drawn(a, b, plans[k]!, from!.t, to!.t) };
   }) };
 }
 
-/** A point `t` (0 to 1) along a side of `r`. */
-function on_side(r: Rect, side: Side, t: number): Point {
-  if (side === "left" || side === "right") return { x: side === "left" ? r.x : r.x + r.w,
-                                                    y: r.y + r.h * t };
-  return { x: r.x + r.w * t, y: side === "top" ? r.y : r.y + r.h };
+/** How a leg runs between two blocks: straight across a gap they face each other over, else one
+ *  bend — out of the side of `a` facing `b`, into `b`'s top or bottom. */
+type Plan = { out: Side; into: Side; straight: boolean };
+function plan(a: Rect, b: Rect): Plan {
+  const across = a.y < b.y + b.h && b.y < a.y + a.h;
+  const down = a.x < b.x + b.w && b.x < a.x + a.w;
+  if (across && !(down)) {
+    const right = b.x >= a.x + a.w / 2;
+    return { out: right ? "right" : "left", into: right ? "left" : "right", straight: true };
+  }
+  if (down) {
+    const below = b.y >= a.y + a.h / 2;
+    return { out: below ? "bottom" : "top", into: below ? "top" : "bottom", straight: true };
+  }
+  return { out: b.x > a.x ? "right" : "left", into: b.y > a.y ? "top" : "bottom",
+           straight: false };
 }
 
-/** **A leg, square**: out of `a` at `t_out` along its side `out`, into `b` at `t_in` along its
- *  side `into`. Across a gap it turns once, `t_out` of the way over, so legs leaving one side
- *  turn apart; where one block holds the other, both ends on their bottoms, it runs round under
- *  both. What it crosses is quiet while a path is traced. */
-function squared(a: Rect, b: Rect, out: Side, into: Side, t_out: number, t_in: number): Point[] {
-  const [p, q] = [on_side(a, out, t_out), on_side(b, into, t_in)];
-  if (out === into) {
-    const y = Math.max(p.y, q.y) + ROUND;
-    return [p, { x: p.x, y }, { x: q.x, y }, q];
+/** **A leg's points**: straight, at a point within the span the two sides share, spread by `t`;
+ *  else out at `t_out` along `a`'s side and into `b` at `t_in` along its top or bottom, one
+ *  turn. Its tip sits just inside `b`. */
+function drawn(a: Rect, b: Rect, pl: Plan, t_out: number, t_in: number): Point[] {
+  const flat = pl.out === "left" || pl.out === "right";
+  if (pl.straight) {
+    const [lo, hi] = flat ? [Math.max(a.y, b.y), Math.min(a.y + a.h, b.y + b.h)]
+      : [Math.max(a.x, b.x), Math.min(a.x + a.w, b.x + b.w)];
+    const at = lo + (hi - lo) * (t_out + t_in) / 2;
+    const p = edge(a, pl.out, at, 0);
+    const q = edge(b, pl.into, at, INSET);
+    return [p, q];
   }
-  if (out === "left" || out === "right") {
-    const x = p.x + (q.x - p.x) * t_out;
-    return p.y === q.y ? [p, q] : [p, { x, y: p.y }, { x, y: q.y }, q];
-  }
-  const y = p.y + (q.y - p.y) * t_out;
-  return p.x === q.x ? [p, q] : [p, { x: p.x, y }, { x: q.x, y }, q];
+  const p = edge(a, pl.out, a.y + a.h * t_out, 0);
+  const q = edge(b, pl.into, b.x + b.w * t_in, INSET);
+  return [p, { x: q.x, y: p.y }, q];
 }
 
-/** How far below two blocks, one holding the other, a leg runs round. */
-const ROUND = 10;
+/** The point on `side` of `r` at `at` along it (a y on the left or right, an x on the top or
+ *  bottom), `inset` inside it. */
+function edge(r: Rect, side: Side, at: number, inset: number): Point {
+  if (side === "left") return { x: r.x + inset, y: at };
+  if (side === "right") return { x: r.x + r.w - inset, y: at };
+  if (side === "top") return { x: at, y: r.y + inset };
+  return { x: at, y: r.y + r.h - inset };
+}
+
+/** How far inside its target a leg's tip sits, so the arrow lands on the chip, not in the gap. */
+const INSET = 3;

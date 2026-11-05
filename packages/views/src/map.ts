@@ -55,14 +55,13 @@ const PAD = { chip: 6, diagram: 6 };
 const HELD = 1.35;
 
 /** **A chip's rows**, as `flow.css` draws them: its name's line with the air over it and the gap
- *  under its text, each line of its facts, both at their held size; and each row of a preview; an
- *  upright head's width. A level shows only where the chip has room for it. */
+ *  under its text, each line of its facts, both at their held size; and each row of a preview.
+ *  A level shows only where the chip has room for it. */
 const ROW = { name: 4 + Math.ceil(17 * HELD) + 6, facts: Math.ceil(17 * HELD), line: 15 };
 
 /** The least body a chip keeps under its facts: a diagram's or a holder's structure, else a line
  *  of preview. Where it would not, the facts give way, and its hover card says them. */
 const KEEP = { structure: 36, preview: ROW.line };
-const UPRIGHT_HEAD = 40;
 
 /** **A chip is as large as what it shows**: never less than its rows need, at least `ROWS` of them,
  *  laid at about a card's width. */
@@ -81,8 +80,9 @@ const SETTLE = 3;
 const FOLDS = 4;
 const SLIM = { w: 64, h: 24 };
 
-/** How narrow a tall chip is before its head turns upright, as if the chip were turned -90°. */
-const UPRIGHT = 64;
+/** **How tall for its width a chip is before it is turned**, -90° whole, and the widest one that
+ *  is: about a card's width, where a name stops fitting across. */
+const TURN = 1.3;
 
 /** How wide a card reads, width over height: the shape a diagram chip's tiles aim at. */
 const CELL = 1.5;
@@ -353,23 +353,24 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
                    draggable: false });
       continue;
     }
-    /** Narrow and tall, its head runs up its left side and its body sits beside it; else its
-     *  name's line, and its facts under it where its body keeps room for what it shows. */
-    const upright = box.w < UPRIGHT && box.h > box.w;
+    /** **Tall and narrow, the whole chip is turned** -90° (2026-11-04): laid as a chip on its box
+     *  turned on its side (`face`), and drawn turned, so its name, facts and body read together up
+     *  its length. Its name's line, and its facts under it where its body keeps room. */
+    const upright = box.h > box.w * TURN && box.w < CARD_W;
+    const face = upright ? { w: box.h, h: box.w } : box;
     const facts = facts_of(graph, chip.block, !!chip.uses,
                            { ...(chip.groups ? { groups: chip.groups } : {}),
                              ...(chip.counts ? { counts: chip.counts } : {}) });
     const any = any_fact(facts);
     const keep = (chip.held.length ? KEEP.structure : KEEP.preview)
       + (chip.diagram ? PAD.diagram : PAD.chip);
-    const strip = !upright && any && box.h >= ROW.name + ROW.facts + keep;
-    const head = upright ? { w: UPRIGHT_HEAD, h: 0 }
-      : { w: 0, h: ROW.name + (strip ? ROW.facts : 0) };
-    const body = chip.uses ? previewed(graph, chip, box, head)
-      : chip.held.length ? inner(graph, chip.block, chip.held, box, !!chip.diagram, head)
-      : profiled(chip.preview, box, head);
+    const strip = any && face.h >= ROW.name + ROW.facts + keep;
+    const head = { w: 0, h: ROW.name + (strip ? ROW.facts : 0) };
+    const body = chip.uses ? previewed(graph, chip, face, head)
+      : chip.held.length ? inner(graph, chip.block, chip.held, face, !!chip.diagram, head)
+      : profiled(chip.preview, face, head);
     nodes.push({ ...cell(id, box, { ...data, ...(strip ? { facts } : {}),
-                                    ...(upright ? { upright } : {}), head: head.w || head.h,
+                                    ...(upright ? { upright } : {}), head: head.h,
                                     ...(chip.kind ? { kind: chip.kind } : {}),
                                     ...(chip.diagram ? { diagram: true } : {}),
                                     ...body, look: colour_of(graph, chip.block) },

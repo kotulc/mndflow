@@ -6,13 +6,14 @@
 
 import { useEffect, useMemo, useState, type RefObject } from "react";
 import { reached, type Graph, type Hop, type Id } from "@mnd/core";
-import { hop_trace, trace_of, type Scene, type Trace } from "@mnd/views";
+import { hop_trace, picked_trace, trace_of, type Scene, type Trace } from "@mnd/views";
 
 /** What lights: cards and lines, on a map a trace, or null where nothing joins. */
 export type Lit = { blocks: readonly Id[]; lines: readonly Id[] } | Trace | null;
 
 
-/** The hops lit: the card or chip hovered; else the step walked; else the one picked. */
+/** The hops lit: the card or chip hovered; else the step walked; else the one picked; else, on a
+ *  map, whatever is picked, hops or none, so a pick always reads the same way. */
 export function usePath(host: RefObject<HTMLElement>, graph: Graph, scene: Scene,
                         picked: readonly Id[], walking: Hop | null = null): Lit {
   const hovered = useOver(host);
@@ -26,8 +27,8 @@ export function usePath(host: RefObject<HTMLElement>, graph: Graph, scene: Scene
     };
     const step = (h: Hop): Lit => (scene.areas ? hop_trace(graph, scene, [h])
       : { blocks: [h.from, h.to], lines: [] });
-    return lit(hovered) ?? (walking ? step(walking) : lit(one));
-  }, [graph, scene, hovered, walking, one]);
+    return lit(hovered) ?? (walking ? step(walking) : lit(one)) ?? picked_trace(scene, picked);
+  }, [graph, scene, hovered, walking, one, picked]);
 }
 
 /** The rule lighting the hops' cards and lines whole, over the dimming. */

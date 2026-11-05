@@ -22,7 +22,8 @@
 /* ── **Levels by zoom**: mark → head → facts → preview, picked from the size on screen (views
    `level_at`). Rows add below, anchored to the top, and fade; nothing drawn moves. ── */
 .mnd-flow .mnd-card > :is(.mnd-head, .mnd-face-facts, .mnd-face-table, .mnd-face-body, .mnd-marks),
-.mnd-flow .mnd-chip > :is(.mnd-chip-head, .mnd-chip-text, .mnd-chip-body),
+.mnd-flow .mnd-chip > :is(.mnd-chip-text, .mnd-chip-body),
+.mnd-flow .mnd-chip-turn > :is(.mnd-chip-text, .mnd-chip-body),
 .mnd-flow .mnd-chip-stack > *,
 .mnd-flow .mnd-chip-text .mnd-facts > * {
   transition: opacity 120ms ease, visibility 120ms;
@@ -30,14 +31,16 @@
 /* A seat too small to read hides; its line still meets the wall where it sits. */
 .mnd-flow .mnd-seat.tiny:not(.picked) { visibility: hidden; }
 
+/* **Nothing in a chip pops in** (2026-11-04): its name, and its body — tiles, nested tiles and
+   their names — show at every level, held no larger than the chip was laid for, so zoomed far
+   out they only shrink with the drawing, unread rather than gone; only its facts come and go by
+   level. */
 /* A small face carrying facts reads from the top, so its facts add under its name. */
 .mnd-flow .mnd-card.small:has(> .mnd-face-facts) > .mnd-head { flex: none; }
 .mnd-flow .mnd-card[data-level="0"] > :is(.mnd-head, .mnd-marks),
 .mnd-flow .mnd-card:is([data-level="0"], [data-level="1"]) > .mnd-face-facts,
 .mnd-flow .mnd-card:not([data-level="3"]) > :is(.mnd-face-table, .mnd-face-body),
-.mnd-flow .mnd-chip[data-level="0"] :is(.mnd-chip-head, .mnd-chip-text),
-.mnd-flow .mnd-chip:is([data-level="0"], [data-level="1"]) .mnd-chip-text .mnd-facts > *,
-.mnd-flow .mnd-chip:not([data-level="3"]) :is(.mnd-chip-body, .mnd-chip-profile) {
+.mnd-flow .mnd-chip:is([data-level="0"], [data-level="1"]) .mnd-chip-text .mnd-facts > * {
   opacity: 0;
   visibility: hidden;
 }
@@ -414,10 +417,12 @@
 .mnd-box.minor { --edge: color-mix(in oklch, var(--wall) 30%, transparent); }
 .mnd-box.minor > .mnd-box-title { color: var(--faint); }
 .mnd-chip.minor { --edge: color-mix(in oklch, var(--card-line) 50%, transparent); }
-.mnd-chip:is(.major, .minor) > .mnd-chip-body { opacity: 0.5; }
+.mnd-chip:is(.major, .minor) > .mnd-chip-body,
+.mnd-chip:is(.major, .minor) > .mnd-chip-turn > .mnd-chip-body { opacity: 0.5; }
 /* A minor chip's own words fade as a major chip's preview does; it hides by level as before. */
 .mnd-chip.minor:not(:hover, .picked) .mnd-chip-text { opacity: 0.6; }
-.mnd-chip:is(.major, .minor):is(:hover, .picked) > .mnd-chip-body { opacity: 1; }
+.mnd-chip:is(.major, .minor):is(:hover, .picked) > .mnd-chip-body,
+.mnd-chip:is(.major, .minor):is(:hover, .picked) > .mnd-chip-turn > .mnd-chip-body { opacity: 1; }
 /* The same ranks in an entered diagram of a model (views `layer.ts` `ranked`): a card holding
    parts framed heavier, the rest's words quieter until the pointer is on it; colours kept. */
 .mnd-flow .mnd-card.major { --card-border-width: 2px; }
@@ -536,24 +541,24 @@
 .mnd-chip.narrow .mnd-chip-icon {
   --icon: min(clamp(14px, calc(11px / var(--zoom, 1)), 22px), var(--cap, 22px));
 }
-/* **A narrow, tall chip reads upright**, as if the whole chip were turned -90°: its colour edge
-   along the bottom, its name from the bottom left reading up, its icon top left, turned with it,
-   and its body beside the head (`UPRIGHT`, views `map.ts`). */
+/* **A tall, narrow chip is turned -90° whole** (`TURN`, views `map.ts`; theme `chip.tsx`): laid
+   as a chip on its box turned on its side, then drawn turned from its lower left corner, so its
+   name, facts and body read together up its length; its colour edge runs along its foot. */
 .mnd-chip.upright[data-family] {
   border-left: none;
-  border-bottom: 3px solid var(--card-edge, var(--card-line));
+  box-shadow: inset 0 -3px 0 var(--card-edge, var(--card-line)),
+              inset 0 0 0 calc(var(--edge-w, 1px) / var(--zoom, 1)) var(--edge, var(--card-line));
 }
-.mnd-chip.upright .mnd-chip-head {
-  top: 30px;
-  right: auto;
-  bottom: 6px;
-  left: 5px;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
+.mnd-chip-turn {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  transform-origin: 0 0;
+  transform: rotate(-90deg);
+  /* Turned text smoothed in grey: Windows' colour (subpixel) smoothing, laid then turned, fringes
+     and blurs it. A layer not quite opaque is smoothed in grey and still drawn at every zoom. */
+  opacity: 0.999;
 }
-.mnd-chip.upright .mnd-chip-icon { right: auto; left: 6px; transform: rotate(-90deg); }
-.mnd-chip.upright .mnd-chip-body,
-.mnd-chip.upright .mnd-chip-stack { top: 6px; left: var(--head, 40px); }
 /* **A diagram's chip looks as a library chip does**: flat tiles on the chip's own ground, its edge
    in its colour; what kind it is shows in how its inside is drawn — its layers, wide gaps between
    them and narrow ones within, its marks, a grid's strips and lines, a card's rules. */
@@ -1026,16 +1031,17 @@
   transition: opacity 120ms;
 }
 
-/* **Hops traced across a map** (stage `Traced.tsx`): thin legs in the accent, a little
-   translucent, held at a steady width on screen, so the quiet chips under them still read; the
-   legs under the chips, never numbered. What crosses a leg shows on hover of its wider, unseen
-   stroke. */
-.mnd-trace { pointer-events: none; }
+/* **Hops traced across a map** (stage `Traced.tsx`): thin legs in the accent, held at a steady
+   width on screen, **over the chips** on a halo of the ground a little wider, so a leg cuts
+   cleanly across what it passes; never numbered. What crosses a leg shows on hover of its wider,
+   unseen stroke. */
+.mnd-trace { pointer-events: none; z-index: 2000; }
+.mnd-trace .halo { stroke: var(--bg); stroke-width: calc(4px / var(--zoom, 1)); opacity: 0.85; }
 .mnd-trace polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .mnd-trace .run {
   stroke: var(--accent);
-  stroke-width: calc(1.25px / var(--zoom, 1));
-  opacity: 0.7;
+  stroke-width: calc(1.5px / var(--zoom, 1));
+  opacity: 0.9;
 }
 .mnd-trace .hit {
   stroke: transparent;

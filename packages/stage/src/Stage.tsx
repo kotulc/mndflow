@@ -30,6 +30,8 @@ export type StageProps = {
   /** The writes one canvas adjustment comes to, for the host to run as one step. */
   onAdjust?: (moves: readonly Move[]) => void;
   onPick: (ids: string[]) => void;
+  /** Let go of the pick, and of a map's focus, the camera staying put. */
+  onClear?: () => void;
   /** Which cells are picked, beside the ids. */
   cells?: readonly Spot[];
   onPickCells?: (cells: readonly Spot[]) => void;
@@ -202,7 +204,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
                        menu, said, onSaid, head, empty, lattice, frame, legend, corner, module,
                        dir, type, lit = [], touched = [], scroll = false, focus = null, most = null,
                        entered = false, stop = null, opened = 0,
-                       keys = true, editable = true, walk = null }: StageProps) {
+                       keys = true, editable = true, walk = null, onClear }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
                     ...(type ? { type } : {}) };
@@ -215,6 +217,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   useEffect(() => set_typing(null), [scene.layer]);
   /** The stage itself, which a map's hover card watches. */
   const host = useRef<HTMLElement>(null);
+  /** Letting go of the pick: the host's, else none picked. */
+  const clear = () => (onClear ? onClear() : onPick([]));
   /** What the card hovered or picked reaches a hop each way, or the step walked, lit over the
    *  rest dimmed. */
   const path = usePath(host, graph, scene, picked,
@@ -243,12 +247,13 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       }
       /** Everything else is the canvas's only while it has the keys. */
       else if (!keys) return;
-      /** Escape closes the nearest thing. */
-      else if (e.key === "Escape") {
+      /** **Escape closes the nearest thing** (2026-11-04): a menu; else what is picked, let go
+       *  as a click on empty ground does; else, entered, the view, for the map. On a map, which
+       *  nothing is deleted from, Backspace does the same. */
+      else if (e.key === "Escape" || (e.key === "Backspace" && scene.areas)) {
         if (at) { set_at(null); return; }
-        /** Entered, Esc leaves for the map, whatever is picked. */
+        if (picked.length) { clear(); return; }
         if (entered) { onAct("widen"); return; }
-        onPick([]);
         onSaid?.();
       }
       /** On a map, Enter reads what is in focus. Elsewhere it reads the one picked card;
@@ -357,6 +362,9 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       const area = g.on && scene.areas.some((a) => a.id === g.on) ? g.on
         : area_under(scene.areas, g.at)?.id ?? null;
       const on = tile ?? area;
+      /** A click on no chip or box — the map's margins, or past it — lets go of the pick. */
+      const empty = !on || scene.areas.find((a) => a.id === on)?.depth === 0;
+      if (g.button === "left" && g.count === 1 && empty) { clear(); return; }
       if (g.button !== "left" || !on) return;
       if (g.count === 2) { onAct("read", { id: on, ...(tile ? { inner: true } : {}) }); return; }
       onAct("open", { id: on });

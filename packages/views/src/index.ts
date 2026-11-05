@@ -13,7 +13,7 @@ export * from "./seat";
 export { drawn, middle_of, name_box, route, NAMED, STUB, type NameBox } from "./route";
 export { measure, type Measure } from "./measure";
 export { avoided_run, load_avoid, routes_of } from "./avoid";
-export { hop_trace, trace_of, type Leg, type Trace } from "./trace";
+export { hop_trace, picked_trace, trace_of, type Leg, type Trace } from "./trace";
 export * from "./svg";
 export * from "./text";
 

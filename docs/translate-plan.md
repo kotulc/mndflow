@@ -9,7 +9,7 @@
 
 | # | Remaining | Notes |
 |---|---|---|
-| 1 | **clusters that rank** | condensing (*Decided* row 21) leaves core as `block` (28 modules, its six parts one cycle inside) beside `boot`, and tray's `Lists` 22 of 32: the clustering finds cohesive groups that call each other round. Leaning: among the resolutions, prefer the split whose components rank (fewest modules in a cycle) before the cleanest, so a cycle is cut where it is weakest rather than wrapped |
+| 1 | **walk its path: refinements** | next session (the user, 2026-11-04): the user likes *walk its path* on sequence diagrams and has refinements in mind; take them first |
 | 2 | **views over budget** | with types out of the edges views comes to 10 components, one over `most` |
 | 3 | **a component face listing its modules as rows** | *Decided* row 13 |
 | 4 | **vocabulary gaps** | enums and aliases as library types; a name said in two packages linked; methods |
@@ -67,7 +67,8 @@
 | 18 | **packages by level, not by disk folder** | 2026-11-04: the model holds its packages directly, entries first, `layered`, with the lines between them; a package's disk folder stays only as `source`. Supersedes row 15's group folders |
 | 19 | **the system starts at what nothing uses** | 2026-11-04: a package no other package uses is where the system starts; its top modules (importing others of it, imported by none) are its entries, and their paths go on across packages, a lifeline per block reached anywhere (`code.views.map`). Paths walk **wide before deep** — what the entry calls, then what those call — and never step into a shared module, whose calls are implied as its lines are |
 | 20 | **a type read is no dependency** | 2026-11-04: an import of interfaces and type aliases only uses the vocabulary (a definition of its own), so it weighs nothing in the module graph and draws no line; dependency lines name only the values read. It broke no cycle in this repo: core's and tray's are value cycles |
-| 21 | **a cycle is one unit** | 2026-11-04: components importing each other round become one component holding them, a level down; entered, it shows the cycle among its parts |
+| 21 | **a cycle is one unit** | 2026-11-04: components importing each other round become one component holding them, a level down; entered, it shows the cycle among its parts. The fallback: row 22 leaves none in this repo |
+| 22 | **splits that rank first** | 2026-11-04: of the splits within the budget, those whose components rank (the fewest modules in groups importing each other round) win before the cleanest, and the foundation and entry set aside are chosen the same way, so a cycle is cut where it is weakest rather than wrapped. core: `blocks` set aside again, five components L0–L4, modularity 0.39; tray five, L0–L3 |
 
 **Superseded** from 2026-11-01: every top-level declaration as a block and every declared type as a definition (rows 6, 8); each module a diagram on its package's layer (row 7).
 
@@ -185,7 +186,11 @@ Seen in the browser on the translated repo, and (2026-11-02) by Louvain over eac
 | the overview's mini map draws no path: one subtle outline everywhere | tray `Where.tsx`, `tray.css`; views `map.ts` `mini_map` |
 | a chip weighs its joins too (the root of the names across its hops); a block owning a path, or a hop from one, never folds: web's `App` now shows | views `map.ts` `joins_weight`, `kept_open` |
 | hops light on hover only after the pointer rests 250 ms | stage `path.ts` `useOver` |
-| types out of the module graph; cycles condensed | apps/ts `read.ts` `type_only`, `structure.ts` `values_of`, `condensed` |
+| types out of the module graph; cycles condensed; splits that rank first | apps/ts `read.ts` `type_only`, `structure.ts` `values_of`, `condensed`, `clustered` (`cyclic`), `set_aside` |
+| legs kept simple — straight where two blocks face each other, else one bend — over the chips on a halo (out-right-in-left tried and dropped: its loops doubled back); the hover card waits 1 s, 400 ms warm | views `trace.ts` `routed`, `plan`, `drawn`; stage `Traced.tsx`, `flow.css`, `Hover.tsx` |
+| any pick on a map dims the rest; chip names at every zoom; turned text smoothed in grey | views `trace.ts` `picked_trace`; stage `path.ts`, `flow.css` |
+| a chip's body and nested tiles at every zoom (`chip_steps` gone); a smaller arrow; letting go by Escape, Backspace on a map or a click on empty ground, the camera staying put | theme `chip.tsx`; stage `nodes.tsx`, `Traced.tsx`, `Stage.tsx`; core `session.ts` `clear`; web `App.tsx` `stop` |
+| a tall, narrow chip turned -90° whole | views `map.ts` (`TURN`, `face`); theme `chip.tsx` `turned`; stage `nodes.tsx`, `flow.css` |
 
 ## Watch for
 

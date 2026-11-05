@@ -175,8 +175,8 @@ function graphs_of(pkg: Pkg, s: Settings): { directed: Graph; undirected: Graph 
 
 /** The modules set aside on one side, among some nodes: the foundation (`in`), imported by at
  *  least `share` of them, or the entry (`out`), importing at least that share; at least the
- *  likeliest one and at most `budget`, in order; of those, the run whose setting aside splits
- *  the rest most cleanly, which may be none. */
+ *  likeliest one and at most `budget`, in order; of those, the run whose setting aside leaves the
+ *  rest splitting into groups that rank, then most cleanly, which may be none. */
 function set_aside(directed: Graph, undirected: Graph, nodes: string[], side: "in" | "out",
                    s: Settings): string[] {
   const among = new Set(nodes);
@@ -186,11 +186,13 @@ function set_aside(directed: Graph, undirected: Graph, nodes: string[], side: "i
   const over = fan.filter(([, c]) => c >= s.share * nodes.length).length;
   const candidates = fan.slice(0, Math.min(Math.max(over, 1), s.budget)).map(([n]) => n);
   let best: string[] = [];
-  let top = -Infinity;
+  let top = { cyclic: Infinity, modularity: -Infinity };
   for (let k = 0; k <= candidates.length; k++) {
     const left = candidates.slice(0, k);
-    const q = clustered(sub_of(undirected, nodes.filter((n) => !left.includes(n))), s).modularity;
-    if (q > top) [best, top] = [left, q];
+    const q = clustered(sub_of(undirected, nodes.filter((n) => !left.includes(n))), directed, s);
+    if (q.cyclic < top.cyclic || (q.cyclic === top.cyclic && q.modularity > top.modularity)) {
+      [best, top] = [left, q];
+    }
   }
   return best;
 }
@@ -206,7 +208,7 @@ function split(undirected: Graph, directed: Graph, nodes: string[], depth: numbe
   const leftover = new Map<string, string[]>();
   for (const n of alone) leftover.set(folder_of(n), [...(leftover.get(folder_of(n)) ?? []), n]);
   const groups = new Map<number, string[]>();
-  for (const [n, c] of Object.entries(clustered(linked, s).communities)) {
+  for (const [n, c] of Object.entries(clustered(linked, directed, s).communities)) {
     groups.set(c, [...(groups.get(c) ?? []), n]);
   }
   const lists = [...groups.values()];
@@ -221,13 +223,15 @@ function split(undirected: Graph, directed: Graph, nodes: string[], depth: numbe
 }
 
 /** A graph's communities, wide before deep: of the resolutions giving at most `most`, those
- *  needing no further split first, then the cleanest split. Louvain without its random walk, so
- *  a run repeats; each run scored at resolution 1, since Louvain's own score is scaled by its
+ *  needing no further split first, then **those that rank** — the fewest modules in groups
+ *  importing each other round, over `directed` (2026-11-04), so a cycle is cut where it is
+ *  weakest rather than wrapped — then the cleanest split. Louvain without its random walk, so a
+ *  run repeats; each run scored at resolution 1, since Louvain's own score is scaled by its
  *  resolution and so favours the coarsest. */
-function clustered(g: Graph, s: Settings): { communities: Record<string, number>;
-                                             modularity: number } {
+function clustered(g: Graph, directed: Graph, s: Settings): {
+  communities: Record<string, number>; modularity: number; cyclic: number } {
   if (g.size === 0) return { communities: Object.fromEntries(g.nodes().map((n, i) => [n, i])),
-                             modularity: 0 };
+                             modularity: 0, cyclic: 0 };
   const runs = RESOLUTIONS.map((resolution) => louvain.detailed(g, { resolution, randomWalk: false,
                                                                      getEdgeWeight: "weight" }))
     .map((r) => ({ ...r, modularity: modularity(g, { getNodeCommunity: (n) => r.communities[n]!,
@@ -238,9 +242,19 @@ function clustered(g: Graph, s: Settings): { communities: Record<string, number>
     for (const c of Object.values(r.communities)) sizes.set(c, (sizes.get(c) ?? 0) + 1);
     return Math.max(...sizes.values()) <= s.most ? 1 : 0;
   };
-  const best = (fitting.length ? fitting : [runs[0]!]).sort((a, z) =>
-    flat(z) - flat(a) || z.modularity - a.modularity)[0]!;
-  return { communities: best.communities, modularity: best.modularity };
+  /** The share of the modules in groups importing each other round. */
+  const cyclic = (r: (typeof runs)[number]) => {
+    const of = (n: string) => r.communities[n];
+    const edges = directed.mapEdges((_, a, from, to) => [String(of(from)), String(of(to)),
+                                                         a["weight"] as number] as const)
+      .filter(([from, to]) => from !== "undefined" && to !== "undefined" && from !== to);
+    const looped = new Set(levels_of([...new Set(Object.values(r.communities).map(String))], edges)
+      .cycles.flat());
+    return g.nodes().filter((n) => looped.has(String(of(n)))).length / Math.max(1, g.order);
+  };
+  const best = (fitting.length ? fitting : [runs[0]!]).map((r) => ({ ...r, cyclic: cyclic(r) }))
+    .sort((a, z) => flat(z) - flat(a) || a.cyclic - z.cyclic || z.modularity - a.modularity)[0]!;
+  return { communities: best.communities, modularity: best.modularity, cyclic: best.cyclic };
 }
 
 /** A component of modules: anchored on its most joined module within it, then the most imported;
