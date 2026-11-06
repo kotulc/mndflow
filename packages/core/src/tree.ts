@@ -235,13 +235,10 @@ export function reached(graph: Graph, id: Id, layer: Id | null): { blocks: Id[];
   return { blocks: [id, ...far], lines };
 }
 
-/** Every join in the graph, worked out once for its blocks and lines: its lines, owner to owner,
- *  but ties and those inside a behaviour; and every behaviour's path steps. */
-const JOINS = new WeakMap<object, { blocks: object; all: { from: Id; to: Id; name: string }[] }>();
+/** Every join in the graph, worked out once until the graph is written (`kept`): its lines,
+ *  owner to owner, but ties and those inside a behaviour; and every behaviour's path steps. */
 function joins(graph: Graph): { from: Id; to: Id; name: string }[] {
-  const had = JOINS.get(graph.edges);
-  if (had && had.blocks === graph.blocks) return had.all;
-  const all = (() => {
+  return kept(graph, "joins", () => {
     const ways = Object.values(graph.blocks).filter((b) => is_behaviour(graph, b.id));
     const in_way = new Set(ways.flatMap((w) => subtree(graph, w.id)));
     const owners = [...new Set(ways.map((w) => w.parent).filter((x): x is Id => !!x))];
@@ -249,9 +246,7 @@ function joins(graph: Graph): { from: Id; to: Id; name: string }[] {
       .map((e) => ({ from: owner_of(graph, e.from), to: owner_of(graph, e.to), name: e.name ?? "" }))
       .filter((e) => !in_way.has(e.from) && !in_way.has(e.to));
     return [...lines, ...owners.flatMap((o) => path_of(graph, o))];
-  })();
-  JOINS.set(graph.edges, { blocks: graph.blocks, all });
-  return all;
+  });
 }
 
 /** **A block's behaviours as a path, in order**: each message between two steps, ordered by the

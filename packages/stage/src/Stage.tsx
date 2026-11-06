@@ -362,9 +362,14 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       const area = g.on && scene.areas.some((a) => a.id === g.on) ? g.on
         : area_under(scene.areas, g.at)?.id ?? null;
       const on = tile ?? area;
-      /** A click on no chip or box — the map's margins, or past it — lets go of the pick. */
-      const empty = !on || scene.areas.find((a) => a.id === on)?.depth === 0;
-      if (g.button === "left" && g.count === 1 && empty) { clear(); return; }
+      /** **Empty ground** — a box's open ground, the map's margins, or past it: one click lets go
+       *  of the pick, two go up a level, as two outside a diagram's frame do. */
+      const empty = (g.kind === "empty" && !tile) || !on
+        || scene.areas.find((a) => a.id === on)?.depth === 0;
+      if (g.button === "left" && empty) {
+        if (g.count === 1) clear(); else onAct("open");
+        return;
+      }
       if (g.button !== "left" || !on) return;
       if (g.count === 2) { onAct("read", { id: on, ...(tile ? { inner: true } : {}) }); return; }
       onAct("open", { id: on });

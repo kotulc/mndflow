@@ -119,7 +119,9 @@ export function Definitions({ graph, about, follows, lines, target = "the select
   /** What is lit: the row clicked and listed, else the first — the one it follows, where it has
    *  one, since that heads the listing. */
   const on = lit_row(current ? [current, ...listed] : listed, lit ? [lit] : []);
-  useEffect(() => onLit?.(on[0] ?? null), [on[0]]);
+  /** The first row is in hand, never told as a pick (2026-11-04): only a row clicked lights on
+   *  the canvas, so showing a list picks nothing; a row clicked and since filtered out lets go. */
+  useEffect(() => { if (lit && on[0] !== lit) onLit?.(null); }, [on[0]]);
 
   /** One definition's row, wherever it sits. */
   const line = (r: DefRow): Line => {

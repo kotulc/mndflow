@@ -5,6 +5,8 @@
 
 ## Next session
 
+**Handoff 2026-11-04.** This session's work is committed as `93442f7` and `76fa450`, but the last fixes (letting go of a pick, box titles, the tray's first row, the hops memo) are uncommitted. Regenerate both samples before looking (`npm run code`; mndsite by hand, below); both `check` clean. Take *Remaining* row 1 first: the user's refinements to *walk its path*.
+
 **2026-11-04: telling the story from the entry points.** One tree, one order: the explorer, the map and an entered diagram read the same children in the same order (*Decided* rows 16–18); a system path from each package nothing uses (row 19); every block lights one hop each way, and a path is walked a hop at a time from a block marked ▶ (*Directions* rows 13–14).
 
 | # | Remaining | Notes |
@@ -15,6 +17,9 @@
 | 4 | **vocabulary gaps** | enums and aliases as library types; a name said in two packages linked; methods |
 | 5 | **open directions** | rows 1–3, 5, 6, 8: edge weights, clustering package, component kinds, vocabulary ranking by *used by*, writing the workspace, what the agent layer needs |
 | 6 | **acceptance** | every diagram readable at fit, judged by the user and `mnd measure` |
+| 7 | **a pick's fit in an entered view** | on the map a pick fits the block and its hops; in an entered view the camera stays fitted whole (*Directions* row 13) |
+| 8 | **the explorer after letting go** | letting go on the canvas leaves the explorer's row lit (mndsite: `link`); whether the explorer lets go too |
+| 9 | **a CSS warning** | `npm` `lint-css`: an undefined `--n` in theme `face.css`, not this plan's code |
 
 | # | Step | State |
 |---|---|---|
@@ -26,7 +31,7 @@
 | f | **a reference breakdown** (*Directions* row 7) | **set aside 2026-11-02**: the user's reading of the models leads instead |
 
 - **the user's direction** (2026-11-02): a deterministic structure found from the graph (imports, interfaces, cycles, centrality), not agentic band-aids; **no hard rules** about what a block is; **thresholds are defaults with floors**; **balance depth against the big picture**; diagrams are visual information, never lists of parts; agents refine and narrate on top
-- **uncommitted**: everything in *Built*, and the entry paths work (traced paths on the map and mini map, one map layout for treemap diagrams, an entry drawn as one chip, paths fanned out, a compact mini map). `samples/code*` and `samples/mndsite*` are generated and gitignored
+- **committed** through `76fa450`: everything in *Built* but the fixes the handoff above names. `samples/code*` and `samples/mndsite*` are generated and gitignored
 - **regenerate**: `npm run code` (this repo → `samples/code.json`); mndsite by hand: `cd apps/ts && npx vite-node src/main.ts ../../../mndsite ../../samples/mndsite`, then `npm run start -s -w @mnd/cli -- collect ../../samples/mndsite ../../samples/mndsite.json --workspace`; `check` each. `npm run packages` after any `ts` kind change
 - **measure**: `npm run start -s -w @mnd/cli -- measure ../../samples/<name>.json [layer]`; entered diagrams only, not the map
 - **see it**: a Playwright script (Edge, `channel: "msedge"`) starting Vite from `apps/web/vite.config.ts`, routing `**/mndflow.yaml` to `workspace: /samples/<name>.json` (`tray: open`); enter, hover or pick a node by id (`.react-flow__node[data-id="…"]`), never by text, which matches chips inside. Run from the repo root; in Git Bash set `MSYS_NO_PATHCONV=1`
@@ -189,7 +194,8 @@ Seen in the browser on the translated repo, and (2026-11-02) by Louvain over eac
 | types out of the module graph; cycles condensed; splits that rank first | apps/ts `read.ts` `type_only`, `structure.ts` `values_of`, `condensed`, `clustered` (`cyclic`), `set_aside` |
 | legs kept simple — straight where two blocks face each other, else one bend — over the chips on a halo (out-right-in-left tried and dropped: its loops doubled back); the hover card waits 1 s, 400 ms warm | views `trace.ts` `routed`, `plan`, `drawn`; stage `Traced.tsx`, `flow.css`, `Hover.tsx` |
 | any pick on a map dims the rest; chip names at every zoom; turned text smoothed in grey | views `trace.ts` `picked_trace`; stage `path.ts`, `flow.css` |
-| a chip's body and nested tiles at every zoom (`chip_steps` gone); a smaller arrow; letting go by Escape, Backspace on a map or a click on empty ground, the camera staying put | theme `chip.tsx`; stage `nodes.tsx`, `Traced.tsx`, `Stage.tsx`; core `session.ts` `clear`; web `App.tsx` `stop` |
+| a chip's body and nested tiles at every zoom (`chip_steps` gone); a smaller arrow; letting go by Escape, Backspace on a map or a click on empty ground, back to the section's map, the camera staying put; two clicks on empty ground go up; a map's box taken by its title | theme `chip.tsx`; stage `nodes.tsx`, `Traced.tsx`, `Stage.tsx`, `pointer.ts`; core `session.ts` `clear`, `navigate.ts` `map_of`; web `App.tsx` `stop` |
+| showing a list picks nothing (library and models on mndsite picked their first row and dimmed the rest); the hops worked out once until the graph is written (`kept`) | tray `Definitions.tsx`; core `tree.ts` `joins` |
 | a tall, narrow chip turned -90° whole | views `map.ts` (`TURN`, `face`); theme `chip.tsx` `turned`; stage `nodes.tsx`, `flow.css` |
 
 ## Watch for

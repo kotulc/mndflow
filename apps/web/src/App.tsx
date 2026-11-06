@@ -618,7 +618,7 @@ export function App({ storage, boot, opening }: {
           entered={entered && !!map}
           opened={opened}
           stop={stop}
-          onClear={() => s.clear()}
+          onClear={() => s.clear(mapped)}
 
           focus={system ? view.pick : whole ? null : aim}
           most={1}

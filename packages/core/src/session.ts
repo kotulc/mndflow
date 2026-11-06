@@ -3,7 +3,7 @@
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
 import { fold, replay, step, type Floor } from "./fold";
-import { home_at, read_at, sight, trace, view_of, view_on, EDITOR, type Tiers,
+import { home_at, map_of, read_at, sight, trace, view_of, view_on, EDITOR, type Tiers,
          type View, type Views } from "./navigate";
 import { is_layer_view, type ViewKind } from "./sections";
 import { package_of } from "./defs";
@@ -58,8 +58,9 @@ export type Session = {
   see: (kind: ViewKind, id?: Id | null, at?: number) => void;
   /** Pick blocks, made through the usage `via` where they were read through one. */
   pick: (ids: Id[], via?: Id) => void;
-  /** Let go of everything picked, and of a map's focus: the view stays where it is. */
-  clear: () => void;
+  /** Let go of everything picked; and, where the canvas draws the map (`map`), of its focus,
+   *  back to the section's map, though a pick on it opened a layer. */
+  clear: (map?: boolean) => void;
   pick_cells: (cells: readonly Spot[]) => void;
   say: (text: string, kind?: Said["kind"]) => void;
 
@@ -323,11 +324,11 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       listener?.();
     },
 
-    clear() {
+    clear(map = false) {
       picked = [];
       through = null;
       cells = [];
-      if (!is_layer_view(view.kind)) view = { ...view, pick: null };
+      if (map) move(map_of(graph, tiers, views, view));
       listener?.();
     },
 

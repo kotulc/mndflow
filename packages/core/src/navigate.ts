@@ -187,6 +187,16 @@ export function view_of(tiers: Tiers, views: Views, at: number): ViewKind {
   return chosen && section!.views.includes(chosen) ? chosen : section?.views[0] ?? "internal";
 }
 
+/** **The map a view's section shows**, nothing focused (2026-11-04): what letting go returns to
+ *  while the map is drawn, even where a pick on it opened a layer the canvas has not entered. */
+export function map_of(graph: Graph, tiers: Tiers, views: Views, view: View): View {
+  const kind = view_of(tiers, views, view.at);
+  if (is_layer_view(kind)) return map_at(view.at, null);
+  const on = view.layer ?? view.pick;
+  const roots = on && graph.blocks[on] ? trace(graph, tiers, on).roots : [];
+  return { at: view.at, kind, layer: scope_of(roots, view.at), pick: null };
+}
+
 /** What a whole section is drawn from: the root of the section above, which lists its roots. */
 export function scope_of(roots: readonly (Id | null)[], at: number): Id | null {
   return roots[Math.max(0, at - 1)] ?? null;

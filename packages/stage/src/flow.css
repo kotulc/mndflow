@@ -470,14 +470,6 @@
 .mnd-chip-text .mnd-facts { display: contents; }
 /* The facts start a row of their own. */
 .mnd-chip-break { flex-basis: 100%; height: 0; }
-.mnd-chip-head {
-  position: absolute;
-  display: flex;
-  gap: 6px;
-  align-items: baseline;
-  overflow: hidden;
-  white-space: nowrap;
-}
 .mnd-chip-icon {
   position: absolute;
   top: 6px;
@@ -700,11 +692,6 @@
 }
 .mnd-chip-tile { display: flex; gap: 3px; align-items: flex-start; }
 .mnd-chip-tile > svg { flex: none; margin-top: 1px; }
-/* **A nested tile** shows as zoom brings its mark into reading size, fading in over the tile
-   holding it (`chip_steps`, theme `chip.tsx`). */
-.mnd-chip-tile.nested { animation: mnd-tile-in 120ms ease; }
-@keyframes mnd-tile-in { from { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .mnd-chip-tile.nested { animation: none; } }
 /* **What a tile says under its name**, as it grows: its facts line, then its rows, each one line
    of the name's height, as many whole ones as the tile holds under its name. */
 .mnd-chip-tile-more {
@@ -815,7 +802,7 @@
    ground. Nothing else lights on a map. */
 .mnd-chip:hover, .mnd-box:has(.mnd-box-title:hover) { --edge: var(--accent); }
 .mnd-chip:hover { background: color-mix(in oklch, var(--accent) 8%, var(--surface)); }
-.mnd-box.picked .mnd-box-title, .mnd-chip.picked .mnd-chip-head { color: var(--accent); }
+.mnd-box.picked .mnd-box-title { color: var(--accent); }
 
 /* Where the camera cut from the map to a layer, or back, the new drawing fades in. */
 .mnd-flow.fresh .react-flow__viewport { animation: mnd-fade-in 0.2s ease-out; }
