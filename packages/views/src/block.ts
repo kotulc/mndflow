@@ -264,7 +264,8 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
 }
 
 /** The cells a grid draws, placed inside its own box. A header line's cells are marked so, and
- *  the left column's read upright; what sits in a cell is a block, drawn as one. */
+ *  the left column's read upright; what sits in a cell is a block, drawn as one; a cell's label
+ *  is its text — a header's names its line, else the line is numbered or lettered. */
 function lattice(graph: Graph, id: Id): GridCell[] {
   const g = lattice_of(graph, id)!;
   const head = head_height(graph, id);
@@ -284,9 +285,11 @@ function lattice(graph: Graph, id: Id): GridCell[] {
       /** A header heading one line is that line's tab; the corner heads none. */
       const line = role === "row" ? { way: "row" as const, i: r }
         : role === "col" ? { way: "col" as const, i: c } : null;
-      const index = line ? line_name(line.way, line.i) : "";
+      const label = g.labels?.find((l) => l.r === r && l.c === c)?.text;
+      const index = line && !label ? line_name(line.way, line.i) : "";
       out.push({ r, c, ...cell_box(g, r, c, head), marks,
-                 ...(line ? { line } : {}), ...(index ? { index } : {}) });
+                 ...(line ? { line } : {}), ...(index ? { index } : {}),
+                 ...(label ? { label } : {}) });
     }
   }
   return out;

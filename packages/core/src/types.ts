@@ -100,7 +100,14 @@ export type Grid = {
   cols: number;
   /** Cells with an extent of their own. */
   merges?: Span[];
+  /** **Labels are plain data** (2026-11-05): a column's on the header row, a row's on the
+   *  header column, a cell's in the body. A block a label covers carries it as a tag
+   *  (`given_of`); a block sits in a header only where it stands for a concept. */
+  labels?: GridLabel[];
 };
+
+/** A label on a grid: its line's header cell, or a body cell, and its text. */
+export type GridLabel = { r: number; c: number; text: string };
 
 /** The tree a folder at a package's root belongs to, where it is not structure. */
 export type Tree = "definitions";

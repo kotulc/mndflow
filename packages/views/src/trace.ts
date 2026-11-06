@@ -5,7 +5,8 @@
  *  No numbers: a walk along a path says its step in words (stage `Walk.tsx`), lighting one hop at
  *  a time (`hop_trace`). Worked out on hover or pick, never stored. */
 
-import { hops_of, path, type Graph, type Hop, type Id } from "@mnd/core";
+import { hops_of, is_reference, path, stands_for, type Graph, type Hop,
+         type Id } from "@mnd/core";
 import { box_of, type Scene } from "./scene";
 
 type Point = { x: number; y: number };
@@ -18,20 +19,20 @@ export type Leg = { from: Id; to: Id; names: string[]; run: Point[]; both?: bool
 export type Trace = { blocks: Id[]; lines: Id[]; legs: Leg[] };
 
 
-/** `id`'s hops, traced over a map; null off a map or where nothing drawn joins it. */
+/** `id`'s hops, traced over a map — a reference's, what it stands for — null off a map or where
+ *  nothing drawn joins it. */
 export function trace_of(graph: Graph, scene: Scene, id: Id): Trace | null {
-  return graph.blocks[id] ? hop_trace(graph, scene, hops_of(graph, id)) : null;
+  const at = is_reference(graph, id) ? stands_for(graph, id)?.id ?? id : id;
+  return graph.blocks[at] ? hop_trace(graph, scene, hops_of(graph, at)) : null;
 }
 
-/** **Hops traced over a map**: each end lifted to the nearest block the map draws, or the *+n
- *  more* it folded into; one leg a pair, either way. Null off a map or where none is drawn. */
+/** **Hops traced over a map**: each end lifted to the nearest block the map draws — itself, or a
+ *  reference standing for it, as a treemap diagram draws — or the *+n more* it folded into; one
+ *  leg a pair, either way. Null off a map or where none is drawn. */
 export function hop_trace(graph: Graph, scene: Scene, hops: readonly Hop[]): Trace | null {
   if (!scene.areas) return null;
-  const nodes = new Map(scene.nodes.map((n) => [n.id, n]));
-  /** What folded into a *+n more* stands at it. */
-  const more = new Map(scene.nodes.flatMap((n) => (n.data.folded ?? []).map((f) => [f, n.id])));
-  const lift = (at: Id) => [...path(graph, at)].reverse()
-    .map((b) => (nodes.has(b.id) ? b.id : more.get(b.id))).find((x) => !!x);
+  const at = standing(graph, scene);
+  const lift = (id: Id) => [...path(graph, id)].reverse().map((b) => at(b.id)).find((x) => !!x);
   const legs: Leg[] = [];
   for (const h of hops) {
     const [from, to] = [lift(h.from), lift(h.to)];
@@ -56,6 +57,25 @@ export function picked_trace(scene: Scene, picked: readonly Id[]): Trace | null 
   const ids = picked.filter((id) => drawn.has(id));
   return scene.areas && ids.length ? { blocks: with_inside(scene, ids), lines: [], legs: [] }
     : null;
+}
+
+/** **Picks as a map draws them** (2026-11-05): each where it stands (`standing`), so a block
+ *  walked to in the explorer is lit even where the map draws it as a reference or had no room. */
+export function on_map(graph: Graph, scene: Scene, ids: readonly Id[]): Id[] {
+  const at = standing(graph, scene);
+  return [...new Set(ids.map((id) => at(id) ?? id))];
+}
+
+/** **What stands for a block on a map**: its own node, a reference drawn for it, as a treemap
+ *  diagram draws, or the *+n more* it folded into. */
+function standing(graph: Graph, scene: Scene): (id: Id) => Id | undefined {
+  const nodes = new Set(scene.nodes.map((n) => n.id));
+  const more = new Map(scene.nodes.flatMap((n) => (n.data.folded ?? []).map((f) => [f, n.id])));
+  const stood = new Map(scene.nodes.flatMap((n) => {
+    const to = is_reference(graph, n.id) ? stands_for(graph, n.id)?.id : undefined;
+    return to ? [[to, n.id] as const] : [];
+  }));
+  return (id) => (nodes.has(id) ? id : stood.get(id) ?? more.get(id));
 }
 
 /** Blocks on a map, each box with everything it holds: what it holds is part of it. */

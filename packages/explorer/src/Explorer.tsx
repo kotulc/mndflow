@@ -15,7 +15,7 @@ import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
 import { end_of, listed_of, mark_icon, OPENED, opened, parent_of, tree_of,
-         type Row } from "./rows";
+         type Nest, type Row } from "./rows";
 
 /** What a host may hand a row: its colour, as the attributes the card table reads, and a count;
  *  and a swatch to wear for its icon, as the same attributes. */
@@ -71,9 +71,12 @@ export type ExplorerProps = {
   /** A block row's colour edge and quiet count, where the host has them; never asked of a package
    *  or a folder. */
   rowLook?: (id: Id) => RowLook;
-  /** Whether the arrows walk the tree: up and down through the rows of the section in focus, left
-   *  and right to the section above or below, landing on what it holds. The way to the row walked
-   *  to opens, and nothing shuts. A row walked to is chosen as a plain click chooses it. */
+  /** The models' tree as the host's map reads it, so the models list what the map draws; absent,
+   *  the models list the graph's own tree. */
+  models?: readonly Nest[];
+  /** Whether the arrows walk the tree by level: up and down among the rows under one holder, left
+   *  to the holder, right to the first row it holds. The way to the row walked to opens, and
+   *  nothing shuts. A row walked to is chosen as a plain click chooses it. */
   keys?: boolean;
 };
 
@@ -193,7 +196,7 @@ export function Explorer(props: ExplorerProps) {
    *  and every row as the arrows walk them. Read off the tree fully open, so a shut branch's own
    *  branches still count. */
   const sections = useMemo(() => {
-    const all = tree_of(graph, [], chain, true);
+    const all = tree_of(graph, [], chain, true, props.models);
     const out = new Map<Id, Id[]>();
     for (let i = 0; i < all.length; i++) {
       if (all[i]!.depth) continue;
@@ -207,7 +210,7 @@ export function Explorer(props: ExplorerProps) {
     const slice = chain.slices[chain.at]!;
     const library = slice.lists === "domain" || (slice.lists === undefined && slice.cut !== null);
     return { folds: out, all, library };
-  }, [graph, chain?.at, chain?.held.join("|")]);
+  }, [graph, chain?.at, chain?.held.join("|"), props.models]);
 
   /** Whether a row is shut: a section's header once folded; every branch until it was opened. */
   const is_shut = (r: Row) => (r.of === "pack" ? folded.includes(r.id) : !opened(folded, r.id));
@@ -228,8 +231,10 @@ export function Explorer(props: ExplorerProps) {
 
   /** The canvas reveals its own rows, never another section's: a new layer opens the way to it,
    *  and a new pick inside it opens the way to that pick — on a map, the pick's own row too, so
-   *  the home's model shows what it holds — in the section the canvas looks at, once each. A row chosen in another section is never a reason to unfold this one, and folding
-   *  a row again is the user's until the layer or the pick changes. */
+   *  the home's model shows what it holds — in the section the canvas looks at, once each.
+   *  **A row chosen here keeps its own fold** (2026-11-05): walking past a block never spills
+   *  what it holds. A row chosen in another section is never a reason to unfold this one,
+   *  and folding a row again is the user's until the layer or the pick changes. */
   const layer = is_layer_view(view.kind) ? view.layer : null;
   const lists = chain.slices[view.at]?.lists;
   /** A pick the canvas shows: under its layer, on the side its section lists. */
@@ -242,15 +247,21 @@ export function Explorer(props: ExplorerProps) {
   const done = useRef({ seen, rows: new Set<Id>() });
   useEffect(() => {
     if (done.current.seen !== seen) done.current = { seen, rows: new Set() };
+    /** A pick or layer the explorer did not choose: the canvas reveals its row again. */
+    if (chosen.current && !revealed.includes(chosen.current) && layer !== chosen.current) {
+      chosen.current = null;
+    }
     const way = [...revealed, ...(layer ? [layer] : [])].flatMap((id) => [...holders(graph, id)]);
     const up = new Set([...way, ...(layer ? [layer] : revealed)]);
+    const own = new Set(way);
     for (const r of sections.all) {
       if (!r.kids || r.at !== view.at || !up.has(r.ref) || done.current.rows.has(r.id)) continue;
+      if (r.ref === chosen.current && !own.has(r.ref)) continue;
       done.current.rows.add(r.id);
       if (is_shut(r)) fold(r, false);
     }
   }, [seen, sections]);
-  const rows = tree_of(graph, folded, chain);
+  const rows = tree_of(graph, folded, chain, false, props.models);
   /** The lowest open layer, under every branch alike: each open branch with no open branch
    *  inside it. The bar's fold shuts them, a layer a click, until only the top rows show; with
    *  none left, it opens every section whole. */
@@ -372,29 +383,59 @@ export function Explorer(props: ExplorerProps) {
     choose(r);
   };
 
+  /** The row last chosen here, which the canvas's reveal leaves folded as it was. */
+  const chosen = useRef<Id | null>(null);
+
   /** A row chosen as a plain click chooses it: held in its section. Browsing moves nothing. */
   const choose = (r: Row) => {
     if (r.at === undefined || r.pick === undefined) return;
+    chosen.current = r.ref;
     if (r.of === "block") set_anchor(r.ref);
     chain.onChoose(r.at, r.pick, r.via);
   };
 
-  /** A row opened: chosen, and handed to the host for the canvas to draw. */
+  /** A row opened: chosen, unfolded to show what it holds, and handed to the host for the canvas
+   *  to draw. */
   const opening = (r: Row) => {
     if (r.at === undefined || r.pick === undefined) return;
     choose(r);
+    chosen.current = null;
+    if (r.kids && is_shut(r)) fold(r, false);
     onOpen?.({ at: r.at, id: r.pick, ...(r.via ? { via: r.via } : {}) });
   };
 
-  /** The arrows walk the whole tree, shut branches too, from the first row lit: up and down within
-   *  the section in focus. → opens what is lit and goes to the section below; ← leaves for the
-   *  section above. Enter opens, F2 renames, Backspace leaves. */
+  /** The arrows walk the whole tree by level, shut branches too, from the first row lit — **as a
+   *  map's chips nest**: up and down to the row before or after at the same level, under the same
+   *  holder, past a section's first or last top row to the section above or below; ← to its
+   *  holder, → to the first row it holds. Enter opens, F2 renames, Backspace leaves. */
   useEffect(() => {
     if (!keys) return;
     const all = sections.all;
     /** A row's holder; -1 where there is none. */
     const up = (i: number) => parent_of(all, i);
     const can = (r: Row) => r.pick !== undefined;
+    /** The nearest choosable holder in the same section, the workspace never, as choosing it
+     *  picks nothing; -1 where there is none. */
+    const holder = (i: number) => {
+      let j = up(i);
+      while (j >= 0 && !can(all[j]!)) j = up(j);
+      return j >= 0 && all[j]!.at === all[i]!.at && all[j]!.ref !== graph.root ? j : -1;
+    };
+    /** The first choosable row it holds; -1 where it holds none. */
+    const first_child = (i: number) => {
+      for (let j = i + 1; j < end_of(all, i); j++) {
+        if (all[j]!.depth === all[i]!.depth + 1 && can(all[j]!)) return j;
+      }
+      return -1;
+    };
+    /** The next choosable row at its level under its holder, `by` 1 after or -1 before. */
+    const sibling = (i: number, by: 1 | -1) => {
+      const d = all[i]!.depth;
+      for (let j = i + by; j >= 0 && j < all.length && all[j]!.depth >= d; j += by) {
+        if (all[j]!.depth === d && can(all[j]!)) return j;
+      }
+      return -1;
+    };
     const key = (e: KeyboardEvent) => {
       const typing = e.target instanceof HTMLElement
         && e.target.closest("input, textarea, select, button, [contenteditable='true']");
@@ -406,7 +447,9 @@ export function Explorer(props: ExplorerProps) {
       const held_in = (n: number) => all.findIndex((r) => r.at === n && can(r)
         && r.pick === held[n] && !r.via);
       const first_in = (n: number) => all.findIndex((r) => can(r) && r.at === n);
-      const lit_at = all.findIndex(lights);
+      /** The pick's own row first: its stand-ins light too, wherever they list. */
+      const own_at = all.findIndex((r) => lights(r) && mine.includes(r.ref) && !r.via);
+      const lit_at = own_at >= 0 ? own_at : all.findIndex(lights);
       const at = lit_at >= 0 ? lit_at : held_in(chain.at);
       if (e.key === "Enter") { if (at >= 0) opening(all[at]!); return; }
       if (e.key === "F2") {
@@ -415,25 +458,21 @@ export function Explorer(props: ExplorerProps) {
         return;
       }
       if (e.key === "Backspace") { onLeave?.(); return; }
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-        /** → opens what is lit and steps into the section below; ← steps out and leaves. */
-        const n = chain.at + (e.key === "ArrowRight" ? 1 : -1);
-        if (e.key === "ArrowRight" && at >= 0) opening(all[at]!);
-        if (n < 0 || n >= chain.slices.length) return;
-        const land = held_in(n) >= 0 ? held_in(n) : first_in(n);
-        if (land >= 0) choose(all[land]!);
-        if (e.key === "ArrowLeft") onLeave?.();
-        return;
-      }
       /** From the row lit; else from what the section in focus holds; else its first row. */
       const first = first_in(chain.at);
       if (at < 0) { if (first >= 0) choose(all[first]!); return; }
-      const forward = e.key === "ArrowDown" || e.key === "ArrowRight";
-      let to = at;
-      do to += forward ? 1 : -1; while (to >= 0 && to < all.length && !can(all[to]!));
-      if (to < 0 || to >= all.length) return;
-      /** The arrows stay in the section they start in. */
-      if (all[to]!.at !== all[at]!.at) return;
+      const to = e.key === "ArrowLeft" ? holder(at)
+        : e.key === "ArrowRight" ? first_child(at)
+        : sibling(at, e.key === "ArrowDown" ? 1 : -1);
+      if (to < 0) {
+        /** Past a section's first or last top row, the section above or below. */
+        const n = chain.at + (e.key === "ArrowDown" ? 1 : -1);
+        const top = holder(at) < 0 && (e.key === "ArrowDown" || e.key === "ArrowUp");
+        if (!top || n < 0 || n >= chain.slices.length) return;
+        const land = held_in(n) >= 0 ? held_in(n) : first_in(n);
+        if (land >= 0) choose(all[land]!);
+        return;
+      }
       // The way to the row walked to opens; nothing shuts.
       for (let j = up(to); j >= 0; j = up(j)) {
         if (is_shut(all[j]!)) fold(all[j]!, false);

@@ -5,6 +5,8 @@
 
 ## Next session
 
+**Handoff 2026-11-05.** The map and the explorer read one tree (*Built 2026-11-05*), uncommitted. **The next big effort is simplify-plan.md**: eliminate special cases and blocks that are not concepts; it leads ahead of *Remaining* below. Regenerate both translations and `npm run example` after pulling.
+
 **Handoff 2026-11-04.** This session's work is committed as `93442f7` and `76fa450`, but the last fixes (letting go of a pick, box titles, the tray's first row, the hops memo) are uncommitted. Regenerate both samples before looking (`npm run code`; mndsite by hand, below); both `check` clean. Take *Remaining* row 1 first: the user's refinements to *walk its path*.
 
 **2026-11-04: telling the story from the entry points.** One tree, one order: the explorer, the map and an entered diagram read the same children in the same order (*Decided* rows 16–18); a system path from each package nothing uses (row 19); every block lights one hop each way, and a path is walked a hop at a time from a block marked ▶ (*Directions* rows 13–14).
@@ -23,7 +25,7 @@
 
 | # | Step | State |
 |---|---|---|
-| a | **salience** (stage 6) | built: PageRank over imports by symbols, scaled by length; a component's diagram draws its most salient half (`shown` 0.5, at least 1, at most the budget, never folding one alone), the rest one `other` block saying which. Left: unjoined modules folded per band (*Directions* row 4); a component face listing modules as rows |
+| a | **salience** (stage 6) | built: PageRank over imports by symbols, scaled by length; a component's modules ordered by it, every one written (2026-11-05: the `other` block folding the least salient half removed — a view folds, never the model). Left: unjoined modules folded per band (*Directions* row 4); a component face listing modules as rows |
 | b | **names** (stage 8) | built: tf-idf over the module names of a component against its siblings', a word recurring at least twice; first doc lines too only where the anchor is a stop word (`helpers`, `index`, `utils`). Tried with doc words for all: worse (`session` became `log`, `nodes` `level`), so anchors that name something stay |
 | c | **vocabulary** (stage 7) | built: interfaces, classes and object types another module reads, owned by the block holding their module, at most `most` (9) an owner by fan-in; a definition each in `types/<group>/<pkg>/<owner>/`, fields as attributes, a field typed by a written type an `association`, `extends` the `type`; a `class` diagram per component owning types, and one for the package's own. Left: enums and aliases as library types (they read as `text` with a note); a name said in two packages is never linked bare (text with a note); methods |
 | d | **ports** (stage 5) | **decided 2026-11-02: no ports from imports or exports.** A port describes an interface, a data contract; an import is a usage, not a contract. At most one port per interface a component offers, and only once there is a contract to name; none generated until then |
@@ -177,6 +179,20 @@ Seen in the browser on the translated repo, and (2026-11-02) by Louvain over eac
 | a project named as a catalogue package | translating apps/ts alone names it `ts`, and the door renames one of the two |
 | every entry takes about 2 s | at 2,100 blocks; profile again at the new, smaller output |
 
+
+## Built 2026-11-05
+
+**The map and the explorer, one tree** (design.md *The explorer*, code-homes.md *the models' tree*). Seen in the app on this repo and the shop.
+
+| Change | Where |
+|---|---|
+| the models' tree in one home, the map laying it, the explorer listing it (leaves included, merged as the map merges, packages keeping their rows), handed in by the host per the dependency law | views `tree.ts`; `map.ts` `leaf_of`; explorer `rows.ts` `tree_rows`, `Nest`; web `App.tsx` `models` |
+| arrows by level: up and down among siblings, left to the holder, right to the first held; a walk starts from the pick's own row, never a stand-in's; a row chosen here keeps its fold | explorer `Explorer.tsx` |
+| a treemap diagram: a pick fits it and its hops, hops lifted onto references; a reference's hover card says what it stands for (a root named by `of` tried and removed: it drew itself; `Estate` deleted) | core `tree.ts` `drawn_root`, `names.ts` `opens`; views `trace.ts`, `about.ts`; web `App.tsx` `hop_box`, `stop` |
+| a pick folded into *+n more* lights it | views `trace.ts` `on_map` |
+| grid labels as plain data, the *A › B* merge removed (simplify-plan.md *Settled*); a card's name shows at every zoom, held no larger than a chip's | simplify-plan.md; stage `flow.css` *Levels by zoom* |
+| **no placeholder blocks**: sequence steps on numbered rows (no `0`–`12` header blocks); every module written, salience only ordering them (no `other` block, `shown` and `folded_of` gone) | apps/ts `write.ts` `entry_files`, `component_files`; `structure.ts` |
+| the overview says what the hover card says but the card; every components section shows; each tray column scrolls on its own; the card tab's 2 px offset | tray `Overview.tsx`, `Carried.tsx`, `Element.tsx`, `tray.css`; theme `uses.tsx` |
 
 ## Built 2026-11-04
 

@@ -2,7 +2,7 @@
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
 import { alias_of, branch_of, children, domain_of, KINDS, library_of,
-         of_ref, on_side, opens, is_folder, is_grid, is_notation, is_box, is_named, relation_base,
+         is_folder, is_notation, is_box, is_named, on_side, relation_base,
          role_of, setting_of, shown_name, tops_of,
          type Block, type Cut, type Graph, type Id, type Lists, type Registry,
          type Role } from "@mnd/core";
@@ -43,6 +43,10 @@ export type Row = { id: Id; depth: number; label: string; kids: number; mark: Ma
                     /** Per indent column, whether its guide line carries on past this row. */
                     guides: boolean[] };
 
+/** **The models' tree as the host's map reads it** (views `model_tree`): a branch each box, chip
+ *  and group. Handed in, as a row's look is (2026-11-05). */
+export type Nest = { id: Id; as: "box" | "chip" | "group"; kids: readonly Nest[] };
+
 /** What the explorer stores, in its folds, for a branch somebody opened. **Every branch is shut
  *  until opened**, so a long tree starts short. */
 export const OPENED = "+";
@@ -81,8 +85,10 @@ export function card_icon(graph: Graph, id: Id): IconName | undefined {
 }
 
 /** The panel's rows: each section's header — a label, never chosen — then what it lists for the
- *  picks the sections above hold. `every` lists every branch, opened or not. */
-export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain, every = false): Row[] {
+ *  picks the sections above hold; the models, the map's tree where the host hands it. `every`
+ *  lists every branch, opened or not. */
+export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain, every = false,
+                        models?: readonly Nest[]): Row[] {
   const out: Row[] = [];
   chain.slices.forEach((slice, at) => {
     const key = `@${slice.id}`;
@@ -92,12 +98,18 @@ export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain, every
     if (folded.includes(key) || root === undefined) return;
     const start = out.length;
     const keyed = (route: string) => `${slice.id}/${route}`;
-    const forest = slice.lists === "structure";
-    const tops = tops_of(graph, forest ? null : root ?? null).filter((id) => !forest
-      || on_side(graph, id, "structure"));
-    for (const id of tops) {
-      branch_rows(graph, { cut: slice.cut, root, every, lists: slice.lists }, id, id, undefined,
-                  folded, out, keyed, 1, new Set());
+    /** **The models list the map's tree** (2026-11-05): a row each box, chip and tile, merged
+     *  as the map merges them. */
+    if (slice.lists === "structure" && models) {
+      tree_rows(graph, models, "", folded, out, keyed, 1, every);
+    } else {
+      const forest = slice.lists === "structure";
+      const tops = tops_of(graph, forest ? null : root ?? null).filter((id) => !forest
+        || on_side(graph, id, "structure"));
+      for (const id of tops) {
+        branch_rows(graph, { cut: slice.cut, root, every, lists: slice.lists }, id, id, undefined,
+                    folded, out, keyed, 1, new Set());
+      }
     }
     for (const row of out.slice(start)) row.at = at;
   });
@@ -159,6 +171,28 @@ export function listed_of(graph: Graph, id: Id): Id {
   return at;
 }
 
+/** **The models' rows**: a row each branch of the map's tree, its merged boxes named in its
+ *  label; a group's members and a region's at its level, as the explorer never lists notation.
+ *  What a row holds lists only once it is opened, unless every branch is asked for. */
+function tree_rows(graph: Graph, branches: readonly Nest[], route: string,
+                   folded: readonly Id[], out: Row[], key: (route: string) => string,
+                   depth: number, every: boolean): void {
+  for (const b of listed(graph, branches)) {
+    const at = route ? `${route}/${b.id}` : b.id;
+    const row_key = key(at);
+    out.push(block_row(graph, b.id, depth, listed(graph, b.kids).length, row_key));
+    if (every || opened(folded, row_key)) {
+      tree_rows(graph, b.kids, at, folded, out, key, depth + 1, every);
+    }
+  }
+}
+
+/** The branches a row lists: notation never — a group or a region by what it holds. */
+function listed(graph: Graph, branches: readonly Nest[]): Nest[] {
+  return branches.flatMap((b) => (b.as !== "group" && !is_notation(graph, b.id) ? [b]
+    : b.as === "group" || is_box(graph, b.id) ? listed(graph, b.kids) : []));
+}
+
 /** A row and what its section lists under it: for a usage, its definition's blocks marked as
  *  parts, then its own children; nothing past the section's cut. What a row holds lists only
  *  once it is opened — so a definition reached through itself never lists forever — unless
@@ -171,11 +205,8 @@ function branch_rows(graph: Graph,
                      seen: ReadonlySet<Id>): void {
   if (!graph.blocks[id]) return;
   const branch = branch_of(graph, id, at.cut, at.root, seen, at.lists);
-  /** **The model lists rooms only**: what holds blocks; its other blocks list in the tray. */
-  const listed = (bs: Block[]) => (at.lists === "structure"
-    ? bs.filter((b) => is_room_row(graph, b.id)) : bs);
-  const parts = listed(unheld(graph, branch.parts));
-  const own = listed(unheld(graph, branch.own));
+  const parts = unheld(graph, branch.parts);
+  const own = unheld(graph, branch.own);
   const row_key = key(route);
   /** A package root in the library lists its named components after its definitions. */
   const lib = at.lists === "domain" && graph.blocks[id]!.parent === null ? library_of(graph, id) : {};
@@ -193,14 +224,6 @@ function branch_rows(graph: Graph,
     branch_rows(graph, at, c.id, `${route}/${c.id}`, via, folded, out, key, depth + 1, deeper);
   }
   if (groups) named_rows(graph, id, route, folded, out, key, depth + 1);
-}
-
-/** Whether a block is a room, as the model lists it: a package, a folder, a grid, or a block
- *  holding blocks — never a stand-in, which is drawn where it stands. */
-function is_room_row(graph: Graph, id: Id): boolean {
-  if (of_ref(graph, id)) return false;
-  return graph.blocks[id]?.parent === null || is_folder(graph, id) || is_grid(graph, id)
-    || opens(graph, id);
 }
 
 /** What a row lists of these blocks: each, but notation never — a group or region by what it

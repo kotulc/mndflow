@@ -790,11 +790,11 @@
         "name": "example",
         "counters": {
           "note": 5,
-          "block": 75,
+          "block": 65,
           "region": 5,
-          "group": 6,
+          "group": 4,
           "label": 1,
-          "reference": 24,
+          "reference": 18,
           "grid": 1,
           "relation": 58
         },
@@ -1061,7 +1061,7 @@
         "parent": "yaml.Records.order",
         "name": "Order states",
         "type": "state",
-        "alias": 67,
+        "alias": 57,
         "description": "A state machine, the Order record's lifecycle, ranked by where its transitions point. Each transition is named by the event that fires it.",
         "order": 2,
         "source": "Records/order/order-states.yaml"
@@ -1070,7 +1070,7 @@
         "id": "yaml.Records.order.order-states:cancelled",
         "parent": "yaml.Records.order.order-states",
         "name": "Cancelled",
-        "alias": 74,
+        "alias": 64,
         "order": 7
       },
       "yaml.Records.order.order-states:closed": {
@@ -1078,35 +1078,35 @@
         "parent": "yaml.Records.order.order-states",
         "name": "Closed",
         "type": "end",
-        "alias": 75,
+        "alias": 65,
         "order": 8
       },
       "yaml.Records.order.order-states:delivered": {
         "id": "yaml.Records.order.order-states:delivered",
         "parent": "yaml.Records.order.order-states",
         "name": "Delivered",
-        "alias": 72,
+        "alias": 62,
         "order": 5
       },
       "yaml.Records.order.order-states:paid": {
         "id": "yaml.Records.order.order-states:paid",
         "parent": "yaml.Records.order.order-states",
         "name": "Paid",
-        "alias": 70,
+        "alias": 60,
         "order": 3
       },
       "yaml.Records.order.order-states:payment-failed": {
         "id": "yaml.Records.order.order-states:payment-failed",
         "parent": "yaml.Records.order.order-states",
         "name": "Payment failed",
-        "alias": 73,
+        "alias": 63,
         "order": 6
       },
       "yaml.Records.order.order-states:pending": {
         "id": "yaml.Records.order.order-states:pending",
         "parent": "yaml.Records.order.order-states",
         "name": "Pending",
-        "alias": 69,
+        "alias": 59,
         "order": 2
       },
       "yaml.Records.order.order-states:placed": {
@@ -1114,14 +1114,14 @@
         "parent": "yaml.Records.order.order-states",
         "name": "Placed",
         "type": "start",
-        "alias": 68,
+        "alias": 58,
         "order": 1
       },
       "yaml.Records.order.order-states:shipped": {
         "id": "yaml.Records.order.order-states:shipped",
         "parent": "yaml.Records.order.order-states",
         "name": "Shipped",
-        "alias": 71,
+        "alias": 61,
         "order": 4
       },
       "yaml.Records.order:place": {
@@ -1129,7 +1129,7 @@
         "parent": "yaml.Records.order",
         "name": "place",
         "type": "flow",
-        "alias": 66,
+        "alias": 56,
         "description": "Takes a customer's lines and gives back the order they make.",
         "order": 1,
         "ports": [
@@ -1710,32 +1710,10 @@
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga:authorize",
         "parent": "yaml.overview.shop.how-it-runs.1-checkout-saga",
         "name": "Authorize",
-        "alias": 39,
+        "alias": 35,
         "cell": {
           "r": 2,
           "c": 4
-        },
-        "order": 13
-      },
-      "yaml.overview.shop.how-it-runs.1-checkout-saga:charge": {
-        "id": "yaml.overview.shop.how-it-runs.1-checkout-saga:charge",
-        "parent": "yaml.overview.shop.how-it-runs.1-checkout-saga",
-        "name": "Charge",
-        "alias": 33,
-        "cell": {
-          "r": 2,
-          "c": 0
-        },
-        "order": 7
-      },
-      "yaml.overview.shop.how-it-runs.1-checkout-saga:confirm": {
-        "id": "yaml.overview.shop.how-it-runs.1-checkout-saga:confirm",
-        "parent": "yaml.overview.shop.how-it-runs.1-checkout-saga",
-        "name": "Confirm",
-        "alias": 35,
-        "cell": {
-          "r": 4,
-          "c": 0
         },
         "order": 9
       },
@@ -1743,12 +1721,12 @@
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga:confirm-order",
         "parent": "yaml.overview.shop.how-it-runs.1-checkout-saga",
         "name": "Confirm order",
-        "alias": 41,
+        "alias": 37,
         "cell": {
           "r": 4,
           "c": 3
         },
-        "order": 15
+        "order": 11
       },
       "yaml.overview.shop.how-it-runs.1-checkout-saga:customer": {
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga:customer",
@@ -1802,49 +1780,38 @@
         },
         "order": 4
       },
-      "yaml.overview.shop.how-it-runs.1-checkout-saga:reserve": {
-        "id": "yaml.overview.shop.how-it-runs.1-checkout-saga:reserve",
-        "parent": "yaml.overview.shop.how-it-runs.1-checkout-saga",
-        "name": "Reserve",
-        "alias": 34,
-        "cell": {
-          "r": 3,
-          "c": 0
-        },
-        "order": 8
-      },
       "yaml.overview.shop.how-it-runs.1-checkout-saga:reserve-stock": {
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga:reserve-stock",
         "parent": "yaml.overview.shop.how-it-runs.1-checkout-saga",
         "name": "Reserve stock",
-        "alias": 40,
+        "alias": 36,
         "cell": {
           "r": 3,
           "c": 5
         },
-        "order": 14
+        "order": 10
       },
       "yaml.overview.shop.how-it-runs.1-checkout-saga:route-checkout": {
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga:route-checkout",
         "parent": "yaml.overview.shop.how-it-runs.1-checkout-saga",
         "name": "Route checkout",
-        "alias": 37,
+        "alias": 33,
         "cell": {
           "r": 1,
           "c": 2
         },
-        "order": 11
+        "order": 7
       },
       "yaml.overview.shop.how-it-runs.1-checkout-saga:start-saga": {
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga:start-saga",
         "parent": "yaml.overview.shop.how-it-runs.1-checkout-saga",
         "name": "Start saga",
-        "alias": 38,
+        "alias": 34,
         "cell": {
           "r": 2,
           "c": 3
         },
-        "order": 12
+        "order": 8
       },
       "yaml.overview.shop.how-it-runs.1-checkout-saga:storefront": {
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga:storefront",
@@ -1859,38 +1826,44 @@
         },
         "order": 3
       },
-      "yaml.overview.shop.how-it-runs.1-checkout-saga:submit": {
-        "id": "yaml.overview.shop.how-it-runs.1-checkout-saga:submit",
-        "parent": "yaml.overview.shop.how-it-runs.1-checkout-saga",
-        "name": "Submit",
-        "alias": 32,
-        "cell": {
-          "r": 1,
-          "c": 0
-        },
-        "order": 6
-      },
       "yaml.overview.shop.how-it-runs.1-checkout-saga:submit-cart": {
         "id": "yaml.overview.shop.how-it-runs.1-checkout-saga:submit-cart",
         "parent": "yaml.overview.shop.how-it-runs.1-checkout-saga",
         "name": "Submit cart",
-        "alias": 36,
+        "alias": 32,
         "cell": {
           "r": 1,
           "c": 1
         },
-        "order": 10
+        "order": 6
       },
       "yaml.overview.shop.how-it-runs.2-fulfilment": {
         "id": "yaml.overview.shop.how-it-runs.2-fulfilment",
         "parent": "yaml.overview.shop:how-it-runs",
         "name": "Fulfilment",
         "type": "swimlane",
-        "alias": 42,
-        "description": "A swimlane: who does what, in which phase. Each lane is a reference to the service that does the work.",
+        "alias": 38,
+        "description": "A swimlane: who does what, in which phase. Each lane is a reference to the service that does the work; each phase a label on its row, which every step in it carries as a tag.",
         "grid": {
           "rows": 4,
-          "cols": 4
+          "cols": 4,
+          "labels": [
+            {
+              "r": 1,
+              "c": 0,
+              "text": "Ordered"
+            },
+            {
+              "r": 2,
+              "c": 0,
+              "text": "Pick"
+            },
+            {
+              "r": 3,
+              "c": 0,
+              "text": "Ship"
+            }
+          ]
         },
         "order": 2,
         "source": "overview/shop/how-it-runs/2-fulfilment.yaml"
@@ -1899,13 +1872,13 @@
         "id": "yaml.overview.shop.how-it-runs.2-fulfilment:book-carrier",
         "parent": "yaml.overview.shop.how-it-runs.2-fulfilment",
         "name": "Book carrier",
-        "alias": 48,
+        "alias": 41,
         "body": "Shipping books a pickup in the carrier's terms.",
         "cell": {
           "r": 3,
           "c": 3
         },
-        "order": 9,
+        "order": 6,
         "tags": [
           "tag.fulfilment",
           "tag.external-api"
@@ -1928,27 +1901,16 @@
         "id": "yaml.overview.shop.how-it-runs.2-fulfilment:mark-shipped",
         "parent": "yaml.overview.shop.how-it-runs.2-fulfilment",
         "name": "Mark shipped",
-        "alias": 49,
+        "alias": 42,
         "cell": {
           "r": 3,
           "c": 1
         },
-        "order": 10,
+        "order": 7,
         "tags": [
           "tag.orders",
           "tag.fulfilment"
         ]
-      },
-      "yaml.overview.shop.how-it-runs.2-fulfilment:ordered": {
-        "id": "yaml.overview.shop.how-it-runs.2-fulfilment:ordered",
-        "parent": "yaml.overview.shop.how-it-runs.2-fulfilment",
-        "name": "Ordered",
-        "alias": 43,
-        "cell": {
-          "r": 1,
-          "c": 0
-        },
-        "order": 4
       },
       "yaml.overview.shop.how-it-runs.2-fulfilment:orders": {
         "id": "yaml.overview.shop.how-it-runs.2-fulfilment:orders",
@@ -1963,28 +1925,17 @@
         },
         "order": 1
       },
-      "yaml.overview.shop.how-it-runs.2-fulfilment:pick": {
-        "id": "yaml.overview.shop.how-it-runs.2-fulfilment:pick",
-        "parent": "yaml.overview.shop.how-it-runs.2-fulfilment",
-        "name": "Pick",
-        "alias": 44,
-        "cell": {
-          "r": 2,
-          "c": 0
-        },
-        "order": 5
-      },
       "yaml.overview.shop.how-it-runs.2-fulfilment:pick-items": {
         "id": "yaml.overview.shop.how-it-runs.2-fulfilment:pick-items",
         "parent": "yaml.overview.shop.how-it-runs.2-fulfilment",
         "name": "Pick items",
-        "alias": 47,
+        "alias": 40,
         "body": "Stock is taken off the shelf.",
         "cell": {
           "r": 2,
           "c": 2
         },
-        "order": 8,
+        "order": 5,
         "tags": [
           "tag.fulfilment"
         ]
@@ -1993,24 +1944,13 @@
         "id": "yaml.overview.shop.how-it-runs.2-fulfilment:publish-placed",
         "parent": "yaml.overview.shop.how-it-runs.2-fulfilment",
         "name": "Publish placed",
-        "alias": 46,
+        "alias": 39,
         "body": "Orders publishes order placed.",
         "cell": {
           "r": 1,
           "c": 1
         },
-        "order": 7
-      },
-      "yaml.overview.shop.how-it-runs.2-fulfilment:ship": {
-        "id": "yaml.overview.shop.how-it-runs.2-fulfilment:ship",
-        "parent": "yaml.overview.shop.how-it-runs.2-fulfilment",
-        "name": "Ship",
-        "alias": 45,
-        "cell": {
-          "r": 3,
-          "c": 0
-        },
-        "order": 6
+        "order": 4
       },
       "yaml.overview.shop.how-it-runs.2-fulfilment:shipping": {
         "id": "yaml.overview.shop.how-it-runs.2-fulfilment:shipping",
@@ -2030,8 +1970,8 @@
         "parent": "yaml.overview.shop:how-it-runs",
         "name": "Deployment",
         "type": "internal",
-        "alias": 50,
-        "description": "Where the shop runs. Groups nest: each a panel round its members, who carry it, with a note tied beside it; a grid lays environments under their headers.",
+        "alias": 43,
+        "description": "Where the shop runs. Groups nest: each a panel round its members, who carry it, with a note tied beside it; a grid lays environments under their headers: each environment a block of its own, each region a label on its row.",
         "order": 3,
         "source": "overview/shop/how-it-runs/3-deployment.yaml"
       },
@@ -2051,7 +1991,19 @@
         "alias": 1,
         "grid": {
           "rows": 3,
-          "cols": 4
+          "cols": 4,
+          "labels": [
+            {
+              "r": 1,
+              "c": 0,
+              "text": "eu-west"
+            },
+            {
+              "r": 2,
+              "c": 0,
+              "text": "us-east"
+            }
+          ]
         },
         "order": 11
       },
@@ -2059,7 +2011,7 @@
         "id": "yaml.overview.shop.how-it-runs.3-deployment:environments:dev",
         "parent": "yaml.overview.shop.how-it-runs.3-deployment:environments",
         "name": "dev",
-        "alias": 56,
+        "alias": 49,
         "body": "Where changes land first.",
         "cell": {
           "r": 0,
@@ -2067,33 +2019,22 @@
         },
         "order": 1
       },
-      "yaml.overview.shop.how-it-runs.3-deployment:environments:eu-west": {
-        "id": "yaml.overview.shop.how-it-runs.3-deployment:environments:eu-west",
-        "parent": "yaml.overview.shop.how-it-runs.3-deployment:environments",
-        "name": "eu-west",
-        "alias": 59,
-        "cell": {
-          "r": 1,
-          "c": 0
-        },
-        "order": 4
-      },
       "yaml.overview.shop.how-it-runs.3-deployment:environments:eu-west-prod": {
         "id": "yaml.overview.shop.how-it-runs.3-deployment:environments:eu-west-prod",
         "parent": "yaml.overview.shop.how-it-runs.3-deployment:environments",
         "name": "eu-west prod",
-        "alias": 62,
+        "alias": 53,
         "cell": {
           "r": 1,
           "c": 3
         },
-        "order": 7
+        "order": 5
       },
       "yaml.overview.shop.how-it-runs.3-deployment:environments:prod": {
         "id": "yaml.overview.shop.how-it-runs.3-deployment:environments:prod",
         "parent": "yaml.overview.shop.how-it-runs.3-deployment:environments",
         "name": "prod",
-        "alias": 58,
+        "alias": 51,
         "body": "What customers reach.",
         "cell": {
           "r": 0,
@@ -2105,18 +2046,18 @@
         "id": "yaml.overview.shop.how-it-runs.3-deployment:environments:shared-cluster",
         "parent": "yaml.overview.shop.how-it-runs.3-deployment:environments",
         "name": "shared cluster",
-        "alias": 61,
+        "alias": 52,
         "cell": {
           "r": 1,
           "c": 1
         },
-        "order": 6
+        "order": 4
       },
       "yaml.overview.shop.how-it-runs.3-deployment:environments:staging": {
         "id": "yaml.overview.shop.how-it-runs.3-deployment:environments:staging",
         "parent": "yaml.overview.shop.how-it-runs.3-deployment:environments",
         "name": "staging",
-        "alias": 57,
+        "alias": 50,
         "body": "A copy of production.",
         "cell": {
           "r": 0,
@@ -2124,27 +2065,16 @@
         },
         "order": 2
       },
-      "yaml.overview.shop.how-it-runs.3-deployment:environments:us-east": {
-        "id": "yaml.overview.shop.how-it-runs.3-deployment:environments:us-east",
-        "parent": "yaml.overview.shop.how-it-runs.3-deployment:environments",
-        "name": "us-east",
-        "alias": 60,
-        "cell": {
-          "r": 2,
-          "c": 0
-        },
-        "order": 5
-      },
       "yaml.overview.shop.how-it-runs.3-deployment:environments:us-east-prod": {
         "id": "yaml.overview.shop.how-it-runs.3-deployment:environments:us-east-prod",
         "parent": "yaml.overview.shop.how-it-runs.3-deployment:environments",
         "name": "us-east prod",
-        "alias": 63,
+        "alias": 54,
         "cell": {
           "r": 2,
           "c": 3
         },
-        "order": 8
+        "order": 6
       },
       "yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster": {
         "id": "yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster",
@@ -2158,7 +2088,7 @@
         "id": "yaml.overview.shop.how-it-runs.3-deployment:gateway-pod",
         "parent": "yaml.overview.shop.how-it-runs.3-deployment",
         "name": "gateway pod",
-        "alias": 51,
+        "alias": 44,
         "groups": [
           "yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster",
           "yaml.overview.shop.how-it-runs.3-deployment:shop-namespace"
@@ -2185,7 +2115,7 @@
         "id": "yaml.overview.shop.how-it-runs.3-deployment:orders-pod",
         "parent": "yaml.overview.shop.how-it-runs.3-deployment",
         "name": "orders pod",
-        "alias": 53,
+        "alias": 46,
         "groups": [
           "yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster",
           "yaml.overview.shop.how-it-runs.3-deployment:shop-namespace"
@@ -2196,7 +2126,7 @@
         "id": "yaml.overview.shop.how-it-runs.3-deployment:orders-primary",
         "parent": "yaml.overview.shop.how-it-runs.3-deployment",
         "name": "orders primary",
-        "alias": 54,
+        "alias": 47,
         "groups": [
           "yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster",
           "yaml.overview.shop.how-it-runs.3-deployment:data-namespace"
@@ -2207,7 +2137,7 @@
         "id": "yaml.overview.shop.how-it-runs.3-deployment:orders-replica",
         "parent": "yaml.overview.shop.how-it-runs.3-deployment",
         "name": "orders replica",
-        "alias": 55,
+        "alias": 48,
         "groups": [
           "yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster",
           "yaml.overview.shop.how-it-runs.3-deployment:data-namespace"
@@ -2226,113 +2156,21 @@
         "id": "yaml.overview.shop.how-it-runs.3-deployment:storefront-pod",
         "parent": "yaml.overview.shop.how-it-runs.3-deployment",
         "name": "storefront pod",
-        "alias": 52,
+        "alias": 45,
         "groups": [
           "yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster",
           "yaml.overview.shop.how-it-runs.3-deployment:shop-namespace"
         ],
         "order": 7
       },
-      "yaml.overview.shop.how-it-runs.4-estate": {
-        "id": "yaml.overview.shop.how-it-runs.4-estate",
-        "parent": "yaml.overview.shop:how-it-runs",
-        "name": "Estate",
-        "type": "treemap",
-        "alias": 64,
-        "description": "A treemap: where the weight is. Each tile is as large as the service it stands for holds, gathered by the shop's regions.",
-        "order": 4,
-        "source": "overview/shop/how-it-runs/4-estate.yaml"
-      },
-      "yaml.overview.shop.how-it-runs.4-estate:back-office": {
-        "id": "yaml.overview.shop.how-it-runs.4-estate:back-office",
-        "parent": "yaml.overview.shop.how-it-runs.4-estate",
-        "name": "Back office",
-        "type": "group",
-        "alias": 6,
-        "order": 2
-      },
-      "yaml.overview.shop.how-it-runs.4-estate:block": {
-        "id": "yaml.overview.shop.how-it-runs.4-estate:block",
-        "parent": "yaml.overview.shop.how-it-runs.4-estate",
-        "type": "reference",
-        "of": "yaml.overview.shop:customer-facing:gateway",
-        "alias": 19,
-        "groups": [
-          "yaml.overview.shop.how-it-runs.4-estate:customer-facing"
-        ],
-        "order": 3
-      },
-      "yaml.overview.shop.how-it-runs.4-estate:block-2": {
-        "id": "yaml.overview.shop.how-it-runs.4-estate:block-2",
-        "parent": "yaml.overview.shop.how-it-runs.4-estate",
-        "type": "reference",
-        "of": "yaml.overview.shop.customer-facing.storefront",
-        "alias": 20,
-        "groups": [
-          "yaml.overview.shop.how-it-runs.4-estate:customer-facing"
-        ],
-        "order": 4
-      },
-      "yaml.overview.shop.how-it-runs.4-estate:block-3": {
-        "id": "yaml.overview.shop.how-it-runs.4-estate:block-3",
-        "parent": "yaml.overview.shop.how-it-runs.4-estate",
-        "type": "reference",
-        "of": "yaml.overview.shop.back-office.orders",
-        "alias": 21,
-        "groups": [
-          "yaml.overview.shop.how-it-runs.4-estate:back-office"
-        ],
-        "order": 5
-      },
-      "yaml.overview.shop.how-it-runs.4-estate:block-4": {
-        "id": "yaml.overview.shop.how-it-runs.4-estate:block-4",
-        "parent": "yaml.overview.shop.how-it-runs.4-estate",
-        "type": "reference",
-        "of": "yaml.overview.shop.back-office.payments",
-        "alias": 22,
-        "groups": [
-          "yaml.overview.shop.how-it-runs.4-estate:back-office"
-        ],
-        "order": 6
-      },
-      "yaml.overview.shop.how-it-runs.4-estate:block-5": {
-        "id": "yaml.overview.shop.how-it-runs.4-estate:block-5",
-        "parent": "yaml.overview.shop.how-it-runs.4-estate",
-        "type": "reference",
-        "of": "yaml.overview.shop:back-office:inventory",
-        "alias": 23,
-        "groups": [
-          "yaml.overview.shop.how-it-runs.4-estate:back-office"
-        ],
-        "order": 7
-      },
-      "yaml.overview.shop.how-it-runs.4-estate:block-6": {
-        "id": "yaml.overview.shop.how-it-runs.4-estate:block-6",
-        "parent": "yaml.overview.shop.how-it-runs.4-estate",
-        "type": "reference",
-        "of": "yaml.overview.shop:back-office:shipping",
-        "alias": 24,
-        "groups": [
-          "yaml.overview.shop.how-it-runs.4-estate:back-office"
-        ],
-        "order": 8
-      },
-      "yaml.overview.shop.how-it-runs.4-estate:customer-facing": {
-        "id": "yaml.overview.shop.how-it-runs.4-estate:customer-facing",
-        "parent": "yaml.overview.shop.how-it-runs.4-estate",
-        "name": "Customer facing",
-        "type": "group",
-        "alias": 5,
-        "order": 1
-      },
-      "yaml.overview.shop.how-it-runs.5-dashboard": {
-        "id": "yaml.overview.shop.how-it-runs.5-dashboard",
+      "yaml.overview.shop.how-it-runs.4-dashboard": {
+        "id": "yaml.overview.shop.how-it-runs.4-dashboard",
         "parent": "yaml.overview.shop:how-it-runs",
         "name": "Dashboard",
         "type": "yaml.Parts.picture",
-        "alias": 65,
+        "alias": 55,
         "description": "What the shop looks like from the operations floor: a picture card, drawn from its source.",
-        "order": 5,
+        "order": 4,
         "source": "/model/picture.svg"
       },
       "yaml.overview.shop:back-office": {

@@ -36,8 +36,6 @@ const SAID = 2;
 /** The root folder the shared types are written in. */
 const TYPES = "types";
 
-/** The block a component's diagram folds its least salient modules into. */
-const OTHER = "other";
 
 
 /** Every file of the source folder, by its path from the folder. */
@@ -109,7 +107,7 @@ function package_files(shape: Shape, at: string, head: Record<string, unknown>, 
       : module_block(mod.get(path)!, names.get(path)!, tag(path));
   };
   const placed = comps.map((c) => c.modules.length === 1 ? entered(c.modules[0]!)
-    : component_files(c, names.get(c.anchor)!, mod, at, shape.folded, out));
+    : component_files(c, names.get(c.anchor)!, mod, at, shape.rank, out));
   out.set(`${at}.yaml`, yaml({ ...head,
     blocks: [...shape.entry.map(entered), ...placed, ...shape.foundation.map(entered)],
     relations: lines(p, new Map(comps.flatMap((c) => c.modules.map((m) =>
@@ -190,24 +188,19 @@ function attribute(f: Field, named_as: Map<string, string>): Record<string, unkn
            ...(note ? { note } : {}) };
 }
 
-/** A component's file, at `at/<name>.yaml`: its own components where it splits again, else its
- *  modules, those `folded` by salience one block, `other`, saying which; with the lines between
- *  them. Its name is its place in the list holding it. */
+/** A component's file, at `at/<name>.yaml`: its own components where it splits again, else every
+ *  module, the most salient first — a view folds what it has no room for, never the model
+ *  (2026-11-05); with the lines between them. Its name is its place in the list holding it. */
 function component_files(c: Comp, name: string, mod: Map<string, Mod>, at: string,
-                         folded: string[], out: Map<string, string>): string {
+                         rank: string[], out: Map<string, string>): string {
   const file = `${at}/${slug(name)}`;
-  const away = c.modules.filter((m) => folded.includes(m));
-  const parts: Comp[] = c.parts.length ? c.parts : [
-    ...c.modules.filter((m) => !away.includes(m)).map((m) => ({ name: stem_of(m), anchor: m,
-                                                                modules: [m], parts: [] })),
-    ...(away.length ? [{ name: OTHER, anchor: OTHER, modules: away, parts: [] }] : [])];
+  const parts: Comp[] = c.parts.length ? c.parts : [...c.modules]
+    .sort((a, z) => rank.indexOf(a) - rank.indexOf(z))
+    .map((m) => ({ name: stem_of(m), anchor: m, modules: [m], parts: [] }));
   const names = named([], parts.map((x) => [x.anchor, x.name]));
-  const blocks = parts.map((x) => x.anchor === OTHER
-    ? { name: names.get(OTHER)!, description: `${x.modules.length} more modules: `
-        + `${x.modules.map(stem_of).join(", ")}.`,
-        values: { lines: x.modules.reduce((n, m) => n + mod.get(m)!.lines, 0) } }
-    : x.modules.length === 1 ? module_block(mod.get(x.modules[0]!)!, names.get(x.anchor)!)
-    : component_files(x, names.get(x.anchor)!, mod, file, folded, out));
+  const blocks = parts.map((x) => x.modules.length === 1
+    ? module_block(mod.get(x.modules[0]!)!, names.get(x.anchor)!)
+    : component_files(x, names.get(x.anchor)!, mod, file, rank, out));
   const lines_of = [...mod.values()].filter((m) => c.modules.includes(m.path));
   out.set(`${file}.yaml`, yaml({
     name, type: KIND.component,
@@ -222,9 +215,10 @@ function component_files(c: Comp, name: string, mod: Map<string, Mod>, at: strin
 
 /** An entry module with a path, as a file of its own at `at/<name>.yaml`, and its path as the
  *  `sequence` it owns beside it: a lifeline for each block the path reaches, in any package, a
- *  reference to it (`refs`), led by its package's name where two share one; the entry's start, then a row a step, each step a block on the
- *  lifeline called, its message from where the caller was last, named by what is called. Its
- *  name is its place in the list holding it. */
+ *  reference to it (`refs`), led by its package's name where two share one; the entry's start,
+ *  then a row a step — rows by number, never a block to name one (2026-11-05) — each step a
+ *  block on the lifeline called, its message from where the caller was last, named by what is
+ *  called. Its name is its place in the list holding it. */
 function entry_files(m: Mod, name: string, tags: string[], path: Path, refs: Refs, at: string,
                      out: Map<string, string>): string {
   const file = `${at}/${slug(name)}`;
@@ -234,9 +228,8 @@ function entry_files(m: Mod, name: string, tags: string[], path: Path, refs: Ref
   const names = new Map(lives.map((k, i) => [k, bare.indexOf(bare[i]!) === bare.lastIndexOf(bare[i]!)
     ? bare[i]! : `${refs.get(k)!.pkg}-${bare[i]}`]));
   const cols = lives.map((k) => ({ name: names.get(k)!, type: "reference", of: refs.get(k)!.ref }));
-  const rows = ["0", ...path.steps.map((_, i) => String(i + 1))];
-  /** One name space for lifelines, rows and blocks: a step's block is its call, `name()`. */
-  const taken = new Set<string>([...cols.map((c) => c.name), ...rows]);
+  /** One name space for lifelines and blocks: a step's block is its call, `name()`. */
+  const taken = new Set<string>(cols.map((c) => c.name));
   const block_of = (n: string) => {
     let out = n;
     for (let i = 2; taken.has(out); i++) out = `${n} ${i}`;
@@ -245,10 +238,10 @@ function entry_files(m: Mod, name: string, tags: string[], path: Path, refs: Ref
   };
   const start = block_of("start");
   const last = new Map([[path.entry, start]]);
-  const blocks = [{ name: start, cell: [rows[0], names.get(path.entry)] }];
+  const blocks = [{ name: start, cell: [1, names.get(path.entry)] }];
   const messages = path.steps.map((x, i) => {
     const b = block_of(`${x.names[0]!}()`);
-    blocks.push({ name: b, cell: [rows[i + 1], names.get(x.to)] });
+    blocks.push({ name: b, cell: [i + 2, names.get(x.to)] });
     const from = last.get(x.from) ?? start;
     last.set(x.to, b);
     return { [`${from} -> ${b}`]: said_of(x.names) };
@@ -257,7 +250,7 @@ function entry_files(m: Mod, name: string, tags: string[], path: Path, refs: Ref
   out.set(`${file}/${slug(name)}-path.yaml`, yaml({
     name: `${name} path`, type: "sequence",
     description: `What ${name} calls, in the order it first calls it.`,
-    cols, rows: rows.map((r) => ({ name: r })), blocks, relations: [{ message: messages }] }));
+    cols, blocks, relations: [{ message: messages }] }));
   return name;
 }
 

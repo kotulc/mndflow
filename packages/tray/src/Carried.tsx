@@ -1,8 +1,8 @@
 /** **The components tab, read first**: the card on the left, its sections as filter rows under
  *  it; on the right every section the element has — attributes, ports, behaviours, tags,
  *  constraints — or the one chosen, each list opening on its band, a row each on shared columns.
- *  A section it lacks is absent; nothing is added here. Hovering a row, or a filter, lights what it
- *  names on the card. */
+ *  **Every section shows, empty or not**, so each element reads the same; nothing is added here.
+ *  Hovering a row, or a filter, lights what it names on the card. */
 
 import { useState } from "react";
 import { attributes_of, behaviours_of, constraint_at, constraints_stated, def_of, definition_uses,
@@ -26,38 +26,31 @@ export function Carried({ graph, id, on, onPick }: CarriedProps) {
   /** A stand-in reads as what it stands for, as its card does. */
   const at = graph.blocks[id] ? resolved(graph, id).card : id;
   const sections = [attributes(graph, at), ports(graph, at), behaviours(graph, at),
-                    tags(graph, at), constraints(graph, at)].filter((s) => s.lists.length);
+                    tags(graph, at), constraints(graph, at)];
   const ids = (s: Part) => s.lists.flatMap((l) => l.items.map((it) => it.id));
   const count = (s: Part) => ids(s).length;
   const shown = sections.filter((s) => on === ALL || s.name === on);
   return (
     <div className="reads">
       <Lead graph={graph} id={id} lit={lit}>
-        {sections.length ? (
-          <Filters on={on} onPick={onPick} onLight={set_lit}
-                   groups={[{ label: "sections", rows: [
-                     { key: ALL, name: "all", count: sections.reduce((n, s) => n + count(s), 0),
-                       lights: sections.flatMap(ids) },
-                     ...sections.map((s) => ({ key: s.name, name: s.name, count: count(s),
-                                               lights: ids(s),
-                                               mark: mark(s.name) })),
-                   ] }]} />
-        ) : null}
+        <Filters on={on} onPick={onPick} onLight={set_lit}
+                 groups={[{ label: "sections", rows: [
+                   { key: ALL, name: "all", count: sections.reduce((n, s) => n + count(s), 0),
+                     lights: sections.flatMap(ids) },
+                   ...sections.map((s) => ({ key: s.name, name: s.name, count: count(s),
+                                             lights: ids(s),
+                                             mark: mark(s.name) })),
+                 ] }]} />
       </Lead>
       <div className="lists">
-        {sections.length ? shown.map((s) => (
+        {shown.map((s) => (
           <Section key={s.name} name={s.name} about={s.about}>
-            {s.lists.map((l) => <List key={l.label} label={l.label} items={l.items}
-                                      onLight={(at) => set_lit(at ? [at] : null)} />)}
+            {s.lists.length ? s.lists.map((l) => (
+              <List key={l.label} label={l.label} items={l.items}
+                    onLight={(at) => set_lit(at ? [at] : null)} />
+            )) : <Empty>none yet</Empty>}
           </Section>
-        )) : (
-          <Section name="components" about="What it carries: attributes, ports, behaviours, tags">
-            <Empty>
-              {shown_name(graph, id)} carries nothing yet. Attributes and ports come from its
-              definition, which it does not have; typing it gives it them.
-            </Empty>
-          </Section>
-        )}
+        ))}
       </div>
     </div>
   );

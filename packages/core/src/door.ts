@@ -6,7 +6,7 @@ import { fold, type Floor } from "./fold";
 import { covers, inside, lattice_of, one_side, overlaps } from "./holders";
 import { ports_on, subtree } from "./tree";
 import { new_id } from "./ids";
-import { type Graph, type Grid, type Id, type Log, type Mutation, type Span,
+import { type Graph, type Grid, type GridLabel, type Id, type Log, type Mutation, type Span,
          type Step } from "./types";
 
 export type Fault = {
@@ -271,12 +271,20 @@ function fitted(g: Grid): { grid: Grid; dropped: number; said: boolean } {
               && s.r + s.rows <= rows && s.c + s.cols <= cols && one_side(s);
     if (sane && !kept.some((k) => overlaps(k, s))) kept.push(s);
   }
-  const dropped = (g.merges ?? []).length - kept.length;
+  /** A label sits inside the lattice, one to a cell, and says something. */
+  const labels: GridLabel[] = [];
+  for (const l of g.labels ?? []) {
+    const sane = Number.isInteger(l.r) && Number.isInteger(l.c) && l.r >= 0 && l.c >= 0
+      && l.r < rows && l.c < cols && typeof l.text === "string" && !!l.text.trim();
+    if (sane && !labels.some((k) => k.r === l.r && k.c === l.c)) labels.push(l);
+  }
+  const dropped = (g.merges ?? []).length - kept.length + (g.labels ?? []).length - labels.length;
   /** Anything a lattice does not carry is dropped. */
-  const said = Object.keys(g).some((k) => !["rows", "cols", "merges"].includes(k));
+  const said = Object.keys(g).some((k) => !["rows", "cols", "merges", "labels"].includes(k));
 
   if (!said && !dropped && rows === g.rows && cols === g.cols) return { grid: g, dropped, said };
-  return { grid: { rows, cols, ...(kept.length ? { merges: kept } : {}) }, dropped, said };
+  return { grid: { rows, cols, ...(kept.length ? { merges: kept } : {}),
+                   ...(labels.length ? { labels } : {}) }, dropped, said };
 }
 
 function plural(n: number, word: string): string {

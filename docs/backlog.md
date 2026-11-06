@@ -1,6 +1,6 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **In progress**: code translation, its plan in translate-plan.md (taken up 2026-11-01, ahead of the CLI); entry paths through a translated model finished 2026-11-02, its leftovers under *Later*; the design language, paused, its plan in design-plan.md.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next**: simplification, its plan in simplify-plan.md (decided 2026-11-05). **In progress**: code translation, its plan in translate-plan.md (taken up 2026-11-01, ahead of the CLI); entry paths through a translated model finished 2026-11-02, its leftovers under *Later*; the design language, paused, its plan in design-plan.md.
 
 ## CLI (next, alongside code translation)
 

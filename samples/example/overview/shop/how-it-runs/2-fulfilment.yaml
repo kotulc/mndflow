@@ -1,14 +1,11 @@
 name: Fulfilment
 type: swimlane
-description: "A swimlane: who does what, in which phase. Each lane is a reference to the service that does the work."
+description: "A swimlane: who does what, in which phase. Each lane is a reference to the service that does the work; each phase a label on its row, which every step in it carries as a tag."
 cols:
   - { name: Orders, type: reference, of: "Overview.Shop.Back office.Orders" }
   - { name: Inventory, type: reference, of: "Overview.Shop.Back office.Inventory" }
   - { name: Shipping, type: reference, of: "Overview.Shop.Back office.Shipping" }
-rows:
-  - name: Ordered
-  - name: Pick
-  - name: Ship
+rows: [ Ordered, Pick, Ship ]
 blocks:
   - name: Publish placed
     body: Orders publishes order placed.

@@ -1,6 +1,6 @@
 name: Deployment
 type: internal
-description: "Where the shop runs. Groups nest: each a panel round its members, who carry it, with a note tied beside it; a grid lays environments under their headers."
+description: "Where the shop runs. Groups nest: each a panel round its members, who carry it, with a note tied beside it; a grid lays environments under their headers: each environment a block of its own, each region a label on its row."
 blocks:
   - name: eu-west cluster
     type: group
@@ -29,9 +29,7 @@ blocks:
         body: A copy of production.
       - name: prod
         body: What customers reach.
-    rows:
-      - name: eu-west
-      - name: us-east
+    rows: [ eu-west, us-east ]
     blocks:
       - name: shared cluster
         cell: [ eu-west, dev ]

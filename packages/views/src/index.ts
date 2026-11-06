@@ -13,7 +13,7 @@ export * from "./seat";
 export { drawn, middle_of, name_box, route, NAMED, STUB, type NameBox } from "./route";
 export { measure, type Measure } from "./measure";
 export { avoided_run, load_avoid, routes_of } from "./avoid";
-export { hop_trace, picked_trace, trace_of, type Leg, type Trace } from "./trace";
+export { hop_trace, on_map, picked_trace, trace_of, type Leg, type Trace } from "./trace";
 export * from "./svg";
 export * from "./text";
 
@@ -32,6 +32,7 @@ export { BARE, PLAIN, entry_look, face_attrs, look_key, look_of, tint_attrs, typ
          type Wire } from "./look";
 export { page_graph } from "./page";
 export { tiled, weight_of, type Tile } from "./treemap";
+export { layer_tree, members, model_tree, type Branch } from "./tree";
 export { sheet_graph, GRID_LAYER } from "./sheet";
 export { entries_of, matrix_of, registry_scene, MOST, type Entry, type Line as MatrixLine, type Matrix,
          type User } from "./registry";

@@ -34,7 +34,7 @@ export type Entry = {
   port?: string;
   /** Its cell: row and column, each a header's name or a number. */
   cell?: [string | number, string | number];
-  grid?: { merges?: unknown[] };
+  grid?: { merges?: unknown[]; labels?: { r: number; c: number; text: string }[] };
   values: Value[];
   /** The keys it said that nothing reads, dropped. */
   dropped?: string[];
@@ -101,7 +101,7 @@ export function long_form(front: Map, body?: string): LongForm {
   /** A note on the file is about its whole layer: untied, it floats beside all of it. */
   if (said) blocks.push({ name: said, type: "note", values: [] });
   noted(top, -1, undefined, blocks);
-  held(front, undefined, blocks);
+  held(front, undefined, blocks, top);
   const relations = listed(front["relations"], "relations").flatMap(edges);
   const packages = listed(front["packages"], "packages").map((p) => said_as(p).trim())
     .filter(Boolean);
@@ -121,14 +121,22 @@ export function is_edge(word: string): boolean {
 
 /** The blocks a map holds, in file order: its header row and column, then its `blocks`, each
  *  followed by what it holds in turn. `under` is the entry the map is, where it is not the
- *  file's block. */
-function held(map: Map, under: number | undefined, out: Entry[]): void {
-  const heads = (key: "rows" | "cols") => listed(map[key], key).map((item, i) => {
-    const e = typeof item === "string" ? { name: item, values: [] } as Entry : entry(item as Map);
-    e.cell = key === "rows" ? [i + 1, 0] : [0, i + 1];
-    return e;
+ *  file's block; `owner` is that entry. **A header said as a word is a label**, plain data on
+ *  the owner's grid; said as a block, it is a block standing for a concept (2026-11-05). */
+function held(map: Map, under: number | undefined, out: Entry[], owner: Entry): void {
+  const labels: { r: number; c: number; text: string }[] = [];
+  const heads = (key: "rows" | "cols") => listed(map[key], key).flatMap((item, i) => {
+    const cell: [number, number] = key === "rows" ? [i + 1, 0] : [0, i + 1];
+    if (typeof item === "string") {
+      labels.push({ r: cell[0], c: cell[1], text: item.trim() });
+      return [];
+    }
+    return [{ ...entry(item as Map), cell }];
   });
   for (const e of [...heads("cols"), ...heads("rows")]) out.push({ ...e, under });
+  if (labels.length) {
+    owner.grid = { ...owner.grid, labels: [...labels, ...(owner.grid?.labels ?? [])] };
+  }
   for (const item of listed(map["blocks"], "blocks")) {
     for (const [e, inner] of blocks_of(item)) {
       const at = out.length;
@@ -137,7 +145,7 @@ function held(map: Map, under: number | undefined, out: Entry[]): void {
       if (said) out.push({ ...note_on(said, e.parent ? undefined : under, at),
                            ...(e.parent ? { parent: e.parent } : {}) });
       noted(e, at, e.parent ? undefined : under, out, e.parent);
-      if (inner) held(inner, at, out);
+      if (inner) held(inner, at, out, out[at]!);
     }
   }
 }

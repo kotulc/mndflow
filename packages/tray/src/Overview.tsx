@@ -1,6 +1,7 @@
 /** The overview tab: every element's first, lines included, **one layout for all**. The card,
  *  then where it lives — its whole model or package, the element lit — then its path heading
- *  titled answers: why it matters, how it is used, where it sits, and its text. **Only its own
+ *  what its hover card says but its card — its facts, what it holds — and titled answers: why it
+ *  matters, how it is used, where it sits, and its text. **Only its own
  *  answers**: nothing borrowed from its definition. Gaps are quiet rows, in the editor only. It
  *  reflows by the tray's width. */
 
@@ -8,11 +9,11 @@ import { useMemo } from "react";
 import { appearances_of, behaviours_of, children, class_of, def_at, def_of, definition_uses,
          diagram_kind, edges_in, ends_of, is_model, is_notation, is_behaviour, is_group,
          is_reference, layer_of, may_retype, object_of, of_ref, opens, owner_of, package_of,
-         role_of, shown_name, stands_for, stood_def, tag_at, tags_of, use_places, BASE_PACKAGE,
+         role_of, shown_name, stands_for, stood_def, tag_at, tags_of, BASE_PACKAGE,
          DIAGRAM_QUESTIONS, DIAGRAMS, type Act, type Block, type Graph, type Id,
          type Relation } from "@mnd/core";
-import { Icon, role_icon } from "@mnd/theme";
-import { kind_of, wire_of, wire_tint } from "@mnd/views";
+import { Facts, Holds, Icon, role_icon, UsedIn } from "@mnd/theme";
+import { hover_of, kind_of, wire_of, wire_tint, type Hovered } from "@mnd/views";
 import { Content } from "./Content";
 import { Card, Empty, LineCard, List, Painted, Section, type Item } from "./Lists";
 import { Scope, Trail, Where } from "./Where";
@@ -28,6 +29,10 @@ export type OverviewProps = {
 };
 
 export function Overview({ graph, id, onAct, lists }: OverviewProps) {
+  /** What its hover card says, a definition's uses read as the library reads them; a reference
+   *  says what it stands for, as its card does. */
+  const read = useMemo(() => (graph.blocks[id]?.parent
+    ? hover_of(graph, id, !!graph.blocks[id]?.def) : null), [graph, id]);
   /** The picture: the map, the element lit. */
   const where = <Where graph={graph} id={id} />;
   const e = graph.edges[id];
@@ -108,8 +113,15 @@ export function Overview({ graph, id, onAct, lists }: OverviewProps) {
       </div>
       <div className="ov-answers lists">
         <Trail graph={graph} id={id} />
+        {read ? (
+          <div className="glance">
+            {/* Its tags are why it matters', below. */}
+            <Facts facts={{ ...read.facts, tags: [] }} />
+            {read.holds ? <Holds holds={read.holds} /> : null}
+          </div>
+        ) : null}
         <Why graph={graph} b={b} kind={kind} editor={!!onAct} />
-        <How graph={graph} b={b} seen={graph.blocks[seen] ?? b} kind={kind}
+        <How graph={graph} b={b} seen={graph.blocks[seen] ?? b} kind={kind} read={read}
              {...(onAct ? { onAct } : {})} />
         {onAct && b.parent && !b.def ? <Place graph={graph} b={b} onAct={onAct} /> : null}
         {/* What it says as text, last: a diagram's or a document's own. */}
@@ -164,12 +176,17 @@ function Why({ graph, b, kind, editor }: { graph: Graph; b: Block; kind: Id | nu
   const def = b.def ? undefined : def_of(graph, b.id);
   /** Base's definitions are kinds: the kind's chip already names them. */
   const own = def && package_of(graph, def) !== BASE_PACKAGE ? def_at(graph, def) : undefined;
+  /** A definition's own: what it extends, where that is no kind. */
+  const base = b.def && b.type && package_of(graph, b.type) !== BASE_PACKAGE
+    ? def_at(graph, b.type) : undefined;
   return (
     <Section name="why it matters" about="What it is for, in its own words; then what it is">
       {b.description ? <p className="why">{b.description}</p>
         : editor ? <p className="gap">no description yet</p> : null}
       <div className="chips">
         {own ? <Painted graph={graph} entry={own.id} word={own.name} chip /> : null}
+        {base ? <span className="faint">extends</span> : null}
+        {base ? <Painted graph={graph} entry={base.id} word={base.name} chip /> : null}
         {kind ? <span className="chip-like"><Icon name={role_icon(kind)} size={11} />{kind}</span>
           : null}
         {is_behaviour(graph, b.id) ? <span className="chip-like dim">behaviour</span> : null}
@@ -182,23 +199,17 @@ function Why({ graph, b, kind, editor }: { graph: Graph; b: Block; kind: Id | nu
 }
 
 /** **How it is used**: its lines in and out where it sits, by port, each with its relation's
- *  swatch; every side it is seen from, and what draws the same records; a definition's uses, in
- *  words. */
-function How({ graph, b, seen, kind, onAct }: {
-  graph: Graph; b: Block; seen: Block; kind: Id | null; onAct?: Act;
+ *  swatch; every side it is seen from, and what draws the same records; a definition's uses, place
+ *  by place, as its hover card lists them. */
+function How({ graph, b, seen, kind, read, onAct }: {
+  graph: Graph; b: Block; seen: Block; kind: Id | null; read: Hovered | null; onAct?: Act;
 }) {
   const same = useMemo(() => (kind === "class" || kind === "entity" ? alike(graph, seen.id) : []),
                        [graph, seen.id, kind]);
   if (b.def) {
-    const uses = definition_uses(graph, b.id).length;
-    const places = use_places(graph, b.id).length;
     return (
       <Section name="how it is used" about="Where its uses are drawn">
-        {uses ? (
-          <p className="why">
-            used {uses} {uses === 1 ? "time" : "times"} in {places} {places === 1 ? "place" : "places"}
-          </p>
-        ) : <Empty>nothing uses it yet</Empty>}
+        {read?.used ? <UsedIn used={read.used} /> : <Empty>nothing uses it yet</Empty>}
       </Section>
     );
   }

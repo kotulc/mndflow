@@ -2,9 +2,10 @@
  *  tab, laid out alike: **the drawing over every key on the left, the lit key's choices on the
  *  right.** The card tab's keys are what it is, where it sits and what it carries; the settings
  *  tab's, how a definition draws. The lit key is kept by name, so moving to the next element asks
- *  the same question. Given no `onAct`, nothing takes input. */
+ *  the same question. What a host adds — the card tab's edits — reads under the choices. Given no
+ *  `onAct`, nothing takes input. */
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { type Act, type Graph, type Id } from "@mnd/core";
 import { NOOP } from "./Body";
 import { Choices } from "./Choices";
@@ -18,9 +19,10 @@ export type ElementProps = {
   keys?: "card" | "settings";
   /** Make a definition the context, which is where it is edited. */
   onOpen?: (id: Id) => void;
+  children?: ReactNode;
 };
 
-export function Element({ graph, id, onAct = NOOP, onOpen, keys = "card" }: ElementProps) {
+export function Element({ graph, id, onAct = NOOP, onOpen, keys = "card", children }: ElementProps) {
   const [lit, set_lit] = useState(keys === "card" ? "type" : "");
   const pairs = keys === "card" ? pairs_of(graph, id, onAct, onOpen)
                                 : settings_of(graph, id, onAct);
@@ -32,7 +34,10 @@ export function Element({ graph, id, onAct = NOOP, onOpen, keys = "card" }: Elem
         <Drawing graph={graph} id={id} one />
         <Source id={id} pairs={pairs} lit={pair?.key ?? ""} onLit={set_lit} />
       </div>
-      <Choices graph={graph} id={id} pair={pair} onAct={onAct} />
+      <div className="side">
+        <Choices graph={graph} id={id} pair={pair} onAct={onAct} />
+        {children}
+      </div>
     </fieldset>
   );
 }

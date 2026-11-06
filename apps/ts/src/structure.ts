@@ -17,12 +17,11 @@ import type { Code, Import, Mod, Pkg } from "./read";
 /** The defaults: the components a layer aims for and may hold at most; the share of a package
  *  that must import a module for it to be foundation, and the most set aside; how deep a package
  *  splits; the weight added to an import within one folder; the most steps an entry's path takes,
- *  and how many calls deep it is followed; the share of a component's modules drawn as blocks of
- *  their own, the most salient first (`shown`). */
+ *  and how many calls deep it is followed. */
 export type Settings = { budget: number; most: number; share: number; depth: number;
-                         bonus: number; steps: number; reach: number; shown: number };
+                         bonus: number; steps: number; reach: number };
 export const SETTINGS: Settings = { budget: 7, most: 9, share: 0.35, depth: 2, bonus: 0.5,
-                                    steps: 12, reach: 4, shown: 0.5 };
+                                    steps: 12, reach: 4 };
 
 /** A component: its name, the module it is anchored on (its id's source), its modules, and its
  *  own components where it is split further. A component of one module is that module. */
@@ -47,12 +46,13 @@ export type Path = { entry: string; steps: Step[] };
  *  shared module), and how many other modules read it. */
 export type Word = { id: string; owner: string; fan: number };
 
-/** A package's structure; `root`, whether the system starts at it (nothing else uses it); `rank`, its modules by salience, the most first; `folded`, those a
- *  component's diagram folds into one block rather than drawing each; `vocab`, its shared types,
- *  the most read first. */
+/** A package's structure; `root`, whether the system starts at it (nothing else uses it);
+ *  `rank`, its modules by salience, the most first, which orders a component's modules — what a
+ *  view folds first is the view's, never written as a block (2026-11-05); `vocab`, its shared
+ *  types, the most read first. */
 export type Shape = { pkg: Pkg; root: boolean; entry: string[]; foundation: string[]; comps: Comp[];
-                      levels: Levels; paths: Path[]; rank: string[]; folded: string[];
-                      vocab: Word[]; score: Score };
+                      levels: Levels; paths: Path[]; rank: string[]; vocab: Word[];
+                      score: Score };
 
 /** Words that name nothing particular: never a component's name. */
 const STOP = new Set(["the", "and", "for", "with", "from", "into", "its", "that", "this", "what",
@@ -115,7 +115,7 @@ function shape_of(pkg: Pkg, root: boolean, s: Settings): Shape {
   const rank = salience(directed, pkg);
   return { pkg, root, entry, foundation, comps, levels,
            paths: paths_of(mod, entry, new Set(foundation), unit, s),
-           rank, folded: comps.flatMap((c) => folded_of(c, rank, s)), vocab: vocab_of(pkg, unit, s),
+           rank, vocab: vocab_of(pkg, unit, s),
            score: { ...(splits ? { modularity: modularity_of(undirected, rest, owner) } : {}),
                     fit: fits(comps, s), cycles: levels.cycles.length, depth: depth_of(comps) } };
 }
@@ -363,16 +363,6 @@ function vocab_of(pkg: Pkg, unit: Map<string, string>, s: Settings): Word[] {
                                                 fan: by.size }))
     .filter((w) => w.owner).sort((a, z) => z.fan - a.fan || a.id.localeCompare(z.id));
   return all.filter((w) => all.filter((o) => o.owner === w.owner).indexOf(w) < s.most);
-}
-
-/** The modules a component's diagram folds away: past the most salient `shown` share of a
- *  component of modules, at least 1 and at most `budget` drawn; never one alone. A component
- *  split again folds within its parts. */
-function folded_of(c: Comp, rank: string[], s: Settings): string[] {
-  if (c.parts.length) return c.parts.flatMap((p) => folded_of(p, rank, s));
-  const kept = Math.min(s.budget, Math.max(1, Math.ceil(c.modules.length * s.shown)));
-  const by = [...c.modules].sort((a, z) => rank.indexOf(a) - rank.indexOf(z));
-  return by.length - kept > 1 ? by.slice(kept) : [];
 }
 
 /** **Names by words** (*Strategy* stage 8): a component not named by its folder takes the word

@@ -121,7 +121,9 @@
 
 /* Narrow: the drawing beside its rows, and a block's body under both. */
 /* A tab is a fieldset so a read-only one can be disabled whole; it draws as a plain box. */
-fieldset.panel, fieldset.fields, fieldset.rows-set { border: 0; margin: 0; min-width: 0; }
+/* Its margin is the tab's gap under the tabs (shell `.tray-tabs + *`), as every tab's. */
+fieldset.panel { border: 0; margin-inline: 0; margin-bottom: 0; min-width: 0; }
+fieldset.fields, fieldset.rows-set { border: 0; margin: 0; min-width: 0; }
 fieldset.rows-set { padding: 0; }
 fieldset.fields { padding: 0; }
 
@@ -151,7 +153,8 @@ fieldset.fields { padding: 0; }
    in the rest. */
 .panel.element { grid-template-areas: "source choices"; }
 .panel.element > .col.source { grid-area: source; gap: var(--stack); }
-.panel.element > .col.choices { grid-area: choices; }
+.panel.element > .side { grid-area: choices; display: flex; flex-direction: column; min-width: 0; }
+.panel.element > .side > .col { display: flex; flex-direction: column; min-width: 0; }
 
 /* **One spacing for every tab**: the tray lays its tabs out by its own width, not the window's,
    and every tab takes its room from here — the air round it (`--pad`), between its columns
@@ -220,6 +223,15 @@ fieldset.fields { padding: 0; }
 @container (min-width: 560px) {
   .reads { grid-template-columns: var(--lead) minmax(0, 1fr); }
   .reads > .lists { padding-left: var(--gap); border-left: 1px solid var(--divider); }
+}
+/* **Each column scrolls on its own**, past one column: a tab takes the tray's height, and its
+   card column and its lists each scroll inside it, so the card stays in view. */
+@container (min-width: 560px) {
+  .tray-body > .reads, .tray-body > .panel.element { flex: 1 1 0; min-height: 0;
+                                                     align-items: stretch; }
+  .reads > *, .panel.element > * { min-height: 0; overflow-y: auto; }
+  /* What stacks in a scrolling column keeps its size: the column scrolls, nothing in it shrinks. */
+  .panel.element > * > * { flex: none; }
 }
 @container (min-width: 960px) {
   .reads > .lists { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -412,7 +424,7 @@ fieldset.fields { padding: 0; }
 }
 
 /* The card tab's edits: second, under its keys. */
-.card-edits { display: grid; gap: var(--stack); padding: 0 var(--pad) var(--pad); }
+.card-edits { display: grid; gap: var(--stack); padding-top: var(--gap); }
 .card-edits > .chip { justify-self: start; }
 
 /* ── **The overview**, one layout for every element: card, picture, answers. One column under
@@ -443,6 +455,8 @@ fieldset.fields { padding: 0; }
 .ov-pic:has(> .where-pic) > .opens { position: absolute; top: 3px; right: 3px; }
 .ov-answers { grid-area: answers; }
 .ov .opens { display: flex; gap: 6px; justify-content: flex-end; }
+/* What its hover card says but its card, under its path. */
+.ov .glance { display: grid; gap: var(--stack); }
 .ov .make { display: flex; flex-wrap: wrap; gap: 4px; }
 .ov .make .faint { width: 100%; }
 .ov .make .chip { display: inline-flex; align-items: center; gap: 4px; }

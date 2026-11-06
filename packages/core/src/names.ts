@@ -5,8 +5,8 @@ import { attributes_of, base_named, base_of, def_at, def_of, diagram_kind, edge_
 import { behaviours_of } from "./ends";
 import { inline, is_flat, shape_of } from "./holders";
 import { entry_at } from "./library";
-import { children, is_container, is_interface, of_ref, port_at, ports_on, resolved, stands_for,
-         stood_def } from "./tree";
+import { children, is_container, is_interface, of_ref, port_at, ports_on, resolved,
+         stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
 

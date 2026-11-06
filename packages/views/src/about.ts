@@ -4,8 +4,8 @@
 
 import { base_of, children, class_of, def_at, definition_uses, diagram_kind, domain_of, is_base,
          is_folder,
-         is_header, is_holder, is_interface, is_notation, line_layer, path, shown_name,
-         use_place, type Graph, type Id } from "@mnd/core";
+         is_header, is_holder, is_interface, is_notation, is_reference, line_layer, path,
+         shown_name, stands_for, use_place, type Graph, type Id } from "@mnd/core";
 import { carried } from "./derive";
 import { card_facts, counted, facts_of, type Facts } from "./facts";
 import { edge_of, face_table, face_text, head_words, listed, name_fit } from "./face";
@@ -126,11 +126,15 @@ function plain(text: string): string[] {
 /** **A hover card's reading of a block**: its path, its name and kind — a diagram's its diagram
  *  kind, a usage its definition, else its base kind — what a definition extends, its
  *  description, its facts and face; a definition in the library where it is used, place by
- *  place, anything else what it holds. Nothing where the id is no block. */
+ *  place, anything else what it holds; a reference, all of what it stands for. Nothing where the
+ *  id is no block. */
 export function hover_of(graph: Graph, id: Id, library: boolean): Hovered | null {
   if (graph.edges[id]) return line_hover(graph, id);
   const place = boxed_place(graph, id);
   if (place) return hover_of(graph, place, false);
+  /** A reference says what it stands for, as its chip and its card draw it. */
+  const target = is_reference(graph, id) ? stands_for(graph, id)?.id : undefined;
+  if (target && target !== id) return hover_of(graph, target, library);
   const b = graph.blocks[id];
   if (!b) return null;
   const up = path(graph, id).slice(0, -1).map((p) => p.name ?? shown_name(graph, p.id));

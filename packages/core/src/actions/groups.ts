@@ -276,6 +276,7 @@ register(
       const id = id_of(args, "id");
       const given = given_of(ctx.graph, id).find((g) => g.from === id_of(args, "from"));
       if (!given) return "that annotation gives it no tag";
+      if (given.at) return "its cell's label gives it that tag: seat it in another cell";
       /** Leaving an outer holder would leave the inner ones too: one membership at a time. */
       if (!given.tie && is_region(ctx.graph, given.from)
         && ctx.graph.blocks[id]?.parent !== given.from) {

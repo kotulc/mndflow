@@ -132,6 +132,13 @@ export function edges_of(scene: Scene, picked: readonly Id[]): LineEdge[] {
 }
 
 /** What in a Scene would change the drawing; selection is left out so the two copies never echo. */
+/** **What a grid's lattice draws, as a value**: each cell's place, size, marks and label. One key
+ *  for the canvas's arrays and a node's memo, so neither misses what the other redraws. */
+export function grid_seen(cells: BoxNode["data"]["grid"]): string {
+  return cells?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}${c.label ?? ""}`)
+    .join(",") ?? "";
+}
+
 export function signature(scene: Scene, frame: Frame | null): string {
   return [
     scene.layer,
@@ -148,7 +155,7 @@ export function signature(scene: Scene, frame: Frame | null): string {
         n.data.marks.join(""), n.data.side ?? "",
         look_key(n.data.look), n.data.face ?? "", n.data.text ?? "",
         /** The lattice is what a grid draws. */
-        n.data.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(""),
+        grid_seen(n.data.grid),
         /** Where a line meets this card is part of what it draws. */
         n.data.seats?.map((t) => `${t.id}${t.side}${t.at}`).join(""),
       ].join(":");

@@ -180,7 +180,8 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
       const b = graph.blocks[id]!;
       if (!b.def) b.alias ??= alias(block_base(graph, b.type));
     }
-    for (const [id, e] of entries) seat(ctx, id, e);
+    const said = new Map(entries);
+    for (const [id, e] of entries) seat(ctx, id, e, said);
     for (const [id, e] of entries) extent(graph, id, e);
   }
   /** Lines come once every block is typed, so an end names a port another file's block wears
@@ -567,28 +568,33 @@ function extended(ctx: Ctx, word: string): Id | undefined {
   return hits[0] ?? named(ctx, word, "block");
 }
 
-/** A block's cell: a number, or the name of the header heading that line. */
-function seat(ctx: Ctx, id: Id, e: Entry): void {
+/** A block's cell: a number, or the name of the header block or label heading that line. `said`
+ *  is every entry read, by id, for its grid's labels. */
+function seat(ctx: Ctx, id: Id, e: Entry, said: ReadonlyMap<Id, Entry>): void {
   if (!e.cell) return;
   const { graph } = ctx;
   const b = graph.blocks[id]!;
-  const heads = children(graph, b.parent);
-  const at = (said: string | number, axis: "r" | "c") => (typeof said === "number" ? said
-    : heads.find((h) => h.name === said && h.cell?.[axis === "r" ? "c" : "r"] === 0)?.cell?.[axis]);
+  const heads = [...children(graph, b.parent).flatMap((h) => (h.cell && h.name
+    ? [{ ...h.cell, text: h.name }] : [])), ...(said.get(b.parent ?? "")?.grid?.labels ?? [])];
+  const at = (word: string | number, axis: "r" | "c") => (typeof word === "number" ? word
+    : heads.find((h) => h.text === word && h[axis === "r" ? "c" : "r"] === 0)?.[axis]);
   const r = at(e.cell[0], "r");
   const c = at(e.cell[1], "c");
   if (r !== undefined && c !== undefined) b.cell = { r, c };
   else ctx.notes.push(`${ctx.file.path}: ${e.name || id} names a cell no header heads`);
 }
 
-/** A grid's lattice: as far as its cells reach, header lines included, and the merges it says. */
+/** A grid's lattice: as far as its cells and labels reach, header lines included, and the merges
+ *  and labels it says. */
 function extent(graph: Graph, id: Id, e: Entry): void {
   const b = graph.blocks[id]!;
   if (!is_grid(graph, id) && !e.grid) return;
-  const cells = children(graph, id).flatMap((m) => (m.cell ? [m.cell] : []));
+  const labels = e.grid?.labels ?? [];
+  const cells = [...children(graph, id).flatMap((m) => (m.cell ? [m.cell] : [])), ...labels];
   b.grid = { rows: Math.max(2, ...cells.map((c) => c.r + 1)),
              cols: Math.max(2, ...cells.map((c) => c.c + 1)),
-             ...(e.grid?.merges ? { merges: e.grid.merges as never } : {}) };
+             ...(e.grid?.merges ? { merges: e.grid.merges as never } : {}),
+             ...(labels.length ? { labels } : {}) };
 }
 
 /** A relation's names read: its ends, its type, and the way it points, kept where its arrow says

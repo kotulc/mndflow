@@ -162,6 +162,26 @@
   pointer-events: none;
 }
 .mnd-grid-cell.upright > .mnd-grid-index { right: auto; left: 3px; }
+/* A cell's label, plain data on the grid: a header's centred on its line's tab, upright down the
+   row header; a body cell's at its top left. */
+.mnd-grid-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.mnd-grid-cell.upright > .mnd-grid-label { writing-mode: vertical-rl; transform: rotate(180deg); }
+.mnd-grid-cell:not(.header) > .mnd-grid-label { align-items: flex-start; justify-content: flex-start;
+                                                color: var(--muted); }
 /* A column's letter sits in the middle of its header. */
 .mnd-grid-cell[data-way="col"] > .mnd-grid-index { left: 0; right: 0; text-align: center; }
 .mnd-group.room .mnd-grid-cell[data-way] { cursor: context-menu; }

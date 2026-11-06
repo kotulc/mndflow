@@ -4,9 +4,9 @@
  *  used or what it holds (views `hover_of`). It waits a moment before it first shows, then follows
  *  the pointer from one thing to the next at once, until the pointer has been away a while. */
 
-import { useEffect, useMemo, useState, type CSSProperties, type RefObject } from "react";
+import { useEffect, useMemo, useState, type RefObject } from "react";
 import type { Graph, Id } from "@mnd/core";
-import { CardFace, Facts } from "@mnd/theme";
+import { CardFace, Facts, Holds, UsedIn } from "@mnd/theme";
 import { folded_hover, hover_of, type FaceProps } from "@mnd/views";
 
 /** How long the pointer rests before the first card shows, before the next while one has shown
@@ -66,28 +66,8 @@ export function Hover({ graph, library, host }: { graph: Graph; library: boolean
             </div>
           </div>
         ) : null}
-        {read.used ? (
-          <section>
-            <h4>used in · {read.used.length} {read.used.length === 1 ? "place" : "places"}</h4>
-            {read.used.map((p) => (
-              <div key={p.id} className="mnd-hover-place" data-family={p.tint["data-family"]}
-                   style={(p.tint.style ?? {}) as CSSProperties}>
-                <span>{p.label}</span>
-                <span className="mnd-hover-names">
-                  {p.names.map((n, i) => <span key={`${n}${i}`}>{n}</span>)}
-                </span>
-              </div>
-            ))}
-          </section>
-        ) : null}
-        {read.holds ? (
-          <section>
-            <h4>holds</h4>
-            <span className="mnd-hover-names">
-              {read.holds.map((n, i) => <span key={`${n}${i}`}>{n}</span>)}
-            </span>
-          </section>
-        ) : null}
+        {read.used ? <UsedIn used={read.used} /> : null}
+        {read.holds ? <Holds holds={read.holds} /> : null}
       </div>
     </div>
   );

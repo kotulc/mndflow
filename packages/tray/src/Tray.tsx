@@ -279,17 +279,18 @@ export function Tray(props: TrayProps) {
       {/* What it is: a card's keys, a line's keys and ends, an entry's. Edits come second, here:
           declaring and answering attributes, and a port put on its wall. */}
       {shows === "card" ? (
-        <Element graph={graph} id={about} {...(edits ? { onAct: act } : {})} onOpen={open_id} />
-      ) : null}
-      {shows === "card" && edits && graph.blocks[about] ? (
-        <div className="card-edits">
-          <Band label="attributes" />
-          <Attributes key={about} graph={graph} id={about} onAct={act} />
-          {may_seat(graph, about) && !frozen(graph, about) ? (
-            <button className="chip" title="put a port on its wall"
-                    onClick={() => act("interface", { owner: about })}>add port</button>
+        <Element graph={graph} id={about} {...(edits ? { onAct: act } : {})} onOpen={open_id}>
+          {edits && graph.blocks[about] ? (
+            <div className="card-edits">
+              <Band label="attributes" />
+              <Attributes key={about} graph={graph} id={about} onAct={act} />
+              {may_seat(graph, about) && !frozen(graph, about) ? (
+                <button className="chip" title="put a port on its wall"
+                        onClick={() => act("interface", { owner: about })}>add port</button>
+              ) : null}
+            </div>
           ) : null}
-        </div>
+        </Element>
       ) : null}
       {/* How it draws: a definition's keys; the workspace's display. */}
       {shows === "settings" && context === "workspace" && props.display ? (

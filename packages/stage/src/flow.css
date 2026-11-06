@@ -16,8 +16,12 @@
   --laid-k: min(var(--text-k), 1);
 }
 /* **A card's preview sits under rows laid at layout size**, so a card showing one never holds its
-   text larger than it was laid, even while hysteresis keeps it a little below the text band. */
-.mnd-flow .mnd-card[data-level="3"] { --text-k: var(--laid-k); }
+   text larger than it was laid, even while hysteresis keeps it a little below the text band. **A
+   card too small for its head** keeps it too, held no larger than laid, and any card's name is
+   held no larger than a chip's (2026-11-05): zoomed far out names shrink with the drawing, as a
+   chip's do, never popping in. */
+.mnd-flow .mnd-card { --text-k: var(--chip-k); }
+.mnd-flow .mnd-card:is([data-level="0"], [data-level="3"]) { --text-k: var(--laid-k); }
 
 /* ── **Levels by zoom**: mark → head → facts → preview, picked from the size on screen (views
    `level_at`). Rows add below, anchored to the top, and fade; nothing drawn moves. ── */
@@ -31,13 +35,12 @@
 /* A seat too small to read hides; its line still meets the wall where it sits. */
 .mnd-flow .mnd-seat.tiny:not(.picked) { visibility: hidden; }
 
-/* **Nothing in a chip pops in** (2026-11-04): its name, and its body — tiles, nested tiles and
-   their names — show at every level, held no larger than the chip was laid for, so zoomed far
-   out they only shrink with the drawing, unread rather than gone; only its facts come and go by
-   level. */
+/* **Nothing in a chip or a card pops in** (2026-11-04, cards 2026-11-05): a name, and a chip's
+   body — tiles, nested tiles and their names — show at every level, held no larger than laid,
+   so zoomed far out they only shrink with the drawing, unread rather than gone; only facts and a
+   card's preview come and go by level. */
 /* A small face carrying facts reads from the top, so its facts add under its name. */
 .mnd-flow .mnd-card.small:has(> .mnd-face-facts) > .mnd-head { flex: none; }
-.mnd-flow .mnd-card[data-level="0"] > :is(.mnd-head, .mnd-marks),
 .mnd-flow .mnd-card:is([data-level="0"], [data-level="1"]) > .mnd-face-facts,
 .mnd-flow .mnd-card:not([data-level="3"]) > :is(.mnd-face-table, .mnd-face-body),
 .mnd-flow .mnd-chip:is([data-level="0"], [data-level="1"]) .mnd-chip-text .mnd-facts > * {
@@ -960,29 +963,6 @@
 .mnd-hover-about { margin: 0; color: var(--text); line-height: 1.45; }
 .mnd-hover-face { overflow: hidden; }
 .mnd-hover-face > div { transform-origin: 0 0; }
-.mnd-hover section { display: grid; gap: 4px; }
-.mnd-hover h4 {
-  margin: 0;
-  color: var(--muted);
-  font-size: 9.5px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.mnd-hover-place {
-  display: grid;
-  gap: 3px;
-  padding: 3px 0 3px 7px;
-  border-left: 2px solid var(--card-edge, var(--line));
-}
-.mnd-hover-place > span:first-child { color: var(--muted); font-size: 10px; }
-.mnd-hover-names { display: flex; flex-wrap: wrap; gap: 3px; }
-.mnd-hover-names > span {
-  padding: 1px 4px;
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  font-size: 10px;
-}
 
 
 /* ── **Picked: one look, everywhere** ── What the tray is about (stage `picked.ts`) wears it, on

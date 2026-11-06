@@ -12,6 +12,7 @@ export const DRAGGED = "text/mnd-block";
 import { FRAME, PLAIN, face_attrs, look_key, tint_attrs,
          type BoxData, type BoxNode, type GridCell } from "@mnd/views";
 import { BoxFace, CardFace, ChipFace, Facts, Name, Stamps, Wears, useNaming } from "@mnd/theme";
+import { grid_seen } from "./arrays";
 import { useLevel, useTiny } from "./level";
 import { usePicked, usePicks } from "./picked";
 
@@ -30,7 +31,7 @@ function seen(p: NodeProps<BoxNode>): string {
     d.face ?? "", d.text ?? "", d.marks.join(","),
     /** Read off the look, so no property is forgotten. */
     look_key(d.look),
-    d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(","),
+    grid_seen(d.grid),
     d.seats?.map((t) => `${t.id}${t.side}${t.at}`).join(","),
   ].join("|");
 }
@@ -285,6 +286,7 @@ function Lattice({ id, cells, open }: { id: string; cells: readonly GridCell[]; 
           {naming.id === cell_key({ group: id, r: c.r, c: c.c })
             ? <Name id={naming.id} className="mnd-grid-value" text="" clears /> : null}
           {c.index && open ? <span className="mnd-grid-index">{c.index}</span> : null}
+          {c.label ? <span className="mnd-grid-label">{c.label}</span> : null}
         </span>
       ))}
     </span>

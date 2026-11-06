@@ -3,7 +3,7 @@
 
 import { base_of, def_at, def_named, is_tie, packages,
          tags_stated } from "./defs";
-import { groups_of, holders_over, is_region } from "./holders";
+import { groups_of, holders_over, is_region, lattice_of } from "./holders";
 import { shown_name } from "./names";
 import { FORMS, KINDS, type Constraint, type LibraryEntry, type Form, type Graph, type Id,
          type Interface, type Library, type Mutation, type Tag, type Type } from "./types";
@@ -243,13 +243,23 @@ export function uses_by(graph: Graph, entry: Id, user: Id): number {
 }
 
 /** A tag an annotation gives a block by its name: a group's or a region's, to what it encloses; a
- *  label's, to what it is tied to. Derived, never stored on the member. */
-export type Given = { name: string; from: Id; tie?: Id };
+ *  label's, to what it is tied to; a grid label's, to what sits on its line or in its cell (`at`,
+ *  the label's own cell). Derived, never stored on the member. */
+export type Given = { name: string; from: Id; tie?: Id; at?: { r: number; c: number } };
 
-/** The tags annotations give a block: the regions enclosing it, nearest first, the groups it
- *  carries, then its labels. */
+/** The tags annotations give a block: the labels of its grid's row, column and cell, the regions
+ *  enclosing it, nearest first, the groups it carries, then its labels. */
 export function given_of(graph: Graph, id: Id): Given[] {
   const out: Given[] = [];
+  const b = graph.blocks[id];
+  const g = b?.cell ? lattice_of(graph, b.parent ?? undefined) : null;
+  if (b?.cell && g && b.cell.r > 0 && b.cell.c > 0) {
+    const { r, c } = b.cell;
+    for (const l of g.labels ?? []) {
+      const covers = (l.r === r && l.c === 0) || (l.r === 0 && l.c === c) || (l.r === r && l.c === c);
+      if (covers) out.push({ name: l.text, from: b.parent!, at: { r: l.r, c: l.c } });
+    }
+  }
   for (const h of holders_over(graph, id)) {
     const name = h.name?.trim();
     if (name && is_region(graph, h.id)) out.push({ name, from: h.id });

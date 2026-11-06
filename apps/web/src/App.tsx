@@ -10,7 +10,7 @@ import { all_defs, appearances_of, collect, diagram_kind, domain_of, drop_of, to
 import { FLOOR } from "@mnd/defs";
 import { area_of, boxed_place, box_of, clear_of, empty_of, holds, layer_scene, map_focus, project,
          section_map, set_aspect, set_card as apply_card, stop_area, BLOCK, CARD, EMPTY,
-         laid_ahead, row_look, UNITS, hop_trace, trace_of, type Area, type Scene,
+         laid_ahead, model_tree, on_map, row_look, UNITS, hop_trace, trace_of, type Area, type Scene,
          type Trace } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
 import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
@@ -107,6 +107,8 @@ export function App({ storage, boot, opening }: {
   const view = s.view();
   /** A row's colour and count, read again only when the graph changes. */
   const rowLook = useCallback((id: Id) => row_look(graph, id), [graph]);
+  /** The models' tree, which the map lays and the explorer lists: one tree for both. */
+  const models = useMemo(() => model_tree(graph), [graph]);
   /** The layer seen from inside, where the canvas looks into one. A whole section has none, and
    *  is not built on. */
   const whole = !is_inside(view.kind);
@@ -129,7 +131,7 @@ export function App({ storage, boot, opening }: {
   const pkg = view.layer && graph.blocks[view.layer]
     ? path(graph, view.layer)[0]?.id ?? null : null;
   const component = view.kind === "registry" && !graph.blocks[view.layer ?? ""];
-  const map = useMemo(() => (!lists || component ? null : section_map(graph, lists)),
+  const map = useMemo(() => (!lists || component ? null : section_map(graph, lists, models)),
     [graph, lists, component, card, aspect]);
   /** What the map is gone to: the layer looked into, else the pick on the whole map. */
   const focus_id = is_layer_view(view.kind) ? view.layer : view.pick;
@@ -228,27 +230,28 @@ export function App({ storage, boot, opening }: {
     },
   } : null;
 
-  /** **What the map's camera fits on a pick**: the step walked, both its ends; else the block
-   *  picked and everything a hop each way, so no leg runs out of view. */
+  /** **What a map's camera fits on a pick** — the world map's or a treemap diagram's: the step
+   *  walked, both its ends; else the block picked and everything a hop each way, so no leg runs
+   *  out of view. */
   const hop_box = useMemo(() => {
-    if (!map || !mapped) return null;
-    const t: Trace | null = walked ? hop_trace(graph, map, [walked])
-      : one ? trace_of(graph, map, one) : null;
+    if (!scene.areas) return null;
+    const t: Trace | null = walked ? hop_trace(graph, scene, [walked])
+      : one ? trace_of(graph, scene, one) : null;
     if (!t) return null;
     const ends = new Set([...t.legs.flatMap((l) => [l.from, l.to]), ...(walked ? [] : [one!])]);
-    const boxes = map.nodes.filter((n) => ends.has(n.id)).map(box_of);
+    const boxes = scene.nodes.filter((n) => ends.has(n.id)).map(box_of);
     if (!boxes.length) return null;
     const [x, y] = [Math.min(...boxes.map((b) => b.x)), Math.min(...boxes.map((b) => b.y))];
     return { x, y, w: Math.max(...boxes.map((b) => b.x + b.w)) - x,
              h: Math.max(...boxes.map((b) => b.y + b.h)) - y, scale: 1 / 2 };
-  }, [graph, map, mapped, walked, one]);
+  }, [graph, scene, walked, one]);
 
-  /** **Where the map's camera stops**: a chip filling the view while entered or left, the hops
-   *  picked, else the focus's area. **Letting go moves nothing**: with nothing picked or focused,
-   *  it stays where it last stopped. */
+  /** **Where a map's camera stops**: a chip filling the view while entered or left, the hops
+   *  picked, else the focus's area — a treemap diagram's, the whole diagram. **Letting go moves
+   *  nothing** on the world map: with nothing picked or focused, it stays where it last stopped. */
   const last_stop = useRef<{ x: number; y: number; w: number; h: number; scale?: number } | null>(
     null);
-  const stop = !scene.areas ? null : treemap ? { ...scene.areas[0]!, scale: 1 }
+  const stop = !scene.areas ? null : treemap ? hop_box ?? { ...scene.areas[0]!, scale: 1 }
     : through ?? hop_box ?? (focus_id || s.picked().length
       ? (focus_area ? { ...focus_area, scale: 1 / 2 } : null) : last_stop.current);
   last_stop.current = stop;
@@ -256,12 +259,12 @@ export function App({ storage, boot, opening }: {
   const subject = useMemo(() => {
     const shown = s.picked().filter((id) => lit_by(graph, s.picked(), s.route(), id,
                                                    seen_through(graph, view.layer, id)));
-    if (s.picked().length) return shown;
+    if (s.picked().length) return scene.areas ? on_map(graph, scene, shown) : shown;
     /** A list in the tray is about its lit row. */
     if (listed && drawn.has(listed)) return [listed];
     if (!mapped || system) return shown;
     return view.layer && drawn.has(view.layer) ? [view.layer] : [];
-  }, [graph, drawn, s.picked(), s.route(), mapped, system, view.layer, listed]);
+  }, [graph, scene, drawn, s.picked(), s.route(), mapped, system, view.layer, listed]);
 
   /** **What the selection touches** elsewhere — its lines' far ends, its stand-ins — lit wherever
    *  drawn; nothing dims. */
@@ -547,6 +550,7 @@ export function App({ storage, boot, opening }: {
           : registry_at(graph, view.layer) ?? registry_of(graph, view.layer)}
         chain={{ ...chain, onChoose: choose }}
         rowLook={rowLook}
+        models={models}
         keys={zones.zone === "explorer"}
       />
 

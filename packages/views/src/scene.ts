@@ -133,6 +133,8 @@ export type GridCell = {
    *  line's tab. */
   line?: { way: "row" | "col"; i: number };
   index?: string;
+  /** Its label: plain data on the grid, a header's naming its line. */
+  label?: string;
 };
 
 /** What one line carries; routing is the renderer's. */
