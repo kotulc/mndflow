@@ -30,7 +30,6 @@ export { BARE, PLAIN, entry_look, face_attrs, look_key, look_of, tint_attrs, typ
          type Arrow, type Border, type Contrast, type Height,
          type Family, type Font, type Look, type Part, type Weight, type Width,
          type Wire } from "./look";
-export { page_graph } from "./page";
 export { tiled, weight_of, type Tile } from "./treemap";
 export { layer_tree, members, model_tree, type Branch } from "./tree";
 export { sheet_graph, GRID_LAYER } from "./sheet";

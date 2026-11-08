@@ -58,14 +58,6 @@ export function behaviours_of(graph: Graph, id: Id): Block[] {
   return [...own(id), ...chain.filter((d) => d !== id).flatMap(own)];
 }
 
-/** **A block that is only its behaviours is read as its first**: where everything it holds is
- *  a behaviour, that behaviour — the map's chip previews it, reading the block enters it; else
- *  null. */
-export function only_behaviour(graph: Graph, id: Id): Id | null {
-  const kids = children(graph, id);
-  return kids.length && kids.every((c) => is_behaviour(graph, c.id)) ? kids[0]!.id : null;
-}
-
 /** A behaviour's signature from its interfaces: `name(param: type, …): type`. Its in-interfaces
  *  are its parameters, its out-interfaces its return; each is typed by its interface definition. */
 export function signature_of(graph: Graph, id: Id): string {

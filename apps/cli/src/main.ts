@@ -37,7 +37,7 @@ const USAGE = `mnd — the headless harness
            a file fixture (${GRAPH_NAMES.join(", ")}),
            an exported file, a raw log, or a source folder, collected as the workspace.
   A log is harness input only: a file is a graph, and that is what export writes.
-  --how sets the arrangement: free auto
+  --how sets the layer's placing: auto layered treemap
   --svg writes the drawing instead of the text projection
   k=@path reads that value from a file: body=@cards/pump.md
   --from sets the package catalogue search reads (default public/packages/index.json)
@@ -248,7 +248,7 @@ async function main(argv: string[]): Promise<void> {
       let graph = fold(log, FLOOR);
       if (how && layer !== null) graph = { ...graph,
         blocks: { ...graph.blocks, [layer]: { ...graph.blocks[layer]!,
-          settings: { ...graph.blocks[layer]!.settings, layout: { kind: how } } } } };
+          settings: { ...graph.blocks[layer]!.settings, diagram: { placing: how } } } } };
       const scene = project(graph, layer, look_of(graph, layer));
       const wrong = faults(scene);
       if (wrong.length) {

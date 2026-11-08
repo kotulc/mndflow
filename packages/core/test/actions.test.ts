@@ -16,7 +16,6 @@ const ctx = (picked: string[] = [], layer: string | null = "block_loop"): Contex
 const gridded = (): Context => {
   const c = ctx(["block_pump"]);
   const b = c.graph.blocks;
-  b["block_loop"] = { ...b["block_loop"]!, settings: { layout: { kind: "auto" } } };
   b["block_hot"] = { ...b["block_hot"]!, type: "grid", grid: { rows: 2, cols: 4 } };
   b["def_tank"] = { id: "def_tank", parent: ROOT, name: "tank", def: {}, ports: [{ id: "port_t" }] };
   b["block_tank"] = { ...b["block_tank"]!, parent: "block_hot", cell: { r: 1, c: 1 },

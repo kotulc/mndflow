@@ -2,11 +2,11 @@
 
 /** The model, and the vocabulary it is written in. */
 export {
-  type Layout, type Block, type BlockModule, type Components, type DefBody,
+  type Placing, type Block, type BlockModule, type Components, type DefBody,
   type Attribute, type Definition, type Dir, type Domain, type File, type Floor,
   type Flow, type Form, type Graph, type Id, type Point, type Relation, type Side,
   type Cell, type Grid, type HeaderRole, type Shape, type Span, type Value,
-  LAYOUTS, BASE_PACKAGE, BLOCK_MODULES, ROOT, SCHEMA,
+  PLACINGS, BASE_PACKAGE, BLOCK_MODULES, ROOT, SCHEMA,
   empty_graph, new_id,
 } from "@mnd/core";
 
@@ -29,7 +29,7 @@ export { type Allowed, type Allows, type Expects, type Note, type NoteKind, type
 export {
   all_defs, allocated_to, allocations_of, attributes_of, form_of, links_to, ports_of, ports_on,
   stored_of, is_box, is_region, ends_of, behaviours_of, is_behaviour, signature_of,
-  layout_of, at_cell, cell_of, children, def_at,
+  placing_of, at_cell, cell_of, children, def_at,
   def_of, domain_of, edge_base, edges_in, frozen, grid_of, group_head, head_of, headed_group,
   heading, holders_in, isa, is_container, is_grid, is_group, is_header, is_holder,
   is_interface, lattice_of, is_reference, layer_of, drawn_in, inline, is_folder, organizes,
@@ -61,9 +61,6 @@ export { CARD, LARGE, UNITS, face_of, set_card, size_of, type Face } from "@mnd/
 
 /** What a card carries, the large face's markdown, and its attributes as a table. */
 export { carried, face_table, face_text, listed, table, type Listed, type Ruled } from "@mnd/views";
-
-/** The computed layout: a layer as a page of boxes. */
-export { page_graph } from "@mnd/views";
 
 /** A tree row's colour edge and count, for the explorer's `rowLook`. */
 export { row_look } from "@mnd/views";

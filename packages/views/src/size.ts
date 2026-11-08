@@ -211,7 +211,7 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
   return face === "large" ? large_of(graph, id, card) : { ...BLOCK };
 }
 
-/** Which face a block draws with: what the nearest ancestor saying `layout.cards` asks for, else
+/** Which face a block draws with: what the nearest ancestor saying `diagram.cards` asks for, else
  *  what it has — **a card shows what it has**: large where its face has a table, a body or records
  *  to show, small where it is a name alone. Always small in a grid's cell, which is a card's size.
  *  Never the zoom's. */
@@ -220,7 +220,7 @@ export function face_of(graph: Graph, id: Id): Face {
   const seen = new Set<Id>();
   for (let at = graph.blocks[id]?.parent; at && !seen.has(at); at = graph.blocks[at]?.parent) {
     seen.add(at);
-    const said = setting_of(graph, at, "layout")["cards"];
+    const said = setting_of(graph, at, "diagram")["cards"];
     if ((CARDS as readonly unknown[]).includes(said)) return said as Face;
   }
   return shows_any(graph, id) ? "large" : "small";

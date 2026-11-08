@@ -16,7 +16,7 @@
       "border_contrast": "faint",
       "name_contrast": "faint"
     },
-    "layout": {
+    "diagram": {
       "view": "allocation"
     }
   }

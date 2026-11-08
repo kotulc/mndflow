@@ -33,8 +33,7 @@ npm run start -w @mnd/cli -- project related  # a Scene as text, which is the se
 | `profile.ts` | one page-wide row per level along the pick, a line into each (profile) |
 | `sheet.ts` | an opened grid's lattice, the allocation view |
 | `through.ts` | read-through: an opened usage's definition structure laid on its layer, its interfaces on its walls |
-| `page.ts` | the computed page layout: full-width boxes down a page |
-| `size.ts` | the one measure: `UNIT`, a `CELL` as a block plus its air, and **faces** — `face_of` (small, or large where an ancestor's `layout.cards` asks) and the size each draws at: the workspace card small; large, the definition's `card.size` or what its content fits (`fitted`), under `LARGE` |
+| `size.ts` | the one measure: `UNIT`, a `CELL` as a block plus its air, and **faces** — `face_of` (small, or large where an ancestor's kind says `diagram.cards`) and the size each draws at: the workspace card small; large, the definition's `card.size` or what its content fits (`fitted`), under `LARGE` |
 | `flow.ts` | **placement**: a layer's blocks by ELK, each container on its own, inside out — `layered` where lines join its children, packed where none do (`place`); ELK in the host's worker (`set_elk`) |
 | `map.ts` · `layer.ts` | the map, the models' and the library's: boxes and chips by what they hold or show (`model_map`, `library_map`, `section_map`); a layer entered from it, placed by ELK (`layer_scene`) |
 | `about.ts` | what a block says off its layer: its facts (`facts_of`), a chip's preview (`preview_of`), its hover card (`hover_of`), its colour on a map (`colour_of`), its card's face for the tray and the hover card (`face_props`) |

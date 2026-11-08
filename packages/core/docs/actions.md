@@ -138,7 +138,7 @@
 
 ### The layer
 
-**Every card is placed automatically, and no action places one.** A layer's layout is a setting (`layout.kind`: `layered` or `treemap`, packed where nothing says), said by a definition and overridable by the layer in its settings; there is no `layout` or `arrange` action. Reading order is the blocks' `order`, which `move` (`before`) changes.
+**Every card is placed automatically, and no action places one.** How a layer places what it holds is its diagram kind's (`diagram.placing`: `layered` or `treemap`, packed where nothing says), never a block's own; there is no `layout` or `arrange` action. Reading order is the blocks' `order`, which `move` (`before`) changes.
 
 
 ## Adjustments

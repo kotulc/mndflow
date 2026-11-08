@@ -1,7 +1,5 @@
 name: Lines
 type: model
-settings:
-  layout: { kind: layered }
 note: Every relation the base ships, and the ways a line points. A line's ends say how many, in what role, and who owns whom.
 blocks: [ A, B, C, D, E, F, G, H, Whole, Part, Gathered, Client, Supplier, Caller, Callee, State one, State two ]
 relations:

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { all_defs, appearances_of, collect, diagram_kind, domain_of, drop_of, touches_of,
          held_at, in_section, is_base, is_inside, is_layer_view, lit as lit_by, object_of,
-         path, path_of, path_owner, registry_at, registry_id, registry_of,
+         path, path_of, path_owner, reached, registry_at, registry_id, registry_of,
          seen_through, session, shown_name, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Hop, type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
@@ -230,31 +230,45 @@ export function App({ storage, boot, opening }: {
     },
   } : null;
 
-  /** **What a map's camera fits on a pick** — the world map's or a treemap diagram's: the step
-   *  walked, both its ends; else the block picked and everything a hop each way, so no leg runs
-   *  out of view. */
+  /** **What the camera fits on a pick**, on a map or a layer entered from it: the step walked,
+   *  both its ends; else the block picked and everything a hop each way, so no leg runs out of
+   *  view. A map's legs run chip to chip; a layer's hops are its cards (core `reached`), fitted
+   *  only where it joins something, never above 100%. */
   const hop_box = useMemo(() => {
-    if (!scene.areas) return null;
-    const t: Trace | null = walked ? hop_trace(graph, scene, [walked])
-      : one ? trace_of(graph, scene, one) : null;
-    if (!t) return null;
-    const ends = new Set([...t.legs.flatMap((l) => [l.from, l.to]), ...(walked ? [] : [one!])]);
-    const boxes = scene.nodes.filter((n) => ends.has(n.id)).map(box_of);
+    const ends = (): readonly Id[] => {
+      if (!scene.areas) {
+        /** A step's ends lifted to the cards drawing them, as `reached` lifts a pick's hops. */
+        const lift = (id: Id) => [...path(graph, id)].reverse().find((b) => here.has(b.id))?.id;
+        if (walked) return [lift(walked.from), lift(walked.to)].filter((x): x is Id => !!x);
+        return one && graph.blocks[one] ? reached(graph, one, scene.layer).blocks : [];
+      }
+      const t: Trace | null = walked ? hop_trace(graph, scene, [walked])
+        : one ? trace_of(graph, scene, one) : null;
+      return t ? [...t.legs.flatMap((l) => [l.from, l.to]), ...(walked ? [] : [one!])] : [];
+    };
+    const here = new Set(scene.nodes.map((n) => n.id));
+    const fit = new Set(ends());
+    const boxes = scene.nodes.filter((n) => fit.has(n.id)).map(box_of);
     if (!boxes.length) return null;
     const [x, y] = [Math.min(...boxes.map((b) => b.x)), Math.min(...boxes.map((b) => b.y))];
     return { x, y, w: Math.max(...boxes.map((b) => b.x + b.w)) - x,
-             h: Math.max(...boxes.map((b) => b.y + b.h)) - y, scale: 1 / 2 };
+             h: Math.max(...boxes.map((b) => b.y + b.h)) - y, scale: scene.areas ? 1 / 2 : 1 };
   }, [graph, scene, walked, one]);
 
-  /** **Where a map's camera stops**: a chip filling the view while entered or left, the hops
-   *  picked, else the focus's area — a treemap diagram's, the whole diagram. **Letting go moves
-   *  nothing** on the world map: with nothing picked or focused, it stays where it last stopped. */
-  const last_stop = useRef<{ x: number; y: number; w: number; h: number; scale?: number } | null>(
-    null);
-  const stop = !scene.areas ? null : treemap ? hop_box ?? { ...scene.areas[0]!, scale: 1 }
+  /** **Where the camera stops**: on a map, a chip filling the view while entered or left, the
+   *  hops picked, else the focus's area — a treemap diagram's, the whole diagram; on a layer
+   *  entered from the map and fitted (not read down), the hops picked, else it whole. **Letting
+   *  go moves nothing** on the world map or an entered layer: it stays where it last stopped. */
+  type Stop = { x: number; y: number; w: number; h: number; scale?: number };
+  const last_stop = useRef<{ on: string; stop: Stop | null }>({ on: "", stop: null });
+  const stop_on = scene.areas ? "map" : `layer:${scene.layer ?? ""}`;
+  const kept_stop = last_stop.current.on === stop_on ? last_stop.current.stop : null;
+  const fitted = entered && !diagram;
+  const stop = !scene.areas ? (fitted ? hop_box ?? kept_stop : null)
+    : treemap ? hop_box ?? { ...scene.areas[0]!, scale: 1 }
     : through ?? hop_box ?? (focus_id || s.picked().length
-      ? (focus_area ? { ...focus_area, scale: 1 / 2 } : null) : last_stop.current);
-  last_stop.current = stop;
+      ? (focus_area ? { ...focus_area, scale: 1 / 2 } : null) : kept_stop);
+  last_stop.current = { on: stop_on, stop };
 
   const subject = useMemo(() => {
     const shown = s.picked().filter((id) => lit_by(graph, s.picked(), s.route(), id,
@@ -523,6 +537,7 @@ export function App({ storage, boot, opening }: {
         graph={graph}
         view={view}
         picked={s.picked()}
+        drawn={scene.areas ? undefined : drawn}
         route={s.route()}
         folded={folded}
         onAct={act}

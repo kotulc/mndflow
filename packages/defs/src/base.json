@@ -102,7 +102,7 @@
           "style": {
             "family": "primary"
           },
-          "layout": {
+          "diagram": {
             "view": "internal"
           }
         },
@@ -124,7 +124,7 @@
           "style": {
             "hue": 240
           },
-          "layout": {
+          "diagram": {
             "view": "class",
             "cards": "large"
           }
@@ -227,7 +227,7 @@
           "style": {
             "hue": 215
           },
-          "layout": {
+          "diagram": {
             "view": "er",
             "cards": "large"
           }
@@ -245,9 +245,9 @@
           "style": {
             "hue": 355
           },
-          "layout": {
+          "diagram": {
             "view": "internal",
-            "kind": "layered"
+            "placing": "layered"
           }
         },
         "traits": [
@@ -290,7 +290,7 @@
             "border_contrast": "faint",
             "name_contrast": "faint"
           },
-          "layout": {
+          "diagram": {
             "view": "allocation"
           }
         },
@@ -354,7 +354,7 @@
           "style": {
             "hue": 195
           },
-          "layout": {
+          "diagram": {
             "view": "internal"
           }
         }
@@ -417,7 +417,7 @@
         "description": "What is built: a definition of it is a model, the one thing drawn on directly. Its parts are the usages it holds; another model uses it as a part.",
         "order": 4,
         "settings": {
-          "layout": {
+          "diagram": {
             "view": "internal"
           },
           "style": {
@@ -523,7 +523,7 @@
           "style": {
             "hue": 310
           },
-          "layout": {
+          "diagram": {
             "view": "allocation"
           },
           "holder": {
@@ -567,9 +567,9 @@
           "style": {
             "hue": 330
           },
-          "layout": {
+          "diagram": {
             "view": "internal",
-            "kind": "layered",
+            "placing": "layered",
             "shape": "round"
           }
         },
@@ -592,7 +592,7 @@
           "style": {
             "hue": 290
           },
-          "layout": {
+          "diagram": {
             "view": "allocation"
           }
         },
@@ -663,9 +663,9 @@
           "style": {
             "hue": 175
           },
-          "layout": {
+          "diagram": {
             "view": "internal",
-            "kind": "treemap"
+            "placing": "treemap"
           }
         }
       }

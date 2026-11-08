@@ -1,6 +1,6 @@
 /** Every action, registered on import. */
 
-import { children, edges_in, layout_of } from "../tree";
+import { children, edges_in, placing_of } from "../tree";
 import { port_edit } from "./helpers";
 import type { Graph, Id, Mutation, Side } from "../types";
 import "./blocks";
@@ -25,4 +25,4 @@ export const adjustments = {
 };
 
 /** Re-exported so a caller can read a layer without importing the fold too. */
-export { children, edges_in, layout_of };
+export { children, edges_in, placing_of };

@@ -181,11 +181,6 @@
         "type": "model",
         "def": {},
         "order": 2,
-        "settings": {
-          "layout": {
-            "cards": "large"
-          }
-        },
         "source": "2-large.yaml"
       },
       "yaml.2-large:ada": {
@@ -446,11 +441,6 @@
         "type": "model",
         "def": {},
         "order": 4,
-        "settings": {
-          "layout": {
-            "kind": "layered"
-          }
-        },
         "source": "4-lines.yaml"
       },
       "yaml.4-lines:a": {

@@ -2,8 +2,8 @@
  *  header, then its rows, every branch folded until opened. **The explorer browses; the canvas is
  *  the target**: choosing a row holds it in its section and puts that section in focus, and
  *  opening one (Enter, double-click, →) is what moves the canvas; whether a choice inside the
- *  open structure moves it too is the host's. The pick is lit strongly, the branch the canvas
- *  draws and each section's pick subtly. */
+ *  open structure moves it too is the host's. The pick is lit strongly, and only while picked;
+ *  the rows the canvas draws and each section's pick subtly. */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { about_of, at_cut, children, domain_of, drop_of, frozen, is_folder, is_inside,
@@ -29,6 +29,8 @@ export type ExplorerProps = {
   view: View;
   /** What an action would act on. Takes the accent, and reads first. */
   picked: readonly Id[];
+  /** What the canvas draws, by id: its rows wear a faint wash, grouping what is in view. */
+  drawn?: ReadonlySet<Id>;
   /** Which branches are shut. Session state, handed down. */
   folded: readonly Id[];
   /** Told `rename` on F2, plus whatever the offered list names. */
@@ -295,14 +297,11 @@ export function Explorer(props: ExplorerProps) {
   const mine = picked.map((id) => as_row(id)!)
     .filter((id) => [sections.all, rows].some((all) =>
       all.some((r) => r.at === focus && r.ref === id)));
-  /** The focus is lit strongly: the picks it lists, by core's one rule (`lit`) — a part only
-   *  under the usage the picks were made through — else what it holds. */
+  /** **The focus is lit strongly: only the picks it lists**, by core's one rule (`lit`) — a part
+   *  only under the usage the picks were made through. Letting go on the canvas lets go here. */
   const route = props.route === undefined ? open : props.route;
-  const lights = (r: Row) => {
-    if (r.at !== focus || r.pick === undefined || r.of !== "block") return false;
-    if (mine.length) return lit(graph, mine, route, r.ref, r.via);
-    return held[focus] === r.pick && !r.via;
-  };
+  const lights = (r: Row) => r.at === focus && r.pick !== undefined && r.of === "block"
+    && mine.length > 0 && lit(graph, mine, route, r.ref, r.via);
   /** **The one row wearing the accent's edge: what the canvas shows**, in the section it looks
    *  at — the layer seen from inside, else what it brought into sight, else the section's root. */
   const shown = as_row(is_layer_view(view.kind) ? view.layer
@@ -310,9 +309,10 @@ export function Explorer(props: ExplorerProps) {
   const drawn_at = rows.findIndex((r) => r.of === "block" && r.at === view.at && r.ref === shown
     && !r.via);
   const drawn_row = rows[drawn_at]?.id;
-  /** **The branch in focus**, lit subtly: the block a layer view draws and the rows under it. */
-  const branch = drawn_at >= 0 && is_layer_view(view.kind)
-    ? new Set(rows.slice(drawn_at, end_of(rows, drawn_at)).map((r) => r.id)) : new Set<Id>();
+  /** **What is in view**, lit subtly: the rows of the section the canvas looks at that it draws,
+   *  as the host hands them. */
+  const in_view = (r: Row) => r.of === "block" && r.at === view.at && !r.via
+    && !!props.drawn?.has(r.ref);
   /** What each other section holds, lit subtly. */
   const holds = (r: Row) => r.at !== undefined && r.at !== focus
     && r.pick !== undefined && held[r.at] === r.pick;
@@ -638,7 +638,7 @@ export function Explorer(props: ExplorerProps) {
                   !r.depth && r.at === focus ? "holds" : "",
                   r.via ? "part" : "",
                   r.id === drawn_row ? "open" : "",
-                  branch.has(r.id) ? "branch" : "",
+                  in_view(r) ? "in-view" : "",
                   /** The layer a drop would join, and where in it. */
                   r.of === "block" && zone && zone !== graph.root && on_path(graph, r.ref, zone) ? "zone" : "",
                   r.of === "block" && r.ref === zone ? "holder" : "",

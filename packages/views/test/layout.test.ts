@@ -4,12 +4,12 @@ import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, related } from "@mnd/fixtures";
 import { ROOT, children, drawn_in, fold, is_grid, is_group, is_header, is_holder, is_interface,
          is_note, lattice_of,
-         type Layout, type Graph, type Id } from "@mnd/core";
+         type Placing, type Graph, type Id } from "@mnd/core";
 import { cell_box } from "../src/size";
 import { bounds, boundary, laid, nearest_seat, size_of, snap, GAP, CELL, PAD, UNIT,
          type Placed } from "../src/index";
 
-const ARRANGEMENTS: Layout[] = ["auto"];
+const ARRANGEMENTS: Placing[] = ["auto"];
 
 function layer_of(name: string): { graph: Graph; layer: Id } {
   const graph = fold(fixture(name), FLOOR);
@@ -18,9 +18,9 @@ function layer_of(name: string): { graph: Graph; layer: Id } {
 }
 
 /** A layer laid out one way, its grids drawn open as a view flattens them. */
-function under(graph: Graph, layer: Id, how: Layout): Placed[] {
+function under(graph: Graph, layer: Id, how: Placing): Placed[] {
   const g: Graph = structuredClone(graph);
-  g.blocks[layer]!.settings = { ...g.blocks[layer]!.settings, layout: { kind: how } };
+  g.blocks[layer]!.settings = { ...g.blocks[layer]!.settings, diagram: { placing: how } };
   for (const b of Object.values(g.blocks)) {
     if (is_grid(g, b.id)) b.settings = { ...b.settings, holder: { flat: true } };
   }

@@ -414,9 +414,9 @@
 .mnd-fact-tags {
   --dot: 0.7em;
   display: inline-flex;
-  flex: 1 1 calc(var(--n) * (var(--dot) + 4px) - 4px);
+  flex: 1 1 calc(var(--n, 1) * (var(--dot) + 4px) - 4px);
   gap: 4px;
-  min-width: calc(var(--n) * (var(--dot) + 4px) - 4px);
+  min-width: calc(var(--n, 1) * (var(--dot) + 4px) - 4px);
   max-width: max-content;
 }
 .mnd-fact-tag {

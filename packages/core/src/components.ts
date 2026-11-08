@@ -5,10 +5,6 @@ import { BASE_RELATIONS, BLOCK_MODULES, DIRS, type Components } from "./types";
 /** What a definition holds under one component's key. */
 export type Settings = Record<string, unknown>;
 
-/** **A usage draws as its definition says**: the one setting it keeps is the layout of what it
- *  opens to. Read by the reader, `look` and `define_from`. */
-export const USAGE_KEYS: readonly string[] = ["layout"];
-
 /** One published component. `check` answers the same question an action's does — why this would not
  *  work, in words, or null. */
 export type Component = {
@@ -113,7 +109,7 @@ export const SHAPES = ["box", "round", "diamond", "dot", "ring"] as const;
 /** Which size a layer draws its cards at: the name and marks alone, or what they say. */
 export const CARDS = ["small", "large"] as const;
 
-/** The layer views a block may name with `layout.view`, where it can feed them. Closed, like
+/** The layer views a kind may name with `diagram.view`, where its block can feed them. Closed, like
  *  `card.face`: a name outside this set opens the block on the view its kind gives, never
  *  refused. */
 export const NAMED_VIEWS = ["internal", "allocation", "class", "er"] as const;
@@ -172,7 +168,7 @@ export const DEFAULTS = {
 export const DRAWN: readonly string[] = ["card", "style", "line"];
 
 /** What each module honours, and the keys it owns of its own. */
-const CARD: readonly string[] = ["card", "style", "allows", "holder", "layout", "tie",
+const CARD: readonly string[] = ["card", "style", "allows", "holder", "diagram", "tie",
                                  "records"];
 const WIRE: readonly string[] = ["line", "style", "allows"];
 
@@ -298,21 +294,20 @@ const allows: Component = {
 };
 
 
-/** How a layer places what it draws. An unknown kind is drawn as `auto`, never refused: a newer
- *  package names layouts an older build has not got. */
-const layout: Component = {
-  name: "layout",
+/** **How a diagram kind draws what it holds** (2026-11-06): its view, how it places its parts,
+ *  and the face and shape they take where theirs say none. A definition's, never a usage's. An
+ *  unknown placing is drawn as `auto`, never refused: a newer package names placings an older
+ *  build has not got. */
+const diagram: Component = {
+  name: "diagram",
   check: (config) =>
-    (config["kind"] === undefined || typeof config["kind"] === "string"
-      ? null : "`layout.kind` has to be a name")
-    ?? (config["line"] === undefined || typeof config["line"] === "string"
-      ? null : "`layout.line` has to be a relation definition")
+    (config["placing"] === undefined || typeof config["placing"] === "string"
+      ? null : "`diagram.placing` has to be a name")
     ?? (config["view"] === undefined || typeof config["view"] === "string"
-      ? null : "`layout.view` has to be a name")
-    ?? one_of("layout.cards", config["cards"], CARDS)
-    /** `shape` is what the layer's cards are drawn as, where theirs says none. */
-    ?? one_of("layout.shape", config["shape"], SHAPES)
-    ?? stray("layout", config, ["kind", "line", "cards", "view", "shape"]),
+      ? null : "`diagram.view` has to be a name")
+    ?? one_of("diagram.cards", config["cards"], CARDS)
+    ?? one_of("diagram.shape", config["shape"], SHAPES)
+    ?? stray("diagram", config, ["placing", "cards", "view", "shape"]),
 };
 
 /** What a block made from, or dropped on, another is linked to it by: a relation definition. */
@@ -346,4 +341,4 @@ const records: Component = {
 };
 
 /** What this build publishes. */
-publish(allows, block, card, holder, layout, line, records, style, tie);
+publish(allows, block, card, diagram, holder, line, records, style, tie);

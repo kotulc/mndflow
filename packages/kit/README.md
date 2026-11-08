@@ -112,7 +112,7 @@ The rest of what a drawing looks like is the host's to hand down, and `useDispla
 
 | Prop | Is |
 |---|---|
-| `card` | the small face's card, in lattice units — applied before anything is measured. A large face fits its content, or takes its definition's `card.size`, drawn where a layer's `layout.cards` asks |
+| `card` | the small face's card, in lattice units — applied before anything is measured. A large face fits its content, or takes its definition's `card.size`, drawn where a kind's `diagram.cards` asks |
 | `chrome.legend` · `chrome.corner` | the key to what the layer draws, in the top or bottom right-hand corner |
 
 ## The tray

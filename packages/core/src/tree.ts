@@ -3,7 +3,7 @@
 import { def_at, isa, module_of, setting_of } from "./defs";
 import { behaviours_of, is_behaviour } from "./ends";
 import { allocations_of, drawn_in, is_holder, layer_of, region_of } from "./holders";
-import { LAYOUTS, type Block, type Definition, type Flow, type Graph, type Id, type Layout,
+import { PLACINGS, type Placing, type Block, type Definition, type Flow, type Graph, type Id,
          type Port, type Relation } from "./types";
 import { kept } from "./memo";
 
@@ -236,17 +236,51 @@ export function reached(graph: Graph, id: Id, layer: Id | null): { blocks: Id[];
 }
 
 /** Every join in the graph, worked out once until the graph is written (`kept`): its lines,
- *  owner to owner, but ties and those inside a behaviour; and every behaviour's path steps. */
+ *  owner to owner, but ties and those inside a behaviour; and every behaviour's path steps.
+ *  **A line to a holder's own port is followed through it** (2026-11-06): a part joined to its
+ *  holder's port joins what that port's lines reach outside the holder, and nothing where none
+ *  do — what holds it is already drawn round it. */
 function joins(graph: Graph): { from: Id; to: Id; name: string }[] {
   return kept(graph, "joins", () => {
     const ways = Object.values(graph.blocks).filter((b) => is_behaviour(graph, b.id));
     const in_way = new Set(ways.flatMap((w) => subtree(graph, w.id)));
     const owners = [...new Set(ways.map((w) => w.parent).filter((x): x is Id => !!x))];
     const lines = Object.values(graph.edges).filter((e) => e.type !== "tie")
-      .map((e) => ({ from: owner_of(graph, e.from), to: owner_of(graph, e.to), name: e.name ?? "" }))
+      .map((e) => ({ a: `${e.from}:${e.fromPort ?? ""}`, b: `${e.to}:${e.toPort ?? ""}`,
+                     from: owner_of(graph, e.from), to: owner_of(graph, e.to),
+                     name: e.name ?? "" }))
       .filter((e) => !in_way.has(e.from) && !in_way.has(e.to));
-    return [...lines, ...owners.flatMap((o) => path_of(graph, o))];
+    /** Each line by its ends, an end being a block and its port. */
+    const at_end = new Map<string, (typeof lines)[number][]>();
+    for (const l of lines) for (const k of [l.a, l.b]) at_end.set(k, [...at_end.get(k) ?? [], l]);
+    /** What a holder's port reaches outside `holder`, up through as many holders as it takes; a
+     *  line back inside it is the one followed in, or another part's. */
+    const beyond = (end: string, holder: Id): { at: Id; name: string }[] =>
+      (at_end.get(end) ?? []).flatMap((l) => {
+        const [far, at] = l.a === end ? [l.b, l.to] : [l.a, l.from];
+        if (at === holder || within(graph, at, holder)) return [];
+        return within(graph, holder, at) ? beyond(far, at) : [{ at, name: l.name }];
+      });
+    /** A part's line to its holder's port goes through; one to the holder's bare edge stays. */
+    const through = lines.flatMap((l) => {
+      const [end, holder] = within(graph, l.from, l.to) ? [l.b, l.to]
+        : within(graph, l.to, l.from) ? [l.a, l.from] : [null, null];
+      if (!end || !holder || end === `${holder}:`) return [l];
+      return beyond(end, holder).map((x) => holder === l.to
+        ? { from: l.from, to: x.at, name: x.name || l.name }
+        : { from: x.at, to: l.to, name: x.name || l.name });
+    });
+    return [...through.map(({ from, to, name }) => ({ from, to, name })),
+            ...owners.flatMap((o) => path_of(graph, o))];
   });
+}
+
+/** Whether `id` sits inside `holder`, at any depth (never itself). */
+function within(graph: Graph, id: Id, holder: Id): boolean {
+  for (let x = graph.blocks[id]?.parent; x; x = graph.blocks[x]?.parent) {
+    if (x === holder) return true;
+  }
+  return false;
 }
 
 /** **A block's behaviours as a path, in order**: each message between two steps, ordered by the
@@ -387,10 +421,9 @@ export function line_layer(graph: Graph, id: Id): Id | null {
   return null;
 }
 
-/** How a layer lays out: its own word, else its definition's. `auto` is what nobody said, and a
- *  kind this build does not know draws as `auto` too. */
-export function layout_of(graph: Graph, layer: Id | null): Layout {
-  const kind = layer ? setting_of(graph, layer, "layout")["kind"] : undefined;
-  if (kind === undefined) return "auto";
-  return LAYOUTS.includes(kind as Layout) || kind === "page" ? kind as Layout : "auto";
+/** How a layer places what it holds: as its diagram kind says. `auto` is what nobody said, and
+ *  an arrangement this build does not know draws as `auto` too. */
+export function placing_of(graph: Graph, layer: Id | null): Placing {
+  const said = layer ? setting_of(graph, layer, "diagram")["placing"] : undefined;
+  return PLACINGS.includes(said as Placing) ? said as Placing : "auto";
 }

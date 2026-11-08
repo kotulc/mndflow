@@ -8,7 +8,6 @@
 
 import { NAMED_VIEWS } from "./components";
 import { is_model, models, setting_of } from "./defs";
-import { only_behaviour } from "./ends";
 import { inline, is_folder, is_grid, is_region, layer_of } from "./holders";
 import { registry_at, registry_id, registry_of } from "./library";
 import { opens } from "./names";
@@ -46,13 +45,6 @@ export const EDITOR: Tiers = {
 };
 
 
-/** A block's own `layout.view`, not what its chain says. A stand-in uses this to name a diagram
- *  over its target. */
-function own_view(graph: Graph, id: Id): string | undefined {
-  const view = graph.blocks[id]?.settings?.["layout"]?.["view"];
-  return typeof view === "string" ? view : undefined;
-}
-
 /** Whether a block can feed a view it names. Allocation needs a grid; a class or
  *  entity diagram, and the inside, something to draw: a block that holds, or reads through, what
  *  it does not draw in place. */
@@ -65,32 +57,17 @@ function feeds(graph: Graph, id: Id, view: string): boolean {
   return false;
 }
 
-/** Whether a word is a view a block may name with `layout.view`. */
+/** Whether a word is a view a kind may name with `diagram.view`. */
 function is_named_view(view: unknown): view is ViewKind {
   return (NAMED_VIEWS as readonly unknown[]).includes(view);
 }
 
-/** The view a block's chain names, where the block can feed it. A name this build does not know,
- *  or a block that cannot feed the one it names, is null: the block opens on the view its kind
- *  gives. */
+/** The view a block's kind names, where the block can feed it. A name this build does not know,
+ *  or a block that cannot feed the one it names, is null: the block opens on the view it holds
+ *  for. */
 export function diagram_of(graph: Graph, id: Id): ViewKind | null {
-  const said = setting_of(graph, id, "layout")["view"];
+  const said = setting_of(graph, id, "diagram")["view"];
   return is_named_view(said) && feeds(graph, id, said) ? said : null;
-}
-
-/** The block a diagram draws. A stand-in that states its own `layout.view`, and whose target can
- *  feed it, draws the target. One dataset, many diagrams. */
-export function diagram_subject(graph: Graph, id: Id): Id {
-  const target = of_ref(graph, id) ? stands_for(graph, id) : null;
-  const own = own_view(graph, id);
-  if (target && target.id !== id && own && is_named_view(own)
-      && feeds(graph, target.id, own)) return target.id;
-  return id;
-}
-
-/** The diagram a stand-in states for its target, where the target can feed it. */
-function own_diagram(graph: Graph, id: Id): ViewKind | null {
-  return diagram_subject(graph, id) !== id ? own_view(graph, id) as ViewKind : null;
 }
 
 
@@ -100,7 +77,7 @@ function own_diagram(graph: Graph, id: Id): ViewKind | null {
  *  block with something to draw, from inside — **an empty block opens on nothing**. **In the
  *  library a definition opens its registry**, a model included, where it is used; **in the
  *  models a model opens its own drawing**, empty or not. A stand-in opens as what it stands
- *  for, unless it states its own diagram view and the target can feed that. */
+ *  for. */
 export function lens_of(graph: Graph, id: Id, lists?: Lists): ViewKind | null {
   const b = graph.blocks[id];
   /** A registry, and an entry of one, open on the registry view: neither is ever a block. */
@@ -113,9 +90,7 @@ export function lens_of(graph: Graph, id: Id, lists?: Lists): ViewKind | null {
   /** The library enters definitions only: a part of one is read in the tray. */
   if (lists === "domain") return null;
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
-  if (target && target.id !== id) {
-    return own_diagram(graph, id) ?? lens_of(graph, target.id, lists);
-  }
+  if (target && target.id !== id) return lens_of(graph, target.id, lists);
   const diagram = diagram_of(graph, id);
   if (diagram) return diagram;
   if (is_grid(graph, id)) return "allocation";
@@ -256,10 +231,9 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
     if (opened && is_layer_view(opened.kind)) return { ...opened, layer: id, pick: null };
   }
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
-  /** A stand-in that names its own diagram stays the layer: the drawing is the target's, and the
-   *  trail names the reference. Anything else opens what it stands for, in the same section, where
-   *  that opens there; else it is picked where it is. */
-  if (target && target.id !== id && !own_diagram(graph, id)) {
+  /** A stand-in opens what it stands for, in the same section, where that opens there; else it
+   *  is picked where it is. */
+  if (target && target.id !== id) {
     if (lens_of(graph, target.id, lists)) return open_at(graph, tiers, views, target.id, from, now);
     return reveal_at(graph, tiers, views, now ?? null, id);
   }
@@ -274,7 +248,7 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
 
 /** **What reading a subject does** — a double-click, Enter, the explorer's open, the tray's
  *  *read* — from the section `from`, else the canvas's. It enters what it is on, where that opens
- *  there, a block that is only its behaviours entering its first (`only_behaviour`). In the library nothing else is entered: a part of a definition, or one not used, is
+ *  there. In the library nothing else is entered: a part of a definition, or one not used, is
  *  read in the tray. In the models anything else — a tile inside a chip (`inner`), a plain block,
  *  a region — enters the nearest block above it that opens, picked there. Null where nothing
  *  does: what was read stays picked on its map. */
@@ -293,8 +267,6 @@ export function read_at(graph: Graph, tiers: Tiers, views: Views, now: View | nu
     const to = open_at(graph, tiers, views, id, from, now);
     return to && is_layer_view(to.kind) ? to : null;
   };
-  const only = options.inner ? null : only_behaviour(graph, subject);
-  if (only && lens_of(graph, only, lists)) return opened(only);
   if (!options.inner && lens_of(graph, subject, lists)) return opened(subject);
   if (lists === "domain" || !graph.blocks[subject]) return null;
   const up = path(graph, subject).map((b) => b.id).reverse().slice(1)

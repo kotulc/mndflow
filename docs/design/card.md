@@ -44,7 +44,7 @@
 | **small** | head: name, kind, icon, marks | the workspace's card size |
 | **large** | name, then its face renderer: `table`, `class`, `document`, `picture`, `text` | fits its content, or the definition's `card.size`, capped by a preset |
 
-- **unsaid, a card shows what it has**: large where it has more than a name, small where it does not. `layout.cards` forces either on a layer
+- **unsaid, a card shows what it has**: large where it has more than a name, small where it does not. a kind's `diagram.cards` forces either
 - the face sets the card's size, and so the layout
 - **a large face is never shorter than a head and two rows**, so blank and full faces line up
 - **every face carries the facts strip** at level 2, as a chip does: one order, everywhere

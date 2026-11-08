@@ -1,6 +1,6 @@
 /** The block view: any planar projection. */
 
-import { alias_of, dir_of, layout_of, children, covers, diagram_subject,
+import { alias_of, dir_of, placing_of, children, covers,
          edges_in, group_depth, group_nest, has_lifelines, heading, holders_in, inline, is_box,
          is_container, owner_of,
          is_grid, is_group, is_aside, is_note, is_tie, label_of, lattice_of, members_of, shape_of,
@@ -13,7 +13,6 @@ import { carried, fit_names, marks_of, trail_of } from "./derive";
 import { card_facts } from "./facts";
 import { lifelined } from "./lifelines";
 import { look_of, wire_of } from "./look";
-import { page_graph } from "./page";
 import { layer_map, section_map } from "./map";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
@@ -72,11 +71,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   /** A diagram is a projection: it draws what the block holds, and the canvas does not edit it.
    *  A grid would otherwise open as its lattice, so this comes first. */
   if (layer && (look?.kind === "class" || look?.kind === "er")) {
-    return quiet(given, layer, diagram_scene(given, layer, look.kind));
-  }
-  /** A stand-in naming the allocation view draws its grid's cells, read only. */
-  if (layer && look?.kind === "allocation" && diagram_subject(given, layer) !== layer) {
-    return quiet(given, layer, diagram_scene(given, layer, look.kind));
+    return quiet(given, layer, classes_of(given, layer, look.kind));
   }
   /** An opened grid draws its grid view: its frame of cells is the room, which the hand sizes
    *  but never moves, under the grid's own crumbs. A grid read as time runs its messages straight
@@ -88,11 +83,9 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
     return lifelined(given, layer, { ...scene, layer, nodes, trail: trail_of(given, layer) });
   }
   /** What its usages read through. **No line is derived**: only stored relations draw. */
-  const through = read_through(given, layer);
-  /** A page places its layer as it reads; a treemap is its map; anything else places itself. */
-  const how = layout_of(through, layer);
-  if (how === "treemap") return layer_map(given, layer);
-  const graph = how === "page" ? page_graph(through, layer) : through;
+  const graph = read_through(given, layer);
+  /** A treemap is its map; anything else places itself. */
+  if (placing_of(graph, layer) === "treemap") return layer_map(given, layer);
   const parts = new Set(Object.keys(graph.blocks).filter((id) =>
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
   const carried_as = (id: Id): BoxData => {
@@ -486,17 +479,6 @@ function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
 function handle(met: ReadonlyMap<string, Perch>, edge: Id,
                 end: "from" | "to", role: "s" | "t"): string {
   return met.has(`${edge}|${end}`) ? `${role}-${perch_id(edge, end)}` : role;
-}
-
-/** The scene a diagram kind draws. The subject is the block that feeds it: a stand-in's target
- *  when the stand-in names the view. A kind the block cannot fill falls back to the capability
- *  view, still read only. */
-function diagram_scene(graph: Graph, layer: Id,
-                       kind: "class" | "er" | "allocation"): Scene {
-  const subject = diagram_subject(graph, layer);
-  const scene = kind === "allocation" ? project(graph, subject) : classes_of(graph, subject, kind);
-  if (layer === subject || !scene.frame) return scene;
-  return { ...scene, frame: { ...scene.frame, label: shown_name(graph, layer) } };
 }
 
 /** A class or entity diagram, or the block's own view where it holds no definition reference.

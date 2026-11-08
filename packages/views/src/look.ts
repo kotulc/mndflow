@@ -169,7 +169,7 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
   };
 }
 
-/** What a card is drawn as: its own `card.shape`, else the `layout.shape` the layer it sits on
+/** What a card is drawn as: its own `card.shape`, else the `diagram.shape` the layer it sits on
  *  casts its parts as — so a state machine's states read rounder. A group or folder on that
  *  layer passes it through; a diagram nested deeper casts its own. Notation and organization
  *  keep their own. Absent for the plain box. */
@@ -183,7 +183,7 @@ function shaped(graph: Graph, id: Id, card: Settings): { shape?: CardShape } {
   if (said === undefined && part) {
     let at = graph.blocks[id]?.parent;
     while (at && is_box(graph, at)) at = graph.blocks[at]?.parent;
-    said = at ? setting_of(graph, at, "layout")["shape"] : undefined;
+    said = at ? setting_of(graph, at, "diagram")["shape"] : undefined;
   }
   return said !== "box" && (SHAPES as readonly unknown[]).includes(said)
     ? { shape: said as CardShape } : {};

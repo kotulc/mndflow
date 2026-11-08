@@ -17,14 +17,13 @@ export type Side = "top" | "right" | "bottom" | "left";
 /** Which way an interface carries: in, out, or both, which is what absent says. */
 export type Flow = "in" | "out" | "both";
 
-/** How a layer places what it draws — **always automatically**: by its relations (`layered`),
- *  or as a treemap, each block as large as what it holds. A setting (`layout.kind`), said by a
- *  definition and overridable by the layer; unsaid, it is packed (`auto`). `page` is the
- *  package view's own, for the boxes down its page, and never said by a layer. */
-export type Layout = "auto" | "page" | "layered" | "treemap";
+/** How a diagram kind places what it holds — **always automatically**: by its relations
+ *  (`layered`), or as a treemap, each block as large as what it holds. Its kind's setting
+ *  (`diagram.placing`), never a block's own (2026-11-06); unsaid, it is packed (`auto`). */
+export type Placing = "auto" | "layered" | "treemap";
 
-/** The layouts a layer may say. */
-export const LAYOUTS: readonly Layout[] = ["layered", "treemap"];
+/** The arrangements a diagram kind may say. */
+export const PLACINGS: readonly Placing[] = ["layered", "treemap"];
 
 /** Which way a line points: a setting, `line.dir`, said by its definition and overridable on the
  *  line, like any other. */

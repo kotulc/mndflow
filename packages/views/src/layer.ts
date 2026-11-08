@@ -3,7 +3,7 @@
  *  draws a layer of its own a card that is entered in turn. Only what the side drawn lists is in
  *  it. Worked out on every graph change, never stored. */
 
-import { diagram_subject, is_model, layout_of, on_side, path, type Graph, type Id, type Lists,
+import { is_model, placing_of, on_side, path, type Graph, type Id, type Lists,
          type ViewKind } from "@mnd/core";
 import { placed_as, type Placed } from "./arrange";
 import { project } from "./block";
@@ -70,14 +70,13 @@ async function placed_ahead(graph: Graph, id: Id, kind: ViewKind)
     : Promise<{ spots: Map<Id, readonly Placed[]>; across?: boolean } | null> {
   if (kind === "internal") {
     const through = read_through(graph, id);
-    if (layout_of(through, id) === "treemap") return null;
+    if (placing_of(through, id) === "treemap") return null;
     const { spots, across } = await place(through, id);
     return { spots: new Map([[id, spots]]), ...(across === undefined ? {} : { across }) };
   }
   if (kind === "class" || kind === "er") {
-    const subject = diagram_subject(graph, id);
-    const drawn = class_graph(graph, subject, kind);
-    return drawn ? { spots: new Map([[subject, (await place(drawn, subject)).spots]]) } : null;
+    const drawn = class_graph(graph, id, kind);
+    return drawn ? { spots: new Map([[id, (await place(drawn, id)).spots]]) } : null;
   }
   return null;
 }

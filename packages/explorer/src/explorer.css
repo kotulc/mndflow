@@ -126,11 +126,11 @@
 /* The last row in a branch turns the elbow: the tick sits at the foot of the stopped line. */
 .explorer .tree .guide.tick.stop::after { top: 100%; }
 
-/* The accent's edge marks one row only: the block the canvas draws, and a faint wash the branch
+/* The accent's edge marks one row only: the block the canvas draws, and a faint wash the rows
    it draws. The pick is the strong wash, and each section's own pick a faint one, so neither
    reads as what is open. */
 .explorer .tree li.open { border-left-color: var(--accent); }
-.explorer .tree li.branch { background: color-mix(in oklch, var(--accent) 5%, transparent); }
+.explorer .tree li.in-view { background: color-mix(in oklch, var(--accent) 5%, transparent); }
 .explorer .tree li.context { background: var(--tint); }
 .explorer .tree li.context .label { color: var(--text); }
 .explorer .tree li.picked {

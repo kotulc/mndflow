@@ -20,7 +20,7 @@ project(graph, layer, config) → Scene            // one layer placed alone: ot
 |---|---|
 | `size.ts` | **the one measure.** `UNIT` is a square of the guides; `CELL` is a block plus a gap on every side. Everything else is derived from those |
 | `flow.ts` | **placement**: a layer's blocks by ELK, each container on its own, inside out — `layered` where lines join its children, packed where none do — the result nearest the canvas's shape kept; bands in list order, their axis returned (`across`); a group whose membership is a tree a compound of its members (`tree_groups`, `compounded`, shared with the treemap) |
-| `arrange.ts` | where everything in a layer sits — placed ahead by `flow.ts` where ELK gave places (`placed_as`), else the synchronous fallback (`auto`, `layered`, `page`), a treemap under `treemap` (`treemap.ts`) |
+| `arrange.ts` | where everything in a layer sits — placed ahead by `flow.ts` where ELK gave places (`placed_as`), else the synchronous fallback (`auto`, `layered`), a treemap under `treemap` (`treemap.ts`) |
 | `map.ts` | the map, the models' and the library's: one treemap builder (`mapped`), the models a forest stopping at diagrams (`model_map`), the library at definitions (`library_map`), a section's (`section_map`); a chip's level — its name's line, its facts where it has room (`ROW`) — and its body, beside an upright head where the chip is narrow and tall (`UPRIGHT`) — a diagram's laid by its structure: its lines' layers, a grid's rows, its bands in list order and marks, one gap between any two tiles, a group a panel over its members' tiles (`paneled`) — in a box, over their cells, where its membership is a tree; a definition's its uses by place as its registry lays them, else its profile — what it declares, its places, a bar of its uses (`previewed`); anything else its preview (`profiled`); each block tile its own colour (`tint`); a least weight (`LEAST`), an empty model's beside its heaviest sibling (`EMPTY`), a chip showing rows the room they need (`ROWS`, `CARD_W`), a sliver widened and laid again (`SLIVER`); the focus, the area under a point, the nearest area one way (`map_focus`, `area_of`, `area_under`, `towards`). Where a double-click goes is core's `read_at` |
 | `layer.ts` | a layer entered: placed by ELK, projected by its kind, only the side drawn (`layer_scene`, `laid_ahead`) |
 | `about.ts` | what a block says off its layer: its facts strip (`facts_of`), a chip's preview (`preview_of`), its hover card (`hover_of`), its colour on a map (`colour_of`), its card's face off the layer (`face_props`, `known_face`); what some blocks hold between them (`counted`) |
@@ -44,7 +44,7 @@ project(graph, layer, config) → Scene            // one layer placed alone: ot
 
 ## Layouts
 
-**Every card is placed automatically; nothing is placed by hand.** A layer's layout is a setting (`layout.kind`), said by its definition and overridable by the layer; an unknown kind draws packed.
+**Every card is placed automatically; nothing is placed by hand.** How a layer places what it holds is its diagram kind's setting (`diagram.placing`), never the block's own; an unknown placing draws packed.
 
 | | Is |
 |---|---|

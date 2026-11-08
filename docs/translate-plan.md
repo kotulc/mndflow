@@ -1,39 +1,33 @@
 # Code translation plan
 
-**Translate a TypeScript codebase into a mndflow workspace a person can be led through: this repo first.** The primary use case in design.md's vision: models are translated, then shown, and the end product is a walkthrough. Taken up 2026-11-01; a first, mechanical translator built that day; its shape revised 2026-11-02. Delete this plan when the second translator ships.
+**Translate a TypeScript codebase into a mndflow workspace a person can be led through: this repo first.** The primary use case in design.md's vision: models are translated, then shown, and the end product is a walkthrough. Taken up 2026-11-01; a first, mechanical translator built that day; its shape revised 2026-11-02. **Delete this plan when the user finds both translated projects acceptable** (this repo and mndsite), their diagrams included (2026-11-05).
 
 
 ## Next session
 
-**Handoff 2026-11-05.** The map and the explorer read one tree (*Built 2026-11-05*), uncommitted. **The next big effort is simplify-plan.md**: eliminate special cases and blocks that are not concepts; it leads ahead of *Remaining* below. Regenerate both translations and `npm run example` after pulling.
-
-**Handoff 2026-11-04.** This session's work is committed as `93442f7` and `76fa450`, but the last fixes (letting go of a pick, box titles, the tray's first row, the hops memo) are uncommitted. Regenerate both samples before looking (`npm run code`; mndsite by hand, below); both `check` clean. Take *Remaining* row 1 first: the user's refinements to *walk its path*.
+**Handoff 2026-11-05, closing pass.** Everything is committed through `41ee65c`; the closing pass (*Built 2026-11-05, closing*) is uncommitted. **Next: simplify-plan.md**, then *Remaining* row 1. Regenerate both translations and `npm run example` after pulling.
 
 **2026-11-04: telling the story from the entry points.** One tree, one order: the explorer, the map and an entered diagram read the same children in the same order (*Decided* rows 16–18); a system path from each package nothing uses (row 19); every block lights one hop each way, and a path is walked a hop at a time from a block marked ▶ (*Directions* rows 13–14).
 
 | # | Remaining | Notes |
 |---|---|---|
-| 1 | **walk its path: refinements** | next session (the user, 2026-11-04): the user likes *walk its path* on sequence diagrams and has refinements in mind; take them first |
-| 2 | **views over budget** | with types out of the edges views comes to 10 components, one over `most` |
-| 3 | **a component face listing its modules as rows** | *Decided* row 13 |
-| 4 | **vocabulary gaps** | enums and aliases as library types; a name said in two packages linked; methods |
-| 5 | **open directions** | rows 1–3, 5, 6, 8: edge weights, clustering package, component kinds, vocabulary ranking by *used by*, writing the workspace, what the agent layer needs |
-| 6 | **acceptance** | every diagram readable at fit, judged by the user and `mnd measure` |
-| 7 | **a pick's fit in an entered view** | on the map a pick fits the block and its hops; in an entered view the camera stays fitted whole (*Directions* row 13) |
-| 8 | **the explorer after letting go** | letting go on the canvas leaves the explorer's row lit (mndsite: `link`); whether the explorer lets go too |
-| 9 | **a CSS warning** | `npm` `lint-css`: an undefined `--n` in theme `face.css`, not this plan's code |
+| 1 | **walk its path: refinements** | after simplify-plan.md (the user, 2026-11-05): the user likes *walk its path* on sequence diagrams and has refinements in mind. First: a walked step is fitted whatever its ends are — today an end nested out of sight on a layer fits nothing (2026-11-06). A diagram read down the page scrolls to its focus but never fits a walk's two ends |
+| 2 | **views over budget** | with types out of the edges views comes to 10 components, one over `most`; look again after simplify-plan.md |
+| 3 | **acceptance** | the close condition: both projects and their diagrams acceptable to the user, with `mnd measure` as a check; both need work today |
+
+Moved to backlog.md *Later* (2026-11-05): a component face listing its modules as rows, the vocabulary gaps, and the open *Directions*.
 
 | # | Step | State |
 |---|---|---|
-| a | **salience** (stage 6) | built: PageRank over imports by symbols, scaled by length; a component's modules ordered by it, every one written (2026-11-05: the `other` block folding the least salient half removed — a view folds, never the model). Left: unjoined modules folded per band (*Directions* row 4); a component face listing modules as rows |
+| a | **salience** (stage 6) | built: PageRank over imports by symbols, scaled by length; a component's modules ordered by it, every one written (2026-11-05: the `other` block folding the least salient half removed — a view folds, never the model). Left (backlog.md): unjoined modules; a component face listing modules as rows |
 | b | **names** (stage 8) | built: tf-idf over the module names of a component against its siblings', a word recurring at least twice; first doc lines too only where the anchor is a stop word (`helpers`, `index`, `utils`). Tried with doc words for all: worse (`session` became `log`, `nodes` `level`), so anchors that name something stay |
-| c | **vocabulary** (stage 7) | built: interfaces, classes and object types another module reads, owned by the block holding their module, at most `most` (9) an owner by fan-in; a definition each in `types/<group>/<pkg>/<owner>/`, fields as attributes, a field typed by a written type an `association`, `extends` the `type`; a `class` diagram per component owning types, and one for the package's own. Left: enums and aliases as library types (they read as `text` with a note); a name said in two packages is never linked bare (text with a note); methods |
+| c | **vocabulary** (stage 7) | built: interfaces, classes and object types another module reads, owned by the block holding their module, at most `most` (9) an owner by fan-in; a definition each in `types/<group>/<pkg>/<owner>/`, fields as attributes, a field typed by a written type an `association`, `extends` the `type`; a `class` diagram per component owning types, and one for the package's own. Left (backlog.md): enums and aliases as library types (they read as `text` with a note); a name said in two packages is never linked bare (text with a note); methods |
 | d | **ports** (stage 5) | **decided 2026-11-02: no ports from imports or exports.** A port describes an interface, a data contract; an import is a usage, not a contract. At most one port per interface a component offers, and only once there is a contract to name; none generated until then |
 | e | **writing directly** (*Decided* row 3) | **decided 2026-11-02**: keep the source folder then `collect` for now (row 3 changed); it caught three real faults this pass |
-| f | **a reference breakdown** (*Directions* row 7) | **set aside 2026-11-02**: the user's reading of the models leads instead |
+| f | **a reference breakdown** (backlog.md) | **set aside 2026-11-02**: the user's reading of the models leads instead |
 
 - **the user's direction** (2026-11-02): a deterministic structure found from the graph (imports, interfaces, cycles, centrality), not agentic band-aids; **no hard rules** about what a block is; **thresholds are defaults with floors**; **balance depth against the big picture**; diagrams are visual information, never lists of parts; agents refine and narrate on top
-- **committed** through `76fa450`: everything in *Built* but the fixes the handoff above names. `samples/code*` and `samples/mndsite*` are generated and gitignored
+- **committed** through `41ee65c`: everything in *Built* but *Built 2026-11-05, closing*. `samples/code*` and `samples/mndsite*` are generated and gitignored
 - **regenerate**: `npm run code` (this repo → `samples/code.json`); mndsite by hand: `cd apps/ts && npx vite-node src/main.ts ../../../mndsite ../../samples/mndsite`, then `npm run start -s -w @mnd/cli -- collect ../../samples/mndsite ../../samples/mndsite.json --workspace`; `check` each. `npm run packages` after any `ts` kind change
 - **measure**: `npm run start -s -w @mnd/cli -- measure ../../samples/<name>.json [layer]`; entered diagrams only, not the map
 - **see it**: a Playwright script (Edge, `channel: "msedge"`) starting Vite from `apps/web/vite.config.ts`, routing `**/mndflow.yaml` to `workspace: /samples/<name>.json` (`tray: open`); enter, hover or pick a node by id (`.react-flow__node[data-id="…"]`), never by text, which matches chips inside. Run from the repo root; in Git Bash set `MSYS_NO_PATHCONV=1`
@@ -101,23 +95,15 @@
 
 ## Directions
 
-**Still open**, each with a leaning to test.
+Rows 1–8, still open, moved to backlog.md *Later* (2026-11-05).
 
 | # | Question | Options, leaning first |
 |---|---|---|
-| 1 | **edge weights** | symbols imported (built) plus type references · symbols only. Test whether type references move the clusters |
-| 2 | **the clustering package** | graphology's Louvain without its random walk (built), so a run repeats · Leiden where a package exists |
-| 3 | **component kinds** | a `ts.component` kind beside `ts.package` and `ts.module` · reuse `services.component` |
-| 4 | **modules joined to nothing** | they push a layer over budget (mndsite: two `Since`, two `_app`): fold them by salience (stage 6) · one group of the unjoined |
-| 5 | **vocabulary ranking** | fan-in on the type graph · PageRank on it; what a definition is *used by* is the fields and signatures typed by it (today it reads *nothing uses it*) |
-| 6 | **writing the workspace** | the translator builds the graph with core's types and `write`, then the door checks it (needs `@mnd/core`, against row 1's no-kit rule) · emits JSON by hand to the file schema |
-| 7 | **a reference breakdown** | hand-made for this repo, for MoJoFM; code-homes.md maps concerns to homes, not modules to components, so it is a start, not the breakdown |
-| 8 | **what the agent layer needs** | a walkthrough's steps naming translated views and elements (design.md *Open* `walkthroughs`); a stable name for every translated element across re-translation |
 | 9 | **a one-package project repeats its name** | settled by *Decided* row 15 |
 | 10 | **the system view** | settled by *Decided* row 15: the model holds the packages and their lines |
 | 11 | **what is primary reads first** | primary blocks stand out (a heavier border), their contents quieter; more space between major parts than within one · salience (stage 6) says which are primary; the look is design-plan's |
 | 12 | **flows central** | each entry point shows a flow of data and how it meets the primary parts; the major paths are the first thing read · paths from a call graph, entry to foundation, weighted by what crosses; drawn as a walkthrough's first steps |
-| 13 | **a path held in frame** | settled 2026-11-04: a pick on the map fits the block and its hops; a walk fits each step's two ends. Open: the same fit in an entered view, which today stays fitted whole |
+| 13 | **a path held in frame** | settled 2026-11-04: a pick on the map fits the block and its hops; a walk fits each step's two ends. An entered layer fits a pick's hops too (2026-11-05); a diagram read down the page only scrolls |
 | 14 | **every block's path** | settled 2026-11-04: full paths read as a tangle and their numbers meant nothing to a reader; every block shows one hop each way instead, and a path is walked a hop at a time from a block marked ▶ (design.md *Behaviours*) |
 
 
@@ -179,6 +165,17 @@ Seen in the browser on the translated repo, and (2026-11-02) by Louvain over eac
 | a project named as a catalogue package | translating apps/ts alone names it `ts`, and the door renames one of the two |
 | every entry takes about 2 s | at 2,100 blocks; profile again at the new, smaller output |
 
+
+## Built 2026-11-05, closing
+
+Seen in the app on this repo: a pick on a map, Escape, entering *views*, picking *derive*, Escape.
+
+| Change | Where |
+|---|---|
+| **the explorer lets go when the canvas does**: only what is picked lights strongly; the section's held row no longer stands in | explorer `Explorer.tsx` `lights` |
+| **what an entered layer draws wears a faint wash** in the explorer, grouping what is in view (was: the layer's branch); never on a map, which draws nearly every row (the user, 2026-11-06) | explorer `Explorer.tsx` `in_view`, `explorer.css` `.in-view`; web `App.tsx` `drawn` |
+| **a pick's fit in an entered layer**: a block that joins something, or a step walked, is fitted with its hops, never above 100%; letting go moves nothing. A diagram read down the page still only scrolls | web `App.tsx` `hop_box`, `stop` |
+| the undefined `--n` read: a fallback, as it is set inline | theme `face.css` `.mnd-fact-tags` |
 
 ## Built 2026-11-05
 

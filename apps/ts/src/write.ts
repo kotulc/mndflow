@@ -58,7 +58,7 @@ export function files_of(code: Code, shapes: Shape[], system: Levels): Map<strin
     [key, { name, pkg: names.get(x.pkg.dir)!, ref: [...at(x).split("/"), name].join(".") }])));
   if (shapes.length === 1) package_files(shapes[0]!, model, head, refs, twice, out);
   else {
-    out.set(`${model}.yaml`, yaml({ ...head, settings: { layout: { kind: "layered" } },
+    out.set(`${model}.yaml`, yaml({ ...head,
       blocks: sorted.map((x) => names.get(x.pkg.dir)!),
       relations: dependencies(code.packages.flatMap((p) => p.uses.map((u) =>
         `${names.get(p.dir)} -> ${names.get(u)}`))) }));

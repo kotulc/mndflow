@@ -28,15 +28,18 @@ export function trace_of(graph: Graph, scene: Scene, id: Id): Trace | null {
 
 /** **Hops traced over a map**: each end lifted to the nearest block the map draws — itself, or a
  *  reference standing for it, as a treemap diagram draws — or the *+n more* it folded into; one
- *  leg a pair, either way. Null off a map or where none is drawn. */
+ *  leg a pair, either way, **never between a box and what it holds**, drawn round it already.
+ *  Null off a map or where none is drawn. */
 export function hop_trace(graph: Graph, scene: Scene, hops: readonly Hop[]): Trace | null {
   if (!scene.areas) return null;
   const at = standing(graph, scene);
   const lift = (id: Id) => [...path(graph, id)].reverse().map((b) => at(b.id)).find((x) => !!x);
+  const above = holders(scene);
   const legs: Leg[] = [];
   for (const h of hops) {
     const [from, to] = [lift(h.from), lift(h.to)];
     if (!from || !to || from === to) continue;
+    if (above(to).includes(from) || above(from).includes(to)) continue;
     const had = legs.find((l) => (l.from === from && l.to === to)
       || (l.from === to && l.to === from));
     if (had) {
@@ -80,12 +83,19 @@ function standing(graph: Graph, scene: Scene): (id: Id) => Id | undefined {
 
 /** Blocks on a map, each box with everything it holds: what it holds is part of it. */
 function with_inside(scene: Scene, ids: readonly Id[]): Id[] {
+  const above = holders(scene);
+  return [...ids, ...scene.nodes.map((n) => n.id)
+    .filter((n) => !ids.includes(n) && above(n).some((p) => ids.includes(p)))];
+}
+
+/** The boxes holding a block on a map, nearest first. */
+function holders(scene: Scene): (id: Id) => Id[] {
   const up = new Map((scene.areas ?? []).map((a) => [a.id, a.parent]));
-  const within = (a: Id) => {
-    for (let p = up.get(a); p; p = up.get(p)) if (ids.includes(p)) return true;
-    return false;
+  return (id) => {
+    const out: Id[] = [];
+    for (let p = up.get(id); p; p = up.get(p)) out.push(p);
+    return out;
   };
-  return [...ids, ...scene.nodes.map((n) => n.id).filter((n) => !ids.includes(n) && within(n))];
 }
 
 type Rect = { x: number; y: number; w: number; h: number };
