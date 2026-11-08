@@ -187,7 +187,8 @@
 }
 .rows > .row > .line > .tags > input:focus { outline: none; border-color: var(--accent); }
 
-/* ── The card's keys: one line a key, the lit one marked as a reading tray marks a section ── */
+/* ── The card's and settings' keys, as a tab's filter rows are drawn: the key, its value at the
+   right where a filter says its count; the lit one in the picked wash. Single-select. ── */
 .yaml {
   display: flex;
   flex-direction: column;
@@ -196,38 +197,39 @@
   line-height: 1.7;
 }
 /* A section's head: the keys under it are indented. */
-.yaml .section { display: block; padding-left: 8px; color: var(--muted); }
-.yaml .section::after { content: ":"; }
+.yaml .section { display: block; margin-top: 6px; padding: 0 8px 3px; border-bottom: 1px solid var(--divider);
+                 color: var(--faint); font-size: 10px; text-transform: uppercase;
+                 letter-spacing: 0.06em; }
 .yaml .pair {
   display: flex;
   align-items: baseline;
   gap: 1ch;
   min-width: 0;
-  padding: 0 8px 0 6px;
-  border-left: 2px solid transparent;
+  min-height: 24px;
+  padding: 0 8px 0 10px;
   cursor: pointer;
   outline: none;
 }
-.yaml .pair.under { padding-left: calc(6px + 2ch); }
 /* A line under the pointer is one click from being lit. */
-.yaml .pair:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.yaml .pair:hover { background: var(--hover); }
 .yaml .pair.lit,
 .yaml .pair.lit:hover {
-  border-left-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 18%, transparent);
 }
-/* The key, then a colon. */
-.yaml .pair > .key { flex: none; color: var(--muted); }
-.yaml .pair > .key::after { content: ":"; }
+.yaml .pair.lit > .key { color: var(--accent); font-weight: 600; }
+/* The key, then its value at the right. */
+.yaml .pair > .key { flex: none; color: var(--text); }
 /* One line a key: a value too long for the column ends in an ellipsis. */
-.yaml .pair > .value { min-width: 0; color: var(--text); white-space: nowrap; overflow: hidden;
-                       text-overflow: ellipsis; }
+.yaml .pair > .value { min-width: 0; margin-left: auto; color: var(--muted); white-space: nowrap;
+                       overflow: hidden; text-overflow: ellipsis; }
 /* What is carried rather than said here reads faint. */
 .yaml .pair:not(.said) > .value { color: var(--faint); }
 /* A value that takes typing is underlined, so it reads as one before it is touched. */
 .yaml .pair > input {
   flex: 1 1 auto;
   min-width: 4ch;
+  text-align: right;
   padding: 0;
   border: 0;
   border-bottom: 1px dotted var(--divider);
@@ -311,7 +313,7 @@ fieldset.asks { margin: 0; padding: 0; border: 0; min-width: 0; }
 .asks > .empty { margin: 0; padding: 6px 8px; color: var(--faint); font-size: 11px; font-style: italic; }
 
 /* ── What a block holds as text, over the contents table ── */
-.content.text { padding: 4px 10px 10px; }
+.content.text { padding: var(--pad) var(--pad) var(--stack); }
 .content.text > .read { padding: 4px 6px; border: 1px solid transparent; border-radius: 2px; cursor: text; }
 .content.text > .read:hover { border-color: var(--divider); }
 .content.text > .read:focus { outline: none; border-color: var(--accent); }

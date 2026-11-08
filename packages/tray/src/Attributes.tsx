@@ -5,10 +5,10 @@
 
 import { useState } from "react";
 import { all_defs, all_types, attributes_of, def_at, def_of, domain_of, form_of, format_of,
-         frozen, links_to, type_at, type_name, unit_of, FORMS, type Act, type Attribute,
+         frozen, links_to, resolved, type_at, type_name, unit_of, FORMS, type Act, type Attribute,
          type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
-import { entry_look, resolved, tint_attrs } from "@mnd/views";
+import { entry_look, tint_attrs } from "@mnd/views";
 import { NOOP } from "./Body";
 import { Entry } from "./Entry";
 import { Table, type Column, type Line } from "./Table";

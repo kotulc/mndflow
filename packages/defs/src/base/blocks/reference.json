@@ -11,10 +11,8 @@
   "settings": {
     "style": {
       "family": "away",
-      "fill": "hatch",
       "border_contrast": "strong",
-      "name_contrast": "strong",
-      "opacity": 0.55
+      "name_contrast": "strong"
     }
   }
 }

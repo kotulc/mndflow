@@ -12,11 +12,11 @@
   ],
   "settings": {
     "style": {
-      "hue": 25
+      "hue": 355
     },
-    "layout": {
+    "diagram": {
       "view": "internal",
-      "kind": "layered"
+      "placing": "layered"
     }
   }
 }

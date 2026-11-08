@@ -1,0 +1,7 @@
+name: Class record
+type: Record
+def: {}
+description: A record drawn as a class, its values as fields.
+settings:
+  card:
+    face: class

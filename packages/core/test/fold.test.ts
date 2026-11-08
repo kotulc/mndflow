@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, flat, nested, related } from "@mnd/fixtures";
-import { children, config_of, edges_in, fold, is_container, is_reference, layer_of, layout_of,
+import { children, config_of, edges_in, fold, is_container, is_reference, layer_of, placing_of,
          block_base, base_of, next_order, path, session,
          shown_name, stands_for, subtree, ROOT, type Block } from "../src/index";
 
@@ -75,8 +75,8 @@ describe("derived readings", () => {
 
   it("gives a layer that says nothing the auto layout", () => {
     const graph = fold(flat(), FLOOR);
-    expect(layout_of(graph, "block_ledger")).toBe("auto");
-    expect(layout_of(fold(related(), FLOOR), "block_loop")).toBe("auto");
+    expect(placing_of(graph, "block_ledger")).toBe("auto");
+    expect(placing_of(fold(related(), FLOOR), "block_loop")).toBe("auto");
   });
 
   it("takes the lowest number not in use among siblings", () => {

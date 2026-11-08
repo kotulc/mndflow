@@ -1,10 +1,10 @@
 /** The questions the settings panel asks of how something draws, as data. */
 
-import { ALIGNS, ARROWS, BORDERS, CONTRASTS, DISPLAYS, FAMILIES, FILLS, FONTS, HUE,
-         INTENSITY, LARGE_FACES, OPACITY, SHOWN, VARY, WEIGHTS, WIDTHS } from "@mnd/core";
+import { ALIGNS, ARROWS, BORDERS, CONTRASTS, FAMILIES, FONTS, HUE,
+         LARGE_FACES, SHOWN, VARY, WEIGHTS, WIDTHS } from "@mnd/core";
 
 /** The parts of a drawing, and the questions each part is asked. */
-const GROUPS = ["name", "label", "face", "head", "colour", "border", "icon"] as const;
+const GROUPS = ["name", "face", "head", "colour", "border", "icon"] as const;
 export type Group = (typeof GROUPS)[number];
 
 /** The parts, in the order the rail lists them. */
@@ -15,7 +15,7 @@ export const AS_RUN: Partial<Record<Group, string>> = { border: "stroke" };
 
 /** Which component each part belongs to; the rail filters on it. */
 export const ASKS: Record<Group, string> = {
-  name: "style", label: "card", face: "card", head: "line", colour: "style", border: "style",
+  name: "style", face: "card", head: "line", colour: "style", border: "style",
   icon: "card",
 };
 
@@ -59,21 +59,6 @@ export const ROWS: Record<Group, Question[]> = {
     HANDLE("card"),
     HANDLE("line"),
   ],
-  label: [
-    { word: "display", key: "card", name: "label", form: "chips",
-      tip: "Where the label sits: over the card, in it, under it, or nowhere. "
-         + "The label is the subtype where one is named, the base kind otherwise.",
-      of: plain(DISPLAYS) },
-    { word: "font", key: "style", name: "label_font", form: "chips",
-      tip: "How the label is faced.", of: plain(FONTS) },
-    { word: "weight", key: "style", name: "label_weight", form: "chips",
-      tip: "How heavily the label is set.", of: plain(WEIGHTS) },
-    { word: "contrast", key: "style", name: "label_contrast", form: "chips",
-      tip: "How far the label stands out from the card behind it.",
-      of: plain(CONTRASTS) },
-    { word: "align", key: "card", name: "label_align", form: "chips",
-      tip: "Which end of the card the label reads from.", of: plain(ALIGNS) },
-  ],
   /** What the large face shows, and how big it is. The small face is the workspace's card. */
   face: [
     { word: "face", key: "card", name: "face", form: "chips",
@@ -111,29 +96,17 @@ export const ROWS: Record<Group, Question[]> = {
   /** How loudly it is taken, which every module honours. */
   colour: [
     { word: "family", key: "style", name: "family", form: "chips",
-      tip: "Which family the theme paints this with. A family is a preset over "
-         + "hue and intensity, and the theme is what picks it — so retro paints "
-         + "primary green where modern paints it teal.",
+      tip: "Which family the theme paints this with. A family is a preset "
+         + "hue, and the theme is what picks it. Every hue is taken at one lightness "
+         + "and chroma, as an edge, never a fill.",
       of: plain(FAMILIES) },
-    { word: "pattern", key: "style", name: "fill", form: "chips",
-      tip: "What fills the card behind its writing. Pattern, never colour — a "
-         + "hatch follows whatever family or hue the card was given.",
-      of: plain(FILLS) },
     { word: "hue", key: "style", name: "hue", form: "range",
       tip: "The angle this paints itself at. Set, it takes precedence over the family.",
       range: { ...HUE, step: 1, fallback: "200" } },
-    { word: "intensity", key: "style", name: "intensity", form: "range",
-      tip: "How far the hue is taken, as a fraction of the theme's own ceiling.",
-      range: { ...INTENSITY, step: 0.05, fallback: "0.65" } },
     { word: "vary", key: "style", name: "vary", form: "range",
       tip: "How far, in degrees, each definition under this one strays from its hue — kin "
          + "read alike, and each still reads as itself.",
       range: { ...VARY, step: 1, fallback: "0" } },
-    /** Transparency is a quantity, so it is a slider rather than named steps. */
-    { word: "opacity", key: "style", name: "opacity", form: "range",
-      tip: "How opaque the fill is. The fill alone, so the writing stays readable "
-         + "however far the ground shows through.",
-      range: { ...OPACITY, step: 0.02, fallback: "1" } },
   ],
   icon: [
     { word: "icon", key: "card", name: "icon", form: "marks",

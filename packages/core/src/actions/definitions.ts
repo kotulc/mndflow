@@ -230,8 +230,12 @@ register(
                              def: attributes.length ? { attributes } : {} }),
         edge ? { op: "update_edge", id, type: made } : { op: "update_block", id, type: made },
       ];
-      /** The element gives back the settings that moved. */
-      if (Object.keys(settings).length) out.push({ op: "drop_settings", id });
+      /** The element gives back the settings that moved, and keeps the rest. */
+      for (const [key, config] of Object.entries(settings)) {
+        for (const at of Object.keys(config)) {
+          out.push({ op: "set_setting", id, key, name: at, value: null });
+        }
+      }
       return { mutations: out, effect: { say: `defined ${name}` } };
     },
   },

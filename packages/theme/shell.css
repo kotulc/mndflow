@@ -225,7 +225,6 @@ input:focus { outline: none; border-color: var(--accent); }
   z-index: 4;
   display: flex;
   align-items: center;
-  gap: 2px;
   overflow: hidden;
   color: var(--muted);
   /* The bar spans the canvas; only its steps take the pointer. */
@@ -234,7 +233,9 @@ input:focus { outline: none; border-color: var(--accent); }
 
 /* Steps keep their width; the trail folds into `…` instead (Crumbs.tsx). Folded as far as it goes,
    the layer's own step gives up room last, to an ellipsis. */
-.crumbs > * { pointer-events: auto; }
+/* Each step on the canvas's ground, the steps touching, so the trail never reads over the
+   drawing under it. */
+.crumbs > * { pointer-events: auto; padding-inline: 1px; background: var(--bg); }
 .crumbs > span { display: flex; align-items: center; flex-shrink: 0; min-width: 0; }
 .crumbs.tight > span:last-of-type { flex-shrink: 1; }
 .crumbs button { padding: 1px 4px; white-space: nowrap; min-width: 0; overflow: hidden;
@@ -315,6 +316,34 @@ input:focus { outline: none; border-color: var(--accent); }
   white-space: nowrap;
 }
 .tray-context > .note { flex: none; color: var(--faint); font-size: 11px; font-style: italic; }
+
+/* **An element's identity row**: its colour edge, its name, its kind quieter after it, its role —
+   a filled *definition* badge in its colour, or a quiet *use* — then its facts strip, which takes
+   a line of its own in a narrow tray. */
+.tray { container-type: inline-size; }
+.tray-context { flex-wrap: wrap; row-gap: 2px; }
+.tray-context > .tray-edge {
+  flex: none;
+  align-self: stretch;
+  width: 3px;
+  margin: 3px 0;
+  background: var(--card-edge, var(--line));
+}
+.tray-context > .kind { flex: none; color: var(--muted); font-size: 11px; }
+.tray-context > .role {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 2px;
+  font-size: 10px;
+  line-height: 15px;
+  letter-spacing: 0.04em;
+}
+.tray-context > .role.definition { background: var(--card-mark, var(--muted)); color: var(--on-loud); }
+.tray-context > .role.use { border: 1px solid var(--border); color: var(--muted); }
+.tray-context > .tray-facts { display: inline-flex; min-width: 0; overflow: hidden; }
+@container (width < 520px) {
+  .tray-context > .tray-facts { flex-basis: 100%; padding-left: 11px; }
+}
 
 .tray-bar .holds {
   color: var(--muted);
@@ -399,7 +428,9 @@ input:focus { outline: none; border-color: var(--accent); }
   cursor: pointer;
 }
 
-.tray-tabs > button:hover { color: var(--text); }
+.tray-tabs > button:hover:not(:disabled) { color: var(--text); }
+/* A tab that does not apply here: faint, inert, never hidden. */
+.tray-tabs > button.off { color: color-mix(in oklab, var(--muted) 45%, transparent); cursor: default; }
 .tray-tabs > button.on {
   padding-bottom: 3px;
   border-color: var(--divider);

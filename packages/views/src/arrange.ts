@@ -1,12 +1,11 @@
 /** Where everything in a layer sits. */
 
-import { children, drawn_in, is_aside, is_box, is_interface, is_region, layout_of,
+import { children, drawn_in, is_box, is_group, is_interface, is_region, placing_of,
          type Block, type Graph, type Id } from "@mnd/core";
-import { band_members, band_size, celled, loose_unit, type Sized } from "./bands";
+import { band_members, band_size, celled, type Sized } from "./bands";
 import { beside, centred, noted } from "./float";
-import { belongs_to, is_satellite, room_wide, tie_targets } from "./pack";
+import { is_satellite, room_wide } from "./pack";
 import { layered } from "./layered";
-import { treemapped } from "./treemap";
 import { gridded, size_of, snap, GAP, PAD, UNIT, type Size } from "./size";
 
 export { beside, centred };
@@ -37,11 +36,8 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
   if (units.length === 0) return [];
   const ahead = layer ? given?.get(layer) : undefined;
   if (ahead) return unique([...ahead]);
-  /** A treemap places every block and box itself, each as large as what it holds. */
-  if (layout_of(graph, layer) === "treemap") return unique(treemapped(graph, layer));
   const loose = loose_units(graph, layer);
-  const how = layout_of(graph, layer);
-  const unit = (id: Id) => loose_unit(graph, id);
+  const how = placing_of(graph, layer);
   const sized_of = (b: Block): Sized => ({
     b, s: is_box(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   });
@@ -49,12 +45,11 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
   const satellites = loose.filter((b) => is_satellite(graph, layer, b))
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id)).map(sized_of);
 
-  /** `auto` arranges each kind its own way, notes floating beside what they are tied to. A
-   *  computed page has written its places, and `free` draws what was put where it was put. */
-  const spots = spanned(graph, layer, how === "auto"
-    ? noted(graph, layer, [...structural, ...satellites], room_wide(graph, layer))
-    : how === "layered" ? layered(graph, layer, [...structural, ...satellites])
-    : free(structural, satellites, (b) => belongs_to(graph, layer, b).map(unit)));
+  /** `layered` by its relations; else each kind its own way, notes floating beside what they are
+   *  tied to. */
+  const spots = spanned(graph, layer, how === "layered"
+    ? layered(graph, layer, [...structural, ...satellites])
+    : noted(graph, layer, [...structural, ...satellites], room_wide(graph, layer)));
 
   /** Bands first, then cells: a grid in a band takes its spot from the band. */
   const band_spots = band_members(graph, layer, how, units, spots);
@@ -81,42 +76,6 @@ function unique(spots: Placed[]): Placed[] {
  *  placed it. */
 function ordered(spots: Placed[]): Placed[] {
   return spots.sort((a, b) => a.id.localeCompare(b.id));
-}
-
-/** Hand placement draws exactly where it was put; an unplaced satellite sits clear above what it
- *  belongs to, and anything else unplaced is shelved below it all. */
-function free(all: Sized[], satellites: Sized[], owners: (b: Block) => Id[]): Placed[] {
-  const out: Placed[] = [];
-  const loose: Sized[] = [];
-  const put = (it: Sized) => out.push({ id: it.b.id, x: it.b.x!, y: it.b.y!, ...it.s });
-  const placed = (it: Sized) => it.b.x !== undefined && it.b.y !== undefined;
-  for (const it of all) {
-    if (placed(it)) put(it);
-    else loose.push(it);
-  }
-  for (const it of satellites) {
-    if (placed(it)) { put(it); continue; }
-    const owner = owners(it.b).map((id) => out.find((p) => p.id === id)).find((p) => !!p);
-    if (!owner) { loose.push(it); continue; }
-    out.push({ id: it.b.id, ...clear_of(out, { x: owner.x, y: owner.y - it.s.h - GAP }, it.s),
-               ...it.s });
-  }
-  const below = out.length ? snap(Math.max(...out.map((p) => p.y + p.h)) + GAP) : 0;
-  let x = 0;
-  for (const it of loose) {
-    out.push({ id: it.b.id, x, y: below, ...it.s });
-    x += snap(it.s.w + GAP);
-  }
-  return out;
-}
-
-/** An aside card whose ties meet no placed card. It waits for the interface it is tied to, which
- *  is seated on a wall after the cards are placed. */
-export function awaits_seat(graph: Graph, layer: Id | null, id: Id,
-                            placed: readonly { id: Id }[]): boolean {
-  if (!is_aside(graph, id)) return false;
-  const targets = tie_targets(graph, layer, id);
-  return targets.length > 0 && targets.every((t) => !placed.some((p) => p.id === t));
 }
 
 /** Whether two boxes meet, counting `air` of space between them as taken. */
@@ -156,18 +115,20 @@ export function bounds(spots: readonly Placed[]): { w: number; h: number } {
   return { w: w + GAP * 2, h: h + GAP * 2 };
 }
 
-/** A boundary: its members' bounds plus its air. */
-export function boundary(spots: readonly Placed[], members: readonly Id[]): Placed | null {
+/** A boundary: its members' bounds plus its air, `top` above them and `side` elsewhere. */
+export function boundary(spots: readonly Placed[], members: readonly Id[],
+                         { side = PAD, top = PAD } = {}): Placed | null {
   const inside = spots.filter((p) => members.includes(p.id));
   if (inside.length === 0) return null;
-  const x = Math.min(...inside.map((p) => p.x)) - PAD;
-  const y = Math.min(...inside.map((p) => p.y)) - PAD;
-  const w = Math.max(...inside.map((p) => p.x + p.w)) + PAD - x;
-  const h = Math.max(...inside.map((p) => p.y + p.h)) + PAD - y;
+  const x = Math.min(...inside.map((p) => p.x)) - side;
+  const y = Math.min(...inside.map((p) => p.y)) - top;
+  const w = Math.max(...inside.map((p) => p.x + p.w)) + side - x;
+  const h = Math.max(...inside.map((p) => p.y + p.h)) + side - y;
   return { id: "", x, y, w, h };
 }
 
+/** What a layer places itself: its blocks, less interfaces, groups and what sits in cells. */
 function loose_units(graph: Graph, layer: Id | null): Block[] {
-  return children(graph, layer)
-    .filter((b) => !is_interface(graph, b.id) && (b.parent === layer || !gridded(graph, b.id)));
+  return children(graph, layer).filter((b) => !is_interface(graph, b.id) && !is_group(graph, b.id)
+    && (b.parent === layer || !gridded(graph, b.id)));
 }

@@ -8,7 +8,6 @@
   "settings": {
     "card": {
       "shape": "dot",
-      "label": "none",
       "alias": "hide",
       "align": "center"
     }

@@ -7,10 +7,10 @@ import type { Act, Graph, Id } from "@mnd/core";
 import { Markdown } from "@mnd/theme";
 import { Band } from "./Body";
 
-/** Given no `onAct`, the text is read only. */
-export type ContentProps = { graph: Graph; id: Id; onAct?: Act };
+/** Given no `onAct`, the text is read only. Under a section of its own, it carries no band. */
+export type ContentProps = { graph: Graph; id: Id; onAct?: Act; band?: boolean };
 
-export function Content({ graph, id, onAct }: ContentProps) {
+export function Content({ graph, id, onAct, band = true }: ContentProps) {
   const body = graph.blocks[id]?.body ?? "";
   const [draft, set_draft] = useState<string | null>(null);
   /** What landed replaces what was typed. */
@@ -24,7 +24,7 @@ export function Content({ graph, id, onAct }: ContentProps) {
 
   return (
     <div className="content text">
-      <Band label="text" />
+      {band ? <Band label="text" /> : null}
       {draft !== null ? (
         <textarea value={draft} aria-label="text" spellCheck autoFocus
                   onChange={(e) => set_draft(e.target.value)} onBlur={commit}

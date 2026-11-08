@@ -20,6 +20,9 @@ export function kind_of(scene: Scene, id: string | null,
   if (el?.closest(LINES)) return "line";
   if (el?.closest(".mnd-grid-cell")) return "cell";
   const node = scene.nodes.find((n) => n.id === id);
+  /** **A map's box is taken by its title** (2026-11-04): its open ground, round what it holds,
+   *  is empty ground, as the map's margins are. */
+  if (scene.areas && node?.type === "box" && !el?.closest(".mnd-box-title")) return "empty";
   /** Boundaries and notes have no inside. */
   if (holds(node)) return "band";
   if (node?.type === "note") return "note";

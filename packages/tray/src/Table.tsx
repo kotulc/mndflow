@@ -28,17 +28,6 @@ export function lit_row(rows: readonly { id: string }[], picked: readonly string
   return listed.length ? listed : rows[0] ? [rows[0].id] : [];
 }
 
-/** Where a listing reaches: the open layer, or the whole workspace. */
-export type Scope = "layer" | "workspace";
-
-/** The scope chips, the same question in every table that asks it; with no layer to reach, the
- *  workspace alone. */
-export function scope_chips(on: Scope, onPick: (to: Scope) => void, layered = true): Chips {
-  return { key: "scope", on, onPick: (k) => onPick(k as Scope),
-           of: [...(layered ? [{ key: "layer", word: "layer" }] : []),
-                { key: "workspace", word: "workspace" }] };
-}
-
 /** One question's chips, lit one at a time. */
 export type Chips = {
   key: string;

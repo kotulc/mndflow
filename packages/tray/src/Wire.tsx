@@ -34,13 +34,7 @@ export function Wire({ label, alias, said, now }: WireProps) {
     <div className="preview">
       <div className="preview-wire"
            data-family={tinted ? "tint" : now("style", "family", "neutral")}
-           style={{
-             ...(tinted ? {
-               "--card-h": now("style", "hue", "200"),
-               "--card-c": `calc(var(--tint-ceiling) * ${now("style", "intensity", "0.65")})`,
-             } : {}),
-             opacity: Number(now("style", "opacity", "1")),
-           } as CSSProperties}
+           style={(tinted ? { "--card-h": now("style", "hue", "200") } : {}) as CSSProperties}
            data-border-width={width}
            data-border-style={style}
            data-border-contrast={now("style", "border_contrast", "") || undefined}

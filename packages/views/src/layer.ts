@@ -3,12 +3,13 @@
  *  draws a layer of its own a card that is entered in turn. Only what the side drawn lists is in
  *  it. Worked out on every graph change, never stored. */
 
-import { diagram_subject, layout_of, on_side, type Graph, type Id, type Lists,
+import { is_model, placing_of, on_side, path, type Graph, type Id, type Lists,
          type ViewKind } from "@mnd/core";
 import { placed_as, type Placed } from "./arrange";
 import { project } from "./block";
 import { class_graph } from "./classes";
 import { place } from "./flow";
+import { holds_parts } from "./map";
 import type { Scene } from "./scene";
 import { read_through } from "./through";
 
@@ -32,7 +33,20 @@ export async function layer_scene(given: Graph, id: Id, kind: ViewKind,
   const opts = { room: true, look: { kind, cut: null },
                  ...(config.interfaces === false ? { interfaces: false } : {}) };
   const ahead = await placed_ahead(graph, id, kind);
-  return ahead ? placed_as(ahead, () => project(graph, id, opts)) : project(graph, id, opts);
+  if (!ahead) return ranked(graph, project(graph, id, opts));
+  const scene = ranked(graph, placed_as(ahead.spots, () => project(graph, id, opts)));
+  return ahead.across === undefined ? scene : { ...scene, across: ahead.across };
+}
+
+/** **The map's ranks in an entered diagram** of a model: where some card holds parts, those are
+ *  `major` and every other card `minor` (views `map.ts` `holds_parts`). Elsewhere, unranked. */
+function ranked(graph: Graph, scene: Scene): Scene {
+  if (!scene.layer || !path(graph, scene.layer).some((b) => is_model(graph, b.id))) return scene;
+  const cards = scene.nodes.filter((n) => n.type === "card" && graph.blocks[n.id]);
+  const major = new Set(cards.filter((n) => holds_parts(graph, n.id)).map((n) => n.id));
+  if (!major.size) return scene;
+  return { ...scene, nodes: scene.nodes.map((n) => !cards.includes(n) ? n
+    : { ...n, data: { ...n.data, marks: [...n.data.marks, major.has(n.id) ? "major" : "minor"] } }) };
 }
 
 /** The graph with what its side does not list put out of sight: each topmost such block, so a
@@ -50,18 +64,19 @@ function sided(graph: Graph, lists?: Lists): Graph {
 }
 
 /** What ELK places ahead for a layer, by its kind: its blocks seen from inside, or the classes a
- *  class or entity diagram draws. A treemap and a grid place themselves. */
+ *  class or entity diagram draws, and which way its bands run. A treemap and a grid place
+ *  themselves. */
 async function placed_ahead(graph: Graph, id: Id, kind: ViewKind)
-    : Promise<Map<Id, readonly Placed[]> | null> {
+    : Promise<{ spots: Map<Id, readonly Placed[]>; across?: boolean } | null> {
   if (kind === "internal") {
     const through = read_through(graph, id);
-    if (layout_of(through, id) === "treemap") return null;
-    return new Map([[id, (await place(through, id)).spots]]);
+    if (placing_of(through, id) === "treemap") return null;
+    const { spots, across } = await place(through, id);
+    return { spots: new Map([[id, spots]]), ...(across === undefined ? {} : { across }) };
   }
   if (kind === "class" || kind === "er") {
-    const subject = diagram_subject(graph, id);
-    const drawn = class_graph(graph, subject, kind);
-    return drawn ? new Map([[subject, (await place(drawn, subject)).spots]]) : null;
+    const drawn = class_graph(graph, id, kind);
+    return drawn ? { spots: new Map([[id, (await place(drawn, id)).spots]]) } : null;
   }
   return null;
 }

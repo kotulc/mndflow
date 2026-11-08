@@ -3,7 +3,7 @@
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
 import { fold, replay, step, type Floor } from "./fold";
-import { home_at, sight, trace, view_of, view_on, EDITOR, type Tiers,
+import { home_at, map_of, read_at, sight, trace, view_of, view_on, EDITOR, type Tiers,
          type View, type Views } from "./navigate";
 import { is_layer_view, type ViewKind } from "./sections";
 import { package_of } from "./defs";
@@ -33,6 +33,9 @@ export type Session = {
   /** The view each section was set to, by its id. */
   views: () => Views;
   picked: () => Id[];
+  /** The usage the picks are seen through: the one they were made through, else the layer seen
+   *  from inside. A part read through a usage lights only under it (`lit`). */
+  route: () => Id | null;
   /** Which cells are picked, beside the ids. */
   cells: () => Spot[];
   said: () => Said | null;
@@ -45,11 +48,19 @@ export type Session = {
   batch: (fn: () => void) => void;
 
   look: (layer: Id | null) => void;
+  /** **Read a subject** — what a double-click, Enter, the explorer's open and the tray's *read*
+   *  ask — from the section `from`, else the canvas's: the view it enters, with what it picks
+   *  there, or null where it enters nothing. Navigation: no step is logged. */
+  read: (subject: Id, options?: { inner?: boolean; from?: number }) => View | null;
   /** The canvas's section shown whole another way, keeping `id` in sight; a layer view, which is
    *  never chosen, goes back to where what is kept in sight is drawn. A section named by `at` is
    *  shown whole from its top instead, nothing kept in sight or picked. */
   see: (kind: ViewKind, id?: Id | null, at?: number) => void;
-  pick: (ids: Id[]) => void;
+  /** Pick blocks, made through the usage `via` where they were read through one. */
+  pick: (ids: Id[], via?: Id) => void;
+  /** Let go of everything picked; and, where the canvas draws the map (`map`), of its focus,
+   *  back to the section's map, though a pick on it opened a layer. */
+  clear: (map?: boolean) => void;
   pick_cells: (cells: readonly Spot[]) => void;
   say: (text: string, kind?: Said["kind"]) => void;
 
@@ -101,6 +112,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   /** The layer the open one was reached from, for leaving an interface. */
   let from: Id | null = null;
   let picked: Id[] = [];
+  /** The usage `picked` was made through: kept only while those very picks stand. */
+  let through: { picks: Id[]; via: Id } | null = null;
   let cells: Spot[] = [];
   let said: Said | null = null;
   let listener: (() => void) | null = null;
@@ -109,10 +122,10 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   /** The shipped packages, as the floor every fold starts from. */
   const floor: Floor = ports.floor ?? [];
 
-  /** A fresh log holds one plain block, so the workspace lists in structure. */
+  /** A fresh log holds one empty model, so the models are never empty. */
   const seeded = (): Log => [step("start", "create", 1, [
-    { op: "add_block", block: { id: "first", parent: ROOT, name: "block", order: 1, alias: 1 } },
-    { op: "set_counter", kind: "block", n: 1 },
+    { op: "add_block", block: { id: "first", parent: ROOT, name: "Model", type: "model", def: {},
+                                order: 1 } },
   ])];
 
   const opened = storage.read();
@@ -225,6 +238,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     view: () => view,
     views: () => views,
     picked: () => picked,
+    route: () => (through?.picks === picked ? through.via
+      : is_layer_view(view.kind) ? view.layer : null),
     cells: () => cells,
     said: () => said,
 
@@ -254,6 +269,15 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     look(next) {
       move(view_on(graph, tiers, views, next));
       listener?.();
+    },
+
+    read(subject, options = {}) {
+      const to = read_at(graph, tiers, views, view, subject, options);
+      if (!to) return null;
+      move(to);
+      if (to.pick) picked = [to.pick];
+      listener?.();
+      return to;
     },
 
     see(kind, id, named) {
@@ -293,9 +317,18 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     },
 
     /** Picking elsewhere lets go of the cells. */
-    pick(ids) {
+    pick(ids, via) {
       picked = ids;
+      through = via ? { picks: ids, via } : null;
       if (!cells.every((c) => ids.includes(c.group))) cells = [];
+      listener?.();
+    },
+
+    clear(map = false) {
+      picked = [];
+      through = null;
+      cells = [];
+      if (map) move(map_of(graph, tiers, views, view));
       listener?.();
     },
 

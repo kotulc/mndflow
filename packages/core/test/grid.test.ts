@@ -76,7 +76,7 @@ describe("an address", () => {
   });
 
   it("is dropped when a block moves to another holder, never carried over", () => {
-    commit("band", [{ op: "add_block", block: { id: "band", parent: "layer", type: "group" } }]);
+    commit("band", [{ op: "add_block", block: { id: "band", parent: "layer", type: "region" } }]);
     seat("a", 2, 2);
     act("move", { ids: ["a"], parent: "band" });
     expect(g.blocks["a"]!.parent).toBe("band");

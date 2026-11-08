@@ -9,18 +9,31 @@ import { def_at } from "./defs";
 import { tag_at } from "./library";
 import type { Block, Graph, Id } from "./types";
 
-/** The keys a block says itself with, in a diagram file and a card source alike. Any other key is
- *  a value — on a definition, an attribute's default. */
+/** The keys a block says itself with, in a diagram file and a card source alike. **Its answers
+ *  are under `values`** — on a definition, its attributes' defaults — so an answer may be named
+ *  like any key. */
 export const BLOCK_KEYS = [
-  "name", "type", "def", "description", "tags", "constraints", "traits", "settings", "body",
+  "name", "type", "def", "description", "tags", "groups", "constraints", "traits", "settings",
+  "body",
   "source", "of", "parent", "cell",
   "grid", "values", "w", "h", "ports", "rows", "cols", "blocks", "relations",
   "packages", "note", "library", "records",
 ] as const;
 
-/** Whether a key is one a block says itself with, rather than a value. */
-export function is_own_key(key: string): boolean {
+/** Whether a key is one a block says itself with. */
+export function is_block_key(key: string): boolean {
   return (BLOCK_KEYS as readonly string[]).includes(key);
+}
+
+/** The answers a map says under `values`: a map of name to value, or a list of
+ *  `{ name, value }`. */
+export function values_in(map: Record<string, unknown>): [string, unknown][] {
+  const said = map["values"];
+  if (Array.isArray(said)) {
+    return (said as { name?: unknown; value?: unknown }[])
+      .filter((v) => v?.name !== undefined).map((v) => [said_as(v.name), v.value]);
+  }
+  return said && typeof said === "object" ? Object.entries(said) : [];
 }
 
 /** Frontmatter: a fence of dashes, YAML, a fence of dashes. */
@@ -70,7 +83,8 @@ export function names_in(value: unknown): string[] {
 }
 
 
-/** A usage's frontmatter: its name, what it is, its tags, its source, then its answers. */
+/** A usage's frontmatter: its name, what it is, its tags and groups, its source, then its
+ *  answers. */
 function used(graph: Graph, b: Block): Record<string, unknown> {
   const front: Record<string, unknown> = {};
   if (b.name) front["name"] = b.name;
@@ -78,9 +92,13 @@ function used(graph: Graph, b: Block): Record<string, unknown> {
   if (type) front["type"] = type.name;
   if (b.description) front["description"] = b.description;
   if (b.tags) front["tags"] = named(graph, b.tags);
+  /** Membership beside finding-tags, so a domain tag is never read again as a group. A file
+   *  names a group, so an unnamed one is not said. */
+  const groups = (b.groups ?? []).flatMap((g) => graph.blocks[g]?.name?.trim() || []);
+  if (groups.length) front["groups"] = groups;
   if (b.source) front["source"] = b.source;
-  for (const v of b.values ?? []) {
-    if (!is_own_key(v.name)) front[v.name] = scalar(v.value);
+  if (b.values?.length) {
+    front["values"] = Object.fromEntries(b.values.map((v) => [v.name, scalar(v.value)]));
   }
   return front;
 }
@@ -95,10 +113,9 @@ function defined(graph: Graph, b: Block): Record<string, unknown> {
   if (b.description) front["description"] = b.description;
   if (b.tags) front["tags"] = named(graph, b.tags);
   if (b.traits) front["traits"] = [...b.traits];
-  for (const a of b.def?.attributes ?? []) {
-    if (a.default !== undefined && !is_own_key(a.name)) {
-      front[a.name] = scalar(a.default);
-    }
+  const defaults = (b.def?.attributes ?? []).filter((a) => a.default !== undefined);
+  if (defaults.length) {
+    front["values"] = Object.fromEntries(defaults.map((a) => [a.name, scalar(a.default!)]));
   }
   return front;
 }

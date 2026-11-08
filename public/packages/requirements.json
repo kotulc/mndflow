@@ -92,7 +92,6 @@
           "card": {},
           "style": {
             "family": "neutral",
-            "fill": "hatch",
             "border_contrast": "faint",
             "name_contrast": "faint"
           }

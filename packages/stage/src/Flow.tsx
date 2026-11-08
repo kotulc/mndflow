@@ -11,15 +11,18 @@ import { box_of, extent, nearest_seat, routes_of, taken_on, DRAWN_BY, FRAME, UNI
          type BoxNode } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
-import { EDGE_TYPES, Heads, RunsContext } from "./Wire";
+import { PickedContext, picked_by } from "./picked";
+import { CardsContext, EDGE_TYPES, Heads, RunsContext } from "./Wire";
 import type { Adjust, FlowViewProps, Gesture, Landing } from "./gestures";
 import { BAND, MIN_ZOOM } from "./arrays";
 import { useDrag } from "./drag";
 import { useDraw } from "./draw";
 import { Grips } from "./Grips";
 import { kind_of, spread, LINES } from "./pointer";
+import { FlightContext } from "./level";
 import { paged, realm_of, useFit, useFocus, usePage, useRoom } from "./room";
 import { Sweeping } from "./Sweeping";
+import { Traced } from "./Traced";
 import { useSync } from "./sync";
 
 export type { Adjust, FlowViewProps, Gesture, Landing };
@@ -29,7 +32,7 @@ function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
           said, chrome = true, lattice = false, frame: framed = true,
           scroll = false, focus = null, reach: wide = null, widest = null,
-          most = null, stop = null, opened = 0 } = props;
+          most = null, stop = null, opened = 0, trace = null } = props;
   const flow = useReactFlow();
   /** What a double-click's first click was on. The camera may fly off under the pointer between
    *  the two, so the second is about the first's target, not whatever has moved beneath it. */
@@ -49,7 +52,7 @@ function Canvas(props: FlowViewProps) {
   const { nodes, edges, moved, rewired, chose, again } =
     useSync(scene, picked, frame, onPick, second);
   usePage(scene, seen, nodes, focus, wide, widest, most, scroll);
-  useFocus(scene, frame, stop, seen, scroll ? null : focus, opened);
+  const flying = useFocus(scene, frame, stop, seen, scroll ? null : focus, opened);
   /** Which drawing this is, a map or a layer entered from it: across a change nothing slides,
    *  and the new drawing fades in where the camera cut to it. */
   const realm = realm_of(scene);
@@ -178,8 +181,18 @@ function Canvas(props: FlowViewProps) {
   const runs = useMemo(() => routes_of({ ...scene, nodes, ...(frame ? { frame } : {}) }),
                        [scene, nodes, frame]);
 
+  /** Every card as it stands, which the lines' names keep clear of. */
+  const cards = useMemo(() => nodes.filter((n) => n.type === "card" || n.type === "note")
+    .map(box_of), [nodes]);
+
+  /** What lights as picked: the host's pick, read by every node and line. */
+  const lit = useMemo(() => picked_by(picked, props.stands_for), [picked, props.stands_for]);
+
   return (
+    <PickedContext.Provider value={lit}>
+    <FlightContext.Provider value={flying}>
     <RunsContext.Provider value={runs}>
+    <CardsContext.Provider value={cards}>
     <ReactFlow
       className={["mnd-flow", framed ? "" : "frameless", scene.areas ? "map" : "",
                   cut ? "cut" : "", fresh ? "fresh" : ""].filter(Boolean).join(" ")}
@@ -316,6 +329,9 @@ function Canvas(props: FlowViewProps) {
           </svg>
         </ViewportPortal>
       ) : null}
+      {/* A path traced across a map. */}
+      {trace ? <ViewportPortal><Traced trace={trace} /></ViewportPortal>
+        : null}
       {/* The ends of what is picked, and the berths near it. */}
       <Grips scene={scene} picked={picked} frame={frame} at={at}
              onAdjust={onAdjust} onGesture={onGesture} />
@@ -330,7 +346,10 @@ function Canvas(props: FlowViewProps) {
       ) : null}
       {chrome && !scroll ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
     </ReactFlow>
+    </CardsContext.Provider>
     </RunsContext.Provider>
+    </FlightContext.Provider>
+    </PickedContext.Provider>
   );
 }
 

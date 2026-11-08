@@ -1,12 +1,12 @@
 /** Bands and grids inside a layer: members packed in a band, seated blocks placed by cell. */
 
-import { group_depth, inline, is_aside, is_box, is_flat, is_header, is_interface, is_region,
-         lattice_of, members_of, type Block, type Graph, type Id, type Layout }
-  from "@mnd/core";
+import { group_depth, inline, is_aside, is_box, is_flat, is_header, is_interface,
+         is_participant, is_region, lattice_of, members_of, type Block, type Graph, type Id,
+         type Placing } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { floated, noted } from "./float";
 import { room_wide, tie_targets } from "./pack";
-import { cell_box, centred_in, fills_cell, gridded, size_of, BLOCK, GAP, PAD,
+import { cell_box, centred_in, fills_cell, gridded, head_height, size_of, BLOCK, GAP, PAD,
          type Size } from "./size";
 
 export type Sized = { b: Block; s: Size };
@@ -24,7 +24,7 @@ export function in_band(graph: Graph, id: Id, layer: Id | null = null): boolean 
 
 /** What a band takes up for spacing: its members packed, at least as wide as it says it is, plus
  *  its air. */
-export function band_size(graph: Graph, layer: Id | null, band: Block, how: Layout): Size {
+export function band_size(graph: Graph, layer: Id | null, band: Block, how: Placing): Size {
   const layout = band_layout(graph, layer, band.id, how);
   /** An empty band keeps room for a card. */
   if (!layout.length) return { w: BLOCK.w + PAD * 2, h: BLOCK.h + PAD * 2 };
@@ -36,7 +36,7 @@ export function band_size(graph: Graph, layer: Id | null, band: Block, how: Layo
 }
 
 /** A band's members, relative to its corner. */
-export function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: Layout): Placed[] {
+export function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: Placing): Placed[] {
   const members = members_of(graph, band_id)
     .filter((b) => !is_interface(graph, b.id) && !gridded(graph, b.id));
   if (!members.length) return [];
@@ -71,7 +71,7 @@ function from_corner(layout: Placed[]): Placed[] {
 
 /** Lay out one band's members, recursing into nested bands. */
 function lay_band(graph: Graph, layer: Id | null, band_id: Id, origin: Placed,
-                  how: Layout, out: Placed[]): void {
+                  how: Placing, out: Placed[]): void {
   for (const p of band_layout(graph, layer, band_id, how)) {
     const spot = { id: p.id, x: origin.x + PAD + p.x, y: origin.y + PAD + p.y, w: p.w, h: p.h };
     out.push(spot);
@@ -80,7 +80,7 @@ function lay_band(graph: Graph, layer: Id | null, band_id: Id, origin: Placed,
 }
 
 /** Every member of a band, placed inside it once the band has a spot. */
-export function band_members(graph: Graph, layer: Id | null, how: Layout,
+export function band_members(graph: Graph, layer: Id | null, how: Placing,
                       units: readonly Block[], spots: readonly Placed[]): Placed[] {
   const at = new Map(spots.map((p) => [p.id, p]));
   const out: Placed[] = [];
@@ -124,10 +124,12 @@ function packed(all: Sized[], wide?: number, banded: (id: Id) => boolean = () =>
 }
 
 /** Where a seated block draws, given where its grid came to rest: a header fills its cell, and
- *  anything else is centred in its own. */
+ *  anything else — a participant too — is centred in its own. */
 export function cell_spot(graph: Graph, b: Block, grid: Placed): Placed {
-  const box = cell_box(lattice_of(graph, b.parent ?? undefined)!, b.cell!.r, b.cell!.c);
-  const in_cell = is_header(graph, b.id) ? fills_cell(box) : centred_in(box, size_of(graph, b.id));
+  const at = b.parent!;
+  const box = cell_box(lattice_of(graph, at)!, b.cell!.r, b.cell!.c, head_height(graph, at));
+  const in_cell = is_header(graph, b.id) && !is_participant(graph, b.id) ? fills_cell(box)
+    : centred_in(box, size_of(graph, b.id));
   return { id: b.id, x: grid.x + in_cell.x, y: grid.y + in_cell.y,
            w: in_cell.w, h: in_cell.h };
 }

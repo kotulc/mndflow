@@ -1,7 +1,7 @@
 /** What the canvas says a gesture meant, and the props it takes. */
 
 import type { Id, Point, Side, Spot } from "@mnd/core";
-import type { Scene } from "@mnd/views";
+import type { Scene, Trace } from "@mnd/views";
 
 /** What a gesture on the canvas meant. */
 export type Gesture = {
@@ -23,7 +23,9 @@ export type Adjust =
   /** A drop: `over` a card files inside it; `into` a holder joins it. */
   | { kind: "move"; on: string; to: Point; over: string | null; into: string | null;
       /** Which cell of `into` it came to rest in, where that is a grid. */
-      cell?: { r: number; c: number } }
+      cell?: { r: number; c: number };
+      /** Where the pointer let go: a region is placed by it along the band line. */
+      pointer?: Point }
   /** Several cards put down at once. */
   | { kind: "place"; at: readonly { id: string; to: Point }[] }
   | { kind: "wall"; on: string; end: "from" | "to"; to: string }
@@ -41,6 +43,11 @@ export type Landing = { over: string | null; into: string | null;
 export type FlowViewProps = {
   scene: Scene;
   picked?: readonly Id[];
+  /** A path traced across a map: its legs drawn over it, its blocks numbered. */
+  trace?: Trace | null;
+  /** What an id drawn stands for, where it is not a block's own — a place's box — so it lights
+   *  with it. */
+  stands_for?: (id: Id) => Id | null;
   onGesture?: (g: Gesture) => void;
   /** A right drag from one card to another. */
   onRelate?: (from: string, to: string) => void;

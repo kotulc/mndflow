@@ -4,7 +4,7 @@ import { block_base, def_at, def_named, frozen, package_of, relation_base, setti
          stored_type, type Domain } from "../defs";
 import { is_grid } from "../holders";
 import { next_alias } from "../names";
-import { children, next_order, part_end, port_at, reorder } from "../tree";
+import { children, next_order, part_end, port_at, reorder, sibling_named } from "../tree";
 import { new_id } from "../ids";
 import type { Cell, Graph, Id, Mutation, Port, Side, Span } from "../types";
 import type { Args, Context } from "./registry";
@@ -157,6 +157,13 @@ export function rooted(ctx: Context, said: string, domain?: Domain): Id | undefi
 /** A fresh definition id. Names are labels; ids never derive from them. */
 export function mint_def(domain: Domain): Id {
   return new_id(domain === "relation" ? "rel" : "def");
+}
+
+/** **Where a name is written**: why `name` may not go under `parent` — a sibling, but `except`,
+ *  already goes by it — or null. Every action writing a block's name asks this. */
+export function clash(graph: Graph, parent: Id | null, name: string,
+                      except: readonly Id[] = []): string | null {
+  return sibling_named(graph, parent, name, except) ? `"${name}" is already here` : null;
 }
 
 /** Why a block is not the workspace's to change: it sits in a package that came frozen. */

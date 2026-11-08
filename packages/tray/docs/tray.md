@@ -11,9 +11,9 @@
 | pick one thing on the canvas | that thing |
 | pick nothing, several things, or click the ground | the open layer — the workspace at the root |
 | a definition row in the explorer | that definition |
-| a definitions folder in the explorer — *blocks*, *relations*, a folder somebody made | every definition, narrowed to that folder |
-| the *packages* section, or one package | what the workspace draws on, on the **packages** tab |
-| a package's *types*, *tags*, *interfaces* or *constraints* row, or a registry opened on the canvas with nothing picked | that registry, on the **entries** tab |
+| the library section, or a definitions folder in the explorer | the workspace, on its **contents** tab, its *definitions* row chosen |
+| a package row | that package, on its **contents** tab, its *definitions* row chosen |
+| a package's *types*, *tags*, *interfaces* or *constraints* row, or a registry opened on the canvas with nothing picked | its package, on its **components** tab, that kind chosen |
 | a registry's tile picked on the canvas | its entry: a tag, a type, an interface definition or a constraint — its name, description, what it extends, its colour, and its kind's own keys |
 | a row in any of the tray's tables | nothing changes — the row lights and offers what acts on it |
 | *view* on a lit row | that thing, selected where it lives |
@@ -35,20 +35,9 @@
 
 ## Tabs
 
-**A definition and a usage ask the same questions, and the fewest of them.** A tab that cannot be answered is absent rather than empty; one that is not the context's own to change reads only.
+**One tab set for every element** (2026-10-31): overview · card · settings · components · usages · contents, in that order. A tab that does not apply is drawn faint and inert, never hidden. The workspace and a package are elements too, scoped to what they hold. Which tab applies to which element is docs/design tray.md's table.
 
-| context | tabs |
-|---|---|
-| block | overview · card · components · contents |
-| block definition | overview · card · settings · components · usages |
-| a line | line · components |
-| relation definition | line · settings · components · usages |
-| the workspace | workspace (an overview) · contents |
-| a definitions folder | definitions |
-| the packages section | packages |
-| a registry | entries |
-
-**Every element asks in one order**: what it is for, what it is, how it draws, what it carries, what it lists. **A block opens on its overview**, one layout for every block: on the left always the picture that helps most (`Picture.tsx`) — for a block or a room of the model, **what it connects to**: the lines coming in on the left, those going out on the right, each named; for a definition, its registry; for a library folder or a package, what it files by use; for a note, its words — fitted whole to the tray's height, with *open* (the canvas focuses it) and *read* (isolates it) where it is a room, and on the right *why it matters*, *how it is used* and *where it lives*, with its counts in its kind's words. An empty plain block lists the kinds it may become there. A host's own tabs lead. **The card tab is named for what is drawn** — *card* or *line* — and holds every key saying what the element is. **A definition's settings tab is laid out as its card tab**, its keys how it draws.
+**Every element asks in one order**: what it is for, what it is, how it draws, what it carries, what it lists. **A block opens on its overview**, one layout for every block: on the left always the picture that helps most (`Picture.tsx`) — for a block or a room of the model, **what it connects to**: the lines coming in on the left, those going out on the right, each named; for a definition, its registry, or while it is unused its structure drawn read only (how a pattern is seen before it is used); for a library folder or a package, what it files by use; for a note, its words — fitted whole to the tray's height, with *open* (the canvas focuses it) and *read* (isolates it) where it is a room — a definition in the library where it is used, a model in the models — and **the way across**, asked for: *view model* on a model read in the library, *uses* on a used definition read in the models, and on the right *why it matters*, *how it is used* and *where it lives*, with its counts in its kind's words. An empty plain block lists the kinds it may become there. A host's own tabs lead. **The card tab is named for what is drawn** — *card* or *line* — and holds every key saying what the element is. **A definition's settings tab is laid out as its card tab**, its keys how it draws.
 
 **A relation says what its ends mean on its line tab**: a *from end* and a *to end* key, each read `1..*, lines, composite`. On a line it answers multiplicity (chips, or `m..n` typed) and its role (typed); on a relation definition also ownership (`none`, `shared`, `composite`) and navigable (yes, no). **An attribute's key** is a choice: PK, UK or none; a foreign key reads FK from its type. **An interface's keys** — name, flow, its interface definition, seat, and where it is held — edit it where it is held: its definition's, for one a usage reads through.
 
@@ -118,7 +107,7 @@
 | label | display, font, weight, contrast, align |
 | face | which large face it draws with — table, document, picture; its size in units; whether it names itself |
 | head | from head, to head — a run only |
-| colour | family, pattern, hue, intensity, vary, opacity |
+| colour | family, hue, vary |
 | border | width, contrast, style — *stroke* on a run |
 | icon | the mark in the top corner |
 
@@ -165,7 +154,7 @@
 
 - **A room lists its blocks**: in reading order, grouped under its regions' headings, each row picking its card — the blocks the explorer does not list, since it lists rooms only (design.md *Navigation*)
 - **Layer scope lists one level**: **whatever is in context lists its own contents**, whether or not it holds anything yet, and the open layer answers where the context is a line, a definition or the root. One rule — `frame_of` in the engine — so the same gesture never gives two answers. **Workspace scope lists everything**, each row saying where it sits.
-- **A stand-in is its block** (one object, design.md *Cards*): picked, the tray shows the block it stands for, and its overview's *where it lives* lists every appearance, each a jump. Editing in the tray edits the block.
+- **A stand-in is its block** (one object, design.md *Cards*): picked, the tray shows the block it stands for, and its overview's *where it lives* lists every side it is **seen on** — the layer drawing it, each diagram a stand-in puts it on, and its behaviours — each one click away: an appearance revealed there, picked; a behaviour read as its own diagram. Editing in the tray edits the block.
 - **Chips narrow by what a row is.**
 - **A column is a field in scope**, asked for by name, and its values are edited in the row.
 - **A block or a line is renamed in its row**.

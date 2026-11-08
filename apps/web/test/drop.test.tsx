@@ -17,6 +17,8 @@ beforeEach(() => {
   held = nested();
   /** Nothing is fetched in a test, and the catalogue is optional. */
   vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("offline"); }));
+  /** With reduced motion a layer is entered at once: a map takes no drop, an entered layer does. */
+  vi.stubGlobal("matchMedia", () => ({ matches: true }));
 });
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });

@@ -2,7 +2,7 @@
 
 /* ── The card, drawn by the face every surface draws with: large over small ── */
 
-.faces { display: flex; flex-direction: column; gap: 18px; padding: 14px 8px; }
+.faces { display: flex; flex-direction: column; gap: var(--stack, 8px); }
 
 /* The room a face takes in the column; the face is laid out at its own size and scaled into it. */
 .face-room { position: relative; width: 100%; }
@@ -99,13 +99,6 @@
     oklch(var(--l-edge) 0.13 120), oklch(var(--l-edge) 0.13 180),
     oklch(var(--l-edge) 0.13 240), oklch(var(--l-edge) 0.13 300),
     oklch(var(--l-edge) 0.13 360));
-}
-
-/* Intensity runs from the theme's grey to its ceiling, at whatever hue is set. */
-.rows > .row.sliders > .line .intensity {
-  background: linear-gradient(to right,
-    oklch(var(--l-edge) 0 var(--card-h, 200)),
-    oklch(var(--l-edge) var(--tint-ceiling) var(--card-h, 200)));
 }
 
 .rows > .row.sliders > .line input[type="range"]::-webkit-slider-thumb {

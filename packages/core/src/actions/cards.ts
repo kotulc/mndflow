@@ -5,7 +5,7 @@
  *  against the graph the ones before it made. Permissive: a type or tag nothing holds, or that
  *  more than one package holds, is made in the workspace, and said. */
 
-import { is_own_key, names_in, read_card, said_as, type Card } from "../card";
+import { is_block_key, names_in, read_card, said_as, values_in, type Card } from "../card";
 import { all_defs, def_at, domain_of, frozen } from "../defs";
 import { replay } from "../fold";
 import { new_id } from "../ids";
@@ -67,6 +67,9 @@ function composed(ctx: Context, args: Args, attached = false): Result | string {
   catch (e) { return `the frontmatter is not YAML: ${e instanceof Error ? e.message : e}`; }
   if (attached && args["source"] !== undefined) card.front["source"] = text(args, "source");
   if (b.def && attached) return "a definition is JSON: attach a card source to a usage";
+  /** A key nothing reads would be dropped, and with it an answer said the old way. */
+  const unread = Object.keys(card.front).filter((k) => !is_block_key(k));
+  if (unread.length) return `${unread.join(", ")}: nothing reads it; an answer goes under values`;
   /** A source edited whole says everything; a file attached says only what it says. */
   return run_all(ctx, b.def ? definition_calls(ctx.graph, id, card)
                             : usage_calls(ctx.graph, id, card, !attached));
@@ -124,8 +127,8 @@ function usage_calls(graph: Graph, id: Id, { front, body }: Card, whole: boolean
   const source = said_as(front["source"]).trim();
   if (says("source") && source !== (b.source ?? "")) calls.push(["source", { id, uri: source }]);
 
-  /** Every other key answers the attribute of its name; an answer it no longer gives goes. */
-  const said = Object.entries(front).filter(([k]) => !is_own_key(k));
+  /** Each of its `values` answers the attribute of its name; an answer it no longer gives goes. */
+  const said = values_in(front);
   const names = said.map(([k]) => k);
   for (const [n, v] of said) {
     const value = said_as(v);
@@ -133,9 +136,8 @@ function usage_calls(graph: Graph, id: Id, { front, body }: Card, whole: boolean
       calls.push(["field", { holder: id, name: n, value }]);
     }
   }
-  /** An answer named as a key the card says itself with is never written, so never taken. */
   for (const v of b.values ?? []) {
-    if (whole && !names.includes(v.name) && !is_own_key(v.name)) {
+    if (whole && !names.includes(v.name)) {
       calls.push(["unfield", { holder: id, name: v.name }]);
     }
   }
@@ -169,18 +171,17 @@ function definition_calls(graph: Graph, id: Id, { front, body }: Card) {
 
   calls.push(...listed(graph, id, "tags", front), ...listed(graph, id, "traits", front));
 
-  /** Any other key is an attribute's default, declared where nothing declares it; a default the
-   *  card no longer says is cleared. */
-  for (const [n, v] of Object.entries(front)) {
-    if (is_own_key(n)) continue;
+  /** Each of its `values` is an attribute's default, declared where nothing declares it; a
+   *  default the card no longer says is cleared. */
+  const defaults = values_in(front);
+  for (const [n, v] of defaults) {
     const value = said_as(v);
     if (d.def.attributes?.find((a) => a.name === n)?.default !== value) {
       calls.push(["field", { holder: id, name: n, default: value }]);
     }
   }
   for (const a of d.def.attributes ?? []) {
-    if (a.default !== undefined && !(a.name in front)
-        && !is_own_key(a.name)) {
+    if (a.default !== undefined && !defaults.some(([n]) => n === a.name)) {
       calls.push(["field", { holder: id, name: a.name, default: "" }]);
     }
   }

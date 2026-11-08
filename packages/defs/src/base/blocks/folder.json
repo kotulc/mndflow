@@ -9,9 +9,6 @@
       "family": "neutral",
       "border_contrast": "faint",
       "name_contrast": "faint"
-    },
-    "card": {
-      "label": "none"
     }
   },
   "traits": [

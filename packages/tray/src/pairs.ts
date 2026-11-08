@@ -302,9 +302,12 @@ function tags(graph: Graph, id: Id, onAct: Act): Pair {
   const chips: Chip[] = [
     ...ids.map((t) => ({ value: t, word: word(t), on: true, set: said, group: source,
                          tip: tag_at(graph, t)?.description ?? `take ${word(t)} off` })),
-    ...given.map((g) => ({ value: `${GIVEN}${g.from}`, word: g.name, on: true, set: true,
-                           group: `${base_of(graph, g.from)}: ${g.name}`,
-                           tip: g.tie ? `untie the label ${g.name}` : `take it out of ${g.name}` })),
+    /** A grid label's tag is its cell's: seated elsewhere, it goes. */
+    ...given.map((g) => ({ value: `${GIVEN}${g.from}${g.at ? `@${g.at.r},${g.at.c}` : ""}`,
+                           word: g.name, on: true, set: !g.at,
+                           group: g.at ? `grid: ${g.name}` : `${base_of(graph, g.from)}: ${g.name}`,
+                           tip: g.at ? `its cell's label: seat it elsewhere to lose ${g.name}`
+                             : g.tie ? `untie the label ${g.name}` : `take it out of ${g.name}` })),
     ...all_tags(graph).filter((t) => !ids.includes(t.id))
       .map((t) => ({ value: t.id, word: t.name, on: false, set: said, group: "library",
                      tip: t.description ?? t.name })),
@@ -313,7 +316,7 @@ function tags(graph: Graph, id: Id, onAct: Act): Pair {
     key: "tags", word: "tags", shown: listed([...ids.map(word), ...given.map((g) => g.name)]),
     said, fixed,
     about: "Tags to find this by, grouped by where each comes from. It carries its definition's "
-      + "until it says its own; a group, a region or a label gives one by its name. A new word "
+      + "until it says its own; a group, a region, a label or a grid label gives one by its name. A new word "
       + `makes a tag in the workspace's library.${fixed ? FROZEN : ""}`,
     asks: [{
       word: "tags", tip: "Press one to put it on or take it off.", chips,
@@ -470,10 +473,9 @@ export function settings_of(graph: Graph, id: Id, onAct: Act): Pair[] {
 const PARTS: Record<Group, string> = {
   name: "How the name is set: its font, weight and contrast, which end it reads from, and "
     + "whether the handle joins it.",
-  label: "The kind word: where it sits, and how it is set.",
   face: "Which large face it draws, how big, and whether that face names itself.",
   head: "What draws where the run leaves and where it arrives.",
-  colour: "How it is painted: the family, the pattern, and the hue, intensity and opacity.",
+  colour: "How it is painted: the family, or a hue and how its kin vary.",
   border: "The line round it: its weight, contrast and style.",
   icon: "The mark in its top corner.",
 };

@@ -1,4 +1,0 @@
-name: Dashboard
-settings: { card: { face: picture } }
-description: "What the shop looks like from the operations floor: a picture card, drawn from its source."
-source: /model/picture.svg

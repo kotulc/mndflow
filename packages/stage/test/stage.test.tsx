@@ -130,10 +130,22 @@ describe("the left button works what is already there", () => {
     expect(view.onPick).toHaveBeenCalledWith([]);
   });
 
-  it("descends into a card on a double click", () => {
+  it("reads a card on a double click", () => {
     const view = mount();
     fireEvent.doubleClick(card(view, "block_pump"));
-    expect(view.onAct).toHaveBeenCalledWith("open", { id: "block_pump" });
+    expect(view.onAct).toHaveBeenCalledWith("read", { id: "block_pump" });
+  });
+
+  /** A map or a registry is read, never built on. */
+  it("offers no edit on a drawing that may not be edited", () => {
+    const view = mount({ editable: false, picked: ["block_pump"] });
+    fireEvent.doubleClick(frame_name(view));
+    fireEvent.keyDown(window, { key: "Delete" });
+    fireEvent.keyDown(window, { key: "F2" });
+    fireEvent.contextMenu(card(view, "block_pump"));
+    expect(view.onAct.mock.calls.map((c) => c[0]))
+      .not.toEqual(expect.arrayContaining(["delete"]));
+    expect(view.container.querySelector("[contenteditable=true]")).toBeNull();
   });
 
   /** Two clicks on the frame's name rename the layer. */
@@ -183,14 +195,14 @@ describe("the keyboard", () => {
     expect(view.onPick).toHaveBeenCalledWith([]);
   });
 
-  /** Descending has three ways in, and this is the one you can find. */
-  it("descends into the picked block on Enter", () => {
+  /** Reading has three ways in, and this is the one you can find. */
+  it("reads the picked block on Enter", () => {
     const view = mount({ picked: ["block_pump"] });
     press("Enter");
-    expect(view.onAct).toHaveBeenCalledWith("open", { id: "block_pump" });
+    expect(view.onAct).toHaveBeenCalledWith("read", { id: "block_pump" });
   });
 
-  it("descends into a grid on a double click", () => {
+  it("reads a grid on a double click", () => {
     const graph = fold(gridded(), FLOOR);
     const scene = project(graph, "block_board");
     const onAct = vi.fn();
@@ -198,7 +210,7 @@ describe("the keyboard", () => {
       <Stage scene={scene} graph={graph} picked={[]} onAct={onAct} onPick={vi.fn()} />,
     );
     fireEvent.doubleClick(card(view, "block_lanes"));
-    expect(onAct).toHaveBeenCalledWith("open", { id: "block_lanes" });
+    expect(onAct).toHaveBeenCalledWith("read", { id: "block_lanes" });
     cleanup();
   });
 

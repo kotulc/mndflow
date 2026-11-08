@@ -1,0 +1,12 @@
+{
+  "id": "package",
+  "name": "package",
+  "type": "block",
+  "description": "A package of the project: the modules under its source folder, and what it imports from other packages.",
+  "def": {
+    "attributes": [
+      { "name": "version", "type": "text" }
+    ]
+  },
+  "settings": { "diagram": { "placing": "layered" }, "style": { "hue": 210 } }
+}

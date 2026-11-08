@@ -87,7 +87,8 @@ Block {
   x?, y?        number            // placement, when hand-laid
   w?, h?        number            // least size
   ports?        Port[]            // its boundary, in order: data, keyed by id
-  order?        number            // among siblings
+  order?        number            // among siblings, minted from the list it was read from
+  groups?       Id[]              // the groups on its layer it is in: membership, apart from tags
   alias?        number            // handle serial, minted once
 
   counters?     Record<string, number>   // workspace root: handle counters per kind
@@ -193,10 +194,10 @@ Constraint Entry & { required?, match? }                     // what values must
 | Key | Configures |
 |---|---|
 | `block` | which block module; `behaviour`, granted by *is behaviour* |
-| `card` | `label` (unsaid `inside`: the type word in the top corner), `align` (unsaid `left`), `label_align`, `icon`, `alias`, `height` (`uniform`, `free`), `name`, `face` (`table`, `class`, `document`, `picture`, `text`), `size` (`{w, h}` in units): which large face it draws with and how big it is. Unsaid, a card has no large face. `shape` (`box`, `round`, `diamond`, `dot`, `ring`): what it is drawn as — base's `decision` a diamond, `start` a dot, `end` a ring |
-| `style` | a family, or a `hue` with its `intensity` and `vary`; `fill` and `opacity`; border and writing weight, face and contrast. Never a hex or a pixel count |
+| `card` | `align` (unsaid `left`), `icon`, `alias`, `height` (`uniform`, `free`), `name`, `face` (`table`, `class`, `document`, `picture`, `text`), `size` (`{w, h}` in units): which large face it draws with and how big it is. Unsaid, a card has no large face. `shape` (`box`, `round`, `diamond`, `dot`, `ring`): what it is drawn as — base's `decision` a diamond, `start` a dot, `end` a ring |
+| `style` | a family, or a `hue` and its `vary`; border and writing weight, face and contrast. Never a hex or a pixel count |
 | `line` | how a run draws: `dir`, `from_arrow`, `to_arrow`, `name`, `alias`; `module` (`line`, `tie`): a tie runs straight and is never routed, granted by *is tie* |
-| `layout` | `kind`: `layered` or `treemap`, packed where unsaid — every card is placed automatically; `line`; `cards`: `small` or `large`, the size what it holds draws at; `shape`: the `card.shape` what it holds draws as where its own says none (base's `state`: `round`); `view`: `package`, `internal`, `allocation`, `sequence`, `class` or `er`, the layer view the block opens on (a definition opens as its usages do). Unsaid kind, or a kind this build does not know, draws packed. A `view` this build does not know, or that the block cannot feed, opens on the one its kind's `base` definition names |
+| `diagram` | a diagram kind's own, never a block's (2026-11-06), and never a model's (2026-11-07: dropped at the door): `view` — `internal`, `allocation`, `sequence`, `class` or `er`, the view the kind draws with; `placing` — `layered` or `treemap`, packed where unsaid, every card placed automatically; `cards` — `small` or `large`, the face what it holds draws at; `shape` — the `card.shape` what it holds draws as where its own says none (base's `state`: `round`). A placing this build does not know draws packed; a `view` it does not know, or that the block cannot feed, opens on what the block holds for |
 | `tie` | the relation type a block made from or dropped on another is linked to it by |
 | `allows` | `ports`, `holds`, `heads`, `degree`, `ends`. Refused at the gesture; absent is a no. Usually granted whole by a trait |
 | `holder` | `matrix`, `band`: how a block draws what it holds — in cells, as a band of its layer. Granted by *is grid* and *is region*; which holder a block is comes from here. A group holds nothing: its members carry its name as a tag |
@@ -293,14 +294,16 @@ Step { id, action, at, status: "applied" | "reverted", mutations: Mutation[] }
 | `name` | its name | its name |
 | `type` | the definition it is, by name | what it extends, by name |
 | `def` | — | present: it is a definition; its `attributes` |
-| `tags` | its tags, by name; a name a group on its layer goes by makes it a member of that group | its tags, by name |
-| `order` | its place among its siblings, stated: it wins over file order and any default (a region no line meets goes last) | — |
+| `tags` | its tags, by name | its tags, by name |
+| `groups` | the groups on its layer it is in, by name. A group's own entry lists no `blocks` | — |
 | `traits` | — | the traits it states, by name |
 | `source` | where its content lives outside | — |
 | `blocks`, `relations`, `packages` | the layer it holds, as a diagram file | the layer it holds, as a diagram file |
-| anything else | a value | an attribute's default |
+| `values` | its answers: a map of name to value, or a list of `{ name, value }` | its attributes' defaults, the same way |
+| anything else | dropped | dropped |
 
 - the body after the frontmatter is `body`, as written. Tables in it are content
 - a type or tag name nothing loaded holds, or more than one package holds, makes a plain definition in the workspace, and is said
 - frontmatter and a diagram file are one schema, read by one reader
-- **a source folder** is a package on disk: `package.json` (the package's graph), a `.json` file per definition, `.yaml` diagram files, and `.md` usages, each directory a folder — but one named as a file beside it, which holds that file's block's parts. `collect` reads one as a package file; a definition said twice is refused; a type its usages name and nothing defines is made, its attributes the union of what they answer. `base` is one: `packages/defs/src/base/`, collected by `npm run base`, its ids kept bare
+- **a diagram file whose block is typed `model`** makes a model: a definition holding the layer it states
+- **a source folder** is a package on disk, called what its `package.json` says (its `id`), else what the folder is called: `package.json` (the package's graph), a `.json` file per definition, `.yaml` diagram files, and `.md` usages, each directory a folder — but one named as a file beside it, which holds that file's block's parts. `collect` reads one as a package file; a definition said twice is refused; a type its usages name and nothing defines is made, its attributes the union of what they answer. `base` is one: `packages/defs/src/base/`, collected by `npm run base`, its ids kept bare

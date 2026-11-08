@@ -15,7 +15,8 @@ export function sheet_graph(graph: Graph, id: Id): Graph {
   const { cell: _cell, ...g } = graph.blocks[id]!;
   /** The stand-in sits in no cell, so no grid the opened one sits in counts it as a member. */
   const blocks: Record<Id, Block> = { ...graph.blocks,
-    [GRID_LAYER]: { ...g, id: GRID_LAYER, settings: { ...g.settings, layout: { kind: "free" } } },
+    [GRID_LAYER]: { ...g, id: GRID_LAYER,
+                    settings: { ...g.settings, diagram: { placing: "auto" } } },
     [id]: { ...g, parent: GRID_LAYER, x: 0, y: 0,
             settings: { ...g.settings, holder: { ...g.settings?.["holder"], flat: true } } } };
   return { ...graph, blocks };

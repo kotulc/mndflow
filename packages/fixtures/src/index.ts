@@ -76,10 +76,9 @@ export function related(): Log {
     step("group", [
       { op: "add_block", block: { id: "block_hot", parent: "block_loop", name: "Hot side",
                                   type: "group", order: 7 } },
-      { op: "move_block", id: "block_hx", parent: "block_hot" },
-      { op: "move_block", id: "block_tank", parent: "block_hot" },
+      { op: "set_groups", id: "block_hx", groups: ["block_hot"] },
+      { op: "set_groups", id: "block_tank", groups: ["block_hot"] },
     ]),
-    step("layout", [auto("block_loop")]),
   ];
 }
 
@@ -101,7 +100,6 @@ export function interfaced(): Log {
                                                  toPort: "port_in",
                                                  settings: { line: { dir: "forward" } } } }]),
     step("relate", [link("edge_plain", "block_pump", "block_hx")]),
-    step("layout", [auto("block_loop")]),
   ];
 }
 
@@ -122,7 +120,6 @@ export function gridded(): Log {
     step("create", [block("block_team", ROOT, "Team", "folder"),
                     block("block_alice", "block_team", "Alice", "block"),
                     block("block_bob", "block_team", "Bob", "block")]),
-    step("layout", [auto("block_board")]),
     step("group", [
       { op: "add_block", block: { id: "block_lanes", parent: "block_board", name: "Lanes",
                                   type: "grid", x: 0, y: 0, order: 1 } },
@@ -149,12 +146,40 @@ export function gridded(): Log {
   ];
 }
 
-/** A layer laid out for you. */
-function auto(layer: string): Mutation {
-  return { op: "set_setting", id: layer, key: "layout", name: "kind", value: "auto" };
+/** **The library and the models**: a definitions folder — a service, a subtype of it, a pattern
+ *  whose part is a service, a relation — and a model using them: a service on its layer, one
+ *  deeper inside a diagram, a reference to the definition, and a call between them. A second,
+ *  frozen package ships a model of its own using the service. */
+export function modeled(): Log {
+  start();
+  const def = (id: string, parent: string, name: string, type?: string): Mutation =>
+    ({ op: "add_block", block: { id, parent, name, def: {}, ...(type ? { type } : {}),
+                                 order: (counts[parent] = (counts[parent] ?? 0) + 1) } });
+  return [
+    step("build", [
+      { op: "add_block", block: { id: "cards", parent: ROOT, name: "Cards", type: "folder",
+                                  tree: "definitions", order: 1 } },
+      def("service", "cards", "Service"),
+      def("sub", "cards", "Sub", "service"),
+      def("pattern", "cards", "Pattern"),
+      block("pattern_part", "pattern", "Part", "service"),
+      def("calls", "cards", "Calls", "line"),
+      def("unused", "cards", "Unused"),
+      def("shop", ROOT, "Shop", "model"),
+      block("gateway", "shop", "Gateway", "service"),
+      block("stage", "shop", "Stage", "internal"),
+      block("inner", "stage", "Inner", "service"),
+      { op: "add_block", block: { id: "stand", parent: "shop", name: "", type: "reference",
+                                  of: "service", order: 9 } },
+      { op: "link_blocks", edge: { id: "call", from: "gateway", to: "stage", type: "calls" } },
+      { op: "add_block", block: { id: "lib", parent: null, name: "lib" } },
+      def("far", "lib", "Far", "model"),
+      block("far_use", "far", "Far use", "service"),
+    ]),
+  ];
 }
 
-export const FIXTURES = { blank, flat, nested, related, interfaced, gridded };
+export const FIXTURES = { blank, flat, nested, related, interfaced, gridded, modeled };
 
 export type FixtureName = keyof typeof FIXTURES;
 

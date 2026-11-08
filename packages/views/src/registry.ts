@@ -7,8 +7,9 @@
 import { entry_at, is_folder, library_of, registry_at, registry_id, registry_of,
          shown_name, users_of, uses_by, type Graph, type Id, type Registry } from "@mnd/core";
 import { carried, trail_of } from "./derive";
+import { box_label, box_place, usage_groups, usage_layout } from "./library";
 import { entry_look } from "./look";
-import { cell, type BoxNode, type Scene } from "./scene";
+import { cell, type BoxData, type BoxNode, type Scene } from "./scene";
 import { PAD } from "./size";
 import { tiled, type Tile } from "./treemap";
 
@@ -89,17 +90,44 @@ function folder_of(graph: Graph, id: Id): Id {
   return at ?? graph.root;
 }
 
-/** A registry on the canvas, as a treemap; null for anything that is not a registry or an entry.
- *  **Opened on the registry**, each entry is a tile as large as its uses, in the box of its home
- *  folder — the one holding most of its uses — or *[multiple]* where none holds half, or *[no
- *  uses]*. **Opened on an entry**, the blocks using it, each as large as its uses there, in the
- *  boxes of their folders. A lone box is left out: the frame says as much. A projection: nothing
- *  is dragged or written back. */
+/** A registry on the canvas, as a treemap; null for anything that is not a registry, an entry or
+ *  a used definition. **Opened on the registry**, each entry is a tile as large as its uses, in
+ *  the box of its home folder — the one holding most of its uses — or *[multiple]* where none
+ *  holds half, or *[no uses]*. **Opened on an entry**, the blocks using it, each as large as its
+ *  uses there, in the boxes of their folders. **Opened on a definition**, its uses, in the boxes
+ *  of the places they are drawn. A lone box is left out: the frame says as much. A projection, read
+ *  only: nothing is dragged or written back. */
 export function registry_scene(graph: Graph, id: Id): Scene | null {
   const registry = registry_at(graph, id);
   if (registry) return entries_scene(graph, id, registry);
   const of = registry_of(graph, id);
-  return of ? users_scene(graph, id, of) : null;
+  if (of) return users_scene(graph, id, of);
+  return graph.blocks[id]?.def ? uses_scene(graph, id) : null;
+}
+
+/** A block's small face out of its grid: a header heads nothing here, so it reads level and
+ *  wears its icon as any card does. */
+function loose(graph: Graph, id: Id): BoxData {
+  const data = carried(graph, id, "small");
+  return { ...data, marks: data.marks.filter((m) => m !== "header" && m !== "upright") };
+}
+
+/** A definition: its uses as they are laid out for every map of them — each block or reference
+ *  its card's small face, each line a tile — in boxes of the places they are drawn. */
+function uses_scene(graph: Graph, def: Id): Scene | null {
+  const laid = usage_layout(graph, def);
+  if (!laid.length) return null;
+  const held = new Map(usage_groups(graph, def).map((g) => [g.place, g.uses.map((u) => u.id)]));
+  const nodes = laid.map((p) => {
+    const place = box_place(def, p.id);
+    if (place) {
+      return cell(p.id, p, { label: box_label(graph, place), marks: ["group"],
+                             holds: held.get(place) ?? [] }, "group");
+    }
+    if (graph.edges[p.id]) return cell(p.id, p, { label: shown_name(graph, p.id), marks: [] }, "tile");
+    return cell(p.id, p, loose(graph, p.id));
+  });
+  return drawn(def, shown_name(graph, def), nodes, trail_of(graph, def));
 }
 
 /** The registry: its entries as tiles in the boxes of their home folders. */
@@ -153,7 +181,7 @@ function users_scene(graph: Graph, id: Id, registry: Registry): Scene {
   const max = Math.max(1, ...users.map((u) => uses_by(graph, id, u)));
   const nodes = tiled(alone(tiles)).map((p) => {
     /** A block is its card's small face: its tile's size is its uses, never its content. */
-    if (graph.blocks[p.id]) return cell(p.id, p, carried(graph, p.id, "small"));
+    if (graph.blocks[p.id]) return cell(p.id, p, loose(graph, p.id));
     if (graph.edges[p.id]) {
       const n = uses_by(graph, id, p.id);
       return cell(p.id, p, { label: shown_name(graph, p.id), marks: [], count: n, heat: n / max },

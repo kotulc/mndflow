@@ -1,13 +1,12 @@
-/** The `treemap` layout: a layer's blocks as tiles, each as large as what it holds, nested in the
- *  folders, groups and regions holding them — each a box under its heading. Uniform cards stay
- *  every other layout's; a definition asks for this one with `layout.kind: treemap`. Worked out on
- *  every draw, never stored. The binary layout is d3-hierarchy's: it keeps a light tile from a thin slice. */
+/** A registry's treemap: tiles each as large as what they weigh, nested in boxes under their
+ *  headings (`registry.ts`, `library.ts`). A diagram laid out as a treemap is its map instead
+ *  (`map.ts` `layer_map`). The binary layout is d3-hierarchy's: it keeps a light tile from a thin
+ *  slice. */
 
 import { hierarchy, treemap, treemapBinary } from "d3-hierarchy";
-import { children, def_of, is_aside, is_box, is_interface, of_ref, stands_for, subtree,
-         type Graph, type Id } from "@mnd/core";
+import { def_of, of_ref, stands_for, subtree, type Graph, type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
-import { size_of, BLOCK, GAP, PAD, UNIT } from "./size";
+import { BLOCK, PAD, UNIT } from "./size";
 
 /** One tile or box, and how much it weighs: a box nothing, so it is what it holds. */
 export type Tile = { id: Id; weight: number; kids?: Tile[] };
@@ -23,29 +22,11 @@ const MOST = 8;
 const INNER = UNIT / 3;
 
 
-/** Every block drawn in a treemap layer, placed. A card arranged aside — a note — is no tile: the
- *  notes stand in a column beside the map. */
-export function treemapped(graph: Graph, layer: Id | null): Placed[] {
-  const held = (at: Id | null) => children(graph, at)
-    .filter((b) => !is_interface(graph, b.id) && !is_aside(graph, b.id));
-  const tile = (id: Id): Tile => {
-    const kids = is_box(graph, id) ? held(id).map((b) => tile(b.id)) : [];
-    return kids.length ? { id, weight: 0, kids } : { id, weight: weight_of(graph, id) };
-  };
-  const map = tiled(held(layer).map((b) => tile(b.id)));
-  const right = Math.max(0, ...map.map((p) => p.x + p.w)) + GAP;
-  let y = 0;
-  const notes = children(graph, layer).filter((b) => is_aside(graph, b.id)).map((b) => {
-    const at = { id: b.id, x: right, y, ...size_of(graph, b.id) };
-    y += at.h + GAP;
-    return at;
-  });
-  return [...map, ...notes];
-}
-
 /** Tiles laid out on a landscape page, large enough that the lightest is about a card, within
- *  bounds so a heavy tile never blows the page up. Boxes keep a heading's room at their top. */
-export function tiled(tiles: Tile[]): Placed[] {
+ *  bounds so a heavy tile never blows the page up — or filling `size` where one is given. Boxes
+ *  keep a heading's room at their top: over their edge, or `head` deep inside it where the box
+ *  draws its heading itself. */
+export function tiled(tiles: Tile[], size?: { w: number; h: number }, head = INNER): Placed[] {
   if (!tiles.length) return [];
   const root = hierarchy<Tile>({ id: "", weight: 0, kids: tiles }, (t) => t.kids)
     .sum((t) => t.weight).sort((a, z) => (z.value ?? 0) - (a.value ?? 0));
@@ -61,10 +42,11 @@ export function tiled(tiles: Tile[]): Placed[] {
    *  them; tiles in a box keep a little air. */
   const headed = (n: { children?: { children?: unknown }[] }) =>
     !!n.children?.some((c) => c.children);
-  const laid = treemap<Tile>().tile(treemapBinary).size([w, h]).round(true)
+  const laid = treemap<Tile>().tile(treemapBinary).size(size ? [size.w, size.h] : [w, h])
+    .round(true)
     .paddingInner((n) => (headed(n) ? PAD : INNER))
     .paddingOuter((n) => (boxed(n) ? INNER : 0))
-    .paddingTop((n) => (boxed(n) ? INNER : 0))(root);
+    .paddingTop((n) => (boxed(n) ? head : 0))(root);
   return laid.descendants().slice(1)
     .map((n) => ({ id: n.data.id, x: n.x0, y: n.y0, w: n.x1 - n.x0, h: n.y1 - n.y0 }));
 }

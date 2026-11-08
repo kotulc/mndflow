@@ -26,6 +26,10 @@ const SAME = SEAT;
 /** How far off square a leg may be and still count as square: a handle measured to a fraction. */
 const SQUARE = 1.5;
 
+/** The most lines libavoid is asked to route at once: its time grows far faster than the lines
+ *  (60 in under half a second, 100 in over ten), so a busier layer runs as `route` draws it. */
+const MOST = 64;
+
 
 /** Loads libavoid from its wasm, once. */
 export async function load_avoid(wasm: string): Promise<void> {
@@ -34,20 +38,21 @@ export async function load_avoid(wasm: string): Promise<void> {
 }
 
 /** The run libavoid routes for each line of a scene, as drawn — its nodes where they stand and its
- *  room as the stage hangs it. None until libavoid is loaded. */
+ *  room as the stage hangs it. None until libavoid is loaded, or past `MOST` lines. */
 export function routes_of(scene: Scene): ReadonlyMap<Id, Point[]> {
   if (!avoid) return new Map();
-  /** A drawing whose every line is already run asks nothing of the router. */
-  if (scene.edges.every((e) => e.hidden || e.data?.module === "tie" || e.data?.points?.length)) {
-    return new Map();
-  }
+  /** A drawing whose every line is already run asks nothing of the router; one with more than
+   *  `MOST` to run is left to `route`. */
+  const asked = scene.edges.filter((e) => !e.hidden && e.data?.module !== "tie"
+    && !e.data?.points?.length);
+  if (!asked.length || asked.length > MOST) return new Map();
   const A = avoid;
   const router = new A.Router(A.RouterFlag.OrthogonalRouting.value);
   router.setRoutingParameter(A.RoutingParameter.shapeBufferDistance, SEAT);
   router.setRoutingParameter(A.RoutingParameter.idealNudgingDistance, SEAT);
   router.setRoutingParameter(A.RoutingParameter.segmentPenalty, 50);
   router.setRoutingOption(A.RoutingOption.nudgeOrthogonalSegmentsConnectedToShapes, false);
-  router.setRoutingOption(A.RoutingOption.nudgeSharedPathsWithCommonEndPoint, false);
+  router.setRoutingOption(A.RoutingOption.nudgeSharedPathsWithCommonEndPoint, true);
 
   /** Every card a shape; what is not one gets a speck where its line ends. */
   const shapes = new Map<string, { ref: unknown; x: number; y: number }>();
@@ -75,8 +80,7 @@ export function routes_of(scene: Scene): ReadonlyMap<Id, Point[]> {
   };
 
   const conns = new Map<string, any>();
-  for (const e of scene.edges) {
-    if (e.hidden || e.data?.module === "tie" || e.data?.points?.length) continue;
+  for (const e of asked) {
     const a = end_of(e, "from", scene.nodes, scene.perches, scene.frame);
     const b = end_of(e, "to", scene.nodes, scene.perches, scene.frame);
     if (!a || !b) continue;

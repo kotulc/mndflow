@@ -24,7 +24,8 @@
   height: 100%;
   box-sizing: border-box;
   overflow: visible;
-  border: 1px dashed color-mix(in oklch, var(--muted) 48%, transparent);
+  /* **A group is a panel, no rim**: its ground and its name gather its members. */
+  border: 1px solid transparent;
   border-radius: 4px;
   background: color-mix(in oklch, var(--muted) 6%, transparent);
   background-clip: padding-box;
@@ -32,7 +33,7 @@
 }
 /* A folder or block a view flattens: a solid rim, so it never reads as a group somebody made. */
 .mnd-group.flat {
-  border-style: solid;
+  border-color: color-mix(in oklch, var(--muted) 48%, transparent);
 }
 /* The inside is for what the band holds. */
 .mnd-group:not(.gridded) {
@@ -53,9 +54,9 @@
 .mnd-group:not(.gridded).picked {
   border-style: solid;
   border-color: var(--accent);
-  background: color-mix(in oklch, var(--accent) 7%, transparent);
+  background: color-mix(in oklch, var(--accent) 6%, transparent);
   background-clip: padding-box;
-  box-shadow: 0 0 0 1px var(--accent);
+  box-shadow: var(--pick-ring);
 }
 .mnd-group-shell:not(.gridded):has(.mnd-group.picked) .mnd-group-name {
   color: var(--accent);
@@ -90,6 +91,8 @@
   cursor: text;
   pointer-events: auto;
 }
+/* A holder's handle, quiet beside its name. */
+.mnd-group-alias { color: var(--muted); }
 
 /* ---------------------------------------------------------------- the grid */
 
@@ -159,6 +162,26 @@
   pointer-events: none;
 }
 .mnd-grid-cell.upright > .mnd-grid-index { right: auto; left: 3px; }
+/* A cell's label, plain data on the grid: a header's centred on its line's tab, upright down the
+   row header; a body cell's at its top left. */
+.mnd-grid-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.mnd-grid-cell.upright > .mnd-grid-label { writing-mode: vertical-rl; transform: rotate(180deg); }
+.mnd-grid-cell:not(.header) > .mnd-grid-label { align-items: flex-start; justify-content: flex-start;
+                                                color: var(--muted); }
 /* A column's letter sits in the middle of its header. */
 .mnd-grid-cell[data-way="col"] > .mnd-grid-index { left: 0; right: 0; text-align: center; }
 .mnd-group.room .mnd-grid-cell[data-way] { cursor: context-menu; }
@@ -302,8 +325,8 @@
               0 24px / 100% calc(1px / var(--zoom, 1)) no-repeat;
 }
 .mnd-group.region.picked {
-  background: color-mix(in oklch, var(--accent) 5%, transparent);
-  box-shadow: inset 0 0 0 calc(1px / var(--zoom, 1)) var(--accent);
+  background: color-mix(in oklch, var(--accent) 6%, transparent);
+  box-shadow: var(--pick-ring);
 }
 .mnd-group-shell:has(.mnd-group.region) > .mnd-group-title {
   bottom: auto;

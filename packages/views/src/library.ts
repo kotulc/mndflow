@@ -1,40 +1,73 @@
-/** What the library knows of its definitions: each one's uses and where they live, what a package
- *  or folder files, and the small maps the tray draws of both. The library's own map is
- *  `map.ts`'s. Worked out on every graph change, never stored. */
+/** What the library knows of its definitions: where each is used, grouped by the place each use
+ *  is drawn, laid out **once** for the registry and the library's chip alike;
+ *  what a package or folder files. The library's own map is `map.ts`'s. Worked out on every graph
+ *  change, never stored. */
 
-import { hierarchy, treemap } from "d3-hierarchy";
-import { children, is_folder, lens_of, of_ref, on_side, path, shown_name, stands_for,
-         type Graph, type Id } from "@mnd/core";
-import { weight_of } from "./treemap";
+import { children, definition_uses, is_folder, model_of, models, on_side,
+         package_of, shown_name, use_place, type Graph, type Id } from "@mnd/core";
+import type { Placed } from "./arrange";
+import { tiled, weight_of, type Tile as Weighed } from "./treemap";
 
-/** What one use of a definition is: a block typed by it, a stand-in for it, or a line of it. */
-type Use = { id: Id; home: Id; weight: number };
+/** One use of a definition, placed: what it is, the place it is drawn, and how much it weighs — a
+ *  block or a reference what it holds, a line one. */
+export type LocatedUse = { id: Id; place: Id; weight: number;
+                           kind: "block" | "reference" | "relation" };
 
-/** Every use of a definition: the blocks it types, the stand-ins for it, and the lines it types,
- *  each with the diagram it lives in. */
-export function uses_of(graph: Graph, def: Id): Use[] {
-  const out: Use[] = [];
-  for (const b of Object.values(graph.blocks)) {
-    if (b.def || b.parent === null || !on_side(graph, b.id, "structure")) continue;
-    const typed = (b.type ?? "block") === def;
-    const stands = of_ref(graph, b.id) && stands_for(graph, b.id)?.id === def;
-    if (!typed && !stands) continue;
-    out.push({ id: b.id, home: home_of(graph, b.id), weight: weight_of(graph, b.id) });
+/** A definition's uses in the models, **grouped by the place each is drawn**: the diagram whose
+ *  layer draws it, a line the one it crosses on. Places by their models' load order, then by
+ *  name, so they keep their order whatever is added or renamed elsewhere. */
+export function usage_groups(graph: Graph, def: Id): { place: Id; uses: LocatedUse[] }[] {
+  const by = new Map<Id, LocatedUse[]>();
+  for (const u of definition_uses(graph, def)) {
+    const place = use_place(graph, u.id);
+    if (!place) continue;
+    const weight = u.kind === "relation" ? 1 : weight_of(graph, u.id);
+    const use = { id: u.id, place, weight, kind: u.kind };
+    const list = by.get(place);
+    if (list) list.push(use);
+    else by.set(place, [use]);
   }
-  for (const e of Object.values(graph.edges)) {
-    if ((e.type ?? "line") === def && graph.blocks[e.from]) {
-      out.push({ id: e.id, home: home_of(graph, e.from), weight: 1 });
-    }
-  }
-  return out;
+  const order = new Map(models(graph).map((m, n) => [m.id, n]));
+  const rank = (place: Id) => order.get(model_of(graph, place) ?? "") ?? 0;
+  return [...by].sort(([a], [z]) => rank(a) - rank(z)
+      || shown_name(graph, a).localeCompare(shown_name(graph, z)))
+    .map(([place, uses]) => ({ place, uses }));
 }
 
-/** The diagram a block lives in: its nearest block above it with a view of its own, else its
- *  package. */
-function home_of(graph: Graph, id: Id): Id {
-  const up = path(graph, id).map((b) => b.id).filter((x) => x !== id).reverse();
-  const drawn = (x: Id) => !!lens_of(graph, x) && lens_of(graph, x) !== "folder";
-  return up.find(drawn) ?? up[up.length - 1] ?? id;
+/** A line by its ends. */
+export function line_name(graph: Graph, id: Id): string {
+  const e = graph.edges[id]!;
+  return `${shown_name(graph, e.from)} → ${shown_name(graph, e.to)}`;
+}
+
+/** The box a place's uses of `def` sit in: an id of its own, never a block's. */
+export function usage_box(def: Id, place: Id): Id {
+  return `${def}@${place}`;
+}
+
+/** The place a usage box stands for, where an id is one. */
+export function box_place(def: Id, id: Id): Id | null {
+  return id.startsWith(`${def}@`) ? id.slice(def.length + 1) : null;
+}
+
+/** **A definition's uses laid out, once**: a box per place, each use as large as it weighs; a lone
+ *  box left out, as the frame says it, unless `boxed` (other uses are said beside it). Placed at
+ *  card scale, or filling `size`, `head` deep inside each box where it draws its own heading. */
+export function usage_layout(graph: Graph, def: Id, size?: { w: number; h: number },
+                             groups = usage_groups(graph, def), head?: number,
+                             boxed = false): Placed[] {
+  const boxes: Weighed[] = groups.map((g) => ({
+    id: usage_box(def, g.place), weight: 0,
+    kids: g.uses.map((u) => ({ id: u.id, weight: u.weight })) }));
+  return tiled(boxes.length === 1 && !boxed ? boxes[0]!.kids! : boxes, size, head);
+}
+
+/** What a usage box is called: its place, and the place's package where it is not the
+ *  workspace's. */
+export function box_label(graph: Graph, place: Id): string {
+  const pkg = package_of(graph, place);
+  const name = shown_name(graph, place);
+  return pkg === graph.root ? name : `${name} · ${graph.blocks[pkg]?.name ?? pkg}`;
 }
 
 /** A package by the name it was given; anything else by the name it shows. */
@@ -49,44 +82,26 @@ export function filed(graph: Graph, id: Id): Id[] {
     && (is_folder(graph, b.id) || !!b.def)).map((b) => b.id);
 }
 
+/** A small map's box heading, inside its top: a laid name line and a little air. */
+const BOX_HEAD = 14;
+
 /** One tile of a small map: what it is, its name, and where it lies in a map `w` by `h`. */
 export type Tile = { id: Id; label: string; kind: "box" | "use" | "line" | "def";
                      x: number; y: number; w: number; h: number };
 
-/** A definition's registry as a small map `w` by `h`: its uses in boxes of the rooms they live
- *  in, each as large as what it holds. */
-export function registry_map(graph: Graph, def: Id, w: number, h: number): Tile[] {
-  type Leaf = { id: Id; kids?: Leaf[]; value?: number };
-  const homes = new Map<Id, Use[]>();
-  for (const u of uses_of(graph, def)) homes.set(u.home, [...homes.get(u.home) ?? [], u]);
-  const root = hierarchy<Leaf>({ id: def, kids: [...homes].map(([home, list]) => ({
-    id: `@home:${home}`, kids: list.map((u) => ({ id: u.id, value: u.weight })) })) },
-  (n) => n.kids?.length ? n.kids : undefined).sum((n) => n.value ?? 0);
-  const laid = treemap<Leaf>().size([w, h]).round(true).paddingInner(2).paddingOuter(3)
-    .paddingTop((n) => (n.depth === 0 ? 3 : 14))(root);
-  return laid.descendants().slice(1).map((n): Tile => {
-    const id = n.data.id;
-    const home = id.startsWith("@home:") ? id.slice("@home:".length) : null;
-    const e = graph.edges[id];
-    return { id, x: n.x0, y: n.y0, w: n.x1 - n.x0, h: n.y1 - n.y0,
-             kind: home ? "box" : e ? "line" : "use",
-             label: home ? `in ${shown_name(graph, home)}`
-               : e ? `${shown_name(graph, e.from)} → ${shown_name(graph, e.to)}`
-               : shown_name(graph, id) };
+/** A definition's registry as a small map `w` by `h`: **the registry's own layout**, laid to fill
+ *  the map rather than scaled into it, each box with a line inside its top for its name; a lone
+ *  box kept where `boxed`. */
+export function registry_map(graph: Graph, def: Id, w: number, h: number,
+                             groups = usage_groups(graph, def), boxed = false): Tile[] {
+  return usage_layout(graph, def, { w, h }, groups, BOX_HEAD, boxed).map((p): Tile => {
+    const place = box_place(def, p.id);
+    const e = graph.edges[p.id];
+    return { id: p.id, x: p.x, y: p.y, w: p.w, h: p.h,
+             kind: place ? "box" : e ? "line" : "use",
+             label: place ? box_label(graph, place)
+               : e ? line_name(graph, p.id)
+               : shown_name(graph, p.id) };
   });
 }
 
-/** What a package or folder files, as a small map: its folders as boxes, each definition a tile
- *  as large as its uses. */
-export function filed_map(graph: Graph, id: Id, w: number, h: number): Tile[] {
-  type Leaf = { id: Id; kids?: Leaf[]; value?: number };
-  const leaf = (at: Id): Leaf => (graph.blocks[at]?.def
-    ? { id: at, value: uses_of(graph, at).length + 1 } : { id: at, kids: filed(graph, at).map(leaf) });
-  const root = hierarchy<Leaf>(leaf(id), (n) => n.kids?.length ? n.kids : undefined)
-    .sum((n) => n.value ?? 0);
-  const laid = treemap<Leaf>().size([w, h]).round(true).paddingInner(2).paddingOuter(3)
-    .paddingTop((n) => (n.depth === 0 ? 3 : 14))(root);
-  return laid.descendants().slice(1).map((n) => ({
-    id: n.data.id, label: name_of(graph, n.data.id), kind: n.children ? "box" : "def",
-    x: n.x0, y: n.y0, w: n.x1 - n.x0, h: n.y1 - n.y0 }));
-}

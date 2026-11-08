@@ -1,20 +1,20 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import { isa, module_of, setting_of } from "./defs";
-import { drawn_in } from "./holders";
-import { LAYOUTS, type Block, type Definition, type Flow, type Graph, type Id, type Layout,
+import { def_at, isa, module_of, setting_of } from "./defs";
+import { behaviour_owner, behaviours_of, is_behaviour } from "./ends";
+import { allocations_of, drawn_in, is_holder, layer_of, region_of } from "./holders";
+import { PLACINGS, type Placing, type Block, type Definition, type Flow, type Graph, type Id,
          type Port, type Relation } from "./types";
 import { kept } from "./memo";
 
 
-/** Every block under this one, itself included. */
+/** Every block under this one, itself included: read off the children index, so a deep tree costs
+ *  what it holds, not what the graph holds. */
 export function subtree(graph: Graph, id: Id): Id[] {
+  const by = held_by(graph);
   const out: Id[] = [id];
   for (let i = 0; i < out.length; i++) {
-    const here = out[i]!;
-    for (const b of Object.values(graph.blocks)) {
-      if (b.parent === here) out.push(b.id);
-    }
+    for (const b of by.get(out[i]!) ?? []) out.push(b.id);
   }
   return out;
 }
@@ -156,6 +156,19 @@ export function stands_for(graph: Graph, id: Id): Block | null {
   return b ?? null;
 }
 
+/** What a card draws as: the block it previews — what a reference stands for, else itself — the
+ *  definition a reference stands in for, and whether a reference names nothing there. */
+export type Resolved = { card: Id; stands_in?: Definition; missing: boolean };
+
+/** What a card draws as, a reference resolved: decided by *is reference*, never by `of`. */
+export function resolved(graph: Graph, id: Id): Resolved {
+  if (!is_reference(graph, id)) return { card: id, missing: false };
+  const target = stands_for(graph, id);
+  if (!target || target.id === id) return { card: id, missing: true };
+  const def = def_at(graph, of_ref(graph, id));
+  return { card: target.id, ...(def ? { stands_in: def } : {}), missing: false };
+}
+
 /** **One object**: the block an appearance is — a stand-in's target, followed to the end, else
  *  the block itself. Naming, describing and retyping act on it. */
 export function object_of(graph: Graph, id: Id): Id {
@@ -169,6 +182,145 @@ export function appearances_of(graph: Graph, id: Id): Id[] {
   return [home, ...Object.values(graph.blocks)
     .filter((b) => b.id !== home && of_ref(graph, b.id) && object_of(graph, b.id) === home)
     .map((b) => b.id)];
+}
+
+/** **One highlight**: whether an appearance lights for the picks, made through the usage `route`.
+ *  Every appearance of a picked block lights alike — itself, every stand-in — each by its route:
+ *  one seen through a usage (`via`) lights only where the picks were made through that usage. */
+export function lit(graph: Graph, picks: readonly Id[], route: Id | null, id: Id,
+                    via?: Id): boolean {
+  if (via && via !== route) return false;
+  const home = object_of(graph, id);
+  return picks.some((p) => object_of(graph, p) === home);
+}
+
+/** One hop: from a block to another, by the names said across it. */
+export type Hop = { from: Id; to: Id; names: string[] };
+
+/** **A block's one hop each way** (2026-11-04): what reaches it and what it reaches, a hop each
+ *  way — the lines with one end in it (at any depth) and the other outside, ties and a
+ *  behaviour's own messages aside, and every behaviour's steps into or out of it (`path_of`) —
+ *  one hop a pair and way, its names gathered. Empty where nothing joins it. */
+export function hops_of(graph: Graph, id: Id): Hop[] {
+  if (!graph.blocks[id]) return [];
+  const inside = new Set(subtree(graph, id));
+  const out: Hop[] = [];
+  for (const s of joins(graph)) {
+    const [a, b] = [inside.has(s.from), inside.has(s.to)];
+    if (a === b) continue;
+    const [from, to] = [a ? id : s.from, b ? id : s.to];
+    const had = out.find((h) => h.from === from && h.to === to);
+    if (!had) out.push({ from, to, names: s.name ? [s.name] : [] });
+    else if (s.name && !had.names.includes(s.name)) had.names.push(s.name);
+  }
+  return out;
+}
+
+/** **What a block reaches a hop each way on a layer**: the blocks drawn there at the far end of
+ *  its hops, each lifted to the block drawn holding it, and the layer's lines between it and them.
+ *  The block itself lights too. Empty where nothing joins it there. */
+export function reached(graph: Graph, id: Id, layer: Id | null): { blocks: Id[]; lines: Id[] } {
+  const drawn = new Set(drawn_in(graph, layer).map((b) => b.id));
+  const lift = (at: Id | null): Id | null => {
+    for (let x = at; x; x = graph.blocks[x]?.parent ?? null) if (drawn.has(x)) return x;
+    return null;
+  };
+  const far = new Set(hops_of(graph, id).map((h) => lift(h.from === id ? h.to : h.from))
+    .filter((x): x is Id => !!x && x !== id));
+  if (!far.size) return { blocks: [], lines: [] };
+  const lines = edges_in(graph, layer).filter((e) => {
+    const [a, b] = [lift(owner_of(graph, e.from)), lift(owner_of(graph, e.to))];
+    return (a === id && !!b && far.has(b)) || (b === id && !!a && far.has(a));
+  }).map((e) => e.id);
+  return { blocks: [id, ...far], lines };
+}
+
+/** Every join in the graph, worked out once until the graph is written (`kept`): its lines,
+ *  owner to owner, but ties and those inside a behaviour; and every behaviour's path steps.
+ *  **A line to a holder's own port is followed through it** (2026-11-06): a part joined to its
+ *  holder's port joins what that port's lines reach outside the holder, and nothing where none
+ *  do — what holds it is already drawn round it. */
+function joins(graph: Graph): { from: Id; to: Id; name: string }[] {
+  return kept(graph, "joins", () => {
+    const ways = Object.values(graph.blocks).filter((b) => is_behaviour(graph, b.id));
+    const in_way = new Set(ways.flatMap((w) => subtree(graph, w.id)));
+    const owners = [...new Set(ways.map((w) => behaviour_owner(graph, w.id))
+      .filter((x): x is Id => !!x))];
+    const lines = Object.values(graph.edges).filter((e) => e.type !== "tie")
+      .map((e) => ({ a: `${e.from}:${e.fromPort ?? ""}`, b: `${e.to}:${e.toPort ?? ""}`,
+                     from: owner_of(graph, e.from), to: owner_of(graph, e.to),
+                     name: e.name ?? "" }))
+      .filter((e) => !in_way.has(e.from) && !in_way.has(e.to));
+    /** Each line by its ends, an end being a block and its port. */
+    const at_end = new Map<string, (typeof lines)[number][]>();
+    for (const l of lines) for (const k of [l.a, l.b]) at_end.set(k, [...at_end.get(k) ?? [], l]);
+    /** What a holder's port reaches outside `holder`, up through as many holders as it takes; a
+     *  line back inside it is the one followed in, or another part's. */
+    const beyond = (end: string, holder: Id): { at: Id; name: string }[] =>
+      (at_end.get(end) ?? []).flatMap((l) => {
+        const [far, at] = l.a === end ? [l.b, l.to] : [l.a, l.from];
+        if (at === holder || within(graph, at, holder)) return [];
+        return within(graph, holder, at) ? beyond(far, at) : [{ at, name: l.name }];
+      });
+    /** A part's line to its holder's port goes through; one to the holder's bare edge stays. */
+    const through = lines.flatMap((l) => {
+      const [end, holder] = within(graph, l.from, l.to) ? [l.b, l.to]
+        : within(graph, l.to, l.from) ? [l.a, l.from] : [null, null];
+      if (!end || !holder || end === `${holder}:`) return [l];
+      return beyond(end, holder).map((x) => holder === l.to
+        ? { from: l.from, to: x.at, name: x.name || l.name }
+        : { from: x.at, to: l.to, name: x.name || l.name });
+    });
+    return [...through.map(({ from, to, name }) => ({ from, to, name })),
+            ...owners.flatMap((o) => path_of(graph, o))];
+  });
+}
+
+/** Whether `id` sits inside `holder`, at any depth (never itself). */
+function within(graph: Graph, id: Id, holder: Id): boolean {
+  for (let x = graph.blocks[id]?.parent; x; x = graph.blocks[x]?.parent) {
+    if (x === holder) return true;
+  }
+  return false;
+}
+
+/** **A block's behaviours as a path, in order**: each message between two steps, ordered by the
+ *  row its receiving step sits in, from what the sending step stands for to what the receiving one
+ *  does — never what heads its row, inside the behaviour — named as the message is. A step to
+ *  itself is none. Empty with no behaviour. */
+export function path_of(graph: Graph, id: Id): { from: Id; to: Id; name: string }[] {
+  return behaviours_of(graph, id).flatMap((w) => {
+    const steps = new Set(subtree(graph, w.id));
+    const row = (step: Id) => region_of(graph, step)?.r ?? 0;
+    return Object.values(graph.edges)
+      .filter((e) => steps.has(e.from) && steps.has(e.to))
+      .sort((a, b) => row(a.to) - row(b.to))
+      .flatMap((e) => {
+        const outside = (step: Id) => stands(graph, step).filter((b) => !steps.has(b));
+        return outside(e.from).flatMap((from) => outside(e.to)
+          .filter((to) => to !== from).map((to) => ({ from, to, name: e.name ?? "" })));
+      });
+  });
+}
+
+/** **Whose path a block shows**: its own, where its behaviours make one, or, for a behaviour, its
+ *  owner's. Null where neither travels anywhere. */
+export function path_owner(graph: Graph, id: Id): Id | null {
+  const owner = is_behaviour(graph, id) ? behaviour_owner(graph, id) : id;
+  return owner && path_of(graph, owner).length ? owner : null;
+}
+
+/** What a behaviour's step stands for: a reference's object, or what heads its lifeline. */
+function stands(graph: Graph, step: Id): Id[] {
+  return [...(of_ref(graph, step) ? [object_of(graph, step)] : []),
+          ...allocations_of(graph, step).filter((b) => !is_holder(graph, b.id)).map((b) => b.id)];
+}
+
+/** The usage a block drawn on `layer` is seen through: the layer, where the block is its
+ *  definition's rather than held under it. */
+export function seen_through(graph: Graph, layer: Id | null, id: Id): Id | undefined {
+  if (!layer || !graph.blocks[id]) return undefined;
+  return path(graph, id).some((b) => b.id === layer) ? undefined : layer;
 }
 
 /** What a block touches outside itself: the far end of every line with one end in it, and every
@@ -234,11 +386,6 @@ export function part_end(graph: Graph, id: Id): { block: Id; part?: Id } {
   return { block: id.slice(0, at), part: id.slice(at + PART.length) };
 }
 
-/** An end as drawn: the block, or the part of its definition it reads through. */
-export function end_id(block: Id, part: Id | undefined): Id {
-  return part ? part_id(block, part) : block;
-}
-
 /** The block an id as drawn stands for: a part a usage reads through goes home to its
  *  definition's block, so an edit to it lands where it is held. */
 export function stored_of(graph: Graph, id: Id): Id {
@@ -254,19 +401,30 @@ export function owner_of(graph: Graph, id: Id): Id {
   return b && is_interface(graph, b.id) && b.parent ? b.parent : id;
 }
 
-/** Relations with both ends drawn in this layer. */
+/** Relations with both ends drawn in this layer, in list order, then by id. */
 export function edges_in(graph: Graph, layer: Id | null): Relation[] {
   const here = new Set(drawn_in(graph, layer).map((b) => b.id));
   const drawn = (id: Id) => here.has(owner_of(graph, id)) || (!!layer && owner_of(graph, id) === layer);
   return Object.values(graph.edges)
     .filter((e) => drawn(e.from) && drawn(e.to))
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity) || a.id.localeCompare(b.id));
 }
 
-/** How a layer lays out: its own word, else its definition's. `auto` is what nobody said, and a
- *  kind this build does not know draws as `auto` too. */
-export function layout_of(graph: Graph, layer: Id | null): Layout {
-  const kind = layer ? setting_of(graph, layer, "layout")["kind"] : undefined;
-  if (kind === undefined) return "auto";
-  return LAYOUTS.includes(kind as Layout) || kind === "page" ? kind as Layout : "auto";
+/** The layer drawing a line: from its `from` end up, the nearest that draws both its ends. */
+export function line_layer(graph: Graph, id: Id): Id | null {
+  const e = graph.edges[id];
+  if (!e) return null;
+  const ends = [owner_of(graph, e.from), owner_of(graph, e.to)];
+  for (let at: Id | null = ends[0]!; at; at = layer_of(graph, at)) {
+    const here = new Set(drawn_in(graph, at).map((b) => b.id));
+    if (ends.every((x) => x === at || here.has(x))) return at;
+  }
+  return null;
+}
+
+/** How a layer places what it holds: as its diagram kind says. `auto` is what nobody said, and
+ *  an arrangement this build does not know draws as `auto` too. */
+export function placing_of(graph: Graph, layer: Id | null): Placing {
+  const said = layer ? setting_of(graph, layer, "diagram")["placing"] : undefined;
+  return PLACINGS.includes(said as Placing) ? said as Placing : "auto";
 }

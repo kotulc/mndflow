@@ -1,9 +1,10 @@
 /** Named components: the types, tags and interface definitions a package holds as data on its
  *  root, beside its blocks. Never blocks, never drawn on a layer; elements carry them by id. */
 
-import { base_of, constraints_stated, def_at, def_named, is_tie, packages,
+import { base_of, def_at, def_named, is_tie, packages,
          tags_stated } from "./defs";
-import { holders_over, is_group, is_region } from "./holders";
+import { groups_of, holders_over, is_region, lattice_of } from "./holders";
+import { shown_name } from "./names";
 import { FORMS, KINDS, type Constraint, type LibraryEntry, type Form, type Graph, type Id,
          type Interface, type Library, type Mutation, type Tag, type Type } from "./types";
 import { kept } from "./memo";
@@ -140,11 +141,6 @@ export function tags_of(graph: Graph, id: Id): Id[] {
   return tags_stated(graph, id).ids;
 }
 
-/** The constraints an element is held to, in order: the nearest list its chain states. */
-export function constraints_of(graph: Graph, id: Id): Id[] {
-  return constraints_stated(graph, id).ids;
-}
-
 /** Whether a name is held in a package's library, by anything but `except`. */
 export function library_names(graph: Graph, pkg: Id, name: string, except?: Id): boolean {
   const lib = library_of(graph, pkg);
@@ -246,23 +242,30 @@ export function uses_by(graph: Graph, entry: Id, user: Id): number {
     + (b?.ports?.filter((p) => p.type === entry).length ?? 0);
 }
 
-/** Whether a package holds anything named, so the explorer lists its library. */
-export function has_library(graph: Graph, pkg: Id): boolean {
-  const lib = library_of(graph, pkg);
-  return KINDS.some((k) => !!lib[k]?.length);
-}
-
 /** A tag an annotation gives a block by its name: a group's or a region's, to what it encloses; a
- *  label's, to what it is tied to. Derived, never stored on the member. */
-export type Given = { name: string; from: Id; tie?: Id };
+ *  label's, to what it is tied to; a grid label's, to what sits on its line or in its cell (`at`,
+ *  the label's own cell). Derived, never stored on the member. */
+export type Given = { name: string; from: Id; tie?: Id; at?: { r: number; c: number } };
 
-/** The tags annotations give a block, nearest enclosure first, then its labels. */
+/** The tags annotations give a block: the labels of its grid's row, column and cell, the regions
+ *  enclosing it, nearest first, the groups it carries, then its labels. */
 export function given_of(graph: Graph, id: Id): Given[] {
   const out: Given[] = [];
+  const b = graph.blocks[id];
+  const g = b?.cell ? lattice_of(graph, b.parent ?? undefined) : null;
+  if (b?.cell && g && b.cell.r > 0 && b.cell.c > 0) {
+    const { r, c } = b.cell;
+    for (const l of g.labels ?? []) {
+      const covers = (l.r === r && l.c === 0) || (l.r === 0 && l.c === c) || (l.r === r && l.c === c);
+      if (covers) out.push({ name: l.text, from: b.parent!, at: { r: l.r, c: l.c } });
+    }
+  }
   for (const h of holders_over(graph, id)) {
     const name = h.name?.trim();
-    if (name && (is_group(graph, h.id) || is_region(graph, h.id))) out.push({ name, from: h.id });
+    if (name && is_region(graph, h.id)) out.push({ name, from: h.id });
   }
+  /** A group gives its tag named or not: unnamed, it reads as its handle. */
+  for (const g of groups_of(graph, id)) out.push({ name: shown_name(graph, g), from: g });
   for (const e of Object.values(graph.edges)) {
     const other = e.from === id ? e.to : e.to === id ? e.from : null;
     const name = other ? graph.blocks[other]?.name?.trim() : "";

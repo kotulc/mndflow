@@ -1,7 +1,7 @@
 /** Traits and looks on an element or a definition. */
 
 import { component, NUMBERS } from "../components";
-import { is_trait } from "../defs";
+import { is_trait, kind_only } from "../defs";
 import type { Mutation } from "../types";
 import { register, type Args } from "./registry";
 import { borrowed, ids_of, list, text } from "./helpers";
@@ -33,7 +33,7 @@ register(
 );
 
 /** The component keys a look may set. */
-const LOOKS: readonly string[] = ["card", "style", "line", "layout", "tie", "allows", "records"];
+const LOOKS: readonly string[] = ["card", "style", "line", "diagram", "tie", "allows", "records"];
 
 /** Properties whose value is a list, split on commas. */
 const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.heads"];
@@ -57,8 +57,21 @@ register(
       if (!ids.length) return "nothing is selected";
       const why = ids.map((id) => borrowed(ctx.graph, id)).find(Boolean);
       if (why) return why;
+      /** A usage draws as its definition says: it sets nothing of its own. */
+      const usage = ids.find((id) => ctx.graph.blocks[id] && !ctx.graph.blocks[id]!.def);
+      if (usage) {
+        const name = ctx.graph.blocks[usage]!.name ?? usage;
+        return `"${name}" is a usage — set its definition's look`;
+      }
       if (!LOOKS.includes(String(args["key"]))) {
         return `there is nothing called "${args["key"]}" to set`;
+      }
+      /** A model's own is refused, but may be given back to its kind. */
+      const model = value_of(args) === null ? undefined
+        : ids.find((id) => kind_only(ctx.graph, id, String(args["key"])));
+      if (model) {
+        const name = ctx.graph.blocks[model]!.name ?? model;
+        return `"${name}" is a model — its kind says how it draws`;
       }
       if (String(args["key"]) === "allows" && NESTED.includes(text(args, "name"))) {
         return `\`${text(args, "name")}\` is stated on a definition, not set here`;

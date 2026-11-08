@@ -2,6 +2,8 @@
 
 import type { Edge, Node } from "@xyflow/react";
 import type { Dir, End, Ends, Id, Key, Mark, Role, Side } from "@mnd/core";
+import type { Preview } from "./about";
+import type { Facts } from "./facts";
 import type { Arrow, Look, Tint, Wire } from "./look";
 import type { Fan, Perch, Seat } from "./seat";
 
@@ -19,9 +21,13 @@ export type Ruled = { cells: readonly (readonly string[])[]; widths: readonly nu
 
 /** What one drawn thing carries beyond where it sits and how big it is. */
 export type BoxData = {
-  /** The mark a thing wears beside its name while nobody has named it. */
+  /** The handle a holder wears beside its heading while nobody has named it. */
   alias?: string;
   label: string;
+  /** What a card or a chip says after its name: its kind, and a card's handle while unnamed. */
+  kind?: string;
+  /** Whether it is a definition, or a stand-in for one: outlined and badged. */
+  defines?: boolean;
   /** What it is for, in a line: its own, else its definition's. Shown on hover. */
   description?: string;
   /** The definition this usage names, if any. */
@@ -63,18 +69,23 @@ export type BoxData = {
   side?: Side;
   /** Seats a line meets on this box's border, where the end has no interface of its own here. */
   seats?: readonly { id: string; side: Side; at: number }[];
-  /** The scale it is drawn at: a library registry's tile scaled into its box. Unsaid, one. */
-  scale?: number;
   /** A map chip's inner treemap: what it holds, each a share of its body from 0 to 1. */
   tiles?: readonly InnerTile[];
   /** A diagram's chip: its inner tiles laid by its structure. */
   diagram?: boolean;
-  /** A library chip whose definition holds blocks: it wears a card's stacked edge. */
-  stacked?: boolean;
-  /** What a map chip counts, said in words: its blocks, lines and components, or its uses. */
-  counts?: string;
-  /** A diagram chip's kind, said beside its name. */
-  kind?: string;
+  /** A narrow, tall map chip: its head turned upright down its left side, its body beside it. */
+  upright?: boolean;
+  /** A map chip's facts strip, where it has room for one (views `about.ts`). */
+  facts?: Facts;
+  /** How much room a map chip's head takes — its name's line and its facts where shown, its body
+   *  under it; upright, the head's width, its body beside it. */
+  head?: number;
+  /** What a map chip previews where it draws no structure and no uses. */
+  preview?: Preview;
+  /** A definition's chip showing its profile: its uses split by place, each in its colour. */
+  bar?: readonly { n: number; tint: Tint }[];
+  /** A map's *+n more* chip: the chips folded into it, which its hover card lists. */
+  folded?: readonly Id[];
   /** A registry's tile: how many times its entry is used, and that against the most used. */
   count?: number;
   heat?: number;
@@ -90,8 +101,12 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "label"
                  /** A notation definition: outlined faintly, as a relation's is. */
                  | "notation"
                  | "grid" | "region"
-                 /** A card laid in a treemap: a plain ground, its definition's colour on its edge. */
-                 | "tiled"
+                 /** A part of a model on the map, through folders and bands: framed heavier. */
+                 | "major"
+                 /** Inside a major part on the map: drawn quieter. */
+                 | "minor"
+                 /** It owns a path a reader may walk: marked where a walk starts. */
+                 | "walks"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "upright" | "merged"
                  /** An opened grid, standing in for the room. */
@@ -118,6 +133,8 @@ export type GridCell = {
    *  line's tab. */
   line?: { way: "row" | "col"; i: number };
   index?: string;
+  /** Its label: plain data on the grid, a header's naming its line. */
+  label?: string;
 };
 
 /** What one line carries; routing is the renderer's. */
@@ -134,6 +151,10 @@ export type LineData = {
   wire?: Wire;
   /** The handle, beside the name rather than inside it. */
   alias?: string;
+  /** How many lines between the same pair it stands for, the same type and name. */
+  times?: number;
+  /** The lines it stands for besides its own, which light it when picked. */
+  also?: string[];
   /** Where its cross leg sits, out from the end its lines fan from. */
   fan?: Fan;
   /** A run already drawn, in the scene's own coordinates. Routing is skipped. */
@@ -142,8 +163,6 @@ export type LineData = {
   routed?: boolean;
   /** Whether its name always reads level, above its run, however short the run. */
   level?: boolean;
-  /** The scale it is drawn at in the world, as its room's cards are. Unsaid, one. */
-  scale?: number;
   /** Whether it lies outside the focus, so its words fade with it. */
   away?: boolean;
 };
@@ -257,9 +276,16 @@ export type Area = {
  *  (`texture`). */
 export type InnerTile = { id: Id; label: string; x: number; y: number; w: number; h: number;
                           role?: Role;
-                          as?: "group" | "band" | "head" | "life" | "rule" | "flow" | "arrow";
+                          as?: "group" | "band" | "head" | "track" | "life" | "rule" | "flow"
+                            | "arrow" | "more";
                           odd?: boolean; down?: boolean; mark?: "start" | "end" | "decision";
-                          texture?: "class" | "entity"; tint?: Tint };
+                          texture?: "class" | "entity"; tint?: Tint;
+                          /** The tile it is nested in, and whether it holds tiles of its own. */
+                          in?: Id; holds?: boolean;
+                          /** What it says under its name as it grows: a facts line, then rows. */
+                          facts?: string; rows?: readonly string[];
+                          /** A *+n more* tile's uses, folded away for want of room. */
+                          folded?: readonly Id[] };
 
 export type Scene = {
   /** The layer this is a projection of. */
@@ -267,6 +293,8 @@ export type Scene = {
   /** A map, the library's or the model's: every area, outermost first; the layer is the one in
    *  focus. */
   areas?: readonly Area[];
+  /** Which section a map is of: the library reads a definition by its uses. */
+  map?: "library" | "models";
   /** Absent only at the root, which has no outside to be seen from. */
   frame?: Frame;
   nodes: readonly BoxNode[];
@@ -277,6 +305,12 @@ export type Scene = {
   slots: readonly Slot[];
   /** The trail from the root down to the layer, for a breadcrumb. */
   trail: readonly { id: Id; label: string }[];
+  /** A banded layer: whether its bands run across, as columns, or down, as rows — the one line a
+   *  region is dragged along. */
+  across?: boolean;
+  /** The grid whose body holds steps, where its columns are lifelines: a step is dragged along
+   *  its column. */
+  lifelines?: Id;
 };
 
 export const EMPTY: Scene = {

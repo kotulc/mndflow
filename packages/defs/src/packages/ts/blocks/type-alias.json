@@ -1,0 +1,8 @@
+{
+  "id": "type-alias",
+  "name": "type alias",
+  "type": "block",
+  "description": "A named object type: its fields are its attributes.",
+  "def": {},
+  "settings": { "card": { "face": "table" }, "style": { "hue": 175 } }
+}

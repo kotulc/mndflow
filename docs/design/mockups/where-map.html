@@ -1,0 +1,374 @@
+<title>Where-It-Lives Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+/* mndflow's dark ramp, one look on purpose: the mockup shows the tray's card column.
+   Layout: one row per proposal; per row, the same four elements at the chosen tray height. */
+:root {
+  color-scheme: dark;
+  --ground: oklch(0.145 0.015 160);
+  --outside: oklch(0.11 0.01 160);
+  --fill: oklch(0.195 0.018 160);
+  --raised: oklch(0.255 0.02 160);
+  --divide: oklch(0.245 0.02 160);
+  --line: oklch(0.335 0.028 160);
+  --stroke: oklch(0.42 0.03 160);
+  --dim: oklch(0.6 0.035 160);
+  --soft: oklch(0.8 0.03 160);
+  --ink: oklch(0.88 0.05 160);
+  --accent: oklch(0.8 0.19 150);
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --sans: "IBM Plex Sans", system-ui, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { background: var(--outside); color: var(--ink); font: 14px/1.55 var(--sans); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 64px; }
+main { max-width: 1400px; margin: 0 auto; display: grid; gap: 28px; }
+header { padding-block: 36px 0; display: grid; gap: 10px; }
+h1 { margin: 0; font: 600 22px/1.2 var(--mono); text-wrap: balance; }
+header p { margin: 0; max-width: 76ch; color: var(--soft); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font: 12px var(--mono); color: var(--dim); }
+.controls button { font: 12px var(--mono); color: var(--soft); background: var(--fill); border: 1px solid var(--line);
+  border-radius: 3px; padding: 4px 10px; cursor: pointer; }
+.controls button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+.controls button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section.prop { display: grid; grid-template-columns: minmax(0, 250px) minmax(0, 1fr); gap: 20px;
+  padding-top: 20px; border-top: 1px solid var(--divide); }
+@media (max-width: 860px) { section.prop { grid-template-columns: minmax(0, 1fr); } }
+.about h2 { margin: 0 0 6px; font: 600 15px/1.3 var(--mono); text-wrap: balance; }
+.about h2 b { color: var(--accent); font-weight: 600; margin-right: 6px; }
+.about p { margin: 0 0 8px; color: var(--soft); font-size: 13px; }
+.about dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 12.5px; }
+.about dt { color: var(--dim); font-family: var(--mono); font-size: 11px; padding-top: 2px; }
+.about dd { margin: 0; color: var(--soft); }
+.cases { display: flex; flex-wrap: wrap; gap: 14px; min-width: 0; }
+figure { margin: 0; display: grid; gap: 6px; align-content: start; max-width: 100%; }
+figcaption { font: 11px var(--mono); color: var(--dim); max-width: 300px; }
+figcaption b { color: var(--ink); font-weight: 500; }
+.col { width: 300px; max-width: 100%; display: grid; gap: 8px; padding: 10px; background: var(--ground);
+  border: 1px solid var(--divide); border-radius: 3px; }
+.card { height: 46px; border: 1px solid var(--line); border-radius: 3px; background: var(--fill);
+  font: 12px var(--mono); padding: 6px 8px; display: flex; gap: 8px; align-items: baseline; }
+.card i { font-style: normal; color: var(--dim); font-size: 10.5px; }
+svg { display: block; max-width: 100%; height: auto; }
+svg text { font-family: var(--mono); }
+.note { font-size: 12.5px; color: var(--dim); max-width: 80ch; }
+.note ul { margin: 6px 0 0; padding-left: 18px; }
+</style>
+
+<main>
+  <header>
+    <h1>Where-it-lives map: local structure</h1>
+    <p>Round 3 adds K and L: H's strip over a compact tree, and the whole map as a compact tree. Chips are outlined, not filled, and nothing is left scattered with gaps between. Round 2 follows them for comparison.</p>
+    <p>Round 2. The element's <b>room</b>, meaning the chip or box it sits in, is drawn with its own structure: its other blocks, a flow's steps, a sequence's lifelines, bands and groups. Everything outside the room stays as quiet outlines, so the detail sits only where the element is. Each picture is drawn from the shop sample's real map, for an element that is a block on the map, two that are tiles inside a diagram's chip, and a definition in the library.</p>
+    <div class="controls" role="group" aria-label="tray height">
+      <span>tray height</span>
+      <button id="h-tall" aria-pressed="true">tall · 300×330</button>
+      <button id="h-short" aria-pressed="false">short · 300×130</button>
+    </div>
+  </header>
+  <div id="props"></div>
+  <div class="note">
+    <p>Round 1 (A to F: re-laid outlines, true geometry, focus and context, drill-down panels, minimap pin, icicle) was set aside: every one left the element as a floating outline with nothing round it. G and H build on round 1's B and C; I and J are new.</p>
+    <p>Data: <code>model_map</code> and <code>library_map</code> areas and chip tiles from samples/example.json, 2026-11-01.</p>
+  </div>
+</main>
+
+<script>
+const DATA = {"models":[{"id":"@map","label":"models","parent":null,"depth":0,"chip":false,"x":0,"y":0,"w":1200,"h":750},{"id":"workspace","label":"example","parent":"@map","depth":1,"chip":false,"x":6,"y":6,"w":1188,"h":738},{"id":"yaml.overview","label":"Overview","parent":"workspace","depth":2,"chip":false,"x":12,"y":32,"w":1176,"h":706},{"id":"yaml.overview.2","label":"Customer","parent":"yaml.overview","depth":3,"chip":true,"x":18,"y":58,"w":105,"h":221,"kind":"person"},{"id":"yaml.overview.3","label":"Card processor","parent":"yaml.overview","depth":3,"chip":true,"x":18,"y":285,"w":105,"h":220,"kind":"external"},{"id":"yaml.overview.4","label":"Carrier","parent":"yaml.overview","depth":3,"chip":true,"x":18,"y":511,"w":105,"h":221,"kind":"external"},{"id":"yaml.overview.shop","label":"Shop","parent":"yaml.overview","depth":3,"chip":false,"x":129,"y":58,"w":1053,"h":674},{"id":"yaml.overview.shop.1","label":"Customer facing","parent":"yaml.overview.shop","depth":4,"chip":false,"x":135,"y":84,"w":382,"h":173},{"id":"yaml.overview.shop.3","label":"Back office","parent":"yaml.overview.shop","depth":4,"chip":false,"x":135,"y":263,"w":382,"h":463},{"id":"yaml.overview.shop.6","label":"Data","parent":"yaml.overview.shop","depth":4,"chip":false,"x":523,"y":84,"w":653,"h":106},{"id":"yaml.overview.shop.7","label":"How it runs","parent":"yaml.overview.shop","depth":4,"chip":false,"x":523,"y":196,"w":653,"h":530},{"id":"yaml.overview.shop.2","label":"Gateway","parent":"yaml.overview.shop.1","depth":5,"chip":true,"x":141,"y":110,"w":103,"h":141,"kind":"API gateway"},{"id":"yaml.overview.shop.customer-facing.storefront","label":"Storefront","parent":"yaml.overview.shop.1","depth":5,"chip":true,"x":250,"y":110,"w":261,"h":141,"kind":"service","tiles":[{"id":"yaml.overview.shop.customer-facing.storefront@start","label":"","as":"head","x":256,"y":166,"w":6,"h":79},{"id":"yaml.overview.shop.customer-facing.storefront@end","label":"","as":"head","x":499,"y":166,"w":6,"h":79},{"id":"yaml.overview.shop.customer-facing.storefront@flow","label":"","as":"flow","x":262,"y":205.5,"w":227.4,"h":0},{"id":"yaml.overview.shop.customer-facing.storefront@arrow","label":"","as":"arrow","x":489.4,"y":198.3,"w":9.6,"h":14.4},{"id":"yaml.overview.shop.customer-facing.storefront.2","label":"Cart","x":278,"y":166,"w":43.3,"h":79},{"id":"yaml.overview.shop.customer-facing.storefront.4","label":"Payment","x":337.3,"y":166,"w":86.5,"h":31.5},{"id":"yaml.overview.shop.customer-facing.storefront.3","label":"Pricing","x":337.3,"y":213.5,"w":86.5,"h":31.5},{"id":"yaml.overview.shop.customer-facing.storefront.5","label":"Order log","x":439.8,"y":166,"w":43.3,"h":79}]},{"id":"yaml.overview.shop.8","label":"fulfilment","parent":"yaml.overview.shop.3","depth":5,"chip":false,"x":141,"y":289,"w":210,"h":134},{"id":"yaml.overview.shop.back-office.orders","label":"Orders","parent":"yaml.overview.shop.3","depth":5,"chip":true,"x":357,"y":289,"w":154,"h":134,"kind":"Transactional outbox","tiles":[{"id":"yaml.overview.shop.back-office.orders.1","label":"Order book","x":363,"y":345,"w":42,"h":72},{"id":"yaml.overview.shop.back-office.orders.2","label":"Operations","as":"band","x":421,"y":345,"w":84,"h":72},{"id":"yaml.overview.shop.back-office.orders.3","label":"Runbook","x":429,"y":359,"w":68,"h":17},{"id":"yaml.overview.shop.back-office.orders.4","label":"Release notes","x":429,"y":392,"w":68,"h":17}]},{"id":"yaml.overview.shop.back-office.payments","label":"Payments","parent":"yaml.overview.shop.3","depth":5,"chip":false,"x":141,"y":429,"w":370,"h":291},{"id":"yaml.overview.shop.data.1-model","label":"Model","parent":"yaml.overview.shop.6","depth":5,"chip":true,"x":529,"y":110,"w":317,"h":74,"kind":"class","tiles":[{"id":"yaml.overview.shop.data.1-model.1","label":"Customer","x":535,"y":143,"w":48.2,"h":35},{"id":"yaml.overview.shop.data.1-model.2","label":"Order","x":599.2,"y":143,"w":48.2,"h":35},{"id":"yaml.overview.shop.data.1-model.3","label":"Line","x":663.4,"y":143,"w":48.2,"h":35},{"id":"yaml.overview.shop.data.1-model.4","label":"Product","x":727.6,"y":143,"w":48.2,"h":35},{"id":"yaml.overview.shop.data.1-model.5","label":"Payment","x":791.8,"y":143,"w":48.2,"h":35}]},{"id":"yaml.overview.shop.data.2-schema","label":"Schema","parent":"yaml.overview.shop.6","depth":5,"chip":true,"x":852,"y":110,"w":318,"h":74,"kind":"entity","tiles":[{"id":"yaml.overview.shop.data.2-schema.1","label":"Customer","x":858,"y":143,"w":48.4,"h":35},{"id":"yaml.overview.shop.data.2-schema.2","label":"Order","x":922.4,"y":143,"w":48.4,"h":35},{"id":"yaml.overview.shop.data.2-schema.3","label":"Line","x":986.8,"y":143,"w":48.4,"h":35},{"id":"yaml.overview.shop.data.2-schema.4","label":"Product","x":1051.2,"y":143,"w":48.4,"h":35},{"id":"yaml.overview.shop.data.2-schema.5","label":"Payment","x":1115.6,"y":143,"w":48.4,"h":35}]},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga","label":"Checkout saga","parent":"yaml.overview.shop.7","depth":5,"chip":true,"x":529,"y":222,"w":231,"h":306,"kind":"sequence","tiles":[{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga@heads","label":"","as":"track","x":535,"y":278,"w":219,"h":16},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga.1","label":"Customer","as":"head","x":539,"y":278,"w":32,"h":16},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga.2","label":"Gateway","as":"head","x":579,"y":278,"w":32,"h":16},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga.3","label":"Storefront","as":"head","x":619,"y":278,"w":51,"h":16},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga.4","label":"Payments","as":"head","x":678,"y":278,"w":32,"h":16},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga.5","label":"Inventory","as":"head","x":718,"y":278,"w":32,"h":16},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga@life0","label":"","as":"life","x":555,"y":294,"w":0,"h":228},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga@life1","label":"","as":"life","x":595,"y":294,"w":0,"h":228},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga@life2","label":"","as":"life","x":644.5,"y":294,"w":0,"h":228},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga@life3","label":"","as":"life","x":694,"y":294,"w":0,"h":228},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga@life4","label":"","as":"life","x":734,"y":294,"w":0,"h":228},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga.10","label":"Submit cart","x":539,"y":298,"w":32,"h":62.2},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga.11","label":"Route checkout","x":579,"y":298,"w":171,"h":62.2},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga.12","label":"Start saga","x":539,"y":368.2,"w":131,"h":62.2},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga.13","label":"Authorize","x":678,"y":368.2,"w":72,"h":62.2},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga.14","label":"Reserve stock","x":539,"y":438.3,"w":211,"h":27.1},{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga.15","label":"Confirm order","x":539,"y":473.4,"w":211,"h":44.6}]},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment","label":"Fulfilment","parent":"yaml.overview.shop.7","depth":5,"chip":true,"x":529,"y":534,"w":231,"h":186,"kind":"swimlane","tiles":[{"id":"yaml.overview.shop.how-it-runs.2-fulfilment@heads","label":"","as":"track","x":535,"y":590,"w":219,"h":16},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment@sides","label":"","as":"track","x":535,"y":606,"w":16,"h":108},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment.1","label":"Orders","as":"head","x":555,"y":590,"w":93.5,"h":16},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment.2","label":"Inventory","as":"head","x":656.5,"y":590,"w":42.8,"h":16},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment.3","label":"Shipping","as":"head","x":707.3,"y":590,"w":42.8,"h":16},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment.4","label":"Ordered","as":"head","x":535,"y":610,"w":16,"h":19},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment.5","label":"Pick","as":"head","x":535,"y":637,"w":16,"h":19},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment.6","label":"Ship","as":"head","x":535,"y":664,"w":16,"h":46},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment@rule0","label":"","as":"rule","x":559,"y":633,"w":195,"h":0},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment@rule1","label":"","as":"rule","x":559,"y":660,"w":195,"h":0},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment.7","label":"Publish placed","x":555,"y":610,"w":195,"h":19},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment.8","label":"Pick items","x":555,"y":637,"w":195,"h":19},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment.9","label":"Book carrier","x":707.3,"y":664,"w":42.8,"h":46},{"id":"yaml.overview.shop.how-it-runs.2-fulfilment.10","label":"Mark shipped","x":555,"y":664,"w":144.3,"h":46}]},{"id":"yaml.overview.shop.how-it-runs.3-deployment","label":"Deployment","parent":"yaml.overview.shop.7","depth":5,"chip":false,"x":766,"y":222,"w":404,"h":353},{"id":"yaml.overview.shop.how-it-runs.4-estate","label":"Estate","parent":"yaml.overview.shop.7","depth":5,"chip":true,"x":766,"y":581,"w":269,"h":139,"kind":"treemap","tiles":[{"id":"yaml.overview.shop.how-it-runs.4-estate.1","label":"","as":"group","x":768,"y":633,"w":83,"h":85},{"id":"yaml.overview.shop.how-it-runs.4-estate.2","label":"","as":"group","x":859,"y":633,"w":174,"h":85},{"id":"yaml.overview.shop.how-it-runs.4-estate.3","label":"Gateway","x":772,"y":637,"w":75,"h":30.5},{"id":"yaml.overview.shop.how-it-runs.4-estate.4","label":"Storefront","x":772,"y":683.5,"w":75,"h":30.5},{"id":"yaml.overview.shop.how-it-runs.4-estate.5","label":"Orders","x":863,"y":637,"w":75,"h":30.5},{"id":"yaml.overview.shop.how-it-runs.4-estate.6","label":"Payments","x":863,"y":683.5,"w":75,"h":30.5},{"id":"yaml.overview.shop.how-it-runs.4-estate.7","label":"Inventory","x":954,"y":637,"w":75,"h":30.5},{"id":"yaml.overview.shop.how-it-runs.4-estate.8","label":"Shipping","x":954,"y":683.5,"w":75,"h":30.5}]},{"id":"yaml.overview.shop.how-it-runs.5-dashboard","label":"Dashboard","parent":"yaml.overview.shop.7","depth":5,"chip":true,"x":1041,"y":581,"w":129,"h":139,"kind":"picture"},{"id":"yaml.overview.shop.4","label":"Inventory","parent":"yaml.overview.shop.8","depth":6,"chip":true,"x":147,"y":315,"w":104,"h":102,"kind":"service"},{"id":"yaml.overview.shop.5","label":"Shipping","parent":"yaml.overview.shop.8","depth":6,"chip":true,"x":257,"y":315,"w":88,"h":102,"kind":"service"},{"id":"yaml.overview.shop.back-office.payments.2","label":"Incident summary","parent":"yaml.overview.shop.back-office.payments","depth":6,"chip":true,"x":147,"y":455,"w":104,"h":126,"kind":"document"},{"id":"md.overview.shop.back-office.payments.charge-once","label":"Charge once","parent":"yaml.overview.shop.back-office.payments","depth":6,"chip":true,"x":147,"y":587,"w":104,"h":127,"kind":"document"},{"id":"yaml.overview.shop.back-office.payments.payment-retry","label":"Payment retry","parent":"yaml.overview.shop.back-office.payments","depth":6,"chip":true,"x":257,"y":455,"w":248,"h":259,"kind":"flow","tiles":[{"id":"yaml.overview.shop.back-office.payments.payment-retry@start","label":"","as":"head","x":263,"y":511,"w":236,"h":6},{"id":"yaml.overview.shop.back-office.payments.payment-retry@end","label":"","as":"head","x":263,"y":702,"w":236,"h":6},{"id":"yaml.overview.shop.back-office.payments.payment-retry@flow","label":"","as":"flow","x":381,"y":517,"w":0,"h":175.4},{"id":"yaml.overview.shop.back-office.payments.payment-retry@arrow","label":"","as":"arrow","x":373.8,"y":692.4,"w":14.4,"h":9.6},{"id":"yaml.overview.shop.back-office.payments.payment-retry.1","label":"Begin","x":263,"y":533,"w":236,"h":3.3},{"id":"yaml.overview.shop.back-office.payments.payment-retry.2","label":"Charge card","x":263,"y":552.3,"w":236,"h":13.3},{"id":"yaml.overview.shop.back-office.payments.payment-retry.3","label":"Approved?","x":263,"y":581.6,"w":236,"h":6.6},{"id":"yaml.overview.shop.back-office.payments.payment-retry.4","label":"Retries left?","x":263,"y":604.2,"w":236,"h":6.6},{"id":"yaml.overview.shop.back-office.payments.payment-retry.5","label":"Wait and back off","x":263,"y":626.9,"w":68,"h":39.8},{"id":"yaml.overview.shop.back-office.payments.payment-retry.7","label":"Cancel order","x":347,"y":626.9,"w":68,"h":39.8},{"id":"yaml.overview.shop.back-office.payments.payment-retry.6","label":"Confirm order","x":431,"y":626.9,"w":68,"h":39.8},{"id":"yaml.overview.shop.back-office.payments.payment-retry.8","label":"Done","x":263,"y":682.7,"w":236,"h":3.3}]},{"id":"yaml.overview.shop.how-it-runs.3-deployment.1","label":"eu-west cluster","parent":"yaml.overview.shop.how-it-runs.3-deployment","depth":6,"chip":false,"x":772,"y":248,"w":296,"h":321},{"id":"yaml.overview.shop.how-it-runs.3-deployment.11","label":"Environments","parent":"yaml.overview.shop.how-it-runs.3-deployment","depth":6,"chip":true,"x":1074,"y":248,"w":90,"h":321,"kind":"grid","tiles":[{"id":"yaml.overview.shop.how-it-runs.3-deployment.11@heads","label":"","as":"track","x":1080,"y":304,"w":78,"h":16},{"id":"yaml.overview.shop.how-it-runs.3-deployment.11@sides","label":"","as":"track","x":1080,"y":320,"w":6,"h":243},{"id":"yaml.overview.shop.how-it-runs.3-deployment.12","label":"dev","as":"head","x":1090,"y":304,"w":14.7,"h":16},{"id":"yaml.overview.shop.how-it-runs.3-deployment.13","label":"staging","as":"head","x":1112.7,"y":304,"w":0,"h":16},{"id":"yaml.overview.shop.how-it-runs.3-deployment.14","label":"prod","as":"head","x":1116.6,"y":304,"w":37.4,"h":16},{"id":"yaml.overview.shop.how-it-runs.3-deployment.15","label":"eu-west","as":"head","x":1080,"y":324,"w":6,"h":154},{"id":"yaml.overview.shop.how-it-runs.3-deployment.16","label":"us-east","as":"head","x":1080,"y":486,"w":6,"h":73},{"id":"yaml.overview.shop.how-it-runs.3-deployment.11@rule0","label":"","as":"rule","x":1094,"y":482,"w":64,"h":0},{"id":"yaml.overview.shop.how-it-runs.3-deployment.17","label":"shared cluster","x":1090,"y":324,"w":18.6,"h":154},{"id":"yaml.overview.shop.how-it-runs.3-deployment.18","label":"eu-west prod","x":1116.6,"y":324,"w":37.4,"h":154},{"id":"yaml.overview.shop.how-it-runs.3-deployment.19","label":"us-east prod","x":1090,"y":486,"w":64,"h":73}]},{"id":"yaml.overview.shop.how-it-runs.3-deployment.3","label":"shop namespace","parent":"yaml.overview.shop.how-it-runs.3-deployment.1","depth":7,"chip":false,"x":778,"y":274,"w":284,"h":177},{"id":"yaml.overview.shop.how-it-runs.3-deployment.5","label":"data namespace","parent":"yaml.overview.shop.how-it-runs.3-deployment.1","depth":7,"chip":false,"x":778,"y":457,"w":284,"h":106},{"id":"yaml.overview.shop.how-it-runs.3-deployment.6","label":"gateway pod","parent":"yaml.overview.shop.how-it-runs.3-deployment.3","depth":8,"chip":true,"x":784,"y":300,"w":104,"h":145},{"id":"yaml.overview.shop.how-it-runs.3-deployment.7","label":"storefront pod","parent":"yaml.overview.shop.how-it-runs.3-deployment.3","depth":8,"chip":true,"x":894,"y":300,"w":105,"h":145},{"id":"yaml.overview.shop.how-it-runs.3-deployment.8","label":"orders pod","parent":"yaml.overview.shop.how-it-runs.3-deployment.3","depth":8,"chip":true,"x":1005,"y":300,"w":51,"h":145},{"id":"yaml.overview.shop.how-it-runs.3-deployment.9","label":"orders primary","parent":"yaml.overview.shop.how-it-runs.3-deployment.5","depth":8,"chip":true,"x":784,"y":483,"w":133,"h":74},{"id":"yaml.overview.shop.how-it-runs.3-deployment.10","label":"orders replica","parent":"yaml.overview.shop.how-it-runs.3-deployment.5","depth":8,"chip":true,"x":923,"y":483,"w":133,"h":74}],"library":[{"id":"@map","label":"library","parent":null,"depth":0,"chip":false,"x":0,"y":0,"w":1200,"h":750},{"id":"base","label":"base","parent":"@map","depth":1,"chip":false,"x":6,"y":6,"w":620,"h":738},{"id":"services","label":"services","parent":"@map","depth":1,"chip":false,"x":632,"y":6,"w":562,"h":477},{"id":"workspace","label":"example","parent":"@map","depth":1,"chip":false,"x":632,"y":489,"w":562,"h":255},{"id":"base.dir.blocks","label":"blocks","parent":"base","depth":2,"chip":false,"x":12,"y":32,"w":396,"h":166},{"id":"base.dir.components","label":"components","parent":"base","depth":2,"chip":false,"x":414,"y":32,"w":206,"h":166},{"id":"base.dir.diagrams","label":"diagrams","parent":"base","depth":2,"chip":false,"x":12,"y":204,"w":406,"h":276},{"id":"base.dir.notation","label":"notation","parent":"base","depth":2,"chip":false,"x":12,"y":486,"w":406,"h":252},{"id":"base.dir.relations","label":"relations","parent":"base","depth":2,"chip":false,"x":424,"y":204,"w":196,"h":534},{"id":"services.dir.blocks","label":"blocks","parent":"services","depth":2,"chip":false,"x":638,"y":32,"w":330,"h":290},{"id":"services.dir.relations","label":"relations","parent":"services","depth":2,"chip":false,"x":638,"y":328,"w":330,"h":149},{"id":"services.dir.patterns","label":"patterns","parent":"services","depth":2,"chip":false,"x":974,"y":32,"w":214,"h":445},{"id":"yaml.overview","label":"Overview","parent":"workspace","depth":2,"chip":true,"x":638,"y":515,"w":213,"h":32},{"id":"dir.Parts","label":"Parts","parent":"workspace","depth":2,"chip":false,"x":638,"y":553,"w":213,"h":185},{"id":"dir.Records","label":"Records","parent":"workspace","depth":2,"chip":false,"x":857,"y":515,"w":331,"h":223},{"id":"block","label":"block","parent":"base.dir.blocks","depth":3,"chip":true,"x":18,"y":58,"w":169,"h":134,"tiles":[{"id":"block@yaml.overview.shop.back-office.payments.payment-retry","label":"Payment retry","as":"group","x":24,"y":114,"w":85,"h":54},{"id":"block@yaml.Records.order.order-states","label":"Order states","as":"group","x":133,"y":114,"w":48,"h":54},{"id":"yaml.overview.shop.back-office.payments.payment-retry.5","label":"Wait and back off","x":32,"y":128,"w":18,"h":32},{"id":"yaml.overview.shop.back-office.payments.payment-retry.6","label":"Confirm order","x":58,"y":128,"w":17,"h":32},{"id":"yaml.overview.shop.back-office.payments.payment-retry.7","label":"Cancel order","x":83,"y":128,"w":18,"h":32},{"id":"yaml.Records.order.order-states.6","label":"Payment failed","x":141,"y":128,"w":12,"h":32},{"id":"yaml.Records.order.order-states.7","label":"Cancelled","x":161,"y":128,"w":12,"h":32},{"id":"block@+more","label":"+35 more","as":"more","x":24,"y":174,"w":157,"h":12}]},{"id":"folder","label":"folder","parent":"base.dir.blocks","depth":3,"chip":true,"x":193,"y":58,"w":106,"h":58},{"id":"grid","label":"grid","parent":"base.dir.blocks","depth":3,"chip":true,"x":193,"y":122,"w":106,"h":70,"tiles":[{"id":"yaml.overview.shop.how-it-runs.3-deployment.11","label":"Environments","x":199,"y":155,"w":94,"h":31}]},{"id":"model","label":"model","parent":"base.dir.blocks","depth":3,"chip":true,"x":305,"y":58,"w":97,"h":64},{"id":"reference","label":"reference","parent":"base.dir.blocks","depth":3,"chip":true,"x":305,"y":128,"w":97,"h":64},{"id":"attribute","label":"attribute","parent":"base.dir.components","depth":3,"chip":true,"x":420,"y":58,"w":94,"h":64},{"id":"constraint","label":"constraint","parent":"base.dir.components","depth":3,"chip":true,"x":420,"y":128,"w":94,"h":64},{"id":"interface","label":"interface","parent":"base.dir.components","depth":3,"chip":true,"x":520,"y":58,"w":94,"h":64},{"id":"tag","label":"tag","parent":"base.dir.components","depth":3,"chip":true,"x":520,"y":128,"w":94,"h":64},{"id":"class","label":"class","parent":"base.dir.diagrams","depth":3,"chip":true,"x":18,"y":230,"w":103,"h":119,"tiles":[{"id":"yaml.overview.shop.data.1-model","label":"Model","x":24,"y":286,"w":91,"h":57}]},{"id":"entity","label":"entity","parent":"base.dir.diagrams","depth":3,"chip":true,"x":18,"y":355,"w":103,"h":119,"tiles":[{"id":"yaml.overview.shop.data.2-schema","label":"Schema","x":24,"y":411,"w":91,"h":57}]},{"id":"flow","label":"flow","parent":"base.dir.diagrams","depth":3,"chip":true,"x":127,"y":230,"w":128,"h":95},{"id":"internal","label":"internal","parent":"base.dir.diagrams","depth":3,"chip":true,"x":127,"y":331,"w":128,"h":74},{"id":"sequence","label":"sequence","parent":"base.dir.diagrams","depth":3,"chip":true,"x":127,"y":411,"w":128,"h":63,"tiles":[{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga","label":"Checkout saga","x":133,"y":444,"w":116,"h":24}]},{"id":"state","label":"state","parent":"base.dir.diagrams","depth":3,"chip":true,"x":261,"y":230,"w":151,"h":90,"tiles":[{"id":"yaml.Records.order.order-states","label":"Order states","x":267,"y":286,"w":139,"h":28}]},{"id":"swimlane","label":"swimlane","parent":"base.dir.diagrams","depth":3,"chip":true,"x":261,"y":326,"w":90,"h":148,"tiles":[{"id":"yaml.overview.shop.how-it-runs.2-fulfilment","label":"Fulfilment","x":267,"y":382,"w":78,"h":86}]},{"id":"treemap","label":"treemap","parent":"base.dir.diagrams","depth":3,"chip":true,"x":357,"y":326,"w":55,"h":148},{"id":"decision","label":"decision","parent":"base.dir.notation","depth":3,"chip":true,"x":18,"y":512,"w":119,"h":107,"tiles":[{"id":"yaml.overview.shop.back-office.payments.payment-retry.3","label":"Approved?","x":24,"y":568,"w":50,"h":45},{"id":"yaml.overview.shop.back-office.payments.payment-retry.4","label":"Retries left?","x":82,"y":568,"w":49,"h":45}]},{"id":"end","label":"end","parent":"base.dir.notation","depth":3,"chip":true,"x":18,"y":625,"w":119,"h":107,"tiles":[{"id":"end@yaml.Records.order.order-states","label":"Order states","as":"group","x":24,"y":681,"w":42,"h":45},{"id":"end@yaml.overview.shop.back-office.payments.payment-retry","label":"Payment retry","as":"group","x":90,"y":681,"w":41,"h":45},{"id":"yaml.Records.order.order-states.8","label":"Closed","x":32,"y":695,"w":26,"h":23},{"id":"yaml.overview.shop.back-office.payments.payment-retry.8","label":"Done","x":98,"y":695,"w":25,"h":23}]},{"id":"group","label":"group","parent":"base.dir.notation","depth":3,"chip":true,"x":143,"y":512,"w":95,"h":130,"tiles":[{"id":"group@yaml.overview.shop.how-it-runs.3-deployment","label":"Deployment","as":"group","x":149,"y":568,"w":83,"h":50},{"id":"yaml.overview.shop.how-it-runs.3-deployment.1","label":"eu-west cluster","x":157,"y":582,"w":17,"h":28},{"id":"yaml.overview.shop.how-it-runs.3-deployment.3","label":"shop namespace","x":182,"y":582,"w":17,"h":28},{"id":"yaml.overview.shop.how-it-runs.3-deployment.5","label":"data namespace","x":207,"y":582,"w":17,"h":28},{"id":"group@+more","label":"+3 more","as":"more","x":149,"y":624,"w":83,"h":12}]},{"id":"label","label":"label","parent":"base.dir.notation","depth":3,"chip":true,"x":143,"y":648,"w":95,"h":84,"tiles":[{"id":"yaml.overview.shop.9","label":"hot path","x":149,"y":704,"w":83,"h":22}]},{"id":"note","label":"note","parent":"base.dir.notation","depth":3,"chip":true,"x":244,"y":512,"w":168,"h":98},{"id":"region","label":"region","parent":"base.dir.notation","depth":3,"chip":true,"x":244,"y":616,"w":81,"h":116,"tiles":[{"id":"region@yaml.overview.shop","label":"Shop","as":"group","x":250,"y":672,"w":69,"h":36},{"id":"yaml.overview.shop.7","label":"How it runs","x":258,"y":686,"w":53,"h":14},{"id":"region@+more","label":"+4 more","as":"more","x":250,"y":714,"w":69,"h":12}]},{"id":"start","label":"start","parent":"base.dir.notation","depth":3,"chip":true,"x":331,"y":616,"w":81,"h":116},{"id":"aggregation","label":"aggregation","parent":"base.dir.relations","depth":3,"chip":true,"x":430,"y":230,"w":89,"h":79},{"id":"association","label":"association","parent":"base.dir.relations","depth":3,"chip":true,"x":525,"y":230,"w":89,"h":79},{"id":"composition","label":"composition","parent":"base.dir.relations","depth":3,"chip":true,"x":430,"y":315,"w":89,"h":79},{"id":"dependency","label":"dependency","parent":"base.dir.relations","depth":3,"chip":true,"x":525,"y":315,"w":89,"h":79},{"id":"line","label":"line","parent":"base.dir.relations","depth":3,"chip":true,"x":430,"y":400,"w":184,"h":131,"tiles":[{"id":"line@yaml.overview.shop","label":"Shop","as":"group","x":436,"y":456,"w":172,"h":51},{"id":"yaml.overview.shop.r2","label":"Shop → Gateway","x":444,"y":470,"w":13,"h":29},{"id":"yaml.overview.shop.r3","label":"Gateway → Storefront","x":465,"y":470,"w":12,"h":29},{"id":"yaml.overview.shop.r4","label":"Gateway → Storefront","x":485,"y":470,"w":13,"h":29},{"id":"yaml.overview.shop.r5","label":"Storefront → Payments","x":506,"y":470,"w":12,"h":29},{"id":"yaml.overview.shop.r6","label":"Storefront → Orders","x":526,"y":470,"w":13,"h":29},{"id":"yaml.overview.shop.r7","label":"Payments → Shop","x":547,"y":470,"w":12,"h":29},{"id":"yaml.overview.shop.r8","label":"Orders → Inventory","x":567,"y":470,"w":13,"h":29},{"id":"yaml.overview.shop.r9","label":"Orders → Shipping","x":588,"y":470,"w":12,"h":29},{"id":"line@+more","label":"+30 more","as":"more","x":436,"y":513,"w":172,"h":12}]},{"id":"message","label":"message","parent":"base.dir.relations","depth":3,"chip":true,"x":430,"y":537,"w":96,"h":102},{"id":"reply","label":"reply","parent":"base.dir.relations","depth":3,"chip":true,"x":532,"y":537,"w":82,"h":102,"tiles":[{"id":"yaml.overview.shop.how-it-runs.1-checkout-saga.r6","label":"Reserve stock → Confirm order","x":538,"y":593,"w":70,"h":40}]},{"id":"tie","label":"tie","parent":"base.dir.relations","depth":3,"chip":true,"x":430,"y":645,"w":81,"h":87},{"id":"transition","label":"transition","parent":"base.dir.relations","depth":3,"chip":true,"x":517,"y":645,"w":97,"h":87},{"id":"services.component","label":"component","parent":"services.dir.blocks","depth":3,"chip":true,"x":644,"y":58,"w":102,"h":126,"tiles":[{"id":"services.component@services.yaml.patterns.transactional-outbox","label":"Transactional outbox · services","as":"group","x":650,"y":114,"w":90,"h":46},{"id":"services.yaml.patterns.transactional-outbox.3","label":"Domain logic","x":658,"y":128,"w":33,"h":24},{"id":"services.yaml.patterns.transactional-outbox.8","label":"Relay","x":699,"y":128,"w":33,"h":24},{"id":"services.component@+more","label":"+15 more","as":"more","x":650,"y":166,"w":90,"h":12}]},{"id":"services.database","label":"database","parent":"services.dir.blocks","depth":3,"chip":true,"x":644,"y":190,"w":102,"h":126,"tiles":[{"id":"services.database@services.yaml.patterns.transactional-outbox","label":"Transactional outbox · services","as":"group","x":650,"y":246,"w":90,"h":46},{"id":"services.yaml.patterns.transactional-outbox.5","label":"Store","x":658,"y":260,"w":33,"h":24},{"id":"services.yaml.patterns.transactional-outbox.6","label":"Outbox","x":699,"y":260,"w":33,"h":24},{"id":"services.database@+more","label":"+2 more","as":"more","x":650,"y":298,"w":90,"h":12}]},{"id":"services.decision","label":"decision","parent":"services.dir.blocks","depth":3,"chip":true,"x":752,"y":58,"w":86,"h":78},{"id":"services.document","label":"document","parent":"services.dir.blocks","depth":3,"chip":true,"x":844,"y":58,"w":118,"h":78},{"id":"services.external","label":"external","parent":"services.dir.blocks","depth":3,"chip":true,"x":752,"y":142,"w":102,"h":90,"tiles":[{"id":"yaml.overview.3","label":"Card processor","x":758,"y":198,"w":41,"h":28},{"id":"yaml.overview.4","label":"Carrier","x":807,"y":198,"w":41,"h":28}]},{"id":"services.person","label":"person","parent":"services.dir.blocks","depth":3,"chip":true,"x":752,"y":238,"w":102,"h":78,"tiles":[{"id":"yaml.overview.2","label":"Customer","x":758,"y":294,"w":90,"h":16}]},{"id":"services.queue","label":"queue","parent":"services.dir.blocks","depth":3,"chip":true,"x":860,"y":142,"w":102,"h":77},{"id":"services.service","label":"service","parent":"services.dir.blocks","depth":3,"chip":true,"x":860,"y":225,"w":102,"h":91,"tiles":[{"id":"yaml.overview.shop.customer-facing.storefront","label":"Storefront","x":866,"y":281,"w":66,"h":29},{"id":"yaml.overview.shop.4","label":"Inventory","x":940,"y":281,"w":16,"h":11},{"id":"yaml.overview.shop.5","label":"Shipping","x":940,"y":300,"w":16,"h":10}]},{"id":"services.calls","label":"calls","parent":"services.dir.relations","depth":3,"chip":true,"x":644,"y":354,"w":101,"h":117,"tiles":[{"id":"services.calls@services.yaml.patterns.layered-architecture","label":"Layered architecture · services","as":"group","x":650,"y":410,"w":89,"h":37},{"id":"services.yaml.patterns.layered-architecture.r2","label":"API → Domain logic","x":658,"y":424,"w":33,"h":15},{"id":"services.yaml.patterns.layered-architecture.r3","label":"Domain logic → Repository","x":699,"y":424,"w":32,"h":15},{"id":"services.calls@+more","label":"+6 more","as":"more","x":650,"y":453,"w":89,"h":12}]},{"id":"services.integrates","label":"integrates","parent":"services.dir.relations","depth":3,"chip":true,"x":751,"y":354,"w":104,"h":55},{"id":"services.publishes","label":"publishes","parent":"services.dir.relations","depth":3,"chip":true,"x":751,"y":415,"w":104,"h":56},{"id":"services.reads","label":"reads","parent":"services.dir.relations","depth":3,"chip":true,"x":861,"y":354,"w":101,"h":117,"tiles":[{"id":"services.reads@services.yaml.patterns.transactional-outbox","label":"Transactional outbox · services","as":"group","x":867,"y":410,"w":89,"h":37},{"id":"services.yaml.patterns.transactional-outbox.r3","label":"Domain logic → Store","x":875,"y":424,"w":33,"h":15},{"id":"services.yaml.patterns.transactional-outbox.r4","label":"Relay → Outbox","x":916,"y":424,"w":32,"h":15},{"id":"services.reads@+more","label":"+2 more","as":"more","x":867,"y":453,"w":89,"h":12}]},{"id":"services.yaml.patterns.anti-corruption-layer","label":"Anti-corruption layer","parent":"services.dir.patterns","depth":3,"chip":true,"x":980,"y":58,"w":99,"h":156},{"id":"services.yaml.patterns.api-gateway","label":"API gateway","parent":"services.dir.patterns","depth":3,"chip":true,"x":1085,"y":58,"w":97,"h":156,"tiles":[{"id":"yaml.overview.shop.2","label":"Gateway","x":1091,"y":114,"w":85,"h":94}]},{"id":"services.yaml.patterns.circuit-breaker","label":"Circuit breaker","parent":"services.dir.patterns","depth":3,"chip":true,"x":980,"y":220,"w":98,"h":155,"tiles":[{"id":"yaml.overview.shop.back-office.payments","label":"Payments","x":986,"y":276,"w":86,"h":93}]},{"id":"services.yaml.patterns.layered-architecture","label":"Layered architecture","parent":"services.dir.patterns","depth":3,"chip":true,"x":1084,"y":220,"w":98,"h":155},{"id":"services.yaml.patterns.saga-orchestrator","label":"Saga orchestrator","parent":"services.dir.patterns","depth":3,"chip":true,"x":980,"y":381,"w":91,"h":90},{"id":"services.yaml.patterns.transactional-outbox","label":"Transactional outbox","parent":"services.dir.patterns","depth":3,"chip":true,"x":1077,"y":381,"w":105,"h":90,"tiles":[{"id":"yaml.overview.shop.back-office.orders","label":"Orders","x":1083,"y":437,"w":93,"h":28}]},{"id":"yaml.Parts.page","label":"page","parent":"dir.Parts","depth":3,"chip":true,"x":644,"y":579,"w":98,"h":153,"tiles":[{"id":"yaml.overview.shop.customer-facing.storefront.2","label":"Cart","x":650,"y":635,"w":39,"h":58},{"id":"yaml.overview.shop.customer-facing.storefront.3","label":"Pricing","x":697,"y":635,"w":39,"h":58},{"id":"yaml.overview.shop.customer-facing.storefront.4","label":"Payment","x":650,"y":701,"w":86,"h":25}]},{"id":"yaml.Parts.picture","label":"picture","parent":"dir.Parts","depth":3,"chip":true,"x":748,"y":579,"w":97,"h":153,"tiles":[{"id":"yaml.overview.shop.how-it-runs.5-dashboard","label":"Dashboard","x":754,"y":635,"w":85,"h":91}]},{"id":"yaml.Records.customer","label":"Customer","parent":"dir.Records","depth":3,"chip":true,"x":863,"y":541,"w":102,"h":92},{"id":"yaml.Records.ledger","label":"Ledger","parent":"dir.Records","depth":3,"chip":true,"x":863,"y":639,"w":102,"h":93,"tiles":[{"id":"yaml.Records.ledger@yaml.overview.shop.back-office.orders","label":"Orders","as":"group","x":869,"y":695,"w":33,"h":31},{"id":"yaml.Records.ledger@yaml.overview.shop.customer-facing.storefront","label":"Storefront","as":"group","x":926,"y":695,"w":33,"h":31},{"id":"yaml.overview.shop.back-office.orders.1","label":"Order book","x":877,"y":709,"w":17,"h":9},{"id":"yaml.overview.shop.customer-facing.storefront.5","label":"Order log","x":934,"y":709,"w":17,"h":9}]},{"id":"yaml.Records.line","label":"Line","parent":"dir.Records","depth":3,"chip":true,"x":971,"y":541,"w":103,"h":92},{"id":"yaml.Records.order","label":"Order","parent":"dir.Records","depth":3,"chip":true,"x":971,"y":639,"w":103,"h":93,"tiles":[{"id":"yaml.Records.order@yaml.overview.shop.data.1-model","label":"Model","as":"group","x":977,"y":695,"w":34,"h":31},{"id":"yaml.Records.order@yaml.overview.shop.data.2-schema","label":"Schema","as":"group","x":1035,"y":695,"w":33,"h":31},{"id":"yaml.overview.shop.data.1-model.2","label":"","x":985,"y":709,"w":18,"h":9},{"id":"yaml.overview.shop.data.2-schema.2","label":"","x":1043,"y":709,"w":17,"h":9}]},{"id":"yaml.Records.payment","label":"Payment","parent":"dir.Records","depth":3,"chip":true,"x":1080,"y":541,"w":102,"h":92},{"id":"yaml.Records.product","label":"Product","parent":"dir.Records","depth":3,"chip":true,"x":1080,"y":639,"w":102,"h":93,"tiles":[{"id":"yaml.Records.product@yaml.overview.shop.data.1-model","label":"Model","as":"group","x":1086,"y":695,"w":33,"h":31},{"id":"yaml.Records.product@yaml.overview.shop.data.2-schema","label":"Schema","as":"group","x":1143,"y":695,"w":33,"h":31},{"id":"yaml.overview.shop.data.1-model.4","label":"","x":1094,"y":709,"w":17,"h":9},{"id":"yaml.overview.shop.data.2-schema.4","label":"","x":1151,"y":709,"w":17,"h":9}]}]};
+/** Each element: a block on the map, or a tile inside a chip (`room`). */
+const ELEMENTS = [
+  { map: "models", label: "Storefront", kind: "service" },
+  { map: "models", label: "Cart", room: "Storefront", kind: "page" },
+  { map: "models", label: "Charge card", room: "Payment retry", kind: "step" },
+  { map: "library", label: "Order", kind: "internal", def: true },
+];
+
+/* ── the map as a tree ── */
+const M = {};
+for (const [k, areas] of Object.entries(DATA)) {
+  const by = Object.fromEntries(areas.map((a) => [a.id, a]));
+  const kids = {};
+  for (const a of areas) if (a.parent) (kids[a.parent] ??= []).push(a);
+  let top = "@map";
+  while ((kids[top] ?? []).length === 1 && !kids[top][0].chip) top = kids[top][0].id;
+  M[k] = { by, kids: (id) => kids[id] ?? [], top: by[top] };
+}
+const up = (m, id) => { const out = []; for (let a = m.by[id]; a; a = m.by[a.parent]) out.unshift(a); return out; };
+/** The element, its room, and the path from the top's child down to the room. */
+function locate(el) {
+  const m = M[el.map];
+  const areas = Object.values(m.by);
+  let a, room;
+  if (el.room) { room = areas.find((x) => x.label === el.room && x.chip); a = room.tiles.find((t) => t.label === el.label); }
+  else { a = areas.find((x) => x.label === el.label && x.chip); room = m.by[a.parent]; }
+  const all = up(m, room.id);
+  return { m, a, room, path: all.slice(all.indexOf(m.top) + 1) };
+}
+
+/* ── drawing helpers ── */
+const ctx = document.createElement("canvas").getContext("2d");
+const width = (t, size = 10, weight = 400) => { ctx.font = `${weight} ${size}px "IBM Plex Mono", monospace`; return ctx.measureText(t).width; };
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const f1 = (n) => n.toFixed(1);
+function rect(r, o = {}) {
+  return `<rect x="${f1(r.x)}" y="${f1(r.y)}" width="${f1(Math.max(0, r.w))}" height="${f1(Math.max(0, r.h))}" rx="${o.rx ?? 2}" fill="${o.fill ?? "none"}" stroke="${o.stroke ?? "none"}" stroke-width="${o.sw ?? 1}" ${o.op ? `opacity="${o.op}"` : ""}/>`;
+}
+/** A name, whole or not at all, at the top-left of its box. */
+function name(r, t, o = {}) {
+  const size = o.size ?? 10, pad = o.pad ?? 3;
+  if (!t || r.w < width(t, size, o.weight) + 2 * pad || r.h < size + 3) return "";
+  return `<text x="${f1(r.x + pad)}" y="${f1(r.y + size + 1)}" font-size="${size}" font-weight="${o.weight ?? 400}" fill="${o.fill ?? "var(--dim)"}">${esc(t)}</text>`;
+}
+/** The element's name: inside where it fits, else a tag beside it, kept in the frame. */
+function tag(r, t, F) {
+  const tw = width(t, 10.5, 600) + 10, th = 16;
+  if (r.w >= tw && r.h >= th) return `<text x="${f1(r.x + 5)}" y="${f1(r.y + 12)}" font-size="10.5" font-weight="600" fill="var(--ink)">${esc(t)}</text>`;
+  let x = r.x + r.w + 5, y = r.y + r.h / 2 - th / 2;
+  if (x + tw > F.x + F.w - 2) x = r.x - tw - 5;
+  if (x < F.x + 2) { x = Math.min(Math.max(F.x + 2, r.x + r.w / 2 - tw / 2), F.x + F.w - tw - 2); y = r.y + r.h + 4 > F.y + F.h - th ? r.y - th - 4 : r.y + r.h + 4; }
+  y = Math.min(Math.max(F.y + 2, y), F.y + F.h - th - 2);
+  return `<rect x="${f1(x)}" y="${f1(y)}" width="${f1(tw)}" height="${th}" rx="2" fill="var(--accent)"/><text x="${f1(x + 5)}" y="${f1(y + 11.5)}" font-size="10.5" font-weight="600" fill="var(--outside)">${esc(t)}</text>`;
+}
+const lit = (r) => rect(r, { fill: "color-mix(in oklch, var(--accent) 45%, transparent)", stroke: "var(--accent)", sw: 1.5 });
+/** A transform from map units into a frame: scale `s`, the map point `c` at the frame point `at`. */
+const view = (s, c, at) => (a) => ({ x: at.x + (a.x - c.x) * s, y: at.y + (a.y - c.y) * s, w: a.w * s, h: a.h * s });
+/** The whole of `box` fitted into frame `F`, its shape kept. */
+function fit(box, F, pad = 4) {
+  const s = Math.min((F.w - 2 * pad) / box.w, (F.h - 2 * pad) / box.h);
+  return { s, t: view(s, { x: box.x + box.w / 2, y: box.y + box.h / 2 }, { x: F.x + F.w / 2, y: F.y + F.h / 2 }) };
+}
+const svg = (W, H, body) => `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img"><defs><clipPath id="c${W}x${H}"><rect width="${W}" height="${H}" rx="2"/></clipPath></defs><rect width="${W}" height="${H}" fill="var(--outside)" rx="2"/><g clip-path="url(#c${W}x${H})">${body}</g></svg>`;
+
+/** **The quiet map**: top boxes outlined, major blocks faintly filled, the path firmer; names
+ *  only on the top boxes, and only where they fit. */
+function quiet(m, path, T, o = {}) {
+  let out = "";
+  for (const l1 of m.kids(m.top.id)) {
+    const r = T(l1), on = path.includes(l1);
+    out += rect(r, { stroke: on ? "var(--stroke)" : "var(--line)" }) + name(r, l1.label, { size: 9, fill: on ? "var(--soft)" : "var(--dim)" });
+    for (const l2 of m.kids(l1.id)) {
+      const q = T(l2), on2 = path.includes(l2);
+      out += rect(q, { fill: on2 ? "var(--raised)" : "var(--fill)", stroke: on2 ? "var(--stroke)" : "none" });
+      if (o.names2) out += name(q, l2.label, { size: 8.5, fill: on2 ? "var(--soft)" : "var(--dim)" });
+    }
+  }
+  // Below the major blocks, only the boxes on the path down to the room
+  for (const p of path.slice(2)) { const r = T(p); out += rect(r, { stroke: "var(--stroke)", fill: "var(--raised)" }); if (o.names2) out += name(r, p.label, { size: 8.5, fill: "var(--soft)" }); }
+  return out;
+}
+
+/** **The room, with its structure**: a chip's tiles — structure (heads, lifelines, flow lines,
+ *  bands, groups) as quiet marks, blocks as small boxes named where they fit — or a box's blocks;
+ *  the element lit and named. */
+function room(loc, T, F, o = {}) {
+  const { m, a, room: rm } = loc;
+  const R = T(rm);
+  let out = rect(R, { fill: "var(--ground)", stroke: "var(--soft)", sw: 1.25 });
+  if (o.title !== false) out += name(R, rm.label, { size: 9.5, fill: "var(--ink)", weight: 500, pad: 4 });
+  const blocks = rm.tiles ?? m.kids(rm.id);
+  const size = o.size ?? 8.5;
+  for (const t of blocks) {
+    if (t === a || t.id === a.id) continue;
+    const r = T(t);
+    if (t.as === "flow" || t.as === "life" || t.as === "arrow" || t.as === "rule" || t.as === "line") out += rect(r, { fill: "var(--line)", rx: 0 });
+    else if (t.as) out += rect(r, { fill: "var(--fill)", op: 0.8 }) + (t.as === "head" ? name(r, t.label, { size: size - 0.5, pad: 2 }) : "");
+    else out += rect(r, { fill: "var(--fill)", stroke: "var(--stroke)" }) + name(r, t.label, { size, pad: 2 });
+  }
+  const r = T(a);
+  return out + lit(r) + tag(r, a.label, F);
+}
+
+/** **A compact tree**: `root` and everything under it as a nested treemap filling `F` — boxes
+ *  titled over what they hold, chips as outlines, the room opened to its own blocks; the path
+ *  firmer, the room ringed, the element lit. Leaves weigh the root of their room on the map, so
+ *  small ones keep a little room. */
+function compact(loc, root, F) {
+  const { m, a, room: rm, path } = loc;
+  const on = new Set(path.map((x) => x.id));
+  const kids = (x) => (x === rm ? (rm.tiles ? rm.tiles.filter((t) => !t.as) : m.kids(rm.id))
+    : x.chip || x.tiles ? [] : m.kids(x.id));
+  const tree = (x) => ({ a: x, kids: kids(x).map(tree) });
+  const h = d3.hierarchy(tree(root), (n) => (n.kids.length ? n.kids : null)).sum((n) => (n.kids.length ? 0 : Math.sqrt(n.a.w * n.a.h)));
+  d3.treemap().tile(d3.treemapSquarify.ratio(1)).size([F.w, F.h]).round(true).paddingInner(2).paddingOuter(2)
+    .paddingTop((n) => (n.children ? 12 : 2))(h);
+  let out = "", at = null;
+  for (const n of h.descendants()) {
+    const x = n.data.a, r = { x: F.x + n.x0, y: F.y + n.y0, w: n.x1 - n.x0, h: n.y1 - n.y0 };
+    if (x === a || x.id === a.id) { at = r; continue; }
+    const firm = on.has(x.id) || x === rm;
+    out += x === rm ? rect(r, { stroke: "var(--soft)", sw: 1.25, fill: "var(--ground)" })
+      : n.children ? rect(r, { stroke: firm ? "var(--stroke)" : "var(--divide)" })
+      : rect(r, { stroke: "var(--line)" });
+    out += name(r, x.label, { size: 8.5, pad: 2, fill: x === rm ? "var(--ink)" : firm ? "var(--soft)" : "var(--dim)", weight: x === rm ? 500 : 400 });
+  }
+  return out + (at ? lit(at) + tag(at, a.label, F) : "");
+}
+
+/** The map's major blocks as a strip, the one holding the room marked. */
+function strip(loc, S) {
+  const { m, path } = loc;
+  const tree = { kids: m.kids(m.top.id).map((x) => ({ a: x, kids: x.chip ? [] : m.kids(x.id).map((c) => ({ a: c })) })) };
+  const root = d3.hierarchy(tree, (n) => (n.kids?.length ? n.kids : null)).sum((n) => (n.kids?.length ? 0 : Math.sqrt(n.a.w * n.a.h)));
+  d3.treemap().tile(d3.treemapSquarify.ratio(1)).size([S.w, S.h]).round(true).paddingInner(1.5).paddingOuter(1.5)
+    .paddingTop((n) => (n.depth === 1 && n.children ? 11 : 1.5))(root);
+  let out = "";
+  for (const n of root.descendants().slice(1)) {
+    const r = { x: S.x + n.x0, y: S.y + n.y0, w: n.x1 - n.x0, h: n.y1 - n.y0 };
+    const on = path.includes(n.data.a);
+    out += n.depth === 1 ? rect(r, { stroke: on ? "var(--stroke)" : "var(--line)" })
+      : rect(r, { fill: on ? "color-mix(in oklch, var(--accent) 30%, var(--fill))" : "var(--fill)", stroke: on ? "var(--accent)" : "none" });
+    out += name(r, n.data.a.label, { size: 8.5, pad: 2, fill: on ? "var(--ink)" : "var(--dim)" });
+  }
+  return out;
+}
+
+/* ── the proposals ── */
+const PROPS = [
+{
+  key: "K", title: "Strip over the major block, as a compact tree",
+  idea: "H reworked: the strip shows the map's major blocks with the room's one marked; below it, that whole major block as a nested treemap filling the panel, its chips outlined, the room opened to its own blocks and the element lit.",
+  good: "Fills the panel with no gaps; you see the room among everything else in its major block, and the strip still says which part of the system.",
+  weak: "The tree is re-laid, so positions differ from the map; a large major block makes its rooms smaller.",
+  draw(loc, W, H) {
+    const tall = H > 200, gap = 6;
+    const S = tall ? { x: 0, y: 0, w: W, h: Math.round(H * 0.22) } : { x: 0, y: 0, w: Math.round(W * 0.3), h: H };
+    const P = tall ? { x: 0, y: S.h + gap, w: W, h: H - S.h - gap } : { x: S.w + gap, y: 0, w: W - S.w - gap, h: H };
+    // The major block holding the room; where the room is that block, the top box above it
+    const major = loc.path.length > 1 && loc.path[1] !== loc.room ? loc.path[1] : loc.path[0] ?? loc.room;
+    return svg(W, H, strip(loc, S) + compact(loc, major, P));
+  },
+},
+{
+  key: "L", title: "The whole map as a compact tree",
+  idea: "No strip: the whole map as one nested treemap filling the column, every box and chip outlined down to the chips, the room opened to its own blocks, the element lit.",
+  good: "One picture of everything, packed tight; the room's blocks sit in the same outline language as the rest.",
+  weak: "On a big map every room gets small, and the room's blocks may show as outlines without names.",
+  draw(loc, W, H) {
+    return svg(W, H, compact(loc, loc.m.top, { x: 0, y: 0, w: W, h: H }));
+  },
+},
+{
+  key: "G", title: "Whole map, room drawn in",
+  idea: "Round 1's B with the room filled in: the whole map fitted quiet, and the room drawn on top of it with its own structure at that one scale.",
+  good: "One picture, exact positions; the room stands out as the only place with detail.",
+  weak: "At whole-map scale most rooms are small, so their blocks show as marks without names.",
+  draw(loc, W, H) {
+    const F = { x: 0, y: 0, w: W, h: H };
+    const { t } = fit(loc.m.top, F);
+    return svg(W, H, quiet(loc.m, loc.path, t) + room(loc, t, F, { title: false }));
+  },
+},
+{
+  key: "H", title: "Map strip over the room",
+  idea: "Round 1's C, focused one level tighter: the room itself fills the main panel with its structure, its path as the panel's title; over it, the map re-laid as a strip with the room's major block marked and a dot where the room sits.",
+  good: "The room's blocks are always large enough to name; the strip still answers which part of the system.",
+  weak: "Two pictures at two scales, and the strip is re-laid, not the map's own layout.",
+  draw(loc, W, H) {
+    const { m, path } = loc;
+    const tall = H > 200;
+    const S = tall ? { x: 0, y: 0, w: W, h: Math.round(H * 0.24) } : { x: 0, y: 0, w: Math.round(W * 0.32), h: H };
+    const P = tall ? { x: 0, y: S.h + 6, w: W, h: H - S.h - 6 } : { x: S.w + 6, y: 0, w: W - S.w - 6, h: H };
+    let out = "";
+    const tree = { kids: m.kids(m.top.id).map((x) => ({ a: x, kids: x.chip ? [] : m.kids(x.id).map((c) => ({ a: c })) })) };
+    const root = d3.hierarchy(tree, (n) => (n.kids?.length ? n.kids : null)).sum((n) => (n.kids?.length ? 0 : Math.sqrt(n.a.w * n.a.h)));
+    d3.treemap().tile(d3.treemapSquarify.ratio(1)).size([S.w, S.h]).round(true).paddingInner(1.5).paddingOuter(1.5)
+      .paddingTop((n) => (n.depth === 1 && n.children ? 11 : 1.5))(root);
+    for (const n of root.descendants().slice(1)) {
+      const r = { x: S.x + n.x0, y: S.y + n.y0, w: n.x1 - n.x0, h: n.y1 - n.y0 };
+      const on = path.includes(n.data.a);
+      out += n.depth === 1 ? rect(r, { stroke: on ? "var(--stroke)" : "var(--line)" }) : rect(r, { fill: on ? "color-mix(in oklch, var(--accent) 30%, var(--fill))" : "var(--fill)", stroke: on ? "var(--accent)" : "none" });
+      out += name(r, n.data.a.label, { size: 8.5, pad: 2, fill: on ? "var(--ink)" : "var(--dim)" });
+      if (on && n.depth === 2) {
+        const h = n.data.a, rm = loc.room, s = { x: r.w / h.w, y: r.h / h.h };
+        const cx = r.x + (rm.x + rm.w / 2 - h.x) * s.x, cy = r.y + (rm.y + rm.h / 2 - h.y) * s.y;
+        out += `<circle cx="${f1(Math.min(Math.max(cx, r.x + 3), r.x + r.w - 3))}" cy="${f1(Math.min(Math.max(cy, r.y + 3), r.y + r.h - 3))}" r="3" fill="var(--accent)"/>`;
+      }
+    }
+    const head = 15;
+    const words = path.map((x) => x.label);
+    let title = words.join(" › ");
+    while (words.length > 1 && width(title, 9.5, 500) > P.w - 10) { words.shift(); title = "… › " + words.join(" › "); }
+    out += rect(P, { stroke: "var(--line)" }) + name(P, title, { size: 9.5, fill: "var(--soft)", pad: 5, weight: 500 });
+    const B = { x: P.x, y: P.y + head, w: P.w, h: P.h - head };
+    const { t } = fit(loc.room, B, 6);
+    return svg(W, H, out + room(loc, t, B, { title: false, size: 9 }));
+  },
+},
+{
+  key: "I", title: "Map with a loupe",
+  idea: "The whole map stays small and quiet, the room outlined in the accent; a loupe beside it shows the room enlarged with its structure, joined to its spot on the map by two leader lines.",
+  good: "Both readings at once: where in the whole, and what is next to it; the leader lines say the two are one place.",
+  weak: "Takes the most room; in a short tray the map and loupe each get half the width.",
+  draw(loc, W, H) {
+    const tall = H > 200, gap = 14;
+    const A = tall ? { x: 0, y: 0, w: W, h: Math.round(H * 0.42) } : { x: 0, y: 0, w: Math.round(W * 0.46), h: H };
+    const L = tall ? { x: 0, y: A.h + gap, w: W, h: H - A.h - gap } : { x: A.w + gap, y: 0, w: W - A.w - gap, h: H };
+    const { t } = fit(loc.m.top, A);
+    let out = quiet(loc.m, loc.path, t);
+    const r = t(loc.room);
+    out += rect(r, { stroke: "var(--accent)", sw: 1.5, fill: "color-mix(in oklch, var(--accent) 25%, transparent)" });
+    const head = 15;
+    const B = { x: L.x, y: L.y + head, w: L.w, h: L.h - head };
+    const z = fit(loc.room, B, 6);
+    const R = z.t(loc.room);
+    const ends = tall ? [[r.x, r.y + r.h, R.x, R.y], [r.x + r.w, r.y + r.h, R.x + R.w, R.y]] : [[r.x + r.w, r.y, R.x, R.y], [r.x + r.w, r.y + r.h, R.x, R.y + R.h]];
+    for (const [x1, y1, x2, y2] of ends) out += `<line x1="${f1(x1)}" y1="${f1(y1)}" x2="${f1(x2)}" y2="${f1(y2)}" stroke="var(--accent)" stroke-opacity="0.5"/>`;
+    out += name({ x: L.x, y: L.y, w: L.w, h: head }, loc.room.label, { size: 9.5, fill: "var(--ink)", weight: 500, pad: 2 });
+    return svg(W, H, out + room(loc, z.t, B, { title: false, size: 9 }));
+  },
+},
+{
+  key: "J", title: "Zoomed to the neighbourhood",
+  idea: "One picture at one scale, zoomed so the room fills about half the column and centred on it; the map carries on past the frame's edges, neighbours cut off and named where they show, fading out.",
+  good: "Reads like the map itself at a closer zoom: the room's structure and what borders it, with no second picture.",
+  weak: "Says less about the whole system; the far parts of the map are off the frame.",
+  draw(loc, W, H) {
+    const F = { x: 0, y: 0, w: W, h: H };
+    const whole = fit(loc.m.top, F).s;
+    const s = Math.max(whole, Math.min((W * 0.6) / loc.room.w, (H * 0.6) / loc.room.h));
+    const rm = loc.room, c = { x: rm.x + rm.w / 2, y: rm.y + rm.h / 2 };
+    const t = view(s, c, { x: W / 2, y: H / 2 });
+    const fade = `<defs><linearGradient id="fx${H}" x1="0" x2="1"><stop offset="0" stop-color="var(--outside)"/><stop offset="0.08" stop-color="var(--outside)" stop-opacity="0"/><stop offset="0.92" stop-color="var(--outside)" stop-opacity="0"/><stop offset="1" stop-color="var(--outside)"/></linearGradient><linearGradient id="fy${H}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="var(--outside)"/><stop offset="0.08" stop-color="var(--outside)" stop-opacity="0"/><stop offset="0.92" stop-color="var(--outside)" stop-opacity="0"/><stop offset="1" stop-color="var(--outside)"/></linearGradient></defs>`;
+    const out = quiet(loc.m, loc.path, t, { names2: true }) + room(loc, t, F)
+      + fade + `<rect width="${W}" height="${H}" fill="url(#fx${H})"/><rect width="${W}" height="${H}" fill="url(#fy${H})"/>`;
+    return svg(W, H, out);
+  },
+},
+];
+
+/* ── the page ── */
+let size = "tall";
+const SIZES = { tall: [300, 330], short: [300, 130] };
+function render() {
+  const [W, H] = SIZES[size];
+  document.getElementById("props").innerHTML = PROPS.map((p) => `
+    <section class="prop">
+      <div class="about">
+        <h2><b>${p.key}</b>${p.title}</h2>
+        <p>${p.idea}</p>
+        <dl><dt>good</dt><dd>${p.good}</dd><dt>weak</dt><dd>${p.weak}</dd></dl>
+      </div>
+      <div class="cases">${ELEMENTS.map((el) => {
+        const loc = locate(el);
+        return `
+        <figure>
+          <div class="col">
+            <div class="card">${el.label}<i>${el.kind}${el.def ? " · definition" : ""}</i></div>
+            ${p.draw(loc, W, H)}
+          </div>
+          <figcaption><b>${el.label}</b> · ${[...loc.path.map((x) => x.label), el.label].join(" › ")}</figcaption>
+        </figure>`; }).join("")}
+      </div>
+    </section>`).join("");
+}
+for (const k of Object.keys(SIZES)) document.getElementById(`h-${k}`).addEventListener("click", () => {
+  size = k;
+  for (const j of Object.keys(SIZES)) document.getElementById(`h-${j}`).setAttribute("aria-pressed", String(j === k));
+  render();
+});
+render();
+document.fonts.ready.then(render);
+</script>

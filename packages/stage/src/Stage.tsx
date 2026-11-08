@@ -1,8 +1,8 @@
 /** The working area: turns canvas gestures into action names. */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
-import { dir_of, stands_for } from "@mnd/core";
+import { dir_of } from "@mnd/core";
 
 /** One named menu entry; the shape the explorer's menu agrees on. */
 export type Entry = { name: string; label?: string; args?: Args };
@@ -11,9 +11,12 @@ import { Legend, type Corner } from "./Legend";
 import { moves_of, type Move } from "./moves";
 import { cell_key } from "./nodes";
 import { Icon } from "@mnd/theme";
-import { area_under, box_of, clear_of, holds, swept_cells, towards, BLOCK, CELL,
-         entry_of, type Scene } from "@mnd/views";
+import { area_under, boxed_place, box_of, clear_of, holds, swept_cells, towards, BLOCK, CELL,
+         type Scene } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
+import { Hover } from "./Hover";
+import { path_rules, usePath } from "./path";
+import { Walk, type Walking } from "./Walk";
 
 export type { Adjust, Landing, Move };
 
@@ -21,10 +24,14 @@ export type StageProps = {
   scene: Scene;
   graph: Graph;
   picked: readonly string[];
+  /** A path offered or walked from the block picked: one hop lit a step. */
+  walk?: Walking | null;
   onAct: Act;
   /** The writes one canvas adjustment comes to, for the host to run as one step. */
   onAdjust?: (moves: readonly Move[]) => void;
   onPick: (ids: string[]) => void;
+  /** Let go of the pick, and of a map's focus, the camera staying put. */
+  onClear?: () => void;
   /** Which cells are picked, beside the ids. */
   cells?: readonly Spot[];
   onPickCells?: (cells: readonly Spot[]) => void;
@@ -71,6 +78,9 @@ export type StageProps = {
 
   /** Whether the canvas has the keys. Undo and redo answer wherever the keys are. */
   keys?: boolean;
+  /** **Whether the drawing may be edited**: a map or a registry may not, so no menu, key,
+   *  rename, drop or line drawing edits through it. Picking and reading still work. */
+  editable?: boolean;
 };
 
 
@@ -194,7 +204,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
                        menu, said, onSaid, head, empty, lattice, frame, legend, corner, module,
                        dir, type, lit = [], touched = [], scroll = false, focus = null, most = null,
                        entered = false, stop = null, opened = 0,
-                       keys = true }: StageProps) {
+                       keys = true, editable = true, walk = null, onClear }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
                     ...(type ? { type } : {}) };
@@ -205,6 +215,16 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   const set_naming = (id: string) => set_typing({ id });
   /** Nothing typed survives a layer change. */
   useEffect(() => set_typing(null), [scene.layer]);
+  /** The stage itself, which a map's hover card watches. */
+  const host = useRef<HTMLElement>(null);
+  /** Letting go of the pick: the host's, else none picked. */
+  const clear = () => (onClear ? onClear() : onPick([]));
+  /** What the card hovered or picked reaches a hop each way, or the step walked, lit over the
+   *  rest dimmed. */
+  const path = usePath(host, graph, scene, picked,
+                       walk && walk.at !== null ? walk.steps[walk.at] ?? null : null);
+  /** A place's box among a definition's uses lights with its place. */
+  const stands_for = useCallback((id: string) => boxed_place(graph, id), [graph]);
   const [at, set_at] = useState<
     { x: number; y: number; on: string | null; spot: { x: number; y: number };
       only?: readonly (string | Entry)[]; given?: Record<string, unknown> } | null>(null);
@@ -227,21 +247,23 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       }
       /** Everything else is the canvas's only while it has the keys. */
       else if (!keys) return;
-      /** Escape closes the nearest thing. */
-      else if (e.key === "Escape") {
+      /** **Escape closes the nearest thing** (2026-11-04): a menu; else what is picked, let go
+       *  as a click on empty ground does; else, entered, the view, for the map. On a map, which
+       *  nothing is deleted from, Backspace does the same. */
+      else if (e.key === "Escape" || (e.key === "Backspace" && scene.areas)) {
         if (at) { set_at(null); return; }
-        /** Entered, Esc leaves for the map, whatever is picked. */
+        if (picked.length) { clear(); return; }
         if (entered) { onAct("widen"); return; }
-        onPick([]);
         onSaid?.();
       }
-      /** On a map, Enter enters what is in focus. Elsewhere it opens the one picked card;
+      /** On a map, Enter reads what is in focus. Elsewhere it reads the one picked card;
        *  navigation says where that goes. */
       else if (e.key === "Enter" && scene.areas) onAct("read");
       else if (e.key === "Enter" && one && !scene.edges.some((r) => r.id === one)) {
-        onAct("open", { id: one });
+        onAct("read", { id: one });
       }
-      else if (e.key === "F2" && one) set_naming(one);
+      /** Renaming, deleting and grouping edit: never a drawing that may not be edited. */
+      else if (e.key === "F2" && one && editable) set_naming(one);
       /** On a map the arrows walk to the nearest area that way, as a click goes to it. */
       else if (e.key in WAYS && scene.areas && !e.ctrlKey && !e.metaKey && !e.altKey) {
         const from = picked.find((id) => scene.areas!.some((a) => a.id === id))
@@ -253,11 +275,12 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onPick([next.id]);
       }
       /** Everything picked, in one step. */
-      else if ((e.key === "Delete" || e.key === "Backspace") && picked.length) {
+      else if ((e.key === "Delete" || e.key === "Backspace") && picked.length && editable) {
         onAct("delete", { ids: [...picked] });
       }
       /** Ctrl+G groups what is picked; with Shift, it makes a room of it. */
-      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g" && picked.length) {
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g" && picked.length
+               && editable) {
         e.preventDefault();
         onAct(e.shiftKey ? "room" : "group", { members: [...picked] });
       }
@@ -269,7 +292,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     };
     window.addEventListener("keydown", on_key);
     return () => window.removeEventListener("keydown", on_key);
-  }, [scene, picked, at, onAct, onPick, onSaid, entered]);
+  }, [scene, picked, at, onAct, onPick, onSaid, entered, editable]);
 
   /** What the right button offers, per thing. */
   const OFFERS: Partial<Record<Gesture["kind"], readonly (string | Entry)[]>> = {
@@ -328,52 +351,47 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     }
     if (g.button === "left" && g.count === 1) onPickCells?.([]);
     /** **A map is read, never built on**: a click on a chip or a box goes to it; a click on a
-     *  tile in a chip picks its block, to be read in the tray. Two enter the nearest diagram,
-     *  what was clicked picked there (`entry_of`). */
+     *  tile in a chip picks its block, to be read in the tray. Two read what was clicked — a tile
+     *  as inside its chip — and navigation says where that goes (core's `read_at`). */
     if (scene.areas) {
       const tile = typeof g.given?.["tile"] === "string" ? g.given["tile"] as string : null;
       if (g.button === "left" && g.count === 1 && tile) {
         onPick([tile]);
         return;
       }
-      const on = tile ?? (g.on && scene.areas.some((a) => a.id === g.on) ? g.on
-        : area_under(scene.areas, g.at)?.id ?? null);
-      if (g.button === "left" && g.count === 2 && on && graph) {
-        const to = entry_of(graph, on, !!tile);
-        if (to) {
-          onAct("read", { id: to.enter });
-          if (to.pick) onPick([to.pick]);
-        }
-        return;
-      }
       const area = g.on && scene.areas.some((a) => a.id === g.on) ? g.on
         : area_under(scene.areas, g.at)?.id ?? null;
-      if (g.button !== "left" || !area) return;
-      if (g.count === 1) { onAct("open", { id: area }); onPick([area]); }
-      else onAct("read", { id: area });
+      const on = tile ?? area;
+      /** **Empty ground** — a box's open ground, the map's margins, or past it: one click lets go
+       *  of the pick, two go up a level, as two outside a diagram's frame do. */
+      const empty = (g.kind === "empty" && !tile) || !on
+        || scene.areas.find((a) => a.id === on)?.depth === 0;
+      if (g.button === "left" && empty) {
+        if (g.count === 1) clear(); else onAct("open");
+        return;
+      }
+      if (g.button !== "left" || !on) return;
+      if (g.count === 2) { onAct("read", { id: on, ...(tile ? { inner: true } : {}) }); return; }
+      onAct("open", { id: on });
+      onPick([on]);
       return;
     }
     if (g.button === "left") {
       if (g.count === 2) {
-        /** Two clicks rename a name or a note, open a card, reveal a reference, or leave. */
-        if (g.on && g.kind === "title") set_naming(g.on);
-        else if (g.on && g.kind === "name") set_naming(g.on);
-        else if (g.on && (g.kind === "box" || g.kind === "brim")) {
-          /** A stand-in holds nothing to open: a definition's says so by its stamp alone. */
-          const node = scene.nodes.find((n) => n.id === g.on);
-          const stands = node?.data.marks.includes("reference")
-            || node?.data.stamps?.includes("definition");
-          /** Followed to the end, so a reference to a reference reveals what both stand for. */
-          if (stands) onAct("reveal", { id: stands_for(graph, g.on)?.id ?? g.on });
-          else onAct("open", { id: g.on });
+        /** Two clicks rename a name or a note, read a card, or leave. Reading a stand-in enters
+         *  what it stands for, where that opens; **it never jumps** to where that is kept. */
+        if (g.on && editable && (g.kind === "title" || g.kind === "name" || g.kind === "note")) {
+          set_naming(g.on);
         }
-        else if (g.on && g.kind === "note") set_naming(g.on);
+        else if (g.on && (g.kind === "box" || g.kind === "brim")) onAct("read", { id: g.on });
         /** Two clicks on the frame or outside it leave for the layer above. */
         else if (g.kind === "frame" || !g.on) onAct("open");
       }
       /** A single left click is a selection, reported by the canvas. */
       return;
     }
+    /** The right button makes and edits: never on a drawing that may not be edited. */
+    if (!editable) return;
     /** Right-click on empty ground makes a block; elsewhere it opens the menu. */
     if (!g.on || g.kind === "empty") {
       const name = prompt("name it");
@@ -403,18 +421,21 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   };
 
   return (
-    <section className="stage">
+    <section className={path ? "stage pathing" : "stage"} ref={host}>
       <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
+      {walk ? <Walk walk={walk} /> : null}
       {empty ? <p className="empty">{empty}</p> : null}
       {/* **A map lights only what is picked**: a chip, a box or a tile. A layer also lights what
           is hovered, other appearances and what the selection touches. */}
-      {scene.areas ? <style>{tile_rules(picked)}</style> : null}
       {!scene.areas && lit.length ? <style>{lit_rules(lit)}</style> : null}
+      {path ? <style>{path_rules(path)}</style> : null}
       {!scene.areas && touched.length
         ? <style>{lit_rules(touched, "var(--s-secondary-edge)")}</style> : null}
       <FlowView
         scene={scene}
+        trace={path && "legs" in path ? path : null}
         picked={picked}
+        stands_for={stands_for}
         cells={cells}
         onPickCells={onPickCells}
         lattice={lattice}
@@ -436,10 +457,10 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         }}
         onGesture={gesture}
         onPick={onPick}
-        onDrop={onDrop}
-        onRelate={(from, to) => onAct("relate", { from, to, ...drawing })}
+        {...(editable && onDrop ? { onDrop } : {})}
+        onRelate={(from, to) => { if (editable) onAct("relate", { from, to, ...drawing }); }}
         /** A right drag across empty ground draws a grid, seating what it covered. */
-        onSweep={(box) => onAct("group", swept(scene, box))}
+        onSweep={(box) => { if (editable) onAct("group", swept(scene, box)); }}
         onAdjust={(adjust) => onAdjust?.(moves_of(graph, scene, adjust))}
         said={said ? (
           <>
@@ -449,6 +470,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         ) : null}
       />
       {legend ? <Legend scene={scene} {...(corner ? { at: corner } : {})} /> : null}
+      <Hover graph={graph} library={scene.map === "library"} host={host} />
       {at && menu ? menu(at, at.on, () => set_at(null), at.spot, at.only, at.given) : null}
     </section>
   );
@@ -500,14 +522,6 @@ function free_cell(taken: ReadonlySet<string>, rows: number, cols: number,
 function made_at(scene: Scene, at: { x: number; y: number }) {
   const taken = scene.nodes.filter((n) => !holds(n) && !n.data.on).map(box_of);
   return clear_of(taken, { x: at.x - BLOCK.w / 2, y: at.y - BLOCK.h / 2 }, BLOCK);
-}
-
-/** A picked tile's look on a map, as a style rule, as `lit_rules`. */
-function tile_rules(ids: readonly string[]): string {
-  if (!ids.length) return "";
-  const at = ids.map((id) => `.mnd-chip-tile[data-tile="${CSS.escape(id)}"]`).join(",");
-  return `${at} { box-shadow: inset 0 0 0 calc(2px / var(--zoom, 1)) var(--accent);
-                  background: color-mix(in oklch, var(--accent) 14%, var(--surface)); }`;
 }
 
 /** The hover look, as a style rule so lighting never rebuilds the arrays. */

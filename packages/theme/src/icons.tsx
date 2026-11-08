@@ -82,6 +82,8 @@ const PATHS = {
   role_treemap: "M3.5 3.5h17v17h-17zM12 3.5v17M12 11h8.5M12 15.75h8.5",
   // Where every usage hangs from: one node, and the branches it puts out.
   role_root: "M12 3.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M12 8.5v3.5M5 12h14M5 12v5M12 12v5M19 12v5M3.5 17h3M10.5 17h3M17.5 17h3",
+  // Every model at once: two roots side by side.
+  forest: "M7 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4M7 9v3M3.5 12h7M3.5 12v5M10.5 12v5M2.5 17h2M9.5 17h2M17 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4M17 9v3M13.5 12h7M13.5 12v5M20.5 12v5M12.5 17h2M19.5 17h2",
 
   // What a block of content is, for a package that names one per kind with `card.icon`. Drawn
   // as the mark each already spends in an editor: `#`, ¶, bullets, `</>`, quotes.
@@ -260,7 +262,7 @@ export function Icon({ name, size = 16, solid = false, className }: {
 
 /** Which icon each sort of card wears in its top corner. */
 export const ROLE_ICON: Record<string, IconName> = {
-  block: "role_leaf", folder: "role_folder", reference: "role_reference",
+  block: "role_leaf", model: "role_root", folder: "role_folder", reference: "role_reference",
   interface: "role_interface", group: "role_group", grid: "role_table", note: "role_note",
   label: "role_label", region: "role_region",
   start: "role_start", end: "role_end", decision: "role_decision",
@@ -277,8 +279,8 @@ export function role_icon(role: string | undefined): IconName {
  *  a picture of what it stands for would only repeat the icon above. What describes a card is
  *  drawn, since there is no icon above it to repeat. */
 export const MARK_ICON: Record<string, IconName> = {
-  reference: "word_ref", definition: "word_def",
-  package: "word_pkg", structure: "role_root", data: "data",
+  reference: "word_ref",
+  package: "word_pkg", data: "data",
 };
 
 /** The icon for a system mark, or null where a card carries none. */

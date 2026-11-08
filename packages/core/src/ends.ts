@@ -1,6 +1,7 @@
 /** What a relation's ends mean, read down its chain, and the behaviours a block holds. */
 
 import { isa, setting_of } from "./defs";
+import { is_box } from "./holders";
 import { shown_name } from "./names";
 import { children, ports_on } from "./tree";
 import { interface_at } from "./library";
@@ -49,13 +50,28 @@ export function is_behaviour(graph: Graph, id: Id): boolean {
 }
 
 /** The behaviours a block or definition has: its own, then — a usage — its definition's chain's,
- *  nearest first. They are its methods. */
+ *  nearest first. They are its methods. **A box groups, never behaves** (2026-11-07): a behaviour
+ *  in a region or folder is the block's drawing it (`behaviour_owner`); a box, or a package, has
+ *  none. */
 export function behaviours_of(graph: Graph, id: Id): Block[] {
   const b = graph.blocks[id];
-  if (!b) return [];
-  const own = (at: Id) => children(graph, at).filter((c) => is_behaviour(graph, c.id));
+  if (!b || groups_only(graph, id)) return [];
+  const own = (at: Id): Block[] => children(graph, at).flatMap((c) => is_box(graph, c.id)
+    ? own(c.id) : is_behaviour(graph, c.id) ? [c] : []);
   const chain = isa(graph, b.type).map((d) => d.id);
   return [...own(id), ...chain.filter((d) => d !== id).flatMap(own)];
+}
+
+/** Whose behaviour `id` is: what holds it, past any box; none where only a package does. */
+export function behaviour_owner(graph: Graph, id: Id): Id | null {
+  let at = graph.blocks[id]?.parent ?? null;
+  while (at && is_box(graph, at)) at = graph.blocks[at]?.parent ?? null;
+  return at && !groups_only(graph, at) ? at : null;
+}
+
+/** Whether a block only groups what it holds — a box, or a package — and so never behaves. */
+function groups_only(graph: Graph, id: Id): boolean {
+  return is_box(graph, id) || graph.blocks[id]?.parent === null;
 }
 
 /** A behaviour's signature from its interfaces: `name(param: type, …): type`. Its in-interfaces

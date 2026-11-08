@@ -1,11 +1,12 @@
 /** The explorer's rows: each section's header, then what it lists, laid out with depth, guides
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
-import { alias_of, branch_of, children, domain_of, KINDS, library_of, of_ref, on_side, opens,
-         is_folder, is_grid, is_notation, is_box, is_named, relation_base, role_of, setting_of, shown_name, stamps_of, tops_of,
+import { alias_of, branch_of, children, domain_of, KINDS, library_of,
+         is_folder, is_notation, is_box, is_named, on_side, relation_base,
+         role_of, setting_of, shown_name, tops_of,
          type Block, type Cut, type Graph, type Id, type Lists, type Registry,
          type Role } from "@mnd/core";
-import { known, MARK_ICON, role_icon, type IconName } from "@mnd/theme";
+import { known, role_icon, type IconName } from "@mnd/theme";
 import type { Chain } from "./chain";
 
 /** What a row reads as: a block's role, as its card reads, or one of the tree's own marks. */
@@ -32,14 +33,19 @@ export type Row = { id: Id; depth: number; label: string; kids: number; mark: Ma
                     registry?: Registry;
                     /** The usage a part is seen through: a block of its definition's structure. */
                     via?: Id;
-                    /** Whether it roots a structure, as its card's structure mark says. */
-                    held?: boolean;
                     /** Whether the label is a chosen name or the type word. */
                     named: boolean;
                     /** The handle an unnamed row wears. */
                     alias: string;
+                    /** Whether it is where things are filed — a package or a folder — which
+                     *  wears no colour edge and no count. */
+                    filed?: boolean;
                     /** Per indent column, whether its guide line carries on past this row. */
                     guides: boolean[] };
+
+/** **The models' tree as the host's map reads it** (views `model_tree`): a branch each box, chip
+ *  and group. Handed in, as a row's look is (2026-11-05). */
+export type Nest = { id: Id; as: "box" | "chip" | "group"; kids: readonly Nest[] };
 
 /** What the explorer stores, in its folds, for a branch somebody opened. **Every branch is shut
  *  until opened**, so a long tree starts short. */
@@ -49,7 +55,7 @@ export const OPENED = "+";
 const OWN: Record<Own, IconName> = {
   locked: "locked",
   vocabulary: "word_def",
-  usages: MARK_ICON.structure!,
+  usages: "forest",
   root: "role_folder",
   package: "word_pkg",
   line: "relation_plain",
@@ -79,8 +85,10 @@ export function card_icon(graph: Graph, id: Id): IconName | undefined {
 }
 
 /** The panel's rows: each section's header — a label, never chosen — then what it lists for the
- *  picks the sections above hold. `every` lists every branch, opened or not. */
-export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain, every = false): Row[] {
+ *  picks the sections above hold; the models, the map's tree where the host hands it. `every`
+ *  lists every branch, opened or not. */
+export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain, every = false,
+                        models?: readonly Nest[]): Row[] {
   const out: Row[] = [];
   chain.slices.forEach((slice, at) => {
     const key = `@${slice.id}`;
@@ -90,12 +98,18 @@ export function tree_of(graph: Graph, folded: readonly Id[], chain: Chain, every
     if (folded.includes(key) || root === undefined) return;
     const start = out.length;
     const keyed = (route: string) => `${slice.id}/${route}`;
-    const forest = slice.lists === "structure";
-    const tops = tops_of(graph, forest ? null : root ?? null).filter((id) => !forest
-      || on_side(graph, id, "structure"));
-    for (const id of tops) {
-      branch_rows(graph, { cut: slice.cut, root, every, lists: slice.lists }, id, id, undefined,
-                  folded, out, keyed, 1, new Set());
+    /** **The models list the map's tree** (2026-11-05): a row each box, chip and tile, merged
+     *  as the map merges them. */
+    if (slice.lists === "structure" && models) {
+      tree_rows(graph, models, "", folded, out, keyed, 1, every);
+    } else {
+      const forest = slice.lists === "structure";
+      const tops = tops_of(graph, forest ? null : root ?? null).filter((id) => !forest
+        || on_side(graph, id, "structure"));
+      for (const id of tops) {
+        branch_rows(graph, { cut: slice.cut, root, every, lists: slice.lists }, id, id, undefined,
+                    folded, out, keyed, 1, new Set());
+      }
     }
     for (const row of out.slice(start)) row.at = at;
   });
@@ -157,6 +171,28 @@ export function listed_of(graph: Graph, id: Id): Id {
   return at;
 }
 
+/** **The models' rows**: a row each branch of the map's tree, its merged boxes named in its
+ *  label; a group's members and a region's at its level, as the explorer never lists notation.
+ *  What a row holds lists only once it is opened, unless every branch is asked for. */
+function tree_rows(graph: Graph, branches: readonly Nest[], route: string,
+                   folded: readonly Id[], out: Row[], key: (route: string) => string,
+                   depth: number, every: boolean): void {
+  for (const b of listed(graph, branches)) {
+    const at = route ? `${route}/${b.id}` : b.id;
+    const row_key = key(at);
+    out.push(block_row(graph, b.id, depth, listed(graph, b.kids).length, row_key));
+    if (every || opened(folded, row_key)) {
+      tree_rows(graph, b.kids, at, folded, out, key, depth + 1, every);
+    }
+  }
+}
+
+/** The branches a row lists: notation never — a group or a region by what it holds. */
+function listed(graph: Graph, branches: readonly Nest[]): Nest[] {
+  return branches.flatMap((b) => (b.as !== "group" && !is_notation(graph, b.id) ? [b]
+    : b.as === "group" || is_box(graph, b.id) ? listed(graph, b.kids) : []));
+}
+
 /** A row and what its section lists under it: for a usage, its definition's blocks marked as
  *  parts, then its own children; nothing past the section's cut. What a row holds lists only
  *  once it is opened — so a definition reached through itself never lists forever — unless
@@ -169,19 +205,14 @@ function branch_rows(graph: Graph,
                      seen: ReadonlySet<Id>): void {
   if (!graph.blocks[id]) return;
   const branch = branch_of(graph, id, at.cut, at.root, seen, at.lists);
-  /** **The model lists rooms only**: what holds blocks; its other blocks list in the tray. */
-  const listed = (bs: Block[]) => (at.lists === "structure"
-    ? bs.filter((b) => is_room_row(graph, b.id)) : bs);
-  const parts = listed(unheld(graph, branch.parts));
-  const own = listed(unheld(graph, branch.own));
+  const parts = unheld(graph, branch.parts);
+  const own = unheld(graph, branch.own);
   const row_key = key(route);
   /** A package root in the library lists its named components after its definitions. */
   const lib = at.lists === "domain" && graph.blocks[id]!.parent === null ? library_of(graph, id) : {};
   const groups = KINDS.filter((k) => lib[k]?.length).length;
   out.push({ ...block_row(graph, id, depth, parts.length + own.length + groups, row_key),
-             ...(via ? { via } : {}),
-             ...(at.lists !== "structure" && stamps_of(graph, id).includes("structure")
-               ? { held: true } : {}) });
+             ...(via ? { via } : {}) });
   /** Parts are never listed whole: a definition may be reached through itself. */
   const every = at.every && !via && !parts.length;
   if (!every && !opened(folded, row_key)) return;
@@ -195,14 +226,6 @@ function branch_rows(graph: Graph,
   if (groups) named_rows(graph, id, route, folded, out, key, depth + 1);
 }
 
-/** Whether a block is a room, as the model lists it: a package, a folder, a grid, or a block
- *  holding blocks — never a stand-in, which is drawn where it stands. */
-function is_room_row(graph: Graph, id: Id): boolean {
-  if (of_ref(graph, id)) return false;
-  return graph.blocks[id]?.parent === null || is_folder(graph, id) || is_grid(graph, id)
-    || opens(graph, id);
-}
-
 /** What a row lists of these blocks: each, but notation never — a group or region by what it
  *  holds, at its level. */
 function unheld(graph: Graph, blocks: readonly Block[]): Block[] {
@@ -210,13 +233,15 @@ function unheld(graph: Graph, blocks: readonly Block[]): Block[] {
     : is_box(graph, b.id) ? unheld(graph, under(graph, b.id)) : []));
 }
 
-/** A block's row: its name, its mark, and how many rows it holds. */
+/** A block's row: its name, its mark, how many rows it holds, and whether it is where things are
+ *  filed. */
 function block_row(graph: Graph, id: Id, depth: number, kids: number, key: Id): Row {
   const icon = card_icon(graph, id);
+  const filed = graph.blocks[id]?.parent === null || is_folder(graph, id);
   return { ...(icon ? { icon } : {}), id: key, ref: id, pick: id, depth,
            label: shown_name(graph, id), kids, named: is_named(graph, id),
            alias: graph.blocks[id]?.parent === null ? "" : alias_of(graph, id), of: "block",
-           mark: mark_of(graph, id), guides: [] };
+           mark: mark_of(graph, id), guides: [], ...(filed ? { filed } : {}) };
 }
 
 /** The mark a row wears: a package's root or lock, a relation definition its base's, else the

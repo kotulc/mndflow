@@ -1,0 +1,3402 @@
+{
+  "schema": "1.0",
+  "id": "example",
+  "graph": {
+    "root": "example",
+    "blocks": {
+      "example": {
+        "id": "example",
+        "parent": null,
+        "name": "example",
+        "library": {
+          "types": [
+            {
+              "id": "example.datatype.email",
+              "name": "Email",
+              "form": "text",
+              "description": "Where the shop writes to someone."
+            },
+            {
+              "id": "example.datatype.order-status",
+              "name": "Order status",
+              "form": "choice",
+              "choices": [
+                "pending",
+                "paid",
+                "shipped",
+                "cancelled"
+              ],
+              "description": "Where an order is."
+            },
+            {
+              "id": "example.datatype.money",
+              "name": "Money",
+              "form": "number",
+              "unit": "USD",
+              "format": "0.00",
+              "description": "An amount in the shop's currency.",
+              "settings": {
+                "style": {
+                  "hue": 145
+                }
+              }
+            },
+            {
+              "id": "example.datatype.payment-result",
+              "name": "Payment result",
+              "form": "choice",
+              "choices": [
+                "charged",
+                "declined",
+                "refunded"
+              ],
+              "description": "What the provider said of a charge."
+            },
+            {
+              "id": "example.datatype.sku",
+              "name": "Sku",
+              "form": "text",
+              "description": "A product's stock code."
+            }
+          ],
+          "tags": [
+            {
+              "id": "example.tag.risk",
+              "name": "risk",
+              "description": "Needs care whenever it changes.",
+              "settings": {
+                "style": {
+                  "hue": 25
+                }
+              }
+            },
+            {
+              "id": "example.tag.domain",
+              "name": "domain",
+              "description": "Which part of the business it serves.",
+              "settings": {
+                "style": {
+                  "hue": 190
+                }
+              }
+            },
+            {
+              "id": "example.tag.lifecycle",
+              "name": "lifecycle",
+              "description": "Where it is in its life.",
+              "settings": {
+                "style": {
+                  "hue": 75
+                }
+              }
+            },
+            {
+              "id": "example.tag.critical",
+              "name": "critical",
+              "description": "Orders stop when this fails.",
+              "type": "example.tag.risk"
+            },
+            {
+              "id": "example.tag.pii",
+              "name": "pii",
+              "description": "Holds or passes personal data.",
+              "type": "example.tag.risk"
+            },
+            {
+              "id": "example.tag.orders",
+              "name": "orders",
+              "description": "Takes part in placing, changing or cancelling an order.",
+              "type": "example.tag.domain"
+            },
+            {
+              "id": "example.tag.payments",
+              "name": "payments",
+              "description": "Moves money or records that it moved.",
+              "type": "example.tag.domain"
+            },
+            {
+              "id": "example.tag.fulfilment",
+              "name": "fulfilment",
+              "description": "Gets what was ordered to the customer.",
+              "type": "example.tag.domain"
+            },
+            {
+              "id": "example.tag.experimental",
+              "name": "experimental",
+              "description": "Planned or trial; may go.",
+              "type": "example.tag.lifecycle"
+            },
+            {
+              "id": "example.tag.external-api",
+              "name": "external api",
+              "description": "Speaks to a system nobody here runs."
+            }
+          ]
+        }
+      },
+      "example.dir.Parts": {
+        "id": "example.dir.Parts",
+        "parent": "example",
+        "name": "Parts",
+        "type": "folder",
+        "order": 2,
+        "tree": "definitions"
+      },
+      "example.dir.Records": {
+        "id": "example.dir.Records",
+        "parent": "example",
+        "name": "Records",
+        "type": "folder",
+        "order": 3,
+        "tree": "definitions"
+      },
+      "example.md.overview.shop.back-office.payments.charge-once": {
+        "id": "example.md.overview.shop.back-office.payments.charge-once",
+        "parent": "example.yaml.overview.shop.back-office.payments",
+        "name": "Charge once",
+        "type": "services.document",
+        "alias": 14,
+        "body": "\r\nCheckout retries the same request. The order service treats a repeated checkout key as the order it already created, so a retry never charges twice.\r\n",
+        "order": 3,
+        "source": "overview/shop/back-office/payments/charge-once.md",
+        "tags": [
+          "example.tag.critical"
+        ]
+      },
+      "example.yaml.Parts.page": {
+        "id": "example.yaml.Parts.page",
+        "parent": "example.dir.Parts",
+        "name": "page",
+        "def": {},
+        "description": "A screen a customer uses. It shows something and asks for something, over HTTP.",
+        "order": 1,
+        "settings": {
+          "style": {
+            "hue": 200
+          }
+        },
+        "source": "Parts/page.yaml"
+      },
+      "example.yaml.Parts.picture": {
+        "id": "example.yaml.Parts.picture",
+        "parent": "example.dir.Parts",
+        "name": "picture",
+        "def": {},
+        "description": "An image drawn from its source.",
+        "order": 2,
+        "settings": {
+          "card": {
+            "face": "picture"
+          }
+        },
+        "source": "Parts/picture.yaml"
+      },
+      "example.yaml.Records.customer": {
+        "id": "example.yaml.Records.customer",
+        "parent": "example.dir.Records",
+        "name": "Customer",
+        "def": {
+          "attributes": [
+            {
+              "name": "id",
+              "type": "number",
+              "key": "primary"
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "email",
+              "type": "example.datatype.email"
+            }
+          ]
+        },
+        "description": "Someone who places an order.",
+        "order": 1,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        },
+        "source": "Records/customer.yaml"
+      },
+      "example.yaml.Records.ledger": {
+        "id": "example.yaml.Records.ledger",
+        "parent": "example.dir.Records",
+        "name": "Ledger",
+        "type": "services.database",
+        "def": {},
+        "description": "A store of orders: many records of one type, drawn as a table on its card.",
+        "order": 2,
+        "settings": {
+          "records": {
+            "of": "example.yaml.Records.order"
+          }
+        },
+        "source": "Records/ledger.yaml"
+      },
+      "example.yaml.Records.line": {
+        "id": "example.yaml.Records.line",
+        "parent": "example.dir.Records",
+        "name": "Line",
+        "def": {
+          "attributes": [
+            {
+              "name": "product",
+              "type": "example.yaml.Records.product"
+            },
+            {
+              "name": "qty",
+              "type": "number"
+            }
+          ]
+        },
+        "description": "One product on an order, and how many.",
+        "order": 3,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        },
+        "source": "Records/line.yaml"
+      },
+      "example.yaml.Records.order": {
+        "id": "example.yaml.Records.order",
+        "parent": "example.dir.Records",
+        "name": "Order",
+        "def": {
+          "attributes": [
+            {
+              "name": "number",
+              "type": "number",
+              "key": "primary"
+            },
+            {
+              "name": "customer",
+              "type": "example.yaml.Records.customer"
+            },
+            {
+              "name": "status",
+              "type": "example.datatype.order-status"
+            },
+            {
+              "name": "lines",
+              "type": "example.yaml.Records.line",
+              "many": true
+            }
+          ]
+        },
+        "description": "A customer's request, and the lines on it.",
+        "order": 4,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        },
+        "source": "Records/order.yaml"
+      },
+      "example.yaml.Records.order.order-states": {
+        "id": "example.yaml.Records.order.order-states",
+        "parent": "example.yaml.Records.order",
+        "name": "Order states",
+        "type": "state",
+        "alias": 57,
+        "description": "A state machine, the Order record's lifecycle, ranked by where its transitions point. Each transition is named by the event that fires it.",
+        "order": 2,
+        "source": "Records/order/order-states.yaml"
+      },
+      "example.yaml.Records.order.order-states:cancelled": {
+        "id": "example.yaml.Records.order.order-states:cancelled",
+        "parent": "example.yaml.Records.order.order-states",
+        "name": "Cancelled",
+        "alias": 64,
+        "order": 7
+      },
+      "example.yaml.Records.order.order-states:closed": {
+        "id": "example.yaml.Records.order.order-states:closed",
+        "parent": "example.yaml.Records.order.order-states",
+        "name": "Closed",
+        "type": "end",
+        "alias": 65,
+        "order": 8
+      },
+      "example.yaml.Records.order.order-states:delivered": {
+        "id": "example.yaml.Records.order.order-states:delivered",
+        "parent": "example.yaml.Records.order.order-states",
+        "name": "Delivered",
+        "alias": 62,
+        "order": 5
+      },
+      "example.yaml.Records.order.order-states:paid": {
+        "id": "example.yaml.Records.order.order-states:paid",
+        "parent": "example.yaml.Records.order.order-states",
+        "name": "Paid",
+        "alias": 60,
+        "order": 3
+      },
+      "example.yaml.Records.order.order-states:payment-failed": {
+        "id": "example.yaml.Records.order.order-states:payment-failed",
+        "parent": "example.yaml.Records.order.order-states",
+        "name": "Payment failed",
+        "alias": 63,
+        "order": 6
+      },
+      "example.yaml.Records.order.order-states:pending": {
+        "id": "example.yaml.Records.order.order-states:pending",
+        "parent": "example.yaml.Records.order.order-states",
+        "name": "Pending",
+        "alias": 59,
+        "order": 2
+      },
+      "example.yaml.Records.order.order-states:placed": {
+        "id": "example.yaml.Records.order.order-states:placed",
+        "parent": "example.yaml.Records.order.order-states",
+        "name": "Placed",
+        "type": "start",
+        "alias": 58,
+        "order": 1
+      },
+      "example.yaml.Records.order.order-states:shipped": {
+        "id": "example.yaml.Records.order.order-states:shipped",
+        "parent": "example.yaml.Records.order.order-states",
+        "name": "Shipped",
+        "alias": 61,
+        "order": 4
+      },
+      "example.yaml.Records.order:place": {
+        "id": "example.yaml.Records.order:place",
+        "parent": "example.yaml.Records.order",
+        "name": "place",
+        "type": "flow",
+        "alias": 56,
+        "description": "Takes a customer's lines and gives back the order they make.",
+        "order": 1,
+        "ports": [
+          {
+            "id": "example.yaml.Records.order:place.port.lines",
+            "name": "lines",
+            "flow": "in"
+          },
+          {
+            "id": "example.yaml.Records.order:place.port.placed",
+            "name": "placed",
+            "flow": "out"
+          }
+        ]
+      },
+      "example.yaml.Records.payment": {
+        "id": "example.yaml.Records.payment",
+        "parent": "example.dir.Records",
+        "name": "Payment",
+        "def": {
+          "attributes": [
+            {
+              "name": "order",
+              "type": "example.yaml.Records.order"
+            },
+            {
+              "name": "amount",
+              "type": "example.datatype.money"
+            },
+            {
+              "name": "result",
+              "type": "example.datatype.payment-result",
+              "optional": true
+            }
+          ]
+        },
+        "description": "A charge taken against an order.",
+        "order": 5,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        },
+        "source": "Records/payment.yaml"
+      },
+      "example.yaml.Records.product": {
+        "id": "example.yaml.Records.product",
+        "parent": "example.dir.Records",
+        "name": "Product",
+        "def": {
+          "attributes": [
+            {
+              "name": "sku",
+              "type": "example.datatype.sku",
+              "key": "primary"
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "price",
+              "type": "example.datatype.money"
+            }
+          ]
+        },
+        "description": "Something that can be ordered.",
+        "order": 6,
+        "settings": {
+          "card": {
+            "face": "table"
+          }
+        },
+        "source": "Records/product.yaml"
+      },
+      "example.yaml.overview": {
+        "id": "example.yaml.overview",
+        "parent": "example",
+        "name": "Overview",
+        "type": "model",
+        "def": {},
+        "description": "The shop in its world: who uses it and what it leans on. Open Shop to go inside; every diagram here is one side of it.",
+        "order": 1,
+        "source": "overview.yaml"
+      },
+      "example.yaml.overview.shop": {
+        "id": "example.yaml.overview.shop",
+        "parent": "example.yaml.overview",
+        "name": "Shop",
+        "type": "internal",
+        "alias": 4,
+        "description": "The shop itself, one region a side: what customers reach, what runs behind it, the records it keeps, and how it runs.",
+        "order": 5,
+        "ports": [
+          {
+            "id": "example.yaml.overview.shop.port.https",
+            "name": "https",
+            "flow": "in",
+            "side": "left",
+            "type": "services.interface.http"
+          },
+          {
+            "id": "example.yaml.overview.shop.port.charges",
+            "name": "charges",
+            "flow": "out",
+            "side": "right",
+            "type": "services.interface.http"
+          },
+          {
+            "id": "example.yaml.overview.shop.port.shipments",
+            "name": "shipments",
+            "flow": "out",
+            "side": "right",
+            "type": "services.interface.http"
+          }
+        ],
+        "source": "overview/shop.yaml"
+      },
+      "example.yaml.overview.shop.back-office.orders": {
+        "id": "example.yaml.overview.shop.back-office.orders",
+        "parent": "example.yaml.overview.shop:back-office",
+        "name": "Orders",
+        "type": "services.yaml.patterns.transactional-outbox",
+        "alias": 8,
+        "description": "Keeps every order and tells the rest of the shop when one is placed.",
+        "order": 3,
+        "ports": [
+          {
+            "id": "example.yaml.overview.shop.back-office.orders.port.in",
+            "name": "in",
+            "flow": "in",
+            "side": "left",
+            "type": "services.interface.events"
+          }
+        ],
+        "source": "overview/shop/back-office/orders.yaml",
+        "tags": [
+          "example.tag.orders"
+        ],
+        "values": [
+          {
+            "name": "owner",
+            "value": "Commerce"
+          }
+        ]
+      },
+      "example.yaml.overview.shop.back-office.orders:operations": {
+        "id": "example.yaml.overview.shop.back-office.orders:operations",
+        "parent": "example.yaml.overview.shop.back-office.orders",
+        "name": "Operations",
+        "type": "region",
+        "alias": 5,
+        "order": 2
+      },
+      "example.yaml.overview.shop.back-office.orders:operations:release-notes": {
+        "id": "example.yaml.overview.shop.back-office.orders:operations:release-notes",
+        "parent": "example.yaml.overview.shop.back-office.orders:operations",
+        "name": "Release notes",
+        "type": "services.document",
+        "alias": 11,
+        "body": "v2 of the orders API: the checkout key is required.",
+        "order": 2
+      },
+      "example.yaml.overview.shop.back-office.orders:operations:runbook": {
+        "id": "example.yaml.overview.shop.back-office.orders:operations:runbook",
+        "parent": "example.yaml.overview.shop.back-office.orders:operations",
+        "name": "Runbook",
+        "type": "services.document",
+        "alias": 10,
+        "body": "# When orders stop flowing\n\nCheck the **relay** first. See the [outbox pattern](https://microservices.io/patterns/data/transactional-outbox.html).\n\n| signal | threshold | page |\n|---|---|---|\n| outbox rows | 10 000 | yes |\n| relay lag | 60 s | no |",
+        "order": 1
+      },
+      "example.yaml.overview.shop.back-office.orders:order-book": {
+        "id": "example.yaml.overview.shop.back-office.orders:order-book",
+        "parent": "example.yaml.overview.shop.back-office.orders",
+        "name": "Order book",
+        "type": "example.yaml.Records.ledger",
+        "alias": 9,
+        "order": 1,
+        "ports": [
+          {
+            "id": "example.yaml.overview.shop.back-office.orders:order-book.port.events",
+            "name": "events",
+            "flow": "in",
+            "type": "services.interface.events"
+          }
+        ],
+        "records": [
+          {
+            "number": "1001",
+            "customer": "Ada",
+            "status": "paid"
+          },
+          {
+            "number": "1002",
+            "customer": "Ada",
+            "status": "pending"
+          },
+          {
+            "number": "1003",
+            "customer": "Grace",
+            "status": "shipped"
+          }
+        ]
+      },
+      "example.yaml.overview.shop.back-office.payments": {
+        "id": "example.yaml.overview.shop.back-office.payments",
+        "parent": "example.yaml.overview.shop:back-office",
+        "name": "Payments",
+        "type": "services.yaml.patterns.circuit-breaker",
+        "alias": 12,
+        "description": "Takes money for an order, once, and says whether it was taken. Open it for how a charge is retried.",
+        "order": 4,
+        "source": "overview/shop/back-office/payments.yaml",
+        "tags": [
+          "example.tag.payments",
+          "example.tag.pii"
+        ],
+        "values": [
+          {
+            "name": "owner",
+            "value": "Payments"
+          }
+        ]
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry",
+        "parent": "example.yaml.overview.shop.back-office.payments",
+        "name": "Payment retry",
+        "type": "flow",
+        "alias": 15,
+        "description": "A flowchart, one of Payments' behaviours. It starts and ends at its marks; a decision's lines say where each answer goes.",
+        "order": 4,
+        "source": "overview/shop/back-office/payments/payment-retry.yaml"
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry:approved": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry:approved",
+        "parent": "example.yaml.overview.shop.back-office.payments.payment-retry",
+        "name": "Approved?",
+        "type": "decision",
+        "alias": 18,
+        "order": 3
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry:begin": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry:begin",
+        "parent": "example.yaml.overview.shop.back-office.payments.payment-retry",
+        "name": "Begin",
+        "type": "start",
+        "alias": 16,
+        "order": 1
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry:cancel-order": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry:cancel-order",
+        "parent": "example.yaml.overview.shop.back-office.payments.payment-retry",
+        "name": "Cancel order",
+        "alias": 22,
+        "order": 7,
+        "tags": [
+          "example.tag.orders"
+        ]
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry:charge-card": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry:charge-card",
+        "parent": "example.yaml.overview.shop.back-office.payments.payment-retry",
+        "name": "Charge card",
+        "alias": 17,
+        "order": 2,
+        "tags": [
+          "example.tag.payments",
+          "example.tag.critical"
+        ]
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry:confirm-order": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry:confirm-order",
+        "parent": "example.yaml.overview.shop.back-office.payments.payment-retry",
+        "name": "Confirm order",
+        "alias": 21,
+        "order": 6
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry:done": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry:done",
+        "parent": "example.yaml.overview.shop.back-office.payments.payment-retry",
+        "name": "Done",
+        "type": "end",
+        "alias": 23,
+        "order": 8
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry:retries-left": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry:retries-left",
+        "parent": "example.yaml.overview.shop.back-office.payments.payment-retry",
+        "name": "Retries left?",
+        "type": "decision",
+        "alias": 19,
+        "order": 4
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry:wait-and-back-off": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry:wait-and-back-off",
+        "parent": "example.yaml.overview.shop.back-office.payments.payment-retry",
+        "name": "Wait and back off",
+        "alias": 20,
+        "order": 5
+      },
+      "example.yaml.overview.shop.back-office.payments:incident-summary": {
+        "id": "example.yaml.overview.shop.back-office.payments:incident-summary",
+        "parent": "example.yaml.overview.shop.back-office.payments",
+        "name": "Incident summary",
+        "type": "services.document",
+        "alias": 13,
+        "body": "Checkout was slow for twenty minutes while the card processor timed out. The breaker opened, the fallback queued charges, and every queued charge was taken once the processor came back.",
+        "order": 2
+      },
+      "example.yaml.overview.shop.back-office.payments:note-1": {
+        "id": "example.yaml.overview.shop.back-office.payments:note-1",
+        "parent": "example.yaml.overview.shop.back-office.payments",
+        "name": "A retried checkout repeats the same key, so a retry never charges twice.",
+        "type": "note",
+        "alias": 2,
+        "order": 1
+      },
+      "example.yaml.overview.shop.customer-facing.storefront": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront",
+        "parent": "example.yaml.overview.shop:customer-facing",
+        "name": "Storefront",
+        "type": "services.service",
+        "alias": 24,
+        "description": "An internal diagram: what the storefront is made of. Its pages meet through typed ports; its own ports sit on its walls.",
+        "order": 2,
+        "ports": [
+          {
+            "id": "example.yaml.overview.shop.customer-facing.storefront.port.https",
+            "name": "https",
+            "flow": "in",
+            "side": "left",
+            "at": 0.5,
+            "type": "services.interface.http"
+          },
+          {
+            "id": "example.yaml.overview.shop.customer-facing.storefront.port.pay",
+            "name": "pay",
+            "flow": "out",
+            "side": "right",
+            "at": 0.4,
+            "type": "services.interface.http"
+          },
+          {
+            "id": "example.yaml.overview.shop.customer-facing.storefront.port.orders",
+            "name": "orders",
+            "flow": "out",
+            "side": "right",
+            "at": 0.7,
+            "type": "services.interface.events"
+          }
+        ],
+        "source": "overview/shop/customer-facing/storefront.yaml",
+        "tags": [
+          "example.tag.critical",
+          "example.tag.orders"
+        ],
+        "values": [
+          {
+            "name": "owner",
+            "value": "Web"
+          }
+        ]
+      },
+      "example.yaml.overview.shop.customer-facing.storefront:cart": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront:cart",
+        "parent": "example.yaml.overview.shop.customer-facing.storefront",
+        "name": "Cart",
+        "type": "example.yaml.Parts.page",
+        "alias": 25,
+        "order": 2,
+        "ports": [
+          {
+            "id": "example.yaml.overview.shop.customer-facing.storefront:cart.port.in",
+            "name": "in",
+            "flow": "in",
+            "type": "services.interface.http"
+          },
+          {
+            "id": "example.yaml.overview.shop.customer-facing.storefront:cart.port.out",
+            "name": "out",
+            "flow": "out",
+            "type": "services.interface.http"
+          }
+        ]
+      },
+      "example.yaml.overview.shop.customer-facing.storefront:note-1": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront:note-1",
+        "parent": "example.yaml.overview.shop.customer-facing.storefront",
+        "name": "Public traffic enters here.",
+        "type": "note",
+        "alias": 3,
+        "order": 1
+      },
+      "example.yaml.overview.shop.customer-facing.storefront:order-log": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront:order-log",
+        "parent": "example.yaml.overview.shop.customer-facing.storefront",
+        "name": "Order log",
+        "type": "example.yaml.Records.ledger",
+        "alias": 28,
+        "order": 5,
+        "ports": [
+          {
+            "id": "example.yaml.overview.shop.customer-facing.storefront:order-log.port.events",
+            "name": "events",
+            "flow": "in",
+            "type": "services.interface.events"
+          }
+        ]
+      },
+      "example.yaml.overview.shop.customer-facing.storefront:payment": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront:payment",
+        "parent": "example.yaml.overview.shop.customer-facing.storefront",
+        "name": "Payment",
+        "type": "example.yaml.Parts.page",
+        "alias": 27,
+        "order": 4,
+        "ports": [
+          {
+            "id": "example.yaml.overview.shop.customer-facing.storefront:payment.port.charge",
+            "name": "charge",
+            "flow": "in",
+            "type": "services.interface.http"
+          },
+          {
+            "id": "example.yaml.overview.shop.customer-facing.storefront:payment.port.card",
+            "name": "card",
+            "flow": "out",
+            "type": "services.interface.http"
+          },
+          {
+            "id": "example.yaml.overview.shop.customer-facing.storefront:payment.port.events",
+            "name": "events",
+            "flow": "out",
+            "type": "services.interface.events"
+          }
+        ],
+        "tags": [
+          "example.tag.payments"
+        ]
+      },
+      "example.yaml.overview.shop.customer-facing.storefront:pricing": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront:pricing",
+        "parent": "example.yaml.overview.shop.customer-facing.storefront",
+        "name": "Pricing",
+        "type": "example.yaml.Parts.page",
+        "alias": 26,
+        "order": 3,
+        "ports": [
+          {
+            "id": "example.yaml.overview.shop.customer-facing.storefront:pricing.port.quote",
+            "name": "quote",
+            "flow": "in",
+            "type": "services.interface.http"
+          }
+        ]
+      },
+      "example.yaml.overview.shop.data.1-model": {
+        "id": "example.yaml.overview.shop.data.1-model",
+        "parent": "example.yaml.overview.shop:data",
+        "name": "Model",
+        "type": "class",
+        "alias": 29,
+        "description": "The records as classes — fields, then behaviours — joined by the associations stored between them, each end saying how many and in what role. Order status is a type, so it draws no card of its own.",
+        "order": 1,
+        "source": "overview/shop/data/1-model.yaml"
+      },
+      "example.yaml.overview.shop.data.1-model:block": {
+        "id": "example.yaml.overview.shop.data.1-model:block",
+        "parent": "example.yaml.overview.shop.data.1-model",
+        "type": "reference",
+        "of": "example.yaml.Records.customer",
+        "alias": 1,
+        "order": 1
+      },
+      "example.yaml.overview.shop.data.1-model:block-2": {
+        "id": "example.yaml.overview.shop.data.1-model:block-2",
+        "parent": "example.yaml.overview.shop.data.1-model",
+        "type": "reference",
+        "of": "example.yaml.Records.order",
+        "alias": 2,
+        "order": 2
+      },
+      "example.yaml.overview.shop.data.1-model:block-3": {
+        "id": "example.yaml.overview.shop.data.1-model:block-3",
+        "parent": "example.yaml.overview.shop.data.1-model",
+        "type": "reference",
+        "of": "example.yaml.Records.line",
+        "alias": 3,
+        "order": 3
+      },
+      "example.yaml.overview.shop.data.1-model:block-4": {
+        "id": "example.yaml.overview.shop.data.1-model:block-4",
+        "parent": "example.yaml.overview.shop.data.1-model",
+        "type": "reference",
+        "of": "example.yaml.Records.product",
+        "alias": 4,
+        "order": 4
+      },
+      "example.yaml.overview.shop.data.1-model:block-5": {
+        "id": "example.yaml.overview.shop.data.1-model:block-5",
+        "parent": "example.yaml.overview.shop.data.1-model",
+        "type": "reference",
+        "of": "example.yaml.Records.payment",
+        "alias": 5,
+        "order": 5
+      },
+      "example.yaml.overview.shop.data.2-schema": {
+        "id": "example.yaml.overview.shop.data.2-schema",
+        "parent": "example.yaml.overview.shop:data",
+        "name": "Schema",
+        "type": "entity",
+        "alias": 30,
+        "description": "The records as an entity relationship diagram — columns and keys — the same associations drawn as crow's feet.",
+        "order": 2,
+        "source": "overview/shop/data/2-schema.yaml"
+      },
+      "example.yaml.overview.shop.data.2-schema:block": {
+        "id": "example.yaml.overview.shop.data.2-schema:block",
+        "parent": "example.yaml.overview.shop.data.2-schema",
+        "type": "reference",
+        "of": "example.yaml.Records.customer",
+        "alias": 6,
+        "order": 1
+      },
+      "example.yaml.overview.shop.data.2-schema:block-2": {
+        "id": "example.yaml.overview.shop.data.2-schema:block-2",
+        "parent": "example.yaml.overview.shop.data.2-schema",
+        "type": "reference",
+        "of": "example.yaml.Records.order",
+        "alias": 7,
+        "order": 2
+      },
+      "example.yaml.overview.shop.data.2-schema:block-3": {
+        "id": "example.yaml.overview.shop.data.2-schema:block-3",
+        "parent": "example.yaml.overview.shop.data.2-schema",
+        "type": "reference",
+        "of": "example.yaml.Records.line",
+        "alias": 8,
+        "order": 3
+      },
+      "example.yaml.overview.shop.data.2-schema:block-4": {
+        "id": "example.yaml.overview.shop.data.2-schema:block-4",
+        "parent": "example.yaml.overview.shop.data.2-schema",
+        "type": "reference",
+        "of": "example.yaml.Records.product",
+        "alias": 9,
+        "order": 4
+      },
+      "example.yaml.overview.shop.data.2-schema:block-5": {
+        "id": "example.yaml.overview.shop.data.2-schema:block-5",
+        "parent": "example.yaml.overview.shop.data.2-schema",
+        "type": "reference",
+        "of": "example.yaml.Records.payment",
+        "alias": 10,
+        "order": 5
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+        "parent": "example.yaml.overview.shop:how-it-runs",
+        "name": "Checkout saga",
+        "type": "sequence",
+        "alias": 31,
+        "description": "A sequence: who talks to whom, in what order. Each lifeline is a reference to the part it stands for, so it is the same Gateway, Storefront and Payments the shop is made of.",
+        "grid": {
+          "rows": 5,
+          "cols": 6
+        },
+        "order": 1,
+        "source": "overview/shop/how-it-runs/1-checkout-saga.yaml"
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga:authorize": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:authorize",
+        "parent": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+        "name": "Authorize",
+        "alias": 35,
+        "cell": {
+          "r": 2,
+          "c": 4
+        },
+        "order": 9
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga:confirm-order": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:confirm-order",
+        "parent": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+        "name": "Confirm order",
+        "alias": 37,
+        "cell": {
+          "r": 4,
+          "c": 3
+        },
+        "order": 11
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga:customer": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:customer",
+        "parent": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+        "name": "Customer",
+        "type": "reference",
+        "of": "example.yaml.overview:customer",
+        "alias": 11,
+        "cell": {
+          "r": 0,
+          "c": 1
+        },
+        "order": 1
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga:gateway": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:gateway",
+        "parent": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+        "name": "Gateway",
+        "type": "reference",
+        "of": "example.yaml.overview.shop:customer-facing:gateway",
+        "alias": 12,
+        "cell": {
+          "r": 0,
+          "c": 2
+        },
+        "order": 2
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga:inventory": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:inventory",
+        "parent": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+        "name": "Inventory",
+        "type": "reference",
+        "of": "example.yaml.overview.shop:back-office:inventory",
+        "alias": 15,
+        "cell": {
+          "r": 0,
+          "c": 5
+        },
+        "order": 5
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga:payments": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:payments",
+        "parent": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+        "name": "Payments",
+        "type": "reference",
+        "of": "example.yaml.overview.shop.back-office.payments",
+        "alias": 14,
+        "cell": {
+          "r": 0,
+          "c": 4
+        },
+        "order": 4
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga:reserve-stock": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:reserve-stock",
+        "parent": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+        "name": "Reserve stock",
+        "alias": 36,
+        "cell": {
+          "r": 3,
+          "c": 5
+        },
+        "order": 10
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga:route-checkout": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:route-checkout",
+        "parent": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+        "name": "Route checkout",
+        "alias": 33,
+        "cell": {
+          "r": 1,
+          "c": 2
+        },
+        "order": 7
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga:start-saga": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:start-saga",
+        "parent": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+        "name": "Start saga",
+        "alias": 34,
+        "cell": {
+          "r": 2,
+          "c": 3
+        },
+        "order": 8
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga:storefront": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:storefront",
+        "parent": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+        "name": "Storefront",
+        "type": "reference",
+        "of": "example.yaml.overview.shop.customer-facing.storefront",
+        "alias": 13,
+        "cell": {
+          "r": 0,
+          "c": 3
+        },
+        "order": 3
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga:submit-cart": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:submit-cart",
+        "parent": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+        "name": "Submit cart",
+        "alias": 32,
+        "cell": {
+          "r": 1,
+          "c": 1
+        },
+        "order": 6
+      },
+      "example.yaml.overview.shop.how-it-runs.2-fulfilment": {
+        "id": "example.yaml.overview.shop.how-it-runs.2-fulfilment",
+        "parent": "example.yaml.overview.shop:how-it-runs",
+        "name": "Fulfilment",
+        "type": "swimlane",
+        "alias": 38,
+        "description": "A swimlane: who does what, in which phase. Each lane is a reference to the service that does the work; each phase a label on its row, which every step in it carries as a tag.",
+        "grid": {
+          "rows": 4,
+          "cols": 4,
+          "labels": [
+            {
+              "r": 1,
+              "c": 0,
+              "text": "Ordered"
+            },
+            {
+              "r": 2,
+              "c": 0,
+              "text": "Pick"
+            },
+            {
+              "r": 3,
+              "c": 0,
+              "text": "Ship"
+            }
+          ]
+        },
+        "order": 2,
+        "source": "overview/shop/how-it-runs/2-fulfilment.yaml"
+      },
+      "example.yaml.overview.shop.how-it-runs.2-fulfilment:book-carrier": {
+        "id": "example.yaml.overview.shop.how-it-runs.2-fulfilment:book-carrier",
+        "parent": "example.yaml.overview.shop.how-it-runs.2-fulfilment",
+        "name": "Book carrier",
+        "alias": 41,
+        "body": "Shipping books a pickup in the carrier's terms.",
+        "cell": {
+          "r": 3,
+          "c": 3
+        },
+        "order": 6,
+        "tags": [
+          "example.tag.fulfilment",
+          "example.tag.external-api"
+        ]
+      },
+      "example.yaml.overview.shop.how-it-runs.2-fulfilment:inventory": {
+        "id": "example.yaml.overview.shop.how-it-runs.2-fulfilment:inventory",
+        "parent": "example.yaml.overview.shop.how-it-runs.2-fulfilment",
+        "name": "Inventory",
+        "type": "reference",
+        "of": "example.yaml.overview.shop:back-office:inventory",
+        "alias": 17,
+        "cell": {
+          "r": 0,
+          "c": 2
+        },
+        "order": 2
+      },
+      "example.yaml.overview.shop.how-it-runs.2-fulfilment:mark-shipped": {
+        "id": "example.yaml.overview.shop.how-it-runs.2-fulfilment:mark-shipped",
+        "parent": "example.yaml.overview.shop.how-it-runs.2-fulfilment",
+        "name": "Mark shipped",
+        "alias": 42,
+        "cell": {
+          "r": 3,
+          "c": 1
+        },
+        "order": 7,
+        "tags": [
+          "example.tag.orders",
+          "example.tag.fulfilment"
+        ]
+      },
+      "example.yaml.overview.shop.how-it-runs.2-fulfilment:orders": {
+        "id": "example.yaml.overview.shop.how-it-runs.2-fulfilment:orders",
+        "parent": "example.yaml.overview.shop.how-it-runs.2-fulfilment",
+        "name": "Orders",
+        "type": "reference",
+        "of": "example.yaml.overview.shop.back-office.orders",
+        "alias": 16,
+        "cell": {
+          "r": 0,
+          "c": 1
+        },
+        "order": 1
+      },
+      "example.yaml.overview.shop.how-it-runs.2-fulfilment:pick-items": {
+        "id": "example.yaml.overview.shop.how-it-runs.2-fulfilment:pick-items",
+        "parent": "example.yaml.overview.shop.how-it-runs.2-fulfilment",
+        "name": "Pick items",
+        "alias": 40,
+        "body": "Stock is taken off the shelf.",
+        "cell": {
+          "r": 2,
+          "c": 2
+        },
+        "order": 5,
+        "tags": [
+          "example.tag.fulfilment"
+        ]
+      },
+      "example.yaml.overview.shop.how-it-runs.2-fulfilment:publish-placed": {
+        "id": "example.yaml.overview.shop.how-it-runs.2-fulfilment:publish-placed",
+        "parent": "example.yaml.overview.shop.how-it-runs.2-fulfilment",
+        "name": "Publish placed",
+        "alias": 39,
+        "body": "Orders publishes order placed.",
+        "cell": {
+          "r": 1,
+          "c": 1
+        },
+        "order": 4
+      },
+      "example.yaml.overview.shop.how-it-runs.2-fulfilment:shipping": {
+        "id": "example.yaml.overview.shop.how-it-runs.2-fulfilment:shipping",
+        "parent": "example.yaml.overview.shop.how-it-runs.2-fulfilment",
+        "name": "Shipping",
+        "type": "reference",
+        "of": "example.yaml.overview.shop:back-office:shipping",
+        "alias": 18,
+        "cell": {
+          "r": 0,
+          "c": 3
+        },
+        "order": 3
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment",
+        "parent": "example.yaml.overview.shop:how-it-runs",
+        "name": "Deployment",
+        "type": "internal",
+        "alias": 43,
+        "description": "Where the shop runs. Groups nest: each a panel round its members, who carry it, with a note tied beside it; a grid lays environments under their headers: each environment a block of its own, each region a label on its row.",
+        "order": 3,
+        "source": "overview/shop/how-it-runs/3-deployment.yaml"
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:data-namespace": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:data-namespace",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment",
+        "name": "data namespace",
+        "type": "group",
+        "alias": 4,
+        "order": 5
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:environments": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:environments",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment",
+        "name": "Environments",
+        "type": "grid",
+        "alias": 1,
+        "grid": {
+          "rows": 3,
+          "cols": 4,
+          "labels": [
+            {
+              "r": 1,
+              "c": 0,
+              "text": "eu-west"
+            },
+            {
+              "r": 2,
+              "c": 0,
+              "text": "us-east"
+            }
+          ]
+        },
+        "order": 11
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:environments:dev": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:environments:dev",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment:environments",
+        "name": "dev",
+        "alias": 49,
+        "body": "Where changes land first.",
+        "cell": {
+          "r": 0,
+          "c": 1
+        },
+        "order": 1
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:environments:eu-west-prod": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:environments:eu-west-prod",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment:environments",
+        "name": "eu-west prod",
+        "alias": 53,
+        "cell": {
+          "r": 1,
+          "c": 3
+        },
+        "order": 5
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:environments:prod": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:environments:prod",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment:environments",
+        "name": "prod",
+        "alias": 51,
+        "body": "What customers reach.",
+        "cell": {
+          "r": 0,
+          "c": 3
+        },
+        "order": 3
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:environments:shared-cluster": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:environments:shared-cluster",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment:environments",
+        "name": "shared cluster",
+        "alias": 52,
+        "cell": {
+          "r": 1,
+          "c": 1
+        },
+        "order": 4
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:environments:staging": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:environments:staging",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment:environments",
+        "name": "staging",
+        "alias": 50,
+        "body": "A copy of production.",
+        "cell": {
+          "r": 0,
+          "c": 2
+        },
+        "order": 2
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:environments:us-east-prod": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:environments:us-east-prod",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment:environments",
+        "name": "us-east prod",
+        "alias": 54,
+        "cell": {
+          "r": 2,
+          "c": 3
+        },
+        "order": 6
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment",
+        "name": "eu-west cluster",
+        "type": "group",
+        "alias": 2,
+        "order": 1
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:gateway-pod": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:gateway-pod",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment",
+        "name": "gateway pod",
+        "alias": 44,
+        "groups": [
+          "example.yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster",
+          "example.yaml.overview.shop.how-it-runs.3-deployment:shop-namespace"
+        ],
+        "order": 6
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:note-1": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:note-1",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment",
+        "name": "One cluster per region.",
+        "type": "note",
+        "alias": 4,
+        "order": 2
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:note-2": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:note-2",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment",
+        "name": "The services customers reach.",
+        "type": "note",
+        "alias": 5,
+        "order": 4
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:orders-pod": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:orders-pod",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment",
+        "name": "orders pod",
+        "alias": 46,
+        "groups": [
+          "example.yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster",
+          "example.yaml.overview.shop.how-it-runs.3-deployment:shop-namespace"
+        ],
+        "order": 8
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:orders-primary": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:orders-primary",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment",
+        "name": "orders primary",
+        "alias": 47,
+        "groups": [
+          "example.yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster",
+          "example.yaml.overview.shop.how-it-runs.3-deployment:data-namespace"
+        ],
+        "order": 9
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:orders-replica": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:orders-replica",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment",
+        "name": "orders replica",
+        "alias": 48,
+        "groups": [
+          "example.yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster",
+          "example.yaml.overview.shop.how-it-runs.3-deployment:data-namespace"
+        ],
+        "order": 10
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:shop-namespace": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:shop-namespace",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment",
+        "name": "shop namespace",
+        "type": "group",
+        "alias": 3,
+        "order": 3
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:storefront-pod": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:storefront-pod",
+        "parent": "example.yaml.overview.shop.how-it-runs.3-deployment",
+        "name": "storefront pod",
+        "alias": 45,
+        "groups": [
+          "example.yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster",
+          "example.yaml.overview.shop.how-it-runs.3-deployment:shop-namespace"
+        ],
+        "order": 7
+      },
+      "example.yaml.overview.shop.how-it-runs.4-dashboard": {
+        "id": "example.yaml.overview.shop.how-it-runs.4-dashboard",
+        "parent": "example.yaml.overview.shop:how-it-runs",
+        "name": "Dashboard",
+        "type": "example.yaml.Parts.picture",
+        "alias": 55,
+        "description": "What the shop looks like from the operations floor: a picture card, drawn from its source.",
+        "order": 4,
+        "source": "/model/picture.svg"
+      },
+      "example.yaml.overview.shop:back-office": {
+        "id": "example.yaml.overview.shop:back-office",
+        "parent": "example.yaml.overview.shop",
+        "name": "Back office",
+        "type": "region",
+        "alias": 2,
+        "order": 2
+      },
+      "example.yaml.overview.shop:back-office:inventory": {
+        "id": "example.yaml.overview.shop:back-office:inventory",
+        "parent": "example.yaml.overview.shop:back-office",
+        "name": "Inventory",
+        "type": "services.service",
+        "alias": 6,
+        "groups": [
+          "example.yaml.overview.shop:fulfilment"
+        ],
+        "order": 1,
+        "ports": [
+          {
+            "id": "example.yaml.overview.shop:back-office:inventory.port.events",
+            "name": "events",
+            "flow": "in",
+            "type": "services.interface.events"
+          }
+        ],
+        "tags": [
+          "example.tag.fulfilment"
+        ],
+        "values": [
+          {
+            "name": "owner",
+            "value": "Commerce"
+          }
+        ]
+      },
+      "example.yaml.overview.shop:back-office:shipping": {
+        "id": "example.yaml.overview.shop:back-office:shipping",
+        "parent": "example.yaml.overview.shop:back-office",
+        "name": "Shipping",
+        "type": "services.service",
+        "alias": 7,
+        "groups": [
+          "example.yaml.overview.shop:fulfilment"
+        ],
+        "order": 2,
+        "ports": [
+          {
+            "id": "example.yaml.overview.shop:back-office:shipping.port.events",
+            "name": "events",
+            "flow": "in",
+            "type": "services.interface.events"
+          },
+          {
+            "id": "example.yaml.overview.shop:back-office:shipping.port.carrier",
+            "name": "carrier",
+            "flow": "out",
+            "type": "services.interface.http"
+          }
+        ],
+        "tags": [
+          "example.tag.fulfilment"
+        ],
+        "values": [
+          {
+            "name": "owner",
+            "value": "Logistics"
+          }
+        ]
+      },
+      "example.yaml.overview.shop:customer-facing": {
+        "id": "example.yaml.overview.shop:customer-facing",
+        "parent": "example.yaml.overview.shop",
+        "name": "Customer facing",
+        "type": "region",
+        "alias": 1,
+        "order": 1
+      },
+      "example.yaml.overview.shop:customer-facing:gateway": {
+        "id": "example.yaml.overview.shop:customer-facing:gateway",
+        "parent": "example.yaml.overview.shop:customer-facing",
+        "name": "Gateway",
+        "type": "services.yaml.patterns.api-gateway",
+        "alias": 5,
+        "order": 1,
+        "tags": [
+          "example.tag.critical"
+        ],
+        "values": [
+          {
+            "name": "owner",
+            "value": "Web"
+          }
+        ]
+      },
+      "example.yaml.overview.shop:data": {
+        "id": "example.yaml.overview.shop:data",
+        "parent": "example.yaml.overview.shop",
+        "name": "Data",
+        "type": "region",
+        "alias": 3,
+        "order": 3
+      },
+      "example.yaml.overview.shop:fulfilment": {
+        "id": "example.yaml.overview.shop:fulfilment",
+        "parent": "example.yaml.overview.shop",
+        "name": "fulfilment",
+        "type": "group",
+        "alias": 1,
+        "order": 5
+      },
+      "example.yaml.overview.shop:hot-path": {
+        "id": "example.yaml.overview.shop:hot-path",
+        "parent": "example.yaml.overview.shop",
+        "name": "hot path",
+        "type": "label",
+        "alias": 1,
+        "order": 6
+      },
+      "example.yaml.overview.shop:how-it-runs": {
+        "id": "example.yaml.overview.shop:how-it-runs",
+        "parent": "example.yaml.overview.shop",
+        "name": "How it runs",
+        "type": "region",
+        "alias": 4,
+        "order": 4
+      },
+      "example.yaml.overview:card-processor": {
+        "id": "example.yaml.overview:card-processor",
+        "parent": "example.yaml.overview",
+        "name": "Card processor",
+        "type": "services.external",
+        "alias": 2,
+        "order": 3,
+        "ports": [
+          {
+            "id": "example.yaml.overview:card-processor.port.api",
+            "name": "api",
+            "flow": "in",
+            "type": "services.interface.http"
+          }
+        ],
+        "tags": [
+          "example.tag.external-api"
+        ]
+      },
+      "example.yaml.overview:carrier": {
+        "id": "example.yaml.overview:carrier",
+        "parent": "example.yaml.overview",
+        "name": "Carrier",
+        "type": "services.external",
+        "alias": 3,
+        "order": 4,
+        "ports": [
+          {
+            "id": "example.yaml.overview:carrier.port.api",
+            "name": "api",
+            "flow": "in",
+            "type": "services.interface.http"
+          }
+        ],
+        "tags": [
+          "example.tag.external-api"
+        ]
+      },
+      "example.yaml.overview:customer": {
+        "id": "example.yaml.overview:customer",
+        "parent": "example.yaml.overview",
+        "name": "Customer",
+        "type": "services.person",
+        "alias": 1,
+        "order": 2,
+        "ports": [
+          {
+            "id": "example.yaml.overview:customer.port.browser",
+            "name": "browser",
+            "flow": "out",
+            "type": "services.interface.http"
+          }
+        ]
+      },
+      "example.yaml.overview:note-1": {
+        "id": "example.yaml.overview:note-1",
+        "parent": "example.yaml.overview",
+        "name": "One shop, seen from every side: open Shop for its parts, and a part for its own diagram. Every part is a usage of a definition in Parts or Records.",
+        "type": "note",
+        "alias": 1,
+        "order": 1
+      },
+      "services": {
+        "id": "services",
+        "parent": null,
+        "name": "services",
+        "library": {
+          "interfaces": [
+            {
+              "id": "services.interface.http",
+              "name": "HTTP",
+              "description": "Requests and their responses over HTTP.",
+              "settings": {
+                "style": {
+                  "hue": 245
+                }
+              }
+            },
+            {
+              "id": "services.interface.events",
+              "name": "Events",
+              "description": "Messages published for whoever listens.",
+              "settings": {
+                "style": {
+                  "hue": 145
+                }
+              }
+            }
+          ]
+        }
+      },
+      "services.calls": {
+        "id": "services.calls",
+        "parent": "services.dir.relations",
+        "name": "calls",
+        "type": "line",
+        "def": {},
+        "description": "One component asks another to do something.",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "services.component": {
+        "id": "services.component",
+        "parent": "services.dir.blocks",
+        "name": "component",
+        "type": "block",
+        "def": {
+          "attributes": [
+            {
+              "name": "owner",
+              "type": "text"
+            },
+            {
+              "name": "technology",
+              "type": "text"
+            }
+          ]
+        },
+        "description": "A piece of a system somebody owns and a technology implements.",
+        "order": 1,
+        "settings": {
+          "card": {
+            "face": "table"
+          },
+          "style": {
+            "family": "primary"
+          }
+        }
+      },
+      "services.database": {
+        "id": "services.database",
+        "parent": "services.dir.blocks",
+        "name": "database",
+        "type": "services.component",
+        "def": {
+          "attributes": [
+            {
+              "name": "engine",
+              "type": "text"
+            }
+          ]
+        },
+        "description": "A component that stores state other components read: a collection, holding records of one type (`records.of`).",
+        "order": 2,
+        "settings": {
+          "style": {
+            "family": "muted"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "has_records"
+        ]
+      },
+      "services.decision": {
+        "id": "services.decision",
+        "parent": "services.dir.blocks",
+        "name": "decision",
+        "type": "services.document",
+        "def": {},
+        "description": "A recorded choice, drawn like a note.",
+        "order": 3,
+        "settings": {
+          "style": {
+            "family": "note"
+          }
+        }
+      },
+      "services.dir.blocks": {
+        "id": "services.dir.blocks",
+        "parent": "services",
+        "name": "blocks",
+        "type": "folder",
+        "order": 1,
+        "tree": "definitions"
+      },
+      "services.dir.patterns": {
+        "id": "services.dir.patterns",
+        "parent": "services",
+        "name": "patterns",
+        "type": "folder",
+        "order": 3,
+        "tree": "definitions"
+      },
+      "services.dir.relations": {
+        "id": "services.dir.relations",
+        "parent": "services",
+        "name": "relations",
+        "type": "folder",
+        "order": 2,
+        "tree": "definitions"
+      },
+      "services.document": {
+        "id": "services.document",
+        "parent": "services.dir.blocks",
+        "name": "document",
+        "type": "block",
+        "def": {},
+        "description": "A page read as a document.",
+        "order": 4,
+        "settings": {
+          "card": {
+            "face": "document"
+          }
+        }
+      },
+      "services.external": {
+        "id": "services.external",
+        "parent": "services.dir.blocks",
+        "name": "external",
+        "type": "services.component",
+        "def": {},
+        "description": "A component outside this system, drawn with a dashed border.",
+        "order": 5,
+        "settings": {
+          "style": {
+            "family": "away",
+            "border_style": "dashed"
+          }
+        }
+      },
+      "services.integrates": {
+        "id": "services.integrates",
+        "parent": "services.dir.relations",
+        "name": "integrates",
+        "type": "line",
+        "def": {},
+        "description": "A component reaches a system outside its own.",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "services.person": {
+        "id": "services.person",
+        "parent": "services.dir.blocks",
+        "name": "person",
+        "type": "block",
+        "def": {},
+        "description": "Someone outside the system who uses it.",
+        "order": 6,
+        "settings": {
+          "style": {
+            "family": "neutral"
+          }
+        }
+      },
+      "services.publishes": {
+        "id": "services.publishes",
+        "parent": "services.dir.relations",
+        "name": "publishes",
+        "type": "line",
+        "def": {},
+        "description": "A component puts a message on a queue.",
+        "order": 3,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          },
+          "style": {
+            "border_style": "dashed"
+          }
+        }
+      },
+      "services.queue": {
+        "id": "services.queue",
+        "parent": "services.dir.blocks",
+        "name": "queue",
+        "type": "services.component",
+        "def": {},
+        "description": "A component that carries messages from one component to another: a collection, holding the messages waiting as records (`records.of`).",
+        "order": 7,
+        "settings": {
+          "style": {
+            "family": "away"
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "has_records"
+        ]
+      },
+      "services.reads": {
+        "id": "services.reads",
+        "parent": "services.dir.relations",
+        "name": "reads",
+        "type": "line",
+        "def": {},
+        "description": "A component reads what a store holds.",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        }
+      },
+      "services.service": {
+        "id": "services.service",
+        "parent": "services.dir.blocks",
+        "name": "service",
+        "type": "services.component",
+        "def": {},
+        "description": "A component that answers requests.",
+        "order": 8,
+        "settings": {
+          "style": {
+            "family": "secondary"
+          }
+        }
+      },
+      "services.yaml.patterns.anti-corruption-layer": {
+        "id": "services.yaml.patterns.anti-corruption-layer",
+        "parent": "services.dir.patterns",
+        "name": "Anti-corruption layer",
+        "type": "services.service",
+        "def": {},
+        "body": "Use when an outside system must be reached without its model leaking into ours.",
+        "order": 1,
+        "ports": [
+          {
+            "id": "services.yaml.patterns.anti-corruption-layer.port.in",
+            "name": "in",
+            "flow": "in",
+            "type": "services.interface.http"
+          },
+          {
+            "id": "services.yaml.patterns.anti-corruption-layer.port.out",
+            "name": "out",
+            "flow": "out",
+            "type": "services.interface.http"
+          }
+        ],
+        "source": "patterns/anti-corruption-layer.yaml"
+      },
+      "services.yaml.patterns.anti-corruption-layer:client": {
+        "id": "services.yaml.patterns.anti-corruption-layer:client",
+        "parent": "services.yaml.patterns.anti-corruption-layer",
+        "name": "Client",
+        "type": "services.component",
+        "alias": 3,
+        "order": 6
+      },
+      "services.yaml.patterns.anti-corruption-layer:facade": {
+        "id": "services.yaml.patterns.anti-corruption-layer:facade",
+        "parent": "services.yaml.patterns.anti-corruption-layer",
+        "name": "Facade",
+        "type": "services.component",
+        "alias": 1,
+        "order": 2
+      },
+      "services.yaml.patterns.anti-corruption-layer:note-1": {
+        "id": "services.yaml.patterns.anti-corruption-layer:note-1",
+        "parent": "services.yaml.patterns.anti-corruption-layer",
+        "name": "Keeps an outside model out of ours. Everything crossing is translated in one place.",
+        "type": "note",
+        "alias": 1,
+        "order": 1
+      },
+      "services.yaml.patterns.anti-corruption-layer:note-2": {
+        "id": "services.yaml.patterns.anti-corruption-layer:note-2",
+        "parent": "services.yaml.patterns.anti-corruption-layer",
+        "name": "Accepts a request already in our model.",
+        "type": "note",
+        "alias": 2,
+        "order": 3
+      },
+      "services.yaml.patterns.anti-corruption-layer:note-3": {
+        "id": "services.yaml.patterns.anti-corruption-layer:note-3",
+        "parent": "services.yaml.patterns.anti-corruption-layer",
+        "name": "Maps the outside model to ours and back.",
+        "type": "note",
+        "alias": 3,
+        "order": 5
+      },
+      "services.yaml.patterns.anti-corruption-layer:note-4": {
+        "id": "services.yaml.patterns.anti-corruption-layer:note-4",
+        "parent": "services.yaml.patterns.anti-corruption-layer",
+        "name": "The only part that speaks the outside protocol.",
+        "type": "note",
+        "alias": 4,
+        "order": 7
+      },
+      "services.yaml.patterns.anti-corruption-layer:translator": {
+        "id": "services.yaml.patterns.anti-corruption-layer:translator",
+        "parent": "services.yaml.patterns.anti-corruption-layer",
+        "name": "Translator",
+        "type": "services.component",
+        "alias": 2,
+        "order": 4
+      },
+      "services.yaml.patterns.api-gateway": {
+        "id": "services.yaml.patterns.api-gateway",
+        "parent": "services.dir.patterns",
+        "name": "API gateway",
+        "type": "services.service",
+        "def": {},
+        "body": "Use when many clients reach many services and each request should be checked once, at one way in.",
+        "order": 2,
+        "ports": [
+          {
+            "id": "services.yaml.patterns.api-gateway.port.requests",
+            "name": "requests",
+            "flow": "in",
+            "side": "left",
+            "at": 0.5,
+            "type": "services.interface.http"
+          },
+          {
+            "id": "services.yaml.patterns.api-gateway.port.routes",
+            "name": "routes",
+            "flow": "out",
+            "side": "right",
+            "at": 0.5,
+            "type": "services.interface.http"
+          },
+          {
+            "id": "services.yaml.patterns.api-gateway.port.admin",
+            "name": "admin",
+            "side": "bottom",
+            "at": 0.5,
+            "type": "services.interface.http"
+          }
+        ],
+        "source": "patterns/api-gateway.yaml"
+      },
+      "services.yaml.patterns.api-gateway:auth": {
+        "id": "services.yaml.patterns.api-gateway:auth",
+        "parent": "services.yaml.patterns.api-gateway",
+        "name": "Auth",
+        "type": "services.component",
+        "alias": 4,
+        "order": 2
+      },
+      "services.yaml.patterns.api-gateway:note-1": {
+        "id": "services.yaml.patterns.api-gateway:note-1",
+        "parent": "services.yaml.patterns.api-gateway",
+        "name": "One way in: every request is authenticated, held to its quota, then routed to the service that owns it.",
+        "type": "note",
+        "alias": 5,
+        "order": 1
+      },
+      "services.yaml.patterns.api-gateway:note-2": {
+        "id": "services.yaml.patterns.api-gateway:note-2",
+        "parent": "services.yaml.patterns.api-gateway",
+        "name": "Checks who is calling before anything else runs.",
+        "type": "note",
+        "alias": 6,
+        "order": 3
+      },
+      "services.yaml.patterns.api-gateway:note-3": {
+        "id": "services.yaml.patterns.api-gateway:note-3",
+        "parent": "services.yaml.patterns.api-gateway",
+        "name": "Turns away a caller over its quota.",
+        "type": "note",
+        "alias": 7,
+        "order": 5
+      },
+      "services.yaml.patterns.api-gateway:note-4": {
+        "id": "services.yaml.patterns.api-gateway:note-4",
+        "parent": "services.yaml.patterns.api-gateway",
+        "name": "Sends each request to the service that owns its path.",
+        "type": "note",
+        "alias": 8,
+        "order": 7
+      },
+      "services.yaml.patterns.api-gateway:rate-limit": {
+        "id": "services.yaml.patterns.api-gateway:rate-limit",
+        "parent": "services.yaml.patterns.api-gateway",
+        "name": "Rate limit",
+        "type": "services.component",
+        "alias": 5,
+        "order": 4
+      },
+      "services.yaml.patterns.api-gateway:router": {
+        "id": "services.yaml.patterns.api-gateway:router",
+        "parent": "services.yaml.patterns.api-gateway",
+        "name": "Router",
+        "type": "services.component",
+        "alias": 6,
+        "order": 6
+      },
+      "services.yaml.patterns.circuit-breaker": {
+        "id": "services.yaml.patterns.circuit-breaker",
+        "parent": "services.dir.patterns",
+        "name": "Circuit breaker",
+        "type": "services.component",
+        "def": {},
+        "body": "Use when a remote call can hang or fail, and a failing dependency must not take its callers down with it.",
+        "order": 3,
+        "ports": [
+          {
+            "id": "services.yaml.patterns.circuit-breaker.port.in",
+            "name": "in",
+            "flow": "in",
+            "type": "services.interface.http"
+          },
+          {
+            "id": "services.yaml.patterns.circuit-breaker.port.remote",
+            "name": "remote",
+            "flow": "out",
+            "type": "services.interface.http"
+          }
+        ],
+        "source": "patterns/circuit-breaker.yaml"
+      },
+      "services.yaml.patterns.circuit-breaker:breaker": {
+        "id": "services.yaml.patterns.circuit-breaker:breaker",
+        "parent": "services.yaml.patterns.circuit-breaker",
+        "name": "Breaker",
+        "type": "services.component",
+        "alias": 8,
+        "order": 3
+      },
+      "services.yaml.patterns.circuit-breaker:caller": {
+        "id": "services.yaml.patterns.circuit-breaker:caller",
+        "parent": "services.yaml.patterns.circuit-breaker",
+        "name": "Caller",
+        "type": "services.component",
+        "alias": 7,
+        "order": 2
+      },
+      "services.yaml.patterns.circuit-breaker:fallback": {
+        "id": "services.yaml.patterns.circuit-breaker:fallback",
+        "parent": "services.yaml.patterns.circuit-breaker",
+        "name": "Fallback",
+        "type": "services.component",
+        "alias": 9,
+        "order": 5
+      },
+      "services.yaml.patterns.circuit-breaker:note-1": {
+        "id": "services.yaml.patterns.circuit-breaker:note-1",
+        "parent": "services.yaml.patterns.circuit-breaker",
+        "name": "Calls pass while the remote answers. After repeated failures the breaker opens and the fallback answers until a trial call succeeds.",
+        "type": "note",
+        "alias": 9,
+        "order": 1
+      },
+      "services.yaml.patterns.circuit-breaker:note-2": {
+        "id": "services.yaml.patterns.circuit-breaker:note-2",
+        "parent": "services.yaml.patterns.circuit-breaker",
+        "name": "Counts failures. Closed, it passes calls; open, it fails fast.",
+        "type": "note",
+        "alias": 10,
+        "order": 4
+      },
+      "services.yaml.patterns.circuit-breaker:note-3": {
+        "id": "services.yaml.patterns.circuit-breaker:note-3",
+        "parent": "services.yaml.patterns.circuit-breaker",
+        "name": "Answers while the breaker is open.",
+        "type": "note",
+        "alias": 11,
+        "order": 6
+      },
+      "services.yaml.patterns.layered-architecture": {
+        "id": "services.yaml.patterns.layered-architecture",
+        "parent": "services.dir.patterns",
+        "name": "Layered architecture",
+        "type": "services.service",
+        "def": {},
+        "body": "Use when one service owns its rules and its store, and every request should meet them in the same order.",
+        "order": 4,
+        "ports": [
+          {
+            "id": "services.yaml.patterns.layered-architecture.port.requests",
+            "name": "requests",
+            "flow": "in",
+            "type": "services.interface.http"
+          }
+        ],
+        "source": "patterns/layered-architecture.yaml"
+      },
+      "services.yaml.patterns.layered-architecture:api": {
+        "id": "services.yaml.patterns.layered-architecture:api",
+        "parent": "services.yaml.patterns.layered-architecture",
+        "name": "API",
+        "type": "services.component",
+        "alias": 10,
+        "order": 2
+      },
+      "services.yaml.patterns.layered-architecture:domain-logic": {
+        "id": "services.yaml.patterns.layered-architecture:domain-logic",
+        "parent": "services.yaml.patterns.layered-architecture",
+        "name": "Domain logic",
+        "type": "services.component",
+        "alias": 11,
+        "order": 4
+      },
+      "services.yaml.patterns.layered-architecture:note-1": {
+        "id": "services.yaml.patterns.layered-architecture:note-1",
+        "parent": "services.yaml.patterns.layered-architecture",
+        "name": "Requests enter at the API, rules live in one layer, storage is reached only through the repository.",
+        "type": "note",
+        "alias": 12,
+        "order": 1
+      },
+      "services.yaml.patterns.layered-architecture:note-2": {
+        "id": "services.yaml.patterns.layered-architecture:note-2",
+        "parent": "services.yaml.patterns.layered-architecture",
+        "name": "The only way in. It accepts the request and does no work of its own.",
+        "type": "note",
+        "alias": 13,
+        "order": 3
+      },
+      "services.yaml.patterns.layered-architecture:note-3": {
+        "id": "services.yaml.patterns.layered-architecture:note-3",
+        "parent": "services.yaml.patterns.layered-architecture",
+        "name": "The rules live here, and nowhere else in the service.",
+        "type": "note",
+        "alias": 14,
+        "order": 5
+      },
+      "services.yaml.patterns.layered-architecture:note-4": {
+        "id": "services.yaml.patterns.layered-architecture:note-4",
+        "parent": "services.yaml.patterns.layered-architecture",
+        "name": "Reads and writes the store; nothing else touches it.",
+        "type": "note",
+        "alias": 15,
+        "order": 7
+      },
+      "services.yaml.patterns.layered-architecture:repository": {
+        "id": "services.yaml.patterns.layered-architecture:repository",
+        "parent": "services.yaml.patterns.layered-architecture",
+        "name": "Repository",
+        "type": "services.component",
+        "alias": 12,
+        "order": 6
+      },
+      "services.yaml.patterns.layered-architecture:store": {
+        "id": "services.yaml.patterns.layered-architecture:store",
+        "parent": "services.yaml.patterns.layered-architecture",
+        "name": "Store",
+        "type": "services.database",
+        "alias": 13,
+        "order": 8
+      },
+      "services.yaml.patterns.saga-orchestrator": {
+        "id": "services.yaml.patterns.saga-orchestrator",
+        "parent": "services.dir.patterns",
+        "name": "Saga orchestrator",
+        "type": "services.service",
+        "def": {},
+        "body": "Use when one business action spans several services, each with its own store, and a failed step must undo the ones before it.",
+        "order": 5,
+        "ports": [
+          {
+            "id": "services.yaml.patterns.saga-orchestrator.port.start",
+            "name": "start",
+            "flow": "in",
+            "type": "services.interface.http"
+          },
+          {
+            "id": "services.yaml.patterns.saga-orchestrator.port.bus",
+            "name": "bus",
+            "flow": "both",
+            "type": "services.interface.events"
+          }
+        ],
+        "source": "patterns/saga-orchestrator.yaml"
+      },
+      "services.yaml.patterns.saga-orchestrator:compensations": {
+        "id": "services.yaml.patterns.saga-orchestrator:compensations",
+        "parent": "services.yaml.patterns.saga-orchestrator",
+        "name": "Compensations",
+        "type": "services.component",
+        "alias": 16,
+        "order": 5
+      },
+      "services.yaml.patterns.saga-orchestrator:note-1": {
+        "id": "services.yaml.patterns.saga-orchestrator:note-1",
+        "parent": "services.yaml.patterns.saga-orchestrator",
+        "name": "The orchestrator sends each step's command in turn and records where it is. A failed step runs the compensations of the steps before it, newest first.",
+        "type": "note",
+        "alias": 16,
+        "order": 1
+      },
+      "services.yaml.patterns.saga-orchestrator:note-2": {
+        "id": "services.yaml.patterns.saga-orchestrator:note-2",
+        "parent": "services.yaml.patterns.saga-orchestrator",
+        "name": "Where each running saga is, so a restart resumes it.",
+        "type": "note",
+        "alias": 17,
+        "order": 4
+      },
+      "services.yaml.patterns.saga-orchestrator:note-3": {
+        "id": "services.yaml.patterns.saga-orchestrator:note-3",
+        "parent": "services.yaml.patterns.saga-orchestrator",
+        "name": "The undo of each step.",
+        "type": "note",
+        "alias": 18,
+        "order": 6
+      },
+      "services.yaml.patterns.saga-orchestrator:orchestrator": {
+        "id": "services.yaml.patterns.saga-orchestrator:orchestrator",
+        "parent": "services.yaml.patterns.saga-orchestrator",
+        "name": "Orchestrator",
+        "type": "services.component",
+        "alias": 14,
+        "order": 2
+      },
+      "services.yaml.patterns.saga-orchestrator:saga-log": {
+        "id": "services.yaml.patterns.saga-orchestrator:saga-log",
+        "parent": "services.yaml.patterns.saga-orchestrator",
+        "name": "Saga log",
+        "type": "services.database",
+        "alias": 15,
+        "order": 3
+      },
+      "services.yaml.patterns.transactional-outbox": {
+        "id": "services.yaml.patterns.transactional-outbox",
+        "parent": "services.dir.patterns",
+        "name": "Transactional outbox",
+        "type": "services.service",
+        "def": {},
+        "body": "Use when a state change must announce itself, and neither the change nor the announcement may be lost.",
+        "order": 6,
+        "ports": [
+          {
+            "id": "services.yaml.patterns.transactional-outbox.port.requests",
+            "name": "requests",
+            "flow": "in",
+            "type": "services.interface.http"
+          },
+          {
+            "id": "services.yaml.patterns.transactional-outbox.port.events",
+            "name": "events",
+            "flow": "out",
+            "type": "services.interface.events"
+          }
+        ],
+        "source": "patterns/transactional-outbox.yaml"
+      },
+      "services.yaml.patterns.transactional-outbox:api": {
+        "id": "services.yaml.patterns.transactional-outbox:api",
+        "parent": "services.yaml.patterns.transactional-outbox",
+        "name": "API",
+        "type": "services.component",
+        "alias": 17,
+        "order": 2
+      },
+      "services.yaml.patterns.transactional-outbox:domain-logic": {
+        "id": "services.yaml.patterns.transactional-outbox:domain-logic",
+        "parent": "services.yaml.patterns.transactional-outbox",
+        "name": "Domain logic",
+        "type": "services.component",
+        "alias": 18,
+        "order": 3
+      },
+      "services.yaml.patterns.transactional-outbox:note-1": {
+        "id": "services.yaml.patterns.transactional-outbox:note-1",
+        "parent": "services.yaml.patterns.transactional-outbox",
+        "name": "A state change and the event announcing it are written in one transaction, so neither is lost.",
+        "type": "note",
+        "alias": 19,
+        "order": 1
+      },
+      "services.yaml.patterns.transactional-outbox:note-2": {
+        "id": "services.yaml.patterns.transactional-outbox:note-2",
+        "parent": "services.yaml.patterns.transactional-outbox",
+        "name": "Writes the state change and the event together.",
+        "type": "note",
+        "alias": 20,
+        "order": 4
+      },
+      "services.yaml.patterns.transactional-outbox:note-3": {
+        "id": "services.yaml.patterns.transactional-outbox:note-3",
+        "parent": "services.yaml.patterns.transactional-outbox",
+        "name": "The events, written beside the state they announce.",
+        "type": "note",
+        "alias": 21,
+        "order": 7
+      },
+      "services.yaml.patterns.transactional-outbox:note-4": {
+        "id": "services.yaml.patterns.transactional-outbox:note-4",
+        "parent": "services.yaml.patterns.transactional-outbox",
+        "name": "Reads the outbox and publishes each event at least once.",
+        "type": "note",
+        "alias": 22,
+        "order": 9
+      },
+      "services.yaml.patterns.transactional-outbox:outbox": {
+        "id": "services.yaml.patterns.transactional-outbox:outbox",
+        "parent": "services.yaml.patterns.transactional-outbox",
+        "name": "Outbox",
+        "type": "services.database",
+        "alias": 20,
+        "order": 6
+      },
+      "services.yaml.patterns.transactional-outbox:relay": {
+        "id": "services.yaml.patterns.transactional-outbox:relay",
+        "parent": "services.yaml.patterns.transactional-outbox",
+        "name": "Relay",
+        "type": "services.component",
+        "alias": 21,
+        "order": 8
+      },
+      "services.yaml.patterns.transactional-outbox:store": {
+        "id": "services.yaml.patterns.transactional-outbox:store",
+        "parent": "services.yaml.patterns.transactional-outbox",
+        "name": "Store",
+        "type": "services.database",
+        "alias": 19,
+        "order": 5
+      }
+    },
+    "edges": {
+      "example.yaml.Records.line.r.line-association-records-product": {
+        "id": "example.yaml.Records.line.r.line-association-records-product",
+        "type": "association",
+        "alias": 45,
+        "ends": {
+          "from": {
+            "multiplicity": "*"
+          },
+          "to": {
+            "multiplicity": "1",
+            "role": "product"
+          }
+        },
+        "from": "example.yaml.Records.line",
+        "order": 0,
+        "to": "example.yaml.Records.product"
+      },
+      "example.yaml.Records.order.order-states.r.cancelled-transition-closed": {
+        "id": "example.yaml.Records.order.order-states.r.cancelled-transition-closed",
+        "type": "transition",
+        "alias": 56,
+        "from": "example.yaml.Records.order.order-states:cancelled",
+        "order": 8,
+        "to": "example.yaml.Records.order.order-states:closed"
+      },
+      "example.yaml.Records.order.order-states.r.delivered-transition-closed": {
+        "id": "example.yaml.Records.order.order-states.r.delivered-transition-closed",
+        "type": "transition",
+        "alias": 55,
+        "from": "example.yaml.Records.order.order-states:delivered",
+        "order": 7,
+        "to": "example.yaml.Records.order.order-states:closed"
+      },
+      "example.yaml.Records.order.order-states.r.paid-transition-shipped": {
+        "id": "example.yaml.Records.order.order-states.r.paid-transition-shipped",
+        "name": "handed over",
+        "type": "transition",
+        "alias": 53,
+        "from": "example.yaml.Records.order.order-states:paid",
+        "order": 5,
+        "to": "example.yaml.Records.order.order-states:shipped"
+      },
+      "example.yaml.Records.order.order-states.r.payment-failed-transition-cancelled": {
+        "id": "example.yaml.Records.order.order-states.r.payment-failed-transition-cancelled",
+        "name": "gave up",
+        "type": "transition",
+        "alias": 52,
+        "from": "example.yaml.Records.order.order-states:payment-failed",
+        "order": 4,
+        "to": "example.yaml.Records.order.order-states:cancelled"
+      },
+      "example.yaml.Records.order.order-states.r.payment-failed-transition-pending": {
+        "id": "example.yaml.Records.order.order-states.r.payment-failed-transition-pending",
+        "name": "retry",
+        "type": "transition",
+        "alias": 51,
+        "from": "example.yaml.Records.order.order-states:payment-failed",
+        "order": 3,
+        "to": "example.yaml.Records.order.order-states:pending"
+      },
+      "example.yaml.Records.order.order-states.r.pending-transition-paid": {
+        "id": "example.yaml.Records.order.order-states.r.pending-transition-paid",
+        "name": "charged",
+        "type": "transition",
+        "alias": 49,
+        "from": "example.yaml.Records.order.order-states:pending",
+        "order": 1,
+        "to": "example.yaml.Records.order.order-states:paid"
+      },
+      "example.yaml.Records.order.order-states.r.pending-transition-payment-failed": {
+        "id": "example.yaml.Records.order.order-states.r.pending-transition-payment-failed",
+        "name": "declined",
+        "type": "transition",
+        "alias": 50,
+        "from": "example.yaml.Records.order.order-states:pending",
+        "order": 2,
+        "to": "example.yaml.Records.order.order-states:payment-failed"
+      },
+      "example.yaml.Records.order.order-states.r.placed-transition-pending": {
+        "id": "example.yaml.Records.order.order-states.r.placed-transition-pending",
+        "type": "transition",
+        "alias": 48,
+        "from": "example.yaml.Records.order.order-states:placed",
+        "order": 0,
+        "to": "example.yaml.Records.order.order-states:pending"
+      },
+      "example.yaml.Records.order.order-states.r.shipped-transition-delivered": {
+        "id": "example.yaml.Records.order.order-states.r.shipped-transition-delivered",
+        "name": "signed for",
+        "type": "transition",
+        "alias": 54,
+        "from": "example.yaml.Records.order.order-states:shipped",
+        "order": 6,
+        "to": "example.yaml.Records.order.order-states:delivered"
+      },
+      "example.yaml.Records.order.r.order-association-records-customer": {
+        "id": "example.yaml.Records.order.r.order-association-records-customer",
+        "type": "association",
+        "alias": 46,
+        "ends": {
+          "from": {
+            "multiplicity": "*"
+          },
+          "to": {
+            "multiplicity": "1",
+            "role": "customer"
+          }
+        },
+        "from": "example.yaml.Records.order",
+        "order": 0,
+        "to": "example.yaml.Records.customer"
+      },
+      "example.yaml.Records.order.r.order-composition-records-line": {
+        "id": "example.yaml.Records.order.r.order-composition-records-line",
+        "type": "composition",
+        "alias": 47,
+        "ends": {
+          "to": {
+            "multiplicity": "1..*",
+            "role": "lines"
+          }
+        },
+        "from": "example.yaml.Records.order",
+        "order": 1,
+        "to": "example.yaml.Records.line"
+      },
+      "example.yaml.Records.payment.r.payment-association-records-order": {
+        "id": "example.yaml.Records.payment.r.payment-association-records-order",
+        "type": "association",
+        "alias": 57,
+        "ends": {
+          "from": {
+            "multiplicity": "0..*",
+            "role": "payments"
+          },
+          "to": {
+            "multiplicity": "1",
+            "role": "order"
+          }
+        },
+        "from": "example.yaml.Records.payment",
+        "order": 0,
+        "to": "example.yaml.Records.order"
+      },
+      "example.yaml.overview.r.customer-browser-shop-https": {
+        "id": "example.yaml.overview.r.customer-browser-shop-https",
+        "name": "shops",
+        "alias": 1,
+        "from": "example.yaml.overview:customer",
+        "fromPort": "example.yaml.overview:customer.port.browser",
+        "order": 0,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop",
+        "toPort": "example.yaml.overview.shop.port.https"
+      },
+      "example.yaml.overview.r.shop-charges-card-processor-api": {
+        "id": "example.yaml.overview.r.shop-charges-card-processor-api",
+        "name": "charges",
+        "alias": 2,
+        "from": "example.yaml.overview.shop",
+        "fromPort": "example.yaml.overview.shop.port.charges",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview:card-processor",
+        "toPort": "example.yaml.overview:card-processor.port.api"
+      },
+      "example.yaml.overview.r.shop-shipments-carrier-api": {
+        "id": "example.yaml.overview.r.shop-shipments-carrier-api",
+        "name": "books",
+        "alias": 3,
+        "from": "example.yaml.overview.shop",
+        "fromPort": "example.yaml.overview.shop.port.shipments",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview:carrier",
+        "toPort": "example.yaml.overview:carrier.port.api"
+      },
+      "example.yaml.overview.shop.back-office.orders.r.in-order-book-events": {
+        "id": "example.yaml.overview.shop.back-office.orders.r.in-order-book-events",
+        "name": "placed",
+        "alias": 13,
+        "from": "example.yaml.overview.shop.back-office.orders",
+        "fromPort": "example.yaml.overview.shop.back-office.orders.port.in",
+        "order": 0,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.back-office.orders:order-book",
+        "toPort": "example.yaml.overview.shop.back-office.orders:order-book.port.events"
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry.r.approved-confirm-order": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry.r.approved-confirm-order",
+        "name": "yes",
+        "alias": 16,
+        "from": "example.yaml.overview.shop.back-office.payments.payment-retry:approved",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.back-office.payments.payment-retry:confirm-order"
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry.r.approved-retries-left": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry.r.approved-retries-left",
+        "name": "no",
+        "alias": 17,
+        "from": "example.yaml.overview.shop.back-office.payments.payment-retry:approved",
+        "order": 3,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.back-office.payments.payment-retry:retries-left"
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry.r.begin-charge-card": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry.r.begin-charge-card",
+        "alias": 14,
+        "from": "example.yaml.overview.shop.back-office.payments.payment-retry:begin",
+        "order": 0,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.back-office.payments.payment-retry:charge-card"
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry.r.cancel-order-done": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry.r.cancel-order-done",
+        "alias": 22,
+        "from": "example.yaml.overview.shop.back-office.payments.payment-retry:cancel-order",
+        "order": 8,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.back-office.payments.payment-retry:done"
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry.r.charge-card-approved": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry.r.charge-card-approved",
+        "alias": 15,
+        "from": "example.yaml.overview.shop.back-office.payments.payment-retry:charge-card",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.back-office.payments.payment-retry:approved"
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry.r.confirm-order-done": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry.r.confirm-order-done",
+        "alias": 21,
+        "from": "example.yaml.overview.shop.back-office.payments.payment-retry:confirm-order",
+        "order": 7,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.back-office.payments.payment-retry:done"
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry.r.retries-left-cancel-order": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry.r.retries-left-cancel-order",
+        "name": "no",
+        "alias": 20,
+        "from": "example.yaml.overview.shop.back-office.payments.payment-retry:retries-left",
+        "order": 6,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.back-office.payments.payment-retry:cancel-order"
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry.r.retries-left-wait-and-back-off": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry.r.retries-left-wait-and-back-off",
+        "name": "yes",
+        "alias": 18,
+        "from": "example.yaml.overview.shop.back-office.payments.payment-retry:retries-left",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.back-office.payments.payment-retry:wait-and-back-off"
+      },
+      "example.yaml.overview.shop.back-office.payments.payment-retry.r.wait-and-back-off-charge-card": {
+        "id": "example.yaml.overview.shop.back-office.payments.payment-retry.r.wait-and-back-off-charge-card",
+        "alias": 19,
+        "from": "example.yaml.overview.shop.back-office.payments.payment-retry:wait-and-back-off",
+        "order": 5,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.back-office.payments.payment-retry:charge-card"
+      },
+      "example.yaml.overview.shop.customer-facing.storefront.r.cart-out-payment-charge": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront.r.cart-out-payment-charge",
+        "name": "pay",
+        "alias": 25,
+        "from": "example.yaml.overview.shop.customer-facing.storefront:cart",
+        "fromPort": "example.yaml.overview.shop.customer-facing.storefront:cart.port.out",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.customer-facing.storefront:payment",
+        "toPort": "example.yaml.overview.shop.customer-facing.storefront:payment.port.charge"
+      },
+      "example.yaml.overview.shop.customer-facing.storefront.r.cart-out-pricing-quote": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront.r.cart-out-pricing-quote",
+        "name": "price",
+        "alias": 24,
+        "from": "example.yaml.overview.shop.customer-facing.storefront:cart",
+        "fromPort": "example.yaml.overview.shop.customer-facing.storefront:cart.port.out",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.customer-facing.storefront:pricing",
+        "toPort": "example.yaml.overview.shop.customer-facing.storefront:pricing.port.quote"
+      },
+      "example.yaml.overview.shop.customer-facing.storefront.r.https-cart-in": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront.r.https-cart-in",
+        "alias": 23,
+        "from": "example.yaml.overview.shop.customer-facing.storefront",
+        "fromPort": "example.yaml.overview.shop.customer-facing.storefront.port.https",
+        "order": 0,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.customer-facing.storefront:cart",
+        "toPort": "example.yaml.overview.shop.customer-facing.storefront:cart.port.in"
+      },
+      "example.yaml.overview.shop.customer-facing.storefront.r.payment-card-pay": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront.r.payment-card-pay",
+        "alias": 26,
+        "from": "example.yaml.overview.shop.customer-facing.storefront:payment",
+        "fromPort": "example.yaml.overview.shop.customer-facing.storefront:payment.port.card",
+        "order": 3,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.customer-facing.storefront",
+        "toPort": "example.yaml.overview.shop.customer-facing.storefront.port.pay"
+      },
+      "example.yaml.overview.shop.customer-facing.storefront.r.payment-events-order-log-events": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront.r.payment-events-order-log-events",
+        "name": "paid",
+        "alias": 27,
+        "from": "example.yaml.overview.shop.customer-facing.storefront:payment",
+        "fromPort": "example.yaml.overview.shop.customer-facing.storefront:payment.port.events",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.customer-facing.storefront:order-log",
+        "toPort": "example.yaml.overview.shop.customer-facing.storefront:order-log.port.events"
+      },
+      "example.yaml.overview.shop.customer-facing.storefront.r.payment-events-orders": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront.r.payment-events-orders",
+        "alias": 28,
+        "from": "example.yaml.overview.shop.customer-facing.storefront:payment",
+        "fromPort": "example.yaml.overview.shop.customer-facing.storefront:payment.port.events",
+        "order": 5,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.customer-facing.storefront",
+        "toPort": "example.yaml.overview.shop.customer-facing.storefront.port.orders"
+      },
+      "example.yaml.overview.shop.customer-facing.storefront:note-1.tie": {
+        "id": "example.yaml.overview.shop.customer-facing.storefront:note-1.tie",
+        "type": "tie",
+        "alias": 29,
+        "from": "example.yaml.overview.shop.customer-facing.storefront:note-1",
+        "to": "example.yaml.overview.shop.customer-facing.storefront",
+        "toPort": "example.yaml.overview.shop.customer-facing.storefront.port.https"
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.authorize-message-reserve-stock": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.authorize-message-reserve-stock",
+        "name": "reserve",
+        "type": "message",
+        "alias": 33,
+        "from": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:authorize",
+        "order": 3,
+        "to": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:reserve-stock"
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.confirm-order-message-confirm-order": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.confirm-order-message-confirm-order",
+        "name": "log step",
+        "type": "message",
+        "alias": 34,
+        "from": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:confirm-order",
+        "order": 4,
+        "to": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:confirm-order"
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.reserve-stock-reply-confirm-order": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.reserve-stock-reply-confirm-order",
+        "name": "reserved",
+        "type": "reply",
+        "alias": 35,
+        "from": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:reserve-stock",
+        "order": 5,
+        "to": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:confirm-order"
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.route-checkout-message-start-saga": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.route-checkout-message-start-saga",
+        "name": "start",
+        "type": "message",
+        "alias": 31,
+        "from": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:route-checkout",
+        "order": 1,
+        "to": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:start-saga"
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.start-saga-message-authorize": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.start-saga-message-authorize",
+        "name": "charge",
+        "type": "message",
+        "alias": 32,
+        "from": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:start-saga",
+        "order": 2,
+        "to": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:authorize"
+      },
+      "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.submit-cart-message-route-checkout": {
+        "id": "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.submit-cart-message-route-checkout",
+        "name": "checkout",
+        "type": "message",
+        "alias": 30,
+        "from": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:submit-cart",
+        "order": 0,
+        "to": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:route-checkout"
+      },
+      "example.yaml.overview.shop.how-it-runs.2-fulfilment.r.book-carrier-mark-shipped": {
+        "id": "example.yaml.overview.shop.how-it-runs.2-fulfilment.r.book-carrier-mark-shipped",
+        "name": "tracking number",
+        "alias": 38,
+        "from": "example.yaml.overview.shop.how-it-runs.2-fulfilment:book-carrier",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.how-it-runs.2-fulfilment:mark-shipped"
+      },
+      "example.yaml.overview.shop.how-it-runs.2-fulfilment.r.pick-items-book-carrier": {
+        "id": "example.yaml.overview.shop.how-it-runs.2-fulfilment.r.pick-items-book-carrier",
+        "name": "picked",
+        "alias": 37,
+        "from": "example.yaml.overview.shop.how-it-runs.2-fulfilment:pick-items",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.how-it-runs.2-fulfilment:book-carrier"
+      },
+      "example.yaml.overview.shop.how-it-runs.2-fulfilment.r.publish-placed-pick-items": {
+        "id": "example.yaml.overview.shop.how-it-runs.2-fulfilment.r.publish-placed-pick-items",
+        "name": "order placed",
+        "alias": 36,
+        "from": "example.yaml.overview.shop.how-it-runs.2-fulfilment:publish-placed",
+        "order": 0,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.how-it-runs.2-fulfilment:pick-items"
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment.r.gateway-pod-storefront-pod": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment.r.gateway-pod-storefront-pod",
+        "alias": 39,
+        "from": "example.yaml.overview.shop.how-it-runs.3-deployment:gateway-pod",
+        "order": 0,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.how-it-runs.3-deployment:storefront-pod"
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment.r.orders-pod-orders-primary": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment.r.orders-pod-orders-primary",
+        "alias": 41,
+        "from": "example.yaml.overview.shop.how-it-runs.3-deployment:orders-pod",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.how-it-runs.3-deployment:orders-primary"
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment.r.orders-primary-orders-replica": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment.r.orders-primary-orders-replica",
+        "name": "replicates",
+        "alias": 42,
+        "from": "example.yaml.overview.shop.how-it-runs.3-deployment:orders-primary",
+        "order": 3,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.how-it-runs.3-deployment:orders-replica"
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment.r.storefront-pod-orders-pod": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment.r.storefront-pod-orders-pod",
+        "alias": 40,
+        "from": "example.yaml.overview.shop.how-it-runs.3-deployment:storefront-pod",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.how-it-runs.3-deployment:orders-pod"
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:note-1.tie": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:note-1.tie",
+        "type": "tie",
+        "alias": 43,
+        "from": "example.yaml.overview.shop.how-it-runs.3-deployment:note-1",
+        "to": "example.yaml.overview.shop.how-it-runs.3-deployment:eu-west-cluster"
+      },
+      "example.yaml.overview.shop.how-it-runs.3-deployment:note-2.tie": {
+        "id": "example.yaml.overview.shop.how-it-runs.3-deployment:note-2.tie",
+        "type": "tie",
+        "alias": 44,
+        "from": "example.yaml.overview.shop.how-it-runs.3-deployment:note-2",
+        "to": "example.yaml.overview.shop.how-it-runs.3-deployment:shop-namespace"
+      },
+      "example.yaml.overview.shop.r.gateway-routes-storefront-https": {
+        "id": "example.yaml.overview.shop.r.gateway-routes-storefront-https",
+        "name": "routes",
+        "alias": 6,
+        "from": "example.yaml.overview.shop:customer-facing:gateway",
+        "fromPort": "services.yaml.patterns.api-gateway.port.routes",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.customer-facing.storefront",
+        "toPort": "example.yaml.overview.shop.customer-facing.storefront.port.https"
+      },
+      "example.yaml.overview.shop.r.hot-path-tie-gateway": {
+        "id": "example.yaml.overview.shop.r.hot-path-tie-gateway",
+        "type": "tie",
+        "alias": 4,
+        "from": "example.yaml.overview.shop:hot-path",
+        "order": 0,
+        "to": "example.yaml.overview.shop:customer-facing:gateway"
+      },
+      "example.yaml.overview.shop.r.https-gateway-requests": {
+        "id": "example.yaml.overview.shop.r.https-gateway-requests",
+        "alias": 5,
+        "from": "example.yaml.overview.shop",
+        "fromPort": "example.yaml.overview.shop.port.https",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop:customer-facing:gateway",
+        "toPort": "services.yaml.patterns.api-gateway.port.requests"
+      },
+      "example.yaml.overview.shop.r.orders-events-inventory-events": {
+        "id": "example.yaml.overview.shop.r.orders-events-inventory-events",
+        "name": "reserve",
+        "alias": 10,
+        "from": "example.yaml.overview.shop.back-office.orders",
+        "fromPort": "services.yaml.patterns.transactional-outbox.port.events",
+        "order": 6,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop:back-office:inventory",
+        "toPort": "example.yaml.overview.shop:back-office:inventory.port.events"
+      },
+      "example.yaml.overview.shop.r.orders-events-shipping-events": {
+        "id": "example.yaml.overview.shop.r.orders-events-shipping-events",
+        "name": "ship",
+        "alias": 11,
+        "from": "example.yaml.overview.shop.back-office.orders",
+        "fromPort": "services.yaml.patterns.transactional-outbox.port.events",
+        "order": 7,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop:back-office:shipping",
+        "toPort": "example.yaml.overview.shop:back-office:shipping.port.events"
+      },
+      "example.yaml.overview.shop.r.payments-remote-charges": {
+        "id": "example.yaml.overview.shop.r.payments-remote-charges",
+        "alias": 9,
+        "from": "example.yaml.overview.shop.back-office.payments",
+        "fromPort": "services.yaml.patterns.circuit-breaker.port.remote",
+        "order": 5,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop",
+        "toPort": "example.yaml.overview.shop.port.charges"
+      },
+      "example.yaml.overview.shop.r.shipping-carrier-shipments": {
+        "id": "example.yaml.overview.shop.r.shipping-carrier-shipments",
+        "alias": 12,
+        "from": "example.yaml.overview.shop:back-office:shipping",
+        "fromPort": "example.yaml.overview.shop:back-office:shipping.port.carrier",
+        "order": 8,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop",
+        "toPort": "example.yaml.overview.shop.port.shipments"
+      },
+      "example.yaml.overview.shop.r.storefront-orders-orders-in": {
+        "id": "example.yaml.overview.shop.r.storefront-orders-orders-in",
+        "name": "placed",
+        "alias": 8,
+        "from": "example.yaml.overview.shop.customer-facing.storefront",
+        "fromPort": "example.yaml.overview.shop.customer-facing.storefront.port.orders",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.back-office.orders",
+        "toPort": "example.yaml.overview.shop.back-office.orders.port.in"
+      },
+      "example.yaml.overview.shop.r.storefront-pay-payments-in": {
+        "id": "example.yaml.overview.shop.r.storefront-pay-payments-in",
+        "name": "pay",
+        "alias": 7,
+        "from": "example.yaml.overview.shop.customer-facing.storefront",
+        "fromPort": "example.yaml.overview.shop.customer-facing.storefront.port.pay",
+        "order": 3,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "example.yaml.overview.shop.back-office.payments",
+        "toPort": "services.yaml.patterns.circuit-breaker.port.in"
+      },
+      "services.yaml.patterns.anti-corruption-layer.r.client-integrates-out": {
+        "id": "services.yaml.patterns.anti-corruption-layer.r.client-integrates-out",
+        "type": "services.integrates",
+        "alias": 4,
+        "from": "services.yaml.patterns.anti-corruption-layer:client",
+        "order": 3,
+        "to": "services.yaml.patterns.anti-corruption-layer",
+        "toPort": "services.yaml.patterns.anti-corruption-layer.port.out"
+      },
+      "services.yaml.patterns.anti-corruption-layer.r.facade-calls-translator": {
+        "id": "services.yaml.patterns.anti-corruption-layer.r.facade-calls-translator",
+        "type": "services.calls",
+        "alias": 2,
+        "from": "services.yaml.patterns.anti-corruption-layer:facade",
+        "order": 1,
+        "to": "services.yaml.patterns.anti-corruption-layer:translator"
+      },
+      "services.yaml.patterns.anti-corruption-layer.r.in-calls-facade": {
+        "id": "services.yaml.patterns.anti-corruption-layer.r.in-calls-facade",
+        "type": "services.calls",
+        "alias": 1,
+        "from": "services.yaml.patterns.anti-corruption-layer",
+        "fromPort": "services.yaml.patterns.anti-corruption-layer.port.in",
+        "order": 0,
+        "to": "services.yaml.patterns.anti-corruption-layer:facade"
+      },
+      "services.yaml.patterns.anti-corruption-layer.r.translator-calls-client": {
+        "id": "services.yaml.patterns.anti-corruption-layer.r.translator-calls-client",
+        "type": "services.calls",
+        "alias": 3,
+        "from": "services.yaml.patterns.anti-corruption-layer:translator",
+        "order": 2,
+        "to": "services.yaml.patterns.anti-corruption-layer:client"
+      },
+      "services.yaml.patterns.anti-corruption-layer:note-2.tie": {
+        "id": "services.yaml.patterns.anti-corruption-layer:note-2.tie",
+        "type": "tie",
+        "alias": 5,
+        "from": "services.yaml.patterns.anti-corruption-layer:note-2",
+        "to": "services.yaml.patterns.anti-corruption-layer:facade"
+      },
+      "services.yaml.patterns.anti-corruption-layer:note-3.tie": {
+        "id": "services.yaml.patterns.anti-corruption-layer:note-3.tie",
+        "type": "tie",
+        "alias": 6,
+        "from": "services.yaml.patterns.anti-corruption-layer:note-3",
+        "to": "services.yaml.patterns.anti-corruption-layer:translator"
+      },
+      "services.yaml.patterns.anti-corruption-layer:note-4.tie": {
+        "id": "services.yaml.patterns.anti-corruption-layer:note-4.tie",
+        "type": "tie",
+        "alias": 7,
+        "from": "services.yaml.patterns.anti-corruption-layer:note-4",
+        "to": "services.yaml.patterns.anti-corruption-layer:client"
+      },
+      "services.yaml.patterns.api-gateway.r.auth-calls-rate-limit": {
+        "id": "services.yaml.patterns.api-gateway.r.auth-calls-rate-limit",
+        "type": "services.calls",
+        "alias": 9,
+        "from": "services.yaml.patterns.api-gateway:auth",
+        "order": 1,
+        "to": "services.yaml.patterns.api-gateway:rate-limit"
+      },
+      "services.yaml.patterns.api-gateway.r.rate-limit-calls-router": {
+        "id": "services.yaml.patterns.api-gateway.r.rate-limit-calls-router",
+        "type": "services.calls",
+        "alias": 10,
+        "from": "services.yaml.patterns.api-gateway:rate-limit",
+        "order": 2,
+        "to": "services.yaml.patterns.api-gateway:router"
+      },
+      "services.yaml.patterns.api-gateway.r.requests-calls-auth": {
+        "id": "services.yaml.patterns.api-gateway.r.requests-calls-auth",
+        "type": "services.calls",
+        "alias": 8,
+        "from": "services.yaml.patterns.api-gateway",
+        "fromPort": "services.yaml.patterns.api-gateway.port.requests",
+        "order": 0,
+        "to": "services.yaml.patterns.api-gateway:auth"
+      },
+      "services.yaml.patterns.api-gateway.r.router-calls-routes": {
+        "id": "services.yaml.patterns.api-gateway.r.router-calls-routes",
+        "type": "services.calls",
+        "alias": 11,
+        "from": "services.yaml.patterns.api-gateway:router",
+        "order": 3,
+        "to": "services.yaml.patterns.api-gateway",
+        "toPort": "services.yaml.patterns.api-gateway.port.routes"
+      },
+      "services.yaml.patterns.api-gateway:note-2.tie": {
+        "id": "services.yaml.patterns.api-gateway:note-2.tie",
+        "type": "tie",
+        "alias": 12,
+        "from": "services.yaml.patterns.api-gateway:note-2",
+        "to": "services.yaml.patterns.api-gateway:auth"
+      },
+      "services.yaml.patterns.api-gateway:note-3.tie": {
+        "id": "services.yaml.patterns.api-gateway:note-3.tie",
+        "type": "tie",
+        "alias": 13,
+        "from": "services.yaml.patterns.api-gateway:note-3",
+        "to": "services.yaml.patterns.api-gateway:rate-limit"
+      },
+      "services.yaml.patterns.api-gateway:note-4.tie": {
+        "id": "services.yaml.patterns.api-gateway:note-4.tie",
+        "type": "tie",
+        "alias": 14,
+        "from": "services.yaml.patterns.api-gateway:note-4",
+        "to": "services.yaml.patterns.api-gateway:router"
+      },
+      "services.yaml.patterns.circuit-breaker.r.breaker-fallback": {
+        "id": "services.yaml.patterns.circuit-breaker.r.breaker-fallback",
+        "name": "open",
+        "alias": 18,
+        "from": "services.yaml.patterns.circuit-breaker:breaker",
+        "order": 3,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "services.yaml.patterns.circuit-breaker:fallback"
+      },
+      "services.yaml.patterns.circuit-breaker.r.breaker-remote": {
+        "id": "services.yaml.patterns.circuit-breaker.r.breaker-remote",
+        "name": "closed",
+        "alias": 17,
+        "from": "services.yaml.patterns.circuit-breaker:breaker",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "services.yaml.patterns.circuit-breaker",
+        "toPort": "services.yaml.patterns.circuit-breaker.port.remote"
+      },
+      "services.yaml.patterns.circuit-breaker.r.caller-calls-breaker": {
+        "id": "services.yaml.patterns.circuit-breaker.r.caller-calls-breaker",
+        "type": "services.calls",
+        "alias": 16,
+        "from": "services.yaml.patterns.circuit-breaker:caller",
+        "order": 1,
+        "to": "services.yaml.patterns.circuit-breaker:breaker"
+      },
+      "services.yaml.patterns.circuit-breaker.r.in-calls-caller": {
+        "id": "services.yaml.patterns.circuit-breaker.r.in-calls-caller",
+        "type": "services.calls",
+        "alias": 15,
+        "from": "services.yaml.patterns.circuit-breaker",
+        "fromPort": "services.yaml.patterns.circuit-breaker.port.in",
+        "order": 0,
+        "to": "services.yaml.patterns.circuit-breaker:caller"
+      },
+      "services.yaml.patterns.circuit-breaker:note-2.tie": {
+        "id": "services.yaml.patterns.circuit-breaker:note-2.tie",
+        "type": "tie",
+        "alias": 19,
+        "from": "services.yaml.patterns.circuit-breaker:note-2",
+        "to": "services.yaml.patterns.circuit-breaker:breaker"
+      },
+      "services.yaml.patterns.circuit-breaker:note-3.tie": {
+        "id": "services.yaml.patterns.circuit-breaker:note-3.tie",
+        "type": "tie",
+        "alias": 20,
+        "from": "services.yaml.patterns.circuit-breaker:note-3",
+        "to": "services.yaml.patterns.circuit-breaker:fallback"
+      },
+      "services.yaml.patterns.layered-architecture.r.api-calls-domain-logic": {
+        "id": "services.yaml.patterns.layered-architecture.r.api-calls-domain-logic",
+        "type": "services.calls",
+        "alias": 22,
+        "from": "services.yaml.patterns.layered-architecture:api",
+        "order": 1,
+        "to": "services.yaml.patterns.layered-architecture:domain-logic"
+      },
+      "services.yaml.patterns.layered-architecture.r.domain-logic-calls-repository": {
+        "id": "services.yaml.patterns.layered-architecture.r.domain-logic-calls-repository",
+        "type": "services.calls",
+        "alias": 23,
+        "from": "services.yaml.patterns.layered-architecture:domain-logic",
+        "order": 2,
+        "to": "services.yaml.patterns.layered-architecture:repository"
+      },
+      "services.yaml.patterns.layered-architecture.r.repository-reads-store": {
+        "id": "services.yaml.patterns.layered-architecture.r.repository-reads-store",
+        "type": "services.reads",
+        "alias": 24,
+        "from": "services.yaml.patterns.layered-architecture:repository",
+        "order": 3,
+        "to": "services.yaml.patterns.layered-architecture:store"
+      },
+      "services.yaml.patterns.layered-architecture.r.requests-calls-api": {
+        "id": "services.yaml.patterns.layered-architecture.r.requests-calls-api",
+        "type": "services.calls",
+        "alias": 21,
+        "from": "services.yaml.patterns.layered-architecture",
+        "fromPort": "services.yaml.patterns.layered-architecture.port.requests",
+        "order": 0,
+        "to": "services.yaml.patterns.layered-architecture:api"
+      },
+      "services.yaml.patterns.layered-architecture:note-2.tie": {
+        "id": "services.yaml.patterns.layered-architecture:note-2.tie",
+        "type": "tie",
+        "alias": 25,
+        "from": "services.yaml.patterns.layered-architecture:note-2",
+        "to": "services.yaml.patterns.layered-architecture:api"
+      },
+      "services.yaml.patterns.layered-architecture:note-3.tie": {
+        "id": "services.yaml.patterns.layered-architecture:note-3.tie",
+        "type": "tie",
+        "alias": 26,
+        "from": "services.yaml.patterns.layered-architecture:note-3",
+        "to": "services.yaml.patterns.layered-architecture:domain-logic"
+      },
+      "services.yaml.patterns.layered-architecture:note-4.tie": {
+        "id": "services.yaml.patterns.layered-architecture:note-4.tie",
+        "type": "tie",
+        "alias": 27,
+        "from": "services.yaml.patterns.layered-architecture:note-4",
+        "to": "services.yaml.patterns.layered-architecture:repository"
+      },
+      "services.yaml.patterns.saga-orchestrator.r.orchestrator-bus": {
+        "id": "services.yaml.patterns.saga-orchestrator.r.orchestrator-bus",
+        "name": "commands / replies",
+        "alias": 30,
+        "from": "services.yaml.patterns.saga-orchestrator:orchestrator",
+        "order": 2,
+        "settings": {
+          "line": {
+            "dir": "both"
+          }
+        },
+        "to": "services.yaml.patterns.saga-orchestrator",
+        "toPort": "services.yaml.patterns.saga-orchestrator.port.bus"
+      },
+      "services.yaml.patterns.saga-orchestrator.r.orchestrator-compensations": {
+        "id": "services.yaml.patterns.saga-orchestrator.r.orchestrator-compensations",
+        "name": "on failure",
+        "alias": 31,
+        "from": "services.yaml.patterns.saga-orchestrator:orchestrator",
+        "order": 3,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "services.yaml.patterns.saga-orchestrator:compensations"
+      },
+      "services.yaml.patterns.saga-orchestrator.r.orchestrator-reads-saga-log": {
+        "id": "services.yaml.patterns.saga-orchestrator.r.orchestrator-reads-saga-log",
+        "type": "services.reads",
+        "alias": 29,
+        "from": "services.yaml.patterns.saga-orchestrator:orchestrator",
+        "order": 1,
+        "to": "services.yaml.patterns.saga-orchestrator:saga-log"
+      },
+      "services.yaml.patterns.saga-orchestrator.r.start-calls-orchestrator": {
+        "id": "services.yaml.patterns.saga-orchestrator.r.start-calls-orchestrator",
+        "type": "services.calls",
+        "alias": 28,
+        "from": "services.yaml.patterns.saga-orchestrator",
+        "fromPort": "services.yaml.patterns.saga-orchestrator.port.start",
+        "order": 0,
+        "to": "services.yaml.patterns.saga-orchestrator:orchestrator"
+      },
+      "services.yaml.patterns.saga-orchestrator:note-2.tie": {
+        "id": "services.yaml.patterns.saga-orchestrator:note-2.tie",
+        "type": "tie",
+        "alias": 32,
+        "from": "services.yaml.patterns.saga-orchestrator:note-2",
+        "to": "services.yaml.patterns.saga-orchestrator:saga-log"
+      },
+      "services.yaml.patterns.saga-orchestrator:note-3.tie": {
+        "id": "services.yaml.patterns.saga-orchestrator:note-3.tie",
+        "type": "tie",
+        "alias": 33,
+        "from": "services.yaml.patterns.saga-orchestrator:note-3",
+        "to": "services.yaml.patterns.saga-orchestrator:compensations"
+      },
+      "services.yaml.patterns.transactional-outbox.r.api-calls-domain-logic": {
+        "id": "services.yaml.patterns.transactional-outbox.r.api-calls-domain-logic",
+        "type": "services.calls",
+        "alias": 35,
+        "from": "services.yaml.patterns.transactional-outbox:api",
+        "order": 1,
+        "to": "services.yaml.patterns.transactional-outbox:domain-logic"
+      },
+      "services.yaml.patterns.transactional-outbox.r.domain-logic-outbox": {
+        "id": "services.yaml.patterns.transactional-outbox.r.domain-logic-outbox",
+        "name": "same transaction",
+        "alias": 38,
+        "from": "services.yaml.patterns.transactional-outbox:domain-logic",
+        "order": 4,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "services.yaml.patterns.transactional-outbox:outbox"
+      },
+      "services.yaml.patterns.transactional-outbox.r.domain-logic-reads-store": {
+        "id": "services.yaml.patterns.transactional-outbox.r.domain-logic-reads-store",
+        "type": "services.reads",
+        "alias": 36,
+        "from": "services.yaml.patterns.transactional-outbox:domain-logic",
+        "order": 2,
+        "to": "services.yaml.patterns.transactional-outbox:store"
+      },
+      "services.yaml.patterns.transactional-outbox.r.relay-publishes-events": {
+        "id": "services.yaml.patterns.transactional-outbox.r.relay-publishes-events",
+        "type": "services.publishes",
+        "alias": 39,
+        "from": "services.yaml.patterns.transactional-outbox:relay",
+        "order": 5,
+        "to": "services.yaml.patterns.transactional-outbox",
+        "toPort": "services.yaml.patterns.transactional-outbox.port.events"
+      },
+      "services.yaml.patterns.transactional-outbox.r.relay-reads-outbox": {
+        "id": "services.yaml.patterns.transactional-outbox.r.relay-reads-outbox",
+        "type": "services.reads",
+        "alias": 37,
+        "from": "services.yaml.patterns.transactional-outbox:relay",
+        "order": 3,
+        "to": "services.yaml.patterns.transactional-outbox:outbox"
+      },
+      "services.yaml.patterns.transactional-outbox.r.requests-calls-api": {
+        "id": "services.yaml.patterns.transactional-outbox.r.requests-calls-api",
+        "type": "services.calls",
+        "alias": 34,
+        "from": "services.yaml.patterns.transactional-outbox",
+        "fromPort": "services.yaml.patterns.transactional-outbox.port.requests",
+        "order": 0,
+        "to": "services.yaml.patterns.transactional-outbox:api"
+      },
+      "services.yaml.patterns.transactional-outbox:note-2.tie": {
+        "id": "services.yaml.patterns.transactional-outbox:note-2.tie",
+        "type": "tie",
+        "alias": 40,
+        "from": "services.yaml.patterns.transactional-outbox:note-2",
+        "to": "services.yaml.patterns.transactional-outbox:domain-logic"
+      },
+      "services.yaml.patterns.transactional-outbox:note-3.tie": {
+        "id": "services.yaml.patterns.transactional-outbox:note-3.tie",
+        "type": "tie",
+        "alias": 41,
+        "from": "services.yaml.patterns.transactional-outbox:note-3",
+        "to": "services.yaml.patterns.transactional-outbox:outbox"
+      },
+      "services.yaml.patterns.transactional-outbox:note-4.tie": {
+        "id": "services.yaml.patterns.transactional-outbox:note-4.tie",
+        "type": "tie",
+        "alias": 42,
+        "from": "services.yaml.patterns.transactional-outbox:note-4",
+        "to": "services.yaml.patterns.transactional-outbox:relay"
+      }
+    }
+  }
+}

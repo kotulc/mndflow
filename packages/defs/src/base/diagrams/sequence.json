@@ -13,9 +13,9 @@
   ],
   "settings": {
     "style": {
-      "hue": 320
+      "hue": 310
     },
-    "layout": {
+    "diagram": {
       "view": "allocation"
     },
     "holder": {

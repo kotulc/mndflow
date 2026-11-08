@@ -21,7 +21,7 @@ npm run start -w @mnd/cli -- fold related    # the one to try first
 |---|---|
 | `fold` | fold a log and print the block tree |
 | `check` | run the door, print faults and repairs; a source folder is collected first |
-| `project` | project a layer and draw the Scene as text; a layer naming a diagram (`layout.view`) is projected as that diagram |
+| `project` | project a layer and draw the Scene as text; a layer whose kind names a diagram (`diagram.view`) is projected as that diagram |
 | `outline` | list what a projection holds — composition rather than placement |
 | `review` | ask what the definitions wanted |
 | `run` | apply an action and print what it wrote |
@@ -30,7 +30,7 @@ npm run start -w @mnd/cli -- fold related    # the one to try first
 | `export` | fold and write the file |
 | `collect` | a source folder — definition files, diagram files, markdown cards, and the packages they list — as one package file, or with `--workspace` as the workspace: `collect <folder> [out.json]` |
 
-`<source>` is a fixture name, an exported file, a raw log, or a source folder — **a log is harness input only**, since a file is a graph. `--how` sets the layout, `--layer` which layer, `--from` the catalogue `search` reads, and `--with` a vocabulary to bring in first. `--svg` draws instead of printing, and `--round` checks a translation comes back. A value said as `k=@path` is that file's text: `run x.json attach id=pump text=@cards/pump.md`.
+`<source>` is a fixture name, an exported file, a raw log, or a source folder — **a log is harness input only**, since a file is a graph. `--how` sets the layer's placing (`diagram.placing`), `--layer` which layer, `--from` the catalogue `search` reads, and `--with` a vocabulary to bring in first. `--svg` draws instead of printing, and `--round` checks a translation comes back. A value said as `k=@path` is that file's text: `run x.json attach id=pump text=@cards/pump.md`.
 
 ## Why it exists
 

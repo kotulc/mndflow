@@ -1,16 +1,14 @@
 /** What a relationship looks like. */
 
-import { createContext, useContext, type CSSProperties } from "react";
-import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
-import { avoided_run, crossed, drawn, end_words, heads, middle_of, route, BARE, UNIT,
-         type LineEdge, type Wire as Look } from "@mnd/views";
+import { createContext, useCallback, useContext, useState, type CSSProperties } from "react";
+import { BaseEdge, EdgeLabelRenderer, useStore, type EdgeProps } from "@xyflow/react";
+import { avoided_run, crossed, drawn, end_words, heads, line_level, name_box, route, BARE, NAMED,
+         TEXT_BAND, UNIT, type LineEdge, type NameBox, type Wire as Look } from "@mnd/views";
 import { head_url, Heads, Name, useNaming } from "@mnd/theme";
+import { usePicks } from "./picked";
 
 /** How square a right-angled corner is. */
 const BEND = 6;
-/** How far above its run a name that reads level sits. */
-const LIFT = 8;
-
 /** How far in from its end the cross saying an end cannot be reached sits: half a unit, clear of
  *  the head and of the middle. */
 const CROSS_IN = UNIT / 2;
@@ -18,8 +16,8 @@ const CROSS_IN = UNIT / 2;
 /** Half the cross's arms. */
 const CROSS = 4;
 
-/** How far the words of an end sit along the line from it, and out to its side. */
-const WORDS = { along: 14, out: 9 };
+/** How far the words of an end start along the line from it, and how far out to its side. */
+const WORDS = { along: 6, out: 3 };
 
 type Pt = { x: number; y: number };
 
@@ -43,15 +41,32 @@ function cross_at(run: readonly Pt[], way: "from" | "to"): string {
     + `M ${at.x - v.x} ${at.y - v.y} L ${at.x + v.x} ${at.y + v.y}`;
 }
 
-/** Where an end's words sit: a little along the line, out to one side. */
-function words_at(run: readonly Pt[], way: "from" | "to"): Pt {
+/** **Where an end's words sit**: they start a little along the line and grow away from the card,
+ *  beside the stroke — above a level leg, right of an upright one — so they never cover the card
+ *  or the line. A CSS transform from the point. */
+function words_at(run: readonly Pt[], way: "from" | "to"): string {
   const { at, dir } = along(run, way, WORDS.along);
-  return { x: at.x - dir.y * WORDS.out, y: at.y + dir.x * WORDS.out };
+  const level = Math.abs(dir.x) >= Math.abs(dir.y);
+  const [x, y] = level ? [at.x, at.y - WORDS.out] : [at.x + WORDS.out, at.y];
+  const shift = level ? `${dir.x < 0 ? "-100%" : "0"}, -100%` : `0, ${dir.y < 0 ? "-100%" : "0"}`;
+  return `translate(${x}px, ${y}px) translate(${shift})`;
 }
 
 /** The runs routed round cards for the drawing as it stands, by line. */
 export const RunsContext = createContext<ReadonlyMap<string, readonly { x: number; y: number }[]>>(
   new Map());
+
+/** Every card's box as it stands, which a line's name keeps clear of. */
+export const CardsContext = createContext<readonly { x: number; y: number; w: number; h: number }[]>(
+  []);
+
+/** Where a name's box is set from, by the side of its leg it sits on. */
+const BESIDE: Record<NameBox["side"], (b: NameBox) => string> = {
+  above: (b) => `translate(${b.at.x}px, ${b.at.y - NAMED.lift}px) translate(-50%, -50%)`,
+  below: (b) => `translate(${b.at.x}px, ${b.at.y + NAMED.lift}px) translate(-50%, -50%)`,
+  right: (b) => `translate(${b.at.x + NAMED.aside}px, ${b.at.y}px) translate(0, -50%)`,
+  left: (b) => `translate(${b.at.x - NAMED.aside}px, ${b.at.y}px) translate(-100%, -50%)`,
+};
 
 /** How a run paints itself, as the attributes `card.css` already reads. */
 function paint(look: Look): { attrs: Record<string, string>; style: CSSProperties } {
@@ -69,23 +84,29 @@ function paint(look: Look): { attrs: Record<string, string>; style: CSSPropertie
       ...stated("name-weight", look.name_weight),
       ...stated("name-contrast", look.name_contrast),
     },
-    style: {
-      ...(tinted ? {
-        "--card-h": String(look.hue),
-        "--card-c": `calc(var(--tint-ceiling) * ${look.intensity ?? 0.65})`,
-      } : {}),
-      ...(look.opacity !== undefined ? { opacity: look.opacity } : {}),
-    } as CSSProperties,
+    style: (tinted ? { "--card-h": String(look.hue) } : {}) as CSSProperties,
   };
 }
 
+/** A run's length, in layout units. */
+function length_of(run: readonly Pt[]): number {
+  return run.slice(1).reduce((n, q, i) => n + Math.hypot(q.x - run[i]!.x, q.y - run[i]!.y), 0);
+}
+
+/** **A line climbs the ladder by its length on screen** (views `line_level`): its stroke, its
+ *  anchors, its name beside the stroke, its ends' words. Nothing sits on the stroke. Hovered or
+ *  picked, it thickens and says its ends at any level. */
 export function Wire(props: EdgeProps<LineEdge>) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
           label, data, style } = props;
+  /** A line drawn for several (`×n`) is picked when any of them is. */
+  const selected = usePicks([id, ...(data?.also ?? [])]).length > 0;
+  const [hot, set_hot] = useState(false);
 
   /** A line with no name still has somewhere to type one. */
   const naming = useNaming();
   const runs = useContext(RunsContext);
+  const cards = useContext(CardsContext);
   /** The run routed round cards, while it still meets both ends; else straight or one Z, turning
    *  where its lines fan. A tie runs straight. */
   const routed = avoided_run(runs.get(id), { x: sourceX, y: sourceY }, { x: targetX, y: targetY });
@@ -100,56 +121,72 @@ export function Wire(props: EdgeProps<LineEdge>) {
                       { x: targetX, y: targetY }, targetPosition,
                       data?.fan, data?.module === "tie");
   const fan = given || routed ? undefined : data?.fan;
-  /** Drawn at its world scale: the run in its own units, the stroke and its heads scaled with it. */
-  const k = data?.scale ?? 1;
-  const path = drawn(k === 1 ? run : run.map((p) => ({ x: p.x / k, y: p.y / k })), BEND);
-  const zoom = k === 1 ? "" : ` scale(${k})`;
+  const path = drawn(run, BEND);
   const look = data?.wire ?? BARE;
+  /** **Its anchors**: a head where it has one, else a short bar where it meets the card; a tie
+   *  none. */
+  const anchor = (h: string) => (h === "none" && data?.module !== "tie" ? "bar" : h);
   const end = heads(data);
   const { attrs, style: tint } = paint(look);
 
-  /** The name and the handle, composed rather than folded together. */
+  /** The name and the handle, composed rather than folded together; then how many it stands for,
+   *  never a thicker stroke. */
   const middle = [label ? String(label) : "", data?.alias ?? ""]
     .filter(Boolean).join(" ");
-  /** Too wide for its leg, a name reads upright across it — unless it reads level, above. */
-  const at = middle_of(run, fan, middle.length);
-  const { x, y, upright } = data?.level ? { ...at, y: at.y - LIFT, upright: false } : at;
+  const times = data?.times ? `×${data.times}` : "";
+  /** Beside its longest leg clear of the cards (views `name_box`): above or below it where it is
+   *  level, right or left of it where it is upright. */
+  const box = name_box(run, middle.length + times.length, fan, data?.level, cards);
+  const beside = BESIDE[box.side](box);
+  const length = length_of(run);
+  const level = useStore(useCallback((st) => {
+    const k = st.transform[2];
+    return line_level(length, k, (middle.length + times.length) * NAMED.glyph
+      * Math.min(TEXT_BAND.high, Math.max(TEXT_BAND.low, k)));
+  }, [length, middle.length, times.length]));
+  const loud = hot || !!selected;
+  const named = level >= 2 || loud || naming.id === id;
+  const ends = level >= 3 || loud;
 
   return (
     <>
-      <g className="mnd-wire" {...attrs} style={tint}
-         {...(k === 1 ? {} : { transform: `scale(${k})` })}>
+      <g className={["mnd-wire", loud ? "hot" : "", selected ? "picked" : ""]
+           .filter(Boolean).join(" ")} {...attrs} style={tint}
+         onMouseEnter={() => set_hot(true)} onMouseLeave={() => set_hot(false)}>
         <BaseEdge id={id} path={path} style={style}
-                  markerStart={head_url(end.from)} markerEnd={head_url(end.to)} />
+                  {...(level >= 1 || loud
+                    ? { markerStart: head_url(anchor(end.from)),
+                        markerEnd: head_url(anchor(end.to)) } : {})} />
         {/* A double line is two strokes, not a thicker one. */}
         {look.border_style === "double"
           ? <path className="mnd-wire-core" d={path} /> : null}
         {(["from", "to"] as const).filter((way) => crossed(data, way)).map((way) => (
           <path key={way} className="mnd-wire-cross"
-                d={cross_at(run.map((p) => ({ x: p.x / k, y: p.y / k })), way)} />
+                d={cross_at(run, way)} />
         ))}
       </g>
       {(["from", "to"] as const).map((way) => {
         const words = end_words(data, way);
-        if (!words) return null;
-        const at = words_at(run, way);
+        if (!words || !ends) return null;
         return (
           <EdgeLabelRenderer key={way}>
             <div className={`mnd-wire-end nodrag nopan${data?.away ? " mnd-out" : ""}`} {...attrs}
-                 style={{ ...tint, transform: `translate(${at.x}px, ${at.y}px)${zoom} translate(-50%, -50%)` }}>
+                 data-edge={id}
+                 style={{ ...tint, transform: words_at(run, way) }}>
               {words}
             </div>
           </EdgeLabelRenderer>
         );
       })}
-      {middle || naming.id === id ? (
+      {((middle || times) && named) || naming.id === id ? (
         <EdgeLabelRenderer>
           {/* `nodrag` and `nopan`, so a press on a name does not pan. */}
-          <div className={`mnd-wire-name nodrag nopan${data?.away ? " mnd-out" : ""}`} data-edge={id} {...attrs}
-               style={{ ...tint,
-                        transform: `translate(${x}px, ${y}px)${zoom}${upright ? " rotate(-90deg)" : ""} translate(-50%, -50%)` }}
+          <div className={`mnd-wire-name nodrag nopan${data?.away ? " mnd-out" : ""}${selected ? " picked" : ""}`}
+               data-edge={id} {...attrs}
+               style={{ ...tint, transform: beside }}
                title={middle}>
             <Name id={id} className="mnd-wire-text card-name" text={middle} />
+            {times ? <span className="mnd-wire-times">{times}</span> : null}
           </div>
         </EdgeLabelRenderer>
       ) : null}

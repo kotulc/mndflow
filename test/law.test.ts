@@ -15,6 +15,7 @@ const ALLOWED: Record<string, readonly string[]> = {
   theme: [],
   /** Sizing, placement and the notation, in one package. */
   views: ["core"],
+  /** A row's colour edge and count are data its host hands it (2026-10-31). */
   explorer: ["core", "theme"],
   /** The drawing, and the components it draws with. */
   stage: ["core", "views", "theme"],

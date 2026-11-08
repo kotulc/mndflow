@@ -1,14 +1,15 @@
-/** The workspace tab, laid out as every overview is: what it files on the left; why, how and
- *  where on the right; then the display — how every room and view draws, workspace-wide. Given no
+/** **The workspace and a package, elements like any other**: their overview's answers, and the
+ *  workspace's settings, the display: how every room and view draws, workspace-wide. Given no
  *  `onAct` the workspace itself is read only; its display still answers `onDisplay`, since how a
  *  drawing looks is the session's and changes nothing. */
 
-import { all_defs, def_at, file_name, packages, SCHEMA, shown_name,
-         type Act, type Graph } from "@mnd/core";
+import { all_defs, def_at, file_name, package_of, packages, SCHEMA, shown_name,
+         type Act, type Graph, type Id } from "@mnd/core";
 import { Band, Body, Check, Line, NOOP, Pick } from "./Body";
+import { Content } from "./Content";
 import { Entry } from "./Entry";
-import { Picture } from "./Picture";
 import { Tags } from "./Tags";
+import { Empty, Section } from "./Lists";
 
 /** What the workspace draws with rather than holds: the default card in units and the range it
  *  is held inside, and how every room draws. Display, so the log never sees it and no file
@@ -31,80 +32,88 @@ export type Display = {
  *  controls'. */
 const CORNERS = [{ value: "top", word: "top" }, { value: "bottom", word: "bottom" }] as const;
 
-export type WorkspaceProps = {
-  graph: Graph; display?: Display; onAct?: Act; onDisplay?: Act;
-};
-
-export function Workspace({ graph, display, onAct = NOOP, onDisplay = onAct }: WorkspaceProps) {
-  const root = graph.blocks[graph.root];
-  if (!root) return <p className="empty">that is not here any more</p>;
-
-  const readonly = onAct === NOOP;
-  const blocks = Object.values(graph.blocks).filter((b) => !b.def && b.parent).length;
+/** **A scope's answers** — the workspace's or a package's — in the overview's sections: why it
+ *  matters, its name and what it is for, editable on the workspace; how it is made, in counts;
+ *  the workspace's file. Given no `onAct`, read only. */
+export function ScopeAnswers({ graph, id, onAct = NOOP }: { graph: Graph; id: Id; onAct?: Act }) {
+  const b = graph.blocks[id];
+  if (!b) return null;
+  const whole = id === graph.root;
+  const readonly = onAct === NOOP || !whole;
+  const within = (x: Id) => whole || package_of(graph, x) === id;
+  const blocks = Object.values(graph.blocks).filter((x) => !x.def && x.parent && within(x.id)).length;
+  const defs = all_defs(graph).filter((d) => within(d.id)).length;
   return (
-    <div className="workspace-tab">
-      <div className="overview">
-        <div className="glance">
-          <span className="cap"><b>workspace</b><span> · what it files, by use</span></span>
-          <div className="thumb"><Picture graph={graph} id={graph.root} /></div>
-        </div>
-        <div className="answers">
-          <section>
-            <h5>why it matters</h5>
-            <fieldset className="rows-set" disabled={readonly}>
-              <Body>
-                <Line label="name" tip="What this workspace is called, as the explorer and a file write it.">
-                  <Entry key={graph.root} value={root.name ?? ""} label="name" blank
-                         placeholder={shown_name(graph, graph.root)}
-                         onCommit={(to) => onAct("rename", { id: graph.root, name: to })} />
-                </Line>
-                <Line label="about" tip="What this workspace is for, in a line.">
-                  <Entry key={`${graph.root}:about`} value={root.description ?? ""} label="about"
-                         blank placeholder="what it is for"
-                         onCommit={(to) => onAct("describe", { id: graph.root, description: to })} />
-                </Line>
-                <Line label="tags" tip="Tags that say what this is like. A new word makes a tag.">
-                  <Tags tags={root.tags ?? []} name={(t) => def_at(graph, t)?.name ?? t}
-                        onCommit={(to) => onAct("tag", { ids: [graph.root], tags: to })} />
-                </Line>
-              </Body>
-            </fieldset>
-          </section>
-          <section>
-            <h5>how it is made</h5>
-            <div className="stat">
-              <span><b>{blocks}</b> blocks</span>
-              <span><b>{packages(graph).length}</b> packages</span>
-              <span><b>{all_defs(graph).length}</b> definitions</span>
-            </div>
-          </section>
-          <section>
-            <h5>where it lives</h5>
+    <>
+      <Section name="why it matters" about="What it is for, in its own words">
+        {readonly ? (
+          <>
+            {b.description ? <p className="why">{b.description}</p> : <Empty>no description yet</Empty>}
+            {b.tags?.length ? (
+              <div className="chips">
+                {b.tags.map((t) => <span key={t} className="chip-like">{def_at(graph, t)?.name ?? t}</span>)}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <fieldset className="rows-set">
             <Body>
-              <Line label="file" tip="What an export of this workspace is called. It follows the name above, so renaming the workspace renames the file it writes.">
-                <span className="read">{`${file_name(graph)}.json`}</span>
+              <Line label="name" tip="What this workspace is called, as the explorer and a file write it.">
+                <Entry key={id} value={b.name ?? ""} label="name" blank
+                       placeholder={shown_name(graph, id)}
+                       onCommit={(to) => onAct("rename", { id, name: to })} />
               </Line>
-              <Line label="schema" tip="The contract a file of this workspace is written to.">
-                <span className="read">{SCHEMA}</span>
+              <Line label="about" tip="What this workspace is for, in a line.">
+                <Entry key={`${id}:about`} value={b.description ?? ""} label="about"
+                       blank placeholder="what it is for"
+                       onCommit={(to) => onAct("describe", { id, description: to })} />
               </Line>
-              {/* Leaving the workspace is the host's: it reaches a port, never the graph. */}
-              {readonly ? null : (
-                <Line label="export" tip="Write this workspace to a file — whole, with every package it draws on — or as a package of its own, its root and ids prefixed with the name it is given.">
-                  <button className="opt" onClick={() => onAct("@export")}>workspace</button>
-                  <button className="opt" onClick={() => onAct("@export_package")}>as package</button>
-                </Line>
-              )}
+              <Line label="tags" tip="Tags that say what this is like. A new word makes a tag.">
+                <Tags tags={b.tags ?? []} name={(t) => def_at(graph, t)?.name ?? t}
+                      onCommit={(to) => onAct("tag", { ids: [id], tags: to })} />
+              </Line>
             </Body>
-          </section>
+          </fieldset>
+        )}
+      </Section>
+      <Section name="how it is made" about="What it holds, counted">
+        <div className="stat">
+          {blocks ? <span><b>{blocks}</b> blocks</span> : null}
+          {whole ? <span><b>{packages(graph).length}</b> packages</span> : null}
+          <span><b>{defs}</b> definitions</span>
         </div>
-      </div>
-      {display ? <Drawing display={display} onAct={onDisplay} /> : null}
-    </div>
+      </Section>
+      {/* A package's own text, last, as any element's. */}
+      {!whole && b.body?.trim() ? (
+        <Section name="text" about="What it says, as markdown">
+          <Content graph={graph} id={id} band={false} />
+        </Section>
+      ) : null}
+      {whole ? (
+        <Section name="its file" about="What an export of it is called, and the contract it is written to">
+          <Body>
+            <Line label="file" tip="What an export of this workspace is called. It follows the name above, so renaming the workspace renames the file it writes.">
+              <span className="read">{`${file_name(graph)}.json`}</span>
+            </Line>
+            <Line label="schema" tip="The contract a file of this workspace is written to.">
+              <span className="read">{SCHEMA}</span>
+            </Line>
+            {/* Leaving the workspace is the host's: it reaches a port, never the graph. */}
+            {onAct === NOOP ? null : (
+              <Line label="export" tip="Write this workspace to a file — whole, with every package it draws on — or as a package of its own, its root and ids prefixed with the name it is given.">
+                <button className="opt" onClick={() => onAct("@export")}>workspace</button>
+                <button className="opt" onClick={() => onAct("@export_package")}>as package</button>
+              </Line>
+            )}
+          </Body>
+        </Section>
+      ) : null}
+    </>
   );
 }
 
-/** How every room draws, as against what any one element says. */
-function Drawing({ display, onAct }: { display: Display; onAct: Act }) {
+/** **The workspace's settings**: how every room draws, as against what any one element says. */
+export function DisplaySettings({ display, onAct }: { display: Display; onAct: Act }) {
   const { card, range } = display;
 
   /** One side of it, held inside the range the drawing allows. */

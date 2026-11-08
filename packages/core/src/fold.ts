@@ -64,6 +64,8 @@ function apply(graph: Graph, m: Mutation): void {
         delete graph.blocks[id];
         drop_edges(graph, id);
       }
+      /** `subtree` read the children index, which the deletes have just made stale. */
+      forget(graph);
       return;
     }
     case "move_block": {
@@ -237,6 +239,13 @@ function apply(graph: Graph, m: Mutation): void {
       /** Null gives the list back; a list is kept trimmed, once each, in the order given. */
       if (m.tags === null) delete b.tags;
       else b.tags = [...new Set(m.tags.map((t) => t.trim()).filter(Boolean))];
+      return;
+    }
+    case "set_groups": {
+      const b = graph.blocks[m.id];
+      if (!b) return;
+      if (!m.groups?.length) delete b.groups;
+      else b.groups = [...new Set(m.groups)];
       return;
     }
     case "set_constraints": {

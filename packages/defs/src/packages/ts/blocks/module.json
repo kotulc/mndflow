@@ -1,0 +1,12 @@
+{
+  "id": "module",
+  "name": "module",
+  "type": "block",
+  "description": "A source file: its functions and values are its parts, the types it declares are definitions in the library, and its imports are its dependencies.",
+  "def": {
+    "attributes": [
+      { "name": "lines", "type": "number" }
+    ]
+  },
+  "settings": { "style": { "hue": 260 } }
+}

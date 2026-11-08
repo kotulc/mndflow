@@ -2,9 +2,10 @@
  *  its long form: one block and its single layer, names in place of ids.
  *
  *  Syntax only. Short forms become the long form here; what a name stands for is the
- *  source folder's to say. A key a block does not say itself with is a value. */
+ *  source folder's to say. A block's answers are under `values`; a key nothing reads is dropped,
+ *  and named in `dropped` so the source folder can say so. */
 
-import { BLOCK_KEYS, names_in, said_as } from "./card";
+import { BLOCK_KEYS, is_block_key, names_in, said_as, values_in } from "./card";
 import type { Dir, Ends, Value } from "./types";
 
 /** A block as a file states it: the schema's fields, named rather than identified. */
@@ -13,6 +14,8 @@ export type Entry = {
   type?: string;
   def?: { attributes?: Record<string, unknown>[]; ends?: Ends };
   tags?: string[];
+  /** The groups on its layer it is in, by name: membership, apart from its tags. */
+  groups?: string[];
   constraints?: string[];
   traits?: string[];
   settings?: Record<string, unknown>;
@@ -31,8 +34,10 @@ export type Entry = {
   port?: string;
   /** Its cell: row and column, each a header's name or a number. */
   cell?: [string | number, string | number];
-  grid?: { merges?: unknown[] };
+  grid?: { merges?: unknown[]; labels?: { r: number; c: number; text: string }[] };
   values: Value[];
+  /** The keys it said that nothing reads, dropped. */
+  dropped?: string[];
   /** A collection's records: rows of answers, by attribute name. */
   records?: Record<string, string>[];
   w?: number;
@@ -59,7 +64,13 @@ export type Edge = {
   values: Value[];
   /** What its ends mean: multiplicity and role, as a line may say them. */
   ends?: Ends;
+  /** The keys it said that nothing reads, dropped. */
+  dropped?: string[];
 };
+
+/** The keys a relation's long form says itself with. */
+const EDGE_KEYS = ["from", "to", "type", "name", "dir", "tags", "constraints", "settings", "values",
+                   "ends"] as const;
 
 /** A file, spelled out: its block, the blocks it holds in file order, its relations, the packages
  *  it uses, and the named components it adds to its package's library. */
@@ -70,10 +81,6 @@ export type LongForm = { top: Entry; blocks: Entry[]; relations: Edge[]; package
 export type LibrarySaid = { types: Record<string, unknown>[]; tags: Record<string, unknown>[];
                             interfaces: Record<string, unknown>[];
                             constraints: Record<string, unknown>[] };
-
-/** The keys a relation says itself with. Any other key is a value. */
-const EDGE_KEYS = ["from", "to", "type", "name", "dir", "tags", "constraints", "settings", "values",
-                   "ends"] as const;
 
 /** The arrows an edge is written with, and the way each points. */
 const ARROWS: readonly [string, Dir][] = [["<->", "both"], ["->", "forward"], ["<-", "back"],
@@ -87,12 +94,14 @@ type Map = Record<string, unknown>;
 export function long_form(front: Map, body?: string): LongForm {
   const top = entry(front);
   if (body) top.body = body;
+  /** **A file's block typed `model` is a model**: a definition holding the layer it states. */
+  if (top.type === "model") top.def ??= {};
   const blocks: Entry[] = [];
   const said = typeof front["note"] === "string" ? front["note"].trim() : "";
   /** A note on the file is about its whole layer: untied, it floats beside all of it. */
   if (said) blocks.push({ name: said, type: "note", values: [] });
   noted(top, -1, undefined, blocks);
-  held(front, undefined, blocks);
+  held(front, undefined, blocks, top);
   const relations = listed(front["relations"], "relations").flatMap(edges);
   const packages = listed(front["packages"], "packages").map((p) => said_as(p).trim())
     .filter(Boolean);
@@ -112,14 +121,22 @@ export function is_edge(word: string): boolean {
 
 /** The blocks a map holds, in file order: its header row and column, then its `blocks`, each
  *  followed by what it holds in turn. `under` is the entry the map is, where it is not the
- *  file's block. */
-function held(map: Map, under: number | undefined, out: Entry[]): void {
-  const heads = (key: "rows" | "cols") => listed(map[key], key).map((item, i) => {
-    const e = typeof item === "string" ? { name: item, values: [] } as Entry : entry(item as Map);
-    e.cell = key === "rows" ? [i + 1, 0] : [0, i + 1];
-    return e;
+ *  file's block; `owner` is that entry. **A header said as a word is a label**, plain data on
+ *  the owner's grid; said as a block, it is a block standing for a concept (2026-11-05). */
+function held(map: Map, under: number | undefined, out: Entry[], owner: Entry): void {
+  const labels: { r: number; c: number; text: string }[] = [];
+  const heads = (key: "rows" | "cols") => listed(map[key], key).flatMap((item, i) => {
+    const cell: [number, number] = key === "rows" ? [i + 1, 0] : [0, i + 1];
+    if (typeof item === "string") {
+      labels.push({ r: cell[0], c: cell[1], text: item.trim() });
+      return [];
+    }
+    return [{ ...entry(item as Map), cell }];
   });
   for (const e of [...heads("cols"), ...heads("rows")]) out.push({ ...e, under });
+  if (labels.length) {
+    owner.grid = { ...owner.grid, labels: [...labels, ...(owner.grid?.labels ?? [])] };
+  }
   for (const item of listed(map["blocks"], "blocks")) {
     for (const [e, inner] of blocks_of(item)) {
       const at = out.length;
@@ -128,7 +145,7 @@ function held(map: Map, under: number | undefined, out: Entry[]): void {
       if (said) out.push({ ...note_on(said, e.parent ? undefined : under, at),
                            ...(e.parent ? { parent: e.parent } : {}) });
       noted(e, at, e.parent ? undefined : under, out, e.parent);
-      if (inner) held(inner, at, out);
+      if (inner) held(inner, at, out, out[at]!);
     }
   }
 }
@@ -159,15 +176,16 @@ function blocks_of(item: unknown): [Entry, Map | null][] {
   const keys = Object.keys(map);
   const [type] = keys;
   const grouped = keys.length === 1 && Array.isArray(map[type!])
-    && !(BLOCK_KEYS as readonly string[]).includes(type!);
+    && !is_block_key(type!);
   if (!grouped) return [[entry(map), map]];
   return (map[type!] as unknown[]).flatMap((one) => blocks_of(one))
     .map(([e, inner]) => [{ ...e, type: e.type ?? type }, inner]);
 }
 
-/** A block's long form: the keys it says itself with, and every other key a value. */
+/** A block's long form: the keys it says itself with, its answers under `values`. */
 function entry(map: Map): Entry {
-  const e: Entry = { name: said_as(map["name"]).trim(), values: values_of(map, BLOCK_KEYS) };
+  const e: Entry = { name: said_as(map["name"]).trim(), values: values_of(map),
+                     ...unread(map, BLOCK_KEYS) };
   const word = (key: string) => (map[key] === undefined ? undefined : said_as(map[key]).trim());
   const num = (key: string) => (typeof map[key] === "number" ? map[key] as number : undefined);
   const set = <K extends keyof Entry>(key: K, value: Entry[K] | undefined) => {
@@ -186,6 +204,11 @@ function entry(map: Map): Entry {
     e.def = (map["def"] && typeof map["def"] === "object" ? map["def"] : {}) as Entry["def"];
   }
   if ("tags" in map) e.tags = names_in(map["tags"]);
+  if ("groups" in map) e.groups = names_in(map["groups"]);
+  /** A group holds nothing: its members say `groups:`. */
+  if (e.type === "group" && "blocks" in map) {
+    throw new Error(`group "${e.name}" lists blocks: its members say \`groups:\` instead`);
+  }
   if ("constraints" in map) e.constraints = names_in(map["constraints"]);
   if ("traits" in map) e.traits = names_in(map["traits"]);
   if (map["settings"] && typeof map["settings"] === "object") e.settings = map["settings"] as Map;
@@ -237,7 +260,7 @@ function edges(item: unknown): Edge[] {
   const map = item as Map;
   if ("from" in map) {
     const e: Edge = { from: said_as(map["from"]).trim(), to: said_as(map["to"]).trim(),
-                      values: values_of(map, EDGE_KEYS) };
+                      values: values_of(map), ...unread(map, EDGE_KEYS) };
     if (map["type"] !== undefined) e.type = said_as(map["type"]).trim();
     if (map["name"] !== undefined) e.name = said_as(map["name"]).trim();
     const dir = said_as(map["dir"]).trim();
@@ -269,22 +292,15 @@ function edge_of(word: string): Edge {
   throw new Error(`an edge is two names and an arrow (->, <-, <->, --): ${word}`);
 }
 
-/** Every key a map does not say itself with, as a value; a `values` map or list added after. */
-function values_of(map: Map, keys: readonly string[]): Value[] {
-  const out: Value[] = Object.entries(map).filter(([k]) => !keys.includes(k))
-    .map(([name, value]) => ({ name, value: said_as(value) }));
-  const listed_values = map["values"];
-  if (Array.isArray(listed_values)) {
-    for (const v of listed_values as { name?: unknown; value?: unknown }[]) {
-      if (v?.name !== undefined) out.push({ name: said_as(v.name), value: said_as(v.value) });
-    }
-  }
-  else if (listed_values && typeof listed_values === "object") {
-    for (const [name, value] of Object.entries(listed_values)) {
-      out.push({ name, value: said_as(value) });
-    }
-  }
-  return out;
+/** The keys a map says that nothing reads, where it says any. */
+function unread(map: Map, keys: readonly string[]): { dropped?: string[] } {
+  const dropped = Object.keys(map).filter((k) => !keys.includes(k));
+  return dropped.length ? { dropped } : {};
+}
+
+/** What a map answers, under `values`. */
+function values_of(map: Map): Value[] {
+  return values_in(map).map(([name, value]) => ({ name, value: said_as(value) }));
 }
 
 /** A list a key holds; nothing said is an empty one. */

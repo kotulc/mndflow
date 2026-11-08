@@ -86,7 +86,7 @@ import "@mnd/kit/react.css";
 <Viewer graph={graph} layer={layer} />   // click highlights, double-click walks
 ```
 
-**Which layer**: unsaid, the workspace's domain; a block's id, that layer; `null`, the package view — every package a box of its domain, read down the page. `config={{ packages, across }}` narrows the package view to those packages and sets how many cards its rows hold.
+**Which layer**: a block's id, that layer; `null`, the models' map — every package holding a model a box, its models and diagrams chips.
 
 **Interactive, self-contained, and not editable.** `draw_svg` makes a picture; this makes one you can walk. It holds the graph, projects the layer being looked at, and goes in and out of layers on a double-click. **Nothing in it writes.**
 
@@ -112,7 +112,7 @@ The rest of what a drawing looks like is the host's to hand down, and `useDispla
 
 | Prop | Is |
 |---|---|
-| `card` | the small face's card, in lattice units — applied before anything is measured. A large face fits its content, or takes its definition's `card.size`, drawn where a layer's `layout.cards` asks |
+| `card` | the small face's card, in lattice units — applied before anything is measured. A large face fits its content, or takes its definition's `card.size`, drawn where a kind's `diagram.cards` asks |
 | `chrome.legend` · `chrome.corner` | the key to what the layer draws, in the top or bottom right-hand corner |
 
 ## The tray
@@ -149,7 +149,8 @@ const chain = useChain(graph, SLICES);       // the host's sections, and what ea
           onAct={(name, args) => { /* mean whatever you like by it */ }}
           onOpen={({ id, via }) => ...}      // Enter, double-click, →
           onLeave={() => ...}                // ←, Backspace
-          onFold={...} onPick={...} keys />
+          onFold={...} onPick={...} keys
+          rowLook={(id) => row_look(graph, id)} />  // optional: each row's colour edge and count
 ```
 
 **Sections are required**: a host declares its slices (mndflow's are `editor_slices()`). **The explorer browses; the canvas is the host's**: choosing a row holds it in its section, and only `onOpen` asks the canvas to move. Where it moves is the kit's navigation — `open_at`, `leave_at`, `reveal_at`, and `held_at` for what the sections then hold — so every host moves the same way.

@@ -6,9 +6,9 @@
   "def": {},
   "settings": {
     "style": {
-      "hue": 230
+      "hue": 215
     },
-    "layout": {
+    "diagram": {
       "view": "er",
       "cards": "large"
     }

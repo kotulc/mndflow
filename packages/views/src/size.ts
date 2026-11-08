@@ -1,11 +1,11 @@
 /** How big a thing is, before anything is placed. */
 
-import { covers, inline, is_grid, is_interface, lattice_of, setting_of, shown_name,
-         stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
-import { edge_of, fit_of, face_table, face_text, handle_of, name_w, note_h } from "./face";
+import { covers, has_lifelines, inline, is_grid, is_interface, lattice_of, resolved, setting_of,
+         shown_name, stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
+import { card_facts } from "./facts";
+import { edge_of, fit_of, face_table, face_text, head_words, name_w, note_h } from "./face";
 import { card_shape, look_of } from "./look";
 import type { Ruled } from "./scene";
-import { resolved } from "./through";
 
 /** The one place the drawing's proportions are set, and the unit is the only measure there is. */
 export const UNITS = {
@@ -85,26 +85,33 @@ export function cell_size(_g: Grid): Size {
   return CELL;
 }
 
-/** Where line `i` starts along one axis: **the header line is one unit across**, every other a
+/** Where line `i` starts along one axis: **the header line is `head` across**, every other a
  *  cell. */
-function line_at(i: number, cell: number): number {
-  return i === 0 ? 0 : UNIT + (i - 1) * cell;
+function line_at(i: number, cell: number, head = UNIT): number {
+  return i === 0 ? 0 : head + (i - 1) * cell;
+}
+
+/** How tall a grid's header row is: one unit, or a cell where it has lifelines, so each
+ *  participant is a card over its strip. */
+export function head_height(graph: Graph, id: Id): number {
+  return has_lifelines(graph, id) ? CELL.h : UNIT;
 }
 
 /** What a grid takes up: its extent in cells, and nothing besides. */
-export function grid_size(g: Grid): Size {
+export function grid_size(g: Grid, head = UNIT): Size {
   const cell = cell_size(g);
-  return { w: line_at(g.cols, cell.w), h: line_at(g.rows, cell.h) };
+  return { w: line_at(g.cols, cell.w), h: line_at(g.rows, cell.h, head) };
 }
 
 /** Where one cell sits inside its grid, relative to the grid's own corner. */
-export function cell_box(g: Grid, r: number, c: number): Box {
+export function cell_box(g: Grid, r: number, c: number, head = UNIT): Box {
   const span = g.merges?.find((s) => covers(s, r, c));
   const at = span ?? { r, c, rows: 1, cols: 1 };
   const cell = cell_size(g);
   const x = line_at(at.c, cell.w);
-  const y = line_at(at.r, cell.h);
-  return { x, y, w: line_at(at.c + at.cols, cell.w) - x, h: line_at(at.r + at.rows, cell.h) - y };
+  const y = line_at(at.r, cell.h, head);
+  return { x, y, w: line_at(at.c + at.cols, cell.w) - x,
+           h: line_at(at.r + at.rows, cell.h, head) - y };
 }
 
 /** How many rows and columns a region of this size is, in whole cells. */
@@ -163,16 +170,6 @@ function ranged(n: number, low: number, high: number): number {
   return Math.min(high, Math.max(low, Math.round(n)));
 }
 
-/** The sizes of the rooms a world is composing, while it lays out their parent. */
-let rooms_sized: ReadonlyMap<Id, Size> | null = null;
-
-/** `run` with these rooms sized as given: each a card as large as its own drawing. */
-export function sized_as<T>(sizes: ReadonlyMap<Id, Size>, run: () => T): T {
-  const was = rooms_sized;
-  rooms_sized = sizes;
-  try { return run(); } finally { rooms_sized = was; }
-}
-
 /** Whether a block is seated in a grid rather than placed beside one. */
 export function gridded(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
@@ -185,12 +182,11 @@ export function gridded(graph: Graph, id: Id): boolean {
  *  or the reference previewing it. */
 export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
                         card: Id = id): Size {
-  /** A room composed into the world is as large as what it holds. */
-  const room = rooms_sized?.get(id);
-  if (room) return room;
   /** An open grid is its extent, a closed one a card; a boundary is sized from what it holds, by
    *  the caller. */
-  if (is_grid(graph, id) && inline(graph, id)) return grid_size(lattice_of(graph, id)!);
+  if (is_grid(graph, id) && inline(graph, id)) {
+    return grid_size(lattice_of(graph, id)!, head_height(graph, id));
+  }
   const b = graph.blocks[id];
   if (!b) return BLOCK;
   if (is_interface(graph, b.id)) return PORT;
@@ -215,7 +211,7 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
   return face === "large" ? large_of(graph, id, card) : { ...BLOCK };
 }
 
-/** Which face a block draws with: what the nearest ancestor saying `layout.cards` asks for, else
+/** Which face a block draws with: what the nearest ancestor saying `diagram.cards` asks for, else
  *  what it has — **a card shows what it has**: large where its face has a table, a body or records
  *  to show, small where it is a name alone. Always small in a grid's cell, which is a card's size.
  *  Never the zoom's. */
@@ -224,7 +220,7 @@ export function face_of(graph: Graph, id: Id): Face {
   const seen = new Set<Id>();
   for (let at = graph.blocks[id]?.parent; at && !seen.has(at); at = graph.blocks[at]?.parent) {
     seen.add(at);
-    const said = setting_of(graph, at, "layout")["cards"];
+    const said = setting_of(graph, at, "diagram")["cards"];
     if ((CARDS as readonly unknown[]).includes(said)) return said as Face;
   }
   return shows_any(graph, id) ? "large" : "small";
@@ -240,20 +236,21 @@ function shows_any(graph: Graph, id: Id): boolean {
 }
 
 /** The large face: its definition's `card.size`, else what its content fits — so one that shows
- *  nothing is the small face — with room for the marks `card` wears. */
+ *  nothing is the small face — with room for the marks `card` wears and its facts strip. */
 function large_of(graph: Graph, id: Id, card: Id): Size {
   /** The card's own look, as it draws: a reference may say another face than its target. */
   const look = look_of(graph, card);
   if (look.size) return held_large(look.size);
-  return fitted(shown_name(graph, id), face_text(graph, id, look), !!handle_of(graph, id, look),
-                face_table(graph, id, look, stamps_of(graph, card).length), edge_of(look));
+  return fitted(shown_name(graph, id), face_text(graph, id, look), head_words(graph, id, look),
+                face_table(graph, id, look, stamps_of(graph, card).length), edge_of(look),
+                !!card_facts(graph, card));
 }
 
-/** The size a large face's name, handle, table and markdown fit: in whole units, or a table
+/** The size a large face's name, kind, table and markdown fit: in whole units, or a table
  *  card's exactly — no larger than `LARGE.max` either way. */
-export function fitted(name: string, text: string, handle: boolean,
-                       ruled: Ruled | null = null, edge = 1): Size {
-  const { w, h } = fit_of(name, text, handle, LARGE.max.w * UNIT, ruled, edge);
+export function fitted(name: string, text: string, kind: string,
+                       ruled: Ruled | null = null, edge = 1, facts = false): Size {
+  const { w, h } = fit_of(name, text, kind, LARGE.max.w * UNIT, ruled, edge, facts);
   if (ruled) {
     return { w: Math.min(Math.ceil(w), LARGE.max.w * UNIT), h: Math.min(h, LARGE.max.h * UNIT) };
   }
@@ -275,11 +272,6 @@ export function free_height(graph: Graph, id: Id): boolean {
 /** How many seats an edge of this length offers. */
 export function seats(length: number): number {
   return Math.max(1, Math.floor(length / SEAT) - 1);
-}
-
-/** Where seat `n` of `count` falls along an edge, as a fraction. */
-export function seat_at(n: number, count: number): number {
-  return (n + 1) / (count + 1);
 }
 
 /** Absolute positions along an edge, every half unit inset from the corners. */

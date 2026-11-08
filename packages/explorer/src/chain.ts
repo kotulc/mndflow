@@ -9,7 +9,7 @@
  *  holds; its root is the tree of its own pick, or the canvas's. */
 
 import { useState } from "react";
-import { first_in, in_section, is_layer_view, root_below, trace,
+import { first_in, first_model, in_section, is_layer_view, root_below, trace,
          EDITOR, type Graph, type Id, type Section, type Top,
          type View } from "@mnd/core";
 import type { Mark } from "./rows";
@@ -29,7 +29,8 @@ export type Chain = {
   roots: readonly (Id | null | undefined)[];
   held: readonly (Id | null)[];
   at: number;
-  onChoose: (at: number, id: Id | null) => void;
+  /** Choose a row: `via` is the usage a part is seen through. */
+  onChoose: (at: number, id: Id | null, via?: Id) => void;
   /** Hold a whole path at once, outermost first; the last is in focus unless `at` says which. */
   onTrace: (path: readonly (Id | null)[], at?: number) => void;
   /** Hold nothing in any section, `at` in focus. */
@@ -115,11 +116,11 @@ export function useChain(graph: Graph | null, slices: readonly Slice[], top: Top
 }
 
 /** The editor's sections, core's `EDITOR`: the library — every package's definitions, their
- *  parts, types and tags — then the model, usages only, starting on the workspace. */
+ *  parts, types and tags — then the models, starting on the model the canvas starts on. */
 export function editor_slices(): Slice[] {
-  const [library, model] = EDITOR.sections;
+  const [library, models] = EDITOR.sections;
   return [
     { ...library!, mark: "vocabulary" },
-    { ...model!, mark: "usages", first: (graph) => graph.root },
+    { ...models!, mark: "usages", first: (graph) => first_model(graph) ?? graph.root },
   ];
 }

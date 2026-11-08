@@ -3,7 +3,7 @@
 import { box_of, extent, heads, type BoxNode, type LineEdge, type Scene } from "./scene";
 import { avoided_run, routes_of } from "./avoid";
 import { end_of } from "./ends";
-import { drawn, middle_of, route } from "./route";
+import { drawn, name_box, route } from "./route";
 
 /** How the drawing is dressed. Every one of these has a default that works. */
 export type Paper = {
@@ -162,15 +162,19 @@ function line(edge: LineEdge, scene: Scene, runs: ReadonlyMap<string, { x: numbe
     : routed ?? route(a, a.face, b, b.face, edge.data?.fan, edge.data?.module === "tie");
   const data = edge.data;
   const end = heads(data);
-  /** The name, and the handle where the line asked for one: upright where its leg is too short. */
-  const middle = [String(edge.label ?? ""), data?.alias ?? ""].filter(Boolean).join(" ");
-  const mid = middle_of(run, routed ? undefined : data?.fan, middle.length);
-  const turn = mid.upright ? ` transform="rotate(-90 ${round(mid.x)} ${round(mid.y)})"` : ``;
+  /** The name, the handle where the line asked for one, and how many it stands for: beside the
+   *  stroke, never on it, clear of the cards — the box the canvas sets it in (`name_box`). */
+  const middle = [String(edge.label ?? ""), data?.alias ?? "", data?.times ? `×${data.times}` : ""]
+    .filter(Boolean).join(" ");
+  const cards = scene.nodes.filter((n) => n.type === "card" || n.type === "note").map(box_of);
+  const box = name_box(run, middle.length, given && given.length > 1 || routed ? undefined
+    : data?.fan, data?.level, cards);
+  const at = { x: box.x + box.w / 2, y: box.y + box.h / 2 + 4, anchor: "middle" };
   return `<g class="route ${data?.module ?? "line"}"><path d="${drawn(run, 6)}"`
     + (end.from === "none" ? `` : ` marker-start="url(#${key}-${end.from})"`)
     + (end.to === "none" ? `` : ` marker-end="url(#${key}-${end.to})"`) + ` />`
     + (middle
-        ? `<text x="${round(mid.x)}" y="${round(mid.y - 4)}" text-anchor="middle"${turn}>`
+        ? `<text x="${round(at.x)}" y="${round(at.y)}" text-anchor="${at.anchor}">`
           + `${esc(middle)}</text>`
         : ``)
     + `</g>`;

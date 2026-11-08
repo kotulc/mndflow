@@ -10,11 +10,13 @@ The object graph: **two element kinds**, blocks and relationships, and every oth
 | **package** | a root block (`parent: null`) | its domain: holders and trees |
 | **definition** | a block carrying `def`, in a domain | its structure |
 | **usage** | a block without `def` | its own children; shows its type's structure through |
-| **holder** | a folder, group or grid | whatever its place allows: a folder in a domain holds definitions and structure alike; in a structure, usages |
+| **holder** | a folder, region or grid | whatever its place allows: a folder in a domain holds definitions and structure alike; in a structure, usages |
 
 - **A definition is a named tree.** It is used and extended by `type`, whether or not anything does, and is never itself placed or linked as an instance.
 - **A usage may be a tree too**, placed straight in a domain, under a package root or a domain folder.
-- **Definition side and structure**: a package root, a definition, or a folder reached from its package root through folders alone is on the definition side (`is_domain`); everything else is structure. The explorer's sections list by side. The structure mark (`roots_structure`) is the workspace, always, and a definition that holds structure. A folder never wears it.
+- **Definition side and structure**: a package root, a definition, or a folder reached from its package root through folders alone is on the definition side (`is_domain`); everything else is structure. The explorer's sections list by side.
+- **A model is a definition extending base `model`** (`is_model`): what is built, drawn on directly in the models section, its parts the usages it holds. One model is never instanced; another model uses it as a part. `models` lists them, `model_of` names the one a block sits in. Its icon, the tree, is worn by nothing else.
+- **A definition's uses** (`uses.ts` `definition_uses`) are the usages typed by it, references to it and lines typed by it, inside any model at any depth. Parts of a definition that is not a model are not counted on their own.
 - **Frozen**: any package but the workspace's is read only. A definition from one is subtyped, never edited.
 - **Removing a definition or a package that something uses is refused.** Nothing is rewritten to make way.
 
@@ -34,15 +36,15 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 
 ## Holders
 
-**A holder holds by `parent`, as everything does.** What separates the three is how they draw what they hold.
+**A holder holds by `parent`, as everything does.** What separates them is how they draw what they hold. **A group holds nothing**: its members carry it in `groups` and stay where they are filed, so it is no holder.
 
 | Holder | Draws its contents | Nests |
 |---|---|---|
 | **folder** | hidden: you descend to see them | yes |
-| **group** | inline, inside its rim | yes |
+| **region** | inline, as a band across its layer | no |
 | **grid** | in cells, each compact | any block may sit in a cell, a grid included |
 
-- **Deleting a holder deletes its subtree.**
+- **Deleting a holder deletes its subtree.** Deleting a group takes it off its members, who stay; a group whose last member goes, or leaves its layer, goes too.
 - **A grid's member always has a cell.** One that loses its cell (a line removed, a merge, a smaller extent) moves to the nearest spare cell on its side, else leaves the grid.
 - **Headers are lines.** The top row heads the columns, the left column the rows. A header cell holds any block, drawn compact; typing into an empty one makes a plain block of that name.
 - **A grid is allocation only**: no text labels and no records. Records are usages, or a table in a card's body.
@@ -84,7 +86,7 @@ The `base` package ships the kinds: `block`, `folder`, `group`, `grid`, `referen
 | Corner | Says |
 |---|---|
 | **card icon**, top right | what sort of thing this is, or `card.icon`. Filled when the block holds parts |
-| **system mark**, bottom right | what the card stands for, at most three stacked: a stand-in's word (`Ref`, `Def`, `Pkg`), `structure` on the workspace and on a definition that holds structure — never a folder, another package, or a block inside a structure — `data` where it carries attributes or values. A stand-in wears its target's. Derived |
+| **system mark**, bottom right | what the card stands for, at most three stacked: a stand-in's word (`Ref`, `Pkg`; a definition says so with its badge), `structure` on the workspace and on a definition that holds structure — never a folder, another package, or a block inside a structure — `data` where it carries attributes or values. A stand-in wears its target's. Derived |
 | **link mark** | a part seen through a usage: dimmed, with the link glyph, "from `D`" |
 
 

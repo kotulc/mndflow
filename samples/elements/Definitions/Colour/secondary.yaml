@@ -1,0 +1,4 @@
+name: secondary
+def: {}
+settings:
+  style: { family: secondary }

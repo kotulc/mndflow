@@ -10,7 +10,6 @@
   "settings": {
     "card": {
       "shape": "diamond",
-      "label": "none",
       "alias": "hide",
       "align": "center"
     }

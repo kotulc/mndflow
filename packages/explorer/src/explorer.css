@@ -126,11 +126,11 @@
 /* The last row in a branch turns the elbow: the tick sits at the foot of the stopped line. */
 .explorer .tree .guide.tick.stop::after { top: 100%; }
 
-/* The accent's edge marks one row only: the block the canvas draws, and a faint wash the branch
+/* The accent's edge marks one row only: the block the canvas draws, and a faint wash the rows
    it draws. The pick is the strong wash, and each section's own pick a faint one, so neither
    reads as what is open. */
 .explorer .tree li.open { border-left-color: var(--accent); }
-.explorer .tree li.branch { background: color-mix(in oklch, var(--accent) 5%, transparent); }
+.explorer .tree li.in-view { background: color-mix(in oklch, var(--accent) 5%, transparent); }
 .explorer .tree li.context { background: var(--tint); }
 .explorer .tree li.context .label { color: var(--text); }
 .explorer .tree li.picked {
@@ -163,10 +163,36 @@
   /* Only a branch's mark is a button. */
   cursor: default;
 }
+/* **A row wears its card's colour edge**: a short bar before its mark, the same hue its card's
+   border and its chip's edge wear. Packages and folders are filed, so they wear none. */
+.explorer .tree li[data-family] > .mark { position: relative; }
+.explorer .tree li[data-family] > .mark::before {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: -5px;
+  width: 2px;
+  content: "";
+  background: var(--card-edge);
+}
+/* **A relation definition's row wears its wire swatch** for its icon: a short stroke in its
+   colour and dash, as wide as an icon. */
+.explorer .tree .mark > .swatch {
+  width: 14px;
+  height: 0;
+  border-top: 2px var(--card-border-style, solid) var(--card-edge, var(--muted));
+}
+/* A quiet count at the right: a definition's uses, a diagram's blocks. */
+.explorer .tree .count {
+  flex: none;
+  margin-left: auto;
+  color: var(--faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
 /* A row holding blocks lights its mark, open or shut: the colour, and only that, says so. */
 .explorer .tree .mark.on, .explorer .tree .mark.shut { color: var(--accent); cursor: pointer; }
 /* A definition with structure of its own lights its icon, as a block that holds does. */
-.explorer .tree .mark.held { color: var(--accent); }
 .explorer .tree .label { overflow: hidden; text-overflow: ellipsis; }
 
 /* A row being named before it is made: the name typed where it will read. */

@@ -26,12 +26,13 @@ export function useTray(first = true) {
   const [tab, set_tab] = useState<string | undefined>(undefined);
   const [hold, set_hold] = useState<Hold | null>(null);
 
-  /** A library row points the tray: a definition at its own tabs, a package at its list. */
+  /** A library row points the tray: a definition at its own tabs, a section or a package at its
+   *  contents, on its definitions. */
   const onSection = (at: Pointed) => {
     set_open(true);
     if (at.of === "def") { set_hold({ of: "id", id: at.id }); return; }
     set_hold(at);
-    set_tab(at.only === "packages" ? "packages" : "definitions");
+    set_tab("contents");
   };
 
   return {

@@ -41,7 +41,7 @@ export function class_graph(graph: Graph, layer: Id, kind: "class" | "er"): Grap
   const host = blocks[layer];
   if (host) {
     blocks[layer] = { ...host, type: "block",
-      settings: { ...host.settings, layout: { kind: "layered", cards: "large" } } };
+      settings: { ...host.settings, diagram: { placing: "layered", cards: "large" } } };
   }
   const face = kind === "class" ? "class" : "table";
   for (const id of kept) {

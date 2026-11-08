@@ -2,18 +2,26 @@
  *  header, then its rows, every branch folded until opened. **The explorer browses; the canvas is
  *  the target**: choosing a row holds it in its section and puts that section in focus, and
  *  opening one (Enter, double-click, →) is what moves the canvas; whether a choice inside the
- *  open structure moves it too is the host's. The pick is lit strongly, the branch the canvas
- *  draws and each section's pick subtly. */
+ *  open structure moves it too is the host's. The pick is lit strongly, and only while picked;
+ *  the rows the canvas draws and each section's pick subtly. */
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { about_of, at_cut, children, domain_of, drop_of, frozen, is_folder, is_inside,
-         is_layer_view, may_hold, name_taken, new_id, on_side, owner_def, path, shown_name,
+         is_layer_view, holds_defs, lit, may_hold, model_of, name_taken, new_id, on_side,
+         owner_def, path,
+         shown_name,
          type Act, type Graph, type Id, type Registry, type View } from "@mnd/core";
-import { Icon, Name, NamingContext, MARK_ICON, type IconName } from "@mnd/theme";
+import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
 import { end_of, listed_of, mark_icon, OPENED, opened, parent_of, tree_of,
-         type Row } from "./rows";
+         type Nest, type Row } from "./rows";
+
+/** What a host may hand a row: its colour, as the attributes the card table reads, and a count;
+ *  and a swatch to wear for its icon, as the same attributes. */
+type Attrs = { "data-family"?: string; "data-border-style"?: string;
+               style?: Record<string, string> };
+export type RowLook = { tint?: Attrs; count?: number; swatch?: Attrs };
 
 export type ExplorerProps = {
   graph: Graph;
@@ -21,6 +29,8 @@ export type ExplorerProps = {
   view: View;
   /** What an action would act on. Takes the accent, and reads first. */
   picked: readonly Id[];
+  /** What the canvas draws, by id: its rows wear a faint wash, grouping what is in view. */
+  drawn?: ReadonlySet<Id>;
   /** Which branches are shut. Session state, handed down. */
   folded: readonly Id[];
   /** Told `rename` on F2, plus whatever the offered list names. */
@@ -42,6 +52,9 @@ export type ExplorerProps = {
   registry?: Registry | null;
   onFold: (id: Id, shut: boolean) => void;
   onPick: (ids: Id[]) => void;
+  /** The usage the picks are seen through (the session's `route`); unsaid, the layer seen from
+   *  inside. */
+  route?: Id | null;
   /** Whether right-click opens this engine's offered list. */
   menu?: boolean;
   /** Which bar tools to show, each on its own. Defaults preserve mndflow; set false to hide. */
@@ -57,9 +70,15 @@ export type ExplorerProps = {
   extra?: ReactNode;
   /** The host's sections and what each holds. */
   chain: Chain;
-  /** Whether the arrows walk the tree: up and down through the rows of the section in focus, left
-   *  and right to the section above or below, landing on what it holds. The way to the row walked
-   *  to opens, and nothing shuts. A row walked to is chosen as a plain click chooses it. */
+  /** A block row's colour edge and quiet count, where the host has them; never asked of a package
+   *  or a folder. */
+  rowLook?: (id: Id) => RowLook;
+  /** The models' tree as the host's map reads it, so the models list what the map draws; absent,
+   *  the models list the graph's own tree. */
+  models?: readonly Nest[];
+  /** Whether the arrows walk the tree by level: up and down among the rows under one holder, left
+   *  to the holder, right to the first row it holds. The way to the row walked to opens, and
+   *  nothing shuts. A row walked to is chosen as a plain click chooses it. */
   keys?: boolean;
 };
 
@@ -140,6 +159,11 @@ function Fold({ icon, tip, onToggle }: { icon: IconName; tip: string; onToggle: 
   );
 }
 
+/** A short stroke in a line's colour and dash, standing where a row's icon would. */
+function Swatch({ style, ...attrs }: Attrs) {
+  return <i className="swatch" {...attrs} style={style as CSSProperties} />;
+}
+
 export function Explorer(props: ExplorerProps) {
   const { graph, view, picked, folded, onAct, onFold, onPick, onOpen, onLeave,
           menu: offered = true, chain, keys = false, tools: bar = {} } = props;
@@ -154,8 +178,6 @@ export function Explorer(props: ExplorerProps) {
   const [dragging, set_dragging] = useState<readonly Id[]>([]);
   /** Where a shift-click range runs from. */
   const [anchor, set_anchor] = useState<Id | null>(null);
-  /** The row last chosen, so a part lights under the usage it was chosen through. */
-  const [chosen, set_chosen] = useState<Id | null>(null);
   const [over, set_over] = useState<{ id: Id; ref: Id; where: "in" | "above" | "below" } | null>(null);
   /** Whether the drop would land on the panel itself, which is the workspace. */
   const [out, set_out] = useState(false);
@@ -169,12 +191,14 @@ export function Explorer(props: ExplorerProps) {
   /** What is being drafted: a block, a folder, a definition, or a part of one. */
   const [draft, set_draft] = useState<{ parent: Id; type?: string; def?: boolean;
                                         extends?: Id; part?: boolean } | null>(null);
+  /** A draft extending base `model` is a new model. */
+  const modeled = draft?.def && draft.extends === "model";
 
   /** Each section's own branches, so unfolding its header opens what it heads and nothing else,
    *  and every row as the arrows walk them. Read off the tree fully open, so a shut branch's own
    *  branches still count. */
   const sections = useMemo(() => {
-    const all = tree_of(graph, [], chain, true);
+    const all = tree_of(graph, [], chain, true, props.models);
     const out = new Map<Id, Id[]>();
     for (let i = 0; i < all.length; i++) {
       if (all[i]!.depth) continue;
@@ -188,7 +212,7 @@ export function Explorer(props: ExplorerProps) {
     const slice = chain.slices[chain.at]!;
     const library = slice.lists === "domain" || (slice.lists === undefined && slice.cut !== null);
     return { folds: out, all, library };
-  }, [graph, chain?.at, chain?.held.join("|")]);
+  }, [graph, chain?.at, chain?.held.join("|"), props.models]);
 
   /** Whether a row is shut: a section's header once folded; every branch until it was opened. */
   const is_shut = (r: Row) => (r.of === "pack" ? folded.includes(r.id) : !opened(folded, r.id));
@@ -208,28 +232,38 @@ export function Explorer(props: ExplorerProps) {
   };
 
   /** The canvas reveals its own rows, never another section's: a new layer opens the way to it,
-   *  and a new pick inside it opens the way to that pick — in the section the canvas looks at,
-   *  once each. A row chosen in another section is never a reason to unfold this one, and folding
-   *  a row again is the user's until the layer or the pick changes. */
+   *  and a new pick inside it opens the way to that pick — on a map, the pick's own row too, so
+   *  the home's model shows what it holds — in the section the canvas looks at, once each.
+   *  **A row chosen here keeps its own fold** (2026-11-05): walking past a block never spills
+   *  what it holds. A row chosen in another section is never a reason to unfold this one,
+   *  and folding a row again is the user's until the layer or the pick changes. */
   const layer = is_layer_view(view.kind) ? view.layer : null;
   const lists = chain.slices[view.at]?.lists;
   /** A pick the canvas shows: under its layer, on the side its section lists. */
   const shows = (id: Id) => (!layer || id === layer || path(graph, id).some((b) => b.id === layer))
     && on_side(graph, id, lists);
-  const revealed = picked.filter(shows);
+  /** On a map, what the view brought into sight counts as picked: the home's first model. */
+  const sighted = !layer && view.pick && !picked.includes(view.pick) ? [view.pick] : [];
+  const revealed = [...picked, ...sighted].filter(shows);
   const seen = [...revealed, layer].join("|");
   const done = useRef({ seen, rows: new Set<Id>() });
   useEffect(() => {
     if (done.current.seen !== seen) done.current = { seen, rows: new Set() };
+    /** A pick or layer the explorer did not choose: the canvas reveals its row again. */
+    if (chosen.current && !revealed.includes(chosen.current) && layer !== chosen.current) {
+      chosen.current = null;
+    }
     const way = [...revealed, ...(layer ? [layer] : [])].flatMap((id) => [...holders(graph, id)]);
-    const up = new Set([...way, ...(layer ? [layer] : [])]);
+    const up = new Set([...way, ...(layer ? [layer] : revealed)]);
+    const own = new Set(way);
     for (const r of sections.all) {
       if (!r.kids || r.at !== view.at || !up.has(r.ref) || done.current.rows.has(r.id)) continue;
+      if (r.ref === chosen.current && !own.has(r.ref)) continue;
       done.current.rows.add(r.id);
       if (is_shut(r)) fold(r, false);
     }
   }, [seen, sections]);
-  const rows = tree_of(graph, folded, chain);
+  const rows = tree_of(graph, folded, chain, false, props.models);
   /** The lowest open layer, under every branch alike: each open branch with no open branch
    *  inside it. The bar's fold shuts them, a layer a click, until only the top rows show; with
    *  none left, it opens every section whole. */
@@ -263,13 +297,11 @@ export function Explorer(props: ExplorerProps) {
   const mine = picked.map((id) => as_row(id)!)
     .filter((id) => [sections.all, rows].some((all) =>
       all.some((r) => r.at === focus && r.ref === id)));
-  /** The focus is lit strongly: the picks it lists — a part only where its usage is the layer
-   *  seen from inside, or under the usage it was chosen through — else what it holds. */
-  const lights = (r: Row) => {
-    if (r.at !== focus || r.pick === undefined || r.of !== "block") return false;
-    if (mine.length) return mine.includes(r.ref) && (!r.via || r.via === open || r.id === chosen);
-    return held[focus] === r.pick && !r.via;
-  };
+  /** **The focus is lit strongly: only the picks it lists**, by core's one rule (`lit`) — a part
+   *  only under the usage the picks were made through. Letting go on the canvas lets go here. */
+  const route = props.route === undefined ? open : props.route;
+  const lights = (r: Row) => r.at === focus && r.pick !== undefined && r.of === "block"
+    && mine.length > 0 && lit(graph, mine, route, r.ref, r.via);
   /** **The one row wearing the accent's edge: what the canvas shows**, in the section it looks
    *  at — the layer seen from inside, else what it brought into sight, else the section's root. */
   const shown = as_row(is_layer_view(view.kind) ? view.layer
@@ -277,9 +309,10 @@ export function Explorer(props: ExplorerProps) {
   const drawn_at = rows.findIndex((r) => r.of === "block" && r.at === view.at && r.ref === shown
     && !r.via);
   const drawn_row = rows[drawn_at]?.id;
-  /** **The branch in focus**, lit subtly: the block a layer view draws and the rows under it. */
-  const branch = drawn_at >= 0 && is_layer_view(view.kind)
-    ? new Set(rows.slice(drawn_at, end_of(rows, drawn_at)).map((r) => r.id)) : new Set<Id>();
+  /** **What is in view**, lit subtly: the rows of the section the canvas looks at that it draws,
+   *  as the host hands them. */
+  const in_view = (r: Row) => r.of === "block" && r.at === view.at && !r.via
+    && !!props.drawn?.has(r.ref);
   /** What each other section holds, lit subtly. */
   const holds = (r: Row) => r.at !== undefined && r.at !== focus
     && r.pick !== undefined && held[r.at] === r.pick;
@@ -303,7 +336,8 @@ export function Explorer(props: ExplorerProps) {
       && !frozen(graph, b.id);
   };
   const library_at = chain.slices.findIndex((s) => s.lists === "domain");
-  const part_home = library && holds_parts(def) ? def : null;
+  /** A model's parts are drawn, so they are added in the models. */
+  const part_home = library && holds_parts(def) && !model_of(graph, def) ? def : null;
   const menu_def = library_at >= 0 && menu?.id && graph.blocks[menu.id]?.def ? menu.id : null;
   /** Where the bar's add puts a block: under the row held in focus where it may hold one, else
    *  under the workspace: every other package is frozen. */
@@ -349,30 +383,59 @@ export function Explorer(props: ExplorerProps) {
     choose(r);
   };
 
+  /** The row last chosen here, which the canvas's reveal leaves folded as it was. */
+  const chosen = useRef<Id | null>(null);
+
   /** A row chosen as a plain click chooses it: held in its section. Browsing moves nothing. */
   const choose = (r: Row) => {
     if (r.at === undefined || r.pick === undefined) return;
+    chosen.current = r.ref;
     if (r.of === "block") set_anchor(r.ref);
-    set_chosen(r.id);
-    chain.onChoose(r.at, r.pick);
+    chain.onChoose(r.at, r.pick, r.via);
   };
 
-  /** A row opened: chosen, and handed to the host for the canvas to draw. */
+  /** A row opened: chosen, unfolded to show what it holds, and handed to the host for the canvas
+   *  to draw. */
   const opening = (r: Row) => {
     if (r.at === undefined || r.pick === undefined) return;
     choose(r);
+    chosen.current = null;
+    if (r.kids && is_shut(r)) fold(r, false);
     onOpen?.({ at: r.at, id: r.pick, ...(r.via ? { via: r.via } : {}) });
   };
 
-  /** The arrows walk the whole tree, shut branches too, from the first row lit: up and down within
-   *  the section in focus. → opens what is lit and goes to the section below; ← leaves for the
-   *  section above. Enter opens, F2 renames, Backspace leaves. */
+  /** The arrows walk the whole tree by level, shut branches too, from the first row lit — **as a
+   *  map's chips nest**: up and down to the row before or after at the same level, under the same
+   *  holder, past a section's first or last top row to the section above or below; ← to its
+   *  holder, → to the first row it holds. Enter opens, F2 renames, Backspace leaves. */
   useEffect(() => {
     if (!keys) return;
     const all = sections.all;
     /** A row's holder; -1 where there is none. */
     const up = (i: number) => parent_of(all, i);
     const can = (r: Row) => r.pick !== undefined;
+    /** The nearest choosable holder in the same section, the workspace never, as choosing it
+     *  picks nothing; -1 where there is none. */
+    const holder = (i: number) => {
+      let j = up(i);
+      while (j >= 0 && !can(all[j]!)) j = up(j);
+      return j >= 0 && all[j]!.at === all[i]!.at && all[j]!.ref !== graph.root ? j : -1;
+    };
+    /** The first choosable row it holds; -1 where it holds none. */
+    const first_child = (i: number) => {
+      for (let j = i + 1; j < end_of(all, i); j++) {
+        if (all[j]!.depth === all[i]!.depth + 1 && can(all[j]!)) return j;
+      }
+      return -1;
+    };
+    /** The next choosable row at its level under its holder, `by` 1 after or -1 before. */
+    const sibling = (i: number, by: 1 | -1) => {
+      const d = all[i]!.depth;
+      for (let j = i + by; j >= 0 && j < all.length && all[j]!.depth >= d; j += by) {
+        if (all[j]!.depth === d && can(all[j]!)) return j;
+      }
+      return -1;
+    };
     const key = (e: KeyboardEvent) => {
       const typing = e.target instanceof HTMLElement
         && e.target.closest("input, textarea, select, button, [contenteditable='true']");
@@ -384,7 +447,9 @@ export function Explorer(props: ExplorerProps) {
       const held_in = (n: number) => all.findIndex((r) => r.at === n && can(r)
         && r.pick === held[n] && !r.via);
       const first_in = (n: number) => all.findIndex((r) => can(r) && r.at === n);
-      const lit_at = all.findIndex(lights);
+      /** The pick's own row first: its stand-ins light too, wherever they list. */
+      const own_at = all.findIndex((r) => lights(r) && mine.includes(r.ref) && !r.via);
+      const lit_at = own_at >= 0 ? own_at : all.findIndex(lights);
       const at = lit_at >= 0 ? lit_at : held_in(chain.at);
       if (e.key === "Enter") { if (at >= 0) opening(all[at]!); return; }
       if (e.key === "F2") {
@@ -393,25 +458,21 @@ export function Explorer(props: ExplorerProps) {
         return;
       }
       if (e.key === "Backspace") { onLeave?.(); return; }
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-        /** → opens what is lit and steps into the section below; ← steps out and leaves. */
-        const n = chain.at + (e.key === "ArrowRight" ? 1 : -1);
-        if (e.key === "ArrowRight" && at >= 0) opening(all[at]!);
-        if (n < 0 || n >= chain.slices.length) return;
-        const land = held_in(n) >= 0 ? held_in(n) : first_in(n);
-        if (land >= 0) choose(all[land]!);
-        if (e.key === "ArrowLeft") onLeave?.();
-        return;
-      }
       /** From the row lit; else from what the section in focus holds; else its first row. */
       const first = first_in(chain.at);
       if (at < 0) { if (first >= 0) choose(all[first]!); return; }
-      const forward = e.key === "ArrowDown" || e.key === "ArrowRight";
-      let to = at;
-      do to += forward ? 1 : -1; while (to >= 0 && to < all.length && !can(all[to]!));
-      if (to < 0 || to >= all.length) return;
-      /** The arrows stay in the section they start in. */
-      if (all[to]!.at !== all[at]!.at) return;
+      const to = e.key === "ArrowLeft" ? holder(at)
+        : e.key === "ArrowRight" ? first_child(at)
+        : sibling(at, e.key === "ArrowDown" ? 1 : -1);
+      if (to < 0) {
+        /** Past a section's first or last top row, the section above or below. */
+        const n = chain.at + (e.key === "ArrowDown" ? 1 : -1);
+        const top = holder(at) < 0 && (e.key === "ArrowDown" || e.key === "ArrowUp");
+        if (!top || n < 0 || n >= chain.slices.length) return;
+        const land = held_in(n) >= 0 ? held_in(n) : first_in(n);
+        if (land >= 0) choose(all[land]!);
+        return;
+      }
       // The way to the row walked to opens; nothing shuts.
       for (let j = up(to); j >= 0; j = up(j)) {
         if (is_shut(all[j]!)) fold(all[j]!, false);
@@ -452,12 +513,17 @@ export function Explorer(props: ExplorerProps) {
    *  elsewhere a block or folder where you are. */
   const add = (type?: string) => {
     const def = library && !type;
-    const parent = type === "folder" ? shelf : def ? shelf ?? graph.root : under;
+    /** **In the models, add makes a part** of the model in focus, or **a new model** anywhere
+     *  else: a package or a definitions folder holds models, never loose blocks. */
+    const model = !library && !type && !model_of(graph, under);
+    const parent = type === "folder" ? shelf : def ? shelf ?? graph.root
+      : model ? (holds_defs(graph, under) ? under : graph.root) : under;
     if (!parent) return;
     // A draft row opens where it goes, its branch unfolded to show it.
     const row = rows.find((r) => r.of === "block" && r.ref === parent && r.at === focus);
     if (row && is_shut(row)) fold(row, false);
-    set_draft({ parent, ...(type ? { type } : {}), ...(def ? { def } : {}) });
+    set_draft({ parent, ...(type ? { type } : {}), ...(def ? { def } : {}),
+                ...(model ? { def: true, extends: "model" } : {}) });
   };
 
   /** A part drafted in a definition, or in a part of one, its branch unfolded to show it. */
@@ -485,6 +551,9 @@ export function Explorer(props: ExplorerProps) {
   const slot = draft ? after(rows, draft.parent, focus) : null;
   const lines: (Row | null)[] = slot ? [...rows.slice(0, slot.index), null,
     ...rows.slice(slot.index)] : rows;
+  /** Each block row's colour and count, asked of the host once per row. */
+  const looks = useMemo(() => new Map(rows.flatMap((r) => (r.of === "block" && !r.filed
+    && props.rowLook ? [[r.id, props.rowLook(r.ref)] as const] : []))), [rows, props.rowLook]);
 
   /** What the bar's delete would take: a picked block, or the workspace's row in focus. */
   const gone = library ? def : one;
@@ -509,7 +578,9 @@ export function Explorer(props: ExplorerProps) {
             {props.extra}
             {show.block ? (
               <button title={library ? "add a definition — what it extends says its kind"
-                               : `add a block in ${shown_name(graph, under)}`}
+                               : model_of(graph, under) ? `add a block in ${shown_name(graph, under)}`
+                               : `add a model in ${shown_name(graph, holds_defs(graph, under)
+                                   ? under : graph.root)}`}
                       onClick={() => add()}><Icon name="add_block" /></button>
             ) : null}
             {show.folder ? (
@@ -524,7 +595,7 @@ export function Explorer(props: ExplorerProps) {
                                : "pick a definition to add a part to it"}
                       disabled={!part_home}
                       onClick={() => { if (part_home) add_part(part_home); }}>
-                <Icon name="role_root" />
+                <Icon name="add_block" />
               </button>
             ) : null}
             {show.remove ? (
@@ -543,8 +614,10 @@ export function Explorer(props: ExplorerProps) {
 
         <ul className="tree">
           {lines.map((r) => (!r ? (
-            <Draft key="draft" icon={draft?.type === "folder" ? "role_folder" : "role_leaf"}
-                   word={draft?.def ? DEFINITION : draft?.type ?? "block"} depth={slot!.depth}
+            <Draft key="draft" icon={draft?.type === "folder" ? "role_folder"
+                                       : modeled ? "role_root" : "role_leaf"}
+                   word={modeled ? "model" : draft?.def ? DEFINITION : draft?.type ?? "block"}
+                   depth={slot!.depth}
                    onDone={(label) => {
                      set_draft(null);
                      if (label === null || !draft) return;
@@ -565,14 +638,16 @@ export function Explorer(props: ExplorerProps) {
                   !r.depth && r.at === focus ? "holds" : "",
                   r.via ? "part" : "",
                   r.id === drawn_row ? "open" : "",
-                  branch.has(r.id) ? "branch" : "",
+                  in_view(r) ? "in-view" : "",
                   /** The layer a drop would join, and where in it. */
                   r.of === "block" && zone && zone !== graph.root && on_path(graph, r.ref, zone) ? "zone" : "",
                   r.of === "block" && r.ref === zone ? "holder" : "",
                   over?.id === r.id && over.where !== "in" ? `to-${over.where}` : "",
                 ].filter(Boolean).join(" ")}
                 data-mark={r.mark}
-                style={{ paddingLeft: 8 + r.depth * STEP }}
+                {...(looks.get(r.id)?.tint?.["data-family"]
+                  ? { "data-family": looks.get(r.id)!.tint!["data-family"] } : {})}
+                style={{ paddingLeft: 8 + r.depth * STEP, ...(looks.get(r.id)?.tint?.style ?? {}) }}
                 draggable={naming !== r.id && r.of === "block"
                            && graph.blocks[r.ref]?.parent !== null}
                 onDragStart={(e) => {
@@ -653,7 +728,7 @@ export function Explorer(props: ExplorerProps) {
               ) : null}
 
               <span className={["mark", r.mark,
-                                r.kids ? (is_shut(r) ? "shut" : "on") : r.held ? "held" : ""]
+                                r.kids ? (is_shut(r) ? "shut" : "on") : ""]
                        .filter(Boolean).join(" ")}
                     title={r.kids ? (is_shut(r) ? `open · ${r.kids} inside` : "fold")
                       : undefined}
@@ -661,20 +736,15 @@ export function Explorer(props: ExplorerProps) {
                                       if (r.kids) fold(r, !is_shut(r)); }}>
                 {/* A row that holds blocks lights its icon, as a card does; a fill would blot a
                     drawn mark like a pilcrow. */}
-                <Icon name={r.icon ?? mark_icon(r.mark)} size={MARK_SIZE} />
+                {looks.get(r.id)?.swatch ? <Swatch {...looks.get(r.id)!.swatch!} />
+                  : <Icon name={r.icon ?? mark_icon(r.mark)} size={MARK_SIZE} />}
               </span>
               {r.of === "pack"
                 ? <span className="label">{r.label}</span>
                 : <Name id={r.id} className="label" text={r.label} />}
               {r.alias ? <span className="alias">{r.alias}</span> : null}
-              {/* A structure root wears the card's structure mark before it is picked, outside the
-                  structure section. The workspace always does; a definition does once it holds
-                  structure. */}
-              {r.held ? (
-                <span className="stamp" title="roots structure">
-                  <Icon name={MARK_ICON["structure"]!} size={MARK_SIZE - 2} />
-                </span>
-              ) : null}
+              {looks.get(r.id)?.count
+                ? <span className="count">{looks.get(r.id)!.count}</span> : null}
               {r.via ? (
                 <span className="from"
                       title={`from ${shown_name(graph, graph.blocks[r.via]?.type ?? r.via)}`}>

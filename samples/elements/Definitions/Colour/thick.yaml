@@ -1,0 +1,4 @@
+name: thick
+def: {}
+settings:
+  style: { border_width: thick }

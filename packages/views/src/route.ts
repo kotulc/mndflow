@@ -104,14 +104,10 @@ function toward(from: Point, to: Point, by: number): Point {
            y: from.y + ((to.y - from.y) / d) * by };
 }
 
-/** How wide a name reads, per character and round it, in pixels. */
-const NAME = { glyph: 6.2, pad: 12 };
-
 /** Where a name sits: the middle of the longest leg past the fan point, so it lands on the line's
- *  own stretch rather than on a trunk it shares. A name of `chars` too wide for a level leg reads
- *  upright, across it. */
-export function middle_of(run: readonly Point[], fan?: Fan,
-                          chars = 0): Point & { upright: boolean } {
+ *  own stretch rather than on a trunk it shares, and whether that leg is `level`, so the name sits
+ *  beside the stroke: above a level leg, right of an upright one. */
+export function middle_of(run: readonly Point[], fan?: Fan): Point & { level: boolean } {
   const own = fan ? past(fan.end === "to" ? [...run].reverse() : run, fan.by) : run;
   let best = { at: { x: own[0]!.x, y: own[0]!.y }, span: -1, level: false };
   for (let i = 1; i < own.length; i++) {
@@ -122,8 +118,41 @@ export function middle_of(run: readonly Point[], fan?: Fan,
       best = { at: { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 }, span, level: p.y === q.y };
     }
   }
-  const wide = chars * NAME.glyph + NAME.pad;
-  return { ...best.at, upright: chars > 0 && best.level && best.span < wide };
+  return { ...best.at, level: best.level };
+}
+
+/** How far beside its run a name sits: above a level leg, right of an upright one; a name's glyph
+ *  and its line's height at the layout's size, in pixels. */
+export const NAMED = { lift: 8, aside: 6, glyph: 6.2, line: 16 };
+
+/** Which side of its leg a name sits on, and the point it is set from: the leg's middle. */
+export type NameBox = { x: number; y: number; w: number; h: number;
+                        side: "above" | "below" | "right" | "left"; at: Point };
+
+/** **The box a line's name takes**, at the layout's size: beside one of its own legs (past the
+ *  fan point), the longest first — above or below a level leg (a `level` name always reads level,
+ *  set on the leg's middle), right or left of an upright one — **the first clear of every card**
+ *  (`cards`); where none is, above or right of the longest. The one geometry the stage draws by
+ *  and the measure counts. */
+export function name_box(run: readonly Point[], chars: number, fan?: Fan, level = false,
+                         cards: readonly { x: number; y: number; w: number; h: number }[] = [])
+    : NameBox {
+  const own = fan ? past(fan.end === "to" ? [...run].reverse() : run, fan.by) : run;
+  const [w, h] = [chars * NAMED.glyph, NAMED.line];
+  const legs = own.slice(1).map((q, i) => [own[i]!, q] as const)
+    .sort((a, z) => len(z[0], z[1]) - len(a[0], a[1]));
+  const boxes = (legs.length ? legs : [[own[0]!, own[0]!] as const]).flatMap(([p, q]): NameBox[] => {
+    const at = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+    const flat = p.y === q.y || level;
+    return flat
+      ? [{ x: at.x - w / 2, y: at.y - NAMED.lift - h / 2, w, h, side: "above" as const, at },
+         { x: at.x - w / 2, y: at.y + NAMED.lift - h / 2, w, h, side: "below" as const, at }]
+      : [{ x: at.x + NAMED.aside, y: at.y - h / 2, w, h, side: "right" as const, at },
+         { x: at.x - NAMED.aside - w, y: at.y - h / 2, w, h, side: "left" as const, at }];
+  });
+  const clear = (b: NameBox) => cards.every((c) => b.x >= c.x + c.w || c.x >= b.x + b.w
+    || b.y >= c.y + c.h || c.y >= b.y + b.h);
+  return boxes.find(clear) ?? boxes[0]!;
 }
 
 /** What is left of a run after its first `by` of length. */

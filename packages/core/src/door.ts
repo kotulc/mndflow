@@ -1,12 +1,12 @@
 /** The one door a log comes in through. */
 
 import { component } from "./components";
-import { all_defs, def_at, holds_defs, is_base, package_of, packages } from "./defs";
+import { all_defs, def_at, holds_defs, is_base, kind_only, package_of, packages } from "./defs";
 import { fold, type Floor } from "./fold";
 import { covers, inside, lattice_of, one_side, overlaps } from "./holders";
 import { ports_on, subtree } from "./tree";
 import { new_id } from "./ids";
-import { type Graph, type Grid, type Id, type Log, type Mutation, type Span,
+import { type Graph, type Grid, type GridLabel, type Id, type Log, type Mutation, type Span,
          type Step } from "./types";
 
 export type Fault = {
@@ -27,7 +27,7 @@ const OPS = new Set<string>([
   "set_body", "set_description", "set_attributes", "set_ends", "set_library", "set_records",
   "seat_cell", "set_grid", "link_blocks", "update_edge", "delete_edge", "flip_edge", "set_end",
   "set_port", "mark_port", "set_value", "drop_value", "order_values", "set_source",
-  "set_tags", "set_traits", "set_setting", "drop_settings",
+  "set_tags", "set_groups", "set_traits", "set_setting", "drop_settings",
 ]);
 
 /** Read a log in, repairing what it can. Nothing writes into the shipped floor. */
@@ -178,12 +178,20 @@ function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
   }
 }
 
-/** A setting its component refuses is dropped, on a definition or an element alike. */
+/** A setting its component refuses is dropped, on a definition or an element alike, and a
+ *  model's own `diagram`, its kind's alone. */
 function settings(graph: Graph, name: (id: Id) => string, say: Say): void {
   for (const it of [...Object.values(graph.blocks), ...Object.values(graph.edges)]) {
     for (const [key, config] of Object.entries(it.settings ?? {})) {
       const c = component(key);
       if (!c || !config || typeof config !== "object") continue;
+      if (kind_only(graph, it.id, key)) {
+        for (const prop of Object.keys(config)) {
+          say("dropped", `"${name(it.id)}" is a model: its kind says ${key}.${prop}`,
+              { op: "set_setting", id: it.id, key, name: prop, value: null });
+        }
+        continue;
+      }
       for (const [prop, value] of Object.entries(config)) {
         if (!c.check({ [prop]: value })) continue;
         say("dropped", `"${name(it.id)}" said ${key}.${prop}, which nothing reads`,
@@ -212,13 +220,13 @@ function definitions(graph: Graph, say: Say): void {
   }
 }
 
-/** A definition is found by its name, so no two in one package may share one: definitions and
- *  tags share the name space. */
+/** A definition is found by its path, so no two beside each other may share a name. Two in one
+ *  package apart in their folders may: a bare name finding both is ambiguous, and is qualified. */
 function named_defs(graph: Graph, say: Say): void {
   const taken = new Set<string>();
   for (const d of all_defs(graph).sort((a, z) => a.id.localeCompare(z.id))) {
     if (!d.name?.trim()) continue;
-    const slot = `${package_of(graph, d.id)}|`;
+    const slot = `${d.parent ?? package_of(graph, d.id)}|`;
     if (!taken.has(slot + d.name)) { taken.add(slot + d.name); continue; }
     let name = d.name;
     for (let n = 2; taken.has(slot + name); n++) name = `${d.name} ${n}`;
@@ -271,12 +279,20 @@ function fitted(g: Grid): { grid: Grid; dropped: number; said: boolean } {
               && s.r + s.rows <= rows && s.c + s.cols <= cols && one_side(s);
     if (sane && !kept.some((k) => overlaps(k, s))) kept.push(s);
   }
-  const dropped = (g.merges ?? []).length - kept.length;
+  /** A label sits inside the lattice, one to a cell, and says something. */
+  const labels: GridLabel[] = [];
+  for (const l of g.labels ?? []) {
+    const sane = Number.isInteger(l.r) && Number.isInteger(l.c) && l.r >= 0 && l.c >= 0
+      && l.r < rows && l.c < cols && typeof l.text === "string" && !!l.text.trim();
+    if (sane && !labels.some((k) => k.r === l.r && k.c === l.c)) labels.push(l);
+  }
+  const dropped = (g.merges ?? []).length - kept.length + (g.labels ?? []).length - labels.length;
   /** Anything a lattice does not carry is dropped. */
-  const said = Object.keys(g).some((k) => !["rows", "cols", "merges"].includes(k));
+  const said = Object.keys(g).some((k) => !["rows", "cols", "merges", "labels"].includes(k));
 
   if (!said && !dropped && rows === g.rows && cols === g.cols) return { grid: g, dropped, said };
-  return { grid: { rows, cols, ...(kept.length ? { merges: kept } : {}) }, dropped, said };
+  return { grid: { rows, cols, ...(kept.length ? { merges: kept } : {}),
+                   ...(labels.length ? { labels } : {}) }, dropped, said };
 }
 
 function plural(n: number, word: string): string {

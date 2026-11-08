@@ -17,14 +17,13 @@ export type Side = "top" | "right" | "bottom" | "left";
 /** Which way an interface carries: in, out, or both, which is what absent says. */
 export type Flow = "in" | "out" | "both";
 
-/** How a layer places what it draws — **always automatically**: by its relations (`layered`),
- *  or as a treemap, each block as large as what it holds. A setting (`layout.kind`), said by a
- *  definition and overridable by the layer; unsaid, it is packed (`auto`). `page` is the
- *  package view's own, for the boxes down its page, and never said by a layer. */
-export type Layout = "auto" | "page" | "layered" | "treemap";
+/** How a diagram kind places what it holds — **always automatically**: by its relations
+ *  (`layered`), or as a treemap, each block as large as what it holds. Its kind's setting
+ *  (`diagram.placing`), never a block's own (2026-11-06); unsaid, it is packed (`auto`). */
+export type Placing = "auto" | "layered" | "treemap";
 
-/** The layouts a layer may say. */
-export const LAYOUTS: readonly Layout[] = ["layered", "treemap"];
+/** The arrangements a diagram kind may say. */
+export const PLACINGS: readonly Placing[] = ["layered", "treemap"];
 
 /** Which way a line points: a setting, `line.dir`, said by its definition and overridable on the
  *  line, like any other. */
@@ -100,7 +99,14 @@ export type Grid = {
   cols: number;
   /** Cells with an extent of their own. */
   merges?: Span[];
+  /** **Labels are plain data** (2026-11-05): a column's on the header row, a row's on the
+   *  header column, a cell's in the body. A block a label covers carries it as a tag
+   *  (`given_of`); a block sits in a header only where it stands for a concept. */
+  labels?: GridLabel[];
 };
+
+/** A label on a grid: its line's header cell, or a body cell, and its text. */
+export type GridLabel = { r: number; c: number; text: string };
 
 /** The tree a folder at a package's root belongs to, where it is not structure. */
 export type Tree = "definitions";
@@ -243,6 +249,9 @@ export type Block = {
   /** The constraints it is held to, by id, in order: stated, the list replaces its definition's,
    *  as tags do. */
   constraints?: Id[];
+  /** **The groups it is in**, by the group block's id, each on its own layer: membership, never
+   *  enclosure. Each gives it the group's name as a tag (`given_of`). */
+  groups?: Id[];
   /** Its ports, in order: its boundary, where relations and flows enter and leave. */
   ports?: Port[];
   /** A usage's answers, in order. */
@@ -264,6 +273,8 @@ export type Relation = {
   toPort?: Id;
   /** A handle serial, as a block carries. */
   alias?: number;
+  /** Its place in the list it was read from, as a block's `order`. */
+  order?: number;
   /** Its tags, as a block's: stated, they replace its definition's. */
   tags?: Id[];
   /** Its constraints, as a block's. */
@@ -286,7 +297,7 @@ export const BLOCK_MODULES: readonly BlockModule[] = ["block", "reference", "int
  *  not a module. **There is no `resource`**: every block may point at external content through
  *  `source`, so a kind for it said nothing the slot does not. */
 export const BASE_BLOCKS: readonly Id[] = [
-  "block", "reference", "folder", "grid", "note", "label", "group", "region",
+  "block", "model", "reference", "folder", "grid", "note", "label", "group", "region",
 ];
 
 /** The shipped diagram kinds: blocks extending `block`, each fixing its view, layout and icon. A
@@ -306,6 +317,16 @@ export const DIAGRAM_QUESTIONS: Readonly<Record<string, string>> = {
  *  and the marks a flow or state machine adds. It lives on its layer, never in the explorer. */
 export const NOTATION: readonly Id[] = ["note", "label", "group", "region", "start", "end",
                                         "decision"];
+
+/** The annotations every diagram kind draws with: notation that is no mark. */
+export const ANNOTATIONS: readonly Id[] = ["note", "label", "group", "region"];
+
+/** The marks a diagram kind draws with beside its parts. Every kind draws the `ANNOTATIONS`; a
+ *  kind not named here draws no marks. */
+export const KIND_MARKS: Readonly<Record<Id, readonly Id[]>> = {
+  flow: ["start", "decision", "end"],
+  state: ["start", "end"],
+};
 
 /** The diagram kinds that hold alike, so a block holding parts moves freely among them: parts
  *  and lines; references to definitions. Each grid kind is its own: its cells carry over to the
@@ -351,9 +372,9 @@ export const TRAITS: readonly Trait[] = [
     settings: { block: { behaviour: true } } },
   { id: "is_grid", description: "Seats text and blocks in the cells of a grid, drawn when it is opened.",
     settings: { holder: { matrix: true } } },
-  { id: "is_group", description: "Draws what it holds in place, on the layer it sits on, rather "
-      + "than behind its card.",
-    settings: { holder: { inline: true } } },
+  { id: "is_group", description: "Draws as a panel round its members, on the layer it sits on; "
+      + "it holds nothing, its members carry it.",
+    settings: { holder: { panel: true } } },
   { id: "is_region", description: "Draws as a band across the layer it sits on, under its "
       + "heading, holding what lies in it.",
     settings: { holder: { inline: true, band: true } } },
@@ -429,6 +450,7 @@ export type Mutation =
   | { op: "order_values"; id: Id; names: string[] }
   /** An element's tags, in order; null gives the list back to its definition. */
   | { op: "set_tags"; id: Id; tags: Id[] | null }
+  | { op: "set_groups"; id: Id; groups: Id[] | null }
   /** An element's constraints, in order; null gives the list back to its definition. */
   | { op: "set_constraints"; id: Id; constraints: Id[] | null }
   /** A definition's traits, in order; null gives the list back to its chain. */
@@ -437,8 +459,6 @@ export type Mutation =
   | { op: "drop_settings"; id: Id }
   /** One property of one component on one element. */
   | { op: "set_setting"; id: Id; key: string; name: string; value: unknown };
-
-export type MutationOp = Mutation["op"];
 
 export type Step = {
   id: Id;

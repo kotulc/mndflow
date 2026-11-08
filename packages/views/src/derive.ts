@@ -1,14 +1,15 @@
 /** What every module derives the same way. */
 
-import { attributes_of, def_of, dir_of, domain_of, frozen, head_of, lens_of, is_box, opens,
-         flow_of, is_notation, is_flat, notation_of, is_interface, is_named,
-         base_of, path, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
-         type Graph, type Id } from "@mnd/core";
-import { body_lines, face_table, face_text, handle_of, name_fit } from "./face";
+import { alias_of, attributes_of, def_of, dir_of, domain_of, frozen, head_of, inline, is_group,
+         is_definition,
+         lens_of, is_box, opens, flow_of, is_notation, is_flat, notation_of, is_interface, is_named,
+         is_participant,
+         base_of, path, resolved, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
+         path_of, type Graph, type Id } from "@mnd/core";
+import { body_lines, face_table, face_text, FACTS_LINE, handle_of, name_fit } from "./face";
 import { card_shape, look_of } from "./look";
 import { face_of, type Face } from "./size";
 import { box_of, type BoxData, type CardClass, type Scene } from "./scene";
-import { resolved } from "./through";
 
 /** How a block reads, derived from what it holds or where it sits. */
 export function marks_of(graph: Graph, id: Id): CardClass[] {
@@ -35,6 +36,7 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
   if (def && notation_of(graph, def)) out.push("notation");
   if (module === "note" && !b.def) out.push("note");
   if (module === "label" && !b.def) out.push("label");
+  if (path_of(graph, id).length) out.push("walks");
   /** A block that holds wears its shape, whatever kind it descends from; a folder is a box. */
   const shape = shape_of(graph, id);
   if (shape) out.push(shape);
@@ -51,8 +53,9 @@ export function marks_of(graph: Graph, id: Id): CardClass[] {
   if (opens(graph, id)) out.push("container");
   /** Wearing its type rather than a name somebody chose. */
   if (!is_named(graph, id)) out.push("unnamed");
-  /** A header, and one heading a row reads upright in its one-unit column. */
-  const role = head_of(graph, id);
+  /** A header, and one heading a row reads upright in its one-unit column. A participant is a
+   *  card. */
+  const role = is_participant(graph, id) ? null : head_of(graph, id);
   if (role) out.push("header");
   if (role === "row") out.push("upright");
   return out;
@@ -64,10 +67,16 @@ export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): 
   /** A reference to a block carries what its target carries. */
   const b = graph.blocks[resolved(graph, id).card]!;
   const look = look_of(graph, id);
-  /** The handle, over the name — never on a header or a mark, which have no corner to wear it. */
+  /** The kind after the name — never on a header or a mark, which are their shape alone. */
   const shape = card_shape(graph, id);
-  const cornered = !head_of(graph, id) && shape !== "dot" && shape !== "ring" && shape !== "diamond";
-  const alias = cornered ? handle_of(graph, id, look) : "";
+  const cornered = (!head_of(graph, id) || is_participant(graph, id))
+    && shape !== "dot" && shape !== "ring" && shape !== "diamond";
+  /** A holder drawn as one — a group, or what draws inline — heads with its handle alone, never
+   *  a type word; closed, it is a card like any other. */
+  const holder = is_group(graph, id) || inline(graph, id);
+  const shown = look.alias !== false;
+  const alias = holder && shown ? alias_of(graph, id, look.alias === true) : "";
+  const kind = !holder && cornered ? handle_of(graph, id, look) : "";
   /** Room at the end of its table for the marks this card wears, previewing or not. */
   const ruled = face === "large" ? face_table(graph, b.id, look, stamps_of(graph, id).length) : null;
   const description = b.description ?? graph.blocks[def_of(graph, b.id) ?? ""]?.description;
@@ -75,6 +84,8 @@ export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): 
     label: shown_name(graph, id),
     ...(description ? { description } : {}),
     ...(alias ? { alias } : {}),
+    ...(kind ? { kind } : {}),
+    ...(is_definition(graph, id) ? { defines: true } : {}),
     role: role_of(graph, id),
     ...(lens_of(graph, id) ? { opens: true } : {}),
     ...(stamps_of(graph, id).length ? { stamps: stamps_of(graph, id) } : {}),
@@ -95,12 +106,15 @@ export function fit_names(scene: Scene): Scene {
   const nodes = scene.nodes.map((n) => {
     const d = n.data;
     if (n.type === "card" && d.face === "large" && d.look?.size && d.text && !d.table) {
-      return { ...n, data: { ...d, clamp: body_lines(box_of(n).h, !!d.alias) } };
+      return { ...n, data: { ...d, clamp: body_lines(box_of(n).h, !!d.facts) } };
     }
     const own = d.marks.includes("header");
     if (n.type !== "card" || d.face !== "small" || own || d.look?.height === "free"
         || d.look?.face === "text") return n;
-    const fit = name_fit(d.label, box_of(n), !!d.alias, d.look?.shape === "diamond");
+    /** The facts strip takes its line under the name. */
+    const box = box_of(n);
+    const room = d.facts ? { ...box, h: box.h - FACTS_LINE } : box;
+    const fit = name_fit(d.label, room, !!d.kind, d.look?.shape === "diamond");
     const { fit: _, ...rest } = d;
     return { ...n, data: fit ? { ...rest, fit } : rest };
   });

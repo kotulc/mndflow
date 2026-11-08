@@ -3,12 +3,44 @@
 import { useCallback, useState } from "react";
 import type { Node, NodeChange } from "@xyflow/react";
 import type { Point } from "@mnd/core";
-import { box_of, holds, nearest_seat, taken_on, FRAME, PORT, type BoxNode,
+import { box_of, holds, nearest_seat, taken_on, FRAME, PORT, UNIT, type BoxNode,
          type Frame, type Scene } from "@mnd/views";
 import type { Adjust } from "./gestures";
 
 type Box = { x: number; y: number; w: number; h: number };
 
+
+/** **The gap a region will land in**, read from the pointer along the band line: a line across
+ *  the band before the first other region whose middle lies past it, else after the last. */
+function band_gap(scene: Scene, id: string, mid: Point): Box | null {
+  const across = !!scene.across;
+  const regions = scene.nodes.filter((n) => n.id !== id && n.data.marks.includes("region"))
+    .map(box_of).sort((a, b) => (across ? a.x - b.x : a.y - b.y));
+  if (!regions.length) return null;
+  const before = regions.find((r) => (across ? r.x + r.w / 2 > mid.x : r.y + r.h / 2 > mid.y));
+  const last = regions[regions.length - 1]!;
+  const lo = Math.min(...regions.map((r) => (across ? r.y : r.x)));
+  const hi = Math.max(...regions.map((r) => (across ? r.y + r.h : r.x + r.w)));
+  const at = before ? (across ? before.x : before.y) - UNIT / 2
+    : (across ? last.x + last.w : last.y + last.h) + UNIT / 2;
+  return across ? { x: at - 1, y: lo, w: 2, h: hi - lo } : { x: lo, y: at - 1, w: hi - lo, h: 2 };
+}
+
+/** **The gap a sequence step will land in**: a line across its own column at the top of the body
+ *  row its middle is over. Undefined where the node is no step; null off the body. */
+function step_gap(scene: Scene, step: BoxNode, mid: Point): Box | null | undefined {
+  const grid = scene.nodes.find((n) => n.id === scene.lifelines);
+  if (!grid?.data.grid || !grid.data.holds?.includes(step.id)) return undefined;
+  const o = box_of(grid);
+  const home = box_of(step);
+  const cells = grid.data.grid;
+  const col = cells.find((c) => home.x + home.w / 2 >= o.x + c.x
+    && home.x + home.w / 2 <= o.x + c.x + c.w && c.r > 0);
+  const row = cells.find((c) => c.c === col?.c && c.r > 0 && mid.y >= o.y + c.y
+    && mid.y <= o.y + c.y + c.h);
+  if (!col || !row) return null;
+  return { x: o.x + col.x, y: o.y + row.y - 1, w: col.w, h: 2 };
+}
 
 export function useDrag(scene: Scene, frame: Frame | null,
                         moved: (cs: NodeChange<BoxNode>[]) => void,
@@ -90,6 +122,15 @@ export function useDrag(scene: Scene, frame: Frame | null,
   const dragging = useCallback((node: Node, pointer?: Point) => {
     const drawn = scene.nodes.find((n) => n.id === node.id);
     if (!drawn) return;
+    /** A region or a step shows the gap it will land in, a line across its band or column. */
+    const size = box_of(drawn);
+    const mid = { x: node.position.x + size.w / 2, y: node.position.y + size.h / 2 };
+    if (drawn.data.marks.includes("region")) {
+      land(band_gap(scene, drawn.id, pointer ?? mid));
+      return;
+    }
+    const step = step_gap(scene, drawn, mid);
+    if (step !== undefined) { land(step); return; }
     /** The same question the drop asks, so what is lit is what will happen. */
     const land_on = centred(node, box_of(drawn), pointer);
     if ("lit" in land_on && land_on.lit) { land(land_on.lit); return; }
@@ -129,7 +170,7 @@ export function useDrag(scene: Scene, frame: Frame | null,
       const rest = centred(node, box_of(drawn));
       onAdjust?.({ kind: "move", on: node.id, to: node.position,
                    over: null, into: rest.into?.id ?? null,
-                   ...(rest.cell ? { cell: rest.cell } : {}) });
+                   ...(rest.cell ? { cell: rest.cell } : {}), ...(pointer ? { pointer } : {}) });
       return;
     }
 

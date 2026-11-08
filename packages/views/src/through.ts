@@ -6,27 +6,10 @@
  *  - **Ports are data**, laid in here as blocks to seat: every card on the layer, and the room,
  *    wears its ports — its own and those its definition's chain declares — each under
  *    `block/port`, and a run naming a port (`fromPort`, `toPort`) meets it there.
- *  - **A reference is resolved here, once** (`resolved`): what its card previews, the definition
- *    it stands in for, or that it names nothing. Every reader in views asks this, never `of`. */
+ *  A reference is resolved by core `resolved`, never by `of`. */
 
-import { children, def_at, drawn_in, is_reference, of_ref, part_id, ports_on, stands_for,
-         type Block, type Definition, type Graph, type Id, type Relation,
-         type Worn } from "@mnd/core";
-
-/** What a card draws as: the block it previews — what a reference stands for, else itself — the
- *  definition a reference stands in for, and whether a reference names nothing there. */
-export type Resolved = { card: Id; stands_in?: Definition; missing: boolean };
-
-
-/** What a card draws as, a reference resolved: decided by *is reference*, never by `of`. */
-export function resolved(graph: Graph, id: Id): Resolved {
-  if (!is_reference(graph, id)) return { card: id, missing: false };
-  const target = stands_for(graph, id);
-  if (!target || target.id === id) return { card: id, missing: true };
-  const def = def_at(graph, of_ref(graph, id));
-  return { card: target.id, ...(def ? { stands_in: def } : {}), missing: false };
-}
-
+import { children, def_at, drawn_in, part_id, ports_on, type Block, type Graph, type Id,
+         type Relation, type Worn } from "@mnd/core";
 
 /** The graph a layer is drawn from, with what its usages read through laid in. */
 export function read_through(graph: Graph, layer: Id | null): Graph {

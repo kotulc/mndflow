@@ -1,7 +1,7 @@
 # What a fresh browser opens, and the defaults the chrome starts from.
 # The app reads this and never writes it. It is not a workspace.
 
-workspace: /samples/model.json
+workspace: /samples/example.json
 catalogue: /packages/index.json
 theme: retro
 tray: open

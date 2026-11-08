@@ -1,0 +1,673 @@
+<title>Tray Structure</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* mndflow's dark ramp, one look on purpose: the mockup shows the app's tray (from tray-lists v9).
+   Layout: one tray, the card column left with the tab's filters under it, the tab's list right. */
+:root {
+  color-scheme: dark;
+  --ground: oklch(0.145 0.015 160);
+  --outside: oklch(0.11 0.01 160);
+  --fill: oklch(0.195 0.018 160);
+  --raised: oklch(0.255 0.02 160);
+  --divide: oklch(0.245 0.02 160);
+  --line: oklch(0.335 0.028 160);
+  --stroke: oklch(0.42 0.03 160);
+  --dim: oklch(0.6 0.035 160);
+  --soft: oklch(0.8 0.03 160);
+  --ink: oklch(0.88 0.05 160);
+  --accent: oklch(0.8 0.19 150);
+  --wash: color-mix(in oklch, var(--accent) 14%, var(--fill));
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --sans: "IBM Plex Sans", system-ui, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { background: var(--outside); color: var(--ink); font: 14px/1.55 var(--sans); margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 64px; }
+main { max-width: 1240px; margin: 0 auto; display: grid; gap: 34px; }
+header { padding-block: 40px 0; display: grid; gap: 10px; }
+h1 { font: 600 26px/1.2 var(--mono); margin: 0; letter-spacing: -0.01em; }
+h1 span { color: var(--accent); }
+h2 { font: 600 16px/1.3 var(--mono); margin: 0; text-wrap: balance; }
+h3 { font: 500 12px/1.3 var(--mono); margin: 0; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+p { margin: 0; max-width: 80ch; color: var(--soft); }
+code { font: 12.5px var(--mono); color: var(--ink); background: var(--fill); padding: 1px 4px; border-radius: 2px; }
+section.case { display: grid; gap: 12px; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 1px; }
+
+/* the controls */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in oklch, var(--outside) 94%, transparent);
+  backdrop-filter: blur(6px); border-bottom: 1px solid var(--divide); padding: 10px 0; display: flex; gap: 10px 22px; align-items: center; flex-wrap: wrap;
+  font: 12px var(--mono); color: var(--dim); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--outside); }
+.ctl { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.ctl > span { margin-right: 4px; }
+.seg { font: 11.5px var(--mono); color: var(--soft); border: 1px solid var(--line); padding: 3px 8px; }
+.seg:hover { color: var(--ink); border-color: var(--stroke); }
+.seg.on { color: var(--accent); border-color: var(--accent); }
+.width input { width: min(200px, 40vw); accent-color: var(--accent); }
+.width output { color: var(--ink); min-width: 6ch; font-variant-numeric: tabular-nums; }
+
+/* marks */
+.fact { font: 10.5px/1 var(--mono); color: var(--dim); border: 1px solid var(--line); padding: 2px 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fact b { color: var(--ink); font-weight: 500; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--t); flex: none; display: inline-block; }
+.tag { display: inline-flex; gap: 4px; align-items: center; font: 10.5px var(--mono); color: var(--dim); white-space: nowrap; }
+.edge { width: 3px; height: 14px; background: var(--hue); border-radius: 1px; display: inline-block; }
+.ico { display: inline-block; width: 11px; height: 11px; border: 1.5px solid var(--dim); border-radius: 1px; flex: none; }
+.ico.db { border-radius: 50% / 25%; } .ico.seq { border-style: none solid; } .ico.def { border-style: dashed; }
+.amk { width: 8px; height: 2px; background: var(--dim); display: inline-block; }
+.seat { width: 11px; height: 11px; border: 1.2px solid var(--dim); border-radius: 1px; display: inline-grid; place-items: center; font: 600 9px/1 var(--sans); color: var(--soft); flex: none; }
+.seat::after { content: "›"; margin-top: -1px; }
+.wire { width: 14px; height: 0; border-top: 2px solid var(--hue); display: inline-block; }
+
+/* the tray */
+.tray { container: tray / inline-size; width: min(100%, calc(var(--trayw, 1200) * 1px)); background: var(--fill); border: 1px solid var(--divide); }
+.thead { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--divide); flex-wrap: wrap; font-family: var(--mono); }
+.thead .chev { color: var(--dim); font-size: 10px; width: 10px; }
+.thead .nm { font: 600 14px var(--mono); }
+.thead .kd { font: 12px var(--mono); color: var(--dim); }
+.thead .role { font: 600 10px var(--mono); padding: 2px 7px; border-radius: 2px; color: var(--dim); background: var(--raised); }
+.thead .role.def { color: var(--ground); background: var(--hue); }
+.thead .facts { display: flex; gap: 4px 8px; flex-wrap: wrap; align-items: center; margin-left: 6px; }
+.thead .exp { margin-left: auto; color: var(--dim); font-size: 12px; }
+@container tray (max-width: 559px) { .thead .facts { margin-left: 21px; flex-basis: 100%; } }
+.tabs { display: flex; align-items: stretch; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--divide); font: 11px var(--mono); overflow-x: auto; }
+.tab { padding: 6px 7px; color: var(--dim); position: relative; white-space: nowrap; }
+.tab:hover:not(.off) { color: var(--ink); }
+.tab.on { color: var(--accent); box-shadow: inset 0 -2px var(--accent); }
+.tab.off { color: color-mix(in oklch, var(--dim) 45%, transparent); cursor: default; }
+.tabs .json { margin-left: auto; align-self: center; font: 10.5px var(--mono); border: 1px solid var(--line); padding: 1px 6px; color: var(--soft); }
+.tabs .json.off { color: color-mix(in oklch, var(--dim) 45%, transparent); border-color: var(--divide); cursor: default; }
+.tip { position: absolute; left: 0; top: calc(100% + 4px); z-index: 6; width: max-content; max-width: 260px; font: 400 12px/1.45 var(--sans); color: var(--ink);
+  background: var(--raised); border: 1px solid var(--stroke); padding: 7px 9px; box-shadow: 0 6px 20px oklch(0 0 0 / 0.45); opacity: 0; pointer-events: none; transition: opacity 0.12s; white-space: normal; }
+.tipped .tab.off:hover .tip, .tipped .tab.off:focus-visible .tip { opacity: 1; }
+.tabs { position: relative; overflow: visible; flex-wrap: wrap; }
+
+/* one layout on every tab: the card column, its filters under it; the tab's list beside */
+.tbody { --pad: 12px; --gap: 16px; --stack: 8px; --lead: clamp(220px, 26cqi, 320px);
+  display: grid; grid-template-columns: var(--lead) minmax(0, 1fr); gap: var(--gap); padding: var(--pad); align-items: start; }
+.lead { display: grid; gap: var(--gap); min-width: 0; align-content: start; }
+.list { display: grid; gap: var(--gap); min-width: 0; align-content: start; }
+.tbody > .list { border-left: 1px solid var(--divide); padding-left: var(--gap); }
+@container tray (max-width: 559px) { .tbody { grid-template-columns: minmax(0, 1fr); } .tbody > .list { border-left: 0; padding-left: 0; } }
+
+/* filter rows: explorer rows, local to the tab — a mark, a name, a count right; single-select */
+.fgroups { display: grid; gap: 12px; }
+.fg { display: grid; gap: 1px; }
+.fg > .gl { font: 9.5px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 8px 3px; border-bottom: 1px solid var(--line); margin-bottom: 2px; }
+.fr { display: flex; align-items: center; gap: 8px; padding: 3px 8px 3px 10px; min-height: 24px; font: 12px/1.3 var(--mono); color: var(--soft); text-align: left; width: 100%; position: relative; }
+.fr:hover { background: var(--raised); color: var(--ink); }
+.fr.on { background: var(--wash); color: var(--accent); box-shadow: inset 2px 0 var(--accent); }
+.fr[style*="--hue"]::before { content: ""; position: absolute; left: 3px; top: 5px; bottom: 5px; width: 2px; background: var(--hue); }
+.fr .fm { width: 14px; display: inline-flex; justify-content: center; flex: none; }
+.fr .fn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.fr .fs { color: var(--dim); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.fr .fc { margin-left: auto; color: var(--dim); font-size: 11px; font-variant-numeric: tabular-nums; flex: none; }
+.fr.on .fc { color: var(--accent); }
+.fr .fv { margin-left: auto; color: var(--ink); font-size: 11px; flex: none; }
+/* narrow, the chips form (question 2) */
+.chips-form .fgroups { display: none; }
+.fchips { display: none; gap: 6px; }
+.chips-form .fchips { display: grid; }
+.fchips .cg { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.fchips .cl { font: 9.5px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 2px; }
+.chip { font: 11px var(--mono); color: var(--soft); border: 1px solid var(--line); padding: 2px 7px; display: inline-flex; gap: 6px; }
+.chip .fc { color: var(--dim); font-size: 10px; }
+.chip.on { color: var(--accent); border-color: var(--accent); background: var(--wash); }
+
+/* lists, from tray-lists v9 */
+.sec { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.sh { display: flex; align-items: center; gap: 8px; font: 600 13px var(--mono); color: var(--ink); padding-bottom: 2px; }
+.info { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--stroke); color: var(--dim); font: italic 600 9px/12px var(--sans); text-align: center; }
+.rows { display: grid; grid-template-columns: 14px minmax(0, max-content) minmax(0, 1fr) minmax(0, max-content); column-gap: 12px; row-gap: 1px; align-items: center; }
+.r { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; padding: 3px 8px; font: 12px/1.35 var(--mono); min-height: 26px; border-bottom: 1px solid var(--divide); }
+.r:hover { background: var(--raised); }
+.r .mk { display: flex; justify-content: center; align-items: center; }
+.r .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.r .kd { color: var(--dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.r .sv { display: flex; gap: 6px; align-items: center; justify-content: flex-end; font-size: 11.5px; color: var(--soft); white-space: nowrap; overflow: hidden; min-width: 0; }
+.r .sv > * { overflow: hidden; text-overflow: ellipsis; }
+.r .sv .q { color: var(--dim); font-size: 10.5px; }
+.r .sv .no { color: var(--dim); font-style: italic; }
+.band { grid-column: 1 / -1; display: flex; justify-content: space-between; padding: 0 8px 3px 0; border-bottom: 1px solid var(--line); margin-top: 12px; font: 9.5px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.band:first-child { margin-top: 0; }
+.nocount .band .bc { display: none; }
+.empty { display: grid; gap: 6px; }
+.empty p { font: 12px/1.5 var(--sans); color: var(--soft); max-width: 52ch; }
+.empty .hint { font: 11px var(--mono); color: var(--dim); }
+.more { font: 11px var(--mono); color: var(--dim); padding: 4px 8px; }
+
+/* the contents table, kept whole */
+.tablewrap { overflow-x: auto; }
+table.ct { width: 100%; border-collapse: collapse; font: 12px var(--mono); min-width: 440px; }
+.ct th { text-align: left; font: 9.5px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 8px; border-bottom: 1px solid var(--line); font-weight: 400; }
+.ct td { padding: 4px 8px; border-bottom: 1px solid var(--divide); color: var(--soft); white-space: nowrap; }
+.ct td:first-child { color: var(--ink); }
+.ct tr:hover td { background: var(--raised); }
+.ct .mkc { width: 22px; }
+
+/* the card, at its column's width */
+.card { position: relative; border: 1px solid color-mix(in oklch, var(--hue) 70%, var(--line)); background: var(--raised); border-radius: 3px; font-family: var(--mono); min-height: 96px; display: grid; align-content: start; }
+.card.def { background: transparent; border-width: 1.5px; }
+.ch { display: flex; gap: 6px 8px; align-items: baseline; padding: 9px 30px 9px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.ch b { font: 600 14px var(--mono); }
+.ch .kd { font: 12px var(--mono); color: var(--dim); }
+.ch .role { font: 600 9.5px var(--mono); padding: 1px 5px; border-radius: 2px; color: var(--ground); background: var(--hue); align-self: center; }
+.ch .ic { position: absolute; top: 10px; right: 10px; }
+.tbl { display: grid; grid-template-columns: auto auto 1fr; font: 11.5px/1.9 var(--mono); }
+.tbl > span { padding: 0 12px; border-bottom: 1px solid var(--divide); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tbl .t, .tbl .no { color: var(--dim); }
+.card .cseat { position: absolute; top: var(--y); width: 12px; height: 12px; margin-top: -6px; background: var(--ground); border-color: var(--stroke); z-index: 1; }
+.card .cseat.in { left: -7px; } .card .cseat.out { right: -7px; }
+.card .lit, .card .tbl .lit { background: color-mix(in oklch, var(--accent) 16%, transparent); }
+.card .cseat.lit { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 25%, transparent); }
+.card .tagrow { display: flex; gap: 10px; padding: 6px 12px; flex-wrap: wrap; }
+.card .tagrow .lit { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+.card .tiles { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 10px; }
+.card .tl { font: 10px/1 var(--mono); padding: 4px 5px; border: 1px solid var(--line); border-left: 2px solid var(--th, var(--line)); background: var(--ground); color: var(--soft); }
+.card .tl.lit { outline: 1.5px solid var(--accent); outline-offset: 1px; }
+.card .ends { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center; padding: 10px 12px; font: 11.5px var(--mono); }
+.card .ends span:nth-child(2) { color: var(--dim); }
+.card .none { padding: 12px; font: 11px var(--mono); color: var(--dim); }
+.cap { font: 10.5px var(--mono); color: var(--dim); }
+
+/* where it lives: the whole package as quiet nested boxes, the path to the element drawn firmer, the element lit */
+.loc { background: var(--ground); border: 1px solid var(--divide); display: grid; gap: 6px; padding: 6px; font-family: var(--mono); }
+.loc .area { position: relative; aspect-ratio: 3 / 2; }
+.loc .area > * { position: absolute; overflow: hidden; border: 1px solid var(--divide); border-radius: 1px; }
+.loc .n.top { font: 9px/11px var(--mono); color: var(--dim); padding-left: 3px; white-space: nowrap; text-overflow: ellipsis; }
+.loc .n.path { border-color: var(--stroke); }
+.loc .n.lit { border-color: var(--accent); background: var(--wash); box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 30%, transparent); z-index: 1; overflow: visible; }
+/* the path heads the answers column, where the where-it-lives answer was */
+.crumb { font: 11.5px/1.4 var(--mono); color: var(--dim); overflow-wrap: anywhere; }
+.crumb b { color: var(--ink); font-weight: 600; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+.gallery > div, .vs > div { display: grid; gap: 6px; align-content: start; min-width: 0; }
+/* the questions, each as two shots side by side */
+.vs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; }
+.qa { display: grid; gap: 10px; padding-top: 14px; border-top: 1px solid var(--divide); }
+.qa > p b { color: var(--ink); }
+.shot.tipshot .tab.showtip .tip { opacity: 1; }
+.shot .tabs .tab.off.showtip { color: var(--soft); }
+.fr.hov { background: var(--raised); color: var(--ink); }
+.answers { display: grid; gap: 14px; }
+.answers h4 { margin: 0 0 4px; font: 600 12.5px var(--mono); color: var(--ink); }
+.answers p { font-size: 13px; }
+
+/* keys under the card: the same rows, a value right */
+.choices { display: flex; gap: 6px; flex-wrap: wrap; }
+.levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.lv { display: grid; gap: 4px; } .lv .card { min-height: 0; }
+
+/* page furniture */
+.matrix { overflow-x: auto; }
+.matrix table { border-collapse: collapse; font: 12px var(--mono); min-width: 640px; width: 100%; }
+.matrix th, .matrix td { border-bottom: 1px solid var(--divide); padding: 5px 10px; text-align: left; white-space: nowrap; }
+.matrix th { font: 10px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 400; }
+.matrix td.y { color: var(--accent); } .matrix td.n { color: color-mix(in oklch, var(--dim) 55%, transparent); }
+.matrix td .why { color: var(--dim); font-size: 10.5px; }
+.pair { display: grid; gap: 14px; }
+.verdict { display: grid; border: 1px solid var(--divide); background: var(--ground); margin: 0; }
+.verdict > div { display: grid; grid-template-columns: minmax(150px, 250px) 1fr; gap: 14px; padding: 10px 14px; border-bottom: 1px solid var(--divide); }
+.verdict > div:last-child { border-bottom: 0; }
+.verdict dt { font: 600 12px var(--mono); }
+.verdict dd { margin: 0; color: var(--soft); font-size: 13px; display: grid; gap: 4px; }
+.verdict .rec { color: var(--accent); font: 600 11px var(--mono); }
+@media (max-width: 560px) { .verdict > div { grid-template-columns: 1fr; gap: 4px; } }
+@media (prefers-reduced-motion: reduce) { .tip { transition: none; } }
+</style>
+
+<main>
+<header>
+  <h3>mndflow · design language mockup · 2026-10-31 · v5, built</h3>
+  <h1>Tray <span>structure</span></h1>
+  <p>One tray, the same on every selection. <b>One tab bar</b> for every element: overview · card · settings · components · usages · contents. A tab that does not apply is drawn faint, never hidden. <b>Every tab has one layout</b>: the card in the left column with that tab's filters under it, and the list they narrow on the right. Filters are explorer rows local to the tab: a mark, a name and a count, single-select, with an <b>all</b> row first. Pick an element and a tab, click a filter, hover a filter to light its members on the card, and try the three widths. The overview shows a map of <b>where it lives</b>. Questions 1 to 5 are decided; each is drawn both ways, and the verdict records them.</p>
+</header>
+
+<div class="bar" role="group" aria-label="Mockup controls">
+  <div class="ctl" id="pick-el" role="group" aria-label="Element"><span>element</span></div>
+  <div class="ctl" id="pick-w" role="group" aria-label="Tray width"><span>width</span></div>
+  <label class="ctl width" for="tw"><input id="tw" type="range" min="360" max="1240" value="1200" step="10"><output id="two" for="tw">1200 px</output></label>
+</div>
+
+<section class="case">
+  <h2 id="live-title">The tray</h2>
+  <p id="live-lede"></p>
+  <div id="live"></div>
+</section>
+
+<section class="case">
+  <h2>Where it lives</h2>
+  <p>Under the card, the overview shows where the element sits in its whole model or package: quiet nested boxes sized by how many blocks each holds, the top level named, the path down to the element drawn firmer and the element itself lit. Nothing in it repeats a chip; it only says <i>where</i>. A line lights both its ends. On the overview only: other tabs keep their filter rows under the card. Its path heads the answers column. Every element is shown below; the live tray above uses it too.</p>
+  <div class="gallery" id="gallery"></div>
+</section>
+
+<section class="case">
+  <h2>Questions, both ways</h2>
+  <p>Each question drawn both ways, in the state where they differ. Decided 2026-10-31: the option marked <b>chosen</b>.</p>
+  <div id="qs" style="display:grid;gap:24px"></div>
+</section>
+
+<section class="case">
+  <h2>All, and one row chosen</h2>
+  <p>Storefront's components at 760 px. Left: <b>all</b>, every section banded. Right: <b>ports</b> chosen, only its section shown, and its seats lit on the card.</p>
+  <div class="pair" id="pair"></div>
+</section>
+
+<section class="case">
+  <h2>Which tab each element enables</h2>
+  <p>Every element shows the same six tabs, in the same order. A dash means the tab is drawn faint; the reason is what its tip says.</p>
+  <div class="matrix" id="matrix"></div>
+</section>
+
+<section class="case">
+  <h2>Verdict</h2>
+  <dl class="verdict">
+    <div><dt>overview: where it lives</dt><dd><span class="rec">Decided 2026-10-31 (v4): on the overview only, under the card, the whole model or package as quiet nested boxes sized by how many blocks each holds.</span><span>Only the top level is named; boxes show to the third level, and deeper only along the path, drawn firmer; the element is lit, a line's two ends. The path heads the answers column (<i>base › blocks › block</i>) and the <i>where it lives</i> answer is dropped. Other tabs keep their filter rows under the card. Built, it reuses the map's own layout.</span></dd></div>
+    <div><dt>1 · the disabled tab</dt><dd><span class="rec">Decided 2026-10-31, changed after v4: faint and inert, no tip.</span><span>The tab says only that it does not apply; why is left out.</span></dd></div>
+    <div><dt>2 · filters below 560 px</dt><dd><span class="rec">Decided 2026-10-31: the filter rows over the list.</span><span>One form at every width: the same rows, stacked above the list in the one column.</span></dd></div>
+    <div><dt>3 · a filter when the element changes</dt><dd><span class="rec">Decided 2026-10-31: kept per tab, reset to all when the element changes.</span><span>Switching tabs and back keeps what you narrowed to. A new element's sections and places differ, so a carried filter could point at nothing.</span></dd></div>
+    <div><dt>4 · hovering a filter row</dt><dd><span class="rec">Decided 2026-10-31: it lights its members, on the card and the canvas.</span><span>One rule for every row in the tray: hovering lights what it names. A filter names a set, so the set lights: ports light every seat, a place lights its uses.</span></dd></div>
+    <div><dt>5 · counts said twice</dt><dd><span class="rec">Decided 2026-10-31: bands repeat the count.</span><span>A list reads the same with its filters or without them. The facts strip still counts the element's totals.</span></dd></div>
+    <div><dt>6 · the json chip and contents' text</dt><dd><span class="rec">Decided 2026-10-31: json stays at the tab bar's right end, faint where there is no record to read (a use). Contents' text band moves to the overview's answers column, last, as already decided.</span><span>So the contents tab is the table alone, with scope and kinds as filters.</span></dd></div>
+    <div><dt>card and settings keys</dt><dd><span class="rec">Decided 2026-10-31: the same component as the filter rows.</span><span>The key list under the card uses the filter rows, with the key's value on the right instead of a count. Choosing a key shows its choices on the right, as the built tray does now. It is single-select, with no all row.</span></dd></div>
+    <div><dt>usage places</dt><dd><span>Decided 2026-10-31: a definition that holds uses is a place too.</span><span><b>component</b>'s places group into <i>in models</i> and <i>in the library</i>, under their packages, so a pattern composed in the library is listed and its counts agree with the facts strip.</span></dd></div>
+  </dl>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/d3-hierarchy@3.1.2/dist/d3-hierarchy.min.js"></script>
+<script>
+const ID = (h) => `oklch(0.75 0.11 ${h})`;
+const HUE = { service: ID(195), page: ID(140), ledger: ID(215), block: ID(160), record: ID(215), seq: ID(300), gateway: ID(210), pattern: ID(235), component: ID(140), queue: ID(260), model: ID(245), schema: ID(215), routes: ID(120), external: ID(80) };
+const TAG = { critical: ID(25), orders: ID(190), payments: ID(140) };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const ico = (i) => `<span class="ico ${i || ""}"></span>`;
+const fact = (n, w) => `<span class="fact"><b>${n}</b> ${w}</span>`;
+const dot = (t) => `<span class="dot" style="--t:${TAG[t]}"></span>`;
+const tag = (t) => `<span class="tag" data-k="tag:${t}">${dot(t)}${t}</span>`;
+const seat = `<span class="seat"></span>`;
+const ATTR = `<span class="amk"></span>`;
+const edge = (h) => `<span class="edge" style="--hue:${h}"></span>`;
+const info = `<span class="info" aria-hidden="true">i</span>`;
+const band = (label, n = "") => `<div class="band"><span>${esc(label)}</span><span class="bc">${n}</span></div>`;
+const r = (o) => `<div class="r" data-k="${esc(o.k || "")}"><span class="mk">${o.mk || ""}</span><span class="nm">${esc(o.n)}</span><span class="kd">${o.kd || ""}</span><span class="sv">${o.sv || ""}</span></div>`;
+const q = (s) => `<span class="q">${esc(s)}</span>`;
+const no = `<span class="no">not answered</span>`;
+const TABS = ["overview", "card", "settings", "components", "usages", "contents"];
+
+/* ── the elements, from the shop sample ── */
+const STOREFRONT_CARD = { name: "Storefront", kind: "service", hue: HUE.service, tags: ["critical", "orders"],
+  attrs: [["text", "owner", "Web"], ["text", "technology", null], ["text", "engine", null]],
+  ports: [["https", "in"], ["pay", "out"], ["orders", "out"]] };
+const EL = {
+  storefront: {
+    label: "Storefront", lede: "A use: Storefront, a service drawn as an internal diagram. It holds four pages, so contents applies. As a use it has no settings and no usages.",
+    name: "Storefront", kind: "service", hue: HUE.service, def: false, json: false,
+    facts: [[4, "blocks"], [3, "lines"], [3, "attributes"]], tags: ["critical", "orders"],
+    off: { settings: "A use draws as its definition says: its settings are service's.", usages: "A use is not used. Its definition, service, lists its uses." },
+    card: STOREFRONT_CARD,
+    chip: { name: "Storefront", kind: "service", tiles: [["Cart", HUE.page], ["Pricing", HUE.page], ["Payment", HUE.page], ["Order log", HUE.ledger]] },
+    answers: [["why it matters", "An internal diagram: what the storefront is made of. Its pages meet through typed ports; its own ports sit on its walls."], ["how it is used", "1 use of service, in Shop · Customer facing"], ["where it lives", "example · Overview · Shop"]],
+    components: [
+      { key: "attributes", mark: ATTR, rows: [band("from component", 2), r({ k: "attr:owner", n: "owner", mk: ATTR, kd: "text", sv: "Web" }), r({ k: "attr:technology", n: "technology", mk: ATTR, kd: "text", sv: no }), band("from service", 1), r({ k: "attr:engine", n: "engine", mk: ATTR, kd: "text", sv: no })], n: 3, lights: ["attr:owner", "attr:technology", "attr:engine"] },
+      { key: "ports", mark: seat, rows: [band("in", 1), r({ k: "port:https", n: "https", mk: seat, kd: "HTTP", sv: q("from Gateway · note: public traffic enters here") }), band("out", 2), r({ k: "port:pay", n: "pay", mk: seat, kd: "HTTP", sv: q("to Payments") }), r({ k: "port:orders", n: "orders", mk: seat, kd: "Events", sv: q("to Orders") })], n: 3, lights: ["port:https", "port:pay", "port:orders"] },
+      { key: "tags", mark: dot("critical"), rows: [band("risk", 1), r({ k: "tag:critical", n: "critical", mk: dot("critical"), kd: "risk", sv: q("orders stop when this fails") }), band("domain", 1), r({ k: "tag:orders", n: "orders", mk: dot("orders"), kd: "domain" })], n: 2, lights: ["tag:critical", "tag:orders"] },
+    ],
+    contents: {
+      layer: { blocks: [["Cart", "page", "Storefront", 2], ["Pricing", "page", "Storefront", 1], ["Payment", "page", "Storefront", 4], ["Order log", "Ledger", "Storefront", 1]],
+               interfaces: [["https", "HTTP · in", "Storefront", 1], ["pay", "HTTP · out", "Storefront", 1], ["orders", "Events · out", "Storefront", 1], ["Cart::in", "HTTP · in", "Cart", 1], ["Cart::out", "HTTP · out", "Cart", 2], ["Pricing::quote", "HTTP · in", "Pricing", 1], ["Payment::charge", "HTTP · in", "Payment", 1], ["Payment::card", "HTTP · out", "Payment", 1], ["Payment::events", "Events · out", "Payment", 2], ["Order log::events", "Events · in", "Order log", 1]],
+               relations: [["https → Cart", "flow", "Storefront", ""], ["price", "flow", "Cart → Pricing", ""], ["pay", "flow", "Cart → Payment", ""], ["Payment → pay", "flow", "Payment", ""], ["paid", "flow", "Payment → Order log", ""], ["Payment → orders", "flow", "Payment", ""]],
+               groups: [], notes: [] },
+      workspace: { blocks: 63, interfaces: 41, relations: 45, groups: 2, notes: 6 },
+    },
+  },
+  block: {
+    label: "block (definition)", lede: "A definition with uses: block, the base everything extends. Its usages tab filters by place, then by its subtypes. It holds no layer, so contents does not apply.",
+    name: "block", kind: "block", hue: HUE.block, def: true, json: true,
+    facts: [[34, "uses"], [5, "places"], [6, "subtypes"]], tags: [],
+    off: { contents: "block draws nothing inside itself: there is nothing to list." },
+    card: { name: "block", kind: "block", def: true, hue: HUE.block, attrs: [] },
+    chip: { name: "block", kind: "34 uses in 5 places", tiles: [["Shop", HUE.service], ["Deployment", HUE.service], ["Estate", HUE.model], ["Overview", HUE.model], ["Environments", HUE.block]] },
+    answers: [["why it matters", "Any part of a system: what everything else extends."], ["how it is used", "34 uses in 5 places; 6 definitions extend it"], ["where it lives", "base · blocks"]],
+    components: [],
+    usages: { groups: [
+      { gl: "in models", rows: [["Shop", "internal", 18, HUE.service, ["Gateway", "Storefront", "Inventory", "Shipping", "Orders", "Payments"]], ["Deployment", "internal", 8, HUE.service, ["gateway pod", "storefront pod", "orders primary", "orders replica"]], ["Estate", "treemap", 6, HUE.model, ["Gateway", "Orders", "Inventory", "Storefront", "Payments", "Shipping"]], ["Overview", "model", 1, HUE.model, ["Customer"]], ["Environments", "grid", 1, HUE.block, ["prod"]]] },
+    ], subtypes: [["component", "services", 17, HUE.component], ["external", "services", 2, HUE.external], ["person", "services", 0, HUE.block], ["queue", "services", 0, HUE.queue], ["document", "base", 5, HUE.block], ["decision", "base", 2, HUE.block]] },
+  },
+  component: {
+    label: "component (used in patterns)", lede: "A definition used inside other definitions: component's parts sit in six library patterns as well as in the shop. Decided 2026-10-31: a definition that holds uses is a place, grouped under its package.",
+    name: "component", kind: "block", hue: HUE.component, def: true, json: true,
+    facts: [[22, "uses"], [8, "places"], [2, "attributes"], [5, "subtypes"]], tags: [],
+    off: { contents: "component draws nothing inside itself: there is nothing to list." },
+    card: { name: "component", kind: "block", def: true, hue: HUE.component, attrs: [["text", "owner", ""], ["text", "technology", ""]] },
+    chip: { name: "component", kind: "22 uses in 8 places", tiles: [["Shop", HUE.service], ["Deployment", HUE.service], ["Anti-corruption layer", HUE.pattern], ["API gateway", HUE.pattern], ["Circuit breaker", HUE.pattern], ["Layered architecture", HUE.pattern], ["Saga orchestrator", HUE.pattern], ["Transactional outbox", HUE.pattern]] },
+    answers: [["why it matters", "A deployable part with an owner and a technology."], ["how it is used", "22 uses in 8 places: 2 models, 6 library patterns"], ["where it lives", "services · blocks"]],
+    components: [
+      { key: "attributes", mark: ATTR, rows: [band("declared here", 2), r({ k: "attr:owner", n: "owner", mk: ATTR, kd: "text", sv: q("answered by 15 of 22") }), r({ k: "attr:technology", n: "technology", mk: ATTR, kd: "text", sv: q("answered by 11 of 22") })], n: 2, lights: ["attr:owner", "attr:technology"] },
+    ],
+    usages: { groups: [
+      { gl: "in models", rows: [["Shop", "example · internal", 3, HUE.service, ["Inventory", "Shipping", "Storefront"]], ["Deployment", "example · internal", 2, HUE.service, ["gateway pod", "storefront pod"]]] },
+      { gl: "in the library", rows: [["Anti-corruption layer", "services/patterns", 3, HUE.pattern, ["Facade", "Translator", "Client"]], ["API gateway", "services/patterns", 3, HUE.pattern, ["Auth", "Rate limit", "Router"]], ["Circuit breaker", "services/patterns", 3, HUE.pattern, ["Caller", "Breaker", "Fallback"]], ["Layered architecture", "services/patterns", 3, HUE.pattern, ["API", "Domain logic", "Repository"]], ["Saga orchestrator", "services/patterns", 2, HUE.pattern, ["Orchestrator", "Compensations"]], ["Transactional outbox", "services/patterns", 3, HUE.pattern, ["API", "Domain logic", "Relay"]]] },
+    ], subtypes: [["database", "services", 4, HUE.ledger], ["service", "services", 6, HUE.service], ["API gateway", "services", 1, HUE.gateway], ["queue", "services", 0, HUE.queue], ["external", "services", 2, HUE.external]] },
+  },
+  customer: {
+    label: "Customer (record)", lede: "A record definition: Customer. Its card is its table, and its settings are the keys its card reads. It has two uses, references drawn in the Model and Schema diagrams.",
+    name: "Customer", kind: "block", hue: HUE.record, def: true, json: true,
+    facts: [[2, "uses"], [2, "places"], [3, "attributes"]], tags: [],
+    off: { contents: "Customer draws nothing inside itself: there is nothing to list." },
+    card: { name: "Customer", kind: "block", def: true, icon: "db", hue: HUE.record, attrs: [["number", "id", "PK"], ["text", "name", ""], ["Email", "email", ""]] },
+    chip: { name: "Customer", kind: "2 uses in 2 places", tiles: [["Model", HUE.model], ["Schema", HUE.schema]] },
+    answers: [["why it matters", "Someone who places an order."], ["how it is used", "2 uses in 2 places; Line and Order extend it"], ["where it lives", "example · Records"]],
+    components: [
+      { key: "attributes", mark: ATTR, rows: [band("declared here", 3), r({ k: "attr:id", n: "id", mk: ATTR, kd: "number · primary key" }), r({ k: "attr:name", n: "name", mk: ATTR, kd: "text" }), r({ k: "attr:email", n: "email", mk: ATTR, kd: "Email" })], n: 3, lights: ["attr:id", "attr:name", "attr:email"] },
+      { key: "types", mark: `<span class="amk" style="width:6px;height:6px;border-radius:1px"></span>`, rows: [band("declared here", 1), r({ k: "type:Email", n: "Email", mk: ATTR, kd: "text", sv: q("where the shop writes to someone") })], n: 1, lights: ["attr:email"] },
+    ],
+    usages: { groups: [
+      { gl: "in models", rows: [["Model", "example · class", 1, HUE.model, ["Customer"]], ["Schema", "example · entity", 1, HUE.schema, ["Customer"]]] },
+    ], subtypes: [["Line", "example", 2, HUE.record], ["Order", "example", 2, HUE.record]] },
+    keys: { card: [["face", "table", ["card", "table", "text", "document"]], ["shape", "box", ["box", "round", "diamond"]], ["size", "auto", ["auto", "8 × 3", "12 × 4"]], ["icon", "database", ["block", "database", "document"]], ["head", "shown", ["shown", "hidden"]]],
+            settings: [["records", "from uses", ["from uses", "none"]], ["allows", "attributes", ["attributes", "ports", "behaviours"]], ["layout", "inherits", ["inherits", "class", "entity"]]] },
+  },
+  saga: {
+    label: "Checkout saga (diagram)", lede: "A diagram: Checkout saga, a sequence used in How it runs. Contents lists its participants and messages. Its components are empty, and the tab says so in one sentence.",
+    name: "Checkout saga", kind: "sequence", hue: HUE.seq, def: false, json: false,
+    facts: [[6, "blocks"], [6, "lines"]], tags: [],
+    off: { settings: "A use draws as its definition says: its settings are sequence's.", usages: "A use is not used. Its definition, sequence, lists its uses." },
+    card: { name: "Checkout saga", kind: "sequence", hue: HUE.seq, icon: "seq", tiles: [["Customer", HUE.block], ["Gateway", HUE.gateway], ["Storefront", HUE.service], ["Payments", HUE.service], ["Inventory", HUE.service], ["Route checkout"], ["Start saga"], ["Authorize"], ["Reserve stock"], ["Confirm order"]] },
+    chip: { name: "Checkout saga", kind: "sequence", tiles: [["Customer", HUE.block], ["Gateway", HUE.gateway], ["Storefront", HUE.service], ["Payments", HUE.service], ["Inventory", HUE.service]] },
+    answers: [["why it matters", "How a checkout runs across the shop, one message at a time."], ["how it is used", "1 use of sequence, in How it runs"], ["where it lives", "example · Overview · Shop · How it runs"]],
+    components: [],
+    contents: {
+      layer: { blocks: [["Customer", "reference", "Checkout saga", 2], ["Gateway", "reference", "Checkout saga", 2], ["Storefront", "reference", "Checkout saga", 3], ["Payments", "reference", "Checkout saga", 2], ["Inventory", "reference", "Checkout saga", 2], ["Saga", "frame", "Checkout saga", 0]],
+               interfaces: [], groups: [], notes: [],
+               relations: [["Route checkout", "message", "Customer → Gateway", ""], ["Start saga", "message", "Gateway → Storefront", ""], ["Authorize", "message", "Storefront → Payments", ""], ["Reserve stock", "message", "Storefront → Inventory", ""], ["Confirm order", "message", "Storefront → Customer", ""], ["authorized", "reply", "Payments → Storefront", ""]] },
+      workspace: { blocks: 63, interfaces: 41, relations: 45, groups: 2, notes: 6 },
+    },
+  },
+  line: {
+    label: "Gateway → Storefront (line)", lede: "A line: routes, from Gateway to Storefront, drawn ×2 in Shop. Its old line tab is folded into card, so tab names stay fixed: card shows its ends.",
+    name: "routes", kind: "flow", hue: HUE.routes, def: false, json: false, line: true,
+    facts: [[2, "lines"]], tags: [],
+    off: { settings: "A use draws as its definition says: its settings are flow's.", usages: "A use is not used. Its definition, flow, lists its uses.", contents: "A line holds nothing." },
+    card: { name: "routes", kind: "flow", hue: HUE.routes, ends: ["Gateway::routes", "Storefront::https"] },
+    chip: null,
+    answers: [["why it matters", "flow: what passes from one part to the next."], ["how it is used", "Gateway → Storefront, twice (×2)"], ["where it lives", "example · Overview · Shop"]],
+    components: [
+      { key: "ends", mark: `<span class="wire" style="--hue:${HUE.routes}"></span>`, rows: [band("from", 1), r({ k: "end:from", n: "Gateway::routes", mk: seat, kd: "HTTP · out" }), band("to", 1), r({ k: "end:to", n: "Storefront::https", mk: seat, kd: "HTTP · in" })], n: 2, lights: ["end:from", "end:to"] },
+    ],
+  },
+  queue: {
+    label: "queue (no uses)", lede: "A definition with nothing to list: queue is used nowhere. Its usages tab applies, so it is drawn, but there is nothing to filter, so it shows no filter rows and one sentence on the right.",
+    name: "queue", kind: "block", hue: HUE.queue, def: true, json: true,
+    facts: [], tags: [],
+    off: { contents: "queue draws nothing inside itself: there is nothing to list." },
+    card: { name: "queue", kind: "block", def: true, hue: HUE.queue, attrs: [] },
+    chip: null,
+    answers: [["why it matters", "Holds messages until something takes them."], ["how it is used", "Used nowhere yet"], ["where it lives", "services · blocks"]],
+    components: [],
+    usages: { groups: [], subtypes: [] },
+  },
+};
+/* ── where each element lives: its package tree (from the samples; notes left out) and the path to it ── */
+const TREES = {"example":["example",[["Parts",["page","picture"]],["Records",["Customer","Ledger","Line",["Order",["place",["Order states",["Placed","Pending","Paid","Shipped","Delivered","Payment failed","Cancelled","Closed"]]]],"Payment","Product"]],["Overview",["Customer","Card processor","Carrier",["Shop",[["Customer facing",["Gateway",["Storefront",["Cart","Pricing","Payment","Order log"]]]],["Back office",["Inventory","Shipping",["Orders",["Order book",["Operations",["Runbook","Release notes"]]]],["Payments",["Charge once","Incident summary",["Payment retry",["Begin","Charge card","Approved?","Retries left?","Wait and back off","Confirm order","Cancel order","Done"]]]]]],["Data",[["Model",[null,null,null,null,null]],["Schema",[null,null,null,null,null]]]],["How it runs",[["Checkout saga",["Customer","Submit cart","Route checkout","Start saga","Authorize","Reserve stock","Confirm order","Gateway","Storefront","Payments","Inventory","Submit","Charge","Reserve","Confirm"]],["Fulfilment",["Orders","Mark shipped","Inventory","Shipping","Ordered","Pick","Ship","Publish placed","Pick items","Book carrier"]],["Deployment",["orders replica",["Environments",["dev","staging","prod","eu-west","us-east","shared cluster","eu-west prod","us-east prod"]],"gateway pod","storefront pod","orders pod","orders primary"]],["Estate",[null,null,null,null,null,null]],"Dashboard"]]]]]]]],"services":["services",[["blocks",["component","database","decision","document","external","person","queue","service"]],["patterns",[["Anti-corruption layer",["Facade","Translator","Client"]],["API gateway",["Auth","Rate limit","Router"]],["Circuit breaker",["Caller","Breaker","Fallback"]],["Layered architecture",["API","Domain logic","Repository","Store"]],["Saga orchestrator",["Orchestrator","Saga log","Compensations"]],["Transactional outbox",["API","Domain logic","Store","Outbox","Relay"]]]],["relations",["calls","integrates","publishes","reads"]]]]};
+TREES.base = ["base", [["blocks", ["block", "note", "frame", "region", "folder", "grid"]], ["relations", ["flow", "message", "reply", "ties"]]]];
+const SHOP = ["example", "Overview", "Shop"];
+const PLACE = {
+  storefront: { pkg: "example", paths: [[...SHOP, "Customer facing", "Storefront"]] },
+  block: { pkg: "base", paths: [["base", "blocks", "block"]] },
+  component: { pkg: "services", paths: [["services", "blocks", "component"]] },
+  customer: { pkg: "example", paths: [["example", "Records", "Customer"]] },
+  saga: { pkg: "example", paths: [[...SHOP, "How it runs", "Checkout saga"]] },
+  line: { pkg: "example", paths: [[...SHOP, "Customer facing", "Gateway"], [...SHOP, "Customer facing", "Storefront"]], crumb: "Gateway → Storefront" },
+  queue: { pkg: "services", paths: [["services", "blocks", "queue"]] },
+};
+for (const [k, p] of Object.entries(PLACE)) Object.assign(EL[k], { key: k, place: p });
+
+/* a definition gets settings and usages; a use gets neither; contents where it draws inside */
+for (const e of Object.values(EL)) e.on = Object.fromEntries(TABS.map((t) => [t, !e.off[t]]));
+
+/* ── state ── */
+const S = { el: "storefront", tab: "components", w: 1200, q1: "inert", q2: "rows", q3: "per", q4: "light", q5: "keep", filters: {} };
+try { const saved = JSON.parse(localStorage.getItem("tray-structure") || "null"); if (saved && EL[saved.el]) Object.assign(S, { el: saved.el, tab: saved.tab, w: saved.w }); } catch {}
+const save = () => { try { localStorage.setItem("tray-structure", JSON.stringify({ el: S.el, tab: S.tab, w: S.w })); } catch {} };
+const fkey = (el, tab) => (S.q3 === "per" ? `${el}|${tab}` : tab);
+const chosen = (el, tab, group) => (S.filters[fkey(el, tab)] || {})[group] || "all";
+const choose = (el, tab, group, v) => { const k = fkey(el, tab); S.filters[k] = { ...(S.filters[k] || {}), [group]: v }; };
+
+/* ── the card ── */
+function card(c, lit = []) {
+  const L = (k) => (lit.includes(k) ? " lit" : "");
+  const seats = (f) => (c.ports || []).filter(([, ff]) => ff === f).map(([n], i, all) =>
+    `<span class="seat cseat ${f}${L("port:" + n)}" style="--y:${(100 * (i + 1)) / (all.length + 1)}%" title="${esc(n)}"></span>`).join("");
+  const attrs = (c.attrs || []).map(([t, n, v]) => `<span class="t${L("attr:" + n)}">${esc(t)}</span><span class="${L("attr:" + n)}">${esc(n)}</span><span class="${v === null ? "no" : ""}${L("attr:" + n)}">${v === null ? "—" : esc(v)}</span>`).join("");
+  const tags = (c.tags || []).length ? `<div class="tagrow">${c.tags.map((t) => `<span class="tag${L("tag:" + t)}">${dot(t)}${t}</span>`).join("")}</div>` : "";
+  const tiles = c.tiles ? `<div class="tiles">${c.tiles.map(([n, h]) => `<span class="tl${L("tile:" + n)}" style="${h ? `--th:${h}` : ""}">${esc(n)}</span>`).join("")}</div>` : "";
+  const ends = c.ends ? `<div class="ends"><span class="${L("end:from")}">${esc(c.ends[0])}</span><span>→</span><span class="${L("end:to")}">${esc(c.ends[1])}</span></div>` : "";
+  const body = attrs ? `<div class="tbl">${attrs}</div>` : tiles || ends || (tags ? "" : `<div class="none">nothing declared or carried</div>`);
+  return `<div class="card${c.def ? " def" : ""}" style="--hue:${c.hue}">${seats("in")}${seats("out")}
+    <div class="ch"><b>${esc(c.name)}</b><span class="kd">${esc(c.kind)}</span>${c.def ? `<span class="role">definition</span>` : ""}<span class="ic">${ico(c.icon)}</span></div>${body}${tags}</div>`;
+}
+
+/* where it lives: the package laid as a treemap at the box's measured size, by how many blocks each holds.
+   Its top level is named; boxes below the third level show only on the path to the element, which is lit */
+function locator(e) {
+  return `<div class="loc"><div class="area" data-place="${e.key}"></div></div>`;
+}
+function crumb(e) {
+  const p = e.place, path = p.paths[0], last = p.crumb || path.at(-1);
+  return `<div class="crumb">${path.slice(0, -1).map(esc).join(" › ")} › <b>${esc(last)}</b></div>`;
+}
+function place(area) {
+  const p = EL[area.dataset.place].place, W = area.clientWidth, H = area.clientHeight;
+  const name = (d) => (Array.isArray(d.data) ? d.data[0] : d.data);
+  const root = d3.hierarchy(TREES[p.pkg], (d) => (Array.isArray(d) ? d[1] : null)).sum((d) => (Array.isArray(d) ? 0 : 1));
+  const chain = (d) => d.ancestors().reverse().map(name).join("/"), targets = p.paths.map((x) => x.join("/"));
+  const on = (d) => targets.some((t) => (t + "/").startsWith(chain(d) + "/")), lit = (d) => targets.includes(chain(d));
+  d3.treemap().size([W, H]).round(true).paddingInner(2).paddingOuter(2).paddingTop((d) => (d.depth === 1 && d.children ? 12 : 2))(root);
+  const pos = (d) => `left:${d.x0}px;top:${d.y0}px;width:${d.x1 - d.x0}px;height:${d.y1 - d.y0}px`;
+  area.innerHTML = root.descendants().slice(1).filter((d) => d.depth <= 3 || on(d)).map((d) =>
+    `<div class="n${d.depth === 1 ? " top" : ""}${lit(d) ? " lit" : on(d) ? " path" : ""}" style="${pos(d)}" title="${esc(name(d))}">${d.depth === 1 && d.children && d.x1 - d.x0 > 40 ? esc(name(d)) : ""}</div>`).join("");
+}
+const place_all = () => { for (const a of document.querySelectorAll(".loc .area")) place(a); };
+
+/* ── filter rows (and their chip form) ── */
+const frow = (o) => `<button class="fr${o.on ? " on" : ""}" type="button" data-g="${esc(o.g)}" data-v="${esc(o.v)}" data-lights="${esc((o.lights || []).join(" "))}"${o.hue ? ` style="--hue:${o.hue}"` : ""} aria-pressed="${o.on}">
+  <span class="fm">${o.mk || ""}</span><span class="fn">${esc(o.n)}</span>${o.sub ? `<span class="fs">${esc(o.sub)}</span>` : ""}${o.val !== undefined ? `<span class="fv">${esc(o.val)}</span>` : `<span class="fc">${o.c ?? ""}</span>`}</button>`;
+function filters(groups) {
+  if (!groups.length) return "";
+  const rows = groups.map((g) => `<div class="fg">${g.gl ? `<div class="gl">${esc(g.gl)}</div>` : ""}${g.rows.map(frow).join("")}</div>`).join("");
+  const chips = groups.map((g) => `<div class="cg">${g.gl ? `<span class="cl">${esc(g.gl)}</span>` : ""}${g.rows.map((o) =>
+    `<button type="button" class="chip fr-chip${o.on ? " on" : ""}" data-g="${esc(o.g)}" data-v="${esc(o.v)}" data-lights="${esc((o.lights || []).join(" "))}" aria-pressed="${o.on}">${esc(o.n)}${o.c !== undefined && o.val === undefined ? `<span class="fc">${o.c}</span>` : ""}</button>`).join("")}</div>`).join("");
+  return `<div class="fgroups">${rows}</div><div class="fchips">${chips}</div>`;
+}
+
+/* ── each tab: { lead filters, list } ── */
+function tab_overview(e) {
+  return { lead: `${locator(e)}`,
+           list: `<div class="answers">${crumb(e)}${e.answers.filter(([h]) => h !== "where it lives").map(([h, t]) => `<div><h4>${esc(h)}</h4><p>${esc(t)}</p></div>`).join("")}</div>` };
+}
+function tab_components(e, el) {
+  if (!e.components.length) {
+    return { lead: "", list: `<section class="sec empty"><div class="sh"><span>components</span>${info}</div><p>${esc(e.name)} carries no attributes, ports, behaviours, tags or constraints of its own.${e.on.contents ? " Its parts are listed under contents." : ""}</p></section>` };
+  }
+  const pick = chosen(el, "components", "sections");
+  const total = e.components.reduce((n, s) => n + s.n, 0);
+  const lead = "", fl = filters([{ gl: "sections", rows: [{ g: "sections", v: "all", n: "all", c: total, on: pick === "all", lights: e.components.flatMap((s) => s.lights) },
+    ...e.components.map((s) => ({ g: "sections", v: s.key, n: s.key, c: s.n, mk: s.mark, on: pick === s.key, lights: s.lights }))] }]);
+  const shown = e.components.filter((s) => pick === "all" || s.key === pick);
+  return { lead, filters: fl, list: shown.map((s) => `<section class="sec"><div class="sh"><span>${s.key}</span>${info}</div><div class="rows">${s.rows.join("")}</div></section>`).join(""), lit: pick === "all" ? [] : e.components.find((s) => s.key === pick).lights };
+}
+function tab_usages(e, el) {
+  const u = e.usages;
+  const places = u.groups.flatMap((g) => g.rows);
+  if (!places.length && !u.subtypes.length) {
+    return { lead: "", list: `<section class="sec empty"><div class="sh"><span>usages</span>${info}</div><p>Nothing uses ${esc(e.name)} yet. A block typed as ${esc(e.name)}, in a model or inside another definition, is listed here by its place.</p><span class="hint">drag ${esc(e.name)} from the explorer onto a diagram to use it</span></section>` };
+  }
+  const pick = chosen(el, "usages", "places");
+  const uses = places.reduce((n, p) => n + p[2], 0);
+  const groups = [{ gl: "", rows: [{ g: "places", v: "all", n: "all", c: uses, on: pick === "all", lights: places.map((p) => "tile:" + p[0]) }] },
+    ...u.groups.map((g) => ({ gl: g.gl, rows: g.rows.map(([n, sub, c, h]) => ({ g: "places", v: n, n, sub: sub.split(" · ")[0], c, hue: h, on: pick === n, lights: ["tile:" + n] })) }))];
+  if (u.subtypes.length) groups.push({ gl: "subtypes", rows: [{ g: "places", v: "@subtypes", n: "subtypes", c: u.subtypes.length, mk: ico("def"), on: pick === "@subtypes", lights: [] }] });
+  const list = [];
+  if (pick !== "@subtypes") {
+    for (const g of u.groups) {
+      const rows = g.rows.filter(([n]) => pick === "all" || pick === n);
+      if (!rows.length) continue;
+      list.push(`<section class="sec"><div class="sh"><span>uses · ${esc(g.gl)}</span>${info}</div><div class="rows">${rows.map(([n, sub, c, h, names]) =>
+        band(`${n} · ${sub}`, c) + names.slice(0, 4).map((x) => r({ n: x, mk: edge(e.hue), kd: e.name })).join("") + (names.length > 4 ? `<div class="more" style="grid-column:1/-1">+${names.length - 4} more</div>` : "")).join("")}</div></section>`);
+    }
+  }
+  if ((pick === "all" || pick === "@subtypes") && u.subtypes.length) {
+    list.push(`<section class="sec"><div class="sh"><span>subtypes</span>${info}</div><div class="rows">${band(`extend ${e.name}`, u.subtypes.length)}${u.subtypes.map(([n, pkg, c, h]) => r({ n, mk: edge(h), kd: `${pkg} · extends ${e.name}`, sv: q(c ? `${c} uses` : "no uses") })).join("")}</div></section>`);
+  }
+  if (!list.length) list.push(`<section class="sec empty"><p>No uses in <b>${esc(pick)}</b>: ${esc(e.name)} has no such place. No filter row is chosen.</p></section>`);
+  return { lead: "", filters: filters(groups), list: list.join(""), lit: pick === "all" || pick === "@subtypes" ? [] : ["tile:" + pick] };
+}
+const KINDS = ["blocks", "interfaces", "relations", "groups", "notes"];
+const KMARK = { blocks: ico(), interfaces: seat, relations: `<span class="wire" style="--hue:var(--dim)"></span>`, groups: ico("def"), notes: `<span class="amk"></span>` };
+function tab_contents(e, el) {
+  const scope = chosen(el, "contents", "scope"), kind = chosen(el, "contents", "kinds");
+  const lay = e.contents.layer, ws = e.contents.workspace;
+  const count = (k) => (scope === "layer" || scope === "all" ? lay[k].length : ws[k]);
+  const groups = [
+    { gl: "scope", rows: [{ g: "scope", v: "all", n: e.name, sub: "this layer", c: KINDS.reduce((n, k) => n + lay[k].length, 0), on: scope === "all" || scope === "layer", mk: ico(e.card.icon) },
+                          { g: "scope", v: "workspace", n: "workspace", sub: "everything", c: KINDS.reduce((n, k) => n + ws[k], 0), on: scope === "workspace", mk: ico("db") }] },
+    { gl: "kinds", rows: [{ g: "kinds", v: "all", n: "all", c: KINDS.reduce((n, k) => n + count(k), 0), on: kind === "all" },
+      ...KINDS.filter((k) => count(k)).map((k) => ({ g: "kinds", v: k, n: k, c: count(k), mk: KMARK[k], on: kind === k, lights: k === "blocks" ? lay.blocks.map((b) => "tile:" + b[0]) : [] }))] },
+  ];
+  const ks = KINDS.filter((k) => kind === "all" || kind === k);
+  const rows = scope === "workspace"
+    ? `<tr><td colspan="5" class="more">${ks.map((k) => `${ws[k]} ${k}`).join(" · ")} across the workspace; the first 40 shown, sorted by name</td></tr>`
+    : ks.flatMap((k) => lay[k].map(([n, t, inside, lines]) => `<tr><td class="mkc">${KMARK[k]}</td><td>${esc(n)}</td><td>${esc(t)}</td><td>${esc(inside)}</td><td>${lines === "" ? "" : lines}</td></tr>`)).join("");
+  return { lead: "", filters: filters(groups),
+           list: `<section class="sec"><div class="sh"><span>contents</span>${info}</div><div class="tablewrap"><table class="ct"><thead><tr><th class="mkc"></th><th>name</th><th>kind</th><th>in</th><th>lines</th></tr></thead><tbody>${rows}</tbody></table></div></section>`,
+           lit: kind === "blocks" ? lay.blocks.map((b) => "tile:" + b[0]) : [] };
+}
+function tab_keys(e, el, which) {
+  const keys = (e.keys && e.keys[which]) || [];
+  if (!keys.length) return { lead: "", list: `<section class="sec empty"><div class="sh"><span>${which}</span>${info}</div><p>The ${which} tab is still open (design-plan <i>Open</i>, card and settings tabs). Its keys sit under the card as the same rows as the filters, each with its value on the right.</p></section>` };
+  const pick = chosen(el, which, "keys") === "all" ? keys[0][0] : chosen(el, which, "keys");
+  const k = keys.find(([n]) => n === pick);
+  const groups = [{ gl: "keys", rows: keys.map(([n, v]) => ({ g: "keys", v: n, n, val: v, on: n === pick })) }];
+  const levels = which === "settings" ? `<section class="sec"><div class="sh"><span>at each level</span>${info}</div><div class="levels">${["mark", "head", "facts", "preview"].map((l, i) =>
+    `<div class="lv"><span class="cap">${i} ${l}</span>${i === 0 ? `<div class="card def" style="--hue:${e.hue};min-height:28px;width:28px"></div>` : i === 1 ? `<div class="card def" style="--hue:${e.hue}"><div class="ch" style="border:0"><b>${esc(e.name)}</b></div></div>` : i === 2 ? `<div class="card def" style="--hue:${e.hue}"><div class="ch"><b>${esc(e.name)}</b></div><div class="none">${e.facts.map(([n, w]) => `${n} ${w}`).join(" · ")}</div></div>` : card(e.card)}</div>`).join("")}</div></section>` : "";
+  return { lead: "", filters: filters(groups), list: `<section class="sec"><div class="sh"><span>${esc(k[0])}</span>${info}</div><div class="choices">${k[2].map((c) => `<span class="chip${c === k[1] ? " on" : ""}">${esc(c)}</span>`).join("")}</div></section>${levels}` };
+}
+
+/* ── the tray ── */
+function tray(el, tab, opts = {}) {
+  const e = EL[el], Q = { ...S, ...opts.q };
+  if (!e.on[tab]) tab = "overview";
+  const t = tab === "overview" ? tab_overview(e) : tab === "components" ? tab_components(e, el) : tab === "usages" ? tab_usages(e, el)
+    : tab === "contents" ? tab_contents(e, el) : tab_keys(e, el, tab);
+  const lit = opts.lit || t.lit || [];
+  const facts = e.facts.map(([n, w]) => fact(n, w)).join("") + (e.tags || []).map(tag).join("");
+  const head = `<div class="thead"><span class="chev">▾</span>${edge(e.hue)}<span class="nm">${esc(e.name)}</span><span class="kd">${esc(e.kind)}</span>
+    <span class="role${e.def ? " def" : ""}" style="--hue:${e.hue}">${e.def ? "definition" : "use"}</span><span class="facts">${facts}</span><span class="exp">⤢</span></div>`;
+  const tabs = `<div class="tabs${Q.q1 === "tip" ? " tipped" : ""}" role="tablist">${TABS.map((x) => {
+    const off = !e.on[x];
+    return `<button type="button" role="tab" class="tab${x === tab ? " on" : ""}${off ? " off" : ""}" data-tab="${x}" aria-selected="${x === tab}" aria-disabled="${off}"${off ? ` tabindex="${Q.q1 === "tip" ? 0 : -1}"` : ""}>${x}${off && Q.q1 === "tip" && (!opts.tip || opts.tip === x) ? `<span class="tip" role="tooltip">${esc(e.off[x])}</span>` : ""}</button>`;
+  }).join("")}<span class="json${e.json ? "" : " off"}" title="${e.json ? "read its record" : "a use has no record of its own"}">json</span></div>`;
+  const narrow = (opts.w || S.w) < 560;
+  const cls = ["tbody", narrow && Q.q2 === "chips" ? "chips-form" : "", Q.q5 === "drop" && t.filters ? "nocount" : ""].filter(Boolean).join(" ");
+  const lead = `<div class="lead">${card(e.card, lit)}${t.lead || ""}${t.filters || ""}</div>`;
+  return `<div class="tray" data-el="${el}" data-tab="${tab}" style="--trayw:${opts.w || S.w}">${head}${tabs}<div class="${cls}">${lead}<div class="list">${t.list}</div></div></div>`;
+}
+
+/* ── render ── */
+const live = document.getElementById("live");
+function render() {
+  const e = EL[S.el];
+  if (!e.on[S.tab]) S.tab = "overview";
+  document.getElementById("live-lede").textContent = e.lede;
+  live.innerHTML = tray(S.el, S.tab);
+  for (const b of document.querySelectorAll("#pick-el .seg")) b.classList.toggle("on", b.dataset.v === S.el);
+  for (const b of document.querySelectorAll("#pick-w .seg")) b.classList.toggle("on", Number(b.dataset.v) === S.w);
+  document.getElementById("tw").value = S.w; document.getElementById("two").value = S.w + " px";
+  place_all();
+  save();
+}
+const seg = (host, v, label) => document.getElementById(host).insertAdjacentHTML("beforeend", `<button type="button" class="seg" data-v="${v}">${esc(label)}</button>`);
+for (const [k, e] of Object.entries(EL)) seg("pick-el", k, e.label);
+for (const w of [1200, 760, 520]) seg("pick-w", w, w + " px");
+
+/* a tray drawn once, outside the live state: options, a filter chosen before (prior) and now (pick) */
+function shot(el, tab, o = {}) {
+  const keep = { ...S }; Object.assign(S, o.q || {}, { filters: {} });
+  if (o.prior) choose(...o.prior);
+  for (const [g, v] of Object.entries(o.pick || {})) choose(el, tab, g, v);
+  const html = tray(el, tab, o); Object.assign(S, keep);
+  return html;
+}
+const PORTS = EL.storefront.components.find((c) => c.key === "ports").lights;
+const PRIOR = ["component", "usages", "places", "API gateway"];
+const QS = [
+  ["1 · the disabled tab", "Storefront is a use, so <b>settings</b> and <b>usages</b> are faint. Pointing at one either does nothing, or says why.",
+    ["faint, inert · chosen", shot("storefront", "overview", { w: 760, q: { q1: "inert" } })], ["faint, with why (pointed at settings)", shot("storefront", "overview", { w: 760, tip: "settings" }), "tipshot"]],
+  ["2 · filters below 560 px", "component's usages at 520 px. Rows push the list a screen down; chips keep the same groups and counts in a few lines.",
+    ["rows over the list · chosen", shot("component", "usages", { w: 520, q: { q2: "rows" } })], ["chips", shot("component", "usages", { w: 520, q: { q2: "chips" } })]],
+  ["3 · a filter when the element changes", "On component's usages you chose <b>API gateway</b>, then picked block. Kept, the filter follows into a list where API gateway is no place.",
+    ["reset to all · chosen", shot("block", "usages", { w: 760, q: { q3: "per" }, prior: PRIOR })], ["kept across elements", shot("block", "usages", { w: 760, q: { q3: "kept" }, prior: PRIOR })]],
+  ["4 · hovering a filter row", "The pointer rests on <b>ports</b>. Either its three seats light on the card, as a list row lights what it names, or nothing does.",
+    ["lights its members · chosen", shot("storefront", "components", { w: 760, lit: PORTS }), "hover"], ["nothing", shot("storefront", "components", { w: 760 }), "hover"]],
+  ["5 · counts said twice", "Storefront's components, all. The filter row counts each section; the bands beside it can count again, or not.",
+    ["bands repeat the count · chosen", shot("storefront", "components", { w: 760, q: { q5: "keep" } })], ["the filter row only", shot("storefront", "components", { w: 760, q: { q5: "drop" } })]],
+];
+const QH = document.getElementById("qs");
+QH.innerHTML = QS.map(([h, p, a, b]) => `<div class="qa"><h2>${h}</h2><p>${p}</p><div class="vs">${[a, b].map(([cap, html, cls]) =>
+  `<div class="shot${cls ? " " + cls : ""}"><div class="cap">${esc(cap)}</div>${html}</div>`).join("")}</div></div>`).join("");
+for (const x of QH.querySelectorAll('.hover .fr[data-v="ports"]')) x.classList.add("hov");
+for (const x of QH.querySelectorAll(".tipshot .tab.off")) if (x.querySelector(".tip")) x.classList.add("showtip");
+document.getElementById("pair").innerHTML = `<div><div class="cap">all</div>${shot("storefront", "components", { w: 760 })}</div><div><div class="cap">ports chosen</div>${shot("storefront", "components", { w: 760, pick: { sections: "ports" } })}</div>`;
+document.getElementById("gallery").innerHTML = Object.values(EL).map((e) => `<div><div class="cap">${esc(e.label)}</div>${locator(e)}</div>`).join("");
+
+/* the matrix */
+document.getElementById("matrix").innerHTML = `<table><thead><tr><th>element</th>${TABS.map((t) => `<th>${t}</th>`).join("")}</tr></thead><tbody>${Object.values(EL).map((e) =>
+  `<tr><td>${esc(e.label)}</td>${TABS.map((t) => e.on[t] ? `<td class="y">●</td>` : `<td class="n" title="${esc(e.off[t])}">–</td>`).join("")}</tr>`).join("")}</tbody></table>
+  <p style="margin-top:8px;font-size:12.5px">A use has no settings and no usages. A line's card is its ends, since its old <i>line</i> tab folded into card. Contents applies to whatever draws inside itself. Components applies to everything and says so in one sentence when empty.</p>`;
+
+/* clicks: elements, widths, options, tabs, filters */
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest("button"); if (!b) return;
+  const host = b.closest(".ctl");
+  if (host && b.classList.contains("seg")) {
+    const id = host.id, v = b.dataset.v;
+    if (id === "pick-el") { S.filters = {}; S.el = v; }
+    else if (id === "pick-w") S.w = Number(v);
+    else S[id] = v;
+    render(); return;
+  }
+  const t = b.closest(".tray"); if (!t || t.closest("#pair, #qs")) return;
+  if (b.classList.contains("tab")) { if (!b.classList.contains("off")) { S.tab = b.dataset.tab; render(); } return; }
+  if (b.dataset.g) { choose(t.dataset.el, t.dataset.tab, b.dataset.g, b.dataset.v); render(); }
+});
+/* hovering a filter lights its members on the card (question 4) */
+document.addEventListener("pointerover", (ev) => {
+  const f = ev.target.closest?.("[data-lights]"); if (!f || f.closest("#qs")) return;
+  const t = f.closest(".tray"), keys = f.dataset.lights.split(" ").filter(Boolean);
+  for (const x of t.querySelectorAll(".lead .card .hov")) x.classList.remove("hov", "lit");
+  if (!keys.length) return;
+  const map = { "attr:": ".tbl > span", "port:": ".cseat", "tag:": ".tagrow .tag", "tile:": ".tl", "end:": ".ends > span" };
+  for (const k of keys) {
+    const kind = Object.keys(map).find((p) => k.startsWith(p)), name = k.slice(kind.length);
+    for (const x of t.querySelectorAll(`.lead .card ${map[kind]}`)) {
+      const said = kind === "attr:" ? x.parentElement.children[[...x.parentElement.children].indexOf(x) - ([...x.parentElement.children].indexOf(x) % 3) + 1]?.textContent
+        : kind === "port:" ? x.title : kind === "end:" ? (name === "from" && x === x.parentElement.children[0]) || (name === "to" && x === x.parentElement.children[2]) ? name : ""
+        : x.textContent;
+      if (said === name && !x.classList.contains("lit")) x.classList.add("hov", "lit");
+    }
+  }
+});
+document.addEventListener("pointerout", (ev) => {
+  const f = ev.target.closest?.("[data-lights]"); if (!f || f.contains(ev.relatedTarget)) return;
+  for (const x of f.closest(".tray").querySelectorAll(".lead .card .hov")) x.classList.remove("hov", "lit");
+});
+const tw = document.getElementById("tw");
+tw.addEventListener("input", () => { S.w = Number(tw.value); render(); });
+render();
+addEventListener("resize", place_all);
+</script>
