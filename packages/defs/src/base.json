@@ -418,7 +418,8 @@
         "order": 4,
         "settings": {
           "diagram": {
-            "view": "internal"
+            "view": "internal",
+            "placing": "layered"
           },
           "style": {
             "hue": 265

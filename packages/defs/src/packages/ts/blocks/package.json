@@ -8,5 +8,5 @@
       { "name": "version", "type": "text" }
     ]
   },
-  "settings": { "style": { "hue": 210 } }
+  "settings": { "diagram": { "placing": "layered" }, "style": { "hue": 210 } }
 }

@@ -5,15 +5,15 @@
 
 ## Next session
 
-**Handoff 2026-11-05, closing pass.** Everything is committed through `41ee65c`; the closing pass (*Built 2026-11-05, closing*) is uncommitted. **Next: simplify-plan.md**, then *Remaining* row 1. Regenerate both translations and `npm run example` after pulling.
+**Handoff 2026-11-07, closing pass built.** **Waiting on the user's review**, then delete this plan. *Remaining* moved out: rows 1 and 3 to model-plan.md, which takes over acceptance; row 2 to model-plan.md *Questions* 7. The `ts.package` kind places `layered` again (simplify-plan.md *Built 2026-11-07*); the review notes below go to backlog.md.
 
 **2026-11-04: telling the story from the entry points.** One tree, one order: the explorer, the map and an entered diagram read the same children in the same order (*Decided* rows 16–18); a system path from each package nothing uses (row 19); every block lights one hop each way, and a path is walked a hop at a time from a block marked ▶ (*Directions* rows 13–14).
 
-| # | Remaining | Notes |
+| # | Remaining | Where now |
 |---|---|---|
-| 1 | **walk its path: refinements** | after simplify-plan.md (the user, 2026-11-05): the user likes *walk its path* on sequence diagrams and has refinements in mind. First: a walked step is fitted whatever its ends are — today an end nested out of sight on a layer fits nothing (2026-11-06). A diagram read down the page scrolls to its focus but never fits a walk's two ends |
-| 2 | **views over budget** | with types out of the edges views comes to 10 components, one over `most`; look again after simplify-plan.md |
-| 3 | **acceptance** | the close condition: both projects and their diagrams acceptable to the user, with `mnd measure` as a check; both need work today |
+| 1 | **walk its path: refinements** | model-plan.md *Questions* 2–3; done 2026-11-06: a walked step's nested ends lifted to the cards drawing them. A scrolled view never fits a walk, but no walk reaches one today |
+| 2 | **views over budget** | model-plan.md *Questions* 7 |
+| 3 | **acceptance** | model-plan.md, its close condition |
 
 Moved to backlog.md *Later* (2026-11-05): a component face listing its modules as rows, the vocabulary gaps, and the open *Directions*.
 
@@ -27,7 +27,7 @@ Moved to backlog.md *Later* (2026-11-05): a component face listing its modules a
 | f | **a reference breakdown** (backlog.md) | **set aside 2026-11-02**: the user's reading of the models leads instead |
 
 - **the user's direction** (2026-11-02): a deterministic structure found from the graph (imports, interfaces, cycles, centrality), not agentic band-aids; **no hard rules** about what a block is; **thresholds are defaults with floors**; **balance depth against the big picture**; diagrams are visual information, never lists of parts; agents refine and narrate on top
-- **committed** through `41ee65c`: everything in *Built* but *Built 2026-11-05, closing*. `samples/code*` and `samples/mndsite*` are generated and gitignored
+- **committed** through `279534d`: everything in *Built*. `samples/code*` and `samples/mndsite*` are generated and gitignored
 - **regenerate**: `npm run code` (this repo → `samples/code.json`); mndsite by hand: `cd apps/ts && npx vite-node src/main.ts ../../../mndsite ../../samples/mndsite`, then `npm run start -s -w @mnd/cli -- collect ../../samples/mndsite ../../samples/mndsite.json --workspace`; `check` each. `npm run packages` after any `ts` kind change
 - **measure**: `npm run start -s -w @mnd/cli -- measure ../../samples/<name>.json [layer]`; entered diagrams only, not the map
 - **see it**: a Playwright script (Edge, `channel: "msedge"`) starting Vite from `apps/web/vite.config.ts`, routing `**/mndflow.yaml` to `workspace: /samples/<name>.json` (`tray: open`); enter, hover or pick a node by id (`.react-flow__node[data-id="…"]`), never by text, which matches chips inside. Run from the repo root; in Git Bash set `MSYS_NO_PATHCONV=1`
@@ -173,7 +173,7 @@ Seen in the app on this repo: a pick on a map, Escape, entering *views*, picking
 | Change | Where |
 |---|---|
 | **the explorer lets go when the canvas does**: only what is picked lights strongly; the section's held row no longer stands in | explorer `Explorer.tsx` `lights` |
-| **what an entered layer draws wears a faint wash** in the explorer, grouping what is in view (was: the layer's branch); never on a map, which draws nearly every row (the user, 2026-11-06) | explorer `Explorer.tsx` `in_view`, `explorer.css` `.in-view`; web `App.tsx` `drawn` |
+| **what an entered layer draws wears a faint wash** in the explorer, grouping what is in view (was: the layer's branch); never on a map, which draws nearly every row (the user, 2026-11-06). The host decides: the app hands `drawn` only off a map, since a map's view is still `internal` | explorer `Explorer.tsx` `in_view`, `explorer.css` `.in-view`; web `App.tsx` `drawn` |
 | **a pick's fit in an entered layer**: a block that joins something, or a step walked, is fitted with its hops, never above 100%; letting go moves nothing. A diagram read down the page still only scrolls | web `App.tsx` `hop_box`, `stop` |
 | the undefined `--n` read: a fallback, as it is set inline | theme `face.css` `.mnd-fact-tags` |
 

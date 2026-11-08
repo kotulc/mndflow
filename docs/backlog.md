@@ -1,6 +1,6 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next**: simplification, its plan in simplify-plan.md (decided 2026-11-05). **In progress**: code translation, its plan in translate-plan.md (taken up 2026-11-01, ahead of the CLI); entry paths through a translated model finished 2026-11-02, its leftovers under *Later*; the design language, paused, its plan in design-plan.md.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next**: what a model is, its plan in model-plan.md (taken up 2026-11-07): narrative paths from the entries, the walk front and centre, and the translations' acceptance. simplify-plan.md and translate-plan.md closed 2026-11-07, awaiting the user's review. The design language, paused, its plan in design-plan.md.
 
 ## CLI (next, alongside code translation)
 
@@ -73,7 +73,8 @@ Known rough spots, taken when a step passes near one.
 | **diagram files** | a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
 | **annotations** | a label floats aside, so on a layer cut into regions it can land across a band's heading; a picked region draws a full outline rather than its band; an empty layer's words centre on the canvas rather than the room |
 | **ports** | design.md gives a port its definition's settings, values and tags; ports hold name, type, flow, seat and description only |
-| **map** | a count on a tight chip fragments (*service 6.*); the room sits under a one-line head |
+| **map** | a count on a tight chip fragments (*service 6.*); the room sits under a one-line head; a traced leg may cross chips in its way, the direct path kept (the user, 2026-11-07; design.md *hops*) |
+| **references** | from translate-plan.md's review (2026-11-01): an ambiguous bare attribute type is made as text with no note (core `sources.ts` `type_of`); a folder path inside the reader's own package (`Records.Order`) is not found by `def_hits` for `type:` though it is for `of:` (core `refs.ts`); the door allows one name in two folders (`door.ts` `named_defs`) while rename and create refuse it (`name_taken`), pending the user's word; `wanted` loads a catalogue package for any dotted word whose first step names one, ports and relation ends included (core `sources.ts`); the CLI re-reads the catalogue index once a head (cli `main.ts` `listed_names`) |
 | **double-click a grid** | lands on its name and renames it; Enter opens it |
 | **follow-ups** | lineage and links as a package structure rather than a view; boxes for a definition's usages and the groups they belong to |
 

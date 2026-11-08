@@ -512,6 +512,12 @@ export function is_model(graph: Graph, id: Id | null | undefined): boolean {
   return !!id && !is_base(id) && !!graph.blocks[id]?.def && base_named(graph, id) === "model";
 }
 
+/** **A model draws as its kind says** (2026-11-07): a setting under `key` is its kind's alone, so
+ *  a model saying one of its own is refused. */
+export function kind_only(graph: Graph, id: Id, key: string): boolean {
+  return key === "diagram" && is_model(graph, id);
+}
+
 /** Every model, in package order then reading order; only `pkg`'s where it is said. Models sit
  *  where definitions do: under a package and its definitions folders. Read once per set of
  *  blocks. */

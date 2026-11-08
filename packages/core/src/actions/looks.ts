@@ -1,7 +1,7 @@
 /** Traits and looks on an element or a definition. */
 
 import { component, NUMBERS } from "../components";
-import { is_trait } from "../defs";
+import { is_trait, kind_only } from "../defs";
 import type { Mutation } from "../types";
 import { register, type Args } from "./registry";
 import { borrowed, ids_of, list, text } from "./helpers";
@@ -65,6 +65,13 @@ register(
       }
       if (!LOOKS.includes(String(args["key"]))) {
         return `there is nothing called "${args["key"]}" to set`;
+      }
+      /** A model's own is refused, but may be given back to its kind. */
+      const model = value_of(args) === null ? undefined
+        : ids.find((id) => kind_only(ctx.graph, id, String(args["key"])));
+      if (model) {
+        const name = ctx.graph.blocks[model]!.name ?? model;
+        return `"${name}" is a model — its kind says how it draws`;
       }
       if (String(args["key"]) === "allows" && NESTED.includes(text(args, "name"))) {
         return `\`${text(args, "name")}\` is stated on a definition, not set here`;

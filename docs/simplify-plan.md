@@ -3,6 +3,17 @@
 **Eliminate special cases; generalize the structure and the logic.** The next big effort, decided 2026-11-05: listing every block in the explorer exposed blocks that are not concepts and drawing rules that distort the concepts they draw. A block is a compound concept, an abstraction or a grouping (design.md); anything else that is a block today is a defect in the model, and any rule that draws one thing as another is a special case to remove or generalize. Delete this plan when the inventory below is settled.
 
 
+## Next session
+
+**Handoff 2026-11-07, closing pass built.** Every row below is settled and built (*Built 2026-11-07*), uncommitted; regenerated, all four `check` clean, typecheck and the 304 tests pass, driven in Edge. **Waiting on the user's review**; then delete this plan. What stays open moves to model-plan.md.
+
+| # | Closed 2026-11-07 | How |
+|---|---|---|
+| 1 | **row 5's box round one chip** | kept: the general rule, as asked |
+| 2 | **the sweep** | run over the samples, both translations and the code: rows 10–12 below |
+| 3 | **`diagram` on a model** | refused: a model draws as its kind says |
+
+
 ## Principles
 
 - **a block is a concept**: never a position, a label, a count, a fold or an anchor for something else
@@ -33,7 +44,19 @@
 
 | # | Special case | Where | Question |
 |---|---|---|---|
-| | none open; the sweep (*Approach* 1) may add rows | | |
+| 10 | **a region owning behaviours** | `ends.ts` `behaviours_of` | settled 2026-11-07: **a box groups, never behaves**; the shop's walk was the region *How it runs*'s, now Shop's |
+| 11 | **a model's own `diagram`** | `door.ts`, `actions/looks.ts` | settled 2026-11-07: refused; the `model` kind places `layered` |
+| 12 | **a block with behaviours drawn as a class card** | views `look.ts` `faced` | kept: its behaviours are its methods, so a card listing them says what it has; Shop now shows its two |
+
+## Built 2026-11-07
+
+| Change | Where |
+|---|---|
+| a model's own `diagram` dropped at the door and refused by the look action | core `defs.ts` `kind_only`, `door.ts` `settings`, `actions/looks.ts` |
+| the `model` kind and the translator's `ts.package` place `layered` | defs `base/blocks/model.json`, `packages/ts/blocks/package.json` |
+| a box groups, never behaves: behaviours past regions and folders, owned by what draws the box | core `ends.ts` `behaviours_of`, `behaviour_owner`; `tree.ts` `joins`, `path_owner` |
+| the map's parent lookup built once a trace | views `trace.ts` `with_inside` |
+| map legs checked over all four samples (860 legs): none between blocks that overlap, none leaving inside its chip or running back through it; no change needed | views `trace.ts` |
 
 ## Built 2026-11-06
 

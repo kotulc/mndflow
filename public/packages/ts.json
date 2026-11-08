@@ -165,6 +165,9 @@
         "description": "A package of the project: the modules under its source folder, and what it imports from other packages.",
         "order": 6,
         "settings": {
+          "diagram": {
+            "placing": "layered"
+          },
           "style": {
             "hue": 210
           }

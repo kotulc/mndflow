@@ -1,7 +1,7 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
 import { def_at, isa, module_of, setting_of } from "./defs";
-import { behaviours_of, is_behaviour } from "./ends";
+import { behaviour_owner, behaviours_of, is_behaviour } from "./ends";
 import { allocations_of, drawn_in, is_holder, layer_of, region_of } from "./holders";
 import { PLACINGS, type Placing, type Block, type Definition, type Flow, type Graph, type Id,
          type Port, type Relation } from "./types";
@@ -244,7 +244,8 @@ function joins(graph: Graph): { from: Id; to: Id; name: string }[] {
   return kept(graph, "joins", () => {
     const ways = Object.values(graph.blocks).filter((b) => is_behaviour(graph, b.id));
     const in_way = new Set(ways.flatMap((w) => subtree(graph, w.id)));
-    const owners = [...new Set(ways.map((w) => w.parent).filter((x): x is Id => !!x))];
+    const owners = [...new Set(ways.map((w) => behaviour_owner(graph, w.id))
+      .filter((x): x is Id => !!x))];
     const lines = Object.values(graph.edges).filter((e) => e.type !== "tie")
       .map((e) => ({ a: `${e.from}:${e.fromPort ?? ""}`, b: `${e.to}:${e.toPort ?? ""}`,
                      from: owner_of(graph, e.from), to: owner_of(graph, e.to),
@@ -305,7 +306,7 @@ export function path_of(graph: Graph, id: Id): { from: Id; to: Id; name: string 
 /** **Whose path a block shows**: its own, where its behaviours make one, or, for a behaviour, its
  *  owner's. Null where neither travels anywhere. */
 export function path_owner(graph: Graph, id: Id): Id | null {
-  const owner = is_behaviour(graph, id) ? graph.blocks[id]?.parent ?? null : id;
+  const owner = is_behaviour(graph, id) ? behaviour_owner(graph, id) : id;
   return owner && path_of(graph, owner).length ? owner : null;
 }
 

@@ -49,7 +49,7 @@ export function hop_trace(graph: Graph, scene: Scene, hops: readonly Hop[]): Tra
   }
   if (!legs.length) return null;
   const ends = [...new Set(legs.flatMap((l) => [l.from, l.to]))];
-  return routed({ blocks: with_inside(scene, ends), lines: [], legs }, scene);
+  return routed({ blocks: with_inside(scene, ends, above), lines: [], legs }, scene);
 }
 
 /** **What picking lights on a map** (2026-11-04): the chips and boxes picked, each box with
@@ -82,8 +82,7 @@ function standing(graph: Graph, scene: Scene): (id: Id) => Id | undefined {
 }
 
 /** Blocks on a map, each box with everything it holds: what it holds is part of it. */
-function with_inside(scene: Scene, ids: readonly Id[]): Id[] {
-  const above = holders(scene);
+function with_inside(scene: Scene, ids: readonly Id[], above = holders(scene)): Id[] {
   return [...ids, ...scene.nodes.map((n) => n.id)
     .filter((n) => !ids.includes(n) && above(n).some((p) => ids.includes(p)))];
 }

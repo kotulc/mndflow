@@ -1,7 +1,7 @@
 /** The one door a log comes in through. */
 
 import { component } from "./components";
-import { all_defs, def_at, holds_defs, is_base, package_of, packages } from "./defs";
+import { all_defs, def_at, holds_defs, is_base, kind_only, package_of, packages } from "./defs";
 import { fold, type Floor } from "./fold";
 import { covers, inside, lattice_of, one_side, overlaps } from "./holders";
 import { ports_on, subtree } from "./tree";
@@ -178,12 +178,20 @@ function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
   }
 }
 
-/** A setting its component refuses is dropped, on a definition or an element alike. */
+/** A setting its component refuses is dropped, on a definition or an element alike, and a
+ *  model's own `diagram`, its kind's alone. */
 function settings(graph: Graph, name: (id: Id) => string, say: Say): void {
   for (const it of [...Object.values(graph.blocks), ...Object.values(graph.edges)]) {
     for (const [key, config] of Object.entries(it.settings ?? {})) {
       const c = component(key);
       if (!c || !config || typeof config !== "object") continue;
+      if (kind_only(graph, it.id, key)) {
+        for (const prop of Object.keys(config)) {
+          say("dropped", `"${name(it.id)}" is a model: its kind says ${key}.${prop}`,
+              { op: "set_setting", id: it.id, key, name: prop, value: null });
+        }
+        continue;
+      }
       for (const [prop, value] of Object.entries(config)) {
         if (!c.check({ [prop]: value })) continue;
         say("dropped", `"${name(it.id)}" said ${key}.${prop}, which nothing reads`,
