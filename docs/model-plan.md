@@ -1,11 +1,11 @@
 # Model plan
 
-**Make a model mean something: an informative overview of a system, told as narrative paths from its entry points through its primary components, with the walk front and centre.** Taken up 2026-11-07, once simplify-plan.md and translate-plan.md closed; it takes over translate-plan.md's acceptance. **Delete this plan when the user accepts the shop and both translations (this repo, mndsite) as models.**
+**Make a model mean something: an informative overview of a system, told as narrative paths from its entry points through its primary components, with the walk front and centre.** Taken up 2026-11-07, when the simplification and code translation plans closed (2026-11-08); it takes over the translations' acceptance. **Delete this plan when the user accepts the shop and both translations (this repo, mndsite) as models.**
 
 
 ## Next session
 
-**Design first, nothing built.** Settle *Questions* with the user, record each in design.md as decided, then build in one pass. Regenerate before looking (*Commands*).
+**Design first, nothing built.** The simplification and code translation plans closed 2026-11-08 (their rules in design.md and apps/ts's README); their closing pass is uncommitted. Settle *Questions* with the user, record each in design.md as decided, then build in one pass. Regenerate before looking (*Commands*).
 
 
 ## Goal
@@ -53,12 +53,16 @@
 | 5 | **a 1-step path** | a) folded into what calls it, never a walk of its own · b) kept |
 | 6 | **a layered model's direction** | a) by the canvas's shape, as every layered layer is (ELK tries down and across) · b) always top down |
 | 7 | **views over budget** | the translator splits `views` into 10 components where `most` is 9. a) let it stand: thresholds are defaults · b) tune the split |
+| 8 | **what is primary reads first** | primary blocks stand out (a heavier border), their contents quieter, more space between major parts than within one · salience says which are primary. The map already frames a model's parts heavier (design-plan.md *Decided* `map`) |
+| 9 | **flows central** | each entry shows how data flows and meets the primary parts, the major paths read first · drawn as a walk's first steps |
 
 
-## Carried from translate-plan.md
+## Carried from code translation
 
 - **the user's direction** (2026-11-02): a deterministic structure found from the graph, not agentic band-aids; no hard rules about what a block is; thresholds are defaults with floors; balance depth against the big picture; diagrams are visual information, never lists of parts; agents refine and narrate on top
 - **the walk's refinements** (the user, 2026-11-05): the user likes *walk its path* on sequences and has refinements in mind; take them up under *Questions* 2–3
+- **seen, not fixed** (design-plan.md *Open*): a lone use (*Shop*) loses its name to its box's heading line, which an overview diagram would show first
+- the translator's rules are design.md *Translation*; its stages and settings apps/ts's README
 
 
 ## Commands

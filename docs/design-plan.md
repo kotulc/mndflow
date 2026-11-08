@@ -5,7 +5,7 @@
 
 ## Next session
 
-**Start here.** Committed through 6ec08d6 (scopes on the shared tray layout, the where-it-lives map as a compact tree). **Uncommitted, 2026-11-01**: the where-it-lives map widened to the whole map with the path given room, and the element left unnamed (*Build 2026-11-01*). **The next session takes up code translation** (translate-plan.md); the design-language work below waits behind it.
+**Paused behind model-plan.md** (2026-11-08); everything below is committed through `279534d`. When the design language resumes, start with the card faces pass on the shop.
 
 When the design language resumes:
 
@@ -110,10 +110,10 @@ When the design language resumes:
 | components and usages tabs | **agreed**: tray.md, mockup *tray-lists* |
 | contents tab | **built** 2026-10-31: kinds as filter rows, *definitions* on a package or the workspace |
 | tray structure | **built** 2026-10-31, committed 274be17 |
-| where it lives, scopes as elements | **built** 2026-11-01: committed 6ec08d6; the whole map with the path given room and the element unnamed uncommitted (*Build 2026-11-01*) |
+| where it lives, scopes as elements | **built** 2026-11-01, committed (*Build 2026-11-01*) |
 | card and settings tabs | **open**; for now the card tab also carries the attribute editor and *add port*, which left the components tab |
 | design.md rules → docs/design | **decided, not done**: design.md keeps the vision; its *Perspectives*, *Cards* and *Interfaces and lines* rules move into docs/design |
-| implementation | steps 1–9, the tray structure and scopes committed (6ec08d6); the where-it-lives map's last turn uncommitted; remaining work in *Next session* |
+| implementation | steps 1–11 built and committed; steps 12 (card faces) and the card and settings tabs remain (*Next session*) |
 
 
 ## Mockups
@@ -204,7 +204,7 @@ The chip faces mockup that started this (claude.ai/artifact/QPL1BV7VTbCZHRr8Uh8p
 | 8 | **tray head and overview** | tray `Tray.tsx`, `Overview.tsx`, `Picture.tsx` | built; a box's picture (2026-10-31) |
 | 9 | **components and usages** | tray `Carried.tsx`, `Usages.tsx`, `Table.tsx` | built; seats on the tray card, lit with tiles (2026-10-31) |
 | 10 | **docs**: mark built docs settled; migrate design.md; update code-homes.md | docs | code-homes.md current (2026-10-31 review); **migration and settling not done** |
-| 11 | **tray structure**: one tab set, filter rows under the card, contents on the shared layout; library definitions as usage places and merged lines lighting their kept line (*Decided*); then card and settings tabs, context tabs | tray `Tray.tsx`, `Lists.tsx`, `Carried.tsx`, `Usages.tsx`, `Table.tsx` | **not started**; mockup next (*Next session*) |
+| 11 | **tray structure**: one tab set, filter rows under the card, contents on the shared layout; library definitions as usage places and merged lines lighting their kept line (*Decided*); then card and settings tabs, context tabs | tray `Tray.tsx`, `Lists.tsx`, `Carried.tsx`, `Usages.tsx`, `Table.tsx` built 2026-10-31 (*Build 2026-10-31*); card and settings tabs, context tabs still open |
 | 12 | **card faces pass** | theme `face.tsx`, views `face.ts` | **not started**; agree the look first |
 
 - **reuse what is there**: views `about.ts` holds facts, previews and hover; `map.ts` picks levels by room. Extend them rather than add parallel paths

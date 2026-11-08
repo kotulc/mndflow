@@ -1,5 +1,5 @@
-/** A project's structure, found from its import graph by deterministic stages (translate-plan
- *  *Strategy* 1–4, 9): each package's entry (its barrels, wiring, and the modules importing most
+/** A project's structure, found from its import graph by deterministic stages (the README's
+ *  *Stages*): each package's entry (its barrels, wiring, and the modules importing most
  *  of it) and foundation (the modules most of it imports), both set aside; its components
  *  (communities of what remains, split until each layer fits the budget), their levels by
  *  dependency direction, its cycles, each entry's path through the components by its calls,

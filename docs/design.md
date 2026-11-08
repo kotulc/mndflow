@@ -51,6 +51,13 @@ Most rules below are one of these applied.
 
 ## The model
 
+**Simple, general rules** (2026-11-05): a special case is a defect in the model.
+
+- **a block is a concept**: a compound concept, an abstraction or a grouping; never a position, a label, a count, a fold or an anchor for something else
+- **a view never writes the model**: what a view folds, numbers, merges or lays out is the view's, worked out when drawn
+- **no self-reference**: nothing is drawn by a child pointing back at what holds it
+- **one rule per behaviour**: a special case is either generalized into the rule or removed
+
 ### Elements
 
 **Four categories, each with one place in the explorer and on the canvas.** **Blocks** list in the explorer as the map draws them (2026-11-05: the models list the map's tree, leaves included); notation and components live inside the room that holds them.
@@ -471,10 +478,25 @@ Most rules below are one of these applied.
 **A system is brought in by a translator, never by bending the model.**
 
 - a **translator** is a project reading or writing a graph through the kit, with a package of its own. It ships definitions, never a module
-- **a translator writes a workspace directly**, at a level of abstraction it is given: layers of components, a standard set of diagrams at each, the system's shared vocabulary as definitions. Ids follow the source path and names, so translating again keeps them; a rename is a new block. `source` records where content lives outside; nothing syncs to it
+- **a translator writes a source folder**, at a level of abstraction it is given, and `collect` reads it into a workspace, so the door checks what was written (2026-11-02): layers of components, a standard set of diagrams at each, the system's shared vocabulary as definitions. Ids follow the source path and names, so translating again keeps them; a rename is a new block. `source` records where content lives outside; nothing syncs to it
 - **heuristics, then agents**: a translator finds what general heuristics can; an agent refines it and adds the abstraction and narrative on top (walkthroughs), naming what was translated
 - **round-tripping is the goal**: a system translated in and written back out loses nothing the model can say — a struct or class as a block definition, an enum or alias as a type, a function as a block with interfaces. Writing out never syncs: it writes new files
 - a consumer edits the graph as data; only general schema changes land in mndflow, never a consumer's feature
+
+**TypeScript is the second translator** (2026-11-01; apps/ts, its stages and settings in its README), through the `ts` package's kinds (package, component, module, and the vocabulary's).
+
+- **structure is found from the graph**, deterministically (imports, calls, cycles, centrality), never by agentic band-aids; an agent refines and narrates on top
+- **no hard rules, no fixed grain**: a block is whatever unit the graph says matters, a group of modules or one module; every threshold is a default with a floor and a ceiling, and a setting
+- **wide before deep**: the fewest layers that keep each within the budget, a ceiling on depth; the big picture before detail
+- **diagrams are visual information, never lists of parts**: no diagram per module; a module is listed in its component, a block of its own where it is its component's only one
+- **one model, named by what was read** (`src`, else `code`), never the project's name; it holds its packages by level, entries first, with the dependencies between them
+- **the system starts at what nothing uses**: such a package's top modules are its entries, and their paths go on across packages, wide before deep, never stepping into a shared module
+- **a package reads in order**: entries first (`ts.entry`), then components by level, then shared modules (`ts.shared`); no bands
+- **a type read is no dependency**: an import of interfaces and aliases only uses the vocabulary and draws no line; dependency lines name the values read
+- **a cycle is one unit**: components importing each other round become one component holding them, a level down; splits that leave fewest modules in cycles win first
+- **the vocabulary is shared types only**: interfaces, classes and object types another module reads become definitions, owned where they are declared; module-local types stay out
+- **no ports from imports or exports**: a port is a data contract, an import a usage; a port only once there is a contract to name
+- **the user reading the translated models is the test**: scores guide, never decide
 
 **mndmap is the first translator**: markdown in, through a **markdown package** (`markdown.json`) that says what a heading, table, list or fence *is*. The parser stays general; the package carries the meaning.
 
@@ -506,5 +528,5 @@ Most rules below are one of these applied.
 | **walkthroughs** | what a step is (a view, a focus, text, a flow to play); where a walkthrough lives (a definition, a diagram file); how one is authored (an agent through the CLI first); branching or one line |
 | **what drives a flow** | relation direction, grid reading order, or a behaviour of its own; and whether a flow is a perspective or an overlay |
 | **the agent surface** | whether every CLI verb reads and writes JSON, and whether actions are reachable by name from the CLI |
-| **the next translator** | code first: TypeScript through a `ts` package (translate-plan.md); hardware later |
+| **the next translator** | TypeScript is built (apps/ts); hardware later |
 | **the drag round trip** | dragging a definition from another package into the open structure means leaving the structure in the explorer. Whether a definitions palette stays put beside it |
