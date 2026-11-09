@@ -79,10 +79,6 @@
         "def": {
           "attributes": [
             {
-              "name": "lines",
-              "type": "number"
-            },
-            {
               "name": "runs",
               "type": "text",
               "note": "where it runs: node or browser"
@@ -121,6 +117,10 @@
               "name": "tests",
               "type": "text",
               "note": "tests importing it"
+            },
+            {
+              "name": "lines",
+              "type": "number"
             }
           ]
         },
@@ -190,10 +190,6 @@
         "def": {
           "attributes": [
             {
-              "name": "lines",
-              "type": "number"
-            },
-            {
               "name": "runs",
               "type": "text",
               "note": "where it runs: node or browser"
@@ -232,6 +228,10 @@
               "name": "tests",
               "type": "text",
               "note": "tests importing it"
+            },
+            {
+              "name": "lines",
+              "type": "number"
             }
           ]
         },

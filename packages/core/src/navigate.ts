@@ -7,14 +7,14 @@
  *  treemap of chips, the pick its focus. */
 
 import { NAMED_VIEWS } from "./components";
-import { is_model, models, setting_of } from "./defs";
+import { def_of, is_model, models, setting_of } from "./defs";
 import { inline, is_folder, is_grid, is_region, layer_of } from "./holders";
 import { registry_at, registry_id, registry_of } from "./library";
 import { opens } from "./names";
 import { at_cut, in_section, is_layer_view, on_side, type Lists, type Section, type ViewKind }
   from "./sections";
 import { line_layer, of_ref, path, stands_for } from "./tree";
-import { type Graph, type Id } from "./types";
+import { type Block, type Graph, type Id } from "./types";
 import { definition_uses } from "./uses";
 
 /** Where a host's sections start: the forest above every package, or the workspace's root. */
@@ -27,8 +27,11 @@ export type Tiers = { top: Top; sections: readonly Section[] };
 export type Views = Readonly<Record<string, ViewKind>>;
 
 /** What the canvas draws: the section it looks at, how, the layer — the block seen from inside,
- *  or the scope a whole section is drawn from — and what is picked on it. */
-export type View = { at: number; kind: ViewKind; layer: Id | null; pick: Id | null };
+ *  or the scope a whole section is drawn from — and what is picked on it. **A definition's part
+ *  entered from the models** is seen through the uses that read it through (`via`, outermost
+ *  first), so the view stays in the models (2026-11-08). */
+export type View = { at: number; kind: ViewKind; layer: Id | null; pick: Id | null;
+                     via?: Id[] };
 
 /** What the sections hold for a view, outermost first, and which section is in focus. */
 export type Held = { path: Id[]; at: number };
@@ -108,6 +111,31 @@ function map_at(at: number, pick: Id | null): View {
   return { at, kind: "map", layer: null, pick };
 }
 
+
+/** **The way to a layer through the uses it is seen through** (2026-11-08): the first use's path,
+ *  then below each use's definition the way on, to the next use and at last the layer. With no
+ *  uses, the layer's own path. */
+export function way_of(graph: Graph, layer: Id, via: readonly Id[] = []): Block[] {
+  if (!via.length) return path(graph, layer);
+  let way = path(graph, via[0]!);
+  [...via.slice(1), layer].reduce((use, to) => {
+    const steps = path(graph, to);
+    way = [...way, ...steps.slice(steps.findIndex((b) => b.id === def_of(graph, use)) + 1)];
+    return to;
+  }, via[0]!);
+  return way;
+}
+
+/** **The uses a definition's part is seen through**, read from the models: the open view's, then
+ *  the use it is read on — `given`, else the open layer — where that use's definition holds it.
+ *  Empty where no use reads it through. */
+function through(graph: Graph, now: View | null, subject: Id, given?: Id): Id[] {
+  const base = given ? [] : now?.via ?? [];
+  const use = given ?? now?.layer;
+  const def = use ? def_of(graph, use) : undefined;
+  if (!use || !def || !path(graph, subject).some((b) => b.id === def)) return base;
+  return use === subject ? base : [...base, use];
+}
 
 /** The way to a block through the sections: what each holds, and the root of the next. A block at
  *  a cut roots the next section. One that lists structure on its own records the block wherever
@@ -237,6 +265,13 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
     if (lens_of(graph, target.id, lists)) return open_at(graph, tiers, views, target.id, from, now);
     return reveal_at(graph, tiers, views, now ?? null, id);
   }
+  /** A step back on the way the open view is seen through keeps the uses before it. */
+  if (now?.via?.length && lists === "structure" && !on_side(graph, id, lists)) {
+    const way = way_of(graph, now.layer!, now.via).map((b) => b.id);
+    const at = way.indexOf(id);
+    const via = now.via.filter((u) => way.indexOf(u) < at);
+    if (at >= 0 && via.length && kind) return { at: origin!, kind, layer: id, pick: null, via };
+  }
   const { roots, held } = trace(graph, tiers, id);
   const listed = origin !== undefined && held[origin] === id ? origin : held.lastIndexOf(id);
   if (listed < 0) return null;
@@ -250,13 +285,25 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
  *  *read* — from the section `from`, else the canvas's. It enters what it is on, where that opens
  *  there. In the library nothing else is entered: a part of a definition, or one not used, is
  *  read in the tray. In the models anything else — a tile inside a chip (`inner`), a plain block,
- *  a region — enters the nearest block above it that opens, picked there. Null where nothing
- *  does: what was read stays picked on its map. */
+ *  a region — enters the nearest block above it that opens, picked there. **A definition's part
+ *  seen through a use** (`via`, else the open layer) is entered through it where it opens, else
+ *  picked on that use: never in its definition, which would leave the models (2026-11-08). Null
+ *  where nothing does: what was read stays picked on its map. */
 export function read_at(graph: Graph, tiers: Tiers, views: Views, now: View | null, subject: Id,
-                        options: { inner?: boolean; from?: number } = {}): View | null {
+                        options: { inner?: boolean; from?: number; via?: Id } = {}): View | null {
   if (graph.edges[subject]) return reveal_at(graph, tiers, views, now, subject);
   const from = options.from ?? now?.at;
   const lists = lists_at(tiers, from);
+  if (lists === "structure" && graph.blocks[subject] && !on_side(graph, subject, lists)) {
+    const via = through(graph, now, subject, options.via);
+    if (!via.length) return null;
+    const kind = options.inner ? null : lens_of(graph, subject, lists);
+    if (kind) return { at: from!, kind, layer: subject, pick: null, via };
+    const host = options.via ?? now?.layer;
+    if (now && host === now.layer) return { ...now, pick: subject };
+    const to = host ? read_at(graph, tiers, views, now, host, { from }) : null;
+    return to ? { ...to, pick: subject } : null;
+  }
   /** **A use read from a registry hands over to the models**, where it is drawn. */
   const models = tiers.sections.findIndex((s) => s.lists === "structure");
   if (lists === "domain" && models >= 0 && graph.blocks[subject]
@@ -279,9 +326,19 @@ export function read_at(graph: Graph, tiers: Tiers, views: Views, now: View | nu
  *  above opens on — a model, a definition's registry — the section's map, what was left picked.
  *  An entry leaves for its registry, a component registry for its package on the map; a
  *  section's root for the section above. **Never a back stack**: leaving goes up, not back. A map
- *  is left for nothing. */
+ *  is left for nothing. A part seen through a use leaves for the layer above it on its way: the
+ *  use, where its definition holds it directly. */
 export function leave_at(graph: Graph, tiers: Tiers, views: Views, view: View): View | null {
   const { at, kind, layer } = view;
+  if (view.via?.length && layer && is_layer_view(kind)) {
+    const way = way_of(graph, layer, view.via);
+    const up = way[way.length - 2]?.id;
+    const via = view.via.filter((u) => u !== up);
+    const kind_up = up ? lens_of(graph, up, lists_at(tiers, at)) : null;
+    if (up && kind_up) {
+      return { at, kind: kind_up, layer: up, pick: layer, ...(via.length ? { via } : {}) };
+    }
+  }
   if (kind === "registry" && layer) {
     const of = registry_of(graph, layer);
     if (of) return { at, kind, layer: registry_id(of), pick: layer };
@@ -341,7 +398,7 @@ export function held_at(graph: Graph, tiers: Tiers, view: View): Held | null {
   const registry = view.kind === "registry"
     ? registry_at(graph, view.layer) ?? registry_of(graph, view.layer) : null;
   const target = registry ? registry.pkg
-    : is_layer_view(view.kind) ? view.layer ?? view.pick : view.pick;
+    : is_layer_view(view.kind) ? view.via?.[0] ?? view.layer ?? view.pick : view.pick;
   if (!target || !graph.blocks[target]) return null;
   const { held } = trace(graph, tiers, target);
   const deepest = held.lastIndexOf(target);

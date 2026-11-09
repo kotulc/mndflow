@@ -185,7 +185,7 @@ export function read_code(root: string, tsconfig = join(root, "tsconfig.json")):
   /** A scoped name (`@scope/name`) is its last part: a name is one step, and a file's name. */
   const name = String(manifest?.["name"] ?? root.split(sep).pop()).replace(/^@[^/]+\//, "");
   return { name: name.replace(/[./]/g, "-"),
-           ...said(String(manifest?.["description"] ?? "")),
+           ...said(String(manifest?.["description"] || readme_lead(root))),
            packages: [...pkgs.values()].sort((a, z) => a.dir.localeCompare(z.dir)) };
 }
 
@@ -755,6 +755,12 @@ function own(comment: string, head: string): string {
 function text(path: string): string {
   try { return readFileSync(path, "utf8"); }
   catch { return ""; }
+}
+
+/** **A README's lead**: its first paragraph of prose, under its title, before any heading. */
+function readme_lead(dir: string): string {
+  const paras = text(join(dir, "README.md")).split(/\r?\n\s*\r?\n/).map((p) => p.trim());
+  return paras.find((p) => p && !/^(#|!\[|\[!\[|<)/.test(p)) ?? "";
 }
 
 /** A doc comment's first sentence, as a `description`. */

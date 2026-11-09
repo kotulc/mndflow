@@ -5,9 +5,16 @@
 
 ## Next session
 
-**Passes 1 and 2 built 2026-11-08, uncommitted, reviewed; awaiting the user's look** (*Build*). Start by regenerating (*Commands*) and driving the shop, mndsite and this repo against the mockup (https://claude.ai/artifact/RCAGGQPcybLxRYZSkGwjsj). Then take up *Open after the passes*, highest first. Suggested commit: *Tell models as paths: walk in the tray, library-first translation, one chip look at every zoom*.
+**State at hand-off (2026-11-08, late; all uncommitted).** Passes 1–3 built (*Build*). Pass 3 made mndsite's chips say more (answers, listed parts, entry-named models) and fixed navigation into a definition's parts from a model. The user's verdict: translated diagrams are still often trivial or messy (one-block flows) and chips are not the right kinds; **no more translator or face changes until the mndsite review agrees what each part should look like.**
 
-**Later 2026-11-08**: the user's look found the map's text and camera broken (*Fixed after the user's look*) and mndsite still sparse; translation-plan.md took over how translation changes: decided and built the same day, its *Landed* table what to tune next. **Chip faces against the mockup's *Kinds* board are mostly unbuilt** (*Chip faces gap*).
+| Order | Take up | Where |
+|---|---|---|
+| 1 | **the mndsite review**: Claude reads mndsite's code personally and walks the user through it part by part — a digest per part, visuals (mockups) of the diagrams and chips that would explain it, discussed and agreed — then, per agreed picture, how the translator could capture it | mndsite-plan.md |
+| 2 | the review's build list, taking in *what did not land in translation* (173 flows here, group names, actors leaking through units) and the chip stamp (*Questions* 1) | mndsite-plan.md, translation-plan.md *Landed* |
+| 3 | **the camera has no single owner**: one function from state to one camera target, one hook applying it | stage `room.ts` `useFocus`, web `App.tsx` `stop` |
+| 4 | the rest of *Open after the passes*; polish waits in backlog.md *After the mndsite review* | below |
+
+Start by regenerating (*Commands*) and driving mndsite. **Drive every depth after a navigation change**: a map tile, a part inside an entered use, into it and back up by crumb, on every sample. Suggested commit before taking anything up: *Read parts through their use; chips show answers and list small parts; name models by entry*.
 
 
 ## Goal
@@ -76,14 +83,23 @@
 | 4 | **a module's exported functions and values are its parts**, each by its `signature`; a unit says the shared types it reads (`reads`) | apps/ts `write.ts`; ts `module.json`, `component.json` |
 | 5 | **the walk under *why it matters***, its parts set apart (`Section` `parts`); list rows pick, by pointer and keys | tray `Overview.tsx`, `Walk.tsx`, `Lists.tsx` |
 
+**Pass 3**: chips that say something, and parts entered through their use. **Built 2026-11-08.**
+
+| # | Step | Where |
+|---|---|---|
+| 1 | **a use never repeats its name as its kind**: `ingest module`, not `ingest ingest` | views `about.ts` `kind_of` |
+| 2 | **a chip of parts shows its answers** in its facts strip, in place of counts (`runs node · entered script ingest`); a list by its first item and how many more | views `facts.ts` `answers_of`, `map.ts` `mapped`; theme `facts.tsx` |
+| 3 | **parts too small to name are listed**: name rows in columns over the rest, a *+n more* row last | views `map.ts` `listed`, `placed_in` |
+| 4 | **a part seen through a use is entered through it**: the view's `via`, the trail and leaving following the way | core `navigate.ts` `way_of`, `read_at`, `open_at`, `leave_at`, `held_at`; views `derive.ts` `trail_of`; web `App.tsx`; stage `Stage.tsx` |
+| 5 | the tray's *why it matters* reads a use's definition's purpose through | tray `Overview.tsx` `Why` |
+| 6 | **translation**: models named by entry (`Docker → cli`, `npm run ingest`); a component described by its members' headers; the package by its README's lead; `lines` last | apps/ts `write.ts`, `read.ts`; ts `module.json`, `component.json` |
+| — | **tried and reverted**: a purpose line under every chip's name; a cut-short description said less than the counts it replaced | design.md |
+
 ### Open after the passes
 
 | Open | Notes |
 |---|---|
-| **step order reads by columns** | d3's squarify keeps list order but lays a landscape model in columns; the mockup's serpentine rows are not built |
-| **an unanswered attribute shows its type** | a use with no value and no default reads `owner text`; a definition's own `values` are collected as attribute defaults without their type (core `sources.ts`), so `lines` reads as text |
-| **a read-through tile picks the definition's part** | on the map, a tile a usage reads through is its definition's part, picked as itself, not through the usage (`route`) |
-| **the silhouettes are partial** | the model chip's step order and path, a class's compartments and an entity's key head are what the mockup showed beyond today's; tune against the mockup |
+| **a read-through part is entered through its use** | fixed 2026-11-08: a definition's part seen through a use jumped to the library; it is now entered in the models through that use (core `View.via`, `way_of`; design.md), the trail and leaving following the way |
 | **the step's words** | the step read says its hop and what crosses it; a model's own narrative per step waits on the walkthrough format (design.md *Open*) |
 
 ### Fixed after the user's look (2026-11-08)
@@ -101,20 +117,18 @@
 
 ### Chip faces gap (2026-11-08)
 
-Pass 2 step 3 built two CSS rules (a state's tiles rounded, an internal diagram's dashed outline) and counted what structure already drew as the rest. Against the mockup's *Kinds* board:
+Against the mockup's *Kinds* board (https://claude.ai/artifact/RCAGGQPcybLxRYZSkGwjsj). **Two redesigns were tried and reverted the same day; diagram chips are their treemap tiles as pass 2 left them** (structure-laid tiles; a state's tiles rounded, an internal diagram's body in a dashed frame).
 
-| Mockup | Built |
+| Tried | Why it was rejected |
 |---|---|
-| model: tiles in step order, the path drawn in the gaps | tiles only; no path |
-| internal: parts in a frame, **ports on its edge** | dashed outline; no ports |
-| sequence: lifelines, **activation bars, messages across** | lifelines only |
-| class: **compartment rows**; entity: **key head**, joined | rows where a tile has room; no key head, no joins |
-| flow: cards on one line, **a diamond branch** | line and marks; decision a small glyph |
-| state: rounded states, **start dot and end ring** | rounded tiles |
-| swimlane: lanes as columns, steps in cells | built |
-| **component chips** as typed pills (`total: Money`, `in Cart`, `pci`, `attempts ≤ 3`, `Order ×6`) | facts as counts (`2 attributes`), rows as `name value` |
-| **wide chip**: name, facts line, attribute pills, a behaviour's signature row | name, facts, rows; no pills or signature row |
-| **focus**: sub blocks, typed chips, a sub model banner (*Payment retry · 3 steps · Into*) | none |
+| **a per-kind sketch** (a second layout of each kind: lifelines and messages, lanes, nodes and arrows, tables, labels) | not compact, and it reflected no entered view: it laid the diagram again by its own rules |
+| **a thumbnail of the entered view** (its laid scene scaled into the chip, no words; ELK views laid in the background) | faithful, but still not compact enough: a scaled drawing reads as clutter at chip size |
+
+| Open | Notes |
+|---|---|
+| **a diagram chip that stands out** | the user's direction: keep the tiles, add a unique diagram stamp or another way to stand out. Candidates: the kind's icon large as a watermark, a kind-shaped corner mark, a ruled header band in the kind's hue |
+| **a model's path in the gaps** | a model is the map's own box; its path needs map-level lines |
+| **component chips as typed pills**, a behaviour's signature row, a sub model banner on focus | from the *Kinds* board |
 
 ### Seen in pass 1
 
@@ -122,7 +136,6 @@ Pass 2 step 3 built two CSS rules (a state's tiles rounded, an internal diagram'
 |---|---|
 | **the shop's stories use the catalogue's definitions** | Checkout and Charge a card hold uses of `services`' and Records' definitions, as the Shop does; the Shop's own parts were left as uses, since a definition extending a pattern loses the pattern's parts (structure never inherits) |
 | **mndsite tells one model** | six of its seven entry paths are one step (each config calls `link`), so fold |
-| **a step lists the block it reaches** | a path revisiting a block lists it again in the stack (mndsite's *page*, *mobile*) |
 | **a traced hop may cross a chip** | as on the map (backlog *map*) |
 
 
@@ -143,6 +156,9 @@ Pass 2 step 3 built two CSS rules (a state's tiles rounded, an internal diagram'
 
 | # | Question | Options, leaning first |
 |---|---|---|
+| 1 | **how a diagram chip stands out** (waits on the mndsite review) | a per-kind stamp in the head (the kind's icon in a filled badge of its hue) / the kind's icon large and faint behind the tiles / a header band in the kind's hue / tiles alone, as now |
+| 2 | **flows from code** (translation-plan.md; the mndsite review decides) | only functions calling across modules / only entries' functions / a higher floor than 3 |
+| 3 | **entering a chip** | cut to the entered view, fading in (built, to confirm with the user) / fly into the chip then cut, as before |
 
 
 ## Carried from code translation

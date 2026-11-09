@@ -14,7 +14,7 @@ import { appearances_of, behaviours_of, children, class_of, def_at, def_of, defi
          DIAGRAM_QUESTIONS, DIAGRAMS, type Act, type Block, type Graph, type Id,
          type Relation } from "@mnd/core";
 import { Facts, Holds, Icon, role_icon, UsedIn } from "@mnd/theme";
-import { hover_of, kind_of, wire_of, wire_tint, type Hovered } from "@mnd/views";
+import { hover_of, kind_of, told, wire_of, wire_tint, type Hovered } from "@mnd/views";
 import { Content } from "./Content";
 import { Card, Empty, LineCard, List, Painted, Section, type Item } from "./Lists";
 import { Scope, Trail, Where } from "./Where";
@@ -174,8 +174,9 @@ function LineOverview({ graph, e }: { graph: Graph; e: Relation }) {
   );
 }
 
-/** **Why it matters**: its own description — a gap, quiet, in the editor where it has none —
- *  then its definition, its kind, whether it is a behaviour, and its tags. */
+/** **Why it matters**: its own description, else its definition's read through, quieter — a gap
+ *  in the editor where neither says — then its definition, its kind, whether it is a behaviour,
+ *  and its tags. */
 function Why({ graph, b, kind, editor }: { graph: Graph; b: Block; kind: Id | null;
                                            editor: boolean }) {
   const def = b.def ? undefined : def_of(graph, b.id);
@@ -184,9 +185,11 @@ function Why({ graph, b, kind, editor }: { graph: Graph; b: Block; kind: Id | nu
   /** A definition's own: what it extends, where that is no kind. */
   const base = b.def && b.type && package_of(graph, b.type) !== BASE_PACKAGE
     ? def_at(graph, b.type) : undefined;
+  const through = b.description ? undefined : told(graph, b.id);
   return (
     <Section name="why it matters" about="What it is for, in its own words; then what it is">
       {b.description ? <p className="why">{b.description}</p>
+        : through ? <p className="why faint">{through}</p>
         : editor ? <p className="gap">no description yet</p> : null}
       <div className="chips">
         {own ? <Painted graph={graph} entry={own.id} word={own.name} chip /> : null}

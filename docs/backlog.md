@@ -1,6 +1,22 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next**: what a model is, its plan in model-plan.md (taken up 2026-11-07): narrative paths from the entries, the walk front and centre, and the translations' acceptance. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next**: the mndsite review (mndsite-plan.md, 2026-11-08): read one project part by part and agree its pictures before changing the translator or the faces again. It feeds what a model is, its plan in model-plan.md (taken up 2026-11-07): narrative paths from the entries, the walk front and centre, and the translations' acceptance. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
+
+## After the mndsite review
+
+**Polish moved out of model-plan.md and translation-plan.md (2026-11-08).** Each waits on the mndsite review (mndsite-plan.md): take up only what the agreed pictures still need, drop what they make moot.
+
+| Item | Notes | From |
+|---|---|---|
+| **step order reads by columns** | d3's squarify keeps list order but lays a landscape model in columns; the mockup's serpentine rows are not built | model plan |
+| **an unanswered attribute shows its type** | a use with no value and no default reads `owner text`; a definition's own `values` are collected as attribute defaults without their type (core `sources.ts`), so `lines` reads as text | model plan |
+| **the silhouettes are partial** | the model chip's step order and path, a class's compartments and an entity's key head are what the mockup (https://claude.ai/artifact/RCAGGQPcybLxRYZSkGwjsj) showed beyond today's | model plan |
+| **short chips** | the treemap lays some diagram chips ~18 units under their name (shop *Model*, *Schema*) | model plan |
+| **a step lists the block it reaches** | a path revisiting a block lists it again in the walk's stack (mndsite's *page*, *mobile*) | model plan |
+| **a use's card face shows no values** | the tray's card for a use lists its kind's attribute names with empty values | translation plan |
+| **two models named `npm run start`** | this repo's packages each have one; a package prefix is added only when names collide exactly | translation plan |
+| **this repo's acceptance target** | `samples/code.target.yaml`, as mndsite's (apps/ts `report.ts` `against`) | translation plan |
+| **a container has no description** | a folder file beside its directory loses `tree: definitions`, so containers are plain directories; each unit says `runs` instead | translation plan |
 
 ## CLI (next, alongside code translation)
 

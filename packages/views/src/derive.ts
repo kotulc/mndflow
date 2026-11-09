@@ -4,8 +4,8 @@ import { alias_of, attributes_of, def_of, dir_of, domain_of, frozen, head_of, in
          is_definition,
          lens_of, is_box, opens, flow_of, is_notation, is_flat, notation_of, is_interface, is_named,
          is_participant,
-         base_of, path, resolved, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
-         path_of, type Graph, type Id } from "@mnd/core";
+         base_of, resolved, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
+         path_of, way_of, type Graph, type Id } from "@mnd/core";
 import { body_lines, face_table, face_text, FACTS_LINE, handle_of, name_fit } from "./face";
 import { card_shape, look_of } from "./look";
 import { face_of, type Face } from "./size";
@@ -140,9 +140,10 @@ export function empty_of(graph: Graph, id: Id): string {
 }
 
 /** The trail down to the layer, for a breadcrumb: the way the explorer lists it — its package,
- *  then every folder and block on the way, never an annotation. */
-export function trail_of(graph: Graph, layer: Id | null): Scene["trail"] {
-  return path(graph, layer ?? graph.root)
+ *  then every folder and block on the way, never an annotation; through the uses it is seen
+ *  through (`via`), where it is a definition's part entered from the models. */
+export function trail_of(graph: Graph, layer: Id | null, via: readonly Id[] = []): Scene["trail"] {
+  return way_of(graph, layer ?? graph.root, via)
     .filter((b) => b.id === layer || !is_notation(graph, b.id))
     .map((b) => ({ id: b.id, label: shown_name(graph, b.id) }));
 }

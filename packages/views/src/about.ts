@@ -104,7 +104,7 @@ export function preview_of(graph: Graph, id: Id): Preview | null {
 
 /** **What a block is for**: its own description, else — where it is typed — its definition's. A
  *  plain block is no kind of thing, so the base block's words say nothing of it. */
-function told(graph: Graph, id: Id): string | undefined {
+export function told(graph: Graph, id: Id): string | undefined {
   const b = graph.blocks[id];
   return b?.description ?? (b?.type ? def_at(graph, b.type)?.description : undefined);
 }
@@ -159,13 +159,17 @@ export function hover_of(graph: Graph, id: Id, library: boolean): Hovered | null
 }
 
 /** **What an element is, in a word**, as its card, its hover card and the tray's head all name
- *  it: a usage its definition, else a diagram its diagram kind, a line its relation type, else its
- *  base kind. */
+ *  it: a usage its definition — where that only repeats the usage's name, what the definition is
+ *  — else a diagram its diagram kind, a line its relation type, else its base kind. */
 export function kind_of(graph: Graph, id: Id): string {
   const e = graph.edges[id];
   if (e) return (e.type ? def_at(graph, e.type)?.name : undefined) ?? "line";
   const b = graph.blocks[id];
   if (!b) return "";
+  const def = !b.def && b.type && !is_base(b.type) ? def_at(graph, b.type) : undefined;
+  if (def && def.name === shown_name(graph, id) && def.type) {
+    return def_at(graph, def.type)?.name ?? def.type;
+  }
   const at = (!b.def && b.type && !is_base(b.type) ? b.type : null) ?? diagram_kind(graph, id)
     ?? (!b.def && b.type ? b.type : base_of(graph, id));
   return def_at(graph, at)?.name ?? at;

@@ -371,7 +371,10 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         return;
       }
       if (g.button !== "left" || !on) return;
-      if (g.count === 2) { onAct("read", { id: on, ...(tile ? { inner: true } : {}) }); return; }
+      if (g.count === 2) {
+        onAct("read", { id: on, ...(tile ? { inner: true, ...(area ? { via: area } : {}) } : {}) });
+        return;
+      }
       onAct("open", { id: on });
       onPick([on]);
       return;

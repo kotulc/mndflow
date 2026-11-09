@@ -192,8 +192,10 @@ function model_files(shapes: Shape[], refs: Refs, folders: Set<string>, outside:
       return { p, keys, score };
     })
     .sort((a, z) => z.score - a.score || a.p.entry.localeCompare(z.p.entry));
-  /** Named by its entry, led by its package's name where two share one, never as a folder. */
-  const bare = told.map(({ p }) => refs.get(p.entry)!.name);
+  /** Named by how its entry is entered, led by its package's name where two share one, never as
+   *  a folder. */
+  const bare = told.map(({ p }) => entry_name(mod.get(p.entry)!.entered?.[0],
+                                              refs.get(p.entry)!.name));
   told.forEach(({ p, keys }, i) => {
     /** The shared modules its units import: leaned on, never stepped into. */
     const leaned = [...new Set(keys.flatMap(holds).flatMap((m) => mod.get(m)?.imports ?? [])
@@ -204,11 +206,21 @@ function model_files(shapes: Shape[], refs: Refs, folders: Set<string>, outside:
     const entry = mod.get(p.entry)!;
     /** **The outside the path reaches**: each actor its units touch, a line from each. */
     const reach = new Map(keys.map((k) => [k, holds(k).flatMap((m) => mod.get(m)?.touches ?? [])]));
-    const said = [entry.entered?.length ? `Entered by ${entry.entered.join(", ")}.` : "",
-                  entry.description ?? ""].filter(Boolean).join(" ");
+    const said = entry.description ?? "";
     out.set(`${i + 1}-${slug(title)}.yaml`, yaml(model_of(title, said, p, [...keys, ...leaned],
                                                            refs, reach, outside)));
   });
+}
+
+/** **A model's name, by how its entry is entered** (2026-11-08): a package script as it is run
+ *  (`npm run ingest`), anything else as what enters which unit (`Docker → cli`, `nextra →
+ *  theme-config`, a page's script `browser → main`); its unit's name where nothing declares it. A
+ *  name holds no `.`. */
+function entry_name(how: string | undefined, unit: string): string {
+  if (!how) return unit;
+  const script = how.match(/^script (.+)$/)?.[1];
+  const by = how.replace(/^Dockerfile \w+$/, "Docker").replace(/^index\.html$/, "browser");
+  return script ? `npm run ${script}` : `${by} → ${unit}`;
 }
 
 /** **One path's model**: a use of each unit it passes through, then of those it leans on, named
@@ -223,7 +235,7 @@ function model_of(name: string, said: string, path: Path, keys: string[], refs: 
   const actors = [...new Set([...reach.values()].flat())].filter((a) => !taken.has(a));
   return {
     name, type: "model",
-    description: said || `What ${name} calls, in the order it first calls it.`,
+    ...(said ? { description: said } : {}),
     blocks: [...keys.map((k) => ({ name: local.get(k)!, type: refs.get(k)!.ref })),
              ...actors.map((a) => ({ name: a, type: `${outside}.${a}` }))],
     relations: dependencies([...path.steps.map((x) => {
@@ -289,10 +301,14 @@ function component_files(c: Comp, name: string, mod: Map<string, Mod>, file: str
     : component_files(x, names.get(x.anchor)!, mod, `${file}/${slug(names.get(x.anchor)!)}`,
                       rank, api, out));
   const lines_of = [...mod.values()].filter((m) => c.modules.includes(m.path));
-  const head = mod.get(c.anchor)?.description;
+  /** **What it is for, in its members' words** (2026-11-08): each module's header, the most
+   *  salient first; never a summary of its own. */
+  const heads = [...c.modules].sort((a, z) => rank.indexOf(a) - rank.indexOf(z))
+    .flatMap((m) => mod.get(m)?.description?.replace(/\.$/, "") ?? []);
   out.set(`${file}.yaml`, yaml({
     name, type: KIND.component, ...(def ? { def: {} } : {}),
-    description: head ?? `${c.modules.length} modules: ${c.modules.map(stem_of).join(", ")}.`,
+    description: heads.length ? heads.join(" · ")
+      : `${c.modules.length} modules: ${c.modules.map(stem_of).join(", ")}.`,
     values: { lines: lines_of.reduce((sum, m) => sum + m.lines, 0), ...answers(lines_of) },
     blocks,
     relations: lines({ modules: lines_of }, new Map(parts.flatMap((x) => x.modules.map((m) =>
@@ -409,9 +425,9 @@ function dependencies(edges: readonly (string | Record<string, string>)[]): unkn
   return kept.length ? [{ dependency: kept }] : [];
 }
 
-/** A name as a file or folder: spaces as `-`. */
+/** A name as a file or folder: spaces and arrows as `-`. */
 function slug(name: string): string {
-  return name.replace(/\s+/g, "-");
+  return name.replace(/[\s→]+/g, "-");
 }
 
 /** A map as YAML, wide enough that a line's names stay on one line. */

@@ -20,7 +20,7 @@ import { children, definition_uses, diagram_kind, has_lifelines, is_aside, is_gr
          on_side, packages, path, region_of, shown_name, type Graph, hops_of, model_path, path_of,
          type Id } from "@mnd/core";
 import { colour_of, kind_of, preview_of, type Preview } from "./about";
-import { any_fact, counted, fact, facts_of, total, type Counted, type Facts,
+import { answers_of, any_fact, counted, fact, facts_of, total, type Counted, type Facts,
          type Groups } from "./facts";
 import { carried, trail_of } from "./derive";
 import { box_label, box_place, filed, name_of, registry_map, usage_groups,
@@ -343,9 +343,13 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
      *  never its size on screen. */
     const across = label.length * NAME.letter + NAME.icon + NAME.pad;
     const upright = box.h > box.w * TURN && box.w < across;
-    const facts = facts_of(graph, chip.block, !!chip.uses,
-                           { ...(chip.groups ? { groups: chip.groups } : {}),
-                             ...(chip.counts ? { counts: chip.counts } : {}) });
+    const counted_facts = facts_of(graph, chip.block, !!chip.uses,
+                                   { ...(chip.groups ? { groups: chip.groups } : {}),
+                                     ...(chip.counts ? { counts: chip.counts } : {}) });
+    /** **A chip of parts says what it answers** (2026-11-08), not how much it holds: its tiles
+     *  already show that. Where it answers nothing, its counts. */
+    const answers = !chip.uses && chip.held.length ? answers_of(graph, chip.block) : [];
+    const facts = answers.length ? { ...counted_facts, counts: [], answers } : counted_facts;
     const any = any_fact(facts);
     const keep = (chip.held.length ? KEEP.structure : KEEP.preview)
       + (chip.diagram ? PAD.diagram : PAD.chip);
@@ -578,9 +582,9 @@ function rows_of(preview: Preview | null): number {
 }
 
 /** A chip's inner treemap: what it holds, each as large as it counts, in the chip's body beside
- *  its head, padded round, as shares of the body. A
- *  diagram's is laid by its structure instead (`laid`), its flow turned to fit the chip. A
- *  block's tile wears its own colour. */
+ *  its head, padded round, as shares of the body; parts too small to name listed over the rest
+ *  (`listed`). A diagram's is laid by its structure instead (`placed_in`). A block's tile wears
+ *  its own colour. */
 function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h: number },
                diagram: boolean, head: Head): { tiles: InnerTile[] } {
   const { w, h } = body_of(box, head, diagram ? PAD.diagram : PAD.chip);
@@ -597,6 +601,7 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
       return { ...at, label: shown_name(graph, t.id), as: t.as,
                tint: tint_attrs(look_of(graph, t.id)) };
     }
+    if (t.as === "more") return { ...at, label: t.text ?? "", as: t.as };
     /** A header strip of a label is named by it, plain. */
     if (t.as === "head" && t.text) return { ...at, label: t.text, as: t.as };
     if (t.as === "head" || t.as === "track" || t.as === "life" || t.as === "rule"
@@ -613,18 +618,26 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
                    ...(t.holds ? {} : said(graph, t.id)) }) : { as: t.as }),
              ...(t.odd ? { odd: true } : {}) };
   };
+  const list = listed(graph, block, held, w, h, diagram);
+  const under = list ? placed_in(graph, block, list.rest, w, h - list.top, diagram)
+    .map((t) => ({ ...t, y0: t.y0 + list.top, y1: t.y1 + list.top })) : [];
+  const placed = list ? [...list.rows, ...under] : placed_in(graph, block, held, w, h, diagram);
+  return { tiles: placed.map(share) };
+}
+
+/** **What a chip's body lays, `w` by `h`**: a plain chip's parts squarified, a grid by its
+ *  cells, a diagram by its structure (`laid`), its flow turned to fit; each nested. */
+function placed_in(graph: Graph, block: Id, held: readonly Id[], w: number, h: number,
+                   diagram: boolean): Placed[] {
   const whole = { x0: 0, y0: 0, x1: w, y1: h };
+  if (!held.length || h < 4) return [];
   if (!diagram) {
-    return { tiles: nested(graph, squarified(graph, held, whole, 2)
-      .map((t) => ({ ...t, as: "block" as const }))).map(share) };
+    return nested(graph, squarified(graph, held, whole, 2)
+      .map((t) => ({ ...t, as: "block" as const })));
   }
-  if (is_grid(graph, block)) {
-    return { tiles: nested(graph, gridded(graph, block, whole)).map(share) };
-  }
+  if (is_grid(graph, block)) return nested(graph, gridded(graph, block, whole));
   const first = laid(graph, held, whole);
-  if (!first.gaps.length) {
-    return { tiles: nested(graph, paneled(graph, block, first.placed)).map(share) };
-  }
+  if (!first.gaps.length) return nested(graph, paneled(graph, block, first.placed));
   /** **What its lines rank runs one way, between a start and an end**: a strip across each end
    *  of its flow, its blocks a gap within them; a faint line down its middle, behind its blocks,
    *  from the start strip to an arrow whose tip meets the end strip. */
@@ -644,7 +657,7 @@ function inner(graph: Graph, block: Id, held: readonly Id[], box: { w: number; h
     { ...span(along - STRIP - tip, along - STRIP, (wide - broad) / 2, (wide + broad) / 2),
       id: `${block}@arrow`, as: "arrow", ...down },
   ];
-  return { tiles: [...ends, ...nested(graph, paneled(graph, block, placed))].map(share) };
+  return [...ends, ...nested(graph, paneled(graph, block, placed))];
 }
 
 /** **What a tile says under its name**, as it grows on screen: its counts in one quiet line, then
@@ -660,7 +673,7 @@ function said(graph: Graph, id: Id): Pick<InnerTile, "facts" | "rows"> {
  *  other), a grid's header strip, a lifeline, a rule between rows, a flow's line or its arrow
  *  (`down` where it runs down). */
 type Placed = Rect & { id: Id; as: "block" | "group" | "band" | "head" | "track" | "life" | "rule"
-                         | "flow" | "arrow";
+                         | "flow" | "arrow" | "more";
                        odd?: boolean; down?: boolean;
                        /** The tile it is nested in, and whether it holds tiles of its own. */
                        in?: Id; holds?: boolean;
@@ -970,6 +983,52 @@ function squarified(graph: Graph, ids: readonly Id[], rect: Rect, pad: number)
   return laid.leaves().map((l) => ({ id: l.data.id, x0: rect.x0 + l.x0, y0: rect.y0 + l.y0,
                                      x1: rect.x0 + l.x1, y1: rect.y0 + l.y1 }));
 }
+
+/** **Parts too small to name are listed** (2026-11-08): where a chip's body would lay a part
+ *  that holds nothing and that no line joins too small for its name's line, those parts are rows
+ *  down the top of the body, in columns at least `LIST.col` wide, as a class card lists its
+ *  operations — a *+n more* row last where they do not all fit — and the rest is laid under
+ *  them by its structure, keeping at least half the body. Null where nothing needs listing. */
+function listed(graph: Graph, block: Id, held: readonly Id[], w: number, h: number,
+                diagram: boolean): { rows: Placed[]; rest: Id[]; top: number } | null {
+  if (is_grid(graph, block)) return null;
+  const bare = held.filter((id) => !members(graph, id).length && !mark_of(graph, id));
+  if (!bare.length) return null;
+  const small = placed_in(graph, block, held, w, h, diagram).some((t) => bare.includes(t.id)
+    && Math.min(t.x1 - t.x0, t.y1 - t.y0) < LIST.row);
+  if (!small) return null;
+  const ids = new Set(held);
+  const joined = new Set(Object.values(graph.edges)
+    .flatMap((e) => (ids.has(e.from) && ids.has(e.to) && e.from !== e.to ? [e.from, e.to] : [])));
+  const leaves = bare.filter((id) => !joined.has(id));
+  if (!leaves.length) return null;
+  const rest = held.filter((id) => !leaves.includes(id));
+  const pitch = LIST.row + LIST.gap;
+  const cols = Math.max(1, Math.floor((w + LIST.gap) / (LIST.col + LIST.gap)));
+  const room = Math.floor((rest.length ? h / 2 : h + LIST.gap) / pitch);
+  const rows = Math.max(1, Math.min(room, Math.ceil(leaves.length / cols)));
+  const shown = leaves.length > rows * cols ? leaves.slice(0, rows * cols - 1) : leaves;
+  const cw = (w - (cols - 1) * LIST.gap) / cols;
+  /** Down each column, then across, as a list reads. */
+  const cell = (i: number): Rect => {
+    const x0 = Math.floor(i / rows) * (cw + LIST.gap);
+    const y0 = (i % rows) * pitch;
+    return { x0, y0, x1: x0 + cw, y1: y0 + LIST.row };
+  };
+  const placed: Placed[] = shown.map((id, i) => ({ ...cell(i), id, as: "block" }));
+  /** What does not fit is counted; where nothing else fits, after the first one's name. */
+  const left = leaves.length - shown.length;
+  if (left) {
+    placed.push({ ...cell(shown.length), id: `${block}@more`, as: "more",
+                  text: shown.length ? `+${left} more`
+                    : `${shown_name(graph, leaves[0]!)} +${left - 1} more` });
+  }
+  return { rows: placed, rest, top: rows * pitch + (rest.length ? LIST.gap : 0) };
+}
+
+/** A listed part's row: its height, the gap between rows and columns, and a column's least
+ *  width, in layout units. */
+const LIST = { row: 14, gap: 2, col: 96 };
 
 /** A rect drawn in by `d` on every side. */
 function inset(r: Rect, d: number): Rect {

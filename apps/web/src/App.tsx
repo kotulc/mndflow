@@ -6,12 +6,13 @@ import { appearances_of, collect, drop_of, touches_of,
          held_at, in_section, is_inside, is_layer_view, is_model, lit as lit_by,
          model_path, object_of, path, path_of, path_owner, reached, sub_model, registry_at,
          registry_id, registry_of,
-         seen_through, session, shown_name, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
+         seen_through, session, shown_name, trace, way_of, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Hop, type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { area_of, boxed_place, box_of, clear_of, empty_of, holds, layer_scene, map_focus, project,
          section_map, set_aspect, set_card as apply_card, stop_area, BLOCK, CARD, EMPTY,
-         laid_ahead, model_tree, on_map, row_look, UNITS, hop_trace, trace_of, type Area, type Scene,
+         laid_ahead, model_tree, on_map, row_look, UNITS, hop_trace, trace_of, trail_of, type Area,
+         type Scene,
          type Trace } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
 import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
@@ -128,8 +129,9 @@ export function App({ storage, boot, opening }: {
    *  worked out on every graph change. A component registry draws its own view; a definition's
    *  is entered from the library's map, which stays behind it. */
   const lists = SLICES[view.at]!.lists;
-  const pkg = view.layer && graph.blocks[view.layer]
-    ? path(graph, view.layer)[0]?.id ?? null : null;
+  /** The way to the open layer, through the uses a definition's part is seen through. */
+  const way = view.layer && graph.blocks[view.layer] ? way_of(graph, view.layer, view.via) : [];
+  const pkg = way[0]?.id ?? null;
   const component = view.kind === "registry" && !graph.blocks[view.layer ?? ""];
   const map = useMemo(() => (!lists || component ? null : section_map(graph, lists, models)),
     [graph, lists, component, card, aspect]);
@@ -144,7 +146,7 @@ export function App({ storage, boot, opening }: {
   /** **The block entered from the map**: its own view, drawn alone, held while the open layer is
    *  it or inside it. Opening anything above it returns to the map, as Escape does. */
   const [entry, set_entry] = useState<Id | null>(null);
-  const entered = !!entry && !!view.layer && path(graph, view.layer).some((b) => b.id === entry);
+  const entered = !!entry && way.some((b) => b.id === entry);
   useEffect(() => { if (entry && !entered) set_entry(null); }, [entry, entered]);
   const mapped = !!map && !entered;
 
@@ -174,6 +176,10 @@ export function App({ storage, boot, opening }: {
                                                 ...(lists ? { lists } : {}) } });
   }, [graph, map, mapped, ahead, waiting, laid, focus_id, view.layer, view.kind, view.at,
       shown.interfaces, card]);
+  /** A part seen through a use is trailed through it, as it was reached. */
+  const trailed = useMemo(() => (view.via?.length && !scene.areas
+    ? { ...scene, trail: trail_of(graph, view.layer, view.via) } : scene), [scene, view.via]);
+
   last.current = scene;
   /** The camera holds the chip filling the view until the entered layer answers and cuts to it. */
   useEffect(() => { if (!scene.areas) set_through(null); }, [scene.areas]);
@@ -322,10 +328,11 @@ export function App({ storage, boot, opening }: {
    *  unless reading went somewhere outside it — a use read from a definition's registry — whose
    *  layer becomes the entry before it draws, so the map never shows between. What enters
    *  nothing is opened instead: focused on its map, or picked where it is. */
-  const enter = (id: Id, at?: unknown, inner = false) => {
+  const enter = (id: Id, at?: unknown, inner = false, via?: unknown) => {
     if (!id) return;
     const from = typeof at === "number" ? { from: at } : {};
-    const to = s.read(id, { ...from, ...(inner ? { inner } : {}) });
+    const to = s.read(id, { ...from, ...(inner ? { inner } : {}),
+                            ...(typeof via === "string" ? { via } : {}) });
     /** A box only a drawing has — a model's box in a registry — is a place, not a block. */
     if (!to) {
       if (s.graph().blocks[id]) act("open", { id, ...(at === undefined ? {} : { at }) });
@@ -335,7 +342,7 @@ export function App({ storage, boot, opening }: {
     t.release();
     follow();
     const layer = to.layer!;
-    if (entered && path(s.graph(), layer).some((b) => b.id === entry)) return;
+    if (entered && way_of(s.graph(), layer, to.via).some((b) => b.id === entry)) return;
     flushSync(() => set_entry(layer));
   };
 
@@ -359,7 +366,7 @@ export function App({ storage, boot, opening }: {
     /** Entering and leaving a room are not steps. */
     if (name === "read") {
       enter(String(args?.["id"] ?? s.view().pick ?? s.view().layer ?? ""), args?.["at"],
-            args?.["inner"] === true);
+            args?.["inner"] === true, args?.["via"]);
       return;
     }
     if (name === "widen") { leave(); return; }
@@ -565,11 +572,10 @@ export function App({ storage, boot, opening }: {
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
         onPick={pick}
         /** **Opening a row reads it**, as a double-click on its card does. A part seen through a
-         *  usage is revealed on the usage's layer, where it is drawn: never in its definition. */
+         *  usage is entered through it, else picked on the usage's layer: never in its
+         *  definition. */
         onOpen={({ at, id, via }) => {
-          if (!via) { act("read", { id, at }); return; }
-          act("read", { id: via, at });
-          s.pick([id], via);
+          act("read", { id, at, ...(via ? { via } : {}) });
         }}
         onLeave={() => act("open")}
         onSection={section}
@@ -593,7 +599,7 @@ export function App({ storage, boot, opening }: {
         *  a portrait one, so the canvas keeps a steadier shape. */}
       <main className={t.open && aspect > 1 ? "side" : undefined}>
         <Stage
-          scene={scene}
+          scene={trailed}
           graph={graph}
           /** The path starts from the section the canvas looks at; a click draws it whole. */
           head={{ label: SLICES[view.at]!.label, onOpen: () => section(view.at) }}

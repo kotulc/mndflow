@@ -2,6 +2,8 @@
 
 **Translate code into concepts that answer questions, not clusters that list files.** Proposed 2026-11-08 after mndsite read as one sparse model; the user took every recommendation the same day (*Decided*), and *Build* ran once to see how it lands (*Landed*). It feeds model-plan.md's acceptance (the shop, this repo and mndsite read as models).
 
+**On hold (2026-11-08) behind mndsite-plan.md**: no translator rule changes until the mndsite review has agreed, part by part, what mndsite should read as. Its outcome replaces *Target* below where they differ.
+
 
 ## What is wrong today
 
@@ -83,7 +85,7 @@ A hand-written outline, the acceptance check for the translator (*Build* 8).
 | 5 | **the questions as attributes**: `runs`, `entered`, `types` (was `reads`), `reads`/`writes` (files), `config`, `touches`, `tests`; a module's parts are its API, the exports another unit reads | `read.ts`; `write.ts` `answers`, `api_of`; ts `module.json`, `component.json` | built |
 | 6 | **actors**: the file system, processes, network, terminal, environment, each command run (`npm run build` read through to `next`), each framework hosting an entry; `outside/`, a ts kind `actor`; a model draws the actors its units touch, a line from each | `read.ts` `touches_of`; `write.ts`; ts `actor.json` | built |
 | 7 | **behaviours**: an API function (any function of an entry) calling 3+ project functions is a `flow` under its module, Begin → steps → Done; a model's description says how it is entered and what its entry is for | `read.ts` `flows_of`; `write.ts` `flow_of` | built |
-| 8 | **acceptance by target**: `<folder>.target.yaml` beside a translation, checked when it is written | apps/ts `report.ts` `against`; `samples/mndsite.target.yaml` | built for mndsite; this repo's to write |
+| 8 | **acceptance by target**: `<folder>.target.yaml` beside a translation, checked when it is written | apps/ts `report.ts` `against`; `samples/mndsite.target.yaml` | built for mndsite; this repo's waits in backlog.md |
 | — | **a face shows answered attributes**: a usage, or a definition answering any, lists only its answers; a kind's own schema lists its types | views `face.ts` `answered` | built |
 
 
@@ -95,10 +97,10 @@ A hand-written outline, the acceptance check for the translator (*Build* 8).
 | **three models from declared entries** | *cli* (Dockerfile), *ingest* (`npm run ingest`), *theme-config* (Nextra); *_app* is one step, so folds (model plan decision 19) |
 | **purposes** | 14 of 18 mndsite units carry their header; ingest reads *Content ingestion pipeline*, semver *Semver helpers…* |
 | **cards say what a unit touches** | ingest: runs node · entered script ingest · writes `index.mdx`, `_app.jsx` · config `frontmatter`, `versioning`… · touches file system, environment · 4 tests |
-| **names from headers mislabel groups** | a component's anchor's header is not the group's purpose: *client-side redirect* named the five link/footer components, *facet indexes* the page chrome. tf-idf (`link`, `page`) read better, so step 4 was backed out. Open: name a group by what its headers share |
+| **names from headers mislabel groups** | a component's anchor's header is not the group's purpose: *client-side redirect* named the five link/footer components, *facet indexes* the page chrome. tf-idf (`link`, `page`) read better, so step 4 was backed out. Since 2026-11-08 a group is described by its members' headers, its name still tf-idf |
 | **too many flows here** | 15 on mndsite, **173 on this repo**: most API functions call three of the project's. Options: only functions calling across modules, only entries' functions, or a higher floor |
 | **actors leak through a unit** | the theme-config model reaches *git* through *semver*, since the unit holding semver also holds git-history; a model should count only the modules its path calls |
-| **a container has no description** | a folder file beside its directory loses `tree: definitions`, so containers are plain directories; each unit says `runs` instead |
+| **purposes and names** (2026-11-08, the user's look: mndsite's chips bland) | models named by entry (`Docker → cli`, `npm run ingest`, `nextra → theme-config`); a component's description its members' headers; the package its README's lead; `lines` last in a unit's answers. **A purpose line on chips was tried and reverted**: a cut-short description says less than the counts it replaced. Then a chip of parts shows its answers in place of counts, and parts too small to name are listed (design.md). Its small leftovers moved to backlog.md *After the mndsite review* |
 | **this repo is one container per package** | its packages each run in one place, so containers change nothing here |
 
 
