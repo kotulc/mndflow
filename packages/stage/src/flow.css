@@ -14,7 +14,15 @@
      (`--text-k`), each tile showing it only where it fits whole. */
   --chip-k: min(var(--text-k), 1.35);
   --laid-k: min(var(--text-k), 1);
+  /* **A chip's detail by zoom** (2026-11-08): one look at every zoom, its detail — facts, tile
+     names and rows, a profile — fading continuously as the camera draws back, from whole at 75%
+     to a fifth at 25%; never a level, never a switch. */
+  --detail: clamp(0.2, calc((var(--zoom, 1) - 0.25) * 1.6 + 0.2), 1);
 }
+/* **A map's text scales with the drawing** (2026-11-08): a chip's, a box's and a tile's words
+   are never held on screen, so zooming in reads them larger and every fit is decided as laid
+   (views `map.ts` `ROW`, `NAME`). */
+.mnd-flow :is(.mnd-chip, .mnd-box) { --text-k: 1; --chip-k: 1; --laid-k: 1; }
 /* **A card's preview sits under rows laid at layout size**, so a card showing one never holds its
    text larger than it was laid, even while hysteresis keeps it a little below the text band. **A
    card too small for its head** keeps it too, held no larger than laid, and any card's name is
@@ -27,7 +35,7 @@
    `level_at`). Rows add below, anchored to the top, and fade; nothing drawn moves. ── */
 .mnd-flow .mnd-card > :is(.mnd-head, .mnd-face-facts, .mnd-face-table, .mnd-face-body, .mnd-marks),
 .mnd-flow .mnd-chip > :is(.mnd-chip-text, .mnd-chip-body),
-.mnd-flow .mnd-chip-turn > :is(.mnd-chip-text, .mnd-chip-body),
+.mnd-flow .mnd-chip-turn > .mnd-chip-text,
 .mnd-flow .mnd-chip-stack > *,
 .mnd-flow .mnd-chip-text .mnd-facts > * {
   transition: opacity 120ms ease, visibility 120ms;
@@ -42,10 +50,14 @@
 /* A small face carrying facts reads from the top, so its facts add under its name. */
 .mnd-flow .mnd-card.small:has(> .mnd-face-facts) > .mnd-head { flex: none; }
 .mnd-flow .mnd-card:is([data-level="0"], [data-level="1"]) > .mnd-face-facts,
-.mnd-flow .mnd-card:not([data-level="3"]) > :is(.mnd-face-table, .mnd-face-body),
-.mnd-flow .mnd-chip:is([data-level="0"], [data-level="1"]) .mnd-chip-text .mnd-facts > * {
+.mnd-flow .mnd-card:not([data-level="3"]) > :is(.mnd-face-table, .mnd-face-body) {
   opacity: 0;
   visibility: hidden;
+}
+/* A chip's detail fades with the zoom (`--detail`); its name, icon and tiles stay whole. */
+.mnd-flow .mnd-chip :is(.mnd-chip-text .mnd-facts, .mnd-chip-tile-name, .mnd-chip-tile-more,
+                        .mnd-chip-profile, .mnd-chip-bar) {
+  opacity: var(--detail);
 }
 
 /* Where relationships sit in the stack. */
@@ -420,12 +432,10 @@
 .mnd-box.minor { --edge: color-mix(in oklch, var(--wall) 30%, transparent); }
 .mnd-box.minor > .mnd-box-title { color: var(--faint); }
 .mnd-chip.minor { --edge: color-mix(in oklch, var(--card-line) 50%, transparent); }
-.mnd-chip:is(.major, .minor) > .mnd-chip-body,
-.mnd-chip:is(.major, .minor) > .mnd-chip-turn > .mnd-chip-body { opacity: 0.5; }
-/* A minor chip's own words fade as a major chip's preview does; it hides by level as before. */
+.mnd-chip:is(.major, .minor) > .mnd-chip-body { opacity: 0.5; }
+/* A minor chip's own words fade as a major chip's preview does; its facts fade with the zoom too. */
 .mnd-chip.minor:not(:hover, .picked) .mnd-chip-text { opacity: 0.6; }
-.mnd-chip:is(.major, .minor):is(:hover, .picked) > .mnd-chip-body,
-.mnd-chip:is(.major, .minor):is(:hover, .picked) > .mnd-chip-turn > .mnd-chip-body { opacity: 1; }
+.mnd-chip:is(.major, .minor):is(:hover, .picked) > .mnd-chip-body { opacity: 1; }
 /* The same ranks in an entered diagram of a model (views `layer.ts` `ranked`): a card holding
    parts framed heavier, the rest's words quieter until the pointer is on it; colours kept. */
 .mnd-flow .mnd-card.major { --card-border-width: 2px; }
@@ -453,7 +463,7 @@
    is none. Nothing is cut mid-word or drawn over the body (`ROW`, views `map.ts`). */
 .mnd-chip {
   --l: calc(17px * var(--chip-k, 1));
-  --icon: clamp(14px, calc(11px / var(--zoom, 1)), 22px);
+  --icon: 14px;
 }
 .mnd-chip-text {
   position: absolute;
@@ -533,17 +543,12 @@
   font-size: calc(10px * var(--text-k, 1));
   line-height: calc(10px * var(--text-k, 1));
 }
-.mnd-chip.narrow .mnd-chip-icon {
-  --icon: min(clamp(14px, calc(11px / var(--zoom, 1)), 22px), var(--cap, 22px));
-}
-/* **A tall, narrow chip is turned -90° whole** (`TURN`, views `map.ts`; theme `chip.tsx`): laid
-   as a chip on its box turned on its side, then drawn turned from its lower left corner, so its
-   name, facts and body read together up its length; its colour edge runs along its foot. */
-.mnd-chip.upright[data-family] {
-  border-left: none;
-  box-shadow: inset 0 -3px 0 var(--card-edge, var(--card-line)),
-              inset 0 0 0 calc(var(--edge-w, 1px) / var(--zoom, 1)) var(--edge, var(--card-line));
-}
+.mnd-chip.narrow .mnd-chip-icon { --icon: min(14px, var(--cap, 14px)); }
+/* **A tall, narrow chip turns only its signature** (2026-11-08; `TURN`, views `map.ts`; theme
+   `chip.tsx`): its name, kind and icon in a strip down its left side, drawn turned from its lower
+   left corner and read up; its body stays upright beside the strip, and its colour edge on its
+   left as every chip's. */
+.mnd-chip.upright > :is(.mnd-chip-body, .mnd-chip-stack) { top: 6px; left: var(--head, 22px); }
 .mnd-chip-turn {
   position: absolute;
   left: 0;
@@ -739,21 +744,39 @@
   white-space: nowrap;
   container-type: size;
 }
-/* **A tile's text reads, or is absent**: held at a readable size on screen, but never larger than
-   its tile holds a line and five letters of; never smaller than laid, and absent where even that
-   does not fit — four letters and an ellipsis, one line. */
-.mnd-chip-tile > :is(.mnd-chip-tile-name, .mnd-chip-tile-more) {
-  font-size: max(1em, min(calc(9px * var(--text-k, 1)), calc(100cqb / 1.2), calc(100cqi / 3)));
-}
 /* A title over members — a tile holding tiles, a place's box, a group's panel — keeps to the line
    laid for it, so it never reaches what it holds. */
 .mnd-chip-tile:is(.holds, .group) > .mnd-chip-tile-name { block-size: 1.2em; font-size: 1em; }
-@container (inline-size < 3em) or (block-size < 1.2em) {
-  .mnd-chip-tile-name, .mnd-chip-tile-more { display: none; }
+/* **A tile's text reads, or is absent**: three letters and an ellipsis on one line, at its 9px,
+   in the room its icon leaves (its content box).
+   A container query's `em` is the root's, so its sizes are in pixels. */
+@container (inline-size < 20px) or (block-size < 11px) {
+  .mnd-chip-tile:not(.upright) > .mnd-chip-tile-name, .mnd-chip-tile-more { display: none; }
 }
-@container (inline-size < 3em) or (block-size < 2.6em) {
+/* **A tall, narrow tile turns its name** (theme `chip.tsx` `upright`), read up its left side
+   under its icon; it says nothing more. */
+.mnd-chip-tile.upright > .mnd-chip-tile-name {
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  max-height: calc(100% - var(--icon, 0px) - 8px);
+  block-size: 1.2em;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.mnd-chip-tile.upright > .mnd-chip-tile-more { display: none; }
+@container (inline-size < 20px) or (block-size < 24px) {
   .mnd-chip-tile-more { display: none; }
   .mnd-chip-tile-texture { display: block; }
+}
+/* **Each diagram kind's silhouette** (2026-11-08), beside its hue, the same at every zoom: what
+   its structure already draws (a sequence's lifelines, a swimlane's strips, a flow's line and
+   marks, a class's or an entity's rows), and here a state machine's states rounded and an
+   internal diagram's parts inside its frame. */
+.mnd-chip[data-kind="state"] .mnd-chip-tile.card { border-radius: 999px; }
+.mnd-chip[data-kind="internal"] > .mnd-chip-body {
+  outline: 1px dashed var(--line);
+  outline-offset: 2px;
 }
 /* A class's or an entity's rows, said, are ruled as its card's table is. */
 .mnd-chip-tile:is(.class, .entity) > .mnd-chip-tile-more {
@@ -785,7 +808,7 @@
 }
 .mnd-chip .mnd-chip-tile.card:hover { --tile-edge: var(--accent); }
 .mnd-chip-tile.iconed {
-  --icon: clamp(min(9px, var(--cap, 9px)), calc(9px / var(--zoom, 1)), var(--cap, 9px));
+  --icon: min(9px, var(--cap, 9px));
   padding: 1px calc(var(--icon) + 5px) 0 3px;
 }
 /* Its icon centred on its name's line, so the name keeps the one line height its rows round to. */

@@ -76,9 +76,9 @@ Scene {
 
 **Branding, navigation and the workspace. They own nothing about a diagram.** Every component is a pure function of its props: it holds nothing, and every gesture leaves as an action name somebody else runs.
 
-**One surface, one package, and never a `ui` package** — `explorer`, `stage`, `options`, `tray`. Four panels split four ways keeps one from quietly doing another's work, and **only two of them know what a Scene is**. What each draws and refuses is its own `docs/`.
+**One surface, one package, and never a `ui` package** — `explorer`, `stage`, `tray` (the `options` rail was removed 2026-11-08). Three panels split three ways keeps one from quietly doing another's work, and **only two of them know what a Scene is**. What each draws and refuses is its own `docs/`.
 
-**One page**: header, then explorer beside the stage, options to the right, the tray below the stage.
+**One page**: header, then explorer beside the stage, the tray right of a landscape stage and below a portrait one.
 
 
 ## Naming, and one channel
@@ -167,7 +167,7 @@ bind ports  ->  hold the log  ->  fold  ->  project  ->  render
 | `defs` | every shipped definition passes the door; every module it names exists | no |
 | `fixtures` | every log folds clean, and every file the seam opens leaves nothing for `validate` to find | no |
 | `kit` | packed, then a graph, a file and a drawing built from outside the workspace | no |
-| `explorer` · `stage` · `options` · `tray` | driven, not asserted | yes |
+| `explorer` · `stage` · `tray` | driven, not asserted | yes |
 
 - **The dependency law is a test**: the workspace graph matches the monorepo README's map, no package outside `core` declares a closed set, and nothing imports a deep path.
 - **Design first, test second.** While a design is still moving, running the thing is the verification that counts.

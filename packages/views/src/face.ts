@@ -81,7 +81,7 @@ export function records_text(graph: Graph, id: Id): string {
 export function face_table(graph: Graph, id: Id, look: Look = look_of(graph, id),
                            marks = stamps_of(graph, id).length): Ruled | null {
   if (look.shows.includes("behaviours")) return class_table(graph, id, marks);
-  return look.shows.includes("attributes") ? table(listed(graph, id), marks) : null;
+  return look.shows.includes("attributes") ? table(answered(graph, id), marks) : null;
 }
 
 /** A class card's compartments as one ruled column: each field `name: type`, then — split from
@@ -229,6 +229,14 @@ export function table(rows: readonly Listed[], marks = 0): Ruled | null {
 /** What a card's attributes list. A stand-in for a definition lists what it declares, with its
  *  defaults, and so does a block holding usages of one. Anything else lists what it answers,
  *  then whatever it answers beyond them. */
+/** **What a face shows of its attributes** (2026-11-08): those answered, where any is; a block
+ *  answering none — a kind's own schema — shows them all, each by its type. */
+export function answered(graph: Graph, id: Id): Listed[] {
+  const all = listed(graph, id);
+  const said = all.filter((r) => r.value);
+  return said.length ? said : all;
+}
+
 export function listed(graph: Graph, id: Id): Listed[] {
   const b = graph.blocks[id];
   if (!b) return [];
@@ -252,9 +260,10 @@ export function listed(graph: Graph, id: Id): Listed[] {
   const extra = own.filter((v) => !asked.some((a) => a.name === v.name))
     .map((v): Listed => ({ name: v.name, type: "text" }));
   return [...asked, ...extra].map((row) => {
+    /** **A usage reads its definition's answer through** (2026-11-08): what it states, else the
+     *  default its definition gives. */
     const mine = own.find((v) => v.name === row.name)?.value;
-    const { value: _default, ...rest } = row;
-    return mine ? { ...rest, value: mine } : rest;
+    return mine ? { ...row, value: mine } : row;
   });
 }
 

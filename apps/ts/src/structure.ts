@@ -12,7 +12,7 @@ import { stronglyConnectedComponents } from "graphology-components";
 import { topologicalGenerations } from "graphology-dag";
 import pagerank from "graphology-metrics/centrality/pagerank";
 import modularity from "graphology-metrics/graph/modularity";
-import type { Code, Import, Mod, Pkg } from "./read";
+import type { Code, Import, Mod, Pkg, Runs } from "./read";
 
 /** The defaults: the components a layer aims for and may hold at most; the share of a package
  *  that must import a module for it to be foundation, and the most set aside; how deep a package
@@ -46,13 +46,17 @@ export type Path = { entry: string; steps: Step[] };
  *  shared module), and how many other modules read it. */
 export type Word = { id: string; owner: string; fan: number };
 
+/** **A container**: where a package's code runs — its name, where, and its modules. */
+export type Container = { name: string; runs: Runs; modules: string[] };
+
 /** A package's structure; `root`, whether the system starts at it (nothing else uses it);
+ *  `containers`, where its code runs, where it runs in more than one place;
  *  `rank`, its modules by salience, the most first, which orders a component's modules — what a
- *  view folds first is the view's, never written as a block (2026-11-05); `vocab`, its shared
- *  types, the most read first. */
+ *  view folds first is the view's, never written as a block (2026-11-05); `weight`, each module's
+ *  salience, which orders the models; `vocab`, its shared types, the most read first. */
 export type Shape = { pkg: Pkg; root: boolean; entry: string[]; foundation: string[]; comps: Comp[];
-                      levels: Levels; paths: Path[]; rank: string[]; vocab: Word[];
-                      score: Score };
+                      containers: Container[]; levels: Levels; paths: Path[]; rank: string[];
+                      weight: Map<string, number>; vocab: Word[]; score: Score };
 
 /** Words that name nothing particular: never a component's name. */
 const STOP = new Set(["the", "and", "for", "with", "from", "into", "its", "that", "this", "what",
@@ -63,30 +67,38 @@ const STOP = new Set(["the", "and", "for", "with", "from", "into", "its", "that"
 /** Louvain's resolutions to choose among: lower finds fewer, larger groups. */
 const RESOLUTIONS = [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3];
 
+/** The fewest modules running in one place before it is a container of its own. */
+const HOME = 2;
 
-/** Every package's structure, and the packages' levels. **A package nothing else uses is where
- *  the system starts**: its top modules are its entries, and their paths go on across packages
- *  (`system_paths`). */
+
+/** Every package's structure, and the packages' levels. **The system starts where the project
+ *  says it does** (2026-11-08): its declared entries (read `entered`), their paths going on
+ *  across packages (`system_paths`); where it declares none, at a package nothing else uses, its
+ *  top modules its entries. */
 export function structure_of(code: Code, s = SETTINGS): { shapes: Shape[]; system: Levels } {
   const used = new Set(code.packages.flatMap((p) => p.uses));
   const shapes = code.packages.map((p) => shape_of(p, !used.has(p.dir), s));
   const edges = code.packages.flatMap((p) => p.uses.map((u) => [p.dir, u, 1] as const));
-  return { shapes: system_paths(shapes, s),
+  const declared = code.packages.some((p) => p.modules.some((m) => m.entered));
+  return { shapes: system_paths(shapes, declared, s),
            system: levels_of(code.packages.map((p) => p.dir), edges) };
 }
 
-/** The paths of the packages the system starts at, walked across packages: a step a call from
- *  one block to another anywhere in the system, by the blocks each package is drawn in. */
-function system_paths(shapes: Shape[], s: Settings): Shape[] {
+/** The paths of the system's entries, walked across packages: a step a call from one block to
+ *  another anywhere in the system, by the blocks each package is drawn in. */
+function system_paths(shapes: Shape[], declared: boolean, s: Settings): Shape[] {
   const mod = new Map(shapes.flatMap((x) => x.pkg.modules.map((m) => [m.path, m] as const)));
   const unit = new Map(shapes.flatMap((x) => [...units_of(x)]));
   const stop = new Set(shapes.flatMap((x) => x.foundation));
-  return shapes.map((x) => (x.root ? { ...x, paths: paths_of(mod, x.entry, stop, unit, s) } : x));
+  return shapes.map((x) => {
+    const starts = declared ? x.entry.filter((e) => mod.get(e)?.entered) : x.root ? x.entry : [];
+    return { ...x, paths: paths_of(mod, starts, stop, unit, s) };
+  });
 }
 
 /** The block each module of a package is drawn in, by its key: its component's anchor, else
  *  itself. */
-function units_of(x: Shape): Map<string, string> {
+export function units_of(x: Shape): Map<string, string> {
   return new Map([...x.comps.flatMap((c) => c.modules.map((m) => [m, c.anchor] as const)),
                   ...[...x.entry, ...x.foundation].map((m) => [m, m] as const)]);
 }
@@ -105,19 +117,58 @@ function shape_of(pkg: Pkg, root: boolean, s: Settings): Shape {
     && directed.outDegree(n)) : [];
   const entry = [...pkg.modules.filter((m) => m.entry).map((m) => m.path), ...above, ...tops];
   const rest = nodes.filter((n) => !foundation.includes(n) && !entry.includes(n));
-  const comps = worded(condensed(undirected, directed, splits
-    ? split(undirected, directed, rest, 1, s)
-    : unique(rest.map((n) => comp_of(undirected, directed, [n], [])))), pkg);
+  /** **Where code runs is the first split** (2026-11-08): components are found inside one
+   *  container, never across. */
+  const containers = containers_of(pkg, undirected);
+  const groups = containers.length
+    ? containers.map((c) => rest.filter((n) => c.modules.includes(n))) : [rest];
+  const comps = worded(condensed(undirected, directed, unique(groups.flatMap((g) => splits
+    ? split(undirected, directed, g, 1, s)
+    : g.map((n) => comp_of(undirected, directed, [n], []))))), pkg);
   const owner = owners(comps);
   const mod = new Map(pkg.modules.map((m) => [m.path, m] as const));
   const levels = comp_levels(directed, comps);
   const unit = new Map([...owner, ...[...entry, ...foundation].map((m) => [m, m] as const)]);
-  const rank = salience(directed, pkg);
-  return { pkg, root, entry, foundation, comps, levels,
+  const weight = salience(directed, pkg);
+  const rank = pkg.modules.map((m) => m.path)
+    .sort((a, z) => weight.get(z)! - weight.get(a)! || a.localeCompare(z));
+  return { pkg, root, entry, foundation, comps, containers, levels,
            paths: paths_of(mod, entry, new Set(foundation), unit, s),
-           rank, vocab: vocab_of(pkg, unit, s),
+           rank, weight, vocab: vocab_of(pkg, unit, s),
            score: { ...(splits ? { modularity: modularity_of(undirected, rest, owner) } : {}),
                     fit: fits(comps, s), cycles: levels.cycles.length, depth: depth_of(comps) } };
+}
+
+/** **A package's containers** (2026-11-08): its modules by where they run (`runs`), where at
+ *  least two places hold `HOME` modules each; a module running nowhere particular joins the
+ *  place its imports lean to, else the largest. Each named by the folder most of it is in, else
+ *  by where it runs. None where the package runs in one place. */
+function containers_of(pkg: Pkg, g: Graph): Container[] {
+  const home = new Map(pkg.modules.filter((m) => m.runs).map((m) => [m.path, m.runs!]));
+  const sizes = (["node", "browser"] as const)
+    .map((r) => [r, [...home.values()].filter((x) => x === r).length] as const)
+    .sort((a, z) => z[1] - a[1]);
+  if (sizes.filter(([, n]) => n >= HOME).length < 2) return [];
+  for (let round = 0; round < 3; round++) {
+    for (const m of pkg.modules.filter((x) => !home.has(x.path) && g.hasNode(x.path))) {
+      const lean = new Map<Runs, number>();
+      g.forEachEdge(m.path, (_, a, from, to) => {
+        const r = home.get(from === m.path ? to : from);
+        if (r) lean.set(r, (lean.get(r) ?? 0) + (a["weight"] as number));
+      });
+      const [top] = [...lean].sort((a, z) => z[1] - a[1]);
+      if (top) home.set(m.path, top[0]);
+    }
+  }
+  return sizes.map(([runs]) => {
+    const modules = pkg.modules.map((m) => m.path)
+      .filter((p) => (home.get(p) ?? sizes[0]![0]) === runs);
+    const tops = modules.map((p) => pkg.modules.find((m) => m.path === p)!.steps)
+      .filter((st) => st.length > 1).map((st) => st[0]!);
+    const [folder, n] = [...new Set(tops)].map((f) => [f, tops.filter((t) => t === f).length] as const)
+      .sort((a, z) => z[1] - a[1])[0] ?? ["", 0];
+    return { name: n * 2 >= modules.length ? folder : runs, runs, modules };
+  });
 }
 
 /** Each module's component, by the component's anchor. */
@@ -334,13 +385,11 @@ function paths_of(mod: Map<string, Mod>, entry: string[], stop: Set<string>,
   }).filter((p) => p.steps.length);
 }
 
-/** **Salience** (*Strategy* stage 6): the modules ranked by PageRank over the imports, each
- *  weighted by the symbols read, scaled by the module's length; entries, out of the graph, last. */
-function salience(directed: Graph, pkg: Pkg): string[] {
+/** **Salience** (*Strategy* stage 6): each module's PageRank over the imports, each weighted by
+ *  the symbols read, scaled by the module's length; entries, out of the graph, nothing. */
+function salience(directed: Graph, pkg: Pkg): Map<string, number> {
   const pr = directed.order ? pagerank(directed, { getEdgeWeight: "weight" }) : {};
-  const lines = new Map(pkg.modules.map((m) => [m.path, m.lines]));
-  const score = (m: string) => (pr[m] ?? 0) * Math.log2(2 + (lines.get(m) ?? 0));
-  return pkg.modules.map((m) => m.path).sort((a, z) => score(z) - score(a) || a.localeCompare(z));
+  return new Map(pkg.modules.map((m) => [m.path, (pr[m.path] ?? 0) * Math.log2(2 + m.lines)]));
 }
 
 /** **The vocabulary** (*Strategy* stage 7): the interfaces, classes and object types a module

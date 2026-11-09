@@ -408,19 +408,16 @@ function MapBox({ id, data }: NodeProps<BoxNode>) {
  *  description, a definition's places each with its uses, over a bar of its uses by place. A
  *  tile is a small card the same way: its name, its icon in the corner, edged in its own colour.
  *  Icons keep a least size on screen, never past what their tile has room for (`--cap`). A chip
- *  too narrow for its name shows its icon alone; a tall, narrow one is turned -90° whole. What it is in
- *  full is its hover card. */
+ *  too narrow for its name shows its icon alone; a tall, narrow one turns its signature -90°,
+ *  its body upright. **One look at every zoom**: nothing here reads the zoom. What it is in full
+ *  is its hover card. */
 function ChipNode({ id, data, width, height }: NodeProps<BoxNode>) {
   const selected = usePicked(id);
   /** Its tiles picked, lit the one way everything picked is. */
   const lit = usePicks((data.tiles ?? []).map((t) => t.id));
-  /** A turned chip's levels read off its face as laid, before it turns. */
-  const level = useLevel(data.upright ? height ?? 0 : width ?? 0,
-                         data.upright ? width ?? 0 : height ?? 0, false);
   const tint = data.look ? tint_attrs(data.look) : undefined;
   const chip = { ...data, ...(tint ? { tint } : {}) };
-  return <ChipFace data={chip} w={width ?? 0} h={height ?? 0} level={level} picked={!!selected}
-                   lit={lit} />;
+  return <ChipFace data={chip} w={width ?? 0} h={height ?? 0} picked={!!selected} lit={lit} />;
 }
 
 

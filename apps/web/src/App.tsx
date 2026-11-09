@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { all_defs, appearances_of, collect, diagram_kind, domain_of, drop_of, touches_of,
-         held_at, in_section, is_base, is_inside, is_layer_view, lit as lit_by, object_of,
-         path, path_of, path_owner, reached, registry_at, registry_id, registry_of,
+import { appearances_of, collect, drop_of, touches_of,
+         held_at, in_section, is_inside, is_layer_view, is_model, lit as lit_by,
+         model_path, object_of, path, path_of, path_owner, reached, sub_model, registry_at,
+         registry_id, registry_of,
          seen_through, session, shown_name, trace, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Hop, type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
@@ -14,8 +15,7 @@ import { area_of, boxed_place, box_of, clear_of, empty_of, holds, layer_scene, m
          type Trace } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
 import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
-import { Stage, FLIGHT, still, type Move } from "@mnd/stage";
-import { Options, groups_of } from "@mnd/options";
+import { Stage, still, type Move } from "@mnd/stage";
 import { Tray, useDisplay, useTray, type Offered } from "@mnd/tray";
 import { browser_files, browser_net } from "./ports";
 
@@ -138,7 +138,7 @@ export function App({ storage, boot, opening }: {
   /** Counted up by every open, so opening the focus again flies back to it. */
   const [opened, set_opened] = useState(0);
   /** Where the map's camera stops instead of the focus's area: a chip filling the view, while it
-   *  is entered or left. */
+   *  is left. */
   const [through, set_through] = useState<(Area & { scale: number }) | null>(null);
   const focus_area = map ? stop_area(graph, map, focus_id) : null;
   /** **The block entered from the map**: its own view, drawn alone, held while the open layer is
@@ -220,15 +220,44 @@ export function App({ storage, boot, opening }: {
     .map((x) => ({ from: x.from, to: x.to, names: x.name ? [x.name] : [] })), [graph, owner]);
   const [walk_at, set_walk_at] = useState<number | null>(null);
   useEffect(() => set_walk_at(null), [owner]);
-  const walked = walk_at === null ? null : steps[walk_at] ?? null;
-  const walk = steps.length ? {
-    steps, at: walk_at, onStep: set_walk_at,
-    said: (h: Hop) => {
-      const [from, to] = [shown_name(graph, h.from), shown_name(graph, h.to)];
-      const names = h.names.filter((n) => n !== to);
-      return `${from} calls ${to}${names.length ? `: ${names.join(", ")}` : ""}`;
-    },
+  /** **A model walked** (2026-11-08): entering a model with a path puts it on the stack the
+   *  tray's overview draws; *into* pushes the sub model a step reaches, *out* pops back to the step it was
+   *  entered from. Entering one not on the stack starts it afresh. */
+  const [frames, set_frames] = useState<{ model: Id; at: number | null }[]>([]);
+  const at_model = layer && is_model(graph, layer) && model_path(graph, layer).length
+    ? layer : null;
+  useEffect(() => set_frames((f) => {
+    if (!at_model) return [];
+    const i = f.findIndex((x) => x.model === at_model);
+    return i >= 0 ? f.slice(0, i + 1) : [{ model: at_model, at: null }];
+  }), [at_model]);
+  const told = frames[frames.length - 1]?.model === at_model ? frames[frames.length - 1]! : null;
+  const story = useMemo(() => (told ? model_path(graph, told.model) : []), [graph, told?.model]);
+  const step_to = (at: number | null) =>
+    set_frames((f) => f.map((x, i) => (i === f.length - 1 ? { ...x, at } : x)));
+  /** Back to the frame at `depth`, re-entering its model. */
+  const back_to = (depth: number) => {
+    const f = frames[depth];
+    if (!f) return;
+    set_frames(frames.slice(0, depth + 1));
+    act("read", { id: f.model, at: view.at });
+  };
+  const hop_said = (h: Hop) => {
+    const [from, to] = [shown_name(graph, h.from), shown_name(graph, h.to)];
+    const names = h.names.filter((n) => n !== to);
+    return `${from} calls ${to}${names.length ? `: ${names.join(", ")}` : ""}`;
+  };
+  const walked = told ? (told.at === null ? null : story[told.at] ?? null)
+    : walk_at === null ? null : steps[walk_at] ?? null;
+  /** **The step read** in the tray: the hop's ends, what crosses it, the sub model its far end
+   *  is, and what comes next. */
+  const step_read = told && walked ? {
+    at: told.at!, of: story.length, from: shown_name(graph, walked.from),
+    to: shown_name(graph, walked.to), carries: walked.names, next: story[told.at! + 1] ? hop_said(story[told.at! + 1]!) : null,
+    into: sub_model(graph, walked.to) ? shown_name(graph, sub_model(graph, walked.to)!) : null,
   } : null;
+  const walk = told ? { steps: story, at: told.at, onStep: step_to, said: hop_said, outside: true }
+    : steps.length ? { steps, at: walk_at, onStep: set_walk_at, said: hop_said } : null;
 
   /** **What the camera fits on a pick**, on a map or a layer entered from it: the step walked,
    *  both its ends; else the block picked and everything a hop each way, so no leg runs out of
@@ -255,10 +284,10 @@ export function App({ storage, boot, opening }: {
              h: Math.max(...boxes.map((b) => b.y + b.h)) - y, scale: scene.areas ? 1 / 2 : 1 };
   }, [graph, scene, walked, one]);
 
-  /** **Where the camera stops**: on a map, a chip filling the view while entered or left, the
-   *  hops picked, else the focus's area — a treemap diagram's, the whole diagram; on a layer
-   *  entered from the map and fitted (not read down), the hops picked, else it whole. **Letting
-   *  go moves nothing** on the world map or an entered layer: it stays where it last stopped. */
+  /** **Where the camera stops**: on a map, a chip filling the view while left, the hops picked,
+   *  else the focus's area — a treemap diagram's, the whole diagram; **letting go fits the whole
+   *  map again** (2026-11-08). On a layer entered from the map and fitted (not read down), the
+   *  hops picked, else where it last stopped. */
   type Stop = { x: number; y: number; w: number; h: number; scale?: number };
   const last_stop = useRef<{ on: string; stop: Stop | null }>({ on: "", stop: null });
   const stop_on = scene.areas ? "map" : `layer:${scene.layer ?? ""}`;
@@ -266,8 +295,7 @@ export function App({ storage, boot, opening }: {
   const fitted = entered && !diagram;
   const stop = !scene.areas ? (fitted ? hop_box ?? kept_stop : null)
     : treemap ? hop_box ?? { ...scene.areas[0]!, scale: 1 }
-    : through ?? hop_box ?? (focus_id || s.picked().length
-      ? (focus_area ? { ...focus_area, scale: 1 / 2 } : null) : kept_stop);
+    : through ?? hop_box ?? (focus_area ? { ...focus_area, scale: 1 / 2 } : null);
   last_stop.current = { on: stop_on, stop };
 
   const subject = useMemo(() => {
@@ -288,9 +316,9 @@ export function App({ storage, boot, opening }: {
   /** A map area the camera fills the view with: no ceiling, so a chip is flown right into. */
   const filling = (a: Area | null) => (a ? { ...a, scale: FILL } : null);
 
-  /** **Reading**: core says what a subject enters (`Session.read`). From the map the camera flies
-   *  into the chip until it fills the view, then the entered view takes over there, fading in;
-   *  without a map, or with reduced motion, at once. Inside an entered view the entry stays,
+  /** **Reading**: core says what a subject enters (`Session.read`). The entered view takes over
+   *  at once, fading in fitted (2026-11-08): never a flight into the chip and a cut back out to
+   *  a view laid at another scale. Inside an entered view the entry stays,
    *  unless reading went somewhere outside it — a use read from a definition's registry — whose
    *  layer becomes the entry before it draws, so the map never shows between. What enters
    *  nothing is opened instead: focused on its map, or picked where it is. */
@@ -308,10 +336,7 @@ export function App({ storage, boot, opening }: {
     follow();
     const layer = to.layer!;
     if (entered && path(s.graph(), layer).some((b) => b.id === entry)) return;
-    const area = map && !entered ? filling(area_of(s.graph(), map, inner ? layer : id)) : null;
-    if (!area || still()) { flushSync(() => set_entry(layer)); return; }
-    set_through(area);
-    window.setTimeout(() => set_entry(layer), FLIGHT);
+    flushSync(() => set_entry(layer));
   };
 
   /** **Leaving**: the map takes over with the chip filling the view, and the camera flies out to
@@ -488,13 +513,8 @@ export function App({ storage, boot, opening }: {
     else t.release();
   };
 
-  /** The layer in focus, where the rail makes what it makes. */
+  /** The layer in focus, where the shell's makers make what they make. */
   const room_id = (): Id => layer ?? graph.root;
-
-  /** The relation definitions the open packages hold, each a type a right drag may draw. */
-  const types = useMemo(() => all_defs(graph)
-    .filter((d) => domain_of(graph, d.id) === "relation" && !is_base(d.id))
-    .map((d) => ({ id: d.id, name: d.name ?? d.id })), [graph]);
 
   const load = async () => {
     const text = await browser_files().open();
@@ -569,7 +589,9 @@ export function App({ storage, boot, opening }: {
         keys={zones.zone === "explorer"}
       />
 
-      <main>
+      {/** **The tray sits by the canvas's shape** (2026-11-08): right of a landscape canvas, below
+        *  a portrait one, so the canvas keeps a steadier shape. */}
+      <main className={t.open && aspect > 1 ? "side" : undefined}>
         <Stage
           scene={scene}
           graph={graph}
@@ -662,16 +684,25 @@ export function App({ storage, boot, opening }: {
           offered={offered}
           display={display}
           onAct={chrome}
+          walk={told ? {
+            frames: frames.map((f) => ({
+              model: shown_name(graph, f.model), at: f.at,
+              steps: model_path(graph, f.model).map((h) => ({
+                to: shown_name(graph, h.to), from: shown_name(graph, h.from),
+                tint: row_look(graph, h.to).tint, into: !!sub_model(graph, h.to) })) })),
+            step: step_read,
+            onStep: step_to,
+            onInto: () => {
+              const sub = walked ? sub_model(graph, walked.to) : null;
+              if (!sub) return;
+              set_frames([...frames, { model: sub, at: null }]);
+              act("read", { id: sub, at: view.at });
+            },
+            onOut: () => back_to(frames.length - 2),
+            onFrame: back_to,
+          } : null}
         />
       </main>
-
-      <Options groups={groups_of({ slots: scene.slots,
-                                   family: layer ? diagram_kind(graph, layer) : null,
-                                   pkg, picked: s.picked().length > 0, types,
-                                   module: drawing.module,
-                                   ...(drawing.dir ? { dir: drawing.dir } : {}),
-                                   ...(drawing.type ? { type: drawing.type } : {}) },
-                                 chrome)} />
     </div>
   );
 }

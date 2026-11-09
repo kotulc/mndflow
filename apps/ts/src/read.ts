@@ -1,8 +1,11 @@
 /** A TypeScript project read into plain data: its packages, their modules, what each module
  *  declares, and what it imports. ts-morph does the parsing and resolving; this keeps what the
- *  `ts` package's kinds say and nothing else. */
+ *  `ts` package's kinds say and nothing else. **Declared beats inferred** (2026-11-08): entries
+ *  are what the project says runs it (manifests, a Dockerfile, a framework's files), purposes
+ *  its own header comments. */
 
 import { existsSync, readFileSync } from "node:fs";
+import { isBuiltin } from "node:module";
 import { dirname, join, relative, sep } from "node:path";
 import { Node, Project, SyntaxKind, type ClassDeclaration, type InterfaceDeclaration,
          type JSDocableNode, type ParameterDeclaration, type SourceFile, type TypeAliasDeclaration,
@@ -19,10 +22,20 @@ export type Pkg = { dir: string; group: string; name: string; version?: string;
 /** A module: its file, its steps under the source folder (`["actions", "blocks"]`), its first
  *  line of doc, its length, its functions and values, the types it declares, the modules of its
  *  own package it imports, the calls it makes into them, and whether the code is entered by it:
- *  a barrel, passing others' exports on, or a file wiring the code (`wiring`). */
+ *  a barrel, passing others' exports on, or a declared entry (`entered`, how). Then what it
+ *  answers about itself: where it `runs`, the outside it `touches`, the files it reads and
+ *  writes, the config keys it reads, the tests importing it, and its `flows`. */
 export type Mod = { path: string; steps: string[]; description?: string; lines: number;
                     parts: Part[]; defs: Def[]; types: Datatype[]; imports: Import[];
-                    calls: Call[]; entry?: boolean };
+                    calls: Call[]; entry?: boolean; entered?: string[]; runs?: Runs;
+                    touches: string[]; files: { reads: string[]; writes: string[] };
+                    config: string[]; tests: string[]; flows: Flow[] };
+
+/** Where a module runs: in Node, reading the machine, or in a browser, drawing. */
+export type Runs = "node" | "browser";
+
+/** A function calling project functions in order: its name, and theirs, each once. */
+export type Flow = { name: string; steps: string[] };
 
 /** A module imported: its `path`, the names read from it, and how many (at least 1). */
 export type Import = { path: string; symbols: number; names: string[]; types: string[] };
@@ -59,8 +72,30 @@ const LONG = 160;
 const CODE = /\.(tsx?|jsx?)$/;
 const LEFT_OUT = /(\.d\.ts|\.(test|spec|config|setup)\.[jt]sx?)$/;
 
-/** The files read only where they import the project's code: configs and MDX pages. */
-const WIRING = "{.config.ts,.config.tsx,.config.js,.config.jsx,.config.mjs,.mdx}";
+/** **A framework's own files**, which it runs the code through: each read where it imports the
+ *  project's code, an entry by convention, with the framework hosting it. */
+const CONVENTIONS: { file: RegExp; host: string }[] = [
+  { file: /(^|\/)_app\.[jt]sx?$/, host: "next" },
+  { file: /(^|\/)app\/layout\.[jt]sx?$/, host: "next" },
+  { file: /(^|\/)theme\.config\.[jt]sx?$/, host: "nextra" },
+];
+
+/** **What reaches outside**: a built-in module's group, by its name. */
+const OUTSIDE: Record<string, string> = {
+  fs: "file system", "fs/promises": "file system", "fs-extra": "file system",
+  child_process: "processes", http: "network", https: "network", net: "network",
+  readline: "terminal" };
+
+/** The calls that run a command, and those reading or writing a file, by name. */
+const RUNS = /^(exec|execSync|execFile|execFileSync|spawn|spawnSync|execa|fork)$/;
+const READ = /^(readFileSync|readFile|readdirSync|readdir|existsSync|statSync|createReadStream|readJson|readJsonSync)$/;
+const WRITE = /^(writeFileSync|writeFile|mkdirSync|mkdir|copyFileSync|cpSync|rmSync|appendFileSync|createWriteStream|renameSync|outputFile|outputFileSync|writeJson|writeJsonSync)$/;
+
+/** A name holding the project's configuration, whose keys are read off it. */
+const CONFIG = /^(config|cfg|conf|settings|options|opts|site_?config|siteConfig)$/i;
+
+/** How many project functions one calls, in order, before it reads as a flow. */
+const FLOW = 3;
 
 /** Folders never read: installed, built, generated or tests. */
 const SKIPPED = new Set(["node_modules", "dist", "build", "out", ".next", ".types", "coverage",
@@ -84,6 +119,15 @@ export function read_code(root: string, tsconfig = join(root, "tsconfig.json")):
     scoped.add(w.getFilePath());
   }
   const manifest = json(join(root, "package.json"));
+  const tested = tests_of(root, project, scoped);
+  const entered = new Map<string, string[]>();
+  for (const dir of new Set(files.map((f) => package_dir(root, f.getFilePath())!))) {
+    for (const [path, how] of declared_entries(root, dir)) entered.set(path, how);
+  }
+  const host = (path: string) => CONVENTIONS.find((c) => c.file.test(path))?.host;
+  for (const at of files.map((f) => rel(root, f.getFilePath())).filter((p) => host(p))) {
+    entered.set(at, [...entered.get(at) ?? [], host(at)!]);
+  }
   const pkgs = new Map<string, Pkg>();
   const pkg_of = (file: SourceFile) => package_dir(root, file.getFilePath());
 
@@ -99,12 +143,21 @@ export function read_code(root: string, tsconfig = join(root, "tsconfig.json")):
     const dir = pkg_of(file)!;
     if (!pkgs.has(dir)) pkgs.set(dir, package_of(root, dir));
     const pkg = pkgs.get(dir)!;
-    const mod: Mod = { path: rel(root, file.getFilePath()), steps: steps_at(root, file),
-                       lines: file.getEndLineNumber(), parts: parts_of(root, file), defs: [],
-                       types: [], imports: imports_of(root, file, scoped, pkg_of),
+    const path = rel(root, file.getFilePath());
+    const head = module_doc(file);
+    const how = entered.get(path);
+    const runs = runs_of(file);
+    const hosts = host(path) ? [host(path)!] : [];
+    const mod: Mod = { path, steps: steps_at(root, file),
+                       lines: file.getEndLineNumber(), parts: parts_of(root, file, head),
+                       defs: [], types: [], imports: imports_of(root, file, scoped, pkg_of),
                        calls: calls_of(root, file, scoped),
-                       ...(barrel(file) || wired.includes(file) ? { entry: true } : {}),
-                       ...said(module_doc(file)) };
+                       ...(barrel(file) || how ? { entry: true } : {}),
+                       ...(how ? { entered: how } : {}), ...(runs ? { runs } : {}),
+                       touches: [...new Set([...hosts, ...touches_of(root, file)])],
+                       files: files_of(file), config: config_of(file),
+                       tests: tested.get(path) ?? [], flows: flows_of(file, scoped),
+                       ...said(head) };
     for (const decl of file.getInterfaces()) mod.defs.push(def_of(root, decl, "interface", ids));
     for (const decl of file.getClasses()) {
       if (decl.getName()) mod.defs.push(def_of(root, decl, "class", ids));
@@ -147,32 +200,226 @@ function in_scope(root: string, path: string): boolean {
   return !!dir && at.startsWith(src_of(root, dir));
 }
 
-/** Files wiring the code without being it, anywhere in a package: configs, and MDX pages by their
- *  import lines; each read only where it imports the project's own code. */
+/** **A framework's files** (`CONVENTIONS`) anywhere in a package, each read only where it
+ *  imports the project's own code. Content pages and other configs are never entries. */
 function wiring(root: string, project: Project, scoped: Set<string>): SourceFile[] {
   const glob = root.split(sep).join("/");
-  const found = project.getFileSystem().globSync([`${glob}/**/*${WIRING}`,
-                                                  `!${glob}/**/{${[...SKIPPED].join(",")}}/**`]);
+  const found = project.getFileSystem().globSync([`${glob}/**/*.{js,jsx,ts,tsx}`,
+                                                  `!${glob}/**/{${[...SKIPPED].join(",")}}/**`])
+    .filter((path) => CONVENTIONS.some((c) => c.file.test(rel(root, path))));
   const out: SourceFile[] = [];
   for (const path of found) {
     if (!package_dir(root, path)) continue;
-    const file = path.endsWith(".mdx")
-      ? project.createSourceFile(`${path}.tsx`, mdx_of(readFileSync(path, "utf8")),
-                                 { overwrite: true })
-      : project.getSourceFile(path) ?? project.addSourceFileAtPath(path);
+    const file = project.getSourceFile(path) ?? project.addSourceFileAtPath(path);
+    if (scoped.has(file.getFilePath())) continue;
     if (specified(file).some((f) => scoped.has(f.getFilePath()))) out.push(file);
   }
   return out;
 }
 
-/** An MDX page as code: its import lines, then each component it uses as an element
- *  (`<TagList …`), in the order first used, one element apiece — so its uses count as calls. */
-function mdx_of(text: string): string {
-  const imports = text.split("\n").filter((l) => /^import\s/.test(l));
-  const used = [...text.matchAll(/<([A-Z][\w.]*)/g)].map((m) => m[1]!)
-    .filter((n, i, all) => all.indexOf(n) === i);
-  return [...imports, ...used.map((n) => `export const _${n.replace(/\W/g, "_")} = <${n} />;`)]
-    .join("\n");
+/** **A package's declared entries**, by path, each with how it is entered: its manifest's
+ *  `bin`, a `scripts` line running a file, a Dockerfile's `ENTRYPOINT` or `CMD`, an HTML page's
+ *  module script. */
+function declared_entries(root: string, dir: string): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  const at = dir === "." ? "" : `${dir}/`;
+  const add = (file: string | undefined, how: string) => {
+    if (!file) return;
+    const path = `${at}${file.replace(/^\.?\//, "")}`;
+    if (existsSync(join(root, path)) && !out.get(path)?.includes(how)) {
+      out.set(path, [...out.get(path) ?? [], how]);
+    }
+  };
+  const manifest = json(join(root, at, "package.json"));
+  const bin = manifest?.["bin"];
+  if (typeof bin === "string") add(bin, "bin");
+  else if (bin && typeof bin === "object") {
+    for (const [name, file] of Object.entries(bin)) add(String(file), `bin ${name}`);
+  }
+  for (const [name, line] of Object.entries(manifest?.["scripts"] ?? {})) {
+    add(String(line).match(/\b(?:node|tsx|ts-node|vite-node|bun)\s+([\w./-]+\.[cm]?[jt]sx?)/)?.[1],
+        `script ${name}`);
+  }
+  for (const m of text(join(root, at, "Dockerfile")).matchAll(/^(ENTRYPOINT|CMD)\s+(.*)$/gm)) {
+    add(m[2]!.match(/([\w./-]+\.[cm]?[jt]sx?)/)?.[1], `Dockerfile ${m[1]}`);
+  }
+  const html = text(join(root, at, "index.html"));
+  for (const m of html.matchAll(/<script[^>]*type="module"[^>]*src="([^"]+)"/g)) {
+    add(m[1], "index.html");
+  }
+  return out;
+}
+
+/** The tests importing each module, by its path: the test files' names. */
+function tests_of(root: string, project: Project, scoped: Set<string>): Map<string, string[]> {
+  const glob = root.split(sep).join("/");
+  const found = project.getFileSystem().globSync([
+    `${glob}/**/{test,tests,__tests__}/**/*.{js,jsx,ts,tsx}`,
+    `${glob}/**/*.{test,spec}.{js,jsx,ts,tsx}`, `!${glob}/**/node_modules/**`]);
+  const out = new Map<string, string[]>();
+  for (const path of new Set(found)) {
+    const file = project.getSourceFile(path) ?? project.addSourceFileAtPath(path);
+    const name = path.split("/").pop()!.replace(/\.[jt]sx?$/, "");
+    for (const to of [...specified(file), ...required(file)]) {
+      if (!scoped.has(to.getFilePath())) continue;
+      const at = rel(root, to.getFilePath());
+      if (!out.get(at)?.includes(name)) out.set(at, [...out.get(at) ?? [], name]);
+    }
+  }
+  return out;
+}
+
+/** **Where a module runs**: a browser where it draws (JSX, or React read), else Node where it
+ *  reads a built-in; else nowhere particular. */
+function runs_of(file: SourceFile): Runs | undefined {
+  const from = outside_names(file);
+  if (file.getFirstDescendantByKind(SyntaxKind.JsxOpeningElement)
+      || file.getFirstDescendantByKind(SyntaxKind.JsxSelfClosingElement)
+      || from.some((n) => n === "react" || n.startsWith("react-dom"))) return "browser";
+  return from.some((n) => isBuiltin(n)) ? "node" : undefined;
+}
+
+/** **The outside a module touches**: the file system, processes, the network, the terminal by
+ *  the built-ins it reads; each command it runs by name (`git`, and through `npm run` the
+ *  script's own command); the environment it reads. */
+function touches_of(root: string, file: SourceFile): string[] {
+  const out = outside_names(file).map((n) => OUTSIDE[n.replace(/^node:/, "")])
+    .filter((n): n is string => !!n);
+  if (/\bprocess\.env\b/.test(file.getFullText())) out.push("environment");
+  if (/(^|[^.\w])fetch\(/.test(file.getFullText())) out.push("network");
+  const commands = file.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((c) => RUNS.test(callee_name(c)))
+    .map((c) => command_of(root, file, c)).filter((n): n is string => !!n);
+  return [...new Set([...out.filter((n) => n !== "processes" || !commands.length), ...commands])];
+}
+
+/** The command a call runs, by its first word; `npm run x` by script `x`'s own first word. */
+function command_of(root: string, file: SourceFile, call: Node): string | undefined {
+  if (!Node.isCallExpression(call)) return undefined;
+  const words = call.getArguments().flatMap((a) => literal(a)?.split(/\s+/)
+    ?? (Node.isArrayLiteralExpression(a) ? a.getElements().map(literal)
+      .filter((w): w is string => !!w) : []));
+  const [first, second, third] = words;
+  if (!first) return undefined;
+  if (/^(npm|yarn|pnpm)$/.test(first)) {
+    const name = second === "run" ? third : second;
+    const dir = package_dir(root, file.getFilePath());
+    const scripts = dir ? json(join(root, dir, "package.json"))?.["scripts"] : undefined;
+    const line = name ? (scripts as Record<string, string> | undefined)?.[name] : undefined;
+    return line?.split(/\s+/)[0] ?? first;
+  }
+  return first === "npx" ? second : first;
+}
+
+/** **The files a module reads and writes**: the paths it names to the file system's calls, as
+ *  written — literals, a template's fixed head, a `join`'s literal parts. */
+function files_of(file: SourceFile): { reads: string[]; writes: string[] } {
+  const reads: string[] = [];
+  const writes: string[] = [];
+  for (const call of file.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    const name = callee_name(call);
+    const write = WRITE.test(name);
+    if (!write && !READ.test(name)) continue;
+    const args = call.getArguments();
+    const at = path_text(/^(copyFileSync|cpSync|renameSync)$/.test(name) ? args[1] : args[0]);
+    if (at) (write ? writes : reads).push(at);
+  }
+  return { reads: [...new Set(reads)], writes: [...new Set(writes)] };
+}
+
+/** A path as written: a literal, a template's fixed head, or a `join`'s literal parts. */
+function path_text(arg: Node | undefined): string | undefined {
+  if (!arg) return undefined;
+  const plain = literal(arg);
+  if (plain !== undefined) return tidy(plain);
+  if (Node.isTemplateExpression(arg)) return tidy(arg.getHead().getLiteralText());
+  if (Node.isCallExpression(arg) && /^(join|resolve)$/.test(callee_name(arg))) {
+    const parts = arg.getArguments().map(literal).filter((p): p is string => p !== undefined);
+    return parts.length ? tidy(parts.join("/")) : undefined;
+  }
+  return undefined;
+}
+
+/** A string literal's text; nothing for anything else. */
+function literal(n: Node | undefined): string | undefined {
+  return n && (Node.isStringLiteral(n) || Node.isNoSubstitutionTemplateLiteral(n))
+    ? n.getLiteralText() : undefined;
+}
+
+/** A path tidied: no leading `./`, single slashes; nothing where it names no file. */
+function tidy(path: string): string | undefined {
+  const out = path.replace(/^\.\//, "").replace(/\/+/g, "/");
+  return /\w/.test(out) ? out : undefined;
+}
+
+/** **The config keys a module reads**: property paths read off a name holding the
+ *  configuration (`CONFIG`), two steps deep, in the order first read. */
+function config_of(file: SourceFile): string[] {
+  const out: string[] = [];
+  for (const p of file.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)) {
+    if (Node.isPropertyAccessExpression(p.getParent())) continue;
+    const [root, ...keys] = p.getText().split(".");
+    const key = keys.slice(0, 2).join(".");
+    if (root && CONFIG.test(root) && /^\w+(\.\w+)?$/.test(key) && !out.includes(key)) out.push(key);
+  }
+  return out;
+}
+
+/** **A module's flows**: each of its functions calling `FLOW` or more of the project's
+ *  functions, in source order, each once. */
+function flows_of(file: SourceFile, scoped: Set<string>): Flow[] {
+  const bodies: [string, Node][] = [
+    ...file.getFunctions().filter((f) => f.getName()).map((f) => [f.getName()!, f] as [string, Node]),
+    ...file.getVariableDeclarations().filter((v) => is_function(v))
+      .map((v) => [v.getName(), v] as [string, Node])];
+  const out: Flow[] = [];
+  for (const [name, body] of bodies) {
+    const steps: string[] = [];
+    for (const call of body.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+      const callee = call.getExpression();
+      const id = Node.isPropertyAccessExpression(callee) ? callee.getNameNode() : callee;
+      if (!Node.isIdentifier(id) || id.getText() === name) continue;
+      let symbol = id.getSymbol();
+      if (symbol?.isAlias()) symbol = symbol.getAliasedSymbol();
+      const decl = symbol?.getDeclarations()[0];
+      if (!decl || !scoped.has(decl.getSourceFile().getFilePath())) continue;
+      if (!Node.isFunctionDeclaration(decl) && !is_function(decl)) continue;
+      if (!steps.includes(id.getText())) steps.push(id.getText());
+    }
+    if (steps.length >= FLOW) out.push({ name, steps });
+  }
+  return out;
+}
+
+/** Whether a declaration binds a name to a function. */
+function is_function(n: Node): boolean {
+  const init = Node.isVariableDeclaration(n) ? n.getInitializer() : undefined;
+  return !!init && (Node.isArrowFunction(init) || Node.isFunctionExpression(init));
+}
+
+/** The names of what lies outside the project a file reads: its imports' and `require`s'. */
+function outside_names(file: SourceFile): string[] {
+  const named = [...file.getImportDeclarations().map((d) => d.getModuleSpecifierValue()),
+                 ...file.getDescendantsOfKind(SyntaxKind.CallExpression)
+                   .filter((c) => c.getExpression().getText() === "require")
+                   .map((c) => literal(c.getArguments()[0])).filter((n): n is string => !!n)];
+  return named.filter((n) => !n.startsWith(".") && !n.startsWith("/"));
+}
+
+/** A call's callee by its last name: `fs.readFileSync` is `readFileSync`. */
+function callee_name(call: Node): string {
+  if (!Node.isCallExpression(call)) return "";
+  const callee = call.getExpression();
+  return Node.isPropertyAccessExpression(callee) ? callee.getName()
+    : Node.isIdentifier(callee) ? callee.getText() : "";
+}
+
+/** The files a file's `require` calls name. */
+function required(file: SourceFile): SourceFile[] {
+  return file.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .filter((c) => c.getExpression().getText() === "require")
+    .map((c) => c.getArguments()[0]?.getSymbol()?.getDeclarations()[0])
+    .filter((d): d is SourceFile => !!d && Node.isSourceFile(d));
 }
 
 /** A package's source folder, from the root, with its slash: its `src` where it has one, else
@@ -315,8 +562,9 @@ function steps_at(root: string, file: SourceFile): string[] {
   return [...under, stem].map((s) => s.replace(/\./g, "-"));
 }
 
-/** A module's functions and values, each by its first name. */
-function parts_of(root: string, file: SourceFile): Part[] {
+/** A module's functions and values, each by its first name; a doc that is the module's own
+ *  header (`head`) is never a part's. */
+function parts_of(root: string, file: SourceFile, head: string): Part[] {
   const out: Part[] = [];
   const path = rel(root, file.getFilePath());
   const span = (n: Node) => `${path}#L${n.getStartLineNumber()}-L${n.getEndLineNumber()}`;
@@ -325,7 +573,7 @@ function parts_of(root: string, file: SourceFile): Part[] {
     if (!name) continue;
     out.push({ name, kind: "function", signature: signature(name, fn.getParameters(),
                  fn.getReturnTypeNode()), exported: fn.isExported(), source: span(fn),
-               ...said(doc(fn)) });
+               ...said(own(doc(fn), head)) });
   }
   for (const stmt of file.getVariableStatements()) {
     for (const v of stmt.getDeclarations()) {
@@ -336,7 +584,8 @@ function parts_of(root: string, file: SourceFile): Part[] {
       out.push({ name: v.getName(), kind: fn ? "function" : "value",
                  signature: fn ? signature(v.getName(), fn.getParameters(), fn.getReturnTypeNode())
                    : cut(`${v.getName()}: ${typed ?? v.getType().getText(v)}`),
-                 exported: stmt.isExported(), source: span(stmt), ...said(doc(stmt)) });
+                 exported: stmt.isExported(), source: span(stmt),
+                 ...said(own(doc(stmt), head)) });
     }
   }
   return once(out);
@@ -479,18 +728,33 @@ function object_like(node: TypeNode): boolean {
     || (Node.isIntersectionTypeNode(node) && node.getTypeNodes().some((t) => Node.isTypeLiteral(t)));
 }
 
-/** A module's own doc: the first doc comment, where an import or a second doc follows it. */
+/** **A module's own doc**: the first doc comment, where an import, a `require`, a second doc or
+ *  a blank line follows it — a header, never its first declaration's doc. */
 function module_doc(file: SourceFile): string {
   const first = file.getStatements()[0];
   if (!first) return "";
   const docs = first.getLeadingCommentRanges().filter((r) => r.getText().startsWith("/**"));
-  const leads = first.isKind(SyntaxKind.ImportDeclaration) || first.isKind(SyntaxKind.ExportDeclaration);
-  return docs.length && (leads || docs.length > 1) ? docs[0]!.getText() : "";
+  if (!docs.length) return "";
+  const gap = file.getFullText().slice(docs[0]!.getEnd(), first.getStart());
+  const leads = first.isKind(SyntaxKind.ImportDeclaration)
+    || first.isKind(SyntaxKind.ExportDeclaration) || /\brequire\(/.test(first.getText());
+  return leads || /\n[ \t]*\r?\n/.test(gap) || docs.length > 1 ? docs[0]!.getText() : "";
 }
 
-/** A declaration's doc comment, as written. */
+/** A declaration's doc comment, as written: the one nearest it. */
 function doc(node: JSDocableNode): string {
-  return node.getJsDocs()[0]?.getText() ?? "";
+  return node.getJsDocs().at(-1)?.getText() ?? "";
+}
+
+/** A doc, unless it is the module's header. */
+function own(comment: string, head: string): string {
+  return comment && comment.trim() === head.trim() ? "" : comment;
+}
+
+/** A file's text, or nothing where there is none. */
+function text(path: string): string {
+  try { return readFileSync(path, "utf8"); }
+  catch { return ""; }
 }
 
 /** A doc comment's first sentence, as a `description`. */

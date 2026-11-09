@@ -67,16 +67,16 @@ function in_template(graph: Graph, id: Id): boolean {
 }
 
 /** Whether a block is one this side lists. Unset lists every block. **The library** lists the
- *  definition side — packages, their definition folders, definitions, models among them — and
- *  each definition's parts under it, but a model's: those are drawn, so they list in the models.
+ *  definition side — packages, their definition folders, definitions, **never a model**, which
+ *  lists only in the models (2026-11-08) — and each definition's parts under it.
  *  **The models** list every model and what it holds, and the package roots and folders on the
  *  way to one; a host's structure outside every definition lists there too. A package with none
  *  does not list. */
 export function on_side(graph: Graph, id: Id, lists?: Lists): boolean {
   if (!lists) return !!graph.blocks[id];
   if (!graph.blocks[id]) return false;
-  if (lists === "domain") return is_domain(graph, id) || (in_template(graph, id)
-    && !model_of(graph, id));
+  if (lists === "domain") return !is_model(graph, id) && (is_domain(graph, id)
+    || (in_template(graph, id) && !model_of(graph, id)));
   if (in_template(graph, id)) return model_of(graph, id) !== null;
   if (!is_domain(graph, id)) return true;
   return below_structure(graph, id);

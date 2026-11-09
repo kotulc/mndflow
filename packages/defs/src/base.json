@@ -419,7 +419,7 @@
         "settings": {
           "diagram": {
             "view": "internal",
-            "placing": "layered"
+            "placing": "treemap"
           },
           "style": {
             "hue": 265

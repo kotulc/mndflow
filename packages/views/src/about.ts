@@ -8,7 +8,7 @@ import { base_of, children, class_of, def_at, definition_uses, diagram_kind, dom
          shown_name, stands_for, use_place, type Graph, type Id } from "@mnd/core";
 import { carried } from "./derive";
 import { card_facts, counted, facts_of, type Facts } from "./facts";
-import { edge_of, face_table, face_text, head_words, listed, name_fit } from "./face";
+import { answered, edge_of, face_table, face_text, head_words, name_fit } from "./face";
 import { box_label, box_place, line_name, usage_groups } from "./library";
 import { entry_look, face_attrs, look_of, PLAIN, tint_attrs, wire_of, wire_tint, type Look,
          type Tint } from "./look";
@@ -89,7 +89,7 @@ export function known_face(graph: Graph, id: Id): Face {
 export function preview_of(graph: Graph, id: Id): Preview | null {
   const b = graph.blocks[id];
   if (!b) return null;
-  const rows = listed(graph, id).map((r) => [r.name, r.value ?? r.type]);
+  const rows = answered(graph, id).map((r) => [r.name, r.value ?? r.type]);
   if (rows.length) return { rows };
   const records = b.records ?? [];
   if (records.length) {

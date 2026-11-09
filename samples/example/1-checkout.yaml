@@ -1,0 +1,34 @@
+name: Checkout
+type: model
+packages: [ services ]
+description: "How an order is placed, one hop a step: from the customer's cart to stock reserved and a parcel booked. Its Payments step is a model of its own: step into it for how a card is charged."
+blocks:
+  - name: Customer
+    type: person
+  - name: Gateway
+    type: API gateway
+    tags: [ critical ]
+  - name: Storefront
+    type: service
+    tags: [ critical, orders ]
+  - name: Payments
+    type: Charge a card
+    tags: [ payments ]
+  - name: Orders
+    type: Transactional outbox
+    tags: [ orders ]
+  - name: Inventory
+    type: service
+    tags: [ fulfilment ]
+  - name: Shipping
+    type: service
+    tags: [ fulfilment ]
+  - name: Order book
+    type: Ledger
+relations:
+  - Customer -> Gateway: checkout
+  - Gateway -> Storefront: routes
+  - Storefront -> Payments: charge
+  - Payments -> Orders: paid
+  - Orders -> Inventory: reserve
+  - Orders -> Shipping: ship

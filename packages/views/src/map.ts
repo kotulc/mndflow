@@ -17,7 +17,7 @@ import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
 import { children, definition_uses, diagram_kind, has_lifelines, is_aside, is_grid,
          head_of, is_behaviour, is_folder, is_group, is_header, is_holder, is_interface, is_model,
          is_region, is_tie, lattice_of, layer_of, members_of, lens_of, notation_of, owner_of,
-         on_side, packages, path, region_of, shown_name, type Graph, hops_of, path_of,
+         on_side, packages, path, region_of, shown_name, type Graph, hops_of, model_path, path_of,
          type Id } from "@mnd/core";
 import { colour_of, kind_of, preview_of, type Preview } from "./about";
 import { any_fact, counted, fact, facts_of, total, type Counted, type Facts,
@@ -47,14 +47,14 @@ const ROOM = 128 * 128;
 const AIR = { major: 24, boxes: 12, inner: 6, outer: 6, title: 30 };
 const PAD = { chip: 6, diagram: 6 };
 
-/** **How much larger a chip's head and facts may be held** than laid, zoomed out (`flow.css`
- *  `--chip-k`): their rows are laid at that size, so held text never covers the body. */
-const HELD = 1.35;
-
 /** **A chip's rows**, as `flow.css` draws them: its name's line with the air over it and the gap
- *  under its text, each line of its facts, both at their held size; and each row of a preview.
- *  A level shows only where the chip has room for it. */
-const ROW = { name: 4 + Math.ceil(17 * HELD) + 6, facts: Math.ceil(17 * HELD), line: 15 };
+ *  under its text, each line of its facts, and each row of a preview. **Text scales with the
+ *  drawing** (2026-11-08), never held on screen, so what fits is decided here, as laid. */
+const ROW = { name: 4 + 17 + 6, facts: 17, line: 15 };
+
+/** **How wide a chip's name reads across**: a monospace letter at its 12px (`flow.css`
+ *  `.mnd-chip-name`), its icon and the gap before it, and its padding either side. */
+const NAME = { letter: 7.3, icon: 14 + 4, pad: 12 };
 
 /** The least body a chip keeps under its facts: a diagram's or a holder's structure, else a line
  *  of preview. Where it would not, the facts give way, and its hover card says them. */
@@ -77,8 +77,8 @@ const SETTLE = 3;
 const FOLDS = 4;
 const SLIM = { w: 64, h: 24 };
 
-/** **How tall for its width a chip is before it is turned**, -90° whole, and the widest one that
- *  is: about a card's width, where a name stops fitting across. */
+/** **How tall for its width a chip is before its signature turns**, -90°: only where its name
+ *  no longer fits across (`NAME`). */
 const TURN = 1.3;
 
 /** How wide a card reads, width over height: the shape a diagram chip's tiles aim at. */
@@ -94,12 +94,13 @@ function joins_weight(graph: Graph, id: Id): number {
   return Math.sqrt(hops_of(graph, id).reduce((n, h) => n + Math.max(1, h.names.length), 0));
 }
 
-/** **What never folds**: every block owning a path a reader may walk (`walks`), and each block a
- *  hop from one, since a walk steps onto it. */
+/** **What never folds**: every block owning a path a reader may walk (`walks`), each block a
+ *  hop from one, since a walk steps onto it, and every block a model's path steps onto. */
 function kept_open(graph: Graph): Set<Id> {
   const walks = Object.keys(graph.blocks).filter((id) => path_of(graph, id).length);
+  const steps = Object.keys(graph.blocks).flatMap((id) => model_path(graph, id));
   return new Set([...walks, ...walks.flatMap((w) => hops_of(graph, w)
-    .map((h) => (h.from === w ? h.to : h.from)))]);
+    .map((h) => (h.from === w ? h.to : h.from))), ...steps.flatMap((h) => [h.from, h.to])]);
 }
 
 /** The least share of its heaviest sibling an empty model's chip weighs, so beside a large one it
@@ -111,6 +112,9 @@ const EMPTY = 0.04;
  *  what it holds or where it is used, each read once. */
 type Leaf = { id: Id; kids?: Leaf[]; value?: number; rows?: number; empty?: boolean;
               panel?: boolean;
+              /** A box the view makes, named here (a model's *Shared*); and whether a model's
+               *  part is major, said where the model's path decides it. */
+              label?: string; major?: boolean;
               /** A *+n more* chip's chips, folded away for want of room. */
               more?: Id[];
               chip?: { block: Id; held: readonly Id[]; kind?: string; uses?: boolean;
@@ -131,11 +135,26 @@ export function model_map(graph: Graph, tree: readonly Branch[] = model_tree(gra
 }
 
 /** **A treemap diagram is its map**: what it holds, laid as the models' map lays it — read only,
- *  each chip entered. */
+ *  each chip entered. A model's is its story (`storied`). */
 export function layer_map(graph: Graph, layer: Id): Scene {
   const kids = layer_tree(graph, layer).map(leaf_of(graph));
-  return { ...mapped(graph, { id: MAP_ROOT, kids }, "models"), layer,
-           trail: trail_of(graph, layer) };
+  return { ...mapped(graph, { id: MAP_ROOT, kids: is_model(graph, layer)
+    ? storied(graph, layer, kids) : kids }, "models"), layer, trail: trail_of(graph, layer) };
+}
+
+/** **A model as its story** (2026-11-08): its parts in list order, which is its steps' order,
+ *  those its path passes through major; what no step touches in one quieter *Shared* box after
+ *  them, a box the view makes and the model never holds. */
+function storied(graph: Graph, model: Id, kids: Leaf[]): Leaf[] {
+  const steps = model_path(graph, model);
+  if (!steps.length) return kids;
+  const on = new Set(steps.flatMap((h) => [h.from, h.to]));
+  /** Whether a step touches a part, at any depth in it. */
+  const touched = (l: Leaf): boolean => on.has(l.id) || !!l.kids?.some(touched);
+  const [path, rest] = [kids.filter(touched), kids.filter((k) => !touched(k))];
+  return [...path.map((k) => ({ ...k, major: true })),
+          ...(rest.length ? [{ id: `${model}@shared`, label: "Shared",
+                               kids: rest.map((k) => ({ ...k, major: false })) }] : [])];
 }
 
 /** A branch of the models' tree as the map lays it: a box its cells, a group a panel over its
@@ -244,7 +263,8 @@ function in_model(graph: Graph, id: Id): boolean {
 
 /** **A major part**: a part of a model holding parts of its own; never a folder, band or group.
  *  Everything else in a model holding no major part reads as what a major part holds does. */
-function is_major(graph: Graph, id: Id): boolean {
+function is_major(graph: Graph, id: Id, said?: boolean): boolean {
+  if (said !== undefined) return said;
   return in_model(graph, id) && holds_parts(graph, id);
 }
 
@@ -271,7 +291,8 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
     top = next;
     laid = laid_out(graph, top);
   }
-  const majors = new Set(laid.descendants().filter((d) => is_major(graph, d.data.id))
+  const majors = new Set(laid.descendants()
+    .filter((d) => is_major(graph, d.data.id, d.data.major))
     .map((d) => d.data.id));
   const holding = new Set<HierarchyNode<Leaf>>(laid.descendants()
     .filter((d) => majors.has(d.data.id)).flatMap((d) => d.ancestors().slice(1)));
@@ -302,10 +323,11 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
                    draggable: false });
       continue;
     }
-    const label = id === MAP_ROOT ? title : name_of(graph, id);
+    const label = id === MAP_ROOT ? title : n.data.label ?? name_of(graph, id);
     areas.push({ id, parent: up?.data.id ?? null, ...box, label, depth: n.depth, chip: !!chip });
     if (id === MAP_ROOT) continue;
-    const own = carried(graph, id, "small");
+    const own: Partial<ReturnType<typeof carried>> = graph.blocks[id]
+      ? carried(graph, id, "small") : {};
     const data = { label, marks: rank, ...(own.role ? { role: own.role } : {}),
                    ...(own.description ? { description: own.description } : {}) };
     if (!chip) {
@@ -315,24 +337,25 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
                    draggable: false });
       continue;
     }
-    /** **Tall and narrow, the whole chip is turned** -90° (2026-11-04): laid as a chip on its box
-     *  turned on its side (`face`), and drawn turned, so its name, facts and body read together up
-     *  its length. Its name's line, and its facts under it where its body keeps room. */
-    const upright = box.h > box.w * TURN && box.w < CARD_W;
-    const face = upright ? { w: box.h, h: box.w } : box;
+    /** **Tall and narrow, only its signature turns** (2026-11-08): its name, kind and icon read
+     *  up a strip down its left side, and its body stays upright beside it. Else its name's line,
+     *  and its facts under it where its body keeps room. Decided by the shape it is laid in,
+     *  never its size on screen. */
+    const across = label.length * NAME.letter + NAME.icon + NAME.pad;
+    const upright = box.h > box.w * TURN && box.w < across;
     const facts = facts_of(graph, chip.block, !!chip.uses,
                            { ...(chip.groups ? { groups: chip.groups } : {}),
                              ...(chip.counts ? { counts: chip.counts } : {}) });
     const any = any_fact(facts);
     const keep = (chip.held.length ? KEEP.structure : KEEP.preview)
       + (chip.diagram ? PAD.diagram : PAD.chip);
-    const strip = any && face.h >= ROW.name + ROW.facts + keep;
-    const head = { w: 0, h: ROW.name + (strip ? ROW.facts : 0) };
-    const body = chip.uses ? previewed(graph, chip, face, head)
-      : chip.held.length ? inner(graph, chip.block, chip.held, face, !!chip.diagram, head)
-      : profiled(chip.preview, face, head);
+    const strip = any && !upright && box.h >= ROW.name + ROW.facts + keep;
+    const head = upright ? { w: ROW.name, h: 0 } : { w: 0, h: ROW.name + (strip ? ROW.facts : 0) };
+    const body = chip.uses ? previewed(graph, chip, box, head)
+      : chip.held.length ? inner(graph, chip.block, chip.held, box, !!chip.diagram, head)
+      : profiled(chip.preview, box, head);
     nodes.push({ ...cell(id, box, { ...data, ...(strip ? { facts } : {}),
-                                    ...(upright ? { upright } : {}), head: head.h,
+                                    ...(upright ? { upright } : {}), head: head.w || head.h,
                                     ...(chip.kind ? { kind: chip.kind } : {}),
                                     ...(chip.diagram ? { diagram: true } : {}),
                                     ...body, look: colour_of(graph, chip.block) },
@@ -357,7 +380,8 @@ function laid_out(graph: Graph, tree: Leaf): Tiled<Leaf> {
   const least = new Map(root.leaves().filter((n) => n.data.empty).map((n) => [n.data,
     EMPTY * Math.max(...(n.parent?.children ?? [n]).map((c) => c.value ?? 0))]));
   const area = size[0] * size[1];
-  const majors = new Set(root.descendants().filter((d) => is_major(graph, d.data.id)));
+  const majors = new Set(root.descendants()
+    .filter((d) => is_major(graph, d.data.id, d.data.major)));
   /** A model's major parts stand furthest apart, and what holds them; then boxes. */
   const holding = new Set([...majors].flatMap((d) => d.ancestors().slice(1)));
   const boxes = (n: HierarchyNode<Leaf>) => !!n.children?.some((c) => c.children);

@@ -3,9 +3,10 @@
  *  fresh each time, that `mnd collect <folder> --workspace` reads into a workspace. */
 
 import { existsSync, readFileSync, rmSync } from "node:fs";
+import { parse } from "yaml";
 import { join, resolve } from "node:path";
 import { read_code, type Code } from "./read";
-import { report } from "./report";
+import { against, report, type Target } from "./report";
 import { SETTINGS, structure_of, type Levels, type Shape } from "./structure";
 import { files_of, write_all } from "./write";
 
@@ -28,6 +29,11 @@ function main(argv: string[]): void {
   const code = read_code(root, tsconfig ? resolve(tsconfig) : undefined);
   const { shapes, system } = structure_of(code, { ...SETTINGS, budget, most: budget + 2 });
   console.log(report(code, shapes, system).join("\n"));
+  /** A target kept beside the folder (`<folder>.target.yaml`) is checked against. */
+  const target = folder ? `${resolve(folder)}.target.yaml` : "";
+  if (target && existsSync(target)) {
+    console.log(against(code, shapes, parse(readFileSync(target, "utf8")) as Target).join("\n"));
+  }
   if (folder) write_to(resolve(folder), code, shapes, system);
 }
 

@@ -41,8 +41,8 @@ describe("models", () => {
 });
 
 describe("the two sections", () => {
-  it("list a model in both, its parts only in the models", () => {
-    expect(in_section(g, "shop", null, null, "domain")).toBe(true);
+  it("list a model and its parts only in the models", () => {
+    expect(in_section(g, "shop", null, null, "domain")).toBe(false);
     expect(in_section(g, "shop", null, null, "structure")).toBe(true);
     expect(in_section(g, "stage", null, null, "structure")).toBe(true);
     expect(in_section(g, "stage", null, null, "domain")).toBe(false);

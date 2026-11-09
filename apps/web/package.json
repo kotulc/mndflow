@@ -13,7 +13,6 @@
     "@mnd/core": "*",
     "@mnd/defs": "*",
     "@mnd/explorer": "*",
-    "@mnd/options": "*",
     "@mnd/stage": "*",
     "@mnd/theme": "*",
     "@mnd/tray": "*",

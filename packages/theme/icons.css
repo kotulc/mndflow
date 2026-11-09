@@ -9,5 +9,4 @@
 
 /* On a control that is only its mark, the icon carries the whole button. */
 .tools .icon-svg,
-.bar .icon-svg,
-.opts .icon-svg { vertical-align: -0.22em; }
+.bar .icon-svg { vertical-align: -0.22em; }

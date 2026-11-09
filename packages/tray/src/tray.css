@@ -345,6 +345,9 @@ fieldset.fields { padding: 0; }
   align-items: center;
 }
 .sec-body > :not(.list) { grid-column: 1 / -1; }
+/* A section of parts set apart (the walk's controls, its step, its lists): a gap between each. */
+.sec.parts > .sec-body { row-gap: var(--gap); }
+.sec.parts .list + .list { margin-top: 0; }
 .sec-empty { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 
 /* **Every list opens on a band**: its label flush left, its count right, over a rule; then its rows
@@ -375,6 +378,10 @@ fieldset.fields { padding: 0; }
 }
 .list > .item:hover { background: var(--raised); }
 .list > .item.quiet .says { color: var(--faint); font-style: italic; }
+/* A row that is picked, as a filter row is: the one picked in the accent's wash. */
+.list > .item.picks { cursor: pointer; }
+.list > .item.on { color: var(--accent); background: color-mix(in oklch, var(--accent) 18%, transparent); }
+.list > .item.on > .name { font-weight: 600; }
 .item > .mark { display: flex; justify-content: center; align-items: center; color: var(--muted); }
 .item > .name { white-space: nowrap; }
 .item > .kind { min-width: 0; overflow: hidden; color: var(--muted); font-size: 11px;

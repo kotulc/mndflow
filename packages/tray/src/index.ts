@@ -1,4 +1,5 @@
 export { Tray, type TrayProps, type Tab, type Hold, type Extra } from "./Tray";
+export { Walk, type Frame, type StepRead, type WalkProps, type WalkStep } from "./Walk";
 export { useDisplay, useTray, type Pointed } from "./state";
 export { Definitions, taken, type DefinitionsProps, type Only, type Shelf } from "./Definitions";
 export { Entry, type EntryProps } from "./Entry";

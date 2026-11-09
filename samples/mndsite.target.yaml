@@ -1,0 +1,5 @@
+# What mndsite should read as (docs/translation-plan.md, *Target*): checked by the translator.
+containers:
+  build pipeline: [scripts/]
+  site runtime: [components/, theme.config.jsx, _app.jsx, pages/_app.jsx]
+models: [scripts/cli.js, scripts/ingest.js, theme.config.jsx]

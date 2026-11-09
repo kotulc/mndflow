@@ -16,7 +16,6 @@ import "@mnd/stage/src/routes.css";
 import "@mnd/stage/src/groups.css";
 import "@mnd/explorer/src/explorer.css";
 import "@mnd/stage/src/stage.css";
-import "@mnd/options/src/options.css";
 import "@mnd/tray/src/tray.css";
 import "@mnd/tray/src/fields.css";
 import "@mnd/tray/src/preview.css";

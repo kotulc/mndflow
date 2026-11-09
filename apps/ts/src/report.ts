@@ -1,8 +1,13 @@
 /** A project's structure as lines a person reads: the packages' levels, then each package's
- *  score, entry, foundation and components by level, nested components indented. */
+ *  score, containers, entry, foundation and components by level, nested components indented;
+ *  and, given a hand-written target, how near the translation comes to it (`against`). */
 
 import type { Code } from "./read";
 import { stem_of, type Comp, type Levels, type Shape } from "./structure";
+
+/** **A target**: the outline a person expects of a translation — its containers by the modules
+ *  each holds (path prefixes), and the entries its models start from. */
+export type Target = { containers?: Record<string, string[]>; models?: string[] };
 
 
 /** The report's lines. */
@@ -14,6 +19,9 @@ export function report(code: Code, shapes: Shape[], system: Levels): string[] {
     out.push("", `${s.pkg.name} (${s.pkg.dir}) ${s.pkg.modules.length} modules · modularity `
       + `${score.modularity?.toFixed(2) ?? "—"} · ${score.fit ? "fits" : "over budget"} · depth `
       + `${score.depth} · cycles ${score.cycles}`);
+    for (const c of s.containers) {
+      out.push(`  container   ${c.name} (${c.runs}, ${c.modules.length})`);
+    }
     if (s.entry.length) out.push(`  entry       ${s.entry.map(stem_of).join(" ")}`);
     if (s.foundation.length) out.push(`  foundation  ${s.foundation.map(stem_of).join(" ")}`);
     const by = new Map(s.comps.map((c) => [c.anchor, c]));
@@ -46,4 +54,29 @@ function comp_lines(c: Comp, lead: string, indent: string): string[] {
     : `${lead}${c.name} (${c.modules.length})${c.parts.length ? ""
       : `: ${c.modules.map(stem_of).join(" ")}`}`;
   return [head, ...c.parts.flatMap((p) => comp_lines(p, `${indent}- `, `${indent}  `))];
+}
+
+/** **A translation against its target** (2026-11-08): each expected container matched to the one
+ *  sharing most of its modules, with how many it shares; each expected model's entry, found or
+ *  not; and how many units say what they are for. Guides, never decides. */
+export function against(code: Code, shapes: Shape[], target: Target): string[] {
+  const mods = code.packages.flatMap((p) => p.modules);
+  const out = ["", "against the target"];
+  for (const [name, prefixes] of Object.entries(target.containers ?? {})) {
+    const want = mods.filter((m) => prefixes.some((p) => m.path.startsWith(p))).map((m) => m.path);
+    const best = shapes.flatMap((x) => x.containers)
+      .map((c) => [c, want.filter((w) => c.modules.includes(w)).length] as const)
+      .sort((a, z) => z[1] - a[1])[0];
+    out.push(`  container   ${name}: ${best ? `${best[0].name} ${best[1]}/${want.length}`
+      : `none of ${want.length}`}`);
+  }
+  const starts = new Set(shapes.flatMap((x) => x.paths.filter((p) => p.steps.length >= 2)
+    .map((p) => p.entry)));
+  for (const m of target.models ?? []) {
+    out.push(`  model       ${m}: ${starts.has(m) ? "found" : "missing"}`);
+  }
+  const units = shapes.flatMap((x) => [...x.entry, ...x.foundation, ...x.comps.map((c) => c.anchor)]);
+  const said = units.filter((u) => mods.find((m) => m.path === u)?.description).length;
+  out.push(`  purposes    ${said}/${units.length} units say what they are for`);
+  return out;
 }

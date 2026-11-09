@@ -1,6 +1,6 @@
 /** Where blocks sit: layers, children, order, and the relations drawn among them. */
 
-import { def_at, isa, module_of, setting_of } from "./defs";
+import { def_at, def_of, is_model, isa, module_of, setting_of } from "./defs";
 import { behaviour_owner, behaviours_of, is_behaviour } from "./ends";
 import { allocations_of, drawn_in, is_holder, layer_of, region_of } from "./holders";
 import { PLACINGS, type Placing, type Block, type Definition, type Flow, type Graph, type Id,
@@ -308,6 +308,22 @@ export function path_of(graph: Graph, id: Id): { from: Id; to: Id; name: string 
 export function path_owner(graph: Graph, id: Id): Id | null {
   const owner = is_behaviour(graph, id) ? behaviour_owner(graph, id) : id;
   return owner && path_of(graph, owner).length ? owner : null;
+}
+
+/** **A model's path** (2026-11-08): its own lines in list order, each one hop, from the block it
+ *  leaves to the block it reaches, named as the line is; a tie is none. Empty for any other
+ *  block. */
+export function model_path(graph: Graph, id: Id): Hop[] {
+  if (!is_model(graph, id)) return [];
+  return edges_in(graph, id).filter((e) => e.type !== "tie")
+    .map((e) => ({ from: owner_of(graph, e.from), to: owner_of(graph, e.to),
+                   names: e.name ? [e.name] : [] }));
+}
+
+/** **The model a step's block enters**: the model it is a use of, else none. */
+export function sub_model(graph: Graph, id: Id): Id | null {
+  const def = def_of(graph, id);
+  return def && def !== id && is_model(graph, def) ? def : null;
 }
 
 /** What a behaviour's step stands for: a reference's object, or what heads its lifeline. */

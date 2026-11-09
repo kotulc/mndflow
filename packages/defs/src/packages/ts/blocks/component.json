@@ -5,8 +5,55 @@
   "description": "A group of modules that import mostly each other, found from the import graph: its modules, or its own components, are its parts.",
   "def": {
     "attributes": [
-      { "name": "lines", "type": "number" }
+      {
+        "name": "lines",
+        "type": "number"
+      },
+      {
+        "name": "runs",
+        "type": "text",
+        "note": "where it runs: node or browser"
+      },
+      {
+        "name": "entered",
+        "type": "text",
+        "note": "how the project says it is run"
+      },
+      {
+        "name": "types",
+        "type": "text",
+        "note": "the shared types it reads"
+      },
+      {
+        "name": "reads",
+        "type": "text",
+        "note": "files it reads"
+      },
+      {
+        "name": "writes",
+        "type": "text",
+        "note": "files it writes"
+      },
+      {
+        "name": "config",
+        "type": "text",
+        "note": "config keys it reads"
+      },
+      {
+        "name": "touches",
+        "type": "text",
+        "note": "the outside it reaches"
+      },
+      {
+        "name": "tests",
+        "type": "text",
+        "note": "tests importing it"
+      }
     ]
   },
-  "settings": { "style": { "hue": 235 } }
+  "settings": {
+    "style": {
+      "hue": 235
+    }
+  }
 }

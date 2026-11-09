@@ -118,11 +118,11 @@ export function TrayFrame<T extends string>({
 }
 
 /** A region of the page the keys may go to. */
-export type Zone = "explorer" | "canvas" | "tray" | "options";
+export type Zone = "explorer" | "canvas" | "tray";
 
 /** Each region by the element that draws it. */
 const ZONES: readonly [string, Zone][] = [
-  [".explorer", "explorer"], [".stage", "canvas"], [".tray", "tray"], [".opts", "options"],
+  [".explorer", "explorer"], [".stage", "canvas"], [".tray", "tray"],
 ];
 
 /** **The keys go to one region at a time**: the one last pressed or focused in, which the page

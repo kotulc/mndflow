@@ -56,6 +56,9 @@ export function useFocus(scene: Scene, frame: Frame | null, stop: Rect | null,
   /** The flight's timer: a new flight, or leaving, cancels the last. */
   const landing = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(landing.current), []);
+  /** **Where the camera is going**: the last fit's viewport, so a reveal in the same change is
+   *  judged against it, never against a camera still mid-flight from the last focus. */
+  const going = useRef<{ x: number; y: number; zoom: number } | null>(null);
 
   useEffect(() => {
     if (seen.w < BAND * 2 || seen.h < BAND * 2) return;
@@ -71,7 +74,10 @@ export function useFocus(scene: Scene, frame: Frame | null, stop: Rect | null,
       landing.current = setTimeout(() => set_flying(false), fly);
     }
     else set_flying(false);
-    void flow.setViewport(view_on(box, seen, stop?.scale ?? 1), { duration: fly });
+    const to = view_on(box, seen, stop?.scale ?? 1);
+    going.current = to;
+    setTimeout(() => { if (going.current === to) going.current = null; }, fly);
+    void flow.setViewport(to, { duration: fly });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, size]);
@@ -81,7 +87,7 @@ export function useFocus(scene: Scene, frame: Frame | null, stop: Rect | null,
     const on = aim ? scene.nodes.find((n) => n.id === aim) : undefined;
     if (!on) return;
     const b = box_of(on);
-    const vp = flow.getViewport();
+    const vp = going.current ?? flow.getViewport();
     const shown = { x: -vp.x / vp.zoom, y: -vp.y / vp.zoom, w: seen.w / vp.zoom, h: seen.h / vp.zoom };
     const fits = b.x >= shown.x && b.y >= shown.y && b.x + b.w <= shown.x + shown.w
       && b.y + b.h <= shown.y + shown.h;

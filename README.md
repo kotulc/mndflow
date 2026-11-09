@@ -9,16 +9,15 @@
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ mndflow  12 blocks · 34 steps      undo redo  ex im  ▤  ◐    │  header: identity, and
-├──────────────┬─────────────────────────────┬─────────────────┤  controls that reach a port
-│ packages     │   ┌╌╌╌╌╌╌╌╌┐                │ Layout          │
-│ definitions  │   ┆ Edge   ┆ ──▶ ( Billing )│   ○ free  ● auto│  stage: one layer, and a
-│ ▾ workspace  │   ┆ ▪ ▪    ┆                │                 │  grid is a block on it
-│   ▾ Ledger/  │   └╌╌╌╌╌╌╌╌┘                │ Shows           │
-│    ├─ Auth   ├─────────────────────────────┤   ☑ label       │  options: the slots the
-│    └─ Rate…  │ contents · this             │   ☐ fields      │  projection asked for
-│  explorer    │  Auth   Module              │                 │
-└──────────────┴─────────────────────────────┴─────────────────┘
-                       tray: what the open layer holds
+├──────────────┬───────────────────────────┬───────────────────┤  controls that reach a port
+│ library      │   ┌╌╌╌╌╌╌╌╌┐              │ overview  card …  │
+│ models       │   ┆ Edge   ┆ ─▶ ( Billing )│ why it matters   │  stage: one layer, and a
+│ ▾ example    │   ┆ ▪ ▪    ┆              │ walk  ‹ next ›    │  grid is a block on it
+│   ▾ Checkout │   └╌╌╌╌╌╌╌╌┘              │  1 Gateway        │
+│    ├─ Auth   │                           │  2 Storefront     │  tray: beside a landscape
+│    └─ Rate…  │                           │                   │  canvas, below a portrait
+│  explorer    │                           │                   │  one; a model's walk in
+└──────────────┴───────────────────────────┴───────────────────┘  its overview
 ```
 
 ---
@@ -63,7 +62,7 @@ npm test                             # every suite in the workspace
 npm run typecheck                    # the whole tree, one pass
 npm run build -w @mnd/web            # a production bundle
 npm run release:kit                  # build, pack and stamp @mnd/kit
-npm run dev -w @mnd/stage            # one surface alone — also explorer, options, tray
+npm run dev -w @mnd/stage            # one surface alone — also explorer, tray
 npm run start -w @mnd/cli -- fold related
 npm run samples                      # collect the packages, then the model and elements
 npm run example                      # collect samples/example, one diagram file per block, into samples/example.json and its package

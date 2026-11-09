@@ -1,0 +1,22 @@
+name: Charge a card
+type: model
+packages: [ services ]
+description: "How Payments takes money once: the card is charged, retried while the processor fails, and the outcome recorded for Orders."
+blocks:
+  - name: Payments
+    type: Circuit breaker
+    tags: [ payments, pii ]
+  - name: Card processor
+    type: external
+    tags: [ external api ]
+  - name: Ledger
+    type: Ledger
+  - name: Orders
+    type: Transactional outbox
+    tags: [ orders ]
+  - name: Customers
+    type: database
+relations:
+  - Payments -> Card processor: charge, retry
+  - Card processor -> Ledger: settled
+  - Ledger -> Orders: paid or cancelled

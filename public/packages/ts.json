@@ -13,7 +13,7 @@
             {
               "id": "ts.tag.entry",
               "name": "entry",
-              "description": "Where a reader starts: a module the rest is reached from, its barrels and wiring among them.",
+              "description": "Where a reader starts: a module the project says runs it (a manifest, a Dockerfile, a framework's file), or a barrel the rest is reached through.",
               "settings": {
                 "style": {
                   "hue": 140
@@ -33,6 +33,20 @@
           ]
         }
       },
+      "ts.actor": {
+        "id": "ts.actor",
+        "parent": "ts.dir.blocks",
+        "name": "actor",
+        "type": "block",
+        "def": {},
+        "description": "What the system reaches at its edge: the file system, a command it runs, the framework hosting it. Drawn where a path's units touch it.",
+        "order": 1,
+        "settings": {
+          "style": {
+            "hue": 30
+          }
+        }
+      },
       "ts.class": {
         "id": "ts.class",
         "parent": "ts.dir.blocks",
@@ -47,7 +61,7 @@
           ]
         },
         "description": "A class: its fields are its attributes, its methods said by their signatures, what it extends is its type.",
-        "order": 1,
+        "order": 2,
         "settings": {
           "card": {
             "face": "table"
@@ -67,11 +81,51 @@
             {
               "name": "lines",
               "type": "number"
+            },
+            {
+              "name": "runs",
+              "type": "text",
+              "note": "where it runs: node or browser"
+            },
+            {
+              "name": "entered",
+              "type": "text",
+              "note": "how the project says it is run"
+            },
+            {
+              "name": "types",
+              "type": "text",
+              "note": "the shared types it reads"
+            },
+            {
+              "name": "reads",
+              "type": "text",
+              "note": "files it reads"
+            },
+            {
+              "name": "writes",
+              "type": "text",
+              "note": "files it writes"
+            },
+            {
+              "name": "config",
+              "type": "text",
+              "note": "config keys it reads"
+            },
+            {
+              "name": "touches",
+              "type": "text",
+              "note": "the outside it reaches"
+            },
+            {
+              "name": "tests",
+              "type": "text",
+              "note": "tests importing it"
             }
           ]
         },
         "description": "A group of modules that import mostly each other, found from the import graph: its modules, or its own components, are its parts.",
-        "order": 2,
+        "order": 3,
         "settings": {
           "style": {
             "hue": 235
@@ -104,7 +158,7 @@
           ]
         },
         "description": "A function a module declares: what it takes and gives back, said by its signature.",
-        "order": 3,
+        "order": 4,
         "settings": {
           "style": {
             "hue": 150
@@ -118,7 +172,7 @@
         "type": "block",
         "def": {},
         "description": "A shape of data: its fields are its attributes, what it extends is its type.",
-        "order": 4,
+        "order": 5,
         "settings": {
           "card": {
             "face": "table"
@@ -138,11 +192,51 @@
             {
               "name": "lines",
               "type": "number"
+            },
+            {
+              "name": "runs",
+              "type": "text",
+              "note": "where it runs: node or browser"
+            },
+            {
+              "name": "entered",
+              "type": "text",
+              "note": "how the project says it is run"
+            },
+            {
+              "name": "types",
+              "type": "text",
+              "note": "the shared types it reads"
+            },
+            {
+              "name": "reads",
+              "type": "text",
+              "note": "files it reads"
+            },
+            {
+              "name": "writes",
+              "type": "text",
+              "note": "files it writes"
+            },
+            {
+              "name": "config",
+              "type": "text",
+              "note": "config keys it reads"
+            },
+            {
+              "name": "touches",
+              "type": "text",
+              "note": "the outside it reaches"
+            },
+            {
+              "name": "tests",
+              "type": "text",
+              "note": "tests importing it"
             }
           ]
         },
         "description": "A source file: its functions and values are its parts, the types it declares are definitions in the library, and its imports are its dependencies.",
-        "order": 5,
+        "order": 6,
         "settings": {
           "style": {
             "hue": 260
@@ -163,7 +257,7 @@
           ]
         },
         "description": "A package of the project: the modules under its source folder, and what it imports from other packages.",
-        "order": 6,
+        "order": 7,
         "settings": {
           "diagram": {
             "placing": "layered"
@@ -180,7 +274,7 @@
         "type": "block",
         "def": {},
         "description": "A named object type: its fields are its attributes.",
-        "order": 7,
+        "order": 8,
         "settings": {
           "card": {
             "face": "table"
@@ -208,7 +302,7 @@
           ]
         },
         "description": "A constant or variable a module declares, and its type.",
-        "order": 8,
+        "order": 9,
         "settings": {
           "style": {
             "hue": 45

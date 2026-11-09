@@ -4,7 +4,7 @@
  *  lists it, a row a box, chip or tile, so the arrows walk what the map nests. Worked out when
  *  asked, never stored. */
 
-import { children, inline, is_aside, is_group, is_header, is_interface, is_notation,
+import { children, def_at, inline, is_aside, is_group, is_header, is_interface, is_notation,
          is_reference, layer_of, lens_of, on_side, packages, stands_for, type Graph,
          type Id } from "@mnd/core";
 import { compounded, tree_groups } from "./flow";
@@ -32,10 +32,19 @@ export function layer_tree(graph: Graph, layer: Id): Branch[] {
 /** What a block holds on the map: its blocks, holders and a flow's marks, never a note, a label,
  *  an interface or a group — a group is a panel over its members. */
 export function members(graph: Graph, id: Id): Id[] {
-  return children(graph, id).filter((b) => on_side(graph, b.id, "structure")
-    && !is_interface(graph, b.id) && !is_group(graph, b.id)
-    && (!is_notation(graph, b.id) || !is_aside(graph, b.id)))
+  return children(graph, id).filter((b) => on_side(graph, b.id, "structure") && drawn(graph, b.id))
     .map((b) => b.id);
+}
+
+/** Whether a child is one the map draws: never an interface, a group, or a note or a label. */
+function drawn(graph: Graph, id: Id): boolean {
+  return !is_interface(graph, id) && !is_group(graph, id)
+    && (!is_notation(graph, id) || !is_aside(graph, id));
+}
+
+/** A definition's parts as a usage reads them through: what the map draws, on either side. */
+function parts_of(graph: Graph, def: Id): Id[] {
+  return children(graph, def).filter((b) => !b.def && drawn(graph, b.id)).map((b) => b.id);
 }
 
 /** How the tree makes a branch of a block: a box where diagrams lie below, else a chip. */
@@ -53,10 +62,14 @@ function branches(graph: Graph) {
     return deep.get(id)!;
   };
   /** A chip, its tiles each holding its own; a reference draws as what it stands for and holds
-   *  nothing here: that place lists where it lives. */
+   *  nothing here: that place lists where it lives. **A usage reads through** (2026-11-08): it
+   *  holds its definition's parts, then its own, as its opened layer draws them. */
   const chip = (id: Id): Branch => {
     const shows = is_reference(graph, id) ? stands_for(graph, id)?.id ?? id : id;
-    return { id, as: "chip", shows, held: members(graph, shows),
+    const b = graph.blocks[shows];
+    const def = b && !b.def ? def_at(graph, b.type) : undefined;
+    return { id, as: "chip", shows,
+             held: [...(def ? parts_of(graph, def.id) : []), ...members(graph, shows)],
              kids: shows === id ? listed(id).map(chip) : [] };
   };
   /** What a chip lists as tiles: its members but a grid's header cells — a sequence's step
