@@ -1,6 +1,6 @@
 /** Scene → React Flow, and nothing else. */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import {
   Background, BackgroundVariant, Controls, NodeToolbar, Panel, Position,
   PanOnScrollMode, ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useReactFlow,
@@ -20,7 +20,7 @@ import { useDraw } from "./draw";
 import { Grips } from "./Grips";
 import { kind_of, spread, LINES } from "./pointer";
 import { FlightContext } from "./level";
-import { paged, realm_of, useFit, useFocus, usePage, useRoom } from "./room";
+import { paged, useCamera, useFit, useRoom, type Shot } from "./room";
 import { Sweeping } from "./Sweeping";
 import { Traced } from "./Traced";
 import { useSync } from "./sync";
@@ -31,8 +31,8 @@ export { DRAGGED };
 function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
           said, chrome = true, lattice = false, frame: framed = true,
-          scroll = false, focus = null, reach: wide = null, widest = null,
-          most = null, stop = null, opened = 0, trace = null } = props;
+          scroll: paging = false, focus = null, reach: wide = null, widest = null,
+          most = null, onLand, trace = null } = props;
   const flow = useReactFlow();
   /** What a double-click's first click was on. The camera may fly off under the pointer between
    *  the two, so the second is about the first's target, not whatever has moved beneath it. */
@@ -51,22 +51,13 @@ function Canvas(props: FlowViewProps) {
   const fit = useFit(frame, seen);
   const { nodes, edges, moved, rewired, chose, again } =
     useSync(scene, picked, frame, onPick, second);
-  usePage(scene, seen, nodes, focus, wide, widest, most, scroll);
-  const flying = useFocus(scene, frame, stop, seen, scroll ? null : focus, opened);
-  /** Which drawing this is, a map or a layer entered from it: across a change nothing slides,
-   *  and the new drawing fades in where the camera cut to it. */
-  const realm = realm_of(scene);
-  const was_realm = useRef(realm);
-  const cut = was_realm.current !== realm;
-  useEffect(() => { was_realm.current = realm; });
-  const [fresh, set_fresh] = useState(false);
-  useEffect(() => {
-    if (!cut) return;
-    set_fresh(true);
-    const t = window.setTimeout(() => set_fresh(false), FADE);
-    return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [realm]);
+  /** **Where the camera looks**: the host's shot, else the drawing whole — read down the page
+   *  where scrolled — with the focus brought into sight. */
+  const at_focus = focus ? scene.nodes.find((n) => n.id === focus) : undefined;
+  const shot: Shot = props.shot ?? { box: null, reveal: at_focus ? box_of(at_focus) : null,
+                                     ...(paging ? { page: { reach: wide, widest, most } } : {}) };
+  const scroll = !!shot.page;
+  const { flying, cut, fresh } = useCamera(scene, shot, seen, onLand);
   /** The zoom, which the drawing's CSS reads. */
   const zoom = useStore(useCallback((st) => st.transform[2], []));
   /** **Zoom only zooms**: on a map, from the whole map fitted; never below the floor, as before
@@ -89,11 +80,12 @@ function Canvas(props: FlowViewProps) {
       const air = BAND / whole;
       return [[e.x - air, e.y - air], [e.x + e.w + air, e.y + e.h + air]];
     }
-    if (!scroll) return undefined;
-    const { page, zoom } = paged(scene, seen, wide, widest, most);
+    if (!shot.page) return undefined;
+    const { page, zoom } = paged(scene, seen, shot.page);
     const air = Math.max(BAND / zoom, (seen.h / zoom - page.h) / 2);
     return [[-Infinity, page.y - air], [Infinity, page.y + page.h + air]];
-  }, [scroll, scene, seen, wide, widest, most, whole]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scroll, scene, seen, JSON.stringify(shot.page), whole]);
 
 
   /** Where the pointer is on the drawing, unsnapped. */
@@ -195,7 +187,7 @@ function Canvas(props: FlowViewProps) {
     <CardsContext.Provider value={cards}>
     <ReactFlow
       className={["mnd-flow", framed ? "" : "frameless", scene.areas ? "map" : "",
-                  cut ? "cut" : "", fresh ? "fresh" : ""].filter(Boolean).join(" ")}
+                  cut ? "cut" : "", cut || fresh ? "fresh" : ""].filter(Boolean).join(" ")}
       style={{ "--zoom": String(zoom) } as React.CSSProperties}
       nodes={nodes}
       edges={edges}
@@ -379,10 +371,6 @@ export function FlowView({ naming = null, onNamed, ...props }: FlowViewProps) {
 
 /** The most a map is magnified: enough for a chip to fill the view as it is entered. */
 const MAP_ZOOM = 16;
-
-/** How long a drawing takes to fade in where the camera cut to it. */
-const FADE = 200;
-
 
 /** How soon and how near a second click must land to be a double-click's. */
 const DOUBLE = 500;

@@ -17,6 +17,7 @@ import { Crumbs } from "./Crumbs";
 import { Hover } from "./Hover";
 import { path_rules, usePath } from "./path";
 import { Walk, type Walking } from "./Walk";
+import type { Shot } from "./room";
 
 export type { Adjust, Landing, Move };
 
@@ -64,17 +65,12 @@ export type StageProps = {
   lit?: readonly string[];
   /** What the selection touches elsewhere: lit in the relation colour. */
   touched?: readonly string[];
-  /** The drawing read down the page: fitted to its width, scrolled rather than zoomed, the camera
-   *  following `focus`. */
-  scroll?: boolean;
-  focus?: string | null;
-  /** The most a scrolled drawing magnifies. */
-  most?: number | null;
+  /** **Where the camera looks**: the host's one shot, landed by the canvas. */
+  shot?: Shot;
+  /** Told each shot the camera landed. */
+  onLand?: (shot: Shot) => void;
   /** Whether the drawing is a layer entered from a map: Escape leaves it for the map. */
   entered?: boolean;
-  /** Counted up by every open: a new count flies to the focus, the same one or not. */
-  opened?: number;
-  stop?: { x: number; y: number; w: number; h: number; scale?: number } | null;
 
   /** Whether the canvas has the keys. Undo and redo answer wherever the keys are. */
   keys?: boolean;
@@ -202,8 +198,7 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
                        menu, said, onSaid, head, empty, lattice, frame, legend, corner, module,
-                       dir, type, lit = [], touched = [], scroll = false, focus = null, most = null,
-                       entered = false, stop = null, opened = 0,
+                       dir, type, lit = [], touched = [], shot, onLand, entered = false,
                        keys = true, editable = true, walk = null, onClear }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
@@ -443,12 +438,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onPickCells={onPickCells}
         lattice={lattice}
         {...(frame === undefined ? {} : { frame })}
-        scroll={scroll}
-        focus={focus}
-        most={most}
-
-        opened={opened}
-        stop={stop}
+        {...(shot ? { shot } : {})}
+        {...(onLand ? { onLand } : {})}
         naming={naming}
         onNamed={(label) => {
           const was = typing;

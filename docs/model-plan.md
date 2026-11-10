@@ -11,10 +11,9 @@
 |---|---|---|
 | 1 | **the mndsite review**: Claude reads mndsite's code personally and walks the user through it part by part — a digest per part, visuals (mockups) of the diagrams and chips that would explain it, discussed and agreed — then, per agreed picture, how the translator could capture it | mndsite-plan.md |
 | 2 | the review's build list, taking in *what did not land in translation* (173 flows here, group names, actors leaking through units) and the chip stamp (*Questions* 1) | mndsite-plan.md, translation-plan.md *Landed* |
-| 3 | **the camera has no single owner**: one function from state to one camera target, one hook applying it | stage `room.ts` `useFocus`, web `App.tsx` `stop` |
-| 4 | the rest of *Open after the passes*; polish waits in backlog.md *After the mndsite review* | below |
+| 3 | the rest of *Open after the passes*; polish waits in backlog.md *After the mndsite review* | below |
 
-Start by regenerating (*Commands*) and driving mndsite. **Drive every depth after a navigation change**: a map tile, a part inside an entered use, into it and back up by crumb, on every sample. Suggested commit before taking anything up: *Read parts through their use; chips show answers and list small parts; name models by entry*.
+Start by regenerating (*Commands*) and driving mndsite. **Drive every depth after a navigation change**: a map tile, a part inside an entered use, into it and back up by crumb, on every sample. **The camera has one owner** (built 2026-11-08, uncommitted; *Camera* below). Suggested commit: *One owner for the camera; fly into chips, cut where drawings meet*.
 
 
 ## Goal
@@ -112,8 +111,25 @@ Start by regenerating (*Commands*) and driving mndsite. **Drive every depth afte
 | **tall tiles said nothing** | a tall tile too narrow for its name turns it (theme `chip.tsx` `upright`) |
 | **picking a package after a folder kept the zoom** | the reveal of the picked block was judged against the camera still at the folder's zoom and overrode the fit; it is now judged against where the camera is going (stage `room.ts` `going`) |
 | **letting go kept the zoom** | Escape or empty ground fits the section's map again (web `App.tsx`); design.md updated |
-| **entering flew in, then cut back out** | entering cuts, the view fading in fitted; **to confirm** this was the *zoom in then out* the user saw, then update design.md *Motion* and definitions.md *enter* |
+| **entering flew in, then cut back out** | superseded by *Camera* below: the flight ends where the entered view will stand, so nothing zooms back out |
 | **seen, not fixed** | at the fitted zoom the library's *components* box now folds three chips (*+3 more*): rows laid smaller changed the treemap's weights |
+
+### Camera (built 2026-11-08)
+
+**One owner**: web `camera.ts` `shot_of` works out one shot from where the app is; stage `room.ts` `useCamera` lands it. Gone: `useFocus`, `usePage`, `stop`, `through` and its 30 ms timer, `last_stop`, `aim`'s `flushSync`; a flight's target (`going`) is now the hook's own. Driven on all four samples (map, model, part inside a model, page, grid; crumbs, Escape, letting go, walk steps, resize, reduced motion), console clean.
+
+| Built | How |
+|---|---|
+| **fly into the chip, then cut** (the user's choice) | the map stays drawn while the entered view is laid; the camera flies into the chip only as far as that view will stand, then cuts, so the zoom never turns back. Also from a chip on an entered treemap (a model's part) |
+| **fly out of the chip** | leaving, or going up by a crumb, the drawing gone to starts with the chip where the view stood, then flies out |
+| **no flash at a cut** | the fade starts before the cut is painted (a layout effect); before, the old layer showed for about 4 frames under the new camera |
+| **a layer treemap is its own drawing** | `realm_of` told a model's treemap from the models map by title alone, so entering a model never faded |
+
+| Open | Notes |
+|---|---|
+| **first motion waits on the layout** | 100–190 ms from the double-click to the first move on ELK-laid views, since the flight must know where the view will stand |
+| **revealing the same block twice** | pans only once until something else is picked or revealed (the `flushSync` trick is gone) |
+| **a registry drawn as a treemap** | fitted whole, its wheel zooming, where before both a page and a fit fought over it |
 
 ### Chip faces gap (2026-11-08)
 
@@ -158,7 +174,6 @@ Against the mockup's *Kinds* board (https://claude.ai/artifact/RCAGGQPcybLxRYZSk
 |---|---|---|
 | 1 | **how a diagram chip stands out** (waits on the mndsite review) | a per-kind stamp in the head (the kind's icon in a filled badge of its hue) / the kind's icon large and faint behind the tiles / a header band in the kind's hue / tiles alone, as now |
 | 2 | **flows from code** (translation-plan.md; the mndsite review decides) | only functions calling across modules / only entries' functions / a higher floor than 3 |
-| 3 | **entering a chip** | cut to the entered view, fading in (built, to confirm with the user) / fly into the chip then cut, as before |
 
 
 ## Carried from code translation
