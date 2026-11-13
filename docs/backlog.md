@@ -1,6 +1,6 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next**: the mndsite review (mndsite-plan.md, 2026-11-08): read one project part by part and agree its pictures before changing the translator or the faces again. It feeds what a model is, its plan in model-plan.md (taken up 2026-11-07): narrative paths from the entries, the walk front and centre, and the translations' acceptance. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next** (2026-11-12): the mndsite review is done (mndsite-plan.md *Outcome*); next is the diagram kinds pass (docs/diagrams/), then building presentations (presentations.md) and the tools (docs/tools/), in model-plan.md *Next session*. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
 
 ## After the mndsite review
 

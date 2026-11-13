@@ -1,63 +1,82 @@
 # Model plan
 
-**Make a model mean something: an informative overview of a system, told as narrative paths from its entry points through its primary components, with the walk front and centre.** Taken up 2026-11-07, when the simplification and code translation plans closed (2026-11-08); it takes over the translations' acceptance. **Delete this plan when the user accepts the shop and both translations (this repo, mndsite) as models.**
+**Make a model mean something: one overview model of a system, decomposed into purposeful models, its presentations played from the overview like a slide deck.** Taken up 2026-11-07; redirected 2026-11-09 after part 1 of the mndsite review: the translator becomes agent-first tools, and model rules are rewritten as the review goes, assuming nothing earlier about a model's structure or purpose. **Delete this plan when the user accepts the shop and both translations (this repo, mndsite) as models.**
 
 
 ## Next session
 
-**State at hand-off (2026-11-08, late; all uncommitted).** Passes 1–3 built (*Build*). Pass 3 made mndsite's chips say more (answers, listed parts, entry-named models) and fixed navigation into a definition's parts from a model. The user's verdict: translated diagrams are still often trivial or messy (one-block flows) and chips are not the right kinds; **no more translator or face changes until the mndsite review agrees what each part should look like.**
+**State at hand-off (2026-11-12; all uncommitted).** The mndsite review is done: twelve parts agreed, mndsite's model recorded in mndsite-plan.md *Outcome* (review page https://claude.ai/artifact/UN5BuHw2XGH3T5bmcUMMHu). **Presentations** replace walks: specified in presentations.md from the mockup the user accepted ("behaves exactly as I would expect", https://claude.ai/artifact/WFdvLDrRtW6tfWGevF6cx5). 18 tools are documented in docs/tools/. No code changed this session.
 
 | Order | Take up | Where |
 |---|---|---|
-| 1 | **the mndsite review**: Claude reads mndsite's code personally and walks the user through it part by part — a digest per part, visuals (mockups) of the diagrams and chips that would explain it, discussed and agreed — then, per agreed picture, how the translator could capture it | mndsite-plan.md |
-| 2 | the review's build list, taking in *what did not land in translation* (173 flows here, group names, actors leaking through units) and the chip stamp (*Questions* 1) | mndsite-plan.md, translation-plan.md *Landed* |
-| 3 | the rest of *Open after the passes*; polish waits in backlog.md *After the mndsite review* | below |
+| 1 | **the diagram kinds pass**, run like the review: one kind at a time, a mockup and a short file each in docs/diagrams/ (purpose, utility, surface: how it is written in files and which tool makes it), agreed with the user. Kinds named so far: context, flow, dataflow, sequence, swimlane, state, internal, class, entity, mapping, tree; base views: layer, grid, types, treemap (design.md *Diagram kinds*, docs/tools/ README) | mndsite-plan.md step 6 |
+| 2 | **build presentations**: the file, the player (open, camera, steps, pace), the About band, the tray, the CLI | presentations.md *Building it* |
+| 3 | **the tools' build list**: fact tools first (most exist in apps/ts `read.ts`), then diagram tools, CLI before MCP | docs/tools/ |
+| 4 | the rest of *Open after the passes*; polish waits in backlog.md *After the mndsite review* | below |
 
-Start by regenerating (*Commands*) and driving mndsite. **Drive every depth after a navigation change**: a map tile, a part inside an entered use, into it and back up by crumb, on every sample. **The camera has one owner** (built 2026-11-08, uncommitted; *Camera* below). Suggested commit: *One owner for the camera; fly into chips, cut where drawings meet*.
+**Carry over**: presentations.md *Open* (where the pace setting is kept; how a shown diagram is left); chip stamp (*Questions* 1) waits on the kinds pass; passes 1–3 (*Build*) were built under the old direction, and what of them stays is decided with the build list. Suggested commit: *mndsite review, presentations spec and tool docs*. **Drive every depth after a navigation change** once code changes again. **The camera has one owner** (committed 4ea7e35; *Camera* below).
 
 
 ## Goal
 
 | | |
 |---|---|
-| **a model is** | an overview of one system: its primary parts, its entry points in reading order, and the paths that run from them |
-| **the story** | the model's business: its narrative paths and the order its entries are read in belong to the model, not to a view |
-| **the walk** | front and centre: how a person meets a model, never a mark to hunt for |
-| **acceptance** | the shop, this repo and mndsite each read as such a model in the app; `mnd measure` as a check |
+| **a model is** | a view of one system with one clear purpose; models combine into larger ones |
+| **the overview** | one per system, decomposed into smaller models as the system's complexity needs; what is too small for a model of its own stays in it |
+| **perspectives** | actors and entries, data flows, deployment and release, and more: each may be its own model |
+| **presentations** | a model's ordered, narrated overviews: stops through its parts, presented like a slide deck, the overview as their opening stop |
+| **the agent** | focuses the user on the primary components and illustrates the most important parts, using the tools |
+| **acceptance** | each model states its purpose, passes `mnd measure`, and the user accepts it in the app: the shop, this repo and mndsite |
 
 
 ## Decided
 
-| # | Decision | Since |
-|---|---|---|
-| 1 | **a model's diagram is its kind's**: a model never says its own `diagram`; the door drops one, the look action refuses it | 2026-11-07 |
-| 2 | **a model is a treemap laid in step order** (replaced `layered`, 2026-11-08): entering a model shows its treemap view, its path's blocks as tiles in step order, the path drawn across them | 2026-11-08 |
-| 3 | **a box groups, never behaves**: a behaviour in a region or folder belongs to the block whose layer the box is on | 2026-11-07 |
-| 4 | **the story and its reading order are the model's**; with one path per model, its order is its steps' | 2026-11-07 |
-| 5 | **the walk is front and centre** in how a person interacts with a model | 2026-11-07 |
-| 6 | **paths decide what a model holds**: **one path per model**, a focused path through the system; its blocks are the ones that path passes through | 2026-11-08 |
-| 7 | **one story per model**: the package (the translated system) holds the shared blocks every model uses, in the library; the system is described by the set of models extracted from it | 2026-11-08 |
-| 8 | **the walk leads the tray's overview** (moved from the rail 2026-11-08, the options rail removed): the model's stack, like a stack trace, and simple debugger controls (next, previous, into, out). Each frame is a block, shown as a stack of blocks; choosing one goes to that step | 2026-11-08 |
-| 9 | **a walk keeps its depth**: the user follows the main path at one model's depth and may enter a sub model at any step, which pushes a frame | 2026-11-08 |
-| 10 | **off-path parts are shared**: what no path passes through goes in a shared box, for now | 2026-11-08 |
-| 11 | **faces say more with less**: card faces minimize clutter and use their area to show contents and components, as chips' diagram-like look began; the mini map and attribute, usage and tag chips grow so **each diagram kind reads at a glance zoomed out**, with sub blocks and content inspected on focus | 2026-11-08 |
-| 12 | **one mechanism for composing**: a step's block may be a use of another model, and *into* enters it; that is a sub model, and how patterns compose | 2026-11-08 |
-| 13 | **a narrow chip turns its signature, never its body**: name, kind and icon (component chips where room allows) read upright; its body reads horizontally | 2026-11-08 |
-| 14 | **each diagram kind has its own silhouette at chip scale** beside its hue (sequence lifelines, class rows, flow a line through cards, treemap tiles), consistent at every zoom, clutter kept minimal | 2026-11-08 |
-| 15 | **one chip representation at every zoom**: the same content near and far; detail fades, dims and compresses far and comes forward near, continuously, with no transition point; replaces chip levels (design.md); every choice (signature turned, tiles placed, name or icon) is made from the laid shape, never the size on screen | 2026-11-08 |
-| 16 | **the step readout lives in the tray**: the step, its text, what it carries, a sub model here, what comes next | 2026-11-08 |
-| 17 | **the tray sits by the canvas's shape**: right of a landscape canvas, below a portrait one, so the canvas keeps a steadier aspect | 2026-11-08 |
-| 18 | **a walk step is one hop**, lit on the canvas, its readout in the tray | 2026-11-08 |
-| 19 | **a 1-step path is not a model**: it folds into what calls it | 2026-11-08 |
-| 20 | **no cap on a model's size**: a path may have any number of steps; the translator aims under `steps`, a flexible threshold defaulting to 12, and is adjusted where a path grows too long. Measured on the code samples | 2026-11-08 |
-| 21 | **flow models come later**: how data flows is a model kind of its own, expanded in a later step | 2026-11-08 |
-| 22 | **the package sets its models' reading order** by one general metric: a sub model right after the model entering it, then by the summed salience of the blocks each path passes through, most central first, ties to the entry nearer what nothing uses | 2026-11-08 |
-| 23 | **what is primary reads first** (option B): shared parts quieter, keeping their colour; the path's most central blocks larger and framed heavier; inside a block its primary part leads and minor parts compress; wider gaps between blocks than within one | 2026-11-08 |
-| 24 | **the library is the system**: every block a translation reads is a definition in its package's library, in folders; models hold uses of them and define nothing; a definition's registry says which models use it. Models are no longer listed in the library, only in the models | 2026-11-08 |
-| 25 | **a model's steps are its lines in list order**, each line one hop; no new key | 2026-11-08 |
+**2026-11-09, the new direction.**
+
+| # | Decision |
+|---|---|
+| 1 | **the translator is agent-first tools**: fact tools and diagram tools targeted at cases the review finds, CLI first, MCP a thin wrapper over the same commands; an agent composes models with them. apps/ts's reading (`read.ts`, `structure.ts`) is reused as fact tools; `write.ts`'s model rules are what this replaces |
+| 2 | **composed models are saved as editable files**, each block and flow anchored to its source (file, symbol), so `check` can flag drift |
+| 3 | **a model shows parts and behaviours by containment** (the tree); steps belong in flows inside it, never in the model's own layout |
+| 4 | **an entry is a way into a model**, not a model of its own: nine entries running slices of one path are one model's entries |
+| 5 | **data is never a block in a model**: it may be a definition (a port's schema) and flows between parts and across the edge through ports; model and definitions stay separate |
+| 6 | **the outside is external blocks joined by data flows**: inputs and outputs drawn as external blocks (part 1's context diagram), their relation to the system a data flow through ports with schemas |
+| 7 | **CI, Docker and the like** are part of the overview unless big enough for a model of their own |
+| 8 | **every diagram kind is documented** in docs/diagrams/, one file each: purpose, utility, surface |
+| 9 | **the overview offers its presentations both ways** (revised 2026-11-12): listed in the About band below the system, and picking one plays it on the overview |
+| 10 | **boxes open and close**: primary components, sub models and subtrees open; everything else shows its name. Opening and closing is the only change of layout. **What we know about a model sits apart**: an About band below the system, past a dashed divider, plain text notes never drawn like the system, never lit or dimmed; its groups are set by the model file's `about:` (default presentations, entries, library), each holding any blocks, definitions, presentations or entries (2026-11-12) |
+| 11 | **tools stay separate**, one question each, and each is documented in docs/tools/, one file each: purpose, use case, surface; added to as the review finds cases. **They are plain CLI tools for a person as much as an agent**, as simple as possible; nothing in a model or diagram records who made it. **The design pass's final test is that the user understands how to use them** (2026-11-11) |
+| 12 | **a presentation is ordered stops with narrative**: each stop's text presented to the user; the order must be a logical path through the system, never an enumeration of unordered relations. A datum's data flow may seed a presentation offered from the part that makes it |
+| 13 | **diagram tools are flavours over a few base views**: a tool makes one kind, the same base view with its own semantics and annotations (sequence and swimlane over the grid; context, flow and dataflow over the layer). Documented in docs/tools/ README, and per kind in docs/diagrams/ |
+| 14 | **a part's frame is the context for its flows** (2026-11-11): every flow is drawn inside the frame of the part that owns it (its boundary, its ports, what is across them), ending at its ports, so context and flow are one picture at every level. Opening a part shows its frame with its presentations, mapping and data boxes beside it. A part's diagrams fall in four classes: frame, flows (flow, sequence, dataflow), data (class), mapping (a grid: reads, writes, rule) |
+| 15 | **a presentation ties parts of the system together in a directed order** (2026-11-12; was *walk*; *tour* rejected, *path* kept as the informal "presentation path"): as general as a relation, not limited to show-and-tell. A presentation is a sequence of **stops**; each stop has **one distinct point** |
+| 16 | **a stop is a state of the overview** (fields settled 2026-11-12, spec in presentations.md): `title`, `at` (ringed, the camera's centre), `open`, `fit` (optional), `show` (optional: a diagram the stop opens), `summary`, `into` (optional), `pace` (optional), and ordered `steps`, each a `relation` the model has (or the shown diagram draws) or a `mark`ed block, with one sentence. One drawing and a camera: no overlay, nothing morphs. The reader may dive into any part at a stop and resume |
+| 17 | **presentations play like a slide deck**: visuals first, the words in the tray. A stop opens its boxes, the camera moves, then its steps build one at a time, each step's sentence appearing in the tray as it is drawn. Steps advance on a timer (`pace`, default 1.7 s, `0` for on click) and a click shows the next one at once. A presentation opens on its **overview** stop (not "agenda") |
+| 18 | **the overview is the map focused on one model**, and the registry is the same view focused on one definition: one treemap of chips with collapsible boxes, three roots (world, model, definition) |
+| 19 | **flows and presentations stay distinct**: a flow or sequence diagram pictures relations inside one block; a presentation can cross diagrams. A flow may seed a presentation, one stop per step, its narration added |
+| 20 | **presentations live in the model file** as a `presentations:` list; stops name blocks as lines do |
+| 21 | **a stop may lead into a sub model's presentation** and return, by the same *into* as everywhere |
+| 22 | **presentations are made through the CLI** by a person or an agent; a `presentation` tool may draft one from a flow or sequence, to be edited |
+
+**Kept from 2026-11-07/08** (not about a model's structure or purpose).
+
+| # | Decision |
+|---|---|
+| 23 | **a model's diagram is its kind's**: a model never says its own `diagram` |
+| 24 | **a box groups, never behaves**: a behaviour in a region or folder belongs to the block whose layer the box is on |
+| 25 | **presentations are front and centre** in how a person meets a model; it leads the tray's overview, with simple debugger controls (next, previous, into, out) |
+| 26 | **one mechanism for composing**: a block may be a use of another model, and *into* enters it |
+| 27 | **the library is the system**: models hold uses of its definitions and define nothing |
+| 28 | **faces say more with less**; **one chip representation at every zoom**; **a narrow chip turns its signature, never its body**; **each diagram kind has its own silhouette** at chip scale |
+| 29 | **the tray sits by the canvas's shape**: right of a landscape canvas, below a portrait one |
+| 30 | **what is primary reads first**: shared parts quieter, keeping their colour; the most central blocks larger and framed heavier |
+
+**Dropped 2026-11-09**: one path per model; a model as a treemap in step order; a model's steps as its lines; a 1-step path is no model; `steps` as a model's size; reading order by salience; off-path parts in a *Shared* box; flow models later.
 
 
 ## Build
+
+Built under the 2026-11-08 direction; kept as the record of what is in the code.
 
 **Pass 1**: the model as a path, and the walk. **Built 2026-11-08.**
 
@@ -173,7 +192,7 @@ Against the mockup's *Kinds* board (https://claude.ai/artifact/RCAGGQPcybLxRYZSk
 | # | Question | Options, leaning first |
 |---|---|---|
 | 1 | **how a diagram chip stands out** (waits on the mndsite review) | a per-kind stamp in the head (the kind's icon in a filled badge of its hue) / the kind's icon large and faint behind the tiles / a header band in the kind's hue / tiles alone, as now |
-| 2 | **flows from code** (translation-plan.md; the mndsite review decides) | only functions calling across modules / only entries' functions / a higher floor than 3 |
+| 2 | **flows from code** (the mndsite review decides): what a flow tool draws from a selection the agent makes | a call chain from one function, across modules only / an entry's chain / a data flow between parts |
 
 
 ## Carried from code translation
