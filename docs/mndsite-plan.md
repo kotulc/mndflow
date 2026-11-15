@@ -1,6 +1,6 @@
 # mndsite plan
 
-**The mndsite review: understand one real project part by part and agree, with the user, what each part should look like and which tool would draw it.** Proposed by the user 2026-11-08 to stop the build-look-revert loop. Since 2026-11-09 the translator is a set of plain CLI tools a person or an agent composes models with (model-plan.md *Decided*), so the review yields pictures **and the tools that build them**. **Parts 1–12 agreed 2026-11-12**; what remains is step 6, the diagram kinds pass. Delete when docs/diagrams/ is written and model-plan.md has taken up the build list.
+**The mndsite review: understand one real project part by part and agree, with the user, what each part should look like and which tool would draw it.** Proposed by the user 2026-11-08 to stop the build-look-revert loop. Since 2026-11-09 the translator is a set of plain CLI tools a person or an agent composes models with (model-plan.md *Decided*), so the review yields pictures **and the tools that build them**. **Parts 1–12 agreed 2026-11-12**; the diagram kinds pass (step 6) done 2026-11-15; what remains is model-plan.md taking up the tools' build list. Delete when docs/diagrams/ is written and model-plan.md has taken up the build list.
 
 Review page, a section per part with digests, mockups and what was agreed: https://claude.ai/artifact/UN5BuHw2XGH3T5bmcUMMHu. mndsite's bugs found on the way: mndsite's own `bugs.md` (11 rows).
 
@@ -13,8 +13,8 @@ Review page, a section per part with digests, mockups and what was agreed: https
 | 2 | per part: mockups on the review page | done |
 | 3 | per part: agreed pictures, what is noise | done |
 | 4 | per agreed diagram: the tool that draws it | done |
-| 5 | one file per tool in docs/tools/ (18) | done; the build list goes to model-plan.md |
-| 6 | **the diagram kinds pass**: every kind's purpose, utility and surface (files or otherwise), one file each in docs/diagrams/ | **next** |
+| 5 | one file per tool in docs/tools/ (17) | done; the build list goes to model-plan.md |
+| 6 | **the diagram kinds pass**: every kind's purpose, utility and surface (files or otherwise), one file each in docs/diagrams/ | done 2026-11-15 (https://claude.ai/artifact/Pxqq3R9YBEADASCmZyDYqc) |
 
 **Rules that held**: no tool or face code until a picture is agreed; one part at a time; digests from source, never from the current translation; a part not worth a diagram is said so; every proposal tagged **general** or **mndsite**; fit each part to the agreed classes first and propose a new kind only when none fits.
 

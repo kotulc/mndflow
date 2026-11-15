@@ -5,16 +5,35 @@
 
 ## Next session
 
-**State at hand-off (2026-11-12; all uncommitted).** The mndsite review is done: twelve parts agreed, mndsite's model recorded in mndsite-plan.md *Outcome* (review page https://claude.ai/artifact/UN5BuHw2XGH3T5bmcUMMHu). **Presentations** replace walks: specified in presentations.md from the mockup the user accepted ("behaves exactly as I would expect", https://claude.ai/artifact/WFdvLDrRtW6tfWGevF6cx5). 18 tools are documented in docs/tools/. No code changed this session.
+**State (2026-11-15, hand-off).** The mndsite review is committed (3045e65). **The diagram kinds pass is done** (uncommitted, docs only): ten kinds agreed, one file each in docs/diagrams/ (page https://claude.ai/artifact/Pxqq3R9YBEADASCmZyDYqc); design.md, design/card.md, docs/tools/ (tree.md renamed overview.md, staged with `git mv`) and the plans updated. Suggested commit: *Diagram kinds pass: ten kinds agreed, one tree view, tool docs updated*. No code changed since 4ea7e35.
 
 | Order | Take up | Where |
 |---|---|---|
-| 1 | **the diagram kinds pass**, run like the review: one kind at a time, a mockup and a short file each in docs/diagrams/ (purpose, utility, surface: how it is written in files and which tool makes it), agreed with the user. Kinds named so far: context, flow, dataflow, sequence, swimlane, state, internal, class, entity, mapping, tree; base views: layer, grid, types, treemap (design.md *Diagram kinds*, docs/tools/ README) | mndsite-plan.md step 6 |
-| 2 | **build presentations**: the file, the player (open, camera, steps, pace), the About band, the tray, the CLI | presentations.md *Building it* |
-| 3 | **the tools' build list**: fact tools first (most exist in apps/ts `read.ts`), then diagram tools, CLI before MCP | docs/tools/ |
+| 1 | **build presentations**, starting with what they play on: **the model root of the one tree view** (docs/diagrams/tree.md): boxes open and closed from `open:`, context's zones round it (`actor`, `external` base kinds), the About band from `about:`; then the presentations file, state, player (open, camera, steps, pace), tray section and CLI | presentations.md *Building it*; *Build notes* below |
+| 2 | **the tools' build list**: fact tools first (most exist in apps/ts `read.ts`), then diagram tools, CLI before MCP. Gives state, swimlane and entity each a use case, so each gets a tool (docs/diagrams/README.md *Kinds drawn by hand*). Decides what of *Build* passes 1–3 and translation-plan.md stays (`write.ts`'s one model per path, the walk, the *Shared* box were built under the dropped direction) | docs/tools/ |
+| 3 | **the diagram file syntax pass** (the user, 2026-11-15): one concise, general file syntax for every diagram kind, after the tools pass; starts from the surface changes in *Build notes* | docs/diagrams/ *Surface* sections |
 | 4 | the rest of *Open after the passes*; polish waits in backlog.md *After the mndsite review* | below |
 
-**Carry over**: presentations.md *Open* (where the pace setting is kept; how a shown diagram is left); chip stamp (*Questions* 1) waits on the kinds pass; passes 1–3 (*Build*) were built under the old direction, and what of them stays is decided with the build list. Suggested commit: *mndsite review, presentations spec and tool docs*. **Drive every depth after a navigation change** once code changes again. **The camera has one owner** (committed 4ea7e35; *Camera* below).
+**Carry over**: presentations.md *Open* (where the pace setting is kept; how a shown diagram is left; data moving along a step's line); chip stamp (*Questions* 1), unblocked, to take up with the tree view. **Drive every depth after a navigation change** once code changes again. **The camera has one owner** (committed 4ea7e35; *Camera* below). **Mockups use the app's own faces** (docs/design/card.md, mockups/tray-lists.html), never an invented look.
+
+
+### Build notes from the kinds pass
+
+What the agreed kinds ask of the code, by home. Each is general; the kind's file says why.
+
+| Home | Change | Kind |
+|---|---|---|
+| base kinds | `context` replaces `internal` (view `internal` kept); the `treemap` kind is retired (samples/elements only); new `actor`, `external`, `dataflow`, `mapping` (*has records*) | context, tree, dataflow, mapping |
+| core | a port's `type` may name a data definition (`sources.ts` `interface_of`); a mapping's records; a dataflow's `datum`; a model's `open:` | dataflow, mapping, tree |
+| theme | a typed seat filled with its type's colour, semi-transparent, and outlined; a base seat hollow (design/card.md) | dataflow |
+| views and stage: layer | one frame-and-zones layout (bands, ELK layered with the frame a compound node, ports fixed by side and order) for context, flow, dataflow, state; flow's lanes, lines back, `[guard]` labels; dataflow's ranks and datum band | context, flow, dataflow, state |
+| views and stage: grid | sequence: participant order, the owner's frame over the head, origin dots, fragments for repeats and alternatives; swimlane turned by the canvas | sequence, swimlane |
+| views: records table | one generic records table: row accent by the definition named, groups by source with plain headings, links | mapping |
+| views and stage: types | class and entity: lines from the field's row (entity: row to row, crow's feet), owners first along the long side, named fields as links, worked-out foreign keys | class, entity |
+| views: tree | one tree view, three roots (world, model, registry); a chip a closed box; the registry's own treemap (`treemap.ts` `tiled`) retired into it | tree |
+| tools | diagram tools warn below the floor (3 steps, messages, states, rows, parts); `tree` renamed `overview` | all |
+| surface (syntax pass) | sequence messages between participants; swimlane `lanes`/`phases`; dataflow `datum`; mapping `records`; model `open:` | sequence, swimlane, dataflow, mapping, tree |
+| samples | samples/elements loses its treemap block; Fulfilment writes `lanes`/`phases`; Order states and Payment retry unchanged | tree, swimlane |
 
 
 ## Goal
@@ -118,7 +137,7 @@ Built under the 2026-11-08 direction; kept as the record of what is in the code.
 | Open | Notes |
 |---|---|
 | **a read-through part is entered through its use** | fixed 2026-11-08: a definition's part seen through a use jumped to the library; it is now entered in the models through that use (core `View.via`, `way_of`; design.md), the trail and leaving following the way |
-| **the step's words** | the step read says its hop and what crosses it; a model's own narrative per step waits on the walkthrough format (design.md *Open*) |
+| **the step's words** | settled by presentations: each step's sentence is written in the model file (presentations.md) |
 
 ### Fixed after the user's look (2026-11-08)
 
@@ -176,6 +195,8 @@ Against the mockup's *Kinds* board (https://claude.ai/artifact/RCAGGQPcybLxRYZSk
 
 ## Found 2026-11-07
 
+About walks, answered by presentations (presentations.md): offered from the overview's About band, crossing diagrams by `show` and `into`.
+
 | Finding | Notes |
 |---|---|
 | **few walks, hard to find** | a walk starts only from its owner, picked (▶). Shop has one (8 steps, its region's two behaviours); elements none; this repo 6 entry modules (4–12 steps); mndsite 7, six of them 1 step |
@@ -191,14 +212,18 @@ Against the mockup's *Kinds* board (https://claude.ai/artifact/RCAGGQPcybLxRYZSk
 
 | # | Question | Options, leaning first |
 |---|---|---|
-| 1 | **how a diagram chip stands out** (waits on the mndsite review) | a per-kind stamp in the head (the kind's icon in a filled badge of its hue) / the kind's icon large and faint behind the tiles / a header band in the kind's hue / tiles alone, as now |
-| 2 | **flows from code** (the mndsite review decides): what a flow tool draws from a selection the agent makes | a call chain from one function, across modules only / an entry's chain / a data flow between parts |
+| 1 | **how a diagram chip stands out** (unblocked 2026-11-15: take up with the tree view; a chip is a closed box) | a per-kind stamp in the head (the kind's icon in a filled badge of its hue) / the kind's icon large and faint behind the tiles / a header band in the kind's hue / tiles alone, as now |
+
+
+## Questions answered
+
+- **flows from code** (answered by the review): a flow is a chain from `calls` or `workflows` cut into sub flows (docs/tools/flow.md); following one datum is a dataflow; ordered messages a sequence
 
 
 ## Carried from code translation
 
-- **the user's direction** (2026-11-02): a deterministic structure found from the graph, not agentic band-aids; no hard rules about what a block is; thresholds are defaults with floors; balance depth against the big picture; diagrams are visual information, never lists of parts; agents refine and narrate on top
-- **the walk's refinements** (the user, 2026-11-05): the user likes *walk its path* on sequences and has refinements in mind; take them up under *Questions* 2–3
+- **the user's direction** (2026-11-02, revised 2026-11-09 by *Decided* 1): facts are found deterministically from the graph; which make a model is chosen by whoever uses the tools; no hard rules about what a block is; thresholds are defaults with floors; balance depth against the big picture; diagrams are visual information, never lists of parts
+- **the walk's refinements** (the user, 2026-11-05): the user liked *walk its path* on sequences; carried into presentations (a flow or sequence may seed one, decisions 19 and 22)
 - **seen, not fixed** (design-plan.md *Open*): a lone use (*Shop*) loses its name to its box's heading line, which an overview diagram would show first
 - the translator's rules are design.md *Translation*; its stages and settings apps/ts's README
 

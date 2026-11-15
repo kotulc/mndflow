@@ -1,18 +1,16 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next** (2026-11-12): the mndsite review is done (mndsite-plan.md *Outcome*); next is the diagram kinds pass (docs/diagrams/), then building presentations (presentations.md) and the tools (docs/tools/), in model-plan.md *Next session*. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next** (2026-11-15): the diagram kinds pass is done (docs/diagrams/); next is building presentations, then the tools (docs/tools/), then the diagram file syntax pass, in model-plan.md *Next session*. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
 
 ## After the mndsite review
 
-**Polish moved out of model-plan.md and translation-plan.md (2026-11-08).** Each waits on the mndsite review (mndsite-plan.md): take up only what the agreed pictures still need, drop what they make moot.
+**Polish moved out of model-plan.md and translation-plan.md (2026-11-08).** The review is done (mndsite-plan.md *Outcome*): take up only what the agreed pictures still need, drop what they make moot (step order by columns and the walk's stack dropped 2026-11-13).
 
 | Item | Notes | From |
 |---|---|---|
-| **step order reads by columns** | d3's squarify keeps list order but lays a landscape model in columns; the mockup's serpentine rows are not built | model plan |
 | **an unanswered attribute shows its type** | a use with no value and no default reads `owner text`; a definition's own `values` are collected as attribute defaults without their type (core `sources.ts`), so `lines` reads as text | model plan |
-| **the silhouettes are partial** | the model chip's step order and path, a class's compartments and an entity's key head are what the mockup (https://claude.ai/artifact/RCAGGQPcybLxRYZSkGwjsj) showed beyond today's | model plan |
+| **the silhouettes are partial** | a class's compartments and an entity's key head are what the mockup (https://claude.ai/artifact/RCAGGQPcybLxRYZSkGwjsj) showed beyond today's | model plan |
 | **short chips** | the treemap lays some diagram chips ~18 units under their name (shop *Model*, *Schema*) | model plan |
-| **a step lists the block it reaches** | a path revisiting a block lists it again in the walk's stack (mndsite's *page*, *mobile*) | model plan |
 | **a use's card face shows no values** | the tray's card for a use lists its kind's attribute names with empty values | translation plan |
 | **two models named `npm run start`** | this repo's packages each have one; a package prefix is added only when names collide exactly | translation plan |
 | **this repo's acceptance target** | `samples/code.target.yaml`, as mndsite's (apps/ts `report.ts` `against`) | translation plan |
@@ -99,7 +97,7 @@ Known rough spots, taken when a step passes near one.
 
 | Item | |
 |---|---|
-| **the options rail's old jobs** | the rail was removed 2026-11-08 (the walk leads the tray's overview); a home for what it held: the palette (notation for the focus), *new usage* / *new definition*, which relation types a right drag draws, the workspace's and package's quick editor. The web app's `chrome` handler still answers their actions |
+| **the options rail's old jobs** | the rail was removed 2026-11-08 (presentations will lead the tray's overview); a home for what it held: the palette (notation for the focus), *new usage* / *new definition*, which relation types a right drag draws, the workspace's and package's quick editor. The web app's `chrome` handler still answers their actions |
 | **entry paths** | from the entry paths plan (closed 2026-11-02): on the map, an entry-points band of few, light chips is a narrow column (tray, views; weighing up a few rounds starved other regions, tried and reverted); registries still lay out with their own treemap (views `treemap.ts` `tiled`), not the map's; paths stay inside one package (apps/ts `calls_of` records calls within a package only; crossing packages is what makes a path the system's story); several paths at once; `mnd measure` on the map's traced paths; a package's class diagram of its own types sits loose below its bands, and a note's tie runs straight across the shop |
 | **code translation** | from the translation work (2026-11-05): a component face listing its modules as rows; modules joined to nothing push a layer over budget (fold them by salience · one group of the unjoined); vocabulary gaps — enums and aliases as library types, a name said in two packages linked, methods; edge weights (symbols imported plus type references · symbols only); the clustering package (Louvain without its random walk · Leiden); component kinds (`ts.component` · reuse `services.component`); vocabulary ranking by what a type is *used by* (fan-in · PageRank on the type graph); writing the workspace with core's `write` · JSON by hand; a hand-made reference breakdown for MoJoFM (set aside); what the agent layer needs (walkthrough steps naming translated elements, names stable across re-translation) |
 | **scale** | `where_map` lays the map out again at each 8 px of resize; the explorer and maps seen at 2,100 blocks, every entry about 2 s then: profile again at today's smaller translations |

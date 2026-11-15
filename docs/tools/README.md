@@ -17,7 +17,7 @@
 | sequence | diagram | who talks to whom, in what order |
 | flow | diagram | a chain of steps with data on its edges |
 | dataflow | diagram | where one datum comes from, what changes it, who reads it |
-| tree | diagram | the system's parts by containment |
+| overview | diagram | the system's parts by containment: the model's tree (was `tree`, 2026-11-15) |
 | mapping | diagram | what goes in, where it lands, and by which rule |
 | presentation | model | an ordered, narrated way through a model |
 | class | diagram | what data definitions there are, their fields and references |
@@ -26,10 +26,11 @@
 
 | Base view | Flavours (tools) |
 |---|---|
-| layer (parts and lines) | context, flow, dataflow; state, internal |
-| grid | sequence; swimlane; mapping |
+| layer (parts and lines) | context (merges internal), flow, dataflow; state |
+| grid | sequence; swimlane |
+| records table | mapping |
 | types | class, entity |
-| treemap | tree |
+| treemap | overview: one tree view for the map, a model and a registry |
 
 **Surface**: CLI first, MCP a thin wrapper over the same commands. The command shapes in each file are proposed until built.
 

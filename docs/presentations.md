@@ -143,7 +143,8 @@ presentations:
 | read and check `presentations:` in a model file | core, the door (`collect`) | not read; model files hold `blocks` and `relations` |
 | a presentation's state: which presentation, stop, step, dive, and the stack of presentations entered | core session, kept by the host | the walk's stack (tray `Walk.tsx`) is the nearest |
 | the camera's shot for a stop: fit `fit` | web `camera.ts` `shot_of`, a new case | one owner already; it fits hops when walked |
-| boxes that open and close per stop | views `map.ts` | the map folds only for room |
+| the overview: the model root of the one tree view (docs/diagrams/tree.md): boxes open and closed (`open:`, unsaid the primary parts), context's zones round it | views `map.ts`, toward one tree view; base `actor`, `external` | the map folds only for room |
+| boxes that open and close per stop | views, the tree view's open set | new |
 | lighting a relation, drawn in order | stage, with the one highlight (`lit`) | `lit` exists; drawing in order and fading is new |
 | labels placed clear of chips | stage | new |
 | the tray's presentation section | tray, replacing `Walk.tsx` | the walk section is the nearest |
@@ -159,5 +160,6 @@ presentations:
 |---|---|
 | where the pace setting is kept | per viewer (the tray remembers it) or only in the file |
 | how a shown diagram is left | at the next stop the camera flies back out to the overview, as leaving a chip does |
+| data moving along a step's line | asked 2026-11-14 from the dataflow kind: a step's relation drawn as the datum travelling along it (design.md *Motion*, *flows animate*); a dataflow seeds a presentation, a stop per rank |
 
 **Settled 2026-11-12**: steps play on a timer and a click shows the next one at once; the pace is configurable (`pace`, default 1.7 s, `0` for on click); a stop may open a diagram (`show`); About's groups are configurable (`about:`), holding any blocks, definitions, presentations or entries.

@@ -2,7 +2,7 @@
 
 **Translate code into concepts that answer questions, not clusters that list files.** Proposed 2026-11-08 after mndsite read as one sparse model; the user took every recommendation the same day (*Decided*), and *Build* ran once to see how it lands (*Landed*). It feeds model-plan.md's acceptance (the shop, this repo and mndsite read as models).
 
-**On hold (2026-11-08) behind mndsite-plan.md**: no translator rule changes until the mndsite review has agreed, part by part, what mndsite should read as. Its outcome replaces *Target* below where they differ.
+**Superseded (2026-11-13)**: the mndsite review is done and the translator became plain tools (model-plan.md *Decided* 1, docs/tools/). What of this plan stays is decided with the tools' build list (model-plan.md *Next session* 3); then delete it.
 
 
 ## What is wrong today

@@ -1,0 +1,64 @@
+# tree
+
+**Treemap kind. What holds what, and where the weight is: one tree view for the map, a model's overview and a definition's registry.** Agreed 2026-11-15.
+
+## Purpose
+
+| | |
+|---|---|
+| **answers** | what is this system made of, which parts matter most, and what is around it |
+| **draws** | the model's overview (presentations.md *The overview*): its parts by containment as a treemap, primary boxes open and the rest closed, each as large as what it holds; context's zones around it (actors above, inputs left, outputs right); the About band below |
+| **example** | mndsite's overview (review part 12 A; presentation mockup https://claude.ai/artifact/WFdvLDrRtW6tfWGevF6cx5) |
+
+## Utility
+
+| | |
+|---|---|
+| **draw it** | once per model: it is how a person meets the model, and where its presentations start (model-plan.md 9, 17, 18) |
+| **vs context** | the same zones; context's inside is one level of parts with their lines, the overview's is the whole containment tree, weighted, lines quiet until lit |
+| **vs the map** | the map is every model and the library; the overview is the map focused on one model (model-plan.md 18) |
+| **the floor** | a model holds at least 3 parts; fewer, and it is a part of its parent's model (README *Sub diagrams*) |
+
+## Surface
+
+| | |
+|---|---|
+| **base** | the `model` kind's own view (it already places by treemap); no separate diagram kind |
+| **file** | the model file: its parts (uses of library definitions), relations, `about:`, `presentations:` (presentations.md *The file*) |
+| **tool** | `mnd draw overview <selection.json> <out>` (today docs/tools/tree.md): units grouped into parts, which are primary, the presentations offered |
+
+## Layout
+
+| Case | How it is drawn |
+|---|---|
+| **the middle** | the model's containment as a treemap: each part as large as what it holds; a primary part, a sub model or a subtree is an open box, anything else a closed chip with its name |
+| **around** | context's zones (context.md *Layout*), the outside placed by what it is |
+| **below** | the About band past a dashed divider: plain notes, never lit or dimmed (model-plan.md 10) |
+| **lines** | quiet, under the chips; lit by a pick or a presentation step |
+| **many parts** | past what the canvas holds at a readable size, boxes close from the lightest up; a closed box says its name and counts |
+| **opening** | a click opens or closes a box; a presentation stop's `open` sets it per stop; the model file's `open:` (unsaid: primary parts) is where it starts |
+
+## One view, three roots
+
+**One tree view, used everywhere a treemap is drawn** (model-plan.md 18, enforced 2026-11-15). A chip is a closed box of the same tree; opening it shows its inner treemap, so the map, an overview and a registry differ only by their root and a few adjustments.
+
+| Root | The middle | Around | Below | Written |
+|---|---|---|---|---|
+| **world** (the map) | packages and folders as boxes, models and definitions as chips | none: no single system | none | worked out, never written |
+| **model** (the overview) | the model's containment, primary parts open | context's zones | About band | the model file (`open:`, `about:`, `presentations:`) |
+| **definition** (the registry) | its uses, in boxes of the places that draw them, the heaviest open | its definition card in a band above, as a dataflow's datum band | About: what it extends, its subtypes | worked out, never written |
+
+- **open and closed** focus attention the same way at every root: open what is primary or heavy, close the rest, a closed box says its name and counts
+- **one layout in code**: today a registry lays out with its own treemap (views `treemap.ts` `tiled`), not the map's (backlog.md *Later*, entry paths); building this retires it into the one tree layout
+- **one tool**: `overview` writes the only root that is written, a model's tree; the world and a registry are worked out
+
+## Agreed 2026-11-15
+
+| # | Decision |
+|---|---|
+| 1 | merge: the tree kind is the model's overview; the stand-alone `treemap` kind is retired (only samples/elements used it) |
+| 2 | the tool is `overview`, writing coherent, scalable model trees |
+| 3 | layout: context's zones around a weighted treemap of containment; About below; lines quiet until lit |
+| 4 | many parts: boxes close from the lightest up; a closed box says its name and counts |
+| 5 | open boxes start from the model file's `open:` (unsaid, the primary parts); stops set their own |
+| 6 | one tree view, three roots (world, model, definition), with the adjustments above; a chip is a closed box; the registry's own treemap is retired into it |
