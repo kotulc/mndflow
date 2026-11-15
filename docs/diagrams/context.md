@@ -32,13 +32,10 @@
 
 ```yaml
 # mndsite.yaml: the system's frame
-name: mndsite
 type: context
 ports:
-  - {name: content, flow: in, type: md tree}
-  - {name: config, flow: in, type: Config}
-  - {name: versions, flow: in, type: version tags}
-  - {name: dist, flow: out, type: site}
+  in: {content: md tree, config: Config, versions: version tags}
+  out: {dist: site}
 blocks: [build, site]
 relations:
   - content -> build

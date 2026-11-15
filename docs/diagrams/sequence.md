@@ -25,31 +25,23 @@
 | | |
 |---|---|
 | **base** | `sequence`, extending `block`, *is grid*, *is behaviour*: view `sequence` |
-| **file** | its own file, a behaviour of its owner: `cols` are references to the participants (written once, as context.md agreed 2); messages in list order, each a row |
+| **file** | its own file, a behaviour of its owner: `participants` are references, by the kind (written once, as context.md agreed 2; found outward); relations are messages by the kind, in list order, each a row |
 | **tool** | `mnd draw sequence <selection.json> <out>` (docs/tools/sequence.md) |
 
 ```yaml
 # cli-and-setup/edit-and-preview.yaml
-name: edit and preview
 type: sequence
-cols:
-  - {name: Author, type: reference, of: overview.Author}
-  - {name: watch, type: reference, of: mndsite.build.cli.watch}
-  - {name: ingest, type: reference, of: mndsite.build.ingest}
-  - {name: next dev, type: reference, of: overview.nextjs}
-  - {name: file system, type: reference, of: overview.file-system}
-  - {name: browser, type: reference, of: overview.browser}
+participants: [Author, watch, ingest, {name: next dev, of: Next.js}, file system, browser]
 relations:
-  - message:
-      - Author -> next dev: npm run dev
-      - Author -> watch: npm run watch
-      - Author -> file system: saves docs/page.md
-      - file system -> watch: fs.watch page.md
-      - watch -> ingest: node ingest.js docs/
-      - ingest -> file system: writes pages · site-meta
-      - file system -> next dev: pages changed
-      - next dev -> browser: hot reload
-      - browser -> Author: sees the page
+  - Author -> next dev: npm run dev
+  - Author -> watch: npm run watch
+  - Author -> file system: saves docs/page.md
+  - file system -> watch: fs.watch page.md
+  - watch -> ingest: node ingest.js docs/
+  - ingest -> file system: writes pages · site-meta
+  - file system -> next dev: pages changed
+  - next dev -> browser: hot reload
+  - browser -> Author: sees the page
 ```
 
 ## Layout

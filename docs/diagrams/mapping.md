@@ -25,20 +25,19 @@
 | | |
 |---|---|
 | **base** | `mapping`, extending `block`, *has records*: each row a record (reads, writes, info), drawn by the generic records table, the one a collection's card shows (design.md: records are values, never blocks); mapping adds only the arrow from reads to writes |
-| **file** | its own file beside the part that does the mapping; rows under `records`. `reads` and `writes` name fields by qualified name (`PageMeta.desc`, `Config.edit`), opening their definition where they resolve; paths stay text |
+| **file** | its own file beside the part that does the mapping; rows under `records`, each written as a relation (`reads -> writes: info`). `reads` and `writes` name fields by qualified name (`PageMeta.desc`, `Config.edit`), opening their definition where they resolve; paths stay text |
 | **lives** | offered from the part that does it, in its About band |
 | **tool** | `mnd draw mapping <selection.json> <out>`, from `trace` (files) or `data --of` (fields) (docs/tools/mapping.md) |
 
 ```yaml
 # metadata/fields.yaml
-name: fields
 type: mapping
 records:
-  - {reads: Frontmatter.date, writes: PageMeta.published, info: "first 10 characters; '' if none"}
-  - {reads: Frontmatter.description, writes: PageMeta.desc, info: the first key with a value}
-  - {reads: Config.release, writes: PageMeta.facets.version, info: fills a missing stamp when inherit}
-  - {reads: body, writes: PageMeta.excerpt, info: "first prose paragraph, ≤ 280"}
-  - {reads: translate page, writes: "PageMeta.name · url · slug", info: passed through}
+  - Frontmatter.date -> PageMeta.published: "first 10 characters; '' if none"
+  - Frontmatter.description -> PageMeta.desc: the first key with a value
+  - Config.release -> PageMeta.facets.version: fills a missing stamp when inherit
+  - body -> PageMeta.excerpt: "first prose paragraph, ≤ 280"
+  - translate page -> PageMeta.name · url · slug: passed through
 ```
 
 ## Layout

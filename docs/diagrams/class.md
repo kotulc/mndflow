@@ -25,22 +25,13 @@
 | | |
 |---|---|
 | **base** | `class`, extending `block`: view `class`; its blocks are references to definitions; lines are worked out from fields, never written |
-| **file** | its own file in the library beside its root definition: a reference per definition drawn |
+| **file** | in the model, under the use that owns the data (a definition holds no diagrams): its blocks references to definitions by the kind, written bare. May share a file with the entity diagram of the same definitions, each named |
 | **tool** | `mnd draw class <selection.json> <out>`, from `schema` (docs/tools/class.md) |
 
 ```yaml
-# library/config/Config.yaml (the class diagram)
-name: Config
+# configuration/Config types.yaml (beside the Config dataflow; a class and an entity diagram may share a file)
 type: class
-blocks:
-  - {type: reference, of: Config}
-  - {type: reference, of: Theme}
-  - {type: reference, of: Frontmatter}
-  - {type: reference, of: Versioning}
-  - {type: reference, of: Display}
-  - {type: reference, of: Edit}
-  - {type: reference, of: Facet}
-  - {type: reference, of: Group}
+blocks: [Config, Theme, Frontmatter, Versioning, Display, Edit, Facet, Group]
 ```
 
 ## Layout

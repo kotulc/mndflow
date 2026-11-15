@@ -29,7 +29,7 @@
 | **no notation to learn** | the parts, what they are made of, what flows between them and what must be true is the whole base model. A standard is a translation layer on top, never a shape the model bends to |
 | **rapid** | the cheapest gesture carries meaning: ten blocks in a row already say an order |
 | **general** | nothing is forbidden for being unusual. Where a choice could be enforced or left to the user, it is left to the user |
-| **patterns compose** | good designs and architectures are encoded once, generally, as definitions and their parts in packages, and plugged into bigger systems. **A pattern is a model, or any definition with parts**; the example shop uses `services`' patterns as its parts. Users and agents grow vast libraries of them; packages exist so they can be shared and composed |
+| **patterns compose** | good designs and architectures are encoded once, generally, as definitions and their parts in packages, and plugged into bigger systems. **A pattern is a model** (2026-11-15: a definition holds no parts or diagrams, syntax-plan.md 6); the example shop uses `services`' patterns as its parts. Users and agents grow vast libraries of them; packages exist so they can be shared and composed |
 
 
 ## Driving concepts
@@ -282,14 +282,14 @@ Most rules below are one of these applied.
 - **no special blocks**: the workspace root is a package root like any other; only its id is reserved
 - **definition side and structure**: a package root, a definition, or a folder reached from its package root through folders alone is on the definition side; every other block is structure. A definition-side folder may hold both
 - **a model is a definition of the `model` kind**: its parts are usages, as any definition's are, and it is the one thing drawn on directly. A package ships zero or more; an imported package's are shown and read only. **A model is one model**: there is no second instance of it, only uses of it as a part inside other models, which is how patterns compose
-- **structure lives in definitions**: a model's parts are stored under it; any other definition's parts are stored under it too, listed in the library and drawn through its usages (read-through). Nothing is copied. Blocks and definitions hold children as they always have
+- **structure lives in models** (2026-11-15): a model's parts are stored under it, and its uses read them through. Any other definition holds no parts and no diagrams: it says what a thing is (extends, traits, attributes, ports, records, settings). A part's diagrams sit under its use in the model. Nothing is copied
 - in mndflow everything drawn sits in a model; a usage outside every definition (mndmap's documents) is a host's, listed by its own chain
-- **definitions are data; structure may be markdown.** Every package, `base` and `markdown` included, is a `.json` file of definitions and its named components — types and tags — authored as JSON definition files, or YAML in a diagram file or a card source's frontmatter, all in one schema; a package may also hold a tree of markdown files, each a block — a usage, or a definition where it states `def`. Hosts keep only the id constants their code reads
+- **definitions are JSON; models are YAML** (2026-11-15). Every package, `base` and `markdown` included, is a `.json` file of definitions and its named components — types and tags — written by translators, the editor or an agent, never by hand. Models and their diagrams are YAML files beside it (*Diagram files*); a package may also hold a tree of markdown files, each a usage. Hosts keep only the id constants their code reads
 - **every import is a package**, frozen; new definitions are made in the workspace only
 - a package is the smallest unit of export; there are no subtree files
 - a package is authored as a workspace and exported as a package: its root and ids prefixed with the package's name
 - importing a package adds it, frozen, beside the workspace. A package whose ids clash with one loaded is refused
-- a package's dependencies are worked out from the types it names, never stored
+- **imports are explicit**, as Python's `import services as svc`: a package's `imports` maps each package it imports to the name it is written by in it (`{"services": "svc"}`, or `{"services": "services"}`). Its definitions may extend theirs; its models use them. Every definition, folder and import name is unique within the package's scope
 - a workspace file carries the packages it uses (all but `base`), so it is whole. A file naming a definition it does not carry is refused
 - a relationship belongs to the package it is written in. An export keeps one with an end inside and the other in a package it uses
 - the file schema is `1.0` and is not incremented until the model settles. The door never migrates: a schema change re-saves the samples
@@ -395,7 +395,7 @@ Most rules below are one of these applied.
 
 ### Card sources
 
-**A card source is a diagram file with a body.** Its frontmatter takes every key and short form a diagram file does, `def` included: a usage, or a definition and its layer.
+**A card source is a diagram file with a body.** Its frontmatter takes every key and short form a diagram file does: **a usage, never a definition** (2026-11-15: definitions are the package's JSON).
 
 | Frontmatter key | On a usage |
 |---|---|
@@ -403,7 +403,7 @@ Most rules below are one of these applied.
 | `type` | the definition it is, by name |
 | `tags` | its tags, by name |
 | `source` | where its content lives outside |
-| `blocks`, `relations`, `packages` | the layer it holds, as a diagram file states it |
+| `blocks`, `relations` | the layer it holds, as a diagram file states it |
 | anything else | a value, answering the attribute of that name |
 
 - **frontmatter and diagram files are one schema**: frontmatter takes every key and short form a diagram file does, and a diagram file is a card source without a body. One reader reads both
@@ -415,17 +415,21 @@ Most rules below are one of these applied.
 
 ### Diagram files
 
-**A diagram file is one block and its single layer, written in the Block and Relation schema with names in place of ids.** It mocks up a diagram quickly, reliably and the same way every time: the file is the truth for what it makes. The long form is the schema; short forms spell the same fields.
+**A diagram file is one block and its single layer, written in the Block and Relation schema with names in place of ids; several diagrams may share a file** (2026-11-15, syntax-plan.md). It mocks up a diagram quickly, reliably and the same way every time: the file is the truth for what it makes. The long form is the schema; short forms spell the same fields.
 
 | Rule | |
 |---|---|
-| **one block, one layer** | the file names its block and states what any block may: `type` (`model` makes a model, a definition holding the layer), `def` (present: a definition; absent: structure), `settings`, `body`, `tags`, `constraints`, `ports`, `values` (its answers, by name). `blocks` and `relations` are its layer. A block may hold blocks of its own — a group's members, a grid's cells — written under it, or named by `parent`; nothing deeper opens in one file: **a block's parts with layers of their own are files of their own** (*collected, one way*) |
+| **one block, one layer** | the file names its block and states what any block may: `type` (`model` makes a model, a definition holding the layer), `settings`, `body`, `tags`, `constraints`, `ports`, `values` (its answers, by name). `blocks` and `relations` are its layer. A block may hold blocks of its own — a group's members, a grid's cells — written under it, or named by `parent`; nothing deeper opens in one file: **a block's parts with layers of their own are files of their own** (*collected, one way*) |
+| **several in one file** | YAML documents split by `---`, each a block of its own in file order, each named: small diagrams over the same things (a class and an entity diagram). A file of several owns no directory beside it |
+| **name from the file** | `name` may be left out where the file's name says it, after its order prefix (`translate page.yaml`); required in a file of several |
 | **no places** | ids, `alias`, `order` and places are never written: ids and handles are minted in file order, `order` is list order, and the layer's layout places the rest. **A part written as its own file is placed where its parent file's list names it** (2026-11-04): an entry saying only its name (`- action` in `core.yaml`, for `core/action.yaml`) is its place, not a second block; a part the list never names follows the list, in path order. A size (`w`, `h`) may be said; a note unsized fits its words |
-| **names, not ids** | `traits` name engine traits; `type`, `of`, `tags`, `parent`, `from` and `to` name a block. **One separator, `.`**, as Python's: package, folder, definition, part and port alike (`services.Gateway`, `Records.Order`, `Pump.in`). A name never holds a `.`; a translator writes one as `-` (`vite-config`). Names are unique among siblings, so a name finds one block. A relation's end may also name a block and a port it wears, its own or its definition's chain's (`Gateway.routes`), or a bare port of the file's block (`requests`): the line joins the block, at that port |
-| **convenient, never ambiguous** | any short form is allowed that cannot be read two ways. **A bare name is looked for in order**: the file's own blocks (and the one block of that name another file placed on this file's layer, through its regions and groups), then the package's own definitions and folders, then `packages` in the order listed, then `base`. Nothing else is searched. A name found twice at the first step it is found in is refused, naming each match; qualifying it settles it |
-| **packages** | `base` is the builtins: always loaded, never listed (`base.folder` is the bare `folder`). The catalogue is the standard library: **a qualified name loads its package by itself** (`services.Circuit breaker`). `packages` lists the packages whose names the file writes bare, and local ones: a catalogue name, or `./path` to a package file or source folder relative to the file. A package's dependencies are worked out from the names it uses. A type nothing loaded holds — a package that would not load among them — becomes a plain definition where the collection lands, as a card source's does, and is said |
-| **uses, never changes** | a file uses packages' definitions and structure, or states its own. Adding to a package is publishing a new one |
-| **ports** | a block's `ports`: names, or maps of `name`, `type` (an interface definition), `flow`, `side`, `at`, `description` and `note` — a note written on a port is tied to it. A seat is `side` with `at`; one without the other is not kept |
+| **names, not ids** | `traits` name engine traits; `type`, `of`, `tags`, `parent`, `from` and `to` name a block. **One separator, `.`**, as Python's: import, folder, definition, part and port alike (`svc.Gateway`, `Records.Order`, `Pump.in`). A name never holds a `.`; a translator writes one as `-` (`vite-config`). Names are unique among siblings, so a name finds one block. A relation's end may also name a block and a port it wears, its own or its definition's chain's (`Gateway.routes`), or a bare port of the file's block (`requests`): the line joins the block, at that port |
+| **convenient, never ambiguous** | any short form is allowed that cannot be read two ways. **A bare name is looked for outward**: the file's own blocks (and the one block of that name another file placed on this file's layer, through its regions and groups), then each enclosing layer up to the model's root, then the package's own definitions and folders, then `base`. A class's or entity's blocks, and the types of ports and attributes, look in definitions only. Nothing else is searched. A name found twice at the level it is found in is refused, naming each match; qualifying it settles it. `check` reports a name that no longer resolves |
+| **scope is the package** | a file sees its own package, the packages it imports, and `base`; it never lists packages. Its package's definitions are bare; an import's are qualified by the name it is imported as (`svc.service`); `base` is bare (`base.folder` is `folder`). A type nothing in scope holds becomes a plain definition where the collection lands, as a card source's does, and is said |
+| **uses, never defines** | a file uses its scope's definitions; definitions are made in the package JSON. Adding to an imported package is publishing a new one |
+| **kind defaults** | a kind sets the type of the blocks and relations its file writes bare: a context's and flow's blocks are `block`, a state's `block` joined by `transition`, a dataflow's, class's and entity's blocks references, a sequence's `participants` references joined by `message`, a swimlane's `lanes` references. Said only where it differs |
+| **references** | a reference takes its target's name; `{name: x, of: y}` only renames |
+| **ports** | a block's `ports`, by flow: `{in: {content: md tree}, out: {dist: site}}`, each port's name to its type (a data or interface definition). The long form, a list of maps of `name`, `type`, `flow`, `side`, `at`, `description` and `note`, says the rest — a note written on a port is tied to it. A seat is `side` with `at`; one without the other is not kept |
 | **grids by header** | `cols` and `rows` list a grid's headers; a member's `cell` names its row and column headers, or numbers them; the grid's extent is worked out from its cells |
 | **collected, one way** | a file's block lands in the folder its directory makes and records `source`; a top directory holding nothing but definitions files them. **A directory named as a file beside it is that file's block** (`shop.yaml` and `shop/`): the files in it are its parts, so the folders on disk read as the composition. Under it, a directory named as a block the file writes at its top (`customer-facing/` for *Customer facing*) puts its files in that block — a region's or group's members. A markdown card a block names by `source` is read into that block. The file is changed and collected again; nothing made from it is written back |
 
@@ -437,7 +441,8 @@ Most rules below are one of these applied.
 | `note: text` on a block | a note beside it, tied to it |
 | `note: text` on the file | an untied note, floating beside everything its layer holds |
 | an unknown key on a block | a value answering the attribute of that name |
-| `A -> B`, `A -> B: name` | a line, named by its value |
+| `A -> B`, `A -> B: name` | a line, named by its value; in a mapping's `records`, a record (`reads -> writes: info`) |
+| `start: Placed`, `end: Closed` | a mark of that name |
 | `type: [edges]` in `relations` | one line per edge, of that relation type |
 | `->` · `<-` · `<->` · `--` | `line.dir` forward, back, both, none; stored only where it differs from the type's |
 

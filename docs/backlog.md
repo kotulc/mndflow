@@ -1,6 +1,6 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next** (2026-11-15): the diagram kinds pass is done (docs/diagrams/); next is building presentations, then the tools (docs/tools/), then the diagram file syntax pass, in model-plan.md *Next session*. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next** (2026-11-15): the diagram kinds pass is done (docs/diagrams/); next is the file syntax pass (syntax-plan.md), then the tree view, presentations and the tools (docs/tools/), in model-plan.md *Next session*. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
 
 ## After the mndsite review
 
@@ -84,7 +84,7 @@ Known rough spots, taken when a step passes near one.
 | **React** | `flushSync was called from inside a lifecycle method`, once seen opening the profile from a layer; recheck |
 | **packages** | a definition file holds no parts, so a pattern's parts live in its package's `package.json`; base's `decision` and `services`'s share a name, so `type: decision` resolves to whichever the lookup finds first |
 | **paths** | a path names every region on the way (`Overview.Shop.Back office.Payments`), though layers look through them |
-| **diagram files** | a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
+| **diagram files** | a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no package a package imports |
 | **annotations** | a label floats aside, so on a layer cut into regions it can land across a band's heading; a picked region draws a full outline rather than its band; an empty layer's words centre on the canvas rather than the room |
 | **ports** | design.md gives a port its definition's settings, values and tags; ports hold name, type, flow, seat and description only |
 | **map** | a count on a tight chip fragments (*service 6.*); the room sits under a one-line head; a traced leg may cross chips in its way, the direct path kept (the user, 2026-11-07; design.md *hops*) |

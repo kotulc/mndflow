@@ -28,33 +28,23 @@
 | | |
 |---|---|
 | **base** | `state`, extending `block`, *is behaviour*: view `internal`, layered, round cards; transitions are base `transition` lines; marks `start` and `end` |
-| **file** | its own file under its owner's definition (`Records/order/order-states.yaml`): states in list order, transitions under `transition` |
+| **file** | its own file under the use that owns the data in the model (`shop/back-office/orders/order-states.yaml`; a definition holds no diagrams): states in list order; relations are transitions by the kind |
 | **tool** | none until a case appears. A `states` fact tool would read a status field's literal values and the assignments that change it |
 
 ```yaml
-# Records/order/order-states.yaml
-name: Order states
+# shop/back-office/orders/order-states.yaml
 type: state
-blocks:
-  - {name: Placed, type: start}
-  - Pending
-  - Paid
-  - Shipped
-  - Delivered
-  - Payment failed
-  - Cancelled
-  - {name: Closed, type: end}
+blocks: [start: Placed, Pending, Paid, Shipped, Delivered, Payment failed, Cancelled, end: Closed]
 relations:
-  - transition:
-      - Placed -> Pending
-      - Pending -> Paid: charged
-      - Pending -> Payment failed: declined
-      - Payment failed -> Pending: retry
-      - Payment failed -> Cancelled: gave up
-      - Paid -> Shipped: handed over
-      - Shipped -> Delivered: signed for
-      - Delivered -> Closed
-      - Cancelled -> Closed
+  - Placed -> Pending
+  - Pending -> Paid: charged
+  - Pending -> Payment failed: declined
+  - Payment failed -> Pending: retry
+  - Payment failed -> Cancelled: gave up
+  - Paid -> Shipped: handed over
+  - Shipped -> Delivered: signed for
+  - Delivered -> Closed
+  - Cancelled -> Closed
 ```
 
 ## Layout

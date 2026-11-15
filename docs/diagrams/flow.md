@@ -32,15 +32,10 @@
 
 ```yaml
 # ingest/translate page.yaml
-name: translate page
 type: flow
 ports:
-  - {name: page, flow: in, type: md file}
-  - {name: title key, flow: in, type: text}
-  - {name: mdx, flow: out, type: mdx file}
-  - {name: fields, flow: out, type: page fields}
-  - {name: meta, flow: in, type: PageMeta}
-  - {name: record, flow: out, type: PageMeta}
+  in: {page: md file, title key: text, meta: PageMeta}
+  out: {mdx: mdx file, fields: page fields, record: PageMeta}
 blocks: [read, frontmatter, title, body, write, links]
 relations:
   - page -> read

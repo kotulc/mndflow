@@ -26,28 +26,27 @@
 | | |
 |---|---|
 | **base** | `dataflow`, extending `block`: view `internal`, layered along the axis by rank |
-| **file** | its own file beside the part that makes the datum (`configuration/Config.yaml`): `datum` names the definition traced; its blocks are references to the model's parts and externals (`of:`), never copies; its lines carry the datum's form. The frame is worked out, never written |
+| **file** | its own file beside the part that makes the datum (`configuration/Config.yaml`): `datum` names the definition traced; its blocks are references to the model's parts and externals, by the kind (written bare, found outward), never copies; its lines carry the datum's form. The frame is worked out, never written |
 | **tool** | `mnd draw dataflow <selection.json> <out>` (docs/tools/dataflow.md) |
 
 ```yaml
 # configuration/Config.yaml
-name: Config
 type: dataflow
 datum: Config
 blocks:
-  - {name: mndsite.yaml, type: reference, of: overview.mndsite-yaml}
-  - {name: load_config, type: reference, of: mndsite.build.configuration.load_config}
-  - {name: write_site_config, type: reference, of: mndsite.build.configuration.write_site_config}
-  - {name: ingest, type: reference, of: mndsite.build.ingest, groups: [build readers]}
-  - {name: metadata, type: reference, of: mndsite.build.metadata, groups: [build readers]}
-  - {name: site half, type: reference, of: mndsite.site}
-  - {name: Next.js, type: reference, of: overview.nextjs}
+  - mndsite-yaml
+  - load_config
+  - write_site_config
+  - {name: ingest, groups: [build readers]}
+  - {name: metadata, groups: [build readers]}
+  - site
+  - Next.js
 relations:
-  - mndsite.yaml -> load_config: Config 0.3
+  - mndsite-yaml -> load_config: Config 0.3
   - load_config -> write_site_config: Config
   - load_config -> ingest: Config
   - load_config -> metadata: Config
-  - write_site_config -> site half: site.config
+  - write_site_config -> site: site.config
   - load_config -> Next.js: MNDSITE_OUTPUT
 ```
 

@@ -26,19 +26,18 @@
 | | |
 |---|---|
 | **base** | `entity`, extending `block`: view `er`; its blocks are references to definitions; keys and lines are worked out from fields, never written |
-| **file** | its own file beside the class diagram of the same definitions: a reference per definition drawn |
+| **file** | beside or in the same file as the class diagram of the same definitions (several diagrams to a file, each named): its blocks references to definitions by the kind, written bare |
 | **tool** | none until a case appears; a later one would read an ORM's models or SQL through `schema` |
 
 ```yaml
-# shop/data/2-schema.yaml
+# shop/data/model.yaml: the class and entity diagrams of the shop's records, one file
+name: Model
+type: class
+blocks: [Customer, Order, Line, Product, Payment]
+---
 name: Schema
 type: entity
-blocks:
-  - {type: reference, of: Customer}
-  - {type: reference, of: Order}
-  - {type: reference, of: Line}
-  - {type: reference, of: Product}
-  - {type: reference, of: Payment}
+blocks: [Customer, Order, Line, Product, Payment]
 ```
 
 ## Layout

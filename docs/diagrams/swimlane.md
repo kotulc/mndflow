@@ -27,17 +27,13 @@
 | | |
 |---|---|
 | **base** | `swimlane`, extending `block`, *is grid*, *is behaviour*: view `allocation` |
-| **file** | its own file, a behaviour of its owner: lanes as references (written once), phases in order, steps in their cells, lines between steps carrying what is handed over |
+| **file** | its own file, a behaviour of its owner: lanes as references by the kind (written once, found outward), phases in order, steps in their cells, lines between steps carrying what is handed over |
 | **tool** | none until a case appears |
 
 ```yaml
 # shop/how-it-runs/2-fulfilment.yaml
-name: Fulfilment
 type: swimlane
-lanes:
-  - {name: Orders, type: reference, of: Overview.Shop.Back office.Orders}
-  - {name: Inventory, type: reference, of: Overview.Shop.Back office.Inventory}
-  - {name: Shipping, type: reference, of: Overview.Shop.Back office.Shipping}
+lanes: [Orders, Inventory, Shipping]
 phases: [Ordered, Pick, Ship]
 blocks:
   - {name: Publish placed, cell: [Ordered, Orders]}
