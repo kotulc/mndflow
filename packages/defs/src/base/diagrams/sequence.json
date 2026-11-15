@@ -16,7 +16,16 @@
       "hue": 310
     },
     "diagram": {
-      "view": "allocation"
+      "view": "allocation",
+      "file": {
+        "participants": {
+          "as": "cols",
+          "type": "reference"
+        },
+        "relations": {
+          "type": "message"
+        }
+      }
     },
     "holder": {
       "lifelines": true

@@ -1,0 +1,10 @@
+{
+  "id": "dashed",
+  "name": "dashed",
+  "def": {},
+  "settings": {
+    "style": {
+      "border_style": "dashed"
+    }
+  }
+}

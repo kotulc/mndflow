@@ -2,31 +2,33 @@
  *  into one package, or into the workspace. **Read one way**: a folder becomes a package file,
  *  never the reverse.
  *
- *  `package.json`, where there is one, holds the package's graph, its library on its root; every
- *  other `.json` file under the folder is **one definition**, filed under the folder its
- *  directory names. Every `.yaml` file is a **diagram file** and every `.md` file a **card
- *  source** — one schema, a card source a diagram file with a body — each one block and its layer,
- *  named rather than identified: its ids are minted from its names, so adding a block leaves the
- *  others' alone, and its names read here. Every
- *  directory is a folder, but one named as a file beside it, which holds that file's parts; a top
- *  folder holding only definitions files them. A definition said twice
- *  is a clash, and refused. A definition, type or tag a file names and nothing loaded holds is
- *  made here — a definition's attributes the union of what its usages answer, each type read off
- *  the values. */
+ *  `package.json`, where there is one, holds the package's graph, its library on its root, and
+ *  the packages it `imports`, each by the name it is written by here; every other `.json` file
+ *  under the folder is **one definition**, filed under the folder its directory names. Every
+ *  `.yaml` file holds **diagram files**, one or more split by `---`, and every `.md` file is a
+ *  **card source** — one schema, a card source a diagram file with a body — each one block and
+ *  its layer, named rather than identified: its ids are minted from its names, so adding a block
+ *  leaves the others' alone, and its names read here. **A file sees its own package, its
+ *  imports and `base`**, and states no definition. Every directory is a folder, but one named as
+ *  a file beside it, which holds that file's parts; a top folder holding only definitions files
+ *  them. A definition said twice is a clash, and refused. A definition, type or tag a file names
+ *  and nothing in scope holds is made here — a definition's attributes the union of what its
+ *  usages answer, each type read off the values. */
 
-import { parse } from "yaml";
+import { parseAllDocuments } from "yaml";
 import { read_card } from "./card";
-import { block_base, def_at, dir_of, is_notation, package_of } from "./defs";
-import { long_form, type Edge, type Entry, type LongForm, type LibrarySaid } from "./diagram";
+import { block_base, def_at, dir_of, has_trait, is_notation, package_of, setting_of,
+         traits_of } from "./defs";
+import { long_form, type Edge, type Entry, type FileSpec, type LongForm } from "./diagram";
 import { renamed, write } from "./file";
 import { holders_in, is_grid, is_group, layer_of } from "./holders";
 import { all_constraints, all_interfaces, all_tags, all_types, is_form,
          library_map } from "./library";
-import { component_hits, def_hits, def_ref, fits_domain, is_path, path_to, STEP,
+import { component_hits, def_hits, def_ref, fits_domain, is_path, package_named, path_to, STEP,
          steps_of } from "./refs";
-import { children, ports_on } from "./tree";
+import { children, is_reference, ports_on } from "./tree";
 import type { Leaf } from "./ports";
-import { FORMS, type Attribute, type Block, type Components, type Constraint, type Flow,
+import { BASE_PACKAGE, FORMS, type Attribute, type Block, type Components, type Constraint, type Flow,
          type Form, type Graph,
          type Id, type Interface, type Relation, type Side, type Tag, type Type,
          type Value } from "./types";
@@ -47,13 +49,25 @@ const MARKDOWN = /\.(md|mdx)$/i;
 const YAML_FILE = /\.ya?ml$/i;
 const JSON_FILE = /\.json$/i;
 
-/** One file read: where it lands, its block's id, what it says spelled out, and the id each of
- *  its blocks takes, in file order. */
-type Read = { path: string; dir: string[]; id: Id; form: LongForm; ids: Id[] };
+/** One diagram read: where it lands, its block's id, what it says spelled out, the id each of its
+ *  blocks takes, in file order, and whether its file holds others. */
+type Read = { path: string; dir: string[]; id: Id; form: LongForm; ids: Id[]; shared?: boolean };
 
-/** What a file's names are read against. */
+/** What a file's names are read against: its package, then `base`, for a bare name (`within`);
+ *  its imports for a qualified one, each by the name it is written by here (`aliases`). */
 type Ctx = { graph: Graph; slug: Id; pre: string; made: Map<string, Id>; notes: string[];
-             file: Read; within: Id[] };
+             file: Read; within: Id[]; imports: Id[]; aliases: ReadonlyMap<string, Id> };
+
+/** The named components a package's library holds, by kind, as said before their ids. */
+type LibrarySaid = { types: Record<string, unknown>[]; tags: Record<string, unknown>[];
+                     interfaces: Record<string, unknown>[];
+                     constraints: Record<string, unknown>[] };
+
+/** A file's order prefix (`1-checkout`), which its block's name leaves out. */
+const ORDERED = /^\d+-/;
+
+/** What a package says and a file never does: definitions, the library, imports. */
+const PACKAGE_KEYS = ["def", "library", "packages", "imports"];
 
 
 /** A source folder's files as a package file, read against what `over` already holds. */
@@ -73,24 +87,41 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   graph.blocks[slug] = { id: slug, parent: null, name: over.blocks[slug]?.name ?? name };
   const sorted = [...leaves].sort((a, z) => a.path.localeCompare(z.path));
   const files = sorted.filter((l) => l.path !== DEFINITIONS && JSON_FILE.test(l.path));
-  const { filed, clashes, named: called } = defined(graph, slug,
-    sorted.find((l) => l.path === DEFINITIONS)?.text, files, bare);
+  const text = sorted.find((l) => l.path === DEFINITIONS)?.text;
+  const { filed, clashes, named: called } = defined(graph, slug, text, files, bare);
   /** The package file names its root, the workspace's too. */
   if (called) graph.blocks[slug]!.name = called;
   const notes: string[] = [];
+  /** **A file sees its package, its imports and `base`**: each import by the name it is written
+   *  by here, which may be its own. */
+  const imports = Object.entries(imports_of(text));
+  const aliases = new Map(imports.map(([pkg, as]) => [as, pkg_of(pkg)]));
+  const within = [slug];
+  const imported = [...aliases.values()];
+  for (const [pkg] of imports) {
+    if (!graph.blocks[pkg_of(pkg)]) notes.push(`${DEFINITIONS}: imports ${pkg}, which is not loaded`);
+  }
+  /** What a file's kind says of how it is written, read off the kind its block names. */
+  const spec_of = (type: unknown): FileSpec => {
+    const kind = typeof type === "string"
+      ? def_ref(graph, spelled(aliases, type), { within, imports: imported }) : undefined;
+    return (kind ? setting_of(graph, kind, "diagram")["file"] ?? {} : {}) as FileSpec;
+  };
 
   const orders = new Map<Id, number>();
   const next = (parent: Id) => { orders.set(parent, (orders.get(parent) ?? 0) + 1);
                                  return orders.get(parent)!; };
   /** Every diagram file and card source, spelled out; a card a diagram file draws in by its
    *  `source` is read there, not on its own. */
-  const reads = read_all(sorted, pre, notes);
+  const reads = read_all(sorted, pre, notes, spec_of);
   const drawn = sourced(reads);
   const own = reads.filter((r) => !drawn.has(r.path));
   const places = places_of(own);
   /** A directory named as a file beside it is that file's block: what it holds are its parts.
-   *  Under it, a directory may name a block the file writes at its top, by its name's slug. */
-  const owners = new Map(own.map((r) => [[...r.dir, stem_of(r.path)].join("/"), r]));
+   *  Under it, a directory may name a block the file writes at its top, by its name's slug. A
+   *  file of several diagrams owns none. */
+  const owners = new Map(own.filter((r) => !r.shared)
+    .map((r) => [[...r.dir, stem_of(r.path)].join("/"), r]));
   const owned = (r: Read, part: string): Id | undefined => {
     const i = r.form.blocks.findIndex((e) => e.under === undefined && !e.parent
       && slug_of(e.name) === slug_of(part));
@@ -138,8 +169,10 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   for (const r of own) {
     const parent = folder(r.dir);
     if (in_block(parent)) placed.push(r.id);
+    /** **A diagram file in no other file's block is a model**: a definition of its package,
+     *  extending what its `type` names. A card source is a usage, always. */
+    else if (YAML_FILE.test(r.path)) r.form.top.def = {};
     lay(graph, r, parent, next(parent));
-    library(graph, slug, pre, r.form.library);
   }
   const after = new Map<Id, number>();
   for (const id of placed) {
@@ -159,9 +192,8 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
     [...list.map((id) => graph.blocks[id]!), ...rest].forEach((b, i) => (b.order = i + 1));
   }
   forget(graph);
-  /** A file names its own package's definitions as well as those of the packages it lists. */
-  const ctx_of = (r: Read): Ctx => ({ graph, slug, pre, made, notes, file: r,
-                                      within: [slug, ...r.form.packages.map(pkg_of)] });
+  const ctx_of = (r: Read): Ctx => ({ graph, slug, pre, made, notes, file: r, within,
+                                      imports: imported, aliases });
   /** What each definition extends comes first: whether a name is a relation is read off the chain
    *  it heads. */
   for (const r of own) {
@@ -169,6 +201,12 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
       const type = e.def && e.type ? extended(ctx_of(r), e.type) : undefined;
       if (type) graph.blocks[id]!.type = type;
     }
+  }
+  /** A model carries *is model* beside the traits of what it extends, a list stated whole. */
+  for (const r of own) {
+    const b = graph.blocks[r.id]!;
+    if (!b.def || has_trait(graph, b.type ?? "block", "is_model")) continue;
+    b.traits = [...traits_of(graph, b.type ?? "block"), "is_model"];
   }
   for (const r of own) {
     const ctx = ctx_of(r);
@@ -230,37 +268,40 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
   return { text: write(graph, slug, slug), made: [...made.keys()], clashes, notes };
 }
 
-/** What the files want loaded before they are read: every package a diagram file or a card
- *  source lists, a path said from the source folder's root; and the first step of every
- *  qualified name they write, which loads its package where one of that name exists. */
-export function wanted(leaves: readonly Leaf[]): { listed: string[]; heads: string[] } {
-  const listed = new Set<string>();
-  const heads = new Set<string>();
-  for (const r of read_all(leaves, "", [])) {
-    for (const p of r.form.packages) listed.add(/^\.\.?\//.test(p) ? `./${joined(r.dir, p)}` : p);
-    for (const word of words_of(r.form)) {
-      if (is_path(word)) heads.add(steps_of(word)[0]!);
-    }
-  }
-  return { listed: [...listed], heads: [...heads].filter((h) => h && !listed.has(h)) };
+/** The packages a source folder imports, loaded before it is read: each a catalogue name, or a
+ *  path from the folder to a package file or a source folder. */
+export function wanted(leaves: readonly Leaf[]): string[] {
+  return Object.keys(imports_of(leaves.find((l) => l.path === DEFINITIONS)?.text));
 }
 
-/** Every word a file writes that names something elsewhere: types, what a block stands for, the
- *  interfaces its ports carry, its attributes' types, tags, and its relations' ends and types. */
-function words_of(form: LongForm): string[] {
-  const of_entry = (e: Entry) => [e.type, e.of, ...(e.tags ?? []),
-    ...(e.ports ?? []).map((p) => p.type),
-    ...(e.def?.attributes ?? []).map((a) => a["type"])];
-  const of_lib = Object.values(form.library).flatMap((list) => list.map((m) => m["type"]));
-  return [form.top, ...form.blocks].flatMap(of_entry)
-    .concat(form.relations.flatMap((e) => [e.from, e.to, e.type, ...(e.tags ?? [])]), of_lib)
-    .filter((w): w is string => typeof w === "string");
+/** What a package file imports: each package to the name it is written by here. */
+function imports_of(text: string | undefined): Record<string, string> {
+  try {
+    const said = text ? (JSON.parse(text) as { imports?: unknown }).imports : undefined;
+    if (!said || typeof said !== "object" || Array.isArray(said)) return {};
+    return Object.fromEntries(Object.entries(said as Record<string, unknown>)
+      .map(([pkg, as]) => [pkg, typeof as === "string" && as.trim() ? as.trim() : pkg_of(pkg)]));
+  } catch { return {}; }
+}
+
+/** Where a file's names are looked for (`Ref`): bare in its package, qualified in its imports. */
+function scope(ctx: Ctx): { within: Id[]; imports: Id[] } {
+  return { within: ctx.within, imports: ctx.imports };
+}
+
+/** A word whose first step is an import's name, spelled with that package's root instead. */
+function spelled(aliases: ReadonlyMap<string, Id>, word: string): string {
+  const [first, ...rest] = steps_of(word);
+  const pkg = rest.length ? aliases.get(first!) : undefined;
+  return pkg ? [pkg, ...rest].join(STEP) : word.trim();
 }
 
 
-/** Every `.md` and `.yaml` leaf spelled out, in path order. One that cannot be read is said, and
- *  read as a card of its text alone. */
-function read_all(leaves: readonly Leaf[], pre: string, notes: string[]): Read[] {
+/** Every `.md` and `.yaml` leaf spelled out, in path order, as its kind (`spec_of`) says to read
+ *  it: a YAML file one diagram per document. One that cannot be read is said, and read as a card
+ *  of its text alone. */
+function read_all(leaves: readonly Leaf[], pre: string, notes: string[],
+                  spec_of: (type: unknown) => FileSpec): Read[] {
   const out: Read[] = [];
   for (const leaf of leaves) {
     const yaml = YAML_FILE.test(leaf.path);
@@ -268,20 +309,31 @@ function read_all(leaves: readonly Leaf[], pre: string, notes: string[]): Read[]
     const parts = leaf.path.split("/").filter(Boolean);
     parts.pop();
     const stem = stem_of(leaf.path);
-    let form: LongForm;
-    try {
-      const { front, body } = yaml ? { front: yaml_map(leaf.text), body: undefined }
-                                   : read_card(leaf.text);
-      form = long_form(front, body);
-    }
+    const said = (e: unknown) => notes.push(`${leaf.path}: ${e instanceof Error ? e.message
+                                                                              : String(e)}`);
+    let fronts: { front: Record<string, unknown>; body?: string }[];
+    try { fronts = yaml ? yaml_maps(leaf.text) : [read_card(leaf.text)]; }
     catch (e) {
-      notes.push(`${leaf.path}: ${e instanceof Error ? e.message : String(e)}`);
-      form = long_form({}, yaml ? undefined : leaf.text);
+      said(e);
+      fronts = [{ front: {}, ...(yaml ? {} : { body: leaf.text }) }];
     }
-    form.top.name ||= stem;
-    form.top.source ??= leaf.path;
-    const id = `${pre}${yaml ? "yaml" : "md"}.${[...parts, stem].join(".")}`;
-    out.push({ path: leaf.path, dir: parts, form, id, ids: block_ids(id, form.blocks) });
+    const shared = fronts.length > 1;
+    for (const { front, body } of fronts) {
+      let form: LongForm;
+      try { form = long_form(front, body, spec_of(front["type"])); }
+      catch (e) {
+        said(e);
+        form = long_form({}, yaml ? undefined : leaf.text);
+      }
+      /** **A file's name names its one diagram**, its order prefix left out; several are named. */
+      if (shared && !form.top.name) said("a file of several diagrams names each");
+      form.top.name ||= stem.replace(ORDERED, "");
+      form.top.source ??= leaf.path;
+      const id = `${pre}${yaml ? "yaml" : "md"}.${[...parts, stem].join(".")}`
+        + (shared ? `.${slug_of(form.top.name)}` : "");
+      out.push({ path: leaf.path, dir: parts, form, id, ids: block_ids(id, form.blocks),
+                 ...(shared ? { shared } : {}) });
+    }
   }
   return out;
 }
@@ -321,11 +373,16 @@ function stem_of(path: string): string {
   return (path.split("/").pop() ?? "").replace(YAML_FILE, "").replace(MARKDOWN, "");
 }
 
-/** A YAML file's map. */
-function yaml_map(text: string): Record<string, unknown> {
-  const map: unknown = parse(text) ?? {};
-  if (typeof map !== "object" || Array.isArray(map)) throw new Error("a diagram file is a map");
-  return map as Record<string, unknown>;
+/** A YAML file's maps, one per document. */
+function yaml_maps(text: string): { front: Record<string, unknown> }[] {
+  const docs = parseAllDocuments(text);
+  if (!Array.isArray(docs) || !docs.length) return [{ front: {} }];
+  return docs.map((doc) => {
+    if (doc.errors.length) throw new Error(doc.errors[0]!.message);
+    const map: unknown = doc.toJS() ?? {};
+    if (typeof map !== "object" || Array.isArray(map)) throw new Error("a diagram file is a map");
+    return { front: map as Record<string, unknown> };
+  });
 }
 
 /** The card sources diagram files draw in by `source`, each read into the entry naming it: what
@@ -506,7 +563,12 @@ function library(graph: Graph, slug: Id, pre: string, said: Partial<LibrarySaid>
 function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
   const { graph } = ctx;
   const b = graph.blocks[id]!;
-  if (e.dropped) ctx.notes.push(`${ctx.file.path}: ${e.name || id} says ${e.dropped.join(", ")}, `
+  /** What only a package says — its definitions, library and imports — is refused here. */
+  const owned = (e.dropped ?? []).filter((k) => PACKAGE_KEYS.includes(k));
+  const stray = (e.dropped ?? []).filter((k) => !PACKAGE_KEYS.includes(k));
+  if (owned.length) ctx.notes.push(`${ctx.file.path}: ${e.name || id} says ${owned.join(", ")}, `
+    + `which only its package says, in ${DEFINITIONS}`);
+  if (stray.length) ctx.notes.push(`${ctx.file.path}: ${e.name || id} says ${stray.join(", ")}, `
     + "which nothing reads; an answer goes under values");
   if (e.parent) {
     const up = local(ctx, e.parent);
@@ -527,7 +589,13 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
   if (e.tags) b.tags = e.tags.flatMap((t) => tag_of(ctx, t) ?? []);
   if (e.constraints) b.constraints = e.constraints.flatMap((c) => constraint_of(ctx, c) ?? []);
   if (e.traits) b.traits = [...e.traits];
-  if (e.of) b.of = ref(ctx, e.of, true, id) ?? e.of;
+  /** **A reference takes its target's name**, unless it says what it stands for; one its kind
+   *  says stands for a definition looks among definitions alone. */
+  const of = e.of ?? (is_reference(graph, id) ? e.name : undefined);
+  if (of) {
+    b.of = (e.defs ? def_ref(graph, spelled(ctx.aliases, of), scope(ctx))
+                   : ref(ctx, of, true, id)) ?? of;
+  }
   if (e.def) {
     const attributes = (e.def.attributes ?? []).map((a) => (typeof a["type"] === "string"
       ? { ...a, type: type_of(ctx, a["type"]) ?? "text" } : a)) as unknown as Attribute[];
@@ -557,7 +625,7 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
 /** What a definition extends: any definition of that name, of any kind, else a plain one made;
  *  nothing where the name is ambiguous. */
 function extended(ctx: Ctx, word: string): Id | undefined {
-  const hits = def_hits(ctx.graph, word, { within: ctx.within });
+  const hits = def_hits(ctx.graph, spelled(ctx.aliases, word), scope(ctx));
   if (hits.length > 1) {
     ambiguous(ctx, word.trim(), hits);
     return undefined;
@@ -633,26 +701,58 @@ function end_of(ctx: Ctx, word: string): { at: Id; part?: Id } | undefined {
   return on && hit ? { at: on, part: hit.id } : undefined;
 }
 
-/** A block a word names, other than the one asking: one in this file, by name or path; else a
- *  path from the package's root; else, where `defs`, a definition. */
+/** A block a word names, other than the one asking: one in this file, by name or path; else
+ *  **outward**, on each layer holding this file's, nearest first; else a path from the package's
+ *  root; else, where `defs`, a definition. */
 function ref(ctx: Ctx, word: string, defs: boolean, asking?: Id): Id | undefined {
-  return local(ctx, word, asking) ?? on_layer(ctx, word, asking)
+  return local(ctx, word, asking) ?? on_layer(ctx, word, asking) ?? outward(ctx, word, asking)
     ?? path_to(ctx.graph, word, ctx.slug)
-    ?? (defs ? def_ref(ctx.graph, word, { within: ctx.within }) : undefined);
+    ?? (defs ? def_ref(ctx.graph, spelled(ctx.aliases, word), scope(ctx))
+             : undefined);
+}
+
+/** The block a word names on a layer holding this file's, nearest first, up to the package's
+ *  root: its one block of that name there, looked for through the notation that holds it, or a
+ *  path down from it. Found twice on one layer, it is said and finds none. */
+function outward(ctx: Ctx, word: string, asking?: Id): Id | undefined {
+  const { graph, file } = ctx;
+  for (let at = graph.blocks[file.id]?.parent; at && at !== ctx.slug;
+       at = graph.blocks[at]?.parent ?? undefined) {
+    const layer = at;
+    let twice = false;
+    const named = (name: string) => {
+      const hits = held_by(graph, layer, name, [asking, file.id]);
+      twice ||= hits.length > 1;
+      return hits.length === 1 ? hits[0] : undefined;
+    };
+    const hit = down(ctx, word, named);
+    if (hit) return hit;
+    if (twice) {
+      ambiguous(ctx, word.trim(), held_by(graph, layer, steps_of(word)[0]!, [asking, file.id]));
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+/** The blocks of a name a layer holds, through the notation on it, but those left `out`. */
+function held_by(graph: Graph, layer: Id, name: string, out: readonly (Id | undefined)[]): Id[] {
+  const hits: Id[] = [];
+  const look = (at: Id) => {
+    for (const c of children(graph, at)) {
+      if (!out.includes(c.id) && (c.name ?? "").trim() === name) hits.push(c.id);
+      if (is_notation(graph, c.id)) look(c.id);
+    }
+  };
+  look(layer);
+  return hits;
 }
 
 /** A block another file placed on this file's layer — a directory under it holds that file — by
  *  its one name there, looked for through the notation that holds it; or a path down from it. */
 function on_layer(ctx: Ctx, word: string, asking?: Id): Id | undefined {
   const named = (name: string) => {
-    const hits: Id[] = [];
-    const look = (at: Id) => {
-      for (const c of children(ctx.graph, at)) {
-        if (c.id !== asking && (c.name ?? "").trim() === name) hits.push(c.id);
-        if (is_notation(ctx.graph, c.id)) look(c.id);
-      }
-    };
-    look(ctx.file.id);
+    const hits = held_by(ctx.graph, ctx.file.id, name, [asking]);
     return hits.length === 1 ? hits[0] : undefined;
   };
   return down(ctx, word, named);
@@ -683,7 +783,7 @@ function down(ctx: Ctx, word: string, named: (name: string) => Id | undefined): 
  *  names. */
 function ided(ctx: Ctx, settings: Record<string, unknown>): Block["settings"] {
   const id = (word: unknown) => (typeof word === "string"
-    ? def_ref(ctx.graph, word, { within: ctx.within }) ?? word : word);
+    ? def_ref(ctx.graph, spelled(ctx.aliases, word), scope(ctx)) ?? word : word);
   const ids = (list: unknown) => (Array.isArray(list) ? list.map(id) : list);
   const out = structuredClone(settings) as Record<string, Record<string, unknown>>;
   const allows = out["allows"];
@@ -733,7 +833,8 @@ function defined(graph: Graph, slug: Id, text: string | undefined, files: readon
   const prefixed = (id: Id) => (bare || id.startsWith(`${slug}.`) ? id
     : id.startsWith(`${from.root}.`) ? `${slug}.${id.slice(from.root.length + 1)}` : `${slug}.${id}`);
   for (const id of Object.keys(blocks)) if (id !== from.root) ids.set(id, prefixed(id));
-  for (const c of [...lib?.types ?? [], ...lib?.tags ?? []]) ids.set(c.id, prefixed(c.id));
+  for (const c of [...lib?.types ?? [], ...lib?.tags ?? [], ...lib?.interfaces ?? [],
+                   ...lib?.constraints ?? []]) ids.set(c.id, prefixed(c.id));
   for (const b of Object.values(blocks)) {
     const id = ids.get(b.id)!;
     const kept = renamed(b, ids);
@@ -757,12 +858,17 @@ function defined(graph: Graph, slug: Id, text: string | undefined, files: readon
  *  it is made here, at the package's root — a relation definition as a plain line — and said. */
 function named(ctx: Ctx, word: string, kind: "block" | "relation"): Id | undefined {
   const { graph, slug, made } = ctx;
-  const said = word.trim();
+  const said = spelled(ctx.aliases, word);
+  const pkg = package_named(graph, said);
+  if (pkg && ![...ctx.within, ...ctx.imports, BASE_PACKAGE].includes(pkg)) {
+    ctx.notes.push(`${ctx.file.path}: "${word.trim()}" names ${pkg}, which ${DEFINITIONS} `
+      + "does not import");
+  }
   const of_kind = fits_domain(graph, kind);
   /** A package never leans on the workspace, which it would have to carry. */
   const fits = (id: Id) => of_kind(id)
     && (slug === graph.root || package_of(graph, id) !== graph.root);
-  const hits = def_hits(graph, said, { within: ctx.within, fits });
+  const hits = def_hits(graph, said, { ...scope(ctx), fits });
   if (hits.length === 1) return hits[0]!;
   if (hits.length > 1) {
     ambiguous(ctx, said, hits);
@@ -795,11 +901,11 @@ function tag_of(ctx: Ctx, word: string): Id | undefined {
  *  file's packages, or a block definition. Nothing, and an alias of text is made in this
  *  package's library. */
 function type_of(ctx: Ctx, word: string): Id | undefined {
-  const said = word.trim();
+  const said = spelled(ctx.aliases, word);
   if (is_form(said)) return said;
   const typed = in_scope(ctx, all_types(ctx.graph), said);
   if (typed !== undefined) return typed ?? undefined;
-  const hit = def_ref(ctx.graph, said, { within: ctx.within, fits: fits_domain(ctx.graph, "block") });
+  const hit = def_ref(ctx.graph, said, { ...scope(ctx), fits: fits_domain(ctx.graph, "block") });
   if (hit) return hit;
   library(ctx.graph, ctx.slug, ctx.pre, { types: [{ name: said, form: "text" }] });
   ctx.made.set(said, type_id(ctx.pre, said));
@@ -852,7 +958,8 @@ function interface_of(ctx: Ctx, word: string): Id | undefined {
  *  nothing is made in its place; none is `undefined`. */
 function in_scope(ctx: Ctx, held: readonly { id: Id; name: string; pkg: Id }[],
                   name: string): Id | null | undefined {
-  const hits = component_hits(ctx.graph, held, name, ctx.within);
+  const hits = component_hits(ctx.graph, held, spelled(ctx.aliases, name), ctx.within,
+                              ctx.imports);
   if (hits.length > 1) {
     ambiguous(ctx, name, hits);
     return null;

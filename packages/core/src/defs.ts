@@ -505,11 +505,11 @@ export function in_definitions(graph: Graph, id: Id): boolean {
   return is_folder(graph, id) && is_domain(graph, id);
 }
 
-/** Whether a block is a model: a definition extending base `model`, never the base itself. **A
- *  model is what is built**, the one thing drawn on directly; it is never instanced, only used as
- *  a part. */
+/** Whether a block is a model: a definition with *is model* (2026-11-15), whatever kind it
+ *  extends, never base `model` itself. **A model is what is built**, the one thing drawn on
+ *  directly; it is never instanced, only used as a part. */
 export function is_model(graph: Graph, id: Id | null | undefined): boolean {
-  return !!id && !is_base(id) && !!graph.blocks[id]?.def && base_named(graph, id) === "model";
+  return !!id && !is_base(id) && !!graph.blocks[id]?.def && has_trait(graph, id, "is_model");
 }
 
 /** **A model draws as its kind says** (2026-11-07): a setting under `key` is its kind's alone, so

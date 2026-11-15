@@ -1,6 +1,5 @@
 name: Anti-corruption layer
 type: service
-def: {}
 body: Use when an outside system must be reached without its model leaking into ours.
 note: Keeps an outside model out of ours. Everything crossing is translated in one place.
 blocks:

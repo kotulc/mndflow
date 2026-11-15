@@ -17,7 +17,7 @@ export const BLOCK_KEYS = [
   "body",
   "source", "of", "parent", "cell",
   "grid", "values", "w", "h", "ports", "rows", "cols", "blocks", "relations",
-  "packages", "note", "library", "records",
+  "note", "records",
 ] as const;
 
 /** Whether a key is one a block says itself with. */

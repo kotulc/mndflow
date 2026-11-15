@@ -295,9 +295,11 @@ const allows: Component = {
 
 
 /** **How a diagram kind draws what it holds** (2026-11-06): its view, how it places its parts,
- *  and the face and shape they take where theirs say none. A definition's, never a usage's. An
- *  unknown placing is drawn as `auto`, never refused: a newer package names placings an older
- *  build has not got. */
+ *  and the face and shape they take where theirs say none; and **how its files are written**
+ *  (`file`, 2026-11-15): by key, the schema's key it spells (`as`), the type a bare item takes
+ *  (`type`), and whether such an item stands for a definition (`defs`). A definition's, never a
+ *  usage's. An unknown placing is drawn as `auto`, never refused: a newer package names placings
+ *  an older build has not got. */
 const diagram: Component = {
   name: "diagram",
   check: (config) =>
@@ -307,8 +309,27 @@ const diagram: Component = {
       ? null : "`diagram.view` has to be a name")
     ?? one_of("diagram.cards", config["cards"], CARDS)
     ?? one_of("diagram.shape", config["shape"], SHAPES)
-    ?? stray("diagram", config, ["placing", "cards", "view", "shape"]),
+    ?? file_of(config["file"])
+    ?? stray("diagram", config, ["placing", "cards", "view", "shape", "file"]),
 };
+
+/** A kind's `diagram.file`: each key a map of `as` and `type` (names) and `defs` (true or false). */
+function file_of(file: unknown): string | null {
+  if (file === undefined) return null;
+  if (!file || typeof file !== "object") return "`diagram.file` has to be a map of keys";
+  for (const [key, one] of Object.entries(file as Record<string, Record<string, unknown>>)) {
+    if (!one || typeof one !== "object") return `\`diagram.file.${key}\` has to be a map`;
+    for (const k of ["as", "type"]) {
+      if (one[k] !== undefined && typeof one[k] !== "string") {
+        return `\`diagram.file.${key}.${k}\` has to be a name`;
+      }
+    }
+    if (one["defs"] !== undefined && typeof one["defs"] !== "boolean") {
+      return `\`diagram.file.${key}.defs\` has to be true or false`;
+    }
+  }
+  return null;
+}
 
 /** What a block made from, or dropped on, another is linked to it by: a relation definition. */
 const tie: Component = {

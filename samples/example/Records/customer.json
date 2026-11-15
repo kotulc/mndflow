@@ -1,0 +1,26 @@
+{
+  "id": "customer",
+  "name": "Customer",
+  "def": {
+    "attributes": [
+      {
+        "name": "id",
+        "type": "number",
+        "key": "primary"
+      },
+      {
+        "name": "name"
+      },
+      {
+        "name": "email",
+        "type": "datatype.email"
+      }
+    ]
+  },
+  "description": "Someone who places an order.",
+  "settings": {
+    "card": {
+      "face": "table"
+    }
+  }
+}

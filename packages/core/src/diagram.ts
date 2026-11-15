@@ -44,6 +44,8 @@ export type Entry = {
   h?: number;
   /** Its ports, in order. */
   ports?: PortEntry[];
+  /** What it stands for is a definition, looked for among definitions alone (`FileSpec`). */
+  defs?: boolean;
 };
 
 /** A port as a file states it: its name, and its interface definition by name. */
@@ -72,15 +74,18 @@ export type Edge = {
 const EDGE_KEYS = ["from", "to", "type", "name", "dir", "tags", "constraints", "settings", "values",
                    "ends"] as const;
 
-/** A file, spelled out: its block, the blocks it holds in file order, its relations, the packages
- *  it uses, and the named components it adds to its package's library. */
-export type LongForm = { top: Entry; blocks: Entry[]; relations: Edge[]; packages: string[];
-                         library: LibrarySaid };
+/** A file, spelled out: its block, the blocks it holds in file order, and its relations. A file
+ *  uses its package's definitions and defines none: definitions are the package's JSON. */
+export type LongForm = { top: Entry; blocks: Entry[]; relations: Edge[] };
 
-/** The named components a file adds to its package's library, by kind. */
-export type LibrarySaid = { types: Record<string, unknown>[]; tags: Record<string, unknown>[];
-                            interfaces: Record<string, unknown>[];
-                            constraints: Record<string, unknown>[] };
+/** **What a diagram kind says of the files that write it** (`diagram.file`), by key: the schema's
+ *  key it spells (`as`: a sequence's `participants` are its `cols`), the type a bare item under it
+ *  takes (`type`), and whether what such an item stands for is a definition (`defs`). */
+export type FileSpec = Record<string, { as?: string; type?: string; defs?: boolean }>;
+
+/** The lists a file's map holds items in, each taking its kind's default type. */
+const LISTS = ["blocks", "cols", "rows", "relations"] as const;
+type Defaults = Partial<Record<(typeof LISTS)[number], { type?: string; defs?: boolean }>>;
 
 /** The arrows an edge is written with, and the way each points. */
 const ARROWS: readonly [string, Dir][] = [["<->", "both"], ["->", "forward"], ["<-", "back"],
@@ -89,28 +94,39 @@ const ARROWS: readonly [string, Dir][] = [["<->", "both"], ["->", "forward"], ["
 type Map = Record<string, unknown>;
 
 
-/** A file's map spelled out. `body`, where the file has one after its frontmatter, is the file
- *  block's. Throws, with what is wrong, where a short form cannot be read. */
-export function long_form(front: Map, body?: string): LongForm {
+/** A file's map spelled out, as its kind's `spec` says to read it. `body`, where the file has one
+ *  after its frontmatter, is the file block's. Throws, with what is wrong, where a short form
+ *  cannot be read. */
+export function long_form(map: Map, body?: string, spec: FileSpec = {}): LongForm {
+  const { front, defaults } = respelled(map, spec);
   const top = entry(front);
   if (body) top.body = body;
-  /** **A file's block typed `model` is a model**: a definition holding the layer it states. */
-  if (top.type === "model") top.def ??= {};
   const blocks: Entry[] = [];
   const said = typeof front["note"] === "string" ? front["note"].trim() : "";
   /** A note on the file is about its whole layer: untied, it floats beside all of it. */
   if (said) blocks.push({ name: said, type: "note", values: [] });
   noted(top, -1, undefined, blocks);
-  held(front, undefined, blocks, top);
-  const relations = listed(front["relations"], "relations").flatMap(edges);
-  const packages = listed(front["packages"], "packages").map((p) => said_as(p).trim())
-    .filter(Boolean);
-  const lib = (front["library"] ?? {}) as Map;
-  const named = (key: string) => listed(lib[key], `library.${key}`)
-    .map((item) => (typeof item === "string" ? { name: item } : item as Map));
-  return { top, blocks, relations, packages,
-           library: { types: named("types"), tags: named("tags"), interfaces: named("interfaces"),
-                      constraints: named("constraints") } };
+  held(front, undefined, blocks, top, defaults);
+  const kind = defaults.relations?.type;
+  const relations = listed(front["relations"], "relations").flatMap(edges)
+    .map((e) => (kind && !e.type ? { ...e, type: kind } : e));
+  return { top, blocks, relations };
+}
+
+/** A file's map with its kind's keys spelled as the schema's (`participants` as `cols`), and the
+ *  default each list's bare items take. */
+function respelled(said: Map, spec: FileSpec): { front: Map; defaults: Defaults } {
+  const front = { ...said };
+  const defaults: Defaults = {};
+  for (const [key, one] of Object.entries(spec)) {
+    const to = (one.as ?? key) as (typeof LISTS)[number];
+    if (one.as && key in front) {
+      front[one.as] = front[key];
+      delete front[key];
+    }
+    if (LISTS.includes(to)) defaults[to] = { type: one.type, defs: one.defs };
+  }
+  return { front, defaults };
 }
 
 /** Whether a word is an edge: two names either side of an arrow. */
@@ -123,22 +139,24 @@ export function is_edge(word: string): boolean {
  *  followed by what it holds in turn. `under` is the entry the map is, where it is not the
  *  file's block; `owner` is that entry. **A header said as a word is a label**, plain data on
  *  the owner's grid; said as a block, it is a block standing for a concept (2026-11-05). */
-function held(map: Map, under: number | undefined, out: Entry[], owner: Entry): void {
+function held(map: Map, under: number | undefined, out: Entry[], owner: Entry,
+              defaults: Defaults = {}): void {
   const labels: { r: number; c: number; text: string }[] = [];
+  /** A header said as a word is a label, unless its kind types its headers. */
   const heads = (key: "rows" | "cols") => listed(map[key], key).flatMap((item, i) => {
     const cell: [number, number] = key === "rows" ? [i + 1, 0] : [0, i + 1];
-    if (typeof item === "string") {
+    if (typeof item === "string" && !defaults[key]?.type) {
       labels.push({ r: cell[0], c: cell[1], text: item.trim() });
       return [];
     }
-    return [{ ...entry(item as Map), cell }];
+    return blocks_of(item, defaults[key]).map(([e]) => ({ ...e, cell }));
   });
   for (const e of [...heads("cols"), ...heads("rows")]) out.push({ ...e, under });
   if (labels.length) {
     owner.grid = { ...owner.grid, labels: [...labels, ...(owner.grid?.labels ?? [])] };
   }
   for (const item of listed(map["blocks"], "blocks")) {
-    for (const [e, inner] of blocks_of(item)) {
+    for (const [e, inner] of blocks_of(item, under === undefined ? defaults.blocks : {})) {
       const at = out.length;
       out.push(e.parent ? e : { ...e, under });
       const said = typeof inner?.["note"] === "string" ? inner["note"].trim() : "";
@@ -165,20 +183,27 @@ function note_on(text: string, under: number | undefined, tied: number): Entry {
   return { name: text, type: "note", values: [], tied, ...(under !== undefined ? { under } : {}) };
 }
 
-/** One item of `blocks`: a name, `type: [names]`, or the long form — any other map. Each comes
- *  with the map it was read from, where it may hold blocks of its own. */
-function blocks_of(item: unknown): [Entry, Map | null][] {
-  if (typeof item === "string") return [[{ name: item, values: [] }, null]];
+/** One item of `blocks`: a name, `type: name`, `type: [names]`, or the long form — any other
+ *  map. Each comes with the map it was read from, where it may hold blocks of its own. An item
+ *  saying no type takes the one its kind says (`fallback`). */
+function blocks_of(item: unknown, fallback: Defaults["blocks"] = {}): [Entry, Map | null][] {
+  const typed = ([e, inner]: [Entry, Map | null]): [Entry, Map | null] => [
+    { ...e, ...(!e.type && fallback.type ? { type: fallback.type } : {}),
+      ...(fallback.defs ? { defs: true } : {}) }, inner];
+  if (typeof item === "string") return [typed([{ name: item.trim(), values: [] }, null])];
   if (!item || typeof item !== "object" || Array.isArray(item)) {
     throw new Error(`a block is a name or a map: ${said_as(item)}`);
   }
   const map = item as Map;
   const keys = Object.keys(map);
   const [type] = keys;
-  const grouped = keys.length === 1 && Array.isArray(map[type!])
-    && !is_block_key(type!);
-  if (!grouped) return [[entry(map), map]];
-  return (map[type!] as unknown[]).flatMap((one) => blocks_of(one))
+  /** One key that is no block key, over a name or a list: blocks of that type. */
+  const one = keys.length === 1 && !is_block_key(type!);
+  if (one && typeof map[type!] === "string") {
+    return [[{ name: (map[type!] as string).trim(), type, values: [] }, null]];
+  }
+  if (!one || !Array.isArray(map[type!])) return [typed([entry(map), map])];
+  return (map[type!] as unknown[]).flatMap((x) => blocks_of(x))
     .map(([e, inner]) => [{ ...e, type: e.type ?? type }, inner]);
 }
 
@@ -199,10 +224,10 @@ function entry(map: Map): Entry {
   set("parent", word("parent"));
   set("w", num("w"));
   set("h", num("h"));
-  if ("ports" in map) e.ports = listed(map["ports"], "ports").map(port_of);
-  if ("def" in map) {
-    e.def = (map["def"] && typeof map["def"] === "object" ? map["def"] : {}) as Entry["def"];
-  }
+  if ("ports" in map) e.ports = ports_of(map["ports"]);
+  /** **A file states no definition**: definitions are the package's JSON (a model, typed so, is
+   *  the one a file makes). */
+  if ("def" in map) e.dropped = [...e.dropped ?? [], "def"];
   if ("tags" in map) e.tags = names_in(map["tags"]);
   if ("groups" in map) e.groups = names_in(map["groups"]);
   /** A group holds nothing: its members say `groups:`. */
@@ -219,6 +244,21 @@ function entry(map: Map): Entry {
   }
   set("cell", cell_of(map["cell"]));
   return e;
+}
+
+/** A block's ports: a list, or by flow — `{in: {content: md tree}, out: {dist: site}}`, each
+ *  port's name to its type. */
+function ports_of(value: unknown): PortEntry[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return listed(value, "ports").map(port_of);
+  }
+  return Object.entries(value as Map).flatMap(([flow, ports]) => {
+    if (!["in", "out", "both"].includes(flow) || !ports || typeof ports !== "object") {
+      throw new Error(`ports by flow are in, out or both, each a map of name to type: ${flow}`);
+    }
+    return Object.entries(ports as Map).map(([name, type]): PortEntry => ({
+      name: name.trim(), flow, ...(type ? { type: said_as(type).trim() } : {}) }));
+  });
 }
 
 /** One item of `ports`: a name, or a map of what it says. */

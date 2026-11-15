@@ -1,0 +1,10 @@
+{
+  "id": "primary",
+  "name": "primary",
+  "def": {},
+  "settings": {
+    "style": {
+      "family": "primary"
+    }
+  }
+}

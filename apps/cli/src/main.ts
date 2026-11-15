@@ -148,19 +148,16 @@ function leaves(folder: string, at = folder): Leaf[] {
   });
 }
 
-/** A source folder collected, with every package its files list loaded first: a catalogue name
- *  from beside the catalogue, a path from the folder — itself a package file or a folder. */
+/** A source folder collected, with every package it imports loaded first: a catalogue name from
+ *  beside the catalogue, a path from the folder — itself a package file or a folder. */
 function gathered(folder: string, workspace: boolean, bare = false,
                   seen = new Set<string>()): Collected {
-  /** A folder listing itself, or two listing each other, is read once. */
+  /** A folder importing itself, or two importing each other, is read once. */
   seen.add(resolve(folder));
   const files = leaves(folder);
   let over = fold([], FLOOR);
   const notes: string[] = [];
-  const { listed, heads } = wanted(files);
-  /** A qualified name's first step loads the catalogue package of that name, where it lists one. */
-  const named = heads.filter((h) => listed_names().includes(h));
-  for (const want of [...listed, ...named]) {
+  for (const want of wanted(files)) {
     const at = want.startsWith("./") ? resolve(folder, want)
       : join(dirname(CATALOGUE), `${want}.json`);
     if (seen.has(resolve(at))) continue;
@@ -175,13 +172,6 @@ function gathered(folder: string, workspace: boolean, bare = false,
   return { ...got, notes: [...notes, ...got.notes] };
 }
 
-/** The names the catalogue lists, read from its index. */
-function listed_names(): string[] {
-  try {
-    const index = JSON.parse(readFileSync(CATALOGUE, "utf8")) as { packages?: { name?: string }[] };
-    return (index.packages ?? []).flatMap((p) => (p.name ? [p.name] : []));
-  } catch { return []; }
-}
 
 /** A package file's blocks and relations beside what a graph holds; an id already there stays. */
 function joined(graph: Graph, text: string): Graph {

@@ -1,0 +1,10 @@
+{
+  "id": "neutral",
+  "name": "neutral",
+  "def": {},
+  "settings": {
+    "style": {
+      "family": "neutral"
+    }
+  }
+}

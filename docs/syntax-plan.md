@@ -20,8 +20,9 @@
 | 11 | **a mapping's records are written as relations**: `reads -> writes: info` |
 | 12 | **`name` is optional** where the file's name says it (after its order prefix); required in a file of several diagrams |
 | 13 | **a mark in short**: `start: Placed` |
-| 15 | **a behaviour's signature on the definition, its body in the model**: a definition's JSON lists its behaviours as signatures (name, inputs, output), data like attributes and ports, so a class card lists them with no model behind it. A body — steps, a flow, a sequence, states — is a diagram in the model under the use that owns it. A collection of behaviours with parts (a module, a component) is a sub model. When a module becomes a sub model rather than a leaf with signatures, and how a signature names its body, are the tools pass's |
 | 14 | **several diagrams per file**: YAML documents split by `---`, each a block of its own, in file order, each named. Meant for small diagrams over the same things (a class and an entity diagram). A file of several diagrams owns no directory beside it |
+| 15 | **a behaviour's signature on the definition, its body in the model**: a definition's JSON lists its behaviours as signatures (name, inputs, output), data like attributes and ports, so a class card lists them with no model behind it. A body — steps, a flow, a sequence, states — is a diagram in the model under the use that owns it. A collection of behaviours with parts (a module, a component) is a sub model. When a module becomes a sub model rather than a leaf with signatures, and how a signature names its body, are the tools pass's |
+| 16 | **a model is a definition with *is model***, a trait: it may extend any block kind in scope and draws and answers as it (the services patterns: `type: service`). **A diagram file in no other file's block is a model**; inside one, a part. Base `model` is the plain model. A kind's file defaults are its `diagram.file` setting |
 
 | Kind | Blocks default to | Relations default to |
 |---|---|---|
@@ -41,5 +42,8 @@
 |---|---|---|
 | 1 | agree the end-to-end flow and each kind's file | done 2026-11-15 |
 | 2 | rewrite design.md *Diagram files* and *Definitions and packages*, each kind's *Surface* | done 2026-11-15 |
-| 3 | move the samples to it (`npm run samples`); the door reads the new form only (no legacy repairs) | |
-| 4 | the translators (apps/ts) write it | with the tools pass |
+| 3 | the door reads the new form only (no legacy repairs); services, example and elements moved to it, each collected and compared with its old file | done 2026-11-15 |
+| 4 | the translators (apps/ts) write it; `samples/code` and `samples/mndsite` do not collect until then (the user's call: strict) | with the tools pass |
+| 5 | not yet built: the `context`, `dataflow`, `mapping`, `actor`, `external` base kinds, so dataflow `datum`, mapping `records` as relations and their kind defaults wait for them | with the tree view |
+
+**Seen, not fixed**: a use of a model, entered, draws as a treemap of its own children only (views `block.ts` `layer_map`), so a use of a services pattern, now a model, shows nothing inside; before, a pattern's use drew its parts read through. The tree view (model-plan.md *Next session* 2) opens a chip as a closed box of its model's tree.

@@ -284,7 +284,13 @@
             "type": "services.interface.http"
           }
         ],
-        "source": "patterns/anti-corruption-layer.yaml"
+        "source": "patterns/anti-corruption-layer.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "services.yaml.patterns.anti-corruption-layer:client": {
         "id": "services.yaml.patterns.anti-corruption-layer:client",
@@ -375,7 +381,13 @@
             "type": "services.interface.http"
           }
         ],
-        "source": "patterns/api-gateway.yaml"
+        "source": "patterns/api-gateway.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "services.yaml.patterns.api-gateway:auth": {
         "id": "services.yaml.patterns.api-gateway:auth",
@@ -455,7 +467,13 @@
             "type": "services.interface.http"
           }
         ],
-        "source": "patterns/circuit-breaker.yaml"
+        "source": "patterns/circuit-breaker.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "services.yaml.patterns.circuit-breaker:breaker": {
         "id": "services.yaml.patterns.circuit-breaker:breaker",
@@ -521,7 +539,13 @@
             "type": "services.interface.http"
           }
         ],
-        "source": "patterns/layered-architecture.yaml"
+        "source": "patterns/layered-architecture.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "services.yaml.patterns.layered-architecture:api": {
         "id": "services.yaml.patterns.layered-architecture:api",
@@ -609,7 +633,13 @@
             "type": "services.interface.events"
           }
         ],
-        "source": "patterns/saga-orchestrator.yaml"
+        "source": "patterns/saga-orchestrator.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "services.yaml.patterns.saga-orchestrator:compensations": {
         "id": "services.yaml.patterns.saga-orchestrator:compensations",
@@ -681,7 +711,13 @@
             "type": "services.interface.events"
           }
         ],
-        "source": "patterns/transactional-outbox.yaml"
+        "source": "patterns/transactional-outbox.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "services.yaml.patterns.transactional-outbox:api": {
         "id": "services.yaml.patterns.transactional-outbox:api",

@@ -126,7 +126,13 @@
           },
           "diagram": {
             "view": "class",
-            "cards": "large"
+            "cards": "large",
+            "file": {
+              "blocks": {
+                "type": "reference",
+                "defs": true
+              }
+            }
           }
         }
       },
@@ -229,7 +235,13 @@
           },
           "diagram": {
             "view": "er",
-            "cards": "large"
+            "cards": "large",
+            "file": {
+              "blocks": {
+                "type": "reference",
+                "defs": true
+              }
+            }
           }
         }
       },
@@ -414,17 +426,19 @@
         "name": "model",
         "type": "block",
         "def": {},
-        "description": "What is built: a definition of it is a model, the one thing drawn on directly. Its parts are the usages it holds; another model uses it as a part.",
+        "description": "What is built: a plain model, extending nothing else. Any definition with *is model* is a model, the one thing drawn on directly; its parts are the usages it holds, and another model uses it as a part.",
         "order": 4,
         "settings": {
-          "diagram": {
-            "view": "internal",
-            "placing": "treemap"
-          },
           "style": {
             "hue": 265
           }
-        }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "note": {
         "id": "note",
@@ -525,7 +539,16 @@
             "hue": 310
           },
           "diagram": {
-            "view": "allocation"
+            "view": "allocation",
+            "file": {
+              "participants": {
+                "as": "cols",
+                "type": "reference"
+              },
+              "relations": {
+                "type": "message"
+              }
+            }
           },
           "holder": {
             "lifelines": true
@@ -571,7 +594,12 @@
           "diagram": {
             "view": "internal",
             "placing": "layered",
-            "shape": "round"
+            "shape": "round",
+            "file": {
+              "relations": {
+                "type": "transition"
+              }
+            }
           }
         },
         "traits": [
@@ -594,7 +622,16 @@
             "hue": 290
           },
           "diagram": {
-            "view": "allocation"
+            "view": "allocation",
+            "file": {
+              "lanes": {
+                "as": "cols",
+                "type": "reference"
+              },
+              "phases": {
+                "as": "rows"
+              }
+            }
           }
         },
         "traits": [

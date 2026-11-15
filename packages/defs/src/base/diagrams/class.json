@@ -10,7 +10,13 @@
     },
     "diagram": {
       "view": "class",
-      "cards": "large"
+      "cards": "large",
+      "file": {
+        "blocks": {
+          "type": "reference",
+          "defs": true
+        }
+      }
     }
   }
 }

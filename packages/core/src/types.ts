@@ -370,6 +370,9 @@ export const TRAITS: readonly Trait[] = [
   { id: "is_behaviour", description: "Is a behaviour: a method of what holds it, its layer the flow, "
       + "state machine, swimlane or sequence that does it; its interfaces its parameters and return.",
     settings: { block: { behaviour: true } } },
+  { id: "is_model", description: "Is a model: a definition of what is built, holding parts and "
+      + "drawn on directly; whatever kind it extends, it opens onto its parts as a tree.",
+    settings: { diagram: { view: "internal", placing: "treemap" } } },
   { id: "is_grid", description: "Seats text and blocks in the cells of a grid, drawn when it is opened.",
     settings: { holder: { matrix: true } } },
   { id: "is_group", description: "Draws as a panel round its members, on the layer it sits on; "
