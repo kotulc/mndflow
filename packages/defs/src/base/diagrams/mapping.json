@@ -1,0 +1,29 @@
+{
+  "id": "mapping",
+  "name": "mapping",
+  "type": "block",
+  "description": "A mapping: what goes in, where it lands, and what to know about it — one record a row, each from what it reads to what it writes, with a note.",
+  "def": {},
+  "traits": [
+    "has_parts",
+    "has_ports",
+    "has_values",
+    "has_records"
+  ],
+  "settings": {
+    "style": {
+      "hue": 45
+    },
+    "diagram": {
+      "file": {
+        "records": {
+          "ends": [
+            "reads",
+            "writes",
+            "info"
+          ]
+        }
+      }
+    }
+  }
+}

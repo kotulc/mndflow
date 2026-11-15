@@ -313,7 +313,8 @@ const diagram: Component = {
     ?? stray("diagram", config, ["placing", "cards", "view", "shape", "file"]),
 };
 
-/** A kind's `diagram.file`: each key a map of `as` and `type` (names) and `defs` (true or false). */
+/** A kind's `diagram.file`: each key a map of `as` and `type` (names), `defs` (true or false) and
+ *  `ends` (names). */
 function file_of(file: unknown): string | null {
   if (file === undefined) return null;
   if (!file || typeof file !== "object") return "`diagram.file` has to be a map of keys";
@@ -326,6 +327,10 @@ function file_of(file: unknown): string | null {
     }
     if (one["defs"] !== undefined && typeof one["defs"] !== "boolean") {
       return `\`diagram.file.${key}.defs\` has to be true or false`;
+    }
+    const ends = one["ends"];
+    if (ends !== undefined && !(Array.isArray(ends) && ends.every((e) => typeof e === "string"))) {
+      return `\`diagram.file.${key}.ends\` has to be a list of names`;
     }
   }
   return null;

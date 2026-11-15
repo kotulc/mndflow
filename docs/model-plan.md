@@ -5,15 +5,14 @@
 
 ## Next session
 
-**State (2026-11-15).** The diagram kinds pass is committed (7bbc88a): ten kinds, one file each in docs/diagrams/. No code changed since 4ea7e35. **Reordered 2026-11-15 by the user**: the syntax pass first, since the tools write it; the tree view before presentations.
+**State (2026-11-15, hand-off).** The diagram kinds pass is committed (7bbc88a). **The syntax pass is built** (uncommitted; syntax-plan.md): packages import explicitly, models and diagrams are YAML scoped to their package, a model is any definition with *is model*, kinds say how their files are written, and the new base kinds are in. services, example and elements collect, check clean and draw with a clean console. **`samples/code` and `samples/mndsite` do not collect** until the translator writes the new form (the user's call). Suggested commit: *Syntax pass: package imports, models as a trait, kind file defaults, new base kinds; move services, example and elements*.
 
 | Order | Take up | Where |
 |---|---|---|
-| 1 | **the file syntax pass** (taken up 2026-11-15): packages as JSON with explicit imports, models and diagrams as light YAML scoped to their package; starts from the surface changes in *Build notes* | syntax-plan.md |
-| 2 | **the one tree view, model root** (docs/diagrams/tree.md): boxes open and closed from `open:`, context's zones round it (`actor`, `external` base kinds), the About band from `about:` | *Build notes* below |
-| 3 | **build presentations** on it: the presentations file, state, player (open, camera, steps, pace), tray section and CLI | presentations.md *Building it* |
-| 4 | **the tools' build list**: fact tools first (most exist in apps/ts `read.ts`), then diagram tools, CLI before MCP. Gives state, swimlane and entity each a use case, so each gets a tool (docs/diagrams/README.md *Kinds drawn by hand*). Decides what of *Build* passes 1–3 and translation-plan.md stays (`write.ts`'s one model per path, the walk, the *Shared* box were built under the dropped direction) | docs/tools/ |
-| 5 | the rest of *Open after the passes*; polish waits in backlog.md *After the mndsite review* | below |
+| 1 | **the one tree view, model root** (docs/diagrams/tree.md): boxes open and closed from `open:`, context's zones round it (`actor`, `external`), the About band from `about:`. **Fixes a seen regression**: a use of a model, entered, draws only its own children (views `block.ts` `layer_map`), so a use of a services pattern, now a model, shows nothing inside (syntax-plan.md *Seen, not fixed*) | *Build notes* below |
+| 2 | **build presentations** on it: the presentations file, state, player (open, camera, steps, pace), tray section and CLI | presentations.md *Building it* |
+| 3 | **the tools' build list**, with the translator writing the new syntax (syntax-plan.md step 4; brings back `samples/code` and `samples/mndsite`; could come before presentations if a translated model is wanted in the tree view): fact tools first (most exist in apps/ts `read.ts`), then diagram tools, CLI before MCP. Gives state, swimlane and entity each a use case, so each gets a tool (docs/diagrams/README.md *Kinds drawn by hand*). Decides what of *Build* passes 1–3 and translation-plan.md stays (`write.ts`'s one model per path, the walk, the *Shared* box were built under the dropped direction) | docs/tools/ |
+| 4 | the rest of *Open after the passes*; polish waits in backlog.md *After the mndsite review* | below |
 
 **Carry over**: presentations.md *Open* (where the pace setting is kept; how a shown diagram is left; data moving along a step's line); chip stamp (*Questions* 1), unblocked, to take up with the tree view. **Drive every depth after a navigation change** once code changes again. **The camera has one owner** (committed 4ea7e35; *Camera* below). **Mockups use the app's own faces** (docs/design/card.md, mockups/tray-lists.html), never an invented look.
 
@@ -24,8 +23,8 @@ What the agreed kinds ask of the code, by home. Each is general; the kind's file
 
 | Home | Change | Kind |
 |---|---|---|
-| base kinds | `context` replaces `internal` (view `internal` kept); the `treemap` kind is retired (samples/elements only); new `actor`, `external`, `dataflow`, `mapping` (*has records*) | context, tree, dataflow, mapping |
-| core | a port's `type` may name a data definition (`sources.ts` `interface_of`); a mapping's records; a dataflow's `datum`; a model's `open:` | dataflow, mapping, tree |
+| base kinds | **built 2026-11-15**: `context` replaces `internal` (view `internal` kept); the `treemap` kind retired; new `actor`, `external`, `dataflow`, `mapping` (*has records*) | context, tree, dataflow, mapping |
+| core | a port's `type` may name a data definition (`sources.ts` `interface_of`); a model's `open:`. **Built 2026-11-15**: a mapping's records, a dataflow's `datum` | dataflow, mapping, tree |
 | theme | a typed seat filled with its type's colour, semi-transparent, and outlined; a base seat hollow (design/card.md) | dataflow |
 | views and stage: layer | one frame-and-zones layout (bands, ELK layered with the frame a compound node, ports fixed by side and order) for context, flow, dataflow, state; flow's lanes, lines back, `[guard]` labels; dataflow's ranks and datum band | context, flow, dataflow, state |
 | views and stage: grid | sequence: participant order, the owner's frame over the head, origin dots, fragments for repeats and alternatives; swimlane turned by the canvas | sequence, swimlane |
@@ -33,8 +32,8 @@ What the agreed kinds ask of the code, by home. Each is general; the kind's file
 | views and stage: types | class and entity: lines from the field's row (entity: row to row, crow's feet), owners first along the long side, named fields as links, worked-out foreign keys | class, entity |
 | views: tree | one tree view, three roots (world, model, registry); a chip a closed box; the registry's own treemap (`treemap.ts` `tiled`) retired into it | tree |
 | tools | diagram tools warn below the floor (3 steps, messages, states, rows, parts); `tree` renamed `overview` | all |
-| surface (syntax pass) | agreed 2026-11-15 (syntax-plan.md): sequence `participants` and messages by the kind; swimlane `lanes`/`phases`; dataflow `datum`; mapping `records` as relations; model `open:` | sequence, swimlane, dataflow, mapping, tree |
-| samples | samples/elements loses its treemap block; Fulfilment writes `lanes`/`phases`; Order states and Payment retry unchanged | tree, swimlane |
+| surface (syntax pass) | **built 2026-11-15** (syntax-plan.md): sequence `participants` and messages by the kind; swimlane `lanes`/`phases`; dataflow `datum`; mapping `records` as relations. Model `open:` comes with the tree view | sequence, swimlane, dataflow, mapping, tree |
+| samples | **done 2026-11-15**: samples/elements loses its treemap block and gains a dataflow and a mapping (`6-data`); Fulfilment writes `lanes`/`phases` | tree, swimlane |
 
 
 ## Goal

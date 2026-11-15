@@ -2,7 +2,7 @@ name: Storefront
 type: services.service
 values: { owner: Web }
 tags: [ critical, orders ]
-description: "An internal diagram: what the storefront is made of. Its pages meet through typed ports; its own ports sit on its walls."
+description: "A context diagram: what the storefront is made of. Its pages meet through typed ports; its own ports sit on its walls."
 ports:
   - name: https
     type: services.HTTP

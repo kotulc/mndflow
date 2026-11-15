@@ -601,7 +601,7 @@ function kind_typed(graph: Graph, id: Id, type: Id | undefined): Id | null {
     ?? (type && DIAGRAMS.includes(type) ? type : undefined);
   if (named) return named;
   if (block_base(graph, type) !== "block" || module_named(graph, type) !== "block") return null;
-  return holds_parts(graph, id, type) ? "internal" : null;
+  return holds_parts(graph, id, type) ? "context" : null;
 }
 
 /** Whether a block typed by `type` holds parts: its own, or its definition's. */

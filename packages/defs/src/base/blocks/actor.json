@@ -1,0 +1,12 @@
+{
+  "id": "actor",
+  "name": "actor",
+  "type": "block",
+  "description": "Someone or something outside the system that starts or uses it: drawn above its frame in a context diagram.",
+  "def": {},
+  "settings": {
+    "style": {
+      "family": "neutral"
+    }
+  }
+}

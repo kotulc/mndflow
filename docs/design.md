@@ -343,7 +343,7 @@ Most rules below are one of these applied.
 | a `class` | **class** | the definitions its references stand for, one class card each — fields, then behaviours — with what they extend and the relations stored between them, their ends drawn; laid out `layered`, owners first along the canvas's long side (2026-11-15, was *owners above*); a line leaves the row of the field that holds its target, a field only naming one is a link (docs/diagrams/class.md) |
 | an `entity` | **er** | the same, one schema card each — columns, keys — the relations' multiplicities as crow's feet, drawn larger than an arrow's head, and nothing extended |
 | a stand-in | what it stands for | that block's own view |
-| a `treemap` | **internal**, `treemap` | what it holds, drawn as the map is (2026-11-02), and read as it is (2026-11-05: a pick fits it and its hops, a walk each step, a reference hovered says what it stands for): what it holds as chips and boxes, read only, each entered |
+| a model (*is model*; the `treemap` kind retired 2026-11-15) | **internal**, `treemap` | what it holds, drawn as the map is (2026-11-02; one tree view to come, docs/diagrams/tree.md), and read as it is (2026-11-05: a pick fits it and its hops, a walk each step, a reference hovered says what it stands for): what it holds as chips and boxes, read only, each entered |
 | a registry | **registry** | a treemap: its entries as tiles as large as their uses, in the boxes of their home folders |
 | an entry of a registry (a tag, a type) | **registry** | where it is used: the blocks carrying it, as large as their uses, in the boxes of their folders |
 | an empty block, a leaf, notation or an unused definition | nothing | picked where it is drawn, or on its map |

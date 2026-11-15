@@ -114,8 +114,8 @@ export type Role = "block" | "model" | "folder" | "reference" | "interface" | "g
   | "label" | "region" | "start" | "end" | "decision" | Diagram;
 
 /** A diagram kind, as the role its card reads as. */
-export type Diagram = "internal" | "flow" | "state" | "sequence" | "swimlane" | "class" | "entity"
-  | "treemap";
+export type Diagram = "context" | "flow" | "dataflow" | "state" | "sequence" | "swimlane"
+  | "mapping" | "class" | "entity";
 
 /** Every base that draws as itself. */
 const ROLES: readonly string[] = ["block", "model", "folder", "reference", "note", "label", "group",

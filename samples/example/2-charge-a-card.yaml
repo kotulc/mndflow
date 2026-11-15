@@ -6,7 +6,7 @@ blocks:
     type: services.Circuit breaker
     tags: [ payments, pii ]
   - name: Card processor
-    type: services.external
+    type: external
     tags: [ external api ]
   - name: Ledger
     type: Ledger

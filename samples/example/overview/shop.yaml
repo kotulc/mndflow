@@ -1,5 +1,5 @@
 name: Shop
-type: internal
+type: context
 description: "The shop itself, one region a side: what customers reach, what runs behind it, the records it keeps, and how it runs."
 ports:
   - { name: https, type: services.HTTP, flow: in, side: left }

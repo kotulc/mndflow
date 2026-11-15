@@ -4,16 +4,16 @@ note: "One shop, seen from every side: open Shop for its parts, and a part for i
 description: "The shop in its world: who uses it and what it leans on. Open Shop to go inside; every diagram here is one side of it."
 blocks:
   - name: Customer
-    type: services.person
+    type: actor
     ports:
       - { name: browser, type: services.HTTP, flow: out }
   - name: Card processor
-    type: services.external
+    type: external
     tags: [ external api ]
     ports:
       - { name: api, type: services.HTTP, flow: in }
   - name: Carrier
-    type: services.external
+    type: external
     tags: [ external api ]
     ports:
       - { name: api, type: services.HTTP, flow: in }

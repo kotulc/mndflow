@@ -589,6 +589,12 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
   if (e.tags) b.tags = e.tags.flatMap((t) => tag_of(ctx, t) ?? []);
   if (e.constraints) b.constraints = e.constraints.flatMap((c) => constraint_of(ctx, c) ?? []);
   if (e.traits) b.traits = [...e.traits];
+  /** A dataflow's datum is a definition. */
+  if (e.datum) {
+    const datum = def_ref(graph, spelled(ctx.aliases, e.datum), scope(ctx));
+    if (datum) b.datum = datum;
+    else ctx.notes.push(`${ctx.file.path}: ${e.name || id} traces ${e.datum}, no definition here`);
+  }
   /** **A reference takes its target's name**, unless it says what it stands for; one its kind
    *  says stands for a definition looks among definitions alone. */
   const of = e.of ?? (is_reference(graph, id) ? e.name : undefined);

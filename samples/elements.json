@@ -24,15 +24,17 @@
         "parent": null,
         "name": "elements",
         "counters": {
-          "note": 8,
-          "block": 49,
+          "note": 9,
+          "block": 53,
           "folder": 1,
           "grid": 1,
-          "reference": 1,
+          "reference": 4,
+          "actor": 2,
+          "external": 2,
           "label": 1,
           "group": 4,
           "region": 3,
-          "relation": 13
+          "relation": 17
         }
       },
       "workspace.class-record": {
@@ -196,6 +198,22 @@
         "alias": 2,
         "order": 6
       },
+      "yaml.1-blocks:a-context-diagram": {
+        "id": "yaml.1-blocks:a-context-diagram",
+        "parent": "yaml.1-blocks",
+        "name": "A context diagram",
+        "type": "context",
+        "alias": 6,
+        "order": 9
+      },
+      "yaml.1-blocks:a-dataflow": {
+        "id": "yaml.1-blocks:a-dataflow",
+        "parent": "yaml.1-blocks",
+        "name": "A dataflow",
+        "type": "dataflow",
+        "alias": 7,
+        "order": 10
+      },
       "yaml.1-blocks:a-flow": {
         "id": "yaml.1-blocks:a-flow",
         "parent": "yaml.1-blocks",
@@ -231,12 +249,20 @@
         },
         "order": 4
       },
+      "yaml.1-blocks:a-mapping": {
+        "id": "yaml.1-blocks:a-mapping",
+        "parent": "yaml.1-blocks",
+        "name": "A mapping",
+        "type": "mapping",
+        "alias": 8,
+        "order": 11
+      },
       "yaml.1-blocks:a-name-long-enough-to-need-cutting-short": {
         "id": "yaml.1-blocks:a-name-long-enough-to-need-cutting-short",
         "parent": "yaml.1-blocks",
         "name": "A name long enough to need cutting short",
-        "alias": 11,
-        "order": 14
+        "alias": 12,
+        "order": 17
       },
       "yaml.1-blocks:a-reference": {
         "id": "yaml.1-blocks:a-reference",
@@ -252,40 +278,40 @@
         "parent": "yaml.1-blocks",
         "name": "A sequence",
         "type": "sequence",
-        "alias": 7,
+        "alias": 9,
         "grid": {
           "rows": 2,
           "cols": 2
         },
-        "order": 10
+        "order": 14
       },
       "yaml.1-blocks:a-state-machine": {
         "id": "yaml.1-blocks:a-state-machine",
         "parent": "yaml.1-blocks",
         "name": "A state machine",
         "type": "state",
-        "alias": 8,
-        "order": 11
+        "alias": 10,
+        "order": 15
       },
       "yaml.1-blocks:a-swimlane": {
         "id": "yaml.1-blocks:a-swimlane",
         "parent": "yaml.1-blocks",
         "name": "A swimlane",
         "type": "swimlane",
-        "alias": 9,
+        "alias": 11,
         "grid": {
           "rows": 2,
           "cols": 2
         },
-        "order": 12
+        "order": 16
       },
-      "yaml.1-blocks:a-treemap": {
-        "id": "yaml.1-blocks:a-treemap",
+      "yaml.1-blocks:an-actor": {
+        "id": "yaml.1-blocks:an-actor",
         "parent": "yaml.1-blocks",
-        "name": "A treemap",
-        "type": "treemap",
-        "alias": 10,
-        "order": 13
+        "name": "An actor",
+        "type": "actor",
+        "alias": 1,
+        "order": 12
       },
       "yaml.1-blocks:an-entity-diagram": {
         "id": "yaml.1-blocks:an-entity-diagram",
@@ -295,13 +321,13 @@
         "alias": 3,
         "order": 7
       },
-      "yaml.1-blocks:an-internal-diagram": {
-        "id": "yaml.1-blocks:an-internal-diagram",
+      "yaml.1-blocks:an-external-system": {
+        "id": "yaml.1-blocks:an-external-system",
         "parent": "yaml.1-blocks",
-        "name": "An internal diagram",
-        "type": "internal",
-        "alias": 6,
-        "order": 9
+        "name": "An external system",
+        "type": "external",
+        "alias": 1,
+        "order": 13
       },
       "yaml.1-blocks:note-1": {
         "id": "yaml.1-blocks:note-1",
@@ -325,7 +351,7 @@
         "parent": "yaml.2-large",
         "name": "Ada",
         "type": "workspace.record",
-        "alias": 12,
+        "alias": 13,
         "order": 2,
         "values": [
           {
@@ -343,7 +369,7 @@
         "parent": "yaml.2-large",
         "name": "Grace",
         "type": "workspace.class-record",
-        "alias": 13,
+        "alias": 14,
         "order": 3,
         "values": [
           {
@@ -378,7 +404,7 @@
         "parent": "yaml.3-notation",
         "name": "A decision long enough to cut",
         "type": "decision",
-        "alias": 16,
+        "alias": 17,
         "order": 4
       },
       "yaml.3-notation:a-group": {
@@ -401,7 +427,7 @@
         "id": "yaml.3-notation:a-region:held",
         "parent": "yaml.3-notation:a-region",
         "name": "held",
-        "alias": 19,
+        "alias": 20,
         "order": 1
       },
       "yaml.3-notation:across": {
@@ -417,14 +443,14 @@
         "parent": "yaml.3-notation",
         "name": "Begin",
         "type": "start",
-        "alias": 14,
+        "alias": 15,
         "order": 2
       },
       "yaml.3-notation:both": {
         "id": "yaml.3-notation:both",
         "parent": "yaml.3-notation",
         "name": "both",
-        "alias": 21,
+        "alias": 22,
         "groups": [
           "yaml.3-notation:left",
           "yaml.3-notation:right"
@@ -436,7 +462,7 @@
         "parent": "yaml.3-notation",
         "name": "Choice",
         "type": "decision",
-        "alias": 15,
+        "alias": 16,
         "order": 3
       },
       "yaml.3-notation:finish": {
@@ -444,7 +470,7 @@
         "parent": "yaml.3-notation",
         "name": "Finish",
         "type": "end",
-        "alias": 17,
+        "alias": 18,
         "order": 5
       },
       "yaml.3-notation:free-text": {
@@ -459,7 +485,7 @@
         "id": "yaml.3-notation:inside",
         "parent": "yaml.3-notation",
         "name": "inside",
-        "alias": 18,
+        "alias": 19,
         "groups": [
           "yaml.3-notation:a-group"
         ],
@@ -511,7 +537,7 @@
         "id": "yaml.3-notation:only-left",
         "parent": "yaml.3-notation",
         "name": "only left",
-        "alias": 20,
+        "alias": 21,
         "groups": [
           "yaml.3-notation:left"
         ],
@@ -521,7 +547,7 @@
         "id": "yaml.3-notation:only-right",
         "parent": "yaml.3-notation",
         "name": "only right",
-        "alias": 22,
+        "alias": 23,
         "groups": [
           "yaml.3-notation:right"
         ],
@@ -539,7 +565,7 @@
         "id": "yaml.3-notation:region-one:first",
         "parent": "yaml.3-notation:region-one",
         "name": "first",
-        "alias": 23,
+        "alias": 24,
         "groups": [
           "yaml.3-notation:across"
         ],
@@ -557,7 +583,7 @@
         "id": "yaml.3-notation:region-two:second",
         "parent": "yaml.3-notation:region-two",
         "name": "second",
-        "alias": 24,
+        "alias": 25,
         "groups": [
           "yaml.3-notation:across"
         ],
@@ -584,84 +610,84 @@
         "id": "yaml.4-lines:a",
         "parent": "yaml.4-lines",
         "name": "A",
-        "alias": 25,
+        "alias": 26,
         "order": 2
       },
       "yaml.4-lines:b": {
         "id": "yaml.4-lines:b",
         "parent": "yaml.4-lines",
         "name": "B",
-        "alias": 26,
+        "alias": 27,
         "order": 3
       },
       "yaml.4-lines:c": {
         "id": "yaml.4-lines:c",
         "parent": "yaml.4-lines",
         "name": "C",
-        "alias": 27,
+        "alias": 28,
         "order": 4
       },
       "yaml.4-lines:callee": {
         "id": "yaml.4-lines:callee",
         "parent": "yaml.4-lines",
         "name": "Callee",
-        "alias": 39,
+        "alias": 40,
         "order": 16
       },
       "yaml.4-lines:caller": {
         "id": "yaml.4-lines:caller",
         "parent": "yaml.4-lines",
         "name": "Caller",
-        "alias": 38,
+        "alias": 39,
         "order": 15
       },
       "yaml.4-lines:client": {
         "id": "yaml.4-lines:client",
         "parent": "yaml.4-lines",
         "name": "Client",
-        "alias": 36,
+        "alias": 37,
         "order": 13
       },
       "yaml.4-lines:d": {
         "id": "yaml.4-lines:d",
         "parent": "yaml.4-lines",
         "name": "D",
-        "alias": 28,
+        "alias": 29,
         "order": 5
       },
       "yaml.4-lines:e": {
         "id": "yaml.4-lines:e",
         "parent": "yaml.4-lines",
         "name": "E",
-        "alias": 29,
+        "alias": 30,
         "order": 6
       },
       "yaml.4-lines:f": {
         "id": "yaml.4-lines:f",
         "parent": "yaml.4-lines",
         "name": "F",
-        "alias": 30,
+        "alias": 31,
         "order": 7
       },
       "yaml.4-lines:g": {
         "id": "yaml.4-lines:g",
         "parent": "yaml.4-lines",
         "name": "G",
-        "alias": 31,
+        "alias": 32,
         "order": 8
       },
       "yaml.4-lines:gathered": {
         "id": "yaml.4-lines:gathered",
         "parent": "yaml.4-lines",
         "name": "Gathered",
-        "alias": 35,
+        "alias": 36,
         "order": 12
       },
       "yaml.4-lines:h": {
         "id": "yaml.4-lines:h",
         "parent": "yaml.4-lines",
         "name": "H",
-        "alias": 32,
+        "alias": 33,
         "order": 9
       },
       "yaml.4-lines:note-1": {
@@ -676,35 +702,35 @@
         "id": "yaml.4-lines:part",
         "parent": "yaml.4-lines",
         "name": "Part",
-        "alias": 34,
+        "alias": 35,
         "order": 11
       },
       "yaml.4-lines:state-one": {
         "id": "yaml.4-lines:state-one",
         "parent": "yaml.4-lines",
         "name": "State one",
-        "alias": 40,
+        "alias": 41,
         "order": 17
       },
       "yaml.4-lines:state-two": {
         "id": "yaml.4-lines:state-two",
         "parent": "yaml.4-lines",
         "name": "State two",
-        "alias": 41,
+        "alias": 42,
         "order": 18
       },
       "yaml.4-lines:supplier": {
         "id": "yaml.4-lines:supplier",
         "parent": "yaml.4-lines",
         "name": "Supplier",
-        "alias": 37,
+        "alias": 38,
         "order": 14
       },
       "yaml.4-lines:whole": {
         "id": "yaml.4-lines:whole",
         "parent": "yaml.4-lines",
         "name": "Whole",
-        "alias": 33,
+        "alias": 34,
         "order": 10
       },
       "yaml.5-colour": {
@@ -721,7 +747,7 @@
         "parent": "yaml.5-colour",
         "name": "dashed",
         "type": "workspace.dashed",
-        "alias": 48,
+        "alias": 49,
         "order": 8
       },
       "yaml.5-colour:hue-200": {
@@ -729,7 +755,7 @@
         "parent": "yaml.5-colour",
         "name": "hue 200",
         "type": "workspace.hue-200",
-        "alias": 46,
+        "alias": 47,
         "order": 6
       },
       "yaml.5-colour:hue-25": {
@@ -737,7 +763,7 @@
         "parent": "yaml.5-colour",
         "name": "hue 25",
         "type": "workspace.hue-25",
-        "alias": 47,
+        "alias": 48,
         "order": 7
       },
       "yaml.5-colour:muted": {
@@ -745,7 +771,7 @@
         "parent": "yaml.5-colour",
         "name": "muted",
         "type": "workspace.muted",
-        "alias": 45,
+        "alias": 46,
         "order": 5
       },
       "yaml.5-colour:neutral": {
@@ -753,7 +779,7 @@
         "parent": "yaml.5-colour",
         "name": "neutral",
         "type": "workspace.neutral",
-        "alias": 44,
+        "alias": 45,
         "order": 4
       },
       "yaml.5-colour:note-1": {
@@ -769,7 +795,7 @@
         "parent": "yaml.5-colour",
         "name": "primary",
         "type": "workspace.primary",
-        "alias": 42,
+        "alias": 43,
         "order": 2
       },
       "yaml.5-colour:secondary": {
@@ -777,7 +803,7 @@
         "parent": "yaml.5-colour",
         "name": "secondary",
         "type": "workspace.secondary",
-        "alias": 43,
+        "alias": 44,
         "order": 3
       },
       "yaml.5-colour:thick": {
@@ -785,8 +811,116 @@
         "parent": "yaml.5-colour",
         "name": "thick",
         "type": "workspace.thick",
-        "alias": 49,
+        "alias": 50,
         "order": 9
+      },
+      "yaml.6-data": {
+        "id": "yaml.6-data",
+        "parent": "workspace",
+        "name": "Data",
+        "def": {},
+        "order": 7,
+        "source": "6-data.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
+      },
+      "yaml.6-data.record-fields": {
+        "id": "yaml.6-data.record-fields",
+        "parent": "yaml.6-data",
+        "name": "Record fields",
+        "type": "mapping",
+        "alias": 52,
+        "order": 6,
+        "records": [
+          {
+            "reads": "details.email",
+            "writes": "Record.email",
+            "info": "lower-cased; must be unique"
+          },
+          {
+            "reads": "details.name",
+            "writes": "Record.name",
+            "info": "trimmed"
+          },
+          {
+            "reads": "Signup",
+            "writes": "Record.id",
+            "info": "the next number"
+          }
+        ],
+        "source": "6-data/record-fields.yaml"
+      },
+      "yaml.6-data.record-trace": {
+        "id": "yaml.6-data.record-trace",
+        "parent": "yaml.6-data",
+        "name": "Record trace",
+        "type": "dataflow",
+        "alias": 53,
+        "datum": "workspace.record",
+        "order": 5,
+        "source": "6-data/record-trace.yaml"
+      },
+      "yaml.6-data.record-trace:form": {
+        "id": "yaml.6-data.record-trace:form",
+        "parent": "yaml.6-data.record-trace",
+        "name": "Form",
+        "type": "reference",
+        "of": "yaml.6-data:form",
+        "alias": 2,
+        "order": 1
+      },
+      "yaml.6-data.record-trace:signup": {
+        "id": "yaml.6-data.record-trace:signup",
+        "parent": "yaml.6-data.record-trace",
+        "name": "Signup",
+        "type": "reference",
+        "of": "yaml.6-data:signup",
+        "alias": 3,
+        "order": 2
+      },
+      "yaml.6-data.record-trace:store": {
+        "id": "yaml.6-data.record-trace:store",
+        "parent": "yaml.6-data.record-trace",
+        "name": "Store",
+        "type": "reference",
+        "of": "yaml.6-data:store",
+        "alias": 4,
+        "order": 3
+      },
+      "yaml.6-data:form": {
+        "id": "yaml.6-data:form",
+        "parent": "yaml.6-data",
+        "name": "Form",
+        "type": "actor",
+        "alias": 2,
+        "order": 2
+      },
+      "yaml.6-data:note-1": {
+        "id": "yaml.6-data:note-1",
+        "parent": "yaml.6-data",
+        "name": "A dataflow and a mapping over one record, each written in its kind's short forms.",
+        "type": "note",
+        "alias": 9,
+        "order": 1
+      },
+      "yaml.6-data:signup": {
+        "id": "yaml.6-data:signup",
+        "parent": "yaml.6-data",
+        "name": "Signup",
+        "alias": 51,
+        "order": 3
+      },
+      "yaml.6-data:store": {
+        "id": "yaml.6-data:store",
+        "parent": "yaml.6-data",
+        "name": "Store",
+        "type": "external",
+        "alias": 2,
+        "order": 4
       }
     },
     "edges": {
@@ -929,6 +1063,58 @@
           }
         },
         "to": "yaml.4-lines:part"
+      },
+      "yaml.6-data.r.form-signup": {
+        "id": "yaml.6-data.r.form-signup",
+        "name": "details",
+        "alias": 14,
+        "from": "yaml.6-data:form",
+        "order": 0,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.6-data:signup"
+      },
+      "yaml.6-data.r.signup-store": {
+        "id": "yaml.6-data.r.signup-store",
+        "name": "Record",
+        "alias": 15,
+        "from": "yaml.6-data:signup",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.6-data:store"
+      },
+      "yaml.6-data.record-trace.r.form-signup": {
+        "id": "yaml.6-data.record-trace.r.form-signup",
+        "name": "details",
+        "alias": 16,
+        "from": "yaml.6-data.record-trace:form",
+        "order": 0,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.6-data.record-trace:signup"
+      },
+      "yaml.6-data.record-trace.r.signup-store": {
+        "id": "yaml.6-data.record-trace.r.signup-store",
+        "name": "Record",
+        "alias": 17,
+        "from": "yaml.6-data.record-trace:signup",
+        "order": 1,
+        "settings": {
+          "line": {
+            "dir": "forward"
+          }
+        },
+        "to": "yaml.6-data.record-trace:store"
       }
     }
   }

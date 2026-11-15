@@ -1,0 +1,15 @@
+{
+  "id": "context",
+  "name": "context",
+  "type": "block",
+  "description": "A context diagram: what a part is made of, its ports, and what is across them — its parts and the data flowing between them inside its frame, the outside drawn across each port. The same picture at every level.",
+  "def": {},
+  "settings": {
+    "style": {
+      "hue": 195
+    },
+    "diagram": {
+      "view": "internal"
+    }
+  }
+}

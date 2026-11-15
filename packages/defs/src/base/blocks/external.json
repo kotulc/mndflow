@@ -1,0 +1,13 @@
+{
+  "id": "external",
+  "name": "external",
+  "type": "block",
+  "description": "A system outside this one that it reads, writes or builds with: drawn across its ports in a context diagram, with a dashed border.",
+  "def": {},
+  "settings": {
+    "style": {
+      "family": "away",
+      "border_style": "dashed"
+    }
+  }
+}

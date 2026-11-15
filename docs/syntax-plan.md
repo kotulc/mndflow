@@ -44,6 +44,8 @@
 | 2 | rewrite design.md *Diagram files* and *Definitions and packages*, each kind's *Surface* | done 2026-11-15 |
 | 3 | the door reads the new form only (no legacy repairs); services, example and elements moved to it, each collected and compared with its old file | done 2026-11-15 |
 | 4 | the translators (apps/ts) write it; `samples/code` and `samples/mndsite` do not collect until then (the user's call: strict) | with the tools pass |
-| 5 | not yet built: the `context`, `dataflow`, `mapping`, `actor`, `external` base kinds, so dataflow `datum`, mapping `records` as relations and their kind defaults wait for them | with the tree view |
+| 5 | base kinds: `context` replaces `internal`, `treemap` retired, new `dataflow`, `mapping`, `actor` and `external` (services' `person` and `external` folded into them); a dataflow's `datum` (a block field), a mapping's records written as relations (`diagram.file.records.ends`); samples/elements shows each (`6-data`) | done 2026-11-15 |
+
+**What is left** is step 4 alone, taken up with the tools pass; this plan is deleted then. Views for the new kinds (context's frame and zones, dataflow's datum band, mapping's records table) are model-plan.md *Build notes*.
 
 **Seen, not fixed**: a use of a model, entered, draws as a treemap of its own children only (views `block.ts` `layer_map`), so a use of a services pattern, now a model, shows nothing inside; before, a pattern's use drew its parts read through. The tree view (model-plan.md *Next session* 2) opens a chip as a closed box of its model's tree.

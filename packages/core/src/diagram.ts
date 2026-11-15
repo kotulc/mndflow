@@ -23,6 +23,8 @@ export type Entry = {
   body?: string;
   source?: string;
   of?: string;
+  /** A dataflow's datum: the definition it traces, by name. */
+  datum?: string;
   /** A block in the same file it sits in, by name or path; unsaid, the file's block. */
   parent?: string;
   /** Where it was written inside another entry: that entry's place in `blocks`. */
@@ -80,8 +82,11 @@ export type LongForm = { top: Entry; blocks: Entry[]; relations: Edge[] };
 
 /** **What a diagram kind says of the files that write it** (`diagram.file`), by key: the schema's
  *  key it spells (`as`: a sequence's `participants` are its `cols`), the type a bare item under it
- *  takes (`type`), and whether what such an item stands for is a definition (`defs`). */
-export type FileSpec = Record<string, { as?: string; type?: string; defs?: boolean }>;
+ *  takes (`type`), whether what such an item stands for is a definition (`defs`), and, for
+ *  `records`, the answers a record written as a relation fills (`ends`: a mapping's `reads`,
+ *  `writes` and `info`, from `reads -> writes: info`). */
+export type FileSpec = Record<string, { as?: string; type?: string; defs?: boolean;
+                                        ends?: string[] }>;
 
 /** The lists a file's map holds items in, each taking its kind's default type. */
 const LISTS = ["blocks", "cols", "rows", "relations"] as const;
@@ -99,7 +104,7 @@ type Map = Record<string, unknown>;
  *  cannot be read. */
 export function long_form(map: Map, body?: string, spec: FileSpec = {}): LongForm {
   const { front, defaults } = respelled(map, spec);
-  const top = entry(front);
+  const top = entry(front, spec["records"]?.ends);
   if (body) top.body = body;
   const blocks: Entry[] = [];
   const said = typeof front["note"] === "string" ? front["note"].trim() : "";
@@ -207,8 +212,9 @@ function blocks_of(item: unknown, fallback: Defaults["blocks"] = {}): [Entry, Ma
     .map(([e, inner]) => [{ ...e, type: e.type ?? type }, inner]);
 }
 
-/** A block's long form: the keys it says itself with, its answers under `values`. */
-function entry(map: Map): Entry {
+/** A block's long form: the keys it says itself with, its answers under `values`; its records
+ *  read as its kind says (`ends`, `record_of`). */
+function entry(map: Map, ends?: readonly string[]): Entry {
   const e: Entry = { name: said_as(map["name"]).trim(), values: values_of(map),
                      ...unread(map, BLOCK_KEYS) };
   const word = (key: string) => (map[key] === undefined ? undefined : said_as(map[key]).trim());
@@ -221,6 +227,7 @@ function entry(map: Map): Entry {
   set("body", map["body"] === undefined ? undefined : said_as(map["body"]));
   set("source", word("source"));
   set("of", word("of"));
+  set("datum", word("datum"));
   set("parent", word("parent"));
   set("w", num("w"));
   set("h", num("h"));
@@ -239,11 +246,27 @@ function entry(map: Map): Entry {
   if (map["settings"] && typeof map["settings"] === "object") e.settings = map["settings"] as Map;
   if (map["grid"] && typeof map["grid"] === "object") e.grid = map["grid"] as Entry["grid"];
   if (Array.isArray(map["records"])) {
-    e.records = (map["records"] as unknown[]).filter((r) => r && typeof r === "object")
-      .map((r) => Object.fromEntries(Object.entries(r as Map).map(([k, v]) => [k, said_as(v)])));
+    e.records = (map["records"] as unknown[]).map((r) => record_of(r, ends));
   }
   set("cell", cell_of(map["cell"]));
   return e;
+}
+
+/** One record: a map of answers by name, or — where its kind names the answers an arrow fills
+ *  (`ends`) — written as a relation, `reads -> writes` or `reads -> writes: info`. */
+function record_of(item: unknown, ends?: readonly string[]): Record<string, string> {
+  const map = typeof item === "string" ? { [item]: "" } : item as Map;
+  if (!map || typeof map !== "object" || Array.isArray(map)) {
+    throw new Error(`a record is a map of answers: ${said_as(item)}`);
+  }
+  const [key] = Object.keys(map);
+  if (ends?.length && Object.keys(map).length === 1 && is_edge(key!)) {
+    const { from, to } = edge_of(key!);
+    const said = [from, to, said_as(map[key!]).trim()];
+    return Object.fromEntries(ends.map((name, i) => [name, said[i] ?? ""])
+      .filter(([, value]) => value));
+  }
+  return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, said_as(v)]));
 }
 
 /** A block's ports: a list, or by flow — `{in: {content: md tree}, out: {dist: site}}`, each

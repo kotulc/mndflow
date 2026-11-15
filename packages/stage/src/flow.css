@@ -772,9 +772,9 @@
 /* **Each diagram kind's silhouette** (2026-11-08), beside its hue, the same at every zoom: what
    its structure already draws (a sequence's lifelines, a swimlane's strips, a flow's line and
    marks, a class's or an entity's rows), and here a state machine's states rounded and an
-   internal diagram's parts inside its frame. */
+   context's parts inside its frame. */
 .mnd-chip[data-kind="state"] .mnd-chip-tile.card { border-radius: 999px; }
-.mnd-chip[data-kind="internal"] > .mnd-chip-body {
+.mnd-chip[data-kind="context"] > .mnd-chip-body {
   outline: 1px dashed var(--line);
   outline-offset: 2px;
 }

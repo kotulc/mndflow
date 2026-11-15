@@ -4,14 +4,11 @@
 
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { diagram_kind, path, shown_name, type Graph, type Id } from "@mnd/core";
+import { diagram_kind, path, placing_of, shown_name, type Graph, type Id } from "@mnd/core";
 import { layer_scene, load_avoid, measure, routes_of, set_aspect, type Measure } from "@mnd/views";
 
 /** The canvases measured: the app's default landscape, and a portrait one. */
 const SHAPES = { landscape: 1.6, portrait: 0.6 } as const;
-
-/** Diagrams drawn without a layout to measure. */
-const UNLAID = new Set(["treemap"]);
 
 
 /** Every diagram's counts, or one layer's with what each count found. */
@@ -19,8 +16,8 @@ export async function measured(graph: Graph, layer: Id | null): Promise<string[]
   const wasm = join(dirname(createRequire(import.meta.url).resolve("libavoid-js")), "libavoid.wasm");
   await load_avoid(wasm);
   const layers = layer ? [layer] : Object.keys(graph.blocks).filter((id) => {
-    const kind = diagram_kind(graph, id);
-    return !!kind && !UNLAID.has(kind);
+    /** A treemap is drawn without a layout to measure. */
+    return !!diagram_kind(graph, id) && placing_of(graph, id) !== "treemap";
   });
   const rows: { name: string; shape: string; m: Measure }[] = [];
   for (const id of layers) {

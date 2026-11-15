@@ -1,0 +1,11 @@
+name: Data
+note: A dataflow and a mapping over one record, each written in its kind's short forms.
+blocks:
+  - { name: Form, type: actor }
+  - { name: Signup }
+  - { name: Store, type: external }
+  - Record trace
+  - Record fields
+relations:
+  - Form -> Signup: details
+  - Signup -> Store: Record

@@ -3,7 +3,7 @@ type: model
 description: "How an order is placed, one hop a step: from the customer's cart to stock reserved and a parcel booked. Its Payments step is a model of its own: step into it for how a card is charged."
 blocks:
   - name: Customer
-    type: services.person
+    type: actor
   - name: Gateway
     type: services.API gateway
     tags: [ critical ]

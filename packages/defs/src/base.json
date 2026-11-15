@@ -4,6 +4,20 @@
   "graph": {
     "root": "base",
     "blocks": {
+      "actor": {
+        "id": "actor",
+        "parent": "base.dir.blocks",
+        "name": "actor",
+        "type": "block",
+        "def": {},
+        "description": "Someone or something outside the system that starts or uses it: drawn above its frame in a context diagram.",
+        "order": 1,
+        "settings": {
+          "style": {
+            "family": "neutral"
+          }
+        }
+      },
       "aggregation": {
         "id": "aggregation",
         "parent": "base.dir.relations",
@@ -94,7 +108,7 @@
         "name": "block",
         "def": {},
         "description": "A part, a system, or the template of one: something with parts, data or deeper significance. What it holds is its layer.",
-        "order": 1,
+        "order": 2,
         "settings": {
           "block": {
             "module": "block"
@@ -167,6 +181,46 @@
         },
         "traits": []
       },
+      "context": {
+        "id": "context",
+        "parent": "base.dir.diagrams",
+        "name": "context",
+        "type": "block",
+        "def": {},
+        "description": "A context diagram: what a part is made of, its ports, and what is across them — its parts and the data flowing between them inside its frame, the outside drawn across each port. The same picture at every level.",
+        "order": 2,
+        "settings": {
+          "style": {
+            "hue": 195
+          },
+          "diagram": {
+            "view": "internal"
+          }
+        }
+      },
+      "dataflow": {
+        "id": "dataflow",
+        "parent": "base.dir.diagrams",
+        "name": "dataflow",
+        "type": "block",
+        "def": {},
+        "description": "A dataflow: where one datum comes from, what changes it, and who reads it — the parts it passes through, ranked along its way, each line carrying the form it takes there. It traces the definition its `datum` names.",
+        "order": 3,
+        "settings": {
+          "style": {
+            "hue": 165
+          },
+          "diagram": {
+            "view": "internal",
+            "placing": "layered",
+            "file": {
+              "blocks": {
+                "type": "reference"
+              }
+            }
+          }
+        }
+      },
       "decision": {
         "id": "decision",
         "parent": "base.dir.notation",
@@ -228,7 +282,7 @@
         "type": "block",
         "def": {},
         "description": "An entity relationship diagram: how its data is stored — the definitions its references stand for, each a schema card, columns and keys, joined by the relations stored between them, their ends drawn as multiplicities.",
-        "order": 2,
+        "order": 4,
         "settings": {
           "style": {
             "hue": 215
@@ -245,6 +299,21 @@
           }
         }
       },
+      "external": {
+        "id": "external",
+        "parent": "base.dir.blocks",
+        "name": "external",
+        "type": "block",
+        "def": {},
+        "description": "A system outside this one that it reads, writes or builds with: drawn across its ports in a context diagram, with a dashed border.",
+        "order": 3,
+        "settings": {
+          "style": {
+            "family": "away",
+            "border_style": "dashed"
+          }
+        }
+      },
       "flow": {
         "id": "flow",
         "parent": "base.dir.diagrams",
@@ -252,7 +321,7 @@
         "type": "block",
         "def": {},
         "description": "A flow: what moves through a process — its steps and decisions, and the lines each passes on along, laid out by where they point. A block's behaviour.",
-        "order": 3,
+        "order": 5,
         "settings": {
           "style": {
             "hue": 355
@@ -276,7 +345,7 @@
         "type": "block",
         "def": {},
         "description": "Organization: a box on its parent's layer, what it holds drawn inside. It never makes a layer; selected in the explorer, the canvas zooms to it.",
-        "order": 2,
+        "order": 4,
         "settings": {
           "style": {
             "family": "neutral",
@@ -295,7 +364,7 @@
         "type": "block",
         "def": {},
         "description": "A spreadsheet of cells holding text or blocks, opened on the allocation view: a header allocates what its row or column holds.",
-        "order": 3,
+        "order": 5,
         "settings": {
           "style": {
             "family": "muted",
@@ -354,23 +423,6 @@
           "is_interface"
         ]
       },
-      "internal": {
-        "id": "internal",
-        "parent": "base.dir.diagrams",
-        "name": "internal",
-        "type": "block",
-        "def": {},
-        "description": "A block diagram: what a block is made of — its parts and the relations between them.",
-        "order": 4,
-        "settings": {
-          "style": {
-            "hue": 195
-          },
-          "diagram": {
-            "view": "internal"
-          }
-        }
-      },
       "label": {
         "id": "label",
         "parent": "base.dir.notation",
@@ -406,6 +458,37 @@
           "has_values"
         ]
       },
+      "mapping": {
+        "id": "mapping",
+        "parent": "base.dir.diagrams",
+        "name": "mapping",
+        "type": "block",
+        "def": {},
+        "description": "A mapping: what goes in, where it lands, and what to know about it — one record a row, each from what it reads to what it writes, with a note.",
+        "order": 6,
+        "settings": {
+          "style": {
+            "hue": 45
+          },
+          "diagram": {
+            "file": {
+              "records": {
+                "ends": [
+                  "reads",
+                  "writes",
+                  "info"
+                ]
+              }
+            }
+          }
+        },
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "has_records"
+        ]
+      },
       "message": {
         "id": "message",
         "parent": "base.dir.relations",
@@ -427,7 +510,7 @@
         "type": "block",
         "def": {},
         "description": "What is built: a plain model, extending nothing else. Any definition with *is model* is a model, the one thing drawn on directly; its parts are the usages it holds, and another model uses it as a part.",
-        "order": 4,
+        "order": 6,
         "settings": {
           "style": {
             "hue": 265
@@ -473,7 +556,7 @@
         "type": "block",
         "def": {},
         "description": "Stands for a block, a definition or a package elsewhere, drawn where it is needed without moving it.",
-        "order": 5,
+        "order": 7,
         "settings": {
           "style": {
             "family": "away",
@@ -533,7 +616,7 @@
         "type": "block",
         "def": {},
         "description": "A sequence: who talks to whom, in what order — a grid read as time, the header row naming the participants and each row a moment, its lines the messages. A block's behaviour.",
-        "order": 5,
+        "order": 7,
         "settings": {
           "style": {
             "hue": 310
@@ -586,7 +669,7 @@
         "type": "block",
         "def": {},
         "description": "A state machine: how one thing changes — the states it is in, and the transitions between them, laid out by where they point. A block's behaviour.",
-        "order": 6,
+        "order": 8,
         "settings": {
           "style": {
             "hue": 330
@@ -616,7 +699,7 @@
         "type": "block",
         "def": {},
         "description": "A swimlane: who does what, in which phase — a grid read as lanes, the header row naming the participants and the header column the phases, the steps in their cells. A block's behaviour.",
-        "order": 7,
+        "order": 9,
         "settings": {
           "style": {
             "hue": 290
@@ -686,24 +769,6 @@
         "settings": {
           "line": {
             "dir": "forward"
-          }
-        }
-      },
-      "treemap": {
-        "id": "treemap",
-        "parent": "base.dir.diagrams",
-        "name": "treemap",
-        "type": "block",
-        "def": {},
-        "description": "A treemap: where the weight is — what it holds, each as large as what it holds in turn, in the boxes of its folders, groups and regions.",
-        "order": 8,
-        "settings": {
-          "style": {
-            "hue": 175
-          },
-          "diagram": {
-            "view": "internal",
-            "placing": "treemap"
           }
         }
       }

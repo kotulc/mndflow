@@ -212,6 +212,8 @@ export type Block = {
   tree?: Tree;
   /** A reference: the block it stands for — a usage, a definition or a package. */
   of?: Id;
+  /** A dataflow: the definition whose data it traces (2026-11-15). */
+  datum?: Id;
   /** A package root's named components: its types and tags. */
   library?: Library;
   /** A collection's records: rows of answers to its `records.of` attributes, by name. Values,
@@ -297,20 +299,24 @@ export const BLOCK_MODULES: readonly BlockModule[] = ["block", "reference", "int
  *  not a module. **There is no `resource`**: every block may point at external content through
  *  `source`, so a kind for it said nothing the slot does not. */
 export const BASE_BLOCKS: readonly Id[] = [
-  "block", "model", "reference", "folder", "grid", "note", "label", "group", "region",
+  "block", "model", "reference", "folder", "grid", "note", "label", "group", "region", "actor",
+  "external",
 ];
 
 /** The shipped diagram kinds: blocks extending `block`, each fixing its view, layout and icon. A
  *  block of one holding parts is retyped only within its family; a plain block is none of them. */
 export const DIAGRAMS: readonly Id[] = [
-  "internal", "flow", "state", "sequence", "swimlane", "class", "entity", "treemap",
+  "context", "flow", "dataflow", "state", "sequence", "swimlane", "mapping", "class", "entity",
 ];
 
 /** The one question each diagram kind answers, as every surface words it. */
 export const DIAGRAM_QUESTIONS: Readonly<Record<string, string>> = {
-  internal: "what it is made of", flow: "what moves through it", state: "how one thing changes",
-  sequence: "who talks to whom, in what order", swimlane: "who does what, in which phase",
-  class: "what its types are", entity: "how its data is stored", treemap: "where the weight is",
+  context: "what it is made of, and what is across its ports", flow: "what moves through it",
+  dataflow: "where one datum comes from, what changes it, who reads it",
+  state: "how one thing changes", sequence: "who talks to whom, in what order",
+  swimlane: "who does what, in which phase",
+  mapping: "what goes in, where it lands, and what to know about it",
+  class: "what its types are", entity: "how its data is stored",
 };
 
 /** The base notation: what a diagram draws with beside its parts — the annotations on every kind,
@@ -332,7 +338,8 @@ export const KIND_MARKS: Readonly<Record<Id, readonly Id[]>> = {
  *  and lines; references to definitions. Each grid kind is its own: its cells carry over to the
  *  other, but not their meaning. */
 export const KIND_FAMILIES: readonly (readonly Id[])[] = [
-  ["internal", "flow", "state", "treemap"], ["class", "entity"], ["sequence"], ["swimlane"],
+  ["context", "flow", "dataflow", "state"], ["class", "entity"], ["sequence"], ["swimlane"],
+  ["mapping"],
 ];
 
 /** The shipped relation bases. `tie` is a definition — a dashed run with no heads — chosen like
