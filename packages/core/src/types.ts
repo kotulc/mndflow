@@ -214,6 +214,12 @@ export type Block = {
   of?: Id;
   /** A dataflow: the definition whose data it traces (2026-11-15). */
   datum?: Id;
+  /** A model's boxes open where its overview starts; unsaid, its primary parts. */
+  open?: Id[];
+  /** A model's About band: its groups in order, each a built-in or a list of what it holds. */
+  about?: AboutGroup[];
+  /** A model's presentations, in order (docs/presentations.md). */
+  presentations?: Presentation[];
   /** A package root's named components: its types and tags. */
   library?: Library;
   /** A collection's records: rows of answers to its `records.of` attributes, by name. Values,
@@ -259,6 +265,21 @@ export type Block = {
   /** A usage's answers, in order. */
   values?: Value[];
 };
+
+/** One group of a model's About band: a built-in (`Presentations`, `Entries`, `Library`) when it
+ *  lists nothing, else the blocks, definitions or presentations it names, by id or name. */
+export type AboutGroup = { name: string; items?: Id[] };
+
+/** An ordered, narrated way through a model: its stops, played like a slide deck. */
+export type Presentation = { name: string; description?: string; pace?: number; stops: Stop[] };
+
+/** One point of a presentation: what opens, where the camera looks, and its steps. `into` names a
+ *  presentation of the model `at` uses. */
+export type Stop = { title: string; at: Id; summary: string; open?: Id[]; fit?: Id[]; show?: Id;
+                     into?: string; pace?: number; steps?: StopStep[] };
+
+/** One thing shown in a stop: a relation lit or a block marked, with one sentence. */
+export type StopStep = { text: string; relation?: Id; mark?: Id };
 
 export type Relation = {
   id: Id;
@@ -378,8 +399,8 @@ export const TRAITS: readonly Trait[] = [
       + "state machine, swimlane or sequence that does it; its interfaces its parameters and return.",
     settings: { block: { behaviour: true } } },
   { id: "is_model", description: "Is a model: a definition of what is built, holding parts and "
-      + "drawn on directly; whatever kind it extends, it opens onto its parts as a tree.",
-    settings: { diagram: { view: "internal", placing: "treemap" } } },
+      + "drawn on directly; it draws as the kind it extends, a plain model as its tree.",
+    settings: {} },
   { id: "is_grid", description: "Seats text and blocks in the cells of a grid, drawn when it is opened.",
     settings: { holder: { matrix: true } } },
   { id: "is_group", description: "Draws as a panel round its members, on the layer it sits on; "

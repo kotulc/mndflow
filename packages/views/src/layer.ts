@@ -27,11 +27,13 @@ export function laid_ahead(kind: ViewKind): boolean {
 
 /** The layer `id` draws as `kind`, placed ahead where its kind is laid out by ELK. */
 export async function layer_scene(given: Graph, id: Id, kind: ViewKind,
-                                  config: { interfaces?: boolean; lists?: Lists } = {})
+                                  config: { interfaces?: boolean; lists?: Lists;
+                                            open?: readonly Id[] } = {})
     : Promise<Scene> {
   const graph = sided(given, config.lists);
   const opts = { room: true, look: { kind, cut: null },
-                 ...(config.interfaces === false ? { interfaces: false } : {}) };
+                 ...(config.interfaces === false ? { interfaces: false } : {}),
+                 ...(config.open ? { open: config.open } : {}) };
   const ahead = await placed_ahead(graph, id, kind);
   if (!ahead) return ranked(graph, project(graph, id, opts));
   const scene = ranked(graph, placed_as(ahead.spots, () => project(graph, id, opts)));

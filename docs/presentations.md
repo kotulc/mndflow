@@ -138,28 +138,28 @@ presentations:
 
 ## Building it
 
-| Piece | Where | Today |
-|---|---|---|
-| read and check `presentations:` in a model file | core, the door (`collect`) | not read; model files hold `blocks` and `relations` |
-| a presentation's state: which presentation, stop, step, dive, and the stack of presentations entered | core session, kept by the host | the walk's stack (tray `Walk.tsx`) is the nearest |
-| the camera's shot for a stop: fit `fit` | web `camera.ts` `shot_of`, a new case | one owner already; it fits hops when walked |
-| the overview: the model root of the one tree view (docs/diagrams/tree.md): boxes open and closed (`open:`, unsaid the primary parts), context's zones round it | views `map.ts`, toward one tree view; base `actor`, `external` | the map folds only for room |
-| boxes that open and close per stop | views, the tree view's open set | new |
-| lighting a relation, drawn in order | stage, with the one highlight (`lit`) | `lit` exists; drawing in order and fading is new |
-| labels placed clear of chips | stage | new |
-| the tray's presentation section | tray, replacing `Walk.tsx` | the walk section is the nearest |
-| the About band under the overview, its groups from `about:` | core reads `about:`; views and stage draw it | new |
-| a stop entering a diagram (`show`) | web, as entering a chip; camera `into` | entering a chip flies in and cuts today |
-| the pace and click-through | host timer, the tray's pace setting | new |
-| the CLI: draft, check, list | cli, the `presentation` tool | new |
+**Built 2026-11-15**, driven on the shop (*Tour the shop*, *Place an order* into *Take a payment*).
 
-
-## Open
-
-| Question | Notes |
+| Piece | Where |
 |---|---|
-| where the pace setting is kept | per viewer (the tray remembers it) or only in the file |
-| how a shown diagram is left | at the next stop the camera flies back out to the overview, as leaving a chip does |
-| data moving along a step's line | asked 2026-11-14 from the dataflow kind: a step's relation drawn as the datum travelling along it (design.md *Motion*, *flows animate*); a dataflow seeds a presentation, a stop per rank |
+| read and check `presentations:`, `about:`, `open:` in a model file | core `diagram.ts` (`presentation_of`, `stop_of`, `about_of`), `sources.ts` `overview` (names read as blocks, a step's relation as a line the model or the shown diagram has; what names nothing is a note `check` prints) |
+| a presentation's state: presentation, stop, steps shown, dive, the stack entered | core `present.ts` (`Play`, `play_next`, `play_prev`, `play_into`, `play_out`, `pace_of`) |
+| the player: timer, keys, what a stop opens, rings, dims and lights, the camera's fit | web `present.ts` (`usePresent`, `showing_of`, `fit_of`); web `camera.ts` `fit_of` |
+| the overview: the model root of the one tree view | views `map.ts` `layer_map`, `opened`; views `overview.ts` (`zones_of`, `around`, `about_of`, `lines_of`) |
+| boxes that open and close per stop, and by hand | views `tree.ts` `layer_tree` (an open set); web `App.tsx` `open`; theme `chip.tsx` `Toggle`; stage `Stage.tsx` (`data-toggle`) |
+| lighting a relation, drawn in order, its datum travelling along it | stage `Traced.tsx` (`steps`: earlier faded, the last drawn, `Datum`, `Label`), `flow.css` *A presentation's steps* |
+| the tray's presentation section | tray `Presentation.tsx` (replacing `Walk.tsx`), leading the overview |
+| the About band | views `overview.ts` `about_band`; stage `nodes.tsx` `AboutNode` (`data-play` plays, `data-about` picks) |
+| a stop entering a diagram (`show`) | web `App.tsx`: the stop's drawing is read when it is not the one open |
+| the CLI: list, draft, check | cli `tools.ts` (`presentations`, `draft`), `main.ts` `presentation` |
+
+
+## Settled
+
+| Question | Answer |
+|---|---|
+| where the pace setting is kept (2026-11-15) | the file says it; the reader's setting in the tray is remembered per viewer and plays over it |
+| how a shown diagram is left (2026-11-15) | the next stop reads the overview again, as leaving a chip does |
+| data moving along a step's line (2026-11-15) | yes: a step's relation draws from its start with its datum travelling along it, its label after |
 
 **Settled 2026-11-12**: steps play on a timer and a click shows the next one at once; the pace is configurable (`pace`, default 1.7 s, `0` for on click); a stop may open a diagram (`show`); About's groups are configurable (`about:`), holding any blocks, definitions, presentations or entries.

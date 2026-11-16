@@ -1,8 +1,8 @@
 /** The overview tab: every element's first, lines included, **one layout for all**. The card,
  *  then where it lives — its whole model or package, the element lit — then its path heading
  *  what its hover card says but its card — its facts, what it holds — and titled answers: why it
- *  matters, how it is used, where it sits, and its text; while a model is walked, the walk
- *  after why it matters (`Walk`). **Only its own
+ *  matters, how it is used, where it sits, and its text; a model's presentations, or the one
+ *  playing, first (`Presentation`). **Only its own
  *  answers**: nothing borrowed from its definition. Gaps are quiet rows, in the editor only. It
  *  reflows by the tray's width. */
 
@@ -18,7 +18,7 @@ import { hover_of, kind_of, told, wire_of, wire_tint, type Hovered } from "@mnd/
 import { Content } from "./Content";
 import { Card, Empty, LineCard, List, Painted, Section, type Item } from "./Lists";
 import { Scope, Trail, Where } from "./Where";
-import { Walk, type WalkProps } from "./Walk";
+import { Presentation, type PresentationProps } from "./Presentation";
 import { ScopeAnswers } from "./Workspace";
 
 export type OverviewProps = {
@@ -28,11 +28,11 @@ export type OverviewProps = {
   /** The side the canvas looks at, so the overview offers what reading there does, and the way
    *  across to the other side. */
   lists?: "domain" | "structure";
-  /** A walked model's stack and step, its answers' first section. */
-  walk?: WalkProps;
+  /** A model's presentations, or the one playing: its answers' first section. */
+  presenting?: PresentationProps;
 };
 
-export function Overview({ graph, id, onAct, lists, walk }: OverviewProps) {
+export function Overview({ graph, id, onAct, lists, presenting }: OverviewProps) {
   /** What its hover card says, a definition's uses read as the library reads them; a reference
    *  says what it stands for, as its card does. */
   const read = useMemo(() => (graph.blocks[id]?.parent
@@ -116,6 +116,7 @@ export function Overview({ graph, id, onAct, lists, walk }: OverviewProps) {
         ) : null}
       </div>
       <div className="ov-answers lists">
+        {presenting ? <Presentation {...presenting} /> : null}
         <Trail graph={graph} id={id} />
         {read ? (
           <div className="glance">
@@ -125,7 +126,6 @@ export function Overview({ graph, id, onAct, lists, walk }: OverviewProps) {
           </div>
         ) : null}
         <Why graph={graph} b={b} kind={kind} editor={!!onAct} />
-        {walk ? <Walk {...walk} /> : null}
         <How graph={graph} b={b} seen={graph.blocks[seen] ?? b} kind={kind} read={read}
              {...(onAct ? { onAct } : {})} />
         {onAct && b.parent && !b.def ? <Place graph={graph} b={b} onAct={onAct} /> : null}

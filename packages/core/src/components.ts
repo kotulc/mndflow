@@ -112,10 +112,10 @@ export const CARDS = ["small", "large"] as const;
 /** The layer views a kind may name with `diagram.view`, where its block can feed them. Closed, like
  *  `card.face`: a name outside this set opens the block on the view its kind gives, never
  *  refused. */
-export const NAMED_VIEWS = ["internal", "allocation", "class", "er"] as const;
+export const NAMED_VIEWS = ["internal", "allocation", "class", "er", "records"] as const;
 
 /** The views that are projections: they draw what a block holds and write nothing back. */
-export const DIAGRAM_VIEWS = ["class", "er", "registry"] as const;
+export const DIAGRAM_VIEWS = ["class", "er", "registry", "records"] as const;
 
 /** The named families a definition may pick from. */
 export const FAMILIES = ["primary", "secondary", "neutral", "muted",

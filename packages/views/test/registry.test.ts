@@ -26,12 +26,20 @@ describe("a definition's registry", () => {
                                                 usage_box("service", "shop")]));
   });
 
-  it("is read only, draws no lines, and matches the tray's small map", () => {
+  it("is read only, draws no lines, and its uses match the tray's small map", () => {
     expect(scene.slots).toEqual(["display"]);
     expect(scene.edges).toEqual([]);
     expect(scene.nodes.every((n) => n.draggable === false)).toBe(true);
     const tray = registry_map(g, "service", 400, 200).map((t) => t.id).sort();
-    expect(scene.nodes.map((n) => n.id).sort()).toEqual(tray);
+    const uses = scene.nodes.map((n) => n.id)
+      .filter((id) => id !== "service" && !id.includes("@about"));
+    expect(uses.sort()).toEqual(tray);
+  });
+
+  it("bands the definition's card above its uses", () => {
+    const card = scene.nodes.find((n) => n.id === "service")!;
+    const top = Math.min(...scene.nodes.filter((n) => n !== card).map((n) => n.position.y));
+    expect(card.position.y + (card.height ?? 0)).toBeLessThanOrEqual(top);
   });
 
   it("is nothing for a definition nothing uses", () => {

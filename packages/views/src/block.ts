@@ -7,7 +7,7 @@ import { alias_of, dir_of, placing_of, children, covers,
          stamps_of, role_of, shown_name, type Cut, type Ends, type ViewKind, type Graph, type Id,
          type Relation, type Side, type Span } from "@mnd/core";
 import { at_seat, beside, boundary, cell_box, head_height, is_placed, laid, perch_id,
-         roomed, seat_all, PAD,
+         roomed, seat_all, size_of, PAD,
          UNIT, type Perch, type Rect, type Seat, type Seating } from "@mnd/views";
 import { carried, fit_names, marks_of, trail_of } from "./derive";
 import { card_facts } from "./facts";
@@ -17,6 +17,7 @@ import { layer_map, section_map } from "./map";
 import { sheet_graph, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { registry_scene } from "./registry";
+import { records_scene } from "./records";
 import { class_graph, DRAWN_BY } from "./classes";
 import { tie_targets } from "./pack";
 import { box_of, cell as node, EMPTY, FRAME, type BoxData, type BoxNode, type Frame,
@@ -34,6 +35,8 @@ export type Config = {
   interfaces?: boolean;
   /** Whether a package root opened is drawn in a room, as a folder is. */
   room?: boolean;
+  /** A model's overview: the boxes open now; unsaid, where its file starts them. */
+  open?: readonly Id[];
   /** The diagram whose lines draw what their ends mean rather than their direction: a class
    *  diagram, or an entity one, multiplicities as crow's feet. */
   ends?: "class" | "er";
@@ -57,7 +60,20 @@ function group_carries(graph: Graph, group: Id): Id[] {
 /** Project a layer through the block view, with what its usages read through laid in, and every
  *  card's name sized to the box it was laid out at. */
 export function project(given: Graph, layer: Id | null, config: Config = {}): Scene {
-  return fit_names(unfitted(given, layer, config));
+  return fit_names(banded(given, unfitted(given, layer, config)));
+}
+
+/** **A dataflow's datum band** (docs/diagrams/dataflow.md): the definition it traces, its card
+ *  above the frame, read only, so every line's form reads against it. */
+function banded(graph: Graph, scene: Scene): Scene {
+  const datum = scene.layer ? graph.blocks[scene.layer]?.datum : undefined;
+  if (!datum || !graph.blocks[datum] || !scene.frame) return scene;
+  const s = size_of(graph, datum);
+  const at = { x: scene.frame.x, y: scene.frame.y - s.h - PAD * 2, w: s.w, h: s.h };
+  const card = { ...node(datum, at, { ...carried(graph, datum), marks: [...marks_of(graph, datum),
+                                                                         "definition" as const] }),
+                 draggable: false };
+  return { ...scene, nodes: [...scene.nodes, card] };
 }
 
 /** The layer's scene, before its names are fitted. A part of a definition seen through a usage
@@ -68,6 +84,8 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   if (layer === null || look?.kind === "map") return section_map(given, look?.lists);
   /** A registry, a definition or an entry of one, draws as a treemap. */
   if (look?.kind === "registry") return registry_scene(given, layer) ?? EMPTY;
+  /** A block with records draws its records table. */
+  if (look?.kind === "records") return records_scene(given, layer);
   /** A diagram is a projection: it draws what the block holds, and the canvas does not edit it.
    *  A grid would otherwise open as its lattice, so this comes first. */
   if (layer && (look?.kind === "class" || look?.kind === "er")) {
@@ -85,7 +103,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   /** What its usages read through. **No line is derived**: only stored relations draw. */
   const graph = read_through(given, layer);
   /** A treemap is its map; anything else places itself. */
-  if (placing_of(graph, layer) === "treemap") return layer_map(given, layer);
+  if (placing_of(graph, layer) === "treemap") return layer_map(given, layer, config.open);
   const parts = new Set(Object.keys(graph.blocks).filter((id) =>
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
   const carried_as = (id: Id): BoxData => {

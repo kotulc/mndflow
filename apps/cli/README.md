@@ -29,6 +29,12 @@ npm run start -w @mnd/cli -- fold related    # the one to try first
 | `translate` | write the graph as SysML, and check it comes back |
 | `export` | fold and write the file |
 | `collect` | a source folder — definition files, diagram files, markdown cards, and the packages they list — as one package file, or with `--workspace` as the workspace: `collect <folder> [out.json]` |
+| `measure` | lay out and route each diagram as the app does, counting what reads as broken |
+| `fact` | **a tool**: one question of a project's source, as JSON (docs/tools/): `fact <name> <project>` |
+| `draw` | **a tool**: a diagram file of one kind from a selection: `draw <kind> <selection.json> [out.yaml]` |
+| `presentation` | **a tool**: a model file's presentations: `presentation list\|draft\|check <model.yaml>` |
+
+`npm run mcp -w @mnd/cli` serves the tools over MCP, on stdio (`mcp.ts`).
 
 `<source>` is a fixture name, an exported file, a raw log, or a source folder — **a log is harness input only**, since a file is a graph. `--how` sets the layer's placing (`diagram.placing`), `--layer` which layer, `--from` the catalogue `search` reads, and `--with` a vocabulary to bring in first. `--svg` draws instead of printing, and `--round` checks a translation comes back. A value said as `k=@path` is that file's text: `run x.json attach id=pump text=@cards/pump.md`.
 

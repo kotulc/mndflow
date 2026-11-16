@@ -6,6 +6,9 @@ import type { Preview } from "./about";
 import type { Facts } from "./facts";
 import type { Arrow, Look, Tint, Wire } from "./look";
 import type { Fan, Perch, Seat } from "./seat";
+import type { AboutDrawn } from "./overview";
+import type { RecordsDrawn } from "./records";
+import type { Trace } from "./trace";
 
 /** One row of a card's attributes: its name, its type's name, whether it keys, and the value a
  *  usage answers or the default a definition declares. */
@@ -86,6 +89,14 @@ export type BoxData = {
   bar?: readonly { n: number; tint: Tint }[];
   /** A map's *+n more* chip: the chips folded into it, which its hover card lists. */
   folded?: readonly Id[];
+  /** A records table: its groups of rows, each by its source (`records.ts`). */
+  records?: RecordsDrawn;
+  /** A model's About band: its groups of plain notes (`overview.ts`). */
+  about?: readonly AboutDrawn[];
+  /** A box of a model's overview that opens and closes, and whether it is open now. */
+  toggle?: "open" | "closed";
+  /** A diagram chip's kind, by its definition: the stamp in its head (theme `chip.tsx`). */
+  stamp?: Id;
   /** A registry's tile: how many times its entry is used, and that against the most used. */
   count?: number;
   heat?: number;
@@ -107,6 +118,8 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "label"
                  | "minor"
                  /** It owns a path a reader may walk: marked where a walk starts. */
                  | "walks"
+                 /** Round a model's overview: an actor or an external in its zone. */
+                 | "zone"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "upright" | "merged"
                  /** An opened grid, standing in for the room. */
@@ -311,6 +324,8 @@ export type Scene = {
   /** The grid whose body holds steps, where its columns are lifelines: a step is dragged along
    *  its column. */
   lifelines?: Id;
+  /** A model's overview: its lines, quiet under its chips until lit (`overview.ts`). */
+  quiet?: Trace;
 };
 
 export const EMPTY: Scene = {

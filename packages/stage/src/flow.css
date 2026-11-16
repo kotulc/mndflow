@@ -158,9 +158,13 @@
 
 
 /* Which way a flow enters and leaves, on the interface that carries it. */
-/* A port of an interface definition is filled with that definition's colour; its border still
-   says which way it carries. */
-.mnd-seat.typed { border-color: var(--card-edge); }
+/* **A typed seat is filled with its type's colour, semi-transparent, and outlined in it; a base
+   seat (`interface`) is hollow** (docs/design/card.md, 2026-11-14). */
+.mnd-seat { background: transparent; }
+.mnd-seat.typed {
+  border-color: var(--card-edge);
+  background: color-mix(in oklch, var(--card-edge) 35%, transparent);
+}
 
 /* **A seat is one square**: its chevron points into the card for in, out of it for out (theme
    `--seat-chevron`). A seat on the frame faces the room, so its directions turn round. */
@@ -208,7 +212,6 @@
   width: 100%;
   height: 100%;
   border: 1px solid var(--card-line);
-  background: var(--surface);
 }
 
 /* ── The frame: the open layer, seen from within ── */
@@ -1051,3 +1054,136 @@
                    padding: 2px 6px; font: inherit; }
 .mnd-walk button:disabled { color: var(--faint); cursor: default; }
 .mnd-walk button:not(:disabled):hover { color: var(--accent); }
+
+/* ── A model's overview (views `overview.ts`, docs/diagrams/tree.md) ── */
+
+/* **A model's lines are quiet** under its chips until a pick or a presentation lights them. React
+   Flow has one portal for every overlay, so it sinks only while the quiet lines are all it holds. */
+.react-flow__viewport-portal:has(> .mnd-trace.quiet):not(:has(> :not(.mnd-trace.quiet))) {
+  z-index: 0;
+}
+.mnd-trace.quiet .halo { display: none; }
+.mnd-trace.quiet .run { stroke: var(--faint); opacity: 0.45; }
+.mnd-trace.quiet marker path { fill: var(--faint); opacity: 0.45; }
+.mnd-trace.quiet .hit { pointer-events: none; }
+
+/* **A presentation's steps**: earlier ones faded to 40%, the last drawn from its start, its datum
+   travelling along it, its arrowhead and label after (docs/presentations.md *How a stop plays*). */
+.mnd-trace.steps .past { opacity: 0.4; }
+.mnd-trace.steps .now .run {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  stroke-width: calc(2.5px / var(--zoom, 1));
+  animation: mnd-draw 1s ease-out forwards;
+}
+.mnd-trace.steps .run { stroke-width: calc(2px / var(--zoom, 1)); }
+.mnd-trace.steps .datum { fill: var(--accent); stroke: var(--bg); stroke-width: 1.5; }
+.mnd-trace.steps .label {
+  fill: var(--text);
+  font-size: calc(12px / var(--zoom, 1));
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: calc(4px / var(--zoom, 1));
+}
+.mnd-trace.steps .now .label { opacity: 0; animation: mnd-appear 0.3s ease-out 1s forwards; }
+@keyframes mnd-draw { to { stroke-dashoffset: 0; } }
+@keyframes mnd-appear { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .mnd-trace.steps .now .run, .mnd-trace.steps .now .label { animation-duration: 0.01s;
+                                                             animation-delay: 0s; }
+  .mnd-trace.steps .datum { display: none; }
+}
+
+/* **A diagram chip's stamp** (2026-11-15): its kind's icon in a filled badge of its hue. */
+.mnd-chip.stamped > .mnd-chip-icon, .mnd-chip.stamped > .mnd-chip-turn > .mnd-chip-icon {
+  top: 4px;
+  right: 4px;
+  padding: 2px;
+  border-radius: 3px;
+  background: var(--card-edge, var(--card-line));
+  color: var(--bg);
+  box-sizing: content-box;
+}
+.mnd-chip.stamped .mnd-chip-text { right: calc(var(--icon) + 12px); }
+
+/* **Opening and closing a box**: a small square before a box's title, in a closed chip's foot. */
+.mnd-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid var(--wall);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 11px/1 var(--mono, monospace);
+  pointer-events: all;
+  cursor: pointer;
+}
+.mnd-toggle:hover { color: var(--accent); border-color: var(--accent); }
+.mnd-chip > .mnd-toggle { position: absolute; right: 6px; bottom: 6px; z-index: 1; }
+.mnd-box-title .mnd-toggle { margin-right: 2px; }
+
+/* **What sits round a model**: an actor or an external, a plain chip in its zone. */
+.mnd-chip.zone { border-style: dashed; }
+
+/* **About** (docs/presentations.md *The overview*): past a dashed divider, plain notes, never a
+   box, never lit or dimmed. */
+.mnd-flow .react-flow__node-about { pointer-events: none; }
+.mnd-about {
+  display: flex;
+  gap: 32px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 10px 4px 0;
+  border-top: calc(1px / var(--zoom, 1)) dashed var(--wall);
+  color: var(--muted);
+  font-size: 12px;
+}
+.mnd-about-group { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+                   min-width: 0; }
+.mnd-about-name { color: var(--faint); font-size: 10px; letter-spacing: 0.06em;
+                  text-transform: uppercase; line-height: 22px; }
+.mnd-about-item {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  line-height: 16px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: all;
+  cursor: pointer;
+}
+.mnd-about-item:hover { color: var(--accent); }
+.mnd-about-item.play { color: var(--accent); }
+
+/* **A records table** (views `records.ts`): the app's table look, a rule under every row; each
+   row's left accent its source definition's colour; a group opened by a plain heading. */
+.mnd-records { width: 100%; font-size: 12px; color: var(--text); }
+.mnd-records-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  align-items: center;
+  height: 26px;
+  padding-left: 8px;
+  border-bottom: 1px solid var(--divider);
+  border-left: 3px solid transparent;
+}
+.mnd-records-row[data-family] { border-left-color: var(--card-edge, var(--card-line)); }
+.mnd-records-row.head { color: var(--faint); font-size: 10px; letter-spacing: 0.06em;
+                        text-transform: uppercase; border-bottom-color: var(--wall); }
+.mnd-records-row .cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                         padding-right: 8px; }
+.mnd-records-heading { height: 24px; line-height: 28px; padding-left: 11px; color: var(--muted);
+                       font-weight: 600; }
+.mnd-records-link { padding: 0; border: 0; background: none; color: var(--accent); font: inherit;
+                    cursor: pointer; pointer-events: all; }
+.mnd-records-link:hover { text-decoration: underline; }

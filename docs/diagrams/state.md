@@ -8,7 +8,7 @@
 |---|---|
 | **answers** | what conditions can this thing be in, and what moves it from one to the next |
 | **draws** | its states as round cards, transitions between them named by the event that fires them, a start and an end mark |
-| **example** | the shop: *Order states*, the Order record's lifecycle (samples/example/Records/order) |
+| **example** | the shop: *Order states*, the Order record's lifecycle (samples/example/overview/shop/back-office/orders) |
 
 ## Utility
 
@@ -29,7 +29,7 @@
 |---|---|
 | **base** | `state`, extending `block`, *is behaviour*: view `internal`, layered, round cards; transitions are base `transition` lines; marks `start` and `end` |
 | **file** | its own file under the use that owns the data in the model (`shop/back-office/orders/order-states.yaml`; a definition holds no diagrams): states in list order; relations are transitions by the kind |
-| **tool** | none until a case appears. A `states` fact tool would read a status field's literal values and the assignments that change it |
+| **tool** | `mnd draw state` (2026-11-15; docs/tools/state.md), its case this repo's navigation |
 
 ```yaml
 # shop/back-office/orders/order-states.yaml

@@ -21,6 +21,9 @@
 | mapping | diagram | what goes in, where it lands, and by which rule |
 | presentation | model | an ordered, narrated way through a model |
 | class | diagram | what data definitions there are, their fields and references |
+| state | diagram | how one thing changes (2026-11-15) |
+| swimlane | diagram | who does what, in which phase (2026-11-15) |
+| entity | diagram | how data is stored (2026-11-15) |
 
 **Diagram tools are flavours over a few base views** (2026-11-11). A tool makes one diagram kind: the same base view with its own semantics and annotations. Sequence and swimlane are both the grid read differently; context, flow and dataflow are all layer diagrams.
 
@@ -32,7 +35,18 @@
 | types | class, entity |
 | treemap | overview: one tree view for the map, a model and a registry |
 
-**Surface**: CLI first, MCP a thin wrapper over the same commands. The command shapes in each file are proposed until built.
+**Surface**: CLI first, MCP a thin wrapper over the same commands. **Built 2026-11-15**: every tool but `trace`, which says it is not built.
+
+| Command | Does | Home |
+|---|---|---|
+| `mnd fact <name> <project> [--unit u] [--from m.fn] [--at m.fn] [--of name] [--depth n]` | one question of a project's source, as JSON, every fact with its source | apps/ts `facts.ts` |
+| `mnd draw <kind> <selection.json> [out.yaml] [--force]` | a diagram file of any kind, or `overview`, from a selection: a diagram file's map as JSON, read back through the file syntax before it is written; warns below the floor; never overwrites without `--force` | cli `tools.ts` `diagram_file` |
+| `mnd presentation list\|draft\|check <model.yaml>` | a model's presentations; one drafted from a flow or sequence (`--from`, `--as` its name as the model reaches it); what does not resolve | cli `tools.ts`, `main.ts` |
+| `npm run mcp -w @mnd/cli` | the same over MCP, on stdio: `fact`, `draw`, `presentation_list`, `presentation_draft` | cli `mcp.ts` |
+
+**Testing the MCP surface** (kept 2026-11-15 to see how it changes the interface for agents): register it from the repo root with `claude mcp add mnd -- npm run mcp -s -w @mnd/cli`, then compare an agent composing a model through it against the same agent using the CLI.
+
+Worked examples for the hand-drawn kinds are in docs/tools/examples/, each a selection `draw` writes.
 
 | Rule | |
 |---|---|

@@ -43,5 +43,5 @@ Review page, a section per part with digests, mockups and what was agreed: https
 | Question | Notes |
 |---|---|
 | when a flow is worth drawing | answered by practice: a flow is drawn when its steps make a logical path (ingest, translate page); a projection gets a mapping instead (metadata) |
-| what a chip shows per kind | waits on the diagram kinds pass (model-plan.md *Questions* 1) |
+| what a chip shows per kind | answered 2026-11-15: its tiles, and its kind's stamp in its head |
 | the review page's own fate | it is the record of the review; this plan holds its outcome |

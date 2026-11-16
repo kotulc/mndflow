@@ -16,12 +16,13 @@ export type Cut = "package" | "tree" | null;
  *  diagram the block names (`class`, `er`), or where a definition or a component is used
  *  (`registry`). **The map** draws a whole section as a treemap of chips (`map`): nothing is
  *  entered, and what is picked is its focus. */
-export type ViewKind = "internal" | "allocation" | "class" | "er" | "registry" | "map";
+export type ViewKind = "internal" | "allocation" | "class" | "er" | "registry" | "records"
+  | "map";
 
 /** The views that draw one block. A section offers them as one choice, `internal`, and the block
  *  opened says which it shows. */
 export const LAYER_VIEWS: readonly ViewKind[] = [
-  "internal", "allocation", "class", "er", "registry"];
+  "internal", "allocation", "class", "er", "registry", "records"];
 
 /** The layer views drawn from inside, where what the layer holds is built. A diagram is read from
  *  inside too: it draws what the block holds, and nothing is laid out there. */

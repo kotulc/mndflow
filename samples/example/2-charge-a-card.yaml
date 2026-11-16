@@ -19,3 +19,21 @@ relations:
   - Payments -> Card processor: charge, retry
   - Card processor -> Ledger: settled
   - Ledger -> Orders: paid or cancelled
+presentations:
+  - name: Take a payment
+    description: One charge, from the request to the order told.
+    stops:
+      - title: A charge goes out
+        at: Payments
+        summary: Payments asks the card processor, and retries while it fails.
+        steps:
+          - relation: Payments -> Card processor
+            text: Payments charges the card, retrying behind its breaker.
+      - title: The outcome is kept
+        at: Ledger
+        summary: Whatever happened is written once, then Orders is told.
+        steps:
+          - relation: Card processor -> Ledger
+            text: A settled charge lands in the ledger.
+          - relation: Ledger -> Orders
+            text: The ledger tells Orders the order is paid, or cancelled.

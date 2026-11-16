@@ -54,6 +54,8 @@ export const EDITOR: Tiers = {
 function feeds(graph: Graph, id: Id, view: string): boolean {
   if (view === "allocation") return is_grid(graph, id);
   if (view === "class" || view === "er") return opens(graph, id);
+  /** **A block with records opens on its records table** (docs/diagrams/mapping.md). */
+  if (view === "records") return !!graph.blocks[id]?.records?.length;
   if (view === "internal") {
     return !is_grid(graph, id) && opens(graph, id);
   }

@@ -1,11 +1,11 @@
 name: Data
-note: A dataflow and a mapping over one record, each written in its kind's short forms.
+note: A dataflow and a mapping over one record, each written in its kind's short forms. A port typed by a data definition is filled with its colour; a plain one is hollow.
 blocks:
-  - { name: Form, type: actor }
-  - { name: Signup }
-  - { name: Store, type: external }
+  - { name: Form, type: actor, ports: { out: { details: interface } } }
+  - { name: Signup, ports: { in: { details: interface }, out: { saved: Record } } }
+  - { name: Store, type: external, ports: { in: { saved: Record } } }
   - Record trace
   - Record fields
 relations:
-  - Form -> Signup: details
-  - Signup -> Store: Record
+  - Form.details -> Signup.details: details
+  - Signup.saved -> Store.saved: Record

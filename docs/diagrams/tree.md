@@ -25,7 +25,7 @@
 |---|---|
 | **base** | the `model` kind's own view (it already places by treemap); no separate diagram kind |
 | **file** | the model file: its parts (uses of library definitions), relations, `about:`, `presentations:` (presentations.md *The file*) |
-| **tool** | `mnd draw overview <selection.json> <out>` (today docs/tools/tree.md): units grouped into parts, which are primary, the presentations offered |
+| **tool** | `mnd draw overview <selection.json> <out>` (docs/tools/overview.md): units grouped into parts, which are primary, the presentations offered |
 
 ## Layout
 
@@ -35,8 +35,9 @@
 | **around** | context's zones (context.md *Layout*), the outside placed by what it is |
 | **below** | the About band past a dashed divider: plain notes, never lit or dimmed (model-plan.md 10) |
 | **lines** | quiet, under the chips; lit by a pick or a presentation step |
+| **a diagram chip** | its kind's icon in a filled badge of its hue, in its head (2026-11-15) |
 | **many parts** | past what the canvas holds at a readable size, boxes close from the lightest up; a closed box says its name and counts |
-| **opening** | a click opens or closes a box; a presentation stop's `open` sets it per stop; the model file's `open:` (unsaid: primary parts) is where it starts |
+| **opening** | a box's toggle (+ in a closed chip's foot, − before an open box's title) opens or closes it; a presentation stop's `open` sets it per stop; the model file's `open:` (unsaid: primary parts) is where it starts |
 
 ## One view, three roots
 
@@ -49,7 +50,7 @@
 | **definition** (the registry) | its uses, in boxes of the places that draw them, the heaviest open | its definition card in a band above, as a dataflow's datum band | About: what it extends, its subtypes | worked out, never written |
 
 - **open and closed** focus attention the same way at every root: open what is primary or heavy, close the rest, a closed box says its name and counts
-- **one layout in code**: today a registry lays out with its own treemap (views `treemap.ts` `tiled`), not the map's (backlog.md *Later*, entry paths); building this retires it into the one tree layout
+- **one layout in code** (built 2026-11-15): the model and definition roots are laid by the map's own layout (views `map.ts` `mapped`); a component registry (tags, types) and a definition chip's small preview still lay out with `treemap.ts` `tiled`
 - **one tool**: `overview` writes the only root that is written, a model's tree; the world and a registry are worked out
 
 ## Agreed 2026-11-15

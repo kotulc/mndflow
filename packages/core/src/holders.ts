@@ -1,7 +1,7 @@
 /** Holders: folders, groups and grids, what each draws, cells, merges, headers and allocation. */
 
 import { allows_of, permits } from "./capabilities";
-import { base_of, setting_of } from "./defs";
+import { base_of, is_model, setting_of } from "./defs";
 import { children, is_interface, is_reference, stands_for } from "./tree";
 import type { Block, Cell, Graph, Grid, HeaderRole, Id, Shape, Span } from "./types";
 
@@ -31,7 +31,9 @@ export function covers(s: Span, r: number, c: number): boolean {
  *  never one, whatever it extends. */
 export function shape_of(graph: Graph, id: Id | undefined): Shape | null {
   const b = id ? graph.blocks[id] : undefined;
-  if (!b || b.def || is_reference(graph, b.id) || is_interface(graph, b.id)) return null;
+  /** A definition has no shape, but a model: it draws as its kind (2026-11-15). */
+  if (!b || (b.def && !is_model(graph, b.id)) || is_reference(graph, b.id)
+      || is_interface(graph, b.id)) return null;
   return shape_named(graph, b.id);
 }
 

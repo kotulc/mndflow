@@ -46,6 +46,8 @@ export type FlowViewProps = {
   picked?: readonly Id[];
   /** A path traced across a map: its legs drawn over it, its blocks numbered. */
   trace?: Trace | null;
+  /** A presentation's steps shown so far, the last drawing now (`Traced`, `steps`). */
+  steps?: Trace | null;
   /** What an id drawn stands for, where it is not a block's own — a place's box — so it lights
    *  with it. */
   stands_for?: (id: Id) => Id | null;

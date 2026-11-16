@@ -28,7 +28,7 @@
 |---|---|
 | **base** | `swimlane`, extending `block`, *is grid*, *is behaviour*: view `allocation` |
 | **file** | its own file, a behaviour of its owner: lanes as references by the kind (written once, found outward), phases in order, steps in their cells, lines between steps carrying what is handed over |
-| **tool** | none until a case appears |
+| **tool** | `mnd draw swimlane` (2026-11-15; docs/tools/swimlane.md), its case this repo's source folder handoff |
 
 ```yaml
 # shop/how-it-runs/2-fulfilment.yaml

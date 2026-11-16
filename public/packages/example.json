@@ -354,6 +354,60 @@
         "def": {},
         "description": "How an order is placed, one hop a step: from the customer's cart to stock reserved and a parcel booked. Its Payments step is a model of its own: step into it for how a card is charged.",
         "order": 3,
+        "presentations": [
+          {
+            "name": "Place an order",
+            "description": "One checkout, from the cart to a parcel booked.",
+            "stops": [
+              {
+                "title": "The customer checks out",
+                "at": "example.yaml.1-checkout:gateway",
+                "summary": "The cart arrives at the gateway and is routed to the storefront.",
+                "steps": [
+                  {
+                    "text": "The customer submits the cart.",
+                    "relation": "example.yaml.1-checkout.r.customer-gateway"
+                  },
+                  {
+                    "text": "The gateway routes it to the storefront.",
+                    "relation": "example.yaml.1-checkout.r.gateway-storefront"
+                  }
+                ]
+              },
+              {
+                "title": "The card is charged",
+                "at": "example.yaml.1-checkout:payments",
+                "summary": "Payments takes the money once; step into it for how.",
+                "into": "Take a payment",
+                "steps": [
+                  {
+                    "text": "The storefront asks Payments to charge.",
+                    "relation": "example.yaml.1-checkout.r.storefront-payments"
+                  },
+                  {
+                    "text": "Paid, the order is written.",
+                    "relation": "example.yaml.1-checkout.r.payments-orders"
+                  }
+                ]
+              },
+              {
+                "title": "Stock and shipping follow",
+                "at": "example.yaml.1-checkout:orders",
+                "summary": "The outbox tells inventory and shipping, each in its own time.",
+                "steps": [
+                  {
+                    "text": "Inventory reserves the stock.",
+                    "relation": "example.yaml.1-checkout.r.orders-inventory"
+                  },
+                  {
+                    "text": "Shipping books a parcel.",
+                    "relation": "example.yaml.1-checkout.r.orders-shipping"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
         "source": "1-checkout.yaml"
       },
       "example.yaml.1-checkout:customer": {
@@ -447,6 +501,40 @@
         "def": {},
         "description": "How Payments takes money once: the card is charged, retried while the processor fails, and the outcome recorded for Orders.",
         "order": 4,
+        "presentations": [
+          {
+            "name": "Take a payment",
+            "description": "One charge, from the request to the order told.",
+            "stops": [
+              {
+                "title": "A charge goes out",
+                "at": "example.yaml.2-charge-a-card:payments",
+                "summary": "Payments asks the card processor, and retries while it fails.",
+                "steps": [
+                  {
+                    "text": "Payments charges the card, retrying behind its breaker.",
+                    "relation": "example.yaml.2-charge-a-card.r.payments-card-processor"
+                  }
+                ]
+              },
+              {
+                "title": "The outcome is kept",
+                "at": "example.yaml.2-charge-a-card:ledger",
+                "summary": "Whatever happened is written once, then Orders is told.",
+                "steps": [
+                  {
+                    "text": "A settled charge lands in the ledger.",
+                    "relation": "example.yaml.2-charge-a-card.r.card-processor-ledger"
+                  },
+                  {
+                    "text": "The ledger tells Orders the order is paid, or cancelled.",
+                    "relation": "example.yaml.2-charge-a-card.r.ledger-orders"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
         "source": "2-charge-a-card.yaml"
       },
       "example.yaml.2-charge-a-card:card-processor": {
@@ -505,8 +593,120 @@
         "name": "Overview",
         "type": "model",
         "def": {},
+        "about": [
+          {
+            "name": "Presentations"
+          },
+          {
+            "name": "Entries"
+          },
+          {
+            "name": "Records kept",
+            "items": [
+              "example.order",
+              "example.payment",
+              "example.ledger"
+            ]
+          }
+        ],
         "description": "The shop in its world: who uses it and what it leans on. Open Shop to go inside; every diagram here is one side of it.",
+        "open": [
+          "example.yaml.overview.shop"
+        ],
         "order": 5,
+        "presentations": [
+          {
+            "name": "Tour the shop",
+            "description": "The shop from the outside in, then one order through it.",
+            "stops": [
+              {
+                "title": "The shop in its world",
+                "at": "example.yaml.overview.shop",
+                "summary": "Customers reach the shop; it leans on a card processor and a carrier.",
+                "steps": [
+                  {
+                    "text": "Customers shop over HTTPS.",
+                    "relation": "example.yaml.overview.r.customer-browser-shop-https"
+                  },
+                  {
+                    "text": "The shop charges cards through the processor.",
+                    "relation": "example.yaml.overview.r.shop-charges-card-processor-api"
+                  },
+                  {
+                    "text": "It books parcels with the carrier.",
+                    "relation": "example.yaml.overview.r.shop-shipments-carrier-api"
+                  }
+                ]
+              },
+              {
+                "title": "The front door",
+                "at": "example.yaml.overview.shop:customer-facing",
+                "summary": "Every request passes the gateway before the storefront sees it.",
+                "open": [
+                  "example.yaml.overview.shop",
+                  "example.yaml.overview.shop:customer-facing"
+                ],
+                "steps": [
+                  {
+                    "text": "Traffic enters at the gateway.",
+                    "relation": "example.yaml.overview.shop.r.https-gateway-requests"
+                  },
+                  {
+                    "text": "The gateway routes it to the storefront.",
+                    "relation": "example.yaml.overview.shop.r.gateway-routes-storefront-https"
+                  }
+                ]
+              },
+              {
+                "title": "An order is placed",
+                "at": "example.yaml.overview.shop:back-office",
+                "summary": "The storefront hands an order to the back office, which takes payment and ships.",
+                "open": [
+                  "example.yaml.overview.shop",
+                  "example.yaml.overview.shop:back-office"
+                ],
+                "steps": [
+                  {
+                    "text": "Payments takes the money.",
+                    "relation": "example.yaml.overview.shop.r.storefront-pay-payments-in"
+                  },
+                  {
+                    "text": "Orders keeps the order.",
+                    "relation": "example.yaml.overview.shop.r.storefront-orders-orders-in"
+                  },
+                  {
+                    "text": "Inventory reserves the stock.",
+                    "relation": "example.yaml.overview.shop.r.orders-events-inventory-events"
+                  },
+                  {
+                    "text": "Shipping books the parcel.",
+                    "relation": "example.yaml.overview.shop.r.orders-events-shipping-events"
+                  }
+                ]
+              },
+              {
+                "title": "The saga, in order",
+                "at": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+                "summary": "The same checkout as messages between the parts, one turn at a time.",
+                "show": "example.yaml.overview.shop.how-it-runs.1-checkout-saga",
+                "steps": [
+                  {
+                    "text": "The customer submits the cart to the gateway.",
+                    "relation": "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.submit-cart-message-route-checkout"
+                  },
+                  {
+                    "text": "The storefront starts the saga and asks for the charge.",
+                    "relation": "example.yaml.overview.shop.how-it-runs.1-checkout-saga.r.start-saga-message-authorize"
+                  },
+                  {
+                    "text": "The storefront confirms the order once stock is reserved.",
+                    "mark": "example.yaml.overview.shop.how-it-runs.1-checkout-saga:confirm-order"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
         "source": "overview.yaml"
       },
       "example.yaml.overview.shop": {

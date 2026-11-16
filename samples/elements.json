@@ -897,12 +897,20 @@
         "name": "Form",
         "type": "actor",
         "alias": 2,
-        "order": 2
+        "order": 2,
+        "ports": [
+          {
+            "id": "yaml.6-data:form.port.details",
+            "name": "details",
+            "flow": "out",
+            "type": "interface"
+          }
+        ]
       },
       "yaml.6-data:note-1": {
         "id": "yaml.6-data:note-1",
         "parent": "yaml.6-data",
-        "name": "A dataflow and a mapping over one record, each written in its kind's short forms.",
+        "name": "A dataflow and a mapping over one record, each written in its kind's short forms. A port typed by a data definition is filled with its colour; a plain one is hollow.",
         "type": "note",
         "alias": 9,
         "order": 1
@@ -912,7 +920,21 @@
         "parent": "yaml.6-data",
         "name": "Signup",
         "alias": 51,
-        "order": 3
+        "order": 3,
+        "ports": [
+          {
+            "id": "yaml.6-data:signup.port.details",
+            "name": "details",
+            "flow": "in",
+            "type": "interface"
+          },
+          {
+            "id": "yaml.6-data:signup.port.saved",
+            "name": "saved",
+            "flow": "out",
+            "type": "workspace.record"
+          }
+        ]
       },
       "yaml.6-data:store": {
         "id": "yaml.6-data:store",
@@ -920,7 +942,15 @@
         "name": "Store",
         "type": "external",
         "alias": 2,
-        "order": 4
+        "order": 4,
+        "ports": [
+          {
+            "id": "yaml.6-data:store.port.saved",
+            "name": "saved",
+            "flow": "in",
+            "type": "workspace.record"
+          }
+        ]
       }
     },
     "edges": {
@@ -1064,31 +1094,35 @@
         },
         "to": "yaml.4-lines:part"
       },
-      "yaml.6-data.r.form-signup": {
-        "id": "yaml.6-data.r.form-signup",
+      "yaml.6-data.r.form-details-signup-details": {
+        "id": "yaml.6-data.r.form-details-signup-details",
         "name": "details",
         "alias": 14,
         "from": "yaml.6-data:form",
+        "fromPort": "yaml.6-data:form.port.details",
         "order": 0,
         "settings": {
           "line": {
             "dir": "forward"
           }
         },
-        "to": "yaml.6-data:signup"
+        "to": "yaml.6-data:signup",
+        "toPort": "yaml.6-data:signup.port.details"
       },
-      "yaml.6-data.r.signup-store": {
-        "id": "yaml.6-data.r.signup-store",
+      "yaml.6-data.r.signup-saved-store-saved": {
+        "id": "yaml.6-data.r.signup-saved-store-saved",
         "name": "Record",
         "alias": 15,
         "from": "yaml.6-data:signup",
+        "fromPort": "yaml.6-data:signup.port.saved",
         "order": 1,
         "settings": {
           "line": {
             "dir": "forward"
           }
         },
-        "to": "yaml.6-data:store"
+        "to": "yaml.6-data:store",
+        "toPort": "yaml.6-data:store.port.saved"
       },
       "yaml.6-data.record-trace.r.form-signup": {
         "id": "yaml.6-data.record-trace.r.form-signup",

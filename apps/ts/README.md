@@ -1,6 +1,6 @@
 # apps/ts
 
-**Translates a TypeScript or JavaScript project into a source folder of the `ts` package's kinds, which `collect` reads into a workspace.** The rules it follows are design.md's *Translation*; this is how it does it. Moved out of this repo once the schema settles.
+**Translates a TypeScript or JavaScript project into a source folder of the `ts` package's kinds, which `collect` reads into a workspace, and answers the fact tools (docs/tools/).** The rules it follows are design.md's *Translation*; this is how it does it. Moved out of this repo once the schema settles.
 
 ## Running it
 
@@ -8,6 +8,8 @@
 npm run start -w @mnd/ts -- <project> [folder] [--tsconfig path] [--components n]
 npm run code                  # this repo → samples/code, collected to samples/code.json
 ```
+
+The fact tools run through the CLI: `npm run start -s -w @mnd/cli -- fact <name> <project>`.
 
 Without a folder it prints the structure and writes nothing. With one, the folder is written fresh; then `npm run start -s -w @mnd/cli -- collect <folder> <out>.json --workspace` and `check` it. `npm run packages` after any change to the `ts` kinds (`packages/defs/src/packages/ts`).
 
@@ -18,7 +20,8 @@ Without a folder it prints the structure and writes nothing. With one, the folde
 | `read.ts` | ts-morph to data: packages, modules, imports weighted by the symbols read and resolved through barrels, calls; **declared entries** (`bin`, `scripts`, Dockerfile, an HTML module script, a framework's files); what each module answers: where it runs, the outside it touches, files read and written, config keys, tests, flows; scope (`src_of`, `in_scope`) |
 | `structure.ts` | the stages below; `SETTINGS` |
 | `report.ts` | the printed structure; against a target (`<folder>.target.yaml`) where one is kept |
-| `write.ts` | the source folder: every unit a definition by package, one model per entry path, the vocabulary |
+| `write.ts` | the source folder in the file syntax: every unit a model by package, one model per entry path, the vocabulary and the outside as JSON definitions |
+| `facts.ts` | the fact tools: entries, edges, runtimes, units, calls, data, workflows, schema, each fact with its source; `trace` not built |
 | `main.ts` | the command |
 
 ## Stages
@@ -49,14 +52,14 @@ Without a folder it prints the structure and writes nothing. With one, the folde
 
 ## What it writes
 
-**The library is the system; a model is one path's story** (2026-11-08).
+**The library is the system; a model is one path's story** (2026-11-08). **Definitions are JSON, models YAML, and a file names its package's definitions bare** (2026-11-15), so a unit's name said by another unit, a type, an actor, a folder or a `base` definition is led by its package's folder (`tray-state`).
 
 | File | Holds |
 |---|---|
-| `<pkg>/<container>/<n>-<unit>.yaml` | every unit a definition, filed by package (`parts` for a lone one) and container where a package has more than one, in reading order: entry modules (`ts.entry`), components by level (`ts.component`, its modules as parts, most salient first, and their lines; its own components under `<pkg>/<n>-<unit>/`), shared modules (`ts.shared`). A module's API is its parts: the functions and values another unit reads (`ts.function`, `ts.value`, each its `signature`); an API function calling three or more of the project's is a `flow` under it. A unit says `runs`, `entered`, `types` (shared types read), `reads` and `writes` (files), `config`, `touches`, `tests`, then `lines`; a module its header as `description`, a component its members' headers joined, most salient first |
-| `package.json` | the package block, described by the manifest's `description`, else the README's lead paragraph |
-| `outside/<actor>.yaml` | the system's edge (`ts.actor`): the file system, processes, network, terminal, environment, each command run, each framework hosting an entry |
+| `<pkg>/<container>/<n>-<unit>.yaml` | every unit a model, filed by package (`parts` for a lone one) and container where a package has more than one, in reading order: entry modules (`ts.entry`), components by level (`ts.component`, its modules as parts, most salient first, and their lines; its own components under `<pkg>/<n>-<unit>/`), shared modules (`ts.shared`). A module's API is its parts: the functions and values another unit reads (`ts.function`, `ts.value`, each its `signature`); an API function calling three or more of the project's is a `flow` under it. A unit says `runs`, `entered`, `types` (shared types read), `reads` and `writes` (files), `config`, `touches`, `tests`, then `lines`; a module its header as `description`, a component its members' headers joined, most salient first |
+| `package.json` | the package block, described by the manifest's `description`, else the README's lead paragraph; it imports `ts` |
+| `outside/<actor>.json` | the system's edge (`ts.actor`), a definition each: the file system, processes, network, terminal, environment, each command run, each framework hosting an entry |
 | `<n>-<entry>.yaml` | a model per entry path of two steps or more, **named by how its entry is entered** (`npm run ingest`, `Docker → cli`, `nextra → theme-config`, `browser → main`; its unit's name where nothing declares it), its description its entry's header where it has one, its actors after its units, a line from each unit touching one; numbered by summed salience, the most first: uses of the units the path passes through in first-visit order, then the shared modules they import; a `dependency` line a step, in order, named by what is called |
-| `types/<pkg>/<owner>/<Type>.yaml` | the vocabulary: a definition per shared type, fields as attributes |
+| `types/<pkg>/<owner>/<Type>.json` | the vocabulary: a definition per shared type, fields as attributes, a field typed by another written type a link to it by id; a name said in two packages names its owner too |
 
-Ids are minted from source paths and names, a component's from its anchor, so translating again keeps them. Every unit keeps `source`. A model reads its units by `<project>.<pkg>.<unit>`, so no folder is taken for the project.
+Ids are minted from source paths and names, a component's from its anchor, so translating again keeps them. Every unit keeps `source`. A model reads its units by their bare names, unique in the package.

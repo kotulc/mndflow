@@ -27,7 +27,7 @@
 |---|---|
 | **base** | `entity`, extending `block`: view `er`; its blocks are references to definitions; keys and lines are worked out from fields, never written |
 | **file** | beside or in the same file as the class diagram of the same definitions (several diagrams to a file, each named): its blocks references to definitions by the kind, written bare |
-| **tool** | none until a case appears; a later one would read an ORM's models or SQL through `schema` |
+| **tool** | `mnd draw entity` (2026-11-15; docs/tools/entity.md), its case this repo's workspace file |
 
 ```yaml
 # shop/data/model.yaml: the class and entity diagrams of the shop's records, one file

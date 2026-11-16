@@ -5,16 +5,30 @@
 
 ## Next session
 
-**State (2026-11-15, hand-off).** The diagram kinds pass is committed (7bbc88a). **The syntax pass is built** (uncommitted; syntax-plan.md): packages import explicitly, models and diagrams are YAML scoped to their package, a model is any definition with *is model*, kinds say how their files are written, and the new base kinds are in. services, example and elements collect, check clean and draw with a clean console. **`samples/code` and `samples/mndsite` do not collect** until the translator writes the new form (the user's call). Suggested commit: *Syntax pass: package imports, models as a trait, kind file defaults, new base kinds; move services, example and elements*.
+**State (2026-11-15, after the sweep).** The syntax pass is committed (b3d2a1e). **The sweep of the remaining passes is built, uncommitted**: the one tree view (model and definition roots), presentations, the tools and the translator in the new syntax, and part of *Build notes*. Every sample collects and checks clean, `samples/code` and `samples/mndsite` included; typecheck and the unit tests pass. syntax-plan.md is deleted, its last step done. Suggested commit: *Tree view, presentations, tools: overview with zones and About, presentations played from the model file, fact/draw/presentation tools and MCP, translator in the new syntax*.
 
-| Order | Take up | Where |
+| Built | Where |
+|---|---|
+| **the tree view, model root**: context's zones round the treemap (actors above, externals left or right by their lines), boxes open from `open:` (unsaid the primary parts) and by a toggle, About below from `about:`, the model's lines quiet under the chips. **The seen regression is fixed**: a use of a model, entered, reads its model's parts through | views `map.ts` `layer_map`, `opened`; `overview.ts`; `tree.ts` `layer_tree` |
+| **the tree view, definition root**: a definition's registry is its uses as closed chips in place boxes, its card in a band above, About (extends, subtypes) below, laid by the map's own layout | views `map.ts` `definition_map`, `overview.ts` `registered` |
+| **the chip stamp** (*Questions answered*): a diagram chip's kind icon in a filled badge of its hue | theme `chip.tsx`, stage `flow.css` |
+| **presentations**: the file, the state, the player (open, ring, dim, camera, steps drawn with their datum travelling, pace, keys, dive, into and out), the tray's section, the CLI | presentations.md *Building it* |
+| **the tools**: fact tools (entries, edges, runtimes, units, calls, data, workflows, schema; trace says it is not built), `draw` for every kind and `overview`, `presentation list/draft/check`, an MCP server over the same | docs/tools/ |
+| **the translator in the new syntax**: units as models, shared types and the outside as JSON definitions, `ts` imported, names unique in the package's scope (`base`'s included) | apps/ts `write.ts` |
+| **state, swimlane and entity** each a use case in this repo and a tool (`draw`): navigation, the workspace file, a source folder's handoff | docs/tools/ state.md, swimlane.md, entity.md |
+| *Build notes* rows: typed seats, a port typed by a data definition, the dataflow's datum band, the records table | below |
+
+| Order | Take up next | Notes |
 |---|---|---|
-| 1 | **the one tree view, model root** (docs/diagrams/tree.md): boxes open and closed from `open:`, context's zones round it (`actor`, `external`), the About band from `about:`. **Fixes a seen regression**: a use of a model, entered, draws only its own children (views `block.ts` `layer_map`), so a use of a services pattern, now a model, shows nothing inside (syntax-plan.md *Seen, not fixed*) | *Build notes* below |
-| 2 | **build presentations** on it: the presentations file, state, player (open, camera, steps, pace), tray section and CLI | presentations.md *Building it* |
-| 3 | **the tools' build list**, with the translator writing the new syntax (syntax-plan.md step 4; brings back `samples/code` and `samples/mndsite`; could come before presentations if a translated model is wanted in the tree view): fact tools first (most exist in apps/ts `read.ts`), then diagram tools, CLI before MCP. Gives state, swimlane and entity each a use case, so each gets a tool (docs/diagrams/README.md *Kinds drawn by hand*). Decides what of *Build* passes 1–3 and translation-plan.md stays (`write.ts`'s one model per path, the walk, the *Shared* box were built under the dropped direction) | docs/tools/ |
-| 4 | the rest of *Open after the passes*; polish waits in backlog.md *After the mndsite review* | below |
+| 1 | **the user's look** at the overview, a presentation, the registry root and the records table | drive the shop, then `samples/code` |
+| 2 | **the layer engine** (*Build notes*, open rows): context's frame and zones in an entered view (the outside across a part's ports drawn round its frame), ELK with the frame a compound node and ports fixed by side and order, flow's lanes and lines back, sequence's frame over the head, origin dots and fragments, swimlane turned by the canvas, class and entity lines from a field's row | a rewrite of views `flow.ts` and `block.ts`; mockup first |
+| 3 | **`trace`**, the one fact tool not built: running a command on a sample and watching the files it touches | docs/tools/trace.md |
+| 4 | **compose mndsite's model with the tools**, once through the CLI and once through MCP (kept for that comparison, docs/tools/README.md) as mndsite-plan.md *Outcome* lists it: the overview, its presentations (*Build a site*, *Release*, *Edit and preview*, *Browse by facet*), the dataflow, mappings and class diagrams; the acceptance below | docs/tools/ |
+| 5 | **what of *Build* passes 1–3 and translation-plan.md stays**: the model walk is gone with the walk; the translator still writes one model per entry path | decide with the user |
 
-**Carry over**: presentations.md *Open* (where the pace setting is kept; how a shown diagram is left; data moving along a step's line); chip stamp (*Questions* 1), unblocked, to take up with the tree view. **Drive every depth after a navigation change** once code changes again. **The camera has one owner** (committed 4ea7e35; *Camera* below). **Mockups use the app's own faces** (docs/design/card.md, mockups/tray-lists.html), never an invented look.
+**Settled by the user (2026-11-15): every model draws as its kind.** A plain `model` draws as its tree (the overview); a model extending `context`, `state`, `swimlane` or any other kind draws as that kind (base `model.json` holds the tree placing, no longer the *is model* trait; core `holders.ts` `shape_of` gives a model its kind's shape).
+
+**Carry over**: **drive every depth after a navigation change**; **the camera has one owner** (web `camera.ts` `shot_of`, a stop's fit added); **mockups use the app's own faces** (docs/design/card.md, mockups/tray-lists.html).
 
 
 ### Build notes from the kinds pass
@@ -23,17 +37,17 @@ What the agreed kinds ask of the code, by home. Each is general; the kind's file
 
 | Home | Change | Kind |
 |---|---|---|
-| base kinds | **built 2026-11-15**: `context` replaces `internal` (view `internal` kept); the `treemap` kind retired; new `actor`, `external`, `dataflow`, `mapping` (*has records*) | context, tree, dataflow, mapping |
-| core | a port's `type` may name a data definition (`sources.ts` `interface_of`); a model's `open:`. **Built 2026-11-15**: a mapping's records, a dataflow's `datum` | dataflow, mapping, tree |
-| theme | a typed seat filled with its type's colour, semi-transparent, and outlined; a base seat hollow (design/card.md) | dataflow |
-| views and stage: layer | one frame-and-zones layout (bands, ELK layered with the frame a compound node, ports fixed by side and order) for context, flow, dataflow, state; flow's lanes, lines back, `[guard]` labels; dataflow's ranks and datum band | context, flow, dataflow, state |
-| views and stage: grid | sequence: participant order, the owner's frame over the head, origin dots, fragments for repeats and alternatives; swimlane turned by the canvas | sequence, swimlane |
-| views: records table | one generic records table: row accent by the definition named, groups by source with plain headings, links | mapping |
-| views and stage: types | class and entity: lines from the field's row (entity: row to row, crow's feet), owners first along the long side, named fields as links, worked-out foreign keys | class, entity |
-| views: tree | one tree view, three roots (world, model, registry); a chip a closed box; the registry's own treemap (`treemap.ts` `tiled`) retired into it | tree |
-| tools | diagram tools warn below the floor (3 steps, messages, states, rows, parts); `tree` renamed `overview` | all |
-| surface (syntax pass) | **built 2026-11-15** (syntax-plan.md): sequence `participants` and messages by the kind; swimlane `lanes`/`phases`; dataflow `datum`; mapping `records` as relations. Model `open:` comes with the tree view | sequence, swimlane, dataflow, mapping, tree |
-| samples | **done 2026-11-15**: samples/elements loses its treemap block and gains a dataflow and a mapping (`6-data`); Fulfilment writes `lanes`/`phases` | tree, swimlane |
+| base kinds | **built 2026-11-15**: `context` replaces `internal` (view `internal` kept); the `treemap` kind retired; new `actor`, `external`, `dataflow`, `mapping` (*has records*, view `records`) | context, tree, dataflow, mapping |
+| core | **built 2026-11-15**: a port's `type` may name a data definition (`sources.ts` `interface_of`); a model's `open:`, `about:`, `presentations:`; a mapping's records, a dataflow's `datum` | dataflow, mapping, tree |
+| theme | **built 2026-11-15**: a typed seat filled with its type's colour, semi-transparent, and outlined; a base seat hollow (`flow.css`) | dataflow |
+| views and stage: layer | **datum band built 2026-11-15** (views `block.ts` `banded`). Open: one frame-and-zones layout (bands, ELK layered with the frame a compound node, ports fixed by side and order) for context, flow, dataflow, state; flow's lanes, lines back, `[guard]` labels; dataflow's ranks | context, flow, dataflow, state |
+| views and stage: grid | open: sequence's participant order (the `sequence` tool writes it), the owner's frame over the head, origin dots, fragments for repeats and alternatives; swimlane turned by the canvas | sequence, swimlane |
+| views: records table | **built 2026-11-15**: one generic records table, any block with records (view `records`): row accent by the definition named, groups by source under plain headings, links (views `records.ts`, stage `nodes.tsx` `RecordsNode`). Open: groups folding past 12 rows | mapping |
+| views and stage: types | open: class and entity lines from the field's row (entity: row to row, crow's feet), owners first along the long side, named fields as links, worked-out foreign keys | class, entity |
+| views: tree | **built 2026-11-15**: one tree view, the model and definition roots (the world is the map); a chip a closed box. The component registries (tags, types) keep their own tiles (views `treemap.ts` `tiled`), as does a definition chip's preview on the library map | tree |
+| tools | **built 2026-11-15**: diagram tools warn below the floor (3 steps, messages, states, rows, parts); `tree` renamed `overview` | all |
+| surface (syntax pass) | **built 2026-11-15** (design.md *Diagram files*): sequence `participants` and messages by the kind; swimlane `lanes`/`phases`; dataflow `datum`; mapping `records` as relations; a model's `open:`, `about:`, `presentations:`; a named relation quoted reads as bare | sequence, swimlane, dataflow, mapping, tree |
+| samples | **done 2026-11-15**: samples/elements gains a dataflow and a mapping (`6-data`) and typed ports; Fulfilment writes `lanes`/`phases`; the shop's models carry presentations, About and `open:` | tree, swimlane |
 
 
 ## Goal
@@ -208,15 +222,9 @@ About walks, answered by presentations (presentations.md): offered from the over
 | **measures** | this repo's top layer 18 crossings landscape, 4 portrait; the shop's Shop layer 8; both as at `279534d` |
 
 
-## Questions
-
-| # | Question | Options, leaning first |
-|---|---|---|
-| 1 | **how a diagram chip stands out** (unblocked 2026-11-15: take up with the tree view; a chip is a closed box) | a per-kind stamp in the head (the kind's icon in a filled badge of its hue) / the kind's icon large and faint behind the tiles / a header band in the kind's hue / tiles alone, as now |
-
-
 ## Questions answered
 
+- **how a diagram chip stands out** (2026-11-15): a per-kind stamp in the head, the kind's icon in a filled badge of its hue; built with the tree view
 - **flows from code** (answered by the review): a flow is a chain from `calls` or `workflows` cut into sub flows (docs/tools/flow.md); following one datum is a dataflow; ordered messages a sequence
 
 
@@ -230,7 +238,8 @@ About walks, answered by presentations (presentations.md): offered from the over
 
 ## Commands
 
-- **regenerate**: `npm run samples`; `npm run code` (this repo → `samples/code.json`); mndsite by hand: `cd apps/ts && npx vite-node src/main.ts ../../../mndsite ../../samples/mndsite`, then `npm run start -s -w @mnd/cli -- collect ../../samples/mndsite ../../samples/mndsite.json --workspace`; `check` each. `npm run base` after a base kind change, `npm run packages` after a `ts` kind change
+- **regenerate**: `npm run samples` (base kinds: `npm run base` first); `npm run code` (this repo → `samples/code.json`); mndsite by hand: `cd apps/ts && npx vite-node src/main.ts ../../../mndsite ../../samples/mndsite`, then `npm run start -s -w @mnd/cli -- collect ../../samples/mndsite ../../samples/mndsite.json --workspace`; `check` each. `npm run base` after a base kind change, `npm run packages` after a `ts` kind change
 - **measure**: `npm run start -s -w @mnd/cli -- measure ../../samples/<name>.json [layer]`; entered diagrams only, not the map
+- **tools**: `npm run start -s -w @mnd/cli -- fact <name> <project>`, `-- draw <kind> <selection.json> [out]`, `-- presentation <list|draft|check> <model.yaml>`; MCP `npm run mcp -w @mnd/cli`
 - **see it**: a Playwright script (Edge, `channel: "msedge"`) starting Vite from `apps/web/vite.config.ts`, routing `**/mndflow.yaml` to `workspace: /samples/<name>.json` (`tray: open`); pick or enter a node by id (`.react-flow__node[data-id="…"]`), never by text. In Git Bash set `MSYS_NO_PATHCONV=1`
 

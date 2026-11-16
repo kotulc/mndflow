@@ -398,7 +398,60 @@ function MapBox({ id, data }: NodeProps<BoxNode>) {
                   panel={data.marks.includes("group")}
                   {...(data.marks.includes("major") ? { rank: "major" as const }
                     : data.marks.includes("minor") ? { rank: "minor" as const } : {})}
+                  {...(data.toggle ? { toggle: data.toggle } : {})}
                   picked={!!selected} />;
+}
+
+/** **A records table** (views `records.ts`, docs/diagrams/mapping.md): the app's table look, a
+ *  rule under every row; reads → writes, then what to know; each row's left accent the colour of
+ *  the definition it reads from; rows grouped by that source under a plain heading. A name that
+ *  opens a definition picks it (`data-about`). */
+function RecordsNode({ data }: NodeProps<BoxNode>) {
+  const table = data.records;
+  if (!table) return null;
+  const cell = (c: { text: string; def?: string }) => (c.def
+    ? <button type="button" className="mnd-records-link" data-about={c.def}>{c.text}</button>
+    : <span>{c.text}</span>);
+  return (
+    <div className="mnd-records">
+      <div className="mnd-records-row head">
+        {table.columns.map((c) => <span key={c}>{c}</span>)}
+      </div>
+      {table.groups.map((g) => (
+        <div key={g.source} className="mnd-records-group">
+          <div className="mnd-records-heading">{g.source}</div>
+          {g.rows.map((r, i) => (
+            <div key={i} className="mnd-records-row" data-family={r.tint?.["data-family"]}
+                 style={(r.tint?.style ?? {}) as CSSProperties}>
+              {r.cells.map((c, j) => <span key={j} className="cell">{cell(c)}</span>)}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** **A model's About band** (views `overview.ts`): past a dashed divider, its groups side by side,
+ *  each a heading over plain notes — never a box, never lit or dimmed. A presentation's note
+ *  plays it; any other picks what it names (stage `Stage.tsx`, `data-play`, `data-about`). */
+function AboutNode({ data }: NodeProps<BoxNode>) {
+  return (
+    <div className="mnd-about">
+      {(data.about ?? []).map((g) => (
+        <div key={g.name} className="mnd-about-group">
+          <span className="mnd-about-name">{g.name}</span>
+          {g.items.map((item) => item.play !== undefined ? (
+            <button key={item.id} type="button" className="mnd-about-item play"
+                    data-play={item.play} title={`play ${item.label}`}>▶ {item.label}</button>
+          ) : (
+            <button key={item.id} type="button" className="mnd-about-item"
+                    data-about={item.id}>{item.label}</button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /** A map's chip, **its card at map scale** (views `map.ts`): its name's line — the name, then
@@ -462,4 +515,6 @@ export const NODE_TYPES = {
   tile: Tile,
   box: Box,
   chip: Chip,
+  about: memo(AboutNode),
+  records: memo(RecordsNode),
 } as const;

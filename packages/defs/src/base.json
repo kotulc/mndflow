@@ -471,6 +471,7 @@
             "hue": 45
           },
           "diagram": {
+            "view": "records",
             "file": {
               "records": {
                 "ends": [
@@ -514,6 +515,10 @@
         "settings": {
           "style": {
             "hue": 265
+          },
+          "diagram": {
+            "view": "internal",
+            "placing": "treemap"
           }
         },
         "traits": [

@@ -8,6 +8,7 @@ export * from "./components";
 export * from "./fold";
 export * from "./defs";
 export * from "./tree";
+export * from "./present";
 export { forget } from "./memo";
 export * from "./navigate";
 export * from "./sections";

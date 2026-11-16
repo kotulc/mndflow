@@ -48,7 +48,20 @@ export type Entry = {
   ports?: PortEntry[];
   /** What it stands for is a definition, looked for among definitions alone (`FileSpec`). */
   defs?: boolean;
+  /** A model's overview, as its file says it: boxes open, About's groups, presentations. */
+  open?: string[];
+  about?: { name: string; items?: string[] }[];
+  presentations?: PresentationSaid[];
 };
+
+/** A presentation as a file says it: names where the graph holds ids (types `Presentation`). */
+export type PresentationSaid = { name: string; description?: string; pace?: number;
+                                 stops: StopSaid[] };
+
+/** A stop as a file says it; a step's `relation` is written as in `relations:`, `A -> B`. */
+export type StopSaid = { title: string; at: string; summary: string; open?: string[];
+                         fit?: string[]; show?: string; into?: string; pace?: number;
+                         steps: { text: string; relation?: string; mark?: string }[] };
 
 /** A port as a file states it: its name, and its interface definition by name. */
 export type PortEntry = { name: string; type?: string; description?: string; flow?: string;
@@ -249,7 +262,59 @@ function entry(map: Map, ends?: readonly string[]): Entry {
     e.records = (map["records"] as unknown[]).map((r) => record_of(r, ends));
   }
   set("cell", cell_of(map["cell"]));
+  if ("open" in map) e.open = names_in(map["open"]);
+  if ("about" in map) e.about = listed(map["about"], "about").map(about_of);
+  if ("presentations" in map) {
+    e.presentations = listed(map["presentations"], "presentations").map(presentation_of);
+  }
   return e;
+}
+
+/** One group of About: a name, or a name and the items it lists. */
+function about_of(item: unknown): { name: string; items?: string[] } {
+  if (typeof item === "string") return { name: item.trim() };
+  const map = item as Map;
+  if (!map || typeof map !== "object" || typeof map["name"] !== "string") {
+    throw new Error(`an about group is a name, or a name and items: ${said_as(item)}`);
+  }
+  return { name: map["name"].trim(), ...("items" in map ? { items: names_in(map["items"]) } : {}) };
+}
+
+/** One presentation: a name, its stops in order, and what it says of its pace. */
+function presentation_of(item: unknown): PresentationSaid {
+  const map = item as Map;
+  if (!map || typeof map !== "object" || typeof map["name"] !== "string") {
+    throw new Error(`a presentation is a map with a name and stops: ${said_as(item)}`);
+  }
+  const pace = typeof map["pace"] === "number" ? { pace: map["pace"] } : {};
+  const description = typeof map["description"] === "string"
+    ? { description: map["description"].trim() } : {};
+  return { name: map["name"].trim(), ...description, ...pace,
+           stops: listed(map["stops"], "stops").map((s) => stop_of(s, map["name"] as string)) };
+}
+
+/** One stop: its title, the block it is about, its summary, and its steps. */
+function stop_of(item: unknown, of: string): StopSaid {
+  const map = item as Map;
+  const word = (key: string) => (typeof map?.[key] === "string" ? (map[key] as string).trim() : "");
+  if (!map || typeof map !== "object" || !word("title") || !word("at") || !word("summary")) {
+    throw new Error(`a stop of ${of} says title, at and summary: ${said_as(item)}`);
+  }
+  const steps = listed(map["steps"], "steps").map((x) => {
+    const step = x as Map;
+    if (!step || typeof step !== "object" || typeof step["text"] !== "string") {
+      throw new Error(`a step of ${word("title")} says its text: ${said_as(x)}`);
+    }
+    return { text: step["text"].trim(),
+             ...(typeof step["relation"] === "string" ? { relation: step["relation"].trim() } : {}),
+             ...(typeof step["mark"] === "string" ? { mark: step["mark"].trim() } : {}) };
+  });
+  const names = (key: string) => (key in map ? { [key]: names_in(map[key]) } : {});
+  return { title: word("title"), at: word("at"), summary: word("summary"), steps,
+           ...names("open"), ...names("fit"),
+           ...(word("show") ? { show: word("show") } : {}),
+           ...(word("into") ? { into: word("into") } : {}),
+           ...(typeof map["pace"] === "number" ? { pace: map["pace"] } : {}) };
 }
 
 /** One record: a map of answers by name, or — where its kind names the answers an arrow fills
@@ -313,10 +378,15 @@ function cell_of(value: unknown): Entry["cell"] {
   return undefined;
 }
 
-/** The edges one item of `relations` says: `A -> B`, `A -> B: name`, `type: [edges]`, or the
- *  long form (it says `from`). */
+/** The edges one item of `relations` says: `A -> B`, `A -> B: name` (bare or quoted),
+ *  `type: [edges]`, or the long form (it says `from`). */
 function edges(item: unknown): Edge[] {
-  if (typeof item === "string") return [edge_of(item)];
+  /** `A -> B: name` quoted reads as it does bare: the name after the second end's `: `. */
+  if (typeof item === "string") {
+    const [word, ...said] = item.split(": ");
+    const name = said.join(": ").trim();
+    return [{ ...edge_of(word!), ...(name ? { name } : {}) }];
+  }
   if (!item || typeof item !== "object" || Array.isArray(item)) {
     throw new Error(`a relation is an edge or a map: ${said_as(item)}`);
   }
@@ -345,7 +415,7 @@ function edges(item: unknown): Edge[] {
 }
 
 /** `A -> B`: its two ends and the way its arrow points. */
-function edge_of(word: string): Edge {
+export function edge_of(word: string): Edge {
   for (const [arrow, dir] of ARROWS) {
     const at = word.indexOf(arrow);
     if (at < 0) continue;

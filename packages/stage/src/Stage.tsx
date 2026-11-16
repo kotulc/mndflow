@@ -13,6 +13,7 @@ import { cell_key } from "./nodes";
 import { Icon } from "@mnd/theme";
 import { area_under, boxed_place, box_of, clear_of, holds, swept_cells, towards, BLOCK, CELL,
          type Scene } from "@mnd/views";
+import type { Trace } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
 import { Hover } from "./Hover";
 import { path_rules, usePath } from "./path";
@@ -77,7 +78,18 @@ export type StageProps = {
   /** **Whether the drawing may be edited**: a map or a registry may not, so no menu, key,
    *  rename, drop or line drawing edits through it. Picking and reading still work. */
   editable?: boolean;
+  /** **A presentation's stop** (docs/presentations.md): the block ringed, what stays undimmed —
+   *  none dims where it is empty — and on a map its steps' legs, else the lines they light. */
+  showing?: Showing | null;
+  /** A box of a model's overview opened or closed by its toggle, by the node it is on. */
+  onToggle?: (id: string) => void;
+  /** A presentation in a model's About band played, by its place in the model's list. */
+  onPlay?: (at: number) => void;
 };
+
+/** What a stop shows: rings, what stays clear, its steps' legs on a map and its lines elsewhere. */
+export type Showing = { ring: readonly string[]; keep: readonly string[];
+                        lines: readonly string[]; steps: Trace | null };
 
 
 /** What a card's menu lists besides the shared box actions: open only where it has a drawing of
@@ -199,7 +211,8 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
                        menu, said, onSaid, head, empty, lattice, frame, legend, corner, module,
                        dir, type, lit = [], touched = [], shot, onLand, entered = false,
-                       keys = true, editable = true, walk = null, onClear }: StageProps) {
+                       keys = true, editable = true, walk = null, onClear, showing = null,
+                       onToggle, onPlay }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
                     ...(type ? { type } : {}) };
@@ -212,6 +225,35 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   useEffect(() => set_typing(null), [scene.layer]);
   /** The stage itself, which a map's hover card watches. */
   const host = useRef<HTMLElement>(null);
+  /** **A box's toggle and About's notes answer first**, before the node they sit on is picked:
+   *  a toggle opens or closes its box, a presentation plays, any other note picks what it names. */
+  useEffect(() => {
+    const el = host.current;
+    if (!el) return;
+    const control = (t: EventTarget | null) => (t instanceof Element
+      ? t.closest<HTMLElement>("[data-toggle], [data-play], [data-about]") : null);
+    const press = (e: Event) => { if (control(e.target)) e.stopPropagation(); };
+    const click = (e: MouseEvent) => {
+      const at = control(e.target);
+      if (!at) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const node = at.closest<HTMLElement>(".react-flow__node")?.dataset["id"];
+      if (at.dataset["toggle"] && node) onToggle?.(node);
+      else if (at.dataset["play"] !== undefined) onPlay?.(Number(at.dataset["play"]));
+      else if (at.dataset["about"]) onPick([at.dataset["about"]]);
+    };
+    el.addEventListener("pointerdown", press, true);
+    el.addEventListener("mousedown", press, true);
+    el.addEventListener("dblclick", press, true);
+    el.addEventListener("click", click, true);
+    return () => {
+      el.removeEventListener("pointerdown", press, true);
+      el.removeEventListener("mousedown", press, true);
+      el.removeEventListener("dblclick", press, true);
+      el.removeEventListener("click", click, true);
+    };
+  }, [onToggle, onPlay, onPick]);
   /** Letting go of the pick: the host's, else none picked. */
   const clear = () => (onClear ? onClear() : onPick([]));
   /** What the card hovered or picked reaches a hop each way, or the step walked, lit over the
@@ -419,7 +461,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   };
 
   return (
-    <section className={path ? "stage pathing" : "stage"} ref={host}>
+    <section className={path || showing?.keep.length ? "stage pathing" : "stage"} ref={host}>
       <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
       {walk && !walk.outside ? <Walk walk={walk} /> : null}
       {empty ? <p className="empty">{empty}</p> : null}
@@ -427,11 +469,16 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
           is hovered, other appearances and what the selection touches. */}
       {!scene.areas && lit.length ? <style>{lit_rules(lit)}</style> : null}
       {path ? <style>{path_rules(path)}</style> : null}
+      {showing?.keep.length ? <style>{path_rules({ blocks: [...showing.keep],
+                                                    lines: [...showing.lines] })}</style> : null}
+      {showing?.ring.length ? <style>{lit_rules(showing.ring)}</style> : null}
+      {showing?.lines.length ? <style>{lit_rules(showing.lines)}</style> : null}
       {!scene.areas && touched.length
         ? <style>{lit_rules(touched, "var(--s-secondary-edge)")}</style> : null}
       <FlowView
         scene={scene}
         trace={path && "legs" in path ? path : null}
+        steps={showing?.steps ?? null}
         picked={picked}
         stands_for={stands_for}
         cells={cells}

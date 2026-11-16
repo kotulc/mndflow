@@ -1,0 +1,20 @@
+{
+  "name": "Collect handoff",
+  "owner": "cli",
+  "description": "A source folder from disk to the canvas: who does what, in which phase.",
+  "lanes": ["cli", "core", "web"],
+  "phases": ["Read", "Check", "Draw"],
+  "blocks": [
+    { "name": "Gather files", "cell": ["Read", "cli"] },
+    { "name": "Collect", "cell": ["Read", "core"] },
+    { "name": "Door", "cell": ["Check", "core"] },
+    { "name": "Fold", "cell": ["Draw", "core"] },
+    { "name": "Project", "cell": ["Draw", "web"] }
+  ],
+  "relations": [
+    "Gather files -> Collect: leaves",
+    "Collect -> Door: package file",
+    "Door -> Fold: log",
+    "Fold -> Project: graph"
+  ]
+}

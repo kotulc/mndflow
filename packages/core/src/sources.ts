@@ -19,18 +19,20 @@ import { parseAllDocuments } from "yaml";
 import { read_card } from "./card";
 import { block_base, def_at, dir_of, has_trait, is_notation, package_of, setting_of,
          traits_of } from "./defs";
-import { long_form, type Edge, type Entry, type FileSpec, type LongForm } from "./diagram";
+import { edge_of, long_form, type Edge, type Entry, type FileSpec,
+         type LongForm } from "./diagram";
 import { renamed, write } from "./file";
 import { holders_in, is_grid, is_group, layer_of } from "./holders";
 import { all_constraints, all_interfaces, all_tags, all_types, is_form,
          library_map } from "./library";
 import { component_hits, def_hits, def_ref, fits_domain, is_path, package_named, path_to, STEP,
          steps_of } from "./refs";
-import { children, is_reference, ports_on } from "./tree";
+import { presentations_of } from "./present";
+import { children, is_reference, ports_on, subtree } from "./tree";
 import type { Leaf } from "./ports";
-import { BASE_PACKAGE, FORMS, type Attribute, type Block, type Components, type Constraint, type Flow,
+import { BASE_PACKAGE, FORMS, type AboutGroup, type Attribute, type Block, type Components, type Constraint, type Flow,
          type Form, type Graph,
-         type Id, type Interface, type Relation, type Side, type Tag, type Type,
+         type Id, type Interface, type Presentation, type Relation, type Side, type Tag, type Type,
          type Value } from "./types";
 import { forget } from "./memo";
 
@@ -251,6 +253,19 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
       const port = e.port ? graph.blocks[to]?.ports?.find((p) => p.name === e.port) : undefined;
       graph.edges[id] = { id, from: r.ids[i]!, to, ...(port ? { toPort: port.id } : {}),
                           type: "tie", alias: alias("relation") };
+    }
+  }
+  /** A model's overview is read once every block and line is: its names may be anywhere in it. */
+  for (const r of own) overview(ctx_of(r), r.id, r.form.top);
+  /** A stop's `into` names a presentation of the model its block uses, read by now. */
+  for (const r of own) {
+    for (const p of graph.blocks[r.id]?.presentations ?? []) {
+      for (const s of p.stops) {
+        if (s.into && !presentations_of(graph, s.at).some((x) => x.name === s.into)) {
+          notes.push(`${r.path}: ${p.name} / ${s.title} leads into ${s.into}, `
+            + "no presentation of the model its block uses");
+        }
+      }
     }
   }
   if (root) graph.blocks[slug]!.counters = counters;
@@ -581,7 +596,7 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
   if (e.name.includes(STEP) && !is_notation(graph, id)) {
     ctx.notes.push(`${ctx.file.path}: "${e.name}" holds a "${STEP}", so no path can name it`);
   }
-  /** A port's interface definition, by name. */
+  /** A port's interface definition, or the data definition it carries, by name. */
   for (const [i, p] of (e.ports ?? []).entries()) {
     const carried = p.type ? interface_of(ctx, p.type) : undefined;
     if (carried && b.ports?.[i]) b.ports[i]!.type = carried;
@@ -626,6 +641,60 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
   }
   if (b.settings) b.settings = ided(ctx, b.settings);
   return type;
+}
+
+/** **A model's overview as its file says it** (docs/presentations.md): the boxes open, About's
+ *  groups and its presentations, each name read as a block in reach of the file, a step's
+ *  relation as a line the model or the diagram its stop shows draws. What names nothing is said. */
+function overview(ctx: Ctx, id: Id, e: Entry): void {
+  const b = ctx.graph.blocks[id]!;
+  const said = (what: string) => ctx.notes.push(`${ctx.file.path}: ${what}`);
+  const block = (word: string, where: string) => {
+    const hit = ref(ctx, word, false);
+    if (!hit) said(`${where} names ${word}, which is not here`);
+    return hit;
+  };
+  const blocks = (words: readonly string[] | undefined, where: string) =>
+    (words ?? []).flatMap((w) => block(w, where) ?? []);
+  if (e.open) b.open = blocks(e.open, "open");
+  const named = new Set((e.presentations ?? []).map((p) => p.name));
+  if (e.about) {
+    b.about = e.about.map((g): AboutGroup => ({ name: g.name, ...(g.items ? { items:
+      g.items.flatMap((w) => (named.has(w) ? [w] : ref(ctx, w, true) ?? (said(
+        `about ${g.name} names ${w}, no block, definition or presentation`), []))) } : {}) }));
+  }
+  if (!e.presentations) return;
+  b.presentations = e.presentations.map((p): Presentation => ({
+    name: p.name, ...(p.description ? { description: p.description } : {}),
+    ...(p.pace !== undefined ? { pace: p.pace } : {}),
+    stops: p.stops.map((s) => {
+      const where = `${p.name} / ${s.title}`;
+      const at = block(s.at, where) ?? id;
+      const show = s.show ? block(s.show, where) : undefined;
+      /** A step's line: one the model has, or the shown diagram draws, between its two ends. */
+      const within = new Set(subtree(ctx.graph, show ?? id));
+      const line = (word: string) => {
+        let ends;
+        try { ends = edge_of(word); } catch { said(`${where}: ${word} is no relation`); return; }
+        const [from, to] = [end_of(ctx, ends.from), end_of(ctx, ends.to)];
+        const hit = from && to ? Object.values(ctx.graph.edges).find((x) => x.from === from.at
+          && x.to === to.at && (!from.part || x.fromPort === from.part)
+          && (!to.part || x.toPort === to.part) && within.has(x.from)) : undefined;
+        if (!hit) said(`${where}: ${word} is no relation the model has; add it first`);
+        return hit?.id;
+      };
+      const steps = s.steps.map((x) => ({ text: x.text,
+        ...(x.relation ? { relation: line(x.relation) } : {}),
+        ...(x.mark ? { mark: block(x.mark, where) } : {}) }))
+        .filter((x) => !("relation" in x && !x.relation) && !("mark" in x && !x.mark));
+      return { title: s.title, at, summary: s.summary,
+               ...(s.open ? { open: blocks(s.open, where) } : {}),
+               ...(s.fit ? { fit: blocks(s.fit, where) } : {}),
+               ...(show ? { show } : {}), ...(s.into ? { into: s.into } : {}),
+               ...(s.pace !== undefined ? { pace: s.pace } : {}),
+               ...(steps.length ? { steps } : {}) };
+    }),
+  }));
 }
 
 /** What a definition extends: any definition of that name, of any kind, else a plain one made;
@@ -955,6 +1024,9 @@ function interface_of(ctx: Ctx, word: string): Id | undefined {
   const said = word.trim();
   const hit = in_scope(ctx, all_interfaces(ctx.graph), said);
   if (hit !== undefined) return hit ?? undefined;
+  /** **A port may carry a data definition** (docs/diagrams/dataflow.md): what flows through it. */
+  const data = def_ref(ctx.graph, spelled(ctx.aliases, said), scope(ctx));
+  if (data) return data;
   library(ctx.graph, ctx.slug, ctx.pre, { interfaces: [{ name: said }] });
   return interface_id(ctx.pre, said);
 }

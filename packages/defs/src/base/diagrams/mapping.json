@@ -15,6 +15,7 @@
       "hue": 45
     },
     "diagram": {
+      "view": "records",
       "file": {
         "records": {
           "ends": [

@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { appearances_of, collect, drop_of, touches_of,
-         held_at, in_section, is_inside, is_layer_view, is_model, lit as lit_by,
-         model_path, object_of, path, path_of, path_owner, sub_model, registry_at,
+         held_at, in_section, is_inside, is_layer_view, lit as lit_by,
+         object_of, path, path_of, path_owner, presentations_of, registry_at, used_model,
          registry_id, registry_of,
          seen_through, session, shown_name, trace, way_of, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Hop, type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { area_of, boxed_place, box_of, clear_of, empty_of, holds, layer_scene, map_focus, project,
-         section_map, set_aspect, set_card as apply_card, BLOCK, CARD, EMPTY,
+         opened, section_map, set_aspect, set_card as apply_card, BLOCK, CARD, EMPTY,
          laid_ahead, model_tree, on_map, row_look, UNITS, trail_of, type Area,
          type Scene } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
@@ -18,6 +18,7 @@ import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
 import { Stage, still, type Move, type Shot } from "@mnd/stage";
 import { Tray, useDisplay, useTray, type Offered } from "@mnd/tray";
 import { shot_of, type Camera } from "./camera";
+import { fit_of, showing_of, usePresent } from "./present";
 import { browser_files, browser_net } from "./ports";
 
 /** The three looks, each with the mark it wears. */
@@ -138,7 +139,7 @@ export function App({ storage, boot, opening }: {
   /** What the map is gone to: the layer looked into, else the pick on the whole map. */
   const focus_id = is_layer_view(view.kind) ? view.layer : view.pick;
   /** Counted up by every open, entry and leaving, so going to the focus again flies back to it. */
-  const [opened, set_opened] = useState(0);
+  const [opened_n, set_opened] = useState(0);
   /** **The block entered from the map**: its own view, drawn alone, held while the open layer is
    *  it or inside it. Opening anything above it returns to the map, as Escape does. */
   const [entry, set_entry] = useState<Id | null>(null);
@@ -157,16 +158,28 @@ export function App({ storage, boot, opening }: {
    *  it as a chip, for that going's count only. */
   const [left, set_left] = useState<{ layer: Id; seq: number } | null>(null);
 
+  /** **A model's overview opens and closes by hand** (docs/diagrams/tree.md): the boxes open on
+   *  each layer, once a toggle is used; a presentation's stop sets its own, a dive adds one. */
+  const [opens, set_opens] = useState<Record<Id, Id[]>>({});
+  const present = usePresent(graph, view.layer);
+  const model = view.layer && graph.blocks[view.layer] ? used_model(graph, view.layer) : null;
+  const open = useMemo((): Id[] | undefined => {
+    if (!model || !view.layer) return undefined;
+    const base = present.open ?? opens[view.layer] ?? opened(graph, view.layer, model);
+    return present.diving ? [...base, present.diving] : base;
+  }, [graph, model, view.layer, present.open, present.diving, opens]);
+
   /** **A layer laid out ahead answers later** (ELK, in its worker): whatever was drawn last — the
    *  map, another layer, this one before an edit — stays, read only, until it answers. One being
    *  entered is laid while the camera flies into its chip. */
   const ahead = (!mapped || !!entering) && !!view.layer && laid_ahead(view.kind);
-  const shape = [view.layer, view.kind, lists, shown.interfaces].join("|");
+  const shape = [view.layer, view.kind, lists, shown.interfaces, open?.join(",")].join("|");
   const [laid, set_laid] = useState<{ shape: string; scene: Scene } | null>(null);
   useEffect(() => {
     if (!ahead) return;
     let live = true;
     void layer_scene(graph, view.layer!, view.kind, { interfaces: shown.interfaces,
+                                                      ...(open ? { open } : {}),
                                                       ...(lists ? { lists } : {}) })
       .then((next) => { if (live) set_laid({ shape, scene: next }); });
     return () => { live = false; };
@@ -179,11 +192,11 @@ export function App({ storage, boot, opening }: {
   const own = useMemo((): Scene | null => {
     if (mapped && !entering) return null;
     if (ahead) return waiting ? null : laid!.scene;
-    return project(graph, view.layer, { interfaces: shown.interfaces,
+    return project(graph, view.layer, { interfaces: shown.interfaces, ...(open ? { open } : {}),
                                         look: { kind: view.kind, cut: SLICES[view.at]!.cut,
                                                 ...(lists ? { lists } : {}) } });
   }, [graph, mapped, entering, ahead, waiting, laid, view.layer, view.kind, view.at,
-      shown.interfaces, card]);
+      shown.interfaces, card, open]);
   /** Projected once per graph, view, layer or proportion change; a treemap being flown through
    *  held as it was. */
   const scene = useMemo((): Scene => {
@@ -239,44 +252,31 @@ export function App({ storage, boot, opening }: {
     .map((x) => ({ from: x.from, to: x.to, names: x.name ? [x.name] : [] })), [graph, owner]);
   const [walk_at, set_walk_at] = useState<number | null>(null);
   useEffect(() => set_walk_at(null), [owner]);
-  /** **A model walked** (2026-11-08): entering a model with a path puts it on the stack the
-   *  tray's overview draws; *into* pushes the sub model a step reaches, *out* pops back to the step it was
-   *  entered from. Entering one not on the stack starts it afresh. */
-  const [frames, set_frames] = useState<{ model: Id; at: number | null }[]>([]);
-  const at_model = layer && is_model(graph, layer) && model_path(graph, layer).length
-    ? layer : null;
-  useEffect(() => set_frames((f) => {
-    if (!at_model) return [];
-    const i = f.findIndex((x) => x.model === at_model);
-    return i >= 0 ? f.slice(0, i + 1) : [{ model: at_model, at: null }];
-  }), [at_model]);
-  const told = frames[frames.length - 1]?.model === at_model ? frames[frames.length - 1]! : null;
-  const story = useMemo(() => (told ? model_path(graph, told.model) : []), [graph, told?.model]);
-  const step_to = (at: number | null) =>
-    set_frames((f) => f.map((x, i) => (i === f.length - 1 ? { ...x, at } : x)));
-  /** Back to the frame at `depth`, re-entering its model. */
-  const back_to = (depth: number) => {
-    const f = frames[depth];
-    if (!f) return;
-    set_frames(frames.slice(0, depth + 1));
-    act("read", { id: f.model, at: view.at });
-  };
+  const walked = walk_at === null ? null : steps[walk_at] ?? null;
   const hop_said = (h: Hop) => {
     const [from, to] = [shown_name(graph, h.from), shown_name(graph, h.to)];
     const names = h.names.filter((n) => n !== to);
     return `${from} calls ${to}${names.length ? `: ${names.join(", ")}` : ""}`;
   };
-  const walked = told ? (told.at === null ? null : story[told.at] ?? null)
-    : walk_at === null ? null : steps[walk_at] ?? null;
-  /** **The step read** in the tray: the hop's ends, what crosses it, the sub model its far end
-   *  is, and what comes next. */
-  const step_read = told && walked ? {
-    at: told.at!, of: story.length, from: shown_name(graph, walked.from),
-    to: shown_name(graph, walked.to), carries: walked.names, next: story[told.at! + 1] ? hop_said(story[told.at! + 1]!) : null,
-    into: sub_model(graph, walked.to) ? shown_name(graph, sub_model(graph, walked.to)!) : null,
-  } : null;
-  const walk = told ? { steps: story, at: told.at, onStep: step_to, said: hop_said, outside: true }
-    : steps.length ? { steps, at: walk_at, onStep: set_walk_at, said: hop_said } : null;
+  const walk = steps.length ? { steps, at: walk_at, onStep: set_walk_at, said: hop_said } : null;
+
+  /** **A stop's drawing**: the diagram it shows, else the overview it plays on, read when it is
+   *  not the one open. */
+  useEffect(() => {
+    if (present.on && present.on !== view.layer && graph.blocks[present.on]) {
+      act("read", { id: present.on });
+    }
+  }, [present.on]);
+  const showing = useMemo(() => showing_of(graph, view.layer, scene, present),
+                          [graph, view.layer, scene, present.play, present.stop]);
+  const fit = useMemo(() => fit_of(graph, view.layer, present),
+                      [graph, view.layer, present.play, present.stop]);
+  /** A box of the overview opened or closed by its toggle, kept for this layer. */
+  const toggle = (id: Id) => {
+    if (!view.layer || !open) return;
+    set_opens((o) => ({ ...o, [view.layer!]: open.includes(id) ? open.filter((x) => x !== id)
+      : [...open, id] }));
+  };
 
   /** **Which camera a drawing has**: a map; a treemap diagram, as an entered model is; read down
    *  the page — a whole section or a diagram; entered and fitted; any other layer whole; or, while
@@ -287,13 +287,13 @@ export function App({ storage, boot, opening }: {
   /** **Where the camera looks** (`camera.ts`): one shot from where the app is. A whole section's
    *  page follows its own pick. */
   const shot = useMemo(() => shot_of({
-    graph, scene, seq: opened, map, focus: focus_id, one, walked, as,
+    graph, scene, seq: opened_n, map, focus: focus_id, one, walked, as, fit,
     reveal: as === "page" && system ? view.pick : aim,
-    left: left?.seq === opened && scene.areas ? area_of(graph, scene, left.layer) : null,
+    left: left?.seq === opened_n && scene.areas ? area_of(graph, scene, left.layer) : null,
     into: entering ? { area: entering.area, scene: own,
                               as: own ? camera_of(own, false) : "held" } : null,
-  }), [graph, scene, opened, map, focus_id, one, walked, as, entered, entering, own, system,
-       view.pick, whole, diagram, aim, left]);
+  }), [graph, scene, opened_n, map, focus_id, one, walked, as, entered, entering, own, system,
+       view.pick, whole, diagram, aim, left, fit]);
   /** **The entered view takes over where the camera lands** in the chip it flew into. */
   const landed = (at: Shot) => {
     if (!at.into || !entering) return;
@@ -350,7 +350,7 @@ export function App({ storage, boot, opening }: {
   /** **Going up**: the camera flies out of the chip left, set where the view stood, wherever
    *  the drawing gone to draws it as one. */
   const went_up = (from: Id | null) => {
-    if (from) set_left({ layer: from, seq: opened + 1 });
+    if (from) set_left({ layer: from, seq: opened_n + 1 });
     set_opened((n) => n + 1);
   };
 
@@ -639,6 +639,9 @@ export function App({ storage, boot, opening }: {
           }}
           picked={subject}
           walk={walk}
+          showing={showing}
+          onToggle={toggle}
+          onPlay={present.start}
           cells={s.cells()}
           onPickCells={(cells) => {
             /** A click lets go of what the canvas cannot show. */
@@ -661,7 +664,9 @@ export function App({ storage, boot, opening }: {
             const shown = s.picked().filter((id) => drawn.has(id));
             const echo = shown.length < s.picked().length && ids.length === shown.length
               && ids.every((id) => shown.includes(id));
-            if (!echo) pick(ids, !!scene.areas);
+            if (!echo && present.play && ids.length === 1 && scene.areas
+                && graph.blocks[ids[0]!]) present.dive(ids[0]!);
+            else if (!echo) pick(ids, !!scene.areas);
           }}
           onAct={act}
           /** A whole section, a definition drawn with what describes it, or a diagram, is not
@@ -694,22 +699,19 @@ export function App({ storage, boot, opening }: {
           offered={offered}
           display={display}
           onAct={chrome}
-          walk={told ? {
-            frames: frames.map((f) => ({
-              model: shown_name(graph, f.model), at: f.at,
-              steps: model_path(graph, f.model).map((h) => ({
-                to: shown_name(graph, h.to), from: shown_name(graph, h.from),
-                tint: row_look(graph, h.to).tint, into: !!sub_model(graph, h.to) })) })),
-            step: step_read,
-            onStep: step_to,
-            onInto: () => {
-              const sub = walked ? sub_model(graph, walked.to) : null;
-              if (!sub) return;
-              set_frames([...frames, { model: sub, at: null }]);
-              act("read", { id: sub, at: view.at });
-            },
-            onOut: () => back_to(frames.length - 2),
-            onFrame: back_to,
+          presenting={present.play && present.presentation && present.stop ? {
+            name: present.presentation.name, stop: present.play.stop,
+            stops: present.presentation.stops.map((x) => x.title),
+            title: present.stop.title, summary: present.stop.summary,
+            steps: (present.stop.steps ?? []).map((x) => x.text), shown: present.play.shown,
+            pace: present.pace, into: !!present.stop.into, out: present.play.stack.length > 0,
+            dive: present.play.dive ? shown_name(graph, present.play.dive) : null,
+            onNext: present.next, onPrev: present.prev, onGo: present.go,
+            onReplay: present.replay, onInto: present.into, onOut: present.out,
+            onResume: present.resume, onStop: present.stop_playing, onPace: present.set_pace,
+          } : model && view.layer ? {
+            name: null, offered: presentations_of(graph, model).map((x) => x.name),
+            onStart: present.start,
           } : null}
         />
       </main>

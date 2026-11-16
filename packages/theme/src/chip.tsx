@@ -39,6 +39,10 @@ export type ChipData = {
   bar?: readonly { n: number; tint: Tint }[];
   /** A *+n more* chip's chips, which its hover card lists. */
   folded?: readonly string[];
+  /** A diagram chip's kind: its icon in a filled badge of its hue (2026-11-15). */
+  stamp?: string;
+  /** A box of a model's overview, closed here: a click on its toggle opens it. */
+  toggle?: "open" | "closed";
 };
 
 export type ChipFaceProps = { data: ChipData; w: number; h: number;
@@ -83,7 +87,7 @@ export function ChipFace({ data, w: width, h: height, picked: selected = false,
     </span>
   );
   return (
-    <div className={["mnd-chip", data.diagram ? "diagram" : "",
+    <div className={["mnd-chip", data.diagram ? "diagram" : "", data.stamp ? "stamped" : "",
                      narrow ? "narrow" : "", data.upright ? "upright" : "",
                      ...(data.marks ?? []).filter((m) => m === "major" || m === "minor"
                        || m === "walks"),
@@ -102,6 +106,7 @@ export function ChipFace({ data, w: width, h: height, picked: selected = false,
           </span>
         ) : text}
         <Icon name={role_icon(data.role)} size={14} className="mnd-chip-icon" />
+        {data.toggle ? <Toggle open={false} /> : null}
       </>)}
       {data.upright && !data.tiles?.length && data.preview ? (
         <span className="mnd-chip-stack">
@@ -186,13 +191,14 @@ function signed(data: ChipData, height: number, head: number, inside: JSX.Elemen
 /** **A map's box**, drawn anywhere: on the map as a node and in the tray as a box's picture — a
  *  hairline rim, its title over what it holds: its kind's icon, its name, then quieter its counts.
  *  A group's is a panel over its members, rimless. */
-export function BoxFace({ label, role, counts, panel = false, rank, picked = false }: {
+export function BoxFace({ label, role, counts, panel = false, rank, picked = false, toggle }: {
   label: string; role?: string; counts?: readonly { n: number; word: string }[];
-  panel?: boolean; rank?: "major" | "minor"; picked?: boolean }) {
+  panel?: boolean; rank?: "major" | "minor"; picked?: boolean; toggle?: "open" | "closed" }) {
   return (
     <div className={["mnd-box", panel ? "panel" : "", rank ?? "", picked ? "picked" : ""]
       .filter(Boolean).join(" ")}>
       <span className="mnd-box-title">
+        {toggle ? <Toggle open /> : null}
         {role ? <Icon name={role_icon(role)} size={11} /> : null}
         <span className="mnd-box-name">{label}</span>
         {counts?.length ? (
@@ -269,3 +275,12 @@ const NARROW = 64;
 /** **A chip's text**, as `flow.css` lays it (views `ROW`): the air over it, and the gap between
  *  it and the body under it. */
 const TEXT = { top: 4, gap: 6 };
+
+/** **Opening and closing a box** of a model's overview (docs/diagrams/tree.md): a small control
+ *  the host answers by the node it sits in (stage `Stage.tsx`, `data-toggle`). */
+function Toggle({ open }: { open: boolean }) {
+  return (
+    <button type="button" className="mnd-toggle" data-toggle={open ? "close" : "open"}
+            title={open ? "close this box" : "open this box"}>{open ? "−" : "+"}</button>
+  );
+}

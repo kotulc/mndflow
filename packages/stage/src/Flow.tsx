@@ -32,7 +32,7 @@ function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
           said, chrome = true, lattice = false, frame: framed = true,
           scroll: paging = false, focus = null, reach: wide = null, widest = null,
-          most = null, onLand, trace = null } = props;
+          most = null, onLand, trace = null, steps = null } = props;
   const flow = useReactFlow();
   /** What a double-click's first click was on. The camera may fly off under the pointer between
    *  the two, so the second is about the first's target, not whatever has moved beneath it. */
@@ -321,7 +321,10 @@ function Canvas(props: FlowViewProps) {
           </svg>
         </ViewportPortal>
       ) : null}
-      {/* A path traced across a map. */}
+      {/* A model's lines, quiet under its chips; a presentation's steps; a path traced. */}
+      {scene.quiet && !steps ? <ViewportPortal><Traced trace={scene.quiet} as="quiet" />
+        </ViewportPortal> : null}
+      {steps ? <ViewportPortal><Traced trace={steps} as="steps" /></ViewportPortal> : null}
       {trace ? <ViewportPortal><Traced trace={trace} /></ViewportPortal>
         : null}
       {/* The ends of what is picked, and the berths near it. */}

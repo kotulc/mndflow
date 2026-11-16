@@ -7,7 +7,7 @@
 import { entry_at, is_folder, library_of, registry_at, registry_id, registry_of,
          shown_name, users_of, uses_by, type Graph, type Id, type Registry } from "@mnd/core";
 import { carried, trail_of } from "./derive";
-import { box_label, box_place, usage_groups, usage_layout } from "./library";
+import { definition_map } from "./map";
 import { entry_look } from "./look";
 import { cell, type BoxData, type BoxNode, type Scene } from "./scene";
 import { PAD } from "./size";
@@ -102,7 +102,7 @@ export function registry_scene(graph: Graph, id: Id): Scene | null {
   if (registry) return entries_scene(graph, id, registry);
   const of = registry_of(graph, id);
   if (of) return users_scene(graph, id, of);
-  return graph.blocks[id]?.def ? uses_scene(graph, id) : null;
+  return graph.blocks[id]?.def ? definition_map(graph, id) : null;
 }
 
 /** A block's small face out of its grid: a header heads nothing here, so it reads level and
@@ -110,24 +110,6 @@ export function registry_scene(graph: Graph, id: Id): Scene | null {
 function loose(graph: Graph, id: Id): BoxData {
   const data = carried(graph, id, "small");
   return { ...data, marks: data.marks.filter((m) => m !== "header" && m !== "upright") };
-}
-
-/** A definition: its uses as they are laid out for every map of them — each block or reference
- *  its card's small face, each line a tile — in boxes of the places they are drawn. */
-function uses_scene(graph: Graph, def: Id): Scene | null {
-  const laid = usage_layout(graph, def);
-  if (!laid.length) return null;
-  const held = new Map(usage_groups(graph, def).map((g) => [g.place, g.uses.map((u) => u.id)]));
-  const nodes = laid.map((p) => {
-    const place = box_place(def, p.id);
-    if (place) {
-      return cell(p.id, p, { label: box_label(graph, place), marks: ["group"],
-                             holds: held.get(place) ?? [] }, "group");
-    }
-    if (graph.edges[p.id]) return cell(p.id, p, { label: shown_name(graph, p.id), marks: [] }, "tile");
-    return cell(p.id, p, loose(graph, p.id));
-  });
-  return drawn(def, shown_name(graph, def), nodes, trail_of(graph, def));
 }
 
 /** The registry: its entries as tiles in the boxes of their home folders. */

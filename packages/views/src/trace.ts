@@ -16,7 +16,9 @@ type Point = { x: number; y: number };
 export type Leg = { from: Id; to: Id; names: string[]; run: Point[]; both?: boolean };
 
 /** Hops traced: what they light, and their legs. */
-export type Trace = { blocks: Id[]; lines: Id[]; legs: Leg[] };
+export type Trace = { blocks: Id[]; lines: Id[]; legs: Leg[];
+                      /** A presentation's steps with none drawing now: the last was a mark. */
+                      still?: boolean };
 
 
 /** `id`'s hops, traced over a map — a reference's, what it stands for — null off a map or where

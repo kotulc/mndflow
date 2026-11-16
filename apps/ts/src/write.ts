@@ -1,18 +1,19 @@
-/** A project's structure written as a source folder, in the `ts` package's kinds, for `collect`.
- *  **The library is the system; a model is one path's story** (2026-11-08):
+/** A project's structure written as a source folder, in the `ts` package's kinds, for `collect`,
+ *  in the file syntax (docs/syntax-plan.md): **definitions are JSON, models are YAML**, and a file
+ *  names its package's definitions bare, so every unit's name is unique in the package.
  *
- *  - `<pkg>/<unit>.yaml`: every unit a definition, filed by package (`parts` for a lone one) — an entry module (tagged
- *    `entry`), a component, a shared module (tagged `shared`), in reading order. A component's
- *    modules are its parts, with the lines between them, or its own components where it splits
- *    again, each a file under `<pkg>/<component>/`
+ *  - `<pkg>/<unit>.yaml`: every unit a model, filed by package (`parts` for a lone one) — an entry
+ *    module (tagged `entry`), a component, a shared module (tagged `shared`), in reading order. A
+ *    component's modules are its parts, with the lines between them, or its own components where
+ *    it splits again, each a file under `<pkg>/<component>/`; a module's API functions its parts
  *  - `<n>-<entry>.yaml`: a model per entry path of two steps or more, `n` its reading order, the
  *    most salient path first: uses of the units the path passes through in first-visit order, then
  *    the shared modules they lean on; a line a step, in order, named by what is called
- *  - `types/<pkg>/<owner>/<Type>.yaml`: the shared types, each a definition in the folder of the
- *    unit owning it
- *  - `outside/<actor>.yaml`: the system's edge — the file system, the commands it runs, the
+ *  - `types/<pkg>/<owner>/<Type>.json`: the shared types, each a definition in the folder of the
+ *    unit owning it, a field typed by another its link to it
+ *  - `outside/<actor>.json`: the system's edge — the file system, the commands it runs, the
  *    framework hosting it — each touched by the units that reach it
- *  - `package.json`: the project's package
+ *  - `package.json`: the project's package, importing `ts`
  *
  *  **Where code runs is the first split** (2026-11-08): a package running in more than one place
  *  files its units in a folder per container. **A unit says what it is for and what it
@@ -25,6 +26,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { stringify } from "yaml";
 import type { Code, Field, Flow, Mod, Pkg } from "./read";
+import { ALL } from "@mnd/defs";
 import { stem_of, units_of, values_of, type Comp, type Levels, type Path,
          type Shape } from "./structure";
 
@@ -46,9 +48,8 @@ type Api = Map<string, Set<string>>;
 /** How many items a list attribute says before counting the rest. */
 const LISTED = 4;
 
-/** Every unit, by key: its name, its package folder's, and its definition's path, read from the
- *  project's package so it is never taken for another. */
-type Refs = Map<string, { name: string; pkg: string; ref: string }>;
+/** Every unit, by key: its name, unique in the package, and its package folder's. */
+type Refs = Map<string, { name: string; pkg: string }>;
 
 /** The ts package's tags for a package's entry points and its shared modules, the most names a
  *  line says before counting the rest, and the fewest steps a path tells as a model. */
@@ -56,6 +57,9 @@ const TAGS = { entry: "ts.entry", shared: "ts.shared" } as const;
 const SAID = 2;
 const READS = 6;
 const LEAST = 2;
+
+/** What `base` names, in every file's scope: never a unit's name too. */
+const BASE_NAMES = ALL.map((d) => d.name ?? d.id);
 
 /** The root folders the shared types are written in, and a lone package's units. */
 const TYPES = "types";
@@ -81,27 +85,34 @@ export function files_of(code: Code, shapes: Shape[], system: Levels): Map<strin
   /** Where a unit is filed: its package's folder, then its container's. */
   const filed = (x: Shape, key: string) => [names.get(x.pkg.dir)!,
     x.containers.find((c) => c.modules.includes(key))?.name ?? ""].filter(Boolean);
-  const refs: Refs = new Map(sorted.flatMap((x) => [...unit_names(x)].map(([key, name]) => {
+  /** **A name is unique in the package's scope**: a unit's name said by another unit, a type,
+   *  an actor, a folder or a `base` definition is led by its package's folder. */
+  const actors = [...new Set(code.packages.flatMap((p) => p.modules.flatMap((m) => m.touches)))];
+  const units = sorted.flatMap((x) => [...unit_names(x)].map(([key, name]) => ({ x, key, name })));
+  const taken = [...units.map((u) => u.name), ...said, ...actors, ...names.values(),
+                 TYPES, OUTSIDE, ...sorted.flatMap((x) => x.containers.map((c) => c.name)),
+                 ...BASE_NAMES];
+  const refs: Refs = new Map(units.map(({ x, key, name }) => {
     const at = filed(x, key);
-    return [key, { name, pkg: at.join("-"), ref: [code.name, ...at, name].join(".") }];
-  })));
+    const clash = taken.filter((n) => n === name).length > 1 && at.length;
+    return [key, { name: clash ? `${at.join("-")}-${name}` : name, pkg: at.join("-") }];
+  }));
   const api = api_of(sorted);
   for (const shape of sorted) {
-    unit_files(shape, (key) => filed(shape, key).map(slug).join("/"), api, out);
+    unit_files(shape, (key) => filed(shape, key).map(slug).join("/"), refs, api, out);
     vocab_files(shape, names.get(shape.pkg.dir)!, unit_names(shape), twice, out);
   }
-  const actors = [...new Set(code.packages.flatMap((p) => p.modules.flatMap((m) => m.touches)))];
   /** The frameworks running the code: what declared its entries by convention. */
   const hosts = new Set(code.packages.flatMap((p) => p.modules.flatMap((m) => m.entered ?? [])));
   for (const a of actors) {
-    out.set(`${OUTSIDE}/${slug(a)}.yaml`, yaml({
-      name: a, type: KIND.actor, def: {},
+    out.set(`${OUTSIDE}/${slug(a)}.json`, json({
+      id: `${OUTSIDE}.${slug(a)}`, name: a, type: KIND.actor,
       description: ACTORS[a] ?? (hosts.has(a) ? `The framework running the code: ${a}.`
         : `A command the code runs: ${a}.`) }));
   }
-  model_files(sorted, refs, new Set(names.values()), `${code.name}.${OUTSIDE}`, out);
+  model_files(sorted, refs, new Set(names.values()), out);
   out.set("package.json", `${JSON.stringify({
-    schema: "1.0", id: code.name,
+    schema: "1.0", id: code.name, imports: { ts: "ts" },
     graph: { root: code.name, edges: {}, blocks: { [code.name]: {
       id: code.name, parent: null, name: code.name,
       ...(code.description ? { description: code.description } : {}) } } },
@@ -136,10 +147,9 @@ function api_of(shapes: Shape[]): Api {
 /** **A package's units as definitions**, each in its folder (`at`, its container's where the
  *  package has them), in reading order there: its entry modules, its components by level, then
  *  its shared modules. */
-function unit_files(shape: Shape, at: (key: string) => string, api: Api,
+function unit_files(shape: Shape, at: (key: string) => string, refs: Refs, api: Api,
                     out: Map<string, string>): void {
   const mod = new Map(shape.pkg.modules.map((m) => [m.path, m]));
-  const names = unit_names(shape);
   const tag = (path: string) => (shape.entry.includes(path) ? [TAGS.entry]
     : shape.foundation.includes(path) ? [TAGS.shared] : []);
   const units = [...shape.entry.map((m) => ({ key: m, comp: null })),
@@ -147,17 +157,16 @@ function unit_files(shape: Shape, at: (key: string) => string, api: Api,
                  ...shape.foundation.map((m) => ({ key: m, comp: null }))];
   const counted = new Map<string, number>();
   for (const { key, comp } of units) {
-    const name = names.get(key)!;
+    const name = refs.get(key)!.name;
     const folder = at(key);
     counted.set(folder, (counted.get(folder) ?? 0) + 1);
     const n = String(counted.get(folder)).padStart(2, "0");
     const file = [folder, `${n}-${slug(name)}`].filter(Boolean).join("/");
     if (comp && comp.modules.length > 1) {
-      component_files(comp, name, mod, file, shape.rank, api, out, true);
+      component_files(comp, name, mod, file, shape.rank, api, out);
     } else {
       const path = comp ? comp.modules[0]! : key;
-      out.set(`${file}.yaml`, yaml({ ...module_block(mod.get(path)!, name, api, file, out,
-                                                     tag(path)), def: {} }));
+      out.set(`${file}.yaml`, yaml(module_block(mod.get(path)!, name, api, file, out, tag(path))));
     }
   }
 }
@@ -177,7 +186,7 @@ function unit_names(shape: Shape): Map<string, string> {
 /** **The models**: one per entry path of `LEAST` steps or more, the most salient first — the
  *  summed salience of the modules its units hold — each numbered by its place so the package
  *  reads them in that order. */
-function model_files(shapes: Shape[], refs: Refs, folders: Set<string>, outside: string,
+function model_files(shapes: Shape[], refs: Refs, folders: Set<string>,
                      out: Map<string, string>): void {
   const weight = new Map(shapes.flatMap((x) => [...x.weight]));
   const held = new Map(shapes.flatMap((x) => x.comps.map((c) => [c.anchor, c.modules] as const)));
@@ -208,7 +217,7 @@ function model_files(shapes: Shape[], refs: Refs, folders: Set<string>, outside:
     const reach = new Map(keys.map((k) => [k, holds(k).flatMap((m) => mod.get(m)?.touches ?? [])]));
     const said = entry.description ?? "";
     out.set(`${i + 1}-${slug(title)}.yaml`, yaml(model_of(title, said, p, [...keys, ...leaned],
-                                                           refs, reach, outside)));
+                                                           refs, reach)));
   });
 }
 
@@ -227,17 +236,15 @@ function entry_name(how: string | undefined, unit: string): string {
  *  by its unit, led by its package's name where two share one; a line a step, in order, named by
  *  what is called; then the outside its units reach, a line from each unit reaching it. */
 function model_of(name: string, said: string, path: Path, keys: string[], refs: Refs,
-                  reach: Map<string, string[]>, outside: string): Record<string, unknown> {
-  const bare = keys.map((k) => refs.get(k)!.name);
-  const local = new Map(keys.map((k, i) => [k, bare.indexOf(bare[i]!) === bare.lastIndexOf(bare[i]!)
-    ? bare[i]! : `${refs.get(k)!.pkg}-${bare[i]}`]));
+                  reach: Map<string, string[]>): Record<string, unknown> {
+  const local = new Map(keys.map((k) => [k, refs.get(k)!.name]));
   const taken = new Set(local.values());
   const actors = [...new Set([...reach.values()].flat())].filter((a) => !taken.has(a));
   return {
     name, type: "model",
     ...(said ? { description: said } : {}),
-    blocks: [...keys.map((k) => ({ name: local.get(k)!, type: refs.get(k)!.ref })),
-             ...actors.map((a) => ({ name: a, type: `${outside}.${a}` }))],
+    blocks: [...keys.map((k) => ({ name: local.get(k)!, type: refs.get(k)!.name })),
+             ...actors.map((a) => ({ name: a, type: a }))],
     relations: dependencies([...path.steps.map((x) => {
       const key = `${local.get(x.from)} -> ${local.get(x.to)}`;
       const said = said_of(x.names);
@@ -247,50 +254,44 @@ function model_of(name: string, said: string, path: Path, keys: string[], refs: 
   };
 }
 
-/** **The vocabulary written**: each shared type a definition in `types/<pkg>/<owner>/` — its
- *  fields its attributes, one typed by another written type an `association` to it, what it
- *  extends its `type`. A type is named bare where its name is said once (`twice`), a line's end by
- *  its path; a field typed by anything else is text saying its type. */
+/** **The vocabulary written**: each shared type a JSON definition in `types/<pkg>/<owner>/` — its
+ *  fields its attributes, one typed by another written type a link to it by id (a class diagram
+ *  works the line out from the field), what it extends its `type`; a field typed by anything else
+ *  is text saying its type. */
 function vocab_files(shape: Shape, pkg: string, names: Map<string, string>, twice: Set<string>,
                      out: Map<string, string>): void {
   const defs = new Map(shape.pkg.modules.flatMap((m) => m.defs.map((d) => [d.id, d] as const)));
   const folder = (owner: string) => [TYPES, pkg, names.get(owner)!].filter(Boolean);
-  const ref = new Map(shape.vocab.map((w) => [w.id, [...folder(w.owner),
-                                                     defs.get(w.id)!.name].join(".")]));
-  const named_as = new Map(shape.vocab.filter((w) => !twice.has(defs.get(w.id)!.name))
-    .map((w) => [w.id, defs.get(w.id)!.name]));
+  const id_of = new Map(shape.vocab.map((w) => [w.id, [...folder(w.owner),
+                                                       defs.get(w.id)!.name].map(slug).join(".")]));
   for (const w of shape.vocab) {
     const d = defs.get(w.id)!;
-    const links = d.fields.filter((f) => f.link && ref.has(f.type));
-    const base = d.extends && named_as.get(d.extends);
-    out.set(`${folder(w.owner).map(slug).join("/")}/${slug(d.name)}.yaml`, yaml({
-      name: d.name, ...(base ? { type: base } : {}),
-      def: { attributes: d.fields.map((f) => attribute(f, named_as)) },
+    const base = d.extends && id_of.get(d.extends);
+    /** A type said twice across packages is named by its owner too, so names stay unique. */
+    const name = twice.has(d.name) ? `${d.name} (${names.get(w.owner) ?? pkg})` : d.name;
+    out.set(`${folder(w.owner).map(slug).join("/")}/${slug(d.name)}.json`, json({
+      id: id_of.get(w.id)!, name, ...(base ? { type: base } : {}),
+      def: { attributes: d.fields.map((f) => attribute(f, id_of)) },
       ...(d.description ? { description: d.description } : {}),
       source: d.source, settings: { card: { face: "class" } },
-      ...(links.length ? { relations: [{ association: links.map((f) => ({
-        from: d.name, to: ref.get(f.type)!,
-        ends: { to: { role: f.name, multiplicity: f.many ? "*" : f.optional ? "0..1" : "1" } },
-      })) }] } : {}),
     }));
   }
 }
 
-/** A field as an attribute: a form as it is, a written type by its bare name, else text saying
- *  it. */
-function attribute(f: Field, named_as: Map<string, string>): Record<string, unknown> {
+/** A field as an attribute: a form as it is, a written type by its id, else text saying it. */
+function attribute(f: Field, id_of: Map<string, string>): Record<string, unknown> {
   const form = ["text", "number", "flag"].includes(f.type);
-  const type = form ? f.type : named_as.get(f.type) ?? "text";
-  const note = form || named_as.has(f.type) ? f.note : f.note ?? f.type.split(".").pop();
+  const type = form ? f.type : id_of.get(f.type) ?? "text";
+  const note = form || id_of.has(f.type) ? f.note : f.note ?? f.type.split(".").pop();
   return { name: f.name, type, ...(f.many ? { many: true } : {}),
            ...(note ? { note } : {}) };
 }
 
-/** A component's file, at `file.yaml`, a definition where `def`: its own components where it
- *  splits again, each a file under `file/`, else every module, the most salient first — a view
- *  folds what it has no room for, never the model (2026-11-05); with the lines between them. */
+/** A component's file, at `file.yaml`: its own components where it splits again, each a file
+ *  under `file/`, else every module, the most salient first — a view folds what it has no room
+ *  for, never the model (2026-11-05); with the lines between them. */
 function component_files(c: Comp, name: string, mod: Map<string, Mod>, file: string,
-                         rank: string[], api: Api, out: Map<string, string>, def = false): string {
+                         rank: string[], api: Api, out: Map<string, string>): string {
   const parts: Comp[] = c.parts.length ? c.parts : [...c.modules]
     .sort((a, z) => rank.indexOf(a) - rank.indexOf(z))
     .map((m) => ({ name: stem_of(m), anchor: m, modules: [m], parts: [] }));
@@ -306,7 +307,7 @@ function component_files(c: Comp, name: string, mod: Map<string, Mod>, file: str
   const heads = [...c.modules].sort((a, z) => rank.indexOf(a) - rank.indexOf(z))
     .flatMap((m) => mod.get(m)?.description?.replace(/\.$/, "") ?? []);
   out.set(`${file}.yaml`, yaml({
-    name, type: KIND.component, ...(def ? { def: {} } : {}),
+    name, type: KIND.component,
     description: heads.length ? heads.join(" · ")
       : `${c.modules.length} modules: ${c.modules.map(stem_of).join(", ")}.`,
     values: { lines: lines_of.reduce((sum, m) => sum + m.lines, 0), ...answers(lines_of) },
@@ -428,6 +429,11 @@ function dependencies(edges: readonly (string | Record<string, string>)[]): unkn
 /** A name as a file or folder: spaces and arrows as `-`. */
 function slug(name: string): string {
   return name.replace(/[\s→]+/g, "-");
+}
+
+/** A definition as JSON, as the package's files hold it. */
+function json(map: Record<string, unknown>): string {
+  return `${JSON.stringify(map, null, 2)}\n`;
 }
 
 /** A map as YAML, wide enough that a line's names stay on one line. */

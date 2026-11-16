@@ -21,3 +21,56 @@ relations:
   - Customer.browser -> Shop.https: shops
   - Shop.charges -> Card processor.api: charges
   - Shop.shipments -> Carrier.api: books
+open: [ Shop ]
+about:
+  - name: Presentations
+  - name: Entries
+  - name: Records kept
+    items: [ Order, Payment, Ledger ]
+presentations:
+  - name: Tour the shop
+    description: The shop from the outside in, then one order through it.
+    stops:
+      - title: The shop in its world
+        at: Shop
+        summary: Customers reach the shop; it leans on a card processor and a carrier.
+        steps:
+          - relation: Customer.browser -> Shop.https
+            text: Customers shop over HTTPS.
+          - relation: Shop.charges -> Card processor.api
+            text: The shop charges cards through the processor.
+          - relation: Shop.shipments -> Carrier.api
+            text: It books parcels with the carrier.
+      - title: The front door
+        at: Shop.Customer facing
+        open: [ Shop, Shop.Customer facing ]
+        summary: Every request passes the gateway before the storefront sees it.
+        steps:
+          - relation: Shop.https -> Shop.Customer facing.Gateway.requests
+            text: Traffic enters at the gateway.
+          - relation: Shop.Customer facing.Gateway.routes -> Shop.Customer facing.Storefront.https
+            text: The gateway routes it to the storefront.
+      - title: An order is placed
+        at: Shop.Back office
+        open: [ Shop, Shop.Back office ]
+        summary: The storefront hands an order to the back office, which takes payment and ships.
+        steps:
+          - relation: Shop.Customer facing.Storefront.pay -> Shop.Back office.Payments.in
+            text: Payments takes the money.
+          - relation: Shop.Customer facing.Storefront.orders -> Shop.Back office.Orders.in
+            text: Orders keeps the order.
+          - relation: Shop.Back office.Orders.events -> Shop.Back office.Inventory.events
+            text: Inventory reserves the stock.
+          - relation: Shop.Back office.Orders.events -> Shop.Back office.Shipping.events
+            text: Shipping books the parcel.
+      - title: The saga, in order
+        at: Shop.How it runs.Checkout saga
+        show: Shop.How it runs.Checkout saga
+        summary: The same checkout as messages between the parts, one turn at a time.
+        steps:
+          - relation: Shop.How it runs.Checkout saga.Submit cart -> Shop.How it runs.Checkout saga.Route checkout
+            text: The customer submits the cart to the gateway.
+          - relation: Shop.How it runs.Checkout saga.Start saga -> Shop.How it runs.Checkout saga.Authorize
+            text: The storefront starts the saga and asks for the charge.
+          - mark: Shop.How it runs.Checkout saga.Confirm order
+            text: The storefront confirms the order once stock is reserved.

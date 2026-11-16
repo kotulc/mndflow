@@ -42,9 +42,15 @@ export function useRoom(scene: Scene) {
   return { frame: scene.frame ?? null, seen };
 }
 
-/** The whole drawing: the frame, else an opened grid's own node, else all that is drawn. */
+/** The whole drawing: the frame and anything drawn beyond it (a dataflow's datum band), else an
+ *  opened grid's own node, else all that is drawn. */
 function whole_of(scene: Scene): Rect {
-  if (scene.frame) return scene.frame;
+  if (scene.frame) {
+    const all = [scene.frame, ...scene.nodes.filter((n) => n.id !== FRAME).map(box_of)];
+    const [x, y] = [Math.min(...all.map((b) => b.x)), Math.min(...all.map((b) => b.y))];
+    return { x, y, w: Math.max(...all.map((b) => b.x + b.w)) - x,
+             h: Math.max(...all.map((b) => b.y + b.h)) - y };
+  }
   const own = scene.nodes.find((n) => n.id === scene.layer);
   return own ? box_of(own) : extent(scene);
 }

@@ -14,20 +14,21 @@
 import { Graph as Ranks, layout } from "@dagrejs/dagre";
 import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
          type HierarchyRectangularNode as Tiled } from "d3-hierarchy";
-import { children, definition_uses, diagram_kind, has_lifelines, is_aside, is_grid,
+import { children, definition_uses, diagram_kind, has_lifelines, is_aside, is_grid, is_reference,
          head_of, is_behaviour, is_folder, is_group, is_header, is_holder, is_interface, is_model,
          is_region, is_tie, lattice_of, layer_of, members_of, lens_of, notation_of, owner_of,
-         on_side, packages, path, region_of, shown_name, type Graph, hops_of, model_path, path_of,
-         type Id } from "@mnd/core";
+         on_side, packages, path, region_of, shown_name, type Graph, hops_of, path_of,
+         used_model, type Id } from "@mnd/core";
 import { colour_of, kind_of, preview_of, type Preview } from "./about";
 import { answers_of, any_fact, counted, fact, facts_of, total, type Counted, type Facts,
          type Groups } from "./facts";
 import { carried, trail_of } from "./derive";
-import { box_label, box_place, filed, name_of, registry_map, usage_groups,
+import { box_label, box_place, filed, name_of, registry_map, usage_box, usage_groups,
          type LocatedUse, type Tile } from "./library";
 import { look_of, tint_attrs } from "./look";
 import { box_of, cell, type Area, type BoxNode, type InnerTile, type Scene } from "./scene";
-import { layer_tree, members, model_tree, type Branch } from "./tree";
+import { chip_of, layer_tree, members, model_tree, type Branch } from "./tree";
+import { around, registered, zones_of } from "./overview";
 import { SHAPE } from "./size";
 
 /** The area every map is drawn in. */
@@ -94,13 +95,12 @@ function joins_weight(graph: Graph, id: Id): number {
   return Math.sqrt(hops_of(graph, id).reduce((n, h) => n + Math.max(1, h.names.length), 0));
 }
 
-/** **What never folds**: every block owning a path a reader may walk (`walks`), each block a
- *  hop from one, since a walk steps onto it, and every block a model's path steps onto. */
+/** **What never folds**: every block owning a path a reader may walk (`walks`), and each block a
+ *  hop from one, since a walk steps onto it. */
 function kept_open(graph: Graph): Set<Id> {
   const walks = Object.keys(graph.blocks).filter((id) => path_of(graph, id).length);
-  const steps = Object.keys(graph.blocks).flatMap((id) => model_path(graph, id));
   return new Set([...walks, ...walks.flatMap((w) => hops_of(graph, w)
-    .map((h) => (h.from === w ? h.to : h.from))), ...steps.flatMap((h) => [h.from, h.to])]);
+    .map((h) => (h.from === w ? h.to : h.from)))]);
 }
 
 /** The least share of its heaviest sibling an empty model's chip weighs, so beside a large one it
@@ -115,6 +115,8 @@ type Leaf = { id: Id; kids?: Leaf[]; value?: number; rows?: number; empty?: bool
               /** A box the view makes, named here (a model's *Shared*); and whether a model's
                *  part is major, said where the model's path decides it. */
               label?: string; major?: boolean;
+              /** A box of a model's overview that opens and closes, and how it stands now. */
+              toggle?: "open" | "closed";
               /** A *+n more* chip's chips, folded away for want of room. */
               more?: Id[];
               chip?: { block: Id; held: readonly Id[]; kind?: string; uses?: boolean;
@@ -135,26 +137,63 @@ export function model_map(graph: Graph, tree: readonly Branch[] = model_tree(gra
 }
 
 /** **A treemap diagram is its map**: what it holds, laid as the models' map lays it — read only,
- *  each chip entered. A model's is its story (`storied`). */
-export function layer_map(graph: Graph, layer: Id): Scene {
-  const kids = layer_tree(graph, layer).map(leaf_of(graph));
-  return { ...mapped(graph, { id: MAP_ROOT, kids: is_model(graph, layer)
-    ? storied(graph, layer, kids) : kids }, "models"), layer, trail: trail_of(graph, layer) };
+ *  each chip entered. **A model's is its overview** (docs/diagrams/tree.md), a use of a model
+ *  its model's read through: its parts by containment, each box in `open` open and the rest
+ *  closed chips, context's zones round them and About below (`overview.ts`). */
+export function layer_map(graph: Graph, layer: Id, open?: readonly Id[]): Scene {
+  const model = used_model(graph, layer);
+  if (!model) {
+    const kids = layer_tree(graph, layer).map(leaf_of(graph));
+    return { ...mapped(graph, { id: MAP_ROOT, kids }, "models"), layer,
+             trail: trail_of(graph, layer) };
+  }
+  const zones = zones_of(graph, layer_tree(graph, layer).map((b) => b.id));
+  const shown = new Set(open ?? opened(graph, layer, model));
+  /** A box or a chip that can hold something opens and closes; a group's panel never does, and
+   *  a reference stands for what is drawn elsewhere. */
+  const toggled = (b: Branch): Leaf => {
+    const opens = b.as !== "group" && !is_reference(graph, b.id)
+      && (b.as === "box" || b.held.length > 0);
+    return { ...leaf_of(graph)(b),
+             ...(opens ? { toggle: b.as === "box" ? "open" as const : "closed" as const } : {}),
+             ...(b.as !== "chip" ? { kids: b.kids.map(toggled) } : {}) };
+  };
+  const kids = layer_tree(graph, layer, shown).filter((b) => !zones.has(b.id)).map(toggled);
+  const middle = mapped(graph, { id: MAP_ROOT, kids }, "models");
+  return { ...around(graph, model, layer, middle, zones), layer, trail: trail_of(graph, layer) };
 }
 
-/** **A model as its story** (2026-11-08): its parts in list order, which is its steps' order,
- *  those its path passes through major; what no step touches in one quieter *Shared* box after
- *  them, a box the view makes and the model never holds. */
-function storied(graph: Graph, model: Id, kids: Leaf[]): Leaf[] {
-  const steps = model_path(graph, model);
-  if (!steps.length) return kids;
-  const on = new Set(steps.flatMap((h) => [h.from, h.to]));
-  /** Whether a step touches a part, at any depth in it. */
-  const touched = (l: Leaf): boolean => on.has(l.id) || !!l.kids?.some(touched);
-  const [path, rest] = [kids.filter(touched), kids.filter((k) => !touched(k))];
-  return [...path.map((k) => ({ ...k, major: true })),
-          ...(rest.length ? [{ id: `${model}@shared`, label: "Shared",
-                               kids: rest.map((k) => ({ ...k, major: false })) }] : [])];
+/** **A definition's registry is the tree view's definition root** (docs/diagrams/tree.md): its
+ *  uses as closed chips in the boxes of the places that draw them — a lone place's box left out —
+ *  a line an empty box of its name; its card in a band above, About below (`overview.ts`). Null where
+ *  nothing uses it. */
+export function definition_map(graph: Graph, def: Id): Scene | null {
+  const groups = usage_groups(graph, def);
+  if (!groups.length) return null;
+  const use = (u: LocatedUse): Leaf => (graph.blocks[u.id]
+    ? leaf_of(graph)(chip_of(graph, u.id))
+    : { id: u.id, value: LEAST, label: shown_name(graph, u.id) });
+  const boxes: Leaf[] = groups.map((g) => ({ id: usage_box(def, g.place),
+                                             label: box_label(graph, g.place),
+                                             kids: g.uses.map(use) }));
+  const kids = boxes.length === 1 ? boxes[0]!.kids! : boxes;
+  const middle = mapped(graph, { id: MAP_ROOT, kids }, "models");
+  const preview = preview_of(graph, def);
+  const h = ROW.name + Math.min(ROWS, rows_of(preview)) * ROW.line + 2 * PAD.chip;
+  const card = cell(def, { x: 0, y: 0, w: 2 * CARD_W, h },
+                    { label: shown_name(graph, def), marks: [],
+                      kind: name_of(graph, graph.blocks[def]?.type ?? "block"),
+                      head: ROW.name, look: colour_of(graph, def),
+                      ...(preview ? { preview } : {}) }, "chip");
+  return { ...registered(graph, def, middle, { ...card, draggable: false }), layer: def,
+           trail: trail_of(graph, def) };
+}
+
+/** **The boxes a model's overview starts open**: its file's `open:`, else its primary parts —
+ *  each holding parts of its own. */
+export function opened(graph: Graph, layer: Id, model: Id): Id[] {
+  return graph.blocks[model]?.open ?? layer_tree(graph, layer)
+    .filter((b) => holds_parts(graph, b.shows)).map((b) => b.id);
 }
 
 /** A branch of the models' tree as the map lays it: a box its cells, a group a panel over its
@@ -329,7 +368,8 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
     const own: Partial<ReturnType<typeof carried>> = graph.blocks[id]
       ? carried(graph, id, "small") : {};
     const data = { label, marks: rank, ...(own.role ? { role: own.role } : {}),
-                   ...(own.description ? { description: own.description } : {}) };
+                   ...(own.description ? { description: own.description } : {}),
+                   ...(n.data.toggle ? { toggle: n.data.toggle } : {}) };
     if (!chip) {
       const marks = n.data.panel ? { marks: [...rank, "group" as const] } : {};
       const facts = n.data.panel ? null : box_facts(graph, n, title);
@@ -354,6 +394,9 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
     const keep = (chip.held.length ? KEEP.structure : KEEP.preview)
       + (chip.diagram ? PAD.diagram : PAD.chip);
     const strip = any && !upright && box.h >= ROW.name + ROW.facts + keep;
+    /** **A diagram chip wears its kind's stamp** in its head (2026-11-15): never a model's. */
+    const kind_id = chip.diagram ? diagram_kind(graph, chip.block) : null;
+    const stamp = kind_id && !is_model(graph, chip.block) ? kind_id : null;
     const head = upright ? { w: ROW.name, h: 0 } : { w: 0, h: ROW.name + (strip ? ROW.facts : 0) };
     const body = chip.uses ? previewed(graph, chip, box, head)
       : chip.held.length ? inner(graph, chip.block, chip.held, box, !!chip.diagram, head)
@@ -362,6 +405,7 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models"): Scene {
                                     ...(upright ? { upright } : {}), head: head.w || head.h,
                                     ...(chip.kind ? { kind: chip.kind } : {}),
                                     ...(chip.diagram ? { diagram: true } : {}),
+                                    ...(stamp ? { stamp } : {}),
                                     ...body, look: colour_of(graph, chip.block) },
                          "chip"), draggable: false });
   }
