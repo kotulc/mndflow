@@ -6,7 +6,7 @@
  *  and named in `dropped` so the source folder can say so. */
 
 import { BLOCK_KEYS, is_block_key, names_in, said_as, values_in } from "./card";
-import type { Dir, Ends, Value } from "./types";
+import type { Dir, Ends, Fragment, Value } from "./types";
 
 /** A block as a file states it: the schema's fields, named rather than identified. */
 export type Entry = {
@@ -25,6 +25,8 @@ export type Entry = {
   of?: string;
   /** A dataflow's datum: the definition it traces, by name. */
   datum?: string;
+  /** A sequence's fragments, as written. */
+  fragments?: Fragment[];
   /** A block in the same file it sits in, by name or path; unsaid, the file's block. */
   parent?: string;
   /** Where it was written inside another entry: that entry's place in `blocks`. */
@@ -241,6 +243,7 @@ function entry(map: Map, ends?: readonly string[]): Entry {
   set("source", word("source"));
   set("of", word("of"));
   set("datum", word("datum"));
+  if (Array.isArray(map["fragments"])) e.fragments = fragments_of(map["fragments"]);
   set("parent", word("parent"));
   set("w", num("w"));
   set("h", num("h"));
@@ -441,4 +444,21 @@ function listed(value: unknown, key: string): unknown[] {
   if (value === undefined || value === null) return [];
   if (!Array.isArray(value)) throw new Error(`${key} is a list`);
   return value;
+}
+
+/** A sequence's fragments, each a repeat over a run of rows or alternatives over runs; one that
+ *  is neither is left out. */
+function fragments_of(list: unknown[]): Fragment[] {
+  const run = (r: unknown): r is [number, number] => Array.isArray(r) && r.length === 2
+    && r.every((n) => typeof n === "number");
+  return list.flatMap((f): Fragment[] => {
+    const m = (f ?? {}) as Map;
+    if (typeof m["repeat"] === "string" && run(m["rows"])) {
+      return [{ repeat: m["repeat"], rows: m["rows"] }];
+    }
+    if (Array.isArray(m["alt"]) && Array.isArray(m["rows"]) && m["rows"].every(run)) {
+      return [{ alt: m["alt"].map(String), rows: m["rows"] as [number, number][] }];
+    }
+    return [];
+  });
 }

@@ -604,6 +604,8 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
   if (e.tags) b.tags = e.tags.flatMap((t) => tag_of(ctx, t) ?? []);
   if (e.constraints) b.constraints = e.constraints.flatMap((c) => constraint_of(ctx, c) ?? []);
   if (e.traits) b.traits = [...e.traits];
+  /** A sequence's fragments are plain data, as written. */
+  if (e.fragments?.length) b.fragments = e.fragments;
   /** A dataflow's datum is a definition. */
   if (e.datum) {
     const datum = def_ref(graph, spelled(ctx.aliases, e.datum), scope(ctx));

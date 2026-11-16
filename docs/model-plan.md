@@ -5,30 +5,35 @@
 
 ## Next session
 
-**State (2026-11-15, after this pass).** The syntax pass (b3d2a1e) and the sweep (0729f88) are committed. **This pass is built, uncommitted**: typecheck and the unit tests pass; every sample collects and checks clean. Suggested commit: *Layer frames and zones, trace, mndsite composed with the tools; translator writes the library only*.
+**Handoff (2026-11-15, end of session).** Committed through the first pass of the day (layer frames and zones, `trace`, mndsite composed with the tools, the translator writing the library only). **The layer engine's open rows are built, uncommitted**: typecheck, the unit tests and every sample's `check` pass; each change was driven in the app. Suggested commit: *Layer engine: one card per port, outer ring, lanes, dataflow ranks, sequence fragments and order, field-row lines, turned swimlane moves*.
 
-| # | This pass (agreed 2026-11-15) | Outcome |
-|---|---|---|
-| 1 | **retire the translator's models** | done: `write.ts` writes the library only, `paths` stage gone; a translation clears only what it wrote (`.translated`); translation-plan.md deleted, two rows to backlog.md *Later* |
-| 2 | **backlog polish** | done: a usage shows no unanswered attribute; a definition's default typed by its value. Deferred: silhouettes, short chips (after the user's look), a container's description |
-| 3 | **`trace`** | built (docs/tools/trace.md): a Node preload wrapping `fs`; tried on mndsite's ingest |
-| 4 | **the layer engine** | built, in part (*Build notes*): what is across a frame in its zones, behaviours along an axis, the sequence's owner frame and origin dots, a swimlane turned. Driven on the shop at landscape and portrait |
-| 5 | **compose mndsite** | built: `samples/mndsite` `overview.yaml`, `overview/`, `data/`, all through `mnd draw`; four presentations; 11 diagrams; the MCP spot check in docs/tools/README.md |
-
-**The user's look (2026-11-15)**: the tree is the furthest from what was agreed and makes the rest hard to navigate; chips that mimic their diagrams (a sparse *Payments* in Checkout, *Order states* drawn oddly) make diagrams and presentations hard to tell apart. mndsite-plan.md deleted (its rule met). **Decided:**
+**The user's look (2026-11-15)**: the tree is the furthest from what was agreed and makes the rest hard to navigate; chips that mimic their diagrams (a sparse *Payments* in Checkout, *Order states* drawn oddly) make diagrams and presentations hard to tell apart; **content still appears and disappears with the zoom**, which was meant to be gone. **Decided:**
 
 | # | Decision |
 |---|---|
-| 1 | **the layer engine's open rows first** (*Build notes*), then the tree |
-| 2 | **the tree and its chips rebuilt from the ground up**, mockup first: every piece of logic drawing a chip like its diagram removed (silhouettes, structure-laid tiles, listed parts); the kinds pass's tree section is the spec |
+| 1 | **the layer engine's open rows first**, then the tree (done: *Build notes*) |
+| 2 | **the tree and its chips rebuilt from the ground up**, mockup first: every piece of logic drawing a chip like its diagram removed (silhouettes, structure-laid tiles, listed parts); the kinds pass's tree section (claude.ai/artifact/Pxqq3R9YBEADASCmZyDYqc) and review part 12 (claude.ai/artifact/UN5BuHw2XGH3T5bmcUMMHu) are the spec |
 | 3 | **a closed chip shows its name and kind** (the kind's icon in its hue), **its counts**, and **a presentation marker** where it opens or is shown by a presentation; no purpose line |
+| 4 | **sequence fragments are written as groups of rows**; **participant order is written by the tool**, never reordered by the view (docs/diagrams/sequence.md, agreed 7 and 8) |
 
-| Order | Take up next | Notes |
+| Order | Take up next session | Notes |
 |---|---|---|
-| 1 | **the layer engine's open rows** (*Build notes*): one card per port with its targets as rows, the outer ring, lanes alternating, dataflow ranks, the datum card, sequence fragments (a surface first) and participant order, entity row to row, a move in a turned swimlane | then the user's look at the entered views |
-| 2 | **the tree and chip mockup**: the map, a model's overview and a closed chip, on the shop and mndsite, in the app's own faces | then strip and rebuild |
-| 3 | **`check` misses unresolved references**: a dataflow's block or a sequence's participant naming nothing draws *missing*, yet `check` and `presentation check` say clean | found composing mndsite |
-| 4 | **this repo's model** composed with the tools, as mndsite's was | the acceptance below |
+| 1 | **no content switched by zoom** | design.md's *one representation at every zoom* covers chips only; **cards still switch by level**: stage `flow.css` hides a card's table and body below `data-level="3"` and its facts below 2 (views `level.ts` `level_at`), so a datum card or a class card reads empty at fit; a line's name hides by `line_level` (a short message's name gone at fit). Decide with the user: one look at every zoom for cards and line names too (fade and compress only), then remove the levels |
+| 2 | **the user's look at the entered views**: shop (Payments, Orders, Shop, Payment retry, Order states, Checkout saga, Fulfilment, Model, Schema) and mndsite (mndsite, every part, Build a site, Release, Edit and preview, Config trace, the mappings and schemas) | the presentations too, from each Overview's About |
+| 3 | **the tree and chip mockup**: the map, a model's overview and a closed chip, on the shop and mndsite, in the app's own faces; then strip the chip silhouettes and rebuild | decisions 2–3 |
+| 4 | **`check` misses unresolved references**: a dataflow's block or a sequence's participant naming nothing draws *missing*, yet `check` and `presentation check` say clean | found composing mndsite |
+| 5 | **the MCP surface** (docs/tools/README.md *Spot check*): a `presentation_check` tool and a check of a draft before it is written; one stated base for paths; a per-kind selection schema in `draw`'s description; a draft returning only its new presentation | |
+| 6 | **this repo's model** composed with the tools, as mndsite's was | the acceptance below |
+
+**Open items** (also in *Build notes*):
+
+| Item | Notes |
+|---|---|
+| **a `class` face draws no rows outside a class diagram** | mndsite's data definitions moved to the `table` face to show in a dataflow's datum band; the class view forces its own face |
+| **the layer engine's leftovers** | an actors band past one row folding into *+n more*; an external read and written through two ports as one card; long sequences cut into sub sequences; class: owners first along the long side, named fields as links, worked-out foreign keys |
+| **mndsite's composed parts are below the floor** | each part holds one or two uses of library units (`draw` warns); their diagrams hold the content. Revisit with the tree rework |
+| **a folded card's name is cut short** | one card per port and the outer ring write their rows into the card's name (`content folder ← mndmap`), which a fixed card width truncates; rows of their own come with the tree and chip rework's faces |
+| **deferred polish** | backlog.md *After the mndsite review*: silhouettes and short chips (now moot with the rework), a container's description |
 
 **Settled by the user (2026-11-15): every model draws as its kind.** A plain `model` draws as its tree (the overview); a model extending `context`, `state`, `swimlane` or any other kind draws as that kind (base `model.json` holds the tree placing, no longer the *is model* trait; core `holders.ts` `shape_of` gives a model its kind's shape).
 
@@ -44,10 +49,10 @@ What the agreed kinds ask of the code, by home. Each is general; the kind's file
 | base kinds | **built 2026-11-15**: `context` replaces `internal` (view `internal` kept); the `treemap` kind retired; new `actor`, `external`, `dataflow`, `mapping` (*has records*, view `records`) | context, tree, dataflow, mapping |
 | core | **built 2026-11-15**: a port's `type` may name a data definition (`sources.ts` `interface_of`); a model's `open:`, `about:`, `presentations:`; a mapping's records, a dataflow's `datum` | dataflow, mapping, tree |
 | theme | **built 2026-11-15**: a typed seat filled with its type's colour, semi-transparent, and outlined; a base seat hollow (`flow.css`) | dataflow |
-| views and stage: layer | **built 2026-11-15**: the datum band (views `block.ts` `banded`); **what is across a frame** in its zones, start, in, out and uses by what it is, a port naming its wall keeping it (views `across.ts`); **behaviours along an axis**: flow, state and dataflow laid one way by the canvas, never wrapped, each step's first line straight (views `flow.ts` `ALONG`). Placed beside the ELK run, not as its compound node. Open: one card per port with its targets as rows; the outer ring; lanes alternating below then above; dataflow's ranks (makes, changes form, reads); the datum card draws empty; a short message's name hidden at fit | context, flow, dataflow, state |
-| views and stage: grid | **built 2026-11-15**: the owner's frame over the head, origin dots (views `lifelines.ts`); a swimlane turned by the canvas, read only while turned (views `sheet.ts`). Open: participant order (the `sequence` tool writes it), fragments for repeats and alternatives (a surface first), a move in a turned swimlane turned back | sequence, swimlane |
+| views and stage: layer | **built 2026-11-15**: the datum band (views `block.ts` `banded`, the large face, its rows from the closest zoom); **what is across a frame** in its zones, a port naming its wall keeping it, **one card per port** with its ends as name rows, **the outer ring** folded into its card as a row (`content folder ← mndmap`) (views `across.ts`); **behaviours along an axis**: flow, state and dataflow one way by the canvas, never wrapped; flow and state in **lanes**, the main way on the axis, each other answer a lane below then above (views `flow.ts` `laned`); **a dataflow ranked by role**, its readers last (ELK longest path). Placed beside the ELK run, not as its compound node. Open: an actors band past one row folding into *+n more*; an external read and written through two ports as one card | context, flow, dataflow, state |
+| views and stage: grid | **built 2026-11-15**: the owner's frame over the head, origin dots, **fragments** (`fragments:`, repeats and alternatives over rows; core `diagram.ts` `fragments_of`, views `lifelines.ts` `fragments`); **participant order** written by `mnd draw sequence` (cli `tools.ts` `participants_in_order`); a swimlane turned by the canvas, a move in it landing as stored (views `sheet.ts`, `block.ts`). Open: long sequences cut into sub sequences | sequence, swimlane |
 | views: records table | **built 2026-11-15**: one generic records table, any block with records (view `records`): row accent by the definition named, groups by source under plain headings, links (views `records.ts`, stage `nodes.tsx` `RecordsNode`). Open: groups folding past 12 rows | mapping |
-| views and stage: types | seen 2026-11-15: a class's lines already leave from the field's row. Open: entity row to row with crow's feet, owners first along the long side, named fields as links, worked-out foreign keys | class, entity |
+| views and stage: types | **built 2026-11-15**: a line leaves the owner's card from its field's row; on an entity diagram it meets the other's primary key row, crow's feet as before (views `classes.ts` `field_rows`, `seat.ts` `seat_all` rows, `face.ts` `row_mid`). Open: owners first along the long side, named fields as links, worked-out foreign keys | class, entity |
 | views: tree | **built 2026-11-15**: one tree view, the model and definition roots (the world is the map); a chip a closed box. The component registries (tags, types) keep their own tiles (views `treemap.ts` `tiled`), as does a definition chip's preview on the library map | tree |
 | tools | **built 2026-11-15**: diagram tools warn below the floor (3 steps, messages, states, rows, parts); `tree` renamed `overview` | all |
 | surface (syntax pass) | **built 2026-11-15** (design.md *Diagram files*): sequence `participants` and messages by the kind; swimlane `lanes`/`phases`; dataflow `datum`; mapping `records` as relations; a model's `open:`, `about:`, `presentations:`; a named relation quoted reads as bare | sequence, swimlane, dataflow, mapping, tree |

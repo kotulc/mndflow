@@ -335,3 +335,10 @@ function table_width(rows: readonly string[][]): number {
   }
   return w;
 }
+
+/** **Where a table card's row sits**: the middle of row `i` (from 0), down from the card's top,
+ *  in pixels — under its title row and its facts strip, inside a border `edge` wide. Lines leave
+ *  a class or entity card from a field's row (docs/diagrams/class.md, entity.md). */
+export function row_mid(i: number, facts = false, edge = 1): number {
+  return edge + PAD.title + (facts ? PAD.facts : 0) + i * ROW + ROW / 2;
+}

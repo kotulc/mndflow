@@ -214,6 +214,8 @@ export type Block = {
   of?: Id;
   /** A dataflow: the definition whose data it traces (2026-11-15). */
   datum?: Id;
+  /** A sequence's fragments: repeats and alternatives across its rows. */
+  fragments?: Fragment[];
   /** A model's boxes open where its overview starts; unsaid, its primary parts. */
   open?: Id[];
   /** A model's About band: its groups in order, each a built-in or a list of what it holds. */
@@ -269,6 +271,12 @@ export type Block = {
 /** One group of a model's About band: a built-in (`Presentations`, `Entries`, `Library`) when it
  *  lists nothing, else the blocks, definitions or presentations it names, by id or name. */
 export type AboutGroup = { name: string; items?: Id[] };
+
+/** **A sequence's fragment** (docs/diagrams/sequence.md, agreed 7): a repeat across a run of rows,
+ *  named by its condition, or alternatives, each guard over its own run; rows are the grid's own,
+ *  first and last. Plain data, as the file writes it. */
+export type Fragment = { repeat: string; rows: [number, number] }
+  | { alt: string[]; rows: [number, number][] };
 
 /** An ordered, narrated way through a model: its stops, played like a slide deck. */
 export type Presentation = { name: string; description?: string; pace?: number; stops: Stop[] };

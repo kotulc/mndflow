@@ -11,7 +11,7 @@
  *  | uses | what it builds with or meets both ways | below | right |
  */
 
-import { block_base, chain_of, flow_of, is_interface, layer_of, ports_on, type Block,
+import { block_base, chain_of, flow_of, is_interface, layer_of, owner_of, ports_on, type Block,
          type Graph, type Id, type Relation, type Side } from "@mnd/core";
 import { size_of, SHAPE, UNIT, type Rect, type Seating } from "@mnd/views";
 
@@ -52,20 +52,46 @@ export function outside_of(graph: Graph, layer: Id): Outside | null {
   const ports = new Set<Id>();
   const sides = new Map<Id, Side>();
   const wall = WALLS[SHAPE.aspect >= 1 ? "wide" : "tall"];
-  for (const e of Object.values(graph.edges).sort((a, z) => (a.order ?? 0) - (z.order ?? 0))) {
+  const all = Object.values(graph.edges).sort((a, z) => (a.order ?? 0) - (z.order ?? 0));
+  /** Every line of the layer above meeting the part: which end is across, and which is near. */
+  const met = all.flatMap((e) => {
     const inward = mine(e.to) && !mine(e.from);
-    if (!inward && !(mine(e.from) && !mine(e.to))) continue;
+    if (!inward && !(mine(e.from) && !mine(e.to))) return [];
     const [far, port] = inward ? [e.from, e.fromPort] : [e.to, e.toPort];
-    if (layer_of(graph, far) !== home && far !== home) continue;
-    const id = `${ACROSS}${far}${port && far === home ? `:${port}` : ""}`;
-    blocks[id] ??= card(graph, far, port, home, layer, id);
-    if (far === home) ports.add(id);
-    const near = inward ? e.to : e.from;
+    if (layer_of(graph, far) !== home && far !== home) return [];
+    return [{ e, inward, far, port, near: inward ? e.to : e.from }];
+  });
+  /** **One card per port** (context.md *Layout*): a port meeting several ends draws one card,
+   *  its ends as name rows. */
+  const fars = new Map<Id, Set<string>>();
+  for (const m of met) {
+    if (m.near === layer) continue;
+    fars.set(m.near, new Set([...fars.get(m.near) ?? [], `${m.far}|${m.port ?? ""}`]));
+  }
+  const drawn_lines = new Set<string>();
+  for (const { e, inward, far, port, near } of met) {
+    const shared = near !== layer && fars.get(near)!.size > 1;
+    const id = shared ? `${ACROSS}port:${near}`
+      : `${ACROSS}${far}${port && far === home ? `:${port}` : ""}`;
+    if (!blocks[id]) {
+      blocks[id] = shared
+        ? { id, parent: layer, type: "block", name: [...fars.get(near)!].map((k) => {
+            const [f, p] = k.split("|");
+            return named(card(graph, f!, p || undefined, home, layer, id));
+          }).join(" · ") }
+        : { ...card(graph, far, port, home, layer, id),
+            ...(far === home ? {} : { name: ringed(graph, far, home, layer, all) }) };
+    }
+    if (far === home && !shared) ports.add(id);
     /** A port naming its wall keeps it, and what is across sits in that wall's zone. */
     const said = near !== layer ? blocks[near]!.side : undefined;
     const zone = said ? zone_at(wall, said) : zone_of(graph, e, far, near);
     if (!zones.has(id) || zone === "start") zones.set(id, zone);
     if (near !== layer && !said) sides.set(near, wall[zone]);
+    /** One line between a card and the port it stands across. */
+    const pair = `${id}|${near}`;
+    if (drawn_lines.has(pair)) continue;
+    drawn_lines.add(pair);
     const drawn: Relation = inward
       ? { ...e, id: `${ACROSS}${e.id}`, from: id, fromPort: undefined }
       : { ...e, id: `${ACROSS}${e.id}`, to: id, toPort: undefined };
@@ -141,4 +167,30 @@ function zone_of(graph: Graph, e: Relation, far: Id, near: Id): Zone {
 /** The zone whose wall is `side`. */
 function zone_at(wall: Record<Zone, Side>, side: Side): Zone {
   return (Object.keys(wall) as Zone[]).find((z) => wall[z] === side)!;
+}
+
+/** A card's name as it reads in a row. */
+function named(b: Block): string {
+  return b.name ?? b.id;
+}
+
+/** **What is across, with its outer ring** (context.md, agreed 3): an external joined to nothing
+ *  but the one across is folded into its card as a row (`content folder ← mndmap`). */
+function ringed(graph: Graph, far: Id, home: Id, layer: Id, all: readonly Relation[]): string {
+  const name = graph.blocks[far]?.name ?? far;
+  const touching = (id: Id) => all.filter((e) => owner_of(graph, e.from) === id
+    || owner_of(graph, e.to) === id);
+  const rows = touching(far).flatMap((e) => {
+    const [a, z] = [owner_of(graph, e.from), owner_of(graph, e.to)];
+    const other = a === far ? z : a;
+    if (other === far || other === layer || other === home || layer_of(graph, other) !== home) {
+      return [];
+    }
+    const only = touching(other).every((x) => [owner_of(graph, x.from), owner_of(graph, x.to)]
+      .every((end) => end === other || end === far));
+    const kind = block_base(graph, graph.blocks[other]?.type);
+    if (!only || kind === "actor") return [];
+    return [`${a === far ? "→" : "←"} ${graph.blocks[other]?.name ?? other}`];
+  });
+  return [name, ...rows].join(" ");
 }

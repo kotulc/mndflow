@@ -73,8 +73,31 @@ export function lifelined(graph: Graph, grid: Id, scene: Scene): Scene {
   };
   const lives = lifelines(g.cols, (c) => heads.get(c) ?? strip(c), whole);
   const owner = owner_frame(graph, grid, scene.nodes);
-  return { ...scene, nodes: [...(owner ? [owner] : []), ...scene.nodes, ...lives.nodes],
+  const frags = fragments(graph, grid, whole);
+  return { ...scene, nodes: [...(owner ? [owner] : []), ...frags, ...scene.nodes, ...lives.nodes],
            edges: [...lives.edges, ...edges], lifelines: grid };
+}
+
+/** **A sequence's fragments** (docs/diagrams/sequence.md, agreed 4 and 7): a frame across the
+ *  body's columns over each run of rows, named by its condition (`↻ each .md change`) or, for
+ *  alternatives, each run by its guard, the first led by `alt`; behind the cards. */
+function fragments(graph: Graph, grid: Id, room: Box): BoxNode[] {
+  const g = lattice_of(graph, grid);
+  const said = graph.blocks[grid]?.fragments ?? [];
+  if (!g || !said.length) return [];
+  const head = head_height(graph, grid);
+  const pad = UNIT / 4;
+  const span = (id: string, [a, z]: [number, number], label: string): BoxNode => {
+    const [top, foot] = [cell_box(g, a, 1, head), cell_box(g, z, g.cols - 1, head)];
+    const at = { x: room.x + top.x + pad, y: room.y + top.y + pad,
+                 w: foot.x + foot.w - top.x - pad * 2, h: foot.y + foot.h - top.y - pad * 2 };
+    return { ...cell(id, at, { label, marks: ["group", "flat"] }, "group"),
+             selectable: false, draggable: false, focusable: false };
+  };
+  return said.flatMap((f, i) => ("repeat" in f
+    ? [span(`@frag:${i}`, f.rows, `↻ ${f.repeat}`)]
+    : f.rows.map((r, j) => span(`@frag:${i}:${j}`, r,
+                                 `${j ? "" : "alt "}${f.alt[j] ?? ""}`.trim()))));
 }
 
 /** **The owner's frame over the head** (docs/diagrams/sequence.md *Layout*): round the

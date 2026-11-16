@@ -16,7 +16,7 @@
   },
   "settings": {
     "card": {
-      "face": "class"
+      "face": "table"
     }
   }
 }

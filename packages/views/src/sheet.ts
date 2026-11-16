@@ -27,7 +27,7 @@ export function sheet_graph(given: Graph, id: Id): Graph {
 }
 
 /** Whether a grid is drawn turned: a swimlane, its lanes stored as columns, on a landscape
- *  canvas. A turned grid is read only until a move in it is turned back. */
+ *  canvas. Its drawn cells name the stored ones (views `block.ts`), so a move lands as written. */
 export function turned(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
   const kind = b?.def ? id : b?.type;

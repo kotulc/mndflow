@@ -18,7 +18,7 @@ import { sheet_graph, turned, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { registry_scene } from "./registry";
 import { records_scene } from "./records";
-import { class_graph, DRAWN_BY } from "./classes";
+import { class_graph, field_rows, DRAWN_BY } from "./classes";
 import { outside_of, zone_spots, ACROSS } from "./across";
 import { tie_targets } from "./pack";
 import { box_of, cell as node, EMPTY, FRAME, type BoxData, type BoxNode, type Frame,
@@ -71,8 +71,9 @@ function banded(graph: Graph, scene: Scene): Scene {
   if (!datum || !graph.blocks[datum] || !scene.frame) return scene;
   const s = size_of(graph, datum);
   const at = { x: scene.frame.x, y: scene.frame.y - s.h - PAD * 2, w: s.w, h: s.h };
-  const card = { ...node(datum, at, { ...carried(graph, datum), marks: [...marks_of(graph, datum),
-                                                                         "definition" as const] }),
+  const facts = card_facts(graph, datum);
+  const card = { ...node(datum, at, { ...carried(graph, datum, "large"), ...(facts ? { facts } : {}),
+                                     marks: [...marks_of(graph, datum), "definition" as const] }),
                  draggable: false };
   return { ...scene, nodes: [...scene.nodes, card] };
 }
@@ -97,9 +98,16 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
    *  across, its lifelines behind its cards (`lifelined`). */
   if (layer !== GRID_LAYER && is_grid(given, layer)) {
     const { frame: _room, ...scene } = project(sheet_graph(given, layer), GRID_LAYER, config);
-    const still = turned(given, layer);
-    const nodes = scene.nodes.map((n) => (n.id !== layer ? (still ? { ...n, draggable: false } : n) : {
-      ...n, draggable: false, data: { ...n.data, marks: [...n.data.marks, "room" as const] } }));
+    /** A grid drawn turned (a swimlane) names its cells as stored, so a drop lands where it is
+     *  written (`sheet.ts` `turned`). */
+    const back = turned(given, layer);
+    const nodes = scene.nodes.map((n) => {
+      const grid = back && n.data.grid
+        ? { grid: n.data.grid.map((c) => ({ ...c, r: c.c, c: c.r })) } : {};
+      return n.id !== layer ? { ...n, data: { ...n.data, ...grid } } : {
+        ...n, draggable: false, data: { ...n.data, ...grid,
+                                        marks: [...n.data.marks, "room" as const] } };
+    });
     return lifelined(given, layer, { ...scene, layer, nodes, trail: trail_of(given, layer) });
   }
   /** What its usages read through. **No line is derived**: only stored relations draw. */
@@ -163,7 +171,10 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   let room = frame_of(graph, layer, drawn(boxes), config.room);
   let at = new Map<Id, Rect>(spots.filter((p) => !floating.has(p.id)).map((p) => [p.id, p]));
   if (room) at.set(FRAME, room);
-  let seating = seat_all(graph, linked, at, room && layer ? { id: FRAME, of: layer } : undefined);
+  /** A class or entity line leaves its card from a field's row (`classes.ts` `field_rows`). */
+  const rows = config.ends ? field_rows(graph, linked, at, config.ends) : new Map<string, number>();
+  let seating = seat_all(graph, linked, at, room && layer ? { id: FRAME, of: layer } : undefined,
+                         rows);
   let cards = boxes;
   if (floating.size && layer) {
     const on_wall = (id: Id) => {
@@ -183,7 +194,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
       }
       room = next;
       at.set(FRAME, room);
-      seating = seat_all(graph, linked, at, { id: FRAME, of: layer });
+      seating = seat_all(graph, linked, at, { id: FRAME, of: layer }, rows);
     }
     /** Place, and if a note opens the room, seat again and place once more against that room.
      *  The last place is aimed at these ports; seating again must not leave them elsewhere. */
@@ -205,11 +216,11 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
       at = new Map([...holders, ...cards].filter((n) => !floating.has(n.id))
         .map((n) => [n.id, box_of(n)]));
       at.set(FRAME, room);
-      seating = seat_all(graph, linked, at, { id: FRAME, of: layer });
+      seating = seat_all(graph, linked, at, { id: FRAME, of: layer }, rows);
     }
     at = new Map<Id, Rect>([...holders, ...cards].map((n) => [n.id, box_of(n)]));
     if (room) at.set(FRAME, room);
-    seating = seat_all(graph, linked, at, room ? { id: FRAME, of: layer } : undefined);
+    seating = seat_all(graph, linked, at, room ? { id: FRAME, of: layer } : undefined, rows);
     if (ports_moved(aimed, seating)) {
       const moved = sit_beside(graph, layer, spots, floating, at, seating, room);
       cards = cards.map((n) => {
@@ -218,7 +229,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
       });
       at = new Map<Id, Rect>([...holders, ...cards].map((n) => [n.id, box_of(n)]));
       if (room) at.set(FRAME, room);
-      seating = seat_all(graph, linked, at, room ? { id: FRAME, of: layer } : undefined);
+      seating = seat_all(graph, linked, at, room ? { id: FRAME, of: layer } : undefined, rows);
     }
   }
 

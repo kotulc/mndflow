@@ -29,6 +29,9 @@ export function diagram_file(kind: string, selection: Record<string, unknown>): 
   }
   const type = kind === "overview" ? "model" : kind;
   const map: Record<string, unknown> = { ...selection, type: selection["type"] ?? type };
+  if (kind === "sequence" && Array.isArray(map["participants"])) {
+    map["participants"] = participants_in_order(map);
+  }
   long_form(map, undefined, spec_of(type));
   const counted = count(kind, map);
   const warnings = counted.n < FLOOR_OF ? [
@@ -37,6 +40,31 @@ export function diagram_file(kind: string, selection: Record<string, unknown>): 
     + "would say it instead"] : [];
   const { owner: _owner, ...kept } = map;
   return { text: stringify(kept, { lineWidth: 0 }), warnings };
+}
+
+/** **A sequence's participants in order** (docs/diagrams/sequence.md, agreed 1 and 8): actors
+ *  first, then each by the first message it sends or receives; one no message reaches keeps its
+ *  place at the end. Read off the selection: a step's cell names its participant. */
+function participants_in_order(map: Record<string, unknown>): unknown[] {
+  const said = map["participants"] as unknown[];
+  const name = (p: unknown) => (typeof p === "string" ? p
+    : String((p as Record<string, unknown>)["name"] ?? ""));
+  const actor = (p: unknown) => typeof p === "object" && p !== null
+    && (p as Record<string, unknown>)["type"] === "actor";
+  const steps = new Map((Array.isArray(map["blocks"]) ? map["blocks"] : []).flatMap((b) => {
+    const m = b as Record<string, unknown>;
+    return Array.isArray(m["cell"]) ? [[String(m["name"]), String(m["cell"][1])] as const] : [];
+  }));
+  const ends = (Array.isArray(map["relations"]) ? map["relations"] : []).flatMap((r) => {
+    const text = typeof r === "string" ? r : Object.keys(r as object)[0] ?? "";
+    return text.split(":")[0]!.split(/\s*(?:<->|->|<-|--)\s*/).map((s) => s.trim());
+  });
+  const first = (p: unknown) => {
+    const at = ends.findIndex((s) => s === name(p) || steps.get(s) === name(p));
+    return at < 0 ? Infinity : at;
+  };
+  return said.map((p, i) => ({ p, i })).sort((a, z) => Number(actor(z.p)) - Number(actor(a.p))
+    || first(a.p) - first(z.p) || a.i - z.i).map((x) => x.p);
 }
 
 /** How a kind says its file is written (`diagram.file`), read off base. */
