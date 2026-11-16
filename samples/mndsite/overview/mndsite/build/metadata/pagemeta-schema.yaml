@@ -1,0 +1,8 @@
+name: PageMeta schema
+description: The record every page gets, and the data the whole site half reads.
+blocks:
+  - PageMeta
+  - Metrics
+  - Related
+  - Section
+type: class

@@ -1,0 +1,36 @@
+{
+  "id": "data-theme",
+  "name": "Theme",
+  "description": "Colours, type and the navbar and footer, resolved from presets.",
+  "def": {
+    "attributes": [
+      {
+        "name": "color",
+        "type": "text",
+        "note": "12 presets"
+      },
+      {
+        "name": "typeset",
+        "type": "text"
+      },
+      {
+        "name": "navbar",
+        "type": "text"
+      },
+      {
+        "name": "footer",
+        "type": "text"
+      },
+      {
+        "name": "hue",
+        "type": "number",
+        "note": "⟵ presets"
+      }
+    ]
+  },
+  "settings": {
+    "card": {
+      "face": "class"
+    }
+  }
+}

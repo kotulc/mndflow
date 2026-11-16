@@ -1,0 +1,20 @@
+name: browse by facet
+description: "Groups, filters, the view state, the sidebar views, the listing and the mobile drawer: browse pages by facet. The URL is the only state."
+blocks:
+  - name: sidebar
+    description: "SidebarViews: the group toggles and the value chips."
+  - name: view state
+    description: "ViewScope: the group, facet and value, read from and written to the URL."
+  - name: filters
+    description: "filters.js: values and pages per facet, over every page's PageMeta."
+  - name: listing
+    description: "IndexListing: the cards that replace the page body."
+  - name: views
+    type: page
+  - name: drawer
+    type: mobile
+relations:
+  - "sidebar -> view state: set view"
+  - "view state -> filters: group"
+  - "filters -> listing: pages"
+type: context

@@ -1,0 +1,8 @@
+name: ingest pipeline
+description: "Turns the content folder into what Next and Nextra build from: pages, _meta.json, copied assets and site-meta.json."
+blocks:
+  - name: mirror
+    type: ingest
+  - name: strip exif
+    type: fix-exif
+type: context

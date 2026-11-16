@@ -14,11 +14,12 @@ import { card_facts } from "./facts";
 import { lifelined } from "./lifelines";
 import { look_of, wire_of } from "./look";
 import { layer_map, section_map } from "./map";
-import { sheet_graph, GRID_LAYER } from "./sheet";
+import { sheet_graph, turned, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { registry_scene } from "./registry";
 import { records_scene } from "./records";
 import { class_graph, DRAWN_BY } from "./classes";
+import { outside_of, zone_spots, ACROSS } from "./across";
 import { tie_targets } from "./pack";
 import { box_of, cell as node, EMPTY, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
@@ -96,7 +97,8 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
    *  across, its lifelines behind its cards (`lifelined`). */
   if (layer !== GRID_LAYER && is_grid(given, layer)) {
     const { frame: _room, ...scene } = project(sheet_graph(given, layer), GRID_LAYER, config);
-    const nodes = scene.nodes.map((n) => (n.id !== layer ? n : {
+    const still = turned(given, layer);
+    const nodes = scene.nodes.map((n) => (n.id !== layer ? (still ? { ...n, draggable: false } : n) : {
       ...n, draggable: false, data: { ...n.data, marks: [...n.data.marks, "room" as const] } }));
     return lifelined(given, layer, { ...scene, layer, nodes, trail: trail_of(given, layer) });
   }
@@ -220,6 +222,27 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
     }
   }
 
+  /** **What is across its ports**, outside the frame, read only (`across.ts`): seated once to
+   *  find where its lines meet the walls, placed by them, then seated again with them all. */
+  let drawn_from = graph;
+  let lines = linked;
+  const outside = room && layer ? outside_of(graph, layer) : null;
+  if (outside && room && layer) {
+    drawn_from = outside.graph;
+    const frame = { id: FRAME, of: layer };
+    const first = seat_all(drawn_from, linked, at, frame);
+    const spots_out = zone_spots(drawn_from, outside, room, first);
+    for (const [id, r] of spots_out) at.set(id, r);
+    lines = [...linked, ...edges_in(drawn_from, layer).filter((e) => e.id.startsWith(ACROSS))
+      .map((e) => landed(e, layer))];
+    seating = seat_all(drawn_from, lines, at, frame);
+    cards = [...cards, ...[...spots_out].map(([id, r]) => {
+      const said = carried(drawn_from, id);
+      return { ...node(id, r, { ...said, marks: [...said.marks, "zone" as const] }, "card"),
+               draggable: false, selectable: false, focusable: false };
+    })];
+  }
+
   /** A seated interface draws over the card it sits on, so it comes last. */
   const seats: BoxNode[] = [...seating.ports]
     .filter(([id]) => graph.blocks[id]?.parent !== layer)
@@ -266,7 +289,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
     layer,
     ...(framed ? { frame: framed } : {}),
     nodes: placed,
-    edges: lines_of(graph, linked, seating, config.ends, merged),
+    edges: lines_of(drawn_from, lines, seating, config.ends, merged),
     perches: seating.perches,
     /** A slot says what this projection can offer, never what it is doing. */
     slots: SLOTS,

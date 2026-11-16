@@ -6,8 +6,8 @@ import type { Code } from "./read";
 import { stem_of, type Comp, type Levels, type Shape } from "./structure";
 
 /** **A target**: the outline a person expects of a translation — its containers by the modules
- *  each holds (path prefixes), and the entries its models start from. */
-export type Target = { containers?: Record<string, string[]>; models?: string[] };
+ *  each holds (path prefixes). */
+export type Target = { containers?: Record<string, string[]> };
 
 
 /** The report's lines. */
@@ -31,12 +31,6 @@ export function report(code: Code, shapes: Shape[], system: Levels): string[] {
     for (const c of s.levels.cycles) {
       out.push(`  cycle       ${c.map((a) => by.get(a)!.name).join(" ↔ ")}`);
     }
-    const name = (key: string) => by.get(key)?.name ?? stem_of(key);
-    for (const p of s.paths) {
-      out.push(`  path        ${stem_of(p.entry)}: ${p.steps.map((x) =>
-        `${name(x.from)} → ${name(x.to)} (${x.names.slice(0, 3).join(", ")}`
-        + `${x.names.length > 3 ? ` +${x.names.length - 3}` : ""})`).join(" · ")}`);
-    }
   }
   return out;
 }
@@ -57,8 +51,7 @@ function comp_lines(c: Comp, lead: string, indent: string): string[] {
 }
 
 /** **A translation against its target** (2026-11-08): each expected container matched to the one
- *  sharing most of its modules, with how many it shares; each expected model's entry, found or
- *  not; and how many units say what they are for. Guides, never decides. */
+ *  sharing most of its modules, with how many it shares; and how many units say what they are for. Guides, never decides. */
 export function against(code: Code, shapes: Shape[], target: Target): string[] {
   const mods = code.packages.flatMap((p) => p.modules);
   const out = ["", "against the target"];
@@ -69,11 +62,6 @@ export function against(code: Code, shapes: Shape[], target: Target): string[] {
       .sort((a, z) => z[1] - a[1])[0];
     out.push(`  container   ${name}: ${best ? `${best[0].name} ${best[1]}/${want.length}`
       : `none of ${want.length}`}`);
-  }
-  const starts = new Set(shapes.flatMap((x) => x.paths.filter((p) => p.steps.length >= 2)
-    .map((p) => p.entry)));
-  for (const m of target.models ?? []) {
-    out.push(`  model       ${m}: ${starts.has(m) ? "found" : "missing"}`);
   }
   const units = shapes.flatMap((x) => [...x.entry, ...x.foundation, ...x.comps.map((c) => c.anchor)]);
   const said = units.filter((u) => mods.find((m) => m.path === u)?.description).length;

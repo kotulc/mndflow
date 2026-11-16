@@ -1,0 +1,16 @@
+name: Translate page
+description: "ingest_page for one file: the page in, its mdx and its fields out."
+blocks:
+  - read
+  - frontmatter
+  - title
+  - body
+  - write
+  - links
+relations:
+  - "read -> frontmatter: raw"
+  - "frontmatter -> title: fm"
+  - "title -> body: title"
+  - "body -> write: body"
+  - "write -> links: mdx"
+type: flow

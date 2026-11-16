@@ -28,7 +28,9 @@ server.registerTool("fact", {
     + "(docs/tools/): entries, edges, runtimes, units, calls, data, workflows, schema, trace.",
   inputSchema: { name: z.enum(FACTS), project: z.string(), unit: z.string().optional(),
                  from: z.string().optional(), at: z.string().optional(),
-                 of: z.string().optional(), depth: z.number().optional() },
+                 of: z.string().optional(), depth: z.number().optional(),
+                 run: z.string().optional()
+                   .describe("trace only: the command to run in the project") },
 }, ({ name, project, ...asked }) => answer(() => fact(name, resolve(project), asked)));
 
 server.registerTool("draw", {

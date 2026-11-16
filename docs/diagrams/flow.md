@@ -14,7 +14,7 @@
 
 | | |
 |---|---|
-| **draw it** | a behaviour whose steps make a logical path (mndsite-plan.md *Open*: a projection gets a mapping instead) |
+| **draw it** | a behaviour whose steps make a logical path (the mndsite review: a projection gets a mapping instead) |
 | **skip it** | one or two steps: the frame's ports say it (mndsite part 2, `load_config`) |
 | **vs context** | the same frame; context's inside is parts that stand, a flow's is steps in order |
 | **vs sequence** | a sequence is messages between participants over time; a flow is one behaviour's steps with what passes between them |

@@ -1,0 +1,27 @@
+name: Config trace
+description: Where Config comes from and who reads it. Config travels as a file for React and as environment variables for Next; they never meet.
+datum: Config
+blocks:
+  - name: config file
+    type: external
+  - name: cli flags
+    type: external
+  - name: versions
+    type: external
+  - configuration
+  - ingest pipeline
+  - metadata
+  - runtime shell
+  - browse by facet
+  - name: next config
+    type: external
+relations:
+  - "config file -> configuration: Config 0.3"
+  - "cli flags -> configuration: paths"
+  - "versions -> configuration: release"
+  - "configuration -> ingest pipeline: Config"
+  - "configuration -> metadata: Config"
+  - "configuration -> runtime shell: site config"
+  - "configuration -> browse by facet: site config"
+  - "configuration -> next config: MNDSITE_OUTPUT"
+type: dataflow

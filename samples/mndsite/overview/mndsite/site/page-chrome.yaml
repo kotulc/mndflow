@@ -1,0 +1,8 @@
+name: page chrome
+description: Heading, rail, crumbs, header and chips round each page.
+blocks:
+  - name: tags
+    type: TagList
+  - name: links
+    type: link
+type: context

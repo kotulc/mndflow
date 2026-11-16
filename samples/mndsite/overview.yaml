@@ -1,0 +1,149 @@
+name: Overview
+description: "mndsite in its world: who runs it, what it reads and what it writes. Open mndsite for its two halves."
+blocks:
+  - name: Author
+    type: actor
+    description: Runs the npm scripts on a laptop.
+  - name: mndsite CI
+    type: actor
+    description: "This repo's workflows: on a push to main and on a v* tag."
+  - name: Consumer CI
+    type: actor
+    description: Another repo's CI, through the Docker image.
+  - name: Reader
+    type: actor
+    description: Reads the published site in a browser.
+  - name: mndmap
+    type: external
+    description: "Optional, upstream: organizes the Markdown mndsite renders."
+  - name: content folder
+    type: external
+    description: The Markdown and MDX tree, with _assets and images.
+  - name: config file
+    type: external
+    description: "mndsite.yaml: the one file that drives the build."
+  - name: git tags
+    type: external
+    description: Version tags and package.json, for the release and history.
+  - name: Next and Nextra
+    type: external
+    description: Next.js 14 and Nextra 2, a static export on Node 18.
+  - name: output folder
+    type: external
+    description: "dist: the static site."
+  - name: any host
+    type: external
+    description: "Pages, S3, Vercel: the caller publishes."
+  - name: GHCR
+    type: external
+    description: The mndsite image, :latest and :vX.Y.Z.
+relations:
+  - "Author -> mndsite: npm scripts"
+  - "mndsite CI -> mndsite: cli build"
+  - "Consumer CI -> mndsite: docker run"
+  - "mndsite CI -> GHCR: pushes image"
+  - "mndmap -> content folder: organizes"
+  - "content folder -> mndsite.content: md tree"
+  - "config file -> mndsite.config: Config"
+  - "git tags -> mndsite.versions: version tags"
+  - "mndsite.dist -> output folder: site"
+  - "output folder -> any host: published"
+  - "any host -> Reader: serves"
+  - dependency:
+      - "mndsite -> Next and Nextra: builds with"
+open:
+  - mndsite
+about:
+  - name: Presentations
+  - name: Entries
+    items:
+      - mndsite.cli build
+  - name: Library
+    items:
+      - Config
+      - PageMeta
+presentations:
+  - name: Build a site
+    description: "What every entry ends up running: the YAML and the content folder in, a static site out."
+    stops:
+      - title: mndsite in its world
+        at: mndsite
+        summary: Three kinds of caller run it; it reads a content folder, one YAML file and the git tags, and writes a static site.
+        steps:
+          - relation: content folder -> mndsite.content
+            text: The content folder comes in as a Markdown tree.
+          - relation: config file -> mndsite.config
+            text: mndsite.yaml comes in as Config, version 0.3.
+          - relation: mndsite.dist -> output folder
+            text: A static site goes out to the output folder.
+      - title: The build, in order
+        at: mndsite.Build a site
+        show: mndsite.Build a site
+        summary: cli build loads the config, writes site.config, ingests the content, then hands over to next build.
+        steps:
+          - relation: mndsite.Build a site.cli build -> mndsite.Build a site.load_config
+            text: The CLI loads and checks the YAML.
+          - relation: mndsite.Build a site.load_config -> mndsite.Build a site.write_site_config
+            text: Config is written out for the site half.
+          - relation: mndsite.Build a site.load_config -> mndsite.Build a site.ingest
+            text: Ingest mirrors the content into pages.
+          - relation: mndsite.Build a site.ingest -> mndsite.Build a site.next build
+            text: Next builds the static export from the pages and site-meta.
+      - title: Where the content lands
+        at: mndsite.build.ingest pipeline
+        open:
+          - mndsite
+          - mndsite.build
+        summary: Ingest turns every page into MDX and a PageMeta record, which the site half reads.
+        steps:
+          - relation: mndsite.build.configuration -> mndsite.build.ingest pipeline
+            text: Ingest reads Config for its keys and paths.
+          - relation: mndsite.build.ingest pipeline -> mndsite.build.metadata
+            text: Each page's fields go to metadata.
+          - relation: mndsite.build.metadata -> mndsite.build.ingest pipeline
+            text: A PageMeta record comes back for site-meta.json.
+  - name: Release
+    description: What CI does on a push to main and on a tag.
+    stops:
+      - title: Two triggers
+        at: mndsite.Release
+        show: mndsite.Release
+        summary: A push to main builds and deploys the site; a v* tag publishes the image.
+        steps:
+          - relation: mndsite.Release.push main -> mndsite.Release.build job
+            text: A push to main runs cli build with full history.
+          - relation: mndsite.Release.build job -> mndsite.Release.deploy job
+            text: The site deploys to GitHub Pages.
+          - relation: mndsite.Release.build job -> mndsite.Release.publish job
+            text: It also pushes :latest to GHCR, though the README says only tags do.
+          - relation: mndsite.Release.tag v -> mndsite.Release.publish job
+            text: A v* tag publishes the versioned image.
+  - name: Edit and preview
+    description: The author's loop, from saving a page to seeing it.
+    stops:
+      - title: The dev loop
+        at: mndsite.Edit and preview
+        show: mndsite.Edit and preview
+        summary: "Two terminals: next dev serves the pages, watch re-runs ingest on every saved page."
+        steps:
+          - relation: mndsite.Edit and preview.saves -> mndsite.Edit and preview.notices
+            text: The author saves a page; watch sees the change.
+          - relation: mndsite.Edit and preview.notices -> mndsite.Edit and preview.ingests
+            text: watch runs ingest again as a child process.
+          - relation: mndsite.Edit and preview.ingests -> mndsite.Edit and preview.reloads
+            text: New pages land; next dev hot-reloads them.
+  - name: Browse by facet
+    description: A reader picks a group and a value; the URL holds the state.
+    stops:
+      - title: Pick a facet
+        at: mndsite.site.browse by facet.Browse
+        show: mndsite.site.browse by facet.Browse
+        summary: "The feature mndsite adds to Nextra: browse pages by tag, date or version."
+        steps:
+          - relation: mndsite.site.browse by facet.Browse.clicks Tags -> mndsite.site.browse by facet.Browse.set view
+            text: The reader clicks the Tags toggle; the sidebar switches view.
+          - relation: mndsite.site.browse by facet.Browse.values of tags -> mndsite.site.browse by facet.Browse.value chips
+            text: The values of tags show as chips in place of the page tree.
+          - relation: mndsite.site.browse by facet.Browse.pages with nextra -> mndsite.site.browse by facet.Browse.cards
+            text: The pages tagged nextra replace the page body.
+type: model

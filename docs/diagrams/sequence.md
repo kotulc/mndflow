@@ -66,3 +66,5 @@ relations:
 | 4 | repeats and alternatives are fragments across rows, named by condition or guard; guards in flow's brackets |
 | 5 | long sequences cut into sub sequences past a default, under the sub diagram floor |
 | 6 | a message has a dot at its origin and an arrow where it lands |
+| 7 | **fragments are written as groups of rows** (2026-11-15): a `fragments:` list on the sequence, `{ repeat: each .md change, rows: [2, 4] }` or `{ alt: ["[cache hit]", "[miss]"], rows: [[2, 3], [4, 5]] }`, the rows the grid's own |
+| 8 | **participant order is written by the tool** (2026-11-15): `participants:` keeps file order; `mnd draw sequence` sorts them by decision 1 when it writes; the view never reorders |

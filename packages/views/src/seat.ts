@@ -93,7 +93,11 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
   /** Which way a card end looks: at the room's nearest wall, else at the other end. */
   const face_of = (id: Id, far: Id): Side => {
     const box = boxes.get(id)!;
-    if (room && owner(far) === frame!.id) return ports.get(far)?.side ?? nearest(room, box);
+    /** Inside the room it looks at the wall; outside it (what is across) it looks back at it. */
+    if (room && owner(far) === frame!.id) {
+      const side = ports.get(far)?.side ?? nearest(room, box);
+      return holds_box(room, box) ? side : OPPOSITE[side];
+    }
     const other = owned.has(far) && ports.has(far) ? at_seat(box_of(far)!, ports.get(far)!)
                                                     : box_of(far)!;
     return facing(box, other);
@@ -475,4 +479,10 @@ function nearest(box: Rect, other: Rect): Side {
   };
   return (["left", "right", "top", "bottom"] as const)
     .reduce((a, b) => (gap[b] < gap[a] ? b : a));
+}
+
+/** Whether a box lies wholly inside another. */
+function holds_box(outer: Rect, inner: Rect): boolean {
+  return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w
+    && inner.y + inner.h <= outer.y + outer.h;
 }

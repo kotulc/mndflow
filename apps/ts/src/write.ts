@@ -1,14 +1,12 @@
-/** A project's structure written as a source folder, in the `ts` package's kinds, for `collect`,
- *  in the file syntax (docs/syntax-plan.md): **definitions are JSON, models are YAML**, and a file
- *  names its package's definitions bare, so every unit's name is unique in the package.
+/** A project's **library** written as a source folder, in the `ts` package's kinds, for `collect`:
+ *  **definitions are JSON, units YAML**, and a file names its package's definitions bare, so every
+ *  unit's name is unique in the package. **It writes no models** (2026-11-15): a person or an agent
+ *  composes those with the tools (docs/tools/), beside what is written here.
  *
  *  - `<pkg>/<unit>.yaml`: every unit a model, filed by package (`parts` for a lone one) — an entry
  *    module (tagged `entry`), a component, a shared module (tagged `shared`), in reading order. A
  *    component's modules are its parts, with the lines between them, or its own components where
  *    it splits again, each a file under `<pkg>/<component>/`; a module's API functions its parts
- *  - `<n>-<entry>.yaml`: a model per entry path of two steps or more, `n` its reading order, the
- *    most salient path first: uses of the units the path passes through in first-visit order, then
- *    the shared modules they lean on; a line a step, in order, named by what is called
  *  - `types/<pkg>/<owner>/<Type>.json`: the shared types, each a definition in the folder of the
  *    unit owning it, a field typed by another its link to it
  *  - `outside/<actor>.json`: the system's edge — the file system, the commands it runs, the
@@ -27,8 +25,7 @@ import { dirname, join } from "node:path";
 import { stringify } from "yaml";
 import type { Code, Field, Flow, Mod, Pkg } from "./read";
 import { ALL } from "@mnd/defs";
-import { stem_of, units_of, values_of, type Comp, type Levels, type Path,
-         type Shape } from "./structure";
+import { stem_of, units_of, values_of, type Comp, type Levels, type Shape } from "./structure";
 
 /** What the files are written in: the `ts` package's kinds. */
 const KIND = { component: "ts.component", module: "ts.module", function: "ts.function",
@@ -52,11 +49,10 @@ const LISTED = 4;
 type Refs = Map<string, { name: string; pkg: string }>;
 
 /** The ts package's tags for a package's entry points and its shared modules, the most names a
- *  line says before counting the rest, and the fewest steps a path tells as a model. */
+ *  line says before counting the rest, and the most shared types a unit lists. */
 const TAGS = { entry: "ts.entry", shared: "ts.shared" } as const;
 const SAID = 2;
 const READS = 6;
-const LEAST = 2;
 
 /** What `base` names, in every file's scope: never a unit's name too. */
 const BASE_NAMES = ALL.map((d) => d.name ?? d.id);
@@ -110,7 +106,6 @@ export function files_of(code: Code, shapes: Shape[], system: Levels): Map<strin
       description: ACTORS[a] ?? (hosts.has(a) ? `The framework running the code: ${a}.`
         : `A command the code runs: ${a}.`) }));
   }
-  model_files(sorted, refs, new Set(names.values()), out);
   out.set("package.json", `${JSON.stringify({
     schema: "1.0", id: code.name, imports: { ts: "ts" },
     graph: { root: code.name, edges: {}, blocks: { [code.name]: {
@@ -181,77 +176,6 @@ function ranked(shape: Shape): Comp[] {
 function unit_names(shape: Shape): Map<string, string> {
   return named([...shape.entry, ...shape.foundation].map((path) => [path, stem_of(path)]),
                ranked(shape).map((c) => [c.anchor, c.name]));
-}
-
-/** **The models**: one per entry path of `LEAST` steps or more, the most salient first — the
- *  summed salience of the modules its units hold — each numbered by its place so the package
- *  reads them in that order. */
-function model_files(shapes: Shape[], refs: Refs, folders: Set<string>,
-                     out: Map<string, string>): void {
-  const weight = new Map(shapes.flatMap((x) => [...x.weight]));
-  const held = new Map(shapes.flatMap((x) => x.comps.map((c) => [c.anchor, c.modules] as const)));
-  const holds = (key: string) => held.get(key) ?? [key];
-  const shared = new Set(shapes.flatMap((x) => x.foundation));
-  const mod = new Map(shapes.flatMap((x) => x.pkg.modules.map((m) => [m.path, m] as const)));
-  const told = shapes.flatMap((x) => x.paths).filter((p) => p.steps.length >= LEAST)
-    .map((p) => {
-      const keys = [p.entry, ...p.steps.flatMap((x) => [x.from, x.to])]
-        .filter((k, i, all) => all.indexOf(k) === i);
-      const score = keys.flatMap(holds).reduce((n, m) => n + (weight.get(m) ?? 0), 0);
-      return { p, keys, score };
-    })
-    .sort((a, z) => z.score - a.score || a.p.entry.localeCompare(z.p.entry));
-  /** Named by how its entry is entered, led by its package's name where two share one, never as
-   *  a folder. */
-  const bare = told.map(({ p }) => entry_name(mod.get(p.entry)!.entered?.[0],
-                                              refs.get(p.entry)!.name));
-  told.forEach(({ p, keys }, i) => {
-    /** The shared modules its units import: leaned on, never stepped into. */
-    const leaned = [...new Set(keys.flatMap(holds).flatMap((m) => mod.get(m)?.imports ?? [])
-      .map((x) => x.path).filter((m) => shared.has(m) && !keys.includes(m)))].sort();
-    const name = bare.indexOf(bare[i]!) === bare.lastIndexOf(bare[i]!) ? bare[i]!
-      : `${refs.get(p.entry)!.pkg}-${bare[i]}`;
-    const title = folders.has(name) ? `${name} path` : name;
-    const entry = mod.get(p.entry)!;
-    /** **The outside the path reaches**: each actor its units touch, a line from each. */
-    const reach = new Map(keys.map((k) => [k, holds(k).flatMap((m) => mod.get(m)?.touches ?? [])]));
-    const said = entry.description ?? "";
-    out.set(`${i + 1}-${slug(title)}.yaml`, yaml(model_of(title, said, p, [...keys, ...leaned],
-                                                           refs, reach)));
-  });
-}
-
-/** **A model's name, by how its entry is entered** (2026-11-08): a package script as it is run
- *  (`npm run ingest`), anything else as what enters which unit (`Docker → cli`, `nextra →
- *  theme-config`, a page's script `browser → main`); its unit's name where nothing declares it. A
- *  name holds no `.`. */
-function entry_name(how: string | undefined, unit: string): string {
-  if (!how) return unit;
-  const script = how.match(/^script (.+)$/)?.[1];
-  const by = how.replace(/^Dockerfile \w+$/, "Docker").replace(/^index\.html$/, "browser");
-  return script ? `npm run ${script}` : `${by} → ${unit}`;
-}
-
-/** **One path's model**: a use of each unit it passes through, then of those it leans on, named
- *  by its unit, led by its package's name where two share one; a line a step, in order, named by
- *  what is called; then the outside its units reach, a line from each unit reaching it. */
-function model_of(name: string, said: string, path: Path, keys: string[], refs: Refs,
-                  reach: Map<string, string[]>): Record<string, unknown> {
-  const local = new Map(keys.map((k) => [k, refs.get(k)!.name]));
-  const taken = new Set(local.values());
-  const actors = [...new Set([...reach.values()].flat())].filter((a) => !taken.has(a));
-  return {
-    name, type: "model",
-    ...(said ? { description: said } : {}),
-    blocks: [...keys.map((k) => ({ name: local.get(k)!, type: refs.get(k)!.name })),
-             ...actors.map((a) => ({ name: a, type: a }))],
-    relations: dependencies([...path.steps.map((x) => {
-      const key = `${local.get(x.from)} -> ${local.get(x.to)}`;
-      const said = said_of(x.names);
-      return said ? { [key]: said } : key;
-    }), ...keys.flatMap((k) => [...new Set(reach.get(k) ?? [])].filter((a) => actors.includes(a))
-      .map((a) => `${local.get(k)} -> ${a}`))]),
-  };
 }
 
 /** **The vocabulary written**: each shared type a JSON definition in `types/<pkg>/<owner>/` — its

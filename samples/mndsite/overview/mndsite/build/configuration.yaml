@@ -1,0 +1,6 @@
+name: configuration
+description: "Loads mndsite.yaml, merges defaults, checks it and writes it out twice: in memory for the build, as site.config.js for the site."
+blocks:
+  - name: load
+    type: config
+type: context

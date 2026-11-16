@@ -6,7 +6,7 @@
  *  a band in order — columns where the flow runs across, rows where it runs down, whichever fits
  *  the canvas — so lines run from band to band. */
 
-import { children, drawn_in, edges_in, holders_in, inline, is_grid, is_group, is_interface,
+import { chain_of, children, drawn_in, edges_in, holders_in, inline, is_grid, is_group, is_interface,
          is_region, members_of, owner_of, type Graph, type Id } from "@mnd/core";
 import type { ELK, ElkNode } from "elkjs/lib/elk-api";
 import { celled } from "./bands";
@@ -62,8 +62,13 @@ export function place(graph: Graph, layer: Id): Promise<Placement> {
  *  marked. */
 type Box = { id: Id; w?: number; h?: number; kids?: Box[]; region?: true };
 
-/** What ELK is given: the boxes, and the lines between them by their ends. */
-type Spec = { root: Box; lines: [Id, Id][] };
+/** What ELK is given: the boxes, and the lines between them by their ends; for a behaviour,
+ *  `main`, each step's first line (`from\nto`), kept straight along one axis. */
+type Spec = { root: Box; lines: [Id, Id][]; main?: Set<string> };
+
+/** **The kinds laid along an axis** (docs/diagrams/flow.md *Layout*): steps in one row along the
+ *  canvas's long side, never wrapped, each step's first line straight on it. */
+const ALONG = ["flow", "state", "dataflow"];
 
 /** A group's compound: a box of its members. */
 const compound = (id: Id, kids: Box[]): Box => ({ id, kids });
@@ -97,7 +102,12 @@ function spec_of(graph: Graph, layer: Id): Spec {
     const [a, b] = [lift(e.from), lift(e.to)];
     if (a && b && a !== b) lines.push([a, b]);
   }
-  return { root, lines };
+  const kind = graph.blocks[layer]?.def ? layer : graph.blocks[layer]?.type;
+  if (!chain_of(graph, kind).some((d) => ALONG.includes(d.id))) return { root, lines };
+  /** A step's first line, in list order, is its main way on. */
+  const firsts = new Map<Id, Id>();
+  for (const [a, b] of lines) if (!firsts.has(a)) firsts.set(a, b);
+  return { root, lines, main: new Set([...firsts].map(([a, b]) => `${a}\n${b}`)) };
 }
 
 /** What a container places: its blocks, less interfaces, groups and what sits in a grid's cells. */
@@ -190,7 +200,8 @@ async function laid_out(spec: Spec): Promise<Placement> {
     }
     const edges = [...pairs].map((p, i) => {
       const [a, b] = p.split("\n");
-      return { id: `e${i}`, sources: [a!], targets: [b!] };
+      return { id: `e${i}`, sources: [a!], targets: [b!],
+               ...(spec.main?.has(p) ? { layoutOptions: STRAIGHT } : {}) };
     });
     const run = async (opts: Record<string, string>) => {
       const out: ElkNode = await E.layout({
@@ -203,7 +214,12 @@ async function laid_out(spec: Spec): Promise<Placement> {
         : Math.abs(Math.log(Math.max(1, w) / Math.max(1, h) / how.aim));
       return { out, score };
     };
-    const tries = !kids.length ? [] : edges.length
+    /** A behaviour runs one way, along the canvas's long side, never wrapped. */
+    const along = spec.main && box.id === spec.root.id;
+    const tries = !kids.length ? [] : along
+      ? [await run({ ...layered(SHAPE.aspect >= 1 ? "RIGHT" : "DOWN"),
+                     "elk.layered.wrapping.strategy": "OFF" })]
+      : edges.length
       ? await Promise.all(["DOWN", "RIGHT"].map((dir) => run(layered(dir))))
       : await Promise.all(GOALS.flatMap((goal) => AIMS.map((f) => run(packed(goal, f, how)))));
     const best = tries.sort((a, b) => a.score - b.score)[0];
@@ -395,6 +411,10 @@ function packed(goal: string, f: number, how: How): Record<string, string> {
              ? { "elk.rectpacking.widthApproximation.targetWidth": String(Math.round(how.width * f)) }
              : {}) };
 }
+
+/** What keeps a main line straight: ELK's priorities for it. */
+const STRAIGHT = { "elk.layered.priority.straightness": "10",
+                   "elk.layered.priority.direction": "10" };
 
 /** ELK's packing lands unevenly round its target: two goals, each aimed a little either side. */
 const GOALS = ["MAX_SCALE_DRIVEN", "ASPECT_RATIO_DRIVEN"];

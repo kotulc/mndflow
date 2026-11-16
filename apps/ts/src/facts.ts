@@ -6,6 +6,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { parse } from "yaml";
 import { read_code, type Code, type Mod } from "./read";
+import { trace } from "./trace";
 
 /** The fact tools, by name. */
 export const FACTS = ["entries", "edges", "runtimes", "units", "calls", "data", "workflows",
@@ -13,8 +14,9 @@ export const FACTS = ["entries", "edges", "runtimes", "units", "calls", "data", 
 
 export type FactName = (typeof FACTS)[number];
 
-/** What a fact tool is asked beside its source: a unit, a start, a datum, a depth. */
-export type Asked = { unit?: string; from?: string; at?: string; of?: string; depth?: number };
+/** What a fact tool is asked beside its source: a unit, a start, a datum, a depth, a command. */
+export type Asked = { unit?: string; from?: string; at?: string; of?: string; depth?: number;
+                      run?: string };
 
 /** Where a fact comes from: a file, and the symbol in it where there is one. */
 type Anchor = { file: string; symbol?: string };
@@ -24,10 +26,7 @@ type Anchor = { file: string; symbol?: string };
  *  not one the tool answers. */
 export function fact(name: FactName, root: string, asked: Asked = {}): unknown {
   if (name === "workflows") return workflows(root);
-  if (name === "trace") {
-    throw new Error("trace is not built: it runs a command on a sample and watches the files it "
-      + "touches (docs/tools/trace.md)");
-  }
+  if (name === "trace") return trace(root, asked.run ?? "");
   const code = read_code(root);
   const mods = code.packages.flatMap((p) => p.modules);
   if (name === "entries") return entries(mods);

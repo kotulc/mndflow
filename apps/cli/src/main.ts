@@ -32,6 +32,7 @@ const USAGE = `mnd — the headless harness
 
   tools (docs/tools/): plain commands a person or an agent composes models with
   mnd fact <name> <project> [--unit u] [--from m.fn] [--at m.fn] [--of name] [--depth n]
+                            [--run "<command>"]  (trace)
                                        one question of a project's source, as JSON: entries,
                                        edges, runtimes, units, calls, data, workflows, schema,
                                        trace
@@ -126,7 +127,7 @@ function flag(args: string[], name: string): string | undefined {
 
 /** The flags that take the argument after them. */
 const VALUED = ["--how", "--layer", "--from", "--with", "--unit", "--at", "--of", "--depth",
-                "--as"];
+                "--as", "--run"];
 
 /** The positional arguments. */
 function loose(args: string[]): string[] {
@@ -383,13 +384,16 @@ async function tool(verb: string, first: string, rest: string[]): Promise<void> 
     if (verb === "fact") {
       /** The source reader (ts-morph) loads only for a fact. */
       const { fact, FACTS } = await import("@mnd/ts");
+      /** The command `trace` runs, quoted whole. */
+      const run = flag(rest, "run");
       const [project] = loose(rest);
       if (!(FACTS as readonly string[]).includes(first) || !project) {
         fail(`mnd fact <${FACTS.join("|")}> <project>`, 2);
       }
       const depth = flag(rest, "depth");
       const asked = { unit: flag(rest, "unit"), from: flag(rest, "from"), at: flag(rest, "at"),
-                      of: flag(rest, "of"), ...(depth ? { depth: Number(depth) } : {}) };
+                      of: flag(rest, "of"), ...(depth ? { depth: Number(depth) } : {}),
+                      ...(run ? { run } : {}) };
       console.log(JSON.stringify(fact(first as (typeof FACTS)[number], resolve(project!), asked),
                                  null, 2));
       return;

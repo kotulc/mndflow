@@ -1,0 +1,8 @@
+name: runtime shell
+description: "The app and Nextra's theme config: what wraps every page."
+blocks:
+  - name: app
+    type: _app
+  - name: theme
+    type: theme-config
+type: context

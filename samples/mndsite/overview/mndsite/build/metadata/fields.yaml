@@ -1,0 +1,10 @@
+name: Fields
+description: "Where each PageMeta field comes from: build_page has no order, so this is the picture."
+records:
+  - "Frontmatter.date -> PageMeta.published: first 10 characters; empty if none"
+  - "Frontmatter.description -> PageMeta.desc: the first key with a value"
+  - "Frontmatter.reading_time -> Metrics.reading_time: whole minutes above 0, never estimated"
+  - "Frontmatter.related -> PageMeta.related: strings or {url, title} become {url, name}"
+  - "Frontmatter.facets -> PageMeta.facets: trimmed, lists de-duplicated, semver normalized"
+  - "Section.name -> PageMeta.sections: ## and ### as a nested tree"
+type: mapping

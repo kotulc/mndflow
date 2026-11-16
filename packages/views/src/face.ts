@@ -226,17 +226,28 @@ export function table(rows: readonly Listed[], marks = 0): Ruled | null {
   return { cells, widths };
 }
 
-/** What a card's attributes list. A stand-in for a definition lists what it declares, with its
- *  defaults, and so does a block holding usages of one. Anything else lists what it answers,
- *  then whatever it answers beyond them. */
-/** **What a face shows of its attributes** (2026-11-08): those answered, where any is; a block
- *  answering none — a kind's own schema — shows them all, each by its type. */
+/** **What a face shows of its attributes** (2026-11-15): a schema — a definition, a stand-in for
+ *  one, a block holding usages of one — shows them all, each by its type; a usage only those it
+ *  or its definition answers, never an empty row. */
 export function answered(graph: Graph, id: Id): Listed[] {
   const all = listed(graph, id);
-  const said = all.filter((r) => r.value);
-  return said.length ? said : all;
+  return schema_of(graph, id) ? all : all.filter((r) => r.value);
 }
 
+/** The definition whose schema a block shows whole: its own, what it stands in for, or the one
+ *  its usages are of; none for a plain usage. */
+function schema_of(graph: Graph, id: Id): Id | undefined {
+  const b = graph.blocks[id];
+  if (!b) return undefined;
+  if (b.def) return b.id;
+  const stands_in = resolved(graph, id).stands_in;
+  if (stands_in) return stands_in.id;
+  const held = schema_def(graph, id);
+  return held && held !== b.type ? held : undefined;
+}
+
+/** What a card's attributes list. A schema (`schema_of`) lists what it declares, with its
+ *  defaults. Anything else lists what it answers, then whatever it answers beyond them. */
 export function listed(graph: Graph, id: Id): Listed[] {
   const b = graph.blocks[id];
   if (!b) return [];
@@ -250,11 +261,8 @@ export function listed(graph: Graph, id: Id): Listed[] {
     ...(links_to(graph, a) ? { link: true } : {}), ...(a.default ? { value: a.default } : {}),
     ...(a.note ? { note: a.note } : {}),
   }));
-  if (b.def) return declared(b.id);
-  const stands_in = resolved(graph, id).stands_in;
-  if (stands_in) return declared(stands_in.id);
-  const held = schema_def(graph, id);
-  if (held && held !== b.type) return declared(held);
+  const schema = schema_of(graph, id);
+  if (schema) return declared(schema);
   const own = b.values ?? [];
   const asked = declared(b.type ?? "");
   const extra = own.filter((v) => !asked.some((a) => a.name === v.name))

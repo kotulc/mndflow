@@ -1,0 +1,32 @@
+{
+  "id": "data-facet",
+  "name": "Facet",
+  "description": "A frontmatter key readers browse by.",
+  "def": {
+    "attributes": [
+      {
+        "name": "key",
+        "type": "text",
+        "many": true
+      },
+      {
+        "name": "label",
+        "type": "text"
+      },
+      {
+        "name": "color",
+        "type": "text"
+      },
+      {
+        "name": "sort",
+        "type": "text",
+        "note": "alpha · semver · date"
+      }
+    ]
+  },
+  "settings": {
+    "card": {
+      "face": "class"
+    }
+  }
+}

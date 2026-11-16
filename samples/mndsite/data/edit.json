@@ -1,0 +1,22 @@
+{
+  "id": "data-edit",
+  "name": "Edit",
+  "description": "The edit-this-page link.",
+  "def": {
+    "attributes": [
+      {
+        "name": "label",
+        "type": "text"
+      },
+      {
+        "name": "branch",
+        "type": "text"
+      }
+    ]
+  },
+  "settings": {
+    "card": {
+      "face": "class"
+    }
+  }
+}

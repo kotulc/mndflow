@@ -35,16 +35,28 @@
 | types | class, entity |
 | treemap | overview: one tree view for the map, a model and a registry |
 
-**Surface**: CLI first, MCP a thin wrapper over the same commands. **Built 2026-11-15**: every tool but `trace`, which says it is not built.
+**Surface**: CLI first, MCP a thin wrapper over the same commands. **Built 2026-11-15**: every tool, `trace` included.
 
 | Command | Does | Home |
 |---|---|---|
-| `mnd fact <name> <project> [--unit u] [--from m.fn] [--at m.fn] [--of name] [--depth n]` | one question of a project's source, as JSON, every fact with its source | apps/ts `facts.ts` |
+| `mnd fact <name> <project> [--unit u] [--from m.fn] [--at m.fn] [--of name] [--depth n] [--run "<command>"]` | one question of a project's source, as JSON, every fact with its source | apps/ts `facts.ts` |
 | `mnd draw <kind> <selection.json> [out.yaml] [--force]` | a diagram file of any kind, or `overview`, from a selection: a diagram file's map as JSON, read back through the file syntax before it is written; warns below the floor; never overwrites without `--force` | cli `tools.ts` `diagram_file` |
 | `mnd presentation list\|draft\|check <model.yaml>` | a model's presentations; one drafted from a flow or sequence (`--from`, `--as` its name as the model reaches it); what does not resolve | cli `tools.ts`, `main.ts` |
 | `npm run mcp -w @mnd/cli` | the same over MCP, on stdio: `fact`, `draw`, `presentation_list`, `presentation_draft` | cli `mcp.ts` |
 
 **Testing the MCP surface** (kept 2026-11-15 to see how it changes the interface for agents): register it from the repo root with `claude mcp add mnd -- npm run mcp -s -w @mnd/cli`, then compare an agent composing a model through it against the same agent using the CLI.
+
+**Spot check, 2026-11-15** (mndsite composed through the CLI; one flow and one presentation draft through both): the same answers both ways. What differs:
+
+| | MCP | CLI |
+|---|---|---|
+| writing | returns text; the caller writes | writes the file; refuses to overwrite without `--force` |
+| `presentation check` | no tool | works only on a model inside its package |
+| paths | `project` from where the server runs, `model` and `from` from apps/cli | the same split |
+| `draw`'s selection | an untyped object: its keys learnt from a sample | the same, from a JSON file |
+| `presentation draft` | the whole model file back | the same with `--dry`; else written |
+
+Open from it: a `presentation_check` tool, and a check of a draft before it is written; one stated base for every path (or absolute paths, said in the schema); a per-kind selection schema or example in `draw`'s description; a draft returning only its new presentation; `calls` gives no data labels, which a `data` call adds.
 
 Worked examples for the hand-drawn kinds are in docs/tools/examples/, each a selection `draw` writes.
 

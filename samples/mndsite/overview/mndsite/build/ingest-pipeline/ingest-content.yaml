@@ -1,0 +1,19 @@
+name: Ingest content
+description: "ingest.run: what it does to the targets, in order."
+blocks:
+  - clear targets
+  - copy assets
+  - mirror tree
+  - history
+  - write site-meta
+  - sync components
+  - report links
+relations:
+  - clear targets -> copy assets
+  - copy assets -> mirror tree
+  - "mirror tree -> history: [versioning.history]"
+  - "history -> write site-meta: PageMeta"
+  - "mirror tree -> write site-meta: PageMeta"
+  - write site-meta -> sync components
+  - sync components -> report links
+type: flow

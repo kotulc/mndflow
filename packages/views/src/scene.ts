@@ -170,6 +170,8 @@ export type LineData = {
   also?: string[];
   /** Where its cross leg sits, out from the end its lines fan from. */
   fan?: Fan;
+  /** A message on a lifeline: a dot where it leaves (docs/diagrams/sequence.md). */
+  origin?: boolean;
   /** A run already drawn, in the scene's own coordinates. Routing is skipped. */
   points?: readonly { x: number; y: number }[];
   /** Whether `points` is a routed run, given up for one drawn afresh once an end moves. */
@@ -199,13 +201,14 @@ export function heads(data: LineData | undefined): { from: Head; to: Head } {
   const to = dir === "forward" || dir === "both";
   const from = dir === "back" || dir === "both";
   return {
-    from: data?.wire?.from_arrow ?? meant(data, "from") ?? (from ? "arrow" : "none"),
+    from: data?.wire?.from_arrow ?? meant(data, "from")
+      ?? (from ? "arrow" : data?.origin ? "dot" : "none"),
     to: data?.wire?.to_arrow ?? meant(data, "to") ?? (to ? "arrow" : "none"),
   };
 }
 
 /** A head: one a line may name, or one only what an end means draws. */
-export type Head = Arrow | "filled" | "one" | "many" | "zero_one" | "zero_many";
+export type Head = Arrow | "filled" | "one" | "many" | "zero_one" | "zero_many" | "dot";
 
 /** The head an end's meaning draws, or none said. */
 function meant(data: LineData | undefined, way: "from" | "to"): Head | undefined {
@@ -416,7 +419,8 @@ export function faults(scene: Scene): string[] {
   for (const n of scene.nodes) {
     const seated = n.data.on;
     if (seated && !ids.has(seated)) out.push(`node ${n.id} is seated on nothing drawn`);
-    if (!scene.frame) continue;
+    /** What is across the frame's ports sits outside it by design (`across.ts`). */
+    if (!scene.frame || n.data.marks.includes("zone")) continue;
     const f = scene.frame;
     const b = box_of(n);
     if (b.x < f.x || b.y < f.y || b.x + b.w > f.x + f.w || b.y + b.h > f.y + f.h) {

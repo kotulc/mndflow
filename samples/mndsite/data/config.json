@@ -1,0 +1,71 @@
+{
+  "id": "data-config",
+  "name": "Config",
+  "description": "The one YAML file that drives the whole build, loaded and checked; its minor version is the config contract.",
+  "def": {
+    "attributes": [
+      {
+        "name": "title",
+        "type": "text",
+        "note": "required"
+      },
+      {
+        "name": "description",
+        "type": "text"
+      },
+      {
+        "name": "repo_url",
+        "type": "text"
+      },
+      {
+        "name": "footer",
+        "type": "text"
+      },
+      {
+        "name": "nav_order",
+        "type": "text",
+        "note": "slug → [page]"
+      },
+      {
+        "name": "theme",
+        "type": "data-theme"
+      },
+      {
+        "name": "frontmatter",
+        "type": "data-frontmatter"
+      },
+      {
+        "name": "versioning",
+        "type": "data-versioning"
+      },
+      {
+        "name": "display",
+        "type": "data-display"
+      },
+      {
+        "name": "edit",
+        "type": "data-edit"
+      },
+      {
+        "name": "content",
+        "type": "text",
+        "note": "path"
+      },
+      {
+        "name": "output",
+        "type": "text",
+        "note": "path"
+      },
+      {
+        "name": "release",
+        "type": "text",
+        "note": "⟵ package.json · git tag"
+      }
+    ]
+  },
+  "settings": {
+    "card": {
+      "face": "class"
+    }
+  }
+}

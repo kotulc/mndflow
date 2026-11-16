@@ -1,0 +1,34 @@
+name: mndsite
+description: "A static site renderer: a folder of Markdown and one YAML file in, a static site out. The build half runs once in Node; the site half runs in the reader's browser; they meet only through generated files."
+ports:
+  in:
+    content: interface
+    config: Config
+    versions: interface
+  out:
+    dist: interface
+blocks:
+  - name: build
+    type: region
+    description: Runs in Node, once per build.
+  - name: site
+    type: region
+    description: Runs in the browser.
+  - name: cli build
+    type: cli
+    description: The entry for Docker and CI.
+  - name: shared semver
+    type: semver
+    description: The one helper both halves share.
+relations:
+  - "content -> build.ingest pipeline: md tree"
+  - "config -> build.configuration: Config"
+  - "versions -> build.configuration: version tags"
+  - "build.configuration -> build.ingest pipeline: Config"
+  - "build.ingest pipeline -> build.metadata: fields"
+  - "build.metadata -> build.ingest pipeline: PageMeta"
+  - "build.configuration -> site.runtime shell: site config"
+  - "build.ingest pipeline -> site.browse by facet: site-meta"
+  - "build.ingest pipeline -> site.page contents: pages"
+  - "site.runtime shell -> dist: site"
+type: context

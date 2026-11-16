@@ -14,7 +14,7 @@
 
 | | |
 |---|---|
-| **draw it** | a part that is a projection: many outputs each made from some input by a rule, in no order that matters (mndsite-plan.md *Open*: a projection gets a mapping, a path gets a flow) |
+| **draw it** | a part that is a projection: many outputs each made from some input by a rule, in no order that matters (the mndsite review: a projection gets a mapping, a path gets a flow) |
 | **skip it** | fewer than 3 rows (README *Sub diagrams*): the part's chip says it |
 | **vs flow** | a flow has an order; a mapping has none, each row stands alone |
 | **vs dataflow** | a dataflow follows one datum across parts; a mapping is one part's inputs to its outputs, field by field or file by file |

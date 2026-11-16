@@ -624,7 +624,11 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
     for (const v of e.values) {
       const a = attributes.find((x) => x.name === v.name);
       if (a) a.default = v.value;
-      else attributes.push({ name: v.name, default: v.value } as Attribute);
+      else {
+        const type = read_as([v.value]);
+        attributes.push({ name: v.name, ...(type === "text" ? {} : { type }),
+                          default: v.value } as Attribute);
+      }
     }
     delete b.values;
     b.def = { ...(attributes.length ? { attributes } : {}),
@@ -1056,12 +1060,17 @@ function inferred(sets: readonly Value[][]): Attribute[] {
   const names = [...new Set(sets.flatMap((s) => s.map((v) => v.name)))];
   return names.map((name) => {
     const said = sets.flatMap((s) => s.filter((v) => v.name === name && v.value).map((v) => v.value));
-    const type: (typeof FORMS)[number] = !said.length ? "text"
-      : said.every((v) => /^-?\d+(\.\d+)?$/.test(v)) ? "number"
-      : said.every((v) => v === "true" || v === "false") ? "flag"
-      : said.every((v) => /^https?:\/\/\S+$/.test(v)) ? "link" : "text";
+    const type = read_as(said);
     return type === "text" ? { name } : { name, type };
   });
+}
+
+/** The form some values all read as: a number, a flag, a link, else text. */
+function read_as(said: readonly string[]): (typeof FORMS)[number] {
+  return !said.length ? "text"
+    : said.every((v) => /^-?\d+(\.\d+)?$/.test(v)) ? "number"
+    : said.every((v) => v === "true" || v === "false") ? "flag"
+    : said.every((v) => /^https?:\/\/\S+$/.test(v)) ? "link" : "text";
 }
 
 /** The id a source folder's `package.json` gives its package, where it says one. */
