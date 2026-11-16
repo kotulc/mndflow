@@ -1,10 +1,15 @@
-/** Where a line runs between two borders: straight where it can, else one Z. Runs draw under
- *  cards, so nothing is routed round. */
+/** **Where a line runs between two borders, when libavoid has not routed it**: square, leaving
+ *  each end along its face and never back into it. A few square runs are tried — the fan's Z,
+ *  one corner, and runs through both ends' stubs along a shared line — and the one crossing the
+ *  fewest `cards` wins, then the fewest bends, then the shortest; the first tried on a tie, so a
+ *  fan's trunk holds. Where every run tried crosses a card, runs round the cards crossed are
+ *  tried too. */
 
 import { Position } from "@xyflow/system";
 import type { Fan } from "./seat";
 
 type Point = { x: number; y: number };
+type Rect = { x: number; y: number; w: number; h: number };
 
 /** How far a run goes straight out of a face before it may turn back on itself. */
 export const STUB = 16;
@@ -12,6 +17,9 @@ export const STUB = 16;
 /** How far apart two ends may be and still count as lined up: a seat drawn as a percentage of
  *  its wall lands a fraction of a pixel off. */
 const LEVEL = 1.5;
+
+/** How far inside a card a leg must run to cross it: less is a pixel's rounding. */
+const INSIDE = 2;
 
 /** Which way a run sets off from each face. */
 const AWAY: Record<string, Point> = {
@@ -23,36 +31,98 @@ const AWAY: Record<string, Point> = {
 
 /** The corners of a run, in order. `fan` says where its cross leg sits; a tie runs straight. */
 export function route(from: Point, out: Position, to: Point, into: Position,
-                      fan?: Fan, straight = false): Point[] {
+                      fan?: Fan, straight = false, cards: readonly Rect[] = []): Point[] {
   if (straight) return [from, to];
   const a = AWAY[out] ?? AWAY[Position.Right]!;
   const b = AWAY[into] ?? AWAY[Position.Right]!;
-  const across = a.x !== 0;
+  const p = { x: from.x + a.x * STUB, y: from.y + a.y * STUB };
+  const q = { x: to.x + b.x * STUB, y: to.y + b.y * STUB };
+  const tried: Point[][] = [];
 
-  /** Facing each other: straight where they line up, else a Z turning at the fan point. */
-  if (a.x === -b.x && a.y === -b.y) {
-    if (Math.abs(across ? from.y - to.y : from.x - to.x) < LEVEL) return [from, to];
+  /** Facing each other, each ahead of the other: straight where they line up, else a Z turning
+   *  at the fan point. */
+  const across = a.x !== 0;
+  if (a.x === -b.x && a.y === -b.y && ahead(from, a, to) && ahead(to, b, from)) {
+    if (Math.abs(across ? from.y - to.y : from.x - to.x) < LEVEL) tried.push([from, to]);
     const hub = fan?.end === "to" ? { at: to, way: b } : { at: from, way: a };
     const by = fan?.by ?? half(from, to, across);
     const c = across ? hub.at.x + hub.way.x * by : hub.at.y + hub.way.y * by;
-    return tidy(across ? [from, { x: c, y: from.y }, { x: c, y: to.y }, to]
-                       : [from, { x: from.x, y: c }, { x: to.x, y: c }, to]);
+    tried.push(across ? [from, { x: c, y: from.y }, { x: c, y: to.y }, to]
+                      : [from, { x: from.x, y: c }, { x: to.x, y: c }, to]);
   }
+  /** One corner, ahead of both. */
+  for (const c of [{ x: to.x, y: from.y }, { x: from.x, y: to.y }]) tried.push([from, c, to]);
+  /** Through both stubs, joined along one line. */
+  const through = (xs: number[], ys: number[]) => [
+    ...xs.map((x) => [from, p, { x, y: p.y }, { x, y: q.y }, q, to]),
+    ...ys.map((y) => [from, p, { x: p.x, y }, { x: q.x, y }, q, to]),
+  ];
+  tried.push(...through([p.x, q.x, (p.x + q.x) / 2], [p.y, q.y, (p.y + q.y) / 2]));
 
-  /** Square to each other: one corner, where it lies ahead of both. */
-  const corner = across ? { x: to.x, y: from.y } : { x: from.x, y: to.y };
-  if (ahead(from, a, corner) && ahead(to, b, corner)) return [from, corner, to];
-
-  /** Anything else steps out of both faces and joins the stubs. */
-  const p = { x: from.x + a.x * STUB, y: from.y + a.y * STUB };
-  const q = { x: to.x + b.x * STUB, y: to.y + b.y * STUB };
-  if (a.x === b.x && a.y === b.y) {
-    const c = across ? (a.x > 0 ? Math.max(p.x, q.x) : Math.min(p.x, q.x))
-                     : (a.y > 0 ? Math.max(p.y, q.y) : Math.min(p.y, q.y));
-    return tidy(across ? [from, { x: c, y: from.y }, { x: c, y: to.y }, to]
-                       : [from, { x: from.x, y: c }, { x: to.x, y: c }, to]);
+  let best = pick(tried, a, b, cards);
+  if (best && crossed(best, cards).length) {
+    /** Round the cards it crosses, and the cards its ends sit on. */
+    const near = [...crossed(best, cards), ...cards.filter((c) => touches(c, from)
+      || touches(c, to))];
+    const xs = near.flatMap((c) => [c.x - STUB, c.x + c.w + STUB]);
+    const ys = near.flatMap((c) => [c.y - STUB, c.y + c.h + STUB]);
+    best = pick([best, ...through(xs, ys)], a, b, cards) ?? best;
   }
-  return tidy([from, p, across ? { x: p.x, y: q.y } : { x: q.x, y: p.y }, q, to]);
+  return best ?? tidy([from, p, q, to]);
+}
+
+/** The run tried that leaves along `a` and arrives along `b`, crossing fewest cards, then with
+ *  fewest bends, then shortest; the first on a tie. */
+function pick(tried: readonly Point[][], a: Point, b: Point,
+              cards: readonly Rect[]): Point[] | null {
+  let best: { run: Point[]; score: number[] } | null = null;
+  for (const raw of tried) {
+    const run = tidy(raw);
+    if (run.length < 2 || !sets_off(run[0]!, run[1]!, a) || !sets_off(run.at(-1)!, run.at(-2)!, b)
+        || !square(run)) continue;
+    const score = [crossed(run, cards).length, run.length, Math.round(length(run))];
+    if (!best || before(score, best.score)) best = { run, score };
+  }
+  return best?.run ?? null;
+}
+
+/** Whether one score comes strictly before another, read in order. */
+function before(a: readonly number[], z: readonly number[]): boolean {
+  const i = a.findIndex((n, k) => n !== z[k]);
+  return i >= 0 && a[i]! < z[i]!;
+}
+
+/** Whether a leg from `at` to `next` sets off along `way`. */
+function sets_off(at: Point, next: Point, way: Point): boolean {
+  const dx = next.x - at.x;
+  const dy = next.y - at.y;
+  return dx * way.x + dy * way.y > 0 && Math.abs(dx * way.y) + Math.abs(dy * way.x) < LEVEL;
+}
+
+/** Whether every leg of a run is level or upright. */
+function square(run: readonly Point[]): boolean {
+  return run.slice(1).every((q, i) => Math.abs(q.x - run[i]!.x) < LEVEL
+    || Math.abs(q.y - run[i]!.y) < LEVEL);
+}
+
+/** The cards a run's legs pass through. */
+function crossed(run: readonly Point[], cards: readonly Rect[]): Rect[] {
+  return cards.filter((c) => run.slice(1).some((q, i) => {
+    const p = run[i]!;
+    return Math.max(p.x, q.x) > c.x + INSIDE && Math.min(p.x, q.x) < c.x + c.w - INSIDE
+      && Math.max(p.y, q.y) > c.y + INSIDE && Math.min(p.y, q.y) < c.y + c.h - INSIDE;
+  }));
+}
+
+/** Whether a point lies on or in a card. */
+function touches(c: Rect, at: Point): boolean {
+  return at.x >= c.x - LEVEL && at.x <= c.x + c.w + LEVEL && at.y >= c.y - LEVEL
+    && at.y <= c.y + c.h + LEVEL;
+}
+
+/** A run's length. */
+function length(run: readonly Point[]): number {
+  return run.slice(1).reduce((n, q, i) => n + len(run[i]!, q), 0);
 }
 
 /** Half the way between two ends, along the way they face. */

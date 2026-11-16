@@ -166,8 +166,8 @@ const key_of = (b: Rect | null | undefined) =>
 
 /** **The camera lands every shot**: a new shot is flown to, a resized view or a new drawing cut
  *  to; a shot that holds stays put on its drawing. Across a cut the new drawing fades in, and a
- *  shot `from` a box starts with that box where the last drawing stood. Says whether it is in
- *  flight, so levels hold until it lands, and tells `onLand` each shot landed. */
+ *  shot `from` a box starts with that box where the last drawing stood. Tells `onLand` each
+ *  shot landed. */
 export function useCamera(scene: Scene, shot: Shot, seen: Seen,
                           onLand?: (shot: Shot) => void) {
   const flow = useReactFlow();
@@ -185,7 +185,6 @@ export function useCamera(scene: Scene, shot: Shot, seen: Seen,
                        seen: string; box: Rect | null; anchor: Rect } | null>(null);
   /** Where a flight is going, so a shot in the same change is judged against it. */
   const going = useRef<Viewport | null>(null);
-  const [flying, set_flying] = useState(false);
   /** The flight's timer: a new flight, or leaving, cancels the last. */
   const landing = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(landing.current), []);
@@ -221,12 +220,10 @@ export function useCamera(scene: Scene, shot: Shot, seen: Seen,
     const fly = motion && (start || (!cut && asked && before!.seen === view)) ? FLIGHT : 0;
     clearTimeout(landing.current);
     going.current = fly ? to : null;
-    set_flying(fly > 0);
     if (start) void flow.setViewport(start);
     void flow.setViewport(to, { duration: fly });
     landing.current = setTimeout(() => {
       going.current = null;
-      set_flying(false);
       told.current?.(shot);
     }, fly);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -246,7 +243,7 @@ export function useCamera(scene: Scene, shot: Shot, seen: Seen,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [realm]);
 
-  return { flying, cut, fresh };
+  return { cut, fresh };
 }
 
 /** One fit for the controls, the band on every side. */

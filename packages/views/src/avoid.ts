@@ -6,7 +6,7 @@
 import { AvoidLib } from "libavoid-js";
 import { end_of } from "./ends";
 import type { Id } from "@mnd/core";
-import { box_of, type Scene } from "./scene";
+import { box_of, type LineEdge, type Scene } from "./scene";
 import { SEAT } from "./size";
 
 type Point = { x: number; y: number };
@@ -25,6 +25,9 @@ const SAME = SEAT;
 
 /** How far off square a leg may be and still count as square: a handle measured to a fraction. */
 const SQUARE = 1.5;
+
+/** The room round cards for a line libavoid could not route with a seat's: a few pixels. */
+const TIGHT = SEAT / 4;
 
 /** The most lines libavoid is asked to route at once: its time grows far faster than the lines
  *  (60 in under half a second, 100 in over ten), so a busier layer runs as `route` draws it. */
@@ -46,9 +49,32 @@ export function routes_of(scene: Scene): ReadonlyMap<Id, Point[]> {
   const asked = scene.edges.filter((e) => !e.hidden && e.data?.module !== "tie"
     && !e.data?.points?.length);
   if (!asked.length || asked.length > MOST) return new Map();
+  /** **A line libavoid cannot route is routed again with less room round the cards**: a gap
+   *  narrower than two buffers walls a seat in, and libavoid answers with a diagonal. */
+  const runs = routed(scene, asked, SEAT);
+  const failed = [...runs].filter(([, run]) => !square(run)).map(([id]) => id);
+  if (failed.length) {
+    const again = routed(scene, asked, TIGHT);
+    for (const id of failed) {
+      const run = again.get(id);
+      if (run && square(run)) runs.set(id, run);
+      else runs.delete(id);
+    }
+  }
+  return runs;
+}
+
+/** Whether every leg of a run is level or upright. */
+function square(run: readonly Point[]): boolean {
+  return run.length > 1 && run.slice(1).every((q, i) =>
+    Math.abs(q.x - run[i]!.x) < SQUARE || Math.abs(q.y - run[i]!.y) < SQUARE);
+}
+
+/** One libavoid transaction over `asked`, with `buffer` round every card. */
+function routed(scene: Scene, asked: readonly LineEdge[], buffer: number): Map<string, Point[]> {
   const A = avoid;
   const router = new A.Router(A.RouterFlag.OrthogonalRouting.value);
-  router.setRoutingParameter(A.RoutingParameter.shapeBufferDistance, SEAT);
+  router.setRoutingParameter(A.RoutingParameter.shapeBufferDistance, buffer);
   router.setRoutingParameter(A.RoutingParameter.idealNudgingDistance, SEAT);
   router.setRoutingParameter(A.RoutingParameter.segmentPenalty, 50);
   router.setRoutingOption(A.RoutingOption.nudgeOrthogonalSegmentsConnectedToShapes, false);
@@ -64,12 +90,15 @@ export function routes_of(scene: Scene): ReadonlyMap<Id, Point[]> {
   }
 
   /** An end: a pin at its seat, facing out of its face, shared by every line meeting it there —
-   *  libavoid ignores a second pin on the same spot. */
+   *  libavoid ignores a second pin on the same spot. **A seat's pin is on the card it sits on**:
+   *  a speck of its own would sit inside that card's buffer, where nothing can be routed. */
   const pins = new Map<string, { ref: unknown; pin: number }>();
+  const host = (id: string) => shapes.get(id)
+    ?? shapes.get(scene.nodes.find((n) => n.id === id)?.data.on ?? "");
   const end_at = (id: string, at: Point, face: string) => {
     const key = `${id}|${Math.round(at.x)},${Math.round(at.y)}|${face}`;
     if (!pins.has(key)) {
-      const on = shapes.get(id) ?? { ref: shape(at.x - 1, at.y - 1, 2, 2), x: at.x - 1, y: at.y - 1 };
+      const on = host(id) ?? { ref: shape(at.x - 1, at.y - 1, 2, 2), x: at.x - 1, y: at.y - 1 };
       const pin = pins.size + 1;
       const p = new A.ShapeConnectionPin(on.ref, pin, at.x - on.x, at.y - on.y, false, 0, DIRS[face]);
       p.setExclusive(false);

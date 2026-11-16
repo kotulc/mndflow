@@ -6,9 +6,9 @@
 import type { Id } from "@mnd/core";
 import { avoided_run } from "./avoid";
 import { end_of } from "./ends";
-import { line_level, TEXT_BAND } from "./level";
+import { line_shows } from "./line";
 import { name_box, route } from "./route";
-import { box_of, type Scene } from "./scene";
+import { box_of, FRAME, type Scene } from "./scene";
 import { SEAT } from "./size";
 
 type Point = { x: number; y: number };
@@ -16,7 +16,7 @@ type Rect = { x: number; y: number; w: number; h: number };
 
 /** The counts, and what each found, for reading one out. */
 export type Measure = { crossings: number; covered: number; shared: number; tight: number;
-                        lines: number; found: string[] };
+                        wrong: number; lines: number; found: string[] };
 
 /** What a line goes round and a name must not cover: cards and notes, never a holder. */
 const SOLID = new Set(["card", "note"]);
@@ -27,12 +27,11 @@ const INSIDE = 2;
 const ALONG = SEAT;
 
 
-/** A scene measured, its runs as routed (`routes_of`), at `zoom` for which names show. */
-export function measure(scene: Scene, routes: ReadonlyMap<Id, readonly Point[]>,
-                        zoom = 1): Measure {
+/** A scene measured, its runs as routed (`routes_of`). */
+export function measure(scene: Scene, routes: ReadonlyMap<Id, readonly Point[]>): Measure {
   const cards = scene.nodes.filter((n) => SOLID.has(n.type ?? ""))
     .map((n) => ({ id: n.id, box: box_of(n), label: n.data.label }));
-  const runs = runs_of(scene, routes, zoom, cards.map((c) => c.box));
+  const runs = runs_of(scene, routes, cards.map((c) => c.box));
   const found: string[] = [];
   const said = (n: Id) => cards.find((c) => c.id === n)?.label ?? n;
 
@@ -88,14 +87,34 @@ export function measure(scene: Scene, routes: ReadonlyMap<Id, readonly Point[]>,
     }
   });
 
-  return { crossings, covered, shared, tight, lines: runs.length, found };
+  /** **A run going the wrong way**: back through the card it leaves or meets, or across the
+   *  frame's wall more often than its ends need — a line from outside meeting a wall's seat
+   *  never goes in; one from inside never goes out. */
+  let wrong = 0;
+  for (const r of runs) {
+    const own = [r.from, r.to].flatMap((id) => {
+      const n = scene.nodes.find((x) => x.id === id);
+      const card = n && SOLID.has(n.type ?? "") ? n : scene.nodes.find((x) => x.id === n?.data.on
+        && SOLID.has(x.type ?? ""));
+      return card ? [box_of(card)] : [];
+    });
+    const back = own.some((b) => legs(r.run).some(([p, q]) => through(p, q, shrunk(b, INSIDE))));
+    const walls = scene.frame ? wall_crossings(r.run, scene.frame) : 0;
+    const need = scene.frame ? wall_need(scene, r.from, r.to, scene.frame) : 0;
+    if (back || walls > need) {
+      wrong++;
+      found.push(`wrong way ${r.label || r.id}${back ? " back through its own card" : ""}`
+        + `${walls > need ? ` across the wall ${walls} times for ${need}` : ""}`);
+    }
+  }
+
+  return { crossings, covered, shared, tight, wrong, lines: runs.length, found };
 }
 
 /** Every drawn line's run, ends and name box — never a guide nobody picks, as a lifeline —
- *  libavoid's where it still meets its ends, else `route`'s; its name where it shows at `zoom`,
- *  clear of the cards where it can be. */
-function runs_of(scene: Scene, routes: ReadonlyMap<Id, readonly Point[]>, zoom: number,
-                 boxes: readonly Rect[]) {
+ *  libavoid's where it still meets its ends, else `route`'s; its name where it shows, clear of
+ *  the cards where it can be. */
+function runs_of(scene: Scene, routes: ReadonlyMap<Id, readonly Point[]>, boxes: readonly Rect[]) {
   const out: { id: Id; from: Id; to: Id; label: string; run: Point[]; name?: Rect }[] = [];
   for (const e of scene.edges.filter((x) => !x.hidden && x.selectable !== false)) {
     const a = end_of(e, "from", scene.nodes, scene.perches, scene.frame);
@@ -103,15 +122,15 @@ function runs_of(scene: Scene, routes: ReadonlyMap<Id, readonly Point[]>, zoom: 
     if (!a || !b) continue;
     const given = e.data?.points && e.data.points.length > 1 ? [...e.data.points] : null;
     const routed = given ? null : avoided_run(routes.get(e.id), a, b);
-    const run = given ?? routed ?? route(a, a.face, b, b.face, e.data?.fan, e.data?.module === "tie");
+    const run = given ?? routed ?? route(a, a.face, b, b.face, e.data?.fan, e.data?.module === "tie",
+                                               boxes);
     const fan = given || routed ? undefined : e.data?.fan;
     const label = [e.label ? String(e.label) : "", e.data?.alias ?? ""].filter(Boolean).join(" ");
     const chars = label.length + (e.data?.times ? `×${e.data.times}`.length : 0);
     const box = chars ? name_box(run, chars, fan, e.data?.level, boxes)
       : undefined;
-    /** Shown as the stage shows it: the name's width held inside the text band. */
-    const shown = box && line_level(length_of(run), zoom, box.w
-      * Math.min(TEXT_BAND.high, Math.max(TEXT_BAND.low, zoom))) >= 2;
+    /** Shown as the stage shows it, from the laid run. */
+    const shown = box && line_shows(length_of(run), box.w).name;
     out.push({ id: e.id, from: e.source, to: e.target, label, run,
                ...(shown ? { name: box } : {}) });
   }
@@ -136,6 +155,46 @@ function gap_of(a: Rect, b: Rect): { box: Rect; width: number; upright: boolean 
              upright: false };
   }
   return null;
+}
+
+/** Where a point lies against the frame: in, out, or on its wall. */
+function side_of(p: Point, f: Rect): "in" | "out" | "wall" {
+  if (p.x > f.x + INSIDE && p.x < f.x + f.w - INSIDE && p.y > f.y + INSIDE
+      && p.y < f.y + f.h - INSIDE) return "in";
+  if (p.x < f.x - INSIDE || p.x > f.x + f.w + INSIDE || p.y < f.y - INSIDE
+      || p.y > f.y + f.h + INSIDE) return "out";
+  return "wall";
+}
+
+/** How many times a run passes from inside the frame to outside it or back, walked in steps of
+ *  a unit's quarter; time on the wall changes nothing. */
+function wall_crossings(run: readonly Point[], f: Rect): number {
+  let was: "in" | "out" | null = null;
+  let n = 0;
+  for (const [p, q] of legs(run)) {
+    const steps = Math.max(1, Math.ceil(Math.hypot(q.x - p.x, q.y - p.y) / 2));
+    for (let i = 0; i <= steps; i++) {
+      const at = side_of({ x: p.x + (q.x - p.x) * i / steps, y: p.y + (q.y - p.y) * i / steps }, f);
+      if (at === "wall") continue;
+      if (was && at !== was) n++;
+      was = at;
+    }
+  }
+  return n;
+}
+
+/** How many times a line between two ends must cross the frame's wall: once where one is in and
+ *  the other out; never where either sits on the wall, which faces the other. */
+function wall_need(scene: Scene, from: Id, to: Id, f: Rect): number {
+  const at = (id: Id) => {
+    if (id === FRAME || scene.frame?.ports.some((p) => p.id === id)) return "wall";
+    const n = scene.nodes.find((x) => x.id === id);
+    if (!n) return "wall";
+    const b = box_of(n);
+    return side_of({ x: b.x + b.w / 2, y: b.y + b.h / 2 }, f);
+  };
+  const [a, z] = [at(from), at(to)];
+  return a !== "wall" && z !== "wall" && a !== z ? 1 : 0;
 }
 
 /** A run's legs, in order. */

@@ -5,58 +5,35 @@
 .mnd-flow {
   width: 100%;
   height: 100%;
-  /* **The text band**: text scales with zoom only between 85% and 115% (views `TEXT_BAND`);
-     outside it, its size on screen holds and rows come and go instead. */
+  /* **The text band**: text scales with zoom only between 85% and 115%; outside it, its size on
+     screen holds. Never held larger than laid (`--laid-k`), so whatever fits as laid fits at every
+     zoom. */
   --text-k: calc(clamp(0.85, var(--zoom, 1), 1.15) / var(--zoom, 1));
-  /* A chip's head and facts grow only so far when held, and their rows are laid at that size
-     (views `map.ts` `HELD`); beyond, the level drops rather than the text growing. What a chip's
-     body's rows scale with the drawing (`--laid-k`), never held; its tiles' text is held to read
-     (`--text-k`), each tile showing it only where it fits whole. */
-  --chip-k: min(var(--text-k), 1.35);
   --laid-k: min(var(--text-k), 1);
-  /* **A chip's detail by zoom** (2026-11-08): one look at every zoom, its detail — facts, tile
-     names and rows, a profile — fading continuously as the camera draws back, from whole at 75%
-     to a fifth at 25%; never a level, never a switch. */
+  /* **Detail by zoom** (chips 2026-11-08, cards and lines 2026-11-15): one look at every zoom, its
+     detail fading continuously as the camera draws back, from whole at 75% to a fifth at 25%;
+     never a level, never a switch, so nothing comes or goes. */
   --detail: clamp(0.2, calc((var(--zoom, 1) - 0.25) * 1.6 + 0.2), 1);
 }
 /* **A map's text scales with the drawing** (2026-11-08): a chip's, a box's and a tile's words
    are never held on screen, so zooming in reads them larger and every fit is decided as laid
    (views `map.ts` `ROW`, `NAME`). */
-.mnd-flow :is(.mnd-chip, .mnd-box) { --text-k: 1; --chip-k: 1; --laid-k: 1; }
-/* **A card's preview sits under rows laid at layout size**, so a card showing one never holds its
-   text larger than it was laid, even while hysteresis keeps it a little below the text band. **A
-   card too small for its head** keeps it too, held no larger than laid, and any card's name is
-   held no larger than a chip's (2026-11-05): zoomed far out names shrink with the drawing, as a
-   chip's do, never popping in. */
-.mnd-flow .mnd-card { --text-k: var(--chip-k); }
-.mnd-flow .mnd-card:is([data-level="0"], [data-level="3"]) { --text-k: var(--laid-k); }
+.mnd-flow :is(.mnd-chip, .mnd-box) { --text-k: 1; --laid-k: 1; }
+/* **A card's text is never held larger than laid** (2026-11-15): its name, facts, table and body
+   show at every zoom, laid once, so zoomed far out they shrink with the drawing, unread rather
+   than gone. */
+.mnd-flow .mnd-card { --text-k: var(--laid-k); }
 
-/* ── **Levels by zoom**: mark → head → facts → preview, picked from the size on screen (views
-   `level_at`). Rows add below, anchored to the top, and fade; nothing drawn moves. ── */
-.mnd-flow .mnd-card > :is(.mnd-head, .mnd-face-facts, .mnd-face-table, .mnd-face-body, .mnd-marks),
-.mnd-flow .mnd-chip > :is(.mnd-chip-text, .mnd-chip-body),
-.mnd-flow .mnd-chip-turn > .mnd-chip-text,
-.mnd-flow .mnd-chip-stack > *,
-.mnd-flow .mnd-chip-text .mnd-facts > * {
-  transition: opacity 120ms ease, visibility 120ms;
-}
-/* A seat too small to read hides; its line still meets the wall where it sits. */
-.mnd-flow .mnd-seat.tiny:not(.picked) { visibility: hidden; }
-
-/* **Nothing in a chip or a card pops in** (2026-11-04, cards 2026-11-05): a name, and a chip's
-   body — tiles, nested tiles and their names — show at every level, held no larger than laid,
-   so zoomed far out they only shrink with the drawing, unread rather than gone; only facts and a
-   card's preview come and go by level. */
 /* A small face carrying facts reads from the top, so its facts add under its name. */
 .mnd-flow .mnd-card.small:has(> .mnd-face-facts) > .mnd-head { flex: none; }
-.mnd-flow .mnd-card:is([data-level="0"], [data-level="1"]) > .mnd-face-facts,
-.mnd-flow .mnd-card:not([data-level="3"]) > :is(.mnd-face-table, .mnd-face-body) {
-  opacity: 0;
-  visibility: hidden;
-}
-/* A chip's detail fades with the zoom (`--detail`); its name, icon and tiles stay whole. */
+/* **Detail fades with the zoom** (`--detail`): a card's facts, table and body; a chip's facts,
+   tile names and profile; a seat; a line's name and its ends' words. Names, icons, tiles and
+   strokes stay whole. */
+.mnd-flow .mnd-card > :is(.mnd-face-facts, .mnd-face-table, .mnd-face-body),
 .mnd-flow .mnd-chip :is(.mnd-chip-text .mnd-facts, .mnd-chip-tile-name, .mnd-chip-tile-more,
-                        .mnd-chip-profile, .mnd-chip-bar) {
+                        .mnd-chip-profile, .mnd-chip-bar),
+.mnd-flow .mnd-seat:not(.picked),
+.mnd-flow :is(.mnd-wire-name, .mnd-wire-end):not(.picked) {
   opacity: var(--detail);
 }
 

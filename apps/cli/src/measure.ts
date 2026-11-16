@@ -28,15 +28,15 @@ export async function measured(graph: Graph, layer: Id | null): Promise<string[]
                   m: measure(scene, routes_of(scene)) });
     }
   }
-  const worst = (m: Measure) => m.crossings + m.covered + m.shared + m.tight;
+  const worst = (m: Measure) => m.crossings + m.covered + m.shared + m.tight + m.wrong * 10;
   rows.sort((a, z) => worst(z.m) - worst(a.m) || a.name.localeCompare(z.name));
   const total = (k: keyof Omit<Measure, "found">) => rows.reduce((n, r) => n + r.m[k], 0);
-  const out = [`cross cover share tight lines  shape      layer`,
+  const out = [`cross cover share tight wrong lines  shape      layer`,
                ...rows.map(({ name, shape, m }) => [m.crossings, m.covered, m.shared, m.tight,
-                 m.lines].map((n, i) => String(n).padStart(i ? 6 : 5)).join("")
+                 m.wrong, m.lines].map((n, i) => String(n).padStart(i ? 6 : 5)).join("")
                  + `  ${shape.padEnd(10)} ${name}`),
                `${[total("crossings"), total("covered"), total("shared"), total("tight"),
-                   total("lines")].map((n, i) => String(n).padStart(i ? 6 : 5)).join("")}  total`];
+                   total("wrong"), total("lines")].map((n, i) => String(n).padStart(i ? 6 : 5)).join("")}  total`];
   if (layer) for (const r of rows) out.push("", `${r.shape}:`, ...r.m.found.map((f) => `  ${f}`));
   return out;
 }

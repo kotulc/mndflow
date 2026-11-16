@@ -13,7 +13,6 @@ import { FRAME, PLAIN, face_attrs, look_key, tint_attrs,
          type BoxData, type BoxNode, type GridCell } from "@mnd/views";
 import { BoxFace, CardFace, ChipFace, Facts, Name, Stamps, Wears, useNaming } from "@mnd/theme";
 import { grid_seen } from "./arrays";
-import { useLevel, useTiny } from "./level";
 import { usePicked, usePicks } from "./picked";
 
 
@@ -113,11 +112,10 @@ function Middle({ side, inward }: { side?: Side; inward?: boolean }) {
 /** The ordinary card: the face every card draws with, and what the canvas lays over it — its
  *  border's targets, its grips where it keeps its own size, and the seats lines meet. Its name
  *  renames in place. */
-function CardNode({ id, data, width, height }: NodeProps<BoxNode>) {
+function CardNode({ id, data }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const selected = usePicked(id);
   const look = data.look ?? PLAIN;
-  const level = useLevel(width ?? 0, height ?? 0);
   return (
     <CardFace label={data.label} {...(data.kind ? { kind: data.kind } : {})}
               {...(data.facts ? { facts: <Facts facts={data.facts} /> } : {})}
@@ -126,7 +124,7 @@ function CardNode({ id, data, width, height }: NodeProps<BoxNode>) {
               holds={data.marks.includes("container")}
               {...(data.stamps ? { stamps: data.stamps } : {})}
               classes={[...data.marks, selected ? "picked" : ""]}
-              dress={{ ...face_attrs(look), "data-def": data.def, "data-level": level }}
+              dress={{ ...face_attrs(look), "data-def": data.def }}
               {...(data.text !== undefined ? { text: data.text } : {})}
               {...(data.table ? { table: data.table } : {})}
               head={look.head !== false}
@@ -342,10 +340,9 @@ function GroupNode({ id, data }: NodeProps<BoxNode>) {
 }
 
 /** An interface, seated on its owner's wall. */
-function SeatNode({ id, data, width }: NodeProps<BoxNode>) {
+function SeatNode({ id, data }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const selected = usePicked(id);
-  const tiny = useTiny(width ?? 0);
   /** A seat that changes wall faces anew, so its handle is measured again. */
   const remeasure = useUpdateNodeInternals();
   useEffect(() => remeasure(id), [id, data.side, remeasure]);
@@ -353,7 +350,7 @@ function SeatNode({ id, data, width }: NodeProps<BoxNode>) {
   const typed = !!data.look && !!data.def && data.def !== "interface";
   const tint = tint_attrs(typed ? data.look : undefined);
   return (
-    <div className={["mnd-seat", typed ? "typed" : "", tiny ? "tiny" : "", ...data.marks,
+    <div className={["mnd-seat", typed ? "typed" : "",...data.marks,
                      selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
          data-family={tint["data-family"]} style={tint.style as CSSProperties}

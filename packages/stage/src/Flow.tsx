@@ -19,7 +19,6 @@ import { useDrag } from "./drag";
 import { useDraw } from "./draw";
 import { Grips } from "./Grips";
 import { kind_of, spread, LINES } from "./pointer";
-import { FlightContext } from "./level";
 import { paged, useCamera, useFit, useRoom, type Shot } from "./room";
 import { Sweeping } from "./Sweeping";
 import { Traced } from "./Traced";
@@ -57,7 +56,7 @@ function Canvas(props: FlowViewProps) {
   const shot: Shot = props.shot ?? { box: null, reveal: at_focus ? box_of(at_focus) : null,
                                      ...(paging ? { page: { reach: wide, widest, most } } : {}) };
   const scroll = !!shot.page;
-  const { flying, cut, fresh } = useCamera(scene, shot, seen, onLand);
+  const { cut, fresh } = useCamera(scene, shot, seen, onLand);
   /** The zoom, which the drawing's CSS reads. */
   const zoom = useStore(useCallback((st) => st.transform[2], []));
   /** **Zoom only zooms**: on a map, from the whole map fitted; never below the floor, as before
@@ -182,7 +181,6 @@ function Canvas(props: FlowViewProps) {
 
   return (
     <PickedContext.Provider value={lit}>
-    <FlightContext.Provider value={flying}>
     <RunsContext.Provider value={runs}>
     <CardsContext.Provider value={cards}>
     <ReactFlow
@@ -343,7 +341,6 @@ function Canvas(props: FlowViewProps) {
     </ReactFlow>
     </CardsContext.Provider>
     </RunsContext.Provider>
-    </FlightContext.Provider>
     </PickedContext.Provider>
   );
 }

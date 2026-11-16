@@ -180,6 +180,10 @@ export type LineData = {
   level?: boolean;
   /** Whether it lies outside the focus, so its words fade with it. */
   away?: boolean;
+  /** **The end on the frame's wall met from outside** (`across.ts`): it faces out of the room,
+   *  never into it, so the run never enters the room to turn back (views `ends.ts` `end_of`,
+   *  stage `Wire.tsx`). */
+  outer?: "from" | "to";
 };
 
 /** One drawn thing. React Flow's node, with our data on it. */

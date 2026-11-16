@@ -36,4 +36,4 @@ export { sheet_graph, GRID_LAYER } from "./sheet";
 export { entries_of, matrix_of, registry_scene, MOST, type Entry, type Line as MatrixLine, type Matrix,
          type User } from "./registry";
 export { read_through } from "./through";
-export { level_at, line_level, TEXT_BAND, type Level } from "./level";
+export { line_shows, type Shows } from "./line";

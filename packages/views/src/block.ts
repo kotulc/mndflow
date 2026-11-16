@@ -510,6 +510,8 @@ function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
     const module = is_tie(graph, e.id) ? "tie" : "line";
     const fan = seating.fans.get(e.id);
     const also = merged.get(e.id);
+    /** A line from what is across meets the wall from outside. */
+    const outer = e.id.startsWith(ACROSS) ? (e.from.startsWith(ACROSS) ? "to" : "from") : null;
     return {
       id: e.id,
       ...(link ? { selectable: false, focusable: false } : {}),
@@ -522,7 +524,7 @@ function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
       data: { module, dir: meant ? "none" : dir_of(graph, e.id), wire,
               ...(meant ? { ends: meant } : {}), ...(ends === "er" ? { crows: true } : {}),
               ...(alias ? { alias } : {}), ...(also ? { times: also.length + 1, also } : {}),
-              ...(fan ? { fan } : {}) },
+              ...(fan ? { fan } : {}), ...(outer ? { outer } : {}) },
     };
   });
 }

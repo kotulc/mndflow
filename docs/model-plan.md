@@ -18,7 +18,7 @@
 
 | Order | Take up next session | Notes |
 |---|---|---|
-| 1 | **no content switched by zoom** | design.md's *one representation at every zoom* covers chips only; **cards still switch by level**: stage `flow.css` hides a card's table and body below `data-level="3"` and its facts below 2 (views `level.ts` `level_at`), so a datum card or a class card reads empty at fit; a line's name hides by `line_level` (a short message's name gone at fit). Decide with the user: one look at every zoom for cards and line names too (fade and compress only), then remove the levels |
+| 1 | **no content switched by zoom** | **built 2026-11-15**: cards show name, facts, table and body at every zoom, text never held larger than laid; a line's anchors, name and ends' words by its laid length (views `line.ts` `line_shows`); detail fades by `--detail`; levels removed (views and stage `level.ts` gone) |
 | 2 | **the user's look at the entered views**: shop (Payments, Orders, Shop, Payment retry, Order states, Checkout saga, Fulfilment, Model, Schema) and mndsite (mndsite, every part, Build a site, Release, Edit and preview, Config trace, the mappings and schemas) | the presentations too, from each Overview's About |
 | 3 | **the tree and chip mockup**: the map, a model's overview and a closed chip, on the shop and mndsite, in the app's own faces; then strip the chip silhouettes and rebuild | decisions 2–3 |
 | 4 | **`check` misses unresolved references**: a dataflow's block or a sequence's participant naming nothing draws *missing*, yet `check` and `presentation check` say clean | found composing mndsite |

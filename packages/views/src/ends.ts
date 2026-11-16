@@ -22,20 +22,27 @@ export function end_of(edge: LineEdge, which: "from" | "to", nodes: readonly Box
   const perch = perches.find((p) => p.edge === edge.id && p.end === which);
   const port = frame?.ports.find((p) => p.id === id);
   const node = nodes.find((n) => n.id === id);
-  const box: Rect | undefined = id === FRAME ? frame
-    : port && frame ? at_seat(frame, port) : node ? box_of(node) : undefined;
+  const box = box_at(id, nodes, frame);
   if (!box) return null;
+  /** **A seat or port in the room's wall faces the side its line comes from**: in, unless the
+   *  line comes from outside (`outer`). */
+  const walled = (side: Side) => FACE[edge.data?.outer === which ? side : TURNED[side]];
   if (perch) {
     const seat = at_seat(box, perch);
-    /** A seat on the room's wall is looked at from inside, so it faces in. */
-    const side = id === FRAME ? TURNED[perch.side] : perch.side;
-    return { ...centre(seat), face: FACE[side] };
+    return { ...centre(seat), face: id === FRAME ? walled(perch.side) : FACE[perch.side] };
   }
-  /** A port in the room's wall is looked at from inside, so it faces in. */
-  if (port) return { ...centre(box), face: FACE[TURNED[port.side]] };
-  const other = nodes.find((n) => n.id === far);
+  if (port) return { ...centre(box), face: walled(port.side) };
   if (node?.data.side) return { ...centre(box), face: FACE[node.data.side] };
-  return { ...centre(box), face: FACE[facing(box, other ? box_of(other) : box)] };
+  return { ...centre(box), face: FACE[facing(box, box_at(far, nodes, frame) ?? box)] };
+}
+
+/** What an end is drawn as: the room, a port in its wall, or a node. */
+function box_at(id: string, nodes: readonly BoxNode[], frame?: Frame): Rect | undefined {
+  if (id === FRAME) return frame;
+  const port = frame?.ports.find((p) => p.id === id);
+  if (port && frame) return at_seat(frame, port);
+  const node = nodes.find((n) => n.id === id);
+  return node ? box_of(node) : undefined;
 }
 
 function centre(b: Rect): Point {
