@@ -1,8 +1,8 @@
 /** The explorer's rows: each section's header, then what it lists, laid out with depth, guides
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
-import { alias_of, branch_of, children, domain_of, KINDS, library_of,
-         is_folder, is_notation, is_box, is_named, on_side, relation_base,
+import { alias_of, branch_of, children, KINDS, library_of,
+         is_folder, is_notation, is_box, is_named, on_side,
          role_of, setting_of, shown_name, tops_of,
          type Block, type Cut, type Graph, type Id, type Lists, type Registry,
          type Role } from "@mnd/core";
@@ -12,10 +12,9 @@ import type { Chain } from "./chain";
 /** What a row reads as: a block's role, as its card reads, or one of the tree's own marks. */
 export type Mark = Role | Own;
 
-/** The tree's own marks: package roots, section headers, relation definitions, and the library's
- *  named components. */
-type Own = "locked" | "vocabulary" | "usages" | "root" | "package" | "line" | "tie" | "library"
-  | "type" | "tag" | "constraint";
+/** The tree's own marks: package roots, section headers, and the library's named components. */
+type Own = "locked" | "vocabulary" | "usages" | "root" | "package" | "library" | "type" | "tag"
+  | "constraint";
 
 export type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
                     /** The icon its definition names with `card.icon`, worn over its mark's. */
@@ -58,8 +57,6 @@ const OWN: Record<Own, IconName> = {
   usages: "forest",
   root: "role_folder",
   package: "word_pkg",
-  line: "relation_plain",
-  tie: "relation_tie",
   library: "data",
   type: "data",
   tag: "tag",
@@ -246,11 +243,10 @@ function block_row(graph: Graph, id: Id, depth: number, kids: number, key: Id,
 }
 
 /** The mark a row wears: a package's root — **in the models, the model root**, wearing the
- *  model's icon — or lock, a relation definition its base's, else the role its card reads as. */
+ *  model's icon — or lock, else the role its card reads as (a relation definition its base's). */
 function mark_of(graph: Graph, id: Id, models: boolean): Mark {
   const b = graph.blocks[id];
   if (b?.parent === null) return id !== graph.root ? "locked" : models ? "model" : "root";
-  if (b?.def && domain_of(graph, id) === "relation") return relation_base(graph, id) as Mark;
   return role_of(graph, id);
 }
 

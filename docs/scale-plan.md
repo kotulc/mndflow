@@ -69,15 +69,30 @@ Other heavy definitions in the sample: `line` 1,608 uses, `function` 357, `start
 
 ## Handoff
 
-- **State**: the tree rework is committed (`1bb907b`); decisions 8–11 agreed 2026-11-16; orders 1, 2, 5, 6, the well cap (4) and containment only (11) built (uncommitted); a review pass done the same day; 303 tests pass.
-- **Built with orders 1–2**: boxes open **a whole level at a time** (one box at a time let one heavy definition fill the library); a chip's floor is its header only (96 × 48), its well optional (decision 8); every chip weighs at least two budget shares (`SHARES`); a chip laid short and wide is weighed up for a few rounds (`RAISE`, `ROUNDS`) before its level stays closed; **the map still grows past the canvas** (`ROOM`) until grouping keeps registries within budget.
-- **Containment only (built)**: core `lens_of` — a library definition holding parts opens its drawing, an entry opens nothing; views `definition_map`, `registered`, `users_scene` removed; library chips hold a definition's parts, their counts still say uses.
-- **Measured (mndflow sample)**: every view 1 chip under the floor, 4 names cut, 0 unnamed cells; the models map ~160–200 ms (order 8).
-- **Order 5 (built)**: core `lens_of` opens a library folder as `internal`, `leave_at` takes a folder up to the folder holding it (the crumbs' up; Escape still goes to the map, by design); views `treemapped` either section, `library_map(graph, root)`; the scale check counts chips with a well that enter nothing (`stuck`: 0 on every sample). With it: **the models' package is the model root** — the model's icon on its map box (views `map.ts` `drawn`) and its explorer row (explorer `rows.ts` `mark_of`); the library keeps the folder.
-- **After the review (2026-11-16)**: an entered folder is **framed** by its own box in either section (views `map.ts` `framed`); **a click only picks** — an explorer row inside an entered treemap is picked there (core `navigate.ts` `draws`); anything entered from a folder leaves to that folder (`leave_at`); one home for what the library files (core `sections.ts` `filed`, `filed_defs`); counts read the section they are shown in (the map's title, the tray's `lists`); an imported package's map box wears the lock its explorer row does.
-- **Open question for the user**: design.md says *there is no definition view*, yet a library definition holding parts now enters its drawing (core `lens_of`); decide which holds.
-- **Known edge**: the tray's contents card for a library folder still says *blocks* (tray `Lists.tsx` `Card` → the card face's facts read no section).
-- **Next**: order 3 (grouping wide folders), after which `ROOM` goes; then 7, 8, 9.
-- **Start with orders 1–2 together** (budget and opening from the top replace one loop), then 6 early, so every later order is measured.
-- **Samples to drive**: samples/code.json (the scale case) loaded in place of example.json by routing the request in Playwright; example, mndsite, elements for small projects.
-- **No new tests** until the design settles; the scale check is the guard.
+**State (2026-11-16)**: committed through `35cc27e` (orders 1, 2, 4's cap, 5, 6; containment only; framed folders; picks stay in view). Uncommitted, built and driven: the camera cut on entering a folder, role icons in well cells, and one mark per element (a relation definition's swatch everywhere). 303 tests pass.
+
+| Built | Where |
+|---|---|
+| **chip budget, opened a level at a time** — floor is the header (96 × 48), weights floored at `SHARES`, short chips weighed up (`RAISE`, `ROUNDS`); the map still grows by `ROOM` until grouping | views `map.ts` `budget`, `mapped`, `ranked`, `level`, `laid_out` |
+| **capped wells** — the heaviest cells that show their icon and 4 characters at 8px, the rest *+N more*; each cell wears its role's icon top right, as a header does | views `map.ts` `well`, `well_laid`, `NAMED`; theme `chip.tsx` `Well`; stage `flow.css` |
+| **containment only** — no usage treemaps; tags and types keep their entries; library chips hold a definition's parts | core `navigate.ts` `lens_of`; views `registry.ts`, `map.ts` `library_map` |
+| **folders enter, framed, in either section**; leaving goes to the holding folder (crumbs' up), Escape to the map; the camera cuts to the entered view (`entered`) | core `navigate.ts` `lens_of`, `leave_at`; views `map.ts` `framed`, `scene.ts` `entered`; stage `room.ts` `realm_of` |
+| **a click only picks**, explorer included, inside an entered treemap | core `navigate.ts` `draws` |
+| **what the library files** — one home; counts read the section shown in | core `sections.ts` `filed`, `filed_defs`; views `facts.ts` `facts_of` |
+| **one mark per element** — the role icon from core `role_of` (a relation definition: its base, line or tie), or a relation definition's swatch, the same on explorer row, card, chip header and well cell; the models' package wears the model icon, an imported package a lock | core `names.ts` `role_of`; views `look.ts` `swatch_of`; theme `swatch.tsx`, `header.tsx`; explorer `rows.ts` `mark_of` |
+| **the scale check** — every tree view, both shapes: chips against budget, under the floor, names cut, cells unnamed, chips stuck, ms | views `scale.ts`; `mnd measure <sample> --views` |
+
+**Measured (mndflow sample)**: every view 1 chip under the floor, 4 names cut, 0 unnamed, 0 stuck; the models map ~150–200 ms (order 8).
+
+**Open**
+
+| Item | Notes |
+|---|---|
+| **definition view** (ask the user) | design.md says *there is no definition view*, yet a library definition holding parts enters its drawing (core `lens_of`); decide which holds |
+| tray contents card for a library folder says *blocks* | tray `Lists.tsx` `Card` → the card face's facts read no section |
+| the enter cut fades from blank (200 ms) | try a partial or shorter fade if it reads as a blink |
+| nested enters wait for the layout before flying | an entered folder is laid ahead (`internal` through ELK); order 8 |
+
+**Next**: order 3 (grouping wide folders by kind, then name range; then `ROOM` goes), then 7 (gathered lines on pick or hover), 8 (first draw under 2 s), 9 (drive every sample for the user's look).
+
+**Working notes**: drive samples/code.json by routing example.json in Playwright (Edge); a CDP screencast catches a 440 ms flight where screenshots cannot; run vitest from a `C:/` path; no new tests until the design settles — the scale check is the guard.

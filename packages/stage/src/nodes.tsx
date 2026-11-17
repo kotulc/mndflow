@@ -120,6 +120,7 @@ function CardNode({ id, data }: NodeProps<BoxNode>) {
               {...(data.facts ? { facts: data.facts } : {})}
               {...(data.defines ? { defines: true } : {})} {...(data.role ? { role: data.role } : {})}
               {...(look.icon ? { icon: look.icon } : {})}
+              {...(data.swatch ? { swatch: data.swatch } : {})}
               holds={data.marks.includes("container")}
               {...(data.stamps ? { stamps: data.stamps } : {})}
               classes={[...data.marks, selected ? "picked" : ""]}

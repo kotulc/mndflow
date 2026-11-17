@@ -65,8 +65,9 @@ function view_on(box: Rect, seen: Seen, k = 1): Viewport {
 }
 
 /** Which drawing a scene is: a map, which one, or which layer — a layer drawn as a treemap too,
- *  whose layer, unlike a map's focus, is none of its areas. */
+ *  whose layer, unlike a map's focus, is none of its areas, or a tree view entered at a block. */
 function realm_of(scene: Scene): string {
+  if (scene.entered) return `layer:${scene.entered}`;
   const map = scene.areas && !(scene.layer && !scene.areas.some((a) => a.id === scene.layer));
   return map ? `map:${scene.areas![0]?.label ?? ""}` : `layer:${scene.layer ?? ""}`;
 }

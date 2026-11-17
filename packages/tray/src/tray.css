@@ -489,9 +489,7 @@ fieldset.fields { padding: 0; }
              border: 1px solid var(--divider); border-radius: 3px; }
 .line-card > .line-kind { flex-basis: 100%; color: var(--muted); font-size: 11px; }
 
-/* **A relation's swatch**: a short stroke in its type's colour and dash. */
-.swatch { display: inline-block; width: 14px; height: 0;
-          border-top: 2px var(--card-border-style, solid) var(--card-edge, var(--muted)); }
+/* A relation's swatch (theme `face.css`) stretched between a line's two ends. */
 .swatch.long { flex: 1; }
 
 /* **A record definition's records**: a table under each place's band. */

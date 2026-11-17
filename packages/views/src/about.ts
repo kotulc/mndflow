@@ -2,7 +2,7 @@
  *  its facts, the preview a map chip shows of it, and its hover card. One reading for the library
  *  and the models alike. Worked out when asked, never stored. */
 
-import { base_of, children, class_of, def_at, definition_uses, diagram_kind, domain_of, is_base,
+import { base_of, children, class_of, def_at, definition_uses, diagram_kind, is_base,
          is_folder,
          is_header, is_holder, is_interface, is_notation, is_reference, line_layer, path,
          shown_name, stands_for, type Graph, type Id } from "@mnd/core";
@@ -10,7 +10,7 @@ import { carried } from "./derive";
 import { card_facts, counted, facts_of, type Facts } from "./facts";
 import { edge_of, face_table, face_text, head_words } from "./face";
 import { box_label, box_place, line_name, usage_groups } from "./library";
-import { entry_look, face_attrs, look_of, PLAIN, tint_attrs, wire_of, wire_tint, type Look,
+import { entry_look, face_attrs, look_of, PLAIN, swatch_of, tint_attrs, type Look, type Swatch,
          type Tint } from "./look";
 import type { Ruled } from "./scene";
 import { fitted, size_of, type Face } from "./size";
@@ -62,7 +62,8 @@ export function face_props(graph: Graph, id: Id, face: Face): FaceProps {
     ? fitted(data.label, text ?? "", head_words(graph, id, look), table, edge_of(look))
     : size_of(graph, id, face);
   const facts = card_facts(graph, id);
-  return { label: data.label, ...(kind ? { kind } : {}), ...(facts ? { facts } : {}),
+  const swatch = swatch_of(graph, id);
+  return { label: data.label, ...(swatch ? { swatch } : {}), ...(kind ? { kind } : {}), ...(facts ? { facts } : {}),
            ...(data.defines ? { defines: true } : {}), ...(data.role ? { role: data.role } : {}),
            ...(look.icon ? { icon: look.icon } : {}), holds: data.marks.includes("container"),
            ...(data.stamps ? { stamps: data.stamps } : {}), classes: data.marks,
@@ -165,15 +166,12 @@ export function colour_of(graph: Graph, id: Id): Look {
 /** **A tree row's colour edge and count**, for a host to hand its explorer: the block's map colour,
  *  and a definition's uses or a diagram's blocks; a relation definition its wire swatch for its
  *  icon, in its colour and dash. */
-export function row_look(graph: Graph, id: Id): { tint: Tint; count?: number; swatch?: Tint } {
+export function row_look(graph: Graph, id: Id): { tint: Tint; count?: number; swatch?: Swatch } {
   const def = !!graph.blocks[id]?.def;
   const count = def ? definition_uses(graph, id).length
     : class_of(graph, id) === "diagram" ? counted(graph, children(graph, id).map((c) => c.id)).blocks
     : 0;
-  const wire = def && domain_of(graph, id) === "relation" ? wire_of(graph, id) : null;
-  const swatch = wire ? { ...wire_tint(wire),
-                          ...(wire.border_style ? { "data-border-style": wire.border_style } : {}) }
-    : null;
+  const swatch = swatch_of(graph, id);
   return { tint: tint_attrs(colour_of(graph, id)), ...(count ? { count } : {}),
            ...(swatch ? { swatch } : {}) };
 }

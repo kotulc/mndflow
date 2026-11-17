@@ -346,3 +346,16 @@ export function wire_tint(wire: Wire): Tint {
 
 /** The attributes a colour alone comes to. */
 export type Tint = { "data-family"?: string; style?: Record<string, string> };
+
+/** A relation's swatch: its colour and its dash. */
+export type Swatch = Tint & { "data-border-style"?: string };
+
+/** **A relation definition's swatch**, the one mark it wears in place of an icon — on its explorer
+ *  row (`about.ts` `row_look`), its card and chip header (`derive.ts` `carried`, `map.ts`) and its
+ *  well cell; null for anything else. */
+export function swatch_of(graph: Graph, id: Id): Swatch | null {
+  if (!graph.blocks[id]?.def || domain_of(graph, id) !== "relation") return null;
+  const wire = wire_of(graph, id);
+  return { ...wire_tint(wire),
+           ...(wire.border_style ? { "data-border-style": wire.border_style } : {}) };
+}

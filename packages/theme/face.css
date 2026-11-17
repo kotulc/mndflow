@@ -115,6 +115,13 @@
   pointer-events: none;
 }
 .mnd-header-icon > svg { display: block; width: 100%; height: 100%; }
+/* A relation definition wears its swatch where its icon would be (theme `swatch.tsx`). */
+.mnd-header-icon > .swatch { display: block; width: 100%; margin-top: calc(50% - 1px); }
+
+/* **A relation's swatch**: a short stroke in its type's colour and dash, worn in place of an
+   icon by its explorer row, its header and its well cell alike (views `look.ts` `swatch_of`). */
+.swatch { display: inline-block; width: 14px; height: 0;
+          border-top: 2px var(--card-border-style, solid) var(--card-edge, var(--muted)); }
 .mnd-header-icon path { vector-effect: non-scaling-stroke; stroke-width: 1.5px; }
 .mnd-header-icon[data-holds] { color: var(--accent); }
 

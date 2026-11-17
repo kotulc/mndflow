@@ -481,6 +481,27 @@
   border-radius: 6px;
   box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--card-edge, var(--muted)) 60%, transparent);
 }
+/* A cell's role icon, in its top right corner as a header's is, at its name's size; the name
+   stops short of it (views `map.ts` `NAMED.icon`). */
+.mnd-well-icon {
+  position: absolute;
+  top: calc(var(--well-name, 10.5px) * 0.28);
+  right: 4px;
+  width: calc(var(--well-name, 10.5px) * 1.1);
+  height: calc(var(--well-name, 10.5px) * 1.1);
+  color: color-mix(in oklch, var(--text) 70%, transparent);
+  pointer-events: none;
+}
+.mnd-well-cell:has(.mnd-well-icon) > .mnd-well-name {
+  right: calc(4px + var(--well-name, 10.5px) * 1.4);
+}
+.mnd-well-icon path { vector-effect: non-scaling-stroke; stroke-width: 1px; }
+/* A relation definition's cell wears its swatch there instead: a stroke at the name's middle. */
+.mnd-well-icon.swatch {
+  height: 0;
+  top: calc(var(--well-name, 10.5px) * 0.85);
+  border-top-width: 1.5px;
+}
 /* What the well leaves out: one plain cell, no fill, its count muted. */
 .mnd-well-cell.more {
   background: transparent;

@@ -274,6 +274,7 @@ export const ROLE_ICON: Record<string, IconName> = {
   context: "role_context", flow: "role_flow", dataflow: "role_dataflow", state: "role_state",
   sequence: "role_sequence", swimlane: "role_swimlane", mapping: "role_mapping",
   class: "role_class", entity: "role_entity",
+  line: "relation_plain", tie: "relation_tie",
 };
 
 /** The icon for a role, falling back to the plain block's. */

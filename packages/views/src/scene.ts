@@ -3,7 +3,7 @@
 import type { Edge, Node } from "@xyflow/react";
 import type { Dir, End, Ends, Id, Key, Mark, Role, Side } from "@mnd/core";
 import type { Facts } from "./facts";
-import type { Arrow, Look, Tint, Wire } from "./look";
+import type { Arrow, Look, Swatch, Tint, Wire } from "./look";
 import type { Fan, Perch, Seat } from "./seat";
 import type { AboutDrawn } from "./overview";
 import type { RecordsDrawn } from "./records";
@@ -46,6 +46,8 @@ export type BoxData = {
   role?: Role;
   /** An icon of its own, worn over its role's (a map's box for an imported package). */
   icon?: string;
+  /** A relation definition's swatch, worn in place of its icon (views `look.ts` `swatch_of`). */
+  swatch?: Swatch;
   /** The whole lines a large face's body holds, where its card was sized by hand. */
   clamp?: number;
   /** Whether it opens onto a view of its own. */
@@ -295,7 +297,10 @@ export type InnerTile = { id: Id; label: string; x: number; y: number; w: number
                           /** Its name's size in pixels, shrunk to fit its cell. */
                           size?: number;
                           /** The *+N more* cell: what the well leaves out, standing for no block. */
-                          more?: boolean };
+                          more?: boolean;
+                          /** What sort of thing it is: the icon right of its name, or, a relation
+                           *  definition, its swatch. */
+                          role?: Role; swatch?: Swatch };
 
 export type Scene = {
   /** The layer this is a projection of. */
@@ -305,6 +310,9 @@ export type Scene = {
   areas?: readonly Area[];
   /** Which section a map is of: the library reads a definition by its uses. */
   map?: "library" | "models";
+  /** **The block a tree view was entered at** — a folder, framed by its own box — so the camera
+   *  cuts to it as a drawing of its own, never the map it was entered from (stage `realm_of`). */
+  entered?: Id;
   /** Absent only at the root, which has no outside to be seen from. */
   frame?: Frame;
   nodes: readonly BoxNode[];

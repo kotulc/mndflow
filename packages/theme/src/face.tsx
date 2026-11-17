@@ -9,6 +9,7 @@
 import { type CSSProperties, type ReactNode } from "react";
 import type { FactsData } from "./facts";
 import { Header } from "./header";
+import type { SwatchAttrs } from "./swatch";
 import { Icon, known, mark_icon, role_icon } from "./icons";
 import { Markdown } from "./markdown";
 
@@ -23,6 +24,8 @@ export type FaceProps = {
   /** The icon in its top corner: its own, else its role's. */
   role?: string;
   icon?: string;
+  /** A relation definition's swatch, worn in place of its icon. */
+  swatch?: SwatchAttrs;
   /** Whether it holds blocks, which lights its icon. */
   holds?: boolean;
   /** The system marks in its bottom corner. */
@@ -48,7 +51,8 @@ export type FaceProps = {
   lit?: readonly string[];
 };
 
-export function CardFace({ label, kind, defines, facts, role, icon, holds, stamps, classes = [],
+export function CardFace({ label, kind, defines, facts, role, icon, swatch, holds, stamps,
+                           classes = [],
                            dress = {}, text, table, head = true, clamp, name, title,
                            children, lit }: FaceProps) {
   const large = text !== undefined;
@@ -65,7 +69,8 @@ export function CardFace({ label, kind, defines, facts, role, icon, holds, stamp
         <Header name={name ?? <span className="mnd-label card-name">{label}</span>}
                 {...(kind ? { kind } : {})} {...(defines ? { defines } : {})}
                 {...(facts ? { facts } : {})} {...(role ? { role } : {})}
-                {...(icon ? { icon } : {})} {...(holds ? { holds } : {})} />
+                {...(icon ? { icon } : {})} {...(holds ? { holds } : {})}
+                {...(swatch ? { swatch } : {})} />
       ) : null}
       {ruled ? <Ruled {...table!} {...(lit?.length ? { lit } : {})} /> : null}
       {large && text ? <Markdown className={`mnd-face-body${clamp ? " clamped" : ""}`} text={text}

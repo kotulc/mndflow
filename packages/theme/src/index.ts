@@ -6,6 +6,7 @@ export { Inline, Markdown, plain } from "./markdown";
 export { CardFace, Stamps, Wears, type FaceProps } from "./face";
 export { Facts, type FactsData } from "./facts";
 export { Header, type HeaderProps } from "./header";
+export { Swatch, type SwatchAttrs } from "./swatch";
 export { Holds, UsedIn, type UsedPlace } from "./uses";
 export { BoxFace, ChipFace, type ChipCell, type ChipData, type ChipFaceProps,
          type ChipTile } from "./chip";

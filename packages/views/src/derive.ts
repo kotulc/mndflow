@@ -7,7 +7,7 @@ import { alias_of, attributes_of, def_of, dir_of, domain_of, frozen, head_of, in
          base_of, resolved, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
          path_of, way_of, type Graph, type Id } from "@mnd/core";
 import { body_lines, face_table, face_text, handle_of } from "./face";
-import { card_shape, look_of } from "./look";
+import { card_shape, look_of, swatch_of } from "./look";
 import { face_of, type Face } from "./size";
 import { box_of, type BoxData, type CardClass, type Scene } from "./scene";
 
@@ -87,6 +87,7 @@ export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): 
     ...(kind ? { kind } : {}),
     ...(is_definition(graph, id) ? { defines: true } : {}),
     role: role_of(graph, id),
+    ...(swatch_of(graph, id) ? { swatch: swatch_of(graph, id)! } : {}),
     ...(lens_of(graph, id) ? { opens: true } : {}),
     ...(stamps_of(graph, id).length ? { stamps: stamps_of(graph, id) } : {}),
     ...("type" in b && b.type ? { def: b.type } : {}),

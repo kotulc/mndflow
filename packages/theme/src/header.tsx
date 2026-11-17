@@ -6,6 +6,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { FactsData } from "./facts";
 import { Icon, known, role_icon } from "./icons";
+import { Swatch, type SwatchAttrs } from "./swatch";
 
 export type HeaderProps = {
   /** The name as drawn: plain text, or the canvas's, which renames in place. */
@@ -16,13 +17,16 @@ export type HeaderProps = {
   /** A definition, or a stand-in for one: badged on the meta line. */
   defines?: boolean;
   facts?: FactsData;
-  /** The icon: its own, else its role's; lit where it holds parts. */
+  /** The icon: its own, else its role's; lit where it holds parts. A relation definition wears
+   *  its `swatch` instead. */
   role?: string;
   icon?: string;
   holds?: boolean;
+  swatch?: SwatchAttrs;
 };
 
-export function Header({ name, kind, hued, defines, facts, role, icon, holds }: HeaderProps) {
+export function Header({ name, kind, hued, defines, facts, role, icon, holds,
+                         swatch }: HeaderProps) {
   const worn = icon && known(icon) ? icon : role_icon(role);
   const seats = facts?.seats;
   return (
@@ -43,9 +47,9 @@ export function Header({ name, kind, hued, defines, facts, role, icon, holds }: 
           ))}
         </div>
       </div>
-      {role ? (
+      {role || swatch ? (
         <span className="mnd-header-icon" data-role={role} {...(holds ? { "data-holds": "" } : {})}>
-          <Icon name={worn} size={24} />
+          {swatch ? <Swatch {...swatch} /> : <Icon name={worn} size={24} />}
         </span>
       ) : null}
     </div>

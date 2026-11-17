@@ -11,12 +11,12 @@ import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
          type HierarchyRectangularNode as Tiled } from "d3-hierarchy";
 import { base_of, children, diagram_kind, filed, is_aside, is_behaviour, is_folder,
          is_group, is_holder, is_interface, is_model, is_reference, lens_of, owner_of, on_side,
-         packages, path, shown_name, used_model, type Graph, type Id } from "@mnd/core";
+         packages, path, role_of, shown_name, used_model, type Graph, type Id } from "@mnd/core";
 import { colour_of, kind_of } from "./about";
 import { counted, fact, facts_of, total, type Facts } from "./facts";
 import { carried, trail_of } from "./derive";
 import { name_of } from "./library";
-import { look_of, tint_attrs } from "./look";
+import { look_of, swatch_of, tint_attrs } from "./look";
 import { box_of, cell, type Area, type BoxNode, type ChipCell, type InnerTile,
          type Scene } from "./scene";
 import { layer_tree, members, model_tree, parts_of, type Branch } from "./tree";
@@ -58,10 +58,11 @@ const NAME = { least: 11, most: 20, per: 13 };
  *  its cells. */
 const CHIP = { top: 8, gap: 8, side: 26, foot: 9, well: 26, inset: 8 };
 
-/** **Every child in a well is named**, its name shrunk to fit its cell (a monospace character is
- *  `char` of its size across, the line with its padding `line` of it down), between the least and
- *  the most; where even the least is too long, cut short. */
-const NAMED = { least: 8, most: 10.5, char: 0.6, pad: 0.45, line: 1.8, right: 4 };
+/** **Every child in a well is named**, its role's icon right of its name (theme `flow.css`
+ *  `.mnd-well-icon`, `icon` of its size across with its gap), shrunk to fit its cell (a monospace
+ *  character is `char` of its size across, the line with its padding `line` of it down), between
+ *  the least and the most; where even the least is too long, cut short. */
+const NAMED = { least: 8, most: 10.5, char: 0.6, pad: 0.45, icon: 1.4, line: 1.8, right: 4 };
 
 /** The least share of the canvas a model's middle keeps, each way, beside its zones and About. */
 const KEEP = 0.7;
@@ -113,7 +114,8 @@ export function layer_map(graph: Graph, layer: Id, open?: readonly Id[],
     const kids = layer_tree(graph, layer).map(leaf_of(graph));
     const top = is_folder(graph, layer) ? [framed(layer, kids)] : kids;
     return { ...mapped(graph, { id: MAP_ROOT, kids: top }, "models", layer), layer,
-             trail: trail_of(graph, layer) };
+             trail: trail_of(graph, layer),
+             ...(is_folder(graph, layer) ? { entered: layer } : {}) };
   }
   const zones = zones_of(graph, layer_tree(graph, layer).map((b) => b.id));
   const shown = new Set(open ?? opened(graph, layer, model));
@@ -182,7 +184,7 @@ export function library_map(graph: Graph, root?: Id): Scene {
   const tops = (root ? [root] : packages(graph).map((p) => p.id)).map(entry)
     .filter((k): k is Leaf => !!k);
   const map = mapped(graph, { id: MAP_ROOT, kids: tops }, "library", root);
-  return root ? { ...map, layer: root, trail: trail_of(graph, root) } : map;
+  return root ? { ...map, layer: root, entered: root, trail: trail_of(graph, root) } : map;
 }
 
 /** **A folder's box**: what it holds, closing into a chip as heavy as how many it holds. Entered,
@@ -451,9 +453,10 @@ function chip_drawn(graph: Graph, chip: NonNullable<Leaf["chip"]>,
   const facts = facts_of(graph, chip.block, library);
   const holds = chip.held.length > 0;
   const def = library && !!graph.blocks[chip.block]?.def;
+  const swatch = swatch_of(graph, chip.block);
   return { size, cell: def ? (holds ? "holds" as const : "leaf" as const)
              : cell_of(graph, chip.block, holds),
-           ...(chip.kind ? { kind: chip.kind } : {}),
+           ...(chip.kind ? { kind: chip.kind } : {}), ...(swatch ? { swatch } : {}),
            ...(facts ? { facts } : {}), ...(tiles.length ? { well: top, tiles } : {}),
            look: colour_of(graph, chip.block) };
 }
@@ -490,9 +493,10 @@ function well(graph: Graph, ids: readonly Id[], room: { w: number; h: number }):
   return best;
 }
 
-/** The least room a well's cell needs: a name of `MIN_CHARS` characters at the least size. */
+/** The least room a well's cell needs: its icon and a name of `MIN_CHARS` characters at the least
+ *  size. */
 const MIN_CHARS = 4;
-const LEAST_CELL = (NAMED.least * (NAMED.char * MIN_CHARS + NAMED.pad) + NAMED.right)
+const LEAST_CELL = (NAMED.least * (NAMED.char * MIN_CHARS + NAMED.pad + NAMED.icon) + NAMED.right)
   * NAMED.least * NAMED.line;
 
 /** **A well laid**: `shown` by weight, then a *+N more* cell for the `more` left out, as heavy
@@ -516,7 +520,9 @@ function well_laid(graph: Graph, shown: readonly Id[], more: number, room: { w: 
     const id = l.data.id;
     const label = id === MORE ? `+${more} more` : shown_name(graph, id);
     /** The size a name fits at: whole, else at least the least, cut short. */
-    const across = (chars: number) => (lw - NAMED.right) / (NAMED.char * chars + NAMED.pad);
+    const icon = id === MORE ? 0 : NAMED.icon;
+    const across = (chars: number) => (lw - NAMED.right)
+      / (NAMED.char * chars + NAMED.pad + icon);
     const tall = lh / NAMED.line;
     const least = id === MORE ? label.length : Math.min(label.length, MIN_CHARS);
     if (Math.min(tall, across(least)) < NAMED.least) legible = false;
@@ -524,7 +530,9 @@ function well_laid(graph: Graph, shown: readonly Id[], more: number, room: { w: 
     const at = { label, size: Math.round(size * 2) / 2, x: x / w, y: y / h, w: lw / w, h: lh / h,
                  grade: i % GRADES };
     if (id === MORE) return { id, ...at, more: true };
+    const swatch = swatch_of(graph, id);
     return { id, ...at, cell: cell_of(graph, id, members(graph, id).length > 0),
+             role: role_of(graph, id), ...(swatch ? { swatch } : {}),
              tint: tint_attrs(look_of(graph, id)) };
   });
   return { tiles, legible };

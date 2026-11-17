@@ -1,7 +1,7 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
-import { attributes_of, base_named, base_of, def_at, def_of, diagram_kind, edge_base, frozen,
-         is_model, notation_of, tags_stated } from "./defs";
+import { attributes_of, base_named, base_of, def_at, def_of, diagram_kind, domain_of, edge_base,
+         frozen, is_model, notation_of, relation_base, tags_stated } from "./defs";
 import { behaviours_of } from "./ends";
 import { inline, is_flat, shape_of } from "./holders";
 import { entry_at } from "./library";
@@ -111,7 +111,7 @@ function line_kind(graph: Graph, id: Id): string {
 /** What sort of thing a card is, as the icon it wears in its top corner. A person may set their
  *  own over it with `card.icon`; this is what it draws when nobody has. */
 export type Role = "block" | "model" | "folder" | "reference" | "interface" | "group" | "grid" | "note"
-  | "label" | "region" | "start" | "end" | "decision" | Diagram;
+  | "label" | "region" | "start" | "end" | "decision" | "line" | "tie" | Diagram;
 
 /** A diagram kind, as the role its card reads as. */
 export type Diagram = "context" | "flow" | "dataflow" | "state" | "sequence" | "swimlane"
@@ -122,9 +122,13 @@ const ROLES: readonly string[] = ["block", "model", "folder", "reference", "note
                                   "region", "grid", "start", "end", "decision"];
 
 /** A diagram wears its kind, a block that holds the mark of its shape, whatever kind it descends
- *  from; a stand-in for a definition wears its usages' role. */
+ *  from; a stand-in for a definition wears its usages' role; **a relation definition wears its
+ *  base's** — a line or a tie — the one icon its card, chip, well cell and explorer row show. */
 export function role_of(graph: Graph, id: Id): Role {
   if (is_interface(graph, id)) return "interface";
+  if (graph.blocks[id]?.def && domain_of(graph, id) === "relation") {
+    return relation_base(graph, id) as Role;
+  }
   const stood = stood_def(graph, id);
   const kind = diagram_kind(graph, stood?.id ?? id);
   if (kind) return kind as Diagram;

@@ -8,6 +8,8 @@
 import type { CSSProperties } from "react";
 import type { FactsData } from "./facts";
 import { Header } from "./header";
+import { Icon, role_icon } from "./icons";
+import { Swatch, type SwatchAttrs } from "./swatch";
 
 /** A colour alone, as the card table reads it. */
 type Tint = { "data-family"?: string; style?: Record<string, string> };
@@ -19,11 +21,16 @@ export type ChipCell = "holds" | "diagram" | "leaf" | "actor" | "external" | "fo
 export type ChipTile = { id: string; label: string; x: number; y: number; w: number; h: number;
                          cell?: ChipCell; tint?: Tint; grade?: number; size?: number;
                          /** The *+N more* cell, standing for no block. */
-                         more?: boolean };
+                         more?: boolean;
+                         /** What sort of thing it is: the icon right of its name, or, a relation
+                          *  definition, its swatch. */
+                         role?: string; swatch?: SwatchAttrs };
 
 /** What a chip draws. */
 export type ChipData = {
   label: string; kind?: string; role?: string; tint?: Tint;
+  /** A relation definition's swatch, worn in place of its icon. */
+  swatch?: SwatchAttrs;
   /** Its kind of cell, and its name's size in pixels, grown with its cell. */
   cell?: ChipCell; size?: number;
   facts?: FactsData;
@@ -51,7 +58,8 @@ export function ChipFace({ data, w, h, picked = false, lit = [] }: ChipFaceProps
       <Header name={<span className="mnd-chip-name">{data.label}</span>}
               {...(data.kind && cell !== "actor" && cell !== "external" ? { kind: data.kind } : {})}
               hued={cell === "diagram"} {...(data.facts ? { facts: data.facts } : {})}
-              {...(data.role ? { role: data.role } : {})} holds={cell === "holds"} />
+              {...(data.role ? { role: data.role } : {})} holds={cell === "holds"}
+              {...(data.swatch ? { swatch: data.swatch } : {})} />
       {data.toggle ? <Toggle open={false} /> : null}
       {data.well !== undefined && data.tiles?.length ? (
         <Well top={data.well} cell={cell} tiles={data.tiles} lit={lit} />
@@ -62,7 +70,8 @@ export function ChipFace({ data, w, h, picked = false, lit = [] }: ChipFaceProps
 
 /** **A chip's well**: a plain recess of its parts, or a diagram's framed in its hue under a
  *  *diagram* tab; each child a quiet cell, named at the size that fits it; what is left out one
- *  plain *+N more* cell that picks the chip itself. */
+ *  plain *+N more* cell that picks the chip itself; each cell wears its role's icon right of its
+ *  name, as a header does. */
 function Well({ top, cell, tiles, lit }: { top: number; cell: ChipCell;
                                           tiles: readonly ChipTile[]; lit: readonly string[] }) {
   return (
@@ -80,6 +89,9 @@ function Well({ top, cell, tiles, lit }: { top: number; cell: ChipCell;
                          ...(t.size ? { "--well-name": `${t.size}px` } : {}),
                          ...(t.tint?.style ?? {}) } as CSSProperties}>
             {t.label ? <span className="mnd-well-name">{t.label}</span> : null}
+            {t.label && t.swatch ? <Swatch {...t.swatch} className="mnd-well-icon" />
+              : t.label && t.role ? <Icon name={role_icon(t.role)} className="mnd-well-icon" />
+              : null}
           </span>
         ))}
       </span>
