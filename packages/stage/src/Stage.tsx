@@ -387,8 +387,9 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       return;
     }
     if (g.button === "left" && g.count === 1) onPickCells?.([]);
-    /** **A map is read, never built on**: a click on a chip or a box goes to it; a click on a
-     *  tile in a chip picks its block, to be read in the tray. Two read what was clicked — a tile
+    /** **A map is read, never built on**: a click on a chip, a box or a tile in a chip picks it,
+     *  to be read in the tray — on the map it also goes to it (the crumbs follow), but **never
+     *  moves the camera**: inside an entered treemap a click only picks. Two read what was clicked — a tile
      *  as inside its chip — and navigation says where that goes (core's `read_at`). */
     if (scene.areas) {
       const tile = typeof g.given?.["tile"] === "string" ? g.given["tile"] as string : null;
@@ -412,7 +413,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onAct("read", { id: on, ...(tile ? { inner: true, ...(area ? { via: area } : {}) } : {}) });
         return;
       }
-      onAct("open", { id: on });
+      if (!entered) onAct("open", { id: on });
       onPick([on]);
       return;
     }

@@ -5,39 +5,59 @@
 
 ## Next session
 
-**Handoff (2026-11-15, end of session).** Committed through the first pass of the day (layer frames and zones, `trace`, mndsite composed with the tools, the translator writing the library only). **The layer engine's open rows are built, uncommitted**: typecheck, the unit tests and every sample's `check` pass; each change was driven in the app. Suggested commit: *Layer engine: one card per port, outer ring, lanes, dataflow ranks, sequence fragments and order, field-row lines, turned swimlane moves*.
+**Handoff (2026-11-16, second).** Next session builds **scale-plan.md** (agreed with the user 2026-11-16): a chip budget from the canvas area, views opened from the top, flat lists grouped, wells showing what entering shows, anything with a well entering, lines gathered to the level drawn and shown only on select or hover, and a scale check in `mnd measure`. It supersedes decision 2 (*legible or closed*) and takes over row 5's *next*. The orders below (6–9) wait behind it. Everything of rows 1–5 is built and uncommitted.
 
-**The user's look (2026-11-15)**: the tree is the furthest from what was agreed and makes the rest hard to navigate; chips that mimic their diagrams (a sparse *Payments* in Checkout, *Order states* drawn oddly) make diagrams and presentations hard to tell apart; **content still appears and disappears with the zoom**, which was meant to be gone. **Decided:**
+**Handoff (2026-11-16).** Committed through `54e0ff6`: no content switched by zoom (cards and lines), and the routing pass. **Built 2026-11-16, uncommitted** (orders 1–4 below): the tree and chip rebuild, specified in docs/design/chip.md and the header section of docs/design/card.md; mockup at claude.ai/artifact/Wgi6FEJTDjSKQVSSsKLexp (boards: anatomy, one header, map landscape and portrait, overviews landscape and portrait, the shop, focus by expanding, mark options); the generator that laid the mockup is kept for reference in docs/design/mockups/tree-chips/.
+
+**Built this session (`54e0ff6`)**
+
+| Change | Where |
+|---|---|
+| **one look at every zoom** for cards and lines: card name, facts, table and body always shown, text never held larger than laid; a line's anchors, name and ends' words by its laid length; detail fades by `--detail`; levels removed | views `line.ts` `line_shows`; stage `flow.css`; views and stage `level.ts` deleted |
+| **a wall end faces its line's side**: a frame seat or port met from outside faces out (`LineData.outer`, set for what is across), so no run enters the room to turn back | views `ends.ts` `end_of`, `block.ts`; stage `Wire.tsx` |
+| **libavoid retries walled-in seats** with a 3px buffer (two 12px buffers closing an 18px gap made it give up); a seat's pin sits on its owner card | views `avoid.ts` |
+| **the fallback `route` never goes back through an end's card**: square runs leaving and entering along their faces, fewest cards crossed, then bends, then length | views `route.ts` |
+| **`mnd measure` counts wrong-way runs** (back through an end's card, or across the frame's wall more than the ends need): mndsite 0, shop 0, this repo 0 | views `measure.ts`; cli `measure.ts` |
+
+**Agreed this session: the tree and chips** (the full rules are chip.md's)
 
 | # | Decision |
 |---|---|
-| 1 | **the layer engine's open rows first**, then the tree (done: *Build notes*) |
-| 2 | **the tree and its chips rebuilt from the ground up**, mockup first: every piece of logic drawing a chip like its diagram removed (silhouettes, structure-laid tiles, listed parts); the kinds pass's tree section (claude.ai/artifact/Pxqq3R9YBEADASCmZyDYqc) and review part 12 (claude.ai/artifact/UN5BuHw2XGH3T5bmcUMMHu) are the spec |
-| 3 | **a closed chip shows its name and kind** (the kind's icon in its hue), **its counts**, and **a presentation marker** where it opens or is shown by a presentation; no purpose line |
-| 4 | **sequence fragments are written as groups of rows**; **participant order is written by the tool**, never reordered by the view (docs/diagrams/sequence.md, agreed 7 and 8) |
+| 1 | **the treemap fills its space**, sized by weight; **landscape-biased squarify** (laid at half width, stretched 2×) so names read across, landscape and portrait alike |
+| 2 | ~~**legible or closed**~~ **superseded 2026-11-16** by scale-plan.md's chip budget, opened from the top, with grouping: it could not close a flat list |
+| 3 | **text never turns**; **a chip's name grows with its cell** (~11–20px, continuous) |
+| 4 | **one header for cards and chips**: name; a meta line (kind · ▶ presentations · counts · attributes · seats in/out · tags, items dropping whole); the kind's square app icon at the right, as tall as both lines; **always two lines** (2026-11-16), no one-line form |
+| 5 | **a chip is that header over a well**: its children as a quiet treemap, one level, every child named at the size that fits it; a chip that holds is laid tall enough for its well (2026-11-16) |
+| 6 | **three kinds of cell by fill and border**: holds parts (plain recess well), diagram (well framed in its hue, a right-aligned *diagram* tab), leaf (no well, left accent); actors round, externals a thin semi-transparent border (not dashed), both without the kind word |
+| 7 | **the world root opens each model one level**; focus **resets** on each visit |
+| 8 | ~~focus by expanding~~ **dropped 2026-11-16** after building it: a selection never moves a cell; only opening and closing boxes changes the layout, and a box opened by hand stays open |
+| 9 | **boxes wear the shared header** too: box, chip and card one header (2026-11-16) |
+| 10 | **weight is holdings only**: √(what it holds), never joins; legible-or-closed stops slivers (2026-11-16) |
+| 11 | **the meta line never repeats the face**: a card leaves out attributes its table lists and seats on its walls; a chip keeps them (2026-11-16) |
 
 | Order | Take up next session | Notes |
 |---|---|---|
-| 1 | **no content switched by zoom** | **built 2026-11-15**: cards show name, facts, table and body at every zoom, text never held larger than laid; a line's anchors, name and ends' words by its laid length (views `line.ts` `line_shows`); detail fades by `--detail`; levels removed (views and stage `level.ts` gone) |
-| 2 | **the user's look at the entered views**: shop (Payments, Orders, Shop, Payment retry, Order states, Checkout saga, Fulfilment, Model, Schema) and mndsite (mndsite, every part, Build a site, Release, Edit and preview, Config trace, the mappings and schemas) | the presentations too, from each Overview's About |
-| 3 | **the tree and chip mockup**: the map, a model's overview and a closed chip, on the shop and mndsite, in the app's own faces; then strip the chip silhouettes and rebuild | decisions 2–3 |
-| 4 | **`check` misses unresolved references**: a dataflow's block or a sequence's participant naming nothing draws *missing*, yet `check` and `presentation check` say clean | found composing mndsite |
-| 5 | **the MCP surface** (docs/tools/README.md *Spot check*): a `presentation_check` tool and a check of a draft before it is written; one stated base for paths; a per-kind selection schema in `draw`'s description; a draft returning only its new presentation | |
-| 6 | **this repo's model** composed with the tools, as mndsite's was | the acceptance below |
+| 1 | **built**: **the unified header** in theme (`header.tsx`): one header for `CardFace` and `ChipFace` (name, meta line, square `role_*` icon), the facts strip folded into the meta line | theme `face.tsx`, `chip.tsx`, `face.css`; check the canvas: a card head grows from ~20px to ~34px, always two lines (decided 2026-11-16) |
+| 2 | **built**: **the tree layout**: landscape-biased squarify, legible-or-closed, world root opens models one level, name size by cell; remove the turned, narrow, silhouette and listed-parts code | views `map.ts`, `tree.ts`, theme `chip.tsx`, stage `flow.css` |
+| 3 | **built**: **wells**: children as a treemap, named where they fit; the three kinds of cell; the diagram frame and tab | views `map.ts` (tiles), theme `chip.tsx`, stage `flow.css` |
+| 4 | **built, then dropped**: focus by expanding (see decision 8); kept: toggles reset per visit, a box opened by hand never closed by legibility (views `map.ts` `keep`) | stage `room.ts` / `Flow.tsx`, views `map.ts`; the mockup's Focus board |
+| 5 | **built**: **drive it**: the shop and mndsite driven 2026-11-16 (map and overview, landscape and portrait, whole and 3× zoom, the library map; every model and diagram under example entered, toggles, a presentation); the map laid at the canvas's size and seen whole, well cells graded; 2026-11-16 second pass: a click only picks inside an entered treemap, a package's folder enters as its treemap, every well child named, the library drops folders filing no definition; next: scale-plan.md, then the user's look at the entered views and presentations | feedback: verify the user's path |
+| 6 | **ties far from their target**: Overview › Shop's *hot path* note ties across 8 cards; place a note beside what it ties | `mnd measure` counts them as crossings |
+| 7 | **pills overflowing small cards** (*Rate limit*, *Router*: "2 attributes" past the bottom edge, before this session too); likely gone with the header, verify | |
+| 8 | **`check` misses unresolved references**: a dataflow's block or a sequence's participant naming nothing draws *missing*, yet `check` says clean | |
+| 9 | **the MCP surface** (docs/tools/README.md *Spot check*) and **this repo's model** composed with the tools | the acceptance below |
 
-**Open items** (also in *Build notes*):
+**Open items**
 
 | Item | Notes |
 |---|---|
-| **a `class` face draws no rows outside a class diagram** | mndsite's data definitions moved to the `table` face to show in a dataflow's datum band; the class view forces its own face |
+| **a `class` face draws no rows outside a class diagram** | mndsite's data definitions use the `table` face to show in a dataflow's datum band |
 | **the layer engine's leftovers** | an actors band past one row folding into *+n more*; an external read and written through two ports as one card; long sequences cut into sub sequences; class: owners first along the long side, named fields as links, worked-out foreign keys |
-| **mndsite's composed parts are below the floor** | each part holds one or two uses of library units (`draw` warns); their diagrams hold the content. Revisit with the tree rework |
-| **a folded card's name is cut short** | one card per port and the outer ring write their rows into the card's name (`content folder ← mndmap`), which a fixed card width truncates; rows of their own come with the tree and chip rework's faces |
-| **deferred polish** | backlog.md *After the mndsite review*: silhouettes and short chips (now moot with the rework), a container's description |
+| **mndsite's composed parts are below the floor** | each part holds one or two uses of library units (`draw` warns); revisit with the tree rework |
+| **a folded card's name is cut short** | one card per port and the outer ring write their rows into the card's name; the unified header's meta line may hold them |
+| **entering a use from the map opens its library definition**, not its view in the model, so no outside cards show | seen 2026-11-15; check it is intended |
 
-**Settled by the user (2026-11-15): every model draws as its kind.** A plain `model` draws as its tree (the overview); a model extending `context`, `state`, `swimlane` or any other kind draws as that kind (base `model.json` holds the tree placing, no longer the *is model* trait; core `holders.ts` `shape_of` gives a model its kind's shape).
-
-**Carry over**: **drive every depth after a navigation change**; **the camera has one owner** (web `camera.ts` `shot_of`, a stop's fit added); **mockups use the app's own faces** (docs/design/card.md, mockups/tray-lists.html).
+**Carry over**: **drive every depth after a navigation change**; **the camera has one owner** (web `camera.ts` `shot_of`); **mockups use the app's own faces**; **every model draws as its kind** (a plain `model` is its tree).
 
 
 ### Build notes from the kinds pass
@@ -109,7 +129,7 @@ What the agreed kinds ask of the code, by home. Each is general; the kind's file
 | 25 | **presentations are front and centre** in how a person meets a model; it leads the tray's overview, with simple debugger controls (next, previous, into, out) |
 | 26 | **one mechanism for composing**: a block may be a use of another model, and *into* enters it |
 | 27 | **the library is the system**: models hold uses of its definitions and define nothing |
-| 28 | **faces say more with less**; **one chip representation at every zoom**; **a narrow chip turns its signature, never its body**; **each diagram kind has its own silhouette** at chip scale |
+| 28 | **faces say more with less**; **one representation at every zoom**. *Superseded 2026-11-16 by chip.md*: no turned signatures, no silhouettes |
 | 29 | **the tray sits by the canvas's shape**: right of a landscape canvas, below a portrait one |
 | 30 | **what is primary reads first**: shared parts quieter, keeping their colour; the most central blocks larger and framed heavier |
 

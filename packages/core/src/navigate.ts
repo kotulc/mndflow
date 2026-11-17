@@ -8,7 +8,7 @@
 
 import { NAMED_VIEWS } from "./components";
 import { def_of, is_model, models, setting_of } from "./defs";
-import { inline, is_folder, is_grid, is_region, layer_of } from "./holders";
+import { inline, is_filing, is_folder, is_grid, is_region, layer_of } from "./holders";
 import { registry_at, registry_id, registry_of } from "./library";
 import { opens } from "./names";
 import { at_cut, in_section, is_layer_view, on_side, type Lists, type Section, type ViewKind }
@@ -77,8 +77,9 @@ export function diagram_of(graph: Graph, id: Id): ViewKind | null {
 
 
 /** The layer view a block opens on, read from the side `lists` — the models' where unsaid — or
- *  null where it opens on nothing: a package, a folder, a group or a region nothing — each is a
- *  box on its map or its parent's layer; a view it names and can feed; a grid, its allocation; a
+ *  null where it opens on nothing: a package, a group or a region nothing — each is a box on its
+ *  map or its parent's layer; **a package's folder, in the models, the treemap of what it files**
+ *  (core `placing_of`); a view it names and can feed; a grid, its allocation; a
  *  block with something to draw, from inside — **an empty block opens on nothing**. **In the
  *  library a definition opens its registry**, a model included, where it is used; **in the
  *  models a model opens its own drawing**, empty or not. A stand-in opens as what it stands
@@ -96,6 +97,7 @@ export function lens_of(graph: Graph, id: Id, lists?: Lists): ViewKind | null {
   if (lists === "domain") return null;
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
   if (target && target.id !== id) return lens_of(graph, target.id, lists);
+  if (is_filing(graph, id)) return "internal";
   const diagram = diagram_of(graph, id);
   if (diagram) return diagram;
   if (is_grid(graph, id)) return "allocation";
@@ -254,8 +256,8 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
   const b = graph.blocks[id];
   if (!b) return null;
   /** **A region is a camera stop**, and so is a folder drawn in place: the room holding it is
-   *  opened, and the focus narrows to it. A folder no layer draws is focused on its map. */
-  if (b.parent !== null && (is_region(graph, id) || is_folder(graph, id))) {
+   *  opened, and the focus narrows to it. A package's folder opens as its own treemap. */
+  if (b.parent !== null && (is_region(graph, id) || (is_folder(graph, id) && !kind))) {
     const room = layer_of(graph, id);
     const opened = room ? open_at(graph, tiers, views, room, from, now) : null;
     if (opened && is_layer_view(opened.kind)) return { ...opened, layer: id, pick: null };

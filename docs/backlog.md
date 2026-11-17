@@ -1,6 +1,6 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next** (2026-11-15, handoff): no content switched by zoom, the user's look at the entered views, then the tree and chip mockup, in model-plan.md *Next session*. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next** (2026-11-16, handoff): scale-plan.md — a chip budget, grouping, entering, gathered lines and a scale check, so big projects read as well as small ones; then model-plan.md *Next session*. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
 
 ## After the mndsite review
 

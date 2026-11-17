@@ -56,7 +56,8 @@ describe("what a card wears", () => {
   /** The closed set of system marks: what a card stands in for, or what describes it. */
   const MARKS = ["reference", "definition", "package", "structure", "data"];
   const worn = (view: { container: HTMLElement }) =>
-    Array.from(view.container.querySelectorAll(".react-flow__node .mnd-role"),
+    Array.from(view.container.querySelectorAll(
+      ".react-flow__node :is(.mnd-role, .mnd-header-icon)"),
                (el) => el.getAttribute("data-role"));
   const stamped = (view: { container: HTMLElement }) =>
     Array.from(view.container.querySelectorAll(".react-flow__node .mnd-mark"),
@@ -87,16 +88,16 @@ describe("what a card wears", () => {
     const view = mount();
     expect(view.container.querySelector(".mnd-frame .mnd-role")?.hasAttribute("data-holds"))
       .toBe(true);
-    expect(card(view, "block_pump").querySelector(".mnd-role")?.hasAttribute("data-holds"))
+    expect(card(view, "block_pump").querySelector(".mnd-header-icon")?.hasAttribute("data-holds"))
       .toBe(false);
   });
 
   /** Never the word the mark already says. */
   it("drops the subtype word where the mark says the same thing", () => {
     const view = mount();
-    for (const el of Array.from(view.container.querySelectorAll(".mnd-head"))) {
-      const word = el.querySelector(".mnd-kind")?.textContent;
-      const role = el.querySelector(".mnd-role")?.getAttribute("data-role");
+    for (const el of Array.from(view.container.querySelectorAll(".mnd-header"))) {
+      const word = el.querySelector(".mnd-meta-kind")?.textContent;
+      const role = el.querySelector(".mnd-header-icon")?.getAttribute("data-role");
       expect(word === undefined || word !== role).toBe(true);
     }
   });

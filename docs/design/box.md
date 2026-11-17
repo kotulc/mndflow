@@ -12,13 +12,14 @@
 | *what is in it?* | the chips and cards inside |
 
 
-## Information by level
+## Information
 
-| Level | Shows |
+| Shows | Rule |
 |---|---|
-| 0 mark | its outline only |
-| 1 head | icon and name, top-left, on the outline |
-| 2 facts | counts after the name, in the title line, in the facts strip's words. They drop first when the title runs out of room |
+| its header | the shared two-line header (card.md, chip.md): name over meta line, kind's icon at the right |
+| what it holds | its own treemap, filling it (chip.md) |
+
+Nothing comes or goes with the zoom (2026-11-15).
 
 
 ## Form

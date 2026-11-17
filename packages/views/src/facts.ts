@@ -1,24 +1,23 @@
-/** **A block's facts strip**: what it counts and its tags, in one order on every form — chip,
- *  card, hover card and tray head. Never its ports: a card draws them as seats, and the components
- *  tab lists them. Worked out when asked, never stored. */
+/** **A block's facts**: the header's meta line (docs/design/card.md) — its presentations, what it
+ *  counts, the seats it wears each way, then its tags — in one order on every form: chip, card,
+ *  box, hover card and tray head. **A card's never repeats its face**: no attribute count where
+ *  its table lists them, no seats where its walls draw them. Worked out when asked, never stored. */
 
 import { attributes_of, children, definition_uses, is_header, is_holder, is_interface,
-         is_notation, subtree, subtypes, tag_at, tags_stated, use_places, type Graph,
-         type Id } from "@mnd/core";
-import { answered, listed } from "./face";
+         is_notation, ports_on, presentations_of, subtree, subtypes, tag_at, tags_stated,
+         use_places, type Graph, type Id } from "@mnd/core";
+import { listed } from "./face";
 import type { usage_groups } from "./library";
-import { entry_look, tint_attrs, type Tint } from "./look";
+import { entry_look, look_of, tint_attrs, type Tint } from "./look";
 
 /** How many of something a block has, said in a word. */
 export type Fact = { n: number; word: string };
 
-/** One attribute a block answers, its value said short. */
-export type Answer = { name: string; value: string };
-
-/** **The facts strip**, in its one order: what it counts — or, on a chip of parts, what it
- *  answers — then its tags. */
-export type Facts = { counts: Fact[]; answers?: Answer[];
-                      tags: { id: Id; label: string; tint: Tint }[] };
+/** **The facts**, in their one order: what it counts, then its tags. */
+export type Facts = { counts: Fact[];
+                      tags: { id: Id; label: string; tint: Tint }[];
+                      /** How many presentations it plays; the seats it wears each way. */
+                      plays?: number; seats?: { in: number; out: number } };
 
 /** A definition's uses grouped by place, and what some blocks hold: worked out by a caller that
  *  has them already, so they are read once. */
@@ -50,19 +49,12 @@ export function facts_of(graph: Graph, id: Id, library: boolean,
     const tag = tag_at(graph, t);
     return tag ? [{ id: t, label: tag.name, tint: tint_attrs(entry_look(graph, t)) }] : [];
   });
-  return { counts, tags };
-}
-
-/** **What a block answers, said short** (2026-11-08): each attribute it gives a value, in its
- *  kind's order; a list by its first item and how many more, counting a `+n` it ends on. */
-export function answers_of(graph: Graph, id: Id): Answer[] {
-  return answered(graph, id).flatMap((r) => {
-    if (!r.value) return [];
-    const items = r.value.split(/,\s*/);
-    const more = items.length - 1 + Number(r.value.match(/ \+(\d+)$/)?.[1] ?? 0);
-    const first = items[0]!.replace(/ \+\d+$/, "");
-    return [{ name: r.name, value: more ? `${first} +${more}` : r.value }];
-  });
+  const plays = presentations_of(graph, id).length;
+  const flows = ports_on(graph, id).map((p) => p.flow ?? "both");
+  const seats = { in: flows.filter((f) => f !== "out").length,
+                  out: flows.filter((f) => f !== "in").length };
+  return { counts, tags, ...(plays ? { plays } : {}),
+           ...(seats.in + seats.out ? { seats } : {}) };
 }
 
 /** What some blocks hold between them: blocks — not notes, labels, holders or a grid's headers,
@@ -101,15 +93,21 @@ export function fact(n: number, one: string): Fact[] {
 
 /** Whether a facts strip says anything. */
 export function any_fact(f: Facts): boolean {
-  return f.counts.length + (f.answers?.length ?? 0) + f.tags.length > 0;
+  return f.counts.length + f.tags.length + (f.plays ?? 0)
+    + (f.seats ? 1 : 0) > 0;
 }
 
-/** **The facts strip a card's face carries** at level 2, where it says anything: never on
- *  notation or a grid's header, which are their shape alone. */
+/** **A card's meta line**, where it says anything: never on notation or a grid's header, which
+ *  are their shape alone. It never repeats the face: its seats are on its walls, and attributes a
+ *  table lists are left out. */
 export function card_facts(graph: Graph, id: Id): Facts | null {
   if (is_header(graph, id) || is_notation(graph, id)) return null;
-  const facts = facts_of(graph, id, false);
-  return any_fact(facts) ? facts : null;
+  const { seats: _, ...facts } = facts_of(graph, id, false);
+  const ruled = look_of(graph, id).shows.some((s) => s === "attributes" || s === "behaviours");
+  const counts = ruled ? facts.counts.filter((c) => !c.word.startsWith("attribute"))
+    : facts.counts;
+  const said = { ...facts, counts };
+  return any_fact(said) ? said : null;
 }
 
 /** A count's whole. */

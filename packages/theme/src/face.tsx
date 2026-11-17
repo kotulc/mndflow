@@ -1,12 +1,14 @@
 /** A card's face: the one drawing of a card, wherever one is drawn — the canvas, the tray, a host.
  *
- *  **The identity row** leads every face: the name, then its kind (on its own line where both do
- *  not fit), a definition's badge, and the icon top-right with the marks beside it. Then the facts
- *  strip, where a host hands one. **Large**, the face goes on to its attributes as a ruled table —
- *  the head its title row, the card's border the table's — then its markdown, rendered. What it says, how wide each column is and how it is painted are
- *  worked out before it is drawn; a face only draws them, naming no graph. */
+ *  **The header** leads every face (`header.tsx`, shared with chips and boxes): the name over its
+ *  meta line, the kind's icon at the right. **Large**, the face goes on to its attributes as a
+ *  ruled table — the card's border the table's — then its markdown, rendered. What it says, how
+ *  wide each column is and how it is painted are worked out before it is drawn; a face only draws
+ *  them, naming no graph. */
 
 import { type CSSProperties, type ReactNode } from "react";
+import type { FactsData } from "./facts";
+import { Header } from "./header";
 import { Icon, known, mark_icon, role_icon } from "./icons";
 import { Markdown } from "./markdown";
 
@@ -16,8 +18,8 @@ export type FaceProps = {
   kind?: string;
   /** A definition, or a stand-in for one: outlined, and badged in its colour by its name. */
   defines?: boolean;
-  /** The facts strip, drawn under the head where a host hands one. */
-  facts?: ReactNode;
+  /** The meta line's counts, seats and tags, where a host hands them. */
+  facts?: FactsData;
   /** The icon in its top corner: its own, else its role's. */
   role?: string;
   icon?: string;
@@ -35,8 +37,6 @@ export type FaceProps = {
   table?: { cells: readonly (readonly string[])[]; widths: readonly number[]; split?: number };
   /** False where a large face is its markdown alone. */
   head?: boolean;
-  /** A small face's name sized to its card: its size in pixels and how many lines it takes. */
-  fit?: { size: number; lines: number };
   /** The whole lines the large face's body holds, where it is cut short. */
   clamp?: number;
   /** The name as drawn, where a host draws it itself — the canvas's, which renames in place. */
@@ -49,7 +49,7 @@ export type FaceProps = {
 };
 
 export function CardFace({ label, kind, defines, facts, role, icon, holds, stamps, classes = [],
-                           dress = {}, text, table, head = true, fit, clamp, name, title,
+                           dress = {}, text, table, head = true, clamp, name, title,
                            children, lit }: FaceProps) {
   const large = text !== undefined;
   const named = !large || head;
@@ -58,23 +58,15 @@ export function CardFace({ label, kind, defines, facts, role, icon, holds, stamp
     <div className={["mnd-card", "card-face", large ? "large" : "small", named ? "" : "headless",
                      ruled ? "tabled" : "", defines ? "definition" : "", ...classes]
                       .filter(Boolean).join(" ")}
-         {...dress} title={title ?? label}
-         {...(fit ? { "data-fit": fit.lines, style: { "--name-size": `${fit.size}px`,
-                                                      "--name-lines": fit.lines } as CSSProperties }
-                 : {})}>
+         {...dress} title={title ?? label}>
       {children}
-      <Wears role={role} icon={icon} holds={holds} />
       <Stamps stamps={stamps} />
       {named ? (
-        <div className="mnd-head">
-          <span className="mnd-named">
-            {name ?? <span className="mnd-label card-name">{label}</span>}
-            {kind ? <span className="mnd-kind">{kind}</span> : null}
-            {defines ? <span className="mnd-badge">definition</span> : null}
-          </span>
-        </div>
+        <Header name={name ?? <span className="mnd-label card-name">{label}</span>}
+                {...(kind ? { kind } : {})} {...(defines ? { defines } : {})}
+                {...(facts ? { facts } : {})} {...(role ? { role } : {})}
+                {...(icon ? { icon } : {})} {...(holds ? { holds } : {})} />
       ) : null}
-      {facts ? <div className="mnd-face-facts">{facts}</div> : null}
       {ruled ? <Ruled {...table!} {...(lit?.length ? { lit } : {})} /> : null}
       {large && text ? <Markdown className={`mnd-face-body${clamp ? " clamped" : ""}`} text={text}
                                  {...(clamp ? { style: { "--body-lines": clamp } as CSSProperties }

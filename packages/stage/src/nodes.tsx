@@ -11,7 +11,7 @@ export const DRAGGED = "text/mnd-block";
 
 import { FRAME, PLAIN, face_attrs, look_key, tint_attrs,
          type BoxData, type BoxNode, type GridCell } from "@mnd/views";
-import { BoxFace, CardFace, ChipFace, Facts, Name, Stamps, Wears, useNaming } from "@mnd/theme";
+import { BoxFace, CardFace, ChipFace, Name, Stamps, Wears, useNaming } from "@mnd/theme";
 import { grid_seen } from "./arrays";
 import { usePicked, usePicks } from "./picked";
 
@@ -23,9 +23,8 @@ function seen(p: NodeProps<BoxNode>): string {
   return [
     p.dragging, p.width, p.height,
     d.label, d.alias ?? "", d.description ?? "", d.def, d.defines, d.on, d.side, d.role,
-    d.kind ?? "", d.upright, d.diagram, JSON.stringify(d.tiles ?? []), d.head ?? "",
+    d.kind ?? "", d.cell ?? "", d.size ?? "", d.well ?? "", JSON.stringify(d.tiles ?? []),
     JSON.stringify(d.facts ?? null),
-    JSON.stringify(d.preview ?? null), JSON.stringify(d.bar ?? null),
     (d.stamps ?? []).join(","),
     d.face ?? "", d.text ?? "", d.marks.join(","),
     /** Read off the look, so no property is forgotten. */
@@ -118,7 +117,7 @@ function CardNode({ id, data }: NodeProps<BoxNode>) {
   const look = data.look ?? PLAIN;
   return (
     <CardFace label={data.label} {...(data.kind ? { kind: data.kind } : {})}
-              {...(data.facts ? { facts: <Facts facts={data.facts} /> } : {})}
+              {...(data.facts ? { facts: data.facts } : {})}
               {...(data.defines ? { defines: true } : {})} {...(data.role ? { role: data.role } : {})}
               {...(look.icon ? { icon: look.icon } : {})}
               holds={data.marks.includes("container")}
@@ -128,7 +127,6 @@ function CardNode({ id, data }: NodeProps<BoxNode>) {
               {...(data.text !== undefined ? { text: data.text } : {})}
               {...(data.table ? { table: data.table } : {})}
               head={look.head !== false}
-              {...(data.fit ? { fit: data.fit } : {})}
               {...(data.clamp ? { clamp: data.clamp } : {})}
               title={data.description ? `${data.label} — ${data.description}` : data.label}
               name={<Name id={id} className="mnd-label card-name" text={data.label} />}>
@@ -391,10 +389,8 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
 function MapBox({ id, data }: NodeProps<BoxNode>) {
   const selected = usePicked(id);
   return <BoxFace label={data.label} {...(data.role ? { role: data.role } : {})}
-                  {...(data.facts ? { counts: data.facts.counts } : {})}
+                  {...(data.facts ? { facts: data.facts } : {})}
                   panel={data.marks.includes("group")}
-                  {...(data.marks.includes("major") ? { rank: "major" as const }
-                    : data.marks.includes("minor") ? { rank: "minor" as const } : {})}
                   {...(data.toggle ? { toggle: data.toggle } : {})}
                   picked={!!selected} />;
 }
@@ -451,16 +447,9 @@ function AboutNode({ data }: NodeProps<BoxNode>) {
   );
 }
 
-/** A map's chip, **its card at map scale** (views `map.ts`): its name's line — the name, then
- *  quieter its kind — and its kind's icon in the top-right corner; its facts under it where it
- *  has room; then its body, the first thing it has — a diagram's tiles laid by its structure, a
- *  definition's uses in boxes of their places, else a preview of its attributes, records, body or
- *  description, a definition's places each with its uses, over a bar of its uses by place. A
- *  tile is a small card the same way: its name, its icon in the corner, edged in its own colour.
- *  Icons keep a least size on screen, never past what their tile has room for (`--cap`). A chip
- *  too narrow for its name shows its icon alone; a tall, narrow one turns its signature -90°,
- *  its body upright. **One look at every zoom**: nothing here reads the zoom. What it is in full
- *  is its hover card. */
+/** **A tree chip** (views `map.ts`, docs/design/chip.md): the shared header over its well, its
+ *  children a quiet treemap. **One look at every zoom**: nothing here reads the zoom. What it is
+ *  in full is its hover card. */
 function ChipNode({ id, data, width, height }: NodeProps<BoxNode>) {
   const selected = usePicked(id);
   /** Its tiles picked, lit the one way everything picked is. */

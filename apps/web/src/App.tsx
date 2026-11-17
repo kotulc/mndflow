@@ -10,12 +10,12 @@ import { appearances_of, collect, drop_of, touches_of,
          type Hop, type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { area_of, boxed_place, box_of, clear_of, empty_of, holds, layer_scene, map_focus, project,
-         opened, section_map, set_aspect, set_card as apply_card, BLOCK, CARD, EMPTY,
+         opened, section_map, set_aspect, set_canvas, set_card as apply_card, BLOCK, CARD, EMPTY,
          laid_ahead, model_tree, on_map, row_look, UNITS, trail_of, type Area,
          type Scene } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
 import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
-import { Stage, still, type Move, type Shot } from "@mnd/stage";
+import { BAND as CANVAS_BAND, Stage, still, type Move, type Shot } from "@mnd/stage";
 import { Tray, useDisplay, useTray, type Offered } from "@mnd/tray";
 import { shot_of, type Camera } from "./camera";
 import { fit_of, showing_of, usePresent } from "./present";
@@ -30,6 +30,7 @@ const THEMES = [
 
 /** Where this host keeps its definition packages. */
 const CATALOGUE = "/packages/index.json";
+
 
 export function App({ storage, boot, opening }: {
   storage: Storage; boot?: Boot; opening?: string;
@@ -125,6 +126,22 @@ export function App({ storage, boot, opening }: {
   apply_card(card.w, card.h);
   /** Rooms fill toward the window's shape: steady while the tray opens and shuts. */
   const aspect = set_aspect(Math.round((window.innerWidth / Math.max(1, window.innerHeight)) * 10) / 10);
+  /** **A tree view fills the canvas** (docs/design/chip.md): its size, measured off the stage
+   *  less the camera's margin, in steps so a resize lays the map again only when it reads. */
+  const main = useRef<HTMLElement>(null);
+  const [canvas, set_canvas_px] = useState("");
+  useEffect(() => {
+    const stage = main.current?.querySelector<HTMLElement>(".stage");
+    if (!stage) return;
+    const watch = new ResizeObserver(([e]) => {
+      const { width, height } = e!.contentRect;
+      const [w, h] = [Math.round(width / 40) * 40 - 2 * CANVAS_BAND,
+                      Math.round(height / 40) * 40 - 2 * CANVAS_BAND];
+      if (set_canvas(w, h)) set_canvas_px(`${w}x${h}`);
+    });
+    watch.observe(stage);
+    return () => watch.disconnect();
+  }, []);
 
   /** **The map, the models' and the library's**: one treemap of the side the explorer lists,
    *  worked out on every graph change. A component registry draws its own view; a definition's
@@ -135,7 +152,7 @@ export function App({ storage, boot, opening }: {
   const pkg = way[0]?.id ?? null;
   const component = view.kind === "registry" && !graph.blocks[view.layer ?? ""];
   const map = useMemo(() => (!lists || component ? null : section_map(graph, lists, models)),
-    [graph, lists, component, card, aspect]);
+    [graph, lists, component, card, aspect, canvas]);
   /** What the map is gone to: the layer looked into, else the pick on the whole map. */
   const focus_id = is_layer_view(view.kind) ? view.layer : view.pick;
   /** Counted up by every open, entry and leaving, so going to the focus again flies back to it. */
@@ -161,6 +178,10 @@ export function App({ storage, boot, opening }: {
   /** **A model's overview opens and closes by hand** (docs/diagrams/tree.md): the boxes open on
    *  each layer, once a toggle is used; a presentation's stop sets its own, a dive adds one. */
   const [opens, set_opens] = useState<Record<Id, Id[]>>({});
+  /** **Focus resets on each visit**: the toggles are this visit's alone. */
+  /** The box last opened by hand, which legibility never closes again (views `map.ts`). */
+  const [kept, set_kept] = useState<Id | null>(null);
+  useEffect(() => { set_opens({}); set_kept(null); }, [view.layer]);
   const present = usePresent(graph, view.layer);
   const model = view.layer && graph.blocks[view.layer] ? used_model(graph, view.layer) : null;
   const open = useMemo((): Id[] | undefined => {
@@ -193,10 +214,11 @@ export function App({ storage, boot, opening }: {
     if (mapped && !entering) return null;
     if (ahead) return waiting ? null : laid!.scene;
     return project(graph, view.layer, { interfaces: shown.interfaces, ...(open ? { open } : {}),
+                                        keep: kept,
                                         look: { kind: view.kind, cut: SLICES[view.at]!.cut,
                                                 ...(lists ? { lists } : {}) } });
   }, [graph, mapped, entering, ahead, waiting, laid, view.layer, view.kind, view.at,
-      shown.interfaces, card, open]);
+      shown.interfaces, card, open, kept, canvas]);
   /** Projected once per graph, view, layer or proportion change; a treemap being flown through
    *  held as it was. */
   const scene = useMemo((): Scene => {
@@ -274,6 +296,7 @@ export function App({ storage, boot, opening }: {
   /** A box of the overview opened or closed by its toggle, kept for this layer. */
   const toggle = (id: Id) => {
     if (!view.layer || !open) return;
+    set_kept(open.includes(id) ? null : id);
     set_opens((o) => ({ ...o, [view.layer!]: open.includes(id) ? open.filter((x) => x !== id)
       : [...open, id] }));
   };
@@ -605,7 +628,7 @@ export function App({ storage, boot, opening }: {
 
       {/** **The tray sits by the canvas's shape** (2026-11-08): right of a landscape canvas, below
         *  a portrait one, so the canvas keeps a steadier shape. */}
-      <main className={t.open && aspect > 1 ? "side" : undefined}>
+      <main ref={main} className={t.open && aspect > 1 ? "side" : undefined}>
         <Stage
           scene={trailed}
           graph={graph}

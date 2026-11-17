@@ -3,7 +3,7 @@
  *  `useCamera`); nothing else moves the camera. */
 
 import { path, reached, type Graph, type Hop, type Id } from "@mnd/core";
-import { box_of, hop_trace, stop_area, trace_of, type Area, type Scene, type Trace } from "@mnd/views";
+import { box_of, hop_trace, trace_of, type Area, type Scene, type Trace } from "@mnd/views";
 import type { Rect, Shot } from "@mnd/stage";
 
 /** Which camera a drawing has: the map; a treemap diagram entered from it; a layer entered and
@@ -38,9 +38,8 @@ export type Where = {
 const PAGE = { most: 1 };
 
 /** **The one shot**: entering, the chip flown into as far as the entered drawing will stand,
- *  held while it is laid; on the map, the hops picked or walked, else the area gone to; a
- *  treemap diagram, the hops, else whole — either flown out to from a chip gone up out of; an
- *  entered layer,
+ *  held while it is laid; a tree view — the map, a treemap diagram — whole, or the step walked,
+ *  either flown out to from a chip gone up out of; an entered layer,
  *  the hops, else held where it last stopped; a page read from its focus; any other layer whole. */
 export function shot_of(w: Where): Shot {
   const seq = w.seq;
@@ -54,12 +53,13 @@ export function shot_of(w: Where): Shot {
   const hop = (w.fit?.length ? fit_of(w.graph, w.scene, w.fit) : null)
     ?? hop_of(w.graph, w.scene, w.walked, w.one);
   const reveal = box_in(w.scene, w.reveal);
-  if (w.as === "map") {
-    const area = w.map ? stop_area(w.graph, w.map, w.focus) : null;
-    return { box: hop ?? (area ? { ...area, scale: 1 / 2 } : null), reveal, from: w.left, seq };
-  }
-  if (w.as === "treemap") {
-    return { box: hop ?? { ...w.scene.areas![0]!, scale: 1 }, from: w.left, seq };
+  /** **A tree view is seen whole** (docs/design/chip.md): it is laid the canvas's size, and a
+   *  pick is laid larger in place (focus by expanding), so the camera never zooms to one; a walk
+   *  still fits its step. */
+  if (w.as === "map" || w.as === "treemap") {
+    const walk = w.walked ? hop_of(w.graph, w.scene, w.walked, null) : null;
+    const fit = w.fit?.length ? fit_of(w.graph, w.scene, w.fit) : null;
+    return { box: fit ?? walk ?? { ...w.scene.areas![0]!, scale: 1 }, from: w.left, seq };
   }
   if (w.as === "fitted") return hop ? { box: hop, seq } : { box: null, hold: true, reveal, seq };
   if (w.as === "page") return { box: null, page: PAGE, reveal, seq };

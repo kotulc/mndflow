@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { FLOOR, modeled } from "@mnd/fixtures";
 import { definition_uses, fold, ROOT } from "@mnd/core";
-import { facts_of, library_map, model_map, registry_map, type BoxNode } from "../src/index";
+import { facts_of, library_map, model_map, type BoxNode } from "../src/index";
 
 const g = fold(modeled(), FLOOR);
 const node = (nodes: readonly BoxNode[], id: string) => nodes.find((n) => n.id === id);
@@ -34,12 +34,11 @@ describe("the library's map", () => {
     expect(node(scene.nodes, "unused")?.data.tiles).toBeUndefined();
   });
 
-  it("previews a definition's uses as its registry lays them, or its profile", () => {
-    const data = node(scene.nodes, "service")!.data;
-    const laid = registry_map(g, "service", 400, 200).map((t) => t.id);
-    /** What the chip has no room for folds into *+n more*; the rest is the registry's. */
-    const shown = data.tiles?.filter((t) => t.as !== "more").map((t) => t.id);
-    if (shown) expect(laid).toEqual(expect.arrayContaining(shown));
-    else expect(data.bar?.length).toBeGreaterThan(0);
+  it("fills a definition's well with its uses alone", () => {
+    const defs = scene.nodes.filter((n) => n.type === "chip" && g.blocks[n.id]?.def);
+    for (const n of defs) {
+      const uses = definition_uses(g, n.id).map((u) => u.id);
+      expect(uses).toEqual(expect.arrayContaining((n.data.tiles ?? []).map((t) => t.id)));
+    }
   });
 });

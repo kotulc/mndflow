@@ -4,9 +4,9 @@
  *  lists it, a row a box, chip or tile, so the arrows walk what the map nests. Worked out when
  *  asked, never stored. */
 
-import { children, def_at, inline, is_aside, is_group, is_header, is_interface, is_notation,
-         is_reference, layer_of, lens_of, on_side, packages, stands_for, type Graph,
-         type Id } from "@mnd/core";
+import { children, def_at, inline, is_aside, is_folder, is_group, is_header, is_interface,
+         is_model, is_notation, is_reference, layer_of, lens_of, on_side, packages, stands_for,
+         subtree, type Graph, type Id } from "@mnd/core";
 import { compounded, tree_groups } from "./flow";
 
 /** One branch: the block it is, the block it draws as — a reference what it stands for — and
@@ -16,11 +16,14 @@ export type Branch = { id: Id; as: "box" | "chip" | "group"; shows: Id; held: re
                        kids: Branch[] };
 
 
-/** **The models' tree**: every package holding a model, a box of what it holds. */
+/** **The models' tree, the world root**: every package holding a model, a box of its folders,
+ *  **each model open one level** (docs/design/chip.md): its parts closed chips. */
 export function model_tree(graph: Graph): Branch[] {
-  const { box } = branches(graph);
-  return packages(graph).filter((p) => on_side(graph, p.id, "structure"))
-    .map((p) => box(p.id, p.id));
+  const tops = packages(graph).filter((p) => on_side(graph, p.id, "structure"));
+  const open = new Set(tops.flatMap((p) => subtree(graph, p.id))
+    .filter((id) => is_folder(graph, id) || is_model(graph, id)));
+  const { box } = branches(graph, open);
+  return tops.map((p) => box(p.id, p.id));
 }
 
 /** **A model's tree** (docs/diagrams/tree.md): what it holds — a use of a model what its model

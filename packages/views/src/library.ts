@@ -82,26 +82,4 @@ export function filed(graph: Graph, id: Id): Id[] {
     && (is_folder(graph, b.id) || !!b.def)).map((b) => b.id);
 }
 
-/** A small map's box heading, inside its top: a laid name line and a little air. */
-const BOX_HEAD = 14;
-
-/** One tile of a small map: what it is, its name, and where it lies in a map `w` by `h`. */
-export type Tile = { id: Id; label: string; kind: "box" | "use" | "line" | "def";
-                     x: number; y: number; w: number; h: number };
-
-/** A definition's registry as a small map `w` by `h`: **the registry's own layout**, laid to fill
- *  the map rather than scaled into it, each box with a line inside its top for its name; a lone
- *  box kept where `boxed`. */
-export function registry_map(graph: Graph, def: Id, w: number, h: number,
-                             groups = usage_groups(graph, def), boxed = false): Tile[] {
-  return usage_layout(graph, def, { w, h }, groups, BOX_HEAD, boxed).map((p): Tile => {
-    const place = box_place(def, p.id);
-    const e = graph.edges[p.id];
-    return { id: p.id, x: p.x, y: p.y, w: p.w, h: p.h,
-             kind: place ? "box" : e ? "line" : "use",
-             label: place ? box_label(graph, place)
-               : e ? line_name(graph, p.id)
-               : shown_name(graph, p.id) };
-  });
-}
 

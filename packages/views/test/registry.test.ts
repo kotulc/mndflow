@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { FLOOR, modeled } from "@mnd/fixtures";
 import { fold } from "@mnd/core";
-import { registry_map, registry_scene, usage_box, usage_groups } from "../src/index";
+import { registry_scene, usage_box, usage_groups } from "../src/index";
 
 const g = fold(modeled(), FLOOR);
 const scene = registry_scene(g, "service")!;
@@ -26,11 +26,13 @@ describe("a definition's registry", () => {
                                                 usage_box("service", "shop")]));
   });
 
-  it("is read only, draws no lines, and its uses match the tray's small map", () => {
+  it("is read only, draws no lines, and draws each use in its place's box", () => {
     expect(scene.slots).toEqual(["display"]);
     expect(scene.edges).toEqual([]);
     expect(scene.nodes.every((n) => n.draggable === false)).toBe(true);
-    const tray = registry_map(g, "service", 400, 200).map((t) => t.id).sort();
+    const groups = usage_groups(g, "service");
+    const boxes = groups.length > 1 ? groups.map((gr) => usage_box("service", gr.place)) : [];
+    const tray = [...boxes, ...groups.flatMap((gr) => gr.uses.map((u) => u.id))].sort();
     const uses = scene.nodes.map((n) => n.id)
       .filter((id) => id !== "service" && !id.includes("@about"));
     expect(uses.sort()).toEqual(tray);

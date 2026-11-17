@@ -2,7 +2,7 @@
 
 import { alias_of, dir_of, placing_of, children, covers,
          edges_in, group_depth, group_nest, has_lifelines, heading, holders_in, inline, is_box,
-         is_container, owner_of,
+         is_container, is_filing, owner_of,
          is_grid, is_group, is_aside, is_note, is_tie, label_of, lattice_of, members_of, shape_of,
          stamps_of, role_of, shown_name, type Cut, type Ends, type ViewKind, type Graph, type Id,
          type Relation, type Side, type Span } from "@mnd/core";
@@ -38,6 +38,8 @@ export type Config = {
   room?: boolean;
   /** A model's overview: the boxes open now; unsaid, where its file starts them. */
   open?: readonly Id[];
+  /** A model's overview: the box just opened by hand, which legibility never closes. */
+  keep?: Id | null;
   /** The diagram whose lines draw what their ends mean rather than their direction: a class
    *  diagram, or an entity one, multiplicities as crow's feet. */
   ends?: "class" | "er";
@@ -56,6 +58,12 @@ function group_carries(graph: Graph, group: Id): Id[] {
   };
   walk(group);
   return out;
+}
+
+/** **Whether a layer draws as a treemap**: its kind places by treemap, or it is a package's
+ *  folder opened in the models. A folder projected bare — a tool's picture — draws its layer. */
+export function treemapped(graph: Graph, layer: Id, lists?: "domain" | "structure"): boolean {
+  return placing_of(graph, layer) === "treemap" || (lists === "structure" && is_filing(graph, layer));
 }
 
 /** Project a layer through the block view, with what its usages read through laid in, and every
@@ -113,7 +121,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   /** What its usages read through. **No line is derived**: only stored relations draw. */
   const graph = read_through(given, layer);
   /** A treemap is its map; anything else places itself. */
-  if (placing_of(graph, layer) === "treemap") return layer_map(given, layer, config.open);
+  if (treemapped(graph, layer, look?.lists)) return layer_map(given, layer, config.open, config.keep);
   const parts = new Set(Object.keys(graph.blocks).filter((id) =>
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
   const carried_as = (id: Id): BoxData => {

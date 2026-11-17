@@ -1,67 +1,72 @@
 # Chip
 
-**Draft, 2026-10-29: for agreement.** A chip is how a treemap draws an element: the map, a `treemap` diagram (2026-11-02: drawn as the map is) and every registry. It shows an association by place: an area gathering what belongs together, sized by how much it gathers, its members drawn inside as tiles. A leaf, gathering nothing, is still a chip and previews its own face. It is for finding and comparing, never for editing.
+**Agreed 2026-11-16 (tree rework, mockup claude.ai/artifact/Wgi6FEJTDjSKQVSSsKLexp).** A chip is how the tree view draws an element: the map (world root), a model's overview (model root) and a definition's registry (definition root). It is a **card's header over a well**: what a card shows as its table, a chip shows as a treemap of what it holds. It is for finding, comparing and entering, never for editing.
 
 
-## What a chip gathers
+## Layout of the tree
 
-| Chip for | Gathers | Grouped inside by |
-|---|---|---|
-| a diagram or a model | its members | its structure: layers, groups, bands, grid rows |
-| a definition | its uses | place: the diagram that draws each, as a panel in that diagram's hue |
-| a tag, a type, an interface definition | what carries it | the folders they sit in |
-| a relation definition | its lines | place |
-| a leaf | nothing | its face: attributes, records, body, else its description |
-
-
-## Purpose
-
-| Question | How the chip answers |
+| Rule | Detail |
 |---|---|
-| *what is it?* | head: name, kind, icon, colour edge |
-| *how much?* | its area, and the counts in its facts |
-| *which ones, and where?* | its preview: the members as tiles |
-| *what next?* | click to see it in the tray, double-click to enter, hover to see everything |
+| **the treemap fills its space** | every box's cells fill it, sized by weight (square root of what each holds; never how often it is joined); a few chips or a hundred read as a whole. **The map is laid the canvas's size** (larger only when it holds many chips), so it reads whole at 100%; a model's middle is laid in what its zones and About leave, keeping at least 70% of the canvas each way |
+| **seen whole** | the camera shows a tree view whole and never zooms to a pick; only a walk fits its step. A click only picks (on the map it also moves the crumbs); two enter. **Anything with a well enters**, in either section — a library folder, a registry's place, a group; a leaf only picks |
+| **a package's folder enters as its treemap** | entered from the map, a folder draws what it files as a tree view, as a model's overview does without zones; leaving goes up to its parent folder, else the map. Projected bare by a tool, a folder still draws its layer (2026-11-16) |
+| **landscape-biased squarify** | cells are laid in a space half as wide, then stretched 2×, so cells come out wider than tall and every name reads across; works on landscape and portrait canvases alike |
+| **a budget from the canvas** (agreed 2026-11-16, scale-plan.md) | a view draws as many chips as its room holds at a readable size (a header over the least well, with its air) and no more; a project of ten blocks or ten thousand reads as one screen. The map is never laid larger than the canvas |
+| **opened from the top, wide before deep** | every view starts closed and opens one box at a time — a box opened by hand, the model file's `open:`, the world root's models, an overview's primary parts, then the heaviest by depth — keeping each only while the view stays within its budget and every chip stays legible; decided from the laid shape, never the zoom |
+| **flat lists are grouped** | a box holding more than its share can draw groups its children into closed chips with counts: by their own path first (package › folder › place), then by kind, then by alphabetical range; entering a group goes one level deeper. Never *+n more* |
+| **text is always horizontal** | no chip, tile or title is ever turned; a long name is cut short with … and its hover card says it whole |
+| **the name grows with its cell** | about 11–20px, continuous, from the cell's laid size: large parts read from far out, small ones up close; no switch |
+| **opening and closing is the only change of layout** | a click opens or closes a box; the world root opens each model one level; a model's `open:` sets its overview's start; focus resets on each visit |
 
 
-## Information by level
+## The header (shared with cards, one-to-one)
 
-| Level | Shows |
+| Part | Rule |
 |---|---|
-| 0 mark | icon on its colour edge |
-| 1 head | name, kind, icon |
-| 2 facts | the kind on its own line where it did not fit beside the name, then counts and tags (named where there is room, else dots). Gives way where the preview under it would lose its content (a diagram keeps its structure first) |
-| 3 preview | its members as tiles, grouped as above, each showing what its own size holds — its mark, then its name. A definition used nowhere: its **profile**, what it declares. A leaf: its face |
+| **always two lines** | name over meta, at every size; a cell too short for both is left closed by the budget, never squeezed to one line |
+| **icon** | the kind's square icon from the app's set (theme `icons.tsx` `role_*`), top right, as tall as the name and meta lines together; scales with the name; a holder's icon lightly filled |
+| **name** | one line, takes the width the icon leaves, cut short with … |
+| **meta line** | kind · ▶ presentations · counts · attributes · seats in/out · tags, flowing into the width left; an item that does not fit drops whole, last first; a diagram's kind word in its hue; actors and externals omit the kind word (their outline says it) |
 
 
-## Form
+## Kinds of cell
 
-- **sized by what it gathers**, as the square root of its count (2026-11-02), so sizes still rank but a large chip never starves a small one to a sliver. One narrower than its name and taller than wide is weighed up, within bounds; the map grows past a canvas where it holds more chips than would each keep about two names square
-- **nothing in a chip pops in** (2026-11-04): its name and its body — tiles, nested tiles and their names — show at every zoom, held no larger than the chip was laid for, so far out they shrink unread rather than vanishing; only its facts come and go by level
-- **picking lights alike** (2026-11-04): any chip or box picked, or several, lights with what it holds and the rest dims, as round a block's hops, whether or not anything joins it
-- **turned whole when tall and narrow** (2026-11-04): a chip taller than 1.3 times its width and narrower than a card is laid as a chip on its box turned on its side, then drawn turned -90° — its name, facts and body together reading up its length, its tiles turned with it, its colour edge along its foot; its text smoothed in grey, since colour smoothing laid then turned fringes it. Superseded: only its name turned, its body beside
-- **tiles are cards** and climb the same ladder: name, icon and their own colour edge, then a facts line and their rows or description as zoom gives them room. A tile that only repeats the chip's name is not named again
-- **any depth**: a tile holding blocks nests them under its name, and they theirs, laid once down to a floor too small to show at the closest zoom. Each shows from its own size on screen, fading in as its mark reads; nothing is cut off at a fixed depth or zoom
-- **legible or summarised**, on the map as inside a chip (2026-11-02): chips and boxes still too small to read after weighing fold into their box's last chip, *+n more*, which its hover card lists, and a traced path stops at; never one alone, never a box's heaviest. Inside a chip, a tile is never drawn below its mark. Tiles too small for it fold, smallest first (a place's box with all its uses), into one last tile along the body's foot, *+12 more*, which its hover card lists by place. One use alone never folds; where none shows, a definition shows its profile
-- **structure, never drawing**: a chip previews a diagram's members in its layers, groups, bands and grid rows, never its lines or its laid-out positions
-- **headers are named**: a grid's header strips — a sequence's participants across the top, a swimlane's lanes down the left — are small cards of their header blocks, named (upright down the left) where every row and column keeps room beside them; a named header's column is laid at least four letters wide. A quiet track runs behind each row of headers, the grid's whole width or height
-- **a profile follows its text as drawn**: its rows and their rule sit right under the facts at every zoom, never where text held at its largest would end (2026-10-31)
-- **a class's or an entity's tiles** say their rows, ruled as the card's table is, where they have room; where they do not, the class or entity texture stands in for them. Never both
-- **names read or cut short**: a tile's name is held readable, shrinks toward its laid size to fit its tile, and shows cut short (*Canc…*) wherever four letters and a line fit; below that, its icon alone
-- **read only**: no seats, no lines, no menu, no drag
-- **hops traced over it** (2026-11-04, superseding a whole path traced, 2026-11-02): hovering or picking any block draws its hops across the map, one each way — what reaches it and what it reaches — each square, as a diagram's lines are: each leg **fans out of the side of its source facing its target** and into the target's side facing back, turning once in the gap between them; the ends on one side of a block spread evenly along it, and the legs leaving one side turn at different points across the gap, so none run as one at any zoom; **one leg a pair**, a hop back along it an arrow at its other end. **Kept simple** (2026-11-04, superseding out-right-in-left the same day, whose loops doubled back): two blocks facing each other across a gap — side by side, or one above the other — are joined by one straight leg where their sides overlap; any other pair by one bend, out of the side facing the target and into its top or bottom. Never a loop. **Over the chips**, on a halo of the ground, the arrow just inside its target. Thin, an arrow at its end, what crosses it on hover; a box lighting with what it holds; the rest dims, keeping its colour. **Never numbered**: a walk says its step in words (design.md *Behaviours*). A pick holds it, the camera fitting the block and its far ends
-- **gaps by rank, never scaled per chip** (2026-11-02): a **major part** — a part of a model, looked through folders and bands, holding parts of its own — is set apart by a wide gap (24) from its siblings, as is what holds major parts; **boxes** stand 12 apart, and as far inside a box of boxes, in every section alike; everywhere else, inside every chip included, one narrow gap (6). A box's title keeps a line clear above what it holds
-- **one title for a box holding only a box**: the two merge, *mndflow › code*, so titles never stack with nothing between them
-- **major parts read first**: a heavier rim (2 px) at half their colour, their colour accent on the left wider (4 px); what they hold is quieter — rims at half, box titles faint, previews faded until the pointer is on them. **Minor** is everything inside a major part, and everything else in a model holding no major part: a leaf part, a band of leaves (a one-package project's entry points); a minor chip's own words fade too. **Every chip keeps its colour and its left accent whole**
+A ladder of fill and border, strongest first.
 
-
-## Differs from a card
-
-| | chip | card |
+| Cell | Fill and border | Well |
 |---|---|---|
-| drawn on | a treemap | a diagram |
-| level 3 | its members, or a leaf's face | its own face |
-| frame | flat, colour edge left | bordered, seated |
-| relations | counted, never drawn | drawn as lines |
-| edits | never | in every entered view |
+| **holds parts** | strongest fill, 1.5px border in its hue, 6px left accent | a plain recess; its parts as a treemap |
+| **diagram** | middle fill, 1px border in its hue, 6px left accent | framed in its hue like a small canvas, a right-aligned **diagram** tab on the frame; its blocks as a treemap, never laid as the diagram draws them, never with lines |
+| **leaf** | quiet fill, thin border, 6px left accent | none |
+| **actor** | no fill, round outline in its hue | none |
+| **external** | no fill, thin semi-transparent neutral border (never dashed), name muted | none |
+| **closed folder or package** | neutral holder | a recess, like any holder |
 
+
+## The well
+
+- **every cell that holds anything** shows its children as a quiet treemap (the same landscape-biased squarify), laid by weight
+- **a well shows what entering shows**: the same first level its entered view draws, groups included, never more cells than its room names
+- **every child is named**, its name shrunk to fit its cell (10.5px down to 6px), cut short with … past that; only a cell too short for 6px goes unnamed: parts holding parts a touch brighter, diagram parts outlined in their hue, actors rounded
+- **neighbours stand apart**: cells step through four grades of their colour in the order they are laid, so two side by side never look alike even when they share a colour
+- **one level only**: a child never shows its own children inside the well
+- **no well under ~26px of room**: the cell shows its header alone
+
+
+## Lines between chips
+
+- **drawn only when a chip is selected or hovered** (agreed 2026-11-16); quiet otherwise
+- **gathered to the level drawn**: every relation under a chip — its descendants' too — lifted to the chips the view draws; one line per pair, weighted by how many it carries (a few stroke steps, the count said on hover); none inside one chip; boxes and chips alike
+
+
+## Rejected along the way (2026-11-16)
+
+| Tried | Why not |
+|---|---|
+| rows of fixed-size chips by rank | lost the treemap's fill; a few chips no longer made visual sense |
+| a sheet-behind edge for holders, a dot grid for diagrams | barely noticeable; the dot grid did not say *diagram* |
+| a diagram glyph as watermark, framed corner panel or cropped mark | inconsistent across cell shapes, or no better than an icon |
+| a stamp beside the name | no better than an icon; the framed well says *diagram* instead |
+| a chip drawn like its diagram (silhouettes, structure-laid tiles, listed parts) | diagrams and presentations became hard to tell apart (2026-11-15) |
+| legible or closed: the lightest open box below the top two levels closed until every chip held its name | could not close a flat list (1,429 uses of `block` drew 1,430 chips), relaid the map once per box closed; replaced by the budget opened from the top (2026-11-16) |
+| focus by expanding: a pick gaining weight, the treemap relaid and animated | slow and glitchy; **a selection never moves a cell** — only opening and closing a box changes the layout (2026-11-16) |

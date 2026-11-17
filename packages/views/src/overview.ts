@@ -41,6 +41,15 @@ export function zones_of(graph: Graph, tops: readonly Id[]): Map<Id, Zone> {
   return out;
 }
 
+/** **The room round a model's middle**, in pixels: what its zones and About take of the canvas,
+ *  so the middle is laid in what is left and the whole overview fits the canvas at 100%. */
+export function zone_room(zones: ReadonlyMap<Id, Zone>): { w: number; h: number } {
+  const has = (z: Zone) => [...zones.values()].includes(z);
+  const side = ZONE.w + ZONE.away;
+  return { w: (has("left") ? side : 0) + (has("right") ? side : 0),
+           h: (has("above") ? ZONE.h + ZONE.away : 0) + ZONE.away + ABOUT.least + 2 * ABOUT.row };
+}
+
 /** **The middle laid, with what is round it**: each zone's chips beside the middle, About below,
  *  the map's root area grown to hold them all, and the model's lines quiet. */
 export function around(graph: Graph, model: Id, layer: Id, middle: Scene,
@@ -120,7 +129,8 @@ function zone_chip(graph: Graph, id: Id, box: { x: number; y: number; w: number;
     : BoxNode {
   const own = carried(graph, id, "small");
   return { ...cell(id, box, { label: shown_name(graph, id), marks: ["zone" as const],
-                              kind: kind_of(graph, id), head: box.h,
+                              kind: kind_of(graph, id), size: 13,
+                              cell: base_of(graph, id) === "actor" ? "actor" : "external",
                               ...(own.role ? { role: own.role } : {}),
                               ...(own.description ? { description: own.description } : {}),
                               look: colour_of(graph, id) }, "chip"), draggable: false };

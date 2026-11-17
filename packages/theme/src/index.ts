@@ -5,7 +5,9 @@ export { Name, NamingContext, useNaming, type Naming, type NameProps } from "./n
 export { Inline, Markdown, plain } from "./markdown";
 export { CardFace, Stamps, Wears, type FaceProps } from "./face";
 export { Facts, type FactsData } from "./facts";
+export { Header, type HeaderProps } from "./header";
 export { Holds, UsedIn, type UsedPlace } from "./uses";
-export { BoxFace, ChipFace, type ChipData, type ChipFaceProps, type ChipTile } from "./chip";
+export { BoxFace, ChipFace, type ChipCell, type ChipData, type ChipFaceProps,
+         type ChipTile } from "./chip";
 export { WorkspaceHeader, TrayFrame, useZone,
          type WorkspaceHeaderProps, type TrayFrameProps, type Zone } from "./shell";

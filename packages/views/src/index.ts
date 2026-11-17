@@ -19,9 +19,9 @@ export * from "./text";
 
 export { project, type Config } from "./block";
 export { place, set_elk, type Placement } from "./flow";
-export { box_label, box_place, registry_map, usage_box, usage_groups, usage_layout,
-         type LocatedUse, type Tile as MapTile } from "./library";
-export { area_of, area_under, opened, layer_map, library_map, map_focus, model_map, section_map, stop_area,
+export { box_label, box_place, usage_box, usage_groups, usage_layout,
+         type LocatedUse } from "./library";
+export { area_of, area_under, opened, layer_map, library_map, map_focus, model_map, section_map,
          towards, box_for, chip_for, chip_map, mini_map, type Mini,
          type WhereBox } from "./map";
 export { laid_ahead, layer_scene } from "./layer";

@@ -11,7 +11,6 @@
 import { attributes_of, children, edges_in, ends_of, isa, is_reference, links_to, resolved,
          stood_def, type Block, type Graph, type Id, type Relation } from "@mnd/core";
 import { row_mid } from "./face";
-import { card_facts } from "./facts";
 import type { Rect } from "./seat";
 
 /** What a line a diagram drew starts with: read, never picked. */
@@ -104,7 +103,7 @@ export function field_rows(graph: Graph, lines: readonly Relation[], at: Readonl
   const put = (edge: Id, end: "from" | "to", on: Id, i: number) => {
     const box = at.get(on);
     if (!box || i < 0) return;
-    const f = row_mid(i, !!card_facts(graph, on)) / box.h;
+    const f = row_mid(i) / box.h;
     if (f > 0 && f < 1) out.set(`${edge}|${end}`, f);
   };
   for (const e of lines) {

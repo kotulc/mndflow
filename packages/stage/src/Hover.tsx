@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState, type RefObject } from "react";
 import type { Graph, Id } from "@mnd/core";
 import { CardFace, Facts, Holds, UsedIn } from "@mnd/theme";
-import { folded_hover, hover_of, type FaceProps } from "@mnd/views";
+import { hover_of, type FaceProps } from "@mnd/views";
 
 /** How long the pointer rests before the first card shows, before the next while one has shown
  *  lately, and how long it may be away before the next one waits again, in milliseconds. Both
@@ -23,9 +23,9 @@ const WIDE = 300;
 const TALL = 360;
 const GAP = 16;
 
-/** What the pointer rests on, innermost first — a tile, then the chip round it — and where; on a
- *  *+n more* tile, the uses folded into it. */
-type At = { ids: Id[]; x: number; y: number; folded?: Id[] };
+/** What the pointer rests on, innermost first — a well's cell, then the chip round it — and
+ *  where. */
+type At = { ids: Id[]; x: number; y: number };
 
 export function Hover({ graph, library, host }: { graph: Graph; library: boolean;
                                                   host: RefObject<HTMLElement> }) {
@@ -33,7 +33,6 @@ export function Hover({ graph, library, host }: { graph: Graph; library: boolean
   const key = at?.ids.join("|");
   /** The innermost it can say something of. */
   const read = useMemo(() => {
-    if (at?.folded) return folded_hover(graph, at.folded);
     for (const id of at?.ids ?? []) {
       const said = hover_of(graph, id, library);
       if (said) return said;
@@ -94,8 +93,7 @@ function useResting(host: RefObject<HTMLElement>): At | null {
     let on: string | null = null;
     const ids_of = (t: EventTarget | null): Id[] => {
       const e = t instanceof Element ? t : null;
-      const tile = e?.closest<HTMLElement>("[data-tile]")?.dataset["tile"]
-        ?? e?.closest<HTMLElement>("[data-folded]")?.dataset["folded"];
+      const tile = e?.closest<HTMLElement>("[data-tile]")?.dataset["tile"];
       const node = e?.closest<HTMLElement>(".react-flow__node")?.dataset["id"];
       /** A line, by its stroke or by its name beside it. */
       const line = e?.closest<HTMLElement>("[data-edge]")?.dataset["edge"]
@@ -111,11 +109,7 @@ function useResting(host: RefObject<HTMLElement>): At | null {
       if (!id) return;
       clearTimeout(cool);
       const ids = ids_of(ev.target);
-      /** A *+n more* tile stands for the uses folded into it. */
-      const more = ev.target instanceof Element
-        ? ev.target.closest<HTMLElement>("[data-folded]")?.dataset["folded"] : undefined;
-      const folded = more ? { folded: JSON.parse(more) as Id[] } : {};
-      const show = () => { warm = true; set_at({ ids, x: ev.clientX, y: ev.clientY, ...folded }); };
+      const show = () => { warm = true; set_at({ ids, x: ev.clientX, y: ev.clientY }); };
       wait = setTimeout(show, warm ? NEXT : WAIT);
     };
     const out = (ev: PointerEvent) => {

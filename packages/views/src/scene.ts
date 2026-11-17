@@ -2,7 +2,6 @@
 
 import type { Edge, Node } from "@xyflow/react";
 import type { Dir, End, Ends, Id, Key, Mark, Role, Side } from "@mnd/core";
-import type { Preview } from "./about";
 import type { Facts } from "./facts";
 import type { Arrow, Look, Tint, Wire } from "./look";
 import type { Fan, Perch, Seat } from "./seat";
@@ -45,8 +44,6 @@ export type BoxData = {
   stamps?: readonly Mark[];
   /** What sort of thing it is: the icon it wears unless somebody set their own. */
   role?: Role;
-  /** A small face's name, sized to fit its card: its size in pixels and how many lines. */
-  fit?: { size: number; lines: number };
   /** The whole lines a large face's body holds, where its card was sized by hand. */
   clamp?: number;
   /** Whether it opens onto a view of its own. */
@@ -72,31 +69,21 @@ export type BoxData = {
   side?: Side;
   /** Seats a line meets on this box's border, where the end has no interface of its own here. */
   seats?: readonly { id: string; side: Side; at: number }[];
-  /** A map chip's inner treemap: what it holds, each a share of its body from 0 to 1. */
+  /** A tree chip's well: what it holds, each a share of the well from 0 to 1, and how far down
+   *  the chip the well starts, in pixels (views `map.ts`). */
   tiles?: readonly InnerTile[];
-  /** A diagram's chip: its inner tiles laid by its structure. */
-  diagram?: boolean;
-  /** A narrow, tall map chip: its head turned upright down its left side, its body beside it. */
-  upright?: boolean;
-  /** A map chip's facts strip, where it has room for one (views `about.ts`). */
+  well?: number;
+  /** A tree chip's kind of cell, and its name's size in pixels, grown with its cell. */
+  cell?: ChipCell;
+  size?: number;
+  /** The header's meta line: counts, seats and tags (views `facts.ts`). */
   facts?: Facts;
-  /** How much room a map chip's head takes — its name's line and its facts where shown, its body
-   *  under it; upright, the head's width, its body beside it. */
-  head?: number;
-  /** What a map chip previews where it draws no structure and no uses. */
-  preview?: Preview;
-  /** A definition's chip showing its profile: its uses split by place, each in its colour. */
-  bar?: readonly { n: number; tint: Tint }[];
-  /** A map's *+n more* chip: the chips folded into it, which its hover card lists. */
-  folded?: readonly Id[];
   /** A records table: its groups of rows, each by its source (`records.ts`). */
   records?: RecordsDrawn;
   /** A model's About band: its groups of plain notes (`overview.ts`). */
   about?: readonly AboutDrawn[];
   /** A box of a model's overview that opens and closes, and whether it is open now. */
   toggle?: "open" | "closed";
-  /** A diagram chip's kind, by its definition: the stamp in its head (theme `chip.tsx`). */
-  stamp?: Id;
   /** A registry's tile: how many times its entry is used, and that against the most used. */
   count?: number;
   heat?: number;
@@ -294,18 +281,17 @@ export type Area = {
  *  a rule between a grid's rows, or a flow's line or its arrow (`down` where it runs down). A
  *  block wears its own colour (`tint`) and may be a flow's mark, or a class's or an entity's card
  *  (`texture`). */
+/** **What kind of cell a chip or a well's child is** (docs/design/chip.md). */
+export type ChipCell = "holds" | "diagram" | "leaf" | "actor" | "external" | "folder";
+
+/** One child in a chip's well: a share of the well from 0 to 1, what it stands for, its kind of
+ *  cell and its colour. */
 export type InnerTile = { id: Id; label: string; x: number; y: number; w: number; h: number;
-                          role?: Role;
-                          as?: "group" | "band" | "head" | "track" | "life" | "rule" | "flow"
-                            | "arrow" | "more";
-                          odd?: boolean; down?: boolean; mark?: "start" | "end" | "decision";
-                          texture?: "class" | "entity"; tint?: Tint;
-                          /** The tile it is nested in, and whether it holds tiles of its own. */
-                          in?: Id; holds?: boolean;
-                          /** What it says under its name as it grows: a facts line, then rows. */
-                          facts?: string; rows?: readonly string[];
-                          /** A *+n more* tile's uses, folded away for want of room. */
-                          folded?: readonly Id[] };
+                          cell?: ChipCell; tint?: Tint;
+                          /** Its grade among its neighbours, so side by side they stand apart. */
+                          grade?: number;
+                          /** Its name's size in pixels, shrunk to fit its cell. */
+                          size?: number };
 
 export type Scene = {
   /** The layer this is a projection of. */

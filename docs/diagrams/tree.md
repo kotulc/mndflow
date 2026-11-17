@@ -34,9 +34,9 @@
 | **the middle** | the model's containment as a treemap: each part as large as what it holds; a primary part, a sub model or a subtree is an open box, anything else a closed chip with its name |
 | **around** | context's zones (context.md *Layout*), the outside placed by what it is |
 | **below** | the About band past a dashed divider: plain notes, never lit or dimmed (model-plan.md 10) |
-| **lines** | quiet, under the chips; lit by a pick or a presentation step |
+| **lines** | drawn only for a chip selected or hovered, or a presentation step; gathered to the chips drawn, one per pair, weighted by how many it carries (chip.md *Lines between chips*) |
 | **a diagram chip** | its kind's icon in a filled badge of its hue, in its head (2026-11-15) |
-| **many parts** | past what the canvas holds at a readable size, boxes close from the lightest up; a closed box says its name and counts |
+| **many parts** | a chip budget from the canvas area; boxes open from the top, wide before deep, while every chip stays legible; a flat list is grouped (own path, kind, alphabetical range); a closed box says its name and counts (2026-11-16, chip.md) |
 | **opening** | a box's toggle (+ in a closed chip's foot, − before an open box's title) opens or closes it; a presentation stop's `open` sets it per stop; the model file's `open:` (unsaid: primary parts) is where it starts |
 
 ## One view, three roots
@@ -60,6 +60,6 @@
 | 1 | merge: the tree kind is the model's overview; the stand-alone `treemap` kind is retired (only samples/elements used it) |
 | 2 | the tool is `overview`, writing coherent, scalable model trees |
 | 3 | layout: context's zones around a weighted treemap of containment; About below; lines quiet until lit |
-| 4 | many parts: boxes close from the lightest up; a closed box says its name and counts |
+| 4 | many parts: ~~boxes close from the lightest up~~ superseded 2026-11-16 by the budget opened from the top, and grouping (scale-plan.md); a closed box says its name and counts |
 | 5 | open boxes start from the model file's `open:` (unsaid, the primary parts); stops set their own |
 | 6 | one tree view, three roots (world, model, definition), with the adjustments above; a chip is a closed box; the registry's own treemap is retired into it |

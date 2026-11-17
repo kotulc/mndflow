@@ -71,16 +71,15 @@ export function on_map(graph: Graph, scene: Scene, ids: readonly Id[]): Id[] {
   return [...new Set(ids.map((id) => at(id) ?? id))];
 }
 
-/** **What stands for a block on a map**: its own node, a reference drawn for it, as a treemap
- *  diagram draws, or the *+n more* it folded into. */
+/** **What stands for a block on a map**: its own node, or a reference drawn for it, as a treemap
+ *  diagram draws. */
 function standing(graph: Graph, scene: Scene): (id: Id) => Id | undefined {
   const nodes = new Set(scene.nodes.map((n) => n.id));
-  const more = new Map(scene.nodes.flatMap((n) => (n.data.folded ?? []).map((f) => [f, n.id])));
   const stood = new Map(scene.nodes.flatMap((n) => {
     const to = is_reference(graph, n.id) ? stands_for(graph, n.id)?.id : undefined;
     return to ? [[to, n.id] as const] : [];
   }));
-  return (id) => (nodes.has(id) ? id : stood.get(id) ?? more.get(id));
+  return (id) => (nodes.has(id) ? id : stood.get(id));
 }
 
 /** Blocks on a map, each box with everything it holds: what it holds is part of it. */

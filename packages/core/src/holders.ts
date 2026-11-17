@@ -87,6 +87,12 @@ export function is_folder(graph: Graph, id: Id | undefined): boolean {
   return !!b && !b.def && base_of(graph, b.id) === "folder";
 }
 
+/** **Whether a block is a package's folder**: one no layer draws in place, which opens in the
+ *  models as the treemap of what it files (`navigate.ts` `lens_of`, views `block.ts`). */
+export function is_filing(graph: Graph, id: Id | undefined): boolean {
+  return !!id && is_folder(graph, id) && graph.blocks[layer_of(graph, id) ?? ""]?.parent === null;
+}
+
 /** Whether a block organizes: a folder, a group, a region or a grid. */
 export function organizes(graph: Graph, id: Id | undefined): boolean {
   return is_holder(graph, id) || is_folder(graph, id);

@@ -1,15 +1,15 @@
 # Card
 
-**Draft, 2026-10-29: for agreement.** A card is how a diagram draws a part: the element itself, carrying its own content, placed among its neighbours and joined by lines. It is the form you compose and edit with. On a treemap a part is a chip; only a chip's tiles are cards, at their smallest.
+A card is how a diagram draws a part: the element itself, carrying its own content, placed among its neighbours and joined by lines. It is the form you compose and edit with. On the tree view a part is a chip (chip.md), sharing the card's header.
 
 
 ## Where a card is drawn
 
-| Where | As | Levels |
-|---|---|---|
-| a diagram | its face, seated, joined by lines | 0–3 |
-| a chip, as a member | a **tile**: name, icon, its colour edge | 0–2 |
-| the tray | its face, large then small | 3 |
+| Where | As |
+|---|---|
+| a diagram | its face, seated, joined by lines |
+| a chip's well | a quiet cell of the chip's treemap, named where it has room (chip.md) |
+| the tray | its face, large then small |
 
 
 ## Classes
@@ -31,7 +31,7 @@
 
 | Question | How the card answers |
 |---|---|
-| *what is it?* | head: name, then kind (or its handle while unnamed), icon, marks |
+| *what is it?* | the header: name, its meta line, its kind's icon |
 | *what does it hold or say?* | its face: attributes table, fields and behaviours, body, picture |
 | *what does it connect to?* | seats on its walls, and lines to other cards |
 | *can I go in?* | a stacked edge, and its icon lit |
@@ -47,21 +47,21 @@
 - **unsaid, a card shows what it has**: large where it has more than a name, small where it does not. a kind's `diagram.cards` forces either
 - the face sets the card's size, and so the layout
 - **a large face is never shorter than a head and two rows**, so blank and full faces line up
-- **every face carries the facts strip** at level 2, as a chip does: one order, everywhere
-- **seats hide when too small to read**; a line still meets the wall where its seat sits
 - **a seat is one shape**: a square whose chevron points into the card for in and out of it for out. **A typed seat is filled with its type's colour, semi-transparent, and outlined in it; a base seat (`interface`) is hollow** (2026-11-14). Off the card, in a list, an in mark leads its name and an out mark follows it; never in a facts strip
 
 
-## Information by level
+## The header (agreed 2026-11-16, shared with chips one-to-one)
 
-**Within its face, a card drops levels as it shrinks on screen,** by the ladder and the scale rules in language.md.
+**Cards and chips share one header**; below it a card shows its face (table, body), a chip its well. Built 2026-11-16 (theme `header.tsx`).
 
-| Level | Small face | Large face |
-|---|---|---|
-| 0 mark | icon, colour | icon, colour |
-| 1 head | name, kind, icon | head row only |
-| 2 facts | the kind on its own line where it did not fit beside the name, then the facts strip | head, then the facts strip |
-| 3 preview | n/a | the full face |
+| Part | Rule |
+|---|---|
+| **icon** | the kind's square icon (theme `icons.tsx` `role_*`), top right, as tall as the name and meta lines together, scaling with the name; lit where the card holds parts |
+| **name** | one line, takes the width the icon leaves, cut short with … |
+| **meta line** | kind · ▶ presentations · counts · attributes · seats in/out · tags (the facts strip folds in here), flowing into the width left; an item that does not fit drops whole, last first; a definition's badge is a tag here; **never repeats the face**: attributes the table lists, or seats drawn on the walls, are left out (2026-11-16) |
+| **always two lines** (2026-11-16) | name over meta on every card, even a small face; the head grows from ~20px to ~34px and the layout makes room |
+
+**One look at every zoom** (2026-11-15): a card shows its name, meta, table and body at every zoom, its text never held larger than laid; zoom only fades its detail. No levels.
 
 
 ## Form, by group
