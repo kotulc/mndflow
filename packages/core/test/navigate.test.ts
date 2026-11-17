@@ -78,11 +78,15 @@ describe("reading", () => {
                                                           layer: "pattern" });
   });
 
-  it("enters nothing for an unused definition, a definition's part, a package or a folder", () => {
+  it("enters nothing for an unused definition, a definition's part or a package", () => {
     expect(read("unused", map(LIBRARY))).toBeNull();
     expect(read("pattern_part", map(LIBRARY))).toBeNull();
     expect(read(ROOT, map(MODELS))).toBeNull();
-    expect(read("cards", map(LIBRARY))).toBeNull();
+  });
+
+  it("enters a library folder as its treemap, and stays in the library", () => {
+    expect(read("cards", map(LIBRARY))).toMatchObject({ at: LIBRARY, kind: "internal",
+                                                        layer: "cards" });
   });
 
   it("hands a use read from a registry over to the models", () => {

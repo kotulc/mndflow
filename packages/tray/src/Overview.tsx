@@ -36,7 +36,8 @@ export function Overview({ graph, id, onAct, lists, presenting }: OverviewProps)
   /** What its hover card says, a definition's uses read as the library reads them; a reference
    *  says what it stands for, as its card does. */
   const read = useMemo(() => (graph.blocks[id]?.parent
-    ? hover_of(graph, id, !!graph.blocks[id]?.def) : null), [graph, id]);
+    ? hover_of(graph, id, !!graph.blocks[id]?.def || lists === "domain") : null),
+  [graph, id, lists]);
   /** The picture: the map, the element lit. */
   const where = <Where graph={graph} id={id} />;
   const e = graph.edges[id];

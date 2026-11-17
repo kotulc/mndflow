@@ -44,6 +44,8 @@ export type BoxData = {
   stamps?: readonly Mark[];
   /** What sort of thing it is: the icon it wears unless somebody set their own. */
   role?: Role;
+  /** An icon of its own, worn over its role's (a map's box for an imported package). */
+  icon?: string;
   /** The whole lines a large face's body holds, where its card was sized by hand. */
   clamp?: number;
   /** Whether it opens onto a view of its own. */

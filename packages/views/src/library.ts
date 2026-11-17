@@ -3,8 +3,7 @@
  *  what a package or folder files. The library's own map is `map.ts`'s. Worked out on every graph
  *  change, never stored. */
 
-import { children, definition_uses, is_folder, model_of, models, on_side,
-         package_of, shown_name, use_place, type Graph, type Id } from "@mnd/core";
+import { definition_uses, model_of, models, package_of, shown_name, use_place, type Graph, type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { tiled, weight_of, type Tile as Weighed } from "./treemap";
 
@@ -76,10 +75,5 @@ export function name_of(graph: Graph, id: Id): string {
   return b?.parent === null ? b.name ?? id : shown_name(graph, id);
 }
 
-/** What the library files under a package or folder: its folders and definitions. */
-export function filed(graph: Graph, id: Id): Id[] {
-  return children(graph, id).filter((b) => on_side(graph, b.id, "domain")
-    && (is_folder(graph, b.id) || !!b.def)).map((b) => b.id);
-}
 
 

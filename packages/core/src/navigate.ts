@@ -11,9 +11,9 @@ import { def_of, is_model, models, setting_of } from "./defs";
 import { inline, is_filing, is_folder, is_grid, is_region, layer_of } from "./holders";
 import { registry_at, registry_id, registry_of } from "./library";
 import { opens } from "./names";
-import { at_cut, in_section, is_layer_view, on_side, type Lists, type Section, type ViewKind }
-  from "./sections";
-import { children, line_layer, of_ref, path, stands_for } from "./tree";
+import { at_cut, filed_defs, in_section, is_layer_view, on_side, type Lists, type Section,
+         type ViewKind } from "./sections";
+import { children, line_layer, of_ref, path, placing_of, stands_for } from "./tree";
 import { type Block, type Graph, type Id } from "./types";
 
 /** Where a host's sections start: the forest above every package, or the workspace's root. */
@@ -94,8 +94,8 @@ export function lens_of(graph: Graph, id: Id, lists?: Lists): ViewKind | null {
     const opens = is_model(graph, id) || (lists === "domain" && children(graph, id).length > 0);
     return opens ? diagram_of(graph, id) ?? "internal" : null;
   }
-  /** The library enters definitions only: a part of one is read in the tray. */
-  if (lists === "domain") return null;
+  /** The library enters its folders and definitions only: a part of one is read in the tray. */
+  if (lists === "domain") return is_filing(graph, id) && filed_defs(graph, id).length ? "internal" : null;
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
   if (target && target.id !== id) return lens_of(graph, target.id, lists);
   if (is_filing(graph, id)) return "internal";
@@ -210,10 +210,19 @@ export function scope_of(roots: readonly (Id | null)[], at: number): Id | null {
   return roots[Math.max(0, at - 1)] ?? null;
 }
 
+/** Whether a layer draws as a treemap: a package's folder, or a kind that places by treemap. */
+function treemaps(graph: Graph, layer: Id): boolean {
+  return is_filing(graph, layer) || placing_of(graph, layer) === "treemap";
+}
+
 /** Whether a view draws a block: inside the layer it looks into; on a system view, what the first
  *  section lists under its scope, and the top level of each block at its cut. */
 export function draws(graph: Graph, tiers: Tiers, view: View, id: Id): boolean {
   if (!graph.blocks[id]) return false;
+  /** **An entered treemap draws all it holds**, at any depth: a chip or a cell stands for it. */
+  if (is_layer_view(view.kind) && view.layer && treemaps(graph, view.layer)) {
+    return id !== view.layer && path(graph, id).some((b) => b.id === view.layer);
+  }
   if (is_layer_view(view.kind)) return layer_of(graph, id) === view.layer;
   const section = tiers.sections[view.at] ?? tiers.sections[0];
   const cut = section?.cut ?? null;
@@ -352,8 +361,15 @@ export function leave_at(graph: Graph, tiers: Tiers, views: Views, view: View): 
   if (!is_layer_view(kind) || !layer || !graph.blocks[layer]) return null;
   const { roots } = trace(graph, tiers, layer);
   if (roots[at] === layer) return at > 0 ? sight(graph, tiers, views, at - 1, layer) : null;
+  /** **Anything entered from a folder leaves to that folder**, where it enters; a folder at the
+   *  top, to the map. */
+  const lists = lists_at(tiers, at);
+  const holder = graph.blocks[layer]!.parent;
+  const folder = holder && is_filing(graph, holder) ? lens_of(graph, holder, lists) : null;
+  if (folder) return { at, kind: folder, layer: holder!, pick: layer };
+  if (is_filing(graph, layer)) return map_at(at, layer);
   const up = layer_of(graph, layer);
-  const kind_up = up ? lens_of(graph, up, lists_at(tiers, at)) : null;
+  const kind_up = up ? lens_of(graph, up, lists) : null;
   return up && kind_up ? { at, kind: kind_up, layer: up, pick: layer } : map_at(at, layer);
 }
 

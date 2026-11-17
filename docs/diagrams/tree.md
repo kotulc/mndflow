@@ -1,6 +1,6 @@
 # tree
 
-**Treemap kind. What holds what, and where the weight is: one tree view for the map, a model's overview and a definition's registry.** Agreed 2026-11-15.
+**Treemap kind. What holds what, and where the weight is: one tree view for the map, a model's overview and an entered folder.** Agreed 2026-11-15; containment only since 2026-11-16.
 
 ## Purpose
 

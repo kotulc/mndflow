@@ -5,6 +5,7 @@
  *  what it holds is the next section's. A null root is the forest above every package. */
 
 import { def_at, is_domain, is_model, model_of, owner_def, packages, tree_of } from "./defs";
+import { is_folder } from "./holders";
 import { children, is_interface } from "./tree";
 import type { Block, Graph, Id } from "./types";
 
@@ -159,4 +160,16 @@ export function root_below(graph: Graph, cut: Cut, held: Id | null): Id | undefi
 /** What a block shows under it: every block it holds, in order, but its interfaces. */
 function shown(graph: Graph, id: Id): Block[] {
   return children(graph, id).filter((b) => !is_interface(graph, b.id));
+}
+
+/** **What the library files under a package or folder**: its folders and definitions. */
+export function filed(graph: Graph, id: Id): Id[] {
+  return children(graph, id).filter((b) => on_side(graph, b.id, "domain")
+    && (is_folder(graph, b.id) || !!b.def)).map((b) => b.id);
+}
+
+/** **The definitions a package or folder files**, at any depth through its folders: what makes
+ *  it the library's to draw and enter, and what its counts say there. */
+export function filed_defs(graph: Graph, id: Id): Id[] {
+  return filed(graph, id).flatMap((f) => (graph.blocks[f]?.def ? [f] : filed_defs(graph, f)));
 }

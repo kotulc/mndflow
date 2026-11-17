@@ -3,8 +3,8 @@
  *  box, hover card and tray head. **A card's never repeats its face**: no attribute count where
  *  its table lists them, no seats where its walls draw them. Worked out when asked, never stored. */
 
-import { attributes_of, children, definition_uses, is_header, is_holder, is_interface,
-         is_notation, ports_on, presentations_of, subtree, subtypes, tag_at, tags_stated,
+import { attributes_of, children, definition_uses, filed_defs, is_folder, is_header, is_holder,
+         is_interface, is_notation, ports_on, presentations_of, subtree, subtypes, tag_at, tags_stated,
          use_places, type Graph, type Id } from "@mnd/core";
 import { listed } from "./face";
 import type { usage_groups } from "./library";
@@ -39,6 +39,9 @@ export function facts_of(graph: Graph, id: Id, library: boolean,
     say(definition_uses(graph, id).length, "use");
     if (places > 1) say(places, "place");
     say(subtypes(graph, id).length, "subtype");
+  } else if (library && b && (b.parent === null || is_folder(graph, id))) {
+    /** A package or a folder read in the library says the definitions it files. */
+    say(filed_defs(graph, id).length, "definition");
   } else {
     const n = known.counts ?? counted(graph, children(graph, id).map((c) => c.id));
     say(n.blocks, "block");

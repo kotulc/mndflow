@@ -1,21 +1,21 @@
 /** **The tree view** (docs/design/chip.md): the map (the world root), a model's overview (a
- *  model root) and a definition's registry (a definition root), each one treemap that fills its
- *  space, what is open as **boxes** and what is closed as **chips**. **A chip is a card's header
- *  over a well**: its children as a quiet treemap one level deep, each named where it has room.
+ *  model root) and an entered folder, each one treemap of containment that fills its space, what
+ *  is open as **boxes** and what is closed as **chips**. **A chip is a card's header over a
+ *  well**: its children as a quiet treemap one level deep, each named where it has room.
  *  **Landscape-biased**: laid at half width, then stretched, so names read across. **Opened from
  *  the top**: every box starts closed and opens, wide before deep, while the view keeps within its
- *  chip budget and every chip holds its name. A click selects; two read what was clicked (core's `read_at`). Worked out on
- *  every graph change, never stored. */
+ *  chip budget and every chip holds its name. A click selects; two read what was clicked (core's
+ *  `read_at`). Worked out on every graph change, never stored. */
 
 import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
          type HierarchyRectangularNode as Tiled } from "d3-hierarchy";
-import { base_of, children, diagram_kind, is_aside, is_behaviour, is_folder,
+import { base_of, children, diagram_kind, filed, is_aside, is_behaviour, is_folder,
          is_group, is_holder, is_interface, is_model, is_reference, lens_of, owner_of, on_side,
          packages, path, shown_name, used_model, type Graph, type Id } from "@mnd/core";
 import { colour_of, kind_of } from "./about";
 import { counted, fact, facts_of, total, type Facts } from "./facts";
 import { carried, trail_of } from "./derive";
-import { filed, name_of } from "./library";
+import { name_of } from "./library";
 import { look_of, tint_attrs } from "./look";
 import { box_of, cell, type Area, type BoxNode, type ChipCell, type InnerTile,
          type Scene } from "./scene";
@@ -44,8 +44,8 @@ const AIR = { major: 24, inner: 8, outer: 6, title: 46 };
  *  padding. A chip with no room for a well says only its counts. */
 export const FLOOR = { w: 96, h: 48 };
 
-/** **A chip laid too small is weighed up** `RAISE` times a round, for at most `ROUNDS` rounds, before
- *  its level stays closed: squarify can lay a light chip short and wide. */
+/** **A chip laid too small is weighed up** `RAISE` times a round, for at most `ROUNDS` rounds,
+ *  before its level stays closed: squarify can lay a light chip short and wide. */
 const RAISE = 2;
 const ROUNDS = 6;
 
@@ -87,7 +87,7 @@ type Leaf = { id: Id; kids?: Leaf[]; value?: number; panel?: boolean;
               toggle?: "open" | "closed";
               /** What a box closes into, where it may close. */
               closed?: Leaf;
-              chip?: { block: Id; held: readonly Id[]; kind?: string; uses?: boolean } };
+              chip?: { block: Id; held: readonly Id[]; kind?: string } };
 
 
 /** A section's map: the library's for its definitions, else the models'. */
@@ -111,7 +111,8 @@ export function layer_map(graph: Graph, layer: Id, open?: readonly Id[],
   const model = used_model(graph, layer);
   if (!model) {
     const kids = layer_tree(graph, layer).map(leaf_of(graph));
-    return { ...mapped(graph, { id: MAP_ROOT, kids }, "models"), layer,
+    const top = is_folder(graph, layer) ? [framed(layer, kids)] : kids;
+    return { ...mapped(graph, { id: MAP_ROOT, kids: top }, "models", layer), layer,
              trail: trail_of(graph, layer) };
   }
   const zones = zones_of(graph, layer_tree(graph, layer).map((b) => b.id));
@@ -165,21 +166,30 @@ function leaf_of(graph: Graph): (b: Branch) => Leaf {
 }
 
 /** **The library's map**: every package's folders as boxes, each definition a chip of its parts —
- *  what it holds, never where it is used (the tray's usages) — its counts still saying its uses.
- *  A folder filing no definition, at any depth, is the models'. */
-export function library_map(graph: Graph): Scene {
+ *  what it holds, never where it is used (the tray's usages) — its counts still saying its uses;
+ *  a folder says how many definitions it files (views `facts_of`). **Entered at a folder**
+ *  (`root`), the same map rooted at it, the folder framed round what it holds. A folder filing no
+ *  definition, at any depth, is the models'. */
+export function library_map(graph: Graph, root?: Id): Scene {
   const entry = (id: Id): Leaf | null => {
     if (!graph.blocks[id]?.def) {
       const kids = filed(graph, id).map(entry).filter((k): k is Leaf => !!k);
-      if (!kids.length) return null;
-      return { id, kids, closed: { id, value: weight(graph, []) * Math.sqrt(1 + kids.length),
-                                   chip: { block: id, held: kids.map((k) => k.id) } } };
+      return kids.length ? framed(id, kids) : null;
     }
     const parts = parts_of(graph, id);
-    return { id, value: weight(graph, parts), chip: { block: id, held: parts, uses: true } };
+    return { id, value: weight(graph, parts), chip: { block: id, held: parts } };
   };
-  const tops = packages(graph).map((p) => entry(p.id)).filter((k): k is Leaf => !!k);
-  return mapped(graph, { id: MAP_ROOT, kids: tops }, "library");
+  const tops = (root ? [root] : packages(graph).map((p) => p.id)).map(entry)
+    .filter((k): k is Leaf => !!k);
+  const map = mapped(graph, { id: MAP_ROOT, kids: tops }, "library", root);
+  return root ? { ...map, layer: root, trail: trail_of(graph, root) } : map;
+}
+
+/** **A folder's box**: what it holds, closing into a chip as heavy as how many it holds. Entered,
+ *  it frames its view, as the map frames a package — opened as by hand (`mapped`'s `keep`). */
+function framed(id: Id, kids: Leaf[]): Leaf {
+  return { id, kids, closed: { id, value: Math.sqrt(1 + kids.length),
+                               chip: { block: id, held: kids.map((k) => k.id) } } };
 }
 
 /** The map gone to `focus`: its area, else its nearest area above it, is the map's layer; the
@@ -279,7 +289,8 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models",
   const shut = new Set<Leaf>();
   let raised = new Map<Id, number>();
   let laid = laid_out(viewed(tree, open), room, raised);
-  for (let next = level(tree, open, shut, rank); next.length; next = level(tree, open, shut, rank)) {
+  for (let next = level(tree, open, shut, rank); next.length;
+       next = level(tree, open, shut, rank)) {
     for (const n of next) open.add(n);
     const forced = rank.get(next[0]!)!.tier === 0;
     const tried = viewed(tree, open);
@@ -302,9 +313,9 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models",
   return drawn(graph, laid, title);
 }
 
-/** **How a box ranks to open**: tier 0 holds the box opened by hand, tier 1 is preferred — a box
- *  shown open (a model's `open:`) or a model — tier 2 the rest; a box ranks as well as anything it
- *  holds. Then shallowest. */
+/** **How a box ranks to open**: tier 0 holds the box opened by hand, tier 1 is preferred — a
+ *  box shown open (a model's `open:`) or a model — tier 2 the rest; a box ranks as well as
+ *  anything it holds. Then shallowest. */
 type Rank = { tier: number; depth: number };
 function ranked(graph: Graph, tree: Leaf, keep?: Id | null): Map<Leaf, Rank> {
   const ranks = new Map<Leaf, Rank>();
@@ -355,11 +366,11 @@ function small(laid: Tiled<Leaf>): Tiled<Leaf>[] {
 
 /** **The tree as a treemap** its room's size — the canvas, less what sits round it, larger in its
  *  shape where it holds more chips than would each keep `ROOM` (until grouping keeps every view
- *  within its budget) — squarified
- *  at `1/K` width and stretched back: every box's cells fill it, sized by weight, its header over
- *  them, **no chip weighing less than `SHARES` of the budget**, so a light chip still gets a
- *  legible chip's room, what is `raised` weighing more. **Never by what is picked**: a selection never moves a cell. d3
- *  lets an outer padding overwrite a top one, so each side is said apart. */
+ *  within its budget) — squarified at `1/K` width and stretched back: every box's cells fill it,
+ *  sized by weight, its header over them, **no chip weighing less than `SHARES` of the budget**,
+ *  so a light chip still gets a legible chip's room, what is `raised` weighing more. **Never by
+ *  what is picked**: a selection never moves a cell. d3 lets an outer padding overwrite a top
+ *  one, so each side is said apart. */
 function laid_out(tree: Leaf, room: { w: number; h: number },
                   raised: ReadonlyMap<Id, number> = new Map()): Tiled<Leaf> {
   const root = hierarchy<Leaf>(tree, (n) => (n.kids?.length ? n.kids : undefined));
@@ -405,8 +416,13 @@ function drawn(graph: Graph, laid: Tiled<Leaf>, title: "library" | "models"): Sc
     if (id === MAP_ROOT) continue;
     const own: Partial<ReturnType<typeof carried>> = graph.blocks[id]
       ? carried(graph, id, "small") : {};
+    /** The workspace's package is the models' model root and the library's folder; an imported
+     *  package wears a lock (explorer `rows.ts` `mark_of`). */
+    const top = graph.blocks[id]?.parent === null;
+    const role = !top ? own.role : title === "models" && id === graph.root ? "model" : "folder";
     const data = { label, marks: n.data.panel ? ["group" as const] : [],
-                   ...(own.role ? { role: own.role } : {}),
+                   ...(role ? { role } : {}),
+                   ...(top && id !== graph.root ? { icon: "locked" } : {}),
                    ...(own.description ? { description: own.description } : {}),
                    ...(n.data.toggle ? { toggle: n.data.toggle } : {}) };
     if (!chip) {
@@ -415,25 +431,27 @@ function drawn(graph: Graph, laid: Tiled<Leaf>, title: "library" | "models"): Sc
                    draggable: false });
       continue;
     }
-    nodes.push({ ...cell(id, box, { ...data, ...chip_drawn(graph, chip, box) }, "chip"),
+    nodes.push({ ...cell(id, box, { ...data, ...chip_drawn(graph, chip, box, title === "library") },
+                         "chip"),
                  draggable: false });
   }
   return { layer: null, areas, map: title, nodes, edges: [], perches: [], slots: ["display"],
            trail: [] };
 }
 
-/** **A chip as drawn**: its kind of cell, its name's size grown with its cell, its meta line,
- *  and its well where it holds anything and has the room. */
+/** **A chip as drawn**: its kind of cell, its name's size grown with its cell, its meta line —
+ *  read as the `library` reads it there — and its well where it holds anything and has room. */
 function chip_drawn(graph: Graph, chip: NonNullable<Leaf["chip"]>,
-                    box: { w: number; h: number }) {
+                    box: { w: number; h: number }, library: boolean) {
   const size = name_size(box.w, box.h);
   const top = CHIP.top + head_h(size) + CHIP.gap;
   const room = { w: box.w - CHIP.side - CHIP.inset, h: box.h - top - CHIP.foot - CHIP.inset };
   const tiles = chip.held.length && room.h + CHIP.inset >= CHIP.well
     ? well(graph, chip.held, room) : [];
-  const facts = facts_of(graph, chip.block, !!chip.uses);
+  const facts = facts_of(graph, chip.block, library);
   const holds = chip.held.length > 0;
-  return { size, cell: chip.uses ? (holds ? "holds" as const : "leaf" as const)
+  const def = library && !!graph.blocks[chip.block]?.def;
+  return { size, cell: def ? (holds ? "holds" as const : "leaf" as const)
              : cell_of(graph, chip.block, holds),
            ...(chip.kind ? { kind: chip.kind } : {}),
            ...(facts ? { facts } : {}), ...(tiles.length ? { well: top, tiles } : {}),
@@ -512,19 +530,20 @@ function well_laid(graph: Graph, shown: readonly Id[], more: number, room: { w: 
   return { tiles, legible };
 }
 
-/** **A box's meta line**: a block's facts, as its chip would say them; a package or a folder what
- *  it gathers — its models and diagrams on the models' map, its definitions on the library's. */
-function box_facts(graph: Graph, n: HierarchyNode<Leaf>, title: "library" | "models"): Facts | null {
+/** **A box's meta line**: a block's facts, as its chip would say them — on the library's map a
+ *  folder's definitions; a package or a folder on the models' map its models and diagrams. */
+function box_facts(graph: Graph, n: HierarchyNode<Leaf>,
+                   title: "library" | "models"): Facts | null {
   const id = n.data.id;
   const b = graph.blocks[id];
   if (!b) return null;
   const filed = b.parent === null || is_folder(graph, id);
-  if (!filed) return facts_of(graph, id, false);
+  if (!filed || title === "library") return facts_of(graph, id, title === "library");
   const chips = n.leaves().flatMap((l) => (l.data.chip ? [l.data.chip] : []));
-  const counts = title === "library" ? fact(chips.length, "definition")
-    : [...fact(n.descendants().filter((d) => is_model(graph, d.data.id)).length, "model"),
-       ...fact(chips.filter((c) => !is_model(graph, c.block)
-         && !!lens_of(graph, c.block, "structure")).length, "diagram")];
+  const models = n.descendants().filter((d) => is_model(graph, d.data.id)).length;
+  const diagrams = chips.filter((c) => !is_model(graph, c.block)
+    && !!lens_of(graph, c.block, "structure")).length;
+  const counts = [...fact(models, "model"), ...fact(diagrams, "diagram")];
   return counts.length ? { counts, tags: [] } : null;
 }
 
@@ -553,7 +572,7 @@ export function chip_map(graph: Graph, id: Id): "library" | "models" {
 }
 
 /** **An element's picture is a chip off the map**, never a scaled drawing: its own chip where it
- *  gathers anything — a diagram's members, a definition's uses — else the chip of the room it sits
+ *  gathers anything — a diagram's members, a definition's parts — else the chip of the room it sits
  *  in, its own tile lit; a line lights both its ends. Null where the map draws neither. */
 export function chip_for(graph: Graph, id: Id, scene: Scene): { chip: BoxNode; lit: Id[] } | null {
   const e = graph.edges[id];

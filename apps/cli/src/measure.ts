@@ -52,14 +52,16 @@ export function scaled(graph: Graph): string[] {
     set_canvas(w, h);
     return scale_of(graph).map((s) => ({ shape, s }));
   });
-  const worst = (s: Scale) => s.small + s.cut + s.unnamed + Math.max(0, s.chips - s.budget);
+  const worst = (s: Scale) => s.small + s.cut + s.unnamed + s.stuck
+    + Math.max(0, s.chips - s.budget);
   rows.sort((a, z) => worst(z.s) - worst(a.s) || z.s.ms - a.s.ms);
   const cols = (s: Omit<Scale, "view">) => [s.nodes, s.chips, s.budget, s.small, s.cut, s.unnamed,
-                                            s.ms].map((n) => String(n).padStart(7)).join("");
+                                            s.stuck, s.ms].map((n) => String(n).padStart(7))
+    .join("");
   const sum = (k: keyof Omit<Scale, "view">) => rows.reduce((n, r) => n + r.s[k], 0);
-  return ["  nodes  chips budget  small    cut unnamed    ms  shape      view",
+  return ["  nodes  chips budget  small    cut unnamed  stuck     ms  shape      view",
           ...rows.map(({ shape, s }) => `${cols(s)}  ${shape.padEnd(10)} ${s.view}`),
           `${cols({ nodes: sum("nodes"), chips: sum("chips"), budget: sum("budget"),
                     small: sum("small"), cut: sum("cut"), unnamed: sum("unnamed"),
-                    ms: sum("ms") })}  total`];
+                    stuck: sum("stuck"), ms: sum("ms") })}  total`];
 }

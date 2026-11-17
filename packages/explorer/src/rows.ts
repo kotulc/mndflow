@@ -180,7 +180,7 @@ function tree_rows(graph: Graph, branches: readonly Nest[], route: string,
   for (const b of listed(graph, branches)) {
     const at = route ? `${route}/${b.id}` : b.id;
     const row_key = key(at);
-    out.push(block_row(graph, b.id, depth, listed(graph, b.kids).length, row_key));
+    out.push(block_row(graph, b.id, depth, listed(graph, b.kids).length, row_key, true));
     if (every || opened(folded, row_key)) {
       tree_rows(graph, b.kids, at, folded, out, key, depth + 1, every);
     }
@@ -211,8 +211,8 @@ function branch_rows(graph: Graph,
   /** A package root in the library lists its named components after its definitions. */
   const lib = at.lists === "domain" && graph.blocks[id]!.parent === null ? library_of(graph, id) : {};
   const groups = KINDS.filter((k) => lib[k]?.length).length;
-  out.push({ ...block_row(graph, id, depth, parts.length + own.length + groups, row_key),
-             ...(via ? { via } : {}) });
+  out.push({ ...block_row(graph, id, depth, parts.length + own.length + groups, row_key,
+                         at.lists === "structure"), ...(via ? { via } : {}) });
   /** Parts are never listed whole: a definition may be reached through itself. */
   const every = at.every && !via && !parts.length;
   if (!every && !opened(folded, row_key)) return;
@@ -233,22 +233,23 @@ function unheld(graph: Graph, blocks: readonly Block[]): Block[] {
     : is_box(graph, b.id) ? unheld(graph, under(graph, b.id)) : []));
 }
 
-/** A block's row: its name, its mark, how many rows it holds, and whether it is where things are
- *  filed. */
-function block_row(graph: Graph, id: Id, depth: number, kids: number, key: Id): Row {
+/** A block's row: its name, its mark (as the models read it, where `models`), how many rows it
+ *  holds, and whether it is where things are filed. */
+function block_row(graph: Graph, id: Id, depth: number, kids: number, key: Id,
+                   models = false): Row {
   const icon = card_icon(graph, id);
   const filed = graph.blocks[id]?.parent === null || is_folder(graph, id);
   return { ...(icon ? { icon } : {}), id: key, ref: id, pick: id, depth,
            label: shown_name(graph, id), kids, named: is_named(graph, id),
            alias: graph.blocks[id]?.parent === null ? "" : alias_of(graph, id), of: "block",
-           mark: mark_of(graph, id), guides: [], ...(filed ? { filed } : {}) };
+           mark: mark_of(graph, id, models), guides: [], ...(filed ? { filed } : {}) };
 }
 
-/** The mark a row wears: a package's root or lock, a relation definition its base's, else the
- *  role its card reads as. */
-function mark_of(graph: Graph, id: Id): Mark {
+/** The mark a row wears: a package's root — **in the models, the model root**, wearing the
+ *  model's icon — or lock, a relation definition its base's, else the role its card reads as. */
+function mark_of(graph: Graph, id: Id, models: boolean): Mark {
   const b = graph.blocks[id];
-  if (b?.parent === null) return id === graph.root ? "root" : "locked";
+  if (b?.parent === null) return id !== graph.root ? "locked" : models ? "model" : "root";
   if (b?.def && domain_of(graph, id) === "relation") return relation_base(graph, id) as Mark;
   return role_of(graph, id);
 }

@@ -90,8 +90,9 @@ function Well({ top, cell, tiles, lit }: { top: number; cell: ChipCell;
 /** **A map's box**, drawn anywhere: on the map as a node and in the tray as a box's picture — a
  *  hairline rim, **the shared header** over what it holds. A group's is a panel over its members,
  *  rimless, its name alone. */
-export function BoxFace({ label, role, facts, panel = false, rank, picked = false, toggle }: {
-  label: string; role?: string; facts?: FactsData;
+export function BoxFace({ label, role, icon, facts, panel = false, rank, picked = false,
+                          toggle }: {
+  label: string; role?: string; icon?: string; facts?: FactsData;
   panel?: boolean; rank?: "major" | "minor"; picked?: boolean; toggle?: "open" | "closed" }) {
   return (
     <div className={["mnd-box", panel ? "panel" : "", rank ?? "", picked ? "picked" : ""]
@@ -100,7 +101,8 @@ export function BoxFace({ label, role, facts, panel = false, rank, picked = fals
         {toggle ? <Toggle open /> : null}
         {panel ? <span className="mnd-box-name">{label}</span> : (
           <Header name={<span className="mnd-box-name">{label}</span>}
-                  {...(facts ? { facts } : {})} {...(role ? { role } : {})} />
+                  {...(facts ? { facts } : {})} {...(role ? { role } : {})}
+                  {...(icon ? { icon } : {})} />
         )}
       </div>
     </div>

@@ -13,7 +13,7 @@ import { carried, fit_names, marks_of, trail_of } from "./derive";
 import { card_facts } from "./facts";
 import { lifelined } from "./lifelines";
 import { look_of, wire_of } from "./look";
-import { layer_map, section_map } from "./map";
+import { layer_map, library_map, section_map } from "./map";
 import { sheet_graph, turned, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { registry_scene } from "./registry";
@@ -61,9 +61,9 @@ function group_carries(graph: Graph, group: Id): Id[] {
 }
 
 /** **Whether a layer draws as a treemap**: its kind places by treemap, or it is a package's
- *  folder opened in the models. A folder projected bare — a tool's picture — draws its layer. */
+ *  folder opened in either section. A folder projected bare — a tool's picture — draws its layer. */
 export function treemapped(graph: Graph, layer: Id, lists?: "domain" | "structure"): boolean {
-  return placing_of(graph, layer) === "treemap" || (lists === "structure" && is_filing(graph, layer));
+  return placing_of(graph, layer) === "treemap" || (!!lists && is_filing(graph, layer));
 }
 
 /** Project a layer through the block view, with what its usages read through laid in, and every
@@ -121,7 +121,11 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   /** What its usages read through. **No line is derived**: only stored relations draw. */
   const graph = read_through(given, layer);
   /** A treemap is its map; anything else places itself. */
-  if (treemapped(graph, layer, look?.lists)) return layer_map(given, layer, config.open, config.keep);
+  if (treemapped(graph, layer, look?.lists)) {
+    /** A library folder is the library's map rooted at it. */
+    return look?.lists === "domain" && is_filing(given, layer) ? library_map(given, layer)
+      : layer_map(given, layer, config.open, config.keep);
+  }
   const parts = new Set(Object.keys(graph.blocks).filter((id) =>
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
   const carried_as = (id: Id): BoxData => {

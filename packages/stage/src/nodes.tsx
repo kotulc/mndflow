@@ -389,6 +389,7 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
 function MapBox({ id, data }: NodeProps<BoxNode>) {
   const selected = usePicked(id);
   return <BoxFace label={data.label} {...(data.role ? { role: data.role } : {})}
+                  {...(data.icon ? { icon: data.icon } : {})}
                   {...(data.facts ? { facts: data.facts } : {})}
                   panel={data.marks.includes("group")}
                   {...(data.toggle ? { toggle: data.toggle } : {})}

@@ -222,7 +222,8 @@ export function Tray(props: TrayProps) {
     tint: lined && graph.edges[about] ? wire_tint(wire_of(graph, about))
       : tint_attrs(colour_of(graph, about)),
     ...(graph.blocks[about] ? {
-      facts: <Facts facts={facts_of(graph, about, !!graph.blocks[about]!.def)} named />,
+      facts: <Facts facts={facts_of(graph, about, !!graph.blocks[about]!.def
+                                    || props.lists === "domain")} named />,
     } : {}),
   } : {};
 
