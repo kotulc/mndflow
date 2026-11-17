@@ -2,33 +2,33 @@
  *  model root) and a definition's registry (a definition root), each one treemap that fills its
  *  space, what is open as **boxes** and what is closed as **chips**. **A chip is a card's header
  *  over a well**: its children as a quiet treemap one level deep, each named where it has room.
- *  **Landscape-biased**: laid at half width, then stretched, so names read across. **Legible or
- *  closed**: the lightest open box below the top two levels closes into a chip until every chip
- *  holds its name. A click selects; two read what was clicked (core's `read_at`). Worked out on
+ *  **Landscape-biased**: laid at half width, then stretched, so names read across. **Opened from
+ *  the top**: every box starts closed and opens, wide before deep, while the view keeps within its
+ *  chip budget and every chip holds its name. A click selects; two read what was clicked (core's `read_at`). Worked out on
  *  every graph change, never stored. */
 
 import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
          type HierarchyRectangularNode as Tiled } from "d3-hierarchy";
-import { base_of, children, definition_uses, diagram_kind, is_aside, is_behaviour, is_folder,
+import { base_of, children, diagram_kind, is_aside, is_behaviour, is_folder,
          is_group, is_holder, is_interface, is_model, is_reference, lens_of, owner_of, on_side,
          packages, path, shown_name, used_model, type Graph, type Id } from "@mnd/core";
 import { colour_of, kind_of } from "./about";
 import { counted, fact, facts_of, total, type Facts } from "./facts";
 import { carried, trail_of } from "./derive";
-import { box_label, filed, name_of, usage_box, usage_groups, type LocatedUse } from "./library";
+import { filed, name_of } from "./library";
 import { look_of, tint_attrs } from "./look";
 import { box_of, cell, type Area, type BoxNode, type ChipCell, type InnerTile,
          type Scene } from "./scene";
-import { chip_of, layer_tree, members, model_tree, type Branch } from "./tree";
-import { around, registered, zone_room, zones_of } from "./overview";
+import { layer_tree, members, model_tree, parts_of, type Branch } from "./tree";
+import { around, zone_room, zones_of } from "./overview";
 import { CANVAS } from "./size";
 
 /** The area every map is drawn in. */
 export const MAP_ROOT = "@map";
 
 
-/** The room each chip is given on average before a map grows past its canvas (`CANVAS`) — about
- *  two names square. */
+/** The room each chip is given on average before a map grows past its canvas — about two names
+ *  square. Goes once grouping keeps every view within its budget. */
 const ROOM = 128 * 128;
 
 /** **Landscape bias**: cells are laid in a space `K` times narrower, then stretched back, so they
@@ -40,12 +40,12 @@ const K = 2;
  *  takes over it (theme `face.css` `.mnd-header`, at 13px, with its padding). */
 const AIR = { major: 24, inner: 8, outer: 6, title: 46 };
 
-/** **Legible or closed**: the least a chip is laid at before the lightest open box closes — a
- *  name's room, the header's two lines with the chip's padding — and how deep a box sits before it may close (below the top two levels). With
- *  nothing left to close, a chip still too small is weighed up, `RAISE` times a round, for at most
- *  `ROUNDS` rounds: a floor, never a hard rule. */
-const FLOOR = { w: 96, h: 48 };
-const CLOSES = 2;
+/** **The least a chip is laid at**: a name's room, the header's two lines with the chip's
+ *  padding. A chip with no room for a well says only its counts. */
+export const FLOOR = { w: 96, h: 48 };
+
+/** **A chip laid too small is weighed up** `RAISE` times a round, for at most `ROUNDS` rounds, before
+ *  its level stays closed: squarify can lay a light chip short and wide. */
 const RAISE = 2;
 const ROUNDS = 6;
 
@@ -61,13 +61,22 @@ const CHIP = { top: 8, gap: 8, side: 26, foot: 9, well: 26, inset: 8 };
 /** **Every child in a well is named**, its name shrunk to fit its cell (a monospace character is
  *  `char` of its size across, the line with its padding `line` of it down), between the least and
  *  the most; where even the least is too long, cut short. */
-const NAMED = { least: 6, most: 10.5, char: 0.6, pad: 0.45, line: 1.8, right: 4 };
+const NAMED = { least: 8, most: 10.5, char: 0.6, pad: 0.45, line: 1.8, right: 4 };
 
 /** The least share of the canvas a model's middle keeps, each way, beside its zones and About. */
 const KEEP = 0.7;
 
 /** How many grades a well's cells step through (stage `flow.css` *The well*). */
 const GRADES = 4;
+
+/** **The least a chip weighs**, in shares of the budget: one share is a legible chip's room, the
+ *  other the headers and air of the boxes round it. */
+const SHARES = 2;
+
+/** **A legible chip's room**: the least chip that holds — its header at the least name over the
+ *  least well — with the air beside and below it. */
+const LEGIBLE = { w: FLOOR.w + AIR.inner,
+                  h: CHIP.top + head_h(NAME.least) + CHIP.gap + CHIP.well + CHIP.foot + AIR.inner };
 
 /** One entry of a tree: a box of what it holds, or a chip entering `block`, holding `held` (a
  *  definition's: its uses). A box carries the chip it closes into. */
@@ -127,30 +136,6 @@ export function layer_map(graph: Graph, layer: Id, open?: readonly Id[],
   return { ...around(graph, model, layer, middle, zones), layer, trail: trail_of(graph, layer) };
 }
 
-/** **A definition's registry is the tree view's definition root** (docs/diagrams/tree.md): its
- *  uses as closed chips in the boxes of the places that draw them — a lone place's box left out —
- *  a line an empty box of its name; its chip in a band above, About below (`overview.ts`). Null
- *  where nothing uses it. */
-export function definition_map(graph: Graph, def: Id): Scene | null {
-  const groups = usage_groups(graph, def);
-  if (!groups.length) return null;
-  const use = (u: LocatedUse): Leaf => (graph.blocks[u.id]
-    ? leaf_of(graph)(chip_of(graph, u.id))
-    : { id: u.id, value: 1, label: shown_name(graph, u.id) });
-  const boxes: Leaf[] = groups.map((g) => ({ id: usage_box(def, g.place),
-                                             label: box_label(graph, g.place),
-                                             kids: g.uses.map(use) }));
-  const kids = boxes.length === 1 ? boxes[0]!.kids! : boxes;
-  const middle = mapped(graph, { id: MAP_ROOT, kids }, "models");
-  const facts = facts_of(graph, def, true);
-  const card = cell(def, { x: 0, y: 0, w: 320, h: 2 * CHIP.top + head_h(NAME.least + 2) },
-                    { label: shown_name(graph, def), marks: [], cell: "leaf",
-                      kind: name_of(graph, graph.blocks[def]?.type ?? "block"),
-                      size: NAME.least + 2, facts, look: colour_of(graph, def) }, "chip");
-  return { ...registered(graph, def, middle, { ...card, draggable: false }), layer: def,
-           trail: trail_of(graph, def) };
-}
-
 /** **The boxes a model's overview starts open**: its file's `open:`, else its primary parts —
  *  each holding parts of its own. */
 export function opened(graph: Graph, layer: Id, model: Id): Id[] {
@@ -179,8 +164,9 @@ function leaf_of(graph: Graph): (b: Branch) => Leaf {
   return leaf;
 }
 
-/** **The library's map**: every package's folders as boxes, each definition a chip as heavy as
- *  its uses, its well its uses. A folder filing no definition, at any depth, is the models'. */
+/** **The library's map**: every package's folders as boxes, each definition a chip of its parts —
+ *  what it holds, never where it is used (the tray's usages) — its counts still saying its uses.
+ *  A folder filing no definition, at any depth, is the models'. */
 export function library_map(graph: Graph): Scene {
   const entry = (id: Id): Leaf | null => {
     if (!graph.blocks[id]?.def) {
@@ -189,8 +175,8 @@ export function library_map(graph: Graph): Scene {
       return { id, kids, closed: { id, value: weight(graph, []) * Math.sqrt(1 + kids.length),
                                    chip: { block: id, held: kids.map((k) => k.id) } } };
     }
-    const uses = definition_uses(graph, id).map((u) => u.id).filter((u) => graph.blocks[u]);
-    return { id, value: Math.sqrt(1 + uses.length), chip: { block: id, held: uses, uses: true } };
+    const parts = parts_of(graph, id);
+    return { id, value: weight(graph, parts), chip: { block: id, held: parts, uses: true } };
   };
   const tops = packages(graph).map((p) => entry(p.id)).filter((k): k is Leaf => !!k);
   return mapped(graph, { id: MAP_ROOT, kids: tops }, "library");
@@ -273,56 +259,113 @@ export function cell_of(graph: Graph, id: Id, holds: boolean): ChipCell {
   return holds ? "holds" : "leaf";
 }
 
-/** **A map laid out, legible or closed**: while any chip is laid smaller than a name needs
- *  (`FLOOR`), the lightest open box below the top two levels holding such a chip — never one
- *  holding the box just opened by hand (`keep`) — closes into the chip it carries, and the map is laid again. Decided from
- *  the laid shape, never the zoom. */
+/** **A view's chip budget**: as many legible chips (`LEGIBLE`) as its room holds — never a
+ *  fixed count. */
+export function budget(room: { w: number; h: number }): number {
+  return Math.max(1, Math.floor((room.w * room.h) / (LEGIBLE.w * LEGIBLE.h)));
+}
+
+/** **A map opened from the top, a level at a time**: every box that can close starts closed;
+ *  the next level of boxes is opened together — what holds the box opened by hand (`keep`) first,
+ *  then what is preferred, then the shallowest (`ranked`) — and kept open only while the view's
+ *  chips stay within its `budget` and every chip is laid legible (`FLOOR`), a chip laid too small
+ *  weighed up `RAISE` times a round for at most `ROUNDS` rounds; else that level stays closed.
+ *  What holds `keep` always opens. Decided from the laid shape, never the zoom. */
 function mapped(graph: Graph, tree: Leaf, title: "library" | "models",
                 keep?: Id | null, room: { w: number; h: number } = CANVAS): Scene {
-  let top = tree;
-  const raised = new Map<Id, number>();
-  for (let round = 0; ; ) {
-    const laid = laid_out(top, room, raised);
-    const small = laid.leaves().filter((n) => n.depth > 0 && !n.data.panel
-      && (n.x1 - n.x0 < FLOOR.w || n.y1 - n.y0 < floor_h(n.data, n.x1 - n.x0, n.y1 - n.y0)));
-    /** A box just opened by hand never closes, nor what holds it. */
-    const held = new Set(laid.descendants().filter((n) => n.data.id === keep)
-      .flatMap((n) => n.ancestors()).map((n) => n.data));
-    const open = [...new Set(small.flatMap((n) => n.ancestors()))]
-      .filter((n) => n.depth >= CLOSES && n.data.closed && !held.has(n.data));
-    if (open.length) {
-      const light = open.reduce((a, b) => ((b.value ?? 0) < (a.value ?? 0) ? b : a)).data;
-      top = swapped(top, light, light.closed!);
+  const most = budget(room);
+  const rank = ranked(graph, tree, keep);
+  const open = new Set<Leaf>();
+  const shut = new Set<Leaf>();
+  let raised = new Map<Id, number>();
+  let laid = laid_out(viewed(tree, open), room, raised);
+  for (let next = level(tree, open, shut, rank); next.length; next = level(tree, open, shut, rank)) {
+    for (const n of next) open.add(n);
+    const forced = rank.get(next[0]!)!.tier === 0;
+    const tried = viewed(tree, open);
+    const fits = forced || chips(tried) <= most;
+    const up = new Map(raised);
+    let at = fits ? laid_out(tried, room, up) : null;
+    for (let round = 0; at && !forced && small(at).length && round < ROUNDS; round++) {
+      for (const n of small(at)) up.set(n.data.id, (up.get(n.data.id) ?? 1) * RAISE);
+      at = laid_out(tried, room, up);
+    }
+    if (at && (forced || !small(at).length)) {
+      [laid, raised] = [at, up];
       continue;
     }
-    if (!small.length || round++ >= ROUNDS) return drawn(graph, laid, title);
-    for (const n of small) raised.set(n.data.id, (raised.get(n.data.id) ?? 1) * RAISE);
+    for (const n of next) {
+      open.delete(n);
+      shut.add(n);
+    }
   }
+  return drawn(graph, laid, title);
 }
 
-/** **The least height a chip is laid at**: its header, and, where it holds anything, its header
- *  at the name its cell gives it over the least well, so a chip that holds is never only its
- *  counts. */
-function floor_h(leaf: Leaf, w: number, h: number): number {
-  return leaf.chip?.held.length
-    ? CHIP.top + head_h(name_size(w, h)) + CHIP.gap + CHIP.well + CHIP.foot : FLOOR.h;
+/** **How a box ranks to open**: tier 0 holds the box opened by hand, tier 1 is preferred — a box
+ *  shown open (a model's `open:`) or a model — tier 2 the rest; a box ranks as well as anything it
+ *  holds. Then shallowest. */
+type Rank = { tier: number; depth: number };
+function ranked(graph: Graph, tree: Leaf, keep?: Id | null): Map<Leaf, Rank> {
+  const ranks = new Map<Leaf, Rank>();
+  const walk = (n: Leaf, depth: number): number => {
+    const own = n.id === keep ? 0 : n.toggle === "open" || is_model(graph, n.id) ? 1 : 2;
+    const tier = Math.min(own, ...(n.kids ?? []).map((k) => walk(k, depth + 1)));
+    if (n.closed) ranks.set(n, { tier, depth });
+    return tier;
+  };
+  walk(tree, 0);
+  return ranks;
 }
 
-/** The tree with one entry swapped for another. */
-function swapped(tree: Leaf, from: Leaf, to: Leaf): Leaf {
-  if (tree === from) return to;
-  return tree.kids ? { ...tree, kids: tree.kids.map((k) => swapped(k, from, to)) } : tree;
+/** **The next level to open**: of the closed boxes whose holder is open, never one already turned
+ *  down, every one of the best rank. */
+function level(tree: Leaf, open: ReadonlySet<Leaf>, shut: ReadonlySet<Leaf>,
+               rank: ReadonlyMap<Leaf, Rank>): Leaf[] {
+  const ready: Leaf[] = [];
+  const walk = (n: Leaf) => {
+    if (n.closed && !open.has(n)) {
+      if (!shut.has(n)) ready.push(n);
+      return;
+    }
+    for (const k of n.kids ?? []) walk(k);
+  };
+  walk(tree);
+  const key = (n: Leaf) => rank.get(n)!.tier * 1e6 + rank.get(n)!.depth;
+  const top = Math.min(...ready.map(key));
+  return ready.filter((n) => key(n) === top);
 }
 
-/** **The tree as a treemap** its room's size — the canvas, less what sits round it (larger, in its shape, where it holds more chips
- *  than would each keep `ROOM`), squarified at `1/K` width and stretched back: every box's cells fill it, sized by
- *  weight, its header over them, what is `raised` weighing more. **Never by what is picked**: a
- *  selection never moves a cell. d3 lets an outer padding overwrite a top one, so each side is
- *  said apart. */
+/** The tree as the view draws it: each box not `open` its closed chip. */
+function viewed(tree: Leaf, open: ReadonlySet<Leaf>): Leaf {
+  if (tree.closed && !open.has(tree)) return tree.closed;
+  return tree.kids ? { ...tree, kids: tree.kids.map((k) => viewed(k, open)) } : tree;
+}
+
+/** How many chips a viewed tree draws: its leaves, never a panel. */
+function chips(tree: Leaf): number {
+  return tree.kids?.length ? tree.kids.reduce((n, k) => n + chips(k), 0) : tree.panel ? 0 : 1;
+}
+
+/** The chips of a laid tree laid smaller than legible (`FLOOR`). */
+function small(laid: Tiled<Leaf>): Tiled<Leaf>[] {
+  return laid.leaves().filter((n) => n.depth > 0 && !n.data.panel
+    && (n.x1 - n.x0 < FLOOR.w || n.y1 - n.y0 < FLOOR.h));
+}
+
+/** **The tree as a treemap** its room's size — the canvas, less what sits round it, larger in its
+ *  shape where it holds more chips than would each keep `ROOM` (until grouping keeps every view
+ *  within its budget) — squarified
+ *  at `1/K` width and stretched back: every box's cells fill it, sized by weight, its header over
+ *  them, **no chip weighing less than `SHARES` of the budget**, so a light chip still gets a
+ *  legible chip's room, what is `raised` weighing more. **Never by what is picked**: a selection never moves a cell. d3
+ *  lets an outer padding overwrite a top one, so each side is said apart. */
 function laid_out(tree: Leaf, room: { w: number; h: number },
                   raised: ReadonlyMap<Id, number> = new Map()): Tiled<Leaf> {
   const root = hierarchy<Leaf>(tree, (n) => (n.kids?.length ? n.kids : undefined));
-  root.sum((n) => (n.kids?.length ? 0 : (n.value ?? 0) * (raised.get(n.id) ?? 1)))
+  const least = (root.sum((n) => (n.kids?.length ? 0 : n.value ?? 0)).value ?? 0) * SHARES
+    / budget(room);
+  root.sum((n) => (n.kids?.length ? 0 : Math.max(least, n.value ?? 0) * (raised.get(n.id) ?? 1)))
     .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
   const [w, h] = [Math.max(320, room.w), Math.max(240, room.h)];
   const grow = Math.max(1, Math.sqrt(root.leaves().length * ROOM / (w * h)));
@@ -408,29 +451,65 @@ function head_h(size: number): number {
   return Math.round(size * 1.25 + 3 + 15);
 }
 
-/** **A chip's well**: what it holds as a quiet treemap, one level, by weight, landscape-biased as
- *  the map is, each child named (`NAMED`), as shares of the well's cells. **Neighbours
- *  stand apart**: each cell takes the next of `GRADES` grades, in the order squarify lays them, so
- *  two cells side by side never share one even where they share a colour. */
+/** **A chip's well**: a preview of what it holds as a quiet treemap, one level, by weight,
+ *  landscape-biased as the map is, as shares of the well's cells. **Never flooded**: only as many
+ *  of the heaviest as each lay whole with a legible name (`legible_cell`), the rest one *+N more*
+ *  cell; none where not even one fits. **Neighbours stand apart**: each cell takes the next of
+ *  `GRADES` grades, in the order squarify lays them. */
 function well(graph: Graph, ids: readonly Id[], room: { w: number; h: number }): InnerTile[] {
+  const weights = new Map(ids.map((id) => [id, weight(graph, members(graph, id))]));
+  const weigh = (id: Id) => weights.get(id)!;
+  const order = [...ids].sort((a, b) => weigh(b) - weigh(a));
+  /** The most cells that could each hold a legible name, then the most that do. */
+  let [lo, hi] = [0, Math.min(order.length, Math.floor((room.w * room.h) / LEAST_CELL))];
+  let best: InnerTile[] = [];
+  while (lo < hi) {
+    const k = Math.ceil((lo + hi) / 2);
+    const laid = well_laid(graph, order.slice(0, k), order.length - k, room, weigh);
+    if (laid.legible) [lo, best] = [k, laid.tiles];
+    else hi = k - 1;
+  }
+  return best;
+}
+
+/** The least room a well's cell needs: a name of `MIN_CHARS` characters at the least size. */
+const MIN_CHARS = 4;
+const LEAST_CELL = (NAMED.least * (NAMED.char * MIN_CHARS + NAMED.pad) + NAMED.right)
+  * NAMED.least * NAMED.line;
+
+/** **A well laid**: `shown` by weight, then a *+N more* cell for the `more` left out, as heavy
+ *  as the lightest shown; legible where every cell's name shows `MIN_CHARS` at least at the least
+ *  size, a longer name shrunk to fit, else cut short — the *+N more* whole. */
+function well_laid(graph: Graph, shown: readonly Id[], more: number, room: { w: number; h: number },
+                   weigh: (id: Id) => number): { tiles: InnerTile[]; legible: boolean } {
   const [w, h] = [Math.max(1, room.w), Math.max(1, room.h)];
+  const MORE = "+more";
   type Item = { id: Id; kids?: Item[] };
-  const root = hierarchy<Item>({ id: "", kids: ids.map((id) => ({ id })) }, (n) => n.kids)
-    .sum((n) => (n.kids ? 0 : weight(graph, members(graph, n.id))))
+  const kids = [...shown.map((id) => ({ id })), ...(more ? [{ id: MORE }] : [])];
+  const least = shown.length ? weigh(shown[shown.length - 1]!) : 1;
+  const root = hierarchy<Item>({ id: "", kids }, (n) => n.kids)
+    .sum((n) => (n.kids ? 0 : n.id === MORE ? least : weigh(n.id)))
     .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
   const laid = treemap<Item>().tile(treemapSquarify.ratio(1.6)).size([w / K, h])
     .paddingInner(2 / K)(root);
-  return laid.leaves().map((l, i) => {
+  let legible = true;
+  const tiles = laid.leaves().map((l, i): InnerTile => {
     const [x, y, lw, lh] = [l.x0 * K, l.y0, (l.x1 - l.x0) * K, l.y1 - l.y0];
     const id = l.data.id;
-    const label = shown_name(graph, id);
-    const fits = Math.min(NAMED.most, lh / NAMED.line,
-                          (lw - NAMED.right) / (NAMED.char * label.length + NAMED.pad));
-    return { id, label: lh / NAMED.line >= NAMED.least ? label : "", size: Math.max(NAMED.least, Math.round(fits * 2) / 2),
-             x: x / w, y: y / h, w: lw / w, h: lh / h, grade: i % GRADES,
-             cell: cell_of(graph, id, members(graph, id).length > 0),
+    const label = id === MORE ? `+${more} more` : shown_name(graph, id);
+    /** The size a name fits at: whole, else at least the least, cut short. */
+    const across = (chars: number) => (lw - NAMED.right) / (NAMED.char * chars + NAMED.pad);
+    const tall = lh / NAMED.line;
+    const least = id === MORE ? label.length : Math.min(label.length, MIN_CHARS);
+    if (Math.min(tall, across(least)) < NAMED.least) legible = false;
+    const size = Math.min(NAMED.most, tall, Math.max(NAMED.least, across(label.length)));
+    const at = { label, size: Math.round(size * 2) / 2, x: x / w, y: y / h, w: lw / w, h: lh / h,
+                 grade: i % GRADES };
+    if (id === MORE) return { id, ...at, more: true };
+    return { id, ...at, cell: cell_of(graph, id, members(graph, id).length > 0),
              tint: tint_attrs(look_of(graph, id)) };
   });
+  return { tiles, legible };
 }
 
 /** **A box's meta line**: a block's facts, as its chip would say them; a package or a folder what

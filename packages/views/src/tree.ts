@@ -53,7 +53,7 @@ function drawn(graph: Graph, id: Id): boolean {
 }
 
 /** A definition's parts as a usage reads them through: what the map draws, on either side. */
-function parts_of(graph: Graph, def: Id): Id[] {
+export function parts_of(graph: Graph, def: Id): Id[] {
   return children(graph, def).filter((b) => !b.def && drawn(graph, b.id)).map((b) => b.id);
 }
 

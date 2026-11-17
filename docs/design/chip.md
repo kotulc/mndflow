@@ -1,6 +1,6 @@
 # Chip
 
-**Agreed 2026-11-16 (tree rework, mockup claude.ai/artifact/Wgi6FEJTDjSKQVSSsKLexp).** A chip is how the tree view draws an element: the map (world root), a model's overview (model root) and a definition's registry (definition root). It is a **card's header over a well**: what a card shows as its table, a chip shows as a treemap of what it holds. It is for finding, comparing and entering, never for editing.
+**Agreed 2026-11-16 (tree rework, mockup claude.ai/artifact/Wgi6FEJTDjSKQVSSsKLexp).** A chip is how the tree view draws an element: the map (world root) and a model's overview (model root); a tree view draws containment only, never usages (2026-11-16). It is a **card's header over a well**: what a card shows as its table, a chip shows as a treemap of what it holds. It is for finding, comparing and entering, never for editing.
 
 
 ## Layout of the tree
@@ -8,7 +8,7 @@
 | Rule | Detail |
 |---|---|
 | **the treemap fills its space** | every box's cells fill it, sized by weight (square root of what each holds; never how often it is joined); a few chips or a hundred read as a whole. **The map is laid the canvas's size** (larger only when it holds many chips), so it reads whole at 100%; a model's middle is laid in what its zones and About leave, keeping at least 70% of the canvas each way |
-| **seen whole** | the camera shows a tree view whole and never zooms to a pick; only a walk fits its step. A click only picks (on the map it also moves the crumbs); two enter. **Anything with a well enters**, in either section — a library folder, a registry's place, a group; a leaf only picks |
+| **seen whole** | the camera shows a tree view whole and never zooms to a pick; only a walk fits its step. A click only picks (on the map it also moves the crumbs); two enter. **Anything with a well enters**, in either section — a library folder, a definition holding parts (its drawing), a group; a leaf only picks |
 | **a package's folder enters as its treemap** | entered from the map, a folder draws what it files as a tree view, as a model's overview does without zones; leaving goes up to its parent folder, else the map. Projected bare by a tool, a folder still draws its layer (2026-11-16) |
 | **landscape-biased squarify** | cells are laid in a space half as wide, then stretched 2×, so cells come out wider than tall and every name reads across; works on landscape and portrait canvases alike |
 | **a budget from the canvas** (agreed 2026-11-16, scale-plan.md) | a view draws as many chips as its room holds at a readable size (a header over the least well, with its air) and no more; a project of ten blocks or ten thousand reads as one screen. The map is never laid larger than the canvas |

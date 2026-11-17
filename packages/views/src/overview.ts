@@ -3,7 +3,7 @@
  *  band below past a dashed divider, plain notes never lit or dimmed; and the model's lines,
  *  quiet under the chips until a pick or a presentation lights them. Laid once the middle is. */
 
-import { base_of, model_entries, model_library, presentations_of, shown_name, subtree, subtypes,
+import { base_of, model_entries, model_library, presentations_of, shown_name, subtree,
          about_groups, type Graph, type Hop, type Id } from "@mnd/core";
 import { colour_of, kind_of } from "./about";
 import { carried } from "./derive";
@@ -79,25 +79,6 @@ export function around(graph: Graph, model: Id, layer: Id, middle: Scene,
   const about = about_band(`${layer}@about`, about_of(graph, model), w, h);
   const scene = grown({ ...middle, nodes: [...nodes, ...about], areas });
   return { ...scene, quiet: hop_trace(graph, scene, lines_of(graph, model)) ?? undefined };
-}
-
-/** **A definition's registry** (the definition root): its card in a band above its uses, and
- *  About below — what it extends and its subtypes. */
-export function registered(graph: Graph, def: Id, middle: Scene, card: BoxNode): Scene {
-  const root = middle.areas?.[0];
-  if (!root) return middle;
-  const [cw, ch] = [card.width ?? 0, card.height ?? 0];
-  const top = { x: Math.max(0, root.w / 2 - cw / 2), y: -ZONE.away - ch, w: cw, h: ch };
-  const up = graph.blocks[def]?.type;
-  const block = (id: Id) => ({ id, label: shown_name(graph, id) });
-  const groups: AboutDrawn[] = [
-    { name: "Extends", items: up && graph.blocks[up] ? [block(up)] : [] },
-    { name: "Subtypes", items: subtypes(graph, def).map((b) => block(b.id)) },
-  ].filter((g) => g.items.length);
-  const nodes = [...middle.nodes, { ...card, position: { x: top.x, y: top.y } },
-                 ...about_band(`${def}@about`, groups, root.w, root.h)];
-  return grown({ ...middle, nodes, areas: [...middle.areas!,
-    { id: def, parent: root.id, ...top, label: shown_name(graph, def), depth: 1, chip: true }] });
 }
 
 /** About's band below a middle `w` by `h`, as tall as its longest group; none with nothing to

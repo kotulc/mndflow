@@ -58,9 +58,8 @@ describe("the two sections", () => {
 });
 
 describe("what a subject opens on", () => {
-  it("is, in the library, a definition's registry where it is used, else nothing", () => {
-    expect(lens_of(g, "service", "domain")).toBe("registry");
-    expect(lens_of(g, "shop", "domain")).toBeNull();
+  it("is, in the library, a definition's drawing where it holds parts, else nothing", () => {
+    expect(lens_of(g, "pattern", "domain")).toBe("internal");
     expect(lens_of(g, "unused", "domain")).toBeNull();
   });
 
@@ -74,9 +73,9 @@ describe("what a subject opens on", () => {
 describe("reading", () => {
   const read = (id: string, now: View, options = {}) => read_at(g, EDITOR, {}, now, id, options);
 
-  it("enters a used definition's registry, and stays in the library", () => {
-    expect(read("service", map(LIBRARY))).toMatchObject({ at: LIBRARY, kind: "registry",
-                                                          layer: "service" });
+  it("enters a definition holding parts on its drawing, and stays in the library", () => {
+    expect(read("pattern", map(LIBRARY))).toMatchObject({ at: LIBRARY, kind: "internal",
+                                                          layer: "pattern" });
   });
 
   it("enters nothing for an unused definition, a definition's part, a package or a folder", () => {

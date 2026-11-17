@@ -291,7 +291,9 @@ export type InnerTile = { id: Id; label: string; x: number; y: number; w: number
                           /** Its grade among its neighbours, so side by side they stand apart. */
                           grade?: number;
                           /** Its name's size in pixels, shrunk to fit its cell. */
-                          size?: number };
+                          size?: number;
+                          /** The *+N more* cell: what the well leaves out, standing for no block. */
+                          more?: boolean };
 
 export type Scene = {
   /** The layer this is a projection of. */

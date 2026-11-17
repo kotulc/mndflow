@@ -9,7 +9,7 @@ import { lens_of, NAMED_VIEWS, all_defs, alias_of, check, children, collect, dom
 import { FLOOR } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
 import { draw, draw_svg, faults, outline, project } from "@mnd/views";
-import { measured } from "./measure";
+import { measured, scaled } from "./measure";
 import { diagram_file, draft, presentations } from "./tools";
 import { node_net } from "./ports";
 import { as_file, from_sysml, shape_of, to_sysml } from "./sysml";
@@ -21,7 +21,8 @@ const USAGE = `mnd — the headless harness
   mnd project <source> [layer] --svg  project a layer and draw it as SVG
   mnd outline <source> [layer]         list what a projection holds
   mnd measure <source> [layer]         lay out and route each diagram as the app does; count
-                                       lines over cards, covered names, shared runs, tight gaps
+                                       lines over cards, covered names, shared runs, tight gaps;
+                                       --views: the scale check of every tree view
   mnd check <source | folder>          run the door, print faults; a folder is collected first
   mnd review <source> [layer]          ask what the definitions wanted
   mnd run <source> <action> [k=v ...]  apply an action, print what it wrote
@@ -276,7 +277,8 @@ async function main(argv: string[]): Promise<void> {
 
     case "measure": {
       const graph = fold(log, FLOOR);
-      console.log((await measured(graph, find_layer(log, plain[0]))).join("\n"));
+      if (rest.includes("--views")) console.log(scaled(graph).join("\n"));
+      else console.log((await measured(graph, find_layer(log, plain[0]))).join("\n"));
       return;
     }
 

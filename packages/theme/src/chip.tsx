@@ -17,7 +17,9 @@ export type ChipCell = "holds" | "diagram" | "leaf" | "actor" | "external" | "fo
 
 /** One child in a chip's well: a share of the well from 0 to 1, and what it stands for. */
 export type ChipTile = { id: string; label: string; x: number; y: number; w: number; h: number;
-                         cell?: ChipCell; tint?: Tint; grade?: number; size?: number };
+                         cell?: ChipCell; tint?: Tint; grade?: number; size?: number;
+                         /** The *+N more* cell, standing for no block. */
+                         more?: boolean };
 
 /** What a chip draws. */
 export type ChipData = {
@@ -59,7 +61,8 @@ export function ChipFace({ data, w, h, picked = false, lit = [] }: ChipFaceProps
 }
 
 /** **A chip's well**: a plain recess of its parts, or a diagram's framed in its hue under a
- *  *diagram* tab; each child a quiet cell, named at the size that fits it. */
+ *  *diagram* tab; each child a quiet cell, named at the size that fits it; what is left out one
+ *  plain *+N more* cell that picks the chip itself. */
 function Well({ top, cell, tiles, lit }: { top: number; cell: ChipCell;
                                           tiles: readonly ChipTile[]; lit: readonly string[] }) {
   return (
@@ -67,9 +70,10 @@ function Well({ top, cell, tiles, lit }: { top: number; cell: ChipCell;
       {cell === "diagram" ? <span className="mnd-well-tab">diagram</span> : null}
       <span className="mnd-well-cells">
         {tiles.map((t) => (
-          <span key={t.id} data-tile={t.id} data-grade={t.grade ?? 0}
+          <span key={t.id} {...(t.more ? {} : { "data-tile": t.id })} data-grade={t.grade ?? 0}
                 {...(t.tint?.["data-family"] ? { "data-family": t.tint["data-family"] } : {})}
-                className={["mnd-well-cell", t.cell ?? "leaf", lit.includes(t.id) ? "picked" : ""]
+                className={["mnd-well-cell", t.more ? "more" : t.cell ?? "leaf",
+                            lit.includes(t.id) ? "picked" : ""]
                   .filter(Boolean).join(" ")}
                 style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%`, width: `${t.w * 100}%`,
                          height: `${t.h * 100}%`,

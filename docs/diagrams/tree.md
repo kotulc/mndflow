@@ -39,19 +39,18 @@
 | **many parts** | a chip budget from the canvas area; boxes open from the top, wide before deep, while every chip stays legible; a flat list is grouped (own path, kind, alphabetical range); a closed box says its name and counts (2026-11-16, chip.md) |
 | **opening** | a box's toggle (+ in a closed chip's foot, − before an open box's title) opens or closes it; a presentation stop's `open` sets it per stop; the model file's `open:` (unsaid: primary parts) is where it starts |
 
-## One view, three roots
+## One view, two roots
 
-**One tree view, used everywhere a treemap is drawn** (model-plan.md 18, enforced 2026-11-15). A chip is a closed box of the same tree; opening it shows its inner treemap, so the map, an overview and a registry differ only by their root and a few adjustments.
+**One tree view, used everywhere a treemap is drawn** (model-plan.md 18, enforced 2026-11-15). A chip is a closed box of the same tree; opening it shows its inner treemap, so the map and an overview differ only by their root and a few adjustments. **A tree view draws containment only**, as the explorer lists it (2026-11-16): where something is used is the tray's usages table, never a treemap.
 
 | Root | The middle | Around | Below | Written |
 |---|---|---|---|---|
 | **world** (the map) | packages and folders as boxes, models and definitions as chips | none: no single system | none | worked out, never written |
 | **model** (the overview) | the model's containment, primary parts open | context's zones | About band | the model file (`open:`, `about:`, `presentations:`) |
-| **definition** (the registry) | its uses, in boxes of the places that draw them, the heaviest open | its definition card in a band above, as a dataflow's datum band | About: what it extends, its subtypes | worked out, never written |
 
 - **open and closed** focus attention the same way at every root: open what is primary or heavy, close the rest, a closed box says its name and counts
-- **one layout in code** (built 2026-11-15): the model and definition roots are laid by the map's own layout (views `map.ts` `mapped`); a component registry (tags, types) and a definition chip's small preview still lay out with `treemap.ts` `tiled`
-- **one tool**: `overview` writes the only root that is written, a model's tree; the world and a registry are worked out
+- **one layout in code** (built 2026-11-15): the model root is laid by the map's own layout (views `map.ts` `mapped`); a component registry (tags, types) — its entries, each picked and its usages read in the tray — and a definition chip's small preview still lay out with `treemap.ts` `tiled`
+- **one tool**: `overview` writes the only root that is written, a model's tree; the world is worked out
 
 ## Agreed 2026-11-15
 
@@ -62,4 +61,4 @@
 | 3 | layout: context's zones around a weighted treemap of containment; About below; lines quiet until lit |
 | 4 | many parts: ~~boxes close from the lightest up~~ superseded 2026-11-16 by the budget opened from the top, and grouping (scale-plan.md); a closed box says its name and counts |
 | 5 | open boxes start from the model file's `open:` (unsaid, the primary parts); stops set their own |
-| 6 | one tree view, three roots (world, model, definition), with the adjustments above; a chip is a closed box; the registry's own treemap is retired into it |
+| 6 | one tree view, ~~three roots (world, model, definition)~~ two roots (world, model) since 2026-11-16, with the adjustments above; a chip is a closed box; a definition's usages are the tray's table, never a tree view |

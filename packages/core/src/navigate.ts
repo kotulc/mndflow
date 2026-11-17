@@ -13,9 +13,8 @@ import { registry_at, registry_id, registry_of } from "./library";
 import { opens } from "./names";
 import { at_cut, in_section, is_layer_view, on_side, type Lists, type Section, type ViewKind }
   from "./sections";
-import { line_layer, of_ref, path, stands_for } from "./tree";
+import { children, line_layer, of_ref, path, stands_for } from "./tree";
 import { type Block, type Graph, type Id } from "./types";
-import { definition_uses } from "./uses";
 
 /** Where a host's sections start: the forest above every package, or the workspace's root. */
 export type Top = "forest" | "workspace";
@@ -81,17 +80,19 @@ export function diagram_of(graph: Graph, id: Id): ViewKind | null {
  *  map or its parent's layer; **a package's folder, in the models, the treemap of what it files**
  *  (core `placing_of`); a view it names and can feed; a grid, its allocation; a
  *  block with something to draw, from inside — **an empty block opens on nothing**. **In the
- *  library a definition opens its registry**, a model included, where it is used; **in the
- *  models a model opens its own drawing**, empty or not. A stand-in opens as what it stands
+ *  library a definition holding parts opens its own drawing**, never where it is used (that is
+ *  the tray's usages); **a model opens its own drawing**, empty or not. A stand-in opens as what it stands
  *  for. */
 export function lens_of(graph: Graph, id: Id, lists?: Lists): ViewKind | null {
   const b = graph.blocks[id];
-  /** A registry, and an entry of one, open on the registry view: neither is ever a block. */
-  if (!b) return registry_at(graph, id) || registry_of(graph, id) ? "registry" : null;
+  /** A registry opens on the registry view; an entry of one opens on nothing, its users read in
+   *  the tray. Neither is ever a block. */
+  if (!b) return registry_at(graph, id) ? "registry" : null;
   if (b.parent === null) return null;
   if (b.def) {
-    if (lists === "domain") return definition_uses(graph, id).length ? "registry" : null;
-    return is_model(graph, id) ? diagram_of(graph, id) ?? "internal" : null;
+    /** In the library a definition holding parts opens its own drawing, as a model does. */
+    const opens = is_model(graph, id) || (lists === "domain" && children(graph, id).length > 0);
+    return opens ? diagram_of(graph, id) ?? "internal" : null;
   }
   /** The library enters definitions only: a part of one is read in the tray. */
   if (lists === "domain") return null;
@@ -239,16 +240,14 @@ export function sight(graph: Graph, tiers: Tiers, views: Views, at: number, id: 
 
 /** What opening a block does: **opening goes in**, on the view its card's kind calls for, read
  *  from the section it was opened from — `from`, else the section the canvas is already on, where
- *  that section lists it. A definition opened from the library opens its registry; a model opened
- *  from the models, its drawing. A stand-in opens what it stands for, where that opens. Anything
+ *  that section lists it. A definition holding parts opens its drawing; a model, its drawing. A stand-in opens what it stands for, where that opens. Anything
  *  that opens on nothing is picked where the canvas draws it, else brought into sight. */
 export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?: number,
                         now?: View | null): View | null {
   const origin = from !== undefined ? from : now?.at;
   const lists = lists_at(tiers, origin);
   const kind = lens_of(graph, id, lists);
-  /** A registry opens on its entries, an entry and a definition on where they are used, in the
-   *  library. */
+  /** A registry opens on its entries, in the library. */
   if (kind === "registry") {
     const at = tiers.sections.findIndex((s) => s.lists === "domain");
     return { at: Math.max(0, at), kind: "registry", layer: id, pick: null };
