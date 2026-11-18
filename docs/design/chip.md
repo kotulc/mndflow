@@ -46,7 +46,7 @@ A ladder of fill and border, strongest first.
 ## The well
 
 - **every cell that holds anything** shows its children as a quiet treemap (the same landscape-biased squarify), laid by weight
-- **a well shows what entering shows**: the same first level its entered view draws, groups included, never more cells than its room names
+- **a well previews what a chip holds**: its first level, groups included, never more cells than its room names; entering draws it as its kind (2026-11-17): a folder, package or group as the same treemap, a definition or model as its diagram
 - **every child is named, its mark in its top right corner** as a header wears its icon (2026-11-16) — its role's icon, or a relation definition's swatch: **one mark per element**, the same on its explorer row, card, chip header and well cell — its name shrunk to fit beside it (10.5px down to 8px), cut short with … past four characters; parts holding parts a touch brighter, diagram parts outlined in their hue, actors rounded
 - **never flooded** (2026-11-16): only the heaviest children that each show their icon and four characters at 8px, the rest one plain *+N more* cell (whole, picking the chip itself); a well with room for none is not drawn
 - **neighbours stand apart**: cells step through four grades of their colour in the order they are laid, so two side by side never look alike even when they share a colour

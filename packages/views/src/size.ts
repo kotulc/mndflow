@@ -2,7 +2,7 @@
 
 import { covers, has_lifelines, inline, is_grid, is_interface, lattice_of, resolved, setting_of,
          shown_name, stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
-import { edge_of, fit_of, face_table, face_text, head_words, name_w, note_h } from "./face";
+import { edge_of, fit_of, face_table, face_text, head_w, head_words, name_w, note_h } from "./face";
 import { card_shape, look_of } from "./look";
 import type { Ruled } from "./scene";
 
@@ -220,7 +220,12 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
   if (!b.def && setting_of(graph, id, "card")["face"] === "text" && !gridded(graph, id)) {
     return { w: Math.ceil(name_w(shown_name(graph, id))), h: UNIT };
   }
-  return face === "large" ? large_of(graph, id, card) : { ...BLOCK };
+  if (face === "large") return large_of(graph, id, card);
+  /** **A small card fits its name** on its one line, in whole units, up to twice a block; a
+   *  grid's cell and a shaped card keep the block's size. */
+  if (gridded(graph, id) || shape) return { ...BLOCK };
+  const w = Math.ceil(head_w(shown_name(graph, id)) / UNIT);
+  return { w: ranged(w, UNITS.block.w, UNITS.block.w * 2) * UNIT, h: BLOCK.h };
 }
 
 /** Which face a block draws with: what the nearest ancestor saying `diagram.cards` asks for, else

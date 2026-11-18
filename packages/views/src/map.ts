@@ -303,10 +303,11 @@ function framed(id: Id, kids: Leaf[]): Leaf {
 }
 
 /** The map gone to `focus`: its area, else its nearest area above it, is the map's layer; the
- *  trail is the block's. Nothing lights for it: only what is picked does. */
+ *  trail is the block's, empty where nothing is gone to (the section's label alone). Nothing
+ *  lights for it: only what is picked does. */
 export function map_focus(graph: Graph, map: Scene, focus: Id | null): Scene {
   const at = area_of(graph, map, focus);
-  return { ...map, layer: at?.id ?? null, trail: trail_of(graph, focus) };
+  return { ...map, layer: at?.id ?? null, trail: focus ? trail_of(graph, focus) : [] };
 }
 
 /** A block's area on a map: its own, else the nearest area above it. */

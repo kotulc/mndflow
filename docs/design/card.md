@@ -57,7 +57,7 @@ A card is how a diagram draws a part: the element itself, carrying its own conte
 | Part | Rule |
 |---|---|
 | **icon** | the kind's square icon (theme `icons.tsx` `role_*`), top right, as tall as the name and meta lines together, scaling with the name; lit where the card holds parts |
-| **name** | one line, takes the width the icon leaves, cut short with … |
+| **name** | one line, takes the width the icon leaves; **a small card grows in whole units to fit it**, up to twice a block's width, and cuts it short with … only past that (2026-11-17); a grid's cell and a shaped card keep the block's size |
 | **meta line** | kind · ▶ presentations · counts · attributes · seats in/out · tags (the facts strip folds in here), flowing into the width left; an item that does not fit drops whole, last first; a definition's badge is a tag here; **never repeats the face**: attributes the table lists, or seats drawn on the walls, are left out (2026-11-16) |
 | **always two lines** (2026-11-16) | name over meta on every card, even a small face; the head grows from ~20px to ~34px and the layout makes room |
 

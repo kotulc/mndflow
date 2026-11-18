@@ -125,8 +125,7 @@ export function type_word(kind: string, name: string): string {
 export function fit_of(name: string, text: string, kind: string, most_w: number,
                        ruled: Ruled | null = null, edge = 1): Size {
   const blocks = blocks_of(text);
-  /** The header's name and icon, or its kind where that reads wider. */
-  const head = PAD.x + PAD.icon + Math.max(name.length * GLYPH.name, kind.length * GLYPH.kind);
+  const head = head_w(name, kind);
   const across = ruled ? ruled.widths.reduce((sum, w) => sum + w, 0) : 0;
   const wide = Math.max(head, across, ...blocks.map((b) => PAD.x + (b.kind === "table"
     ? table_width(b.rows) : b.kind === "image" ? IMAGE.w : PAD.gutter + longest(b.lines) * GLYPH.body)));
@@ -149,16 +148,21 @@ export function body_lines(h: number): number {
   return Math.max(1, Math.floor((h - PAD.y - PAD.head - PAD.gap) / LINE));
 }
 
+/** How wide a header writes its name beside its icon, or its kind where that reads wider. */
+export function head_w(name: string, kind = ""): number {
+  return PAD.x + PAD.icon + Math.max(name.length * GLYPH.name, kind.length * GLYPH.kind);
+}
+
 /** How wide one line of a name writes, in pixels, with the card's padding either side. */
 export function name_w(name: string): number {
   return PAD.x + name.length * GLYPH.name;
 }
 
 /** How tall a note writing `text` is, `w` pixels wide: its words wrapped whole, a line
- *  `NOTE_LINE` tall, and the card's padding. */
+ *  `NOTE_LINE` tall, and the card's padding and border. */
 export function note_h(text: string, w: number): number {
   const per = Math.max(1, Math.floor((w - PAD.x - PAD.gutter) / GLYPH.body));
-  return PAD.y * 2 + wrapped(text, per) * NOTE_LINE;
+  return (PAD.y + EDGE.thin!) * 2 + wrapped(text, per) * NOTE_LINE;
 }
 
 /** How many lines `text` takes at `per` characters a line, its words wrapped whole. */

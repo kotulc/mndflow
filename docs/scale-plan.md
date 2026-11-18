@@ -25,7 +25,7 @@ Other heavy definitions in the sample: `line` 1,608 uses, `function` 357, `start
 | 1 | **a chip budget per view, from the canvas area**, closely reflecting readability: as many chips as the room holds at a readable size, never a fixed count |
 | 2 | **opened from the top, wide before deep**: every view starts closed and opens heaviest first while it stays within budget and every chip stays legible; replaces legible-or-closed's close-the-lightest loop |
 | 3 | **flat lists are grouped**: where a box holds more than the view's budget, its children are grouped into closed chips with counts — by kind, then by name range (guide words, *A–Ca*); entering a group narrows the view to it, one level deeper. A view's boxes never say *+n more*; a well does (decision 8) |
-| 4 | **a well shows what entering shows**: the same first level, groups included |
+| 4 | **a well previews what a chip holds**: its first level, groups included; entering draws it as its kind — a folder, package or group as the same treemap, a definition or model as its diagram (2026-11-17, was *a well shows what entering shows*) |
 | 5 | **anything with a well enters**, in either section: packages (root folders) and folders, definitions holding parts, groups |
 | 6 | **lines are gathered to the level drawn**: each relation's ends lifted to the chips drawn, one line per pair weighted by how many it carries, none inside one chip; **drawn only when a chip is selected or hovered** |
 | 7 | **a scale check, not a test suite**: `mnd measure` reports every tree view of every sample; it guards big and small projects as the rules move |
@@ -91,7 +91,6 @@ Other heavy definitions in the sample: `line` 1,608 uses, `function` 357, `start
 
 | Item | Notes |
 |---|---|
-| **a definition's entered view** (the user needs an example) | decided 2026-11-16: a definition holding parts is entered, its parts a treemap in its chip's well. Entering draws them as its kind's diagram (ELK), not as a treemap, so the well and the entered view differ in form. The user is unsure which should hold: **show one definition both ways** (a library pattern from the shop, such as *Saga orchestrator*: its diagram as built beside its parts as a treemap) and ask |
 | **relations across components** | the translator writes none, so the mndflow map traces nothing (order 7); a translator item, not a view's |
 | **a box's counts change with what is open** | the shop's package says *6 diagrams* on the map and *5* entered: views `map.ts` `box_facts` counts the chips drawn |
 | **a box holding a panel is never grouped** | a group's panel places its members; a wide box with one stays whole |
@@ -107,7 +106,7 @@ Other heavy definitions in the sample: `line` 1,608 uses, `function` 357, `start
 
 | # | Work |
 |---|---|
-| 1 | **the definition example** above: one definition entered both ways, for the user's choice |
+| 1 | ~~**the definition example**~~ decided 2026-11-17: a definition enters as its diagram, its well a preview (decision 4) |
 | 2 | **the user's look** at entered packages, groups (a small window on samples/elements › *Lines*) and weighted lines (the shop's *Shop* picked) |
 | 3 | **order 9**: drive every sample through every depth, landscape and portrait |
 | 4 | **frame rate** (order 8's second half), then the *Open* rows worth taking |

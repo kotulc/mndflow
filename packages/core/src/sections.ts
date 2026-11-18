@@ -70,18 +70,27 @@ function in_template(graph: Graph, id: Id): boolean {
 
 /** Whether a block is one this side lists. Unset lists every block. **The library** lists the
  *  definition side — packages, their definition folders, definitions, **never a model**, which
- *  lists only in the models (2026-11-08) — and each definition's parts under it.
+ *  lists only in the models (2026-11-08), nor a folder holding only models (2026-11-17) — and
+ *  each definition's parts under it.
  *  **The models** list every model and what it holds, and the package roots and folders on the
  *  way to one; a host's structure outside every definition lists there too. A package with none
  *  does not list. */
 export function on_side(graph: Graph, id: Id, lists?: Lists): boolean {
   if (!lists) return !!graph.blocks[id];
   if (!graph.blocks[id]) return false;
-  if (lists === "domain") return !is_model(graph, id) && (is_domain(graph, id)
-    || (in_template(graph, id) && !model_of(graph, id)));
+  if (lists === "domain") return !is_model(graph, id) && !models_only(graph, id)
+    && (is_domain(graph, id) || (in_template(graph, id) && !model_of(graph, id)));
   if (in_template(graph, id)) return model_of(graph, id) !== null;
   if (!is_domain(graph, id)) return true;
   return below_structure(graph, id);
+}
+
+/** Whether a folder holds something and none of it is the library's: models only, at any depth.
+ *  An empty folder is still the library's, to be filled there. */
+function models_only(graph: Graph, id: Id): boolean {
+  if (!is_folder(graph, id)) return false;
+  const held = shown(graph, id);
+  return held.length > 0 && held.every((c) => !on_side(graph, c.id, "domain"));
 }
 
 /** Whether a model, or structure outside every definition, sits anywhere under a

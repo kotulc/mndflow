@@ -296,13 +296,15 @@ export function Explorer(props: ExplorerProps) {
   const route = props.route === undefined ? open : props.route;
   const lights = (r: Row) => r.at === focus && r.pick !== undefined && r.of === "block"
     && mine.length > 0 && lit(graph, mine, route, r.ref, r.via);
+  /** A section drawn whole, nothing in sight or picked: its header row is what the canvas shows,
+   *  lit as a picked row is, as the crumbs read only its label. */
+  const whole = !is_layer_view(view.kind) && !view.pick && !picked.length;
   /** **The one row wearing the accent's edge: what the canvas shows**, in the section it looks
-   *  at — the layer seen from inside, else what it brought into sight, else the section's root. */
-  const shown = as_row(is_layer_view(view.kind) ? view.layer
-    : view.pick ?? chain.roots[view.at] ?? null);
+   *  at — the layer seen from inside, else what it brought into sight, else the section's header. */
+  const shown = as_row(is_layer_view(view.kind) ? view.layer : view.pick ?? null);
   const drawn_at = rows.findIndex((r) => r.of === "block" && r.at === view.at && r.ref === shown
     && !r.via);
-  const drawn_row = rows[drawn_at]?.id;
+  const drawn_row = whole ? `@${chain.slices[view.at]?.id}` : rows[drawn_at]?.id;
   /** **What is in view**, lit subtly: the rows of the section the canvas looks at that it draws,
    *  as the host hands them. */
   const in_view = (r: Row) => r.of === "block" && r.at === view.at && !r.via
@@ -625,7 +627,8 @@ export function Explorer(props: ExplorerProps) {
                   r.depth ? "" : "top",
                   r.named ? "" : "unnamed",
                   r.of === "block" ? "" : r.of,
-                  lights(r) || (r.of === "named" && r.ref === props.holding)
+                  lights(r) || (whole && r.id === drawn_row)
+                    || (r.of === "named" && r.ref === props.holding)
                     || (r.registry && r.registry.pkg === props.registry?.pkg
                         && r.registry.kind === props.registry.kind) ? "picked" : "",
                   holds(r) ? "context" : "",
