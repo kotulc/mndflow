@@ -9,8 +9,8 @@ import { appearances_of, collect, drop_of, touches_of,
          seen_through, session, shown_name, trace, way_of, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
          type Hop, type Id } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
-import { area_of, boxed_place, box_of, clear_of, empty_of, holds, layer_scene, map_focus, project,
-         opened, section_map, set_aspect, set_canvas, set_card as apply_card, BLOCK, CARD, EMPTY,
+import { area_of, boxed_place, box_of, clear_of, empty_of, group_way, holds, is_group_id,
+         layer_scene, map_focus, project, opened, section_map, MAP_ROOT, set_aspect, set_canvas, set_card as apply_card, BLOCK, CARD, EMPTY,
          laid_ahead, model_tree, on_map, row_look, UNITS, trail_of, type Area,
          type Scene } from "@mnd/views";
 import { Explorer, Menu, editor_slices, useChain } from "@mnd/explorer";
@@ -151,8 +151,14 @@ export function App({ storage, boot, opening }: {
   const way = view.layer && graph.blocks[view.layer] ? way_of(graph, view.layer, view.via) : [];
   const pkg = way[0]?.id ?? null;
   const component = view.kind === "registry" && !graph.blocks[view.layer ?? ""];
-  const map = useMemo(() => (!lists || component ? null : section_map(graph, lists, models)),
-    [graph, lists, component, card, aspect, canvas]);
+  /** **A tree view narrowed to a group** (views `map.ts`): the view's own, never the model's,
+   *  held while the canvas looks where it was entered. */
+  const [group, set_group] = useState<{ key: string; id: Id } | null>(null);
+  const group_key = (v: { at: number; layer: Id | null }) => `${v.at}|${v.layer ?? ""}`;
+  const narrow = group?.key === group_key(view) ? group.id : null;
+  const map = useMemo(() => (!lists || component ? null
+    : section_map(graph, lists, models, narrow)),
+    [graph, lists, component, card, aspect, canvas, narrow]);
   /** What the map is gone to: the layer looked into, else the pick on the whole map. */
   const focus_id = is_layer_view(view.kind) ? view.layer : view.pick;
   /** Counted up by every open, entry and leaving, so going to the focus again flies back to it. */
@@ -194,14 +200,15 @@ export function App({ storage, boot, opening }: {
    *  map, another layer, this one before an edit — stays, read only, until it answers. One being
    *  entered is laid while the camera flies into its chip. */
   const ahead = (!mapped || !!entering) && !!view.layer && laid_ahead(view.kind);
-  const shape = [view.layer, view.kind, lists, shown.interfaces, open?.join(",")].join("|");
+  const shape = [view.layer, view.kind, lists, shown.interfaces, open?.join(","), narrow]
+    .join("|");
   const [laid, set_laid] = useState<{ shape: string; scene: Scene } | null>(null);
   useEffect(() => {
     if (!ahead) return;
     let live = true;
     void layer_scene(graph, view.layer!, view.kind, { interfaces: shown.interfaces,
                                                       ...(open ? { open } : {}),
-                                                      ...(lists ? { lists } : {}) })
+                                                      ...(lists ? { lists } : {}), group: narrow })
       .then((next) => { if (live) set_laid({ shape, scene: next }); });
     return () => { live = false; };
   }, [graph, ahead, shape, card, aspect]);
@@ -214,11 +221,11 @@ export function App({ storage, boot, opening }: {
     if (mapped && !entering) return null;
     if (ahead) return waiting ? null : laid!.scene;
     return project(graph, view.layer, { interfaces: shown.interfaces, ...(open ? { open } : {}),
-                                        keep: kept,
+                                        keep: kept, group: narrow,
                                         look: { kind: view.kind, cut: SLICES[view.at]!.cut,
                                                 ...(lists ? { lists } : {}) } });
   }, [graph, mapped, entering, ahead, waiting, laid, view.layer, view.kind, view.at,
-      shown.interfaces, card, open, kept, canvas]);
+      shown.interfaces, card, open, kept, canvas, narrow]);
   /** Projected once per graph, view, layer or proportion change; a treemap being flown through
    *  held as it was. */
   const scene = useMemo((): Scene => {
@@ -392,6 +399,33 @@ export function App({ storage, boot, opening }: {
     /** Undo and redo arrive through the same channel as actions. */
     if (name === "undo") { s.undo(); return; }
     if (name === "redo") { s.redo(); return; }
+    /** **A group is the view's own**: entered, the view narrows to it — the box it groups
+     *  entered first where the canvas is not already in it; left, the view widens a group at a
+     *  time; never picked or opened, standing for no block. */
+    const on = typeof args?.["id"] === "string" ? args["id"] as string : null;
+    if (is_group_id(on)) {
+      if (name === "open" && narrow && group_way(narrow).steps.some((g) => g.id === on)) {
+        set_group({ key: group_key(s.view()), id: on! });
+      }
+      if (name !== "read") return;
+      const root = group_way(on!).root;
+      if (root !== MAP_ROOT && root !== s.view().layer && s.graph().blocks[root]) enter(root);
+      set_group({ key: group_key(s.view()), id: on! });
+      set_opened((n) => n + 1);
+      return;
+    }
+    /** Going up widens to the group above, then to the view whole, as its own crumb does. */
+    if (narrow && name === "open" && (!on || on === s.view().layer)) {
+      const up = on ? undefined : group_way(narrow).steps.slice(0, -1).pop();
+      set_group(up ? { key: group_key(s.view()), id: up.id } : null);
+      set_opened((n) => n + 1);
+      return;
+    }
+    /** Escape lets go of the group with the view: the map, whole. */
+    if (narrow && name === "widen") {
+      set_group(null);
+      if (!entered) { set_opened((n) => n + 1); return; }
+    }
     /** Entering and leaving a room are not steps. */
     if (name === "read") {
       enter(String(args?.["id"] ?? s.view().pick ?? s.view().layer ?? ""), args?.["at"],
@@ -689,7 +723,7 @@ export function App({ storage, boot, opening }: {
               && ids.every((id) => shown.includes(id));
             if (!echo && present.play && ids.length === 1 && scene.areas
                 && graph.blocks[ids[0]!]) present.dive(ids[0]!);
-            else if (!echo) pick(ids, !!scene.areas);
+            else if (!echo) pick(ids.filter((id) => !is_group_id(id)), !!scene.areas);
           }}
           onAct={act}
           /** A whole section, a definition drawn with what describes it, or a diagram, is not
@@ -699,7 +733,7 @@ export function App({ storage, boot, opening }: {
           editable={editable}
           shot={shot}
           onLand={landed}
-          entered={entered && !!map}
+          entered={(entered && !!map) || !!narrow}
           onClear={() => s.clear(mapped)}
           keys={zones.zone === "canvas"}
         />

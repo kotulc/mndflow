@@ -36,7 +36,7 @@
 | **below** | the About band past a dashed divider: plain notes, never lit or dimmed (model-plan.md 10) |
 | **lines** | drawn only for a chip selected or hovered, or a presentation step; gathered to the chips drawn, one per pair, weighted by how many it carries (chip.md *Lines between chips*) |
 | **a diagram chip** | its kind's icon in a filled badge of its hue, in its head (2026-11-15) |
-| **many parts** | a chip budget from the canvas area; boxes open from the top, wide before deep, while every chip stays legible; a flat list is grouped (own path, kind, alphabetical range); a closed box says its name and counts (2026-11-16, chip.md) |
+| **many parts** | a chip budget from the canvas area; boxes open from the top, wide before deep, while every chip stays legible; a flat list is grouped (by kind, then by name range); a closed box says its name and counts (2026-11-16, chip.md) |
 | **opening** | a box's toggle (+ in a closed chip's foot, − before an open box's title) opens or closes it; a presentation stop's `open` sets it per stop; the model file's `open:` (unsaid: primary parts) is where it starts |
 
 ## One view, two roots

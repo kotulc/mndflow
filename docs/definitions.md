@@ -42,7 +42,7 @@
 | **route** | how a part is reached: `usage/part`. What tells two usages' views of one part apart |
 | **frozen** | under any package root but the workspace's: read only |
 | **model** | a definition of the `model` kind: what is built, and the one thing drawn on directly. Its parts are usages stored under it. One model, never instanced; used as a part in other models to compose them. Wears the tree icon |
-| **use** (of a definition) | a usage typed by it, a reference standing for it, or a line typed by it, inside a model of any loaded package, at any depth. A subtype is not a use. What a definition's chip is sized by and its registry draws |
+| **use** (of a definition) | a usage typed by it, a reference standing for it, or a line typed by it, inside a model of any loaded package, at any depth. A subtype is not a use. What a definition's chip counts and its usages table lists |
 
 
 ## Reading through
@@ -166,7 +166,7 @@
 | **mndflow** | the **library**, then the **models**, both folded until opened. The library — what you build with, and where it is used — lists every package, `base` first: its definitions in their folders, models included, each definition's parts under it but a model's, then *types* and *tags* groups. The models — what you are building, and the one place it is drawn — list **models and their rooms only**: every loaded package holding a model, the folders on the way, then each model and the rooms under it; a room's other blocks list in the tray's contents. A new workspace holds one empty model, `Model` |
 | **mndmap** | source folder → document: mndflow's chain with the package fixed to the workspace and hidden |
 | **browse** | choosing a row: selects it and the tray shows it. On the map it focuses that block's area; anywhere else the canvas stays |
-| **open** | Enter, double-click or →: on the map, enters the chip, or focuses a package's or folder's box; in the library a folder enters as the library's treemap rooted at it and a definition holding parts its drawing, in the models a folder enters as its treemap and a model its drawing; in an entered view, a double-click on a card that opens enters it in turn. A click on the map focuses a chip or a box, the camera flying to it. Zoom never focuses or enters. Notation has no row; picked on the canvas, it is revealed where it is. ← and Backspace leave for the room holding the focus |
+| **open** | Enter, double-click or →: on the map, enters the chip or the box; in the library a package or a folder enters as the library's treemap rooted at it and a definition holding parts its drawing, in the models a package or a folder enters as its treemap and a model its drawing; in an entered view, a double-click on a card that opens enters it in turn. A click on the map focuses a chip or a box, the camera flying to it. Zoom never focuses or enters. Notation has no row; picked on the canvas, it is revealed where it is. ← and Backspace leave for the room holding the focus |
 | **canvas context** | what the canvas has in focus. Highlighting and breadcrumbs show it, never what is browsed |
 | **reveal** | a row picked within the structure the canvas draws picks it in place where the canvas already draws it, else moves the canvas to the layer it sits on and picks it there; browsing outside it never does. A reference is revealed as itself; following it to what it stands for is a gesture of its own |
 | **stacked edge** | the second card's edge behind a card that opens: what has a drawing of its own reads at a glance |

@@ -11,8 +11,9 @@ import { layer_scene, load_avoid, measure, routes_of, scale_of, set_aspect, set_
 /** The canvases measured: the app's default landscape, and a portrait one. */
 const SHAPES = { landscape: 1.6, portrait: 0.6 } as const;
 
-/** The canvases a tree view is checked at, in pixels: the app's default, and turned. */
-const CANVASES = { landscape: [1200, 750], portrait: [750, 1200] } as const;
+/** The canvases a tree view is checked at, in pixels: the app's default, turned, and a small
+ *  one, whose budget is low enough that wide boxes group. */
+const CANVASES = { landscape: [1200, 750], portrait: [750, 1200], small: [520, 400] } as const;
 
 
 /** Every diagram's counts, or one layer's with what each count found. */

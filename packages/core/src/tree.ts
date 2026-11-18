@@ -194,13 +194,15 @@ export function lit(graph: Graph, picks: readonly Id[], route: Id | null, id: Id
   return picks.some((p) => object_of(graph, p) === home);
 }
 
-/** One hop: from a block to another, by the names said across it. */
-export type Hop = { from: Id; to: Id; names: string[] };
+/** One hop: from a block to another, by the names said across it, and how many relations it
+ *  gathers (one where unsaid). */
+export type Hop = { from: Id; to: Id; names: string[]; n?: number };
 
 /** **A block's one hop each way** (2026-11-04): what reaches it and what it reaches, a hop each
  *  way — the lines with one end in it (at any depth) and the other outside, ties and a
  *  behaviour's own messages aside, and every behaviour's steps into or out of it (`path_of`) —
- *  one hop a pair and way, its names gathered. Empty where nothing joins it. */
+ *  one hop a pair and way, its names gathered and its relations counted. Empty where nothing
+ *  joins it. */
 export function hops_of(graph: Graph, id: Id): Hop[] {
   if (!graph.blocks[id]) return [];
   const inside = new Set(subtree(graph, id));
@@ -210,8 +212,11 @@ export function hops_of(graph: Graph, id: Id): Hop[] {
     if (a === b) continue;
     const [from, to] = [a ? id : s.from, b ? id : s.to];
     const had = out.find((h) => h.from === from && h.to === to);
-    if (!had) out.push({ from, to, names: s.name ? [s.name] : [] });
-    else if (s.name && !had.names.includes(s.name)) had.names.push(s.name);
+    if (!had) out.push({ from, to, names: s.name ? [s.name] : [], n: 1 });
+    else {
+      had.n = (had.n ?? 1) + 1;
+      if (s.name && !had.names.includes(s.name)) had.names.push(s.name);
+    }
   }
   return out;
 }

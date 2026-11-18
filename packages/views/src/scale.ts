@@ -3,10 +3,10 @@
  *  nodes, chips against the budget, chips under the floor, names cut, cells unnamed, chips with a
  *  well that enter nothing, and how long it took to lay. */
 
-import { filed_defs, is_filing, lens_of, on_side, placing_of, shown_name,
+import { filed_defs, is_filing, is_region, lens_of, on_side, placing_of, shown_name,
          type Graph } from "@mnd/core";
 import { treemapped } from "./block";
-import { budget, layer_map, library_map, model_map, FLOOR } from "./map";
+import { budget, is_group_id, layer_map, library_map, model_map, FLOOR } from "./map";
 import { CANVAS } from "./size";
 import { box_of, type Scene } from "./scene";
 
@@ -57,7 +57,10 @@ function counted(graph: Graph, view: string, scene: Scene, ms: number): Scale {
              > b.w - SIDE).length,
            unnamed: chips.reduce((k, n) => k + (n.data.tiles ?? []).filter((t) => !t.label).length,
                                  0),
+           /** A region is a camera stop: it enters the room holding it (core `open_at`); a group
+            *  enters as its view narrowed to it. */
            stuck: chips.filter((n) => n.data.tiles?.length && !n.data.toggle
+             && !is_region(graph, n.id) && !is_group_id(n.id)
              && !lens_of(graph, n.id, lists)).length,
            ms: Math.round(ms) };
 }

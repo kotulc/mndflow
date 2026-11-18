@@ -22,8 +22,8 @@ export { project, type Config } from "./block";
 export { place, set_elk, type Placement } from "./flow";
 export { box_label, box_place, usage_box, usage_groups, usage_layout,
          type LocatedUse } from "./library";
-export { area_of, area_under, budget, opened, layer_map, library_map, map_focus,
-         model_map, section_map,
+export { area_of, area_under, budget, group_way, is_group_id, opened, layer_map, library_map,
+         map_focus, model_map, section_map, MAP_ROOT,
          towards, box_for, chip_for, chip_map, mini_map, type Mini,
          type WhereBox } from "./map";
 export { laid_ahead, layer_scene } from "./layer";

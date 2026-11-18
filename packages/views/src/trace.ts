@@ -11,9 +11,9 @@ import { box_of, type Scene } from "./scene";
 
 type Point = { x: number; y: number };
 
-/** One leg: from block to block, the names said across it, its run; `both` where it goes back
- *  too. */
-export type Leg = { from: Id; to: Id; names: string[]; run: Point[]; both?: boolean };
+/** One leg: from block to block, the names said across it, how many relations it gathers, its
+ *  run; `both` where it goes back too. */
+export type Leg = { from: Id; to: Id; names: string[]; n: number; run: Point[]; both?: boolean };
 
 /** Hops traced: what they light, and their legs. */
 export type Trace = { blocks: Id[]; lines: Id[]; legs: Leg[];
@@ -30,7 +30,8 @@ export function trace_of(graph: Graph, scene: Scene, id: Id): Trace | null {
 
 /** **Hops traced over a map**: each end lifted to the nearest block the map draws — itself, or a
  *  reference standing for it, as a treemap diagram draws — or the *+n more* it folded into; one
- *  leg a pair, either way, **never between a box and what it holds**, drawn round it already.
+ *  leg a pair, either way, **gathering every relation between the two** (`n`), **never between a
+ *  box and what it holds**, drawn round it already.
  *  Null off a map or where none is drawn. */
 export function hop_trace(graph: Graph, scene: Scene, hops: readonly Hop[]): Trace | null {
   if (!scene.areas) return null;
@@ -45,9 +46,10 @@ export function hop_trace(graph: Graph, scene: Scene, hops: readonly Hop[]): Tra
     const had = legs.find((l) => (l.from === from && l.to === to)
       || (l.from === to && l.to === from));
     if (had) {
+      had.n += h.n ?? 1;
       had.names.push(...h.names.filter((n) => !had.names.includes(n)));
       if (had.from === to) had.both = true;
-    } else legs.push({ from, to, names: [...h.names], run: [] });
+    } else legs.push({ from, to, names: [...h.names], n: h.n ?? 1, run: [] });
   }
   if (!legs.length) return null;
   const ends = [...new Set(legs.flatMap((l) => [l.from, l.to]))];

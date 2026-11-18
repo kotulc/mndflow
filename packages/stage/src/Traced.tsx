@@ -1,6 +1,7 @@
 /** **Hops traced across a map** (views `trace.ts`): each leg square, out of its source's right and
  *  into its target's left, drawn over the chips on a halo of the ground so it cuts cleanly across
- *  what it passes, an arrow just inside its target, what crosses it said on hover. **A model's
+ *  what it passes, an arrow just inside its target, what crosses it and how many relations it
+ *  gathers said on hover, **heavier the more it gathers** (`weight`, a few steps). **A model's
  *  lines** draw the same way, `quiet`, under its chips until lit. **A presentation's steps**
  *  (`steps`, docs/presentations.md): earlier legs faded, the last drawn from its start, its datum
  *  travelling along it, its label after. */
@@ -25,10 +26,11 @@ export function Traced({ trace, as = "path" }: { trace: Trace; as?: "path" | "qu
         const points = l.run.map((p) => `${p.x},${p.y}`).join(" ");
         const now = as === "steps" && !trace.still && i === trace.legs.length - 1;
         return (
-          <g key={`${l.from}>${l.to}.${i}`}
+          <g key={`${l.from}>${l.to}.${i}`} data-weight={weight(l.n)}
              className={["mnd-trace-leg", as === "steps" ? (now ? "now" : "past") : ""]
                .filter(Boolean).join(" ")}>
-            <title>{l.names.filter(Boolean).join(" · ")}</title>
+            <title>{[...l.names.filter(Boolean), ...(l.n > 1 ? [`${l.n} relations`] : [])]
+              .join(" · ")}</title>
             <polyline className="hit" points={points} />
             <polyline className="halo" points={points} />
             <polyline className="run" points={points} pathLength={1}
@@ -41,6 +43,12 @@ export function Traced({ trace, as = "path" }: { trace: Trace; as?: "path" | "qu
       })}
     </svg>
   );
+}
+
+/** **A leg's weight**, by how many relations it gathers: a step each time they double, four
+ *  steps at most (0 for one). */
+function weight(n: number): number {
+  return Math.min(3, Math.floor(Math.log2(Math.max(1, n))));
 }
 
 /** The datum travelling along a step's line as it draws. */

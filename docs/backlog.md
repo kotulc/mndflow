@@ -1,6 +1,6 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next** (2026-11-16, handoff): scale-plan.md — a chip budget, grouping, entering, gathered lines and a scale check, so big projects read as well as small ones; then model-plan.md *Next session*. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next** (2026-11-16, handoff): scale-plan.md's *Handoff* — what is left of it (gathered lines, first draw, the drive for the user's look); then model-plan.md *Next session*. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
 
 ## After the mndsite review
 
@@ -8,8 +8,6 @@
 
 | Item | Notes | From |
 |---|---|---|
-| **the silhouettes are partial** | moot once the tree and chip rework removes the silhouettes (model-plan.md, decided 2026-11-15); a class's compartments and an entity's key head are what the mockup (https://claude.ai/artifact/RCAGGQPcybLxRYZSkGwjsj) showed beyond today's | model plan |
-| **short chips** | revisit in the tree and chip rework; the treemap lays some diagram chips ~18 units under their name (shop *Model*, *Schema*) | model plan |
 | **a container has no description** | deferred 2026-11-15: a YAML folder file makes the folder a model; composed overviews describe containers meanwhile; a folder file beside its directory loses `tree: definitions`, so containers are plain directories; each unit says `runs` instead | translation plan |
 
 ## CLI (next, alongside code translation)

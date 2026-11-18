@@ -5,9 +5,9 @@
 
 ## Next session
 
-**Handoff (2026-11-16, third).** scale-plan.md is under way: orders 1, 2, 4 (well cap), 5, 6, containment-only tree views, framed folders and one mark per element are built (committed through `35cc27e`, the last pass uncommitted); its *Handoff* says what is open and next (order 3, grouping). Orders 6–9 below still wait behind it. **Handoff (2026-11-16, second).** Next session builds **scale-plan.md** (agreed with the user 2026-11-16): a chip budget from the canvas area, views opened from the top, flat lists grouped, wells showing what entering shows, anything with a well entering, lines gathered to the level drawn and shown only on select or hover, and a scale check in `mnd measure`. It supersedes decision 2 (*legible or closed*) and takes over row 5's *next*. The orders below (6–9) wait behind it. Everything of rows 1–5 is built and uncommitted.
+**Handoff (2026-11-16, close-out pass).** scale-plan.md is built but for the user's look: its orders 1–8 are in (packages enter, grouping and gathered lines' counts uncommitted), and its *Handoff* says what is open. Orders 6–9 below are next. Decided this pass: **a package is a root folder, and folders enter**; **a model is always part of its package** (leaving one goes up to its package); **a definition holding parts is entered** (decision 18 now reads two roots; whether as its diagram or a treemap waits on an example, scale-plan.md *Open*). Rows 1–5 below are committed through `b02abb1`.
 
-**Handoff (2026-11-16).** Committed through `54e0ff6`: no content switched by zoom (cards and lines), and the routing pass. **Built 2026-11-16, uncommitted** (orders 1–4 below): the tree and chip rebuild, specified in docs/design/chip.md and the header section of docs/design/card.md; mockup at claude.ai/artifact/Wgi6FEJTDjSKQVSSsKLexp (boards: anatomy, one header, map landscape and portrait, overviews landscape and portrait, the shop, focus by expanding, mark options); the generator that laid the mockup is kept for reference in docs/design/mockups/tree-chips/.
+**The tree and chip rebuild** (orders 1–4 below) is specified in docs/design/chip.md and the header section of docs/design/card.md; mockup at claude.ai/artifact/Wgi6FEJTDjSKQVSSsKLexp (boards: anatomy, one header, map landscape and portrait, overviews landscape and portrait, the shop, focus by expanding, mark options); the generator that laid the mockup is kept for reference in docs/design/mockups/tree-chips/.
 
 **Built this session (`54e0ff6`)**
 
@@ -29,10 +29,10 @@
 | 4 | **one header for cards and chips**: name; a meta line (kind · ▶ presentations · counts · attributes · seats in/out · tags, items dropping whole); the kind's square app icon at the right, as tall as both lines; **always two lines** (2026-11-16), no one-line form |
 | 5 | **a chip is that header over a well**: its children as a quiet treemap, one level, every child named at the size that fits it; a chip that holds is laid tall enough for its well (2026-11-16) |
 | 6 | **three kinds of cell by fill and border**: holds parts (plain recess well), diagram (well framed in its hue, a right-aligned *diagram* tab), leaf (no well, left accent); actors round, externals a thin semi-transparent border (not dashed), both without the kind word |
-| 7 | **the world root opens each model one level**; focus **resets** on each visit |
+| 7 | **the world root opens each model one level**; what was opened by hand **resets** on each visit |
 | 8 | ~~focus by expanding~~ **dropped 2026-11-16** after building it: a selection never moves a cell; only opening and closing boxes changes the layout, and a box opened by hand stays open |
 | 9 | **boxes wear the shared header** too: box, chip and card one header (2026-11-16) |
-| 10 | **weight is holdings only**: √(what it holds), never joins; legible-or-closed stops slivers (2026-11-16) |
+| 10 | **weight is holdings only**: √(what it holds), never joins; the chip budget stops slivers (2026-11-16) |
 | 11 | **the meta line never repeats the face**: a card leaves out attributes its table lists and seats on its walls; a chip keeps them (2026-11-16) |
 
 | Order | Take up next session | Notes |
@@ -114,7 +114,7 @@ What the agreed kinds ask of the code, by home. Each is general; the kind's file
 | 15 | **a presentation ties parts of the system together in a directed order** (2026-11-12; was *walk*; *tour* rejected, *path* kept as the informal "presentation path"): as general as a relation, not limited to show-and-tell. A presentation is a sequence of **stops**; each stop has **one distinct point** |
 | 16 | **a stop is a state of the overview** (fields settled 2026-11-12, spec in presentations.md): `title`, `at` (ringed, the camera's centre), `open`, `fit` (optional), `show` (optional: a diagram the stop opens), `summary`, `into` (optional), `pace` (optional), and ordered `steps`, each a `relation` the model has (or the shown diagram draws) or a `mark`ed block, with one sentence. One drawing and a camera: no overlay, nothing morphs. The reader may dive into any part at a stop and resume |
 | 17 | **presentations play like a slide deck**: visuals first, the words in the tray. A stop opens its boxes, the camera moves, then its steps build one at a time, each step's sentence appearing in the tray as it is drawn. Steps advance on a timer (`pace`, default 1.7 s, `0` for on click) and a click shows the next one at once. A presentation opens on its **overview** stop (not "agenda") |
-| 18 | **the overview is the map focused on one model**, and the registry is the same view focused on one definition: one treemap of chips with collapsible boxes, three roots (world, model, definition) |
+| 18 | **the overview is the map focused on one model**, and the registry is the same view focused on one definition: one treemap of chips with collapsible boxes, two roots (world, model) since 2026-11-16; a package, a folder and a group enter as the same view framed (scale-plan.md) |
 | 19 | **flows and presentations stay distinct**: a flow or sequence diagram pictures relations inside one block; a presentation can cross diagrams. A flow may seed a presentation, one stop per step, its narration added |
 | 20 | **presentations live in the model file** as a `presentations:` list; stops name blocks as lines do |
 | 21 | **a stop may lead into a sub model's presentation** and return, by the same *into* as everywhere |

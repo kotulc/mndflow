@@ -13,10 +13,10 @@
 | **landscape-biased squarify** | cells are laid in a space half as wide, then stretched 2×, so cells come out wider than tall and every name reads across; works on landscape and portrait canvases alike |
 | **a budget from the canvas** (agreed 2026-11-16, scale-plan.md) | a view draws as many chips as its room holds at a readable size (a header over the least well, with its air) and no more; a project of ten blocks or ten thousand reads as one screen. The map is never laid larger than the canvas |
 | **opened from the top, wide before deep** | every view starts closed and opens one box at a time — a box opened by hand, the model file's `open:`, the world root's models, an overview's primary parts, then the heaviest by depth — keeping each only while the view stays within its budget and every chip stays legible; decided from the laid shape, never the zoom |
-| **flat lists are grouped** | a box holding more than its share can draw groups its children into closed chips with counts: by their own path first (package › folder › place), then by kind, then by alphabetical range; entering a group goes one level deeper. Never *+n more* |
+| **flat lists are grouped** | a box holding more than the view's budget groups its children into closed chips with counts: by kind where two or more kinds each fit (a lone one of its kind stays as it is), else by name range, named as a dictionary's guide words (*A–Ca*, *Ch–F*); about as many groups as each holds, and grouped again inside while still too many. A group is the view's own, never stored: entering it narrows the view to it, its label joining the crumbs; it is never picked. Never *+n more* |
 | **text is always horizontal** | no chip, tile or title is ever turned; a long name is cut short with … and its hover card says it whole |
 | **the name grows with its cell** | about 11–20px, continuous, from the cell's laid size: large parts read from far out, small ones up close; no switch |
-| **opening and closing is the only change of layout** | a click opens or closes a box; the world root opens each model one level; a model's `open:` sets its overview's start; focus resets on each visit |
+| **opening and closing is the only change of layout** | a click opens or closes a box; the world root opens each model one level; a model's `open:` sets its overview's start; what was opened by hand resets on each visit |
 
 
 ## The header (shared with cards, one-to-one)

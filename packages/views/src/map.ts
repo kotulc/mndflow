@@ -4,12 +4,14 @@
  *  well**: its children as a quiet treemap one level deep, each named where it has room.
  *  **Landscape-biased**: laid at half width, then stretched, so names read across. **Opened from
  *  the top**: every box starts closed and opens, wide before deep, while the view keeps within its
- *  chip budget and every chip holds its name. A click selects; two read what was clicked (core's
- *  `read_at`). Worked out on every graph change, never stored. */
+ *  chip budget and every chip holds its name. **A flat list is grouped**: a box holding more
+ *  than the budget draws groups — by kind, then by name range — each entered as the view narrowed
+ *  to it. A click selects; two read what was clicked (core's `read_at`). Worked out on every graph
+ *  change, never stored. */
 
 import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
          type HierarchyRectangularNode as Tiled } from "d3-hierarchy";
-import { base_of, children, diagram_kind, filed, is_aside, is_behaviour, is_folder,
+import { base_of, children, diagram_kind, filed, is_aside, is_behaviour, is_filing, is_folder,
          is_group, is_holder, is_interface, is_model, is_reference, lens_of, owner_of, on_side,
          packages, path, role_of, shown_name, used_model, type Graph, type Id } from "@mnd/core";
 import { colour_of, kind_of } from "./about";
@@ -26,10 +28,6 @@ import { CANVAS } from "./size";
 /** The area every map is drawn in. */
 export const MAP_ROOT = "@map";
 
-
-/** The room each chip is given on average before a map grows past its canvas — about two names
- *  square. Goes once grouping keeps every view within its budget. */
-const ROOM = 128 * 128;
 
 /** **Landscape bias**: cells are laid in a space `K` times narrower, then stretched back, so they
  *  come out wider than tall and every name reads across. */
@@ -82,25 +80,47 @@ const LEGIBLE = { w: FLOOR.w + AIR.inner,
 /** One entry of a tree: a box of what it holds, or a chip entering `block`, holding `held` (a
  *  definition's: its uses). A box carries the chip it closes into. */
 type Leaf = { id: Id; kids?: Leaf[]; value?: number; panel?: boolean;
-              /** A box the view makes, named here (a registry's place). */
+              /** A box the view makes, named here: a group. */
               label?: string;
+              /** A group: how many it gathers, and what they are in a word. */
+              group?: { n: number; word: string };
               /** A box of a model's overview that opens and closes, and how it stands now. */
               toggle?: "open" | "closed";
               /** What a box closes into, where it may close. */
               closed?: Leaf;
-              chip?: { block: Id; held: readonly Id[]; kind?: string } };
+              chip?: { block: Id; held: readonly Id[]; kind?: string;
+                       /** The first level its entered view draws, where that is grouped. */
+                       cells?: readonly Leaf[] } };
+
+/** What joins a group's id: the box it groups, then each group's label on the way down. */
+const GROUP = "#~";
+
+/** Whether an id is a group's: made by the view, never a block's. */
+export function is_group_id(id: Id | null | undefined): boolean {
+  return !!id && id.includes(GROUP);
+}
+
+/** **A group's way**: the box it groups (a block, or the map's root), then every group down to
+ *  it, each with its label — what its crumbs read. */
+export function group_way(id: Id): { root: Id; steps: { id: Id; label: string }[] } {
+  const [root, ...labels] = id.split(GROUP);
+  return { root: root!, steps: labels.map((label, i) => ({
+    id: [root, ...labels.slice(0, i + 1)].join(GROUP), label })) };
+}
 
 
 /** A section's map: the library's for its definitions, else the models'. */
 export function section_map(graph: Graph, lists?: "domain" | "structure",
-                            tree?: readonly Branch[]): Scene {
-  return lists === "domain" ? library_map(graph) : model_map(graph, tree);
+                            tree?: readonly Branch[], group?: Id | null): Scene {
+  return lists === "domain" ? library_map(graph, undefined, group) : model_map(graph, tree, group);
 }
 
 /** **The models' map, the world root**: the models' tree (`tree.ts`) laid out — every package
  *  holding a model, its folders, and each model open one level. */
-export function model_map(graph: Graph, tree: readonly Branch[] = model_tree(graph)): Scene {
-  return mapped(graph, { id: MAP_ROOT, kids: tree.map(leaf_of(graph)) }, "models");
+export function model_map(graph: Graph, tree: readonly Branch[] = model_tree(graph),
+                          group?: Id | null): Scene {
+  return narrowed(mapped(graph, { id: MAP_ROOT, kids: tree.map(leaf_of(graph)) }, "models",
+                         [], CANVAS, group), group);
 }
 
 /** **A treemap diagram is its map**: what it holds, laid as the models' map lays it — read only,
@@ -108,14 +128,17 @@ export function model_map(graph: Graph, tree: readonly Branch[] = model_tree(gra
  *  its model's read through: its parts by containment, each box in `open` open and the rest
  *  closed chips, context's zones round them and About below (`overview.ts`). */
 export function layer_map(graph: Graph, layer: Id, open?: readonly Id[],
-                          keep?: Id | null): Scene {
+                          keep?: Id | null, group?: Id | null): Scene {
   const model = used_model(graph, layer);
   if (!model) {
     const kids = layer_tree(graph, layer).map(leaf_of(graph));
-    const top = is_folder(graph, layer) ? [framed(layer, kids)] : kids;
-    return { ...mapped(graph, { id: MAP_ROOT, kids: top }, "models", layer), layer,
-             trail: trail_of(graph, layer),
-             ...(is_folder(graph, layer) ? { entered: layer } : {}) };
+    /** A package or a folder is framed by its own box. */
+    const filing = is_filing(graph, layer);
+    const top = filing ? [framed(layer, kids)] : kids;
+    return narrowed({ ...mapped(graph, { id: MAP_ROOT, kids: top }, "models", [layer], CANVAS,
+                                group),
+                      layer, trail: trail_of(graph, layer),
+                      ...(filing ? { entered: layer } : {}) }, group);
   }
   const zones = zones_of(graph, layer_tree(graph, layer).map((b) => b.id));
   const shown = new Set(open ?? opened(graph, layer, model));
@@ -135,8 +158,9 @@ export function layer_map(graph: Graph, layer: Id, open?: readonly Id[],
   const less = zone_room(zones);
   const room = { w: Math.max(CANVAS.w * KEEP, CANVAS.w - less.w),
                  h: Math.max(CANVAS.h * KEEP, CANVAS.h - less.h) };
-  const middle = mapped(graph, { id: MAP_ROOT, kids }, "models", keep, room);
-  return { ...around(graph, model, layer, middle, zones), layer, trail: trail_of(graph, layer) };
+  const middle = mapped(graph, { id: MAP_ROOT, kids }, "models", [keep], room, group);
+  return narrowed({ ...around(graph, model, layer, middle, zones), layer,
+                    trail: trail_of(graph, layer) }, group);
 }
 
 /** **The boxes a model's overview starts open**: its file's `open:`, else its primary parts —
@@ -172,7 +196,7 @@ function leaf_of(graph: Graph): (b: Branch) => Leaf {
  *  a folder says how many definitions it files (views `facts_of`). **Entered at a folder**
  *  (`root`), the same map rooted at it, the folder framed round what it holds. A folder filing no
  *  definition, at any depth, is the models'. */
-export function library_map(graph: Graph, root?: Id): Scene {
+export function library_map(graph: Graph, root?: Id, group?: Id | null): Scene {
   const entry = (id: Id): Leaf | null => {
     if (!graph.blocks[id]?.def) {
       const kids = filed(graph, id).map(entry).filter((k): k is Leaf => !!k);
@@ -183,8 +207,92 @@ export function library_map(graph: Graph, root?: Id): Scene {
   };
   const tops = (root ? [root] : packages(graph).map((p) => p.id)).map(entry)
     .filter((k): k is Leaf => !!k);
-  const map = mapped(graph, { id: MAP_ROOT, kids: tops }, "library", root);
-  return root ? { ...map, layer: root, entered: root, trail: trail_of(graph, root) } : map;
+  const map = mapped(graph, { id: MAP_ROOT, kids: tops }, "library", [root], CANVAS, group);
+  return narrowed(root ? { ...map, layer: root, entered: root, trail: trail_of(graph, root) }
+    : map, group);
+}
+
+/** **A view narrowed to a group**, where it drew it: entered at the group, its crumbs after the
+ *  view's own. A group the view no longer makes — the canvas changed — leaves the view whole. */
+function narrowed(scene: Scene, group?: Id | null): Scene {
+  if (!group || !scene.areas?.some((a) => a.id === group)) return scene;
+  return { ...scene, entered: group, trail: [...scene.trail, ...group_way(group).steps] };
+}
+
+/** **A flat list grouped** (docs/design/chip.md): a box holding more than the view's budget
+ *  (`most`) draws groups in their place — **by kind** where two or more kinds each fit, a lone
+ *  one of its kind left as it is, else **by name range** — and so on down, until every box holds
+ *  no more than the budget. Its closed chip's well shows the same groups. A box holding a panel
+ *  is left as it is: a panel's members are placed by it. */
+function grouped(graph: Graph, n: Leaf, most: number, word: string): Leaf {
+  if (!n.kids) return n;
+  const kids = n.kids.map((k) => grouped(graph, k, most, word));
+  if (n.panel || kids.length <= most || kids.some((k) => k.panel)) return { ...n, kids };
+  const parts = split(graph, n.id, kids, most, word);
+  return { ...n, kids: parts,
+           ...(n.closed?.chip ? { closed: { ...n.closed,
+                                            chip: { ...n.closed.chip, cells: parts } } } : {}) };
+}
+
+/** What a tree's entry is called: a group its label, else its block's name. */
+function label_of(graph: Graph, n: Leaf): string {
+  return n.label ?? name_of(graph, n.id);
+}
+
+/** What kind an entry is, in a word: a package or a folder, else what its block is. */
+function kind_word(graph: Graph, n: Leaf): string {
+  const b = graph.blocks[n.id];
+  if (b && (b.parent === null || is_folder(graph, n.id))) return "folder";
+  return kind_of(graph, n.chip?.block ?? n.id) || "block";
+}
+
+/** Too many entries as groups: by kind, else by name range. */
+function split(graph: Graph, root: Id, kids: Leaf[], most: number, word: string): Leaf[] {
+  const kinds = new Map<string, Leaf[]>();
+  for (const k of kids) {
+    const kind = kind_word(graph, k);
+    kinds.set(kind, [...(kinds.get(kind) ?? []), k]);
+  }
+  if (kinds.size < 2 || kinds.size > most) return ranges(graph, root, kids, most, word);
+  return [...kinds].map(([kind, members]) => (members.length === 1 ? members[0]!
+    : group(graph, root, kind, members, most, word)));
+}
+
+/** **Name ranges**, as a dictionary's guide words: the entries in name order, cut into even runs
+ *  — about as many runs as each holds (wide before deep), never more than the budget either way
+ *  — each named by the shortest starts that tell it from its neighbours (*A–Ca*, *Ch–F*). */
+function ranges(graph: Graph, root: Id, kids: Leaf[], most: number, word: string): Leaf[] {
+  const sorted = [...kids].sort((a, b) => label_of(graph, a).localeCompare(label_of(graph, b),
+    undefined, { sensitivity: "base", numeric: true }));
+  const runs = Math.min(most, Math.max(Math.ceil(sorted.length / most),
+                                       Math.ceil(Math.sqrt(sorted.length))));
+  const cut = (i: number) => Math.round((i * sorted.length) / runs);
+  const name = (i: number) => (sorted[i] ? label_of(graph, sorted[i]!) : "");
+  /** The shortest start of `a` that `b` does not share. */
+  const apart = (a: string, b: string) => {
+    let n = 1;
+    while (n < a.length && a.slice(0, n).toLowerCase() === b.slice(0, n).toLowerCase()) n++;
+    return a.slice(0, n);
+  };
+  return Array.from({ length: runs }, (_, i) => {
+    const [from, to] = [cut(i), cut(i + 1) - 1];
+    const label = `${apart(name(from), name(from - 1))}–${apart(name(to), name(to + 1))}`;
+    return group(graph, root, label, sorted.slice(from, to + 1), most, word);
+  });
+}
+
+/** **One group**: a box the view makes over `members`, grouped again inside where they are still
+ *  too many; closed, a chip saying how many it gathers, its well what entering it shows. Its id is
+ *  its box's and its label: nothing is stored. */
+function group(graph: Graph, root: Id, label: string, members: Leaf[], most: number,
+               word: string): Leaf {
+  const id = `${root}${GROUP}${label}`;
+  /** Inside one kind's group, only name ranges tell its members apart. */
+  const kids = members.length > most ? ranges(graph, id, members, most, word) : members;
+  const said = { n: members.length, word };
+  return { id, label, group: said, kids,
+           closed: { id, label, group: said, value: Math.sqrt(1 + members.length),
+                     chip: { block: id, held: [], cells: kids } } };
 }
 
 /** **A folder's box**: what it holds, closing into a chip as heavy as how many it holds. Entered,
@@ -283,10 +391,15 @@ export function budget(room: { w: number; h: number }): number {
  *  chips stay within its `budget` and every chip is laid legible (`FLOOR`), a chip laid too small
  *  weighed up `RAISE` times a round for at most `ROUNDS` rounds; else that level stays closed.
  *  What holds `keep` always opens. Decided from the laid shape, never the zoom. */
-function mapped(graph: Graph, tree: Leaf, title: "library" | "models",
-                keep?: Id | null, room: { w: number; h: number } = CANVAS): Scene {
+function mapped(graph: Graph, given: Leaf, title: "library" | "models",
+                keep: readonly (Id | null | undefined)[] = [],
+                room: { w: number; h: number } = CANVAS, group?: Id | null): Scene {
   const most = budget(room);
-  const rank = ranked(graph, tree, keep);
+  const whole = grouped(graph, given, most, title === "library" ? "definition" : "block");
+  /** Narrowed to a group it makes: that group alone, open as a box entered is. */
+  const at = group ? found(whole, group) : null;
+  const tree = at ? { id: MAP_ROOT, kids: [at] } : whole;
+  const rank = ranked(graph, tree, at ? [...keep, at.id] : keep);
   const open = new Set<Leaf>();
   const shut = new Set<Leaf>();
   let raised = new Map<Id, number>();
@@ -319,16 +432,27 @@ function mapped(graph: Graph, tree: Leaf, title: "library" | "models",
  *  box shown open (a model's `open:`) or a model — tier 2 the rest; a box ranks as well as
  *  anything it holds. Then shallowest. */
 type Rank = { tier: number; depth: number };
-function ranked(graph: Graph, tree: Leaf, keep?: Id | null): Map<Leaf, Rank> {
+function ranked(graph: Graph, tree: Leaf,
+                keep: readonly (Id | null | undefined)[]): Map<Leaf, Rank> {
   const ranks = new Map<Leaf, Rank>();
   const walk = (n: Leaf, depth: number): number => {
-    const own = n.id === keep ? 0 : n.toggle === "open" || is_model(graph, n.id) ? 1 : 2;
+    const own = keep.includes(n.id) ? 0 : n.toggle === "open" || is_model(graph, n.id) ? 1 : 2;
     const tier = Math.min(own, ...(n.kids ?? []).map((k) => walk(k, depth + 1)));
     if (n.closed) ranks.set(n, { tier, depth });
     return tier;
   };
   walk(tree, 0);
   return ranks;
+}
+
+/** The entry of a tree with this id, at any depth. */
+function found(tree: Leaf, id: Id): Leaf | null {
+  if (tree.id === id) return tree;
+  for (const k of tree.kids ?? []) {
+    const at = found(k, id);
+    if (at) return at;
+  }
+  return null;
 }
 
 /** **The next level to open**: of the closed boxes whose holder is open, never one already turned
@@ -366,9 +490,9 @@ function small(laid: Tiled<Leaf>): Tiled<Leaf>[] {
     && (n.x1 - n.x0 < FLOOR.w || n.y1 - n.y0 < FLOOR.h));
 }
 
-/** **The tree as a treemap** its room's size — the canvas, less what sits round it, larger in its
- *  shape where it holds more chips than would each keep `ROOM` (until grouping keeps every view
- *  within its budget) — squarified at `1/K` width and stretched back: every box's cells fill it,
+/** **The tree as a treemap** its room's size — the canvas, less what sits round it, never larger
+ *  (grouping keeps every view within its budget) — squarified at `1/K` width and stretched back:
+ *  every box's cells fill it,
  *  sized by weight, its header over them, **no chip weighing less than `SHARES` of the budget**,
  *  so a light chip still gets a legible chip's room, what is `raised` weighing more. **Never by
  *  what is picked**: a selection never moves a cell. d3 lets an outer padding overwrite a top
@@ -381,9 +505,8 @@ function laid_out(tree: Leaf, room: { w: number; h: number },
   root.sum((n) => (n.kids?.length ? 0 : Math.max(least, n.value ?? 0) * (raised.get(n.id) ?? 1)))
     .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
   const [w, h] = [Math.max(320, room.w), Math.max(240, room.h)];
-  const grow = Math.max(1, Math.sqrt(root.leaves().length * ROOM / (w * h)));
   const laid = treemap<Leaf>().tile(treemapSquarify.ratio(1.6))
-    .size([w * grow / K, h * grow])
+    .size([w / K, h])
     .paddingInner((n) => (n.depth ? AIR.inner : AIR.major) / K)
     .paddingLeft((n) => (n.depth ? AIR.outer / K : 0))
     .paddingRight((n) => (n.depth ? AIR.outer / K : 0))
@@ -428,12 +551,17 @@ function drawn(graph: Graph, laid: Tiled<Leaf>, title: "library" | "models"): Sc
                    ...(own.description ? { description: own.description } : {}),
                    ...(n.data.toggle ? { toggle: n.data.toggle } : {}) };
     if (!chip) {
-      const facts = n.data.panel ? null : box_facts(graph, n, title);
+      const facts = n.data.panel ? null
+        : n.data.group ? { counts: fact(n.data.group.n, n.data.group.word), tags: [] }
+        : box_facts(graph, n, title);
       nodes.push({ ...cell(id, box, { ...data, ...(facts ? { facts } : {}) }, "box"),
                    draggable: false });
       continue;
     }
-    nodes.push({ ...cell(id, box, { ...data, ...chip_drawn(graph, chip, box, title === "library") },
+    nodes.push({ ...cell(id, box, { ...data, ...(n.data.group
+                                                  ? group_drawn(graph, n.data, chip, box)
+                                                  : chip_drawn(graph, chip, box,
+                                                               title === "library")) },
                          "chip"),
                  draggable: false });
   }
@@ -449,7 +577,7 @@ function chip_drawn(graph: Graph, chip: NonNullable<Leaf["chip"]>,
   const top = CHIP.top + head_h(size) + CHIP.gap;
   const room = { w: box.w - CHIP.side - CHIP.inset, h: box.h - top - CHIP.foot - CHIP.inset };
   const tiles = chip.held.length && room.h + CHIP.inset >= CHIP.well
-    ? well(graph, chip.held, room) : [];
+    ? well(graph, held_of(graph, chip), room) : [];
   const facts = facts_of(graph, chip.block, library);
   const holds = chip.held.length > 0;
   const def = library && !!graph.blocks[chip.block]?.def;
@@ -459,6 +587,33 @@ function chip_drawn(graph: Graph, chip: NonNullable<Leaf["chip"]>,
            ...(chip.kind ? { kind: chip.kind } : {}), ...(swatch ? { swatch } : {}),
            ...(facts ? { facts } : {}), ...(tiles.length ? { well: top, tiles } : {}),
            look: colour_of(graph, chip.block) };
+}
+
+/** **A group's chip**: a folder's cell saying how many it gathers, its well what entering it
+ *  shows. It wears no colour and no mark: it stands for no block. */
+function group_drawn(graph: Graph, leaf: Leaf, chip: NonNullable<Leaf["chip"]>,
+                     box: { w: number; h: number }) {
+  const size = name_size(box.w, box.h);
+  const top = CHIP.top + head_h(size) + CHIP.gap;
+  const room = { w: box.w - CHIP.side - CHIP.inset, h: box.h - top - CHIP.foot - CHIP.inset };
+  const tiles = room.h + CHIP.inset >= CHIP.well ? well(graph, held_of(graph, chip), room) : [];
+  return { size, cell: "folder" as const,
+           facts: { counts: fact(leaf.group!.n, leaf.group!.word), tags: [] },
+           ...(tiles.length ? { well: top, tiles } : {}) };
+}
+
+/** One entry of a well: what it stands for, its name and its weight. */
+type Held = { id: Id; label: string; weight: number };
+
+/** **What a chip's well previews**: the first level its entered view draws — its groups where
+ *  that is grouped (`cells`), else what it holds. */
+function held_of(graph: Graph, chip: NonNullable<Leaf["chip"]>): Held[] {
+  if (chip.cells) {
+    return chip.cells.map((c) => ({ id: c.id, label: label_of(graph, c),
+                                    weight: c.closed?.value ?? c.value ?? 1 }));
+  }
+  return chip.held.map((id) => ({ id, label: shown_name(graph, id),
+                                  weight: weight(graph, members(graph, id)) }));
 }
 
 /** A chip's name's size in pixels, grown with its cell (`NAME`). */
@@ -477,16 +632,17 @@ function head_h(size: number): number {
  *  of the heaviest as each lay whole with a legible name (`legible_cell`), the rest one *+N more*
  *  cell; none where not even one fits. **Neighbours stand apart**: each cell takes the next of
  *  `GRADES` grades, in the order squarify lays them. */
-function well(graph: Graph, ids: readonly Id[], room: { w: number; h: number }): InnerTile[] {
-  const weights = new Map(ids.map((id) => [id, weight(graph, members(graph, id))]));
-  const weigh = (id: Id) => weights.get(id)!;
-  const order = [...ids].sort((a, b) => weigh(b) - weigh(a));
+function well(graph: Graph, held: readonly Held[], room: { w: number; h: number }): InnerTile[] {
+  const by = new Map(held.map((h) => [h.id, h]));
+  const weigh = (id: Id) => by.get(id)!.weight;
+  const order = [...held].sort((a, b) => b.weight - a.weight).map((h) => h.id);
   /** The most cells that could each hold a legible name, then the most that do. */
   let [lo, hi] = [0, Math.min(order.length, Math.floor((room.w * room.h) / LEAST_CELL))];
   let best: InnerTile[] = [];
   while (lo < hi) {
     const k = Math.ceil((lo + hi) / 2);
-    const laid = well_laid(graph, order.slice(0, k), order.length - k, room, weigh);
+    const laid = well_laid(graph, order.slice(0, k), order.length - k, room, weigh,
+                           (id) => by.get(id)!.label);
     if (laid.legible) [lo, best] = [k, laid.tiles];
     else hi = k - 1;
   }
@@ -503,7 +659,8 @@ const LEAST_CELL = (NAMED.least * (NAMED.char * MIN_CHARS + NAMED.pad + NAMED.ic
  *  as the lightest shown; legible where every cell's name shows `MIN_CHARS` at least at the least
  *  size, a longer name shrunk to fit, else cut short — the *+N more* whole. */
 function well_laid(graph: Graph, shown: readonly Id[], more: number, room: { w: number; h: number },
-                   weigh: (id: Id) => number): { tiles: InnerTile[]; legible: boolean } {
+                   weigh: (id: Id) => number,
+                   named: (id: Id) => string): { tiles: InnerTile[]; legible: boolean } {
   const [w, h] = [Math.max(1, room.w), Math.max(1, room.h)];
   const MORE = "+more";
   type Item = { id: Id; kids?: Item[] };
@@ -518,9 +675,11 @@ function well_laid(graph: Graph, shown: readonly Id[], more: number, room: { w: 
   const tiles = laid.leaves().map((l, i): InnerTile => {
     const [x, y, lw, lh] = [l.x0 * K, l.y0, (l.x1 - l.x0) * K, l.y1 - l.y0];
     const id = l.data.id;
-    const label = id === MORE ? `+${more} more` : shown_name(graph, id);
+    const label = id === MORE ? `+${more} more` : named(id);
+    /** A group stands for no block: a folder's cell, no mark. */
+    const made = id !== MORE && !graph.blocks[id];
     /** The size a name fits at: whole, else at least the least, cut short. */
-    const icon = id === MORE ? 0 : NAMED.icon;
+    const icon = id === MORE || made ? 0 : NAMED.icon;
     const across = (chars: number) => (lw - NAMED.right)
       / (NAMED.char * chars + NAMED.pad + icon);
     const tall = lh / NAMED.line;
@@ -530,6 +689,7 @@ function well_laid(graph: Graph, shown: readonly Id[], more: number, room: { w: 
     const at = { label, size: Math.round(size * 2) / 2, x: x / w, y: y / h, w: lw / w, h: lh / h,
                  grade: i % GRADES };
     if (id === MORE) return { id, ...at, more: true };
+    if (made) return { id, ...at, cell: "folder" };
     const swatch = swatch_of(graph, id);
     return { id, ...at, cell: cell_of(graph, id, members(graph, id).length > 0),
              role: role_of(graph, id), ...(swatch ? { swatch } : {}),

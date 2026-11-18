@@ -40,6 +40,8 @@ export type Config = {
   open?: readonly Id[];
   /** A model's overview: the box just opened by hand, which legibility never closes. */
   keep?: Id | null;
+  /** A tree view: the group it is narrowed to (views `map.ts`). */
+  group?: Id | null;
   /** The diagram whose lines draw what their ends mean rather than their direction: a class
    *  diagram, or an entity one, multiplicities as crow's feet. */
   ends?: "class" | "er";
@@ -123,8 +125,9 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   /** A treemap is its map; anything else places itself. */
   if (treemapped(graph, layer, look?.lists)) {
     /** A library folder is the library's map rooted at it. */
-    return look?.lists === "domain" && is_filing(given, layer) ? library_map(given, layer)
-      : layer_map(given, layer, config.open, config.keep);
+    return look?.lists === "domain" && is_filing(given, layer)
+      ? library_map(given, layer, config.group)
+      : layer_map(given, layer, config.open, config.keep, config.group);
   }
   const parts = new Set(Object.keys(graph.blocks).filter((id) =>
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));

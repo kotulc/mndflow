@@ -88,13 +88,15 @@ export function lens_of(graph: Graph, id: Id, lists?: Lists): ViewKind | null {
   /** A registry opens on the registry view; an entry of one opens on nothing, its users read in
    *  the tray. Neither is ever a block. */
   if (!b) return registry_at(graph, id) ? "registry" : null;
-  if (b.parent === null) return null;
+  /** A package is a root folder: it enters in the models only where it holds one. */
+  if (b.parent === null && lists !== "domain" && !on_side(graph, id, "structure")) return null;
   if (b.def) {
     /** In the library a definition holding parts opens its own drawing, as a model does. */
     const opens = is_model(graph, id) || (lists === "domain" && children(graph, id).length > 0);
     return opens ? diagram_of(graph, id) ?? "internal" : null;
   }
-  /** The library enters its folders and definitions only: a part of one is read in the tray. */
+  /** The library enters its packages, folders and definitions only: a part of one is read in
+   *  the tray. */
   if (lists === "domain") return is_filing(graph, id) && filed_defs(graph, id).length ? "internal" : null;
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
   if (target && target.id !== id) return lens_of(graph, target.id, lists);
@@ -240,7 +242,9 @@ export function sight(graph: Graph, tiers: Tiers, views: Views, at: number, id: 
   const { roots } = trace(graph, tiers, id);
   if (!is_layer_view(kind)) return { at, kind, layer: scope_of(roots, at), pick: id };
   if (lists === "domain") return map_at(at, id);
-  const own = roots[at] === id ? lens_of(graph, id, lists) : null;
+  /** A package brought into sight is picked on its map, never entered. */
+  const own = roots[at] === id && graph.blocks[id]?.parent !== null ? lens_of(graph, id, lists)
+    : null;
   if (own) return { at, kind: own, layer: id, pick: null };
   const up = layer_of(graph, id);
   const kind_up = up ? lens_of(graph, up, lists) : null;
@@ -328,8 +332,9 @@ export function read_at(graph: Graph, tiers: Tiers, views: Views, now: View | nu
   };
   if (!options.inner && lens_of(graph, subject, lists)) return opened(subject);
   if (lists === "domain" || !graph.blocks[subject]) return null;
+  /** Never a package or a folder above it: a leaf only picks. */
   const up = path(graph, subject).map((b) => b.id).reverse().slice(1)
-    .find((id) => !!lens_of(graph, id, lists));
+    .find((id) => !is_filing(graph, id) && !!lens_of(graph, id, lists));
   const to = up ? opened(up) : null;
   return to ? { ...to, pick: subject } : null;
 }
@@ -359,15 +364,15 @@ export function leave_at(graph: Graph, tiers: Tiers, views: Views, view: View): 
     if (graph.blocks[layer]) return map_at(at, layer);
   }
   if (!is_layer_view(kind) || !layer || !graph.blocks[layer]) return null;
-  const { roots } = trace(graph, tiers, layer);
-  if (roots[at] === layer) return at > 0 ? sight(graph, tiers, views, at - 1, layer) : null;
-  /** **Anything entered from a folder leaves to that folder**, where it enters; a folder at the
-   *  top, to the map. */
+  /** **Anything entered from a package or a folder leaves to it**, where it enters; a package,
+   *  to the map. */
   const lists = lists_at(tiers, at);
   const holder = graph.blocks[layer]!.parent;
   const folder = holder && is_filing(graph, holder) ? lens_of(graph, holder, lists) : null;
   if (folder) return { at, kind: folder, layer: holder!, pick: layer };
   if (is_filing(graph, layer)) return map_at(at, layer);
+  const { roots } = trace(graph, tiers, layer);
+  if (roots[at] === layer) return at > 0 ? sight(graph, tiers, views, at - 1, layer) : null;
   const up = layer_of(graph, layer);
   const kind_up = up ? lens_of(graph, up, lists) : null;
   return up && kind_up ? { at, kind: kind_up, layer: up, pick: layer } : map_at(at, layer);
