@@ -1,14 +1,12 @@
 /** **A model's overview** (docs/diagrams/tree.md, the model root): what sits round its treemap.
  *  Context's zones — actors above, inputs left, outputs and dependencies right — then the About
- *  band below past a dashed divider, plain notes never lit or dimmed; and the model's lines,
- *  quiet under the chips until a pick or a presentation lights them. Laid once the middle is. */
+ *  band below past a dashed divider, plain notes never lit or dimmed. Laid once the middle is. */
 
-import { base_of, model_entries, model_library, presentations_of, shown_name, subtree,
-         about_groups, type Graph, type Hop, type Id } from "@mnd/core";
+import { base_of, model_entries, model_library, presentations_of, shown_name,
+         about_groups, type Graph, type Id } from "@mnd/core";
 import { colour_of, kind_of } from "./about";
 import { carried } from "./derive";
 import { cell, type Area, type BoxNode, type Scene } from "./scene";
-import { hop_trace } from "./trace";
 
 /** One group of About as drawn: its name and its notes, each what it names and, for a
  *  presentation, its place in the model's list. */
@@ -51,7 +49,7 @@ export function zone_room(zones: ReadonlyMap<Id, Zone>): { w: number; h: number 
 }
 
 /** **The middle laid, with what is round it**: each zone's chips beside the middle, About below,
- *  the map's root area grown to hold them all, and the model's lines quiet. */
+ *  the map's root area grown to hold them all. */
 export function around(graph: Graph, model: Id, layer: Id, middle: Scene,
                        zones: ReadonlyMap<Id, Zone>): Scene {
   const root = middle.areas?.[0];
@@ -77,8 +75,7 @@ export function around(graph: Graph, model: Id, layer: Id, middle: Scene,
   line(by("left"), false, -ZONE.away - ZONE.w, 0);
   line(by("right"), false, w + ZONE.away, 0);
   const about = about_band(`${layer}@about`, about_of(graph, model), w, h);
-  const scene = grown({ ...middle, nodes: [...nodes, ...about], areas });
-  return { ...scene, quiet: hop_trace(graph, scene, lines_of(graph, model)) ?? undefined };
+  return grown({ ...middle, nodes: [...nodes, ...about], areas });
 }
 
 /** About's band below a middle `w` by `h`, as tall as its longest group; none with nothing to
@@ -137,10 +134,3 @@ export function about_of(graph: Graph, model: Id): AboutDrawn[] {
   }).filter((g) => g.items.length);
 }
 
-/** Every line inside a model, as a hop: its ends and its name. Ties draw nothing here. */
-export function lines_of(graph: Graph, model: Id): Hop[] {
-  const inside = new Set(subtree(graph, model));
-  return Object.values(graph.edges)
-    .filter((e) => inside.has(e.from) && inside.has(e.to) && e.type !== "tie")
-    .map((e) => ({ from: e.from, to: e.to, names: e.name ? [e.name] : [] }));
-}

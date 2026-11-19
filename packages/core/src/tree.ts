@@ -240,11 +240,20 @@ export function reached(graph: Graph, id: Id, layer: Id | null): { blocks: Id[];
   return { blocks: [id, ...far], lines };
 }
 
+/** **Every join inside a block** (2026-11-17), as hops: both ends in it, at any depth — every
+ *  join where `id` is null — counted as `hops_of` counts them. */
+export function joins_in(graph: Graph, id: Id | null): Hop[] {
+  const inside = id ? new Set(subtree(graph, id)) : null;
+  return joins(graph).filter((s) => !inside || (inside.has(s.from) && inside.has(s.to)))
+    .map((s) => ({ from: s.from, to: s.to, names: s.name ? [s.name] : [], n: 1 }));
+}
+
 /** Every join in the graph, worked out once until the graph is written (`kept`): its lines,
  *  owner to owner, but ties and those inside a behaviour; and every behaviour's path steps.
  *  **A line to a holder's own port is followed through it** (2026-11-06): a part joined to its
  *  holder's port joins what that port's lines reach outside the holder, and nothing where none
- *  do — what holds it is already drawn round it. */
+ *  do — what holds it is already drawn round it; the holder's own line out of that port then
+ *  joins nothing more (2026-11-17). */
 function joins(graph: Graph): { from: Id; to: Id; name: string }[] {
   return kept(graph, "joins", () => {
     const ways = Object.values(graph.blocks).filter((b) => is_behaviour(graph, b.id));
@@ -268,15 +277,23 @@ function joins(graph: Graph): { from: Id; to: Id; name: string }[] {
         return within(graph, holder, at) ? beyond(far, at) : [{ at, name: l.name }];
       });
     /** A part's line to its holder's port goes through; one to the holder's bare edge stays. */
-    const through = lines.flatMap((l) => {
+    const port_of = (l: (typeof lines)[number]): [string, Id] | null => {
       const [end, holder] = within(graph, l.from, l.to) ? [l.b, l.to]
         : within(graph, l.to, l.from) ? [l.a, l.from] : [null, null];
-      if (!end || !holder || end === `${holder}:`) return [l];
+      return end && holder && end !== `${holder}:` ? [end, holder] : null;
+    };
+    const followed = new Set(lines.map(port_of).filter((p) => !!p).map((p) => p![0]));
+    /** The holder's own line out of a port followed through is the part's, joined once. */
+    const once = lines.flatMap((l) => {
+      const at = port_of(l);
+      if (!at) return followed.has(l.a) || followed.has(l.b) ? [] : [l];
+      const [end, holder] = at;
+      if (followed.has(end === l.a ? l.b : l.a)) return [];
       return beyond(end, holder).map((x) => holder === l.to
         ? { from: l.from, to: x.at, name: x.name || l.name }
         : { from: x.at, to: l.to, name: x.name || l.name });
     });
-    return [...through.map(({ from, to, name }) => ({ from, to, name })),
+    return [...once.map(({ from, to, name }) => ({ from, to, name })),
             ...owners.flatMap((o) => path_of(graph, o))];
   });
 }

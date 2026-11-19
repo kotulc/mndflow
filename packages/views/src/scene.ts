@@ -7,7 +7,7 @@ import type { Arrow, Look, Swatch, Tint, Wire } from "./look";
 import type { Fan, Perch, Seat } from "./seat";
 import type { AboutDrawn } from "./overview";
 import type { RecordsDrawn } from "./records";
-import type { Trace } from "./trace";
+import type { Leg } from "./trace";
 
 /** One row of a card's attributes: its name, its type's name, whether it keys, and the value a
  *  usage answers or the default a definition declares. */
@@ -82,6 +82,8 @@ export type BoxData = {
   size?: number;
   /** The header's meta line: counts, seats and tags (views `facts.ts`). */
   facts?: Facts;
+  /** A map's chip: its links in words, at its foot, and the rows they take (`map.ts` `linked`). */
+  links?: string; links_rows?: number;
   /** A records table: its groups of rows, each by its source (`records.ts`). */
   records?: RecordsDrawn;
   /** A model's About band: its groups of plain notes (`overview.ts`). */
@@ -329,8 +331,8 @@ export type Scene = {
   /** The grid whose body holds steps, where its columns are lifelines: a step is dragged along
    *  its column. */
   lifelines?: Id;
-  /** A model's overview: its lines, quiet under its chips until lit (`overview.ts`). */
-  quiet?: Trace;
+  /** A map's links, gathered once and unrouted: what a chip says and what lights (`trace.ts`). */
+  links?: readonly Leg[];
 };
 
 export const EMPTY: Scene = {

@@ -15,7 +15,7 @@
 | | |
 |---|---|
 | **draw it** | once per model: it is how a person meets the model, and where its presentations start (model-plan.md 9, 17, 18) |
-| **vs context** | the same zones; context's inside is one level of parts with their lines, the overview's is the whole containment tree, weighted, lines quiet until lit |
+| **vs context** | the same zones; context's inside is one level of parts with their lines, the overview's is the whole containment tree, weighted, links said in words on each chip, lines drawn only when lit (2026-11-18) |
 | **vs the map** | the map is every model and the library; the overview is the map focused on one model (model-plan.md 18) |
 | **the floor** | a model holds at least 3 parts; fewer, and it is a part of its parent's model (README *Sub diagrams*) |
 
@@ -58,7 +58,7 @@
 |---|---|
 | 1 | merge: the tree kind is the model's overview; the stand-alone `treemap` kind is retired (only samples/elements used it) |
 | 2 | the tool is `overview`, writing coherent, scalable model trees |
-| 3 | layout: context's zones around a weighted treemap of containment; About below; lines quiet until lit |
+| 3 | layout: context's zones around a weighted treemap of containment; About below; links in words, lines only when lit |
 | 4 | many parts: ~~boxes close from the lightest up~~ superseded 2026-11-16 by the budget opened from the top, and grouping (scale-plan.md); a closed box says its name and counts |
 | 5 | open boxes start from the model file's `open:` (unsaid, the primary parts); stops set their own |
 | 6 | one tree view, ~~three roots (world, model, definition)~~ two roots (world, model) since 2026-11-16, with the adjustments above; a chip is a closed box; a definition's usages are the tray's table, never a tree view |

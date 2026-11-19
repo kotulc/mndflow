@@ -319,9 +319,7 @@ function Canvas(props: FlowViewProps) {
           </svg>
         </ViewportPortal>
       ) : null}
-      {/* A model's lines, quiet under its chips; a presentation's steps; a path traced. */}
-      {scene.quiet && !steps ? <ViewportPortal><Traced trace={scene.quiet} as="quiet" />
-        </ViewportPortal> : null}
+      {/* A presentation's steps; a path traced. */}
       {steps ? <ViewportPortal><Traced trace={steps} as="steps" /></ViewportPortal> : null}
       {trace ? <ViewportPortal><Traced trace={trace} /></ViewportPortal>
         : null}
