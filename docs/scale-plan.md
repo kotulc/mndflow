@@ -27,7 +27,7 @@ Other heavy definitions in the sample: `line` 1,608 uses, `function` 357, `start
 | 3 | **flat lists are grouped**: where a box holds more than the view's budget, its children are grouped into closed chips with counts — by kind, then by name range (guide words, *A–Ca*); entering a group narrows the view to it, one level deeper. A view's boxes never say *+n more*; a well does (decision 8) |
 | 4 | **a well previews what a chip holds**: its first level, groups included; entering draws it as its kind — a folder, package or group as the same treemap, a definition or model as its diagram (2026-11-17, was *a well shows what entering shows*) |
 | 5 | **anything with a well enters**, in either section: packages (root folders) and folders, definitions holding parts, groups |
-| 6 | **lines are gathered to the level drawn**: each relation's ends lifted to the chips drawn, one line per pair weighted by how many it carries, none inside one chip; **drawn only when a chip is selected or hovered** |
+| 6 | **lines are gathered to the level drawn**: each relation's ends lifted to the chips drawn, one line per pair weighted by how many it carries, none inside one chip; **at rest said in words on each chip, drawn only when a chip is selected or hovered** (map links, 2026-11-18) |
 | 7 | **a scale check, not a test suite**: `mnd measure` reports every tree view of every sample; it guards big and small projects as the rules move |
 | 8 | **wells stay simple and never clip**: a well previews what a chip holds and how much; a cell is drawn only whole, its name legible, the rest said as *+N more*; where not even one fits, the chip draws no well, only its counts. A flow's chip has no well (its steps are not drawn) |
 | 9 | **a library folder counts definitions**: its chip and its box both say *definitions* |
@@ -45,7 +45,7 @@ Other heavy definitions in the sample: `line` 1,608 uses, `function` 357, `start
 | 4 | **wells from the same first level**: `well` takes the grouped first level a chip's entered view would draw, capped by the well's own room — **cap built 2026-11-16**: the heaviest cells that each show 4 characters at 8px, the rest one *+N more* cell (whole) that picks the chip | views `map.ts` `well` | no cell drawn cut or unnamed (cap: done); groups in wells wait on order 3 |
 | 5 | **entering** (built 2026-11-16): library folders enter as the library's treemap rooted at them; a group enters as its root's view narrowed to it; library folder chips say *definitions* (decision 9); rule: a chip with a well enters, a leaf only picks | core `navigate.ts` (`lens_of`, `read_at`, `leave_at`), `holders.ts` `is_filing`; views `map.ts` `library_map`, `block.ts` `treemapped` | the scale check finds no chip with a well that enters nothing |
 | 6 | **the scale check** (built 2026-11-16): `mnd measure <sample> --views` walks every tree view (both maps, every package and folder, every model overview, every group) and reports nodes, chips, chips under the floor, names cut (by character width), layout ms, and chips with a well that do not enter | cli `measure.ts`; views `scale.ts` | run on example, mndsite, elements and code; all four clean |
-| 7 | **gathered lines** (built 2026-11-16, the view's part): a leg counts the relations it gathers (core `Hop.n`, views `Leg.n`), is heavier a step each time they double (four steps) and says the count on hover; lifting to the chips drawn, one leg a pair and nothing inside one chip were already `hop_trace`'s. **The done-when cannot be met by the views**: samples/code stores no relation crossing a component or a package (all 1,761 lines sit inside one; 0 cross), so picking `core` has nothing to trace — a translator gap (backlog *entry paths*: calls recorded within a package only). Was: on a pick or a hover, every relation under the chip (its descendants') lifted to the chips drawn, merged per pair with a count, stroke by count (a few steps, log-scaled), the count said on hover; inner relations dropped; boxes and chips alike | views `trace.ts` (`trace_of`, `hop_trace`), stage `Traced.tsx`, `path.ts`, `flow.css` *Hops traced* | picking `core` on the mndflow map traces legs to everything that depends on it |
+| 7 | **gathered lines** (built 2026-11-16; reworked 2026-11-18 as **map links**, docs/design chip.md *Lines between chips*): one set of legs a map (`scene.links`, core `joins_in`, a holder's port line joined once); **at rest each chip says its links in words** at its foot (→ ← ↔, up to two rows), no lines; hover or pick lights the same legs, direct, each named in a pill clear of every line, a leg under 24px a badge along the gap, the arrow reaching 6px into its target. Tried and dropped: faint lines always drawn (noisy, cut across chips, disagreed with hover), routing round chips with libavoid (bends too tight in 6px gaps). **The done-when cannot be met by the views**: samples/code stores no relation crossing a component or a package, so picking `core` has nothing to trace — a translator gap (backlog *entry paths*) | core `tree.ts` `joins_in`, `joins`; views `trace.ts` (`links_of`, `trace_of`, `hop_trace`), `map.ts` `linked`; stage `Traced.tsx`, `path.ts`, `flow.css` *A leg's pill*; theme `chip.tsx` | picking `core` on the mndflow map traces legs to everything that depends on it |
 | 8 | **performance** (measured 2026-11-16): the mndflow sample first draws in ~1.4–1.5 s on the dev server (the shop ~1.1 s), the budget having cut the map to 13 chips; frame rate not measured. Was: profile the ~7 s first draw (opening and checking the file, explorer rows, the map, the tray); React Flow's `onlyRenderVisibleElements` as a safety net only | web `App.tsx`, stage `Flow.tsx`, explorer | the mndflow sample first draws in < 2 s; 60 fps on every view |
 | 9 | **drive it**: every sample through every depth, landscape and portrait, picks and hovers with lines, entering and leaving groups | scratchpad drive scripts (Playwright with Edge) | the user's look |
 
@@ -69,7 +69,7 @@ Other heavy definitions in the sample: `line` 1,608 uses, `function` 357, `start
 
 ## Handoff
 
-**State (2026-11-16, close-out pass)**: committed through `b02abb1`. Uncommitted, built and driven: **packages enter** (a package is a root folder), **grouping** (order 3), **gathered lines' counts** (order 7), the scale check's small canvas, and the docs aligned to the tree rework (design.md, box.md, chip.md, definitions.md, tree.md). 303 tests pass; four navigation tests rewritten to the package rule.
+**State (2026-11-19)**: everything built is committed through `f8ca193` (map links); orders 1–8 are in. Left: the user's look at groups, order 9's drive, the frame rate, and **crumbs that follow the canvas** (decided 2026-11-19; on the map a pick still moves them: views `map.ts` `map_focus` sets the trail from the focus).
 
 | Built | Where |
 |---|---|
@@ -83,7 +83,10 @@ Other heavy definitions in the sample: `line` 1,608 uses, `function` 357, `start
 | **the scale check** — every tree view at three canvases (landscape, portrait, small): chips against budget, under the floor, names cut, cells unnamed, chips stuck (never a region or a group), ms | views `scale.ts`; `mnd measure <sample> --views` |
 | **packages enter** (decided 2026-11-16: a package is a root folder, and folders enter) — in either section, framed by its own box; left for the map; what it files leaves to it, so a model goes up to its package, then the map; brought into sight it is picked on its map, never entered; a leaf under one only picks | core `holders.ts` `is_filing`, `navigate.ts` `lens_of`, `sight`, `read_at`, `leave_at`; views `map.ts` `layer_map` |
 | **grouping** — see order 3; a group is entered by a double-click (the box it groups entered first where the canvas is not in it), widened by going up or its crumbs, let go by Escape, never picked | views `map.ts`; web `App.tsx` |
-| **gathered lines' counts** — see order 7 | core `tree.ts` `hops_of`; views `trace.ts`; stage `Traced.tsx`, `flow.css` |
+| **map links** — see order 7 | core `tree.ts` `joins_in`; views `trace.ts`, `map.ts` `linked`; stage `Traced.tsx`, `flow.css`; theme `chip.tsx` |
+| **a small card fits its name** (2026-11-17) — whole units, up to twice a block; a grid's cell and a shaped card keep the block's | views `size.ts` `size_of`, `face.ts` `head_w`; `note_h` counts the border |
+| **section roots behave as rows** (2026-11-17) — a section drawn whole lights its header row; its crumbs show the section's label alone | explorer `Explorer.tsx`; views `map.ts` `map_focus` |
+| **a folder holding only models is not the library's** (2026-11-17) | core `sections.ts` `on_side`, `models_only` |
 
 **Measured (2026-11-16, landscape and portrait)**: the mndflow sample 1 chip under the floor, 4 names cut, 0 unnamed, 0 stuck over 1,110 chips; the shop 0 and 1; mndsite 0 and 18; elements 0 and 9; totals unchanged by this pass. At the small canvas chips fall under the floor where a level is forced open (mndflow 10, mndsite 2).
 
@@ -99,17 +102,22 @@ Other heavy definitions in the sample: `line` 1,608 uses, `function` 357, `start
 | tray contents card for a library folder says *blocks* | tray `Lists.tsx` `Card` → the card face's facts read no section |
 | the enter cut fades from blank (200 ms) | try a partial or shorter fade if it reads as a blink |
 | nested enters wait for the layout before flying | an entered folder is laid ahead (`internal` through ELK); order 8 |
+| **crumbs on a pick** (decided 2026-11-19: always the canvas) | an entered layer and the other section already keep them; the map does not — a pick there sets the trail (views `map.ts` `map_focus`) |
+| **no sample draws a group** | groups form only where a box holds more than the budget (95 at 1440 × 900, 21 at the small 520 × 400); no sample's box comes near at a normal window, and elements › *Lines* holds 17. The user saw none (2026-11-19) |
+| **wider small cards moved layouts** (2026-11-17) | the shop's crossings 38 → 44, mostly *Overview › Shop* portrait (0 → 8): the *hot path* note's tie runs diagonally — model-plan order 6; mndsite covers 12 → 15 |
+| **link pills on busy maps** | a pill with no clear place is dropped (names on hover only); an upright badge with a long name can run past its neighbours' ends; a badge covers ~5px of each chip. Only the shop's overview has links today; check on a busier map |
 
 **Confirmed by the user (2026-11-16)**: grouping is by kind, then by name range — no path level; **a model is always part of its package**, so leaving a model goes up to its package, then the map.
 
-**Next**, in order:
+**Next**, in order — **paused 2026-11-19 behind iteration-plan.md**; items taken when a round finds them:
 
 | # | Work |
 |---|---|
 | 1 | ~~**the definition example**~~ decided 2026-11-17: a definition enters as its diagram, its well a preview (decision 4) |
-| 2 | **the user's look** at entered packages, groups (a small window on samples/elements › *Lines*) and weighted lines (the shop's *Shop* picked) |
-| 3 | **order 9**: drive every sample through every depth, landscape and portrait |
-| 4 | **frame rate** (order 8's second half), then the *Open* rows worth taking |
-| 5 | delete this plan once the user accepts the mndflow sample; then model-plan.md orders 6–9 |
+| 2 | **the user's look**: entered packages accepted 2026-11-17; map links accepted as "decent so far" 2026-11-18; **groups not seen** — no sample draws one at a normal window (*Open*), so a sample box holding more than the budget is needed first |
+| 3 | **crumbs follow the canvas** on the map too (*Open*) |
+| 4 | **order 9**: drive every sample through every depth, landscape and portrait |
+| 5 | **frame rate** (order 8's second half), then the *Open* rows worth taking |
+| 6 | delete this plan once the user accepts the mndflow sample (order 7's trace waits on the translator, *relations across components*; the user, 2026-11-19: fine to leave); then model-plan.md orders 6–9 |
 
 **Working notes**: drive samples/code.json by routing example.json in Playwright (Edge); a CDP screencast catches a 440 ms flight where screenshots cannot; run vitest from a `C:/` path; no new tests until the design settles — the scale check is the guard.

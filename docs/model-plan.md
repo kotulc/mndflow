@@ -5,7 +5,9 @@
 
 ## Next session
 
-**Handoff (2026-11-16, close-out pass).** scale-plan.md is built but for the user's look: its orders 1–8 are in (packages enter, grouping and gathered lines' counts uncommitted), and its *Handoff* says what is open. Orders 6–9 below are next. Decided this pass: **a package is a root folder, and folders enter**; **a model is always part of its package** (leaving one goes up to its package); **a definition holding parts is entered** (decision 18 now reads two roots; whether as its diagram or a treemap waits on an example, scale-plan.md *Open*). Rows 1–5 below are committed through `b02abb1`.
+**Paused 2026-11-19 behind iteration-plan.md**, the primary plan; orders 6–9 are taken when a round finds them.
+
+**Handoff (2026-11-19).** scale-plan.md orders 1–8 are built and committed through `f8ca193` (map links); its *Handoff* says what is left (groups seen, crumbs on the map, order 9, frame rate). Orders 6–9 below follow it. Decided since 2026-11-16: **a package is a root folder, and folders enter**; **a model is always part of its package** (leaving one goes up to its package); **a definition holding parts enters as its diagram**, its well a preview (2026-11-17); **crumbs always follow the canvas, never a pick** (2026-11-19); **map links**: links said in words on chips at rest, lines only when lit (2026-11-18).
 
 **The tree and chip rebuild** (orders 1–4 below) is specified in docs/design/chip.md and the header section of docs/design/card.md; mockup at claude.ai/artifact/Wgi6FEJTDjSKQVSSsKLexp (boards: anatomy, one header, map landscape and portrait, overviews landscape and portrait, the shop, focus by expanding, mark options); the generator that laid the mockup is kept for reference in docs/design/mockups/tree-chips/.
 
