@@ -8,13 +8,17 @@
   },
   "scripts": {
     "start": "vite-node src/main.ts",
+    "mcp": "vite-node src/mcp.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@mnd/core": "*",
+    "@mnd/defs": "*",
     "@mnd/fixtures": "*",
+    "@mnd/ts": "*",
     "@mnd/views": "*",
-        "@mnd/defs": "*",
-    "js-yaml": "^4.1.0"
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "js-yaml": "^4.1.0",
+    "zod": "^4.6.7"
   }
 }

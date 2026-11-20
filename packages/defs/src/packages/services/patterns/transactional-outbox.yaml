@@ -1,6 +1,5 @@
 name: Transactional outbox
 type: service
-def: {}
 body: Use when a state change must announce itself, and neither the change nor the announcement may be lost.
 note: A state change and the event announcing it are written in one transaction, so neither is lost.
 blocks:

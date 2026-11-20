@@ -5,47 +5,34 @@
 .mnd-flow {
   width: 100%;
   height: 100%;
-  /* **The text band**: text scales with zoom only between 85% and 115% (views `TEXT_BAND`);
-     outside it, its size on screen holds and rows come and go instead. */
+  /* **The text band**: text scales with zoom only between 85% and 115%; outside it, its size on
+     screen holds. Never held larger than laid (`--laid-k`), so whatever fits as laid fits at every
+     zoom. */
   --text-k: calc(clamp(0.85, var(--zoom, 1), 1.15) / var(--zoom, 1));
-  /* A chip's head and facts grow only so far when held, and their rows are laid at that size
-     (views `map.ts` `HELD`); beyond, the level drops rather than the text growing. What a chip's
-     body's rows scale with the drawing (`--laid-k`), never held; its tiles' text is held to read
-     (`--text-k`), each tile showing it only where it fits whole. */
-  --chip-k: min(var(--text-k), 1.35);
   --laid-k: min(var(--text-k), 1);
+  /* **Detail by zoom** (chips 2026-11-08, cards and lines 2026-11-15): one look at every zoom, its
+     detail fading continuously as the camera draws back, from whole at 75% to a fifth at 25%;
+     never a level, never a switch, so nothing comes or goes. */
+  --detail: clamp(0.2, calc((var(--zoom, 1) - 0.25) * 1.6 + 0.2), 1);
 }
-/* **A card's preview sits under rows laid at layout size**, so a card showing one never holds its
-   text larger than it was laid, even while hysteresis keeps it a little below the text band. **A
-   card too small for its head** keeps it too, held no larger than laid, and any card's name is
-   held no larger than a chip's (2026-11-05): zoomed far out names shrink with the drawing, as a
-   chip's do, never popping in. */
-.mnd-flow .mnd-card { --text-k: var(--chip-k); }
-.mnd-flow .mnd-card:is([data-level="0"], [data-level="3"]) { --text-k: var(--laid-k); }
+/* **A map's text scales with the drawing** (2026-11-08): a chip's, a box's and a well's words
+   are never held on screen, so zooming in reads them larger and every fit is decided as laid
+   (views `map.ts` `CHIP`, `NAME`). */
+.mnd-flow :is(.mnd-chip, .mnd-box) { --text-k: 1; --laid-k: 1; }
+/* **A card's text is never held larger than laid** (2026-11-15): its name, facts, table and body
+   show at every zoom, laid once, so zoomed far out they shrink with the drawing, unread rather
+   than gone. */
+.mnd-flow .mnd-card { --text-k: var(--laid-k); }
 
-/* ── **Levels by zoom**: mark → head → facts → preview, picked from the size on screen (views
-   `level_at`). Rows add below, anchored to the top, and fade; nothing drawn moves. ── */
-.mnd-flow .mnd-card > :is(.mnd-head, .mnd-face-facts, .mnd-face-table, .mnd-face-body, .mnd-marks),
-.mnd-flow .mnd-chip > :is(.mnd-chip-text, .mnd-chip-body),
-.mnd-flow .mnd-chip-turn > :is(.mnd-chip-text, .mnd-chip-body),
-.mnd-flow .mnd-chip-stack > *,
-.mnd-flow .mnd-chip-text .mnd-facts > * {
-  transition: opacity 120ms ease, visibility 120ms;
-}
-/* A seat too small to read hides; its line still meets the wall where it sits. */
-.mnd-flow .mnd-seat.tiny:not(.picked) { visibility: hidden; }
-
-/* **Nothing in a chip or a card pops in** (2026-11-04, cards 2026-11-05): a name, and a chip's
-   body — tiles, nested tiles and their names — show at every level, held no larger than laid,
-   so zoomed far out they only shrink with the drawing, unread rather than gone; only facts and a
-   card's preview come and go by level. */
-/* A small face carrying facts reads from the top, so its facts add under its name. */
-.mnd-flow .mnd-card.small:has(> .mnd-face-facts) > .mnd-head { flex: none; }
-.mnd-flow .mnd-card:is([data-level="0"], [data-level="1"]) > .mnd-face-facts,
-.mnd-flow .mnd-card:not([data-level="3"]) > :is(.mnd-face-table, .mnd-face-body),
-.mnd-flow .mnd-chip:is([data-level="0"], [data-level="1"]) .mnd-chip-text .mnd-facts > * {
-  opacity: 0;
-  visibility: hidden;
+/* **Detail fades with the zoom** (`--detail`): a card's meta line, table and body; a chip's meta
+   line and its well's names; a seat; a line's name and its ends' words. Names, icons, cells and
+   strokes stay whole. */
+.mnd-flow .mnd-card > :is(.mnd-face-table, .mnd-face-body),
+.mnd-flow .mnd-card .mnd-meta,
+.mnd-flow .mnd-chip :is(.mnd-meta, .mnd-well-name),
+.mnd-flow .mnd-seat:not(.picked),
+.mnd-flow :is(.mnd-wire-name, .mnd-wire-end):not(.picked) {
+  opacity: var(--detail);
 }
 
 /* Where relationships sit in the stack. */
@@ -112,43 +99,30 @@
   border-color: var(--card-line);
   background: var(--card-fill);
 }
-.mnd-card.header > .mnd-head {
-  flex: 1;
-  justify-content: center;
-  align-items: center;
-  padding-right: 0;
-}
-.mnd-card.header > .mnd-head > .mnd-named {
-  flex: 1;
-  justify-content: center;
-  min-width: 0;
-}
 .mnd-card.header .mnd-label {
   font-weight: 700;
   text-align: center;
   width: 100%;
 }
-.mnd-card.header .mnd-kind { display: none; }
-/* A header line is one unit across, so its card is its name alone, small. */
-.mnd-card.header { padding: 0 4px; font-size: 11px; }
-.mnd-card.header > .mnd-head { padding-right: 0; gap: 0; }
-.mnd-card.header > .mnd-role, .mnd-card.header > .mnd-marks {
+/* A header line is one unit across, so its card is its name alone, small, centred. */
+.mnd-card.header { padding: 0 4px; font-size: 11px; justify-content: center; }
+.mnd-card.header > .mnd-header { --name-size: 11px; }
+.mnd-card.header :is(.mnd-meta, .mnd-header-icon), .mnd-card.header > .mnd-marks {
   display: none;
-}
-.mnd-card.header .mnd-label {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 /* The left column heads rows, and reads upright. */
 .mnd-card.header.upright { padding: 4px 0; }
-.mnd-card.header.upright > .mnd-head { writing-mode: vertical-rl; transform: rotate(180deg); }
+.mnd-card.header.upright > .mnd-header { writing-mode: vertical-rl; transform: rotate(180deg); }
 
 
 /* Which way a flow enters and leaves, on the interface that carries it. */
-/* A port of an interface definition is filled with that definition's colour; its border still
-   says which way it carries. */
-.mnd-seat.typed { border-color: var(--card-edge); }
+/* **A typed seat is filled with its type's colour, semi-transparent, and outlined in it; a base
+   seat (`interface`) is hollow** (docs/design/card.md, 2026-11-14). */
+.mnd-seat { background: transparent; }
+.mnd-seat.typed {
+  border-color: var(--card-edge);
+  background: color-mix(in oklch, var(--card-edge) 35%, transparent);
+}
 
 /* **A seat is one square**: its chevron points into the card for in, out of it for out (theme
    `--seat-chevron`). A seat on the frame faces the room, so its directions turn round. */
@@ -196,7 +170,6 @@
   width: 100%;
   height: 100%;
   border: 1px solid var(--card-line);
-  background: var(--surface);
 }
 
 /* ── The frame: the open layer, seen from within ── */
@@ -362,450 +335,217 @@
 @container (max-height: 46px) { .mnd-tile-count, .mnd-tile-about { display: none; } }
 @container (max-height: 80px) or (max-width: 150px) { .mnd-tile-about { display: none; } }
 
-/* ── The map, the library's and the model's: boxes of chips ── */
+/* ── The tree view (docs/design/chip.md): boxes of chips ── */
 
-/* A box's ground lets the pointer through, so a press there is on the box; its title is its own.
-   Walls and edges are hairline shadows: a border under 1px is drawn at 1px before the zoom. */
+/* A box's ground lets the pointer through, so a press there is on the box; its header is its own.
+   Walls are hairline shadows: a border under 1px is drawn at 1px before the zoom. */
 .mnd-flow .react-flow__node-box { pointer-events: none !important; }
 .mnd-box {
   position: relative;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  border-radius: 3px;
-  box-shadow: inset 0 0 0 calc(var(--edge-w, 1px) / var(--zoom, 1))
-              var(--edge, color-mix(in oklch, var(--wall) 50%, transparent));
+  border-radius: 4px;
+  background: color-mix(in oklch, var(--muted) 4%, transparent);
+  box-shadow: inset 0 0 0 calc(1px / var(--zoom, 1))
+              var(--edge, color-mix(in oklch, var(--wall) 70%, transparent));
 }
-/* A box's counts after its name, quieter; they give way first when the title runs out of room. */
-.mnd-box-counts {
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--faint);
-  font-size: calc(10px * var(--chip-k, 1));
-}
-.mnd-box-name { flex: none; }
+/* **Its header is the shared one** (theme `header.tsx`), across its top (views `map.ts`
+   `AIR.title`). */
 .mnd-box-title {
   position: absolute;
-  top: 5px;
-  left: 8px;
-  right: 6px;
+  top: 7px;
+  left: 10px;
+  right: 10px;
   display: flex;
-  gap: 5px;
-  align-items: center;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: calc(12px * var(--chip-k, 1));
-  white-space: nowrap;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--text);
   pointer-events: auto;
   cursor: pointer;
 }
-.mnd-box-name { overflow: hidden; text-overflow: ellipsis; }
-/* A group on the map is a panel over its members' cells, never a box: no rim, a faint ground. */
+.mnd-box-title > .mnd-header { flex: 1 1 auto; }
+.mnd-box-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* A group on the map is a panel over its members' cells, never a box: no rim, a faint ground, its
+   name alone. */
 .mnd-box.panel {
   box-shadow: none;
   background: color-mix(in oklch, var(--muted) 8%, transparent);
 }
+.mnd-box.panel > .mnd-box-title { color: var(--muted); font-size: 11px; }
 
-/* **A model's parts read first** (views `map.ts` `is_major`): framed heavier in their own colour,
-   a wide gap round each; what they hold is quieter, its rims, titles and previews faded until the
-   pointer is on it, every chip keeping its colour. */
-.mnd-box.major, .mnd-chip.major { --edge-w: 2px; }
-.mnd-box.major { --edge: var(--muted); }
-/* Its rim half its colour, so the accent on its left edge, wider, still reads apart from it. */
-.mnd-chip.major { --edge: color-mix(in oklch, var(--card-line) 55%, transparent); }
-.mnd-chip.major[data-family] { border-left-width: 4px; }
-.mnd-box.minor { --edge: color-mix(in oklch, var(--wall) 30%, transparent); }
-.mnd-box.minor > .mnd-box-title { color: var(--faint); }
-.mnd-chip.minor { --edge: color-mix(in oklch, var(--card-line) 50%, transparent); }
-.mnd-chip:is(.major, .minor) > .mnd-chip-body,
-.mnd-chip:is(.major, .minor) > .mnd-chip-turn > .mnd-chip-body { opacity: 0.5; }
-/* A minor chip's own words fade as a major chip's preview does; it hides by level as before. */
-.mnd-chip.minor:not(:hover, .picked) .mnd-chip-text { opacity: 0.6; }
-.mnd-chip:is(.major, .minor):is(:hover, .picked) > .mnd-chip-body,
-.mnd-chip:is(.major, .minor):is(:hover, .picked) > .mnd-chip-turn > .mnd-chip-body { opacity: 1; }
-/* The same ranks in an entered diagram of a model (views `layer.ts` `ranked`): a card holding
-   parts framed heavier, the rest's words quieter until the pointer is on it; colours kept. */
-.mnd-flow .mnd-card.major { --card-border-width: 2px; }
-.mnd-flow .mnd-card.minor:not(:hover, .picked) > :not(.mnd-role) { opacity: 0.6; }
-
-/* A chip: what is entered — its icon, name and counts over a small treemap of what it holds. */
+/* **A chip: a card's header over a well.** Its padding and its well's room are views `map.ts`
+   `CHIP`; its name's size grows with its cell (`--name-size`). **A ladder of fill and border**,
+   strongest first: holds parts, diagram, leaf; actors round, externals a thin plain border. Every
+   chip but those two wears its colour as a left accent. */
 .mnd-chip {
   position: relative;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
+  padding: 8px 10px;
   overflow: hidden;
   border-radius: 3px;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 calc(var(--edge-w, 1px) / var(--zoom, 1)) var(--edge, var(--card-line));
+  border: 1px solid color-mix(in oklch, var(--card-line) 60%, transparent);
+  border-left: 6px solid var(--card-edge, var(--card-line));
+  background: color-mix(in oklch, var(--card-edge, var(--muted)) 4%, var(--surface));
+  color: var(--text);
   cursor: pointer;
 }
-/* **Every chip wears its colour** on its edge and its icon: a block's or a definition's own, a
-   diagram's its kind's. */
-.mnd-chip[data-family] { border-left: 3px solid var(--card-edge, var(--card-line)); }
-/* **A chip's text is a card's head**: its name, quieter what it is, its kind's icon in the
-   top-right corner, never smaller on screen than a card's; then its facts. **Whole rows or none**:
-   every row is one line (`--l`), the text holds as many as its room (`--band`, chip.tsx) rounds
-   down to, and what does not fit beside the rest wraps to the next row, out of sight where there
-   is none. Nothing is cut mid-word or drawn over the body (`ROW`, views `map.ts`). */
-.mnd-chip {
-  --l: calc(17px * var(--chip-k, 1));
-  --icon: clamp(14px, calc(11px / var(--zoom, 1)), 22px);
+.mnd-chip.holds {
+  border: 1.5px solid color-mix(in oklch, var(--card-edge, var(--muted)) 70%, transparent);
+  border-left: 6px solid var(--card-edge, var(--card-line));
+  background: color-mix(in oklch, var(--card-edge, var(--muted)) 18%, var(--surface));
 }
-.mnd-chip-text {
+.mnd-chip.diagram {
+  border: 1px solid color-mix(in oklch, var(--card-edge, var(--muted)) 55%, transparent);
+  border-left: 6px solid var(--card-edge, var(--card-line));
+  background: color-mix(in oklch, var(--card-edge, var(--muted)) 10%, var(--surface));
+}
+.mnd-chip.folder {
+  border: 1.5px solid var(--wall);
+  border-left: 6px solid var(--muted);
+  background: color-mix(in oklch, var(--muted) 12%, var(--surface));
+}
+.mnd-chip.actor {
+  border: 1.5px solid var(--card-edge, var(--muted));
+  border-radius: 16px;
+  background: transparent;
+}
+.mnd-chip.external {
+  border: 1px solid color-mix(in oklch, var(--muted) 35%, transparent);
+  background: transparent;
+}
+.mnd-chip.external .mnd-chip-name { color: var(--muted); font-weight: 500; }
+.mnd-chip.external .mnd-header-icon { color: var(--muted); }
+.mnd-chip-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* **A chip's links** (views `map.ts` `linked`): a row or two at its foot, quiet, under its well
+   and clear of its toggle; the well rises to make room. */
+.mnd-chip-links {
   position: absolute;
-  top: 4px;
-  left: 6px;
-  right: 6px;
-  height: round(down, calc(var(--band, 0) * 1px), var(--l));
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  align-items: center;
-  column-gap: 6px;
+  left: 10px;
+  right: 26px;
+  bottom: 7px;
+  display: -webkit-box;
   overflow: hidden;
-  white-space: nowrap;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 14px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--links-rows, 1);
 }
-.mnd-chip-text > *, .mnd-chip-text .mnd-facts > * { line-height: var(--l); }
-.mnd-chip-text .mnd-facts { display: contents; }
-/* The facts start a row of their own. */
-.mnd-chip-break { flex-basis: 100%; height: 0; }
-.mnd-chip-icon {
+.mnd-chip.linked .mnd-well { bottom: calc(9px + var(--links-rows, 1) * 14px); }
+
+/* **The well**: a holder's a plain recess, a diagram's framed in its hue like a small canvas, a
+   *diagram* tab on its frame. Its cells are a quiet treemap, each named where it has room. */
+.mnd-well {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: var(--icon);
-  height: var(--icon);
-  color: var(--text);
+  left: 10px;
+  right: 10px;
+  bottom: 9px;
+  box-sizing: border-box;
+  border-radius: 2px;
+}
+.mnd-well.recess {
+  background: color-mix(in oklch, var(--card-edge, var(--muted)) 6%, var(--bg));
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--card-edge, var(--muted)) 30%, transparent);
+}
+.mnd-well.framed {
+  border: 1px solid color-mix(in oklch, var(--card-edge, var(--muted)) 60%, transparent);
+  background: color-mix(in oklch, var(--card-edge, var(--muted)) 5%, transparent);
+}
+.mnd-well-tab {
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  z-index: 1;
+  height: 15px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in oklch, var(--card-edge, var(--muted)) 60%, transparent);
+  border-radius: 2px;
+  background: color-mix(in oklch, var(--card-edge, var(--muted)) 10%, var(--surface));
+  color: var(--card-edge, var(--muted));
+  font-size: 10px;
+  line-height: 13px;
+  letter-spacing: 0.06em;
+}
+.mnd-well-cells { position: absolute; inset: 4px; }
+.mnd-well.framed > .mnd-well-cells { top: 12px; }
+/* **Neighbours stand apart** (views `map.ts` `GRADES`): each cell steps through four grades of
+   its colour, out of order so the steps beside each other are wide; a cell holding parts reads a
+   grade stronger; a hairline round each in its colour. */
+.mnd-well-cell {
+  --g: 20%;
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 1px;
+  background: color-mix(in oklch, var(--card-edge, var(--muted)) calc(var(--g) + var(--g-holds, 0%)),
+                        var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--card-edge, var(--muted)) 30%, transparent);
+}
+.mnd-well-cell[data-grade="1"] { --g: 44%; }
+.mnd-well-cell[data-grade="2"] { --g: 10%; }
+.mnd-well-cell[data-grade="3"] { --g: 32%; }
+.mnd-well-cell.holds { --g-holds: 10%; }
+.mnd-well-cell.diagram {
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--card-edge, var(--muted)) 70%, transparent);
+}
+.mnd-well-cell.actor {
+  background: transparent;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--card-edge, var(--muted)) 60%, transparent);
+}
+/* A cell's role icon, in its top right corner as a header's is, at its name's size; the name
+   stops short of it (views `map.ts` `NAMED.icon`). */
+.mnd-well-icon {
+  position: absolute;
+  top: calc(var(--well-name, 10.5px) * 0.28);
+  right: 4px;
+  width: calc(var(--well-name, 10.5px) * 1.1);
+  height: calc(var(--well-name, 10.5px) * 1.1);
+  color: color-mix(in oklch, var(--text) 70%, transparent);
   pointer-events: none;
 }
-/* **Where a walk starts** (`walks`): a block owning a path wears a small ▶ in the accent before
-   its name, on a chip and a card alike. */
-.mnd-chip.walks .mnd-chip-name::before,
-.walks .card-name::before { content: "▶\00a0"; color: var(--accent); font-size: 0.8em; }
-/* The name keeps clear of the icon; the kind beside it only where it fits whole and clear of the
-   icon, else on a row of its own. */
-.mnd-chip-name {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: calc(100% - var(--icon) - 4px);
-  overflow: hidden;
-  color: var(--text);
-  font-size: calc(12px * var(--chip-k, 1));
-  font-weight: 600;
-  text-overflow: ellipsis;
+.mnd-well-cell:has(.mnd-well-icon) > .mnd-well-name {
+  right: calc(4px + var(--well-name, 10.5px) * 1.4);
 }
-.mnd-chip-kind {
-  flex: none;
-  max-width: calc(100% - var(--icon) - 4px);
-  margin-right: calc(var(--icon) + 4px - 6px);
-  overflow: hidden;
-  color: var(--muted);
-  font-size: calc(10px * var(--chip-k, 1));
-  text-overflow: ellipsis;
+.mnd-well-icon path { vector-effect: non-scaling-stroke; stroke-width: 1px; }
+/* A relation definition's cell wears its swatch there instead: a stroke at the name's middle. */
+.mnd-well-icon.swatch {
+  height: 0;
+  top: calc(var(--well-name, 10.5px) * 0.85);
+  border-top-width: 1.5px;
 }
-/* Each fact a whole row tall, so rows stay whole: a count's box, a seat, a tag's dot. */
-.mnd-chip-text .mnd-facts {
-  font-size: calc(10px * var(--chip-k, 1));
+/* What the well leaves out: one plain cell, no fill, its count muted. */
+.mnd-well-cell.more {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--muted) 25%, transparent);
 }
-.mnd-chip-text .mnd-fact {
-  box-sizing: border-box;
-  height: calc(var(--l) - 2px);
-  margin-block: 1px;
-  line-height: calc(var(--l) - 4px);
-  font-size: calc(10px * var(--chip-k, 1));
+.mnd-well-cell.more .mnd-well-name { color: var(--muted); }
+.mnd-well-cell.external {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--muted) 35%, transparent);
 }
-/* **A chip too narrow for its name** (`NARROW`, nodes.tsx) shows its icon alone, where it ever
-   sits, never wider than the chip (`--cap`). */
-.mnd-chip.narrow .mnd-chip-text { display: none; }
-/* A card's facts strip: one line under its head, whole facts only — what does not fit wraps out of
-   sight. */
-.mnd-face-facts .mnd-facts {
-  height: calc(18px * var(--text-k, 1));
-  overflow: hidden;
-  align-content: flex-start;
-  row-gap: 18px;
-  padding-top: calc(2px * var(--text-k, 1));
-  box-sizing: border-box;
-  font-size: calc(10px * var(--text-k, 1));
-  line-height: calc(10px * var(--text-k, 1));
-}
-.mnd-chip.narrow .mnd-chip-icon {
-  --icon: min(clamp(14px, calc(11px / var(--zoom, 1)), 22px), var(--cap, 22px));
-}
-/* **A tall, narrow chip is turned -90° whole** (`TURN`, views `map.ts`; theme `chip.tsx`): laid
-   as a chip on its box turned on its side, then drawn turned from its lower left corner, so its
-   name, facts and body read together up its length; its colour edge runs along its foot. */
-.mnd-chip.upright[data-family] {
-  border-left: none;
-  box-shadow: inset 0 -3px 0 var(--card-edge, var(--card-line)),
-              inset 0 0 0 calc(var(--edge-w, 1px) / var(--zoom, 1)) var(--edge, var(--card-line));
-}
-.mnd-chip-turn {
+/* Every child named, at the size that fits its cell (views `map.ts` `NAMED`). */
+.mnd-well-name {
   position: absolute;
-  left: 0;
-  top: 100%;
-  transform-origin: 0 0;
-  transform: rotate(-90deg);
-  /* Turned text smoothed in grey: Windows' colour (subpixel) smoothing, laid then turned, fringes
-     and blurs it. A layer not quite opaque is smoothed in grey and still drawn at every zoom. */
-  opacity: 0.999;
-}
-/* **A diagram's chip looks as a library chip does**: flat tiles on the chip's own ground, its edge
-   in its colour; what kind it is shows in how its inside is drawn — its layers, wide gaps between
-   them and narrow ones within, its marks, a grid's strips and lines, a card's rules. */
-.mnd-chip.diagram {
-  --chip-line: color-mix(in oklch, var(--muted) 60%, transparent);
-  --chip-fill: color-mix(in oklch, var(--muted) 30%, transparent);
-  --flow: color-mix(in oklch, var(--muted) 30%, transparent);
-}
-/* Its tiles the library's colour over a solid ground, so a lifeline runs behind them. */
-.mnd-chip.diagram .mnd-chip-tile {
-  background: color-mix(in oklch, var(--card-line) 8%, var(--surface));
-}
-
-/* A group in a diagram's chip, and a model's box in a library chip's preview of its uses, is a
-   tinted panel. */
-.mnd-chip .mnd-chip-tile.group {
-  border-color: transparent;
-  background: color-mix(in oklch, var(--muted) 10%, transparent);
-}
-/* **What only shapes a diagram's chip** is never a card, and quiet beside them: a region's
-   tinted band, every other one lighter; a grid's plain header strips; a lifeline down a column
-   behind its blocks; a rule between a grid's rows. Lines are sized by the zoom. */
-.mnd-chip.diagram .mnd-chip-tile:is(.band, .head, .track, .life, .rule, .flow, .arrow) {
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-}
-.mnd-chip.diagram .mnd-chip-tile.band {
-  background: color-mix(in oklch, var(--muted) 9%, transparent);
-}
-.mnd-chip.diagram .mnd-chip-tile.band.odd {
-  background: color-mix(in oklch, var(--muted) 4%, transparent);
-}
-/* **A grid's header track**: the quiet strip behind its header cards, across the top and down
-   the side, so the headers read as one line of the grid. */
-.mnd-chip.diagram .mnd-chip-tile.track {
-  border-radius: 2px;
-  background: color-mix(in oklch, var(--muted) 14%, transparent);
-}
-/* **A header strip carrying its name is a small card**: its header block's colour down its
-   leading edge, its name along it — upright down a row's strip, reading up. */
-.mnd-chip.diagram .mnd-chip-tile.head.labeled {
-  align-items: center;
-  border-left: 2px solid var(--card-edge, var(--card-line));
-  border-radius: 2px;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 calc(1px / var(--zoom, 1)) var(--card-line);
-  color: var(--text);
-}
-.mnd-chip.diagram .mnd-chip-tile.head.labeled.tall {
-  border-left: 0;
-  border-bottom: 2px solid var(--card-edge, var(--card-line));
-  padding: 3px 0;
-  background: var(--surface);
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-}
-/* A grid's headers and a flow's start and end strips weigh as the flow line does: one quiet line
-   down the middle of the strip, along its length. */
-.mnd-chip.diagram .mnd-chip-tile.head {
-  background: linear-gradient(var(--flow), var(--flow)) center / 100% calc(2px / var(--zoom, 1))
-              no-repeat;
-}
-.mnd-chip.diagram .mnd-chip-tile.head.tall {
-  background: linear-gradient(var(--flow), var(--flow)) center / calc(2px / var(--zoom, 1)) 100%
-              no-repeat;
-}
-.mnd-chip.diagram .mnd-chip-tile.life {
-  overflow: visible;
-  border-left: calc(1px / var(--zoom, 1)) dashed var(--chip-fill);
-}
-.mnd-chip.diagram .mnd-chip-tile.rule {
-  overflow: visible;
-  border-top: calc(1px / var(--zoom, 1)) solid var(--chip-fill);
-}
-/* **A flow's line**: faint, behind its blocks, from its start strip to an arrow, a triangle the
-   gap's size, at its end strip, pointing the way it runs. */
-.mnd-chip.diagram .mnd-chip-tile.flow {
-  overflow: visible;
-  border-top: calc(2px / var(--zoom, 1)) solid var(--flow);
-  transform: translateY(-50%);
-}
-.mnd-chip.diagram .mnd-chip-tile.flow.down {
-  border-top: 0;
-  border-left: calc(2px / var(--zoom, 1)) solid var(--flow);
-  transform: translateX(-50%);
-}
-.mnd-chip.diagram .mnd-chip-tile.arrow {
-  background: var(--flow);
-  clip-path: polygon(0 0, 100% 50%, 0 100%);
-}
-.mnd-chip.diagram .mnd-chip-tile.arrow.down { clip-path: polygon(0 0, 100% 0, 50% 100%); }
-
-/* **A flow's mark keeps a card's shape**, quietly: a faint ground, its glyph — a start a dot, an
-   end a ring, a decision a small diamond by its name. */
-.mnd-chip.diagram .mnd-chip-tile.mark {
-  align-items: center;
-  border-color: transparent;
-  background: color-mix(in oklch, var(--muted) 8%, var(--surface));
-}
-.mnd-chip.diagram .mnd-chip-tile.mark::before {
-  flex: none;
-  box-sizing: border-box;
-  width: 6px;
-  height: 6px;
-  content: "";
-  border: 1.2px solid var(--chip-line);
-}
-.mnd-chip.diagram .mnd-chip-tile:is(.start, .end) { justify-content: center; }
-.mnd-chip.diagram .mnd-chip-tile:is(.start, .end)::before { border-radius: 50%; }
-.mnd-chip.diagram .mnd-chip-tile.start::before {
-  background: var(--chip-line);
-}
-.mnd-chip.diagram .mnd-chip-tile.decision::before { margin: 0 2px 0 1px; transform: rotate(45deg); }
-
-/* **A class's or an entity's card shows its structure**: its name over a clear rule, then its
-   body in thirds by two subtle rules — across for a class, down for an entity. */
-/* **A class's or an entity's texture** stands in for its rows where the tile has no room to say
-   them (the container query below), and steps aside where it does. */
-.mnd-chip-tile-texture {
-  /** A hairline a pixel on screen at any zoom, so a rule never falls between pixels. */
-  --hair: calc(1px / var(--zoom, 1));
-  position: absolute;
-  /* Under its name and its icon, however large the zoom makes the icon (`--icon`). */
-  inset: max(12px, calc(var(--icon, 9px) + 5px)) 0 0;
-  display: none;
-  border-top: calc(1px / var(--zoom, 1)) solid var(--chip-line);
-}
-.mnd-chip.diagram .mnd-chip-tile.class > .mnd-chip-tile-texture {
-  background:
-    linear-gradient(var(--chip-fill), var(--chip-fill)) 0 33.3% / 100% var(--hair) no-repeat,
-    linear-gradient(var(--chip-fill), var(--chip-fill)) 0 66.7% / 100% var(--hair) no-repeat;
-}
-.mnd-chip.diagram .mnd-chip-tile.entity > .mnd-chip-tile-texture {
-  background:
-    linear-gradient(var(--chip-fill), var(--chip-fill)) 33.3% 0 / var(--hair) 100% no-repeat,
-    linear-gradient(var(--chip-fill), var(--chip-fill)) 66.7% 0 / var(--hair) 100% no-repeat;
-}
-.mnd-chip-tile { display: flex; gap: 3px; align-items: flex-start; }
-.mnd-chip-tile > svg { flex: none; margin-top: 1px; }
-/* **What a tile says under its name**, as it grows: its facts line, then its rows, each one line
-   of the name's height, as many whole ones as the tile holds under its name. */
-.mnd-chip-tile-more {
-  position: absolute;
-  top: calc(1.2em + 2px);
-  left: 5px;
-  right: 3px;
-  height: max(0px, round(down, calc(100% - 1.2em - 4px), 1.2em));
-  display: flex;
-  flex-direction: column;
+  top: calc(var(--well-name, 10.5px) * 0.28);
+  left: calc(var(--well-name, 10.5px) * 0.45);
+  right: 4px;
   overflow: hidden;
-  color: var(--muted);
-}
-.mnd-chip-tile-more > span {
-  flex: none;
-  overflow: hidden;
-  line-height: 1.2em;
-  text-overflow: ellipsis;
-}
-.mnd-chip-tile-more > .facts { color: var(--faint); }
-/* A tile's name: its line whole, or none where the tile is shorter. */
-.mnd-chip-tile-name {
-  min-inline-size: 0;
-  block-size: round(down, 100%, 1.2em);
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* The body, under the head (`--head`, from views `map.ts`). */
-.mnd-chip-body { position: absolute; top: var(--head, 22px); left: 6px; right: 6px; bottom: 6px; }
-.mnd-chip-tile {
-  position: absolute;
-  box-sizing: border-box;
-  overflow: hidden;
-  padding: 0 3px;
-  border: 1px solid color-mix(in oklch, var(--card-line) 55%, transparent);
-  background: color-mix(in oklch, var(--card-line) 8%, transparent);
-  color: var(--muted);
-  font-size: calc(9px * var(--laid-k, 1));
-  line-height: 1.2;
-  text-overflow: ellipsis;
+  color: color-mix(in oklch, var(--text) 85%, transparent);
+  font-size: var(--well-name, 10.5px);
+  line-height: 1.25;
   white-space: nowrap;
-  container-type: size;
+  text-overflow: ellipsis;
 }
-/* **A tile's text reads, or is absent**: held at a readable size on screen, but never larger than
-   its tile holds a line and five letters of; never smaller than laid, and absent where even that
-   does not fit — four letters and an ellipsis, one line. */
-.mnd-chip-tile > :is(.mnd-chip-tile-name, .mnd-chip-tile-more) {
-  font-size: max(1em, min(calc(9px * var(--text-k, 1)), calc(100cqb / 1.2), calc(100cqi / 3)));
-}
-/* A title over members — a tile holding tiles, a place's box, a group's panel — keeps to the line
-   laid for it, so it never reaches what it holds. */
-.mnd-chip-tile:is(.holds, .group) > .mnd-chip-tile-name { block-size: 1.2em; font-size: 1em; }
-@container (inline-size < 3em) or (block-size < 1.2em) {
-  .mnd-chip-tile-name, .mnd-chip-tile-more { display: none; }
-}
-@container (inline-size < 3em) or (block-size < 2.6em) {
-  .mnd-chip-tile-more { display: none; }
-  .mnd-chip-tile-texture { display: block; }
-}
-/* A class's or an entity's rows, said, are ruled as its card's table is. */
-.mnd-chip-tile:is(.class, .entity) > .mnd-chip-tile-more {
-  left: 0;
-  right: 0;
-  box-shadow: 0 calc(-1px / var(--zoom, 1)) 0 var(--chip-line);
-}
-/* Its rows say how many; its facts line would only count them again. */
-.mnd-chip-tile:is(.class, .entity) > .mnd-chip-tile-more > .facts { display: none; }
-/* Each row keeps its one line's height, its rule inside it, so rows still round whole. */
-.mnd-chip-tile:is(.class, .entity) > .mnd-chip-tile-more > span {
-  box-sizing: border-box;
-  height: 1.2em;
-  padding-inline: 5px 3px;
-  border-bottom: calc(1px / var(--zoom, 1)) solid var(--chip-fill);
-  line-height: calc(1.2em - 1px);
-}
-/* **A block's tile is a small card**, edged as a chip is: a hairline round it, its own colour
-   down its left side, its name at its top and its kind's icon in the top-right corner — never
-   smaller on screen than a card's, nor past the room its tile has (`--cap`, nodes.tsx). Under
-   the pointer its edge lights, as a chip's does: it picks and enters on its own. */
-.mnd-chip .mnd-chip-tile.card {
-  border: 0;
-  border-left: 2px solid var(--card-edge, var(--card-line));
-  border-radius: 2px;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 calc(1px / var(--zoom, 1)) var(--tile-edge, var(--card-line));
-  color: var(--text);
-}
-.mnd-chip .mnd-chip-tile.card:hover { --tile-edge: var(--accent); }
-.mnd-chip-tile.iconed {
-  --icon: clamp(min(9px, var(--cap, 9px)), calc(9px / var(--zoom, 1)), var(--cap, 9px));
-  padding: 1px calc(var(--icon) + 5px) 0 3px;
-}
-/* Its icon centred on its name's line, so the name keeps the one line height its rows round to. */
-.mnd-chip-tile.iconed > .mnd-chip-tile-icon {
-  position: absolute;
-  top: max(1px, calc(1px + (1.2em - var(--icon)) / 2));
-  right: 2px;
-  width: var(--icon);
-  height: var(--icon);
-  margin: 0;
-}
-/* A tile too small for its name shows its icon alone, where it ever sits, the size every tile's
-   icon is: never grown to fill the tile. */
-.mnd-chip-tile.iconed.bare { padding: 0; }
 
-/* Under the pointer: a brighter edge and ground. Picked: a wider accent edge, the accent in the
-   ground. Nothing else lights on a map. */
-.mnd-chip:hover, .mnd-box:has(.mnd-box-title:hover) { --edge: var(--accent); }
+/* Under the pointer: the accent in the ground. Nothing else lights on a map. */
 .mnd-chip:hover { background: color-mix(in oklch, var(--accent) 8%, var(--surface)); }
-.mnd-box.picked .mnd-box-title { color: var(--accent); }
+.mnd-box:has(.mnd-box-title:hover) { --edge: var(--accent); }
+.mnd-box.picked .mnd-box-name { color: var(--accent); }
 
 /* Where the camera cut from the map to a layer, or back, the new drawing fades in. */
 .mnd-flow.fresh .react-flow__viewport { animation: mnd-fade-in 0.2s ease-out; }
@@ -819,113 +559,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .mnd-flow .react-flow__node:not(.dragging) { transition: none; }
-}
-
-/* ── A chip's profile: a preview of what a block has, over its uses by place ── */
-
-/* **Its text and profile share one column**, the profile right under the text as drawn: the head
-   is laid for text held at its largest, so zoomed in, where the text is smaller, the rule stays
-   under the facts rather than where the held text would end. */
-.mnd-chip-stack {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  left: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow: hidden;
-}
-.mnd-chip-stack > .mnd-chip-text {
-  position: static;
-  flex: none;
-  height: auto;
-  max-height: round(down, calc(var(--band, 0) * 1px), var(--l));
-}
-/* Its rows, lines and places fill the rest from the top, as many whole ones as it holds
-   (`Profile`, chip.tsx), each a line (`LINE`); the bar keeps the chip's bottom edge, under them. */
-.mnd-chip-profile {
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  padding: 0 2px;
-}
-.mnd-chip-profile > * { flex: none; }
-/* **Attributes or records as a ruled table**: the first column ink, the rest quieter. */
-.mnd-chip-rows {
-  display: grid;
-  grid-template-columns: repeat(var(--cols, 2), minmax(0, auto));
-  justify-content: start;
-  column-gap: 8px;
-  overflow: hidden;
-  border-top: calc(1px / var(--zoom, 1)) solid var(--card-line);
-  color: var(--muted);
-  font-size: calc(10px * var(--laid-k, 1));
-  /** A row and its rule make one line (`LINE`, nodes.tsx). */
-  line-height: calc(14px * var(--laid-k, 1));
-}
-.mnd-chip-rows > span {
-  overflow: hidden;
-  border-bottom: calc(1px / var(--zoom, 1)) solid color-mix(in oklch, var(--card-line) 45%,
-                                                           transparent);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.mnd-chip-rows > .key { color: var(--text); }
-/* **A body or a description as lines**, prose-sized, each wrapping to fill what room it has. */
-.mnd-chip-lines {
-  display: -webkit-box;
-  overflow: hidden;
-  color: var(--text);
-  font-size: calc(10px * var(--laid-k, 1));
-  line-height: calc(15px * var(--laid-k, 1));
-  white-space: pre-line;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-}
-/* **A definition's places**, a row each: its name in its place's colour, how many uses it holds. */
-.mnd-chip-places {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  font-size: calc(10px * var(--laid-k, 1));
-  line-height: calc(15px * var(--laid-k, 1));
-}
-.mnd-chip-places > span {
-  display: flex;
-  flex: none;
-  gap: 6px;
-  justify-content: space-between;
-  padding-left: 5px;
-  border-left: 2px solid var(--card-edge, var(--card-line));
-  color: var(--muted);
-}
-.mnd-chip-places > span > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mnd-chip-places > span > b { color: var(--text); font-weight: 500; }
-/* **Its uses split by place**, each in its place's colour, along the body's bottom. */
-.mnd-chip-bar {
-  position: absolute;
-  right: 6px;
-  bottom: 4px;
-  left: 6px;
-  display: flex;
-  gap: 1px;
-  height: 5px;
-}
-.mnd-chip-bar > i { flex-basis: 0; background: var(--card-edge, var(--card-line)); }
-/* **A *+n more* tile** holds what had no room: a quiet ground and its count in muted ink, never a
-   card. Its hover card lists what it holds. */
-.mnd-chip .mnd-chip-tile.more {
-  border-color: transparent;
-  background: color-mix(in oklch, var(--muted) 14%, transparent);
-  color: var(--muted);
-}
-/* A place's box among a definition's uses wears its place's colour, quietly. */
-.mnd-chip .mnd-chip-tile.group[data-family] {
-  border-left: 2px solid color-mix(in oklch, var(--card-edge) 70%, transparent);
-  background: color-mix(in oklch, var(--card-line) 12%, transparent);
 }
 
 /* ── A map's hover card (`Hover.tsx`): what is under the pointer, in full ── */
@@ -980,7 +613,7 @@
   background: var(--pick-ground) !important;
   box-shadow: var(--pick-ring) !important;
 }
-.mnd-chip-tile.picked {
+.mnd-well-cell.picked {
   background: var(--pick-ground) !important;
   box-shadow: inset 0 0 0 calc(2px / var(--zoom, 1)) var(--accent) !important;
 }
@@ -1000,8 +633,8 @@
 
 /* **Hops traced across a map** (stage `Traced.tsx`): thin legs in the accent, held at a steady
    width on screen, **over the chips** on a halo of the ground a little wider, so a leg cuts
-   cleanly across what it passes; never numbered. What crosses a leg shows on hover of its wider,
-   unseen stroke. */
+   cleanly across what it passes, each named at its middle (`said`). Everything a leg gathers
+   shows on hover of its wider, unseen stroke. */
 .mnd-trace { pointer-events: none; z-index: 2000; }
 .mnd-trace .halo { stroke: var(--bg); stroke-width: calc(4px / var(--zoom, 1)); opacity: 0.85; }
 .mnd-trace polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
@@ -1015,7 +648,12 @@
   stroke-width: calc(8px / var(--zoom, 1));
   pointer-events: stroke;
 }
-.mnd-trace-leg:hover .run { opacity: 1; stroke-width: calc(2px / var(--zoom, 1)); }
+/* A leg gathering more relations is heavier, a step each time they double. */
+.mnd-trace-leg[data-weight="1"] .run { stroke-width: calc(2.25px / var(--zoom, 1)); }
+.mnd-trace-leg[data-weight="2"] .run { stroke-width: calc(3px / var(--zoom, 1)); }
+.mnd-trace-leg[data-weight="3"] .run { stroke-width: calc(4px / var(--zoom, 1)); }
+.mnd-trace-leg:hover .run { opacity: 1; }
+.mnd-trace-leg[data-weight="0"]:hover .run { stroke-width: calc(2px / var(--zoom, 1)); }
 .mnd-trace marker path { fill: var(--accent); opacity: 0.85; }
 /* **Walking a path** (stage `Walk.tsx`): one quiet strip at the canvas's foot, centred, saying
    the step in words. */
@@ -1028,3 +666,119 @@
                    padding: 2px 6px; font: inherit; }
 .mnd-walk button:disabled { color: var(--faint); cursor: default; }
 .mnd-walk button:not(:disabled):hover { color: var(--accent); }
+
+/* ── A model's overview (views `overview.ts`, docs/diagrams/tree.md) ── */
+
+/* **A leg's pill** (2026-11-18): its name on the ground, ringed in the accent, clear of every
+   line; a short leg's badge on its neighbours' shared edge, ringed as heavy as its leg. */
+.mnd-trace .pill { pointer-events: none; }
+.mnd-trace .pill rect {
+  fill: var(--bg);
+  stroke: color-mix(in oklch, var(--accent) 60%, transparent);
+  stroke-width: calc(1px / var(--zoom, 1));
+}
+.mnd-trace .pill .label { fill: var(--text); font-size: calc(11px / var(--zoom, 1)); }
+.mnd-trace .badge rect { stroke: var(--accent); stroke-width: calc(1.5px / var(--zoom, 1)); }
+.mnd-trace-leg[data-weight="1"] .badge rect { stroke-width: calc(2.25px / var(--zoom, 1)); }
+.mnd-trace-leg[data-weight="2"] .badge rect { stroke-width: calc(3px / var(--zoom, 1)); }
+.mnd-trace-leg[data-weight="3"] .badge rect { stroke-width: calc(4px / var(--zoom, 1)); }
+
+/* **A presentation's steps**: earlier ones faded to 40%, the last drawn from its start, its datum
+   travelling along it, its arrowhead and label after (docs/presentations.md *How a stop plays*). */
+.mnd-trace.steps .past { opacity: 0.4; }
+.mnd-trace.steps .now .run {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  stroke-width: calc(2.5px / var(--zoom, 1));
+  animation: mnd-draw 1s ease-out forwards;
+}
+.mnd-trace.steps .run { stroke-width: calc(2px / var(--zoom, 1)); }
+.mnd-trace.steps .datum { fill: var(--accent); stroke: var(--bg); stroke-width: 1.5; }
+.mnd-trace.steps .now .pill { opacity: 0; animation: mnd-appear 0.3s ease-out 1s forwards; }
+@keyframes mnd-draw { to { stroke-dashoffset: 0; } }
+@keyframes mnd-appear { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .mnd-trace.steps .now .run, .mnd-trace.steps .now .pill { animation-duration: 0.01s;
+                                                             animation-delay: 0s; }
+  .mnd-trace.steps .datum { display: none; }
+}
+
+/* **Opening and closing a box**: a small square before a box's title, in a closed chip's foot. */
+.mnd-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid var(--wall);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--muted);
+  font: 11px/1 var(--mono, monospace);
+  pointer-events: all;
+  cursor: pointer;
+}
+.mnd-toggle:hover { color: var(--accent); border-color: var(--accent); }
+.mnd-chip > .mnd-toggle { position: absolute; right: 6px; bottom: 6px; z-index: 1; }
+.mnd-box-title .mnd-toggle { flex: none; margin-top: 2px; }
+
+
+/* **About** (docs/presentations.md *The overview*): past a dashed divider, plain notes, never a
+   box, never lit or dimmed. */
+.mnd-flow .react-flow__node-about { pointer-events: none; }
+.mnd-about {
+  display: flex;
+  gap: 32px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 10px 4px 0;
+  border-top: calc(1px / var(--zoom, 1)) dashed var(--wall);
+  color: var(--muted);
+  font-size: 12px;
+}
+.mnd-about-group { display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+                   min-width: 0; }
+.mnd-about-name { color: var(--faint); font-size: 10px; letter-spacing: 0.06em;
+                  text-transform: uppercase; line-height: 22px; }
+.mnd-about-item {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  line-height: 16px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: all;
+  cursor: pointer;
+}
+.mnd-about-item:hover { color: var(--accent); }
+.mnd-about-item.play { color: var(--accent); }
+
+/* **A records table** (views `records.ts`): the app's table look, a rule under every row; each
+   row's left accent its source definition's colour; a group opened by a plain heading. */
+.mnd-records { width: 100%; font-size: 12px; color: var(--text); }
+.mnd-records-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  align-items: center;
+  height: 26px;
+  padding-left: 8px;
+  border-bottom: 1px solid var(--divider);
+  border-left: 3px solid transparent;
+}
+.mnd-records-row[data-family] { border-left-color: var(--card-edge, var(--card-line)); }
+.mnd-records-row.head { color: var(--faint); font-size: 10px; letter-spacing: 0.06em;
+                        text-transform: uppercase; border-bottom-color: var(--wall); }
+.mnd-records-row .cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                         padding-right: 8px; }
+.mnd-records-heading { height: 24px; line-height: 28px; padding-left: 11px; color: var(--muted);
+                       font-weight: 600; }
+.mnd-records-link { padding: 0; border: 0; background: none; color: var(--accent); font: inherit;
+                    cursor: pointer; pointer-events: all; }
+.mnd-records-link:hover { text-decoration: underline; }

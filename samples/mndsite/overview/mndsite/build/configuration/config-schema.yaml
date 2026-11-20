@@ -1,0 +1,12 @@
+name: Config schema
+description: Config and its sections, as definitions in the library.
+blocks:
+  - Config
+  - Theme
+  - Frontmatter
+  - Facet
+  - Group
+  - Versioning
+  - Display
+  - Edit
+type: class

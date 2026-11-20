@@ -1,7 +1,7 @@
 /** Holders: folders, groups and grids, what each draws, cells, merges, headers and allocation. */
 
 import { allows_of, permits } from "./capabilities";
-import { base_of, setting_of } from "./defs";
+import { base_of, is_model, setting_of } from "./defs";
 import { children, is_interface, is_reference, stands_for } from "./tree";
 import type { Block, Cell, Graph, Grid, HeaderRole, Id, Shape, Span } from "./types";
 
@@ -31,7 +31,9 @@ export function covers(s: Span, r: number, c: number): boolean {
  *  never one, whatever it extends. */
 export function shape_of(graph: Graph, id: Id | undefined): Shape | null {
   const b = id ? graph.blocks[id] : undefined;
-  if (!b || b.def || is_reference(graph, b.id) || is_interface(graph, b.id)) return null;
+  /** A definition has no shape, but a model: it draws as its kind (2026-11-15). */
+  if (!b || (b.def && !is_model(graph, b.id)) || is_reference(graph, b.id)
+      || is_interface(graph, b.id)) return null;
   return shape_named(graph, b.id);
 }
 
@@ -83,6 +85,15 @@ export function is_holder(graph: Graph, id: Id | undefined): boolean {
 export function is_folder(graph: Graph, id: Id | undefined): boolean {
   const b = id ? graph.blocks[id] : undefined;
   return !!b && !b.def && base_of(graph, b.id) === "folder";
+}
+
+/** **Whether a block files**: a package — a root folder — or a package's folder, one no layer
+ *  draws in place. It enters as the treemap of what it files (`navigate.ts` `lens_of`, views
+ *  `block.ts`). */
+export function is_filing(graph: Graph, id: Id | undefined): boolean {
+  if (!id || !graph.blocks[id]) return false;
+  if (graph.blocks[id]!.parent === null) return true;
+  return is_folder(graph, id) && graph.blocks[layer_of(graph, id) ?? ""]?.parent === null;
 }
 
 /** Whether a block organizes: a folder, a group, a region or a grid. */

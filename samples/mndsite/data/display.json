@@ -1,0 +1,24 @@
+{
+  "id": "data-display",
+  "name": "Display",
+  "description": "Which items show, and in which order.",
+  "def": {
+    "attributes": [
+      {
+        "name": "toc",
+        "type": "text",
+        "many": true
+      },
+      {
+        "name": "contents",
+        "type": "text",
+        "many": true
+      }
+    ]
+  },
+  "settings": {
+    "card": {
+      "face": "table"
+    }
+  }
+}

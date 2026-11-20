@@ -7,15 +7,14 @@
  *  treemap of chips, the pick its focus. */
 
 import { NAMED_VIEWS } from "./components";
-import { is_model, models, setting_of } from "./defs";
-import { inline, is_folder, is_grid, is_region, layer_of } from "./holders";
+import { def_of, is_model, models, setting_of } from "./defs";
+import { inline, is_filing, is_folder, is_grid, is_region, layer_of } from "./holders";
 import { registry_at, registry_id, registry_of } from "./library";
 import { opens } from "./names";
-import { at_cut, in_section, is_layer_view, on_side, type Lists, type Section, type ViewKind }
-  from "./sections";
-import { line_layer, of_ref, path, stands_for } from "./tree";
-import { type Graph, type Id } from "./types";
-import { definition_uses } from "./uses";
+import { at_cut, filed_defs, in_section, is_layer_view, on_side, type Lists, type Section,
+         type ViewKind } from "./sections";
+import { children, line_layer, of_ref, path, placing_of, stands_for } from "./tree";
+import { type Block, type Graph, type Id } from "./types";
 
 /** Where a host's sections start: the forest above every package, or the workspace's root. */
 export type Top = "forest" | "workspace";
@@ -27,8 +26,11 @@ export type Tiers = { top: Top; sections: readonly Section[] };
 export type Views = Readonly<Record<string, ViewKind>>;
 
 /** What the canvas draws: the section it looks at, how, the layer — the block seen from inside,
- *  or the scope a whole section is drawn from — and what is picked on it. */
-export type View = { at: number; kind: ViewKind; layer: Id | null; pick: Id | null };
+ *  or the scope a whole section is drawn from — and what is picked on it. **A definition's part
+ *  entered from the models** is seen through the uses that read it through (`via`, outermost
+ *  first), so the view stays in the models (2026-11-08). */
+export type View = { at: number; kind: ViewKind; layer: Id | null; pick: Id | null;
+                     via?: Id[] };
 
 /** What the sections hold for a view, outermost first, and which section is in focus. */
 export type Held = { path: Id[]; at: number };
@@ -51,6 +53,8 @@ export const EDITOR: Tiers = {
 function feeds(graph: Graph, id: Id, view: string): boolean {
   if (view === "allocation") return is_grid(graph, id);
   if (view === "class" || view === "er") return opens(graph, id);
+  /** **A block with records opens on its records table** (docs/diagrams/mapping.md). */
+  if (view === "records") return !!graph.blocks[id]?.records?.length;
   if (view === "internal") {
     return !is_grid(graph, id) && opens(graph, id);
   }
@@ -72,25 +76,31 @@ export function diagram_of(graph: Graph, id: Id): ViewKind | null {
 
 
 /** The layer view a block opens on, read from the side `lists` — the models' where unsaid — or
- *  null where it opens on nothing: a package, a folder, a group or a region nothing — each is a
- *  box on its map or its parent's layer; a view it names and can feed; a grid, its allocation; a
+ *  null where it opens on nothing: a package, a group or a region nothing — each is a box on its
+ *  map or its parent's layer; **a package's folder, in the models, the treemap of what it files**
+ *  (core `placing_of`); a view it names and can feed; a grid, its allocation; a
  *  block with something to draw, from inside — **an empty block opens on nothing**. **In the
- *  library a definition opens its registry**, a model included, where it is used; **in the
- *  models a model opens its own drawing**, empty or not. A stand-in opens as what it stands
+ *  library a definition holding parts opens its own drawing**, never where it is used (that is
+ *  the tray's usages); **a model opens its own drawing**, empty or not. A stand-in opens as what it stands
  *  for. */
 export function lens_of(graph: Graph, id: Id, lists?: Lists): ViewKind | null {
   const b = graph.blocks[id];
-  /** A registry, and an entry of one, open on the registry view: neither is ever a block. */
-  if (!b) return registry_at(graph, id) || registry_of(graph, id) ? "registry" : null;
-  if (b.parent === null) return null;
+  /** A registry opens on the registry view; an entry of one opens on nothing, its users read in
+   *  the tray. Neither is ever a block. */
+  if (!b) return registry_at(graph, id) ? "registry" : null;
+  /** A package is a root folder: it enters in the models only where it holds one. */
+  if (b.parent === null && lists !== "domain" && !on_side(graph, id, "structure")) return null;
   if (b.def) {
-    if (lists === "domain") return definition_uses(graph, id).length ? "registry" : null;
-    return is_model(graph, id) ? diagram_of(graph, id) ?? "internal" : null;
+    /** In the library a definition holding parts opens its own drawing, as a model does. */
+    const opens = is_model(graph, id) || (lists === "domain" && children(graph, id).length > 0);
+    return opens ? diagram_of(graph, id) ?? "internal" : null;
   }
-  /** The library enters definitions only: a part of one is read in the tray. */
-  if (lists === "domain") return null;
+  /** The library enters its packages, folders and definitions only: a part of one is read in
+   *  the tray. */
+  if (lists === "domain") return is_filing(graph, id) && filed_defs(graph, id).length ? "internal" : null;
   const target = of_ref(graph, id) ? stands_for(graph, id) : null;
   if (target && target.id !== id) return lens_of(graph, target.id, lists);
+  if (is_filing(graph, id)) return "internal";
   const diagram = diagram_of(graph, id);
   if (diagram) return diagram;
   if (is_grid(graph, id)) return "allocation";
@@ -108,6 +118,31 @@ function map_at(at: number, pick: Id | null): View {
   return { at, kind: "map", layer: null, pick };
 }
 
+
+/** **The way to a layer through the uses it is seen through** (2026-11-08): the first use's path,
+ *  then below each use's definition the way on, to the next use and at last the layer. With no
+ *  uses, the layer's own path. */
+export function way_of(graph: Graph, layer: Id, via: readonly Id[] = []): Block[] {
+  if (!via.length) return path(graph, layer);
+  let way = path(graph, via[0]!);
+  [...via.slice(1), layer].reduce((use, to) => {
+    const steps = path(graph, to);
+    way = [...way, ...steps.slice(steps.findIndex((b) => b.id === def_of(graph, use)) + 1)];
+    return to;
+  }, via[0]!);
+  return way;
+}
+
+/** **The uses a definition's part is seen through**, read from the models: the open view's, then
+ *  the use it is read on — `given`, else the open layer — where that use's definition holds it.
+ *  Empty where no use reads it through. */
+function through(graph: Graph, now: View | null, subject: Id, given?: Id): Id[] {
+  const base = given ? [] : now?.via ?? [];
+  const use = given ?? now?.layer;
+  const def = use ? def_of(graph, use) : undefined;
+  if (!use || !def || !path(graph, subject).some((b) => b.id === def)) return base;
+  return use === subject ? base : [...base, use];
+}
 
 /** The way to a block through the sections: what each holds, and the root of the next. A block at
  *  a cut roots the next section. One that lists structure on its own records the block wherever
@@ -177,10 +212,19 @@ export function scope_of(roots: readonly (Id | null)[], at: number): Id | null {
   return roots[Math.max(0, at - 1)] ?? null;
 }
 
+/** Whether a layer draws as a treemap: a package's folder, or a kind that places by treemap. */
+function treemaps(graph: Graph, layer: Id): boolean {
+  return is_filing(graph, layer) || placing_of(graph, layer) === "treemap";
+}
+
 /** Whether a view draws a block: inside the layer it looks into; on a system view, what the first
  *  section lists under its scope, and the top level of each block at its cut. */
 export function draws(graph: Graph, tiers: Tiers, view: View, id: Id): boolean {
   if (!graph.blocks[id]) return false;
+  /** **An entered treemap draws all it holds**, at any depth: a chip or a cell stands for it. */
+  if (is_layer_view(view.kind) && view.layer && treemaps(graph, view.layer)) {
+    return id !== view.layer && path(graph, id).some((b) => b.id === view.layer);
+  }
   if (is_layer_view(view.kind)) return layer_of(graph, id) === view.layer;
   const section = tiers.sections[view.at] ?? tiers.sections[0];
   const cut = section?.cut ?? null;
@@ -198,7 +242,9 @@ export function sight(graph: Graph, tiers: Tiers, views: Views, at: number, id: 
   const { roots } = trace(graph, tiers, id);
   if (!is_layer_view(kind)) return { at, kind, layer: scope_of(roots, at), pick: id };
   if (lists === "domain") return map_at(at, id);
-  const own = roots[at] === id ? lens_of(graph, id, lists) : null;
+  /** A package brought into sight is picked on its map, never entered. */
+  const own = roots[at] === id && graph.blocks[id]?.parent !== null ? lens_of(graph, id, lists)
+    : null;
   if (own) return { at, kind: own, layer: id, pick: null };
   const up = layer_of(graph, id);
   const kind_up = up ? lens_of(graph, up, lists) : null;
@@ -207,16 +253,14 @@ export function sight(graph: Graph, tiers: Tiers, views: Views, at: number, id: 
 
 /** What opening a block does: **opening goes in**, on the view its card's kind calls for, read
  *  from the section it was opened from — `from`, else the section the canvas is already on, where
- *  that section lists it. A definition opened from the library opens its registry; a model opened
- *  from the models, its drawing. A stand-in opens what it stands for, where that opens. Anything
+ *  that section lists it. A definition holding parts opens its drawing; a model, its drawing. A stand-in opens what it stands for, where that opens. Anything
  *  that opens on nothing is picked where the canvas draws it, else brought into sight. */
 export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?: number,
                         now?: View | null): View | null {
   const origin = from !== undefined ? from : now?.at;
   const lists = lists_at(tiers, origin);
   const kind = lens_of(graph, id, lists);
-  /** A registry opens on its entries, an entry and a definition on where they are used, in the
-   *  library. */
+  /** A registry opens on its entries, in the library. */
   if (kind === "registry") {
     const at = tiers.sections.findIndex((s) => s.lists === "domain");
     return { at: Math.max(0, at), kind: "registry", layer: id, pick: null };
@@ -224,8 +268,8 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
   const b = graph.blocks[id];
   if (!b) return null;
   /** **A region is a camera stop**, and so is a folder drawn in place: the room holding it is
-   *  opened, and the focus narrows to it. A folder no layer draws is focused on its map. */
-  if (b.parent !== null && (is_region(graph, id) || is_folder(graph, id))) {
+   *  opened, and the focus narrows to it. A package's folder opens as its own treemap. */
+  if (b.parent !== null && (is_region(graph, id) || (is_folder(graph, id) && !kind))) {
     const room = layer_of(graph, id);
     const opened = room ? open_at(graph, tiers, views, room, from, now) : null;
     if (opened && is_layer_view(opened.kind)) return { ...opened, layer: id, pick: null };
@@ -236,6 +280,13 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
   if (target && target.id !== id) {
     if (lens_of(graph, target.id, lists)) return open_at(graph, tiers, views, target.id, from, now);
     return reveal_at(graph, tiers, views, now ?? null, id);
+  }
+  /** A step back on the way the open view is seen through keeps the uses before it. */
+  if (now?.via?.length && lists === "structure" && !on_side(graph, id, lists)) {
+    const way = way_of(graph, now.layer!, now.via).map((b) => b.id);
+    const at = way.indexOf(id);
+    const via = now.via.filter((u) => way.indexOf(u) < at);
+    if (at >= 0 && via.length && kind) return { at: origin!, kind, layer: id, pick: null, via };
   }
   const { roots, held } = trace(graph, tiers, id);
   const listed = origin !== undefined && held[origin] === id ? origin : held.lastIndexOf(id);
@@ -250,13 +301,25 @@ export function open_at(graph: Graph, tiers: Tiers, views: Views, id: Id, from?:
  *  *read* — from the section `from`, else the canvas's. It enters what it is on, where that opens
  *  there. In the library nothing else is entered: a part of a definition, or one not used, is
  *  read in the tray. In the models anything else — a tile inside a chip (`inner`), a plain block,
- *  a region — enters the nearest block above it that opens, picked there. Null where nothing
- *  does: what was read stays picked on its map. */
+ *  a region — enters the nearest block above it that opens, picked there. **A definition's part
+ *  seen through a use** (`via`, else the open layer) is entered through it where it opens, else
+ *  picked on that use: never in its definition, which would leave the models (2026-11-08). Null
+ *  where nothing does: what was read stays picked on its map. */
 export function read_at(graph: Graph, tiers: Tiers, views: Views, now: View | null, subject: Id,
-                        options: { inner?: boolean; from?: number } = {}): View | null {
+                        options: { inner?: boolean; from?: number; via?: Id } = {}): View | null {
   if (graph.edges[subject]) return reveal_at(graph, tiers, views, now, subject);
   const from = options.from ?? now?.at;
   const lists = lists_at(tiers, from);
+  if (lists === "structure" && graph.blocks[subject] && !on_side(graph, subject, lists)) {
+    const via = through(graph, now, subject, options.via);
+    if (!via.length) return null;
+    const kind = options.inner ? null : lens_of(graph, subject, lists);
+    if (kind) return { at: from!, kind, layer: subject, pick: null, via };
+    const host = options.via ?? now?.layer;
+    if (now && host === now.layer) return { ...now, pick: subject };
+    const to = host ? read_at(graph, tiers, views, now, host, { from }) : null;
+    return to ? { ...to, pick: subject } : null;
+  }
   /** **A use read from a registry hands over to the models**, where it is drawn. */
   const models = tiers.sections.findIndex((s) => s.lists === "structure");
   if (lists === "domain" && models >= 0 && graph.blocks[subject]
@@ -269,8 +332,9 @@ export function read_at(graph: Graph, tiers: Tiers, views: Views, now: View | nu
   };
   if (!options.inner && lens_of(graph, subject, lists)) return opened(subject);
   if (lists === "domain" || !graph.blocks[subject]) return null;
+  /** Never a package or a folder above it: a leaf only picks. */
   const up = path(graph, subject).map((b) => b.id).reverse().slice(1)
-    .find((id) => !!lens_of(graph, id, lists));
+    .find((id) => !is_filing(graph, id) && !!lens_of(graph, id, lists));
   const to = up ? opened(up) : null;
   return to ? { ...to, pick: subject } : null;
 }
@@ -279,9 +343,19 @@ export function read_at(graph: Graph, tiers: Tiers, views: Views, now: View | nu
  *  above opens on — a model, a definition's registry — the section's map, what was left picked.
  *  An entry leaves for its registry, a component registry for its package on the map; a
  *  section's root for the section above. **Never a back stack**: leaving goes up, not back. A map
- *  is left for nothing. */
+ *  is left for nothing. A part seen through a use leaves for the layer above it on its way: the
+ *  use, where its definition holds it directly. */
 export function leave_at(graph: Graph, tiers: Tiers, views: Views, view: View): View | null {
   const { at, kind, layer } = view;
+  if (view.via?.length && layer && is_layer_view(kind)) {
+    const way = way_of(graph, layer, view.via);
+    const up = way[way.length - 2]?.id;
+    const via = view.via.filter((u) => u !== up);
+    const kind_up = up ? lens_of(graph, up, lists_at(tiers, at)) : null;
+    if (up && kind_up) {
+      return { at, kind: kind_up, layer: up, pick: layer, ...(via.length ? { via } : {}) };
+    }
+  }
   if (kind === "registry" && layer) {
     const of = registry_of(graph, layer);
     if (of) return { at, kind, layer: registry_id(of), pick: layer };
@@ -290,10 +364,17 @@ export function leave_at(graph: Graph, tiers: Tiers, views: Views, view: View): 
     if (graph.blocks[layer]) return map_at(at, layer);
   }
   if (!is_layer_view(kind) || !layer || !graph.blocks[layer]) return null;
+  /** **Anything entered from a package or a folder leaves to it**, where it enters; a package,
+   *  to the map. */
+  const lists = lists_at(tiers, at);
+  const holder = graph.blocks[layer]!.parent;
+  const folder = holder && is_filing(graph, holder) ? lens_of(graph, holder, lists) : null;
+  if (folder) return { at, kind: folder, layer: holder!, pick: layer };
+  if (is_filing(graph, layer)) return map_at(at, layer);
   const { roots } = trace(graph, tiers, layer);
   if (roots[at] === layer) return at > 0 ? sight(graph, tiers, views, at - 1, layer) : null;
   const up = layer_of(graph, layer);
-  const kind_up = up ? lens_of(graph, up, lists_at(tiers, at)) : null;
+  const kind_up = up ? lens_of(graph, up, lists) : null;
   return up && kind_up ? { at, kind: kind_up, layer: up, pick: layer } : map_at(at, layer);
 }
 
@@ -341,7 +422,7 @@ export function held_at(graph: Graph, tiers: Tiers, view: View): Held | null {
   const registry = view.kind === "registry"
     ? registry_at(graph, view.layer) ?? registry_of(graph, view.layer) : null;
   const target = registry ? registry.pkg
-    : is_layer_view(view.kind) ? view.layer ?? view.pick : view.pick;
+    : is_layer_view(view.kind) ? view.via?.[0] ?? view.layer ?? view.pick : view.pick;
   if (!target || !graph.blocks[target]) return null;
   const { held } = trace(graph, tiers, target);
   const deepest = held.lastIndexOf(target);

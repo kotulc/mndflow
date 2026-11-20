@@ -1,39 +1,38 @@
 name: Storefront
-type: service
-packages: [ services ]
+type: services.service
 values: { owner: Web }
 tags: [ critical, orders ]
-description: "An internal diagram: what the storefront is made of. Its pages meet through typed ports; its own ports sit on its walls."
+description: "A context diagram: what the storefront is made of. Its pages meet through typed ports; its own ports sit on its walls."
 ports:
   - name: https
-    type: HTTP
+    type: services.HTTP
     flow: in
     side: left
     at: 0.5
     note: Public traffic enters here.
-  - { name: pay, type: HTTP, flow: out, side: right, at: 0.4 }
-  - { name: orders, type: Events, flow: out, side: right, at: 0.7 }
+  - { name: pay, type: services.HTTP, flow: out, side: right, at: 0.4 }
+  - { name: orders, type: services.Events, flow: out, side: right, at: 0.7 }
 blocks:
   - name: Cart
     type: page
     ports:
-      - { name: in, type: HTTP, flow: in }
-      - { name: out, type: HTTP, flow: out }
+      - { name: in, type: services.HTTP, flow: in }
+      - { name: out, type: services.HTTP, flow: out }
   - name: Pricing
     type: page
     ports:
-      - { name: quote, type: HTTP, flow: in }
+      - { name: quote, type: services.HTTP, flow: in }
   - name: Payment
     type: page
     tags: [ payments ]
     ports:
-      - { name: charge, type: HTTP, flow: in }
-      - { name: card, type: HTTP, flow: out }
-      - { name: events, type: Events, flow: out }
+      - { name: charge, type: services.HTTP, flow: in }
+      - { name: card, type: services.HTTP, flow: out }
+      - { name: events, type: services.Events, flow: out }
   - name: Order log
     type: Ledger
     ports:
-      - { name: events, type: Events, flow: in }
+      - { name: events, type: services.Events, flow: in }
 relations:
   - https -> Cart.in
   - Cart.out -> Pricing.quote: price

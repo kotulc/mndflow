@@ -167,7 +167,7 @@ export function modeled(): Log {
       def("unused", "cards", "Unused"),
       def("shop", ROOT, "Shop", "model"),
       block("gateway", "shop", "Gateway", "service"),
-      block("stage", "shop", "Stage", "internal"),
+      block("stage", "shop", "Stage", "context"),
       block("inner", "stage", "Inner", "service"),
       { op: "add_block", block: { id: "stand", parent: "shop", name: "", type: "reference",
                                   of: "service", order: 9 } },

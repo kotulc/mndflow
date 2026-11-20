@@ -1,6 +1,5 @@
 name: API gateway
 type: service
-def: {}
 body: Use when many clients reach many services and each request should be checked once, at one way in.
 note: "One way in: every request is authenticated, held to its quota, then routed to the service that owns it."
 blocks:
@@ -30,11 +29,3 @@ ports:
     at: 0.5
 relations:
   - calls: [ requests -> Auth, Auth -> Rate limit, Rate limit -> Router, Router -> routes ]
-library:
-  interfaces:
-    - name: HTTP
-      description: Requests and their responses over HTTP.
-      settings: { style: { hue: 245 } }
-    - name: Events
-      description: Messages published for whoever listens.
-      settings: { style: { hue: 145 } }

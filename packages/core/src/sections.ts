@@ -5,6 +5,7 @@
  *  what it holds is the next section's. A null root is the forest above every package. */
 
 import { def_at, is_domain, is_model, model_of, owner_def, packages, tree_of } from "./defs";
+import { is_folder } from "./holders";
 import { children, is_interface } from "./tree";
 import type { Block, Graph, Id } from "./types";
 
@@ -16,12 +17,13 @@ export type Cut = "package" | "tree" | null;
  *  diagram the block names (`class`, `er`), or where a definition or a component is used
  *  (`registry`). **The map** draws a whole section as a treemap of chips (`map`): nothing is
  *  entered, and what is picked is its focus. */
-export type ViewKind = "internal" | "allocation" | "class" | "er" | "registry" | "map";
+export type ViewKind = "internal" | "allocation" | "class" | "er" | "registry" | "records"
+  | "map";
 
 /** The views that draw one block. A section offers them as one choice, `internal`, and the block
  *  opened says which it shows. */
 export const LAYER_VIEWS: readonly ViewKind[] = [
-  "internal", "allocation", "class", "er", "registry"];
+  "internal", "allocation", "class", "er", "registry", "records"];
 
 /** The layer views drawn from inside, where what the layer holds is built. A diagram is read from
  *  inside too: it draws what the block holds, and nothing is laid out there. */
@@ -67,19 +69,28 @@ function in_template(graph: Graph, id: Id): boolean {
 }
 
 /** Whether a block is one this side lists. Unset lists every block. **The library** lists the
- *  definition side — packages, their definition folders, definitions, models among them — and
- *  each definition's parts under it, but a model's: those are drawn, so they list in the models.
+ *  definition side — packages, their definition folders, definitions, **never a model**, which
+ *  lists only in the models (2026-11-08), nor a folder holding only models (2026-11-17) — and
+ *  each definition's parts under it.
  *  **The models** list every model and what it holds, and the package roots and folders on the
  *  way to one; a host's structure outside every definition lists there too. A package with none
  *  does not list. */
 export function on_side(graph: Graph, id: Id, lists?: Lists): boolean {
   if (!lists) return !!graph.blocks[id];
   if (!graph.blocks[id]) return false;
-  if (lists === "domain") return is_domain(graph, id) || (in_template(graph, id)
-    && !model_of(graph, id));
+  if (lists === "domain") return !is_model(graph, id) && !models_only(graph, id)
+    && (is_domain(graph, id) || (in_template(graph, id) && !model_of(graph, id)));
   if (in_template(graph, id)) return model_of(graph, id) !== null;
   if (!is_domain(graph, id)) return true;
   return below_structure(graph, id);
+}
+
+/** Whether a folder holds something and none of it is the library's: models only, at any depth.
+ *  An empty folder is still the library's, to be filled there. */
+function models_only(graph: Graph, id: Id): boolean {
+  if (!is_folder(graph, id)) return false;
+  const held = shown(graph, id);
+  return held.length > 0 && held.every((c) => !on_side(graph, c.id, "domain"));
 }
 
 /** Whether a model, or structure outside every definition, sits anywhere under a
@@ -158,4 +169,16 @@ export function root_below(graph: Graph, cut: Cut, held: Id | null): Id | undefi
 /** What a block shows under it: every block it holds, in order, but its interfaces. */
 function shown(graph: Graph, id: Id): Block[] {
   return children(graph, id).filter((b) => !is_interface(graph, b.id));
+}
+
+/** **What the library files under a package or folder**: its folders and definitions. */
+export function filed(graph: Graph, id: Id): Id[] {
+  return children(graph, id).filter((b) => on_side(graph, b.id, "domain")
+    && (is_folder(graph, b.id) || !!b.def)).map((b) => b.id);
+}
+
+/** **The definitions a package or folder files**, at any depth through its folders: what makes
+ *  it the library's to draw and enter, and what its counts say there. */
+export function filed_defs(graph: Graph, id: Id): Id[] {
+  return filed(graph, id).flatMap((f) => (graph.blocks[f]?.def ? [f] : filed_defs(graph, f)));
 }

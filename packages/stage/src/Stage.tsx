@@ -13,10 +13,12 @@ import { cell_key } from "./nodes";
 import { Icon } from "@mnd/theme";
 import { area_under, boxed_place, box_of, clear_of, holds, swept_cells, towards, BLOCK, CELL,
          type Scene } from "@mnd/views";
+import type { Trace } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
 import { Hover } from "./Hover";
 import { path_rules, usePath } from "./path";
 import { Walk, type Walking } from "./Walk";
+import type { Shot } from "./room";
 
 export type { Adjust, Landing, Move };
 
@@ -64,24 +66,30 @@ export type StageProps = {
   lit?: readonly string[];
   /** What the selection touches elsewhere: lit in the relation colour. */
   touched?: readonly string[];
-  /** The drawing read down the page: fitted to its width, scrolled rather than zoomed, the camera
-   *  following `focus`. */
-  scroll?: boolean;
-  focus?: string | null;
-  /** The most a scrolled drawing magnifies. */
-  most?: number | null;
+  /** **Where the camera looks**: the host's one shot, landed by the canvas. */
+  shot?: Shot;
+  /** Told each shot the camera landed. */
+  onLand?: (shot: Shot) => void;
   /** Whether the drawing is a layer entered from a map: Escape leaves it for the map. */
   entered?: boolean;
-  /** Counted up by every open: a new count flies to the focus, the same one or not. */
-  opened?: number;
-  stop?: { x: number; y: number; w: number; h: number; scale?: number } | null;
 
   /** Whether the canvas has the keys. Undo and redo answer wherever the keys are. */
   keys?: boolean;
   /** **Whether the drawing may be edited**: a map or a registry may not, so no menu, key,
    *  rename, drop or line drawing edits through it. Picking and reading still work. */
   editable?: boolean;
+  /** **A presentation's stop** (docs/presentations.md): the block ringed, what stays undimmed —
+   *  none dims where it is empty — and on a map its steps' legs, else the lines they light. */
+  showing?: Showing | null;
+  /** A box of a model's overview opened or closed by its toggle, by the node it is on. */
+  onToggle?: (id: string) => void;
+  /** A presentation in a model's About band played, by its place in the model's list. */
+  onPlay?: (at: number) => void;
 };
+
+/** What a stop shows: rings, what stays clear, its steps' legs on a map and its lines elsewhere. */
+export type Showing = { ring: readonly string[]; keep: readonly string[];
+                        lines: readonly string[]; steps: Trace | null };
 
 
 /** What a card's menu lists besides the shared box actions: open only where it has a drawing of
@@ -202,9 +210,9 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
                        menu, said, onSaid, head, empty, lattice, frame, legend, corner, module,
-                       dir, type, lit = [], touched = [], scroll = false, focus = null, most = null,
-                       entered = false, stop = null, opened = 0,
-                       keys = true, editable = true, walk = null, onClear }: StageProps) {
+                       dir, type, lit = [], touched = [], shot, onLand, entered = false,
+                       keys = true, editable = true, walk = null, onClear, showing = null,
+                       onToggle, onPlay }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
                     ...(type ? { type } : {}) };
@@ -217,6 +225,35 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   useEffect(() => set_typing(null), [scene.layer]);
   /** The stage itself, which a map's hover card watches. */
   const host = useRef<HTMLElement>(null);
+  /** **A box's toggle and About's notes answer first**, before the node they sit on is picked:
+   *  a toggle opens or closes its box, a presentation plays, any other note picks what it names. */
+  useEffect(() => {
+    const el = host.current;
+    if (!el) return;
+    const control = (t: EventTarget | null) => (t instanceof Element
+      ? t.closest<HTMLElement>("[data-toggle], [data-play], [data-about]") : null);
+    const press = (e: Event) => { if (control(e.target)) e.stopPropagation(); };
+    const click = (e: MouseEvent) => {
+      const at = control(e.target);
+      if (!at) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const node = at.closest<HTMLElement>(".react-flow__node")?.dataset["id"];
+      if (at.dataset["toggle"] && node) onToggle?.(node);
+      else if (at.dataset["play"] !== undefined) onPlay?.(Number(at.dataset["play"]));
+      else if (at.dataset["about"]) onPick([at.dataset["about"]]);
+    };
+    el.addEventListener("pointerdown", press, true);
+    el.addEventListener("mousedown", press, true);
+    el.addEventListener("dblclick", press, true);
+    el.addEventListener("click", click, true);
+    return () => {
+      el.removeEventListener("pointerdown", press, true);
+      el.removeEventListener("mousedown", press, true);
+      el.removeEventListener("dblclick", press, true);
+      el.removeEventListener("click", click, true);
+    };
+  }, [onToggle, onPlay, onPick]);
   /** Letting go of the pick: the host's, else none picked. */
   const clear = () => (onClear ? onClear() : onPick([]));
   /** What the card hovered or picked reaches a hop each way, or the step walked, lit over the
@@ -350,8 +387,9 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       return;
     }
     if (g.button === "left" && g.count === 1) onPickCells?.([]);
-    /** **A map is read, never built on**: a click on a chip or a box goes to it; a click on a
-     *  tile in a chip picks its block, to be read in the tray. Two read what was clicked — a tile
+    /** **A map is read, never built on**: a click on a chip, a box or a tile in a chip picks it,
+     *  to be read in the tray — on the map it also goes to it (the crumbs follow), but **never
+     *  moves the camera**: inside an entered treemap a click only picks. Two read what was clicked — a tile
      *  as inside its chip — and navigation says where that goes (core's `read_at`). */
     if (scene.areas) {
       const tile = typeof g.given?.["tile"] === "string" ? g.given["tile"] as string : null;
@@ -371,8 +409,11 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         return;
       }
       if (g.button !== "left" || !on) return;
-      if (g.count === 2) { onAct("read", { id: on, ...(tile ? { inner: true } : {}) }); return; }
-      onAct("open", { id: on });
+      if (g.count === 2) {
+        onAct("read", { id: on, ...(tile ? { inner: true, ...(area ? { via: area } : {}) } : {}) });
+        return;
+      }
+      if (!entered) onAct("open", { id: on });
       onPick([on]);
       return;
     }
@@ -421,31 +462,32 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   };
 
   return (
-    <section className={path ? "stage pathing" : "stage"} ref={host}>
+    <section className={path || showing?.keep.length ? "stage pathing" : "stage"} ref={host}>
       <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
-      {walk ? <Walk walk={walk} /> : null}
+      {walk && !walk.outside ? <Walk walk={walk} /> : null}
       {empty ? <p className="empty">{empty}</p> : null}
       {/* **A map lights only what is picked**: a chip, a box or a tile. A layer also lights what
           is hovered, other appearances and what the selection touches. */}
       {!scene.areas && lit.length ? <style>{lit_rules(lit)}</style> : null}
       {path ? <style>{path_rules(path)}</style> : null}
+      {showing?.keep.length ? <style>{path_rules({ blocks: [...showing.keep],
+                                                    lines: [...showing.lines] })}</style> : null}
+      {showing?.ring.length ? <style>{lit_rules(showing.ring)}</style> : null}
+      {showing?.lines.length ? <style>{lit_rules(showing.lines)}</style> : null}
       {!scene.areas && touched.length
         ? <style>{lit_rules(touched, "var(--s-secondary-edge)")}</style> : null}
       <FlowView
         scene={scene}
         trace={path && "legs" in path ? path : null}
+        steps={showing?.steps ?? null}
         picked={picked}
         stands_for={stands_for}
         cells={cells}
         onPickCells={onPickCells}
         lattice={lattice}
         {...(frame === undefined ? {} : { frame })}
-        scroll={scroll}
-        focus={focus}
-        most={most}
-
-        opened={opened}
-        stop={stop}
+        {...(shot ? { shot } : {})}
+        {...(onLand ? { onLand } : {})}
         naming={naming}
         onNamed={(label) => {
           const was = typing;

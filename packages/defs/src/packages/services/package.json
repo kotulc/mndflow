@@ -4,7 +4,35 @@
   "graph": {
     "root": "services",
     "blocks": {
-      "services": { "id": "services", "parent": null, "name": "services" }
+      "services": {
+        "id": "services",
+        "parent": null,
+        "name": "services",
+        "library": {
+          "interfaces": [
+            {
+              "id": "interface.http",
+              "name": "HTTP",
+              "description": "Requests and their responses over HTTP.",
+              "settings": {
+                "style": {
+                  "hue": 245
+                }
+              }
+            },
+            {
+              "id": "interface.events",
+              "name": "Events",
+              "description": "Messages published for whoever listens.",
+              "settings": {
+                "style": {
+                  "hue": 145
+                }
+              }
+            }
+          ]
+        }
+      }
     },
     "edges": {}
   }

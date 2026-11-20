@@ -1,0 +1,12 @@
+{
+  "id": "actor",
+  "name": "actor",
+  "type": "block",
+  "description": "What the system reaches at its edge: the file system, a command it runs, the framework hosting it. Drawn where a path's units touch it.",
+  "def": {},
+  "settings": {
+    "style": {
+      "hue": 30
+    }
+  }
+}

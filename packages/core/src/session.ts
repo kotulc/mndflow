@@ -51,7 +51,7 @@ export type Session = {
   /** **Read a subject** — what a double-click, Enter, the explorer's open and the tray's *read*
    *  ask — from the section `from`, else the canvas's: the view it enters, with what it picks
    *  there, or null where it enters nothing. Navigation: no step is logged. */
-  read: (subject: Id, options?: { inner?: boolean; from?: number }) => View | null;
+  read: (subject: Id, options?: { inner?: boolean; from?: number; via?: Id }) => View | null;
   /** The canvas's section shown whole another way, keeping `id` in sight; a layer view, which is
    *  never chosen, goes back to where what is kept in sight is drawn. A section named by `at` is
    *  shown whole from its top instead, nothing kept in sight or picked. */

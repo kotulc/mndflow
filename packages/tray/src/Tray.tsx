@@ -25,6 +25,7 @@ import { Overview } from "./Overview";
 import { Packages, type Offered } from "./Packages";
 import { Registries } from "./Registry";
 import { Usages } from "./Usages";
+import { type PresentationProps } from "./Presentation";
 import { DisplaySettings, type Display } from "./Workspace";
 
 /** What the tray holds that the canvas did not give it. */
@@ -67,6 +68,8 @@ export type TrayProps = {
   onDisplay?: Act;
   /** The host's own tabs for a block, after the tray's: a name, and what it draws. */
   extras?: readonly Extra[];
+  /** A model's presentations, or the one playing, leading the overview. */
+  presenting?: PresentationProps | null;
 };
 
 /** A host's tab: what it is called, and what it shows for the block the tray is about. */
@@ -219,7 +222,8 @@ export function Tray(props: TrayProps) {
     tint: lined && graph.edges[about] ? wire_tint(wire_of(graph, about))
       : tint_attrs(colour_of(graph, about)),
     ...(graph.blocks[about] ? {
-      facts: <Facts facts={facts_of(graph, about, !!graph.blocks[about]!.def)} named />,
+      facts: <Facts facts={facts_of(graph, about, !!graph.blocks[about]!.def
+                                    || props.lists === "domain")} named />,
     } : {}),
   } : {};
 
@@ -274,7 +278,9 @@ export function Tray(props: TrayProps) {
     >
       {shows === "json" ? <Json graph={graph} id={about} /> : null}
       {shows === "overview" ? (
-        <Overview key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})}                  {...(props.lists ? { lists: props.lists } : {})} />
+        <Overview key={about} graph={graph} id={about} {...(edits ? { onAct: act } : {})}
+                  {...(props.lists ? { lists: props.lists } : {})}
+                  {...(props.presenting ? { presenting: props.presenting } : {})} />
       ) : null}
       {/* What it is: a card's keys, a line's keys and ends, an entry's. Edits come second, here:
           declaring and answering attributes, and a port put on its wall. */}

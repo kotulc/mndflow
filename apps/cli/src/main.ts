@@ -9,7 +9,8 @@ import { lens_of, NAMED_VIEWS, all_defs, alias_of, check, children, collect, dom
 import { FLOOR } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
 import { draw, draw_svg, faults, outline, project } from "@mnd/views";
-import { measured } from "./measure";
+import { measured, scaled } from "./measure";
+import { diagram_file, draft, presentations } from "./tools";
 import { node_net } from "./ports";
 import { as_file, from_sysml, shape_of, to_sysml } from "./sysml";
 
@@ -20,7 +21,8 @@ const USAGE = `mnd — the headless harness
   mnd project <source> [layer] --svg  project a layer and draw it as SVG
   mnd outline <source> [layer]         list what a projection holds
   mnd measure <source> [layer]         lay out and route each diagram as the app does; count
-                                       lines over cards, covered names, shared runs, tight gaps
+                                       lines over cards, covered names, shared runs, tight gaps;
+                                       --views: the scale check of every tree view
   mnd check <source | folder>          run the door, print faults; a folder is collected first
   mnd review <source> [layer]          ask what the definitions wanted
   mnd run <source> <action> [k=v ...]  apply an action, print what it wrote
@@ -28,6 +30,21 @@ const USAGE = `mnd — the headless harness
   mnd translate <source> [--round]     write the graph as SysML, and check it comes back
                         [--with <pkg>] bring a vocabulary in first, so its names are used
   mnd export <source> [out.json]       fold and write the file
+
+  tools (docs/tools/): plain commands a person or an agent composes models with
+  mnd fact <name> <project> [--unit u] [--from m.fn] [--at m.fn] [--of name] [--depth n]
+                            [--run "<command>"]  (trace)
+                                       one question of a project's source, as JSON: entries,
+                                       edges, runtimes, units, calls, data, workflows, schema,
+                                       trace
+  mnd draw <kind> <selection.json> [out.yaml] [--force]
+                                       a diagram file of one kind from a selection (a diagram
+                                       file's map as JSON); warns below the floor, never
+                                       overwrites a file unless --force
+  mnd presentation list <model.yaml>   a model's presentations and their stops
+  mnd presentation draft <model.yaml> --from <diagram.yaml> [--as name] [--dry]
+                                       a presentation seeded from a flow or sequence, added
+  mnd presentation check <model.yaml>  collect its package and say what does not resolve
   mnd collect <folder> [out.json]      a folder as a package: package.json, a .json file per
                                        definition, diagram files and markdown cards
                         [--bare]       keep the ids it says, as base's are kept
@@ -110,7 +127,8 @@ function flag(args: string[], name: string): string | undefined {
 }
 
 /** The flags that take the argument after them. */
-const VALUED = ["--how", "--layer", "--from", "--with"];
+const VALUED = ["--how", "--layer", "--from", "--with", "--unit", "--at", "--of", "--depth",
+                "--as", "--run"];
 
 /** The positional arguments. */
 function loose(args: string[]): string[] {
@@ -148,19 +166,16 @@ function leaves(folder: string, at = folder): Leaf[] {
   });
 }
 
-/** A source folder collected, with every package its files list loaded first: a catalogue name
- *  from beside the catalogue, a path from the folder — itself a package file or a folder. */
+/** A source folder collected, with every package it imports loaded first: a catalogue name from
+ *  beside the catalogue, a path from the folder — itself a package file or a folder. */
 function gathered(folder: string, workspace: boolean, bare = false,
                   seen = new Set<string>()): Collected {
-  /** A folder listing itself, or two listing each other, is read once. */
+  /** A folder importing itself, or two importing each other, is read once. */
   seen.add(resolve(folder));
   const files = leaves(folder);
   let over = fold([], FLOOR);
   const notes: string[] = [];
-  const { listed, heads } = wanted(files);
-  /** A qualified name's first step loads the catalogue package of that name, where it lists one. */
-  const named = heads.filter((h) => listed_names().includes(h));
-  for (const want of [...listed, ...named]) {
+  for (const want of wanted(files)) {
     const at = want.startsWith("./") ? resolve(folder, want)
       : join(dirname(CATALOGUE), `${want}.json`);
     if (seen.has(resolve(at))) continue;
@@ -175,13 +190,6 @@ function gathered(folder: string, workspace: boolean, bare = false,
   return { ...got, notes: [...notes, ...got.notes] };
 }
 
-/** The names the catalogue lists, read from its index. */
-function listed_names(): string[] {
-  try {
-    const index = JSON.parse(readFileSync(CATALOGUE, "utf8")) as { packages?: { name?: string }[] };
-    return (index.packages ?? []).flatMap((p) => (p.name ? [p.name] : []));
-  } catch { return []; }
-}
 
 /** A package file's blocks and relations beside what a graph holds; an id already there stays. */
 function joined(graph: Graph, text: string): Graph {
@@ -199,6 +207,11 @@ async function main(argv: string[]): Promise<void> {
   if (!verb || !source) {
     console.log(USAGE);
     process.exit(verb ? 1 : 0);
+  }
+
+  if (verb === "fact" || verb === "draw" || verb === "presentation") {
+    await tool(verb, source, rest);
+    return;
   }
 
   /** A source folder is a folder, not a log: read whole, and written as a package file. */
@@ -264,7 +277,8 @@ async function main(argv: string[]): Promise<void> {
 
     case "measure": {
       const graph = fold(log, FLOOR);
-      console.log((await measured(graph, find_layer(log, plain[0]))).join("\n"));
+      if (rest.includes("--views")) console.log(scaled(graph).join("\n"));
+      else console.log((await measured(graph, find_layer(log, plain[0]))).join("\n"));
       return;
     }
 
@@ -358,6 +372,71 @@ async function main(argv: string[]): Promise<void> {
       console.error(`  no verb called "${verb}"`);
       console.log(USAGE);
       process.exit(1);
+  }
+}
+
+/** **The tools' commands** (docs/tools/): each prints JSON or writes a file; a question a tool
+ *  cannot answer exits 1 with why, a misuse 2. */
+async function tool(verb: string, first: string, rest: string[]): Promise<void> {
+  const fail = (why: unknown, code = 1) => {
+    console.error(`  ${why instanceof Error ? why.message : String(why)}`);
+    process.exit(code);
+  };
+  try {
+    if (verb === "fact") {
+      /** The source reader (ts-morph) loads only for a fact. */
+      const { fact, FACTS } = await import("@mnd/ts");
+      /** The command `trace` runs, quoted whole. */
+      const run = flag(rest, "run");
+      const [project] = loose(rest);
+      if (!(FACTS as readonly string[]).includes(first) || !project) {
+        fail(`mnd fact <${FACTS.join("|")}> <project>`, 2);
+      }
+      const depth = flag(rest, "depth");
+      const asked = { unit: flag(rest, "unit"), from: flag(rest, "from"), at: flag(rest, "at"),
+                      of: flag(rest, "of"), ...(depth ? { depth: Number(depth) } : {}),
+                      ...(run ? { run } : {}) };
+      console.log(JSON.stringify(fact(first as (typeof FACTS)[number], resolve(project!), asked),
+                                 null, 2));
+      return;
+    }
+    if (verb === "draw") {
+      const [selection, out] = loose(rest);
+      if (!selection) fail("mnd draw <kind> <selection.json> [out.yaml]", 2);
+      const drawn = diagram_file(first, JSON.parse(readFileSync(selection!, "utf8")));
+      for (const w of drawn.warnings) console.error(`  warning: ${w}`);
+      if (!out) { process.stdout.write(drawn.text); return; }
+      if (existsSync(out) && !rest.includes("--force")) {
+        fail(`${out} exists: a diagram file is edited by hand once written; --force replaces it`);
+      }
+      writeFileSync(out, drawn.text);
+      return;
+    }
+    const [model] = loose(rest);
+    if (!model) fail("mnd presentation <list|draft|check> <model.yaml>", 2);
+    if (first === "list") console.log(JSON.stringify(presentations(model!), null, 2));
+    else if (first === "draft") {
+      const from = flag(rest, "from");
+      if (!from) fail("draft asks --from <diagram.yaml>", 2);
+      const text = draft(model!, from!, flag(rest, "as"));
+      if (rest.includes("--dry")) process.stdout.write(text);
+      else writeFileSync(model!, text);
+    } else if (first === "check") {
+      const root = package_root(resolve(model!));
+      const said = relative(root, resolve(model!)).split(sep).join("/");
+      const notes = gathered(root, true).notes.filter((n) => n.startsWith(`${said}:`));
+      for (const n of notes) console.log(`  ${n}`);
+      console.log(notes.length ? `${notes.length} to fix` : "clean");
+      if (notes.length) process.exit(1);
+    } else fail(`no presentation command ${first}: list, draft, check`, 2);
+  } catch (e) { fail(e); }
+}
+
+/** The source folder a file sits in: the nearest folder above it holding a `package.json`. */
+function package_root(file: string): string {
+  for (let at = dirname(file); ; at = dirname(at)) {
+    if (existsSync(join(at, "package.json"))) return at;
+    if (dirname(at) === at) throw new Error(`${file} is in no source folder`);
   }
 }
 

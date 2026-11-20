@@ -38,7 +38,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 3px 8px;
+  padding: 6px 8px;
   border-radius: 3px;
   font: inherit;
   /* Held to the text band on the canvas (`flow.css` `--text-k`); 1 everywhere else. */
@@ -47,35 +47,85 @@
   overflow: visible;
 }
 
-/* The name, the subtype it names, and whatever room is left over. */
-.mnd-head {
+/* ── **The header**, cards, chips and boxes alike (`header.tsx`) ──
+   Always two lines: the name, one line cut short with an ellipsis, over the meta line, whose items
+   flow into the width left and wrap out of sight whole where they do not fit, last first. The
+   kind's square icon at the right, as tall as both lines. The name's size is the form's
+   (`--name-size`: a card's 13px, a chip's grown with its cell). */
+.mnd-header {
+  --hd-k: var(--text-k, 1);
+  --hd-name: calc(var(--name-size, 13px) * var(--hd-k));
+  --hd-meta: calc(15px * var(--hd-k));
+  --hd-gap: calc(3px * var(--hd-k));
+  --hd-h: calc(var(--hd-name) * 1.25 + var(--hd-gap) + var(--hd-meta));
+  flex: none;
   display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  /* The gutter the corner mark stands in, so a long name clips before it. */
-  padding-right: 13px;
-  min-height: 0;
-  overflow: hidden;
+  align-items: flex-start;
+  gap: calc(10px * var(--hd-k));
+  min-width: 0;
 }
-
-/* **The identity row**: the name, then its kind, then a definition's badge. Where name and kind do
-   not fit one line, the kind wraps to its own line under the name. */
-.mnd-named {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  /* Anchored to the top, so a wrapped kind adds below and nothing rises past the card. */
-  align-content: flex-start;
-  column-gap: 6px;
+.mnd-header-text {
   flex: 1 1 auto;
   min-width: 0;
-  max-height: 100%;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hd-gap);
 }
+.mnd-header-text > :first-child {
+  display: block;
+  font-size: var(--hd-name);
+  line-height: 1.25;
+  font-weight: 600;
+}
+.mnd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: calc(7px * var(--hd-k));
+  row-gap: var(--hd-meta);
+  height: var(--hd-meta);
+  overflow: hidden;
+  font-size: calc(11px * var(--hd-k));
+  font-weight: 400;
+  line-height: var(--hd-meta);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.mnd-meta > * { flex: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+/* Plain items are parted by a dot; a tag and a badge are their own shape. */
+.mnd-meta > span:not(.mnd-meta-tag, .mnd-badge) ~ span:not(.mnd-meta-tag, .mnd-badge)::before {
+  content: "·";
+  margin-right: calc(7px * var(--hd-k));
+}
+.mnd-meta-kind.hued { color: var(--card-edge, var(--muted)); }
+.mnd-meta-plays { color: var(--accent); font-weight: 600; }
+.mnd-meta-tag {
+  padding: 0 calc(5px * var(--hd-k));
+  border-radius: 2px;
+  line-height: calc(14px * var(--hd-k));
+  background: color-mix(in oklch, var(--card-edge, var(--muted)) 30%, transparent);
+  color: var(--text);
+}
+/* The icon: the kind's own, square, as tall as both lines; lit where it holds parts. */
+.mnd-header-icon {
+  flex: none;
+  width: var(--hd-h);
+  height: var(--hd-h);
+  color: var(--text);
+  pointer-events: none;
+}
+.mnd-header-icon > svg { display: block; width: 100%; height: 100%; }
+/* A relation definition wears its swatch where its icon would be (theme `swatch.tsx`). */
+.mnd-header-icon > .swatch { display: block; width: 100%; margin-top: calc(50% - 1px); }
 
-/* One line, always. A card is a wide bar, and a name wrapped over two lines in one is a different
+/* **A relation's swatch**: a short stroke in its type's colour and dash, worn in place of an
+   icon by its explorer row, its header and its well cell alike (views `look.ts` `swatch_of`). */
+.swatch { display: inline-block; width: 14px; height: 0;
+          border-top: 2px var(--card-border-style, solid) var(--card-edge, var(--muted)); }
+.mnd-header-icon path { vector-effect: non-scaling-stroke; stroke-width: 1.5px; }
+.mnd-header-icon[data-holds] { color: var(--accent); }
+
+/* One line, always: a card is a wide bar, and a name wrapped over two lines in one is a different
    shape from its neighbours. */
 .mnd-label {
   min-width: 0;
@@ -87,30 +137,12 @@
   cursor: text;
 }
 
-/* Two lines, where there is room for two. */
-.mnd-head > .mnd-named > .mnd-label {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  white-space: normal;
-  overflow: hidden;
-}
-
-/* A name sized to its card by views: its size, and the lines it may take; on one line it is cut
-   short with an ellipsis rather than at a word. */
-.mnd-card[data-fit] > .mnd-head {
-  font-size: calc(var(--name-size, 13px) * var(--text-k, 1));
-  line-height: 1.5;
-}
-.mnd-card[data-fit] > .mnd-head > .mnd-named > .mnd-label { -webkit-line-clamp: var(--name-lines, 2); }
-.mnd-card[data-fit="1"] > .mnd-head > .mnd-named > .mnd-label { display: block; white-space: nowrap; }
-
 /* Nobody has named it, so what it reads is its type and the handle it was handed. */
-.mnd-card.unnamed > .mnd-head > .mnd-named > .mnd-label { opacity: 0.55; font-style: italic; }
+.mnd-card.unnamed .mnd-header-text > .mnd-label { opacity: 0.55; font-style: italic; }
 
 /* Which end the name reads from. */
-[data-align="center"] > .mnd-head > .mnd-named { justify-content: center; }
-[data-align="right"] > .mnd-head > .mnd-named { justify-content: flex-end; }
+[data-align="center"] .mnd-header-text { text-align: center; }
+[data-align="right"] .mnd-header-text { text-align: right; }
 
 /* The icon in the top corner: what this card is, said without being read. */
 .mnd-role {
@@ -139,20 +171,6 @@
 }
 .mnd-mark { display: inline-flex; }
 
-/* The kind after the name: quieter, never cut short of a whole word. */
-.mnd-kind {
-  flex: none;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: calc(10px * var(--text-k, 1));
-  line-height: calc(14px * var(--text-k, 1));
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  pointer-events: none;
-}
-
 /* **A definition's badge**: filled in its colour, by its name, on its card and in the tray. */
 .mnd-badge {
   flex: none;
@@ -174,27 +192,15 @@
   border-color: var(--card-edge);
 }
 
-/* The facts strip under the head: counts, seats, tags, in one order. */
-.mnd-face-facts {
-  flex: none;
-  display: flex;
-  min-width: 0;
-  overflow: hidden;
-  padding-right: 13px;
-}
-
 /* The app speaking, not the model. */
 .mnd-card.missing { border-color: var(--error); color: var(--error); }
 
 
 /* ── The large face: its name on one line, then its table, then its markdown ── */
 
-.mnd-card.large > .mnd-head { flex: none; height: calc(20px * var(--text-k, 1)); }
-.mnd-card.large > .mnd-head > .mnd-named > .mnd-label { display: block; white-space: nowrap; }
-
-/* The divider, drawn only under a head: a card that is its markdown alone has nothing over it. */
-.mnd-head + .mnd-face-body {
-  margin-top: 1px;
+/* The divider, drawn only under a header: a card that is its markdown alone has nothing over it. */
+.mnd-header + .mnd-face-body {
+  margin-top: 3px;
   padding-top: 3px;
   border-top: 1px solid currentColor;
 }
@@ -233,11 +239,12 @@
 
 .mnd-card.large.tabled { padding: 0; }
 
-/* The title row: the name, and the icon at its right end. The marks end the last row, in the
-   room views left them there. */
-.mnd-card.large.tabled > .mnd-head {
+/* The header row: padded as a card is, ruled under. The marks end the last row, in the room views
+   left them there (views `face.ts` `PAD.title`). */
+.mnd-card.large.tabled > .mnd-header {
   box-sizing: content-box;
-  padding: 0 24px 0 8px;
+  height: var(--hd-h);
+  padding: 5px 8px;
   border-bottom: 1px solid var(--card-dim);
 }
 .mnd-card.tabled > .mnd-marks { bottom: 1px; }
@@ -282,9 +289,9 @@
 
 /* The `text` face: its name alone — no border, ground, icon or marks. A label draws so. */
 .card-face[data-face="text"] { border-color: transparent; background: none; }
-.card-face[data-face="text"] > :is(.mnd-role, .mnd-marks) { display: none; }
-/* Its one line, sized to fit it: no icon's gutter, never wrapped. */
-.card-face[data-face="text"] > .mnd-head { padding-right: 0; }
+.card-face[data-face="text"] { padding: 0; }
+.card-face[data-face="text"] :is(.mnd-marks, .mnd-meta, .mnd-header-icon) { display: none; }
+/* Its one line, sized to fit it: never wrapped. */
 .card-face[data-face="text"] .card-name { white-space: nowrap; }
 
 /* A relation definition reads as a wire swatch wherever it is not a run: its name over a short
@@ -331,8 +338,8 @@
   background-clip: content-box;
 }
 .mnd-card.card-face:is([data-shape="dot"], [data-shape="ring"], [data-shape="diamond"])
-  :is(.mnd-role, .mnd-marks, .mnd-kind, .mnd-badge) { display: none; }
-.mnd-card.card-face:is([data-shape="dot"], [data-shape="ring"]) > .mnd-head { display: none; }
+  .mnd-marks { display: none; }
+.mnd-card.card-face:is([data-shape="dot"], [data-shape="ring"]) > .mnd-header { display: none; }
 
 /* A decision's diamond: drawn behind the card by two layers, its edge and its ground, so the
    family's colours still paint it. The name sits in its middle. */
@@ -356,8 +363,11 @@
   inset: 0.5px 1px;
   background: var(--card-fill);
 }
-.mnd-card.card-face[data-shape="diamond"] > .mnd-head { padding-right: 0; justify-content: center; }
-.mnd-card.card-face[data-shape="diamond"] > .mnd-head > .mnd-named { justify-content: center; text-align: center; }
+/* In a diamond the header is its words alone, centred in its middle band. */
+.mnd-card.card-face[data-shape="diamond"] { justify-content: center; }
+.mnd-card.card-face[data-shape="diamond"] .mnd-header-icon { display: none; }
+.mnd-card.card-face[data-shape="diamond"] .mnd-header-text { text-align: center; }
+.mnd-card.card-face[data-shape="diamond"] .mnd-meta { justify-content: center; }
 
 
 /* ── Where a definition is used, and what a block holds (`uses.tsx`) ── */

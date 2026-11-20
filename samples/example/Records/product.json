@@ -1,0 +1,26 @@
+{
+  "id": "product",
+  "name": "Product",
+  "def": {
+    "attributes": [
+      {
+        "name": "sku",
+        "type": "datatype.sku",
+        "key": "primary"
+      },
+      {
+        "name": "name"
+      },
+      {
+        "name": "price",
+        "type": "datatype.money"
+      }
+    ]
+  },
+  "description": "Something that can be ordered.",
+  "settings": {
+    "card": {
+      "face": "table"
+    }
+  }
+}

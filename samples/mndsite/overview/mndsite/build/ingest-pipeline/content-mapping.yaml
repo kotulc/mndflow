@@ -1,0 +1,21 @@
+name: Content mapping
+description: What ingest does to a content folder, read off a traced run (mnd fact trace).
+blocks:
+  - a page
+  - a landing page
+  - a bare folder
+  - images
+  - assets
+  - components
+  - a folder
+  - pages
+  - public
+records:
+  - "a page -> pages: .md becomes .mdx, title stamped in (docs/about.md → pages/about.mdx)"
+  - "a landing page -> pages: home.md or index.md becomes the folder's index.mdx"
+  - "a bare folder -> pages: a hidden index.mdx redirecting to its first page (auto_index)"
+  - "images -> public: copied to public/images/<path>, EXIF stripped (copy_dir)"
+  - "assets -> public: _assets copied to public/_assets"
+  - "components -> pages: site/components synced to components/custom"
+  - "a folder -> pages: a _meta.json ordering its pages (write_meta)"
+type: mapping

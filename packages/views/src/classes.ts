@@ -8,8 +8,10 @@
  *  Laid out layered: cards ranked the way their lines point, so owners sit above what they own.
  *  Nothing is written back. */
 
-import { children, edges_in, ends_of, isa, is_reference, stood_def, type Block, type Graph,
-         type Id, type Relation } from "@mnd/core";
+import { attributes_of, children, edges_in, ends_of, isa, is_reference, links_to, resolved,
+         stood_def, type Block, type Graph, type Id, type Relation } from "@mnd/core";
+import { row_mid } from "./face";
+import type { Rect } from "./seat";
 
 /** What a line a diagram drew starts with: read, never picked. */
 export const DRAWN_BY = "diagram:";
@@ -85,6 +87,34 @@ function extended(graph: Graph, kept: readonly Id[],
     if (!to || to === id) continue;
     const eid = `${DRAWN_BY}extends:${id}`;
     out[eid] = { id: eid, from: id, to, name: "extends", settings: EXTENDS };
+  }
+  return out;
+}
+
+/** **Where a class or entity line meets its cards** (docs/diagrams/class.md, entity.md), as a
+ *  fraction down each card, by `edge|end`: at the owner, the row of the field holding or naming
+ *  the other; on an entity diagram, at the other, the row of its primary key. An end with no such
+ *  row meets the card as any line does. */
+export function field_rows(graph: Graph, lines: readonly Relation[], at: ReadonlyMap<Id, Rect>,
+                           kind: "class" | "er"): Map<string, number> {
+  const out = new Map<string, number>();
+  const def = (id: Id) => resolved(graph, id).stands_in?.id ?? graph.blocks[id]?.of ?? id;
+  const attrs = (id: Id) => attributes_of(graph, def(id));
+  const put = (edge: Id, end: "from" | "to", on: Id, i: number) => {
+    const box = at.get(on);
+    if (!box || i < 0) return;
+    const f = row_mid(i) / box.h;
+    if (f > 0 && f < 1) out.set(`${edge}|${end}`, f);
+  };
+  for (const e of lines) {
+    const field = (on: Id, other: Id) => attrs(on).findIndex((a) =>
+      (links_to(graph, a) ?? a.type) === def(other));
+    const [fa, fz] = [field(e.from, e.to), field(e.to, e.from)];
+    const [owner, end, held, back] = fa >= 0 ? [e.from, "from", e.to, "to"] as const
+      : fz >= 0 ? [e.to, "to", e.from, "from"] as const : [null, null, null, null];
+    if (!owner) continue;
+    put(e.id, end, owner, Math.max(fa, fz));
+    if (kind === "er") put(e.id, back, held, attrs(held).findIndex((a) => a.key === "primary"));
   }
   return out;
 }

@@ -2,27 +2,28 @@
  *  band, rows on shared columns, an empty element's one sentence, the tab's filter rows, and the
  *  left column — the card, then what the tab puts under it. */
 
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { owner_of, shown_name, type Graph, type Id } from "@mnd/core";
 import { entry_look, kind_of, tint_attrs, wire_of, wire_tint } from "@mnd/views";
 import { Faces } from "./Faces";
 import { Scope } from "./Where";
 
 /** **A section names itself**, semibold in the body's ink, with an *i* whose tip says what it is.
- *  It carries no count: its lists do. */
-export function Section({ name, about, children }: { name: string; about: string;
-                                                     children: ReactNode }) {
+ *  It carries no count: its lists do. `parts`: its body holds parts set apart, not one list. */
+export function Section({ name, about, parts = false, children }: {
+  name: string; about: string; parts?: boolean; children: ReactNode }) {
   return (
-    <section className="sec">
+    <section className={parts ? "sec parts" : "sec"}>
       <h5 className="sec-name">{name}<i className="sec-about" title={about}>i</i></h5>
       <div className="sec-body">{children}</div>
     </section>
   );
 }
 
-/** One row: its mark, its name, its kind quieter, and what it says at the right. */
+/** One row: its mark, its name, its kind quieter, and what it says at the right; where it is
+ *  picked, `onPick`, and whether it is the one picked, `on`, as a filter row is. */
 export type Item = { id: string; mark?: ReactNode; name: ReactNode; kind?: ReactNode;
-                     says?: ReactNode; quiet?: boolean };
+                     says?: ReactNode; quiet?: boolean; on?: boolean; onPick?: () => void };
 
 /** **A list opens on its band**: its label flush left and its count at the right, over a rule;
  *  then its rows on the section's shared columns, a rule under each. Hovering a row lights what it
@@ -33,7 +34,13 @@ export function List({ label, items, onLight }: { label: string; items: readonly
     <div className="list">
       <div className="band"><span>{label}</span><span className="n">{items.length}</span></div>
       {items.map((it) => (
-        <div key={it.id} className={it.quiet ? "item quiet" : "item"}
+        <div key={it.id}
+             className={["item", it.quiet ? "quiet" : "", it.on ? "on" : "",
+                         it.onPick ? "picks" : ""].filter(Boolean).join(" ")}
+             {...(it.onPick ? { role: "button", tabIndex: 0, onClick: it.onPick,
+                                onKeyDown: (e: KeyboardEvent) => {
+                                  if (e.key === "Enter" || e.key === " ") it.onPick!();
+                                } } : {})}
              onMouseEnter={() => onLight?.(it.id)} onMouseLeave={() => onLight?.(null)}>
           <span className="mark">{it.mark}</span>
           <span className="name">{it.name}</span>

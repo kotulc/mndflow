@@ -1,7 +1,6 @@
 ---
 name: Charge once
-type: document
-packages: [ services ]
+type: services.document
 tags: critical
 ---
 

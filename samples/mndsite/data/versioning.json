@@ -1,0 +1,30 @@
+{
+  "id": "data-versioning",
+  "name": "Versioning",
+  "description": "Old trees ingested from git tags.",
+  "def": {
+    "attributes": [
+      {
+        "name": "key",
+        "type": "text"
+      },
+      {
+        "name": "label",
+        "type": "text"
+      },
+      {
+        "name": "color",
+        "type": "text"
+      },
+      {
+        "name": "history",
+        "type": "flag"
+      }
+    ]
+  },
+  "settings": {
+    "card": {
+      "face": "table"
+    }
+  }
+}

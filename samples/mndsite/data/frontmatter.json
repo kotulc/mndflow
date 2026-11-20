@@ -1,0 +1,45 @@
+{
+  "id": "data-frontmatter",
+  "name": "Frontmatter",
+  "description": "Which frontmatter keys a page's fields are read from.",
+  "def": {
+    "attributes": [
+      {
+        "name": "title",
+        "type": "text"
+      },
+      {
+        "name": "date",
+        "type": "text"
+      },
+      {
+        "name": "reading_time",
+        "type": "text"
+      },
+      {
+        "name": "related",
+        "type": "text"
+      },
+      {
+        "name": "description",
+        "type": "text",
+        "many": true
+      },
+      {
+        "name": "facets",
+        "type": "data-facet",
+        "many": true
+      },
+      {
+        "name": "groups",
+        "type": "data-group",
+        "many": true
+      }
+    ]
+  },
+  "settings": {
+    "card": {
+      "face": "table"
+    }
+  }
+}

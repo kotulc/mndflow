@@ -5,8 +5,8 @@
  *  dashed, straight down each column from its participant's card — else its header strip — to the
  *  grid's foot, behind the cards, hung from two points that draw nothing. Worked out every draw. */
 
-import { has_lifelines, is_header, is_participant, lattice_of, type Graph, type Id,
-         type Side } from "@mnd/core";
+import { has_lifelines, is_header, is_participant, lattice_of, layer_of, shown_name,
+         type Graph, type Id, type Side } from "@mnd/core";
 import { box_of, cell, type BoxNode, type LineEdge, type Scene } from "./scene";
 import { cell_box, head_height, UNIT, type Box } from "./size";
 
@@ -57,7 +57,8 @@ export function lifelined(graph: Graph, grid: Id, scene: Scene): Scene {
     /** Out of its card's side where both share the row; else off its lifeline. */
     const from = a.r === z.r ? (ahead ? a.x + a.w : a.x) : a.line;
     const to = ahead ? z.x : z.x + z.w;
-    return { ...e, data: { ...e.data!, level: true, points: [{ x: from, y }, { x: to, y }] } };
+    return { ...e, data: { ...e.data!, level: true, origin: true,
+                           points: [{ x: from, y }, { x: to, y }] } };
   });
   /** Each column's head: its participant's card where it has one, else its header strip. */
   const heads = new Map<number, Box>();
@@ -71,8 +72,57 @@ export function lifelined(graph: Graph, grid: Id, scene: Scene): Scene {
     return { ...at, x: whole.x + at.x, y: whole.y + at.y };
   };
   const lives = lifelines(g.cols, (c) => heads.get(c) ?? strip(c), whole);
-  return { ...scene, nodes: [...scene.nodes, ...lives.nodes], edges: [...lives.edges, ...edges],
-           lifelines: grid };
+  const owner = owner_frame(graph, grid, scene.nodes);
+  const frags = fragments(graph, grid, whole);
+  return { ...scene, nodes: [...(owner ? [owner] : []), ...frags, ...scene.nodes, ...lives.nodes],
+           edges: [...lives.edges, ...edges], lifelines: grid };
+}
+
+/** **A sequence's fragments** (docs/diagrams/sequence.md, agreed 4 and 7): a frame across the
+ *  body's columns over each run of rows, named by its condition (`↻ each .md change`) or, for
+ *  alternatives, each run by its guard, the first led by `alt`; behind the cards. */
+function fragments(graph: Graph, grid: Id, room: Box): BoxNode[] {
+  const g = lattice_of(graph, grid);
+  const said = graph.blocks[grid]?.fragments ?? [];
+  if (!g || !said.length) return [];
+  const head = head_height(graph, grid);
+  const pad = UNIT / 4;
+  const span = (id: string, [a, z]: [number, number], label: string): BoxNode => {
+    const [top, foot] = [cell_box(g, a, 1, head), cell_box(g, z, g.cols - 1, head)];
+    const at = { x: room.x + top.x + pad, y: room.y + top.y + pad,
+                 w: foot.x + foot.w - top.x - pad * 2, h: foot.y + foot.h - top.y - pad * 2 };
+    return { ...cell(id, at, { label, marks: ["group", "flat"] }, "group"),
+             selectable: false, draggable: false, focusable: false };
+  };
+  return said.flatMap((f, i) => ("repeat" in f
+    ? [span(`@frag:${i}`, f.rows, `↻ ${f.repeat}`)]
+    : f.rows.map((r, j) => span(`@frag:${i}:${j}`, r,
+                                 `${j ? "" : "alt "}${f.alt[j] ?? ""}`.trim()))));
+}
+
+/** **The owner's frame over the head** (docs/diagrams/sequence.md *Layout*): round the
+ *  participants standing for the owner's own parts, named for it, so what is inside the system
+ *  and what is outside it read apart. Null where none is. */
+function owner_frame(graph: Graph, grid: Id, nodes: readonly BoxNode[]): BoxNode | null {
+  const owner = layer_of(graph, grid);
+  if (!owner) return null;
+  const inside = (id: Id | undefined) => {
+    for (let at = id ? graph.blocks[id]?.parent : null; at; at = graph.blocks[at]?.parent) {
+      if (at === owner) return true;
+    }
+    return false;
+  };
+  const mine = nodes.filter((n) => graph.blocks[n.id]?.parent === grid
+    && is_participant(graph, n.id) && inside(graph.blocks[n.id]!.of)).map(box_of);
+  if (!mine.length) return null;
+  const pad = UNIT / 2;
+  const x = Math.min(...mine.map((b) => b.x)) - pad;
+  const y = Math.min(...mine.map((b) => b.y)) - pad * 2;
+  const w = Math.max(...mine.map((b) => b.x + b.w)) + pad - x;
+  const h = Math.max(...mine.map((b) => b.y + b.h)) + pad - y;
+  return { ...cell(`@owner:${owner}`, { x, y, w, h },
+                   { label: shown_name(graph, owner), marks: ["group", "flat"] }, "group"),
+           selectable: false, draggable: false, focusable: false };
 }
 
 /** A dashed line down the middle of each column, from under its head to the grid's foot. */

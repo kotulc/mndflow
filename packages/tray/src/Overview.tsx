@@ -1,7 +1,8 @@
 /** The overview tab: every element's first, lines included, **one layout for all**. The card,
  *  then where it lives — its whole model or package, the element lit — then its path heading
  *  what its hover card says but its card — its facts, what it holds — and titled answers: why it
- *  matters, how it is used, where it sits, and its text. **Only its own
+ *  matters, how it is used, where it sits, and its text; a model's presentations, or the one
+ *  playing, first (`Presentation`). **Only its own
  *  answers**: nothing borrowed from its definition. Gaps are quiet rows, in the editor only. It
  *  reflows by the tray's width. */
 
@@ -13,10 +14,11 @@ import { appearances_of, behaviours_of, children, class_of, def_at, def_of, defi
          DIAGRAM_QUESTIONS, DIAGRAMS, type Act, type Block, type Graph, type Id,
          type Relation } from "@mnd/core";
 import { Facts, Holds, Icon, role_icon, UsedIn } from "@mnd/theme";
-import { hover_of, kind_of, wire_of, wire_tint, type Hovered } from "@mnd/views";
+import { hover_of, kind_of, told, wire_of, wire_tint, type Hovered } from "@mnd/views";
 import { Content } from "./Content";
 import { Card, Empty, LineCard, List, Painted, Section, type Item } from "./Lists";
 import { Scope, Trail, Where } from "./Where";
+import { Presentation, type PresentationProps } from "./Presentation";
 import { ScopeAnswers } from "./Workspace";
 
 export type OverviewProps = {
@@ -26,13 +28,16 @@ export type OverviewProps = {
   /** The side the canvas looks at, so the overview offers what reading there does, and the way
    *  across to the other side. */
   lists?: "domain" | "structure";
+  /** A model's presentations, or the one playing: its answers' first section. */
+  presenting?: PresentationProps;
 };
 
-export function Overview({ graph, id, onAct, lists }: OverviewProps) {
+export function Overview({ graph, id, onAct, lists, presenting }: OverviewProps) {
   /** What its hover card says, a definition's uses read as the library reads them; a reference
    *  says what it stands for, as its card does. */
   const read = useMemo(() => (graph.blocks[id]?.parent
-    ? hover_of(graph, id, !!graph.blocks[id]?.def) : null), [graph, id]);
+    ? hover_of(graph, id, !!graph.blocks[id]?.def || lists === "domain") : null),
+  [graph, id, lists]);
   /** The picture: the map, the element lit. */
   const where = <Where graph={graph} id={id} />;
   const e = graph.edges[id];
@@ -112,6 +117,7 @@ export function Overview({ graph, id, onAct, lists }: OverviewProps) {
         ) : null}
       </div>
       <div className="ov-answers lists">
+        {presenting ? <Presentation {...presenting} /> : null}
         <Trail graph={graph} id={id} />
         {read ? (
           <div className="glance">
@@ -169,8 +175,9 @@ function LineOverview({ graph, e }: { graph: Graph; e: Relation }) {
   );
 }
 
-/** **Why it matters**: its own description — a gap, quiet, in the editor where it has none —
- *  then its definition, its kind, whether it is a behaviour, and its tags. */
+/** **Why it matters**: its own description, else its definition's read through, quieter — a gap
+ *  in the editor where neither says — then its definition, its kind, whether it is a behaviour,
+ *  and its tags. */
 function Why({ graph, b, kind, editor }: { graph: Graph; b: Block; kind: Id | null;
                                            editor: boolean }) {
   const def = b.def ? undefined : def_of(graph, b.id);
@@ -179,9 +186,11 @@ function Why({ graph, b, kind, editor }: { graph: Graph; b: Block; kind: Id | nu
   /** A definition's own: what it extends, where that is no kind. */
   const base = b.def && b.type && package_of(graph, b.type) !== BASE_PACKAGE
     ? def_at(graph, b.type) : undefined;
+  const through = b.description ? undefined : told(graph, b.id);
   return (
     <Section name="why it matters" about="What it is for, in its own words; then what it is">
       {b.description ? <p className="why">{b.description}</p>
+        : through ? <p className="why faint">{through}</p>
         : editor ? <p className="gap">no description yet</p> : null}
       <div className="chips">
         {own ? <Painted graph={graph} entry={own.id} word={own.name} chip /> : null}

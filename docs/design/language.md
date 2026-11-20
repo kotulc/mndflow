@@ -8,8 +8,8 @@
 | # | Principle | Means |
 |---|---|---|
 | 1 | **one identity everywhere** | name, kind, icon and colour read the same in every form, at every size |
-| 2 | **one ladder** | every form shows information in the same order and adds rows as it has room. It never squashes them |
-| 3 | **room picks the level** | the on-screen size picks how far up the ladder a form goes. Nobody chooses it |
+| 2 | **one order** | every form shows information in the same order — name, then kind · presentations · counts · tags, then its content — and drops what has no room, last first. It never squashes it |
+| 3 | **the laid shape decides** (2026-11-15) | what a form shows is decided from its laid size, never its size on screen: nothing comes or goes with the zoom, which only fades detail. Nobody chooses it |
 | 4 | **a form is a purpose** | each form answers one question. Its frame says which form it is before you read it |
 | 5 | **nothing is lost** | what a form has no room for, the next form up says. Hover says everything, and the tray says more |
 

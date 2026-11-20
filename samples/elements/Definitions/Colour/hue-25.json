@@ -1,0 +1,10 @@
+{
+  "id": "hue-25",
+  "name": "hue 25",
+  "def": {},
+  "settings": {
+    "style": {
+      "hue": 25
+    }
+  }
+}

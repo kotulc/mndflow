@@ -1,0 +1,72 @@
+{
+  "id": "data-pagemeta",
+  "name": "PageMeta",
+  "description": "The record every page gets: the flat facts the site reads to list, filter and link pages.",
+  "def": {
+    "attributes": [
+      {
+        "name": "name",
+        "type": "text"
+      },
+      {
+        "name": "url",
+        "type": "text"
+      },
+      {
+        "name": "slug",
+        "type": "text"
+      },
+      {
+        "name": "source",
+        "type": "text"
+      },
+      {
+        "name": "published",
+        "type": "text",
+        "note": "date"
+      },
+      {
+        "name": "desc",
+        "type": "text"
+      },
+      {
+        "name": "excerpt",
+        "type": "text",
+        "note": "≤ 280"
+      },
+      {
+        "name": "metrics",
+        "type": "data-metrics"
+      },
+      {
+        "name": "links",
+        "type": "text",
+        "many": true
+      },
+      {
+        "name": "related",
+        "type": "data-related",
+        "many": true
+      },
+      {
+        "name": "facets",
+        "type": "text",
+        "note": "key → value"
+      },
+      {
+        "name": "sections",
+        "type": "data-section",
+        "many": true
+      },
+      {
+        "name": "snapshot",
+        "type": "text"
+      }
+    ]
+  },
+  "settings": {
+    "card": {
+      "face": "table"
+    }
+  }
+}

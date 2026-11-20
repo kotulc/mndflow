@@ -5,23 +5,21 @@
  *  open structure moves it too is the host's. The pick is lit strongly, and only while picked;
  *  the rows the canvas draws and each section's pick subtly. */
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { about_of, at_cut, children, domain_of, drop_of, frozen, is_folder, is_inside,
          is_layer_view, holds_defs, lit, may_hold, model_of, name_taken, new_id, on_side,
          owner_def, path,
          shown_name,
          type Act, type Graph, type Id, type Registry, type View } from "@mnd/core";
-import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
+import { Icon, Name, NamingContext, Swatch, type IconName, type SwatchAttrs } from "@mnd/theme";
 import { Menu } from "./Menu";
 import type { Chain } from "./chain";
 import { end_of, listed_of, mark_icon, OPENED, opened, parent_of, tree_of,
          type Nest, type Row } from "./rows";
 
 /** What a host may hand a row: its colour, as the attributes the card table reads, and a count;
- *  and a swatch to wear for its icon, as the same attributes. */
-type Attrs = { "data-family"?: string; "data-border-style"?: string;
-               style?: Record<string, string> };
-export type RowLook = { tint?: Attrs; count?: number; swatch?: Attrs };
+ *  and a swatch to wear for its icon (theme `Swatch`), as the same attributes. */
+export type RowLook = { tint?: SwatchAttrs; count?: number; swatch?: SwatchAttrs };
 
 export type ExplorerProps = {
   graph: Graph;
@@ -159,10 +157,6 @@ function Fold({ icon, tip, onToggle }: { icon: IconName; tip: string; onToggle: 
   );
 }
 
-/** A short stroke in a line's colour and dash, standing where a row's icon would. */
-function Swatch({ style, ...attrs }: Attrs) {
-  return <i className="swatch" {...attrs} style={style as CSSProperties} />;
-}
 
 export function Explorer(props: ExplorerProps) {
   const { graph, view, picked, folded, onAct, onFold, onPick, onOpen, onLeave,
@@ -302,13 +296,15 @@ export function Explorer(props: ExplorerProps) {
   const route = props.route === undefined ? open : props.route;
   const lights = (r: Row) => r.at === focus && r.pick !== undefined && r.of === "block"
     && mine.length > 0 && lit(graph, mine, route, r.ref, r.via);
+  /** A section drawn whole, nothing in sight or picked: its header row is what the canvas shows,
+   *  lit as a picked row is, as the crumbs read only its label. */
+  const whole = !is_layer_view(view.kind) && !view.pick && !picked.length;
   /** **The one row wearing the accent's edge: what the canvas shows**, in the section it looks
-   *  at — the layer seen from inside, else what it brought into sight, else the section's root. */
-  const shown = as_row(is_layer_view(view.kind) ? view.layer
-    : view.pick ?? chain.roots[view.at] ?? null);
+   *  at — the layer seen from inside, else what it brought into sight, else the section's header. */
+  const shown = as_row(is_layer_view(view.kind) ? view.layer : view.pick ?? null);
   const drawn_at = rows.findIndex((r) => r.of === "block" && r.at === view.at && r.ref === shown
     && !r.via);
-  const drawn_row = rows[drawn_at]?.id;
+  const drawn_row = whole ? `@${chain.slices[view.at]?.id}` : rows[drawn_at]?.id;
   /** **What is in view**, lit subtly: the rows of the section the canvas looks at that it draws,
    *  as the host hands them. */
   const in_view = (r: Row) => r.of === "block" && r.at === view.at && !r.via
@@ -631,7 +627,8 @@ export function Explorer(props: ExplorerProps) {
                   r.depth ? "" : "top",
                   r.named ? "" : "unnamed",
                   r.of === "block" ? "" : r.of,
-                  lights(r) || (r.of === "named" && r.ref === props.holding)
+                  lights(r) || (whole && r.id === drawn_row)
+                    || (r.of === "named" && r.ref === props.holding)
                     || (r.registry && r.registry.pkg === props.registry?.pkg
                         && r.registry.kind === props.registry.kind) ? "picked" : "",
                   holds(r) ? "context" : "",

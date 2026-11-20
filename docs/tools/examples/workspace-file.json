@@ -1,0 +1,6 @@
+{
+  "name": "Workspace file",
+  "owner": "core",
+  "description": "How a workspace is stored: blocks and relations by id, a relation's ends and a block's parent each a key into the blocks.",
+  "blocks": ["Graph", "Block", "Relation"]
+}

@@ -1,39 +1,59 @@
-/** **A block's hops traced across a map** (2026-11-04): what reaches it and what it reaches, a
- *  hop each way (core `hops_of`), each far end lifted to the nearest block the map draws, one leg
- *  a pair, straight where two blocks face each other, else one bend (`routed`), an arrow at its
- *  end.
- *  No numbers: a walk along a path says its step in words (stage `Walk.tsx`), lighting one hop at
- *  a time (`hop_trace`). Worked out on hover or pick, never stored. */
+/** **A map's links, traced** (2026-11-18): every join under the map gathered once, to the
+ *  blocks it draws (`links_of`), one leg a pair either way; a chip says its links in words, and
+ *  hovering or picking a block lights **the same legs** — those crossing its edge (`trace_of`) —
+ *  routed direct (`routed`). A walk lights one hop at a time (`hop_trace`). */
 
-import { hops_of, is_reference, path, stands_for, type Graph, type Hop,
+import { is_reference, joins_in, path, stands_for, type Graph, type Hop,
          type Id } from "@mnd/core";
 import { box_of, type Scene } from "./scene";
 
 type Point = { x: number; y: number };
 
-/** One leg: from block to block, the names said across it, its run; `both` where it goes back
- *  too. */
-export type Leg = { from: Id; to: Id; names: string[]; run: Point[]; both?: boolean };
+/** One leg: from block to block, the names said across it, how many relations it gathers, its
+ *  run; `both` where it goes back too. */
+export type Leg = { from: Id; to: Id; names: string[]; n: number; run: Point[]; both?: boolean };
 
 /** Hops traced: what they light, and their legs. */
-export type Trace = { blocks: Id[]; lines: Id[]; legs: Leg[] };
+export type Trace = { blocks: Id[]; lines: Id[]; legs: Leg[];
+                      /** A presentation's steps with none drawing now: the last was a mark. */
+                      still?: boolean };
 
 
-/** `id`'s hops, traced over a map — a reference's, what it stands for — null off a map or where
- *  nothing drawn joins it. */
-export function trace_of(graph: Graph, scene: Scene, id: Id): Trace | null {
-  const at = is_reference(graph, id) ? stands_for(graph, id)?.id ?? id : id;
-  return graph.blocks[at] ? hop_trace(graph, scene, hops_of(graph, at)) : null;
+/** **A map's links**: every join inside `scope` (every one where null) gathered to what the map
+ *  draws, not yet routed. */
+export function links_of(graph: Graph, scene: Scene, scope: Id | null): Leg[] {
+  return gathered(graph, scene, joins_in(graph, scope));
 }
 
-/** **Hops traced over a map**: each end lifted to the nearest block the map draws — itself, or a
- *  reference standing for it, as a treemap diagram draws — or the *+n more* it folded into; one
- *  leg a pair, either way, **never between a box and what it holds**, drawn round it already.
- *  Null off a map or where none is drawn. */
+/** **What lights for `id` on a map**: the map's links crossing its edge — itself and what is drawn
+ *  inside it, or the nearest block drawn above it — routed. Null off a map or where none does. */
+export function trace_of(graph: Graph, scene: Scene, id: Id): Trace | null {
+  if (!scene.links) return null;
+  const at = lifted(graph, scene)(is_reference(graph, id) ? stands_for(graph, id)?.id ?? id : id);
+  if (!at) return null;
+  const above = holders(scene);
+  const inside = (b: Id) => b === at || above(b).includes(at);
+  const legs = scene.links.filter((l) => inside(l.from) !== inside(l.to));
+  if (!legs.length) return null;
+  const ends = [...new Set(legs.flatMap((l) => [l.from, l.to]))];
+  return routed({ blocks: with_inside(scene, ends, above), lines: [], legs }, scene);
+}
+
+/** **Hops traced over a map**, routed: a walk's step. Null off a map or where none is drawn. */
 export function hop_trace(graph: Graph, scene: Scene, hops: readonly Hop[]): Trace | null {
-  if (!scene.areas) return null;
-  const at = standing(graph, scene);
-  const lift = (id: Id) => [...path(graph, id)].reverse().map((b) => at(b.id)).find((x) => !!x);
+  const legs = gathered(graph, scene, hops);
+  if (!legs.length) return null;
+  const ends = [...new Set(legs.flatMap((l) => [l.from, l.to]))];
+  return routed({ blocks: with_inside(scene, ends), lines: [], legs }, scene);
+}
+
+/** **Hops gathered on a map**: each end lifted to the nearest block the map draws — itself, or a
+ *  reference standing for it, as a treemap diagram draws; one leg a pair, either way,
+ *  **gathering every relation between the two** (`n`), **never between a box and what it
+ *  holds**, drawn round it already. None off a map. */
+function gathered(graph: Graph, scene: Scene, hops: readonly Hop[]): Leg[] {
+  if (!scene.areas) return [];
+  const lift = lifted(graph, scene);
   const above = holders(scene);
   const legs: Leg[] = [];
   for (const h of hops) {
@@ -43,13 +63,18 @@ export function hop_trace(graph: Graph, scene: Scene, hops: readonly Hop[]): Tra
     const had = legs.find((l) => (l.from === from && l.to === to)
       || (l.from === to && l.to === from));
     if (had) {
+      had.n += h.n ?? 1;
       had.names.push(...h.names.filter((n) => !had.names.includes(n)));
       if (had.from === to) had.both = true;
-    } else legs.push({ from, to, names: [...h.names], run: [] });
+    } else legs.push({ from, to, names: [...h.names], n: h.n ?? 1, run: [] });
   }
-  if (!legs.length) return null;
-  const ends = [...new Set(legs.flatMap((l) => [l.from, l.to]))];
-  return routed({ blocks: with_inside(scene, ends, above), lines: [], legs }, scene);
+  return legs;
+}
+
+/** The nearest block a map draws for a block: itself, else up its path. */
+function lifted(graph: Graph, scene: Scene): (id: Id) => Id | undefined {
+  const at = standing(graph, scene);
+  return (id) => [...path(graph, id)].reverse().map((b) => at(b.id)).find((x) => !!x);
 }
 
 /** **What picking lights on a map** (2026-11-04): the chips and boxes picked, each box with
@@ -69,16 +94,15 @@ export function on_map(graph: Graph, scene: Scene, ids: readonly Id[]): Id[] {
   return [...new Set(ids.map((id) => at(id) ?? id))];
 }
 
-/** **What stands for a block on a map**: its own node, a reference drawn for it, as a treemap
- *  diagram draws, or the *+n more* it folded into. */
+/** **What stands for a block on a map**: its own node, or a reference drawn for it, as a treemap
+ *  diagram draws. */
 function standing(graph: Graph, scene: Scene): (id: Id) => Id | undefined {
   const nodes = new Set(scene.nodes.map((n) => n.id));
-  const more = new Map(scene.nodes.flatMap((n) => (n.data.folded ?? []).map((f) => [f, n.id])));
   const stood = new Map(scene.nodes.flatMap((n) => {
     const to = is_reference(graph, n.id) ? stands_for(graph, n.id)?.id : undefined;
     return to ? [[to, n.id] as const] : [];
   }));
-  return (id) => (nodes.has(id) ? id : stood.get(id) ?? more.get(id));
+  return (id) => (nodes.has(id) ? id : stood.get(id));
 }
 
 /** Blocks on a map, each box with everything it holds: what it holds is part of it. */
@@ -100,12 +124,12 @@ function holders(scene: Scene): (id: Id) => Id[] {
 type Rect = { x: number; y: number; w: number; h: number };
 type Side = "left" | "right" | "top" | "bottom";
 
-/** **Hops routed, kept simple** (2026-11-04): two blocks facing each other across a gap — side by
- *  side, or one above the other — are joined by one straight leg across it, where their sides
- *  overlap; any other pair by one bend, out of the source's side facing the target and into the
+/** **Legs routed, direct** (2026-11-04; round the chips tried 2026-11-18, bends too tight in
+ *  the narrow gaps): two blocks facing each other across a gap — side by side, or one above
+ *  the other — are joined straight across it, where their sides overlap; any other pair by one bend, out of the source's side facing the target and into the
  *  target's top or bottom. Never a loop, never doubling back. The ends sharing a side of a block
- *  spread evenly along it, ordered by where they go, so no two run as one. Proportional to the
- *  blocks, so it holds at every zoom. */
+ *  spread evenly along it, ordered by where they go, so no two run as one. Drawn only while lit,
+ *  over what it passes. */
 function routed(trace: Trace, scene: Scene): Trace {
   const nodes = new Map(scene.nodes.map((n) => [n.id, n]));
   const rect = (b: Id) => box_of(nodes.get(b)!);
@@ -127,9 +151,8 @@ function routed(trace: Trace, scene: Scene): Trace {
     [...list].sort((a, z) => a.key - z.key).forEach((e, k) => (e.t = (k + 1) / (list.length + 1)));
   }
   return { ...trace, legs: trace.legs.map((l, k) => {
-    const [a, b] = [rect(l.from), rect(l.to)];
     const [from, to] = ends[k]!;
-    return { ...l, run: drawn(a, b, plans[k]!, from!.t, to!.t) };
+    return { ...l, run: drawn(rect(l.from), rect(l.to), plans[k]!, from!.t, to!.t) };
   }) };
 }
 

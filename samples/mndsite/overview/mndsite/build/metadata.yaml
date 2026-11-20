@@ -1,0 +1,6 @@
+name: metadata
+description: "Turns one page into its PageMeta record: the flat facts the site lists, filters and links pages by."
+blocks:
+  - name: records
+    type: text
+type: context

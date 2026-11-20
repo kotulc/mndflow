@@ -3,8 +3,9 @@
  *  **One separator, `.`**, as Python's. A **path** `a.b.c` walks names down, from the package
  *  root its first step names, else from where it is read. A **definition** is named by its id; by
  *  a qualified name, `pkg.name` or `pkg.folder.name`, in that package (`base.folder` is the bare
- *  `folder`); or by its bare name, looked for in order — the packages a reader lists, its own
- *  first, then `base` — and nowhere else. A name found twice at the first step it is found in
+ *  `folder`), where the reader may name that package; or by its bare name, looked for in order —
+ *  the packages a reader lists, its own first, then `base` — and nowhere else. **An import is
+ *  named qualified**: it is reached, never searched. A name found twice at the first step it is found in
  *  finds none: it is ambiguous, and qualifying it settles it. */
 
 import { all_defs, def_at, domain_of, package_of, type Domain } from "./defs";
@@ -50,14 +51,16 @@ export function path_to(graph: Graph, path: string, from: Id | null = null): Id 
  *  `base` — or, `within` unsaid, anywhere; else its id. More than one is ambiguous. `fits`
  *  narrows what may answer. */
 export function def_hits(graph: Graph, word: string,
-                         { within, fits = () => true }: Ref = {}): Id[] {
+                         { within, imports = [], fits = () => true }: Ref = {}): Id[] {
   const said = word.trim();
   const named = (pkg: Id | undefined, name: string) => all_defs(graph).filter((d) =>
     d.name === name && fits(d.id) && (pkg === undefined || package_of(graph, d.id) === pkg))
     .map((d) => d.id);
 
-  /** Qualified: a path from the package's root, else a definition of that name in it. */
+  /** Qualified: a path from the package's root, else a definition of that name in it — a package
+   *  `within` or `imports` holds, where `within` is said. */
   const pkg = package_named(graph, said);
+  if (pkg && within && !in_reach([...within, ...imports], pkg)) return [];
   if (pkg) {
     const at = path_to(graph, said);
     if (at && def_at(graph, at) && fits(at)) return [at];
@@ -85,14 +88,16 @@ export function def_ref(graph: Graph, word: string, ref: Ref = {}): Id | undefin
 }
 
 /** The named components — types, tags, interfaces, constraints — a word may name, as `def_hits`
- *  looks: its id, `pkg.name` (the package by its root's id or name), else in each package
- *  `within` lists, in order, then `base`. */
+ *  looks: its id, `pkg.name` (a package `within` or `imports` holds, by its root's id or name),
+ *  else in each package `within` lists, in order, then `base`. */
 export function component_hits(graph: Graph, held: readonly { id: Id; name: string; pkg: Id }[],
-                               word: string, within: readonly Id[]): Id[] {
+                               word: string, within: readonly Id[],
+                               imports: readonly Id[] = []): Id[] {
   const said = word.trim();
   const id = held.find((c) => c.id === said);
   if (id) return [id.id];
   const pkg = package_named(graph, said);
+  if (pkg && !in_reach([...within, ...imports], pkg)) return [];
   if (pkg) {
     const name = steps_of(said).slice(1).join(STEP);
     const hits = held.filter((c) => c.pkg === pkg && c.name === name);
@@ -105,8 +110,14 @@ export function component_hits(graph: Graph, held: readonly { id: Id; name: stri
   return [];
 }
 
-/** How a definition is looked for: in which packages, in order, and what may answer. */
-export type Ref = { within?: readonly Id[]; fits?: (id: Id) => boolean };
+/** Whether a package is one a reader may name: one it lists, or `base`. */
+function in_reach(within: readonly Id[], pkg: Id): boolean {
+  return pkg === BASE_PACKAGE || within.includes(pkg);
+}
+
+/** How a definition is looked for: in which packages a bare name is, in order; which more a
+ *  qualified name may reach (`imports`); and what may answer. */
+export type Ref = { within?: readonly Id[]; imports?: readonly Id[]; fits?: (id: Id) => boolean };
 
 /** What may answer a word for an element of this domain. */
 export function fits_domain(graph: Graph, domain: Domain): (id: Id) => boolean {

@@ -1,6 +1,14 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next**: what a model is, its plan in model-plan.md (taken up 2026-11-07): narrative paths from the entries, the walk front and centre, and the translations' acceptance. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next** (2026-11-19): iteration-plan.md, the primary plan — a subagent translates a Python codebase through the CLI and files, round by round, to improve the surface. scale-plan.md *Next* and model-plan.md *Next session* pause behind it. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
+
+## After the mndsite review
+
+**Polish moved out of model-plan.md and the translation plan (2026-11-08; that plan deleted 2026-11-15).** The review is done (the mndsite review, its outcome now samples/mndsite): take up only what the agreed pictures still need, drop what they make moot (step order by columns and the walk's stack dropped 2026-11-13).
+
+| Item | Notes | From |
+|---|---|---|
+| **a container has no description** | deferred 2026-11-15: a YAML folder file makes the folder a model; composed overviews describe containers meanwhile; a folder file beside its directory loses `tree: definitions`, so containers are plain directories; each unit says `runs` instead | translation plan |
 
 ## CLI (next, alongside code translation)
 
@@ -37,7 +45,7 @@
 | `check <file \| dir>` | no | faults and notes, each naming its element, of a file or a source folder collected first; exit 1 on faults |
 | `collect <dir> [-o out.json]` | no | a source folder (definitions, card sources, diagram files) as one package or workspace file |
 | `help [action]` | no | the registry's actions and arguments |
-| `draw <file> [ref] [flags] -o x.png` · `--open` | no | the kit `Viewer` screenshotted headless; `--open` hands the same view to a browser |
+| `see <file> [ref] [flags] -o x.png` · `--open` | no | the kit `Viewer` screenshotted headless; `--open` hands the same view to a browser (was `draw`, a name the diagram tools took 2026-11-15) |
 | `bring <file> <name \| path \| url>` | yes | a package, frozen, through the door |
 | `export <file> [--package <name> \| --sysml [--round]]` | no | the file folded clean, a package, or SysML |
 
@@ -47,11 +55,11 @@ Values: `k=v` text, `k:=json`, `k=@path` a file's text. Exit 0 done, 1 refused o
 |---|---|---|
 | **write** | action args: `ref` and `many` on `Arg`; one name per role (`ids`, `grid`, `type`); `at` split into `cell` / `line`; lists as JSON lists; positional args declared. Path resolution with candidates in core. cli `state.ts`, `args.ts`, `refs.ts`; `new`; `do` inside `session.batch` | `new`, then a script making three blocks, relating two by `$key` and describing one from a `.md`, `check`s clean; a refused last line leaves the file byte-identical |
 | **read** | `show`, `find` (cli `read.ts`); `help` from the registry | an agent with no docs lists the actions, finds `Pump`, reads it and relates it |
-| **see** | `frame/` page mounting the `Viewer`; `draw` on Playwright with an installed Edge or Chrome; `--open` via the web app loading a handed-off file at mount; `project` and `outline` leave the CLI | the repo map's package and `core` layers come back as PNGs matching the app; `--open` shows the same view with no picker |
+| **see** | `frame/` page mounting the `Viewer`; `see` on Playwright with an installed Edge or Chrome; `--open` via the web app loading a handed-off file at mount; `project` and `outline` leave the CLI | the repo map's package and `core` layers come back as PNGs matching the app; `--open` shows the same view with no picker |
 | **packages and faults** | `bring`; `export --package`; `Fault.id` set by every door fault; every unknown definition and independent fault reported; `review` folded into `check` | a hand-written package is checked, brought, used as a `type` and exported byte-stable; `check` names an orphan, a dangling edge and two unknown types |
 | **speed and docs** | bundle `mnd` with tsup; rewrite the CLI README; design.md's agent-surface question closes on this section; refresh the `vitest` skill | a call returns in well under a second |
 
-**Acceptance:** this repo mapped through the CLI alone: `new`, one generated script, `check` clean, `draw` and revise, `draw --open` hands the view over. No ids in hand, no browser editing, no hand-placed geometry.
+**Acceptance:** this repo mapped through the CLI alone: `new`, one generated script, `check` clean, `see` and revise, `see --open` hands the view over. No ids in hand, no browser editing, no hand-placed geometry.
 
 
 ## Edges
@@ -70,10 +78,11 @@ Known rough spots, taken when a step passes near one.
 | **React** | `flushSync was called from inside a lifecycle method`, once seen opening the profile from a layer; recheck |
 | **packages** | a definition file holds no parts, so a pattern's parts live in its package's `package.json`; base's `decision` and `services`'s share a name, so `type: decision` resolves to whichever the lookup finds first |
 | **paths** | a path names every region on the way (`Overview.Shop.Back office.Payments`), though layers look through them |
-| **diagram files** | a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no `packages` a file lists |
+| **diagram files** | a card drawn in by `source` keeps only its type, body, tags, settings, name and values; the web app's collect loads no package a package imports |
 | **annotations** | a label floats aside, so on a layer cut into regions it can land across a band's heading; a picked region draws a full outline rather than its band; an empty layer's words centre on the canvas rather than the room |
 | **ports** | design.md gives a port its definition's settings, values and tags; ports hold name, type, flow, seat and description only |
-| **map** | a count on a tight chip fragments (*service 6.*); the room sits under a one-line head; a traced leg may cross chips in its way, the direct path kept (the user, 2026-11-07; design.md *hops*) |
+| **references** to a block wearing ports | an entered diagram of references to blocks with ports logs React Flow's *couldn't create edge for source handle* once for a line between them, though it draws (samples/elements *Record trace*, since its blocks gained typed ports 2026-11-15) |
+| **map** | a count on a tight chip fragments (*service 6.*); the room sits under a one-line head; a traced leg may cross chips in its way, the direct path kept (the user, 2026-11-07, again 2026-11-18 after routing round chips with libavoid was tried: bends too tight in the narrow gaps; design.md *hops*) |
 | **references** | from the translation review (2026-11-01): an ambiguous bare attribute type is made as text with no note (core `sources.ts` `type_of`); a folder path inside the reader's own package (`Records.Order`) is not found by `def_hits` for `type:` though it is for `of:` (core `refs.ts`); the door allows one name in two folders (`door.ts` `named_defs`) while rename and create refuse it (`name_taken`), pending the user's word; `wanted` loads a catalogue package for any dotted word whose first step names one, ports and relation ends included (core `sources.ts`); the CLI re-reads the catalogue index once a head (cli `main.ts` `listed_names`) |
 | **double-click a grid** | lands on its name and renames it; Enter opens it |
 | **follow-ups** | lineage and links as a package structure rather than a view; boxes for a definition's usages and the groups they belong to |
@@ -83,9 +92,9 @@ Known rough spots, taken when a step passes near one.
 
 | Item | |
 |---|---|
-| **the rail** | future work, tasked separately |
+| **the options rail's old jobs** | the rail was removed 2026-11-08 (presentations will lead the tray's overview); a home for what it held: the palette (notation for the focus), *new usage* / *new definition*, which relation types a right drag draws, the workspace's and package's quick editor. The web app's `chrome` handler still answers their actions |
 | **entry paths** | from the entry paths plan (closed 2026-11-02): on the map, an entry-points band of few, light chips is a narrow column (tray, views; weighing up a few rounds starved other regions, tried and reverted); registries still lay out with their own treemap (views `treemap.ts` `tiled`), not the map's; paths stay inside one package (apps/ts `calls_of` records calls within a package only; crossing packages is what makes a path the system's story); several paths at once; `mnd measure` on the map's traced paths; a package's class diagram of its own types sits loose below its bands, and a note's tie runs straight across the shop |
-| **code translation** | from the translation work (2026-11-05): a component face listing its modules as rows; modules joined to nothing push a layer over budget (fold them by salience · one group of the unjoined); vocabulary gaps — enums and aliases as library types, a name said in two packages linked, methods; edge weights (symbols imported plus type references · symbols only); the clustering package (Louvain without its random walk · Leiden); component kinds (`ts.component` · reuse `services.component`); vocabulary ranking by what a type is *used by* (fan-in · PageRank on the type graph); writing the workspace with core's `write` · JSON by hand; a hand-made reference breakdown for MoJoFM (set aside); what the agent layer needs (walkthrough steps naming translated elements, names stable across re-translation) |
+| **code translation** | from the translation plan (deleted 2026-11-15): a group named by its anchor's header mislabels it (*client-side redirect* named five link and footer components), so a group's name stays tf-idf, its description its members' headers; **too many flows** (15 on mndsite, 173 on this repo: most API functions call three of the project's; options: only functions calling across modules, only entries' functions, a higher floor). From the translation work (2026-11-05): a component face listing its modules as rows; modules joined to nothing push a layer over budget (fold them by salience · one group of the unjoined); vocabulary gaps — enums and aliases as library types, a name said in two packages linked, methods; edge weights (symbols imported plus type references · symbols only); the clustering package (Louvain without its random walk · Leiden); component kinds (`ts.component` · reuse `services.component`); vocabulary ranking by what a type is *used by* (fan-in · PageRank on the type graph); writing the workspace with core's `write` · JSON by hand; a hand-made reference breakdown for MoJoFM (set aside); what the agent layer needs (walkthrough steps naming translated elements, names stable across re-translation) |
 | **scale** | `where_map` lays the map out again at each 8 px of resize; the explorer and maps seen at 2,100 blocks, every entry about 2 s then: profile again at today's smaller translations |
 | **type structure** | `many` and `optional` only, until a translator needs maps, unions, or generics |
 | **a message's record** | a message typed by the record it carries |

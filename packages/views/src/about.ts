@@ -2,15 +2,15 @@
  *  its facts, the preview a map chip shows of it, and its hover card. One reading for the library
  *  and the models alike. Worked out when asked, never stored. */
 
-import { base_of, children, class_of, def_at, definition_uses, diagram_kind, domain_of, is_base,
+import { base_of, children, class_of, def_at, definition_uses, diagram_kind, is_base,
          is_folder,
          is_header, is_holder, is_interface, is_notation, is_reference, line_layer, path,
-         shown_name, stands_for, use_place, type Graph, type Id } from "@mnd/core";
+         shown_name, stands_for, type Graph, type Id } from "@mnd/core";
 import { carried } from "./derive";
 import { card_facts, counted, facts_of, type Facts } from "./facts";
-import { edge_of, face_table, face_text, head_words, listed, name_fit } from "./face";
+import { edge_of, face_table, face_text, head_words } from "./face";
 import { box_label, box_place, line_name, usage_groups } from "./library";
-import { entry_look, face_attrs, look_of, PLAIN, tint_attrs, wire_of, wire_tint, type Look,
+import { entry_look, face_attrs, look_of, PLAIN, swatch_of, tint_attrs, type Look, type Swatch,
          type Tint } from "./look";
 import type { Ruled } from "./scene";
 import { fitted, size_of, type Face } from "./size";
@@ -20,15 +20,10 @@ export type FaceProps = {
   label: string; kind?: string; defines?: boolean; role?: string;
   icon?: string; holds: boolean; stamps?: readonly string[]; classes: readonly string[];
   dress: Record<string, unknown>; text?: string; table?: Ruled; head: boolean;
-  fit?: { size: number; lines: number }; w: number; h: number;
+  facts?: Facts; w: number; h: number;
   /** A large face that shows nothing yet, previewing what it could. */
   sample: boolean;
 };
-
-/** What a chip previews where it draws no structure and no uses: a table's rows, or lines; a
- *  definition's profile also its places, each with how many uses it holds. */
-export type Preview = { rows?: string[][]; lines?: string[];
-                        places?: { id: Id; label: string; n: number; tint: Tint }[] };
 
 /** **A hover card**: where it sits, what it is, every fact, its face, and where it is used or
  *  what it holds. */
@@ -64,16 +59,16 @@ export function face_props(graph: Graph, id: Id, face: Face): FaceProps {
   /** A large face is fitted to what it says; one its definition sizes, and the small face, take
    *  the canvas's size. */
   const { w, h } = face === "large" && !look.size
-    ? fitted(data.label, text ?? "", head_words(graph, id, look), table, edge_of(look),
-             !!card_facts(graph, id)) : size_of(graph, id, face);
-  const fit = face === "small" && look.face !== "text"
-    ? name_fit(data.label, { w, h }, !!kind, look.shape === "diamond") : null;
-  return { label: data.label, ...(kind ? { kind } : {}),
+    ? fitted(data.label, text ?? "", head_words(graph, id, look), table, edge_of(look))
+    : size_of(graph, id, face);
+  const facts = card_facts(graph, id);
+  const swatch = swatch_of(graph, id);
+  return { label: data.label, ...(swatch ? { swatch } : {}), ...(kind ? { kind } : {}), ...(facts ? { facts } : {}),
            ...(data.defines ? { defines: true } : {}), ...(data.role ? { role: data.role } : {}),
            ...(look.icon ? { icon: look.icon } : {}), holds: data.marks.includes("container"),
            ...(data.stamps ? { stamps: data.stamps } : {}), classes: data.marks,
            dress: face_attrs(look), ...(text !== undefined ? { text } : {}),
-           ...(table ? { table } : {}), head: look.head !== false, ...(fit ? { fit } : {}),
+           ...(table ? { table } : {}), head: look.head !== false,
            w, h, sample };
 }
 
@@ -84,43 +79,11 @@ export function known_face(graph: Graph, id: Id): Face {
 }
 
 
-/** **What a chip previews of a block**, the first it has: its attributes as rows — what it
- *  answers, or what it declares — its records, its body as lines, its description. */
-export function preview_of(graph: Graph, id: Id): Preview | null {
-  const b = graph.blocks[id];
-  if (!b) return null;
-  const rows = listed(graph, id).map((r) => [r.name, r.value ?? r.type]);
-  if (rows.length) return { rows };
-  const records = b.records ?? [];
-  if (records.length) {
-    const names = [...new Set(records.flatMap((r) => Object.keys(r)))];
-    return { rows: records.map((r) => names.map((n) => r[n] ?? "")) };
-  }
-  const body = plain(b.body ?? "");
-  if (body.length) return { lines: body };
-  const description = told(graph, id);
-  return description ? { lines: [description] } : null;
-}
-
 /** **What a block is for**: its own description, else — where it is typed — its definition's. A
  *  plain block is no kind of thing, so the base block's words say nothing of it. */
-function told(graph: Graph, id: Id): string | undefined {
+export function told(graph: Graph, id: Id): string | undefined {
   const b = graph.blocks[id];
   return b?.description ?? (b?.type ? def_at(graph, b.type)?.description : undefined);
-}
-
-/** Markdown as the plain lines a chip has room for: headings, lists and quotes bare, emphasis
- *  and code their words, a link its words, a table row's cells side by side; its rules, fences
- *  and blank lines left out. A word joined by underscores keeps them. */
-function plain(text: string): string[] {
-  const cells = (l: string) => l.replace(/^\||\|$/g, "").split("|").map((c) => c.trim())
-    .join(" · ");
-  return text.split("\n").map((l) => l.trim())
-    .filter((l) => l && !/^\|?[\s:|-]+\|?$/.test(l) && !/^(```|~~~)/.test(l))
-    .map((l) => l.replace(/^(#+|>|[-*+]|\d+\.)\s+/, "")
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
-      .replace(/(\*\*|__|\*|`)(?=\S)(.+?)(?<=\S)\1/g, "$2"))
-    .map((l) => (l.startsWith("|") ? cells(l) : l));
 }
 
 /** **A hover card's reading of a block**: its path, its name and kind — a diagram's its diagram
@@ -159,13 +122,17 @@ export function hover_of(graph: Graph, id: Id, library: boolean): Hovered | null
 }
 
 /** **What an element is, in a word**, as its card, its hover card and the tray's head all name
- *  it: a usage its definition, else a diagram its diagram kind, a line its relation type, else its
- *  base kind. */
+ *  it: a usage its definition — where that only repeats the usage's name, what the definition is
+ *  — else a diagram its diagram kind, a line its relation type, else its base kind. */
 export function kind_of(graph: Graph, id: Id): string {
   const e = graph.edges[id];
   if (e) return (e.type ? def_at(graph, e.type)?.name : undefined) ?? "line";
   const b = graph.blocks[id];
   if (!b) return "";
+  const def = !b.def && b.type && !is_base(b.type) ? def_at(graph, b.type) : undefined;
+  if (def && def.name === shown_name(graph, id) && def.type) {
+    return def_at(graph, def.type)?.name ?? def.type;
+  }
   const at = (!b.def && b.type && !is_base(b.type) ? b.type : null) ?? diagram_kind(graph, id)
     ?? (!b.def && b.type ? b.type : base_of(graph, id));
   return def_at(graph, at)?.name ?? at;
@@ -181,22 +148,6 @@ function line_hover(graph: Graph, id: Id): Hovered {
   return { path: up.join(" › "), label: line_name(graph, id),
            kind: kind?.name ?? "line", ...(description ? { description } : {}),
            facts: { counts: [], tags: [] } };
-}
-
-/** **A *+n more* tile's hover card**: the uses folded into it, by the place each is drawn. */
-export function folded_hover(graph: Graph, ids: readonly Id[]): Hovered {
-  const by = new Map<Id, string[]>();
-  for (const id of ids) {
-    const place = use_place(graph, id) ?? graph.root;
-    const name = graph.edges[id] ? line_name(graph, id) : shown_name(graph, id);
-    by.set(place, [...(by.get(place) ?? []), name]);
-  }
-  const used = [...by].map(([place, names]) => ({
-    id: place, label: box_label(graph, place), tint: tint_attrs(colour_of(graph, place)),
-    names: names.slice(0, PER_PLACE)
-      .concat(names.length > PER_PLACE ? [`+${names.length - PER_PLACE}`] : []) }));
-  return { path: "", label: `${ids.length} more`, kind: ids.length === 1 ? "use" : "uses",
-           facts: { counts: [], tags: [] }, used };
 }
 
 /** **The place a usage box stands for**, where an id is one: a definition's chip, its registry,
@@ -215,15 +166,12 @@ export function colour_of(graph: Graph, id: Id): Look {
 /** **A tree row's colour edge and count**, for a host to hand its explorer: the block's map colour,
  *  and a definition's uses or a diagram's blocks; a relation definition its wire swatch for its
  *  icon, in its colour and dash. */
-export function row_look(graph: Graph, id: Id): { tint: Tint; count?: number; swatch?: Tint } {
+export function row_look(graph: Graph, id: Id): { tint: Tint; count?: number; swatch?: Swatch } {
   const def = !!graph.blocks[id]?.def;
   const count = def ? definition_uses(graph, id).length
     : class_of(graph, id) === "diagram" ? counted(graph, children(graph, id).map((c) => c.id)).blocks
     : 0;
-  const wire = def && domain_of(graph, id) === "relation" ? wire_of(graph, id) : null;
-  const swatch = wire ? { ...wire_tint(wire),
-                          ...(wire.border_style ? { "data-border-style": wire.border_style } : {}) }
-    : null;
+  const swatch = swatch_of(graph, id);
   return { tint: tint_attrs(colour_of(graph, id)), ...(count ? { count } : {}),
            ...(swatch ? { swatch } : {}) };
 }

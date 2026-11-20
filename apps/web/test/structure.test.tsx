@@ -39,12 +39,12 @@ function made(name: string): Block | undefined {
 }
 
 describe("the two sections", () => {
-  it("lists a model in both, and its parts only in the models", () => {
+  it("lists a model and its parts only in the models", () => {
     const view = render(<App storage={storage} />);
     for (const row of rows(view, "workspace")) {
       if (row.querySelector(".mark.shut")) fireEvent.click(row.querySelector(".mark")!);
     }
-    expect(rows(view, "Plant")).toHaveLength(2);
+    expect(rows(view, "Plant")).toHaveLength(1);
     for (const row of rows(view, "Plant")) {
       if (row.querySelector(".mark.shut")) fireEvent.click(row.querySelector(".mark")!);
     }

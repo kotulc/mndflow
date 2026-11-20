@@ -1,0 +1,22 @@
+{
+  "id": "data-related",
+  "name": "Related",
+  "description": "A page named as related.",
+  "def": {
+    "attributes": [
+      {
+        "name": "url",
+        "type": "text"
+      },
+      {
+        "name": "name",
+        "type": "text"
+      }
+    ]
+  },
+  "settings": {
+    "card": {
+      "face": "table"
+    }
+  }
+}

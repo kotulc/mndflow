@@ -1,0 +1,39 @@
+name: Edit and preview
+description: "The author's loop: edit a page, see it. The reload is Next's own, which no code here says."
+participants:
+  - Author
+  - watch
+  - ingest
+  - Next and Nextra
+blocks:
+  - name: saves
+    cell:
+      - 1
+      - Author
+  - name: notices
+    cell:
+      - 1
+      - watch
+  - name: ingests
+    cell:
+      - 2
+      - ingest
+  - name: reloads
+    cell:
+      - 3
+      - Next and Nextra
+  - name: sees
+    cell:
+      - 4
+      - Author
+relations:
+  - "saves -> notices: page.md changed"
+  - "notices -> ingests: node ingest.js"
+  - "ingests -> reloads: pages changed"
+  - "reloads -> sees: hot reload"
+fragments:
+  - repeat: each saved page
+    rows:
+      - 1
+      - 3
+type: sequence

@@ -8,7 +8,10 @@ import type { Hop } from "@mnd/core";
 /** A path offered or walked: its steps, the one walked (null before it starts), each step in
  *  words, and how a step is gone to (null stops). */
 export type Walking = { steps: readonly Hop[]; at: number | null; said: (h: Hop) => string;
-                        onStep: (at: number | null) => void };
+                        onStep: (at: number | null) => void;
+                        /** Walked from outside the canvas (a model's path, from the tray): lit
+                         *  here, its controls there. */
+                        outside?: boolean };
 
 export function Walk({ walk }: { walk: Walking }) {
   const { steps, at, said, onStep } = walk;

@@ -1,0 +1,74 @@
+body{margin:0}
+.mf{--ground:oklch(0.145 0.012 160);--fill:oklch(0.175 0.013 160);--raised:oklch(0.205 0.015 160);--line:oklch(0.335 0.022 160);--stroke:oklch(0.42 0.025 160);--dim:oklch(0.66 0.03 160);--ink:oklch(0.88 0.04 160);font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;color:var(--ink);background:var(--ground);position:relative;overflow:hidden}
+
+/* Open boxes: a title line, its marks at the right. */
+.b{position:absolute;box-sizing:border-box;border:1px solid var(--line);border-radius:4px;background:var(--fill)}
+.b.d2,.b.d3{background:var(--raised)}
+.b.sys{border:2px solid oklch(0.62 0.09 190);background:var(--fill)}
+.b > .t{position:absolute;top:7px;left:10px;right:10px;display:flex;align-items:baseline;gap:8px;font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden}
+.b > .t b{color:var(--ink);font-weight:600;font-size:13px}
+.b.d1 > .t b,.b.sys > .t b{font-size:15px}
+.bic{margin-left:auto;align-self:center}
+
+/* Cells: a ladder of fill and border. */
+.c,.card{--h:200;--s:11px;--edge:oklch(0.8 0.13 var(--h));position:absolute;box-sizing:border-box;padding:8px 10px;overflow:hidden;border-radius:3px;background:oklch(0.185 0.012 var(--h));border:1px solid oklch(0.31 0.025 var(--h));border-left:3px solid oklch(0.6 0.08 var(--h))}
+.c.hold{background:oklch(0.25 0.045 var(--h));border:1.5px solid oklch(0.55 0.1 var(--h));border-left:6px solid var(--edge)}
+.c.dia{background:oklch(0.215 0.03 var(--h));border:1px solid oklch(0.46 0.08 var(--h));border-left:6px solid var(--edge)}
+.c.actor,.card.actor{background:transparent;border:1.5px solid oklch(0.72 0.12 var(--h));border-radius:16px}
+.c.ext,.card.ext{background:transparent;border:1px dashed oklch(0.45 0.02 160)}
+.ext .nm{color:var(--dim);font-weight:500}
+.c.fold{--h:160;--edge:oklch(0.62 0.02 160);background:oklch(0.235 0.012 160);border:1.5px solid var(--stroke);border-left:6px solid var(--edge)}
+.card{background:oklch(0.2 0.02 var(--h));border:1.5px solid oklch(0.62 0.1 var(--h))}
+
+/* **The header**, cards and chips alike: the text column takes the width the square icon leaves.
+   Its name is one line; its second line flows (kind, ▶, counts, tags), an item that does not fit
+   wrapping out of sight whole. The icon is as tall as both lines. */
+.hd{--ih:calc(var(--s) * 1.25 + 19px);display:flex;align-items:flex-start;gap:10px;min-width:0}
+.tx{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
+.nm{font-size:var(--s);line-height:1.25;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.meta{display:flex;flex-wrap:wrap;align-items:center;column-gap:7px;height:15px;overflow:hidden;font-size:11px;line-height:15px;color:var(--dim)}
+.meta > *{flex:none;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
+.meta > span + span:not(.pm):not(.tag)::before{content:"·";margin-right:7px;color:var(--dim)}
+.meta .kw{color:oklch(0.86 0.11 var(--h))}
+.meta .tag{padding:0 5px;border-radius:2px;background:oklch(0.32 0.04 var(--h));color:var(--ink);line-height:14px}
+.ico{flex:none;width:var(--ih);height:var(--ih);fill:none;stroke:var(--edge);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.ico *{vector-effect:non-scaling-stroke}
+.hold .ico path,.fold .ico path{fill:oklch(0.8 0.13 var(--h) / .18)}
+.ext .ico{stroke:var(--stroke)}
+/* One line, where the cell is too short for two: name, then the line it flows into, then the icon at
+   one line's height. */
+.hd.one{--ih:calc(var(--s) * 1.25 + 4px);align-items:center}
+.hd.one .tx{flex-direction:row;align-items:center;gap:8px}
+.hd.one .nm{flex:0 1 auto}
+.hd.one .meta{flex:1 1 0;min-width:0}
+.c.one,.card.one{display:flex;align-items:center}
+.c.one .hd,.card.one .hd{width:100%}
+
+.pm{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:oklch(0.85 0.12 150);border:1px solid oklch(0.55 0.1 150);border-radius:2px;padding:0 4px;height:14px;line-height:14px}
+
+/* A chip's well: its children as a treemap. A holder's is a recess; a diagram's is framed. */
+.well{position:absolute;left:10px;right:10px;bottom:9px;box-sizing:border-box;border-radius:2px}
+.well.hold,.well.fold{background:oklch(0.17 0.025 var(--h));box-shadow:inset 0 0 0 1px oklch(0.36 0.06 var(--h))}
+.well.dia{border:1px solid oklch(0.68 0.11 var(--h) / .6);background:oklch(0.3 0.06 var(--h) / .12)}
+.well.dia .ks{top:12px}
+.tab{position:absolute;top:-8px;right:8px;height:15px;padding:0 6px;font-size:10px;line-height:14px;letter-spacing:.06em;color:oklch(0.86 0.11 var(--h));background:oklch(0.215 0.03 var(--h));border:1px solid oklch(0.68 0.11 var(--h) / .6);border-radius:2px;box-sizing:border-box;z-index:1}
+.ks{position:absolute;left:4px;right:4px;top:4px;bottom:4px}
+.k{position:absolute;box-sizing:border-box;border-radius:1px;background:oklch(0.26 0.03 var(--h) / .85);overflow:hidden}
+.k.hold{background:oklch(0.31 0.05 var(--h) / .9)}
+.k.dia{background:oklch(0.24 0.04 var(--h) / .8);box-shadow:inset 0 0 0 1px oklch(0.6 0.1 var(--h) / .55)}
+.k.actor{background:transparent;box-shadow:inset 0 0 0 1px oklch(0.6 0.1 var(--h) / .6);border-radius:6px}
+.k span{position:absolute;left:5px;top:3px;right:4px;font-size:10.5px;color:oklch(0.84 0.04 var(--h));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* A card's table, under the same header. */
+.rows{position:absolute;left:10px;right:10px;border-collapse:collapse;font-size:11px;margin-top:8px;width:calc(100% - 20px)}
+.card .rows{position:static}
+.rows td{border-top:1px solid oklch(0.36 0.05 var(--h));padding:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+.rows td + td{color:var(--dim);text-align:right}
+
+.about{position:absolute;left:16px;right:16px;border-top:1px dashed var(--stroke);padding-top:14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;font-size:12px}
+.about h4{margin:0 0 6px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:500}
+.about div div{line-height:1.7}
+.about i{font-style:normal;color:var(--dim)}
+.note{position:absolute;font-size:11.5px;color:var(--dim);line-height:1.5}
+.note b{color:var(--ink);font-weight:600}
+.lbl{position:absolute;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}

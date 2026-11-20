@@ -1,0 +1,24 @@
+{
+  "id": "data-group",
+  "name": "Group",
+  "description": "Facets shown together as one sidebar view.",
+  "def": {
+    "attributes": [
+      {
+        "name": "name",
+        "type": "text"
+      },
+      {
+        "name": "facets",
+        "type": "text",
+        "many": true,
+        "note": "facet names"
+      }
+    ]
+  },
+  "settings": {
+    "card": {
+      "face": "table"
+    }
+  }
+}

@@ -1,0 +1,62 @@
+name: Checkout
+type: model
+description: "How an order is placed, one hop a step: from the customer's cart to stock reserved and a parcel booked. Its Payments step is a model of its own: step into it for how a card is charged."
+blocks:
+  - name: Customer
+    type: actor
+  - name: Gateway
+    type: services.API gateway
+    tags: [ critical ]
+  - name: Storefront
+    type: services.service
+    tags: [ critical, orders ]
+  - name: Payments
+    type: Charge a card
+    tags: [ payments ]
+  - name: Orders
+    type: services.Transactional outbox
+    tags: [ orders ]
+  - name: Inventory
+    type: services.service
+    tags: [ fulfilment ]
+  - name: Shipping
+    type: services.service
+    tags: [ fulfilment ]
+  - name: Order book
+    type: Ledger
+relations:
+  - Customer -> Gateway: checkout
+  - Gateway -> Storefront: routes
+  - Storefront -> Payments: charge
+  - Payments -> Orders: paid
+  - Orders -> Inventory: reserve
+  - Orders -> Shipping: ship
+presentations:
+  - name: Place an order
+    description: One checkout, from the cart to a parcel booked.
+    stops:
+      - title: The customer checks out
+        at: Gateway
+        summary: The cart arrives at the gateway and is routed to the storefront.
+        steps:
+          - relation: Customer -> Gateway
+            text: The customer submits the cart.
+          - relation: Gateway -> Storefront
+            text: The gateway routes it to the storefront.
+      - title: The card is charged
+        at: Payments
+        into: Take a payment
+        summary: Payments takes the money once; step into it for how.
+        steps:
+          - relation: Storefront -> Payments
+            text: The storefront asks Payments to charge.
+          - relation: Payments -> Orders
+            text: Paid, the order is written.
+      - title: Stock and shipping follow
+        at: Orders
+        summary: The outbox tells inventory and shipping, each in its own time.
+        steps:
+          - relation: Orders -> Inventory
+            text: Inventory reserves the stock.
+          - relation: Orders -> Shipping
+            text: Shipping books a parcel.

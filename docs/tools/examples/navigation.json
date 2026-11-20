@@ -1,0 +1,20 @@
+{
+  "name": "Navigation",
+  "owner": "web",
+  "description": "How the canvas moves between what it draws: a section's map, a layer entered from it, a registry, a presentation playing.",
+  "blocks": [
+    { "start": "Opened" }, "Map", "Entered", "Registry", "Presenting", "Diving"
+  ],
+  "relations": [
+    "Opened -> Map: load",
+    "Map -> Entered: read a chip",
+    "Entered -> Entered: read a part",
+    "Entered -> Map: Escape",
+    "Map -> Registry: read a definition [library]",
+    "Registry -> Entered: read a use",
+    "Entered -> Presenting: play [a model]",
+    "Presenting -> Diving: click a part",
+    "Diving -> Presenting: resume",
+    "Presenting -> Entered: stop"
+  ]
+}

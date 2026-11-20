@@ -17,7 +17,12 @@
     "diagram": {
       "view": "internal",
       "placing": "layered",
-      "shape": "round"
+      "shape": "round",
+      "file": {
+        "relations": {
+          "type": "transition"
+        }
+      }
     }
   }
 }

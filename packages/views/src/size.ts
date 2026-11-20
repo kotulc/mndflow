@@ -2,8 +2,7 @@
 
 import { covers, has_lifelines, inline, is_grid, is_interface, lattice_of, resolved, setting_of,
          shown_name, stamps_of, CARDS, type Graph, type Grid, type Id, type Point } from "@mnd/core";
-import { card_facts } from "./facts";
-import { edge_of, fit_of, face_table, face_text, head_words, name_w, note_h } from "./face";
+import { edge_of, fit_of, face_table, face_text, head_w, head_words, name_w, note_h } from "./face";
 import { card_shape, look_of } from "./look";
 import type { Ruled } from "./scene";
 
@@ -159,6 +158,19 @@ export function set_card(w: number, h: number): Size {
 /** The shape an `auto` room fills toward: the canvas's width over its height. */
 export const SHAPE = { aspect: 1.6 };
 
+/** **The canvas a tree view fills** (docs/design/chip.md), in pixels: the drawing's room once the
+ *  explorer and the tray take theirs, less the camera's margin. A map is laid this size, so it
+ *  fills the canvas at 100%. */
+export const CANVAS = { w: 1200, h: 750 };
+
+/** Sets the canvas a tree view fills, and says whether it changed. */
+export function set_canvas(w: number, h: number): boolean {
+  const [nw, nh] = [Math.max(320, Math.round(w)), Math.max(240, Math.round(h))];
+  if (nw === CANVAS.w && nh === CANVAS.h) return false;
+  [CANVAS.w, CANVAS.h] = [nw, nh];
+  return true;
+}
+
 /** Sets the shape rooms fill toward, held to a sane range, and says what it took. */
 export function set_aspect(aspect: number): number {
   SHAPE.aspect = Number.isFinite(aspect) ? Math.min(3, Math.max(0.5, aspect)) : 1.6;
@@ -208,7 +220,12 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
   if (!b.def && setting_of(graph, id, "card")["face"] === "text" && !gridded(graph, id)) {
     return { w: Math.ceil(name_w(shown_name(graph, id))), h: UNIT };
   }
-  return face === "large" ? large_of(graph, id, card) : { ...BLOCK };
+  if (face === "large") return large_of(graph, id, card);
+  /** **A small card fits its name** on its one line, in whole units, up to twice a block; a
+   *  grid's cell and a shaped card keep the block's size. */
+  if (gridded(graph, id) || shape) return { ...BLOCK };
+  const w = Math.ceil(head_w(shown_name(graph, id)) / UNIT);
+  return { w: ranged(w, UNITS.block.w, UNITS.block.w * 2) * UNIT, h: BLOCK.h };
 }
 
 /** Which face a block draws with: what the nearest ancestor saying `diagram.cards` asks for, else
@@ -236,21 +253,20 @@ function shows_any(graph: Graph, id: Id): boolean {
 }
 
 /** The large face: its definition's `card.size`, else what its content fits — so one that shows
- *  nothing is the small face — with room for the marks `card` wears and its facts strip. */
+ *  nothing is the small face — with room for the marks `card` wears. */
 function large_of(graph: Graph, id: Id, card: Id): Size {
   /** The card's own look, as it draws: a reference may say another face than its target. */
   const look = look_of(graph, card);
   if (look.size) return held_large(look.size);
   return fitted(shown_name(graph, id), face_text(graph, id, look), head_words(graph, id, look),
-                face_table(graph, id, look, stamps_of(graph, card).length), edge_of(look),
-                !!card_facts(graph, card));
+                face_table(graph, id, look, stamps_of(graph, card).length), edge_of(look));
 }
 
 /** The size a large face's name, kind, table and markdown fit: in whole units, or a table
  *  card's exactly — no larger than `LARGE.max` either way. */
 export function fitted(name: string, text: string, kind: string,
-                       ruled: Ruled | null = null, edge = 1, facts = false): Size {
-  const { w, h } = fit_of(name, text, kind, LARGE.max.w * UNIT, ruled, edge, facts);
+                       ruled: Ruled | null = null, edge = 1): Size {
+  const { w, h } = fit_of(name, text, kind, LARGE.max.w * UNIT, ruled, edge);
   if (ruled) {
     return { w: Math.min(Math.ceil(w), LARGE.max.w * UNIT), h: Math.min(h, LARGE.max.h * UNIT) };
   }

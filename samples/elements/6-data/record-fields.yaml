@@ -1,0 +1,6 @@
+name: Record fields
+type: mapping
+records:
+  - details.email -> Record.email: "lower-cased; must be unique"
+  - details.name -> Record.name: trimmed
+  - Signup -> Record.id: the next number

@@ -1,0 +1,49 @@
+name: Browse
+description: A reader opens the Tags group and picks a value. The URL is the only state.
+participants:
+  - Reader
+  - sidebar
+  - view state
+  - filters
+  - listing
+blocks:
+  - name: clicks Tags
+    cell:
+      - 1
+      - Reader
+  - name: set view
+    cell:
+      - 1
+      - sidebar
+  - name: default value
+    cell:
+      - 2
+      - view state
+  - name: values of tags
+    cell:
+      - 3
+      - filters
+  - name: value chips
+    cell:
+      - 3
+      - sidebar
+  - name: picks nextra
+    cell:
+      - 4
+      - Reader
+  - name: pages with nextra
+    cell:
+      - 5
+      - filters
+  - name: cards
+    cell:
+      - 6
+      - listing
+relations:
+  - "clicks Tags -> set view: Tags"
+  - "set view -> default value: ?view=Tags"
+  - "default value -> values of tags: group"
+  - "values of tags -> value chips: values"
+  - "picks nextra -> pages with nextra: ?on=nextra"
+  - "pages with nextra -> cards: 3 pages"
+type: sequence

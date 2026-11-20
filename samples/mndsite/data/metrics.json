@@ -1,0 +1,23 @@
+{
+  "id": "data-metrics",
+  "name": "Metrics",
+  "description": "How long a page is.",
+  "def": {
+    "attributes": [
+      {
+        "name": "word_count",
+        "type": "number"
+      },
+      {
+        "name": "reading_time",
+        "type": "number",
+        "note": "minutes"
+      }
+    ]
+  },
+  "settings": {
+    "card": {
+      "face": "table"
+    }
+  }
+}

@@ -41,8 +41,8 @@ describe("models", () => {
 });
 
 describe("the two sections", () => {
-  it("list a model in both, its parts only in the models", () => {
-    expect(in_section(g, "shop", null, null, "domain")).toBe(true);
+  it("list a model and its parts only in the models", () => {
+    expect(in_section(g, "shop", null, null, "domain")).toBe(false);
     expect(in_section(g, "shop", null, null, "structure")).toBe(true);
     expect(in_section(g, "stage", null, null, "structure")).toBe(true);
     expect(in_section(g, "stage", null, null, "domain")).toBe(false);
@@ -58,32 +58,35 @@ describe("the two sections", () => {
 });
 
 describe("what a subject opens on", () => {
-  it("is, in the library, a definition's registry where it is used, else nothing", () => {
-    expect(lens_of(g, "service", "domain")).toBe("registry");
-    expect(lens_of(g, "shop", "domain")).toBeNull();
+  it("is, in the library, a definition's drawing where it holds parts, else nothing", () => {
+    expect(lens_of(g, "pattern", "domain")).toBe("internal");
     expect(lens_of(g, "unused", "domain")).toBeNull();
   });
 
-  it("is, in the models, a model's drawing, and nothing for any other definition", () => {
+  it("is, in the models, a model's drawing, a package's treemap, and nothing for any other definition", () => {
     expect(lens_of(g, "shop", "structure")).toBe("internal");
     expect(lens_of(g, "service", "structure")).toBeNull();
-    expect(lens_of(g, ROOT, "structure")).toBeNull();
+    expect(lens_of(g, ROOT, "structure")).toBe("internal");
   });
 });
 
 describe("reading", () => {
   const read = (id: string, now: View, options = {}) => read_at(g, EDITOR, {}, now, id, options);
 
-  it("enters a used definition's registry, and stays in the library", () => {
-    expect(read("service", map(LIBRARY))).toMatchObject({ at: LIBRARY, kind: "registry",
-                                                          layer: "service" });
+  it("enters a definition holding parts on its drawing, and stays in the library", () => {
+    expect(read("pattern", map(LIBRARY))).toMatchObject({ at: LIBRARY, kind: "internal",
+                                                          layer: "pattern" });
   });
 
-  it("enters nothing for an unused definition, a definition's part, a package or a folder", () => {
+  it("enters nothing for an unused definition or a definition's part, and a package as a folder", () => {
     expect(read("unused", map(LIBRARY))).toBeNull();
     expect(read("pattern_part", map(LIBRARY))).toBeNull();
-    expect(read(ROOT, map(MODELS))).toBeNull();
-    expect(read("cards", map(LIBRARY))).toBeNull();
+    expect(read(ROOT, map(MODELS))).toMatchObject({ at: MODELS, kind: "internal", layer: ROOT });
+  });
+
+  it("enters a library folder as its treemap, and stays in the library", () => {
+    expect(read("cards", map(LIBRARY))).toMatchObject({ at: LIBRARY, kind: "internal",
+                                                        layer: "cards" });
   });
 
   it("hands a use read from a registry over to the models", () => {
@@ -109,10 +112,12 @@ describe("leaving", () => {
     expect(leave_at(g, EDITOR, {}, registry)).toEqual(map(LIBRARY, "service"));
   });
 
-  it("goes up a layer, and from a model to the models' map, the model picked", () => {
+  it("goes up a layer, from a model to its package, and from a package to the models' map", () => {
     const stage: View = { at: MODELS, kind: "internal", layer: "stage", pick: null };
     expect(leave_at(g, EDITOR, {}, stage)).toMatchObject({ layer: "shop", pick: "stage" });
     const shop: View = { at: MODELS, kind: "internal", layer: "shop", pick: null };
-    expect(leave_at(g, EDITOR, {}, shop)).toEqual(map(MODELS, "shop"));
+    const pkg: View = { at: MODELS, kind: "internal", layer: ROOT, pick: "shop" };
+    expect(leave_at(g, EDITOR, {}, shop)).toEqual(pkg);
+    expect(leave_at(g, EDITOR, {}, pkg)).toEqual(map(MODELS, ROOT));
   });
 });

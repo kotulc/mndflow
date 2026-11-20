@@ -2,10 +2,12 @@
 
 import type { Edge, Node } from "@xyflow/react";
 import type { Dir, End, Ends, Id, Key, Mark, Role, Side } from "@mnd/core";
-import type { Preview } from "./about";
 import type { Facts } from "./facts";
-import type { Arrow, Look, Tint, Wire } from "./look";
+import type { Arrow, Look, Swatch, Tint, Wire } from "./look";
 import type { Fan, Perch, Seat } from "./seat";
+import type { AboutDrawn } from "./overview";
+import type { RecordsDrawn } from "./records";
+import type { Leg } from "./trace";
 
 /** One row of a card's attributes: its name, its type's name, whether it keys, and the value a
  *  usage answers or the default a definition declares. */
@@ -42,8 +44,10 @@ export type BoxData = {
   stamps?: readonly Mark[];
   /** What sort of thing it is: the icon it wears unless somebody set their own. */
   role?: Role;
-  /** A small face's name, sized to fit its card: its size in pixels and how many lines. */
-  fit?: { size: number; lines: number };
+  /** An icon of its own, worn over its role's (a map's box for an imported package). */
+  icon?: string;
+  /** A relation definition's swatch, worn in place of its icon (views `look.ts` `swatch_of`). */
+  swatch?: Swatch;
   /** The whole lines a large face's body holds, where its card was sized by hand. */
   clamp?: number;
   /** Whether it opens onto a view of its own. */
@@ -69,23 +73,23 @@ export type BoxData = {
   side?: Side;
   /** Seats a line meets on this box's border, where the end has no interface of its own here. */
   seats?: readonly { id: string; side: Side; at: number }[];
-  /** A map chip's inner treemap: what it holds, each a share of its body from 0 to 1. */
+  /** A tree chip's well: what it holds, each a share of the well from 0 to 1, and how far down
+   *  the chip the well starts, in pixels (views `map.ts`). */
   tiles?: readonly InnerTile[];
-  /** A diagram's chip: its inner tiles laid by its structure. */
-  diagram?: boolean;
-  /** A narrow, tall map chip: its head turned upright down its left side, its body beside it. */
-  upright?: boolean;
-  /** A map chip's facts strip, where it has room for one (views `about.ts`). */
+  well?: number;
+  /** A tree chip's kind of cell, and its name's size in pixels, grown with its cell. */
+  cell?: ChipCell;
+  size?: number;
+  /** The header's meta line: counts, seats and tags (views `facts.ts`). */
   facts?: Facts;
-  /** How much room a map chip's head takes — its name's line and its facts where shown, its body
-   *  under it; upright, the head's width, its body beside it. */
-  head?: number;
-  /** What a map chip previews where it draws no structure and no uses. */
-  preview?: Preview;
-  /** A definition's chip showing its profile: its uses split by place, each in its colour. */
-  bar?: readonly { n: number; tint: Tint }[];
-  /** A map's *+n more* chip: the chips folded into it, which its hover card lists. */
-  folded?: readonly Id[];
+  /** A map's chip: its links in words, at its foot, and the rows they take (`map.ts` `linked`). */
+  links?: string; links_rows?: number;
+  /** A records table: its groups of rows, each by its source (`records.ts`). */
+  records?: RecordsDrawn;
+  /** A model's About band: its groups of plain notes (`overview.ts`). */
+  about?: readonly AboutDrawn[];
+  /** A box of a model's overview that opens and closes, and whether it is open now. */
+  toggle?: "open" | "closed";
   /** A registry's tile: how many times its entry is used, and that against the most used. */
   count?: number;
   heat?: number;
@@ -107,6 +111,8 @@ export type CardClass = "container" | "reference" | "missing" | "note" | "label"
                  | "minor"
                  /** It owns a path a reader may walk: marked where a walk starts. */
                  | "walks"
+                 /** Round a model's overview: an actor or an external in its zone. */
+                 | "zone"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "upright" | "merged"
                  /** An opened grid, standing in for the room. */
@@ -157,6 +163,8 @@ export type LineData = {
   also?: string[];
   /** Where its cross leg sits, out from the end its lines fan from. */
   fan?: Fan;
+  /** A message on a lifeline: a dot where it leaves (docs/diagrams/sequence.md). */
+  origin?: boolean;
   /** A run already drawn, in the scene's own coordinates. Routing is skipped. */
   points?: readonly { x: number; y: number }[];
   /** Whether `points` is a routed run, given up for one drawn afresh once an end moves. */
@@ -165,6 +173,10 @@ export type LineData = {
   level?: boolean;
   /** Whether it lies outside the focus, so its words fade with it. */
   away?: boolean;
+  /** **The end on the frame's wall met from outside** (`across.ts`): it faces out of the room,
+   *  never into it, so the run never enters the room to turn back (views `ends.ts` `end_of`,
+   *  stage `Wire.tsx`). */
+  outer?: "from" | "to";
 };
 
 /** One drawn thing. React Flow's node, with our data on it. */
@@ -186,13 +198,14 @@ export function heads(data: LineData | undefined): { from: Head; to: Head } {
   const to = dir === "forward" || dir === "both";
   const from = dir === "back" || dir === "both";
   return {
-    from: data?.wire?.from_arrow ?? meant(data, "from") ?? (from ? "arrow" : "none"),
+    from: data?.wire?.from_arrow ?? meant(data, "from")
+      ?? (from ? "arrow" : data?.origin ? "dot" : "none"),
     to: data?.wire?.to_arrow ?? meant(data, "to") ?? (to ? "arrow" : "none"),
   };
 }
 
 /** A head: one a line may name, or one only what an end means draws. */
-export type Head = Arrow | "filled" | "one" | "many" | "zero_one" | "zero_many";
+export type Head = Arrow | "filled" | "one" | "many" | "zero_one" | "zero_many" | "dot";
 
 /** The head an end's meaning draws, or none said. */
 function meant(data: LineData | undefined, way: "from" | "to"): Head | undefined {
@@ -274,18 +287,22 @@ export type Area = {
  *  a rule between a grid's rows, or a flow's line or its arrow (`down` where it runs down). A
  *  block wears its own colour (`tint`) and may be a flow's mark, or a class's or an entity's card
  *  (`texture`). */
+/** **What kind of cell a chip or a well's child is** (docs/design/chip.md). */
+export type ChipCell = "holds" | "diagram" | "leaf" | "actor" | "external" | "folder";
+
+/** One child in a chip's well: a share of the well from 0 to 1, what it stands for, its kind of
+ *  cell and its colour. */
 export type InnerTile = { id: Id; label: string; x: number; y: number; w: number; h: number;
-                          role?: Role;
-                          as?: "group" | "band" | "head" | "track" | "life" | "rule" | "flow"
-                            | "arrow" | "more";
-                          odd?: boolean; down?: boolean; mark?: "start" | "end" | "decision";
-                          texture?: "class" | "entity"; tint?: Tint;
-                          /** The tile it is nested in, and whether it holds tiles of its own. */
-                          in?: Id; holds?: boolean;
-                          /** What it says under its name as it grows: a facts line, then rows. */
-                          facts?: string; rows?: readonly string[];
-                          /** A *+n more* tile's uses, folded away for want of room. */
-                          folded?: readonly Id[] };
+                          cell?: ChipCell; tint?: Tint;
+                          /** Its grade among its neighbours, so side by side they stand apart. */
+                          grade?: number;
+                          /** Its name's size in pixels, shrunk to fit its cell. */
+                          size?: number;
+                          /** The *+N more* cell: what the well leaves out, standing for no block. */
+                          more?: boolean;
+                          /** What sort of thing it is: the icon right of its name, or, a relation
+                           *  definition, its swatch. */
+                          role?: Role; swatch?: Swatch };
 
 export type Scene = {
   /** The layer this is a projection of. */
@@ -295,6 +312,9 @@ export type Scene = {
   areas?: readonly Area[];
   /** Which section a map is of: the library reads a definition by its uses. */
   map?: "library" | "models";
+  /** **The block a tree view was entered at** — a folder, framed by its own box — so the camera
+   *  cuts to it as a drawing of its own, never the map it was entered from (stage `realm_of`). */
+  entered?: Id;
   /** Absent only at the root, which has no outside to be seen from. */
   frame?: Frame;
   nodes: readonly BoxNode[];
@@ -311,6 +331,8 @@ export type Scene = {
   /** The grid whose body holds steps, where its columns are lifelines: a step is dragged along
    *  its column. */
   lifelines?: Id;
+  /** A map's links, gathered once and unrouted: what a chip says and what lights (`trace.ts`). */
+  links?: readonly Leg[];
 };
 
 export const EMPTY: Scene = {
@@ -401,7 +423,8 @@ export function faults(scene: Scene): string[] {
   for (const n of scene.nodes) {
     const seated = n.data.on;
     if (seated && !ids.has(seated)) out.push(`node ${n.id} is seated on nothing drawn`);
-    if (!scene.frame) continue;
+    /** What is across the frame's ports sits outside it by design (`across.ts`). */
+    if (!scene.frame || n.data.marks.includes("zone")) continue;
     const f = scene.frame;
     const b = box_of(n);
     if (b.x < f.x || b.y < f.y || b.x + b.w > f.x + f.w || b.y + b.h > f.y + f.h) {

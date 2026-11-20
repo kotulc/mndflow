@@ -6,7 +6,7 @@
  *  a band in order — columns where the flow runs across, rows where it runs down, whichever fits
  *  the canvas — so lines run from band to band. */
 
-import { children, drawn_in, edges_in, holders_in, inline, is_grid, is_group, is_interface,
+import { chain_of, children, drawn_in, edges_in, holders_in, inline, is_grid, is_group, is_interface,
          is_region, members_of, owner_of, type Graph, type Id } from "@mnd/core";
 import type { ELK, ElkNode } from "elkjs/lib/elk-api";
 import { celled } from "./bands";
@@ -62,8 +62,13 @@ export function place(graph: Graph, layer: Id): Promise<Placement> {
  *  marked. */
 type Box = { id: Id; w?: number; h?: number; kids?: Box[]; region?: true };
 
-/** What ELK is given: the boxes, and the lines between them by their ends. */
-type Spec = { root: Box; lines: [Id, Id][] };
+/** What ELK is given: the boxes, and the lines between them by their ends; for a behaviour,
+ *  `main`, each step's first line (`from\nto`), kept straight along one axis. */
+type Spec = { root: Box; lines: [Id, Id][]; main?: Set<string>; ranked?: boolean };
+
+/** **The kinds laid along an axis** (docs/diagrams/flow.md *Layout*): steps in one row along the
+ *  canvas's long side, never wrapped, each step's first line straight on it. */
+const ALONG = ["flow", "state", "dataflow"];
 
 /** A group's compound: a box of its members. */
 const compound = (id: Id, kids: Box[]): Box => ({ id, kids });
@@ -97,7 +102,15 @@ function spec_of(graph: Graph, layer: Id): Spec {
     const [a, b] = [lift(e.from), lift(e.to)];
     if (a && b && a !== b) lines.push([a, b]);
   }
-  return { root, lines };
+  const kind = graph.blocks[layer]?.def ? layer : graph.blocks[layer]?.type;
+  if (!chain_of(graph, kind).some((d) => ALONG.includes(d.id))) return { root, lines };
+  /** A step's first line, in list order, is its main way on. */
+  const firsts = new Map<Id, Id>();
+  for (const [a, b] of lines) if (!firsts.has(a)) firsts.set(a, b);
+  /** **A dataflow ranks by role** (docs/diagrams/dataflow.md): its readers, the ends, last. */
+  const ranked = chain_of(graph, kind).some((d) => d.id === "dataflow");
+  return { root, lines, main: new Set([...firsts].map(([a, b]) => `${a}\n${b}`)),
+           ...(ranked ? { ranked } : {}) };
 }
 
 /** What a container places: its blocks, less interfaces, groups and what sits in a grid's cells. */
@@ -190,7 +203,8 @@ async function laid_out(spec: Spec): Promise<Placement> {
     }
     const edges = [...pairs].map((p, i) => {
       const [a, b] = p.split("\n");
-      return { id: `e${i}`, sources: [a!], targets: [b!] };
+      return { id: `e${i}`, sources: [a!], targets: [b!],
+               ...(spec.main?.has(p) ? { layoutOptions: STRAIGHT } : {}) };
     });
     const run = async (opts: Record<string, string>) => {
       const out: ElkNode = await E.layout({
@@ -203,7 +217,13 @@ async function laid_out(spec: Spec): Promise<Placement> {
         : Math.abs(Math.log(Math.max(1, w) / Math.max(1, h) / how.aim));
       return { out, score };
     };
-    const tries = !kids.length ? [] : edges.length
+    /** A behaviour runs one way, along the canvas's long side, never wrapped. */
+    const along = spec.main && box.id === spec.root.id;
+    const tries = !kids.length ? [] : along
+      ? [await run({ ...layered(SHAPE.aspect >= 1 ? "RIGHT" : "DOWN"),
+                     "elk.layered.wrapping.strategy": "OFF",
+                     ...(spec.ranked ? { "elk.layered.layering.strategy": "LONGEST_PATH" } : {}) })]
+      : edges.length
       ? await Promise.all(["DOWN", "RIGHT"].map((dir) => run(layered(dir))))
       : await Promise.all(GOALS.flatMap((goal) => AIMS.map((f) => run(packed(goal, f, how)))));
     const best = tries.sort((a, b) => a.score - b.score)[0];
@@ -211,6 +231,10 @@ async function laid_out(spec: Spec): Promise<Placement> {
       [c.id, { x: c.x ?? 0, y: c.y ?? 0, w: c.width ?? 0, h: c.height ?? 0 }]));
     /** An empty container keeps room for a card. */
     const w = best?.out.width ?? UNIT * 6, h = best?.out.height ?? UNIT * 4;
+    if (along && !spec.ranked && at.size) {
+      const order = edges.map((e) => [e.sources[0]!, e.targets[0]!] as [Id, Id]);
+      return { ...laned(at, kids.map((k) => k.id), order, SHAPE.aspect >= 1), inner };
+    }
     return { w, h, at, inner };
   };
 
@@ -396,6 +420,67 @@ function packed(goal: string, f: number, how: How): Record<string, string> {
              : {}) };
 }
 
+/** What keeps a main line straight: ELK's priorities for it. */
+const STRAIGHT = { "elk.layered.priority.straightness": "10",
+                   "elk.layered.priority.direction": "10" };
+
 /** ELK's packing lands unevenly round its target: two goals, each aimed a little either side. */
 const GOALS = ["MAX_SCALE_DRIVEN", "ASPECT_RATIO_DRIVEN"];
 const AIMS = [0.8, 1, 1.25, 1.6];
+
+/** A box laid in a container, from its corner. */
+type Spot = { x: number; y: number; w: number; h: number };
+
+/** **A behaviour's lanes** (docs/diagrams/flow.md *Branching*): the main way — from the first
+ *  start, each step's first line — on the axis; each other answer opens a lane, below first, then
+ *  above, alternating, what it leads to staying in its lane; a step whose lane is taken along its
+ *  run moves one lane further out. Positions along the axis are ELK's. `wide`: the axis runs
+ *  across. */
+function laned(at: Map<Id, Spot>, ids: readonly Id[], lines: readonly [Id, Id][],
+               wide: boolean): { w: number; h: number; at: Map<Id, Spot> } {
+  const outs = (id: Id) => lines.filter(([a]) => a === id).map(([, z]) => z);
+  const lane = new Map<Id, number>();
+  let opened = 0;
+  const next = () => {
+    opened++;
+    return opened % 2 ? (opened + 1) / 2 : -opened / 2;
+  };
+  /** Each lane walked from its first step, its other answers queued as new lanes. */
+  const queue: [Id, number][] = [];
+  const walk = (start: Id, l: number) => {
+    for (let at_id: Id | undefined = start; at_id && !lane.has(at_id);) {
+      lane.set(at_id, l);
+      const [first, ...rest]: Id[] = outs(at_id).filter((z) => !lane.has(z));
+      for (const r of rest) queue.push([r, NaN]);
+      at_id = first;
+    }
+  };
+  const starts = ids.filter((id) => !lines.some(([, z]) => z === id));
+  walk(starts[0] ?? ids[0]!, 0);
+  for (const id of [...starts.slice(1), ...ids]) queue.push([id, NaN]);
+  for (let q = queue.shift(); q; q = queue.shift()) if (!lane.has(q[0])) walk(q[0], next());
+  /** Along and across the axis, by the canvas. */
+  const along = (s: Spot): [number, number] => (wide ? [s.x, s.x + s.w] : [s.y, s.y + s.h]);
+  const thick = Math.max(...ids.map((id) => (wide ? at.get(id)!.h : at.get(id)!.w)));
+  const pitch = thick + UNIT * 2;
+  const taken = new Map<number, [number, number][]>();
+  const out = new Map<Id, Spot>();
+  for (const id of ids) {
+    const s = at.get(id)!;
+    const [lo, hi] = along(s);
+    let l = lane.get(id)!;
+    const clash = () => (taken.get(l) ?? []).some(([a, b]) => lo < b + UNIT && hi > a - UNIT);
+    while (clash()) l += l < 0 ? -1 : 1;
+    taken.set(l, [...taken.get(l) ?? [], [lo, hi]]);
+    const mid = l * pitch - (wide ? s.h : s.w) / 2;
+    out.set(id, wide ? { ...s, y: mid } : { ...s, x: mid });
+  }
+  /** Moved clear of the title, a unit of air round the rest. */
+  const spots = [...out.values()];
+  const [dx, dy] = [UNIT - Math.min(...spots.map((s) => s.x)),
+                    UNIT * 1.5 - Math.min(...spots.map((s) => s.y))];
+  for (const [id, s] of out) out.set(id, { ...s, x: s.x + (wide ? 0 : dx), y: s.y + (wide ? dy : 0) });
+  const moved = [...out.values()];
+  return { at: out, w: Math.max(...moved.map((s) => s.x + s.w)) + UNIT,
+           h: Math.max(...moved.map((s) => s.y + s.h)) + UNIT };
+}

@@ -1,9 +1,9 @@
 /** What a relationship looks like. */
 
-import { createContext, useCallback, useContext, useState, type CSSProperties } from "react";
-import { BaseEdge, EdgeLabelRenderer, useStore, type EdgeProps } from "@xyflow/react";
-import { avoided_run, crossed, drawn, end_words, heads, line_level, name_box, route, BARE, NAMED,
-         TEXT_BAND, UNIT, type LineEdge, type NameBox, type Wire as Look } from "@mnd/views";
+import { createContext, useContext, useState, type CSSProperties } from "react";
+import { BaseEdge, EdgeLabelRenderer, Position, type EdgeProps } from "@xyflow/react";
+import { avoided_run, crossed, drawn, end_words, heads, line_shows, name_box, route, BARE, NAMED,
+         UNIT, type LineEdge, type NameBox, type Wire as Look } from "@mnd/views";
 import { head_url, Heads, Name, useNaming } from "@mnd/theme";
 import { usePicks } from "./picked";
 
@@ -20,6 +20,12 @@ const CROSS = 4;
 const WORDS = { along: 6, out: 3 };
 
 type Pt = { x: number; y: number };
+
+/** The face opposite another. */
+const TURNED: Record<Position, Position> = {
+  [Position.Top]: Position.Bottom, [Position.Bottom]: Position.Top,
+  [Position.Left]: Position.Right, [Position.Right]: Position.Left,
+};
 
 /** The point `d` along a run from one end, and the way the run heads there, as a unit step. */
 function along(run: readonly Pt[], way: "from" | "to", d: number): { at: Pt; dir: Pt } {
@@ -93,9 +99,9 @@ function length_of(run: readonly Pt[]): number {
   return run.slice(1).reduce((n, q, i) => n + Math.hypot(q.x - run[i]!.x, q.y - run[i]!.y), 0);
 }
 
-/** **A line climbs the ladder by its length on screen** (views `line_level`): its stroke, its
+/** **A line shows by its laid length** (views `line_shows`), never the zoom: its stroke, its
  *  anchors, its name beside the stroke, its ends' words. Nothing sits on the stroke. Hovered or
- *  picked, it thickens and says its ends at any level. */
+ *  picked, it thickens and says its ends on any line. */
 export function Wire(props: EdgeProps<LineEdge>) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
           label, data, style } = props;
@@ -107,6 +113,9 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const naming = useNaming();
   const runs = useContext(RunsContext);
   const cards = useContext(CardsContext);
+  /** A wall's handle faces into the room; the end a line from outside meets faces out
+   *  (views `LineData.outer`). */
+  const facing = (way: "from" | "to", at: Position) => (data?.outer === way ? TURNED[at] : at);
   /** The run routed round cards, while it still meets both ends; else straight or one Z, turning
    *  where its lines fan. A tie runs straight. */
   const routed = avoided_run(runs.get(id), { x: sourceX, y: sourceY }, { x: targetX, y: targetY });
@@ -117,9 +126,9 @@ export function Wire(props: EdgeProps<LineEdge>) {
     : null;
   const given = data?.routed ? kept : data?.points;
   const run = given && given.length > 1 ? given
-    : routed ?? route({ x: sourceX, y: sourceY }, sourcePosition,
-                      { x: targetX, y: targetY }, targetPosition,
-                      data?.fan, data?.module === "tie");
+    : routed ?? route({ x: sourceX, y: sourceY }, facing("from", sourcePosition),
+                      { x: targetX, y: targetY }, facing("to", targetPosition),
+                      data?.fan, data?.module === "tie", cards);
   const fan = given || routed ? undefined : data?.fan;
   const path = drawn(run, BEND);
   const look = data?.wire ?? BARE;
@@ -138,15 +147,10 @@ export function Wire(props: EdgeProps<LineEdge>) {
    *  level, right or left of it where it is upright. */
   const box = name_box(run, middle.length + times.length, fan, data?.level, cards);
   const beside = BESIDE[box.side](box);
-  const length = length_of(run);
-  const level = useStore(useCallback((st) => {
-    const k = st.transform[2];
-    return line_level(length, k, (middle.length + times.length) * NAMED.glyph
-      * Math.min(TEXT_BAND.high, Math.max(TEXT_BAND.low, k)));
-  }, [length, middle.length, times.length]));
+  const shows = line_shows(length_of(run), (middle.length + times.length) * NAMED.glyph);
   const loud = hot || !!selected;
-  const named = level >= 2 || loud || naming.id === id;
-  const ends = level >= 3 || loud;
+  const named = shows.name || loud || naming.id === id;
+  const ends = shows.ends || loud;
 
   return (
     <>
@@ -154,7 +158,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
            .filter(Boolean).join(" ")} {...attrs} style={tint}
          onMouseEnter={() => set_hot(true)} onMouseLeave={() => set_hot(false)}>
         <BaseEdge id={id} path={path} style={style}
-                  {...(level >= 1 || loud
+                  {...(shows.anchors || loud
                     ? { markerStart: head_url(anchor(end.from)),
                         markerEnd: head_url(anchor(end.to)) } : {})} />
         {/* A double line is two strokes, not a thicker one. */}

@@ -1,0 +1,8 @@
+name: Right sidebar
+description: What the right sidebar shows, each item read from PageMeta or Config.
+records:
+  - "PageMeta.desc -> Display.toc: the description above Nextra's On This Page"
+  - "PageMeta.sections -> Display.toc: Nextra's list and scroll-spy at 1280px and up"
+  - "PageMeta.links -> Display.contents: site links by page name, then outside links by host"
+  - "Edit.label -> Display.contents: edit this page, only with repo_url"
+type: mapping

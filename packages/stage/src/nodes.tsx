@@ -11,9 +11,8 @@ export const DRAGGED = "text/mnd-block";
 
 import { FRAME, PLAIN, face_attrs, look_key, tint_attrs,
          type BoxData, type BoxNode, type GridCell } from "@mnd/views";
-import { BoxFace, CardFace, ChipFace, Facts, Name, Stamps, Wears, useNaming } from "@mnd/theme";
+import { BoxFace, CardFace, ChipFace, Name, Stamps, Wears, useNaming } from "@mnd/theme";
 import { grid_seen } from "./arrays";
-import { useLevel, useTiny } from "./level";
 import { usePicked, usePicks } from "./picked";
 
 
@@ -24,9 +23,8 @@ function seen(p: NodeProps<BoxNode>): string {
   return [
     p.dragging, p.width, p.height,
     d.label, d.alias ?? "", d.description ?? "", d.def, d.defines, d.on, d.side, d.role,
-    d.kind ?? "", d.upright, d.diagram, JSON.stringify(d.tiles ?? []), d.head ?? "",
+    d.kind ?? "", d.cell ?? "", d.size ?? "", d.well ?? "", JSON.stringify(d.tiles ?? []),
     JSON.stringify(d.facts ?? null),
-    JSON.stringify(d.preview ?? null), JSON.stringify(d.bar ?? null),
     (d.stamps ?? []).join(","),
     d.face ?? "", d.text ?? "", d.marks.join(","),
     /** Read off the look, so no property is forgotten. */
@@ -113,24 +111,23 @@ function Middle({ side, inward }: { side?: Side; inward?: boolean }) {
 /** The ordinary card: the face every card draws with, and what the canvas lays over it — its
  *  border's targets, its grips where it keeps its own size, and the seats lines meet. Its name
  *  renames in place. */
-function CardNode({ id, data, width, height }: NodeProps<BoxNode>) {
+function CardNode({ id, data }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const selected = usePicked(id);
   const look = data.look ?? PLAIN;
-  const level = useLevel(width ?? 0, height ?? 0);
   return (
     <CardFace label={data.label} {...(data.kind ? { kind: data.kind } : {})}
-              {...(data.facts ? { facts: <Facts facts={data.facts} /> } : {})}
+              {...(data.facts ? { facts: data.facts } : {})}
               {...(data.defines ? { defines: true } : {})} {...(data.role ? { role: data.role } : {})}
               {...(look.icon ? { icon: look.icon } : {})}
+              {...(data.swatch ? { swatch: data.swatch } : {})}
               holds={data.marks.includes("container")}
               {...(data.stamps ? { stamps: data.stamps } : {})}
               classes={[...data.marks, selected ? "picked" : ""]}
-              dress={{ ...face_attrs(look), "data-def": data.def, "data-level": level }}
+              dress={{ ...face_attrs(look), "data-def": data.def }}
               {...(data.text !== undefined ? { text: data.text } : {})}
               {...(data.table ? { table: data.table } : {})}
               head={look.head !== false}
-              {...(data.fit ? { fit: data.fit } : {})}
               {...(data.clamp ? { clamp: data.clamp } : {})}
               title={data.description ? `${data.label} — ${data.description}` : data.label}
               name={<Name id={id} className="mnd-label card-name" text={data.label} />}>
@@ -342,10 +339,9 @@ function GroupNode({ id, data }: NodeProps<BoxNode>) {
 }
 
 /** An interface, seated on its owner's wall. */
-function SeatNode({ id, data, width }: NodeProps<BoxNode>) {
+function SeatNode({ id, data }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const selected = usePicked(id);
-  const tiny = useTiny(width ?? 0);
   /** A seat that changes wall faces anew, so its handle is measured again. */
   const remeasure = useUpdateNodeInternals();
   useEffect(() => remeasure(id), [id, data.side, remeasure]);
@@ -353,7 +349,7 @@ function SeatNode({ id, data, width }: NodeProps<BoxNode>) {
   const typed = !!data.look && !!data.def && data.def !== "interface";
   const tint = tint_attrs(typed ? data.look : undefined);
   return (
-    <div className={["mnd-seat", typed ? "typed" : "", tiny ? "tiny" : "", ...data.marks,
+    <div className={["mnd-seat", typed ? "typed" : "",...data.marks,
                      selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
          data-family={tint["data-family"]} style={tint.style as CSSProperties}
@@ -394,33 +390,75 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
 function MapBox({ id, data }: NodeProps<BoxNode>) {
   const selected = usePicked(id);
   return <BoxFace label={data.label} {...(data.role ? { role: data.role } : {})}
-                  {...(data.facts ? { counts: data.facts.counts } : {})}
+                  {...(data.icon ? { icon: data.icon } : {})}
+                  {...(data.facts ? { facts: data.facts } : {})}
                   panel={data.marks.includes("group")}
-                  {...(data.marks.includes("major") ? { rank: "major" as const }
-                    : data.marks.includes("minor") ? { rank: "minor" as const } : {})}
+                  {...(data.toggle ? { toggle: data.toggle } : {})}
                   picked={!!selected} />;
 }
 
-/** A map's chip, **its card at map scale** (views `map.ts`): its name's line — the name, then
- *  quieter its kind — and its kind's icon in the top-right corner; its facts under it where it
- *  has room; then its body, the first thing it has — a diagram's tiles laid by its structure, a
- *  definition's uses in boxes of their places, else a preview of its attributes, records, body or
- *  description, a definition's places each with its uses, over a bar of its uses by place. A
- *  tile is a small card the same way: its name, its icon in the corner, edged in its own colour.
- *  Icons keep a least size on screen, never past what their tile has room for (`--cap`). A chip
- *  too narrow for its name shows its icon alone; a tall, narrow one is turned -90° whole. What it is in
- *  full is its hover card. */
+/** **A records table** (views `records.ts`, docs/diagrams/mapping.md): the app's table look, a
+ *  rule under every row; reads → writes, then what to know; each row's left accent the colour of
+ *  the definition it reads from; rows grouped by that source under a plain heading. A name that
+ *  opens a definition picks it (`data-about`). */
+function RecordsNode({ data }: NodeProps<BoxNode>) {
+  const table = data.records;
+  if (!table) return null;
+  const cell = (c: { text: string; def?: string }) => (c.def
+    ? <button type="button" className="mnd-records-link" data-about={c.def}>{c.text}</button>
+    : <span>{c.text}</span>);
+  return (
+    <div className="mnd-records">
+      <div className="mnd-records-row head">
+        {table.columns.map((c) => <span key={c}>{c}</span>)}
+      </div>
+      {table.groups.map((g) => (
+        <div key={g.source} className="mnd-records-group">
+          <div className="mnd-records-heading">{g.source}</div>
+          {g.rows.map((r, i) => (
+            <div key={i} className="mnd-records-row" data-family={r.tint?.["data-family"]}
+                 style={(r.tint?.style ?? {}) as CSSProperties}>
+              {r.cells.map((c, j) => <span key={j} className="cell">{cell(c)}</span>)}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** **A model's About band** (views `overview.ts`): past a dashed divider, its groups side by side,
+ *  each a heading over plain notes — never a box, never lit or dimmed. A presentation's note
+ *  plays it; any other picks what it names (stage `Stage.tsx`, `data-play`, `data-about`). */
+function AboutNode({ data }: NodeProps<BoxNode>) {
+  return (
+    <div className="mnd-about">
+      {(data.about ?? []).map((g) => (
+        <div key={g.name} className="mnd-about-group">
+          <span className="mnd-about-name">{g.name}</span>
+          {g.items.map((item) => item.play !== undefined ? (
+            <button key={item.id} type="button" className="mnd-about-item play"
+                    data-play={item.play} title={`play ${item.label}`}>▶ {item.label}</button>
+          ) : (
+            <button key={item.id} type="button" className="mnd-about-item"
+                    data-about={item.id}>{item.label}</button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** **A tree chip** (views `map.ts`, docs/design/chip.md): the shared header over its well, its
+ *  children a quiet treemap. **One look at every zoom**: nothing here reads the zoom. What it is
+ *  in full is its hover card. */
 function ChipNode({ id, data, width, height }: NodeProps<BoxNode>) {
   const selected = usePicked(id);
   /** Its tiles picked, lit the one way everything picked is. */
   const lit = usePicks((data.tiles ?? []).map((t) => t.id));
-  /** A turned chip's levels read off its face as laid, before it turns. */
-  const level = useLevel(data.upright ? height ?? 0 : width ?? 0,
-                         data.upright ? width ?? 0 : height ?? 0, false);
   const tint = data.look ? tint_attrs(data.look) : undefined;
   const chip = { ...data, ...(tint ? { tint } : {}) };
-  return <ChipFace data={chip} w={width ?? 0} h={height ?? 0} level={level} picked={!!selected}
-                   lit={lit} />;
+  return <ChipFace data={chip} w={width ?? 0} h={height ?? 0} picked={!!selected} lit={lit} />;
 }
 
 
@@ -465,4 +503,6 @@ export const NODE_TYPES = {
   tile: Tile,
   box: Box,
   chip: Chip,
+  about: memo(AboutNode),
+  records: memo(RecordsNode),
 } as const;

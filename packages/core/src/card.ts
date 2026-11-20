@@ -15,9 +15,9 @@ import type { Block, Graph, Id } from "./types";
 export const BLOCK_KEYS = [
   "name", "type", "def", "description", "tags", "groups", "constraints", "traits", "settings",
   "body",
-  "source", "of", "parent", "cell",
+  "source", "of", "datum", "parent", "cell",
   "grid", "values", "w", "h", "ports", "rows", "cols", "blocks", "relations",
-  "packages", "note", "library", "records",
+  "note", "records", "open", "about", "presentations", "fragments",
 ] as const;
 
 /** Whether a key is one a block says itself with. */

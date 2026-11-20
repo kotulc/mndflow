@@ -4,10 +4,10 @@ import { alias_of, attributes_of, def_of, dir_of, domain_of, frozen, head_of, in
          is_definition,
          lens_of, is_box, opens, flow_of, is_notation, is_flat, notation_of, is_interface, is_named,
          is_participant,
-         base_of, path, resolved, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
-         path_of, type Graph, type Id } from "@mnd/core";
-import { body_lines, face_table, face_text, FACTS_LINE, handle_of, name_fit } from "./face";
-import { card_shape, look_of } from "./look";
+         base_of, resolved, role_of, shape_of, shown_name, stamps_of, subtypes, used_by,
+         path_of, way_of, type Graph, type Id } from "@mnd/core";
+import { body_lines, face_table, face_text, handle_of } from "./face";
+import { card_shape, look_of, swatch_of } from "./look";
 import { face_of, type Face } from "./size";
 import { box_of, type BoxData, type CardClass, type Scene } from "./scene";
 
@@ -87,6 +87,7 @@ export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): 
     ...(kind ? { kind } : {}),
     ...(is_definition(graph, id) ? { defines: true } : {}),
     role: role_of(graph, id),
+    ...(swatch_of(graph, id) ? { swatch: swatch_of(graph, id)! } : {}),
     ...(lens_of(graph, id) ? { opens: true } : {}),
     ...(stamps_of(graph, id).length ? { stamps: stamps_of(graph, id) } : {}),
     ...("type" in b && b.type ? { def: b.type } : {}),
@@ -99,24 +100,13 @@ export function carried(graph: Graph, id: Id, face: Face = face_of(graph, id)): 
   };
 }
 
-/** A scene with every small card's name sized to the box it was laid out at, and a large face
- *  sized by hand cut to the whole lines its body holds. A note and a label lay their words out
- *  themselves, and a header and a step have stylesheets of their own. */
+/** A scene with every large face sized by hand cut to the whole lines its body holds. A small
+ *  face's name is one line, cut short with an ellipsis (the header, theme `header.tsx`). */
 export function fit_names(scene: Scene): Scene {
   const nodes = scene.nodes.map((n) => {
     const d = n.data;
-    if (n.type === "card" && d.face === "large" && d.look?.size && d.text && !d.table) {
-      return { ...n, data: { ...d, clamp: body_lines(box_of(n).h, !!d.facts) } };
-    }
-    const own = d.marks.includes("header");
-    if (n.type !== "card" || d.face !== "small" || own || d.look?.height === "free"
-        || d.look?.face === "text") return n;
-    /** The facts strip takes its line under the name. */
-    const box = box_of(n);
-    const room = d.facts ? { ...box, h: box.h - FACTS_LINE } : box;
-    const fit = name_fit(d.label, room, !!d.kind, d.look?.shape === "diamond");
-    const { fit: _, ...rest } = d;
-    return { ...n, data: fit ? { ...rest, fit } : rest };
+    return n.type === "card" && d.face === "large" && d.look?.size && d.text && !d.table
+      ? { ...n, data: { ...d, clamp: body_lines(box_of(n).h) } } : n;
   });
   return { ...scene, nodes };
 }
@@ -140,9 +130,10 @@ export function empty_of(graph: Graph, id: Id): string {
 }
 
 /** The trail down to the layer, for a breadcrumb: the way the explorer lists it — its package,
- *  then every folder and block on the way, never an annotation. */
-export function trail_of(graph: Graph, layer: Id | null): Scene["trail"] {
-  return path(graph, layer ?? graph.root)
+ *  then every folder and block on the way, never an annotation; through the uses it is seen
+ *  through (`via`), where it is a definition's part entered from the models. */
+export function trail_of(graph: Graph, layer: Id | null, via: readonly Id[] = []): Scene["trail"] {
+  return way_of(graph, layer ?? graph.root, via)
     .filter((b) => b.id === layer || !is_notation(graph, b.id))
     .map((b) => ({ id: b.id, label: shown_name(graph, b.id) }));
 }

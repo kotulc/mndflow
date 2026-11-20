@@ -212,6 +212,16 @@ export type Block = {
   tree?: Tree;
   /** A reference: the block it stands for — a usage, a definition or a package. */
   of?: Id;
+  /** A dataflow: the definition whose data it traces (2026-11-15). */
+  datum?: Id;
+  /** A sequence's fragments: repeats and alternatives across its rows. */
+  fragments?: Fragment[];
+  /** A model's boxes open where its overview starts; unsaid, its primary parts. */
+  open?: Id[];
+  /** A model's About band: its groups in order, each a built-in or a list of what it holds. */
+  about?: AboutGroup[];
+  /** A model's presentations, in order (docs/presentations.md). */
+  presentations?: Presentation[];
   /** A package root's named components: its types and tags. */
   library?: Library;
   /** A collection's records: rows of answers to its `records.of` attributes, by name. Values,
@@ -258,6 +268,27 @@ export type Block = {
   values?: Value[];
 };
 
+/** One group of a model's About band: a built-in (`Presentations`, `Entries`, `Library`) when it
+ *  lists nothing, else the blocks, definitions or presentations it names, by id or name. */
+export type AboutGroup = { name: string; items?: Id[] };
+
+/** **A sequence's fragment** (docs/diagrams/sequence.md, agreed 7): a repeat across a run of rows,
+ *  named by its condition, or alternatives, each guard over its own run; rows are the grid's own,
+ *  first and last. Plain data, as the file writes it. */
+export type Fragment = { repeat: string; rows: [number, number] }
+  | { alt: string[]; rows: [number, number][] };
+
+/** An ordered, narrated way through a model: its stops, played like a slide deck. */
+export type Presentation = { name: string; description?: string; pace?: number; stops: Stop[] };
+
+/** One point of a presentation: what opens, where the camera looks, and its steps. `into` names a
+ *  presentation of the model `at` uses. */
+export type Stop = { title: string; at: Id; summary: string; open?: Id[]; fit?: Id[]; show?: Id;
+                     into?: string; pace?: number; steps?: StopStep[] };
+
+/** One thing shown in a stop: a relation lit or a block marked, with one sentence. */
+export type StopStep = { text: string; relation?: Id; mark?: Id };
+
 export type Relation = {
   id: Id;
   from: Id;
@@ -297,20 +328,24 @@ export const BLOCK_MODULES: readonly BlockModule[] = ["block", "reference", "int
  *  not a module. **There is no `resource`**: every block may point at external content through
  *  `source`, so a kind for it said nothing the slot does not. */
 export const BASE_BLOCKS: readonly Id[] = [
-  "block", "model", "reference", "folder", "grid", "note", "label", "group", "region",
+  "block", "model", "reference", "folder", "grid", "note", "label", "group", "region", "actor",
+  "external",
 ];
 
 /** The shipped diagram kinds: blocks extending `block`, each fixing its view, layout and icon. A
  *  block of one holding parts is retyped only within its family; a plain block is none of them. */
 export const DIAGRAMS: readonly Id[] = [
-  "internal", "flow", "state", "sequence", "swimlane", "class", "entity", "treemap",
+  "context", "flow", "dataflow", "state", "sequence", "swimlane", "mapping", "class", "entity",
 ];
 
 /** The one question each diagram kind answers, as every surface words it. */
 export const DIAGRAM_QUESTIONS: Readonly<Record<string, string>> = {
-  internal: "what it is made of", flow: "what moves through it", state: "how one thing changes",
-  sequence: "who talks to whom, in what order", swimlane: "who does what, in which phase",
-  class: "what its types are", entity: "how its data is stored", treemap: "where the weight is",
+  context: "what it is made of, and what is across its ports", flow: "what moves through it",
+  dataflow: "where one datum comes from, what changes it, who reads it",
+  state: "how one thing changes", sequence: "who talks to whom, in what order",
+  swimlane: "who does what, in which phase",
+  mapping: "what goes in, where it lands, and what to know about it",
+  class: "what its types are", entity: "how its data is stored",
 };
 
 /** The base notation: what a diagram draws with beside its parts — the annotations on every kind,
@@ -332,7 +367,8 @@ export const KIND_MARKS: Readonly<Record<Id, readonly Id[]>> = {
  *  and lines; references to definitions. Each grid kind is its own: its cells carry over to the
  *  other, but not their meaning. */
 export const KIND_FAMILIES: readonly (readonly Id[])[] = [
-  ["internal", "flow", "state", "treemap"], ["class", "entity"], ["sequence"], ["swimlane"],
+  ["context", "flow", "dataflow", "state"], ["class", "entity"], ["sequence"], ["swimlane"],
+  ["mapping"],
 ];
 
 /** The shipped relation bases. `tie` is a definition — a dashed run with no heads — chosen like
@@ -370,6 +406,9 @@ export const TRAITS: readonly Trait[] = [
   { id: "is_behaviour", description: "Is a behaviour: a method of what holds it, its layer the flow, "
       + "state machine, swimlane or sequence that does it; its interfaces its parameters and return.",
     settings: { block: { behaviour: true } } },
+  { id: "is_model", description: "Is a model: a definition of what is built, holding parts and "
+      + "drawn on directly; it draws as the kind it extends, a plain model as its tree.",
+    settings: {} },
   { id: "is_grid", description: "Seats text and blocks in the cells of a grid, drawn when it is opened.",
     settings: { holder: { matrix: true } } },
   { id: "is_group", description: "Draws as a panel round its members, on the layer it sits on; "

@@ -70,7 +70,11 @@ const PATHS = {
   // A group with an extent — cells you seat things in, bounded like a table.
   role_table: "M4.5 6h15v12H4.5zM4.5 10.5h15M11 6v12",
   // The diagram kinds, one each: what the block's own layer draws.
-  role_internal: "M3.5 3.5h17v17h-17zM8.5 8.5h7v7h-7z",
+  role_context: "M3.5 3.5h17v17h-17zM8.5 8.5h7v7h-7z",
+  role_dataflow: "M3 12h4M17 12h4M7 8.5h10v7H7zM10 5.5h4M12 5.5v3",
+  role_mapping: "M3.5 5h6M3.5 12h6M3.5 19h6M14.5 5h6M14.5 12h6M14.5 19h6M10.5 5l3 7M10.5 12l3 7",
+  role_actor: "M12 3.5a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM5.5 20.5c0-4 3-6.5 6.5-6.5s6.5 2.5 6.5 6.5",
+  role_external: "M3.5 6.5h17v11h-17z",
   role_flow: "M2.5 12h5M16.5 12h5M7.5 12L12 7.5 16.5 12 12 16.5zM19 9.5l2.5 2.5-2.5 2.5",
   // A state: a start dot, an arrow, and the rounded state it enters.
   role_state: "M1.75 12a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0-5 0M3.25 12a1 1 0 1 0 2 0 1 1 0 1 0-2 0M6.5 12h4.5M8.5 9l3 3-3 3M15 7h3.5a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H15a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3z",
@@ -266,8 +270,11 @@ export const ROLE_ICON: Record<string, IconName> = {
   interface: "role_interface", group: "role_group", grid: "role_table", note: "role_note",
   label: "role_label", region: "role_region",
   start: "role_start", end: "role_end", decision: "role_decision",
-  internal: "role_internal", flow: "role_flow", state: "role_state", sequence: "role_sequence",
-  swimlane: "role_swimlane", class: "role_class", entity: "role_entity", treemap: "role_treemap",
+  actor: "role_actor", external: "role_external",
+  context: "role_context", flow: "role_flow", dataflow: "role_dataflow", state: "role_state",
+  sequence: "role_sequence", swimlane: "role_swimlane", mapping: "role_mapping",
+  class: "role_class", entity: "role_entity",
+  line: "relation_plain", tie: "relation_tie",
 };
 
 /** The icon for a role, falling back to the plain block's. */

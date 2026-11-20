@@ -1,0 +1,27 @@
+{
+  "id": "payment",
+  "name": "Payment",
+  "def": {
+    "attributes": [
+      {
+        "name": "order",
+        "type": "order"
+      },
+      {
+        "name": "amount",
+        "type": "datatype.money"
+      },
+      {
+        "name": "result",
+        "type": "datatype.payment-result",
+        "optional": true
+      }
+    ]
+  },
+  "description": "A charge taken against an order.",
+  "settings": {
+    "card": {
+      "face": "table"
+    }
+  }
+}

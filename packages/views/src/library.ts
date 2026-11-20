@@ -3,8 +3,7 @@
  *  what a package or folder files. The library's own map is `map.ts`'s. Worked out on every graph
  *  change, never stored. */
 
-import { children, definition_uses, is_folder, model_of, models, on_side,
-         package_of, shown_name, use_place, type Graph, type Id } from "@mnd/core";
+import { definition_uses, model_of, models, package_of, shown_name, use_place, type Graph, type Id } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { tiled, weight_of, type Tile as Weighed } from "./treemap";
 
@@ -76,32 +75,5 @@ export function name_of(graph: Graph, id: Id): string {
   return b?.parent === null ? b.name ?? id : shown_name(graph, id);
 }
 
-/** What the library files under a package or folder: its folders and definitions. */
-export function filed(graph: Graph, id: Id): Id[] {
-  return children(graph, id).filter((b) => on_side(graph, b.id, "domain")
-    && (is_folder(graph, b.id) || !!b.def)).map((b) => b.id);
-}
 
-/** A small map's box heading, inside its top: a laid name line and a little air. */
-const BOX_HEAD = 14;
-
-/** One tile of a small map: what it is, its name, and where it lies in a map `w` by `h`. */
-export type Tile = { id: Id; label: string; kind: "box" | "use" | "line" | "def";
-                     x: number; y: number; w: number; h: number };
-
-/** A definition's registry as a small map `w` by `h`: **the registry's own layout**, laid to fill
- *  the map rather than scaled into it, each box with a line inside its top for its name; a lone
- *  box kept where `boxed`. */
-export function registry_map(graph: Graph, def: Id, w: number, h: number,
-                             groups = usage_groups(graph, def), boxed = false): Tile[] {
-  return usage_layout(graph, def, { w, h }, groups, BOX_HEAD, boxed).map((p): Tile => {
-    const place = box_place(def, p.id);
-    const e = graph.edges[p.id];
-    return { id: p.id, x: p.x, y: p.y, w: p.w, h: p.h,
-             kind: place ? "box" : e ? "line" : "use",
-             label: place ? box_label(graph, place)
-               : e ? line_name(graph, p.id)
-               : shown_name(graph, p.id) };
-  });
-}
 

@@ -1,0 +1,6 @@
+name: page contents
+description: The right sidebar and the inline contents panel.
+blocks:
+  - name: panel
+    type: contents
+type: context

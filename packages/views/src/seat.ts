@@ -67,7 +67,8 @@ export function nearest_seat(on: Rect, at: { x: number; y: number },
 /** Every line end and interface on a layer, seated. `boxes` holds every card drawn, and the room
  *  under `frame.id` where the layer is seen from inside. */
 export function seat_all(graph: Graph, links: readonly Relation[], boxes: ReadonlyMap<Id, Rect>,
-                         frame?: { id: Id; of: Id }): Seating {
+                         frame?: { id: Id; of: Id },
+                         rows: ReadonlyMap<string, number> = new Map()): Seating {
   const room = frame ? boxes.get(frame.id) : undefined;
   /** Which interfaces sit on which box: the room's are the layer's own. */
   const owned = new Map<Id, Id>();
@@ -93,7 +94,11 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
   /** Which way a card end looks: at the room's nearest wall, else at the other end. */
   const face_of = (id: Id, far: Id): Side => {
     const box = boxes.get(id)!;
-    if (room && owner(far) === frame!.id) return ports.get(far)?.side ?? nearest(room, box);
+    /** Inside the room it looks at the wall; outside it (what is across) it looks back at it. */
+    if (room && owner(far) === frame!.id) {
+      const side = ports.get(far)?.side ?? nearest(room, box);
+      return holds_box(room, box) ? side : OPPOSITE[side];
+    }
     const other = owned.has(far) && ports.has(far) ? at_seat(box_of(far)!, ports.get(far)!)
                                                     : box_of(far)!;
     return facing(box, other);
@@ -129,7 +134,7 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
     const box = boxes.get(id)!;
     const is_room = id === frame?.id;
     const leave = card ? face_of(far, id) : null;
-    const side = leave ? (is_room ? leave : OPPOSITE[leave])
+    const side = leave ? (is_room && holds_box(box, card!) ? leave : OPPOSITE[leave])
                        : is_room ? nearest(box, box_of(far)!) : facing(box, box_of(far)!);
     const mid = card ? point_at(card, { side: leave!, at: anchor_at(far, leave!) })
                      : point_at(box_of(far)!, seat!);
@@ -170,6 +175,17 @@ export function seat_all(graph: Graph, links: readonly Relation[], boxes: Readon
     const id = e[end];
     const far = end === "from" ? e.to : e.from;
     if (owned.has(id)) return;
+    /** **An end fixed at a row** (`rows`, by `edge|end`, a fraction down the card): it leaves the
+     *  side facing the other end, level with its row. */
+    const row = rows.get(`${e.id}|${end}`);
+    const far_box = box_of(far);
+    if (row !== undefined && far_box && boxes.get(id)) {
+      const box = boxes.get(id)!;
+      const side: Side = far_box.x + far_box.w / 2 < box.x + box.w / 2 ? "left" : "right";
+      perches.push({ edge: e.id, end, on: id, side, at: row });
+      take(id, side, box.y + row * box.h);
+      return;
+    }
     const straight = id === frame?.id || is_box(graph, id) ? across_box(id, far) : null;
     if (straight) {
       const box = boxes.get(id)!;
@@ -475,4 +491,10 @@ function nearest(box: Rect, other: Rect): Side {
   };
   return (["left", "right", "top", "bottom"] as const)
     .reduce((a, b) => (gap[b] < gap[a] ? b : a));
+}
+
+/** Whether a box lies wholly inside another. */
+function holds_box(outer: Rect, inner: Rect): boolean {
+  return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w
+    && inner.y + inner.h <= outer.y + outer.h;
 }

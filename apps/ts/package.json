@@ -3,12 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Translates a TypeScript project into a source folder of the ts package's kinds.",
+  "description": "Translates a TypeScript project into a source folder of the ts package's kinds, and answers the fact tools.",
+  "main": "src/facts.ts",
+  "types": "src/facts.ts",
   "scripts": {
     "start": "vite-node src/main.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@mnd/defs": "*",
     "graphology": "^0.26.0",
     "graphology-communities-louvain": "^2.0.2",
     "graphology-components": "^1.5.4",

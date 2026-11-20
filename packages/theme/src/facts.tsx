@@ -1,5 +1,6 @@
-/** **A facts strip**, the one order on every form: what it counts, then its tags as solid dots
- *  in their colours, named beside the dot where the form has room (views `facts_of`). */
+/** **A facts strip**, the one order on every form: what it counts, then
+ *  its tags as solid dots in their colours, named beside the dot where the form has room (views
+ *  `facts_of`). */
 
 import type { CSSProperties } from "react";
 
@@ -8,6 +9,9 @@ export type FactsData = {
   counts: readonly { n: number; word: string }[];
   tags: readonly { id: string; label: string;
                    tint: { "data-family"?: string; style?: Record<string, string> } }[];
+  /** How many presentations it plays, and the seats it wears each way: the meta line's. */
+  plays?: number;
+  seats?: { in: number; out: number };
 };
 
 /** How much more each later tag shrinks than the one before it. */

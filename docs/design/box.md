@@ -1,6 +1,6 @@
 # Box
 
-**Draft, 2026-10-29: for agreement.** A box is where things live on the map: a package, a folder, or a model holding diagrams. It frames chips and cards and is never entered. Focusing a box frames it.
+**Draft, 2026-10-29: for agreement.** A box is where things live on the map: a package, a folder, or a model holding diagrams. It frames chips and cards. A click focuses a box; a double-click enters it as its own treemap, framed by its box (2026-11-16: a package is a root folder, and folders enter).
 
 
 ## Purpose
@@ -12,13 +12,14 @@
 | *what is in it?* | the chips and cards inside |
 
 
-## Information by level
+## Information
 
-| Level | Shows |
+| Shows | Rule |
 |---|---|
-| 0 mark | its outline only |
-| 1 head | icon and name, top-left, on the outline |
-| 2 facts | counts after the name, in the title line, in the facts strip's words. They drop first when the title runs out of room |
+| its header | the shared two-line header (card.md, chip.md): name over meta line, kind's icon at the right |
+| what it holds | its own treemap, filling it (chip.md) |
+
+Nothing comes or goes with the zoom (2026-11-15).
 
 
 ## Form
@@ -34,6 +35,6 @@
 | | box | chip |
 |---|---|---|
 | groups by | the tree (where things are filed) | an association (what belongs together) |
-| entered | never, only focused | yes |
+| entered | as its treemap, the box its frame | as its own view |
 | frame | outline, neutral | filled, coloured edge |
 

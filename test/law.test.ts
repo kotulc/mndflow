@@ -21,7 +21,6 @@ const ALLOWED: Record<string, readonly string[]> = {
   stage: ["core", "views", "theme"],
   /** The seam: may reach everything, since it only re-exports. The tray's tabs go out read only. */
   kit: ["core", "defs", "explorer", "views", "stage", "theme", "tray"],
-  options: ["core", "theme"],
   tray: ["core", "views", "theme"],
 };
 

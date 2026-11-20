@@ -1,5 +1,0 @@
-name: page
-def: {}
-description: A screen a customer uses. It shows something and asks for something, over HTTP.
-settings:
-  style: { hue: 200 }

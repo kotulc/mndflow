@@ -2,22 +2,24 @@
 
 import { alias_of, dir_of, placing_of, children, covers,
          edges_in, group_depth, group_nest, has_lifelines, heading, holders_in, inline, is_box,
-         is_container, owner_of,
+         is_container, is_filing, owner_of,
          is_grid, is_group, is_aside, is_note, is_tie, label_of, lattice_of, members_of, shape_of,
          stamps_of, role_of, shown_name, type Cut, type Ends, type ViewKind, type Graph, type Id,
          type Relation, type Side, type Span } from "@mnd/core";
 import { at_seat, beside, boundary, cell_box, head_height, is_placed, laid, perch_id,
-         roomed, seat_all, PAD,
+         roomed, seat_all, size_of, PAD,
          UNIT, type Perch, type Rect, type Seat, type Seating } from "@mnd/views";
 import { carried, fit_names, marks_of, trail_of } from "./derive";
 import { card_facts } from "./facts";
 import { lifelined } from "./lifelines";
 import { look_of, wire_of } from "./look";
-import { layer_map, section_map } from "./map";
-import { sheet_graph, GRID_LAYER } from "./sheet";
+import { layer_map, library_map, section_map } from "./map";
+import { sheet_graph, turned, GRID_LAYER } from "./sheet";
 import { read_through } from "./through";
 import { registry_scene } from "./registry";
-import { class_graph, DRAWN_BY } from "./classes";
+import { records_scene } from "./records";
+import { class_graph, field_rows, DRAWN_BY } from "./classes";
+import { outside_of, zone_spots, ACROSS } from "./across";
 import { tie_targets } from "./pack";
 import { box_of, cell as node, EMPTY, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type CardClass, type Scene,
@@ -34,6 +36,12 @@ export type Config = {
   interfaces?: boolean;
   /** Whether a package root opened is drawn in a room, as a folder is. */
   room?: boolean;
+  /** A model's overview: the boxes open now; unsaid, where its file starts them. */
+  open?: readonly Id[];
+  /** A model's overview: the box just opened by hand, which legibility never closes. */
+  keep?: Id | null;
+  /** A tree view: the group it is narrowed to (views `map.ts`). */
+  group?: Id | null;
   /** The diagram whose lines draw what their ends mean rather than their direction: a class
    *  diagram, or an entity one, multiplicities as crow's feet. */
   ends?: "class" | "er";
@@ -54,10 +62,30 @@ function group_carries(graph: Graph, group: Id): Id[] {
   return out;
 }
 
+/** **Whether a layer draws as a treemap**: its kind places by treemap, or it is a package's
+ *  folder opened in either section. A folder projected bare — a tool's picture — draws its layer. */
+export function treemapped(graph: Graph, layer: Id, lists?: "domain" | "structure"): boolean {
+  return placing_of(graph, layer) === "treemap" || (!!lists && is_filing(graph, layer));
+}
+
 /** Project a layer through the block view, with what its usages read through laid in, and every
  *  card's name sized to the box it was laid out at. */
 export function project(given: Graph, layer: Id | null, config: Config = {}): Scene {
-  return fit_names(unfitted(given, layer, config));
+  return fit_names(banded(given, unfitted(given, layer, config)));
+}
+
+/** **A dataflow's datum band** (docs/diagrams/dataflow.md): the definition it traces, its card
+ *  above the frame, read only, so every line's form reads against it. */
+function banded(graph: Graph, scene: Scene): Scene {
+  const datum = scene.layer ? graph.blocks[scene.layer]?.datum : undefined;
+  if (!datum || !graph.blocks[datum] || !scene.frame) return scene;
+  const s = size_of(graph, datum);
+  const at = { x: scene.frame.x, y: scene.frame.y - s.h - PAD * 2, w: s.w, h: s.h };
+  const facts = card_facts(graph, datum);
+  const card = { ...node(datum, at, { ...carried(graph, datum, "large"), ...(facts ? { facts } : {}),
+                                     marks: [...marks_of(graph, datum), "definition" as const] }),
+                 draggable: false };
+  return { ...scene, nodes: [...scene.nodes, card] };
 }
 
 /** The layer's scene, before its names are fitted. A part of a definition seen through a usage
@@ -68,6 +96,8 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   if (layer === null || look?.kind === "map") return section_map(given, look?.lists);
   /** A registry, a definition or an entry of one, draws as a treemap. */
   if (look?.kind === "registry") return registry_scene(given, layer) ?? EMPTY;
+  /** A block with records draws its records table. */
+  if (look?.kind === "records") return records_scene(given, layer);
   /** A diagram is a projection: it draws what the block holds, and the canvas does not edit it.
    *  A grid would otherwise open as its lattice, so this comes first. */
   if (layer && (look?.kind === "class" || look?.kind === "er")) {
@@ -78,14 +108,27 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
    *  across, its lifelines behind its cards (`lifelined`). */
   if (layer !== GRID_LAYER && is_grid(given, layer)) {
     const { frame: _room, ...scene } = project(sheet_graph(given, layer), GRID_LAYER, config);
-    const nodes = scene.nodes.map((n) => (n.id !== layer ? n : {
-      ...n, draggable: false, data: { ...n.data, marks: [...n.data.marks, "room" as const] } }));
+    /** A grid drawn turned (a swimlane) names its cells as stored, so a drop lands where it is
+     *  written (`sheet.ts` `turned`). */
+    const back = turned(given, layer);
+    const nodes = scene.nodes.map((n) => {
+      const grid = back && n.data.grid
+        ? { grid: n.data.grid.map((c) => ({ ...c, r: c.c, c: c.r })) } : {};
+      return n.id !== layer ? { ...n, data: { ...n.data, ...grid } } : {
+        ...n, draggable: false, data: { ...n.data, ...grid,
+                                        marks: [...n.data.marks, "room" as const] } };
+    });
     return lifelined(given, layer, { ...scene, layer, nodes, trail: trail_of(given, layer) });
   }
   /** What its usages read through. **No line is derived**: only stored relations draw. */
   const graph = read_through(given, layer);
   /** A treemap is its map; anything else places itself. */
-  if (placing_of(graph, layer) === "treemap") return layer_map(given, layer);
+  if (treemapped(graph, layer, look?.lists)) {
+    /** A library folder is the library's map rooted at it. */
+    return look?.lists === "domain" && is_filing(given, layer)
+      ? library_map(given, layer, config.group)
+      : layer_map(given, layer, config.open, config.keep, config.group);
+  }
   const parts = new Set(Object.keys(graph.blocks).filter((id) =>
     !given.blocks[id] || given.blocks[id]!.parent !== graph.blocks[id]!.parent));
   const carried_as = (id: Id): BoxData => {
@@ -143,7 +186,10 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
   let room = frame_of(graph, layer, drawn(boxes), config.room);
   let at = new Map<Id, Rect>(spots.filter((p) => !floating.has(p.id)).map((p) => [p.id, p]));
   if (room) at.set(FRAME, room);
-  let seating = seat_all(graph, linked, at, room && layer ? { id: FRAME, of: layer } : undefined);
+  /** A class or entity line leaves its card from a field's row (`classes.ts` `field_rows`). */
+  const rows = config.ends ? field_rows(graph, linked, at, config.ends) : new Map<string, number>();
+  let seating = seat_all(graph, linked, at, room && layer ? { id: FRAME, of: layer } : undefined,
+                         rows);
   let cards = boxes;
   if (floating.size && layer) {
     const on_wall = (id: Id) => {
@@ -163,7 +209,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
       }
       room = next;
       at.set(FRAME, room);
-      seating = seat_all(graph, linked, at, { id: FRAME, of: layer });
+      seating = seat_all(graph, linked, at, { id: FRAME, of: layer }, rows);
     }
     /** Place, and if a note opens the room, seat again and place once more against that room.
      *  The last place is aimed at these ports; seating again must not leave them elsewhere. */
@@ -185,11 +231,11 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
       at = new Map([...holders, ...cards].filter((n) => !floating.has(n.id))
         .map((n) => [n.id, box_of(n)]));
       at.set(FRAME, room);
-      seating = seat_all(graph, linked, at, { id: FRAME, of: layer });
+      seating = seat_all(graph, linked, at, { id: FRAME, of: layer }, rows);
     }
     at = new Map<Id, Rect>([...holders, ...cards].map((n) => [n.id, box_of(n)]));
     if (room) at.set(FRAME, room);
-    seating = seat_all(graph, linked, at, room ? { id: FRAME, of: layer } : undefined);
+    seating = seat_all(graph, linked, at, room ? { id: FRAME, of: layer } : undefined, rows);
     if (ports_moved(aimed, seating)) {
       const moved = sit_beside(graph, layer, spots, floating, at, seating, room);
       cards = cards.map((n) => {
@@ -198,8 +244,29 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
       });
       at = new Map<Id, Rect>([...holders, ...cards].map((n) => [n.id, box_of(n)]));
       if (room) at.set(FRAME, room);
-      seating = seat_all(graph, linked, at, room ? { id: FRAME, of: layer } : undefined);
+      seating = seat_all(graph, linked, at, room ? { id: FRAME, of: layer } : undefined, rows);
     }
+  }
+
+  /** **What is across its ports**, outside the frame, read only (`across.ts`): seated once to
+   *  find where its lines meet the walls, placed by them, then seated again with them all. */
+  let drawn_from = graph;
+  let lines = linked;
+  const outside = room && layer ? outside_of(graph, layer) : null;
+  if (outside && room && layer) {
+    drawn_from = outside.graph;
+    const frame = { id: FRAME, of: layer };
+    const first = seat_all(drawn_from, linked, at, frame);
+    const spots_out = zone_spots(drawn_from, outside, room, first);
+    for (const [id, r] of spots_out) at.set(id, r);
+    lines = [...linked, ...edges_in(drawn_from, layer).filter((e) => e.id.startsWith(ACROSS))
+      .map((e) => landed(e, layer))];
+    seating = seat_all(drawn_from, lines, at, frame);
+    cards = [...cards, ...[...spots_out].map(([id, r]) => {
+      const said = carried(drawn_from, id);
+      return { ...node(id, r, { ...said, marks: [...said.marks, "zone" as const] }, "card"),
+               draggable: false, selectable: false, focusable: false };
+    })];
   }
 
   /** A seated interface draws over the card it sits on, so it comes last. */
@@ -248,7 +315,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
     layer,
     ...(framed ? { frame: framed } : {}),
     nodes: placed,
-    edges: lines_of(graph, linked, seating, config.ends, merged),
+    edges: lines_of(drawn_from, lines, seating, config.ends, merged),
     perches: seating.perches,
     /** A slot says what this projection can offer, never what it is doing. */
     slots: SLOTS,
@@ -458,6 +525,8 @@ function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
     const module = is_tie(graph, e.id) ? "tie" : "line";
     const fan = seating.fans.get(e.id);
     const also = merged.get(e.id);
+    /** A line from what is across meets the wall from outside. */
+    const outer = e.id.startsWith(ACROSS) ? (e.from.startsWith(ACROSS) ? "to" : "from") : null;
     return {
       id: e.id,
       ...(link ? { selectable: false, focusable: false } : {}),
@@ -470,7 +539,7 @@ function lines_of(graph: Graph, linked: readonly Relation[], seating: Seating,
       data: { module, dir: meant ? "none" : dir_of(graph, e.id), wire,
               ...(meant ? { ends: meant } : {}), ...(ends === "er" ? { crows: true } : {}),
               ...(alias ? { alias } : {}), ...(also ? { times: also.length + 1, also } : {}),
-              ...(fan ? { fan } : {}) },
+              ...(fan ? { fan } : {}), ...(outer ? { outer } : {}) },
     };
   });
 }

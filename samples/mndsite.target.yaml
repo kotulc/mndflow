@@ -1,0 +1,4 @@
+# The containers mndsite's library should read as: checked by the translator.
+containers:
+  build pipeline: [scripts/]
+  site runtime: [components/, theme.config.jsx, _app.jsx, pages/_app.jsx]

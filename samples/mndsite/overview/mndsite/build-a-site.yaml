@@ -1,0 +1,15 @@
+name: Build a site
+description: "The path every entry ends up running: config, site.config, ingest, then next build."
+blocks:
+  - cli build
+  - load_config
+  - write_site_config
+  - ingest
+  - next build
+relations:
+  - "cli build -> load_config: args"
+  - "load_config -> write_site_config: Config"
+  - "load_config -> ingest: Config"
+  - "write_site_config -> next build: site config"
+  - "ingest -> next build: pages · site-meta"
+type: flow

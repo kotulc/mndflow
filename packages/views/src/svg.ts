@@ -156,17 +156,17 @@ function line(edge: LineEdge, scene: Scene, runs: ReadonlyMap<string, { x: numbe
   const a = end_of(edge, "from", scene.nodes, scene.perches, scene.frame);
   const b = end_of(edge, "to", scene.nodes, scene.perches, scene.frame);
   if (!a || !b || edge.hidden) return ``;
+  const cards = scene.nodes.filter((n) => n.type === "card" || n.type === "note").map(box_of);
   const routed = avoided_run(runs.get(edge.id), a, b);
   const given = edge.data?.points;
   const run = given && given.length > 1 ? given
-    : routed ?? route(a, a.face, b, b.face, edge.data?.fan, edge.data?.module === "tie");
+    : routed ?? route(a, a.face, b, b.face, edge.data?.fan, edge.data?.module === "tie", cards);
   const data = edge.data;
   const end = heads(data);
   /** The name, the handle where the line asked for one, and how many it stands for: beside the
    *  stroke, never on it, clear of the cards — the box the canvas sets it in (`name_box`). */
   const middle = [String(edge.label ?? ""), data?.alias ?? "", data?.times ? `×${data.times}` : ""]
     .filter(Boolean).join(" ");
-  const cards = scene.nodes.filter((n) => n.type === "card" || n.type === "note").map(box_of);
   const box = name_box(run, middle.length, given && given.length > 1 || routed ? undefined
     : data?.fan, data?.level, cards);
   const at = { x: box.x + box.w / 2, y: box.y + box.h / 2 + 4, anchor: "middle" };

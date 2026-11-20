@@ -1,0 +1,21 @@
+{
+  "id": "dataflow",
+  "name": "dataflow",
+  "type": "block",
+  "description": "A dataflow: where one datum comes from, what changes it, and who reads it — the parts it passes through, ranked along its way, each line carrying the form it takes there. It traces the definition its `datum` names.",
+  "def": {},
+  "settings": {
+    "style": {
+      "hue": 165
+    },
+    "diagram": {
+      "view": "internal",
+      "placing": "layered",
+      "file": {
+        "blocks": {
+          "type": "reference"
+        }
+      }
+    }
+  }
+}

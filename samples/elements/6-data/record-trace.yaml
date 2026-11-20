@@ -1,0 +1,7 @@
+name: Record trace
+type: dataflow
+datum: Record
+blocks: [ Form, Signup, Store ]
+relations:
+  - Form -> Signup: details
+  - Signup -> Store: Record

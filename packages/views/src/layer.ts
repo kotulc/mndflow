@@ -3,10 +3,10 @@
  *  draws a layer of its own a card that is entered in turn. Only what the side drawn lists is in
  *  it. Worked out on every graph change, never stored. */
 
-import { is_model, placing_of, on_side, path, type Graph, type Id, type Lists,
+import { is_model, on_side, path, type Graph, type Id, type Lists,
          type ViewKind } from "@mnd/core";
 import { placed_as, type Placed } from "./arrange";
-import { project } from "./block";
+import { project, treemapped } from "./block";
 import { class_graph } from "./classes";
 import { place } from "./flow";
 import { holds_parts } from "./map";
@@ -27,12 +27,16 @@ export function laid_ahead(kind: ViewKind): boolean {
 
 /** The layer `id` draws as `kind`, placed ahead where its kind is laid out by ELK. */
 export async function layer_scene(given: Graph, id: Id, kind: ViewKind,
-                                  config: { interfaces?: boolean; lists?: Lists } = {})
+                                  config: { interfaces?: boolean; lists?: Lists;
+                                            open?: readonly Id[]; group?: Id | null } = {})
     : Promise<Scene> {
   const graph = sided(given, config.lists);
-  const opts = { room: true, look: { kind, cut: null },
-                 ...(config.interfaces === false ? { interfaces: false } : {}) };
-  const ahead = await placed_ahead(graph, id, kind);
+  const opts = { room: true,
+                 look: { kind, cut: null, ...(config.lists ? { lists: config.lists } : {}) },
+                 ...(config.interfaces === false ? { interfaces: false } : {}),
+                 ...(config.open ? { open: config.open } : {}),
+                 ...(config.group ? { group: config.group } : {}) };
+  const ahead = await placed_ahead(graph, id, kind, config.lists);
   if (!ahead) return ranked(graph, project(graph, id, opts));
   const scene = ranked(graph, placed_as(ahead.spots, () => project(graph, id, opts)));
   return ahead.across === undefined ? scene : { ...scene, across: ahead.across };
@@ -66,11 +70,11 @@ function sided(graph: Graph, lists?: Lists): Graph {
 /** What ELK places ahead for a layer, by its kind: its blocks seen from inside, or the classes a
  *  class or entity diagram draws, and which way its bands run. A treemap and a grid place
  *  themselves. */
-async function placed_ahead(graph: Graph, id: Id, kind: ViewKind)
+async function placed_ahead(graph: Graph, id: Id, kind: ViewKind, lists?: Lists)
     : Promise<{ spots: Map<Id, readonly Placed[]>; across?: boolean } | null> {
   if (kind === "internal") {
     const through = read_through(graph, id);
-    if (placing_of(through, id) === "treemap") return null;
+    if (treemapped(through, id, lists)) return null;
     const { spots, across } = await place(through, id);
     return { spots: new Map([[id, spots]]), ...(across === undefined ? {} : { across }) };
   }

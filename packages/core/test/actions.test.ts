@@ -176,7 +176,7 @@ describe("what an action absorbs", () => {
 });
 
 describe("the way out of a layer", () => {
-  it("leaves an ordinary block for what holds it, and a model for the models' map", () => {
+  it("leaves an ordinary block for what holds it, a model for its package, a package for the models' map", () => {
     const s = session({ floor: FLOOR });
     s.go("create", { name: "Loop", parent: "first" });
     const loop = children(s.graph(), "first").find((b) => b.name === "Loop")!.id;
@@ -191,7 +191,9 @@ describe("the way out of a layer", () => {
     s.go("open");
     expect(s.layer()).toBe("first");
     s.go("open");
-    expect(s.view()).toMatchObject({ kind: "map", layer: null, pick: "first" });
+    expect(s.view()).toMatchObject({ kind: "internal", layer: s.graph().root, pick: "first" });
+    s.go("open");
+    expect(s.view()).toMatchObject({ kind: "map", layer: null, pick: s.graph().root });
   });
 });
 

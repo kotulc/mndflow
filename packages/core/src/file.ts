@@ -123,7 +123,7 @@ export function renamed<T extends Block | Relation>(it: T, ids: ReadonlyMap<Id, 
   const at = (id: Id | undefined) => (id === undefined ? id : ids.get(id) ?? id);
   const all = (list: Id[] | undefined) => list?.map((id) => at(id)!);
   const out: Block & Relation = { ...it } as Block & Relation;
-  for (const key of ["parent", "type", "of", "from", "to"] as const) {
+  for (const key of ["parent", "type", "of", "datum", "from", "to"] as const) {
     if (out[key]) out[key] = at(out[key] as Id)!;
   }
   if (out.tags) out.tags = all(out.tags);

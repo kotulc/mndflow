@@ -154,21 +154,6 @@
           }
         }
       },
-      "services.external": {
-        "id": "services.external",
-        "parent": "services.dir.blocks",
-        "name": "external",
-        "type": "services.component",
-        "def": {},
-        "description": "A component outside this system, drawn with a dashed border.",
-        "order": 5,
-        "settings": {
-          "style": {
-            "family": "away",
-            "border_style": "dashed"
-          }
-        }
-      },
       "services.integrates": {
         "id": "services.integrates",
         "parent": "services.dir.relations",
@@ -180,20 +165,6 @@
         "settings": {
           "line": {
             "dir": "forward"
-          }
-        }
-      },
-      "services.person": {
-        "id": "services.person",
-        "parent": "services.dir.blocks",
-        "name": "person",
-        "type": "block",
-        "def": {},
-        "description": "Someone outside the system who uses it.",
-        "order": 6,
-        "settings": {
-          "style": {
-            "family": "neutral"
           }
         }
       },
@@ -221,7 +192,7 @@
         "type": "services.component",
         "def": {},
         "description": "A component that carries messages from one component to another: a collection, holding the messages waiting as records (`records.of`).",
-        "order": 7,
+        "order": 5,
         "settings": {
           "style": {
             "family": "away"
@@ -255,7 +226,7 @@
         "type": "services.component",
         "def": {},
         "description": "A component that answers requests.",
-        "order": 8,
+        "order": 6,
         "settings": {
           "style": {
             "family": "secondary"
@@ -284,7 +255,13 @@
             "type": "services.interface.http"
           }
         ],
-        "source": "patterns/anti-corruption-layer.yaml"
+        "source": "patterns/anti-corruption-layer.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "services.yaml.patterns.anti-corruption-layer:client": {
         "id": "services.yaml.patterns.anti-corruption-layer:client",
@@ -375,7 +352,13 @@
             "type": "services.interface.http"
           }
         ],
-        "source": "patterns/api-gateway.yaml"
+        "source": "patterns/api-gateway.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "services.yaml.patterns.api-gateway:auth": {
         "id": "services.yaml.patterns.api-gateway:auth",
@@ -455,7 +438,13 @@
             "type": "services.interface.http"
           }
         ],
-        "source": "patterns/circuit-breaker.yaml"
+        "source": "patterns/circuit-breaker.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "services.yaml.patterns.circuit-breaker:breaker": {
         "id": "services.yaml.patterns.circuit-breaker:breaker",
@@ -521,7 +510,13 @@
             "type": "services.interface.http"
           }
         ],
-        "source": "patterns/layered-architecture.yaml"
+        "source": "patterns/layered-architecture.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "services.yaml.patterns.layered-architecture:api": {
         "id": "services.yaml.patterns.layered-architecture:api",
@@ -609,7 +604,13 @@
             "type": "services.interface.events"
           }
         ],
-        "source": "patterns/saga-orchestrator.yaml"
+        "source": "patterns/saga-orchestrator.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "services.yaml.patterns.saga-orchestrator:compensations": {
         "id": "services.yaml.patterns.saga-orchestrator:compensations",
@@ -681,7 +682,13 @@
             "type": "services.interface.events"
           }
         ],
-        "source": "patterns/transactional-outbox.yaml"
+        "source": "patterns/transactional-outbox.yaml",
+        "traits": [
+          "has_parts",
+          "has_ports",
+          "has_values",
+          "is_model"
+        ]
       },
       "services.yaml.patterns.transactional-outbox:api": {
         "id": "services.yaml.patterns.transactional-outbox:api",

@@ -1,0 +1,32 @@
+{
+  "id": "order",
+  "name": "Order",
+  "def": {
+    "attributes": [
+      {
+        "name": "number",
+        "type": "number",
+        "key": "primary"
+      },
+      {
+        "name": "customer",
+        "type": "customer"
+      },
+      {
+        "name": "status",
+        "type": "datatype.order-status"
+      },
+      {
+        "name": "lines",
+        "type": "line",
+        "many": true
+      }
+    ]
+  },
+  "description": "A customer's request, and the lines on it.",
+  "settings": {
+    "card": {
+      "face": "table"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+name: Release
+description: "What CI does: two triggers and their jobs."
+blocks:
+  - start: push main
+  - build job
+  - deploy job
+  - publish job
+  - start: tag v
+relations:
+  - push main -> build job
+  - "build job -> deploy job: site"
+  - "build job -> publish job: [every push]"
+  - tag v -> publish job
+type: flow

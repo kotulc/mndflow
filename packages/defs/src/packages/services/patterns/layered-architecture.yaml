@@ -1,6 +1,5 @@
 name: Layered architecture
 type: service
-def: {}
 body: Use when one service owns its rules and its store, and every request should meet them in the same order.
 note: Requests enter at the API, rules live in one layer, storage is reached only through the repository.
 blocks:
