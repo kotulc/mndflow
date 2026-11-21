@@ -63,7 +63,7 @@ relations:
 
 | Grows | What happens |
 |---|---|
-| **steps** | one row along the axis, never wrapped; past a default length (7) whoever draws it cuts sub flows, each a step marked ↳ entered by *into*, only where both sides keep the floor (README *Sub diagrams*) |
+| **steps** | one row along the axis; **where one row would leave the drawing far from the canvas's shape, it wraps** (the user, 2026-11-21: every diagram respects the canvas's aspect): cut between steps into rows (columns where the axis runs down), each read the same way, as many as bring it nearest the shape; past a default length (7) whoever draws it cuts sub flows, each a step marked ↳ entered by *into*, only where both sides keep the floor (README *Sub diagrams*) |
 | **reads and writes of one step** | one port per target on the wall nearest the step; the cards across sit in step order, so lines run straight and never cross |
 | **targets of one port** | one card, its targets as name rows |
 | **a step done once per item** | a short line back to itself, named by what it repeats over (`↻ each page`) |
@@ -90,7 +90,7 @@ relations:
 |---|---|
 | 1 | a flow is its own block, its ports its signature, drawn as context's frame: a context whose inside is ordered steps |
 | 2 | side traffic crosses the axis at its step: reads above, writes and calls below (landscape) |
-| 3 | long chains never wrap; cut into sub flows past a default length |
+| 3 | long chains cut into sub flows past a default length; wrapping reversed 2026-11-21: a row far from the canvas's shape wraps into rows |
 | 4 | ways that part: the `decision` diamond |
 | 5 | a guard is its condition in brackets on the line (`[versioning.history]`), never a shape close to the diamond |
 | 6 | a loop is a line back, named by its condition; a mark alone is too easy to miss (2026-11-13, reversing a repeat mark on the step) |

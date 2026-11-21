@@ -11,6 +11,7 @@ export * from "./size";
 export * from "./arrange";
 export * from "./seat";
 export { drawn, middle_of, name_box, route, NAMED, STUB, type NameBox } from "./route";
+export { lines_drawn, type Drawn } from "./drawn";
 export { measure, type Measure } from "./measure";
 export { scale_of, type Scale } from "./scale";
 export { avoided_run, load_avoid, routes_of } from "./avoid";
@@ -40,3 +41,4 @@ export { entries_of, matrix_of, registry_scene, MOST, type Entry, type Line as M
 export { read_through } from "./through";
 export { line_shows, type Shows } from "./line";
 export { ACROSS } from "./across";
+export { headed } from "./records";

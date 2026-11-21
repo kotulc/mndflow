@@ -321,9 +321,10 @@ function stop_of(item: unknown, of: string): StopSaid {
 }
 
 /** One record: a map of answers by name, or — where its kind names the answers an arrow fills
- *  (`ends`) — written as a relation, `reads -> writes` or `reads -> writes: info`. */
+ *  (`ends`) — written as a relation, `reads -> writes` or `reads -> writes: info`, quoted whole
+ *  or not. */
 function record_of(item: unknown, ends?: readonly string[]): Record<string, string> {
-  const map = typeof item === "string" ? { [item]: "" } : item as Map;
+  const map = typeof item === "string" ? quoted(item) : item as Map;
   if (!map || typeof map !== "object" || Array.isArray(map)) {
     throw new Error(`a record is a map of answers: ${said_as(item)}`);
   }
@@ -335,6 +336,14 @@ function record_of(item: unknown, ends?: readonly string[]): Record<string, stri
       .filter(([, value]) => value));
   }
   return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, said_as(v)]));
+}
+
+/** A record quoted whole, `"reads -> writes: info"`, as YAML reads it unquoted: its info split
+ *  off at the first `: ` past the arrow. */
+function quoted(item: string): Map {
+  const arrow = item.indexOf("->");
+  const colon = arrow < 0 ? -1 : item.indexOf(": ", arrow);
+  return colon < 0 ? { [item]: "" } : { [item.slice(0, colon)]: item.slice(colon + 2) };
 }
 
 /** A block's ports: a list, or by flow — `{in: {content: md tree}, out: {dist: site}}`, each

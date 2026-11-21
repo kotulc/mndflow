@@ -57,8 +57,12 @@ export function usePresent(graph: Graph, layer: Id | null) {
                               (play.shown ? seconds : 0.6 + 1.1) * 1000);
       return () => clearTimeout(wait);
     }
-    if (last && !stop.into) { set_paused(true); return; }
-    const wait = setTimeout(() => (stop.into ? into() : next()), Math.max(HOLD, seconds) * 1000);
+    /** Come back out of its sub presentation (every step shown past its count), a stop goes
+     *  on rather than in again. */
+    const back = play.shown > steps.length;
+    if (last && (!stop.into || back)) { set_paused(true); return; }
+    const wait = setTimeout(() => (stop.into && !back ? into() : next()),
+                            Math.max(HOLD, seconds) * 1000);
     return () => clearTimeout(wait);
   }, [play, stop, steps.length, seconds, paused, last]);
 
@@ -182,8 +186,10 @@ export function showing_of(graph: Graph, layer: Id | null, scene: Scene,
  *  every block its steps touch. Null off its overview, and where it shows a diagram. */
 export function fit_of(graph: Graph, layer: Id | null, p: Presenting): Id[] | null {
   const { play, stop, on } = p;
-  if (!play || !stop || layer !== on || stop.show) return null;
+  if (!play || !stop || layer !== on) return null;
   if (play.dive) return [play.dive];
+  /** A shown diagram is fitted whole, the player's room left below it. */
+  if (stop.show) return [];
   if (stop.fit) return stop.fit;
   const ends = (stop.steps ?? []).flatMap((s) => {
     const e = s.relation ? graph.edges[s.relation] : undefined;

@@ -788,7 +788,7 @@
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   align-items: center;
-  height: 26px;
+  min-height: 26px;
   padding-left: 8px;
   border-bottom: 1px solid var(--divider);
   border-left: 3px solid transparent;
@@ -796,8 +796,7 @@
 .mnd-records-row[data-family] { border-left-color: var(--card-edge, var(--card-line)); }
 .mnd-records-row.head { color: var(--faint); font-size: 10px; letter-spacing: 0.06em;
                         text-transform: uppercase; border-bottom-color: var(--wall); }
-.mnd-records-row .cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-                         padding-right: 8px; }
+.mnd-records-row .cell { overflow-wrap: anywhere; line-height: 16px; padding: 5px 8px 5px 0; }
 .mnd-records-heading { height: 24px; line-height: 28px; padding-left: 11px; color: var(--muted);
                        font-weight: 600; }
 .mnd-records-link { padding: 0; border: 0; background: none; color: var(--accent); font: inherit;

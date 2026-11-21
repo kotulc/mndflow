@@ -3,8 +3,8 @@
  *  and checks a model file's presentations. Nothing written records who made it. Fact tools are
  *  apps/ts `facts.ts`; the commands are `main.ts`'s. */
 
-import { existsSync, readFileSync } from "node:fs";
-import { basename } from "node:path";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { basename, join } from "node:path";
 import { parseDocument, stringify } from "yaml";
 import { attributes_of, BLOCK_KEYS, DIAGRAMS, fold, long_form, setting_of, type FileSpec } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
@@ -157,3 +157,106 @@ export function draft(model: string, diagram: string, as?: string): string {
               steps }] }]);
   return doc.toString({ lineWidth: 0 });
 }
+
+/** One drafted step: a line lit, with its sentence. */
+type Step = { relation: string; text: string };
+
+/** A file read for a tour: its path, map and long form. */
+type Read = { file: string; said: Record<string, unknown>; form: ReturnType<typeof long_form> };
+
+/** A drafted sentence for a line: its ends and its name, to be rewritten. */
+const sentence = (e: { from: string; to: string; name?: string }) =>
+  `${e.from} → ${e.to}${e.name ? `: ${e.name}` : ""}.`;
+
+/** A file's map and long form, read by its own kind's spec. */
+function read(file: string): Read {
+  const said = parseDocument(readFileSync(file, "utf8")).toJS() as Record<string, unknown>;
+  return { file, said, form: long_form(said, undefined, spec_of(String(said["type"] ?? "model"))) };
+}
+
+/** A file's name as the model reaches it: its `name`, else its file name less order and suffix. */
+const name_of = (r: Read) => String(r.said["name"] ?? basename(r.file).replace(/^\d+-|\.ya?ml$/g, ""));
+
+/** **The YAML files of a folder in the order collect reads them** (2026-11-21): `overview.yaml`
+ *  first, then by order prefix, then by name. */
+function ordered(dir: string): string[] {
+  const rank = (f: string) => (f === "overview.yaml" ? -1 : Number(/^(\d+)-/.exec(f)?.[1] ?? 1e9));
+  return readdirSync(dir).filter((f) => /\.ya?ml$/.test(f) && statSync(join(dir, f)).isFile())
+    .sort((a, z) => rank(a) - rank(z) || a.localeCompare(z)).map((f) => join(dir, f));
+}
+
+/** The part a model's stops are about: the first part an actor reaches, else its first part
+ *  that is neither actor nor external. */
+function focus(r: Read): string {
+  const kind = (n: string) => r.form.blocks.find((b) => b.name === n)?.type ?? "";
+  const outer = (n: string) => ["actor", "external"].includes(kind(n));
+  const parts = r.form.blocks.filter((b) => b.type !== "note" && !outer(b.name)).map((b) => b.name);
+  return r.form.relations.find((e) => outer(e.from) && parts.includes(e.to))?.to
+    ?? parts[0] ?? name_of(r);
+}
+
+/** A model's own tour: its overview, every line in order, then each diagram in its folder shown
+ *  and stepped through its lines in order. */
+function model_tour(r: Read, at: string): Record<string, unknown>[] {
+  const own = { title: name_of(r), at, summary: String(r.said["description"] ?? name_of(r)),
+                steps: r.form.relations.map((e): Step => ({ relation: `${e.from} -> ${e.to}`,
+                                                            text: sentence(e) })) };
+  const dir = r.file.replace(/\.ya?ml$/, "");
+  const shown = existsSync(dir) ? ordered(dir).map(read)
+    .filter((d) => String(d.said["type"] ?? "") !== "model") : [];
+  return [own, ...shown.map((d) => {
+    const n = name_of(d);
+    /** An end the diagram holds is named in it; one it draws from the model, plainly. */
+    const held = new Set(d.form.blocks.map((b) => b.name));
+    const end = (x: string) => (held.has(x) ? `${n}.${x}` : x);
+    const steps = d.form.relations.map((e): Step => ({
+      relation: `${end(e.from)} -> ${end(e.to)}`, text: sentence(e) }));
+    return { title: n, at: n, show: n, summary: String(d.said["description"] ?? n),
+             ...(steps.length ? { steps } : {}) };
+  })];
+}
+
+/** How many of a sub-model's lines from its actors the top tour steps through before leading
+ *  into its own tour. */
+const LEADS = 3;
+
+/** **`presentation draft <folder>`: the whole model's tour** (the user, 2026-11-21): each model
+ *  file of a package folder gets its own tour, named as the model; the first (the overview) also
+ *  gets the **top tour**: its own stops, then a stop per other model — shown, its first lines
+ *  from its actors stepped, leading `into` its first presentation. Saved drafts, the words to be
+ *  rewritten and stops cut or added by whoever drafts it; a model's tour of that name is kept
+ *  unless `force`. Answers each file's new text. */
+export function tour(folder: string, force = false): { file: string; text: string }[] {
+  const models = ordered(folder).map(read).filter((r) => r.said["type"] === "model");
+  if (!models.length) throw new Error(`${folder} holds no model file (type: model)`);
+  /** The top tour leads into each other model's first presentation, drafted or its own. */
+  const kept_of = (r: Read) => {
+    const list = (parseDocument(readFileSync(r.file, "utf8")).get("presentations") as
+      { toJSON?: () => unknown } | undefined)?.toJSON?.();
+    return (Array.isArray(list) ? list : []) as Record<string, unknown>[];
+  };
+  const leads = models.slice(1).map((r) => {
+    const n = name_of(r);
+    const kind = (x: string) => r.form.blocks.find((b) => b.name === x)?.type ?? "";
+    const steps = r.form.relations.filter((e) => kind(e.from) === "actor").slice(0, LEADS)
+      .map((e): Step => ({ relation: `${n}.${e.from} -> ${n}.${e.to}`, text: sentence(e) }));
+    const first = String(kept_of(r)[0]?.["name"] ?? n);
+    return { title: n, at: n, show: n, summary: String(r.said["description"] ?? n),
+             into: first, ...(steps.length ? { steps } : {}) };
+  });
+  const drafted = models.map((r, i) => {
+    const name = name_of(r);
+    const kept = kept_of(r);
+    const stops = [...model_tour(r, focus(r)), ...(i === 0 ? leads : [])];
+    const tour = { name, description: String(r.said["description"] ?? `${name}, stop by stop.`),
+                   stops };
+    const has = kept.some((p) => p["name"] === name);
+    const doc = parseDocument(readFileSync(r.file, "utf8"));
+    return { r, doc, all: has && !force ? kept : [...kept.filter((p) => p["name"] !== name), tour] };
+  });
+  return drafted.map(({ r, doc, all }) => {
+    doc.set("presentations", all);
+    return { file: r.file, text: doc.toString({ lineWidth: 0 }) };
+  });
+}
+

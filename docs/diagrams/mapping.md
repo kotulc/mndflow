@@ -25,7 +25,7 @@
 | | |
 |---|---|
 | **base** | `mapping`, extending `block`, *has records*: each row a record (reads, writes, info), drawn by the generic records table, the one a collection's card shows (design.md: records are values, never blocks); mapping adds only the arrow from reads to writes |
-| **file** | its own file beside the part that does the mapping; rows under `records`, each written as a relation (`reads -> writes: info`). `reads` and `writes` name fields by qualified name (`PageMeta.desc`, `Config.edit`), opening their definition where they resolve; paths stay text |
+| **file** | its own file beside the part that does the mapping; rows under `records`, each written as a relation (`reads -> writes: info`), quoted whole or not. `reads` and `writes` name fields by qualified name (`PageMeta.desc`, `Config.edit`), opening their definition where they resolve; paths stay text |
 | **lives** | offered from the part that does it, in its About band |
 | **tool** | `mnd draw mapping <selection.json> <out>`, from `trace` (files) or `data --of` (fields) (docs/tools/mapping.md) |
 
@@ -51,6 +51,7 @@ records:
 | **groups** | rows grouped by that source, each group opened by a heading with no accent, so the break between groups reads at a glance |
 | **links** | a qualified name (`PageMeta.desc`) opens its definition's card; paths stay text |
 | **many rows** | past a default (12), groups fold to their heading and a count, opened by a click; a row repeated per item is written once with *each* (`each folder`) |
+| **columns** (2026-11-21) | each as wide as its longest text, within a floor and a ceiling; a longer text wraps in its cell, never cut. A group whose heading only repeats its one row's first cell wears none |
 | **portrait** | a row wraps: reads → writes on one line, info under it |
 
 ## Agreed 2026-11-14

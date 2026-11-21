@@ -10,7 +10,7 @@ import type { Side } from "@mnd/core";
 export const DRAGGED = "text/mnd-block";
 
 import { FRAME, PLAIN, face_attrs, look_key, tint_attrs,
-         type BoxData, type BoxNode, type GridCell } from "@mnd/views";
+         headed, type BoxData, type BoxNode, type GridCell } from "@mnd/views";
 import { BoxFace, CardFace, ChipFace, Name, Stamps, Wears, useNaming } from "@mnd/theme";
 import { grid_seen } from "./arrays";
 import { usePicked, usePicks } from "./picked";
@@ -407,17 +407,19 @@ function RecordsNode({ data }: NodeProps<BoxNode>) {
   const cell = (c: { text: string; def?: string }) => (c.def
     ? <button type="button" className="mnd-records-link" data-about={c.def}>{c.text}</button>
     : <span>{c.text}</span>);
+  /** Each column as wide as views `records_scene` sized it. */
+  const columns = { gridTemplateColumns: (table.widths ?? []).map((w) => `${w}px`).join(" ") };
   return (
     <div className="mnd-records">
-      <div className="mnd-records-row head">
+      <div className="mnd-records-row head" style={columns}>
         {table.columns.map((c) => <span key={c}>{c}</span>)}
       </div>
       {table.groups.map((g) => (
         <div key={g.source} className="mnd-records-group">
-          <div className="mnd-records-heading">{g.source}</div>
+          {headed(g) ? <div className="mnd-records-heading">{g.source}</div> : null}
           {g.rows.map((r, i) => (
             <div key={i} className="mnd-records-row" data-family={r.tint?.["data-family"]}
-                 style={(r.tint?.style ?? {}) as CSSProperties}>
+                 style={{ ...columns, ...r.tint?.style } as CSSProperties}>
               {r.cells.map((c, j) => <span key={j} className="cell">{cell(c)}</span>)}
             </div>
           ))}

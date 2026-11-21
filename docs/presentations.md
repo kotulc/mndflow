@@ -135,6 +135,20 @@ presentations:
 **The tray** stays on the presentation's model while it plays, never following each stop's drawing, so nothing moves under the reader: its overview leads with the presentation's name and the stop's place, then the stop list, the stop playing opened in place on its summary and its steps as they appear, each read whole. A stop in the list goes to it.
 
 
+## Drafted
+
+**The whole model's tour, drafted from its files** (2026-11-21): `mnd presentation draft <package folder>`. Saved into the model files, the words to be rewritten and stops cut or added (the library included) by whoever drafts it.
+
+| Tour | Stops |
+|---|---|
+| **each model's own**, named as the model | its overview (`at` the first part an actor reaches), every line in order; then each diagram in its folder, shown and stepped through its lines in order |
+| **the top tour**, in the first model (the overview) | its own stops, then one per other model: shown, its first lines from its actors stepped, leading `into` that model's first presentation |
+
+- **additive**: a model's tour of that name is kept unless `--force`; any draft that adds faults is taken back, every file left as it was
+- **`check` warns** of a diagram no stop of any presentation in the package shows (`presentation check <model>`), never failing: the drafter decides what to skip
+- a step's sentence is drafted as `from → to: name.`
+
+
 ## Rules
 
 - each stop makes one point; its steps follow a logical path through the system, never a list of relations
@@ -159,7 +173,7 @@ presentations:
 | the tray's presentation section | tray `Presentation.tsx` (replacing `Walk.tsx`), leading the overview |
 | the About band | views `overview.ts` `about_band`; stage `nodes.tsx` `AboutNode` (`data-play` plays, `data-about` picks) |
 | a stop entering a diagram (`show`) | web `App.tsx`: the stop's drawing is read when it is not the one open |
-| the CLI: list, draft, check | cli `tools.ts` (`presentations`, `draft`), `main.ts` `presentation` |
+| the CLI: list, draft, check | cli `tools.ts` (`presentations`, `draft`, `tour`), `main.ts` `presentation`, `unvisited` |
 
 
 ## Settled
@@ -175,4 +189,4 @@ presentations:
 
 **Settled 2026-11-12**: steps play on a timer and a click shows the next one at once; the pace is configurable (`pace`, default 1.7 s, `0` for on click); a stop may open a diagram (`show`); About's groups are configurable (`about:`), holding any blocks, definitions, presentations or entries.
 
-**Open (2026-11-21)**: the user's next direction — a presentation that walks a new user through the model's dimensions and perspectives, not only one model's stops (iteration-plan.md *Next* 2c); a stop that shows a diagram leaving the player's room; what the agent's tools draft (iteration-plan.md *Presentations first*).
+**Decided (the user, 2026-11-21)**: one guided tour over the whole model, through its sub-models and their diagrams, drafted by the agent's tools (iteration-plan.md *Next* 2c): the top tour overviews each sub-model and leads `into` its own tour; what it stops at (the library included) is the agent's choice; the draft is saved to the model files and `check` warns of a diagram no tour visits. **Built 2026-11-21**: `mnd presentation draft <folder>` (*Drafted* below); a stop showing a diagram fits it whole with the player's room below. **Open**: the quality bar and story guide (iteration-plan.md *Presentations first*, 3b).

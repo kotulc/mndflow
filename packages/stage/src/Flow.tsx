@@ -7,12 +7,12 @@ import {
   useStore,
 } from "@xyflow/react";
 import type { Point, Spot } from "@mnd/core";
-import { box_of, extent, nearest_seat, routes_of, taken_on, ACROSS, DRAWN_BY, FRAME, UNIT,
+import { box_of, extent, lines_drawn, nearest_seat, routes_of, taken_on, ACROSS, DRAWN_BY, FRAME, UNIT,
          type BoxNode } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 import { PickedContext, picked_by } from "./picked";
-import { CardsContext, EDGE_TYPES, Heads, RunsContext } from "./Wire";
+import { CardsContext, EDGE_TYPES, Heads, NamesContext, RunsContext } from "./Wire";
 import type { Adjust, FlowViewProps, Gesture, Landing } from "./gestures";
 import { BAND, MIN_ZOOM } from "./arrays";
 import { useDrag } from "./drag";
@@ -193,6 +193,11 @@ function Canvas(props: FlowViewProps) {
   const cards = useMemo(() => nodes.filter((n) => n.type === "card" || n.type === "note")
     .map(box_of), [nodes]);
 
+  /** **Every line's name placed together**, in order, each clear of the cards and the names
+   *  before it (views `lines_drawn`), so no two names cover each other. */
+  const names = useMemo(() => new Map(lines_drawn({ ...scene, nodes: held }, runs, cards)
+    .flatMap((l) => (l.name ? [[l.id, l.name] as const] : []))), [scene, held, runs, cards]);
+
   /** What lights as picked: the host's pick, read by every node and line. */
   const lit = useMemo(() => picked_by(picked, props.stands_for), [picked, props.stands_for]);
 
@@ -200,6 +205,7 @@ function Canvas(props: FlowViewProps) {
     <PickedContext.Provider value={lit}>
     <RunsContext.Provider value={runs}>
     <CardsContext.Provider value={cards}>
+    <NamesContext.Provider value={names}>
     <ReactFlow
       className={["mnd-flow", framed ? "" : "frameless", scene.areas ? "map" : "",
                   cut ? "cut" : "", cut || fresh ? "fresh" : ""].filter(Boolean).join(" ")}
@@ -354,6 +360,7 @@ function Canvas(props: FlowViewProps) {
       ) : null}
       {chrome && !scroll ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
     </ReactFlow>
+    </NamesContext.Provider>
     </CardsContext.Provider>
     </RunsContext.Provider>
     </PickedContext.Provider>

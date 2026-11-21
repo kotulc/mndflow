@@ -50,29 +50,33 @@ export function shot_of(w: Where): Shot {
                            into: null });
     return { box: area, into: { scene, shot: then }, seq };
   }
-  const hop = (w.fit?.length ? fit_of(w.graph, w.scene, w.fit) : null)
-    ?? hop_of(w.graph, w.scene, w.walked, w.one);
+  const fitted = w.fit ? fit_of(w.graph, w.scene, w.fit) : null;
+  const hop = fitted ?? hop_of(w.graph, w.scene, w.walked, w.one);
   const reveal = box_in(w.scene, w.reveal);
   /** **A tree view is seen whole** (docs/design/chip.md): it is laid the canvas's size, and a
    *  pick is laid larger in place (focus by expanding), so the camera never zooms to one; a walk
    *  still fits its step. */
   if (w.as === "map" || w.as === "treemap") {
     const walk = w.walked ? hop_of(w.graph, w.scene, w.walked, null) : null;
-    const fit = w.fit?.length ? fit_of(w.graph, w.scene, w.fit) : null;
-    return { box: fit ?? walk ?? { ...w.scene.areas![0]!, scale: 1 }, from: w.left, seq };
+    return { box: fitted ?? walk ?? { ...w.scene.areas![0]!, scale: 1 }, from: w.left, seq };
   }
+  /** **A stop fits its blocks on every drawing**, a page or a diagram too, so the player's
+   *  room is left below whatever a stop shows (2026-11-21). */
+  if (fitted) return { box: fitted, seq };
   if (w.as === "fitted") return hop ? { box: hop, seq } : { box: null, hold: true, reveal, seq };
   if (w.as === "page") return { box: null, page: PAGE, reveal, seq };
   if (w.as === "held") return { box: null, wait: true, seq };
   return { box: null, reveal, seq };
 }
 
-/** **A stop's fit** (docs/presentations.md): the box round every block named, each lifted to what
+/** **A stop's fit** (docs/presentations.md): the box round every block named — none, the whole
+ *  drawing — each lifted to what
  *  the drawing draws it as, with a margin, never magnified past 1.5× — a calm camera, never a
  *  plunge — and room below for the player over the canvas's foot (2026-11-21). */
 function fit_of(graph: Graph, scene: Scene, ids: readonly Id[]): Rect | null {
   const drawn = new Map(scene.nodes.map((n) => [n.id, n]));
-  const boxes = ids.flatMap((id) => {
+  /** None named: the whole drawing, as a stop showing a diagram fits it. */
+  const boxes = !ids.length ? scene.nodes.map(box_of) : ids.flatMap((id) => {
     const at = [...path(graph, id)].reverse().find((b) => drawn.has(b.id));
     return at ? [box_of(drawn.get(at.id)!)] : [];
   });
@@ -80,8 +84,9 @@ function fit_of(graph: Graph, scene: Scene, ids: readonly Id[]): Rect | null {
   const [x, y] = [Math.min(...boxes.map((b) => b.x)), Math.min(...boxes.map((b) => b.y))];
   const [w, h] = [Math.max(...boxes.map((b) => b.x + b.w)) - x,
                   Math.max(...boxes.map((b) => b.y + b.h)) - y];
-  const pad = Math.max(w, h) * 0.08;
-  const player = (h + 2 * pad) * 0.3;
+  /** A little air round it, and the player's room below: about a seventh of the canvas. */
+  const pad = Math.max(w, h) * 0.04;
+  const player = (h + 2 * pad) * 0.18;
   return { x: x - pad, y: y - pad, w: w + 2 * pad, h: h + 2 * pad + player, scale: 1 / 1.5 };
 }
 

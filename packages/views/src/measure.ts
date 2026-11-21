@@ -5,10 +5,7 @@
 
 import type { Id } from "@mnd/core";
 import { ACROSS } from "./across";
-import { avoided_run } from "./avoid";
-import { end_of } from "./ends";
-import { line_shows } from "./line";
-import { name_box, route } from "./route";
+import { lines_drawn } from "./drawn";
 import { box_of, FRAME, type Scene } from "./scene";
 import { SEAT } from "./size";
 
@@ -32,7 +29,7 @@ const ALONG = SEAT;
 export function measure(scene: Scene, routes: ReadonlyMap<Id, readonly Point[]>): Measure {
   const cards = scene.nodes.filter((n) => SOLID.has(n.type ?? ""))
     .map((n) => ({ id: n.id, box: box_of(n), label: n.data.label }));
-  const runs = runs_of(scene, routes, cards.map((c) => c.box));
+  const runs = lines_drawn(scene, routes, cards.map((c) => c.box));
   const found: string[] = [];
   const said = (n: Id) => cards.find((c) => c.id === n)?.label ?? n;
 
@@ -118,32 +115,6 @@ export function measure(scene: Scene, routes: ReadonlyMap<Id, readonly Point[]>)
   }
 
   return { crossings, covered, shared, tight, wrong, loose, lines: runs.length, found };
-}
-
-/** Every drawn line's run, ends and name box — never a guide nobody picks, as a lifeline —
- *  libavoid's where it still meets its ends, else `route`'s; its name where it shows, clear of
- *  the cards where it can be. */
-function runs_of(scene: Scene, routes: ReadonlyMap<Id, readonly Point[]>, boxes: readonly Rect[]) {
-  const out: { id: Id; from: Id; to: Id; label: string; run: Point[]; name?: Rect }[] = [];
-  for (const e of scene.edges.filter((x) => !x.hidden && x.selectable !== false)) {
-    const a = end_of(e, "from", scene.nodes, scene.perches, scene.frame);
-    const b = end_of(e, "to", scene.nodes, scene.perches, scene.frame);
-    if (!a || !b) continue;
-    const given = e.data?.points && e.data.points.length > 1 ? [...e.data.points] : null;
-    const routed = given ? null : avoided_run(routes.get(e.id), a, b);
-    const run = given ?? routed ?? route(a, a.face, b, b.face, e.data?.fan, e.data?.module === "tie",
-                                               boxes);
-    const fan = given || routed ? undefined : e.data?.fan;
-    const label = [e.label ? String(e.label) : "", e.data?.alias ?? ""].filter(Boolean).join(" ");
-    const chars = label.length + (e.data?.times ? `×${e.data.times}`.length : 0);
-    const box = chars ? name_box(run, chars, fan, e.data?.level, boxes)
-      : undefined;
-    /** Shown as the stage shows it, from the laid run. */
-    const shown = box && line_shows(length_of(run), box.w).name;
-    out.push({ id: e.id, from: e.source, to: e.target, label, run,
-               ...(shown ? { name: box } : {}) });
-  }
-  return out;
 }
 
 /** The gap between two cards facing each other across it: its box, how wide, and whether the
@@ -245,6 +216,3 @@ function near(p: Point, q: Point): boolean {
 }
 
 /** A run's length. */
-function length_of(run: readonly Point[]): number {
-  return run.slice(1).reduce((n, q, i) => n + Math.hypot(q.x - run[i]!.x, q.y - run[i]!.y), 0);
-}

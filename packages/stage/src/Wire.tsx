@@ -66,6 +66,9 @@ export const RunsContext = createContext<ReadonlyMap<string, readonly { x: numbe
 export const CardsContext = createContext<readonly { x: number; y: number; w: number; h: number }[]>(
   []);
 
+/** Every line's name box, placed together so none covers another (views `lines_drawn`). */
+export const NamesContext = createContext<ReadonlyMap<string, NameBox>>(new Map());
+
 /** Where a name's box is set from, by the side of its leg it sits on. */
 const BESIDE: Record<NameBox["side"], (b: NameBox) => string> = {
   above: (b) => `translate(${b.at.x}px, ${b.at.y - NAMED.lift}px) translate(-50%, -50%)`,
@@ -113,6 +116,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const naming = useNaming();
   const runs = useContext(RunsContext);
   const cards = useContext(CardsContext);
+  const names = useContext(NamesContext);
   /** A wall's handle faces into the room; the end a line from outside meets faces out
    *  (views `LineData.outer`). */
   const facing = (way: "from" | "to", at: Position) => (data?.outer === way ? TURNED[at] : at);
@@ -145,7 +149,9 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const times = data?.times ? `×${data.times}` : "";
   /** Beside its longest leg clear of the cards (views `name_box`): above or below it where it is
    *  level, right or left of it where it is upright. */
-  const box = name_box(run, middle.length + times.length, fan, data?.level, cards);
+  const placed = names.get(id);
+  const box = placed && on_run(run, placed.at) ? placed
+    : name_box(run, middle.length + times.length, fan, data?.level, cards);
   const beside = BESIDE[box.side](box);
   const shows = line_shows(length_of(run), (middle.length + times.length) * NAMED.glyph);
   const loud = hot || !!selected;
@@ -203,3 +209,15 @@ export { Heads };
 
 /** One type, keyed by the name a projection asks for. */
 export const EDGE_TYPES = { wire: Wire } as const;
+
+/** Whether a point lies on a run, within a pixel: a name placed together still sits on it. */
+function on_run(run: readonly { x: number; y: number }[], p: { x: number; y: number }): boolean {
+  return run.slice(1).some((q, i) => {
+    const a = run[i]!;
+    const [lx, hx, ly, hy] = [Math.min(a.x, q.x), Math.max(a.x, q.x), Math.min(a.y, q.y),
+                              Math.max(a.y, q.y)];
+    const cross = (q.x - a.x) * (p.y - a.y) - (q.y - a.y) * (p.x - a.x);
+    return p.x >= lx - 1 && p.x <= hx + 1 && p.y >= ly - 1 && p.y <= hy + 1
+      && Math.abs(cross) <= Math.hypot(q.x - a.x, q.y - a.y);
+  });
+}

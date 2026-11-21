@@ -233,7 +233,8 @@ async function laid_out(spec: Spec): Promise<Placement> {
     const w = best?.out.width ?? UNIT * 6, h = best?.out.height ?? UNIT * 4;
     if (along && !spec.ranked && at.size) {
       const order = edges.map((e) => [e.sources[0]!, e.targets[0]!] as [Id, Id]);
-      return { ...laned(at, kids.map((k) => k.id), order, SHAPE.aspect >= 1), inner };
+      const wide = SHAPE.aspect >= 1;
+      return { ...wrapped(laned(at, kids.map((k) => k.id), order, wide), wide), inner };
     }
     return { w, h, at, inner };
   };
@@ -430,6 +431,51 @@ const AIMS = [0.8, 1, 1.25, 1.6];
 
 /** A box laid in a container, from its corner. */
 type Spot = { x: number; y: number; w: number; h: number };
+
+/** **A long behaviour wraps** (the user, 2026-11-21: every diagram respects the canvas's
+ *  aspect): its lanes cut across the axis between steps into rows (columns where the axis runs
+ *  down), each read the same way, as many as bring the whole nearest the canvas's shape. */
+function wrapped(laid: { w: number; h: number; at: Map<Id, Spot> }, wide: boolean)
+    : { w: number; h: number; at: Map<Id, Spot> } {
+  const spots = [...laid.at.values()];
+  const lo = (s: Spot) => (wide ? s.x : s.y), hi = (s: Spot) => lo(s) + (wide ? s.w : s.h);
+  /** The gaps no step spans: the only places a cut may fall. */
+  const runs = spots.map((s) => [lo(s), hi(s)] as const).sort((a, z) => a[0] - z[0]);
+  const cuts: number[] = [];
+  let end = runs[0]?.[1] ?? 0;
+  for (const [a, z] of runs.slice(1)) {
+    if (a > end) cuts.push((a + end) / 2);
+    end = Math.max(end, z);
+  }
+  const start = runs[0]?.[0] ?? 0;
+  const [length, thick] = wide ? [laid.w - start, laid.h] : [laid.h - start, laid.w];
+  const pitch = thick + UNIT * 2;
+  /** The rows that bring the whole nearest the shape, each cut at the gap nearest its share. */
+  const shape = (k: number) => {
+    const [a, b] = [length / k, k * pitch];
+    return Math.abs(Math.log((wide ? a / b : b / a) / SHAPE.aspect));
+  };
+  let rows = 1;
+  for (let k = 2; k <= cuts.length + 1; k++) if (shape(k) < shape(rows)) rows = k;
+  if (rows === 1) return laid;
+  const chosen = [...new Set(Array.from({ length: rows - 1 }, (_, i) => {
+    const aim = start + (length * (i + 1)) / rows;
+    return cuts.reduce((b, c) => (Math.abs(c - aim) < Math.abs(b - aim) ? c : b));
+  }))].sort((a, z) => a - z);
+  /** Each row starts where the first did, a pitch further across. */
+  const row_of = (s: Spot) => chosen.filter((c) => lo(s) > c).length;
+  const first = new Map<number, number>();
+  for (const s of spots) first.set(row_of(s), Math.min(first.get(row_of(s)) ?? Infinity, lo(s)));
+  const out = new Map<Id, Spot>();
+  for (const [id, s] of laid.at) {
+    const r = row_of(s);
+    const along = lo(s) - first.get(r)! + start;
+    out.set(id, wide ? { ...s, x: along, y: s.y + r * pitch } : { ...s, y: along, x: s.x + r * pitch });
+  }
+  const moved = [...out.values()];
+  return { at: out, w: Math.max(...moved.map((s) => s.x + s.w)) + UNIT,
+           h: Math.max(...moved.map((s) => s.y + s.h)) + UNIT };
+}
 
 /** **A behaviour's lanes** (docs/diagrams/flow.md *Branching*): the main way — from the first
  *  start, each step's first line — on the axis; each other answer opens a lane, below first, then

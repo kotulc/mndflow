@@ -4,8 +4,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse, stringify } from "yaml";
-import { lens_of, NAMED_VIEWS, all_defs, alias_of, check, children, collect, domain_of, fold,
-         package_of, read, review, say, session, setting_of, shown_name, wanted, write, type Collected, type Fault,
+import { lens_of, NAMED_VIEWS, all_defs, alias_of, check, children, collect, diagram_kind,
+         domain_of, fold, is_model, package_of, path, read, review, say, session, setting_of, shown_name, wanted, write, type Collected, type Fault,
          type Graph, type Id, type Leaf, type Log, type Storage } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
@@ -13,7 +13,7 @@ import { draw, draw_svg, faults, outline, project } from "@mnd/views";
 import { measured, scaled } from "./measure";
 import { define, inline_home, kept_units, write_defined } from "./define";
 import { python_fact, is_python } from "./python";
-import { diagram_file, draft, presentations } from "./tools";
+import { diagram_file, draft, presentations, tour } from "./tools";
 import { held_in, is_facts, outside_of, selection_from } from "./from_facts";
 import { node_net } from "./ports";
 import { as_file, from_sysml, shape_of, to_sysml } from "./sysml";
@@ -59,6 +59,9 @@ const USAGE = `mnd — the headless harness
                                        --keep only those parts (names or paths); warns below
                                        the floor, never overwrites unless --force
   mnd presentation list <model.yaml>   a model's presentations and their stops
+  mnd presentation draft <folder> [--force]
+                                       the whole model's tour: each model file's own, and the
+                                       overview's leading into each; kept unless --force
   mnd presentation draft <model.yaml> --from <diagram.yaml> [--as name] [--dry]
                                        a presentation seeded from a flow or sequence, added
   mnd presentation check <model.yaml>  collect its package and say what does not resolve
@@ -527,7 +530,23 @@ async function tool(verb: string, first: string, rest: string[]): Promise<void> 
     const [model] = loose(rest);
     if (!model) fail("mnd presentation <list|draft|check> <model.yaml>", 2);
     if (first === "list") console.log(JSON.stringify(presentations(model!), null, 2));
-    else if (first === "draft") {
+    else if (first === "draft" && statSync(model!).isDirectory()) {
+      /** **The whole model's tour** (2026-11-21), each model file's drafted and checked; any
+       *  that adds faults is taken back, every file left as it was. */
+      const files = tour(model!, rest.includes("--force"));
+      const before = files.map((f) => [f.file, readFileSync(f.file, "utf8")] as const);
+      const had = files.flatMap((f) => model_notes(f.file));
+      for (const f of files) writeFileSync(f.file, f.text);
+      const notes = files.flatMap((f) => model_notes(f.file)).filter((n) => !had.includes(n));
+      if (notes.length) {
+        for (const [file, text] of before) writeFileSync(file, text);
+        for (const n of notes) console.log(`  ${n}`);
+        console.log(`not written, ${notes.length} to fix`);
+        process.exit(1);
+      }
+      for (const f of files) console.log(`drafted ${relative(process.cwd(), f.file)}: `
+        + presentations(f.file).map((x) => `${x.name} (${x.stops.length} stops)`).join(", "));
+    } else if (first === "draft") {
       const from = flag(rest, "from");
       if (!from) fail("draft asks --from <diagram.yaml>", 2);
       const text = draft(model!, from!, flag(rest, "as"));
@@ -552,6 +571,7 @@ async function tool(verb: string, first: string, rest: string[]): Promise<void> 
     } else if (first === "check") {
       const notes = model_notes(model!);
       for (const n of notes) console.log(`  ${n}`);
+      for (const w of unvisited(model!)) console.log(`  warning: ${w}`);
       console.log(notes.length ? `${notes.length} to fix` : "clean");
       if (notes.length) process.exit(1);
     } else fail(`no presentation command ${first}: list, draft, check`, 2);
@@ -563,6 +583,22 @@ function model_notes(model: string): string[] {
   const root = package_root(resolve(model));
   const said = relative(root, resolve(model)).split(sep).join("/");
   return gathered(root, true).notes.filter((n) => n.startsWith(`${said}:`));
+}
+
+/** **A diagram no tour visits** (the user, 2026-11-21): each diagram of the model a file holds
+ *  that no stop of any presentation in its package shows, directly or through a usage. A
+ *  warning: whoever drafts the tour decides what it skips. */
+function unvisited(model: string): string[] {
+  const graph = fold(read(gathered(package_root(resolve(model)), true).text, FLOOR).log, FLOOR);
+  const name = (parse(readFileSync(model, "utf8")) as { name?: string })?.name
+    ?? basename(model).replace(/^\d+-|\.ya?ml$/g, "");
+  const shown = new Set(Object.values(graph.blocks).flatMap((b) => (b.presentations ?? [])
+    .flatMap((p) => p.stops.flatMap((s) => (s.show ? [s.show, graph.blocks[s.show]?.type ?? ""]
+      : [])))));
+  return Object.keys(graph.blocks).filter((id) => package_of(graph, id) === graph.root
+    && !!diagram_kind(graph, id) && !is_model(graph, id) && !shown.has(id)
+    && path(graph, id).some((b) => is_model(graph, b.id) && b.name === name))
+    .map((id) => `${shown_name(graph, id)} is in no tour: no stop shows it`);
 }
 
 /** **What each hue reaches** (2026-11-20): every block of the workspace by the hue its look
