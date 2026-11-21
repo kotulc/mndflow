@@ -152,7 +152,9 @@ function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
     if (!b.cell) continue;
     const g = lattice_of(graph, b.parent ?? undefined);
     if (!g) {
-      say("repaired", `"${name(b.id)}" had a cell outside a grid`, { op: "seat_cell", id: b.id, cell: null });
+      say("repaired", `"${name(b.id)}" had a cell outside a grid: "${name(b.parent ?? "")}" `
+          + "draws no grid; a sequence or swimlane is a model's own file, or sits in a model's "
+          + "folder beside its model file", { op: "seat_cell", id: b.id, cell: null });
       continue;
     }
     const { r, c } = b.cell;
@@ -160,7 +162,9 @@ function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
     const at = g.merges?.find((s) => covers(s, r, c));
     const key = `${b.parent}|${at ? at.r : r}|${at ? at.c : c}`;
     if (outside || taken.has(key)) {
-      say("repaired", `"${name(b.id)}" sat ${outside ? "outside" : "on top of something in"} "${name(b.parent!)}"`,
+      say("repaired", outside ? `"${name(b.id)}" sat outside "${name(b.parent!)}"`
+          : `"${name(b.id)}" shares a cell of "${name(b.parent!)}": a cell holds one block, so `
+            + "it was unseated; give it a cell of its own (a swimlane splits the phase)",
           { op: "seat_cell", id: b.id, cell: null });
       continue;
     }
@@ -193,8 +197,10 @@ function settings(graph: Graph, name: (id: Id) => string, say: Say): void {
         continue;
       }
       for (const [prop, value] of Object.entries(config)) {
-        if (!c.check({ [prop]: value })) continue;
-        say("dropped", `"${name(it.id)}" said ${key}.${prop}, which nothing reads`,
+        const why = c.check({ [prop]: value });
+        if (!why) continue;
+        say("dropped", `"${name(it.id)}" said ${key}.${prop}: ${JSON.stringify(value)}, `
+            + `dropped: ${why}`,
             { op: "set_setting", id: it.id, key, name: prop, value: null });
       }
     }
@@ -210,7 +216,9 @@ function definitions(graph: Graph, say: Say): void {
     }
     /** A definition sits in its package's definitions tree; one elsewhere goes to its root. */
     if (d.parent && graph.blocks[d.parent] && !holds_defs(graph, d.parent)) {
-      say("repaired", `"${d.name}" sat outside the definitions tree`,
+      say("repaired", `"${d.name}" sits in "${graph.blocks[d.parent]!.name}", which holds no `
+          + "definitions, so it is read at its package's root; a folder of diagrams needs its "
+          + `model file beside it ("${graph.blocks[d.parent]!.name}.yaml")`,
           { op: "move_block", id: d.id, parent: package_of(graph, d.id) });
     }
     if (d.type && !def_at(graph, d.type) && !is_base(d.type)) {
@@ -230,7 +238,8 @@ function named_defs(graph: Graph, say: Say): void {
     if (!taken.has(slot + d.name)) { taken.add(slot + d.name); continue; }
     let name = d.name;
     for (let n = 2; taken.has(slot + name); n++) name = `${d.name} ${n}`;
-    say("repaired", `two definitions were called "${d.name}"`,
+    say("repaired", `two definitions side by side are called "${d.name}", the second read as `
+        + `"${name}": rename one (a diagram and the class it draws need different names)`,
         { op: "update_block", id: d.id, name });
     taken.add(slot + name);
   }
@@ -261,7 +270,7 @@ export function say(faults: Fault[]): string {
   const dropped = faults.filter((f) => f.kind === "dropped").length;
   const parts: string[] = [];
   if (repaired) parts.push(`repaired ${repaired}`);
-  if (dropped) parts.push(`could not read ${dropped}`);
+  if (dropped) parts.push(`dropped ${dropped}`);
   return parts.join(", ");
 }
 

@@ -40,8 +40,32 @@ export function lifelined(graph: Graph, grid: Id, scene: Scene): Scene {
     const [a, z] = [step(e.source), step(e.target)];
     if (a && z && e.source !== e.target) into.set(z.r, [...(into.get(z.r) ?? []), e]);
   }
+  /** A participant's lifeline x, where a message joins two participants directly. */
+  const whole_box = box_of(room);
+  const head = (id: Id) => {
+    const n = cards.get(id);
+    if (!n || graph.blocks[id]?.parent !== grid || !is_participant(graph, id)) return null;
+    const box = box_of(n);
+    return box.x + box.w / 2;
+  };
+  /** **Its row its list place** (sequence.md, agreed 3): the grid's messages in list order. */
+  const listed = scene.edges.filter((e) => cards.has(e.source) && cards.has(e.target)
+    && graph.blocks[e.source]?.parent === grid && graph.blocks[e.target]?.parent === grid)
+    .map((e) => e.id).sort((x, y) => (graph.edges[x]?.order ?? 0) - (graph.edges[y]?.order ?? 0));
   const edges = scene.edges.map((e): LineEdge => {
     const [a, z] = [step(e.source), step(e.target)];
+    const [ha, hz] = [head(e.source), head(e.target)];
+    if (ha !== null && hz !== null) {
+      const row = listed.indexOf(e.id) + 1;
+      const at = cell_box(g, Math.min(row, g.rows - 1), 1, head_height(graph, grid));
+      const y = whole_box.y + at.y + at.h / 2;
+      /** A message to itself loops out of its lifeline and back, within its row. */
+      const points = e.source === e.target
+        ? [{ x: ha, y: y - LOOP / 4 }, { x: ha + LOOP * 2, y: y - LOOP / 4 },
+           { x: ha + LOOP * 2, y: y + LOOP / 4 }, { x: ha, y: y + LOOP / 4 }]
+        : [{ x: ha, y }, { x: hz, y }];
+      return { ...e, data: { ...e.data!, level: true, origin: true, points } };
+    }
     if (!a || !z) return e;
     if (e.source === e.target) {
       /** A message to itself loops out of its card's right side and back, in the card's upper

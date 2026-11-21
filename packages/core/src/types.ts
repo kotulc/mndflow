@@ -224,6 +224,10 @@ export type Block = {
   presentations?: Presentation[];
   /** A package root's named components: its types and tags. */
   library?: Library;
+  /** **The workspace root's look for imported definitions** (2026-11-19): settings by the
+   *  definition's id, read before that definition's own, so every use and extension without a
+   *  look of its own shows it. The import itself stays frozen. */
+  overrides?: Record<Id, Components>;
   /** A collection's records: rows of answers to its `records.of` attributes, by name. Values,
    *  never blocks. */
   records?: Record<string, string>[];

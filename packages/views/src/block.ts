@@ -83,7 +83,8 @@ function banded(graph: Graph, scene: Scene): Scene {
   const at = { x: scene.frame.x, y: scene.frame.y - s.h - PAD * 2, w: s.w, h: s.h };
   const facts = card_facts(graph, datum);
   const card = { ...node(datum, at, { ...carried(graph, datum, "large"), ...(facts ? { facts } : {}),
-                                     marks: [...marks_of(graph, datum), "definition" as const] }),
+                                     marks: [...marks_of(graph, datum), "definition" as const,
+                                             "zone" as const] }),
                  draggable: false };
   return { ...scene, nodes: [...scene.nodes, card] };
 }

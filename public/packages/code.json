@@ -1,17 +1,17 @@
 {
   "schema": "1.0",
-  "id": "ts",
+  "id": "code",
   "graph": {
-    "root": "ts",
+    "root": "code",
     "blocks": {
-      "ts": {
-        "id": "ts",
+      "code": {
+        "id": "code",
         "parent": null,
-        "name": "ts",
+        "name": "code",
         "library": {
           "tags": [
             {
-              "id": "ts.tag.entry",
+              "id": "code.tag.entry",
               "name": "entry",
               "description": "Where a reader starts: a module the project says runs it (a manifest, a Dockerfile, a framework's file), or a barrel the rest is reached through.",
               "settings": {
@@ -21,7 +21,7 @@
               }
             },
             {
-              "id": "ts.tag.shared",
+              "id": "code.tag.shared",
               "name": "shared",
               "description": "The foundation: a module most of its package imports.",
               "settings": {
@@ -33,9 +33,9 @@
           ]
         }
       },
-      "ts.actor": {
-        "id": "ts.actor",
-        "parent": "ts.dir.blocks",
+      "code.actor": {
+        "id": "code.actor",
+        "parent": "code.dir.blocks",
         "name": "actor",
         "type": "block",
         "def": {},
@@ -47,9 +47,9 @@
           }
         }
       },
-      "ts.class": {
-        "id": "ts.class",
-        "parent": "ts.dir.blocks",
+      "code.class": {
+        "id": "code.class",
+        "parent": "code.dir.blocks",
         "name": "class",
         "type": "block",
         "def": {
@@ -71,9 +71,9 @@
           }
         }
       },
-      "ts.component": {
-        "id": "ts.component",
-        "parent": "ts.dir.blocks",
+      "code.component": {
+        "id": "code.component",
+        "parent": "code.dir.blocks",
         "name": "component",
         "type": "block",
         "def": {
@@ -81,7 +81,7 @@
             {
               "name": "runs",
               "type": "text",
-              "note": "where it runs: node or browser"
+              "note": "where it runs: a server, a browser, a worker"
             },
             {
               "name": "entered",
@@ -132,17 +132,17 @@
           }
         }
       },
-      "ts.dir.blocks": {
-        "id": "ts.dir.blocks",
-        "parent": "ts",
+      "code.dir.blocks": {
+        "id": "code.dir.blocks",
+        "parent": "code",
         "name": "blocks",
         "type": "folder",
         "order": 1,
         "tree": "definitions"
       },
-      "ts.function": {
-        "id": "ts.function",
-        "parent": "ts.dir.blocks",
+      "code.function": {
+        "id": "code.function",
+        "parent": "code.dir.blocks",
         "name": "function",
         "type": "block",
         "def": {
@@ -165,13 +165,13 @@
           }
         }
       },
-      "ts.interface": {
-        "id": "ts.interface",
-        "parent": "ts.dir.blocks",
+      "code.interface": {
+        "id": "code.interface",
+        "parent": "code.dir.blocks",
         "name": "interface",
         "type": "block",
         "def": {},
-        "description": "A shape of data: its fields are its attributes, what it extends is its type.",
+        "description": "A shape of data with no behaviour of its own (an interface, a protocol, a trait): its fields are its attributes, what it extends is its type.",
         "order": 5,
         "settings": {
           "card": {
@@ -182,9 +182,9 @@
           }
         }
       },
-      "ts.module": {
-        "id": "ts.module",
-        "parent": "ts.dir.blocks",
+      "code.module": {
+        "id": "code.module",
+        "parent": "code.dir.blocks",
         "name": "module",
         "type": "block",
         "def": {
@@ -192,7 +192,7 @@
             {
               "name": "runs",
               "type": "text",
-              "note": "where it runs: node or browser"
+              "note": "where it runs: a server, a browser, a worker"
             },
             {
               "name": "entered",
@@ -235,7 +235,7 @@
             }
           ]
         },
-        "description": "A source file: its functions and values are its parts, the types it declares are definitions in the library, and its imports are its dependencies.",
+        "description": "A source file (a module, a compilation unit): its functions and values are its parts, the types it declares are definitions in the library, and its imports are its dependencies.",
         "order": 6,
         "settings": {
           "style": {
@@ -243,9 +243,9 @@
           }
         }
       },
-      "ts.package": {
-        "id": "ts.package",
-        "parent": "ts.dir.blocks",
+      "code.package": {
+        "id": "code.package",
+        "parent": "code.dir.blocks",
         "name": "package",
         "type": "block",
         "def": {
@@ -256,7 +256,7 @@
             }
           ]
         },
-        "description": "A package of the project: the modules under its source folder, and what it imports from other packages.",
+        "description": "A package of the project (a package, a crate, a namespace, a Django app): the modules under its folder, and what it imports from other packages.",
         "order": 7,
         "settings": {
           "diagram": {
@@ -267,13 +267,13 @@
           }
         }
       },
-      "ts.type-alias": {
-        "id": "ts.type-alias",
-        "parent": "ts.dir.blocks",
+      "code.type-alias": {
+        "id": "code.type-alias",
+        "parent": "code.dir.blocks",
         "name": "type alias",
         "type": "block",
         "def": {},
-        "description": "A named object type: its fields are its attributes.",
+        "description": "A named data type (a type alias, a struct, a record, a dataclass): its fields are its attributes.",
         "order": 8,
         "settings": {
           "card": {
@@ -284,9 +284,9 @@
           }
         }
       },
-      "ts.value": {
-        "id": "ts.value",
-        "parent": "ts.dir.blocks",
+      "code.value": {
+        "id": "code.value",
+        "parent": "code.dir.blocks",
         "name": "value",
         "type": "block",
         "def": {

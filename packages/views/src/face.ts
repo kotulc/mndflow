@@ -13,6 +13,7 @@ import { alias_of, attributes_of, behaviours_of, holds_records, is_definition, l
          type Graph, type Id } from "@mnd/core";
 import { look_of, type Look } from "./look";
 import type { Listed, Ruled } from "./scene";
+import { LARGE, UNIT } from "./size";
 
 /** One glyph's width, in pixels, at each size the face writes in. */
 const GLYPH = { name: 7.8, body: 7.2, table: 6.6, kind: 6.4 };
@@ -72,8 +73,20 @@ export function records_text(graph: Graph, id: Id): string {
  *  of the last row for the card's marks. A class face lists its fields, then its behaviours. */
 export function face_table(graph: Graph, id: Id, look: Look = look_of(graph, id),
                            marks = stamps_of(graph, id).length): Ruled | null {
-  if (look.shows.includes("behaviours")) return class_table(graph, id, marks);
-  return look.shows.includes("attributes") ? table(answered(graph, id), marks) : null;
+  const ruled = look.shows.includes("behaviours") ? class_table(graph, id, marks)
+    : look.shows.includes("attributes") ? table(answered(graph, id), marks) : null;
+  return ruled && held(ruled);
+}
+
+/** **A table never runs out of its card** (no overlap): past the rows the tallest large face
+ *  holds, the last row kept says how many more there are, read in full in the tray. */
+function held(ruled: Ruled): Ruled {
+  const most = Math.floor((LARGE.max.h * UNIT - PAD.title - 2) / ROW);
+  if (ruled.cells.length <= most) return ruled;
+  const more = ruled.cells.length - most + 1;
+  const blank = ruled.cells[0]!.map(() => "");
+  return { ...ruled, cells: [...ruled.cells.slice(0, most - 1), [`+${more} more`, ...blank.slice(1)]],
+           ...(ruled.split !== undefined && ruled.split >= most - 1 ? { split: undefined } : {}) };
 }
 
 /** A class card's compartments as one ruled column: each field `name: type`, then — split from

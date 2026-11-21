@@ -2,7 +2,7 @@
   "id": "package",
   "name": "package",
   "type": "block",
-  "description": "A package of the project: the modules under its source folder, and what it imports from other packages.",
+  "description": "A package of the project (a package, a crate, a namespace, a Django app): the modules under its folder, and what it imports from other packages.",
   "def": {
     "attributes": [
       { "name": "version", "type": "text" }

@@ -69,7 +69,7 @@ Other heavy definitions in the sample: `line` 1,608 uses, `function` 357, `start
 
 ## Handoff
 
-**State (2026-11-19)**: everything built is committed through `f8ca193` (map links); orders 1–8 are in. Left: the user's look at groups, order 9's drive, the frame rate, and **crumbs that follow the canvas** (decided 2026-11-19; on the map a pick still moves them: views `map.ts` `map_focus` sets the trail from the focus).
+**State (2026-11-19)**: everything built is committed through `f8ca193` (map links); orders 1–8 are in. Left: the user's look at groups, order 9's drive and the frame rate. **Crumbs follow the canvas**: built 2026-11-20 (views `map.ts` `map_focus` keeps the map's own trail; uncommitted, iteration-plan.md *Handoff*). Package visibility, explicit map order and framed sub-model views (the user, 2026-11-21) are iteration-plan.md *Next* 1.
 
 | Built | Where |
 |---|---|

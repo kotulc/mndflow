@@ -8,5 +8,5 @@
 | **takes** | definitions from `schema` |
 | **writes** | a diagram file: each definition with its fields, derived fields marked, references as lines |
 | **you decide** | how nested sections split into named definitions; which cross-checks read as references |
-| **surface** | `mnd draw class <selection.json> <out>` |
+| **surface** | `mnd draw class <selection.json> <out>`, or from a fact answer, pruned: `classes` (2026-11-20) |
 | **open** | how a reference to a set of names (a group naming facets) is drawn |

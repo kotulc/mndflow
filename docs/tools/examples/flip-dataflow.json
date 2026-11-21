@@ -1,0 +1,29 @@
+{
+  "name": "Flip dataflow",
+  "description": "Where a Flip (a check's status change) is made, which part reads it, and what it becomes on the way out.",
+  "datum": "Status flip",
+  "blocks": [
+    "Monitored job",
+    "Check",
+    "sendalerts",
+    "Channel",
+    {
+      "name": "alert records",
+      "type": "group"
+    },
+    {
+      "name": "Notification",
+      "groups": [
+        "alert records"
+      ]
+    },
+    "Notification service"
+  ],
+  "relations": [
+    "Monitored job -> Check: a success or fail ping",
+    "Check -> sendalerts: Flip (old_status, new_status, reason)",
+    "sendalerts -> Channel: Flip (selected for the project's channels)",
+    "Channel -> Notification service: message about new_status",
+    "Channel -> Notification: check_status, error"
+  ]
+}

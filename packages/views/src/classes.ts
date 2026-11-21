@@ -1,10 +1,10 @@
 /** Class and entity diagrams: a layer's definition references, drawn as one diagram of cards —
  *  class cards (fields, then behaviours) or schema cards (columns and keys).
  *
- *  Members are the references that stand for definitions, one card each. **No line is derived**,
- *  but one: on a class diagram, a member joins the nearest member it extends — the chain itself.
- *  Every other line is stored: one between two members, or one between the definitions two
- *  members stand for. Each carries what its ends mean. Anything else the layer holds is left out.
+ *  Members are the references that stand for definitions, one card each. Lines derived: on a
+ *  class diagram, a member joins the nearest member it extends — the chain itself; and a field
+ *  typed by another member's definition joins the two. Every other line is stored: one between
+ *  two members, or one between the definitions two members stand for. Each carries what its ends mean. Anything else the layer holds is left out.
  *  Laid out layered: cards ranked the way their lines point, so owners sit above what they own.
  *  Nothing is written back. */
 
@@ -54,6 +54,7 @@ export function class_graph(graph: Graph, layer: Id, kind: "class" | "er"): Grap
       settings: { ...rest.settings, card: { ...rest.settings?.["card"], face } } };
   }
   return { ...graph, blocks, edges: { ...lines(graph, layer, kept, by_def),
+                                      ...keyed(graph, kept, by_def),
                                       ...(kind === "class" ? extended(graph, kept, by_def) : {}) } };
 }
 
@@ -72,6 +73,23 @@ function lines(graph: Graph, layer: Id, kept: readonly Id[],
     if (!from || !to) continue;
     const id = `${DRAWN_BY}${e.id}`;
     out[id] = { ...e, id, from, to, ends: ends_of(graph, e.id) };
+  }
+  return out;
+}
+
+/** **Lines worked out from fields** (class.md, entity.md, agreed 2026-11-15): a member's field
+ *  typed by another member's definition joins the two, named for the field, its row the end. */
+function keyed(graph: Graph, kept: readonly Id[],
+               by_def: ReadonlyMap<Id, Id>): Record<Id, Relation> {
+  const out: Record<Id, Relation> = {};
+  for (const id of kept) {
+    const def = stood_def(graph, id);
+    for (const a of def ? attributes_of(graph, def.id) : []) {
+      const to = a.type ? by_def.get(a.type) : undefined;
+      if (!to || to === id) continue;
+      const eid = `${DRAWN_BY}field:${id}.${a.name}`;
+      out[eid] = { id: eid, from: id, to, name: a.name };
+    }
   }
   return out;
 }

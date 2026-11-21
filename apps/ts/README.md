@@ -1,6 +1,6 @@
 # apps/ts
 
-**Translates a TypeScript or JavaScript project into its library, a source folder of the `ts` package's kinds that `collect` reads into a workspace, and answers the fact tools (docs/tools/).** It writes no models (2026-11-15): those are composed with the tools beside the library. The rules it follows are design.md's *Translation*; this is how it does it. Moved out of this repo once the schema settles.
+**Translates a TypeScript or JavaScript project into its library, a source folder of the `code` package's kinds that `collect` reads into a workspace, and answers the fact tools (docs/tools/).** It writes no models (2026-11-15): those are composed with the tools beside the library. The rules it follows are design.md's *Translation*; this is how it does it. Moved out of this repo once the schema settles.
 
 ## Running it
 
@@ -11,7 +11,7 @@ npm run code                  # this repo → samples/code, collected to samples
 
 The fact tools run through the CLI: `npm run start -s -w @mnd/cli -- fact <name> <project>`.
 
-Without a folder it prints the structure and writes nothing. With one, the library is written there; only the files the last translation wrote (listed in `.translated`) are cleared, so composed models stay; then `npm run start -s -w @mnd/cli -- collect <folder> <out>.json --workspace` and `check` it. `npm run packages` after any change to the `ts` kinds (`packages/defs/src/packages/ts`).
+Without a folder it prints the structure and writes nothing. With one, the library is written there; only the files the last translation wrote (listed in `.translated`) are cleared, so composed models stay; then `npm run start -s -w @mnd/cli -- collect <folder> <out>.json --workspace` and `check` it. `npm run packages` after any change to the `code` kinds (`packages/defs/src/packages/code`).
 
 ## Modules
 
@@ -55,7 +55,7 @@ Without a folder it prints the structure and writes nothing. With one, the libra
 
 | File | Holds |
 |---|---|
-| `<pkg>/<container>/<n>-<unit>.yaml` | every unit a model, filed by package (`parts` for a lone one) and container where a package has more than one, in reading order: entry modules (`ts.entry`), components by level (`ts.component`, its modules as parts, most salient first, and their lines; its own components under `<pkg>/<n>-<unit>/`), shared modules (`ts.shared`). A module's API is its parts: the functions and values another unit reads (`ts.function`, `ts.value`, each its `signature`); an API function calling three or more of the project's is a `flow` under it. A unit says `runs`, `entered`, `types` (shared types read), `reads` and `writes` (files), `config`, `touches`, `tests`, then `lines`; a module its header as `description`, a component its members' headers joined, most salient first |
+| `<pkg>/<container>/<n>-<unit>.yaml` | every unit a model, filed by package (`parts` for a lone one) and container where a package has more than one, in reading order: entry modules (`code.entry`), components by level (`code.component`, its modules as parts, most salient first, and their lines; its own components under `<pkg>/<n>-<unit>/`), shared modules (`code.shared`). A module's API is its parts: the functions and values another unit reads (`code.function`, `code.value`, each its `signature`); an API function calling three or more of the project's is a `flow` under it. A unit says `runs`, `entered`, `types` (shared types read), `reads` and `writes` (files), `config`, `touches`, `tests`, then `lines`; a module its header as `description`, a component its members' headers joined, most salient first |
 | `package.json` | the package block, described by the manifest's `description`, else the README's lead paragraph; it imports `ts` |
 | `outside/<actor>.json` | the system's edge (`ts.actor`), a definition each: the file system, processes, network, terminal, environment, each command run, each framework hosting an entry |
 | `types/<pkg>/<owner>/<Type>.json` | the vocabulary: a definition per shared type, fields as attributes, a field typed by another written type a link to it by id; a name said in two packages names its owner too |

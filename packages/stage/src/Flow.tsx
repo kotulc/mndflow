@@ -172,6 +172,22 @@ function Canvas(props: FlowViewProps) {
   const runs = useMemo(() => routes_of({ ...scene, nodes, ...(frame ? { frame } : {}) }),
                        [scene, nodes, frame]);
 
+  /** **Nothing is cut through**: the frame, as drawn, holds every line routed inside it — grown
+   *  past a line turned back over its top — where no line ends on its walls, so no port moves. */
+  const held = useMemo(() => {
+    const at = nodes.findIndex((n) => n.id === FRAME);
+    const walled = scene.edges.some((e) => e.source === FRAME || e.target === FRAME);
+    if (at < 0 || walled || !runs.size) return nodes;
+    const b = box_of(nodes[at]!);
+    const pts = [...runs.values()].flat();
+    const [x0, y0] = [Math.min(b.x, ...pts.map((q) => q.x - UNIT)), Math.min(b.y, ...pts.map((q) => q.y - UNIT))];
+    const [x1, y1] = [Math.max(b.x + b.w, ...pts.map((q) => q.x + UNIT)),
+                      Math.max(b.y + b.h, ...pts.map((q) => q.y + UNIT))];
+    if (x0 === b.x && y0 === b.y && x1 === b.x + b.w && y1 === b.y + b.h) return nodes;
+    const grown = { ...nodes[at]!, position: { x: x0, y: y0 }, width: x1 - x0, height: y1 - y0 };
+    return nodes.map((n, i) => (i === at ? grown : n));
+  }, [nodes, runs, scene.edges]);
+
   /** Every card as it stands, which the lines' names keep clear of. */
   const cards = useMemo(() => nodes.filter((n) => n.type === "card" || n.type === "note")
     .map(box_of), [nodes]);
@@ -187,7 +203,7 @@ function Canvas(props: FlowViewProps) {
       className={["mnd-flow", framed ? "" : "frameless", scene.areas ? "map" : "",
                   cut ? "cut" : "", cut || fresh ? "fresh" : ""].filter(Boolean).join(" ")}
       style={{ "--zoom": String(zoom) } as React.CSSProperties}
-      nodes={nodes}
+      nodes={held}
       edges={edges}
       nodeTypes={NODE_TYPES}
       edgeTypes={EDGE_TYPES}

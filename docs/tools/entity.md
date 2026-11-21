@@ -8,5 +8,5 @@
 | **takes** | the definitions to draw, by name, from `schema` |
 | **writes** | a diagram file of kind `entity`: its blocks references to definitions; keys and lines are never written |
 | **you decide** | which definitions belong together, beside which class diagram |
-| **surface** | `mnd draw entity <selection.json> <out>` |
+| **surface** | `mnd draw entity <selection.json> <out>`, or from a fact answer, pruned: `classes` (2026-11-20) |
 | **later** | reading an ORM's models or SQL through `schema` |

@@ -1,6 +1,6 @@
 # Tools
 
-**What a person or an agent composes models with** (2026-11-09). Plain CLI tools, as simple as possible: a person uses them as readily as an agent, and nothing in a model or diagram records who made it (2026-11-11). Each tool answers one question. **Fact tools** read source and return JSON. **Diagram tools** draw one diagram from a selection and write it as a diagram file. Whoever uses them decides what is primary, names it, and composes the models. Added to as the mndsite review finds cases.
+**What a person or an agent composes models with** (2026-11-09). **A translator lists, the agent picks, `define` writes** (2026-11-19): fact tools list a system's components, parts and relations, each pointed at part of it (`--unit`) at a level of detail (`--depth`); the agent keeps what matters and `define` writes it as the library. Plain CLI tools, as simple as possible: a person uses them as readily as an agent, and nothing in a model or diagram records who made it (2026-11-11). Each tool answers one question. **Fact tools** read source and return JSON. **Diagram tools** draw one diagram from a selection and write it as a diagram file. Whoever uses them decides what is primary, names it, and composes the models. Added to as the mndsite review finds cases.
 
 | Tool | Kind | Answers |
 |---|---|---|
@@ -8,6 +8,9 @@
 | edges | fact | where does the system meet the outside |
 | runtimes | fact | where does each part of the code run |
 | units | fact | what are the system's units, and what does each contain |
+| imports | fact | which units import which, gathered to a level, and what outside each reaches (Python) |
+| classes | fact | what classes there are: what each extends, its fields and keys, its methods (Python) |
+| define | library | the library written from units, relations and classes picked out of the facts |
 | calls | fact | what does a function call, in order, across modules |
 | data | fact | what passes along a call, or is read and written |
 | workflows | fact | what does CI do, on which trigger |
@@ -40,7 +43,12 @@
 | Command | Does | Home |
 |---|---|---|
 | `mnd fact <name> <project> [--unit u] [--from m.fn] [--at m.fn] [--of name] [--depth n] [--run "<command>"]` | one question of a project's source, as JSON, every fact with its source | apps/ts `facts.ts` |
-| `mnd draw <kind> <selection.json> [out.yaml] [--force]` | a diagram file of any kind, or `overview`, from a selection: a diagram file's map as JSON, read back through the file syntax before it is written; warns below the floor; never overwrites without `--force` | cli `tools.ts` `diagram_file` |
+| `mnd fact <name> <python project> [--unit u] [--depth n] [--from m.fn] [--of name] [--run "<script> args"]` | the same for a Python project (found by `pyproject.toml`, `setup.py`, `manage.py` or `requirements.txt` with no `package.json`): units, imports, classes, entries, calls, trace | apps/py `mndpy`, run by cli `python.ts` |
+| `--depth` | everywhere: how many levels **below** the target (`--unit`, else each top package) are listed or gathered | apps/py (apps/ts follows in iteration-plan.md 2b) |
+| `mnd look <folder>` | every block of the workspace by the hue its look resolves to (its own, its definition chain's or the `overrides`') | cli `main.ts` `looks` |
+| `mnd define <picked.json> <folder> [--keep a,b,…] [--force]` | the library from what was picked: `units` (an answer of `units`, pruned or edited) as block files, `relations` or `imports` (`{from, to, name?}` by unit, each end lifted to the nearest unit picked) as dependencies, `classes` as definitions under `types/`; adds new files, keeps those there unless `--force` | cli `define.ts` |
+| `mnd draw` reads | **a fact answer or the diagram itself** (2026-11-20): the agent asks the facts, prunes the answer to what the diagram is for, and `draw` writes the diagram from it — sequence and flow from `calls` or `trace`, context from `imports`, class and entity from `classes`, overview from `units`; each part a reference to its unit (`of`), named by its last step. **The library sets the scale** (2026-11-20): drawn into a source folder, each end is lifted to the nearest definition or part the library holds (never a folder), matched by the source unit each block stands for (its `source`, a type's id), so a library rooted lower, moved or renamed still matches, a call's ends to their class or module in a sequence, a context kept to one level; what the library holds nothing of is left out and named. So `trace` and `calls` are asked at full detail and the library decides the grain. Kinds no fact holds (state, swimlane, mapping, dataflow) take the diagram as JSON. Either way it refuses a key its kind does not read and a dotted block name, warns below the floor, makes the output folder | cli `from_facts.ts`, `tools.ts` |
+| `mnd draw <kind> <selection.json\|facts.json> [out.yaml] [--name n] [--description d] [--keep a,b,…] [--force]` | a diagram file of any kind, or `overview`, from a fact answer or a selection: a diagram file's map as JSON, read back through the file syntax before it is written; warns below the floor; `--keep` draws only the parts it names (a name or a path, both ends of a line); says what it wrote; never overwrites without `--force` | cli `tools.ts` `diagram_file` |
 | `mnd presentation list\|draft\|check <model.yaml>` | a model's presentations; one drafted from a flow or sequence (`--from`, `--as` its name as the model reaches it); what does not resolve | cli `tools.ts`, `main.ts` |
 | `npm run mcp -w @mnd/cli` | the same over MCP, on stdio: `fact`, `draw`, `presentation_list`, `presentation_draft` | cli `mcp.ts` |
 
@@ -58,7 +66,9 @@
 
 Open from it: a `presentation_check` tool, and a check of a draft before it is written; one stated base for every path (or absolute paths, said in the schema); a per-kind selection schema or example in `draw`'s description; a draft returning only its new presentation; `calls` gives no data labels, which a `data` call adds.
 
-Worked examples for the hand-drawn kinds are in docs/tools/examples/, each a selection `draw` writes.
+Worked examples for the hand-drawn kinds are in docs/tools/examples/, each a selection `draw` writes: state `navigation.json`, swimlane `collect-handoff.json`, entity `workspace-file.json`, mapping `ping-mapping.json`, dataflow `flip-dataflow.json` (the last two from healthchecks, 2026-11-20).
+
+**Highlighting a subset** (2026-11-20): give a definition a look (`settings.style.hue` in its file) and every block typed by it or extending it shows it; to highlight units the library typed as `code.module`, write a definition of your own extending it with the hue, and type them by it; an imported definition is restyled in the workspace's `overrides`. `mnd look <folder>` lists every block by the hue it resolves to, so the highlight is checked without the app.
 
 | Rule | |
 |---|---|

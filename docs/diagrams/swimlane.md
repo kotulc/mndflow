@@ -52,7 +52,7 @@ relations:
 |---|---|
 | **orientation** | phases run along the canvas's long side, as a flow's axis does; lanes across it. Landscape: lanes are rows, phases columns |
 | **lane order** | as a sequence's participants: actors, then the owner's parts under its frame, then the outside; each by first step |
-| **a cell of several steps** | stacked in list order |
+| **a cell holds one step** (the user, 2026-11-20) | a lane doing several things in one phase splits the phase finer, one step each; `draw` refuses two steps in a cell |
 | **lines** | flow's: data named on the line, guards in brackets, a `decision` diamond in a cell, a loop a line back; routed in the grid's gutters |
 | **an empty cell** | drawn empty: the grid is the meaning |
 | **many lanes** | past a default (6), the outside folds into one lane, its participants as name rows |

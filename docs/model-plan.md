@@ -7,7 +7,7 @@
 
 **Paused 2026-11-19 behind iteration-plan.md**, the primary plan; orders 6–9 are taken when a round finds them.
 
-**Handoff (2026-11-19).** scale-plan.md orders 1–8 are built and committed through `f8ca193` (map links); its *Handoff* says what is left (groups seen, crumbs on the map, order 9, frame rate). Orders 6–9 below follow it. Decided since 2026-11-16: **a package is a root folder, and folders enter**; **a model is always part of its package** (leaving one goes up to its package); **a definition holding parts enters as its diagram**, its well a preview (2026-11-17); **crumbs always follow the canvas, never a pick** (2026-11-19); **map links**: links said in words on chips at rest, lines only when lit (2026-11-18).
+**Handoff (2026-11-19).** scale-plan.md orders 1–8 are built and committed through `f8ca193` (map links); its *Handoff* says what is left (groups seen, crumbs on the map, order 9, frame rate). Orders 6–9 below follow it. Decided since 2026-11-16: **a package is a root folder, and folders enter**; **a model is always part of its package** (leaving one goes up to its package); **a definition holding parts enters as its diagram**, its well a preview (2026-11-17); **crumbs always follow the canvas, never a pick** (2026-11-19); **map links**: links said in words on chips at rest, lines only when lit (2026-11-18). Since, in iteration-plan.md: **the library holds structure** (2026-11-20, replacing *structure lives in models*); **order is explicit**, **a model entered is framed**, **packages shown by default and toggled**, **chips never rounded** (2026-11-21).
 
 **The tree and chip rebuild** (orders 1–4 below) is specified in docs/design/chip.md and the header section of docs/design/card.md; mockup at claude.ai/artifact/Wgi6FEJTDjSKQVSSsKLexp (boards: anatomy, one header, map landscape and portrait, overviews landscape and portrait, the shop, focus by expanding, mark options); the generator that laid the mockup is kept for reference in docs/design/mockups/tree-chips/.
 
@@ -46,7 +46,7 @@
 | 5 | **built**: **drive it**: the shop and mndsite driven 2026-11-16 (map and overview, landscape and portrait, whole and 3× zoom, the library map; every model and diagram under example entered, toggles, a presentation); the map laid at the canvas's size and seen whole, well cells graded; 2026-11-16 second pass: a click only picks inside an entered treemap, a package's folder enters as its treemap, every well child named, the library drops folders filing no definition; next: scale-plan.md, then the user's look at the entered views and presentations | feedback: verify the user's path |
 | 6 | **ties far from their target**: Overview › Shop's *hot path* note ties across 8 cards; place a note beside what it ties | `mnd measure` counts them as crossings |
 | 7 | **pills overflowing small cards** (*Rate limit*, *Router*: "2 attributes" past the bottom edge, before this session too); likely gone with the header, verify | |
-| 8 | **`check` misses unresolved references**: a dataflow's block or a sequence's participant naming nothing draws *missing*, yet `check` says clean | |
+| 8 | ~~**`check` misses unresolved references**~~ fixed 2026-11-19 (iteration-plan.md): `check` of a folder fails on what collecting notes | |
 | 9 | **the MCP surface** (docs/tools/README.md *Spot check*) and **this repo's model** composed with the tools | the acceptance below |
 
 **Open items**

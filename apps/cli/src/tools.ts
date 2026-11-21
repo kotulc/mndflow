@@ -6,7 +6,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { parseDocument, stringify } from "yaml";
-import { DIAGRAMS, fold, long_form, setting_of, type FileSpec } from "@mnd/core";
+import { attributes_of, BLOCK_KEYS, DIAGRAMS, fold, long_form, setting_of, type FileSpec } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 
 /** The kinds `draw` writes: every diagram kind, and `overview`, a model's tree. */
@@ -28,6 +28,8 @@ export function diagram_file(kind: string, selection: Record<string, unknown>): 
     throw new Error(`no diagram kind ${kind}: ${DRAWN.join(", ")}`);
   }
   const type = kind === "overview" ? "model" : kind;
+  refuse_unread(kind, type, selection);
+  refuse_shared(selection);
   const map: Record<string, unknown> = { ...selection, type: selection["type"] ?? type };
   if (kind === "sequence" && Array.isArray(map["participants"])) {
     map["participants"] = participants_in_order(map);
@@ -40,6 +42,48 @@ export function diagram_file(kind: string, selection: Record<string, unknown>): 
     + "would say it instead"] : [];
   const { owner: _owner, ...kept } = map;
   return { text: stringify(kept, { lineWidth: 0 }), warnings };
+}
+
+/** **A selection says only what its kind reads** (2026-11-19): a key no diagram file knows,
+ *  nor the kind's own lists nor its attributes, is refused, as is a grid's `rows` or `cols` on a
+ *  kind that is no grid, and a block named with a `.`. */
+function refuse_unread(kind: string, type: string, selection: Record<string, unknown>): void {
+  const spec = spec_of(type);
+  const grid = Object.values(spec).some((s) => s.as === "rows" || s.as === "cols");
+  const own = new Set([...Object.keys(spec), ...attributes_of(fold([], FLOOR), type)
+    .map((a) => a.name), "owner"]);
+  const known = (k: string) => own.has(k) || ((BLOCK_KEYS as readonly string[]).includes(k)
+    && (grid || !["rows", "cols", "cell", "grid"].includes(k)));
+  const unknown = Object.keys(selection).filter((k) => !known(k));
+  if (unknown.length) {
+    throw new Error(`a ${kind} reads no ${unknown.join(", ")}; its own keys: `
+      + `${[...own].filter((k) => k !== "owner").join(", ") || "none"}, beside name, `
+      + "description, blocks, relations, note, tags, settings (docs/diagrams/" + `${kind}.md)`);
+  }
+  const dotted = (Array.isArray(selection["blocks"]) ? selection["blocks"] : [])
+    .map((b) => (typeof b === "object" && b ? (b as Record<string, unknown>)["name"] : b))
+    .filter((n): n is string => typeof n === "string" && n.includes("."));
+  if (dotted.length) {
+    throw new Error(`a block's name never holds a "." (${dotted.slice(0, 3).join(", ")}): name `
+      + "it plainly and give its definition as `type`, or write `-` for the dot");
+  }
+}
+
+/** **A cell holds one block** (the user, 2026-11-20): two steps in one cell are refused, the
+ *  phase to be split finer so each step has its own. */
+function refuse_shared(selection: Record<string, unknown>): void {
+  const seen = new Map<string, string>();
+  for (const b of Array.isArray(selection["blocks"]) ? selection["blocks"] : []) {
+    const m = b as Record<string, unknown>;
+    if (!Array.isArray(m["cell"])) continue;
+    const at = (m["cell"] as unknown[]).join(" · ");
+    const had = seen.get(at);
+    if (had) {
+      throw new Error(`${had} and ${String(m["name"])} share the cell ${at}: a cell holds one `
+        + "step; split the phase into finer phases, one step each, or merge the two steps");
+    }
+    seen.set(at, String(m["name"]));
+  }
 }
 
 /** **A sequence's participants in order** (docs/diagrams/sequence.md, agreed 1 and 8): actors

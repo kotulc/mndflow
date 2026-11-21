@@ -1,0 +1,15 @@
+{
+  "schema": "1.0",
+  "id": "code",
+  "graph": {
+    "root": "code",
+    "blocks": {
+      "ts": { "id": "code", "parent": null, "name": "ts", "description": "What a TypeScript codebase is made of: the kinds a translator writes a project in.",
+        "library": { "tags": [
+          { "id": "code.tag.entry", "name": "entry", "description": "Where a reader starts: a module the project says runs it (a manifest, a Dockerfile, a framework's file), or a barrel the rest is reached through.", "settings": { "style": { "hue": 140 } } },
+          { "id": "code.tag.shared", "name": "shared", "description": "The foundation: a module most of its package imports.", "settings": { "style": { "hue": 210 } } }
+        ] } }
+    },
+    "edges": {}
+  }
+}

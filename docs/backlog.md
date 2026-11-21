@@ -1,6 +1,6 @@
 # Backlog
 
-**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next** (2026-11-19): iteration-plan.md, the primary plan — a subagent translates a Python codebase through the CLI and files, round by round, to improve the surface. scale-plan.md *Next* and model-plan.md *Next session* pause behind it. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
+**Deferred and future work.** An item taken up gets its own plan, deleted when it is built. **Next** (2026-11-21): iteration-plan.md, the primary plan — a subagent translates a Python codebase through the CLI and files, round by round, to improve the surface; rounds 1–5 done, the user's review of 2026-11-21 sets *Next* there. scale-plan.md *Next* and model-plan.md *Next session* pause behind it. simplify-plan.md and translate-plan.md closed 2026-11-08, their rules in design.md and apps/ts's README. The design language, paused, its plan in design-plan.md.
 
 ## After the mndsite review
 
@@ -24,7 +24,7 @@
 
 | Task | Where |
 |---|---|
-| exit codes: `check` / `review` exit 1 on faults and on a file that is not JSON | cli `main.ts` |
+| exit codes: `review` exits 1 on faults, and both on a file that is not JSON (`check` exits 1 on faults and collect notes since 2026-11-19) | cli `main.ts` |
 | `fixture:` prefix on sources, so a fixture name never shadows a file | cli |
 | `@mnd/defs` indent | cli `package.json` |
 | an unknown id reads as itself in refusals | core `actions/` |

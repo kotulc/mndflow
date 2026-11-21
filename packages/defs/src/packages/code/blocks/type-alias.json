@@ -2,7 +2,7 @@
   "id": "type-alias",
   "name": "type alias",
   "type": "block",
-  "description": "A named object type: its fields are its attributes.",
+  "description": "A named data type (a type alias, a struct, a record, a dataclass): its fields are its attributes.",
   "def": {},
   "settings": { "card": { "face": "table" }, "style": { "hue": 175 } }
 }

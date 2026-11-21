@@ -376,8 +376,9 @@
 
 /* **A chip: a card's header over a well.** Its padding and its well's room are views `map.ts`
    `CHIP`; its name's size grows with its cell (`--name-size`). **A ladder of fill and border**,
-   strongest first: holds parts, diagram, leaf; actors round, externals a thin plain border. Every
-   chip but those two wears its colour as a left accent. */
+   strongest first: holds parts, diagram, leaf; actors an outline, externals a thin plain border.
+   **A chip is never rounded** (the user, 2026-11-21): only an actor's card is. Every chip but
+   those two wears its colour as a left accent. */
 .mnd-chip {
   position: relative;
   width: 100%;
@@ -409,7 +410,6 @@
 }
 .mnd-chip.actor {
   border: 1.5px solid var(--card-edge, var(--muted));
-  border-radius: 16px;
   background: transparent;
 }
 .mnd-chip.external {
@@ -494,7 +494,6 @@
 }
 .mnd-well-cell.actor {
   background: transparent;
-  border-radius: 6px;
   box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--card-edge, var(--muted)) 60%, transparent);
 }
 /* A cell's role icon, in its top right corner as a header's is, at its name's size; the name

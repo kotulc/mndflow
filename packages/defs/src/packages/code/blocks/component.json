@@ -8,7 +8,7 @@
       {
         "name": "runs",
         "type": "text",
-        "note": "where it runs: node or browser"
+        "note": "where it runs: a server, a browser, a worker"
       },
       {
         "name": "entered",

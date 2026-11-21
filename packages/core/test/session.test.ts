@@ -111,7 +111,7 @@ describe("the door", () => {
   it("drops an op this build does not know", () => {
     const got = check([{ id: "s", action: "x", at: 0, status: "applied",
                          mutations: [{ op: "teleport_block" }] }]);
-    expect(say(got.faults)).toMatch(/could not read/);
+    expect(say(got.faults)).toMatch(/dropped 1/);
   });
 
   it("refuses something that is not a log at all", () => {

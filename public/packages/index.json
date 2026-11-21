@@ -21,9 +21,9 @@
       "at": "services.json"
     },
     {
-      "name": "ts",
-      "about": "TypeScript kinds: packages, modules, functions, values, interfaces, classes and type aliases, for a translated codebase",
-      "at": "ts.json"
+      "name": "code",
+      "about": "code kinds for any programming language: packages, components, modules, classes, functions, values, interfaces and data types, for a translated codebase",
+      "at": "code.json"
     },
     {
       "name": "example",

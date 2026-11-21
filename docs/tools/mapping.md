@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **use case** | what a build step or translator does to its inputs (mndsite part 4: the content folder to `pages/` and `public/`) |
+| **use case** | what a build step or translator does to its inputs (mndsite part 4: the content folder to `pages/` and `public/`); a selection: docs/tools/examples/ping-mapping.json |
 | **takes** | input and output paths from `trace`, the rules you name, and the rows you group (each folder, every page) |
 | **writes** | a diagram file: a grid, one row per mapping (reads, writes, rule), coloured by the kind of rule (converted, renamed, generated, copied, collected) |
 | **you decide** | the rules' words, which rows group, what is left out |

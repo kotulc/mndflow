@@ -38,7 +38,7 @@ A ladder of fill and border, strongest first.
 | **holds parts** | strongest fill, 1.5px border in its hue, 6px left accent | a plain recess; its parts as a treemap |
 | **diagram** | middle fill, 1px border in its hue, 6px left accent | framed in its hue like a small canvas, a right-aligned **diagram** tab on the frame; its blocks as a treemap, never laid as the diagram draws them, never with lines |
 | **leaf** | quiet fill, thin border, 6px left accent | none |
-| **actor** | no fill, round outline in its hue | none |
+| **actor** | no fill, an outline in its hue, square: a chip is never rounded (2026-11-21) | none |
 | **external** | no fill, thin semi-transparent neutral border (never dashed), name muted | none |
 | **closed folder or package** | neutral holder | a recess, like any holder |
 
@@ -47,7 +47,7 @@ A ladder of fill and border, strongest first.
 
 - **every cell that holds anything** shows its children as a quiet treemap (the same landscape-biased squarify), laid by weight
 - **a well previews what a chip holds**: its first level, groups included, never more cells than its room names; entering draws it as its kind (2026-11-17): a folder, package or group as the same treemap, a definition or model as its diagram
-- **every child is named, its mark in its top right corner** as a header wears its icon (2026-11-16) — its role's icon, or a relation definition's swatch: **one mark per element**, the same on its explorer row, card, chip header and well cell — its name shrunk to fit beside it (10.5px down to 8px), cut short with … past four characters; parts holding parts a touch brighter, diagram parts outlined in their hue, actors rounded
+- **every child is named, its mark in its top right corner** as a header wears its icon (2026-11-16) — its role's icon, or a relation definition's swatch: **one mark per element**, the same on its explorer row, card, chip header and well cell — its name shrunk to fit beside it (10.5px down to 8px), cut short with … past four characters; parts holding parts a touch brighter, diagram parts outlined in their hue, actors outlined (never rounded)
 - **never flooded** (2026-11-16): only the heaviest children that each show their icon and four characters at 8px, the rest one plain *+N more* cell (whole, picking the chip itself); a well with room for none is not drawn
 - **neighbours stand apart**: cells step through four grades of their colour in the order they are laid, so two side by side never look alike even when they share a colour
 - **one level only**: a child never shows its own children inside the well

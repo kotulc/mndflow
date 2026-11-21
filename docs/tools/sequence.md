@@ -8,5 +8,5 @@
 | **takes** | participants (people, parts, externals) and the messages between them, in order, from `calls`, `entries` and what you add |
 | **writes** | a diagram file: a grid read as time, each participant a lane, each message a numbered step with its words |
 | **you decide** | the participants, the order, the words of each step, and steps code cannot show (Next reloads when `pages/` changes) |
-| **surface** | `mnd draw sequence <selection.json> <out>` |
+| **surface** | `mnd draw sequence <selection.json> <out>`, or from a fact answer, pruned: `calls` or `trace` at full detail (no `--depth`): participants the units of the library each call leaves and reaches, messages the functions called (2026-11-20) |
 | **open** | how a step that waits or repeats (each change) is shown |

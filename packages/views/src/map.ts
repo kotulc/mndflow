@@ -347,12 +347,13 @@ function framed(id: Id, kids: Leaf[]): Leaf {
                                chip: { block: id, held: kids.map((k) => k.id) } } };
 }
 
-/** The map gone to `focus`: its area, else its nearest area above it, is the map's layer; the
- *  trail is the block's, empty where nothing is gone to (the section's label alone). Nothing
- *  lights for it: only what is picked does. */
+/** The map gone to `focus`: its area, else its nearest area above it, is the map's layer.
+ *  **The crumbs follow the canvas, never a pick** (the user, 2026-11-19): the trail stays the
+ *  map's own — what it is rooted at, else the section's label alone. Nothing lights for it:
+ *  only what is picked does. */
 export function map_focus(graph: Graph, map: Scene, focus: Id | null): Scene {
   const at = area_of(graph, map, focus);
-  return { ...map, layer: at?.id ?? null, trail: focus ? trail_of(graph, focus) : [] };
+  return { ...map, layer: at?.id ?? null, trail: map.trail ?? [] };
 }
 
 /** A block's area on a map: its own, else the nearest area above it. */
@@ -458,11 +459,11 @@ function mapped(graph: Graph, given: Leaf, title: "library" | "models",
     const fits = forced || chips(tried) <= most;
     const up = new Map(raised);
     let at = fits ? laid_out(tried, room, up) : null;
-    for (let round = 0; at && !forced && small(at).length && round < ROUNDS; round++) {
-      for (const n of small(at)) up.set(n.data.id, (up.get(n.data.id) ?? 1) * RAISE);
+    for (let round = 0; at && !forced && small(graph, at).length && round < ROUNDS; round++) {
+      for (const n of small(graph, at)) up.set(n.data.id, (up.get(n.data.id) ?? 1) * RAISE);
       at = laid_out(tried, room, up);
     }
-    if (at && (forced || !small(at).length)) {
+    if (at && (forced || !small(graph, at).length)) {
       [laid, raised] = [at, up];
       continue;
     }
@@ -531,10 +532,20 @@ function chips(tree: Leaf): number {
 }
 
 /** The chips of a laid tree laid smaller than legible (`FLOOR`). */
-function small(laid: Tiled<Leaf>): Tiled<Leaf>[] {
+function small(graph: Graph, laid: Tiled<Leaf>): Tiled<Leaf>[] {
   return laid.leaves().filter((n) => n.depth > 0 && !n.data.panel
-    && (n.x1 - n.x0 < FLOOR.w || n.y1 - n.y0 < FLOOR.h));
+    && (n.x1 - n.x0 < Math.max(FLOOR.w, named_w(label_of(graph, n.data)))
+        || n.y1 - n.y0 < FLOOR.h));
 }
+
+/** **Keep names visible**: the least width that shows a chip's name — whole, or its first
+ *  `READ` characters — at the least name size, beside its padding and icon. */
+function named_w(name: string): number {
+  return CHIP.side * 2 + Math.min(name.length, READ) * NAME.least * NAMED.char;
+}
+
+/** How many of a name's characters a chip shows at least before it is laid too small. */
+const READ = 10;
 
 /** **The tree as a treemap** its room's size — the canvas, less what sits round it, never larger
  *  (grouping keeps every view within its budget) — squarified at `1/K` width and stretched back:

@@ -1,16 +1,20 @@
 /** The headless app: folds, acts, projects and checks without React. */
 
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parse, stringify } from "yaml";
 import { lens_of, NAMED_VIEWS, all_defs, alias_of, check, children, collect, domain_of, fold,
-         read, review, say, session, shown_name, wanted, write, type Collected, type Fault,
+         package_of, read, review, say, session, setting_of, shown_name, wanted, write, type Collected, type Fault,
          type Graph, type Id, type Leaf, type Log, type Storage } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
 import { draw, draw_svg, faults, outline, project } from "@mnd/views";
 import { measured, scaled } from "./measure";
+import { define, inline_home, kept_units, write_defined } from "./define";
+import { python_fact, is_python } from "./python";
 import { diagram_file, draft, presentations } from "./tools";
+import { held_in, is_facts, outside_of, selection_from } from "./from_facts";
 import { node_net } from "./ports";
 import { as_file, from_sysml, shape_of, to_sysml } from "./sysml";
 
@@ -34,13 +38,26 @@ const USAGE = `mnd — the headless harness
   tools (docs/tools/): plain commands a person or an agent composes models with
   mnd fact <name> <project> [--unit u] [--from m.fn] [--at m.fn] [--of name] [--depth n]
                             [--run "<command>"]  (trace)
-                                       one question of a project's source, as JSON: entries,
-                                       edges, runtimes, units, calls, data, workflows, schema,
-                                       trace
-  mnd draw <kind> <selection.json> [out.yaml] [--force]
+                                       one question of a project's source, as JSON. TypeScript:
+                                       entries, edges, runtimes, units, calls, data, workflows,
+                                       schema, trace. Python: units, imports, classes, entries,
+                                       calls, trace. --unit targets a part, --depth the detail
+  mnd look <folder>                    every block by the hue its look resolves to: a highlight
+                                       checked without the app
+  mnd define <picked.json> <folder> [--keep a,b,…] [--force]
+                                       the library from what was picked out of the facts: units
+                                       as block files, relations as dependencies, classes as
+                                       definitions; adds new files and keeps those already
+                                       there (edited), unless --force replaces them
+  mnd draw <kind> <selection.json|facts.json> [out.yaml] [--name n] [--description d]
+           [--keep a,b,…] [--force]
                                        a diagram file of one kind from a selection (a diagram
-                                       file's map as JSON); warns below the floor, never
-                                       overwrites a file unless --force
+                                       file's map as JSON) or from a fact answer, pruned:
+                                       sequence and flow from calls or trace, context from
+                                       imports, class and entity from classes, overview from
+                                       units; into a source folder, lifted to its library;
+                                       --keep only those parts (names or paths); warns below
+                                       the floor, never overwrites unless --force
   mnd presentation list <model.yaml>   a model's presentations and their stops
   mnd presentation draft <model.yaml> --from <diagram.yaml> [--as name] [--dry]
                                        a presentation seeded from a flow or sequence, added
@@ -62,12 +79,15 @@ const USAGE = `mnd — the headless harness
 
 /** A fixture of either kind, an exported file, a raw log, or a source folder collected as the
  *  workspace — what it could not read or find said on the way. */
-function load(source: string): { log: Log; faults: Fault[] } {
+function load(source: string): { log: Log; faults: Fault[]; notes?: string[] } {
   if (NAMES.includes(source as never)) return { log: fixture(source), faults: [] };
   if (existsSync(source) && statSync(source).isDirectory()) {
     const got = gathered(source, true);
     for (const n of got.notes) console.error(`  ${n}`);
-    return read(got.text, FLOOR);
+    return { ...read(got.text, FLOOR), notes: got.notes };
+  }
+  if (!GRAPH_NAMES.includes(source as never) && !existsSync(source)) {
+    throw new Error(`no file or folder ${source} (paths are read from ${process.cwd()})`);
   }
   const text = GRAPH_NAMES.includes(source as never)
     ? graph_file(source)
@@ -128,7 +148,7 @@ function flag(args: string[], name: string): string | undefined {
 
 /** The flags that take the argument after them. */
 const VALUED = ["--how", "--layer", "--from", "--with", "--unit", "--at", "--of", "--depth",
-                "--as", "--run"];
+                "--as", "--run", "--name", "--description", "--keep"];
 
 /** The positional arguments. */
 function loose(args: string[]): string[] {
@@ -204,12 +224,22 @@ const CATALOGUE = resolve(dirname(fileURLToPath(import.meta.url)),
 
 async function main(argv: string[]): Promise<void> {
   const [verb, source, ...rest] = argv;
+  /** `--help` anywhere asks for the usage, never a source named so. */
+  if (argv.includes("--help") || argv.includes("-h")) {
+    console.log(USAGE);
+    return;
+  }
   if (!verb || !source) {
     console.log(USAGE);
     process.exit(verb ? 1 : 0);
   }
 
-  if (verb === "fact" || verb === "draw" || verb === "presentation") {
+  if (verb === "look") {
+    if (!source) throw new Error("mnd look <folder>");
+    console.log(looks(JSON.parse(gathered(resolve(source!), true).text).graph).join("\n"));
+    return;
+  }
+  if (verb === "fact" || verb === "draw" || verb === "presentation" || verb === "define") {
     await tool(verb, source, rest);
     return;
   }
@@ -227,7 +257,7 @@ async function main(argv: string[]): Promise<void> {
     return;
   }
 
-  const { log, faults: reading } = load(source);
+  const { log, faults: reading, notes: collected = [] } = load(source);
   const how = flag(rest, "how");
   const plain = loose(rest);
   /** Everything but `check` prints a headline of what the door said. */
@@ -239,10 +269,15 @@ async function main(argv: string[]): Promise<void> {
       return;
 
     /** A file fixture's faults are the door's on the way in; a log is checked here. */
+    /** A folder's collection notes (a name that resolves to nothing) fail it as faults do. */
     case "check": {
       const found = reading.length ? reading : check(log, FLOOR).faults;
-      console.log(found.length ? say(found) : "clean");
-      for (const f of found) console.log(`  ${f.kind}: ${f.what}`);
+      const head = [found.length ? `${found.length} read past (the files are unchanged: fix each)`
+        : "", collected.length
+        ? `${collected.length} ${collected.length === 1 ? "note" : "notes"} from collecting` : ""];
+      console.log(head.filter(Boolean).join("; ") || "clean");
+      for (const f of found) console.log(`  ${f.what}`);
+      if (found.length || collected.length) process.exitCode = 1;
       return;
     }
 
@@ -383,6 +418,49 @@ async function tool(verb: string, first: string, rest: string[]): Promise<void> 
     process.exit(code);
   };
   try {
+    if (verb === "define") {
+      const [folder] = loose(rest);
+      if (!folder) fail("mnd define <picked.json> <folder> [--force]", 2);
+      // A top unit lands in the deepest folder there already named for what holds it
+      const under = (unit: string) => {
+        const steps = unit.split(".").slice(0, -1);
+        for (let k = steps.length; k > 0; k--) {
+          const dir = steps.slice(0, k).join("/");
+          if (existsSync(join(folder!, dir)) && statSync(join(folder!, dir)).isDirectory()) return dir;
+        }
+        return "";
+      };
+      const keep = flag(rest, "keep")?.split(",").map((k) => k.trim()).filter(Boolean);
+      const read_in = JSON.parse(readFileSync(first, "utf8"));
+      const picked = !keep?.length ? read_in : Array.isArray(read_in) ? kept_units(read_in, keep)
+        : { ...read_in, units: kept_units(read_in.units ?? [], keep),
+            // A class is kept where `--keep` names it or a unit holding it
+            ...(read_in.classes ? { classes: (read_in.classes as { name: string; unit?: string }[])
+              .filter((c) => keep.some((k) => c.name === k || (c.unit ?? "") === k
+                || (c.unit ?? "").endsWith(`.${k}`) || (c.unit ?? "").includes(`.${k}.`)
+                || (c.unit ?? "").startsWith(`${k}.`))) } : {}) };
+      // A package already written inline in its holder's file is re-translated through it
+      if (!rest.includes("--force")) {
+        const tops = (Array.isArray(picked) ? picked : picked.units ?? []) as
+          { unit?: string; kind?: string; parts?: unknown[]; source?: { file: string } }[];
+        for (const t of tops) {
+          const home = t.kind === "package" && t.parts?.length && t.source
+            ? inline_home(folder!, t.source.file) : null;
+          if (home) fail(`${t.unit} sits inline in ${home}: re-translate the unit that file holds `
+            + "at a finer --depth (its new parts merge in), or pass --force to rewrite");
+        }
+      }
+      const defined = define(picked, under);
+      for (const n of defined.notes) console.error(`  note: ${n}`);
+      const done = write_defined(folder!, defined, rest.includes("--force"));
+      console.log(JSON.stringify(done, null, 2));
+      return;
+    }
+    if (verb === "fact" && is_python(resolve(loose(rest)[0] ?? "."))) {
+      const [project] = loose(rest);
+      process.stdout.write(python_fact(first, resolve(project!), rest));
+      return;
+    }
     if (verb === "fact") {
       /** The source reader (ts-morph) loads only for a fact. */
       const { fact, FACTS } = await import("@mnd/ts");
@@ -402,14 +480,48 @@ async function tool(verb: string, first: string, rest: string[]): Promise<void> 
     }
     if (verb === "draw") {
       const [selection, out] = loose(rest);
-      if (!selection) fail("mnd draw <kind> <selection.json> [out.yaml]", 2);
-      const drawn = diagram_file(first, JSON.parse(readFileSync(selection!, "utf8")));
+      if (!selection) fail("mnd draw <kind> <selection.json|facts.json> [out.yaml]", 2);
+      // A fact answer is turned into the kind's selection first; a name and description join it
+      const input: unknown = JSON.parse(readFileSync(selection!, "utf8"));
+      const said = { ...(flag(rest, "name") ? { name: flag(rest, "name") } : {}),
+                     ...(flag(rest, "description") ? { description: flag(rest, "description") } : {}) };
+      // Drawn into a source folder, its library sets the scale facts are lifted to
+      const held = out && in_source(out) && is_facts(input) ? held_in(JSON.parse(gathered(
+        package_root(resolve(out)), true).text).graph) : undefined;
+      const keep = flag(rest, "keep")?.split(",").map((k) => k.trim()).filter(Boolean);
+      const fed = is_facts(input) ? selection_from(first, input, held, keep) : undefined;
+      if (fed?.left.length) {
+        console.error(`  left out, the library holds none of: ${fed.left.slice(0, 8).join(", ")}`
+          + `${fed.left.length > 8 ? ` and ${fed.left.length - 8} more` : ""}`);
+      }
+      if (fed && first === "context" && outside_of(input).length) {
+        console.error(`  across, for the model holding it as externals: `
+          + outside_of(input).slice(0, 8).join(", "));
+      }
+      const picked = fed?.selection ?? input as Record<string, unknown>;
+      const drawn = diagram_file(first, { ...said, ...picked });
       for (const w of drawn.warnings) console.error(`  warning: ${w}`);
       if (!out) { process.stdout.write(drawn.text); return; }
       if (existsSync(out) && !rest.includes("--force")) {
         fail(`${out} exists: a diagram file is edited by hand once written; --force replaces it`);
       }
+      mkdirSync(dirname(resolve(out)), { recursive: true });
       writeFileSync(out, drawn.text);
+      // What was written, counted, so a run says it worked
+      const map = parse(drawn.text) as Record<string, unknown[] | undefined>;
+      // A typed group of lines (`- dependency: [...]`) counts its lines
+      const n = (k: string) => (map[k] ?? []).reduce((sum: number, x) => sum + (x && typeof x === "object"
+        && !Array.isArray(x) ? Object.values(x).reduce((a: number, v) => a + (Array.isArray(v) ? v.length : 1), 0)
+        : 1), 0);
+      console.log(`wrote ${out}: ${first}, ${(map["participants"] ?? []).length + (map["blocks"] ?? []).length} parts, `
+        + `${n("relations") + n("records")} lines`);
+      // Written into a source folder, it is checked there at once: what it says, said now
+      const notes = in_source(out) ? model_notes(out) : [];
+      for (const note of notes) console.error(`  ${note}`);
+      if (notes.length) {
+        console.error(`${notes.length} to fix in ${out} (check says the same)`);
+        process.exitCode = 1;
+      }
       return;
     }
     const [model] = loose(rest);
@@ -419,17 +531,58 @@ async function tool(verb: string, first: string, rest: string[]): Promise<void> 
       const from = flag(rest, "from");
       if (!from) fail("draft asks --from <diagram.yaml>", 2);
       const text = draft(model!, from!, flag(rest, "as"));
-      if (rest.includes("--dry")) process.stdout.write(text);
-      else writeFileSync(model!, text);
+      /** A dry draft says only the presentation it adds; a written one is checked at once. */
+      if (rest.includes("--dry")) {
+        const all = (parse(text) as { presentations?: unknown[] }).presentations ?? [];
+        process.stdout.write(stringify(all.slice(-1), { lineWidth: 0 }));
+        return;
+      }
+      // A draft that adds faults is taken back, the model file left as it was
+      const before = readFileSync(model!, "utf8");
+      const had = model_notes(model!);
+      writeFileSync(model!, text);
+      const notes = model_notes(model!).filter((n) => !had.includes(n));
+      if (notes.length) {
+        writeFileSync(model!, before);
+        for (const n of notes) console.log(`  ${n}`);
+        console.log(`not written, ${notes.length} to fix: --as names the diagram as this model `
+          + "holds it (a block of the model whose type is the diagram)");
+        process.exit(1);
+      }
     } else if (first === "check") {
-      const root = package_root(resolve(model!));
-      const said = relative(root, resolve(model!)).split(sep).join("/");
-      const notes = gathered(root, true).notes.filter((n) => n.startsWith(`${said}:`));
+      const notes = model_notes(model!);
       for (const n of notes) console.log(`  ${n}`);
       console.log(notes.length ? `${notes.length} to fix` : "clean");
       if (notes.length) process.exit(1);
     } else fail(`no presentation command ${first}: list, draft, check`, 2);
   } catch (e) { fail(e); }
+}
+
+/** What collecting a model's package says of that model's file. */
+function model_notes(model: string): string[] {
+  const root = package_root(resolve(model));
+  const said = relative(root, resolve(model)).split(sep).join("/");
+  return gathered(root, true).notes.filter((n) => n.startsWith(`${said}:`));
+}
+
+/** **What each hue reaches** (2026-11-20): every block of the workspace by the hue its look
+ *  resolves to — its own, or one its definition chain or the workspace's `overrides` gives it —
+ *  so a highlight is seen without the app. */
+function looks(graph: Graph): string[] {
+  const by = new Map<string, string[]>();
+  for (const b of Object.values(graph.blocks)) {
+    if (!b.parent || package_of(graph, b.id) !== graph.root || b.type === "folder") continue;
+    const hue = setting_of(graph, b.id, "style")["hue"];
+    if (hue === undefined) continue;
+    const key = `hue ${String(hue)}`;
+    by.set(key, [...(by.get(key) ?? []), `${shown_name(graph, b.id)}${b.def ? " (definition)" : ""}`]);
+  }
+  return [...by].map(([hue, names]) => `${hue}: ${[...new Set(names)].sort().join(", ")}`);
+}
+
+/** Whether a file would sit in a source folder. */
+function in_source(file: string): boolean {
+  try { package_root(resolve(file)); return true; } catch { return false; }
 }
 
 /** The source folder a file sits in: the nearest folder above it holding a `package.json`. */
@@ -440,4 +593,8 @@ function package_root(file: string): string {
   }
 }
 
-void main(process.argv.slice(2));
+// Anything thrown is said in one line, never as a trace
+main(process.argv.slice(2)).catch((e: unknown) => {
+  console.error(e instanceof Error ? e.message : String(e));
+  process.exit(1);
+});

@@ -3,6 +3,9 @@
 **A presentation is an ordered, narrated way through a model, played like a slide deck: one drawing of the system, a camera that moves over it, and the words in the tray.** Agreed 2026-11-12 from the mndsite mockup (https://claude.ai/artifact/WFdvLDrRtW6tfWGevF6cx5). This file is the spec: the terms, the file format, exactly how a presentation plays, and how it is built. Decisions behind it are in model-plan.md.
 
 
+**A presentation is the main entry for a new user, never an afterthought** (the user, 2026-11-21). It is the first thing a person opening a model plays, so it must carry them from *what is this system* to *how does its most important use behave*, stop by stop, through the real diagrams. Round 5's presentations were thin: a few stops, a sentence each, little stepping through what the diagrams draw. How the tools help an agent write a good one is in iteration-plan.md *Presentations first*.
+
+
 ## Terms
 
 | Term | Is |

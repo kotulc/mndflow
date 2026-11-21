@@ -21,7 +21,8 @@ export const PACE = 1.7;
 
 /** The model a block is, or uses: itself where it is one, else its definition where that is. */
 export function used_model(graph: Graph, id: Id): Id | null {
-  if (is_model(graph, id)) return id;
+  // A model contained in a file of its own holds its presentations itself
+  if (is_model(graph, id) || graph.blocks[id]?.presentations?.length) return id;
   const at = stands_for(graph, id) ?? graph.blocks[id];
   const def = at && !at.def ? def_at(graph, at.type) : undefined;
   return def && is_model(graph, def.id) ? def.id : null;

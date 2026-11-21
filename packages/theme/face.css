@@ -137,6 +137,17 @@
   cursor: text;
 }
 
+/* **Keep names visible** (2026-11-20): where the meta line says nothing, the name takes both
+   lines of the header, so the card keeps its shape and a step's name reads whole. */
+.mnd-header-text:has(> .mnd-meta:empty) > .mnd-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.mnd-header-text > .mnd-meta:empty { display: none; }
+
 /* Nobody has named it, so what it reads is its type and the handle it was handed. */
 .mnd-card.unnamed .mnd-header-text > .mnd-label { opacity: 0.55; font-style: italic; }
 

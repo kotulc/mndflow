@@ -1,4 +1,4 @@
-/** A project's **library** written as a source folder, in the `ts` package's kinds, for `collect`:
+/** A project's **library** written as a source folder, in the `code` package's kinds, for `collect`:
  *  **definitions are JSON, units YAML**, and a file names its package's definitions bare, so every
  *  unit's name is unique in the package. **It writes no models** (2026-11-15): a person or an agent
  *  composes those with the tools (docs/tools/), beside what is written here.
@@ -11,7 +11,7 @@
  *    unit owning it, a field typed by another its link to it
  *  - `outside/<actor>.json`: the system's edge — the file system, the commands it runs, the
  *    framework hosting it — each touched by the units that reach it
- *  - `package.json`: the project's package, importing `ts`
+ *  - `package.json`: the project's package, importing `code`
  *
  *  **Where code runs is the first split** (2026-11-08): a package running in more than one place
  *  files its units in a folder per container. **A unit says what it is for and what it
@@ -27,9 +27,9 @@ import type { Code, Field, Flow, Mod, Pkg } from "./read";
 import { ALL } from "@mnd/defs";
 import { stem_of, units_of, values_of, type Comp, type Levels, type Shape } from "./structure";
 
-/** What the files are written in: the `ts` package's kinds. */
-const KIND = { component: "ts.component", module: "ts.module", function: "ts.function",
-               value: "ts.value", actor: "ts.actor" } as const;
+/** What the files are written in: the `code` package's kinds. */
+const KIND = { component: "code.component", module: "code.module", function: "code.function",
+               value: "code.value", actor: "code.actor" } as const;
 
 /** The root folder of the system's edge, and what each kind of actor is. */
 const OUTSIDE = "outside";
@@ -48,9 +48,9 @@ const LISTED = 4;
 /** Every unit, by key: its name, unique in the package, and its package folder's. */
 type Refs = Map<string, { name: string; pkg: string }>;
 
-/** The ts package's tags for a package's entry points and its shared modules, the most names a
+/** The code package's tags for a package's entry points and its shared modules, the most names a
  *  line says before counting the rest, and the most shared types a unit lists. */
-const TAGS = { entry: "ts.entry", shared: "ts.shared" } as const;
+const TAGS = { entry: "code.entry", shared: "code.shared" } as const;
 const SAID = 2;
 const READS = 6;
 
@@ -107,7 +107,7 @@ export function files_of(code: Code, shapes: Shape[], system: Levels): Map<strin
         : `A command the code runs: ${a}.`) }));
   }
   out.set("package.json", `${JSON.stringify({
-    schema: "1.0", id: code.name, imports: { ts: "ts" },
+    schema: "1.0", id: code.name, imports: { code: "code" },
     graph: { root: code.name, edges: {}, blocks: { [code.name]: {
       id: code.name, parent: null, name: code.name,
       ...(code.description ? { description: code.description } : {}) } } },

@@ -137,7 +137,10 @@ function conferred(trait: Id): Statement[] {
 export function statements(graph: Graph, id: Id | undefined): Statement[] {
   const traits = traits_stated(graph, id);
   const out: Statement[] = [];
+  const over = graph.blocks[graph.root]?.overrides;
   for (const link of links_of(graph, id)) {
+    /** The workspace's look for an imported definition, nearer than the definition's own. */
+    if (over?.[link.id]) out.push({ from: graph.root, settings: over[link.id]! });
     if (link.settings) out.push({ from: link.id, settings: link.settings });
     if (link.id === traits.from) for (const t of traits.ids) out.push(...conferred(t));
   }
