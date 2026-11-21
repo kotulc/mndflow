@@ -4,13 +4,16 @@
 import { describe, expect, it } from "vitest";
 import { FLOOR, modeled } from "@mnd/fixtures";
 import { definition_uses, fold, ROOT } from "@mnd/core";
-import { facts_of, library_map, model_map, type BoxNode } from "../src/index";
+import { facts_of, library_map, model_map, model_tree, type BoxNode } from "../src/index";
 
 const g = fold(modeled(), FLOOR);
+/** Every package shown, as a viewer toggling them all on sees them. */
+const all = Object.fromEntries(Object.values(g.blocks).filter((b) => b.parent === null)
+  .map((b) => [b.id, true]));
 const node = (nodes: readonly BoxNode[], id: string) => nodes.find((n) => n.id === id);
 
 describe("the models' map", () => {
-  const scene = model_map(g);
+  const scene = model_map(g, model_tree(g, all));
 
   it("boxes every package holding a model, an imported one included", () => {
     const tops = scene.areas!.filter((a) => a.depth === 1).map((a) => a.id);
@@ -26,7 +29,7 @@ describe("the models' map", () => {
 });
 
 describe("the library's map", () => {
-  const scene = library_map(g);
+  const scene = library_map(g, undefined, undefined, all);
 
   it("counts a definition's uses in its facts, and draws an unused one no uses", () => {
     expect(facts_of(g, "service", true).counts[0]).toEqual(

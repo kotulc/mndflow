@@ -11,6 +11,7 @@
         "id": "example",
         "parent": null,
         "name": "example",
+        "shown": ["services"],
         "library": {
           "types": [
             {

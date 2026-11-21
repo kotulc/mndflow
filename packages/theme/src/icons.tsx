@@ -27,8 +27,9 @@ const PATHS = {
   unfold_all: "M9 6.5l5.5 5.5L9 17.5",
   /** Folding the lowest open layer back toward the top rows: a chevron folding against a bar. */
   fold_branches: "M14 6.5L8.5 12l5.5 5.5M17.5 6v12",
-  show_empty: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5",
-  hide_empty: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 19.5l15-15",
+  /** Whether a package shows on the maps: an eye, open or struck through. */
+  show: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5",
+  hide: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 19.5l15-15",
 
   // A tray or a panel opening and shutting. Chevrons, so nothing confuses
   // them with sort.

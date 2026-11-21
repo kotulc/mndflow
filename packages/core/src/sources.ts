@@ -88,7 +88,7 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
       .filter(([, e]) => !mine(e.from) && !mine(e.to))) };
   forget(graph);
   graph.blocks[slug] = { id: slug, parent: null, name: over.blocks[slug]?.name ?? name };
-  const sorted = [...leaves].sort((a, z) => a.path.localeCompare(z.path));
+  const sorted = [...leaves].sort(by_order);
   const files = sorted.filter((l) => l.path !== DEFINITIONS && JSON_FILE.test(l.path));
   const text = sorted.find((l) => l.path === DEFINITIONS)?.text;
   const { filed, clashes, named: called, unnamed } = defined(graph, slug, text, files, bare, pre);
@@ -304,6 +304,13 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
     if (!holds_structure(graph, id)) graph.blocks[id]!.tree = "definitions";
   }
   return { text: write(graph, slug, slug), made: [...made.keys()], clashes, notes };
+}
+
+/** **Order is explicit**: files in path order, an order prefix by its number (`2-` before
+ *  `10-`), the package's overview model (`overview.yaml`) first among its top files. */
+function by_order(a: Leaf, z: Leaf): number {
+  const first = (l: Leaf) => (/^overview\.ya?ml$/i.test(l.path) ? 0 : 1);
+  return first(a) - first(z) || a.path.localeCompare(z.path, undefined, { numeric: true });
 }
 
 /** The packages a source folder imports, loaded before it is read: each a catalogue name, or a
@@ -964,6 +971,7 @@ function defined(graph: Graph, slug: Id, text: string | undefined, files: readon
     if (b.id === from.root) {
       if (kept.library) graph.blocks[slug]!.library = kept.library;
       if (b.overrides) graph.blocks[slug]!.overrides = overrides_of(graph, b.overrides, unnamed);
+      if (b.shown) graph.blocks[slug]!.shown = b.shown.map(pkg_of);
       continue;
     }
     forget(graph);

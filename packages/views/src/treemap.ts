@@ -29,7 +29,7 @@ const INNER = UNIT / 3;
 export function tiled(tiles: Tile[], size?: { w: number; h: number }, head = INNER): Placed[] {
   if (!tiles.length) return [];
   const root = hierarchy<Tile>({ id: "", weight: 0, kids: tiles }, (t) => t.kids)
-    .sum((t) => t.weight).sort((a, z) => (z.value ?? 0) - (a.value ?? 0));
+    .sum((t) => t.weight);
   const leaves = root.leaves();
   const card = BLOCK.w * BLOCK.h;
   const lightest = Math.min(...leaves.map((n) => n.data.weight || 1));

@@ -7,7 +7,7 @@ import { appearances_of, collect, drop_of, touches_of,
          object_of, path, path_of, path_owner, presentations_of, registry_at, used_model,
          registry_id, registry_of,
          seen_through, session, shown_name, trace, way_of, DIAGRAM_VIEWS, EDITOR, type Boot, type ViewKind, type Storage, type Dir,
-         type Hop, type Id } from "@mnd/core";
+         type Hop, type Id, type Toggled, is_shown } from "@mnd/core";
 import { FLOOR } from "@mnd/defs";
 import { area_of, boxed_place, box_of, clear_of, empty_of, group_way, holds, is_group_id,
          layer_scene, map_focus, project, opened, section_map, MAP_ROOT, set_aspect, set_canvas, set_card as apply_card, BLOCK, CARD, EMPTY,
@@ -110,8 +110,19 @@ export function App({ storage, boot, opening }: {
   const view = s.view();
   /** A row's colour and count, read again only when the graph changes. */
   const rowLook = useCallback((id: Id) => row_look(graph, id), [graph]);
+  /** **The viewer's packages shown or hidden** (2026-11-21), over the workspace's `shown`: kept
+   *  in this browser, never in the file. */
+  const [toggled, set_toggled] = useState<Toggled>(() => {
+    try { return JSON.parse(localStorage.getItem("mnd.packages") ?? "{}") as Toggled; }
+    catch { return {}; }
+  });
+  const show_pkg = useCallback((pkg: Id, show: boolean) => set_toggled((t) => {
+    const next = { ...t, [pkg]: show };
+    try { localStorage.setItem("mnd.packages", JSON.stringify(next)); } catch { /* unsaved */ }
+    return next;
+  }), []);
   /** The models' tree, which the map lays and the explorer lists: one tree for both. */
-  const models = useMemo(() => model_tree(graph), [graph]);
+  const models = useMemo(() => model_tree(graph, toggled), [graph, toggled]);
   /** The layer seen from inside, where the canvas looks into one. A whole section has none, and
    *  is not built on. */
   const whole = !is_inside(view.kind);
@@ -157,8 +168,8 @@ export function App({ storage, boot, opening }: {
   const group_key = (v: { at: number; layer: Id | null }) => `${v.at}|${v.layer ?? ""}`;
   const narrow = group?.key === group_key(view) ? group.id : null;
   const map = useMemo(() => (!lists || component ? null
-    : section_map(graph, lists, models, narrow)),
-    [graph, lists, component, card, aspect, canvas, narrow]);
+    : section_map(graph, lists, models, narrow, toggled)),
+    [graph, lists, component, card, aspect, canvas, narrow, toggled]);
   /** What the map is gone to: the layer looked into, else the pick on the whole map. */
   const focus_id = is_layer_view(view.kind) ? view.layer : view.pick;
   /** Counted up by every open, entry and leaving, so going to the focus again flies back to it. */
@@ -656,6 +667,8 @@ export function App({ storage, boot, opening }: {
           : registry_at(graph, view.layer) ?? registry_of(graph, view.layer)}
         chain={{ ...chain, onChoose: choose }}
         rowLook={rowLook}
+        shown={(pkg) => is_shown(graph, pkg, toggled)}
+        onShown={show_pkg}
         models={models}
         keys={zones.zone === "explorer"}
       />

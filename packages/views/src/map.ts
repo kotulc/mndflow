@@ -13,7 +13,8 @@ import { hierarchy, treemap, treemapSquarify, type HierarchyNode,
          type HierarchyRectangularNode as Tiled } from "d3-hierarchy";
 import { base_of, children, diagram_kind, filed, is_aside, is_behaviour, is_filing, is_folder,
          is_group, is_holder, is_interface, is_model, is_reference, lens_of, owner_of, on_side,
-         packages, path, role_of, shown_name, used_model, type Graph, type Id } from "@mnd/core";
+         packages, path, role_of, shown_name, shown_packages, used_model, type Graph, type Id,
+         type Toggled } from "@mnd/core";
 import { colour_of, kind_of } from "./about";
 import { counted, fact, facts_of, total, type Facts } from "./facts";
 import { carried, trail_of } from "./derive";
@@ -116,8 +117,10 @@ export function group_way(id: Id): { root: Id; steps: { id: Id; label: string }[
 
 /** A section's map: the library's for its definitions, else the models'. */
 export function section_map(graph: Graph, lists?: "domain" | "structure",
-                            tree?: readonly Branch[], group?: Id | null): Scene {
-  return lists === "domain" ? library_map(graph, undefined, group) : model_map(graph, tree, group);
+                            tree?: readonly Branch[], group?: Id | null,
+                            toggled: Toggled = {}): Scene {
+  return lists === "domain" ? library_map(graph, undefined, group, toggled)
+    : model_map(graph, tree ?? model_tree(graph, toggled), group);
 }
 
 /** **The models' map, the world root**: the models' tree (`tree.ts`) laid out — every package
@@ -162,7 +165,10 @@ export function layer_map(graph: Graph, layer: Id, open?: readonly Id[],
   const less = zone_room(zones);
   const room = { w: Math.max(CANVAS.w * KEEP, CANVAS.w - less.w),
                  h: Math.max(CANVAS.h * KEEP, CANVAS.h - less.h) };
-  const middle = mapped(graph, { id: MAP_ROOT, kids }, "models", [keep], room, group);
+  /** **A model entered is framed** (2026-11-21): its own parts in its box, what is across it
+   *  (actors, externals) outside, so a line between them crosses the wall. */
+  const middle = mapped(graph, { id: MAP_ROOT, kids: [framed(layer, kids)] }, "models", [keep],
+                        room, group);
   return narrowed({ ...linked(graph, around(graph, model, layer, middle, zones), model), layer,
                     trail: trail_of(graph, layer) }, group);
 }
@@ -195,12 +201,13 @@ function leaf_of(graph: Graph): (b: Branch) => Leaf {
   return leaf;
 }
 
-/** **The library's map**: every package's folders as boxes, each definition a chip of its parts —
+/** **The library's map**: every shown package's folders as boxes, each definition a chip of its parts —
  *  what it holds, never where it is used (the tray's usages) — its counts still saying its uses;
  *  a folder says how many definitions it files (views `facts_of`). **Entered at a folder**
  *  (`root`), the same map rooted at it, the folder framed round what it holds. A folder filing no
  *  definition, at any depth, is the models'. */
-export function library_map(graph: Graph, root?: Id, group?: Id | null): Scene {
+export function library_map(graph: Graph, root?: Id, group?: Id | null,
+                            toggled: Toggled = {}): Scene {
   const entry = (id: Id): Leaf | null => {
     if (!graph.blocks[id]?.def) {
       const kids = filed(graph, id).map(entry).filter((k): k is Leaf => !!k);
@@ -209,7 +216,7 @@ export function library_map(graph: Graph, root?: Id, group?: Id | null): Scene {
     const parts = parts_of(graph, id);
     return { id, value: weight(graph, parts), chip: { block: id, held: parts } };
   };
-  const tops = (root ? [root] : packages(graph).map((p) => p.id)).map(entry)
+  const tops = (root ? [root] : shown_packages(graph, toggled).map((p) => p.id)).map(entry)
     .filter((k): k is Leaf => !!k);
   const map = linked(graph, mapped(graph, { id: MAP_ROOT, kids: tops }, "library", [root],
                                    CANVAS, group), root ?? null);
@@ -559,8 +566,8 @@ function laid_out(tree: Leaf, room: { w: number; h: number },
   const root = hierarchy<Leaf>(tree, (n) => (n.kids?.length ? n.kids : undefined));
   const least = (root.sum((n) => (n.kids?.length ? 0 : n.value ?? 0)).value ?? 0) * SHARES
     / budget(room);
-  root.sum((n) => (n.kids?.length ? 0 : Math.max(least, n.value ?? 0) * (raised.get(n.id) ?? 1)))
-    .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+  /** **Order is explicit**: siblings keep their given order, sized by weight, never sorted by it. */
+  root.sum((n) => (n.kids?.length ? 0 : Math.max(least, n.value ?? 0) * (raised.get(n.id) ?? 1)));
   const [w, h] = [Math.max(320, room.w), Math.max(240, room.h)];
   const laid = treemap<Leaf>().tile(treemapSquarify.ratio(1.6))
     .size([w / K, h])
@@ -692,13 +699,16 @@ function head_h(size: number): number {
 function well(graph: Graph, held: readonly Held[], room: { w: number; h: number }): InnerTile[] {
   const by = new Map(held.map((h) => [h.id, h]));
   const weigh = (id: Id) => by.get(id)!.weight;
-  const order = [...held].sort((a, b) => b.weight - a.weight).map((h) => h.id);
+  /** The heaviest are shown first, laid in their given order. */
+  const heaviest = [...held].sort((a, b) => b.weight - a.weight).map((h) => h.id);
+  const order = (k: number) => held.map((h) => h.id).filter((id) => heaviest.slice(0, k)
+    .includes(id));
   /** The most cells that could each hold a legible name, then the most that do. */
-  let [lo, hi] = [0, Math.min(order.length, Math.floor((room.w * room.h) / LEAST_CELL))];
+  let [lo, hi] = [0, Math.min(held.length, Math.floor((room.w * room.h) / LEAST_CELL))];
   let best: InnerTile[] = [];
   while (lo < hi) {
     const k = Math.ceil((lo + hi) / 2);
-    const laid = well_laid(graph, order.slice(0, k), order.length - k, room, weigh,
+    const laid = well_laid(graph, order(k), held.length - k, room, weigh,
                            (id) => by.get(id)!.label);
     if (laid.legible) [lo, best] = [k, laid.tiles];
     else hi = k - 1;
@@ -712,7 +722,7 @@ const MIN_CHARS = 4;
 const LEAST_CELL = (NAMED.least * (NAMED.char * MIN_CHARS + NAMED.pad + NAMED.icon) + NAMED.right)
   * NAMED.least * NAMED.line;
 
-/** **A well laid**: `shown` by weight, then a *+N more* cell for the `more` left out, as heavy
+/** **A well laid**: `shown` in their order, sized by weight, then a *+N more* cell for the `more` left out, as heavy
  *  as the lightest shown; legible where every cell's name shows `MIN_CHARS` at least at the least
  *  size, a longer name shrunk to fit, else cut short — the *+N more* whole. */
 function well_laid(graph: Graph, shown: readonly Id[], more: number, room: { w: number; h: number },
@@ -722,10 +732,9 @@ function well_laid(graph: Graph, shown: readonly Id[], more: number, room: { w: 
   const MORE = "+more";
   type Item = { id: Id; kids?: Item[] };
   const kids = [...shown.map((id) => ({ id })), ...(more ? [{ id: MORE }] : [])];
-  const least = shown.length ? weigh(shown[shown.length - 1]!) : 1;
+  const least = shown.length ? Math.min(...shown.map(weigh)) : 1;
   const root = hierarchy<Item>({ id: "", kids }, (n) => n.kids)
-    .sum((n) => (n.kids ? 0 : n.id === MORE ? least : weigh(n.id)))
-    .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+    .sum((n) => (n.kids ? 0 : n.id === MORE ? least : weigh(n.id)));
   const laid = treemap<Item>().tile(treemapSquarify.ratio(1.6)).size([w / K, h])
     .paddingInner(2 / K)(root);
   let legible = true;

@@ -132,7 +132,10 @@
               "description": "Speaks to a system nobody here runs."
             }
           ]
-        }
+        },
+        "shown": [
+          "services"
+        ]
       },
       "example.customer": {
         "id": "example.customer",
@@ -353,7 +356,7 @@
         "type": "model",
         "def": {},
         "description": "How an order is placed, one hop a step: from the customer's cart to stock reserved and a parcel booked. Its Payments step is a model of its own: step into it for how a card is charged.",
-        "order": 3,
+        "order": 4,
         "presentations": [
           {
             "name": "Place an order",
@@ -415,7 +418,7 @@
         "parent": "example.yaml.1-checkout",
         "name": "Customer",
         "type": "actor",
-        "alias": 1,
+        "alias": 2,
         "order": 1
       },
       "example.yaml.1-checkout:gateway": {
@@ -500,7 +503,7 @@
         "type": "model",
         "def": {},
         "description": "How Payments takes money once: the card is charged, retried while the processor fails, and the outcome recorded for Orders.",
-        "order": 4,
+        "order": 5,
         "presentations": [
           {
             "name": "Take a payment",
@@ -542,7 +545,7 @@
         "parent": "example.yaml.2-charge-a-card",
         "name": "Card processor",
         "type": "external",
-        "alias": 1,
+        "alias": 3,
         "order": 2,
         "tags": [
           "example.tag.external-api"
@@ -613,7 +616,7 @@
         "open": [
           "example.yaml.overview.shop"
         ],
-        "order": 5,
+        "order": 3,
         "presentations": [
           {
             "name": "Tour the shop",
@@ -1895,7 +1898,7 @@
         "parent": "example.yaml.overview",
         "name": "Card processor",
         "type": "external",
-        "alias": 2,
+        "alias": 1,
         "order": 3,
         "ports": [
           {
@@ -1914,7 +1917,7 @@
         "parent": "example.yaml.overview",
         "name": "Carrier",
         "type": "external",
-        "alias": 3,
+        "alias": 2,
         "order": 4,
         "ports": [
           {
@@ -1933,7 +1936,7 @@
         "parent": "example.yaml.overview",
         "name": "Customer",
         "type": "actor",
-        "alias": 2,
+        "alias": 1,
         "order": 2,
         "ports": [
           {
@@ -2203,13 +2206,7 @@
             "type": "services.interface.http"
           }
         ],
-        "source": "patterns/anti-corruption-layer.yaml",
-        "traits": [
-          "has_parts",
-          "has_ports",
-          "has_values",
-          "is_model"
-        ]
+        "source": "patterns/anti-corruption-layer.yaml"
       },
       "services.yaml.patterns.anti-corruption-layer:client": {
         "id": "services.yaml.patterns.anti-corruption-layer:client",
@@ -2300,13 +2297,7 @@
             "type": "services.interface.http"
           }
         ],
-        "source": "patterns/api-gateway.yaml",
-        "traits": [
-          "has_parts",
-          "has_ports",
-          "has_values",
-          "is_model"
-        ]
+        "source": "patterns/api-gateway.yaml"
       },
       "services.yaml.patterns.api-gateway:auth": {
         "id": "services.yaml.patterns.api-gateway:auth",
@@ -2386,13 +2377,7 @@
             "type": "services.interface.http"
           }
         ],
-        "source": "patterns/circuit-breaker.yaml",
-        "traits": [
-          "has_parts",
-          "has_ports",
-          "has_values",
-          "is_model"
-        ]
+        "source": "patterns/circuit-breaker.yaml"
       },
       "services.yaml.patterns.circuit-breaker:breaker": {
         "id": "services.yaml.patterns.circuit-breaker:breaker",
@@ -2458,13 +2443,7 @@
             "type": "services.interface.http"
           }
         ],
-        "source": "patterns/layered-architecture.yaml",
-        "traits": [
-          "has_parts",
-          "has_ports",
-          "has_values",
-          "is_model"
-        ]
+        "source": "patterns/layered-architecture.yaml"
       },
       "services.yaml.patterns.layered-architecture:api": {
         "id": "services.yaml.patterns.layered-architecture:api",
@@ -2552,13 +2531,7 @@
             "type": "services.interface.events"
           }
         ],
-        "source": "patterns/saga-orchestrator.yaml",
-        "traits": [
-          "has_parts",
-          "has_ports",
-          "has_values",
-          "is_model"
-        ]
+        "source": "patterns/saga-orchestrator.yaml"
       },
       "services.yaml.patterns.saga-orchestrator:compensations": {
         "id": "services.yaml.patterns.saga-orchestrator:compensations",
@@ -2630,13 +2603,7 @@
             "type": "services.interface.events"
           }
         ],
-        "source": "patterns/transactional-outbox.yaml",
-        "traits": [
-          "has_parts",
-          "has_ports",
-          "has_values",
-          "is_model"
-        ]
+        "source": "patterns/transactional-outbox.yaml"
       },
       "services.yaml.patterns.transactional-outbox:api": {
         "id": "services.yaml.patterns.transactional-outbox:api",
@@ -2773,7 +2740,7 @@
       "example.yaml.1-checkout.r.customer-gateway": {
         "id": "example.yaml.1-checkout.r.customer-gateway",
         "name": "checkout",
-        "alias": 1,
+        "alias": 4,
         "from": "example.yaml.1-checkout:customer",
         "order": 0,
         "settings": {
@@ -2786,7 +2753,7 @@
       "example.yaml.1-checkout.r.gateway-storefront": {
         "id": "example.yaml.1-checkout.r.gateway-storefront",
         "name": "routes",
-        "alias": 2,
+        "alias": 5,
         "from": "example.yaml.1-checkout:gateway",
         "order": 1,
         "settings": {
@@ -2799,7 +2766,7 @@
       "example.yaml.1-checkout.r.orders-inventory": {
         "id": "example.yaml.1-checkout.r.orders-inventory",
         "name": "reserve",
-        "alias": 5,
+        "alias": 8,
         "from": "example.yaml.1-checkout:orders",
         "order": 4,
         "settings": {
@@ -2812,7 +2779,7 @@
       "example.yaml.1-checkout.r.orders-shipping": {
         "id": "example.yaml.1-checkout.r.orders-shipping",
         "name": "ship",
-        "alias": 6,
+        "alias": 9,
         "from": "example.yaml.1-checkout:orders",
         "order": 5,
         "settings": {
@@ -2825,7 +2792,7 @@
       "example.yaml.1-checkout.r.payments-orders": {
         "id": "example.yaml.1-checkout.r.payments-orders",
         "name": "paid",
-        "alias": 4,
+        "alias": 7,
         "from": "example.yaml.1-checkout:payments",
         "order": 3,
         "settings": {
@@ -2838,7 +2805,7 @@
       "example.yaml.1-checkout.r.storefront-payments": {
         "id": "example.yaml.1-checkout.r.storefront-payments",
         "name": "charge",
-        "alias": 3,
+        "alias": 6,
         "from": "example.yaml.1-checkout:storefront",
         "order": 2,
         "settings": {
@@ -2851,7 +2818,7 @@
       "example.yaml.2-charge-a-card.r.card-processor-ledger": {
         "id": "example.yaml.2-charge-a-card.r.card-processor-ledger",
         "name": "settled",
-        "alias": 8,
+        "alias": 11,
         "from": "example.yaml.2-charge-a-card:card-processor",
         "order": 1,
         "settings": {
@@ -2864,7 +2831,7 @@
       "example.yaml.2-charge-a-card.r.ledger-orders": {
         "id": "example.yaml.2-charge-a-card.r.ledger-orders",
         "name": "paid or cancelled",
-        "alias": 9,
+        "alias": 12,
         "from": "example.yaml.2-charge-a-card:ledger",
         "order": 2,
         "settings": {
@@ -2877,7 +2844,7 @@
       "example.yaml.2-charge-a-card.r.payments-card-processor": {
         "id": "example.yaml.2-charge-a-card.r.payments-card-processor",
         "name": "charge, retry",
-        "alias": 7,
+        "alias": 10,
         "from": "example.yaml.2-charge-a-card:payments",
         "order": 0,
         "settings": {
@@ -2890,7 +2857,7 @@
       "example.yaml.overview.r.customer-browser-shop-https": {
         "id": "example.yaml.overview.r.customer-browser-shop-https",
         "name": "shops",
-        "alias": 10,
+        "alias": 1,
         "from": "example.yaml.overview:customer",
         "fromPort": "example.yaml.overview:customer.port.browser",
         "order": 0,
@@ -2905,7 +2872,7 @@
       "example.yaml.overview.r.shop-charges-card-processor-api": {
         "id": "example.yaml.overview.r.shop-charges-card-processor-api",
         "name": "charges",
-        "alias": 11,
+        "alias": 2,
         "from": "example.yaml.overview.shop",
         "fromPort": "example.yaml.overview.shop.port.charges",
         "order": 1,
@@ -2920,7 +2887,7 @@
       "example.yaml.overview.r.shop-shipments-carrier-api": {
         "id": "example.yaml.overview.r.shop-shipments-carrier-api",
         "name": "books",
-        "alias": 12,
+        "alias": 3,
         "from": "example.yaml.overview.shop",
         "fromPort": "example.yaml.overview.shop.port.shipments",
         "order": 2,

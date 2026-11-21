@@ -427,6 +427,22 @@ export function packages(graph: Graph): Block[] {
     .sort((a, z) => rank(a) - rank(z) || (a.name ?? a.id).localeCompare(z.name ?? z.id)))];
 }
 
+/** A viewer's own choice of packages shown or hidden, overriding the workspace's. */
+export type Toggled = Readonly<Record<Id, boolean>>;
+
+/** **Whether a map draws a package** (2026-11-21): the workspace's own always, an import where
+ *  the workspace root's `shown` lists it — `base` hidden unless listed — the viewer's `toggled`
+ *  over both. A hidden package still resolves every name; it is only not drawn. */
+export function is_shown(graph: Graph, pkg: Id, toggled: Toggled = {}): boolean {
+  if (pkg in toggled) return toggled[pkg]!;
+  return pkg === graph.root || !!graph.blocks[graph.root]?.shown?.includes(pkg);
+}
+
+/** The packages a map draws, in order (`is_shown`). */
+export function shown_packages(graph: Graph, toggled: Toggled = {}): Block[] {
+  return packages(graph).filter((p) => is_shown(graph, p.id, toggled));
+}
+
 /** The packages a package uses: worked out from every definition, type and tag its blocks and
  *  relations name, and what those extend. Never stored. */
 export function uses_of(graph: Graph, pkg: Id): Id[] {

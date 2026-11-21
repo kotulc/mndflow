@@ -78,6 +78,10 @@ export type ExplorerProps = {
    *  to the holder, right to the first row it holds. The way to the row walked to opens, and
    *  nothing shuts. A row walked to is chosen as a plain click chooses it. */
   keys?: boolean;
+  /** **Whether a package shows on the maps** (2026-11-21): asked of a package root's row, which
+   *  wears an eye to toggle it — the viewer's choice, never the file's. */
+  shown?: (pkg: Id) => boolean;
+  onShown?: (pkg: Id, show: boolean) => void;
 };
 
 /** What a definition is called until it is named. */
@@ -742,6 +746,15 @@ export function Explorer(props: ExplorerProps) {
               {r.alias ? <span className="alias">{r.alias}</span> : null}
               {looks.get(r.id)?.count
                 ? <span className="count">{looks.get(r.id)!.count}</span> : null}
+              {r.of === "block" && props.shown && graph.blocks[r.ref]?.parent === null ? (
+                <button className={`show${props.shown(r.ref) ? "" : " off"}`}
+                        title={props.shown(r.ref) ? "shown on the maps — hide it"
+                          : "hidden from the maps — show it"}
+                        onClick={(e) => { e.stopPropagation();
+                                          props.onShown?.(r.ref, !props.shown!(r.ref)); }}>
+                  <Icon name={props.shown(r.ref) ? "show" : "hide"} size={MARK_SIZE} />
+                </button>
+              ) : null}
               {r.via ? (
                 <span className="from"
                       title={`from ${shown_name(graph, graph.blocks[r.via]?.type ?? r.via)}`}>

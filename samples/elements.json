@@ -68,7 +68,7 @@
         "parent": "dir.Definitions.Colour",
         "name": "hue 200",
         "def": {},
-        "order": 2,
+        "order": 3,
         "settings": {
           "style": {
             "hue": 200
@@ -80,7 +80,7 @@
         "parent": "dir.Definitions.Colour",
         "name": "hue 25",
         "def": {},
-        "order": 3,
+        "order": 2,
         "settings": {
           "style": {
             "hue": 25

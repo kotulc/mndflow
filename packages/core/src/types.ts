@@ -228,6 +228,9 @@ export type Block = {
    *  definition's id, read before that definition's own, so every use and extension without a
    *  look of its own shows it. The import itself stays frozen. */
   overrides?: Record<Id, Components>;
+  /** **The workspace root's shown packages** (2026-11-21): the imports its maps draw by default,
+   *  its own always; `base` only where listed. A viewer toggles either way, never in the file. */
+  shown?: Id[];
   /** A collection's records: rows of answers to its `records.of` attributes, by name. Values,
    *  never blocks. */
   records?: Record<string, string>[];

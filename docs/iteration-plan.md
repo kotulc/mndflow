@@ -2,7 +2,7 @@
 
 **The primary plan (2026-11-19).** We improve the file format, CLI, tools and views by having a simpler subagent translate a real Python codebase: first its structure (the library), then its use (diagrams, models, presentations). Claude inspects each round, in the app as well as by `check`, and the findings become changes. Rounds repeat until the user and Claude are both satisfied. **Delete this plan when both accept the trial project as the showcase of the split** (design.md *Vision*: structure and use).
 
-**State (2026-11-21):** rounds 1–5 done (2026-11-19/20); the user reviewed round 5's Sonnet model on 2026-11-21: *not a bad start*. Next is the review work below, then round 6. Nothing is committed (*Handoff*).
+**State (2026-11-21):** rounds 1–5 done (2026-11-19/20); the user reviewed round 5's Sonnet model on 2026-11-21: *not a bad start*. Next is the review work below (*Next* 1 built 2026-11-21, *Next* 2 next), then round 6. Rounds 1–5 committed as `5c9e445`.
 
 
 ## Why
@@ -28,10 +28,10 @@
 
 | # | Feedback | How we address it | Status |
 |---|---|---|---|
-| 1 | **package visibility**: the workspace JSON should say which packages show by default; `base` takes much room and attention; a UI toggle overrides the defaults the agent or CLI set | design.md *Definitions and packages* (decided): the workspace root says its shown packages (its own always, imports only where said, `base` hidden); `mnd init` writes the default; the explorer's package rows get a show/hide toggle, per viewer, never written to the file; both maps honour it; a hidden package still resolves names | to build (*Next* 1) |
+| 1 | **package visibility**: the workspace JSON should say which packages show by default; `base` takes much room and attention; a UI toggle overrides the defaults the agent or CLI set | design.md *Definitions and packages* (decided): the workspace root says its shown packages (its own always, imports only where said, `base` hidden); `mnd init` writes the default; the explorer's package rows get a show/hide toggle, per viewer, never written to the file; both maps honour it; a hidden package still resolves names | built 2026-11-21: root `shown`, explorer eye per viewer, both maps; `init` default with 3a |
 | 2 | **parts views that make no visual sense** (library › healthchecks › hc › accounts): related blocks outside the frame connect to nothing | a definition's view draws what is across only where a line crosses its frame; the `package.json` edges `define` writes must reach the frame's walls; a reliability pass over every view kind with a measured guard: `measure --views` counts *loose* (a block across the frame no line reaches) and fails on it | to build (*Next* 2) |
-| 3 | **order**: *Alert on failure* came before *Overview* | it is ours, not the agent's: collect reads files in path order and the treemap sorts siblings by weight. design.md (decided): order is explicit — a file's order prefix, else its list place, the overview first; the treemap never reorders by weight; `mnd model` writes the prefix | to build (*Next* 1) |
-| 4 | **sub-model views need a frame** (models › healthchecks › Overview) to show internal and external blocks | design.md (decided): a model entered draws its frame as a context does — its parts inside, actors, externals and sibling models outside, joined to the walls by the lines that cross | to build (*Next* 1) |
+| 3 | **order**: *Alert on failure* came before *Overview* | it is ours, not the agent's: collect reads files in path order and the treemap sorts siblings by weight. design.md (decided): order is explicit — a file's order prefix, else its list place, the overview first; the treemap never reorders by weight; `mnd model` writes the prefix | built 2026-11-21: collect orders by number, `overview.yaml` first; treemaps and wells keep given order; prefixes written by `mnd model` in 3a |
+| 4 | **sub-model views need a frame** (models › healthchecks › Overview) to show internal and external blocks | design.md (decided): a model entered draws its frame as a context does — its parts inside, actors, externals and sibling models outside, joined to the walls by the lines that cross | built 2026-11-21: an entered model is its own box, actors and externals outside; sibling models across not yet drawn |
 | 5 | **why are some blocks rounded?** chips should not be; actors may be | rounding was actors (and a state machine's states); **chips are never rounded**, an actor's card still is | built 2026-11-21 (stage `flow.css`; design.md, chip.md) |
 | 6 | **the presentation is weak**, yet it is a new user's main entry; it must not be an afterthought | presentations.md (decided): the main entry. *Presentations first* below: a drafted full tour, a quality bar `check` enforces, a story guide, and its own task and score in every round | to build (*Next* 3) |
 | 7 | **simplify the tools until near foolproof**; the agent decides scope, diagram choice, parts and presentation only | *Simplify the surface* below | to build (*Next* 3) |
@@ -49,7 +49,7 @@ What the agent did by hand in round 5, and the tool that takes it over (to build
 | model files and folders written by hand; order by alphabet or weight | **`mnd model <name> [--under <model>]`**: the model file, its folder and its order prefix; sub-models listed in the parent's order |
 | a highlight by hand-written definitions and retyped units | **`mnd style <definition or units…> --hue n`**: a definition extending the kind, the units retyped; `mnd look` shows it |
 | state, swimlane, mapping and dataflow written as JSON from memory of the docs | **`mnd draw <kind> --example`** prints the kind's selection to fill; a later round asks whether any of them can come from facts (a model's choices for state, `entries` for swimlane lanes) |
-| hand-written lines look as authoritative as fact-drawn ones | open: a line or block drawn from a fact carries its source; whether hand-written ones wear a mark is the user's to decide |
+| hand-written lines look as authoritative as fact-drawn ones | decided (the user, 2026-11-21): **every relation is treated the same however it was made**; a fact may give a line a name or a type by its role (*calls*, *imports*), nothing marks how it was made |
 
 **One page an agent reads first**: docs/tools/workflow.md — the four decisions, then the commands in order, nothing else; tools README stays the reference.
 
@@ -70,9 +70,10 @@ A presentation is a new user's main entry (presentations.md). Round 5's were a f
 
 | # | Work | Done when |
 |---|---|---|
-| 1 | **view decisions of 2026-11-21**: package visibility (file key, `init` default, explorer toggle, maps honour it); explicit order (collect keeps order prefixes, the treemap keeps given order, overview first); a model entered is framed | round 5's model opens with `base` hidden, Overview first, its sub-model views framed |
+| 1 | **view decisions of 2026-11-21**: package visibility (file key, explorer toggle, maps honour it; the `init` default lands with 3a); explicit order (collect keeps order prefixes, the treemap keeps given order, overview first; `mnd model` writes prefixes in 3a); a model entered is framed | round 5's model opens with `base` hidden, Overview first, its sub-model views framed |
 | 2 | **views that reliably make sense**: the library definition view (accounts) draws across only what a line reaches, and `define`'s edges reach the walls; `measure --views` counts loose blocks; a pass over each kind on round 5's output (context, flow, dataflow, state, sequence, swimlane, mapping, class, entity, tree, a model's frame) fixing what does not read | `measure --views` clean on every view of round 5's output; Claude's look at each kind finds nothing loose, cut or crossing the frame |
-| 3 | **simplify the surface, presentations first**: `init`, `define` and `draw` asking facts themselves, `model`, `style`, `draw --example`, the full presentation draft and its check, docs/tools/workflow.md | a run through the workflow page by hand on healthchecks needs no JSON file and no hand-written YAML but the hand-drawn kinds and the words |
+| 3a | **simplify the commands**: `init`, `define` and `draw` asking facts themselves, `model` (writes the order prefix), `style`, `draw --example`, docs/tools/workflow.md | a run through the workflow page by hand on healthchecks needs no JSON file and no hand-written YAML but the hand-drawn kinds and the words |
+| 3b | **presentations first**: the full draft, its check (the quality bar), the story guide in presentations.md | round 5's model drafts a tour that passes the bar, played in the app by Claude |
 | 4 | **round 6** on Haiku and Sonnet: the brief rewritten around the agent's four decisions (*The brief*), the workflow page first; counted: commands run, files written by hand, minutes | both finish with fewer commands than round 5, no scripts, presentations that pass the bar; Claude plays each presentation |
 | 5 | **TypeScript follows the same model** (order 2b of 2026-11-19): its facts behind `define` and `draw`, fact names reconciled with Python's | after round 6 settles the surface |
 
@@ -117,7 +118,7 @@ From round 6 the tasks follow the agent's four decisions; the tools do the rest.
 | 3 | **the diagrams**: for each use case, the kinds that answer it best — one of each kind across the project — each drawn from facts where the kind allows | which diagram fits |
 | 4 | **the models**: one overview, decomposed by use case, in a deliberate order | how to present |
 | 5 | **the presentations**: a full tour from the overview into each sub-model, stepping through its diagrams; passes the bar | how to present |
-| 6 | **read it back**: answer three questions from the model alone | — |
+| 6 | **read it back**: answer two questions from the model alone (what happens when a check goes down; which components a ping touches, in order) | — |
 | 7 | **change it**: rename and move a definition, re-translate a part finer; `check` says what drifted | — |
 | 8 | **the friction log**: every command, error, guess and doc looked up; counted commands and hand-written files | — |
 
@@ -152,7 +153,7 @@ Highlight colours were never seen by an agent before `look`; presentations were 
 
 | Item | Leaning |
 |---|---|
-| ORM writes invisible to `trace`: *which records does an alert write* is unanswered | a Django `save`/`create`/`update` fact is framework-shaped; ask before building |
+| ORM writes invisible to `trace`: *which records does an alert write* is unanswered | dropped from the brief for now (the user, 2026-11-21) |
 | a diagram named like a definition shadows it, the message in ids | the message names both files and says to rename one |
 | crowded state labels overlap; a wide sequence participant passes the grid's edge | in the views pass (*Next* 2) |
 | fact names differ by language | reconcile in *Next* 5 |
@@ -169,8 +170,7 @@ Highlight colours were never seen by an agent before `look`; presentations were 
 
 | What | Where |
 |---|---|
-| **uncommitted** | everything since `c9ff336`: apps/py (new), cli `define.ts`, `from_facts.ts`, `python.ts`, `main.ts`, `tools.ts`; core `sources.ts`, `door.ts`, `defs.ts`, `present.ts`, `types.ts`; views `lifelines.ts`, `classes.ts`, `face.ts`, `map.ts`; stage `Flow.tsx`, `flow.css`; theme `face.css`; the `ts` → `code` package rename; docs. Typecheck clean, 303 tests pass, every sample checks clean |
+| **committed** | rounds 1–5 as `5c9e445`; work since is uncommitted |
 | **the review candidate** | samples/trial/sonnet (round 5) and its collected samples/trial/sonnet.json; logs samples/trial/haiku-log.md, sonnet-log.md. Open it with `workspace: /samples/trial/sonnet.json` in mndflow.yaml, or `collect --workspace` and import |
 | **a round** | the brief at samples/trial/brief.md (`{MODEL}` for haiku or sonnet); seed each folder with a bare package.json importing `code` (until `mnd init`); launch both as background subagents |
 | **looking in the app** | `npm run dev` (read the port from its log); Playwright on Edge from the scratchpad (`chromium.launch({ channel: "msedge" })`), routing `**/mndflow.yaml` to a body naming the trial's collected workspace; under Git Bash pass `/samples/…` with `MSYS_NO_PATHCONV=1`; enter a diagram by double-clicking its explorer row; read every screenshot |
-| **commit** | none made; suggested: `Iteration rounds 2–5: library holds structure, fact-fed draw at library scale, strict drift checks, additive define, view fixes` |
