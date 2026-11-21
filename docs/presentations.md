@@ -126,9 +126,13 @@ presentations:
 - **labels never cover**: a label goes at the point along its line nearest the middle where it covers no chip, heading or other label; plain text with a halo, no pill
 - **nothing else moves**: no layout change but opening and closing; no second drawing
 
-**Controls**: steps play on their own at the presentation's pace, and a click never waits: *next* (▶, the right arrow, space) shows the next step at once, and once every step is shown it goes to the next stop; *previous* goes to the previous stop; the tray's pace setting changes the pace while playing, *on click* included; *replay* plays the stop again; the stop list in the tray jumps to any stop; clicking a part dives into it (it opens, the camera fits it, the tray says how to resume); *resume* or Escape goes back to the stop; *into* enters the sub presentation and comes back out after its last stop. Arrow keys move between stops.
+**Played through, as a video is** (the user, 2026-11-21): steps build at the pace; once a stop's are all shown it holds (at least 2.5 s), then goes on — into the stop's sub presentation where it leads into one, else the next stop, and out again after a sub presentation's last — and pauses at the very end. Paused, or at the *on click* pace, nothing moves on its own.
 
-**The tray** shows: the presentation's name and the stop's place in it, the stop's title, its summary, its steps numbered as they appear, the controls, and the stop list.
+**Started from any ▶** (2026-11-21): a chip's or card's header wears a ▶ (with a count where there are several); pressed on the map, it enters the chip and plays its first presentation; pressed in the tray, or on About's notes, it plays there. Starting switches the tray to its overview tab.
+
+**The player** sits over the canvas's foot, as a video's controls do: a caption — the stop's title, then the step just shown, else the stop's summary — over one row: the stop before (⏮, ←), play or pause (▶ / ❚❚, space), the next step then the next stop (⏭, →), stop (■, Escape), the presentation's name and the stop's place, *into* and *out* where they apply, a dive's *resume*, and the pace. Clicking a part dives into it (it opens, the camera fits it); *resume* or Escape goes back. The camera fits calmly — never past 1.5× — and leaves the player's room below.
+
+**The tray** stays on the presentation's model while it plays, never following each stop's drawing, so nothing moves under the reader: its overview leads with the presentation's name and the stop's place, then the stop list, the stop playing opened in place on its summary and its steps as they appear, each read whole. A stop in the list goes to it.
 
 
 ## Rules
@@ -145,6 +149,7 @@ presentations:
 
 | Piece | Where |
 |---|---|
+| **the player** (2026-11-21): played through, pause, keys; the canvas player and caption; ▶ on headers; the tray pinned | web `present.ts` (`usePresent`: `paused`, `toggle`, `HOLD`); stage `Player.tsx`; theme `header.tsx` (`data-play`); stage `Stage.tsx` `onPlay`; web `App.tsx` `play_from`; tray `Presentation.tsx`, `Overview.tsx`; web `camera.ts` `fit_of` (1.5×, the player's room) |
 | read and check `presentations:`, `about:`, `open:` in a model file | core `diagram.ts` (`presentation_of`, `stop_of`, `about_of`), `sources.ts` `overview` (names read as blocks, a step's relation as a line the model or the shown diagram has; what names nothing is a note `check` prints) |
 | a presentation's state: presentation, stop, steps shown, dive, the stack entered | core `present.ts` (`Play`, `play_next`, `play_prev`, `play_into`, `play_out`, `pace_of`) |
 | the player: timer, keys, what a stop opens, rings, dims and lights, the camera's fit | web `present.ts` (`usePresent`, `showing_of`, `fit_of`); web `camera.ts` `fit_of` |
@@ -161,8 +166,13 @@ presentations:
 
 | Question | Answer |
 |---|---|
-| where the pace setting is kept (2026-11-15) | the file says it; the reader's setting in the tray is remembered per viewer and plays over it |
+| where the pace setting is kept (2026-11-15) | the file says it; the reader's setting in the player is remembered per viewer and plays over it |
+| where the player lives (the user, 2026-11-21) | a bar and caption over the canvas's foot; the tray leads its overview with the stop list |
+| what play does (the user, 2026-11-21) | plays through the stops, as a video; pause freezes; ⏮/⏭ still step |
+| a chip's ▶ with several presentations (the user, 2026-11-21) | plays the first; the rest are in the tray's list |
 | how a shown diagram is left (2026-11-15) | the next stop reads the overview again, as leaving a chip does |
 | data moving along a step's line (2026-11-15) | yes: a step's relation draws from its start with its datum travelling along it, its label after |
 
 **Settled 2026-11-12**: steps play on a timer and a click shows the next one at once; the pace is configurable (`pace`, default 1.7 s, `0` for on click); a stop may open a diagram (`show`); About's groups are configurable (`about:`), holding any blocks, definitions, presentations or entries.
+
+**Open (2026-11-21)**: the user's next direction — a presentation that walks a new user through the model's dimensions and perspectives, not only one model's stops (iteration-plan.md *Next* 2c); a stop that shows a diagram leaving the player's room; what the agent's tools draft (iteration-plan.md *Presentations first*).

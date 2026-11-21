@@ -17,7 +17,7 @@
 
 import { parseAllDocuments } from "yaml";
 import { read_card } from "./card";
-import { block_base, def_at, dir_of, has_trait, is_notation, package_of, setting_of,
+import { base_of, block_base, def_at, dir_of, has_trait, is_notation, package_of, setting_of,
          traits_of } from "./defs";
 import { edge_of, long_form, type Edge, type Entry, type FileSpec,
          type LongForm } from "./diagram";
@@ -271,6 +271,29 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
       if (direct) b.grid = { ...b.grid, rows: Math.max(b.grid.rows, said.length + 1) };
     }
   }
+  /** **A block said by its name alone, repeating an actor or external an enclosing layer
+   *  holds**, is a new block, never that one: said, so a file meaning the actor its model
+   *  declares lets a line's end find it outward, or writes `{of: …}`. A step named for a part
+   *  it runs is its own block, and not said. */
+  for (const r of own) {
+    for (const [i, e] of r.form.blocks.entries()) {
+      const id = r.ids[i]!;
+      const b = graph.blocks[id];
+      const bare = Object.entries(e).every(([k, v]) => k === "name" || v === undefined
+        || (Array.isArray(v) && !v.length));
+      if (!b || !bare || e.under !== undefined || is_reference(graph, id)) continue;
+      let hit: Block | undefined;
+      for (let at = graph.blocks[r.id]?.parent; at && !hit; at = graph.blocks[at]?.parent) {
+        hit = children(graph, at).find((c) => c.id !== r.id && c.name === e.name && !c.def
+          && ["actor", "external"].includes(base_of(graph, c.id)));
+      }
+      if (hit) {
+        notes.push(`${r.path}: "${e.name}" is a new block here, not the ${base_of(graph, hit.id)} `
+          + `"${e.name}" ${graph.blocks[hit.parent!]?.name ?? hit.parent} holds: drop it from `
+          + `blocks (a line's end finds that one), or write {of: ${e.name}}`);
+      }
+    }
+  }
   /** A model's overview is read once every block and line is: its names may be anywhere in it. */
   for (const r of own) overview(ctx_of(r), r.id, r.form.top);
   /** A stop's `into` names a presentation of the model its block uses, read by now. */
@@ -285,12 +308,18 @@ export function collect(name: string, leaves: readonly Leaf[], over: Graph,
     }
   }
   if (root) graph.blocks[slug]!.counters = counters;
-  /** A package file's line to a block no file holds any more (moved, renamed) is said. */
+  /** **A package file's edge names its ends by path** (2026-11-21): folders, definition and
+   *  parts by name from the package's root (`hc.accounts.views`), read once every file is laid,
+   *  wherever each part is written. One reaching no block (moved, renamed) is said. */
   for (const e of Object.values(graph.edges)) {
+    if (!e.id.startsWith(`${slug}.`)) continue;
+    for (const end of ["from", "to"] as const) {
+      if (!graph.blocks[e[end]]) e[end] = path_to(graph, e[end], slug) ?? e[end];
+    }
     const lost = [e.from, e.to].filter((x) => !graph.blocks[x]);
     if (lost.length) notes.push(`${DEFINITIONS}: edge ${e.id.slice(slug.length + 1)} joins `
-      + `${lost.join(", ")}, which no file holds; write its end as the block's id now `
-      + "(a moved file's id follows its path: `yaml.<folder>.<file>`) or drop it");
+      + `${lost.join(", ")}, which nothing in the package is called; write its end as the path `
+      + "of names to the block now (`hc.accounts.views`) or drop it");
   }
 
   /** A made definition declares what its usages answer. */
@@ -972,6 +1001,7 @@ function defined(graph: Graph, slug: Id, text: string | undefined, files: readon
       if (kept.library) graph.blocks[slug]!.library = kept.library;
       if (b.overrides) graph.blocks[slug]!.overrides = overrides_of(graph, b.overrides, unnamed);
       if (b.shown) graph.blocks[slug]!.shown = b.shown.map(pkg_of);
+      if (b.package_order) graph.blocks[slug]!.package_order = b.package_order.map(pkg_of);
       continue;
     }
     forget(graph);

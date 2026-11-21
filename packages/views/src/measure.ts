@@ -4,6 +4,7 @@
  *  draws it — libavoid's run where there is one, else `route`'s — names placed by `name_box`. */
 
 import type { Id } from "@mnd/core";
+import { ACROSS } from "./across";
 import { avoided_run } from "./avoid";
 import { end_of } from "./ends";
 import { line_shows } from "./line";
@@ -16,7 +17,7 @@ type Rect = { x: number; y: number; w: number; h: number };
 
 /** The counts, and what each found, for reading one out. */
 export type Measure = { crossings: number; covered: number; shared: number; tight: number;
-                        wrong: number; lines: number; found: string[] };
+                        wrong: number; loose: number; lines: number; found: string[] };
 
 /** What a line goes round and a name must not cover: cards and notes, never a holder. */
 const SOLID = new Set(["card", "note"]);
@@ -108,7 +109,15 @@ export function measure(scene: Scene, routes: ReadonlyMap<Id, readonly Point[]>)
     }
   }
 
-  return { crossings, covered, shared, tight, wrong, lines: runs.length, found };
+  /** **A loose block** (2026-11-21): one drawn across the frame that no line reaches. */
+  let loose = 0;
+  for (const n of scene.nodes.filter((x) => x.id.startsWith(ACROSS))) {
+    if (scene.edges.some((e) => e.source === n.id || e.target === n.id)) continue;
+    loose++;
+    found.push(`loose     ${n.data.label} across the frame, no line reaches it`);
+  }
+
+  return { crossings, covered, shared, tight, wrong, loose, lines: runs.length, found };
 }
 
 /** Every drawn line's run, ends and name box — never a guide nobody picks, as a lifeline —

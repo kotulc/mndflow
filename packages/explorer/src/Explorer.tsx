@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { about_of, at_cut, children, domain_of, drop_of, frozen, is_folder, is_inside,
          is_layer_view, holds_defs, lit, may_hold, model_of, name_taken, new_id, on_side,
-         owner_def, path,
+         owner_def, packages, path,
          shown_name,
          type Act, type Graph, type Id, type Registry, type View } from "@mnd/core";
 import { Icon, Name, NamingContext, Swatch, type IconName, type SwatchAttrs } from "@mnd/theme";
@@ -174,6 +174,8 @@ export function Explorer(props: ExplorerProps) {
   };
   /** What is in hand: the selection when a picked row is dragged. */
   const [dragging, set_dragging] = useState<readonly Id[]>([]);
+  /** A package row in hand: dragged among the packages, it reorders them. */
+  const [moving, set_moving] = useState<Id | null>(null);
   /** Where a shift-click range runs from. */
   const [anchor, set_anchor] = useState<Id | null>(null);
   const [over, set_over] = useState<{ id: Id; ref: Id; where: "in" | "above" | "below" } | null>(null);
@@ -649,9 +651,14 @@ export function Explorer(props: ExplorerProps) {
                 {...(looks.get(r.id)?.tint?.["data-family"]
                   ? { "data-family": looks.get(r.id)!.tint!["data-family"] } : {})}
                 style={{ paddingLeft: 8 + r.depth * STEP, ...(looks.get(r.id)?.tint?.style ?? {}) }}
-                draggable={naming !== r.id && r.of === "block"
-                           && graph.blocks[r.ref]?.parent !== null}
+                draggable={naming !== r.id && r.of === "block"}
                 onDragStart={(e) => {
+                  /** A package carries itself to another place in the packages' order. */
+                  if (graph.blocks[r.ref]?.parent === null) {
+                    set_moving(r.ref);
+                    e.dataTransfer?.setData("text/mnd-package", r.ref);
+                    return;
+                  }
                   /** A definition carries itself to the drawing. */
                   if (graph.blocks[r.ref]?.def) {
                     e.dataTransfer?.setData("text/mnd-block", r.ref);
@@ -663,8 +670,18 @@ export function Explorer(props: ExplorerProps) {
                   e.dataTransfer?.setData("text/mnd-block", r.ref);
                   if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
                 }}
-                onDragEnd={() => { set_dragging([]); set_over(null); set_out(false); }}
+                onDragEnd={() => { set_dragging([]); set_moving(null); set_over(null);
+                                   set_out(false); }}
                 onDragOver={(e) => {
+                  /** A package lands only beside another package. */
+                  if (moving) {
+                    if (graph.blocks[r.ref]?.parent !== null || r.of !== "block") return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (r.ref !== moving) set_over({ id: r.id, ref: r.ref,
+                                                     where: seam(e) === "below" ? "below" : "above" });
+                    return;
+                  }
                   /** Blocks answer only on blocks. */
                   if (r.of !== "block") return;
                   e.preventDefault();
@@ -676,6 +693,19 @@ export function Explorer(props: ExplorerProps) {
                   }
                 }}
                 onDrop={(e) => {
+                  if (moving) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const order = packages(graph).map((p) => p.id).filter((p) => p !== moving);
+                    const at = order.indexOf(r.ref) + (seam(e) === "below" ? 1 : 0);
+                    if (r.ref !== moving && graph.blocks[r.ref]?.parent === null) {
+                      onAct("order_package", { package: moving,
+                                               ...(order[at] ? { before: order[at] } : {}) });
+                    }
+                    set_moving(null);
+                    set_over(null);
+                    return;
+                  }
                   if (r.of !== "block") return;
                   e.preventDefault();
                   e.stopPropagation();

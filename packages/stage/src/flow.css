@@ -666,6 +666,28 @@
 .mnd-walk button:disabled { color: var(--faint); cursor: default; }
 .mnd-walk button:not(:disabled):hover { color: var(--accent); }
 
+/* **A presentation's player** (2026-11-21): a caption over one row of controls at the canvas's
+   foot, as a video's are. */
+.mnd-player { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 6;
+              width: min(640px, calc(100% - 32px)); display: flex; flex-direction: column; gap: 6px;
+              padding: 8px 10px; border: 1px solid var(--divider); border-radius: 4px;
+              background: color-mix(in oklch, var(--surface) 92%, transparent); color: var(--text);
+              font-size: 12px; box-shadow: 0 4px 18px rgb(0 0 0 / 0.35); }
+.mnd-player-caption { display: flex; flex-direction: column; gap: 2px; min-height: 34px; }
+.mnd-player-caption b { font-size: 13px; }
+.mnd-player-caption span { color: var(--muted); line-height: 1.4; }
+.mnd-player-row { display: flex; align-items: center; gap: 2px; }
+.mnd-player-row button { display: inline-flex; align-items: center; justify-content: center;
+                         min-width: 26px; height: 26px; border: 0; border-radius: 3px;
+                         background: none; color: var(--text); cursor: pointer; font: inherit; }
+.mnd-player-row button.main { color: var(--accent); }
+.mnd-player-row button:disabled { color: var(--faint); cursor: default; }
+.mnd-player-row button:not(:disabled):hover { color: var(--accent); background: var(--hover, transparent); }
+.mnd-player-where { flex: 1; min-width: 0; margin: 0 6px; overflow: hidden; text-overflow: ellipsis;
+                    white-space: nowrap; color: var(--muted); }
+.mnd-player-row select { font: inherit; color: var(--text); background: var(--surface);
+                         border: 1px solid var(--divider); border-radius: 3px; padding: 1px 2px; }
+
 /* ── A model's overview (views `overview.ts`, docs/diagrams/tree.md) ── */
 
 /* **A leg's pill** (2026-11-18): its name on the ground, ringed in the accent, clear of every

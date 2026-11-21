@@ -207,6 +207,12 @@ function apply(graph: Graph, m: Mutation): void {
       if (lib) b.library = lib; else delete b.library;
       return;
     }
+    case "order_packages": {
+      const b = graph.blocks[graph.root];
+      if (!b) return;
+      if (m.order?.length) b.package_order = [...m.order]; else delete b.package_order;
+      return;
+    }
     case "set_records": {
       const b = graph.blocks[m.id];
       if (!b) return;

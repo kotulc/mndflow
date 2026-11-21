@@ -142,9 +142,11 @@ function place_links(links: Link[], pass: Pass, notes: string[]): Record<string,
       folders.add(key(!da ? a : b));
       continue;
     }
+    /** **Between two definitions, part to part** (2026-11-21): the edge joins the units picked,
+     *  so a definition's view draws it crossing its wall from the part it leaves. */
     if (da !== db) {
-      const id = `${EDGE}${slug(key(da))}--${slug(key(db))}`;
-      edges[id] = { id, type: "dependency", from: def_id(da, placed), to: def_id(db, placed),
+      const id = `${EDGE}${slug(key(a))}--${slug(key(b))}`;
+      edges[id] = { id, type: "dependency", from: path_of(a, placed), to: path_of(b, placed),
                     ...(l.name ? { name: l.name } : {}) };
       continue;
     }
@@ -164,9 +166,12 @@ function place_links(links: Link[], pass: Pass, notes: string[]): Record<string,
   return edges;
 }
 
-/** A definition's id once collected: `yaml.` and its file's path, dotted. */
-function def_id(u: Unit, placed: Map<string, Placed>): string {
-  return `yaml.${placed.get(key(u))!.path.replace(/\.yaml$/, "").split("/").join(".")}`;
+/** A unit as a package file's edge names it: its folders', definition's and parts' names from
+ *  the package's root (`hc.accounts.views`), wherever each is written. */
+function path_of(u: Unit, placed: Map<string, Placed>): string {
+  const names: string[] = [];
+  for (let at: Unit | null = u; at; at = placed.get(key(at))?.up ?? null) names.unshift(name_of(at));
+  return names.join(".");
 }
 
 /** The unit picked that holds a dotted name: itself, else its nearest holder. */

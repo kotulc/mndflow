@@ -405,6 +405,22 @@ export function App({ storage, boot, opening }: {
     went_up(s.view().layer);
   };
 
+  /** **Playing from a ▶** (2026-11-21): on the open model, its presentation starts, the tray on
+   *  its overview; on a chip, the chip is entered first and plays once it is the open layer. */
+  const [queued, set_queued] = useState<{ id: Id; at: number } | null>(null);
+  const play_from = (at: number, on?: string) => {
+    const target = on && graph.blocks[on] && on !== view.layer ? on : null;
+    if (!target) { present.start(at); t.onTab("overview"); return; }
+    set_queued({ id: target, at });
+    enter(target);
+  };
+  useEffect(() => {
+    if (!queued || entering || view.layer !== queued.id) return;
+    present.start(queued.at);
+    t.onTab("overview");
+    set_queued(null);
+  }, [queued, entering, view.layer]);
+
   const act = (name: string, given?: Record<string, unknown>) => {
     const args = given;
     /** Undo and redo arrive through the same channel as actions. */
@@ -711,7 +727,22 @@ export function App({ storage, boot, opening }: {
           walk={walk}
           showing={showing}
           onToggle={toggle}
-          onPlay={present.start}
+          onPlay={play_from}
+          playing={present.play && present.presentation && present.stop ? {
+            name: present.presentation.name, title: present.stop.title,
+            caption: (present.stop.steps ?? [])[Math.min(present.play.shown,
+              present.stop.steps?.length ?? 0) - 1]?.text ?? present.stop.summary,
+            stop: present.play.stop, stops: present.presentation.stops.length,
+            paused: present.paused, pace: present.pace, first: present.play.stop === 0,
+            last: present.play.stop === present.presentation.stops.length - 1
+              && present.play.shown >= (present.stop.steps?.length ?? 0)
+              && !present.play.stack.length,
+            into: !!present.stop.into, out: present.play.stack.length > 0,
+            dive: present.play.dive ? shown_name(graph, present.play.dive) : null,
+            onToggle: present.toggle, onPrev: present.prev, onNext: present.next,
+            onStop: present.stop_playing, onInto: present.into, onOut: present.out,
+            onResume: present.resume, onPace: present.set_pace,
+          } : null}
           cells={s.cells()}
           onPickCells={(cells) => {
             /** A click lets go of what the canvas cannot show. */
@@ -753,14 +784,15 @@ export function App({ storage, boot, opening }: {
         <Tray
           graph={graph}
           /** A block drawn as what it means is what the tray is about. */
-          layer={system ? null : view.layer}
+          layer={present.play ? present.home : system ? null : view.layer}
           {...(lists ? { lists } : {})}
           open={t.open}
           onOpen={t.onOpen}
           {...(t.tab ? { tab: t.tab } : {})}
           onTab={t.onTab}
           /** **One object**: a plain stand-in picked is its block, described and edited as one. */
-          picked={s.picked().map((id) => (graph.blocks[id]?.settings ? id : object_of(graph, id)))}
+          picked={present.play ? []
+            : s.picked().map((id) => (graph.blocks[id]?.settings ? id : object_of(graph, id)))}
           onHover={set_hovered}
           onLit={set_listed}
           hold={hold}
@@ -781,7 +813,7 @@ export function App({ storage, boot, opening }: {
             onResume: present.resume, onStop: present.stop_playing, onPace: present.set_pace,
           } : model && view.layer ? {
             name: null, offered: presentations_of(graph, model).map((x) => x.name),
-            onStart: present.start,
+            onStart: (at: number) => play_from(at),
           } : null}
         />
       </main>

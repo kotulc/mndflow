@@ -17,6 +17,7 @@ import type { Trace } from "@mnd/views";
 import { Crumbs } from "./Crumbs";
 import { Hover } from "./Hover";
 import { path_rules, usePath } from "./path";
+import { Player, type Playing } from "./Player";
 import { Walk, type Walking } from "./Walk";
 import type { Shot } from "./room";
 
@@ -28,6 +29,8 @@ export type StageProps = {
   picked: readonly string[];
   /** A path offered or walked from the block picked: one hop lit a step. */
   walk?: Walking | null;
+  /** A presentation playing: its player over the canvas's foot. */
+  playing?: Playing | null;
   onAct: Act;
   /** The writes one canvas adjustment comes to, for the host to run as one step. */
   onAdjust?: (moves: readonly Move[]) => void;
@@ -84,7 +87,8 @@ export type StageProps = {
   /** A box of a model's overview opened or closed by its toggle, by the node it is on. */
   onToggle?: (id: string) => void;
   /** A presentation in a model's About band played, by its place in the model's list. */
-  onPlay?: (at: number) => void;
+  /** A presentation's ▶ pressed: which of them, and the node it was pressed on. */
+  onPlay?: (at: number, on?: string) => void;
 };
 
 /** What a stop shows: rings, what stays clear, its steps' legs on a map and its lines elsewhere. */
@@ -211,7 +215,7 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
                        menu, said, onSaid, head, empty, lattice, frame, legend, corner, module,
                        dir, type, lit = [], touched = [], shot, onLand, entered = false,
-                       keys = true, editable = true, walk = null, onClear, showing = null,
+                       keys = true, editable = true, walk = null, playing = null, onClear, showing = null,
                        onToggle, onPlay }: StageProps) {
   /** What a right drag or a chain draws, as the rail set it. */
   const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
@@ -240,7 +244,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       e.preventDefault();
       const node = at.closest<HTMLElement>(".react-flow__node")?.dataset["id"];
       if (at.dataset["toggle"] && node) onToggle?.(node);
-      else if (at.dataset["play"] !== undefined) onPlay?.(Number(at.dataset["play"]));
+      else if (at.dataset["play"] !== undefined) onPlay?.(Number(at.dataset["play"]), node);
       else if (at.dataset["about"]) onPick([at.dataset["about"]]);
     };
     el.addEventListener("pointerdown", press, true);
@@ -464,7 +468,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   return (
     <section className={path || showing?.keep.length ? "stage pathing" : "stage"} ref={host}>
       <Crumbs trail={scene.trail} head={head ?? null} onAct={onAct} />
-      {walk && !walk.outside ? <Walk walk={walk} /> : null}
+      {playing ? <Player p={playing} /> : walk && !walk.outside ? <Walk walk={walk} /> : null}
       {empty ? <p className="empty">{empty}</p> : null}
       {/* **A map lights only what is picked**: a chip, a box or a tile. A layer also lights what
           is hovered, other appearances and what the selection touches. */}

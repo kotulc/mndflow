@@ -58,6 +58,8 @@ relations:
 | **uses** | what it builds with or calls both ways (a framework, a store read and written) | band below | column right |
 | **outer ring** | an external joined only to another external (upstream, downstream) | beyond the one it joins, same zone | same |
 
+**What is across is at the part's own scale** (2026-11-21): a line crosses the wall from the part inside that it leaves or meets, at any depth; its far end is the part's sibling that holds it — a folder beside a definition stands for what it files — so one card stands for all a sibling holds. What depends on the part comes **in**, what it builds with is **used**, a card met both ways is used. **Actors and externals a context's own file holds are drawn across**, in their zones, as though written where it sits: the world is placed by what it is, never by where an agent wrote it. `check` says a bare name repeating an actor or external of an enclosing layer, which is a new block, never that one.
+
 **How it scales.**
 
 | Grows | What happens |

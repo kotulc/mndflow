@@ -7,11 +7,14 @@ import { useEffect, useState } from "react";
 import { path, pace_of, play_at, play_into, play_next, play_out, play_prev, play_start,
          presentations_of, stop_of, used_model, type Graph, type Hop, type Id,
          type Play } from "@mnd/core";
-import { hop_trace, type Scene } from "@mnd/views";
+import { hop_trace, ACROSS, type Scene } from "@mnd/views";
 import type { Showing } from "@mnd/stage";
 
 /** Where the reader's own pace is kept: their setting, over the file's, while it plays. */
 const PACE_KEY = "mnd.pace";
+
+/** How long a stop holds once all its steps are shown, at least, in seconds. */
+const HOLD = 2.5;
 
 /** The pace the reader set, if any, read safely. */
 function remembered(): number | undefined {
@@ -31,6 +34,8 @@ export function usePresent(graph: Graph, layer: Id | null) {
   /** The layers the presentations entered are drawn on, outermost first: a use for each *into*. */
   const [where, set_where] = useState<Id[]>([]);
   const [pace, set_pace_state] = useState<number | undefined>(remembered);
+  /** **Paused** (2026-11-21): nothing moves on its own; next and previous still step. */
+  const [paused, set_paused] = useState(false);
   const now = play ? stop_of(graph, play) : null;
   const stop = now?.stop ?? null;
   const steps = stop?.steps ?? [];
@@ -38,23 +43,41 @@ export function usePresent(graph: Graph, layer: Id | null) {
   /** **The layer a stop is on**: the diagram it shows, else the overview it plays on. */
   const on = stop?.show ?? home;
 
-  /** Steps play on their own at the pace; `0` waits for each click. */
+  /** **Played through, as a video is** (the user, 2026-11-21): steps build at the pace; once a
+   *  stop's are all shown it holds, then goes on — into the stop's sub presentation where it
+   *  leads into one, else the next stop — and at the very end it pauses. Paused, or at `0`
+   *  pace, nothing moves on its own. */
   const seconds = play ? pace_of(graph, play, pace) : 0;
+  const last = !!play && !!now && play.stop === now.presentation.stops.length - 1
+    && !play.stack.length;
   useEffect(() => {
-    if (!play || !stop || play.shown >= steps.length || play.dive || seconds <= 0) return;
-    const wait = setTimeout(() => set_play((p) => (p ? { ...p, shown: p.shown + 1 } : p)),
-                            (play.shown ? seconds : 0.6 + 1.1) * 1000);
+    if (!play || !stop || play.dive || paused || seconds <= 0) return;
+    if (play.shown < steps.length) {
+      const wait = setTimeout(() => set_play((p) => (p ? { ...p, shown: p.shown + 1 } : p)),
+                              (play.shown ? seconds : 0.6 + 1.1) * 1000);
+      return () => clearTimeout(wait);
+    }
+    if (last && !stop.into) { set_paused(true); return; }
+    const wait = setTimeout(() => (stop.into ? into() : next()), Math.max(HOLD, seconds) * 1000);
     return () => clearTimeout(wait);
-  }, [play, stop, steps.length, seconds]);
+  }, [play, stop, steps.length, seconds, paused, last]);
 
   /** A model's presentation started on the layer drawing its overview. */
   const start = (at: number) => {
     const model = layer ? used_model(graph, layer) : null;
     if (!model || !layer || !presentations_of(graph, model)[at]) return;
     set_where([layer]);
+    set_paused(false);
     set_play(play_start(model, at));
   };
-  const stop_playing = () => { set_play(null); set_where([]); };
+  const stop_playing = () => { set_play(null); set_where([]); set_paused(false); };
+  /** Play and pause, one control: played again from its end, it starts over. */
+  const toggle = () => {
+    if (paused && last && play && play.shown >= steps.length) {
+      set_play((p) => (p ? play_at(p, 0) : p));
+    }
+    set_paused((x) => !x);
+  };
   const next = () => set_play((p) => {
     if (!p) return p;
     const n = play_next(graph, p);
@@ -92,21 +115,22 @@ export function usePresent(graph: Graph, layer: Id | null) {
       const el = e.target as HTMLElement | null;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(el?.tagName ?? "")) return;
       const done = () => { e.preventDefault(); e.stopPropagation(); };
-      if (e.key === "ArrowRight" || e.key === " ") { done(); next(); }
+      if (e.key === " ") { done(); toggle(); }
+      else if (e.key === "ArrowRight") { done(); next(); }
       else if (e.key === "ArrowLeft") { done(); prev(); }
       else if (e.key === "Escape") { done(); if (play.dive) resume(); else stop_playing(); }
     };
     window.addEventListener("keydown", key, true);
     return () => window.removeEventListener("keydown", key, true);
-  }, [play]);
+  }, [play, paused, last, steps.length]);
 
   /** The overview's boxes open at this stop, where it says (unsaid, the host's), and a dive. */
   const open = stop && layer === home ? stop.open ?? null : null;
   const diving = stop && layer === home ? play?.dive ?? null : null;
 
   return { play, stop, presentation: now?.presentation ?? null, open, diving, on, home,
-           pace: seconds, start, stop_playing, next, prev, go, replay, into, out, dive, resume,
-           set_pace };
+           pace: seconds, paused, start, stop_playing, toggle, next, prev, go, replay, into, out,
+           dive, resume, set_pace };
 }
 
 /** **What a stop shows** on the drawing it is on: the block ringed, what stays clear, its steps'
@@ -126,6 +150,8 @@ export function showing_of(graph: Graph, layer: Id | null, scene: Scene,
   const marks = shown.flatMap((s) => (s.mark ? [lift(s.mark)] : []))
     .filter((x): x is Id => !!x);
   const lines = shown.flatMap((s) => (s.relation ? [s.relation] : []));
+  /** A line drawn crossing the frame to what is across lights as the relation it draws. */
+  const drawn_lines = lines.flatMap((id) => [id, `${ACROSS}${id}`]);
   const hops: Hop[] = lines.flatMap((id) => {
     const e = graph.edges[id];
     return e ? [{ from: e.from, to: e.to, names: e.name ? [e.name] : [] }] : [];
@@ -147,7 +173,7 @@ export function showing_of(graph: Graph, layer: Id | null, scene: Scene,
     ...scene.nodes.filter((n) => inside(n.id) || n.data.marks.includes("zone"))
       .map((n) => n.id)])];
   const last = shown[shown.length - 1];
-  return { ring: [...(at && !whole ? [at] : []), ...marks], keep, lines,
+  return { ring: [...(at && !whole ? [at] : []), ...marks], keep, lines: drawn_lines,
            steps: legs.length ? { blocks: [], lines: [], legs,
                                   ...(last?.relation ? {} : { still: true }) } : null };
 }

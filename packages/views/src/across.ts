@@ -53,24 +53,49 @@ export function outside_of(graph: Graph, layer: Id): Outside | null {
   const sides = new Map<Id, Side>();
   const wall = WALLS[SHAPE.aspect >= 1 ? "wide" : "tall"];
   const all = Object.values(graph.edges).sort((a, z) => (a.order ?? 0) - (z.order ?? 0));
-  /** Every line of the layer above meeting the part: which end is across, and which is near. */
+  /** **A line crosses the wall from what is drawn inside** (2026-11-21): the part itself, or
+   *  the child of it holding the end, at any depth. */
+  const near_of = (id: Id): Id | null => {
+    if (mine(id)) return id;
+    for (let at: Id | null = id; at; at = graph.blocks[at]?.parent ?? null) {
+      if (graph.blocks[at]?.parent === layer) return at;
+    }
+    return null;
+  };
+  /** **What is across, at the part's own scale** (2026-11-21): the sibling holding the end — a
+   *  folder beside a definition stands for what it files — else what sits in the layer above. */
+  const up = graph.blocks[layer]!.parent;
+  const far_of = (id: Id): Id | null => {
+    for (let at: Id | null = id; at; at = graph.blocks[at]?.parent ?? null) {
+      if (graph.blocks[at]?.parent === up) return at;
+    }
+    for (let at: Id | null = id; at; at = graph.blocks[at]?.parent ?? null) {
+      if (at === home || layer_of(graph, at) === home) return at;
+    }
+    return null;
+  };
+  /** Every line meeting the part or what it holds: which end is across, and which is near. */
   const met = all.flatMap((e) => {
-    const inward = mine(e.to) && !mine(e.from);
-    if (!inward && !(mine(e.from) && !mine(e.to))) return [];
-    const [far, port] = inward ? [e.from, e.fromPort] : [e.to, e.toPort];
-    if (layer_of(graph, far) !== home && far !== home) return [];
-    return [{ e, inward, far, port, near: inward ? e.to : e.from }];
+    const [to, from] = [near_of(e.to), near_of(e.from)];
+    const inward = !!to && !from;
+    if (!inward && !(from && !to)) return [];
+    const said = inward ? e.from : e.to;
+    const far = far_of(said);
+    if (!far || far === layer) return [];
+    const port = far === said ? (inward ? e.fromPort : e.toPort) : undefined;
+    return [{ e, inward, far, port, near: (inward ? to : from)!,
+              kept: (inward ? to === e.to : from === e.from) }];
   });
   /** **One card per port** (context.md *Layout*): a port meeting several ends draws one card,
    *  its ends as name rows. */
   const fars = new Map<Id, Set<string>>();
   for (const m of met) {
-    if (m.near === layer) continue;
+    if (m.near === layer || !is_interface(graph, m.near)) continue;
     fars.set(m.near, new Set([...fars.get(m.near) ?? [], `${m.far}|${m.port ?? ""}`]));
   }
   const drawn_lines = new Set<string>();
-  for (const { e, inward, far, port, near } of met) {
-    const shared = near !== layer && fars.get(near)!.size > 1;
+  for (const { e, inward, far, port, near, kept } of met) {
+    const shared = (fars.get(near)?.size ?? 0) > 1;
     const id = shared ? `${ACROSS}port:${near}`
       : `${ACROSS}${far}${port && far === home ? `:${port}` : ""}`;
     if (!blocks[id]) {
@@ -84,17 +109,23 @@ export function outside_of(graph: Graph, layer: Id): Outside | null {
     }
     if (far === home && !shared) ports.add(id);
     /** A port naming its wall keeps it, and what is across sits in that wall's zone. */
-    const said = near !== layer ? blocks[near]!.side : undefined;
+    const port_near = near !== layer && is_interface(graph, near);
+    const said = port_near ? blocks[near]!.side : undefined;
     const zone = said ? zone_at(wall, said) : zone_of(graph, e, far, near);
-    if (!zones.has(id) || zone === "start") zones.set(id, zone);
-    if (near !== layer && !said) sides.set(near, wall[zone]);
+    /** A card met both ways is used: a dependency into the part and one out of it. */
+    const had = zones.get(id);
+    zones.set(id, !had || zone === "start" ? zone : had !== zone && had !== "start" ? "uses" : had);
+    if (port_near && !said) sides.set(near, wall[zone]);
     /** One line between a card and the port it stands across. */
     const pair = `${id}|${near}`;
     if (drawn_lines.has(pair)) continue;
     drawn_lines.add(pair);
+    /** The near end lifted to what is drawn keeps its port only where it was not lifted. */
     const drawn: Relation = inward
-      ? { ...e, id: `${ACROSS}${e.id}`, from: id, fromPort: undefined }
-      : { ...e, id: `${ACROSS}${e.id}`, to: id, toPort: undefined };
+      ? { ...e, id: `${ACROSS}${e.id}`, from: id, fromPort: undefined, to: near,
+          ...(kept ? {} : { toPort: undefined }) }
+      : { ...e, id: `${ACROSS}${e.id}`, to: id, toPort: undefined, from: near,
+          ...(kept ? {} : { fromPort: undefined }) };
     edges[drawn.id] = drawn;
   }
   if (!zones.size) return null;
@@ -155,11 +186,13 @@ function card(graph: Graph, far: Id, port: Id | undefined, home: Id, layer: Id, 
   return { ...b, id, parent: layer };
 }
 
-/** **The zone of what is across**: an actor starts it; a dependency, or a port meeting both
- *  ways, is used; else the way the line runs, into the part or out of it. */
+/** **The zone of what is across**: an actor starts it; what the part depends on, or a port
+ *  meeting both ways, is used; what depends on the part comes in; else the way the line runs,
+ *  into the part or out of it. */
 function zone_of(graph: Graph, e: Relation, far: Id, near: Id): Zone {
   if (block_base(graph, graph.blocks[far]?.type) === "actor") return "start";
-  if (e.type && chain_of(graph, e.type).some((d) => d.id === "dependency")) return "uses";
+  const dependency = e.type && chain_of(graph, e.type).some((d) => d.id === "dependency");
+  if (dependency) return e.to === near ? "in" : "uses";
   if (near !== far && is_interface(graph, near) && flow_of(graph, near) === "both") return "uses";
   return e.to === near ? "in" : "out";
 }

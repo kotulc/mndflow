@@ -231,6 +231,9 @@ export type Block = {
   /** **The workspace root's shown packages** (2026-11-21): the imports its maps draw by default,
    *  its own always; `base` only where listed. A viewer toggles either way, never in the file. */
   shown?: Id[];
+  /** **The workspace root's package order** (2026-11-21): the packages as the viewer arranged
+   *  them; unsaid, `base` first, imports by name, its own last. */
+  package_order?: Id[];
   /** A collection's records: rows of answers to its `records.of` attributes, by name. Values,
    *  never blocks. */
   records?: Record<string, string>[];
@@ -475,6 +478,8 @@ export type Mutation =
   | { op: "set_library"; id: Id; library: Library | null }
   /** A collection's records, written whole; null gives them back. */
   | { op: "set_records"; id: Id; records: Record<string, string>[] | null }
+  /** The workspace's package order, written whole; null gives the default back. */
+  | { op: "order_packages"; order: Id[] | null }
   /** Where a block came from; null gives it back. */
   | { op: "set_source"; id: Id; source: string | null }
   | { op: "seat_cell"; id: Id; cell: Cell | null }

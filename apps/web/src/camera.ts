@@ -68,7 +68,8 @@ export function shot_of(w: Where): Shot {
 }
 
 /** **A stop's fit** (docs/presentations.md): the box round every block named, each lifted to what
- *  the drawing draws it as, with a margin, never magnified past 4×. */
+ *  the drawing draws it as, with a margin, never magnified past 1.5× — a calm camera, never a
+ *  plunge — and room below for the player over the canvas's foot (2026-11-21). */
 function fit_of(graph: Graph, scene: Scene, ids: readonly Id[]): Rect | null {
   const drawn = new Map(scene.nodes.map((n) => [n.id, n]));
   const boxes = ids.flatMap((id) => {
@@ -80,7 +81,8 @@ function fit_of(graph: Graph, scene: Scene, ids: readonly Id[]): Rect | null {
   const [w, h] = [Math.max(...boxes.map((b) => b.x + b.w)) - x,
                   Math.max(...boxes.map((b) => b.y + b.h)) - y];
   const pad = Math.max(w, h) * 0.08;
-  return { x: x - pad, y: y - pad, w: w + 2 * pad, h: h + 2 * pad, scale: 1 / 4 };
+  const player = (h + 2 * pad) * 0.3;
+  return { x: x - pad, y: y - pad, w: w + 2 * pad, h: h + 2 * pad + player, scale: 1 / 1.5 };
 }
 
 /** A block's box where the drawing draws it. */

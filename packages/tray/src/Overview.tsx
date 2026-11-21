@@ -6,7 +6,7 @@
  *  answers**: nothing borrowed from its definition. Gaps are quiet rows, in the editor only. It
  *  reflows by the tray's width. */
 
-import { useMemo } from "react";
+import { useMemo, type MouseEvent } from "react";
 import { appearances_of, behaviours_of, children, class_of, def_at, def_of, definition_uses,
          diagram_kind, edges_in, ends_of, is_model, is_notation, is_behaviour, is_group,
          is_reference, layer_of, may_retype, object_of, of_ref, opens, owner_of, package_of,
@@ -80,8 +80,15 @@ export function Overview({ graph, id, onAct, lists, presenting }: OverviewProps)
       </div>
     );
   }
+  /** A header's ▶ plays the model's first presentation (theme `header.tsx`, `data-play`). */
+  const played = (e: MouseEvent) => {
+    const at = (e.target as Element).closest<HTMLElement>("[data-play]")?.dataset["play"];
+    if (at === undefined || !presenting || presenting.name !== null) return;
+    e.stopPropagation();
+    presenting.onStart(Number(at));
+  };
   return (
-    <div className="ov">
+    <div className="ov" onClickCapture={played}>
       <div className="ov-card"><Card graph={graph} id={id} /></div>
       <div className="ov-pic">
         {where}
@@ -117,6 +124,8 @@ export function Overview({ graph, id, onAct, lists, presenting }: OverviewProps)
         ) : null}
       </div>
       <div className="ov-answers lists">
+        {/* **The presentation leads the answers**, and while one plays the tray stays on its
+            model (2026-11-21), so it never moves. */}
         {presenting ? <Presentation {...presenting} /> : null}
         <Trail graph={graph} id={id} />
         {read ? (

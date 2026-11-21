@@ -2,7 +2,7 @@
 
 **The primary plan (2026-11-19).** We improve the file format, CLI, tools and views by having a simpler subagent translate a real Python codebase: first its structure (the library), then its use (diagrams, models, presentations). Claude inspects each round, in the app as well as by `check`, and the findings become changes. Rounds repeat until the user and Claude are both satisfied. **Delete this plan when both accept the trial project as the showcase of the split** (design.md *Vision*: structure and use).
 
-**State (2026-11-21):** rounds 1–5 done (2026-11-19/20); the user reviewed round 5's Sonnet model on 2026-11-21: *not a bad start*. Next is the review work below (*Next* 1 built 2026-11-21, *Next* 2 next), then round 6. Rounds 1–5 committed as `5c9e445`.
+**State (2026-11-21, end of session):** rounds 1–5 done; the user reviewed round 5's Sonnet model (*not a bad start*). *Next* 1 built and committed (`3678807`); since then, uncommitted: user-defined package order, most of *Next* 2 (*Views pass*), and the presentation player (*Decisions*). **Pick up at *Next* 2's open rows**, then the user's direction for presentations (*Next* 2c), then 3a, 3b and round 6.
 
 
 ## Why
@@ -28,8 +28,8 @@
 
 | # | Feedback | How we address it | Status |
 |---|---|---|---|
-| 1 | **package visibility**: the workspace JSON should say which packages show by default; `base` takes much room and attention; a UI toggle overrides the defaults the agent or CLI set | design.md *Definitions and packages* (decided): the workspace root says its shown packages (its own always, imports only where said, `base` hidden); `mnd init` writes the default; the explorer's package rows get a show/hide toggle, per viewer, never written to the file; both maps honour it; a hidden package still resolves names | built 2026-11-21: root `shown`, explorer eye per viewer, both maps; `init` default with 3a |
-| 2 | **parts views that make no visual sense** (library › healthchecks › hc › accounts): related blocks outside the frame connect to nothing | a definition's view draws what is across only where a line crosses its frame; the `package.json` edges `define` writes must reach the frame's walls; a reliability pass over every view kind with a measured guard: `measure --views` counts *loose* (a block across the frame no line reaches) and fails on it | to build (*Next* 2) |
+| 1 | **package visibility**: the workspace JSON should say which packages show by default; `base` takes much room and attention; a UI toggle overrides the defaults the agent or CLI set | design.md *Definitions and packages* (decided): the workspace root says its shown packages (its own always, imports only where said, `base` hidden); `mnd init` writes the default; the explorer's package rows get a show/hide toggle, per viewer, never written to the file; both maps honour it; a hidden package still resolves names | built 2026-11-21: root `shown`, explorer eye per viewer, both maps; `init` default with 3a. Package order (user): root `package_order`, dragged in the explorer, default base · imports by name · own |
+| 2 | **parts views that make no visual sense** (library › healthchecks › hc › accounts): related blocks outside the frame connect to nothing | a definition's view draws what is across only where a line crosses its frame; the `package.json` edges `define` writes must reach the frame's walls; a reliability pass over every view kind with a measured guard: `measure --views` counts *loose* (a block across the frame no line reaches) and fails on it | built 2026-11-21: `define` joins parts (ends by name path); across lifted to the part's siblings, lines from the inner part, in/uses by direction; `mnd measure` counts loose over library definitions too and fails on it |
 | 3 | **order**: *Alert on failure* came before *Overview* | it is ours, not the agent's: collect reads files in path order and the treemap sorts siblings by weight. design.md (decided): order is explicit — a file's order prefix, else its list place, the overview first; the treemap never reorders by weight; `mnd model` writes the prefix | built 2026-11-21: collect orders by number, `overview.yaml` first; treemaps and wells keep given order; prefixes written by `mnd model` in 3a |
 | 4 | **sub-model views need a frame** (models › healthchecks › Overview) to show internal and external blocks | design.md (decided): a model entered draws its frame as a context does — its parts inside, actors, externals and sibling models outside, joined to the walls by the lines that cross | built 2026-11-21: an entered model is its own box, actors and externals outside; sibling models across not yet drawn |
 | 5 | **why are some blocks rounded?** chips should not be; actors may be | rounding was actors (and a state machine's states); **chips are never rounded**, an actor's card still is | built 2026-11-21 (stage `flow.css`; design.md, chip.md) |
@@ -66,12 +66,35 @@ A presentation is a new user's main entry (presentations.md). Round 5's were a f
 | **in every round** | the brief's presentation task is scored as a first-class result: played in the app by Claude, judged for what a new user learns |
 
 
+## Views pass (2026-11-21, round 5's output)
+
+| Kind | Found | Status |
+|---|---|---|
+| library definition (accounts, api) | across cards joined to nothing, one bus; six cards all *transport* | fixed: part-to-part edges, siblings across, in/uses split; shared runs 27 → 3 |
+| context | actors and externals laid inside the frame (the file declared them again as plain blocks); the stage grew the frame round across lines | fixed: a context's world drawn across by kind; `check` says the bare repeat; the frame never grows for across lines |
+| a model entered | no frame | fixed (*Next* 1) |
+| state | a transition's name covers another (measured) | open |
+| flow | one long row in a tall frame: text tiny | decided: wrap by the canvas's shape (*Decisions*) |
+| mapping | the writes column cuts its text | open |
+| sequence | names tiny where the participants run wide | open |
+| swimlane, dataflow, class, entity | whole; dense | no change |
+
+## Decisions (2026-11-21, later)
+
+| Decision | Status |
+|---|---|
+| **every diagram respects the canvas's aspect**: a layout by shape (portrait or landscape) in every kind; a long flow wraps into rows rather than running one thin line | to build (*Views pass*) |
+| **presentations are the central UX**: canvas player + caption, play/pause, auto-play through stops, ▶ on every chip enters and plays, tray pinned to the model on its overview | built 2026-11-21 (presentations.md *Played through*, *The player*) |
+| **expand the presentation concept** (walking a user through the model's dimensions and perspectives) | open: the user's next direction, after the player |
+
 ## Next
 
 | # | Work | Done when |
 |---|---|---|
-| 1 | **view decisions of 2026-11-21**: package visibility (file key, explorer toggle, maps honour it; the `init` default lands with 3a); explicit order (collect keeps order prefixes, the treemap keeps given order, overview first; `mnd model` writes prefixes in 3a); a model entered is framed | round 5's model opens with `base` hidden, Overview first, its sub-model views framed |
-| 2 | **views that reliably make sense**: the library definition view (accounts) draws across only what a line reaches, and `define`'s edges reach the walls; `measure --views` counts loose blocks; a pass over each kind on round 5's output (context, flow, dataflow, state, sequence, swimlane, mapping, class, entity, tree, a model's frame) fixing what does not read | `measure --views` clean on every view of round 5's output; Claude's look at each kind finds nothing loose, cut or crossing the frame |
+| 1 ✓ | **view decisions of 2026-11-21** (built, `3678807`; package order added after): package visibility (file key, explorer toggle, maps honour it; the `init` default lands with 3a); explicit order (collect keeps order prefixes, the treemap keeps given order, overview first; `mnd model` writes prefixes in 3a); a model entered is framed | round 5's model opens with `base` hidden, Overview first, its sub-model views framed |
+| 2 | **views that reliably make sense** (under way: library views, context, loose guard built; open — every kind laid by the canvas's aspect, a long flow wrapping into rows; state names covering; mapping cut text; sequence names tiny; *Views pass*): the library definition view (accounts) draws across only what a line reaches, and `define`'s edges reach the walls; `measure --views` counts loose blocks; a pass over each kind on round 5's output (context, flow, dataflow, state, sequence, swimlane, mapping, class, entity, tree, a model's frame) fixing what does not read | `measure --views` clean on every view of round 5's output; Claude's look at each kind finds nothing loose, cut or crossing the frame |
+| 2b ✓ | **the presentation player** (the user, 2026-11-21): canvas player + caption, play/pause, played through, ▶ on every chip, tray pinned on the overview | built (uncommitted); presentations.md *Played through*, *The player* |
+| 2c | **expand the presentation concept**: walking a new user through the model's dimensions and perspectives (structure, use, each diagram kind), not only one model's stops; the user's direction, to be shaped with them first. Known gaps: a stop showing a diagram is drawn under the player (only an overview's fit leaves its room); presentations are still thin (3b) | the user agrees a shape; a new user can start at the map and be carried through healthchecks by ▶ alone |
 | 3a | **simplify the commands**: `init`, `define` and `draw` asking facts themselves, `model` (writes the order prefix), `style`, `draw --example`, docs/tools/workflow.md | a run through the workflow page by hand on healthchecks needs no JSON file and no hand-written YAML but the hand-drawn kinds and the words |
 | 3b | **presentations first**: the full draft, its check (the quality bar), the story guide in presentations.md | round 5's model drafts a tour that passes the bar, played in the app by Claude |
 | 4 | **round 6** on Haiku and Sonnet: the brief rewritten around the agent's four decisions (*The brief*), the workflow page first; counted: commands run, files written by hand, minutes | both finish with fewer commands than round 5, no scripts, presentations that pass the bar; Claude plays each presentation |
@@ -145,7 +168,9 @@ Highlight colours were never seen by an agent before `look`; presentations were 
 | **check** | made-up types, tags and `of:` in every file naming them; dangling `package.json` edges; overrides' looks; door messages name the cause and fix, *read past (the files are unchanged)*; one-line errors |
 | **format** | names everywhere; workspace `overrides`; the library holds structure (a package kind's YAML is a library definition, never a model) |
 | **presentations** | steps and marks resolve in a shown diagram, through a usage too; `into` a contained model; `draft` rolls back what fails |
-| **views** | sequence rows per message, self-messages as loops; tables held with `+N more`; field lines on class and entity; names kept visible (chip floor, two-line step names); the state frame holds its routes; crumbs follow the canvas; chips never rounded |
+| **views** | sequence rows per message, self-messages as loops; tables held with `+N more`; field lines on class and entity; names kept visible (chip floor, two-line step names); the state frame holds its routes; crumbs follow the canvas; chips never rounded; **2026-11-21**: packages shown by the workspace's `shown` and a viewer's eye, ordered by `package_order` (dragged); order explicit (prefixes, overview first, never by weight); an entered model framed; what is across at the part's own scale (lines from the inner part, siblings across, in/uses by direction); a context's actors and externals drawn across by kind |
+| **presentations in the app** (2026-11-21) | a canvas player and caption; play/pause; played through stops, into and out; ▶ on chips and cards enters and plays; the tray pinned to the model on its overview, the stop opened in place; a calm camera leaving the player's room |
+| **guards** (2026-11-21) | `measure` covers library definitions and fails on a loose block; `check` says a bare repeat of an actor or external; `define`'s package edges name parts by path, so they survive moves |
 | **reading back** | `mnd look` lists blocks by resolved hue; example selections for every hand-drawn kind |
 
 
@@ -156,6 +181,8 @@ Highlight colours were never seen by an agent before `look`; presentations were 
 | ORM writes invisible to `trace`: *which records does an alert write* is unanswered | dropped from the brief for now (the user, 2026-11-21) |
 | a diagram named like a definition shadows it, the message in ids | the message names both files and says to rename one |
 | crowded state labels overlap; a wide sequence participant passes the grid's edge | in the views pass (*Next* 2) |
+| a stop showing a diagram sits under the player | *Next* 2c: leave the player's room on every drawing a stop shows |
+| lines to what is across draw dimmed with the outside, their names faint | judge in the next look; may need the names at full strength |
 | fact names differ by language | reconcile in *Next* 5 |
 | which kinds are structure and which are use | structure: class, entity, tree, a definition's context; use: the rest; the rounds show |
 
@@ -170,7 +197,7 @@ Highlight colours were never seen by an agent before `look`; presentations were 
 
 | What | Where |
 |---|---|
-| **committed** | rounds 1–5 as `5c9e445`; work since is uncommitted |
-| **the review candidate** | samples/trial/sonnet (round 5) and its collected samples/trial/sonnet.json; logs samples/trial/haiku-log.md, sonnet-log.md. Open it with `workspace: /samples/trial/sonnet.json` in mndflow.yaml, or `collect --workspace` and import |
+| **committed** | rounds 1–5 `5c9e445`; *Next* 1 `3678807`. **Uncommitted**: package order; *Views pass* (cli `define.ts`, `measure.ts`; core `sources.ts`, `defs.ts`, `fold.ts`, `door.ts`, `types.ts`, `actions/definitions.ts`; views `across.ts`, `block.ts`, `layer.ts`, `measure.ts`; stage `Flow.tsx`); the player (web `present.ts`, `camera.ts`, `App.tsx`; stage `Player.tsx` new, `Stage.tsx`, `flow.css`; theme `header.tsx`, `icons.tsx`, `face.css`; tray `Overview.tsx`, `Presentation.tsx`, `tray.css`; explorer `Explorer.tsx`); docs. Typecheck clean, 303 tests pass, every sample checks clean. Suggested message: `Package order; views pass (part-level edges, across at sibling scale, context world, loose guard); presentation player` |
+| **the review candidate** | samples/trial/sonnet (round 5) and its collected samples/trial/sonnet.json; logs samples/trial/haiku-log.md, sonnet-log.md. Open it with `workspace: /samples/trial/sonnet.json` in mndflow.yaml, or `collect --workspace` and import. **Edited 2026-11-21** as an agent following the new messages would: `package.json`'s `define.*` edges regenerated part to part (`define` on `units`+`imports` of `hc` at depth 3, `--keep` its 22 leaf modules, the YAML it grafted discarded); `overview/context.yaml` drops its four repeated actors and externals; one step in `overview.yaml` names `Notification service` bare. samples/trial is not in git |
 | **a round** | the brief at samples/trial/brief.md (`{MODEL}` for haiku or sonnet); seed each folder with a bare package.json importing `code` (until `mnd init`); launch both as background subagents |
-| **looking in the app** | `npm run dev` (read the port from its log); Playwright on Edge from the scratchpad (`chromium.launch({ channel: "msedge" })`), routing `**/mndflow.yaml` to a body naming the trial's collected workspace; under Git Bash pass `/samples/…` with `MSYS_NO_PATHCONV=1`; enter a diagram by double-clicking its explorer row; read every screenshot |
+| **looking in the app** | `npm run dev` (read the port from its log, colours stripped); Playwright on Edge (`chromium.launch({ channel: "msedge" })`), a script copied into the repo root to run (it resolves `playwright` there) and deleted after, routing `**/mndflow.yaml` to a body naming the trial's collected workspace; under Git Bash pass `/samples/…` with `MSYS_NO_PATHCONV=1` and screenshot paths as `C:/…` (a `/c/…` path lands under `C:\c\`). Ways in: an explorer row's double-click (only rows listed, so open the model's row first); a map chip by `.react-flow__node` with its name, `nth` where names repeat; a presentation by its chip's `[data-play]`, read back from `.mnd-player-where` and `.mnd-player-caption`. Read every screenshot. **Stop every dev server you start** (`taskkill` its node; stopping the shell leaves vite running) |

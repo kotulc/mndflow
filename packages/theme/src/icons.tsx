@@ -27,6 +27,12 @@ const PATHS = {
   unfold_all: "M9 6.5l5.5 5.5L9 17.5",
   /** Folding the lowest open layer back toward the top rows: a chevron folding against a bar. */
   fold_branches: "M14 6.5L8.5 12l5.5 5.5M17.5 6v12",
+  // Playing a presentation (2026-11-21), drawn solid: play, pause, the stops either side, stop.
+  play: "M7 5l12 7-12 7z",
+  pause: "M6.5 5h4v14h-4zM13.5 5h4v14h-4z",
+  skip_back: "M6 5h2.5v14H6zM19 5L9.5 12 19 19z",
+  skip_next: "M15.5 5H18v14h-2.5zM5 5l9.5 7L5 19z",
+  halt: "M6 6h12v12H6z",
   /** Whether a package shows on the maps: an eye, open or struck through. */
   show: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5",
   hide: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 19.5l15-15",

@@ -6,7 +6,7 @@
 import { is_model, on_side, path, type Graph, type Id, type Lists,
          type ViewKind } from "@mnd/core";
 import { placed_as, type Placed } from "./arrange";
-import { project, treemapped } from "./block";
+import { outward, project, treemapped } from "./block";
 import { class_graph } from "./classes";
 import { place } from "./flow";
 import { holds_parts } from "./map";
@@ -30,7 +30,7 @@ export async function layer_scene(given: Graph, id: Id, kind: ViewKind,
                                   config: { interfaces?: boolean; lists?: Lists;
                                             open?: readonly Id[]; group?: Id | null } = {})
     : Promise<Scene> {
-  const graph = sided(given, config.lists);
+  const graph = outward(sided(given, config.lists), id);
   const opts = { room: true,
                  look: { kind, cut: null, ...(config.lists ? { lists: config.lists } : {}) },
                  ...(config.interfaces === false ? { interfaces: false } : {}),

@@ -510,3 +510,9 @@ fieldset.fields { padding: 0; }
               text-align: left; }
 .records td { padding: 3px 12px 3px 0; border-bottom: 1px solid var(--divider); }
 .records tr:hover td { background: var(--raised); }
+
+/* A presentation playing reads whole: its summary and steps wrap, never cut (2026-11-21). */
+.presenting { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; row-gap: var(--stack); }
+.presenting > .why { grid-column: 1 / -1; }
+.presenting .item > .name { grid-column: 2 / -1; white-space: normal; }
+.presenting .item > .kind, .presenting .item > .says { display: none; }

@@ -98,7 +98,13 @@
   margin-right: calc(7px * var(--hd-k));
 }
 .mnd-meta-kind.hued { color: var(--card-edge, var(--muted)); }
-.mnd-meta-plays { color: var(--accent); font-weight: 600; }
+/* A header's ▶: a button that plays (2026-11-21), the accent's, ringed on hover. */
+.mnd-meta-plays { display: inline-flex; align-items: center; gap: 2px; padding: 0 4px;
+                  color: var(--accent); font: inherit; font-weight: 600; cursor: pointer;
+                  background: color-mix(in oklch, var(--accent) 14%, transparent);
+                  border: 1px solid color-mix(in oklch, var(--accent) 45%, transparent);
+                  border-radius: 3px; pointer-events: auto; }
+.mnd-meta-plays:hover { background: color-mix(in oklch, var(--accent) 28%, transparent); }
 .mnd-meta-tag {
   padding: 0 calc(5px * var(--hd-k));
   border-radius: 2px;

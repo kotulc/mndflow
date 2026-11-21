@@ -1,7 +1,7 @@
 /** Fields, definitions, and giving settings back. */
 
 import { closes_cycle, def_at, def_named, def_of, domain_of, holds_defs, name_taken, ordered_by,
-         package_of, type Domain } from "../defs";
+         package_of, packages, type Domain } from "../defs";
 import { holds_values } from "../capabilities";
 import { shown_name } from "../names";
 import { next_order } from "../tree";
@@ -93,6 +93,27 @@ register(
       const next = had ? attributes.map((a) => (a.name === name ? attribute : a))
         : [...attributes, attribute];
       return { mutations: [...out, { op: "set_attributes", id: holder, attributes: next }] };
+    },
+  },
+  {
+    name: "order_package",
+    about: "moves a package to before another in the workspace's list — the explorer's and the "
+      + "maps' order",
+    on: ["layer"],
+    args: [{ name: "package", form: "block", required: true },
+           /** Which it goes in front of. Absent is last. */
+           { name: "before", form: "block" }],
+    check: (ctx, args) => {
+      const ids = [id_of(args, "package"), text(args, "before")].filter(Boolean);
+      const off = ids.find((id) => ctx.graph.blocks[id]?.parent !== null);
+      return off ? `"${off}" is not a package` : null;
+    },
+    run: (ctx, args) => {
+      const id = id_of(args, "package");
+      const order = packages(ctx.graph).map((p) => p.id).filter((p) => p !== id);
+      const at = order.indexOf(text(args, "before"));
+      order.splice(at < 0 ? order.length : at, 0, id);
+      return { mutations: [{ op: "order_packages", order }] };
     },
   },
   {

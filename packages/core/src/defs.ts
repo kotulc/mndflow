@@ -420,11 +420,15 @@ export function name_taken(graph: Graph, pkg: Id, name: string, except?: Id): bo
 
 /** Every package root: `base` first, the workspace's last, the rest by name between. */
 export function packages(graph: Graph): Block[] {
-  /** Read once per set of blocks: every lookup of a named component asks for them. */
+  /** Read once per set of blocks: every lookup of a named component asks for them. **The
+   *  workspace's `package_order` first**, then the default: `base`, imports by name, its own. */
+  const said = graph.blocks[graph.root]?.package_order ?? [];
+  const at = (b: Block) => (said.includes(b.id) ? said.indexOf(b.id) : said.length);
   const rank = (b: Block) => (b.id === BASE_PACKAGE ? 0 : b.id === graph.root ? 2 : 1);
   return [...kept(graph, `packages|${graph.root}`, () => Object.values(graph.blocks)
     .filter((b) => b.parent === null)
-    .sort((a, z) => rank(a) - rank(z) || (a.name ?? a.id).localeCompare(z.name ?? z.id)))];
+    .sort((a, z) => at(a) - at(z) || rank(a) - rank(z)
+      || (a.name ?? a.id).localeCompare(z.name ?? z.id)))];
 }
 
 /** A viewer's own choice of packages shown or hidden, overriding the workspace's. */

@@ -39,3 +39,4 @@ export { entries_of, matrix_of, registry_scene, MOST, type Entry, type Line as M
          type User } from "./registry";
 export { read_through } from "./through";
 export { line_shows, type Shows } from "./line";
+export { ACROSS } from "./across";

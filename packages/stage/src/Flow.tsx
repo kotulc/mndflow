@@ -7,7 +7,7 @@ import {
   useStore,
 } from "@xyflow/react";
 import type { Point, Spot } from "@mnd/core";
-import { box_of, extent, nearest_seat, routes_of, taken_on, DRAWN_BY, FRAME, UNIT,
+import { box_of, extent, nearest_seat, routes_of, taken_on, ACROSS, DRAWN_BY, FRAME, UNIT,
          type BoxNode } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
@@ -173,13 +173,14 @@ function Canvas(props: FlowViewProps) {
                        [scene, nodes, frame]);
 
   /** **Nothing is cut through**: the frame, as drawn, holds every line routed inside it — grown
-   *  past a line turned back over its top — where no line ends on its walls, so no port moves. */
+   *  past a line turned back over its top — where no line ends on its walls, so no port moves.
+   *  A line to what is across the frame runs out of it by design, and never grows it. */
   const held = useMemo(() => {
     const at = nodes.findIndex((n) => n.id === FRAME);
     const walled = scene.edges.some((e) => e.source === FRAME || e.target === FRAME);
     if (at < 0 || walled || !runs.size) return nodes;
     const b = box_of(nodes[at]!);
-    const pts = [...runs.values()].flat();
+    const pts = [...runs].filter(([id]) => !id.startsWith(ACROSS)).flatMap(([, run]) => run);
     const [x0, y0] = [Math.min(b.x, ...pts.map((q) => q.x - UNIT)), Math.min(b.y, ...pts.map((q) => q.y - UNIT))];
     const [x1, y1] = [Math.max(b.x + b.w, ...pts.map((q) => q.x + UNIT)),
                       Math.max(b.y + b.h, ...pts.map((q) => q.y + UNIT))];

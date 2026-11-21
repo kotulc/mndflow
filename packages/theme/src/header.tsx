@@ -37,7 +37,15 @@ export function Header({ name, kind, hued, defines, facts, role, icon, holds,
           {kind ? <span className={hued ? "mnd-meta-kind hued" : "mnd-meta-kind"}>{kind}</span>
             : null}
           {defines ? <span className="mnd-badge">definition</span> : null}
-          {facts?.plays ? <span className="mnd-meta-plays">▶ {facts.plays}</span> : null}
+          {/* **Its ▶ plays** (2026-11-21): the first presentation, the chip entered first; the
+              host answers it by `data-play` (stage `Stage.tsx`, tray `Overview.tsx`). */}
+          {facts?.plays ? (
+            <button type="button" className="mnd-meta-plays" data-play="0"
+                    title={facts.plays === 1 ? "play its presentation"
+                      : `play its first of ${facts.plays} presentations`}>
+              <Icon name="play" size={10} solid />{facts.plays > 1 ? facts.plays : null}
+            </button>
+          ) : null}
           {facts?.counts.map((f) => <span key={f.word}>{f.n} {f.word}</span>)}
           {seats?.in ? <span className="mnd-meta-seat in">{seats.in} in</span> : null}
           {seats?.out ? <span className="mnd-meta-seat out">{seats.out} out</span> : null}

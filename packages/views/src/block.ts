@@ -4,7 +4,7 @@ import { alias_of, dir_of, placing_of, children, covers,
          edges_in, group_depth, group_nest, has_lifelines, heading, holders_in, inline, is_box,
          is_container, is_filing, owner_of,
          is_grid, is_group, is_aside, is_note, is_tie, label_of, lattice_of, members_of, shape_of,
-         stamps_of, role_of, shown_name, type Cut, type Ends, type ViewKind, type Graph, type Id,
+         stamps_of, role_of, shown_name, base_of, diagram_kind, type Block, type Cut, type Ends, type ViewKind, type Graph, type Id,
          type Relation, type Side, type Span } from "@mnd/core";
 import { at_seat, beside, boundary, cell_box, head_height, is_placed, laid, perch_id,
          roomed, seat_all, size_of, PAD,
@@ -122,7 +122,7 @@ function unfitted(given: Graph, layer: Id | null, config: Config = {}): Scene {
     return lifelined(given, layer, { ...scene, layer, nodes, trail: trail_of(given, layer) });
   }
   /** What its usages read through. **No line is derived**: only stored relations draw. */
-  const graph = read_through(given, layer);
+  const graph = outward(read_through(given, layer), layer);
   /** A treemap is its map; anything else places itself. */
   if (treemapped(graph, layer, look?.lists)) {
     /** A library folder is the library's map rooted at it. */
@@ -568,4 +568,18 @@ function quiet(graph: Graph, layer: Id, scene: Scene): Scene {
   const edges = scene.edges.map((e) =>
     drawn(e.id) ? { ...e, selectable: false, focusable: false } : e);
   return { ...scene, layer, nodes, edges, slots: ["display"], trail: trail_of(graph, layer) };
+}
+
+/** **A context's world is drawn across its frame** (docs/diagrams/context.md *Layout*, placed by
+ *  what each thing is): the actors and externals a context's own file holds are drawn as though
+ *  written in its holder, so they stand outside the frame in their zones, joined to the parts
+ *  they meet. Nothing stored moves. */
+export function outward(graph: Graph, layer: Id): Graph {
+  const up = graph.blocks[layer]?.parent;
+  if (!up || diagram_kind(graph, layer) !== "context") return graph;
+  const world = Object.values(graph.blocks).filter((b) => b.parent === layer
+    && ["actor", "external"].includes(base_of(graph, b.id)));
+  if (!world.length) return graph;
+  const moved: Record<Id, Block> = Object.fromEntries(world.map((b) => [b.id, { ...b, parent: up }]));
+  return { ...graph, blocks: { ...graph.blocks, ...moved } };
 }
