@@ -1,6 +1,6 @@
 /** How a usage of a definition draws. */
 
-import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at,
+import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_at, icon_named,
          domain_of, FACE_PARTS, FAMILIES, FONTS, HEIGHTS, is_notation, is_box,
          is_container, is_grid, isa, is_interface, is_tie, kind_word, LARGE_FACES, notation_of,
          PARTS,
@@ -164,7 +164,7 @@ function dressed(graph: Graph, id: Id, card: Settings, style: Settings, kind: st
     ...contrast("name_contrast", style["name_contrast"]),
     kind,
     /** A mark of its own, where somebody picked one. */
-    ...(typeof card["icon"] === "string" && card["icon"] ? { icon: card["icon"] } : {}),
+    ...(icon_named(graph, id) ? { icon: icon_named(graph, id)! } : {}),
     ...hue_of(graph, id, style, of),
   };
 }

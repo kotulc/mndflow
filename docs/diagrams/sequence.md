@@ -49,6 +49,7 @@ relations:
 | Case | How it is drawn |
 |---|---|
 | **participant order** | actors first, then the owner's parts under its frame, then the outside; within each, by first message, so most messages run rightward and short |
+| **a participant's card** (the user, 2026-11-21) | the standard card width, as every grid cell's card: a long name wraps inside it and is cut past two lines, read whole on hover or pick; the column never widens |
 | **the frame** | the owner's frame drawn over the head, spanning its parts: context's frame in a sequence (model-plan.md 14) |
 | **a message** | a row, numbered, a dot at its origin and an arrow where it lands; named by what is said; the data it carries named by its definition (`pages · site-meta`), opening its card |
 | **a repeat** | a fragment across its rows, named by its condition (`↻ each .md change`); never a line back up the time axis |

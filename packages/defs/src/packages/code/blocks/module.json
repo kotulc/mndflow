@@ -51,7 +51,7 @@
       }
     ]
   },
-  "settings": {
+  "settings": { "card": { "icon": "code_module" },
     "style": {
       "hue": 260
     }

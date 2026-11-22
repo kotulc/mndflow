@@ -4,7 +4,7 @@
   "type": "block",
   "description": "What the system reaches at its edge: the file system, a command it runs, the framework hosting it. Drawn where a path's units touch it.",
   "def": {},
-  "settings": {
+  "settings": { "card": { "icon": "role_actor" },
     "style": {
       "hue": 30
     }

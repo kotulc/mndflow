@@ -49,7 +49,7 @@
 | **kind** | after the name, quieter, on chips and cards alike. Where name and kind do not fit one line, the kind moves to its own line under the name, before any facts. Never a word the name repeats. A handle stands in while the element is unnamed |
 | **icon** | top-right, the kind's. The one thing every form keeps at its smallest |
 | **colour** | a mark, by the colour rules below. A diagram wears its kind's hue, a block or a definition its own family's, a line its relation type's |
-| **marks** | what it stands for (`Ref`, `Pkg`), then data. Two at most, beside the icon. A definition says so with its badge, never a mark |
+| **marks** | data alone, beside the icon; a stand-in wears its target's look and none of its own (2026-11-21: `Ref`, `Pkg` retired). A definition says so with its badge, never a mark |
 
 
 ## Colour

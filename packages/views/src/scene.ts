@@ -302,7 +302,9 @@ export type InnerTile = { id: Id; label: string; x: number; y: number; w: number
                           more?: boolean;
                           /** What sort of thing it is: the icon right of its name, or, a relation
                            *  definition, its swatch. */
-                          role?: Role; swatch?: Swatch };
+                          role?: Role; swatch?: Swatch;
+                          /** The icon its definition names with `card.icon`, worn over its role's. */
+                          icon?: string };
 
 export type Scene = {
   /** The layer this is a projection of. */

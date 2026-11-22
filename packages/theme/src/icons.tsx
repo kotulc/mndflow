@@ -82,6 +82,17 @@ const PATHS = {
   role_mapping: "M3.5 5h6M3.5 12h6M3.5 19h6M14.5 5h6M14.5 12h6M14.5 19h6M10.5 5l3 7M10.5 12l3 7",
   role_actor: "M12 3.5a3 3 0 1 0 0 6a3 3 0 1 0 0-6zM5.5 20.5c0-4 3-6.5 6.5-6.5s6.5 2.5 6.5 6.5",
   role_external: "M3.5 6.5h17v11h-17z",
+  // **Code kinds** (2026-11-21), each worn by its definition's `card.icon` (defs `code`): a
+  // function's ƒ, a class's compartments, a module's page, an interface's lollipop, a
+  // component's tabs, a type's T, a value's =, a package's box.
+  code_function: "M8 20c2.2 0 2.8-1.5 3.3-4l1.9-9c.5-2.4 1.2-3.5 3.3-3.5M8.5 10.5h7.5",
+  code_class: "M5 4.5h14v15H5zM5 9.5h14M5 14.5h14",
+  code_module: "M6 3.5h8l4 4v13H6zM14 3.5v4h4",
+  code_interface: "M3 12h9.5M15.5 12a3 3 0 1 0 6 0 3 3 0 1 0-6 0",
+  code_component: "M8 4h11v16H8zM5 8h6v3H5zM5 13h6v3H5z",
+  code_type: "M6 5h12M12 5v14",
+  code_value: "M6 9.5h12M6 14.5h12",
+  code_package: "M12 3.5l8 4v9l-8 4-8-4v-9zM4 7.5l8 4 8-4M12 11.5v9",
   role_flow: "M2.5 12h5M16.5 12h5M7.5 12L12 7.5 16.5 12 12 16.5zM19 9.5l2.5 2.5-2.5 2.5",
   // A state: a start dot, an arrow, and the rounded state it enters.
   role_state: "M1.75 12a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0-5 0M3.25 12a1 1 0 1 0 2 0 1 1 0 1 0-2 0M6.5 12h4.5M8.5 9l3 3-3 3M15 7h3.5a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H15a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3z",

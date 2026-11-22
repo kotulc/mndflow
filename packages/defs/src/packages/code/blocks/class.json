@@ -8,5 +8,5 @@
       { "name": "methods", "type": "text" }
     ]
   },
-  "settings": { "card": { "face": "table" }, "style": { "hue": 300 } }
+  "settings": { "card": { "icon": "code_class", "face": "table" }, "style": { "hue": 300 } }
 }

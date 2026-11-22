@@ -18,7 +18,7 @@ import { Icon, useZone, WorkspaceHeader } from "@mnd/theme";
 import { BAND as CANVAS_BAND, Stage, still, type Move, type Shot } from "@mnd/stage";
 import { Tray, useDisplay, useTray, type Offered } from "@mnd/tray";
 import { shot_of, type Camera } from "./camera";
-import { fit_of, showing_of, usePresent } from "./present";
+import { fit_of, showing_of, step_of, usePresent } from "./present";
 import { browser_files, browser_net } from "./ports";
 
 /** The three looks, each with the mark it wears. */
@@ -309,6 +309,8 @@ export function App({ storage, boot, opening }: {
   }, [present.on]);
   const showing = useMemo(() => showing_of(graph, view.layer, scene, present),
                           [graph, view.layer, scene, present.play, present.stop]);
+  const step = useMemo(() => step_of(graph, view.layer, present),
+                       [graph, view.layer, present.play, present.stop]);
   const fit = useMemo(() => fit_of(graph, view.layer, present),
                       [graph, view.layer, present.play, present.stop]);
   /** A box of the overview opened or closed by its toggle, kept for this layer. */
@@ -328,13 +330,13 @@ export function App({ storage, boot, opening }: {
   /** **Where the camera looks** (`camera.ts`): one shot from where the app is. A whole section's
    *  page follows its own pick. */
   const shot = useMemo(() => shot_of({
-    graph, scene, seq: opened_n, map, focus: focus_id, one, walked, as, fit,
+    graph, scene, seq: opened_n, map, focus: focus_id, one, walked, as, fit, step,
     reveal: as === "page" && system ? view.pick : aim,
     left: left?.seq === opened_n && scene.areas ? area_of(graph, scene, left.layer) : null,
     into: entering ? { area: entering.area, scene: own,
                               as: own ? camera_of(own, false) : "held" } : null,
   }), [graph, scene, opened_n, map, focus_id, one, walked, as, entered, entering, own, system,
-       view.pick, whole, diagram, aim, left, fit]);
+       view.pick, whole, diagram, aim, left, fit, step]);
   /** **The entered view takes over where the camera lands** in the chip it flew into. */
   const landed = (at: Shot) => {
     if (!at.into || !entering) return;

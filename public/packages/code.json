@@ -42,6 +42,9 @@
         "description": "What the system reaches at its edge: the file system, a command it runs, the framework hosting it. Drawn where a path's units touch it.",
         "order": 1,
         "settings": {
+          "card": {
+            "icon": "role_actor"
+          },
           "style": {
             "hue": 30
           }
@@ -64,6 +67,7 @@
         "order": 2,
         "settings": {
           "card": {
+            "icon": "code_class",
             "face": "table"
           },
           "style": {
@@ -127,6 +131,9 @@
         "description": "A group of modules that import mostly each other, found from the import graph: its modules, or its own components, are its parts.",
         "order": 3,
         "settings": {
+          "card": {
+            "icon": "code_component"
+          },
           "style": {
             "hue": 235
           }
@@ -160,6 +167,9 @@
         "description": "A function a module declares: what it takes and gives back, said by its signature.",
         "order": 4,
         "settings": {
+          "card": {
+            "icon": "code_function"
+          },
           "style": {
             "hue": 150
           }
@@ -175,6 +185,7 @@
         "order": 5,
         "settings": {
           "card": {
+            "icon": "code_interface",
             "face": "table"
           },
           "style": {
@@ -238,6 +249,9 @@
         "description": "A source file (a module, a compilation unit): its functions and values are its parts, the types it declares are definitions in the library, and its imports are its dependencies.",
         "order": 6,
         "settings": {
+          "card": {
+            "icon": "code_module"
+          },
           "style": {
             "hue": 260
           }
@@ -259,6 +273,9 @@
         "description": "A package of the project (a package, a crate, a namespace, a Django app): the modules under its folder, and what it imports from other packages.",
         "order": 7,
         "settings": {
+          "card": {
+            "icon": "code_package"
+          },
           "diagram": {
             "placing": "layered"
           },
@@ -277,6 +294,7 @@
         "order": 8,
         "settings": {
           "card": {
+            "icon": "code_type",
             "face": "table"
           },
           "style": {
@@ -304,6 +322,9 @@
         "description": "A constant or variable a module declares, and its type.",
         "order": 9,
         "settings": {
+          "card": {
+            "icon": "code_value"
+          },
           "style": {
             "hue": 45
           }

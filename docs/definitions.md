@@ -154,7 +154,7 @@
 | **placing** | how a diagram kind places what it holds, said by the kind (`diagram.placing`), never a block: `layered` (ranked by its relations: flows, states, models) or `treemap` (each block as large as what it holds, nested in its boxes); unsaid, **packed**: placed by its lines where they join its blocks, packed toward the canvas's shape where none do, in reading order. There is no `layout` setting (2026-11-06) |
 | **frame** / **wall** / **band** | a room's border, one of its four sides, and the margin the camera keeps round the focus |
 | **mark** | how a card or row reads, derived every draw: reference, missing, note, folder, interface, container, part (from a definition) |
-| **system mark** | what a card stands for, bottom right, at most two stacked: a stand-in's word (`Ref`, `Pkg`), **data** where it carries attributes or values |
+| **system mark** | bottom right, at most one: **data** where it carries attributes or values; a stand-in wears none of its own, only its target's (2026-11-21) |
 | **seat** / **anchor** | a place on a border a line may meet; a seat a relationship arrives at with no block behind it |
 
 

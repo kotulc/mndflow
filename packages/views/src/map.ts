@@ -759,6 +759,7 @@ function well_laid(graph: Graph, shown: readonly Id[], more: number, room: { w: 
     const swatch = swatch_of(graph, id);
     return { id, ...at, cell: cell_of(graph, id, members(graph, id).length > 0),
              role: role_of(graph, id), ...(swatch ? { swatch } : {}),
+             ...(look_of(graph, id).icon ? { icon: look_of(graph, id).icon } : {}),
              tint: tint_attrs(look_of(graph, id)) };
   });
   return { tiles, legible };

@@ -4,5 +4,5 @@
   "type": "block",
   "description": "A named data type (a type alias, a struct, a record, a dataclass): its fields are its attributes.",
   "def": {},
-  "settings": { "card": { "face": "table" }, "style": { "hue": 175 } }
+  "settings": { "card": { "icon": "code_type", "face": "table" }, "style": { "hue": 175 } }
 }

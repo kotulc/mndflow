@@ -130,6 +130,8 @@ presentations:
 
 **Started from any ▶** (2026-11-21): a chip's or card's header wears a ▶ (with a count where there are several); pressed on the map, it enters the chip and plays its first presentation; pressed in the tray, or on About's notes, it plays there. Starting switches the tray to its overview tab.
 
+**Where you are is always in sight** (the user, 2026-11-21): the card a step's line lands on is ringed with it as the current block, and **the camera moves as little as it can** (the user, 2026-11-21: centring was too much movement and lost the frame): the stop's view holds while the step's cards are in it, else glides (slower than a pick's flight) only as far as brings them in, never past the drawing's edges; a card drawn across a frame counts as the block it stands for, so the stop's fit holds it too.
+
 **The player** sits over the canvas's foot, as a video's controls do: a caption — the stop's title, then the step just shown, else the stop's summary — over one row: the stop before (⏮, ←), play or pause (▶ / ❚❚, space), the next step then the next stop (⏭, →), stop (■, Escape), the presentation's name and the stop's place, *into* and *out* where they apply, a dive's *resume*, and the pace. Clicking a part dives into it (it opens, the camera fits it); *resume* or Escape goes back. The camera fits calmly — never past 1.5× — and leaves the player's room below.
 
 **The tray** stays on the presentation's model while it plays, never following each stop's drawing, so nothing moves under the reader: its overview leads with the presentation's name and the stop's place, then the stop list, the stop playing opened in place on its summary and its steps as they appear, each read whole. A stop in the list goes to it.

@@ -681,6 +681,14 @@ function resolve_block(ctx: Ctx, id: Id, e: Entry): Id | undefined {
       + "names no block or definition here; keep the name plain and say what it stands for as "
       + "`of:`, a name in reach or a path from the package's root (`of: hc.api.models`)");
     b.of = hit ?? of;
+    /** **`of:` alone** (the user, 2026-11-21): unsaid, the kind follows what it names — a
+     *  definition makes a usage typed by it, any other block a stand-in for it. */
+    if (!e.type && !e.def && hit) {
+      if (graph.blocks[hit]?.def) {
+        b.type = hit;
+        delete b.of;
+      } else b.type = "reference";
+    }
   }
   if (e.def) {
     const attributes = (e.def.attributes ?? []).map((a) => (typeof a["type"] === "string"

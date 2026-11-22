@@ -1,9 +1,9 @@
 /** The explorer's rows: each section's header, then what it lists, laid out with depth, guides
  *  and folds. Pure, so a host can read the tree without drawing it. */
 
-import { alias_of, branch_of, children, KINDS, library_of,
+import { alias_of, branch_of, children, icon_named, KINDS, library_of,
          is_folder, is_notation, is_box, is_named, on_side,
-         role_of, setting_of, shown_name, tops_of,
+         role_of, shown_name, tops_of,
          type Block, type Cut, type Graph, type Id, type Lists, type Registry,
          type Role } from "@mnd/core";
 import { known, role_icon, type IconName } from "@mnd/theme";
@@ -77,8 +77,8 @@ export function under(graph: Graph, parent: Id | null) {
 /** The icon a block names with `card.icon`, where this set draws it: its own word first, then its
  *  definition's chain. */
 export function card_icon(graph: Graph, id: Id): IconName | undefined {
-  const said = setting_of(graph, id, "card")["icon"];
-  return typeof said === "string" && known(said) ? said : undefined;
+  const said = icon_named(graph, id);
+  return said && known(said) ? said : undefined;
 }
 
 /** The panel's rows: each section's header — a label, never chosen — then what it lists for the

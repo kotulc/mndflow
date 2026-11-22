@@ -144,8 +144,7 @@ export function showing_of(graph: Graph, layer: Id | null, scene: Scene,
   const { play, stop, on, home } = p;
   if (!play || !stop || layer !== on) return null;
   const drawn = new Set(scene.nodes.map((n) => n.id));
-  /** A block as the drawing draws it: itself, else the nearest block holding it that is. */
-  const lift = (id: Id) => [...path(graph, id)].reverse().find((b) => drawn.has(b.id))?.id;
+  const lift = (id: Id) => drawn_as(graph, drawn, id);
   if (play.dive) {
     const at = lift(play.dive);
     return { ring: at ? [at] : [], keep: [], lines: [], steps: null };
@@ -177,9 +176,34 @@ export function showing_of(graph: Graph, layer: Id | null, scene: Scene,
     ...scene.nodes.filter((n) => inside(n.id) || n.data.marks.includes("zone"))
       .map((n) => n.id)])];
   const last = shown[shown.length - 1];
-  return { ring: [...(at && !whole ? [at] : []), ...marks], keep, lines: drawn_lines,
+  /** **The current block** (the user, 2026-11-21): the card the step just lit lands on is ringed
+   *  with it, so where the presentation is reads at a glance. */
+  const landed = last?.relation ? lift(graph.edges[last.relation]?.to ?? "") : undefined;
+  return { ring: [...new Set([...(at && !whole ? [at] : []), ...marks,
+                              ...(landed ? [landed] : [])])], keep, lines: drawn_lines,
            steps: legs.length ? { blocks: [], lines: [], legs,
                                   ...(last?.relation ? {} : { still: true }) } : null };
+}
+
+/** **A block as a drawing draws it**: itself, else drawn across the frame (`@across:`), else
+ *  the nearest block holding it that is either. */
+export function drawn_as(graph: Graph, drawn: { has: (id: Id) => boolean }, id: Id): Id | undefined {
+  for (const b of [...path(graph, id)].reverse()) {
+    if (drawn.has(b.id)) return b.id;
+    if (drawn.has(`${ACROSS}${b.id}`)) return `${ACROSS}${b.id}`;
+  }
+  return undefined;
+}
+
+/** **What the camera follows** within a stop (the user, 2026-11-21): the step just shown — the
+ *  card its line lands on, then the one it leaves, or the block it marks. Null before the first
+ *  step, in a dive, and off the stop's drawing. */
+export function step_of(graph: Graph, layer: Id | null, p: Presenting): Id[] | null {
+  const { play, stop, on } = p;
+  if (!play || !stop || layer !== on || play.dive || !play.shown) return null;
+  const last = (stop.steps ?? [])[Math.min(play.shown, stop.steps?.length ?? 0) - 1];
+  const e = last?.relation ? graph.edges[last.relation] : undefined;
+  return e ? [e.to, e.from] : last?.mark ? [last.mark] : null;
 }
 
 /** **What the camera fits** at a stop: a dive's part; else the stop's `fit`, else its block and

@@ -4,5 +4,5 @@
   "type": "block",
   "description": "A shape of data with no behaviour of its own (an interface, a protocol, a trait): its fields are its attributes, what it extends is its type.",
   "def": {},
-  "settings": { "card": { "face": "table" }, "style": { "hue": 190 } }
+  "settings": { "card": { "icon": "code_interface", "face": "table" }, "style": { "hue": 190 } }
 }

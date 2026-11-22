@@ -33,6 +33,8 @@ export type Shot = {
   into?: { scene: Scene; shot: Shot } | null;
   /** A new count lands again, the same shot or not. */
   seq?: number;
+  /** Flown slower and calmer: a presentation following its steps. */
+  glide?: boolean;
 };
 
 /** How much room there is to draw in, and the frame the focus draws as. */
@@ -152,8 +154,10 @@ function landed(shot: Shot, scene: Scene, seen: Seen, base: Viewport | null): Vi
   if (shot.page) return page_on(scene, seen, shot.page, shot.reveal ?? null, base);
   if (shot.into) {
     const { scene: next, shot: then } = shot.into;
-    const r = on_screen(then.page || !then.box ? anchor_of(then, next, seen) : then.box,
-                        landed(then, next, seen, null));
+    /** The chip stands for the whole drawing entered: it is flown to where that drawing will
+     *  stand once cut to, never to the box the next shot fits (2026-11-21: a stop's fit, with
+     *  its margin and the player's room, landed short, then jumped). */
+    const r = on_screen(anchor_of(then, next, seen), landed(then, next, seen, null));
     return fit_into(shot.box ?? whole_of(scene), clipped(r, seen));
   }
   const at = base ?? view_on(shot.box ?? whole_of(scene), seen, shot.box?.scale ?? 1);
@@ -218,7 +222,8 @@ export function useCamera(scene: Scene, shot: Shot, seen: Seen,
       ? fit_into(shot.from, clipped(on_screen(before.anchor, flow.getViewport()), seen)) : null;
     /** A new shot on the same drawing flies; a view resized or a drawing that grew lands at once. */
     const asked = before && (before.fit !== now_fit || before.reveal !== reveal);
-    const fly = motion && (start || (!cut && asked && before!.seen === view)) ? FLIGHT : 0;
+    const fly = motion && (start || (!cut && asked && before!.seen === view))
+      ? FLIGHT * (shot.glide ? 2 : 1) : 0;
     clearTimeout(landing.current);
     going.current = fly ? to : null;
     if (start) void flow.setViewport(start);

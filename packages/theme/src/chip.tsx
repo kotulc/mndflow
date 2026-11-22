@@ -8,7 +8,7 @@
 import type { CSSProperties } from "react";
 import type { FactsData } from "./facts";
 import { Header } from "./header";
-import { Icon, role_icon } from "./icons";
+import { Icon, known, role_icon } from "./icons";
 import { Swatch, type SwatchAttrs } from "./swatch";
 
 /** A colour alone, as the card table reads it. */
@@ -24,7 +24,9 @@ export type ChipTile = { id: string; label: string; x: number; y: number; w: num
                          more?: boolean;
                          /** What sort of thing it is: the icon right of its name, or, a relation
                           *  definition, its swatch. */
-                         role?: string; swatch?: SwatchAttrs };
+                         role?: string; swatch?: SwatchAttrs;
+                         /** The icon its definition names, worn over its role's. */
+                         icon?: string };
 
 /** What a chip draws. */
 export type ChipData = {
@@ -96,7 +98,8 @@ function Well({ top, cell, tiles, lit }: { top: number; cell: ChipCell;
                          ...(t.tint?.style ?? {}) } as CSSProperties}>
             {t.label ? <span className="mnd-well-name">{t.label}</span> : null}
             {t.label && t.swatch ? <Swatch {...t.swatch} className="mnd-well-icon" />
-              : t.label && t.role ? <Icon name={role_icon(t.role)} className="mnd-well-icon" />
+              : t.label && (t.icon || t.role) ? <Icon className="mnd-well-icon"
+                  name={t.icon && known(t.icon) ? t.icon : role_icon(t.role)} />
               : null}
           </span>
         ))}

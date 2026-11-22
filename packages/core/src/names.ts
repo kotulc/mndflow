@@ -1,11 +1,11 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
 import { attributes_of, base_named, base_of, def_at, def_of, diagram_kind, domain_of, edge_base,
-         frozen, is_model, notation_of, relation_base, tags_stated } from "./defs";
+         frozen, is_model, notation_of, relation_base, setting_of, tags_stated } from "./defs";
 import { behaviours_of } from "./ends";
 import { inline, is_flat, shape_of } from "./holders";
 import { entry_at } from "./library";
-import { children, is_container, is_interface, of_ref, port_at, ports_on, resolved,
+import { children, is_container, is_interface, object_of, of_ref, port_at, ports_on, resolved,
          stands_for, stood_def } from "./tree";
 import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
@@ -111,7 +111,8 @@ function line_kind(graph: Graph, id: Id): string {
 /** What sort of thing a card is, as the icon it wears in its top corner. A person may set their
  *  own over it with `card.icon`; this is what it draws when nobody has. */
 export type Role = "block" | "model" | "folder" | "reference" | "interface" | "group" | "grid" | "note"
-  | "label" | "region" | "start" | "end" | "decision" | "line" | "tie" | Diagram;
+  | "label" | "region" | "start" | "end" | "decision" | "actor" | "external" | "line" | "tie"
+  | Diagram;
 
 /** A diagram kind, as the role its card reads as. */
 export type Diagram = "context" | "flow" | "dataflow" | "state" | "sequence" | "swimlane"
@@ -119,13 +120,18 @@ export type Diagram = "context" | "flow" | "dataflow" | "state" | "sequence" | "
 
 /** Every base that draws as itself. */
 const ROLES: readonly string[] = ["block", "model", "folder", "reference", "note", "label", "group",
-                                  "region", "grid", "start", "end", "decision"];
+                                  "region", "grid", "start", "end", "decision", "actor",
+                                  "external"];
 
 /** A diagram wears its kind, a block that holds the mark of its shape, whatever kind it descends
  *  from; a stand-in for a definition wears its usages' role; **a relation definition wears its
  *  base's** — a line or a tie — the one icon its card, chip, well cell and explorer row show. */
 export function role_of(graph: Graph, id: Id): Role {
   if (is_interface(graph, id)) return "interface";
+  /** **A reference wears what it stands for** (2026-11-21): a sequence's participant reads as
+   *  the actor or part it is; its card's `ref` stamp says it is a stand-in. */
+  const target = standing(graph, id);
+  if (target !== id) return role_of(graph, target);
   if (graph.blocks[id]?.def && domain_of(graph, id) === "relation") {
     return relation_base(graph, id) as Role;
   }
@@ -140,6 +146,24 @@ export function role_of(graph: Graph, id: Id): Role {
   if (mark && ROLES.includes(mark)) return mark as Role;
   const base = stood ? base_named(graph, stood.id) ?? "block" : base_of(graph, id);
   return ROLES.includes(base) ? base as Role : "block";
+}
+
+/** What a block stands for, for its mark: a reference's target, or what a use names with `of:`
+ *  (`{name: Check, of: hc.api.models.Check}`); else itself. */
+function standing(graph: Graph, id: Id): Id {
+  const target = object_of(graph, id);
+  if (target !== id) return target;
+  const of = graph.blocks[id]?.of;
+  return of && of !== id && graph.blocks[of] ? of : id;
+}
+
+/** **The icon a block names with `card.icon`** (one mark per element): its own, else its
+ *  definition chain's; a reference's is what it stands for's (2026-11-21), as its role is. */
+export function icon_named(graph: Graph, id: Id): string | undefined {
+  const own = setting_of(graph, id, "card")["icon"];
+  if (typeof own === "string" && own) return own;
+  const target = standing(graph, id);
+  return target !== id ? icon_named(graph, target) : undefined;
 }
 
 /** What a card is, worked out from what it holds and never stored: a **diagram** holds a layer,
@@ -190,16 +214,16 @@ export function schema_def(graph: Graph, id: Id): Id | null {
   return own(b.type) ?? children(graph, id).map((k) => own(k.type)).find(Boolean) ?? null;
 }
 
-/** What a card is stamped with: what a stand-in stands in for (a block or a package), then — of the block it stands for,
- *  where it is one — whether it carries data. */
+/** What a card is stamped with: whether it carries data — of the block it stands for, where it
+ *  is a stand-in. */
 export function stamps_of(graph: Graph, id: Id): Mark[] {
   const b = graph.blocks[id];
   if (!b) return [];
   const out: Mark[] = [];
   const of = of_ref(graph, id);
   const at = of ? graph.blocks[of] : undefined;
-  /** A stand-in for a definition says so by its badge, never a mark. */
-  if (of && !at?.def) out.push(at?.parent === null ? "package" : "reference");
+  /** **A stand-in looks exactly as what it stands for** (the user, 2026-11-21): no mark says
+   *  it stands in; its hover and the tray say what for and where it lives. */
   const self = at && at.id !== id ? at : b;
   if (self.values?.some((v) => v.value) || attributes_of(graph, self.def ? self.id : self.type).length) {
     out.push("data");

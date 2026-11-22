@@ -9,5 +9,5 @@
       { "name": "exported", "type": "flag" }
     ]
   },
-  "settings": { "style": { "hue": 45 } }
+  "settings": { "card": { "icon": "code_value" }, "style": { "hue": 45 } }
 }

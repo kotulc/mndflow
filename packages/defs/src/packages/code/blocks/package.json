@@ -8,5 +8,5 @@
       { "name": "version", "type": "text" }
     ]
   },
-  "settings": { "diagram": { "placing": "layered" }, "style": { "hue": 210 } }
+  "settings": { "card": { "icon": "code_package" }, "diagram": { "placing": "layered" }, "style": { "hue": 210 } }
 }

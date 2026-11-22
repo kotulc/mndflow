@@ -203,6 +203,9 @@ export function size_of(graph: Graph, id: Id, face: Face = face_of(graph, id),
   if (!b) return BLOCK;
   if (is_interface(graph, b.id)) return PORT;
   if (b.w !== undefined && b.h !== undefined && free_height(graph, id)) return { w: b.w, h: b.h };
+  /** **A grid's cell holds a standard card** (the user, 2026-11-21), a reference too: its name
+   *  wraps inside it, never widening the column. */
+  if (gridded(graph, id) && !card_shape(graph, id)) return { ...BLOCK };
   /** A reference to a block previews it, at its size, with the face where it sits. */
   const source = resolved(graph, id).card;
   if (source !== id && !is_grid(graph, source)) return size_of(graph, source, face, card);
